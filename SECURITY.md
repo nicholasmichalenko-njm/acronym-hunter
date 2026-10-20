@@ -1,6 +1,6 @@
 # Acronym Hunter: Security and Data-Handling Statement
 
-**Version covered:** 1.1.1 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
+**Version covered:** 1.1.2 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
 **Verified:** 2026-10-20 (v1.0.1 live test; v1.0.2 added tiled OCR and the OCR Fixes window; v1.0.3 hardened XML parsing and capped embedded image size; no new file locations or network code) on the developer's Windows PC, from a fresh unzip of the shipped zip
 **Audience:** users, security and IT reviewers
 
@@ -78,6 +78,8 @@ choose in the save dialog.
 **Actions that hand off to another program (user click only):** *Edit Database CSV* opens `acronym_database.csv` in your
 default spreadsheet program (usually Excel), which then behaves like any Excel session (see section 6). *Region Trainer*
 starts `AcronymHunterTrainer.exe` from the same folder; it shares the same network block and folder rules.
+The Trainer and its button exist only in the optional `AcronymHunter_WithTrainer.zip` package; the standard
+`AcronymHunter_Portable.zip` contains the scanner only.
 *Open Training Folder* opens `training_data\` in File Explorer.
 
 Temporary-file redirection: the app sets `TEMP`, `TMP`, and `TMPDIR` to `_local_sandbox\temp` before loading

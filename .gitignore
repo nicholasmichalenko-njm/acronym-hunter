@@ -13,3 +13,7 @@ _verify/
 
 # Training samples are crops of real documents: may be sensitive. Never commit.
 training_data/
+
+# Scanner + Trainer package: rebuilt by build.ps1; not committed to save Git LFS storage (about 120 MB per build).
+# The shareable scanner-only package, AcronymHunter_Portable.zip, IS committed.
+AcronymHunter_WithTrainer.zip

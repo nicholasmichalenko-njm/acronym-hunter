@@ -1019,6 +1019,11 @@ def save_settings(data):
     except Exception:
         pass
 
+def trainer_available():
+    if getattr(sys, "frozen", False):
+        return os.path.exists(os.path.join(BASE_DIR, "AcronymHunterTrainer.exe"))
+    return os.path.exists(os.path.join(BASE_DIR, "trainer_gui.py"))
+
 class AcronymAppGUI(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -1059,8 +1064,9 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_fixes = ctk.CTkButton(top, text="OCR Fixes", command=self.open_fix_manager, fg_color="#7C3AED", width=120, height=36)
         self.btn_fixes.pack(side="right", padx=5, pady=10)
 
-        self.btn_trainer = ctk.CTkButton(top, text="Region Trainer", command=self.open_trainer, fg_color="#0F766E", width=130, height=36)
-        self.btn_trainer.pack(side="right", padx=5, pady=10)
+        if trainer_available():   # only in the "WithTrainer" package (or when run from source)
+            self.btn_trainer = ctk.CTkButton(top, text="Region Trainer", command=self.open_trainer, fg_color="#0F766E", width=130, height=36)
+            self.btn_trainer.pack(side="right", padx=5, pady=10)
 
         self.status = ctk.CTkLabel(self, text="Ready. 100% Local Sandbox Active (_local_sandbox).", font=("Arial", 13))
         self.status.pack(pady=(0, 4))

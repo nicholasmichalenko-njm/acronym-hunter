@@ -1,6 +1,6 @@
 # Acronym Hunter: Complete Overview
 
-**Version:** 1.1.1 | **Updated:** 2026-10-20 | **Platform:** Windows 10/11, 64-bit
+**Version:** 1.1.2 | **Updated:** 2026-10-20 | **Platform:** Windows 10/11, 64-bit
 
 This document has two parts.
 **Part 1** explains the whole application in plain language: what it is, what is inside it, how it works,
@@ -53,7 +53,12 @@ AcronymHunter\
   training_data\             Training samples you save in the Trainer (created on first save)
 ```
 
-The two programs share the same engine in `_internal\`, so the Trainer adds only a few MB.
+**Two packages from one build:**
+- `AcronymHunter_Portable.zip`: the scanner only. This is the one to share.
+- `AcronymHunter_WithTrainer.zip`: scanner plus Trainer, for whoever curates OCR fixes and training samples.
+
+Both programs share the same engine in `_internal\`, so the Trainer adds only about 8 MB. In the scanner-only
+package the Region Trainer button is hidden.
 
 Nothing is installed. Nothing is added to the Start menu, Program Files, or Windows settings.
 Unzip it, run it, delete it.
@@ -115,7 +120,7 @@ All are open-source libraries. All run inside the app's own process. None of the
 ## 7. The Trainer: point at what was missed
 
 `AcronymHunterTrainer.exe` (or the **Region Trainer** button in the scanner) is a second program for the
-cases where the scanner missed something in a picture.
+cases where the scanner missed something in a picture. It ships only in `AcronymHunter_WithTrainer.zip`.
 
 1. **Open File** and pick the document or image. The left list shows every page (PDF) or embedded picture
    (PowerPoint, Word, Excel) with its slide or section.
@@ -184,7 +189,7 @@ contents. Part 2, section 12 lists them and how IT normally controls them.
 
 | Attribute | Answer |
 |---|---|
-| Deployment model | Portable folder with two programs (scanner, Trainer) sharing one engine; no installer, no services, no drivers |
+| Deployment model | Portable folder; no installer, no services, no drivers. Standard package: scanner only. Optional WithTrainer package adds the Trainer, sharing the same engine |
 | Network access | None. No outbound or inbound connections; runtime block on sockets and DNS |
 | Data transmission | None |
 | Data storage | Only inside the application folder; user-chosen export location for reports |

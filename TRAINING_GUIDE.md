@@ -116,7 +116,8 @@ Rules:
 
 ## 5b. The Trainer: re-read a missed spot and save training samples
 
-Use it when the scanner missed or misread text in a picture.
+Use it when the scanner missed or misread text in a picture. It ships in `AcronymHunter_WithTrainer.zip`
+(built by `build.ps1`), not in the standard scanner-only zip.
 
 1. Open `AcronymHunterTrainer.exe`, or click **Region Trainer** in the scanner.
 2. **Open File**. Pick the page (PDF) or picture (PowerPoint, Word, Excel) in the left list.

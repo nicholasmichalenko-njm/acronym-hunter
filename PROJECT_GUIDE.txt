@@ -9,8 +9,12 @@ Nothing else is required. Every item below has one job.
 WHAT IS IN THIS FOLDER
 ----------------------
 
-AcronymHunter_Portable.zip  (117 MB)
-  The finished app. This is the only file you share.
+AcronymHunter_Portable.zip  (about 115 MB)
+  The finished app, scanner only. This is the file you share.
+
+AcronymHunter_WithTrainer.zip  (about 123 MB, created by build.ps1, NOT committed to Git)
+  Scanner plus AcronymHunterTrainer.exe, for your own use curating OCR fixes and training samples.
+  Not committed to save Git LFS storage; rebuild it any time with build.ps1.
   Recipients unzip it and double-click AcronymHunter.exe. No install, no network, no admin rights.
   Kept because: it is the deliverable. Rebuilding it takes about 2 minutes, so it is
   replaceable, but keeping it means you can share without rebuilding.
@@ -82,7 +86,7 @@ AcronymHunter.spec
   Kept because: without it, a rebuild brings back the crash and the bloat.
 
 build.ps1
-  One-step rebuild. Builds the exe, copies in acronym_database.csv and README.txt,
+  One-step rebuild. Builds both programs once and produces both zips. Copies in acronym_database.csv and README.txt,
   removes logs and scratch files, scans the result with Microsoft Defender (stops if
   anything is flagged), writes checksums, creates AcronymHunter_Portable.zip, and deletes
   its own temporary folders.
