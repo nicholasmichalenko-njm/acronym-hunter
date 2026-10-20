@@ -1,7 +1,7 @@
 # Acronym Hunter: Security and Data-Handling Statement
 
-**Version covered:** 1.0.1 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
-**Verified:** 2026-10-20 on the developer's Windows PC, from a fresh unzip of the shipped zip
+**Version covered:** 1.0.2 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
+**Verified:** 2026-10-20 (v1.0.1 live test; v1.0.2 adds tiled OCR and the OCR Fixes window, no new file locations or network code) on the developer's Windows PC, from a fresh unzip of the shipped zip
 **Audience:** users, security and IT reviewers
 
 ---
@@ -61,7 +61,7 @@ Complete list from a line-by-line audit of `app_gui.py` (every `open(... "w"/"a"
 | Path (inside the app folder) | Contents | When | Sensitive? |
 |---|---|---|---|
 | `acronym_database.csv` | Terms and definitions | Include / Exclude buttons | Contains terms you add |
-| `config\ocr_corrections.csv` | Misread to correct-term pairs | Fix OCR button | Contains terms you add |
+| `config\ocr_corrections.csv` | Misread to correct-term pairs | Fix OCR button, OCR Fixes window | Contains terms you add |
 | `logs\error.log` | Error messages and **file paths** | Only when something fails | File names/paths |
 | `logs\selftest.txt` | Scan results | Only with `--selftest` | Terms found |
 | `_local_sandbox\settings.json` | Text size, last folder used | When you change them | Folder path |

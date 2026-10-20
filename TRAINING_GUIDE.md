@@ -19,7 +19,7 @@ The app reads a file in three layers. Each layer fails differently and has diffe
 **Rule of thumb:** if the Location does not mention an image, OCR is not the problem.
 Fix it with the database, the corrections file, or matching rules (sections 4, 5, 10).
 
-Current score on `test_samples` (v1.0.1): **92.5% of expected terms found, 6 of 8 known noise words still reported.**
+Current score on `test_samples` (v1.0.2): **93.2% of expected terms found (41 of 44), 6 of 8 known noise words still reported.**
 The 3 misses and 6 false alarms break down as: 2 matching-rule gaps, 1 OCR miss, 6 matching-rule noise.
 Matching rules are the biggest remaining lever.
 
@@ -78,13 +78,20 @@ RFF,RFP,F/P misread seen in test samples
 C0PV,COPV,zero read for letter O
 ```
 
-**From the app (fastest):**
+**From the results table (fastest):**
 1. Select the misread row (for example `RFF`).
 2. Type the correct term (`RFP`) in the box.
 3. Click **Fix OCR**. The row turns to "OCR fix saved".
 4. Rescan. The term is reported under `RFP`, and its location is tagged `[OCR fix: RFF]`.
 
-**By hand:** open the CSV in Notepad or Excel, add a line, save, rescan. No restart needed.
+**View, edit, or undo fixes:** click **OCR Fixes** (top right). The window lists every saved fix.
+- **Add / Update:** type a misread and its correct term, click Add / Update. An existing misread is updated in place.
+- **Edit:** click a line to load it into the boxes, change it, click Add / Update.
+- **Delete Selected:** removes the highlighted line.
+- **Undo Last Entry:** removes the most recently added line (use it right after an accidental Fix OCR).
+Changes save immediately and apply on the next scan.
+
+**By hand:** open `config\ocr_corrections.csv` in Notepad or Excel, edit, save, rescan. No restart needed.
 
 Rules:
 - Matching is exact and case-sensitive, one word per line (`RFF`, not `the RFF`).
@@ -112,6 +119,14 @@ Delete the file to return to built-in defaults.
 | `detect_box_thresh` | 0.5 | Faint text boxes missed (try 0.4) | Specks read as text | More noise |
 | `detect_unclip_ratio` | 1.6 | Words cut off at the edges | Neighboring lines merge | Merged lines |
 | `fuzzy_min_score` | 80 | Wrong "OCR fix" matches appear | Close misreads of long DB terms are missed | Fewer repairs |
+| `tile_large_images` | 1 | Keep 1: small text on large images is otherwise erased | Set 0 only to compare or to speed up scans of large, clean images | Large images take 2 to 3 times longer |
+| `tile_size_px` | 1800 | Rarely; keep under 2000 | Very small text on huge images (try 1200) | Smaller tiles = more passes |
+| `tile_overlap_px` | 300 | Words on tile edges come out split | Rarely | More duplicate work |
+
+**Why tiling matters:** the OCR engine shrinks any image whose longest side exceeds 2000 pixels before reading it.
+On a 6000-pixel drawing, 14-pixel labels shrink to about 5 pixels and vanish. Cropping the image by hand "fixed" it
+for the same reason. Tiling re-reads large images in overlapping full-resolution sections automatically.
+Measured on `Kestrel_Large_Diagram.png`: tiling off found 0 of 12 labels; tiling on found 12 of 12.
 
 **Step by step:**
 1. Run the scorer for a baseline:
@@ -130,6 +145,7 @@ Delete the file to return to built-in defaults.
 | `pdf_scan_dpi` 300 | **92.5%** | Adopted as the new default |
 | `detect_side_len` 1280 | 87.5% | Rejected |
 | dpi 300 + detect 1280 + `denoise_strength` 0 | 85.0% | Rejected: lost words in the whiteboard photo |
+| Tiled OCR added (v1.0.2), plus the large-drawing test file | **93.2%** (41 of 44) | Adopted. Full test scan 16 s to 37 s |
 
 ---
 
@@ -305,7 +321,9 @@ Large model files add to the zip size and to Git LFS storage.
 | Heading words or noise listed | **Exclude**; long term, F6 word list (section 10) |
 | Scanned PDF pages miss lines | `pdf_scan_dpi` 300 to 400 (section 6) |
 | Phone photos read badly | Keep `denoise_strength` 10 or higher; raise `contrast_clip` to 3 |
-| Small text in diagrams missed | `upscale_below_px` 1600 or `upscale_factor` 2.5 |
+| Small text on a large image missed, but found when you crop it | Confirm `tile_large_images` is 1; try `tile_size_px` 1200 |
+| Small text in small diagrams missed | `upscale_below_px` 1600 or `upscale_factor` 2.5 |
+| Fix OCR clicked by mistake | **OCR Fixes** button > **Undo Last Entry** |
 | Junk words from images | `min_confidence` 0.6 |
 | Characters consistently wrong in images | Try another `rec.onnx` (section 7) |
 | One recurring style always fails | Fine-tune (section 8) |

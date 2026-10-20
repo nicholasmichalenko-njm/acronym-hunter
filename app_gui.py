@@ -142,7 +142,11 @@ OCR_DEFAULTS = {
     "detect_box_thresh": 0.5,     # lower finds fainter text boxes (more noise)
     "detect_unclip_ratio": 1.6,   # how far each detected text box is expanded
     "fuzzy_min_score": 80,        # RapidFuzz score (0-100) to accept an OCR near-miss of a DB term
+    "tile_large_images": 1,       # 1 = read large images in overlapping tiles so small text is not shrunk away
+    "tile_size_px": 1800,         # tile edge; keep under 2000 (the OCR engine shrinks anything larger)
+    "tile_overlap_px": 300,       # overlap so words on a tile edge are read whole in the next tile
 }
+OCR_ENGINE_MAX_SIDE = 2000        # RapidOCR downsizes images whose longest side exceeds this
 
 def load_ocr_settings():
     cfg = dict(OCR_DEFAULTS)
@@ -359,14 +363,48 @@ def note_skip(label, reason):
     if (label, reason) not in _SKIPPED:
         _SKIPPED.append((label, reason))
 
+def _ocr_lines(img, x_off=0, y_off=0):
+    """[(x0, y0, x1, y1, text)] for lines at or above min_confidence, in full-image coordinates."""
+    result, _ = get_ocr()(img)
+    out = []
+    for box, text, conf in (result or []):
+        if float(conf) < float(OCR_CFG["min_confidence"]) or not str(text).strip():
+            continue
+        xs = [pt[0] for pt in box]; ys = [pt[1] for pt in box]
+        out.append((min(xs) + x_off, min(ys) + y_off, max(xs) + x_off, max(ys) + y_off, str(text)))
+    return out
+
+def _tile_starts(length, tile, step):
+    if length <= tile:
+        return [0]
+    starts = list(range(0, length - tile + 1, step))
+    if starts[-1] != length - tile:
+        starts.append(length - tile)
+    return starts
+
 def _ocr_raw(image_bytes):
     clean_img = enhance_image_for_ocr(image_bytes)
     if clean_img is None:
         return ""
-    result, _ = get_ocr()(clean_img)
-    if not result:
-        return ""
-    return " ".join(line[1] for line in result if float(line[2]) >= float(OCR_CFG["min_confidence"]))
+    lines = _ocr_lines(clean_img)          # whole-image pass (large text, layout)
+    h, w = clean_img.shape[:2]
+    tile, over = int(OCR_CFG["tile_size_px"]), int(OCR_CFG["tile_overlap_px"])
+    if OCR_CFG["tile_large_images"] and max(h, w) > OCR_ENGINE_MAX_SIDE and 0 <= over < tile:
+        # The engine shrank this image; re-read it in full-resolution tiles so small text survives.
+        tiled = []
+        for y in _tile_starts(h, tile, tile - over):
+            for x in _tile_starts(w, tile, tile - over):
+                tiled += _ocr_lines(clean_img[y:y + tile, x:x + tile], x, y)
+        kept = list(lines)
+        for item in sorted(tiled, key=lambda t: -len(t[4])):   # longest reading of a line wins
+            cx, cy, txt = (item[0] + item[2]) / 2, (item[1] + item[3]) / 2, item[4]
+            duplicate = any(k[0] - 10 <= cx <= k[2] + 10 and k[1] - 10 <= cy <= k[3] + 10
+                            and (txt in k[4] or k[4] in txt) for k in kept)
+            if not duplicate:
+                kept.append(item)
+        lines = kept
+    lines.sort(key=lambda t: (round(t[1] / 20), t[0]))
+    return "\n".join(t[4] for t in lines)
 
 def read_image_bytes(image_bytes):
     key = hashlib.sha1(image_bytes).hexdigest()
@@ -864,7 +902,28 @@ def read_db_rows():
                              r.get("Definition") or "", r.get("Action") or "Include"])
     return rows
 
-DB_LOCKED_MSG = "acronym_database.csv is open in another program (usually Excel). Close it and try again."
+DB_LOCKED_MSG = "A file the app needs is open in another program (usually Excel). Close it and try again."
+
+def read_ocr_fix_rows():
+    rows = []
+    try:
+        with open(OCR_FIXES_FILE, "r", encoding="utf-8-sig") as f:
+            for r in csv.DictReader(f):
+                wrong, right = (r.get("Misread") or "").strip(), (r.get("Correct") or "").strip()
+                if wrong or right:
+                    rows.append([wrong, right, (r.get("Note") or "").strip()])
+    except FileNotFoundError:
+        pass
+    return rows
+
+def write_ocr_fix_rows(rows):
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    tmp = OCR_FIXES_FILE + ".tmp"
+    with open(tmp, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["Misread", "Correct", "Note"])
+        w.writerows(rows)
+    os.replace(tmp, OCR_FIXES_FILE)
 
 def update_csv_exclusion(term, cat, reason):
     rows = []
@@ -951,6 +1010,9 @@ class AcronymAppGUI(ctk.CTk):
 
         self.btn_db = ctk.CTkButton(top, text="Edit Database CSV", command=lambda: self.open_file(DB_FILE), fg_color="#475569", width=160, height=36)
         self.btn_db.pack(side="right", padx=5, pady=10)
+
+        self.btn_fixes = ctk.CTkButton(top, text="OCR Fixes", command=self.open_fix_manager, fg_color="#7C3AED", width=120, height=36)
+        self.btn_fixes.pack(side="right", padx=5, pady=10)
 
         self.status = ctk.CTkLabel(self, text="Ready. 100% Local Sandbox Active (_local_sandbox).", font=("Arial", 13))
         self.status.pack(pady=(0, 4))
@@ -1302,6 +1364,79 @@ class AcronymAppGUI(ctk.CTk):
             tag = "resolved"
         self.tree.item(self.selected_term, values=(self.selected_term, data["category"], data["count"], data["status"], data["selected_definition"], "; ".join(data["locations"])), tags=(tag,))
 
+    def open_fix_manager(self):
+        """View, add, edit, delete, and undo entries in config\\ocr_corrections.csv."""
+        if getattr(self, "fix_win", None) is not None and self.fix_win.winfo_exists():
+            self.fix_win.focus(); return
+        win = ctk.CTkToplevel(self); self.fix_win = win
+        win.title("OCR Fixes - config\\ocr_corrections.csv")
+        win.geometry("760x520"); win.minsize(620, 400)
+        win.transient(self); win.after(100, win.lift)
+
+        ctk.CTkLabel(win, text="Each line turns an OCR misread into the correct term on the next scan.",
+                     anchor="w").pack(fill="x", padx=14, pady=(12, 4))
+        frame = ctk.CTkFrame(win); frame.pack(fill="both", expand=True, padx=14, pady=4)
+        frame.grid_rowconfigure(0, weight=1); frame.grid_columnconfigure(0, weight=1)
+        tree = ttk.Treeview(frame, columns=("misread", "correct", "note"), show="headings", selectmode="browse")
+        for cid, label, width in (("misread", "Misread", 160), ("correct", "Correct term", 160), ("note", "Note", 340)):
+            tree.heading(cid, text=label); tree.column(cid, width=int(width * self.font_size / 11.0), anchor="w")
+        vsb = ttk.Scrollbar(frame, orient="vertical", command=tree.yview); tree.configure(yscrollcommand=vsb.set)
+        tree.grid(row=0, column=0, sticky="nsew"); vsb.grid(row=0, column=1, sticky="ns")
+
+        form = ctk.CTkFrame(win); form.pack(fill="x", padx=14, pady=6)
+        e_wrong = ctk.CTkEntry(form, placeholder_text="Misread (e.g. RFF)", width=150); e_wrong.pack(side="left", padx=4, pady=8)
+        e_right = ctk.CTkEntry(form, placeholder_text="Correct (e.g. RFP)", width=150); e_right.pack(side="left", padx=4, pady=8)
+        e_note = ctk.CTkEntry(form, placeholder_text="Note (optional)", width=220); e_note.pack(side="left", padx=4, pady=8)
+        status = ctk.CTkLabel(win, text="", anchor="w", text_color="gray"); status.pack(fill="x", padx=14)
+
+        def load():
+            tree.delete(*tree.get_children())
+            for i, row in enumerate(read_ocr_fix_rows()):
+                tree.insert("", "end", iid=str(i), values=row)
+        def rows_now():
+            return [list(tree.item(i, "values")) for i in tree.get_children()]
+        def save(rows, msg):
+            write_ocr_fix_rows(rows); load(); status.configure(text=msg + "  Rescan to apply.")
+        def on_pick(_e=None):
+            sel = tree.selection()
+            if not sel: return
+            wrong, right, note = (list(tree.item(sel[0], "values")) + ["", "", ""])[:3]
+            for ent, val in ((e_wrong, wrong), (e_right, right), (e_note, note)):
+                ent.delete(0, "end"); ent.insert(0, val)
+        def add_update():
+            wrong, right, note = e_wrong.get().strip(), e_right.get().strip(), e_note.get().strip()
+            if not wrong or not right or wrong == right:
+                status.configure(text="Enter a misread and a different correct term."); return
+            rows = rows_now()
+            for r in rows:
+                if r[0] == wrong:
+                    r[1], r[2] = right, note or r[2]
+                    save(rows, f"Updated: {wrong} > {right}."); return
+            rows.append([wrong, right, note or "Added in OCR Fixes window"])
+            save(rows, f"Added: {wrong} > {right}.")
+        def delete():
+            sel = tree.selection()
+            if not sel:
+                status.configure(text="Select a line to delete."); return
+            rows = rows_now(); gone = rows.pop(int(tree.index(sel[0])))
+            save(rows, f"Deleted: {gone[0]} > {gone[1]}.")
+        def undo_last():
+            rows = rows_now()
+            if not rows:
+                status.configure(text="Nothing to undo."); return
+            gone = rows.pop()
+            save(rows, f"Removed last entry: {gone[0]} > {gone[1]}.")
+
+        btns = ctk.CTkFrame(win); btns.pack(fill="x", padx=14, pady=(4, 12))
+        ctk.CTkButton(btns, text="Add / Update", width=120, command=add_update).pack(side="left", padx=4, pady=8)
+        ctk.CTkButton(btns, text="Delete Selected", width=130, fg_color="#DC2626", command=delete).pack(side="left", padx=4, pady=8)
+        ctk.CTkButton(btns, text="Undo Last Entry", width=130, fg_color="#64748B", command=undo_last).pack(side="left", padx=4, pady=8)
+        ctk.CTkButton(btns, text="Close", width=90, fg_color="#475569", command=win.destroy).pack(side="right", padx=4, pady=8)
+        tree.bind("<<TreeviewSelect>>", on_pick)
+        load()
+        win._fix_api = {"tree": tree, "wrong": e_wrong, "right": e_right, "note": e_note, "status": status,
+                        "add": add_update, "delete": delete, "undo": undo_last}   # used by automated tests
+
     def save_ocr_fix(self):
         """Record that the selected term is an OCR misread of the term typed in the box."""
         if not self.selected_term: return
@@ -1310,17 +1445,13 @@ class AcronymAppGUI(ctk.CTk):
             messagebox.showwarning("Fix OCR", "Type the correct term in the box first (for example RFP), then click Fix OCR.")
             return
         wrong = self.selected_term
-        os.makedirs(CONFIG_DIR, exist_ok=True)
-        is_new = not os.path.exists(OCR_FIXES_FILE)
-        with open(OCR_FIXES_FILE, "a", newline="", encoding="utf-8") as f:
-            w = csv.writer(f)
-            if is_new:
-                w.writerow(["Misread", "Correct", "Note"])
-            w.writerow([wrong, right, "Added from app"])
+        rows = [r for r in read_ocr_fix_rows() if r[0] != wrong]
+        rows.append([wrong, right, "Added with Fix OCR"])
+        write_ocr_fix_rows(rows)
         data = self.results[wrong]
         data["in_db"] = True
         data["status"] = f"🔧 OCR fix saved: {wrong} > {right}"
-        data["selected_definition"] = "Rescan to apply. Saved in config\\ocr_corrections.csv"
+        data["selected_definition"] = "Rescan to apply. View, edit, or undo with the OCR Fixes button."
         self.tree.item(wrong, values=(wrong, data["category"], data["count"], data["status"], data["selected_definition"], "; ".join(data["locations"])), tags=("resolved",))
         self.entry_def.delete(0, "end")
         self.entry_def.configure(state="disabled")

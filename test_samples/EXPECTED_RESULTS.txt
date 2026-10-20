@@ -7,7 +7,7 @@ HOW TO TEST
   1. Open AcronymHunter.exe.
   2. Click "Scan Folder" and pick this test_samples folder (or "Select Files" for one file).
   3. Compare the table against the checks below.
-  A full scan of all 8 files takes about 1 to 3 minutes (OCR is the slow part).
+  A full scan of all 9 files takes about 1 to 3 minutes (OCR is the slow part).
   Baseline from 2026-10-20 (v1.0.1): about 115 rows, including 2 "Not scanned" rows
   (the corrupt PDF and the linked picture on slide 15 of the large deck).
 
@@ -70,6 +70,11 @@ Kestrel_Compliance_Matrix.xlsx   Excel, 2 sheets
   Expect: KES, COPV, MEOP, EOL, TT&C, SOW, RFP, psi, kWh, w/o.
           SE&I from the Risk Register cells and "Risk Register, image 'Image 1' image1.png".
   Known gaps: "Add" and "Tank" show as unit candidates (word after a number). Noise.
+
+Kestrel_Large_Diagram.png   6000 x 4200 drawing with 14-pixel labels
+  Tests: tiled OCR. The OCR engine shrinks images over 2000 pixels, which erases small text.
+  Expect: PCU, RWA, MLI, LL, STE, GSE, EGSE, TVAC, FAT, PSR, NCR, CCB all found.
+          With "tile_large_images": 0 in config\ocr_settings.json, none of them are found.
 
 Kestrel_System_Diagram.png   Clean image
   Tests: OCR on a crisp block diagram.

@@ -23,6 +23,8 @@ READING THE RESULTS
 FIXING OCR MISREADS
   If a term in a picture is misread (RFF instead of RFP): select the row, type the correct term
   in the box, click "Fix OCR". Future scans report it correctly.
+  To review, edit, or undo fixes: click "OCR Fixes" (top right). "Undo Last Entry" reverses
+  an accidental Fix OCR.
 
 WHAT STAYS IN THIS FOLDER
   acronym_database.csv   Master list. Include / Exclude rules. Edit in the app or in Excel.

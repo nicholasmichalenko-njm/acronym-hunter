@@ -47,3 +47,7 @@ Kestrel_System_Diagram.png,ICD,found,clean image OCR
 Kestrel_Whiteboard_Photo.jpg,TRL,found,noisy photo OCR
 Kestrel_Whiteboard_Photo.jpg,SRR,found,noisy photo OCR
 Kestrel_Whiteboard_Photo.jpg,IMS,found,noisy photo OCR
+Kestrel_Large_Diagram.png,LL,found,14px label on a 6000px drawing; needs tiling
+Kestrel_Large_Diagram.png,PCU,found,14px label; needs tiling
+Kestrel_Large_Diagram.png,TVAC,found,14px label; needs tiling
+Kestrel_Large_Diagram.png,CCB,found,14px note line; needs tiling

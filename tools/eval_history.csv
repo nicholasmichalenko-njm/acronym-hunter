@@ -5,3 +5,4 @@ Date,Version,Folder,OCR models,Recall %,Missed,False alarms,New candidates,Rows,
 2026-10-20 12:21,1.0.1,test_samples,bundled PP-OCRv4,85.0,6,6,100,114,19,"dpi 300 + detect 1280 + denoise 0: lost whiteboard TRL and IMS, rejected"
 2026-10-20 12:23,1.0.1,test_samples,custom rec.onnx,92.5,3,6,100,114,15,"English-only en_PP-OCRv3 rec: fixed COPV p.8, lost TT&C. Tie, not adopted"
 2026-10-20 12:24,1.0.1,test_samples,custom rec.onnx,87.5,5,6,98,112,17,"ch_PP-OCRv4 rec SERVER (86 MB): worse on this set, rejected"
+2026-10-20 13:31,1.0.1,test_samples,bundled PP-OCRv4,93.2,3,6,118,133,37,"Tiled OCR for images over 2000 px (tile 1800, overlap 300); added Kestrel_Large_Diagram.png"
