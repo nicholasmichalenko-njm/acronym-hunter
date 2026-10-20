@@ -102,6 +102,9 @@ urllib.request.urlretrieve = _blocked_network
 import re
 import csv
 import json
+import io
+import codecs
+import unicodedata
 import tkinter.font as tkfont
 import zipfile
 import threading
@@ -124,6 +127,43 @@ except Exception:
     pass
 
 DB_FILE = os.path.join(BASE_DIR, "acronym_database.csv")
+
+# ---- Text encoding: read any common CSV encoding, always write UTF-8 with BOM (Excel-friendly) ----
+CSV_WRITE_ENCODING = "utf-8-sig"   # holds every Unicode character; the BOM tells Excel it is UTF-8
+
+def read_csv_rows(path):
+    """DictReader rows from a CSV saved as UTF-8 (with or without BOM), UTF-16 (Excel "Unicode Text",
+    tab-delimited), or legacy Windows-1252 ("CSV (Comma delimited)" from older Excel)."""
+    raw = open(path, "rb").read()
+    if raw.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
+        text = raw.decode("utf-16")
+    elif raw.startswith(codecs.BOM_UTF8):
+        text = raw[len(codecs.BOM_UTF8):].decode("utf-8")
+    else:
+        try:
+            text = raw.decode("utf-8")
+        except UnicodeDecodeError:
+            text = raw.decode("cp1252", errors="replace")
+            log_error(f"{os.path.basename(path)} is not UTF-8; read as Windows-1252. "
+                      "Symbols may be wrong: re-save it in Excel as 'CSV UTF-8 (Comma delimited)'.", with_traceback=False)
+    header = text.split("\n", 1)[0]
+    delimiter = "\t" if header.count("\t") > header.count(",") else ","
+    return list(csv.DictReader(io.StringIO(text, newline=""), delimiter=delimiter))
+
+# Look-alike characters that PDFs and Office mix freely; folded so a database term matches either form.
+_FOLD = str.maketrans({
+    "\u00b5": "\u03bc",   # micro sign -> Greek mu
+    "\u2126": "\u03a9",   # ohm sign -> Greek capital omega
+    "\u212b": "\u00c5",   # angstrom sign -> A with ring
+    "\u212a": "K",        # kelvin sign -> K
+    "\u2212": "-", "\u2010": "-", "\u2011": "-", "\u2013": "-",   # minus, hyphens, en dash -> hyphen
+    "\u00a0": " ", "\u202f": " ",                                  # non-breaking spaces -> space
+    "\ufb01": "fi", "\ufb02": "fl",                                # typographic ligatures
+})
+
+def fold(text):
+    """Unicode-normalize (NFC) and fold look-alike characters, applied to database terms and document text."""
+    return unicodedata.normalize("NFC", text).translate(_FOLD)
 
 # ---- User-tunable accuracy files (config\ folder beside the exe) ----
 CONFIG_DIR = os.path.join(BASE_DIR, "config")
@@ -168,11 +208,10 @@ def load_ocr_fixes():
     """Misread -> Correct pairs from config/ocr_corrections.csv. Re-read on every scan."""
     fixes = {}
     try:
-        with open(OCR_FIXES_FILE, "r", encoding="utf-8-sig") as f:
-            for row in csv.DictReader(f):
-                wrong, right = (row.get("Misread") or "").strip(), (row.get("Correct") or "").strip()
-                if wrong and right and wrong != right:
-                    fixes[wrong] = right
+        for row in read_csv_rows(OCR_FIXES_FILE):
+            wrong, right = fold((row.get("Misread") or "").strip()), fold((row.get("Correct") or "").strip())
+            if wrong and right and wrong != right:
+                fixes[wrong] = right
     except FileNotFoundError:
         pass
     except Exception:
@@ -216,7 +255,7 @@ if not os.path.exists(DB_FILE):
         ["III", "Noise", "Roman Numeral", "Exclude"],
         ["IV", "Noise", "Roman Numeral", "Exclude"],
     ]
-    with open(DB_FILE, "w", newline="", encoding="utf-8") as f:
+    with open(DB_FILE, "w", newline="", encoding=CSV_WRITE_ENCODING) as f:
         csv.writer(f).writerows(starter_rows)
 
 # RapidOCR loads lazily on first image (uses pre-bundled offline ONNX weights)
@@ -286,26 +325,25 @@ def load_database():
     if not os.path.exists(DB_FILE):
         return include_db, exclude_db, exclude_upper
 
-    with open(DB_FILE, "r", encoding="utf-8-sig") as f:
-        for row in csv.DictReader(f):
-            term = (row.get("Term") or "").strip()
-            cat = (row.get("Category") or "Acronym").strip()
-            defn = (row.get("Definition") or "").strip()
-            action = (row.get("Action") or "Include").strip().capitalize()
+    for row in read_csv_rows(DB_FILE):
+        term = fold((row.get("Term") or "").strip())
+        cat = (row.get("Category") or "Acronym").strip()
+        defn = (row.get("Definition") or "").strip()
+        action = (row.get("Action") or "Include").strip().capitalize()
 
-            if not term:
+        if not term:
+            continue
+
+        if action == "Exclude" or cat.lower() in {"exclude", "ignore", "noise"}:
+            exclude_db[term] = {"category": cat, "definition": defn or "Excluded by user rule"}
+            exclude_upper.add(term.upper())
+        else:
+            if not defn:
                 continue
-
-            if action == "Exclude" or cat.lower() in {"exclude", "ignore", "noise"}:
-                exclude_db[term] = {"category": cat, "definition": defn or "Excluded by user rule"}
-                exclude_upper.add(term.upper())
-            else:
-                if not defn:
-                    continue
-                if term not in include_db:
-                    include_db[term] = {"category": cat, "definitions": []}
-                if defn not in include_db[term]["definitions"]:
-                    include_db[term]["definitions"].append(defn)
+            if term not in include_db:
+                include_db[term] = {"category": cat, "definitions": []}
+            if defn not in include_db[term]["definitions"]:
+                include_db[term]["definitions"].append(defn)
 
     return include_db, exclude_db, exclude_upper
 
@@ -760,12 +798,13 @@ def analyze_batch(filepaths, status_callback):
     direct_pattern = None
     if all_terms:
         sorted_terms = sorted(all_terms, key=len, reverse=True)
-        direct_pattern = re.compile(r'(?<!\w)(' + '|'.join([re.escape(t) for t in sorted_terms]) + r")(?:'?s)?(?!\w)")
+        # (?<![^\W\d_]) = not preceded by a letter; digits may touch a unit (25°C, 10µm, 150psi)
+        direct_pattern = re.compile(r'(?<![^\W\d_])(' + '|'.join([re.escape(t) for t in sorted_terms]) + r")(?:'?s)?(?!\w)")
 
     fuzzy_targets = {t: t for t in include_db.keys() if len(t) >= 3 and t.isupper()}
 
     unknown_acronym_re = re.compile(r'\b([A-Z][A-Z0-9/&]{1,7}s?)\b')
-    unknown_unit_re = re.compile(r'(?<!\w)\d+(?:\.\d+)?\s*([a-zA-Z\u00b0\u03bc]{1,5}(?:/[a-zA-Z0-9\^]{1,4})?)\b')
+    unknown_unit_re = re.compile(r'(?<!\w)\d+(?:\.\d+)?\s*([a-zA-Z\u00b0\u03bc\u03a9\u00c5]{1,5}(?:/[a-zA-Z0-9\^]{1,4})?)(?!\w)')
     unknown_abbrev_re = re.compile(r'(?<!\w)([a-zA-Z]{1,4}/[a-zA-Z]{1,4}|[a-zA-Z]{2,6}\.)(?!\w)')
 
     findings = {}
@@ -786,6 +825,7 @@ def analyze_batch(filepaths, status_callback):
         for loc_label, text in chunks:
             if not text.strip():
                 continue
+            text = fold(text)
 
             # Gate 1 & 2: Unified Database (Exclusions & Inclusions)
             if direct_pattern:
@@ -895,7 +935,7 @@ def record_candidate(findings, term, cat, loc):
 def write_db_rows(rows):
     """Atomic rewrite: write a temp file beside the DB, then swap it in (no half-written DB)."""
     tmp = DB_FILE + ".tmp"
-    with open(tmp, "w", newline="", encoding="utf-8-sig") as f:
+    with open(tmp, "w", newline="", encoding=CSV_WRITE_ENCODING) as f:
         w = csv.writer(f)
         w.writerow(["Term", "Category", "Definition", "Action"])
         w.writerows(rows)
@@ -904,10 +944,9 @@ def write_db_rows(rows):
 def read_db_rows():
     rows = []
     if os.path.exists(DB_FILE):
-        with open(DB_FILE, "r", encoding="utf-8-sig") as f:
-            for r in csv.DictReader(f):
-                rows.append([(r.get("Term") or "").strip(), r.get("Category") or "Acronym",
-                             r.get("Definition") or "", r.get("Action") or "Include"])
+        for r in read_csv_rows(DB_FILE):
+            rows.append([(r.get("Term") or "").strip(), r.get("Category") or "Acronym",
+                         r.get("Definition") or "", r.get("Action") or "Include"])
     return rows
 
 DB_LOCKED_MSG = "A file the app needs is open in another program (usually Excel). Close it and try again."
@@ -915,11 +954,10 @@ DB_LOCKED_MSG = "A file the app needs is open in another program (usually Excel)
 def read_ocr_fix_rows():
     rows = []
     try:
-        with open(OCR_FIXES_FILE, "r", encoding="utf-8-sig") as f:
-            for r in csv.DictReader(f):
-                wrong, right = (r.get("Misread") or "").strip(), (r.get("Correct") or "").strip()
-                if wrong or right:
-                    rows.append([wrong, right, (r.get("Note") or "").strip()])
+        for r in read_csv_rows(OCR_FIXES_FILE):
+            wrong, right = (r.get("Misread") or "").strip(), (r.get("Correct") or "").strip()
+            if wrong or right:
+                rows.append([wrong, right, (r.get("Note") or "").strip()])
     except FileNotFoundError:
         pass
     return rows
@@ -927,7 +965,7 @@ def read_ocr_fix_rows():
 def write_ocr_fix_rows(rows):
     os.makedirs(CONFIG_DIR, exist_ok=True)
     tmp = OCR_FIXES_FILE + ".tmp"
-    with open(tmp, "w", newline="", encoding="utf-8") as f:
+    with open(tmp, "w", newline="", encoding=CSV_WRITE_ENCODING) as f:
         w = csv.writer(f)
         w.writerow(["Misread", "Correct", "Note"])
         w.writerows(rows)
@@ -937,13 +975,12 @@ def update_csv_exclusion(term, cat, reason):
     rows = []
     found = False
     if os.path.exists(DB_FILE):
-        with open(DB_FILE, "r", encoding="utf-8-sig") as f:
-            for r in csv.DictReader(f):
-                t = (r.get("Term") or "").strip()
-                if t == term:
-                    r["Action"] = "Exclude"
-                    found = True
-                rows.append([t, r.get("Category", "Acronym"), r.get("Definition", ""), r.get("Action", "Include")])
+        for r in read_csv_rows(DB_FILE):
+            t = (r.get("Term") or "").strip()
+            if fold(t) == fold(term):
+                r["Action"] = "Exclude"
+                found = True
+            rows.append([t, r.get("Category") or "Acronym", r.get("Definition") or "", r.get("Action") or "Include"])
     if not found:
         rows.append([term, cat.replace(" (Candidate)", ""), reason, "Exclude"])
     write_db_rows(rows)
@@ -1486,8 +1523,9 @@ class AcronymAppGUI(ctk.CTk):
             return
         data = self.results[self.selected_term]
         cat = data["category"].replace(" (Candidate)", "")
-        with open(DB_FILE, "a", newline="", encoding="utf-8") as f:
-            csv.writer(f).writerow([self.selected_term, cat, nd, "Include"])
+        rows = read_db_rows()
+        rows.append([self.selected_term, cat, nd, "Include"])
+        write_db_rows(rows)   # atomic rewrite in UTF-8; never mixes encodings by appending
         data["in_db"] = True
         data["excluded"] = False
         data["category"] = cat

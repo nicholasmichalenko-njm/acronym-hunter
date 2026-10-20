@@ -1,6 +1,6 @@
 # Acronym Hunter: Security and Data-Handling Statement
 
-**Version covered:** 1.1.0 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
+**Version covered:** 1.1.1 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
 **Verified:** 2026-10-20 (v1.0.1 live test; v1.0.2 added tiled OCR and the OCR Fixes window; v1.0.3 hardened XML parsing and capped embedded image size; no new file locations or network code) on the developer's Windows PC, from a fresh unzip of the shipped zip
 **Audience:** users, security and IT reviewers
 

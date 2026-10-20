@@ -52,6 +52,9 @@ DATABASE FORMAT (acronym_database.csv)
   SOW,Acronym,Statement of Work,Include
   CEO,Acronym,Chief Executive Officer,Exclude
   Close the CSV in Excel before clicking Include or Exclude in the app.
+  Symbols (°, µ, Ω, Δ, Cyrillic, math letters) are fully supported. In Excel, save with
+  File > Save As > "CSV UTF-8 (Comma delimited)". Avoid plain "CSV (Comma delimited)": it turns
+  symbols into "?". The app also reads "Unicode Text" (UTF-16) files, and re-saves them as UTF-8.
 
 VERIFY YOUR COPY (optional)
   CHECKSUM.txt holds the exe fingerprint. In PowerShell:

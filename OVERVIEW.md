@@ -1,6 +1,6 @@
 # Acronym Hunter: Complete Overview
 
-**Version:** 1.1.0 | **Updated:** 2026-10-20 | **Platform:** Windows 10/11, 64-bit
+**Version:** 1.1.1 | **Updated:** 2026-10-20 | **Platform:** Windows 10/11, 64-bit
 
 This document has two parts.
 **Part 1** explains the whole application in plain language: what it is, what is inside it, how it works,
@@ -235,6 +235,7 @@ contents. Part 2, section 12 lists them and how IT normally controls them.
 | Data at rest encryption | Not applied by the app. Relies on endpoint full-disk encryption (BitLocker) |
 | Data in transit | None exists |
 | Retention | User-controlled. Nothing is retained outside the folder. Deleting the folder removes all app data |
+| Text encoding | Database and corrections files are read as UTF-8, UTF-16, or Windows-1252 and always written as UTF-8 with BOM (full Unicode). Document text and terms are NFC-normalized with look-alike folding before matching |
 | Temporary files | `TEMP`, `TMP`, `TMPDIR` are redirected to `_local_sandbox\temp` before any library loads; folder emptied on exit and on next start |
 | Source documents modified? | Never. Opened read-only |
 | Clipboard, screenshots, keystrokes | Not accessed |

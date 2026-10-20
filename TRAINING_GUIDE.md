@@ -66,6 +66,18 @@ You already use this. Three habits make it work harder:
   and becomes a target for OCR repair (0/O, 1/I, 5/S, 8/B swaps and fuzzy matching only repair toward database terms).
 - **Exclude noise aggressively.** Each Exclude permanently removes that word from future candidate lists.
 - **Keep multiple definitions** (CDR = Critical Design Review / Call Detail Record). The app flags them for a choice instead of guessing.
+- **Symbols and other alphabets work.** Terms like `°C`, `µm`, `Ω`, `ΔV`, Cyrillic, or math letters are fine.
+  - The files are saved as UTF-8 with a byte-order mark, which holds every Unicode character (the same set
+    UTF-16 holds). UTF-16 is not needed.
+  - In Excel, save with **File > Save As > CSV UTF-8 (Comma delimited)**. Plain "CSV (Comma delimited)"
+    writes an old Windows encoding and turns symbols into `?`.
+  - The app still reads UTF-16 ("Unicode Text", tab-separated) and old Windows-encoded files, and converts
+    them to UTF-8 the next time it saves. A non-UTF-8 file adds a reminder to `logs\error.log`.
+  - Look-alike characters match each other: micro sign `µ` / Greek `μ`, ohm sign `Ω` / Greek `Ω`,
+    angstrom sign `Å` / `Å`, and the various hyphens and dashes. Results show the standard form.
+  - Units may touch numbers: `25°C`, `10µm`, and `150psi` all match their database terms.
+  - OCR can only return characters its model knows. The built-in model reads common symbols (°, μ, Ω)
+    but rare ones in pictures may come back wrong; use **Fix OCR** or the Trainer for those.
 
 ---
 
