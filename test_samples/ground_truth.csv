@@ -1,0 +1,49 @@
+File,Term,Expect,Note
+Kestrel_Large_Briefing.pptx,SOW,found,slide text
+Kestrel_Large_Briefing.pptx,MEOP,found,"table, slide 5"
+Kestrel_Large_Briefing.pptx,MOC,found,"grouped shape, slide 8"
+Kestrel_Large_Briefing.pptx,LEOP,found,"grouped shape, slide 8"
+Kestrel_Large_Briefing.pptx,QA,found,"chart title, slide 10"
+Kestrel_Large_Briefing.pptx,TRR,found,"chart category, slide 10"
+Kestrel_Large_Briefing.pptx,GNC,found,"OCR of embedded diagram, slide 12"
+Kestrel_Large_Briefing.pptx,RAAN,found,"OCR of embedded diagram, slide 12"
+Kestrel_Large_Briefing.pptx,FRR,found,hidden slide 20
+Kestrel_Large_Briefing.pptx,IMS,found,speaker notes
+Kestrel_Large_Briefing.pptx,NWO,found,logo OCR
+Kestrel_Large_Briefing.pptx,THIS,absent,text inside the LINKED picture must not be read
+Kestrel_Technical_Volume.docx,SOW,found,body
+Kestrel_Technical_Volume.docx,CDR,found,"body, ambiguous"
+Kestrel_Technical_Volume.docx,CUI,found,header
+Kestrel_Technical_Volume.docx,ITAR,found,footer
+Kestrel_Technical_Volume.docx,GSFC,found,OCR of embedded Figure 4
+Kestrel_Technical_Volume.docx,COPV,found,body
+Kestrel_Technical_Volume.docx,DFARS,found,body
+Kestrel_Technical_Volume.docx,psi,found,unit
+Kestrel_Technical_Volume.docx,approx.,found,abbreviation
+Kestrel_Technical_Volume.docx,RFP,found,also via ocr_corrections RFF>RFP
+Kestrel_Technical_Volume.docx,DoD,found,KNOWN GAP F4: mixed-case acronym
+Kestrel_Technical_Volume.docx,MIL-STD-882E,found,KNOWN GAP F4: hyphenated designator
+Kestrel_Technical_Volume.docx,RFF,absent,OCR misread; corrected to RFP by config/ocr_corrections.csv
+Kestrel_Technical_Volume.docx,SCOPE,absent,KNOWN GAP F6: all-caps heading word
+Kestrel_Technical_Volume.docx,WORK,absent,KNOWN GAP F6: all-caps heading word
+Kestrel_Technical_Volume.docx,award.,absent,"KNOWN GAP F5: sentence end, not an abbreviation"
+Kestrel_Program_Manual.pdf,VCRM,found,digital page 3
+Kestrel_Program_Manual.pdf,IMS,found,scanned page 7 OCR
+Kestrel_Program_Manual.pdf,GEVS,found,scanned page 7 OCR
+Kestrel_Program_Manual.pdf,COPV,found,scanned page 8 OCR
+Kestrel_Program_Manual.pdf,QA,found,scanned page 8 OCR
+Kestrel_Program_Manual.pdf,APPENDIX,absent,KNOWN GAP F6: heading word
+Kestrel_Program_Manual.pdf,SAFETY,absent,KNOWN GAP F6: heading word
+Kestrel_PDR_Briefing.pptx,C&DH,found,table
+Kestrel_PDR_Briefing.pptx,ADCS,found,diagram OCR
+Kestrel_PDR_Briefing.pptx,QA,found,speaker notes
+Kestrel_PDR_Briefing.pptx,MOC,found,grouped shape
+Kestrel_Compliance_Matrix.xlsx,KES,found,cells
+Kestrel_Compliance_Matrix.xlsx,SE&I,found,cells and embedded image
+Kestrel_Compliance_Matrix.xlsx,Add,absent,"word after a number, not a unit"
+Kestrel_System_Diagram.png,C&DH,found,clean image OCR
+Kestrel_System_Diagram.png,TT&C,found,clean image OCR
+Kestrel_System_Diagram.png,ICD,found,clean image OCR
+Kestrel_Whiteboard_Photo.jpg,TRL,found,noisy photo OCR
+Kestrel_Whiteboard_Photo.jpg,SRR,found,noisy photo OCR
+Kestrel_Whiteboard_Photo.jpg,IMS,found,noisy photo OCR

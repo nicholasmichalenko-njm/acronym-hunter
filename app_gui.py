@@ -16,13 +16,24 @@ BASE_DIR = get_base_dir()
 
 SANDBOX_DIR = os.path.join(BASE_DIR, "_local_sandbox")
 SANDBOX_TEMP = os.path.join(SANDBOX_DIR, "temp")
-for d in (SANDBOX_DIR, SANDBOX_TEMP):
-    os.makedirs(d, exist_ok=True)
+try:
+    for d in (SANDBOX_DIR, SANDBOX_TEMP):
+        os.makedirs(d, exist_ok=True)
+except OSError as _e:
+    import tkinter as _tk
+    from tkinter import messagebox as _mb
+    _r = _tk.Tk(); _r.withdraw()
+    _mb.showerror("Acronym Hunter cannot start",
+                  f"The app cannot write to its own folder:\n{BASE_DIR}\n\n"
+                  "Unzip the whole AcronymHunter folder to a location you can write to "
+                  "(for example Desktop or Documents), then run AcronymHunter.exe from there.\n\n"
+                  f"Details: {_e}")
+    sys.exit(1)
 
-os.environ["USERPROFILE"] = SANDBOX_DIR
-os.environ["HOME"] = SANDBOX_DIR
-os.environ["APPDATA"] = os.path.join(SANDBOX_DIR, "appdata")
-os.environ["LOCALAPPDATA"] = os.path.join(SANDBOX_DIR, "localappdata")
+# Redirect only temp-file locations into the app folder.
+# USERPROFILE / APPDATA / LOCALAPPDATA are deliberately NOT redirected: Windows expands its
+# Desktop, Documents and Downloads paths from them, so redirecting breaks the file picker
+# ("location is not available"). None of the app's libraries write to those folders.
 os.environ["TEMP"] = SANDBOX_TEMP
 os.environ["TMP"] = SANDBOX_TEMP
 os.environ["TMPDIR"] = SANDBOX_TEMP
@@ -33,6 +44,7 @@ def cleanup_sandbox():
         shutil.rmtree(SANDBOX_TEMP, ignore_errors=True)
 
 cleanup_sandbox()                 # clear leftovers from a killed session
+os.makedirs(SANDBOX_TEMP, exist_ok=True)   # recreate it: temp files must land here, never elsewhere on disk
 atexit.register(cleanup_sandbox)
 
 import traceback
@@ -96,12 +108,10 @@ import threading
 import subprocess
 import cv2
 import pymupdf as fitz  # Modern PyMuPDF import (no deprecation warnings)
-import docx             # python-docx
 import openpyxl
 import numpy as np
 import customtkinter as ctk
 from tkinter import ttk, filedialog, messagebox
-from pptx import Presentation
 from rapidfuzz import process, fuzz
 from rapidocr_onnxruntime import RapidOCR
 
@@ -114,6 +124,56 @@ except Exception:
     pass
 
 DB_FILE = os.path.join(BASE_DIR, "acronym_database.csv")
+
+# ---- User-tunable accuracy files (config\ folder beside the exe) ----
+CONFIG_DIR = os.path.join(BASE_DIR, "config")
+OCR_FIXES_FILE = os.path.join(CONFIG_DIR, "ocr_corrections.csv")
+OCR_SETTINGS_FILE = os.path.join(CONFIG_DIR, "ocr_settings.json")
+MODELS_DIR = os.path.join(CONFIG_DIR, "models")
+OCR_DEFAULTS = {
+    "min_confidence": 0.5,        # drop OCR lines the engine is less sure of (0-1)
+    "pdf_scan_dpi": 300,          # render resolution for scanned PDF pages (300 beat 200 in tools\\evaluate.py)
+    "scanned_page_max_chars": 40, # PDF page with fewer digital characters is treated as scanned
+    "upscale_below_px": 1200,     # enlarge images narrower than this before OCR
+    "upscale_factor": 2.0,
+    "contrast_clip": 2.0,         # CLAHE contrast boost; 0 disables
+    "denoise_strength": 10,       # 0 disables denoising (faster, better for clean screenshots)
+    "detect_side_len": 736,       # text-detection resolution; raise for tiny text
+    "detect_box_thresh": 0.5,     # lower finds fainter text boxes (more noise)
+    "detect_unclip_ratio": 1.6,   # how far each detected text box is expanded
+    "fuzzy_min_score": 80,        # RapidFuzz score (0-100) to accept an OCR near-miss of a DB term
+}
+
+def load_ocr_settings():
+    cfg = dict(OCR_DEFAULTS)
+    try:
+        with open(OCR_SETTINGS_FILE, "r", encoding="utf-8-sig") as f:
+            user = json.load(f)
+        for k, v in user.items():
+            if k in OCR_DEFAULTS and isinstance(v, (int, float)) and not isinstance(v, bool):
+                cfg[k] = v
+    except FileNotFoundError:
+        pass
+    except Exception:
+        log_error("config/ocr_settings.json could not be read; using defaults")
+    return cfg
+
+OCR_CFG = load_ocr_settings()
+
+def load_ocr_fixes():
+    """Misread -> Correct pairs from config/ocr_corrections.csv. Re-read on every scan."""
+    fixes = {}
+    try:
+        with open(OCR_FIXES_FILE, "r", encoding="utf-8-sig") as f:
+            for row in csv.DictReader(f):
+                wrong, right = (row.get("Misread") or "").strip(), (row.get("Correct") or "").strip()
+                if wrong and right and wrong != right:
+                    fixes[wrong] = right
+    except FileNotFoundError:
+        pass
+    except Exception:
+        log_error("config/ocr_corrections.csv could not be read")
+    return fixes
 IMAGE_EXTS = {'.png', '.jpg', '.jpeg', '.tif', '.tiff', '.bmp', '.webp', '.gif'}
 SUPPORTED_EXTS = IMAGE_EXTS | {'.pdf', '.pptx', '.docx', '.xlsx'}
 
@@ -159,11 +219,56 @@ if not os.path.exists(DB_FILE):
 _ocr_engine = None
 _ocr_lock = threading.Lock()
 
+OCR_MODEL_INFO = "not loaded yet"
+
+def _build_ocr():
+    """Bundled PP-OCRv4 models, overridden by any det.onnx / rec.onnx / cls.onnx / rec_keys.txt in config\\models."""
+    global OCR_MODEL_INFO
+    try:
+        return _build_ocr_configured()
+    except Exception:
+        log_error("Custom OCR configuration failed; falling back to bundled models and default settings")
+        OCR_MODEL_INFO = "bundled PP-OCRv4 (custom settings/models failed; see logs\\error.log)"
+        return RapidOCR()
+
+def _build_ocr_configured():
+    global OCR_MODEL_INFO
+    import yaml
+    import rapidocr_onnxruntime as _ro
+    with open(os.path.join(os.path.dirname(_ro.__file__), "config.yaml"), "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f)
+    cfg["Global"]["text_score"] = float(OCR_CFG["min_confidence"])
+    cfg["Det"]["limit_side_len"] = int(OCR_CFG["detect_side_len"])
+    cfg["Det"]["box_thresh"] = float(OCR_CFG["detect_box_thresh"])
+    cfg["Det"]["unclip_ratio"] = float(OCR_CFG["detect_unclip_ratio"])
+    custom = []
+    for part, section in (("det", "Det"), ("cls", "Cls"), ("rec", "Rec")):
+        path = os.path.join(MODELS_DIR, f"{part}.onnx")
+        if os.path.isfile(path):
+            cfg[section]["model_path"] = os.path.abspath(path)
+            custom.append(f"{part}.onnx")
+    keys = os.path.join(MODELS_DIR, "rec_keys.txt")
+    if os.path.isfile(keys):
+        cfg["Rec"]["rec_keys_path"] = os.path.abspath(keys)
+        custom.append("rec_keys.txt")
+    os.makedirs(SANDBOX_TEMP, exist_ok=True)
+    cfg_path = os.path.join(SANDBOX_TEMP, "rapidocr_config.yaml")
+    with open(cfg_path, "w", encoding="utf-8") as f:
+        yaml.safe_dump(cfg, f)
+    try:
+        engine = RapidOCR(config_path=cfg_path)
+        OCR_MODEL_INFO = ("custom " + ", ".join(custom)) if custom else "bundled PP-OCRv4"
+    except Exception:
+        log_error("OCR model from config\\models failed to load; falling back to bundled models")
+        engine = RapidOCR()
+        OCR_MODEL_INFO = "bundled PP-OCRv4 (custom model failed to load; see logs\\error.log)"
+    return engine
+
 def get_ocr():
     global _ocr_engine
     with _ocr_lock:
         if _ocr_engine is None:
-            _ocr_engine = RapidOCR()
+            _ocr_engine = _build_ocr()
     return _ocr_engine
 
 # ==============================================================================
@@ -212,146 +317,363 @@ def enhance_image_for_ocr(image_bytes):
     # Ignore tiny 1x1 or icon-sized decorative graphics under 25px
     if width < 25 or height < 15:
         return None
-    if width < 1200:
-        img = cv2.resize(img, None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
+    if width < OCR_CFG["upscale_below_px"] and OCR_CFG["upscale_factor"] > 1:
+        f = float(OCR_CFG["upscale_factor"])
+        img = cv2.resize(img, None, fx=f, fy=f, interpolation=cv2.INTER_CUBIC)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    contrasted = clahe.apply(gray)
-    return cv2.fastNlMeansDenoising(contrasted, None, h=10, templateWindowSize=7, searchWindowSize=21)
+    if OCR_CFG["contrast_clip"] > 0:
+        gray = cv2.createCLAHE(clipLimit=float(OCR_CFG["contrast_clip"]), tileGridSize=(8, 8)).apply(gray)
+    if OCR_CFG["denoise_strength"] > 0:
+        gray = cv2.fastNlMeansDenoising(gray, None, h=float(OCR_CFG["denoise_strength"]),
+                                        templateWindowSize=7, searchWindowSize=21)
+    return gray
 
-def read_image_bytes(image_bytes):
+# ---------------------------------------------------------------------------
+# Shared helpers: OCR cache, skipped-content notes, Office XML parsing
+# ---------------------------------------------------------------------------
+import hashlib
+import posixpath
+from lxml import etree as _ET
+
+NS = {
+    "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
+    "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+    "p": "http://schemas.openxmlformats.org/presentationml/2006/main",
+    "w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
+    "wp": "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing",
+    "v": "urn:schemas-microsoft-com:vml",
+    "c": "http://schemas.openxmlformats.org/drawingml/2006/chart",
+    "mc": "http://schemas.openxmlformats.org/markup-compatibility/2006",
+    "pr": "http://schemas.openxmlformats.org/package/2006/relationships",
+    "ss": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+    "xdr": "http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing",
+}
+def _q(prefix, tag):
+    return "{%s}%s" % (NS[prefix], tag)
+
+VECTOR_EXTS = {".emf", ".wmf", ".emz", ".wmz", ".svg"}
+_OCR_CACHE = {}   # sha1(image bytes) -> text; a logo repeated on 50 slides is OCR'd once
+_SKIPPED = []     # (location label, reason) for content that could not be scanned
+
+def note_skip(label, reason):
+    if (label, reason) not in _SKIPPED:
+        _SKIPPED.append((label, reason))
+
+def _ocr_raw(image_bytes):
     clean_img = enhance_image_for_ocr(image_bytes)
     if clean_img is None:
         return ""
     result, _ = get_ocr()(clean_img)
     if not result:
         return ""
-    extracted = [line[1] for line in result if float(line[2]) > 0.50]
-    return " ".join(extracted)
+    return " ".join(line[1] for line in result if float(line[2]) >= float(OCR_CFG["min_confidence"]))
 
-def ocr_office_media(filepath, media_prefix, status_callback, prefix):
-    media_chunks = []
+def read_image_bytes(image_bytes):
+    key = hashlib.sha1(image_bytes).hexdigest()
+    if key not in _OCR_CACHE:
+        try:
+            _OCR_CACHE[key] = _ocr_raw(image_bytes)
+        except Exception as e:
+            log_error("OCR failed on one image")
+            note_skip("OCR engine", f"OCR failed, so text inside images was not read: {type(e).__name__}: {e}. See logs\\error.log.")
+            _OCR_CACHE[key] = ""
+    return _OCR_CACHE[key]
+
+def _xml(z, path):
+    return _ET.fromstring(z.read(path))
+
+def _in_fallback(el):
+    return any(anc.tag == _q("mc", "Fallback") for anc in el.iterancestors())
+
+def zip_rels(z, partpath):
+    """rId -> (relationship kind, resolved target path, is_external) for one package part."""
+    folder, fname = posixpath.split(partpath)
+    relpath = posixpath.join(folder, "_rels", fname + ".rels")
+    out = {}
     try:
-        with zipfile.ZipFile(filepath, 'r') as z:
-            m_files = [
-                f for f in z.namelist()
-                if f.startswith(media_prefix) and os.path.splitext(f)[1].lower() in IMAGE_EXTS
-            ]
-            for idx, mf in enumerate(m_files, start=1):
-                status_callback(f"{prefix} - OCR embedded image {idx}/{len(m_files)}...")
-                img_bytes = z.read(mf)
-                txt = read_image_bytes(img_bytes)
-                if txt.strip():
-                    media_chunks.append((f"{os.path.basename(filepath)} (Image: {os.path.basename(mf)})", txt))
-    except Exception:
-        pass
-    return media_chunks
+        root = _xml(z, relpath)
+    except KeyError:
+        return out
+    for rel in root.iter(_q("pr", "Relationship")):
+        target, external = rel.get("Target", ""), rel.get("TargetMode") == "External"
+        if not external:
+            target = target.lstrip("/") if target.startswith("/") else posixpath.normpath(posixpath.join(folder, target))
+        out[rel.get("Id")] = (rel.get("Type", "").rsplit("/", 1)[-1], target, external)
+    return out
+
+def drawingml_lines(root):
+    """Text of every DrawingML paragraph: PowerPoint shapes, tables, groups, SmartArt, charts, Excel shapes."""
+    lines = []
+    for para in root.iter(_q("a", "p")):
+        if _in_fallback(para):
+            continue
+        text = "".join(t.text or "" for t in para.iter(_q("a", "t")))
+        if text.strip():
+            lines.append(text)
+    return lines
+
+def chart_lines(root):
+    lines = drawingml_lines(root)  # titles, axis titles
+    for cache in root.iter(_q("c", "strCache")):  # category labels, series names
+        lines += [v.text for v in cache.iter(_q("c", "v")) if v.text and v.text.strip()]
+    return lines
+
+def word_paragraphs(root):
+    """(text, is_heading) per Word paragraph; text-box paragraphs counted once, deleted text ignored."""
+    W_P, W_T = _q("w", "p"), _q("w", "t")
+    for para in root.iter(W_P):
+        if _in_fallback(para):
+            continue
+        text = "".join(t.text or "" for t in para.iter(W_T) if next(t.iterancestors(W_P), None) is para)
+        style = para.find("%s/%s" % (_q("w", "pPr"), _q("w", "pStyle")))
+        sval = (style.get(_q("w", "val")) or "") if style is not None else ""
+        yield text, sval.lower().startswith(("heading", "title"))
+
+def shape_name(el):
+    """Name the user sees in the Selection Pane / Alt Text for the shape holding this picture."""
+    for anc in el.iterancestors():
+        qn = _ET.QName(anc)
+        if qn.localname in ("inline", "anchor") and qn.namespace == NS["wp"]:
+            doc_pr = anc.find(_q("wp", "docPr"))
+            if doc_pr is not None:
+                return doc_pr.get("name") or ""
+        if qn.localname == "bg":
+            return "Slide background"
+        if qn.namespace in (NS["p"], NS["xdr"]) and qn.localname in ("pic", "sp", "graphicFrame", "cxnSp", "grpSp"):
+            c_nv = anc.find(".//{*}cNvPr")
+            if c_nv is not None:
+                return c_nv.get("name") or ""
+    return ""
+
+def part_images(z, partpath, root, label_base, chunks, seen, rels=None):
+    """OCR every picture referenced by one part (slide, layout, Word body/header, Excel drawing)."""
+    rels = rels if rels is not None else zip_rels(z, partpath)
+    refs = []
+    for blip in root.iter(_q("a", "blip")):
+        if not _in_fallback(blip):
+            refs.append((blip.get(_q("r", "embed")), blip.get(_q("r", "link")), shape_name(blip)))
+    for img in root.iter(_q("v", "imagedata")):  # legacy VML pictures
+        if not _in_fallback(img):
+            refs.append((img.get(_q("r", "id")), None, img.getparent().get("alt") or ""))
+    for rid_embed, rid_link, name in refs:
+        shown = f"'{name}' " if name else ""
+        if rid_embed and rid_embed in rels and not rels[rid_embed][2]:
+            target = rels[rid_embed][1]
+            if (label_base, target) in seen:
+                continue
+            seen.add((label_base, target))
+            label = f"{label_base}, image {shown}{posixpath.basename(target)})"
+            ext = posixpath.splitext(target)[1].lower()
+            if ext in VECTOR_EXTS:
+                note_skip(label, "Vector graphic (EMF/WMF/SVG). Text drawn inside it was not scanned.")
+                continue
+            if ext not in IMAGE_EXTS:
+                continue
+            try:
+                txt = read_image_bytes(z.read(target))
+            except KeyError:
+                note_skip(label, "Picture is referenced but missing from the file.")
+                continue
+            if txt.strip():
+                chunks.append((label, txt))
+        elif rid_link:
+            link = rels.get(rid_link, ("", "unknown location", True))[1]
+            note_skip(f"{label_base}, image {shown})".replace(" )", ")"),
+                      f"Linked picture, not stored in the file (links to {link}). Insert it as an embedded picture to scan it.")
+
+# ---------------------------------------------------------------------------
+# Format readers
+# ---------------------------------------------------------------------------
+def extract_pptx(filepath, filename, status_callback, prefix, chunks):
+    with zipfile.ZipFile(filepath) as z:
+        names = set(z.namelist())
+        pres = _xml(z, "ppt/presentation.xml")
+        prels = zip_rels(z, "ppt/presentation.xml")
+        slides = [prels[s.get(_q("r", "id"))][1] for s in pres.iter(_q("p", "sldId")) if s.get(_q("r", "id")) in prels]
+        seen = set()
+        for n, spath in enumerate(slides, start=1):
+            status_callback(f"{prefix} - Slide {n}/{len(slides)}...")
+            tag = f"Slide {n}"
+            try:
+                root = _xml(z, spath)
+                if root.get("show") == "0":
+                    tag += ", hidden"
+                lines = drawingml_lines(root)
+                if lines:
+                    chunks.append((f"{filename} ({tag})", "\n".join(lines)))
+                rels = zip_rels(z, spath)
+                for kind, target, external in rels.values():
+                    if external or target not in names:
+                        continue
+                    if kind == "notesSlide":
+                        sub, extra = "notes", drawingml_lines(_xml(z, target))
+                    elif kind == "diagramData":
+                        sub, extra = "SmartArt", drawingml_lines(_xml(z, target))
+                    elif kind == "chart":
+                        sub, extra = "chart", chart_lines(_xml(z, target))
+                    else:
+                        continue
+                    if extra:
+                        chunks.append((f"{filename} ({tag} {sub})", "\n".join(extra)))
+                part_images(z, spath, root, f"{filename} ({tag}", chunks, seen, rels)
+            except Exception as e:
+                log_error(f"{filename}: slide {n} could not be fully read")
+                note_skip(f"{filename} (Slide {n})", f"Slide could not be fully read: {type(e).__name__}: {e}")
+        # Logos and graphics placed on layouts/masters appear on many slides; scan each once.
+        for lpath in sorted(names):
+            m = re.match(r"ppt/slide(Layout|Master)s/slide(?:Layout|Master)(\d+)\.xml$", lpath)
+            if m:
+                try:
+                    part_images(z, lpath, _xml(z, lpath), f"{filename} (Slide {m.group(1).lower()} {m.group(2)}", chunks, seen)
+                except Exception:
+                    log_error(f"{filename}: {lpath} could not be read")
+
+def extract_docx(filepath, filename, status_callback, prefix, chunks):
+    with zipfile.ZipFile(filepath) as z:
+        names = set(z.namelist())
+        status_callback(f"{prefix} - Reading Word body...")
+        body = _xml(z, "word/document.xml")
+        block, start, heading, idx = [], 1, "", 0
+
+        def flush(end):
+            if block:
+                where = f"section '{heading[:60]}', " if heading else ""
+                chunks.append((f"{filename} ({where}para {start}-{end})", "\n".join(block)))
+
+        for text, is_heading in word_paragraphs(body):
+            idx += 1
+            if is_heading and text.strip():
+                flush(idx - 1)
+                block, start, heading = [], idx, text.strip()
+            if text.strip():
+                block.append(text)
+            if len(block) >= 25:
+                flush(idx)
+                block, start = [], idx + 1
+        flush(idx)
+        seen = set()
+        part_images(z, "word/document.xml", body, f"{filename} (Body", chunks, seen)
+
+        status_callback(f"{prefix} - Reading headers, footers, notes, comments...")
+        extras = [(p, ("Header " if "header" in p else "Footer ") + re.sub(r"\D", "", p.rsplit("/", 1)[-1]))
+                  for p in sorted(names) if re.match(r"word/(header|footer)\d*\.xml$", p)]
+        extras += [(p, lbl) for p, lbl in (("word/footnotes.xml", "Footnotes"), ("word/endnotes.xml", "Endnotes"),
+                                           ("word/comments.xml", "Comments")) if p in names]
+        for path, label in extras:
+            try:
+                root = _xml(z, path)
+                lines = [t for t, _h in word_paragraphs(root) if t.strip()]
+                if lines:
+                    chunks.append((f"{filename} ({label.strip()})", "\n".join(lines)))
+                part_images(z, path, root, f"{filename} ({label.strip()}", chunks, seen)
+            except Exception as e:
+                log_error(f"{filename}: {path} could not be read")
+                note_skip(f"{filename} ({label})", f"Could not be read: {type(e).__name__}: {e}")
+
+def extract_xlsx(filepath, filename, status_callback, prefix, chunks):
+    status_callback(f"{prefix} - Reading Excel cells...")
+    wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
+    try:
+        for sname in wb.sheetnames:
+            cells = []
+            for row in wb[sname].iter_rows(values_only=True):
+                for val in row:
+                    if val is not None and not isinstance(val, (int, float)):
+                        s = str(val).strip()
+                        if s:
+                            cells.append(s)
+            if cells:
+                chunks.append((f"{filename} ({sname})", "\n".join(cells)))
+    finally:
+        wb.close()
+
+    status_callback(f"{prefix} - Reading shapes, charts, images, comments...")
+    with zipfile.ZipFile(filepath) as z:
+        names = set(z.namelist())
+        wbx, wrels = _xml(z, "xl/workbook.xml"), zip_rels(z, "xl/workbook.xml")
+        sheets = [(wrels[s.get(_q("r", "id"))][1], s.get("name")) for s in wbx.iter(_q("ss", "sheet")) if s.get(_q("r", "id")) in wrels]
+        seen = set()
+        for spath, sname in sheets:
+            for kind, target, external in zip_rels(z, spath).values():
+                if external or target not in names:
+                    continue
+                try:
+                    if kind == "drawing":
+                        droot = _xml(z, target)
+                        lines = drawingml_lines(droot)
+                        if lines:
+                            chunks.append((f"{filename} ({sname} shapes)", "\n".join(lines)))
+                        drels = zip_rels(z, target)
+                        for dkind, dtarget, dext in drels.values():
+                            if dkind == "chart" and not dext and dtarget in names:
+                                clines = chart_lines(_xml(z, dtarget))
+                                if clines:
+                                    chunks.append((f"{filename} ({sname} chart)", "\n".join(clines)))
+                        part_images(z, target, droot, f"{filename} ({sname}", chunks, seen, drels)
+                    elif kind == "comments":
+                        croot = _xml(z, target)
+                        lines = ["".join(t.text or "" for t in c.iter(_q("ss", "t"))) for c in croot.iter(_q("ss", "comment"))]
+                        lines = [l for l in lines if l.strip()]
+                        if lines:
+                            chunks.append((f"{filename} ({sname} comments)", "\n".join(lines)))
+                except Exception as e:
+                    log_error(f"{filename}: {target} could not be read")
+                    note_skip(f"{filename} ({sname})", f"{kind} could not be read: {type(e).__name__}: {e}")
+
+def extract_pdf(filepath, filename, status_callback, prefix, chunks):
+    doc = fitz.open(filepath)
+    try:
+        total_pages = len(doc)
+        seen_xrefs = set()
+        for i in range(total_pages):
+            pnum = i + 1
+            if pnum == 1 or pnum % 5 == 0 or pnum == total_pages:
+                status_callback(f"{prefix} - PDF page {pnum}/{total_pages}...")
+            try:
+                page = doc[i]
+                digital_text = page.get_text()
+                parts = [digital_text]
+                if len(digital_text.strip()) < OCR_CFG["scanned_page_max_chars"]:  # scanned page: OCR it whole
+                    parts.append(read_image_bytes(page.get_pixmap(dpi=int(OCR_CFG["pdf_scan_dpi"])).tobytes("png")))
+                else:  # digital page: OCR each embedded figure once per document
+                    for img_info in page.get_images(full=True):
+                        xref = img_info[0]
+                        if xref in seen_xrefs:
+                            continue
+                        seen_xrefs.add(xref)
+                        try:
+                            base_img = doc.extract_image(xref)
+                            if base_img and base_img.get("image"):
+                                parts.append(read_image_bytes(base_img["image"]))
+                        except Exception:
+                            pass
+                chunks.append((f"{filename} (p.{pnum})", "\n".join(parts)))
+            except Exception as e:
+                log_error(f"{filename}: page {pnum} could not be read")
+                note_skip(f"{filename} (p.{pnum})", f"Page could not be read: {type(e).__name__}: {e}")
+    finally:
+        doc.close()
 
 # ==============================================================================
-# 5. LAYER 1: ALL-FORMAT UNPACKER (OPTIMIZED FOR 1,000+ PAGE DOCUMENTS)
+# 5. LAYER 1: ALL-FORMAT UNPACKER
 # ==============================================================================
 def extract_chunks_from_file(filepath, status_callback, file_idx, total_files):
     filename = os.path.basename(filepath)
     ext = os.path.splitext(filepath)[1].lower()
     chunks = []
     prefix = f"[{file_idx}/{total_files}] {filename}"
-
-    # A. Standalone Images
     if ext in IMAGE_EXTS:
         status_callback(f"{prefix} - Running OCR on image...")
         with open(filepath, 'rb') as f:
             chunks.append((f"{filename} (Image)", read_image_bytes(f.read())))
-
-    # B. PDF Documents (Smart Hybrid Mode for 1,000+ Page Speed)
     elif ext == '.pdf':
-        doc = fitz.open(filepath)
-        total_pages = len(doc)
-        seen_xrefs = set()
-
-        for i, page in enumerate(doc):
-            pnum = i + 1
-            if pnum == 1 or pnum % 5 == 0 or pnum == total_pages:
-                status_callback(f"{prefix} - Scanning PDF Page {pnum}/{total_pages}...")
-
-            digital_text = page.get_text()
-            parts = [digital_text]
-            page_images = page.get_images(full=True)
-
-            # Case 1: Scanned page with little/no digital text -> Render full page at 200 DPI
-            if len(digital_text.strip()) < 40:
-                pix = page.get_pixmap(dpi=200)
-                parts.append(read_image_bytes(pix.tobytes("png")))
-            # Case 2: Digital page containing embedded figures/diagrams -> OCR each unique image
-            elif page_images:
-                for img_info in page_images:
-                    xref = img_info[0]
-                    if xref in seen_xrefs:
-                        continue
-                    seen_xrefs.add(xref)
-                    try:
-                        base_img = doc.extract_image(xref)
-                        if base_img and "image" in base_img:
-                            parts.append(read_image_bytes(base_img["image"]))
-                    except Exception:
-                        pass
-
-            chunks.append((f"{filename} (p.{pnum})", "\n".join(parts)))
-        doc.close()
-
-    # C. PowerPoint Presentations
+        extract_pdf(filepath, filename, status_callback, prefix, chunks)
     elif ext == '.pptx':
-        prs = Presentation(filepath)
-        total_slides = len(prs.slides)
-        for i, slide in enumerate(prs.slides):
-            snum = i + 1
-            status_callback(f"{prefix} - Scanning Slide {snum}/{total_slides}...")
-            sparts = []
-            for shape in slide.shapes:
-                if shape.has_text_frame:
-                    sparts.append(shape.text_frame.text)
-                if shape.has_table:
-                    for row in shape.table.rows:
-                        sparts.append(" ".join(c.text for c in row.cells))
-                if shape.shape_type == 13:
-                    sparts.append(read_image_bytes(shape.image.blob))
-            chunks.append((f"{filename} (Slide {snum})", "\n".join(sparts)))
-
-    # D. Word Documents (.docx)
+        extract_pptx(filepath, filename, status_callback, prefix, chunks)
     elif ext == '.docx':
-        status_callback(f"{prefix} - Reading Word document...")
-        doc = docx.Document(filepath)
-        p_block = []
-        for idx, p in enumerate(doc.paragraphs, start=1):
-            if p.text.strip():
-                p_block.append(p.text)
-            if idx % 25 == 0 and p_block:
-                chunks.append((f"{filename} (Paras {idx-24}-{idx})", "\n".join(p_block)))
-                p_block = []
-        if p_block:
-            chunks.append((f"{filename} (Document Text)", "\n".join(p_block)))
-        for t_idx, table in enumerate(doc.tables, start=1):
-            t_text = [" | ".join(c.text.strip() for c in r.cells) for r in table.rows]
-            chunks.append((f"{filename} (Table {t_idx})", "\n".join(t_text)))
-        chunks.extend(ocr_office_media(filepath, "word/media/", status_callback, prefix))
-
-    # E. Excel Workbooks (.xlsx)
+        extract_docx(filepath, filename, status_callback, prefix, chunks)
     elif ext == '.xlsx':
-        status_callback(f"{prefix} - Reading Excel workbook...")
-        wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
-        for sname in wb.sheetnames:
-            sheet = wb[sname]
-            scells = []
-            for row in sheet.iter_rows(values_only=True):
-                for val in row:
-                    if val is not None and not isinstance(val, (int, float)):
-                        val_str = str(val).strip()
-                        if val_str:
-                            scells.append(val_str)
-            if scells:
-                chunks.append((f"{filename} ({sname})", "\n".join(scells)))
-        wb.close()
-        chunks.extend(ocr_office_media(filepath, "xl/media/", status_callback, prefix))
-
+        extract_xlsx(filepath, filename, status_callback, prefix, chunks)
     return chunks
 
 # ==============================================================================
@@ -375,8 +697,18 @@ def record_file_error(findings, filepath, exc):
         "selected_definition": f"{type(exc).__name__}: {exc}"[:300], "status": "⛔ Could not read file"
     }
 
+def record_skip(findings, label, reason):
+    key = f"⛔ {label}"
+    if key not in findings:
+        findings[key] = {
+            "category": "Not Scanned", "count": 1, "locations": [label],
+            "definitions": [], "in_db": True, "excluded": False, "file_error": True,
+            "selected_definition": reason, "status": "⛔ Not scanned"
+        }
+
 def analyze_batch(filepaths, status_callback):
     include_db, exclude_db, exclude_upper = load_database()
+    ocr_fixes = load_ocr_fixes()
     all_terms = set(include_db.keys()) | set(exclude_db.keys())
 
     direct_pattern = None
@@ -392,14 +724,19 @@ def analyze_batch(filepaths, status_callback):
 
     findings = {}
     total = len(filepaths)
+    _OCR_CACHE.clear()
 
     for idx, filepath in enumerate(filepaths, start=1):
+        _SKIPPED.clear()
         try:
             chunks = extract_chunks_from_file(filepath, status_callback, idx, total)
         except Exception as e:
             log_error(f"Could not read {filepath}")
             record_file_error(findings, filepath, e)
             continue
+        finally:
+            for label, reason in list(_SKIPPED):
+                record_skip(findings, label, reason)
         for loc_label, text in chunks:
             if not text.strip():
                 continue
@@ -417,6 +754,10 @@ def analyze_batch(filepaths, status_callback):
             for match in unknown_acronym_re.finditer(text):
                 raw = match.group(1)
                 cand = raw[:-1] if raw.endswith('s') and len(raw) > 2 else raw
+                if raw in ocr_fixes or cand in ocr_fixes:
+                    wrong = raw if raw in ocr_fixes else cand
+                    apply_ocr_fix(findings, wrong, ocr_fixes[wrong], "Acronym (Candidate)", loc_label, include_db, exclude_db)
+                    continue
                 if cand in include_db or cand in exclude_db or cand.upper() in exclude_upper or cand.isdigit():
                     continue
                 if sum(1 for c in cand if c.isupper()) < 2:
@@ -428,13 +769,16 @@ def analyze_batch(filepaths, status_callback):
                         continue
                 if any(ch.isdigit() for ch in cand) and fuzzy_targets:
                     best = process.extractOne(cand, fuzzy_targets.keys(), scorer=fuzz.ratio)
-                    if best and best[1] >= 80:
+                    if best and best[1] >= OCR_CFG["fuzzy_min_score"]:
                         record_included(findings, best[0], f"{loc_label} [OCR fix: {cand}]", include_db)
                         continue
                 record_candidate(findings, cand, "Acronym (Candidate)", loc_label)
 
             for match in unknown_unit_re.finditer(text):
                 ucand = match.group(1)
+                if ucand in ocr_fixes:
+                    apply_ocr_fix(findings, ucand, ocr_fixes[ucand], "Unit (Candidate)", loc_label, include_db, exclude_db)
+                    continue
                 if (ucand in include_db or ucand in exclude_db or
                         ucand.upper() in exclude_upper or ucand.lower() in NON_UNIT_WORDS or ucand.isdigit()):
                     continue
@@ -442,6 +786,9 @@ def analyze_batch(filepaths, status_callback):
 
             for match in unknown_abbrev_re.finditer(text):
                 acand = match.group(1)
+                if acand in ocr_fixes:
+                    apply_ocr_fix(findings, acand, ocr_fixes[acand], "Abbreviation (Candidate)", loc_label, include_db, exclude_db)
+                    continue
                 base = acand.rstrip('.')
                 if (acand in include_db or acand in exclude_db or base in include_db or base in exclude_db or
                         acand.upper() in exclude_upper or base.upper() in exclude_upper):
@@ -451,6 +798,15 @@ def analyze_batch(filepaths, status_callback):
                 record_candidate(findings, acand, "Abbreviation (Candidate)", loc_label)
 
     return dict(sorted(findings.items(), key=lambda x: x[1]["count"], reverse=True))
+
+def apply_ocr_fix(findings, wrong, right, cat, loc, include_db, exclude_db):
+    tagged = f"{loc} [OCR fix: {wrong}]"
+    if right in include_db:
+        record_included(findings, right, tagged, include_db)
+    elif right in exclude_db:
+        record_excluded(findings, right, tagged, exclude_db)
+    else:
+        record_candidate(findings, right, cat, tagged)
 
 def record_included(findings, term, loc, include_db):
     info = include_db[term]
@@ -530,7 +886,7 @@ def update_csv_exclusion(term, cat, reason):
 # ==============================================================================
 SETTINGS_FILE = os.path.join(SANDBOX_DIR, "settings.json")
 ALL_TYPES = "All types"
-STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", "File errors", "Excluded"]
+STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", "Errors / not scanned", "Excluded"]
 STATUS_ORDER = (("⛔", 0), ("⚠️", 1), ("🔍", 2), ("✅", 3), ("🚫", 4))
 COLUMNS = (  # id, heading, base width, anchor
     ("term", "Term / Unit", 120, "w"),
@@ -690,11 +1046,14 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_apply = ctk.CTkButton(act, text="Apply Choice", command=self.apply_choice, state="disabled", width=110)
         self.btn_apply.pack(side="left", padx=5, pady=12)
 
-        self.entry_def = ctk.CTkEntry(act, placeholder_text="Definition to Include in DB...", width=230, state="disabled")
+        self.entry_def = ctk.CTkEntry(act, placeholder_text="Definition, or correct term for Fix OCR", width=230, state="disabled")
         self.entry_def.pack(side="left", padx=5, pady=12)
 
         self.btn_save = ctk.CTkButton(act, text="Include in DB", command=self.save_candidate, state="disabled", fg_color="#0284C7", width=105)
         self.btn_save.pack(side="left", padx=5, pady=12)
+
+        self.btn_ocr = ctk.CTkButton(act, text="Fix OCR", command=self.save_ocr_fix, state="disabled", fg_color="#7C3AED", width=90)
+        self.btn_ocr.pack(side="left", padx=5, pady=12)
 
         self.btn_exc = ctk.CTkButton(act, text="🚫 Exclude", command=self.exclude_term, state="disabled", fg_color="#DC2626", width=100)
         self.btn_exc.pack(side="right", padx=10, pady=12)
@@ -711,13 +1070,29 @@ class AcronymAppGUI(ctk.CTk):
         elif sys.platform == "darwin": subprocess.call(["open", path])
         else: subprocess.call(["xdg-open", path])
 
+    def start_dir(self):
+        last = self.settings.get("last_dir", "")
+        if last and os.path.isdir(last):
+            return last
+        docs = os.path.join(os.path.expanduser("~"), "Documents")
+        return docs if os.path.isdir(docs) else os.path.expanduser("~")
+
+    def remember_dir(self, path):
+        folder = path if os.path.isdir(path) else os.path.dirname(path)
+        if folder:
+            self.settings["last_dir"] = folder
+            save_settings(self.settings)
+
     def select_files(self):
-        fps = filedialog.askopenfilenames(title="Select Files", filetypes=[("Supported", "*.pdf *.docx *.xlsx *.pptx *.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp *.gif")])
-        if fps: self.start_batch(list(fps))
+        fps = filedialog.askopenfilenames(title="Select Files", initialdir=self.start_dir(), filetypes=[("Supported", "*.pdf *.docx *.xlsx *.pptx *.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp *.gif")])
+        if fps:
+            self.remember_dir(fps[0])
+            self.start_batch(list(fps))
 
     def select_folder(self):
-        folder = filedialog.askdirectory(title="Select Folder")
+        folder = filedialog.askdirectory(title="Select Folder", initialdir=self.start_dir())
         if not folder: return
+        self.remember_dir(folder)
         collected = []
         for root, _, files in os.walk(folder):
             for f in files:
@@ -821,7 +1196,7 @@ class AcronymAppGUI(ctk.CTk):
             "Needs choice": st.startswith("⚠️"),
             "New candidates": st.startswith("🔍"),
             "Resolved": st.startswith("✅"),
-            "File errors": st.startswith("⛔"),
+            "Errors / not scanned": st.startswith("⛔"),
             "Excluded": data.get("excluded", False),
         }.get(wanted, True)
 
@@ -887,7 +1262,7 @@ class AcronymAppGUI(ctk.CTk):
         if not data: return
 
         if data.get("file_error"):
-            for w in (self.btn_exc, self.btn_apply, self.btn_save, self.entry_def, self.combo):
+            for w in (self.btn_exc, self.btn_apply, self.btn_save, self.btn_ocr, self.entry_def, self.combo):
                 w.configure(state="disabled")
             self.lbl_act.configure(text="File could not be read:")
             return
@@ -898,19 +1273,19 @@ class AcronymAppGUI(ctk.CTk):
             opts = list(data["definitions"]) + ["Keep All Possibilities"]
             self.combo.configure(state="normal", values=opts); self.combo.set(opts[0])
             self.btn_apply.configure(state="normal")
-            self.entry_def.configure(state="disabled"); self.btn_save.configure(state="disabled")
+            self.entry_def.configure(state="disabled"); self.btn_save.configure(state="disabled"); self.btn_ocr.configure(state="disabled")
             self.lbl_act.configure(text=f"Disambiguate '{term}':")
         elif not data["in_db"]:
             self.combo.configure(state="disabled", values=["Not in DB"]); self.combo.set("Not in DB")
             self.btn_apply.configure(state="disabled")
             self.entry_def.configure(state="normal"); self.entry_def.delete(0, "end")
-            self.btn_save.configure(state="normal")
+            self.btn_save.configure(state="normal"); self.btn_ocr.configure(state="normal")
             self.lbl_act.configure(text=f"New Candidate '{term}':")
         else:
             self.combo.configure(state="disabled", values=data["definitions"][:1])
             if data["definitions"]: self.combo.set(data["definitions"][0])
             self.btn_apply.configure(state="disabled")
-            self.entry_def.configure(state="disabled"); self.btn_save.configure(state="disabled")
+            self.entry_def.configure(state="disabled"); self.btn_save.configure(state="disabled"); self.btn_ocr.configure(state="disabled")
             self.lbl_act.configure(text=f"Selected '{term}':")
 
     def apply_choice(self):
@@ -926,6 +1301,30 @@ class AcronymAppGUI(ctk.CTk):
             data["status"] = "✅ User Selected"
             tag = "resolved"
         self.tree.item(self.selected_term, values=(self.selected_term, data["category"], data["count"], data["status"], data["selected_definition"], "; ".join(data["locations"])), tags=(tag,))
+
+    def save_ocr_fix(self):
+        """Record that the selected term is an OCR misread of the term typed in the box."""
+        if not self.selected_term: return
+        right = self.entry_def.get().strip()
+        if not right:
+            messagebox.showwarning("Fix OCR", "Type the correct term in the box first (for example RFP), then click Fix OCR.")
+            return
+        wrong = self.selected_term
+        os.makedirs(CONFIG_DIR, exist_ok=True)
+        is_new = not os.path.exists(OCR_FIXES_FILE)
+        with open(OCR_FIXES_FILE, "a", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            if is_new:
+                w.writerow(["Misread", "Correct", "Note"])
+            w.writerow([wrong, right, "Added from app"])
+        data = self.results[wrong]
+        data["in_db"] = True
+        data["status"] = f"🔧 OCR fix saved: {wrong} > {right}"
+        data["selected_definition"] = "Rescan to apply. Saved in config\\ocr_corrections.csv"
+        self.tree.item(wrong, values=(wrong, data["category"], data["count"], data["status"], data["selected_definition"], "; ".join(data["locations"])), tags=("resolved",))
+        self.entry_def.delete(0, "end")
+        self.entry_def.configure(state="disabled")
+        self.btn_save.configure(state="disabled"); self.btn_ocr.configure(state="disabled")
 
     def save_candidate(self):
         if not self.selected_term: return
@@ -946,7 +1345,7 @@ class AcronymAppGUI(ctk.CTk):
         self.tree.item(self.selected_term, values=(self.selected_term, data["category"], data["count"], data["status"], data["selected_definition"], "; ".join(data["locations"])), tags=("resolved",))
         self.entry_def.delete(0, "end")
         self.entry_def.configure(state="disabled")
-        self.btn_save.configure(state="disabled")
+        self.btn_save.configure(state="disabled"); self.btn_ocr.configure(state="disabled")
 
     def exclude_term(self):
         if not self.selected_term: return
@@ -969,7 +1368,7 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_folder.configure(state="normal")
 
     def export_csv(self):
-        path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV Report", "*.csv")], initialfile="Acronym_Report.csv")
+        path = filedialog.asksaveasfilename(initialdir=self.start_dir(), defaultextension=".csv", filetypes=[("CSV Report", "*.csv")], initialfile="Acronym_Report.csv")
         if path:
             with open(path, "w", newline="", encoding="utf-8-sig") as f:
                 w = csv.writer(f)
@@ -985,6 +1384,7 @@ def run_selftest(paths):
     with open(out, "w", encoding="utf-8") as f:
         try:
             res = analyze_batch(paths, lambda m: f.write(m + "\n"))
+            f.write(f"\nOCR models: {OCR_MODEL_INFO}\nOCR settings: {json.dumps(OCR_CFG)}\n")
             f.write(f"\nRESULTS: {len(res)} terms\n")
             for term, d in res.items():
                 f.write(f"{term}\t{d['category']}\t{d['count']}\t{d['status']}\t{d['selected_definition']}\n")

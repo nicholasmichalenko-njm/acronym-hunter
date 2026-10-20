@@ -1,0 +1,14 @@
+{
+  "_help": "OCR tuning. Edit numbers only, save, restart the app. Delete this file to return to defaults. See TRAINING_GUIDE.md section 4.",
+  "min_confidence": 0.5,
+  "pdf_scan_dpi": 300,
+  "scanned_page_max_chars": 40,
+  "upscale_below_px": 1200,
+  "upscale_factor": 2.0,
+  "contrast_clip": 2.0,
+  "denoise_strength": 10,
+  "detect_side_len": 736,
+  "detect_box_thresh": 0.5,
+  "detect_unclip_ratio": 1.6,
+  "fuzzy_min_score": 80
+}

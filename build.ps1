@@ -9,6 +9,7 @@ if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed. See output above." }
 $out = 'dist\AcronymHunter'
 Copy-Item acronym_database.csv $out -Force
 Copy-Item README.txt $out -Force
+Copy-Item config $out -Recurse -Force   # OCR settings, corrections, optional drop-in models
 Remove-Item -Recurse -Force "$out\_local_sandbox", "$out\logs" -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
 

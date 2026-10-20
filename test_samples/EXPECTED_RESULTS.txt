@@ -7,21 +7,48 @@ HOW TO TEST
   1. Open AcronymHunter.exe.
   2. Click "Scan Folder" and pick this test_samples folder (or "Select Files" for one file).
   3. Compare the table against the checks below.
-  A full scan of all 7 files takes about 1 to 2 minutes (OCR is the slow part).
-  Baseline from 2026-10-20: 98 terms found, 1 file error.
+  A full scan of all 8 files takes about 1 to 3 minutes (OCR is the slow part).
+  Baseline from 2026-10-20 (v1.0.1): about 115 rows, including 2 "Not scanned" rows
+  (the corrupt PDF and the linked picture on slide 15 of the large deck).
+
+AUTOMATED SCORING
+  ground_truth.csv in this folder lists terms that must be found and noise that must not appear.
+  Score the app:  .\venv\Scripts\python.exe tools\evaluate.py --note "what changed"
+  v1.0.1 score: 92.5% recall (37 of 40), 6 of 8 known-noise terms still reported. See TRAINING_GUIDE.md.
+
+HOW LOCATIONS READ
+  PDF          file (p.7)
+  PowerPoint   file (Slide 12) | (Slide 3 notes) | (Slide 10 chart) | (Slide 4 SmartArt) | (Slide 20, hidden)
+               file (Slide 12, image 'Orbit Diagram' image2.png)   <- shape name from the Selection Pane + image file
+  Word         file (section '1. SCOPE OF WORK', para 2-9) | (Header 1) | (Footer 1) | (Footnotes) | (Comments)
+               file (Body, image 'Picture 1' image1.png)
+  Excel        file (Risk Register) | (Risk Register shapes) | (Risk Register chart) | (Risk Register comments)
+               file (Risk Register, image 'Image 1' image1.png)
+  Image        file (Image)
 
 
 THE FILES
 ---------
 
+Kestrel_Large_Briefing.pptx   PowerPoint, 40 slides  (reproduces the "no embedded image" crash)
+  Tests: same logo on every slide, a table (slide 5), grouped shapes (8), a chart (10),
+         an embedded diagram (12), a LINKED picture (15), a hidden slide (20), speaker notes (3, 30).
+  Expect: All 40 slides scanned. No crash.
+          Row "Kestrel_Large_Briefing.pptx (Slide 15, image 'Linked Schematic')", status "Not scanned",
+          explaining the picture links to an outside file. The text "THIS SHOULD NOT BE READ" never appears.
+          MOC and LEOP at Slide 8. QA, RFA, TRR at "Slide 10 chart". IMS and CO at "Slide 3 notes".
+          FRR at "Slide 20, hidden". GNC, RAAN, SSO at "Slide 12, image 'Orbit Diagram' image2.png".
+          NWO and KESTREL (from the logo) listed on all 40 slides; the logo is OCR'd only once.
+
 Kestrel_Technical_Volume.docx   Word
-  Tests: body text, a table, an embedded figure (OCR), header and footer, OCR typo line.
+  Tests: body text under headings, a table, an embedded figure (OCR), header and footer, OCR typo line.
   Expect: SOW (Resolved), RFP, CDR and LEO (CHOOSE DEFINITION), psi, kWh, approx., w/o.
+          Locations name the section heading, e.g. "section '1. SCOPE OF WORK', para 2-9".
+          CUI at "Header 1" and ITAR at "Footer 1".
           SOW location tagged "[OCR fix: S0W]" (confusion-map correction).
-          GSFC and EPS found from text inside the embedded Figure 4 image.
+          GSFC and EPS from "Body, image 'Picture 1' image1.png" (Figure 4).
           TBD, CEO, USA, II suppressed (visible only with "Show Excluded").
-  Known gaps: CUI and ITAR live in the header/footer and are NOT found.
-              DoD is NOT found (mixed-case acronyms are missed).
+  Known gaps: DoD is NOT found (mixed-case acronyms are missed).
               RFF is NOT corrected to RFP (F/P is not a known OCR confusion).
               MIL-STD-882E splits into MIL and STD.
 
@@ -35,13 +62,13 @@ Kestrel_Program_Manual.pdf   PDF, 8 pages
 
 Kestrel_PDR_Briefing.pptx   PowerPoint, 5 slides
   Tests: title and bullet text, a table, two pictures (OCR), a grouped text box, speaker notes.
-  Expect: C&DH, GNC, COPV, TRL from the table. ADCS, TT&C, I/F, GHz from the diagram image on slide 5.
-  Known gaps: MOC and LEOP (grouped callout, slide 5) and QA and FRR (speaker notes) are NOT found.
+  Expect: C&DH, GNC, COPV, TRL from the table. ADCS, TT&C, I/F, GHz from the diagram on slide 5.
+          MOC and LEOP from the grouped callout (Slide 5). QA and FRR from "Slide 5 notes".
 
 Kestrel_Compliance_Matrix.xlsx   Excel, 2 sheets
   Tests: text cells on two sheets, numeric cells (skipped on purpose), an embedded image (OCR).
-  Expect: KES, COPV, MEOP, EOL, TT&C, SOW, RFP, psi, kWh, w/o. SE&I from the image and Risk Register.
-          Sheet name appears in Locations, e.g. "(Risk Register)".
+  Expect: KES, COPV, MEOP, EOL, TT&C, SOW, RFP, psi, kWh, w/o.
+          SE&I from the Risk Register cells and "Risk Register, image 'Image 1' image1.png".
   Known gaps: "Add" and "Tank" show as unit candidates (word after a number). Noise.
 
 Kestrel_System_Diagram.png   Clean image
@@ -60,6 +87,7 @@ Corrupt_File_Test.pdf   Broken file
 
 
 WHAT TO TRY IN THE APP
+  - Status filter "Errors / not scanned": shows the corrupt PDF and the slide 15 linked picture.
   - Select CDR, pick "Critical Design Review", click Apply Choice.
   - Select COPV, type "Composite Overwrapped Pressure Vessel", click Include in DB. Rescan: it shows as Resolved.
   - Select SCOPE, click Exclude. Rescan: it disappears unless "Show Excluded" is checked.
@@ -67,10 +95,17 @@ WHAT TO TRY IN THE APP
   Note: Include and Exclude change acronym_database.csv in the app folder you are running.
 
 
+WHAT THE APP CANNOT READ (reported as "Not scanned" rows)
+  - Linked pictures (stored outside the file). Fix: re-insert as embedded pictures.
+  - Vector graphics (EMF, WMF, SVG), common for Visio diagrams pasted into Word.
+  - Embedded objects (an Excel sheet or Visio drawing inside a slide) are not opened;
+    their preview picture is OCR'd when it is a normal image.
+
+
 KNOWN GAPS THESE FILES EXPOSE (from the architecture review)
   F4  Mixed-case (DoD) and hyphenated (MIL-STD-882E) acronyms
   F5  Sentence-ending words flagged as abbreviations (award., model., panel.)
   F6  ALL-CAPS headings flagged as acronyms (SCOPE, OF, WORK, APPENDIX)
-  F8  Word headers/footers, PowerPoint notes and grouped shapes not read
-  After fixing any of these, rescan this folder and confirm the gap closes and nothing
+  Closed in v1.0.1: F8 (Word headers/footers, PowerPoint notes, grouped shapes, charts, SmartArt).
+  After fixing any gap, rescan this folder and confirm the gap closes and nothing
   in the "Expect" lines disappears.

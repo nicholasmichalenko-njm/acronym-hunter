@@ -33,6 +33,23 @@ version_info.txt
   Kept because: unlabeled executables look suspicious to antivirus and IT reviewers.
   Bump the version numbers here before sharing a changed build.
 
+TRAINING_GUIDE.md
+  Step-by-step guide to making the app more accurate over time: OCR corrections, OCR settings,
+  swapping OCR models, training your own model, measuring with the scorer.
+  Kept because: it is the playbook for every accuracy change.
+
+config\
+  ocr_corrections.csv  Misread,Correct pairs (RFF -> RFP). The app's Fix OCR button adds lines.
+  ocr_settings.json    OCR tuning numbers (scan resolution, image cleanup, confidence cutoffs).
+  models\              Optional drop-in OCR models (det.onnx, rec.onnx, cls.onnx, rec_keys.txt).
+  Kept because: the app reads these at launch; build.ps1 copies the folder into every zip.
+
+tools\
+  evaluate.py          Scores the app against a ground_truth.csv (recall and false alarms).
+  eval_history.csv     One row per scored run: your accuracy record over time.
+  Run: .\venv\Scripts\python.exe tools\evaluate.py --note "what changed"
+  Kept because: every accuracy change must be measured before it ships.
+
 acronym_database.csv
   The MASTER acronym database (Term, Category, Definition, Action).
   build.ps1 copies this file into every new zip.
@@ -63,8 +80,8 @@ requirements.txt
   Different package versions can reintroduce crashes.
 
 test_samples\
-  Seven fictional files (Word, PDF, PowerPoint, Excel, PNG, JPG, and one broken PDF) plus
-  EXPECTED_RESULTS.txt describing what the app should find in each.
+  Eight fictional files (Word, PDF, two PowerPoints, Excel, PNG, JPG, and one broken PDF) plus
+  EXPECTED_RESULTS.txt (what to look for by hand) and ground_truth.csv (what tools\evaluate.py scores).
   Kept because: rescan this folder after any code change to confirm nothing broke.
 
 venv\  (380 MB)
@@ -101,7 +118,8 @@ Change the app
   1. Edit app_gui.py.
   2. Optional quick test without building:
        .\venv\Scripts\python.exe app_gui.py
-  3. Scan test_samples\ and compare against test_samples\EXPECTED_RESULTS.txt.
+  3. Score it: .\venv\Scripts\python.exe tools\evaluate.py --note "what changed"
+     Recall must not drop and false alarms must not rise (see TRAINING_GUIDE.md section 11).
      Bump the version in version_info.txt (both the numbers and the strings).
   4. Rebuild:
        powershell -ExecutionPolicy Bypass -File .\build.ps1

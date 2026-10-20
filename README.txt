@@ -15,9 +15,18 @@ READING THE RESULTS
   Filter:     Type (Acronym, Unit, Abbreviation...), Status (Needs choice, New candidates...),
               and Search (matches term or definition). "Clear" resets all filters.
   Scroll right with the bottom scrollbar to read long Locations.
+  Locations:  PDF page, PowerPoint slide (plus notes/chart/SmartArt and the picture's name),
+              Word section heading, header/footer, or Excel sheet.
+  "Not scanned" rows list content the app could not open, such as linked pictures or
+              vector diagrams, and where they are. Use Status > "Errors / not scanned" to see them.
+
+FIXING OCR MISREADS
+  If a term in a picture is misread (RFF instead of RFP): select the row, type the correct term
+  in the box, click "Fix OCR". Future scans report it correctly.
 
 WHAT STAYS IN THIS FOLDER
   acronym_database.csv   Master list. Include / Exclude rules. Edit in the app or in Excel.
+  config\                OCR corrections (Fix OCR), OCR settings, optional replacement OCR models.
   _local_sandbox\        Scratch space, created on launch, cleared on exit.
   logs\error.log         Written only if something fails. Send this file when reporting a problem.
 
