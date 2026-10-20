@@ -26,9 +26,15 @@ FIXING OCR MISREADS
   To review, edit, or undo fixes: click "OCR Fixes" (top right). "Undo Last Entry" reverses
   an accidental Fix OCR.
 
+REGION TRAINER (AcronymHunterTrainer.exe)
+  For text the scanner missed in a picture: open the file, drag a box around the text, correct what
+  was read, and save it. "Add OCR Fixes from Corrections" makes the scanner fix that misread right away.
+  Saved samples go to training_data\ in this folder (crops of your documents; handle them accordingly).
+
 WHAT STAYS IN THIS FOLDER
   acronym_database.csv   Master list. Include / Exclude rules. Edit in the app or in Excel.
   config\                OCR corrections (Fix OCR), OCR settings, optional replacement OCR models.
+  training_data\         Trainer samples (created only when you save one).
   _local_sandbox\        Scratch space, created on launch, cleared on exit.
   logs\error.log         Written only if something fails. Send this file when reporting a problem.
 

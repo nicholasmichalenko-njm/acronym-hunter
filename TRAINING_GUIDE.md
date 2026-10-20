@@ -31,6 +31,7 @@ Matching rules are the biggest remaining lever.
 |---|---|---|---|---|
 | 4 | Database | Seconds | Unknown terms, definitions, noise words | `acronym_database.csv`, Include / Exclude buttons |
 | 5 | OCR corrections | Seconds | A specific misread that keeps happening (RFF for RFP) | `config\ocr_corrections.csv`, **Fix OCR** button |
+| 5b | Trainer: region rescan + samples | Minutes | Text missed or misread in a picture; builds training data | `AcronymHunterTrainer.exe` / **Region Trainer** button |
 | 6 | OCR settings | Minutes | Whole classes of OCR misses (small text, scans, photos) | `config\ocr_settings.json` |
 | 7 | Swap OCR models | 30 minutes | Systematic OCR weakness | `config\models\` (drop-in files) |
 | 8 | Train your own OCR model | Days | OCR on a recurring style it never reads well | Separate PC, then `config\models\` |
@@ -100,6 +101,39 @@ Rules:
 - 0/O, 1/I, 5/S, 8/B swaps for database terms are already automatic. Add pairs only for other confusions.
 
 ---
+
+## 5b. The Trainer: re-read a missed spot and save training samples
+
+Use it when the scanner missed or misread text in a picture.
+
+1. Open `AcronymHunterTrainer.exe`, or click **Region Trainer** in the scanner.
+2. **Open File**. Pick the page (PDF) or picture (PowerPoint, Word, Excel) in the left list.
+3. **Drag a box** around the missed text. Zoom with **+ / -**, **Fit**, or Ctrl + mouse wheel.
+4. Read the right panel:
+   - Each line the reader found, with confidence. **Red** = below `min_confidence`; the scanner drops it.
+     A red line that is correct means the cutoff is too strict for that style (section 6).
+   - **Whole box as ONE line**: the box read as a single line without text detection. Use it when no lines were found.
+5. **Correct** the text (editing a line ticks it).
+6. Click **Save Ticked Lines as Samples**, or **Save Whole Box as One Sample**.
+7. Click **Add OCR Fixes from Corrections** to also teach the scanner the word-level fix right away (for example LI to LL).
+8. **Remove Last Sample** undoes the most recent save.
+
+What gets saved, inside the app folder:
+```
+training_data\
+  images\20261020_141950_09257470.png   one cropped text line (1-50 KB)
+  labels.txt                             images/20261020_141950_09257470.png<TAB>LL   (PaddleOCR training format)
+  samples.csv                            date, image, text, what OCR read, confidence, source file, location, box
+```
+`labels.txt` is already in the format PaddleOCR's recognition training expects (section 8, step 2), so the
+Trainer replaces the manual crop-and-label work.
+
+Rules:
+- Save **one line of text per sample**. Tight boxes work best; the Trainer trims empty margins automatically.
+- Type exactly what is printed, including case and punctuation.
+- Save examples of what goes **wrong**, plus some that go right, so a trained model does not forget.
+- `training_data\` holds crops of real documents. It is excluded from builds and from Git. Keep it on
+  approved storage, and delete it when done.
 
 ## 6. OCR settings (`config\ocr_settings.json`)
 
@@ -204,10 +238,10 @@ sections 5 to 7 did not fix it.
 hours instead of days), and 500 to 5,000 labeled text-line images from your own documents.
 
 **Step by step:**
-1. **Collect crops.** Cut single text lines out of the failing images, one line per PNG.
-   PaddleOCR's labeling tool, PPOCRLabel, speeds this up.
-2. **Label them** in a tab-separated text file, one line per image:
-   `crops/line_0001.png<TAB>COPV inspected before each fill`
+1. **Collect crops** with the Trainer (section 5b). Copy the whole `training_data\` folder to the training machine.
+   (PaddleOCR's labeling tool, PPOCRLabel, is an alternative.)
+2. **Labels** are already in `training_data\labels.txt`, one line per image:
+   `images/20261020_141950_09257470.png<TAB>COPV inspected before each fill`
 3. **Split** 90% into `train.txt`, 10% into `val.txt`. Never train on the val set.
 4. **Install** PaddlePaddle and clone the PaddleOCR repository. Use the README of the exact version you
    install; command names change between releases.
@@ -324,6 +358,8 @@ Large model files add to the zip size and to Git LFS storage.
 | Small text on a large image missed, but found when you crop it | Confirm `tile_large_images` is 1; try `tile_size_px` 1200 |
 | Small text in small diagrams missed | `upscale_below_px` 1600 or `upscale_factor` 2.5 |
 | Fix OCR clicked by mistake | **OCR Fixes** button > **Undo Last Entry** |
+| Want to see why a word in a picture was missed | Trainer: box it and read the confidence (red = dropped by the cutoff) |
+| Want to build training data | Trainer: save corrected lines as samples (section 5b) |
 | Junk words from images | `min_confidence` 0.6 |
 | Characters consistently wrong in images | Try another `rec.onnx` (section 7) |
 | One recurring style always fails | Fine-tune (section 8) |

@@ -15,6 +15,14 @@ AcronymHunter_Portable.zip  (117 MB)
   Kept because: it is the deliverable. Rebuilding it takes about 2 minutes, so it is
   replaceable, but keeping it means you can share without rebuilding.
 
+trainer_gui.py
+  Source for AcronymHunterTrainer.exe: region rescans and training-sample capture. Imports app_gui.py
+  as its engine, so it shares the network block, sandbox, OCR settings, and corrections.
+  Kept because: it is the only copy of the Trainer's logic.
+
+version_info_trainer.txt
+  Windows file properties for AcronymHunterTrainer.exe. Bump its version with version_info.txt.
+
 app_gui.py
   The entire application source code: file reading, OCR, the 3-gate matching engine,
   the window, and the offline lockdown.
@@ -159,7 +167,7 @@ If venv is missing
 GITHUB BACKUP
   Private repo: https://github.com/nicholasmichalenko-njm/acronym-hunter
   README.md       Front page of the repo on GitHub (overview and rebuild steps).
-  .gitignore      Keeps venv, build output, logs, and scratch folders out of the repo.
+  .gitignore      Keeps venv, build output, logs, scratch folders, and training_data out of the repo.
   .gitattributes  Stores the zip with Git LFS (GitHub blocks normal files over 100 MB).
   venv is NOT in the repo; requirements.txt recreates it.
 
@@ -173,6 +181,11 @@ SIGNING AND SECURITY APPROVAL
   The exe is NOT code-signed. Windows SmartScreen and managed work PCs may warn or block it.
   For use on company machines, route it through IT (allowlisting or internal signing).
   Options and costs: see the "Signing and approval" doc in the claude.ai project.
+
+TRAINING DATA
+  training_data\ (created by the Trainer, beside the exe or in this folder when run from source) holds crops
+  of real documents. It is never shipped in the zip (build.ps1 builds a clean folder) and never committed
+  (.gitignore). Back it up only to approved storage.
 
 RULES
 -----

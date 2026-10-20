@@ -1,6 +1,6 @@
 # Acronym Hunter: Complete Overview
 
-**Version:** 1.0.3 | **Updated:** 2026-10-20 | **Platform:** Windows 10/11, 64-bit
+**Version:** 1.1.0 | **Updated:** 2026-10-20 | **Platform:** Windows 10/11, 64-bit
 
 This document has two parts.
 **Part 1** explains the whole application in plain language: what it is, what is inside it, how it works,
@@ -37,7 +37,8 @@ the OCR models stored inside the folder. The "notebook" is `acronym_database.csv
 
 ```
 AcronymHunter\
-  AcronymHunter.exe          The program you double-click
+  AcronymHunter.exe          The scanner: the program you double-click
+  AcronymHunterTrainer.exe   The Trainer: re-read missed spots and save training samples
   acronym_database.csv       The notebook: known terms, definitions, Include/Exclude rules
   config\                    Accuracy settings you can tune
      ocr_corrections.csv       "This misread means that" list (RFF means RFP)
@@ -49,7 +50,10 @@ AcronymHunter\
   _internal\                 The engine: Python, libraries, reading models (do not edit)
   _local_sandbox\            Scratch space (created when the app runs, emptied when it closes)
   logs\                      Error notes (created only if something goes wrong)
+  training_data\             Training samples you save in the Trainer (created on first save)
 ```
+
+The two programs share the same engine in `_internal\`, so the Trainer adds only a few MB.
 
 Nothing is installed. Nothing is added to the Start menu, Program Files, or Windows settings.
 Unzip it, run it, delete it.
@@ -108,7 +112,26 @@ All are open-source libraries. All run inside the app's own process. None of the
    - "Not scanned": content the app could not open (for example a linked picture); the row says why.
 5. **Export:** click **Export CSV** to save the results report wherever you choose.
 
-## 7. How it gets better over time
+## 7. The Trainer: point at what was missed
+
+`AcronymHunterTrainer.exe` (or the **Region Trainer** button in the scanner) is a second program for the
+cases where the scanner missed something in a picture.
+
+1. **Open File** and pick the document or image. The left list shows every page (PDF) or embedded picture
+   (PowerPoint, Word, Excel) with its slide or section.
+2. **Drag a box** around the text that was missed. The right panel shows every line the reader saw in the
+   box, with a confidence score. Red lines are ones the scanner throws away as too uncertain.
+3. **Correct** any line (editing ticks it), then **Save Ticked Lines as Samples**. If the reader found
+   nothing, type the text under **Whole box as ONE line** and save that instead.
+4. **Add OCR Fixes from Corrections** turns a corrected word (LI to LL) into a fix the scanner uses right away.
+5. Samples collect in `training_data\` inside the folder. **Remove Last Sample** undoes a mistake.
+
+Each sample is a small cropped picture plus its correct text, usually 1 to 50 KB. A thousand samples take about
+10 to 50 MB. They are never added to the shareable zip and never uploaded anywhere. When enough samples build up
+(about 500 of the same kind of miss), they can train a better reading model on a separate machine
+(`TRAINING_GUIDE.md`, section 8).
+
+## 8. How it gets better over time
 
 The app improves as you use it, without sending anything anywhere. Everything it learns is stored in files
 inside its folder.
@@ -117,6 +140,7 @@ inside its folder.
 |---|---|---|
 | Include in DB / Exclude | Your vocabulary and the noise to ignore | `acronym_database.csv` |
 | Fix OCR | Misreads it keeps making and the right answer | `config\ocr_corrections.csv` (review or undo with **OCR Fixes**) |
+| Trainer samples | Examples of text the reader got wrong, with the right answer | `training_data\` |
 | Tune settings | Better picture cleanup for your kind of documents | `config\ocr_settings.json` |
 | Swap or train a reading model | Better reading of your fonts and layouts | `config\models\` |
 
@@ -124,26 +148,28 @@ Each change is measured with a scoring tool (`tools\evaluate.py` in the project)
 documents with known answers, so improvements are proven, not guessed. `TRAINING_GUIDE.md` in the project
 explains every step.
 
-## 8. What it needs to run
+## 9. What it needs to run
 
 - A Windows 10 or 11 computer (64-bit). About 300 MB of disk space and 1 to 2 GB of free memory for large scans.
 - **Nothing else.** No internet, no installation, no administrator rights, no Python, no Office,
   no account, no license server.
 
-## 9. Why it works offline
+## 10. Why it works offline
 
 Everything it needs is already inside the folder: the program, all libraries, and the three reading models.
 It never downloads anything, never checks for updates, and never sends usage data.
 As a second lock, the app blocks itself from opening any network connection while it runs.
 It works the same with Wi-Fi off or the network cable unplugged.
 
-## 10. Why it is safe for sensitive documents
+## 11. Why it is safe for sensitive documents
 
 - **Nothing leaves the computer.** No network connections, verified by monitoring.
 - **Nothing leaves the folder.** Everything the app creates is written inside its own folder, verified by audit and live monitoring.
   The one exception is the results report you choose to export, saved where you put it.
 - **Your documents are never changed.** They are only read.
-- **Pictures are read in memory.** Pages and images being read are not saved to disk.
+- **Pictures are read in memory.** Pages and images being read are not saved to disk, with one deliberate
+  exception: training samples you choose to save in the Trainer are small crops of your documents, kept in
+  `training_data\` inside the folder. Treat that folder at the sensitivity of the documents it came from.
 - **Delete the folder and it is gone.** No installer, no hidden files, no settings stored elsewhere.
 
 **One honest limit:** Windows itself keeps general records of activity on every PC, such as recently used
@@ -158,7 +184,7 @@ contents. Part 2, section 12 lists them and how IT normally controls them.
 
 | Attribute | Answer |
 |---|---|
-| Deployment model | Portable folder; no installer, no services, no drivers |
+| Deployment model | Portable folder with two programs (scanner, Trainer) sharing one engine; no installer, no services, no drivers |
 | Network access | None. No outbound or inbound connections; runtime block on sockets and DNS |
 | Data transmission | None |
 | Data storage | Only inside the application folder; user-chosen export location for reports |
@@ -203,9 +229,9 @@ contents. Part 2, section 12 lists them and how IT normally controls them.
 |---|---|
 | What data does it process? | Text and images inside the documents the user selects |
 | Where is document content held? | In process memory during the scan; released when the scan or app ends |
-| Is document content written to disk? | No. Extracted text and images are never saved. Only results the user chooses to keep (database entries, OCR fixes, CSV export) and error logs are written |
-| What files does it write? | `acronym_database.csv`, `config\ocr_corrections.csv` (+ transient `.tmp` during atomic save), `logs\error.log`, `logs\selftest.txt` (diagnostic mode only), `_local_sandbox\settings.json`, `_local_sandbox\temp\*` (emptied at exit and start). All inside the app folder |
-| What may those files contain? | Terms and definitions the user adds; file names and paths in error logs; last folder used in settings |
+| Is document content written to disk? | Not by the scanner. Extracted text and images are never saved; only results the user chooses to keep (database entries, OCR fixes, CSV export) and error logs. **Exception by design:** the Trainer saves cropped image regions and their text when the user clicks Save, into `training_data\` inside the app folder |
+| What files does it write? | `acronym_database.csv`, `config\ocr_corrections.csv` (+ transient `.tmp` during atomic save), `logs\error.log`, `logs\selftest.txt` (diagnostic mode only), `_local_sandbox\settings.json`, `_local_sandbox\temp\*` (emptied at exit and start), and from the Trainer `training_data\images\*.png`, `training_data\labels.txt`, `training_data\samples.csv` (source file name, location, box). All inside the app folder |
+| What may those files contain? | Terms and definitions the user adds; file names and paths in error logs; last folder used in settings; **cropped document images and their text** in `training_data\` |
 | Data at rest encryption | Not applied by the app. Relies on endpoint full-disk encryption (BitLocker) |
 | Data in transit | None exists |
 | Retention | User-controlled. Nothing is retained outside the folder. Deleting the folder removes all app data |
@@ -234,7 +260,7 @@ contents. Part 2, section 12 lists them and how IT normally controls them.
 | Services, drivers, scheduled tasks? | None |
 | Registry writes by the app? | None. Verified: no registry keys created during a monitored run |
 | Startup/autorun entries? | None |
-| Child processes? | None during scanning (verified). "Edit Database CSV" asks Windows to open the CSV in the default program (normally Excel) |
+| Child processes? | None during scanning (verified). On user click only: **Region Trainer** starts `AcronymHunterTrainer.exe` from the same folder; **Edit Database CSV** and **Open Training Folder** ask Windows to open a file or folder in its default program |
 | Files outside the folder? | None, except the user-chosen CSV export. Verified by live file-system monitoring |
 | Architecture | x64 Windows PE (machine 0x8664). Bundles its own Visual C++ runtime DLLs |
 | Uninstall | Delete the folder. Verified: no app files remain afterward |
@@ -330,7 +356,7 @@ The app's real attack surface is the documents it opens. Controls:
 | What models are used? | Three small OCR models (text detection, recognition, orientation), 16 MB total, PP-OCRv4 family |
 | Generative AI or LLMs? | None |
 | Where does inference run? | Locally on the CPU via ONNX Runtime |
-| Is user data used to train models? | No, never automatically. Training is an optional, manual, offline process (`TRAINING_GUIDE.md`) run by the user on approved hardware |
+| Is user data used to train models? | No, never automatically. The Trainer only saves samples when the user clicks Save. Training on them is a separate, manual, offline process (`TRAINING_GUIDE.md`) on approved hardware; the result is a replacement `rec.onnx` in `config\models\` |
 | Is output deterministic? | Yes. The same file gives the same result every run |
 | Can models be changed? | Only by placing files in `config\models\` (falls back to bundled models if they fail). The scan log records which models were used |
 | Model integrity | SHA-256 of bundled models listed in section 6 |
@@ -352,6 +378,7 @@ The app's real attack surface is the documents it opens. Controls:
 | Memory paging / hibernation files can hold fragments of any program's memory | Organization | BitLocker full-disk encryption |
 | Crash dumps (Windows Error Reporting) on a native crash | Organization | WER policy; none observed in testing |
 | Exported reports and app-folder files contain sensitive terms | User | Store the folder and exports on encrypted, local, non-synced storage; mark exports per data classification |
+| `training_data\` holds crops of real documents | User | Same storage rules; never copy it into the repository or a shared zip (excluded by `build.ps1` and `.gitignore`); delete it when no longer needed |
 | Unsigned executable | Organization / developer | IT allowlisting or internal code signing |
 | AGPL-licensed PDF component | Legal | Confirm internal-use terms or obtain commercial license |
 | Software origin of OCR models | Security | Review against policy; swap models if required |
@@ -411,7 +438,7 @@ The `Security:` line confirms, from inside the running program, that the network
 
 **Can it be used on an air-gapped machine?** Yes. It was designed for that.
 
-**Does it store our documents anywhere?** No. It reads them in memory. Only the terms you choose to save, error logs, and reports you export are written.
+**Does it store our documents anywhere?** The scanner does not; it reads them in memory. Only the terms you choose to save, error logs, and reports you export are written. The Trainer saves small crops only when you click Save, inside the app folder.
 
 **What happens if we delete it?** All app files and data are gone. Windows' own general activity records (section 12) follow your normal OS policies.
 

@@ -10,3 +10,6 @@ __pycache__/
 *.pyc
 *.tmp
 _verify/
+
+# Training samples are crops of real documents: may be sensitive. Never commit.
+training_data/

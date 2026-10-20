@@ -1022,6 +1022,9 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_fixes = ctk.CTkButton(top, text="OCR Fixes", command=self.open_fix_manager, fg_color="#7C3AED", width=120, height=36)
         self.btn_fixes.pack(side="right", padx=5, pady=10)
 
+        self.btn_trainer = ctk.CTkButton(top, text="Region Trainer", command=self.open_trainer, fg_color="#0F766E", width=130, height=36)
+        self.btn_trainer.pack(side="right", padx=5, pady=10)
+
         self.status = ctk.CTkLabel(self, text="Ready. 100% Local Sandbox Active (_local_sandbox).", font=("Arial", 13))
         self.status.pack(pady=(0, 4))
 
@@ -1134,6 +1137,16 @@ class AcronymAppGUI(ctk.CTk):
             messagebox.showerror("Database locked", DB_LOCKED_MSG)
         else:
             messagebox.showerror("Error", f"{exc_type.__name__}: {exc}\n\nDetails saved to logs\\error.log")
+
+    def open_trainer(self):
+        """Launch the companion Trainer (region rescans and training samples) from the same folder."""
+        if getattr(sys, "frozen", False):
+            exe = os.path.join(BASE_DIR, "AcronymHunterTrainer.exe")
+            if not os.path.exists(exe):
+                messagebox.showwarning("Region Trainer", "AcronymHunterTrainer.exe is not in this folder."); return
+            subprocess.Popen([exe], cwd=BASE_DIR)
+        else:
+            subprocess.Popen([sys.executable, os.path.join(BASE_DIR, "trainer_gui.py")], cwd=BASE_DIR)
 
     def open_file(self, path):
         if sys.platform == "win32": os.startfile(path)

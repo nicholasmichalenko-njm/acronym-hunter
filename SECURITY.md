@@ -1,6 +1,6 @@
 # Acronym Hunter: Security and Data-Handling Statement
 
-**Version covered:** 1.0.3 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
+**Version covered:** 1.1.0 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
 **Verified:** 2026-10-20 (v1.0.1 live test; v1.0.2 added tiled OCR and the OCR Fixes window; v1.0.3 hardened XML parsing and capped embedded image size; no new file locations or network code) on the developer's Windows PC, from a fresh unzip of the shipped zip
 **Audience:** users, security and IT reviewers
 
@@ -70,12 +70,15 @@ Complete list from a line-by-line audit of `app_gui.py` (every `open(... "w"/"a"
 | `logs\selftest.txt` | Scan results | Only with `--selftest` | Terms found |
 | `_local_sandbox\settings.json` | Text size, last folder used | When you change them | Folder path |
 | `_local_sandbox\temp\` | Temporary files, incl. OCR engine config | During a scan; **emptied on exit and on next start** | No document content |
+| `training_data\images\*.png`, `labels.txt`, `samples.csv` | **Cropped document images** + their text, source file name, location | Only when you click Save in the Trainer | **Yes: document content.** Never shipped in the zip or committed to Git |
 
 **The one write outside the folder is yours to direct:** *Export CSV* saves the results report wherever you
 choose in the save dialog.
 
-**One action hands a file to another program:** *Edit Database CSV* opens `acronym_database.csv` in your
-default spreadsheet program (usually Excel), which then behaves like any Excel session (see section 6).
+**Actions that hand off to another program (user click only):** *Edit Database CSV* opens `acronym_database.csv` in your
+default spreadsheet program (usually Excel), which then behaves like any Excel session (see section 6). *Region Trainer*
+starts `AcronymHunterTrainer.exe` from the same folder; it shares the same network block and folder rules.
+*Open Training Folder* opens `training_data\` in File Explorer.
 
 Temporary-file redirection: the app sets `TEMP`, `TMP`, and `TMPDIR` to `_local_sandbox\temp` before loading
 any library, so libraries that create temp files create them inside the folder.

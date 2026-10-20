@@ -23,8 +23,9 @@ _skip = ('onnxruntime.transformers', 'onnxruntime.quantization', 'onnxruntime.to
 hiddenimports = [h for h in hiddenimports if not h.startswith(_skip)]
 hiddenimports += ['defusedxml', 'defusedxml.ElementTree']  # openpyxl uses it only if importable
 
-a = Analysis(
-    ['app_gui.py'],
+def make_analysis(script):
+  return Analysis(
+    [script],
     pathex=[],
     binaries=binaries,
     datas=datas,
@@ -41,16 +42,21 @@ a = Analysis(
               'onnxruntime.quantization', 'onnxruntime.transformers', 'onnxruntime.tools'],
     noarchive=False,
     optimize=0,
-)
+  )
+
+a = make_analysis('app_gui.py')
+b = make_analysis('trainer_gui.py')   # companion Trainer: region rescans + training samples
 # Strip payload the app never uses: PyMuPDF layout models + C headers/libs, OpenCV video (FFmpeg) DLL.
 def _keep(entry):
     dest = entry[0].replace('/', '\\').lower()
     return not (dest.startswith('pymupdf\\layout') or dest.startswith('pymupdf\\mupdf-devel')
                 or 'opencv_videoio_ffmpeg' in dest)
-a.datas = [e for e in a.datas if _keep(e)]
-a.binaries = [e for e in a.binaries if _keep(e)]
+for an in (a, b):
+    an.datas = [e for e in an.datas if _keep(e)]
+    an.binaries = [e for e in an.binaries if _keep(e)]
 
 pyz = PYZ(a.pure)
+pyz_b = PYZ(b.pure)
 
 exe = EXE(
     pyz,
@@ -70,10 +76,31 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
 )
+exe_b = EXE(
+    pyz_b,
+    b.scripts,
+    [],
+    exclude_binaries=True,
+    name='AcronymHunterTrainer',
+    version='version_info_trainer.txt',  # Windows file properties (publisher, description, version)
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=False,  # UPX-packed DLLs trip corporate EDR/AV and can corrupt onnxruntime
+    console=False,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+)
 coll = COLLECT(
     exe,
     a.binaries,
     a.datas,
+    exe_b,          # both programs share one _internal folder: the Trainer adds only a few MB
+    b.binaries,
+    b.datas,
     strip=False,
     upx=False,  # UPX-packed DLLs trip corporate EDR/AV and can corrupt onnxruntime
     upx_exclude=[],
