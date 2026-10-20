@@ -1,7 +1,7 @@
 # Acronym Hunter: Security and Data-Handling Statement
 
-**Version covered:** 1.0.2 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
-**Verified:** 2026-10-20 (v1.0.1 live test; v1.0.2 adds tiled OCR and the OCR Fixes window, no new file locations or network code) on the developer's Windows PC, from a fresh unzip of the shipped zip
+**Version covered:** 1.0.3 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
+**Verified:** 2026-10-20 (v1.0.1 live test; v1.0.2 added tiled OCR and the OCR Fixes window; v1.0.3 hardened XML parsing and capped embedded image size; no new file locations or network code) on the developer's Windows PC, from a fresh unzip of the shipped zip
 **Audience:** users, security and IT reviewers
 
 ---
@@ -47,6 +47,10 @@ these are governed by the same IT controls as every other application.
             v
   Writes ONLY inside its own folder (see section 3). Export CSV goes where YOU choose.
 ```
+
+Untrusted-file hardening (v1.0.3): Office XML is parsed with entity expansion, DTD loading, and network access
+disabled (tested against an entity bomb and an XXE file read); openpyxl uses defusedxml; embedded images over
+100 MB are skipped. Macros, embedded objects, and PDF scripts are never executed. Full detail: OVERVIEW.md Part 2.
 
 There is no server, no cloud service, no account, no license check, no telemetry, and no auto-update.
 The app is a single process. It starts no child programs while scanning (verified: 0 child processes).

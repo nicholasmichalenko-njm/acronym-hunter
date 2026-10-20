@@ -33,10 +33,16 @@ version_info.txt
   Kept because: unlabeled executables look suspicious to antivirus and IT reviewers.
   Bump the version numbers here before sharing a changed build.
 
+OVERVIEW.md
+  Plain-language overview (what it is, structure, how it works, tools, how to use it, how it improves,
+  why it is offline and safe) plus the full enterprise security assessment (SBOM, licenses, privileges,
+  data handling, attack surface, compliance alignment, FAQ). Ships inside the zip.
+  Kept because: it is the single document for users and reviewers. Update it with every release.
+
 SECURITY.md
   Security and data-handling statement for users and IT: architecture, every file the app writes,
   why no internet is used, verification results, Windows-level records, and how to re-verify.
-  Kept because: it is the document to hand a reviewer. Update it whenever the code changes.
+  Kept because: it holds the verification steps reviewers can repeat. Ships inside the zip.
 
 TRAINING_GUIDE.md
   Step-by-step guide to making the app more accurate over time: OCR corrections, OCR settings,

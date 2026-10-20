@@ -7,6 +7,7 @@ Runs 100% locally: no network connections, no files written outside its own fold
 ## Start here
 | File | Purpose |
 |---|---|
+| `OVERVIEW.md` | **Start here.** Plain-language overview of the whole app, plus the full security assessment for IT and security teams |
 | `SECURITY.md` | Security and data-handling statement: architecture, every file written, offline proof, verification steps |
 | `PROJECT_GUIDE.txt` | Why every file exists, how to modify, rebuild, test, and share |
 | `TRAINING_GUIDE.md` | How to make it more accurate over time: OCR corrections, settings, model swaps, training, scoring |

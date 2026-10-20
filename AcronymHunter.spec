@@ -21,6 +21,7 @@ datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 # Drop hidden imports for submodules excluded below (avoids noisy "not found" errors in the log)
 _skip = ('onnxruntime.transformers', 'onnxruntime.quantization', 'onnxruntime.tools', 'pymupdf.layout')
 hiddenimports = [h for h in hiddenimports if not h.startswith(_skip)]
+hiddenimports += ['defusedxml', 'defusedxml.ElementTree']  # openpyxl uses it only if importable
 
 a = Analysis(
     ['app_gui.py'],

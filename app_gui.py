@@ -417,8 +417,13 @@ def read_image_bytes(image_bytes):
             _OCR_CACHE[key] = ""
     return _OCR_CACHE[key]
 
+# Hardened XML parsing for untrusted Office files: no entity expansion (XXE / "billion laughs"),
+# no DTD loading, no network access, no unbounded trees.
+_SAFE_XML = _ET.XMLParser(resolve_entities=False, no_network=True, load_dtd=False, huge_tree=False)
+MAX_EMBEDDED_IMAGE_BYTES = 100 * 1024 * 1024   # skip absurdly large embedded images (decompression-bomb guard)
+
 def _xml(z, path):
-    return _ET.fromstring(z.read(path))
+    return _ET.fromstring(z.read(path), parser=_SAFE_XML)
 
 def _in_fallback(el):
     return any(anc.tag == _q("mc", "Fallback") for anc in el.iterancestors())
@@ -508,6 +513,9 @@ def part_images(z, partpath, root, label_base, chunks, seen, rels=None):
             if ext not in IMAGE_EXTS:
                 continue
             try:
+                if z.getinfo(target).file_size > MAX_EMBEDDED_IMAGE_BYTES:
+                    note_skip(label, "Embedded image is over 100 MB uncompressed; skipped as a safety limit.")
+                    continue
                 txt = read_image_bytes(z.read(target))
             except KeyError:
                 note_skip(label, "Picture is referenced but missing from the file.")
@@ -1516,6 +1524,9 @@ def run_selftest(paths):
         try:
             res = analyze_batch(paths, lambda m: f.write(m + "\n"))
             f.write(f"\nOCR models: {OCR_MODEL_INFO}\nOCR settings: {json.dumps(OCR_CFG)}\n")
+            import openpyxl.xml as _oxml
+            f.write(f"Security: network guard={socket.socket.connect is _guarded_connect}, "
+                    f"office XML entities disabled={_SAFE_XML is not None}, openpyxl defusedxml={_oxml.DEFUSEDXML}\n")
             f.write(f"\nRESULTS: {len(res)} terms\n")
             for term, d in res.items():
                 f.write(f"{term}\t{d['category']}\t{d['count']}\t{d['status']}\t{d['selected_definition']}\n")

@@ -34,8 +34,12 @@ WHAT STAYS IN THIS FOLDER
 
   The app makes no network connections and writes no files outside this folder
   (except an Export CSV report, saved where you choose). To remove it, delete the folder.
-  Windows itself keeps generic records such as recently used file names; details in SECURITY.md
-  in the project repository.
+  Windows itself keeps generic records such as recently used file names; details in SECURITY.md.
+
+MORE INFORMATION (in this folder)
+  OVERVIEW.md   How the app works in plain language, plus the full security assessment for IT.
+  SECURITY.md   Detailed security statement and the steps to verify it yourself.
+  Both are plain text; open them in Notepad or any Markdown viewer.
 
 DATABASE FORMAT (acronym_database.csv)
   Term,Category,Definition,Action
