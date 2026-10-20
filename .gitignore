@@ -22,3 +22,4 @@ AcronymHunter_WithTrainer.zip
 *.ahproj
 *.ahproj.lock
 *.ahproj.tmp
+_gt_*.txt
