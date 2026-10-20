@@ -9,6 +9,15 @@ RUN
   3. Click "Select Files" or "Scan Folder".
   Supported: PDF, DOCX, XLSX, PPTX, PNG, JPG, TIF, BMP, WEBP, GIF.
 
+ADDING YOUR OWN ITEMS
+  "+ Add Item" adds a term the scan did not find (type, definition, where you saw it). It appears
+  marked "Added manually", is included in Export CSV, and stays through rescans until you select it and
+  click "Remove Item". Tick "Also save to the database" so future scans find it on their own.
+
+ADVANCED TOOLS
+  The "Advanced" switch (top right) shows Fix OCR, OCR Fixes, and Region Trainer (Trainer package only).
+  Off by default. Most users never need them.
+
 READING THE RESULTS
   Text size:  A- / A+ buttons, Ctrl + / Ctrl - , Ctrl + mouse wheel. Ctrl 0 resets. Remembered next launch.
   Sort:       Click any column header. Click again to reverse. The arrow shows the sorted column.
@@ -20,7 +29,7 @@ READING THE RESULTS
   "Not scanned" rows list content the app could not open, such as linked pictures or
               vector diagrams, and where they are. Use Status > "Errors / not scanned" to see them.
 
-FIXING OCR MISREADS
+FIXING OCR MISREADS (Advanced switch on)
   If a term in a picture is misread (RFF instead of RFP): select the row, type the correct term
   in the box, click "Fix OCR". Future scans report it correctly.
   To review, edit, or undo fixes: click "OCR Fixes" (top right). "Undo Last Entry" reverses

@@ -204,6 +204,25 @@ def load_ocr_settings():
 
 OCR_CFG = load_ocr_settings()
 
+APP_SETTINGS_FILE = os.path.join(CONFIG_DIR, "app_settings.json")
+APP_DEFAULTS = {
+    "advanced_features_default": False,   # Advanced tools (Fix OCR, OCR Fixes, Region Trainer) start hidden
+    "allow_advanced_toggle": True,        # False = hide the Advanced switch; the default above is locked in
+}
+
+def load_app_settings():
+    cfg = dict(APP_DEFAULTS)
+    try:
+        with open(APP_SETTINGS_FILE, "r", encoding="utf-8-sig") as f:
+            for k, v in json.load(f).items():
+                if k in APP_DEFAULTS and isinstance(v, bool):
+                    cfg[k] = v
+    except FileNotFoundError:
+        pass
+    except Exception:
+        log_error("config/app_settings.json could not be read; using defaults")
+    return cfg
+
 def load_ocr_fixes():
     """Misread -> Correct pairs from config/ocr_corrections.csv. Re-read on every scan."""
     fixes = {}
@@ -990,14 +1009,16 @@ def update_csv_exclusion(term, cat, reason):
 # ==============================================================================
 SETTINGS_FILE = os.path.join(SANDBOX_DIR, "settings.json")
 ALL_TYPES = "All types"
-STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", "Errors / not scanned", "Excluded"]
-STATUS_ORDER = (("⛔", 0), ("⚠️", 1), ("🔍", 2), ("✅", 3), ("🚫", 4))
+STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", "Added manually", "Errors / not scanned", "Excluded"]
+MANUAL_MARK = "✍"
+STATUS_ORDER = (("⛔", 0), ("⚠️", 1), ("🔍", 2), (MANUAL_MARK, 3), ("✅", 4), ("🚫", 5))
+MANUAL_CATEGORIES = ["Acronym", "Abbreviation", "Unit", "Other"]
 COLUMNS = (  # id, heading, base width, anchor
     ("term", "Term / Unit", 120, "w"),
     ("category", "Type", 170, "w"),
     ("count", "Count", 70, "center"),
     ("status", "Status", 210, "w"),
-    ("definition", "Definition (from database)", 360, "w"),
+    ("definition", "Definition", 360, "w"),
     ("locations", "Locations Found", 420, "w"),
 )
 FONT_MIN, FONT_MAX, FONT_DEFAULT = 9, 28, 13
@@ -1039,6 +1060,10 @@ class AcronymAppGUI(ctk.CTk):
         self.selected_term = None
         self.sort_col, self.sort_desc = "count", True
         self.settings = load_settings()
+        self.app_cfg = load_app_settings()
+        self.manual_items = {}   # term -> finding dict; kept across rescans until removed
+        self.advanced_on = bool(self.settings.get("advanced", self.app_cfg["advanced_features_default"])) \
+            if self.app_cfg["allow_advanced_toggle"] else self.app_cfg["advanced_features_default"]
         self.font_size = int(self.settings.get("font_size", FONT_DEFAULT))
         self.font_size = max(FONT_MIN, min(FONT_MAX, self.font_size))
 
@@ -1054,19 +1079,21 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_export = ctk.CTkButton(top, text="Export CSV", command=self.export_csv, state="disabled", fg_color="green", width=130, height=36)
         self.btn_export.pack(side="left", padx=5, pady=10)
 
-        self.show_exc_var = ctk.BooleanVar(value=False)
-        self.chk_exc = ctk.CTkCheckBox(top, text="Show Excluded", variable=self.show_exc_var, command=self.populate_table)
-        self.chk_exc.pack(side="left", padx=12, pady=10)
+        self.btn_add = ctk.CTkButton(top, text="+ Add Item", command=self.open_add_item, fg_color="#B45309", width=120, height=36)
+        self.btn_add.pack(side="left", padx=5, pady=10)
 
         self.btn_db = ctk.CTkButton(top, text="Edit Database CSV", command=lambda: self.open_file(DB_FILE), fg_color="#475569", width=160, height=36)
         self.btn_db.pack(side="right", padx=5, pady=10)
 
+        # Advanced tools: shown only when the Advanced switch is on
         self.btn_fixes = ctk.CTkButton(top, text="OCR Fixes", command=self.open_fix_manager, fg_color="#7C3AED", width=120, height=36)
-        self.btn_fixes.pack(side="right", padx=5, pady=10)
-
+        self.btn_trainer = None
         if trainer_available():   # only in the "WithTrainer" package (or when run from source)
             self.btn_trainer = ctk.CTkButton(top, text="Region Trainer", command=self.open_trainer, fg_color="#0F766E", width=130, height=36)
-            self.btn_trainer.pack(side="right", padx=5, pady=10)
+        self.adv_var = ctk.BooleanVar(value=self.advanced_on)
+        self.sw_adv = ctk.CTkSwitch(top, text="Advanced", variable=self.adv_var, command=self.toggle_advanced, width=110)
+        if self.app_cfg["allow_advanced_toggle"]:
+            self.sw_adv.pack(side="right", padx=(12, 5), pady=10)
 
         self.status = ctk.CTkLabel(self, text="Ready. 100% Local Sandbox Active (_local_sandbox).", font=("Arial", 13))
         self.status.pack(pady=(0, 4))
@@ -1100,6 +1127,10 @@ class AcronymAppGUI(ctk.CTk):
         ctk.CTkButton(fbar, text="Clear", width=60, fg_color="#64748B",
                       command=self.clear_filters).pack(side="left", padx=(6, 4), pady=8)
 
+        self.show_exc_var = ctk.BooleanVar(value=False)
+        self.chk_exc = ctk.CTkCheckBox(fbar, text="Show Excluded", variable=self.show_exc_var, command=self.populate_table)
+        self.chk_exc.pack(side="left", padx=(12, 4), pady=8)
+
         self.btn_bigger = ctk.CTkButton(fbar, text="A+", width=44, command=lambda: self.change_font_size(+1))
         self.btn_bigger.pack(side="right", padx=(4, 10), pady=8)
         self.lbl_size = ctk.CTkLabel(fbar, text="", width=48)
@@ -1132,6 +1163,7 @@ class AcronymAppGUI(ctk.CTk):
         self.tree.tag_configure("resolved", background="#FFFFFF", foreground="#1E293B")
         self.tree.tag_configure("excluded", background="#F1F5F9", foreground="#94A3B8")
         self.tree.tag_configure("fileerror", background="#FEE2E2", foreground="#991B1B")
+        self.tree.tag_configure("manual", background="#FEF9C3", foreground="#713F12")
 
         vsb = ttk.Scrollbar(t_frame, orient="vertical", command=self.tree.yview)
         hsb = ttk.Scrollbar(t_frame, orient="horizontal", command=self.tree.xview)
@@ -1171,8 +1203,88 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_ocr = ctk.CTkButton(act, text="Fix OCR", command=self.save_ocr_fix, state="disabled", fg_color="#7C3AED", width=90)
         self.btn_ocr.pack(side="left", padx=5, pady=12)
 
-        self.btn_exc = ctk.CTkButton(act, text="🚫 Exclude", command=self.exclude_term, state="disabled", fg_color="#DC2626", width=100)
+        self.btn_exc = ctk.CTkButton(act, text="🚫 Exclude", command=self.exclude_term, state="disabled", fg_color="#DC2626", width=110)
         self.btn_exc.pack(side="right", padx=10, pady=12)
+
+        self.apply_advanced_visibility()
+
+    # ---------- advanced tools ----------
+    def toggle_advanced(self):
+        self.advanced_on = bool(self.adv_var.get())
+        self.settings["advanced"] = self.advanced_on
+        save_settings(self.settings)
+        self.apply_advanced_visibility()
+
+    def apply_advanced_visibility(self):
+        """Show or hide Fix OCR, OCR Fixes, and Region Trainer."""
+        for w in (self.btn_fixes, self.btn_trainer, self.btn_ocr):
+            if w is not None:
+                w.pack_forget()
+        if self.advanced_on:
+            self.btn_fixes.pack(side="right", padx=5, pady=10, after=self.btn_db)
+            if self.btn_trainer is not None:
+                self.btn_trainer.pack(side="right", padx=5, pady=10, after=self.btn_fixes)
+            self.btn_ocr.pack(side="left", padx=5, pady=12, after=self.btn_save)
+
+    # ---------- manual items ----------
+    def open_add_item(self):
+        if getattr(self, "add_win", None) is not None and self.add_win.winfo_exists():
+            self.add_win.focus(); return
+        win = ctk.CTkToplevel(self); self.add_win = win
+        win.title("Add an item to the results"); win.geometry("560x430"); win.resizable(False, False)
+        win.transient(self); win.after(100, win.lift)
+        pad = {"padx": 16, "pady": (8, 0), "anchor": "w"}
+        ctk.CTkLabel(win, text="Term (required)").pack(**pad)
+        e_term = ctk.CTkEntry(win, width=520); e_term.pack(padx=16, pady=2)
+        ctk.CTkLabel(win, text="Type").pack(**pad)
+        c_cat = ctk.CTkComboBox(win, values=MANUAL_CATEGORIES, width=520); c_cat.set("Acronym"); c_cat.pack(padx=16, pady=2)
+        ctk.CTkLabel(win, text="Definition").pack(**pad)
+        e_def = ctk.CTkEntry(win, width=520); e_def.pack(padx=16, pady=2)
+        ctk.CTkLabel(win, text="Where found (optional, e.g. 'Volume II, p.14')").pack(**pad)
+        e_loc = ctk.CTkEntry(win, width=520); e_loc.pack(padx=16, pady=2)
+        save_var = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(win, text="Also save to the database so future scans find it (needs a definition)",
+                        variable=save_var).pack(padx=16, pady=(12, 0), anchor="w")
+        msg = ctk.CTkLabel(win, text="", text_color="#DC2626"); msg.pack(padx=16, pady=(6, 0), anchor="w")
+
+        def add():
+            term, cat = fold(e_term.get().strip()), (c_cat.get().strip() or "Acronym")
+            defn, loc = e_def.get().strip(), e_loc.get().strip()
+            if not term:
+                msg.configure(text="Enter a term."); return
+            if term in self.results and not self.results[term].get("manual"):
+                msg.configure(text=f"'{term}' is already in the results. Select it there to change its definition."); return
+            if save_var.get() and not defn:
+                msg.configure(text="A definition is needed to save it to the database."); return
+            saved = False
+            if save_var.get():
+                rows = read_db_rows(); rows.append([term, cat, defn, "Include"]); write_db_rows(rows); saved = True
+            item = {"category": cat, "count": 1, "locations": [loc or "Added manually"],
+                    "definitions": [defn] if defn else [], "in_db": True, "excluded": False, "manual": True,
+                    "selected_definition": defn or "[No definition given]",
+                    "status": f"{MANUAL_MARK} Added manually" + (" (saved to DB)" if saved else "")}
+            self.manual_items[term] = item
+            self.results[term] = item
+            self.selected_term = term
+            self.refresh_type_options(); self.populate_table()
+            self.btn_export.configure(state="normal")
+            win.destroy()
+
+        btns = ctk.CTkFrame(win, fg_color="transparent"); btns.pack(fill="x", padx=16, pady=14)
+        ctk.CTkButton(btns, text="Add to Results", command=add).pack(side="left")
+        ctk.CTkButton(btns, text="Cancel", fg_color="#475569", command=win.destroy).pack(side="right")
+        e_term.focus_set()
+        win.bind("<Return>", lambda _e: add())
+        win._add_api = {"term": e_term, "cat": c_cat, "defn": e_def, "loc": e_loc, "save": save_var, "add": add, "msg": msg}
+
+    def remove_manual_item(self):
+        term = self.selected_term
+        if not term or not self.results.get(term, {}).get("manual"): return
+        self.manual_items.pop(term, None); self.results.pop(term, None)
+        self.selected_term = None
+        self.btn_exc.configure(text="🚫 Exclude", command=self.exclude_term, state="disabled")
+        self.lbl_act.configure(text="Select a row above:")
+        self.populate_table()
 
     def _on_tk_error(self, exc_type, exc, tb):
         _excepthook(exc_type, exc, tb)
@@ -1322,6 +1434,7 @@ class AcronymAppGUI(ctk.CTk):
             "Needs choice": st.startswith("⚠️"),
             "New candidates": st.startswith("🔍"),
             "Resolved": st.startswith("✅"),
+            "Added manually": data.get("manual", False),
             "Errors / not scanned": st.startswith("⛔"),
             "Excluded": data.get("excluded", False),
         }.get(wanted, True)
@@ -1329,6 +1442,7 @@ class AcronymAppGUI(ctk.CTk):
     @staticmethod
     def row_tag(data):
         if data.get("excluded", False): return "excluded"
+        if data.get("manual"): return "manual"
         st = data["status"]
         if st.startswith("⛔"): return "fileerror"
         if st.startswith("⚠️"): return "ambiguous"
@@ -1336,6 +1450,9 @@ class AcronymAppGUI(ctk.CTk):
         return "resolved"
 
     def scan_done(self):
+        for term, item in self.manual_items.items():   # manual items survive rescans
+            if term not in self.results:
+                self.results[term] = item
         self.reset_ui()
         self.refresh_type_options()
         self.populate_table()
@@ -1388,11 +1505,19 @@ class AcronymAppGUI(ctk.CTk):
         if not data: return
 
         if data.get("file_error"):
+            self.btn_exc.configure(text="🚫 Exclude", command=self.exclude_term)
             for w in (self.btn_exc, self.btn_apply, self.btn_save, self.btn_ocr, self.entry_def, self.combo):
                 w.configure(state="disabled")
             self.lbl_act.configure(text="File could not be read:")
             return
 
+        if data.get("manual"):
+            for w in (self.btn_apply, self.btn_save, self.btn_ocr, self.entry_def, self.combo):
+                w.configure(state="disabled")
+            self.btn_exc.configure(text="Remove Item", command=self.remove_manual_item, state="normal")
+            self.lbl_act.configure(text=f"Added manually '{term}':")
+            return
+        self.btn_exc.configure(text="🚫 Exclude", command=self.exclude_term)
         self.btn_exc.configure(state="disabled" if data.get("excluded", False) else "normal")
 
         if data["in_db"] and not data.get("excluded", False) and len(data["definitions"]) > 1:

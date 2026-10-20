@@ -91,7 +91,7 @@ RFF,RFP,F/P misread seen in test samples
 C0PV,COPV,zero read for letter O
 ```
 
-**From the results table (fastest):**
+**From the results table (fastest; turn on the Advanced switch first):**
 1. Select the misread row (for example `RFF`).
 2. Type the correct term (`RFP`) in the box.
 3. Click **Fix OCR**. The row turns to "OCR fix saved".

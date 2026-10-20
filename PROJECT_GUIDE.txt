@@ -64,6 +64,8 @@ TRAINING_GUIDE.md
 config\
   ocr_corrections.csv  Misread,Correct pairs (RFF -> RFP). The app's Fix OCR button adds lines.
   ocr_settings.json    OCR tuning numbers (scan resolution, image cleanup, confidence cutoffs).
+  app_settings.json    Distribution options: advanced_features_default (Advanced tools start hidden: false),
+                       allow_advanced_toggle (false removes the Advanced switch for everyone).
   models\              Optional drop-in OCR models (det.onnx, rec.onnx, cls.onnx, rec_keys.txt).
   Kept because: the app reads these at launch; build.ps1 copies the folder into every zip.
 

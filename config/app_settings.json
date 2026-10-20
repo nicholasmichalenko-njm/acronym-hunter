@@ -1,0 +1,5 @@
+{
+  "_help": "App options for distribution. true/false only. Edit before building to set what colleagues get.",
+  "advanced_features_default": false,
+  "allow_advanced_toggle": true
+}

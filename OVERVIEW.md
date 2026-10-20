@@ -1,6 +1,6 @@
 # Acronym Hunter: Complete Overview
 
-**Version:** 1.1.2 | **Updated:** 2026-10-20 | **Platform:** Windows 10/11, 64-bit
+**Version:** 1.2.0 | **Updated:** 2026-10-20 | **Platform:** Windows 10/11, 64-bit
 
 This document has two parts.
 **Part 1** explains the whole application in plain language: what it is, what is inside it, how it works,
@@ -43,6 +43,7 @@ AcronymHunter\
   config\                    Accuracy settings you can tune
      ocr_corrections.csv       "This misread means that" list (RFF means RFP)
      ocr_settings.json         Picture-reading settings (sharpness, resolution)
+     app_settings.json         Whether Advanced tools start on, and whether users may switch them
      models\                   Optional replacement reading models (empty by default)
   README.txt                 Quick start
   OVERVIEW.md, SECURITY.md   This document and the detailed security statement
@@ -113,9 +114,21 @@ All are open-source libraries. All run inside the app's own process. None of the
 4. **Act on each row:**
    - "CHOOSE DEFINITION": pick the right meaning and click **Apply Choice**.
    - "NEW CANDIDATE": type its definition and click **Include in DB**, or click **Exclude** if it is noise.
-   - A misread from a picture (RFF instead of RFP): type the correct term and click **Fix OCR**.
+   - A misread from a picture (RFF instead of RFP): type the correct term and click **Fix OCR** (Advanced).
+   - Something the scan missed entirely: click **+ Add Item**, fill in the term, type, definition, and where
+     you saw it. It is marked "Added manually", included in the export, and kept through rescans. Tick
+     "Also save to the database" so future scans find it automatically.
    - "Not scanned": content the app could not open (for example a linked picture); the row says why.
 5. **Export:** click **Export CSV** to save the results report wherever you choose.
+
+**Advanced tools.** The **Advanced** switch (top right) shows Fix OCR, OCR Fixes, and Region Trainer.
+It is off by default so everyday users see a simpler screen. Whoever prepares the package can set the
+default or lock the switch in `config\app_settings.json`:
+
+| Setting | Effect |
+|---|---|
+| `"advanced_features_default": false` | Advanced tools start hidden (the user's own choice is remembered after that) |
+| `"allow_advanced_toggle": false` | The switch is removed; the default above applies to everyone |
 
 ## 7. The Trainer: point at what was missed
 
