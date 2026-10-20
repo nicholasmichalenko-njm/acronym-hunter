@@ -33,6 +33,11 @@ version_info.txt
   Kept because: unlabeled executables look suspicious to antivirus and IT reviewers.
   Bump the version numbers here before sharing a changed build.
 
+SECURITY.md
+  Security and data-handling statement for users and IT: architecture, every file the app writes,
+  why no internet is used, verification results, Windows-level records, and how to re-verify.
+  Kept because: it is the document to hand a reviewer. Update it whenever the code changes.
+
 TRAINING_GUIDE.md
   Step-by-step guide to making the app more accurate over time: OCR corrections, OCR settings,
   swapping OCR models, training your own model, measuring with the scorer.

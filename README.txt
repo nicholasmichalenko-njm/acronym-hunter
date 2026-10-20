@@ -30,8 +30,10 @@ WHAT STAYS IN THIS FOLDER
   _local_sandbox\        Scratch space, created on launch, cleared on exit.
   logs\error.log         Written only if something fails. Send this file when reporting a problem.
 
-  The app makes no network connections and writes no files outside this folder.
-  To remove it, delete the folder.
+  The app makes no network connections and writes no files outside this folder
+  (except an Export CSV report, saved where you choose). To remove it, delete the folder.
+  Windows itself keeps generic records such as recently used file names; details in SECURITY.md
+  in the project repository.
 
 DATABASE FORMAT (acronym_database.csv)
   Term,Category,Definition,Action

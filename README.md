@@ -7,6 +7,7 @@ Runs 100% locally: no network connections, no files written outside its own fold
 ## Start here
 | File | Purpose |
 |---|---|
+| `SECURITY.md` | Security and data-handling statement: architecture, every file written, offline proof, verification steps |
 | `PROJECT_GUIDE.txt` | Why every file exists, how to modify, rebuild, test, and share |
 | `TRAINING_GUIDE.md` | How to make it more accurate over time: OCR corrections, settings, model swaps, training, scoring |
 | `config/` | OCR corrections, OCR settings, optional drop-in OCR models (shipped inside the zip) |
