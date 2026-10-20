@@ -1,0 +1,25 @@
+# Acronym Hunter
+
+Offline Windows desktop app that scans PDF, Word, PowerPoint, Excel, and image files, finds acronyms,
+abbreviations, and units, matches them against a curated database, and flags ambiguous or new terms.
+Runs 100% locally: no network connections, no files written outside its own folder.
+
+## Start here
+| File | Purpose |
+|---|---|
+| `PROJECT_GUIDE.txt` | Why every file exists, how to modify, rebuild, test, and share |
+| `AcronymHunter_Portable.zip` | Ready-to-run app (stored with Git LFS). Unzip, run `AcronymHunter.exe` |
+| `README.txt` | Instructions shipped to recipients inside the zip |
+| `test_samples/` | Fictional test files plus `EXPECTED_RESULTS.txt` |
+
+## Rebuild from source (Windows, Python 3.11)
+```powershell
+py -3.11 -m venv venv
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
+powershell -ExecutionPolicy Bypass -File .\build.ps1
+```
+
+## Notes
+- The exe is not code-signed. See `PROJECT_GUIDE.txt` > Signing and security approval.
+- Test sample content and any CUI/ITAR markings in it are fictional.
+- `venv/` is not committed; `requirements.txt` recreates it exactly.

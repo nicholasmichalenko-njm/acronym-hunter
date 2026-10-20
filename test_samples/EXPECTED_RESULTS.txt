@@ -1,0 +1,76 @@
+ACRONYM HUNTER: TEST SAMPLES
+============================
+All content is fictional ("Kestrel" smallsat program, "Northwind Orbital").
+CUI and ITAR markings in the Word file are fake test markings.
+
+HOW TO TEST
+  1. Open AcronymHunter.exe.
+  2. Click "Scan Folder" and pick this test_samples folder (or "Select Files" for one file).
+  3. Compare the table against the checks below.
+  A full scan of all 7 files takes about 1 to 2 minutes (OCR is the slow part).
+  Baseline from 2026-10-20: 98 terms found, 1 file error.
+
+
+THE FILES
+---------
+
+Kestrel_Technical_Volume.docx   Word
+  Tests: body text, a table, an embedded figure (OCR), header and footer, OCR typo line.
+  Expect: SOW (Resolved), RFP, CDR and LEO (CHOOSE DEFINITION), psi, kWh, approx., w/o.
+          SOW location tagged "[OCR fix: S0W]" (confusion-map correction).
+          GSFC and EPS found from text inside the embedded Figure 4 image.
+          TBD, CEO, USA, II suppressed (visible only with "Show Excluded").
+  Known gaps: CUI and ITAR live in the header/footer and are NOT found.
+              DoD is NOT found (mixed-case acronyms are missed).
+              RFF is NOT corrected to RFP (F/P is not a known OCR confusion).
+              MIL-STD-882E splits into MIL and STD.
+
+Kestrel_Program_Manual.pdf   PDF, 8 pages
+  Tests: digital text pages (1 to 6), an embedded figure on page 6, and two image-only
+         scanned pages (7 and 8) that need full-page OCR.
+  Expect: IMS at p.7, GEVS, torr, Grms, RFAs from the scanned pages. SOWs (plural) counted as SOW.
+          VCRM, SRD, WBS, MEOP as new candidates.
+  Known gaps: OCR on page 8 can drop short lines (CO, QA). Check p.8 hits in the Locations column.
+              ALL-CAPS headings (SAFETY, ORBIT, POWER) appear as noise candidates.
+
+Kestrel_PDR_Briefing.pptx   PowerPoint, 5 slides
+  Tests: title and bullet text, a table, two pictures (OCR), a grouped text box, speaker notes.
+  Expect: C&DH, GNC, COPV, TRL from the table. ADCS, TT&C, I/F, GHz from the diagram image on slide 5.
+  Known gaps: MOC and LEOP (grouped callout, slide 5) and QA and FRR (speaker notes) are NOT found.
+
+Kestrel_Compliance_Matrix.xlsx   Excel, 2 sheets
+  Tests: text cells on two sheets, numeric cells (skipped on purpose), an embedded image (OCR).
+  Expect: KES, COPV, MEOP, EOL, TT&C, SOW, RFP, psi, kWh, w/o. SE&I from the image and Risk Register.
+          Sheet name appears in Locations, e.g. "(Risk Register)".
+  Known gaps: "Add" and "Tank" show as unit candidates (word after a number). Noise.
+
+Kestrel_System_Diagram.png   Clean image
+  Tests: OCR on a crisp block diagram.
+  Expect: C&DH, EPS, ADCS, TT&C, GNC, ICD, I/F, plus SOW and RFP from the caption line.
+
+Kestrel_Whiteboard_Photo.jpg   Noisy, tilted photo
+  Tests: image cleanup (contrast, denoise) before OCR on a low-quality picture.
+  Expect: CDR, ICD, IMS, LEO, PDR, SRR, TBD, TRL, psi, w/o, approx.
+          If these drop out after a code change, the image cleanup step broke.
+
+Corrupt_File_Test.pdf   Broken file
+  Tests: error isolation. One bad file must not stop the batch.
+  Expect: a row "Corrupt_File_Test.pdf", status "Could not read file". All other files still scanned.
+          logs\error.log appears in the app folder with the details.
+
+
+WHAT TO TRY IN THE APP
+  - Select CDR, pick "Critical Design Review", click Apply Choice.
+  - Select COPV, type "Composite Overwrapped Pressure Vessel", click Include in DB. Rescan: it shows as Resolved.
+  - Select SCOPE, click Exclude. Rescan: it disappears unless "Show Excluded" is checked.
+  - Click Export CSV and open the report.
+  Note: Include and Exclude change acronym_database.csv in the app folder you are running.
+
+
+KNOWN GAPS THESE FILES EXPOSE (from the architecture review)
+  F4  Mixed-case (DoD) and hyphenated (MIL-STD-882E) acronyms
+  F5  Sentence-ending words flagged as abbreviations (award., model., panel.)
+  F6  ALL-CAPS headings flagged as acronyms (SCOPE, OF, WORK, APPENDIX)
+  F8  Word headers/footers, PowerPoint notes and grouped shapes not read
+  After fixing any of these, rescan this folder and confirm the gap closes and nothing
+  in the "Expect" lines disappears.

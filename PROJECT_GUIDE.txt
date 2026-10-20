@@ -1,0 +1,142 @@
+ACRONYM HUNTER: PROJECT GUIDE
+=============================
+Last cleaned: 2026-10-20
+
+This folder holds everything needed to share, run, modify, and rebuild Acronym Hunter.
+Nothing else is required. Every item below has one job.
+
+
+WHAT IS IN THIS FOLDER
+----------------------
+
+AcronymHunter_Portable.zip  (117 MB)
+  The finished app. This is the only file you share.
+  Recipients unzip it and double-click AcronymHunter.exe. No install, no network, no admin rights.
+  Kept because: it is the deliverable. Rebuilding it takes about 2 minutes, so it is
+  replaceable, but keeping it means you can share without rebuilding.
+
+app_gui.py
+  The entire application source code: file reading, OCR, the 3-gate matching engine,
+  the window, and the offline lockdown.
+  Kept because: it is the only copy of the program logic. Edit this file to change
+  how the app behaves. Losing it means rewriting the app.
+
+AcronymHunter_SHA256.txt
+  Fingerprints (SHA-256) of the current zip and exe, written by every build.
+  Kept because: send the zip value separately (email or chat) so a recipient or IT can confirm
+  the copy is unaltered:  Get-FileHash AcronymHunter_Portable.zip
+  Must match the zip; if you rebuild, send the new value.
+
+version_info.txt
+  The publisher name, description, and version number embedded in AcronymHunter.exe
+  (visible under Right-click > Properties > Details).
+  Kept because: unlabeled executables look suspicious to antivirus and IT reviewers.
+  Bump the version numbers here before sharing a changed build.
+
+acronym_database.csv
+  The MASTER acronym database (Term, Category, Definition, Action).
+  build.ps1 copies this file into every new zip.
+  Kept because: it holds your curated terms and the Include/Exclude rules.
+  If missing, the app ships with a 30-term starter list.
+
+AcronymHunter.spec
+  PyInstaller recipe that turns app_gui.py into AcronymHunter.exe.
+  Holds the fix for the startup crash (excludes the unused PyMuPDF layout add-on)
+  and strips about 85 MB of unused files from the bundle.
+  Kept because: without it, a rebuild brings back the crash and the bloat.
+
+build.ps1
+  One-step rebuild. Builds the exe, copies in acronym_database.csv and README.txt,
+  removes logs and scratch files, scans the result with Microsoft Defender (stops if
+  anything is flagged), writes checksums, creates AcronymHunter_Portable.zip, and deletes
+  its own temporary folders.
+  Kept because: it guarantees every zip is built the same clean way.
+
+README.txt
+  Instructions for the people who RECEIVE the app. build.ps1 copies it into the zip.
+  Not instructions for you; this guide is.
+  Kept because: recipients need to know how to run it and what the folder contains.
+
+requirements.txt
+  Exact versions of every Python package the build uses.
+  Kept because: it lets you recreate venv exactly if it is deleted or corrupted.
+  Different package versions can reintroduce crashes.
+
+test_samples\
+  Seven fictional files (Word, PDF, PowerPoint, Excel, PNG, JPG, and one broken PDF) plus
+  EXPECTED_RESULTS.txt describing what the app should find in each.
+  Kept because: rescan this folder after any code change to confirm nothing broke.
+
+venv\  (380 MB)
+  Private Python 3.11 environment with all build tools and libraries installed.
+  Used only to build. The finished app does not need it, and recipients never see it.
+  Kept because: you can edit and rebuild immediately with no setup.
+  Safe to delete if you need space; recreate it with the commands under
+  "IF VENV IS MISSING" below.
+
+
+WHAT WAS DELETED AND WHY
+------------------------
+  dist\                       Duplicate of the zip contents plus a second copy of the
+                              database. Created again by every build.
+  build\                      PyInstaller scratch files. Created and removed by every build.
+  build_log.txt               Output from an old build.
+  AcronymHunter.spec.bak      Backup of the spec before the crash fix. Obsolete.
+  app_gui.py.orig             Backup of the code before the bug fixes. Obsolete.
+  acronym_database.csv.xlsx   Excel copy of the old starter database. Stale and a
+                              source of "which database is real?" confusion.
+  _local_sandbox\, logs\      Scratch and log files from test runs on this machine.
+  __pycache__\                Python cache from testing.
+  _test\, _nettest\           Sample files and scripts used to verify the build.
+  venv\...\pymupdf\layout     Leftover from an uninstalled add-on. It caused the crash.
+
+
+HOW TO ...
+----------
+
+Share the app
+  Send AcronymHunter_Portable.zip.
+
+Change the app
+  1. Edit app_gui.py.
+  2. Optional quick test without building:
+       .\venv\Scripts\python.exe app_gui.py
+  3. Scan test_samples\ and compare against test_samples\EXPECTED_RESULTS.txt.
+     Bump the version in version_info.txt (both the numbers and the strings).
+  4. Rebuild:
+       powershell -ExecutionPolicy Bypass -File .\build.ps1
+  5. Share the new AcronymHunter_Portable.zip.
+
+Add or edit acronyms for future copies
+  Edit acronym_database.csv in THIS folder, then rebuild.
+  Close the file in Excel before rebuilding or before using Include/Exclude in the app.
+
+Keep terms you added while using the app
+  Terms added in the app save to the CSV inside that unzipped copy, not to the master here.
+  Copy that CSV over acronym_database.csv in this folder before rebuilding,
+  or the next zip will not include them.
+
+Diagnose a problem
+  Look for logs\error.log inside the unzipped app folder. It records file paths and errors.
+  Headless test: AcronymHunter.exe --selftest "C:\path\file1.pdf" "C:\path\file2.docx"
+  Results go to logs\selftest.txt.
+
+If venv is missing
+  py -3.11 -m venv venv
+  .\venv\Scripts\python.exe -m pip install -r requirements.txt
+  Then run build.ps1. Requires Python 3.11 (installed on this PC).
+
+
+SIGNING AND SECURITY APPROVAL
+  The exe is NOT code-signed. Windows SmartScreen and managed work PCs may warn or block it.
+  For use on company machines, route it through IT (allowlisting or internal signing).
+  Options and costs: see the "Signing and approval" doc in the claude.ai project.
+
+RULES
+-----
+  - acronym_database.csv in this folder is the master. All others are copies.
+  - Build with build.ps1 only. Running pyinstaller with command-line flags
+    overwrites AcronymHunter.spec and brings back the startup crash.
+  - Do not install pymupdf4llm or pymupdf_layout into venv. They cause the crash.
+  - Logs can contain file names. Do not zip an app folder by hand after using it;
+    let build.ps1 make the zip.
