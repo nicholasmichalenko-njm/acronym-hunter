@@ -1,6 +1,6 @@
 # Acronym Hunter: Security and Data-Handling Statement
 
-**Version covered:** 1.2.0 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
+**Version covered:** 1.3.0 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
 **Verified:** 2026-10-20 (v1.0.1 live test; v1.0.2 added tiled OCR and the OCR Fixes window; v1.0.3 hardened XML parsing and capped embedded image size; no new file locations or network code) on the developer's Windows PC, from a fresh unzip of the shipped zip
 **Audience:** users, security and IT reviewers
 
@@ -72,8 +72,17 @@ Complete list from a line-by-line audit of `app_gui.py` (every `open(... "w"/"a"
 | `_local_sandbox\temp\` | Temporary files, incl. OCR engine config | During a scan; **emptied on exit and on next start** | No document content |
 | `training_data\images\*.png`, `labels.txt`, `samples.csv` | **Cropped document images** + their text, source file name, location | Only when you click Save in the Trainer | **Yes: document content.** Never shipped in the zip or committed to Git |
 
-**The one write outside the folder is yours to direct:** *Export CSV* saves the results report wherever you
-choose in the save dialog.
+**Writes outside the folder are yours to direct:**
+
+| Path (outside the app folder) | Contents | When | Sensitive? |
+|---|---|---|---|
+| Report you name (`*.csv`) | Terms, definitions, counts, locations, change history | *Export CSV* | Terms and file names |
+| `<documents folder>\<name>.ahproj` (v1.3.0+) | Relative file names, sizes, modified times; per file a **terms-only** token list (term-like tokens and the unit word after a number; every run of ordinary words replaced by `~`); findings, definition choices, manual items, first/last-seen history | *Project > New Project*, then after each scan or edit | Terms and file names. **No sentences or document text** (verified: test phrase absent, the word "shall" absent). Same classification as the exported CSV |
+| `<name>.ahproj.lock` | Windows user name, computer name, time | While a project is open for editing; deleted on close or exit | User and computer name |
+| `<name>.ahproj.tmp` | Same as `.ahproj` | A fraction of a second during each save (atomic replace) | As `.ahproj` |
+
+The project file sits in the documents folder by design, so it travels with the documents and inherits that
+folder's access controls. Deleting the app folder does not delete project files; delete the `.ahproj` with the documents.
 
 **Actions that hand off to another program (user click only):** *Edit Database CSV* opens `acronym_database.csv` in your
 default spreadsheet program (usually Excel), which then behaves like any Excel session (see section 6). *Region Trainer*
@@ -92,6 +101,7 @@ any library, so libraries that create temp files create them inside the folder.
 | Check | Result |
 |---|---|
 | Libraries with network features used by the app | None. PyMuPDF, lxml, openpyxl, OpenCV, ONNX Runtime, RapidOCR, RapidFuzz, CustomTkinter have no network calls in the code paths used |
+| Vector graphics (SVG, EMF, WMF) | Parsed with the hardened lxml parser (no entities, no DTD, no network) or a built-in record reader. SVG references to external images or fonts are never fetched; MuPDF draws the SVG from the bytes in memory |
 | OCR models | Bundled inside `_internal\rapidocr_onnxruntime\models` (3 ONNX files). Never downloaded |
 | ONNX Runtime usage telemetry | Disabled in code (`disable_telemetry_events()`) |
 | Runtime network block | `socket.connect` to any non-loopback address, all DNS lookups, and `urllib` are replaced with functions that refuse. Tested: raw socket, direct IP, DNS, urllib HTTPS, and http.client HTTPS all refused |

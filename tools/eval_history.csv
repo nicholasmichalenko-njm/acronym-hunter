@@ -9,3 +9,5 @@ Date,Version,Folder,OCR models,Recall %,Missed,False alarms,New candidates,Rows,
 2026-10-20 13:42,1.0.2,test_samples,bundled PP-OCRv4,93.2,3,6,118,133,38,"Hardening: safe XML parser, defusedxml, 100 MB embedded image cap"
 2026-10-20 14:35,1.1.0,test_samples,bundled PP-OCRv4,93.2,3,6,118,133,37,"Unicode: any-encoding CSV reads, UTF-8 BOM writes, look-alike folding, units touching numbers"
 2026-10-20 16:42,1.2.0,test_samples,bundled PP-OCRv4,93.2,3,6,118,133,38,v1.2.0 manual items + Advanced switch (no engine change)
+2026-10-20 16:54,1.2.0,test_samples,bundled PP-OCRv4,94.1,3,6,120,135,38,v1.3 vector graphics: SVG/EMF/WMF text + render-and-OCR fallback; 4 vector test files
+2026-10-20 17:18,1.2.0,test_samples,bundled PP-OCRv4,94.1,3,6,120,135,40,

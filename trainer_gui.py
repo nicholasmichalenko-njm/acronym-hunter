@@ -16,7 +16,7 @@ TRAIN_DIR = os.path.join(eng.BASE_DIR, "training_data")
 IMG_DIR = os.path.join(TRAIN_DIR, "images")
 LABELS_FILE = os.path.join(TRAIN_DIR, "labels.txt")     # PaddleOCR recognition format: images/x.png<TAB>text
 META_FILE = os.path.join(TRAIN_DIR, "samples.csv")      # who/what/where for each sample
-OPEN_TYPES = [("Documents and images", "*.pdf *.pptx *.docx *.xlsx *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.webp *.gif")]
+OPEN_TYPES = [("Documents and images", "*.pdf *.pptx *.docx *.xlsx *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.webp *.gif *.svg *.svgz *.emf *.wmf *.emz *.wmz")]
 PAD = 16                                                # white border added around a region before reading
 
 # --------------------------------------------------------------------------------------
@@ -68,6 +68,8 @@ def list_sources(path):
     name, ext = os.path.basename(path), os.path.splitext(path)[1].lower()
     if ext in eng.IMAGE_EXTS:
         return [(f"{name} (Image)", lambda: _img_from_bytes(open(path, "rb").read()))]
+    if ext in eng.VECTOR_FILE_EXTS:   # drawn at high resolution so small labels can be boxed
+        return [(f"{name} (Vector graphic)", lambda: _img_from_bytes(eng.render_vector(open(path, "rb").read(), ext)))]
     if ext == ".pdf":
         doc = eng.fitz.open(path); n = len(doc); doc.close()
         return [(f"{name} (p.{i + 1})", (lambda i=i: _render_pdf_page(path, i))) for i in range(n)]
@@ -83,13 +85,16 @@ def list_sources(path):
                 if not rid or rid not in rels or rels[rid][2]:
                     continue
                 target = rels[rid][1]
-                if posixpath.splitext(target)[1].lower() not in eng.IMAGE_EXTS or (where, target) in seen:
+                text_ext = posixpath.splitext(target)[1].lower()
+                is_vec = text_ext in eng.VECTOR_EXTS
+                if (text_ext not in eng.IMAGE_EXTS and not is_vec) or (where, target) in seen:
                     continue
                 seen.add((where, target))
                 shape = eng.shape_name(blip)
                 shown = f"'{shape}' " if shape else ""
-                out.append((f"{name} ({where}, image {shown}{posixpath.basename(target)})",
-                            (lambda t=target: _img_from_bytes(_zip_read(path, t)))))
+                load = (lambda t=target, e=text_ext: _img_from_bytes(eng.render_vector(_zip_read(path, t), e))) if is_vec \
+                    else (lambda t=target: _img_from_bytes(_zip_read(path, t)))
+                out.append((f"{name} ({where}, {'vector' if is_vec else 'image'} {shown}{posixpath.basename(target)})", load))
     return out
 
 # --------------------------------------------------------------------------------------

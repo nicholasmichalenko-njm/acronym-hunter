@@ -7,7 +7,8 @@ HOW TO TEST
   1. Open AcronymHunter.exe.
   2. Click "Scan Folder" and pick this test_samples folder (or "Select Files" for one file).
   3. Compare the table against the checks below.
-  A full scan of all 9 files takes about 1 to 3 minutes (OCR is the slow part).
+  A full scan of all 13 files takes about 1 to 3 minutes (OCR is the slow part).
+  v1.3.0: about 135 rows. Score 94.1% recall (48 of 51), 6 of 8 known-noise terms still reported.
   Baseline from 2026-10-20 (v1.0.1): about 115 rows, including 2 "Not scanned" rows
   (the corrupt PDF and the linked picture on slide 15 of the large deck).
 
@@ -25,6 +26,8 @@ HOW LOCATIONS READ
   Excel        file (Risk Register) | (Risk Register shapes) | (Risk Register chart) | (Risk Register comments)
                file (Risk Register, image 'Image 1' image1.png)
   Image        file (Image)
+  Vector       file (Vector text)  <- text read straight from the SVG/EMF
+               file (Body, image 'Picture 1' image1.emf, vector text)  <- diagram inside an Office file
 
 
 THE FILES
@@ -102,7 +105,6 @@ WHAT TO TRY IN THE APP
 
 WHAT THE APP CANNOT READ (reported as "Not scanned" rows)
   - Linked pictures (stored outside the file). Fix: re-insert as embedded pictures.
-  - Vector graphics (EMF, WMF, SVG), common for Visio diagrams pasted into Word.
   - Embedded objects (an Excel sheet or Visio drawing inside a slide) are not opened;
     their preview picture is OCR'd when it is a normal image.
 
@@ -112,5 +114,19 @@ KNOWN GAPS THESE FILES EXPOSE (from the architecture review)
   F5  Sentence-ending words flagged as abbreviations (award., model., panel.)
   F6  ALL-CAPS headings flagged as acronyms (SCOPE, OF, WORK, APPENDIX)
   Closed in v1.0.1: F8 (Word headers/footers, PowerPoint notes, grouped shapes, charts, SmartArt).
+
+VECTOR GRAPHICS (v1.3.0)
+  Kestrel_Interface_Diagram.svg   Expect PCU, GEVS, ICD  (SVG text, tspan, draw.io-style label)
+  Kestrel_Visio_Block.emf         Expect COPV, kWh       (EMF text records)
+  Kestrel_Design_Note.docx        Expect MEOP            (EMF diagram embedded in Word)
+  Kestrel_SVG_Icon_Deck.pptx      Expect TVAC            (Office SVG icon: read from the SVG, not its PNG preview)
+
+PROJECT TEST (v1.3.0)
+  1. Copy this folder somewhere writable. Project > New Project..., pick the copy.
+  2. Rescan Project right away: the status line shows "13 unchanged" and it finishes in seconds.
+  3. Delete Kestrel_Whiteboard_Photo.jpg and rescan: ACTION and ITEMS show "No longer found".
+  4. Add a Word file containing "FMEA" and rescan: FMEA shows "New"; only that file was read.
+  5. Close and reopen the project: choices, added items, and "No longer found" rows are all still there.
+
   After fixing any gap, rescan this folder and confirm the gap closes and nothing
   in the "Expect" lines disappears.

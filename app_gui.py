@@ -103,6 +103,9 @@ import re
 import csv
 import json
 import io
+import getpass
+import platform
+import tkinter as tk
 import codecs
 import unicodedata
 import tkinter.font as tkfont
@@ -237,7 +240,8 @@ def load_ocr_fixes():
         log_error("config/ocr_corrections.csv could not be read")
     return fixes
 IMAGE_EXTS = {'.png', '.jpg', '.jpeg', '.tif', '.tiff', '.bmp', '.webp', '.gif'}
-SUPPORTED_EXTS = IMAGE_EXTS | {'.pdf', '.pptx', '.docx', '.xlsx'}
+VECTOR_FILE_EXTS = {'.svg', '.svgz', '.emf', '.wmf', '.emz', '.wmz'}
+SUPPORTED_EXTS = IMAGE_EXTS | VECTOR_FILE_EXTS | {'.pdf', '.pptx', '.docx', '.xlsx'}
 
 # Create starter unified database if missing
 if not os.path.exists(DB_FILE):
@@ -412,7 +416,9 @@ NS = {
 def _q(prefix, tag):
     return "{%s}%s" % (NS[prefix], tag)
 
-VECTOR_EXTS = {".emf", ".wmf", ".emz", ".wmz", ".svg"}
+VECTOR_EXTS = {".emf", ".wmf", ".emz", ".wmz", ".svg", ".svgz"}
+NS_ASVG = "http://schemas.microsoft.com/office/drawing/2016/SVG/main"   # PowerPoint/Word SVG picture companion
+VECTOR_TEXT_MIN_CHARS = 3   # vector graphic with less real text than this is drawn as a picture and OCR'd
 _OCR_CACHE = {}   # sha1(image bytes) -> text; a logo repeated on 50 slides is OCR'd once
 _SKIPPED = []     # (location label, reason) for content that could not be scanned
 
@@ -545,12 +551,180 @@ def shape_name(el):
                 return c_nv.get("name") or ""
     return ""
 
+# ---------------------------------------------------------------------------
+# Vector graphics: read real text first; draw and OCR only when there is none
+# ---------------------------------------------------------------------------
+import gzip
+import struct
+
+def _maybe_gunzip(data):
+    if data[:2] == b"\x1f\x8b":   # .svgz / .emz / .wmz
+        with gzip.GzipFile(fileobj=io.BytesIO(data)) as g:
+            return g.read(200 * 1024 * 1024)
+    return data
+
+def svg_text(data):
+    """Text from <text>/<tspan>/<textPath>, plus HTML labels in <foreignObject> (draw.io) when no <text> fallback exists."""
+    root = _ET.fromstring(_maybe_gunzip(data), parser=_SAFE_XML)
+    lines = []
+    for el in root.iter():
+        if not isinstance(el.tag, str):
+            continue
+        tag = _ET.QName(el).localname
+        if tag == "text":
+            t = " ".join(x.strip() for x in el.itertext() if x.strip())
+            if t:
+                lines.append(t)
+        elif tag == "foreignObject":
+            parent = el.getparent()
+            has_fallback = parent is not None and any(isinstance(c.tag, str) and _ET.QName(c).localname == "text" for c in parent)
+            if not has_fallback:
+                t = " ".join(x.strip() for x in el.itertext() if x.strip())
+                if t:
+                    lines.append(t)
+    return "\n".join(lines)
+
+def _assemble_runs(runs):
+    """Join text runs (x, y, text) into lines; single characters placed one by one are joined without spaces."""
+    runs = sorted(runs, key=lambda r: (round(r[1] / 4), r[0]))
+    lines, cur, cur_y, prev = [], [], None, ""
+    for x, y, t in runs:
+        if cur_y is None or abs(y - cur_y) > 4:
+            if cur: lines.append("".join(cur))
+            cur, cur_y, prev = [t], y, t
+            continue
+        cur.append(t if (len(t) == 1 and len(prev) == 1) else " " + t)
+        prev = t
+    if cur: lines.append("".join(cur))
+    return "\n".join(l.strip() for l in lines if l.strip())
+
+def emf_text(data):
+    """Text from EMF records: EMR_EXTTEXTOUTW/A (real characters only) and EMF+ DrawString in EMR_COMMENT."""
+    runs_gdi, runs_plus, pos, n = [], [], 0, len(data)
+    while pos + 8 <= n:
+        rtype, size = struct.unpack_from("<II", data, pos)
+        if size < 8 or pos + size > n:
+            break
+        try:
+            if rtype in (83, 84) and size >= 76:            # EMR_EXTTEXTOUTA / EMR_EXTTEXTOUTW
+                x, y, nchars, off, opts = struct.unpack_from("<iiIII", data, pos + 36)
+                if not (opts & 0x10) and nchars and off + nchars * (2 if rtype == 84 else 1) <= size:   # 0x10 = glyph indices
+                    raw = data[pos + off: pos + off + nchars * (2 if rtype == 84 else 1)]
+                    t = raw.decode("utf-16-le" if rtype == 84 else "cp1252", "ignore").strip("\x00")
+                    if t.strip(): runs_gdi.append((x, y, t))
+            elif rtype == 70 and size >= 16:                  # EMR_COMMENT, possibly EMF+
+                dsize = struct.unpack_from("<I", data, pos + 8)[0]
+                if data[pos + 12: pos + 16] == b"EMF+":
+                    buf, p = data[pos + 16: pos + 12 + dsize], 0
+                    while p + 12 <= len(buf):
+                        t2, _flags, sz, _dsz = struct.unpack_from("<HHII", buf, p)
+                        if sz < 12 or p + sz > len(buf): break
+                        if t2 == 0x401C and sz >= 40:        # EmfPlusDrawString
+                            length = struct.unpack_from("<I", buf, p + 20)[0]
+                            lx, ly = struct.unpack_from("<ff", buf, p + 24)
+                            t = buf[p + 40: p + 40 + length * 2].decode("utf-16-le", "ignore")
+                            if t.strip(): runs_plus.append((lx, ly, t))
+                        p += sz
+            elif rtype == 14:                                 # EMR_EOF
+                break
+        except struct.error:
+            pass
+        pos += size
+    return _assemble_runs(runs_plus or runs_gdi)              # EMF+ text is authoritative in dual-mode files
+
+def wmf_text(data):
+    """Text from WMF META_TEXTOUT / META_EXTTEXTOUT records (ANSI)."""
+    pos = 22 if data[:4] == b"\xd7\xcd\xc6\x9a" else 0          # placeable header
+    if pos + 18 > len(data): return ""
+    pos += struct.unpack_from("<H", data, pos + 2)[0] * 2        # header size in 16-bit words
+    runs = []
+    while pos + 6 <= len(data):
+        size_words, func = struct.unpack_from("<IH", data, pos)
+        size = size_words * 2
+        if size < 6 or pos + size > len(data): break
+        try:
+            if func == 0x0521:                                    # META_TEXTOUT
+                ln = struct.unpack_from("<H", data, pos + 6)[0]
+                t = data[pos + 8: pos + 8 + ln].decode("cp1252", "ignore")
+                y, x = struct.unpack_from("<hh", data, pos + 8 + ln + (ln & 1))
+                runs.append((x, y, t))
+            elif func == 0x0A32:                                  # META_EXTTEXTOUT
+                y, x, ln, opts = struct.unpack_from("<hhHH", data, pos + 6)
+                start = pos + 14 + (8 if opts & 0x0006 else 0)
+                runs.append((x, y, data[start: start + ln].decode("cp1252", "ignore")))
+            elif func == 0x0000:
+                break
+        except struct.error:
+            pass
+        pos += size
+    return _assemble_runs([r for r in runs if r[2].strip()])
+
+def render_vector(data, ext):
+    """Draw a vector graphic as PNG bytes for OCR: SVG via MuPDF, EMF/WMF via Windows GDI (Pillow)."""
+    data = _maybe_gunzip(data)
+    if ext in (".svg", ".svgz"):
+        doc = fitz.open(stream=data, filetype="svg")
+        try:
+            page = doc[0]
+            zoom = max(1.0, min(4.0, 2400.0 / max(page.rect.width, page.rect.height, 1)))
+            return page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False).tobytes("png")
+        finally:
+            doc.close()
+    from PIL import Image
+    im = Image.open(io.BytesIO(data))
+    base_w, base_h = im.size
+    dpi = max(150, min(600, int(72 * 2400 / max(base_w, base_h, 1))))   # aim for ~2400 px on the long side
+    try:
+        im.load(dpi=dpi)
+    except TypeError:
+        im.load()
+    im = im.convert("RGB")
+    if max(im.size) < 1600:   # GDI ignored the dpi request: scale up so small labels stay readable
+        k = 2400 / max(im.size)
+        im = im.resize((int(im.width * k), int(im.height * k)), Image.LANCZOS)
+    out = io.BytesIO(); im.save(out, "PNG")
+    return out.getvalue()
+
+def read_vector(data, ext):
+    """(text, method) for a vector graphic. method: 'vector text', 'OCR', or '' when nothing could be read."""
+    ext = ext.lower()
+    try:
+        if ext in (".svg", ".svgz"):
+            text = svg_text(data)
+        else:
+            raw = _maybe_gunzip(data)
+            text = emf_text(raw) if raw[40:44] == b" EMF" else wmf_text(raw)
+    except Exception:
+        log_error("Vector text extraction failed")
+        text = ""
+    if len(text.strip()) >= VECTOR_TEXT_MIN_CHARS:
+        return text, "vector text"
+    try:
+        return read_image_bytes(render_vector(data, ext)), "OCR"
+    except Exception:
+        log_error("Vector graphic could not be drawn for OCR")
+        return "", ""
+
 def part_images(z, partpath, root, label_base, chunks, seen, rels=None):
     """OCR every picture referenced by one part (slide, layout, Word body/header, Excel drawing)."""
     rels = rels if rels is not None else zip_rels(z, partpath)
     refs = []
     for blip in root.iter(_q("a", "blip")):
         if not _in_fallback(blip):
+            svg = next(blip.iter("{%s}svgBlip" % NS_ASVG), None)   # SVG original stored beside the PNG
+            svg_rid = svg.get(_q("r", "embed")) if svg is not None else None
+            if svg_rid and svg_rid in rels and not rels[svg_rid][2]:
+                try:
+                    stext = svg_text(z.read(rels[svg_rid][1]))
+                except Exception:
+                    stext = ""
+                if len(stext.strip()) >= VECTOR_TEXT_MIN_CHARS:
+                    name = shape_name(blip); shown = f"'{name}' " if name else ""
+                    target = rels[svg_rid][1]
+                    if (label_base, target) not in seen:
+                        seen.add((label_base, target))
+                        chunks.append((f"{label_base}, SVG {shown}{posixpath.basename(target)})", stext))
+                    continue   # exact SVG text beats OCR of the PNG copy
             refs.append((blip.get(_q("r", "embed")), blip.get(_q("r", "link")), shape_name(blip)))
     for img in root.iter(_q("v", "imagedata")):  # legacy VML pictures
         if not _in_fallback(img):
@@ -565,7 +739,11 @@ def part_images(z, partpath, root, label_base, chunks, seen, rels=None):
             label = f"{label_base}, image {shown}{posixpath.basename(target)})"
             ext = posixpath.splitext(target)[1].lower()
             if ext in VECTOR_EXTS:
-                note_skip(label, "Vector graphic (EMF/WMF/SVG). Text drawn inside it was not scanned.")
+                text, method = read_vector(z.read(target), ext)
+                if text.strip():
+                    chunks.append((label if method == "OCR" else label[:-1] + ", vector text)", text))
+                elif not method:
+                    note_skip(label, "Vector graphic could not be read or drawn.")
                 continue
             if ext not in IMAGE_EXTS:
                 continue
@@ -765,7 +943,15 @@ def extract_chunks_from_file(filepath, status_callback, file_idx, total_files):
     ext = os.path.splitext(filepath)[1].lower()
     chunks = []
     prefix = f"[{file_idx}/{total_files}] {filename}"
-    if ext in IMAGE_EXTS:
+    if ext in VECTOR_FILE_EXTS:
+        status_callback(f"{prefix} - Reading vector graphic...")
+        with open(filepath, "rb") as f:
+            text, method = read_vector(f.read(), ext)
+        if text.strip():
+            chunks.append((f"{filename} ({'Vector text' if method == 'vector text' else 'Image'})", text))
+        else:
+            note_skip(f"{filename} (Vector)", "Vector graphic has no readable text and could not be drawn for OCR.")
+    elif ext in IMAGE_EXTS:
         status_callback(f"{prefix} - Running OCR on image...")
         with open(filepath, 'rb') as f:
             chunks.append((f"{filename} (Image)", read_image_bytes(f.read())))
@@ -793,11 +979,12 @@ OCR_CONFUSIONS = "0158|$"
 OCR_MAP = str.maketrans({"0": "O", "1": "I", "5": "S", "8": "B", "|": "I", "$": "S"})
 
 def record_file_error(findings, filepath, exc):
+    """exc may be an exception or a message string."""
     key = f"⛔ {os.path.basename(filepath)}"
     findings[key] = {
         "category": "File Error", "count": 1, "locations": [filepath],
         "definitions": [], "in_db": True, "excluded": False, "file_error": True,
-        "selected_definition": f"{type(exc).__name__}: {exc}"[:300], "status": "⛔ Could not read file"
+        "selected_definition": (exc if isinstance(exc, str) else f"{type(exc).__name__}: {exc}")[:300], "status": "⛔ Could not read file"
     }
 
 def record_skip(findings, label, reason):
@@ -809,100 +996,328 @@ def record_skip(findings, label, reason):
             "selected_definition": reason, "status": "⛔ Not scanned"
         }
 
-def analyze_batch(filepaths, status_callback):
+def build_matcher():
+    """Load the database, corrections, and patterns once per scan."""
     include_db, exclude_db, exclude_upper = load_database()
-    ocr_fixes = load_ocr_fixes()
     all_terms = set(include_db.keys()) | set(exclude_db.keys())
-
     direct_pattern = None
     if all_terms:
         sorted_terms = sorted(all_terms, key=len, reverse=True)
         # (?<![^\W\d_]) = not preceded by a letter; digits may touch a unit (25°C, 10µm, 150psi)
         direct_pattern = re.compile(r'(?<![^\W\d_])(' + '|'.join([re.escape(t) for t in sorted_terms]) + r")(?:'?s)?(?!\w)")
+    return {
+        "include_db": include_db, "exclude_db": exclude_db, "exclude_upper": exclude_upper,
+        "ocr_fixes": load_ocr_fixes(), "direct_pattern": direct_pattern,
+        "fuzzy_targets": {t: t for t in include_db.keys() if len(t) >= 3 and t.isupper()},
+        "acronym_re": re.compile(r'\b([A-Z][A-Z0-9/&]{1,7}s?)\b'),
+        "unit_re": re.compile(r'(?<!\w)\d+(?:\.\d+)?\s*([a-zA-Z\u00b0\u03bc\u03a9\u00c5]{1,5}(?:/[a-zA-Z0-9\^]{1,4})?)(?!\w)'),
+        "abbrev_re": re.compile(r'(?<!\w)([a-zA-Z]{1,4}/[a-zA-Z]{1,4}|[a-zA-Z]{2,6}\.)(?!\w)'),
+    }
 
-    fuzzy_targets = {t: t for t in include_db.keys() if len(t) >= 3 and t.isupper()}
+def match_chunks(findings, chunks, m):
+    """Run the three gates over [(location label, text)] and record findings."""
+    for loc_label, text in chunks:
+        if not text.strip():
+            continue
+        text = fold(text)
 
-    unknown_acronym_re = re.compile(r'\b([A-Z][A-Z0-9/&]{1,7}s?)\b')
-    unknown_unit_re = re.compile(r'(?<!\w)\d+(?:\.\d+)?\s*([a-zA-Z\u00b0\u03bc\u03a9\u00c5]{1,5}(?:/[a-zA-Z0-9\^]{1,4})?)(?!\w)')
-    unknown_abbrev_re = re.compile(r'(?<!\w)([a-zA-Z]{1,4}/[a-zA-Z]{1,4}|[a-zA-Z]{2,6}\.)(?!\w)')
+        # Gate 1 & 2: Unified Database (Exclusions & Inclusions)
+        if m['direct_pattern']:
+            for match in m['direct_pattern'].finditer(text):
+                term = match.group(1)
+                if term in m['exclude_db'] and term not in m['include_db']:
+                    record_excluded(findings, term, loc_label, m['exclude_db'])
+                elif term in m['include_db']:
+                    record_included(findings, term, loc_label, m['include_db'])
 
+        # Gate 3: Heuristic Candidate Discovery (Items not in DB)
+        for match in m['acronym_re'].finditer(text):
+            raw = match.group(1)
+            cand = raw[:-1] if raw.endswith('s') and len(raw) > 2 else raw
+            if raw in m['ocr_fixes'] or cand in m['ocr_fixes']:
+                wrong = raw if raw in m['ocr_fixes'] else cand
+                apply_ocr_fix(findings, wrong, m['ocr_fixes'][wrong], "Acronym (Candidate)", loc_label, m['include_db'], m['exclude_db'])
+                continue
+            if cand in m['include_db'] or cand in m['exclude_db'] or cand.upper() in m['exclude_upper'] or cand.isdigit():
+                continue
+            if sum(1 for c in cand if c.isupper()) < 2:
+                continue
+            if any(ch in OCR_CONFUSIONS for ch in cand):
+                fixed = cand.translate(OCR_MAP)
+                if fixed in m['include_db']:
+                    record_included(findings, fixed, f"{loc_label} [OCR fix: {cand}]", m['include_db'])
+                    continue
+            if any(ch.isdigit() for ch in cand) and m['fuzzy_targets']:
+                best = process.extractOne(cand, m['fuzzy_targets'].keys(), scorer=fuzz.ratio)
+                if best and best[1] >= OCR_CFG["fuzzy_min_score"]:
+                    record_included(findings, best[0], f"{loc_label} [OCR fix: {cand}]", m['include_db'])
+                    continue
+            record_candidate(findings, cand, "Acronym (Candidate)", loc_label)
+
+        for match in m['unit_re'].finditer(text):
+            ucand = match.group(1)
+            if ucand in m['ocr_fixes']:
+                apply_ocr_fix(findings, ucand, m['ocr_fixes'][ucand], "Unit (Candidate)", loc_label, m['include_db'], m['exclude_db'])
+                continue
+            if (ucand in m['include_db'] or ucand in m['exclude_db'] or
+                    ucand.upper() in m['exclude_upper'] or ucand.lower() in NON_UNIT_WORDS or ucand.isdigit()):
+                continue
+            record_candidate(findings, ucand, "Unit (Candidate)", loc_label)
+
+        for match in m['abbrev_re'].finditer(text):
+            acand = match.group(1)
+            if acand in m['ocr_fixes']:
+                apply_ocr_fix(findings, acand, m['ocr_fixes'][acand], "Abbreviation (Candidate)", loc_label, m['include_db'], m['exclude_db'])
+                continue
+            base = acand.rstrip('.')
+            if (acand in m['include_db'] or acand in m['exclude_db'] or base in m['include_db'] or base in m['exclude_db'] or
+                    acand.upper() in m['exclude_upper'] or base.upper() in m['exclude_upper']):
+                continue
+            if acand.endswith('.') and acand[:-1].lower() in {"end", "out", "see", "all", "one", "two", "now"}:
+                continue
+            record_candidate(findings, acand, "Abbreviation (Candidate)", loc_label)
+
+
+
+def scan_file(filepath, status_callback, idx, total):
+    """Read one file. Returns (chunks, skipped [(label, reason)], error message or None)."""
+    _SKIPPED.clear()
+    try:
+        chunks = extract_chunks_from_file(filepath, status_callback, idx, total)
+        err = None
+    except Exception as e:
+        log_error(f"Could not read {filepath}")
+        chunks, err = [], f"{type(e).__name__}: {e}"
+    return chunks, list(_SKIPPED), err
+
+def analyze_batch(filepaths, status_callback):
+    m = build_matcher()
     findings = {}
     total = len(filepaths)
     _OCR_CACHE.clear()
-
     for idx, filepath in enumerate(filepaths, start=1):
-        _SKIPPED.clear()
-        try:
-            chunks = extract_chunks_from_file(filepath, status_callback, idx, total)
-        except Exception as e:
-            log_error(f"Could not read {filepath}")
-            record_file_error(findings, filepath, e)
-            continue
-        finally:
-            for label, reason in list(_SKIPPED):
-                record_skip(findings, label, reason)
-        for loc_label, text in chunks:
-            if not text.strip():
-                continue
-            text = fold(text)
-
-            # Gate 1 & 2: Unified Database (Exclusions & Inclusions)
-            if direct_pattern:
-                for match in direct_pattern.finditer(text):
-                    term = match.group(1)
-                    if term in exclude_db and term not in include_db:
-                        record_excluded(findings, term, loc_label, exclude_db)
-                    elif term in include_db:
-                        record_included(findings, term, loc_label, include_db)
-
-            # Gate 3: Heuristic Candidate Discovery (Items not in DB)
-            for match in unknown_acronym_re.finditer(text):
-                raw = match.group(1)
-                cand = raw[:-1] if raw.endswith('s') and len(raw) > 2 else raw
-                if raw in ocr_fixes or cand in ocr_fixes:
-                    wrong = raw if raw in ocr_fixes else cand
-                    apply_ocr_fix(findings, wrong, ocr_fixes[wrong], "Acronym (Candidate)", loc_label, include_db, exclude_db)
-                    continue
-                if cand in include_db or cand in exclude_db or cand.upper() in exclude_upper or cand.isdigit():
-                    continue
-                if sum(1 for c in cand if c.isupper()) < 2:
-                    continue
-                if any(ch in OCR_CONFUSIONS for ch in cand):
-                    fixed = cand.translate(OCR_MAP)
-                    if fixed in include_db:
-                        record_included(findings, fixed, f"{loc_label} [OCR fix: {cand}]", include_db)
-                        continue
-                if any(ch.isdigit() for ch in cand) and fuzzy_targets:
-                    best = process.extractOne(cand, fuzzy_targets.keys(), scorer=fuzz.ratio)
-                    if best and best[1] >= OCR_CFG["fuzzy_min_score"]:
-                        record_included(findings, best[0], f"{loc_label} [OCR fix: {cand}]", include_db)
-                        continue
-                record_candidate(findings, cand, "Acronym (Candidate)", loc_label)
-
-            for match in unknown_unit_re.finditer(text):
-                ucand = match.group(1)
-                if ucand in ocr_fixes:
-                    apply_ocr_fix(findings, ucand, ocr_fixes[ucand], "Unit (Candidate)", loc_label, include_db, exclude_db)
-                    continue
-                if (ucand in include_db or ucand in exclude_db or
-                        ucand.upper() in exclude_upper or ucand.lower() in NON_UNIT_WORDS or ucand.isdigit()):
-                    continue
-                record_candidate(findings, ucand, "Unit (Candidate)", loc_label)
-
-            for match in unknown_abbrev_re.finditer(text):
-                acand = match.group(1)
-                if acand in ocr_fixes:
-                    apply_ocr_fix(findings, acand, ocr_fixes[acand], "Abbreviation (Candidate)", loc_label, include_db, exclude_db)
-                    continue
-                base = acand.rstrip('.')
-                if (acand in include_db or acand in exclude_db or base in include_db or base in exclude_db or
-                        acand.upper() in exclude_upper or base.upper() in exclude_upper):
-                    continue
-                if acand.endswith('.') and acand[:-1].lower() in {"end", "out", "see", "all", "one", "two", "now"}:
-                    continue
-                record_candidate(findings, acand, "Abbreviation (Candidate)", loc_label)
-
+        chunks, skips, err = scan_file(filepath, status_callback, idx, total)
+        if err:
+            record_file_error(findings, filepath, err)
+        for label, reason in skips:
+            record_skip(findings, label, reason)
+        match_chunks(findings, chunks, m)
     return dict(sorted(findings.items(), key=lambda x: x[1]["count"], reverse=True))
+
+# ==============================================================================
+# PROJECTS: remember a folder's findings, rescan only what changed, track changes
+# ==============================================================================
+APP_VERSION = "1.3.0"            # keep in step with version_info.txt
+PROJECT_EXT = ".ahproj"
+PROJECT_FORMAT = "AcronymHunterProject"
+LOCK_STALE_HOURS = 12
+SKIP_DIRS = {"_internal", "_local_sandbox", "training_data", "logs", "config", "__pycache__", ".git"}
+CHANGE_LABELS = {"new": "New", "changed": "Changed", "unchanged": "Unchanged", "gone": "No longer found"}
+
+_NUM_TOKEN = re.compile(r"[\d.,]+")
+_EDGE_PUNCT = "()[]{}\"'\u201c\u201d\u2018\u2019,;:!?"
+
+def _termlike(token):
+    """True for tokens that can ever match: 2+ capitals, a digit, a symbol, or an abbreviation-style word ending in '.'
+    Hyphenated words count if any part does (S-band. -> band.)."""
+    core = token.strip(_EDGE_PUNCT)
+    if not core:
+        return False
+    if "-" in core.strip("-"):
+        return any(_termlike(part) for part in core.split("-") if part)
+    if sum(c.isupper() for c in core) >= 2 or any(c.isdigit() for c in core):
+        return True
+    if any(not c.isalpha() and c not in ".-'" for c in core):
+        return True
+    return core.endswith(".") and core[:-1].isalpha() and 1 <= len(core) - 1 <= 6
+
+def weak_terms(m):
+    """Database / correction words that _termlike() would drop (e.g. lowercase units like 'psi'). They are kept
+    explicitly, and changing them invalidates saved results so nothing is missed."""
+    words = set()
+    for term in list(m["include_db"]) + list(m["exclude_db"]) + list(m["ocr_fixes"]):
+        words.update(w for w in term.split() if not _termlike(w))
+    return words
+
+def engine_signature(weak=()):
+    """Saved results are reused only while extraction, OCR settings, OCR models, and weak terms are unchanged."""
+    models = sorted(os.listdir(MODELS_DIR)) if os.path.isdir(MODELS_DIR) else []
+    return hashlib.sha1(json.dumps([APP_VERSION.rsplit(".", 1)[0], OCR_CFG, models, sorted(weak)],
+                                   sort_keys=True).encode()).hexdigest()[:12]
+
+def _numberish(token):
+    t = token.strip(_EDGE_PUNCT)
+    return bool(t) and t[-1].isdigit() and any(c.isdigit() for c in t)
+
+def reduce_text(text, weak=()):
+    """Terms-only text for the project file: keeps term-like tokens, the word after a number (units), and the
+    database's own lowercase words. Each run of dropped words becomes '~' so neighbors never become adjacent
+    (matching results stay identical to a full-text scan). Sentences cannot be reconstructed."""
+    out, prev_num = [], False
+    for line in text.splitlines():
+        kept, gap = [], False
+        for t in line.split():
+            if _termlike(t) or prev_num or t.strip(_EDGE_PUNCT) in weak:
+                if gap:
+                    kept.append("~")
+                kept.append(t); gap = False
+            else:
+                gap = True
+            prev_num = _numberish(t)
+        if gap and kept:
+            kept.append("~")
+        out.append(" ".join(kept) if kept else "~")
+    return "\n".join(out)
+
+class Project:
+    def __init__(self, path):
+        self.path = os.path.abspath(path)
+        self.root = os.path.dirname(self.path)
+        self.name = os.path.splitext(os.path.basename(self.path))[0]
+        self.lock_path = self.path + ".lock"
+        self.read_only = False
+        self.locked_by = None
+        self.data = None
+
+    @staticmethod
+    def new_data():
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        return {"format": PROJECT_FORMAT, "version": 1, "app_version": APP_VERSION, "created": now,
+                "last_scan": None, "last_stats": {}, "files": {}, "history": {}, "decisions": {}, "manual": {}}
+
+    def load(self):
+        with open(self.path, "r", encoding="utf-8-sig") as f:
+            data = json.load(f)
+        if data.get("format") != PROJECT_FORMAT:
+            raise ValueError("This is not an Acronym Hunter project file.")
+        base = self.new_data(); base.update(data); self.data = base
+
+    def save(self):
+        if self.read_only or self.data is None:
+            return
+        self.data["app_version"] = APP_VERSION
+        tmp = self.path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(self.data, f, ensure_ascii=False, indent=1)
+        os.replace(tmp, self.path)
+
+    # ---- single-editor lock ----
+    @staticmethod
+    def _me():
+        return {"user": getpass.getuser(), "computer": platform.node()}
+
+    def acquire_lock(self, force=False):
+        """True if we hold the lock; False if someone else holds a fresh lock (self.locked_by says who)."""
+        if os.path.exists(self.lock_path) and not force:
+            try:
+                info = json.load(open(self.lock_path, encoding="utf-8"))
+                age_h = (datetime.datetime.now() - datetime.datetime.fromisoformat(info["time"])).total_seconds() / 3600
+                me = self._me()
+                if (info.get("user"), info.get("computer")) != (me["user"], me["computer"]) and age_h < LOCK_STALE_HOURS:
+                    self.locked_by = info
+                    return False
+            except Exception:
+                pass
+        with open(self.lock_path, "w", encoding="utf-8") as f:
+            json.dump(dict(self._me(), time=datetime.datetime.now().isoformat(timespec="seconds")), f)
+        return True
+
+    def release_lock(self):
+        try:
+            if not self.read_only and os.path.exists(self.lock_path):
+                info = json.load(open(self.lock_path, encoding="utf-8"))
+                if (info.get("user"), info.get("computer")) == (self._me()["user"], self._me()["computer"]):
+                    os.remove(self.lock_path)
+        except Exception:
+            pass
+
+    # ---- files ----
+    def list_files(self):
+        out = []
+        for dirpath, dirnames, files in os.walk(self.root):
+            dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+            for f in files:
+                if f.startswith("~$") or os.path.splitext(f)[1].lower() not in SUPPORTED_EXTS:
+                    continue
+                out.append(os.path.relpath(os.path.join(dirpath, f), self.root).replace(os.sep, "/"))
+        return sorted(out)
+
+def project_findings(project, status_callback, full=False, rescan=True):
+    """Scan the project folder, reusing saved results for unchanged files. rescan=False rebuilds from saved results only."""
+    m = build_matcher()
+    findings, stats = {}, {"files": 0, "scanned": 0, "reused": 0, "removed": 0}
+    _OCR_CACHE.clear()
+    weak = weak_terms(m)
+    cache, sig = project.data["files"], engine_signature(weak)
+    files = project.list_files() if rescan else sorted(cache)
+    stats["files"] = len(files)
+    stats["removed"] = len(set(cache) - set(files)) if rescan else 0
+    new_cache = {}
+    for idx, rel in enumerate(files, start=1):
+        absf = os.path.join(project.root, rel.replace("/", os.sep))
+        entry = cache.get(rel)
+        st = os.stat(absf) if rescan and os.path.exists(absf) else None
+        fresh = (entry and entry.get("engine") == sig and
+                 (not rescan or (st and entry["size"] == st.st_size and abs(entry["mtime"] - st.st_mtime) < 1.0)))
+        if (not full and fresh) or not rescan:
+            if entry is None:
+                continue
+            stats["reused"] += 1
+            if rescan:
+                status_callback(f"[{idx}/{len(files)}] {rel} - unchanged, using saved results")
+        else:
+            chunks, skips, err = scan_file(absf, status_callback, idx, len(files))
+            entry = {"size": st.st_size, "mtime": st.st_mtime, "engine": sig,
+                     "scanned": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+                     "chunks": [[label, reduce_text(fold(text), weak)] for label, text in chunks if text.strip()],
+                     "skips": skips, "error": err}
+            stats["scanned"] += 1
+        new_cache[rel] = entry
+        if entry.get("error"):
+            record_file_error(findings, rel, entry["error"])
+        for label, reason in entry.get("skips", []):
+            record_skip(findings, label, reason)
+        match_chunks(findings, entry["chunks"], m)
+    if rescan:
+        project.data["files"] = new_cache
+    return dict(sorted(findings.items(), key=lambda x: x[1]["count"], reverse=True)), stats
+
+def apply_project_history(project, findings, update=True):
+    """Mark each finding New / Changed / Unchanged against the last scan; add 'No longer found' rows."""
+    hist = project.data["history"]
+    today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    for term, d in findings.items():
+        if d.get("file_error"):
+            continue
+        locs = sorted(d["locations"])[:200]
+        h = hist.get(term)
+        if update:
+            if h is None or h.get("state") == "gone":
+                state = "new"
+            elif h.get("count") != d["count"] or h.get("locations") != locs:
+                state = "changed"
+            else:
+                state = "unchanged"
+            first = h["first_seen"] if h else today
+            hist[term] = {"first_seen": first, "last_seen": today, "count": d["count"], "locations": locs,
+                          "category": d["category"], "definition": d["selected_definition"], "state": state}
+            h = hist[term]
+        if h:
+            d["change"] = CHANGE_LABELS.get(h.get("state"), "")
+            d["first_seen"], d["last_seen"] = h.get("first_seen", ""), h.get("last_seen", "")
+    for term, h in hist.items():
+        if term in findings:
+            continue
+        if update:
+            h["state"] = "gone"
+        if h.get("state") == "gone":
+            findings[term] = {"category": h.get("category", ""), "count": 0, "locations": h.get("locations", []),
+                              "definitions": [], "in_db": True, "excluded": False, "gone": True,
+                              "selected_definition": h.get("definition", ""), "status": "✖ No longer found",
+                              "change": CHANGE_LABELS["gone"], "first_seen": h.get("first_seen", ""),
+                              "last_seen": h.get("last_seen", "")}
+    if update:
+        project.data["last_scan"] = today
 
 def apply_ocr_fix(findings, wrong, right, cat, loc, include_db, exclude_db):
     tagged = f"{loc} [OCR fix: {wrong}]"
@@ -1009,14 +1424,16 @@ def update_csv_exclusion(term, cat, reason):
 # ==============================================================================
 SETTINGS_FILE = os.path.join(SANDBOX_DIR, "settings.json")
 ALL_TYPES = "All types"
-STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", "Added manually", "Errors / not scanned", "Excluded"]
+STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", "Added manually",
+                  "New since last scan", "Changed since last scan", "No longer found", "Errors / not scanned", "Excluded"]
 MANUAL_MARK = "✍"
-STATUS_ORDER = (("⛔", 0), ("⚠️", 1), ("🔍", 2), (MANUAL_MARK, 3), ("✅", 4), ("🚫", 5))
+STATUS_ORDER = (("⛔", 0), ("⚠️", 1), ("🔍", 2), (MANUAL_MARK, 3), ("✅", 4), ("✖", 5), ("🚫", 6))
 MANUAL_CATEGORIES = ["Acronym", "Abbreviation", "Unit", "Other"]
 COLUMNS = (  # id, heading, base width, anchor
     ("term", "Term / Unit", 120, "w"),
     ("category", "Type", 170, "w"),
     ("count", "Count", 70, "center"),
+    ("change", "Change", 130, "w"),
     ("status", "Status", 210, "w"),
     ("definition", "Definition", 360, "w"),
     ("locations", "Locations Found", 420, "w"),
@@ -1062,6 +1479,8 @@ class AcronymAppGUI(ctk.CTk):
         self.settings = load_settings()
         self.app_cfg = load_app_settings()
         self.manual_items = {}   # term -> finding dict; kept across rescans until removed
+        self.project = None      # open Project, or None for one-off scans
+        self.project_stats = {}
         self.advanced_on = bool(self.settings.get("advanced", self.app_cfg["advanced_features_default"])) \
             if self.app_cfg["allow_advanced_toggle"] else self.app_cfg["advanced_features_default"]
         self.font_size = int(self.settings.get("font_size", FONT_DEFAULT))
@@ -1069,6 +1488,10 @@ class AcronymAppGUI(ctk.CTk):
 
         top = ctk.CTkFrame(self)
         top.pack(fill="x", padx=15, pady=(15, 8))
+
+        self.btn_project = ctk.CTkButton(top, text="Project ▾", command=self.show_project_menu, fg_color="#1E3A8A", width=110, height=36)
+        self.btn_project.pack(side="left", padx=5, pady=10)
+        self.project_menu = tk.Menu(self, tearoff=0)
 
         self.btn_files = ctk.CTkButton(top, text="Select Files", command=self.select_files, width=150, height=36)
         self.btn_files.pack(side="left", padx=5, pady=10)
@@ -1095,8 +1518,11 @@ class AcronymAppGUI(ctk.CTk):
         if self.app_cfg["allow_advanced_toggle"]:
             self.sw_adv.pack(side="right", padx=(12, 5), pady=10)
 
+        self.lbl_project = ctk.CTkLabel(self, text="", font=("Arial", 13, "bold"), text_color="#1E3A8A")
         self.status = ctk.CTkLabel(self, text="Ready. 100% Local Sandbox Active (_local_sandbox).", font=("Arial", 13))
         self.status.pack(pady=(0, 4))
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
+        atexit.register(self._release_project_lock)
 
         self.prog = ctk.CTkProgressBar(self, width=1140)
         self.prog.pack(padx=15, pady=(0, 10))
@@ -1164,6 +1590,7 @@ class AcronymAppGUI(ctk.CTk):
         self.tree.tag_configure("excluded", background="#F1F5F9", foreground="#94A3B8")
         self.tree.tag_configure("fileerror", background="#FEE2E2", foreground="#991B1B")
         self.tree.tag_configure("manual", background="#FEF9C3", foreground="#713F12")
+        self.tree.tag_configure("gone", background="#E5E7EB", foreground="#6B7280")
 
         vsb = ttk.Scrollbar(t_frame, orient="vertical", command=self.tree.yview)
         hsb = ttk.Scrollbar(t_frame, orient="horizontal", command=self.tree.xview)
@@ -1265,6 +1692,7 @@ class AcronymAppGUI(ctk.CTk):
                     "status": f"{MANUAL_MARK} Added manually" + (" (saved to DB)" if saved else "")}
             self.manual_items[term] = item
             self.results[term] = item
+            self.save_project()
             self.selected_term = term
             self.refresh_type_options(); self.populate_table()
             self.btn_export.configure(state="normal")
@@ -1281,6 +1709,7 @@ class AcronymAppGUI(ctk.CTk):
         term = self.selected_term
         if not term or not self.results.get(term, {}).get("manual"): return
         self.manual_items.pop(term, None); self.results.pop(term, None)
+        self.save_project()
         self.selected_term = None
         self.btn_exc.configure(text="🚫 Exclude", command=self.exclude_term, state="disabled")
         self.lbl_act.configure(text="Select a row above:")
@@ -1322,7 +1751,7 @@ class AcronymAppGUI(ctk.CTk):
             save_settings(self.settings)
 
     def select_files(self):
-        fps = filedialog.askopenfilenames(title="Select Files", initialdir=self.start_dir(), filetypes=[("Supported", "*.pdf *.docx *.xlsx *.pptx *.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp *.gif")])
+        fps = filedialog.askopenfilenames(title="Select Files", initialdir=self.start_dir(), filetypes=[("Supported", "*.pdf *.docx *.xlsx *.pptx *.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp *.gif *.svg *.svgz *.emf *.wmf *.emz *.wmz")])
         if fps:
             self.remember_dir(fps[0])
             self.start_batch(list(fps))
@@ -1343,23 +1772,186 @@ class AcronymAppGUI(ctk.CTk):
 
     def start_batch(self, fps):
         self.queued_files = fps
-        self.btn_files.configure(state="disabled")
-        self.btn_folder.configure(state="disabled")
-        self.btn_export.configure(state="disabled")
+        self.run_job(lambda cb: analyze_batch(fps, cb))
+
+    def run_job(self, job):
+        """Run job(status_callback) -> results on a worker thread, then show them."""
+        for b in (self.btn_files, self.btn_folder, self.btn_export, self.btn_project):
+            b.configure(state="disabled")
         self.prog.configure(mode="indeterminate")
         self.prog.start()
         for i in self.tree.get_children(): self.tree.delete(i)
-        threading.Thread(target=self.worker, args=(fps,), daemon=True).start()
+        threading.Thread(target=self.worker, args=(job,), daemon=True).start()
 
-    def worker(self, fps):
+    def worker(self, job):
         try:
-            self.results = analyze_batch(fps, lambda m: self.after(0, lambda: self.status.configure(text=m)))
-            self.after(0, self.scan_done)
+            results = job(lambda m: self.after(0, lambda: self.status.configure(text=m)))
+            self.after(0, lambda: self.scan_done(results))
         except Exception as e:
-            log_error("Batch scan failed")
+            log_error("Scan failed")
             msg = f"{type(e).__name__}: {e}\n\nDetails saved to logs\\error.log"
             self.after(0, lambda: messagebox.showerror("Scan failed", msg))
             self.after(0, self.reset_ui)
+
+    # ---------- projects ----------
+    def show_project_menu(self):
+        m, has, rw = self.project_menu, self.project is not None, self.project is not None and not self.project.read_only
+        m.delete(0, "end")
+        m.add_command(label="New Project...", command=self.new_project)
+        m.add_command(label="Open Project...", command=self.open_project)
+        m.add_separator()
+        m.add_command(label="Rescan Project (changed files only)", command=self.rescan_project, state="normal" if rw else "disabled")
+        m.add_command(label="Full Rescan (read every file again)", command=lambda: self.rescan_project(full=True), state="normal" if rw else "disabled")
+        m.add_command(label='Clear "No longer found" items', command=self.clear_gone, state="normal" if rw else "disabled")
+        m.add_separator()
+        m.add_command(label="Close Project", command=self.close_project, state="normal" if has else "disabled")
+        b = self.btn_project
+        m.tk_popup(b.winfo_rootx(), b.winfo_rooty() + b.winfo_height())
+
+    def new_project(self):
+        folder = filedialog.askdirectory(title="Choose the folder that holds the project's documents", initialdir=self.start_dir())
+        if not folder: return
+        self.remember_dir(folder)
+        name = os.path.basename(os.path.normpath(folder)) or "Project"
+        path = os.path.join(folder, name + PROJECT_EXT)
+        if os.path.exists(path):
+            if messagebox.askyesno("Project exists", f"This folder already has a project:\n{path}\n\nOpen it?"):
+                self.open_project(path)
+            return
+        if not self.close_project(): return
+        proj = Project(path); proj.data = Project.new_data()
+        try:
+            proj.acquire_lock(); proj.save()
+        except OSError as e:
+            messagebox.showerror("Cannot create project", f"Could not write to this folder:\n{e}"); return
+        self.project = proj
+        self.manual_items = proj.data["manual"]
+        messagebox.showinfo("Project created", f"Project file:\n{path}\n\nIt stores the terms found, your choices and the scan history. "
+                            "It never stores sentences or document text. The first scan reads every file; later scans read only new or changed files.")
+        self.rescan_project()
+
+    def open_project(self, path=None):
+        path = path or filedialog.askopenfilename(title="Open Project", initialdir=self.start_dir(),
+                                                  filetypes=[("Acronym Hunter project", "*" + PROJECT_EXT)])
+        if not path: return
+        if not self.close_project(): return
+        proj = Project(path)
+        try:
+            proj.load()
+        except Exception as e:
+            messagebox.showerror("Cannot open project", f"{type(e).__name__}: {e}"); return
+        if not proj.acquire_lock():
+            who = proj.locked_by or {}
+            ans = messagebox.askyesnocancel("Project in use",
+                f"{who.get('user', '?')} on {who.get('computer', '?')} has had this project open since {who.get('time', '?')}.\n\n"
+                "Yes: open read-only (view and export only).\nNo: take over editing (only if they have finished).\nCancel: do not open.")
+            if ans is None: return
+            if ans: proj.read_only = True
+            else: proj.acquire_lock(force=True)
+        self.project = proj
+        self.remember_dir(proj.root)
+        self.manual_items = proj.data["manual"]
+        self.project_stats = proj.data.get("last_stats", {})
+        def job(cb):
+            cb(f"Opening project '{proj.name}' from saved results...")
+            res, _ = project_findings(proj, cb, rescan=False)
+            apply_project_history(proj, res, update=False)
+            return res
+        self.run_job(job)
+
+    def rescan_project(self, full=False):
+        proj = self.project
+        if proj is None or proj.read_only: return
+        def job(cb):
+            res, stats = project_findings(proj, cb, full=full)
+            apply_project_history(proj, res, update=True)
+            proj.data["last_stats"] = stats
+            self.project_stats = stats
+            return res
+        self.run_job(job)
+
+    def clear_gone(self):
+        proj = self.project
+        if proj is None or proj.read_only: return
+        gone = [t for t, h in proj.data["history"].items() if h.get("state") == "gone"]
+        if not gone:
+            messagebox.showinfo("Nothing to clear", 'No "No longer found" items.'); return
+        if not messagebox.askyesno("Clear items", f'Remove {len(gone)} "No longer found" item(s) from this project?'): return
+        for t in gone:
+            proj.data["history"].pop(t, None)
+            if self.results.get(t, {}).get("gone"): self.results.pop(t, None)
+        self.save_project(); self.populate_table()
+
+    def close_project(self):
+        """Close the open project (saving it). Returns False if the user cancels."""
+        if self.project is None: return True
+        if str(self.btn_project.cget("state")) == "disabled":
+            messagebox.showwarning("Busy", "Wait for the scan to finish first."); return False
+        self.save_project()
+        self._release_project_lock()
+        self.project, self.project_stats, self.manual_items, self.results = None, {}, {}, {}
+        self.selected_term = None
+        self.populate_table(); self.lbl_showing.configure(text="")
+        self.status.configure(text="Project closed. Ready.")
+        self.update_project_ui()
+        return True
+
+    def save_project(self):
+        proj = self.project
+        if proj is None or proj.read_only: return
+        try:
+            proj.save(); proj.acquire_lock(force=True)   # refresh lock time
+        except OSError as e:
+            messagebox.showerror("Project not saved", f"Could not save the project file:\n{e}")
+
+    def _release_project_lock(self):
+        if self.project is not None: self.project.release_lock()
+
+    def on_close(self):
+        if self.project is not None and str(self.btn_project.cget("state")) != "disabled":
+            self.save_project()
+        self._release_project_lock()
+        self.destroy()
+
+    def update_project_ui(self):
+        proj = self.project
+        if proj is None:
+            self.lbl_project.pack_forget()
+            self.btn_folder.configure(text="Scan Folder", command=self.select_folder)
+            self.btn_files.configure(state="normal")
+            self.btn_project.configure(text="Project ▾")
+            return
+        st = self.project_stats or {}
+        bits = [f"Project: {proj.name}", proj.root]
+        if proj.data.get("last_scan"): bits.append(f"last scan {proj.data['last_scan']}")
+        if st: bits.append(f"{st.get('files', 0)} files ({st.get('scanned', 0)} read, {st.get('reused', 0)} unchanged, {st.get('removed', 0)} removed)")
+        if proj.read_only:
+            who = proj.locked_by or {}
+            bits.append(f"READ-ONLY (in use by {who.get('user', '?')})")
+        self.lbl_project.configure(text="  |  ".join(bits))
+        self.lbl_project.pack(pady=(0, 2), before=self.status)
+        self.btn_project.configure(text=f"{proj.name[:14]} ▾")
+        self.btn_folder.configure(text="Rescan Project", command=self.rescan_project,
+                                  state="disabled" if proj.read_only else "normal")
+        self.btn_files.configure(state="disabled")
+
+    def apply_saved_decisions(self):
+        if self.project is None: return
+        for term, choice in self.project.data["decisions"].items():
+            d = self.results.get(term)
+            if d and d.get("in_db") and not d.get("excluded") and not d.get("gone") and \
+                    (choice == "Keep All Possibilities" or choice in d.get("definitions", [])):
+                self._set_choice(d, choice)
+
+    @staticmethod
+    def _set_choice(data, choice):
+        if choice == "Keep All Possibilities":
+            data["selected_definition"] = "MULTIPLE: " + " | ".join(data["definitions"])
+            data["status"] = "⚠️ MULTIPLE (Kept All)"
+            return "ambiguous"
+        data["selected_definition"] = choice
+        data["status"] = "✅ User Selected"
+        return "resolved"
 
     # ---------- view: text size ----------
     def apply_font_size(self):
@@ -1411,6 +2003,9 @@ class AcronymAppGUI(ctk.CTk):
             return (rank, term.casefold())
         if c == "definition":
             return (data["selected_definition"].casefold(), term.casefold())
+        if c == "change":
+            order = {"New": 0, "Changed": 1, "No longer found": 2, "Unchanged": 3}
+            return (order.get(data.get("change", ""), 4), term.casefold())
         return (term.casefold(),)
 
     # ---------- view: filtering ----------
@@ -1435,24 +2030,36 @@ class AcronymAppGUI(ctk.CTk):
             "New candidates": st.startswith("🔍"),
             "Resolved": st.startswith("✅"),
             "Added manually": data.get("manual", False),
+            "New since last scan": data.get("change") == "New",
+            "Changed since last scan": data.get("change") == "Changed",
+            "No longer found": data.get("gone", False),
             "Errors / not scanned": st.startswith("⛔"),
             "Excluded": data.get("excluded", False),
         }.get(wanted, True)
 
     @staticmethod
+    def row_values(term, data):
+        return (term, data["category"], data["count"], data.get("change", ""), data["status"],
+                data["selected_definition"], "; ".join(data["locations"]))
+
+    @staticmethod
     def row_tag(data):
         if data.get("excluded", False): return "excluded"
         if data.get("manual"): return "manual"
+        if data.get("gone"): return "gone"
         st = data["status"]
         if st.startswith("⛔"): return "fileerror"
         if st.startswith("⚠️"): return "ambiguous"
         if st.startswith("🔍"): return "candidate"
         return "resolved"
 
-    def scan_done(self):
+    def scan_done(self, results):
+        self.results = results
         for term, item in self.manual_items.items():   # manual items survive rescans
             if term not in self.results:
                 self.results[term] = item
+        self.apply_saved_decisions()
+        self.save_project()
         self.reset_ui()
         self.refresh_type_options()
         self.populate_table()
@@ -1484,9 +2091,7 @@ class AcronymAppGUI(ctk.CTk):
 
         rows.sort(key=lambda r: self.sort_key(*r), reverse=self.sort_desc)
         for term, data in rows:
-            self.tree.insert("", "end", iid=term, tags=(self.row_tag(data),),
-                             values=(term, data["category"], data["count"], data["status"],
-                                     data["selected_definition"], "; ".join(data["locations"])))
+            self.tree.insert("", "end", iid=term, tags=(self.row_tag(data),), values=self.row_values(term, data))
 
         self.lbl_showing.configure(text=f"Showing {len(rows)} of {len(self.results)}" if self.results else "")
         if self.results:
@@ -1509,6 +2114,12 @@ class AcronymAppGUI(ctk.CTk):
             for w in (self.btn_exc, self.btn_apply, self.btn_save, self.btn_ocr, self.entry_def, self.combo):
                 w.configure(state="disabled")
             self.lbl_act.configure(text="File could not be read:")
+            return
+
+        if data.get("gone"):
+            for w in (self.btn_exc, self.btn_apply, self.btn_save, self.btn_ocr, self.entry_def, self.combo):
+                w.configure(state="disabled")
+            self.lbl_act.configure(text=f"'{term}' no longer found (last seen {data.get('last_seen', '?')}):")
             return
 
         if data.get("manual"):
@@ -1543,15 +2154,11 @@ class AcronymAppGUI(ctk.CTk):
         if not self.selected_term: return
         choice = self.combo.get()
         data = self.results[self.selected_term]
-        if choice == "Keep All Possibilities":
-            data["selected_definition"] = "MULTIPLE: " + " | ".join(data["definitions"])
-            data["status"] = "⚠️ MULTIPLE (Kept All)"
-            tag = "ambiguous"
-        else:
-            data["selected_definition"] = choice
-            data["status"] = "✅ User Selected"
-            tag = "resolved"
-        self.tree.item(self.selected_term, values=(self.selected_term, data["category"], data["count"], data["status"], data["selected_definition"], "; ".join(data["locations"])), tags=(tag,))
+        tag = self._set_choice(data, choice)
+        if self.project is not None:
+            self.project.data["decisions"][self.selected_term] = choice
+            self.save_project()
+        self.tree.item(self.selected_term, values=self.row_values(self.selected_term, data), tags=(tag,))
 
     def open_fix_manager(self):
         """View, add, edit, delete, and undo entries in config\\ocr_corrections.csv."""
@@ -1641,7 +2248,7 @@ class AcronymAppGUI(ctk.CTk):
         data["in_db"] = True
         data["status"] = f"🔧 OCR fix saved: {wrong} > {right}"
         data["selected_definition"] = "Rescan to apply. View, edit, or undo with the OCR Fixes button."
-        self.tree.item(wrong, values=(wrong, data["category"], data["count"], data["status"], data["selected_definition"], "; ".join(data["locations"])), tags=("resolved",))
+        self.tree.item(wrong, values=self.row_values(wrong, data), tags=("resolved",))
         self.entry_def.delete(0, "end")
         self.entry_def.configure(state="disabled")
         self.btn_save.configure(state="disabled"); self.btn_ocr.configure(state="disabled")
@@ -1663,7 +2270,7 @@ class AcronymAppGUI(ctk.CTk):
         data["definitions"] = [nd]
         data["selected_definition"] = nd
         data["status"] = "✅ Added to DB"
-        self.tree.item(self.selected_term, values=(self.selected_term, data["category"], data["count"], data["status"], data["selected_definition"], "; ".join(data["locations"])), tags=("resolved",))
+        self.tree.item(self.selected_term, values=self.row_values(self.selected_term, data), tags=("resolved",))
         self.entry_def.delete(0, "end")
         self.entry_def.configure(state="disabled")
         self.btn_save.configure(state="disabled"); self.btn_ocr.configure(state="disabled")
@@ -1687,16 +2294,20 @@ class AcronymAppGUI(ctk.CTk):
         self.prog.set(1)
         self.btn_files.configure(state="normal")
         self.btn_folder.configure(state="normal")
+        self.btn_project.configure(state="normal")
+        self.update_project_ui()
 
     def export_csv(self):
         path = filedialog.asksaveasfilename(initialdir=self.start_dir(), defaultextension=".csv", filetypes=[("CSV Report", "*.csv")], initialfile="Acronym_Report.csv")
         if path:
             with open(path, "w", newline="", encoding="utf-8-sig") as f:
                 w = csv.writer(f)
-                w.writerow(["Term", "Category", "Count", "Status", "Definition", "Locations"])
+                w.writerow(["Term", "Category", "Count", "Change", "Status", "Definition", "Locations", "First seen", "Last seen"])
                 for term, data in self.results.items():
                     if data.get("excluded", False): continue
-                    w.writerow([term, data["category"], data["count"], data["status"], data["selected_definition"], "; ".join(data["locations"])])
+                    w.writerow([term, data["category"], data["count"], data.get("change", ""), data["status"],
+                                data["selected_definition"], "; ".join(data["locations"]),
+                                data.get("first_seen", ""), data.get("last_seen", "")])
             messagebox.showinfo("Exported", f"Report saved to:\n{path}")
 
 def run_selftest(paths):

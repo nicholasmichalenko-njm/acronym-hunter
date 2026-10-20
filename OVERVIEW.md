@@ -1,6 +1,6 @@
 # Acronym Hunter: Complete Overview
 
-**Version:** 1.2.0 | **Updated:** 2026-10-20 | **Platform:** Windows 10/11, 64-bit
+**Version:** 1.3.0 | **Updated:** 2026-10-20 | **Platform:** Windows 10/11, 64-bit
 
 This document has two parts.
 **Part 1** explains the whole application in plain language: what it is, what is inside it, how it works,
@@ -120,6 +120,28 @@ All are open-source libraries. All run inside the app's own process. None of the
      "Also save to the database" so future scans find it automatically.
    - "Not scanned": content the app could not open (for example a linked picture); the row says why.
 5. **Export:** click **Export CSV** to save the results report wherever you choose.
+
+**Projects: use it all the way through a program.** A project remembers a folder of documents between scans.
+- **Project > New Project...**: pick the folder that holds the documents. The app saves `<folder name>.ahproj`
+  in that folder and scans everything once.
+- **Rescan Project**: reads only files that are new or changed since the last scan and reuses saved results for
+  the rest, so a rescan takes seconds. New files dropped into the folder are picked up automatically.
+- The **Change** column marks every term **New**, **Changed** (count or locations moved), **Unchanged**, or
+  **No longer found**. Status filters isolate each group. "No longer found" rows stay until you clear them
+  (**Project > Clear "No longer found" items**), so nothing disappears silently.
+- Definition choices and **+ Add Item** entries are saved in the project and reapplied after every rescan.
+- **Full Rescan** reads every file again; use it after changing OCR settings or models (the app also does this
+  on its own when the engine changes).
+- **One editor at a time.** If a colleague has the project open, you can open it read-only (view and export)
+  or take over once they are done.
+- The project file holds **terms only**: file names, sizes, dates, the term-like tokens found, your choices, and
+  history. Ordinary words are removed before saving, so no sentence can be rebuilt from it. It is no more
+  sensitive than the exported CSV.
+
+**Vector graphics.** SVG, EMF, and WMF files, and diagrams pasted into Word, PowerPoint, or Excel (Visio, draw.io,
+Office SVG icons), are read in two ways. Text stored in the drawing is read directly, exactly and instantly. If the
+labels were converted to outlines, the drawing is rendered as a high-resolution picture and read by OCR. The
+location shows which method found each term: "(Vector text)" or "(Image)".
 
 **Advanced tools.** The **Advanced** switch (top right) shows Fix OCR, OCR Fixes, and Region Trainer.
 It is off by default so everyday users see a simpler screen. Whoever prepares the package can set the
@@ -247,12 +269,12 @@ contents. Part 2, section 12 lists them and how IT normally controls them.
 |---|---|
 | What data does it process? | Text and images inside the documents the user selects |
 | Where is document content held? | In process memory during the scan; released when the scan or app ends |
-| Is document content written to disk? | Not by the scanner. Extracted text and images are never saved; only results the user chooses to keep (database entries, OCR fixes, CSV export) and error logs. **Exception by design:** the Trainer saves cropped image regions and their text when the user clicks Save, into `training_data\` inside the app folder |
+| Is document content written to disk? | Not by the scanner. Extracted text and images are never saved; only results the user chooses to keep (database entries, OCR fixes, CSV export, project files) and error logs. A project file (`.ahproj`, saved in the documents folder the user picks) stores a **terms-only** token list per file: term-like tokens and unit words kept, every run of ordinary words replaced by `~`. No sentence can be reconstructed from it. **Exception by design:** the Trainer saves cropped image regions and their text when the user clicks Save, into `training_data\` inside the app folder |
 | What files does it write? | `acronym_database.csv`, `config\ocr_corrections.csv` (+ transient `.tmp` during atomic save), `logs\error.log`, `logs\selftest.txt` (diagnostic mode only), `_local_sandbox\settings.json`, `_local_sandbox\temp\*` (emptied at exit and start), and from the Trainer `training_data\images\*.png`, `training_data\labels.txt`, `training_data\samples.csv` (source file name, location, box). All inside the app folder |
 | What may those files contain? | Terms and definitions the user adds; file names and paths in error logs; last folder used in settings; **cropped document images and their text** in `training_data\` |
 | Data at rest encryption | Not applied by the app. Relies on endpoint full-disk encryption (BitLocker) |
 | Data in transit | None exists |
-| Retention | User-controlled. Nothing is retained outside the folder. Deleting the folder removes all app data |
+| Retention | User-controlled. Inside the app folder, deleting the folder removes all app data. Outside it, only files the user saves: CSV exports and project files (`.ahproj` plus a `.ahproj.lock` holding user name, computer name, and time while open). These sit with the documents and follow the documents' handling rules |
 | Text encoding | Database and corrections files are read as UTF-8, UTF-16, or Windows-1252 and always written as UTF-8 with BOM (full Unicode). Document text and terms are NFC-normalized with look-alike folding before matching |
 | Temporary files | `TEMP`, `TMP`, `TMPDIR` are redirected to `_local_sandbox\temp` before any library loads; folder emptied on exit and on next start |
 | Source documents modified? | Never. Opened read-only |
@@ -365,6 +387,7 @@ The app's real attack surface is the documents it opens. Controls:
 | Decompression bombs | Embedded images over 100 MB uncompressed are skipped; OpenCV pixel limits apply; tiny images skipped | Code review |
 | Path traversal from archives | Archive members are read into memory only; nothing is extracted to disk | Code review |
 | Malformed or corrupt files | Each file, page, slide, and part is isolated; failures become "Could not read" / "Not scanned" rows and a log entry; the batch continues | Corrupt PDF test file in `test_samples` |
+| Vector graphics (SVG, EMF, WMF) | SVG parsed with the same hardened lxml parser; EMF/WMF read with a bounds-checked record reader; rendering for OCR happens in memory (MuPDF for SVG, Pillow/GDI for EMF/WMF). External references inside SVG are never fetched | Vector test files in `test_samples` |
 | Linked content (remote images) | Never fetched. Linked pictures are reported as "Not scanned" | 40-slide test deck with a linked picture |
 | Native parser bugs (MuPDF, libxml2, OpenCV) | Mitigated by keeping libraries current (section 8), standard-user privileges, and endpoint protection | Ongoing |
 

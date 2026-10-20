@@ -17,3 +17,8 @@ training_data/
 # Scanner + Trainer package: rebuilt by build.ps1; not committed to save Git LFS storage (about 120 MB per build).
 # The shareable scanner-only package, AcronymHunter_Portable.zip, IS committed.
 AcronymHunter_WithTrainer.zip
+
+# Project files hold term lists and history for real document folders: keep them out of the repo.
+*.ahproj
+*.ahproj.lock
+*.ahproj.tmp

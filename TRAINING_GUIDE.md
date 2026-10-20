@@ -120,7 +120,8 @@ Use it when the scanner missed or misread text in a picture. It ships in `Acrony
 (built by `build.ps1`), not in the standard scanner-only zip.
 
 1. Open `AcronymHunterTrainer.exe`, or click **Region Trainer** in the scanner.
-2. **Open File**. Pick the page (PDF) or picture (PowerPoint, Word, Excel) in the left list.
+2. **Open File**. Pick the page (PDF) or picture (PowerPoint, Word, Excel) in the left list. SVG, EMF, and WMF
+   files, and EMF/WMF diagrams inside Office files, are drawn at about 2400 px so small labels can be boxed.
 3. **Drag a box** around the missed text. Zoom with **+ / -**, **Fit**, or Ctrl + mouse wheel.
 4. Read the right panel:
    - Each line the reader found, with confidence. **Red** = below `min_confidence`; the scanner drops it.
@@ -284,7 +285,7 @@ Some content cannot be read no matter how good the OCR is. The app lists it unde
 | Problem | Fix at the source |
 |---|---|
 | Linked picture in PowerPoint/Word | Re-insert as an embedded picture (Insert > Pictures, not "Link to File") |
-| Visio or vector diagram (EMF/WMF/SVG) | Paste Special as PNG, or export the diagram as PNG at 200-300% |
+| Visio or vector diagram (EMF/WMF/SVG) whose labels were converted to outlines | Read automatically by OCR since v1.3.0. If small labels are missed, export the diagram as PNG at 200-300%, or keep the labels as live text (exact, no OCR) |
 | Low-quality scans | Rescan at 300 dpi grayscale; avoid heavy JPEG compression |
 | Text pasted as screenshots | Paste as text when possible; typed text is read exactly |
 

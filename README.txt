@@ -7,7 +7,29 @@ RUN
   1. Unzip anywhere (Desktop, USB drive, network share).
   2. Open the AcronymHunter folder and double-click AcronymHunter.exe.
   3. Click "Select Files" or "Scan Folder".
-  Supported: PDF, DOCX, XLSX, PPTX, PNG, JPG, TIF, BMP, WEBP, GIF.
+  Supported: PDF, DOCX, XLSX, PPTX, PNG, JPG, TIF, BMP, WEBP, GIF, and vector graphics
+  (SVG, EMF, WMF, including Visio and draw.io diagrams pasted into Office files).
+
+VECTOR GRAPHICS (SVG, EMF, WMF)
+  Text stored inside a diagram is read directly: exact, fast, no OCR. Diagrams whose labels were
+  turned into outlines are drawn as a picture and read by OCR. Locations say "(Vector text)" or
+  "(Image)" so you know which method found each term.
+
+PROJECTS: SCAN A FOLDER AGAIN AS IT CHANGES
+  Project > New Project... : pick the folder that holds the documents. The app creates
+  <folder name>.ahproj in that folder and scans everything.
+  Rescan Project : reads only new or changed files, reuses saved results for the rest (seconds,
+              not minutes). New files in the folder are picked up automatically.
+  The Change column shows New, Changed, Unchanged, or No longer found. Status filters
+  "New since last scan", "Changed since last scan", and "No longer found" isolate them.
+  "No longer found" rows stay until you choose Project > Clear "No longer found" items.
+  Your definition choices and "+ Add Item" entries are saved in the project and reapplied.
+  Full Rescan : reads every file again (use after changing OCR settings or models).
+  One editor at a time: if a colleague has the project open, you can open it read-only
+  (view and export) or take over once they have finished.
+  The project file holds file names, sizes, dates, the terms found, your choices, and the
+  history. It never holds sentences or document text: it is no more sensitive than the
+  exported CSV. Treat it at the same classification as the documents' term list.
 
 ADDING YOUR OWN ITEMS
   "+ Add Item" adds a term the scan did not find (type, definition, where you saw it). It appears
@@ -26,8 +48,8 @@ READING THE RESULTS
   Scroll right with the bottom scrollbar to read long Locations.
   Locations:  PDF page, PowerPoint slide (plus notes/chart/SmartArt and the picture's name),
               Word section heading, header/footer, or Excel sheet.
-  "Not scanned" rows list content the app could not open, such as linked pictures or
-              vector diagrams, and where they are. Use Status > "Errors / not scanned" to see them.
+  "Not scanned" rows list content the app could not open, such as linked pictures,
+              and where they are. Use Status > "Errors / not scanned" to see them.
 
 FIXING OCR MISREADS (Advanced switch on)
   If a term in a picture is misread (RFF instead of RFP): select the row, type the correct term
@@ -48,7 +70,7 @@ WHAT STAYS IN THIS FOLDER
   logs\error.log         Written only if something fails. Send this file when reporting a problem.
 
   The app makes no network connections and writes no files outside this folder
-  (except an Export CSV report, saved where you choose). To remove it, delete the folder.
+  (except an Export CSV report and project files, saved where you choose). To remove it, delete the folder.
   Windows itself keeps generic records such as recently used file names; details in SECURITY.md.
 
 MORE INFORMATION (in this folder)

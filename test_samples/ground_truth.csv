@@ -51,3 +51,10 @@ Kestrel_Large_Diagram.png,LL,found,14px label on a 6000px drawing; needs tiling
 Kestrel_Large_Diagram.png,PCU,found,14px label; needs tiling
 Kestrel_Large_Diagram.png,TVAC,found,14px label; needs tiling
 Kestrel_Large_Diagram.png,CCB,found,14px note line; needs tiling
+Kestrel_Interface_Diagram.svg,PCU,found,SVG text (tspan)
+Kestrel_Interface_Diagram.svg,GEVS,found,SVG draw.io-style label
+Kestrel_Interface_Diagram.svg,ICD,found,SVG text
+Kestrel_Visio_Block.emf,COPV,found,EMF text record
+Kestrel_Visio_Block.emf,kWh,found,"EMF text record, unit"
+Kestrel_Design_Note.docx,MEOP,found,EMF embedded in Word
+Kestrel_SVG_Icon_Deck.pptx,TVAC,found,SVG companion of a PowerPoint picture

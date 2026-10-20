@@ -1,8 +1,10 @@
 # Acronym Hunter
 
-Offline Windows desktop app (scanner + Trainer) that scans PDF, Word, PowerPoint, Excel, and image files, finds acronyms,
-abbreviations, and units, matches them against a curated database, and flags ambiguous or new terms.
-Runs 100% locally: no network connections, no files written outside its own folder.
+Offline Windows desktop app (scanner + Trainer) that scans PDF, Word, PowerPoint, Excel, image, and vector (SVG, EMF, WMF)
+files, finds acronyms, abbreviations, and units, matches them against a curated database, and flags ambiguous or new terms.
+Projects (v1.3.0) remember a document folder between scans: rescans read only new or changed files and mark every term
+New, Changed, Unchanged, or No longer found.
+Runs 100% locally: no network connections, no files written outside its own folder except reports and project files the user saves.
 
 ## Start here
 | File | Purpose |
