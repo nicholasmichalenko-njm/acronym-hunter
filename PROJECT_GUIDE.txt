@@ -127,6 +127,19 @@ If venv is missing
   Then run build.ps1. Requires Python 3.11 (installed on this PC).
 
 
+GITHUB BACKUP
+  Private repo: https://github.com/nicholasmichalenko-njm/acronym-hunter
+  README.md       Front page of the repo on GitHub (overview and rebuild steps).
+  .gitignore      Keeps venv, build output, logs, and scratch folders out of the repo.
+  .gitattributes  Stores the zip with Git LFS (GitHub blocks normal files over 100 MB).
+  venv is NOT in the repo; requirements.txt recreates it.
+
+  Save changes to GitHub after editing or rebuilding:
+    git add -A
+    git commit -m "Describe the change"
+    git push
+  Each pushed zip adds about 120 MB to LFS storage. Push the zip only for builds you share.
+
 SIGNING AND SECURITY APPROVAL
   The exe is NOT code-signed. Windows SmartScreen and managed work PCs may warn or block it.
   For use on company machines, route it through IT (allowlisting or internal signing).
