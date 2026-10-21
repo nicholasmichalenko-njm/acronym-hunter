@@ -12,3 +12,4 @@ Date,Version,Folder,OCR models,Recall %,Missed,False alarms,New candidates,Rows,
 2026-10-20 16:54,1.2.0,test_samples,bundled PP-OCRv4,94.1,3,6,120,135,38,v1.3 vector graphics: SVG/EMF/WMF text + render-and-OCR fallback; 4 vector test files
 2026-10-20 17:18,1.2.0,test_samples,bundled PP-OCRv4,94.1,3,6,120,135,40,
 2026-10-20 18:11,1.3.1,test_samples,bundled PP-OCRv4,94.1,3,6,120,135,37,"v1.3.1 db column order, ocr ignore list"
+2026-10-20 19:50,1.4.0,test_samples,"custom det.onnx, rec.onnx, rec_keys.txt",94.1,3,6,121,136,35,"DRY RUN models (synthetic, 1 pass) - not kept"

@@ -9,15 +9,34 @@ Nothing else is required. Every item below has one job.
 WHAT IS IN THIS FOLDER
 ----------------------
 
-AcronymHunter_Portable.zip  (about 115 MB)
-  The finished app, scanner only. This is the file you share.
+DATA BOUNDARY (read first)
+  GitHub (repo + Releases): code, generic base data, the two app packages, the Training Kit. No document data.
+  Approved SharePoint folder ONLY: Knowledge Packs (trained models + real database + fixes + ignore list)
+  and any internal all-in-one build. Never GitHub.
+  Local / approved storage only: training_data\, project files (.ahproj), exports, logs.
+  Git ignores the working acronym_database.csv and config\ in this folder, all zips, internal_builds\,
+  kit_build\, and training_kit\. build.ps1 packages only base\ and runs a leak check.
 
-AcronymHunter_WithTrainer.zip  (about 123 MB, created by build.ps1, NOT committed to Git)
-  Scanner plus AcronymHunterTrainer.exe, for your own use curating OCR fixes and training samples.
-  Not committed to save Git LFS storage; rebuild it any time with build.ps1.
-  Recipients unzip it and double-click AcronymHunter.exe. No install, no network, no admin rights.
-  Kept because: it is the deliverable. Rebuilding it takes about 2 minutes, so it is
-  replaceable, but keeping it means you can share without rebuilding.
+AcronymHunter_Portable.zip / AcronymHunter_WithTrainer.zip  (about 115 / 123 MB, created by build.ps1)
+  The finished app (scanner only / scanner + Trainer). Published as GitHub Release files, NOT committed.
+  Recipients unzip and double-click AcronymHunter.exe. No install, no network, no admin rights.
+
+base\
+  The ONLY data that ships in the GitHub packages: generic acronym_database.csv (30 starter terms) and
+  config\ (app_settings.json, ocr_settings.json, ocr_corrections.csv with 2 examples, models\README.txt).
+  Change these only with generic content. base\README.txt explains the rule.
+
+build_training_kit.ps1
+  Builds kit_build\AcronymHunter_TrainingKit.zip ONCE on an internet-connected PC: downloads pinned Python,
+  PaddlePaddle, PaddleOCR 2.8, and PP-OCRv4 weights, installs the network lockdown, runs the kit check, zips.
+  Publish the kit zip as a GitHub Release file (it holds no document data).
+
+training_kit_src\
+  The kit's own files: Train.cmd (menu), README_TRAINING_KIT.txt, kit\train.py (merge samples, train, export,
+  convert to ONNX), kit\sitecustomize.py (network lockdown, loaded first in every kit process).
+
+tools\make_dryrun_samples.py
+  Writes fictional samples in Trainer format for a Training Kit dry run. Never ship models trained on them.
 
 trainer_gui.py
   Source for AcronymHunterTrainer.exe: region rescans and training-sample capture. Imports app_gui.py
@@ -61,7 +80,7 @@ TRAINING_GUIDE.md
   swapping OCR models, training your own model, measuring with the scorer.
   Kept because: it is the playbook for every accuracy change.
 
-config\
+config\  (WORKING copy: ignored by Git, never packaged for GitHub; generic versions live in base\config\)
   ocr_corrections.csv  Misread,Correct pairs (RFF -> RFP). The app's Fix OCR button adds lines.
   ocr_ignore.csv       Reading,Note rows: OCR readings that are not text (diagram lines). The Trainer's
                        "Not text" choice adds lines. Created on first use.
@@ -69,7 +88,9 @@ config\
   app_settings.json    Distribution options: advanced_features_default (Advanced tools start hidden: false),
                        allow_advanced_toggle (false removes the Advanced switch for everyone).
   models\              Optional drop-in OCR models (det.onnx, rec.onnx, cls.onnx, rec_keys.txt).
-  Kept because: the app reads these at launch; build.ps1 copies the folder into every zip.
+  knowledge_installed.json, knowledge_backups\   Installed Knowledge Pack record and Undo backups.
+  Kept because: the app reads these when run from source. They travel to colleagues only inside a
+  Knowledge Pack (Knowledge > Export Knowledge Pack) saved to the approved SharePoint folder.
 
 tools\
   evaluate.py          Scores the app against a ground_truth.csv (recall and false alarms).
@@ -78,10 +99,9 @@ tools\
   Kept because: every accuracy change must be measured before it ships.
 
 acronym_database.csv
-  The MASTER acronym database (Term, Category, Definition, Action).
-  build.ps1 copies this file into every new zip.
-  Kept because: it holds your curated terms and the Include/Exclude rules.
-  If missing, the app ships with a 30-term starter list.
+  Your WORKING acronym database (Term, Definition, Category, Action; any column order works).
+  Ignored by Git and never packaged for GitHub. Shared through Knowledge Packs only.
+  If missing, the app creates the 30-term starter list.
 
 AcronymHunter.spec
   PyInstaller recipe that turns app_gui.py into AcronymHunter.exe.
@@ -90,10 +110,11 @@ AcronymHunter.spec
   Kept because: without it, a rebuild brings back the crash and the bloat.
 
 build.ps1
-  One-step rebuild. Builds both programs once and produces both zips. Copies in acronym_database.csv and README.txt,
-  removes logs and scratch files, scans the result with Microsoft Defender (stops if
-  anything is flagged), writes checksums, creates AcronymHunter_Portable.zip, and deletes
-  its own temporary folders.
+  One-step rebuild. Builds both programs once, copies in base\ data and the docs, scans with Microsoft Defender
+  (stops if anything is flagged), runs the LEAK CHECK on each package (stops on any unexpected file, any data
+  differing from base\, or any model file), writes checksums, and creates both zips.
+  -KnowledgePack "<pack.zip>" also writes internal_builds\AcronymHunter_Internal_<version>.zip with the pack
+  pre-installed, for the approved SharePoint folder ONLY.
   Kept because: it guarantees every zip is built the same clean way.
 
 README.txt
@@ -140,7 +161,10 @@ HOW TO ...
 ----------
 
 Share the app
-  Send AcronymHunter_Portable.zip.
+  Publish the zips as a GitHub Release:
+    gh release create v1.4.0 AcronymHunter_Portable.zip AcronymHunter_WithTrainer.zip --title "Acronym Hunter 1.4.0"
+  Colleagues download AcronymHunter_Portable.zip from the release, then install the newest Knowledge Pack
+  from the approved SharePoint folder (Knowledge > Install Knowledge Pack).
 
 Use projects (v1.3.0)
   Project files (*.ahproj) live in the users' document folders, never in this repo (.gitignore blocks

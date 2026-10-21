@@ -57,6 +57,20 @@ FIXING OCR MISREADS (Advanced switch on)
   To review, edit, or undo fixes: click "OCR Fixes" (top right). "Undo Last Entry" reverses
   an accidental Fix OCR.
 
+KNOWLEDGE UPDATES (trained models + team database)
+  This download contains only generic starter data. Your team's knowledge (trained OCR models, the
+  shared acronym database, OCR fixes, ignore list) comes as a Knowledge Pack from the approved
+  SharePoint folder:
+    Knowledge > Install Knowledge Pack... > pick the newest AcronymHunter_Knowledge_<date>.zip
+  The pack is checked first: any damaged or altered file and nothing is installed.
+  Models are replaced. Database, fixes, and ignore list are merged add-only: your own rows,
+  edits, and Exclude choices always win.
+  Knowledge > Undo Last Knowledge Change puts back exactly what the last install replaced.
+  With a project open, the app offers to rescan it with the new knowledge.
+  Advanced (for whoever trains): Load Trained Models (Training Kit output) and Export Knowledge Pack.
+  Knowledge Packs hold what was learned from internal documents: approved SharePoint ONLY,
+  never GitHub, email, or personal storage.
+
 ONEDRIVE AND SHAREPOINT
   Works on files in a OneDrive or SharePoint folder synced to this PC (it shows in File Explorer).
   Browser-only SharePoint links do not work: click "Sync" or "Add shortcut to My files" first.
@@ -97,6 +111,7 @@ WHAT STAYS IN THIS FOLDER
   config\                OCR corrections (Fix OCR), OCR ignore list (Not text), OCR settings,
                          optional replacement OCR models.
   training_data\         Trainer samples (WithTrainer package only; created when you save one).
+  config\knowledge_*     Installed pack record and backups for Undo (created on first install).
   _local_sandbox\        Scratch space, created on launch, cleared on exit.
   logs\error.log         Written only if something fails. Send this file when reporting a problem.
 

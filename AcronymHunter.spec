@@ -50,7 +50,8 @@ b = make_analysis('trainer_gui.py')   # companion Trainer: region rescans + trai
 def _keep(entry):
     dest = entry[0].replace('/', '\\').lower()
     return not (dest.startswith('pymupdf\\layout') or dest.startswith('pymupdf\\mupdf-devel')
-                or 'opencv_videoio_ffmpeg' in dest)
+                or 'opencv_videoio_ffmpeg' in dest
+                or dest.startswith('onnxruntime\\datasets'))   # ONNX Runtime demo models: unused, and the leak check allows no stray .onnx
 for an in (a, b):
     an.datas = [e for e in an.datas if _keep(e)]
     an.binaries = [e for e in an.binaries if _keep(e)]

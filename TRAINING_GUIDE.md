@@ -1,4 +1,4 @@
-# Making Acronym Hunter More Accurate Over Time
+﻿# Making Acronym Hunter More Accurate Over Time
 
 This guide covers every way to improve results beyond adding rows to `acronym_database.csv`,
 from a two-second fix to training your own OCR model. Every step ends the same way:
@@ -34,7 +34,7 @@ Matching rules are the biggest remaining lever.
 | 5b | Trainer: region rescan + samples | Minutes | Text missed or misread in a picture; builds training data | `AcronymHunterTrainer.exe` / **Region Trainer** button |
 | 6 | OCR settings | Minutes | Whole classes of OCR misses (small text, scans, photos) | `config\ocr_settings.json` |
 | 7 | Swap OCR models | 30 minutes | Systematic OCR weakness | `config\models\` (drop-in files) |
-| 8 | Train your own OCR model | Hours to days | OCR on a recurring style; lines read as text | Trainer samples > training PC > `config\models\` |
+| 8 | Train your own OCR model | Overnight | OCR on a recurring style; lines read as text | Trainer samples > Training Kit > Knowledge Pack |
 | 9 | Better source files | Varies | Linked pictures, vector diagrams, low-quality scans | How documents are authored |
 | 10 | Matching rules | Code change | Missed DoD, MIL-STD-882E; heading noise | `app_gui.py` |
 
@@ -66,17 +66,17 @@ You already use this. Three habits make it work harder:
   and becomes a target for OCR repair (0/O, 1/I, 5/S, 8/B swaps and fuzzy matching only repair toward database terms).
 - **Exclude noise aggressively.** Each Exclude permanently removes that word from future candidate lists.
 - **Keep multiple definitions** (CDR = Critical Design Review / Call Detail Record). The app flags them for a choice instead of guessing.
-- **Symbols and other alphabets work.** Terms like `°C`, `µm`, `Ω`, `ΔV`, Cyrillic, or math letters are fine.
+- **Symbols and other alphabets work.** Terms like `Â°C`, `Âµm`, `Î©`, `Î”V`, Cyrillic, or math letters are fine.
   - The files are saved as UTF-8 with a byte-order mark, which holds every Unicode character (the same set
     UTF-16 holds). UTF-16 is not needed.
   - In Excel, save with **File > Save As > CSV UTF-8 (Comma delimited)**. Plain "CSV (Comma delimited)"
     writes an old Windows encoding and turns symbols into `?`.
   - The app still reads UTF-16 ("Unicode Text", tab-separated) and old Windows-encoded files, and converts
     them to UTF-8 the next time it saves. A non-UTF-8 file adds a reminder to `logs\error.log`.
-  - Look-alike characters match each other: micro sign `µ` / Greek `μ`, ohm sign `Ω` / Greek `Ω`,
-    angstrom sign `Å` / `Å`, and the various hyphens and dashes. Results show the standard form.
-  - Units may touch numbers: `25°C`, `10µm`, and `150psi` all match their database terms.
-  - OCR can only return characters its model knows. The built-in model reads common symbols (°, μ, Ω)
+  - Look-alike characters match each other: micro sign `Âµ` / Greek `Î¼`, ohm sign `Î©` / Greek `Î©`,
+    angstrom sign `Ã…` / `Ã…`, and the various hyphens and dashes. Results show the standard form.
+  - Units may touch numbers: `25Â°C`, `10Âµm`, and `150psi` all match their database terms.
+  - OCR can only return characters its model knows. The built-in model reads common symbols (Â°, Î¼, Î©)
     but rare ones in pictures may come back wrong; use **Fix OCR** or the Trainer for those.
 
 ---
@@ -268,88 +268,50 @@ Your samples improve the scanner in two ways.
 - **Not text** on a green line puts that reading on `config\ocr_ignore.csv`. Gone from the next scan.
 - **Add OCR Fixes from Corrections** puts word fixes in `config\ocr_corrections.csv`. Fixed on the next scan.
 
-**Over time, by training new models.** Two models do the reading, and your two kinds of samples train them:
+**Over time, with the Training Kit.** Two models do the reading, and your two kinds of samples train them:
 
-| Model | Job | File in `config\models\` | Trained by | Start training at |
+| Model | Job | File | Trained by | Start at |
 |---|---|---|---|---|
-| Finder (detection) | Draws a box around each piece of text; mistakes lines for text | `det.onnx` | Region samples (Save Choices, especially **Not text**) | 100+ regions (300+ better) |
 | Reader (recognition) | Reads the letters inside each box; misspells | `rec.onnx` + `rec_keys.txt` | Text-line samples (**Save as text**) | 300+ lines (1,000+ better) |
+| Finder (detection) | Draws a box around each piece of text; mistakes lines for text | `det.onnx` | Region samples (Save Choices, especially **Not text**) | 100+ regions (300+ better) |
 
-### Step 1. Collect (in the Trainer)
-Work through real documents. Save every misread line as **Save as text** with the correct spelling, and every
-false box as **Not text**. Also save some lines the reader got right, so a trained model does not forget them.
-The counter at the bottom shows Text lines, Regions, and Not-text examples.
+### The Training Kit
+`AcronymHunter_TrainingKit.zip` (GitHub Release, about 410 MB zipped, 1.0 GB unzipped) is a self-contained folder: its own Python,
+PaddlePaddle 2.6.2 (CPU), PaddleOCR 2.8 training tools, and the PP-OCRv4 starting weights. Unzip it anywhere.
+No installation, no admin rights, **no internet**. A network lockdown built into the kit's Python refuses every
+outbound connection and logs any attempt to `kit\logs\network_blocked.log`. It holds no document data.
 
-### Step 2. Prepare the package (one click)
-Click **Prepare Training Package**. It writes `training_data\package\`:
-`rec_train.txt`, `rec_val.txt`, `det_train.txt`, `det_val.txt` (90% train, 10% check, the same split every time),
-and `package_report.txt`. It copies no images, so it adds only a few KB. It warns when there are too few samples
-and lists any character the current reader cannot output (fix those labels or they are skipped).
+### Step by step
+1. **Collect** in the Trainer. Save misread lines as **Save as text** with the right spelling, and false boxes as
+   **Not text**. Save some correct lines too, so the model does not forget them.
+2. **Gather** each collector's `training_data\` folder into the kit's `samples\`, one subfolder per person
+   (`samples\nicholas\`, `samples\jsmith\`). Move them over an approved channel; duplicates are removed automatically.
+3. **Train:** double-click `Train.cmd`, choose 1 (check), then 2 (reader), 3 (finder), or 4 (both).
+   The kit shows an estimated time first. On a laptop CPU the reader trains at about 0.7 lines per second, so
+   1,000 lines x 20 passes is roughly 8 hours: run it overnight, plugged in.
+4. **Result:** `output\models\` holds `rec.onnx` + `rec_keys.txt` and/or `det.onnx`, plus `model_info.json`.
+   The kit has already checked that each model loads and runs.
+5. **Try it:** in the scanner (Advanced on), **Knowledge > Load Trained Models** > pick `output\models`.
+6. **Score it:** `tools\evaluate.py` from source, and rescan a folder whose results you know.
+   Worse? **Knowledge > Undo Last Knowledge Change** puts the previous models back instantly.
+7. **Share it:** **Knowledge > Export Knowledge Pack** > save to the **approved SharePoint folder**. The pack holds
+   the models plus your database, OCR fixes, and ignore list. Colleagues click **Knowledge > Install Knowledge Pack**.
+8. **Repeat** every few hundred new samples. Each round fine-tunes from the PP-OCRv4 starting weights on the full
+   pooled sample set, so keep every collector's samples.
 
-### Step 3. Set up a training PC (once)
-Training needs PaddlePaddle and PaddleOCR, about 2 GB of tools that do not belong in the app. Use your build PC or
-another approved Windows PC. Internet is needed only to install the tools; your samples never leave the PC.
-```powershell
-py -3.11 -m venv C:\ocr-train\venv
-C:\ocr-train\venv\Scripts\python.exe -m pip install paddlepaddle==2.6.2 paddle2onnx==1.2.3
-git clone -b release/2.8 https://github.com/PaddlePaddle/PaddleOCR C:\ocr-train\PaddleOCR
-C:\ocr-train\venv\Scripts\python.exe -m pip install -r C:\ocr-train\PaddleOCR\requirements.txt
-```
-Download the **PP-OCRv4 training weights** (the files ending `_train`, not `_infer`) for the Chinese/English
-models from the PaddleOCR model list, and unzip them into `C:\ocr-train\pretrain\`. Use the Chinese/English
-(`ch_`) models: the app's built-in models are `ch_PP-OCRv4`, so your fine-tuned models stay drop-in compatible.
+### Building the kit (once, by the maintainer)
+`build_training_kit.ps1` runs on a PC with internet, downloads every pinned piece (Python embeddable, PyPI packages,
+PaddleOCR 2.8 source, PP-OCRv4 weights), installs the lockdown, runs the kit check, and zips the kit. Every download's
+SHA-256 and every package version go into `KIT_MANIFEST.txt`. This is the only step that uses the internet.
 
-### Step 4. Copy the samples
-Copy the whole `training_data\` folder to `C:\ocr-train\data\` (it already holds the package lists).
+### Dry run (verified 2026-10-20)
+`tools\make_dryrun_samples.py` writes 150 fictional text lines and 40 fictional regions in Trainer format. With them
+the kit trained both models, exported and converted them to ONNX, and the scanner loaded them, with the network
+lockdown on and a connection monitor polling every 250 ms (results in the 1.4.0 release notes). Dry-run models are
+trained on synthetic text: never ship them.
 
-### Step 5. Train the reader (recognition)
-```powershell
-cd C:\ocr-train\PaddleOCR
-..\venv\Scripts\python.exe tools/train.py -c configs/rec/PP-OCRv4/ch_PP-OCRv4_rec.yml -o `
-  Global.pretrained_model=C:/ocr-train/pretrain/ch_PP-OCRv4_rec_train/student `
-  Global.character_dict_path=ppocr/utils/ppocr_keys_v1.txt Global.epoch_num=50 Optimizer.lr.learning_rate=0.0001 `
-  Train.dataset.data_dir=C:/ocr-train/data Train.dataset.label_file_list=[C:/ocr-train/data/package/rec_train.txt] `
-  Eval.dataset.data_dir=C:/ocr-train/data Eval.dataset.label_file_list=[C:/ocr-train/data/package/rec_val.txt] `
-  Global.save_model_dir=C:/ocr-train/out/rec
-```
-`Global.pretrained_model` points at the `.pdparams` file inside the unzipped weights folder, written without
-the `.pdparams` extension (`student` or `best_accuracy`, whichever the folder holds).
-Watch the `acc` printed after each check. Stop (Ctrl+C) when it stops rising; the best checkpoint is kept as
-`out\rec\best_accuracy`. Keep the dictionary as `ppocr_keys_v1.txt`: changing it throws away what the model knows.
-
-### Step 6. Train the finder (detection), when you have enough regions
-Same pattern with `configs/det/ch_PP-OCRv4/ch_PP-OCRv4_det_student.yml`, the `ch_PP-OCRv4_det_train` weights,
-`det_train.txt` / `det_val.txt`, and `Global.save_model_dir=C:/ocr-train/out/det`. Watch `hmean`.
-
-### Step 7. Convert to the app's format
-```powershell
-..\venv\Scripts\python.exe tools/export_model.py -c configs/rec/PP-OCRv4/ch_PP-OCRv4_rec.yml -o `
-  Global.pretrained_model=C:/ocr-train/out/rec/best_accuracy Global.save_inference_dir=C:/ocr-train/export/rec
-..\venv\Scripts\paddle2onnx.exe --model_dir C:/ocr-train/export/rec --model_filename inference.pdmodel `
-  --params_filename inference.pdiparams --save_file C:/ocr-train/export/rec.onnx --opset_version 14
-```
-(For the finder: the det config and `out/det`, producing `det.onnx`.)
-
-### Step 8. Install and score
-1. Copy `rec.onnx` into the app's `config\models\`, and copy `PaddleOCR\ppocr\utils\ppocr_keys_v1.txt` there
-   as `rec_keys.txt` (an exported model does not carry its character list). Copy `det.onnx` if you trained one.
-2. Run `.\venv\Scripts\python.exe tools\evaluate.py --note "fine-tuned rec, 1200 samples"`. The line
-   `OCR models: custom rec.onnx, rec_keys.txt` confirms the model loaded.
-3. Re-run the Trainer on a few boxes it got wrong before.
-4. **Better on the test samples and your own documents:** keep it and rebuild (`build.ps1` ships `config\`).
-   **Worse:** delete the files from `config\models\`; the built-in models return instantly.
-
-### Step 9. Repeat
-Keep collecting, re-run Steps 2 and 4 to 8 every few hundred new samples. Each round starts from the previous
-best model (`Global.pretrained_model=C:/ocr-train/out/rec/best_accuracy`).
-
-**Status of these commands:** Steps 1, 2 and 8 run in the app and are tested. Steps 3 to 7 use PaddleOCR's
-standard tools at the pinned versions; they have not yet been run end to end on this project's data. Do a dry run
-with a small package first.
-
-**Data handling:** training data from real documents may be CUI or ITAR-controlled. Keep crops, labels and
-the training PC inside approved systems, and treat the trained model file at the same sensitivity as the
-data it learned from. Do not commit real crops or models trained on them to GitHub.
+**Data handling:** `samples\`, `work\`, and `output\` hold crops of internal documents and models learned from them.
+Keep the kit folder on approved storage. Knowledge Packs go to the approved SharePoint folder only. Never GitHub.
 
 ---
 
@@ -418,21 +380,32 @@ Every run appends a row to `tools\eval_history.csv`, which is your accuracy reco
 
 ## 12. Where changes live and how to ship them
 
-| What you changed | Where it is saved | To make it permanent |
-|---|---|---|
-| Include / Exclude in the app | `acronym_database.csv` in the app folder you ran | Copy it over the project's `acronym_database.csv` |
-| Fix OCR in the app | `config\ocr_corrections.csv` in the app folder you ran | Copy it over the project's `config\ocr_corrections.csv` |
-| OCR settings or models | `config\` in the project folder | Already in place |
+Two kinds of change travel two different ways. Keep them apart.
 
-Then rebuild and save to GitHub:
+| What you changed | Where it is saved | How it reaches colleagues |
+|---|---|---|
+| Database rows (Include, Exclude, Add Item with save) | `acronym_database.csv` in your app folder | **Knowledge Pack** on the approved SharePoint folder |
+| OCR fixes, ignore list | `config\ocr_corrections.csv`, `config\ocr_ignore.csv` | **Knowledge Pack** |
+| Trained or swapped models | `config\models\` | **Knowledge Pack** |
+| OCR settings, Advanced defaults (generic numbers) | `base\config\` in the project | Rebuild; ships in the GitHub packages |
+| Program code | `app_gui.py`, `trainer_gui.py` | Rebuild; GitHub Release |
+
+**Data boundary.** The GitHub packages are built from `base\` only: generic starter terms and example fixes. The
+working database and `config\` in the project folder are ignored by Git and never packaged. `build.ps1` runs a leak
+check that stops the build if any data file differs from `base\`, if any model file is present, or if any unexpected
+file would ship. Real knowledge leaves a PC only as a Knowledge Pack, and only to the approved SharePoint folder.
+
+Ship a code or settings change:
 ```
 powershell -ExecutionPolicy Bypass -File .\build.ps1
 git add -A
-git commit -m "Describe the accuracy change and the new scores"
+git commit -m "Describe the change"
 git push
+gh release create v1.4.0 AcronymHunter_Portable.zip AcronymHunter_WithTrainer.zip --title "Acronym Hunter 1.4.0"
 ```
-`build.ps1` copies the whole `config\` folder into the zip, so recipients get your corrections, settings and models.
-Large model files add to the zip size and to Git LFS storage.
+Ship knowledge: **Knowledge > Export Knowledge Pack** > approved SharePoint folder.
+Optional internal all-in-one build (SharePoint only): `.\build.ps1 -KnowledgePack "<path to pack>"` writes
+`internal_builds\AcronymHunter_Internal_<version>.zip`, which Git ignores.
 
 ---
 
@@ -452,6 +425,8 @@ Large model files add to the zip size and to Git LFS storage.
 | Want to build training data | Trainer: save corrected lines as samples (section 5b) |
 | Junk words from images | `min_confidence` 0.6 |
 | Characters consistently wrong in images | Try another `rec.onnx` (section 7) |
-| One recurring style always fails | Fine-tune (section 8) |
+| One recurring style always fails | Training Kit (section 8) |
+| Lines or arrows read as text | Trainer **Not text** (instant), then train the finder (section 8) |
+| Colleague needs your improvements | **Knowledge > Export Knowledge Pack** to the approved SharePoint folder |
 | "Not scanned" rows | Fix the source file (section 9) |
 | DoD, MIL-STD-882E missed | Code change F4 (section 10) |

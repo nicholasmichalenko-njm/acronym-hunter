@@ -1,6 +1,6 @@
 # Acronym Hunter: Security and Data-Handling Statement
 
-**Version covered:** 1.3.1 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
+**Version covered:** 1.4.0 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
 **Verified:** 2026-10-20 (v1.0.1 live test; v1.0.2 added tiled OCR and the OCR Fixes window; v1.0.3 hardened XML parsing and capped embedded image size; no new file locations or network code) on the developer's Windows PC, from a fresh unzip of the shipped zip
 **Audience:** users, security and IT reviewers
 
@@ -70,6 +70,8 @@ Complete list from a line-by-line audit of `app_gui.py` (every `open(... "w"/"a"
 | `logs\selftest.txt` | Scan results | Only with `--selftest` | Terms found |
 | `_local_sandbox\settings.json` | Text size, last folder used | When you change them | Folder path |
 | `_local_sandbox\temp\` | Temporary files, incl. OCR engine config | During a scan; **emptied on exit and on next start** | No document content |
+| `config\knowledge_installed.json` | Version, date, author, SHA-256 of the last Knowledge Pack installed | **Knowledge > Install Knowledge Pack** | Pack metadata |
+| `config\knowledge_backups\<time>\` | Copies of the database, fixes, ignore list, and models replaced by an install or model load | Before every install or load (for Undo) | **Yes: same as the database and models** |
 | `config\ocr_ignore.csv` | Exact OCR readings marked "Not text" (for example `III`, `一I`), with source file name and location | Trainer **Save Choices** on a "Not text" line | Readings and file names |
 | `training_data\images\*.png`, `labels.txt`, `samples.csv` | **Cropped document images** + their text, source file name, location | Only when you click Save in the Trainer | **Yes: document content.** Never shipped in the zip or committed to Git |
 | `training_data\regions\*.png`, `det_labels.txt`, `save_log.jsonl` | **The whole box drawn in the Trainer** + text box positions; save history for Undo | Trainer **Save Choices** | **Yes: document content.** Same handling as above |
@@ -108,6 +110,34 @@ any library, so libraries that create temp files create them inside the folder.
 | Limits | The project lock is only as current as OneDrive sync between PCs; sync conflicts create a copy such as `Name-PCNAME.ahproj`. Files encrypted by a sensitivity label cannot be read (reported as "Could not read") |
 | Do not | Put the AcronymHunter app folder itself in OneDrive: `_local_sandbox\`, `logs\`, and `training_data\` would sync to the cloud |
 | Controlled data | Whether CUI/ITAR may be stored in a given OneDrive/SharePoint (for example a GCC High tenant) is the organization's decision; the app neither enables nor prevents it |
+
+### Knowledge Packs (v1.4.0)
+
+| Question | Answer |
+|---|---|
+| What is in a pack? | `knowledge/pack_info.json` (version, author, computer, notes, SHA-256 of every file), and any of: `acronym_database.csv`, `ocr_corrections.csv`, `ocr_ignore.csv`, `models/rec.onnx`, `models/det.onnx`, `models/cls.onnx`, `models/rec_keys.txt` |
+| Sensitivity | Treat as the classification of the documents the knowledge came from. **Approved SharePoint folder only. Never GitHub, email, or personal storage** |
+| How is a pack checked before install? | Only the files above are accepted (no paths, no executables); each file is at most 400 MB; every file's SHA-256 must match `pack_info.json`. Any failure installs nothing. Verified: a pack with one changed byte and a pack with an extra `../../payload.exe` were both refused |
+| What does install change? | Models in `config\models\` are replaced. Database, fixes, and ignore list merge add-only; the user's own rows, edits, and Exclude choices win. A backup is taken first; **Knowledge > Undo Last Knowledge Change** restores it exactly |
+| Can a model file run code? | No. ONNX files are loaded by ONNX Runtime as data (a computation graph); the app checks a model loads before using it |
+
+### Data boundary for GitHub packages (v1.4.0)
+
+The GitHub Release packages (`AcronymHunter_Portable.zip`, `AcronymHunter_WithTrainer.zip`) are built from `base\` only:
+30 generic starter terms, two example OCR fixes from the fictional test files, settings, and a models README. The working
+database and `config\` are ignored by Git and never packaged. `build.ps1` refuses to finish if any file outside the
+approved list, any data file that differs from `base\`, or any model file other than RapidOCR's public models would ship.
+Audit 2026-10-20: no document data, user paths, or trained knowledge in the packages or anywhere in Git history.
+
+### Training Kit (v1.4.0)
+
+| Question | Answer |
+|---|---|
+| What is it? | A separate folder for whoever trains models: portable Python 3.11, PaddlePaddle 2.6.2 (CPU), PaddleOCR 2.8 tools, PP-OCRv4 starting weights. No document data as distributed |
+| Network | `kit\sitecustomize.py` loads before any other code in every kit process and refuses outbound TCP, UDP, and DNS (loopback allowed). Refusals are logged to `kit\logs\network_blocked.log`. `Train.cmd > 1` proves it on the current PC |
+| Internet needed? | Only once, by the maintainer, to build the kit (`build_training_kit.ps1`). Every download's SHA-256 is in `KIT_MANIFEST.txt` |
+| What it writes | Inside the kit folder only: `samples\` (collectors' crops), `work\` (merged data, checkpoints), `output\models\`, `kit\logs\`. All sensitive at the documents' level |
+| Verified | Dry run 2026-10-20: both models trained, exported, converted, loaded by the scanner; 0 refused attempts and 0 non-loopback connections observed (250 ms polling) |
 
 ---
 
@@ -214,5 +244,6 @@ at the top of the file, under "ZERO-FOOTPRINT FOLDER SANDBOX & OFFLINE NETWORK K
 
 ## 9. Change control
 
-Any change to `app_gui.py`, `AcronymHunter.spec`, or `requirements.txt` can change this statement.
+Any change to `app_gui.py`, `trainer_gui.py`, `AcronymHunter.spec`, `requirements.txt`, `build.ps1`, `base\`, or the
+Training Kit (`build_training_kit.ps1`, `training_kit_src\`) can change this statement.
 Before sharing a new build: re-run the network and file checks in section 8 and update the version and date at the top.

@@ -1192,7 +1192,7 @@ def analyze_batch(filepaths, status_callback):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "1.3.1"            # keep in step with version_info.txt
+APP_VERSION = "1.4.0"            # keep in step with version_info.txt
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
 LOCK_STALE_HOURS = 12
@@ -1226,7 +1226,8 @@ def weak_terms(m):
 
 def engine_signature(weak=()):
     """Saved results are reused only while extraction, OCR settings, OCR models, and weak terms are unchanged."""
-    models = sorted(os.listdir(MODELS_DIR)) if os.path.isdir(MODELS_DIR) else []
+    models = sorted((n, os.path.getsize(os.path.join(MODELS_DIR, n)), int(os.path.getmtime(os.path.join(MODELS_DIR, n))))
+                    for n in os.listdir(MODELS_DIR)) if os.path.isdir(MODELS_DIR) else []
     return hashlib.sha1(json.dumps([APP_VERSION.rsplit(".", 1)[0], OCR_CFG, models, sorted(weak), sorted(_OCR_IGNORE)],
                                    sort_keys=True).encode()).hexdigest()[:12]
 
@@ -1516,6 +1517,259 @@ def update_csv_exclusion(term, cat, reason):
     write_db_rows(rows)
 
 # ==============================================================================
+# 6b. KNOWLEDGE PACKS: trained models + database + OCR fixes + ignore list, shared via approved SharePoint
+# ==============================================================================
+KNOWLEDGE_FORMAT = "AcronymHunterKnowledge"
+KNOWLEDGE_INFO_FILE = os.path.join(CONFIG_DIR, "knowledge_installed.json")
+KNOWLEDGE_BACKUP_DIR = os.path.join(CONFIG_DIR, "knowledge_backups")
+PACK_MODEL_FILES = ("rec.onnx", "det.onnx", "cls.onnx", "rec_keys.txt")
+PACK_DATA_FILES = {"acronym_database.csv": "DB", "ocr_corrections.csv": "FIXES", "ocr_ignore.csv": "IGNORE"}
+PACK_MAX_MEMBER_BYTES = 400 * 1024 * 1024
+PACK_ROOT = "knowledge/"
+
+def _sha256_bytes(data):
+    return hashlib.sha256(data).hexdigest()
+
+def _sha256_file(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
+
+def _knowledge_sources():
+    """(name inside the pack, path on disk) for every knowledge file that exists in this copy."""
+    out = []
+    for name, path in (("acronym_database.csv", DB_FILE), ("ocr_corrections.csv", OCR_FIXES_FILE),
+                       ("ocr_ignore.csv", OCR_IGNORE_FILE)):
+        if os.path.isfile(path):
+            out.append((name, path))
+    for m in PACK_MODEL_FILES:
+        path = os.path.join(MODELS_DIR, m)
+        if os.path.isfile(path):
+            out.append(("models/" + m, path))
+    return out
+
+def make_knowledge_pack(out_path, notes=""):
+    """Write a Knowledge Pack zip of this copy's database, OCR fixes, ignore list, and models. Returns its info."""
+    files = _knowledge_sources()
+    now = datetime.datetime.now()
+    info = {"format": KNOWLEDGE_FORMAT, "version": now.strftime("%Y.%m.%d-%H%M"), "created": now.strftime("%Y-%m-%d %H:%M"),
+            "created_by": getpass.getuser(), "computer": platform.node(), "app_version": APP_VERSION,
+            "notes": notes.strip(), "handling": "Contains knowledge learned from internal documents. Approved SharePoint only. Never GitHub or email.",
+            "files": {}}
+    for name, path in files:
+        info["files"][name] = {"sha256": _sha256_file(path), "bytes": os.path.getsize(path)}
+    try:
+        info["counts"] = {"database_rows": len(read_db_rows()), "ocr_fixes": len(read_ocr_fix_rows()),
+                          "ignored_readings": len(read_ocr_ignore_rows())}
+    except Exception:
+        info["counts"] = {}
+    info["models"] = [n.split("/", 1)[1] for n, _ in files if n.startswith("models/")]
+    tmp = out_path + ".tmp"
+    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr(PACK_ROOT + "pack_info.json", json.dumps(info, indent=1, ensure_ascii=False))
+        for name, path in files:
+            z.write(path, PACK_ROOT + name)
+    os.replace(tmp, out_path)
+    return info
+
+def read_knowledge_pack(path):
+    """Validate a pack and return (info, {name: bytes}). Refuses unknown members, oversize members, and any
+    file whose SHA-256 does not match pack_info.json (a damaged or altered pack)."""
+    allowed = {PACK_ROOT + "pack_info.json"} | {PACK_ROOT + n for n in PACK_DATA_FILES} | \
+              {PACK_ROOT + "models/" + m for m in PACK_MODEL_FILES}
+    with zipfile.ZipFile(path) as z:
+        entries = [e for e in z.infolist() if not e.is_dir()]
+        for e in entries:
+            if e.filename not in allowed:
+                raise ValueError(f"Unexpected file in pack: {e.filename}. Not a valid Knowledge Pack.")
+            if e.file_size > PACK_MAX_MEMBER_BYTES:
+                raise ValueError(f"{e.filename} is too large.")
+        if PACK_ROOT + "pack_info.json" not in {e.filename for e in entries}:
+            raise ValueError("pack_info.json is missing. Not a Knowledge Pack.")
+        info = json.loads(z.read(PACK_ROOT + "pack_info.json").decode("utf-8"))
+        if info.get("format") != KNOWLEDGE_FORMAT:
+            raise ValueError("Not an Acronym Hunter Knowledge Pack.")
+        data = {}
+        for name, meta in info.get("files", {}).items():
+            member = PACK_ROOT + name
+            if member not in allowed:
+                raise ValueError(f"Pack lists an unexpected file: {name}")
+            blob = z.read(member)
+            if _sha256_bytes(blob) != meta.get("sha256"):
+                raise ValueError(f"{name} does not match its fingerprint. The pack is damaged or was altered.")
+            data[name] = blob
+        if len(data) != len(entries) - 1:
+            raise ValueError("The pack holds files that pack_info.json does not list.")
+    return info, data
+
+def _backup_targets():
+    return [DB_FILE, OCR_FIXES_FILE, OCR_IGNORE_FILE, KNOWLEDGE_INFO_FILE] + [os.path.join(MODELS_DIR, m) for m in PACK_MODEL_FILES]
+
+def backup_knowledge(reason):
+    stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    dest = os.path.join(KNOWLEDGE_BACKUP_DIR, stamp)
+    os.makedirs(dest, exist_ok=True)
+    manifest = {"reason": reason, "time": stamp, "files": {}}
+    for i, path in enumerate(_backup_targets()):
+        rel = os.path.relpath(path, BASE_DIR)
+        if os.path.isfile(path):
+            shutil.copy2(path, os.path.join(dest, f"{i}.bak"))
+            manifest["files"][rel] = f"{i}.bak"
+        else:
+            manifest["files"][rel] = None
+    with open(os.path.join(dest, "manifest.json"), "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=1)
+    return dest
+
+def list_knowledge_backups():
+    if not os.path.isdir(KNOWLEDGE_BACKUP_DIR):
+        return []
+    return sorted(d for d in os.listdir(KNOWLEDGE_BACKUP_DIR) if os.path.isfile(os.path.join(KNOWLEDGE_BACKUP_DIR, d, "manifest.json")))
+
+def restore_last_knowledge_backup():
+    """Put back exactly what the last Install or Load replaced. Returns the reason recorded, or None."""
+    backups = list_knowledge_backups()
+    if not backups:
+        return None
+    src = os.path.join(KNOWLEDGE_BACKUP_DIR, backups[-1])
+    manifest = json.load(open(os.path.join(src, "manifest.json"), encoding="utf-8"))
+    for rel, bak in manifest["files"].items():
+        path = os.path.join(BASE_DIR, rel)
+        if bak is None:
+            if os.path.isfile(path):
+                os.remove(path)
+        else:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            shutil.copy2(os.path.join(src, bak), path)
+    shutil.rmtree(src, ignore_errors=True)
+    reset_ocr_engine()
+    return manifest.get("reason", "last update")
+
+def reset_ocr_engine():
+    """Load models again on the next image (after a model change)."""
+    global _ocr_engine, OCR_MODEL_INFO
+    with _ocr_lock:
+        _ocr_engine = None
+        OCR_MODEL_INFO = "not loaded yet"
+    _OCR_CACHE.clear()
+
+def _csv_bytes_rows(blob):
+    os.makedirs(SANDBOX_TEMP, exist_ok=True)
+    tmp = os.path.join(SANDBOX_TEMP, f"pack_{os.getpid()}_{time.time_ns()}.csv")
+    with open(tmp, "wb") as f:
+        f.write(blob)
+    try:
+        return read_csv_rows(tmp)
+    finally:
+        os.remove(tmp)
+
+def merge_pack_database(blob):
+    """Add-only: new terms and new definitions are added. The user's own rows, edits, and Exclude choices win."""
+    rows = read_db_rows()
+    have_pairs = {(fold(r[0]), r[2].strip().casefold()) for r in rows}
+    have_terms = {fold(r[0]) for r in rows}
+    excluded = {fold(r[0]) for r in rows if r[3].strip().capitalize() == "Exclude"}
+    added = 0
+    for raw in _csv_bytes_rows(blob):
+        d = db_row(raw)
+        term, defn = d.get("Term", ""), d.get("Definition", "")
+        cat, action = d.get("Category") or "Acronym", (d.get("Action") or "Include").capitalize()
+        key = fold(term)
+        if not key:
+            continue
+        if action == "Exclude":
+            if key in have_terms:
+                continue
+        elif key in excluded or (key, defn.casefold()) in have_pairs or not defn:
+            continue
+        rows.append([term, cat, defn, action]); have_terms.add(key); have_pairs.add((key, defn.casefold())); added += 1
+    if added:
+        write_db_rows(rows)
+    return added
+
+def merge_pack_fixes(blob):
+    rows = read_ocr_fix_rows(); have = {fold(r[0]) for r in rows}; added = 0
+    for r in _csv_bytes_rows(blob):
+        wrong, right = (r.get("Misread") or "").strip(), (r.get("Correct") or "").strip()
+        if wrong and right and fold(wrong) not in have:
+            rows.append([wrong, right, (r.get("Note") or "").strip()]); have.add(fold(wrong)); added += 1
+    if added:
+        write_ocr_fix_rows(rows)
+    return added
+
+def merge_pack_ignore(blob):
+    rows = read_ocr_ignore_rows(); have = {fold(r[0]).strip() for r in rows}; added = 0
+    for r in _csv_bytes_rows(blob):
+        reading = (r.get("Reading") or "").strip()
+        if reading and fold(reading).strip() not in have:
+            rows.append([reading, (r.get("Note") or "").strip()]); have.add(fold(reading).strip()); added += 1
+    if added:
+        write_ocr_ignore_rows(rows)
+    return added
+
+def _check_onnx(path):
+    import onnxruntime as ort
+    ort.InferenceSession(path, providers=["CPUExecutionProvider"])
+
+def install_knowledge_pack(path):
+    """Verify, back up, then install a pack. Models replace the current models; data files merge add-only."""
+    info, data = read_knowledge_pack(path)
+    models = {n.split("/", 1)[1]: b for n, b in data.items() if n.startswith("models/")}
+    backup_knowledge(f"before installing Knowledge Pack {info.get('version', '?')}")
+    report = [f"Installed Knowledge Pack {info.get('version', '?')} (made {info.get('created', '?')} by {info.get('created_by', '?')})"]
+    if models:
+        os.makedirs(MODELS_DIR, exist_ok=True)
+        for m in PACK_MODEL_FILES:
+            target = os.path.join(MODELS_DIR, m)
+            if os.path.isfile(target):
+                os.remove(target)
+        for m, blob in models.items():
+            with open(os.path.join(MODELS_DIR, m), "wb") as f:
+                f.write(blob)
+        report.append("Models: " + ", ".join(sorted(models)))
+    else:
+        report.append("Models: none in this pack (current models kept)")
+    if "acronym_database.csv" in data:
+        report.append(f"Database: {merge_pack_database(data['acronym_database.csv'])} new rows added (your own rows unchanged)")
+    if "ocr_corrections.csv" in data:
+        report.append(f"OCR fixes: {merge_pack_fixes(data['ocr_corrections.csv'])} added")
+    if "ocr_ignore.csv" in data:
+        report.append(f"Ignored readings: {merge_pack_ignore(data['ocr_ignore.csv'])} added")
+    with open(KNOWLEDGE_INFO_FILE, "w", encoding="utf-8") as f:
+        json.dump({"version": info.get("version"), "created": info.get("created"), "created_by": info.get("created_by"),
+                   "notes": info.get("notes", ""), "models": sorted(models), "pack_sha256": _sha256_file(path),
+                   "installed": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}, f, indent=1)
+    reset_ocr_engine()
+    return "\n".join(report)
+
+def load_trained_models(folder):
+    """Copy rec.onnx / det.onnx / cls.onnx / rec_keys.txt from a folder (Training Kit output) into config\\models."""
+    found = [m for m in PACK_MODEL_FILES if os.path.isfile(os.path.join(folder, m))]
+    if not any(m.endswith(".onnx") for m in found):
+        raise ValueError("No rec.onnx, det.onnx, or cls.onnx in that folder.")
+    if "rec.onnx" in found and "rec_keys.txt" not in found:
+        raise ValueError("rec.onnx needs its rec_keys.txt beside it.")
+    for m in found:
+        if m.endswith(".onnx"):
+            _check_onnx(os.path.join(folder, m))
+    backup_knowledge(f"before loading models from {folder}")
+    os.makedirs(MODELS_DIR, exist_ok=True)
+    for m in found:
+        shutil.copy2(os.path.join(folder, m), os.path.join(MODELS_DIR, m))
+    reset_ocr_engine()
+    return found
+
+def knowledge_status():
+    try:
+        k = json.load(open(KNOWLEDGE_INFO_FILE, encoding="utf-8"))
+        return f"Knowledge Pack {k.get('version')} (installed {k.get('installed')})"
+    except Exception:
+        models = [m for m in PACK_MODEL_FILES if os.path.isfile(os.path.join(MODELS_DIR, m))]
+        return "No Knowledge Pack installed" + (f"; local models: {', '.join(models)}" if models else "; built-in models")
+
+# ==============================================================================
 # 7. DESKTOP GUI APPLICATION
 # ==============================================================================
 SETTINGS_FILE = os.path.join(SANDBOX_DIR, "settings.json")
@@ -1603,6 +1857,8 @@ class AcronymAppGUI(ctk.CTk):
 
         self.btn_db = ctk.CTkButton(top, text="Edit Database CSV", command=lambda: self.open_file(DB_FILE), fg_color="#475569", width=160, height=36)
         self.btn_db.pack(side="right", padx=5, pady=10)
+        self.btn_know = ctk.CTkButton(top, text="Knowledge", command=self.open_knowledge, fg_color="#0F766E", width=110, height=36)
+        self.btn_know.pack(side="right", padx=5, pady=10)
 
         # Advanced tools: shown only when the Advanced switch is on
         self.btn_fixes = ctk.CTkButton(top, text="OCR Fixes", command=self.open_fix_manager, fg_color="#7C3AED", width=120, height=36)
@@ -1748,6 +2004,70 @@ class AcronymAppGUI(ctk.CTk):
             if self.btn_trainer is not None:
                 self.btn_trainer.pack(side="right", padx=5, pady=10, after=self.btn_fixes)
             self.btn_ocr.pack(side="left", padx=5, pady=12, after=self.btn_save)
+
+    # ---------- knowledge packs ----------
+    def open_knowledge(self):
+        if getattr(self, "know_win", None) is not None and self.know_win.winfo_exists():
+            self.know_win.focus(); return
+        win = ctk.CTkToplevel(self); self.know_win = win
+        win.title("Knowledge"); win.geometry("600x500"); win.resizable(False, False)
+        win.transient(self); win.after(100, win.lift)
+        ctk.CTkLabel(win, text="Knowledge = trained OCR models + database + OCR fixes + ignore list",
+                     font=("Arial", 13, "bold")).pack(anchor="w", padx=16, pady=(14, 2))
+        lbl = ctk.CTkLabel(win, text="", justify="left", wraplength=560); lbl.pack(anchor="w", padx=16, pady=(0, 8))
+        msg = ctk.CTkLabel(win, text="", justify="left", wraplength=560, text_color="#0F766E")
+        def refresh(text=None):
+            lbl.configure(text=knowledge_status() + f"\nBackups available for Undo: {len(list_knowledge_backups())}")
+            if text is not None: msg.configure(text=text)
+        def after_change(text):
+            refresh(text)
+            if self.project is not None and not self.project.read_only:
+                if messagebox.askyesno("Rescan project?", "Knowledge changed. Rescan the open project now to apply it?", parent=win):
+                    self.rescan_project()
+        def install():
+            path = filedialog.askopenfilename(parent=win, title="Install Knowledge Pack (from the approved SharePoint folder)",
+                                              filetypes=[("Knowledge Pack", "*.zip")])
+            if not path: return
+            try:
+                after_change(install_knowledge_pack(path))
+            except PermissionError:
+                messagebox.showerror("File in use", DB_LOCKED_MSG, parent=win)
+            except Exception as e:
+                log_error("Knowledge Pack install failed")
+                messagebox.showerror("Not installed", f"{e}\n\nNothing was changed.", parent=win)
+        def undo():
+            what = restore_last_knowledge_backup()
+            refresh(f"Restored the state from {what}." if what else "Nothing to undo.")
+        ctk.CTkButton(win, text="Install Knowledge Pack...", command=install).pack(fill="x", padx=16, pady=4)
+        ctk.CTkButton(win, text="Undo Last Knowledge Change", fg_color="#475569", command=undo).pack(fill="x", padx=16, pady=4)
+        if self.advanced_on:
+            ctk.CTkLabel(win, text="Trainer tools (Advanced)", font=("Arial", 12, "bold")).pack(anchor="w", padx=16, pady=(14, 2))
+            def load_models():
+                folder = filedialog.askdirectory(parent=win, title="Folder with rec.onnx / det.onnx (Training Kit output\\models)")
+                if not folder: return
+                try:
+                    found = load_trained_models(folder)
+                    after_change("Loaded " + ", ".join(found) + ". Score with tools\\evaluate.py; Undo puts the old models back.")
+                except Exception as e:
+                    log_error("Load trained models failed")
+                    messagebox.showerror("Not loaded", f"{e}\n\nNothing was changed.", parent=win)
+            def export():
+                notes = notes_box.get().strip()
+                name = f"AcronymHunter_Knowledge_{datetime.datetime.now():%Y.%m.%d-%H%M}.zip"
+                path = filedialog.asksaveasfilename(parent=win, title="Save Knowledge Pack to the APPROVED SHAREPOINT folder",
+                                                    initialfile=name, defaultextension=".zip", filetypes=[("Knowledge Pack", "*.zip")])
+                if not path: return
+                info = make_knowledge_pack(path, notes)
+                refresh(f"Saved {os.path.basename(path)} (version {info['version']}, models: {', '.join(info['models']) or 'none'}).")
+            ctk.CTkButton(win, text="Load Trained Models...", fg_color="#7C3AED", command=load_models).pack(fill="x", padx=16, pady=4)
+            notes_box = ctk.CTkEntry(win, placeholder_text="Notes for this pack (what changed, score)")
+            notes_box.pack(fill="x", padx=16, pady=(8, 2))
+            ctk.CTkButton(win, text="Export Knowledge Pack...", fg_color="#B45309", command=export).pack(fill="x", padx=16, pady=4)
+            ctk.CTkLabel(win, text="Knowledge Packs contain what was learned from internal documents. Save them ONLY to the "
+                         "approved SharePoint folder. Never GitHub, email, or personal storage.",
+                         text_color="#B45309", wraplength=560, justify="left").pack(anchor="w", padx=16, pady=(4, 0))
+        msg.pack(anchor="w", padx=16, pady=(10, 0))
+        refresh()
 
     # ---------- manual items ----------
     def open_add_item(self):
@@ -2412,7 +2732,7 @@ def run_selftest(paths):
     with open(out, "w", encoding="utf-8") as f:
         try:
             res = analyze_batch(paths, lambda m: f.write(m + "\n"))
-            f.write(f"\nOCR models: {OCR_MODEL_INFO}\nOCR settings: {json.dumps(OCR_CFG)}\n")
+            f.write(f"\nOCR models: {OCR_MODEL_INFO}\nKnowledge: {knowledge_status()}\nOCR settings: {json.dumps(OCR_CFG)}\n")
             import openpyxl.xml as _oxml
             f.write(f"Security: network guard={socket.socket.connect is _guarded_connect}, "
                     f"office XML entities disabled={_SAFE_XML is not None}, openpyxl defusedxml={_oxml.DEFUSEDXML}\n")
@@ -2427,6 +2747,14 @@ def run_selftest(paths):
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--selftest":
         run_selftest(sys.argv[2:])
+        sys.exit(0)
+    if len(sys.argv) > 2 and sys.argv[1] == "--install-knowledge":   # used by build.ps1 -KnowledgePack
+        os.makedirs(LOG_DIR, exist_ok=True)
+        with open(os.path.join(LOG_DIR, "knowledge_install.txt"), "w", encoding="utf-8") as f:
+            try:
+                f.write(install_knowledge_pack(sys.argv[2]) + "\nINSTALL OK\n")
+            except Exception:
+                f.write(traceback.format_exc() + "INSTALL FAILED\n")
         sys.exit(0)
     try:
         app = AcronymAppGUI()

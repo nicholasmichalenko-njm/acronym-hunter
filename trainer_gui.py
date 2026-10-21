@@ -363,15 +363,17 @@ Right away (no training needed):
   1. Not text on green lines -> ignore list -> gone from the next scan.
   2. Correct a misread word, then "Add OCR Fixes from Corrections" -> fixed on the next scan.
 
-Over time (training a new model):
+Over time (training a new model with the offline Training Kit):
   3. Keep saving. Aim for 300+ text lines (1,000+ is better) and 100+ regions.
-  4. Click "Prepare Training Package". It splits your samples into train and check sets
-     and flags any character the model cannot output.
-  5. Train on a PC with PaddleOCR (TRAINING_GUIDE.md section 8, step by step).
-  6. Training produces rec.onnx (reader) and/or det.onnx (finder).
-  7. Copy them into config\\models\\. The scanner and this Trainer load them automatically.
-  8. Score: tools\\evaluate.py. Keep the model only if it scores better. To undo, delete
-     the file from config\\models\\.
+  4. "Prepare Training Package" shows how many you have and flags any character
+     the model cannot output.
+  5. Copy this training_data\\ folder into the Training Kit's samples\\<your name>\\.
+  6. Double-click Train.cmd in the kit. It trains offline (often overnight) and writes
+     output\\models\\ (rec.onnx = reader, det.onnx = finder).
+  7. Scanner > Knowledge > Load Trained Models > pick output\\models. Score it.
+     Worse? Knowledge > Undo Last Knowledge Change.
+  8. Better? Knowledge > Export Knowledge Pack > approved SharePoint folder.
+     Colleagues click Knowledge > Install Knowledge Pack.
 
 Undo Last Save removes everything from the last save, including ignore-list entries it added.
 training_data\\ holds crops of your documents: handle it at the documents' classification.

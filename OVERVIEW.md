@@ -1,6 +1,6 @@
 # Acronym Hunter: Complete Overview
 
-**Version:** 1.3.1 | **Updated:** 2026-10-20 | **Platform:** Windows 10/11, 64-bit
+**Version:** 1.4.0 | **Updated:** 2026-10-20 | **Platform:** Windows 10/11, 64-bit
 
 This document has two parts.
 **Part 1** explains the whole application in plain language: what it is, what is inside it, how it works,
@@ -196,6 +196,20 @@ Each change is measured with a scoring tool (`tools\evaluate.py` in the project)
 documents with known answers, so improvements are proven, not guessed. `TRAINING_GUIDE.md` in the project
 explains every step.
 
+**How the whole team gets the improvements.** One person trains; everyone benefits.
+
+| Package | Who | Where it lives |
+|---|---|---|
+| Scanner (generic starter data only) | Everyone | GitHub Release |
+| Scanner + Trainer | Colleagues who collect samples | GitHub Release |
+| Training Kit (offline, network-locked) | Whoever trains models | GitHub Release (no document data inside) |
+| Knowledge Pack (models + database + fixes + ignore list) | Everyone | **Approved SharePoint folder only** |
+
+Collectors send their `training_data\` folders to the trainer. The trainer runs the Training Kit (offline, usually
+overnight), checks the new models with the scoring tool, and exports a Knowledge Pack to SharePoint. Everyone clicks
+**Knowledge > Install Knowledge Pack**. The pack is verified file by file before anything changes, the user's own
+database edits are never overwritten, and **Undo Last Knowledge Change** reverses an install.
+
 ## 9. What it needs to run
 
 - A Windows 10 or 11 computer (64-bit). About 300 MB of disk space and 1 to 2 GB of free memory for large scans.
@@ -371,6 +385,8 @@ can be dropped into `config\models\` (see `TRAINING_GUIDE.md`).
 | Is it code-signed? | No. Options: internal enterprise signing or allowlisting by IT (recommended), Azure Artifact Signing, or an OV certificate. Hash-based allowlists change with every build; publisher rules require signing |
 | Is the source available? | Yes, `app_gui.py` (about 1,500 lines, single file), build spec, and pinned requirements in a private GitHub repository |
 | Is compression/packing used? | No. UPX packing is disabled to avoid EDR false positives and binary tampering concerns |
+| What reaches GitHub? | Only generic packages built from `base\` (starter terms, example fixes, settings). A leak check in `build.ps1` stops the build if any other data file, any changed data, or any model file would ship. Knowledge Packs and training data never go to GitHub |
+| Training Kit components | Python 3.11.9 embeddable (python.org), PaddlePaddle 2.6.2 and pinned PyPI packages, PaddleOCR 2.8 (GitHub), PP-OCRv4 weights (PaddleOCR). Downloaded once by `build_training_kit.ps1`; SHA-256 of each download and every package version in `KIT_MANIFEST.txt` |
 | Reproducibility | Same source + same `requirements.txt` + Python 3.11 produce a functionally identical build; binary hashes differ per build due to timestamps |
 
 ## 8. Vulnerability management
@@ -481,6 +497,12 @@ Step-by-step commands to repeat the network, file, deletion, and integrity check
 The `Security:` line confirms, from inside the running program, that the network guard and XML hardening are active.
 
 ## 16. Frequently asked questions
+
+**Where do trained models and our acronym list live?** In Knowledge Packs on the approved SharePoint folder only. The
+GitHub packages carry generic starter data; a build-time leak check enforces that. See SECURITY.md section 3.
+
+**Does training need the internet?** No. The Training Kit is downloaded and assembled once by the maintainer. After
+that it runs on any PC with its own network lockdown, which refuses and logs any connection attempt.
 
 **Can it scan files in OneDrive or SharePoint without risk to them?** Yes, when the folder is synced to the PC.
 The app opens every file read-only and never writes to, locks, or re-saves a source file (SHA-256 and modified
