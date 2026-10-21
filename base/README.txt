@@ -2,7 +2,7 @@ BASE: THE ONLY DATA THAT SHIPS IN THE GITHUB PACKAGES
 ======================================================
 build.ps1 builds AcronymHunter_Portable.zip and AcronymHunter_WithTrainer.zip from THIS folder only:
 
-  acronym_database.csv          generic starter terms (no program-specific terms)
+  acronym_database.csv          EMPTY: header row only (Term,Definition,Category,Action)
   config\app_settings.json      Advanced switch defaults
   config\ocr_settings.json      OCR tuning numbers
   config\ocr_corrections.csv    two examples from the fictional test samples

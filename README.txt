@@ -60,7 +60,7 @@ FIXING OCR MISREADS (Advanced switch on)
   an accidental Fix OCR.
 
 KNOWLEDGE UPDATES (trained models + team database)
-  This download contains only generic starter data. Your team's knowledge (trained OCR models, the
+  This download contains no terms: the acronym database starts empty. Your team's knowledge (trained OCR models, the
   shared acronym database, OCR fixes, ignore list) comes as a Knowledge Pack from the approved
   SharePoint folder:
     Knowledge > Install Knowledge Pack... > pick the newest AcronymHunter_Knowledge_<date>.zip

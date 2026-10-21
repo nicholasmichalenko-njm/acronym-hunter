@@ -385,7 +385,9 @@ training_data\\ holds crops of your documents: handle it at the documents' class
 class TrainerApp(ctk.CTk):
     def __init__(self, start_file=None):
         super().__init__()
-        self.title("Acronym Hunter Trainer - region rescan and training samples")
+        self.title(f"Acronym Hunter Trainer {eng.APP_VERSION}: region rescan and training samples")
+        eng.ACTIVE_ICON = "trainer.ico"
+        eng.apply_window_icon(self)
         self.geometry("1300x800"); self.minsize(1000, 560)
         ctk.set_appearance_mode("System")
         self.report_callback_exception = lambda et, e, tb: (eng._excepthook(et, e, tb),

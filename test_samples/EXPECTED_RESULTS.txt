@@ -3,6 +3,11 @@ ACRONYM HUNTER: TEST SAMPLES
 All content is fictional ("Kestrel" smallsat program, "Northwind Orbital").
 CUI and ITAR markings in the Word file are fake test markings.
 
+DATABASE FOR THESE TESTS
+  The app ships with an EMPTY acronym database. These checks (CDR / LEO definition choices, excluded noise
+  words) assume the test database: copy test_samples\test_database.csv over acronym_database.csv in a
+  throwaway copy of the app folder before scanning. tools\evaluate.py uses it automatically.
+
 HOW TO TEST
   1. Open AcronymHunter.exe.
   2. Click "Scan Folder" and pick this test_samples folder (or "Select Files" for one file).

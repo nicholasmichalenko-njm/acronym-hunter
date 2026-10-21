@@ -16,7 +16,7 @@ Runs 100% locally: no network connections, no files written outside its own fold
 | `config/` | OCR corrections, OCR settings, optional drop-in OCR models (shipped inside the zip) |
 | `tools/evaluate.py` | Scores accuracy against `test_samples/ground_truth.csv`; history in `tools/eval_history.csv` |
 | Releases | `AcronymHunter_Portable.zip` (scanner), `AcronymHunter_WithTrainer.zip` (scanner + Trainer), `AcronymHunter_TrainingKit.zip` (offline, network-locked training). Generic data only |
-| `base/` | The only data packaged for GitHub: generic starter terms and settings. `build.ps1` enforces it with a leak check |
+| `base/` | The only data packaged for GitHub: an empty acronym database and generic settings. `build.ps1` enforces it with a leak check |
 | `training_kit_src/`, `build_training_kit.ps1` | Training Kit sources and builder |
 | `README.txt` | Instructions shipped to recipients inside the zip |
 | `test_samples/` | Fictional test files, `EXPECTED_RESULTS.txt`, and `ground_truth.csv` |

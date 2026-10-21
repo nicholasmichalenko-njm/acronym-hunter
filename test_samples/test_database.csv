@@ -1,0 +1,31 @@
+﻿Term,Definition,Category,Action
+SOW,Statement of Work,Acronym,Include
+RFP,Request for Proposal,Acronym,Include
+CDR,Critical Design Review,Acronym,Include
+CDR,Call Detail Record,Acronym,Include
+LEO,Low Earth Orbit,Acronym,Include
+LEO,Law Enforcement Officer,Acronym,Include
+psi,Pounds per square inch,Unit,Include
+kWh,Kilowatt-hour,Unit,Include
+approx.,Approximately,Abbreviation,Include
+w/o,Without,Abbreviation,Include
+USA,United States of America,Acronym,Exclude
+CEO,Chief Executive Officer,Acronym,Exclude
+PDF,Portable Document Format,Acronym,Exclude
+AM,Ante Meridiem,Abbreviation,Exclude
+PM,Post Meridiem,Abbreviation,Exclude
+TBD,To Be Determined,Acronym,Exclude
+N/A,Not Applicable,Abbreviation,Exclude
+THE,Common English Stopword,Noise,Exclude
+AND,Common English Stopword,Noise,Exclude
+FOR,Common English Stopword,Noise,Exclude
+WITH,Common English Stopword,Noise,Exclude
+NOTE,Document Formatting Word,Noise,Exclude
+PAGE,Document Formatting Word,Noise,Exclude
+TOTAL,Document Formatting Word,Noise,Exclude
+TABLE,Document Formatting Word,Noise,Exclude
+FIGURE,Document Formatting Word,Noise,Exclude
+SECTION,Document Formatting Word,Noise,Exclude
+II,Roman Numeral,Noise,Exclude
+III,Roman Numeral,Noise,Exclude
+IV,Roman Numeral,Noise,Exclude

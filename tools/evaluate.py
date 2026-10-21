@@ -29,6 +29,10 @@ if not os.path.exists(truth_path):
     sys.exit(f"No ground_truth.csv in {folder}")
 
 import app_gui  # noqa: E402  (imports the real engine, same code the exe runs)
+# Score against the fixed test database (test_samples\test_database.csv), not your working database, so scores
+# stay comparable over time and real terms never affect them. A folder may bring its own test_database.csv.
+_test_db = os.path.join(folder, "test_database.csv")
+app_gui.DB_FILE = _test_db if os.path.exists(_test_db) else os.path.join(ROOT, "test_samples", "test_database.csv")
 
 files = sorted(f for f in glob.glob(os.path.join(folder, "*"))
                if os.path.splitext(f)[1].lower() in app_gui.SUPPORTED_EXTS)

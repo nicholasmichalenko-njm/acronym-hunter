@@ -1,6 +1,6 @@
 # Acronym Hunter: Security and Data-Handling Statement
 
-**Version covered:** 1.4.1 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
+**Version covered:** 1.4.2 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
 **Verified:** 2026-10-20 (v1.0.1 live test; v1.0.2 added tiled OCR and the OCR Fixes window; v1.0.3 hardened XML parsing and capped embedded image size; no new file locations or network code) on the developer's Windows PC, from a fresh unzip of the shipped zip
 **Audience:** users, security and IT reviewers
 
@@ -124,7 +124,7 @@ any library, so libraries that create temp files create them inside the folder.
 ### Data boundary for GitHub packages (v1.4.0)
 
 The GitHub Release packages (`AcronymHunter_Portable.zip`, `AcronymHunter_WithTrainer.zip`) are built from `base\` only:
-30 generic starter terms, two example OCR fixes from the fictional test files, settings, and a models README. The working
+an empty acronym database (header only), two example OCR fixes from the fictional test files, settings, and a models README. The working
 database and `config\` are ignored by Git and never packaged. `build.ps1` refuses to finish if any file outside the
 approved list, any data file that differs from `base\`, or any model file other than RapidOCR's public models would ship.
 Audit 2026-10-20: no document data, user paths, or trained knowledge in the packages or anywhere in Git history.

@@ -1,6 +1,6 @@
 # Acronym Hunter: Complete Overview
 
-**Version:** 1.4.1 | **Updated:** 2026-10-20 | **Platform:** Windows 10/11, 64-bit
+**Version:** 1.4.2 | **Updated:** 2026-10-20 | **Platform:** Windows 10/11, 64-bit
 
 This document has two parts.
 **Part 1** explains the whole application in plain language: what it is, what is inside it, how it works,
@@ -385,7 +385,7 @@ can be dropped into `config\models\` (see `TRAINING_GUIDE.md`).
 | Is it code-signed? | No. Options: internal enterprise signing or allowlisting by IT (recommended), Azure Artifact Signing, or an OV certificate. Hash-based allowlists change with every build; publisher rules require signing |
 | Is the source available? | Yes, `app_gui.py` (about 1,500 lines, single file), build spec, and pinned requirements in a private GitHub repository |
 | Is compression/packing used? | No. UPX packing is disabled to avoid EDR false positives and binary tampering concerns |
-| What reaches GitHub? | Only generic packages built from `base\` (starter terms, example fixes, settings). A leak check in `build.ps1` stops the build if any other data file, any changed data, or any model file would ship. Knowledge Packs and training data never go to GitHub |
+| What reaches GitHub? | Only generic packages built from `base\` (empty acronym database, example fixes, settings). A leak check in `build.ps1` stops the build if any other data file, any changed data, or any model file would ship. Knowledge Packs and training data never go to GitHub |
 | Training Kit components | Python 3.11.9 embeddable (python.org), PaddlePaddle 2.6.2 and pinned PyPI packages, PaddleOCR 2.8 (GitHub), PP-OCRv4 weights (PaddleOCR). Downloaded once by `build_training_kit.ps1`; SHA-256 of each download and every package version in `KIT_MANIFEST.txt` |
 | Reproducibility | Same source + same `requirements.txt` + Python 3.11 produce a functionally identical build; binary hashes differ per build due to timestamps |
 

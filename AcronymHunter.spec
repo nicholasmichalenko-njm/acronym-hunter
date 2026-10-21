@@ -22,6 +22,7 @@ datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 _skip = ('onnxruntime.transformers', 'onnxruntime.quantization', 'onnxruntime.tools', 'pymupdf.layout')
 hiddenimports = [h for h in hiddenimports if not h.startswith(_skip)]
 hiddenimports += ['defusedxml', 'defusedxml.ElementTree']  # openpyxl uses it only if importable
+datas += [('assets/scanner.ico', 'assets'), ('assets/trainer.ico', 'assets')]   # window/taskbar icons at runtime
 
 def make_analysis(script):
   return Analysis(
@@ -65,6 +66,7 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name='AcronymHunter',
+    icon='assets/scanner.ico',
     version='version_info.txt',  # Windows file properties (publisher, description, version)
     debug=False,
     bootloader_ignore_signals=False,
@@ -83,6 +85,7 @@ exe_b = EXE(
     [],
     exclude_binaries=True,
     name='AcronymHunterTrainer',
+    icon='assets/trainer.ico',
     version='version_info_trainer.txt',  # Windows file properties (publisher, description, version)
     debug=False,
     bootloader_ignore_signals=False,

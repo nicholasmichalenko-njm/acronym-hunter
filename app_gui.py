@@ -312,44 +312,10 @@ IMAGE_EXTS = {'.png', '.jpg', '.jpeg', '.tif', '.tiff', '.bmp', '.webp', '.gif'}
 VECTOR_FILE_EXTS = {'.svg', '.svgz', '.emf', '.wmf', '.emz', '.wmz'}
 SUPPORTED_EXTS = IMAGE_EXTS | VECTOR_FILE_EXTS | {'.pdf', '.pptx', '.docx', '.xlsx'}
 
-# Create starter unified database if missing
+# Create an EMPTY database (header only) if missing. Terms come from the user or a Knowledge Pack.
 if not os.path.exists(DB_FILE):
-    starter_rows = [
-        ["Term", "Definition", "Category", "Action"],
-        ["SOW", "Acronym", "Statement of Work", "Include"],
-        ["RFP", "Acronym", "Request for Proposal", "Include"],
-        ["CDR", "Acronym", "Critical Design Review", "Include"],
-        ["CDR", "Acronym", "Call Detail Record", "Include"],
-        ["LEO", "Acronym", "Low Earth Orbit", "Include"],
-        ["LEO", "Acronym", "Law Enforcement Officer", "Include"],
-        ["psi", "Unit", "Pounds per square inch", "Include"],
-        ["kWh", "Unit", "Kilowatt-hour", "Include"],
-        ["approx.", "Abbreviation", "Approximately", "Include"],
-        ["w/o", "Abbreviation", "Without", "Include"],
-        ["USA", "Acronym", "United States of America", "Exclude"],
-        ["CEO", "Acronym", "Chief Executive Officer", "Exclude"],
-        ["PDF", "Acronym", "Portable Document Format", "Exclude"],
-        ["AM", "Abbreviation", "Ante Meridiem", "Exclude"],
-        ["PM", "Abbreviation", "Post Meridiem", "Exclude"],
-        ["TBD", "Acronym", "To Be Determined", "Exclude"],
-        ["N/A", "Abbreviation", "Not Applicable", "Exclude"],
-        ["THE", "Noise", "Common English Stopword", "Exclude"],
-        ["AND", "Noise", "Common English Stopword", "Exclude"],
-        ["FOR", "Noise", "Common English Stopword", "Exclude"],
-        ["WITH", "Noise", "Common English Stopword", "Exclude"],
-        ["NOTE", "Noise", "Document Formatting Word", "Exclude"],
-        ["PAGE", "Noise", "Document Formatting Word", "Exclude"],
-        ["TOTAL", "Noise", "Document Formatting Word", "Exclude"],
-        ["TABLE", "Noise", "Document Formatting Word", "Exclude"],
-        ["FIGURE", "Noise", "Document Formatting Word", "Exclude"],
-        ["SECTION", "Noise", "Document Formatting Word", "Exclude"],
-        ["II", "Noise", "Roman Numeral", "Exclude"],
-        ["III", "Noise", "Roman Numeral", "Exclude"],
-        ["IV", "Noise", "Roman Numeral", "Exclude"],
-    ]
-    starter_rows = [[r[0], r[2], r[1], r[3]] for r in starter_rows[1:]]   # Term, Definition, Category, Action
     with open(DB_FILE, "w", newline="", encoding=CSV_WRITE_ENCODING) as f:
-        csv.writer(f).writerows([list(DB_FIELDS)] + starter_rows)
+        csv.writer(f).writerow(list(DB_FIELDS))
 
 # RapidOCR loads lazily on first image (uses pre-bundled offline ONNX weights)
 _ocr_engine = None
@@ -1192,7 +1158,7 @@ def analyze_batch(filepaths, status_callback):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "1.4.1"            # keep in step with version_info.txt
+APP_VERSION = "1.4.2"            # keep in step with version_info.txt
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
 LOCK_STALE_HOURS = 12
@@ -1774,6 +1740,34 @@ def knowledge_status():
         models = [m for m in PACK_MODEL_FILES if os.path.isfile(os.path.join(MODELS_DIR, m))]
         return "No Knowledge Pack installed" + (f"; local models: {', '.join(models)}" if models else "; built-in models")
 
+# ---- App icons (assets\scanner.ico, assets\trainer.ico; bundled into _internal\assets by the build) ----
+ACTIVE_ICON = "scanner.ico"   # the Trainer sets "trainer.ico"
+
+def asset_path(name):
+    for base in (getattr(sys, "_MEIPASS", ""), BASE_DIR):
+        p = os.path.join(base, "assets", name)
+        if base and os.path.isfile(p):
+            return p
+    return None
+
+def apply_window_icon(win, name=None):
+    path = asset_path(name or ACTIVE_ICON)
+    if not path:
+        return
+    def _set():
+        try:
+            win.iconbitmap(path)
+        except Exception:
+            pass
+    _set()
+    win.after(300, _set)   # CustomTkinter swaps in its own icon about 200 ms after a window opens
+
+_ctk_toplevel_init = ctk.CTkToplevel.__init__
+def _toplevel_init(self, *a, **k):
+    _ctk_toplevel_init(self, *a, **k)
+    apply_window_icon(self)
+ctk.CTkToplevel.__init__ = _toplevel_init   # every pop-up window gets the app icon too
+
 # ==============================================================================
 # 7. DESKTOP GUI APPLICATION
 # ==============================================================================
@@ -1820,7 +1814,8 @@ def trainer_available():
 class AcronymAppGUI(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Local Acronym, Abbreviation & Unit Analyzer (100% Portable ONNX Edition)")
+        self.title(f"Acronym Hunter {APP_VERSION}: acronyms, abbreviations and units (100% local)")
+        apply_window_icon(self)
         self.geometry("1280x780")
         self.minsize(1000, 560)
         ctk.set_appearance_mode("System")

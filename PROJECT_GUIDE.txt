@@ -22,9 +22,14 @@ AcronymHunter_Portable.zip / AcronymHunter_WithTrainer.zip  (about 115 / 123 MB,
   Recipients unzip and double-click AcronymHunter.exe. No install, no network, no admin rights.
 
 base\
-  The ONLY data that ships in the GitHub packages: generic acronym_database.csv (30 starter terms) and
+  The ONLY data that ships in the GitHub packages: acronym_database.csv (EMPTY, header only) and
   config\ (app_settings.json, ocr_settings.json, ocr_corrections.csv with 2 examples, models\README.txt).
   Change these only with generic content. base\README.txt explains the rule.
+
+assets\
+  scanner.ico / trainer.ico: the app icons (navy scanner, teal Trainer: same magnifier, different tile and accent).
+  Built into both exes and their windows by AcronymHunter.spec. Redraw them with tools\make_icons.py
+  (writes the .ico files, 256 px PNGs, and icon_preview.png at every size on light and dark backgrounds).
 
 build_training_kit.ps1  [-Gpu]
   Builds kit_build\AcronymHunter_TrainingKit.zip (CPU) or AcronymHunter_TrainingKit_GPU.zip ONCE on an
@@ -105,7 +110,8 @@ tools\
 acronym_database.csv
   Your WORKING acronym database (Term, Definition, Category, Action; any column order works).
   Ignored by Git and never packaged for GitHub. Shared through Knowledge Packs only.
-  If missing, the app creates the 30-term starter list.
+  If missing, the app creates an empty one (header row only).
+  The scorer (tools\evaluate.py) uses test_samples\test_database.csv instead, so scores stay comparable.
 
 AcronymHunter.spec
   PyInstaller recipe that turns app_gui.py into AcronymHunter.exe.

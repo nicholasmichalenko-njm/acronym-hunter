@@ -402,7 +402,7 @@ Two kinds of change travel two different ways. Keep them apart.
 | OCR settings, Advanced defaults (generic numbers) | `base\config\` in the project | Rebuild; ships in the GitHub packages |
 | Program code | `app_gui.py`, `trainer_gui.py` | Rebuild; GitHub Release |
 
-**Data boundary.** The GitHub packages are built from `base\` only: generic starter terms and example fixes. The
+**Data boundary.** The GitHub packages are built from `base\` only: an empty acronym database and example fixes. The
 working database and `config\` in the project folder are ignored by Git and never packaged. `build.ps1` runs a leak
 check that stops the build if any data file differs from `base\`, if any model file is present, or if any unexpected
 file would ship. Real knowledge leaves a PC only as a Knowledge Pack, and only to the approved SharePoint folder.
