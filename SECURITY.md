@@ -111,6 +111,15 @@ any library, so libraries that create temp files create them inside the folder.
 | Do not | Put the AcronymHunter app folder itself in OneDrive: `_local_sandbox\`, `logs\`, and `training_data\` would sync to the cloud |
 | Controlled data | Whether CUI/ITAR may be stored in a given OneDrive/SharePoint (for example a GCC High tenant) is the organization's decision; the app neither enables nor prevents it |
 
+### Client acronym lists (v1.5.0)
+
+| Question | Answer |
+|---|---|
+| Where do they go? | Read once from the file the user picks (read-only), then held in memory. With a project open, the term and definition pairs are saved in the `.ahproj` file. Without a project, nothing is written |
+| What is stored? | Term, definition, list file name, date added. Never the list file's other text |
+| Sensitivity | Treat the project file at the classification of the client list. Client lists are never put in Knowledge Packs, the database, or GitHub packages |
+| Exports | Export CSV adds Possible definitions, Client list definition, Database definition, Author decision columns for the rows shown |
+
 ### Knowledge Packs (v1.4.0)
 
 | Question | Answer |
@@ -124,7 +133,7 @@ any library, so libraries that create temp files create them inside the folder.
 ### Data boundary for GitHub packages (v1.4.0)
 
 The GitHub Release packages (`AcronymHunter_Portable.zip`, `AcronymHunter_WithTrainer.zip`) are built from `base\` only:
-an empty acronym database (header only), two example OCR fixes from the fictional test files, settings, and a models README. The working
+an empty acronym database (header only), an empty OCR fixes file (header only, since v1.5.0), settings, and a models README. The working
 database and `config\` are ignored by Git and never packaged. `build.ps1` refuses to finish if any file outside the
 approved list, any data file that differs from `base\`, or any model file other than RapidOCR's public models would ship.
 Audit 2026-10-20: no document data, user paths, or trained knowledge in the packages or anywhere in Git history.

@@ -1046,10 +1046,169 @@ def record_skip(findings, label, reason):
             "selected_definition": reason, "status": "⛔ Not scanned"
         }
 
+# ==============================================================================
+# 5c. CLIENT ACRONYM LISTS (from RFPs): optional; when loaded, their definitions take precedence
+# ==============================================================================
+CLIENT_DB = {}   # fold(term) -> {"term": as written, "definitions": [...], "sources": [list names]}
+CLIENT_LIST_EXTS = {".csv", ".tsv", ".txt", ".xlsx", ".docx", ".pdf"}
+CLIENT_TAG, DB_TAG = "[Client] ", "[Database] "
+_TERM_HDR = re.compile(r"^(acronyms?|abbreviations?|abbrev\.?|terms?|items?|symbols?|acronym\s*/\s*abbreviation)$", re.I)
+_DEF_HDR = re.compile(r"^(definitions?|meanings?|descriptions?|expansions?|full\s+(form|name|term)|spelled\s+out|stands\s+for)$", re.I)
+_LINE_SEPS = ("\t", " – ", " — ", " - ", " = ", ": ")
+
+def set_client_lists(lists):
+    """Rebuild CLIENT_DB from [{"name": ..., "rows": [[term, definition], ...]}]. Empty list = no client lists."""
+    CLIENT_DB.clear()
+    for lst in lists or []:
+        for term, defn in lst.get("rows", []):
+            key = fold(term).strip()
+            if not key or not defn:
+                continue
+            e = CLIENT_DB.setdefault(key, {"term": key, "definitions": [], "sources": []})
+            if defn.casefold() not in {x.casefold() for x in e["definitions"]}:
+                e["definitions"].append(defn)
+            if lst.get("name") not in e["sources"]:
+                e["sources"].append(lst.get("name"))
+    return CLIENT_DB
+
+def _clean_pair(term, defn):
+    t = re.sub(r"\s+", " ", fold(str(term or ""))).strip().strip(":–—-").strip()
+    d = re.sub(r"\s+", " ", fold(str(defn or ""))).strip().strip(":–—-").strip()
+    if not (1 <= len(t) <= 25) or not re.search(r"[^\W\d_]", t) or len(d) < 2 or t.casefold() == d.casefold():
+        return None
+    if _TERM_HDR.match(t) or _DEF_HDR.match(d) or len(t.split()) > 4:
+        return None
+    return t, d
+
+def _pairs_from_table(rows):
+    """Rows of cell strings -> (term, definition). Finds header columns by name, else uses the first two filled columns."""
+    rows = [[(c or "").strip() if isinstance(c, str) else ("" if c is None else str(c)) for c in r] for r in rows]
+    ti = di = None
+    for r in rows[:3]:
+        for i, c in enumerate(r):
+            if ti is None and _TERM_HDR.match(c): ti = i
+            elif di is None and _DEF_HDR.match(c): di = i
+        if ti is not None and di is not None:
+            break
+    out = []
+    for r in rows:
+        if ti is not None and di is not None and max(ti, di) < len(r):
+            pair = _clean_pair(r[ti], r[di])
+        else:
+            filled = [c for c in r if c]
+            pair = _clean_pair(filled[0], " ".join(filled[1:])) if len(filled) >= 2 else None
+        if pair:
+            out.append(pair)
+    return out
+
+def _pair_from_line(line, strict=False):
+    line = line.strip()
+    for sep in _LINE_SEPS:
+        if sep in line:
+            t, d = line.split(sep, 1)
+            break
+    else:
+        m = re.match(r"^(\S{1,25})\s{2,}(.+)$", line) or (None if strict else re.match(r"^([A-Z][A-Za-z0-9&/.\-]{1,15})\s+(.{3,})$", line))
+        if not m:
+            return None
+        t, d = m.group(1), m.group(2)
+    if strict and not re.search(r"[A-Z]", t):
+        return None
+    return _clean_pair(t, d)
+
+def parse_client_list(path):
+    """(term, definition) pairs from a client acronym list: CSV/TSV/TXT, Excel, Word (tables or 'TERM - definition'
+    lines), or PDF (tables, else lines). Files are only read; parsing uses the same hardened readers as scanning."""
+    ext = os.path.splitext(path)[1].lower()
+    pairs = []
+    if ext in (".csv", ".tsv"):
+        text, delim = _decode_csv(path)
+        pairs = _pairs_from_table(list(csv.reader(io.StringIO(text, newline=""), delimiter="\t" if ext == ".tsv" else delim)))
+    elif ext == ".txt":
+        text, _ = _decode_csv(path)
+        lines = [l for l in text.splitlines() if l.strip()]
+        if sum("\t" in l for l in lines) > len(lines) / 2:
+            pairs = _pairs_from_table([l.split("\t") for l in lines])
+        else:
+            pairs = [p for p in (_pair_from_line(l) for l in lines) if p]
+    elif ext == ".xlsx":
+        wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+        try:
+            for ws in wb.worksheets:
+                pairs += _pairs_from_table([list(r) for r in ws.iter_rows(values_only=True)])
+        finally:
+            wb.close()
+    elif ext == ".docx":
+        W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+        with zipfile.ZipFile(path) as z:
+            root = _xml(z, "word/document.xml")
+        text_of = lambda el: "".join(t.text or "" for t in el.iter(W + "t"))
+        for tbl in root.iter(W + "tbl"):
+            pairs += _pairs_from_table([[text_of(tc) for tc in tr.iter(W + "tc")] for tr in tbl.iter(W + "tr")])
+        body = root.find(W + "body")
+        for para in (body if body is not None else []):
+            if para.tag == W + "p":
+                p = _pair_from_line(text_of(para), strict=True)
+                if p:
+                    pairs.append(p)
+    elif ext == ".pdf":
+        doc = fitz.open(path)
+        try:
+            for page in doc:
+                try:
+                    for tb in page.find_tables().tables:
+                        pairs += _pairs_from_table(tb.extract())
+                except Exception:
+                    pass
+            if not pairs:
+                for page in doc:
+                    pairs += [p for p in (_pair_from_line(l, strict=True) for l in page.get_text("text").splitlines()) if p]
+        finally:
+            doc.close()
+    else:
+        raise ValueError(f"Unsupported file type: {ext}")
+    seen, out = set(), []
+    for t, d in pairs:
+        k = (t.casefold(), d.casefold())
+        if k not in seen:
+            seen.add(k); out.append([t, d])
+    return out
+
+def apply_client_overlay(findings, m):
+    """Client definitions take precedence. Each matching row shows the client meaning(s) first, labeled, with any
+    different database meanings after them, so the user can still pick."""
+    if not CLIENT_DB:
+        return findings
+    db_include = m.get("db_include", {})
+    for term, d in findings.items():
+        c = CLIENT_DB.get(fold(term).strip())
+        if not c or d.get("file_error"):
+            continue
+        cdefs = c["definitions"]
+        cset = {x.casefold() for x in cdefs}
+        dbdefs = [x for x in db_include.get(term, {}).get("definitions", []) if x.casefold() not in cset]
+        d.update({"client": True, "client_definitions": cdefs, "db_definitions": dbdefs, "client_sources": c["sources"],
+                  "excluded": False, "in_db": True,
+                  "definitions": [CLIENT_TAG + x for x in cdefs] + [DB_TAG + x for x in dbdefs]})
+        if d["category"].endswith("(Candidate)"):
+            d["category"] = d["category"].replace(" (Candidate)", "")
+        if len(cdefs) == 1:
+            d["selected_definition"] = cdefs[0]
+            d["status"] = "★ Client list (database differs)" if dbdefs else "✅ Client list"
+        else:
+            d["selected_definition"] = f"⚠️ MULTIPLE ({len(cdefs)} client meanings) - Choose: " + " OR ".join(cdefs)
+            d["status"] = f"⚠️ CHOOSE (client list: {len(cdefs)} meanings)"
+    return findings
+
 def build_matcher():
-    """Load the database, corrections, ignore list, and patterns once per scan."""
+    """Load the database, client lists, corrections, ignore list, and patterns once per scan."""
     refresh_ocr_ignore()
     include_db, exclude_db, exclude_upper = load_database()
+    db_include = {k: dict(v, definitions=list(v["definitions"])) for k, v in include_db.items()}
+    for key, c in CLIENT_DB.items():   # client terms are always looked for, and win over database Exclude rules
+        exclude_db.pop(key, None); exclude_upper.discard(key.upper())
+        if key not in include_db:
+            include_db[key] = {"category": "Acronym", "definitions": list(c["definitions"])}
     all_terms = set(include_db.keys()) | set(exclude_db.keys())
     direct_pattern = None
     if all_terms:
@@ -1057,7 +1216,7 @@ def build_matcher():
         # (?<![^\W\d_]) = not preceded by a letter; digits may touch a unit (25°C, 10µm, 150psi)
         direct_pattern = re.compile(r'(?<![^\W\d_])(' + '|'.join([re.escape(t) for t in sorted_terms]) + r")(?:'?s)?(?!\w)")
     return {
-        "include_db": include_db, "exclude_db": exclude_db, "exclude_upper": exclude_upper,
+        "include_db": include_db, "exclude_db": exclude_db, "exclude_upper": exclude_upper, "db_include": db_include,
         "ocr_fixes": load_ocr_fixes(), "direct_pattern": direct_pattern,
         "fuzzy_targets": {t: t for t in include_db.keys() if len(t) >= 3 and t.isupper()},
         "acronym_re": re.compile(r'\b([A-Z][A-Z0-9/&]{1,7}s?)\b'),
@@ -1130,6 +1289,15 @@ def match_chunks(findings, chunks, m):
 
 
 
+CANCEL = threading.Event()   # set by the Cancel Scan button
+
+class ScanCancelled(BaseException):
+    """Raised to stop a scan. BaseException, so per-page error handlers (except Exception) do not swallow it."""
+
+def check_cancel():
+    if CANCEL.is_set():
+        raise ScanCancelled()
+
 def scan_file(filepath, status_callback, idx, total):
     """Read one file. Returns (chunks, skipped [(label, reason)], error message or None)."""
     _SKIPPED.clear()
@@ -1141,24 +1309,40 @@ def scan_file(filepath, status_callback, idx, total):
         chunks, err = [], f"{type(e).__name__}: {e}"
     return chunks, list(_SKIPPED), err
 
-def analyze_batch(filepaths, status_callback):
+def analyze_batch(filepaths, status_callback, capture=None):
+    """Scan files once. capture (dict): filled with each file's terms-only cache entry, so the results can be saved
+    as a project later without reading the files again."""
     m = build_matcher()
     findings = {}
     total = len(filepaths)
     _OCR_CACHE.clear()
+    if capture is not None:
+        weak = weak_terms(m); sig = engine_signature(weak)
     for idx, filepath in enumerate(filepaths, start=1):
+        check_cancel()
         chunks, skips, err = scan_file(filepath, status_callback, idx, total)
+        if capture is not None:
+            try:
+                st = os.stat(filepath)
+                capture[os.path.abspath(filepath)] = {
+                    "size": st.st_size, "mtime": st.st_mtime, "engine": sig,
+                    "scanned": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "chunks": [[label, reduce_text(fold(text), weak)] for label, text in chunks if text.strip()],
+                    "skips": skips, "error": err}
+            except OSError:
+                pass
         if err:
             record_file_error(findings, filepath, err)
         for label, reason in skips:
             record_skip(findings, label, reason)
         match_chunks(findings, chunks, m)
+    apply_client_overlay(findings, m)
     return dict(sorted(findings.items(), key=lambda x: x[1]["count"], reverse=True))
 
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "1.4.2"            # keep in step with version_info.txt
+APP_VERSION = "1.5.0"            # keep in step with version_info.txt
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
 LOCK_STALE_HOURS = 12
@@ -1235,7 +1419,8 @@ class Project:
     def new_data():
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
         return {"format": PROJECT_FORMAT, "version": 1, "app_version": APP_VERSION, "created": now,
-                "last_scan": None, "last_stats": {}, "files": {}, "history": {}, "decisions": {}, "manual": {}}
+                "last_scan": None, "last_stats": {}, "files": {}, "history": {}, "decisions": {}, "manual": {},
+                "client_lists": [], "mode": "folder", "members": []}
 
     def load(self):
         with open(self.path, "r", encoding="utf-8-sig") as f:
@@ -1290,7 +1475,21 @@ class Project:
             pass
 
     # ---- files ----
+    def member_path(self, rel):
+        """Absolute path of a project file entry (relative to the project folder, or absolute)."""
+        return rel if os.path.isabs(rel) else os.path.join(self.root, rel.replace("/", os.sep))
+
+    def to_member(self, path):
+        path = os.path.abspath(path)
+        try:
+            rel = os.path.relpath(path, self.root)
+        except ValueError:          # another drive
+            return path
+        return path if rel.startswith("..") else rel.replace(os.sep, "/")
+
     def list_files(self):
+        if self.data.get("mode") == "files":   # a saved set of files, not a whole folder
+            return sorted(m for m in self.data.get("members", []) if os.path.isfile(self.member_path(m)))
         out = []
         for dirpath, dirnames, files in os.walk(self.root):
             dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
@@ -1311,8 +1510,21 @@ def project_findings(project, status_callback, full=False, rescan=True):
     stats["files"] = len(files)
     stats["removed"] = len(set(cache) - set(files)) if rescan else 0
     new_cache = {}
+    try:
+        _project_loop(project, files, cache, sig, weak, m, findings, stats, new_cache, status_callback, full, rescan)
+    except ScanCancelled:
+        if rescan:   # keep what was read so far; the next rescan continues from there
+            project.data["files"].update(new_cache)
+        raise
+    if rescan:
+        project.data["files"] = new_cache
+    apply_client_overlay(findings, m)
+    return dict(sorted(findings.items(), key=lambda x: x[1]["count"], reverse=True)), stats
+
+def _project_loop(project, files, cache, sig, weak, m, findings, stats, new_cache, status_callback, full, rescan):
     for idx, rel in enumerate(files, start=1):
-        absf = os.path.join(project.root, rel.replace("/", os.sep))
+        check_cancel()
+        absf = project.member_path(rel)
         entry = cache.get(rel)
         st = os.stat(absf) if rescan and os.path.exists(absf) else None
         fresh = (entry and entry.get("engine") == sig and
@@ -1336,9 +1548,6 @@ def project_findings(project, status_callback, full=False, rescan=True):
         for label, reason in entry.get("skips", []):
             record_skip(findings, label, reason)
         match_chunks(findings, entry["chunks"], m)
-    if rescan:
-        project.data["files"] = new_cache
-    return dict(sorted(findings.items(), key=lambda x: x[1]["count"], reverse=True)), stats
 
 def apply_project_history(project, findings, update=True):
     """Mark each finding New / Changed / Unchanged against the last scan; add 'No longer found' rows."""
@@ -1773,10 +1982,12 @@ ctk.CTkToplevel.__init__ = _toplevel_init   # every pop-up window gets the app i
 # ==============================================================================
 SETTINGS_FILE = os.path.join(SANDBOX_DIR, "settings.json")
 ALL_TYPES = "All types"
-STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", "Added manually",
+STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", "Client list", "Client and database differ",
+                  "Added manually",
                   "New since last scan", "Changed since last scan", "No longer found", "Errors / not scanned", "Excluded"]
 MANUAL_MARK = "✍"
-STATUS_ORDER = (("⛔", 0), ("⚠️", 1), ("🔍", 2), (MANUAL_MARK, 3), ("✅", 4), ("✖", 5), ("🚫", 6))
+STATUS_ORDER = (("⛔", 0), ("⚠️", 1), ("\u2605", 2), ("🔍", 3), (MANUAL_MARK, 4), ("✅", 5), ("✖", 6), ("🚫", 7))
+LOC_MAX_LINES = 3   # Locations wrap to at most this many lines in the table; double-click a row for all of them
 MANUAL_CATEGORIES = ["Acronym", "Abbreviation", "Unit", "Other"]
 COLUMNS = (  # id, heading, base width, anchor
     ("term", "Term / Unit", 120, "w"),
@@ -1830,6 +2041,8 @@ class AcronymAppGUI(ctk.CTk):
         self.app_cfg = load_app_settings()
         self.manual_items = {}   # term -> finding dict; kept across rescans until removed
         self.project = None      # open Project, or None for one-off scans
+        self.client_lists = []   # client acronym lists (RFPs); saved in the project when one is open
+        set_client_lists(self.client_lists)
         self.project_stats = {}
         self.advanced_on = bool(self.settings.get("advanced", self.app_cfg["advanced_features_default"])) \
             if self.app_cfg["allow_advanced_toggle"] else self.app_cfg["advanced_features_default"]
@@ -1855,6 +2068,9 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_add = ctk.CTkButton(top, text="+ Add Item", command=self.open_add_item, fg_color="#B45309", width=120, height=36)
         self.btn_add.pack(side="left", padx=5, pady=10)
 
+        self.btn_client = ctk.CTkButton(top, text="Client Lists", command=self.open_client_lists, fg_color="#6D28D9", width=120, height=36)
+        self.btn_client.pack(side="left", padx=5, pady=10)
+
         self.btn_db = ctk.CTkButton(top, text="Edit Database CSV", command=lambda: self.open_file(DB_FILE), fg_color="#475569", width=160, height=36)
         self.btn_db.pack(side="right", padx=5, pady=10)
         self.btn_know = ctk.CTkButton(top, text="Knowledge", command=self.open_knowledge, fg_color="#0F766E", width=110, height=36)
@@ -1878,6 +2094,8 @@ class AcronymAppGUI(ctk.CTk):
 
         self.prog = ctk.CTkProgressBar(self, width=1140)
         self.prog.pack(padx=15, pady=(0, 10))
+        self.btn_cancel = ctk.CTkButton(self, text="Cancel Scan", fg_color="#DC2626", width=130, height=30,
+                                        command=self.cancel_scan)   # shown only while a scan runs
         self.prog.set(0)
 
         # ---- Filter + view bar ----
@@ -1943,6 +2161,8 @@ class AcronymAppGUI(ctk.CTk):
         self.tree.tag_configure("fileerror", background="#FEE2E2", foreground="#991B1B")
         self.tree.tag_configure("manual", background="#FEF9C3", foreground="#713F12")
         self.tree.tag_configure("gone", background="#E5E7EB", foreground="#6B7280")
+        self.tree.tag_configure("client", background="#EDE9FE", foreground="#4C1D95")
+        self.tree.tag_configure("clientdiff", background="#F5D0FE", foreground="#701A75")
 
         vsb = ttk.Scrollbar(t_frame, orient="vertical", command=self.tree.yview)
         hsb = ttk.Scrollbar(t_frame, orient="horizontal", command=self.tree.xview)
@@ -1952,6 +2172,9 @@ class AcronymAppGUI(ctk.CTk):
         hsb.grid(row=1, column=0, sticky="ew")
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
         self.tree.bind("<Control-a>", lambda _e: (self.tree.selection_set(self.tree.get_children()), "break")[1])
+        self.tree.bind("<Double-1>", self.show_details)
+        self.tree.bind("<ButtonRelease-1>", self._maybe_rewrap, add="+")   # column resized -> rewrap Locations
+        self._loc_width = None
 
         # Text size shortcuts: Ctrl + / Ctrl - / Ctrl 0 / Ctrl + mouse wheel
         for seq in ("<Control-plus>", "<Control-equal>", "<Control-KP_Add>"):
@@ -2185,11 +2408,13 @@ class AcronymAppGUI(ctk.CTk):
         if not collected:
             messagebox.showwarning("Empty", "No supported files found.")
             return
-        self.start_batch(collected)
+        self.start_batch(collected, folder=folder)
 
-    def start_batch(self, fps):
+    def start_batch(self, fps, folder=None):
         self.queued_files = fps
-        self.run_job(lambda cb: analyze_batch(fps, cb))
+        capture = {}
+        self.last_scan = {"paths": list(fps), "folder": folder, "cache": capture}
+        self.run_job(lambda cb: analyze_batch(fps, cb, capture=capture))
 
     def run_job(self, job):
         """Run job(status_callback) -> results on a worker thread, then show them."""
@@ -2197,13 +2422,27 @@ class AcronymAppGUI(ctk.CTk):
             b.configure(state="disabled")
         self.prog.configure(mode="indeterminate")
         self.prog.start()
+        self._prev_results = self.results
+        CANCEL.clear()
+        self.btn_cancel.configure(state="normal", text="Cancel Scan")
+        self.btn_cancel.pack(pady=(0, 8), before=self.prog)
         for i in self.tree.get_children(): self.tree.delete(i)
         threading.Thread(target=self.worker, args=(job,), daemon=True).start()
 
+    def cancel_scan(self):
+        CANCEL.set()
+        self.btn_cancel.configure(state="disabled", text="Stopping...")
+        self.status.configure(text="Stopping after the current page...")
+
     def worker(self, job):
+        def cb(m):
+            check_cancel()   # stops mid-file at the next page, slide, or picture
+            self.after(0, lambda: self.status.configure(text=m))
         try:
-            results = job(lambda m: self.after(0, lambda: self.status.configure(text=m)))
+            results = job(cb)
             self.after(0, lambda: self.scan_done(results))
+        except ScanCancelled:
+            self.after(0, self.scan_cancelled)
         except Exception as e:
             log_error("Scan failed")
             msg = f"{type(e).__name__}: {e}\n\nDetails saved to logs\\error.log"
@@ -2214,10 +2453,14 @@ class AcronymAppGUI(ctk.CTk):
     def show_project_menu(self):
         m, has, rw = self.project_menu, self.project is not None, self.project is not None and not self.project.read_only
         m.delete(0, "end")
-        m.add_command(label="New Project...", command=self.new_project)
+        m.add_command(label="New Project from a Folder...", command=self.new_project)
+        m.add_command(label="Save Current Results as Project...", command=self.save_results_as_project,
+                      state="normal" if (not has and getattr(self, "last_scan", None) and self.results) else "disabled")
         m.add_command(label="Open Project...", command=self.open_project)
         m.add_separator()
-        m.add_command(label="Rescan Project (changed files only)", command=self.rescan_project, state="normal" if rw else "disabled")
+        m.add_command(label="Scan / Rescan Project (changed files only)", command=self.rescan_project, state="normal" if rw else "disabled")
+        m.add_command(label="Add Files to Project...", command=self.add_files_to_project,
+                      state="normal" if rw and self.project.data.get("mode") == "files" else "disabled")
         m.add_command(label="Full Rescan (read every file again)", command=lambda: self.rescan_project(full=True), state="normal" if rw else "disabled")
         m.add_command(label='Clear "No longer found" items', command=self.clear_gone, state="normal" if rw else "disabled")
         m.add_separator()
@@ -2243,9 +2486,66 @@ class AcronymAppGUI(ctk.CTk):
             messagebox.showerror("Cannot create project", f"Could not write to this folder:\n{e}"); return
         self.project = proj
         self.manual_items = proj.data["manual"]
-        messagebox.showinfo("Project created", f"Project file:\n{path}\n\nIt stores the terms found, your choices and the scan history. "
-                            "It never stores sentences or document text. The first scan reads every file; later scans read only new or changed files.")
-        self.rescan_project()
+        self.set_client_lists(proj.data.setdefault("client_lists", []))
+        self.results = {}; self.populate_table(); self.lbl_showing.configure(text="")
+        self.update_project_ui()
+        self.status.configure(text=f"Project '{proj.name}' created. Click Scan Project when you are ready.")
+        messagebox.showinfo("Project created", f"Project file:\n{path}\n\nNothing has been scanned yet. Click Scan Project when you "
+                            "are ready. The first scan reads every file; later scans read only new or changed files.\n\n"
+                            "It stores the terms found, your choices and the scan history, never sentences or document text.")
+
+    def save_results_as_project(self):
+        """Turn the current one-off scan into a project, reusing what was just read: nothing is scanned again."""
+        ls = getattr(self, "last_scan", None)
+        if not ls or not self.results or self.project is not None:
+            return
+        paths = ls["paths"]
+        folder = ls["folder"]
+        start = folder or os.path.dirname(os.path.abspath(paths[0]))
+        stem = os.path.basename(os.path.normpath(folder)) if folder else os.path.splitext(os.path.basename(paths[0]))[0]
+        path = filedialog.asksaveasfilename(title="Save results as a project (the project file goes with the documents)",
+                                            initialdir=start, initialfile=stem + PROJECT_EXT, defaultextension=PROJECT_EXT,
+                                            filetypes=[("Acronym Hunter project", "*" + PROJECT_EXT)])
+        if not path:
+            return
+        proj = Project(path); proj.data = Project.new_data()
+        whole_folder = bool(folder) and os.path.normcase(os.path.abspath(folder)) == os.path.normcase(proj.root)
+        proj.data["mode"] = "folder" if whole_folder else "files"
+        members = [proj.to_member(p) for p in paths]
+        if not whole_folder:
+            proj.data["members"] = members
+        proj.data["files"] = {proj.to_member(p): e for p, e in ls["cache"].items()}
+        proj.data["manual"] = self.manual_items
+        proj.data["client_lists"] = self.client_lists
+        proj.data["decisions"] = dict(getattr(self, "session_decisions", {}))
+        apply_project_history(proj, {k: dict(v) for k, v in self.results.items() if not v.get("manual")}, update=True)
+        proj.data["last_stats"] = {"files": len(paths), "scanned": len(paths), "reused": 0, "removed": 0}
+        try:
+            proj.acquire_lock(); proj.save()
+        except OSError as e:
+            messagebox.showerror("Cannot save project", f"{e}"); return
+        self.project, self.project_stats = proj, proj.data["last_stats"]
+        apply_project_history(proj, self.results, update=False)
+        self.update_project_ui(); self.populate_table()
+        kind = "the whole folder" if whole_folder else f"{len(members)} file(s)"
+        messagebox.showinfo("Project saved", f"Saved as {os.path.basename(path)} ({kind}).\n\nNothing was scanned again. Future "
+                            "rescans reuse these results and read only files that are new or changed."
+                            + ("" if whole_folder else "\nProject > Add Files to Project adds more files later."))
+
+    def add_files_to_project(self):
+        proj = self.project
+        if proj is None or proj.read_only or proj.data.get("mode") != "files":
+            return
+        fps = filedialog.askopenfilenames(title="Add files to the project", initialdir=proj.root,
+                                          filetypes=[("Supported", " ".join("*" + e for e in sorted(SUPPORTED_EXTS)))])
+        if not fps:
+            return
+        have = set(proj.data["members"])
+        new = [m for m in (proj.to_member(f) for f in fps) if m not in have]
+        proj.data["members"] += new
+        self.save_project()
+        if new:
+            self.rescan_project()   # reads only the new files
 
     def open_project(self, path=None):
         path = path or filedialog.askopenfilename(title="Open Project", initialdir=self.start_dir(),
@@ -2268,6 +2568,7 @@ class AcronymAppGUI(ctk.CTk):
         self.project = proj
         self.remember_dir(proj.root)
         self.manual_items = proj.data["manual"]
+        self.set_client_lists(proj.data.setdefault("client_lists", []))
         self.project_stats = proj.data.get("last_stats", {})
         def job(cb):
             cb(f"Opening project '{proj.name}' from saved results...")
@@ -2307,6 +2608,7 @@ class AcronymAppGUI(ctk.CTk):
         self.save_project()
         self._release_project_lock()
         self.project, self.project_stats, self.manual_items, self.results = None, {}, {}, {}
+        self.set_client_lists([])
         self.selected_term = None
         self.populate_table(); self.lbl_showing.configure(text="")
         self.status.configure(text="Project closed. Ready.")
@@ -2348,7 +2650,7 @@ class AcronymAppGUI(ctk.CTk):
         self.lbl_project.configure(text="  |  ".join(bits))
         self.lbl_project.pack(pady=(0, 2), before=self.status)
         self.btn_project.configure(text=f"{proj.name[:14]} ▾")
-        self.btn_folder.configure(text="Rescan Project", command=self.rescan_project,
+        self.btn_folder.configure(text="Rescan Project" if proj.data.get("last_scan") else "Scan Project", command=self.rescan_project,
                                   state="disabled" if proj.read_only else "normal")
         self.btn_files.configure(state="disabled")
 
@@ -2366,8 +2668,11 @@ class AcronymAppGUI(ctk.CTk):
             data["selected_definition"] = "MULTIPLE: " + " | ".join(data["definitions"])
             data["status"] = "⚠️ MULTIPLE (Kept All)"
             return "ambiguous"
+        for tag in (CLIENT_TAG, DB_TAG):
+            if choice.startswith(tag):
+                choice = choice[len(tag):]
         data["selected_definition"] = choice
-        data["status"] = "✅ User Selected"
+        data["status"] = "✅ User Selected" + (" (client list)" if data.get("client") and choice in data.get("client_definitions", []) else "")
         return "resolved"
 
     # ---------- view: text size ----------
@@ -2382,6 +2687,8 @@ class AcronymAppGUI(ctk.CTk):
         for cid, _label, width, _anchor in COLUMNS:
             self.tree.column(cid, width=int(width * scale))
         self.lbl_size.configure(text=f"{size} pt")
+        if self.results:
+            self.populate_table()   # rewrap Locations for the new text size
 
     def change_font_size(self, step, reset=False):
         new = FONT_DEFAULT if reset else max(FONT_MIN, min(FONT_MAX, self.font_size + step))
@@ -2446,6 +2753,8 @@ class AcronymAppGUI(ctk.CTk):
             "Needs choice": st.startswith("⚠️"),
             "New candidates": st.startswith("🔍"),
             "Resolved": st.startswith("✅"),
+            "Client list": data.get("client", False),
+            "Client and database differ": bool(data.get("client") and data.get("db_definitions")),
             "Added manually": data.get("manual", False),
             "New since last scan": data.get("change") == "New",
             "Changed since last scan": data.get("change") == "Changed",
@@ -2454,10 +2763,49 @@ class AcronymAppGUI(ctk.CTk):
             "Excluded": data.get("excluded", False),
         }.get(wanted, True)
 
-    @staticmethod
-    def row_values(term, data):
+    def row_values(self, term, data):
         return (term, data["category"], data["count"], data.get("change", ""), data["status"],
-                data["selected_definition"], "; ".join(data["locations"]))
+                data["selected_definition"], self.wrap_locations(data["locations"]))
+
+    def wrap_locations(self, locations):
+        """Locations wrapped to the column width, at most LOC_MAX_LINES lines (the rest: double-click the row)."""
+        text = "; ".join(locations)
+        if not hasattr(self, "tree"):
+            return text
+        width = max(80, int(self.tree.column("locations", "width")) - 16)
+        measure = self.tree_font.measure
+        lines, cur = [], ""
+        for i, piece in enumerate(locations):
+            add = piece + ("; " if i < len(locations) - 1 else "")
+            if cur and measure(cur + add) > width:
+                lines.append(cur.rstrip()); cur = ""
+            while measure(add) > width and len(add) > 10:      # one very long location: break it
+                cut = len(add)
+                while cut > 10 and measure(add[:cut]) > width:
+                    cut -= 5
+                lines.append(add[:cut]); add = add[cut:]
+            cur += add
+        if cur:
+            lines.append(cur.rstrip())
+        if len(lines) > LOC_MAX_LINES:
+            lines = lines[:LOC_MAX_LINES]
+            lines[-1] = lines[-1][:max(0, len(lines[-1]) - 28)] + "...  (double-click for all)"
+        return "\n".join(lines)
+
+    def _fit_row_height(self):
+        lines = 1
+        for iid in self.tree.get_children():
+            lines = max(lines, str(self.tree.set(iid, "locations")).count("\n") + 1)
+            if lines >= LOC_MAX_LINES:
+                break
+        line_h = self.tree_font.metrics("linespace")
+        self.style.configure("Treeview", rowheight=line_h * lines + max(8, self.font_size // 2))
+
+    def _maybe_rewrap(self, _e=None):
+        w = int(self.tree.column("locations", "width"))
+        if self._loc_width is not None and w != self._loc_width:
+            self.populate_table()
+        self._loc_width = w
 
     @staticmethod
     def row_tag(data):
@@ -2467,8 +2815,18 @@ class AcronymAppGUI(ctk.CTk):
         st = data["status"]
         if st.startswith("⛔"): return "fileerror"
         if st.startswith("⚠️"): return "ambiguous"
+        if data.get("client"): return "clientdiff" if data.get("db_definitions") else "client"
         if st.startswith("🔍"): return "candidate"
         return "resolved"
+
+    def scan_cancelled(self):
+        self.results = getattr(self, "_prev_results", {}) or {}
+        if self.project is not None:
+            self.save_project()   # keeps the files already read, so the next rescan continues from there
+        self.reset_ui()
+        self.refresh_type_options(); self.populate_table()
+        self.status.configure(text="Scan cancelled. Showing the results from before this scan."
+                              + (" Files already read are saved in the project." if self.project is not None else ""))
 
     def scan_done(self, results):
         self.results = results
@@ -2509,6 +2867,8 @@ class AcronymAppGUI(ctk.CTk):
         rows.sort(key=lambda r: self.sort_key(*r), reverse=self.sort_desc)
         for term, data in rows:
             self.tree.insert("", "end", iid=term, tags=(self.row_tag(data),), values=self.row_values(term, data))
+        self._fit_row_height()
+        self._loc_width = int(self.tree.column("locations", "width"))
 
         self.lbl_showing.configure(text=f"Showing {len(rows)} of {len(self.results)}" if self.results else "")
         if self.results:
@@ -2565,7 +2925,8 @@ class AcronymAppGUI(ctk.CTk):
             self.combo.configure(state="normal", values=opts); self.combo.set(opts[0])
             self.btn_apply.configure(state="normal")
             self.entry_def.configure(state="disabled"); self.btn_save.configure(state="disabled"); self.btn_ocr.configure(state="disabled")
-            self.lbl_act.configure(text=f"Disambiguate '{term}':")
+            self.lbl_act.configure(text=f"Client list term '{term}' (client meaning pre-selected):" if data.get("client")
+                                   else f"Disambiguate '{term}':")
         elif not data["in_db"]:
             self.combo.configure(state="disabled", values=["Not in DB"]); self.combo.set("Not in DB")
             self.btn_apply.configure(state="disabled")
@@ -2584,6 +2945,7 @@ class AcronymAppGUI(ctk.CTk):
         choice = self.combo.get()
         data = self.results[self.selected_term]
         tag = self._set_choice(data, choice)
+        self.session_decisions = getattr(self, "session_decisions", {}); self.session_decisions[self.selected_term] = choice
         if self.project is not None:
             self.project.data["decisions"][self.selected_term] = choice
             self.save_project()
@@ -2738,20 +3100,166 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_files.configure(state="normal")
         self.btn_folder.configure(state="normal")
         self.btn_project.configure(state="normal")
+        self.btn_cancel.pack_forget()
         self.update_project_ui()
 
+    def export_name(self):
+        slug = lambda t: re.sub(r"[^A-Za-z0-9]+", "-", t).strip("-")
+        parts = []
+        if self.project is not None:
+            parts.append(slug(self.project.name))
+        parts.append("Acronym_Report")
+        if self.status_var.get() != STATUS_FILTERS[0]:
+            parts.append(slug(self.status_var.get()))
+        if self.type_var.get() != ALL_TYPES:
+            parts.append(slug(self.type_var.get()))
+        q = self.search_var.get().strip()
+        if q:
+            parts.append("search-" + slug(q)[:30])
+        parts.append(datetime.datetime.now().strftime("%Y-%m-%d"))
+        return "_".join(parts) + ".csv"
+
     def export_csv(self):
-        path = filedialog.asksaveasfilename(initialdir=self.start_dir(), defaultextension=".csv", filetypes=[("CSV Report", "*.csv")], initialfile="Acronym_Report.csv")
-        if path:
-            with open(path, "w", newline="", encoding="utf-8-sig") as f:
-                w = csv.writer(f)
-                w.writerow(["Term", "Category", "Count", "Change", "Status", "Definition", "Locations", "First seen", "Last seen"])
-                for term, data in self.results.items():
-                    if data.get("excluded", False): continue
-                    w.writerow([term, data["category"], data["count"], data.get("change", ""), data["status"],
-                                data["selected_definition"], "; ".join(data["locations"]),
-                                data.get("first_seen", ""), data.get("last_seen", "")])
-            messagebox.showinfo("Exported", f"Report saved to:\n{path}")
+        """Export exactly the rows shown (current Type / Status / Search filters, in the current sort order)."""
+        terms = [t for t in self.tree.get_children() if t in self.results]
+        if not terms:
+            messagebox.showinfo("Nothing to export", "No rows are showing. Change the filters, then export."); return
+        path = filedialog.asksaveasfilename(initialdir=self.start_dir(), defaultextension=".csv",
+                                            filetypes=[("CSV Report", "*.csv")], initialfile=self.export_name())
+        if not path:
+            return
+        strip = lambda x: x[len(CLIENT_TAG):] if x.startswith(CLIENT_TAG) else x[len(DB_TAG):] if x.startswith(DB_TAG) else x
+        with open(path, "w", newline="", encoding="utf-8-sig") as f:
+            w = csv.writer(f)
+            w.writerow(["Term", "Type", "Count", "Change", "Status", "Selected definition", "Possible definitions",
+                        "Client list definition", "Database definition", "Author decision", "Locations",
+                        "First seen", "Last seen"])
+            for term in terms:
+                d = self.results[term]
+                defs = d.get("definitions", [])
+                client = d.get("client_definitions", [])
+                dbdefs = d.get("db_definitions", []) if d.get("client") else ([] if d.get("excluded") else
+                                                                              [x for x in defs if not d.get("manual")])
+                w.writerow([term, d["category"], d["count"], d.get("change", ""), d["status"], d["selected_definition"],
+                            "\n".join(defs) if len(defs) > 1 or d.get("client") else "",
+                            "\n".join(client), "\n".join(strip(x) for x in dbdefs), "",
+                            "\n".join(d["locations"]), d.get("first_seen", ""), d.get("last_seen", "")])
+        view = self.status_var.get() if self.status_var.get() != STATUS_FILTERS[0] else "all statuses"
+        messagebox.showinfo("Exported", f"{len(terms)} rows exported ({view}) to:\n{path}\n\n"
+                            "Possible definitions lists every meaning (client first). Authors can fill in Author decision.")
+
+    # ---------- details ----------
+    def show_details(self, event=None):
+        iid = self.tree.identify_row(event.y) if event is not None else (self.tree.selection() or [None])[0]
+        d = self.results.get(iid) if iid else None
+        if not d:
+            return
+        win = ctk.CTkToplevel(self); win.title(f"Details: {iid}"); win.geometry("760x560"); win.transient(self)
+        win.after(100, win.lift)
+        box = ctk.CTkTextbox(win, wrap="word", font=("Segoe UI", 13)); box.pack(fill="both", expand=True, padx=12, pady=12)
+        lines = [f"{iid}   ({d['category']}, found {d['count']} times)", f"Status: {d['status']}", "",
+                 f"Selected definition: {d['selected_definition']}"]
+        if d.get("client"):
+            lines += ["", "Client list definition(s):"] + [f"  - {x}" for x in d.get("client_definitions", [])]
+            lines += [f"  (from: {', '.join(d.get('client_sources', []))})"]
+            if d.get("db_definitions"):
+                lines += ["", "Database definition(s), different from the client:"] + [f"  - {x}" for x in d["db_definitions"]]
+        elif len(d.get("definitions", [])) > 1:
+            lines += ["", "Possible definitions:"] + [f"  - {x}" for x in d["definitions"]]
+        lines += ["", f"Locations ({len(d['locations'])}):"] + [f"  - {x}" for x in d["locations"]]
+        if d.get("first_seen"):
+            lines += ["", f"First seen {d['first_seen']}, last seen {d.get('last_seen', '')}"]
+        box.insert("1.0", "\n".join(lines)); box.configure(state="disabled")
+
+    # ---------- client acronym lists ----------
+    def set_client_lists(self, lists):
+        self.client_lists = lists
+        set_client_lists(lists)
+        n = len(lists)
+        if hasattr(self, "btn_client"):
+            self.btn_client.configure(text=f"Client Lists ({n})" if n else "Client Lists")
+
+    def _preview_client_list(self, name, rows):
+        """Show what was read from a client list; True if the user accepts it."""
+        win = ctk.CTkToplevel(self); win.title(f"Client list: {name}"); win.geometry("720x520"); win.transient(self)
+        win.grab_set(); win.after(100, win.lift)
+        ctk.CTkLabel(win, text=f"Read {len(rows)} acronyms from {name}. Check a few, then add the list.",
+                     font=("Arial", 13, "bold")).pack(anchor="w", padx=12, pady=(12, 4))
+        box = ctk.CTkTextbox(win, wrap="none", font=("Consolas", 12)); box.pack(fill="both", expand=True, padx=12, pady=4)
+        box.insert("1.0", "\n".join(f"{t:<16} {dfn}" for t, dfn in rows[:400]) + ("\n..." if len(rows) > 400 else ""))
+        box.configure(state="disabled")
+        result = {"ok": False}
+        btns = ctk.CTkFrame(win, fg_color="transparent"); btns.pack(fill="x", padx=12, pady=10)
+        ctk.CTkButton(btns, text="Add This List", command=lambda: (result.update(ok=True), win.destroy())).pack(side="left")
+        ctk.CTkButton(btns, text="Cancel", fg_color="#475569", command=win.destroy).pack(side="right")
+        self.wait_window(win)
+        return result["ok"]
+
+    def open_client_lists(self):
+        if getattr(self, "client_win", None) is not None and self.client_win.winfo_exists():
+            self.client_win.focus(); return
+        win = ctk.CTkToplevel(self); self.client_win = win
+        win.title("Client Acronym Lists"); win.geometry("680x500"); win.transient(self); win.after(100, win.lift)
+        where = (f"Saved in the project file ({self.project.name})." if self.project is not None
+                 else "Kept for this session only (open a project to keep them).")
+        ctk.CTkLabel(win, justify="left", wraplength=640, text=(
+            "Acronym lists from the client (for example an RFP's acronym list). When lists are added:\n"
+            "  - their terms are found in your documents even if they are not in the database\n"
+            "  - the client definition is selected first; database meanings that differ stay available to pick\n"
+            "  - rows are marked 'Client list' (purple) or 'Client list (database differs)' (pink)\n"
+            "With no lists added, scans work exactly as before. " + where)).pack(anchor="w", padx=12, pady=(12, 6))
+        lb = tk.Listbox(win, height=10, font=("Segoe UI", 11), activestyle="none", exportselection=False)
+        lb.pack(fill="both", expand=True, padx=12, pady=4)
+        msg = ctk.CTkLabel(win, text="", text_color="#6D28D9", wraplength=640, justify="left")
+        def refresh():
+            lb.delete(0, "end")
+            for lst in self.client_lists:
+                lb.insert("end", f"{lst['name']}   ({len(lst['rows'])} acronyms, added {lst.get('added', '')})")
+        def changed(text):
+            set_client_lists(self.client_lists); self.set_client_lists(self.client_lists)
+            self.save_project(); refresh(); msg.configure(text=text)
+            if self.results and messagebox.askyesno("Rescan?", "Client lists changed. Rescan now to apply them?", parent=win):
+                if self.project is not None and not self.project.read_only:
+                    self.rescan_project()
+                elif self.queued_files:
+                    self.start_batch(self.queued_files)
+        def add():
+            paths = filedialog.askopenfilenames(parent=win, title="Add client acronym list(s)", initialdir=self.start_dir(),
+                                                filetypes=[("Acronym lists", "*.csv *.tsv *.txt *.xlsx *.docx *.pdf")])
+            added = []
+            for path in paths:
+                try:
+                    rows = parse_client_list(path)
+                except Exception as e:
+                    log_error(f"Client list could not be read: {path}")
+                    messagebox.showerror("Not read", f"{os.path.basename(path)}: {type(e).__name__}: {e}", parent=win); continue
+                if not rows:
+                    messagebox.showwarning("No acronyms found", f"No acronym / definition pairs were found in {os.path.basename(path)}.\n"
+                                           "Lists work best as a two-column table (acronym, definition).", parent=win); continue
+                if self._preview_client_list(os.path.basename(path), rows):
+                    self.client_lists.append({"name": os.path.basename(path), "rows": rows,
+                                              "added": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")})
+                    added.append(f"{os.path.basename(path)} ({len(rows)})")
+            if added:
+                changed("Added: " + ", ".join(added))
+        def remove():
+            sel = lb.curselection()
+            if not sel: return
+            gone = self.client_lists.pop(sel[0])
+            changed(f"Removed {gone['name']}.")
+        def view():
+            sel = lb.curselection()
+            if not sel: return
+            lst = self.client_lists[sel[0]]
+            v = ctk.CTkToplevel(win); v.title(lst["name"]); v.geometry("700x520"); v.transient(win); v.after(100, v.lift)
+            box = ctk.CTkTextbox(v, wrap="none", font=("Consolas", 12)); box.pack(fill="both", expand=True, padx=12, pady=12)
+            box.insert("1.0", "\n".join(f"{t:<16} {dfn}" for t, dfn in lst["rows"])); box.configure(state="disabled")
+        btns = ctk.CTkFrame(win, fg_color="transparent"); btns.pack(fill="x", padx=12, pady=8)
+        ctk.CTkButton(btns, text="Add List...", fg_color="#6D28D9", command=add).pack(side="left", padx=(0, 6))
+        ctk.CTkButton(btns, text="View Terms", fg_color="#475569", command=view).pack(side="left", padx=6)
+        ctk.CTkButton(btns, text="Remove", fg_color="#DC2626", command=remove).pack(side="left", padx=6)
+        msg.pack(anchor="w", padx=12, pady=(0, 10))
+        refresh()
 
 def run_selftest(paths):
     os.makedirs(LOG_DIR, exist_ok=True)

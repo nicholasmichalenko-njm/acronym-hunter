@@ -1,6 +1,6 @@
 # Acronym Hunter: Complete Overview
 
-**Version:** 1.4.2 | **Updated:** 2026-10-20 | **Platform:** Windows 10/11, 64-bit
+**Version:** 1.5.0 | **Updated:** 2026-10-21 | **Platform:** Windows 10/11, 64-bit
 
 This document has two parts.
 **Part 1** explains the whole application in plain language: what it is, what is inside it, how it works,
@@ -122,8 +122,14 @@ All are open-source libraries. All run inside the app's own process. None of the
 5. **Export:** click **Export CSV** to save the results report wherever you choose.
 
 **Projects: use it all the way through a program.** A project remembers a folder of documents between scans.
-- **Project > New Project...**: pick the folder that holds the documents. The app saves `<folder name>.ahproj`
-  in that folder and scans everything once.
+- **Project > New Project from a Folder...**: pick the folder that holds the documents. The app saves `<folder name>.ahproj`
+  in that folder. **Scan Project** reads everything once (v1.5.0: creating a project no longer starts a scan).
+- **Project > Save Current Results as Project...** (v1.5.0): turns a one-off scan of files or a folder into a project
+  without reading anything again. **Add Files to Project** grows a saved file set. **Cancel Scan** stops any scan;
+  files already read stay in the project.
+- **Client Lists** (v1.5.0): client acronym lists (CSV, TXT, XLSX, DOCX, PDF) take precedence over the database. Rows show
+  "Client list" or "Client list (database differs)", every meaning labeled [Client] or [Database]. Export CSV exports
+  the filtered view with Possible definitions and an Author decision column.
 - **Rescan Project**: reads only files that are new or changed since the last scan and reuses saved results for
   the rest, so a rescan takes seconds. New files dropped into the folder are picked up automatically.
 - The **Change** column marks every term **New**, **Changed** (count or locations moved), **Unchanged**, or

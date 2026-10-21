@@ -16,8 +16,8 @@ VECTOR GRAPHICS (SVG, EMF, WMF)
   "(Image)" so you know which method found each term.
 
 PROJECTS: SCAN A FOLDER AGAIN AS IT CHANGES
-  Project > New Project... : pick the folder that holds the documents. The app creates
-  <folder name>.ahproj in that folder and scans everything.
+  Project > New Project from a Folder... : pick the folder that holds the documents. The app creates
+  <folder name>.ahproj in that folder. Click Scan Project to read everything the first time.
   Rescan Project : reads only new or changed files, reuses saved results for the rest (seconds,
               not minutes). New files in the folder are picked up automatically.
   The Change column shows New, Changed, Unchanged, or No longer found. Status filters
@@ -30,6 +30,36 @@ PROJECTS: SCAN A FOLDER AGAIN AS IT CHANGES
   The project file holds file names, sizes, dates, the terms found, your choices, and the
   history. It never holds sentences or document text: it is no more sensitive than the
   exported CSV. Treat it at the same classification as the documents' term list.
+
+SAVING A ONE-OFF SCAN (reuse it later, no rescan)
+  Scanned a document or folder with Select Files or Scan Folder and want to keep the results?
+    Project > Save Current Results as Project...
+  Nothing is read again. The project file stores what was just found. Later, Project > Open Project,
+  then Rescan Project reads only files that are new or changed and reuses the rest.
+  A saved set of files (not a whole folder) can grow: Project > Add Files to Project.
+  New Project from a Folder does not scan by itself: click Scan Project when ready.
+
+CANCEL A SCAN
+  "Cancel Scan" (under the status line, shown while scanning) stops at the next page or slide.
+  The table returns to the results from before that scan. In a project, files already read are kept,
+  so the next rescan continues from there.
+
+CLIENT ACRONYM LISTS (from an RFP or the customer)
+  "Client Lists" adds the client's acronym list: CSV, TXT, Excel, Word, or PDF (a two-column table or
+  lines such as "SOW - Statement of Work"). You see a preview of the pairs read before it is added.
+  Client definitions take precedence over the database for defining and choosing between meanings:
+    Purple row, "Client list"                    = found term matches the client list
+    Pink row, "* Client list (database differs)" = the database has a different meaning too
+  Every meaning appears in the choice list labeled [Client] or [Database]: pick either.
+  Status filters "Client list" and "Client and database differ" show just those rows.
+  With no client lists added, scans work exactly as before. In a project, the lists are saved with it.
+  Client lists stay on this PC and in the project file: never in Knowledge Packs or GitHub.
+
+EXPORTING FOR AUTHORS
+  Export CSV exports exactly the rows showing (current Type, Status, and Search filters, current sort).
+  The file name says which view, for example Acronym_Report_Needs-choice_2026-10-21.csv.
+  Columns include Possible definitions (every meaning, client first), Client list definition,
+  Database definition, and a blank Author decision column for authors to fill in.
 
 ADDING YOUR OWN ITEMS
   "+ Add Item" adds a term the scan did not find (type, definition, where you saw it). It appears
@@ -47,7 +77,7 @@ READING THE RESULTS
               With several selected, "Exclude N" excludes them all in one step (you confirm first).
   Filter:     Type (Acronym, Unit, Abbreviation...), Status (Needs choice, New candidates...),
               and Search (matches term or definition). "Clear" resets all filters.
-  Scroll right with the bottom scrollbar to read long Locations.
+  Locations wrap onto up to 3 lines. Double-click any row to see every location and meaning in full.
   Locations:  PDF page, PowerPoint slide (plus notes/chart/SmartArt and the picture's name),
               Word section heading, header/footer, or Excel sheet.
   "Not scanned" rows list content the app could not open, such as linked pictures,
@@ -55,7 +85,7 @@ READING THE RESULTS
 
 FIXING OCR MISREADS (Advanced switch on)
   If a term in a picture is misread (RFF instead of RFP): select the row, type the correct term
-  in the box, click "Fix OCR". Future scans report it correctly.
+  in the box, click "Fix OCR". Future scans report it correctly. The download ships with no fixes.
   To review, edit, or undo fixes: click "OCR Fixes" (top right). "Undo Last Entry" reverses
   an accidental Fix OCR.
 
