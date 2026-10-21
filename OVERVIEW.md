@@ -1,6 +1,6 @@
 # Acronym Hunter: Complete Overview
 
-**Version:** 1.3.0 | **Updated:** 2026-10-20 | **Platform:** Windows 10/11, 64-bit
+**Version:** 1.3.1 | **Updated:** 2026-10-20 | **Platform:** Windows 10/11, 64-bit
 
 This document has two parts.
 **Part 1** explains the whole application in plain language: what it is, what is inside it, how it works,
@@ -161,10 +161,18 @@ cases where the scanner missed something in a picture. It ships only in `Acronym
    (PowerPoint, Word, Excel) with its slide or section.
 2. **Drag a box** around the text that was missed. The right panel shows every line the reader saw in the
    box, with a confidence score. Red lines are ones the scanner throws away as too uncertain.
-3. **Correct** any line (editing ticks it), then **Save Ticked Lines as Samples**. If the reader found
-   nothing, type the text under **Whole box as ONE line** and save that instead.
-4. **Add OCR Fixes from Corrections** turns a corrected word (LI to LL) into a fix the scanner uses right away.
-5. Samples collect in `training_data\` inside the folder. **Remove Last Sample** undoes a mistake.
+3. Each line carries a number (matching its box on the picture) and a color. **Green**: the scanner keeps this
+   reading. **Red**: low confidence, the scanner already drops it.
+4. Pick a choice for each line, then **Save Choices**:
+   - **Save as text**: real text; fix the spelling first. Teaches the reader to spell this style.
+   - **Not text**: a diagram line, arrow, or speck the reader mistook for letters (sometimes Asian characters).
+     Teaches the text finder that spot is background. A green one also goes on `config\ocr_ignore.csv`, so the
+     scanner drops that exact reading from pictures on the next scan (typed text is never affected).
+   - **Skip**: not used.
+   If the reader found nothing, type the text under **Whole box as ONE line** and save that instead.
+5. **Add OCR Fixes from Corrections** turns a corrected word (LI to LL) into a fix the scanner uses right away.
+6. Samples collect in `training_data\` inside the folder. **Undo Last Save** removes the whole last save.
+   **Prepare Training Package** and **How training works** lead to section 8 of TRAINING_GUIDE.md.
 
 Each sample is a small cropped picture plus its correct text, usually 1 to 50 KB. A thousand samples take about
 10 to 50 MB. They are never added to the shareable zip and never uploaded anywhere. When enough samples build up
@@ -270,7 +278,7 @@ contents. Part 2, section 12 lists them and how IT normally controls them.
 | What data does it process? | Text and images inside the documents the user selects |
 | Where is document content held? | In process memory during the scan; released when the scan or app ends |
 | Is document content written to disk? | Not by the scanner. Extracted text and images are never saved; only results the user chooses to keep (database entries, OCR fixes, CSV export, project files) and error logs. A project file (`.ahproj`, saved in the documents folder the user picks) stores a **terms-only** token list per file: term-like tokens and unit words kept, every run of ordinary words replaced by `~`. No sentence can be reconstructed from it. **Exception by design:** the Trainer saves cropped image regions and their text when the user clicks Save, into `training_data\` inside the app folder |
-| What files does it write? | `acronym_database.csv`, `config\ocr_corrections.csv` (+ transient `.tmp` during atomic save), `logs\error.log`, `logs\selftest.txt` (diagnostic mode only), `_local_sandbox\settings.json`, `_local_sandbox\temp\*` (emptied at exit and start), and from the Trainer `training_data\images\*.png`, `training_data\labels.txt`, `training_data\samples.csv` (source file name, location, box). All inside the app folder |
+| What files does it write? | `acronym_database.csv`, `config\ocr_corrections.csv` (+ transient `.tmp` during atomic save), `logs\error.log`, `logs\selftest.txt` (diagnostic mode only), `_local_sandbox\settings.json`, `_local_sandbox\temp\*` (emptied at exit and start), `config\ocr_ignore.csv` (OCR readings marked Not text), and from the Trainer `training_data\images\*.png`, `labels.txt`, `regions\*.png`, `det_labels.txt`, `samples.csv` (source file name, location, box), `save_log.jsonl`, `package\*.txt`. All inside the app folder |
 | What may those files contain? | Terms and definitions the user adds; file names and paths in error logs; last folder used in settings; **cropped document images and their text** in `training_data\` |
 | Data at rest encryption | Not applied by the app. Relies on endpoint full-disk encryption (BitLocker) |
 | Data in transit | None exists |
@@ -473,6 +481,12 @@ Step-by-step commands to repeat the network, file, deletion, and integrity check
 The `Security:` line confirms, from inside the running program, that the network guard and XML hardening are active.
 
 ## 16. Frequently asked questions
+
+**Can it scan files in OneDrive or SharePoint without risk to them?** Yes, when the folder is synced to the PC.
+The app opens every file read-only and never writes to, locks, or re-saves a source file (SHA-256 and modified
+time verified unchanged after a scan). Cloud-only files are downloaded by the OneDrive client, inside the
+organization's Microsoft 365, not by the app. Project files and CSV exports saved in a synced folder upload like
+any file. Keep the app folder itself out of OneDrive. Details: SECURITY.md section 3.
 
 **Does it phone home, check licenses, or send usage data?** No. There is no network path, and networking is blocked in code.
 

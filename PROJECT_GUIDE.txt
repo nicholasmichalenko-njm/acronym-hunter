@@ -63,6 +63,8 @@ TRAINING_GUIDE.md
 
 config\
   ocr_corrections.csv  Misread,Correct pairs (RFF -> RFP). The app's Fix OCR button adds lines.
+  ocr_ignore.csv       Reading,Note rows: OCR readings that are not text (diagram lines). The Trainer's
+                       "Not text" choice adds lines. Created on first use.
   ocr_settings.json    OCR tuning numbers (scan resolution, image cleanup, confidence cutoffs).
   app_settings.json    Distribution options: advanced_features_default (Advanced tools start hidden: false),
                        allow_advanced_toggle (false removes the Advanced switch for everyone).

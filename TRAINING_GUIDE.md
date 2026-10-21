@@ -34,7 +34,7 @@ Matching rules are the biggest remaining lever.
 | 5b | Trainer: region rescan + samples | Minutes | Text missed or misread in a picture; builds training data | `AcronymHunterTrainer.exe` / **Region Trainer** button |
 | 6 | OCR settings | Minutes | Whole classes of OCR misses (small text, scans, photos) | `config\ocr_settings.json` |
 | 7 | Swap OCR models | 30 minutes | Systematic OCR weakness | `config\models\` (drop-in files) |
-| 8 | Train your own OCR model | Days | OCR on a recurring style it never reads well | Separate PC, then `config\models\` |
+| 8 | Train your own OCR model | Hours to days | OCR on a recurring style; lines read as text | Trainer samples > training PC > `config\models\` |
 | 9 | Better source files | Varies | Linked pictures, vector diagrams, low-quality scans | How documents are authored |
 | 10 | Matching rules | Code change | Missed DoD, MIL-STD-882E; heading noise | `app_gui.py` |
 
@@ -123,21 +123,39 @@ Use it when the scanner missed or misread text in a picture. It ships in `Acrony
 2. **Open File**. Pick the page (PDF) or picture (PowerPoint, Word, Excel) in the left list. SVG, EMF, and WMF
    files, and EMF/WMF diagrams inside Office files, are drawn at about 2400 px so small labels can be boxed.
 3. **Drag a box** around the missed text. Zoom with **+ / -**, **Fit**, or Ctrl + mouse wheel.
-4. Read the right panel:
-   - Each line the reader found, with confidence. **Red** = below `min_confidence`; the scanner drops it.
-     A red line that is correct means the cutoff is too strict for that style (section 6).
+4. Read the right panel. Each line has a number that matches its box on the picture.
+   - **Green** = confidence at or above `min_confidence`. The scanner keeps it, so a wrong green reading can
+     become a false result.
+   - **Red** = below the cutoff. The scanner already drops it. A red line that is correct means the cutoff is
+     too strict for that style (section 6).
    - **Whole box as ONE line**: the box read as a single line without text detection. Use it when no lines were found.
-5. **Correct** the text (editing a line ticks it).
-6. Click **Save Ticked Lines as Samples**, or **Save Whole Box as One Sample**.
+5. Pick a choice for each line:
+
+   | Choice | Use it when | What is saved | What it teaches |
+   |---|---|---|---|
+   | **Skip** | You are unsure, or it does not matter | Nothing for this line; marked "unsure" in the region sample | Nothing either way |
+   | **Save as text** | It is real text. Fix the spelling first (typing selects this) | The line crop + correct text (`images\`, `labels.txt`) | The **reader** (recognition model): how this text is spelled |
+   | **Not text** | A diagram line, arrow, border, hatching, or speck read as letters or Asian characters | The whole box with that spot as background (`regions\`, `det_labels.txt`). Green lines also go on `config\ocr_ignore.csv` | The **finder** (detection model): no text here. The ignore list stops it in the scanner **right away** |
+
+6. Click **Save Choices** (or **Save Whole Box as One Sample**).
 7. Click **Add OCR Fixes from Corrections** to also teach the scanner the word-level fix right away (for example LI to LL).
-8. **Remove Last Sample** undoes the most recent save.
+8. **Undo Last Save** removes everything the last save added, including ignore-list entries.
+
+**The ignore list (`config\ocr_ignore.csv`)** holds exact readings, one per row (`Reading,Note`). The scanner
+drops an OCR line whose whole text equals a listed reading. It applies only to text read from pictures, never
+to typed document text, so ignoring `III` from a diagram does not hide a typed `III`. Open it with **Ignore List**
+in the Trainer; delete a row to undo it. Changing the list makes projects re-read their files on the next rescan.
 
 What gets saved, inside the app folder:
 ```
 training_data\
-  images\20261020_141950_09257470.png   one cropped text line (1-50 KB)
-  labels.txt                             images/20261020_141950_09257470.png<TAB>LL   (PaddleOCR training format)
-  samples.csv                            date, image, text, what OCR read, confidence, source file, location, box
+  images\...png        one cropped text line per "Save as text" (1-50 KB)
+  labels.txt           images/x.png<TAB>LL                          (PaddleOCR recognition format)
+  regions\...png       the whole box you drew, per Save Choices
+  det_labels.txt       regions/y.png<TAB>[{"transcription": "LL", "points": [...]}]   (PaddleOCR detection format)
+  samples.csv          date, image, text ("(not text)" for Not text), what OCR read, confidence, source, box
+  save_log.jsonl       what each save added, so Undo Last Save can remove it
+  package\             train/check lists from Prepare Training Package
 ```
 `labels.txt` is already in the format PaddleOCR's recognition training expects (section 8, step 2), so the
 Trainer replaces the manual crop-and-label work.
@@ -242,34 +260,92 @@ repository above, and keep the fingerprint with the build.
 
 ---
 
-## 8. Train your own OCR model (fine-tuning)
+## 8. Turn your samples into a better model (step by step)
 
-This is real training: teaching the recognition model your fonts and layouts. Worth it only when one
-recurring style (drawing title blocks, a stamp font, a scanned form) fails across hundreds of images and
-sections 5 to 7 did not fix it.
+Your samples improve the scanner in two ways.
 
-**You need:** a separate PC with Python, PaddlePaddle and PaddleOCR (an NVIDIA GPU makes training
-hours instead of days), and 500 to 5,000 labeled text-line images from your own documents.
+**Right away, no training:**
+- **Not text** on a green line puts that reading on `config\ocr_ignore.csv`. Gone from the next scan.
+- **Add OCR Fixes from Corrections** puts word fixes in `config\ocr_corrections.csv`. Fixed on the next scan.
 
-**Step by step:**
-1. **Collect crops** with the Trainer (section 5b). Copy the whole `training_data\` folder to the training machine.
-   (PaddleOCR's labeling tool, PPOCRLabel, is an alternative.)
-2. **Labels** are already in `training_data\labels.txt`, one line per image:
-   `images/20261020_141950_09257470.png<TAB>COPV inspected before each fill`
-3. **Split** 90% into `train.txt`, 10% into `val.txt`. Never train on the val set.
-4. **Install** PaddlePaddle and clone the PaddleOCR repository. Use the README of the exact version you
-   install; command names change between releases.
-5. **Download the pretrained training weights** for the English PP-OCR recognition model from the PaddleOCR model list.
-6. **Copy the matching config** (for example `configs/rec/PP-OCRv4/en_PP-OCRv4_rec.yml`) and set:
-   training and validation data paths, `pretrained_model` (the weights from step 5),
-   `character_dict_path` (`ppocr/utils/en_dict.txt`), and a small learning rate for fine-tuning.
-7. **Train:** `python tools/train.py -c your_config.yml`. Watch validation accuracy; stop when it stops improving.
-8. **Export** the best checkpoint as an inference model with `tools/export_model.py`.
-9. **Convert to ONNX** with `paddle2onnx`, producing `rec.onnx`.
-10. **Install it:** copy `rec.onnx` into `config\models\`. If it does not embed a character list,
-    also copy the dictionary used in training as `config\models\rec_keys.txt`.
-11. **Score it** (section 11). Adopt it only if it beats the built-in model on both the test samples and
-    your real-document set, because a model tuned to one style can get worse on others.
+**Over time, by training new models.** Two models do the reading, and your two kinds of samples train them:
+
+| Model | Job | File in `config\models\` | Trained by | Start training at |
+|---|---|---|---|---|
+| Finder (detection) | Draws a box around each piece of text; mistakes lines for text | `det.onnx` | Region samples (Save Choices, especially **Not text**) | 100+ regions (300+ better) |
+| Reader (recognition) | Reads the letters inside each box; misspells | `rec.onnx` + `rec_keys.txt` | Text-line samples (**Save as text**) | 300+ lines (1,000+ better) |
+
+### Step 1. Collect (in the Trainer)
+Work through real documents. Save every misread line as **Save as text** with the correct spelling, and every
+false box as **Not text**. Also save some lines the reader got right, so a trained model does not forget them.
+The counter at the bottom shows Text lines, Regions, and Not-text examples.
+
+### Step 2. Prepare the package (one click)
+Click **Prepare Training Package**. It writes `training_data\package\`:
+`rec_train.txt`, `rec_val.txt`, `det_train.txt`, `det_val.txt` (90% train, 10% check, the same split every time),
+and `package_report.txt`. It copies no images, so it adds only a few KB. It warns when there are too few samples
+and lists any character the current reader cannot output (fix those labels or they are skipped).
+
+### Step 3. Set up a training PC (once)
+Training needs PaddlePaddle and PaddleOCR, about 2 GB of tools that do not belong in the app. Use your build PC or
+another approved Windows PC. Internet is needed only to install the tools; your samples never leave the PC.
+```powershell
+py -3.11 -m venv C:\ocr-train\venv
+C:\ocr-train\venv\Scripts\python.exe -m pip install paddlepaddle==2.6.2 paddle2onnx==1.2.3
+git clone -b release/2.8 https://github.com/PaddlePaddle/PaddleOCR C:\ocr-train\PaddleOCR
+C:\ocr-train\venv\Scripts\python.exe -m pip install -r C:\ocr-train\PaddleOCR\requirements.txt
+```
+Download the **PP-OCRv4 training weights** (the files ending `_train`, not `_infer`) for the Chinese/English
+models from the PaddleOCR model list, and unzip them into `C:\ocr-train\pretrain\`. Use the Chinese/English
+(`ch_`) models: the app's built-in models are `ch_PP-OCRv4`, so your fine-tuned models stay drop-in compatible.
+
+### Step 4. Copy the samples
+Copy the whole `training_data\` folder to `C:\ocr-train\data\` (it already holds the package lists).
+
+### Step 5. Train the reader (recognition)
+```powershell
+cd C:\ocr-train\PaddleOCR
+..\venv\Scripts\python.exe tools/train.py -c configs/rec/PP-OCRv4/ch_PP-OCRv4_rec.yml -o `
+  Global.pretrained_model=C:/ocr-train/pretrain/ch_PP-OCRv4_rec_train/student `
+  Global.character_dict_path=ppocr/utils/ppocr_keys_v1.txt Global.epoch_num=50 Optimizer.lr.learning_rate=0.0001 `
+  Train.dataset.data_dir=C:/ocr-train/data Train.dataset.label_file_list=[C:/ocr-train/data/package/rec_train.txt] `
+  Eval.dataset.data_dir=C:/ocr-train/data Eval.dataset.label_file_list=[C:/ocr-train/data/package/rec_val.txt] `
+  Global.save_model_dir=C:/ocr-train/out/rec
+```
+`Global.pretrained_model` points at the `.pdparams` file inside the unzipped weights folder, written without
+the `.pdparams` extension (`student` or `best_accuracy`, whichever the folder holds).
+Watch the `acc` printed after each check. Stop (Ctrl+C) when it stops rising; the best checkpoint is kept as
+`out\rec\best_accuracy`. Keep the dictionary as `ppocr_keys_v1.txt`: changing it throws away what the model knows.
+
+### Step 6. Train the finder (detection), when you have enough regions
+Same pattern with `configs/det/ch_PP-OCRv4/ch_PP-OCRv4_det_student.yml`, the `ch_PP-OCRv4_det_train` weights,
+`det_train.txt` / `det_val.txt`, and `Global.save_model_dir=C:/ocr-train/out/det`. Watch `hmean`.
+
+### Step 7. Convert to the app's format
+```powershell
+..\venv\Scripts\python.exe tools/export_model.py -c configs/rec/PP-OCRv4/ch_PP-OCRv4_rec.yml -o `
+  Global.pretrained_model=C:/ocr-train/out/rec/best_accuracy Global.save_inference_dir=C:/ocr-train/export/rec
+..\venv\Scripts\paddle2onnx.exe --model_dir C:/ocr-train/export/rec --model_filename inference.pdmodel `
+  --params_filename inference.pdiparams --save_file C:/ocr-train/export/rec.onnx --opset_version 14
+```
+(For the finder: the det config and `out/det`, producing `det.onnx`.)
+
+### Step 8. Install and score
+1. Copy `rec.onnx` into the app's `config\models\`, and copy `PaddleOCR\ppocr\utils\ppocr_keys_v1.txt` there
+   as `rec_keys.txt` (an exported model does not carry its character list). Copy `det.onnx` if you trained one.
+2. Run `.\venv\Scripts\python.exe tools\evaluate.py --note "fine-tuned rec, 1200 samples"`. The line
+   `OCR models: custom rec.onnx, rec_keys.txt` confirms the model loaded.
+3. Re-run the Trainer on a few boxes it got wrong before.
+4. **Better on the test samples and your own documents:** keep it and rebuild (`build.ps1` ships `config\`).
+   **Worse:** delete the files from `config\models\`; the built-in models return instantly.
+
+### Step 9. Repeat
+Keep collecting, re-run Steps 2 and 4 to 8 every few hundred new samples. Each round starts from the previous
+best model (`Global.pretrained_model=C:/ocr-train/out/rec/best_accuracy`).
+
+**Status of these commands:** Steps 1, 2 and 8 run in the app and are tested. Steps 3 to 7 use PaddleOCR's
+standard tools at the pinned versions; they have not yet been run end to end on this project's data. Do a dry run
+with a small package first.
 
 **Data handling:** training data from real documents may be CUI or ITAR-controlled. Keep crops, labels and
 the training PC inside approved systems, and treat the trained model file at the same sensitivity as the

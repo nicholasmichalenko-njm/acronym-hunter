@@ -4,7 +4,7 @@ Ships in the same folder as AcronymHunter.exe and shares its engine (_internal),
 folder, its network guard, and its sandbox. Importing app_gui runs that setup before anything else.
 """
 import app_gui as eng          # sandbox + temp redirect + network guard + OCR engine + config (must be first)
-import os, io, csv, re, zipfile, posixpath, hashlib, threading, datetime
+import os, io, csv, re, json, zipfile, posixpath, hashlib, threading, datetime
 import numpy as np
 import cv2
 import tkinter as tk
@@ -16,6 +16,11 @@ TRAIN_DIR = os.path.join(eng.BASE_DIR, "training_data")
 IMG_DIR = os.path.join(TRAIN_DIR, "images")
 LABELS_FILE = os.path.join(TRAIN_DIR, "labels.txt")     # PaddleOCR recognition format: images/x.png<TAB>text
 META_FILE = os.path.join(TRAIN_DIR, "samples.csv")      # who/what/where for each sample
+DET_DIR = os.path.join(TRAIN_DIR, "regions")
+DET_LABELS_FILE = os.path.join(TRAIN_DIR, "det_labels.txt")   # PaddleOCR detection format: regions/x.png<TAB>[boxes]
+SAVE_LOG = os.path.join(TRAIN_DIR, "save_log.jsonl")          # one line per save, so Undo removes the whole save
+PACKAGE_DIR = os.path.join(TRAIN_DIR, "package")
+CHOICES = ("Skip", "Save as text", "Not text")
 OPEN_TYPES = [("Documents and images", "*.pdf *.pptx *.docx *.xlsx *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.webp *.gif *.svg *.svgz *.emf *.wmf *.emz *.wmz")]
 PAD = 16                                                # white border added around a region before reading
 
@@ -153,56 +158,170 @@ def read_region_as_one_line(pil_crop):
 def _clean_text(t):
     return re.sub(r"[\t\r\n]+", " ", t).strip()
 
-def save_sample(pil_img, text, ocr_text, conf, source, box):
-    os.makedirs(IMG_DIR, exist_ok=True)
-    buf = io.BytesIO(); pil_img.save(buf, "PNG"); data = buf.getvalue()
-    sid = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_") + hashlib.sha1(data).hexdigest()[:8]
-    fname = f"{sid}.png"
-    with open(os.path.join(IMG_DIR, fname), "wb") as f:
-        f.write(data)
-    with open(LABELS_FILE, "a", encoding="utf-8", newline="\n") as f:
-        f.write(f"images/{fname}\t{_clean_text(text)}\n")
+def _png(pil_img):
+    buf = io.BytesIO(); pil_img.save(buf, "PNG"); return buf.getvalue()
+
+def _sample_id(data):
+    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S_") + hashlib.sha1(data).hexdigest()[:8] + "_" + os.urandom(3).hex()
+
+def _meta(rows):
     new = not os.path.exists(META_FILE)
     with open(META_FILE, "a", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
         if new:
             w.writerow(["Date", "Image", "Text", "OCR read", "Confidence", "Source", "Box (x0,y0,x1,y1)"])
-        w.writerow([datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), f"images/{fname}", _clean_text(text),
-                    _clean_text(ocr_text), f"{conf:.2f}", source, ",".join(str(int(v)) for v in box)])
-    return fname
+        w.writerows(rows)
 
-def remove_last_sample():
+def _now():
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+
+def save_sample(pil_img, text, ocr_text, conf, source, box):
+    """One text-line image for recognition training (images/ + labels.txt). Returns the image path."""
+    os.makedirs(IMG_DIR, exist_ok=True)
+    data = _png(pil_img)
+    rel = f"images/{_sample_id(data)}.png"
+    with open(os.path.join(TRAIN_DIR, rel.replace("/", os.sep)), "wb") as f:
+        f.write(data)
+    with open(LABELS_FILE, "a", encoding="utf-8", newline="\n") as f:
+        f.write(f"{rel}\t{_clean_text(text)}\n")
+    _meta([[_now(), rel, _clean_text(text), _clean_text(ocr_text), f"{conf:.2f}", source,
+            ",".join(str(int(v)) for v in box)]])
+    return rel
+
+def save_region(pil_img, text_boxes, unsure_boxes, not_text, source, region):
+    """The whole drawn box for detection training (regions/ + det_labels.txt).
+    text_boxes: [(box, text)] real text. unsure_boxes: lines left on Skip (marked ### = ignore, not taught either way).
+    Everything else in the image, including every 'Not text' line, is taught as background."""
+    os.makedirs(DET_DIR, exist_ok=True)
+    data = _png(pil_img)
+    rel = f"regions/{_sample_id(data)}.png"
+    with open(os.path.join(TRAIN_DIR, rel.replace("/", os.sep)), "wb") as f:
+        f.write(data)
+    pts = lambda b: [[int(b[0]), int(b[1])], [int(b[2]), int(b[1])], [int(b[2]), int(b[3])], [int(b[0]), int(b[3])]]
+    label = [{"transcription": _clean_text(t), "points": pts(b)} for b, t in text_boxes]
+    label += [{"transcription": "###", "points": pts(b)} for b in unsure_boxes]
+    if not label:   # PaddleOCR skips images with no boxes; a 1-pixel ignore box keeps a pure "not text" example
+        label = [{"transcription": "###", "points": pts((0, 0, 1, 1))}]
+    with open(DET_LABELS_FILE, "a", encoding="utf-8", newline="\n") as f:
+        f.write(f"{rel}\t{json.dumps(label, ensure_ascii=False)}\n")
+    rx, ry = region[0], region[1]
+    _meta([[_now(), rel, "(not text)", _clean_text(t), f"{c:.2f}", source,
+            ",".join(str(int(v)) for v in (rx + b[0], ry + b[1], rx + b[2], ry + b[3]))] for b, t, c in not_text])
+    return rel
+
+def _log_save(entry):
+    os.makedirs(TRAIN_DIR, exist_ok=True)
+    with open(SAVE_LOG, "a", encoding="utf-8", newline="\n") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+def _drop_lines(path, images):
+    if not os.path.exists(path):
+        return
+    keep = [l for l in open(path, encoding="utf-8").read().splitlines() if l.strip() and l.split("\t", 1)[0] not in images]
+    with open(path + ".tmp", "w", encoding="utf-8", newline="\n") as f:
+        f.write("".join(l + "\n" for l in keep))
+    os.replace(path + ".tmp", path)
+
+def _remove_images(images):
+    for rel in images:
+        try:
+            os.remove(os.path.join(TRAIN_DIR, rel.replace("/", os.sep)))
+        except OSError:
+            pass
+    _drop_lines(LABELS_FILE, images)
+    _drop_lines(DET_LABELS_FILE, images)
+    if os.path.exists(META_FILE):
+        rows = [r for r in csv.reader(open(META_FILE, encoding="utf-8", newline="")) if not (len(r) > 1 and r[1] in images)]
+        with open(META_FILE + ".tmp", "w", encoding="utf-8", newline="") as f:
+            csv.writer(f).writerows(rows)
+        os.replace(META_FILE + ".tmp", META_FILE)
+
+def remove_last_save():
+    """Undo the most recent save: its line samples, region sample, and ignore-list entries. Returns a description."""
+    entries = []
+    if os.path.exists(SAVE_LOG):
+        entries = [l for l in open(SAVE_LOG, encoding="utf-8").read().splitlines() if l.strip()]
+    if entries:
+        last = json.loads(entries.pop())
+        with open(SAVE_LOG + ".tmp", "w", encoding="utf-8", newline="\n") as f:
+            f.write("".join(l + "\n" for l in entries))
+        os.replace(SAVE_LOG + ".tmp", SAVE_LOG)
+        _remove_images(set(last.get("images", [])))
+        ignored = set(last.get("ignored", []))
+        if ignored:
+            eng.write_ocr_ignore_rows([r for r in eng.read_ocr_ignore_rows() if r[0] not in ignored])
+        return last.get("summary", "last save")
+    # samples saved before v1.3.1 have no log: remove the last line sample
     if not os.path.exists(LABELS_FILE):
         return None
     lines = [l for l in open(LABELS_FILE, encoding="utf-8").read().splitlines() if l.strip()]
     if not lines:
         return None
-    last = lines.pop()
-    tmp = LABELS_FILE + ".tmp"
-    with open(tmp, "w", encoding="utf-8", newline="\n") as f:
-        f.write("".join(l + "\n" for l in lines))
-    os.replace(tmp, LABELS_FILE)
-    img_rel, text = (last.split("\t", 1) + [""])[:2]
-    try:
-        os.remove(os.path.join(TRAIN_DIR, img_rel.replace("/", os.sep)))
-    except OSError:
-        pass
-    if os.path.exists(META_FILE):
-        rows = list(csv.reader(open(META_FILE, encoding="utf-8", newline="")))
-        rows = [r for r in rows if not (len(r) > 1 and r[1] == img_rel)]
-        with open(META_FILE + ".tmp", "w", encoding="utf-8", newline="") as f:
-            csv.writer(f).writerows(rows)
-        os.replace(META_FILE + ".tmp", META_FILE)
-    return text
+    img_rel, text = (lines[-1].split("\t", 1) + [""])[:2]
+    _remove_images({img_rel})
+    return f"sample '{text}'"
+
+def _count(path):
+    return sum(1 for l in open(path, encoding="utf-8") if l.strip()) if os.path.exists(path) else 0
 
 def training_stats():
-    count = 0
-    if os.path.exists(LABELS_FILE):
-        count = sum(1 for l in open(LABELS_FILE, encoding="utf-8") if l.strip())
+    """(text-line samples, region samples, not-text examples, bytes on disk)"""
+    not_text = 0
+    if os.path.exists(META_FILE):
+        not_text = sum(1 for r in csv.reader(open(META_FILE, encoding="utf-8", newline="")) if len(r) > 2 and r[2] == "(not text)")
     size = 0
     for root, _d, files in os.walk(TRAIN_DIR):
         size += sum(os.path.getsize(os.path.join(root, f)) for f in files)
-    return count, size
+    return _count(LABELS_FILE), _count(DET_LABELS_FILE), not_text, size
+
+def _model_characters():
+    """Characters the current recognition model can output (from its ONNX metadata)."""
+    import onnxruntime as ort
+    import rapidocr_onnxruntime as _ro
+    custom = os.path.join(eng.MODELS_DIR, "rec.onnx")
+    keys = os.path.join(eng.MODELS_DIR, "rec_keys.txt")
+    if os.path.isfile(keys):
+        return set(open(keys, encoding="utf-8").read().splitlines()) | {" "}
+    path = custom if os.path.isfile(custom) else os.path.join(os.path.dirname(_ro.__file__), "models", "ch_PP-OCRv4_rec_infer.onnx")
+    meta = ort.InferenceSession(path, providers=["CPUExecutionProvider"]).get_modelmeta().custom_metadata_map
+    return set(meta.get("character", "").splitlines()) | {" "}
+
+def build_training_package():
+    """Split the samples into train/val lists that PaddleOCR reads directly from training_data\\.
+    No images are copied, so the package adds only a few KB. Returns a report string."""
+    os.makedirs(PACKAGE_DIR, exist_ok=True)
+    def split(src, prefix):
+        lines = [l for l in open(src, encoding="utf-8").read().splitlines() if l.strip()] if os.path.exists(src) else []
+        train, val = [], []
+        for l in lines:   # stable split: the same sample always lands in the same set
+            (val if int(hashlib.sha1(l.split("\t", 1)[0].encode()).hexdigest(), 16) % 10 == 0 else train).append(l)
+        if lines and not val:
+            val.append(train.pop())
+        for name, rows in ((f"{prefix}_train.txt", train), (f"{prefix}_val.txt", val)):
+            with open(os.path.join(PACKAGE_DIR, name), "w", encoding="utf-8", newline="\n") as f:
+                f.write("".join(r + "\n" for r in rows))
+        return lines, len(train), len(val)
+    rec, rec_t, rec_v = split(LABELS_FILE, "rec")
+    det, det_t, det_v = split(DET_LABELS_FILE, "det")
+    missing = set()
+    try:
+        chars = _model_characters()
+        for l in rec:
+            missing |= {c for c in l.split("\t", 1)[-1] if c not in chars}
+    except Exception:
+        eng.log_error("Could not read the recognition model's character list")
+    report = [f"Training package written to {PACKAGE_DIR}",
+              f"Text-line samples (recognition): {len(rec)}  ->  {rec_t} train / {rec_v} check",
+              f"Region samples (detection):      {len(det)}  ->  {det_t} train / {det_v} check"]
+    report.append("Recognition: ready to fine-tune." if len(rec) >= 300 else
+                  f"Recognition: {len(rec)} of about 300 samples minimum (1,000+ recommended). Keep collecting.")
+    report.append("Detection: ready to fine-tune." if len(det) >= 100 else
+                  f"Detection: {len(det)} of about 100 region samples minimum (300+ recommended). Keep collecting.")
+    if missing:
+        report.append("Characters the current model cannot output (fix the label or they will be skipped): "
+                      + " ".join(sorted(missing)))
+    open(os.path.join(PACKAGE_DIR, "package_report.txt"), "w", encoding="utf-8").write("\n".join(report) + "\n")
+    return "\n".join(report)
 
 def fixes_from_correction(ocr_text, corrected):
     """Word pairs that differ between what OCR read and the corrected text (same word count only)."""
@@ -211,6 +330,52 @@ def fixes_from_correction(ocr_text, corrected):
     if len(a) != len(b):
         return []
     return [(strip(x), strip(y)) for x, y in zip(a, b) if strip(x) and strip(y) and strip(x) != strip(y)]
+
+HELP_TEXT = """WHAT EACH CHOICE DOES
+
+Save as text
+  You confirm the line is real text and its spelling is right (fix it in the box first).
+  Saved: a picture of that one line + its correct text (training_data\\images, labels.txt).
+  Teaches the READER (recognition model) to spell this style correctly.
+
+Not text
+  You confirm the "reading" is not text: a diagram line, arrow, border, speck, or hatching
+  that OCR turned into letters or Asian characters.
+  Saved: the whole box you drew, with the not-text spot marked as background
+  (training_data\\regions, det_labels.txt). Teaches the FINDER (detection model) to stop
+  drawing a text box there.
+  Works right away too: if the line was GREEN (the scanner keeps it), that exact reading is
+  added to config\\ocr_ignore.csv, so the scanner drops it from pictures on the next scan.
+  It never affects typed text in documents. Review or edit the list with "Ignore List".
+
+Skip
+  Not used for training. In the region sample it is marked "unsure", so it teaches nothing either way.
+
+GREEN vs RED
+  Green = confidence at or above the cutoff (config\\ocr_settings.json, min_confidence).
+          The scanner keeps it, so a wrong green reading can become a false result.
+  Red   = below the cutoff. The scanner already throws it away. Marking a red line
+          "Not text" is still a useful training example; it just does not need the ignore list.
+
+HOW YOUR SAMPLES MAKE THE SCANNER BETTER
+
+Right away (no training needed):
+  1. Not text on green lines -> ignore list -> gone from the next scan.
+  2. Correct a misread word, then "Add OCR Fixes from Corrections" -> fixed on the next scan.
+
+Over time (training a new model):
+  3. Keep saving. Aim for 300+ text lines (1,000+ is better) and 100+ regions.
+  4. Click "Prepare Training Package". It splits your samples into train and check sets
+     and flags any character the model cannot output.
+  5. Train on a PC with PaddleOCR (TRAINING_GUIDE.md section 8, step by step).
+  6. Training produces rec.onnx (reader) and/or det.onnx (finder).
+  7. Copy them into config\\models\\. The scanner and this Trainer load them automatically.
+  8. Score: tools\\evaluate.py. Keep the model only if it scores better. To undo, delete
+     the file from config\\models\\.
+
+Undo Last Save removes everything from the last save, including ignore-list entries it added.
+training_data\\ holds crops of your documents: handle it at the documents' classification.
+"""
 
 # --------------------------------------------------------------------------------------
 # Window
@@ -264,8 +429,14 @@ class TrainerApp(ctk.CTk):
         right = ctk.CTkFrame(body, width=440); right.grid(row=0, column=2, sticky="nse", padx=(6, 0))
         right.grid_propagate(False); right.grid_rowconfigure(2, weight=1); right.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(right, text="What OCR read in the box", font=("Arial", 13, "bold")).grid(row=0, column=0, sticky="w", padx=10, pady=(8, 0))
-        ctk.CTkLabel(right, text="Correct any line, tick it, and save it as a training sample.\nRed = below the scanner's confidence cutoff (dropped in scans).",
-                     justify="left", text_color="gray").grid(row=1, column=0, sticky="w", padx=10)
+        ctk.CTkLabel(right, justify="left", wraplength=410, text=(
+            "GREEN line: the scanner keeps this reading; it can show up in your results.\n"
+            "RED line: low confidence; the scanner already ignores it.\n"
+            "Numbers match the boxes on the picture. For each line pick:\n"
+            "  Skip: leave it out of training.\n"
+            "  Save as text: it is real text. Fix the spelling first; typing picks this.\n"
+            "  Not text: lines, arrows, or specks read as letters (even Asian characters).\n"
+            "Then click Save Choices.")).grid(row=1, column=0, sticky="w", padx=10)
         self.lines_frame = ctk.CTkScrollableFrame(right); self.lines_frame.grid(row=2, column=0, sticky="nsew", padx=8, pady=6)
 
         one = ctk.CTkFrame(right); one.grid(row=3, column=0, sticky="ew", padx=8, pady=4)
@@ -275,13 +446,16 @@ class TrainerApp(ctk.CTk):
         ctk.CTkButton(one, text="Save Whole Box as One Sample", command=self.save_whole).pack(fill="x", padx=6, pady=(0, 8))
 
         acts = ctk.CTkFrame(right); acts.grid(row=4, column=0, sticky="ew", padx=8, pady=(4, 8))
-        ctk.CTkButton(acts, text="Save Ticked Lines as Samples", command=self.save_ticked).pack(fill="x", padx=6, pady=(8, 4))
+        ctk.CTkButton(acts, text="Save Choices", command=self.save_choices).pack(fill="x", padx=6, pady=(8, 4))
         ctk.CTkButton(acts, text="Add OCR Fixes from Corrections", fg_color="#7C3AED", command=self.add_fixes).pack(fill="x", padx=6, pady=(0, 8))
 
         bottom = ctk.CTkFrame(self); bottom.pack(side="bottom", fill="x", padx=12, pady=(4, 12), before=body)  # never pushed off-screen
         self.lbl_stats = ctk.CTkLabel(bottom, text=""); self.lbl_stats.pack(side="left", padx=10, pady=8)
-        ctk.CTkButton(bottom, text="Remove Last Sample", width=150, fg_color="#DC2626", command=self.undo_sample).pack(side="right", padx=6, pady=8)
+        ctk.CTkButton(bottom, text="Undo Last Save", width=140, fg_color="#DC2626", command=self.undo_sample).pack(side="right", padx=6, pady=8)
         ctk.CTkButton(bottom, text="Open Training Folder", width=160, fg_color="#475569", command=self.open_folder).pack(side="right", padx=6, pady=8)
+        ctk.CTkButton(bottom, text="Ignore List", width=110, fg_color="#475569", command=self.open_ignore_list).pack(side="right", padx=6, pady=8)
+        ctk.CTkButton(bottom, text="Prepare Training Package", width=190, fg_color="#0F766E", command=self.prepare_package).pack(side="right", padx=6, pady=8)
+        ctk.CTkButton(bottom, text="How training works", width=150, fg_color="#1E3A8A", command=self.show_help).pack(side="right", padx=6, pady=8)
         self.lbl_status = ctk.CTkLabel(bottom, text="", text_color="gray"); self.lbl_status.pack(side="left", padx=20)
         self.refresh_stats()
         if start_file and os.path.exists(start_file):
@@ -349,9 +523,14 @@ class TrainerApp(ctk.CTk):
         rx, ry = self.region[0], self.region[1]
         for row in self.line_rows:
             (x0, y0, x1, y1), conf = row["box"], row["conf"]
-            color = "#22C55E" if conf >= float(eng.OCR_CFG["min_confidence"]) else "#F97316"
-            self.canvas.create_rectangle((rx + x0) * self.zoom, (ry + y0) * self.zoom, (rx + x1) * self.zoom,
-                                         (ry + y1) * self.zoom, outline=color, width=2, tags="linebox")
+            choice = row["choice"].get() if "choice" in row else "Skip"
+            color = "#9CA3AF" if choice == "Not text" else ("#22C55E" if conf >= float(eng.OCR_CFG["min_confidence"]) else "#EF4444")
+            dash = (3, 3) if choice == "Not text" else None
+            X0, Y0 = (rx + x0) * self.zoom, (ry + y0) * self.zoom
+            self.canvas.create_rectangle(X0, Y0, (rx + x1) * self.zoom, (ry + y1) * self.zoom,
+                                         outline=color, width=2, dash=dash, tags="linebox")
+            self.canvas.create_text(X0 + 2, Y0 - 2, text=str(row["n"]), anchor="sw", fill=color,
+                                    font=("Segoe UI", 10, "bold"), tags="linebox")
 
     # ---------- selecting a region ----------
     def on_press(self, e):
@@ -405,16 +584,22 @@ class TrainerApp(ctk.CTk):
 
     def show_lines(self, lines, one):
         cutoff = float(eng.OCR_CFG["min_confidence"])
-        for (box, text, conf) in lines:
+        ignored = eng.load_ocr_ignore()
+        for n, (box, text, conf) in enumerate(lines, start=1):
+            kept = conf >= cutoff
+            on_list = eng.fold(text).strip() in ignored
             fr = ctk.CTkFrame(self.lines_frame); fr.pack(fill="x", padx=2, pady=3)
-            var = tk.BooleanVar(value=False)
-            ctk.CTkCheckBox(fr, text="", variable=var, width=24).pack(side="left", padx=(4, 0))
-            col = ctk.CTkFrame(fr, fg_color="transparent"); col.pack(side="left", fill="x", expand=True, padx=4, pady=2)
-            ctk.CTkLabel(col, text=f"OCR read: {text}   ({conf:.2f})", anchor="w",
-                         text_color=("#15803D" if conf >= cutoff else "#DC2626")).pack(fill="x")
+            col = ctk.CTkFrame(fr, fg_color="transparent"); col.pack(fill="x", expand=True, padx=4, pady=2)
+            note = "already on the ignore list" if on_list else ("scanner keeps this" if kept else "scanner ignores this")
+            ctk.CTkLabel(col, text=f"{n}.  OCR read: {text}   ({conf:.2f}, {note})", anchor="w",
+                         text_color=("#6B7280" if on_list else "#15803D" if kept else "#DC2626")).pack(fill="x")
             ent = ctk.CTkEntry(col); ent.insert(0, text); ent.pack(fill="x", pady=(0, 2))
-            ent.bind("<KeyRelease>", lambda _e, v=var: v.set(True))
-            self.line_rows.append({"box": box, "text": text, "conf": conf, "var": var, "entry": ent})
+            choice = tk.StringVar(value="Skip")
+            seg = ctk.CTkSegmentedButton(col, values=list(CHOICES), variable=choice,
+                                         command=lambda _v: self.draw_line_boxes())
+            seg.pack(fill="x", pady=(0, 2))
+            ent.bind("<KeyRelease>", lambda _e, c=choice: (c.set("Save as text"), self.draw_line_boxes()))
+            self.line_rows.append({"n": n, "box": box, "text": text, "conf": conf, "choice": choice, "entry": ent})
         if not lines:
             ctk.CTkLabel(self.lines_frame, text="No text lines detected in the box.\nUse 'Whole box as ONE line' below.",
                          text_color="gray", justify="left").pack(anchor="w", padx=6, pady=6)
@@ -422,31 +607,56 @@ class TrainerApp(ctk.CTk):
         self.lbl_one.configure(text=f"Read as one line: {text1 or '(nothing)'}   ({conf1:.2f})")
         self.entry_one.delete(0, "end"); self.entry_one.insert(0, text1)
         self.draw_line_boxes()
-        self.lbl_status.configure(text=f"{len(lines)} line(s) found. Correct, tick, and save.")
+        self.lbl_status.configure(text=f"{len(lines)} line(s) found. Pick Skip, Save as text, or Not text for each, then Save Choices.")
 
     # ---------- saving ----------
-    def save_ticked(self):
-        rows = [r for r in self.line_rows if r["var"].get() and r["entry"].get().strip()]
-        if not rows:
-            messagebox.showinfo("Nothing ticked", "Tick the lines to save (editing a line ticks it automatically)."); return
+    def save_choices(self):
+        if self.region_img is None or not self.line_rows:
+            messagebox.showinfo("Nothing to save", "Draw a box around text first."); return
+        text_rows = [r for r in self.line_rows if r["choice"].get() == "Save as text" and r["entry"].get().strip()]
+        junk = [r for r in self.line_rows if r["choice"].get() == "Not text"]
+        if not text_rows and not junk:
+            messagebox.showinfo("Nothing chosen", "Pick 'Save as text' or 'Not text' for at least one line."); return
         rx, ry = self.region[0], self.region[1]
-        for r in rows:
-            x0, y0, x1, y1 = r["box"]
-            m = 3
+        images = []
+        for r in text_rows:   # recognition samples: one tight line each
+            x0, y0, x1, y1 = r["box"]; m = 3
             crop = self.region_img.crop((int(max(0, x0 - m)), int(max(0, y0 - m)),
                                          int(min(self.region_img.width, x1 + m)), int(min(self.region_img.height, y1 + m))))
-            save_sample(crop, r["entry"].get(), r["text"], r["conf"], self.source_label,
-                        (rx + x0, ry + y0, rx + x1, ry + y1))
-            r["var"].set(False)
-        self.refresh_stats(f"Saved {len(rows)} sample(s).")
+            images.append(save_sample(crop, r["entry"].get(), r["text"], r["conf"], self.source_label,
+                                      (rx + x0, ry + y0, rx + x1, ry + y1)))
+        unsure = [r["box"] for r in self.line_rows if r["choice"].get() == "Skip"]
+        images.append(save_region(self.region_img, [(r["box"], r["entry"].get()) for r in text_rows], unsure,
+                                  [(r["box"], r["text"], r["conf"]) for r in junk], self.source_label, self.region))
+        # Not text + the scanner keeps it today -> ignore that exact reading in pictures from now on
+        cutoff = float(eng.OCR_CFG["min_confidence"])
+        rows = eng.read_ocr_ignore_rows(); have = {eng.fold(x[0]).strip() for x in rows}
+        added = []
+        for r in junk:
+            key = eng.fold(r["text"]).strip()
+            if r["conf"] >= cutoff and key and key not in have:
+                rows.append([r["text"].strip(), f"Not text, Trainer {_now()}, {self.source_label}"]); have.add(key)
+                added.append(r["text"].strip())
+        if added:
+            eng.write_ocr_ignore_rows(rows)
+        summary = f"{len(text_rows)} text line(s), {len(junk)} not-text line(s)"
+        _log_save({"time": _now(), "images": images, "ignored": added, "summary": summary})
+        for r in self.line_rows:
+            r["choice"].set("Skip")
+        self.draw_line_boxes()
+        msg = f"Saved {summary}."
+        if added:
+            msg += " Scanner now ignores: " + ", ".join(added)
+        self.refresh_stats(msg)
 
     def save_whole(self):
         text = self.entry_one.get().strip()
         if self.region_img is None or not text:
             messagebox.showinfo("Missing", "Draw a box and type the correct text first."); return
         read = self.lbl_one.cget("text").replace("Read as one line: ", "").rsplit("   (", 1)
-        save_sample(tighten(self.region_img), text, read[0], float(read[1].rstrip(")")) if len(read) > 1 else 0.0,
-                    self.source_label, self.region)
+        rel = save_sample(tighten(self.region_img), text, read[0], float(read[1].rstrip(")")) if len(read) > 1 else 0.0,
+                          self.source_label, self.region)
+        _log_save({"time": _now(), "images": [rel], "ignored": [], "summary": f"whole box '{text}'"})
         self.refresh_stats("Saved the whole box as one sample.")
 
     def add_fixes(self):
@@ -467,16 +677,38 @@ class TrainerApp(ctk.CTk):
         self.refresh_stats("Added OCR fixes: " + ", ".join(f"{a} > {b}" for a, b in added) if added else "Those fixes already exist.")
 
     def undo_sample(self):
-        text = remove_last_sample()
-        self.refresh_stats(f"Removed last sample: {text}" if text is not None else "No samples to remove.")
+        what = remove_last_save()
+        self.refresh_stats(f"Removed: {what}" if what else "Nothing to undo.")
+
+    def open_ignore_list(self):
+        if not os.path.exists(eng.OCR_IGNORE_FILE):
+            eng.write_ocr_ignore_rows([])
+        os.startfile(eng.OCR_IGNORE_FILE)
+
+    def prepare_package(self):
+        try:
+            report = build_training_package()
+        except Exception as e:
+            eng.log_error("Prepare Training Package failed")
+            messagebox.showerror("Package failed", f"{type(e).__name__}: {e}"); return
+        messagebox.showinfo("Training package", report + "\n\nNext: follow TRAINING_GUIDE.md section 8 (or click 'How training works').")
+        self.refresh_stats("Training package prepared.")
+
+    def show_help(self):
+        if getattr(self, "help_win", None) is not None and self.help_win.winfo_exists():
+            self.help_win.focus(); return
+        win = ctk.CTkToplevel(self); self.help_win = win
+        win.title("How training works"); win.geometry("720x620"); win.transient(self); win.after(100, win.lift)
+        box = ctk.CTkTextbox(win, wrap="word", font=("Segoe UI", 13)); box.pack(fill="both", expand=True, padx=12, pady=12)
+        box.insert("1.0", HELP_TEXT); box.configure(state="disabled")
 
     def open_folder(self):
         os.makedirs(TRAIN_DIR, exist_ok=True)
         os.startfile(TRAIN_DIR)
 
     def refresh_stats(self, msg=None):
-        n, size = training_stats()
-        self.lbl_stats.configure(text=f"Training samples: {n}   |   {size / 1024 / 1024:.1f} MB in training_data\\")
+        n, regions, junk, size = training_stats()
+        self.lbl_stats.configure(text=f"Text lines: {n}  |  Regions: {regions}  |  Not-text examples: {junk}  |  {size / 1024 / 1024:.1f} MB")
         if msg:
             self.lbl_status.configure(text=msg)
 

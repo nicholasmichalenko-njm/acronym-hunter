@@ -57,14 +57,45 @@ FIXING OCR MISREADS (Advanced switch on)
   To review, edit, or undo fixes: click "OCR Fixes" (top right). "Undo Last Entry" reverses
   an accidental Fix OCR.
 
+ONEDRIVE AND SHAREPOINT
+  Works on files in a OneDrive or SharePoint folder synced to this PC (it shows in File Explorer).
+  Browser-only SharePoint links do not work: click "Sync" or "Add shortcut to My files" first.
+  Your files are safe: the app opens them read-only and never changes, locks, or re-saves them.
+  Cloud-only files (cloud icon) are downloaded by the OneDrive app when opened. That download is
+  OneDrive's own traffic inside your organization's Microsoft 365, not this app's. For a big
+  folder, right-click it > "Always keep on this device" first; scans run faster.
+  A project file, its lock, and CSV exports saved in a synced folder upload like any other file,
+  so everyone with access to that folder sees them (terms and file names, no document text).
+  Across PCs the project lock only works as fast as OneDrive syncs. On a shared folder, have one
+  person run the project. If OneDrive makes a conflict copy (Name-PCNAME.ahproj), keep the newer one.
+  Files with an encryption sensitivity label cannot be read; they show as "Could not read".
+  Keep the AcronymHunter app folder itself OUT of OneDrive: its scratch files and Trainer samples
+  would sync to the cloud.
+  Whether controlled documents (CUI, ITAR) may live in that OneDrive or SharePoint is your
+  organization's decision. The app does not change it. When in doubt, scan local copies.
+
 REGION TRAINER (AcronymHunterTrainer.exe, only in the "WithTrainer" package)
-  Not included in the standard AcronymHunter_Portable.zip. For text the scanner missed in a picture: open the file, drag a box around the text, correct what
-  was read, and save it. "Add OCR Fixes from Corrections" makes the scanner fix that misread right away.
-  Saved samples go to training_data\ in this folder (crops of your documents; handle them accordingly).
+  Not included in the standard AcronymHunter_Portable.zip. Open a file, drag a box around text in a
+  picture. Each line OCR found gets a number (matching the box on the picture) and a color:
+    GREEN = the scanner keeps this reading (it can appear in results).
+    RED   = low confidence; the scanner already ignores it.
+  Pick one choice per line, then click Save Choices:
+    Skip          Leave it out.
+    Save as text  It is real text. Fix the spelling in the box first (typing picks this choice).
+    Not text      Diagram lines, arrows, or specks read as letters or Asian characters. Teaches the
+                  model that spot is background. If the line was GREEN, that exact reading also goes on
+                  config\ocr_ignore.csv so the scanner drops it from pictures on the next scan.
+                  Typed document text is never affected. "Ignore List" opens the file to review.
+  "Add OCR Fixes from Corrections" makes the scanner fix a misread word right away.
+  "Undo Last Save" removes everything the last save added, including ignore-list entries.
+  "How training works" explains how samples become a better model. "Prepare Training Package"
+  gets them ready for training (TRAINING_GUIDE.md section 8).
+  Samples go to training_data\ in this folder (crops of your documents; handle them accordingly).
 
 WHAT STAYS IN THIS FOLDER
   acronym_database.csv   Master list. Include / Exclude rules. Edit in the app or in Excel.
-  config\                OCR corrections (Fix OCR), OCR settings, optional replacement OCR models.
+  config\                OCR corrections (Fix OCR), OCR ignore list (Not text), OCR settings,
+                         optional replacement OCR models.
   training_data\         Trainer samples (WithTrainer package only; created when you save one).
   _local_sandbox\        Scratch space, created on launch, cleared on exit.
   logs\error.log         Written only if something fails. Send this file when reporting a problem.
@@ -79,9 +110,13 @@ MORE INFORMATION (in this folder)
   Both are plain text; open them in Notepad or any Markdown viewer.
 
 DATABASE FORMAT (acronym_database.csv)
-  Term,Category,Definition,Action
-  SOW,Acronym,Statement of Work,Include
-  CEO,Acronym,Chief Executive Officer,Exclude
+  Term,Definition,Category,Action
+  SOW,Statement of Work,Acronym,Include
+  CEO,Chief Executive Officer,Acronym,Exclude
+  Columns can be in any order. The app finds them by header name and keeps your order, your header
+  names, and any extra columns (Notes, Source...) when it saves. Accepted header names:
+    Term: Term, Item, Acronym, Abbreviation   Definition: Definition, Meaning, Description, Expansion
+    Category: Category, Type                   Action: Action, Rule, Include/Exclude
   Close the CSV in Excel before clicking Include or Exclude in the app.
   Symbols (°, µ, Ω, Δ, Cyrillic, math letters) are fully supported. In Excel, save with
   File > Save As > "CSV UTF-8 (Comma delimited)". Avoid plain "CSV (Comma delimited)": it turns

@@ -1,6 +1,6 @@
 # Acronym Hunter: Security and Data-Handling Statement
 
-**Version covered:** 1.3.0 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
+**Version covered:** 1.3.1 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
 **Verified:** 2026-10-20 (v1.0.1 live test; v1.0.2 added tiled OCR and the OCR Fixes window; v1.0.3 hardened XML parsing and capped embedded image size; no new file locations or network code) on the developer's Windows PC, from a fresh unzip of the shipped zip
 **Audience:** users, security and IT reviewers
 
@@ -70,7 +70,10 @@ Complete list from a line-by-line audit of `app_gui.py` (every `open(... "w"/"a"
 | `logs\selftest.txt` | Scan results | Only with `--selftest` | Terms found |
 | `_local_sandbox\settings.json` | Text size, last folder used | When you change them | Folder path |
 | `_local_sandbox\temp\` | Temporary files, incl. OCR engine config | During a scan; **emptied on exit and on next start** | No document content |
+| `config\ocr_ignore.csv` | Exact OCR readings marked "Not text" (for example `III`, `一I`), with source file name and location | Trainer **Save Choices** on a "Not text" line | Readings and file names |
 | `training_data\images\*.png`, `labels.txt`, `samples.csv` | **Cropped document images** + their text, source file name, location | Only when you click Save in the Trainer | **Yes: document content.** Never shipped in the zip or committed to Git |
+| `training_data\regions\*.png`, `det_labels.txt`, `save_log.jsonl` | **The whole box drawn in the Trainer** + text box positions; save history for Undo | Trainer **Save Choices** | **Yes: document content.** Same handling as above |
+| `training_data\package\*.txt` | Train/check lists of the sample file names, a short report | **Prepare Training Package** | File names and label text |
 
 **Writes outside the folder are yours to direct:**
 
@@ -93,6 +96,18 @@ The Trainer and its button exist only in the optional `AcronymHunter_WithTrainer
 
 Temporary-file redirection: the app sets `TEMP`, `TMP`, and `TMPDIR` to `_local_sandbox\temp` before loading
 any library, so libraries that create temp files create them inside the folder.
+
+### OneDrive and SharePoint
+
+| Question | Answer |
+|---|---|
+| Can it scan files in a synced OneDrive or SharePoint folder? | Yes. To the app they are ordinary local files. Browser-only links are not supported |
+| Can it alter or corrupt them? | No. Every reader opens files read-only (`open(..., "rb")`, MuPDF, `zipfile`, openpyxl read mode). The app never writes to, locks, or re-saves a source file. Verified 2026-10-20: SHA-256 and modified time of every test file identical before and after a scan |
+| Does the app connect to Microsoft 365? | No. A cloud-only file is downloaded by the OneDrive sync client (a separate Microsoft process) when the app opens it, under the organization's tenant policy. The app's network block applies to the app's own process |
+| What does reach the cloud? | Only what the user saves into a synced folder: project files (`.ahproj`, `.ahproj.lock`) and CSV exports. They upload like any file and inherit that library's permissions |
+| Limits | The project lock is only as current as OneDrive sync between PCs; sync conflicts create a copy such as `Name-PCNAME.ahproj`. Files encrypted by a sensitivity label cannot be read (reported as "Could not read") |
+| Do not | Put the AcronymHunter app folder itself in OneDrive: `_local_sandbox\`, `logs\`, and `training_data\` would sync to the cloud |
+| Controlled data | Whether CUI/ITAR may be stored in a given OneDrive/SharePoint (for example a GCC High tenant) is the organization's decision; the app neither enables nor prevents it |
 
 ---
 

@@ -2,6 +2,7 @@ import os
 import sys
 import shutil
 import atexit
+import time
 
 # ==============================================================================
 # 1. ZERO-FOOTPRINT FOLDER SANDBOX & OFFLINE NETWORK KILL-SWITCH
@@ -137,6 +138,14 @@ CSV_WRITE_ENCODING = "utf-8-sig"   # holds every Unicode character; the BOM tell
 def read_csv_rows(path):
     """DictReader rows from a CSV saved as UTF-8 (with or without BOM), UTF-16 (Excel "Unicode Text",
     tab-delimited), or legacy Windows-1252 ("CSV (Comma delimited)" from older Excel)."""
+    text, delimiter = _decode_csv(path)
+    return list(csv.DictReader(io.StringIO(text, newline=""), delimiter=delimiter))
+
+def read_csv_header(path):
+    text, delimiter = _decode_csv(path)
+    return next(csv.reader(io.StringIO(text, newline=""), delimiter=delimiter), [])
+
+def _decode_csv(path):
     raw = open(path, "rb").read()
     if raw.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
         text = raw.decode("utf-16")
@@ -151,7 +160,28 @@ def read_csv_rows(path):
                       "Symbols may be wrong: re-save it in Excel as 'CSV UTF-8 (Comma delimited)'.", with_traceback=False)
     header = text.split("\n", 1)[0]
     delimiter = "\t" if header.count("\t") > header.count(",") else ","
-    return list(csv.DictReader(io.StringIO(text, newline=""), delimiter=delimiter))
+    return text, delimiter
+
+# ---- Database columns: any order, common header names, extra columns kept ----
+DB_FIELDS = ("Term", "Definition", "Category", "Action")   # order for new files
+DB_ALIASES = {
+    "term": "Term", "item": "Term", "acronym": "Term", "abbreviation": "Term", "acronym / abbreviation": "Term",
+    "definition": "Definition", "meaning": "Definition", "description": "Definition", "expansion": "Definition",
+    "category": "Category", "type": "Category",
+    "action": "Action", "rule": "Action", "include/exclude": "Action",
+}
+
+def db_field(header):
+    return DB_ALIASES.get((header or "").strip().lstrip("\ufeff").casefold())
+
+def db_row(r):
+    """A database row as {Term, Definition, Category, Action} whatever the column names or order."""
+    out = {}
+    for k, v in r.items():
+        f = db_field(k)
+        if f and f not in out:
+            out[f] = (v or "").strip()
+    return out
 
 # Look-alike characters that PDFs and Office mix freely; folded so a database term matches either form.
 _FOLD = str.maketrans({
@@ -171,6 +201,7 @@ def fold(text):
 # ---- User-tunable accuracy files (config\ folder beside the exe) ----
 CONFIG_DIR = os.path.join(BASE_DIR, "config")
 OCR_FIXES_FILE = os.path.join(CONFIG_DIR, "ocr_corrections.csv")
+OCR_IGNORE_FILE = os.path.join(CONFIG_DIR, "ocr_ignore.csv")   # OCR readings that are not text (diagram lines, specks)
 OCR_SETTINGS_FILE = os.path.join(CONFIG_DIR, "ocr_settings.json")
 MODELS_DIR = os.path.join(CONFIG_DIR, "models")
 OCR_DEFAULTS = {
@@ -239,6 +270,44 @@ def load_ocr_fixes():
     except Exception:
         log_error("config/ocr_corrections.csv could not be read")
     return fixes
+# ---- OCR ignore list: exact readings that come from lines, arrows, or specks, never real text ----
+_OCR_IGNORE = set()
+
+def load_ocr_ignore():
+    """Readings from config/ocr_ignore.csv. Applies only to text read by OCR, never to typed document text."""
+    out = set()
+    try:
+        for row in read_csv_rows(OCR_IGNORE_FILE):
+            r = fold((row.get("Reading") or "").strip())
+            if r:
+                out.add(r)
+    except FileNotFoundError:
+        pass
+    except Exception:
+        log_error("config/ocr_ignore.csv could not be read")
+    return out
+
+def read_ocr_ignore_rows():
+    try:
+        return [[(r.get("Reading") or "").strip(), (r.get("Note") or "").strip()] for r in read_csv_rows(OCR_IGNORE_FILE)
+                if (r.get("Reading") or "").strip()]
+    except FileNotFoundError:
+        return []
+
+def write_ocr_ignore_rows(rows):
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    tmp = OCR_IGNORE_FILE + ".tmp"
+    with open(tmp, "w", newline="", encoding=CSV_WRITE_ENCODING) as f:
+        w = csv.writer(f)
+        w.writerow(["Reading", "Note"])
+        w.writerows(rows)
+    os.replace(tmp, OCR_IGNORE_FILE)
+
+def refresh_ocr_ignore():
+    global _OCR_IGNORE
+    _OCR_IGNORE = load_ocr_ignore()
+    return _OCR_IGNORE
+
 IMAGE_EXTS = {'.png', '.jpg', '.jpeg', '.tif', '.tiff', '.bmp', '.webp', '.gif'}
 VECTOR_FILE_EXTS = {'.svg', '.svgz', '.emf', '.wmf', '.emz', '.wmz'}
 SUPPORTED_EXTS = IMAGE_EXTS | VECTOR_FILE_EXTS | {'.pdf', '.pptx', '.docx', '.xlsx'}
@@ -246,7 +315,7 @@ SUPPORTED_EXTS = IMAGE_EXTS | VECTOR_FILE_EXTS | {'.pdf', '.pptx', '.docx', '.xl
 # Create starter unified database if missing
 if not os.path.exists(DB_FILE):
     starter_rows = [
-        ["Term", "Category", "Definition", "Action"],
+        ["Term", "Definition", "Category", "Action"],
         ["SOW", "Acronym", "Statement of Work", "Include"],
         ["RFP", "Acronym", "Request for Proposal", "Include"],
         ["CDR", "Acronym", "Critical Design Review", "Include"],
@@ -278,8 +347,9 @@ if not os.path.exists(DB_FILE):
         ["III", "Noise", "Roman Numeral", "Exclude"],
         ["IV", "Noise", "Roman Numeral", "Exclude"],
     ]
+    starter_rows = [[r[0], r[2], r[1], r[3]] for r in starter_rows[1:]]   # Term, Definition, Category, Action
     with open(DB_FILE, "w", newline="", encoding=CSV_WRITE_ENCODING) as f:
-        csv.writer(f).writerows(starter_rows)
+        csv.writer(f).writerows([list(DB_FIELDS)] + starter_rows)
 
 # RapidOCR loads lazily on first image (uses pre-bundled offline ONNX weights)
 _ocr_engine = None
@@ -340,6 +410,17 @@ def get_ocr():
 # ==============================================================================
 # 3. UNIFIED DATABASE LOADER (INCLUDES & EXCLUDES)
 # ==============================================================================
+def db_layout():
+    """[(field or None, header text)] in the file's own column order; DB_FIELDS order for a new file."""
+    try:
+        header = [h.strip().lstrip("\ufeff") for h in read_csv_header(DB_FILE)]
+    except (FileNotFoundError, StopIteration):
+        header = []
+    layout = [(db_field(h), h) for h in header if h]
+    have = {f for f, _ in layout if f}
+    layout += [(f, f) for f in DB_FIELDS if f not in have]   # add any missing core column at the end
+    return layout
+
 def load_database():
     include_db = {}
     exclude_db = {}
@@ -348,11 +429,12 @@ def load_database():
     if not os.path.exists(DB_FILE):
         return include_db, exclude_db, exclude_upper
 
-    for row in read_csv_rows(DB_FILE):
-        term = fold((row.get("Term") or "").strip())
-        cat = (row.get("Category") or "Acronym").strip()
-        defn = (row.get("Definition") or "").strip()
-        action = (row.get("Action") or "Include").strip().capitalize()
+    for raw_row in read_csv_rows(DB_FILE):
+        row = db_row(raw_row)
+        term = fold(row.get("Term", ""))
+        cat = row.get("Category") or "Acronym"
+        defn = row.get("Definition", "")
+        action = (row.get("Action") or "Include").capitalize()
 
         if not term:
             continue
@@ -432,6 +514,8 @@ def _ocr_lines(img, x_off=0, y_off=0):
     out = []
     for box, text, conf in (result or []):
         if float(conf) < float(OCR_CFG["min_confidence"]) or not str(text).strip():
+            continue
+        if fold(str(text)).strip() in _OCR_IGNORE:   # marked "Not text" in the Trainer
             continue
         xs = [pt[0] for pt in box]; ys = [pt[1] for pt in box]
         out.append((min(xs) + x_off, min(ys) + y_off, max(xs) + x_off, max(ys) + y_off, str(text)))
@@ -997,7 +1081,8 @@ def record_skip(findings, label, reason):
         }
 
 def build_matcher():
-    """Load the database, corrections, and patterns once per scan."""
+    """Load the database, corrections, ignore list, and patterns once per scan."""
+    refresh_ocr_ignore()
     include_db, exclude_db, exclude_upper = load_database()
     all_terms = set(include_db.keys()) | set(exclude_db.keys())
     direct_pattern = None
@@ -1107,7 +1192,7 @@ def analyze_batch(filepaths, status_callback):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "1.3.0"            # keep in step with version_info.txt
+APP_VERSION = "1.3.1"            # keep in step with version_info.txt
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
 LOCK_STALE_HOURS = 12
@@ -1142,7 +1227,7 @@ def weak_terms(m):
 def engine_signature(weak=()):
     """Saved results are reused only while extraction, OCR settings, OCR models, and weak terms are unchanged."""
     models = sorted(os.listdir(MODELS_DIR)) if os.path.isdir(MODELS_DIR) else []
-    return hashlib.sha1(json.dumps([APP_VERSION.rsplit(".", 1)[0], OCR_CFG, models, sorted(weak)],
+    return hashlib.sha1(json.dumps([APP_VERSION.rsplit(".", 1)[0], OCR_CFG, models, sorted(weak), sorted(_OCR_IGNORE)],
                                    sort_keys=True).encode()).hexdigest()[:12]
 
 def _numberish(token):
@@ -1199,7 +1284,13 @@ class Project:
         tmp = self.path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(self.data, f, ensure_ascii=False, indent=1)
-        os.replace(tmp, self.path)
+        for attempt in range(6):   # OneDrive/SharePoint sync can hold the file for a moment while uploading
+            try:
+                os.replace(tmp, self.path); return
+            except PermissionError:
+                if attempt == 5:
+                    raise
+                time.sleep(0.5)
 
     # ---- single-editor lock ----
     @staticmethod
@@ -1367,20 +1458,28 @@ def record_candidate(findings, term, cat, loc):
         findings[term]["locations"].append(loc)
 
 def write_db_rows(rows):
-    """Atomic rewrite: write a temp file beside the DB, then swap it in (no half-written DB)."""
+    """Atomic rewrite: write a temp file beside the DB, then swap it in (no half-written DB).
+    rows: [term, category, definition, action(, {extra column: value})]. Keeps the file's own column order,
+    header names, and extra columns, so a reordered or extended database stays the way the user set it up."""
+    layout = db_layout()
     tmp = DB_FILE + ".tmp"
     with open(tmp, "w", newline="", encoding=CSV_WRITE_ENCODING) as f:
         w = csv.writer(f)
-        w.writerow(["Term", "Category", "Definition", "Action"])
-        w.writerows(rows)
+        w.writerow([h for _, h in layout])
+        for r in rows:
+            vals = {"Term": r[0], "Category": r[1], "Definition": r[2], "Action": r[3]}
+            extra = r[4] if len(r) > 4 else {}
+            w.writerow([vals[f] if f else extra.get(h, "") for f, h in layout])
     os.replace(tmp, DB_FILE)
 
 def read_db_rows():
     rows = []
     if os.path.exists(DB_FILE):
         for r in read_csv_rows(DB_FILE):
-            rows.append([(r.get("Term") or "").strip(), r.get("Category") or "Acronym",
-                         r.get("Definition") or "", r.get("Action") or "Include"])
+            d = db_row(r)
+            extra = {k: v for k, v in r.items() if k and not db_field(k)}
+            rows.append([d.get("Term", ""), d.get("Category") or "Acronym",
+                         d.get("Definition", ""), d.get("Action") or "Include", extra])
     return rows
 
 DB_LOCKED_MSG = "A file the app needs is open in another program (usually Excel). Close it and try again."
@@ -1406,15 +1505,12 @@ def write_ocr_fix_rows(rows):
     os.replace(tmp, OCR_FIXES_FILE)
 
 def update_csv_exclusion(term, cat, reason):
-    rows = []
     found = False
-    if os.path.exists(DB_FILE):
-        for r in read_csv_rows(DB_FILE):
-            t = (r.get("Term") or "").strip()
-            if fold(t) == fold(term):
-                r["Action"] = "Exclude"
-                found = True
-            rows.append([t, r.get("Category") or "Acronym", r.get("Definition") or "", r.get("Action") or "Include"])
+    rows = read_db_rows()
+    for r in rows:
+        if fold(r[0]) == fold(term):
+            r[3] = "Exclude"
+            found = True
     if not found:
         rows.append([term, cat.replace(" (Candidate)", ""), reason, "Exclude"])
     write_db_rows(rows)
