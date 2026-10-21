@@ -1192,7 +1192,7 @@ def analyze_batch(filepaths, status_callback):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "1.4.0"            # keep in step with version_info.txt
+APP_VERSION = "1.4.1"            # keep in step with version_info.txt
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
 LOCK_STALE_HOURS = 12
@@ -1506,14 +1506,19 @@ def write_ocr_fix_rows(rows):
     os.replace(tmp, OCR_FIXES_FILE)
 
 def update_csv_exclusion(term, cat, reason):
-    found = False
+    update_csv_exclusions([(term, cat, reason)])
+
+def update_csv_exclusions(items):
+    """Mark several terms Exclude in one database write. items: [(term, category, reason)]."""
     rows = read_db_rows()
-    for r in rows:
-        if fold(r[0]) == fold(term):
-            r[3] = "Exclude"
-            found = True
-    if not found:
-        rows.append([term, cat.replace(" (Candidate)", ""), reason, "Exclude"])
+    for term, cat, reason in items:
+        found = False
+        for r in rows:
+            if fold(r[0]) == fold(term):
+                r[3] = "Exclude"
+                found = True
+        if not found:
+            rows.append([term, cat.replace(" (Candidate)", ""), reason, "Exclude"])
     write_db_rows(rows)
 
 # ==============================================================================
@@ -1931,7 +1936,7 @@ class AcronymAppGUI(ctk.CTk):
         self.tree_font = tkfont.Font(family="Segoe UI", size=self.font_size)
         self.head_font = tkfont.Font(family="Segoe UI", size=self.font_size, weight="bold")
 
-        self.tree = ttk.Treeview(t_frame, columns=[c[0] for c in COLUMNS], show="headings", selectmode="browse")
+        self.tree = ttk.Treeview(t_frame, columns=[c[0] for c in COLUMNS], show="headings", selectmode="extended")  # Ctrl/Shift+click: several rows
         for cid, label, width, anchor in COLUMNS:
             self.tree.column(cid, width=width, minwidth=50, anchor=anchor, stretch=(cid == "locations"))
         self.update_headings()
@@ -1951,6 +1956,7 @@ class AcronymAppGUI(ctk.CTk):
         vsb.grid(row=0, column=1, sticky="ns")
         hsb.grid(row=1, column=0, sticky="ew")
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
+        self.tree.bind("<Control-a>", lambda _e: (self.tree.selection_set(self.tree.get_children()), "break")[1])
 
         # Text size shortcuts: Ctrl + / Ctrl - / Ctrl 0 / Ctrl + mouse wheel
         for seq in ("<Control-plus>", "<Control-equal>", "<Control-KP_Add>"):
@@ -1964,7 +1970,7 @@ class AcronymAppGUI(ctk.CTk):
         act = ctk.CTkFrame(self)
         act.pack(side="bottom", fill="x", padx=15, pady=(0, 15), before=t_frame)  # never pushed off-screen
 
-        self.lbl_act = ctk.CTkLabel(act, text="Select a row above:", font=("Arial", 12, "bold"))
+        self.lbl_act = ctk.CTkLabel(act, text="Select a row above (Ctrl+click or Shift+click for several):", font=("Arial", 12, "bold"))
         self.lbl_act.pack(side="left", padx=10, pady=12)
 
         self.combo = ctk.CTkComboBox(act, values=["Select a row..."], width=270, state="disabled")
@@ -2128,7 +2134,7 @@ class AcronymAppGUI(ctk.CTk):
         self.save_project()
         self.selected_term = None
         self.btn_exc.configure(text="🚫 Exclude", command=self.exclude_term, state="disabled")
-        self.lbl_act.configure(text="Select a row above:")
+        self.lbl_act.configure(text="Select a row above (Ctrl+click or Shift+click for several):")
         self.populate_table()
 
     def _on_tk_error(self, exc_type, exc, tb):
@@ -2517,9 +2523,21 @@ class AcronymAppGUI(ctk.CTk):
             self.tree.selection_set(self.selected_term)
             self.tree.see(self.selected_term)
 
+    def excludable(self, term):
+        d = self.results.get(term)
+        return bool(d) and not (d.get("excluded") or d.get("manual") or d.get("gone") or d.get("file_error"))
+
     def on_select(self, event):
         sel = self.tree.selection()
         if not sel: return
+        if len(sel) > 1:   # several rows: only Exclude applies to a group
+            n = sum(1 for t in sel if self.excludable(t))
+            self.selected_term = sel[0]
+            for w in (self.btn_apply, self.btn_save, self.btn_ocr, self.entry_def, self.combo):
+                w.configure(state="disabled")
+            self.btn_exc.configure(text=f"🚫 Exclude {n}", command=self.exclude_term, state="normal" if n else "disabled")
+            self.lbl_act.configure(text=f"{len(sel)} rows selected ({n} can be excluded):")
+            return
         term = sel[0]
         self.selected_term = term
         data = self.results.get(term)
@@ -2692,16 +2710,30 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_save.configure(state="disabled"); self.btn_ocr.configure(state="disabled")
 
     def exclude_term(self):
-        if not self.selected_term: return
-        term = self.selected_term
-        data = self.results[term]
-        reason = data["definitions"][0] if data["definitions"] else "Excluded via GUI"
-        update_csv_exclusion(term, data["category"], reason)
-        data["excluded"] = True
-        data["in_db"] = True
-        data["status"] = "🚫 Excluded by Rule"
-        data["selected_definition"] = f"[EXCLUDED] {reason}"
-        self.btn_exc.configure(state="disabled")
+        terms = [t for t in self.tree.selection() if self.excludable(t)]
+        if not terms and self.selected_term and self.excludable(self.selected_term):
+            terms = [self.selected_term]
+        if not terms: return
+        if len(terms) > 1:
+            shown = ", ".join(terms[:12]) + (f" and {len(terms) - 12} more" if len(terms) > 12 else "")
+            if not messagebox.askyesno("Exclude terms", f"Exclude {len(terms)} terms?\n\n{shown}\n\n"
+                                       "They are saved to the database as Exclude rules, so future scans skip them. "
+                                       "Show Excluded (or Status > Excluded) lists them again."):
+                return
+        items = []
+        for term in terms:
+            data = self.results[term]
+            items.append((term, data["category"], data["definitions"][0] if data["definitions"] else "Excluded via GUI"))
+        update_csv_exclusions(items)   # one database write for the whole group
+        for term, _cat, reason in items:
+            data = self.results[term]
+            data["excluded"] = True
+            data["in_db"] = True
+            data["status"] = "🚫 Excluded by Rule"
+            data["selected_definition"] = f"[EXCLUDED] {reason}"
+        self.btn_exc.configure(text="🚫 Exclude", state="disabled")
+        self.lbl_act.configure(text=f"Excluded {len(items)} term(s). Select a row above (Ctrl+click or Shift+click for several):")
+        self.selected_term = None
         self.populate_table()
 
     def reset_ui(self):

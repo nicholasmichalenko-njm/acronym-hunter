@@ -43,6 +43,8 @@ ADVANCED TOOLS
 READING THE RESULTS
   Text size:  A- / A+ buttons, Ctrl + / Ctrl - , Ctrl + mouse wheel. Ctrl 0 resets. Remembered next launch.
   Sort:       Click any column header. Click again to reverse. The arrow shows the sorted column.
+  Select:     Ctrl+click or Shift+click selects several rows; Ctrl+A selects every row shown.
+              With several selected, "Exclude N" excludes them all in one step (you confirm first).
   Filter:     Type (Acronym, Unit, Abbreviation...), Status (Needs choice, New candidates...),
               and Search (matches term or definition). "Clear" resets all filters.
   Scroll right with the bottom scrollbar to read long Locations.
