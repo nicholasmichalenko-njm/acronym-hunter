@@ -202,7 +202,7 @@ explains every step.
 |---|---|---|
 | Scanner (generic starter data only) | Everyone | GitHub Release |
 | Scanner + Trainer | Colleagues who collect samples | GitHub Release |
-| Training Kit (offline, network-locked) | Whoever trains models | GitHub Release (no document data inside) |
+| Training Kit, GPU or CPU version (offline, network-locked) | Whoever trains models | GitHub Release (no document data inside) |
 | Knowledge Pack (models + database + fixes + ignore list) | Everyone | **Approved SharePoint folder only** |
 
 Collectors send their `training_data\` folders to the trainer. The trainer runs the Training Kit (offline, usually

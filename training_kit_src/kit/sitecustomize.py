@@ -11,8 +11,14 @@ exactly what tried to go online. An empty or missing log means nothing tried.
 import os, socket, sys, datetime, traceback
 
 _LOOPBACK = {"127.0.0.1", "::1", "localhost", "0.0.0.0"}
-_LOG = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
-                    "kit", "logs", "network_blocked.log")
+def _kit_root():
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(8):                       # works for python\ and export\python\ inside the kit
+        if os.path.isfile(os.path.join(d, "kit", "train.py")):
+            return d
+        d = os.path.dirname(d)
+    return os.path.dirname(os.path.abspath(__file__))
+_LOG = os.path.join(_kit_root(), "kit", "logs", "network_blocked.log")
 
 def _refuse(what, target):
     try:
@@ -58,6 +64,7 @@ socket.socket.sendto = _sendto
 socket.getaddrinfo = _getaddrinfo
 socket.gethostbyname = lambda host, *a: _refuse("DNS lookup", host) if host not in _LOOPBACK else "127.0.0.1"
 os.environ["NO_PROXY"] = "*"
+os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"   # albumentations (PaddleOCR 3.x) otherwise checks PyPI for updates at import
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
 KIT_NETWORK_LOCKDOWN = True

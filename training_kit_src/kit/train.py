@@ -20,11 +20,27 @@ DATA = os.path.join(WORK, "data")
 OUT = os.path.join(KIT, "output", "models")
 LOGS = os.path.join(KIT, "kit", "logs")
 DICT = os.path.join(POCR, "ppocr", "utils", "ppocr_keys_v1.txt")
-REC_CFG = os.path.join(POCR, "configs", "rec", "PP-OCRv4", "ch_PP-OCRv4_rec.yml")
-DET_CFG = os.path.join(POCR, "configs", "det", "ch_PP-OCRv4", "ch_PP-OCRv4_det_student.yml")
+# PaddleOCR 2.8 (CPU kit) and 3.x (GPU kit) name the same PP-OCRv4 configs differently
+_V3_REC = os.path.join(POCR, "configs", "rec", "PP-OCRv4", "PP-OCRv4_mobile_rec.yml")
+V3 = os.path.isfile(_V3_REC)
+REC_CFG = _V3_REC if V3 else os.path.join(POCR, "configs", "rec", "PP-OCRv4", "ch_PP-OCRv4_rec.yml")
+DET_CFG = os.path.join(POCR, "configs", "det", "PP-OCRv4", "PP-OCRv4_mobile_det.yml") if V3 else \
+    os.path.join(POCR, "configs", "det", "ch_PP-OCRv4", "ch_PP-OCRv4_det_student.yml")
+GPU = False   # set by check()
+# GPU kit: export and conversion run in a second, proven toolchain (PaddlePaddle 2.6.2 + PaddleOCR 2.8 + paddle2onnx 1.3.1)
+EXPORT_PY = os.path.join(KIT, "export", "python", "python.exe")
+EXPORT_POCR = os.path.join(KIT, "export", "PaddleOCR")
+SPLIT = os.path.isfile(EXPORT_PY)
+EXP_PY = EXPORT_PY if SPLIT else PY
+EXP_POCR = EXPORT_POCR if SPLIT else POCR
+EXP_CFG = {"rec": os.path.join(EXP_POCR, "configs", "rec", "PP-OCRv4", "ch_PP-OCRv4_rec.yml"),
+           "det": os.path.join(EXP_POCR, "configs", "det", "ch_PP-OCRv4", "ch_PP-OCRv4_det_student.yml")}
+EXP_DICT = os.path.join(EXP_POCR, "ppocr", "utils", "ppocr_keys_v1.txt")
 REC_WEIGHTS = os.path.join(KIT, "pretrain", "ch_PP-OCRv4_rec_train", "student")
 DET_WEIGHTS = os.path.join(KIT, "pretrain", "ch_PP-OCRv4_det_train", "best_accuracy")
 MIN_REC, MIN_DET = 300, 100
+CPU_RATE = {"rec": 0.7, "det": 0.3}     # samples per second, measured on a Ryzen AI 9 HX 370 laptop CPU (2026-10-20)
+GPU_RATE = {"rec": 60.0, "det": 10.0}   # measured on an RTX 5070 Ti Laptop GPU (2026-10-20), rounded down
 LOG_FILE = None
 START = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -55,9 +71,25 @@ def check():
         except Exception as e:
             log(f"  refused: {name} ({type(e).__name__})")
     os.environ.pop("KIT_SELFTEST", None)
+    global GPU
     import paddle
-    log(f"PaddlePaddle {paddle.__version__} (CPU)")
-    for label, path in (("PaddleOCR 2.8 source", os.path.join(POCR, "tools", "train.py")),
+    cuda_build = paddle.device.is_compiled_with_cuda()
+    GPU = cuda_build and paddle.device.cuda.device_count() > 0
+    if GPU:
+        log(f"PaddlePaddle {paddle.__version__} on GPU: {paddle.device.cuda.get_device_name(0)}")
+    elif cuda_build:
+        log(f"PaddlePaddle {paddle.__version__} (GPU kit) but NO NVIDIA GPU IS VISIBLE. Training will use the CPU (slow).")
+        log("  ASUS laptops: Armoury Crate > GPU Mode > Standard (Eco mode switches the NVIDIA card off).")
+        log("  Other PCs: update the NVIDIA driver, and check Device Manager > Display adapters shows the RTX card.")
+    else:
+        log(f"PaddlePaddle {paddle.__version__} (CPU kit)")
+    if SPLIT:
+        r = subprocess.run([EXPORT_PY, "-c", "import paddle, paddle2onnx, onnx, onnxruntime; print(paddle.__version__)"],
+                           capture_output=True, text=True)
+        exp_ok = r.returncode == 0
+        log(f"Export toolchain: {'PaddlePaddle ' + r.stdout.strip() + ' + paddle2onnx (OK)' if exp_ok else 'FAILED: ' + r.stderr[-200:]}")
+        ok &= exp_ok
+    for label, path in (("PaddleOCR training source", os.path.join(POCR, "tools", "train.py")),
                         ("reader starting weights", REC_WEIGHTS + ".pdparams"),
                         ("finder starting weights", DET_WEIGHTS + ".pdparams"),
                         ("character list", DICT)):
@@ -136,9 +168,10 @@ def write_config(base_cfg, kind, epochs, n_train):
     cfg = yaml.safe_load(open(base_cfg, encoding="utf-8"))
     g = cfg["Global"]
     out_dir = os.path.join(WORK, "out", kind)
-    g.update({"use_gpu": False, "distributed": False, "epoch_num": epochs, "save_model_dir": posix(out_dir),
+    g.update({"use_gpu": GPU, "distributed": False, "epoch_num": epochs, "save_model_dir": posix(out_dir),
               "save_epoch_step": 1000000, "print_batch_step": 5, "use_visualdl": False, "checkpoints": None,
-              "save_res_path": posix(os.path.join(out_dir, "predicts.txt")), "infer_img": None})
+              "save_res_path": posix(os.path.join(out_dir, "predicts.txt")), "infer_img": None,
+              "print_mem_info": GPU})   # PaddleOCR 3.x queries GPU memory while logging; crashes on a GPU build with no card   # PaddleOCR 3.x queries GPU memory while logging; crashes on a GPU build with no card
     cfg["Optimizer"]["lr"]["learning_rate"] = 0.0001          # fine-tuning: small steps from the starting weights
     cfg["Optimizer"]["lr"]["warmup_epoch"] = 0
     tr, ev = cfg["Train"], cfg["Eval"]
@@ -150,7 +183,7 @@ def write_config(base_cfg, kind, epochs, n_train):
     if kind == "rec":
         g["pretrained_model"] = posix(REC_WEIGHTS)
         g["character_dict_path"] = posix(DICT)
-        bs = _two_batches(n_train, 32)
+        bs = _two_batches(n_train, 128 if GPU else 32)
         tr["sampler"]["first_bs"] = bs
         tr["loader"]["batch_size_per_card"] = bs
         tr["loader"]["drop_last"] = False
@@ -158,7 +191,7 @@ def write_config(base_cfg, kind, epochs, n_train):
         steps = max(1, n_train // bs - 1)
     else:
         g["pretrained_model"] = posix(DET_WEIGHTS)
-        bs = _two_batches(n_train, 4)
+        bs = _two_batches(n_train, 16 if GPU else 4)
         tr["loader"]["batch_size_per_card"] = bs
         ev["loader"]["batch_size_per_card"] = 1
         tr["dataset"].pop("ratio_list", None)
@@ -171,12 +204,12 @@ def write_config(base_cfg, kind, epochs, n_train):
     yaml.safe_dump(cfg, open(path, "w", encoding="utf-8"), sort_keys=False, allow_unicode=True)
     return path, out_dir
 
-def run(args, label):
+def run(args, label, extra_env=None, py=None, cwd=None):
     log(f"> {label}")
     threads = str(os.cpu_count() or 4)
     env = dict(os.environ, OMP_NUM_THREADS=threads, MKL_NUM_THREADS=threads, OPENBLAS_NUM_THREADS=threads,
-               CPU_NUM="1", FLAGS_use_mkldnn="1", PYTHONIOENCODING="utf-8")
-    p = subprocess.Popen([PY] + args, cwd=POCR, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+               CPU_NUM="1", FLAGS_use_mkldnn="1", PYTHONIOENCODING="utf-8", **(extra_env or {}))
+    p = subprocess.Popen([py or PY] + args, cwd=cwd or POCR, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          text=True, encoding="utf-8", errors="replace", env=env)
     tail = []
     for line in p.stdout:
@@ -204,28 +237,29 @@ def train_and_convert(kind, epochs, n_train):
     weights = os.path.join(out_dir, "best_accuracy")
     if not os.path.isfile(weights + ".pdparams"):
         weights = os.path.join(out_dir, "latest")
+    if SPLIT:   # hand the weights to the export toolchain as plain arrays (no pickle / NumPy-version coupling)
+        bridge = os.path.join(WORK, "bridge"); os.makedirs(bridge, exist_ok=True)
+        npz = os.path.join(bridge, f"{kind}.npz")
+        run([os.path.join(KIT, "kit", "weights_bridge.py"), "to-npz", weights, npz], "Handing weights to the export tools", cwd=KIT)
+        weights = os.path.join(bridge, f"{kind}_best")
+        run([os.path.join(KIT, "kit", "weights_bridge.py"), "from-npz", npz, weights], "Loading weights into the export tools",
+            py=EXP_PY, cwd=KIT)
+        export_cfg, cfg_args = EXP_CFG[kind], ["Global.use_gpu=False"]
+    else:
+        export_cfg, cfg_args = cfg, []
     export_dir = os.path.join(WORK, "export", kind)
     shutil.rmtree(export_dir, ignore_errors=True)
-    run(["tools/export_model.py", "-c", cfg, "-o", f"Global.pretrained_model={posix(weights)}",
-         f"Global.save_inference_dir={posix(export_dir)}"], "Exporting")
+    run(["tools/export_model.py", "-c", export_cfg, "-o", *cfg_args, f"Global.pretrained_model={posix(weights)}",
+         f"Global.save_inference_dir={posix(export_dir)}"], "Exporting", py=EXP_PY, cwd=EXP_POCR)
+    if not os.path.isfile(os.path.join(export_dir, "inference.pdmodel")):
+        raise RuntimeError(f"Export did not write inference.pdmodel (found: {os.listdir(export_dir)}).")
     os.makedirs(OUT, exist_ok=True)
     onnx_path = os.path.join(OUT, f"{kind}.onnx")
     run(["-c", "import sys; from paddle2onnx.command import main; sys.argv=['paddle2onnx'] + sys.argv[1:]; main()",
          "--model_dir", export_dir, "--model_filename", "inference.pdmodel", "--params_filename", "inference.pdiparams",
-         "--save_file", onnx_path, "--opset_version", "14", "--enable_onnx_checker", "True"], "Converting to ONNX")
-    import onnx, onnxruntime as ort, numpy as np
-    if kind == "rec":
-        keys = open(DICT, encoding="utf-8").read().splitlines()
-        model = onnx.load(onnx_path)
-        meta = model.metadata_props.add(); meta.key, meta.value = "character", "\n".join(keys)
-        onnx.save(model, onnx_path)
-        shutil.copy2(DICT, os.path.join(OUT, "rec_keys.txt"))
-        shape = (1, 3, 48, 320)
-    else:
-        shape = (1, 3, 640, 640)
-    sess = ort.InferenceSession(onnx_path, providers=["CPUExecutionProvider"])
-    sess.run(None, {sess.get_inputs()[0].name: np.zeros(shape, dtype=np.float32)})
-    log(f"  {os.path.basename(onnx_path)}: {os.path.getsize(onnx_path) / 1e6:.1f} MB, loads and runs in ONNX Runtime")
+         "--save_file", onnx_path, "--opset_version", "14", "--enable_onnx_checker", "True"], "Converting to ONNX",
+        py=EXP_PY, cwd=KIT)
+    run([os.path.join(KIT, "kit", "onnx_finish.py"), kind, onnx_path, EXP_DICT, OUT], "Checking the model", py=EXP_PY, cwd=KIT)
     return best_metric(kind)
 
 # ---------------------------------------------------------------------------------------------------------
@@ -255,9 +289,10 @@ def main():
             log(f"Skipping {kind}: {n} samples, need {minimum}+ (use --allow-small only for a dry run).")
             continue
         n_train = sum(1 for _ in open(os.path.join(DATA, f"{kind}_train.txt"), encoding="utf-8"))
-        rate = 0.7 if kind == "rec" else 0.3     # samples per second, measured on a laptop CPU (Ryzen AI 9, 2026-10-20)
+        rate = (GPU_RATE if GPU else CPU_RATE)[kind]
         hours = n_train * a.epochs / rate / 3600
-        log(f"Estimated time for the {'reader' if kind == 'rec' else 'finder'}: about {hours:.1f} hours on a laptop CPU "
+        where = "the GPU" if GPU else "a laptop CPU"
+        log(f"Estimated time for the {'reader' if kind == 'rec' else 'finder'}: about {hours:.1f} hours on {where} "
             f"({n_train} samples x {a.epochs} passes). Leave the PC plugged in and awake.")
         metric = train_and_convert(kind, a.epochs, n_train)
         info["models"][f"{kind}.onnx"] = {"best": metric}

@@ -2,6 +2,17 @@ ACRONYM HUNTER TRAINING KIT
 ===========================
 Turns Trainer samples into better OCR models. Runs on any Windows 10/11 PC with NO internet.
 
+TWO VERSIONS
+  AcronymHunter_TrainingKit_GPU  For PCs with an NVIDIA RTX card (tested: RTX 5070 Ti Laptop; works with RTX 50 and
+                                 RTX PRO Blackwell cards such as the Dell Pro Max 16's RTX PRO 1000). About 100x faster:
+                                 1,000 text lines x 20 passes in about 6 minutes instead of about 8 hours.
+                                 Needs only a current NVIDIA driver; the CUDA libraries are inside the kit.
+                                 ASUS laptops: Armoury Crate > GPU Mode > Standard (Eco switches the NVIDIA card off).
+                                 Without a visible GPU it still works, on the CPU.
+                                 Download: parts .001/.002/... plus Join_AcronymHunter_TrainingKit_GPU.cmd. Put them in
+                                 one folder, double-click the Join file (it checks the fingerprint), then unzip.
+  AcronymHunter_TrainingKit      CPU only, smaller (about 410 MB). Any Windows PC. Overnight for 1,000 lines.
+
 OFFLINE BY DESIGN
   The kit carries its own Python. kit\sitecustomize.py loads before anything else and refuses every
   outbound connection, DNS lookup, and UDP packet. Any attempt is logged to kit\logs\network_blocked.log.
@@ -14,7 +25,7 @@ STEP BY STEP
      Duplicates across people are removed automatically.
   2. Double-click Train.cmd. Choose 2 (reader), 3 (finder), or 4 (both).
      Minimums: 300 text lines for the reader, 100 regions for the finder.
-     A laptop CPU trains 1,000 text lines in roughly 30 to 90 minutes.
+     The kit prints an estimated time before it starts (GPU: minutes; CPU: hours).
   3. The kit writes output\models\: rec.onnx + rec_keys.txt (reader), det.onnx (finder), model_info.json.
   4. In the scanner (Advanced on): Knowledge > Load Trained Models > pick output\models.
   5. Score: tools\evaluate.py (from source) or rescan a known folder. Keep the models only if results improve.
@@ -28,8 +39,10 @@ DATA HANDLING
   The kit as distributed contains no document data.
 
 FOLDERS
-  python\      portable Python 3.11 + PaddlePaddle 2.6.2 (CPU) + paddle2onnx + ONNX Runtime
-  PaddleOCR\   PaddleOCR 2.8 training and export tools
+  python\      portable Python 3.11. CPU kit: PaddlePaddle 2.6.2 + paddle2onnx + ONNX Runtime.
+               GPU kit: PaddlePaddle 3.4 with CUDA 12.9 libraries (training only)
+  PaddleOCR\   training tools (CPU kit: PaddleOCR 2.8; GPU kit: PaddleOCR 3.7)
+  export\      GPU kit only: the CPU kit's proven toolchain, used to export and convert the trained models
   pretrain\    PP-OCRv4 starting weights (reader: student.pdparams, finder: best_accuracy.pdparams)
   kit\         train.py (driver), sitecustomize.py (network lockdown), logs\
   samples\     your samples (you add these)

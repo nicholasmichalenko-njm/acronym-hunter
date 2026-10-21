@@ -281,14 +281,24 @@ PaddlePaddle 2.6.2 (CPU), PaddleOCR 2.8 training tools, and the PP-OCRv4 startin
 No installation, no admin rights, **no internet**. A network lockdown built into the kit's Python refuses every
 outbound connection and logs any attempt to `kit\logs\network_blocked.log`. It holds no document data.
 
+### Which kit
+| Kit | For | Speed (1,000 text lines x 20 passes) | Download |
+|---|---|---|---|
+| `AcronymHunter_TrainingKit_GPU` | PCs with an NVIDIA RTX card, incl. RTX 50 and RTX PRO Blackwell (Dell Pro Max 16 with RTX PRO 1000, ASUS Zephyrus with RTX 5070 Ti) | About 6 minutes (reader measured at about 69 lines/s on an RTX 5070 Ti Laptop) | About 4 GB in 1.9 GB parts + a Join file that rebuilds the zip and checks its fingerprint |
+| `AcronymHunter_TrainingKit` | Any Windows PC | About 8 hours (about 0.7 lines/s on a Ryzen AI 9 laptop CPU) | About 410 MB |
+
+The GPU kit needs only a current NVIDIA driver; the CUDA libraries ship inside it. On ASUS laptops set
+**Armoury Crate > GPU Mode > Standard**: Eco mode switches the NVIDIA card off, and the kit then falls back to the CPU.
+Inside, it trains with PaddlePaddle 3.4 + PaddleOCR 3.7 and exports with the CPU kit's proven toolchain (`export\`);
+the trained weights cross over as plain arrays. Both kits produce identical drop-in models.
+
 ### Step by step
 1. **Collect** in the Trainer. Save misread lines as **Save as text** with the right spelling, and false boxes as
    **Not text**. Save some correct lines too, so the model does not forget them.
 2. **Gather** each collector's `training_data\` folder into the kit's `samples\`, one subfolder per person
    (`samples\nicholas\`, `samples\jsmith\`). Move them over an approved channel; duplicates are removed automatically.
 3. **Train:** double-click `Train.cmd`, choose 1 (check), then 2 (reader), 3 (finder), or 4 (both).
-   The kit shows an estimated time first. On a laptop CPU the reader trains at about 0.7 lines per second, so
-   1,000 lines x 20 passes is roughly 8 hours: run it overnight, plugged in.
+   The kit shows an estimated time first: minutes on the GPU kit, hours on the CPU kit (run that one overnight, plugged in).
 4. **Result:** `output\models\` holds `rec.onnx` + `rec_keys.txt` and/or `det.onnx`, plus `model_info.json`.
    The kit has already checked that each model loads and runs.
 5. **Try it:** in the scanner (Advanced on), **Knowledge > Load Trained Models** > pick `output\models`.
@@ -300,7 +310,7 @@ outbound connection and logs any attempt to `kit\logs\network_blocked.log`. It h
    pooled sample set, so keep every collector's samples.
 
 ### Building the kit (once, by the maintainer)
-`build_training_kit.ps1` runs on a PC with internet, downloads every pinned piece (Python embeddable, PyPI packages,
+`build_training_kit.ps1` (CPU kit) or `build_training_kit.ps1 -Gpu` (GPU kit) runs on a PC with internet, downloads every pinned piece (Python embeddable, PyPI packages,
 PaddleOCR 2.8 source, PP-OCRv4 weights), installs the lockdown, runs the kit check, and zips the kit. Every download's
 SHA-256 and every package version go into `KIT_MANIFEST.txt`. This is the only step that uses the internet.
 

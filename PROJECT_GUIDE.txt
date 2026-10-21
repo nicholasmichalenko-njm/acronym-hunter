@@ -26,14 +26,18 @@ base\
   config\ (app_settings.json, ocr_settings.json, ocr_corrections.csv with 2 examples, models\README.txt).
   Change these only with generic content. base\README.txt explains the rule.
 
-build_training_kit.ps1
-  Builds kit_build\AcronymHunter_TrainingKit.zip ONCE on an internet-connected PC: downloads pinned Python,
-  PaddlePaddle, PaddleOCR 2.8, and PP-OCRv4 weights, installs the network lockdown, runs the kit check, zips.
-  Publish the kit zip as a GitHub Release file (it holds no document data).
+build_training_kit.ps1  [-Gpu]
+  Builds kit_build\AcronymHunter_TrainingKit.zip (CPU) or AcronymHunter_TrainingKit_GPU.zip ONCE on an
+  internet-connected PC: downloads pinned Python, PaddlePaddle, PaddleOCR, and PP-OCRv4 weights, installs the network
+  lockdown in every Python, runs the kit check, zips, and splits zips over 1.9 GB into parts + a Join .cmd
+  (GitHub Release files are limited to 2 GB). Publish as GitHub Release files (no document data inside).
+  GPU kit: trains with PaddlePaddle 3.4 + PaddleOCR 3.7; exports with the CPU stack in export\ (paddle2onnx 2.x
+  does not load on Windows with PaddlePaddle 3.2-3.4, and PaddlePaddle 3.4's legacy export fails on PP-OCRv4).
 
 training_kit_src\
   The kit's own files: Train.cmd (menu), README_TRAINING_KIT.txt, kit\train.py (merge samples, train, export,
-  convert to ONNX), kit\sitecustomize.py (network lockdown, loaded first in every kit process).
+  convert to ONNX), kit\sitecustomize.py (network lockdown, loaded first in every kit process),
+  kit\weights_bridge.py (weights to/from .npz between toolchains), kit\onnx_finish.py (embed character list, smoke test).
 
 tools\make_dryrun_samples.py
   Writes fictional samples in Trainer format for a Training Kit dry run. Never ship models trained on them.

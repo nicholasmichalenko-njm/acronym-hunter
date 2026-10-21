@@ -133,7 +133,8 @@ Audit 2026-10-20: no document data, user paths, or trained knowledge in the pack
 
 | Question | Answer |
 |---|---|
-| What is it? | A separate folder for whoever trains models: portable Python 3.11, PaddlePaddle 2.6.2 (CPU), PaddleOCR 2.8 tools, PP-OCRv4 starting weights. No document data as distributed |
+| What is it? | A separate folder for whoever trains models: portable Python 3.11, PaddlePaddle (CPU kit 2.6.2; GPU kit 3.4 with NVIDIA CUDA 12.9 libraries, plus a 2.6.2 export toolchain), PaddleOCR tools, PP-OCRv4 starting weights. No document data as distributed |
+| GPU kit specifics | Uses the NVIDIA card through the installed NVIDIA driver; CUDA libraries are pip-distributed NVIDIA packages inside the kit (nothing installed on the PC). Both Pythons in the kit load the same network lockdown |
 | Network | `kit\sitecustomize.py` loads before any other code in every kit process and refuses outbound TCP, UDP, and DNS (loopback allowed). Refusals are logged to `kit\logs\network_blocked.log`. `Train.cmd > 1` proves it on the current PC |
 | Internet needed? | Only once, by the maintainer, to build the kit (`build_training_kit.ps1`). Every download's SHA-256 is in `KIT_MANIFEST.txt` |
 | What it writes | Inside the kit folder only: `samples\` (collectors' crops), `work\` (merged data, checkpoints), `output\models\`, `kit\logs\`. All sensitive at the documents' level |
