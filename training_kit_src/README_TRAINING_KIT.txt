@@ -9,6 +9,10 @@ TWO VERSIONS
                                  Needs only a current NVIDIA driver; the CUDA libraries are inside the kit.
                                  ASUS laptops: Armoury Crate > GPU Mode > Standard (Eco switches the NVIDIA card off).
                                  Without a visible GPU it still works, on the CPU.
+                                 Batch size follows the card's memory (12 GB+: reader 128; 8 GB such as the RTX PRO
+                                 1000: reader 32). If a card still runs out of memory, the kit halves it and retries.
+                                 Driver check: in a Command Prompt run  nvidia-smi  ; "CUDA Version" at the top right
+                                 must be 12.9 or higher. If lower, ask IT for a current NVIDIA driver.
                                  Download: parts .001/.002/... plus Join_AcronymHunter_TrainingKit_GPU.cmd. Put them in
                                  one folder, double-click the Join file (it checks the fingerprint), then unzip.
   AcronymHunter_TrainingKit      CPU only, smaller (about 410 MB). Any Windows PC. Overnight for 1,000 lines.

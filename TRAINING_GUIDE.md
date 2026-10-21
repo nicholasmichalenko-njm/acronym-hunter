@@ -287,7 +287,9 @@ outbound connection and logs any attempt to `kit\logs\network_blocked.log`. It h
 | `AcronymHunter_TrainingKit_GPU` | PCs with an NVIDIA RTX card, incl. RTX 50 and RTX PRO Blackwell (Dell Pro Max 16 with RTX PRO 1000, ASUS Zephyrus with RTX 5070 Ti) | About 6 minutes (reader measured at about 69 lines/s on an RTX 5070 Ti Laptop) | About 4 GB in 1.9 GB parts + a Join file that rebuilds the zip and checks its fingerprint |
 | `AcronymHunter_TrainingKit` | Any Windows PC | About 8 hours (about 0.7 lines/s on a Ryzen AI 9 laptop CPU) | About 410 MB |
 
-The GPU kit needs only a current NVIDIA driver; the CUDA libraries ship inside it. On ASUS laptops set
+The GPU kit needs only a current NVIDIA driver (`nvidia-smi` must show "CUDA Version" 12.9 or higher); the CUDA
+libraries ship inside it. Batch size follows the card's memory: 12 GB and up use reader 128 / finder 16; 7 to 11 GB
+(RTX PRO 1000, 8 GB) use 32 / 8, verified under a 7.4 GB cap (peak 5.3 GB); an out-of-memory error halves it and retries. On ASUS laptops set
 **Armoury Crate > GPU Mode > Standard**: Eco mode switches the NVIDIA card off, and the kit then falls back to the CPU.
 Inside, it trains with PaddlePaddle 3.4 + PaddleOCR 3.7 and exports with the CPU kit's proven toolchain (`export\`);
 the trained weights cross over as plain arrays. Both kits produce identical drop-in models.

@@ -27,6 +27,8 @@ REC_CFG = _V3_REC if V3 else os.path.join(POCR, "configs", "rec", "PP-OCRv4", "c
 DET_CFG = os.path.join(POCR, "configs", "det", "PP-OCRv4", "PP-OCRv4_mobile_det.yml") if V3 else \
     os.path.join(POCR, "configs", "det", "ch_PP-OCRv4", "ch_PP-OCRv4_det_student.yml")
 GPU = False   # set by check()
+VRAM_GB = 0.0  # graphics memory of GPU 0, set by check()
+BATCH_SCALE = 1.0  # halved after an out-of-memory error, then training retries
 # GPU kit: export and conversion run in a second, proven toolchain (PaddlePaddle 2.6.2 + PaddleOCR 2.8 + paddle2onnx 1.3.1)
 EXPORT_PY = os.path.join(KIT, "export", "python", "python.exe")
 EXPORT_POCR = os.path.join(KIT, "export", "PaddleOCR")
@@ -75,8 +77,13 @@ def check():
     import paddle
     cuda_build = paddle.device.is_compiled_with_cuda()
     GPU = cuda_build and paddle.device.cuda.device_count() > 0
+    global VRAM_GB
     if GPU:
-        log(f"PaddlePaddle {paddle.__version__} on GPU: {paddle.device.cuda.get_device_name(0)}")
+        try:
+            VRAM_GB = float(os.environ.get("KIT_VRAM_GB") or paddle.device.cuda.get_device_properties(0).total_memory / 1024 ** 3)
+        except Exception:
+            VRAM_GB = 8.0
+        log(f"PaddlePaddle {paddle.__version__} on GPU: {paddle.device.cuda.get_device_name(0)} ({VRAM_GB:.0f} GB)")
     elif cuda_build:
         log(f"PaddlePaddle {paddle.__version__} (GPU kit) but NO NVIDIA GPU IS VISIBLE. Training will use the CPU (slow).")
         log("  ASUS laptops: Armoury Crate > GPU Mode > Standard (Eco mode switches the NVIDIA card off).")
@@ -163,6 +170,13 @@ def _two_batches(n, cap):
     """Batch size that gives at least 2 batches: PaddleOCR on Windows skips the last batch of every pass."""
     return max(1, min(cap, n // 2))
 
+def _gpu_caps():
+    """Largest batch per card that fits the GPU's memory: (reader, finder).
+    Measured on an RTX 5070 Ti: reader 128 fits 12 GB; capped at 7.4 GB (an 8 GB card), reader 64 ran out of memory
+    and reader 32 peaked at 4.4 GB."""
+    rec, det = (128, 16) if VRAM_GB >= 11 else (32, 8) if VRAM_GB >= 7 else (16, 4)
+    return max(4, int(rec * BATCH_SCALE)), max(1, int(det * BATCH_SCALE))
+
 def write_config(base_cfg, kind, epochs, n_train):
     import yaml
     cfg = yaml.safe_load(open(base_cfg, encoding="utf-8"))
@@ -175,6 +189,8 @@ def write_config(base_cfg, kind, epochs, n_train):
     cfg["Optimizer"]["lr"]["learning_rate"] = 0.0001          # fine-tuning: small steps from the starting weights
     cfg["Optimizer"]["lr"]["warmup_epoch"] = 0
     tr, ev = cfg["Train"], cfg["Eval"]
+    if GPU:
+        log(f"  batch size per step: reader {_gpu_caps()[0]}, finder {_gpu_caps()[1]} (for {VRAM_GB:.0f} GB of graphics memory)")
     n_val = sum(1 for _ in open(os.path.join(DATA, f"{kind}_val.txt"), encoding="utf-8"))
     for section, split in ((tr, "train"), (ev, "val")):
         section["dataset"]["data_dir"] = posix(DATA)
@@ -183,7 +199,7 @@ def write_config(base_cfg, kind, epochs, n_train):
     if kind == "rec":
         g["pretrained_model"] = posix(REC_WEIGHTS)
         g["character_dict_path"] = posix(DICT)
-        bs = _two_batches(n_train, 128 if GPU else 32)
+        bs = _two_batches(n_train, _gpu_caps()[0] if GPU else 32)
         tr["sampler"]["first_bs"] = bs
         tr["loader"]["batch_size_per_card"] = bs
         tr["loader"]["drop_last"] = False
@@ -191,7 +207,7 @@ def write_config(base_cfg, kind, epochs, n_train):
         steps = max(1, n_train // bs - 1)
     else:
         g["pretrained_model"] = posix(DET_WEIGHTS)
-        bs = _two_batches(n_train, 16 if GPU else 4)
+        bs = _two_batches(n_train, _gpu_caps()[1] if GPU else 4)
         tr["loader"]["batch_size_per_card"] = bs
         ev["loader"]["batch_size_per_card"] = 1
         tr["dataset"].pop("ratio_list", None)
@@ -222,6 +238,12 @@ def run(args, label, extra_env=None, py=None, cwd=None):
     if p.wait() != 0:
         raise RuntimeError(f"{label} failed. Last lines:\n" + "\n".join(tail[-25:]))
 
+def _log_tail(n=4000):
+    try:
+        return open(LOG_FILE, encoding="utf-8", errors="replace").read()[-n:]
+    except Exception:
+        return ""
+
 def best_metric(kind):
     m = None
     for line in open(LOG_FILE, encoding="utf-8", errors="replace"):
@@ -233,7 +255,19 @@ def best_metric(kind):
 def train_and_convert(kind, epochs, n_train):
     cfg, out_dir = write_config(REC_CFG if kind == "rec" else DET_CFG, kind, epochs, n_train)
     shutil.rmtree(out_dir, ignore_errors=True)
-    run(["tools/train.py", "-c", cfg], f"Training the {'reader (recognition)' if kind == 'rec' else 'finder (detection)'}, {epochs} epochs")
+    global BATCH_SCALE
+    label = f"Training the {'reader (recognition)' if kind == 'rec' else 'finder (detection)'}, {epochs} epochs"
+    for attempt in range(3):
+        try:
+            run(["tools/train.py", "-c", cfg], label)
+            break
+        except RuntimeError as e:
+            if not GPU or attempt == 2 or not re.search(r"out of memory|ResourceExhausted|cudaErrorMemoryAllocation", str(e) + _log_tail(), re.I):
+                raise
+            BATCH_SCALE /= 2
+            log(f"  The GPU ran out of memory. Retrying with half the batch size.")
+            cfg, out_dir = write_config(REC_CFG if kind == "rec" else DET_CFG, kind, epochs, n_train)
+            shutil.rmtree(out_dir, ignore_errors=True)
     weights = os.path.join(out_dir, "best_accuracy")
     if not os.path.isfile(weights + ".pdparams"):
         weights = os.path.join(out_dir, "latest")
