@@ -55,11 +55,25 @@ CLIENT ACRONYM LISTS (from an RFP or the customer)
   With no client lists added, scans work exactly as before. In a project, the lists are saved with it.
   Client lists stay on this PC and in the project file: never in Knowledge Packs or GitHub.
 
+FIRST USE OF EACH ACRONYM (where to define it)
+  The "First Use (acronyms)" column shows, for each acronym, where it first appears in each file
+  (reading order: pages, slides, Word sections, then headers/footers and pictures) and whether that
+  first use is written the proposal way: Spelled Out Words (ACR).
+    check defined         = first use is "Words (ACR)"
+    X defined later       = first use is bare; "(ACR)" appears later. Move the definition up.
+    X not defined         = never written as "(ACR)" in that file
+    ? check               = found through an OCR correction; look at it yourself
+  Each file counts on its own, since each volume must define its own acronyms.
+  Units and abbreviations never get a First Use entry.
+  Status > "Not defined at first use" lists every acronym to fix. Double-click a row for every file.
+  "First found / Last found by a scan" (projects only) are scan dates, not places in the document.
+
 EXPORTING FOR AUTHORS
   Export CSV exports exactly the rows showing (current Type, Status, and Search filters, current sort).
   The file name says which view, for example Acronym_Report_Needs-choice_2026-10-21.csv.
   Columns include Possible definitions (every meaning, client first), Client list definition,
-  Database definition, and a blank Author decision column for authors to fill in.
+  Database definition, a blank Author decision column for authors to fill in, and
+  First use (acronyms: define here).
 
 ADDING YOUR OWN ITEMS
   "+ Add Item" adds a term the scan did not find (type, definition, where you saw it). It appears

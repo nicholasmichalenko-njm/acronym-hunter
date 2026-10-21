@@ -1224,12 +1224,65 @@ def build_matcher():
         "abbrev_re": re.compile(r'(?<!\w)([a-zA-Z]{1,4}/[a-zA-Z]{1,4}|[a-zA-Z]{2,6}\.)(?!\w)'),
     }
 
+_HITS = None   # terms recorded in the chunk being matched (for first use)
+
+def _file_of(label):
+    """File name at the start of a location label ("Volume (Final).docx (Slide 3)" -> "Volume (Final).docx")."""
+    exts = "|".join(re.escape(e) for e in sorted(SUPPORTED_EXTS, key=len, reverse=True))
+    mt = re.match(rf"(.+?(?:{exts}))(?= \(| \[|$)", label, re.I)
+    return mt.group(1) if mt else label
+
+def note_first_use(findings, hits, label, text):
+    """Per file, where each term first appears in reading order, and whether that first use is written the way
+    proposals define an acronym: "Spelled Out Words (ACR)". Records a later "(ACR)" when the first use is bare."""
+    f = _file_of(label)
+    for term in dict.fromkeys(hits):
+        d = findings.get(term)
+        if d is None:
+            continue
+        pat = re.escape(term) + r"s?"
+        mt = re.search(r"(?<![A-Za-z0-9])" + pat + r"(?![A-Za-z0-9])", text)
+        paren = None if mt is None else text[max(0, mt.start() - 1):mt.start()] == "("
+        fu = d.setdefault("first_use", {})
+        if f not in fu:
+            fu[f] = {"loc": label, "defined": paren}
+            if paren is False and re.search(r"\(" + pat + r"\)", text):
+                fu[f]["later"] = label
+        elif fu[f]["defined"] is False and not fu[f].get("later") and re.search(r"\(" + pat + r"\)", text):
+            fu[f]["later"] = label
+
+def first_use_lines(d, with_file=True):
+    """Readable first-use lines for acronyms only (units and abbreviations are never defined this way)."""
+    if not d.get("category", "").startswith("Acronym") or d.get("excluded"):
+        return []
+    out = []
+    for f, u in d.get("first_use", {}).items():
+        loc = u["loc"] if with_file else (u["loc"][len(f):].strip() or u["loc"])
+        if u["defined"] is True:
+            state = "defined here"
+        elif u["defined"] is None:
+            state = "check (OCR-corrected)"
+        elif u.get("later") == u["loc"]:
+            state = "NOT defined at first use; spelled out later in the same passage"
+        elif u.get("later"):
+            state = f"NOT defined at first use; spelled out later at {u['later']}"
+        else:
+            state = "NOT defined in this file"
+        out.append(f"{loc}: {state}")
+    return out
+
+def first_use_flag(d):
+    """True if any file's first use of an acronym is not written as "Words (ACR)"."""
+    return any(u["defined"] is False for u in d.get("first_use", {}).values()) and bool(first_use_lines(d))
+
 def match_chunks(findings, chunks, m):
     """Run the three gates over [(location label, text)] and record findings."""
+    global _HITS
     for loc_label, text in chunks:
         if not text.strip():
             continue
         text = fold(text)
+        _HITS = hits = []
 
         # Gate 1 & 2: Unified Database (Exclusions & Inclusions)
         if m['direct_pattern']:
@@ -1286,7 +1339,8 @@ def match_chunks(findings, chunks, m):
             if acand.endswith('.') and acand[:-1].lower() in {"end", "out", "see", "all", "one", "two", "now"}:
                 continue
             record_candidate(findings, acand, "Abbreviation (Candidate)", loc_label)
-
+        _HITS = None
+        note_first_use(findings, hits, loc_label, text)
 
 
 CANCEL = threading.Event()   # set by the Cancel Scan button
@@ -1342,7 +1396,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "1.5.0"            # keep in step with version_info.txt
+APP_VERSION = "1.5.1"            # keep in step with version_info.txt
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
 LOCK_STALE_HOURS = 12
@@ -1596,6 +1650,8 @@ def apply_ocr_fix(findings, wrong, right, cat, loc, include_db, exclude_db):
         record_candidate(findings, right, cat, tagged)
 
 def record_included(findings, term, loc, include_db):
+    if _HITS is not None:
+        _HITS.append(term)
     info = include_db[term]
     defs = info["definitions"]
     multi = len(defs) > 1
@@ -1611,6 +1667,8 @@ def record_included(findings, term, loc, include_db):
         findings[term]["locations"].append(loc)
 
 def record_excluded(findings, term, loc, exclude_db):
+    if _HITS is not None:
+        _HITS.append(term)
     info = exclude_db[term]
     if term not in findings:
         findings[term] = {
@@ -1623,6 +1681,8 @@ def record_excluded(findings, term, loc, exclude_db):
         findings[term]["locations"].append(loc)
 
 def record_candidate(findings, term, cat, loc):
+    if _HITS is not None:
+        _HITS.append(term)
     if term not in findings:
         findings[term] = {
             "category": cat, "count": 0, "locations": [],
@@ -1983,6 +2043,7 @@ ctk.CTkToplevel.__init__ = _toplevel_init   # every pop-up window gets the app i
 SETTINGS_FILE = os.path.join(SANDBOX_DIR, "settings.json")
 ALL_TYPES = "All types"
 STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", "Client list", "Client and database differ",
+                  "Not defined at first use",
                   "Added manually",
                   "New since last scan", "Changed since last scan", "No longer found", "Errors / not scanned", "Excluded"]
 MANUAL_MARK = "✍"
@@ -1995,7 +2056,8 @@ COLUMNS = (  # id, heading, base width, anchor
     ("count", "Count", 70, "center"),
     ("change", "Change", 130, "w"),
     ("status", "Status", 210, "w"),
-    ("definition", "Definition", 360, "w"),
+    ("definition", "Definition", 300, "w"),
+    ("firstuse", "First Use (acronyms)", 260, "w"),
     ("locations", "Locations Found", 420, "w"),
 )
 FONT_MIN, FONT_MAX, FONT_DEFAULT = 9, 28, 13
@@ -2727,6 +2789,8 @@ class AcronymAppGUI(ctk.CTk):
             return (rank, term.casefold())
         if c == "definition":
             return (data["selected_definition"].casefold(), term.casefold())
+        if c == "firstuse":
+            return (0 if first_use_flag(data) else 1 if first_use_lines(data) else 2, term.casefold())
         if c == "change":
             order = {"New": 0, "Changed": 1, "No longer found": 2, "Unchanged": 3}
             return (order.get(data.get("change", ""), 4), term.casefold())
@@ -2754,6 +2818,7 @@ class AcronymAppGUI(ctk.CTk):
             "New candidates": st.startswith("🔍"),
             "Resolved": st.startswith("✅"),
             "Client list": data.get("client", False),
+            "Not defined at first use": first_use_flag(data),
             "Client and database differ": bool(data.get("client") and data.get("db_definitions")),
             "Added manually": data.get("manual", False),
             "New since last scan": data.get("change") == "New",
@@ -2765,7 +2830,39 @@ class AcronymAppGUI(ctk.CTk):
 
     def row_values(self, term, data):
         return (term, data["category"], data["count"], data.get("change", ""), data["status"],
-                data["selected_definition"], self.wrap_locations(data["locations"]))
+                data["selected_definition"], self.first_use_cell(data), self.wrap_locations(data["locations"]))
+
+    def first_use_cell(self, data):
+        """Compact table text: where the first use is and whether it is defined there. Details and export say more."""
+        if not first_use_lines(data):
+            return ""
+        items = list(data["first_use"].items())
+        one_file = len(set(_file_of(l) for l in data["locations"])) <= 1
+        f, u = items[0]
+        loc = (u["loc"][len(f):].strip() if one_file else u["loc"]) or u["loc"]
+        mark = {True: "\u2713 defined", None: "? check"}.get(u["defined"], "\u2717 defined later" if u.get("later") else "\u2717 not defined")
+        text = self._wrap_px(f"{mark}: {loc}", "firstuse", 2)
+        if len(items) > 1:
+            bad = sum(1 for _f, x in items if x["defined"] is False)
+            text += f"\n+{len(items) - 1} more file(s)" + (f", {bad} not defined" if bad else "")
+        return text
+
+    def _wrap_px(self, text, col, max_lines):
+        """Word-wrap text to a column's pixel width, at most max_lines lines (last line ends in ... if cut)."""
+        if not hasattr(self, "tree"):
+            return text
+        width = max(60, int(self.tree.column(col, "width")) - 16)
+        lines, cur = [], ""
+        for word in text.split(" "):
+            trial = (cur + " " + word).strip()
+            if cur and self.tree_font.measure(trial) > width:
+                lines.append(cur); cur = word
+            else:
+                cur = trial
+        lines.append(cur)
+        if len(lines) > max_lines:
+            lines = lines[:max_lines]; lines[-1] = lines[-1][:max(1, len(lines[-1]) - 3)] + "..."
+        return "\n".join(lines)
 
     def wrap_locations(self, locations):
         """Locations wrapped to the column width, at most LOC_MAX_LINES lines (the rest: double-click the row)."""
@@ -2795,14 +2892,15 @@ class AcronymAppGUI(ctk.CTk):
     def _fit_row_height(self):
         lines = 1
         for iid in self.tree.get_children():
-            lines = max(lines, str(self.tree.set(iid, "locations")).count("\n") + 1)
+            lines = max(lines, str(self.tree.set(iid, "locations")).count("\n") + 1,
+                        str(self.tree.set(iid, "firstuse")).count("\n") + 1)
             if lines >= LOC_MAX_LINES:
                 break
         line_h = self.tree_font.metrics("linespace")
         self.style.configure("Treeview", rowheight=line_h * lines + max(8, self.font_size // 2))
 
     def _maybe_rewrap(self, _e=None):
-        w = int(self.tree.column("locations", "width"))
+        w = (int(self.tree.column("locations", "width")), int(self.tree.column("firstuse", "width")))
         if self._loc_width is not None and w != self._loc_width:
             self.populate_table()
         self._loc_width = w
@@ -2868,7 +2966,7 @@ class AcronymAppGUI(ctk.CTk):
         for term, data in rows:
             self.tree.insert("", "end", iid=term, tags=(self.row_tag(data),), values=self.row_values(term, data))
         self._fit_row_height()
-        self._loc_width = int(self.tree.column("locations", "width"))
+        self._loc_width = (int(self.tree.column("locations", "width")), int(self.tree.column("firstuse", "width")))
 
         self.lbl_showing.configure(text=f"Showing {len(rows)} of {len(self.results)}" if self.results else "")
         if self.results:
@@ -3132,8 +3230,9 @@ class AcronymAppGUI(ctk.CTk):
         with open(path, "w", newline="", encoding="utf-8-sig") as f:
             w = csv.writer(f)
             w.writerow(["Term", "Type", "Count", "Change", "Status", "Selected definition", "Possible definitions",
-                        "Client list definition", "Database definition", "Author decision", "Locations",
-                        "First seen", "Last seen"])
+                        "Client list definition", "Database definition", "Author decision",
+                        "First use (acronyms: define here)", "Locations",
+                        "First found by a scan (date)", "Last found by a scan (date)"])
             for term in terms:
                 d = self.results[term]
                 defs = d.get("definitions", [])
@@ -3143,7 +3242,7 @@ class AcronymAppGUI(ctk.CTk):
                 w.writerow([term, d["category"], d["count"], d.get("change", ""), d["status"], d["selected_definition"],
                             "\n".join(defs) if len(defs) > 1 or d.get("client") else "",
                             "\n".join(client), "\n".join(strip(x) for x in dbdefs), "",
-                            "\n".join(d["locations"]), d.get("first_seen", ""), d.get("last_seen", "")])
+                            "\n".join(first_use_lines(d)), "\n".join(d["locations"]), d.get("first_seen", ""), d.get("last_seen", "")])
         view = self.status_var.get() if self.status_var.get() != STATUS_FILTERS[0] else "all statuses"
         messagebox.showinfo("Exported", f"{len(terms)} rows exported ({view}) to:\n{path}\n\n"
                             "Possible definitions lists every meaning (client first). Authors can fill in Author decision.")
@@ -3166,9 +3265,12 @@ class AcronymAppGUI(ctk.CTk):
                 lines += ["", "Database definition(s), different from the client:"] + [f"  - {x}" for x in d["db_definitions"]]
         elif len(d.get("definitions", [])) > 1:
             lines += ["", "Possible definitions:"] + [f"  - {x}" for x in d["definitions"]]
+        fu = first_use_lines(d)
+        if fu:
+            lines += ["", "First use in each file (define it here as: Spelled Out Words (ACR)):"] + [f"  - {x}" for x in fu]
         lines += ["", f"Locations ({len(d['locations'])}):"] + [f"  - {x}" for x in d["locations"]]
         if d.get("first_seen"):
-            lines += ["", f"First seen {d['first_seen']}, last seen {d.get('last_seen', '')}"]
+            lines += ["", f"Project history: first found by a scan on {d['first_seen']}, last found {d.get('last_seen', '')}"]
         box.insert("1.0", "\n".join(lines)); box.configure(state="disabled")
 
     # ---------- client acronym lists ----------
