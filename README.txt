@@ -1,6 +1,12 @@
 ACRONYM HUNTER (Portable, Offline)
 ==================================
 
+EDITIONS (from v1.6.0)
+  US edition (AcronymHunter_US_*.zip): reads text in pictures with Tesseract OCR (Apache 2.0; created at
+    HP, developed by Google) and Google's English model. No Chinese-origin code or models. The Trainer
+    trains the reader on this PC's processor: no GPU, no internet, no separate kit.
+  Legacy edition (v1.5.1 and earlier): RapidOCR + PaddleOCR models (Baidu). Kept for comparison only.
+
 RUN
   0. If you received the zip by email, Teams, or download: right-click the zip > Properties >
      check "Unblock" > OK, BEFORE unzipping. This clears the internet-download flag Windows adds.
@@ -38,6 +44,12 @@ SAVING A ONE-OFF SCAN (reuse it later, no rescan)
   then Rescan Project reads only files that are new or changed and reuses the rest.
   A saved set of files (not a whole folder) can grow: Project > Add Files to Project.
   New Project from a Folder does not scan by itself: click Scan Project when ready.
+
+WHAT THE TRAINER SHOWS YOU
+  Only what the scanner has to OCR: pictures inside Word, PowerPoint, and Excel files (including
+  vector diagrams), image files, and PDF pages (shown whole, since a scanned page is one picture).
+  Typed text on a slide or page is read exactly from the file, letter for letter, so it never needs
+  training and never appears in the Trainer.
 
 CANCEL A SCAN
   "Cancel Scan" (under the status line, shown while scanning) stops at the next page or slide.

@@ -164,6 +164,13 @@ Audit 2026-10-20: no document data, user paths, or trained knowledge in the pack
 
 The app works identically with the network cable unplugged or Wi-Fi off.
 
+**US edition (v1.6.0+).** Text in pictures is read by `tesseract.exe` from `_internal\tesseract`, started as a
+child process with no window. The app sends the image bytes on stdin and reads results on stdout: no file names,
+no URLs, nothing written to disk. The Python network block does not extend into that child process, so the
+assurance is in what the app passes it: Tesseract opens a network location only when told to read a URL, and
+the app passes only the word `stdin`. Its training tools (`lstmtraining`, `lstmeval`, `combine_tessdata`) run
+the same way from the Trainer, on files inside `training_data\`.
+
 ---
 
 ## 5. Verification performed (2026-10-20, v1.0.1)

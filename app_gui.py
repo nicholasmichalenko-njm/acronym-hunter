@@ -120,15 +120,7 @@ import numpy as np
 import customtkinter as ctk
 from tkinter import ttk, filedialog, messagebox
 from rapidfuzz import process, fuzz
-from rapidocr_onnxruntime import RapidOCR
-
-# ONNX Runtime ships Windows TraceLogging telemetry (routed to the OS diagnostics service).
-# Turn it off so the OCR engine emits no usage events at all.
-try:
-    import onnxruntime as _ort
-    _ort.disable_telemetry_events()
-except Exception:
-    pass
+import importlib.util
 
 DB_FILE = os.path.join(BASE_DIR, "acronym_database.csv")
 
@@ -219,8 +211,27 @@ OCR_DEFAULTS = {
     "tile_large_images": 1,       # 1 = read large images in overlapping tiles so small text is not shrunk away
     "tile_size_px": 1800,         # tile edge; keep under 2000 (the OCR engine shrinks anything larger)
     "tile_overlap_px": 300,       # overlap so words on a tile edge are read whole in the next tile
+    "tesseract_min_confidence": 0.30,  # Tesseract (US edition) line confidence floor; its scores run lower than RapidOCR's
 }
 OCR_ENGINE_MAX_SIDE = 2000        # RapidOCR downsizes images whose longest side exceeds this
+
+# ---- OCR engine choice ----
+# "tesseract": Tesseract 5 (Apache 2.0; HP origin, developed by Google) with Google-trained models. US edition.
+# "rapidocr":  RapidOCR + PaddleOCR PP-OCRv4 models (Apache 2.0; Baidu / RapidAI). Legacy edition.
+# The build decides which engine ships; AH_OCR_ENGINE overrides for testing.
+TESS_MIN_WORD_CONF = 30           # Tesseract word confidence (0-100) below which a word is dropped as noise
+TESS_PSM = 11                     # page segmentation: 11 = sparse text (diagram labels anywhere on the image)
+CUSTOM_TESS_MODEL = "acronym"     # config\models\acronym.traineddata = model fine-tuned on your Trainer samples
+
+def _find_tesseract():
+    for d in (os.environ.get("AH_TESSERACT_DIR", ""), os.path.join(getattr(sys, "_MEIPASS", ""), "tesseract"),
+              os.path.join(BASE_DIR, "_internal", "tesseract"), os.path.join(BASE_DIR, "vendor", "tesseract")):
+        if d and os.path.isfile(os.path.join(d, "tesseract.exe")):
+            return d
+    return None
+
+TESS_DIR = _find_tesseract()
+OCR_BACKEND = os.environ.get("AH_OCR_ENGINE") or ("tesseract" if TESS_DIR else "rapidocr")
 
 def load_ocr_settings():
     cfg = dict(OCR_DEFAULTS)
@@ -323,9 +334,85 @@ _ocr_lock = threading.Lock()
 
 OCR_MODEL_INFO = "not loaded yet"
 
+def ocr_cutoff():
+    """Confidence a reading needs to be kept by the scanner (engine-specific)."""
+    return float(OCR_CFG["tesseract_min_confidence" if OCR_BACKEND == "tesseract" else "min_confidence"])
+
+_TESS_LEAD_ONE = re.compile(r"^[1l|](?=[A-Z]{2})")
+
+class TesseractEngine:
+    """Tesseract 5 run as a child process (tesseract.exe from the app's own folder; images go in through stdin,
+    results come back through stdout, nothing is written to disk). Called like RapidOCR so the scanner and the
+    Trainer work with either engine:
+        engine(img)                -> ([[box, text, confidence 0-1], ...], None)   one entry per text line
+        engine(img, use_det=False) -> ([[text, confidence 0-1]], None)             the whole image read as one line
+    Tesseract has no network code path in this use: the app passes only "stdin", never a file name or URL."""
+
+    def __init__(self, exe_dir):
+        global OCR_MODEL_INFO
+        self.exe = os.path.join(exe_dir, "tesseract.exe")
+        custom = os.path.join(MODELS_DIR, CUSTOM_TESS_MODEL + ".traineddata")
+        if os.path.isfile(custom):
+            self.tessdata, self.lang = MODELS_DIR, CUSTOM_TESS_MODEL
+            OCR_MODEL_INFO = "Tesseract 5 with your trained model (acronym.traineddata)"
+        else:
+            self.tessdata, self.lang = os.path.join(exe_dir, "tessdata"), "eng"
+            OCR_MODEL_INFO = "Tesseract 5 with Google's English model (tessdata_best)"
+
+    def _run(self, img, psm):
+        img = cv2.copyMakeBorder(img, 12, 12, 12, 12, cv2.BORDER_CONSTANT, value=255 if img.ndim == 2 else (255, 255, 255))
+        ok, buf = cv2.imencode(".png", img)
+        if not ok:
+            return []
+        cmd = [self.exe, "stdin", "stdout", "--tessdata-dir", self.tessdata, "-l", self.lang, "--psm", str(psm),
+               "--dpi", "300", "-c", "tessedit_create_tsv=1", "-c", "tessedit_create_txt=0"]
+        r = subprocess.run(cmd, input=buf.tobytes(), capture_output=True, timeout=180,
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                           env=dict(os.environ, OMP_THREAD_LIMIT="1"))
+        if r.returncode != 0:
+            raise RuntimeError("Tesseract failed: " + r.stderr.decode("utf-8", "replace").strip()[-300:])
+        lines = {}
+        for row in r.stdout.decode("utf-8", "replace").splitlines()[1:]:
+            c = row.split("\t")
+            if len(c) < 12 or c[0] != "5":
+                continue
+            text, conf = c[11].strip(), float(c[10])
+            if not text or conf < TESS_MIN_WORD_CONF:
+                continue
+            text = _TESS_LEAD_ONE.sub("I", text)   # "1CD-204" -> "ICD-204": a diagram line touching a capital I
+            x, y, w, h = (int(v) - (12 if i < 2 else 0) for i, v in enumerate(c[6:10]))
+            lines.setdefault((c[2], c[3], c[4]), []).append((x, y, x + w, y + h, text, conf))
+        out = []
+        for words in lines.values():
+            words.sort(key=lambda t: t[0])
+            x0, y0 = min(t[0] for t in words), min(t[1] for t in words)
+            x1, y1 = max(t[2] for t in words), max(t[3] for t in words)
+            conf = sum(t[5] for t in words) / len(words) / 100.0
+            out.append(([[x0, y0], [x1, y0], [x1, y1], [x0, y1]], " ".join(t[4] for t in words), conf))
+        return out
+
+    def __call__(self, img, use_det=True, text_score=None, **_ignored):
+        if not use_det:
+            lines = self._run(img, 7)
+            if not lines:
+                return [], None
+            return [[" ".join(t[1] for t in lines), sum(t[2] for t in lines) / len(lines)]], None
+        floor = float(OCR_CFG["tesseract_min_confidence"]) if text_score is None else float(text_score)
+        return [list(t) for t in self._run(img, TESS_PSM) if t[2] >= floor], None
+
 def _build_ocr():
-    """Bundled PP-OCRv4 models, overridden by any det.onnx / rec.onnx / cls.onnx / rec_keys.txt in config\\models."""
+    """Tesseract (US edition) or RapidOCR (legacy edition), per OCR_BACKEND."""
     global OCR_MODEL_INFO
+    if OCR_BACKEND == "tesseract":
+        if not TESS_DIR:
+            raise RuntimeError("Tesseract engine files are missing from this copy of the app.")
+        return TesseractEngine(TESS_DIR)
+    from rapidocr_onnxruntime import RapidOCR
+    try:
+        import onnxruntime as _ort   # ONNX Runtime telemetry (Windows TraceLogging) off
+        _ort.disable_telemetry_events()
+    except Exception:
+        pass
     try:
         return _build_ocr_configured()
     except Exception:
@@ -337,6 +424,7 @@ def _build_ocr_configured():
     global OCR_MODEL_INFO
     import yaml
     import rapidocr_onnxruntime as _ro
+    from rapidocr_onnxruntime import RapidOCR
     with open(os.path.join(os.path.dirname(_ro.__file__), "config.yaml"), "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     cfg["Global"]["text_score"] = float(OCR_CFG["min_confidence"])
@@ -436,7 +524,7 @@ def enhance_image_for_ocr(image_bytes):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     if OCR_CFG["contrast_clip"] > 0:
         gray = cv2.createCLAHE(clipLimit=float(OCR_CFG["contrast_clip"]), tileGridSize=(8, 8)).apply(gray)
-    if OCR_CFG["denoise_strength"] > 0:
+    if OCR_CFG["denoise_strength"] > 0 and OCR_BACKEND != "tesseract":   # Tesseract binarizes on its own; denoise only cost time
         gray = cv2.fastNlMeansDenoising(gray, None, h=float(OCR_CFG["denoise_strength"]),
                                         templateWindowSize=7, searchWindowSize=21)
     return gray
@@ -479,7 +567,7 @@ def _ocr_lines(img, x_off=0, y_off=0):
     result, _ = get_ocr()(img)
     out = []
     for box, text, conf in (result or []):
-        if float(conf) < float(OCR_CFG["min_confidence"]) or not str(text).strip():
+        if float(conf) < float(OCR_CFG["tesseract_min_confidence" if OCR_BACKEND == "tesseract" else "min_confidence"]) or not str(text).strip():
             continue
         if fold(str(text)).strip() in _OCR_IGNORE:   # marked "Not text" in the Trainer
             continue
@@ -502,7 +590,7 @@ def _ocr_raw(image_bytes):
     lines = _ocr_lines(clean_img)          # whole-image pass (large text, layout)
     h, w = clean_img.shape[:2]
     tile, over = int(OCR_CFG["tile_size_px"]), int(OCR_CFG["tile_overlap_px"])
-    if OCR_CFG["tile_large_images"] and max(h, w) > OCR_ENGINE_MAX_SIDE and 0 <= over < tile:
+    if OCR_BACKEND == "rapidocr" and OCR_CFG["tile_large_images"] and max(h, w) > OCR_ENGINE_MAX_SIDE and 0 <= over < tile:
         # The engine shrank this image; re-read it in full-resolution tiles so small text survives.
         tiled = []
         for y in _tile_starts(h, tile, tile - over):
@@ -1396,7 +1484,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "1.5.1"            # keep in step with version_info.txt
+APP_VERSION = "1.6.0"            # keep in step with version_info.txt
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
 LOCK_STALE_HOURS = 12
@@ -1432,7 +1520,7 @@ def engine_signature(weak=()):
     """Saved results are reused only while extraction, OCR settings, OCR models, and weak terms are unchanged."""
     models = sorted((n, os.path.getsize(os.path.join(MODELS_DIR, n)), int(os.path.getmtime(os.path.join(MODELS_DIR, n))))
                     for n in os.listdir(MODELS_DIR)) if os.path.isdir(MODELS_DIR) else []
-    return hashlib.sha1(json.dumps([APP_VERSION.rsplit(".", 1)[0], OCR_CFG, models, sorted(weak), sorted(_OCR_IGNORE)],
+    return hashlib.sha1(json.dumps([APP_VERSION.rsplit(".", 1)[0], OCR_BACKEND, OCR_CFG, models, sorted(weak), sorted(_OCR_IGNORE)],
                                    sort_keys=True).encode()).hexdigest()[:12]
 
 def _numberish(token):
@@ -1762,7 +1850,7 @@ def update_csv_exclusions(items):
 KNOWLEDGE_FORMAT = "AcronymHunterKnowledge"
 KNOWLEDGE_INFO_FILE = os.path.join(CONFIG_DIR, "knowledge_installed.json")
 KNOWLEDGE_BACKUP_DIR = os.path.join(CONFIG_DIR, "knowledge_backups")
-PACK_MODEL_FILES = ("rec.onnx", "det.onnx", "cls.onnx", "rec_keys.txt")
+PACK_MODEL_FILES = ("rec.onnx", "det.onnx", "cls.onnx", "rec_keys.txt", CUSTOM_TESS_MODEL + ".traineddata")
 PACK_DATA_FILES = {"acronym_database.csv": "DB", "ocr_corrections.csv": "FIXES", "ocr_ignore.csv": "IGNORE"}
 PACK_MAX_MEMBER_BYTES = 400 * 1024 * 1024
 PACK_ROOT = "knowledge/"
@@ -1987,8 +2075,8 @@ def install_knowledge_pack(path):
 def load_trained_models(folder):
     """Copy rec.onnx / det.onnx / cls.onnx / rec_keys.txt from a folder (Training Kit output) into config\\models."""
     found = [m for m in PACK_MODEL_FILES if os.path.isfile(os.path.join(folder, m))]
-    if not any(m.endswith(".onnx") for m in found):
-        raise ValueError("No rec.onnx, det.onnx, or cls.onnx in that folder.")
+    if not any(m.endswith((".onnx", ".traineddata")) for m in found):
+        raise ValueError("No acronym.traineddata, rec.onnx, det.onnx, or cls.onnx in that folder.")
     if "rec.onnx" in found and "rec_keys.txt" not in found:
         raise ValueError("rec.onnx needs its rec_keys.txt beside it.")
     for m in found:

@@ -276,6 +276,9 @@ def training_stats():
 
 def _model_characters():
     """Characters the current recognition model can output (from its ONNX metadata)."""
+    if eng.OCR_BACKEND == "tesseract":   # Google's English model writes Latin letters, digits, and common symbols
+        import string
+        return set(string.printable) | set("±°µΩ×÷–—’‘“”•§©®™¼½¾²³")
     import onnxruntime as ort
     import rapidocr_onnxruntime as _ro
     custom = os.path.join(eng.MODELS_DIR, "rec.onnx")
@@ -331,6 +334,32 @@ def fixes_from_correction(ocr_text, corrected):
         return []
     return [(strip(x), strip(y)) for x, y in zip(a, b) if strip(x) and strip(y) and strip(x) != strip(y)]
 
+HELP_TEXT_TESSERACT = """HOW YOUR SAMPLES MAKE THE SCANNER BETTER (US edition, Tesseract engine)
+
+Right away (no training needed):
+  1. "Not text" on a green line -> ignore list -> gone from the next scan.
+  2. Correct a misread word, then "Add OCR Fixes from Corrections" -> fixed on the next scan.
+
+Training the reader on this PC (CPU only, no GPU, no internet, no extra download):
+  3. Keep saving lines with "Save as text". 20 is the minimum; 300+ gives a dependable gain.
+     Save the styles the scanner gets wrong: small labels, unusual fonts, text on shading.
+  4. Click "Train Reader (CPU)". It prepares the samples, fine-tunes Google's English model
+     with Tesseract's own training tool, and checks the result on lines it did not train on.
+     A few hundred lines take minutes, not hours.
+  5. The report shows character error before and after. If it improved, click Yes to install.
+     The scanner uses config\\models\\acronym.traineddata from then on.
+  6. Score it on real files. Worse? Scanner > Knowledge > Undo Last Knowledge Change.
+  7. Better? Scanner > Knowledge > Export Knowledge Pack > approved SharePoint folder.
+     Colleagues click Knowledge > Install Knowledge Pack.
+
+What "Not text" regions do here: Tesseract finds text with fixed rules, so region samples do not
+train it. They still feed the ignore list (step 1) and stay saved for any future engine.
+
+Undo Last Save removes everything from the last save, including ignore-list entries it added.
+training_data\\ holds crops of your documents: handle it at the documents' classification.
+The trained model is learned from those crops: same handling, approved SharePoint only.
+"""
+
 HELP_TEXT = """WHAT EACH CHOICE DOES
 
 Save as text
@@ -352,7 +381,8 @@ Skip
   Not used for training. In the region sample it is marked "unsure", so it teaches nothing either way.
 
 GREEN vs RED
-  Green = confidence at or above the cutoff (config\\ocr_settings.json, min_confidence).
+  Green = confidence at or above the cutoff (config\\ocr_settings.json: min_confidence, or
+          tesseract_min_confidence in the US edition).
           The scanner keeps it, so a wrong green reading can become a false result.
   Red   = below the cutoff. The scanner already throws it away. Marking a red line
           "Not text" is still a useful training example; it just does not need the ignore list.
@@ -458,7 +488,11 @@ class TrainerApp(ctk.CTk):
         ctk.CTkButton(bottom, text="Undo Last Save", width=140, fg_color="#DC2626", command=self.undo_sample).pack(side="right", padx=6, pady=8)
         ctk.CTkButton(bottom, text="Open Training Folder", width=160, fg_color="#475569", command=self.open_folder).pack(side="right", padx=6, pady=8)
         ctk.CTkButton(bottom, text="Ignore List", width=110, fg_color="#475569", command=self.open_ignore_list).pack(side="right", padx=6, pady=8)
-        ctk.CTkButton(bottom, text="Prepare Training Package", width=190, fg_color="#0F766E", command=self.prepare_package).pack(side="right", padx=6, pady=8)
+        if eng.OCR_BACKEND == "tesseract":
+            self.btn_train = ctk.CTkButton(bottom, text="Train Reader (CPU)", width=170, fg_color="#0F766E", command=self.train_reader)
+            self.btn_train.pack(side="right", padx=6, pady=8)
+        else:
+            ctk.CTkButton(bottom, text="Prepare Training Package", width=190, fg_color="#0F766E", command=self.prepare_package).pack(side="right", padx=6, pady=8)
         ctk.CTkButton(bottom, text="How training works", width=150, fg_color="#1E3A8A", command=self.show_help).pack(side="right", padx=6, pady=8)
         self.lbl_status = ctk.CTkLabel(bottom, text="", text_color="gray"); self.lbl_status.pack(side="left", padx=20)
         self.refresh_stats()
@@ -528,7 +562,7 @@ class TrainerApp(ctk.CTk):
         for row in self.line_rows:
             (x0, y0, x1, y1), conf = row["box"], row["conf"]
             choice = row["choice"].get() if "choice" in row else "Skip"
-            color = "#9CA3AF" if choice == "Not text" else ("#22C55E" if conf >= float(eng.OCR_CFG["min_confidence"]) else "#EF4444")
+            color = "#9CA3AF" if choice == "Not text" else ("#22C55E" if conf >= eng.ocr_cutoff() else "#EF4444")
             dash = (3, 3) if choice == "Not text" else None
             X0, Y0 = (rx + x0) * self.zoom, (ry + y0) * self.zoom
             self.canvas.create_rectangle(X0, Y0, (rx + x1) * self.zoom, (ry + y1) * self.zoom,
@@ -587,7 +621,7 @@ class TrainerApp(ctk.CTk):
         self.canvas.delete("linebox")
 
     def show_lines(self, lines, one):
-        cutoff = float(eng.OCR_CFG["min_confidence"])
+        cutoff = eng.ocr_cutoff()
         ignored = eng.load_ocr_ignore()
         for n, (box, text, conf) in enumerate(lines, start=1):
             kept = conf >= cutoff
@@ -633,7 +667,7 @@ class TrainerApp(ctk.CTk):
         images.append(save_region(self.region_img, [(r["box"], r["entry"].get()) for r in text_rows], unsure,
                                   [(r["box"], r["text"], r["conf"]) for r in junk], self.source_label, self.region))
         # Not text + the scanner keeps it today -> ignore that exact reading in pictures from now on
-        cutoff = float(eng.OCR_CFG["min_confidence"])
+        cutoff = eng.ocr_cutoff()
         rows = eng.read_ocr_ignore_rows(); have = {eng.fold(x[0]).strip() for x in rows}
         added = []
         for r in junk:
@@ -698,13 +732,54 @@ class TrainerApp(ctk.CTk):
         messagebox.showinfo("Training package", report + "\n\nNext: follow TRAINING_GUIDE.md section 8 (or click 'How training works').")
         self.refresh_stats("Training package prepared.")
 
+    def train_reader(self):
+        """Fine-tune Tesseract on the saved text lines, in a background thread, then offer to install the model."""
+        import tess_train
+        n = len(tess_train.read_samples(TRAIN_DIR))
+        if n < tess_train.MIN_SAMPLES:
+            messagebox.showinfo("Not enough samples", f"{n} text-line samples saved. Training needs at least "
+                                f"{tess_train.MIN_SAMPLES} (300+ for a dependable gain). Keep using 'Save as text'."); return
+        if not messagebox.askyesno("Train the reader", f"Train on {n} saved text lines? This runs on this PC's processor "
+                                   "(no GPU, no internet) and usually takes a few minutes. You can keep the Trainer open."):
+            return
+        out_dir = os.path.join(TRAIN_DIR, "model")
+        self.btn_train.configure(state="disabled", text="Training...")
+        def work():
+            try:
+                r = tess_train.train(eng.TESS_DIR, TRAIN_DIR, out_dir,
+                                     progress=lambda m: self.after(0, lambda: self.refresh_stats(m)))
+                self.after(0, lambda: self._train_done(r, out_dir))
+            except Exception as e:
+                eng.log_error("Train Reader failed")
+                msg = f"{e}"
+                self.after(0, lambda: (messagebox.showerror("Training failed", msg),
+                                       self.btn_train.configure(state="normal", text="Train Reader (CPU)")))
+        threading.Thread(target=work, daemon=True).start()
+
+    def _train_done(self, r, out_dir):
+        import tess_train
+        self.btn_train.configure(state="normal", text="Train Reader (CPU)")
+        text = tess_train.describe(r)
+        self.refresh_stats("Training finished. " + text.splitlines()[0])
+        b, a = r["char_error_before_pct"], r["char_error_after_pct"]
+        worse = a is not None and b is not None and a > b
+        if worse:
+            messagebox.showwarning("Training finished", text + f"\n\nNot installed. The model is in {out_dir}."); return
+        if messagebox.askyesno("Training finished", text + "\n\nInstall it in the scanner now?\n"
+                               "(Scanner > Knowledge > Undo Last Knowledge Change puts the previous model back.)"):
+            eng.load_trained_models(out_dir)
+            messagebox.showinfo("Installed", "The scanner now reads pictures with your trained model "
+                                "(config\\models\\acronym.traineddata). Rescan to see the effect.")
+
     def show_help(self):
         if getattr(self, "help_win", None) is not None and self.help_win.winfo_exists():
             self.help_win.focus(); return
         win = ctk.CTkToplevel(self); self.help_win = win
         win.title("How training works"); win.geometry("720x620"); win.transient(self); win.after(100, win.lift)
         box = ctk.CTkTextbox(win, wrap="word", font=("Segoe UI", 13)); box.pack(fill="both", expand=True, padx=12, pady=12)
-        box.insert("1.0", HELP_TEXT); box.configure(state="disabled")
+        help_text = HELP_TEXT.split("HOW YOUR SAMPLES MAKE THE SCANNER BETTER")[0] + HELP_TEXT_TESSERACT \
+            if eng.OCR_BACKEND == "tesseract" else HELP_TEXT
+        box.insert("1.0", help_text); box.configure(state="disabled")
 
     def open_folder(self):
         os.makedirs(TRAIN_DIR, exist_ok=True)

@@ -1,21 +1,25 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
 from PyInstaller.utils.hooks import collect_all
+
+# Edition (set by build.ps1 -Edition):
+#   us      Tesseract OCR (HP origin, Google-developed, Google-trained English model). No RapidOCR, PaddleOCR, or ONNX Runtime.
+#   legacy  RapidOCR + PaddleOCR PP-OCRv4 models on ONNX Runtime (v1.5.x engine).
+US = os.environ.get('AH_EDITION', 'us') == 'us'
 
 datas = []
 binaries = []
 hiddenimports = []
-tmp_ret = collect_all('pymupdf')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('rapidocr_onnxruntime')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('onnxruntime')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('customtkinter')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('rapidfuzz')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-tmp_ret = collect_all('openpyxl')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+for _pkg in ['pymupdf', 'customtkinter', 'rapidfuzz', 'openpyxl'] + ([] if US else ['rapidocr_onnxruntime', 'onnxruntime']):
+    tmp_ret = collect_all(_pkg)
+    datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+if US:
+    # Tesseract engine + 3 training tools + their DLLs + Google's eng.traineddata, fetched by tools\fetch_tesseract.ps1
+    if not os.path.isfile('vendor/tesseract/tesseract.exe'):
+        raise SystemExit('vendor\\tesseract missing: run tools\\fetch_tesseract.ps1 first')
+    datas += [('vendor/tesseract', 'tesseract')]
+    hiddenimports += ['tess_train']
+_edition_excludes = (['rapidocr_onnxruntime', 'onnxruntime', 'pyclipper', 'shapely', 'yaml'] if US else [])
 
 
 # Drop hidden imports for submodules excluded below (avoids noisy "not found" errors in the log)
@@ -40,7 +44,7 @@ def make_analysis(script):
     # Excluding it turns that import into a clean ImportError that PyMuPDF swallows.
     excludes=['pymupdf.layout', 'pymupdf4llm', 'matplotlib', 'scipy', 'pandas',
               'IPython', 'jupyter', 'notebook', 'pytest',
-              'onnxruntime.quantization', 'onnxruntime.transformers', 'onnxruntime.tools'],
+              'onnxruntime.quantization', 'onnxruntime.transformers', 'onnxruntime.tools'] + _edition_excludes,
     noarchive=False,
     optimize=0,
   )

@@ -8,9 +8,17 @@
 #
 #   powershell -ExecutionPolicy Bypass -File .\build.ps1
 #   powershell -ExecutionPolicy Bypass -File .\build.ps1 -KnowledgePack "S:\Approved\AcronymHunter_Knowledge_2026.11.03-1400.zip"
-param([string]$KnowledgePack = "")
+#
+# Editions:
+#   -Edition us      (default) Tesseract OCR: HP origin, Google-developed, Google-trained English model. CPU training built in.
+#                    Packages: AcronymHunter_US_Portable.zip, AcronymHunter_US_WithTrainer.zip. Needs tools\fetch_tesseract.ps1 once.
+#   -Edition legacy  RapidOCR + PaddleOCR (Baidu) models on ONNX Runtime, the v1.5.x engine. Packages keep the old names.
+param([string]$KnowledgePack = "", [ValidateSet('us', 'legacy')][string]$Edition = 'us')
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
+
+$env:AH_EDITION = $Edition
+$prefix = if ($Edition -eq 'us') { 'AcronymHunter_US' } else { 'AcronymHunter' }
 
 function Test-PublicPackage([string]$dir, [bool]$withTrainer) {
     # 1. Only these files may sit outside _internal
@@ -27,8 +35,19 @@ function Test-PublicPackage([string]$dir, [bool]$withTrainer) {
         if ((Get-FileHash "$root\$f").Hash -ne (Get-FileHash "base\$f").Hash) { throw "LEAK CHECK FAILED: $f differs from base\$f" }
     }
     # 3. No model files except the public ones bundled with RapidOCR; no working data anywhere
-    $models = $files | Where-Object { $_ -like '*.onnx' -and $_ -notlike '_internal\rapidocr_onnxruntime\models\*' }
-    if ($models) { throw "LEAK CHECK FAILED: model file(s) outside the public RapidOCR models: $($models -join ', ')" }
+    if ($Edition -eq 'us') {
+        # US edition: no Chinese-origin OCR code or models, no ONNX Runtime, and only Google's public English model
+        $foreign = $files | Where-Object { $_ -match 'rapidocr|onnxruntime|paddle|pyclipper|shapely|\.onnx$' }
+        if ($foreign) { throw "ORIGIN CHECK FAILED: legacy OCR files in the US edition: $($foreign -join ', ')" }
+        $tdata = $files | Where-Object { $_ -like '*.traineddata' }
+        if (($tdata -join ',') -ne '_internal\tesseract\tessdata\eng.traineddata') { throw "LEAK CHECK FAILED: unexpected model file(s): $($tdata -join ', ')" }
+        $engHash = (Get-FileHash "$root\_internal\tesseract\tessdata\eng.traineddata").Hash
+        if ($engHash -ne '8280AED0782FE27257A68EA10FE7EF324CA0F8D85BD2FD145D1C2B560BCB66BA') { throw "LEAK CHECK FAILED: eng.traineddata is not Google's tessdata_best file" }
+        if (-not (Test-Path "$root\_internal\tesseract\tesseract.exe")) { throw "BUILD CHECK FAILED: Tesseract engine missing" }
+    } else {
+        $models = $files | Where-Object { $_ -like '*.onnx' -and $_ -notlike '_internal\rapidocr_onnxruntime\models\*' }
+        if ($models) { throw "LEAK CHECK FAILED: model file(s) outside the public RapidOCR models: $($models -join ', ')" }
+    }
     $bad = $files | Where-Object { $_ -match 'ocr_ignore|knowledge|training_data|\.ahproj|_local_sandbox|\\logs\\|samples\.csv|labels\.txt' }
     if ($bad) { throw "LEAK CHECK FAILED: working data in public package: $($bad -join ', ')" }
     "Leak check passed: $dir ($($files.Count) files, data identical to base\)"
@@ -60,7 +79,7 @@ $trainerHash = (Get-FileHash "$out\AcronymHunterTrainer.exe" -Algorithm SHA256).
 
 # Package 1: scanner + Trainer (GitHub)
 Test-PublicPackage $out $true
-$zipFull = 'AcronymHunter_WithTrainer.zip'
+$zipFull = "${prefix}_WithTrainer.zip"
 Remove-Item $zipFull -ErrorAction SilentlyContinue
 Compress-Archive -Path $out -DestinationPath $zipFull -CompressionLevel Optimal
 
@@ -71,14 +90,14 @@ Copy-Item $out $stage -Recurse -Force
 Remove-Item "$stage\AcronymHunterTrainer.exe" -Force
 "AcronymHunter.exe  SHA256  $exeHash" | Out-File -Encoding ascii "$stage\CHECKSUM.txt"
 Test-PublicPackage $stage $false
-$zip = 'AcronymHunter_Portable.zip'
+$zip = "${prefix}_Portable.zip"
 Remove-Item $zip -ErrorAction SilentlyContinue
 Compress-Archive -Path $stage -DestinationPath $zip -CompressionLevel Optimal
 
 $zipHash = (Get-FileHash $zip -Algorithm SHA256).Hash
 $zipFullHash = (Get-FileHash $zipFull -Algorithm SHA256).Hash
-$lines = @("AcronymHunter_Portable.zip     SHA256  $zipHash      (scanner only: share this)",
-           "AcronymHunter_WithTrainer.zip  SHA256  $zipFullHash  (scanner + Trainer)",
+$lines = @("$zip     SHA256  $zipHash      (scanner only: share this)",
+           "$zipFull  SHA256  $zipFullHash  (scanner + Trainer)",
            "AcronymHunter.exe              SHA256  $exeHash",
            "AcronymHunterTrainer.exe       SHA256  $trainerHash",
            "Built $(Get-Date -Format 'yyyy-MM-dd HH:mm')")
@@ -103,7 +122,7 @@ if ($KnowledgePack) {
     "  SHA256 $((Get-FileHash $izip).Hash)" | Out-File -Encoding ascii "$izip.sha256.txt"
 }
 
-$lines | Out-File -Encoding ascii 'AcronymHunter_SHA256.txt'
+$lines | Out-File -Encoding ascii "${prefix}_SHA256.txt"
 Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue
 "Done: $zip and $zipFull (GitHub Release files, generic data only)"
 "Zip SHA256: $zipHash"

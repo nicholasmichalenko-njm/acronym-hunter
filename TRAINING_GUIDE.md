@@ -262,6 +262,15 @@ repository above, and keep the fingerprint with the build.
 
 ## 8. Turn your samples into a better model (step by step)
 
+**US edition (v1.6.0+): training is one button.** Save text lines with "Save as text" (20 minimum, 300+
+recommended), then click **Train Reader (CPU)** in the Trainer. It fine-tunes Google's English Tesseract model
+on this PC's processor with Tesseract's own `lstmtraining` (no GPU, no internet, no kit), reports character
+error on held-out lines before and after, and offers to install `config\models\acronym.traineddata`.
+Undo with Scanner > Knowledge > Undo Last Knowledge Change. Share through a Knowledge Pack (approved SharePoint
+only). Tesseract finds text with fixed rules, so region ("Not text") samples do not train it; they still feed
+the ignore list. The rest of this section describes the legacy PaddleOCR Training Kit.
+
+
 Your samples improve the scanner in two ways.
 
 **Right away, no training:**

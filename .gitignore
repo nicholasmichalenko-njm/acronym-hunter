@@ -36,3 +36,6 @@ internal_builds/
 # Training Kit build output (large; rebuilt by build_training_kit.ps1)
 /training_kit/
 /kit_build/
+
+# Third-party engine binaries, fetched by tools\fetch_tesseract.ps1 (pinned SHA-256)
+/vendor/

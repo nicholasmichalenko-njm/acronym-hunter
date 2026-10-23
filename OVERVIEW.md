@@ -1,6 +1,6 @@
 # Acronym Hunter: Complete Overview
 
-**Version:** 1.5.1 | **Updated:** 2026-10-21 | **Platform:** Windows 10/11, 64-bit
+**Version:** 1.6.0 (US edition) | **Updated:** 2026-10-22 | **Platform:** Windows 10/11, 64-bit
 
 This document has two parts.
 **Part 1** explains the whole application in plain language: what it is, what is inside it, how it works,
@@ -338,7 +338,21 @@ contents. Part 2, section 12 lists them and how IT normally controls them.
 
 ## 6. Software composition (bill of materials)
 
-Runtime components bundled in `_internal\` (build tools such as PyInstaller are not shipped):
+**US edition (v1.6.0 and later, `AcronymHunter_US_*.zip`).** Same table as below, minus every OCR row
+(ONNX Runtime, rapidocr-onnxruntime, PP-OCRv4 models, Shapely, pyclipper, PyYAML, psutil), plus:
+
+| Component | Version | License | Role | Origin |
+|---|---|---|---|---|
+| Tesseract OCR (`tesseract.exe`, `libtesseract-5.dll`) | 5.5.3 | Apache-2.0 | Reads text in pictures (child process, stdin/stdout only) | Created at HP (Bristol UK, Greeley CO), developed by Google; official tesseract-ocr release |
+| Tesseract training tools (`lstmtraining`, `lstmeval`, `combine_tessdata`) | 5.5.3 | Apache-2.0 | CPU fine-tuning in the Trainer | same |
+| Leptonica + image codec DLLs (libpng, libjpeg-turbo, libtiff, libwebp, openjpeg, zlib, zstd...) | as shipped by Tesseract 5.5.3 | BSD-2 and permissive | Image decoding for Tesseract | open-source projects |
+| `eng.traineddata` (tessdata_best) | SHA-256 `8280aed0782fe27257a68ea10fe7ef324ca0f8d85bd2fd145d1c2b560bcb66ba` | Apache-2.0 | English OCR model (float, fine-tunable) | Trained by Google |
+
+The build refuses to finish if any RapidOCR, ONNX Runtime, Paddle, or `.onnx` file is present, or if
+`eng.traineddata` is not Google's file (hash check). Tesseract's DLL set includes libcurl and libarchive
+because libtesseract links them; the app never passes Tesseract a file name or URL, only image bytes on stdin.
+
+**Legacy edition (v1.5.1 and earlier).** Runtime components bundled in `_internal\` (build tools such as PyInstaller are not shipped):
 
 | Component | Version | License | Role | Origin |
 |---|---|---|---|---|
