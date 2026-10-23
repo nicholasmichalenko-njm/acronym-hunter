@@ -36,9 +36,10 @@ _skip = ('onnxruntime.transformers', 'onnxruntime.quantization', 'onnxruntime.to
 hiddenimports = [h for h in hiddenimports if not h.startswith(_skip)]
 hiddenimports += ['defusedxml', 'defusedxml.ElementTree']  # openpyxl uses it only if importable
 hiddenimports += ['trainer_gui', 'preview_pane', 'PIL.ImageTk']   # the Trainer opens as a window inside the scanner (one program)
-hiddenimports += ['equations', 'symbol_picker']   # equation and symbol recognition (2.0.0), symbol picker (2.3.0)
+hiddenimports += ['equations', 'symbol_picker', 'help_guide']   # equation and symbol recognition (2.0.0), symbol picker (2.3.0)
 hiddenimports += ['skia']   # Google Skia (BSD-3): draws SVG pictures for OCR
 datas += [('assets/scanner.ico', 'assets'), ('assets/trainer.ico', 'assets')]   # window/taskbar icons at runtime
+datas += [('assets/help', 'assets/help')]   # "?" guide screenshots
 datas += [('assets/common_words.txt', 'assets')]   # SCOWL common words: sentence-end words are not abbreviations
 
 def make_analysis(script):

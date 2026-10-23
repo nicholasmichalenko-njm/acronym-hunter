@@ -127,6 +127,7 @@ from tkinter import ttk, filedialog, messagebox
 from rapidfuzz import process, fuzz
 import importlib.util
 import symbol_picker as SP
+import help_guide as HG
 import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
 DB_FILE = os.path.join(BASE_DIR, "acronym_database.csv")
@@ -2092,7 +2093,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.3.0"            # keep in step with version_info.txt
+APP_VERSION = "2.3.1"            # keep in step with version_info.txt
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
 LOCK_STALE_HOURS = 12
@@ -2865,6 +2866,9 @@ class AcronymAppGUI(ctk.CTk):
             self.sw_adv.pack(side="right", padx=(8, 6), pady=8)
         self.btn_tools = ctk.CTkButton(top, text="Tools ▾", command=self.show_tools_menu, fg_color="#475569", width=84, **B)
         self.btn_tools.pack(side="right", padx=4, pady=8)
+        self.btn_help = ctk.CTkButton(top, text="? Guide", command=lambda: HG.open_guide(self), fg_color="#0EA5E9", width=76, **B)
+        self.btn_help.pack(side="right", padx=4, pady=8)
+        self.bind_all("<F1>", lambda e: HG.open_guide(self))
         self.tools_menu = tk.Menu(self, tearoff=0)
         self.btn_improve_top = ctk.CTkButton(top, text="Improve Reading", command=self.open_improve, fg_color="#0F766E", width=128, **B)
         # kept for code that refers to them; reached through the Tools menu
@@ -3259,6 +3263,7 @@ class AcronymAppGUI(ctk.CTk):
         m.add_command(label="Read all equation pictures (math add-on)..." if MATH_DIR else "Read all equation pictures (math add-on not installed)",
                       command=lambda: self.read_equations([k for k, d in self.results.items() if d.get("category") == "Equation (picture)"]),
                       state="normal" if MATH_DIR else "disabled")
+        m.add_command(label="How it works (guide, F1)...", command=lambda: HG.open_guide(self))
         m.add_separator()
         m.add_command(label="Edit Database CSV", command=lambda: self.open_file(DB_FILE))
         m.add_command(label="OCR Fixes...", command=self.open_fix_manager,

@@ -319,3 +319,7 @@ TROUBLESHOOTING
   Nothing happens or "blocked by your administrator": your organization's policy blocks
   unsigned programs. Ask IT to approve it; do not try to bypass the policy.
   First launch takes 5 to 15 seconds while files load from disk.
+
+HOW IT WORKS GUIDE (2.3.1)
+Click ? in the top bar (or press F1) for a short guide with screenshots: scanning, the results table,
+Fix OCR vs Training (Correct + Teach and Improve Reading), the picture preview, symbols, equations, sharing.
