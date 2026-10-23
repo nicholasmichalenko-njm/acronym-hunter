@@ -1,5 +1,5 @@
 {
-  "_help": "OCR tuning. Edit numbers only, save, restart the app. Delete this file to return to defaults. See TRAINING_GUIDE.md section 6.",
+  "_help": "OCR tuning. Edit numbers only, save, restart the app. Delete this file to return to defaults. See TRAINING_GUIDE.md section 6. doctr_enabled: 1 = also read pictures with docTR (neural text finder), 0 = Tesseract only (faster).",
   "min_confidence": 0.5,
   "pdf_scan_dpi": 300,
   "scanned_page_max_chars": 40,
@@ -13,5 +13,10 @@
   "fuzzy_min_score": 80,
   "tile_large_images": 1,
   "tile_size_px": 1800,
-  "tile_overlap_px": 300
+  "tile_overlap_px": 300,
+  "tesseract_min_confidence": 0.3,
+  "doctr_enabled": 1,
+  "doctr_min_confidence": 0.5,
+  "doctr_override_confidence": 0.95,
+  "doctr_extra_passes": 1
 }

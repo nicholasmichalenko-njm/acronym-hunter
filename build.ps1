@@ -11,6 +11,7 @@
 #
 # Editions:
 #   -Edition us      (default) Tesseract OCR: HP origin, Google-developed, Google-trained English model. CPU training built in.
+#                    Plus docTR (Mindee, Apache 2.0) on ONNX Runtime (Microsoft) as a second text finder and reader.
 #                    Needs vendor\tesseract once: tools\build_tesseract.ps1 (built from source with no network library).
 #   -Edition legacy  RapidOCR + PaddleOCR (Baidu) models on ONNX Runtime, the v1.5.x engine: AcronymHunter_Legacy.zip.
 param([string]$KnowledgePack = "", [ValidateSet('us', 'legacy')][string]$Edition = 'us')
@@ -35,9 +36,18 @@ function Test-PublicPackage([string]$dir) {
     }
     # 3. No model files except the public ones bundled with RapidOCR; no working data anywhere
     if ($Edition -eq 'us') {
-        # US edition: no Chinese-origin OCR code or models, no ONNX Runtime, and only Google's public English model
-        $foreign = $files | Where-Object { $_ -match 'rapidocr|onnxruntime|paddle|pyclipper|shapely|\.onnx$' }
+        # US edition: no Chinese-origin OCR code or models; Google's public English model; and only the two docTR
+        # models this project exported from Mindee's weights, byte for byte as recorded in vendor\doctr\doctr_models.json
+        $foreign = $files | Where-Object { $_ -match 'rapidocr|paddle|pyclipper|shapely' }
         if ($foreign) { throw "ORIGIN CHECK FAILED: legacy OCR files in the US edition: $($foreign -join ', ')" }
+        $onnx = @($files | Where-Object { $_ -like '*.onnx' } | Sort-Object)
+        $want = @('_internal\doctr\doctr_det.onnx', '_internal\doctr\doctr_reco.onnx')
+        if (($onnx -join ',') -ne ($want -join ',')) { throw "LEAK CHECK FAILED: unexpected ONNX model file(s): $($onnx -join ', ')" }
+        $dinfo = Get-Content "vendor\doctr\doctr_models.json" -Raw | ConvertFrom-Json
+        foreach ($m in 'doctr_det', 'doctr_reco') {
+            $h = (Get-FileHash "$root\_internal\doctr\$m.onnx").Hash
+            if ($h -ne $dinfo.models.$m.onnx_sha256) { throw "ORIGIN CHECK FAILED: $m.onnx is not the file this project exported (SHA-256 mismatch)" }
+        }
         $tdata = $files | Where-Object { $_ -like '*.traineddata' }
         if (($tdata -join ',') -ne '_internal\tesseract\tessdata\eng.traineddata') { throw "LEAK CHECK FAILED: unexpected model file(s): $($tdata -join ', ')" }
         $engHash = (Get-FileHash "$root\_internal\tesseract\tessdata\eng.traineddata").Hash

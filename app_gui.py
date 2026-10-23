@@ -1,4 +1,5 @@
-﻿import os
+import collections
+import os
 import sys
 import shutil
 import atexit
@@ -216,6 +217,10 @@ OCR_DEFAULTS = {
     "tile_size_px": 1800,         # tile edge; keep under 2000 (the OCR engine shrinks anything larger)
     "tile_overlap_px": 300,       # overlap so words on a tile edge are read whole in the next tile
     "tesseract_min_confidence": 0.30,  # Tesseract (US edition) line confidence floor; its scores run lower than RapidOCR's
+    "doctr_enabled": 1,           # 1 = also read pictures with docTR (neural text finder + reader), add what Tesseract missed
+    "doctr_min_confidence": 0.5,  # docTR word confidence floor (0-1)
+    "doctr_extra_passes": 1,      # 1 = inverted pass for dark pictures and turned passes for vertical labels
+    "doctr_override_confidence": 0.95,  # where Tesseract read text, a docTR word this sure that Tesseract lacks is added
 }
 OCR_ENGINE_MAX_SIDE = 2000        # RapidOCR downsizes images whose longest side exceeds this
 
@@ -235,6 +240,16 @@ def _find_tesseract():
     return None
 
 TESS_DIR = _find_tesseract()
+
+def _find_doctr():
+    """Folder with docTR's ONNX models (Mindee, Apache 2.0; exported by this project). None = not bundled."""
+    for d in (os.environ.get("AH_DOCTR_DIR", ""), os.path.join(getattr(sys, "_MEIPASS", ""), "doctr"),
+              os.path.join(BASE_DIR, "_internal", "doctr"), os.path.join(BASE_DIR, "vendor", "doctr")):
+        if d and os.path.isfile(os.path.join(d, "doctr_models.json")):
+            return d
+    return None
+
+DOCTR_DIR = _find_doctr()
 OCR_BACKEND = os.environ.get("AH_OCR_ENGINE") or ("tesseract" if TESS_DIR else "rapidocr")
 
 def load_ocr_settings():
@@ -614,7 +629,7 @@ def _ocr_lines(img, x_off=0, y_off=0):
         if fold(str(text)).strip() in _OCR_IGNORE:   # marked "Not text" in the Trainer
             continue
         xs = [pt[0] for pt in box]; ys = [pt[1] for pt in box]
-        out.append((min(xs) + x_off, min(ys) + y_off, max(xs) + x_off, max(ys) + y_off, str(text)))
+        out.append((min(xs) + x_off, min(ys) + y_off, max(xs) + x_off, max(ys) + y_off, str(text), float(conf)))
     return out
 
 def _tile_starts(length, tile, step):
@@ -624,6 +639,101 @@ def _tile_starts(length, tile, step):
     if starts[-1] != length - tile:
         starts.append(length - tile)
     return starts
+
+_doctr_engine = None
+_doctr_failed = [False]
+
+def doctr_active():
+    return bool(DOCTR_DIR) and OCR_BACKEND == "tesseract" and bool(int(OCR_CFG.get("doctr_enabled", 1))) and not _doctr_failed[0]
+
+def get_doctr():
+    global _doctr_engine
+    with _ocr_lock:
+        if _doctr_engine is None:
+            import doctr_engine
+            _doctr_engine = doctr_engine.DocTREngine(DOCTR_DIR)
+    return _doctr_engine
+
+def doctr_info():
+    if not DOCTR_DIR:
+        return "not bundled"
+    try:
+        info = json.load(open(os.path.join(DOCTR_DIR, "doctr_models.json"), encoding="utf-8"))
+        import onnxruntime as _ort
+        m = info["models"]
+        return (f"docTR (Mindee, Apache 2.0) {m['doctr_det']['arch']} + {m['doctr_reco']['arch']} on ONNX Runtime {_ort.__version__}, "
+                f"exported by this project from Mindee's weights; " + ("on" if doctr_active() else "off"))
+    except Exception as e:
+        return f"unavailable ({type(e).__name__})"
+
+def _decode_rgb(image_bytes):
+    arr = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_UNCHANGED)
+    if arr is None:
+        return None
+    if arr.ndim == 2:
+        arr = cv2.cvtColor(arr, cv2.COLOR_GRAY2BGR)
+    elif arr.shape[2] == 4:                       # transparent picture: flatten onto white
+        a = arr[:, :, 3:4].astype(np.float32) / 255.0
+        arr = (arr[:, :, :3].astype(np.float32) * a + 255.0 * (1 - a)).astype(np.uint8)
+    if arr.dtype != np.uint8:
+        arr = cv2.convertScaleAbs(arr, alpha=255.0 / max(1, int(arr.max())))
+    return cv2.cvtColor(arr, cv2.COLOR_BGR2RGB)
+
+def _norm_tok(t):
+    return re.sub(r"[^0-9a-z&]", "", t.lower())
+
+def _doctr_extra(image_bytes, tess_lines, clean_shape):
+    """Words docTR reads that Tesseract did not, as extra lines.
+    - In a region Tesseract read, a docTR word is added only if Tesseract has no word there that matches it
+      (capitals and punctuation ignored, or a close spelling). Tesseract stays the reader of record there.
+    - In a region Tesseract found nothing, all of docTR's words are added: that is the text Tesseract missed."""
+    if not doctr_active():
+        return ""
+    try:
+        rgb = _decode_rgb(image_bytes)
+        if rgb is None or min(rgb.shape[:2]) < 8:
+            return ""
+        check_cancel()
+        lines = get_doctr().read(rgb, extra_passes=bool(int(OCR_CFG.get("doctr_extra_passes", 1))))
+    except ScanCancelled:
+        raise
+    except Exception as e:
+        _doctr_failed[0] = True
+        log_error("docTR could not read a picture; it is switched off for this session")
+        note_skip("docTR", f"docTR failed, so pictures were read by Tesseract only: {type(e).__name__}: {e}. See logs\\error.log.")
+        return ""
+    from rapidfuzz import fuzz
+    sx = clean_shape[1] / max(1, rgb.shape[1]); sy = clean_shape[0] / max(1, rgb.shape[0])
+    floor = float(OCR_CFG.get("doctr_min_confidence", 0.5))
+    out, seen = [], set()
+    for ln in lines:
+        box, text, conf = ln[0], ln[1], ln[2]
+        words = ln[3] if len(ln) > 3 else [(t, conf) for t in text.split()]
+        if fold(text).strip() in _OCR_IGNORE:
+            continue
+        xs = [p[0] * sx for p in box]; ys = [p[1] * sy for p in box]
+        bx0, by0, bx1, by1 = min(xs), min(ys), max(xs), max(ys)
+        area = max(1.0, (bx1 - bx0) * (by1 - by0))
+        near = [t for t in tess_lines
+                if max(0, min(bx1, t[2]) - max(bx0, t[0])) * max(0, min(by1, t[3]) - max(by0, t[1])) > 0.3 * area]
+        tess_toks = [x for x in (_norm_tok(x) for t in near for x in t[4].split()) if x]
+        new = []
+        for tok, wconf in words:
+            n = _norm_tok(tok)
+            if not n or wconf < floor:
+                continue
+            if tess_toks:
+                # Tesseract read this region: keep its reading unless docTR is sure and has more than Tesseract
+                # and its word contains Tesseract's (TWTA where Tesseract read WTA). A docTR word inside a Tesseract
+                # word ("TES" in NOTES) or merely different ("SOV" for SOW) never counts.
+                if (wconf < float(OCR_CFG.get("doctr_override_confidence", 0.95)) or any(n in x for x in tess_toks)
+                        or not any(len(x) >= 2 and x in n for x in tess_toks)):
+                    continue
+            new.append(tok)
+        ln_txt = " ".join(new)
+        if ln_txt and ln_txt not in seen:
+            seen.add(ln_txt); out.append(ln_txt)
+    return "\n".join(out)
 
 def _ocr_raw(image_bytes):
     clean_img = enhance_image_for_ocr(image_bytes)
@@ -647,7 +757,9 @@ def _ocr_raw(image_bytes):
                 kept.append(item)
         lines = kept
     lines.sort(key=lambda t: (round(t[1] / 20), t[0]))
-    return "\n".join(t[4] for t in lines)
+    text = "\n".join(t[4] for t in lines)
+    extra = _doctr_extra(image_bytes, lines, clean_img.shape)
+    return text + ("\n" + extra if extra else "")
 
 _OCR_CALLS = [0]   # pictures sent to OCR while scanning the current file (a file with 0 does not depend on the reader)
 
@@ -1789,17 +1901,45 @@ def scan_file(filepath, status_callback, idx, total):
 # ---------------------------------------------------------------------------
 _OCR_LOC = re.compile(r"\(Image\)|, image ")
 
+def _para_span(loc):
+    mt = re.search(r"para (\d+)(?:-(\d+))?\)", loc)
+    return (int(mt.group(1)), int(mt.group(2) or mt.group(1))) if mt else None
+
+def _reading_order(chunks):
+    """Word equations sit in their paragraph's place: after the text block that holds or precedes that paragraph."""
+    eqs = [c for c in chunks if c[0].endswith(EQ.EQ_LABEL) and _para_span(c[0])]
+    rest = [c for c in chunks if c not in eqs]
+    if not eqs:
+        return chunks
+    out, placed = [], set()
+    for c in rest:
+        out.append(c)
+        span = _para_span(c[0])
+        if span and not c[0].endswith(EQ.EQ_LABEL):
+            for i, e in enumerate(eqs):
+                if i not in placed and _para_span(e[0])[0] <= span[1]:
+                    out.append(e); placed.add(i)
+    out += [e for i, e in enumerate(eqs) if i not in placed]
+    return out
+
 def full_text_of(filepath, status_callback=lambda m: None, idx=1, total=1):
     """All text in one file, as the scanner reads it: typed text exactly, picture text through the sandboxed OCR
-    reader, equations in linear form. Returns (text, error or None)."""
+    reader, equations in linear form and in reading order, then every symbol definition found. Returns (text, error)."""
     chunks, skips, err = scan_file(filepath, status_callback, idx, total)
     name = os.path.basename(filepath)
     out = [f"===== {name} ====="]
     if err:
         out.append(f"[Could not read this file: {err}]")
-    for loc, text in chunks:
-        if loc.endswith(EQ.DEF_LABEL) or loc.endswith(EQ.PIC_LABEL):
-            continue   # derived from text already shown
+    defs = {}
+    for loc, text in _reading_order(chunks):
+        if loc.endswith(EQ.DEF_LABEL):
+            for line in text.splitlines():
+                sym, _t, meaning = line.partition("\t")
+                if sym and meaning:
+                    defs.setdefault(sym.strip(), meaning.strip())
+            continue
+        if loc.endswith(EQ.PIC_LABEL):
+            continue   # the picture's text is already shown where it was read
         where = loc[len(name):].strip() if loc.startswith(name) else loc
         if loc.endswith(EQ.EQ_LABEL):
             linear, _t, syms = text.partition("\t")
@@ -1812,6 +1952,9 @@ def full_text_of(filepath, status_callback=lambda m: None, idx=1, total=1):
         tag = "  [read by OCR: check spelling]" if _OCR_LOC.search(loc) else ""
         out.append(f"--- {where or 'Text'}{tag} ---")
         out.append(body)
+    if defs:
+        out.append("--- Symbol definitions found in this file ---")
+        out += [f"{k} = {v}" for k, v in defs.items()]
     for lbl, why in skips:
         out.append(f"[Not read: {lbl}: {why}]")
     return "\n".join(out) + "\n", err
@@ -1847,7 +1990,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.0.0"            # keep in step with version_info.txt
+APP_VERSION = "2.1.0"            # keep in step with version_info.txt
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
 LOCK_STALE_HOURS = 12
@@ -1890,7 +2033,13 @@ def ocr_signature():
     """What picture results depend on: the OCR engine, its settings, the installed reader, and the ignore list."""
     models = sorted((n, os.path.getsize(os.path.join(MODELS_DIR, n)), int(os.path.getmtime(os.path.join(MODELS_DIR, n))))
                     for n in os.listdir(MODELS_DIR)) if os.path.isdir(MODELS_DIR) else []
-    return _sha12([OCR_BACKEND, OCR_CFG, models, sorted(_OCR_IGNORE)])
+    dsig = ""
+    if doctr_active():
+        try:
+            dsig = hashlib.sha1(open(os.path.join(DOCTR_DIR, "doctr_models.json"), "rb").read()).hexdigest()[:12]
+        except Exception:
+            dsig = "doctr"
+    return _sha12([OCR_BACKEND, OCR_CFG, models, sorted(_OCR_IGNORE), dsig])
 
 def engine_signature(weak=()):
     """Both signatures together (older project files store only this)."""
@@ -4206,7 +4355,7 @@ def run_selftest(paths):
     with open(out, "w", encoding="utf-8") as f:
         try:
             res = analyze_batch(paths, lambda m: f.write(m + "\n"))
-            f.write(f"\nOCR models: {OCR_MODEL_INFO}\nKnowledge: {knowledge_status()}\nOCR settings: {json.dumps(OCR_CFG)}\n")
+            f.write(f"\nOCR models: {OCR_MODEL_INFO}\nText finder: {doctr_info()}\nKnowledge: {knowledge_status()}\nOCR settings: {json.dumps(OCR_CFG)}\n")
             import openpyxl.xml as _oxml
             f.write(f"Security: network guard={socket.socket.connect is _guarded_connect}, "
                     f"office XML entities disabled={_SAFE_XML is not None}, openpyxl defusedxml={_oxml.DEFUSEDXML}\n")

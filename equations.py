@@ -18,6 +18,7 @@ def _m(tag):
 EQ_LABEL = " [equation]"          # chunk label suffix: text is one equation, kept as-is in project files
 DEF_LABEL = " [symbol definitions]"   # chunk label suffix: lines "symbol<TAB>meaning"
 PIC_LABEL = " [equation picture]"     # chunk label suffix: a picture that looks like it holds math
+CONSTANTS = {"π", "∞", "∑", "∫", "∏"}   # constants and operators: never symbols to define
 
 FUNCTIONS = set("sin cos tan sec csc cot sinh cosh tanh arcsin arccos arctan atan asin acos ln log exp lim max min "
                 "det arg mod sgn sign erf deg rad abs".split())
@@ -147,6 +148,8 @@ def symbols_in_text(text, from_math=False, common=frozenset()):
         core, marks, sub = mt.group(1), mt.group(2), mt.group(3)
         if core.lower() in FUNCTIONS and not sub:
             continue
+        if core in CONSTANTS and not sub and not marks:
+            continue   # π is a constant: it never needs a definition
         lhs = bool(re.match(r"\s*[=≈≡]", text[mt.end():]))   # left of an equals sign: always a symbol (Re = ...)
         if not from_math and not lhs:
             if core.lower() in STOP and not sub and not marks:

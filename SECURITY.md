@@ -157,7 +157,7 @@ Audit 2026-10-20: no document data, user paths, or trained knowledge in the pack
 |---|---|
 | Libraries with network features used by the app | None. PDFium, Skia, lxml, openpyxl, OpenCV, Tesseract, RapidFuzz, CustomTkinter have no network calls in the code paths used. `tools\network_audit.py` lists every shipped file that links a networking API |
 | Vector graphics (SVG, EMF, WMF) | Parsed with the hardened lxml parser (no entities, no DTD, no network) or a built-in record reader. SVG references to external images or fonts are never fetched; Skia draws the SVG from the bytes in memory |
-| OCR models | Bundled inside `_internal\rapidocr_onnxruntime\models` (3 ONNX files). Never downloaded |
+| OCR models | Tesseract: Google's eng.traineddata (SHA-256 checked at build). docTR (v2.1.0+): `_internal\doctr\doctr_det.onnx` and `doctr_reco.onnx`, exported by this project from Mindee's official weights; SHA-256 checked at build against `vendor\doctr\doctr_models.json`. Never downloaded |
 | ONNX Runtime usage telemetry | Disabled in code (`disable_telemetry_events()`) |
 | Runtime network block | `socket.connect` to any non-loopback address, all DNS lookups, and `urllib` are replaced with functions that refuse. Tested: raw socket, direct IP, DNS, urllib HTTPS, and http.client HTTPS all refused |
 | Live monitoring of the exe (100 ms polling), full scan of 8 files + 20 s idle | **0 TCP connections, 0 UDP sockets, 0 child processes** |
@@ -179,6 +179,23 @@ The app works identically with the network cable unplugged or Wi-Fi off.
    v1.6.0 Windows build, it fails on 5 files, including libcurl-4.dll and tesseract.exe.)
 
 The app sends image bytes on stdin and reads results on stdout: no file names, no URLs.
+
+**docTR second reader (v2.1.0+).**
+- **What it is:** two ONNX models from Mindee's docTR (Paris, Apache 2.0), a DBNet text finder and a CRNN text
+  reader. This project exported them itself from Mindee's official weights. The weight files' SHA-256 match the
+  hash prefixes in Mindee's file names. No third-party conversion is used. `vendor\doctr\SOURCE.txt` records
+  every hash.
+- **Runtime:** ONNX Runtime 1.31.0 (Microsoft, MIT) in the app's own process, CPU only. The runner,
+  `doctr_engine.py`, is this project's own code: about 250 lines of NumPy and OpenCV, with no OnnxTR or docTR
+  package. OnnxTR was rejected because it imports Hugging Face's download client and HTTP libraries.
+- **No network path:**
+  - Models load from `_internal\doctr` by file path only.
+  - ONNX Runtime telemetry is disabled in code.
+  - The in-process network guard covers it like the rest of the app.
+  - `tools\network_audit.py` found no networking imports in any ONNX Runtime or docTR file in the v2.1.0 build.
+- **Build gate:** the origin check allows exactly two .onnx files, and only with the recorded SHA-256. It still
+  refuses RapidOCR, PaddleOCR, pyclipper and shapely.
+- **Turn it off:** set `"doctr_enabled": 0` in `config\ocr_settings.json`.
 
 ---
 

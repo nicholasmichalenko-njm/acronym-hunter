@@ -11,6 +11,20 @@ ONE PROGRAM (from v1.7.0)
     config\app_settings.json before sharing. Nothing gets saved to training_data\ then.
   Older versions: v1.6.0 (two packages), v1.5.1 (RapidOCR + PaddleOCR models from Baidu).
 
+SECOND READER: docTR (from v2.1.0)
+  Every picture is now read twice: by Tesseract and by docTR, a neural text finder and reader (Mindee, France,
+  Apache 2.0) running on ONNX Runtime (Microsoft, MIT). docTR finds text Tesseract misses: labels inside colored
+  boxes, words touching diagram lines, photographed whiteboards, busy backgrounds, faint or low-resolution text.
+  - In a test of 13 hard diagrams (146 labels), Tesseract alone found 56%; Tesseract + docTR found 97%.
+  - Where Tesseract already read a word, its reading stands. docTR adds text Tesseract never found, and a longer
+    reading only when it is at least 95% sure (TWTA where Tesseract read WTA). Nothing is counted twice.
+  - Extra passes: large pictures are read in tiles, dark pictures also inverted, and pages with vertical labels
+    also turned 90 and 270 degrees.
+  - Cost: about 1 second more per picture (several seconds for very large drawings). Typed text is not affected.
+  - The models were exported by this project from Mindee's official weights (vendor\doctr\SOURCE.txt has every
+    SHA-256). They load from the app's own folder; nothing is downloaded.
+  - To turn it off: set "doctr_enabled": 0 in config\ocr_settings.json.
+
 RUN
   0. If you received the zip by email, Teams, or download: right-click the zip > Properties >
      check "Unblock" > OK, BEFORE unzipping. This clears the internet-download flag Windows adds.

@@ -3,14 +3,15 @@ import os
 from PyInstaller.utils.hooks import collect_all
 
 # Edition (set by build.ps1 -Edition):
-#   us      Tesseract OCR (HP origin, Google-developed, Google-trained English model). No RapidOCR, PaddleOCR, or ONNX Runtime.
+#   us      Tesseract OCR (HP origin, Google-developed, Google-trained English model) plus docTR (Mindee, Apache 2.0) on
+#           ONNX Runtime (Microsoft, MIT), models exported by this project. No RapidOCR or PaddleOCR.
 #   legacy  RapidOCR + PaddleOCR PP-OCRv4 models on ONNX Runtime (v1.5.x engine).
 US = os.environ.get('AH_EDITION', 'us') == 'us'
 
 datas = []
 binaries = []
 hiddenimports = []
-for _pkg in ['pypdfium2', 'pypdfium2_raw', 'customtkinter', 'rapidfuzz', 'openpyxl'] + ([] if US else ['rapidocr_onnxruntime', 'onnxruntime']):
+for _pkg in ['pypdfium2', 'pypdfium2_raw', 'customtkinter', 'rapidfuzz', 'openpyxl', 'onnxruntime'] + ([] if US else ['rapidocr_onnxruntime']):
     tmp_ret = collect_all(_pkg)
     datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 if US:
@@ -19,9 +20,14 @@ if US:
         raise SystemExit('vendor\\tesseract missing: run tools\\fetch_tesseract.ps1 first')
     datas += [('vendor/tesseract', 'tesseract')]
     hiddenimports += ['tess_train', 'sandbox']
+    # docTR text finder + reader (2.1.0): two ONNX models exported by this project from Mindee's weights
+    if not os.path.isfile('vendor/doctr/doctr_models.json'):
+        raise SystemExit('vendor\\doctr missing: export the docTR models first (see vendor\\doctr\\SOURCE.txt)')
+    datas += [('vendor/doctr', 'doctr')]
+    hiddenimports += ['doctr_engine']
 # US edition also leaves out standard-library and helper modules the app never uses that link Windows networking:
 # ssl (TLS), asyncio (_overlapped), multiprocessing, psutil. Checked by tools\network_audit.py at build time.
-_edition_excludes = (['rapidocr_onnxruntime', 'onnxruntime', 'pyclipper', 'shapely', 'yaml',
+_edition_excludes = (['rapidocr_onnxruntime', 'pyclipper', 'shapely', 'yaml',
                       'ssl', '_ssl', 'asyncio', 'multiprocessing', 'psutil'] if US else [])
 
 
