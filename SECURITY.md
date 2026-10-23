@@ -164,12 +164,21 @@ Audit 2026-10-20: no document data, user paths, or trained knowledge in the pack
 
 The app works identically with the network cable unplugged or Wi-Fi off.
 
-**US edition (v1.6.0+).** Text in pictures is read by `tesseract.exe` from `_internal\tesseract`, started as a
-child process with no window. The app sends the image bytes on stdin and reads results on stdout: no file names,
-no URLs, nothing written to disk. The Python network block does not extend into that child process, so the
-assurance is in what the app passes it: Tesseract opens a network location only when told to read a URL, and
-the app passes only the word `stdin`. Its training tools (`lstmtraining`, `lstmeval`, `combine_tessdata`) run
-the same way from the Trainer, on files inside `training_data\`.
+**Tesseract (v1.7.0+): three independent layers, no network possible.**
+1. **No network code.** `tools\build_tesseract.ps1` builds Tesseract 5.5.3 from its official source with
+   `-DDISABLE_CURL=ON -DDISABLE_ARCHIVE=ON`. `tesseract --version` lists no libcurl or libarchive.
+2. **Operating-system sandbox.** Every Tesseract process (reading pictures, and the training tools behind Improve
+   Reading) starts inside a Windows AppContainer with **no capabilities**. Windows denies every network operation,
+   including loopback, to such a process. It can read only the folders the app grants (`_internal\tesseract`,
+   `config\models`) and write only `training_data\model`. No admin rights are used. The self-test runs Windows' own
+   `curl.exe` in the same sandbox as proof: result "BLOCKED (Could not resolve host)", while the same command
+   outside the sandbox succeeds. If the sandbox cannot start (for example the app runs from a network share), the
+   app logs it and runs Tesseract normally, unless `ocr_sandbox_required` is true in `config\app_settings.json`.
+3. **Build gate.** `tools\network_audit.py` reads the import tables of every shipped .exe, .dll, and .pyd. A
+   Tesseract file that links Winsock, WinHTTP, WinINet, DNS, or libcurl fails the build. (Run against the official
+   v1.6.0 Windows build, it fails on 5 files, including libcurl-4.dll and tesseract.exe.)
+
+The app sends image bytes on stdin and reads results on stdout: no file names, no URLs.
 
 ---
 

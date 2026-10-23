@@ -18,14 +18,18 @@ if US:
     if not os.path.isfile('vendor/tesseract/tesseract.exe'):
         raise SystemExit('vendor\\tesseract missing: run tools\\fetch_tesseract.ps1 first')
     datas += [('vendor/tesseract', 'tesseract')]
-    hiddenimports += ['tess_train']
-_edition_excludes = (['rapidocr_onnxruntime', 'onnxruntime', 'pyclipper', 'shapely', 'yaml'] if US else [])
+    hiddenimports += ['tess_train', 'sandbox']
+# US edition also leaves out standard-library and helper modules the app never uses that link Windows networking:
+# ssl (TLS), asyncio (_overlapped), multiprocessing, psutil. Checked by tools\network_audit.py at build time.
+_edition_excludes = (['rapidocr_onnxruntime', 'onnxruntime', 'pyclipper', 'shapely', 'yaml',
+                      'ssl', '_ssl', 'asyncio', 'multiprocessing', 'psutil'] if US else [])
 
 
 # Drop hidden imports for submodules excluded below (avoids noisy "not found" errors in the log)
 _skip = ('onnxruntime.transformers', 'onnxruntime.quantization', 'onnxruntime.tools', 'pymupdf.layout')
 hiddenimports = [h for h in hiddenimports if not h.startswith(_skip)]
 hiddenimports += ['defusedxml', 'defusedxml.ElementTree']  # openpyxl uses it only if importable
+hiddenimports += ['trainer_gui', 'PIL.ImageTk']   # the Trainer opens as a window inside the scanner (one program)
 datas += [('assets/scanner.ico', 'assets'), ('assets/trainer.ico', 'assets')]   # window/taskbar icons at runtime
 
 def make_analysis(script):
@@ -50,19 +54,16 @@ def make_analysis(script):
   )
 
 a = make_analysis('app_gui.py')
-b = make_analysis('trainer_gui.py')   # companion Trainer: region rescans + training samples
 # Strip payload the app never uses: PyMuPDF layout models + C headers/libs, OpenCV video (FFmpeg) DLL.
 def _keep(entry):
     dest = entry[0].replace('/', '\\').lower()
     return not (dest.startswith('pymupdf\\layout') or dest.startswith('pymupdf\\mupdf-devel')
                 or 'opencv_videoio_ffmpeg' in dest
                 or dest.startswith('onnxruntime\\datasets'))   # ONNX Runtime demo models: unused, and the leak check allows no stray .onnx
-for an in (a, b):
-    an.datas = [e for e in an.datas if _keep(e)]
-    an.binaries = [e for e in an.binaries if _keep(e)]
+a.datas = [e for e in a.datas if _keep(e)]
+a.binaries = [e for e in a.binaries if _keep(e)]
 
 pyz = PYZ(a.pure)
-pyz_b = PYZ(b.pure)
 
 exe = EXE(
     pyz,
@@ -75,26 +76,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=False,  # UPX-packed DLLs trip corporate EDR/AV and can corrupt onnxruntime
-    console=False,
-    disable_windowed_traceback=False,
-    argv_emulation=False,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
-)
-exe_b = EXE(
-    pyz_b,
-    b.scripts,
-    [],
-    exclude_binaries=True,
-    name='AcronymHunterTrainer',
-    icon='assets/trainer.ico',
-    version='version_info_trainer.txt',  # Windows file properties (publisher, description, version)
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=False,  # UPX-packed DLLs trip corporate EDR/AV and can corrupt onnxruntime
+    upx=False,  # UPX-packed DLLs trip corporate EDR/AV
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -106,11 +88,8 @@ coll = COLLECT(
     exe,
     a.binaries,
     a.datas,
-    exe_b,          # both programs share one _internal folder: the Trainer adds only a few MB
-    b.binaries,
-    b.datas,
     strip=False,
-    upx=False,  # UPX-packed DLLs trip corporate EDR/AV and can corrupt onnxruntime
+    upx=False,
     upx_exclude=[],
     name='AcronymHunter',
 )

@@ -1,11 +1,15 @@
 ACRONYM HUNTER (Portable, Offline)
 ==================================
 
-EDITIONS (from v1.6.0)
-  US edition (AcronymHunter_US_*.zip): reads text in pictures with Tesseract OCR (Apache 2.0; created at
-    HP, developed by Google) and Google's English model. No Chinese-origin code or models. The Trainer
-    trains the reader on this PC's processor: no GPU, no internet, no separate kit.
-  Legacy edition (v1.5.1 and earlier): RapidOCR + PaddleOCR models (Baidu). Kept for comparison only.
+ONE PROGRAM (from v1.7.0)
+  AcronymHunter_US.zip holds one program, AcronymHunter.exe. It reads text in pictures with Tesseract OCR
+  (Apache 2.0; created at HP, developed by Google) and Google's English model.
+  - Tesseract is built from its source without any network library, and it runs inside a Windows sandbox
+    that has no network permission. No Chinese-origin code or models. No GPU, no internet, no separate kit.
+  - The Trainer is a window inside the program (Advanced > Trainer, or right-click a result).
+  - To give colleagues a copy with no training features: set "allow_training": false in
+    config\app_settings.json before sharing. Nothing gets saved to training_data\ then.
+  Older versions: v1.6.0 (two packages), v1.5.1 (RapidOCR + PaddleOCR models from Baidu).
 
 RUN
   0. If you received the zip by email, Teams, or download: right-click the zip > Properties >
@@ -44,6 +48,18 @@ SAVING A ONE-OFF SCAN (reuse it later, no rescan)
   then Rescan Project reads only files that are new or changed and reuses the rest.
   A saved set of files (not a whole folder) can grow: Project > Add Files to Project.
   New Project from a Folder does not scan by itself: click Scan Project when ready.
+
+CHECK IN PICTURE AND IMPROVE READING (teach the reader your documents)
+  1. Right-click a result > "Check in picture". The picture it came from opens in the Trainer, read
+     again, with that term outlined in yellow. Typed-text results have nothing to check.
+  2. Fix what is wrong: correct the spelling and pick "Save as text", or mark "Not text". Click Save Choices.
+  3. When corrections pile up, a green bar appears in the main window: "Improve Reading".
+     One click teaches the reader your saved lines on this PC's processor, offline (minutes).
+     It tests the new reader on lines it did not learn from and installs it ONLY if it scored better.
+     Knowledge > Undo Last Knowledge Change puts the previous reader back.
+  4. Rescan when it offers. Share the improved reader with Knowledge > Export Knowledge Pack
+     (approved SharePoint folder only).
+  What it cannot fix: words wrongly treated as abbreviations (like "award." at a sentence end). Use Exclude.
 
 WHAT THE TRAINER SHOWS YOU
   Only what the scanner has to OCR: pictures inside Word, PowerPoint, and Excel files (including
@@ -146,7 +162,7 @@ ONEDRIVE AND SHAREPOINT
   Whether controlled documents (CUI, ITAR) may live in that OneDrive or SharePoint is your
   organization's decision. The app does not change it. When in doubt, scan local copies.
 
-REGION TRAINER (AcronymHunterTrainer.exe, only in the "WithTrainer" package)
+TRAINER (a window inside AcronymHunter.exe: Advanced > Trainer, or right-click > Check in picture)
   Not included in the standard AcronymHunter_Portable.zip. Open a file, drag a box around text in a
   picture. Each line OCR found gets a number (matching the box on the picture) and a color:
     GREEN = the scanner keeps this reading (it can appear in results).
@@ -168,7 +184,7 @@ WHAT STAYS IN THIS FOLDER
   acronym_database.csv   Master list. Include / Exclude rules. Edit in the app or in Excel.
   config\                OCR corrections (Fix OCR), OCR ignore list (Not text), OCR settings,
                          optional replacement OCR models.
-  training_data\         Trainer samples (WithTrainer package only; created when you save one).
+  training_data\         Trainer samples (created when you save one; never with allow_training false).
   config\knowledge_*     Installed pack record and backups for Undo (created on first install).
   _local_sandbox\        Scratch space, created on launch, cleared on exit.
   logs\error.log         Written only if something fails. Send this file when reporting a problem.

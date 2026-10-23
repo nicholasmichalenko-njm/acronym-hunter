@@ -1,6 +1,6 @@
 # Acronym Hunter: Complete Overview
 
-**Version:** 1.6.0 (US edition) | **Updated:** 2026-10-22 | **Platform:** Windows 10/11, 64-bit
+**Version:** 1.7.0 | **Updated:** 2026-10-22 | **Platform:** Windows 10/11, 64-bit
 
 This document has two parts.
 **Part 1** explains the whole application in plain language: what it is, what is inside it, how it works,
@@ -38,7 +38,7 @@ the OCR models stored inside the folder. The "notebook" is `acronym_database.csv
 ```
 AcronymHunter\
   AcronymHunter.exe          The scanner: the program you double-click
-  AcronymHunterTrainer.exe   The Trainer: re-read missed spots and save training samples
+  (Trainer)                  A window inside AcronymHunter.exe since v1.7.0: check pictures, save samples, Improve Reading
   acronym_database.csv       The notebook: known terms, definitions, Include/Exclude rules
   config\                    Accuracy settings you can tune
      ocr_corrections.csv       "This misread means that" list (RFF means RFP)
@@ -56,7 +56,7 @@ AcronymHunter\
 
 **Two packages from one build:**
 - `AcronymHunter_Portable.zip`: the scanner only. This is the one to share.
-- `AcronymHunter_WithTrainer.zip`: scanner plus Trainer, for whoever curates OCR fixes and training samples.
+- Since v1.7.0 there is one package, `AcronymHunter_US.zip`. Set `allow_training` to false in `config\app_settings.json` to share a copy without training features.
 
 Both programs share the same engine in `_internal\`, so the Trainer adds only about 8 MB. In the scanner-only
 package the Region Trainer button is hidden.
@@ -162,8 +162,8 @@ default or lock the switch in `config\app_settings.json`:
 
 ## 7. The Trainer: point at what was missed
 
-`AcronymHunterTrainer.exe` (or the **Region Trainer** button in the scanner) is a second program for the
-cases where the scanner missed something in a picture. It ships only in `AcronymHunter_WithTrainer.zip`.
+The **Trainer** window (right-click a result > Check in picture, or Advanced > Trainer) is for the
+cases where the scanner missed something in a picture. It runs inside AcronymHunter.exe (v1.7.0+).
 
 1. **Open File** and pick the document or image. The left list shows every page (PDF) or embedded picture
    (PowerPoint, Word, Excel) with its slide or section.
@@ -254,7 +254,7 @@ contents. Part 2, section 12 lists them and how IT normally controls them.
 
 | Attribute | Answer |
 |---|---|
-| Deployment model | Portable folder; no installer, no services, no drivers. Standard package: scanner only. Optional WithTrainer package adds the Trainer, sharing the same engine |
+| Deployment model | Portable folder; no installer, no services, no drivers. One package and one program (v1.7.0+); training features can be switched off per copy (`allow_training`) |
 | Network access | None. No outbound or inbound connections; runtime block on sockets and DNS |
 | Data transmission | None |
 | Data storage | Only inside the application folder; user-chosen export location for reports |
@@ -331,26 +331,31 @@ contents. Part 2, section 12 lists them and how IT normally controls them.
 | Services, drivers, scheduled tasks? | None |
 | Registry writes by the app? | None. Verified: no registry keys created during a monitored run |
 | Startup/autorun entries? | None |
-| Child processes? | None during scanning (verified). On user click only: **Region Trainer** starts `AcronymHunterTrainer.exe` from the same folder; **Edit Database CSV** and **Open Training Folder** ask Windows to open a file or folder in its default program |
+| Child processes? | None during scanning (verified). When a picture is read or Improve Reading runs: `tesseract.exe` / `lstmtraining.exe` from `_internal\tesseract`, inside a no-network AppContainer; **Edit Database CSV** and **Open Training Folder** ask Windows to open a file or folder in its default program |
 | Files outside the folder? | None, except the user-chosen CSV export. Verified by live file-system monitoring |
 | Architecture | x64 Windows PE (machine 0x8664). Bundles its own Visual C++ runtime DLLs |
 | Uninstall | Delete the folder. Verified: no app files remain afterward |
 
 ## 6. Software composition (bill of materials)
 
-**US edition (v1.6.0 and later, `AcronymHunter_US_*.zip`).** Same table as below, minus every OCR row
-(ONNX Runtime, rapidocr-onnxruntime, PP-OCRv4 models, Shapely, pyclipper, PyYAML, psutil), plus:
+**v1.7.0 and later (`AcronymHunter_US.zip`, one program).** Same table as below, minus every OCR row
+(ONNX Runtime, rapidocr-onnxruntime, PP-OCRv4 models, Shapely, pyclipper, PyYAML, psutil), plus the rows that follow.
+Tesseract is **built from its official source by `tools\build_tesseract.ps1` with `-DDISABLE_CURL=ON -DDISABLE_ARCHIVE=ON`**:
+no network library is compiled in, and the shipped DLL set is only Leptonica, the image codecs (libpng, libjpeg-turbo,
+libtiff, libwebp, openjpeg, giflib, jbig, lerc, deflate, zstd, lzma, zlib) and the GCC runtime. Every Tesseract
+process runs in a Windows AppContainer with no network permission. `tools\network_audit.py` reads the import tables of
+every shipped program file and fails the build if a Tesseract file links any Windows networking API.
 
 | Component | Version | License | Role | Origin |
 |---|---|---|---|---|
-| Tesseract OCR (`tesseract.exe`, `libtesseract-5.dll`) | 5.5.3 | Apache-2.0 | Reads text in pictures (child process, stdin/stdout only) | Created at HP (Bristol UK, Greeley CO), developed by Google; official tesseract-ocr release |
+| Tesseract OCR (`tesseract.exe`, statically linked) | 5.5.3, built from source | Apache-2.0 | Reads text in pictures (sandboxed child process, stdin/stdout only) | Created at HP (Bristol UK, Greeley CO), developed by Google; source tag 5.5.3, SHA-256 `9218e62793116d42a9f6d14cd9348518b27f382096eea3d0f2d1a24616bb5884` |
 | Tesseract training tools (`lstmtraining`, `lstmeval`, `combine_tessdata`) | 5.5.3 | Apache-2.0 | CPU fine-tuning in the Trainer | same |
-| Leptonica + image codec DLLs (libpng, libjpeg-turbo, libtiff, libwebp, openjpeg, zlib, zstd...) | as shipped by Tesseract 5.5.3 | BSD-2 and permissive | Image decoding for Tesseract | open-source projects |
+| Leptonica + image codec DLLs (libpng, libjpeg-turbo, libtiff, libwebp, openjpeg, giflib, zlib, zstd...) | MSYS2 UCRT64 packages (signature-verified) | BSD-2 and permissive | Image decoding for Tesseract | open-source projects |
 | `eng.traineddata` (tessdata_best) | SHA-256 `8280aed0782fe27257a68ea10fe7ef324ca0f8d85bd2fd145d1c2b560bcb66ba` | Apache-2.0 | English OCR model (float, fine-tunable) | Trained by Google |
 
-The build refuses to finish if any RapidOCR, ONNX Runtime, Paddle, or `.onnx` file is present, or if
-`eng.traineddata` is not Google's file (hash check). Tesseract's DLL set includes libcurl and libarchive
-because libtesseract links them; the app never passes Tesseract a file name or URL, only image bytes on stdin.
+The build refuses to finish if any RapidOCR, ONNX Runtime, Paddle, or `.onnx` file is present, if
+`eng.traineddata` is not Google's file (hash check), if the Tesseract folder is not the no-network source build,
+or if the network audit finds an unreviewed link. (v1.6.0 shipped the official Windows build, which links libcurl.)
 
 **Legacy edition (v1.5.1 and earlier).** Runtime components bundled in `_internal\` (build tools such as PyInstaller are not shipped):
 

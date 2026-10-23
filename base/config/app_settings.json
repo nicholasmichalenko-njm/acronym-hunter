@@ -1,5 +1,8 @@
 {
-  "_help": "App options for distribution. true/false only. Edit before building to set what colleagues get.",
+  "_help": "App options for distribution. true/false only. Edit before building or sharing to set what colleagues get.",
   "advanced_features_default": false,
-  "allow_advanced_toggle": true
+  "allow_advanced_toggle": true,
+  "allow_training": true,
+  "ocr_sandbox": true,
+  "ocr_sandbox_required": false
 }

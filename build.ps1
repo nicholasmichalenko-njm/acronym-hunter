@@ -1,7 +1,7 @@
-# Builds the app ONCE and makes the packages:
-#   AcronymHunter_Portable.zip     scanner only           -> GitHub Release (generic data only)
-#   AcronymHunter_WithTrainer.zip  scanner + Trainer      -> GitHub Release (generic data only)
+# Builds the app ONCE and makes the package:
+#   AcronymHunter_US.zip           one program: scanner + Trainer window -> GitHub Release (generic data only)
 #   internal_builds\AcronymHunter_Internal_<pack>.zip     -> approved SharePoint ONLY (when -KnowledgePack is given)
+# Training features can be switched off for a distribution in base\config\app_settings.json (allow_training).
 #
 # Data boundary: the GitHub packages are built from base\ ONLY, never from the working database or config\.
 # A leak check refuses to finish if anything outside the approved file list, or any model file, would ship.
@@ -11,20 +11,19 @@
 #
 # Editions:
 #   -Edition us      (default) Tesseract OCR: HP origin, Google-developed, Google-trained English model. CPU training built in.
-#                    Packages: AcronymHunter_US_Portable.zip, AcronymHunter_US_WithTrainer.zip. Needs tools\fetch_tesseract.ps1 once.
-#   -Edition legacy  RapidOCR + PaddleOCR (Baidu) models on ONNX Runtime, the v1.5.x engine. Packages keep the old names.
+#                    Needs vendor\tesseract once: tools\build_tesseract.ps1 (built from source with no network library).
+#   -Edition legacy  RapidOCR + PaddleOCR (Baidu) models on ONNX Runtime, the v1.5.x engine: AcronymHunter_Legacy.zip.
 param([string]$KnowledgePack = "", [ValidateSet('us', 'legacy')][string]$Edition = 'us')
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 
 $env:AH_EDITION = $Edition
-$prefix = if ($Edition -eq 'us') { 'AcronymHunter_US' } else { 'AcronymHunter' }
+$prefix = if ($Edition -eq 'us') { 'AcronymHunter_US' } else { 'AcronymHunter_Legacy' }
 
-function Test-PublicPackage([string]$dir, [bool]$withTrainer) {
+function Test-PublicPackage([string]$dir) {
     # 1. Only these files may sit outside _internal
     $allowed = @('AcronymHunter.exe', 'acronym_database.csv', 'README.txt', 'OVERVIEW.md', 'SECURITY.md', 'CHECKSUM.txt',
                  'config\app_settings.json', 'config\ocr_settings.json', 'config\ocr_corrections.csv', 'config\models\README.txt')
-    if ($withTrainer) { $allowed += 'AcronymHunterTrainer.exe' }
     $root = (Resolve-Path $dir).Path
     $files = Get-ChildItem $root -Recurse -File | ForEach-Object { $_.FullName.Substring($root.Length + 1) }
     $outside = $files | Where-Object { $_ -notlike '_internal\*' }
@@ -44,6 +43,7 @@ function Test-PublicPackage([string]$dir, [bool]$withTrainer) {
         $engHash = (Get-FileHash "$root\_internal\tesseract\tessdata\eng.traineddata").Hash
         if ($engHash -ne '8280AED0782FE27257A68EA10FE7EF324CA0F8D85BD2FD145D1C2B560BCB66BA') { throw "LEAK CHECK FAILED: eng.traineddata is not Google's tessdata_best file" }
         if (-not (Test-Path "$root\_internal\tesseract\tesseract.exe")) { throw "BUILD CHECK FAILED: Tesseract engine missing" }
+        if (-not (Select-String -Path "$root\_internal\tesseract\SOURCE.txt" -Pattern 'DISABLE_CURL=ON' -Quiet)) { throw "BUILD CHECK FAILED: vendor\tesseract is not the no-network source build (run tools\build_tesseract.ps1)" }
     } else {
         $models = $files | Where-Object { $_ -like '*.onnx' -and $_ -notlike '_internal\rapidocr_onnxruntime\models\*' }
         if ($models) { throw "LEAK CHECK FAILED: model file(s) outside the public RapidOCR models: $($models -join ', ')" }
@@ -72,35 +72,22 @@ if (Test-Path $mp) {
     else { throw "Defender flagged the build (exit $LASTEXITCODE). Do not share it. Check Windows Security > Protection history." }
 } else { "Defender command-line scanner not found; scan skipped." }
 
+# Network audit: every program file must be on the reviewed list of files allowed to link Windows networking APIs.
+# Tesseract files may link none (built without libcurl). Fails the build on anything new.
+& .\venv\Scripts\python.exe tools\network_audit.py $out
+if ($LASTEXITCODE -ne 0) { throw "NETWORK AUDIT FAILED. See the list above." }
+
 $exeHash = (Get-FileHash "$out\AcronymHunter.exe" -Algorithm SHA256).Hash
-$trainerHash = (Get-FileHash "$out\AcronymHunterTrainer.exe" -Algorithm SHA256).Hash
-@("AcronymHunter.exe         SHA256  $exeHash",
-  "AcronymHunterTrainer.exe  SHA256  $trainerHash") | Out-File -Encoding ascii "$out\CHECKSUM.txt"
-
-# Package 1: scanner + Trainer (GitHub)
-Test-PublicPackage $out $true
-$zipFull = "${prefix}_WithTrainer.zip"
-Remove-Item $zipFull -ErrorAction SilentlyContinue
-Compress-Archive -Path $out -DestinationPath $zipFull -CompressionLevel Optimal
-
-# Package 2: scanner only (GitHub)
-$stage = 'dist\scanner_only\AcronymHunter'
-New-Item -ItemType Directory -Force (Split-Path $stage) | Out-Null
-Copy-Item $out $stage -Recurse -Force
-Remove-Item "$stage\AcronymHunterTrainer.exe" -Force
-"AcronymHunter.exe  SHA256  $exeHash" | Out-File -Encoding ascii "$stage\CHECKSUM.txt"
-Test-PublicPackage $stage $false
-$zip = "${prefix}_Portable.zip"
+"AcronymHunter.exe  SHA256  $exeHash" | Out-File -Encoding ascii "$out\CHECKSUM.txt"
+Test-PublicPackage $out
+$zip = "$prefix.zip"
 Remove-Item $zip -ErrorAction SilentlyContinue
-Compress-Archive -Path $stage -DestinationPath $zip -CompressionLevel Optimal
-
+Compress-Archive -Path $out -DestinationPath $zip -CompressionLevel Optimal
 $zipHash = (Get-FileHash $zip -Algorithm SHA256).Hash
-$zipFullHash = (Get-FileHash $zipFull -Algorithm SHA256).Hash
-$lines = @("$zip     SHA256  $zipHash      (scanner only: share this)",
-           "$zipFull  SHA256  $zipFullHash  (scanner + Trainer)",
-           "AcronymHunter.exe              SHA256  $exeHash",
-           "AcronymHunterTrainer.exe       SHA256  $trainerHash",
+$lines = @("$zip  SHA256  $zipHash",
+           "AcronymHunter.exe  SHA256  $exeHash",
            "Built $(Get-Date -Format 'yyyy-MM-dd HH:mm')")
+$stage = $out
 
 # Package 3 (optional): internal build with a Knowledge Pack pre-installed. SharePoint ONLY.
 if ($KnowledgePack) {
@@ -124,5 +111,5 @@ if ($KnowledgePack) {
 
 $lines | Out-File -Encoding ascii "${prefix}_SHA256.txt"
 Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue
-"Done: $zip and $zipFull (GitHub Release files, generic data only)"
+"Done: $zip (GitHub Release file, generic data only)"
 "Zip SHA256: $zipHash"

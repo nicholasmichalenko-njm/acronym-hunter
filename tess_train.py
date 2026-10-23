@@ -21,9 +21,9 @@ def _tool(tess_dir, name):
         raise RuntimeError(f"{name} is missing from {tess_dir}. Use the AcronymHunter_US_WithTrainer package.")
     return path
 
-def _run(cmd, cwd=None, timeout=None):
-    r = subprocess.run(cmd, cwd=cwd, capture_output=True, timeout=timeout, creationflags=_NOWIN)
-    return r.returncode, (r.stdout + r.stderr).decode("utf-8", "replace")
+def _plain_runner(cmd, timeout=None):
+    r = subprocess.run(cmd, capture_output=True, timeout=timeout, creationflags=_NOWIN)
+    return r.returncode, r.stdout, r.stderr
 
 def read_samples(train_dir):
     """[(abs image path, text)] from labels.txt, skipping missing images and empty or 'not text' labels."""
@@ -60,8 +60,14 @@ def _bcer(output):
     m = re.findall(r"BCER (?:eval|train)=([\d.]+)", output)
     return float(m[-1]) if m else None
 
-def train(tess_dir, train_dir, out_dir, progress=lambda msg: None, cancel=None, iterations=None):
-    """Fine-tune and write out_dir\\acronym.traineddata. Returns a report dict. Raises on failure."""
+def train(tess_dir, train_dir, out_dir, progress=lambda msg: None, cancel=None, iterations=None, runner=None):
+    """Fine-tune and write out_dir\\acronym.traineddata. Returns a report dict. Raises on failure.
+    runner(cmd, timeout) -> (exit code, stdout, stderr) runs each Tesseract tool; the app passes one that uses the
+    no-network sandbox. Every file the tools touch is inside tess_dir (read) and out_dir (read/write)."""
+    raw = runner or _plain_runner
+    def _run(cmd, timeout=600):
+        code, out, err = raw(cmd, timeout=timeout)
+        return code, (out + err).decode("utf-8", "replace")
     tess = _tool(tess_dir, "tesseract.exe"); lstmtraining = _tool(tess_dir, "lstmtraining.exe")
     combine = _tool(tess_dir, "combine_tessdata.exe"); lstmeval = _tool(tess_dir, "lstmeval.exe")
     tessdata = os.path.join(tess_dir, "tessdata"); base = os.path.join(tessdata, "eng.traineddata")
@@ -110,21 +116,11 @@ def train(tess_dir, train_dir, out_dir, progress=lambda msg: None, cancel=None, 
     cmd = [lstmtraining, "--model_output", os.path.join(work, "acr"), "--continue_from", os.path.join(work, "eng.lstm"),
            "--traineddata", base, "--train_listfile", os.path.join(work, "list.train"),
            "--eval_listfile", os.path.join(work, "list.eval"), "--max_iterations", str(iters), "--target_error_rate", "0.005"]
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=_NOWIN)
-    tail, t0 = [], time.time()
-    for raw in p.stdout:
-        line = raw.decode("utf-8", "replace").rstrip()
-        tail = (tail + [line])[-40:]
-        m = re.match(r"At iteration (\d+)/(\d+)/(\d+).*?BCER train=([\d.]+)%", line)
-        if m:
-            progress(f"Training: step {m.group(2)} of {iters}, character error on training lines {m.group(4)}%  "
-                     f"({int(time.time() - t0)} s)")
-        if cancel is not None and cancel.is_set():
-            p.kill(); raise RuntimeError("Training cancelled.")
-    p.wait()
+    t0 = time.time()
+    code, log = _run(cmd, timeout=6 * 3600)
     ckpt = os.path.join(work, "acr_checkpoint")
     if not os.path.isfile(ckpt):
-        raise RuntimeError("Training produced no checkpoint:\n" + "\n".join(tail[-15:]))
+        raise RuntimeError("Training produced no checkpoint:\n" + "\n".join(log.splitlines()[-15:]))
     os.makedirs(out_dir, exist_ok=True)
     model = os.path.join(out_dir, "acronym.traineddata")
     code, log = _run([lstmtraining, "--stop_training", "--continue_from", ckpt, "--traineddata", base, "--model_output", model])

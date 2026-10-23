@@ -1,7 +1,7 @@
-"""Acronym Hunter Trainer: region rescans (C) and OCR training-sample capture (D).
+"""Acronym Hunter Trainer: region rescans and OCR training-sample capture.
 
-Ships in the same folder as AcronymHunter.exe and shares its engine (_internal), its config\\
-folder, its network guard, and its sandbox. Importing app_gui runs that setup before anything else.
+Opens as a window inside the scanner (TrainerWindow: Advanced > Trainer, or right-click a result > Check in picture)
+and shares its engine, config\\ folder, network guard, and sandbox. TrainerApp runs it on its own (from source).
 """
 import app_gui as eng          # sandbox + temp redirect + network guard + OCR engine + config (must be first)
 import os, io, csv, re, json, zipfile, posixpath, hashlib, threading, datetime
@@ -68,6 +68,17 @@ def _office_parts(z, path):
                         parts.append((target, s.get("name")))
         return parts
     return []
+
+def match_source(labels, location):
+    """Index of the Trainer source (page or picture) that a scanner location points at, or None.
+    "Deck.pptx (Slide 4, image 'Picture 2' image1.png)" matches that picture; "Deck.pptx (Slide 4)" (typed text) matches
+    nothing; "Manual.pdf (p.1)" matches page 1, never page 12."""
+    loc = location.split(" [OCR fix", 1)[0].rstrip(")").replace("(Vector text", "(Vector graphic")
+    for i, label in enumerate(labels):
+        core = label.rstrip(")")
+        if loc == core or (loc.startswith(core) and loc[len(core)] in ", "):
+            return i
+    return None
 
 def list_sources(path):
     name, ext = os.path.basename(path), os.path.splitext(path)[1].lower()
@@ -343,10 +354,10 @@ Right away (no training needed):
 Training the reader on this PC (CPU only, no GPU, no internet, no extra download):
   3. Keep saving lines with "Save as text". 20 is the minimum; 300+ gives a dependable gain.
      Save the styles the scanner gets wrong: small labels, unusual fonts, text on shading.
-  4. Click "Train Reader (CPU)". It prepares the samples, fine-tunes Google's English model
-     with Tesseract's own training tool, and checks the result on lines it did not train on.
-     A few hundred lines take minutes, not hours.
-  5. The report shows character error before and after. If it improved, click Yes to install.
+  4. Click "Improve Reading" (here, or on the banner in the scanner). It fine-tunes Google's
+     English model on your lines with Tesseract's own training tool, on this PC's processor,
+     and checks the result on lines it did not train on. A few hundred lines take minutes.
+  5. It installs the new reader only if it scored better, then offers to rescan.
      The scanner uses config\\models\\acronym.traineddata from then on.
   6. Score it on real files. Worse? Scanner > Knowledge > Undo Last Knowledge Change.
   7. Better? Scanner > Knowledge > Export Knowledge Pack > approved SharePoint folder.
@@ -412,16 +423,15 @@ training_data\\ holds crops of your documents: handle it at the documents' class
 # --------------------------------------------------------------------------------------
 # Window
 # --------------------------------------------------------------------------------------
-class TrainerApp(ctk.CTk):
-    def __init__(self, start_file=None):
-        super().__init__()
-        self.title(f"Acronym Hunter Trainer {eng.APP_VERSION}: region rescan and training samples")
-        eng.ACTIVE_ICON = "trainer.ico"
-        eng.apply_window_icon(self)
+class _TrainerUI:
+    """The Trainer's contents. TrainerWindow shows them inside the scanner; TrainerApp on their own."""
+    scanner = None
+
+    def _build_ui(self, start_file=None, focus=None):
+        self.title(f"Acronym Hunter {eng.APP_VERSION}: Trainer (check pictures and teach the reader)")
+        self.focus_target = focus      # (scanner location, term) from "Check in picture"
+        self.focus_term = focus[1] if focus else None
         self.geometry("1300x800"); self.minsize(1000, 560)
-        ctk.set_appearance_mode("System")
-        self.report_callback_exception = lambda et, e, tb: (eng._excepthook(et, e, tb),
-            messagebox.showerror("Error", f"{et.__name__}: {e}\n\nDetails saved to logs\\error.log"))
         self.sources, self.img, self.tk_img, self.zoom = [], None, None, 1.0
         self.source_label, self.region, self.region_img, self.line_rows = "", None, None, []
         self.drag_start, self.rect_id = None, None
@@ -489,7 +499,8 @@ class TrainerApp(ctk.CTk):
         ctk.CTkButton(bottom, text="Open Training Folder", width=160, fg_color="#475569", command=self.open_folder).pack(side="right", padx=6, pady=8)
         ctk.CTkButton(bottom, text="Ignore List", width=110, fg_color="#475569", command=self.open_ignore_list).pack(side="right", padx=6, pady=8)
         if eng.OCR_BACKEND == "tesseract":
-            self.btn_train = ctk.CTkButton(bottom, text="Train Reader (CPU)", width=170, fg_color="#0F766E", command=self.train_reader)
+            self.btn_train = ctk.CTkButton(bottom, text="Improve Reading", width=150, fg_color="#0F766E",
+                                           command=(self.scanner.improve_reading if self.scanner is not None else self.train_reader))
             self.btn_train.pack(side="right", padx=6, pady=8)
         else:
             ctk.CTkButton(bottom, text="Prepare Training Package", width=190, fg_color="#0F766E", command=self.prepare_package).pack(side="right", padx=6, pady=8)
@@ -499,10 +510,41 @@ class TrainerApp(ctk.CTk):
         if start_file and os.path.exists(start_file):
             self.after(300, lambda: self.load_file(start_file))
 
+    def focus_on(self, path, location, term):
+        """Open the picture a scanner result came from, read it, and outline the line holding the term."""
+        self.focus_target, self.focus_term = (location, term), term
+        self.load_file(path)
+
+    def _apply_focus(self):
+        location, term = self.focus_target
+        self.focus_target = None
+        i = match_source([lbl for lbl, _ in self.sources], location)
+        if i is None:
+            self.lbl_status.configure(text=f"'{term}' was read from typed text there, not a picture: nothing to check."); return
+        self.listbox.selection_clear(0, "end"); self.listbox.selection_set(i); self.listbox.see(i); self.on_source()
+        self.after(250, self.select_all)
+
+class TrainerApp(_TrainerUI, ctk.CTk):
+    def __init__(self, start_file=None):
+        ctk.CTk.__init__(self)
+        eng.ACTIVE_ICON = "trainer.ico"
+        eng.apply_window_icon(self)
+        self.report_callback_exception = lambda et, e, tb: (eng._excepthook(et, e, tb),
+            messagebox.showerror("Error", f"{et.__name__}: {e}\n\nDetails saved to logs\\error.log"))
+        self._build_ui(start_file)
+
+class TrainerWindow(_TrainerUI, ctk.CTkToplevel):
+    def __init__(self, scanner, start_file=None, focus=None):
+        ctk.CTkToplevel.__init__(self, scanner)
+        self.scanner = scanner
+        self._build_ui(start_file, focus)
+        self.after(150, self.lift)
+
     # ---------- files and pages ----------
     def open_file(self):
-        path = filedialog.askopenfilename(title="Open a document or image", filetypes=OPEN_TYPES)
+        path = filedialog.askopenfilename(parent=self, title="Open a document or image", filetypes=OPEN_TYPES)
         if path:
+            self.focus_target = self.focus_term = None
             self.load_file(path)
 
     def load_file(self, path):
@@ -517,6 +559,8 @@ class TrainerApp(ctk.CTk):
             self.listbox.insert("end", os.path.basename(path) if inner == "Image" else inner)
         if not self.sources:
             self.lbl_status.configure(text="No pages or embedded pictures found in that file."); return
+        if self.focus_target:
+            self._apply_focus(); return
         self.listbox.selection_set(0); self.on_source()
 
     def on_source(self, _e=None):
@@ -569,6 +613,9 @@ class TrainerApp(ctk.CTk):
                                          outline=color, width=2, dash=dash, tags="linebox")
             self.canvas.create_text(X0 + 2, Y0 - 2, text=str(row["n"]), anchor="sw", fill=color,
                                     font=("Segoe UI", 10, "bold"), tags="linebox")
+            if self.focus_term and eng.fold(self.focus_term) in eng.fold(row["text"]):
+                self.canvas.create_rectangle(X0 - 5, Y0 - 5, (rx + x1) * self.zoom + 5, (ry + y1) * self.zoom + 5,
+                                             outline="#FACC15", width=3, tags="linebox")
 
     # ---------- selecting a region ----------
     def on_press(self, e):
@@ -645,7 +692,12 @@ class TrainerApp(ctk.CTk):
         self.lbl_one.configure(text=f"Read as one line: {text1 or '(nothing)'}   ({conf1:.2f})")
         self.entry_one.delete(0, "end"); self.entry_one.insert(0, text1)
         self.draw_line_boxes()
-        self.lbl_status.configure(text=f"{len(lines)} line(s) found. Pick Skip, Save as text, or Not text for each, then Save Choices.")
+        msg = f"{len(lines)} line(s) found. Pick Skip, Save as text, or Not text for each, then Save Choices."
+        if self.focus_term:
+            hits = [str(r["n"]) for r in self.line_rows if eng.fold(self.focus_term) in eng.fold(r["text"])]
+            msg = (f"'{self.focus_term}' is line {', '.join(hits)} (yellow outline). " if hits else
+                   f"'{self.focus_term}' was not read in this picture now. Drag a box around it to check. ") + msg
+        self.lbl_status.configure(text=msg)
 
     # ---------- saving ----------
     def save_choices(self):
@@ -747,18 +799,19 @@ class TrainerApp(ctk.CTk):
         def work():
             try:
                 r = tess_train.train(eng.TESS_DIR, TRAIN_DIR, out_dir,
-                                     progress=lambda m: self.after(0, lambda: self.refresh_stats(m)))
+                                     progress=lambda m: self.after(0, lambda: self.refresh_stats(m)),
+                                     runner=lambda cmd, timeout=600: eng.run_tesseract_tool(cmd, b"", timeout, write_dirs=[out_dir]))
                 self.after(0, lambda: self._train_done(r, out_dir))
             except Exception as e:
                 eng.log_error("Train Reader failed")
                 msg = f"{e}"
                 self.after(0, lambda: (messagebox.showerror("Training failed", msg),
-                                       self.btn_train.configure(state="normal", text="Train Reader (CPU)")))
+                                       self.btn_train.configure(state="normal", text="Improve Reading")))
         threading.Thread(target=work, daemon=True).start()
 
     def _train_done(self, r, out_dir):
         import tess_train
-        self.btn_train.configure(state="normal", text="Train Reader (CPU)")
+        self.btn_train.configure(state="normal", text="Improve Reading")
         text = tess_train.describe(r)
         self.refresh_stats("Training finished. " + text.splitlines()[0])
         b, a = r["char_error_before_pct"], r["char_error_after_pct"]

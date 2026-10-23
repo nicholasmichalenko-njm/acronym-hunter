@@ -31,7 +31,7 @@ Matching rules are the biggest remaining lever.
 |---|---|---|---|---|
 | 4 | Database | Seconds | Unknown terms, definitions, noise words | `acronym_database.csv`, Include / Exclude buttons |
 | 5 | OCR corrections | Seconds | A specific misread that keeps happening (RFF for RFP) | `config\ocr_corrections.csv`, **Fix OCR** button |
-| 5b | Trainer: region rescan + samples | Minutes | Text missed or misread in a picture; builds training data | `AcronymHunterTrainer.exe` / **Region Trainer** button |
+| 5b | Trainer: region rescan + samples | Minutes | Text missed or misread in a picture; builds training data | **Trainer** window (Advanced > Trainer, or right-click a result > Check in picture) |
 | 6 | OCR settings | Minutes | Whole classes of OCR misses (small text, scans, photos) | `config\ocr_settings.json` |
 | 7 | Swap OCR models | 30 minutes | Systematic OCR weakness | `config\models\` (drop-in files) |
 | 8 | Train your own OCR model | Overnight | OCR on a recurring style; lines read as text | Trainer samples > Training Kit > Knowledge Pack |
@@ -116,10 +116,10 @@ Rules:
 
 ## 5b. The Trainer: re-read a missed spot and save training samples
 
-Use it when the scanner missed or misread text in a picture. It ships in `AcronymHunter_WithTrainer.zip`
+Use it when the scanner missed or misread text in a picture. Since v1.7.0 it is a window inside AcronymHunter.exe (earlier: `AcronymHunter_WithTrainer.zip`)
 (built by `build.ps1`), not in the standard scanner-only zip.
 
-1. Open `AcronymHunterTrainer.exe`, or click **Region Trainer** in the scanner.
+1. Right-click a result > **Check in picture**, or turn on Advanced and click **Trainer**.
 2. **Open File**. Pick the page (PDF) or picture (PowerPoint, Word, Excel) in the left list. SVG, EMF, and WMF
    files, and EMF/WMF diagrams inside Office files, are drawn at about 2400 px so small labels can be boxed.
 3. **Drag a box** around the missed text. Zoom with **+ / -**, **Fit**, or Ctrl + mouse wheel.
@@ -262,8 +262,9 @@ repository above, and keep the fingerprint with the build.
 
 ## 8. Turn your samples into a better model (step by step)
 
-**US edition (v1.6.0+): training is one button.** Save text lines with "Save as text" (20 minimum, 300+
-recommended), then click **Train Reader (CPU)** in the Trainer. It fine-tunes Google's English Tesseract model
+**v1.6.0+: training is one button.** Save text lines with "Save as text" (20 minimum, 300+
+recommended), then click **Improve Reading** (the green bar in the scanner, v1.7.0, or the Trainer button).
+v1.7.0 installs the new reader only if it scored better on held-out lines. It fine-tunes Google's English Tesseract model
 on this PC's processor with Tesseract's own `lstmtraining` (no GPU, no internet, no kit), reports character
 error on held-out lines before and after, and offers to install `config\models\acronym.traineddata`.
 Undo with Scanner > Knowledge > Undo Last Knowledge Change. Share through a Knowledge Pack (approved SharePoint

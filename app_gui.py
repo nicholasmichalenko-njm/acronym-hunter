@@ -14,6 +14,8 @@ def get_base_dir():
     return os.path.dirname(os.path.abspath(__file__))
 
 BASE_DIR = get_base_dir()
+if __name__ == "__main__":   # the Trainer window does "import app_gui": reuse this module, never load a second copy
+    sys.modules.setdefault("app_gui", sys.modules[__name__])
 
 SANDBOX_DIR = os.path.join(BASE_DIR, "_local_sandbox")
 SANDBOX_TEMP = os.path.join(SANDBOX_DIR, "temp")
@@ -253,6 +255,9 @@ APP_SETTINGS_FILE = os.path.join(CONFIG_DIR, "app_settings.json")
 APP_DEFAULTS = {
     "advanced_features_default": False,   # Advanced tools (Fix OCR, OCR Fixes, Region Trainer) start hidden
     "allow_advanced_toggle": True,        # False = hide the Advanced switch; the default above is locked in
+    "allow_training": True,               # False = no Trainer, no "Check in picture", no "Improve Reading" (nothing saved)
+    "ocr_sandbox": True,                  # run Tesseract inside a Windows AppContainer with no network permission
+    "ocr_sandbox_required": False,        # True = refuse to read pictures if the sandbox cannot start
 }
 
 def load_app_settings():
@@ -267,6 +272,8 @@ def load_app_settings():
     except Exception:
         log_error("config/app_settings.json could not be read; using defaults")
     return cfg
+
+APP_CFG = load_app_settings()
 
 def load_ocr_fixes():
     """Misread -> Correct pairs from config/ocr_corrections.csv. Re-read on every scan."""
@@ -338,6 +345,40 @@ def ocr_cutoff():
     """Confidence a reading needs to be kept by the scanner (engine-specific)."""
     return float(OCR_CFG["tesseract_min_confidence" if OCR_BACKEND == "tesseract" else "min_confidence"])
 
+OCR_SANDBOX_STATUS = "not used yet"
+
+def run_tesseract_tool(cmd, input_bytes=b"", timeout=180, read_dirs=(), write_dirs=()):
+    """Run a Tesseract program (cmd[0] in TESS_DIR). Returns (exit code, stdout, stderr).
+    Normally inside a Windows AppContainer with no network permission (sandbox.py). If the sandbox cannot start
+    (for example the app folder is on a network share), it runs as a plain child process unless
+    ocr_sandbox_required is true. The Tesseract build itself contains no network code either way."""
+    global OCR_SANDBOX_STATUS
+    env = dict(os.environ, OMP_THREAD_LIMIT="1")
+    if APP_CFG["ocr_sandbox"] and os.name == "nt":
+        try:
+            import sandbox
+            sandbox.grant(TESS_DIR)
+            for d in read_dirs:
+                sandbox.grant(d)
+            for d in write_dirs:
+                sandbox.grant(d, write=True)
+            result = sandbox.run(list(cmd), input_bytes, timeout=timeout, env=env)
+            OCR_SANDBOX_STATUS = "on: Windows AppContainer with no network permission"
+            return result
+        except TimeoutError:
+            raise
+        except Exception as e:
+            log_error("OCR sandbox could not start")
+            OCR_SANDBOX_STATUS = f"could not start ({type(e).__name__}: {e})"
+            if APP_CFG["ocr_sandbox_required"]:
+                raise RuntimeError("The OCR sandbox could not start and config\\app_settings.json requires it "
+                                   "(ocr_sandbox_required). Text in pictures was not read.")
+    elif not APP_CFG["ocr_sandbox"]:
+        OCR_SANDBOX_STATUS = "off (config\\app_settings.json: ocr_sandbox = false)"
+    r = subprocess.run(list(cmd), input=input_bytes, capture_output=True, timeout=timeout, env=env,
+                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    return r.returncode, r.stdout, r.stderr
+
 _TESS_LEAD_ONE = re.compile(r"^[1l|](?=[A-Z]{2})")
 
 class TesseractEngine:
@@ -366,13 +407,12 @@ class TesseractEngine:
             return []
         cmd = [self.exe, "stdin", "stdout", "--tessdata-dir", self.tessdata, "-l", self.lang, "--psm", str(psm),
                "--dpi", "300", "-c", "tessedit_create_tsv=1", "-c", "tessedit_create_txt=0"]
-        r = subprocess.run(cmd, input=buf.tobytes(), capture_output=True, timeout=180,
-                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-                           env=dict(os.environ, OMP_THREAD_LIMIT="1"))
-        if r.returncode != 0:
-            raise RuntimeError("Tesseract failed: " + r.stderr.decode("utf-8", "replace").strip()[-300:])
+        code, out, err = run_tesseract_tool(cmd, buf.tobytes(), timeout=180,
+                                            read_dirs=[self.tessdata] if self.tessdata != os.path.join(TESS_DIR, "tessdata") else [])
+        if code != 0:
+            raise RuntimeError("Tesseract failed: " + err.decode("utf-8", "replace").strip()[-300:])
         lines = {}
-        for row in r.stdout.decode("utf-8", "replace").splitlines()[1:]:
+        for row in out.decode("utf-8", "replace").splitlines()[1:]:
             c = row.split("\t")
             if len(c) < 12 or c[0] != "5":
                 continue
@@ -1484,7 +1524,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "1.6.0"            # keep in step with version_info.txt
+APP_VERSION = "1.7.0"            # keep in step with version_info.txt
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
 LOCK_STALE_HOURS = 12
@@ -2167,10 +2207,11 @@ def save_settings(data):
     except Exception:
         pass
 
+TRAIN_DIR = os.path.join(BASE_DIR, "training_data")   # the Trainer's saved samples (never shipped, never committed)
+
 def trainer_available():
-    if getattr(sys, "frozen", False):
-        return os.path.exists(os.path.join(BASE_DIR, "AcronymHunterTrainer.exe"))
-    return os.path.exists(os.path.join(BASE_DIR, "trainer_gui.py"))
+    """Training features: on unless config\\app_settings.json sets allow_training to false."""
+    return bool(APP_CFG["allow_training"]) and importlib.util.find_spec("trainer_gui") is not None
 
 class AcronymAppGUI(ctk.CTk):
     def __init__(self):
@@ -2230,7 +2271,7 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_fixes = ctk.CTkButton(top, text="OCR Fixes", command=self.open_fix_manager, fg_color="#7C3AED", width=120, height=36)
         self.btn_trainer = None
         if trainer_available():   # only in the "WithTrainer" package (or when run from source)
-            self.btn_trainer = ctk.CTkButton(top, text="Region Trainer", command=self.open_trainer, fg_color="#0F766E", width=130, height=36)
+            self.btn_trainer = ctk.CTkButton(top, text="Trainer", command=self.open_trainer, fg_color="#0F766E", width=100, height=36)
         self.adv_var = ctk.BooleanVar(value=self.advanced_on)
         self.sw_adv = ctk.CTkSwitch(top, text="Advanced", variable=self.adv_var, command=self.toggle_advanced, width=110)
         if self.app_cfg["allow_advanced_toggle"]:
@@ -2241,6 +2282,14 @@ class AcronymAppGUI(ctk.CTk):
         self.status.pack(pady=(0, 4))
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         atexit.register(self._release_project_lock)
+
+        self.banner = ctk.CTkFrame(self, fg_color=("#ECFDF5", "#064E3B"))   # "Improve Reading" (shown when there are new corrections)
+        self.lbl_banner = ctk.CTkLabel(self.banner, text="", text_color=("#065F46", "#D1FAE5"))
+        self.lbl_banner.pack(side="left", padx=12, pady=6)
+        self.btn_improve = ctk.CTkButton(self.banner, text="Improve Reading", width=150, fg_color="#0F766E", command=self.improve_reading)
+        self.btn_improve.pack(side="left", padx=6, pady=6)
+        self._training = False
+        self.scanned_paths = {}   # file name -> full path of files scanned this session (for "Check in picture")
 
         self.prog = ctk.CTkProgressBar(self, width=1140)
         self.prog.pack(padx=15, pady=(0, 10))
@@ -2323,6 +2372,7 @@ class AcronymAppGUI(ctk.CTk):
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
         self.tree.bind("<Control-a>", lambda _e: (self.tree.selection_set(self.tree.get_children()), "break")[1])
         self.tree.bind("<Double-1>", self.show_details)
+        self.tree.bind("<Button-3>", self.on_right_click)
         self.tree.bind("<ButtonRelease-1>", self._maybe_rewrap, add="+")   # column resized -> rewrap Locations
         self._loc_width = None
 
@@ -2360,6 +2410,146 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_exc.pack(side="right", padx=10, pady=12)
 
         self.apply_advanced_visibility()
+        self.after(1500, self._banner_tick)
+
+    # ---------- training inside the scanner ----------
+    def training_state(self):
+        """(saved text lines, lines saved since the reader was last improved)."""
+        import tess_train
+        n = len(tess_train.read_samples(TRAIN_DIR))
+        try:
+            last = json.load(open(os.path.join(TRAIN_DIR, "model", "training_report.json"), encoding="utf-8")).get("samples", 0)
+        except (OSError, ValueError):
+            last = 0
+        return n, max(0, n - last)
+
+    def _banner_tick(self):
+        try:
+            self.update_banner()
+        finally:
+            self.after(5000, self._banner_tick)
+
+    def update_banner(self):
+        import tess_train
+        show = trainer_available() and OCR_BACKEND == "tesseract"
+        n, new = self.training_state() if show else (0, 0)
+        if self._training:
+            pass
+        elif not show or new == 0:
+            self.banner.pack_forget(); return
+        elif n < tess_train.MIN_SAMPLES:
+            self.lbl_banner.configure(text=f"{n} correction(s) saved in the Trainer. Improve Reading unlocks at {tess_train.MIN_SAMPLES}.")
+            self.btn_improve.configure(state="disabled")
+        else:
+            steps = min(3000, max(400, 4 * n))
+            mins = max(1, round(steps * 0.08 / 60 + n * 0.1 / 60))
+            self.lbl_banner.configure(text=f"{new} new correction(s) saved since the reader was last improved "
+                                           f"({n} in all). Teach the reader now: about {mins} min on this PC, offline.")
+            self.btn_improve.configure(state="normal")
+        if not self.banner.winfo_ismapped():
+            self.banner.pack(fill="x", padx=15, pady=(0, 6), before=self.prog)
+
+    def improve_reading(self):
+        """Fine-tune the reader on the Trainer's saved lines, install it only if it scores better, then offer a rescan."""
+        import tess_train
+        if self._training:
+            return
+        n, _new = self.training_state()
+        if n < tess_train.MIN_SAMPLES:
+            messagebox.showinfo("Improve Reading", f"{n} corrected lines saved. Improving the reader needs at least "
+                                f"{tess_train.MIN_SAMPLES} (300+ for a dependable gain). Save more lines in the Trainer."); return
+        out_dir = os.path.join(TRAIN_DIR, "model")
+        self._training = True
+        self.btn_improve.configure(state="disabled", text="Improving...")
+        tw = getattr(self, "trainer_win", None)
+        if tw is not None and tw.winfo_exists() and hasattr(tw, "btn_train"):
+            tw.btn_train.configure(state="disabled", text="Improving...")
+        def say(m):
+            self.after(0, lambda: self.lbl_banner.configure(text=m))
+        say(f"Improving the reader on {n} saved lines (this PC's processor, offline)...")
+        if not self.banner.winfo_ismapped():
+            self.banner.pack(fill="x", padx=15, pady=(0, 6), before=self.prog)
+        def work():
+            try:
+                r = tess_train.train(TESS_DIR, TRAIN_DIR, out_dir, progress=say,
+                                     runner=lambda cmd, timeout=600: run_tesseract_tool(cmd, b"", timeout, write_dirs=[out_dir]))
+                self.after(0, lambda: self._improve_done(r, out_dir, None))
+            except Exception as e:
+                log_error("Improve Reading failed")
+                msg = f"{e}"
+                self.after(0, lambda: self._improve_done(None, out_dir, msg))
+        threading.Thread(target=work, daemon=True).start()
+
+    def _improve_done(self, r, out_dir, error):
+        import tess_train
+        self._training = False
+        self.btn_improve.configure(state="normal", text="Improve Reading")
+        tw = getattr(self, "trainer_win", None)
+        if tw is not None and tw.winfo_exists() and hasattr(tw, "btn_train"):
+            tw.btn_train.configure(state="normal", text="Improve Reading")
+        self.update_banner()
+        if error:
+            messagebox.showerror("Improve Reading", f"The reader was not changed.\n\n{error}"); return
+        text = tess_train.describe(r)
+        b, a = r["char_error_before_pct"], r["char_error_after_pct"]
+        if a is None or (b is not None and a > b):
+            messagebox.showwarning("Improve Reading", text + "\n\nNot installed: the current reader is kept."); return
+        load_trained_models(out_dir)
+        again = messagebox.askyesno("Reader improved", text + "\n\nInstalled. The scanner now uses your trained reader "
+                                    "(Knowledge > Undo Last Knowledge Change puts the previous one back).\n\nRescan now to see the effect?")
+        if again:
+            if self.project is not None and not self.project.read_only:
+                self.rescan_project()
+            elif self.queued_files:
+                self.start_batch(self.queued_files)
+
+    def path_for(self, filename):
+        """Full path of a scanned file, from this session's scans or the open project."""
+        if filename in self.scanned_paths and os.path.exists(self.scanned_paths[filename]):
+            return self.scanned_paths[filename]
+        if self.project is not None:
+            for rel in self.project.data.get("files", {}):
+                if os.path.basename(rel.replace("/", os.sep)) == filename:
+                    path = self.project.member_path(rel)
+                    if os.path.exists(path):
+                        return path
+        return None
+
+    def picture_locations(self, term):
+        d = self.results.get(term, {})
+        if d.get("manual") or d.get("file_error"):
+            return []
+        pat = re.compile(r"\((Image|Vector text|Vector graphic)\)|, (image|vector) |\(p\.\d+\)")
+        return [loc for loc in d.get("locations", []) if pat.search(loc)]
+
+    def on_right_click(self, event):
+        iid = self.tree.identify_row(event.y)
+        if not iid or iid not in self.results:
+            return
+        if iid not in self.tree.selection():
+            self.tree.selection_set(iid)
+        self.tree.focus(iid)
+        menu = tk.Menu(self, tearoff=0)
+        menu.add_command(label="Details...", command=self.show_details)
+        if trainer_available():
+            pics = self.picture_locations(iid)
+            if len(pics) == 1:
+                menu.add_command(label="Check in picture...", command=lambda: self.check_in_picture(iid, pics[0]))
+            elif pics:
+                sub = tk.Menu(menu, tearoff=0)
+                for loc in pics[:25]:
+                    sub.add_command(label=loc if len(loc) < 110 else loc[:107] + "...", command=lambda l=loc: self.check_in_picture(iid, l))
+                menu.add_cascade(label="Check in picture", menu=sub)
+            else:
+                menu.add_command(label="Check in picture (found only in typed text)", state="disabled")
+        menu.tk_popup(event.x_root, event.y_root)
+
+    def check_in_picture(self, term, location):
+        name = _file_of(location)
+        path = self.path_for(name)
+        if not path:
+            messagebox.showinfo("Check in picture", f"{name} is not where it was scanned. Open it from the Trainer instead."); return
+        self.open_trainer(path, focus=(location, term))
 
     # ---------- advanced tools ----------
     def toggle_advanced(self):
@@ -2417,7 +2607,7 @@ class AcronymAppGUI(ctk.CTk):
         if self.advanced_on:
             ctk.CTkLabel(win, text="Trainer tools (Advanced)", font=("Arial", 12, "bold")).pack(anchor="w", padx=16, pady=(14, 2))
             def load_models():
-                folder = filedialog.askdirectory(parent=win, title="Folder with rec.onnx / det.onnx (Training Kit output\\models)")
+                folder = filedialog.askdirectory(parent=win, title="Folder with acronym.traineddata (or rec.onnx / det.onnx)")
                 if not folder: return
                 try:
                     found = load_trained_models(folder)
@@ -2512,15 +2702,20 @@ class AcronymAppGUI(ctk.CTk):
         else:
             messagebox.showerror("Error", f"{exc_type.__name__}: {exc}\n\nDetails saved to logs\\error.log")
 
-    def open_trainer(self):
-        """Launch the companion Trainer (region rescans and training samples) from the same folder."""
-        if getattr(sys, "frozen", False):
-            exe = os.path.join(BASE_DIR, "AcronymHunterTrainer.exe")
-            if not os.path.exists(exe):
-                messagebox.showwarning("Region Trainer", "AcronymHunterTrainer.exe is not in this folder."); return
-            subprocess.Popen([exe], cwd=BASE_DIR)
-        else:
-            subprocess.Popen([sys.executable, os.path.join(BASE_DIR, "trainer_gui.py")], cwd=BASE_DIR)
+    def open_trainer(self, path=None, focus=None):
+        """Open the Trainer as a window of this program (same engine, same sandbox, same settings)."""
+        if not trainer_available():
+            messagebox.showinfo("Trainer", "Training features are turned off (config\\app_settings.json: allow_training)."); return
+        import trainer_gui
+        w = getattr(self, "trainer_win", None)
+        if w is not None and w.winfo_exists():
+            w.deiconify(); w.lift(); w.focus()
+            if path and focus:
+                w.focus_on(path, *focus)
+            elif path:
+                w.load_file(path)
+            return
+        self.trainer_win = trainer_gui.TrainerWindow(self, start_file=path, focus=focus)
 
     def open_file(self, path):
         if sys.platform == "win32": os.startfile(path)
@@ -2562,6 +2757,7 @@ class AcronymAppGUI(ctk.CTk):
 
     def start_batch(self, fps, folder=None):
         self.queued_files = fps
+        self.scanned_paths.update({os.path.basename(f): f for f in fps})
         capture = {}
         self.last_scan = {"paths": list(fps), "folder": folder, "cache": capture}
         self.run_job(lambda cb: analyze_batch(fps, cb, capture=capture))
@@ -3461,6 +3657,17 @@ def run_selftest(paths):
             import openpyxl.xml as _oxml
             f.write(f"Security: network guard={socket.socket.connect is _guarded_connect}, "
                     f"office XML entities disabled={_SAFE_XML is not None}, openpyxl defusedxml={_oxml.DEFUSEDXML}\n")
+            if trainer_available():
+                import trainer_gui, tess_train   # the Trainer window and Improve Reading load inside this program
+                f.write(f"Training features: on (Trainer window and Improve Reading loaded; "
+                        f"{len(tess_train.read_samples(TRAIN_DIR))} saved lines)\n")
+            else:
+                f.write("Training features: off (allow_training = false)\n")
+            if OCR_BACKEND == "tesseract":
+                f.write(f"OCR sandbox: {OCR_SANDBOX_STATUS}\n")
+                if APP_CFG["ocr_sandbox"] and os.name == "nt":
+                    import sandbox
+                    f.write(f"Sandbox network probe (Windows curl.exe run in the same sandbox): {sandbox.network_probe()}\n")
             f.write(f"\nRESULTS: {len(res)} terms\n")
             for term, d in res.items():
                 f.write(f"{term}\t{d['category']}\t{d['count']}\t{d['status']}\t{d['selected_definition']}\n")
