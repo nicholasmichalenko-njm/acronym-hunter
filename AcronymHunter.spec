@@ -10,7 +10,7 @@ US = os.environ.get('AH_EDITION', 'us') == 'us'
 datas = []
 binaries = []
 hiddenimports = []
-for _pkg in ['pymupdf', 'customtkinter', 'rapidfuzz', 'openpyxl'] + ([] if US else ['rapidocr_onnxruntime', 'onnxruntime']):
+for _pkg in ['pypdfium2', 'pypdfium2_raw', 'customtkinter', 'rapidfuzz', 'openpyxl'] + ([] if US else ['rapidocr_onnxruntime', 'onnxruntime']):
     tmp_ret = collect_all(_pkg)
     datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 if US:
@@ -30,7 +30,9 @@ _skip = ('onnxruntime.transformers', 'onnxruntime.quantization', 'onnxruntime.to
 hiddenimports = [h for h in hiddenimports if not h.startswith(_skip)]
 hiddenimports += ['defusedxml', 'defusedxml.ElementTree']  # openpyxl uses it only if importable
 hiddenimports += ['trainer_gui', 'PIL.ImageTk']   # the Trainer opens as a window inside the scanner (one program)
+hiddenimports += ['skia']   # Google Skia (BSD-3): draws SVG pictures for OCR
 datas += [('assets/scanner.ico', 'assets'), ('assets/trainer.ico', 'assets')]   # window/taskbar icons at runtime
+datas += [('assets/common_words.txt', 'assets')]   # SCOWL common words: sentence-end words are not abbreviations
 
 def make_analysis(script):
   return Analysis(
@@ -46,7 +48,7 @@ def make_analysis(script):
     # The layout add-on (pymupdf_layout / pymupdf4llm) is unused by this app and its
     # ONNX/YAML resources do not survive freezing -> FileNotFoundError at startup.
     # Excluding it turns that import into a clean ImportError that PyMuPDF swallows.
-    excludes=['pymupdf.layout', 'pymupdf4llm', 'matplotlib', 'scipy', 'pandas',
+    excludes=['pymupdf', 'fitz', 'pymupdf.layout', 'pymupdf4llm', 'matplotlib', 'scipy', 'pandas',
               'IPython', 'jupyter', 'notebook', 'pytest',
               'onnxruntime.quantization', 'onnxruntime.transformers', 'onnxruntime.tools'] + _edition_excludes,
     noarchive=False,

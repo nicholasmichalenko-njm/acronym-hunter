@@ -59,7 +59,13 @@ CHECK IN PICTURE AND IMPROVE READING (teach the reader your documents)
      Knowledge > Undo Last Knowledge Change puts the previous reader back.
   4. Rescan when it offers. Share the improved reader with Knowledge > Export Knowledge Pack
      (approved SharePoint folder only).
-  What it cannot fix: words wrongly treated as abbreviations (like "award." at a sentence end). Use Exclude.
+  Rescans after Improve Reading re-read only files that contain pictures; the rest reuse saved results.
+
+WORDS AT THE END OF A SENTENCE (v1.8.0)
+  "award." or "system." at a sentence end is no longer reported as an abbreviation: ordinary English words
+  (a built-in list of common words, SCOWL) are skipped. Real abbreviations are still reported, including
+  ones that are also words, such as "approx.", "Fig.", "No.", "Ref.", "temp.", "spec.". An all-caps term
+  before a period ("CCB.") is reported once, as the acronym. Anything else wrong: select it and Exclude.
 
 WHAT THE TRAINER SHOWS YOU
   Only what the scanner has to OCR: pictures inside Word, PowerPoint, and Excel files (including

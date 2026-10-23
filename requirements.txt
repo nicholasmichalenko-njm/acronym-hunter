@@ -14,12 +14,13 @@ openpyxl==3.1.5
 packaging==26.3
 pefile==2024.8.26
 pillow==13.0.0
+pybind11==3.1.0
+pypdfium2==5.14.0
 protobuf==7.36.2
 psutil==7.2.2
 pyclipper==1.4.0
 pyinstaller==6.22.3
 pyinstaller-hooks-contrib==2026.9
-pymupdf==2.0
 python-docx==1.2.0
 python-pptx==1.0.2
 pywin32-ctypes==0.2.3
@@ -28,6 +29,7 @@ RapidFuzz==3.14.6
 rapidocr-onnxruntime==1.4.4
 shapely==2.2.0
 six==1.17.0
+skia-python==144.1
 tabulate==0.10.0
 tqdm==4.70.1
 typing_extensions==4.16.0

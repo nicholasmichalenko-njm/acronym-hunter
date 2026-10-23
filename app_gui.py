@@ -116,7 +116,8 @@ import zipfile
 import threading
 import subprocess
 import cv2
-import pymupdf as fitz  # Modern PyMuPDF import (no deprecation warnings)
+import pypdfium2 as pdfium        # Google PDFium (BSD-3 / Apache-2.0): PDF text, pictures, page images
+import pypdfium2.raw as _pdfium_raw
 import openpyxl
 import numpy as np
 import customtkinter as ctk
@@ -647,7 +648,10 @@ def _ocr_raw(image_bytes):
     lines.sort(key=lambda t: (round(t[1] / 20), t[0]))
     return "\n".join(t[4] for t in lines)
 
+_OCR_CALLS = [0]   # pictures sent to OCR while scanning the current file (a file with 0 does not depend on the reader)
+
 def read_image_bytes(image_bytes):
+    _OCR_CALLS[0] += 1
     key = hashlib.sha1(image_bytes).hexdigest()
     if key not in _OCR_CACHE:
         try:
@@ -837,17 +841,53 @@ def wmf_text(data):
         pos += size
     return _assemble_runs([r for r in runs if r[2].strip()])
 
+def _pil_png(pil_img):
+    buf = io.BytesIO()
+    pil_img.save(buf, format="PNG")
+    return buf.getvalue()
+
+def render_svg(data):
+    """Draw SVG bytes as PNG with Google Skia (BSD-3), from the bytes in memory. No resource loader is given, so
+    images the SVG links to are never fetched; text is drawn with installed Windows fonts."""
+    import skia
+    dom = skia.SVGDOM.MakeFromStream(skia.MemoryStream(data))
+    if dom is None:
+        raise ValueError("SVG could not be parsed")
+    size = dom.containerSize()
+    w, h = size.width() or 800.0, size.height() or 600.0
+    zoom = max(1.0, min(4.0, 2400.0 / max(w, h, 1)))
+    surface = skia.Surface(max(1, int(w * zoom)), max(1, int(h * zoom)))
+    with surface as canvas:
+        canvas.clear(skia.ColorWHITE)
+        canvas.scale(zoom, zoom)
+        dom.setContainerSize(skia.Size(w, h))
+        dom.render(canvas)
+    return surface.makeImageSnapshot().encodeToData().bytes()
+
+def render_pdf_page(path, index, dpi):
+    """One PDF page as a PIL image (PDFium)."""
+    doc = pdfium.PdfDocument(path)
+    try:
+        page = doc[index]
+        try:
+            return page.render(scale=dpi / 72.0).to_pil().convert("RGB")
+        finally:
+            page.close()
+    finally:
+        doc.close()
+
+def pdf_page_count(path):
+    doc = pdfium.PdfDocument(path)
+    try:
+        return len(doc)
+    finally:
+        doc.close()
+
 def render_vector(data, ext):
-    """Draw a vector graphic as PNG bytes for OCR: SVG via MuPDF, EMF/WMF via Windows GDI (Pillow)."""
+    """Draw a vector graphic as PNG bytes for OCR: SVG via Google Skia, EMF/WMF via Windows GDI (Pillow)."""
     data = _maybe_gunzip(data)
     if ext in (".svg", ".svgz"):
-        doc = fitz.open(stream=data, filetype="svg")
-        try:
-            page = doc[0]
-            zoom = max(1.0, min(4.0, 2400.0 / max(page.rect.width, page.rect.height, 1)))
-            return page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False).tobytes("png")
-        finally:
-            doc.close()
+        return render_svg(data)
     from PIL import Image
     im = Image.open(io.BytesIO(data))
     base_w, base_h = im.size
@@ -1079,34 +1119,52 @@ def extract_xlsx(filepath, filename, status_callback, prefix, chunks):
                     log_error(f"{filename}: {target} could not be read")
                     note_skip(f"{filename} ({sname})", f"{kind} could not be read: {type(e).__name__}: {e}")
 
+def _pdf_page_text(page):
+    tp = page.get_textpage()
+    try:
+        return tp.get_text_range().replace("\r\n", "\n").replace("\r", "\n")
+    finally:
+        tp.close()
+
 def extract_pdf(filepath, filename, status_callback, prefix, chunks):
-    doc = fitz.open(filepath)
+    """PDF text and pictures with Google PDFium (pypdfium2). The file is only read."""
+    doc = pdfium.PdfDocument(filepath)
     try:
         total_pages = len(doc)
-        seen_xrefs = set()
+        seen_images = set()
         for i in range(total_pages):
+            check_cancel()
             pnum = i + 1
             if pnum == 1 or pnum % 5 == 0 or pnum == total_pages:
                 status_callback(f"{prefix} - PDF page {pnum}/{total_pages}...")
             try:
                 page = doc[i]
-                digital_text = page.get_text()
-                parts = [digital_text]
-                if len(digital_text.strip()) < OCR_CFG["scanned_page_max_chars"]:  # scanned page: OCR it whole
-                    parts.append(read_image_bytes(page.get_pixmap(dpi=int(OCR_CFG["pdf_scan_dpi"])).tobytes("png")))
-                else:  # digital page: OCR each embedded figure once per document
-                    for img_info in page.get_images(full=True):
-                        xref = img_info[0]
-                        if xref in seen_xrefs:
-                            continue
-                        seen_xrefs.add(xref)
-                        try:
-                            base_img = doc.extract_image(xref)
-                            if base_img and base_img.get("image"):
-                                parts.append(read_image_bytes(base_img["image"]))
-                        except Exception:
-                            pass
-                chunks.append((f"{filename} (p.{pnum})", "\n".join(parts)))
+                try:
+                    digital_text = _pdf_page_text(page)
+                    parts = [digital_text]
+                    if len(digital_text.strip()) < OCR_CFG["scanned_page_max_chars"]:  # scanned page: OCR it whole
+                        pil = page.render(scale=int(OCR_CFG["pdf_scan_dpi"]) / 72.0).to_pil().convert("RGB")
+                        parts.append(read_image_bytes(_pil_png(pil)))
+                    else:  # digital page: OCR each embedded figure once per document
+                        for obj in page.get_objects(filter=[_pdfium_raw.FPDF_PAGEOBJ_IMAGE], max_depth=5):
+                            try:
+                                pil = obj.get_bitmap(render=False).to_pil()
+                                key = hashlib.sha1(pil.tobytes()).hexdigest()
+                                if key in seen_images:
+                                    continue
+                                seen_images.add(key)
+                                if pil.mode not in ("RGB", "L"):
+                                    pil = pil.convert("RGB")
+                                parts.append(read_image_bytes(_pil_png(pil)))
+                            except ScanCancelled:
+                                raise
+                            except Exception:
+                                pass
+                    chunks.append((f"{filename} (p.{pnum})", "\n".join(parts)))
+                finally:
+                    page.close()
+            except ScanCancelled:
+                raise
             except Exception as e:
                 log_error(f"{filename}: page {pnum} could not be read")
                 note_skip(f"{filename} (p.{pnum})", f"Page could not be read: {type(e).__name__}: {e}")
@@ -1244,6 +1302,43 @@ def _pair_from_line(line, strict=False):
         return None
     return _clean_pair(t, d)
 
+def _pdf_table_rows(page):
+    """Rows of cells from a PDF page. PDFium reports each run of text with its box; runs on the same line that sit
+    far apart are separate cells. Recovers two-column tables (TERM | definition) without a table library."""
+    tp = page.get_textpage()
+    try:
+        segs = []
+        for k in range(tp.count_rects()):
+            left, bottom, right, top = tp.get_rect(k)
+            h = top - bottom
+            txt = tp.get_text_bounded(left + 0.5, bottom + h * 0.25, right - 0.5, top - h * 0.25).strip()
+            if txt:
+                segs.append((left, bottom, right, top, " ".join(txt.split())))
+    finally:
+        tp.close()
+    lines = []
+    for seg in sorted(segs, key=lambda x: (-(x[1] + x[3]) / 2, x[0])):
+        mid = (seg[1] + seg[3]) / 2
+        for line in lines:
+            if line[0][1] <= mid <= line[0][3]:
+                line.append(seg); break
+        else:
+            lines.append([seg])
+    rows = []
+    for line in lines:
+        line.sort(key=lambda x: x[0])
+        height = max(1.0, max(x[3] - x[1] for x in line))
+        cells, cur, prev_right = [], "", None
+        for left, _b, right, _t, txt in line:
+            if prev_right is not None and left - prev_right > 1.2 * height:
+                cells.append(cur); cur = txt
+            else:
+                cur = (cur + " " + txt).strip()
+            prev_right = right
+        cells.append(cur)
+        rows.append(cells)
+    return rows
+
 def parse_client_list(path):
     """(term, definition) pairs from a client acronym list: CSV/TSV/TXT, Excel, Word (tables or 'TERM - definition'
     lines), or PDF (tables, else lines). Files are only read; parsing uses the same hardened readers as scanning."""
@@ -1280,17 +1375,19 @@ def parse_client_list(path):
                 if p:
                     pairs.append(p)
     elif ext == ".pdf":
-        doc = fitz.open(path)
+        doc = pdfium.PdfDocument(path)
         try:
-            for page in doc:
+            rows, lines = [], []
+            for i in range(len(doc)):
+                page = doc[i]
                 try:
-                    for tb in page.find_tables().tables:
-                        pairs += _pairs_from_table(tb.extract())
-                except Exception:
-                    pass
+                    rows += _pdf_table_rows(page)
+                    lines += _pdf_page_text(page).splitlines()
+                finally:
+                    page.close()
+            pairs = _pairs_from_table([r for r in rows if len(r) >= 2])
             if not pairs:
-                for page in doc:
-                    pairs += [p for p in (_pair_from_line(l, strict=True) for l in page.get_text("text").splitlines()) if p]
+                pairs = [p for p in (_pair_from_line(l, strict=True) for l in lines) if p]
         finally:
             doc.close()
     else:
@@ -1349,10 +1446,33 @@ def build_matcher():
         "fuzzy_targets": {t: t for t in include_db.keys() if len(t) >= 3 and t.isupper()},
         "acronym_re": re.compile(r'\b([A-Z][A-Z0-9/&]{1,7}s?)\b'),
         "unit_re": re.compile(r'(?<!\w)\d+(?:\.\d+)?\s*([a-zA-Z\u00b0\u03bc\u03a9\u00c5]{1,5}(?:/[a-zA-Z0-9\^]{1,4})?)(?!\w)'),
+        "common_words": common_words(),
         "abbrev_re": re.compile(r'(?<!\w)([a-zA-Z]{1,4}/[a-zA-Z]{1,4}|[a-zA-Z]{2,6}\.)(?!\w)'),
     }
 
 _HITS = None   # terms recorded in the chunk being matched (for first use)
+
+# Real abbreviations written with a period that are also (or look like) ordinary words: always reported.
+PERIOD_ABBREVIATIONS = set("""
+approx appx assy avg ave cal cap ch chap co col config corp ctrl dept dia doc docs dr dwg ea eng engr eq eqn est etc
+fig figs ft ga gal govt hr hrs ht inc incl intl jr lb lbs ltd max mfg mgmt mgr min misc mo mr mrs ms mt natl no nos
+oz para pg pgs pkg pp pt pts qty qual ref refs reqt rev rm rqmt sec sect spec specs sq sr st std sta tech tel temp
+tot vol vols vs wk wt yr yrs
+""".split())
+_COMMON_WORDS = None
+
+def common_words():
+    """Common 2-6 letter English words (SCOWL, assets\\common_words.txt). Loaded once."""
+    global _COMMON_WORDS
+    if _COMMON_WORDS is None:
+        words = set()
+        try:
+            with open(asset_path("common_words.txt"), encoding="utf-8") as f:
+                words = {w.strip() for w in f if w.strip() and not w.startswith("#")}
+        except (OSError, TypeError):
+            log_error("assets/common_words.txt missing: sentence-end words may be reported as abbreviations")
+        _COMMON_WORDS = frozenset(words)
+    return _COMMON_WORDS
 
 def _file_of(label):
     """File name at the start of a location label ("Volume (Final).docx (Slide 3)" -> "Volume (Final).docx")."""
@@ -1464,8 +1584,11 @@ def match_chunks(findings, chunks, m):
             if (acand in m['include_db'] or acand in m['exclude_db'] or base in m['include_db'] or base in m['exclude_db'] or
                     acand.upper() in m['exclude_upper'] or base.upper() in m['exclude_upper']):
                 continue
-            if acand.endswith('.') and acand[:-1].lower() in {"end", "out", "see", "all", "one", "two", "now"}:
-                continue
+            if acand.endswith('.') and '/' not in acand:
+                if len(base) >= 2 and base.isupper():
+                    continue   # "CCB." is an acronym ending a sentence: the acronym rule already reports CCB
+                if base.lower() in m['common_words'] and base.lower() not in PERIOD_ABBREVIATIONS:
+                    continue   # "award." is an ordinary word ending a sentence, not an abbreviation
             record_candidate(findings, acand, "Abbreviation (Candidate)", loc_label)
         _HITS = None
         note_first_use(findings, hits, loc_label, text)
@@ -1499,18 +1622,14 @@ def analyze_batch(filepaths, status_callback, capture=None):
     total = len(filepaths)
     _OCR_CACHE.clear()
     if capture is not None:
-        weak = weak_terms(m); sig = engine_signature(weak)
+        weak = weak_terms(m); sigs = (engine_signature(weak), text_signature(weak), ocr_signature())
     for idx, filepath in enumerate(filepaths, start=1):
         check_cancel()
+        _OCR_CALLS[0] = 0
         chunks, skips, err = scan_file(filepath, status_callback, idx, total)
         if capture is not None:
             try:
-                st = os.stat(filepath)
-                capture[os.path.abspath(filepath)] = {
-                    "size": st.st_size, "mtime": st.st_mtime, "engine": sig,
-                    "scanned": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
-                    "chunks": [[label, reduce_text(fold(text), weak)] for label, text in chunks if text.strip()],
-                    "skips": skips, "error": err}
+                capture[os.path.abspath(filepath)] = cache_entry(os.stat(filepath), weak, chunks, skips, err, _OCR_CALLS[0], sigs)
             except OSError:
                 pass
         if err:
@@ -1524,7 +1643,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "1.7.0"            # keep in step with version_info.txt
+APP_VERSION = "1.8.0"            # keep in step with version_info.txt
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
 LOCK_STALE_HOURS = 12
@@ -1556,12 +1675,37 @@ def weak_terms(m):
         words.update(w for w in term.split() if not _termlike(w))
     return words
 
-def engine_signature(weak=()):
-    """Saved results are reused only while extraction, OCR settings, OCR models, and weak terms are unchanged."""
+def _sha12(obj):
+    return hashlib.sha1(json.dumps(obj, sort_keys=True).encode()).hexdigest()[:12]
+
+def text_signature(weak=()):
+    """What typed-text results depend on: the app's extraction code (major.minor version) and the weak terms."""
+    return _sha12([APP_VERSION.rsplit(".", 1)[0], sorted(weak)])
+
+def ocr_signature():
+    """What picture results depend on: the OCR engine, its settings, the installed reader, and the ignore list."""
     models = sorted((n, os.path.getsize(os.path.join(MODELS_DIR, n)), int(os.path.getmtime(os.path.join(MODELS_DIR, n))))
                     for n in os.listdir(MODELS_DIR)) if os.path.isdir(MODELS_DIR) else []
-    return hashlib.sha1(json.dumps([APP_VERSION.rsplit(".", 1)[0], OCR_BACKEND, OCR_CFG, models, sorted(weak), sorted(_OCR_IGNORE)],
-                                   sort_keys=True).encode()).hexdigest()[:12]
+    return _sha12([OCR_BACKEND, OCR_CFG, models, sorted(_OCR_IGNORE)])
+
+def engine_signature(weak=()):
+    """Both signatures together (older project files store only this)."""
+    return _sha12([text_signature(weak), ocr_signature()])
+
+def cache_entry(st, weak, chunks, skips, err, ocr_used, sigs):
+    sig, tsig, osig = sigs
+    return {"size": st.st_size, "mtime": st.st_mtime, "engine": sig, "text_sig": tsig, "ocr_sig": osig,
+            "ocr_used": bool(ocr_used), "scanned": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "chunks": [[label, reduce_text(fold(text), weak)] for label, text in chunks if text.strip()],
+            "skips": skips, "error": err}
+
+def entry_current(entry, sigs):
+    """Saved results for a file stay valid when nothing they depend on changed. A file with no pictures is not
+    re-read after Improve Reading, a new Knowledge Pack reader, or an OCR setting change."""
+    sig, tsig, osig = sigs
+    if "text_sig" in entry:
+        return entry["text_sig"] == tsig and (not entry.get("ocr_used", True) or entry.get("ocr_sig") == osig)
+    return entry.get("engine") == sig
 
 def _numberish(token):
     t = token.strip(_EDGE_PUNCT)
@@ -1687,7 +1831,7 @@ def project_findings(project, status_callback, full=False, rescan=True):
     findings, stats = {}, {"files": 0, "scanned": 0, "reused": 0, "removed": 0}
     _OCR_CACHE.clear()
     weak = weak_terms(m)
-    cache, sig = project.data["files"], engine_signature(weak)
+    cache, sig = project.data["files"], (engine_signature(weak), text_signature(weak), ocr_signature())
     files = project.list_files() if rescan else sorted(cache)
     stats["files"] = len(files)
     stats["removed"] = len(set(cache) - set(files)) if rescan else 0
@@ -1709,7 +1853,7 @@ def _project_loop(project, files, cache, sig, weak, m, findings, stats, new_cach
         absf = project.member_path(rel)
         entry = cache.get(rel)
         st = os.stat(absf) if rescan and os.path.exists(absf) else None
-        fresh = (entry and entry.get("engine") == sig and
+        fresh = (entry and entry_current(entry, sig) and
                  (not rescan or (st and entry["size"] == st.st_size and abs(entry["mtime"] - st.st_mtime) < 1.0)))
         if (not full and fresh) or not rescan:
             if entry is None:
@@ -1718,11 +1862,9 @@ def _project_loop(project, files, cache, sig, weak, m, findings, stats, new_cach
             if rescan:
                 status_callback(f"[{idx}/{len(files)}] {rel} - unchanged, using saved results")
         else:
+            _OCR_CALLS[0] = 0
             chunks, skips, err = scan_file(absf, status_callback, idx, len(files))
-            entry = {"size": st.st_size, "mtime": st.st_mtime, "engine": sig,
-                     "scanned": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
-                     "chunks": [[label, reduce_text(fold(text), weak)] for label, text in chunks if text.strip()],
-                     "skips": skips, "error": err}
+            entry = cache_entry(st, weak, chunks, skips, err, _OCR_CALLS[0], sig)
             stats["scanned"] += 1
         new_cache[rel] = entry
         if entry.get("error"):

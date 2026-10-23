@@ -35,7 +35,7 @@ these are governed by the same IT controls as every other application.
             v
   +-----------------------  AcronymHunter.exe  (one Windows process)  ------------------------+
   |                                                                                           |
-  |  1. Extraction      PyMuPDF (PDF), zipfile + lxml (Word/PowerPoint/Excel XML), openpyxl   |
+  |  1. Extraction      PDFium (PDF), zipfile + lxml (Word/PowerPoint/Excel XML), openpyxl    |
   |  2. Image cleanup   OpenCV in memory: enlarge, contrast, denoise                          |
   |  3. OCR             ONNX Runtime + RapidOCR models bundled in _internal\ (no download)    |
   |  4. Matching        regex + RapidFuzz against acronym_database.csv                        |
@@ -104,7 +104,7 @@ any library, so libraries that create temp files create them inside the folder.
 | Question | Answer |
 |---|---|
 | Can it scan files in a synced OneDrive or SharePoint folder? | Yes. To the app they are ordinary local files. Browser-only links are not supported |
-| Can it alter or corrupt them? | No. Every reader opens files read-only (`open(..., "rb")`, MuPDF, `zipfile`, openpyxl read mode). The app never writes to, locks, or re-saves a source file. Verified 2026-10-20: SHA-256 and modified time of every test file identical before and after a scan |
+| Can it alter or corrupt them? | No. Every reader opens files read-only (`open(..., "rb")`, PDFium, `zipfile`, openpyxl read mode). The app never writes to, locks, or re-saves a source file. Verified 2026-10-20: SHA-256 and modified time of every test file identical before and after a scan |
 | Does the app connect to Microsoft 365? | No. A cloud-only file is downloaded by the OneDrive sync client (a separate Microsoft process) when the app opens it, under the organization's tenant policy. The app's network block applies to the app's own process |
 | What does reach the cloud? | Only what the user saves into a synced folder: project files (`.ahproj`, `.ahproj.lock`) and CSV exports. They upload like any file and inherit that library's permissions |
 | Limits | The project lock is only as current as OneDrive sync between PCs; sync conflicts create a copy such as `Name-PCNAME.ahproj`. Files encrypted by a sensitivity label cannot be read (reported as "Could not read") |
@@ -155,8 +155,8 @@ Audit 2026-10-20: no document data, user paths, or trained knowledge in the pack
 
 | Check | Result |
 |---|---|
-| Libraries with network features used by the app | None. PyMuPDF, lxml, openpyxl, OpenCV, ONNX Runtime, RapidOCR, RapidFuzz, CustomTkinter have no network calls in the code paths used |
-| Vector graphics (SVG, EMF, WMF) | Parsed with the hardened lxml parser (no entities, no DTD, no network) or a built-in record reader. SVG references to external images or fonts are never fetched; MuPDF draws the SVG from the bytes in memory |
+| Libraries with network features used by the app | None. PDFium, Skia, lxml, openpyxl, OpenCV, Tesseract, RapidFuzz, CustomTkinter have no network calls in the code paths used. `tools\network_audit.py` lists every shipped file that links a networking API |
+| Vector graphics (SVG, EMF, WMF) | Parsed with the hardened lxml parser (no entities, no DTD, no network) or a built-in record reader. SVG references to external images or fonts are never fetched; Skia draws the SVG from the bytes in memory |
 | OCR models | Bundled inside `_internal\rapidocr_onnxruntime\models` (3 ONNX files). Never downloaded |
 | ONNX Runtime usage telemetry | Disabled in code (`disable_telemetry_events()`) |
 | Runtime network block | `socket.connect` to any non-loopback address, all DNS lookups, and `urllib` are replaced with functions that refuse. Tested: raw socket, direct IP, DNS, urllib HTTPS, and http.client HTTPS all refused |

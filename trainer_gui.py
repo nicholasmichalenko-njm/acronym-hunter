@@ -35,12 +35,7 @@ def _zip_read(path, member):
         return z.read(member)
 
 def _render_pdf_page(path, index):
-    doc = eng.fitz.open(path)
-    try:
-        pix = doc[index].get_pixmap(dpi=int(eng.OCR_CFG["pdf_scan_dpi"]), alpha=False)
-        return Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-    finally:
-        doc.close()
+    return eng.render_pdf_page(path, index, int(eng.OCR_CFG["pdf_scan_dpi"]))
 
 def _office_parts(z, path):
     """[(part path, location label)] for parts that can hold pictures, in reading order."""
@@ -87,7 +82,7 @@ def list_sources(path):
     if ext in eng.VECTOR_FILE_EXTS:   # drawn at high resolution so small labels can be boxed
         return [(f"{name} (Vector graphic)", lambda: _img_from_bytes(eng.render_vector(open(path, "rb").read(), ext)))]
     if ext == ".pdf":
-        doc = eng.fitz.open(path); n = len(doc); doc.close()
+        n = eng.pdf_page_count(path)
         return [(f"{name} (p.{i + 1})", (lambda i=i: _render_pdf_page(path, i))) for i in range(n)]
     out, seen = [], set()
     with zipfile.ZipFile(path) as z:

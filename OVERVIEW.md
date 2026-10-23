@@ -1,6 +1,6 @@
 # Acronym Hunter: Complete Overview
 
-**Version:** 1.7.0 | **Updated:** 2026-10-22 | **Platform:** Windows 10/11, 64-bit
+**Version:** 1.8.0 | **Updated:** 2026-10-22 | **Platform:** Windows 10/11, 64-bit
 
 This document has two parts.
 **Part 1** explains the whole application in plain language: what it is, what is inside it, how it works,
@@ -92,7 +92,7 @@ Unzip it, run it, delete it.
 | Tool | What it does in plain terms | Made by |
 |---|---|---|
 | Python 3.11 | The language the app is written in; bundled, nothing to install | Python Software Foundation |
-| PyMuPDF (MuPDF) | Opens PDFs and reads their text and pictures | Artifex |
+| pypdfium2 (Google PDFium) | Opens PDFs and reads their text and pictures (v1.8.0+; replaced PyMuPDF) | Google PDFium, pypdfium2 team |
 | lxml | Reads the text inside Word, PowerPoint, and Excel files | lxml project |
 | openpyxl | Reads Excel cell values | openpyxl project |
 | OpenCV | Cleans up pictures before reading (contrast, sharpening, enlarging) | OpenCV.org |
@@ -276,7 +276,7 @@ contents. Part 2, section 12 lists them and how IT normally controls them.
                          +-------------------------------------------------------------+
  User-selected files --> |  AcronymHunter.exe  (single process, standard user)         |
  (read-only)             |                                                             |
-                         |  Extraction: PyMuPDF, zipfile + hardened lxml, openpyxl     |
+                         |  Extraction: PDFium, zipfile + hardened lxml, openpyxl      |
                          |  Image cleanup: OpenCV (in memory)                          |
                          |  OCR: ONNX Runtime + bundled RapidOCR PP-OCRv4 models       |
                          |  Matching: regex + RapidFuzz vs acronym_database.csv        |
@@ -364,7 +364,9 @@ or if the network audit finds an unreviewed link. (v1.6.0 shipped the official W
 | CPython | 3.11.9 | PSF-2.0 | Runtime | Python Software Foundation (US) |
 | Tcl/Tk | 8.6 | BSD-style (Tcl license) | Window toolkit | Tcl Core Team |
 | OpenSSL libcrypto/libssl | 3.x (bundled by CPython) | Apache-2.0 | Hashing (SHA-1 cache keys). No TLS used | OpenSSL Project |
-| PyMuPDF / MuPDF | 2.0 | **AGPL-3.0 or Artifex commercial** | PDF parsing | Artifex Software (US) |
+| pypdfium2 / PDFium | 5.14.0 | BSD-3-Clause / Apache-2.0 | PDF parsing (v1.8.0+, replaced PyMuPDF) | Google PDFium (US); Python binding by the pypdfium2 team |
+| skia-python / Skia | 144.1 | BSD-3-Clause | Draws SVG pictures for OCR (v1.8.0+) | Google Skia (US) |
+| SCOWL common-word list | 2020.12.07 | permissive (SCOWL notice) | Stops ordinary words ending a sentence from being reported as abbreviations | Kevin Atkinson (US) |
 | lxml / libxml2 | 6.1.3 | BSD-3-Clause / MIT | Office XML parsing (hardened) | lxml project |
 | defusedxml | 0.7.1 | PSF-2.0 | Safe XML parsing for openpyxl | Christian Heimes |
 | openpyxl / et_xmlfile | 3.1.5 / 2.0.0 | MIT | Excel cell reading | openpyxl project |
@@ -389,7 +391,7 @@ Full pinned list: `requirements.txt`. Bundled OCR model fingerprints (SHA-256):
 | `ch_ppocr_mobile_v2.0_cls_infer.onnx` | 0.6 MB | `e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c` |
 
 **Licensing notes for legal review:**
-- **PyMuPDF is dual-licensed AGPL-3.0 / Artifex commercial.** Internal use is common under AGPL; distribution
+- **v1.8.0 removed PyMuPDF (AGPL-3.0).** PDFs are read with Google PDFium (BSD/Apache) and SVG drawn with Google Skia (BSD). Earlier versions: PyMuPDF is dual-licensed AGPL-3.0 / Artifex commercial; distribution
   outside the organization or modification without releasing source may require the commercial license.
   Have legal confirm before distributing beyond internal use.
 - PyInstaller (GPL-2.0 with bootloader exception) is a build tool; its bootloader exception permits
@@ -421,7 +423,7 @@ can be dropped into `config\models\` (see `TRAINING_GUIDE.md`).
 | Item | Status |
 |---|---|
 | Dependency scan | `pip-audit` against the PyPI advisory database, 2026-10-20: **no known vulnerabilities** in runtime dependencies or build tools |
-| Not covered by pip-audit | CPython 3.11.9 runtime and native libraries bundled inside packages (MuPDF, libxml2, OpenSSL, Tcl/Tk) |
+| Not covered by pip-audit | CPython 3.11.9 runtime and native libraries bundled inside packages (PDFium, Skia, libxml2, OpenSSL, Tcl/Tk, Tesseract) |
 | Python runtime | 3.11.9 predates later 3.11 security releases. Recommendation: rebuild on the newest Python 3.11.x before wide distribution |
 | Patch process | Update versions in the build environment, run the scorer (`tools\evaluate.py`) for regressions, rebuild, re-run section 15 checks, publish new checksums |
 | Exposure | Low: no network listener or client, standard-user privileges. Main exposure is parsing untrusted files (section 9) |
@@ -438,9 +440,9 @@ The app's real attack surface is the documents it opens. Controls:
 | Decompression bombs | Embedded images over 100 MB uncompressed are skipped; OpenCV pixel limits apply; tiny images skipped | Code review |
 | Path traversal from archives | Archive members are read into memory only; nothing is extracted to disk | Code review |
 | Malformed or corrupt files | Each file, page, slide, and part is isolated; failures become "Could not read" / "Not scanned" rows and a log entry; the batch continues | Corrupt PDF test file in `test_samples` |
-| Vector graphics (SVG, EMF, WMF) | SVG parsed with the same hardened lxml parser; EMF/WMF read with a bounds-checked record reader; rendering for OCR happens in memory (MuPDF for SVG, Pillow/GDI for EMF/WMF). External references inside SVG are never fetched | Vector test files in `test_samples` |
+| Vector graphics (SVG, EMF, WMF) | SVG parsed with the same hardened lxml parser; EMF/WMF read with a bounds-checked record reader; rendering for OCR happens in memory (Skia for SVG, Pillow/GDI for EMF/WMF). External references inside SVG are never fetched | Vector test files in `test_samples` |
 | Linked content (remote images) | Never fetched. Linked pictures are reported as "Not scanned" | 40-slide test deck with a linked picture |
-| Native parser bugs (MuPDF, libxml2, OpenCV) | Mitigated by keeping libraries current (section 8), standard-user privileges, and endpoint protection | Ongoing |
+| Native parser bugs (PDFium, Skia, libxml2, OpenCV, Leptonica) | Mitigated by keeping libraries current (section 8), standard-user privileges, and endpoint protection | Ongoing |
 
 ## 10. AI and machine-learning specifics
 
@@ -473,7 +475,7 @@ The app's real attack surface is the documents it opens. Controls:
 | Exported reports and app-folder files contain sensitive terms | User | Store the folder and exports on encrypted, local, non-synced storage; mark exports per data classification |
 | `training_data\` holds crops of real documents | User | Same storage rules; never copy it into the repository or a shared zip (excluded by `build.ps1` and `.gitignore`); delete it when no longer needed |
 | Unsigned executable | Organization / developer | IT allowlisting or internal code signing |
-| AGPL-licensed PDF component | Legal | Confirm internal-use terms or obtain commercial license |
+| AGPL-licensed PDF component | Legal | Resolved in v1.8.0: PyMuPDF replaced by PDFium (BSD/Apache) |
 | Software origin of OCR models | Security | Review against policy; swap models if required |
 | Python runtime age | Developer | Rebuild on current Python 3.11.x |
 | Single-developer maintenance, no vendor SLA | Organization | Treat as internal tool; source and build process are documented for handover |
