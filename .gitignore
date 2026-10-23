@@ -39,3 +39,9 @@ internal_builds/
 
 # Third-party engine binaries, fetched by tools\fetch_tesseract.ps1 (pinned SHA-256)
 /vendor/
+
+# math reader add-on build (2.2.0)
+/venv_math/
+/dist_math/
+/build_math/
+/Claude outputs/

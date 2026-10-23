@@ -263,3 +263,79 @@ def text_math_chunks(chunks, common=frozenset()):
         name = chunks[0][0].split(" (")[0] if chunks else "file"
         extra.append((name + DEF_LABEL, "\n".join(f"{s}\t{d}" for s, d in dict.fromkeys(defs))))
     return extra
+
+
+# ---------------------------------------------------------------------------
+# 5. LaTeX from the math reader add-on -> the app's linear notation and symbols
+# ---------------------------------------------------------------------------
+_ACC_TEX = {"dot": "\u0307", "ddot": "\u0308", "hat": "\u0302", "bar": "\u0304", "overline": "\u0305", "tilde": "\u0303", "vec": "\u20d7"}
+_GREEK_TEX = {"alpha": "α", "beta": "β", "gamma": "γ", "delta": "δ", "epsilon": "ε", "varepsilon": "ε", "zeta": "ζ", "eta": "η",
+              "theta": "θ", "vartheta": "θ", "iota": "ι", "kappa": "κ", "lambda": "λ", "mu": "μ", "nu": "ν", "xi": "ξ", "pi": "π",
+              "rho": "ρ", "varrho": "ρ", "sigma": "σ", "tau": "τ", "upsilon": "υ", "phi": "ϕ", "varphi": "ϕ", "chi": "χ", "psi": "ψ",
+              "omega": "ω", "Gamma": "Γ", "Delta": "Δ", "Theta": "Θ", "Lambda": "Λ", "Xi": "Ξ", "Pi": "Π", "Sigma": "Σ",
+              "Phi": "Φ", "Psi": "Ψ", "Omega": "Ω", "partial": "∂", "nabla": "∇", "infty": "∞"}
+_TEX_OPS = {"cdot": "·", "times": "×", "leq": "≤", "le": "≤", "geq": "≥", "ge": "≥", "neq": "≠", "approx": "≈", "equiv": "≡",
+            "propto": "∝", "pm": "±", "mp": "∓", "sum": "∑", "int": "∫", "prod": "∏", "sqrt": "√", "to": "→", "rightarrow": "→"}
+_TEX_FUNCS = {"ln", "log", "exp", "sin", "cos", "tan", "sinh", "cosh", "tanh", "arcsin", "arccos", "arctan", "max", "min", "lim", "det"}
+
+def _brace_group(t, i):
+    """(content, index after) of the {...} group starting at t[i] == "{"."""
+    depth = 0
+    for j in range(i, len(t)):
+        if t[j] == "{":
+            depth += 1
+        elif t[j] == "}":
+            depth -= 1
+            if depth == 0:
+                return t[i + 1:j], j + 1
+    return t[i + 1:], len(t)
+
+def _frac_to_slash(t):
+    """\frac{a}{b} -> (a)/(b), nested fractions included."""
+    for _ in range(20):
+        m = re.search(r"\\[dt]?frac\s*\{", t)
+        if not m:
+            break
+        num, k = _brace_group(t, m.end() - 1)
+        while k < len(t) and t[k] == " ":
+            k += 1
+        den, k2 = _brace_group(t, k) if k < len(t) and t[k] == "{" else ("", k)
+        t = t[:m.start()] + " (" + num + ")/(" + den + ") " + t[k2:]
+    return t
+
+def latex_to_linear(tex):
+    """LaTeX (as the math reader writes it, often spaced: "v _ { e }") -> linear text in the app's notation: v_e, ṁ, Δv."""
+    t = " ".join(str(tex).split())
+    t = re.sub(r"\\(?:begin|end)\s*\{[^{}]*\}(?:\s*\{[^{}]*\})?", " ", t)
+    t = re.sub(r"\\(?:left|right|big|Big|bigg|Bigg)\b", " ", t)
+    t = re.sub(r"\\[,;:!]|\\quad|\\qquad|~", " ", t)
+    t = re.sub(r"\\(?:mathrm|mathit|mathbf|text|operatorname|boldsymbol|mathcal|textrm)\s*\{([^{}]*)\}", lambda m: m.group(1).replace(" ", ""), t)
+    t = re.sub(r"\s+([_^])", r"\1", t)
+    t = re.sub(r"_\s*\{?\s*\\infty\s*\}?", "_inf ", t)                    # T_\infty -> T_inf
+    t = re.sub(r"_\s*\{[^{}]*=[^{}]*\}", " ", t)                           # summation index i=1: not a symbol
+    for _ in range(3):
+        t = re.sub(r"\\(dot|ddot|hat|bar|overline|tilde|vec)\s*\{\s*(\\?[A-Za-z]+)\s*\}",
+                   lambda m: (_GREEK_TEX.get(m.group(2)[1:], m.group(2)) if m.group(2).startswith("\\") else m.group(2)) + _ACC_TEX[m.group(1)], t)
+    t = _frac_to_slash(t)
+    def word(m):
+        w = m.group(1)
+        if w in _GREEK_TEX: return _GREEK_TEX[w]
+        if w in _TEX_OPS: return " " + _TEX_OPS[w] + " "
+        if w in _TEX_FUNCS: return " " + w + " "
+        return " "
+    t = re.sub(r"\\([A-Za-z]+)", word, t)
+    t = re.sub(r"Δ\s+([A-Za-z])", r"Δ\1", t)
+    t = re.sub(r"_\s*\{\s*([A-Za-z0-9 ]{1,16})\s*\}", lambda m: "_" + m.group(1).replace(" ", "") + " ", t)
+    t = re.sub(r"\^\s*\{\s*([^{}]*)\}", lambda m: "^" + m.group(1).replace(" ", "") + " " if len(m.group(1).replace(" ", "")) <= 3 else " ^(" + m.group(1) + ") ", t)
+    t = t.replace("{", " ").replace("}", " ").replace("&", " ").replace("\\\\", "; ")
+    return " ".join(t.split())
+
+def latex_symbols(tex):
+    """(linear text, symbols) for one LaTeX equation from the math reader."""
+    lin = latex_to_linear(tex)
+    lin_sym = re.sub(r"[∫∑∏]\s*(?:_\s*(\S+))?\s*(?:\^\s*(\S+))?", lambda m: " " + (m.group(1) or "") + " " + (m.group(2) or "") + " ", lin)
+    if "∫" in lin:
+        lin_sym = re.sub(r"\bd\s*[a-z]\s*\)?\s*$", " ", lin_sym)          # the differential dt
+    lin_sym = re.sub(r"(?<![A-Za-z])e\s*\^", " ^", lin_sym)      # e^x: Euler's number, not a symbol
+    lin_sym = re.sub(r"\^\S+", " ", lin_sym)                      # exponents carry no new symbol identity
+    return lin, symbols_in_text(lin_sym, from_math=True)

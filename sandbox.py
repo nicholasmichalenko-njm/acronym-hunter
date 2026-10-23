@@ -106,8 +106,9 @@ def _inheritable_pipe():
     r, w = _winapi.CreatePipe(None, 0)
     return r, w
 
-def run(cmd, input_bytes=b"", timeout=180, env=None, cwd=None):
-    """Run cmd (list) in the sandbox. Returns (exit code, stdout bytes, stderr bytes). Raises TimeoutError."""
+def run(cmd, input_bytes=b"", timeout=180, env=None, cwd=None, on_line=None, cancel=None):
+    """Run cmd (list) in the sandbox. Returns (exit code, stdout bytes, stderr bytes). Raises TimeoutError.
+    on_line(bytes): called for each stdout line as it arrives. cancel: threading.Event that stops the program."""
     sid, _s = container_sid()
     in_r, in_w = _inheritable_pipe(); out_r, out_w = _inheritable_pipe(); err_r, err_w = _inheritable_pipe()
     child_ends = (in_r, out_w, err_w)
@@ -157,15 +158,32 @@ def run(cmd, input_bytes=b"", timeout=180, env=None, cwd=None):
                 f_in.close()
             except OSError:
                 pass
+    def read_out():
+        if on_line is None:
+            result["out"] = f_out.read(); return
+        parts = []
+        for line in iter(f_out.readline, b""):
+            parts.append(line)
+            try:
+                on_line(line)
+            except Exception:
+                pass
+        result["out"] = b"".join(parts)
     readers = [threading.Thread(target=feed, daemon=True),
-               threading.Thread(target=lambda: result.__setitem__("out", f_out.read()), daemon=True),
+               threading.Thread(target=read_out, daemon=True),
                threading.Thread(target=lambda: result.__setitem__("err", f_err.read()), daemon=True)]
     for t in readers:
         t.start()
     try:
-        if _k32.WaitForSingleObject(pi.hProcess, int(timeout * 1000)) == _WAIT_TIMEOUT:
-            _k32.TerminateProcess(pi.hProcess, 1)
-            raise TimeoutError(f"{os.path.basename(cmd[0])} did not finish within {timeout} s")
+        waited = 0.0
+        while _k32.WaitForSingleObject(pi.hProcess, 250) == _WAIT_TIMEOUT:
+            waited += 0.25
+            if cancel is not None and cancel.is_set():
+                _k32.TerminateProcess(pi.hProcess, 1)
+                raise InterruptedError(f"{os.path.basename(cmd[0])} stopped")
+            if waited >= timeout:
+                _k32.TerminateProcess(pi.hProcess, 1)
+                raise TimeoutError(f"{os.path.basename(cmd[0])} did not finish within {timeout} s")
         for t in readers:
             t.join(10)
         code = wt.DWORD()

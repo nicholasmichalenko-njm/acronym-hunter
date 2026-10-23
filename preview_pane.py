@@ -34,6 +34,8 @@ class PreviewPane(ctk.CTkFrame):
         self.opt_loc.pack(padx=10, pady=(0, 4))
         self.lbl_math = ctk.CTkLabel(self, text="", wraplength=PIC_W - 20, justify="left", anchor="w",
                                      fg_color="#E0E7FF", text_color="#312E81", corner_radius=6, font=("Cambria", 14))
+        self.btn_math = ctk.CTkButton(self, text="Read this equation with the math reader", height=28, fg_color="#4338CA",
+                                      command=lambda: self.term and self.app.read_equations([self.term]))
         self.btn_zoom = ctk.CTkButton(self, text="Show whole picture", width=150, height=24, fg_color="#475569",
                                       command=self._toggle_zoom)
         self.btn_zoom.pack(anchor="e", padx=10, pady=(0, 4))
@@ -101,13 +103,24 @@ class PreviewPane(ctk.CTkFrame):
             if uses:
                 txt += "\nUsed in:  " + "\n          ".join(u[:70] for u in uses[:4]) + (f"\n          (+{len(uses) - 4} more)" if len(uses) > 4 else "")
         elif cat == "Equation (picture)":
-            txt = ("This picture looks like an equation. Check its symbols by eye: the reader reads letters well "
-                   "but can miss subscripts, Greek letters and fraction bars.")
+            read = d.get("math_read") or {}
+            if read:
+                txt = "Math reader:\n" + "\n".join(l for v in read.values() for l in v) if any(read.values()) else "Math reader found no equation here."
+            elif eng.MATH_DIR:
+                txt = ("This picture looks like an equation. The math reader can read it exactly: subscripts, Greek letters "
+                       "and fractions. Click below (about 5 s for a small equation).")
+            else:
+                txt = ("This picture looks like an equation. Check its symbols by eye: the text reader reads letters well "
+                       "but can miss subscripts, Greek letters and fraction bars. The math add-on reads equations exactly.")
         if txt:
             self.lbl_math.configure(text=txt)
             self.lbl_math.pack(fill="x", padx=10, pady=(0, 4), before=self.btn_zoom)
         else:
             self.lbl_math.pack_forget()
+        if cat == "Equation (picture)" and eng.MATH_DIR and not d.get("math_read"):
+            self.btn_math.pack(fill="x", padx=10, pady=(0, 4), before=self.btn_zoom)
+        else:
+            self.btn_math.pack_forget()
 
     def _on_loc(self, choice):
         names = list(self.opt_loc.cget("values"))
