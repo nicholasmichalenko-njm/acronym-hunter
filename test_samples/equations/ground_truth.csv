@@ -1,0 +1,23 @@
+File,Term,Expect,Note
+Kestrel_Propulsion_Note.docx,Δv,found,Word equation symbol defined in nomenclature table
+Kestrel_Propulsion_Note.docx,I_sp,found,subscript symbol from Word equation
+Kestrel_Propulsion_Note.docx,m_0,found,subscript symbol
+Kestrel_Propulsion_Note.docx,m_f,found,subscript symbol
+Kestrel_Propulsion_Note.docx,ṁ,found,dot-accent symbol defined by a where clause
+Kestrel_Propulsion_Note.docx,v_e,found,defined by a where clause
+Kestrel_Propulsion_Note.docx,A_e,found,undefined symbol in thrust equation
+Kestrel_Propulsion_Note.docx,σ_y,found,Greek subscript symbol
+Kestrel_Propulsion_Note.docx,n_s,found,undefined symbol in stress equation
+Kestrel_Propulsion_Note.docx,C_D,found,typed math in body text
+Kestrel_Propulsion_Note.docx,m,absent,ṁ must keep its dot
+Kestrel_Equation_Slide.pptx,F_D,found,PowerPoint equation
+Kestrel_Equation_Slide.pptx,ρ,found,PowerPoint equation Greek
+Kestrel_Equation_Slide.pptx,C_D,found,PowerPoint equation subscript
+Kestrel_Loads_Typed.pdf,σ_b,found,typed math in PDF
+Kestrel_Loads_Typed.pdf,I_x,found,typed math in PDF
+Kestrel_Loads_Typed.pdf,μ,found,defined by a where clause
+Kestrel_Loads_Typed.pdf,Re,found,Reynolds number symbol
+Kestrel_Loads_Typed.pdf,TRL,found,TRL = 6 stays an acronym and is not read as an equation
+Kestrel_Equation_Picture.png,[equation picture] Kestrel_Equation_Picture.png,found,equation picture flagged for review
+Kestrel_Equation_Picture.png,g_0,found,read from the picture by OCR
+Kestrel_Equation_Picture.png,m_0,found,read from the picture by OCR

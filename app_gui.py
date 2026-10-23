@@ -1,4 +1,4 @@
-import os
+﻿import os
 import sys
 import shutil
 import atexit
@@ -124,6 +124,7 @@ import customtkinter as ctk
 from tkinter import ttk, filedialog, messagebox
 from rapidfuzz import process, fuzz
 import importlib.util
+import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
 DB_FILE = os.path.join(BASE_DIR, "acronym_database.csv")
 
@@ -983,6 +984,60 @@ def part_images(z, partpath, root, label_base, chunks, seen, rels=None):
 # ---------------------------------------------------------------------------
 # Format readers
 # ---------------------------------------------------------------------------
+def _outer_maths(root):
+    """Equation-editor equations (m:oMath) that are not inside another one and not in a Fallback copy."""
+    M = EQ._m("oMath")
+    for om in root.iter(M):
+        if _in_fallback(om) or any(a.tag == M for a in om.iterancestors()):
+            continue
+        yield om
+
+def _eq_chunk_text(om):
+    linear = " ".join(EQ.omml_text(om).split())
+    return linear, linear + "\t" + "|".join(EQ.omml_symbols(om))
+
+def _is_equation(linear):
+    return any(r in linear for r in EQ.RELATIONS) or bool(re.search(r"[∑∫∏√]|\)/\(", linear))
+
+def omml_chunks(root, label, chunks):
+    """Equation-editor equations in one part (a slide, a header): exact, read from the math markup."""
+    for om in _outer_maths(root):
+        linear, text = _eq_chunk_text(om)
+        if linear and _is_equation(linear):
+            chunks.append((label + EQ.EQ_LABEL, text))
+
+def docx_math(body, filename, chunks):
+    """Word equations with their paragraph location, and nomenclature tables whose symbol cells are equations."""
+    W_P, W_T, W_TC, W_TR = _q("w", "p"), _q("w", "t"), _q("w", "tc"), _q("w", "tr")
+    idx, heading, defs = 0, "", []
+    for para in body.iter(W_P):
+        if _in_fallback(para):
+            continue
+        idx += 1
+        style = para.find("%s/%s" % (_q("w", "pPr"), _q("w", "pStyle")))
+        if style is not None and (style.get(_q("w", "val")) or "").lower().startswith(("heading", "title")):
+            heading = "".join(t.text or "" for t in para.iter(W_T)).strip() or heading
+        for om in _outer_maths(para):
+            if next(om.iterancestors(W_P), None) is not para:
+                continue
+            linear, text = _eq_chunk_text(om)
+            if linear and _is_equation(linear):
+                where = f"section '{heading[:60]}', " if heading else ""
+                chunks.append((f"{filename} ({where}para {idx})" + EQ.EQ_LABEL, text))
+    for tr in body.iter(W_TR):   # symbol in one cell (as an equation or text), meaning in another
+        cells = []
+        for tc in tr.iter(W_TC):
+            math = " ".join(" ".join(EQ.omml_text(om).split()) for om in _outer_maths(tc)).strip()
+            words = " ".join("".join(t.text or "" for t in tc.iter(W_T)).split())
+            cells.append((math, words))
+        if len(cells) >= 2:
+            sym_cell = next((m for m, w in cells if m and not w and not _is_equation(m)), None)
+            meaning = next((w for m, w in cells if w and not m and len(w.split()) >= 1 and w[:1].isalpha()), None)
+            if sym_cell and meaning:
+                defs.append((EQ.normalize_symbol(sym_cell), meaning))
+    if defs:
+        chunks.append((filename + EQ.DEF_LABEL, "\n".join(f"{a}\t{b}" for a, b in dict.fromkeys(defs))))
+
 def extract_pptx(filepath, filename, status_callback, prefix, chunks):
     with zipfile.ZipFile(filepath) as z:
         names = set(z.namelist())
@@ -1015,6 +1070,7 @@ def extract_pptx(filepath, filename, status_callback, prefix, chunks):
                     if extra:
                         chunks.append((f"{filename} ({tag} {sub})", "\n".join(extra)))
                 part_images(z, spath, root, f"{filename} ({tag}", chunks, seen, rels)
+                omml_chunks(root, f"{filename} ({tag})", chunks)
             except Exception as e:
                 log_error(f"{filename}: slide {n} could not be fully read")
                 note_skip(f"{filename} (Slide {n})", f"Slide could not be fully read: {type(e).__name__}: {e}")
@@ -1052,6 +1108,7 @@ def extract_docx(filepath, filename, status_callback, prefix, chunks):
         flush(idx)
         seen = set()
         part_images(z, "word/document.xml", body, f"{filename} (Body", chunks, seen)
+        docx_math(body, filename, chunks)
 
         status_callback(f"{prefix} - Reading headers, footers, notes, comments...")
         extras = [(p, ("Header " if "header" in p else "Footer ") + re.sub(r"\D", "", p.rsplit("/", 1)[-1]))
@@ -1451,6 +1508,7 @@ def build_matcher():
         "mixed_re": re.compile(r'\b([A-Z][a-z]?[A-Z][A-Za-z]{0,2}[A-Z]|[A-Z][a-z][A-Z])\b'),
         "unit_re": re.compile(r'(?<!\w)\d+(?:\.\d+)?\s*([a-zA-Z\u00b0\u03bc\u03a9\u00c5]{1,5}(?:/[a-zA-Z0-9\^]{1,4})?)(?!\w)'),
         "common_words": common_words(),
+        "symbol_defs": {},
         "abbrev_re": re.compile(r'(?<!\w)([a-zA-Z]{1,4}/[a-zA-Z]{1,4}|[a-zA-Z]{2,6}\.)(?!\w)'),
     }
 
@@ -1527,6 +1585,65 @@ def first_use_flag(d):
     """True if any file's first use of an acronym is not written as "Words (ACR)"."""
     return any(u["defined"] is False for u in d.get("first_use", {}).values()) and bool(first_use_lines(d))
 
+def record_symbol(findings, sym, loc, m):
+    if sym in m['include_db']:
+        record_included(findings, sym, loc, m['include_db'])
+    elif sym in m['exclude_db']:
+        record_excluded(findings, sym, loc, m['exclude_db']); return
+    else:
+        if sym not in findings:
+            findings[sym] = {"category": "Symbol", "count": 0, "locations": [], "definitions": [], "in_db": False,
+                             "excluded": False, "selected_definition": "[Not defined in the document or database]",
+                             "status": "🔍 SYMBOL NOT DEFINED"}
+        findings[sym]["count"] += 1
+        if loc not in findings[sym]["locations"]:
+            findings[sym]["locations"].append(loc)
+    findings[sym]["symbol"] = True
+
+def record_equation(findings, loc, text, m):
+    linear, _sep, syms = text.partition("\t")
+    linear = " ".join(linear.split())
+    syms = [x for x in syms.split("|") if x] if _sep else EQ.symbols_in_text(linear, common=m['common_words'])
+    key = linear if len(linear) <= 160 else linear[:157] + "..."
+    if key not in findings:
+        findings[key] = {"category": "Equation", "count": 0, "locations": [], "definitions": [], "in_db": False,
+                         "excluded": False, "selected_definition": "", "status": "📐 EQUATION", "equation": True,
+                         "symbols": []}
+    d = findings[key]
+    d["count"] += 1
+    if loc not in d["locations"]:
+        d["locations"].append(loc)
+    d["symbols"] = list(dict.fromkeys(d["symbols"] + syms))
+    for sym in syms:
+        record_symbol(findings, sym, loc, m)
+
+def finalize_symbols(findings, m):
+    """Give each symbol the meaning stated in the documents (where ṁ is ..., nomenclature lists and tables)."""
+    stated = {}
+    for _file, defs in m['symbol_defs'].items():
+        for sym, desc in defs:
+            lst = stated.setdefault(sym, [])
+            if desc.casefold() not in {x.casefold() for x in lst}:
+                lst.append(desc)
+    for sym, d in findings.items():
+        if not d.get("symbol") or d.get("in_db") or d.get("excluded"):
+            continue
+        descs = stated.get(sym, [])
+        if len(descs) == 1:
+            d.update({"definitions": descs, "selected_definition": descs[0], "status": "✅ Defined in document"})
+        elif len(descs) > 1:
+            d.update({"definitions": descs, "status": f"⚠️ CHOOSE (defined {len(descs)} ways)",
+                      "selected_definition": f"⚠️ MULTIPLE ({len(descs)} meanings) - Choose: " + " OR ".join(descs)})
+
+def summarize_equations(findings):
+    """Each equation row lists its symbols and which ones are still undefined."""
+    for key, d in findings.items():
+        if not d.get("equation"):
+            continue
+        undefined = [x for x in d["symbols"] if x in findings and findings[x]["status"].startswith("🔍")]
+        d["selected_definition"] = "Symbols: " + ", ".join(d["symbols"]) + (f"  |  not defined: {', '.join(undefined)}" if undefined else "")
+        d["status"] = f"📐 EQUATION: {len(undefined)} symbol(s) not defined" if undefined else "📐 EQUATION (all symbols defined)"
+
 def match_chunks(findings, chunks, m):
     """Run the three gates over [(location label, text)] and record findings."""
     global _HITS
@@ -1534,6 +1651,25 @@ def match_chunks(findings, chunks, m):
         if not text.strip():
             continue
         text = fold(text)
+        if loc_label.endswith(EQ.EQ_LABEL):
+            record_equation(findings, loc_label[:-len(EQ.EQ_LABEL)], text, m); continue
+        if loc_label.endswith(EQ.DEF_LABEL):
+            name = loc_label[:-len(EQ.DEF_LABEL)]
+            m['symbol_defs'].setdefault(name, [])
+            m['symbol_defs'][name] += [tuple(l.split("\t", 1)) for l in text.splitlines() if "\t" in l]
+            continue
+        if loc_label.endswith(EQ.PIC_LABEL):
+            loc = loc_label[:-len(EQ.PIC_LABEL)]
+            key = f"[equation picture] {_file_of(loc)}"
+            if key not in findings:
+                findings[key] = {"category": "Equation (picture)", "count": 0, "locations": [], "definitions": [],
+                                 "in_db": False, "excluded": False, "status": "🔍 CHECK EQUATION PICTURE",
+                                 "selected_definition": "Math inside a picture. OCR reads letters, not math layout: check it "
+                                                        "in the preview. Read as: " + text[:120]}
+            findings[key]["count"] += 1
+            if loc not in findings[key]["locations"]:
+                findings[key]["locations"].append(loc)
+            continue
         _HITS = hits = []
 
         # Gate 1 & 2: Unified Database (Exclusions & Inclusions)
@@ -1641,11 +1777,44 @@ def scan_file(filepath, status_callback, idx, total):
     _SKIPPED.clear()
     try:
         chunks = extract_chunks_from_file(filepath, status_callback, idx, total)
+        chunks += EQ.text_math_chunks(chunks, common_words())
         err = None
     except Exception as e:
         log_error(f"Could not read {filepath}")
         chunks, err = [], f"{type(e).__name__}: {e}"
     return chunks, list(_SKIPPED), err
+
+# ---------------------------------------------------------------------------
+# Full text mode: every word the scanner reads, typed and OCR, in reading order
+# ---------------------------------------------------------------------------
+_OCR_LOC = re.compile(r"\(Image\)|, image ")
+
+def full_text_of(filepath, status_callback=lambda m: None, idx=1, total=1):
+    """All text in one file, as the scanner reads it: typed text exactly, picture text through the sandboxed OCR
+    reader, equations in linear form. Returns (text, error or None)."""
+    chunks, skips, err = scan_file(filepath, status_callback, idx, total)
+    name = os.path.basename(filepath)
+    out = [f"===== {name} ====="]
+    if err:
+        out.append(f"[Could not read this file: {err}]")
+    for loc, text in chunks:
+        if loc.endswith(EQ.DEF_LABEL) or loc.endswith(EQ.PIC_LABEL):
+            continue   # derived from text already shown
+        where = loc[len(name):].strip() if loc.startswith(name) else loc
+        if loc.endswith(EQ.EQ_LABEL):
+            linear, _t, syms = text.partition("\t")
+            out.append(f"--- {where[:-len(EQ.EQ_LABEL)].strip() or 'Equation'} [equation] ---")
+            out.append(linear.strip() + (f"\n    symbols: {', '.join(x for x in syms.split('|') if x)}" if syms else ""))
+            continue
+        body = text.strip()
+        if not body:
+            continue
+        tag = "  [read by OCR: check spelling]" if _OCR_LOC.search(loc) else ""
+        out.append(f"--- {where or 'Text'}{tag} ---")
+        out.append(body)
+    for lbl, why in skips:
+        out.append(f"[Not read: {lbl}: {why}]")
+    return "\n".join(out) + "\n", err
 
 def analyze_batch(filepaths, status_callback, capture=None):
     """Scan files once. capture (dict): filled with each file's terms-only cache entry, so the results can be saved
@@ -1670,13 +1839,15 @@ def analyze_batch(filepaths, status_callback, capture=None):
         for label, reason in skips:
             record_skip(findings, label, reason)
         match_chunks(findings, chunks, m)
+    finalize_symbols(findings, m)
     apply_client_overlay(findings, m)
+    summarize_equations(findings)
     return dict(sorted(findings.items(), key=lambda x: x[1]["count"], reverse=True))
 
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "1.9.0"            # keep in step with version_info.txt
+APP_VERSION = "2.0.0"            # keep in step with version_info.txt
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
 LOCK_STALE_HOURS = 12
@@ -1729,7 +1900,8 @@ def cache_entry(st, weak, chunks, skips, err, ocr_used, sigs):
     sig, tsig, osig = sigs
     return {"size": st.st_size, "mtime": st.st_mtime, "engine": sig, "text_sig": tsig, "ocr_sig": osig,
             "ocr_used": bool(ocr_used), "scanned": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
-            "chunks": [[label, reduce_text(fold(text), weak)] for label, text in chunks if text.strip()],
+            "chunks": [[label, text if label.endswith((EQ.EQ_LABEL, EQ.DEF_LABEL, EQ.PIC_LABEL)) else reduce_text(fold(text), weak)]
+                       for label, text in chunks if text.strip()],
             "skips": skips, "error": err}
 
 def entry_current(entry, sigs):
@@ -1877,7 +2049,9 @@ def project_findings(project, status_callback, full=False, rescan=True):
         raise
     if rescan:
         project.data["files"] = new_cache
+    finalize_symbols(findings, m)
     apply_client_overlay(findings, m)
+    summarize_equations(findings)
     return dict(sorted(findings.items(), key=lambda x: x[1]["count"], reverse=True)), stats
 
 def _project_loop(project, files, cache, sig, weak, m, findings, stats, new_cache, status_callback, full, rescan):
@@ -2346,7 +2520,7 @@ ctk.CTkToplevel.__init__ = _toplevel_init   # every pop-up window gets the app i
 SETTINGS_FILE = os.path.join(SANDBOX_DIR, "settings.json")
 ALL_TYPES = "All types"
 STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", "Client list", "Client and database differ",
-                  "Not defined at first use",
+                  "Not defined at first use", "Equations and symbols", "Undefined symbols",
                   "Added manually",
                   "New since last scan", "Changed since last scan", "No longer found", "Errors / not scanned", "Excluded"]
 MANUAL_MARK = "✍"
@@ -2536,6 +2710,7 @@ class AcronymAppGUI(ctk.CTk):
         self.tree.tag_configure("gone", background="#E5E7EB", foreground="#6B7280")
         self.tree.tag_configure("client", background="#EDE9FE", foreground="#4C1D95")
         self.tree.tag_configure("clientdiff", background="#F5D0FE", foreground="#701A75")
+        self.tree.tag_configure("equation", background="#E0E7FF", foreground="#312E81")
 
         vsb = ttk.Scrollbar(tf, orient="vertical", command=self.tree.yview)
         hsb = ttk.Scrollbar(tf, orient="horizontal", command=self.tree.xview)
@@ -2820,6 +2995,7 @@ class AcronymAppGUI(ctk.CTk):
         if trainer_available():
             m.add_command(label="Trainer (check a picture, box missed text)...", command=self.open_trainer)
         m.add_command(label="Knowledge (share with your team, install, undo)...", command=self.open_knowledge)
+        m.add_command(label="Full Text (all typed and picture text, save as .txt)...", command=self.open_fulltext)
         m.add_separator()
         m.add_command(label="Edit Database CSV", command=lambda: self.open_file(DB_FILE))
         m.add_command(label="OCR Fixes...", command=self.open_fix_manager,
@@ -2828,6 +3004,115 @@ class AcronymAppGUI(ctk.CTk):
         m.add_checkbutton(label="Show preview pane", onvalue=True, offvalue=False, variable=self.preview_var,
                           command=self.toggle_preview)
         m.tk_popup(self.btn_tools.winfo_rootx(), self.btn_tools.winfo_rooty() + self.btn_tools.winfo_height())
+
+    # ---------- full text mode ----------
+    def open_fulltext(self):
+        """Tools > Full Text: every word in the chosen files, typed and OCR, saved as .txt. Same reader and sandbox
+        as the scan. Nothing leaves the computer."""
+        if getattr(self, "ft_win", None) is not None and self.ft_win.winfo_exists():
+            self.ft_win.focus(); return
+        win = ctk.CTkToplevel(self); self.ft_win = win
+        win.title("Full Text - all typed and picture text"); win.geometry("900x680")
+        win.transient(self)
+        st = {"files": [], "texts": {}, "busy": False}
+        top = ctk.CTkFrame(win, fg_color="transparent"); top.pack(fill="x", padx=10, pady=(10, 4))
+        ctk.CTkLabel(top, text="Pull out all the text: typed text exactly, picture text through the OCR reader, "
+                     "equations in linear form.", anchor="w").pack(fill="x")
+        ctk.CTkLabel(top, text="The text carries the same classification and markings as the source files. "
+                     "Save and handle it the same way.", anchor="w", text_color="#B45309").pack(fill="x", pady=(2, 6))
+        row = ctk.CTkFrame(top, fg_color="transparent"); row.pack(fill="x")
+        lbl = ctk.CTkLabel(row, text="No files chosen.", anchor="w")
+        def set_files(fps):
+            st["files"] = [f for f in fps if os.path.splitext(f)[1].lower() in SUPPORTED_EXTS and not os.path.basename(f).startswith("~$")]
+            lbl.configure(text=f"{len(st['files'])} file(s) chosen." if st["files"] else "No supported files chosen.")
+            btn_go.configure(state="normal" if st["files"] else "disabled")
+        def pick_files():
+            fps = filedialog.askopenfilenames(parent=win, title="Choose files")
+            if fps: set_files(list(fps))
+        def pick_folder():
+            d = filedialog.askdirectory(parent=win, title="Choose a folder")
+            if d:
+                set_files([os.path.join(r, f) for r, _d, fs in os.walk(d) for f in fs])
+        def use_last():
+            set_files(list((getattr(self, "last_scan", None) or {}).get("paths", [])))
+        ctk.CTkButton(row, text="Choose Files", width=110, height=28, command=pick_files).pack(side="left", padx=(0, 4))
+        ctk.CTkButton(row, text="Choose Folder", width=110, height=28, command=pick_folder).pack(side="left", padx=4)
+        b_last = ctk.CTkButton(row, text="Files from last scan", width=140, height=28, command=use_last,
+                               state="normal" if (getattr(self, "last_scan", None) or {}).get("paths") else "disabled")
+        b_last.pack(side="left", padx=4)
+        lbl.pack(side="left", padx=10)
+        bar = ctk.CTkFrame(win, fg_color="transparent"); bar.pack(fill="x", padx=10, pady=4)
+        btn_go = ctk.CTkButton(bar, text="Read All Text", width=130, height=30, fg_color="#0F766E", state="disabled")
+        btn_go.pack(side="left")
+        btn_stop = ctk.CTkButton(bar, text="Stop", width=70, height=30, fg_color="#DC2626", state="disabled",
+                                 command=lambda: CANCEL.set())
+        btn_stop.pack(side="left", padx=6)
+        prog = ctk.CTkProgressBar(bar, width=260); prog.set(0); prog.pack(side="left", padx=10)
+        stat = ctk.CTkLabel(bar, text="", anchor="w"); stat.pack(side="left", fill="x", expand=True)
+        box = ctk.CTkTextbox(win, wrap="word", font=("Consolas", 12)); box.pack(fill="both", expand=True, padx=10, pady=4)
+        bot = ctk.CTkFrame(win, fg_color="transparent"); bot.pack(fill="x", padx=10, pady=(4, 10))
+        def save_one():
+            path = filedialog.asksaveasfilename(parent=win, defaultextension=".txt", filetypes=[("Text", "*.txt")],
+                                                initialfile="Full_Text.txt", title="Save all text as one file")
+            if path:
+                with open(path, "w", encoding="utf-8") as fh:
+                    fh.write("\n".join(st["texts"][f] for f in st["files"] if f in st["texts"]))
+                stat.configure(text=f"Saved {os.path.basename(path)}")
+        def save_each():
+            d = filedialog.askdirectory(parent=win, title="Folder for one .txt per file")
+            if not d: return
+            n = 0
+            for f, t in st["texts"].items():
+                out = os.path.join(d, os.path.splitext(os.path.basename(f))[0] + "_fulltext.txt")
+                with open(out, "w", encoding="utf-8") as fh:
+                    fh.write(t)
+                n += 1
+            stat.configure(text=f"Saved {n} file(s) to {d}")
+        def copy_all():
+            win.clipboard_clear(); win.clipboard_append(box.get("1.0", "end")); stat.configure(text="Copied.")
+        b1 = ctk.CTkButton(bot, text="Save as one .txt", width=140, height=30, command=save_one, state="disabled")
+        b2 = ctk.CTkButton(bot, text="Save one .txt per file", width=170, height=30, command=save_each, state="disabled")
+        b3 = ctk.CTkButton(bot, text="Copy", width=80, height=30, command=copy_all, state="disabled")
+        for b in (b1, b2, b3): b.pack(side="left", padx=(0, 6))
+        ctk.CTkButton(bot, text="Close", width=80, height=30, fg_color="#475569",
+                      command=lambda: (CANCEL.set() if st["busy"] else None, win.destroy())).pack(side="right")
+        def done(msg):
+            st["busy"] = False
+            btn_go.configure(state="normal"); btn_stop.configure(state="disabled")
+            for b in (b1, b2, b3): b.configure(state="normal" if st["texts"] else "disabled")
+            stat.configure(text=msg)
+        def add_text(t):
+            if win.winfo_exists():
+                box.insert("end", t + "\n"); box.see("end")
+        def work(files):
+            n = len(files)
+            def cb(m):
+                check_cancel()
+                self.after(0, lambda: win.winfo_exists() and stat.configure(text=str(m)[:90]))
+            try:
+                for i, f in enumerate(files, 1):
+                    check_cancel()
+                    self.after(0, lambda i=i: win.winfo_exists() and prog.set((i - 1) / n))
+                    t, _err = full_text_of(f, cb, i, n)
+                    st["texts"][f] = t
+                    self.after(0, lambda t=t: add_text(t))
+                self.after(0, lambda: (prog.set(1), done(f"Done: {n} file(s).")))
+            except ScanCancelled:
+                self.after(0, lambda: done(f"Stopped. {len(st['texts'])} file(s) read."))
+            except Exception as e:
+                log_error("Full text failed")
+                self.after(0, lambda: done(f"Error: {type(e).__name__}: {e}"))
+        def go():
+            if self.btn_cancel.winfo_ismapped():
+                messagebox.showinfo("Busy", "Wait for the current scan to finish.", parent=win); return
+            st["texts"].clear(); st["busy"] = True; box.delete("1.0", "end"); prog.set(0)
+            CANCEL.clear()
+            btn_go.configure(state="disabled"); btn_stop.configure(state="normal")
+            for b in (b1, b2, b3): b.configure(state="disabled")
+            threading.Thread(target=work, args=(list(st["files"]),), daemon=True).start()
+        btn_go.configure(command=go)
+        if (getattr(self, "last_scan", None) or {}).get("paths"):
+            use_last()
 
     # ---------- knowledge packs ----------
     def open_knowledge(self):
@@ -3366,6 +3651,8 @@ class AcronymAppGUI(ctk.CTk):
             "Resolved": st.startswith("✅"),
             "Client list": data.get("client", False),
             "Not defined at first use": first_use_flag(data),
+            "Equations and symbols": data.get("category", "").startswith(("Equation", "Symbol")) or bool(data.get("symbol")),
+            "Undefined symbols": bool(data.get("symbol")) and st.startswith("🔍") or (data.get("equation") and "not defined" in st),
             "Client and database differ": bool(data.get("client") and data.get("db_definitions")),
             "Added manually": data.get("manual", False),
             "New since last scan": data.get("change") == "New",
@@ -3461,6 +3748,7 @@ class AcronymAppGUI(ctk.CTk):
         if st.startswith("⛔"): return "fileerror"
         if st.startswith("⚠️"): return "ambiguous"
         if data.get("client"): return "clientdiff" if data.get("db_definitions") else "client"
+        if data.get("category", "").startswith("Equation"): return "equation"
         if st.startswith("🔍"): return "candidate"
         return "resolved"
 

@@ -32,6 +32,8 @@ class PreviewPane(ctk.CTkFrame):
         self.opt_loc = ctk.CTkOptionMenu(self, variable=self.loc_var, values=["(select a result)"], width=PIC_W,
                                          dynamic_resizing=False, command=self._on_loc)
         self.opt_loc.pack(padx=10, pady=(0, 4))
+        self.lbl_math = ctk.CTkLabel(self, text="", wraplength=PIC_W - 20, justify="left", anchor="w",
+                                     fg_color="#E0E7FF", text_color="#312E81", corner_radius=6, font=("Cambria", 14))
         self.btn_zoom = ctk.CTkButton(self, text="Show whole picture", width=150, height=24, fg_color="#475569",
                                       command=self._toggle_zoom)
         self.btn_zoom.pack(anchor="e", padx=10, pady=(0, 4))
@@ -74,6 +76,7 @@ class PreviewPane(ctk.CTkFrame):
         if not d or d.get("manual") or d.get("file_error"):
             self._blank("Added manually: no location to show." if d and d.get("manual") else "Nothing to show for this row.")
             return
+        self._math_info(term, d)
         pics = self.app.picture_locations(term)
         self.locs = pics + [l for l in d.get("locations", []) if l not in pics]
         kind = lambda l: "[page] " if "(p." in l and l.lower().split(" (p.")[0].endswith(".pdf") else "[picture] "
@@ -81,6 +84,30 @@ class PreviewPane(ctk.CTkFrame):
         self.opt_loc.configure(values=names)
         self.loc_var.set(names[0])
         self._show_location(0)
+
+    def _math_info(self, term, d):
+        """Equation and symbol rows: show the equation, its symbols, and which symbols the document never defines."""
+        cat = d.get("category", "")
+        txt = ""
+        if cat == "Equation":
+            undefined = [x for x in d.get("symbols", []) if x in self.app.results
+                         and str(self.app.results[x].get("status", "")).startswith("\U0001F50D")]
+            txt = f"Equation:  {term}\nSymbols:  {', '.join(d.get('symbols', [])) or '(none)'}"
+            txt += f"\nNot defined anywhere in the files:  {', '.join(undefined)}" if undefined else "\nEvery symbol is defined."
+        elif cat == "Symbol":
+            uses = [k for k, v in self.app.results.items() if v.get("category") == "Equation" and term in v.get("symbols", [])]
+            meaning = d.get("selected_definition") or "not defined in the files or the database"
+            txt = f"Symbol:  {term}\nMeaning:  {meaning}"
+            if uses:
+                txt += "\nUsed in:  " + "\n          ".join(u[:70] for u in uses[:4]) + (f"\n          (+{len(uses) - 4} more)" if len(uses) > 4 else "")
+        elif cat == "Equation (picture)":
+            txt = ("This picture looks like an equation. Check its symbols by eye: the reader reads letters well "
+                   "but can miss subscripts, Greek letters and fraction bars.")
+        if txt:
+            self.lbl_math.configure(text=txt)
+            self.lbl_math.pack(fill="x", padx=10, pady=(0, 4), before=self.btn_zoom)
+        else:
+            self.lbl_math.pack_forget()
 
     def _on_loc(self, choice):
         names = list(self.opt_loc.cget("values"))

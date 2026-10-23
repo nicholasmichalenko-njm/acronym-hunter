@@ -128,6 +128,28 @@ FIRST USE OF EACH ACRONYM (where to define it)
   Status > "Not defined at first use" lists every acronym to fix. Double-click a row for every file.
   "First found / Last found by a scan" (projects only) are scan dates, not places in the document.
 
+EQUATIONS AND SYMBOLS (from v2.0.0)
+  Every scan also finds equations and checks their symbols.
+  - Word and PowerPoint equation-editor math is read exactly: subscripts, Greek letters, accents
+    (m-dot, v-bar, x-hat), fractions, roots and sums.
+  - Typed math in any file ("q = ½ ρ V²", "σ_b = M_b · c / I_x") is found in the text.
+  - Equations in pictures are read by OCR, listed for review as "CHECK EQUATION PICTURE", and shown
+    in the preview pane. OCR reads letters well but can miss subscripts, Greek letters and fraction bars.
+  Each symbol gets one row with a status:
+    Defined in document    a "where ṁ is the mass flow rate" sentence, a nomenclature list, or a
+                           Symbol/Meaning table defines it
+    SYMBOL NOT DEFINED     no file and no database entry defines it; fix before submission
+  Each equation row lists its symbols and which ones are not defined. Status filters
+  "Equations and symbols" and "Undefined symbols" show them. Select a symbol to see its meaning and
+  every equation that uses it. "TRL = 6" and "cost = $4.2M" are not treated as equations.
+
+FULL TEXT MODE (from v2.0.0)
+  Tools > Full Text pulls out every word the scanner reads: typed text exactly, picture text through
+  the same sandboxed OCR reader, and equations in linear form with their symbols. Choose files, a
+  folder, or the files from the last scan, click Read All Text, then Save as one .txt, Save one .txt
+  per file, or Copy. Sections read by OCR are marked "[read by OCR: check spelling]".
+  The text carries the same classification and markings as the source files. Handle it the same way.
+
 EXPORTING FOR AUTHORS
   Export CSV exports exactly the rows showing (current Type, Status, and Search filters, current sort).
   The file name says which view, for example Acronym_Report_Needs-choice_2026-10-21.csv.
