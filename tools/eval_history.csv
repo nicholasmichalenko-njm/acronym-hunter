@@ -38,3 +38,5 @@ Date,Version,Folder,OCR models,Recall %,Missed,False alarms,New candidates,Rows,
 2026-10-23 06:32,2.1.0,test_samples,Tesseract 5 with Google's English model (tessdata_best),100.0,0,5,115,130,24,
 2026-10-23 06:32,2.1.0,equations,Tesseract 5 with Google's English model (tessdata_best),100.0,0,0,24,46,1,
 2026-10-23 07:31,2.2.0,test_samples,Tesseract 5 with Google's English model (tessdata_best),100.0,0,5,115,130,19,
+2026-10-23 08:14,2.3.0,test_samples,Tesseract 5 with Google's English model (tessdata_best),100.0,0,5,115,130,20,2.3.0 symbol picker
+2026-10-23 08:14,2.3.0,equations,Tesseract 5 with Google's English model (tessdata_best),100.0,0,0,24,46,1,2.3.0
