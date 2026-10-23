@@ -126,6 +126,7 @@ import customtkinter as ctk
 from tkinter import ttk, filedialog, messagebox
 from rapidfuzz import process, fuzz
 import importlib.util
+import symbol_picker as SP
 import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
 DB_FILE = os.path.join(BASE_DIR, "acronym_database.csv")
@@ -261,6 +262,7 @@ def _find_math():
 
 MATH_DIR = _find_math()
 MATH_CACHE_FILE = os.path.join(BASE_DIR, "config", "math_results.json")   # picture fingerprint -> equations read
+SP.set_storage(os.path.join(BASE_DIR, "config", "symbol_recent.json"))     # the symbol picker's "Recent" row
 OCR_BACKEND = os.environ.get("AH_OCR_ENGINE") or ("tesseract" if TESS_DIR else "rapidocr")
 
 def load_ocr_settings():
@@ -806,7 +808,7 @@ def run_math_reader(items, on_status, on_result, cancel):
     env = {k: os.environ[k] for k in ("SystemRoot", "SystemDrive", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE", "OS",
                                       "LOCALAPPDATA", "APPDATA", "USERPROFILE", "HOMEDRIVE", "HOMEPATH") if k in os.environ}
     env.update({"HF_HOME": work, "TORCH_HOME": work, "XDG_CACHE_HOME": work,
-                "PATH": os.path.join(os.environ.get("SystemRoot", r"C:\\Windows"), "System32")})
+                "PATH": os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32")})
     payload = json.dumps({"items": [{"id": pid, "png": base64.b64encode(png).decode("ascii")} for pid, png, _k in todo],
                           "threads": os.cpu_count() or 4}).encode("utf-8")
     errors = []
@@ -2090,7 +2092,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.2.0"            # keep in step with version_info.txt
+APP_VERSION = "2.3.0"            # keep in step with version_info.txt
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
 LOCK_STALE_HOURS = 12
@@ -2908,6 +2910,7 @@ class AcronymAppGUI(ctk.CTk):
         self.search_var = ctk.StringVar()
         self.entry_search = ctk.CTkEntry(fbar, textvariable=self.search_var, width=170)
         self.entry_search.pack(side="left", padx=4, pady=8)
+        SP.attach(self.entry_search)
         self.search_var.trace_add("write", lambda *_a: self.populate_table())
 
         ctk.CTkButton(fbar, text="Clear", width=60, fg_color="#64748B",
@@ -3001,7 +3004,8 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_apply.pack(side="left", padx=5, pady=12)
 
         self.entry_def = ctk.CTkEntry(act, placeholder_text="Definition, or correct term for Fix OCR", width=230, state="disabled")
-        self.entry_def.pack(side="left", padx=5, pady=12)
+        self.entry_def.pack(side="left", padx=(5, 2), pady=12)
+        SP.button(act, self.entry_def).pack(side="left", padx=(0, 5), pady=12)
 
         self.btn_save = ctk.CTkButton(act, text="Include in DB", command=self.save_candidate, state="disabled", fg_color="#0284C7", width=105)
         self.btn_save.pack(side="left", padx=5, pady=12)
@@ -3551,11 +3555,12 @@ class AcronymAppGUI(ctk.CTk):
         win.transient(self); win.after(100, win.lift)
         pad = {"padx": 16, "pady": (8, 0), "anchor": "w"}
         ctk.CTkLabel(win, text="Term (required)").pack(**pad)
-        e_term = ctk.CTkEntry(win, width=520); e_term.pack(padx=16, pady=2)
+        e_term = ctk.CTkEntry(win, width=520); e_term.pack(padx=16, pady=2); SP.attach(e_term)
         ctk.CTkLabel(win, text="Type").pack(**pad)
         c_cat = ctk.CTkComboBox(win, values=MANUAL_CATEGORIES, width=520); c_cat.set("Acronym"); c_cat.pack(padx=16, pady=2)
         ctk.CTkLabel(win, text="Definition").pack(**pad)
-        e_def = ctk.CTkEntry(win, width=520); e_def.pack(padx=16, pady=2)
+        e_def = ctk.CTkEntry(win, width=520); e_def.pack(padx=16, pady=2); SP.attach(e_def)
+        SP.button(win, e_def, text="Ω  Symbols (for the field you clicked last)", width=300).pack(padx=16, pady=(4, 0), anchor="w")
         ctk.CTkLabel(win, text="Where found (optional, e.g. 'Volume II, p.14')").pack(**pad)
         e_loc = ctk.CTkEntry(win, width=520); e_loc.pack(padx=16, pady=2)
         save_var = ctk.BooleanVar(value=False)
@@ -4269,6 +4274,7 @@ class AcronymAppGUI(ctk.CTk):
         form = ctk.CTkFrame(win); form.pack(fill="x", padx=14, pady=6)
         e_wrong = ctk.CTkEntry(form, placeholder_text="Misread (e.g. RFF)", width=150); e_wrong.pack(side="left", padx=4, pady=8)
         e_right = ctk.CTkEntry(form, placeholder_text="Correct (e.g. RFP)", width=150); e_right.pack(side="left", padx=4, pady=8)
+        SP.attach(e_wrong); SP.button(form, e_right).pack(side="left", padx=(0, 4), pady=8)
         e_note = ctk.CTkEntry(form, placeholder_text="Note (optional)", width=220); e_note.pack(side="left", padx=4, pady=8)
         status = ctk.CTkLabel(win, text="", anchor="w", text_color="gray"); status.pack(fill="x", padx=14)
 

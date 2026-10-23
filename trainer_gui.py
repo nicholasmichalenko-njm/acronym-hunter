@@ -10,6 +10,7 @@ import cv2
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import customtkinter as ctk
+import symbol_picker as SP
 from PIL import Image, ImageTk
 
 TRAIN_DIR = os.path.join(eng.BASE_DIR, "training_data")
@@ -481,7 +482,9 @@ class _TrainerUI:
         one = ctk.CTkFrame(right); one.grid(row=3, column=0, sticky="ew", padx=8, pady=4)
         ctk.CTkLabel(one, text="Whole box as ONE line (use when OCR found nothing or split it):", justify="left").pack(anchor="w", padx=6, pady=(6, 2))
         self.lbl_one = ctk.CTkLabel(one, text="Read as one line: -", text_color="gray"); self.lbl_one.pack(anchor="w", padx=6)
-        self.entry_one = ctk.CTkEntry(one, placeholder_text="Correct text for the whole box"); self.entry_one.pack(fill="x", padx=6, pady=4)
+        orow = ctk.CTkFrame(one, fg_color="transparent"); orow.pack(fill="x", padx=6, pady=4)
+        self.entry_one = ctk.CTkEntry(orow, placeholder_text="Correct text for the whole box"); self.entry_one.pack(side="left", fill="x", expand=True)
+        SP.button(orow, self.entry_one).pack(side="left", padx=(4, 0))
         ctk.CTkButton(one, text="Save Whole Box as One Sample", command=self.save_whole).pack(fill="x", padx=6, pady=(0, 8))
 
         acts = ctk.CTkFrame(right); acts.grid(row=4, column=0, sticky="ew", padx=8, pady=(4, 8))
@@ -674,7 +677,7 @@ class TrainerWindow(_TrainerUI, ctk.CTkToplevel):
             note = "already on the ignore list" if on_list else ("scanner keeps this" if kept else "scanner ignores this")
             ctk.CTkLabel(col, text=f"{n}.  OCR read: {text}   ({conf:.2f}, {note})", anchor="w",
                          text_color=("#6B7280" if on_list else "#15803D" if kept else "#DC2626")).pack(fill="x")
-            ent = ctk.CTkEntry(col); ent.insert(0, text); ent.pack(fill="x", pady=(0, 2))
+            ent = ctk.CTkEntry(col); ent.insert(0, text); ent.pack(fill="x", pady=(0, 2)); SP.attach(ent)
             choice = tk.StringVar(value="Skip")
             seg = ctk.CTkSegmentedButton(col, values=list(CHOICES), variable=choice,
                                          command=lambda _v: self.draw_line_boxes())

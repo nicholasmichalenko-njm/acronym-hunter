@@ -8,6 +8,7 @@ import os
 import threading
 import tkinter as tk
 import customtkinter as ctk
+import symbol_picker as SP
 from PIL import ImageTk
 import app_gui as eng
 
@@ -49,8 +50,10 @@ class PreviewPane(ctk.CTkFrame):
         fix = ctk.CTkFrame(self)
         fix.pack(fill="x", padx=10, pady=(2, 4))
         ctk.CTkLabel(fix, text="Selected reading (fix the spelling if it is wrong):", anchor="w").pack(fill="x", padx=6, pady=(6, 0))
-        self.entry = ctk.CTkEntry(fix)
-        self.entry.pack(fill="x", padx=6, pady=4)
+        erow = ctk.CTkFrame(fix, fg_color="transparent"); erow.pack(fill="x", padx=6, pady=4)
+        self.entry = ctk.CTkEntry(erow)
+        self.entry.pack(side="left", fill="x", expand=True)
+        SP.button(erow, self.entry).pack(side="left", padx=(4, 0))
         row = ctk.CTkFrame(fix, fg_color="transparent")
         row.pack(fill="x", padx=4, pady=(0, 6))
         self.btn_teach = ctk.CTkButton(row, text="Correct + Teach", width=130, height=30, fg_color="#0F766E", command=self.teach)

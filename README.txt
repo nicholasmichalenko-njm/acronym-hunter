@@ -175,6 +175,17 @@ MATH READER ADD-ON (from v2.2.0, optional)
   cannot start, it does not run. It loads IBM's model only from safetensors files, after checking every file's
   SHA-256 (math_addon\math_models.json).
 
+SYMBOL PICKER (from v2.3.0)
+  Type Greek letters, subscripts, superscripts, math operators, accents and units without leaving the app.
+  - Click the Ω button next to a correction field (preview pane, Trainer, the Definition / Fix OCR field,
+    Add Item, OCR Fixes), right-click any of those fields > Symbols..., or press Ctrl+Shift+Space.
+  - The Symbols window stays open and inserts into the field you clicked last, so you can fix several readings.
+  - Tabs: Recent, Greek, Subscript, Superscript, Operators, Accents, Units, Arrows/sets.
+  - Search by name: "sigma", "dot", "sub 2", "degree", "ohm".
+  - Accents attach to the letter before the cursor: type m, click the dot accent, get ṁ.
+  - x₂ Sub / x² Sup / Normal turn the selected text (or the character before the cursor) into subscript,
+    superscript or normal text: select "sp" in "Isp", click Sub, get Iₛₚ. Also on the right-click menu.
+
 FULL TEXT MODE (from v2.0.0)
   Tools > Full Text pulls out every word the scanner reads: typed text exactly, picture text through
   the same sandboxed OCR reader, and equations in linear form with their symbols. Choose files, a
