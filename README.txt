@@ -49,16 +49,42 @@ SAVING A ONE-OFF SCAN (reuse it later, no rescan)
   A saved set of files (not a whole folder) can grow: Project > Add Files to Project.
   New Project from a Folder does not scan by itself: click Scan Project when ready.
 
+THE MAIN WINDOW (v1.9.0)
+  Top bar: Project, Select Files, Scan Folder, Export CSV, + Add Item, Client Lists on the left.
+  On the right: Improve Reading, Tools (Trainer, Knowledge, Edit Database CSV, OCR Fixes, preview on/off),
+  and the Advanced switch (adds Fix OCR and the OCR Fixes list).
+
+PREVIEW PANE: SEE WHAT PRODUCED A RESULT, AND FIX IT THERE
+  Click any result. The pane on the right shows where it was found:
+    [picture] or [page]  The picture or PDF page, read again, zoomed in on the term (yellow box).
+                         Green = readings the scanner keeps, red = low confidence (ignored), orange = the
+                         term in a PDF page's typed text. "Show whole picture" zooms out.
+    [typed text]         Read exactly from the file: nothing to correct. Exclude it if it is not a real term.
+  Pick another location from the list at the top of the pane. Click any box to select that reading.
+  Fix it right there:
+    Correct + Teach  Fix the spelling, then click. Saved as a corrected line for Improve Reading, and
+                     single-word fixes (RFF > RFP) apply on the next scan right away.
+    Not text         A diagram line or speck read as letters: ignored in pictures from the next scan.
+    Exclude term     Not a real term: never reported again.
+    Undo last save   Takes back the last Correct + Teach or Not text.
+
+CODES AND DESIGNATORS (v1.9.0)
+  Codes are reported whole as "Designator": PCU-28V, MIL-STD-1553B, RS-422, PN 4521-003A, ST-200X, J1-P3.
+  Their pieces are no longer reported as stray units or letters ("V", "B", "A"). Mixed-case acronyms
+  such as DoD, DoE, IoT are found too.
+
 CHECK IN PICTURE AND IMPROVE READING (teach the reader your documents)
   1. Right-click a result > "Check in picture". The picture it came from opens in the Trainer, read
      again, with that term outlined in yellow. Typed-text results have nothing to check.
   2. Fix what is wrong: correct the spelling and pick "Save as text", or mark "Not text". Click Save Choices.
-  3. When corrections pile up, a green bar appears in the main window: "Improve Reading".
-     One click teaches the reader your saved lines on this PC's processor, offline (minutes).
-     It tests the new reader on lines it did not learn from and installs it ONLY if it scored better.
-     Knowledge > Undo Last Knowledge Change puts the previous reader back.
-  4. Rescan when it offers. Share the improved reader with Knowledge > Export Knowledge Pack
-     (approved SharePoint folder only).
+  3. Improve Reading (top bar, or the green bar when corrections pile up) opens one window with one
+     action: Teach and Apply. A progress bar walks through 4 steps (prepare lines, measure the current
+     reader, teach, measure the new reader). It shows the score before and after, for example
+     "Words read correctly: 50% before, 93% after", plus lines it now reads correctly.
+     It becomes your reader ONLY if it reads better. "Put back the previous reader" undoes it.
+  4. Rescan when it offers (only files with pictures are read again).
+  5. Share: "Share with team..." saves a Knowledge Pack (your reader + database + OCR fixes + ignore list)
+     for colleagues to install. Improve Reading = better reader on THIS PC. Knowledge Pack = share it.
   Rescans after Improve Reading re-read only files that contain pictures; the rest reuse saved results.
 
 WORDS AT THE END OF A SENTENCE (v1.8.0)

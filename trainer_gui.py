@@ -490,12 +490,13 @@ class _TrainerUI:
 
         bottom = ctk.CTkFrame(self); bottom.pack(side="bottom", fill="x", padx=12, pady=(4, 12), before=body)  # never pushed off-screen
         self.lbl_stats = ctk.CTkLabel(bottom, text=""); self.lbl_stats.pack(side="left", padx=10, pady=8)
+        ctk.CTkButton(bottom, text="Close", width=80, command=self.destroy).pack(side="right", padx=6, pady=8)
         ctk.CTkButton(bottom, text="Undo Last Save", width=140, fg_color="#DC2626", command=self.undo_sample).pack(side="right", padx=6, pady=8)
         ctk.CTkButton(bottom, text="Open Training Folder", width=160, fg_color="#475569", command=self.open_folder).pack(side="right", padx=6, pady=8)
         ctk.CTkButton(bottom, text="Ignore List", width=110, fg_color="#475569", command=self.open_ignore_list).pack(side="right", padx=6, pady=8)
         if eng.OCR_BACKEND == "tesseract":
-            self.btn_train = ctk.CTkButton(bottom, text="Improve Reading", width=150, fg_color="#0F766E",
-                                           command=(self.scanner.improve_reading if self.scanner is not None else self.train_reader))
+            self.btn_train = ctk.CTkButton(bottom, text="Improve Reading...", width=150, fg_color="#0F766E",
+                                           command=(self.scanner.open_improve if self.scanner is not None else self.train_reader))
             self.btn_train.pack(side="right", padx=6, pady=8)
         else:
             ctk.CTkButton(bottom, text="Prepare Training Package", width=190, fg_color="#0F766E", command=self.prepare_package).pack(side="right", padx=6, pady=8)

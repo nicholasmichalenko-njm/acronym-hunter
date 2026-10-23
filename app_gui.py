@@ -1445,6 +1445,10 @@ def build_matcher():
         "ocr_fixes": load_ocr_fixes(), "direct_pattern": direct_pattern,
         "fuzzy_targets": {t: t for t in include_db.keys() if len(t) >= 3 and t.isupper()},
         "acronym_re": re.compile(r'\b([A-Z][A-Z0-9/&]{1,7}s?)\b'),
+        # Codes and designators kept whole: PCU-28V, MIL-STD-1553B, RS-422, PN 4521-003A, ST-200X, J1-P3, SN77X2
+        "designator_re": re.compile(r'(?<![\w/-])((?:[A-Z0-9]+-)+[A-Z0-9]+|[A-Z]{1,4}[0-9][A-Z0-9]{2,8})(?![\w/-])'),
+        # Mixed-case acronyms: DoD, DoE, IoT, MoU, PhD, DoDAF
+        "mixed_re": re.compile(r'\b([A-Z][a-z]?[A-Z][A-Za-z]{0,2}[A-Z]|[A-Z][a-z][A-Z])\b'),
         "unit_re": re.compile(r'(?<!\w)\d+(?:\.\d+)?\s*([a-zA-Z\u00b0\u03bc\u03a9\u00c5]{1,5}(?:/[a-zA-Z0-9\^]{1,4})?)(?!\w)'),
         "common_words": common_words(),
         "abbrev_re": re.compile(r'(?<!\w)([a-zA-Z]{1,4}/[a-zA-Z]{1,4}|[a-zA-Z]{2,6}\.)(?!\w)'),
@@ -1541,6 +1545,31 @@ def match_chunks(findings, chunks, m):
                 elif term in m['include_db']:
                     record_included(findings, term, loc_label, m['include_db'])
 
+        # Gate 3a: codes and designators, reported whole. Their pieces are not reported as units or abbreviations.
+        code_spans = []
+        for match in m['designator_re'].finditer(text):
+            tok = match.group(1)
+            letters = sum(c.isalpha() for c in tok)
+            if len(tok) < 4 or letters == 0 or (not any(c.isdigit() for c in tok) and "-" not in tok):
+                continue
+            if "-" in tok and not any(c.isdigit() for c in tok) and min(len(p) for p in tok.split("-")) < 2:
+                continue   # "A-B" style fragments
+            code_spans.append(match.span(1))
+            if tok in m['include_db']:
+                record_included(findings, tok, loc_label, m['include_db'])
+            elif tok in m['exclude_db'] or tok.upper() in m['exclude_upper']:
+                if tok in m['exclude_db']:
+                    record_excluded(findings, tok, loc_label, m['exclude_db'])
+            else:
+                record_candidate(findings, tok, "Designator (Candidate)", loc_label)
+        in_code = lambda span: any(a <= span[0] and span[1] <= b for a, b in code_spans)
+
+        for match in m['mixed_re'].finditer(text):
+            tok = match.group(1)
+            if tok in m['include_db'] or tok in m['exclude_db'] or tok.upper() in m['exclude_upper'] or tok.isupper() or tok.lower() in m['common_words']:
+                continue
+            record_candidate(findings, tok, "Acronym (Candidate)", loc_label)
+
         # Gate 3: Heuristic Candidate Discovery (Items not in DB)
         for match in m['acronym_re'].finditer(text):
             raw = match.group(1)
@@ -1567,6 +1596,8 @@ def match_chunks(findings, chunks, m):
 
         for match in m['unit_re'].finditer(text):
             ucand = match.group(1)
+            if in_code(match.span()):
+                continue   # "28V" inside PCU-28V is part of a code, not a measurement
             if ucand in m['ocr_fixes']:
                 apply_ocr_fix(findings, ucand, m['ocr_fixes'][ucand], "Unit (Candidate)", loc_label, m['include_db'], m['exclude_db'])
                 continue
@@ -1577,6 +1608,8 @@ def match_chunks(findings, chunks, m):
 
         for match in m['abbrev_re'].finditer(text):
             acand = match.group(1)
+            if in_code(match.span(1)):
+                continue
             if acand in m['ocr_fixes']:
                 apply_ocr_fix(findings, acand, m['ocr_fixes'][acand], "Abbreviation (Candidate)", loc_label, m['include_db'], m['exclude_db'])
                 continue
@@ -1643,7 +1676,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "1.8.0"            # keep in step with version_info.txt
+APP_VERSION = "1.9.0"            # keep in step with version_info.txt
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
 LOCK_STALE_HOURS = 12
@@ -2385,39 +2418,32 @@ class AcronymAppGUI(ctk.CTk):
         top = ctk.CTkFrame(self)
         top.pack(fill="x", padx=15, pady=(15, 8))
 
-        self.btn_project = ctk.CTkButton(top, text="Project ▾", command=self.show_project_menu, fg_color="#1E3A8A", width=110, height=36)
-        self.btn_project.pack(side="left", padx=5, pady=10)
+        B = dict(height=32, font=("Segoe UI", 13))
+        self.btn_project = ctk.CTkButton(top, text="Project ▾", command=self.show_project_menu, fg_color="#1E3A8A", width=96, **B)
+        self.btn_project.pack(side="left", padx=4, pady=8)
         self.project_menu = tk.Menu(self, tearoff=0)
+        self.btn_files = ctk.CTkButton(top, text="Select Files", command=self.select_files, width=104, **B)
+        self.btn_files.pack(side="left", padx=4, pady=8)
+        self.btn_folder = ctk.CTkButton(top, text="Scan Folder", command=self.select_folder, width=104, **B)
+        self.btn_folder.pack(side="left", padx=4, pady=8)
+        self.btn_export = ctk.CTkButton(top, text="Export CSV", command=self.export_csv, state="disabled", fg_color="green", width=96, **B)
+        self.btn_export.pack(side="left", padx=4, pady=8)
+        self.btn_add = ctk.CTkButton(top, text="+ Add Item", command=self.open_add_item, fg_color="#B45309", width=92, **B)
+        self.btn_add.pack(side="left", padx=4, pady=8)
+        self.btn_client = ctk.CTkButton(top, text="Client Lists", command=self.open_client_lists, fg_color="#6D28D9", width=104, **B)
+        self.btn_client.pack(side="left", padx=4, pady=8)
 
-        self.btn_files = ctk.CTkButton(top, text="Select Files", command=self.select_files, width=150, height=36)
-        self.btn_files.pack(side="left", padx=5, pady=10)
-
-        self.btn_folder = ctk.CTkButton(top, text="Scan Folder", command=self.select_folder, width=130, height=36)
-        self.btn_folder.pack(side="left", padx=5, pady=10)
-
-        self.btn_export = ctk.CTkButton(top, text="Export CSV", command=self.export_csv, state="disabled", fg_color="green", width=130, height=36)
-        self.btn_export.pack(side="left", padx=5, pady=10)
-
-        self.btn_add = ctk.CTkButton(top, text="+ Add Item", command=self.open_add_item, fg_color="#B45309", width=120, height=36)
-        self.btn_add.pack(side="left", padx=5, pady=10)
-
-        self.btn_client = ctk.CTkButton(top, text="Client Lists", command=self.open_client_lists, fg_color="#6D28D9", width=120, height=36)
-        self.btn_client.pack(side="left", padx=5, pady=10)
-
-        self.btn_db = ctk.CTkButton(top, text="Edit Database CSV", command=lambda: self.open_file(DB_FILE), fg_color="#475569", width=160, height=36)
-        self.btn_db.pack(side="right", padx=5, pady=10)
-        self.btn_know = ctk.CTkButton(top, text="Knowledge", command=self.open_knowledge, fg_color="#0F766E", width=110, height=36)
-        self.btn_know.pack(side="right", padx=5, pady=10)
-
-        # Advanced tools: shown only when the Advanced switch is on
-        self.btn_fixes = ctk.CTkButton(top, text="OCR Fixes", command=self.open_fix_manager, fg_color="#7C3AED", width=120, height=36)
-        self.btn_trainer = None
-        if trainer_available():   # only in the "WithTrainer" package (or when run from source)
-            self.btn_trainer = ctk.CTkButton(top, text="Trainer", command=self.open_trainer, fg_color="#0F766E", width=100, height=36)
+        # Right side, packed first so it never gets pushed off: Advanced switch, then the Tools menu
         self.adv_var = ctk.BooleanVar(value=self.advanced_on)
-        self.sw_adv = ctk.CTkSwitch(top, text="Advanced", variable=self.adv_var, command=self.toggle_advanced, width=110)
+        self.sw_adv = ctk.CTkSwitch(top, text="Advanced", variable=self.adv_var, command=self.toggle_advanced, width=96)
         if self.app_cfg["allow_advanced_toggle"]:
-            self.sw_adv.pack(side="right", padx=(12, 5), pady=10)
+            self.sw_adv.pack(side="right", padx=(8, 6), pady=8)
+        self.btn_tools = ctk.CTkButton(top, text="Tools ▾", command=self.show_tools_menu, fg_color="#475569", width=84, **B)
+        self.btn_tools.pack(side="right", padx=4, pady=8)
+        self.tools_menu = tk.Menu(self, tearoff=0)
+        self.btn_improve_top = ctk.CTkButton(top, text="Improve Reading", command=self.open_improve, fg_color="#0F766E", width=128, **B)
+        # kept for code that refers to them; reached through the Tools menu
+        self.btn_db = self.btn_know = self.btn_fixes = self.btn_trainer = None
 
         self.lbl_project = ctk.CTkLabel(self, text="", font=("Arial", 13, "bold"), text_color="#1E3A8A")
         self.status = ctk.CTkLabel(self, text="Ready. 100% Local Sandbox Active (_local_sandbox).", font=("Arial", 13))
@@ -2428,7 +2454,7 @@ class AcronymAppGUI(ctk.CTk):
         self.banner = ctk.CTkFrame(self, fg_color=("#ECFDF5", "#064E3B"))   # "Improve Reading" (shown when there are new corrections)
         self.lbl_banner = ctk.CTkLabel(self.banner, text="", text_color=("#065F46", "#D1FAE5"))
         self.lbl_banner.pack(side="left", padx=12, pady=6)
-        self.btn_improve = ctk.CTkButton(self.banner, text="Improve Reading", width=150, fg_color="#0F766E", command=self.improve_reading)
+        self.btn_improve = ctk.CTkButton(self.banner, text="Improve Reading...", width=150, height=28, fg_color="#0F766E", command=self.open_improve)
         self.btn_improve.pack(side="left", padx=6, pady=6)
         self._training = False
         self.scanned_paths = {}   # file name -> full path of files scanned this session (for "Check in picture")
@@ -2484,13 +2510,19 @@ class AcronymAppGUI(ctk.CTk):
         t_frame.pack(fill="both", expand=True, padx=15, pady=(0, 10))
         t_frame.grid_rowconfigure(0, weight=1)
         t_frame.grid_columnconfigure(0, weight=1)
+        self.split = tk.PanedWindow(t_frame, orient="horizontal", sashwidth=6, bd=0, sashrelief="flat", bg="#94A3B8")
+        self.split.grid(row=0, column=0, sticky="nsew")
+        tf = tk.Frame(self.split)
+        tf.grid_rowconfigure(0, weight=1)
+        tf.grid_columnconfigure(0, weight=1)
+        self.split.add(tf, stretch="always", minsize=480)
 
         self.style = ttk.Style()
         self.style.theme_use("default")
         self.tree_font = tkfont.Font(family="Segoe UI", size=self.font_size)
         self.head_font = tkfont.Font(family="Segoe UI", size=self.font_size, weight="bold")
 
-        self.tree = ttk.Treeview(t_frame, columns=[c[0] for c in COLUMNS], show="headings", selectmode="extended")  # Ctrl/Shift+click: several rows
+        self.tree = ttk.Treeview(tf, columns=[c[0] for c in COLUMNS], show="headings", selectmode="extended")  # Ctrl/Shift+click: several rows
         for cid, label, width, anchor in COLUMNS:
             self.tree.column(cid, width=width, minwidth=50, anchor=anchor, stretch=(cid == "locations"))
         self.update_headings()
@@ -2505,8 +2537,8 @@ class AcronymAppGUI(ctk.CTk):
         self.tree.tag_configure("client", background="#EDE9FE", foreground="#4C1D95")
         self.tree.tag_configure("clientdiff", background="#F5D0FE", foreground="#701A75")
 
-        vsb = ttk.Scrollbar(t_frame, orient="vertical", command=self.tree.yview)
-        hsb = ttk.Scrollbar(t_frame, orient="horizontal", command=self.tree.xview)
+        vsb = ttk.Scrollbar(tf, orient="vertical", command=self.tree.yview)
+        hsb = ttk.Scrollbar(tf, orient="horizontal", command=self.tree.xview)
         self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
         self.tree.grid(row=0, column=0, sticky="nsew")
         vsb.grid(row=0, column=1, sticky="ns")
@@ -2517,6 +2549,11 @@ class AcronymAppGUI(ctk.CTk):
         self.tree.bind("<Button-3>", self.on_right_click)
         self.tree.bind("<ButtonRelease-1>", self._maybe_rewrap, add="+")   # column resized -> rewrap Locations
         self._loc_width = None
+        import preview_pane
+        self.preview = preview_pane.PreviewPane(self.split, self)
+        self.preview_var = tk.BooleanVar(value=bool(self.settings.get("preview", True)))
+        if self.preview_var.get():
+            self.split.add(self.preview, minsize=int(380 * ctk.ScalingTracker.get_window_scaling(self)) + 40, width=int(400 * ctk.ScalingTracker.get_window_scaling(self)) + 40, stretch="never")
 
         # Text size shortcuts: Ctrl + / Ctrl - / Ctrl 0 / Ctrl + mouse wheel
         for seq in ("<Control-plus>", "<Control-equal>", "<Control-KP_Add>"):
@@ -2576,7 +2613,8 @@ class AcronymAppGUI(ctk.CTk):
         show = trainer_available() and OCR_BACKEND == "tesseract"
         n, new = self.training_state() if show else (0, 0)
         if self._training:
-            pass
+            self.lbl_banner.configure(text="Improving the reader in the background (see the Improve Reading window)...")
+            self.btn_improve.configure(state="normal")
         elif not show or new == 0:
             self.banner.pack_forget(); return
         elif n < tess_train.MIN_SAMPLES:
@@ -2585,65 +2623,130 @@ class AcronymAppGUI(ctk.CTk):
         else:
             steps = min(3000, max(400, 4 * n))
             mins = max(1, round(steps * 0.08 / 60 + n * 0.1 / 60))
-            self.lbl_banner.configure(text=f"{new} new correction(s) saved since the reader was last improved "
-                                           f"({n} in all). Teach the reader now: about {mins} min on this PC, offline.")
+            self.lbl_banner.configure(text=f"{new} new corrected line(s) since the reader was last improved ({n} in all). "
+                                           f"Improve Reading teaches and applies them (about {mins} min, offline).")
             self.btn_improve.configure(state="normal")
         if not self.banner.winfo_ismapped():
             self.banner.pack(fill="x", padx=15, pady=(0, 6), before=self.prog)
 
     def improve_reading(self):
-        """Fine-tune the reader on the Trainer's saved lines, install it only if it scores better, then offer a rescan."""
-        import tess_train
-        if self._training:
-            return
-        n, _new = self.training_state()
-        if n < tess_train.MIN_SAMPLES:
-            messagebox.showinfo("Improve Reading", f"{n} corrected lines saved. Improving the reader needs at least "
-                                f"{tess_train.MIN_SAMPLES} (300+ for a dependable gain). Save more lines in the Trainer."); return
-        out_dir = os.path.join(TRAIN_DIR, "model")
-        self._training = True
-        self.btn_improve.configure(state="disabled", text="Improving...")
-        tw = getattr(self, "trainer_win", None)
-        if tw is not None and tw.winfo_exists() and hasattr(tw, "btn_train"):
-            tw.btn_train.configure(state="disabled", text="Improving...")
-        def say(m):
-            self.after(0, lambda: self.lbl_banner.configure(text=m))
-        say(f"Improving the reader on {n} saved lines (this PC's processor, offline)...")
-        if not self.banner.winfo_ismapped():
-            self.banner.pack(fill="x", padx=15, pady=(0, 6), before=self.prog)
-        def work():
-            try:
-                r = tess_train.train(TESS_DIR, TRAIN_DIR, out_dir, progress=say,
-                                     runner=lambda cmd, timeout=600: run_tesseract_tool(cmd, b"", timeout, write_dirs=[out_dir]))
-                self.after(0, lambda: self._improve_done(r, out_dir, None))
-            except Exception as e:
-                log_error("Improve Reading failed")
-                msg = f"{e}"
-                self.after(0, lambda: self._improve_done(None, out_dir, msg))
-        threading.Thread(target=work, daemon=True).start()
+        self.open_improve()
 
-    def _improve_done(self, r, out_dir, error):
+    def toggle_preview(self):
+        on = bool(self.preview_var.get())
+        self.settings["preview"] = on
+        save_settings(self.settings)
+        if on:
+            self.split.add(self.preview, minsize=int(380 * ctk.ScalingTracker.get_window_scaling(self)) + 40, width=int(400 * ctk.ScalingTracker.get_window_scaling(self)) + 40, stretch="never")
+            if self.selected_term:
+                self.preview.show(self.selected_term)
+        else:
+            self.split.forget(self.preview)
+
+    def open_improve(self):
+        """One window, one action: teach the reader from the saved corrections, test it, and apply it if it reads better."""
         import tess_train
-        self._training = False
-        self.btn_improve.configure(state="normal", text="Improve Reading")
-        tw = getattr(self, "trainer_win", None)
-        if tw is not None and tw.winfo_exists() and hasattr(tw, "btn_train"):
-            tw.btn_train.configure(state="normal", text="Improve Reading")
-        self.update_banner()
-        if error:
-            messagebox.showerror("Improve Reading", f"The reader was not changed.\n\n{error}"); return
-        text = tess_train.describe(r)
-        b, a = r["char_error_before_pct"], r["char_error_after_pct"]
-        if a is None or (b is not None and a > b):
-            messagebox.showwarning("Improve Reading", text + "\n\nNot installed: the current reader is kept."); return
-        load_trained_models(out_dir)
-        again = messagebox.askyesno("Reader improved", text + "\n\nInstalled. The scanner now uses your trained reader "
-                                    "(Knowledge > Undo Last Knowledge Change puts the previous one back).\n\nRescan now to see the effect?")
-        if again:
-            if self.project is not None and not self.project.read_only:
-                self.rescan_project()
-            elif self.queued_files:
-                self.start_batch(self.queued_files)
+        if getattr(self, "improve_win", None) is not None and self.improve_win.winfo_exists():
+            self.improve_win.lift(); self.improve_win.focus(); return
+        win = ctk.CTkToplevel(self); self.improve_win = win
+        win.title("Improve Reading"); win.geometry("720x640"); win.transient(self); win.after(100, win.lift)
+        n, new = self.training_state()
+        ctk.CTkLabel(win, text="Improve Reading: teach the reader your corrections", font=("Arial", 15, "bold")).pack(anchor="w", padx=16, pady=(14, 4))
+        ctk.CTkLabel(win, justify="left", wraplength=680, anchor="w", text=(
+            "1. You correct readings (preview pane: Correct + Teach, or the Trainer). Each one is saved as a corrected line.\n"
+            "2. Teach and Apply trains a new reader from all saved lines, on this PC's processor, offline.\n"
+            "3. It tests the new reader on lines it did not learn from, against the reader you use now.\n"
+            "4. Only if it reads better, it becomes your reader right away. Otherwise nothing changes.")).pack(anchor="w", padx=16)
+        st = ctk.CTkLabel(win, text=f"Saved corrected lines: {n} ({new} new since the last time)."
+                          + ("" if n >= tess_train.MIN_SAMPLES else f" At least {tess_train.MIN_SAMPLES} are needed."),
+                          font=("Arial", 13, "bold"), anchor="w")
+        st.pack(anchor="w", padx=16, pady=(10, 4))
+        btn = ctk.CTkButton(win, text="Teach and Apply", height=38, fg_color="#0F766E", font=("Segoe UI", 14, "bold"),
+                            state="normal" if n >= tess_train.MIN_SAMPLES else "disabled")
+        btn.pack(fill="x", padx=16, pady=(4, 6))
+        bar = ctk.CTkProgressBar(win); bar.set(0); bar.pack(fill="x", padx=16, pady=(2, 2))
+        stage = ctk.CTkLabel(win, text="", anchor="w", wraplength=680, justify="left"); stage.pack(anchor="w", padx=16)
+        result = ctk.CTkTextbox(win, height=230, wrap="word", font=("Segoe UI", 13)); result.pack(fill="both", expand=True, padx=16, pady=(8, 6))
+        try:
+            last = json.load(open(os.path.join(TRAIN_DIR, "model", "training_report.json"), encoding="utf-8"))
+            result.insert("1.0", f"Last time ({last.get('date', '?')}):\n" + tess_train.describe(last))
+        except (OSError, ValueError):
+            result.insert("1.0", "No reader trained yet. The scanner uses Google's English reader.")
+        result.configure(state="disabled")
+        foot = ctk.CTkFrame(win, fg_color="transparent"); foot.pack(fill="x", padx=16, pady=(0, 12))
+        ctk.CTkButton(foot, text="Put back the previous reader", fg_color="#475569", width=210,
+                      command=lambda: self._undo_reader(result)).pack(side="left")
+        ctk.CTkButton(foot, text="Share with team...", fg_color="#B45309", width=150, command=self.open_knowledge).pack(side="left", padx=8)
+        ctk.CTkButton(foot, text="Close", width=90, command=win.destroy).pack(side="right")
+        ctk.CTkLabel(win, text="Share with team saves a Knowledge Pack: your trained reader plus the database, OCR fixes, and ignore list, "
+                     "for colleagues to install. Approved SharePoint folder only.", text_color="gray", wraplength=680,
+                     justify="left").pack(anchor="w", padx=16, pady=(0, 10))
+
+        def say(msg, frac=None):
+            def ui():
+                if not win.winfo_exists(): return
+                stage.configure(text=msg)
+                if frac is None or (0.3 <= frac < 0.95):
+                    if bar.cget("mode") != "indeterminate":
+                        bar.configure(mode="indeterminate"); bar.start()
+                else:
+                    bar.stop(); bar.configure(mode="determinate"); bar.set(frac)
+            self.after(0, ui)
+        def run():
+            out_dir = os.path.join(TRAIN_DIR, "model")
+            current = os.path.join(MODELS_DIR, CUSTOM_TESS_MODEL + ".traineddata")
+            btn.configure(state="disabled", text="Working... (you can keep using the scanner)")
+            self._training = True; self.update_banner()
+            def work():
+                try:
+                    r = tess_train.train(TESS_DIR, TRAIN_DIR, out_dir, progress=say, current_model=current,
+                                         runner=lambda cmd, timeout=600: run_tesseract_tool(cmd, b"", timeout, write_dirs=[out_dir]))
+                    self.after(0, lambda: done(r, None))
+                except Exception as e:
+                    log_error("Improve Reading failed")
+                    msg = f"{e}"
+                    self.after(0, lambda: done(None, msg))
+            threading.Thread(target=work, daemon=True).start()
+        def done(r, err):
+            self._training = False
+            self.update_banner()
+            if not win.winfo_exists():
+                return
+            bar.stop(); bar.configure(mode="determinate"); bar.set(1.0 if r else 0)
+            btn.configure(state="normal", text="Teach and Apply")
+            result.configure(state="normal"); result.delete("1.0", "end")
+            if err:
+                stage.configure(text="Stopped. Your reader was not changed.")
+                result.insert("1.0", err)
+            elif r.get("better"):
+                load_trained_models(os.path.dirname(r["model"]))
+                stage.configure(text="Applied. The scanner now reads pictures with your improved reader.")
+                lines = ["APPLIED: the new reader read your held-out lines better.", "", tess_train.describe(r)]
+                if r.get("fixed_examples"):
+                    lines += ["", "Now read correctly (was wrong before):"] + [f"  {t}    (was: {b})" for t, b in r["fixed_examples"]]
+                if r.get("new_mistakes"):
+                    lines += ["", "New mistakes to watch:"] + [f"  {t}    (now: {a})" for t, a in r["new_mistakes"]]
+                lines += ["", "Next: rescan to see it in your results (only files with pictures are read again)."]
+                result.insert("1.0", "\n".join(lines))
+                if self.project is not None and not self.project.read_only:
+                    if messagebox.askyesno("Rescan?", "Rescan the project now? Only files with pictures are read again.", parent=win):
+                        self.rescan_project()
+                elif self.queued_files and messagebox.askyesno("Rescan?", "Scan the same files again with the improved reader?", parent=win):
+                    self.start_batch(self.queued_files)
+            else:
+                stage.configure(text="Not applied. Your current reader still reads these lines as well or better.")
+                result.insert("1.0", "NOT APPLIED: the new reader did not beat the current one on held-out lines.\n\n"
+                              + tess_train.describe(r) + "\n\nSave more corrected lines (varied pictures and fonts), then try again.")
+            result.configure(state="disabled")
+        btn.configure(command=run)
+
+    def _undo_reader(self, box=None):
+        what = restore_last_knowledge_backup()
+        msg = f"Put back the reader and knowledge from {what}." if what else "Nothing to undo."
+        if box is not None:
+            box.configure(state="normal"); box.insert("end", "\n\n" + msg); box.configure(state="disabled")
+        else:
+            messagebox.showinfo("Undo", msg)
 
     def path_for(self, filename):
         """Full path of a scanned file, from this session's scans or the open project."""
@@ -2701,25 +2804,43 @@ class AcronymAppGUI(ctk.CTk):
         self.apply_advanced_visibility()
 
     def apply_advanced_visibility(self):
-        """Show or hide Fix OCR, OCR Fixes, and Region Trainer."""
-        for w in (self.btn_fixes, self.btn_trainer, self.btn_ocr):
-            if w is not None:
-                w.pack_forget()
+        """Advanced shows Fix OCR in the action bar and the OCR Fixes / Trainer items in the Tools menu."""
+        self.btn_ocr.pack_forget()
+        self.btn_improve_top.pack_forget()
         if self.advanced_on:
-            self.btn_fixes.pack(side="right", padx=5, pady=10, after=self.btn_db)
-            if self.btn_trainer is not None:
-                self.btn_trainer.pack(side="right", padx=5, pady=10, after=self.btn_fixes)
             self.btn_ocr.pack(side="left", padx=5, pady=12, after=self.btn_save)
+        if trainer_available() and OCR_BACKEND == "tesseract":
+            self.btn_improve_top.pack(side="right", padx=4, pady=8, before=self.btn_tools)
+
+    def show_tools_menu(self):
+        m = self.tools_menu
+        m.delete(0, "end")
+        if trainer_available() and OCR_BACKEND == "tesseract":
+            m.add_command(label="Improve Reading (teach the reader your corrections)...", command=self.open_improve)
+        if trainer_available():
+            m.add_command(label="Trainer (check a picture, box missed text)...", command=self.open_trainer)
+        m.add_command(label="Knowledge (share with your team, install, undo)...", command=self.open_knowledge)
+        m.add_separator()
+        m.add_command(label="Edit Database CSV", command=lambda: self.open_file(DB_FILE))
+        m.add_command(label="OCR Fixes...", command=self.open_fix_manager,
+                      state="normal" if self.advanced_on else "disabled")
+        m.add_separator()
+        m.add_checkbutton(label="Show preview pane", onvalue=True, offvalue=False, variable=self.preview_var,
+                          command=self.toggle_preview)
+        m.tk_popup(self.btn_tools.winfo_rootx(), self.btn_tools.winfo_rooty() + self.btn_tools.winfo_height())
 
     # ---------- knowledge packs ----------
     def open_knowledge(self):
         if getattr(self, "know_win", None) is not None and self.know_win.winfo_exists():
             self.know_win.focus(); return
         win = ctk.CTkToplevel(self); self.know_win = win
-        win.title("Knowledge"); win.geometry("600x500"); win.resizable(False, False)
+        win.title("Knowledge"); win.geometry("600x560"); win.resizable(False, False)
         win.transient(self); win.after(100, win.lift)
-        ctk.CTkLabel(win, text="Knowledge = trained OCR models + database + OCR fixes + ignore list",
+        ctk.CTkLabel(win, text="Knowledge Pack = your trained reader + database + OCR fixes + ignore list",
                      font=("Arial", 13, "bold")).pack(anchor="w", padx=16, pady=(14, 2))
+        ctk.CTkLabel(win, text="Improve Reading makes YOUR reader better on this PC. A Knowledge Pack SHARES everything learned "
+                     "with colleagues, or installs what they shared. Export it after Improve Reading.", wraplength=560,
+                     justify="left", text_color="gray").pack(anchor="w", padx=16, pady=(0, 4))
         lbl = ctk.CTkLabel(win, text="", justify="left", wraplength=560); lbl.pack(anchor="w", padx=16, pady=(0, 8))
         msg = ctk.CTkLabel(win, text="", justify="left", wraplength=560, text_color="#0F766E")
         def refresh(text=None):
@@ -2746,8 +2867,8 @@ class AcronymAppGUI(ctk.CTk):
             refresh(f"Restored the state from {what}." if what else "Nothing to undo.")
         ctk.CTkButton(win, text="Install Knowledge Pack...", command=install).pack(fill="x", padx=16, pady=4)
         ctk.CTkButton(win, text="Undo Last Knowledge Change", fg_color="#475569", command=undo).pack(fill="x", padx=16, pady=4)
-        if self.advanced_on:
-            ctk.CTkLabel(win, text="Trainer tools (Advanced)", font=("Arial", 12, "bold")).pack(anchor="w", padx=16, pady=(14, 2))
+        if True:   # export is the "share" step, always available
+            ctk.CTkLabel(win, text="Share and load", font=("Arial", 12, "bold")).pack(anchor="w", padx=16, pady=(14, 2))
             def load_models():
                 folder = filedialog.askdirectory(parent=win, title="Folder with acronym.traineddata (or rec.onnx / det.onnx)")
                 if not folder: return
@@ -3421,6 +3542,8 @@ class AcronymAppGUI(ctk.CTk):
         self.selected_term = term
         data = self.results.get(term)
         if not data: return
+        if self.preview_var.get():
+            self.preview.show(term)
 
         if data.get("file_error"):
             self.btn_exc.configure(text="🚫 Exclude", command=self.exclude_term)
