@@ -125,6 +125,7 @@ from rapidfuzz import process, fuzz
 import importlib.util
 import symbol_picker as SP
 import help_guide as HG
+import feedback as FB
 import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
 DB_FILE = os.path.join(BASE_DIR, "acronym_database.csv")
@@ -274,7 +275,7 @@ def load_ocr_settings():
     except FileNotFoundError:
         pass
     except Exception:
-        log_error("config/ocr_settings.json could not be read; using defaults")
+        log_error("OCR settings file could not be read; using defaults")
     return cfg
 
 OCR_CFG = load_ocr_settings()
@@ -298,7 +299,7 @@ def load_app_settings():
     except FileNotFoundError:
         pass
     except Exception:
-        log_error("config/app_settings.json could not be read; using defaults")
+        log_error("App settings file could not be read; using defaults")
     return cfg
 
 APP_CFG = load_app_settings()
@@ -314,7 +315,7 @@ def load_ocr_fixes():
     except FileNotFoundError:
         pass
     except Exception:
-        log_error("config/ocr_corrections.csv could not be read")
+        log_error("OCR fixes file could not be read")
     return fixes
 # ---- OCR ignore list: exact readings that come from lines, arrows, or specks, never real text ----
 _OCR_IGNORE = set()
@@ -330,7 +331,7 @@ def load_ocr_ignore():
     except FileNotFoundError:
         pass
     except Exception:
-        log_error("config/ocr_ignore.csv could not be read")
+        log_error("OCR ignore list could not be read")
     return out
 
 def read_ocr_ignore_rows():
@@ -518,7 +519,7 @@ def _build_ocr_configured():
         engine = RapidOCR(config_path=cfg_path)
         OCR_MODEL_INFO = ("custom " + ", ".join(custom)) if custom else "bundled PP-OCRv4"
     except Exception:
-        log_error("OCR model from config\\models failed to load; falling back to bundled models")
+        log_error("Custom OCR model failed to load; using bundled models")
         engine = RapidOCR()
         OCR_MODEL_INFO = "bundled PP-OCRv4 (custom model failed to load; see the logs folder)"
     return engine
@@ -1754,7 +1755,7 @@ def common_words():
             with open(asset_path("common_words.txt"), encoding="utf-8") as f:
                 words = {w.strip() for w in f if w.strip() and not w.startswith("#")}
         except (OSError, TypeError):
-            log_error("assets/common_words.txt missing: sentence-end words may be reported as abbreviations")
+            log_error("Common words list missing; sentence-end words may be reported as abbreviations")
         _COMMON_WORDS = frozenset(words)
     return _COMMON_WORDS
 
@@ -2887,6 +2888,10 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_tools.pack(side="right", padx=4, pady=8)
         self.btn_help = ctk.CTkButton(top, text="? Guide", command=lambda: (diag.activity("guide_opened"), HG.open_guide(self)), fg_color="#0EA5E9", width=76, **B)
         self.btn_help.pack(side="right", padx=4, pady=8)
+        self.btn_feedback = ctk.CTkButton(top, text="Feedback", command=lambda: FB.open_feedback(self), fg_color="#64748B", width=84, **B)
+        self.btn_feedback.pack(side="right", padx=4, pady=8)
+        self.bind_all("<Control-Shift-F>", lambda e: FB.open_feedback(self))
+        self.bind_all("<Control-Shift-f>", lambda e: FB.open_feedback(self))
         self.bind_all("<F1>", lambda e: (diag.activity("guide_opened"), HG.open_guide(self)))
         self.tools_menu = tk.Menu(self, tearoff=0)
         self.btn_improve_top = ctk.CTkButton(top, text="Improve Reading", command=self.open_improve, fg_color="#0F766E", width=128, **B)
@@ -3286,6 +3291,7 @@ class AcronymAppGUI(ctk.CTk):
                       command=lambda: self.read_equations([k for k, d in self.results.items() if d.get("category") == "Equation (picture)"]),
                       state="normal" if MATH_DIR else "disabled")
         m.add_command(label="How it works (guide, F1)...", command=lambda: (diag.activity("guide_opened"), HG.open_guide(self)))
+        m.add_command(label="Feedback: bug, improvement or idea (Ctrl+Shift+F)...", command=lambda: FB.open_feedback(self))
         m.add_separator()
         m.add_command(label="Edit Database CSV", command=lambda: self.open_file(DB_FILE))
         m.add_command(label="OCR Fixes...", command=self.open_fix_manager,

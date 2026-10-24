@@ -82,6 +82,10 @@ if (Test-Path $mp) {
     else { throw "Defender flagged the build (exit $LASTEXITCODE). Do not share it. Check Windows Security > Protection history." }
 } else { "Defender command-line scanner not found; scan skipped." }
 
+# Logging check: every log message is fixed text from our code, never data (file names, terms, document text).
+& .\venv\Scripts\python.exe tools\check_diag.py
+if ($LASTEXITCODE -ne 0) { throw "LOGGING CHECK FAILED. See the list above." }
+
 # Network audit: every program file must be on the reviewed list of files allowed to link Windows networking APIs.
 # Tesseract files may link none (built without libcurl). Fails the build on anything new.
 & .\venv\Scripts\python.exe tools\network_audit.py $out

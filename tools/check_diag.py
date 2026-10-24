@@ -65,6 +65,8 @@ def check_file(path):
         for a in msg_args:
             if not is_literal(a):
                 problems.append(f"{node.lineno}: {name}() message must be a plain string literal")
+            elif any(ch in a.value for ch in "/\\:") or len(a.value) > 160:
+                problems.append(f"{node.lineno}: {name}() message must not contain / \\ or : (the export check rejects them)")
         for kw in node.keywords:
             if kw.arg in ("area",):
                 if not is_literal(kw.value):

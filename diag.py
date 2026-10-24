@@ -20,6 +20,7 @@ LOG_DIR = None
 _lock = threading.Lock()
 _seen = {}                 # (level, area, msg, type, top frame) -> count, so a loop cannot flood the log
 _flushed = {}              # same key -> count already written as a repeat line
+_where = {}                # same key -> full code locations of the first occurrence
 _scan = None               # per-scan counters while a scan runs
 _recent = []               # last activity actions (for feedback context)
 _crash_fh = None
@@ -176,6 +177,8 @@ def _record(level, area, msg, exc, counts):
     with _lock:
         n = _seen.get(key, 0) + 1
         _seen[key] = n
+        if n == 1:
+            _where[key] = entry.get("where", [])
         if _scan is not None:
             _scan["errors" if level == "error" else "warnings"] += 1
     if n == 1:
@@ -189,7 +192,8 @@ def _flush_repeats():
             _flushed[k] = c
     for (level, area, msg, typ, where), c in rep:
         _write("events.jsonl", {"time": _now(), "version": VERSION, "level": level, "area": area, "msg": msg,
-                                "type": typ, "where": [where] if where else [], "repeats": c})
+                                "type": typ, "where": _where.get((level, area, msg, typ, where), [where] if where else []),
+                                "repeats": c})
 
 
 def _write(name, entry):
