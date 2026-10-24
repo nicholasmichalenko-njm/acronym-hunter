@@ -32,7 +32,7 @@ def wait():
     for t in ("SOW", "TRL", "SE&I", "LEO", "SRR", "KES"):
         d = app.results.get(t)
         if d: print(f"{t:5} {d['status'][:40]:42} | {d['selected_definition'][:45]}")
-    print("needs-choice filter count:", sum(1 for d in app.results.values() if d['status'].startswith('⚠️')))
+    print("needs-choice filter count:", sum(1 for d in app.results.values() if A.status_kind(d['status']) == 'choice'))
     app.tree.selection_set("SOW"); app.update()
     print("combo:", app.combo.cget("values"))
     app.combo.set("Statement of Work"); app.apply_choice()

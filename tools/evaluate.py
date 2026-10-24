@@ -54,7 +54,7 @@ avoid = [r for r in rows if r["Expect"].strip().lower() == "absent"]
 missed = [r for r in want if not reported(r["Term"], r["File"])]
 alarms = [r for r in avoid if reported(r["Term"], r["File"])]
 recall = 100.0 * (len(want) - len(missed)) / max(1, len(want))
-candidates = sum(1 for d in res.values() if d["status"].startswith("🔍"))
+candidates = sum(1 for d in res.values() if app_gui.status_kind(d["status"]) == "candidate")
 version = "dev"
 try:
     vi = open(os.path.join(ROOT, "version_info.txt"), encoding="utf-8").read()

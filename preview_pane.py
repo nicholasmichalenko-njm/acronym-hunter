@@ -326,7 +326,7 @@ class PreviewPane(ctk.CTkFrame):
         txt = ""
         if cat == "Equation":
             undefined = [x for x in d.get("symbols", []) if x in self.app.results
-                         and str(self.app.results[x].get("status", "")).startswith("\U0001F50D")]
+                         and eng.status_kind(self.app.results[x].get("status", "")) == "candidate"]
             txt = f"Equation:  {term}\nSymbols:  {', '.join(d.get('symbols', [])) or '(none)'}"
             txt += f"\nNot defined anywhere in the files:  {', '.join(undefined)}" if undefined else "\nEvery symbol is defined."
         elif cat == "Symbol":

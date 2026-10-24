@@ -1559,20 +1559,20 @@ OCR_MAP = str.maketrans({"0": "O", "1": "I", "5": "S", "8": "B", "|": "I", "$": 
 
 def record_file_error(findings, filepath, exc):
     """exc may be an exception or a message string."""
-    key = f"⛔ {os.path.basename(filepath)}"
+    key = f"[Error] {os.path.basename(filepath)}"
     findings[key] = {
         "category": "File Error", "count": 1, "locations": [filepath],
         "definitions": [], "in_db": True, "excluded": False, "file_error": True,
-        "selected_definition": (exc if isinstance(exc, str) else f"{type(exc).__name__}: {exc}")[:300], "status": "⛔ Could not read file"
+        "selected_definition": (exc if isinstance(exc, str) else f"{type(exc).__name__}: {exc}")[:300], "status": "Could not read file"
     }
 
 def record_skip(findings, label, reason):
-    key = f"⛔ {label}"
+    key = f"[Not scanned] {label}"
     if key not in findings:
         findings[key] = {
             "category": "Not Scanned", "count": 1, "locations": [label],
             "definitions": [], "in_db": True, "excluded": False, "file_error": True,
-            "selected_definition": reason, "status": "⛔ Not scanned"
+            "selected_definition": reason, "status": "Not scanned"
         }
 
 # ==============================================================================
@@ -1762,10 +1762,10 @@ def apply_client_overlay(findings, m):
             d["category"] = d["category"].replace(" (Candidate)", "")
         if len(cdefs) == 1:
             d["selected_definition"] = cdefs[0]
-            d["status"] = "★ Client list (database differs)" if dbdefs else "✅ Client list"
+            d["status"] = "Client list (database differs)" if dbdefs else "Client list"
         else:
-            d["selected_definition"] = f"⚠️ MULTIPLE ({len(cdefs)} client meanings) - Choose: " + " OR ".join(cdefs)
-            d["status"] = f"⚠️ CHOOSE (client list: {len(cdefs)} meanings)"
+            d["selected_definition"] = f"MULTIPLE ({len(cdefs)} client meanings) - Choose: " + " OR ".join(cdefs)
+            d["status"] = f"CHOOSE (client list: {len(cdefs)} meanings)"
     return findings
 
 def build_matcher():
@@ -1899,7 +1899,7 @@ def record_symbol(findings, sym, loc, m):
         if sym not in findings:
             findings[sym] = {"category": "Symbol", "count": 0, "locations": [], "definitions": [], "in_db": False,
                              "excluded": False, "selected_definition": "[Not defined in the document or database]",
-                             "status": "🔍 SYMBOL NOT DEFINED"}
+                             "status": "SYMBOL NOT DEFINED"}
         findings[sym]["count"] += 1
         if loc not in findings[sym]["locations"]:
             findings[sym]["locations"].append(loc)
@@ -1912,7 +1912,7 @@ def record_equation(findings, loc, text, m):
     key = linear if len(linear) <= 160 else linear[:157] + "..."
     if key not in findings:
         findings[key] = {"category": "Equation", "count": 0, "locations": [], "definitions": [], "in_db": False,
-                         "excluded": False, "selected_definition": "", "status": "📐 EQUATION", "equation": True,
+                         "excluded": False, "selected_definition": "", "status": "EQUATION", "equation": True,
                          "symbols": []}
     d = findings[key]
     d["count"] += 1
@@ -1935,19 +1935,19 @@ def finalize_symbols(findings, m):
             continue
         descs = stated.get(sym, [])
         if len(descs) == 1:
-            d.update({"definitions": descs, "selected_definition": descs[0], "status": "✅ Defined in document"})
+            d.update({"definitions": descs, "selected_definition": descs[0], "status": "Defined in document"})
         elif len(descs) > 1:
-            d.update({"definitions": descs, "status": f"⚠️ CHOOSE (defined {len(descs)} ways)",
-                      "selected_definition": f"⚠️ MULTIPLE ({len(descs)} meanings) - Choose: " + " OR ".join(descs)})
+            d.update({"definitions": descs, "status": f"CHOOSE (defined {len(descs)} ways)",
+                      "selected_definition": f"MULTIPLE ({len(descs)} meanings) - Choose: " + " OR ".join(descs)})
 
 def summarize_equations(findings):
     """Each equation row lists its symbols and which ones are still undefined."""
     for key, d in findings.items():
         if not d.get("equation"):
             continue
-        undefined = [x for x in d["symbols"] if x in findings and findings[x]["status"].startswith("🔍")]
+        undefined = [x for x in d["symbols"] if x in findings and status_kind(findings[x]["status"]) == "candidate"]
         d["selected_definition"] = "Symbols: " + ", ".join(d["symbols"]) + (f"  |  not defined: {', '.join(undefined)}" if undefined else "")
-        d["status"] = f"📐 EQUATION: {len(undefined)} symbol(s) not defined" if undefined else "📐 EQUATION (all symbols defined)"
+        d["status"] = f"EQUATION: {len(undefined)} symbol(s) not defined" if undefined else "EQUATION (all symbols defined)"
 
 def match_chunks(findings, chunks, m):
     """Run the three gates over [(location label, text)] and record findings."""
@@ -1968,7 +1968,7 @@ def match_chunks(findings, chunks, m):
             key = f"[equation picture] {_file_of(loc)}"
             if key not in findings:
                 findings[key] = {"category": "Equation (picture)", "count": 0, "locations": [], "definitions": [],
-                                 "in_db": False, "excluded": False, "status": "🔍 CHECK EQUATION PICTURE",
+                                 "in_db": False, "excluded": False, "status": "CHECK EQUATION PICTURE",
                                  "selected_definition": "Math inside a picture. OCR reads letters, not math layout: check it "
                                                         "in the preview. Read as: " + text[:120]}
             findings[key]["count"] += 1
@@ -2457,7 +2457,7 @@ def apply_project_history(project, findings, update=True):
         if h.get("state") == "gone":
             findings[term] = {"category": h.get("category", ""), "count": 0, "locations": h.get("locations", []),
                               "definitions": [], "in_db": True, "excluded": False, "gone": True,
-                              "selected_definition": h.get("definition", ""), "status": "✖ No longer found",
+                              "selected_definition": h.get("definition", ""), "status": "No longer found",
                               "change": CHANGE_LABELS["gone"], "first_seen": h.get("first_seen", ""),
                               "last_seen": h.get("last_seen", "")}
     if update:
@@ -2482,8 +2482,8 @@ def record_included(findings, term, loc, include_db):
         findings[term] = {
             "category": info["category"], "count": 0, "locations": [],
             "definitions": defs, "in_db": True, "excluded": False,
-            "selected_definition": (f"⚠️ MULTIPLE ({len(defs)} options) — Choose: " + " OR ".join(defs)) if multi else defs[0],
-            "status": "⚠️ CHOOSE DEFINITION" if multi else "✅ Resolved (In DB)"
+            "selected_definition": (f"MULTIPLE ({len(defs)} options) - Choose: " + " OR ".join(defs)) if multi else defs[0],
+            "status": "CHOOSE DEFINITION" if multi else "Resolved (In DB)"
         }
     findings[term]["count"] += 1
     if loc not in findings[term]["locations"]:
@@ -2497,7 +2497,7 @@ def record_excluded(findings, term, loc, exclude_db):
         findings[term] = {
             "category": info["category"], "count": 0, "locations": [],
             "definitions": [info["definition"]], "in_db": True, "excluded": True,
-            "selected_definition": f"[EXCLUDED] {info['definition']}", "status": "🚫 Excluded by DB Rule"
+            "selected_definition": f"[EXCLUDED] {info['definition']}", "status": "Excluded by DB rule"
         }
     findings[term]["count"] += 1
     if loc not in findings[term]["locations"]:
@@ -2510,7 +2510,7 @@ def record_candidate(findings, term, cat, loc):
         findings[term] = {
             "category": cat, "count": 0, "locations": [],
             "definitions": [], "in_db": False, "excluded": False,
-            "selected_definition": "[Not in Database — Definition omitted]", "status": "🔍 NEW CANDIDATE"
+            "selected_definition": "[Not in Database — Definition omitted]", "status": "NEW CANDIDATE"
         }
     findings[term]["count"] += 1
     if loc not in findings[term]["locations"]:
@@ -2894,8 +2894,34 @@ STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", 
                   "Not defined at first use", "Equations and symbols", "Undefined symbols",
                   "Added manually", "Customer documents", "Customer and database differ", "In effort list", "Not in effort list", "Effort: needs author", "Effort: approved",
                   "New since last scan", "Changed since last scan", "No longer found", "Errors / not scanned", "Excluded"]
-MANUAL_MARK = "✍"
-STATUS_ORDER = (("⛔", 0), ("⚠️", 1), ("\u2605", 2), ("🔍", 3), (MANUAL_MARK, 4), ("📋", 5), ("📄", 5), ("✅", 5), ("✖", 6), ("🚫", 7))
+MANUAL_MARK = ""   # statuses are plain words (2.7.0: no emoji in the interface or in exports)
+# Status kinds by leading words. Older projects saved statuses with an emoji in front; status_text() drops it.
+_KIND_WORDS = (("error", ("COULD NOT READ FILE", "NOT SCANNED")),
+               ("choice", ("CHOOSE", "MULTIPLE", "CUSTOMER DOCS DIFFER")),
+               ("client_differs", ("CLIENT LIST (DATABASE DIFFERS)",)),
+               ("candidate", ("NEW CANDIDATE", "SYMBOL NOT DEFINED", "CHECK EQUATION PICTURE")),
+               ("manual", ("ADDED MANUALLY",)),
+               ("resolved", ("RESOLVED", "DEFINED IN DOCUMENT", "USER SELECTED", "ADDED TO DB", "CLIENT LIST",
+                             "CUSTOMER DOCUMENT", "EFFORT LIST:")),
+               ("gone", ("NO LONGER FOUND",)),
+               ("excluded", ("EXCLUDED", "NOT A TERM IN THIS EFFORT")))
+RESOLVED_WORDS = ("Resolved", "Defined in document", "User Selected", "Added to DB", "Client list")   # the Resolved filter
+STATUS_RANK = {"error": 0, "choice": 1, "client_differs": 2, "candidate": 3, "manual": 4, "resolved": 5, "gone": 6, "excluded": 7}
+
+def status_text(st):
+    """The status without any leading symbol (statuses saved by older versions began with an emoji)."""
+    st = str(st or "")
+    i = 0
+    while i < len(st) and not (st[i].isascii() and (st[i].isalnum() or st[i] == "[")):
+        i += 1
+    return st[i:]
+
+def status_kind(st):
+    up = status_text(st).upper()
+    for kind, words in _KIND_WORDS:
+        if up.startswith(words):
+            return kind
+    return "other"
 LOC_MAX_LINES = 3   # Locations wrap to at most this many lines in the table; double-click a row for all of them
 MANUAL_CATEGORIES = ["Acronym", "Abbreviation", "Unit", "Other"]
 COLUMNS = (  # id, heading, base width, anchor
@@ -3151,7 +3177,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
         self.btn_ocr = ctk.CTkButton(act, text="Fix OCR", command=self.save_ocr_fix, state="disabled", fg_color="#7C3AED", width=90)
         self.btn_ocr.pack(side="left", padx=5, pady=12)
 
-        self.btn_exc = ctk.CTkButton(act, text="🚫 Exclude", command=self.exclude_term, state="disabled", fg_color="#DC2626", width=110)
+        self.btn_exc = ctk.CTkButton(act, text="Exclude", command=self.exclude_term, state="disabled", fg_color="#DC2626", width=110)
         self.btn_exc.pack(side="right", padx=10, pady=12)
 
         self.apply_advanced_visibility()
@@ -3520,8 +3546,8 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
             pic.setdefault("math_read", {})[loc] = lines
             n = sum(len(v) for v in pic["math_read"].values())
             left = [l for l in pic["locations"] if l not in pic["math_read"]]
-            pic["status"] = (f"\U0001F4D0 READ BY MATH READER: {n} equation(s)" if not left
-                             else f"\U0001F4D0 READ {len(pic['math_read'])} of {len(pic['locations'])} PICTURES")
+            pic["status"] = (f"READ BY MATH READER: {n} equation(s)" if not left
+                             else f"READ {len(pic['math_read'])} of {len(pic['locations'])} PICTURES")
             pic["selected_definition"] = "Math reader: " + ("; ".join(l for v in pic["math_read"].values() for l in v)[:300] or "no equation found")
         self.populate_table()
 
@@ -3741,7 +3767,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
             item = {"category": cat, "count": 1, "locations": [loc or "Added manually"],
                     "definitions": [defn] if defn else [], "in_db": True, "excluded": False, "manual": True,
                     "selected_definition": defn or "[No definition given]",
-                    "status": f"{MANUAL_MARK} Added manually" + (" (saved to DB)" if saved else "")}
+                    "status": "Added manually" + (" (saved to DB)" if saved else "")}
             self.manual_items[term] = item
             self.results[term] = item
             self.save_project()
@@ -3763,7 +3789,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
         self.manual_items.pop(term, None); self.results.pop(term, None)
         self.save_project()
         self.selected_term = None
-        self.btn_exc.configure(text="🚫 Exclude", command=self.exclude_term, state="disabled")
+        self.btn_exc.configure(text="Exclude", command=self.exclude_term, state="disabled")
         self.lbl_act.configure(text="Select a row above (Ctrl+click or Shift+click for several):")
         self.populate_table()
 
@@ -4140,13 +4166,13 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
     def _set_choice(data, choice):
         if choice == "Keep All Possibilities":
             data["selected_definition"] = "MULTIPLE: " + " | ".join(data["definitions"])
-            data["status"] = "⚠️ MULTIPLE (Kept All)"
+            data["status"] = "MULTIPLE (Kept All)"
             return "ambiguous"
         for tag in (CLIENT_TAG, DB_TAG):
             if choice.startswith(tag):
                 choice = choice[len(tag):]
         data["selected_definition"] = choice
-        data["status"] = "✅ User Selected" + (" (client list)" if data.get("client") and choice in data.get("client_definitions", []) else "")
+        data["status"] = "User Selected" + (" (client list)" if data.get("client") and choice in data.get("client_definitions", []) else "")
         return "resolved"
 
     # ---------- view: text size ----------
@@ -4197,7 +4223,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
         if c == "category":
             return (data["category"].casefold(), term.casefold())
         if c == "status":
-            rank = next((r for prefix, r in STATUS_ORDER if data["status"].startswith(prefix)), 9)
+            rank = STATUS_RANK.get(status_kind(data["status"]), 9)
             return (rank, term.casefold())
         if c == "definition":
             return (data["selected_definition"].casefold(), term.casefold())
@@ -4225,14 +4251,15 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
     @staticmethod
     def status_matches(data, wanted):
         st = data["status"]
+        kind = status_kind(st)
         return {
-            "Needs choice": st.startswith("⚠️"),
-            "New candidates": st.startswith("🔍"),
-            "Resolved": st.startswith("✅"),
+            "Needs choice": kind == "choice",
+            "New candidates": kind == "candidate",
+            "Resolved": kind == "resolved" and status_text(st).startswith(RESOLVED_WORDS),
             "Client list": data.get("client", False),
             "Not defined at first use": first_use_flag(data),
             "Equations and symbols": data.get("category", "").startswith(("Equation", "Symbol")) or bool(data.get("symbol")),
-            "Undefined symbols": bool(data.get("symbol")) and st.startswith("🔍") or (data.get("equation") and "not defined" in st),
+            "Undefined symbols": bool(data.get("symbol")) and kind == "candidate" or (data.get("equation") and "not defined" in st),
             "Client and database differ": bool(data.get("client") and data.get("db_definitions")),
             "Added manually": data.get("manual", False),
             "In effort list": bool(data.get("effort")),
@@ -4244,7 +4271,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
             "New since last scan": data.get("change") == "New",
             "Changed since last scan": data.get("change") == "Changed",
             "No longer found": data.get("gone", False),
-            "Errors / not scanned": st.startswith("⛔"),
+            "Errors / not scanned": kind == "error",
             "Excluded": data.get("excluded", False),
         }.get(wanted, True)
 
@@ -4260,7 +4287,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
         one_file = len(set(_file_of(l) for l in data["locations"])) <= 1
         f, u = items[0]
         loc = (u["loc"][len(f):].strip() if one_file else u["loc"]) or u["loc"]
-        mark = {True: "\u2713 defined", None: "? check"}.get(u["defined"], "\u2717 defined later" if u.get("later") else "\u2717 not defined")
+        mark = {True: "defined", None: "check"}.get(u["defined"], "defined later" if u.get("later") else "NOT defined")
         text = self._wrap_px(f"{mark}: {loc}", "firstuse", 2)
         if len(items) > 1:
             bad = sum(1 for _f, x in items if x["defined"] is False)
@@ -4333,12 +4360,13 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
         if data.get("effort") == "Approved": return "resolved"
         if data.get("effort"): return "effort"
         st = data["status"]
-        if data.get("customer_definitions") and not st.startswith("⚠️"): return "customer"
-        if st.startswith("⛔"): return "fileerror"
-        if st.startswith("⚠️"): return "ambiguous"
+        kind = status_kind(st)
+        if data.get("customer_definitions") and kind != "choice": return "customer"
+        if kind == "error": return "fileerror"
+        if kind == "choice": return "ambiguous"
         if data.get("client"): return "clientdiff" if data.get("db_definitions") else "client"
         if data.get("category", "").startswith("Equation"): return "equation"
-        if st.startswith("🔍"): return "candidate"
+        if kind == "candidate": return "candidate"
         return "resolved"
 
     def scan_cancelled(self):
@@ -4383,8 +4411,9 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
                 e_count += 1
             else:
                 v_count += 1
-                if data["status"].startswith("⚠️"): a_count += 1
-                elif data["status"].startswith("🔍"): c_count += 1
+                k = status_kind(data["status"])
+                if k == "choice": a_count += 1
+                elif k == "candidate": c_count += 1
 
             if excluded and not (show_exc or fstat == "Excluded"): continue
             if ftype != ALL_TYPES and base_type(data["category"]) != ftype: continue
@@ -4419,7 +4448,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
             self.selected_term = sel[0]
             for w in (self.btn_apply, self.btn_save, self.btn_ocr, self.entry_def, self.combo):
                 w.configure(state="disabled")
-            self.btn_exc.configure(text=f"🚫 Exclude {n}", command=self.exclude_term, state="normal" if n else "disabled")
+            self.btn_exc.configure(text=f"Exclude {n}", command=self.exclude_term, state="normal" if n else "disabled")
             self.lbl_act.configure(text=f"{len(sel)} rows selected ({n} can be excluded):")
             return
         term = sel[0]
@@ -4430,7 +4459,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
             self.preview.show(term)
 
         if data.get("file_error"):
-            self.btn_exc.configure(text="🚫 Exclude", command=self.exclude_term)
+            self.btn_exc.configure(text="Exclude", command=self.exclude_term)
             for w in (self.btn_exc, self.btn_apply, self.btn_save, self.btn_ocr, self.entry_def, self.combo):
                 w.configure(state="disabled")
             self.lbl_act.configure(text="File could not be read:")
@@ -4448,7 +4477,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
             self.btn_exc.configure(text="Remove Item", command=self.remove_manual_item, state="normal")
             self.lbl_act.configure(text=f"Added manually '{term}':")
             return
-        self.btn_exc.configure(text="🚫 Exclude", command=self.exclude_term)
+        self.btn_exc.configure(text="Exclude", command=self.exclude_term)
         self.btn_exc.configure(state="disabled" if data.get("excluded", False) else "normal")
 
         if (data["in_db"] or data.get("customer_definitions")) and not data.get("excluded", False) and len(data["definitions"]) > 1:
@@ -4580,7 +4609,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
         write_ocr_fix_rows(rows)
         data = self.results[wrong]
         data["in_db"] = True
-        data["status"] = f"🔧 OCR fix saved: {wrong} > {right}"
+        data["status"] = f"OCR fix saved: {wrong} > {right}"
         data["selected_definition"] = "Rescan to apply. View, edit, or undo with the OCR Fixes button."
         self.tree.item(wrong, values=self.row_values(wrong, data), tags=("resolved",))
         self.entry_def.delete(0, "end")
@@ -4604,7 +4633,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
         data["category"] = cat
         data["definitions"] = [nd]
         data["selected_definition"] = nd
-        data["status"] = "✅ Added to DB"
+        data["status"] = "Added to DB"
         self.tree.item(self.selected_term, values=self.row_values(self.selected_term, data), tags=("resolved",))
         self.entry_def.delete(0, "end")
         self.entry_def.configure(state="disabled")
@@ -4631,9 +4660,9 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
             data = self.results[term]
             data["excluded"] = True
             data["in_db"] = True
-            data["status"] = "🚫 Excluded by Rule"
+            data["status"] = "Excluded by rule"
             data["selected_definition"] = f"[EXCLUDED] {reason}"
-        self.btn_exc.configure(text="🚫 Exclude", state="disabled")
+        self.btn_exc.configure(text="Exclude", state="disabled")
         self.lbl_act.configure(text=f"Excluded {len(items)} term(s). Select a row above (Ctrl+click or Shift+click for several):")
         self.selected_term = None
         self.populate_table()

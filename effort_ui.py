@@ -10,7 +10,7 @@ import customtkinter as ctk
 import diag
 import effort as E
 
-EFFORT_MARK = "📋"
+EFFORT_MARK = ""   # no emoji in the interface (2.7.0)
 
 
 def _eng():
@@ -34,7 +34,7 @@ class EffortMixin:
             self.after(300, lambda: self.open_effort(self.efforts.current, quiet=True))
 
     def effort_actionbar(self, act):
-        self.btn_effort_add = ctk.CTkButton(act, text=f"{EFFORT_MARK} Add to effort list", command=self.add_to_effort, state="disabled",
+        self.btn_effort_add = ctk.CTkButton(act, text="Add to effort list", command=self.add_to_effort, state="disabled",
                                             fg_color="#0F766E", width=150)
         self.btn_effort_add.pack(side="left", padx=5, pady=12)
 
@@ -61,7 +61,7 @@ class EffortMixin:
         sel = [t for t in self.tree.selection() if t in self.results] if hasattr(self, "tree") else []
         ok = self.effort is not None and bool(sel)
         self.btn_effort_add.configure(state="normal" if ok else "disabled",
-                                      text=f"{EFFORT_MARK} Add {len(sel)} to effort list" if ok and len(sel) > 1 else f"{EFFORT_MARK} Add to effort list")
+                                      text=f"Add {len(sel)} to effort list" if ok and len(sel) > 1 else "Add to effort list")
 
     # ------------------------------------------------------------ menu
     def show_effort_menu(self):
@@ -278,7 +278,7 @@ class EffortMixin:
     # ------------------------------------------------------------ adding and approving
     def _definition_for(self, d):
         sd = (d.get("selected_definition") or "").strip()
-        if not sd or sd.startswith(("[", "⚠", "MULTIPLE", "Rescan")):
+        if not sd or _eng().status_text(sd).startswith(("[", "MULTIPLE", "Rescan")):
             return ""
         return sd
 
@@ -387,7 +387,7 @@ class EffortMixin:
         sub.add_command(label=f"Back to Proposed ({n})", command=lambda: self.set_effort_status("Proposed", sel))
         sub.add_separator()
         sub.add_command(label=f"Remove from effort list ({n})", command=lambda: self.remove_from_effort(sel))
-        menu.add_cascade(label=f"{EFFORT_MARK} Effort list", menu=sub)
+        menu.add_cascade(label="Effort list", menu=sub)
 
     # ------------------------------------------------------------ customer documents (2.5.0)
     def customer_files(self):
@@ -444,10 +444,10 @@ class EffortMixin:
             d["cust_db_differ"] = bool(db)
             if len(cdefs) == 1:
                 d["selected_definition"] = cdefs[0]
-                d["status"] = "📄 Customer document" + (" (database differs)" if db else "")
+                d["status"] = "Customer document" + (" (database differs)" if db else "")
             else:
                 d["selected_definition"] = "MULTIPLE: " + " | ".join(cdefs)
-                d["status"] = f"⚠️ CUSTOMER DOCS DIFFER ({len(cdefs)})"
+                d["status"] = f"CUSTOMER DOCS DIFFER ({len(cdefs)})"
         return n
 
     # ------------------------------------------------------------ the scan step
@@ -474,10 +474,10 @@ class EffortMixin:
             d["effort"] = st
             d["excluded"] = pre[2] or st == "Rejected"
             if st == "Rejected":
-                d["status"] = "🚫 Not a term in this effort"
+                d["status"] = "Not a term in this effort"
                 d["selected_definition"] = pre[1]
             else:
-                d["status"] = f"{EFFORT_MARK} {st} (effort list)"
+                d["status"] = f"Effort list: {st}"
                 d["selected_definition"] = row["Definition"] or pre[1]
         if hasattr(self, "tree"):
             self.populate_table()

@@ -40,6 +40,12 @@ def same_def(a, b):
     return bool(a) and bool(b) and norm_def(a) == norm_def(b)
 
 
+def _placeholder(sd):
+    """The app's stand-in texts ("[Not in Database ...]", "MULTIPLE ...") are not definitions."""
+    s = (sd or "").lstrip("\u26a0\ufe0f ")
+    return not s or s.startswith(("[", "MULTIPLE", "Rescan"))
+
+
 def kind(category):
     for k in LIST_TYPES:
         if (category or "").startswith(k):
@@ -155,7 +161,7 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
         r = rows.get(term)
         if r is None:
             sd = d.get("selected_definition", "")
-            sd = "" if sd.startswith(("[", "⚠", "MULTIPLE", "Rescan")) else sd
+            sd = "" if _placeholder(sd) else sd
             missing.append(dict(base, suggestion=sd))
             continue
         if r["Status"] == "Rejected":
@@ -190,7 +196,7 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
                 definition, st = r.get("Definition", ""), r["Status"]
             else:
                 sd = d.get("selected_definition", "")
-                definition, st = ("" if sd.startswith(("[", "⚠", "MULTIPLE", "Rescan")) else sd), "Not in effort list"
+                definition, st = ("" if _placeholder(sd) else sd), "Not in effort list"
             out.append({"term": term, "definition": definition, "status": st, "type": kind(d.get("category", ""))})
         lists[v] = out
 
