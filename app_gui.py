@@ -4380,14 +4380,16 @@ class AcronymAppGUI(EffortMixin, ctk.CTk):
             self.lbl_act.configure(text=f"Client list term '{term}' (client meaning pre-selected):" if data.get("client")
                                    else f"Disambiguate '{term}':")
         elif not data["in_db"]:
-            self.combo.configure(state="disabled", values=["Not in DB"]); self.combo.set("Not in DB")
+            shown = (data.get("customer_definitions") or ["Not in DB"])[:1]
+            self.combo.configure(state="normal", values=shown); self.combo.set(shown[0]); self.combo.configure(state="disabled")
             self.btn_apply.configure(state="disabled")
             self.entry_def.configure(state="normal"); self.entry_def.delete(0, "end")
             self.btn_save.configure(state="normal"); self.btn_ocr.configure(state="normal")
-            self.lbl_act.configure(text=f"New Candidate '{term}':")
+            self.lbl_act.configure(text=f"Customer document '{term}':" if data.get("customer_definitions") else f"New Candidate '{term}':")
         else:
-            self.combo.configure(state="disabled", values=data["definitions"][:1])
-            if data["definitions"]: self.combo.set(data["definitions"][0])
+            self.combo.configure(state="normal", values=data["definitions"][:1] or [""])
+            self.combo.set(data["definitions"][0] if data["definitions"] else "")
+            self.combo.configure(state="disabled")
             self.btn_apply.configure(state="disabled")
             self.entry_def.configure(state="disabled"); self.btn_save.configure(state="disabled"); self.btn_ocr.configure(state="disabled")
             self.lbl_act.configure(text=f"Selected '{term}':")
