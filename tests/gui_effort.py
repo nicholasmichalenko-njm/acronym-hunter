@@ -17,7 +17,7 @@ st = {"scan": 0}
 def go():
     w = app.new_effort_dialog(); api = w._api
     api["name"].insert(0, "Kestrel"); api["path"].delete(0, "end"); api["path"].insert(0, LIST); api["rule"].set("submission")
-    api["ok"]()
+    w.update(); api["ok"]()   # let the dialog draw first: closing it in the same instant crashes Tk on Windows
     print("effort open:", app.effort.name, os.path.isfile(LIST), "| label:", app.lbl_effort.cget("text")[:90])
     app.start_batch(files); app.after(500, wait)
 def wait():

@@ -20,7 +20,7 @@ app = A.AcronymAppGUI()
 def go():
     w = app.new_effort_dialog(); api = w._api
     api["name"].insert(0, "Kestrel"); api["path"].delete(0, "end"); api["path"].insert(0, LIST)
-    api["dirs"]["customer_dir"].insert(0, cust); api["ok"]()
+    api["dirs"]["customer_dir"].insert(0, cust); w.update(); api["ok"]()   # let the dialog draw first: closing it in the same instant crashes Tk on Windows
     app.start_batch([os.path.join(A.BASE_DIR, "test_samples", "Kestrel_Technical_Volume.docx")]); app.after(500, wait)
 def wait():
     if app.btn_cancel.winfo_ismapped():

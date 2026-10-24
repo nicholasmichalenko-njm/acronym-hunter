@@ -20,7 +20,7 @@ out = {}
 def go():
     w = app.new_effort_dialog(); api = w._api
     api["name"].insert(0, "Kestrel"); api["path"].delete(0, "end"); api["path"].insert(0, LIST); api["rule"].set("volume")
-    api["ok"]()
+    w.update(); api["ok"]()   # let the dialog draw first: closing it in the same instant crashes Tk on Windows
     app.effort.add_or_update("SOW", Type="Acronym", Definition="Statement of Work"); app.effort.set_status(["SOW"], "Approved", "J. Smith")
     app.effort.add_or_update("PDQ", Type="Acronym", Definition="Pretty Darn Quick"); app.effort.set_status(["PDQ"], "Approved", "J. Smith")
     app._save_effort_list()
