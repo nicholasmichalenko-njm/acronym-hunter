@@ -45,12 +45,15 @@ $manifest += "  $(Split-Path $whl -Leaf)  $((Get-FileHash $whl).Hash)  built fro
 $index = if ($Gpu) { 'https://download.pytorch.org/whl/cu128' } else { 'https://download.pytorch.org/whl/cpu' }
 $tv = if ($Gpu) { @('torch==2.11.0+cu128', 'torchvision==0.26.0+cu128') } else { @('torch==2.11.0+cpu', 'torchvision==0.26.0+cpu') }
 $pkgs = $tv + @('numpy==2.4.6', 'scipy==1.17.1', 'h5py==3.16.0', 'opencv-python==5.0.0.93', 'pypdfium2==5.14.0',
-                'pyclipper==1.4.0', 'shapely==2.2.0', 'langdetect==1.0.9', 'RapidFuzz==3.14.6', 'pillow==12.3.0',
+                'pyclipper==1.4.0', 'shapely==2.2.0', 'six==1.17.0', 'RapidFuzz==3.14.6', 'pillow==12.3.0',
                 'anyascii==0.3.3', 'validators==0.36.0', 'tqdm==4.70.1', 'onnx==1.23.2', 'onnxscript==0.7.2', 'onnx-ir==1.1.0',
                 'onnxruntime==1.31.0', 'matplotlib==3.11.2')
 & py -3.11 -m pip install --disable-pip-version-check --no-warn-script-location --retries 10 --timeout 180 --only-binary=:all: `
     --target $site --extra-index-url $index @pkgs
 if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+# langdetect is published only as source (pure Python, no compiled code): installed on its own, without binary-only
+& py -3.11 -m pip install --disable-pip-version-check --no-warn-script-location --no-deps --target $site 'langdetect==1.0.9'
+if ($LASTEXITCODE -ne 0) { throw "langdetect install failed" }
 & py -3.11 -m pip install --disable-pip-version-check --no-warn-script-location --no-deps --target $site $whl
 if ($LASTEXITCODE -ne 0) { throw "docTR install failed" }
 if (Test-Path "$site\huggingface_hub") { throw "huggingface_hub was pulled in; the kit must not contain it" }
