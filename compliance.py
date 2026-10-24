@@ -1,0 +1,730 @@
+"""Compliance matrix (2.8.0), C1 extract and triage + C2 outline and mapping. Rules only: no language model.
+
+Pipeline: the app's readers give [(location label, text)] per RFP file -> lines rejoined (PDF line wraps) -> section
+numbers tracked (L.4.2.1, C.3.4, 3.2.1, "SECTION L") -> sentences and list items -> candidates by trigger words
+(shall / must / will / should / may / is required to, imperatives, evaluation and format language) -> rule-based
+actor, type, strength, cross-references and a Keep / Drop / Review suggestion. The person decides.
+
+Items keep file, location, section and paragraph text, so every row cites its source. The matrix lives in one Excel
+workbook (atomic save, re-read on open, edits made in Excel count). Nothing leaves the PC.
+"""
+import datetime, hashlib, os, re, tempfile
+
+# ------------------------------------------------------------------ vocabulary
+MODALS = r"shall not|must not|will not|may not|shall|must|will|should|may|is required to|are required to|is to|are to|is expected to|are expected to"
+_MODAL = re.compile(r"\b(" + MODALS + r")\b", re.I)
+IMPERATIVES = ("describe", "provide", "submit", "identify", "demonstrate", "discuss", "explain", "include", "address",
+               "propose", "deliver", "furnish", "specify", "list", "present", "show", "ensure", "maintain", "comply",
+               "state", "indicate", "define", "detail", "outline", "summarize", "prepare", "document", "certify",
+               "complete", "sign", "attach", "use", "limit", "organize", "label", "number", "format", "do not")
+_IMPER = re.compile(r"^(?:\(?[a-z0-9ivx]{1,4}[.)]\s*)?(" + "|".join(IMPERATIVES) + r")\b", re.I)
+_EVAL = re.compile(r"\b(will|shall)\s+(?:be\s+)?(evaluat\w*|assess\w*|consider\w*|rat(?:e|ed)|review\w*|scor\w*)\b|"
+                   r"\bevaluation (?:factor|criteri\w+|subfactor)|\bbasis (?:for|of) (?:award|evaluation)\b|"
+                   r"\b(?:strength|weakness|deficienc\w+|acceptab\w+|unacceptab\w+)\b.*\b(?:assign|assess|rat)", re.I)
+_FORMAT = re.compile(r"\b(page limit|pages?\b(?=.*\b(?:limit|exceed|maximum|not to exceed|no more than))|font|point size|"
+                     r"\d+[- ]point|\d+(?:\.\d+)?[- ]?inch(?:es)? margins?|margins? of \d|single[- ]spaced|double[- ]spaced|8[.,]5\s*(?:x|by)\s*11|letter[- ]size|"
+                     r"due (?:date|no later)|no later than|\bNLT\b|electronic copy|hard ?cop(?:y|ies)|\bcopies\b|"
+                     r"file format|\.pdf\b|\bPDF\b|searchable|file size|naming convention|cover (?:page|letter)|"
+                     r"table of contents|tab(?:bed)? divider|binder|page numbers?)", re.I)
+OFFEROR = r"offerors?|proposers?|bidders?|vendors?|quoters?|respondents?|you|your proposal|the proposal|proposals|each volume|the volume|the response|responses|the submission|submissions|the quote|the bid"
+CONTRACTOR = r"contractors?|the contractor|subcontractors?|the seller|the supplier|the developer|the provider"
+GOVERNMENT = r"government|contracting officer|\bco\b|\bpco\b|\baco\b|agency|nasa|usaf|ussf|air force|space force|army|navy|dod|department|evaluators?|evaluation (?:team|board|panel)|source selection|\bssa\b|\bssEB\b|the panel|the board"
+_OFF, _CON, _GOV = (re.compile(r"\b(" + p + r")\b", re.I) for p in (OFFEROR, CONTRACTOR, GOVERNMENT))
+_XREF = re.compile(r"\b(?:Section|Sec\.|Paragraph|Para\.?|¶)\s+[A-Z]?(?:\.?\d+)+(?:\.\d+)*\b|"
+                   r"\b[A-M]\.\d+(?:\.\d+)*\b|"
+                   r"\bSection\s+[A-M]\b|"
+                   r"\bAttachment\s+(?:J[- ]?)?[A-Z0-9]+(?:[- ][A-Z0-9]+)?\b|\bExhibit\s+[A-Z0-9]+\b|\bAppendix\s+[A-Z0-9]+\b|"
+                   r"\bCDRL\s+[A-Z]?\d{2,4}\b|\bDID\s+[A-Z]+-[A-Z]+-\d+\b|\bDI-[A-Z]+-\d+[A-Z]?\b|"
+                   r"\b(?:FAR|DFARS|NFS)\s+\d{1,3}\.\d{2,4}(?:-\d+)?\b|\b(?:MIL|DOD|NASA)-(?:STD|HDBK|SPEC)-\d+[A-Z]?\b|"
+                   r"\b(?:SOW|PWS|SOO)\s+(?:paragraph\s+|para\.?\s+|section\s+)?\d+(?:\.\d+)*\b", re.I)
+_ABBR = ("e.g.", "i.e.", "etc.", "U.S.", "No.", "Inc.", "vs.", "para.", "Para.", "Fig.", "fig.", "approx.", "Sec.", "sec.",
+         "Corp.", "Co.", "Ltd.", "a.m.", "p.m.", "A.M.", "P.M.", "St.", "Mr.", "Ms.", "Dr.", "Jr.", "Sr.", "ea.", "Vol.", "vol.", "Rev.", "rev.", "al.", "Ref.")
+
+# Section headings: "L.4.2.1 Technical Volume", "SECTION L - INSTRUCTIONS", "3.2.1 Thermal", "C.3 SCOPE"
+_SEC_LETTER = re.compile(r"^\s*(?:SECTION\s+)?([A-M])\.((?:\d+\.)*\d+)\.?(?:\s+|$)(.*)$")
+_SEC_WORD = re.compile(r"^\s*SECTION\s+([A-M])\b\s*[-–—:.]?\s*(.*)$", re.I)
+_SEC_NUM = re.compile(r"^\s*((?:\d+\.)+\d+|\d+\.)\s+(.*)$")
+_LIST = re.compile(r"^\s*(?:[•●▪◦·\-–*]|\(?[a-z]\)|\(?[ivx]{1,4}\)|\(?\d{1,2}\)|[a-z]\.(?=\s)|\(\d{1,2}\))\s+")
+_INLINE_ITEM = re.compile(r"(?:(?<=[:;])|(?<=;\s)|(?<=\s))\(([a-z]|[ivx]{1,4}|\d{1,2})\)\s+")
+_STOPW = set("""a an and or of the to for in on by with at as from is are be been shall must will should may that this these those
+its it their his her our your any all each such which who whom than then also not no into within upon under over per
+offeror offerors contractor government proposal provide describe include""".split())
+
+DECISIONS = ("Keep", "Drop", "")
+TYPES = ("Instruction", "Evaluation", "SOW", "Format", "Information", "Requirement")
+
+
+# ------------------------------------------------------------------ reading
+def _join_lines(text):
+    """PDF text wraps mid-sentence: join a line to the next unless it ends a sentence, is a heading or a list item."""
+    out = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line:
+            out.append("")
+            continue
+        starts_block = bool(_LIST.match(line) or _SEC_LETTER.match(line) or _SEC_WORD.match(line) or
+                            (_SEC_NUM.match(line) and len(line) < 140))
+        if out and out[-1] and not starts_block and not re.search(r"[.:;?!]\s*$", out[-1]) and not _is_heading(out[-1]):
+            out[-1] = out[-1] + " " + line
+        else:
+            out.append(line)
+    return out
+
+
+def _is_heading(line):
+    s = line.strip()
+    if len(s) > 120 or s.endswith((".", ";", ",")) and not re.match(r"^[A-M]\.\d", s):
+        return False
+    if _SEC_WORD.match(s):
+        return True
+    m = _SEC_LETTER.match(s) or _SEC_NUM.match(s)
+    if m:
+        rest = m.groups()[-1]
+        return not _MODAL.search(rest) and len(rest.split()) <= 14 and not rest.endswith(".")
+    letters = [c for c in s if c.isalpha()]
+    return bool(letters) and len(s.split()) <= 10 and sum(c.isupper() for c in letters) / len(letters) > 0.8
+
+
+def _label_section(label):
+    """Word passages carry their heading in the label: "File.docx (section 'L.4 Technical', para 3-9)"."""
+    m = re.search(r"section '([^']*)'", label)
+    return m.group(1) if m else ""
+
+
+def _page(label):
+    m = re.search(r"\(p\.(\d+)", label)
+    return int(m.group(1)) if m else None
+
+
+def _sentences(par):
+    """Split a paragraph into sentences without breaking at abbreviations, decimals or section numbers."""
+    protected = par
+    for a in _ABBR:
+        protected = protected.replace(a, a.replace(".", "․"))
+    parts = re.split(r"(?<=[.!?])\s+(?=[\"'(\[]?[A-Z0-9])", protected)
+    return [p.replace("․", ".").strip() for p in parts if p.strip()]
+
+
+def _split_inline_list(sentence):
+    """"The Offeror shall: (a) provide X; (b) describe Y; and (c) list Z." -> lead + items."""
+    if ":" not in sentence:
+        return sentence, []
+    lead, rest = sentence.split(":", 1)
+    marks = list(_INLINE_ITEM.finditer(" " + rest))
+    if len(marks) < 2:
+        return sentence, []
+    items = []
+    s = " " + rest
+    for i, m in enumerate(marks):
+        end = marks[i + 1].start() if i + 1 < len(marks) else len(s)
+        t = s[m.start():end].strip().rstrip(";,").strip()
+        t = re.sub(r"[;,]?\s+and$|[;,]?\s+or$", "", t).strip()
+        items.append(t)
+    return lead.strip() + ":", items
+
+
+def _section_from_line(line, cur):
+    """(section, title, remaining text) when the line starts a numbered section or paragraph, else None."""
+    m = _SEC_LETTER.match(line)
+    if m:
+        sec, rest = f"{m.group(1)}.{m.group(2)}", m.group(3).strip()
+        if _is_heading(line):
+            return sec, rest, ""
+        parent_title = cur[1] if cur[0] and sec.startswith(cur[0]) else ""
+        return sec, parent_title, rest                 # numbered paragraph: "L.4.2.1 The Offeror shall ..."
+    m = _SEC_WORD.match(line)
+    if m and _is_heading(line):
+        return m.group(1).upper(), m.group(2).strip(), ""
+    m = _SEC_NUM.match(line)
+    if m:
+        num, rest = m.group(1).rstrip("."), m.group(2).strip()
+        if _is_heading(line):
+            return num, rest, ""
+        return num, (cur[1] if cur[0] and num.startswith(cur[0]) else ""), rest
+    return None
+
+
+def read_items(chunks, file_name, file_kind="", heads_out=None):
+    """chunks: [(label, text)] from one file. file_kind: '' or a hint from the file name (Instruction / Evaluation / SOW).
+    Returns candidate items (dicts)."""
+    items = []
+    cur = ("", "")                                   # (section number, title)
+    heads = {}                                       # heading number -> title, for numbered paragraphs under it
+
+    def titled(sec, title):
+        if title:
+            heads[sec] = title
+            if heads_out is not None and "." in sec:
+                heads_out.append({"num": sec, "title": title, "file": file_name})
+            return sec, title
+        best = max((k for k in heads if sec == k or sec.startswith(k + ".")), key=len, default="")
+        return sec, heads.get(best, "")
+    for label, text in chunks:
+        if not text:
+            continue
+        lab_sec = _label_section(label)
+        if lab_sec:
+            got = _section_from_line(lab_sec, cur)
+            if got:
+                cur = titled(got[0], got[1] or lab_sec)
+            elif _is_heading(lab_sec):
+                cur = (cur[0], lab_sec)
+        lead_line = ""
+        for line in _join_lines(text):
+            if not line:
+                lead_line = ""
+                continue
+            got = _section_from_line(line, cur)
+            if got:
+                cur = titled(got[0], got[1] if not got[2] else "")
+                line = got[2]
+                if not line:
+                    continue
+            elif _is_heading(line):
+                cur = (cur[0], line.strip())
+                continue
+            is_item = bool(_LIST.match(line))
+            body = _LIST.sub("", line, count=1) if is_item else line
+            if is_item:
+                body = re.sub(r"\s*[;,]\s*(?:and|or)?\s*$", "", body).strip()
+            sents = [body] if is_item else _sentences(body)
+            for s in sents:
+                lead, sub = _split_inline_list(s)
+                group = [(x, lead) for x in sub] if sub else [(s, lead_line if is_item else "")]
+                for txt, ld in group:
+                    if txt.rstrip().endswith(":") and not sub:
+                        continue                         # a lead-in ("the Offeror shall:") is carried by its items
+                    it = classify(txt, ld, cur, file_kind)
+                    if it:
+                        it.update({"file": file_name, "loc": label, "page": _page(label), "context": body[:700]})
+                        items.append(it)
+            if line.rstrip().endswith(":"):
+                lead_line = (sents[-1] if sents else body) if not is_item else lead_line
+            elif not is_item:
+                lead_line = ""
+    return items
+
+
+def file_kind(name):
+    n = name.lower().replace("_", " ")
+    if re.search(r"\bsection l\b|instruction|\bl\b(?= )|proposal prep", n):
+        return "Instruction"
+    if re.search(r"\bsection m\b|evaluation|basis (?:for|of) award", n):
+        return "Evaluation"
+    if re.search(r"\bsow\b|\bpws\b|\bsoo\b|statement of (?:work|objectives)|performance work|\bsection c\b", n):
+        return "SOW"
+    return ""
+
+
+# ------------------------------------------------------------------ classifying one sentence
+def classify(text, lead, cur, kind_hint=""):
+    t = " ".join(text.split())
+    if len(t) < 12 or len(t) > 1500:
+        return None
+    probe = (lead + " " + t) if lead and not _MODAL.search(t) and not _IMPER.match(t) else t
+    modal = _MODAL.search(probe)
+    imper = _IMPER.match(t)
+    ev = _EVAL.search(probe)
+    fm = _FORMAT.search(t)
+    if not (modal or imper or ev or (fm and re.search(r"\d", t))):
+        return None
+    word = modal.group(1).lower() if modal else ""
+    # actor: the subject right before the modal; imperatives speak to the offeror
+    actor = "Unclear"
+    if modal:
+        before = probe[:modal.start()][-90:]
+        hits = [(m.start(), "Offeror") for m in _OFF.finditer(before)] + \
+               [(m.start(), "Contractor") for m in _CON.finditer(before)] + \
+               [(m.start(), "Government") for m in _GOV.finditer(before)]
+        if hits:
+            actor = max(hits)[1]
+        elif imper:
+            actor = "Offeror"
+    elif imper:
+        actor = "Offeror"
+    sec = cur[0]
+    letter = sec.split(".")[0] if sec and sec[0].isalpha() else ""
+    kind = {"L": "Instruction", "M": "Evaluation", "C": "SOW"}.get(letter, kind_hint)
+    if ev or (kind == "Evaluation" and actor == "Government"):
+        typ = "Evaluation"
+    elif fm and actor != "Government":
+        typ = "Format"
+    elif actor == "Government":
+        typ = "Information"
+    elif kind:
+        typ = kind
+    elif actor == "Contractor":
+        typ = "SOW"
+    elif actor == "Offeror" or imper:
+        typ = "Instruction"
+    else:
+        typ = "Requirement"
+    if typ == "Evaluation":
+        strength = "Evaluation"
+    elif actor == "Government":
+        strength = "Information"
+    elif word in ("shall", "must", "shall not", "must not", "is required to", "are required to", "is to", "are to", "may not", "will not") or \
+            (imper and not word) or (word == "will" and actor != "Government"):
+        strength = "Mandatory"
+    elif word in ("should", "is expected to", "are expected to"):
+        strength = "Desired"
+    elif word == "may":
+        strength = "Optional"
+    elif actor == "Government":
+        strength = "Information"
+    else:
+        strength = "Mandatory" if fm else "Check"
+    if typ == "Information" or (actor == "Government" and typ != "Evaluation"):
+        suggest = "Drop"
+    elif strength == "Optional" or actor == "Unclear" and not fm and typ == "Requirement":
+        suggest = "Review"
+    else:
+        suggest = "Keep"
+    side = [m for m in _MODAL.finditer(t) if m.group(1).lower() in ("shall", "must", "will", "should")]
+    compound = len(side) >= 2 or bool(re.search(r"\band\s+(?:shall|must|will)\b", t, re.I)) or \
+        (bool(imper) and len(re.findall(r"[;]", t)) >= 1)
+    return {"text": t, "lead": lead if lead and lead != t else "", "section": sec, "section_title": cur[1],
+            "actor": actor, "type": typ, "strength": strength, "suggest": suggest, "modal": word or (imper.group(1).lower() if imper else ""),
+            "xrefs": "; ".join(dict.fromkeys(m.group(0).strip() for m in _XREF.finditer(t) if m.group(0).strip() != sec)),
+            "compound": compound}
+
+
+def split_text(text):
+    """Split a compound requirement at '; ' or at 'and shall / must / will' into its parts."""
+    parts = re.split(r";\s+(?:and\s+)?|\s*,?\s+and\s+(?=(?:shall|must|will|should)\b)", text)
+    parts = [p.strip().rstrip(".;,") for p in parts if p and len(p.strip()) > 3]
+    if len(parts) < 2:
+        return [text]
+    subj = re.match(r"^(.*?\b(?:shall|must|will|should))\b", parts[0], re.I)
+    head = subj.group(1).rsplit(" ", 1)[0] if subj else ""
+    out = [parts[0] + "."]
+    for p in parts[1:]:
+        if head and re.match(r"^(shall|must|will|should)\b", p, re.I):
+            p = head + " " + p
+        out.append(p[0].upper() + p[1:] + ".")
+    return out
+
+
+# ------------------------------------------------------------------ the matrix
+def text_key(text):
+    return hashlib.sha1(re.sub(r"\W+", " ", text.lower()).strip().encode()).hexdigest()[:12]
+
+
+def assign_ids(items):
+    """Stable, readable IDs: section-based (L.4.2-03) or file-based (SOW-07)."""
+    counts = {}
+    used = {it["id"] for it in items if it.get("id")}
+    for it in items:
+        if it.get("id"):
+            continue
+        base = it["section"] or re.sub(r"[^A-Za-z0-9]+", "", os.path.splitext(it["file"])[0])[:10] or "REQ"
+        n = counts.get(base, 0)
+        while True:
+            n += 1
+            cand = f"{base}-{n:02d}"
+            if cand not in used:
+                break
+        counts[base] = n
+        it["id"] = cand
+        used.add(cand)
+    return items
+
+
+def extract(files_chunks, headings=None):
+    """files_chunks: [(file name, chunks)]. Returns items with IDs, links and suggestions.
+    headings (list): filled with the RFP's numbered headings [{num, title, file}]."""
+    items = []
+    for name, chunks in files_chunks:
+        items += read_items(chunks, name, file_kind(name), headings)
+    seen, out = set(), []
+    for it in items:                               # the same sentence repeated in a header or table: keep once
+        k = (it["file"], text_key(it["text"]))
+        if k in seen:
+            continue
+        seen.add(k)
+        it.update({"key": text_key(it["text"]), "decision": "", "map": "", "owner": "", "status": "", "notes": "",
+                   "response_page": "", "links": "", "new": ""})
+        out.append(it)
+    assign_ids(out)
+    link_items(out)
+    return out
+
+
+def merge_reread(old, new):
+    """Re-reading the RFP (an amendment): decisions, mapping and notes carry over to identical sentences.
+    New sentences are marked; sentences no longer present are kept and marked 'Not in the latest read'."""
+    by_key = {it["key"]: it for it in old}
+    used_ids = {it["id"] for it in old}
+    out = []
+    for it in new:
+        o = by_key.pop(it["key"], None)
+        if o:
+            for f in ("id", "decision", "map", "owner", "status", "notes", "response_page", "text"):
+                it[f] = o.get(f, "")
+            it["new"] = ""
+        else:
+            it["new"] = "New in latest read"
+            it["id"] = "" if it["id"] in used_ids else it["id"]
+        out.append(it)
+    for o in by_key.values():
+        o["new"] = "Not in the latest read"
+        out.append(o)
+    assign_ids(out)
+    link_items(out)
+    return out
+
+
+def _words(s):
+    return {w[:-1] if len(w) > 4 and w.endswith("s") else w for w in re.findall(r"[a-z][a-z0-9\-]{2,}", s.lower())} - _STOPW
+
+
+def link_items(items):
+    """Link Evaluation (M) and SOW items to the Instruction items they concern: explicit section cross-references,
+    then strong word overlap (Jaccard >= 0.3, best match only)."""
+    instr = [it for it in items if it["type"] in ("Instruction", "Format")]
+    for it in items:
+        links = []
+        refs = [r.strip() for r in it.get("xrefs", "").split(";") if r.strip()]
+        for r in refs:
+            num = re.sub(r"^(?:section|sec\.|paragraph|para\.?|¶)\s+", "", r, flags=re.I)
+            if "." not in num:
+                continue                                # "Section C" names a whole section: too broad to link
+            for o in items:
+                if o is not it and o["section"] and (o["section"] == num or o["section"].startswith(num + ".")):
+                    links.append(o["id"])
+        if it["type"] in ("Evaluation", "SOW") and not links and instr:
+            w = _words(it["text"])
+            best, score = None, 0.0
+            for o in instr:
+                ow = _words(o["text"])
+                if w and ow:
+                    j = len(w & ow) / len(w | ow)
+                    if j > score:
+                        best, score = o, j
+            if best is not None and score >= 0.3:
+                links.append(best["id"])
+        it["links"] = "; ".join(dict.fromkeys(links))[:300]
+    return items
+
+
+# ------------------------------------------------------------------ outline (C2)
+_OUTLINE_LINE = re.compile(r"^(\s*)((?:Volume|Vol\.?)\s+[IVX\d]+|[A-M](?:\.\d+)+|\d+(?:\.\d+)*|[A-M]|[IVX]+)?[.)]?\s*[-–—:]?\s*(.*)$", re.I)
+
+
+def parse_outline(text):
+    """One section per line: '1.2 Management Approach', 'Volume I - Technical', or indented titles.
+    Returns [{"num", "title", "level"}]."""
+    out = []
+    for raw in text.splitlines():
+        if not raw.strip():
+            continue
+        line = raw.replace("\t", "    ")
+        m = _OUTLINE_LINE.match(line)
+        indent, num, title = len(m.group(1)), (m.group(2) or "").strip(), m.group(3).strip()
+        if num and not title:
+            title, num = num, ""
+        if num.lower().startswith(("volume", "vol")):
+            level = 1
+        elif num:
+            level = num.count(".") + 1 if num[0].isdigit() else num.count(".") + 1
+        else:
+            level = indent // 4 + 1
+        out.append({"num": num, "title": title or num, "level": max(1, min(level, 6))})
+    return out
+
+
+def outline_text(outline):
+    return "\n".join(("    " * (o["level"] - 1)) + (f"{o['num']} " if o["num"] else "") + o["title"] for o in outline)
+
+
+def outline_label(o):
+    return f"{o['num']} {o['title']}".strip()
+
+
+def sec_key(num):
+    """L.4.10 after L.4.2; letters before numbers."""
+    return [(0, p) if not p.isdigit() else (1, int(p)) for p in re.split(r"[.]", num)]
+
+
+def outline_from_headings(headings, letter="L"):
+    """The RFP's numbered headings in one section (Section L by default), sorted by number: a starting outline."""
+    seen, out = set(), []
+    for h in sorted(headings, key=lambda h: sec_key(h["num"])):
+        num = h["num"]
+        if num in seen or (letter and not num.startswith(letter + ".")):
+            continue
+        seen.add(num)
+        out.append({"num": num, "title": h["title"], "level": num.count(".") if num[0].isalpha() else num.count(".") + 1})
+    return out
+
+
+def outline_from_docx_xml(document_xml):
+    """Headings of a Word outline (Heading 1-6 styles), from word/document.xml bytes (hardened parser)."""
+    from lxml import etree
+    parser = etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False, huge_tree=False)
+    root = etree.fromstring(document_xml, parser)
+    W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    out = []
+    for p in root.iter(W + "p"):
+        st = p.find(f"{W}pPr/{W}pStyle")
+        if st is None:
+            continue
+        m = re.match(r"^(?:Heading|heading)\s*(\d)$", st.get(W + "val", ""))
+        if not m:
+            continue
+        txt = "".join(t.text or "" for t in p.iter(W + "t")).strip()
+        if txt:
+            o = parse_outline(txt)[0] if parse_outline(txt) else {"num": "", "title": txt}
+            out.append({"num": o["num"], "title": o["title"], "level": int(m.group(1))})
+    return out
+
+
+def word_df(items):
+    """How many requirements use each word (rare words carry more meaning)."""
+    df = {}
+    for it in items:
+        for w in _words(it["text"] + " " + it.get("lead", "")):
+            df[w] = df.get(w, 0) + 1
+    return df, max(1, len(items))
+
+
+def _leaves(outline):
+    """Sections without subsections: requirements map to the most specific place (not 'Volume I')."""
+    out = []
+    for i, o in enumerate(outline):
+        nxt = outline[i + 1] if i + 1 < len(outline) else None
+        if not (nxt and nxt["level"] > o["level"]):
+            out.append(o)
+    return out
+
+
+def suggest_map(item, outline, stats=None):
+    """Best outline section for an item: the same section number first; otherwise rare shared words, where most of
+    the section title's meaning must match. Returns (label, score) or ("", 0)."""
+    if not outline:
+        return "", 0.0
+    import math
+    df, n = stats or ({}, 1)
+    idf = lambda w: math.log(1 + n / (1 + df.get(w, 0)))
+    sec = item["section"]
+    best, score = None, 0.0
+    for o in outline:
+        if sec and o["num"] and (sec == o["num"] or sec.startswith(o["num"] + ".")):
+            s = 2.0 + o["num"].count(".") * 0.01           # deepest matching number wins
+            if s > score:
+                best, score = o, s
+    if best is not None:
+        return outline_label(best), round(score, 2)
+    w = _words(item["text"] + " " + item.get("lead", ""))
+    for o in _leaves(outline):
+        ow = {x for x in _words(o["title"]) if df.get(x, 0) > 0 or not stats}
+        hit = w & ow
+        if not hit:
+            continue
+        if len(hit) < math.ceil(len(ow) * 0.75):
+            continue                                    # most title words must appear: "Risk Management" needs both
+        got = sum(idf(x) for x in hit)
+        frac = got / sum(idf(x) for x in ow)
+        s = frac * min(1.0, got / 2.0) if frac >= 0.6 else 0.0
+        if s > score:
+            best, score = o, s
+    return (outline_label(best), round(score, 2)) if best is not None and score >= 0.3 else ("", 0.0)
+
+
+# ------------------------------------------------------------------ the workbook
+COLUMNS = ["ID", "Decision", "Suggested", "Section", "Section title", "Requirement", "Lead-in", "Actor", "Type", "Strength",
+           "Cross-references", "Linked items", "Outline section", "Owner", "Status", "Response page", "Notes",
+           "Source file", "Location", "Compound", "Change", "Context", "Key"]
+WIDTHS = [12, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 12, 12, 24, 26, 30, 9, 14, 60, 13]
+FIELD = {"ID": "id", "Decision": "decision", "Suggested": "suggest", "Section": "section", "Section title": "section_title",
+         "Requirement": "text", "Lead-in": "lead", "Actor": "actor", "Type": "type", "Strength": "strength",
+         "Cross-references": "xrefs", "Linked items": "links", "Outline section": "map", "Owner": "owner", "Status": "status",
+         "Response page": "response_page", "Notes": "notes", "Source file": "file", "Location": "loc",
+         "Compound": "compound", "Change": "new", "Context": "context", "Key": "key"}
+
+
+class Locked(Exception):
+    """The workbook is open in Excel."""
+
+
+class Matrix:
+    def __init__(self, path, name=""):
+        self.path = path
+        self.name = name or os.path.splitext(os.path.basename(path))[0]
+        self.items, self.outline, self.sources, self.history = [], [], [], []
+        self.headings = []
+        self.pending = False
+
+    def load(self):
+        self.items, self.outline, self.sources, self.history = [], [], [], []
+        self.headings = []
+        if not os.path.isfile(self.path):
+            return self
+        from openpyxl import load_workbook
+        wb = load_workbook(self.path, read_only=True, data_only=True)
+        try:
+            ws = wb["Compliance Matrix"] if "Compliance Matrix" in wb.sheetnames else wb.worksheets[0]
+            it = ws.iter_rows(values_only=True)
+            head = [str(h or "").strip() for h in next(it, [])]
+            idx = {h: i for i, h in enumerate(head)}
+            for vals in it:
+                vals = list(vals or [])
+                if not any(v not in (None, "") for v in vals):
+                    continue
+                row = {}
+                for col, f in FIELD.items():
+                    v = vals[idx[col]] if col in idx and idx[col] < len(vals) else None
+                    row[f] = "" if v is None else str(v).strip()
+                if not row["text"]:
+                    continue
+                row["compound"] = row["compound"].lower() in ("yes", "true", "1")
+                row["decision"] = {"k": "Keep", "keep": "Keep", "yes": "Keep", "d": "Drop", "drop": "Drop", "no": "Drop"}.get(row["decision"].lower(), "")
+                row["page"] = _page(row["loc"])
+                row["key"] = row["key"] or text_key(row["text"])
+                self.items.append(row)
+            if "Outline" in wb.sheetnames:
+                rows = list(wb["Outline"].iter_rows(values_only=True))[1:]
+                for r in rows:
+                    if r and len(r) >= 3 and (r[1] or r[0]):
+                        try:
+                            lvl = int(r[2] or 1)
+                        except (TypeError, ValueError):
+                            lvl = 1
+                        self.outline.append({"num": str(r[0] or "").strip(), "title": str(r[1] or r[0]).strip(), "level": lvl})
+            if "Sources" in wb.sheetnames:
+                self.sources = [[("" if v is None else str(v)) for v in (list(r) + ["", "", ""])[:3]]
+                                for r in list(wb["Sources"].iter_rows(values_only=True))[1:] if r and r[0]]
+            if "RFP headings" in wb.sheetnames:
+                self.headings = [{"num": str(r[0]), "title": str(r[1] or ""), "file": str(r[2] or "")}
+                                 for r in list(wb["RFP headings"].iter_rows(values_only=True))[1:] if r and r[0]]
+            if "History" in wb.sheetnames:
+                self.history = [[("" if v is None else str(v)) for v in (list(r) + ["", "", "", ""])[:4]]
+                                for r in list(wb["History"].iter_rows(values_only=True))[1:] if r and any(r)]
+            if "About" in wb.sheetnames:
+                for r in wb["About"].iter_rows(values_only=True):
+                    if r and r[0] == "Matrix" and len(r) > 1 and r[1]:
+                        self.name = str(r[1])
+        finally:
+            wb.close()
+        assign_ids(self.items)
+        return self
+
+    def log(self, what, change):
+        user = os.environ.get("USERNAME") or os.environ.get("USER") or "unknown"
+        self.history.append([datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), user, what, change])
+        self.pending = True
+
+    def counts(self):
+        c = {"total": len(self.items), "Keep": 0, "Drop": 0, "": 0, "mapped": 0, "kept_unmapped": 0}
+        for it in self.items:
+            c[it["decision"]] = c.get(it["decision"], 0) + 1
+            if it["decision"] == "Keep":
+                c["mapped" if it["map"] else "kept_unmapped"] += 1
+        return c
+
+    def save(self):
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment
+        from openpyxl.worksheet.datavalidation import DataValidation
+        d = os.path.dirname(os.path.abspath(self.path))
+        os.makedirs(d, exist_ok=True)
+        wb = Workbook()
+        ws = wb.active; ws.title = "Compliance Matrix"
+        ws.append(COLUMNS)
+        for i, c in enumerate(ws[1], 1):
+            c.font = Font(bold=True, color="FFFFFF"); c.fill = PatternFill("solid", fgColor="1E3A8A")
+            ws.column_dimensions[c.column_letter].width = WIDTHS[i - 1]
+        fills = {"Keep": "E7F6EC", "Drop": "EEEEEE"}
+        for it in self.items:
+            ws.append([("Yes" if it.get(FIELD[c]) else "") if c == "Compound" else it.get(FIELD[c], "") for c in COLUMNS])
+            f = fills.get(it["decision"])
+            if f:
+                for c in ws[ws.max_row]:
+                    c.fill = PatternFill("solid", fgColor=f)
+        for row in ws.iter_rows(min_row=2):
+            for c in row:
+                c.alignment = Alignment(wrap_text=True, vertical="top")
+        ws.freeze_panes = "C2"
+        last = ws.cell(row=1, column=len(COLUMNS)).column_letter
+        ws.auto_filter.ref = f"A1:{last}{max(2, ws.max_row)}"
+        dv = DataValidation(type="list", formula1='"Keep,Drop"', allow_blank=True)
+        ws.add_data_validation(dv)
+        dv.add(f"B2:B{max(2, ws.max_row) + 500}")
+        for col in ("Context", "Key"):
+            ws.column_dimensions[ws.cell(row=1, column=COLUMNS.index(col) + 1).column_letter].hidden = col == "Key"
+        ol = wb.create_sheet("Outline")
+        ol.append(["Number", "Title", "Level", "Kept items mapped"])
+        for c in ol[1]:
+            c.font = Font(bold=True)
+        for o in self.outline:
+            lab = outline_label(o)
+            ol.append([o["num"], o["title"], o["level"], sum(1 for it in self.items if it["decision"] == "Keep" and it["map"] == lab)])
+        for col, w in zip("ABCD", (12, 60, 8, 18)):
+            ol.column_dimensions[col].width = w
+        so = wb.create_sheet("Sources")
+        so.append(["File", "SHA-256", "Read on"])
+        for s in self.sources:
+            so.append(s)
+        for col, w in zip("ABC", (50, 68, 18)):
+            so.column_dimensions[col].width = w
+        rh = wb.create_sheet("RFP headings")
+        rh.append(["Number", "Title", "File"])
+        for h in self.headings:
+            rh.append([h["num"], h["title"], h.get("file", "")])
+        for col, w in zip("ABC", (12, 60, 40)):
+            rh.column_dimensions[col].width = w
+        hs = wb.create_sheet("History")
+        hs.append(["Date", "User", "Item", "Change"])
+        for h in self.history[-5000:]:
+            hs.append(h)
+        for col, w in zip("ABCD", (17, 14, 18, 70)):
+            hs.column_dimensions[col].width = w
+        ab = wb.create_sheet("About")
+        c = self.counts()
+        for r in (["Matrix", self.name], ["Saved", datetime.datetime.now().strftime("%Y-%m-%d %H:%M")],
+                  ["Items", c["total"]], ["Keep", c["Keep"]], ["Drop", c["Drop"]], ["Undecided", c[""]],
+                  ["Kept and mapped", c["mapped"]], ["Kept, not mapped", c["kept_unmapped"]],
+                  ["Note", "Decision: Keep or Drop (blank = undecided). Edit here or in Acronym Hunter; keep the column headings. "
+                           "This workbook holds customer content: keep it on this PC or SharePoint."]):
+            ab.append(r)
+        ab.column_dimensions["A"].width = 18; ab.column_dimensions["B"].width = 90
+        fd, tmp = tempfile.mkstemp(prefix=".matrix_", suffix=".xlsx", dir=d)
+        os.close(fd)
+        try:
+            wb.save(tmp)
+            try:
+                os.replace(tmp, self.path)
+            except PermissionError:
+                raise Locked(self.path)
+        finally:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+        self.pending = False
+
+
+# ------------------------------------------------------------------ Word outline export
+def write_outline_docx(matrix, path, title=""):
+    """Annotated outline: each outline section as a Word heading, with its kept requirements in a table
+    (ID, RFP reference, requirement); then kept requirements not mapped yet."""
+    import docxw
+    doc = docxw.Doc()
+    doc.heading(title or f"{matrix.name}: proposal outline with compliance requirements", 1)
+    doc.para(f"Built {datetime.date.today().isoformat()} from the compliance matrix. Kept requirements only.")
+    kept = [it for it in matrix.items if it["decision"] == "Keep"]
+    for o in matrix.outline:
+        lab = outline_label(o)
+        doc.heading(lab, min(o["level"] + 1, 6))
+        rows = [it for it in kept if it["map"] == lab]
+        if rows:
+            doc.table(["ID", "RFP reference", "Requirement"],
+                      [[it["id"], " ".join(x for x in (it["section"], it["section_title"]) if x) or it["file"],
+                        (it["lead"] + " " if it["lead"] else "") + it["text"]] for it in rows], [1300, 2000, 6060])
+    rest = [it for it in kept if not it["map"]]
+    if rest:
+        doc.heading("Kept requirements not mapped to the outline", 2)
+        doc.table(["ID", "RFP reference", "Requirement"],
+                  [[it["id"], " ".join(x for x in (it["section"], it["section_title"]) if x) or it["file"], it["text"]] for it in rest],
+                  [1300, 2000, 6060])
+    doc.save(path)
+    return {"sections": len(matrix.outline), "mapped": sum(1 for it in kept if it["map"]), "unmapped": len(rest)}

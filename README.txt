@@ -380,3 +380,23 @@ VOLUME CHECK AND FIRST USE (2.7.0)
 - Add missing to the effort list (as Proposed) and Record volumes and first use (fills Used in volumes and First use).
 - Export report (Excel): Summary, First use, Not in effort list, Not approved, Definition differs, Unused, and one
   list sheet per volume. Reports and lists hold customer content: keep them on this PC or SharePoint.
+
+COMPLIANCE MATRIX (2.8.0)
+- Compliance (top bar) > New from RFP files: pick the RFP documents (Word, PDF, Excel, PowerPoint). Rules list every
+  candidate requirement: shall, must, will, should, may, is required to, imperatives (describe, provide, submit...),
+  evaluation language (will be evaluated / assessed) and format rules (page limits, fonts, margins, due dates). Each
+  row keeps its file, page or section, section title and source passage. No language model is used.
+- Each row gets a rule-based Type (Instruction, Evaluation, SOW, Format, Information), Actor (Offeror, Contractor,
+  Government), Strength (Mandatory, Desired, Optional), cross-references (C.3.4, Attachment J-2, CDRL A003, FAR) and a
+  suggestion: Keep, Drop (Government statements) or Review ('may').
+- Triage: K keep, D drop, U undecided, S split a compound requirement. Accept suggestions applies them to the undecided
+  rows shown. Filters: Decision, Type, Suggested, Outline, Search.
+- Outline tab: start from the Section L headings, import the headings of a Word outline, or type one (1.2 Title,
+  Volume I - Technical). Map kept rows; Suggest sections fills only clear matches (same section number, or most of the
+  section title's words).
+- Re-read RFP (amendment): decisions, mapping and notes stay with unchanged sentences; new ones are marked [New] and
+  removed ones [Gone].
+- The matrix is one Excel workbook (Compliance Matrix, Outline, Sources with SHA-256, RFP headings, History, About),
+  saved a few seconds after each change; edits made in Excel count. Word outline exports the proposal outline with each
+  section's kept requirements in a table, then kept requirements not mapped yet.
+- The matrix holds customer content: keep it on this PC or SharePoint.

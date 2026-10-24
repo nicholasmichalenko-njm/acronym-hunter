@@ -130,6 +130,25 @@ PAGES = {
               ("Acronym lists", "One Word file per volume (and one for all volumes): a Term and Definition table, sorted."),
               ("Record", "Writes Used in volumes and First use into the effort list.")]),
 ],
+"Compliance matrix": [
+    ("h", "Every requirement in the RFP, with its source"),
+    ("p", "Compliance (top bar) > New from RFP files. Pick the instructions, evaluation criteria, SOW and attachments. Rules "
+          "list every sentence that asks for something (shall, must, will, should, may, describe, provide, page limits, "
+          "fonts, due dates), each with its file, page or section, and the passage it came from. No AI writes anything."),
+    ("img", "compliance.png", 620),
+    ("rows", [("Decide", "K keeps, D drops, U undoes; the next row comes up. Select many rows to decide them together."),
+              ("Suggested", "Government statements are suggested Drop, 'may' is Review, offeror and contractor duties are Keep. "
+                            "Accept suggestions applies them to the undecided rows shown; Review rows stay for you."),
+              ("Split", "S splits a compound requirement (two 'shall's, or items joined by ';') into separate rows."),
+              ("Type and actor", "Instruction (L), Evaluation (M), SOW (C), Format, Information; Offeror, Contractor or Government."),
+              ("Links", "Evaluation and SOW items link to the instructions they concern, by section number or shared wording."),
+              ("Outline", "Outline tab: start from the Section L headings, import a Word outline's headings, or type one. "
+                          "Map kept rows to a section; Suggest sections fills only clear matches."),
+              ("Amendments", "Re-read RFP keeps decisions, mapping and notes for unchanged sentences and marks new and removed ones."),
+              ("Outputs", "The matrix is an Excel workbook (edits made in Excel count). Word outline makes the proposal outline "
+                          "with each section's requirements in a table.")]),
+    ("p", "The matrix holds customer content: keep it on this PC or SharePoint."),
+],
 "Pictures": [
     ("h", "The picture preview (right side)"),
     ("img", "preview.png", 340),

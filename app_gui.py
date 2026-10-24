@@ -128,6 +128,7 @@ import help_guide as HG
 import feedback as FB
 from effort_ui import EffortMixin   # Effort List (2.4.0)
 from volcheck_ui import VolumeCheckMixin   # volume check and first use (2.7.0)
+from compliance_ui import ComplianceMixin   # compliance matrix (2.8.0)
 import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
 DB_FILE = os.path.join(BASE_DIR, "acronym_database.csv")
@@ -2183,7 +2184,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.7.0"            # keep in step with version_info.txt
+APP_VERSION = "2.8.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -2961,7 +2962,7 @@ def trainer_available():
     """Training features: on unless config\\app_settings.json sets allow_training to false."""
     return bool(APP_CFG["allow_training"]) and importlib.util.find_spec("trainer_gui") is not None
 
-class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
+class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Acronym Hunter {APP_VERSION}: acronyms, abbreviations and units (100% local)")
@@ -2994,23 +2995,24 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
         top.pack(fill="x", padx=15, pady=(15, 8))
 
         B = dict(height=32, font=("Segoe UI", 13))
-        self.btn_project = ctk.CTkButton(top, text="Project ▾", command=self.show_project_menu, fg_color="#1E3A8A", width=96, **B)
-        self.btn_project.pack(side="left", padx=4, pady=8)
+        self.btn_project = ctk.CTkButton(top, text="Project ▾", command=self.show_project_menu, fg_color="#1E3A8A", width=90, **B)
+        self.btn_project.pack(side="left", padx=2, pady=8)
         self.project_menu = tk.Menu(self, tearoff=0)
-        self.btn_files = ctk.CTkButton(top, text="Select Files", command=self.select_files, width=104, **B)
-        self.btn_files.pack(side="left", padx=4, pady=8)
-        self.btn_folder = ctk.CTkButton(top, text="Scan Folder", command=self.select_folder, width=104, **B)
-        self.btn_folder.pack(side="left", padx=4, pady=8)
-        self.btn_again = ctk.CTkButton(top, text="⟳ Scan Again", command=self.scan_again, width=110, state="disabled",
+        self.btn_files = ctk.CTkButton(top, text="Select Files", command=self.select_files, width=92, **B)
+        self.btn_files.pack(side="left", padx=2, pady=8)
+        self.btn_folder = ctk.CTkButton(top, text="Scan Folder", command=self.select_folder, width=94, **B)
+        self.btn_folder.pack(side="left", padx=2, pady=8)
+        self.btn_again = ctk.CTkButton(top, text="⟳ Scan Again", command=self.scan_again, width=102, state="disabled",
                                        fg_color="#0E7490", **B)
-        self.btn_again.pack(side="left", padx=4, pady=8)
-        self.btn_export = ctk.CTkButton(top, text="Export CSV", command=self.export_csv, state="disabled", fg_color="green", width=96, **B)
-        self.btn_export.pack(side="left", padx=4, pady=8)
+        self.btn_again.pack(side="left", padx=2, pady=8)
+        self.btn_export = ctk.CTkButton(top, text="Export CSV", command=self.export_csv, state="disabled", fg_color="green", width=90, **B)
+        self.btn_export.pack(side="left", padx=2, pady=8)
         self.btn_add = ctk.CTkButton(top, text="+ Add Item", command=self.open_add_item, fg_color="#B45309", width=92, **B)
-        self.btn_add.pack(side="left", padx=4, pady=8)
-        self.btn_client = ctk.CTkButton(top, text="Client Lists", command=self.open_client_lists, fg_color="#6D28D9", width=104, **B)
-        self.btn_client.pack(side="left", padx=4, pady=8)
+        self.btn_add.pack(side="left", padx=2, pady=8)
+        self.btn_client = ctk.CTkButton(top, text="Client Lists", command=self.open_client_lists, fg_color="#6D28D9", width=94, **B)
+        self.btn_client.pack(side="left", padx=2, pady=8)
         self.effort_init(top, B)
+        self.compliance_init(top, B)
 
         # Right side, packed first so it never gets pushed off: Advanced switch, then the Tools menu
         self.adv_var = ctk.BooleanVar(value=self.advanced_on)
@@ -3018,11 +3020,11 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
         if self.app_cfg["allow_advanced_toggle"]:
             self.sw_adv.pack(side="right", padx=(8, 6), pady=8)
         self.btn_tools = ctk.CTkButton(top, text="Tools ▾", command=self.show_tools_menu, fg_color="#475569", width=84, **B)
-        self.btn_tools.pack(side="right", padx=4, pady=8)
+        self.btn_tools.pack(side="right", padx=2, pady=8)
         self.btn_help = ctk.CTkButton(top, text="? Guide", command=lambda: (diag.activity("guide_opened"), HG.open_guide(self)), fg_color="#0EA5E9", width=76, **B)
-        self.btn_help.pack(side="right", padx=4, pady=8)
+        self.btn_help.pack(side="right", padx=2, pady=8)
         self.btn_feedback = ctk.CTkButton(top, text="Feedback", command=lambda: FB.open_feedback(self), fg_color="#64748B", width=84, **B)
-        self.btn_feedback.pack(side="right", padx=4, pady=8)
+        self.btn_feedback.pack(side="right", padx=2, pady=8)
         self.bind_all("<Control-Shift-F>", lambda e: FB.open_feedback(self))
         self.bind_all("<Control-Shift-f>", lambda e: FB.open_feedback(self))
         self.bind_all("<F1>", lambda e: (diag.activity("guide_opened"), HG.open_guide(self)))
@@ -3423,7 +3425,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
         if self.advanced_on:
             self.btn_ocr.pack(side="left", padx=5, pady=12, after=self.btn_save)
         if self.advanced_on and trainer_available() and OCR_BACKEND == "tesseract":   # always in Tools and the banner
-            self.btn_improve_top.pack(side="right", padx=4, pady=8, before=self.btn_tools)
+            self.btn_improve_top.pack(side="right", padx=2, pady=8, before=self.btn_tools)
 
     def show_tools_menu(self):
         m = self.tools_menu

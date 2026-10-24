@@ -26,8 +26,8 @@ class EffortMixin:
         eng = _eng()
         self.efforts = E.Registry(os.path.join(eng.CONFIG_DIR, "efforts.json"))
         self.effort = None
-        self.btn_effort = ctk.CTkButton(toolbar, text="Effort ▾", command=self.show_effort_menu, fg_color="#0F766E", width=96, **button_kw)
-        self.btn_effort.pack(side="left", padx=4, pady=8)
+        self.btn_effort = ctk.CTkButton(toolbar, text="Effort ▾", command=self.show_effort_menu, fg_color="#0F766E", width=88, **button_kw)
+        self.btn_effort.pack(side="left", padx=2, pady=8)
         self.effort_menu = tk.Menu(self, tearoff=0)
         self.lbl_effort = ctk.CTkLabel(self, text="", font=("Arial", 12), text_color=("#0F766E", "#5EEAD4"))
         if self.efforts.current:
