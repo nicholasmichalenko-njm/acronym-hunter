@@ -2821,10 +2821,10 @@ SETTINGS_FILE = os.path.join(SANDBOX_DIR, "settings.json")
 ALL_TYPES = "All types"
 STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", "Client list", "Client and database differ",
                   "Not defined at first use", "Equations and symbols", "Undefined symbols",
-                  "Added manually", "In effort list", "Not in effort list", "Effort: needs author", "Effort: approved",
+                  "Added manually", "Customer documents", "Customer and database differ", "In effort list", "Not in effort list", "Effort: needs author", "Effort: approved",
                   "New since last scan", "Changed since last scan", "No longer found", "Errors / not scanned", "Excluded"]
 MANUAL_MARK = "✍"
-STATUS_ORDER = (("⛔", 0), ("⚠️", 1), ("\u2605", 2), ("🔍", 3), (MANUAL_MARK, 4), ("✅", 5), ("✖", 6), ("🚫", 7))
+STATUS_ORDER = (("⛔", 0), ("⚠️", 1), ("\u2605", 2), ("🔍", 3), (MANUAL_MARK, 4), ("📋", 5), ("📄", 5), ("✅", 5), ("✖", 6), ("🚫", 7))
 LOC_MAX_LINES = 3   # Locations wrap to at most this many lines in the table; double-click a row for all of them
 MANUAL_CATEGORIES = ["Acronym", "Abbreviation", "Unit", "Other"]
 COLUMNS = (  # id, heading, base width, anchor
@@ -3028,6 +3028,7 @@ class AcronymAppGUI(EffortMixin, ctk.CTk):
         self.tree.tag_configure("clientdiff", background="#F5D0FE", foreground="#701A75")
         self.tree.tag_configure("equation", background="#E0E7FF", foreground="#312E81")
         self.tree.tag_configure("effort", background="#CCFBF1", foreground="#115E59")
+        self.tree.tag_configure("customer", background="#DCFCE7", foreground="#166534")
 
         vsb = ttk.Scrollbar(tf, orient="vertical", command=self.tree.yview)
         hsb = ttk.Scrollbar(tf, orient="horizontal", command=self.tree.xview)
@@ -4031,7 +4032,7 @@ class AcronymAppGUI(EffortMixin, ctk.CTk):
             decisions.update(self.project.data["decisions"])
         for term, choice in decisions.items():
             d = self.results.get(term)
-            if d and d.get("in_db") and not d.get("excluded") and not d.get("gone") and \
+            if d and (d.get("in_db") or d.get("customer_definitions")) and not d.get("excluded") and not d.get("gone") and \
                     (choice == "Keep All Possibilities" or choice in d.get("definitions", [])):
                 self._set_choice(d, choice)
 
@@ -4158,6 +4159,8 @@ class AcronymAppGUI(EffortMixin, ctk.CTk):
             "Client and database differ": bool(data.get("client") and data.get("db_definitions")),
             "Added manually": data.get("manual", False),
             "In effort list": bool(data.get("effort")),
+            "Customer documents": bool(data.get("customer_definitions")),
+            "Customer and database differ": bool(data.get("cust_db_differ")),
             "Not in effort list": not data.get("effort") and not data.get("excluded", False),
             "Effort: needs author": data.get("effort") in ("Proposed", "Needs author"),
             "Effort: approved": data.get("effort") == "Approved",
@@ -4253,6 +4256,7 @@ class AcronymAppGUI(EffortMixin, ctk.CTk):
         if data.get("effort") == "Approved": return "resolved"
         if data.get("effort"): return "effort"
         st = data["status"]
+        if data.get("customer_definitions") and not st.startswith("⚠️"): return "customer"
         if st.startswith("⛔"): return "fileerror"
         if st.startswith("⚠️"): return "ambiguous"
         if data.get("client"): return "clientdiff" if data.get("db_definitions") else "client"
@@ -4276,6 +4280,7 @@ class AcronymAppGUI(EffortMixin, ctk.CTk):
         for term, item in self.manual_items.items():   # manual items survive rescans
             if term not in self.results:
                 self.results[term] = item
+        self.apply_customer_defs()
         self.apply_saved_decisions()
         self.apply_effort(reload=True)
         self.save_project()
@@ -4367,7 +4372,7 @@ class AcronymAppGUI(EffortMixin, ctk.CTk):
         self.btn_exc.configure(text="🚫 Exclude", command=self.exclude_term)
         self.btn_exc.configure(state="disabled" if data.get("excluded", False) else "normal")
 
-        if data["in_db"] and not data.get("excluded", False) and len(data["definitions"]) > 1:
+        if (data["in_db"] or data.get("customer_definitions")) and not data.get("excluded", False) and len(data["definitions"]) > 1:
             opts = list(data["definitions"]) + ["Keep All Possibilities"]
             self.combo.configure(state="normal", values=opts); self.combo.set(opts[0])
             self.btn_apply.configure(state="normal")

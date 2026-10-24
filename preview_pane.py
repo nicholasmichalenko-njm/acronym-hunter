@@ -338,6 +338,12 @@ class PreviewPane(ctk.CTkFrame):
             else:
                 txt = ("This picture looks like an equation. Check its symbols by eye: the text reader reads letters well "
                        "but can miss subscripts, Greek letters and fraction bars. The math add-on reads equations exactly.")
+        if d.get("custdef_all") and not txt:
+            hits = d["custdef_all"]
+            txt = "Customer document" + ("s define it differently:" if len(hits) > 1 else ":") + "".join(
+                f"\n  {h['definition']}  ({eng._file_of(h['where'])})" for h in hits[:4])
+            if d.get("db_or_client_definitions"):
+                txt += "\nDatabase: " + " | ".join(d["db_or_client_definitions"][:3])
         if txt:
             self.lbl_math.configure(text=txt)
             self.lbl_math.pack(fill="x", padx=10, pady=(0, 4), before=self.ctl)

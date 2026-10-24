@@ -97,6 +97,23 @@ PAGES = {
               ("Why", "The new reader learns your fonts and drawings, so it misreads less, even on words nobody corrected."),
               ("Safe", "It tests the new reader first and keeps it only if it reads better. Put back the previous reader undoes it.")]),
 ],
+"Effort list": [
+    ("h", "One list per proposal"),
+    ("p", "The effort list is an Excel file that keeps every term found, chosen and approved for one proposal. "
+          "It starts on your desktop and can live in a synced SharePoint folder so the team sees the same list."),
+    ("rows", [("Start", "Effort > New effort. Name it, pick where the list lives, choose the first-use rule, and point to the "
+                        "customer documents folder."),
+              ("Customer first", "Every scan reads the customer documents' own definitions: \"Spelled Out (ACR)\" and acronym "
+                                 "tables. The customer's definition beats the database. Two different ones: you choose."),
+              ("Add", "Select rows and click Add to effort list. A definition typed in the bottom box goes in too."),
+              ("Approve", "Right-click > Effort list > Approve. Enter the SS approver; several names are fine, separated by ;."),
+              ("Not a term", "Right-click > Effort list > Not a term in this effort. Hidden for this proposal only."),
+              ("Scan Again", "Approved definitions win on every later scan. Edits made in Excel are read too."),
+              ("Export", "Effort > Export for approvals: sheets for Needs author, Conflicts, Approved and All."),
+              ("Excel open", "If the list is open in Excel, the app asks you to close it and keeps your change until it can save.")]),
+    ("h", "Which definition wins"),
+    ("p", "Effort list (approved) > customer documents > client lists > company database."),
+],
 "Pictures": [
     ("h", "The picture preview (right side)"),
     ("img", "preview.png", 340),

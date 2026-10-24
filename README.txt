@@ -338,3 +338,18 @@ Fix OCR vs Training (Correct + Teach and Improve Reading), the picture preview, 
   text-only zip after showing you everything in it.
 - Logs are content-free: fixed messages, error types, code locations, counts. Usage logging records which controls
   are clicked (by internal name), to improve the app; turn it off with "usage_logging": false in config\app_settings.json.
+
+EFFORT LIST AND CUSTOMER DEFINITIONS (2.4.0 / 2.5.0)
+- Effort button: one Excel list per proposal (Effort List, History and About sheets). New effort asks for a name,
+  where the list lives (desktop or a synced SharePoint folder), the first-use rule (per volume or the whole
+  submission), and the customer documents folder.
+- Add to effort list (bottom bar), and right-click > Effort list: Approve (SS approver names, several allowed),
+  Needs an author, Not a term in this effort, Back to Proposed, Remove.
+- Every scan reads the list (edits made in Excel included): approved definitions win; rejected terms are hidden for
+  this effort only. Status filters: In effort list, Not in effort list, Effort: needs author, Effort: approved.
+- Customer documents: every scan reads definitions written in the customer documents folder ("Spelled Out (ACR)",
+  "ACR (Spelled Out)", acronym tables and glossaries). The customer's definition beats the database; two different
+  customer definitions ask you to choose. Filters: Customer documents, Customer and database differ.
+- Effort > Export for approvals: a workbook with Needs author, Conflicts, Approved and All sheets.
+- If Excel has the list open, the app asks you to close it and keeps the change until it can save.
+- The list holds customer content: keep it on this PC or SharePoint, never in GitHub or email outside the team.

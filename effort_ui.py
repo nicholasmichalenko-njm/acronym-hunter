@@ -308,7 +308,7 @@ class EffortMixin:
             if d.get("file_error"):
                 continue
             definition = typed or self._definition_for(d)
-            cust = d.get("custdef_source") or {}
+            cust = next((h for h in d.get("custdef_all", []) if h["definition"] == definition), None) or {}
             fields = dict(Type=eng.base_type(d.get("category", "")), Source=self._source_for(d, definition),
                           **{"First use": "; ".join(eng.first_use_lines(d))[:400]})
             if definition:
@@ -384,6 +384,67 @@ class EffortMixin:
         sub.add_separator()
         sub.add_command(label=f"Remove from effort list ({n})", command=lambda: self.remove_from_effort(sel))
         menu.add_cascade(label=f"{EFFORT_MARK} Effort list", menu=sub)
+
+    # ------------------------------------------------------------ customer documents (2.5.0)
+    def customer_files(self):
+        """Files in the effort's customer documents folder (Word, PowerPoint, Excel, PDF)."""
+        if self.effort is None:
+            return []
+        info = self.efforts.get(self.effort.name) or {}
+        d = info.get("customer_dir") or ""
+        if not d or not os.path.isdir(d):
+            return []
+        out = []
+        for root, _dirs, fs in os.walk(d):
+            for f in fs:
+                if not f.startswith("~$") and os.path.splitext(f)[1].lower() in (".docx", ".pptx", ".xlsx", ".pdf"):
+                    out.append(os.path.join(root, f))
+        return sorted(out)
+
+    def customer_definitions(self):
+        """{term: [definition hits]} from the customer documents, cached per file until the file changes."""
+        import custdefs
+        eng = _eng()
+        cache = getattr(self, "_custdef_cache", {})
+        self._custdef_cache = cache
+        merged = {}
+        for path in self.customer_files():
+            try:
+                st = os.stat(path)
+                key = (path, st.st_size, st.st_mtime)
+                if key not in cache:
+                    cache[key] = custdefs.extract(eng.typed_chunks(path) + custdefs.table_chunks(path))
+                for term, hits in cache[key].items():
+                    lst = merged.setdefault(term, [])
+                    for h in hits:
+                        if not any(x["definition"].lower() == h["definition"].lower() for x in lst):
+                            lst.append(h)
+            except Exception:
+                diag.swallowed()
+        return merged
+
+    def apply_customer_defs(self):
+        """The customer's own definition outranks the database. Several different ones: the user chooses."""
+        import custdefs
+        eng = _eng()
+        defs = self.customer_definitions() if self.effort is not None else {}
+        n = custdefs.merge_into(self.results, defs, folded=lambda t: eng.fold(t).strip())
+        diag.activity("customer_definitions_applied", terms=n, files=len(self.customer_files()) if defs else 0)
+        for term, d in self.results.items():
+            cdefs = d.get("customer_definitions")
+            if not cdefs or d.get("excluded") or d.get("file_error"):
+                continue
+            db = [x for x in d.get("definitions", []) if x not in cdefs]
+            d["db_or_client_definitions"] = db
+            d["definitions"] = list(cdefs) + db
+            d["cust_db_differ"] = bool(db)
+            if len(cdefs) == 1:
+                d["selected_definition"] = cdefs[0]
+                d["status"] = "📄 Customer document" + (" (database differs)" if db else "")
+            else:
+                d["selected_definition"] = "MULTIPLE: " + " | ".join(cdefs)
+                d["status"] = f"⚠️ CUSTOMER DOCS DIFFER ({len(cdefs)})"
+        return n
 
     # ------------------------------------------------------------ the scan step
     def apply_effort(self, reload=False):

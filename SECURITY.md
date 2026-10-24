@@ -70,6 +70,8 @@ Complete list from a line-by-line audit of `app_gui.py` (every `open(... "w"/"a"
 | `logs\activity.jsonl` | Feature actions and clicks by internal control name (for example `btn_again`), time between actions, greyed-out clicks. Never on-screen text, rows clicked or anything typed. Off with `usage_logging: false` in `config\app_settings.json` | While the app is used | No |
 | `logs\crash_raw.txt` | Python's crash dump (contains file paths) | Only after a hard crash; converted to a content-free line in events.jsonl at the next start, then deleted. Never exported | Paths, briefly |
 | `config\choices.json` | Definition choices made with Apply Choice, reused on every later scan | Apply Choice | Terms and definitions |
+| `config\efforts.json` | Effort names, list file locations, first-use rule, customer and volumes folders | Effort setup | Folder paths |
+| Effort list `.xlsx` (where you choose) | Terms, definitions, customer document names and wording, statuses, SS approver names, history with Windows user names | Add to effort list, status changes | **Yes: customer content.** Keep on the PC or SharePoint |
 | `feedback\reports\*.json` | Feedback reports you write (feature, title, description) | Feedback window | Only what you type; the content guard blocks text that matches your terms, definitions, file or folder names |
 | `logs\selftest.txt` | Scan results | Only with `--selftest` | Terms found |
 | `_local_sandbox\settings.json` | Text size, last folder used | When you change them | Folder path |
