@@ -8,7 +8,7 @@
 Samples: copy each person's Acronym Hunter training_data\\ folder into samples\\<name>\\ (images\\ + labels.txt,
 regions\\ + det_labels.txt). Results: output\\models\\ (doctr_det.onnx, doctr_reco.onnx, doctr_models.json,
 REPORT.txt). A model is exported only if it scores better than the current one on samples it did not learn from.
-In Acronym Hunter: Tools > Knowledge > Install trained docTR models, and pick output\\models.
+In Acronym Hunter: Tools > Knowledge > Load Trained Models, and pick output\\models.
 """
 import argparse, glob, hashlib, json, os, re, shutil, subprocess, sys, time
 KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -330,8 +330,8 @@ def export(reader, finder):
             report.append(f"{'Reader' if key == 'doctr_reco' else 'Finder'}: {why}")
         info["models"][key] = entry
     json.dump(info, open(os.path.join(OUT, "doctr_models.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-    report += ["", "Install: Acronym Hunter > Tools > Knowledge > Install trained docTR models > pick this folder.",
-               "Share: after installing, Knowledge > Share with team includes these models."]
+    report += ["", "Install: Acronym Hunter > Tools > Knowledge > Load Trained Models > pick this folder.",
+               "Share: after installing, Knowledge > Export Knowledge Pack (approved SharePoint folder only)."]
     open(os.path.join(OUT, "REPORT.txt"), "w", encoding="utf-8").write("\n".join(report) + "\n")
     log("\n".join(report))
 

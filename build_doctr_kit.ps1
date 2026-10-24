@@ -95,7 +95,7 @@ $manifest += (& "$K\python\python.exe" "$K\kit\train_doctr.py" --packages)
 $manifest | Out-File -Encoding utf8 "$K\KIT_MANIFEST.txt"
 & "$K\python\python.exe" "$K\kit\train_doctr.py" --check
 if ($LASTEXITCODE -ne 0) { throw "Kit self-check failed" }
-Remove-Item -Recurse -Force "$K\output\*", "$K\kit\__pycache__" -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force "$K\output\*", "$K\kit\__pycache__", "$K\kit\logs", "$K\work" -ErrorAction SilentlyContinue   # the self-check's own log stays out of the zip
 Get-ChildItem $K -Directory -Filter '__pycache__' -Recurse | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 
 }   # end of the build steps (-ZipOnly skips straight to the zip)
