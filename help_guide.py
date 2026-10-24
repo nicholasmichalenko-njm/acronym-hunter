@@ -68,6 +68,13 @@ PAGES = {
               ("Include in DB", "Type the definition and save it. Every future scan knows it."),
               ("Fix OCR", "The term is a misreading. Type the correct term. See the Fix OCR vs Training tab."),
               ("Exclude", "Not a real term (a heading word, a part number). Hidden from now on, everywhere."),
+              ("Context", "When a term has several meanings, the words around it suggest one: words it shares with a "
+                          "meaning, a role (\"the PM shall\" is a person), a document word (\"PM plan\"), or the long form "
+                          "spelled out in the same files. The Definition column says \"Context: ...\" and why, Apply Choice "
+                          "starts on it, and the Source preview says what it likely means at each place. When places "
+                          "disagree, the row says \"meaning differs by place\". Nothing is applied until you choose: "
+                          "right-click > Accept context suggestion, or Edit > Accept context suggestions. Rules only, "
+                          "typed text only."),
               ("Known name", "Right-click > Known name (or Edit menu): a company, product or program name that is an acronym "
                              "(the team still wants it recognized). Saved in the database with what it stands for; shown as "
                              "Known name (not listed); never flagged for first use; left off the CSV export and the volume "

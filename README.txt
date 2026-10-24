@@ -486,3 +486,10 @@ SETUP BUILDER (2.13.0)
   never flagged for first use, and left off the CSV export, the volume acronym lists and the Not in effort list
   filter. Status > Known names (not listed) lists them; right-click > Not a known name lists one again. Shared through
   Knowledge Packs with the rest of the database.
+- Meaning from context: when a term has several possible meanings (database, client list or customer documents), the
+  words around each place it appears suggest one: shared words, a role ("the PM shall"), a document word ("PM plan"),
+  or the long form spelled out in the same files. Rules only (No AI), typed text only, run in the background after
+  each scan. The Definition column shows "Context: ..." with the reason, Apply Choice starts on it, the Source
+  preview says what it likely means at each place, and rows whose places disagree say "meaning differs by place".
+  Nothing changes until you accept: right-click > Accept context suggestion, or Edit > Accept context suggestions
+  (saved like Apply Choice). Status > Context suggests a meaning; the CSV export has a Context suggests column.

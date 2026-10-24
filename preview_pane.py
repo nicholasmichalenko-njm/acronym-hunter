@@ -407,9 +407,19 @@ class PreviewPane(ctk.CTkFrame):
         self.btn_excl.configure(state="normal" if self.term and self.app.excludable(self.term) else "disabled")
         self.btn_inst.configure(state="normal" if self.term and self.locs and self.app.excludable(self.term) else "disabled")
 
+    def _context_note(self, loc):
+        """What the nearby words suggest at this place (2.13.0), when the term has several meanings."""
+        d = self.app.results.get(self.term or "", {})
+        hit = ((d.get("context") or {}).get("by_loc") or {}).get(loc)
+        if hit and eng.status_kind(d.get("status", "")) == "choice":
+            self.lbl_msg.configure(text=f"Here it likely means: {hit[0]}" + (f"  ({'; '.join(hit[1][:2])})" if hit[1] else ""))
+
     def _show_location(self, i, find=0):
         self.loc_i = i
         self.find_i = find
+        if i < len(self.locs):
+            self.lbl_msg.configure(text="")
+            self._context_note(self.locs[i])
         names = list(self.opt_loc.cget("values"))
         if i < len(names):
             self.loc_var.set(names[i])

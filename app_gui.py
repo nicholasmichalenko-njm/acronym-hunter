@@ -1922,6 +1922,16 @@ def first_use_lines(d, with_file=True):
         out.append(f"{loc}: {state}")
     return out
 
+def ctx_text(d):
+    """'Statement of Work (spelled out in the document; nearby: tasks)', 'differs by place: ...' or ''."""
+    c = d.get("context") or {}
+    if c.get("mixed"):
+        means = list(dict.fromkeys(v[0] for v in c.get("by_loc", {}).values()))
+        return "differs by place: " + " / ".join(means)
+    if not c.get("definition"):
+        return ""
+    return c["definition"] + (f" ({'; '.join(c.get('cues', [])[:2])})" if c.get("cues") else "")
+
 def first_use_flag(d):
     """True if any file's first use of an acronym is not written as "Words (ACR)"."""
     return any(u["defined"] is False for u in d.get("first_use", {}).values()) and bool(first_use_lines(d))
@@ -2943,7 +2953,7 @@ STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", 
                   "Not defined at first use", "Equations and symbols", "Undefined symbols",
                   "Added manually", "Customer documents", "Customer and database differ", "In effort list", "Not in effort list", "Effort: needs author", "Effort: approved",
                   "New since last scan", "Changed since last scan", "No longer found", "Errors / not scanned",
-                  "Known names (not listed)", "Excluded"]
+                  "Context suggests a meaning", "Known names (not listed)", "Excluded"]
 MANUAL_MARK = ""   # statuses are plain words (2.7.0: no emoji in the interface or in exports)
 # Status kinds by leading words. Older projects saved statuses with an emoji in front; status_text() drops it.
 _KIND_WORDS = (("error", ("COULD NOT READ FILE", "NOT SCANNED")),
@@ -3348,6 +3358,7 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         e.add_command(label="Clear filters", command=c("edit_clear_filters", self.clear_filters))
         e.add_separator()
         e.add_command(label="Known name: keep, leave off the list...", command=c("edit_known_name", self.mark_known))
+        e.add_command(label="Accept context suggestions (rows that have one)", command=c("edit_accept_context", lambda: self.accept_context(list(self.results))))
         mb.add_cascade(label="Edit", menu=e)
         ef = tk.Menu(mb, tearoff=0, postcommand=lambda: self.show_effort_menu(ef))
         mb.add_cascade(label="Effort", menu=ef)
@@ -3597,6 +3608,9 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
             menu.add_command(label=f"Not a known name: list it again ({nsel})", command=self.unmark_known)
         else:
             menu.add_command(label=f"Known name: keep, leave off the list ({nsel})...", command=self.mark_known)
+        ctx = (dd.get("context") or {})
+        if ctx.get("definition") and status_kind(dd.get("status", "")) == "choice":
+            menu.add_command(label=f"Accept context suggestion: {ctx['definition'][:60]}", command=lambda: self.accept_context([iid]))
         if dd.get("excluded_instances"):
             menu.add_command(label=f"Restore excluded instances ({len(dd['excluded_instances'])})",
                              command=lambda: self.restore_instances(iid))
@@ -4472,6 +4486,7 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
             "Customer and database differ": bool(data.get("cust_db_differ")),
             "Not in effort list": not data.get("effort") and not data.get("excluded", False) and not data.get("known"),
             "Known names (not listed)": bool(data.get("known")),
+            "Context suggests a meaning": bool((data.get("context") or {}).get("definition")) and kind == "choice",
             "Effort: needs author": data.get("effort") in ("Proposed", "Needs author"),
             "Effort: approved": data.get("effort") == "Approved",
             "New since last scan": data.get("change") == "New",
@@ -4482,8 +4497,11 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         }.get(wanted, True)
 
     def row_values(self, term, data):
+        defn = data["selected_definition"]
+        if status_kind(data.get("status", "")) == "choice" and ctx_text(data):
+            defn = f"Context: {ctx_text(data)}\n{defn}"
         return (term, data["category"], data["count"], data.get("change", ""), data["status"],
-                data["selected_definition"], self.first_use_cell(data), self.wrap_locations(data["locations"]))
+                defn, self.first_use_cell(data), self.wrap_locations(data["locations"]))
 
     def first_use_cell(self, data):
         """Compact table text: where the first use is and whether it is defined there. Details and export say more."""
@@ -4605,6 +4623,7 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         self.refresh_type_options()
         self.populate_table()
         self.volume_check_after_scan()
+        self.start_context_suggestions()   # meaning from nearby words, in the background (2.13.0)
 
     def populate_table(self):
         if not hasattr(self, "tree"):
@@ -4696,10 +4715,13 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
 
         if (data["in_db"] or data.get("customer_definitions")) and not data.get("excluded", False) and len(data["definitions"]) > 1:
             opts = list(data["definitions"]) + ["Keep All Possibilities"]
-            self.combo.configure(state="normal", values=opts); self.combo.set(opts[0])
+            ctx = (data.get("context") or {}).get("definition", "")
+            pick = next((o for o in opts if ctx and (o == ctx or o.endswith(ctx))), opts[0])
+            self.combo.configure(state="normal", values=opts); self.combo.set(pick)
             self.btn_apply.configure(state="normal")
             self.entry_def.configure(state="disabled"); self.btn_save.configure(state="disabled"); self.btn_ocr.configure(state="disabled")
             self.lbl_act.configure(text=f"Client list term '{term}' (client meaning pre-selected):" if data.get("client")
+                                   else f"Disambiguate '{term}' (context suggests: {ctx}):" if ctx
                                    else f"Disambiguate '{term}':")
         elif not data["in_db"]:
             shown = (data.get("customer_definitions") or ["Not in DB"])[:1]
@@ -4921,6 +4943,93 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         self.populate_table()
         return len(locs)
 
+    # ---------- meaning from context (2.13.0): rules only, the person decides ----------
+    def _context_targets(self):
+        out = {}
+        for term, d in self.results.items():
+            st = status_text(d.get("status", ""))
+            if d.get("excluded") or d.get("known") or d.get("gone") or not st.startswith(("CHOOSE DEFINITION", "CUSTOMER DOCS DIFFER")):
+                continue
+            defs = d.get("customer_definitions") if st.startswith("CUSTOMER DOCS DIFFER") else d.get("definitions", [])
+            defs = [x for x in (defs or []) if x and not x.startswith("MULTIPLE")]
+            if len(defs) >= 2:
+                lfs = [u.get("lf", "") for u in d.get("first_use", {}).values() if u.get("lf")]
+                out[term] = (defs, list(d.get("locations", [])), lfs)
+        return out
+
+    def start_context_suggestions(self):
+        targets = self._context_targets()
+        if not targets:
+            return
+        files = {}
+        for _t, (_defs, locs, _lfs) in targets.items():
+            for loc in locs:
+                name = _file_of(loc)
+                if name not in files:
+                    files[name] = self.path_for(name)
+        def work():
+            import context as X
+            texts = {}
+            for name, path in files.items():
+                if path and os.path.isfile(path) and os.path.splitext(path)[1].lower() in (".docx", ".pptx", ".xlsx", ".pdf"):
+                    try:
+                        texts[name] = typed_chunks(path)
+                    except Exception:
+                        diag.swallowed()
+            res = {}
+            for term, (defs, locs, lfs) in targets.items():
+                places = {}
+                for loc in locs:
+                    chunks = texts.get(_file_of(loc), [])
+                    want = loc.split(" [OCR fix", 1)[0]
+                    hit = [t for lbl, t in chunks if lbl == want]
+                    wins = [w for t in hit for w in X.windows(t, term)]
+                    if wins:
+                        places[loc] = wins
+                sug = X.suggest(defs, places, lfs)
+                if sug:
+                    res[term] = sug
+            self.after(0, lambda: self._apply_context(res))
+        threading.Thread(target=work, daemon=True).start()
+
+    def _apply_context(self, res):
+        n = 0
+        for term, sug in res.items():
+            d = self.results.get(term)
+            if not d:
+                continue
+            d["context"] = sug
+            if status_text(d.get("status", "")).startswith("CHOOSE DEFINITION"):
+                if sug.get("definition"):
+                    d["status"] = "CHOOSE DEFINITION (context suggests one)"
+                    n += 1
+                elif sug.get("mixed"):
+                    d["status"] = "CHOOSE DEFINITION (meaning differs by place)"
+        diag.activity("context_suggested", terms=n)
+        self.populate_table()
+
+    def accept_context(self, terms=None):
+        """Apply the context suggestion to the selected rows (or every row that has one)."""
+        terms = [t for t in (terms or self.tree.selection() or list(self.results)) if (self.results.get(t, {}).get("context") or {}).get("definition")
+                 and status_kind(self.results[t].get("status", "")) == "choice"]
+        for t in terms:
+            d = self.results[t]
+            choice = d["context"]["definition"]
+            opt = next((o for o in d.get("definitions", []) if o == choice or o.endswith(choice)), choice)
+            self._set_choice(d, opt)
+            try:
+                self.save_choice(t, opt)
+            except OSError:
+                diag.swallowed()
+            if self.project is not None:
+                self.project.data["decisions"][t] = opt
+        if self.project is not None and terms:
+            self.save_project()
+        diag.activity("context_accepted", n=len(terms))
+        self.status.configure(text=f"Context suggestions accepted for {len(terms)} term(s). Each one is saved like Apply Choice.")
+        self.populate_table()
+        return len(terms)
+
     # ---------- known names (2.13.0): recognized and kept in the database, left off the acronym lists ----------
     def mark_known(self, terms=None):
         terms = [t for t in (terms or self.tree.selection()) if t in self.results and not self.results[t].get("file_error")
@@ -5055,7 +5164,7 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
             w.writerow(["Term", "Type", "Count", "Change", "Status", "Selected definition", "Possible definitions",
                         "Client list definition", "Database definition", "Author decision",
                         "First use (acronyms: define here)", "Locations",
-                        "First found by a scan (date)", "Last found by a scan (date)"])
+                        "First found by a scan (date)", "Last found by a scan (date)", "Context suggests"])
             for term in terms:
                 d = self.results[term]
                 defs = d.get("definitions", [])
@@ -5065,7 +5174,8 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
                 w.writerow([term, d["category"], d["count"], d.get("change", ""), d["status"], d["selected_definition"],
                             "\n".join(defs) if len(defs) > 1 or d.get("client") else "",
                             "\n".join(client), "\n".join(strip(x) for x in dbdefs), "",
-                            "\n".join(first_use_lines(d)), "\n".join(d["locations"]), d.get("first_seen", ""), d.get("last_seen", "")])
+                            "\n".join(first_use_lines(d)), "\n".join(d["locations"]), d.get("first_seen", ""), d.get("last_seen", ""),
+                            ctx_text(d)])
         view = self.status_var.get() if self.status_var.get() != STATUS_FILTERS[0] else "all statuses"
         messagebox.showinfo("Exported", f"{len(terms)} rows exported ({view}) to:\n{path}\n\n"
                             + (f"{left_out} known name(s) left off the list (Status > Known names lists them).\n\n" if left_out else "")
