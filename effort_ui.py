@@ -32,8 +32,7 @@ class EffortMixin:
         self.btn_volcheck.pack(fill="x", padx=8, pady=2)
         self.effort_menu = tk.Menu(self, tearoff=0)
         self.lbl_effort = ctk.CTkLabel(getattr(self, "main", self), text="", font=("Arial", 12), text_color=("#0F766E", "#5EEAD4"))
-        if self.efforts.current:
-            self.after(300, lambda: self.open_effort(self.efforts.current, quiet=True))
+        # 2.11.0: the last effort is resumed by workspace_startup once the window is built
 
     def effort_actionbar(self, act):
         self.btn_effort_add = ctk.CTkButton(act, text="Add to effort list", command=self.add_to_effort, state="disabled",
@@ -74,12 +73,19 @@ class EffortMixin:
         m.delete(0, "end")
         m.add_command(label="New effort...", command=self.new_effort_dialog)
         m.add_command(label="Open an existing effort list...", command=self.open_effort_file)
-        names = [n for n in self.efforts.names() if not self.effort or n != self.effort.name]
+        names = [n for n in self.efforts.names() if (not self.effort or n != self.effort.name)
+                 and not (self.efforts.get(n) or {}).get("archived")]
         if names:
             sub = tk.Menu(m, tearoff=0)
-            for n in names[:20]:
+            for n in names:
                 sub.add_command(label=n, command=lambda n=n: self.open_effort(n))
             m.add_cascade(label="Switch to", menu=sub)
+        arch = [n for n in self.efforts.names() if (self.efforts.get(n) or {}).get("archived")]
+        if arch:
+            sub2 = tk.Menu(m, tearoff=0)
+            for n in arch:
+                sub2.add_command(label=f"Reopen {n}", command=lambda n=n: self.unarchive_effort(n))
+            m.add_cascade(label="Archived efforts", menu=sub2)
         has = self.effort is not None
         st = "normal" if has else "disabled"
         m.add_separator()
@@ -92,7 +98,9 @@ class EffortMixin:
         m.add_command(label="Show the last volume check", command=lambda: self.show_volume_report(self.volume_report),
                       state="normal" if has and getattr(self, "volume_report", None) else "disabled")
         m.add_command(label="Effort settings...", command=lambda: self.new_effort_dialog(edit=True), state=st)
+        m.add_command(label="Restore an earlier version...", command=self.restore_dialog)
         m.add_separator()
+        m.add_command(label="Archive this effort...", command=self.archive_effort, state=st)
         m.add_command(label="Close effort", command=self.close_effort, state=st)
         if menu is None:
             m.tk_popup(self.btn_effort.winfo_rootx() + self.btn_effort.winfo_width(), self.btn_effort.winfo_rooty())
@@ -149,11 +157,11 @@ class EffortMixin:
         else:
             desk = os.path.join(os.path.expanduser("~"), "Desktop")
             e_path.insert(0, os.path.join(desk if os.path.isdir(desk) else os.path.expanduser("~"), "Effort_List.xlsx"))
+            base_dir = os.path.dirname(e_path.get())
             def name_changed(*_):
                 n = re.sub(r"[^A-Za-z0-9 _.-]+", "", e_name.get()).strip().replace(" ", "_")
-                d = os.path.dirname(e_path.get())
-                if n and os.path.basename(e_path.get()).endswith("Effort_List.xlsx"):
-                    e_path.delete(0, "end"); e_path.insert(0, os.path.join(d, f"{n}_Effort_List.xlsx"))
+                if n and os.path.basename(e_path.get()).endswith("Effort_List.xlsx"):   # one folder per effort
+                    e_path.delete(0, "end"); e_path.insert(0, os.path.join(base_dir, n, f"{n}_Effort_List.xlsx"))
             e_name.bind("<KeyRelease>", name_changed)
 
         def ok():
@@ -165,6 +173,8 @@ class EffortMixin:
                 msg.configure(text="An effort with that name already exists. Pick it under Switch to."); return
             try:
                 if edit and self.effort and os.path.abspath(path) != os.path.abspath(self.effort.path):
+                    self.flush_session(); self.save_resume_now()
+                    self.move_data_dir(self.effort.path, path)   # the effort's folder moves with its list
                     self.effort.path = path            # move: write the current list to the new place
                     self.effort.first_use = rule.get()
                     self._save_effort_list()
@@ -172,8 +182,9 @@ class EffortMixin:
                 L.name, L.first_use = name, rule.get()
                 if not os.path.isfile(path) or edit:
                     L.pending = True
-                    self.effort = L
-                    if not self._save_effort_list():
+                    if edit and self.effort is not None:
+                        self.effort = L
+                    if not self._save_effort_list(L, backup=False):
                         return
             except Exception as ex:
                 diag.swallowed()
@@ -199,32 +210,87 @@ class EffortMixin:
         self.efforts.put(name, path=p, first_use=L.first_use)
         self.open_effort(name)
 
-    def open_effort(self, name, quiet=False):
+    def open_effort(self, name, quiet=False, startup=False):
+        """Open an effort with its own saved work. Opening the effort that is already open reloads its list.
+        Returns True when the effort is open."""
+        import workspace as W
         info = self.efforts.get(name)
         if not info:
-            return
+            return False
+        if self.busy():
+            if not quiet:
+                messagebox.showwarning("Busy", "Wait for the scan to finish, then switch efforts.")
+            return False
+        root = W.data_dir_for(info["path"])
+        same = self.effort is not None and self.effort.name == name and \
+            os.path.normcase(getattr(self.ws, "root", "")) == os.path.normcase(root)
+        ws = self.ws if same else W.Workspace(root, name)
+        if not same and not ws.acquire_lock():
+            who = ws.locked_by or {}
+            since = who.get("time", "")[11:16]
+            text = (f"'{name}' is open in another Acronym Hunter window by {who.get('user', '?')} on {who.get('computer', '?')}"
+                    + (f" (since {since})" if since else "") + ".")
+            if quiet:
+                self.status.configure(text=text + " Pick it again from the Effort list to open it here.")
+                return False
+            if not messagebox.askyesno("Effort in use", text + "\n\nTwo windows on one effort can overwrite each other's "
+                                       "work. Open it here anyway?"):
+                return False
+            ws.acquire_lock(force=True)
         try:
             L = E.EffortList(info["path"], name, info.get("first_use", "volume")).load()
         except Exception as ex:
             diag.swallowed()
+            if not same:
+                ws.release_lock()
             if not quiet:
                 messagebox.showerror("Effort list", f"The list could not be read ({type(ex).__name__}).\n{info['path']}")
-            return
+            return False
+        rec = ws.read_recovery("effort", L.path)
+        if not same:
+            self.leave_workspace()
+            self.ws = ws
         self.effort = L
         self.efforts.current = name
-        diag.activity("effort_opened", terms=len(L.rows))
-        self.apply_effort()
-        self.update_effort_ui()
+        if rec:
+            if self.ask_recover("Effort List", rec):
+                st = rec["state"]
+                L.rows, L.order, L.history = st.get("rows", {}), st.get("order", []), st.get("history", [])
+                L.pending = True
+                diag.activity("recovery_used")
+                self._save_effort_list()
+            else:
+                ws.clear_recovery("effort", L.path)
+        if same:
+            diag.activity("effort_opened", terms=len(L.rows))
+            self.apply_effort()
+            self.update_effort_ui()
+        else:
+            diag.activity("effort_switched", terms=len(L.rows))
+            self.enter_workspace(startup=startup)
+        self.refresh_effort_bar()
+        return True
 
     def close_effort(self):
-        if self.effort and self.effort.pending and not messagebox.askyesno(
-                "Close effort", "The list has changes that are not saved yet (Excel had it open). Close anyway and lose them?"):
-            return
+        """Back to no effort. Returns False when the user cancels."""
+        import workspace as W
+        if self.effort is None:
+            return True
+        if self.busy():
+            messagebox.showwarning("Busy", "Wait for the scan to finish, then close the effort.")
+            return False
+        if self.effort.pending and not self._save_effort_list() and not messagebox.askyesno(
+                "Close effort", "The list could not be saved (Excel has it open). Its changes stay in the effort's recovery "
+                "copy and come back when you reopen it. Close anyway?"):
+            return False
+        self.leave_workspace()
+        eng = _eng()
         self.effort = None
         self.efforts.current = ""
+        self.ws = W.Workspace(os.path.join(eng.CONFIG_DIR, "no_effort"), "", choices_file=eng.CHOICES_FILE)
         diag.activity("effort_closed")
-        self.apply_effort()
-        self.update_effort_ui()
+        self.enter_workspace()
+        return True
 
     def reload_effort(self):
         if self.effort is None:
@@ -257,18 +323,32 @@ class EffortMixin:
         messagebox.showinfo("Exported", "Saved with these sheets:\n" + "\n".join(f"{k}: {v}" for k, v in counts.items()))
 
     # ------------------------------------------------------------ saving
-    def _save_effort_list(self):
-        """Save, asking to close Excel when it holds the file. False = still not saved (kept pending)."""
-        L = self.effort
+    def _save_effort_list(self, L=None, backup=True):
+        """Save, asking to close Excel when it holds the file. False = still not saved (kept pending, and kept in the
+        effort's recovery copy so a crash loses nothing)."""
+        L = L or self.effort
+        ws = getattr(self, "ws", None) if L is self.effort else None
+        if ws is not None and L.pending:
+            try:
+                ws.write_recovery("effort", L.path, {"rows": L.rows, "order": L.order, "history": L.history})
+            except Exception:
+                diag.swallowed()
         while True:
             try:
                 L.save()
+                if ws is not None:
+                    ws.clear_recovery("effort", L.path)
+                    if backup:
+                        try:
+                            ws.backup(L.path, "effort")
+                        except OSError:
+                            diag.swallowed()
                 return True
             except E.ListLocked:
                 if not messagebox.askretrycancel("Effort list is open",
                                                  "The effort list is open in Excel, so it cannot be saved.\n\n"
                                                  "Close it in Excel, then click Retry. Cancel keeps the change in the app "
-                                                 "until you save (Effort > Save list now)."):
+                                                 "(and in the effort's recovery copy) until you save (Effort > Save list now)."):
                     return False
             except OSError as ex:
                 diag.swallowed()
@@ -486,3 +566,5 @@ class EffortMixin:
                 d["selected_definition"] = row["Definition"] or pre[1]
         if hasattr(self, "tree"):
             self.populate_table()
+        if hasattr(self, "session_changed"):
+            self.session_changed()

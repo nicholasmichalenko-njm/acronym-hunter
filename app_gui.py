@@ -129,6 +129,7 @@ import feedback as FB
 from effort_ui import EffortMixin   # Effort List (2.4.0)
 from volcheck_ui import VolumeCheckMixin   # volume check and first use (2.7.0)
 from compliance_ui import ComplianceMixin   # compliance matrix (2.8.0)
+from workspace_ui import WorkspaceMixin   # effort profiles, session, recovery, backups (2.11.0)
 import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
 DB_FILE = os.path.join(BASE_DIR, "acronym_database.csv")
@@ -2971,7 +2972,7 @@ def trainer_available():
     """Training features: on unless config\\app_settings.json sets allow_training to false."""
     return bool(APP_CFG["allow_training"]) and importlib.util.find_spec("trainer_gui") is not None
 
-class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(WorkspaceMixin, EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Acronym Hunter {APP_VERSION}: acronyms, abbreviations and units (100% local)")
@@ -3061,6 +3062,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
         self.effort_init(sb, dict(B, **SEC))
         section("COMPLIANCE")
         self.compliance_init(sb, dict(B, **SEC))
+        self.workspace_init()          # top bar with the effort switcher; per-effort saved work (2.11.0)
 
         section("EXPORT")
         self.btn_export = self._side_btn("Export CSV...", self.export_csv, state="disabled"); self.btn_export.pack(**P)
@@ -3220,6 +3222,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
         if not self.settings.get("sidebar", True):
             self.after(10, lambda: self.toggle_sidebar(save=False))
         self.after(1500, self._banner_tick)
+        self.after(300, self.workspace_startup)   # resume the last effort (2.11.0)
 
     # ---------- training inside the scanner ----------
     def training_state(self):
@@ -3290,6 +3293,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
         f.add_cascade(label="Project", menu=proj)
         f.add_separator()
         f.add_command(label="Export CSV...", accelerator="Ctrl+E", command=c("file_export_csv", self.export_csv))
+        f.add_command(label="Restore an earlier version...", command=c("file_restore", self.restore_dialog))
         f.add_separator()
         f.add_command(label="Exit", command=c("file_exit", self.on_close))
         mb.add_cascade(label="File", menu=f)
@@ -4243,6 +4247,12 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
         if self.project is not None and str(self.btn_project.cget("state")) != "disabled":
             self.save_project()
         self._release_project_lock()
+        try:
+            if self.effort is not None and self.effort.pending:
+                self._save_effort_list()
+            self.leave_workspace()          # session, where you were, compliance matrix; releases the effort
+        except Exception:
+            diag.swallowed()
         self.destroy()
 
     def update_project_ui(self):
@@ -4278,28 +4288,17 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
                     (choice == "Keep All Possibilities" or choice in d.get("definitions", [])):
                 self._set_choice(d, choice)
 
-    @staticmethod
-    def load_choices():
+    def load_choices(self):
+        """Apply Choice decisions for the open effort only (2.11.0), or for scans with no effort."""
         try:
-            with open(CHOICES_FILE, encoding="utf-8") as f:
-                d = json.load(f)
-            return d if isinstance(d, dict) else {}
-        except FileNotFoundError:
-            return {}
+            return self.ws.load_choices()
         except Exception:
             diag.swallowed()
             return {}
 
-    @staticmethod
-    def save_choice(term, choice):
-        """Remember a definition choice for every later scan (config\\choices.json, written atomically)."""
-        d = AcronymAppGUI.load_choices()
-        d[term] = choice
-        os.makedirs(CONFIG_DIR, exist_ok=True)
-        tmp = CHOICES_FILE + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(d, f, ensure_ascii=False, indent=1)
-        os.replace(tmp, CHOICES_FILE)
+    def save_choice(self, term, choice):
+        """Remember a definition choice for every later scan in this effort (written atomically)."""
+        self.ws.save_choice(term, choice)
 
     @staticmethod
     def _set_choice(data, choice):
@@ -4574,6 +4573,8 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
         if self.selected_term and self.tree.exists(self.selected_term):
             self.tree.selection_set(self.selected_term)
             self.tree.see(self.selected_term)
+        self.session_changed()      # saved in a moment, so a crash or a close loses nothing (2.11.0)
+        self.resume_changed()
 
     def excludable(self, term):
         d = self.results.get(term)
@@ -4582,6 +4583,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
     def on_select(self, event):
         sel = self.tree.selection()
         if not sel: return
+        self.resume_changed()
         self.update_effort_buttons()
         if len(sel) > 1:   # several rows: only Exclude applies to a group
             n = sum(1 for t in sel if self.excludable(t))
@@ -4659,6 +4661,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
             self.project.data["decisions"][self.selected_term] = choice
             self.save_project()
         self.tree.item(self.selected_term, values=self.row_values(self.selected_term, data), tags=(tag,))
+        self.session_changed()
 
     def open_fix_manager(self):
         """View, add, edit, delete, and undo entries in config\\ocr_corrections.csv."""
@@ -4752,6 +4755,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
         data["status"] = f"OCR fix saved: {wrong} > {right}"
         data["selected_definition"] = "Rescan to apply. View, edit, or undo with the OCR Fixes button."
         self.tree.item(wrong, values=self.row_values(wrong, data), tags=("resolved",))
+        self.session_changed()
         self.entry_def.delete(0, "end")
         self.entry_def.configure(state="disabled")
         self.btn_save.configure(state="disabled"); self.btn_ocr.configure(state="disabled")
@@ -4775,6 +4779,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
         data["selected_definition"] = nd
         data["status"] = "Added to DB"
         self.tree.item(self.selected_term, values=self.row_values(self.selected_term, data), tags=("resolved",))
+        self.session_changed()
         self.entry_def.delete(0, "end")
         self.entry_def.configure(state="disabled")
         self.btn_save.configure(state="disabled"); self.btn_ocr.configure(state="disabled")

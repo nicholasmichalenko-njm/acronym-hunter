@@ -74,7 +74,7 @@ class ComplianceMixin:
         win.tabs = tabs
         self._c_build_requirements(tabs.add("Requirements"))
         self._c_build_outline(tabs.add("Outline"))
-        last = self.settings.get("compliance_path", "")
+        last = self.ws.get("compliance_path", "") if getattr(self, "ws", None) is not None else ""   # per effort (2.11.0)
         if self.matrix is None and last and os.path.isfile(last):
             self._c_load(last, quiet=True)
         self._c_refresh()
@@ -86,6 +86,8 @@ class ComplianceMixin:
                 if not messagebox.askyesno("Compliance matrix", "Changes are not saved (the workbook is open in Excel). Close anyway?", parent=self._cwin):
                     return
         self._cwin.destroy()
+        if hasattr(self, "resume_changed"):
+            self.resume_changed()
 
     def _c_build_requirements(self, fr):
         win = self._cwin
@@ -112,7 +114,7 @@ class ComplianceMixin:
         hb = ttk.Scrollbar(left, orient="horizontal", command=tv.xview)
         tv.configure(yscrollcommand=sb.set, xscrollcommand=hb.set)
         sb.pack(side="right", fill="y"); hb.pack(side="bottom", fill="x"); tv.pack(fill="both", expand=True)
-        tv.bind("<<TreeviewSelect>>", lambda _e: self._c_show())
+        tv.bind("<<TreeviewSelect>>", lambda _e: (self._c_show(), self.resume_changed() if hasattr(self, "resume_changed") else None))
         for key, dec in (("k", "Keep"), ("d", "Drop"), ("u", "")):
             tv.bind(f"<KeyPress-{key}>", lambda _e, dec=dec: self.compliance_decide(dec))
             tv.bind(f"<KeyPress-{key.upper()}>", lambda _e, dec=dec: self.compliance_decide(dec))
@@ -579,17 +581,46 @@ class ComplianceMixin:
             return
         self._c_remember(path)
         diag.activity("compliance_loaded", items=len(self.matrix.items))
+        rec = self.ws.read_recovery("matrix", path) if getattr(self, "ws", None) is not None else None
+        if rec:
+            n = max(0, len(rec["state"].get("history", [])) - len(self.matrix.history))
+            if self.ask_recover("compliance matrix", rec, f" ({n} changes)" if n else ""):
+                for k, v in rec["state"].items():
+                    setattr(self.matrix, k, v)
+                self.matrix.pending = True
+                diag.activity("recovery_used")
+                self._c_changed()
+                return
+            self.ws.clear_recovery("matrix", path)
         self._c_refresh()
 
     def _c_remember(self, path):
-        self.settings["compliance_path"] = path
+        """The matrix belongs to the open effort (2.11.0); with no effort open, to scans with no effort."""
         try:
-            _eng().save_settings(self.settings)
+            self.ws.set("compliance_path", path)
         except Exception:
             diag.swallowed()
 
     # ------------------------------------------------------------ saving
+    def _c_snapshot(self):
+        """Copy of the unsaved matrix in the effort's recovery folder, so a crash before the save loses nothing."""
+        self._c_snap_after = None
+        M = self.matrix
+        if M is None or getattr(self, "ws", None) is None:
+            return
+        try:
+            self.ws.write_recovery("matrix", M.path, {k: v for k, v in vars(M).items() if k not in ("path", "pending")})
+        except Exception:
+            diag.swallowed()
+
     def _c_changed(self, refill=True):
+        if getattr(self, "_c_snap_after", None):
+            try:
+                self.after_cancel(self._c_snap_after)
+            except Exception:
+                diag.swallowed()
+        self._c_snap_after = self.after(400, self._c_snapshot)
+        self.resume_changed() if hasattr(self, "resume_changed") else None
         if refill:
             self._c_refresh()
         else:
@@ -610,6 +641,18 @@ class ComplianceMixin:
             M.save()
             self._c_locked = False
             ok = True
+            if getattr(self, "ws", None) is not None:
+                if getattr(self, "_c_snap_after", None):
+                    try:
+                        self.after_cancel(self._c_snap_after)
+                    except Exception:
+                        diag.swallowed()
+                    self._c_snap_after = None
+                self.ws.clear_recovery("matrix", M.path)
+                try:
+                    self.ws.backup(M.path, "matrix")
+                except OSError:
+                    diag.swallowed()
             try:                                     # keep learning from the decisions (hashed counts only)
                 L = self._c_learner()
                 if L.learn(M.path, M.items):

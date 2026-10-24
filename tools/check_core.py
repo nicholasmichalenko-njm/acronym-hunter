@@ -20,7 +20,7 @@ BIG_BIN = 10 * 1024 * 1024
 FORBIDDEN_IMPORTS = {"torch", "transformers", "tokenizers", "safetensors", "accelerate", "llama_cpp", "onnxruntime_genai",
                      "vllm", "sentencepiece", "huggingface_hub"}
 CORE_SOURCES = ["app_gui.py", "preview_pane.py", "trainer_gui.py", "symbol_picker.py", "help_guide.py", "doctr_engine.py",
-                "equations.py", "sandbox.py", "tess_train.py", "feedback.py", "diag.py", "effort.py", "effort_ui.py", "custdefs.py"]
+                "equations.py", "sandbox.py", "tess_train.py", "feedback.py", "diag.py", "effort.py", "effort_ui.py", "custdefs.py", "volcheck.py", "volcheck_ui.py", "compliance.py", "compliance_ui.py", "complearn.py", "docxw.py", "workspace.py", "workspace_ui.py"]
 
 
 def check_folder(folder):
