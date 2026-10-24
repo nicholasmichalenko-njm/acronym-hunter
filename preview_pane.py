@@ -16,7 +16,7 @@ import symbol_picker as SP
 from PIL import Image, ImageTk
 import app_gui as eng
 
-PIC_W, PIC_H = 380, 330   # canvas size in pixels; labels wrap a little narrower than the pane
+PIC_W, PIC_H = 380, 270   # canvas size in pixels; labels wrap a little narrower than the pane
 BIG_W, BIG_H = 1100, 760  # the Enlarge window's canvas
 MIN_VIEW = 24             # most zoomed-in view, in picture pixels
 
