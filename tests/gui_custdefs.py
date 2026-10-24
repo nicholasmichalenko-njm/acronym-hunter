@@ -41,5 +41,10 @@ def wait():
     for t in ("SOW", "TRL"):
         r = L.rows[t]; print(t, "|", r["Definition"], "|", r["Source"], "|", r["Customer document"][:40], "|", r["Customer wording"][:50], "| other:", r["Other definitions"])
     app.preview.show("SOW"); app.update(); print("preview info:", app.preview.lbl_math.cget("text")[:120].replace("\n", " / "))
+    if os.environ.get("AH_SHOT"):
+        from PIL import ImageGrab
+        app.status_var.set("All statuses"); app.populate_table(); app.tree.selection_set("SOW"); app.update()
+        app.after(1500, lambda: (ImageGrab.grab((app.winfo_rootx(), app.winfo_rooty(), app.winfo_rootx() + app.winfo_width(), app.winfo_rooty() + app.winfo_height())).save(os.environ["AH_SHOT"]), app.destroy()))
+        return
     app.destroy()
 app.after(1500, go); app.mainloop()

@@ -3325,7 +3325,7 @@ class AcronymAppGUI(EffortMixin, ctk.CTk):
         self.btn_improve_top.pack_forget()
         if self.advanced_on:
             self.btn_ocr.pack(side="left", padx=5, pady=12, after=self.btn_save)
-        if trainer_available() and OCR_BACKEND == "tesseract":
+        if self.advanced_on and trainer_available() and OCR_BACKEND == "tesseract":   # always in Tools and the banner
             self.btn_improve_top.pack(side="right", padx=4, pady=8, before=self.btn_tools)
 
     def show_tools_menu(self):
