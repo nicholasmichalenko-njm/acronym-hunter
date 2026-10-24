@@ -1,5 +1,5 @@
-import os, sys
-sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # Windows consoles default to cp1252, zipfile, json
+import os, sys, zipfile, json
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # Windows consoles default to cp1252
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["AH_OCR_ENGINE"] = "tesseract"
 import app_gui as A, feedback as FB

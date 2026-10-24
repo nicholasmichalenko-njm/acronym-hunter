@@ -1,6 +1,6 @@
 """Apply Choice must survive a fresh scan without a project (2.3.2)."""
-import os, sys
-sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # Windows consoles default to cp1252, tempfile, csv
+import os, sys, tempfile, csv
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # Windows consoles default to cp1252
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["AH_OCR_ENGINE"] = "tesseract"
 import app_gui as A
