@@ -70,11 +70,30 @@ def _key(path):
 
 
 def _pid_alive(pid):
+    """Is a process with this id running on this PC? (Windows: OpenProcess; elsewhere: signal 0.)"""
     try:
-        import psutil
-        return psutil.pid_exists(int(pid))
-    except Exception:
-        return True                                # cannot tell: treat the other process as running
+        pid = int(pid)
+    except (TypeError, ValueError):
+        return False
+    if pid <= 0:
+        return False
+    if os.name == "nt":
+        import ctypes
+        k = ctypes.windll.kernel32
+        h = k.OpenProcess(0x1000, False, pid)          # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            return False
+        code = ctypes.c_ulong()
+        ok = k.GetExitCodeProcess(h, ctypes.byref(code))
+        k.CloseHandle(h)
+        return bool(ok) and code.value == 259          # STILL_ACTIVE
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except OSError:
+        return True
 
 
 class Workspace:
@@ -252,9 +271,13 @@ class Workspace:
 
     def restore(self, backup_path, dest):
         """Put a backup back in place. The current file is backed up first, so a restore can be undone."""
-        if os.path.isfile(dest):
-            kind = os.path.basename(backup_path).split("__")[0]
-            self.backup(dest, kind, force=True)
         tmp = dest + ".restore.tmp"
-        shutil.copy2(backup_path, tmp)
-        os.replace(tmp, dest)
+        shutil.copy2(backup_path, tmp)                 # first: keeping the current file may prune the chosen copy
+        try:
+            if os.path.isfile(dest):
+                kind = os.path.basename(backup_path).split("__")[0]
+                self.backup(dest, kind, force=True)
+            os.replace(tmp, dest)
+        finally:
+            if os.path.exists(tmp):
+                os.remove(tmp)

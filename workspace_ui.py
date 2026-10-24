@@ -119,12 +119,26 @@ class WorkspaceMixin:
         """Save everything for the current effort and close its windows. Nothing is shared with the next one."""
         if getattr(self, "ws", None) is None:
             return
+        for attr in ("_ws_after", "_ws_resume_after", "_c_snap_after"):   # done now instead of in a moment
+            job = getattr(self, attr, None)
+            if job:
+                try:
+                    self.after_cancel(job)
+                except Exception:
+                    diag.swallowed()
+                setattr(self, attr, None)
         self.flush_session()
         self.save_resume_now()
         cw = getattr(self, "_cwin", None)
         if cw is not None and cw.winfo_exists():
             if self.matrix is not None and self.matrix.pending:
-                self._c_save_now()
+                if getattr(self, "_c_after", None):
+                    try:
+                        self.after_cancel(self._c_after)
+                    except Exception:
+                        diag.swallowed()
+                if not self._c_save_now():
+                    self._c_snapshot()              # could not save (Excel): keep the recovery copy current
             cw.destroy()
         self._cwin = None
         self.matrix = None

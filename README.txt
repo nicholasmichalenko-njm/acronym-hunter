@@ -428,3 +428,20 @@ COMPLIANCE MATRIX: LEARNING AND COMPLEMENTS (2.10.0)
   bundled Python package with version, license and PyPI identifier, the native parts (Python, Tcl/Tk, Tesseract,
   eng.traineddata, docTR models, PDFium), and the SHA-256 of every program and model file. Made by tools\make_sbom.py
   at build time from what actually ships.
+
+EFFORT PROFILES, SAVING AND RECOVERY (2.11.0)
+- Each effort keeps its own work: scan results, Apply Choice decisions, compliance matrix, volume check and where you
+  left off (filters, selected row, open compliance window). Nothing from one effort shows up in another.
+- The Effort box at the top of the window switches efforts; the window title shows the open effort. The app resumes
+  the last effort at start and says so ("Resumed Kestrel, last worked yesterday 4:12 PM").
+- Each effort's saved work lives in a folder named "<list name> - app data" next to its effort list: settings,
+  choices, session, resume, recovery and backups. New efforts get their own folder (Desktop\<Name>\). It holds
+  customer content: keep it on this PC or SharePoint, like the effort list.
+- Saved as you go: results and choices within seconds of each change. Unsaved Effort List and compliance matrix
+  changes (the app closed, or Excel had the file open) come back the next time the effort opens.
+- File > Restore an earlier version: dated copies of the effort list and compliance matrix (at most every 10 minutes,
+  the last 10 plus one per day for 14 days). The current file is copied first, so a restore can be undone.
+- One window per effort: if another window or a teammate has it open, the app says who and asks first.
+- Effort > Archive this effort hides a finished effort; Effort > Archived efforts reopens it.
+- Upgrade: choices and the compliance matrix location were shared by the whole PC. The effort open when you upgrade
+  gets a copy of them; scans with no effort keep the originals; other efforts start fresh.

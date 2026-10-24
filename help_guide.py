@@ -132,6 +132,26 @@ PAGES = {
               ("Jump", "Double-click any row: the results table selects the term and the preview opens at that spot."),
               ("Acronym lists", "One Word file per volume (and one for all volumes): a Term and Definition table, sorted."),
               ("Record", "Writes Used in volumes and First use into the effort list.")]),
+    ("h", "Several efforts at once"),
+    ("p", "Each effort keeps its own work: results, choices, compliance matrix, volume check and where you left off. "
+          "Nothing from one effort shows up in another."),
+    ("rows", [("Switch", "Pick an effort in the Effort box at the top of the window. Your work is already saved, so switching "
+                         "takes one click and puts you back where you were in that effort."),
+              ("Resume", "The app opens the effort you used last and says so: \"Resumed Kestrel, last worked yesterday 4:12 PM.\" "
+                         "The effort's name stays in the title bar."),
+              ("Its folder", "Each effort has a folder named \"<list name> - app data\" next to its effort list. Copy the list "
+                             "and that folder together to move the whole effort."),
+              ("One window", "If an effort is open in another window, on this PC or a teammate's through SharePoint, the app "
+                             "says who has it and asks before opening it."),
+              ("Archive", "Effort > Archive this effort hides a finished effort. Effort > Archived efforts brings it back. "
+                          "Nothing is deleted.")]),
+    ("h", "If the app closes unexpectedly"),
+    ("rows", [("Saved as you go", "Every choice, approval and compliance decision is written to disk within seconds."),
+              ("Recover", "Changes that could not be saved (the app closed, or Excel had the file open) come back the next time "
+                          "you open the effort: the app asks \"Recover them now?\""),
+              ("Earlier versions", "File > Restore an earlier version lists dated copies of the effort list and compliance "
+                                   "matrix (kept every 10 minutes while you work, plus one per day for two weeks). The current "
+                                   "file is copied first, so a restore can be undone.")]),
 ],
 "Compliance matrix": [
     ("h", "Every requirement in the RFP, with its source"),
