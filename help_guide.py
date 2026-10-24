@@ -67,7 +67,10 @@ PAGES = {
     ("rows", [("Apply Choice", "Pick one meaning when a term has several."),
               ("Include in DB", "Type the definition and save it. Every future scan knows it."),
               ("Fix OCR", "The term is a misreading. Type the correct term. See the Fix OCR vs Training tab."),
-              ("Exclude", "Not a real term (a heading word, a part number). Hidden from now on.")]),
+              ("Exclude", "Not a real term (a heading word, a part number). Hidden from now on, everywhere."),
+              ("Exclude instance", "In the Source preview: drop only the place shown (a misreading, a stray heading word). The "
+                                   "term stays wherever else it appears, stays excluded there on later scans in this effort, "
+                                   "and Restore instances (or right-click > Restore excluded instances) brings it back.")]),
     ("p", "Fix OCR appears when the Advanced switch (top right) is on."),
 ],
 "Fix OCR vs Training": [
@@ -208,7 +211,8 @@ PAGES = {
               ("Click a box", "Every box is something the scanner read. Click one to check or fix it."),
               ("Correct + Teach", "Fix the spelling and save a lesson (see Fix OCR vs Training)."),
               ("Not text", "A line, arrow or speck read as text. The scanner ignores it from now on."),
-              ("Exclude term", "A real reading, but not a term you want listed."),
+              ("Exclude term", "A real reading, but not a term you want listed, anywhere (a database rule)."),
+              ("Exclude instance", "Only this place is wrong: the term stays in its other places. Saved for this effort."),
               ("Undo last save", "Takes back your last save in this panel."),
               ("Open in Trainer", "Draw a box around text the scanner missed completely.")]),
     ("p", "Tools > Show preview pane turns this panel on or off."),

@@ -268,8 +268,15 @@ class PreviewPane(ctk.CTkFrame):
         self.btn_teach.pack(side="left", padx=2)
         self.btn_junk = ctk.CTkButton(row, text="Not text", width=90, height=30, fg_color="#64748B", command=self.not_text)
         self.btn_junk.pack(side="left", padx=2)
-        self.btn_excl = ctk.CTkButton(row, text="Exclude term", width=110, height=30, fg_color="#DC2626", command=self.exclude)
+        row3 = ctk.CTkFrame(fix, fg_color="transparent")
+        row3.pack(fill="x", padx=4, pady=(0, 6))
+        self.btn_inst = ctk.CTkButton(row3, text="Exclude instance", width=130, height=30, fg_color="#C2410C",
+                                      command=self.exclude_instance)
+        self.btn_inst.pack(side="left", padx=2)
+        self.btn_excl = ctk.CTkButton(row3, text="Exclude term", width=110, height=30, fg_color="#DC2626", command=self.exclude)
         self.btn_excl.pack(side="left", padx=2)
+        self.btn_restore = ctk.CTkButton(row3, text="Restore instances", width=130, height=30, fg_color="#475569",
+                                         command=self.restore_instances)
         row2 = ctk.CTkFrame(fix, fg_color="transparent")
         row2.pack(fill="x", padx=4, pady=(0, 6))
         self.btn_undo = ctk.CTkButton(row2, text="Undo last save", width=120, height=26, fg_color="#475569", command=self.undo)
@@ -301,11 +308,18 @@ class PreviewPane(ctk.CTkFrame):
         d = self.app.results.get(term)
         self.term = term
         self.lbl_msg.configure(text="")
+        self._update_restore(d)
+        if d and not d.get("locations") and d.get("excluded_instances"):
+            self._blank(f"All instances of {term} are excluded. Restore instances brings them back.")
+            self.locs = []
+            self._update_controls()
+            return
         if not d or d.get("manual") or d.get("file_error"):
             self._blank("Added manually: no location to show." if d and d.get("manual") else "Nothing to show for this row.")
             self.locs = []
             self._update_controls()
             return
+        self._update_restore(d)
         self._math_info(term, d)
         pics = self.app.picture_locations(term)
         self.locs = pics + [l for l in d.get("locations", []) if l not in pics]
@@ -391,6 +405,7 @@ class PreviewPane(ctk.CTkFrame):
         self.btn_undo.configure(state="normal" if can_train else "disabled")
         self.btn_trainer.configure(state="normal" if can_train and self.pv.img is not None else "disabled")
         self.btn_excl.configure(state="normal" if self.term and self.app.excludable(self.term) else "disabled")
+        self.btn_inst.configure(state="normal" if self.term and self.locs and self.app.excludable(self.term) else "disabled")
 
     def _show_location(self, i, find=0):
         self.loc_i = i
@@ -803,6 +818,40 @@ class PreviewPane(ctk.CTkFrame):
 
     def exclude(self):
         self.app.exclude_term()
+
+    def exclude_instance(self):
+        """Exclude only the place shown now; the term stays wherever else it was found (2.13.0)."""
+        if not self.term or not self.locs or self.loc_i >= len(self.locs):
+            return
+        term, loc = self.term, self.locs[self.loc_i]
+        if not self.app.exclude_instance(term, loc):
+            return
+        d = self.app.results.get(term, {})
+        left = len(d.get("locations", []))
+        if left:
+            self.show(term)
+            self.lbl_msg.configure(text=f"Excluded this instance of {term}. {left} other place(s) stay. It stays excluded "
+                                        "on later scans in this effort; Restore instances brings it back.")
+        else:
+            self._blank(f"All instances of {term} are excluded. Show excluded lists it; Restore instances brings them back.")
+            self.locs = []
+        self._update_restore(d)
+
+    def restore_instances(self):
+        if not self.term:
+            return
+        n = self.app.restore_instances(self.term)
+        self.show(self.term)
+        self.lbl_msg.configure(text=f"Restored {n} instance(s) of {self.term}.")
+
+    def _update_restore(self, d):
+        n = len((d or {}).get("excluded_instances", []))
+        if n:
+            self.btn_restore.configure(text=f"Restore instances ({n})")
+            if not self.btn_restore.winfo_ismapped():
+                self.btn_restore.pack(side="left", padx=2)
+        else:
+            self.btn_restore.pack_forget()
 
     def undo(self):
         import trainer_gui as tg

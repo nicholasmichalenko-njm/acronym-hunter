@@ -477,3 +477,7 @@ SETUP BUILDER (2.13.0)
 - The setup is saved in the matrix workbook (Setup and Setup direction sheets, plus a hidden Setup data sheet), with the
   matrix's autosave, recovery copy and backups. Export changes only writes what changed since the last export; Compare a
   setup document lists RFP text missing from a styled setup, under a different heading, or not in the setup.
+- Exclude instance (Source preview): removes only the location shown, for a misreading or a stray word in one place.
+  The term stays wherever else it was found. Saved per effort (excluded_instances.json in the effort folder) and
+  applied after every scan; excluding every instance hides the term without a database rule. Restore instances (or
+  right-click > Restore excluded instances) brings them back. Exclude term is unchanged: a database rule, everywhere.

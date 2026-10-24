@@ -3572,6 +3572,10 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
             else:
                 menu.add_command(label="Check in picture (found only in typed text)", state="disabled")
         menu.add_separator()
+        dd = self.results.get(iid, {})
+        if dd.get("excluded_instances"):
+            menu.add_command(label=f"Restore excluded instances ({len(dd['excluded_instances'])})",
+                             command=lambda: self.restore_instances(iid))
         self.effort_context_menu(menu, iid)
         menu.tk_popup(event.x_root, event.y_root)
 
@@ -4563,6 +4567,7 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         for term, item in self.manual_items.items():   # manual items survive rescans
             if term not in self.results:
                 self.results[term] = item
+        self.apply_instance_excludes()     # instances excluded one by one in this effort (2.13.0)
         self.apply_customer_defs()
         self.apply_saved_decisions()
         self.apply_effort(reload=True)
@@ -4821,6 +4826,71 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         self.entry_def.delete(0, "end")
         self.entry_def.configure(state="disabled")
         self.btn_save.configure(state="disabled"); self.btn_ocr.configure(state="disabled")
+
+    # ---------- exclude one instance (2.13.0): the term stays wherever else it appears ----------
+    @staticmethod
+    def _drop_instance(d, loc):
+        if loc not in d.get("locations", []):
+            return False
+        d["locations"].remove(loc)
+        d["count"] = max(len(d["locations"]), int(d.get("count", 1)) - 1)
+        lst = d.setdefault("excluded_instances", [])
+        if loc not in lst:
+            lst.append(loc)
+        if not d["locations"] and not d.get("excluded"):
+            d["_pre_instances"] = [d.get("status", ""), d.get("selected_definition", "")]
+            d["excluded"] = True
+            d["status"] = "All instances excluded"
+        return True
+
+    def apply_instance_excludes(self):
+        """After every scan: take out the instances excluded in this effort."""
+        try:
+            ex = self.ws.instance_excludes()
+        except Exception:
+            diag.swallowed()
+            return 0
+        n = 0
+        for term, locs in ex.items():
+            d = self.results.get(term)
+            if d:
+                for loc in locs:
+                    n += self._drop_instance(d, loc)
+        return n
+
+    def exclude_instance(self, term, loc):
+        """Exclude one place a term was found (a misreading, a heading word). Saved for this effort only."""
+        d = self.results.get(term)
+        if not d or not self._drop_instance(d, loc):
+            return False
+        ex = self.ws.instance_excludes()
+        if loc not in ex.setdefault(term, []):
+            ex[term].append(loc)
+        self.ws.save_instance_excludes(ex)
+        diag.activity("exclude_instance", n=1)
+        self.selected_term = term if not d.get("excluded") else None
+        self.populate_table()
+        return True
+
+    def restore_instances(self, term):
+        """Bring back every excluded instance of a term (they show again now and on later scans)."""
+        d = self.results.get(term)
+        ex = self.ws.instance_excludes()
+        locs = ex.pop(term, [])
+        self.ws.save_instance_excludes(ex)
+        if d:
+            back = [l for l in d.get("excluded_instances", []) if l not in d["locations"]]
+            d["locations"].extend(back)
+            d["count"] = int(d.get("count", 0)) + len(back)
+            d.pop("excluded_instances", None)
+            pre = d.pop("_pre_instances", None)
+            if pre and d.get("status") == "All instances excluded":
+                d["excluded"] = False
+                d["status"], d["selected_definition"] = pre[0], pre[1]
+        diag.activity("restore_instances", n=len(locs))
+        self.selected_term = term
+        self.populate_table()
+        return len(locs)
 
     def exclude_term(self):
         diag.activity("exclude_term")

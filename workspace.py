@@ -131,6 +131,15 @@ class Workspace:
         d[term] = choice
         write_json(self.choices_file, d)
 
+    # ------------------------------------------------------------ excluded instances (2.13.0)
+    def instance_excludes(self):
+        """{term: [location labels]} excluded one by one in this effort (the term stays elsewhere)."""
+        d = read_json(self.p("excluded_instances.json"), {})
+        return {k: list(v) for k, v in d.items() if isinstance(v, list)} if isinstance(d, dict) else {}
+
+    def save_instance_excludes(self, data):
+        write_json(self.p("excluded_instances.json"), {k: v for k, v in data.items() if v})
+
     # ------------------------------------------------------------ session and resume
     def save_session(self, data):
         data = dict(data, saved_at=datetime.datetime.now().isoformat(timespec="seconds"))
