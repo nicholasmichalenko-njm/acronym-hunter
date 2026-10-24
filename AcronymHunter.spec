@@ -14,6 +14,11 @@ hiddenimports = []
 for _pkg in ['pypdfium2', 'pypdfium2_raw', 'customtkinter', 'rapidfuzz', 'openpyxl', 'onnxruntime'] + ([] if US else ['rapidocr_onnxruntime']):
     tmp_ret = collect_all(_pkg)
     datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+# ONNX Runtime ships model-conversion scripts (onnxruntime\transformers: GPT-2, Llama, Whisper...). The app never uses
+# them, and Core must hold no language-model tooling (tools\check_core.py), so their files are left out too.
+_ort_tools = ('onnxruntime/transformers', 'onnxruntime/quantization', 'onnxruntime/tools')
+datas = [d for d in datas if not d[1].replace('\\', '/').startswith(_ort_tools)]
+hiddenimports = [h for h in hiddenimports if not h.startswith(('onnxruntime.transformers', 'onnxruntime.quantization', 'onnxruntime.tools'))]
 if US:
     # Tesseract engine + 3 training tools + their DLLs + Google's eng.traineddata, fetched by tools\fetch_tesseract.ps1
     if not os.path.isfile('vendor/tesseract/tesseract.exe'):
