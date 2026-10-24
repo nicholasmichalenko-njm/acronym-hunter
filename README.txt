@@ -400,3 +400,13 @@ COMPLIANCE MATRIX (2.8.0)
   saved a few seconds after each change; edits made in Excel count. Word outline exports the proposal outline with each
   section's kept requirements in a table, then kept requirements not mapped yet.
 - The matrix holds customer content: keep it on this PC or SharePoint.
+
+LAYOUT (2.9.0)
+- Menu bar: File (Select Files Ctrl+O, Scan Folder Ctrl+Shift+O, Scan Again F5, Project, Export CSV Ctrl+E),
+  Edit (Add Item, Client Lists, Find Ctrl+F, Clear filters), Effort, Compliance (Ctrl+M), Tools, View (Sidebar Ctrl+B,
+  Preview pane, Advanced, text size Ctrl + / Ctrl - / Ctrl 0) and Help (Guide F1, Feedback, About).
+- Sidebar on the left: Scan, Review filters, Effort (Check Volumes), Compliance, Export and More, with text size,
+  Advanced, Guide and Feedback at the bottom. Drag its edge to resize; hide it with View > Sidebar or Ctrl+B. The app
+  remembers the width and whether it is shown.
+- The preview pane is titled Source; locations are listed as Text, Image or PDF page. The results table scales with
+  Windows display scaling (A+ / A- still adjust it).

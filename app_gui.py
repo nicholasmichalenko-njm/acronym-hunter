@@ -2184,7 +2184,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.8.0"            # keep in step with version_info.txt
+APP_VERSION = "2.9.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -2992,11 +2992,12 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
         self.font_size = max(FONT_MIN, min(FONT_MAX, self.font_size))
 
         # ---- Layout (2.9.0): menu bar + a resizable, hideable sidebar on the left, the work area on the right ----
-        self.body = tk.PanedWindow(self, orient="horizontal", sashwidth=6, bd=0, sashrelief="flat", bg="#CBD5E1")
+        self.body = tk.PanedWindow(self, orient="horizontal", sashwidth=5, bd=0, sashrelief="flat",
+                                   bg="#CBD5E1" if ctk.get_appearance_mode() == "Light" else "#334155")
         self.body.pack(fill="both", expand=True)
         wsc = ctk.ScalingTracker.get_window_scaling(self)
         self.side = ctk.CTkFrame(self.body, corner_radius=0, fg_color=("#F1F5F9", "#1E293B"))
-        self.main = ctk.CTkFrame(self.body, corner_radius=0, fg_color="transparent")
+        self.main = ctk.CTkFrame(self.body, corner_radius=0, fg_color=("gray92", "gray14"))   # the window colour, light or dark
         self.side_w = int(self.settings.get("sidebar_w", int(250 * wsc)))
         self.body.add(self.side, minsize=int(190 * wsc), width=self.side_w, stretch="never")
         self.body.add(self.main, minsize=int(560 * wsc), stretch="always")
@@ -3127,8 +3128,10 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
 
         self.style = ttk.Style()
         self.style.theme_use("default")
-        self.tree_font = tkfont.Font(family="Segoe UI", size=self.font_size)
-        self.head_font = tkfont.Font(family="Segoe UI", size=self.font_size, weight="bold")
+        # Raw Tk text is not scaled by CustomTkinter: scale the table for the display (200% = twice the pixels)
+        self.dpi = max(1.0, float(ctk.ScalingTracker.get_widget_scaling(self)))
+        self.tree_font = tkfont.Font(family="Segoe UI", size=int(round(self.font_size * self.dpi)))
+        self.head_font = tkfont.Font(family="Segoe UI", size=int(round(self.font_size * self.dpi)), weight="bold")
 
         self.tree = ttk.Treeview(tf, columns=[c[0] for c in COLUMNS], show="headings", selectmode="extended")  # Ctrl/Shift+click: several rows
         for cid, label, width, anchor in COLUMNS:
@@ -4305,12 +4308,13 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
     # ---------- view: text size ----------
     def apply_font_size(self):
         size = self.font_size
-        self.tree_font.configure(size=size)
-        self.head_font.configure(size=size)
-        row_h = self.tree_font.metrics("linespace") + max(8, size // 2)
+        dpi = getattr(self, "dpi", 1.0)
+        self.tree_font.configure(size=int(round(size * dpi)))
+        self.head_font.configure(size=int(round(size * dpi)))
+        row_h = self.tree_font.metrics("linespace") + int(max(8, size // 2) * dpi)
         self.style.configure("Treeview", font=self.tree_font, rowheight=row_h)
-        self.style.configure("Treeview.Heading", font=self.head_font, padding=(6, max(4, size // 3)))
-        scale = size / 11.0
+        self.style.configure("Treeview.Heading", font=self.head_font, padding=(6, int(max(4, size // 3) * dpi)))
+        scale = size / 11.0 * dpi
         for cid, _label, width, _anchor in COLUMNS:
             self.tree.column(cid, width=int(width * scale))
         self.lbl_size.configure(text=f"{size} pt")
@@ -4471,7 +4475,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
             if lines >= LOC_MAX_LINES:
                 break
         line_h = self.tree_font.metrics("linespace")
-        self.style.configure("Treeview", rowheight=line_h * lines + max(8, self.font_size // 2))
+        self.style.configure("Treeview", rowheight=line_h * lines + int(max(8, self.font_size // 2) * getattr(self, "dpi", 1.0)))
 
     def _maybe_rewrap(self, _e=None):
         w = (int(self.tree.column("locations", "width")), int(self.tree.column("firstuse", "width")))
@@ -4663,7 +4667,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
         frame.grid_rowconfigure(0, weight=1); frame.grid_columnconfigure(0, weight=1)
         tree = ttk.Treeview(frame, columns=("misread", "correct", "note"), show="headings", selectmode="browse")
         for cid, label, width in (("misread", "Misread", 160), ("correct", "Correct term", 160), ("note", "Note", 340)):
-            tree.heading(cid, text=label); tree.column(cid, width=int(width * self.font_size / 11.0), anchor="w")
+            tree.heading(cid, text=label); tree.column(cid, width=int(width * self.font_size / 11.0 * getattr(self, "dpi", 1.0)), anchor="w")
         vsb = ttk.Scrollbar(frame, orient="vertical", command=tree.yview); tree.configure(yscrollcommand=vsb.set)
         tree.grid(row=0, column=0, sticky="nsew"); vsb.grid(row=0, column=1, sticky="ns")
 

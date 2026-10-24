@@ -91,10 +91,10 @@ class ComplianceMixin:
         vf = getattr(self, "tree_font", None) or tkfont.Font(fr, family="Segoe UI", size=size)   # the results table's text size (A- / A+)
         hf = getattr(self, "head_font", None) or vf
         st = ttk.Style(fr)
-        st.configure("Cm.Treeview", font=vf, rowheight=vf.metrics("linespace") + max(8, size // 2))
+        st.configure("Cm.Treeview", font=vf, rowheight=vf.metrics("linespace") + int(max(8, size // 2) * getattr(self, "dpi", 1.0)))
         st.configure("Cm.Treeview.Heading", font=hf)
         dpi = max(1.0, float(ctk.ScalingTracker.get_widget_scaling(fr)))   # raw Tk text is not scaled by CustomTkinter
-        sc = size / 13   # columns follow the text size, like the results table
+        sc = size / 13 * getattr(self, "dpi", 1.0)   # columns follow the text size and display scaling, like the results table
         right = ctk.CTkScrollableFrame(fr, width=440); right.pack(side="right", fill="y", padx=(8, 0))
         left = ctk.CTkFrame(fr, fg_color="transparent"); left.pack(side="left", fill="both", expand=True)
         cols = [("id", "ID", 90), ("decision", "Decision", 70), ("suggest", "Suggested", 80), ("type", "Type", 90),
