@@ -56,6 +56,9 @@ def check():
     os.environ.pop("KIT_SELFTEST", None)
     import torch, doctr
     gpu = "none (training runs on the processor)"
+    if torch.version.cuda and not torch.cuda.is_available():
+        gpu = (f"none usable: this is the GPU kit (CUDA {torch.version.cuda}), which needs an NVIDIA RTX 50 / RTX PRO card "
+               "with driver 580 or newer. Update the driver, or use the CPU kit (training runs on the processor)")
     if torch.cuda.is_available():
         p = torch.cuda.get_device_properties(0)
         gpu = f"{p.name}, {p.total_memory / 1024 ** 3:.1f} GB"

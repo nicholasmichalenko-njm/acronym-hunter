@@ -2,9 +2,9 @@
 # PC with NO internet: every Python inside it loads sitecustomize.py first, which refuses all outbound connections.
 #
 #   powershell -ExecutionPolicy Bypass -File .\build_doctr_kit.ps1        CPU kit
-#   powershell -ExecutionPolicy Bypass -File .\build_doctr_kit.ps1 -Gpu   GPU kit (NVIDIA, CUDA 12.8 libraries inside;
-#                                                                         Blackwell RTX 50 / RTX PRO). Split into 1.9 GB parts.
-# Contents: Python 3.11.9 (embedded) + PyTorch 2.11.0 (CPU or cu128) + docTR (wheel built from the pinned source in
+#   powershell -ExecutionPolicy Bypass -File .\build_doctr_kit.ps1 -Gpu   GPU kit (NVIDIA, CUDA 13.0 libraries inside;
+#                                                                         Blackwell RTX 50 / RTX PRO, driver 580+). Split into 1.9 GB parts.
+# Contents: Python 3.11.9 (embedded) + PyTorch 2.14.1 (CPU or cu130) + docTR (wheel built from the pinned source in
 # _local_sandbox\mathbench\doctr_src) + docTR's reference training scripts + Mindee's two starting weights (SHA-256
 # checked) + the app's bundled docTR models (base_models) + kit\train_doctr.py. No Hugging Face Hub library (an
 # offline stand-in takes its place). Every download, package version and SHA-256 goes into KIT_MANIFEST.txt.
@@ -43,10 +43,11 @@ $commit = (& git -C $DoctrSrc rev-parse HEAD) 2>$null
 $manifest += "  $(Split-Path $whl -Leaf)  $((Get-FileHash $whl).Hash)  built from github.com/mindee/doctr @ $commit"
 
 # 3. Packages, pinned (the same versions that trained the phase 1 reader). huggingface_hub is deliberately left out.
-$index = if ($Gpu) { 'https://download.pytorch.org/whl/cu128' } else { 'https://download.pytorch.org/whl/cpu' }
-$tv = if ($Gpu) { @('torch==2.11.0+cu128', 'torchvision==0.26.0+cu128') } else { @('torch==2.11.0+cpu', 'torchvision==0.26.0+cpu') }
+$index = if ($Gpu) { 'https://download.pytorch.org/whl/cu130' } else { 'https://download.pytorch.org/whl/cpu' }
+# 2.10.0 kit refresh: torch 2.14.1 / torchvision 0.29.1 and pillow 13.0.0 clear the advisories found against 2.11.0 and 12.3.0
+$tv = if ($Gpu) { @('torch==2.14.1+cu130', 'torchvision==0.29.1+cu130') } else { @('torch==2.14.1+cpu', 'torchvision==0.29.1+cpu') }
 $pkgs = $tv + @('numpy==2.4.6', 'scipy==1.17.1', 'h5py==3.16.0', 'opencv-python==5.0.0.93', 'pypdfium2==5.14.0',
-                'pyclipper==1.4.0', 'shapely==2.2.0', 'six==1.17.0', 'RapidFuzz==3.14.6', 'pillow==12.3.0',
+                'pyclipper==1.4.0', 'shapely==2.2.0', 'six==1.17.0', 'RapidFuzz==3.14.6', 'pillow==13.0.0',
                 'anyascii==0.3.3', 'validators==0.36.0', 'tqdm==4.70.1', 'onnx==1.23.2', 'onnxscript==0.7.2', 'onnx-ir==1.1.0',
                 'onnxruntime==1.31.0', 'matplotlib==3.11.2')
 & py -3.11 -m pip install --disable-pip-version-check --no-warn-script-location --retries 10 --timeout 180 --only-binary=:all: `
@@ -95,6 +96,10 @@ $manifest += (& "$K\python\python.exe" "$K\kit\train_doctr.py" --packages)
 $manifest | Out-File -Encoding utf8 "$K\KIT_MANIFEST.txt"
 & "$K\python\python.exe" "$K\kit\train_doctr.py" --check
 if ($LASTEXITCODE -ne 0) { throw "Kit self-check failed" }
+# SBOM of the kit, made by the kit's own Python so it lists exactly what is inside (no network)
+& "$K\python\python.exe" tools\make_kit_sbom.py $K "$K\KIT_SBOM.cdx.json"
+if ($LASTEXITCODE -ne 0) { throw "Kit SBOM failed" }
+Copy-Item "$K\KIT_SBOM.cdx.json" "$work\${kitName}_SBOM.cdx.json" -Force
 Remove-Item -Recurse -Force "$K\output\*", "$K\kit\__pycache__", "$K\kit\logs", "$K\work" -ErrorAction SilentlyContinue   # the self-check's own log stays out of the zip
 Get-ChildItem $K -Directory -Filter '__pycache__' -Recurse | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 

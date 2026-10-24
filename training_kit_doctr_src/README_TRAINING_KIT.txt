@@ -5,8 +5,8 @@ Teaches Acronym Hunter's second reader (docTR) from your corrections. Runs on an
 TWO VERSIONS
   AcronymHunter_TrainingKit_docTR_GPU   NVIDIA RTX graphics card (Blackwell: RTX 50, RTX PRO; tested on an RTX 5070 Ti,
                                         sized for 8 GB cards such as the Dell Pro's). Minutes instead of hours.
-                                        Needs a current NVIDIA driver (nvidia-smi shows CUDA 12.8 or higher); the CUDA
-                                        libraries are inside the kit. Without a card it still runs, on the processor.
+                                        Needs NVIDIA driver 580 or newer (nvidia-smi shows CUDA 13.0 or higher); the CUDA
+                                        libraries are inside the kit. Train.cmd > 1 Check says if the driver is too old.
                                         Download: the .001/.002/... parts plus Join_AcronymHunter_TrainingKit_docTR_GPU.cmd
                                         in one folder; double-click the Join file (it checks the fingerprint), then unzip.
   AcronymHunter_TrainingKit_docTR       Processor only, smaller. Any Windows PC.
@@ -18,6 +18,7 @@ OFFLINE BY DESIGN
   docTR's starting weights are inside (weights\models, SHA-256 checked). Nothing is downloaded, ever.
   Train.cmd > 1 Check proves the lockdown on the PC you are using.
   No installation, no admin rights, nothing written outside this folder.
+  KIT_SBOM.cdx.json lists every package inside (CycloneDX), with the starting weights' SHA-256.
 
 WHAT TRAINING DOES
   Reader: learns from corrected text lines (Correct + Teach in the preview pane, or the Trainer). It learns the look of
