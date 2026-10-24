@@ -90,9 +90,9 @@ class VolumeCheckMixin:
         size = getattr(self, "font_size", 13)
         st = ttk.Style(win)
         from tkinter import font as tkfont
-        vf = tkfont.Font(win, family="Arial", size=size)
+        vf = getattr(self, "tree_font", None) or tkfont.Font(win, family="Segoe UI", size=size)   # the results table's text size
         st.configure("Vol.Treeview", font=vf, rowheight=vf.metrics("linespace") + max(8, size // 2))
-        st.configure("Vol.Treeview.Heading", font=("Arial", size, "bold"))
+        st.configure("Vol.Treeview.Heading", font=getattr(self, "head_font", None) or vf)
 
         def table(tab, cols, rows, keys, widths, level=False, jump=True):
             fr = tabs.add(tab)

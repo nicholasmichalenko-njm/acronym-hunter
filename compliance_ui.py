@@ -89,11 +89,13 @@ class ComplianceMixin:
         win = self._cwin
         size = getattr(self, "font_size", 13)
         from tkinter import font as tkfont
-        vf = tkfont.Font(fr, family="Arial", size=size)
+        vf = getattr(self, "tree_font", None) or tkfont.Font(fr, family="Segoe UI", size=size)   # the results table's text size (A- / A+)
+        hf = getattr(self, "head_font", None) or vf
         st = ttk.Style(fr)
         st.configure("Cm.Treeview", font=vf, rowheight=vf.metrics("linespace") + max(8, size // 2))
-        st.configure("Cm.Treeview.Heading", font=("Arial", size, "bold"))
-        sc = ctk.ScalingTracker.get_widget_scaling(fr) * size / 13
+        st.configure("Cm.Treeview.Heading", font=hf)
+        dpi = max(1.0, float(ctk.ScalingTracker.get_widget_scaling(fr)))   # raw Tk text is not scaled by CustomTkinter
+        sc = size / 13   # columns follow the text size, like the results table
         right = ctk.CTkScrollableFrame(fr, width=440); right.pack(side="right", fill="y", padx=(8, 0))
         left = ctk.CTkFrame(fr, fg_color="transparent"); left.pack(side="left", fill="both", expand=True)
         cols = [("id", "ID", 90), ("decision", "Decision", 70), ("suggest", "Suggested", 80), ("type", "Type", 90),
@@ -125,7 +127,7 @@ class ComplianceMixin:
         win.d_src = ctk.CTkLabel(right, text="", anchor="w", justify="left", wraplength=400, text_color=("#475569", "#94A3B8"))
         win.d_src.pack(fill="x", padx=10)
         ctk.CTkLabel(right, text="Source passage", anchor="w").pack(fill="x", padx=10, pady=(6, 0))
-        win.d_ctx = tk.Text(right, height=7, wrap="word", font=("Arial", size - 1), relief="flat", bg="#F8FAFC", fg="#111827")
+        win.d_ctx = tk.Text(right, height=7, wrap="word", font=("Segoe UI", int(round(10 * dpi))), relief="flat", bg="#F8FAFC", fg="#111827")
         win.d_ctx.tag_configure("hit", background="#FDE68A")
         win.d_ctx.pack(fill="x", padx=10)
         mp = ctk.CTkFrame(right, fg_color="transparent"); mp.pack(fill="x", padx=10, pady=(8, 2))
