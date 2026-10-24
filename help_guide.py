@@ -40,12 +40,13 @@ PAGES = {
           "definition and where it appears. It reads typed text and the text inside pictures, scans and diagrams. "
           "Everything runs on this PC. Nothing is sent anywhere."),
     ("h", "Four steps"),
-    ("img", "toolbar_left.png", 560),
+    ("img", "toolbar_left.png", 620),
     ("rows", [("1. Scan", "Select Files or Scan Folder. Word, PowerPoint, Excel, PDF, pictures and drawings. "
                          "Scan Again repeats the last scan after you change a definition or a choice."),
               ("2. Review", "The results table lists every term found, with its status and where it appears."),
               ("3. Resolve", "Click a row. Pick a definition, add it to the database, or exclude it."),
               ("4. Export", "Export CSV gives you the acronym list for the proposal.")]),
+    ("p", "Effort keeps one list per proposal and checks finished volumes. Compliance builds the compliance matrix from the RFP."),
     ("h", "Where to get help on each tool"),
     ("p", "Use the tabs above. Each page says what a tool does, when to use it, and why it is worth it."),
 ],
