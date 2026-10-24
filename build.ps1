@@ -14,12 +14,15 @@
 #                    Plus docTR (Mindee, Apache 2.0) on ONNX Runtime (Microsoft) as a second text finder and reader.
 #                    Needs vendor\tesseract once: tools\build_tesseract.ps1 (built from source with no network library).
 #   -Edition legacy  RapidOCR + PaddleOCR (Baidu) models on ONNX Runtime, the v1.5.x engine: AcronymHunter_Legacy.zip.
-param([string]$KnowledgePack = "", [ValidateSet('us', 'legacy')][string]$Edition = 'us')
+#   -Classic         US edition without docTR: Tesseract is the only reader (for reviewers who want no neural text finder).
+param([string]$KnowledgePack = "", [ValidateSet('us', 'legacy')][string]$Edition = 'us', [switch]$Classic)
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 
 $env:AH_EDITION = $Edition
 $prefix = if ($Edition -eq 'us') { 'AcronymHunter_US' } else { 'AcronymHunter_Legacy' }
+$env:AH_CLASSIC = if ($Classic) { '1' } else { '' }
+if ($Classic) { $prefix = 'AcronymHunter_US_Classic' }
 
 function Test-PublicPackage([string]$dir) {
     # 1. Only these files may sit outside _internal
@@ -41,10 +44,10 @@ function Test-PublicPackage([string]$dir) {
         $foreign = $files | Where-Object { $_ -match 'rapidocr|paddle|pyclipper|shapely' }
         if ($foreign) { throw "ORIGIN CHECK FAILED: legacy OCR files in the US edition: $($foreign -join ', ')" }
         $onnx = @($files | Where-Object { $_ -like '*.onnx' } | Sort-Object)
-        $want = @('_internal\doctr\doctr_det.onnx', '_internal\doctr\doctr_reco.onnx')
+        $want = if ($Classic) { @() } else { @('_internal\doctr\doctr_det.onnx', '_internal\doctr\doctr_reco.onnx') }
         if (($onnx -join ',') -ne ($want -join ',')) { throw "LEAK CHECK FAILED: unexpected ONNX model file(s): $($onnx -join ', ')" }
         $dinfo = Get-Content "vendor\doctr\doctr_models.json" -Raw | ConvertFrom-Json
-        foreach ($m in 'doctr_det', 'doctr_reco') {
+        foreach ($m in $(if ($Classic) { @() } else { @('doctr_det', 'doctr_reco') })) {
             $h = (Get-FileHash "$root\_internal\doctr\$m.onnx").Hash
             if ($h -ne $dinfo.models.$m.onnx_sha256) { throw "ORIGIN CHECK FAILED: $m.onnx is not the file this project exported (SHA-256 mismatch)" }
         }
@@ -81,6 +84,10 @@ if (Test-Path $mp) {
     if ($LASTEXITCODE -eq 0) { "Defender scan: no threats found" }
     else { throw "Defender flagged the build (exit $LASTEXITCODE). Do not share it. Check Windows Security > Protection history." }
 } else { "Defender command-line scanner not found; scan skipped." }
+
+# Core check: no generative AI runtime or model weights in Core (those ship only as separate add-ons).
+& .\venv\Scripts\python.exe tools\check_core.py $out
+if ($LASTEXITCODE -ne 0) { throw "CORE CHECK FAILED. See the list above." }
 
 # Logging check: every log message is fixed text from our code, never data (file names, terms, document text).
 & .\venv\Scripts\python.exe tools\check_diag.py

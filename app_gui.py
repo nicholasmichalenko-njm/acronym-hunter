@@ -288,6 +288,7 @@ APP_DEFAULTS = {
     "ocr_sandbox": True,                  # run Tesseract inside a Windows AppContainer with no network permission
     "ocr_sandbox_required": False,        # True = refuse to read pictures if the sandbox cannot start
     "usage_logging": True,                # False = do not record which controls are clicked (logs\\activity.jsonl)
+    "allow_model_features": True,         # False = no docTR second reader and no math reader add-on (Tesseract only)
 }
 
 def load_app_settings():
@@ -657,8 +658,24 @@ def _tile_starts(length, tile, step):
 
 _doctr_engine = None
 _doctr_failed = [False]
+_allow_models = []
+
+def _models_allowed():
+    """Admin lock (config\\app_settings.json "allow_model_features": false): no docTR, no math reader."""
+    if not _allow_models:
+        try:
+            _allow_models.append(bool(load_app_settings().get("allow_model_features", True)))
+        except Exception:
+            diag.swallowed()
+            _allow_models.append(True)
+    return _allow_models[0]
+
+if not _models_allowed():
+    MATH_DIR = None
 
 def doctr_active():
+    if not _models_allowed():
+        return False
     return bool(DOCTR_DIR) and OCR_BACKEND == "tesseract" and bool(int(OCR_CFG.get("doctr_enabled", 1))) and not _doctr_failed[0]
 
 def get_doctr():

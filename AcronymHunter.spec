@@ -21,10 +21,11 @@ if US:
     datas += [('vendor/tesseract', 'tesseract')]
     hiddenimports += ['tess_train', 'sandbox']
     # docTR text finder + reader (2.1.0): two ONNX models exported by this project from Mindee's weights
-    if not os.path.isfile('vendor/doctr/doctr_models.json'):
-        raise SystemExit('vendor\\doctr missing: export the docTR models first (see vendor\\doctr\\SOURCE.txt)')
-    datas += [('vendor/doctr', 'doctr')]
-    hiddenimports += ['doctr_engine']
+    if os.environ.get('AH_CLASSIC') != '1':      # Classic build: Tesseract only, no docTR
+        if not os.path.isfile('vendor/doctr/doctr_models.json'):
+            raise SystemExit('vendor\\doctr missing: export the docTR models first (see vendor\\doctr\\SOURCE.txt)')
+        datas += [('vendor/doctr', 'doctr')]
+        hiddenimports += ['doctr_engine']
 # US edition also leaves out standard-library and helper modules the app never uses that link Windows networking:
 # ssl (TLS), asyncio (_overlapped), multiprocessing, psutil. Checked by tools\network_audit.py at build time.
 _edition_excludes = (['rapidocr_onnxruntime', 'pyclipper', 'shapely', 'yaml',
@@ -36,7 +37,7 @@ _skip = ('onnxruntime.transformers', 'onnxruntime.quantization', 'onnxruntime.to
 hiddenimports = [h for h in hiddenimports if not h.startswith(_skip)]
 hiddenimports += ['defusedxml', 'defusedxml.ElementTree']  # openpyxl uses it only if importable
 hiddenimports += ['trainer_gui', 'preview_pane', 'PIL.ImageTk']   # the Trainer opens as a window inside the scanner (one program)
-hiddenimports += ['equations', 'symbol_picker', 'help_guide', 'diag', 'feedback']   # equation and symbol recognition (2.0.0), symbol picker (2.3.0)
+hiddenimports += ['equations', 'symbol_picker', 'help_guide', 'diag', 'feedback', 'effort', 'custdefs']   # equation and symbol recognition (2.0.0), symbol picker (2.3.0)
 hiddenimports += ['skia']   # Google Skia (BSD-3): draws SVG pictures for OCR
 datas += [('assets/scanner.ico', 'assets'), ('assets/trainer.ico', 'assets')]   # window/taskbar icons at runtime
 datas += [('assets/help', 'assets/help')]   # "?" guide screenshots
