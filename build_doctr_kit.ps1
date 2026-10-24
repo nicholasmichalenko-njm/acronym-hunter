@@ -9,7 +9,7 @@
 # checked) + the app's bundled docTR models (base_models) + kit\train_doctr.py. No Hugging Face Hub library (an
 # offline stand-in takes its place). Every download, package version and SHA-256 goes into KIT_MANIFEST.txt.
 # No document data is included.
-param([switch]$Gpu, [string]$DoctrSrc = "_local_sandbox\mathbench\doctr_src")
+param([switch]$Gpu, [string]$DoctrSrc = "_local_sandbox\mathbench\doctr_src", [switch]$ZipOnly)
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 $ProgressPreference = 'SilentlyContinue'
@@ -18,6 +18,7 @@ $work = 'kit_build'
 $kitName = if ($Gpu) { 'AcronymHunter_TrainingKit_docTR_GPU' } else { 'AcronymHunter_TrainingKit_docTR' }
 $K = "$work\$kitName"
 $dl = "$work\downloads"
+if (-not $ZipOnly) {
 Remove-Item -Recurse -Force $K -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force $K, $dl, "$work\wheels" | Out-Null
 if (-not (Test-Path "$DoctrSrc\pyproject.toml")) { throw "docTR source not found at $DoctrSrc" }
@@ -97,10 +98,14 @@ if ($LASTEXITCODE -ne 0) { throw "Kit self-check failed" }
 Remove-Item -Recurse -Force "$K\output\*", "$K\kit\__pycache__" -ErrorAction SilentlyContinue
 Get-ChildItem $K -Directory -Filter '__pycache__' -Recurse | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 
-# 8. Zip (split for GitHub Releases, which limit each file to 2 GiB)
+}   # end of the build steps (-ZipOnly skips straight to the zip)
+
+# 8. Zip with Windows' built-in tar (bsdtar writes zip; far faster than Compress-Archive on thousands of files),
+#    then split for GitHub Releases, which limit each file to 2 GiB
 $zip = "$work\$kitName.zip"
 Remove-Item "$zip*", "$work\Join_$kitName.cmd" -ErrorAction SilentlyContinue
-Compress-Archive -Path $K -DestinationPath $zip -CompressionLevel Optimal
+& tar.exe -a -c -f $zip -C $work $kitName
+if ($LASTEXITCODE -ne 0) { throw "zip failed" }
 $size = [math]::Round((Get-Item $zip).Length / 1MB)
 $zipHash = (Get-FileHash $zip).Hash
 "Done: $zip ($size MB)  SHA256 $zipHash"
