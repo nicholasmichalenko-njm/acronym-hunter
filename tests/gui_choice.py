@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["AH_OCR_ENGINE"] = "tesseract"
 import app_gui as A
 tmp = tempfile.mkdtemp()
+A.CONFIG_DIR = os.path.join(tmp, "config")   # never the real config folder (2.11.0 saves sessions there)
 A.DB_FILE = os.path.join(tmp, "db.csv")
 A.CHOICES_FILE = os.path.join(tmp, "choices.json")
 with open(A.DB_FILE, "w", newline="", encoding="utf-8") as f:

@@ -8,7 +8,7 @@ actor, type, strength, cross-references and a Keep / Drop / Review suggestion. T
 Items keep file, location, section and paragraph text, so every row cites its source. The matrix lives in one Excel
 workbook (atomic save, re-read on open, edits made in Excel count). Nothing leaves the PC.
 """
-import datetime, hashlib, os, re, tempfile
+import datetime, hashlib, json, os, re, tempfile
 
 # ------------------------------------------------------------------ vocabulary
 MODALS = r"shall not|must not|will not|may not|shall|must|will|should|may|is required to|are required to|is to|are to|is expected to|are expected to"
@@ -634,11 +634,13 @@ class Matrix:
         self.name = name or os.path.splitext(os.path.basename(path))[0]
         self.items, self.outline, self.sources, self.history = [], [], [], []
         self.headings = []
+        self.setup = None          # Setup Builder (2.13.0): see setupdoc.py
         self.pending = False
 
     def load(self):
         self.items, self.outline, self.sources, self.history = [], [], [], []
         self.headings = []
+        self.setup = None
         if not os.path.isfile(self.path):
             return self
         from openpyxl import load_workbook
@@ -685,10 +687,50 @@ class Matrix:
                 for r in wb["About"].iter_rows(values_only=True):
                     if r and r[0] == "Matrix" and len(r) > 1 and r[1]:
                         self.name = str(r[1])
+            if "Setup data" in wb.sheetnames:      # the Setup Builder's saved state (JSON in column A, split in parts)
+                blob = "".join(str(r[0] or "") for r in wb["Setup data"].iter_rows(min_row=2, values_only=True) if r)
+                try:
+                    d = json.loads(blob) if blob else None
+                    self.setup = d if isinstance(d, dict) else None
+                except ValueError:
+                    self.setup = None
         finally:
             wb.close()
         assign_ids(self.items)
         return self
+
+    def _save_setup(self, wb, Font):
+        """Setup sheet (readable: section, order, reference, text), Setup direction, and Setup data (the state)."""
+        import setupdoc as SD
+        S = SD.setup_of(self)
+        P = SD.placed_in(self)
+        B = SD.by_id(self)
+        inh = SD.inherited_sections(self)
+        ss = wb.create_sheet("Setup")
+        ss.append(["Section", "Order", "ID", "Kind", "Reference", "Reference source", "RFP text", "Note (green)"])
+        for lab, ids in P.items():
+            for n, i in enumerate(ids, 1):
+                it = B[i]
+                ref, src = SD.ref_of(self, it, inh)
+                ss.append([lab, n, i, SD.kind_of(it), ref, src, it["text"], S["notes"].get(i, "")])
+        for c in ss[1]:
+            c.font = Font(bold=True)
+        for col, w in zip("ABCDEFGH", (34, 7, 14, 12, 14, 18, 90, 40)):
+            ss.column_dimensions[col].width = w
+        sd = wb.create_sheet("Setup direction")
+        sd.append(["Section", "Management direction (green)"])
+        for c in sd[1]:
+            c.font = Font(bold=True)
+        for lab in P:
+            if S["mgmt"].get(lab, "").strip():
+                sd.append([lab, S["mgmt"][lab]])
+        sd.column_dimensions["A"].width = 34; sd.column_dimensions["B"].width = 100
+        js = json.dumps(S, ensure_ascii=False, separators=(",", ":"))
+        dd = wb.create_sheet("Setup data")
+        dd.append(["Saved by Acronym Hunter. Do not edit: change the setup in the app."])
+        for k in range(0, len(js), 30000):
+            dd.append([js[k:k + 30000]])
+        dd.sheet_state = "hidden"
 
     def log(self, what, change):
         user = os.environ.get("USERNAME") or os.environ.get("USER") or "unknown"
@@ -755,6 +797,8 @@ class Matrix:
             so.append(src)
         for col, w in zip("ABCD", (50, 68, 18, 70)):
             so.column_dimensions[col].width = w
+        if self.setup:
+            self._save_setup(wb, Font)
         rh = wb.create_sheet("RFP headings")
         rh.append(["Number", "Title", "File"])
         for h in self.headings:

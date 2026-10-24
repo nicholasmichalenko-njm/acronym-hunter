@@ -177,6 +177,25 @@ PAGES = {
               ("Outputs", "The matrix is an Excel workbook (edits made in Excel count). Word outline makes the proposal outline "
                           "with each section's requirements in a table.")]),
     ("p", "The matrix holds customer content: keep it on this PC or SharePoint."),
+    ("h", "Setup: the first draft for authors"),
+    ("p", "The Setup tab puts the RFP text under the proposal outline and writes the setup documents: every heading of the "
+          "outline, with the RFP text that section must answer and the proposal lead's direction."),
+    ("rows", [("Place", "Drag RFP text from the left onto a section on the right. Shift+drag adds a copy to a second section. "
+                        "Drag inside the outline to reorder, or back to the left to remove. Accept suggestions places what the "
+                        "rules and your earlier mapping suggest. Placing a row also fills its Outline column, and the other way round."),
+              ("Context", "Add context from RFP keeps the RFP's other paragraphs (SOW text, evaluation criteria) so you can place "
+                          "them too."),
+              ("References", "Each RFP block starts with its reference on the same line: L.4.2(a): text. The app takes it from the "
+                             "RFP's numbering, from the heading above, or from a rule you set per file in References "
+                             "(Attachment 3 = L gives L-3.2). Type one, or use Fill down for several rows. Orange rows have none."),
+              ("Direction", "Select a section and type the management direction below the outline. Select a row to add a note for "
+                            "that one requirement."),
+              ("Export", "Export setup writes one Word file per volume: built-in headings, RFP text in purple, direction in green. "
+                         "No hidden text and no styles of yours: click one purple paragraph, Home > Select > Select Text with "
+                         "Similar Formatting, and apply your style; the same for green."),
+              ("Changed later", "The setup stays in the matrix, so you can export again any time. Export changes only writes just "
+                                "what was added, changed or removed since the last export. Compare a setup document checks a "
+                                "styled setup against the matrix and lists anything missing or under the wrong heading.")]),
 ],
 "Pictures": [
     ("h", "The picture preview (right side)"),

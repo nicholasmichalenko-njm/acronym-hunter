@@ -131,6 +131,7 @@ from volcheck_ui import VolumeCheckMixin   # volume check and first use (2.7.0)
 from compliance_ui import ComplianceMixin   # compliance matrix (2.8.0)
 from workspace_ui import WorkspaceMixin   # effort profiles, session, recovery, backups (2.11.0)
 from ai_ui import AIMixin   # AI and ML labels and switch (2.12.0)
+from setup_ui import SetupMixin   # Setup Builder in the compliance window (2.13.0)
 import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
 DB_FILE = os.path.join(BASE_DIR, "acronym_database.csv")
@@ -2207,7 +2208,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.12.0"            # keep in step with version_info.txt
+APP_VERSION = "2.13.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -2996,7 +2997,7 @@ def trainer_available():
     """Training features: on unless config\\app_settings.json sets allow_training to false."""
     return bool(APP_CFG["allow_training"]) and importlib.util.find_spec("trainer_gui") is not None
 
-class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Acronym Hunter {APP_VERSION}: acronyms, abbreviations and units (100% local)")

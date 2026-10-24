@@ -50,6 +50,7 @@ FEATURES = {
         ("Rules", "Find shall, must, will and instruction sentences; actor, type and strength; cross-references", "none"),
         ("Word matching (IDF)", "Suggests an outline section from section numbers and title words", "none"),
         ("difflib", "Word-level differences between RFP versions", "none"),
+        ("Setup Builder", "Places RFP text by the Outline column and section numbers; writes plain Word setup files", "none"),
         ("Naive Bayes (pure Python)", "Learned column: scores Keep or Drop from your team's past decisions. Stores numbered "
                                       "counts only, never RFP words", "ml"),
         ("TF-IDF similarity", "Suggests a section from rows you already mapped", "ml"),

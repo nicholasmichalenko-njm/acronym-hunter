@@ -82,6 +82,7 @@ class ComplianceMixin:
         win.tabs = tabs
         self._c_build_requirements(tabs.add("Requirements"))
         self._c_build_outline(tabs.add("Outline"))
+        self._s_build(tabs.add("Setup"))           # Setup Builder (2.13.0)
         last = self.ws.get("compliance_path", "") if getattr(self, "ws", None) is not None else ""   # per effort (2.11.0)
         if self.matrix is None and last and os.path.isfile(last):
             self._c_load(last, quiet=True)
@@ -300,6 +301,8 @@ class ComplianceMixin:
             return
         self._c_score()
         self._c_fill()
+        if hasattr(self, "_s_fill"):
+            self._s_fill()
         M = self.matrix
         labels = [""] + [C.outline_label(o) for o in (M.outline if M else [])]
         win.d_map.configure(values=labels)

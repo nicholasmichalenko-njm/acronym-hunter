@@ -459,3 +459,21 @@ AI AND ML LABELS AND SWITCH (2.12.0)
 - Help > What runs where lists every part and saves a one-page summary for the security team.
 - Compliance window: Team learning (per effort, on by default). Off: the effort's decisions are not learned and the
   Learned column stays empty.
+
+SETUP BUILDER (2.13.0)
+- Compliance window > Setup tab: the RFP text not placed yet on the left, the proposal outline on the right. Drag RFP
+  text onto a section (Shift+drag adds a copy to a second section), drag inside the outline to reorder, drag back to
+  remove. Accept suggestions places rows by section number, title words and rows you mapped before. Placement is the
+  same as the Outline column in the Requirements tab.
+- Add context from RFP keeps the RFP's other paragraphs (SOW text, evaluation criteria) as Context items to place.
+- References: each RFP block starts with its section reference on the same line (L.4.2(a): text). It comes from the
+  RFP's numbering (with list markers), the heading above, a rule per file for numbers without a letter (References >
+  Attachment 3 = L gives L-3.2), or what you type (Set, Fill down). Formats: "L.4.2(a): ", "[L.4.2(a)] ",
+  "RFP L.4.2(a) - ".
+- Management direction per section, and a note per RFP row, typed below the outline.
+- Export setup: one Word file per volume. Word's built-in headings for every outline entry (empty ones too), RFP text in
+  Word's standard Purple, direction and notes in standard Green. No hidden text and no custom styles, so each kind can be
+  selected at once (Select Text with Similar Formatting) and given the team's own style.
+- The setup is saved in the matrix workbook (Setup and Setup direction sheets, plus a hidden Setup data sheet), with the
+  matrix's autosave, recovery copy and backups. Export changes only writes what changed since the last export; Compare a
+  setup document lists RFP text missing from a styled setup, under a different heading, or not in the setup.

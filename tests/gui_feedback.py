@@ -3,6 +3,8 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # Windows consoles 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["AH_OCR_ENGINE"] = "tesseract"
 import app_gui as A, feedback as FB
+import tempfile as _tf
+_t = _tf.mkdtemp(); A.CONFIG_DIR = os.path.join(_t, "config"); A.CHOICES_FILE = os.path.join(_t, "config", "choices.json")
 from tkinter import filedialog
 import tempfile; OUT = os.path.join(tempfile.gettempdir(), "fb_out.zip")
 filedialog.asksaveasfilename = lambda **k: OUT

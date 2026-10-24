@@ -9,8 +9,9 @@ def _x(s):
     return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
-def _run(text, bold=False):
-    rpr = "<w:rPr><w:b/></w:rPr>" if bold else ""
+def _run(text, bold=False, color=None):
+    props = ("<w:b/>" if bold else "") + (f'<w:color w:val="{color}"/>' if color else "")
+    rpr = f"<w:rPr>{props}</w:rPr>" if props else ""
     lines = str(text).split("\n")
     out = []
     for i, ln in enumerate(lines):
@@ -23,13 +24,14 @@ def _run(text, bold=False):
 class Doc:
     def __init__(self):
         self.body = []
+        self.props = {}          # custom document properties (File > Info > Properties > Advanced > Custom)
 
     def heading(self, text, level=1):
         level = max(1, min(int(level), 6))
         self.body.append(f'<w:p><w:pPr><w:pStyle w:val="Heading{level}"/></w:pPr>{_run(text)}</w:p>')
 
-    def para(self, text, bold=False):
-        self.body.append(f"<w:p>{_run(text, bold)}</w:p>")
+    def para(self, text, bold=False, color=None):
+        self.body.append(f"<w:p>{_run(text, bold, color)}</w:p>")
 
     def table(self, header, rows, widths):
         def cell(text, w, bold=False, shade=None):
@@ -63,13 +65,27 @@ class Doc:
               '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
               '<Default Extension="xml" ContentType="application/xml"/>'
               '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
-              '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>')
+              '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
+              + ('<Override PartName="/docProps/custom.xml" ContentType="application/vnd.openxmlformats-officedocument.custom-properties+xml"/>'
+                 if self.props else "") + '</Types>')
         rel = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/{t}" Target="{g}"/></Relationships>')
         with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
             z.writestr("[Content_Types].xml", ct)
-            z.writestr("_rels/.rels", rel.format(t="officeDocument", g="word/document.xml"))
+            if self.props:
+                z.writestr("_rels/.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                           '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                           '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
+                           '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties" Target="docProps/custom.xml"/>'
+                           '</Relationships>')
+                items = "".join(f'<property fmtid="{{D5CDD505-2E9C-101B-9397-08002B2CF9AE}}" pid="{i}" name="{_x(k)}"><vt:lpwstr>{_x(v)}</vt:lpwstr></property>'
+                                for i, (k, v) in enumerate(self.props.items(), start=2))
+                z.writestr("docProps/custom.xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                           '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" '
+                           'xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">' + items + '</Properties>')
+            else:
+                z.writestr("_rels/.rels", rel.format(t="officeDocument", g="word/document.xml"))
             z.writestr("word/document.xml", doc)
             z.writestr("word/styles.xml", styles)
             z.writestr("word/_rels/document.xml.rels", rel.format(t="styles", g="styles.xml"))
