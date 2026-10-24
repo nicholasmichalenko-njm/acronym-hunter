@@ -232,7 +232,7 @@ class ComplianceMixin:
 
     def _c_learner(self):
         if getattr(self, "_learner", None) is None:
-            self._learner = CL.Learner(getattr(_eng(), "COMPLIANCE_LEARNED_FILE", os.path.join(_eng().CONFIG_DIR, "compliance_learned.json")))
+            self._learner = CL.Learner(os.path.join(_eng().CONFIG_DIR, "compliance_learned.json"))
         return self._learner
 
     def _c_score(self):
