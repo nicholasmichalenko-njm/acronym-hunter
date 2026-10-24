@@ -1,0 +1,239 @@
+"""Volume check inside the app (2.7.0): Effort > Check volumes. Scans the chosen volumes, then shows the report:
+first use (acronyms), terms not in the effort list, not approved yet, definitions that differ, list entries the
+volumes do not use, and each volume's acronym list. Double-click a row to jump to it in the preview.
+"""
+import os, re
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
+import customtkinter as ctk
+import diag
+import volcheck as V
+
+TAG_COLORS = {V.BAD: "#FDE2E2", V.WARN: "#FEF3E2", V.INFO: "#E0F2FE"}
+
+
+def _eng():
+    import app_gui
+    return app_gui
+
+
+class VolumeCheckMixin:
+    """Mixed into AcronymAppGUI after EffortMixin."""
+
+    def volume_files(self):
+        info = (self.efforts.get(self.effort.name) or {}) if self.effort else {}
+        d = info.get("volumes_dir") or ""
+        return d if d and os.path.isdir(d) else ""
+
+    def check_volumes(self, paths=None):
+        if self.effort is None:
+            return
+        eng = _eng()
+        if paths is None:
+            paths = filedialog.askopenfilenames(
+                title="Volumes to check (submission order follows the file names)", initialdir=self.volume_files() or self.start_dir(),
+                filetypes=[("Volumes", "*.docx *.pdf *.pptx *.xlsx")])
+        paths = sorted({os.path.abspath(p) for p in paths or []}, key=lambda p: V.natural_key(os.path.basename(p)))
+        if not paths:
+            return
+        names = [os.path.basename(p) for p in paths]
+        if len(set(names)) != len(names):
+            messagebox.showwarning("Check volumes", "Two volumes have the same file name. Rename one so the report can tell them apart.")
+            return
+        diag.activity("volume_check_started", files=len(paths))
+        self._volcheck = {"paths": paths, "names": names, "defs": {}}
+
+        def after(cb):
+            import custdefs
+            for p in paths:
+                eng.check_cancel()
+                try:
+                    self._volcheck["defs"][os.path.basename(p)] = custdefs.extract(eng.typed_chunks(p) + custdefs.table_chunks(p))
+                except Exception:
+                    diag.swallowed()
+        self.start_batch(paths, after=after)
+
+    def volume_check_after_scan(self):
+        vc = getattr(self, "_volcheck", None)
+        self._volcheck = None
+        if not vc or self.effort is None:
+            return
+        eng = _eng()
+        report = V.build(self.results, self.effort.rows, vc["names"], self.effort.first_use, vc["defs"],
+                         file_of=eng._file_of, in_picture=lambda loc: bool(eng._OCR_LOC.search(loc)))
+        self.volume_report = report
+        s = report["summary"]
+        diag.activity("volume_check_report", terms=s["terms_used"], rows=len(report["first_use"]), items=s["missing"])
+        self.show_volume_report(report)
+
+    # ------------------------------------------------------------ the report window
+    def show_volume_report(self, report):
+        old = getattr(self, "_volwin", None)
+        if old is not None and old.winfo_exists():
+            old.destroy()
+        win = ctk.CTkToplevel(self); win.title(f"Volume check: {self.effort.name}")
+        win.geometry("1200x680"); win.after(150, win.lift)
+        diag.register(win, "volume_check")
+        self._volwin = win
+        s = report["summary"]
+        rule = "per volume" if s["rule"] == "volume" else "across the whole submission"
+        head = (f"{s['volumes']} volume(s), first use {rule}  |  {s['terms_used']} terms used  |  "
+                f"first-use problems {s['first_use_problems']}  |  not in effort list {s['missing']}  |  "
+                f"not approved {s['not_approved']}  |  definition differs {s['differs']}  |  in the list, not used {s['unused']}")
+        ctk.CTkLabel(win, text=head, font=("Arial", 13, "bold"), wraplength=1140, justify="left").pack(anchor="w", padx=12, pady=(10, 0))
+        ctk.CTkLabel(win, text="Order: " + "  >  ".join(report["volumes"]) + "     Double-click a row to jump to it.",
+                     text_color=("#475569", "#94A3B8"), wraplength=1140, justify="left").pack(anchor="w", padx=12, pady=(0, 4))
+        b = ctk.CTkFrame(win, fg_color="transparent"); b.pack(side="bottom", fill="x", padx=10, pady=8)
+        tabs = ctk.CTkTabview(win); tabs.pack(fill="both", expand=True, padx=8)
+        win._trees = {}
+        sc = ctk.ScalingTracker.get_widget_scaling(win)
+        size = getattr(self, "font_size", 13)
+        st = ttk.Style(win)
+        from tkinter import font as tkfont
+        vf = tkfont.Font(win, family="Arial", size=size)
+        st.configure("Vol.Treeview", font=vf, rowheight=vf.metrics("linespace") + max(8, size // 2))
+        st.configure("Vol.Treeview.Heading", font=("Arial", size, "bold"))
+
+        def table(tab, cols, rows, keys, widths, level=False, jump=True):
+            fr = tabs.add(tab)
+            tv = ttk.Treeview(fr, columns=keys, show="headings", selectmode="extended", style="Vol.Treeview")
+            for c, k, w in zip(cols, keys, widths):
+                tv.heading(k, text=c); tv.column(k, width=int(w * sc * size / 13), minwidth=40, anchor="w", stretch=False)
+            for lv, color in TAG_COLORS.items():
+                tv.tag_configure(lv, background=color, foreground="#111827")
+            sb = ttk.Scrollbar(fr, orient="vertical", command=tv.yview)
+            hb = ttk.Scrollbar(fr, orient="horizontal", command=tv.xview)
+            tv.configure(yscrollcommand=sb.set, xscrollcommand=hb.set)
+            sb.pack(side="right", fill="y"); hb.pack(side="bottom", fill="x"); tv.pack(fill="both", expand=True)
+            data = {}
+            for r in rows:
+                iid = tv.insert("", "end", values=[r.get(k, "") for k in keys], tags=(r.get("level", ""),) if level else ())
+                data[iid] = r
+            if jump:
+                tv.bind("<Double-1>", lambda e, tv=tv, data=data: self._volume_jump(data.get(tv.focus())))
+            win._trees[tab] = (tv, data)
+            return tv
+
+        table("First use", ["Volume", "Acronym", "Result", "First use at", "Written as", "Effort list says", "Also defined at"],
+              report["first_use"], ["volume", "term", "state", "loc", "written", "list_definition", "also_defined"],
+              [170, 100, 330, 260, 190, 190, 200], level=True)
+        table("Not in effort list", ["Term", "Type", "Count", "Volumes", "Suggested definition", "First found at"],
+              report["missing"], ["term", "type", "count", "volumes", "suggestion", "loc"], [90, 90, 60, 220, 300, 300])
+        table("Not approved", ["Term", "Status", "Definition", "Volumes", "First found at"],
+              report["not_approved"], ["term", "status", "definition", "volumes", "loc"], [90, 100, 320, 220, 300])
+        table("Definition differs", ["Term", "Volume", "Volume says", "Effort list says", "Where"],
+              report["differs"], ["term", "volume", "written", "list_definition", "loc"], [90, 160, 280, 280, 300])
+        table("Unused", ["Term", "Type", "Status", "Definition"], report["unused"], ["term", "type", "status", "definition"],
+              [100, 100, 110, 600], jump=False)
+        for i, v in enumerate(report["volumes"], 1):
+            table(f"List {i}: {v[:24]}", ["Term", "Definition", "Status"], report["lists"][v],
+                  ["term", "definition", "status"], [110, 640, 160])
+
+        ctk.CTkButton(b, text="Export report (Excel)...", command=self.export_volume_report).pack(side="left", padx=4)
+        ctk.CTkButton(b, text="Acronym lists for Word...", command=self.export_volume_lists).pack(side="left", padx=4)
+        ctk.CTkButton(b, text=f"Add {s['missing']} missing to the effort list", fg_color="#0F766E",
+                      state="normal" if s["missing"] else "disabled", command=self.add_volume_missing).pack(side="left", padx=4)
+        ctk.CTkButton(b, text="Record volumes and first use in the list", fg_color="#0F766E",
+                      command=self.record_volume_use).pack(side="left", padx=4)
+        ctk.CTkButton(b, text="Close", fg_color="#475569", command=win.destroy).pack(side="right", padx=4)
+        if s["first_use_problems"] == 0 and s["missing"]:
+            tabs.set("Not in effort list")
+        return win
+
+    def _volume_jump(self, row):
+        """Select the term in the results table and show that location in the preview."""
+        if not row or row.get("term") not in self.results:
+            return
+        term, loc = row["term"], row.get("loc", "")
+        diag.activity("volume_check_jump")
+        if not self.tree.exists(term):
+            self.clear_filters()
+        if not self.tree.exists(term):
+            return
+        self.tree.selection_set(term); self.tree.see(term); self.tree.focus(term)
+        self.on_select(None)
+        if loc and self.preview_var.get():
+            self.after(80, lambda: self.preview.show_at(loc))
+        self.status.configure(text=f"{term}: {loc}")
+
+    # ------------------------------------------------------------ outputs
+    def _report_name(self, what, ext):
+        r = self.volume_report
+        stem = re.sub(r"[^A-Za-z0-9_-]+", "_", self.effort.name) if self.effort else "Effort"
+        vol = os.path.splitext(r["volumes"][0])[0] if len(r["volumes"]) == 1 else f"{len(r['volumes'])}_volumes"
+        return f"{stem}_{re.sub(r'[^A-Za-z0-9_-]+', '_', vol)}_{what}.{ext}"
+
+    def export_volume_report(self):
+        r = getattr(self, "volume_report", None)
+        if not r:
+            return
+        p = filedialog.asksaveasfilename(parent=self._volwin, title="Save the volume check", defaultextension=".xlsx",
+                                         initialfile=self._report_name("Volume_Check", "xlsx"),
+                                         initialdir=os.path.dirname(self.effort.path), filetypes=[("Excel", "*.xlsx")])
+        if not p:
+            return
+        try:
+            V.write_excel(r, p, self.effort.name)
+        except PermissionError:
+            messagebox.showerror("Volume check", "That file is open in Excel. Close it, then save again.", parent=self._volwin); return
+        diag.activity("volume_check_exported", rows=len(r["first_use"]))
+        messagebox.showinfo("Volume check", f"Saved:\n{p}\n\nIt holds customer content: keep it on this PC or SharePoint.", parent=self._volwin)
+
+    def export_volume_lists(self):
+        r = getattr(self, "volume_report", None)
+        if not r:
+            return
+        d = filedialog.askdirectory(parent=self._volwin, title="Folder for the acronym lists (one Word file per volume)",
+                                    initialdir=os.path.dirname(self.effort.path))
+        if not d:
+            return
+        written, open_items = [], 0
+        sets = [(v, r["lists"][v]) for v in r["volumes"]]
+        if len(sets) > 1:
+            combo = {}
+            for _v, rows in sets:
+                for x in rows:
+                    combo.setdefault(x["term"], x)
+            sets.append(("All volumes", sorted(combo.values(), key=lambda x: (x["term"].lower(), x["term"]))))
+        try:
+            for v, rows in sets:
+                p = os.path.join(d, re.sub(r"[^A-Za-z0-9 _.-]+", "_", os.path.splitext(v)[0]) + "_Acronym_List.docx")
+                V.write_docx([(x["term"], x["definition"]) for x in rows], p)
+                written.append(os.path.basename(p))
+                if v != "All volumes":
+                    open_items += sum(1 for x in rows if x["status"] != "Approved" or not x["definition"])
+        except PermissionError:
+            messagebox.showerror("Acronym lists", "A list with that name is open in Word. Close it, then try again.", parent=self._volwin); return
+        diag.activity("volume_lists_exported", files=len(written))
+        note = (f"\n\n{open_items} entries are not approved yet or have no definition: they are in the lists with the "
+                "definition the app has. Check them on the Not approved and Not in effort list tabs.") if open_items else ""
+        messagebox.showinfo("Acronym lists", "Saved in " + d + ":\n" + "\n".join(written) + note, parent=self._volwin)
+
+    def add_volume_missing(self):
+        r = getattr(self, "volume_report", None)
+        if not r or self.effort is None:
+            return
+        n = 0
+        for m in r["missing"]:
+            res = self.effort.add_or_update(m["term"], change_note="added by volume check (Proposed)", Type=m["type"],
+                                            Definition=m["suggestion"] or None, Source="Volume check",
+                                            **{"Used in volumes": m["volumes"]})
+            n += res == "added"
+        diag.activity("volume_missing_added", added=n)
+        self._save_effort_list()
+        self.apply_effort()
+        self.update_effort_ui()
+        messagebox.showinfo("Effort list", f"{n} terms added as Proposed. Approve them in the app or in Excel.", parent=self._volwin)
+
+    def record_volume_use(self):
+        r = getattr(self, "volume_report", None)
+        if not r or self.effort is None:
+            return
+        n = 0
+        for term, fields in V.effort_updates(r).items():
+            if term in self.effort.rows:
+                n += self.effort.add_or_update(term, change_note="volume check: volumes and first use", **fields) == "updated"
+        diag.activity("volume_use_recorded", n=n)
+        self._save_effort_list()
+        self.update_effort_ui()
+        messagebox.showinfo("Effort list", f"Used in volumes and First use updated for {n} terms.", parent=self._volwin)

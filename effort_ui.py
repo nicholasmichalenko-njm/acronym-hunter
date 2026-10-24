@@ -83,6 +83,10 @@ class EffortMixin:
         m.add_command(label="Reload the list (after editing in Excel)", command=self.reload_effort, state=st)
         m.add_command(label="Save list now", command=self.save_effort, state="normal" if has and self.effort.pending else "disabled")
         m.add_command(label="Export for approvals (Needs author, Conflicts, Approved)...", command=self.export_effort, state=st)
+        m.add_separator()
+        m.add_command(label="Check volumes (first use, missing, acronym lists)...", command=self.check_volumes, state=st)
+        m.add_command(label="Show the last volume check", command=lambda: self.show_volume_report(self.volume_report),
+                      state="normal" if has and getattr(self, "volume_report", None) else "disabled")
         m.add_command(label="Effort settings...", command=lambda: self.new_effort_dialog(edit=True), state=st)
         m.add_separator()
         m.add_command(label="Close effort", command=self.close_effort, state=st)

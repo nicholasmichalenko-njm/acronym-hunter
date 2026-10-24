@@ -367,3 +367,16 @@ TRAINED READER FROM THE TRAINING KIT (2.6.0)
   (approved SharePoint folder only).
 - The kit blocks every network connection and logs any attempt to kit\logs\network_blocked.log. On an 8 GB card,
   set AH_GPU_MEM_GB=8 before Train.cmd to cap graphics memory.
+
+VOLUME CHECK AND FIRST USE (2.7.0)
+- Effort > Check volumes: pick the final volumes. File names set the submission order (Vol 2 before Vol 10).
+- First use (acronyms only): each acronym must first appear as "Spelled Out Words (ACR)", restarting in each volume
+  or running across the submission (the effort's first-use rule). The report flags: not defined, spelled out later,
+  defined with words that differ from the effort list, defined again later, and first uses inside pictures.
+- Not in effort list, Not approved, Definition differs (the volume spells it out differently), and Unused (list
+  entries no volume uses) each have a tab. Double-click a row to jump to it in the results table and preview.
+- Acronym lists for Word: one .docx per volume plus one for all volumes, a sorted Term / Definition table built from
+  the effort list. Entries not approved yet are counted so you can clear them first.
+- Add missing to the effort list (as Proposed) and Record volumes and first use (fills Used in volumes and First use).
+- Export report (Excel): Summary, First use, Not in effort list, Not approved, Definition differs, Unused, and one
+  list sheet per volume. Reports and lists hold customer content: keep them on this PC or SharePoint.

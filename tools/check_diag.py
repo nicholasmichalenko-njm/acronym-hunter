@@ -14,7 +14,7 @@ sys.path.insert(0, ROOT)
 import diag  # noqa: E402
 
 FILES = ["app_gui.py", "preview_pane.py", "trainer_gui.py", "symbol_picker.py", "help_guide.py", "doctr_engine.py",
-         "equations.py", "sandbox.py", "tess_train.py", "feedback.py", "diag.py", "effort.py", "effort_ui.py", "custdefs.py"]
+         "equations.py", "sandbox.py", "tess_train.py", "feedback.py", "diag.py", "effort.py", "effort_ui.py", "custdefs.py", "volcheck.py", "volcheck_ui.py"]
 LOG_FUNCS = {"log_error"}
 DIAG_FUNCS = {"error", "warning", "activity", "swallowed"}
 

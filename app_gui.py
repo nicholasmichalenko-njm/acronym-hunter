@@ -127,6 +127,7 @@ import symbol_picker as SP
 import help_guide as HG
 import feedback as FB
 from effort_ui import EffortMixin   # Effort List (2.4.0)
+from volcheck_ui import VolumeCheckMixin   # volume check and first use (2.7.0)
 import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
 DB_FILE = os.path.join(BASE_DIR, "acronym_database.csv")
@@ -1838,13 +1839,32 @@ def note_first_use(findings, hits, label, text):
         pat = re.escape(term) + r"s?"
         mt = re.search(r"(?<![A-Za-z0-9])" + pat + r"(?![A-Za-z0-9])", text)
         paren = None if mt is None else text[max(0, mt.start() - 1):mt.start()] == "("
+        defs = list(re.finditer(r"\(\s*" + pat + r"\s*\)", text))
         fu = d.setdefault("first_use", {})
         if f not in fu:
             fu[f] = {"loc": label, "defined": paren}
-            if paren is False and re.search(r"\(" + pat + r"\)", text):
+            if paren:                                   # the words written before "(ACR)" (2.7.0 volume check)
+                fu[f]["lf"] = _long_form_before(term, text, mt.start() - 1)
+                if len(defs) > 1:
+                    fu[f]["redefs"] = [label]
+            if paren is False and defs:
                 fu[f]["later"] = label
-        elif fu[f]["defined"] is False and not fu[f].get("later") and re.search(r"\(" + pat + r"\)", text):
-            fu[f]["later"] = label
+        else:
+            if fu[f]["defined"] is False and not fu[f].get("later") and defs:
+                fu[f]["later"] = label
+            elif fu[f]["defined"] and defs and label not in fu[f].get("redefs", []) and len(fu[f].get("redefs", [])) < 5:
+                fu[f].setdefault("redefs", []).append(label)
+
+def _long_form_before(term, text, paren_at):
+    """Schwartz-Hearst long form ending right before the parenthesis, or "" when the words do not fit the acronym."""
+    import custdefs
+    before = re.split(r"[.;:!?\n(]\s", text[max(0, paren_at - 200):paren_at])[-1]
+    words = before.split()[-(min(len(term) + 5, len(term) * 2) + 2):]
+    try:
+        return (custdefs._best_long_form(term, words) or "") if words else ""
+    except Exception:
+        diag.swallowed()
+        return ""
 
 def first_use_lines(d, with_file=True):
     """Readable first-use lines for acronyms only (units and abbreviations are never defined this way)."""
@@ -2163,7 +2183,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.6.0"            # keep in step with version_info.txt
+APP_VERSION = "2.7.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -2915,7 +2935,7 @@ def trainer_available():
     """Training features: on unless config\\app_settings.json sets allow_training to false."""
     return bool(APP_CFG["allow_training"]) and importlib.util.find_spec("trainer_gui") is not None
 
-class AcronymAppGUI(EffortMixin, ctk.CTk):
+class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Acronym Hunter {APP_VERSION}: acronyms, abbreviations and units (100% local)")
@@ -3827,13 +3847,19 @@ class AcronymAppGUI(EffortMixin, ctk.CTk):
             return
         self.start_batch(fps, folder=folder)
 
-    def start_batch(self, fps, folder=None):
+    def start_batch(self, fps, folder=None, after=None):
+        """after(status_callback): extra work on the worker thread once the files are read (volume check)."""
         self.queued_files = fps
         self.scanned_paths.update({os.path.basename(f): f for f in fps})
         capture = {}
         self.last_scan = {"paths": list(fps), "folder": folder, "cache": capture}
         diag.scan_started(len(fps), dict(collections.Counter(os.path.splitext(f)[1].lower() for f in fps)))
-        self.run_job(lambda cb: analyze_batch(fps, cb, capture=capture))
+        def job(cb):
+            res = analyze_batch(fps, cb, capture=capture)
+            if after:
+                after(cb)
+            return res
+        self.run_job(job)
 
     def run_job(self, job):
         """Run job(status_callback) -> results on a worker thread, then show them."""
@@ -4317,6 +4343,7 @@ class AcronymAppGUI(EffortMixin, ctk.CTk):
 
     def scan_cancelled(self):
         diag.scan_finished(cancelled=True)
+        self._volcheck = None
         self.results = getattr(self, "_prev_results", {}) or {}
         if self.project is not None:
             self.save_project()   # keeps the files already read, so the next rescan continues from there
@@ -4338,6 +4365,7 @@ class AcronymAppGUI(EffortMixin, ctk.CTk):
         self.reset_ui()
         self.refresh_type_options()
         self.populate_table()
+        self.volume_check_after_scan()
 
     def populate_table(self):
         if not hasattr(self, "tree"):

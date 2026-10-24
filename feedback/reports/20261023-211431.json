@@ -1,0 +1,22 @@
+{
+ "type": "Bug",
+ "feature": "Scan / Scan Again",
+ "importance": "Medium",
+ "title": "Preview is slow",
+ "text": "Clicking a row in the results table takes 5 seconds before the picture shows. Expected under 1 second.",
+ "context": {
+  "version": "2.7.0",
+  "time": "2026-10-23T21:14:31",
+  "recent_actions": [
+   "scan_started",
+   "scan_finished",
+   "customer_definitions_applied",
+   "feedback_opened",
+   "feedback_blocked",
+   "feedback_blocked",
+   "feedback_blocked"
+  ],
+  "issues_logged_this_session": 5
+ },
+ "exported": true
+}

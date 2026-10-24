@@ -117,6 +117,18 @@ PAGES = {
     ("img", "effort_add.png", 150),
     ("h", "Which definition wins"),
     ("p", "Effort list (approved) > customer documents > client lists > company database."),
+    ("h", "Check a volume before it ships"),
+    ("p", "Effort > Check volumes. Pick the final volumes; the file names set the submission order (Vol 2 before Vol 10)."),
+    ("img", "volume_check.png", 600),
+    ("rows", [("First use", "Acronyms only. Each must first appear as \"Spelled Out Words (ACR)\", per volume or across the "
+                            "submission (the effort's first-use rule). Red: not defined. Amber: the words differ from the list."),
+              ("Not in effort list", "Terms the volume uses that the list does not have. One click adds them as Proposed."),
+              ("Not approved", "In the list, but still Proposed or Needs an author."),
+              ("Definition differs", "The volume spells a term out differently from the list."),
+              ("Unused", "List entries no volume uses: keep them out of the volume's acronym list."),
+              ("Jump", "Double-click any row: the results table selects the term and the preview opens at that spot."),
+              ("Acronym lists", "One Word file per volume (and one for all volumes): a Term and Definition table, sorted."),
+              ("Record", "Writes Used in volumes and First use into the effort list.")]),
 ],
 "Pictures": [
     ("h", "The picture preview (right side)"),

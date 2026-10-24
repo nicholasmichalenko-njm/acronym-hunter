@@ -315,6 +315,11 @@ class PreviewPane(ctk.CTkFrame):
         self.loc_var.set(names[0])
         self._show_location(0)
 
+    def show_at(self, loc):
+        """Show one location of the current term (volume check jump)."""
+        if loc in getattr(self, "locs", []):
+            self._show_location(self.locs.index(loc))
+
     def _math_info(self, term, d):
         """Equation and symbol rows: show the equation, its symbols, and which symbols the document never defines."""
         cat = d.get("category", "")
