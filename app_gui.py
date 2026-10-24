@@ -2933,7 +2933,7 @@ COLUMNS = (  # id, heading, base width, anchor
     ("status", "Status", 210, "w"),
     ("definition", "Definition", 300, "w"),
     ("firstuse", "First Use (acronyms)", 260, "w"),
-    ("locations", "Locations Found", 420, "w"),
+    ("locations", "Source Locations", 420, "w"),
 )
 FONT_MIN, FONT_MAX, FONT_DEFAULT = 9, 28, 13
 
@@ -2991,55 +2991,115 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
         self.font_size = int(self.settings.get("font_size", FONT_DEFAULT))
         self.font_size = max(FONT_MIN, min(FONT_MAX, self.font_size))
 
-        top = ctk.CTkFrame(self)
-        top.pack(fill="x", padx=15, pady=(15, 8))
+        # ---- Layout (2.9.0): menu bar + a resizable, hideable sidebar on the left, the work area on the right ----
+        self.body = tk.PanedWindow(self, orient="horizontal", sashwidth=6, bd=0, sashrelief="flat", bg="#CBD5E1")
+        self.body.pack(fill="both", expand=True)
+        wsc = ctk.ScalingTracker.get_window_scaling(self)
+        self.side = ctk.CTkFrame(self.body, corner_radius=0, fg_color=("#F1F5F9", "#1E293B"))
+        self.main = ctk.CTkFrame(self.body, corner_radius=0, fg_color="transparent")
+        self.side_w = int(self.settings.get("sidebar_w", int(250 * wsc)))
+        self.body.add(self.side, minsize=int(190 * wsc), width=self.side_w, stretch="never")
+        self.body.add(self.main, minsize=int(560 * wsc), stretch="always")
+        self.body.bind("<ButtonRelease-1>", self._sidebar_resized, add="+")
+        side_bottom = ctk.CTkFrame(self.side, fg_color="transparent")
+        side_bottom.pack(side="bottom", fill="x", padx=10, pady=(4, 10))
+        sb = ctk.CTkScrollableFrame(self.side, fg_color="transparent")
+        sb.pack(fill="both", expand=True, padx=(4, 0), pady=(8, 0))
+        self.sidebar = sb
 
-        B = dict(height=32, font=("Segoe UI", 13))
-        self.btn_project = ctk.CTkButton(top, text="Project ▾", command=self.show_project_menu, fg_color="#1E3A8A", width=90, **B)
-        self.btn_project.pack(side="left", padx=2, pady=8)
+        B = dict(height=32, font=("Segoe UI", 13), anchor="w", corner_radius=6)
+        SEC = dict(fg_color=("#E2E8F0", "#334155"), hover_color=("#CBD5E1", "#475569"), text_color=("#0F172A", "#F1F5F9"),
+                   text_color_disabled=("#94A3B8", "#64748B"))
+        self._side_btn = lambda text, cmd, primary=False, **kw: ctk.CTkButton(sb, text=text, command=cmd, **B, **({} if primary else SEC), **kw)
+
+        def section(title):
+            ctk.CTkLabel(sb, text=title, font=("Segoe UI", 11, "bold"), text_color=("#64748B", "#94A3B8"), anchor="w").pack(fill="x", padx=8, pady=(12, 2))
+        self._side_section = section
+        P = dict(fill="x", padx=8, pady=2)
+
+        section("SCAN")
+        self.btn_files = self._side_btn("Select Files...", self.select_files, primary=True); self.btn_files.pack(**P)
+        self.btn_folder = self._side_btn("Scan Folder...", self.select_folder, primary=True); self.btn_folder.pack(**P)
+        self.btn_again = self._side_btn("Scan Again", self.scan_again, state="disabled"); self.btn_again.pack(**P)
+        self.btn_project = self._side_btn("Project", self.show_project_menu); self.btn_project.pack(**P)
         self.project_menu = tk.Menu(self, tearoff=0)
-        self.btn_files = ctk.CTkButton(top, text="Select Files", command=self.select_files, width=92, **B)
-        self.btn_files.pack(side="left", padx=2, pady=8)
-        self.btn_folder = ctk.CTkButton(top, text="Scan Folder", command=self.select_folder, width=94, **B)
-        self.btn_folder.pack(side="left", padx=2, pady=8)
-        self.btn_again = ctk.CTkButton(top, text="⟳ Scan Again", command=self.scan_again, width=102, state="disabled",
-                                       fg_color="#0E7490", **B)
-        self.btn_again.pack(side="left", padx=2, pady=8)
-        self.btn_export = ctk.CTkButton(top, text="Export CSV", command=self.export_csv, state="disabled", fg_color="green", width=90, **B)
-        self.btn_export.pack(side="left", padx=2, pady=8)
-        self.btn_add = ctk.CTkButton(top, text="+ Add Item", command=self.open_add_item, fg_color="#B45309", width=92, **B)
-        self.btn_add.pack(side="left", padx=2, pady=8)
-        self.btn_client = ctk.CTkButton(top, text="Client Lists", command=self.open_client_lists, fg_color="#6D28D9", width=94, **B)
-        self.btn_client.pack(side="left", padx=2, pady=8)
-        self.effort_init(top, B)
-        self.compliance_init(top, B)
 
-        # Right side, packed first so it never gets pushed off: Advanced switch, then the Tools menu
-        self.adv_var = ctk.BooleanVar(value=self.advanced_on)
-        self.sw_adv = ctk.CTkSwitch(top, text="Advanced", variable=self.adv_var, command=self.toggle_advanced, width=96)
-        if self.app_cfg["allow_advanced_toggle"]:
-            self.sw_adv.pack(side="right", padx=(8, 6), pady=8)
-        self.btn_tools = ctk.CTkButton(top, text="Tools ▾", command=self.show_tools_menu, fg_color="#475569", width=84, **B)
-        self.btn_tools.pack(side="right", padx=2, pady=8)
-        self.btn_help = ctk.CTkButton(top, text="? Guide", command=lambda: (diag.activity("guide_opened"), HG.open_guide(self)), fg_color="#0EA5E9", width=76, **B)
-        self.btn_help.pack(side="right", padx=2, pady=8)
-        self.btn_feedback = ctk.CTkButton(top, text="Feedback", command=lambda: FB.open_feedback(self), fg_color="#64748B", width=84, **B)
-        self.btn_feedback.pack(side="right", padx=2, pady=8)
-        self.bind_all("<Control-Shift-F>", lambda e: FB.open_feedback(self))
-        self.bind_all("<Control-Shift-f>", lambda e: FB.open_feedback(self))
-        self.bind_all("<F1>", lambda e: (diag.activity("guide_opened"), HG.open_guide(self)))
+        section("REVIEW")
+        self.type_var = ctk.StringVar(value=ALL_TYPES)
+        ctk.CTkLabel(sb, text="Type", anchor="w").pack(fill="x", padx=8)
+        self.opt_type = ctk.CTkOptionMenu(sb, variable=self.type_var, values=[ALL_TYPES], command=lambda _v: self.populate_table())
+        self.opt_type.pack(**P)
+        self.status_var = ctk.StringVar(value=STATUS_FILTERS[0])
+        ctk.CTkLabel(sb, text="Status", anchor="w").pack(fill="x", padx=8)
+        self.opt_status = ctk.CTkOptionMenu(sb, variable=self.status_var, values=STATUS_FILTERS, command=lambda _v: self.populate_table())
+        self.opt_status.pack(**P)
+        ctk.CTkLabel(sb, text="Search", anchor="w").pack(fill="x", padx=8)
+        self.search_var = ctk.StringVar()
+        self.entry_search = ctk.CTkEntry(sb, textvariable=self.search_var)
+        self.entry_search.pack(**P)
+        SP.attach(self.entry_search)
+        self.search_var.trace_add("write", lambda *_a: self.populate_table())
+        row = ctk.CTkFrame(sb, fg_color="transparent"); row.pack(**P)
+        self.show_exc_var = ctk.BooleanVar(value=False)
+        self.chk_exc = ctk.CTkCheckBox(row, text="Show excluded", variable=self.show_exc_var, command=self.populate_table)
+        self.chk_exc.pack(side="left")
+        ctk.CTkButton(row, text="Clear", width=56, height=26, command=self.clear_filters, **SEC).pack(side="right")
+        self.lbl_showing = ctk.CTkLabel(sb, text="", text_color="gray", anchor="w")
+        self.lbl_showing.pack(fill="x", padx=8)
+
+        section("EFFORT")
+        self.effort_init(sb, dict(B, **SEC))
+        section("COMPLIANCE")
+        self.compliance_init(sb, dict(B, **SEC))
+
+        section("EXPORT")
+        self.btn_export = self._side_btn("Export CSV...", self.export_csv, state="disabled"); self.btn_export.pack(**P)
+
+        section("MORE")
+        self.btn_add = self._side_btn("Add Item...", self.open_add_item); self.btn_add.pack(**P)
+        self.btn_client = self._side_btn("Client Lists...", self.open_client_lists); self.btn_client.pack(**P)
+        self.btn_tools = self._side_btn("Tools", self.show_tools_menu); self.btn_tools.pack(**P)
+        self.btn_improve_top = self._side_btn("Improve Reading...", self.open_improve)
         self.tools_menu = tk.Menu(self, tearoff=0)
-        self.btn_improve_top = ctk.CTkButton(top, text="Improve Reading", command=self.open_improve, fg_color="#0F766E", width=128, **B)
         # kept for code that refers to them; reached through the Tools menu
         self.btn_db = self.btn_know = self.btn_fixes = self.btn_trainer = None
 
-        self.lbl_project = ctk.CTkLabel(self, text="", font=("Arial", 13, "bold"), text_color="#1E3A8A")
-        self.status = ctk.CTkLabel(self, text="Ready. 100% Local Sandbox Active (_local_sandbox).", font=("Arial", 13))
-        self.status.pack(pady=(0, 4))
+        # pinned at the bottom of the sidebar: text size, Advanced, Guide, Feedback, Hide
+        size_row = ctk.CTkFrame(side_bottom, fg_color="transparent"); size_row.pack(fill="x", pady=2)
+        ctk.CTkLabel(size_row, text="Text size").pack(side="left")
+        self.btn_bigger = ctk.CTkButton(size_row, text="A+", width=40, height=28, command=lambda: self.change_font_size(+1), **SEC)
+        self.btn_bigger.pack(side="right")
+        self.lbl_size = ctk.CTkLabel(size_row, text="", width=48)
+        self.lbl_size.pack(side="right")
+        self.btn_smaller = ctk.CTkButton(size_row, text="A-", width=40, height=28, command=lambda: self.change_font_size(-1), **SEC)
+        self.btn_smaller.pack(side="right")
+        self.adv_var = ctk.BooleanVar(value=self.advanced_on)
+        self.sw_adv = ctk.CTkSwitch(side_bottom, text="Advanced", variable=self.adv_var, command=self.toggle_advanced)
+        if self.app_cfg["allow_advanced_toggle"]:
+            self.sw_adv.pack(fill="x", pady=(4, 4))
+        hb = ctk.CTkFrame(side_bottom, fg_color="transparent"); hb.pack(fill="x", pady=2)
+        self.btn_help = ctk.CTkButton(hb, text="Guide", width=10, height=28, command=lambda: (diag.activity("guide_opened"), HG.open_guide(self)), **SEC)
+        self.btn_help.pack(side="left", fill="x", expand=True, padx=(0, 3))
+        self.btn_feedback = ctk.CTkButton(hb, text="Feedback", width=10, height=28, command=lambda: FB.open_feedback(self), **SEC)
+        self.btn_feedback.pack(side="left", fill="x", expand=True, padx=(3, 0))
+        self.btn_hide_side = ctk.CTkButton(side_bottom, text="Hide sidebar  (Ctrl+B)", height=26, command=self.toggle_sidebar,
+                                           fg_color="transparent", text_color=("#475569", "#94A3B8"), hover_color=("#E2E8F0", "#334155"))
+        self.btn_hide_side.pack(fill="x", pady=(4, 0))
+        self.bind_all("<Control-Shift-F>", lambda e: FB.open_feedback(self))
+        self.bind_all("<Control-Shift-f>", lambda e: FB.open_feedback(self))
+        self.bind_all("<F1>", lambda e: (diag.activity("guide_opened"), HG.open_guide(self)))
+
+        # ---- work area ----
+        M = self.main
+        self.hdr = ctk.CTkFrame(M, fg_color="transparent", height=30)   # packed only while the sidebar is hidden
+        self.btn_show_side = ctk.CTkButton(self.hdr, text="Show sidebar", width=110, height=26, command=self.toggle_sidebar, **SEC)
+        self.lbl_project = ctk.CTkLabel(M, text="", font=("Arial", 13, "bold"), text_color="#1E3A8A")
+        self.status = ctk.CTkLabel(M, text="Ready. Running offline: nothing leaves this PC.", font=("Arial", 13))
+        self.status.pack(pady=(8, 4))
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         atexit.register(self._release_project_lock)
 
-        self.banner = ctk.CTkFrame(self, fg_color=("#ECFDF5", "#064E3B"))   # "Improve Reading" (shown when there are new corrections)
+        self.banner = ctk.CTkFrame(M, fg_color=("#ECFDF5", "#064E3B"))   # "Improve Reading" (shown when there are new corrections)
         self.lbl_banner = ctk.CTkLabel(self.banner, text="", text_color=("#065F46", "#D1FAE5"))
         self.lbl_banner.pack(side="left", padx=12, pady=6)
         self.btn_improve = ctk.CTkButton(self.banner, text="Improve Reading...", width=150, height=28, fg_color="#0F766E", command=self.open_improve)
@@ -3047,55 +3107,14 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
         self._training = False
         self.scanned_paths = {}   # file name -> full path of files scanned this session (for "Check in picture")
 
-        self.prog = ctk.CTkProgressBar(self, width=1140)
-        self.prog.pack(padx=15, pady=(0, 10))
-        self.btn_cancel = ctk.CTkButton(self, text="Cancel Scan", fg_color="#DC2626", width=130, height=30,
+        self.prog = ctk.CTkProgressBar(M)
+        self.prog.pack(fill="x", padx=15, pady=(0, 8))
+        self.btn_cancel = ctk.CTkButton(M, text="Cancel Scan", fg_color="#DC2626", width=130, height=30,
                                         command=self.cancel_scan)   # shown only while a scan runs
         self.prog.set(0)
 
-        # ---- Filter + view bar ----
-        fbar = ctk.CTkFrame(self)
-        fbar.pack(fill="x", padx=15, pady=(0, 8))
-
-        ctk.CTkLabel(fbar, text="Type:").pack(side="left", padx=(10, 4), pady=8)
-        self.type_var = ctk.StringVar(value=ALL_TYPES)
-        self.opt_type = ctk.CTkOptionMenu(fbar, variable=self.type_var, values=[ALL_TYPES], width=150,
-                                          command=lambda _v: self.populate_table())
-        self.opt_type.pack(side="left", padx=4, pady=8)
-
-        ctk.CTkLabel(fbar, text="Status:").pack(side="left", padx=(12, 4), pady=8)
-        self.status_var = ctk.StringVar(value=STATUS_FILTERS[0])
-        self.opt_status = ctk.CTkOptionMenu(fbar, variable=self.status_var, values=STATUS_FILTERS, width=150,
-                                            command=lambda _v: self.populate_table())
-        self.opt_status.pack(side="left", padx=4, pady=8)
-
-        ctk.CTkLabel(fbar, text="Search:").pack(side="left", padx=(12, 4), pady=8)
-        self.search_var = ctk.StringVar()
-        self.entry_search = ctk.CTkEntry(fbar, textvariable=self.search_var, width=170)
-        self.entry_search.pack(side="left", padx=4, pady=8)
-        SP.attach(self.entry_search)
-        self.search_var.trace_add("write", lambda *_a: self.populate_table())
-
-        ctk.CTkButton(fbar, text="Clear", width=60, fg_color="#64748B",
-                      command=self.clear_filters).pack(side="left", padx=(6, 4), pady=8)
-
-        self.show_exc_var = ctk.BooleanVar(value=False)
-        self.chk_exc = ctk.CTkCheckBox(fbar, text="Show Excluded", variable=self.show_exc_var, command=self.populate_table)
-        self.chk_exc.pack(side="left", padx=(12, 4), pady=8)
-
-        self.btn_bigger = ctk.CTkButton(fbar, text="A+", width=44, command=lambda: self.change_font_size(+1))
-        self.btn_bigger.pack(side="right", padx=(4, 10), pady=8)
-        self.lbl_size = ctk.CTkLabel(fbar, text="", width=48)
-        self.lbl_size.pack(side="right", pady=8)
-        self.btn_smaller = ctk.CTkButton(fbar, text="A-", width=44, command=lambda: self.change_font_size(-1))
-        self.btn_smaller.pack(side="right", padx=4, pady=8)
-        ctk.CTkLabel(fbar, text="Text size:").pack(side="right", padx=(12, 4), pady=8)
-
-        self.lbl_showing = ctk.CTkLabel(fbar, text="", text_color="gray")
-        self.lbl_showing.pack(side="right", padx=8, pady=8)
-
         # ---- Results table ----
-        t_frame = ctk.CTkFrame(self)
+        t_frame = ctk.CTkFrame(M)
         t_frame.pack(fill="both", expand=True, padx=15, pady=(0, 10))
         t_frame.grid_rowconfigure(0, weight=1)
         t_frame.grid_columnconfigure(0, weight=1)
@@ -3156,33 +3175,38 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
         self.tree.bind("<Control-MouseWheel>", lambda e: self.change_font_size(+1 if e.delta > 0 else -1))
         self.apply_font_size()
 
-        act = ctk.CTkFrame(self)
+        act = ctk.CTkFrame(M)
         act.pack(side="bottom", fill="x", padx=15, pady=(0, 15), before=t_frame)  # never pushed off-screen
 
-        self.lbl_act = ctk.CTkLabel(act, text="Select a row above (Ctrl+click or Shift+click for several):", font=("Arial", 12, "bold"))
-        self.lbl_act.pack(side="left", padx=10, pady=12)
+        self.lbl_act = ctk.CTkLabel(act, text="Select a row above (Ctrl+click or Shift+click for several):", font=("Arial", 12, "bold"), anchor="w")
+        self.lbl_act.pack(fill="x", padx=10, pady=(6, 0))
+        act = ctk.CTkFrame(act, fg_color="transparent")   # the controls, on their own row
+        act.pack(fill="x")
 
-        self.combo = ctk.CTkComboBox(act, values=["Select a row..."], width=270, state="disabled")
-        self.combo.pack(side="left", padx=5, pady=12)
+        self.combo = ctk.CTkComboBox(act, values=["Select a row..."], width=240, state="disabled")
+        self.combo.pack(side="left", padx=5, pady=(4, 8))
 
         self.btn_apply = ctk.CTkButton(act, text="Apply Choice", command=self.apply_choice, state="disabled", width=110)
-        self.btn_apply.pack(side="left", padx=5, pady=12)
+        self.btn_apply.pack(side="left", padx=5, pady=(4, 8))
 
-        self.entry_def = ctk.CTkEntry(act, placeholder_text="Definition, or correct term for Fix OCR", width=230, state="disabled")
-        self.entry_def.pack(side="left", padx=(5, 2), pady=12)
-        SP.button(act, self.entry_def).pack(side="left", padx=(0, 5), pady=12)
+        self.entry_def = ctk.CTkEntry(act, placeholder_text="Definition, or correct term for Fix OCR", width=210, state="disabled")
+        self.entry_def.pack(side="left", padx=(5, 2), pady=(4, 8))
+        SP.button(act, self.entry_def).pack(side="left", padx=(0, 5), pady=(4, 8))
 
         self.btn_save = ctk.CTkButton(act, text="Include in DB", command=self.save_candidate, state="disabled", fg_color="#0284C7", width=105)
-        self.btn_save.pack(side="left", padx=5, pady=12)
+        self.btn_save.pack(side="left", padx=5, pady=(4, 8))
         self.effort_actionbar(act)
 
         self.btn_ocr = ctk.CTkButton(act, text="Fix OCR", command=self.save_ocr_fix, state="disabled", fg_color="#7C3AED", width=90)
-        self.btn_ocr.pack(side="left", padx=5, pady=12)
+        self.btn_ocr.pack(side="left", padx=5, pady=(4, 8))
 
         self.btn_exc = ctk.CTkButton(act, text="Exclude", command=self.exclude_term, state="disabled", fg_color="#DC2626", width=110)
-        self.btn_exc.pack(side="right", padx=10, pady=12)
+        self.btn_exc.pack(side="right", padx=10, pady=(4, 8))
 
         self.apply_advanced_visibility()
+        self._build_menubar()
+        if not self.settings.get("sidebar", True):
+            self.after(10, lambda: self.toggle_sidebar(save=False))
         self.after(1500, self._banner_tick)
 
     # ---------- training inside the scanner ----------
@@ -3235,6 +3259,105 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
             diag.register_attrs(self.preview.pv, "preview.")
         diag.register(self, "main")
         diag.install_click_logger(self)
+
+    # ---------- menu bar and sidebar (2.9.0) ----------
+    def _menu_cmd(self, name, func):
+        return lambda: (diag.menu(name), func())
+
+    def _build_menubar(self):
+        """Every command lives in the menu bar; the sidebar keeps the everyday ones. Menus that depend on state
+        (Project, Effort, Tools) are rebuilt each time they open."""
+        mb = tk.Menu(self, tearoff=0)
+        c = self._menu_cmd
+        f = tk.Menu(mb, tearoff=0)
+        f.add_command(label="Select Files...", accelerator="Ctrl+O", command=c("file_select_files", self.select_files))
+        f.add_command(label="Scan Folder...", accelerator="Ctrl+Shift+O", command=c("file_scan_folder", self.select_folder))
+        f.add_command(label="Scan Again", accelerator="F5", command=c("file_scan_again", self.scan_again))
+        f.add_separator()
+        proj = tk.Menu(f, tearoff=0, postcommand=lambda: self.show_project_menu(proj))
+        f.add_cascade(label="Project", menu=proj)
+        f.add_separator()
+        f.add_command(label="Export CSV...", accelerator="Ctrl+E", command=c("file_export_csv", self.export_csv))
+        f.add_separator()
+        f.add_command(label="Exit", command=c("file_exit", self.on_close))
+        mb.add_cascade(label="File", menu=f)
+        e = tk.Menu(mb, tearoff=0)
+        e.add_command(label="Add Item...", command=c("edit_add_item", self.open_add_item))
+        e.add_command(label="Client Lists...", command=c("edit_client_lists", self.open_client_lists))
+        e.add_separator()
+        e.add_command(label="Find (search box)", accelerator="Ctrl+F", command=c("edit_find", lambda: self.entry_search.focus_set()))
+        e.add_command(label="Clear filters", command=c("edit_clear_filters", self.clear_filters))
+        mb.add_cascade(label="Edit", menu=e)
+        ef = tk.Menu(mb, tearoff=0, postcommand=lambda: self.show_effort_menu(ef))
+        mb.add_cascade(label="Effort", menu=ef)
+        cm = tk.Menu(mb, tearoff=0)
+        cm.add_command(label="Compliance Matrix...", accelerator="Ctrl+M", command=c("compliance_open", self.open_compliance))
+        mb.add_cascade(label="Compliance", menu=cm)
+        t = tk.Menu(mb, tearoff=0, postcommand=lambda: self.show_tools_menu(t))
+        mb.add_cascade(label="Tools", menu=t)
+        v = tk.Menu(mb, tearoff=0)
+        self.side_var = tk.BooleanVar(value=bool(self.settings.get("sidebar", True)))
+        v.add_checkbutton(label="Sidebar", accelerator="Ctrl+B", variable=self.side_var, command=c("view_sidebar", lambda: self.toggle_sidebar(var=True)))
+        v.add_checkbutton(label="Preview pane", variable=self.preview_var, command=c("view_preview", self.toggle_preview))
+        if self.app_cfg["allow_advanced_toggle"]:
+            v.add_checkbutton(label="Advanced features", variable=self.adv_var, command=c("view_advanced", self.toggle_advanced))
+        v.add_separator()
+        v.add_command(label="Larger text", accelerator="Ctrl++", command=c("view_text_larger", lambda: self.change_font_size(+1)))
+        v.add_command(label="Smaller text", accelerator="Ctrl+-", command=c("view_text_smaller", lambda: self.change_font_size(-1)))
+        v.add_command(label="Reset text size", accelerator="Ctrl+0", command=c("view_text_reset", lambda: self.change_font_size(0, reset=True)))
+        mb.add_cascade(label="View", menu=v)
+        h = tk.Menu(mb, tearoff=0)
+        h.add_command(label="How it works (Guide)", accelerator="F1", command=c("help_guide", lambda: HG.open_guide(self)))
+        h.add_command(label="Send feedback...", accelerator="Ctrl+Shift+F", command=c("help_feedback", lambda: FB.open_feedback(self)))
+        h.add_separator()
+        h.add_command(label="About Acronym Hunter", command=c("help_about", self.show_about))
+        mb.add_cascade(label="Help", menu=h)
+        self.configure(menu=mb)
+        self.menubar = mb
+        keys = (("<Control-o>", self.select_files), ("<Control-O>", self.select_folder), ("<F5>", self.scan_again),
+                ("<Control-e>", self.export_csv), ("<Control-b>", self.toggle_sidebar), ("<Control-m>", self.open_compliance),
+                ("<Control-f>", lambda: self.entry_search.focus_set()))
+        for seq, fn in keys:
+            self.bind_all(seq, lambda _e, fn=fn: (fn(), "break")[1])
+
+    def toggle_sidebar(self, save=True, var=False):
+        """Hide or show the sidebar (View > Sidebar, Ctrl+B, or the Hide / Show buttons)."""
+        shown = str(self.side) in [str(p) for p in self.body.panes()]
+        want = bool(self.side_var.get()) if var and hasattr(self, "side_var") else not shown
+        if want and not shown:
+            self.body.add(self.side, before=self.main, width=self.side_w, minsize=int(190 * ctk.ScalingTracker.get_window_scaling(self)), stretch="never")
+            self.btn_show_side.pack_forget(); self.hdr.pack_forget()
+        elif not want and shown:
+            self.body.forget(self.side)
+            self.hdr.pack(fill="x", padx=15, pady=(8, 0), before=self.status)
+            self.btn_show_side.pack(side="left")
+        if hasattr(self, "side_var"):
+            self.side_var.set(want)
+        if save:
+            if want:
+                diag.activity("sidebar_shown")
+            else:
+                diag.activity("sidebar_hidden")
+            self.settings["sidebar"] = want
+            save_settings(self.settings)
+
+    def _sidebar_resized(self, _e=None):
+        try:
+            if str(self.side) in [str(p) for p in self.body.panes()]:
+                w = self.side.winfo_width()
+                if w > 50 and abs(w - self.side_w) > 4:
+                    self.side_w = w
+                    self.settings["sidebar_w"] = w
+                    save_settings(self.settings)
+        except tk.TclError:
+            diag.swallowed()
+
+    def show_about(self):
+        edition = "US Classic (Tesseract only)" if not DOCTR_DIR else "US (Tesseract + docTR second reader)"
+        messagebox.showinfo("About Acronym Hunter",
+                            f"Acronym Hunter {APP_VERSION}\nEdition: {edition}\n\nRuns fully offline on this PC. It makes no network "
+                            "connections; picture reading runs in a no-network sandbox.\n\nFinds acronyms, abbreviations, units, symbols "
+                            "and equations; keeps an effort list per proposal; checks volumes; builds compliance matrices.", parent=self)
 
     def toggle_preview(self):
         on = bool(self.preview_var.get())
@@ -3423,12 +3546,12 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
         self.btn_ocr.pack_forget()
         self.btn_improve_top.pack_forget()
         if self.advanced_on:
-            self.btn_ocr.pack(side="left", padx=5, pady=12, after=self.btn_save)
+            self.btn_ocr.pack(side="left", padx=5, pady=(4, 8), after=self.btn_save)
         if self.advanced_on and trainer_available() and OCR_BACKEND == "tesseract":   # always in Tools and the banner
-            self.btn_improve_top.pack(side="right", padx=2, pady=8, before=self.btn_tools)
+            self.btn_improve_top.pack(fill="x", padx=8, pady=2, after=self.btn_tools)
 
-    def show_tools_menu(self):
-        m = self.tools_menu
+    def show_tools_menu(self, menu=None):
+        m = menu or self.tools_menu
         m.delete(0, "end")
         if trainer_available() and OCR_BACKEND == "tesseract":
             m.add_command(label="Improve Reading (teach the reader your corrections)...", command=self.open_improve)
@@ -3448,7 +3571,8 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
         m.add_separator()
         m.add_checkbutton(label="Show preview pane", onvalue=True, offvalue=False, variable=self.preview_var,
                           command=self.toggle_preview)
-        m.tk_popup(self.btn_tools.winfo_rootx(), self.btn_tools.winfo_rooty() + self.btn_tools.winfo_height())
+        if menu is None:
+            m.tk_popup(self.btn_tools.winfo_rootx() + self.btn_tools.winfo_width(), self.btn_tools.winfo_rooty())
 
     # ---------- math reader (add-on) ----------
     def _picture_png(self, loc):
@@ -3924,8 +4048,8 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
             self.after(0, self.reset_ui)
 
     # ---------- projects ----------
-    def show_project_menu(self):
-        m, has, rw = self.project_menu, self.project is not None, self.project is not None and not self.project.read_only
+    def show_project_menu(self, menu=None):
+        m, has, rw = menu or self.project_menu, self.project is not None, self.project is not None and not self.project.read_only
         m.delete(0, "end")
         m.add_command(label="New Project from a Folder...", command=self.new_project)
         m.add_command(label="Save Current Results as Project...", command=self.save_results_as_project,
@@ -3939,8 +4063,9 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
         m.add_command(label='Clear "No longer found" items', command=self.clear_gone, state="normal" if rw else "disabled")
         m.add_separator()
         m.add_command(label="Close Project", command=self.close_project, state="normal" if has else "disabled")
-        b = self.btn_project
-        m.tk_popup(b.winfo_rootx(), b.winfo_rooty() + b.winfo_height())
+        if menu is None:
+            b = self.btn_project
+            m.tk_popup(b.winfo_rootx() + b.winfo_width(), b.winfo_rooty())
 
     def new_project(self):
         folder = filedialog.askdirectory(title="Choose the folder that holds the project's documents", initialdir=self.start_dir())
@@ -4112,9 +4237,9 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
         proj = self.project
         if proj is None:
             self.lbl_project.pack_forget()
-            self.btn_folder.configure(text="Scan Folder", command=self.select_folder)
+            self.btn_folder.configure(text="Scan Folder...", command=self.select_folder)
             self.btn_files.configure(state="normal")
-            self.btn_project.configure(text="Project ▾")
+            self.btn_project.configure(text="Project")
             return
         st = self.project_stats or {}
         bits = [f"Project: {proj.name}", proj.root]
@@ -4125,7 +4250,7 @@ class AcronymAppGUI(EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
             bits.append(f"READ-ONLY (in use by {who.get('user', '?')})")
         self.lbl_project.configure(text="  |  ".join(bits))
         self.lbl_project.pack(pady=(0, 2), before=self.status)
-        self.btn_project.configure(text=f"{proj.name[:14]} ▾")
+        self.btn_project.configure(text=f"Project: {proj.name[:18]}")
         self.btn_folder.configure(text="Rescan Project" if proj.data.get("last_scan") else "Scan Project", command=self.rescan_project,
                                   state="disabled" if proj.read_only else "normal")
         self.btn_files.configure(state="disabled")

@@ -211,7 +211,7 @@ class PreviewPane(ctk.CTkFrame):
         self.find_i = 0
         self.mode = "none"    # "picture", "typed" or "none"
 
-        ctk.CTkLabel(self, text="Where it was found", font=("Arial", 13, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
+        ctk.CTkLabel(self, text="Source", font=("Arial", 13, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
         self.loc_var = ctk.StringVar(value="")
         self.opt_loc = ctk.CTkOptionMenu(self, variable=self.loc_var, values=["(select a result)"], width=PIC_W,
                                          dynamic_resizing=False, command=self._on_loc)
@@ -251,13 +251,13 @@ class PreviewPane(ctk.CTkFrame):
         self.txt.tag_configure("hit", background="#FDE68A")
         self.txt.tag_configure("cur", background="#F59E0B", foreground="#000000")
         self.txt.tag_configure("dim", foreground="#64748B")
-        self.lbl_info = ctk.CTkLabel(self, text="Select a result to see where it came from.", wraplength=PIC_W - 30,
+        self.lbl_info = ctk.CTkLabel(self, text="Select a result to view its source.", wraplength=PIC_W - 30,
                                      justify="left", anchor="w")
         self.lbl_info.pack(fill="x", padx=10, pady=(6, 2))
 
         fix = ctk.CTkFrame(self)
         fix.pack(fill="x", padx=10, pady=(2, 4))
-        ctk.CTkLabel(fix, text="Selected reading (fix the spelling if it is wrong):", anchor="w").pack(fill="x", padx=6, pady=(6, 0))
+        ctk.CTkLabel(fix, text="Recognized text (correct it if it is wrong):", anchor="w").pack(fill="x", padx=6, pady=(6, 0))
         erow = ctk.CTkFrame(fix, fg_color="transparent"); erow.pack(fill="x", padx=6, pady=4)
         self.entry = ctk.CTkEntry(erow)
         self.entry.pack(side="left", fill="x", expand=True)
@@ -309,8 +309,8 @@ class PreviewPane(ctk.CTkFrame):
         self._math_info(term, d)
         pics = self.app.picture_locations(term)
         self.locs = pics + [l for l in d.get("locations", []) if l not in pics]
-        kind = lambda l: "[page] " if "(p." in l and l.lower().split(" (p.")[0].endswith(".pdf") else "[picture] "
-        names = [((kind(l) if l in pics else "[typed text] ") + l)[:90] for l in self.locs] or ["(no location)"]
+        kind = lambda l: "PDF page: " if "(p." in l and l.lower().split(" (p.")[0].endswith(".pdf") else "Image: "
+        names = [((kind(l) if l in pics else "Text: ") + l)[:90] for l in self.locs] or ["(no location)"]
         self.opt_loc.configure(values=names)
         self.loc_var.set(names[0])
         self._show_location(0)
@@ -665,7 +665,7 @@ class PreviewPane(ctk.CTkFrame):
         self._fill_entry(); self._update_controls()
         if s[0] == "line":
             _b, t, c = self.pv.lines[s[1]]
-            self.lbl_info.configure(text=f"Selected reading: \"{t}\" (confidence {c:.2f}). Fix the spelling and click "
+            self.lbl_info.configure(text=f"Recognized text: \"{t}\" (confidence {c:.2f}). Fix the spelling and click "
                                          "Correct + Teach, or click Not text.")
         else:
             self._describe()

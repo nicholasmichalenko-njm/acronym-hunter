@@ -26,23 +26,26 @@ class EffortMixin:
         eng = _eng()
         self.efforts = E.Registry(os.path.join(eng.CONFIG_DIR, "efforts.json"))
         self.effort = None
-        self.btn_effort = ctk.CTkButton(toolbar, text="Effort ▾", command=self.show_effort_menu, fg_color="#0F766E", width=88, **button_kw)
-        self.btn_effort.pack(side="left", padx=2, pady=8)
+        self.btn_effort = ctk.CTkButton(toolbar, text="Effort", command=self.show_effort_menu, **button_kw)
+        self.btn_effort.pack(fill="x", padx=8, pady=2)
+        self.btn_volcheck = ctk.CTkButton(toolbar, text="Check Volumes...", command=self.check_volumes, state="disabled", **button_kw)
+        self.btn_volcheck.pack(fill="x", padx=8, pady=2)
         self.effort_menu = tk.Menu(self, tearoff=0)
-        self.lbl_effort = ctk.CTkLabel(self, text="", font=("Arial", 12), text_color=("#0F766E", "#5EEAD4"))
+        self.lbl_effort = ctk.CTkLabel(getattr(self, "main", self), text="", font=("Arial", 12), text_color=("#0F766E", "#5EEAD4"))
         if self.efforts.current:
             self.after(300, lambda: self.open_effort(self.efforts.current, quiet=True))
 
     def effort_actionbar(self, act):
         self.btn_effort_add = ctk.CTkButton(act, text="Add to effort list", command=self.add_to_effort, state="disabled",
                                             fg_color="#0F766E", width=150)
-        self.btn_effort_add.pack(side="left", padx=5, pady=12)
+        self.btn_effort_add.pack(side="left", padx=5, pady=(4, 8))
 
     def update_effort_ui(self):
         L = self.effort
         if L is None:
             self.lbl_effort.pack_forget()
-            self.btn_effort.configure(text="Effort ▾")
+            self.btn_effort.configure(text="Effort")
+            self.btn_volcheck.configure(state="disabled")
         else:
             counts = {s: 0 for s in E.STATUSES}
             for r in L.rows.values():
@@ -54,7 +57,8 @@ class EffortMixin:
                 bits.append("NOT SAVED (close the list in Excel, then Effort > Save list now)")
             self.lbl_effort.configure(text="  |  ".join(bits))
             self.lbl_effort.pack(pady=(0, 2), before=self.status)
-            self.btn_effort.configure(text=f"{L.name[:12]} ▾")
+            self.btn_effort.configure(text=f"Effort: {L.name[:18]}")
+            self.btn_volcheck.configure(state="normal")
         self.update_effort_buttons()
 
     def update_effort_buttons(self):
@@ -64,9 +68,9 @@ class EffortMixin:
                                       text=f"Add {len(sel)} to effort list" if ok and len(sel) > 1 else "Add to effort list")
 
     # ------------------------------------------------------------ menu
-    def show_effort_menu(self):
+    def show_effort_menu(self, menu=None):
         diag.activity("effort_menu_opened")
-        m = self.effort_menu
+        m = menu or self.effort_menu
         m.delete(0, "end")
         m.add_command(label="New effort...", command=self.new_effort_dialog)
         m.add_command(label="Open an existing effort list...", command=self.open_effort_file)
@@ -90,7 +94,8 @@ class EffortMixin:
         m.add_command(label="Effort settings...", command=lambda: self.new_effort_dialog(edit=True), state=st)
         m.add_separator()
         m.add_command(label="Close effort", command=self.close_effort, state=st)
-        m.tk_popup(self.btn_effort.winfo_rootx(), self.btn_effort.winfo_rooty() + self.btn_effort.winfo_height())
+        if menu is None:
+            m.tk_popup(self.btn_effort.winfo_rootx() + self.btn_effort.winfo_width(), self.btn_effort.winfo_rooty())
 
     def new_effort_dialog(self, edit=False):
         if edit:

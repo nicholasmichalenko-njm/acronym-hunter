@@ -131,6 +131,12 @@ def register(widget, name):
         _names[id(widget)] = name
 
 
+def menu(name):
+    """A menu bar command was chosen: its internal name only (e.g. 'file_select_files'), never any text or content."""
+    if usage_on and isinstance(name, str) and _W.match(name):
+        activity("menu", w=name)
+
+
 def register_attrs(obj, prefix=""):
     """Name every widget attribute of an object after its attribute (self.btn_again -> 'btn_again')."""
     import tkinter as _tk

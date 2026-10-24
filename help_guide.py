@@ -40,13 +40,15 @@ PAGES = {
           "definition and where it appears. It reads typed text and the text inside pictures, scans and diagrams. "
           "Everything runs on this PC. Nothing is sent anywhere."),
     ("h", "Four steps"),
-    ("img", "toolbar_left.png", 620),
+    ("img", "sidebar.png", 220),
     ("rows", [("1. Scan", "Select Files or Scan Folder. Word, PowerPoint, Excel, PDF, pictures and drawings. "
                          "Scan Again repeats the last scan after you change a definition or a choice."),
               ("2. Review", "The results table lists every term found, with its status and where it appears."),
               ("3. Resolve", "Click a row. Pick a definition, add it to the database, or exclude it."),
               ("4. Export", "Export CSV gives you the acronym list for the proposal.")]),
-    ("p", "Effort keeps one list per proposal and checks finished volumes. Compliance builds the compliance matrix from the RFP."),
+    ("p", "Everyday actions sit in the sidebar on the left; every command is also in the menu bar. Drag the sidebar's edge to "
+          "resize it, or hide it with View > Sidebar (Ctrl+B). Effort keeps one list per proposal and checks finished volumes. "
+          "Compliance builds the compliance matrix from the RFP."),
     ("h", "Where to get help on each tool"),
     ("p", "Use the tabs above. Each page says what a tool does, when to use it, and why it is worth it."),
 ],
@@ -153,7 +155,7 @@ PAGES = {
 "Pictures": [
     ("h", "The picture preview (right side)"),
     ("img", "preview.png", 340),
-    ("rows", [("Where it was found", "Pick a location. Pictures and PDF pages show boxes; Word, PowerPoint and Excel typed "
+    ("rows", [("Source", "Pick a source location. Pictures and PDF pages show boxes; Word, PowerPoint and Excel typed "
                                      "text shows the passage with the term highlighted."),
               ("Find ◀ ▶", "Step through every find of the term, then on to its next location."),
               ("Zoom", "Mouse wheel or + / -. Drag to move around. Whole shows the whole page or picture."),
@@ -191,7 +193,7 @@ PAGES = {
 ],
 "Sharing": [
     ("h", "Work as a team"),
-    ("img", "toolbar_right.png", 300),
+    ("img", "menubar.png", 420),
     ("rows", [("Knowledge Pack", "Tools > Knowledge. Share with team saves your database, OCR fixes, ignore list and "
                                  "trained reader in one file. Teammates install it. Undo puts theirs back."),
               ("Where", "Your approved local SharePoint folder only. Never GitHub, email or USB."),

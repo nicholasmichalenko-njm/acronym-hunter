@@ -32,9 +32,8 @@ class ComplianceMixin:
     def compliance_init(self, toolbar, button_kw):
         self.matrix = None
         self._cwin = None
-        self.btn_compliance = ctk.CTkButton(toolbar, text="Compliance", command=self.open_compliance, fg_color="#9A3412",
-                                            width=92, **button_kw)
-        self.btn_compliance.pack(side="left", padx=2, pady=8)
+        self.btn_compliance = ctk.CTkButton(toolbar, text="Compliance Matrix...", command=self.open_compliance, **button_kw)
+        self.btn_compliance.pack(fill="x", padx=8, pady=2)
 
     # ------------------------------------------------------------ window
     def open_compliance(self):
