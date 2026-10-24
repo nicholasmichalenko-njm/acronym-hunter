@@ -8,6 +8,7 @@ Pictures live in assets\\help\\ (bundled into _internal\\assets\\help by the bui
     ("table", [row, ...])     first row is the header
 """
 import os, sys
+import diag
 import tkinter as tk
 import customtkinter as ctk
 
@@ -198,6 +199,7 @@ def open_guide(parent, page=None):
         try:
             body._parent_canvas.yview_moveto(0)
         except Exception:
+            diag.swallowed()
             pass
     win._show = show
     win.bind("<Escape>", lambda e: win.withdraw())

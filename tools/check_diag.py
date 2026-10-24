@@ -1,0 +1,95 @@
+"""Build gate: logging calls may only carry fixed messages written in our code, never data.
+
+Checks every logging call in the program's own .py files:
+    log_error(...), eng.log_error(...), A.log_error(...), diag.error / warning / activity / swallowed(...)
+Rule: the message argument is a plain string literal (no f-string, no variable, no concatenation),
+and keyword arguments are only area= (a literal) or whitelisted count names (values are checked at run time).
+Also refuses any code that still writes logs\\error.log.
+Exit code 0 = pass, 1 = fail (build.ps1 stops).
+"""
+import ast, os, sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+import diag  # noqa: E402
+
+FILES = ["app_gui.py", "preview_pane.py", "trainer_gui.py", "symbol_picker.py", "help_guide.py", "doctr_engine.py",
+         "equations.py", "sandbox.py", "tess_train.py", "feedback.py", "diag.py"]
+LOG_FUNCS = {"log_error"}
+DIAG_FUNCS = {"error", "warning", "activity", "swallowed"}
+
+
+def call_name(node):
+    f = node.func
+    if isinstance(f, ast.Name):
+        return f.id, None
+    if isinstance(f, ast.Attribute):
+        base = f.value.id if isinstance(f.value, ast.Name) else None
+        return f.attr, base
+    return None, None
+
+
+def is_literal(n):
+    return isinstance(n, ast.Constant) and isinstance(n.value, str)
+
+
+def check_file(path):
+    problems = []
+    src = open(path, encoding="utf-8").read()
+    if "error.log" in src and os.path.basename(path) not in ("diag.py",):
+        for i, line in enumerate(src.splitlines(), 1):
+            if "error.log" in line and not line.lstrip().startswith("#"):
+                problems.append(f"{i}: mentions error.log (old log file)")
+    tree = ast.parse(src)
+    exempt = set()      # the logging wrappers themselves forward their arguments
+    for fn in ast.walk(tree):
+        if isinstance(fn, ast.FunctionDef) and fn.name in ("log_error", "_excepthook"):
+            exempt.update(id(n) for n in ast.walk(fn))
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or id(node) in exempt:
+            continue
+        name, base = call_name(node)
+        if name in LOG_FUNCS:
+            msg_args = node.args[:1]
+        elif name in DIAG_FUNCS and base == "diag":
+            if name == "swallowed":
+                msg_args = node.args[:1]       # optional area literal
+            elif name == "activity":
+                msg_args = node.args[:1]
+            else:
+                msg_args = node.args[1:2]       # error(area, msg, ...)
+                if node.args and not is_literal(node.args[0]):
+                    problems.append(f"{node.lineno}: diag.{name} area must be a string literal")
+        else:
+            continue
+        for a in msg_args:
+            if not is_literal(a):
+                problems.append(f"{node.lineno}: {name}() message must be a plain string literal")
+        for kw in node.keywords:
+            if kw.arg in ("area",):
+                if not is_literal(kw.value):
+                    problems.append(f"{node.lineno}: {name}() area= must be a string literal")
+            elif kw.arg in ("exc", "with_traceback"):
+                continue
+            elif kw.arg == "ext" or kw.arg in diag.COUNT_KEYS:
+                continue
+            else:
+                problems.append(f"{node.lineno}: {name}() keyword '{kw.arg}' is not an allowed count field")
+    return problems
+
+
+def main():
+    bad = 0
+    for f in FILES:
+        p = os.path.join(ROOT, f)
+        if not os.path.isfile(p):
+            continue
+        for prob in check_file(p):
+            print(f"{f}:{prob}")
+            bad += 1
+    print("Logging check passed: messages are fixed text, no data." if not bad else f"Logging check FAILED: {bad} problem(s)")
+    return 1 if bad else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

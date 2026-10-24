@@ -529,7 +529,7 @@ class TrainerApp(_TrainerUI, ctk.CTk):
         eng.ACTIVE_ICON = "trainer.ico"
         eng.apply_window_icon(self)
         self.report_callback_exception = lambda et, e, tb: (eng._excepthook(et, e, tb),
-            messagebox.showerror("Error", f"{et.__name__}: {e}\n\nDetails saved to logs\\error.log"))
+            messagebox.showerror("Error", f"{et.__name__}: {e}\n\nDetails were saved to the logs folder (no file names or document content)."))
         self._build_ui(start_file)
 
 class TrainerWindow(_TrainerUI, ctk.CTkToplevel):
@@ -550,7 +550,7 @@ class TrainerWindow(_TrainerUI, ctk.CTkToplevel):
         try:
             self.sources = list_sources(path)
         except Exception as e:
-            eng.log_error(f"Trainer could not open {path}")
+            eng.log_error("Trainer could not open a file", ext=os.path.splitext(path)[1].lower())
             messagebox.showerror("Cannot open", f"{type(e).__name__}: {e}"); return
         self.listbox.delete(0, "end")
         for label, _loader in self.sources:
@@ -569,7 +569,7 @@ class TrainerWindow(_TrainerUI, ctk.CTkToplevel):
         try:
             self.img = loader()
         except Exception as e:
-            eng.log_error(f"Trainer could not load {label}")
+            eng.log_error("Trainer could not load a picture")
             messagebox.showerror("Cannot show", f"This picture could not be opened (for example EMF/SVG).\n\n{type(e).__name__}: {e}"); return
         self.source_label = label
         self.region = None; self.clear_lines(); self.fit()

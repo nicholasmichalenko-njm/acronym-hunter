@@ -55,27 +55,24 @@ atexit.register(cleanup_sandbox)
 import traceback
 import datetime
 LOG_DIR = os.path.join(BASE_DIR, "logs")
+import diag   # content-free diagnostics (logs\\events.jsonl): never file names, paths or document content
 
-def log_error(context, with_traceback=True):
-    """Append an error to logs/error.log inside the app folder (windowed exe has no console)."""
-    try:
-        os.makedirs(LOG_DIR, exist_ok=True)
-        with open(os.path.join(LOG_DIR, "error.log"), "a", encoding="utf-8") as f:
-            f.write(f"\n[{datetime.datetime.now():%Y-%m-%d %H:%M:%S}] {context}\n")
-            if with_traceback:
-                f.write(traceback.format_exc())
-    except Exception:
-        pass
+def log_error(context, with_traceback=True, area=None, **counts):
+    """Record an error in logs\\events.jsonl. context must be a fixed message (tools\\check_diag.py enforces it):
+    only the message, the error type, code locations and counts are kept."""
+    exc = sys.exc_info() if with_traceback and sys.exc_info()[0] is not None else None
+    if area is None:
+        try:
+            area = diag._clean_area(sys._getframe(1).f_code.co_name)
+        except Exception:
+            area = "app"
+    diag.error(area, context, exc=exc, **counts)
 
 def _excepthook(exc_type, exc, tb):
-    try:
-        os.makedirs(LOG_DIR, exist_ok=True)
-        with open(os.path.join(LOG_DIR, "error.log"), "a", encoding="utf-8") as f:
-            f.write(f"\n[{datetime.datetime.now():%Y-%m-%d %H:%M:%S}] Uncaught exception\n")
-            f.write("".join(traceback.format_exception(exc_type, exc, tb)))
-    except Exception:
-        pass
-sys.excepthook = _excepthook
+    diag.error("app", "Uncaught error", exc=(exc_type, exc, tb))
+
+diag.setup(LOG_DIR, "?")
+atexit.register(diag.shutdown)
 
 import socket
 _LOOPBACK = {"127.0.0.1", "::1", "localhost"}
@@ -156,8 +153,7 @@ def _decode_csv(path):
             text = raw.decode("utf-8")
         except UnicodeDecodeError:
             text = raw.decode("cp1252", errors="replace")
-            log_error(f"{os.path.basename(path)} is not UTF-8; read as Windows-1252. "
-                      "Symbols may be wrong: re-save it in Excel as 'CSV UTF-8 (Comma delimited)'.", with_traceback=False)
+            log_error("A CSV file is not UTF-8; read as Windows-1252", with_traceback=False, ext=".csv")
     header = text.split("\n", 1)[0]
     delimiter = "\t" if header.count("\t") > header.count(",") else ","
     return text, delimiter
@@ -200,6 +196,7 @@ def fold(text):
 
 # ---- User-tunable accuracy files (config\ folder beside the exe) ----
 CONFIG_DIR = os.path.join(BASE_DIR, "config")
+CHOICES_FILE = os.path.join(CONFIG_DIR, "choices.json")   # Apply Choice, kept for every later scan on this PC
 OCR_FIXES_FILE = os.path.join(CONFIG_DIR, "ocr_corrections.csv")
 OCR_IGNORE_FILE = os.path.join(CONFIG_DIR, "ocr_ignore.csv")   # OCR readings that are not text (diagram lines, specks)
 OCR_SETTINGS_FILE = os.path.join(CONFIG_DIR, "ocr_settings.json")
@@ -255,7 +252,7 @@ def _find_doctr():
 DOCTR_DIR = _find_doctr()
 
 def _find_math():
-    """Math reader add-on folder (math_addon\ next to the app, from AcronymHunter_MathAddon.zip). None = not installed."""
+    """Math reader add-on folder (math_addon folder next to the app, from AcronymHunter_MathAddon.zip). None = not installed."""
     for d in (os.environ.get("AH_MATH_DIR", ""), os.path.join(BASE_DIR, "math_addon"), os.path.join(BASE_DIR, "dist_math", "math_addon")):
         if d and os.path.isfile(os.path.join(d, "AcronymHunterMath.exe")) and os.path.isfile(os.path.join(d, "math_models.json")):
             return d
@@ -483,12 +480,13 @@ def _build_ocr():
         import onnxruntime as _ort   # ONNX Runtime telemetry (Windows TraceLogging) off
         _ort.disable_telemetry_events()
     except Exception:
+        diag.swallowed()
         pass
     try:
         return _build_ocr_configured()
     except Exception:
         log_error("Custom OCR configuration failed; falling back to bundled models and default settings")
-        OCR_MODEL_INFO = "bundled PP-OCRv4 (custom settings/models failed; see logs\\error.log)"
+        OCR_MODEL_INFO = "bundled PP-OCRv4 (custom settings/models failed; see the logs folder)"
         return RapidOCR()
 
 def _build_ocr_configured():
@@ -522,7 +520,7 @@ def _build_ocr_configured():
     except Exception:
         log_error("OCR model from config\\models failed to load; falling back to bundled models")
         engine = RapidOCR()
-        OCR_MODEL_INFO = "bundled PP-OCRv4 (custom model failed to load; see logs\\error.log)"
+        OCR_MODEL_INFO = "bundled PP-OCRv4 (custom model failed to load; see the logs folder)"
     return engine
 
 def get_ocr():
@@ -540,6 +538,7 @@ def db_layout():
     try:
         header = [h.strip().lstrip("\ufeff") for h in read_csv_header(DB_FILE)]
     except (FileNotFoundError, StopIteration):
+        diag.swallowed()
         header = []
     layout = [(db_field(h), h) for h in header if h]
     have = {f for f, _ in layout if f}
@@ -678,6 +677,7 @@ def doctr_info():
         return (f"docTR (Mindee, Apache 2.0) {m['doctr_det']['arch']} + {m['doctr_reco']['arch']} on ONNX Runtime {_ort.__version__}, "
                 f"exported by this project from Mindee's weights; " + ("on" if doctr_active() else "off"))
     except Exception as e:
+        diag.swallowed()
         return f"unavailable ({type(e).__name__})"
 
 def _decode_rgb(image_bytes):
@@ -712,9 +712,10 @@ def _doctr_extra(image_bytes, tess_lines, clean_shape):
     except ScanCancelled:
         raise
     except Exception as e:
+        diag.swallowed()
         _doctr_failed[0] = True
         log_error("docTR could not read a picture; it is switched off for this session")
-        note_skip("docTR", f"docTR failed, so pictures were read by Tesseract only: {type(e).__name__}: {e}. See logs\\error.log.")
+        note_skip("docTR", f"docTR failed, so pictures were read by Tesseract only: {type(e).__name__}: {e}. Details are in the logs folder.")
         return ""
     from rapidfuzz import fuzz
     sx = clean_shape[1] / max(1, rgb.shape[1]); sy = clean_shape[0] / max(1, rgb.shape[0])
@@ -760,6 +761,7 @@ def math_cache():
         try:
             _math_cache = json.load(open(MATH_CACHE_FILE, encoding="utf-8"))
         except Exception:
+            diag.swallowed()
             _math_cache = {}
     return _math_cache
 
@@ -778,6 +780,7 @@ def math_info():
         man = json.load(open(os.path.join(MATH_DIR, "math_models.json"), encoding="utf-8"))
         return f"installed: {man.get('model', 'Granite-Docling')}; runs only in the no-network sandbox"
     except Exception as e:
+        diag.swallowed()
         return f"damaged ({type(e).__name__})"
 
 def run_math_reader(items, on_status, on_result, cancel):
@@ -802,6 +805,7 @@ def run_math_reader(items, on_status, on_result, cancel):
         sandbox.grant(MATH_DIR, write=False)
         sandbox.grant(work, write=True)
     except Exception as e:
+        diag.swallowed()
         raise RuntimeError(f"The math reader runs only inside the no-network sandbox, and the sandbox could not start: {e}")
     keys = {pid: key for pid, _png, key in todo}
     # Windows gives a sandboxed program its own temp folder (LOCALAPPDATA\Packages\<sandbox>\AC\Temp) based on these
@@ -817,6 +821,7 @@ def run_math_reader(items, on_status, on_result, cancel):
         try:
             obj = json.loads(b.decode("utf-8", "replace"))
         except Exception:
+            diag.swallowed()
             return
         if obj.get("ready"):
             on_status(f"Math reader ready ({obj.get('load_sec')} s to load)")
@@ -874,7 +879,7 @@ def read_image_bytes(image_bytes):
             _OCR_CACHE[key] = _ocr_raw(image_bytes)
         except Exception as e:
             log_error("OCR failed on one image")
-            note_skip("OCR engine", f"OCR failed, so text inside images was not read: {type(e).__name__}: {e}. See logs\\error.log.")
+            note_skip("OCR engine", f"OCR failed, so text inside images was not read: {type(e).__name__}: {e}. Details are in the logs folder.")
             _OCR_CACHE[key] = ""
     return _OCR_CACHE[key]
 
@@ -1151,6 +1156,7 @@ def part_images(z, partpath, root, label_base, chunks, seen, rels=None):
                 try:
                     stext = svg_text(z.read(rels[svg_rid][1]))
                 except Exception:
+                    diag.swallowed()
                     stext = ""
                 if len(stext.strip()) >= VECTOR_TEXT_MIN_CHARS:
                     name = shape_name(blip); shown = f"'{name}' " if name else ""
@@ -1287,7 +1293,7 @@ def extract_pptx(filepath, filename, status_callback, prefix, chunks):
                 part_images(z, spath, root, f"{filename} ({tag}", chunks, seen, rels)
                 omml_chunks(root, f"{filename} ({tag})", chunks)
             except Exception as e:
-                log_error(f"{filename}: slide {n} could not be fully read")
+                log_error("PowerPoint slide could not be fully read", ext=".pptx")
                 note_skip(f"{filename} (Slide {n})", f"Slide could not be fully read: {type(e).__name__}: {e}")
         # Logos and graphics placed on layouts/masters appear on many slides; scan each once.
         for lpath in sorted(names):
@@ -1296,7 +1302,7 @@ def extract_pptx(filepath, filename, status_callback, prefix, chunks):
                 try:
                     part_images(z, lpath, _xml(z, lpath), f"{filename} (Slide {m.group(1).lower()} {m.group(2)}", chunks, seen)
                 except Exception:
-                    log_error(f"{filename}: {lpath} could not be read")
+                    log_error("PowerPoint layout picture could not be read", ext=".pptx")
 
 def extract_docx(filepath, filename, status_callback, prefix, chunks):
     with zipfile.ZipFile(filepath) as z:
@@ -1338,7 +1344,7 @@ def extract_docx(filepath, filename, status_callback, prefix, chunks):
                     chunks.append((f"{filename} ({label.strip()})", "\n".join(lines)))
                 part_images(z, path, root, f"{filename} ({label.strip()}", chunks, seen)
             except Exception as e:
-                log_error(f"{filename}: {path} could not be read")
+                log_error("Word part could not be read", ext=".docx")
                 note_skip(f"{filename} ({label})", f"Could not be read: {type(e).__name__}: {e}")
 
 def extract_xlsx(filepath, filename, status_callback, prefix, chunks):
@@ -1388,7 +1394,7 @@ def extract_xlsx(filepath, filename, status_callback, prefix, chunks):
                         if lines:
                             chunks.append((f"{filename} ({sname} comments)", "\n".join(lines)))
                 except Exception as e:
-                    log_error(f"{filename}: {target} could not be read")
+                    log_error("Excel part could not be read", ext=".xlsx")
                     note_skip(f"{filename} ({sname})", f"{kind} could not be read: {type(e).__name__}: {e}")
 
 def _pdf_page_text(page):
@@ -1431,6 +1437,7 @@ def extract_pdf(filepath, filename, status_callback, prefix, chunks):
                             except ScanCancelled:
                                 raise
                             except Exception:
+                                diag.swallowed()
                                 pass
                     chunks.append((f"{filename} (p.{pnum})", "\n".join(parts)))
                 finally:
@@ -1438,7 +1445,7 @@ def extract_pdf(filepath, filename, status_callback, prefix, chunks):
             except ScanCancelled:
                 raise
             except Exception as e:
-                log_error(f"{filename}: page {pnum} could not be read")
+                log_error("PDF page could not be read", ext=".pdf")
                 note_skip(f"{filename} (p.{pnum})", f"Page could not be read: {type(e).__name__}: {e}")
     finally:
         doc.close()
@@ -1995,7 +2002,7 @@ def scan_file(filepath, status_callback, idx, total):
         chunks += EQ.text_math_chunks(chunks, common_words())
         err = None
     except Exception as e:
-        log_error(f"Could not read {filepath}")
+        log_error("File could not be read", ext=os.path.splitext(filepath)[1].lower())
         chunks, err = [], f"{type(e).__name__}: {e}"
     return chunks, list(_SKIPPED), err
 
@@ -2094,6 +2101,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
 APP_VERSION = "2.3.1"            # keep in step with version_info.txt
+diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
 LOCK_STALE_HOURS = 12
@@ -2141,6 +2149,7 @@ def ocr_signature():
         try:
             dsig = hashlib.sha1(open(os.path.join(DOCTR_DIR, "doctr_models.json"), "rb").read()).hexdigest()[:12]
         except Exception:
+            diag.swallowed()
             dsig = "doctr"
     return _sha12([OCR_BACKEND, OCR_CFG, models, sorted(_OCR_IGNORE), dsig])
 
@@ -2243,6 +2252,7 @@ class Project:
                     self.locked_by = info
                     return False
             except Exception:
+                diag.swallowed()
                 pass
         with open(self.lock_path, "w", encoding="utf-8") as f:
             json.dump(dict(self._me(), time=datetime.datetime.now().isoformat(timespec="seconds")), f)
@@ -2255,6 +2265,7 @@ class Project:
                 if (info.get("user"), info.get("computer")) == (self._me()["user"], self._me()["computer"]):
                     os.remove(self.lock_path)
         except Exception:
+            diag.swallowed()
             pass
 
     # ---- files ----
@@ -2533,6 +2544,7 @@ def make_knowledge_pack(out_path, notes=""):
         info["counts"] = {"database_rows": len(read_db_rows()), "ocr_fixes": len(read_ocr_fix_rows()),
                           "ignored_readings": len(read_ocr_ignore_rows())}
     except Exception:
+        diag.swallowed()
         info["counts"] = {}
     info["models"] = [n.split("/", 1)[1] for n, _ in files if n.startswith("models/")]
     tmp = out_path + ".tmp"
@@ -2735,6 +2747,7 @@ def knowledge_status():
         k = json.load(open(KNOWLEDGE_INFO_FILE, encoding="utf-8"))
         return f"Knowledge Pack {k.get('version')} (installed {k.get('installed')})"
     except Exception:
+        diag.swallowed()
         models = [m for m in PACK_MODEL_FILES if os.path.isfile(os.path.join(MODELS_DIR, m))]
         return "No Knowledge Pack installed" + (f"; local models: {', '.join(models)}" if models else "; built-in models")
 
@@ -2756,6 +2769,7 @@ def apply_window_icon(win, name=None):
         try:
             win.iconbitmap(path)
         except Exception:
+            diag.swallowed()
             pass
     _set()
     win.after(300, _set)   # CustomTkinter swaps in its own icon about 200 ms after a window opens
@@ -2799,6 +2813,7 @@ def load_settings():
         with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception:
+        diag.swallowed()
         return {}
 
 def save_settings(data):
@@ -2806,6 +2821,7 @@ def save_settings(data):
         with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f)
     except Exception:
+        diag.swallowed()
         pass
 
 TRAIN_DIR = os.path.join(BASE_DIR, "training_data")   # the Trainer's saved samples (never shipped, never committed)
@@ -2852,6 +2868,9 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_files.pack(side="left", padx=4, pady=8)
         self.btn_folder = ctk.CTkButton(top, text="Scan Folder", command=self.select_folder, width=104, **B)
         self.btn_folder.pack(side="left", padx=4, pady=8)
+        self.btn_again = ctk.CTkButton(top, text="⟳ Scan Again", command=self.scan_again, width=110, state="disabled",
+                                       fg_color="#0E7490", **B)
+        self.btn_again.pack(side="left", padx=4, pady=8)
         self.btn_export = ctk.CTkButton(top, text="Export CSV", command=self.export_csv, state="disabled", fg_color="green", width=96, **B)
         self.btn_export.pack(side="left", padx=4, pady=8)
         self.btn_add = ctk.CTkButton(top, text="+ Add Item", command=self.open_add_item, fg_color="#B45309", width=92, **B)
@@ -2866,9 +2885,9 @@ class AcronymAppGUI(ctk.CTk):
             self.sw_adv.pack(side="right", padx=(8, 6), pady=8)
         self.btn_tools = ctk.CTkButton(top, text="Tools ▾", command=self.show_tools_menu, fg_color="#475569", width=84, **B)
         self.btn_tools.pack(side="right", padx=4, pady=8)
-        self.btn_help = ctk.CTkButton(top, text="? Guide", command=lambda: HG.open_guide(self), fg_color="#0EA5E9", width=76, **B)
+        self.btn_help = ctk.CTkButton(top, text="? Guide", command=lambda: (diag.activity("guide_opened"), HG.open_guide(self)), fg_color="#0EA5E9", width=76, **B)
         self.btn_help.pack(side="right", padx=4, pady=8)
-        self.bind_all("<F1>", lambda e: HG.open_guide(self))
+        self.bind_all("<F1>", lambda e: (diag.activity("guide_opened"), HG.open_guide(self)))
         self.tools_menu = tk.Menu(self, tearoff=0)
         self.btn_improve_top = ctk.CTkButton(top, text="Improve Reading", command=self.open_improve, fg_color="#0F766E", width=128, **B)
         # kept for code that refers to them; reached through the Tools menu
@@ -3031,6 +3050,7 @@ class AcronymAppGUI(ctk.CTk):
         try:
             last = json.load(open(os.path.join(TRAIN_DIR, "model", "training_report.json"), encoding="utf-8")).get("samples", 0)
         except (OSError, ValueError):
+            diag.swallowed()
             last = 0
         return n, max(0, n - last)
 
@@ -3077,6 +3097,7 @@ class AcronymAppGUI(ctk.CTk):
 
     def open_improve(self):
         """One window, one action: teach the reader from the saved corrections, test it, and apply it if it reads better."""
+        diag.activity("improve_reading_opened")
         import tess_train
         if getattr(self, "improve_win", None) is not None and self.improve_win.winfo_exists():
             self.improve_win.lift(); self.improve_win.focus(); return
@@ -3103,6 +3124,7 @@ class AcronymAppGUI(ctk.CTk):
             last = json.load(open(os.path.join(TRAIN_DIR, "model", "training_report.json"), encoding="utf-8"))
             result.insert("1.0", f"Last time ({last.get('date', '?')}):\n" + tess_train.describe(last))
         except (OSError, ValueError):
+            diag.swallowed()
             result.insert("1.0", "No reader trained yet. The scanner uses Google's English reader.")
         result.configure(state="disabled")
         foot = ctk.CTkFrame(win, fg_color="transparent"); foot.pack(fill="x", padx=16, pady=(0, 12))
@@ -3263,7 +3285,7 @@ class AcronymAppGUI(ctk.CTk):
         m.add_command(label="Read all equation pictures (math add-on)..." if MATH_DIR else "Read all equation pictures (math add-on not installed)",
                       command=lambda: self.read_equations([k for k, d in self.results.items() if d.get("category") == "Equation (picture)"]),
                       state="normal" if MATH_DIR else "disabled")
-        m.add_command(label="How it works (guide, F1)...", command=lambda: HG.open_guide(self))
+        m.add_command(label="How it works (guide, F1)...", command=lambda: (diag.activity("guide_opened"), HG.open_guide(self)))
         m.add_separator()
         m.add_command(label="Edit Database CSV", command=lambda: self.open_file(DB_FILE))
         m.add_command(label="OCR Fixes...", command=self.open_fix_manager,
@@ -3290,6 +3312,7 @@ class AcronymAppGUI(ctk.CTk):
 
     def read_equations(self, keys):
         """Read the pictures behind the selected equation-picture rows with the math reader, in the background."""
+        diag.activity("math_reader_started")
         targets = [(k, loc) for k in keys for loc in self.results.get(k, {}).get("locations", [])]
         if not targets:
             messagebox.showinfo("Read equations", "No equation pictures selected."); return
@@ -3377,6 +3400,7 @@ class AcronymAppGUI(ctk.CTk):
 
     # ---------- full text mode ----------
     def open_fulltext(self):
+        diag.activity("full_text_opened")
         """Tools > Full Text: every word in the chosen files, typed and OCR, saved as .txt. Same reader and sandbox
         as the scan. Nothing leaves the computer."""
         if getattr(self, "ft_win", None) is not None and self.ft_win.winfo_exists():
@@ -3486,6 +3510,7 @@ class AcronymAppGUI(ctk.CTk):
 
     # ---------- knowledge packs ----------
     def open_knowledge(self):
+        diag.activity("knowledge_opened")
         if getattr(self, "know_win", None) is not None and self.know_win.winfo_exists():
             self.know_win.focus(); return
         win = ctk.CTkToplevel(self); self.know_win = win
@@ -3553,6 +3578,7 @@ class AcronymAppGUI(ctk.CTk):
 
     # ---------- manual items ----------
     def open_add_item(self):
+        diag.activity("add_item_opened")
         if getattr(self, "add_win", None) is not None and self.add_win.winfo_exists():
             self.add_win.focus(); return
         win = ctk.CTkToplevel(self); self.add_win = win
@@ -3619,10 +3645,11 @@ class AcronymAppGUI(ctk.CTk):
         if isinstance(exc, PermissionError):
             messagebox.showerror("Database locked", DB_LOCKED_MSG)
         else:
-            messagebox.showerror("Error", f"{exc_type.__name__}: {exc}\n\nDetails saved to logs\\error.log")
+            messagebox.showerror("Error", f"{exc_type.__name__}: {exc}\n\nDetails were saved to the logs folder (no file names or document content).")
 
     def open_trainer(self, path=None, focus=None):
         """Open the Trainer as a window of this program (same engine, same sandbox, same settings)."""
+        diag.activity("trainer_opened")
         if not trainer_available():
             messagebox.showinfo("Trainer", "Training features are turned off (config\\app_settings.json: allow_training)."); return
         import trainer_gui
@@ -3674,16 +3701,36 @@ class AcronymAppGUI(ctk.CTk):
             return
         self.start_batch(collected, folder=folder)
 
+    def scan_again(self):
+        """Scan the same files again (picks up new choices, definitions, OCR fixes). A folder is re-listed, so new files count."""
+        diag.activity("scan_again")
+        if self.project is not None:
+            self.rescan_project(); return
+        last = getattr(self, "last_scan", None)
+        if not last:
+            return
+        folder = last.get("folder")
+        if folder and os.path.isdir(folder):
+            fps = [os.path.join(r, f) for r, _, fs in os.walk(folder) for f in fs
+                   if not f.startswith("~$") and os.path.splitext(f)[1].lower() in SUPPORTED_EXTS]
+        else:
+            fps = [f for f in last["paths"] if os.path.isfile(f)]
+        if not fps:
+            messagebox.showwarning("Scan Again", "The files from the last scan are no longer there.")
+            return
+        self.start_batch(fps, folder=folder)
+
     def start_batch(self, fps, folder=None):
         self.queued_files = fps
         self.scanned_paths.update({os.path.basename(f): f for f in fps})
         capture = {}
         self.last_scan = {"paths": list(fps), "folder": folder, "cache": capture}
+        diag.scan_started(len(fps), dict(collections.Counter(os.path.splitext(f)[1].lower() for f in fps)))
         self.run_job(lambda cb: analyze_batch(fps, cb, capture=capture))
 
     def run_job(self, job):
         """Run job(status_callback) -> results on a worker thread, then show them."""
-        for b in (self.btn_files, self.btn_folder, self.btn_export, self.btn_project):
+        for b in (self.btn_files, self.btn_folder, self.btn_export, self.btn_project, self.btn_again):
             b.configure(state="disabled")
         self.prog.configure(mode="indeterminate")
         self.prog.start()
@@ -3710,7 +3757,8 @@ class AcronymAppGUI(ctk.CTk):
             self.after(0, self.scan_cancelled)
         except Exception as e:
             log_error("Scan failed")
-            msg = f"{type(e).__name__}: {e}\n\nDetails saved to logs\\error.log"
+            diag.scan_finished(errors=1)
+            msg = f"{type(e).__name__}: {e}\n\nDetails were saved to the logs folder (no file names or document content)."
             self.after(0, lambda: messagebox.showerror("Scan failed", msg))
             self.after(0, self.reset_ui)
 
@@ -3821,6 +3869,7 @@ class AcronymAppGUI(ctk.CTk):
         try:
             proj.load()
         except Exception as e:
+            diag.swallowed()
             messagebox.showerror("Cannot open project", f"{type(e).__name__}: {e}"); return
         if not proj.acquire_lock():
             who = proj.locked_by or {}
@@ -3851,6 +3900,7 @@ class AcronymAppGUI(ctk.CTk):
             proj.data["last_stats"] = stats
             self.project_stats = stats
             return res
+        diag.scan_started(len(proj.data.get("members", []) or []), {})
         self.run_job(job)
 
     def clear_gone(self):
@@ -3920,12 +3970,38 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_files.configure(state="disabled")
 
     def apply_saved_decisions(self):
-        if self.project is None: return
-        for term, choice in self.project.data["decisions"].items():
+        """Choices made with Apply Choice: this PC's saved choices, then the open project's (the project wins)."""
+        decisions = dict(self.load_choices())
+        if self.project is not None:
+            decisions.update(self.project.data["decisions"])
+        for term, choice in decisions.items():
             d = self.results.get(term)
             if d and d.get("in_db") and not d.get("excluded") and not d.get("gone") and \
                     (choice == "Keep All Possibilities" or choice in d.get("definitions", [])):
                 self._set_choice(d, choice)
+
+    @staticmethod
+    def load_choices():
+        try:
+            with open(CHOICES_FILE, encoding="utf-8") as f:
+                d = json.load(f)
+            return d if isinstance(d, dict) else {}
+        except FileNotFoundError:
+            return {}
+        except Exception:
+            diag.swallowed()
+            return {}
+
+    @staticmethod
+    def save_choice(term, choice):
+        """Remember a definition choice for every later scan (config\\choices.json, written atomically)."""
+        d = AcronymAppGUI.load_choices()
+        d[term] = choice
+        os.makedirs(CONFIG_DIR, exist_ok=True)
+        tmp = CHOICES_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(d, f, ensure_ascii=False, indent=1)
+        os.replace(tmp, CHOICES_FILE)
 
     @staticmethod
     def _set_choice(data, choice):
@@ -4124,6 +4200,7 @@ class AcronymAppGUI(ctk.CTk):
         return "resolved"
 
     def scan_cancelled(self):
+        diag.scan_finished(cancelled=True)
         self.results = getattr(self, "_prev_results", {}) or {}
         if self.project is not None:
             self.save_project()   # keeps the files already read, so the next rescan continues from there
@@ -4133,6 +4210,7 @@ class AcronymAppGUI(ctk.CTk):
                               + (" Files already read are saved in the project." if self.project is not None else ""))
 
     def scan_done(self, results):
+        diag.scan_finished(terms=len(results))
         self.results = results
         for term, item in self.manual_items.items():   # manual items survive rescans
             if term not in self.results:
@@ -4252,6 +4330,13 @@ class AcronymAppGUI(ctk.CTk):
         data = self.results[self.selected_term]
         tag = self._set_choice(data, choice)
         self.session_decisions = getattr(self, "session_decisions", {}); self.session_decisions[self.selected_term] = choice
+        try:
+            self.save_choice(self.selected_term, choice)
+        except OSError:
+            diag.swallowed()
+            messagebox.showwarning("Not saved", "The choice applies now, but could not be saved for later scans "
+                                   "(the config folder is not writable).")
+        diag.activity("apply_choice")
         if self.project is not None:
             self.project.data["decisions"][self.selected_term] = choice
             self.save_project()
@@ -4259,6 +4344,7 @@ class AcronymAppGUI(ctk.CTk):
 
     def open_fix_manager(self):
         """View, add, edit, delete, and undo entries in config\\ocr_corrections.csv."""
+        diag.activity("ocr_fixes_opened")
         if getattr(self, "fix_win", None) is not None and self.fix_win.winfo_exists():
             self.fix_win.focus(); return
         win = ctk.CTkToplevel(self); self.fix_win = win
@@ -4333,6 +4419,7 @@ class AcronymAppGUI(ctk.CTk):
 
     def save_ocr_fix(self):
         """Record that the selected term is an OCR misread of the term typed in the box."""
+        diag.activity("fix_ocr_saved")
         if not self.selected_term: return
         right = self.entry_def.get().strip()
         if not right:
@@ -4352,6 +4439,7 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_save.configure(state="disabled"); self.btn_ocr.configure(state="disabled")
 
     def save_candidate(self):
+        diag.activity("include_in_db")
         if not self.selected_term: return
         nd = self.entry_def.get().strip()
         if not nd:
@@ -4374,6 +4462,7 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_save.configure(state="disabled"); self.btn_ocr.configure(state="disabled")
 
     def exclude_term(self):
+        diag.activity("exclude_term")
         terms = [t for t in self.tree.selection() if self.excludable(t)]
         if not terms and self.selected_term and self.excludable(self.selected_term):
             terms = [self.selected_term]
@@ -4407,6 +4496,7 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_files.configure(state="normal")
         self.btn_folder.configure(state="normal")
         self.btn_project.configure(state="normal")
+        self.btn_again.configure(state="normal" if (self.project is not None or getattr(self, "last_scan", None)) else "disabled")
         self.btn_cancel.pack_forget()
         self.update_project_ui()
 
@@ -4428,6 +4518,7 @@ class AcronymAppGUI(ctk.CTk):
 
     def export_csv(self):
         """Export exactly the rows shown (current Type / Status / Search filters, in the current sort order)."""
+        diag.activity("export_csv")
         terms = [t for t in self.tree.get_children() if t in self.results]
         if not terms:
             messagebox.showinfo("Nothing to export", "No rows are showing. Change the filters, then export."); return
@@ -4507,6 +4598,7 @@ class AcronymAppGUI(ctk.CTk):
         return result["ok"]
 
     def open_client_lists(self):
+        diag.activity("client_lists_opened")
         if getattr(self, "client_win", None) is not None and self.client_win.winfo_exists():
             self.client_win.focus(); return
         win = ctk.CTkToplevel(self); self.client_win = win
@@ -4542,7 +4634,7 @@ class AcronymAppGUI(ctk.CTk):
                 try:
                     rows = parse_client_list(path)
                 except Exception as e:
-                    log_error(f"Client list could not be read: {path}")
+                    log_error("Client list could not be read", ext=os.path.splitext(path)[1].lower())
                     messagebox.showerror("Not read", f"{os.path.basename(path)}: {type(e).__name__}: {e}", parent=win); continue
                 if not rows:
                     messagebox.showwarning("No acronyms found", f"No acronym / definition pairs were found in {os.path.basename(path)}.\n"

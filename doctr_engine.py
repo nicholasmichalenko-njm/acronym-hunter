@@ -10,6 +10,7 @@ Pre- and post-processing follow docTR/OnnxTR (DBNet probability map, box expansi
 Extra passes the app adds: tiles for large pictures, an inverted pass for dark pictures, and 90/270 degree passes
 for vertical labels."""
 import json, math, os
+import diag
 import numpy as np
 import cv2
 
@@ -25,6 +26,7 @@ class DocTREngine:
         try:
             ort.disable_telemetry_events()        # ONNX Runtime's Windows event tracing off
         except Exception:
+            diag.swallowed()
             pass
         info = json.load(open(os.path.join(folder, "doctr_models.json"), encoding="utf-8"))
         so = ort.SessionOptions()

@@ -5,6 +5,7 @@ yellow, other kept readings in green, low-confidence readings in red. On PDF pag
 orange. From the pane: correct a misread line and teach it, mark a reading "Not text", or Exclude the term.
 """
 import os
+import diag
 import threading
 import tkinter as tk
 import customtkinter as ctk
@@ -159,6 +160,7 @@ class PreviewPane(ctk.CTkFrame):
             if path not in self.sources:
                 self.sources[path] = tg.list_sources(path)
         except Exception as e:
+            diag.swallowed()
             self._blank(f"Could not open {name}: {type(e).__name__}"); return
         srcs = self.sources[path]
         k = tg.match_source([lbl for lbl, _ in srcs], loc)
@@ -214,6 +216,7 @@ class PreviewPane(ctk.CTkFrame):
             finally:
                 doc.close()
         except Exception:
+            diag.swallowed()
             return []
 
     def _toggle_zoom(self):

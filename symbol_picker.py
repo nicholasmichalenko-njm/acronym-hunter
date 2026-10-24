@@ -7,6 +7,7 @@ field had the cursor last, so it can stay open while you correct several reading
     SP.button(parent, entry).pack(...)     # a small "Ω" button that opens the picker for that field
 """
 import json, os, unicodedata
+import diag
 import tkinter as tk
 import customtkinter as ctk
 
@@ -48,6 +49,7 @@ def set_storage(path):
     try:
         _recent[:] = [c for c in json.load(open(path, encoding="utf-8")) if isinstance(c, str) and len(c) == 1][:24]
     except Exception:
+        diag.swallowed()
         pass
 
 def _comb(c):
@@ -65,6 +67,7 @@ def _remember(ch):
         try:
             json.dump(_recent, open(_recent_file[0], "w", encoding="utf-8"), ensure_ascii=False)
         except Exception:
+            diag.swallowed()
             pass
 
 def _raw(entry):
@@ -74,6 +77,7 @@ def _alive(entry):
     try:
         return bool(_raw(entry).winfo_exists())
     except Exception:
+        diag.swallowed()
         return False
 
 def _target():
@@ -178,12 +182,14 @@ def open_picker(anchor=None):
         try:
             sc = ctk.ScalingTracker.get_window_scaling(win)
         except Exception:
+            diag.swallowed()
             sc = 1.0
         x = (anchor.winfo_rootx() if anchor else 200) + 20; y = (anchor.winfo_rooty() if anchor else 200) + 40
         x = min(x, win.winfo_screenwidth() - int(540 * sc) - 10)
         y = min(y, win.winfo_screenheight() - int(460 * sc) - 60)
         tk.Wm.wm_geometry(win, f"+{max(0, x)}+{max(0, y)}")
     except Exception:
+        diag.swallowed()
         pass
     top = ctk.CTkFrame(win, fg_color="transparent"); top.pack(fill="x", padx=8, pady=(8, 2))
     q = tk.StringVar()

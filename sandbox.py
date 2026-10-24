@@ -9,6 +9,7 @@ folders inside the app's own folder.
 Used for Tesseract (tesseract.exe and its training tools). Image bytes go in on stdin, results come out on stdout.
 """
 import ctypes
+import diag
 import ctypes.wintypes as wt
 import os
 import subprocess
@@ -167,6 +168,7 @@ def run(cmd, input_bytes=b"", timeout=180, env=None, cwd=None, on_line=None, can
             try:
                 on_line(line)
             except Exception:
+                diag.swallowed()
                 pass
         result["out"] = b"".join(parts)
     readers = [threading.Thread(target=feed, daemon=True),
@@ -205,5 +207,6 @@ def network_probe():
     try:
         code, out, err = run([curl, "-s", "-S", "-m", "8", "-o", "NUL", "https://www.microsoft.com"], timeout=20)
     except Exception as e:
+        diag.swallowed()
         return f"blocked (launch refused: {type(e).__name__})"
     return f"BLOCKED (curl exit {code}: {err.decode('utf-8', 'replace').strip()[:80]})" if code != 0 else "NOT BLOCKED"
