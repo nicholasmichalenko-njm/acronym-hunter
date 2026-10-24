@@ -46,3 +46,4 @@ internal_builds/
 /build_math/
 /Claude outputs/
 feedback/reports/
+*_SBOM.cdx.json
