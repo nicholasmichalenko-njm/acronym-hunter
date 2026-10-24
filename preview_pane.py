@@ -239,12 +239,14 @@ class PreviewPane(ctk.CTkFrame):
         self.btn_out = ctk.CTkButton(self.ctl, text="−", command=lambda: self.zoom(1 / 1.4), **B)
         self.btn_out.pack(side="right", padx=(2, 0))
         self.btn_zoom = self.btn_fit        # older code refers to btn_zoom
-        self.stage = tk.Frame(self, width=PIC_W, height=PIC_H, bg="#3A3F47")
+        # Raw Tk widgets are not scaled by CustomTkinter: size them for the display scaling (200% = twice the pixels)
+        self.sc = sc = max(1.0, float(ctk.ScalingTracker.get_widget_scaling(self)))
+        self.stage = tk.Frame(self, width=int(PIC_W * sc), height=int(PIC_H * sc), bg="#3A3F47")
         self.stage.pack(padx=10)
         self.stage.pack_propagate(False)
-        self.pv = PicView(self.stage, PIC_W, PIC_H, self._select)
+        self.pv = PicView(self.stage, int(PIC_W * sc), int(PIC_H * sc), self._select)
         self.pv.canvas.pack(fill="both", expand=True)
-        self.txt = tk.Text(self.stage, wrap="word", font=("Segoe UI", 10), bg="#F8FAFC", fg="#0F172A", relief="flat",
+        self.txt = tk.Text(self.stage, wrap="word", font=("Segoe UI", int(round(10 * sc))), bg="#F8FAFC", fg="#0F172A", relief="flat",
                            padx=8, pady=6, cursor="arrow")
         self.txt.tag_configure("hit", background="#FDE68A")
         self.txt.tag_configure("cur", background="#F59E0B", foreground="#000000")
@@ -686,7 +688,7 @@ class PreviewPane(ctk.CTkFrame):
             ctk.CTkButton(bar, text="Whole", width=60, height=28, fg_color="#475569", command=lambda: win._pv.fit()).pack(side="right", padx=4)
             ctk.CTkButton(bar, text="+", command=lambda: win._pv.zoom(1.4), **B).pack(side="right", padx=2)
             ctk.CTkButton(bar, text="−", command=lambda: win._pv.zoom(1 / 1.4), **B).pack(side="right", padx=2)
-            win._pv = PicView(win, BIG_W, BIG_H, self._select)
+            win._pv = PicView(win, int(BIG_W * self.sc), int(BIG_H * self.sc), self._select)
             diag.register(win, "preview_big"); diag.register(win._pv.canvas, "preview_big.canvas")
             win._pv.canvas.pack(fill="both", expand=True, padx=10, pady=(0, 10))
             win.bind("<Escape>", lambda e: win.destroy())
