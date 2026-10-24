@@ -176,6 +176,7 @@ def open_picker(anchor=None):
         _win[0].deiconify(); _win[0].lift(); _win[0].focus_force(); return _win[0]
     root = anchor.winfo_toplevel() if anchor is not None else tk._default_root
     win = ctk.CTkToplevel(root); _win[0] = win
+    diag.register(win, "symbols")
     win.title("Symbols"); win.geometry("540x460"); win.resizable(False, True); win.attributes("-topmost", True)
     try:
         # Physical pixels via raw Tk: CTk's geometry() would scale the position again and push it off-screen.

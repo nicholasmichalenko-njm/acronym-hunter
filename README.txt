@@ -284,7 +284,10 @@ WHAT STAYS IN THIS FOLDER
   training_data\         Trainer samples (created when you save one; never with allow_training false).
   config\knowledge_*     Installed pack record and backups for Undo (created on first install).
   _local_sandbox\        Scratch space, created on launch, cleared on exit.
-  logs\error.log         Written only if something fails. Send this file when reporting a problem.
+  logs\                  Content-free diagnostics: errors and which controls are clicked, never file names,
+                         terms or document text. Feedback > Export for Claude bundles them with your reports.
+  feedback\              Feedback reports you write (Feedback button, Ctrl+Shift+F).
+  config\choices.json    Definition choices made with Apply Choice, reused on every later scan.
 
   The app makes no network connections and writes no files outside this folder
   (except an Export CSV report and project files, saved where you choose). To remove it, delete the folder.
@@ -323,3 +326,15 @@ TROUBLESHOOTING
 HOW IT WORKS GUIDE (2.3.1)
 Click ? in the top bar (or press F1) for a short guide with screenshots: scanning, the results table,
 Fix OCR vs Training (Correct + Teach and Improve Reading), the picture preview, symbols, equations, sharing.
+
+2.3.2: SCAN AGAIN, STICKY CHOICES, BETTER PREVIEW, FEEDBACK
+- Scan Again rescans the same files (or the same folder, including new files) with one click.
+- Apply Choice is remembered for every later scan on this PC (config\choices.json); an open project's choices win.
+- Preview: Find < > steps through every find of the term, across all its locations. Zoom with the wheel or + / -,
+  drag to move, Whole shows the whole page, Enlarge opens a big window. Typed text in Word, PowerPoint and Excel is
+  shown with every match highlighted. Words only the second reader found get cyan boxes.
+- Feedback button (Ctrl+Shift+F): bugs, improvements and ideas about features, plain text only. A content guard
+  blocks text that matches your documents' terms, definitions, file or folder names. Export for Claude makes one
+  text-only zip after showing you everything in it.
+- Logs are content-free: fixed messages, error types, code locations, counts. Usage logging records which controls
+  are clicked (by internal name), to improve the app; turn it off with "usage_logging": false in config\app_settings.json.

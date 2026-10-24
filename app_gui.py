@@ -287,6 +287,7 @@ APP_DEFAULTS = {
     "allow_training": True,               # False = no Trainer, no "Check in picture", no "Improve Reading" (nothing saved)
     "ocr_sandbox": True,                  # run Tesseract inside a Windows AppContainer with no network permission
     "ocr_sandbox_required": False,        # True = refuse to read pictures if the sandbox cannot start
+    "usage_logging": True,                # False = do not record which controls are clicked (logs\\activity.jsonl)
 }
 
 def load_app_settings():
@@ -872,7 +873,19 @@ def _ocr_raw(image_bytes):
 
 _OCR_CALLS = [0]   # pictures sent to OCR while scanning the current file (a file with 0 does not depend on the reader)
 
+_typed_only = threading.local()   # set by typed_chunks(): read typed text only, skip every picture
+
+def typed_chunks(filepath):
+    """Typed text of a file without reading any picture (fast; for the preview pane). [(location label, text)]"""
+    _typed_only.on = True
+    try:
+        return extract_chunks_from_file(filepath, lambda _m: None, 1, 1)
+    finally:
+        _typed_only.on = False
+
 def read_image_bytes(image_bytes):
+    if getattr(_typed_only, "on", False):
+        return ""
     _OCR_CALLS[0] += 1
     key = hashlib.sha1(image_bytes).hexdigest()
     if key not in _OCR_CACHE:
@@ -1147,6 +1160,8 @@ def read_vector(data, ext):
 
 def part_images(z, partpath, root, label_base, chunks, seen, rels=None):
     """OCR every picture referenced by one part (slide, layout, Word body/header, Excel drawing)."""
+    if getattr(_typed_only, "on", False):
+        return
     rels = rels if rels is not None else zip_rels(z, partpath)
     refs = []
     for blip in root.iter(_q("a", "blip")):
@@ -2101,7 +2116,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.3.1"            # keep in step with version_info.txt
+APP_VERSION = "2.3.2"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -2848,6 +2863,8 @@ class AcronymAppGUI(ctk.CTk):
         self.sort_col, self.sort_desc = "count", True
         self.settings = load_settings()
         self.app_cfg = load_app_settings()
+        diag.usage_on = bool(self.app_cfg.get("usage_logging", True))
+        self.after(800, self._register_usage)
         self.manual_items = {}   # term -> finding dict; kept across rescans until removed
         self.project = None      # open Project, or None for one-off scans
         self.client_lists = []   # client acronym lists (RFPs); saved in the project when one is open
@@ -3088,6 +3105,15 @@ class AcronymAppGUI(ctk.CTk):
 
     def improve_reading(self):
         self.open_improve()
+
+    def _register_usage(self):
+        """Usage logging: name the controls after their code attributes, then log clicks (no text, no data)."""
+        diag.register_attrs(self)
+        if getattr(self, "preview", None) is not None:
+            diag.register_attrs(self.preview, "preview.")
+            diag.register_attrs(self.preview.pv, "preview.")
+        diag.register(self, "main")
+        diag.install_click_logger(self)
 
     def toggle_preview(self):
         on = bool(self.preview_var.get())

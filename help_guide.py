@@ -41,7 +41,8 @@ PAGES = {
           "Everything runs on this PC. Nothing is sent anywhere."),
     ("h", "Four steps"),
     ("img", "toolbar_left.png", 560),
-    ("rows", [("1. Scan", "Select Files or Scan Folder. Word, PowerPoint, Excel, PDF, pictures and drawings."),
+    ("rows", [("1. Scan", "Select Files or Scan Folder. Word, PowerPoint, Excel, PDF, pictures and drawings. "
+                         "Scan Again repeats the last scan after you change a definition or a choice."),
               ("2. Review", "The results table lists every term found, with its status and where it appears."),
               ("3. Resolve", "Click a row. Pick a definition, add it to the database, or exclude it."),
               ("4. Export", "Export CSV gives you the acronym list for the proposal.")]),
@@ -99,7 +100,11 @@ PAGES = {
 "Pictures": [
     ("h", "The picture preview (right side)"),
     ("img", "preview.png", 340),
-    ("rows", [("Where it was found", "Pick a location to see the picture. The yellow box marks the term."),
+    ("rows", [("Where it was found", "Pick a location. Pictures and PDF pages show boxes; Word, PowerPoint and Excel typed "
+                                     "text shows the passage with the term highlighted."),
+              ("Find ◀ ▶", "Step through every find of the term, then on to its next location."),
+              ("Zoom", "Mouse wheel or + / -. Drag to move around. Whole shows the whole page or picture."),
+              ("Enlarge", "Opens the picture in a big window. Click boxes there too."),
               ("Click a box", "Every box is something the scanner read. Click one to check or fix it."),
               ("Correct + Teach", "Fix the spelling and save a lesson (see Fix OCR vs Training)."),
               ("Not text", "A line, arrow or speck read as text. The scanner ignores it from now on."),
@@ -140,6 +145,13 @@ PAGES = {
               ("Client Lists", "Load the client's own acronym list. Its definitions win over the database."),
               ("Projects", "Project > Save. A rescan reads only files that changed."),
               ("Full Text", "Tools > Full Text. All typed and picture text, saved as .txt.")]),
+    ("h", "Feedback: bugs, improvements, ideas"),
+    ("rows", [("Open", "The Feedback button, or Ctrl+Shift+F."),
+              ("Write", "Pick Bug, Improvement or Idea and the feature. Describe the feature, never your documents."),
+              ("Guard", "The app will not save text that matches your terms, definitions, file or folder names."),
+              ("Export", "Export for Claude shows everything first, then saves one text-only zip."),
+              ("Logs", "The app also logs errors and which controls are clicked, by internal name only. "
+                       "No file names, terms or document text, ever.")]),
     ("h", "Good team habit"),
     ("p", "One person collects fixes and lessons for a week, runs Improve Reading, and shares a Knowledge Pack. "
           "Everyone installs it. The whole team gets the better reader."),
@@ -202,6 +214,8 @@ def open_guide(parent, page=None):
             diag.swallowed()
             pass
     win._show = show
+    diag.register(win, "guide")
+    diag.register(seg, "guide.tabs")
     win.bind("<Escape>", lambda e: win.withdraw())
     show(tab.get())
     return win

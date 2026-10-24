@@ -66,7 +66,11 @@ Complete list from a line-by-line audit of `app_gui.py` (every `open(... "w"/"a"
 |---|---|---|---|
 | `acronym_database.csv` | Terms and definitions | Include / Exclude buttons | Contains terms you add |
 | `config\ocr_corrections.csv` | Misread to correct-term pairs | Fix OCR button, OCR Fixes window | Contains terms you add |
-| `logs\error.log` | Error messages and **file paths** | Only when something fails | File names/paths |
+| `logs\events.jsonl` | Errors and quiet failures: fixed message, error type, code location (our file name, line, function), counts and file extensions. **Never** file names, paths, document text, terms or error messages. A build check (`tools\check_diag.py`) enforces it | When something fails | No |
+| `logs\activity.jsonl` | Feature actions and clicks by internal control name (for example `btn_again`), time between actions, greyed-out clicks. Never on-screen text, rows clicked or anything typed. Off with `usage_logging: false` in `config\app_settings.json` | While the app is used | No |
+| `logs\crash_raw.txt` | Python's crash dump (contains file paths) | Only after a hard crash; converted to a content-free line in events.jsonl at the next start, then deleted. Never exported | Paths, briefly |
+| `config\choices.json` | Definition choices made with Apply Choice, reused on every later scan | Apply Choice | Terms and definitions |
+| `feedback\reports\*.json` | Feedback reports you write (feature, title, description) | Feedback window | Only what you type; the content guard blocks text that matches your terms, definitions, file or folder names |
 | `logs\selftest.txt` | Scan results | Only with `--selftest` | Terms found |
 | `_local_sandbox\settings.json` | Text size, last folder used | When you change them | Folder path |
 | `_local_sandbox\temp\` | Temporary files, incl. OCR engine config | During a scan; **emptied on exit and on next start** | No document content |

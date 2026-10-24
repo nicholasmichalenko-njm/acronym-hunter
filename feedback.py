@@ -237,10 +237,11 @@ def export_files(reports):
 
 
 # ------------------------------------------------------------------ machine-file check
-_EVENT_KEYS = {"time", "version", "level", "area", "msg", "type", "where", "repeats", "action", "ext"}
+_EVENT_KEYS = {"time", "version", "level", "area", "msg", "type", "where", "repeats", "action", "ext", "w", "state"}
 _RX = {"time": r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$", "version": r"^[0-9A-Za-z.?\-]{1,20}$",
        "level": r"^(error|warning|crash)$", "area": r"^[a-z][a-z0-9_]{0,30}$", "action": r"^[a-z][a-z0-9_]{0,30}$",
-       "type": r"^[A-Za-z_][A-Za-z0-9_. ]{0,60}$", "ext": r"^\.[a-z0-9]{1,6}$"}
+       "type": r"^[A-Za-z_][A-Za-z0-9_. ]{0,60}$", "ext": r"^\.[a-z0-9]{1,6}$",
+       "w": r"^[a-z][a-z0-9_.]{0,60}$", "state": r"^disabled$"}
 _WHERE = re.compile(r"^[A-Za-z0-9_.\-]{1,60}\.py:\d{1,6}:[A-Za-z0-9_<>]{1,60}$")
 
 
@@ -350,6 +351,7 @@ def open_feedback(app):
     ctk.CTkButton(bar, text="Close", command=win.withdraw, width=80, fg_color="#475569").pack(side="right")
     win.bind("<Escape>", lambda e: win.withdraw())
     win._api = {"type": type_var, "feature": feat_var, "importance": imp_var, "title": e_title, "box": box, "save": save, "msg": msg}
+    diag.register(win, "feedback")
     e_title.focus_set()
     return win
 
@@ -411,4 +413,5 @@ def export_dialog(app, status=None, count_label=None):
                       "report in the feedback\\reports folder, then try again.", text_color="#B91C1C")
         diag.activity("feedback_export_blocked")
     win._api = {"files": files, "leaks": leaks, "save_btn": btn}
+    diag.register(win, "feedback_export")
     return win
