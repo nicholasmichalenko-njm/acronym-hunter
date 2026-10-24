@@ -68,6 +68,10 @@ PAGES = {
               ("Include in DB", "Type the definition and save it. Every future scan knows it."),
               ("Fix OCR", "The term is a misreading. Type the correct term. See the Fix OCR vs Training tab."),
               ("Exclude", "Not a real term (a heading word, a part number). Hidden from now on, everywhere."),
+              ("Known name", "Right-click > Known name (or Edit menu): a company, product or program name that is an acronym "
+                             "(the team still wants it recognized). Saved in the database with what it stands for; shown as "
+                             "Known name (not listed); never flagged for first use; left off the CSV export and the volume "
+                             "acronym lists. Status > Known names lists them. Right-click > Not a known name lists it again."),
               ("Exclude instance", "In the Source preview: drop only the place shown (a misreading, a stray heading word). The "
                                    "term stays wherever else it appears, stays excluded there on later scans in this effort, "
                                    "and Restore instances (or right-click > Restore excluded instances) brings it back.")]),

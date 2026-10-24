@@ -481,3 +481,8 @@ SETUP BUILDER (2.13.0)
   The term stays wherever else it was found. Saved per effort (excluded_instances.json in the effort folder) and
   applied after every scan; excluding every instance hides the term without a database rule. Restore instances (or
   right-click > Restore excluded instances) brings them back. Exclude term is unchanged: a database rule, everywhere.
+- Known names (right-click or Edit menu): company, product and program names that are acronyms. Recognized and kept
+  in the database (Action "Known name", with what it stands for if you give it), shown as "Known name (not listed)",
+  never flagged for first use, and left off the CSV export, the volume acronym lists and the Not in effort list
+  filter. Status > Known names (not listed) lists them; right-click > Not a known name lists one again. Shared through
+  Knowledge Packs with the rest of the database.

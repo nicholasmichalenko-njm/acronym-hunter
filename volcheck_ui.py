@@ -59,7 +59,8 @@ class VolumeCheckMixin:
         if not vc or self.effort is None:
             return
         eng = _eng()
-        report = V.build(self.results, self.effort.rows, vc["names"], self.effort.first_use, vc["defs"],
+        report = V.build({t: d for t, d in self.results.items() if not d.get("known")}, self.effort.rows,   # known names stay off
+                         vc["names"], self.effort.first_use, vc["defs"],
                          file_of=eng._file_of, in_picture=lambda loc: bool(eng._OCR_LOC.search(loc)))
         self.volume_report = report
         s = report["summary"]

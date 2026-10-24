@@ -120,7 +120,7 @@ import pypdfium2.raw as _pdfium_raw
 import openpyxl
 import numpy as np
 import customtkinter as ctk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, filedialog, messagebox, simpledialog
 from rapidfuzz import process, fuzz
 import importlib.util
 import symbol_picker as SP
@@ -597,6 +597,10 @@ def db_layout():
     layout += [(f, f) for f in DB_FIELDS if f not in have]   # add any missing core column at the end
     return layout
 
+KNOWN_ACTION = "Known name"          # database Action: company, product or program names (2.13.0)
+KNOWN_BLANK = "(known name)"
+KNOWN_STATUS = "Known name (not listed)"
+
 def load_database():
     include_db = {}
     exclude_db = {}
@@ -618,6 +622,13 @@ def load_database():
         if action == "Exclude" or cat.lower() in {"exclude", "ignore", "noise"}:
             exclude_db[term] = {"category": cat, "definition": defn or "Excluded by user rule"}
             exclude_upper.add(term.upper())
+        elif action.lower().startswith(("known", "omit")):   # 2.13.0: recognized and kept, left off the lists
+            if term not in include_db:
+                include_db[term] = {"category": cat, "definitions": []}
+            include_db[term]["known"] = True
+            d = defn or KNOWN_BLANK
+            if d not in include_db[term]["definitions"]:
+                include_db[term]["definitions"].append(d)
         else:
             if not defn:
                 continue
@@ -1893,7 +1904,7 @@ def _long_form_before(term, text, paren_at):
 
 def first_use_lines(d, with_file=True):
     """Readable first-use lines for acronyms only (units and abbreviations are never defined this way)."""
-    if not d.get("category", "").startswith("Acronym") or d.get("excluded"):
+    if not d.get("category", "").startswith("Acronym") or d.get("excluded") or d.get("known"):
         return []
     out = []
     for f, u in d.get("first_use", {}).items():
@@ -2512,6 +2523,8 @@ def record_included(findings, term, loc, include_db):
             "selected_definition": (f"MULTIPLE ({len(defs)} options) - Choose: " + " OR ".join(defs)) if multi else defs[0],
             "status": "CHOOSE DEFINITION" if multi else "Resolved (In DB)"
         }
+        if info.get("known"):           # recognized, kept, left off the acronym lists; never asked to define at first use
+            findings[term].update(known=True, status=KNOWN_STATUS, selected_definition=defs[0])
     findings[term]["count"] += 1
     if loc not in findings[term]["locations"]:
         findings[term]["locations"].append(loc)
@@ -2929,7 +2942,8 @@ ALL_TYPES = "All types"
 STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", "Client list", "Client and database differ",
                   "Not defined at first use", "Equations and symbols", "Undefined symbols",
                   "Added manually", "Customer documents", "Customer and database differ", "In effort list", "Not in effort list", "Effort: needs author", "Effort: approved",
-                  "New since last scan", "Changed since last scan", "No longer found", "Errors / not scanned", "Excluded"]
+                  "New since last scan", "Changed since last scan", "No longer found", "Errors / not scanned",
+                  "Known names (not listed)", "Excluded"]
 MANUAL_MARK = ""   # statuses are plain words (2.7.0: no emoji in the interface or in exports)
 # Status kinds by leading words. Older projects saved statuses with an emoji in front; status_text() drops it.
 _KIND_WORDS = (("error", ("COULD NOT READ FILE", "NOT SCANNED")),
@@ -2937,12 +2951,14 @@ _KIND_WORDS = (("error", ("COULD NOT READ FILE", "NOT SCANNED")),
                ("client_differs", ("CLIENT LIST (DATABASE DIFFERS)",)),
                ("candidate", ("NEW CANDIDATE", "SYMBOL NOT DEFINED", "CHECK EQUATION PICTURE")),
                ("manual", ("ADDED MANUALLY",)),
+               ("known", ("KNOWN NAME",)),
                ("resolved", ("RESOLVED", "DEFINED IN DOCUMENT", "USER SELECTED", "ADDED TO DB", "CLIENT LIST",
                              "CUSTOMER DOCUMENT", "EFFORT LIST:")),
                ("gone", ("NO LONGER FOUND",)),
                ("excluded", ("EXCLUDED", "NOT A TERM IN THIS EFFORT")))
 RESOLVED_WORDS = ("Resolved", "Defined in document", "User Selected", "Added to DB", "Client list")   # the Resolved filter
-STATUS_RANK = {"error": 0, "choice": 1, "client_differs": 2, "candidate": 3, "manual": 4, "resolved": 5, "gone": 6, "excluded": 7}
+STATUS_RANK = {"error": 0, "choice": 1, "client_differs": 2, "candidate": 3, "manual": 4, "resolved": 5, "known": 6, "gone": 7,
+               "excluded": 8}
 
 def status_text(st):
     """The status without any leading symbol (statuses saved by older versions began with an emoji)."""
@@ -3182,6 +3198,7 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         self.tree.tag_configure("fileerror", background="#FEE2E2", foreground="#991B1B")
         self.tree.tag_configure("manual", background="#FEF9C3", foreground="#713F12")
         self.tree.tag_configure("gone", background="#E5E7EB", foreground="#6B7280")
+        self.tree.tag_configure("known", background="#EEF2FF", foreground="#475569")   # known names: kept, not listed
         self.tree.tag_configure("client", background="#EDE9FE", foreground="#4C1D95")
         self.tree.tag_configure("clientdiff", background="#F5D0FE", foreground="#701A75")
         self.tree.tag_configure("equation", background="#E0E7FF", foreground="#312E81")
@@ -3329,6 +3346,8 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         e.add_separator()
         e.add_command(label="Find (search box)", accelerator="Ctrl+F", command=c("edit_find", lambda: self.entry_search.focus_set()))
         e.add_command(label="Clear filters", command=c("edit_clear_filters", self.clear_filters))
+        e.add_separator()
+        e.add_command(label="Known name: keep, leave off the list...", command=c("edit_known_name", self.mark_known))
         mb.add_cascade(label="Edit", menu=e)
         ef = tk.Menu(mb, tearoff=0, postcommand=lambda: self.show_effort_menu(ef))
         mb.add_cascade(label="Effort", menu=ef)
@@ -3573,6 +3592,11 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
                 menu.add_command(label="Check in picture (found only in typed text)", state="disabled")
         menu.add_separator()
         dd = self.results.get(iid, {})
+        nsel = len([t for t in self.tree.selection() if t in self.results]) or 1
+        if dd.get("known"):
+            menu.add_command(label=f"Not a known name: list it again ({nsel})", command=self.unmark_known)
+        else:
+            menu.add_command(label=f"Known name: keep, leave off the list ({nsel})...", command=self.mark_known)
         if dd.get("excluded_instances"):
             menu.add_command(label=f"Restore excluded instances ({len(dd['excluded_instances'])})",
                              command=lambda: self.restore_instances(iid))
@@ -4446,7 +4470,8 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
             "In effort list": bool(data.get("effort")),
             "Customer documents": bool(data.get("customer_definitions")),
             "Customer and database differ": bool(data.get("cust_db_differ")),
-            "Not in effort list": not data.get("effort") and not data.get("excluded", False),
+            "Not in effort list": not data.get("effort") and not data.get("excluded", False) and not data.get("known"),
+            "Known names (not listed)": bool(data.get("known")),
             "Effort: needs author": data.get("effort") in ("Proposed", "Needs author"),
             "Effort: approved": data.get("effort") == "Approved",
             "New since last scan": data.get("change") == "New",
@@ -4538,6 +4563,7 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         if data.get("excluded", False): return "excluded"
         if data.get("manual"): return "manual"
         if data.get("gone"): return "gone"
+        if data.get("known"): return "known"
         if data.get("effort") == "Approved": return "resolved"
         if data.get("effort"): return "effort"
         st = data["status"]
@@ -4571,6 +4597,9 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         self.apply_customer_defs()
         self.apply_saved_decisions()
         self.apply_effort(reload=True)
+        for d in self.results.values():   # known names keep their status unless the effort list holds them (2.13.0)
+            if d.get("known") and not d.get("effort") and not d.get("excluded"):
+                d["status"] = KNOWN_STATUS
         self.save_project()
         self.reset_ui()
         self.refresh_type_options()
@@ -4892,6 +4921,65 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         self.populate_table()
         return len(locs)
 
+    # ---------- known names (2.13.0): recognized and kept in the database, left off the acronym lists ----------
+    def mark_known(self, terms=None):
+        terms = [t for t in (terms or self.tree.selection()) if t in self.results and not self.results[t].get("file_error")
+                 and not self.results[t].get("manual")]
+        if not terms:
+            return
+        defs = {}
+        if len(terms) == 1:
+            d = self.results[terms[0]]
+            cur = d.get("selected_definition", "")
+            cur = "" if status_text(cur).startswith(("[", "MULTIPLE", "Rescan")) else cur
+            v = simpledialog.askstring("Known name", f"{terms[0]} is a name (company, product, program): recognized and kept, "
+                                       "left off the acronym lists.\n\nWhat it stands for (optional):", initialvalue=cur, parent=self)
+            if v is None:
+                return
+            defs[terms[0]] = v.strip()
+        rows = read_db_rows()
+        for t in terms:
+            d = self.results[t]
+            cur = d.get("selected_definition", "")
+            defn = defs.get(t, "" if status_text(cur).startswith(("[", "MULTIPLE", "Rescan")) else cur)
+            cat = base_type(d.get("category", "Acronym"))
+            hit = False
+            for r in rows:
+                if fold(r[0]) == fold(t):
+                    r[3] = KNOWN_ACTION
+                    if defn and not hit:
+                        r[2] = defn
+                    hit = True
+            if not hit:
+                rows.append([t, cat, defn, KNOWN_ACTION])
+            d.update(known=True, in_db=True, excluded=False, status=KNOWN_STATUS, selected_definition=defn or KNOWN_BLANK)
+        write_db_rows(rows)
+        diag.activity("known_name_marked", n=len(terms))
+        self.status.configure(text=f"{len(terms)} known name(s): recognized and kept, left off the acronym lists.")
+        self.populate_table()
+
+    def unmark_known(self, terms=None):
+        terms = [t for t in (terms or self.tree.selection()) if self.results.get(t, {}).get("known")]
+        if not terms:
+            return
+        rows = read_db_rows()
+        keep = []
+        for r in rows:
+            if any(fold(r[0]) == fold(t) for t in terms) and str(r[3]).lower().startswith(("known", "omit")):
+                if not r[2] or r[2] == KNOWN_BLANK:
+                    continue                                   # no definition: the row goes; the term is a candidate again
+                r[3] = "Include"
+            keep.append(r)
+        write_db_rows(keep)
+        for t in terms:
+            d = self.results[t]
+            d.pop("known", None)
+            has = d.get("selected_definition") not in ("", KNOWN_BLANK)
+            d["status"] = "Resolved (In DB)" if has else "NEW CANDIDATE"
+            d["in_db"] = has
+        diag.activity("known_name_unmarked", n=len(terms))
+        self.populate_table()
+
     def exclude_term(self):
         diag.activity("exclude_term")
         terms = [t for t in self.tree.selection() if self.excludable(t)]
@@ -4951,6 +5039,10 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         """Export exactly the rows shown (current Type / Status / Search filters, in the current sort order)."""
         diag.activity("export_csv")
         terms = [t for t in self.tree.get_children() if t in self.results]
+        left_out = 0
+        if self.status_var.get() != "Known names (not listed)":      # known names stay off the list (2.13.0)
+            left_out = sum(1 for t in terms if self.results[t].get("known"))
+            terms = [t for t in terms if not self.results[t].get("known")]
         if not terms:
             messagebox.showinfo("Nothing to export", "No rows are showing. Change the filters, then export."); return
         path = filedialog.asksaveasfilename(initialdir=self.start_dir(), defaultextension=".csv",
@@ -4976,7 +5068,8 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
                             "\n".join(first_use_lines(d)), "\n".join(d["locations"]), d.get("first_seen", ""), d.get("last_seen", "")])
         view = self.status_var.get() if self.status_var.get() != STATUS_FILTERS[0] else "all statuses"
         messagebox.showinfo("Exported", f"{len(terms)} rows exported ({view}) to:\n{path}\n\n"
-                            "Possible definitions lists every meaning (client first). Authors can fill in Author decision.")
+                            + (f"{left_out} known name(s) left off the list (Status > Known names lists them).\n\n" if left_out else "")
+                            + "Possible definitions lists every meaning (client first). Authors can fill in Author decision.")
 
     # ---------- details ----------
     def show_details(self, event=None):
