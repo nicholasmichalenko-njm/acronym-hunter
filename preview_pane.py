@@ -92,7 +92,7 @@ class PicView:
         cy = self.h / 2 if cy is None else cy
         s = self.scale
         px, py = vx + cx / s, vy + cy / s          # the picture point under the cursor stays put
-        nw = max(MIN_VIEW, min(vw / factor, self.img.width * 1.0 if factor < 1 and vw / factor > self.img.width else vw / factor))
+        nw = max(MIN_VIEW, vw / factor)            # zooming out past the whole picture is undone by _clamp
         nh = nw * vh / vw
         self.view = (px - (px - vx) * nw / vw, py - (py - vy) * nh / vh, nw, nh)
         self._clamp(); self.render()
