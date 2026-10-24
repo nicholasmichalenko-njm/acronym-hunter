@@ -243,8 +243,35 @@ def _find_tesseract():
 
 TESS_DIR = _find_tesseract()
 
+DOCTR_FILES = ("doctr_det.onnx", "doctr_reco.onnx", "doctr_models.json")
+
+def doctr_folder_ok(d):
+    """A docTR model folder is used only when every ONNX file matches the SHA-256 its doctr_models.json records."""
+    import hashlib
+    try:
+        info = json.load(open(os.path.join(d, "doctr_models.json"), encoding="utf-8"))
+        for key in ("doctr_det", "doctr_reco"):
+            m = info["models"][key]
+            path = os.path.join(d, m["onnx"])
+            h = hashlib.sha256()
+            with open(path, "rb") as f:
+                for block in iter(lambda: f.read(1 << 20), b""):
+                    h.update(block)
+            if h.hexdigest().upper() != str(m["onnx_sha256"]).upper():
+                return False
+        return True
+    except Exception:
+        diag.swallowed()
+        return False
+
 def _find_doctr():
-    """Folder with docTR's ONNX models (Mindee, Apache 2.0; exported by this project). None = not bundled."""
+    """Folder with docTR's ONNX models. Trained models installed in config\\models\\doctr (Training Kit or a
+    Knowledge Pack) win when their SHA-256 checks pass; otherwise the bundled models (Mindee, Apache 2.0)."""
+    trained = os.path.join(BASE_DIR, "config", "models", "doctr")
+    if os.path.isfile(os.path.join(trained, "doctr_models.json")):
+        if doctr_folder_ok(trained):
+            return trained
+        log_error("Trained docTR models failed their SHA-256 check; using the bundled models", with_traceback=False)
     for d in (os.environ.get("AH_DOCTR_DIR", ""), os.path.join(getattr(sys, "_MEIPASS", ""), "doctr"),
               os.path.join(BASE_DIR, "_internal", "doctr"), os.path.join(BASE_DIR, "vendor", "doctr")):
         if d and os.path.isfile(os.path.join(d, "doctr_models.json")):
@@ -694,8 +721,10 @@ def doctr_info():
         info = json.load(open(os.path.join(DOCTR_DIR, "doctr_models.json"), encoding="utf-8"))
         import onnxruntime as _ort
         m = info["models"]
+        trained = (f"trained here by the Training Kit ({info.get('trained', '?')}), "
+                   if info.get("trained_by") else "exported by this project from Mindee's weights, ")
         return (f"docTR (Mindee, Apache 2.0) {m['doctr_det']['arch']} + {m['doctr_reco']['arch']} on ONNX Runtime {_ort.__version__}, "
-                f"exported by this project from Mindee's weights; " + ("on" if doctr_active() else "off"))
+                + trained + ("on" if doctr_active() else "off"))
     except Exception as e:
         diag.swallowed()
         return f"unavailable ({type(e).__name__})"
@@ -2536,7 +2565,8 @@ def update_csv_exclusions(items):
 KNOWLEDGE_FORMAT = "AcronymHunterKnowledge"
 KNOWLEDGE_INFO_FILE = os.path.join(CONFIG_DIR, "knowledge_installed.json")
 KNOWLEDGE_BACKUP_DIR = os.path.join(CONFIG_DIR, "knowledge_backups")
-PACK_MODEL_FILES = ("rec.onnx", "det.onnx", "cls.onnx", "rec_keys.txt", CUSTOM_TESS_MODEL + ".traineddata")
+PACK_MODEL_FILES = ("rec.onnx", "det.onnx", "cls.onnx", "rec_keys.txt", CUSTOM_TESS_MODEL + ".traineddata") + \
+    tuple("doctr/" + f for f in DOCTR_FILES)      # trained docTR models (Training Kit), checked by SHA-256 on load
 PACK_DATA_FILES = {"acronym_database.csv": "DB", "ocr_corrections.csv": "FIXES", "ocr_ignore.csv": "IGNORE"}
 PACK_MAX_MEMBER_BYTES = 400 * 1024 * 1024
 PACK_ROOT = "knowledge/"
@@ -2665,9 +2695,13 @@ def restore_last_knowledge_backup():
 def reset_ocr_engine():
     """Load models again on the next image (after a model change)."""
     global _ocr_engine, OCR_MODEL_INFO
+    global _doctr_engine, DOCTR_DIR
     with _ocr_lock:
         _ocr_engine = None
         OCR_MODEL_INFO = "not loaded yet"
+        _doctr_engine = None          # docTR reloads too: trained models may have been installed or removed
+        DOCTR_DIR = _find_doctr()
+        _doctr_failed[0] = False
     _OCR_CACHE.clear()
 
 def _csv_bytes_rows(blob):
@@ -2741,7 +2775,9 @@ def install_knowledge_pack(path):
             if os.path.isfile(target):
                 os.remove(target)
         for m, blob in models.items():
-            with open(os.path.join(MODELS_DIR, m), "wb") as f:
+            target = os.path.join(MODELS_DIR, m)
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            with open(target, "wb") as f:
                 f.write(blob)
         report.append("Models: " + ", ".join(sorted(models)))
     else:
@@ -2760,7 +2796,22 @@ def install_knowledge_pack(path):
     return "\n".join(report)
 
 def load_trained_models(folder):
-    """Copy rec.onnx / det.onnx / cls.onnx / rec_keys.txt from a folder (Training Kit output) into config\\models."""
+    """Copy trained models from a Training Kit output folder into config\\models.
+    docTR kit output (doctr_models.json + two ONNX files) goes to config\\models\\doctr after its SHA-256 check."""
+    if os.path.isfile(os.path.join(folder, "doctr_models.json")):
+        if not all(os.path.isfile(os.path.join(folder, f)) for f in DOCTR_FILES):
+            raise ValueError("A docTR model folder needs doctr_det.onnx, doctr_reco.onnx and doctr_models.json.")
+        if not doctr_folder_ok(folder):
+            raise ValueError("These docTR models do not match the SHA-256 in their doctr_models.json. Not installed.")
+        for f in DOCTR_FILES[:2]:
+            _check_onnx(os.path.join(folder, f))
+        backup_knowledge(f"before loading docTR models from {folder}")
+        dest = os.path.join(MODELS_DIR, "doctr")
+        os.makedirs(dest, exist_ok=True)
+        for f in DOCTR_FILES:
+            shutil.copy2(os.path.join(folder, f), os.path.join(dest, f))
+        reset_ocr_engine()
+        return ["doctr/" + f for f in DOCTR_FILES]
     found = [m for m in PACK_MODEL_FILES if os.path.isfile(os.path.join(folder, m))]
     if not any(m.endswith((".onnx", ".traineddata")) for m in found):
         raise ValueError("No acronym.traineddata, rec.onnx, det.onnx, or cls.onnx in that folder.")
@@ -3606,7 +3657,7 @@ class AcronymAppGUI(EffortMixin, ctk.CTk):
         if True:   # export is the "share" step, always available
             ctk.CTkLabel(win, text="Share and load", font=("Arial", 12, "bold")).pack(anchor="w", padx=16, pady=(14, 2))
             def load_models():
-                folder = filedialog.askdirectory(parent=win, title="Folder with acronym.traineddata (or rec.onnx / det.onnx)")
+                folder = filedialog.askdirectory(parent=win, title="Training Kit output folder (docTR: output\\models; or acronym.traineddata)")
                 if not folder: return
                 try:
                     found = load_trained_models(folder)
