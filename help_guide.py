@@ -237,6 +237,28 @@ PAGES = {
     ("p", "One person collects fixes and lessons for a week, runs Improve Reading, and shares a Knowledge Pack. "
           "Everyone installs it. The whole team gets the better reader."),
 ],
+"AI and ML": [
+    ("h", "What runs each part"),
+    ("p", "Every sidebar section shows what runs it. Click its ? to see each part and its job. Everything runs on this PC, "
+          "with no network."),
+    ("table", [["Label", "Meaning", "Examples"],
+               ["No AI", "Fixed rules, counting and file reading. Same input, same output.", "Typed text, Effort list, volume check, compliance rules"],
+               ["ML", "A trained model that recognizes or scores. Outputs letters, boxes or numbers, never sentences.",
+                "Text in pictures (Tesseract, docTR), learned compliance suggestions, Improve Reading"],
+               ["Gen AI", "A model that writes text. Separate add-on, runs in the no-network sandbox.", "Math reader add-on"]]),
+    ("h", "The AI and ML switch"),
+    ("rows", [("Where", "Top right of the window. The ? next to it explains AI vs ML."),
+              ("Per effort", "Each effort keeps its own setting. New efforts start with AI and ML on."),
+              ("Off", "Every ML and Gen AI part stops: the model code refuses to run, and its buttons grey out. Typed text in "
+                      "Word, PowerPoint, Excel and PDFs is still read. Text inside pictures and scanned pages is not."),
+              ("Logged", "Each change goes into the effort list's History sheet (date, Windows user, setting) and the usage "
+                         "log (the effort appears as a number, never its name)."),
+              ("Team learning", "In the compliance window. Off: this effort's decisions are not learned and the Learned column "
+                                "stays empty. AI and ML off turns it off too.")]),
+    ("h", "For your security team"),
+    ("p", "Help > What runs where lists every part and saves a one-page summary to hand to reviewers. The line at the "
+          "bottom of the window always shows the effort and whether AI and ML are on."),
+],
 }
 
 def open_guide(parent, page=None):

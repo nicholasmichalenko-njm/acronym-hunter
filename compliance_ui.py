@@ -54,7 +54,15 @@ class ComplianceMixin:
                                  ("Word outline...", self.compliance_word, "#1E3A8A"), ("Learn from decisions", self.compliance_learn, "#6D28D9"),
                                  ("Amendment changes...", self.compliance_changes, None)):
             kw = dict(B); kw.update(fg_color=color) if color else None
-            ctk.CTkButton(top, text=text, command=cmd, **kw).pack(side="left", padx=3)
+            btn = ctk.CTkButton(top, text=text, command=cmd, **kw)
+            btn.pack(side="left", padx=3)
+            if cmd == self.compliance_learn:
+                win.btn_learn = btn
+        win.team_var = tk.BooleanVar(value=bool(self.ws.get("team_learning", True)) if getattr(self, "ws", None) is not None else True)
+        win.chk_team = ctk.CTkCheckBox(top, text="Team learning", variable=win.team_var, command=self.compliance_team_toggle, width=10)
+        win.chk_team.pack(side="left", padx=(8, 3))
+        win.lbl_ai = ctk.CTkLabel(top, text="", font=("Segoe UI", 11))
+        win.lbl_ai.pack(side="left", padx=6)
         win.lbl = ctk.CTkLabel(win, text="", anchor="w", justify="left", wraplength=1360)
         win.lbl.pack(fill="x", padx=12)
         flt = ctk.CTkFrame(win, fg_color="transparent"); flt.pack(fill="x", padx=10, pady=2)
@@ -77,6 +85,7 @@ class ComplianceMixin:
         last = self.ws.get("compliance_path", "") if getattr(self, "ws", None) is not None else ""   # per effort (2.11.0)
         if self.matrix is None and last and os.path.isfile(last):
             self._c_load(last, quiet=True)
+        self._c_ai_state()
         self._c_refresh()
         return win
 
@@ -232,6 +241,34 @@ class ComplianceMixin:
             bits.append("NOT SAVED yet" + (" (close the workbook in Excel, then Save)" if getattr(self, "_c_locked", False) else ""))
         win.lbl.configure(text="  |  ".join(bits))
 
+    def _c_learning_on(self):
+        """Learned suggestions need AI and ML on and this effort's Team learning on (2.12.0)."""
+        team = bool(self.ws.get("team_learning", True)) if getattr(self, "ws", None) is not None else True
+        return _eng().ai_ml_on() and team
+
+    def _c_ai_state(self):
+        win = self._cwin
+        if win is None or not win.winfo_exists():
+            return
+        on = _eng().ai_ml_on()
+        win.btn_learn.configure(state="normal" if self._c_learning_on() else "disabled")
+        win.chk_team.configure(state="normal" if on else "disabled")
+        win.lbl_ai.configure(text="Rules: No AI  |  Learned column: ML" + ("" if self._c_learning_on() else
+                             (" (off: AI and ML are off)" if not on else " (off: Team learning is off)")))
+
+    def compliance_team_toggle(self):
+        on = bool(self._cwin.team_var.get())
+        try:
+            self.ws.set("team_learning", on)
+        except Exception:
+            diag.swallowed()
+        if on:
+            diag.activity("team_learning_on")
+        else:
+            diag.activity("team_learning_off")
+        self._c_ai_state()
+        self._c_refresh()
+
     def _c_learner(self):
         if getattr(self, "_learner", None) is None:
             self._learner = CL.Learner(os.path.join(_eng().CONFIG_DIR, "compliance_learned.json"))
@@ -241,6 +278,10 @@ class ComplianceMixin:
         """Fill the Learned column from the model trained on the team's decisions (empty until it has enough)."""
         if self.matrix is None:
             return
+        if not self._c_learning_on():                  # AI and ML off, or Team learning off: no learned scores
+            for it in self.matrix.items:
+                it["learned"] = ""
+            return
         L = self._c_learner()
         for it in self.matrix.items:
             p = L.p_keep(it)
@@ -249,7 +290,7 @@ class ComplianceMixin:
     def _c_suggest(self, it, stats=None):
         """Section suggestion: the rules first (same number, title words), then the most similar rows already mapped."""
         lab, score = C.suggest_map(it, self.matrix.outline, stats or C.word_df(self.matrix.items))
-        if not lab:
+        if not lab and _eng().ai_ml_on():
             lab, score = CL.map_from_neighbors(it, self.matrix.items)
         return lab, score
 
@@ -654,9 +695,10 @@ class ComplianceMixin:
                 except OSError:
                     diag.swallowed()
             try:                                     # keep learning from the decisions (hashed counts only)
-                L = self._c_learner()
-                if L.learn(M.path, M.items):
-                    L.save()
+                if self._c_learning_on():
+                    L = self._c_learner()
+                    if L.learn(M.path, M.items):
+                        L.save()
             except Exception:
                 diag.swallowed()
         except C.Locked:
@@ -703,6 +745,10 @@ class ComplianceMixin:
     def compliance_learn(self):
         M = self.matrix
         if M is None:
+            return
+        if not self._c_learning_on():
+            messagebox.showinfo("Learn from decisions", "Learning is off for this effort (AI and ML switch, or Team learning). "
+                                "Decisions stay in the matrix; nothing is learned from them.", parent=self._cwin)
             return
         L = self._c_learner()
         n = L.learn(M.path, M.items)

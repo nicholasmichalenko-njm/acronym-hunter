@@ -339,7 +339,7 @@ class PreviewPane(ctk.CTkFrame):
             read = d.get("math_read") or {}
             if read:
                 txt = "Math reader:\n" + "\n".join(l for v in read.values() for l in v) if any(read.values()) else "Math reader found no equation here."
-            elif eng.MATH_DIR:
+            elif eng.math_available():
                 txt = ("This picture looks like an equation. The math reader can read it exactly: subscripts, Greek letters "
                        "and fractions. Click below (about 5 s for a small equation).")
             else:
@@ -356,7 +356,7 @@ class PreviewPane(ctk.CTkFrame):
             self.lbl_math.pack(fill="x", padx=10, pady=(0, 4), before=self.ctl)
         else:
             self.lbl_math.pack_forget()
-        if cat == "Equation (picture)" and eng.MATH_DIR and not d.get("math_read"):
+        if cat == "Equation (picture)" and eng.math_available() and not d.get("math_read"):
             self.btn_math.pack(fill="x", padx=10, pady=(0, 4), before=self.ctl)
         else:
             self.btn_math.pack_forget()
@@ -386,7 +386,7 @@ class PreviewPane(ctk.CTkFrame):
 
     def _set_fix_state(self, picture_line):
         can_train = eng.trainer_available()
-        self.btn_teach.configure(state="normal" if picture_line and can_train else "disabled")
+        self.btn_teach.configure(state="normal" if picture_line and can_train and eng.ai_ml_on() else "disabled")
         self.btn_junk.configure(state="normal" if picture_line and can_train else "disabled")
         self.btn_undo.configure(state="normal" if can_train else "disabled")
         self.btn_trainer.configure(state="normal" if can_train and self.pv.img is not None else "disabled")
@@ -422,9 +422,9 @@ class PreviewPane(ctk.CTkFrame):
         diag.activity("preview_picture")
         label, loader = srcs[k]
         self.src_label = label
-        key = (path, label)
+        key = (path, label, eng.ai_ml_on())
         if key in self.cache:
-            self._paint(*self.cache[key]); return
+            self._paint(*self.cache[key]); self._ai_note(); return
         self._use("picture")
         self.pv.clear()
         self.lbl_info.configure(text="Reading the picture...")
@@ -432,16 +432,30 @@ class PreviewPane(ctk.CTkFrame):
         def work():
             try:
                 img = loader()
-                lines = tg.read_region_lines(img)
-                lines, second = self._second_reader(img, lines)
+                if eng.ai_ml_on():
+                    lines = tg.read_region_lines(img)
+                    lines, second = self._second_reader(img, lines)
+                else:                                   # AI and ML off (2.12.0): show the picture, read nothing
+                    lines, second = [], set()
                 hits = self._pdf_hits(path, loc, img)
                 self.cache[key] = (img, lines, hits, second)
-                self.after(0, lambda: req == self.req and self._paint(img, lines, hits, second))
+                self.after(0, lambda: req == self.req and (self._paint(img, lines, hits, second), self._ai_note()))
             except Exception as e:
                 eng.log_error("Preview could not read the picture")
                 msg = f"Could not read this picture: {type(e).__name__}"
                 self.after(0, lambda: req == self.req and self._blank(msg))
         threading.Thread(target=work, daemon=True).start()
+
+    def _ai_note(self):
+        if not eng.ai_ml_on():
+            self.lbl_info.configure(text="AI and ML are off for this effort: the picture is shown, but its text is not read.")
+
+    def ai_state(self, on):
+        """AI and ML switch (2.12.0): Correct + Teach collects training samples, so it is off with the switch."""
+        try:
+            self.btn_teach.configure(state="normal" if on else "disabled")
+        except Exception:
+            diag.swallowed()
 
     def _second_reader(self, img, lines):
         """Add the words only docTR found (as the scanner does), so a term docTR found gets a box too."""

@@ -164,6 +164,8 @@ class WorkspaceMixin:
     def enter_workspace(self, startup=False):
         """Show the current workspace's last session and put the user back where they were."""
         self._ws_restoring = True
+        if hasattr(self, "ai_load_for_workspace"):
+            self.ai_load_for_workspace()          # this effort's AI and ML setting, before anything is shown (2.12.0)
         try:
             self.results, self.manual_items, self.selected_term = {}, {}, None
             self.last_scan = None

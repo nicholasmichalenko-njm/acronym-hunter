@@ -445,3 +445,17 @@ EFFORT PROFILES, SAVING AND RECOVERY (2.11.0)
 - Effort > Archive this effort hides a finished effort; Effort > Archived efforts reopens it.
 - Upgrade: choices and the compliance matrix location were shared by the whole PC. The effort open when you upgrade
   gets a copy of them; scans with no effort keep the originals; other efforts start fresh.
+
+AI AND ML LABELS AND SWITCH (2.12.0)
+- Every sidebar section shows what runs it: No AI (rules, counting, file reading), ML (a trained model on this PC that
+  recognizes or scores; outputs letters, boxes or numbers, never sentences) or Gen AI (a model that writes text; the
+  math reader add-on only, in the no-network sandbox). The ? next to each section lists the parts and their jobs.
+- The AI and ML switch (top right) is per effort and on by default. Off stops every ML and Gen AI part: text inside
+  pictures and scanned pages (Tesseract, docTR), learned compliance suggestions, Improve Reading, Trainer, the math
+  reader. The model code refuses to run while it is off; typed text is still read everywhere. Turning it back on
+  re-reads the pictures on the next scan.
+- Each change is recorded in the effort list's History sheet and in the usage log (the effort as a number, not a name).
+- The line at the bottom of the window always shows: offline, the effort, AI and ML on or off, generative AI installed.
+- Help > What runs where lists every part and saves a one-page summary for the security team.
+- Compliance window: Team learning (per effort, on by default). Off: the effort's decisions are not learned and the
+  Learned column stays empty.

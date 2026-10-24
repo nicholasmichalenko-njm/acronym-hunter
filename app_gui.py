@@ -130,6 +130,7 @@ from effort_ui import EffortMixin   # Effort List (2.4.0)
 from volcheck_ui import VolumeCheckMixin   # volume check and first use (2.7.0)
 from compliance_ui import ComplianceMixin   # compliance matrix (2.8.0)
 from workspace_ui import WorkspaceMixin   # effort profiles, session, recovery, backups (2.11.0)
+from ai_ui import AIMixin   # AI and ML labels and switch (2.12.0)
 import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
 DB_FILE = os.path.join(BASE_DIR, "acronym_database.csv")
@@ -282,6 +283,7 @@ def _find_doctr():
     return None
 
 DOCTR_DIR = _find_doctr()
+EDITION_NAME = "US Classic (Tesseract only)" if not DOCTR_DIR else "US (Tesseract + docTR second reader)"
 
 def _find_math():
     """Math reader add-on folder (math_addon folder next to the app, from AcronymHunter_MathAddon.zip). None = not installed."""
@@ -557,7 +559,22 @@ def _build_ocr_configured():
         OCR_MODEL_INFO = "bundled PP-OCRv4 (custom model failed to load; see the logs folder)"
     return engine
 
+# ---- AI and ML switch (2.12.0): per effort, on by default. Off = no trained model runs at all. ----
+_AIML = {"on": True}
+
+def ai_ml_on():
+    return _AIML["on"]
+
+def set_ai_ml(on):
+    _AIML["on"] = bool(on)
+
+def math_available():
+    """The math reader add-on is installed and AI and ML are on."""
+    return bool(MATH_DIR) and ai_ml_on()
+
 def get_ocr():
+    if not ai_ml_on():
+        raise RuntimeError("AI and ML are off for this effort, so text inside pictures is not read.")
     global _ocr_engine
     with _ocr_lock:
         if _ocr_engine is None:
@@ -705,7 +722,7 @@ if not _models_allowed():
     MATH_DIR = None
 
 def doctr_active():
-    if not _models_allowed():
+    if not _models_allowed() or not ai_ml_on():
         return False
     return bool(DOCTR_DIR) and OCR_BACKEND == "tesseract" and bool(int(OCR_CFG.get("doctr_enabled", 1))) and not _doctr_failed[0]
 
@@ -851,6 +868,8 @@ def run_math_reader(items, on_status, on_result, cancel):
         return
     if not MATH_DIR:
         raise RuntimeError("The math reader add-on is not installed.")
+    if not ai_ml_on():
+        raise RuntimeError("AI and ML are off for this effort, so the math reader does not run.")
     import sandbox
     work = os.path.join(BASE_DIR, "training_data", "math_work")
     try:
@@ -936,7 +955,10 @@ def typed_chunks(filepath):
 def read_image_bytes(image_bytes):
     if getattr(_typed_only, "on", False):
         return ""
-    _OCR_CALLS[0] += 1
+    _OCR_CALLS[0] += 1                 # the file has pictures: its saved results depend on the picture reader
+    if not ai_ml_on():
+        note_skip("AI and ML off", "AI and ML are off for this effort, so text inside pictures and scanned pages was not read.")
+        return ""
     key = hashlib.sha1(image_bytes).hexdigest()
     if key not in _OCR_CACHE:
         try:
@@ -2185,7 +2207,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.11.0"            # keep in step with version_info.txt
+APP_VERSION = "2.12.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -2236,6 +2258,8 @@ def ocr_signature():
         except Exception:
             diag.swallowed()
             dsig = "doctr"
+    if not ai_ml_on():
+        return _sha12(["ai_ml_off"])       # pictures were skipped: turning AI and ML back on re-reads them
     return _sha12([OCR_BACKEND, OCR_CFG, models, sorted(_OCR_IGNORE), dsig])
 
 def engine_signature(weak=()):
@@ -2972,7 +2996,7 @@ def trainer_available():
     """Training features: on unless config\\app_settings.json sets allow_training to false."""
     return bool(APP_CFG["allow_training"]) and importlib.util.find_spec("trainer_gui") is not None
 
-class AcronymAppGUI(WorkspaceMixin, EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Acronym Hunter {APP_VERSION}: acronyms, abbreviations and units (100% local)")
@@ -3024,7 +3048,7 @@ class AcronymAppGUI(WorkspaceMixin, EffortMixin, VolumeCheckMixin, ComplianceMix
         self._side_btn = lambda text, cmd, primary=False, **kw: ctk.CTkButton(sb, text=text, command=cmd, **B, **({} if primary else SEC), **kw)
 
         def section(title):
-            ctk.CTkLabel(sb, text=title, font=("Segoe UI", 11, "bold"), text_color=("#64748B", "#94A3B8"), anchor="w").pack(fill="x", padx=8, pady=(12, 2))
+            self.ai_section_header(sb, title)      # title with its No AI / ML / Gen AI labels and a ? (2.12.0)
         self._side_section = section
         P = dict(fill="x", padx=8, pady=2)
 
@@ -3063,6 +3087,7 @@ class AcronymAppGUI(WorkspaceMixin, EffortMixin, VolumeCheckMixin, ComplianceMix
         section("COMPLIANCE")
         self.compliance_init(sb, dict(B, **SEC))
         self.workspace_init()          # top bar with the effort switcher; per-effort saved work (2.11.0)
+        self.ai_init()                 # AI and ML switch, state line (2.12.0)
 
         section("EXPORT")
         self.btn_export = self._side_btn("Export CSV...", self.export_csv, state="disabled"); self.btn_export.pack(**P)
@@ -3244,7 +3269,7 @@ class AcronymAppGUI(WorkspaceMixin, EffortMixin, VolumeCheckMixin, ComplianceMix
 
     def update_banner(self):
         import tess_train
-        show = trainer_available() and OCR_BACKEND == "tesseract"
+        show = trainer_available() and OCR_BACKEND == "tesseract" and ai_ml_on()   # ML: hidden while AI and ML are off
         n, new = self.training_state() if show else (0, 0)
         if self._training:
             self.lbl_banner.configure(text="Improving the reader in the background (see the Improve Reading window)...")
@@ -3326,6 +3351,7 @@ class AcronymAppGUI(WorkspaceMixin, EffortMixin, VolumeCheckMixin, ComplianceMix
         h.add_command(label="How it works (Guide)", accelerator="F1", command=c("help_guide", lambda: HG.open_guide(self)))
         h.add_command(label="Send feedback...", accelerator="Ctrl+Shift+F", command=c("help_feedback", lambda: FB.open_feedback(self)))
         h.add_separator()
+        h.add_command(label="What runs where (AI and ML)...", command=c("help_what_runs", self.show_what_runs))
         h.add_command(label="About Acronym Hunter", command=c("help_about", self.show_about))
         mb.add_cascade(label="Help", menu=h)
         self.configure(menu=mb)
@@ -3389,6 +3415,10 @@ class AcronymAppGUI(WorkspaceMixin, EffortMixin, VolumeCheckMixin, ComplianceMix
     def open_improve(self):
         """One window, one action: teach the reader from the saved corrections, test it, and apply it if it reads better."""
         diag.activity("improve_reading_opened")
+        if not ai_ml_on():
+            messagebox.showinfo("Improve Reading", "AI and ML are off for this effort. Improve Reading trains the picture reader "
+                                "(ML), so it is off too. Turn AI and ML on in the top bar to use it.")
+            return
         import tess_train
         if getattr(self, "improve_win", None) is not None and self.improve_win.winfo_exists():
             self.improve_win.lift(); self.improve_win.focus(); return
@@ -3523,11 +3553,12 @@ class AcronymAppGUI(WorkspaceMixin, EffortMixin, VolumeCheckMixin, ComplianceMix
         menu.add_command(label="Details...", command=self.show_details)
         pics_sel = [k for k in self.tree.selection() if self.results.get(k, {}).get("category") == "Equation (picture)"]
         if pics_sel:
-            if MATH_DIR:
+            if math_available():
                 menu.add_command(label=f"Read equation picture{'s' if len(pics_sel) > 1 else ''} with the math reader ({len(pics_sel)})",
                                  command=lambda: self.read_equations(pics_sel))
             else:
-                menu.add_command(label="Read equation pictures (math add-on not installed)", state="disabled")
+                menu.add_command(label="Read equation pictures (math add-on not installed)" if not MATH_DIR else
+                                 "Read equation pictures (Gen AI: off for this effort)", state="disabled")
         if trainer_available():
             pics = self.picture_locations(iid)
             if len(pics) == 1:
@@ -3569,15 +3600,17 @@ class AcronymAppGUI(WorkspaceMixin, EffortMixin, VolumeCheckMixin, ComplianceMix
     def show_tools_menu(self, menu=None):
         m = menu or self.tools_menu
         m.delete(0, "end")
+        ml = "normal" if ai_ml_on() else "disabled"
         if trainer_available() and OCR_BACKEND == "tesseract":
-            m.add_command(label="Improve Reading (teach the reader your corrections)...", command=self.open_improve)
+            m.add_command(label="Improve Reading (teach the reader your corrections) [ML]...", command=self.open_improve, state=ml)
         if trainer_available():
-            m.add_command(label="Trainer (check a picture, box missed text)...", command=self.open_trainer)
+            m.add_command(label="Trainer (check a picture, box missed text) [ML]...", command=self.open_trainer, state=ml)
         m.add_command(label="Knowledge (share with your team, install, undo)...", command=self.open_knowledge)
         m.add_command(label="Full Text (all typed and picture text, save as .txt)...", command=self.open_fulltext)
-        m.add_command(label="Read all equation pictures (math add-on)..." if MATH_DIR else "Read all equation pictures (math add-on not installed)",
+        m.add_command(label="Read all equation pictures (math add-on) [Gen AI]..." if MATH_DIR else "Read all equation pictures (math add-on not installed)",
                       command=lambda: self.read_equations([k for k, d in self.results.items() if d.get("category") == "Equation (picture)"]),
-                      state="normal" if MATH_DIR else "disabled")
+                      state="normal" if math_available() else "disabled")
+        m.add_command(label="What runs where (AI and ML)...", command=self.show_what_runs)
         m.add_command(label="How it works (guide, F1)...", command=lambda: (diag.activity("guide_opened"), HG.open_guide(self)))
         m.add_command(label="Feedback: bug, improvement or idea (Ctrl+Shift+F)...", command=lambda: FB.open_feedback(self))
         m.add_separator()
@@ -3945,6 +3978,10 @@ class AcronymAppGUI(WorkspaceMixin, EffortMixin, VolumeCheckMixin, ComplianceMix
     def open_trainer(self, path=None, focus=None):
         """Open the Trainer as a window of this program (same engine, same sandbox, same settings)."""
         diag.activity("trainer_opened")
+        if not ai_ml_on():
+            messagebox.showinfo("Trainer", "AI and ML are off for this effort. The Trainer reads pictures (ML), so it is off "
+                                "too. Turn AI and ML on in the top bar to use it.")
+            return
         if not trainer_available():
             messagebox.showinfo("Trainer", "Training features are turned off (config\\app_settings.json: allow_training)."); return
         import trainer_gui

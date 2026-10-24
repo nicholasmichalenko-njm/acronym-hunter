@@ -32,7 +32,8 @@ KEEP = 3
 
 # Count fields a caller may attach. Values must be ints, or a file extension for "ext".
 COUNT_KEYS = {"n", "files", "pages", "slides", "sheets", "pictures", "rows", "terms", "seconds", "ms", "exit_code",
-              "chars", "items", "added", "removed", "choices", "warnings", "errors", "passes", "dpi", "width", "height"}
+              "chars", "items", "added", "removed", "choices", "warnings", "errors", "passes", "dpi", "width", "height",
+              "effort_code"}
 _EXT = re.compile(r"^\.[a-z0-9]{1,6}$")
 _AREA = re.compile(r"^[a-z][a-z0-9_]{0,30}$")
 _W = re.compile(r"^[a-z][a-z0-9_.]{0,60}$")
