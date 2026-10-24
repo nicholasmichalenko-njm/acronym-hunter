@@ -46,15 +46,29 @@ def stable_val(name):
 # ------------------------------------------------------------------ check
 def check():
     ok = True
+    os.environ["KIT_SELFTEST"] = "1"            # the lockdown log marks this refusal as the self-test
     try:
         import socket
         socket.create_connection(("example.com", 443), timeout=3)
         log("NETWORK: NOT BLOCKED (lockdown missing)"); ok = False
     except OSError as e:
         log("Network lockdown: on (" + str(e)[:70] + ")")
+    os.environ.pop("KIT_SELFTEST", None)
     import torch, doctr
-    log(f"PyTorch {torch.__version__}, docTR {doctr.__version__}, graphics card: "
-        + (torch.cuda.get_device_name(0) if torch.cuda.is_available() else "none (CPU training)"))
+    gpu = "none (training runs on the processor)"
+    if torch.cuda.is_available():
+        p = torch.cuda.get_device_properties(0)
+        gpu = f"{p.name}, {p.total_memory / 1024 ** 3:.1f} GB"
+        cap = os.environ.get("AH_GPU_MEM_GB")
+        if cap:
+            gpu += f" (capped at {cap} GB for this run)"
+    log(f"PyTorch {torch.__version__}, docTR {doctr.__version__}, graphics card: {gpu}")
+    try:
+        import huggingface_hub
+        shim = getattr(huggingface_hub, "__version__", "") == "0+offline-shim"
+        log("Hugging Face Hub: " + ("offline stand-in (no network code)" if shim else "REAL PACKAGE PRESENT (not expected in the kit)"))
+    except ImportError:
+        log("Hugging Face Hub: not installed")
     for f, want in STARTING.items():
         p = os.path.join(WEIGHTS, "models", f)
         good = os.path.isfile(p) and sha(p) == want
@@ -175,13 +189,27 @@ def build_finder_data():
 # ------------------------------------------------------------------ training runs (docTR's own reference scripts)
 _RUNNER = r'''
 import runpy, sys, os, json
+cap = os.environ.get("AH_GPU_MEM_GB")
+if cap:                                   # prove a run fits a smaller card: cap PyTorch's share of graphics memory
+    import torch
+    if torch.cuda.is_available():
+        total = torch.cuda.get_device_properties(0).total_memory / 1024 ** 3
+        torch.cuda.set_per_process_memory_fraction(min(1.0, float(cap) / total))
 v = os.environ.get("AH_VOCAB_EXTRA", "")
 if v:
     from doctr.datasets import vocabs
     vocabs.VOCABS["acronymhunter"] = vocabs.VOCABS["french"] + "".join(c for c in json.loads(v) if c not in vocabs.VOCABS["french"])
 script = sys.argv[1]; sys.argv = sys.argv[1:]
 sys.path.insert(0, os.path.dirname(script))
-runpy.run_path(script, run_name="__main__")
+try:
+    runpy.run_path(script, run_name="__main__")
+finally:
+    try:
+        import torch
+        if torch.cuda.is_available():
+            print(f"PEAK_GPU_GB {torch.cuda.max_memory_allocated() / 1024 ** 3:.2f}", flush=True)
+    except Exception:
+        pass
 '''
 
 def run_ref(kind, args, extra_vocab=""):
@@ -228,7 +256,8 @@ def train_reader():
     out, secs = run_ref("reco", ["crnn_vgg16_bn"] + common + vocab_args + ["--epochs", str(epochs), "-b", "64", "--name", "reco",
                                                                           "--early-stop", "--early-stop-epochs", "4"], extra_json)
     after = _best_val(out, "reco")
-    log(f"Reader after training: {after}% exact ({secs / 60:.1f} min)")
+    peak = re.findall(r"PEAK_GPU_GB ([\d.]+)", out)
+    log(f"Reader after training: {after}% exact ({secs / 60:.1f} min" + (f", peak graphics memory {peak[-1]} GB" if peak else "") + ")")
     return {"before": before, "after": after, "pt": os.path.join(WORK, "reco_out", "reco.pt"), "vocab_extra": extra_json,
             "minutes": round(secs / 60, 1), "train": n_tr, "held_out": n_va}
 
@@ -260,7 +289,8 @@ def train_finder():
     out, secs = run_ref("det", ["db_mobilenet_v3_large"] + common + ["--epochs", str(epochs), "--name", "det",
                                                                      "--early-stop", "--early-stop-epochs", "4"])
     after = _best_val(out, "det")
-    log(f"Finder after training: recall/precision {after} ({secs / 60:.1f} min)")
+    peak = re.findall(r"PEAK_GPU_GB ([\d.]+)", out)
+    log(f"Finder after training: recall/precision {after} ({secs / 60:.1f} min" + (f", peak graphics memory {peak[-1]} GB" if peak else "") + ")")
     return {"before": before, "after": after, "pt": os.path.join(WORK, "det_out", "det.pt"), "minutes": round(secs / 60, 1),
             "train": n_tr, "held_out": n_va}
 
