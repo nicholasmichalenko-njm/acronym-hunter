@@ -424,3 +424,7 @@ COMPLIANCE MATRIX: LEARNING AND COMPLEMENTS (2.10.0)
   any source document (the Sources sheet now records each file's path on this PC).
 - Amendment changes (after Re-read RFP) pairs changed sentences with their earlier version and shows the word
   differences as [-removed-] {+added+}, plus added and removed sentences; export to Excel.
+- Each release ships a Software Bill of Materials per edition (AcronymHunter_US_SBOM.cdx.json, CycloneDX 1.5): every
+  bundled Python package with version, license and PyPI identifier, the native parts (Python, Tcl/Tk, Tesseract,
+  eng.traineddata, docTR models, PDFium), and the SHA-256 of every program and model file. Made by tools\make_sbom.py
+  at build time from what actually ships.

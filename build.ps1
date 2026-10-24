@@ -101,6 +101,10 @@ if ($LASTEXITCODE -ne 0) { throw "NETWORK AUDIT FAILED. See the list above." }
 $exeHash = (Get-FileHash "$out\AcronymHunter.exe" -Algorithm SHA256).Hash
 "AcronymHunter.exe  SHA256  $exeHash" | Out-File -Encoding ascii "$out\CHECKSUM.txt"
 Test-PublicPackage $out
+# Software Bill of Materials (CycloneDX): what ships, with versions, licenses and SHA-256 of every program and model file
+$edLabel = if ($Classic) { 'US Classic (Tesseract only)' } elseif ($Edition -eq 'legacy') { 'Legacy' } else { 'US' }
+& .\venv\Scripts\python.exe tools\make_sbom.py $out "${prefix}_SBOM.cdx.json" $edLabel
+if ($LASTEXITCODE -ne 0) { throw "SBOM generation failed. See the output above." }
 $zip = "$prefix.zip"
 Remove-Item $zip -ErrorAction SilentlyContinue
 Compress-Archive -Path $out -DestinationPath $zip -CompressionLevel Optimal
