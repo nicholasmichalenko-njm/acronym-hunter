@@ -126,6 +126,7 @@ import importlib.util
 import symbol_picker as SP
 import help_guide as HG
 import feedback as FB
+from effort_ui import EffortMixin   # Effort List (2.4.0)
 import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
 DB_FILE = os.path.join(BASE_DIR, "acronym_database.csv")
@@ -2820,7 +2821,7 @@ SETTINGS_FILE = os.path.join(SANDBOX_DIR, "settings.json")
 ALL_TYPES = "All types"
 STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", "Client list", "Client and database differ",
                   "Not defined at first use", "Equations and symbols", "Undefined symbols",
-                  "Added manually",
+                  "Added manually", "In effort list", "Not in effort list", "Effort: needs author", "Effort: approved",
                   "New since last scan", "Changed since last scan", "No longer found", "Errors / not scanned", "Excluded"]
 MANUAL_MARK = "✍"
 STATUS_ORDER = (("⛔", 0), ("⚠️", 1), ("\u2605", 2), ("🔍", 3), (MANUAL_MARK, 4), ("✅", 5), ("✖", 6), ("🚫", 7))
@@ -2863,7 +2864,7 @@ def trainer_available():
     """Training features: on unless config\\app_settings.json sets allow_training to false."""
     return bool(APP_CFG["allow_training"]) and importlib.util.find_spec("trainer_gui") is not None
 
-class AcronymAppGUI(ctk.CTk):
+class AcronymAppGUI(EffortMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Acronym Hunter {APP_VERSION}: acronyms, abbreviations and units (100% local)")
@@ -2912,6 +2913,7 @@ class AcronymAppGUI(ctk.CTk):
         self.btn_add.pack(side="left", padx=4, pady=8)
         self.btn_client = ctk.CTkButton(top, text="Client Lists", command=self.open_client_lists, fg_color="#6D28D9", width=104, **B)
         self.btn_client.pack(side="left", padx=4, pady=8)
+        self.effort_init(top, B)
 
         # Right side, packed first so it never gets pushed off: Advanced switch, then the Tools menu
         self.adv_var = ctk.BooleanVar(value=self.advanced_on)
@@ -3025,6 +3027,7 @@ class AcronymAppGUI(ctk.CTk):
         self.tree.tag_configure("client", background="#EDE9FE", foreground="#4C1D95")
         self.tree.tag_configure("clientdiff", background="#F5D0FE", foreground="#701A75")
         self.tree.tag_configure("equation", background="#E0E7FF", foreground="#312E81")
+        self.tree.tag_configure("effort", background="#CCFBF1", foreground="#115E59")
 
         vsb = ttk.Scrollbar(tf, orient="vertical", command=self.tree.yview)
         hsb = ttk.Scrollbar(tf, orient="horizontal", command=self.tree.xview)
@@ -3071,6 +3074,7 @@ class AcronymAppGUI(ctk.CTk):
 
         self.btn_save = ctk.CTkButton(act, text="Include in DB", command=self.save_candidate, state="disabled", fg_color="#0284C7", width=105)
         self.btn_save.pack(side="left", padx=5, pady=12)
+        self.effort_actionbar(act)
 
         self.btn_ocr = ctk.CTkButton(act, text="Fix OCR", command=self.save_ocr_fix, state="disabled", fg_color="#7C3AED", width=90)
         self.btn_ocr.pack(side="left", padx=5, pady=12)
@@ -3296,6 +3300,8 @@ class AcronymAppGUI(ctk.CTk):
                 menu.add_cascade(label="Check in picture", menu=sub)
             else:
                 menu.add_command(label="Check in picture (found only in typed text)", state="disabled")
+        menu.add_separator()
+        self.effort_context_menu(menu, iid)
         menu.tk_popup(event.x_root, event.y_root)
 
     def check_in_picture(self, term, location):
@@ -4151,6 +4157,10 @@ class AcronymAppGUI(ctk.CTk):
             "Undefined symbols": bool(data.get("symbol")) and st.startswith("🔍") or (data.get("equation") and "not defined" in st),
             "Client and database differ": bool(data.get("client") and data.get("db_definitions")),
             "Added manually": data.get("manual", False),
+            "In effort list": bool(data.get("effort")),
+            "Not in effort list": not data.get("effort") and not data.get("excluded", False),
+            "Effort: needs author": data.get("effort") in ("Proposed", "Needs author"),
+            "Effort: approved": data.get("effort") == "Approved",
             "New since last scan": data.get("change") == "New",
             "Changed since last scan": data.get("change") == "Changed",
             "No longer found": data.get("gone", False),
@@ -4240,6 +4250,8 @@ class AcronymAppGUI(ctk.CTk):
         if data.get("excluded", False): return "excluded"
         if data.get("manual"): return "manual"
         if data.get("gone"): return "gone"
+        if data.get("effort") == "Approved": return "resolved"
+        if data.get("effort"): return "effort"
         st = data["status"]
         if st.startswith("⛔"): return "fileerror"
         if st.startswith("⚠️"): return "ambiguous"
@@ -4265,6 +4277,7 @@ class AcronymAppGUI(ctk.CTk):
             if term not in self.results:
                 self.results[term] = item
         self.apply_saved_decisions()
+        self.apply_effort(reload=True)
         self.save_project()
         self.reset_ui()
         self.refresh_type_options()
@@ -4316,6 +4329,7 @@ class AcronymAppGUI(ctk.CTk):
     def on_select(self, event):
         sel = self.tree.selection()
         if not sel: return
+        self.update_effort_buttons()
         if len(sel) > 1:   # several rows: only Exclude applies to a group
             n = sum(1 for t in sel if self.excludable(t))
             self.selected_term = sel[0]
