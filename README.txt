@@ -353,3 +353,17 @@ EFFORT LIST AND CUSTOMER DEFINITIONS (2.4.0 / 2.5.0)
 - Effort > Export for approvals: a workbook with Needs author, Conflicts, Approved and All sheets.
 - If Excel has the list open, the app asks you to close it and keeps the change until it can save.
 - The list holds customer content: keep it on this PC or SharePoint, never in GitHub or email outside the team.
+
+TRAINED READER FROM THE TRAINING KIT (2.6.0)
+- The docTR Training Kit trains the second reader on your own Trainer samples, fully offline. Two downloads:
+  AcronymHunter_TrainingKit_docTR.zip (any PC, processor only) and the GPU version for NVIDIA RTX 50 / RTX PRO
+  cards (two parts: put both in one folder and run Join_AcronymHunter_TrainingKit_docTR_GPU.cmd, which checks
+  the fingerprint).
+- Copy Trainer samples (training_data\<name>) into the kit's samples folder and run Train.cmd. The kit keeps 10% of
+  your samples aside, measures before and after, and exports a model only when it reads them better.
+- Install: Tools > Knowledge > Load Trained Models, pick the kit's output\models folder. The app checks every model
+  file's SHA-256; a changed file is refused and the bundled models stay in use. Undo returns to the bundled models.
+- Export Knowledge Pack now carries trained docTR models, so one person trains and the team installs the pack
+  (approved SharePoint folder only).
+- The kit blocks every network connection and logs any attempt to kit\logs\network_blocked.log. On an 8 GB card,
+  set AH_GPU_MEM_GB=8 before Train.cmd to cap graphics memory.
