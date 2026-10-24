@@ -146,8 +146,14 @@ PAGES = {
               ("Type and actor", "Instruction (L), Evaluation (M), SOW (C), Format, Information; Offeror, Contractor or Government."),
               ("Links", "Evaluation and SOW items link to the instructions they concern, by section number or shared wording."),
               ("Outline", "Outline tab: start from the Section L headings, import a Word outline's headings, or type one. "
-                          "Map kept rows to a section; Suggest sections fills only clear matches."),
-              ("Amendments", "Re-read RFP keeps decisions, mapping and notes for unchanged sentences and marks new and removed ones."),
+                          "Map kept rows to a section; Suggest sections fills only clear matches, then learns from rows you mapped."),
+              ("Merge", "Select two or more rows and press M (or Merge) to join a requirement that the rules split."),
+              ("Learned", "The app learns from your Keep and Drop decisions (Learn from decisions, and after every save). The Learned "
+                          "column shows how likely the team is to keep a row; Accept suggestions uses it once it has enough decisions. "
+                          "It stores numbered word buckets and counts, never RFP text, and travels in Knowledge Packs."),
+              ("Source page", "Show page opens a PDF row's page with the sentence highlighted. Open file opens any source document."),
+              ("Amendments", "Re-read RFP keeps decisions, mapping and notes for unchanged sentences. Amendment changes pairs changed "
+                             "sentences and shows the word differences: [-removed-] {+added+}; export it to Excel."),
               ("Outputs", "The matrix is an Excel workbook (edits made in Excel count). Word outline makes the proposal outline "
                           "with each section's requirements in a table.")]),
     ("p", "The matrix holds customer content: keep it on this PC or SharePoint."),

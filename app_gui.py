@@ -2184,7 +2184,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.9.0"            # keep in step with version_info.txt
+APP_VERSION = "2.10.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -2588,7 +2588,9 @@ KNOWLEDGE_INFO_FILE = os.path.join(CONFIG_DIR, "knowledge_installed.json")
 KNOWLEDGE_BACKUP_DIR = os.path.join(CONFIG_DIR, "knowledge_backups")
 PACK_MODEL_FILES = ("rec.onnx", "det.onnx", "cls.onnx", "rec_keys.txt", CUSTOM_TESS_MODEL + ".traineddata") + \
     tuple("doctr/" + f for f in DOCTR_FILES)      # trained docTR models (Training Kit), checked by SHA-256 on load
-PACK_DATA_FILES = {"acronym_database.csv": "DB", "ocr_corrections.csv": "FIXES", "ocr_ignore.csv": "IGNORE"}
+PACK_DATA_FILES = {"acronym_database.csv": "DB", "ocr_corrections.csv": "FIXES", "ocr_ignore.csv": "IGNORE",
+                   "compliance_learned.json": "LEARNED"}   # compliance learning: hashed counts only, no RFP words (2.10.0)
+COMPLIANCE_LEARNED_FILE = os.path.join(CONFIG_DIR, "compliance_learned.json")
 PACK_MAX_MEMBER_BYTES = 400 * 1024 * 1024
 PACK_ROOT = "knowledge/"
 
@@ -2606,7 +2608,7 @@ def _knowledge_sources():
     """(name inside the pack, path on disk) for every knowledge file that exists in this copy."""
     out = []
     for name, path in (("acronym_database.csv", DB_FILE), ("ocr_corrections.csv", OCR_FIXES_FILE),
-                       ("ocr_ignore.csv", OCR_IGNORE_FILE)):
+                       ("ocr_ignore.csv", OCR_IGNORE_FILE), ("compliance_learned.json", COMPLIANCE_LEARNED_FILE)):
         if os.path.isfile(path):
             out.append((name, path))
     for m in PACK_MODEL_FILES:
@@ -2671,7 +2673,8 @@ def read_knowledge_pack(path):
     return info, data
 
 def _backup_targets():
-    return [DB_FILE, OCR_FIXES_FILE, OCR_IGNORE_FILE, KNOWLEDGE_INFO_FILE] + [os.path.join(MODELS_DIR, m) for m in PACK_MODEL_FILES]
+    return [DB_FILE, OCR_FIXES_FILE, OCR_IGNORE_FILE, KNOWLEDGE_INFO_FILE, COMPLIANCE_LEARNED_FILE] + \
+        [os.path.join(MODELS_DIR, m) for m in PACK_MODEL_FILES]
 
 def backup_knowledge(reason):
     stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -2809,6 +2812,12 @@ def install_knowledge_pack(path):
         report.append(f"OCR fixes: {merge_pack_fixes(data['ocr_corrections.csv'])} added")
     if "ocr_ignore.csv" in data:
         report.append(f"Ignored readings: {merge_pack_ignore(data['ocr_ignore.csv'])} added")
+    if "compliance_learned.json" in data:
+        import complearn
+        L = complearn.Learner(COMPLIANCE_LEARNED_FILE)
+        n = L.merge_pack(data["compliance_learned.json"])
+        L.save()
+        report.append(f"Compliance learning: {n} decisions added from the team (your own decisions unchanged)")
     with open(KNOWLEDGE_INFO_FILE, "w", encoding="utf-8") as f:
         json.dump({"version": info.get("version"), "created": info.get("created"), "created_by": info.get("created_by"),
                    "notes": info.get("notes", ""), "models": sorted(models), "pack_sha256": _sha256_file(path),

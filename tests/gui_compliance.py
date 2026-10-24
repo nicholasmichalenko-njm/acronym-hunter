@@ -66,6 +66,28 @@ def wait():
     res["ok"] = (len(M.items) == 28 and os.path.isfile(OUT) and app._c_item(first)["decision"] == "Keep" and len(parts) == 2
                  and t2["map"] == "1.1 Thermal Design" and t2["owner"] == "J. Smith" and "1.1 Thermal Design" in xml
                  and M.counts()[""] == 3 and len(drops) == 2 and not any(it["map"] == "Volume I - Technical" for it in M.items))
+    # 2.10.0: learn, merge, source page, amendment changes
+    app.compliance_learn()
+    print("learn said:", said[-1][:90].replace("\n", " "))
+    learned_ok = "Learned from" in said[-1] and os.path.isfile(os.path.join(A.CONFIG_DIR, "compliance_learned.json"))
+    a_ = next(it for it in M.items if it["text"].startswith("(a) identify")); b_ = next(it for it in M.items if it["text"].startswith("(b) describe"))
+    tv.selection_set((a_["id"], b_["id"])); win.update(); app.compliance_merge(); win.update()
+    merged_ok = not any(it["id"] == b_["id"] for it in M.items) and "(b) describe" in a_["text"]
+    poc = next(it for it in M.items if it["text"].startswith("identify a point of contact"))
+    tv.selection_set(poc["id"]); win.update()
+    before = len(win.winfo_children())
+    app.compliance_show_page(); win.update()
+    page_ok = any("page 2" in w.title() for w in win.winfo_children() if hasattr(w, "title"))
+    for it in M.items:
+        if it["text"].startswith("Proposals shall not exceed"):
+            it["new"] = "Not in the latest read"
+    M.items.append(dict(M.items[0], id="L.1-99", text="Proposals shall not exceed 40 pages, excluding the cover page and table of contents.",
+                        new="New in latest read", decision=""))
+    cw = app.compliance_changes(); cw.update()
+    rows = list(cw._api["rows"].values())
+    changes_ok = len(rows) == 1 and rows[0]["kind"] == "Changed" and "{+40+}" in rows[0]["diff"]
+    print("learned:", learned_ok, "| merged:", merged_ok, "| page window:", page_ok, "| changes:", changes_ok)
+    res["ok"] = res["ok"] and learned_ok and merged_ok and page_ok and changes_ok
     if os.environ.get("AH_SHOT"):
         win.tabs.set("Requirements"); tv.selection_set(th["id"]); tv.see(th["id"]); win.update(); app._c_show(); win.update()
         from PIL import ImageGrab

@@ -410,3 +410,17 @@ LAYOUT (2.9.0)
   remembers the width and whether it is shown.
 - The preview pane is titled Source; locations are listed as Text, Image or PDF page. The results table scales with
   Windows display scaling (A+ / A- still adjust it).
+
+COMPLIANCE MATRIX: LEARNING AND COMPLEMENTS (2.10.0)
+- Learn from decisions (and automatically after each save): the app learns which rows the team keeps or drops. The
+  Learned column shows the result (Keep / Drop / Review with a percentage) once there are at least 5 Keep and 3 Drop
+  decisions; Accept suggestions uses it first, then the rule suggestion. A check on the current matrix reports how often
+  the learned model agrees with your decisions, next to the rule suggestions' agreement.
+- Privacy: words are turned into numbered buckets before anything is stored. config\compliance_learned.json holds bucket
+  numbers and counts only, never RFP text. It travels in Knowledge Packs and installs add-only.
+- Suggest sections also learns from rows already mapped: a kept row goes to the section of the most similar mapped rows
+  when the rules find no clear match.
+- Merge (M) joins rows the rules split. Show page opens a PDF row's page with the sentence highlighted; Open file opens
+  any source document (the Sources sheet now records each file's path on this PC).
+- Amendment changes (after Re-read RFP) pairs changed sentences with their earlier version and shows the word
+  differences as [-removed-] {+added+}, plus added and removed sentences; export to Excel.

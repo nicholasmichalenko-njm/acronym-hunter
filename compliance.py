@@ -344,7 +344,7 @@ def extract(files_chunks, headings=None):
             continue
         seen.add(k)
         it.update({"key": text_key(it["text"]), "decision": "", "map": "", "owner": "", "status": "", "notes": "",
-                   "response_page": "", "links": "", "new": ""})
+                   "response_page": "", "links": "", "new": "", "learned": ""})
         out.append(it)
     assign_ids(out)
     link_items(out)
@@ -406,6 +406,86 @@ def link_items(items):
                 links.append(best["id"])
         it["links"] = "; ".join(dict.fromkeys(links))[:300]
     return items
+
+
+def merge_items(items, ids):
+    """Merge rows (in list order) into the first: texts joined, the rest removed. Returns the merged row or None."""
+    rows = [it for it in items if it["id"] in ids]
+    if len(rows) < 2:
+        return None
+    first = rows[0]
+    first["text"] = " ".join(r["text"].rstrip() for r in rows)
+    first["key"] = text_key(first["text"])
+    first["xrefs"] = "; ".join(dict.fromkeys(x for r in rows for x in r.get("xrefs", "").split("; ") if x))
+    first["compound"] = True
+    first["notes"] = ((first.get("notes") or "") + "; " if first.get("notes") else "") + "merged " + ", ".join(r["id"] for r in rows[1:])
+    for r in rows[1:]:
+        items.remove(r)
+    return first
+
+
+def _word_diff(old, new):
+    """Plain-text word diff: [-removed-] {+added+}."""
+    import difflib
+    a, b = old.split(), new.split()
+    out = []
+    for op, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
+        if op == "equal":
+            out.append(" ".join(a[i1:i2]))
+        if op in ("delete", "replace"):
+            out.append("[-" + " ".join(a[i1:i2]) + "-]")
+        if op in ("insert", "replace"):
+            out.append("{+" + " ".join(b[j1:j2]) + "+}")
+    return " ".join(out)
+
+
+def amendment_changes(items, min_ratio=0.6):
+    """After a re-read: pair each new sentence with the most similar removed one (same file kind of change, ratio
+    >= 0.6) as Changed; the rest are Added or Removed. Returns [{kind, id, old_id, old, new, diff, section}]."""
+    import difflib
+    new = [it for it in items if it.get("new") == "New in latest read"]
+    gone = [it for it in items if it.get("new") == "Not in the latest read"]
+    used, out = set(), []
+    for n in new:
+        best, score = None, 0.0
+        for g in gone:
+            if g["id"] in used:
+                continue
+            r = difflib.SequenceMatcher(None, g["text"], n["text"], autojunk=False).ratio()
+            if r > score:
+                best, score = g, r
+        if best is not None and score >= min_ratio:
+            used.add(best["id"])
+            out.append({"kind": "Changed", "id": n["id"], "old_id": best["id"], "old": best["text"], "new": n["text"],
+                        "diff": _word_diff(best["text"], n["text"]), "section": n["section"] or best["section"],
+                        "decision": best.get("decision", "")})
+        else:
+            out.append({"kind": "Added", "id": n["id"], "old_id": "", "old": "", "new": n["text"], "diff": "", "section": n["section"], "decision": ""})
+    for g in gone:
+        if g["id"] not in used:
+            out.append({"kind": "Removed", "id": "", "old_id": g["id"], "old": g["text"], "new": "", "diff": "", "section": g["section"],
+                        "decision": g.get("decision", "")})
+    order = {"Changed": 0, "Added": 1, "Removed": 2}
+    out.sort(key=lambda c: (order[c["kind"]], sec_key(c["section"] or "~")))
+    return out
+
+
+def write_changes_excel(changes, path, name=""):
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment
+    wb = Workbook(); ws = wb.active; ws.title = "Amendment changes"
+    ws.append(["Change", "New ID", "Old ID", "Section", "Old text", "New text", "Word differences", "Earlier decision"])
+    for c in ws[1]:
+        c.font = Font(bold=True)
+    for ch in changes:
+        ws.append([ch["kind"], ch["id"], ch["old_id"], ch["section"], ch["old"], ch["new"], ch["diff"], ch["decision"]])
+    for col, w in zip("ABCDEFGH", (10, 12, 12, 10, 60, 60, 70, 14)):
+        ws.column_dimensions[col].width = w
+    for row in ws.iter_rows(min_row=2):
+        for c in row:
+            c.alignment = Alignment(wrap_text=True, vertical="top")
+    ws.freeze_panes = "B2"
+    wb.save(path)
 
 
 # ------------------------------------------------------------------ outline (C2)
@@ -533,11 +613,11 @@ def suggest_map(item, outline, stats=None):
 
 
 # ------------------------------------------------------------------ the workbook
-COLUMNS = ["ID", "Decision", "Suggested", "Section", "Section title", "Requirement", "Lead-in", "Actor", "Type", "Strength",
+COLUMNS = ["ID", "Decision", "Suggested", "Learned", "Section", "Section title", "Requirement", "Lead-in", "Actor", "Type", "Strength",
            "Cross-references", "Linked items", "Outline section", "Owner", "Status", "Response page", "Notes",
            "Source file", "Location", "Compound", "Change", "Context", "Key"]
-WIDTHS = [12, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 12, 12, 24, 26, 30, 9, 14, 60, 13]
-FIELD = {"ID": "id", "Decision": "decision", "Suggested": "suggest", "Section": "section", "Section title": "section_title",
+WIDTHS = [12, 10, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 12, 12, 24, 26, 30, 9, 14, 60, 13]
+FIELD = {"ID": "id", "Decision": "decision", "Suggested": "suggest", "Learned": "learned", "Section": "section", "Section title": "section_title",
          "Requirement": "text", "Lead-in": "lead", "Actor": "actor", "Type": "type", "Strength": "strength",
          "Cross-references": "xrefs", "Linked items": "links", "Outline section": "map", "Owner": "owner", "Status": "status",
          "Response page": "response_page", "Notes": "notes", "Source file": "file", "Location": "loc",
@@ -593,7 +673,7 @@ class Matrix:
                             lvl = 1
                         self.outline.append({"num": str(r[0] or "").strip(), "title": str(r[1] or r[0]).strip(), "level": lvl})
             if "Sources" in wb.sheetnames:
-                self.sources = [[("" if v is None else str(v)) for v in (list(r) + ["", "", ""])[:3]]
+                self.sources = [[("" if v is None else str(v)) for v in (list(r) + ["", "", "", ""])[:4]]
                                 for r in list(wb["Sources"].iter_rows(values_only=True))[1:] if r and r[0]]
             if "RFP headings" in wb.sheetnames:
                 self.headings = [{"num": str(r[0]), "title": str(r[1] or ""), "file": str(r[2] or "")}
@@ -614,6 +694,13 @@ class Matrix:
         user = os.environ.get("USERNAME") or os.environ.get("USER") or "unknown"
         self.history.append([datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), user, what, change])
         self.pending = True
+
+    def path_of(self, file_name):
+        """Full path of an RFP file, from the Sources sheet (newest read first), if it is still there."""
+        for row in reversed(self.sources):
+            if row and row[0] == file_name and len(row) > 3 and row[3] and os.path.isfile(row[3]):
+                return row[3]
+        return ""
 
     def counts(self):
         c = {"total": len(self.items), "Keep": 0, "Drop": 0, "": 0, "mapped": 0, "kept_unmapped": 0}
@@ -663,10 +750,10 @@ class Matrix:
         for col, w in zip("ABCD", (12, 60, 8, 18)):
             ol.column_dimensions[col].width = w
         so = wb.create_sheet("Sources")
-        so.append(["File", "SHA-256", "Read on"])
-        for s in self.sources:
-            so.append(s)
-        for col, w in zip("ABC", (50, 68, 18)):
+        so.append(["File", "SHA-256", "Read on", "Path on this PC"])
+        for src in self.sources:
+            so.append(src)
+        for col, w in zip("ABCD", (50, 68, 18, 70)):
             so.column_dimensions[col].width = w
         rh = wb.create_sheet("RFP headings")
         rh.append(["Number", "Title", "File"])
@@ -728,3 +815,37 @@ def write_outline_docx(matrix, path, title=""):
                   [1300, 2000, 6060])
     doc.save(path)
     return {"sections": len(matrix.outline), "mapped": sum(1 for it in kept if it["map"]), "unmapped": len(rest)}
+
+
+# ------------------------------------------------------------------ source page (PDF)
+def render_page(path, page_no, text, scale=2.0):
+    """A PDF page as a picture with the requirement highlighted (PDFium text search on its first words).
+    Returns a PIL image."""
+    import pypdfium2 as pdfium
+    from PIL import Image, ImageDraw
+    pdf = pdfium.PdfDocument(path)
+    try:
+        page = pdf[page_no - 1]
+        w, h = page.get_size()
+        img = page.render(scale=scale).to_pil().convert("RGBA")
+        tp = page.get_textpage()
+        words = text.replace("(a) ", "").split()
+        for n in (8, 5, 3):
+            probe = " ".join(words[:n])
+            if not probe:
+                break
+            found = tp.search(probe, match_case=False, match_whole_word=False).get_next()
+            if found:
+                idx, _cnt = found
+                full = min(len(text) + 5, tp.count_chars() - idx)
+                over = Image.new("RGBA", img.size, (0, 0, 0, 0))
+                d = ImageDraw.Draw(over)
+                for i in range(tp.count_rects(idx, full)):
+                    l, b, r, t = tp.get_rect(i)
+                    d.rectangle([l * scale - 2, (h - t) * scale - 2, r * scale + 2, (h - b) * scale + 2], fill=(253, 224, 71, 110),
+                                outline=(202, 138, 4, 255), width=2)
+                img = Image.alpha_composite(img, over)
+                break
+        return img.convert("RGB")
+    finally:
+        pdf.close()
