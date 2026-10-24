@@ -1,5 +1,6 @@
 """Customer documents outrank the database; conflicts ask for a choice; Add to effort list keeps the customer wording."""
-import os, sys, tempfile, shutil
+import os, sys
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # Windows consoles default to cp1252, tempfile, shutil
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["AH_OCR_ENGINE"] = "tesseract"
 import app_gui as A, effort as E
