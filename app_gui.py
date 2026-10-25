@@ -3991,8 +3991,58 @@ class AcronymAppGUI(KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin,
                 ui(lambda: (stat.configure(text=msg[:160]), btn.configure(text="Close", fg_color="#475569", command=win.destroy)))
         threading.Thread(target=work, daemon=True).start()
 
-    def apply_math_result(self, pic_key, loc, formulas, m):
+    # ---------- math reader results kept with the project or effort (2.22.0) ----------
+    def _file_stamp(self, loc):
+        path = self.path_for(_file_of(loc))
+        try:
+            st = os.stat(path)
+            return [st.st_size, int(st.st_mtime)]
+        except (OSError, TypeError):
+            return None
+
+    def math_reads(self):
+        """{picture location: {"key", "formulas", "stamp"}}: the open project's (in the .ahproj file), otherwise the
+        effort's or this PC's workspace settings."""
+        if self.project is not None and self.project.data is not None:
+            return self.project.data.setdefault("math", {})
+        return dict(self.ws.get("math_reads", {}) or {})
+
+    def _keep_math_read(self, pic_key, loc, formulas):
+        rec = {"key": pic_key, "formulas": list(formulas), "stamp": self._file_stamp(loc)}
+        if self.project is not None and self.project.data is not None:
+            if not self.project.read_only:
+                self.project.data.setdefault("math", {})[loc] = rec
+                self.save_project()
+            return
+        d = self.math_reads(); d[loc] = rec
+        if len(d) > 2000:                                  # keep the newest only
+            d = dict(list(d.items())[-2000:])
+        self.ws.set("math_reads", d)
+
+    def reapply_math_reads(self):
+        """After a scan or reopening, put back what the math reader read for pictures that are unchanged, so nobody reads
+        the same equation twice. A changed file drops its saved reads."""
+        if not ai_ml_on():
+            return 0
+        m, n = None, 0
+        for loc, rec in list(self.math_reads().items()):
+            d = self.results.get(rec.get("key"))
+            if not d or loc not in d.get("locations", []) or loc in (d.get("math_read") or {}):
+                continue
+            if rec.get("stamp") != self._file_stamp(loc):
+                continue
+            m = m or build_matcher()
+            self.apply_math_result(rec["key"], loc, rec.get("formulas", []), m, restore=True)
+            n += 1
+        return n
+
+    def apply_math_result(self, pic_key, loc, formulas, m, restore=False):
         """Replace OCR's pieces of an equation picture with what the math reader read."""
+        if not restore:
+            try:
+                self._keep_math_read(pic_key, loc, formulas)
+            except Exception:
+                log_error("Math reader result could not be kept")
         ocr_cats = ("Equation", "Symbol", "Unit (Candidate)", "Abbreviation (Candidate)", "Acronym (Candidate)")
         for term in list(self.results):
             d = self.results[term]
@@ -4023,7 +4073,8 @@ class AcronymAppGUI(KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin,
             pic["status"] = (f"READ BY MATH READER: {n} equation(s)" if not left
                              else f"READ {len(pic['math_read'])} of {len(pic['locations'])} PICTURES")
             pic["selected_definition"] = "Math reader: " + ("; ".join(l for v in pic["math_read"].values() for l in v)[:300] or "no equation found")
-        self.populate_table()
+        if not restore:
+            self.populate_table()
 
     # ---------- full text mode ----------
     def open_fulltext(self):
@@ -4944,6 +4995,10 @@ class AcronymAppGUI(KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin,
         self.mark_known_in()               # customer docs, customer list, master database, or no source (2.14.0)
         rec = self.effort_after_scan(getattr(self, "queued_files", []) or []) if self.effort is not None else None   # 2.14.0
         dbr = self.after_db_refresh()      # a database update keeps every row and marks what changed (2.14.0)
+        try:
+            self.reapply_math_reads()      # what the math reader already read stays read (2.22.0)
+        except Exception:
+            log_error("Saved math reader results could not be put back")
         self.save_project()
         self.reset_ui()
         self.refresh_type_options()
