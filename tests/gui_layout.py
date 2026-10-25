@@ -4,6 +4,7 @@ import os, sys, tempfile, json
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # Windows consoles default to cp1252
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["AH_OCR_ENGINE"] = "tesseract"
+os.environ["AH_TEST"] = "1"   # no first-start wizard during tests
 import app_gui as A, diag
 from tkinter import messagebox
 messagebox.showerror = lambda *a, **k: print("ERROR BOX:", a)

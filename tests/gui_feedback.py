@@ -2,6 +2,7 @@ import os, sys, zipfile, json
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # Windows consoles default to cp1252
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["AH_OCR_ENGINE"] = "tesseract"
+os.environ["AH_TEST"] = "1"   # no first-start wizard during tests
 import app_gui as A, feedback as FB
 import tempfile as _tf
 _t = _tf.mkdtemp(); A.CONFIG_DIR = os.path.join(_t, "config"); A.CHOICES_FILE = os.path.join(_t, "config", "choices.json")

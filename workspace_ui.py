@@ -51,7 +51,7 @@ class WorkspaceMixin:
         self.opt_effort = ctk.CTkOptionMenu(bar, variable=self.effort_var, values=[NO_EFFORT], width=260, dynamic_resizing=False,
                                             command=self._switch_from_bar)
         self.opt_effort.pack(side="left", pady=5)
-        ctk.CTkButton(bar, text="New effort...", width=100, height=28, command=self.new_effort_dialog,
+        ctk.CTkButton(bar, text="New effort...", width=100, height=28, command=lambda: self.open_wizard(),
                       fg_color=("#CBD5E1", "#334155"), hover_color=("#94A3B8", "#475569"),
                       text_color=("#0F172A", "#F1F5F9")).pack(side="left", padx=8, pady=5)
         self.topbar_right = ctk.CTkFrame(bar, fg_color="transparent")
@@ -87,6 +87,8 @@ class WorkspaceMixin:
             if self.open_effort(cur, quiet=True, startup=True):
                 return
         self.enter_workspace(startup=True)
+        if not self.efforts.names() and not os.environ.get("AH_TEST") and hasattr(self, "open_wizard"):
+            self.after(400, self.open_wizard)          # first start: set up the first effort (2.14.0)
 
     def _migrate_2_11(self):
         """2.11.0: choices and the compliance matrix path were PC-wide. They now belong to an effort. The effort open at
@@ -151,6 +153,7 @@ class WorkspaceMixin:
                 pass
         self._volwin = None
         self.volume_report = None
+        self._last_effort_scan = None
         if self.project is not None:
             self.close_project()
         if self._ws_beat:
@@ -168,6 +171,10 @@ class WorkspaceMixin:
             self.ai_load_for_workspace()          # this effort's AI and ML setting, before anything is shown (2.12.0)
         try:
             self.results, self.manual_items, self.selected_term = {}, {}, None
+            try:                                          # the effort's client lists (2.14.0)
+                self.set_client_lists(self.ws.get("client_lists", []) or [])
+            except Exception:
+                diag.swallowed()
             self.last_scan = None
             self.session_decisions = {}
             s = self.ws.load_session()

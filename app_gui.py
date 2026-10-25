@@ -132,6 +132,7 @@ from compliance_ui import ComplianceMixin   # compliance matrix (2.8.0)
 from workspace_ui import WorkspaceMixin   # effort profiles, session, recovery, backups (2.11.0)
 from ai_ui import AIMixin   # AI and ML labels and switch (2.12.0)
 from setup_ui import SetupMixin   # Setup Builder in the compliance window (2.13.0)
+from effort_wizard import WizardMixin   # effort start wizard, intake, review, record, exports (2.14.0)
 import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
 DB_FILE = os.path.join(BASE_DIR, "acronym_database.csv")
@@ -2995,7 +2996,7 @@ STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", 
                   "Not defined at first use", "Equations and symbols", "Undefined symbols",
                   "Added manually", "Customer documents", "Customer and database differ", "In effort list", "Not in effort list", "Effort: needs author", "Effort: approved",
                   "New since last scan", "Changed since last scan", "No longer found", "Errors / not scanned",
-                  "Context suggests a meaning", "Found in omit list", "Excluded"]
+                  "Context suggests a meaning", "New in this scan (not in the effort list)", "Found in omit list", "Excluded"]
 MANUAL_MARK = ""   # statuses are plain words (2.7.0: no emoji in the interface or in exports)
 # Status kinds by leading words. Older projects saved statuses with an emoji in front; status_text() drops it.
 _KIND_WORDS = (("error", ("COULD NOT READ FILE", "NOT SCANNED")),
@@ -3065,7 +3066,7 @@ def trainer_available():
     """Training features: on unless config\\app_settings.json sets allow_training to false."""
     return bool(APP_CFG["allow_training"]) and importlib.util.find_spec("trainer_gui") is not None
 
-class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Acronym Hunter {APP_VERSION}: acronyms, abbreviations and units (100% local)")
@@ -4581,6 +4582,7 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
             "Customer and database differ": bool(data.get("cust_db_differ")),
             "Not in effort list": not data.get("effort") and not data.get("excluded", False) and not data.get("known"),
             "Found in omit list": bool(data.get("known")),
+            "New in this scan (not in the effort list)": bool(data.get("new_in_effort")) and not data.get("effort"),
             "Context suggests a meaning": bool((data.get("context") or {}).get("definition")) and kind == "choice",
             "Effort: needs author": data.get("effort") in ("Proposed", "Needs author"),
             "Effort: approved": data.get("effort") == "Approved",
@@ -4713,12 +4715,18 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         for d in self.results.values():   # known names keep their status unless the effort list holds them (2.13.0)
             if d.get("known") and not d.get("effort") and not d.get("excluded"):
                 d["status"] = KNOWN_STATUS + (f": {d['omit_reason']}" if d.get("omit_reason") else "")
+        rec = self.effort_after_scan(getattr(self, "queued_files", []) or []) if self.effort is not None else None   # 2.14.0
         self.save_project()
         self.reset_ui()
         self.refresh_type_options()
         self.populate_table()
         self.volume_check_after_scan()
         self.start_context_suggestions()   # meaning from nearby words, in the background (2.13.0)
+        if rec:
+            self._last_effort_scan = rec
+            self.update_effort_ui()
+            self.status.configure(text=f"Effort list updated: {rec['found']} found again, {rec['new']} new (not in the list"
+                                       f"{': Effort > Review new terms' if rec['new'] else ''}), {rec['gone']} no longer found.")
 
     def populate_table(self):
         if not hasattr(self, "tree"):
@@ -4849,6 +4857,10 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         if self.project is not None:
             self.project.data["decisions"][self.selected_term] = choice
             self.save_project()
+        if self.effort is not None and self.selected_term in self.effort.rows and choice != "Keep All Possibilities":
+            chosen = data.get("selected_definition", "")     # 2.14.0: the choice goes into the effort list too
+            if self.effort.add_or_update(self.selected_term, change_note=f"definition chosen: {chosen[:80]}", Definition=chosen) != "unchanged":
+                self._save_effort_list()
         self.tree.item(self.selected_term, values=self.row_values(self.selected_term, data), tags=(tag,))
         self.session_changed()
 
@@ -5449,7 +5461,8 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         win = ctk.CTkToplevel(self); self.client_win = win
         win.title("Client Acronym Lists"); win.geometry("680x500"); win.transient(self); win.after(100, win.lift)
         where = (f"Saved in the project file ({self.project.name})." if self.project is not None
-                 else "Kept for this session only (open a project to keep them).")
+                 else f"Saved with the effort ({self.effort.name}) and used on every scan." if self.effort is not None
+                 else "Kept for scans with no effort open.")
         ctk.CTkLabel(win, justify="left", wraplength=640, text=(
             "Acronym lists from the client (for example an RFP's acronym list). When lists are added:\n"
             "  - their terms are found in your documents even if they are not in the database\n"
@@ -5466,6 +5479,11 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         def changed(text):
             set_client_lists(self.client_lists); self.set_client_lists(self.client_lists)
             self.save_project(); refresh(); msg.configure(text=text)
+            if self.project is None:
+                try:
+                    self.ws.set("client_lists", self.client_lists)   # remembered by the effort (2.14.0)
+                except Exception:
+                    diag.swallowed()
             if self.results and messagebox.askyesno("Rescan?", "Client lists changed. Rescan now to apply them?", parent=win):
                 if self.project is not None and not self.project.read_only:
                     self.rescan_project()

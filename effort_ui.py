@@ -52,6 +52,11 @@ class EffortMixin:
             bits = [f"Effort: {L.name}", os.path.basename(L.path), f"{len(L.rows)} terms",
                     f"{counts['Approved']} approved, {counts['Needs author']} need an author, {counts['Proposed']} proposed",
                     "first use " + ("per volume" if L.first_use == "volume" else "across the submission")]
+            if L.client or L.solicitation:
+                bits.insert(1, " ".join(x for x in (L.client, L.solicitation) if x))
+            rec = getattr(self, "_last_effort_scan", None)
+            if rec:
+                bits.append(f"last scan: {rec['new']} new, {rec['gone']} no longer found")
             if L.pending:
                 bits.append("NOT SAVED (close the list in Excel, then Effort > Save list now)")
             self.lbl_effort.configure(text="  |  ".join(bits))
@@ -71,7 +76,7 @@ class EffortMixin:
         diag.activity("effort_menu_opened")
         m = menu or self.effort_menu
         m.delete(0, "end")
-        m.add_command(label="New effort...", command=self.new_effort_dialog)
+        m.add_command(label="New effort (wizard)...", command=self.open_wizard)
         m.add_command(label="Open an existing effort list...", command=self.open_effort_file)
         names = [n for n in self.efforts.names() if (not self.effort or n != self.effort.name)
                  and not (self.efforts.get(n) or {}).get("archived")]
@@ -88,6 +93,12 @@ class EffortMixin:
             m.add_cascade(label="Archived efforts", menu=sub2)
         has = self.effort is not None
         st = "normal" if has else "disabled"
+        m.add_separator()
+        m.add_command(label="Add customer documents...", command=self.add_customer_documents, state=st)
+        m.add_command(label="Review new terms (not in the list)...", command=self.review_new_terms, state=st)
+        m.add_command(label="Activity (what was added, from where)...", command=self.show_activity, state=st)
+        m.add_command(label="Export the acronym lists (whole effort or per volume)...", command=self.export_effort_lists_ui, state=st)
+        m.add_command(label="Export all efforts in one workbook...", command=self.export_all_efforts_ui)
         m.add_separator()
         m.add_command(label="Open the list in Excel", command=self.open_effort_in_excel, state=st)
         m.add_command(label="Reload the list (after editing in Excel)", command=self.reload_effort, state=st)
@@ -112,7 +123,7 @@ class EffortMixin:
             diag.activity("effort_new_opened")
         cur = self.efforts.get(self.effort.name) if edit and self.effort else {}
         win = ctk.CTkToplevel(self); win.title("Effort settings" if edit else "New effort")
-        win.geometry("640x430"); win.transient(self); win.after(150, win.lift); win.grab_set()
+        win.geometry("640x560"); win.transient(self); win.after(150, win.lift); win.grab_set()
         diag.register(win, "effort_setup")
         f = ctk.CTkFrame(win, fg_color="transparent"); f.pack(fill="both", expand=True, padx=16, pady=12)
         f.grid_columnconfigure(1, weight=1)
@@ -138,6 +149,11 @@ class EffortMixin:
         ctk.CTkRadioButton(rf, text="Restarts in each volume", variable=rule, value="volume").pack(side="left")
         ctk.CTkRadioButton(rf, text="Runs across the whole submission", variable=rule, value="submission").pack(side="left", padx=12)
         dirs = {}
+        for r, (key, label) in enumerate((("client", "Client (short name)"), ("solicitation", "Solicitation number"),
+                                          ("internal_no", "Internal number")), start=9):
+            ctk.CTkLabel(f, text=label).grid(row=r, column=0, sticky="w", pady=4)
+            e = ctk.CTkEntry(f); e.grid(row=r, column=1, columnspan=2, sticky="ew", pady=4)
+            dirs[key] = e
         for r, (key, label) in enumerate((("customer_dir", "Customer documents folder"), ("volumes_dir", "Volumes folder")), start=5):
             ctk.CTkLabel(f, text=label).grid(row=r, column=0, sticky="w", pady=4)
             e = ctk.CTkEntry(f, placeholder_text="optional"); e.grid(row=r, column=1, sticky="ew", pady=4)
@@ -147,7 +163,7 @@ class EffortMixin:
                     e.delete(0, "end"); e.insert(0, d)
             ctk.CTkButton(f, text="Browse...", width=90, command=pick).grid(row=r, column=2, padx=(6, 0))
             dirs[key] = e
-        msg = ctk.CTkLabel(f, text="", text_color="#B91C1C"); msg.grid(row=8, column=0, columnspan=3, sticky="w", pady=6)
+        msg = ctk.CTkLabel(f, text="", text_color="#B91C1C"); msg.grid(row=12, column=0, columnspan=3, sticky="w", pady=6)
         if edit and self.effort:
             e_name.insert(0, self.effort.name); e_name.configure(state="disabled")
             e_path.insert(0, self.effort.path)
@@ -190,6 +206,11 @@ class EffortMixin:
                 diag.swallowed()
                 msg.configure(text=f"Could not create the list: {type(ex).__name__}"); return
             self.efforts.put(name, path=path, first_use=rule.get(), **{k: e.get().strip() for k, e in dirs.items()})
+            if self.effort is not None and self.effort.name == name:      # the list's About sheet and every row (2.14.0)
+                self.effort.client, self.effort.solicitation, self.effort.internal_no = (
+                    dirs["client"].get().strip(), dirs["solicitation"].get().strip(), dirs["internal_no"].get().strip())
+                self.effort.pending = True
+                self._save_effort_list()
             win.destroy()
             self.open_effort(name)
         b = ctk.CTkFrame(win, fg_color="transparent"); b.pack(fill="x", padx=16, pady=(0, 14))
@@ -238,7 +259,8 @@ class EffortMixin:
                 return False
             ws.acquire_lock(force=True)
         try:
-            L = E.EffortList(info["path"], name, info.get("first_use", "volume")).load()
+            L = E.EffortList(info["path"], name, info.get("first_use", "volume"), client=info.get("client", ""),
+                             solicitation=info.get("solicitation", ""), internal_no=info.get("internal_no", "")).load()
         except Exception as ex:
             diag.swallowed()
             if not same:
@@ -270,6 +292,20 @@ class EffortMixin:
             self.enter_workspace(startup=startup)
         self.refresh_effort_bar()
         return True
+
+    def export_effort_lists_ui(self):
+        if self.effort is None:
+            return
+        info = self.efforts.get(self.effort.name) or {}
+        made = self.export_effort_lists(scope=info.get("list_format", "whole"))
+        if made:
+            messagebox.showinfo("Acronym lists", "Saved:\n" + "\n".join(os.path.basename(p) for p in made) +
+                                "\n\nRejected terms and the omit list are left out. The Excel file has Found in for every term.")
+
+    def export_all_efforts_ui(self):
+        got = self.export_all_efforts()
+        if got:
+            messagebox.showinfo("All efforts", f"{got[1]} rows from {got[2]} efforts saved:\n{got[0]}")
 
     def close_effort(self):
         """Back to no effort. Returns False when the user cancels."""
@@ -408,7 +444,16 @@ class EffortMixin:
             others = [x for x in d.get("customer_definitions", []) + d.get("definitions", []) if x and x != definition]
             if others:
                 fields["Other definitions"] = " | ".join(dict.fromkeys(others))[:500]
-            r = self.effort.add_or_update(t, **fields)
+            docs = sorted({eng._file_of(l) for l in d.get("locations", []) if l and not l.startswith("Added manually")}, key=str.lower)
+            if docs:
+                row = self.effort.rows.get(t, {})
+                had = [x for x in re.split(r"\s*;\s*", row.get("Found in", "")) if x]
+                fields["Found in"] = "; ".join(sorted(set(had) | set(docs), key=str.lower))
+                fields["Last found"] = E.today()
+                if not row.get("First found"):
+                    fields["First found"] = E.today()
+            note = (f"added from {', '.join(docs)[:120]}" + (f": {definition[:60]}" if definition else "")) if docs and t not in self.effort.rows else None
+            r = self.effort.add_or_update(t, change_note=note, **fields)
             added += r == "added"; updated += r == "updated"
         if typed:
             self.entry_def.delete(0, "end")      # used once; never carried over to the next term

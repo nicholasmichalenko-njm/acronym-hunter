@@ -13,8 +13,10 @@ The list holds customer content (terms, definitions, wording). It lives on this 
 import datetime, json, os, re, tempfile
 
 COLUMNS = ["Term", "Type", "Definition", "Source", "Customer document", "Customer wording", "Other definitions",
-           "Status", "SS Approver", "Approved on", "Used in volumes", "First use", "Notes"]
-WIDTHS = [14, 14, 42, 14, 30, 50, 36, 14, 22, 13, 24, 30, 30]
+           "Status", "SS Approver", "Approved on", "Used in volumes", "First use", "Notes",
+           "Found in", "First found", "Last found", "Scan status", "Effort", "Client", "Solicitation"]   # 2.14.0: last 7
+WIDTHS = [14, 14, 42, 14, 30, 50, 36, 14, 22, 13, 24, 30, 30, 44, 12, 12, 30, 22, 18, 18]
+SCAN_NEW, SCAN_FOUND, SCAN_GONE = "New in this scan", "Found", "No longer found in"
 STATUSES = ["Proposed", "Needs author", "Approved", "Rejected"]
 FIRST_USE_RULES = {"volume": "Restarts in each volume", "submission": "Runs across the whole submission"}
 SHEET, HIST, ABOUT = "Effort List", "History", "About"
@@ -43,9 +45,10 @@ def open_in_excel(path):
 
 
 class EffortList:
-    def __init__(self, path, name="", first_use="volume"):
+    def __init__(self, path, name="", first_use="volume", client="", solicitation="", internal_no=""):
         self.path = path
         self.name = name or os.path.splitext(os.path.basename(path))[0]
+        self.client, self.solicitation, self.internal_no = client, solicitation, internal_no
         self.first_use = first_use if first_use in FIRST_USE_RULES else "volume"
         self.rows = {}          # term -> {column: value}
         self.order = []         # terms in sheet order
@@ -91,6 +94,8 @@ class EffortList:
                         self.first_use = "submission" if "submission" in str(r[1]).lower() else "volume"
                     if r and r[0] == "Effort" and len(r) > 1 and r[1]:
                         self.name = str(r[1])
+                    if r and r[0] in ("Client", "Solicitation", "Internal number") and len(r) > 1 and r[1]:
+                        setattr(self, {"Client": "client", "Solicitation": "solicitation", "Internal number": "internal_no"}[r[0]], str(r[1]))
         finally:
             wb.close()
         return self
@@ -151,6 +156,38 @@ class EffortList:
             n += 1
         return n
 
+    def record_scan(self, found, scanned_files, when=None):
+        """After a scan: found = {term: set(file names)}; scanned_files = the files this scan read.
+        Updates Found in, First found, Last found and Scan status for terms already in the list. Returns
+        {"found": n, "gone": [terms]}. A term is 'No longer found in <file>' when a file it was found in was read
+        again and no longer has it; nothing is removed."""
+        when = when or today()
+        scanned = set(scanned_files)
+        gone = []
+        n = 0
+        for t, row in self.rows.items():
+            had = [f for f in re.split(r"\s*;\s*", row.get("Found in", "")) if f]
+            now = set(found.get(t, ()))
+            if now:
+                n += 1
+                merged = sorted(set(had) | now, key=str.lower)
+                row["Found in"] = "; ".join(merged)
+                row["First found"] = row.get("First found") or when
+                row["Last found"] = when
+                missing = sorted(set(f for f in had if f in scanned) - now, key=str.lower)
+                row["Scan status"] = (f"{SCAN_GONE} {', '.join(missing)}" if missing else SCAN_FOUND)
+            else:
+                missing = sorted(f for f in had if f in scanned)
+                if missing:
+                    status = f"{SCAN_GONE} {', '.join(missing)}"
+                    if row.get("Scan status") != status:
+                        self._hist(t, status)
+                    row["Scan status"] = status
+                    gone.append(t)
+        if n or gone:
+            self.pending = True
+        return {"found": n, "gone": gone}
+
     def remove(self, term):
         if term in self.rows:
             del self.rows[term]; self.order.remove(term)
@@ -180,6 +217,7 @@ class EffortList:
         fills = {"Approved": "E7F6EC", "Needs author": "FEF3E2", "Rejected": "EEEEEE", "Proposed": None}
         for t in self.order:
             r = self.rows[t]
+            r["Effort"], r["Client"], r["Solicitation"] = self.name, self.client, self.solicitation   # every row says whose it is
             ws.append([r.get(c, "") for c in COLUMNS])
             f = fills.get(r.get("Status"))
             if f:
@@ -203,7 +241,8 @@ class EffortList:
         for col, w in zip("ABCD", (17, 14, 16, 70)):
             hs.column_dimensions[col].width = w
         ab = wb.create_sheet(ABOUT)
-        for r in (["Effort", self.name], ["First use", FIRST_USE_RULES[self.first_use]],
+        for r in (["Effort", self.name], ["Client", self.client], ["Solicitation", self.solicitation],
+                  ["Internal number", self.internal_no], ["First use", FIRST_USE_RULES[self.first_use]],
                   ["Saved", datetime.datetime.now().strftime("%Y-%m-%d %H:%M")],
                   ["Statuses", ", ".join(STATUSES)],
                   ["Note", "Edit Status, SS Approver and Notes here or in Acronym Hunter. Keep the column headings."]):
