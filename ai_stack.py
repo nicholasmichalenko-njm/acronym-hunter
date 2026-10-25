@@ -49,6 +49,8 @@ FEATURES = {
         ("Rules", "Approved definitions win; first use, missing, unused and differing definitions in volumes", "none"),
         ("Word writer (built in)", "Writes the volume acronym lists", "none"),
         ("Effort folder", "Saved results, choices and backups for this effort only", "none"),
+        ("Keyword Harvest (rules and counts)", "Suggests SharePoint keywords from phrase counts, headings, emphasis wording "
+                                               "and where a phrase appears; you decide", "none"),
         ("Effort home and volumes (rules)", "The effort list as home; volumes from the files each term was found in, or "
                                             "your own assignment; Use as definition takes the words you select", "none"),
     ]),

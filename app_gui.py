@@ -134,6 +134,7 @@ from ai_ui import AIMixin   # AI and ML labels and switch (2.12.0)
 from setup_ui import SetupMixin   # Setup Builder in the compliance window (2.13.0)
 from effort_wizard import WizardMixin   # effort start wizard, intake, review, record, exports (2.14.0)
 from effort_home import HomeMixin       # effort home, Scan review, volumes, export picker, Use as definition (2.14.0)
+from keywords_ui import KeywordsMixin   # Keyword Harvest (2.16.0)
 from master_db import MasterMixin   # master database and Known in (2.14.0)
 import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
@@ -2272,7 +2273,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.15.0"            # keep in step with version_info.txt
+APP_VERSION = "2.16.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3114,7 +3115,7 @@ def corrections_on():
     """Report misreading and Not text save corrections for the training team, unless allow_training is false."""
     return bool(APP_CFG["allow_training"])
 
-class AcronymAppGUI(MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Acronym Hunter {APP_VERSION}: acronyms, abbreviations and units (100% local)")
@@ -3750,6 +3751,10 @@ class AcronymAppGUI(MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin
         menu.add_separator()
         dd = self.results.get(iid, {})
         nsel = len([t for t in self.tree.selection() if t in self.results]) or 1
+        if self.effort is not None:            # Keyword Harvest (2.16.0)
+            kd = dd.get("selected_definition", "")
+            kw = kd if kd and not status_text(kd).startswith(("[", "MULTIPLE", "Rescan")) else iid
+            menu.add_command(label=f"Add as keyword: {kw[:50]}...", command=lambda: self.kw_quick(kw, source=f"Result {iid}"))
         if dd.get("known"):
             menu.add_command(label=f"Take off the omit list ({nsel})", command=self.unmark_known)
         else:
@@ -4528,6 +4533,10 @@ class AcronymAppGUI(MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin
         if self.project is not None: self.project.release_lock()
 
     def on_close(self):
+        try:
+            self.kw_stop_hotkey()              # Ctrl+Alt+K is released with the window (2.16.0)
+        except Exception:
+            diag.swallowed()
         if self.project is not None and str(self.btn_project.cget("state")) != "disabled":
             self.save_project()
         self._release_project_lock()

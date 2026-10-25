@@ -20,6 +20,10 @@ SCAN_NEW, SCAN_FOUND, SCAN_GONE = "New in this scan", "Found", "No longer found 
 STATUSES = ["Proposed", "Needs author", "Approved", "Rejected"]
 FIRST_USE_RULES = {"volume": "Restarts in each volume", "submission": "Runs across the whole submission"}
 SHEET, HIST, ABOUT = "Effort List", "History", "About"
+KEYWORDS = "Keywords"                       # 2.16.0 Keyword Harvest: the effort's SharePoint keywords
+KW_COLUMNS = ["Keyword", "Category", "Status", "Source", "Why", "Added by", "Date", "SharePoint field"]
+KW_CATEGORIES = ["Customer emphasis", "Our solution", "Differentiator", "Offering", "Acronym", "Other"]
+KW_STATUSES = ["Proposed", "Keep", "Reject"]
 
 
 class ListLocked(Exception):
@@ -54,11 +58,12 @@ class EffortList:
         self.order = []         # terms in sheet order
         self.history = []       # [date, user, term, change]
         self.pending = False    # changes not yet saved (file was locked)
+        self.keywords = []      # [{column: value}] in sheet order (2.16.0)
 
     # ------------------------------------------------------------ read
     def load(self):
         """Read the workbook. A missing file is an empty list (created on first save)."""
-        self.rows, self.order, self.history = {}, [], []
+        self.rows, self.order, self.history, self.keywords = {}, [], [], []
         if not os.path.isfile(self.path):
             return self
         from openpyxl import load_workbook
@@ -88,6 +93,15 @@ class EffortList:
                 hit = wb[HIST].iter_rows(values_only=True)
                 next(hit, None)
                 self.history = [[("" if v is None else str(v)) for v in (list(r) + ["", "", "", ""])[:4]] for r in hit if r and any(r)]
+            if KEYWORDS in wb.sheetnames:
+                kit = wb[KEYWORDS].iter_rows(values_only=True)
+                khead = [str(h or "").strip() for h in next(kit, [])]
+                for vals in kit:
+                    k = {c: ("" if i >= len(vals or []) or vals[i] is None else str(vals[i]).strip())
+                         for c in KW_COLUMNS for i in [khead.index(c) if c in khead else 999]}
+                    if k["Keyword"]:
+                        k["Status"] = k["Status"] if k["Status"] in KW_STATUSES else "Proposed"
+                        self.keywords.append(k)
             if ABOUT in wb.sheetnames:
                 for r in wb[ABOUT].iter_rows(values_only=True):
                     if r and r[0] == "First use" and len(r) > 1:
@@ -195,6 +209,42 @@ class EffortList:
             return True
         return False
 
+    # ------------------------------------------------------------ keywords (2.16.0)
+    def keyword(self, text):
+        k = " ".join((text or "").split()).casefold()
+        return next((x for x in self.keywords if x["Keyword"].casefold() == k), None)
+
+    def add_keyword(self, text, category="Other", source="", why="", status="Proposed", field=""):
+        """Add a keyword. Returns 'added', 'exists' or 'empty'. The same words (any case or spacing) are one keyword."""
+        text = " ".join((text or "").split()).strip(" .,;:")[:120]
+        if not text:
+            return "empty"
+        if self.keyword(text):
+            return "exists"
+        self.keywords.append({"Keyword": text, "Category": category if category in KW_CATEGORIES else "Other",
+                              "Status": status if status in KW_STATUSES else "Proposed", "Source": source[:200],
+                              "Why": why[:400], "Added by": user_name(), "Date": today(), "SharePoint field": field})
+        self._hist("(keyword)", f"keyword added: {text}" + (f" (from {source[:60]})" if source else ""))
+        return "added"
+
+    def update_keyword(self, text, **fields):
+        k = self.keyword(text)
+        if not k:
+            return False
+        changed = [c for c, v in fields.items() if c in KW_COLUMNS and v is not None and str(v) != k[c]]
+        for c in changed:
+            k[c] = str(fields[c])
+        if changed:
+            self._hist("(keyword)", f"keyword {k['Keyword']}: " + ", ".join(f"{c} {k[c]}" for c in changed)[:200])
+        return bool(changed)
+
+    def remove_keyword(self, text):
+        k = self.keyword(text)
+        if k:
+            self.keywords.remove(k)
+            self._hist("(keyword)", f"keyword removed: {k['Keyword']}")
+        return bool(k)
+
     def _hist(self, term, change):
         self.history.append([datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), user_name(), term, change])
         self.pending = True
@@ -232,6 +282,17 @@ class EffortList:
         ws.add_data_validation(dv)
         col = ws.cell(row=1, column=COLUMNS.index("Status") + 1).column_letter
         dv.add(f"{col}2:{col}5000")
+        ks = wb.create_sheet(KEYWORDS)                 # 2.16.0
+        ks.append(KW_COLUMNS)
+        for c in ks[1]:
+            c.font = Font(bold=True, color="FFFFFF"); c.fill = head
+        for k in self.keywords:
+            ks.append([k.get(c, "") for c in KW_COLUMNS])
+        for col, w in zip("ABCDEFGH", (34, 18, 11, 34, 60, 14, 12, 18)):
+            ks.column_dimensions[col].width = w
+        ks.freeze_panes = "A2"
+        kdv = DataValidation(type="list", formula1='"' + ",".join(KW_STATUSES) + '"', allow_blank=True)
+        ks.add_data_validation(kdv); kdv.add("C2:C2000")
         hs = wb.create_sheet(HIST)
         hs.append(["Date", "User", "Term", "Change"])
         for c in hs[1]:

@@ -444,6 +444,10 @@ class PreviewPane(ctk.CTkFrame):
                       state="normal" if text.strip() and self.term else "disabled", command=lambda: self.use_selection(text))
         if self._found:
             m.add_command(label=f"Use: {self._found[:60]}", command=self.use_found)
+        if getattr(self.app, "effort", None) is not None:      # Keyword Harvest (2.16.0)
+            m.add_command(label=(f"Add as keyword: {text[:40]}..." if text.strip() else "Add as keyword (select words first)"),
+                          state="normal" if text.strip() else "disabled",
+                          command=lambda: self.app.kw_quick(" ".join(text.split()), source=self.src_label or "Preview"))
         m.add_command(label="Copy", state="normal" if text.strip() else "disabled",
                       command=lambda: (self.clipboard_clear(), self.clipboard_append(text)))
         m.tk_popup(event.x_root, event.y_root)

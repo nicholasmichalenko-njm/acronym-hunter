@@ -18,7 +18,7 @@ import customtkinter as ctk
 import diag
 import effort as E
 
-VIEW_HOME, VIEW_SCAN = "Effort list (home)", "Scan review"
+VIEW_HOME, VIEW_SCAN, VIEW_KW = "Effort list (home)", "Scan review", "Keywords"
 HOME_FILTERS = ["All terms", "Needs a definition", "Proposed", "Needs author", "Approved", "Rejected", "No longer found"]
 NO_VOLUME = "No volume"
 HOME_COLS = (("term", "Term", 110), ("definition", "Definition", 330), ("status", "Status", 110),
@@ -57,7 +57,7 @@ class HomeMixin:
     def home_build(self, M, before):
         """The view switch and the home view, both above `before` (the scan view's frame)."""
         self.view_var = tk.StringVar(value=VIEW_SCAN)
-        self.seg_view = ctk.CTkSegmentedButton(M, values=[VIEW_HOME, VIEW_SCAN], variable=self.view_var,
+        self.seg_view = ctk.CTkSegmentedButton(M, values=[VIEW_HOME, VIEW_SCAN, VIEW_KW], variable=self.view_var,
                                                command=lambda v: self.show_view(v))
         self.home_view = ctk.CTkFrame(M, fg_color="transparent")
         H = self.home_view
@@ -116,24 +116,36 @@ class HomeMixin:
         self.btn_h_setvol.pack(side="right")
         self._home_after = None
         self._home_buttons()
+        if hasattr(self, "kw_build"):                  # Keyword Harvest (2.16.0)
+            self.kw_build(M)
 
     # ------------------------------------------------------------ views
+    def _views(self):
+        v = {VIEW_HOME: self.home_view, VIEW_SCAN: self.scan_view}
+        if getattr(self, "kw_view", None) is not None:
+            v[VIEW_KW] = self.kw_view
+        return v
+
     def show_view(self, which=None, save=True):
         which = which or self.view_var.get()
-        if self.effort is None:
+        if self.effort is None or which not in self._views():
             which = VIEW_SCAN
         self.view_var.set(which)
+        for name, frame in self._views().items():
+            if name != which:
+                frame.pack_forget()
+        frame = self._views()[which]
+        if not frame.winfo_manager():
+            if which == VIEW_SCAN:
+                frame.pack(fill="both", expand=True)
+            else:
+                frame.pack(fill="both", expand=True, padx=15, pady=(0, 10))
         if which == VIEW_HOME:
-            self.scan_view.pack_forget()
-            if not self.home_view.winfo_manager():
-                self.home_view.pack(fill="both", expand=True, padx=15, pady=(0, 10))
             self.home_refresh()
-        else:
-            self.home_view.pack_forget()
-            if not self.scan_view.winfo_manager():
-                self.scan_view.pack(fill="both", expand=True)
-        if which == VIEW_HOME:
             diag.activity("view_home")
+        elif which == VIEW_KW:
+            self.kw_refresh()
+            diag.activity("view_keywords")
         else:
             diag.activity("view_scan")
         if save:
@@ -148,10 +160,12 @@ class HomeMixin:
             self.show_view(VIEW_SCAN, save=False)
             return
         if not self.seg_view.winfo_manager():
-            anchor = self.home_view if self.home_view.winfo_manager() else self.scan_view
+            anchor = next((f for f in self._views().values() if f.winfo_manager()), self.scan_view)
             self.seg_view.pack(pady=(0, 6), before=anchor)
         if self.view_var.get() == VIEW_HOME:
             self.home_refresh()
+        elif self.view_var.get() == VIEW_KW:
+            self.kw_refresh()
 
     def home_state(self):
         sel = self.home_tree.selection() if hasattr(self, "home_tree") else ()
@@ -280,6 +294,9 @@ class HomeMixin:
         m.add_command(label="Edit definition...", command=self.home_edit_definition)
         m.add_command(label="Where from...", command=self.home_where_from)
         m.add_command(label="Volumes...", command=self.assign_volumes_dialog)
+        r = self.effort.rows.get(iid, {})
+        if hasattr(self, "kw_quick") and r.get("Definition"):
+            m.add_command(label=f"Add as keyword: {r['Definition'][:40]}", command=lambda: self.kw_quick(r["Definition"], source=f"Effort list {iid}"))
         m.add_separator()
         for s in E.STATUSES:
             m.add_command(label=f"Set status: {s}", command=lambda s=s: self.home_set_status(s))

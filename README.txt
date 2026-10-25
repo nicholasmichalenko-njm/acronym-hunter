@@ -559,3 +559,22 @@ TRAINING IS ITS OWN PROGRAM (2.15.0)
   - Knowledge Pack: export a numbered Knowledge Pack (reader, database, OCR fixes, ignore list), load trained models
     from the Training Kit, undo. Acronym Hunter installs the pack.
 - Build: build.ps1 -App training makes AcronymHunter_US_Training.zip (AcronymHunterTraining.exe), with the same gates.
+
+KEYWORD HARVEST (2.16.0)
+- Keywords view (with an effort open, next to Effort list and Scan review): the effort's SharePoint keywords with
+  Category (Customer emphasis, Our solution, Differentiator, Offering, Acronym, Other), Status (Proposed, Keep,
+  Reject), Source, Why, Added by, Date and SharePoint field. Saved in the effort list workbook (Keywords sheet), with
+  History lines and the recovery copy. The same words in any case or spacing are one keyword.
+- Capture: Ctrl+K (selected preview text, else a short clipboard text, fills it in); right-click a result, preview text
+  or a home row > Add as keyword; Ctrl+Alt+K anywhere in Windows. The system-wide key is one RegisterHotKey
+  combination (not a keyboard hook), reads the clipboard only when pressed, and is released when the app closes. If
+  another program owns Ctrl+Alt+K, Ctrl+K in the app still works.
+- Suggest keywords: reads the typed text of the effort's customer documents and of our volumes and scanned files.
+  Candidates are 2 to 4 word phrases (no small word at either end, no RFP boilerplate such as Statement of Work or
+  Table of Contents). Scored by count and spread, headings, requirement or evaluation wording nearby, where they appear
+  (only in our volumes = Our solution or Differentiator), and everyday words score lower; approved effort-list
+  acronyms are offered with their long forms. Rules and counts only (No AI). Each suggestion shows why and up to three
+  sample sentences. Add selected adds them as Proposed; Not a keyword adds them as Reject so they are not suggested
+  again.
+- Export: Excel or CSV (Keyword, Category, SharePoint field, Why, Source, Status, Added by, Date), Keep only or Keep and
+  Proposed. The app never writes to SharePoint.

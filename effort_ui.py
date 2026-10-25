@@ -118,6 +118,8 @@ class EffortMixin:
         m.add_command(label="Activity (what was added, from where)...", command=self.show_activity, state=st)
         m.add_command(label="Go to the effort list (home)", command=lambda: self.show_view("Effort list (home)"), state=st)
         m.add_command(label="Export terms (choose columns and volumes)...", command=self.export_picker, state=st)
+        m.add_command(label="Keywords (for SharePoint tags)", command=lambda: self.show_view("Keywords"), state=st)
+        m.add_command(label="Suggest keywords...", command=self.kw_suggest_dialog, state=st)
         m.add_command(label="Export the acronym lists as set in the wizard (Word and Excel)...", command=self.export_effort_lists_ui, state=st)
         m.add_command(label="Name volumes...", command=self.edit_volumes, state=st)
         m.add_command(label="Import a volume's acronym list...", command=self.import_volume_list, state=st)
@@ -301,6 +303,7 @@ class EffortMixin:
             if self.ask_recover("Effort List", rec):
                 st = rec["state"]
                 L.rows, L.order, L.history = st.get("rows", {}), st.get("order", []), st.get("history", [])
+                L.keywords = st.get("keywords", L.keywords)
                 L.pending = True
                 diag.activity("recovery_used")
                 self._save_effort_list()
@@ -389,7 +392,7 @@ class EffortMixin:
         ws = getattr(self, "ws", None) if L is self.effort else None
         if ws is not None and L.pending:
             try:
-                ws.write_recovery("effort", L.path, {"rows": L.rows, "order": L.order, "history": L.history})
+                ws.write_recovery("effort", L.path, {"rows": L.rows, "order": L.order, "history": L.history, "keywords": L.keywords})
             except Exception:
                 diag.swallowed()
         while True:

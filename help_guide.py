@@ -185,6 +185,17 @@ PAGES = {
                                     "the nearby words already give a long form, the preview shows \"Found: ...\" with a Use "
                                     "button. The definition is kept for later scans in this effort and goes into the effort "
                                     "list when you Keep the term.")]),
+    ("h", "Keywords for SharePoint"),
+    ("p", "Collect the keywords for tagging the submission while you work, not after. The Keywords view (next to Effort "
+          "list and Scan review) keeps them in the effort list's Keywords sheet."),
+    ("rows", [("Capture", "Ctrl+K in the app (selected preview text or the clipboard fills it in), right-click a result, "
+                          "preview text or a home row > Add as keyword, or Ctrl+Alt+K anywhere in Windows after copying a phrase."),
+              ("Suggest", "Suggest keywords reads the customer documents and your volumes and lists phrases with the reasons: "
+                          "how often and where, in a heading, near requirement or evaluation wording, only in our volumes. "
+                          "Rules and counts only (No AI). Not a keyword keeps a phrase from coming back."),
+              ("Decide", "Keep, Reject, Edit (category, why, SharePoint field) or Remove. Every change is in the History sheet."),
+              ("Export", "Excel or CSV in the SharePoint columns: Keep only, or Keep and Proposed. The app never connects to "
+                         "SharePoint.")]),
     ("h", "Volumes and export"),
     ("rows", [("Name volumes", "Home > Name volumes (or Effort > Name volumes): Vol I Technical, Vol II Management... and tick "
                                "the files in each. Terms get their volumes from the files they were found in."),
