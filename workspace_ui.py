@@ -51,7 +51,7 @@ class WorkspaceMixin:
         self.opt_effort = ctk.CTkOptionMenu(bar, variable=self.effort_var, values=[NO_EFFORT], width=260, dynamic_resizing=False,
                                             command=self._switch_from_bar)
         self.opt_effort.pack(side="left", pady=5)
-        ctk.CTkButton(bar, text="New effort...", width=100, height=28, command=lambda: self.open_wizard(),
+        ctk.CTkButton(bar, text="Start an effort...", width=130, height=28, command=lambda: self.open_wizard(),
                       fg_color=("#CBD5E1", "#334155"), hover_color=("#94A3B8", "#475569"),
                       text_color=("#0F172A", "#F1F5F9")).pack(side="left", padx=8, pady=5)
         self.topbar_right = ctk.CTkFrame(bar, fg_color="transparent")

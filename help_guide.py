@@ -150,8 +150,8 @@ PAGES = {
               ("Jump", "Double-click any row: the results table selects the term and the preview opens at that spot."),
               ("Acronym lists", "One Word file per volume (and one for all volumes): a Term and Definition table, sorted."),
               ("Record", "Writes Used in volumes and First use into the effort list.")]),
-    ("h", "Start an effort (wizard)"),
-    ("p", "Effort > New effort opens five short steps: the effort and client (short name, solicitation number, your internal "
+    ("h", "Start an effort"),
+    ("p", "Effort > Start a new effort (or Start an effort at the top) opens six short steps: the master database, the effort and client (short name, solicitation number, your internal "
           "number), the customer's own acronym lists, the customer documents, how the list ships (one list, one per volume, or "
           "both; the first-use rule), and ready. The documents are copied into the effort's Customer documents folder and read "
           "for a jump start; Review new terms adds what they hold in one click."),
@@ -160,6 +160,17 @@ PAGES = {
               ("Every scan", "Updates Found in, First found, Last found and Scan status in the effort list. Terms a rescan no "
                              "longer finds say \"No longer found in <file>\"; nothing is removed."),
               ("Activity", "Effort > Activity: what was added, from which document, by whom, newest first.")]),
+    ("h", "Master database and Known in"),
+    ("rows", [("Load it first", "The first step of Start an effort loads the company's master database (CSV or Excel with "
+                                "Term, Category, Definition, Action, or a plain acronym list). It is shared by every effort on this PC."),
+              ("Known in", "Every result says where the term is known: Customer docs, Customer list, Master database only, or "
+                           "Not found in any source. Status > Known in filters by it; the CSV export has the column."),
+              ("A newer version", "File > Load master database. Each load is a numbered version. Rows added on this PC stay; "
+                                  "rows the new version dropped are removed; new rows are added."),
+              ("Update the results", "After a new version the app offers to update the results. Nothing is removed: rows the "
+                                     "database changes say Database update (Status > Database update), and your decisions, "
+                                     "picked definitions and effort list stay. File > Update results against the master database "
+                                     "does it any time.")]),
     ("h", "Effort list (home) and Scan review"),
     ("p", "With an effort open, the main window has two views. Effort list (home) shows every decision for the effort, "
           "where each term came from and which volumes use it; it reopens exactly as you left it. Every scan lands in Scan "

@@ -29,10 +29,15 @@ DOCS = [os.path.join(RFP, f) for f in sorted(os.listdir(RFP))]
 VOL = os.path.join(tmp, "Vol_1_Technical.docx")
 def write_vol(with_zeta):
     d = docxw.Doc(); d.heading("1 Approach", 1)
-    d.para("The SOW tasks and deliverables follow the TRL plan." + (" The ZQX interface carries data." if with_zeta else ""))
+    d.para("The SOW tasks and deliverables follow the TRL plan. The PMP sets the schedule." + (" The ZQX interface carries data." if with_zeta else ""))
     d.save(VOL)
 write_vol(True)
 FOLDER = os.path.join(tmp, "Efforts", "Kestrel Thermal")
+MASTER = os.path.join(tmp, "Master_Database.csv")
+with open(MASTER, "w", newline="", encoding="utf-8") as f:
+    csv.writer(f).writerows([["Term", "Category", "Definition", "Action"], ["SOW", "Acronym", "Statement of Work", "Include"],
+                             ["PMP", "Acronym", "Program Management Plan", "Include"]])
+MASTER2 = os.path.join(tmp, "Master_Database_v2.xlsx")
 checks = {}
 
 
@@ -55,6 +60,10 @@ def wait(cond, then, limit=120):
 
 def step1():
     w = app.open_wizard(); w.update(); api = w._api; v = api["v"]
+    check("Start an effort begins with the master database", "Master database" in w.title() or w._load_master is not None)
+    info = w._load_master(MASTER)
+    check("master database loaded as version 1", info and info["version"] == 1 and info["added"] == 1 and info["same"] == 1, info)
+    api["next"](); w.update()
     v["name"].set("Kestrel Thermal"); v["client"].set("USSF SSC"); v["sol"].set("FA8810-27-R-0042"); v["internal"].set("SS-2027-114")
     st_ = api["st"]; st_["folder_set"] = True; v["folder"].set(FOLDER)
     api["next"](); w.update(); w._add_files([CL])
@@ -99,6 +108,14 @@ def step3():
     app.status_var.set(A.STATUS_FILTERS[0]); app.populate_table()
     check("effort line reports the last scan", "last scan: " in app.lbl_effort.cget("text") and "USSF SSC" in app.lbl_effort.cget("text"),
           app.lbl_effort.cget("text")[-80:])
+    r = app.results
+    check("Known in: master database only", app.known_cell("PMP", r["PMP"]) == "Master database only", app.known_cell("PMP", r["PMP"]))
+    check("Known in: not found in any source", app.known_cell("ZQX", r["ZQX"]) == "Not found in any source")
+    check("Known in: customer list", app.known_cell("TRL", r["TRL"]).startswith("Customer"), app.known_cell("TRL", r["TRL"]))
+    app.status_var.set("Known in: master database only"); app.populate_table()
+    kids = set(app.tree.get_children())
+    check("filter: master database only", "PMP" in kids and not kids & {"ZQX", "TRL"}, kids)
+    app.status_var.set(A.STATUS_FILTERS[0]); app.populate_table()
     app.tree.selection_set("ZQX"); app.add_to_effort(["ZQX"])
     # Apply Choice writes into the list
     app.selected_term = "SOW"; app.combo.configure(state="normal", values=app.results["SOW"]["definitions"]); app.combo.set("Scope of Work")
@@ -131,6 +148,31 @@ def step4():
     head = [c.value for c in ws[1]]
     check("all efforts workbook carries effort, client, solicitation, Found in", got[1] >= 4 and
           {"Effort", "Client", "Solicitation", "Found in", "Internal number"} <= set(head), (got[1], head))
+    # a newer master database later on: the results are updated, not redone
+    from openpyxl import Workbook
+    wb = Workbook(); ws = wb.active
+    for row in (["Term", "Definition", "Category", "Action"], ["SOW", "Statement of Work", "Acronym", "Include"],
+                ["ZQX", "Zeta Quantum Exchange", "Acronym", "Include"]):
+        ws.append(row)
+    wb.save(MASTER2)
+    write_vol(True); time.sleep(1.1)                  # ZQX is back in the volume too
+    st["before"] = set(app.results)
+    st["choice"] = app.results["SOW"]["selected_definition"]
+    info = app.master_load(MASTER2, ask=False)
+    check("newer master: version 2, PMP removed, ZQX added", info and info["version"] == 2 and info["removed"] == 1 and info["added"] == 1, info)
+    check("rows added on this PC stay", any(r[0] == "SOW" and r[2] == "Scope of Work" for r in A.read_db_rows()))
+    assert app.refresh_from_database()
+    wait(lambda: not app.busy() and not app.btn_cancel.winfo_ismapped(), step5)
+
+
+def step5():
+    r = app.results
+    check("update keeps every row", st["before"] <= set(r), st["before"] - set(r))
+    check("update marks what the database changed", r["ZQX"].get("change") == "Database update"
+          and app.known_cell("ZQX", r["ZQX"]) == "Master database only", (r["ZQX"].get("change"), r["ZQX"].get("known_in")))
+    check("PMP now known nowhere", app.known_cell("PMP", r["PMP"]) == "Not found in any source", r["PMP"].get("known_in"))
+    check("decisions survive the update", r["SOW"]["selected_definition"] == st["choice"], r["SOW"]["selected_definition"])
+    check("status says nothing was removed", "Nothing was removed" in app.status.cget("text"), app.status.cget("text")[:90])
     ok = all(checks.values())
     print("GUI WIZARD", "PASS" if ok else "FAIL", f"({sum(checks.values())}/{len(checks)})")
     app.on_close()

@@ -128,7 +128,16 @@ class AIMixin:
         gen = "math reader add-on installed (runs only when you click it)" if eng.MATH_DIR else "no generative AI installed"
         self.lbl_aistate.configure(text=f"Offline: nothing leaves this PC   |   Effort: {who}   |   AI and ML: "
                                         + ("on" if on else "off (rules only; text in pictures not read)")
-                                        + f"   |   {gen}")
+                                        + f"   |   {gen}" + self._master_bit())
+
+    def _master_bit(self):
+        try:
+            import master_db
+            i = master_db.master_info()
+            return f"   |   Master database v{i['version']}" if i else "   |   No master database loaded"
+        except Exception:
+            diag.swallowed()
+            return ""
 
     # ------------------------------------------------------------ panels
     def _panel(self, title, rows, foot=""):

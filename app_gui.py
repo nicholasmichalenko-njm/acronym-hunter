@@ -134,6 +134,7 @@ from ai_ui import AIMixin   # AI and ML labels and switch (2.12.0)
 from setup_ui import SetupMixin   # Setup Builder in the compliance window (2.13.0)
 from effort_wizard import WizardMixin   # effort start wizard, intake, review, record, exports (2.14.0)
 from effort_home import HomeMixin       # effort home, Scan review, volumes, export picker, Use as definition (2.14.0)
+from master_db import MasterMixin   # master database and Known in (2.14.0)
 import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
 DB_FILE = os.path.join(BASE_DIR, "acronym_database.csv")
@@ -2231,6 +2232,43 @@ def analyze_batch(filepaths, status_callback, capture=None):
     summarize_equations(findings)
     return dict(sorted(findings.items(), key=lambda x: x[1]["count"], reverse=True))
 
+def refresh_batch(filepaths, status_callback, cache):
+    """Match files again against the current database (2.14.0), reusing the text already read in this session when the
+    file and everything its saved text depends on are unchanged; other files are read again. Updates cache."""
+    m = build_matcher()
+    findings = {}
+    _OCR_CACHE.clear()
+    weak = weak_terms(m); sigs = (engine_signature(weak), text_signature(weak), ocr_signature())
+    total = len(filepaths)
+    for idx, filepath in enumerate(filepaths, start=1):
+        check_cancel()
+        key = os.path.abspath(filepath)
+        entry = cache.get(key)
+        try:
+            st = os.stat(filepath)
+        except OSError:
+            st = None
+        fresh = entry and st and entry_current(entry, sigs) and entry["size"] == st.st_size and abs(entry["mtime"] - st.st_mtime) < 1.0
+        if fresh:
+            status_callback(f"[{idx}/{total}] {os.path.basename(filepath)} - unchanged, matching again")
+        else:
+            _OCR_CALLS[0] = 0
+            chunks, skips, err = scan_file(filepath, status_callback, idx, total)
+            if st is None:
+                record_file_error(findings, filepath, err or "File not found")
+                continue
+            entry = cache_entry(st, weak, chunks, skips, err, _OCR_CALLS[0], sigs)
+            cache[key] = entry
+        if entry.get("error"):
+            record_file_error(findings, filepath, entry["error"])
+        for label, reason in entry.get("skips", []):
+            record_skip(findings, label, reason)
+        match_chunks(findings, entry["chunks"], m)
+    finalize_symbols(findings, m)
+    apply_client_overlay(findings, m)
+    summarize_equations(findings)
+    return dict(sorted(findings.items(), key=lambda x: x[1]["count"], reverse=True))
+
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
@@ -2997,7 +3035,9 @@ STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", 
                   "Not defined at first use", "Equations and symbols", "Undefined symbols",
                   "Added manually", "Customer documents", "Customer and database differ", "In effort list", "Not in effort list", "Effort: needs author", "Effort: approved",
                   "New since last scan", "Changed since last scan", "No longer found", "Errors / not scanned",
-                  "Context suggests a meaning", "New in this scan (not in the effort list)", "Found in omit list", "Excluded"]
+                  "Context suggests a meaning", "New in this scan (not in the effort list)", "Found in omit list",
+                  "Known in: customer docs", "Known in: customer list", "Known in: master database only", "Known in: no source",
+                  "Database update", "Excluded"]
 MANUAL_MARK = ""   # statuses are plain words (2.7.0: no emoji in the interface or in exports)
 # Status kinds by leading words. Older projects saved statuses with an emoji in front; status_text() drops it.
 _KIND_WORDS = (("error", ("COULD NOT READ FILE", "NOT SCANNED")),
@@ -3037,6 +3077,7 @@ COLUMNS = (  # id, heading, base width, anchor
     ("change", "Change", 130, "w"),
     ("status", "Status", 210, "w"),
     ("definition", "Definition", 300, "w"),
+    ("knownin", "Known in", 190, "w"),
     ("firstuse", "First Use (acronyms)", 260, "w"),
     ("locations", "Source Locations", 420, "w"),
 )
@@ -3067,7 +3108,7 @@ def trainer_available():
     """Training features: on unless config\\app_settings.json sets allow_training to false."""
     return bool(APP_CFG["allow_training"]) and importlib.util.find_spec("trainer_gui") is not None
 
-class AcronymAppGUI(HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Acronym Hunter {APP_VERSION}: acronyms, abbreviations and units (100% local)")
@@ -3391,6 +3432,9 @@ class AcronymAppGUI(HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin
         f.add_separator()
         proj = tk.Menu(f, tearoff=0, postcommand=lambda: self.show_project_menu(proj))
         f.add_cascade(label="Project", menu=proj)
+        f.add_separator()
+        f.add_command(label="Load master database...", command=c("file_master_load", self.master_load))
+        f.add_command(label="Update results against the master database", command=c("file_master_refresh", self.refresh_from_database))
         f.add_separator()
         f.add_command(label="Export CSV...", accelerator="Ctrl+E", command=c("file_export_csv", self.export_csv))
         f.add_command(label="Restore an earlier version...", command=c("file_restore", self.restore_dialog))
@@ -4548,8 +4592,10 @@ class AcronymAppGUI(HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin
             return (data["selected_definition"].casefold(), term.casefold())
         if c == "firstuse":
             return (0 if first_use_flag(data) else 1 if first_use_lines(data) else 2, term.casefold())
+        if c == "knownin":
+            return (self.known_cell(term, data), term.casefold())
         if c == "change":
-            order = {"New": 0, "Changed": 1, "No longer found": 2, "Unchanged": 3}
+            order = {"New": 0, "Changed": 1, "Database update": 1, "No longer found": 2, "Unchanged": 3}
             return (order.get(data.get("change", ""), 4), term.casefold())
         return (term.casefold(),)
 
@@ -4595,6 +4641,11 @@ class AcronymAppGUI(HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin
             "No longer found": data.get("gone", False),
             "Errors / not scanned": kind == "error",
             "Excluded": data.get("excluded", False),
+            "Database update": data.get("change") == "Database update",
+            "Known in: customer docs": "Customer docs" in (data.get("known_in") or []),
+            "Known in: customer list": "Customer list" in (data.get("known_in") or []),
+            "Known in: master database only": (data.get("known_in") or []) == ["Master database"],
+            "Known in: no source": not data.get("known_in") and not data.get("file_error"),
         }.get(wanted, True)
 
     def row_values(self, term, data):
@@ -4602,7 +4653,7 @@ class AcronymAppGUI(HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin
         if status_kind(data.get("status", "")) == "choice" and ctx_text(data):
             defn = f"Context: {ctx_text(data)}\n{defn}"
         return (term, data["category"], data["count"], data.get("change", ""), data["status"],
-                defn, self.first_use_cell(data), self.wrap_locations(data["locations"]))
+                defn, self.known_cell(term, data), self.first_use_cell(data), self.wrap_locations(data["locations"]))
 
     def first_use_cell(self, data):
         """Compact table text: where the first use is and whether it is defined there. Details and export say more."""
@@ -4720,7 +4771,9 @@ class AcronymAppGUI(HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin
         for d in self.results.values():   # known names keep their status unless the effort list holds them (2.13.0)
             if d.get("known") and not d.get("effort") and not d.get("excluded"):
                 d["status"] = KNOWN_STATUS + (f": {d['omit_reason']}" if d.get("omit_reason") else "")
+        self.mark_known_in()               # customer docs, customer list, master database, or no source (2.14.0)
         rec = self.effort_after_scan(getattr(self, "queued_files", []) or []) if self.effort is not None else None   # 2.14.0
+        dbr = self.after_db_refresh()      # a database update keeps every row and marks what changed (2.14.0)
         self.save_project()
         self.reset_ui()
         self.refresh_type_options()
@@ -4733,6 +4786,9 @@ class AcronymAppGUI(HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin
             self.status.configure(text=f"Effort list updated: {rec['found']} found again, {rec['new']} new (not in the list"
                                        f"{': Effort > Review new terms' if rec['new'] else ''}), {rec['gone']} no longer found.")
             self.scan_landed()             # every scan lands in Scan review (2.14.0)
+        if dbr:
+            self.status.configure(text=f"Results updated against the master database: {dbr['changed']} changed (Status > Database "
+                                       f"update), {dbr['new']} new, {dbr['kept']} kept from before. Nothing was removed.")
 
     def populate_table(self):
         if not hasattr(self, "tree"):
@@ -4742,6 +4798,9 @@ class AcronymAppGUI(HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin
         ftype, fstat = self.type_var.get(), self.status_var.get()
         query = self.search_var.get().strip().casefold()
 
+        for t, d in self.results.items():     # Known in for results saved before 2.14.0
+            if "known_in" not in d and not d.get("file_error"):
+                d["known_in"] = self.known_in(t, d)
         v_count = e_count = a_count = c_count = 0
         rows = []
         for term, data in self.results.items():
@@ -5393,7 +5452,7 @@ class AcronymAppGUI(HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin
             w.writerow(["Term", "Type", "Count", "Change", "Status", "Selected definition", "Possible definitions",
                         "Client list definition", "Database definition", "Author decision",
                         "First use (acronyms: define here)", "Locations",
-                        "First found by a scan (date)", "Last found by a scan (date)", "Context suggests"])
+                        "First found by a scan (date)", "Last found by a scan (date)", "Known in", "Context suggests"])
             for term in terms:
                 d = self.results[term]
                 defs = d.get("definitions", [])
@@ -5404,7 +5463,7 @@ class AcronymAppGUI(HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin
                             "\n".join(defs) if len(defs) > 1 or d.get("client") else "",
                             "\n".join(client), "\n".join(strip(x) for x in dbdefs), "",
                             "\n".join(first_use_lines(d)), "\n".join(d["locations"]), d.get("first_seen", ""), d.get("last_seen", ""),
-                            ctx_text(d)])
+                            self.known_cell(term, d), ctx_text(d)])
         view = self.status_var.get() if self.status_var.get() != STATUS_FILTERS[0] else "all statuses"
         messagebox.showinfo("Exported", f"{len(terms)} rows exported ({view}) to:\n{path}\n\n"
                             + (f"{left_out} term(s) on the omit list left out (Status > Found in omit list shows them).\n\n" if left_out else "")

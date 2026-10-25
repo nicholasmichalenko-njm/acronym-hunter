@@ -499,7 +499,17 @@ SETUP BUILDER (2.13.0)
   (saved like Apply Choice). Status > Context suggests a meaning; the CSV export has a Context suggests column.
 
 EFFORT START, HOME AND VOLUMES (2.14.0)
-- Effort > New effort (wizard): effort and client (short name, solicitation number, internal number), the customer's
+- Master database: the first step of Start an effort, or File > Load master database. CSV or Excel (Term, Category,
+  Definition, Action) or a plain acronym list, merged into this PC's database: rows added on this PC stay (no Origin),
+  rows from the previous master the new one dropped are removed, new rows get Origin "Master database". Each load is a
+  numbered version (config\master_database.json: file, date, rows, SHA-256; a copy in config\master). The bottom line
+  shows the version.
+- Known in column: Customer docs, Customer list, Master database only, or Not found in any source. Status filters
+  Known in: ..., and the CSV export carries it.
+- Update results against the master database (offered after each load; also in the File menu): matches the results
+  again, reusing the text already read this session for unchanged files. Nothing is removed: rows not found again
+  stay, changed rows say Database update, decisions, picked definitions and the effort list stay.
+- Effort > Start a new effort: master database, effort and client (short name, solicitation number, internal number), the customer's
   acronym lists (remembered by the effort and used on every scan), customer documents (copied into the effort's
   Customer documents folder and read for a jump start), how the list ships (one list, one per volume, or both; the
   first-use rule). The first start with no efforts opens it.

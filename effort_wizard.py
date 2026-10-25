@@ -45,7 +45,7 @@ class WizardMixin:
     def open_wizard(self):
         diag.activity("wizard_opened")
         eng = _eng()
-        win = ctk.CTkToplevel(self); win.title("New effort"); win.geometry("720x560"); win.transient(self)
+        win = ctk.CTkToplevel(self); win.title("Start an effort"); win.geometry("720x560"); win.transient(self)
         win.after(150, win.lift)
         diag.register(win, "wizard")
         st = {"i": 0, "lists": [], "docs": []}
@@ -73,8 +73,12 @@ class WizardMixin:
                 v["folder"].set(os.path.join(base, n) if v["name"].get().strip() else "")
         v["name"].trace_add("write", on_name)
 
+        def step_master():
+            head.configure(text="1 of 6   Master database")
+            self.master_step(body, win)
+
         def step0():
-            head.configure(text="1 of 5   Effort and client")
+            head.configure(text="2 of 6   Effort and client")
             e = entry(body, "Effort name (required)", v["name"], "e.g. Kestrel Thermal")
             entry(body, "Client (short name)", v["client"], "e.g. USSF SSC")
             entry(body, "Solicitation number", v["sol"], "e.g. FA8810-27-R-0042")
@@ -124,14 +128,14 @@ class WizardMixin:
                                                             {"path": p, "label": os.path.basename(p)}) for p in paths], refresh())
 
         def step1():
-            files_step("lists", "2 of 5   The customer's own lists",
+            files_step("lists", "3 of 6   The customer's own lists",
                        "Do you have known or provided customer acronyms, abbreviations or units of measure?",
                        "Excel, Word, PDF, CSV or text. The effort remembers them and every scan uses them; the customer's "
                        "definition comes before the company database. Skip if you have none yet (Client Lists adds them later).",
                        (".xlsx", ".docx", ".pdf", ".csv", ".tsv", ".txt"))
 
         def step2():
-            files_step("docs", "3 of 5   Customer documents",
+            files_step("docs", "4 of 6   Customer documents",
                        "Add the customer documents you have now (RFP sections, SOW, CDRLs, attachments).",
                        "They are copied into the effort folder's Customer documents. Their own definitions are used on every "
                        "scan. Add more any time with Effort > Add customer documents; only new files are read.",
@@ -140,7 +144,7 @@ class WizardMixin:
                             variable=v["scan"]).pack(anchor="w", pady=(6, 0))
 
         def step3():
-            head.configure(text="4 of 5   How the list ships")
+            head.configure(text="5 of 6   How the list ships")
             ctk.CTkLabel(body, text="Acronym list", anchor="w", font=("Segoe UI", 13, "bold")).pack(fill="x", pady=(6, 2))
             for k, lab in LIST_FORMATS.items():
                 ctk.CTkRadioButton(body, text=lab, variable=v["format"], value=k).pack(anchor="w", pady=2)
@@ -150,11 +154,12 @@ class WizardMixin:
             entry(body, "Volumes folder (optional, for checking deliverables)", v["volumes"])
 
         def step4():
-            head.configure(text="5 of 5   Ready")
+            head.configure(text="6 of 6   Ready")
             lines = [f"Effort:  {v['name'].get().strip()}",
                      f"Client:  {v['client'].get().strip() or '-'}      Solicitation:  {v['sol'].get().strip() or '-'}"
                      + (f"      Internal:  {v['internal'].get().strip()}" if v['internal'].get().strip() else ""),
                      f"Folder:  {v['folder'].get().strip()}",
+                     "Master database:  " + __import__("master_db").info_text(),
                      f"Customer lists:  {len(st['lists'])} ({sum(len(x['rows']) for x in st['lists'])} terms)",
                      f"Customer documents:  {len(st['docs'])}" + ("  (read now, then review)" if st["docs"] and v["scan"].get() else ""),
                      f"List:  {LIST_FORMATS[v['format'].get()]};  first use {E.FIRST_USE_RULES[v['rule'].get()].lower()}"]
@@ -162,7 +167,7 @@ class WizardMixin:
             ctk.CTkLabel(body, text="Everything here can be changed later in Effort > Effort settings.", anchor="w",
                          text_color=("#475569", "#94A3B8")).pack(fill="x")
 
-        steps = [step0, step1, step2, step3, step4]
+        steps = [step_master, step0, step1, step2, step3, step4]
 
         def show():
             for w in body.winfo_children():
@@ -173,7 +178,7 @@ class WizardMixin:
             b_next.configure(text="Create effort" if st["i"] == len(steps) - 1 else "Next")
 
         def nxt():
-            if st["i"] == 0:
+            if st["i"] == 1:
                 name = v["name"].get().strip()
                 if not name:
                     msg.configure(text="Give the effort a name."); return

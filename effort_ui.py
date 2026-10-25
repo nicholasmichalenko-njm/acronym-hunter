@@ -40,9 +40,7 @@ class EffortMixin:
         self.btn_effort_add.pack(side="left", padx=5, pady=(4, 8))
         self.btn_effort_rej = ctk.CTkButton(act, text="Not a term", command=lambda: self.set_effort_status("Rejected"),
                                             state="disabled", fg_color="#B91C1C", width=95)
-        self.btn_effort_rej.pack(side="left", padx=5, pady=(4, 8))
         self.btn_effort_omit = ctk.CTkButton(act, text="Omit...", command=self.mark_known, state="disabled", fg_color="#6B21A8", width=75)
-        self.btn_effort_omit.pack(side="left", padx=5, pady=(4, 8))
 
     def update_effort_ui(self):
         L = self.effort
@@ -78,6 +76,11 @@ class EffortMixin:
         self.btn_effort_add.configure(state="normal" if ok else "disabled",
                                       text=f"Add {len(sel)} to effort list" if ok and len(sel) > 1 else "Add to effort list")
         if hasattr(self, "btn_effort_omit"):
+            if self.effort is None:                  # Not a term and Omit belong to an effort's Scan review
+                self.btn_effort_rej.pack_forget(); self.btn_effort_omit.pack_forget()
+            elif not self.btn_effort_rej.winfo_manager():
+                self.btn_effort_rej.pack(side="left", padx=5, pady=(4, 8), after=self.btn_effort_add)
+                self.btn_effort_omit.pack(side="left", padx=5, pady=(4, 8), after=self.btn_effort_rej)
             can = bool(sel) and all(not self.results[t].get("file_error") and not self.results[t].get("manual") for t in sel)
             self.btn_effort_omit.configure(state="normal" if can else "disabled")
             self.btn_effort_rej.configure(state="normal" if ok else "disabled")
@@ -87,7 +90,7 @@ class EffortMixin:
         diag.activity("effort_menu_opened")
         m = menu or self.effort_menu
         m.delete(0, "end")
-        m.add_command(label="New effort (wizard)...", command=self.open_wizard)
+        m.add_command(label="Start a new effort...", command=self.open_wizard)
         m.add_command(label="Open an existing effort list...", command=self.open_effort_file)
         names = [n for n in self.efforts.names() if (not self.effort or n != self.effort.name)
                  and not (self.efforts.get(n) or {}).get("archived")]

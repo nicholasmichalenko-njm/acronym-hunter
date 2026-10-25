@@ -39,6 +39,8 @@ FEATURES = {
     ]),
     "review": ("Review", ["none"], [
         ("Filters and search", "Show one type or status, or search, over the results already found", "none"),
+        ("Known in (rules)", "Says where each term is known: customer documents, the customer's list, the master database, "
+                             "or no source", "none"),
         ("Customer definitions (pattern rule)", "Matches \"Spelled Out Words (ACR)\" by first letters and reads glossary "
                                                 "tables in the customer documents", "none"),
     ]),
