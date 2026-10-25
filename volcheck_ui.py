@@ -20,6 +20,8 @@ WORD_ONLY = ("QA/QC checks the Word documents we produce (.docx), never customer
 def _wrap_to(label, frame):
     """Wrap a label's text to its frame's width as the window is resized (works at any display scaling)."""
     def fit(e):
+        if not label.winfo_exists():
+            return
         sc = float(ctk.ScalingTracker.get_widget_scaling(label)) or 1.0
         label.configure(wraplength=max(200, int(e.width / sc) - 30))
     frame.bind("<Configure>", fit, add="+")
@@ -64,7 +66,7 @@ class VolumeCheckMixin:
             "Tables, figures, captions, headers and footers never count as a first use; the In figures or tables column "
             "shows where a term also appears in one."))
         intro.pack(fill="x", padx=8, pady=8)
-        _wrap_to(intro, self.qa_body)
+        _wrap_to(intro, self.qa_view)
 
     def open_qa(self):
         if self.effort is None:
