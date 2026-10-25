@@ -137,6 +137,7 @@ def step3():
 
 def step4():
     """QA/QC view after checking the sample technical volume (2.24.0)."""
+    app.state("zoomed"); app.update()
     app.check_volumes([VOL])
     wait(lambda: not app.busy() and not app.btn_cancel.winfo_ismapped() and getattr(app, "volume_report", None),
          lambda: app.after(1500, lambda: (grab(app.qa_view, "qa.png"), app.after(500, finish))))

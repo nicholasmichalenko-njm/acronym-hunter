@@ -211,7 +211,6 @@ class VolumeCheckMixin:
                       state="normal" if s["missing"] else "disabled", command=self.add_volume_missing).pack(side="left", padx=4)
         ctk.CTkButton(b, text="Record in the effort list", fg_color="#0F766E",
                       command=self.record_volume_use).pack(side="left", padx=4)
-        ctk.CTkButton(b, text="Check again...", fg_color="#15803D", command=self.check_volumes).pack(side="right", padx=4)
         if s["first_use_problems"] == 0 and s["missing"]:
             tabs.set("Not in effort list")
         return win
