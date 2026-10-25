@@ -58,7 +58,15 @@ def wait():
         from PIL import ImageGrab
         win.update()
         ImageGrab.grab(bbox=(win.winfo_rootx(), win.winfo_rooty(), win.winfo_rootx() + win.winfo_width(), win.winfo_rooty() + win.winfo_height())).save(os.environ["AH_SHOT"])
-    out["ok"] = (r["volumes"] == ["Vol 2 Management.docx", "Vol 10 Cost.docx"] and "GNX" in L.rows and L.rows["GNX"]["Status"] == "Proposed"
+    # 2.22.0: the per-section rule adds a Section column to the report
+    import volcheck as V
+    rs = V.build({t: d for t, d in app.results.items() if not d.get("known")}, app.effort.rows, r["volumes"], "section",
+                 file_of=A._file_of)
+    app.show_volume_report(rs); app.update()
+    stv, _sdata = app._volwin._trees["First use"]
+    sec_cols = list(stv["columns"])
+    print("section rule columns:", sec_cols[:3], "| rows:", len(rs["first_use"]))
+    out["ok"] = sec_cols[:3] == ["volume", "section", "term"] and (r["volumes"] == ["Vol 2 Management.docx", "Vol 10 Cost.docx"] and "GNX" in L.rows and L.rows["GNX"]["Status"] == "Proposed"
                  and L.rows["SOW"]["Used in volumes"] == "Vol 2 Management.docx; Vol 10 Cost.docx" and len(lists) == 3
                  and app.tree.selection() == ("SOW",) and r["summary"]["unused"] == 1)
     print("GUI VOLCHECK", "PASS" if out["ok"] else "FAIL")

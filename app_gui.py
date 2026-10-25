@@ -1871,10 +1871,47 @@ def _file_of(label):
     mt = re.match(rf"(.+?(?:{exts}))(?= \(| \[|$)", label, re.I)
     return mt.group(1) if mt else label
 
+_SEC_RE = re.compile(r"\(section '([^']*)'")
+_SEC_KEY = re.compile(r"\s*(?:(?:section|part|volume|chapter)\s+)?(\d+|[A-Z](?=\.|\s*[-:)]|\s*$))", re.I)
+
+def section_of(label):
+    """The major section a location belongs to, for the per-section first-use rule (2.22.0).
+    Word headings set sections: numbered headings group by their first number or letter ("2.", "2.1 Thermal", "2.3" are
+    all section 2; "C.3 Work" and "Section C" are section C), other headings are their own section. Text before the first
+    heading is "(start)". None for parts outside the body text (pictures, headers, footnotes); "" for files with no
+    headings (PDF pages, slides, sheets)."""
+    mt = _SEC_RE.search(label)
+    if mt:
+        h = mt.group(1).strip()
+        k = _SEC_KEY.match(h)
+        return k.group(1).upper() if k else h
+    if re.search(r"\(para \d", label):
+        return "(start)"
+    if re.search(r"\((?:Body|Header|Footer|Footnotes|Endnotes|Comments)", label):
+        return None
+    return ""
+
+def _note(fu, key, label, paren, defs, term, text, mt):
+    if key not in fu:
+        fu[key] = {"loc": label, "defined": paren}
+        if paren:                                       # the words written before "(ACR)" (2.7.0 volume check)
+            fu[key]["lf"] = _long_form_before(term, text, mt.start() - 1)
+            if len(defs) > 1:
+                fu[key]["redefs"] = [label]
+        if paren is False and defs:
+            fu[key]["later"] = label
+    else:
+        if fu[key]["defined"] is False and not fu[key].get("later") and defs:
+            fu[key]["later"] = label
+        elif fu[key]["defined"] and defs and label not in fu[key].get("redefs", []) and len(fu[key].get("redefs", [])) < 5:
+            fu[key].setdefault("redefs", []).append(label)
+
 def note_first_use(findings, hits, label, text):
     """Per file, where each term first appears in reading order, and whether that first use is written the way
-    proposals define an acronym: "Spelled Out Words (ACR)". Records a later "(ACR)" when the first use is bare."""
+    proposals define an acronym: "Spelled Out Words (ACR)". Records a later "(ACR)" when the first use is bare.
+    From 2.22.0 the same is kept per section of each file (first_use_sec) for the per-section rule."""
     f = _file_of(label)
+    sec = section_of(label)
     for term in dict.fromkeys(hits):
         d = findings.get(term)
         if d is None:
@@ -1883,20 +1920,9 @@ def note_first_use(findings, hits, label, text):
         mt = re.search(r"(?<![A-Za-z0-9])" + pat + r"(?![A-Za-z0-9])", text)
         paren = None if mt is None else text[max(0, mt.start() - 1):mt.start()] == "("
         defs = list(re.finditer(r"\(\s*" + pat + r"\s*\)", text))
-        fu = d.setdefault("first_use", {})
-        if f not in fu:
-            fu[f] = {"loc": label, "defined": paren}
-            if paren:                                   # the words written before "(ACR)" (2.7.0 volume check)
-                fu[f]["lf"] = _long_form_before(term, text, mt.start() - 1)
-                if len(defs) > 1:
-                    fu[f]["redefs"] = [label]
-            if paren is False and defs:
-                fu[f]["later"] = label
-        else:
-            if fu[f]["defined"] is False and not fu[f].get("later") and defs:
-                fu[f]["later"] = label
-            elif fu[f]["defined"] and defs and label not in fu[f].get("redefs", []) and len(fu[f].get("redefs", [])) < 5:
-                fu[f].setdefault("redefs", []).append(label)
+        _note(d.setdefault("first_use", {}), f, label, paren, defs, term, text, mt)
+        if sec is not None:
+            _note(d.setdefault("first_use_sec", {}).setdefault(f, {}), sec, label, paren, defs, term, text, mt)
 
 def _long_form_before(term, text, paren_at):
     """Schwartz-Hearst long form ending right before the parenthesis, or "" when the words do not fit the acronym."""

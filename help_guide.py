@@ -144,8 +144,13 @@ PAGES = {
     ("h", "Check a volume before it ships"),
     ("p", "Effort > Check volumes. Pick the final volumes; the file names set the submission order (Vol 2 before Vol 10)."),
     ("img", "volume_check.png", 600),
-    ("rows", [("First use", "Acronyms only. Each must first appear as \"Spelled Out Words (ACR)\", per volume or across the "
-                            "submission (the effort's first-use rule). Red: not defined. Amber: the words differ from the list."),
+    ("rows", [("First use", "Acronyms only. Each must first appear as \"Spelled Out Words (ACR)\", per volume, per section "
+                            "of each volume, or across the submission (the effort's first-use rule). Red: not defined. "
+                            "Amber: the words differ from the list."),
+              ("Per section", "Sections come from Word headings. Numbered headings group by their first number or letter "
+                              "(2, 2.1 and 2.3 are all section 2; C.3 is section C); other headings are their own section. "
+                              "PDFs and slides have no headings, so the whole file counts as one section. Effort > Effort settings "
+                              "changes the rule."),
               ("Not in effort list", "Terms the volume uses that the list does not have. One click adds them as Proposed."),
               ("Not approved", "In the list, but still Proposed or Needs an author."),
               ("Definition differs", "The volume spells a term out differently from the list."),

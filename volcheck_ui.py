@@ -77,12 +77,14 @@ class VolumeCheckMixin:
         diag.register(win, "volume_check")
         self._volwin = win
         s = report["summary"]
-        rule = "per volume" if s["rule"] == "volume" else "across the whole submission"
+        rule = V.RULE_SHORT.get(s["rule"], s["rule"])
         head = (f"{s['volumes']} volume(s), first use {rule}  |  {s['terms_used']} terms used  |  "
                 f"first-use problems {s['first_use_problems']}  |  not in effort list {s['missing']}  |  "
                 f"not approved {s['not_approved']}  |  definition differs {s['differs']}  |  in the list, not used {s['unused']}")
         ctk.CTkLabel(win, text=head, font=("Arial", 13, "bold"), wraplength=1140, justify="left").pack(anchor="w", padx=12, pady=(10, 0))
-        ctk.CTkLabel(win, text="Order: " + "  >  ".join(report["volumes"]) + "     Double-click a row to jump to it.",
+        note = ("     Rescan the volumes to check first use by section: some results were saved before 2.22.0."
+                if s.get("rescan_for_sections") else "")
+        ctk.CTkLabel(win, text="Order: " + "  >  ".join(report["volumes"]) + "     Double-click a row to jump to it." + note,
                      text_color=("#475569", "#94A3B8"), wraplength=1140, justify="left").pack(anchor="w", padx=12, pady=(0, 4))
         b = ctk.CTkFrame(win, fg_color="transparent"); b.pack(side="bottom", fill="x", padx=10, pady=8)
         tabs = ctk.CTkTabview(win); tabs.pack(fill="both", expand=True, padx=8)
@@ -115,9 +117,15 @@ class VolumeCheckMixin:
             win._trees[tab] = (tv, data)
             return tv
 
-        table("First use", ["Volume", "Acronym", "Result", "First use at", "Written as", "Effort list says", "Also defined at"],
-              report["first_use"], ["volume", "term", "state", "loc", "written", "list_definition", "also_defined"],
-              [170, 100, 330, 260, 190, 190, 200], level=True)
+        if s["rule"] == "section":
+            table("First use", ["Volume", "Section", "Acronym", "Result", "First use at", "Written as", "Effort list says",
+                                "Also defined at"],
+                  report["first_use"], ["volume", "section", "term", "state", "loc", "written", "list_definition", "also_defined"],
+                  [170, 80, 100, 330, 260, 190, 190, 200], level=True)
+        else:
+            table("First use", ["Volume", "Acronym", "Result", "First use at", "Written as", "Effort list says", "Also defined at"],
+                  report["first_use"], ["volume", "term", "state", "loc", "written", "list_definition", "also_defined"],
+                  [170, 100, 330, 260, 190, 190, 200], level=True)
         table("Not in effort list", ["Term", "Type", "Count", "Volumes", "Suggested definition", "First found at"],
               report["missing"], ["term", "type", "count", "volumes", "suggestion", "loc"], [90, 90, 60, 220, 300, 300])
         table("Not approved", ["Term", "Status", "Definition", "Volumes", "First found at"],

@@ -18,7 +18,8 @@ COLUMNS = ["Term", "Type", "Definition", "Source", "Customer document", "Custome
 WIDTHS = [14, 14, 42, 14, 30, 50, 36, 14, 22, 13, 24, 30, 30, 44, 12, 12, 30, 22, 18, 18]
 SCAN_NEW, SCAN_FOUND, SCAN_GONE = "New in this scan", "Found", "No longer found in"
 STATUSES = ["Proposed", "Needs author", "Approved", "Rejected"]
-FIRST_USE_RULES = {"volume": "Restarts in each volume", "submission": "Runs across the whole submission"}
+FIRST_USE_RULES = {"volume": "Restarts in each volume", "section": "Restarts in each section of each volume",
+                   "submission": "Runs across the whole submission"}
 SHEET, HIST, ABOUT = "Effort List", "History", "About"
 KEYWORDS = "Keywords"                       # 2.16.0 Keyword Harvest: the effort's SharePoint keywords
 KW_COLUMNS = ["Keyword", "Category", "Status", "Source", "Why", "Added by", "Date", "SharePoint field"]
@@ -105,7 +106,8 @@ class EffortList:
             if ABOUT in wb.sheetnames:
                 for r in wb[ABOUT].iter_rows(values_only=True):
                     if r and r[0] == "First use" and len(r) > 1:
-                        self.first_use = "submission" if "submission" in str(r[1]).lower() else "volume"
+                        t = str(r[1]).lower()
+                        self.first_use = "submission" if "submission" in t else "section" if "section" in t else "volume"
                     if r and r[0] == "Effort" and len(r) > 1 and r[1]:
                         self.name = str(r[1])
                     if r and r[0] in ("Client", "Solicitation", "Internal number") and len(r) > 1 and r[1]:

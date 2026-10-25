@@ -9,7 +9,12 @@ import volcheck as V
 
 def make_docx(path, paras):
     W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
-    body = "".join(f'<w:p><w:r><w:t xml:space="preserve">{V._x(p)}</w:t></w:r></w:p>' for p in paras)
+    def para(p):
+        style = ""
+        if isinstance(p, tuple):                      # ("Heading1", "2. Technical Approach")
+            style, p = f'<w:pPr><w:pStyle w:val="{p[0]}"/></w:pPr>', p[1]
+        return f'<w:p>{style}<w:r><w:t xml:space="preserve">{V._x(p)}</w:t></w:r></w:p>'
+    body = "".join(para(p) for p in paras)
     with zipfile.ZipFile(path, "w") as z:
         z.writestr("[Content_Types].xml", '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
                    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>'
@@ -91,6 +96,52 @@ def run():
     from xml.dom import minidom
     minidom.parseString(docxml.encode())
     assert A.typed_chunks(dx), "the app reads its own acronym list back"
+
+    # 2.22.0: first use restarts in each major section of each volume
+    sec = A.section_of
+    assert sec("V.docx (section '2. KEY PERFORMANCE', para 4-9)") == "2"
+    assert sec("V.docx (section '2.1 Thermal Design', para 10-12)") == "2"
+    assert sec("V.docx (section 'C.3 Work Breakdown', para 1-3)") == "C"
+    assert sec("V.docx (section 'Section M - Evaluation', para 1-3)") == "M"
+    assert sec("V.docx (section 'Executive Summary', para 1-3)") == "Executive Summary"
+    assert sec("V.docx (section 'A Novel Approach', para 1-3)") == "A Novel Approach"
+    assert sec("V.docx (para 1-3)") == "(start)"
+    assert sec("V.docx (Body, image 'Figure 1') [OCR]") is None and sec("V.docx (Footnotes)") is None
+    assert sec("V.pdf (Page 3)") == "" and sec("V.pptx (Slide 2)") == ""
+    v3 = os.path.join(d, "Vol 3 Past Performance.docx")
+    make_docx(v3, ["Kestrel past performance volume.",
+                   ("Heading1", "1. Introduction"),
+                   "The Statement of Work (SOW) sets the tasks. The PDQ goal holds.",
+                   ("Heading2", "1.1 Scope"),
+                   "The SOW lists every task.",
+                   ("Heading1", "2. Contracts"),
+                   "Each SOW task maps to a past contract.",
+                   ("Heading1", "3. Lessons"),
+                   "Pretty Darn Quick (PDQ) delivery and the Statement of Work (SOW) review."])
+    res3 = A.analyze_batch([v3], lambda m: None)
+    fs = res3["SOW"]["first_use_sec"]["Vol 3 Past Performance.docx"]
+    assert list(fs) == ["1", "2", "3"], fs
+    assert fs["1"]["defined"] is True and fs["2"]["defined"] is False and fs["3"]["defined"] is True, fs
+    r3 = V.build(res3, L.rows, ["Vol 3 Past Performance.docx"], "section", file_of=A._file_of, in_picture=pic)
+    by3 = {(x["section"], x["term"]): x for x in r3["first_use"]}
+    assert by3[("1", "SOW")]["level"] == V.OK and by3[("3", "SOW")]["level"] == V.OK, by3
+    assert by3[("2", "SOW")]["level"] == V.BAD and "Never defined in this section" in by3[("2", "SOW")]["state"]
+    assert by3[("1", "PDQ")]["level"] == V.BAD and "later" not in by3[("1", "PDQ")]["state"]
+    assert by3[("3", "PDQ")]["level"] == V.OK and r3["summary"]["rescan_for_sections"] == 0
+    # the per-volume rule on the same volume sees one first use
+    rv = V.build(res3, L.rows, ["Vol 3 Past Performance.docx"], "volume", file_of=A._file_of, in_picture=pic)
+    assert [x["term"] for x in rv["first_use"]].count("SOW") == 1 and not any(x["section"] for x in rv["first_use"])
+    # results saved before 2.22.0 (no section data) fall back to the volume and say so
+    old = {t: {k: v for k, v in dd.items() if k != "first_use_sec"} for t, dd in res3.items()}
+    ro = V.build(old, L.rows, ["Vol 3 Past Performance.docx"], "section", file_of=A._file_of, in_picture=pic)
+    assert ro["summary"]["rescan_for_sections"] >= 1 and [x["term"] for x in ro["first_use"]].count("SOW") == 1
+    assert "section 2" in V.effort_updates(r3)["SOW"]["First use"]
+    xl3 = os.path.join(d, "check3.xlsx"); V.write_excel(r3, xl3, "Kestrel")
+    ws = load_workbook(xl3)["First use"]
+    assert [c.value for c in ws[1]][:3] == ["Volume", "Section", "Acronym"]
+    assert load_workbook(xl3)["Summary"]["B3"].value == "Restarts in each section of each volume"
+    L3 = E.EffortList(os.path.join(d, "Effort3.xlsx"), "Kestrel", "section"); L3.save()
+    L4 = E.EffortList(L3.path); L4.load(); assert L4.first_use == "section"
     print("volcheck ok")
 
 

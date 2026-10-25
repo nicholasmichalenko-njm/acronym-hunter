@@ -4,7 +4,8 @@ Pure functions (no GUI, no files read except where a caller passes paths to writ
 app already has, the Effort List rows, and the volumes in submission order.
 
 Report parts:
-  first_use     acronyms only. Per volume (rule "volume") or across the submission (rule "submission"): where the
+  first_use     acronyms only. Per volume (rule "volume"), per section of each volume (rule "section", 2.22.0) or across
+                the submission (rule "submission"): where the
                 acronym first appears, whether it is written "Spelled Out Words (ACR)", whether the spelled-out words
                 match the effort list, later re-definitions.
   missing       terms the volumes use that the effort list does not have.
@@ -18,6 +19,9 @@ import re
 
 LIST_TYPES = ("Acronym", "Abbreviation", "Unit")
 OK, WARN, BAD, INFO = "ok", "warn", "bad", "info"
+RULE_TEXT = {"volume": "Restarts in each volume", "section": "Restarts in each section of each volume",
+             "submission": "Runs across the whole submission"}
+RULE_SHORT = {"volume": "per volume", "section": "per section of each volume", "submission": "across the whole submission"}
 
 
 def natural_key(name):
@@ -90,61 +94,76 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
     first_use = []
     defined_in = {}                            # term -> first volume where it was defined (submission rule)
     seen_in = {}                               # term -> first volume where it appeared (submission rule)
+    no_sections = set()                        # section rule: terms whose saved results predate 2.22.0 (rescan)
+
+    def _first_use_row(first_use, v, sec, term, u):
+        want = list_def(term)
+        lf = u.get("lf", "")
+        redefs = ["later in the same passage" if r == u["loc"] else r for r in u.get("redefs", [])]
+        row = {"volume": v, "section": sec, "term": term, "loc": u["loc"], "written": lf, "list_definition": want,
+               "status": status(term), "also_defined": "; ".join(redefs[:5]), "level": OK, "state": ""}
+        pic = " (first use is in a picture)" if in_picture(u["loc"]) else ""
+        earlier = seen_in.get(term) if rule == "submission" else None
+        if earlier:
+            if u["defined"] is True:
+                row["level"], row["state"] = INFO, f"Defined again; first defined in {defined_in.get(term) or earlier}"
+                if not defined_in.get(term):
+                    row["level"], row["state"] = WARN, f"Defined here, but first used undefined in {earlier}"
+                    defined_in[term] = v
+            elif defined_in.get(term):
+                row["level"], row["state"] = OK, f"Defined earlier in {defined_in[term]}"
+            else:
+                row["level"], row["state"] = BAD, f"Not defined before this; first used in {earlier}"
+                if u.get("later"):
+                    defined_in[term] = v
+            first_use.append(row)
+            return
+        if rule == "submission":
+            seen_in[term] = v
+        if u["defined"] is True:
+            if rule == "submission":
+                defined_in[term] = v
+            if want and lf and not same_def(lf, want):
+                row["level"], row["state"] = WARN, "Defined, but the words differ from the effort list"
+            elif not lf:
+                row["level"], row["state"] = WARN, "Written as (ACR), but the spelled-out words were not found right before it"
+            else:
+                row["state"] = "Defined at first use"
+        elif u["defined"] is None:
+            row["level"], row["state"] = WARN, "Check: read with an OCR correction"
+        elif u.get("later"):
+            row["level"] = BAD
+            row["state"] = ("Not defined at first use; spelled out later in the same passage" if u["later"] == u["loc"]
+                            else f"Not defined at first use; spelled out later at {u['later']}")
+            if rule == "submission":
+                defined_in[term] = v
+        else:
+            row["level"], row["state"] = BAD, {"volume": "Never defined in this volume", "section": "Never defined in this section"}.get(
+                rule, "Not defined at first use")
+        if redefs and row["level"] == OK:
+            row["level"] = INFO
+            row["state"] += "; defined again later"
+        row["state"] += pic
+        first_use.append(row)
+
+    def units(d, v, term):
+        """[(section, first use)] for one acronym in one volume: one entry per section under the section rule."""
+        if rule == "section":
+            secs = (d.get("first_use_sec") or {}).get(v)
+            if secs:
+                named = {k: u for k, u in secs.items() if k}
+                return list((named or secs).items())
+            no_sections.add(term)
+        u = d.get("first_use", {}).get(v)
+        return [("", u)] if u else []
+
     for v in volumes:
         for term in sorted(used[v], key=str.lower):
             d = results[term]
             if kind(d.get("category", "")) != "Acronym" or term in rejected:
                 continue
-            u = d.get("first_use", {}).get(v)
-            if not u:
-                continue
-            want = list_def(term)
-            lf = u.get("lf", "")
-            redefs = ["later in the same passage" if r == u["loc"] else r for r in u.get("redefs", [])]
-            row = {"volume": v, "term": term, "loc": u["loc"], "written": lf, "list_definition": want,
-                   "status": status(term), "also_defined": "; ".join(redefs[:5]), "level": OK, "state": ""}
-            pic = " (first use is in a picture)" if in_picture(u["loc"]) else ""
-            earlier = seen_in.get(term) if rule == "submission" else None
-            if earlier:
-                if u["defined"] is True:
-                    row["level"], row["state"] = INFO, f"Defined again; first defined in {defined_in.get(term) or earlier}"
-                    if not defined_in.get(term):
-                        row["level"], row["state"] = WARN, f"Defined here, but first used undefined in {earlier}"
-                        defined_in[term] = v
-                elif defined_in.get(term):
-                    row["level"], row["state"] = OK, f"Defined earlier in {defined_in[term]}"
-                else:
-                    row["level"], row["state"] = BAD, f"Not defined before this; first used in {earlier}"
-                    if u.get("later"):
-                        defined_in[term] = v
-                first_use.append(row)
-                continue
-            if rule == "submission":
-                seen_in[term] = v
-            if u["defined"] is True:
-                if rule == "submission":
-                    defined_in[term] = v
-                if want and lf and not same_def(lf, want):
-                    row["level"], row["state"] = WARN, "Defined, but the words differ from the effort list"
-                elif not lf:
-                    row["level"], row["state"] = WARN, "Written as (ACR), but the spelled-out words were not found right before it"
-                else:
-                    row["state"] = "Defined at first use"
-            elif u["defined"] is None:
-                row["level"], row["state"] = WARN, "Check: read with an OCR correction"
-            elif u.get("later"):
-                row["level"] = BAD
-                row["state"] = ("Not defined at first use; spelled out later in the same passage" if u["later"] == u["loc"]
-                                else f"Not defined at first use; spelled out later at {u['later']}")
-                if rule == "submission":
-                    defined_in[term] = v
-            else:
-                row["level"], row["state"] = BAD, "Never defined in this volume" if rule == "volume" else "Not defined at first use"
-            if redefs and row["level"] == OK:
-                row["level"] = INFO
-                row["state"] += "; defined again later"
-            row["state"] += pic
-            first_use.append(row)
+            for sec, u in units(d, v, term):
+                _first_use_row(first_use, v, sec, term, u)
 
     # ---------------- missing / not approved / differs
     missing, not_approved, differs = [], [], []
@@ -203,7 +222,8 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
     summary = {"volumes": len(volumes), "rule": rule,
                "terms_used": len(all_terms),
                "first_use_problems": sum(1 for r in first_use if r["level"] in (BAD, WARN)),
-               "missing": len(missing), "not_approved": len(not_approved), "differs": len(differs), "unused": len(unused)}
+               "missing": len(missing), "not_approved": len(not_approved), "differs": len(differs), "unused": len(unused),
+               "rescan_for_sections": len(no_sections)}
     return {"summary": summary, "first_use": first_use, "missing": missing, "not_approved": not_approved,
             "differs": differs, "unused": unused, "lists": lists, "volumes": list(volumes), "used": used}
 
@@ -216,7 +236,8 @@ def effort_updates(report):
             vols.setdefault(term, []).append(v)
     fu = {}
     for r in report["first_use"]:
-        fu.setdefault(r["term"], []).append(f"{r['volume']}: {r['state']}")
+        where = f"{r['volume']} section {r['section']}" if r.get("section") else r["volume"]
+        fu.setdefault(r["term"], []).append(f"{where}: {r['state']}")
     return {t: {"Used in volumes": "; ".join(v), "First use": "; ".join(fu.get(t, []))[:400]} for t, v in vols.items()}
 
 
@@ -229,7 +250,7 @@ def write_excel(report, path, effort_name=""):
     ws = wb.active; ws.title = "Summary"
     s = report["summary"]
     for r in (["Effort", effort_name], ["Volumes", ", ".join(report["volumes"])],
-              ["First use rule", "Restarts in each volume" if s["rule"] == "volume" else "Runs across the whole submission"],
+              ["First use rule", RULE_TEXT.get(s["rule"], s["rule"])],
               ["Terms used", s["terms_used"]], ["First-use problems", s["first_use_problems"]],
               ["Not in effort list", s["missing"]], ["Not approved yet", s["not_approved"]],
               ["Definition differs", s["differs"]], ["In the list, not used", s["unused"]]):
@@ -256,9 +277,15 @@ def write_excel(report, path, effort_name=""):
         if sh.max_row > 1:
             sh.auto_filter.ref = f"A1:{sh.cell(row=1, column=len(cols)).column_letter}{sh.max_row}"
 
-    sheet("First use", ["Volume", "Acronym", "Result", "First use at", "Written as", "Effort list definition", "Also defined at", "List status"],
-          report["first_use"], ["volume", "term", "state", "loc", "written", "list_definition", "also_defined", "status"],
-          [22, 12, 46, 40, 34, 34, 30, 14], level_key="level")
+    if s["rule"] == "section":
+        sheet("First use", ["Volume", "Section", "Acronym", "Result", "First use at", "Written as", "Effort list definition",
+                            "Also defined at", "List status"],
+              report["first_use"], ["volume", "section", "term", "state", "loc", "written", "list_definition", "also_defined",
+                                    "status"], [22, 12, 12, 46, 40, 34, 34, 30, 14], level_key="level")
+    else:
+        sheet("First use", ["Volume", "Acronym", "Result", "First use at", "Written as", "Effort list definition", "Also defined at", "List status"],
+              report["first_use"], ["volume", "term", "state", "loc", "written", "list_definition", "also_defined", "status"],
+              [22, 12, 46, 40, 34, 34, 30, 14], level_key="level")
     sheet("Not in effort list", ["Term", "Type", "Volumes", "Count", "Suggested definition", "First found at"],
           report["missing"], ["term", "type", "volumes", "count", "suggestion", "loc"], [14, 13, 30, 8, 40, 40])
     sheet("Not approved", ["Term", "Type", "Status", "Definition", "Volumes", "First found at"],

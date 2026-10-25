@@ -9,6 +9,7 @@ from tkinter import filedialog, messagebox, simpledialog
 import customtkinter as ctk
 import diag
 import effort as E
+import volcheck as V
 
 EFFORT_MARK = ""   # no emoji in the interface (2.7.0)
 
@@ -60,7 +61,7 @@ class EffortMixin:
                 counts[r["Status"]] = counts.get(r["Status"], 0) + 1
             bits = [f"Effort: {L.name}", os.path.basename(L.path), f"{len(L.rows)} terms",
                     f"{counts['Approved']} approved, {counts['Needs author']} need an author, {counts['Proposed']} proposed",
-                    "first use " + ("per volume" if L.first_use == "volume" else "across the submission")]
+                    "first use " + V.RULE_SHORT.get(L.first_use, "per volume")]
             if L.client or L.solicitation:
                 bits.insert(1, " ".join(x for x in (L.client, L.solicitation) if x))
             rec = getattr(self, "_last_effort_scan", None)
@@ -150,7 +151,7 @@ class EffortMixin:
             diag.activity("effort_new_opened")
         cur = self.efforts.get(self.effort.name) if edit and self.effort else {}
         win = ctk.CTkToplevel(self); win.title("Effort settings" if edit else "New effort")
-        win.geometry("640x560"); win.transient(self); win.after(150, win.lift); win.grab_set()
+        win.geometry("640x620"); win.transient(self); win.after(150, win.lift); win.grab_set()
         diag.register(win, "effort_setup")
         f = ctk.CTkFrame(win, fg_color="transparent"); f.pack(fill="both", expand=True, padx=16, pady=12)
         f.grid_columnconfigure(1, weight=1)
@@ -173,8 +174,8 @@ class EffortMixin:
         ctk.CTkLabel(f, text="First use").grid(row=4, column=0, sticky="w", pady=(10, 4))
         rule = tk.StringVar(value=(cur or {}).get("first_use", "volume"))
         rf = ctk.CTkFrame(f, fg_color="transparent"); rf.grid(row=4, column=1, columnspan=2, sticky="w", pady=(10, 4))
-        ctk.CTkRadioButton(rf, text="Restarts in each volume", variable=rule, value="volume").pack(side="left")
-        ctk.CTkRadioButton(rf, text="Runs across the whole submission", variable=rule, value="submission").pack(side="left", padx=12)
+        for k, lab in E.FIRST_USE_RULES.items():
+            ctk.CTkRadioButton(rf, text=lab, variable=rule, value=k).pack(anchor="w", pady=1)
         dirs = {}
         for r, (key, label) in enumerate((("client", "Client (short name)"), ("solicitation", "Solicitation number"),
                                           ("internal_no", "Internal number")), start=9):
