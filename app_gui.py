@@ -976,14 +976,16 @@ def _ocr_raw(image_bytes):
             for x in _tile_starts(w, tile, tile - over):
                 tiled += _ocr_lines(clean_img[y:y + tile, x:x + tile], x, y)
         lines = _merge_lines(lines, tiled)
-    if OCR_CFG.get("line_removal_pass", 1) and max(h, w) <= 4000:
-        bare = remove_lines(clean_img)
-        if bare is not None:
-            lines = _merge_lines(lines, _ocr_lines(bare))
     lines.sort(key=lambda t: (round(t[1] / 20), t[0]))
     text = "\n".join(t[4] for t in lines)
     extra = _doctr_extra(image_bytes, lines, clean_img.shape)
-    return text + ("\n" + extra if extra else "")
+    bare_text = ""
+    if OCR_CFG.get("line_removal_pass", 1) and max(h, w) <= 4000:
+        bare = remove_lines(clean_img)
+        if bare is not None:     # kept apart from the first pass so docTR still adds what Tesseract missed there
+            got = [t for t in _merge_lines(lines, _ocr_lines(bare))[len(lines):]]
+            bare_text = "\n".join(t[4] for t in sorted(got, key=lambda t: (round(t[1] / 20), t[0])))
+    return text + ("\n" + extra if extra else "") + ("\n" + bare_text if bare_text else "")
 
 _OCR_CALLS = [0]   # pictures sent to OCR while scanning the current file (a file with 0 does not depend on the reader)
 
