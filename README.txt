@@ -520,8 +520,8 @@ EFFORT START, HOME AND VOLUMES (2.14.0)
 - Effort list (home) and Scan review: two views in the main window while an effort is open. Home lists every term
   with its definition, status, volumes, Found in and scan status; filters (needs a definition, status, no longer
   found, volume); edit definition, approve, needs author, not a term, volumes, where from, show in Scan review.
-  Reopening restores the view, filter, search and selection. Every scan lands in Scan review, which adds Not a term
-  and Omit next to Add to effort list.
+  Reopening restores the view, filter, search and selection. Every scan lands in Scan review, which adds an Effort
+  decision row under the action bar: Add to effort list, Not a term, Omit.
 - Use as definition: select words in the Source preview (typed passage or a picture's recognized text) and click Use
   as definition or right-click. A "Found: <long form>" line offers the definition the documents, customer list,
   database or nearby words give. Kept per effort (picked_definitions in the effort settings) and applied after every
