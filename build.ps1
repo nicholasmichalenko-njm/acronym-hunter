@@ -17,6 +17,7 @@
 #                    Needs vendor\tesseract once: tools\build_tesseract.ps1 (built from source with no network library).
 #   -Edition legacy  RapidOCR + PaddleOCR (Baidu) models on ONNX Runtime, the v1.5.x engine: AcronymHunter_Legacy.zip.
 #   -Classic         US edition without docTR: Tesseract is the only reader (for reviewers who want no neural text finder).
+#                    On request only: routine releases ship AcronymHunter_US.zip and AcronymHunter_US_Training.zip (from 2.15.0).
 #   -App training    Acronym Hunter Training instead of Acronym Hunter (same code, its own program and package).
 param([string]$KnowledgePack = "", [ValidateSet('us', 'legacy')][string]$Edition = 'us', [switch]$Classic,
       [ValidateSet('user', 'training')][string]$App = 'user')

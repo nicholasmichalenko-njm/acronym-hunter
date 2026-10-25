@@ -536,6 +536,7 @@ EFFORT START, HOME AND VOLUMES (2.14.0)
   in one workbook.
 
 TRAINING IS ITS OWN PROGRAM (2.15.0)
+- Releases ship two zips. AcronymHunter_US_Classic.zip (no docTR) is built only on request (build.ps1 -Classic).
 - Two programs from the same code: Acronym Hunter (AcronymHunter_US.zip, the scanner everyone uses) and Acronym Hunter
   Training (AcronymHunter_US_Training.zip, for the training team). Both run fully offline with the same engine,
   sandbox and network guard.
