@@ -119,6 +119,7 @@ PAGES = {
                        "better reader and tests it. Only a reader that reads better ships."),
               ("Back to you", "It comes back as a numbered Knowledge Pack: Tools > Knowledge Packs > Install. Undo puts the "
                               "previous one back.")]),
+    ("img", "training.png", 480),
 ],
 "Effort list": [
     ("h", "One list per proposal"),
@@ -177,6 +178,7 @@ PAGES = {
     ("p", "With an effort open, the main window has two views. Effort list (home) shows every decision for the effort, "
           "where each term came from and which volumes use it; it reopens exactly as you left it. Every scan lands in Scan "
           "review, where you decide on what the scan found."),
+    ("img", "home.png", 600),
     ("rows", [("Home", "Counts at the top (terms, approved, need a definition, no longer found). Show: needs a definition, a "
                        "status, no longer found, or one volume. Double-click to edit a definition. Approve, Needs author, "
                        "Not a term, Volumes, Where from (documents, imports and every change), Show in Scan review."),
@@ -187,9 +189,11 @@ PAGES = {
                                     "the nearby words already give a long form, the preview shows \"Found: ...\" with a Use "
                                     "button. The definition is kept for later scans in this effort and goes into the effort "
                                     "list when you Keep the term.")]),
+    ("img", "scanreview.png", 600),
     ("h", "Keywords for SharePoint"),
     ("p", "Collect the keywords for tagging the submission while you work, not after. The Keywords view (next to Effort "
           "list and Scan review) keeps them in the effort list's Keywords sheet."),
+    ("img", "keywords.png", 600),
     ("rows", [("Capture", "Ctrl+K in the app (selected preview text or the clipboard fills it in), right-click a result, "
                           "preview text or a home row > Add as keyword, or Ctrl+Alt+K anywhere in Windows after copying a phrase."),
               ("Suggest", "Suggest keywords reads the customer documents and your volumes and lists phrases with the reasons: "
@@ -209,6 +213,7 @@ PAGES = {
                             "into an offering."),
               ("Export", "Excel or CSV in the SharePoint columns: Keep only, or Keep and Proposed. The app never connects to "
                          "SharePoint.")]),
+    ("img", "suggest.png", 460),
     ("h", "Volumes and export"),
     ("rows", [("Name volumes", "Home > Name volumes (or Effort > Name volumes): Vol I Technical, Vol II Management... and tick "
                                "the files in each. Terms get their volumes from the files they were found in."),
@@ -223,6 +228,7 @@ PAGES = {
     ("h", "Several efforts at once"),
     ("p", "Each effort keeps its own work: results, choices, compliance matrix, volume check and where you left off. "
           "Nothing from one effort shows up in another."),
+    ("img", "topbar.png", 640),
     ("rows", [("Switch", "Pick an effort in the Effort box at the top of the window. Your work is already saved, so switching "
                          "takes one click and puts you back where you were in that effort."),
               ("Resume", "The app opens the effort you used last and says so: \"Resumed Kestrel, last worked yesterday 4:12 PM.\" "

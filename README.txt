@@ -622,3 +622,13 @@ HEADING WORDS IN CAPITALS (2.20.0, known gap F6)
 - Kept as candidates: real acronyms in headings (PCU, MIL), and any word that also appears on its own in running text
   ("The SOW tasks", "The REVIEW board"), so a reviewer still decides. Database entries are never affected.
 - On the sample set: 18 heading words set aside, known false alarms 4 of 8 down to 1 of 8, recall unchanged.
+
+LAST KNOWN FALSE ALARMS, SHARPER TRAINING TABLE, GUIDE PICTURES (2.21.0)
+- Document structure words in capitals (APPENDIX, ATTACHMENT, EXHIBIT, ANNEX, SECTION, GLOSSARY, INTRODUCTION...) are
+  set aside as heading words even when they also appear alone in running text ("see APPENDIX B").
+- A capitalized ordinary word right after a number ("2 Add", "3 Remove") is no longer read as a unit.
+- On the sample set: known false alarms 1 of 8 down to 0 of 8, recall unchanged.
+- Acronym Hunter Training: the corrections table rows and text scale with the display, so lines are no longer clipped
+  at 150% and 200% scaling.
+- Help > User Guide shows pictures of the effort list, Scan review, the Keywords view, Suggest keywords, the Effort box
+  and Acronym Hunter Training. tools\make_guide_shots.py makes them again from the fictional samples.
