@@ -35,12 +35,18 @@ class EffortMixin:
         # 2.11.0: the last effort is resumed by workspace_startup once the window is built
 
     def effort_actionbar(self, act):
-        self.btn_effort_add = ctk.CTkButton(act, text="Add to effort list", command=self.add_to_effort, state="disabled",
+        """Keep, Not a term and Omit sit on their own row under the action bar while an effort is open (2.14.0)."""
+        self.act_effort = row = ctk.CTkFrame(act.master, fg_color="transparent")
+        self._act_main = act
+        ctk.CTkLabel(row, text="Effort decision:", anchor="w").pack(side="left", padx=(5, 4), pady=(0, 8))
+        self.btn_effort_add = ctk.CTkButton(row, text="Add to effort list", command=self.add_to_effort, state="disabled",
                                             fg_color="#0F766E", width=150)
-        self.btn_effort_add.pack(side="left", padx=5, pady=(4, 8))
-        self.btn_effort_rej = ctk.CTkButton(act, text="Not a term", command=lambda: self.set_effort_status("Rejected"),
-                                            state="disabled", fg_color="#B91C1C", width=95)
-        self.btn_effort_omit = ctk.CTkButton(act, text="Omit...", command=self.mark_known, state="disabled", fg_color="#6B21A8", width=75)
+        self.btn_effort_add.pack(side="left", padx=5, pady=(0, 8))
+        self.btn_effort_rej = ctk.CTkButton(row, text="Not a term", command=lambda: self.set_effort_status("Rejected"),
+                                            state="disabled", fg_color="#B91C1C", width=100)
+        self.btn_effort_rej.pack(side="left", padx=5, pady=(0, 8))
+        self.btn_effort_omit = ctk.CTkButton(row, text="Omit...", command=self.mark_known, state="disabled", fg_color="#6B21A8", width=80)
+        self.btn_effort_omit.pack(side="left", padx=5, pady=(0, 8))
 
     def update_effort_ui(self):
         L = self.effort
@@ -76,11 +82,10 @@ class EffortMixin:
         self.btn_effort_add.configure(state="normal" if ok else "disabled",
                                       text=f"Add {len(sel)} to effort list" if ok and len(sel) > 1 else "Add to effort list")
         if hasattr(self, "btn_effort_omit"):
-            if self.effort is None:                  # Not a term and Omit belong to an effort's Scan review
-                self.btn_effort_rej.pack_forget(); self.btn_effort_omit.pack_forget()
-            elif not self.btn_effort_rej.winfo_manager():
-                self.btn_effort_rej.pack(side="left", padx=5, pady=(4, 8), after=self.btn_effort_add)
-                self.btn_effort_omit.pack(side="left", padx=5, pady=(4, 8), after=self.btn_effort_rej)
+            if self.effort is None:                  # the effort decision row belongs to an effort's Scan review
+                self.act_effort.pack_forget()
+            elif not self.act_effort.winfo_manager():
+                self.act_effort.pack(fill="x", after=self._act_main)
             can = bool(sel) and all(not self.results[t].get("file_error") and not self.results[t].get("manual") for t in sel)
             self.btn_effort_omit.configure(state="normal" if can else "disabled")
             self.btn_effort_rej.configure(state="normal" if ok else "disabled")
