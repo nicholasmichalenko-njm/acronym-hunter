@@ -133,6 +133,7 @@ from workspace_ui import WorkspaceMixin   # effort profiles, session, recovery, 
 from ai_ui import AIMixin   # AI and ML labels and switch (2.12.0)
 from setup_ui import SetupMixin   # Setup Builder in the compliance window (2.13.0)
 from effort_wizard import WizardMixin   # effort start wizard, intake, review, record, exports (2.14.0)
+from effort_home import HomeMixin       # effort home, Scan review, volumes, export picker, Use as definition (2.14.0)
 import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
 DB_FILE = os.path.join(BASE_DIR, "acronym_database.csv")
@@ -2233,7 +2234,7 @@ def analyze_batch(filepaths, status_callback, capture=None):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.13.0"            # keep in step with version_info.txt
+APP_VERSION = "2.14.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3066,7 +3067,7 @@ def trainer_available():
     """Training features: on unless config\\app_settings.json sets allow_training to false."""
     return bool(APP_CFG["allow_training"]) and importlib.util.find_spec("trainer_gui") is not None
 
-class AcronymAppGUI(WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Acronym Hunter {APP_VERSION}: acronyms, abbreviations and units (100% local)")
@@ -3220,8 +3221,11 @@ class AcronymAppGUI(WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeChe
                                         command=self.cancel_scan)   # shown only while a scan runs
         self.prog.set(0)
 
-        # ---- Results table ----
-        t_frame = ctk.CTkFrame(M)
+        # ---- Scan review (the results table) and the effort home (2.14.0) ----
+        self.scan_view = ctk.CTkFrame(M, fg_color="transparent")
+        self.scan_view.pack(fill="both", expand=True)
+        self.home_build(M, self.scan_view)
+        t_frame = ctk.CTkFrame(self.scan_view)
         t_frame.pack(fill="both", expand=True, padx=15, pady=(0, 10))
         t_frame.grid_rowconfigure(0, weight=1)
         t_frame.grid_columnconfigure(0, weight=1)
@@ -3285,7 +3289,7 @@ class AcronymAppGUI(WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeChe
         self.tree.bind("<Control-MouseWheel>", lambda e: self.change_font_size(+1 if e.delta > 0 else -1))
         self.apply_font_size()
 
-        act = ctk.CTkFrame(M)
+        act = ctk.CTkFrame(self.scan_view)
         act.pack(side="bottom", fill="x", padx=15, pady=(0, 15), before=t_frame)  # never pushed off-screen
 
         self.lbl_act = ctk.CTkLabel(act, text="Select a row above (Ctrl+click or Shift+click for several):", font=("Arial", 12, "bold"), anchor="w")
@@ -4711,6 +4715,7 @@ class AcronymAppGUI(WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeChe
         self.apply_instance_excludes()     # instances excluded one by one in this effort (2.13.0)
         self.apply_customer_defs()
         self.apply_saved_decisions()
+        self.apply_picked_definitions()    # Use as definition, this effort only (2.14.0)
         self.apply_effort(reload=True)
         for d in self.results.values():   # known names keep their status unless the effort list holds them (2.13.0)
             if d.get("known") and not d.get("effort") and not d.get("excluded"):
@@ -4727,6 +4732,7 @@ class AcronymAppGUI(WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeChe
             self.update_effort_ui()
             self.status.configure(text=f"Effort list updated: {rec['found']} found again, {rec['new']} new (not in the list"
                                        f"{': Effort > Review new terms' if rec['new'] else ''}), {rec['gone']} no longer found.")
+            self.scan_landed()             # every scan lands in Scan review (2.14.0)
 
     def populate_table(self):
         if not hasattr(self, "tree"):

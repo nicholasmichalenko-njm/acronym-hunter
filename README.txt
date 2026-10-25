@@ -497,3 +497,29 @@ SETUP BUILDER (2.13.0)
   preview says what it likely means at each place, and rows whose places disagree say "meaning differs by place".
   Nothing changes until you accept: right-click > Accept context suggestion, or Edit > Accept context suggestions
   (saved like Apply Choice). Status > Context suggests a meaning; the CSV export has a Context suggests column.
+
+EFFORT START, HOME AND VOLUMES (2.14.0)
+- Effort > New effort (wizard): effort and client (short name, solicitation number, internal number), the customer's
+  acronym lists (remembered by the effort and used on every scan), customer documents (copied into the effort's
+  Customer documents folder and read for a jump start), how the list ships (one list, one per volume, or both; the
+  first-use rule). The first start with no efforts opens it.
+- Effort > Add customer documents: copies files in, reads only new or changed ones, opens Review new terms (one click
+  adds terms as Proposed with the documents they came from; or omit list; or Not a term in this effort).
+- Every scan updates the effort list: Found in, First found, Last found, Scan status (Found, No longer found in
+  <file>). Each row carries Effort, Client and Solicitation. Activity shows the History sheet, newest first.
+- Effort list (home) and Scan review: two views in the main window while an effort is open. Home lists every term
+  with its definition, status, volumes, Found in and scan status; filters (needs a definition, status, no longer
+  found, volume); edit definition, approve, needs author, not a term, volumes, where from, show in Scan review.
+  Reopening restores the view, filter, search and selection. Every scan lands in Scan review, which adds Not a term
+  and Omit next to Add to effort list.
+- Use as definition: select words in the Source preview (typed passage or a picture's recognized text) and click Use
+  as definition or right-click. A "Found: <long form>" line offers the definition the documents, customer list,
+  database or nearby words give. Kept per effort (picked_definitions in the effort settings) and applied after every
+  scan; written into the effort list.
+- Named volumes (Name volumes): each volume lists its files; terms get volumes from Found in; a term can belong to
+  several; Volumes... assigns by hand and survives rescans (Automatic undoes it). Written to Used in volumes.
+- Import a list: a volume's acronym list (CSV, Excel, Word, PDF, text) joins the effort list with its volume and
+  "Imported list: <file>"; different definitions go to Other definitions.
+- Export: choose columns (Term and Definition by default), one file or one per volume, which volumes, approved only;
+  CSV, Excel or Word. Rejected terms and the omit list are left out. Effort > Export all efforts writes every effort
+  in one workbook.

@@ -47,6 +47,8 @@ FEATURES = {
         ("Rules", "Approved definitions win; first use, missing, unused and differing definitions in volumes", "none"),
         ("Word writer (built in)", "Writes the volume acronym lists", "none"),
         ("Effort folder", "Saved results, choices and backups for this effort only", "none"),
+        ("Effort home and volumes (rules)", "The effort list as home; volumes from the files each term was found in, or "
+                                            "your own assignment; Use as definition takes the words you select", "none"),
     ]),
     "compliance": ("Compliance", ["none", "ml"], [
         ("Rules", "Find shall, must, will and instruction sentences; actor, type and strength; cross-references", "none"),

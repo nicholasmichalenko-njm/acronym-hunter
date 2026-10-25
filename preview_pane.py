@@ -247,13 +247,25 @@ class PreviewPane(ctk.CTkFrame):
         self.pv = PicView(self.stage, int(PIC_W * sc), int(PIC_H * sc), self._select)
         self.pv.canvas.pack(fill="both", expand=True)
         self.txt = tk.Text(self.stage, wrap="word", font=("Segoe UI", int(round(10 * sc))), bg="#F8FAFC", fg="#0F172A", relief="flat",
-                           padx=8, pady=6, cursor="arrow")
+                           padx=8, pady=6, cursor="xterm")
         self.txt.tag_configure("hit", background="#FDE68A")
         self.txt.tag_configure("cur", background="#F59E0B", foreground="#000000")
         self.txt.tag_configure("dim", foreground="#64748B")
         self.lbl_info = ctk.CTkLabel(self, text="Select a result to view its source.", wraplength=PIC_W - 30,
                                      justify="left", anchor="w")
         self.lbl_info.pack(fill="x", padx=10, pady=(6, 2))
+        # 2.14.0 Use as definition: select words in the passage (or in the recognized text below) and use them
+        drow = ctk.CTkFrame(self, fg_color="transparent")
+        drow.pack(fill="x", padx=10, pady=(0, 2))
+        self.btn_usedef = ctk.CTkButton(drow, text="Use as definition", width=130, height=28, fg_color="#0F766E",
+                                        command=self.use_selection)
+        self.btn_usedef.pack(side="left")
+        self.lbl_found = ctk.CTkLabel(drow, text="", anchor="w", justify="left", wraplength=PIC_W - 220)
+        self.lbl_found.pack(side="left", padx=(8, 4), fill="x", expand=True)
+        self.btn_found = ctk.CTkButton(drow, text="Use", width=48, height=26, fg_color="#475569", command=self.use_found)
+        self._found = ""
+        self.txt.bind("<Button-3>", self._def_menu)
+        self.txt.bind("<<Selection>>", lambda _e: self._update_usedef(), add="+")
 
         fix = ctk.CTkFrame(self)
         fix.pack(fill="x", padx=10, pady=(2, 4))
@@ -261,6 +273,7 @@ class PreviewPane(ctk.CTkFrame):
         erow = ctk.CTkFrame(fix, fg_color="transparent"); erow.pack(fill="x", padx=6, pady=4)
         self.entry = ctk.CTkEntry(erow)
         self.entry.pack(side="left", fill="x", expand=True)
+        self.entry.bind("<Button-3>", self._def_menu)
         SP.button(erow, self.entry).pack(side="left", padx=(4, 0))
         row = ctk.CTkFrame(fix, fg_color="transparent")
         row.pack(fill="x", padx=4, pady=(0, 6))
@@ -308,6 +321,7 @@ class PreviewPane(ctk.CTkFrame):
         d = self.app.results.get(term)
         self.term = term
         self.lbl_msg.configure(text="")
+        self.refresh_found()
         self._update_restore(d)
         if d and not d.get("locations") and d.get("excluded_instances"):
             self._blank(f"All instances of {term} are excluded. Restore instances brings them back.")
@@ -374,6 +388,65 @@ class PreviewPane(ctk.CTkFrame):
             self.btn_math.pack(fill="x", padx=10, pady=(0, 4), before=self.ctl)
         else:
             self.btn_math.pack_forget()
+
+    # ---------- Use as definition (2.14.0) ----------
+    def refresh_found(self):
+        """The ready line: the long form the documents, the customer's list, the database or the nearby words point to."""
+        f = self.app.found_definition(self.term) if self.term and hasattr(self.app, "found_definition") else ""
+        self._found = f
+        if f:
+            self.lbl_found.configure(text=f"Found: {f}")
+            if not self.btn_found.winfo_manager():
+                self.btn_found.pack(side="right")
+        else:
+            self.lbl_found.configure(text="Select words above, then Use as definition." if self.term else "")
+            self.btn_found.pack_forget()
+        self._update_usedef()
+
+    def selected_text(self):
+        """Words selected in the passage, else in the recognized-text box."""
+        try:
+            if self.mode == "typed" and self.txt.tag_ranges("sel"):
+                return self.txt.get("sel.first", "sel.last")
+        except tk.TclError:
+            pass
+        try:
+            e = self.entry._entry
+            if e.selection_present():
+                return e.selection_get()
+        except (tk.TclError, AttributeError):
+            pass
+        return ""
+
+    def _update_usedef(self):
+        d = self.app.results.get(self.term or "", {})
+        ok = bool(d) and not d.get("file_error") and not d.get("manual")
+        self.btn_usedef.configure(state="normal" if ok else "disabled")
+
+    def use_selection(self, text=None):
+        text = text if text is not None else self.selected_text()
+        if not text.strip():
+            self.lbl_msg.configure(text="Select words in the passage (or in the recognized text), then Use as definition.")
+            return ""
+        used = self.app.use_as_definition(text, self.term)
+        self.lbl_msg.configure(text=f"Definition for {self.term}: {used}" if used else "Nothing to use.")
+        self.refresh_found()
+        return used
+
+    def use_found(self):
+        return self.use_selection(self._found) if self._found else ""
+
+    def _def_menu(self, event):
+        text = self.selected_text()
+        m = tk.Menu(self, tearoff=0)
+        m.add_command(label=(f"Use as definition: {text[:50]}" if text.strip() else "Use as definition (select words first)"),
+                      state="normal" if text.strip() and self.term else "disabled", command=lambda: self.use_selection(text))
+        if self._found:
+            m.add_command(label=f"Use: {self._found[:60]}", command=self.use_found)
+        m.add_command(label="Copy", state="normal" if text.strip() else "disabled",
+                      command=lambda: (self.clipboard_clear(), self.clipboard_append(text)))
+        m.tk_popup(event.x_root, event.y_root)
+        return "break"
 
     def _on_loc(self, choice):
         names = list(self.opt_loc.cget("values"))

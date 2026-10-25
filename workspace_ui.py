@@ -199,6 +199,8 @@ class WorkspaceMixin:
             self.populate_table()
             r = self.ws.load_resume()
             self._restore_view(r)
+            if hasattr(self, "home_restore"):
+                self.home_restore((r or {}).get("home"))
         finally:
             self._ws_restoring = False
         self.refresh_effort_bar()
@@ -270,6 +272,8 @@ class WorkspaceMixin:
         r = {"selected_term": self.selected_term or "", "search": self.search_var.get(), "type": self.type_var.get(),
              "status": self.status_var.get(), "show_excluded": bool(self.show_exc_var.get()),
              "sort": [self.sort_col, bool(self.sort_desc)]}
+        if hasattr(self, "home_state"):
+            r["home"] = self.home_state()          # the effort home: view, filter, search, selection (2.14.0)
         cw = getattr(self, "_cwin", None)
         if cw is not None and cw.winfo_exists():
             sel = cw.tv.selection()

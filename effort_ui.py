@@ -38,6 +38,11 @@ class EffortMixin:
         self.btn_effort_add = ctk.CTkButton(act, text="Add to effort list", command=self.add_to_effort, state="disabled",
                                             fg_color="#0F766E", width=150)
         self.btn_effort_add.pack(side="left", padx=5, pady=(4, 8))
+        self.btn_effort_rej = ctk.CTkButton(act, text="Not a term", command=lambda: self.set_effort_status("Rejected"),
+                                            state="disabled", fg_color="#B91C1C", width=95)
+        self.btn_effort_rej.pack(side="left", padx=5, pady=(4, 8))
+        self.btn_effort_omit = ctk.CTkButton(act, text="Omit...", command=self.mark_known, state="disabled", fg_color="#6B21A8", width=75)
+        self.btn_effort_omit.pack(side="left", padx=5, pady=(4, 8))
 
     def update_effort_ui(self):
         L = self.effort
@@ -64,12 +69,18 @@ class EffortMixin:
             self.btn_effort.configure(text=f"Effort: {L.name[:18]}")
             self.btn_volcheck.configure(state="normal")
         self.update_effort_buttons()
+        if hasattr(self, "home_update"):
+            self.home_update()
 
     def update_effort_buttons(self):
         sel = [t for t in self.tree.selection() if t in self.results] if hasattr(self, "tree") else []
         ok = self.effort is not None and bool(sel)
         self.btn_effort_add.configure(state="normal" if ok else "disabled",
                                       text=f"Add {len(sel)} to effort list" if ok and len(sel) > 1 else "Add to effort list")
+        if hasattr(self, "btn_effort_omit"):
+            can = bool(sel) and all(not self.results[t].get("file_error") and not self.results[t].get("manual") for t in sel)
+            self.btn_effort_omit.configure(state="normal" if can else "disabled")
+            self.btn_effort_rej.configure(state="normal" if ok else "disabled")
 
     # ------------------------------------------------------------ menu
     def show_effort_menu(self, menu=None):
@@ -97,7 +108,11 @@ class EffortMixin:
         m.add_command(label="Add customer documents...", command=self.add_customer_documents, state=st)
         m.add_command(label="Review new terms (not in the list)...", command=self.review_new_terms, state=st)
         m.add_command(label="Activity (what was added, from where)...", command=self.show_activity, state=st)
-        m.add_command(label="Export the acronym lists (whole effort or per volume)...", command=self.export_effort_lists_ui, state=st)
+        m.add_command(label="Go to the effort list (home)", command=lambda: self.show_view("Effort list (home)"), state=st)
+        m.add_command(label="Export terms (choose columns and volumes)...", command=self.export_picker, state=st)
+        m.add_command(label="Export the acronym lists as set in the wizard (Word and Excel)...", command=self.export_effort_lists_ui, state=st)
+        m.add_command(label="Name volumes...", command=self.edit_volumes, state=st)
+        m.add_command(label="Import a volume's acronym list...", command=self.import_volume_list, state=st)
         m.add_command(label="Export all efforts in one workbook...", command=self.export_all_efforts_ui)
         m.add_separator()
         m.add_command(label="Open the list in Excel", command=self.open_effort_in_excel, state=st)

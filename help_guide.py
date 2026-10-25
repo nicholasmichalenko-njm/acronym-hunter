@@ -150,6 +150,41 @@ PAGES = {
               ("Jump", "Double-click any row: the results table selects the term and the preview opens at that spot."),
               ("Acronym lists", "One Word file per volume (and one for all volumes): a Term and Definition table, sorted."),
               ("Record", "Writes Used in volumes and First use into the effort list.")]),
+    ("h", "Start an effort (wizard)"),
+    ("p", "Effort > New effort opens five short steps: the effort and client (short name, solicitation number, your internal "
+          "number), the customer's own acronym lists, the customer documents, how the list ships (one list, one per volume, or "
+          "both; the first-use rule), and ready. The documents are copied into the effort's Customer documents folder and read "
+          "for a jump start; Review new terms adds what they hold in one click."),
+    ("rows", [("Customer documents later", "Effort > Add customer documents: copies the files in, reads only new or changed "
+                                           "ones, and opens Review new terms."),
+              ("Every scan", "Updates Found in, First found, Last found and Scan status in the effort list. Terms a rescan no "
+                             "longer finds say \"No longer found in <file>\"; nothing is removed."),
+              ("Activity", "Effort > Activity: what was added, from which document, by whom, newest first.")]),
+    ("h", "Effort list (home) and Scan review"),
+    ("p", "With an effort open, the main window has two views. Effort list (home) shows every decision for the effort, "
+          "where each term came from and which volumes use it; it reopens exactly as you left it. Every scan lands in Scan "
+          "review, where you decide on what the scan found."),
+    ("rows", [("Home", "Counts at the top (terms, approved, need a definition, no longer found). Show: needs a definition, a "
+                       "status, no longer found, or one volume. Double-click to edit a definition. Approve, Needs author, "
+                       "Not a term, Volumes, Where from (documents, imports and every change), Show in Scan review."),
+              ("Scan review", "Keep (Add to effort list), Not a term, Omit, Exclude, Exclude instance in the preview, and Fix "
+                              "OCR or Correct + Teach for a misreading (saved on this PC for training)."),
+              ("Use as definition", "Select words in the Source preview (the passage, or the recognized text of a picture) "
+                                    "and click Use as definition, or right-click. When the documents, the customer's list or "
+                                    "the nearby words already give a long form, the preview shows \"Found: ...\" with a Use "
+                                    "button. The definition is kept for later scans in this effort and goes into the effort "
+                                    "list when you Keep the term.")]),
+    ("h", "Volumes and export"),
+    ("rows", [("Name volumes", "Home > Name volumes (or Effort > Name volumes): Vol I Technical, Vol II Management... and tick "
+                               "the files in each. Terms get their volumes from the files they were found in."),
+              ("Assign by hand", "Select terms on the home view, Volumes..., tick the volumes. A term can belong to several. "
+                                 "Your ticks stay when a rescan finds it elsewhere; Automatic goes back to the files."),
+              ("Import a list", "Home > Import a list: an acronym list exported earlier or written by an author (CSV, Excel, "
+                                "Word, PDF, text). Say which volume it is for. New terms join as Proposed; a different "
+                                "definition is kept under Other definitions."),
+              ("Export", "Home > Export: tick the columns (Term and Definition by default), one file or one per volume, the "
+                         "volumes to include, approved only, and CSV, Excel or Word. Rejected terms and the omit list are "
+                         "left out. Your last choice is remembered for this effort.")]),
     ("h", "Several efforts at once"),
     ("p", "Each effort keeps its own work: results, choices, compliance matrix, volume check and where you left off. "
           "Nothing from one effort shows up in another."),
