@@ -29,7 +29,7 @@ class EffortMixin:
         self.effort = None
         self.btn_effort = ctk.CTkButton(toolbar, text="Effort", command=self.show_effort_menu, **button_kw)
         self.btn_effort.pack(fill="x", padx=8, pady=2)
-        self.btn_volcheck = ctk.CTkButton(toolbar, text="Check Volumes...", command=self.check_volumes, state="disabled", **button_kw)
+        self.btn_volcheck = ctk.CTkButton(toolbar, text="QA/QC Deliverables...", command=self.check_volumes, state="disabled", **button_kw)
         self.btn_volcheck.pack(fill="x", padx=8, pady=2)
         self.effort_menu = tk.Menu(self, tearoff=0)
         self.lbl_effort = ctk.CTkLabel(getattr(self, "main", self), text="", font=("Arial", 12), text_color=("#0F766E", "#5EEAD4"))
@@ -133,9 +133,9 @@ class EffortMixin:
         m.add_command(label="Save list now", command=self.save_effort, state="normal" if has and self.effort.pending else "disabled")
         m.add_command(label="Export for approvals (Needs author, Conflicts, Approved)...", command=self.export_effort, state=st)
         m.add_separator()
-        m.add_command(label="Check volumes (first use, missing, acronym lists)...", command=self.check_volumes, state=st)
-        m.add_command(label="Show the last volume check", command=lambda: self.show_volume_report(self.volume_report),
-                      state="normal" if has and getattr(self, "volume_report", None) else "disabled")
+        m.add_command(label="QA/QC: check our Word deliverables (first use, missing, acronym lists)...", command=self.check_volumes,
+                      state=st)
+        m.add_command(label="Show QA/QC", command=self.open_qa, state=st)
         m.add_command(label="Effort settings...", command=lambda: self.new_effort_dialog(edit=True), state=st)
         m.add_command(label="Restore an earlier version...", command=self.restore_dialog)
         m.add_separator()
@@ -463,8 +463,8 @@ class EffortMixin:
                 continue
             definition = typed or self._definition_for(d)
             cust = next((h for h in d.get("custdef_all", []) if h["definition"] == definition), None) or {}
-            fields = dict(Type=eng.base_type(d.get("category", "")), Source=self._source_for(d, definition),
-                          **{"First use": "; ".join(eng.first_use_lines(d))[:400]})
+            fields = dict(Type=eng.base_type(d.get("category", "")), Source=self._source_for(d, definition))
+            # First use is checked only in our own Word deliverables (QA/QC tab), never from a scan of other files (2.24.0)
             if definition:
                 fields["Definition"] = definition
             if cust and definition in d.get("customer_definitions", []):

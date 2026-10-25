@@ -2383,7 +2383,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.23.0"            # keep in step with version_info.txt
+APP_VERSION = "2.24.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3212,7 +3212,7 @@ ctk.CTkToplevel.__init__ = _toplevel_init   # every pop-up window gets the app i
 SETTINGS_FILE = os.path.join(SANDBOX_DIR, "settings.json")
 ALL_TYPES = "All types"
 STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", "Client list", "Client and database differ",
-                  "Not defined at first use", "Equations and symbols", "Undefined symbols",
+                  "Equations and symbols", "Undefined symbols",
                   "Added manually", "Customer documents", "Customer and database differ", "In effort list", "Not in effort list", "Effort: needs author", "Effort: approved",
                   "New since last scan", "Changed since last scan", "No longer found", "Errors / not scanned",
                   "Context suggests a meaning", "New in this scan (not in the effort list)", "Found in omit list",
@@ -3258,7 +3258,6 @@ COLUMNS = (  # id, heading, base width, anchor
     ("status", "Status", 210, "w"),
     ("definition", "Definition", 300, "w"),
     ("knownin", "Known in", 190, "w"),
-    ("firstuse", "First Use (acronyms)", 260, "w"),
     ("locations", "Source Locations", 420, "w"),
 )
 FONT_MIN, FONT_MAX, FONT_DEFAULT = 9, 28, 13
@@ -4889,8 +4888,6 @@ class AcronymAppGUI(KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin,
             return (rank, term.casefold())
         if c == "definition":
             return (data["selected_definition"].casefold(), term.casefold())
-        if c == "firstuse":
-            return (0 if first_use_flag(data) else 1 if first_use_lines(data) else 2, term.casefold())
         if c == "knownin":
             return (self.known_cell(term, data), term.casefold())
         if c == "change":
@@ -4921,7 +4918,6 @@ class AcronymAppGUI(KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin,
             "New candidates": kind == "candidate",
             "Resolved": kind == "resolved" and status_text(st).startswith(RESOLVED_WORDS),
             "Client list": data.get("client", False),
-            "Not defined at first use": first_use_flag(data),
             "Equations and symbols": data.get("category", "").startswith(("Equation", "Symbol")) or bool(data.get("symbol")),
             "Undefined symbols": bool(data.get("symbol")) and kind == "candidate" or (data.get("equation") and "not defined" in st),
             "Client and database differ": bool(data.get("client") and data.get("db_definitions")),
@@ -4952,7 +4948,7 @@ class AcronymAppGUI(KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin,
         if status_kind(data.get("status", "")) == "choice" and ctx_text(data):
             defn = f"Context: {ctx_text(data)}\n{defn}"
         return (term, data["category"], data["count"], data.get("change", ""), data["status"],
-                defn, self.known_cell(term, data), self.first_use_cell(data), self.wrap_locations(data["locations"]))
+                defn, self.known_cell(term, data), self.wrap_locations(data["locations"]))
 
     def first_use_cell(self, data):
         """Compact table text: where the first use is and whether it is defined there. Details and export say more."""
@@ -5018,15 +5014,14 @@ class AcronymAppGUI(KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin,
     def _fit_row_height(self):
         lines = 1
         for iid in self.tree.get_children():
-            lines = max(lines, str(self.tree.set(iid, "locations")).count("\n") + 1,
-                        str(self.tree.set(iid, "firstuse")).count("\n") + 1)
+            lines = max(lines, str(self.tree.set(iid, "locations")).count("\n") + 1)
             if lines >= LOC_MAX_LINES:
                 break
         line_h = self.tree_font.metrics("linespace")
         self.style.configure("Treeview", rowheight=line_h * lines + int(max(8, self.font_size // 2) * getattr(self, "dpi", 1.0)))
 
     def _maybe_rewrap(self, _e=None):
-        w = (int(self.tree.column("locations", "width")), int(self.tree.column("firstuse", "width")))
+        w = (int(self.tree.column("locations", "width")),)
         if self._loc_width is not None and w != self._loc_width:
             self.populate_table()
         self._loc_width = w
@@ -5085,14 +5080,15 @@ class AcronymAppGUI(KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin,
         self.reset_ui()
         self.refresh_type_options()
         self.populate_table()
-        self.volume_check_after_scan()
+        qa = self.volume_check_after_scan()   # a QA/QC check shows in the QA/QC view, not Scan review (2.24.0)
         self.start_context_suggestions()   # meaning from nearby words, in the background (2.13.0)
         if rec:
             self._last_effort_scan = rec
             self.update_effort_ui()
             self.status.configure(text=f"Effort list updated: {rec['found']} found again, {rec['new']} new (not in the list"
                                        f"{': Effort > Review new terms' if rec['new'] else ''}), {rec['gone']} no longer found.")
-            self.scan_landed()             # every scan lands in Scan review (2.14.0)
+            if not qa:
+                self.scan_landed()         # every scan lands in Scan review (2.14.0)
         if dbr:
             self.status.configure(text=f"Results updated against the master database: {dbr['changed']} changed (Status > Database "
                                        f"update), {dbr['new']} new, {dbr['kept']} kept from before. Nothing was removed.")
@@ -5130,7 +5126,7 @@ class AcronymAppGUI(KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin,
         for term, data in rows:
             self.tree.insert("", "end", iid=term, tags=(self.row_tag(data),), values=self.row_values(term, data))
         self._fit_row_height()
-        self._loc_width = (int(self.tree.column("locations", "width")), int(self.tree.column("firstuse", "width")))
+        self._loc_width = (int(self.tree.column("locations", "width")),)
 
         self.lbl_showing.configure(text=f"Showing {len(rows)} of {len(self.results)}" if self.results else "")
         if self.results and time.time() >= getattr(self, "_status_hold", 0):   # a fresh "Resumed ..." stays readable
@@ -5758,7 +5754,7 @@ class AcronymAppGUI(KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin,
             w = csv.writer(f)
             w.writerow(["Term", "Type", "Count", "Change", "Status", "Selected definition", "Possible definitions",
                         "Client list definition", "Database definition", "Author decision",
-                        "First use (acronyms: define here)", "Locations",
+                        "Locations",
                         "First found by a scan (date)", "Last found by a scan (date)", "Known in", "Context suggests"])
             for term in terms:
                 d = self.results[term]
@@ -5769,7 +5765,7 @@ class AcronymAppGUI(KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin,
                 w.writerow([term, d["category"], d["count"], d.get("change", ""), d["status"], d["selected_definition"],
                             "\n".join(defs) if len(defs) > 1 or d.get("client") else "",
                             "\n".join(client), "\n".join(strip(x) for x in dbdefs), "",
-                            "\n".join(first_use_lines(d)), "\n".join(d["locations"]), d.get("first_seen", ""), d.get("last_seen", ""),
+                            "\n".join(d["locations"]), d.get("first_seen", ""), d.get("last_seen", ""),
                             self.known_cell(term, d), ctx_text(d)])
         view = self.status_var.get() if self.status_var.get() != STATUS_FILTERS[0] else "all statuses"
         messagebox.showinfo("Exported", f"{len(terms)} rows exported ({view}) to:\n{path}\n\n"
@@ -5794,9 +5790,6 @@ class AcronymAppGUI(KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin,
                 lines += ["", "Database definition(s), different from the client:"] + [f"  - {x}" for x in d["db_definitions"]]
         elif len(d.get("definitions", [])) > 1:
             lines += ["", "Possible definitions:"] + [f"  - {x}" for x in d["definitions"]]
-        fu = first_use_lines(d)
-        if fu:
-            lines += ["", "First use in each file (define it here as: Spelled Out Words (ACR)):"] + [f"  - {x}" for x in fu]
         lines += ["", f"Locations ({len(d['locations'])}):"] + [f"  - {x}" for x in d["locations"]]
         if d.get("first_seen"):
             lines += ["", f"Project history: first found by a scan on {d['first_seen']}, last found {d.get('last_seen', '')}"]

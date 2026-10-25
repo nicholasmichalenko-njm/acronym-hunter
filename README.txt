@@ -659,3 +659,17 @@ FIRST USE IN TEXT ONLY; FIGURES AND TABLES REPORTED APART (2.23.0)
   with the first place). A term used only in figures or tables is listed in blue: "Only in figures or tables; not in
   the text, so no first use to check". The Excel report has the same columns.
 - Results table: the First Use column and details say "only in a table: ..." or add "in a figure" lines.
+
+QA/QC VIEW FOR OUR DELIVERABLES (2.24.0)
+- First use matters only in what we write (the response to the RFP), so it moved out of the scan results into a QA/QC
+  view next to Effort list, Scan review and Keywords. The results table no longer has a First Use column or a "Not
+  defined at first use" filter, its CSV export and details no longer list first use, and adding a term to the effort
+  list no longer copies first use from customer documents.
+- QA/QC > Check Word deliverables (also the sidebar button QA/QC Deliverables and Effort > QA/QC). Word documents
+  (.docx) only: a PDF export loses the difference between running text, tables, captions, figures and headings, so
+  first-use results on a PDF would not be accurate. A PDF you pick is left out with that note.
+- Check column on every first-use row: a check mark "OK" (green) for defined at first use, a cross "Fix" (red) for
+  not defined or never defined, "! Check" (amber) when the words differ from the effort list or no spelled-out words
+  come before (ACR), "i Note" (blue) for defined again later or used only in figures or tables. The top line counts
+  each. The Excel report has the Check column and the count of OK rows.
+- Double-click a row: Scan review opens at that place in the preview; click QA/QC to come back.

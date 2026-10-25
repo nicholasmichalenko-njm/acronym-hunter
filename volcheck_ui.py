@@ -1,6 +1,8 @@
-"""Volume check inside the app (2.7.0): Effort > Check volumes. Scans the chosen volumes, then shows the report:
-first use (acronyms), terms not in the effort list, not approved yet, definitions that differ, list entries the
-volumes do not use, and each volume's acronym list. Double-click a row to jump to it in the preview.
+"""QA/QC of our own deliverables (2.7.0 volume check; a view of its own from 2.24.0). Checks the Word volumes we write
+against the effort list: first use in the running text (acronyms), terms not in the effort list, not approved yet,
+definitions that differ, list entries the volumes do not use, and each volume's acronym list. Word (.docx) only: a
+PDF export loses the difference between running text, tables, captions, figures and headings, so first use would not
+be judged accurately. Double-click a row to jump to it in the preview.
 """
 import os, re
 import tkinter as tk
@@ -9,7 +11,10 @@ import customtkinter as ctk
 import diag
 import volcheck as V
 
-TAG_COLORS = {V.BAD: "#FDE2E2", V.WARN: "#FEF3E2", V.INFO: "#E0F2FE"}
+TAG_COLORS = {V.BAD: "#FDE2E2", V.WARN: "#FEF3E2", V.INFO: "#E0F2FE", V.OK: "#DCFCE7"}
+WORD_ONLY = ("QA/QC checks the Word documents we produce (.docx), never customer documents. Run it on the Word files, "
+             "not on PDF exports: a PDF loses the difference between running text, tables, captions, figures and "
+             "headings, so first-use results on a PDF would not be accurate.")
 
 
 def _eng():
@@ -25,15 +30,53 @@ class VolumeCheckMixin:
         d = info.get("volumes_dir") or ""
         return d if d and os.path.isdir(d) else ""
 
+    # ------------------------------------------------------------ the QA/QC view (2.24.0)
+    def qa_build(self, M):
+        self.qa_view = Q = ctk.CTkFrame(M, fg_color="transparent")
+        top = ctk.CTkFrame(Q, fg_color="transparent"); top.pack(fill="x")
+        ctk.CTkLabel(top, text="QA/QC: our Word deliverables", font=("Arial", 15, "bold"), anchor="w").pack(side="left", padx=4)
+        ctk.CTkButton(top, text="Check Word deliverables...", fg_color="#15803D", width=200,
+                      command=self.check_volumes).pack(side="right", padx=4)
+        ctk.CTkLabel(Q, text=WORD_ONLY, anchor="w", justify="left", wraplength=1100,
+                     text_color=("#475569", "#94A3B8")).pack(fill="x", padx=4, pady=(2, 6))
+        self.qa_body = ctk.CTkFrame(Q, fg_color="transparent"); self.qa_body.pack(fill="both", expand=True)
+        self._qa_empty()
+
+    def _qa_empty(self):
+        for w in self.qa_body.winfo_children():
+            w.destroy()
+        ctk.CTkLabel(self.qa_body, anchor="w", justify="left", wraplength=1100, text=(
+            "Pick the final Word volumes (the file names set the submission order: Vol 2 before Vol 10). The check finds "
+            "each acronym's first use in the running text and marks it:\n"
+            "    \u2713  defined at first use (green)\n"
+            "    \u2717  not defined at first use, or never defined (red)\n"
+            "    !  defined, but check it: the words differ from the effort list, or no spelled-out words before (ACR) (amber)\n"
+            "    i  a note: defined again later, or used only in figures or tables (blue)\n"
+            "Tables, figures, captions, headers and footers never count as a first use; the In figures or tables column "
+            "shows where a term also appears in one.")).pack(fill="x", padx=8, pady=8)
+
+    def open_qa(self):
+        if self.effort is None:
+            return
+        import effort_home as H
+        self.show_view(H.VIEW_QA)
+
     def check_volumes(self, paths=None):
         if self.effort is None:
             return
         eng = _eng()
+        if hasattr(self, "qa_view"):
+            self.open_qa()
         if paths is None:
             paths = filedialog.askopenfilenames(
-                title="Volumes to check (submission order follows the file names)", initialdir=self.volume_files() or self.start_dir(),
-                filetypes=[("Volumes", "*.docx *.pdf *.pptx *.xlsx")])
+                title="Word deliverables to check (submission order follows the file names)",
+                initialdir=self.volume_files() or self.start_dir(),
+                filetypes=[("Word documents", "*.docx"), ("All files", "*.*")])
         paths = sorted({os.path.abspath(p) for p in paths or []}, key=lambda p: V.natural_key(os.path.basename(p)))
+        other = [os.path.basename(p) for p in paths if not p.lower().endswith(".docx")]
+        paths = [p for p in paths if p.lower().endswith(".docx")]
+        if other:
+            messagebox.showwarning("QA/QC", "Left out (not Word documents):\n" + "\n".join(other[:10]) + "\n\n" + WORD_ONLY)
         if not paths:
             return
         names = [os.path.basename(p) for p in paths]
@@ -54,10 +97,11 @@ class VolumeCheckMixin:
         self.start_batch(paths, after=after)
 
     def volume_check_after_scan(self):
+        """True when the scan just finished was a QA/QC check (the QA/QC view shows it, not Scan review)."""
         vc = getattr(self, "_volcheck", None)
         self._volcheck = None
         if not vc or self.effort is None:
-            return
+            return False
         eng = _eng()
         report = V.build({t: d for t, d in self.results.items() if not d.get("known")}, self.effort.rows,   # known names stay off
                          vc["names"], self.effort.first_use, vc["defs"],
@@ -66,21 +110,26 @@ class VolumeCheckMixin:
         s = report["summary"]
         diag.activity("volume_check_report", terms=s["terms_used"], rows=len(report["first_use"]), items=s["missing"])
         self.show_volume_report(report)
+        return True
 
-    # ------------------------------------------------------------ the report window
+    # ------------------------------------------------------------ the report (in the QA/QC view)
     def show_volume_report(self, report):
-        old = getattr(self, "_volwin", None)
-        if old is not None and old.winfo_exists():
-            old.destroy()
-        win = ctk.CTkToplevel(self); win.title(f"Volume check: {self.effort.name}")
-        win.geometry("1200x680"); win.after(150, win.lift)
-        diag.register(win, "volume_check")
+        if not report:
+            return None
+        if not hasattr(self, "qa_body"):
+            return None
+        for w in self.qa_body.winfo_children():
+            w.destroy()
+        win = ctk.CTkFrame(self.qa_body, fg_color="transparent"); win.pack(fill="both", expand=True)
         self._volwin = win
+        self.open_qa()
         s = report["summary"]
         rule = V.RULE_SHORT.get(s["rule"], s["rule"])
-        head = (f"{s['volumes']} volume(s), first use {rule}  |  {s['terms_used']} terms used  |  "
-                f"first-use problems {s['first_use_problems']}  |  not in effort list {s['missing']}  |  "
-                f"not approved {s['not_approved']}  |  definition differs {s['differs']}  |  in the list, not used {s['unused']}")
+        c = s.get("checks", {})
+        head = (f"First use {rule}:  \u2713 {c.get(V.OK, 0)} defined at first use   \u2717 {c.get(V.BAD, 0)} to fix   "
+                f"! {c.get(V.WARN, 0)} to check   i {c.get(V.INFO, 0)} notes     |  {s['volumes']} volume(s), "
+                f"{s['terms_used']} terms used  |  not in effort list {s['missing']}  |  not approved {s['not_approved']}  |  "
+                f"definition differs {s['differs']}  |  in the list, not used {s['unused']}")
         ctk.CTkLabel(win, text=head, font=("Arial", 13, "bold"), wraplength=1140, justify="left").pack(anchor="w", padx=12, pady=(10, 0))
         note = ("     Rescan the volumes to check first use by section: some results were saved before 2.22.0."
                 if s.get("rescan_for_sections") else "")
@@ -118,15 +167,16 @@ class VolumeCheckMixin:
             return tv
 
         if s["rule"] == "section":
-            table("First use", ["Volume", "Section", "Acronym", "Result", "First use in text", "In figures or tables",
+            table("First use", ["Check", "Volume", "Section", "Acronym", "Result", "First use in text", "In figures or tables",
                                 "Written as", "Effort list says", "Also defined at"],
-                  report["first_use"], ["volume", "section", "term", "state", "loc", "in_figures", "written", "list_definition",
-                                        "also_defined"], [170, 80, 100, 330, 260, 260, 190, 190, 200], level=True)
+                  report["first_use"], ["check", "volume", "section", "term", "state", "loc", "in_figures", "written",
+                                        "list_definition", "also_defined"], [70, 170, 80, 100, 330, 260, 260, 190, 190, 200],
+                  level=True)
         else:
-            table("First use", ["Volume", "Acronym", "Result", "First use in text", "In figures or tables", "Written as",
+            table("First use", ["Check", "Volume", "Acronym", "Result", "First use in text", "In figures or tables", "Written as",
                                 "Effort list says", "Also defined at"],
-                  report["first_use"], ["volume", "term", "state", "loc", "in_figures", "written", "list_definition",
-                                        "also_defined"], [170, 100, 330, 260, 260, 190, 190, 200], level=True)
+                  report["first_use"], ["check", "volume", "term", "state", "loc", "in_figures", "written", "list_definition",
+                                        "also_defined"], [70, 170, 100, 330, 260, 260, 190, 190, 200], level=True)
         table("Not in effort list", ["Term", "Type", "Count", "Volumes", "Suggested definition", "First found at"],
               report["missing"], ["term", "type", "count", "volumes", "suggestion", "loc"], [90, 90, 60, 220, 300, 300])
         table("Not approved", ["Term", "Status", "Definition", "Volumes", "First found at"],
@@ -145,7 +195,7 @@ class VolumeCheckMixin:
                       state="normal" if s["missing"] else "disabled", command=self.add_volume_missing).pack(side="left", padx=4)
         ctk.CTkButton(b, text="Record volumes and first use in the list", fg_color="#0F766E",
                       command=self.record_volume_use).pack(side="left", padx=4)
-        ctk.CTkButton(b, text="Close", fg_color="#475569", command=win.destroy).pack(side="right", padx=4)
+        ctk.CTkButton(b, text="Check again...", fg_color="#15803D", command=self.check_volumes).pack(side="right", padx=4)
         if s["first_use_problems"] == 0 and s["missing"]:
             tabs.set("Not in effort list")
         return win
@@ -156,6 +206,8 @@ class VolumeCheckMixin:
             return
         term, loc = row["term"], row.get("loc", "") or row.get("in_figures", "").split(": ", 1)[-1]
         diag.activity("volume_check_jump")
+        import effort_home as H
+        self.show_view(H.VIEW_SCAN)                    # the preview lives in Scan review; QA/QC is one click back
         if not self.tree.exists(term):
             self.clear_filters()
         if not self.tree.exists(term):

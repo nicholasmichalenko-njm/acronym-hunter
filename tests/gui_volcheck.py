@@ -26,7 +26,11 @@ def go():
     app.effort.add_or_update("SOW", Type="Acronym", Definition="Statement of Work"); app.effort.set_status(["SOW"], "Approved", "J. Smith")
     app.effort.add_or_update("PDQ", Type="Acronym", Definition="Pretty Darn Quick"); app.effort.set_status(["PDQ"], "Approved", "J. Smith")
     app._save_effort_list()
-    filedialog.askopenfilenames = lambda **k: (v2, v1)          # picked out of order: natural sort puts Vol 2 first
+    pdf = os.path.join(tmp, "Vol 3 Export.pdf"); open(pdf, "wb").write(b"%PDF-1.4 export")
+    warned = []
+    messagebox.showwarning = lambda *a, **k: warned.append(a[1] if len(a) > 1 else "")
+    filedialog.askopenfilenames = lambda **k: (v2, v1, pdf)     # picked out of order: natural sort puts Vol 2 first
+    out["warned"] = warned
     app.check_volumes(); app.after(500, wait)
 
 
@@ -34,7 +38,10 @@ def wait():
     if app.btn_cancel.winfo_ismapped():
         app.after(500, wait); return
     r = app.volume_report
-    print("order:", r["volumes"])
+    print("order:", r["volumes"], "| PDF left out with the Word-only note:", bool(out["warned"]) and "PDF" in out["warned"][0])
+    import effort_home as H
+    out["qa_view"] = app.view_var.get() == H.VIEW_QA
+    print("QA/QC view shown:", out["qa_view"])
     print("summary:", r["summary"])
     win = app._volwin
     print("tabs:", list(win._trees))
@@ -66,7 +73,7 @@ def wait():
     stv, _sdata = app._volwin._trees["First use"]
     sec_cols = list(stv["columns"])
     print("section rule columns:", sec_cols[:3], "| rows:", len(rs["first_use"]))
-    out["ok"] = sec_cols[:3] == ["volume", "section", "term"] and (r["volumes"] == ["Vol 2 Management.docx", "Vol 10 Cost.docx"] and "GNX" in L.rows and L.rows["GNX"]["Status"] == "Proposed"
+    out["ok"] = out["qa_view"] and bool(out["warned"]) and sec_cols[:4] == ["check", "volume", "section", "term"] and (r["volumes"] == ["Vol 2 Management.docx", "Vol 10 Cost.docx"] and "GNX" in L.rows and L.rows["GNX"]["Status"] == "Proposed"
                  and L.rows["SOW"]["Used in volumes"] == "Vol 2 Management.docx; Vol 10 Cost.docx" and len(lists) == 3
                  and app.tree.selection() == ("SOW",) and r["summary"]["unused"] == 1)
     print("GUI VOLCHECK", "PASS" if out["ok"] else "FAIL")

@@ -18,7 +18,7 @@ import customtkinter as ctk
 import diag
 import effort as E
 
-VIEW_HOME, VIEW_SCAN, VIEW_KW = "Effort list (home)", "Scan review", "Keywords"
+VIEW_HOME, VIEW_SCAN, VIEW_KW, VIEW_QA = "Effort list (home)", "Scan review", "Keywords", "QA/QC"
 HOME_FILTERS = ["All terms", "Needs a definition", "Proposed", "Needs author", "Approved", "Rejected", "No longer found"]
 NO_VOLUME = "No volume"
 HOME_COLS = (("term", "Term", 110), ("definition", "Definition", 330), ("status", "Status", 110),
@@ -57,7 +57,7 @@ class HomeMixin:
     def home_build(self, M, before):
         """The view switch and the home view, both above `before` (the scan view's frame)."""
         self.view_var = tk.StringVar(value=VIEW_SCAN)
-        self.seg_view = ctk.CTkSegmentedButton(M, values=[VIEW_HOME, VIEW_SCAN, VIEW_KW], variable=self.view_var,
+        self.seg_view = ctk.CTkSegmentedButton(M, values=[VIEW_HOME, VIEW_SCAN, VIEW_KW, VIEW_QA], variable=self.view_var,
                                                command=lambda v: self.show_view(v))
         self.home_view = ctk.CTkFrame(M, fg_color="transparent")
         H = self.home_view
@@ -118,12 +118,16 @@ class HomeMixin:
         self._home_buttons()
         if hasattr(self, "kw_build"):                  # Keyword Harvest (2.16.0)
             self.kw_build(M)
+        if hasattr(self, "qa_build"):                  # QA/QC of our Word deliverables (2.24.0)
+            self.qa_build(M)
 
     # ------------------------------------------------------------ views
     def _views(self):
         v = {VIEW_HOME: self.home_view, VIEW_SCAN: self.scan_view}
         if getattr(self, "kw_view", None) is not None:
             v[VIEW_KW] = self.kw_view
+        if getattr(self, "qa_view", None) is not None:
+            v[VIEW_QA] = self.qa_view
         return v
 
     def show_view(self, which=None, save=True):
@@ -146,6 +150,8 @@ class HomeMixin:
         elif which == VIEW_KW:
             self.kw_refresh()
             diag.activity("view_keywords")
+        elif which == VIEW_QA:
+            diag.activity("view_qa")
         else:
             diag.activity("view_scan")
         if save:

@@ -3,7 +3,7 @@
     venv\\Scripts\\python.exe tools\\make_guide_shots.py
 
 Uses the fictional test_samples only, in a temporary config folder, and writes assets\\help\\topbar.png, home.png,
-scanreview.png, keywords.png, suggest.png, setup.png, whatruns.png, stack.png and training.png. Each picture is the window region of one view, captured
+scanreview.png, keywords.png, suggest.png, setup.png, whatruns.png, stack.png, qa.png and training.png. Each picture is the window region of one view, captured
 with PIL ImageGrab, so the window must be on screen and not covered.
 """
 import os, sys, shutil, tempfile, time
@@ -130,9 +130,16 @@ def step3():
         grab(w, "whatruns.png")
         w.destroy(); app.update()
         s = app.show_stack("scan"); s.update()
-        app.after(1000, lambda: (grab(s, "stack.png"), s.destroy(), app.after(800, finish)))
+        app.after(1000, lambda: (grab(s, "stack.png"), s.destroy(), app.after(800, step4)))
 
     app.after(1200, shot_setup)
+
+
+def step4():
+    """QA/QC view after checking the sample technical volume (2.24.0)."""
+    app.check_volumes([VOL])
+    wait(lambda: not app.busy() and not app.btn_cancel.winfo_ismapped() and getattr(app, "volume_report", None),
+         lambda: app.after(1500, lambda: (grab(app.qa_view, "qa.png"), app.after(500, finish))))
 
 
 def finish():

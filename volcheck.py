@@ -22,6 +22,7 @@ LIST_TYPES = ("Acronym", "Abbreviation", "Unit")
 OK, WARN, BAD, INFO = "ok", "warn", "bad", "info"
 RULE_TEXT = {"volume": "Restarts in each volume", "section": "Restarts in each section of each volume",
              "submission": "Runs across the whole submission"}
+CHECK_MARKS = {OK: "\u2713 OK", BAD: "\u2717 Fix", WARN: "! Check", INFO: "i Note"}
 KIND_NAMES = {"table": "Table", "figure": "Figure", "caption": "Caption", "header": "Header or footer",
               "notes": "Comment or notes"}
 RULE_SHORT = {"volume": "per volume", "section": "per section of each volume", "submission": "across the whole submission"}
@@ -179,6 +180,9 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
                                   "in_figures": fig_text(fig), "level": INFO,
                                   "state": "Only in figures or tables; not in the text, so no first use to check"})
 
+    for r in first_use:
+        r["check"] = CHECK_MARKS.get(r["level"], "")
+
     # ---------------- missing / not approved / differs
     missing, not_approved, differs = [], [], []
     all_terms = {}
@@ -237,7 +241,8 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
                "terms_used": len(all_terms),
                "first_use_problems": sum(1 for r in first_use if r["level"] in (BAD, WARN)),
                "missing": len(missing), "not_approved": len(not_approved), "differs": len(differs), "unused": len(unused),
-               "rescan_for_sections": len(no_sections)}
+               "rescan_for_sections": len(no_sections),
+               "checks": {lv: sum(1 for r in first_use if r["level"] == lv) for lv in (OK, BAD, WARN, INFO)}}
     return {"summary": summary, "first_use": first_use, "missing": missing, "not_approved": not_approved,
             "differs": differs, "unused": unused, "lists": lists, "volumes": list(volumes), "used": used}
 
@@ -259,13 +264,15 @@ def effort_updates(report):
 def write_excel(report, path, effort_name=""):
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment
-    fills = {BAD: "FDE2E2", WARN: "FEF3E2", INFO: "E0F2FE", OK: None}
+    fills = {BAD: "FDE2E2", WARN: "FEF3E2", INFO: "E0F2FE", OK: "DCFCE7"}
     wb = Workbook()
     ws = wb.active; ws.title = "Summary"
     s = report["summary"]
     for r in (["Effort", effort_name], ["Volumes", ", ".join(report["volumes"])],
               ["First use rule", RULE_TEXT.get(s["rule"], s["rule"])],
               ["Terms used", s["terms_used"]], ["First-use problems", s["first_use_problems"]],
+              ["Defined at first use (OK)", s.get("checks", {}).get(OK, 0)],
+              ["Checked on", "Word documents (.docx) only; PDF exports are not checked"],
               ["Not in effort list", s["missing"]], ["Not approved yet", s["not_approved"]],
               ["Definition differs", s["differs"]], ["In the list, not used", s["unused"]]):
         ws.append(r)
@@ -292,15 +299,16 @@ def write_excel(report, path, effort_name=""):
             sh.auto_filter.ref = f"A1:{sh.cell(row=1, column=len(cols)).column_letter}{sh.max_row}"
 
     if s["rule"] == "section":
-        sheet("First use", ["Volume", "Section", "Acronym", "Result", "First use in text", "In figures or tables", "Written as",
-                            "Effort list definition", "Also defined at", "List status"],
-              report["first_use"], ["volume", "section", "term", "state", "loc", "in_figures", "written", "list_definition",
-                                    "also_defined", "status"], [22, 12, 12, 46, 40, 40, 34, 34, 30, 14], level_key="level")
+        sheet("First use", ["Check", "Volume", "Section", "Acronym", "Result", "First use in text", "In figures or tables",
+                            "Written as", "Effort list definition", "Also defined at", "List status"],
+              report["first_use"], ["check", "volume", "section", "term", "state", "loc", "in_figures", "written",
+                                    "list_definition", "also_defined", "status"], [9, 22, 12, 12, 46, 40, 40, 34, 34, 30, 14],
+              level_key="level")
     else:
-        sheet("First use", ["Volume", "Acronym", "Result", "First use in text", "In figures or tables", "Written as",
+        sheet("First use", ["Check", "Volume", "Acronym", "Result", "First use in text", "In figures or tables", "Written as",
                             "Effort list definition", "Also defined at", "List status"],
-              report["first_use"], ["volume", "term", "state", "loc", "in_figures", "written", "list_definition", "also_defined",
-                                    "status"], [22, 12, 46, 40, 40, 34, 34, 30, 14], level_key="level")
+              report["first_use"], ["check", "volume", "term", "state", "loc", "in_figures", "written", "list_definition",
+                                    "also_defined", "status"], [9, 22, 12, 46, 40, 40, 34, 34, 30, 14], level_key="level")
     sheet("Not in effort list", ["Term", "Type", "Volumes", "Count", "Suggested definition", "First found at"],
           report["missing"], ["term", "type", "volumes", "count", "suggestion", "loc"], [14, 13, 30, 8, 40, 40])
     sheet("Not approved", ["Term", "Type", "Status", "Definition", "Volumes", "First found at"],

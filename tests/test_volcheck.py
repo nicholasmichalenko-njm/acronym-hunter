@@ -144,7 +144,7 @@ def run():
     assert "section 2" in V.effort_updates(r3)["SOW"]["First use"]
     xl3 = os.path.join(d, "check3.xlsx"); V.write_excel(r3, xl3, "Kestrel")
     ws = load_workbook(xl3)["First use"]
-    assert [c.value for c in ws[1]][:3] == ["Volume", "Section", "Acronym"]
+    assert [c.value for c in ws[1]][:4] == ["Check", "Volume", "Section", "Acronym"]
     assert load_workbook(xl3)["Summary"]["B3"].value == "Restarts in each section of each volume"
     L3 = E.EffortList(os.path.join(d, "Effort3.xlsx"), "Kestrel", "section"); L3.save()
     # 2.23.0: first use is judged in running text only; tables, captions and text boxes are reported apart
@@ -174,7 +174,11 @@ def run():
     assert by4["QZR"]["level"] == V.BAD and by4["QZR"]["in_figures"].startswith("Caption: ")
     assert by4["WBX"]["level"] == V.INFO and "Only in figures or tables" in by4["WBX"]["state"] and by4["WBX"]["in_figures"].startswith("Figure: "), by4.get("WBX")
     xl4 = os.path.join(d, "check4.xlsx"); V.write_excel(r4, xl4, "Kestrel")
-    assert [c.value for c in load_workbook(xl4)["First use"][1]][3:5] == ["First use in text", "In figures or tables"]
+    assert [c.value for c in load_workbook(xl4)["First use"][1]][4:6] == ["First use in text", "In figures or tables"]
+    # 2.24.0 QA/QC marks: a check mark for defined at first use, a cross to fix, ! to check, i for a note
+    assert by4["CDR"]["check"] == "\u2713 OK" and by4["QZR"]["check"] == "\u2717 Fix" and by4["WBX"]["check"] == "i Note", by4
+    assert r4["summary"]["checks"][V.OK] >= 1 and r4["summary"]["checks"][V.BAD] >= 1
+    assert load_workbook(xl4)["First use"]["A2"].value in V.CHECK_MARKS.values()
     L4 = E.EffortList(L3.path); L4.load(); assert L4.first_use == "section"
     print("volcheck ok")
 

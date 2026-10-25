@@ -141,12 +141,21 @@ PAGES = {
     ("img", "effort_add.png", 150),
     ("h", "Which definition wins"),
     ("p", "Effort list (approved) > customer documents > client lists > company database."),
-    ("h", "Check a volume before it ships"),
-    ("p", "Effort > Check volumes. Pick the final volumes; the file names set the submission order (Vol 2 before Vol 10)."),
-    ("img", "volume_check.png", 600),
+    ("h", "QA/QC: check our deliverables before they ship"),
+    ("p", "First use matters only in what we write: the response to the RFP. The QA/QC view (next to Effort list, Scan "
+          "review and Keywords) checks our Word volumes; customer documents are never checked for first use. Click Check "
+          "Word deliverables (or the QA/QC Deliverables button) and pick the final volumes; the file names set the submission "
+          "order (Vol 2 before Vol 10)."),
+    ("p", "Word documents (.docx) only. Run it on the Word files, not on PDF exports: a PDF loses the difference between "
+          "running text, tables, captions, figures and headings, so first-use results on a PDF would not be accurate. A PDF "
+          "you pick is left out, with a note."),
+    ("img", "qa.png", 600),
     ("rows", [("First use", "Acronyms only. Each must first appear as \"Spelled Out Words (ACR)\", per volume, per section "
-                            "of each volume, or across the submission (the effort's first-use rule). Red: not defined. "
-                            "Amber: the words differ from the list."),
+                            "of each volume, or across the submission (the effort's first-use rule)."),
+              ("Check column", "\u2713 OK (green): defined at first use. \u2717 Fix (red): not defined at first use, or never "
+                               "defined. ! Check (amber): defined, but the words differ from the effort list or no spelled-out "
+                               "words come before (ACR). i Note (blue): defined again later, or used only in figures or "
+                               "tables. The line at the top counts each."),
               ("Text, figures, tables", "First use is judged in the running text only. Tables, figures (pictures, diagrams, "
                                         "charts, text boxes), captions, headers and footers never count as a first use. "
                                         "The In figures or tables column shows where a term also appears in one; a term "
