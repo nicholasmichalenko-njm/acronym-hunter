@@ -279,6 +279,7 @@ PAGES = {
     ("h", "Setup: the first draft for authors"),
     ("p", "The Setup tab puts the RFP text under the proposal outline and writes the setup documents: every heading of the "
           "outline, with the RFP text that section must answer and the proposal lead's direction."),
+    ("img", "setup.png", 620),
     ("rows", [("Place", "Drag RFP text from the left onto a section on the right. Shift+drag adds a copy to a second section. "
                         "Drag inside the outline to reorder, or back to the left to remove. Accept suggestions places what the "
                         "rules and your earlier mapping suggest. Placing a row also fills its Outline column, and the other way round."),
@@ -365,6 +366,7 @@ PAGES = {
                ["ML", "A trained model that recognizes or scores. Outputs letters, boxes or numbers, never sentences.",
                 "Text in pictures (Tesseract, docTR), learned compliance suggestions, Improve Reading"],
                ["Gen AI", "A model that writes text. Separate add-on, runs in the no-network sandbox.", "Math reader add-on"]]),
+    ("img", "stack.png", 380),
     ("h", "The AI and ML switch"),
     ("rows", [("Where", "Top right of the window. The ? next to it explains AI vs ML."),
               ("Per effort", "Each effort keeps its own setting. New efforts start with AI and ML on."),
@@ -377,6 +379,7 @@ PAGES = {
     ("h", "For your security team"),
     ("p", "Help > What runs where lists every part and saves a one-page summary to hand to reviewers. The line at the "
           "bottom of the window always shows the effort and whether AI and ML are on."),
+    ("img", "whatruns.png", 520),
 ],
 }
 

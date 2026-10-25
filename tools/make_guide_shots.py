@@ -3,7 +3,7 @@
     venv\\Scripts\\python.exe tools\\make_guide_shots.py
 
 Uses the fictional test_samples only, in a temporary config folder, and writes assets\\help\\topbar.png, home.png,
-scanreview.png, keywords.png, suggest.png and training.png. Each picture is the window region of one view, captured
+scanreview.png, keywords.png, suggest.png, setup.png, whatruns.png, stack.png and training.png. Each picture is the window region of one view, captured
 with PIL ImageGrab, so the window must be on screen and not covered.
 """
 import os, sys, shutil, tempfile, time
@@ -92,6 +92,38 @@ def step2():
         tv.selection_set(tv.get_children()[0]); sw.update()
     grab(sw, "suggest.png")
     sw.destroy()
+    app.after(800, step3)
+
+
+def step3():
+    """Setup tab with suggestions accepted, the What runs where window and one ? panel (2.22.0)."""
+    import compliance as C
+    mpath = os.path.join(tmp, "Kestrel Thermal", "Kestrel_Matrix.xlsx")
+    files = sorted(os.listdir(CDIR))
+    heads = []
+    M = C.Matrix(mpath, "Kestrel Thermal")
+    M.items = C.extract([(f, A.typed_chunks(os.path.join(CDIR, f))) for f in files], heads)
+    M.headings = heads
+    M.sources = [[f, "", "2026-10-24", os.path.join(CDIR, f)] for f in files]
+    M.outline = C.parse_outline("Volume I Technical\n1.1 Thermal Design\n1.2 Risk Management\n"
+                                "Volume II Management\n2.1 Schedule\n2.2 Staffing")
+    for it in M.items:
+        it["decision"] = "Keep" if it["suggest"] != "Drop" else "Drop"
+    M.save()
+    app.ws.set("compliance_path", mpath)
+    cw = app.open_compliance(); fit(cw, 0.85, 0.8); cw.tabs.set("Setup"); cw.update()
+    app.setup_accept(); cw.update()
+    out = cw.s_out
+    for iid in out.get_children()[:3]:
+        out.item(iid, open=True)
+    grab(cw, "setup.png")
+    cw.destroy(); app.update()
+    w = app.show_what_runs(); fit(w, 0.6, 0.75); w.update()
+    grab(w, "whatruns.png")
+    w.destroy(); app.update()
+    w = app.show_stack("scan"); w.update()
+    grab(w, "stack.png")
+    w.destroy()
     app.after(800, finish)
 
 
