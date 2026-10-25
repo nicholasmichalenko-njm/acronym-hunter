@@ -66,8 +66,11 @@ def step1():
     first = items[0]["phrase"]
     tv.selection_set(tv.get_children()[:1]); srcw = sw._api["source"]()
     check("Show in document highlights the phrase", srcw is not None and srcw._hits >= 1, getattr(srcw, "_hits", None))
-    if srcw is not None:
-        srcw.destroy()
+    if srcw is not None:              # let the window finish opening first: closing it at once crashed Tk on Windows
+        import time
+        for _ in range(6):
+            app.update(); time.sleep(0.1)
+        srcw.destroy(); app.update()
     tv.selection_set(tv.get_children()[:2]); got = sw._api["add"]()
     check("add selected suggestions", got == 2 and app.effort.keyword(first)["Source"] == "Suggested")
     tv.selection_set(tv.get_children()[:1]); rejected = sw._api["st"]["items"][int(tv.selection()[0])]["phrase"]
