@@ -45,3 +45,4 @@ Date,Version,Folder,OCR models,Recall %,Missed,False alarms,New candidates,Rows,
 2026-10-23 22:32,2.8.0,test_samples,Tesseract 5 with Google's English model (tessdata_best),100.0,0,5,115,130,19,2.8.0 compliance
 2026-10-23 23:03,2.9.0,test_samples,Tesseract 5 with Google's English model (tessdata_best),100.0,0,5,115,130,19,2.9.0 layout
 2026-10-23 23:19,2.10.0,test_samples,Tesseract 5 with Google's English model (tessdata_best),100.0,0,5,115,130,19,2.10.0 compliance learning
+2026-10-24 18:32,2.13.0,test_samples,Tesseract 5 with Google's English model (tessdata_best),100.0,0,5,115,130,19,
