@@ -111,20 +111,27 @@ def step3():
         it["decision"] = "Keep" if it["suggest"] != "Drop" else "Drop"
     M.save()
     app.ws.set("compliance_path", mpath)
-    cw = app.open_compliance(); fit(cw, 0.85, 0.8); cw.tabs.set("Setup"); cw.update()
+    cw = app.open_compliance(); cw.tabs.set("Setup"); cw.update()
     app.setup_accept(); cw.update()
-    out = cw.s_out
-    for iid in out.get_children()[:3]:
-        out.item(iid, open=True)
-    grab(cw, "setup.png")
-    cw.destroy(); app.update()
-    w = app.show_what_runs(); fit(w, 0.6, 0.75); w.update()
-    grab(w, "whatruns.png")
-    w.destroy(); app.update()
-    w = app.show_stack("scan"); w.update()
-    grab(w, "stack.png")
-    w.destroy()
-    app.after(800, finish)
+
+    def shot_setup():
+        fit(cw, 0.95, 0.88); cw.update(); time.sleep(0.5); cw.update()
+        out = cw.s_out
+        for iid in out.get_children()[:3]:
+            out.item(iid, open=True)
+        grab(cw, "setup.png")
+        cw.destroy(); app.update()
+        w = app.show_what_runs(); w.update()
+        app.after(1200, lambda: shot_runs(w))
+
+    def shot_runs(w):
+        fit(w, 0.85, 0.85); w.update(); time.sleep(0.5); w.update()
+        grab(w, "whatruns.png")
+        w.destroy(); app.update()
+        s = app.show_stack("scan"); s.update()
+        app.after(1000, lambda: (grab(s, "stack.png"), s.destroy(), app.after(800, finish)))
+
+    app.after(1200, shot_setup)
 
 
 def finish():
