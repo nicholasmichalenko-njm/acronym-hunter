@@ -597,9 +597,11 @@ def db_layout():
     layout += [(f, f) for f in DB_FIELDS if f not in have]   # add any missing core column at the end
     return layout
 
-KNOWN_ACTION = "Known name"          # database Action: company, product or program names (2.13.0)
-KNOWN_BLANK = "(known name)"
-KNOWN_STATUS = "Known name (not listed)"
+KNOWN_ACTION = "Omit"                 # database Action: the omit list (company names, locations...) (2.13.0)
+KNOWN_BLANK = "(on the omit list)"
+KNOWN_STATUS = "Found in omit list"
+OMIT_REASON_COL = "Omit reason"
+OMIT_REASONS = ["Company or organization", "Location", "Program or product", "Person or role", "Other"]
 
 def load_database():
     include_db = {}
@@ -622,10 +624,11 @@ def load_database():
         if action == "Exclude" or cat.lower() in {"exclude", "ignore", "noise"}:
             exclude_db[term] = {"category": cat, "definition": defn or "Excluded by user rule"}
             exclude_upper.add(term.upper())
-        elif action.lower().startswith(("known", "omit")):   # 2.13.0: recognized and kept, left off the lists
+        elif action.lower().startswith(("known", "omit")):   # 2.13.0: the omit list: recognized, kept, left off the lists
             if term not in include_db:
                 include_db[term] = {"category": cat, "definitions": []}
             include_db[term]["known"] = True
+            include_db[term]["omit_reason"] = (raw_row.get(OMIT_REASON_COL) or "").strip() or include_db[term].get("omit_reason", "")
             d = defn or KNOWN_BLANK
             if d not in include_db[term]["definitions"]:
                 include_db[term]["definitions"].append(d)
@@ -2534,7 +2537,8 @@ def record_included(findings, term, loc, include_db):
             "status": "CHOOSE DEFINITION" if multi else "Resolved (In DB)"
         }
         if info.get("known"):           # recognized, kept, left off the acronym lists; never asked to define at first use
-            findings[term].update(known=True, status=KNOWN_STATUS, selected_definition=defs[0])
+            findings[term].update(known=True, status=KNOWN_STATUS + (f": {info['omit_reason']}" if info.get("omit_reason") else ""),
+                                  selected_definition=defs[0], omit_reason=info.get("omit_reason", ""))
     findings[term]["count"] += 1
     if loc not in findings[term]["locations"]:
         findings[term]["locations"].append(loc)
@@ -2571,6 +2575,11 @@ def write_db_rows(rows):
     rows: [term, category, definition, action(, {extra column: value})]. Keeps the file's own column order,
     header names, and extra columns, so a reordered or extended database stays the way the user set it up."""
     layout = db_layout()
+    have = {h for _f, h in layout}
+    for r in rows:                                   # a new extra column (Omit reason) is added at the end
+        for h in (r[4] if len(r) > 4 and isinstance(r[4], dict) else {}):
+            if h and h not in have and not db_field(h):
+                layout.append((None, h)); have.add(h)
     tmp = DB_FILE + ".tmp"
     with open(tmp, "w", newline="", encoding=CSV_WRITE_ENCODING) as f:
         w = csv.writer(f)
@@ -2615,6 +2624,39 @@ def write_ocr_fix_rows(rows):
 
 def update_csv_exclusion(term, cat, reason):
     update_csv_exclusions([(term, cat, reason)])
+
+def norm_def(s):
+    """Definitions compare without case, spacing or punctuation: 'Statement of Work' = 'statement-of-work'."""
+    return re.sub(r"[^a-z0-9]+", " ", (s or "").lower()).strip()
+
+def _action_kind(a):
+    a = str(a or "").strip().lower()
+    return "omit" if a.startswith(("known", "omit")) else "exclude" if a.startswith("exclude") else "include"
+
+def db_add(term, cat, defn, action="Include", extra=None):
+    """Add one database row. The same term may have several rows, one per different definition.
+    Returns ('added' | 'updated' | 'duplicate', existing row or None): 'duplicate' = this term already has this
+    definition with this action (nothing written); 'updated' = same definition, the action changed (no new row)."""
+    rows = read_db_rows()
+    ft, nd = fold(term), norm_def(defn)
+    same = [r for r in rows if fold(r[0]) == ft and norm_def(r[2]) == nd]
+    if same:
+        r = same[0]
+        if _action_kind(r[3]) == _action_kind(action):
+            return "duplicate", r                     # nothing changes, not even its omit reason
+        r[3] = action
+        if extra:
+            r[4].update(extra)
+        write_db_rows(rows)
+        return "updated", r
+    rows.append([term, cat, defn, action, dict(extra or {})])
+    write_db_rows(rows)
+    return "added", None
+
+def db_definitions(term):
+    """[(definition, action)] the database holds for a term."""
+    ft = fold(term)
+    return [(r[2], r[3]) for r in read_db_rows() if fold(r[0]) == ft]
 
 def update_csv_exclusions(items):
     """Mark several terms Exclude in one database write. items: [(term, category, reason)]."""
@@ -2953,7 +2995,7 @@ STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", 
                   "Not defined at first use", "Equations and symbols", "Undefined symbols",
                   "Added manually", "Customer documents", "Customer and database differ", "In effort list", "Not in effort list", "Effort: needs author", "Effort: approved",
                   "New since last scan", "Changed since last scan", "No longer found", "Errors / not scanned",
-                  "Context suggests a meaning", "Known names (not listed)", "Excluded"]
+                  "Context suggests a meaning", "Found in omit list", "Excluded"]
 MANUAL_MARK = ""   # statuses are plain words (2.7.0: no emoji in the interface or in exports)
 # Status kinds by leading words. Older projects saved statuses with an emoji in front; status_text() drops it.
 _KIND_WORDS = (("error", ("COULD NOT READ FILE", "NOT SCANNED")),
@@ -2961,7 +3003,7 @@ _KIND_WORDS = (("error", ("COULD NOT READ FILE", "NOT SCANNED")),
                ("client_differs", ("CLIENT LIST (DATABASE DIFFERS)",)),
                ("candidate", ("NEW CANDIDATE", "SYMBOL NOT DEFINED", "CHECK EQUATION PICTURE")),
                ("manual", ("ADDED MANUALLY",)),
-               ("known", ("KNOWN NAME",)),
+               ("known", ("FOUND IN OMIT LIST", "KNOWN NAME")),
                ("resolved", ("RESOLVED", "DEFINED IN DOCUMENT", "USER SELECTED", "ADDED TO DB", "CLIENT LIST",
                              "CUSTOMER DOCUMENT", "EFFORT LIST:")),
                ("gone", ("NO LONGER FOUND",)),
@@ -3357,7 +3399,8 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         e.add_command(label="Find (search box)", accelerator="Ctrl+F", command=c("edit_find", lambda: self.entry_search.focus_set()))
         e.add_command(label="Clear filters", command=c("edit_clear_filters", self.clear_filters))
         e.add_separator()
-        e.add_command(label="Known name: keep, leave off the list...", command=c("edit_known_name", self.mark_known))
+        e.add_command(label="Add selected to the omit list...", command=c("edit_omit_add", self.mark_known))
+        e.add_command(label="Omit list...", command=c("edit_omit_list", self.open_omit_list))
         e.add_command(label="Accept context suggestions (rows that have one)", command=c("edit_accept_context", lambda: self.accept_context(list(self.results))))
         mb.add_cascade(label="Edit", menu=e)
         ef = tk.Menu(mb, tearoff=0, postcommand=lambda: self.show_effort_menu(ef))
@@ -3605,9 +3648,9 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         dd = self.results.get(iid, {})
         nsel = len([t for t in self.tree.selection() if t in self.results]) or 1
         if dd.get("known"):
-            menu.add_command(label=f"Not a known name: list it again ({nsel})", command=self.unmark_known)
+            menu.add_command(label=f"Take off the omit list ({nsel})", command=self.unmark_known)
         else:
-            menu.add_command(label=f"Known name: keep, leave off the list ({nsel})...", command=self.mark_known)
+            menu.add_command(label=f"Add to omit list: found, kept, left off the final list ({nsel})...", command=self.mark_known)
         ctx = (dd.get("context") or {})
         if ctx.get("definition") and status_kind(dd.get("status", "")) == "choice":
             menu.add_command(label=f"Accept context suggestion: {ctx['definition'][:60]}", command=lambda: self.accept_context([iid]))
@@ -3949,43 +3992,93 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
 
     # ---------- manual items ----------
     def open_add_item(self):
+        """Add a term, or another meaning of a term already found. One acronym may have several meanings; the same
+        meaning twice is flagged instead of added (2.13.0)."""
         diag.activity("add_item_opened")
         if getattr(self, "add_win", None) is not None and self.add_win.winfo_exists():
-            self.add_win.focus(); return
+            self.add_win.focus(); return self.add_win
         win = ctk.CTkToplevel(self); self.add_win = win
-        win.title("Add an item to the results"); win.geometry("560x430"); win.resizable(False, False)
+        win.title("Add an item"); win.geometry("580x560"); win.resizable(False, False)
         win.transient(self); win.after(100, win.lift)
         pad = {"padx": 16, "pady": (8, 0), "anchor": "w"}
-        ctk.CTkLabel(win, text="Term (required)").pack(**pad)
-        e_term = ctk.CTkEntry(win, width=520); e_term.pack(padx=16, pady=2); SP.attach(e_term)
+        ctk.CTkLabel(win, text="Term (required). A term already listed gets the definition as another meaning.").pack(**pad)
+        e_term = ctk.CTkEntry(win, width=540); e_term.pack(padx=16, pady=2); SP.attach(e_term)
+        known = ctk.CTkLabel(win, text="", anchor="w", justify="left", wraplength=540, text_color=("#475569", "#94A3B8"))
+        known.pack(padx=16, anchor="w")
         ctk.CTkLabel(win, text="Type").pack(**pad)
-        c_cat = ctk.CTkComboBox(win, values=MANUAL_CATEGORIES, width=520); c_cat.set("Acronym"); c_cat.pack(padx=16, pady=2)
+        c_cat = ctk.CTkComboBox(win, values=MANUAL_CATEGORIES, width=540); c_cat.set("Acronym"); c_cat.pack(padx=16, pady=2)
         ctk.CTkLabel(win, text="Definition").pack(**pad)
-        e_def = ctk.CTkEntry(win, width=520); e_def.pack(padx=16, pady=2); SP.attach(e_def)
+        e_def = ctk.CTkEntry(win, width=540); e_def.pack(padx=16, pady=2); SP.attach(e_def)
         SP.button(win, e_def, text="Ω  Symbols (for the field you clicked last)", width=300).pack(padx=16, pady=(4, 0), anchor="w")
         ctk.CTkLabel(win, text="Where found (optional, e.g. 'Volume II, p.14')").pack(**pad)
-        e_loc = ctk.CTkEntry(win, width=520); e_loc.pack(padx=16, pady=2)
-        save_var = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(win, text="Also save to the database so future scans find it (needs a definition)",
-                        variable=save_var).pack(padx=16, pady=(12, 0), anchor="w")
-        msg = ctk.CTkLabel(win, text="", text_color="#DC2626"); msg.pack(padx=16, pady=(6, 0), anchor="w")
+        e_loc = ctk.CTkEntry(win, width=540); e_loc.pack(padx=16, pady=2)
+        ctk.CTkLabel(win, text="Save it").pack(**pad)
+        dest = tk.StringVar(value="results")
+        df = ctk.CTkFrame(win, fg_color="transparent"); df.pack(padx=16, anchor="w")
+        for val, lab in (("results", "In these results only"), ("db", "Database: future scans find it"),
+                         ("omit", "Omit list: found, left off the final lists")):
+            ctk.CTkRadioButton(df, text=lab, variable=dest, value=val).pack(anchor="w", pady=1)
+        why = ctk.CTkComboBox(win, values=OMIT_REASONS, width=260); why.set(OMIT_REASONS[0])
+        ctk.CTkLabel(win, text="Why omitted (omit list)").pack(**pad)
+        why.pack(padx=16, pady=2, anchor="w")
+        save_var = dest                                       # older tests read _add_api["save"]
+        msg = ctk.CTkLabel(win, text="", text_color="#DC2626", wraplength=540, justify="left"); msg.pack(padx=16, pady=(6, 0), anchor="w")
+
+        def show_known(*_):
+            t = fold(e_term.get().strip())
+            have = []
+            if t in self.results:
+                have += [x for x in self.results[t].get("definitions", []) if x]
+            have += [dd for dd, a in db_definitions(t) if dd and dd not in have and _action_kind(a) != "exclude"]
+            known.configure(text=("Already known: " + " | ".join(have[:6])) if have else "")
+        e_term.bind("<KeyRelease>", show_known)
 
         def add():
             term, cat = fold(e_term.get().strip()), (c_cat.get().strip() or "Acronym")
-            defn, loc = e_def.get().strip(), e_loc.get().strip()
+            defn, loc, where = e_def.get().strip(), e_loc.get().strip(), dest.get()
             if not term:
                 msg.configure(text="Enter a term."); return
-            if term in self.results and not self.results[term].get("manual"):
-                msg.configure(text=f"'{term}' is already in the results. Select it there to change its definition."); return
-            if save_var.get() and not defn:
+            if where == "db" and not defn:
                 msg.configure(text="A definition is needed to save it to the database."); return
-            saved = False
-            if save_var.get():
-                rows = read_db_rows(); rows.append([term, cat, defn, "Include"]); write_db_rows(rows); saved = True
+            d = self.results.get(term)
+            have = [x for x in (d.get("definitions", []) if d else []) if x]
+            if d is not None and not defn and where != "omit":
+                msg.configure(text=f"'{term}' is already listed. Type a different definition to add another meaning."); return
+            if defn and any(norm_def(defn) == norm_def(x) for x in have):
+                msg.configure(text=f"'{term}' already has the meaning \"{defn}\". Nothing added. A different meaning is fine."); return
+            res = None
+            if where == "db":
+                res, _r = db_add(term, cat, defn, "Include")
+            elif where == "omit":
+                res, _r = db_add(term, cat, defn, KNOWN_ACTION, {OMIT_REASON_COL: why.get()})
+            if res == "duplicate" and d is None:
+                msg.configure(text=f"The database already has '{term}' = \"{defn}\"" + (" on the omit list" if where == "omit" else "")
+                                   + ". Nothing added. A different meaning is fine."); return
+            if d is not None:                                  # another meaning for a term already listed
+                if defn:
+                    d.setdefault("definitions", []).append(defn)
+                if where == "omit":
+                    d.update(known=True, in_db=True, excluded=False, omit_reason=why.get(), selected_definition=defn or d.get("selected_definition"),
+                             status=KNOWN_STATUS + f": {why.get()}")
+                elif len([x for x in d["definitions"] if x]) > 1 and status_kind(d.get("status", "")) != "choice":
+                    defs = [x for x in d["definitions"] if x]
+                    d["in_db"] = d.get("in_db") or where == "db"
+                    d["selected_definition"] = f"MULTIPLE ({len(defs)} options) - Choose: " + " OR ".join(defs)
+                    d["status"] = "CHOOSE DEFINITION"
+                diag.activity("add_item_meaning")
+                self.selected_term = term
+                self.populate_table()
+                msg.configure(text=f"Added another meaning to {term}" + (" and saved it to the database." if where == "db" else "."),
+                              text_color="#047857")
+                e_def.delete(0, "end"); show_known()
+                return
             item = {"category": cat, "count": 1, "locations": [loc or "Added manually"],
                     "definitions": [defn] if defn else [], "in_db": True, "excluded": False, "manual": True,
                     "selected_definition": defn or "[No definition given]",
-                    "status": "Added manually" + (" (saved to DB)" if saved else "")}
+                    "status": "Added manually" + (" (saved to DB)" if where == "db" else "")}
+            if where == "omit":
+                item.update(known=True, omit_reason=why.get(), status=KNOWN_STATUS + f": {why.get()}",
+                            selected_definition=defn or KNOWN_BLANK)
             self.manual_items[term] = item
             self.results[term] = item
             self.save_project()
@@ -3995,11 +4088,13 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
             win.destroy()
 
         btns = ctk.CTkFrame(win, fg_color="transparent"); btns.pack(fill="x", padx=16, pady=14)
-        ctk.CTkButton(btns, text="Add to Results", command=add).pack(side="left")
-        ctk.CTkButton(btns, text="Cancel", fg_color="#475569", command=win.destroy).pack(side="right")
+        ctk.CTkButton(btns, text="Add", command=add).pack(side="left")
+        ctk.CTkButton(btns, text="Close", fg_color="#475569", command=win.destroy).pack(side="right")
         e_term.focus_set()
         win.bind("<Return>", lambda _e: add())
-        win._add_api = {"term": e_term, "cat": c_cat, "defn": e_def, "loc": e_loc, "save": save_var, "add": add, "msg": msg}
+        win._add_api = {"term": e_term, "cat": c_cat, "defn": e_def, "loc": e_loc, "save": save_var, "dest": dest, "why": why,
+                        "add": add, "msg": msg, "known": known}
+        return win
 
     def remove_manual_item(self):
         term = self.selected_term
@@ -4485,7 +4580,7 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
             "Customer documents": bool(data.get("customer_definitions")),
             "Customer and database differ": bool(data.get("cust_db_differ")),
             "Not in effort list": not data.get("effort") and not data.get("excluded", False) and not data.get("known"),
-            "Known names (not listed)": bool(data.get("known")),
+            "Found in omit list": bool(data.get("known")),
             "Context suggests a meaning": bool((data.get("context") or {}).get("definition")) and kind == "choice",
             "Effort: needs author": data.get("effort") in ("Proposed", "Needs author"),
             "Effort: approved": data.get("effort") == "Approved",
@@ -4617,7 +4712,7 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         self.apply_effort(reload=True)
         for d in self.results.values():   # known names keep their status unless the effort list holds them (2.13.0)
             if d.get("known") and not d.get("effort") and not d.get("excluded"):
-                d["status"] = KNOWN_STATUS
+                d["status"] = KNOWN_STATUS + (f": {d['omit_reason']}" if d.get("omit_reason") else "")
         self.save_project()
         self.reset_ui()
         self.refresh_type_options()
@@ -4863,9 +4958,10 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
             return
         data = self.results[self.selected_term]
         cat = data["category"].replace(" (Candidate)", "")
-        rows = read_db_rows()
-        rows.append([self.selected_term, cat, nd, "Include"])
-        write_db_rows(rows)   # atomic rewrite in UTF-8; never mixes encodings by appending
+        res, _row = db_add(self.selected_term, cat, nd, "Include")   # one row per different meaning; the same one is flagged
+        if res == "duplicate":
+            messagebox.showinfo("Already in the database", f"The database already has {self.selected_term} = \"{nd}\". "
+                                "Nothing was added; the result uses that definition.")
         data["in_db"] = True
         data["excluded"] = False
         data["category"] = cat
@@ -5032,40 +5128,155 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
 
     # ---------- known names (2.13.0): recognized and kept in the database, left off the acronym lists ----------
     def mark_known(self, terms=None):
+        """Add the selected terms to the omit list: recognized and kept in the database, left off the final lists."""
         terms = [t for t in (terms or self.tree.selection()) if t in self.results and not self.results[t].get("file_error")
                  and not self.results[t].get("manual")]
         if not terms:
-            return
-        defs = {}
-        if len(terms) == 1:
-            d = self.results[terms[0]]
-            cur = d.get("selected_definition", "")
-            cur = "" if status_text(cur).startswith(("[", "MULTIPLE", "Rescan")) else cur
-            v = simpledialog.askstring("Known name", f"{terms[0]} is a name (company, product, program): recognized and kept, "
-                                       "left off the acronym lists.\n\nWhat it stands for (optional):", initialvalue=cur, parent=self)
-            if v is None:
+            return None
+        win = ctk.CTkToplevel(self); win.title("Add to the omit list"); win.geometry("560x330"); win.transient(self)
+        win.after(150, win.lift)
+        diag.register(win, "omit_add")
+        one = len(terms) == 1
+        ctk.CTkLabel(win, text=("Omit list: found and recognized on every scan, saved in the database, left off the final "
+                                "lists (CSV export, volume acronym lists)."), wraplength=520, justify="left").pack(anchor="w", padx=14, pady=(12, 6))
+        ctk.CTkLabel(win, text=(f"Term: {terms[0]}" if one else f"{len(terms)} terms: " + ", ".join(terms[:8]) + ("..." if len(terms) > 8 else "")),
+                     anchor="w", font=("Segoe UI", 13, "bold")).pack(anchor="w", padx=14)
+        e_def = None
+        if one:
+            ctk.CTkLabel(win, text="What it stands for (optional)").pack(anchor="w", padx=14, pady=(8, 0))
+            e_def = ctk.CTkEntry(win, width=520); e_def.pack(padx=14, pady=2)
+            cur = self.results[terms[0]].get("selected_definition", "")
+            if cur and not status_text(cur).startswith(("[", "MULTIPLE", "Rescan")) and cur != KNOWN_BLANK:
+                e_def.insert(0, cur)
+        ctk.CTkLabel(win, text="Why it is omitted").pack(anchor="w", padx=14, pady=(8, 0))
+        reason = ctk.CTkComboBox(win, values=OMIT_REASONS, width=260); reason.set(OMIT_REASONS[0]); reason.pack(anchor="w", padx=14, pady=2)
+        msg = ctk.CTkLabel(win, text="", text_color="#B45309", wraplength=520, justify="left"); msg.pack(anchor="w", padx=14, pady=4)
+
+        def ok():
+            why = reason.get().strip()
+            out = []
+            for t in terms:
+                d = self.results[t]
+                cur = d.get("selected_definition", "")
+                defn = (e_def.get().strip() if e_def is not None else
+                        ("" if status_text(cur).startswith(("[", "MULTIPLE", "Rescan")) or cur == KNOWN_BLANK else cur))
+                res, _row = db_add(t, base_type(d.get("category", "Acronym")), defn, KNOWN_ACTION, {OMIT_REASON_COL: why})
+                out.append(res)
+                d.update(known=True, in_db=True, excluded=False, omit_reason=why, selected_definition=defn or KNOWN_BLANK,
+                         status=KNOWN_STATUS + (f": {why}" if why else ""))
+            diag.activity("omit_added", n=len(terms))
+            dup = out.count("duplicate")
+            self.status.configure(text=f"{len(terms)} term(s) on the omit list" + (f" ({dup} were already there)" if dup else "") +
+                                  ". Found on every scan, left off the final lists.")
+            win.destroy()
+            self.populate_table()
+        b = ctk.CTkFrame(win, fg_color="transparent"); b.pack(fill="x", padx=14, pady=10)
+        ctk.CTkButton(b, text="Add to omit list", command=ok).pack(side="left")
+        ctk.CTkButton(b, text="Cancel", fg_color="#475569", command=win.destroy).pack(side="right")
+        win._api = {"defn": e_def, "reason": reason, "ok": ok, "msg": msg}
+        return win
+
+    def open_omit_list(self):
+        """Edit > Omit list: everything on it, add (several meanings of one acronym are fine), paste many, remove."""
+        diag.activity("omit_list_opened")
+        win = ctk.CTkToplevel(self); win.title("Omit list"); win.geometry("900x600"); win.transient(self); win.after(150, win.lift)
+        diag.register(win, "omit_list")
+        ctk.CTkLabel(win, text="Found and recognized on every scan, saved in the company database (and Knowledge Packs), left off "
+                               "the final lists. One acronym can have several entries when the meanings differ.",
+                     wraplength=860, justify="left").pack(anchor="w", padx=12, pady=(10, 6))
+        tv = ttk.Treeview(win, columns=("term", "def", "why"), show="headings", selectmode="extended")
+        for c, h, w in (("term", "Term", 140), ("def", "Stands for", 420), ("why", "Why omitted", 220)):
+            tv.heading(c, text=h); tv.column(c, width=w, stretch=(c == "def"))
+        tv.pack(fill="both", expand=True, padx=12)
+        form = ctk.CTkFrame(win, fg_color="transparent"); form.pack(fill="x", padx=12, pady=(8, 0))
+        e_term = ctk.CTkEntry(form, width=120, placeholder_text="Term"); e_term.pack(side="left")
+        e_def = ctk.CTkEntry(form, width=360, placeholder_text="Stands for (optional)"); e_def.pack(side="left", padx=6)
+        why = ctk.CTkComboBox(form, values=OMIT_REASONS, width=200); why.set(OMIT_REASONS[0]); why.pack(side="left")
+        msg = ctk.CTkLabel(win, text="", anchor="w", wraplength=860, justify="left", text_color="#B45309")
+        msg.pack(fill="x", padx=12, pady=4)
+
+        def fill():
+            tv.delete(*tv.get_children())
+            for i, r in enumerate(read_db_rows()):
+                if _action_kind(r[3]) == "omit":
+                    tv.insert("", "end", iid=str(i), values=(r[0], r[2], r[4].get(OMIT_REASON_COL, "")))
+            win.title(f"Omit list ({len(tv.get_children())})")
+
+        def add_one(term, defn, reason):
+            term = term.strip()
+            if not term:
+                return "empty"
+            res, row = db_add(term, "Acronym", defn.strip(), KNOWN_ACTION, {OMIT_REASON_COL: reason})
+            d = self.results.get(fold(term))
+            if d is not None and res != "duplicate":
+                d.update(known=True, in_db=True, excluded=False, omit_reason=reason,
+                         selected_definition=defn.strip() or d.get("selected_definition") or KNOWN_BLANK,
+                         status=KNOWN_STATUS + (f": {reason}" if reason else ""))
+            return res
+
+        def add():
+            res = add_one(e_term.get(), e_def.get(), why.get())
+            t = e_term.get().strip()
+            if res == "duplicate":
+                msg.configure(text=f"{t} already has this meaning on the list. Nothing added. A different meaning is fine.")
+            elif res == "empty":
+                msg.configure(text="Type a term.")
+            else:
+                msg.configure(text=f"{t} added." + (" (It was in the database with this meaning; it is now on the omit list.)"
+                                                    if res == "updated" else ""))
+                e_term.delete(0, "end"); e_def.delete(0, "end")
+                diag.activity("omit_added", n=1)
+            fill(); self.populate_table()
+
+        def paste():
+            box = ctk.CTkToplevel(win); box.title("Paste several"); box.geometry("620x420"); box.transient(win)
+            ctk.CTkLabel(box, text="One per line:  TERM, stands for, why   (the last two are optional; a tab works too)",
+                         anchor="w").pack(anchor="w", padx=12, pady=(10, 4))
+            t = tk.Text(box, height=14, wrap="none"); t.pack(fill="both", expand=True, padx=12)
+            def go():
+                counts = {"added": 0, "updated": 0, "duplicate": 0, "empty": 0}
+                for line in t.get("1.0", "end").splitlines():
+                    if not line.strip():
+                        continue
+                    parts = [p.strip() for p in re.split(r"\t|,", line, maxsplit=2)]
+                    parts += ["", ""]
+                    reason = parts[2] if parts[2] else why.get()
+                    counts[add_one(parts[0], parts[1], reason)] += 1
+                diag.activity("omit_pasted", added=counts["added"], n=counts["duplicate"])
+                msg.configure(text=f"{counts['added']} added, {counts['updated']} moved from the database to the omit list, "
+                                   f"{counts['duplicate']} already on the list with the same meaning (not added again).")
+                box.destroy(); fill(); self.populate_table()
+            ctk.CTkButton(box, text="Add all", command=go).pack(anchor="w", padx=12, pady=10)
+            box._go = go; box._text = t
+            win._paste = box
+            return box
+
+        def remove():
+            sel = set(tv.selection())
+            if not sel:
                 return
-            defs[terms[0]] = v.strip()
-        rows = read_db_rows()
-        for t in terms:
-            d = self.results[t]
-            cur = d.get("selected_definition", "")
-            defn = defs.get(t, "" if status_text(cur).startswith(("[", "MULTIPLE", "Rescan")) else cur)
-            cat = base_type(d.get("category", "Acronym"))
-            hit = False
-            for r in rows:
-                if fold(r[0]) == fold(t):
-                    r[3] = KNOWN_ACTION
-                    if defn and not hit:
-                        r[2] = defn
-                    hit = True
-            if not hit:
-                rows.append([t, cat, defn, KNOWN_ACTION])
-            d.update(known=True, in_db=True, excluded=False, status=KNOWN_STATUS, selected_definition=defn or KNOWN_BLANK)
-        write_db_rows(rows)
-        diag.activity("known_name_marked", n=len(terms))
-        self.status.configure(text=f"{len(terms)} known name(s): recognized and kept, left off the acronym lists.")
-        self.populate_table()
+            rows = read_db_rows()
+            gone = [rows[int(i)][0] for i in sel]
+            keep = [r for i, r in enumerate(rows) if str(i) not in sel]
+            write_db_rows(keep)
+            for term in gone:
+                d = self.results.get(fold(term))
+                if d and d.get("known") and not any(fold(r[0]) == fold(term) and _action_kind(r[3]) == "omit" for r in keep):
+                    d.pop("known", None); d.pop("omit_reason", None)
+                    d["status"], d["in_db"] = "NEW CANDIDATE", False
+                    d["selected_definition"] = "[Removed from the omit list: Scan Again to refresh]"
+            diag.activity("omit_removed", n=len(sel))
+            msg.configure(text=f"{len(sel)} removed from the omit list.")
+            fill(); self.populate_table()
+        b = ctk.CTkFrame(form, fg_color="transparent"); b.pack(side="left", padx=6)
+        ctk.CTkButton(b, text="Add", width=60, command=add).pack(side="left")
+        ctk.CTkButton(win, text="Paste several...", width=120, command=paste).pack(side="left", padx=12, pady=(0, 12))
+        ctk.CTkButton(win, text="Remove selected", width=130, fg_color="#B91C1C", command=remove).pack(side="left", pady=(0, 12))
+        ctk.CTkButton(win, text="Close", width=80, fg_color="#475569", command=win.destroy).pack(side="right", padx=12, pady=(0, 12))
+        e_term.bind("<Return>", lambda _e: add()); e_def.bind("<Return>", lambda _e: add())
+        fill()
+        win._api = {"tree": tv, "term": e_term, "defn": e_def, "why": why, "add": add, "paste": paste, "remove": remove, "msg": msg}
+        return win
 
     def unmark_known(self, terms=None):
         terms = [t for t in (terms or self.tree.selection()) if self.results.get(t, {}).get("known")]
@@ -5149,7 +5360,7 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
         diag.activity("export_csv")
         terms = [t for t in self.tree.get_children() if t in self.results]
         left_out = 0
-        if self.status_var.get() != "Known names (not listed)":      # known names stay off the list (2.13.0)
+        if self.status_var.get() != "Found in omit list":      # the omit list stays off the list (2.13.0)
             left_out = sum(1 for t in terms if self.results[t].get("known"))
             terms = [t for t in terms if not self.results[t].get("known")]
         if not terms:
@@ -5178,7 +5389,7 @@ class AcronymAppGUI(AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, Setu
                             ctx_text(d)])
         view = self.status_var.get() if self.status_var.get() != STATUS_FILTERS[0] else "all statuses"
         messagebox.showinfo("Exported", f"{len(terms)} rows exported ({view}) to:\n{path}\n\n"
-                            + (f"{left_out} known name(s) left off the list (Status > Known names lists them).\n\n" if left_out else "")
+                            + (f"{left_out} term(s) on the omit list left out (Status > Found in omit list shows them).\n\n" if left_out else "")
                             + "Possible definitions lists every meaning (client first). Authors can fill in Author decision.")
 
     # ---------- details ----------

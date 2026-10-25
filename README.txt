@@ -481,11 +481,15 @@ SETUP BUILDER (2.13.0)
   The term stays wherever else it was found. Saved per effort (excluded_instances.json in the effort folder) and
   applied after every scan; excluding every instance hides the term without a database rule. Restore instances (or
   right-click > Restore excluded instances) brings them back. Exclude term is unchanged: a database rule, everywhere.
-- Known names (right-click or Edit menu): company, product and program names that are acronyms. Recognized and kept
-  in the database (Action "Known name", with what it stands for if you give it), shown as "Known name (not listed)",
-  never flagged for first use, and left off the CSV export, the volume acronym lists and the Not in effort list
-  filter. Status > Known names (not listed) lists them; right-click > Not a known name lists one again. Shared through
-  Knowledge Packs with the rest of the database.
+- Omit list (right-click > Add to omit list, or Edit > Omit list): company names, locations and other terms that are
+  found and recognized but left off the final lists. Saved in the database (Action "Omit", with what it stands for
+  and an "Omit reason" column: company or organization, location, program or product, person or role, other).
+  Rows say "Found in omit list: <reason>", are never flagged for first use, and stay out of the CSV export, the volume
+  acronym lists and the Not in effort list filter. The Omit list window adds, pastes many (TERM, stands for, why),
+  and removes. Status > Found in omit list shows them.
+- Several meanings of one acronym: the database, the omit list and Add Item accept another row for a term when the
+  meaning differs (compared without case, spacing or punctuation). The same meaning twice is flagged and nothing is
+  added. Add Item on a term already in the results adds the meaning, so the row asks you to choose.
 - Meaning from context: when a term has several possible meanings (database, client list or customer documents), the
   words around each place it appears suggest one: shared words, a role ("the PM shall"), a document word ("PM plan"),
   or the long form spelled out in the same files. Rules only (No AI), typed text only, run in the background after

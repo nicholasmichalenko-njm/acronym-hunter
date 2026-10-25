@@ -75,10 +75,14 @@ PAGES = {
                           "disagree, the row says \"meaning differs by place\". Nothing is applied until you choose: "
                           "right-click > Accept context suggestion, or Edit > Accept context suggestions. Rules only, "
                           "typed text only."),
-              ("Known name", "Right-click > Known name (or Edit menu): a company, product or program name that is an acronym "
-                             "(the team still wants it recognized). Saved in the database with what it stands for; shown as "
-                             "Known name (not listed); never flagged for first use; left off the CSV export and the volume "
-                             "acronym lists. Status > Known names lists them. Right-click > Not a known name lists it again."),
+              ("Omit list", "Company names, locations and other terms you want found and recognized but never on the final "
+                            "list. Right-click > Add to omit list (say what it stands for and why), or Edit > Omit list to add, "
+                            "paste many (TERM, stands for, why) and remove. Rows say \"Found in omit list: <why>\"; they are "
+                            "never flagged for first use and stay off the CSV export and the volume acronym lists. Saved in "
+                            "the company database, so every scan and every effort recognizes them."),
+              ("Several meanings", "One acronym may have several entries when the meanings differ: Add Item gives a listed "
+                                   "term another meaning, and the database and omit list take a new row. The same meaning "
+                                   "twice is flagged and not added."),
               ("Exclude instance", "In the Source preview: drop only the place shown (a misreading, a stray heading word). The "
                                    "term stays wherever else it appears, stays excluded there on later scans in this effort, "
                                    "and Restore instances (or right-click > Restore excluded instances) brings it back.")]),
