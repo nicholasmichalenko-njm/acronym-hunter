@@ -716,3 +716,19 @@ QA/QC: BANNED WORDS AND PHRASES (2.27.0)
 - The QA/QC top line counts them; the Excel report adds a "Banned words" sheet.
 - The master database is named in full where you load or update it: "Acronyms, Abbreviations, Units and Symbols
   Master Database" (Start an effort step 1, File menu, Effort menu, its windows and the User Guide).
+
+CUSTOMER LISTS PASTED OR TYPED, RESPONSE STRUCTURE, ONE EXCLUDE BUTTON (2.28.0)
+- Customer lists: Paste or type... (Client Lists, and step 3 of Start an effort). Paste a list copied from Excel, Word,
+  a PDF or an email, or type one term per line ("ACR - definition", "ACR: definition", "ACR<tab>definition"); sentences
+  with "Spelled Out Words (ACR)" work too.
+- Every term found, from a file or pasted, is shown with a tick to confirm: untick what is wrong, double-click to
+  correct a term or definition, then add the ticked ones.
+- A scanned PDF list (no typed text) or a picture of a list (PNG, JPG, TIF, BMP) is read with the picture reader, then
+  confirmed the same way. With AI and ML off for the effort, pictures are not read.
+- Start an effort has a Response structure step (5 of 7). It suggests the volumes the instructions name ("Volume I
+  Technical, Volume II Management, and Volume III Cost"), their page limits, the whole proposal's page limit, and the
+  Section L headings under each volume, numbered 1.1, 1.2 with the RFP reference in brackets. Edit it or type your own.
+  The compliance matrix starts its outline from it, and a section with an [L.4.1] reference gets the requirements from
+  L.4.1 suggested under it.
+- The preview's "Exclude term" button is gone: Exclude in the bottom bar does the same (everywhere); Exclude instance
+  in the preview excludes only the place shown; Not a term excludes it from this effort only.
