@@ -232,6 +232,7 @@ OCR_DEFAULTS = {
     "doctr_min_confidence": 0.5,  # docTR word confidence floor (0-1)
     "doctr_extra_passes": 1,      # 1 = inverted pass for dark pictures and turned passes for vertical labels
     "doctr_override_confidence": 0.95,  # where Tesseract read text, a docTR word this sure that Tesseract lacks is added
+    "line_removal_pass": 1,       # 1 = pictures with table or box lines are read a second time with the lines removed (2.22.0)
 }
 OCR_ENGINE_MAX_SIDE = 2000        # RapidOCR downsizes images whose longest side exceeds this
 
@@ -715,6 +716,34 @@ def _ocr_lines(img, x_off=0, y_off=0):
         out.append((min(xs) + x_off, min(ys) + y_off, max(xs) + x_off, max(ys) + y_off, str(text), float(conf)))
     return out
 
+def remove_lines(gray):
+    """The picture with long straight lines (table rules, box edges, connectors) painted white, or None when it has
+    few lines. Text touching a line reads better once the line is gone (2.22.0). Rules only (OpenCV), no model."""
+    h, w = gray.shape[:2]
+    if h < 40 or w < 40:
+        return None
+    bw = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 15, 10)
+    hk = cv2.getStructuringElement(cv2.MORPH_RECT, (max(30, w // 25), 1))
+    vk = cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(30, h // 25)))
+    mask = cv2.bitwise_or(cv2.morphologyEx(bw, cv2.MORPH_OPEN, hk), cv2.morphologyEx(bw, cv2.MORPH_OPEN, vk))
+    if cv2.countNonZero(mask) < 0.002 * h * w:
+        return None
+    mask = cv2.dilate(mask, np.ones((3, 3), np.uint8))
+    out = gray.copy()
+    out[mask > 0] = 255
+    return out
+
+def _merge_lines(kept, extra):
+    """Add lines from another pass that the kept lines do not already hold (same place, same or longer reading)."""
+    kept = list(kept)
+    for item in sorted(extra, key=lambda t: -len(t[4])):   # longest reading of a line wins
+        cx, cy, txt = (item[0] + item[2]) / 2, (item[1] + item[3]) / 2, item[4]
+        duplicate = any(k[0] - 10 <= cx <= k[2] + 10 and k[1] - 10 <= cy <= k[3] + 10
+                        and (txt in k[4] or k[4] in txt) for k in kept)
+        if not duplicate:
+            kept.append(item)
+    return kept
+
 def _tile_starts(length, tile, step):
     if length <= tile:
         return [0]
@@ -946,14 +975,11 @@ def _ocr_raw(image_bytes):
         for y in _tile_starts(h, tile, tile - over):
             for x in _tile_starts(w, tile, tile - over):
                 tiled += _ocr_lines(clean_img[y:y + tile, x:x + tile], x, y)
-        kept = list(lines)
-        for item in sorted(tiled, key=lambda t: -len(t[4])):   # longest reading of a line wins
-            cx, cy, txt = (item[0] + item[2]) / 2, (item[1] + item[3]) / 2, item[4]
-            duplicate = any(k[0] - 10 <= cx <= k[2] + 10 and k[1] - 10 <= cy <= k[3] + 10
-                            and (txt in k[4] or k[4] in txt) for k in kept)
-            if not duplicate:
-                kept.append(item)
-        lines = kept
+        lines = _merge_lines(lines, tiled)
+    if OCR_CFG.get("line_removal_pass", 1) and max(h, w) <= 4000:
+        bare = remove_lines(clean_img)
+        if bare is not None:
+            lines = _merge_lines(lines, _ocr_lines(bare))
     lines.sort(key=lambda t: (round(t[1] / 20), t[0]))
     text = "\n".join(t[4] for t in lines)
     extra = _doctr_extra(image_bytes, lines, clean_img.shape)
