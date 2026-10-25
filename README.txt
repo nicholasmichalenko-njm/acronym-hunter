@@ -6,8 +6,9 @@ ONE PROGRAM (from v1.7.0)
   (Apache 2.0; created at HP, developed by Google) and Google's English model.
   - Tesseract is built from its source without any network library, and it runs inside a Windows sandbox
     that has no network permission. No Chinese-origin code or models. No GPU, no internet, no separate kit.
-  - The Trainer is a window inside the program (Advanced > Trainer, or right-click a result).
-  - To give colleagues a copy with no training features: set "allow_training": false in
+  - From 2.15.0 the Trainer and Improve Reading live in a second program, Acronym Hunter Training (see TRAINING IS
+    ITS OWN PROGRAM at the end). Acronym Hunter only saves corrections and sends them to the training team.
+  - To give colleagues a copy that saves no corrections: set "allow_training": false in
     config\app_settings.json before sharing. Nothing gets saved to training_data\ then.
   Older versions: v1.6.0 (two packages), v1.5.1 (RapidOCR + PaddleOCR models from Baidu).
 
@@ -65,7 +66,7 @@ SAVING A ONE-OFF SCAN (reuse it later, no rescan)
 
 THE MAIN WINDOW (v1.9.0)
   Top bar: Project, Select Files, Scan Folder, Export CSV, + Add Item, Client Lists on the left.
-  On the right: Improve Reading, Tools (Trainer, Knowledge, Edit Database CSV, OCR Fixes, preview on/off),
+  On the right: Tools (Send corrections, Knowledge Packs, Edit Database CSV, OCR Fixes, preview on/off),
   and the Advanced switch (adds Fix OCR and the OCR Fixes list).
 
 PREVIEW PANE: SEE WHAT PRODUCED A RESULT, AND FIX IT THERE
@@ -76,18 +77,18 @@ PREVIEW PANE: SEE WHAT PRODUCED A RESULT, AND FIX IT THERE
     [typed text]         Read exactly from the file: nothing to correct. Exclude it if it is not a real term.
   Pick another location from the list at the top of the pane. Click any box to select that reading.
   Fix it right there:
-    Correct + Teach  Fix the spelling, then click. Saved as a corrected line for Improve Reading, and
-                     single-word fixes (RFF > RFP) apply on the next scan right away.
+    Report misreading  Fix the spelling, then click. Saved as a corrected line for the training team
+                     (Tools > Send corrections), and single-word fixes (RFF > RFP) apply on the next scan.
     Not text         A diagram line or speck read as letters: ignored in pictures from the next scan.
     Exclude term     Not a real term: never reported again.
-    Undo last save   Takes back the last Correct + Teach or Not text.
+    Undo last save   Takes back the last Report misreading or Not text.
 
 CODES AND DESIGNATORS (v1.9.0)
   Codes are reported whole as "Designator": PCU-28V, MIL-STD-1553B, RS-422, PN 4521-003A, ST-200X, J1-P3.
   Their pieces are no longer reported as stray units or letters ("V", "B", "A"). Mixed-case acronyms
   such as DoD, DoE, IoT are found too.
 
-CHECK IN PICTURE AND IMPROVE READING (teach the reader your documents)
+CHECK IN PICTURE AND IMPROVE READING (Acronym Hunter Training from 2.15.0; Acronym Hunter sends corrections)
   1. Right-click a result > "Check in picture". The picture it came from opens in the Trainer, read
      again, with that term outlined in yellow. Typed-text results have nothing to check.
   2. Fix what is wrong: correct the spelling and pick "Save as text", or mark "Not text". Click Save Choices.
@@ -533,3 +534,27 @@ EFFORT START, HOME AND VOLUMES (2.14.0)
 - Export: choose columns (Term and Definition by default), one file or one per volume, which volumes, approved only;
   CSV, Excel or Word. Rejected terms and the omit list are left out. Effort > Export all efforts writes every effort
   in one workbook.
+
+TRAINING IS ITS OWN PROGRAM (2.15.0)
+- Two programs from the same code: Acronym Hunter (AcronymHunter_US.zip, the scanner everyone uses) and Acronym Hunter
+  Training (AcronymHunter_US_Training.zip, for the training team). Both run fully offline with the same engine,
+  sandbox and network guard.
+- Acronym Hunter no longer trains. It has no Trainer, no Improve Reading, no Load Trained Models and no Export Knowledge
+  Pack, and its package carries no Tesseract training tools (lstmtraining, lstmeval, combine_tessdata). The build
+  refuses to finish if they are there (SPLIT CHECK). It keeps: Fix OCR rules, Not text (ignore list), Report misreading
+  (was Correct + Teach: saves the line picture and the right text in training_data), Undo last save, and Tools >
+  Knowledge Packs (install, undo).
+- Tools > Send corrections (also on the green bar): saves the lessons not sent yet as a corrections pack
+  (AcronymHunter_Corrections_<user>_<date>.zip: line and region pictures, labels, samples.csv, and a manifest with the
+  SHA-256 of every file). Approved SharePoint folder for the training team only. Sent lessons are remembered
+  (training_data\sent.json) and not sent twice.
+- Acronym Hunter Training:
+  - Corrections: Import corrections packs. Each pack is checked before anything is copied: format, only picture,
+    label and sample files with safe names, the SHA-256 of every file, real PNG pictures, size limits. A lesson already
+    imported is skipped. Every line shows with its picture; Accept, Reject (never taught, training_data\review.json)
+    or Fix the text. Filters: taught, rejected, from packs, saved on this PC.
+  - Teach the reader: Improve Reading (fine-tunes Tesseract on the taught lines, tests on held-out lines, keeps the new
+    reader only if it reads better), the Trainer, and the package for the docTR Training Kit.
+  - Knowledge Pack: export a numbered Knowledge Pack (reader, database, OCR fixes, ignore list), load trained models
+    from the Training Kit, undo. Acronym Hunter installs the pack.
+- Build: build.ps1 -App training makes AcronymHunter_US_Training.zip (AcronymHunterTraining.exe), with the same gates.

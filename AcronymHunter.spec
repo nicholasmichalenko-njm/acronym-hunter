@@ -7,6 +7,10 @@ from PyInstaller.utils.hooks import collect_all
 #           ONNX Runtime (Microsoft, MIT), models exported by this project. No RapidOCR or PaddleOCR.
 #   legacy  RapidOCR + PaddleOCR PP-OCRv4 models on ONNX Runtime (v1.5.x engine).
 US = os.environ.get('AH_EDITION', 'us') == 'us'
+# App (set by build.ps1 -App, 2.15.0):
+#   user      Acronym Hunter: scans and saves corrections. No Trainer, no Improve Reading, no Tesseract training tools.
+#   training  Acronym Hunter Training: imports corrections packs, trains and tests the reader, exports Knowledge Packs.
+TRAINING = os.environ.get('AH_APP', 'user') == 'training'
 
 datas = []
 binaries = []
@@ -23,8 +27,17 @@ if US:
     # Tesseract engine + 3 training tools + their DLLs + Google's eng.traineddata, fetched by tools\fetch_tesseract.ps1
     if not os.path.isfile('vendor/tesseract/tesseract.exe'):
         raise SystemExit('vendor\\tesseract missing: run tools\\fetch_tesseract.ps1 first')
-    datas += [('vendor/tesseract', 'tesseract')]
-    hiddenimports += ['tess_train', 'sandbox']
+    if TRAINING:
+        datas += [('vendor/tesseract', 'tesseract')]
+        hiddenimports += ['tess_train', 'sandbox']
+    else:   # the user app ships the engine only: the training tools stay in Acronym Hunter Training
+        _tools = ('lstmtraining.exe', 'lstmeval.exe', 'combine_tessdata.exe')
+        for _root, _dirs, _files in os.walk('vendor/tesseract'):
+            for _f in _files:
+                if _f.lower() not in _tools:
+                    _rel = os.path.relpath(_root, 'vendor/tesseract')
+                    datas += [(os.path.join(_root, _f), 'tesseract' if _rel == '.' else os.path.join('tesseract', _rel))]
+        hiddenimports += ['sandbox']
     # docTR text finder + reader (2.1.0): two ONNX models exported by this project from Mindee's weights
     if os.environ.get('AH_CLASSIC') != '1':      # Classic build: Tesseract only, no docTR
         if not os.path.isfile('vendor/doctr/doctr_models.json'):
@@ -41,7 +54,9 @@ _edition_excludes = (['rapidocr_onnxruntime', 'pyclipper', 'shapely', 'yaml',
 _skip = ('onnxruntime.transformers', 'onnxruntime.quantization', 'onnxruntime.tools', 'pymupdf.layout')
 hiddenimports = [h for h in hiddenimports if not h.startswith(_skip)]
 hiddenimports += ['defusedxml', 'defusedxml.ElementTree']  # openpyxl uses it only if importable
-hiddenimports += ['trainer_gui', 'preview_pane', 'PIL.ImageTk']   # the Trainer opens as a window inside the scanner (one program)
+hiddenimports += ['preview_pane', 'PIL.ImageTk', 'pictures', 'corrections']   # picture preview; corrections (2.15.0)
+if TRAINING:
+    hiddenimports += ['trainer_gui', 'training_app']   # the Trainer and Improve Reading: Acronym Hunter Training only
 hiddenimports += ['equations', 'symbol_picker', 'help_guide', 'diag', 'feedback', 'effort', 'effort_ui', 'custdefs', 'volcheck', 'volcheck_ui', 'compliance', 'compliance_ui', 'docxw', 'complearn', 'workspace', 'workspace_ui', 'ai_stack', 'ai_ui', 'setupdoc', 'setup_ui', 'context', 'effort_wizard', 'effort_home', 'master_db']   # equation and symbol recognition (2.0.0), symbol picker (2.3.0)
 hiddenimports += ['skia']   # Google Skia (BSD-3): draws SVG pictures for OCR
 datas += [('assets/scanner.ico', 'assets'), ('assets/trainer.ico', 'assets')]   # window/taskbar icons at runtime
@@ -64,12 +79,13 @@ def make_analysis(script):
     # Excluding it turns that import into a clean ImportError that PyMuPDF swallows.
     excludes=['pymupdf', 'fitz', 'pymupdf.layout', 'pymupdf4llm', 'matplotlib', 'scipy', 'pandas',
               'IPython', 'jupyter', 'notebook', 'pytest',
-              'onnxruntime.quantization', 'onnxruntime.transformers', 'onnxruntime.tools'] + _edition_excludes,
+              'onnxruntime.quantization', 'onnxruntime.transformers', 'onnxruntime.tools'] + _edition_excludes
+             + ([] if TRAINING else ['trainer_gui', 'tess_train', 'training_app']),
     noarchive=False,
     optimize=0,
   )
 
-a = make_analysis('app_gui.py')
+a = make_analysis('training_app.py' if TRAINING else 'app_gui.py')
 # Strip payload the app never uses: PyMuPDF layout models + C headers/libs, OpenCV video (FFmpeg) DLL.
 def _keep(entry):
     dest = entry[0].replace('/', '\\').lower()
@@ -86,9 +102,9 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='AcronymHunter',
-    icon='assets/scanner.ico',
-    version='version_info.txt',  # Windows file properties (publisher, description, version)
+    name='AcronymHunterTraining' if TRAINING else 'AcronymHunter',
+    icon='assets/trainer.ico' if TRAINING else 'assets/scanner.ico',
+    version='version_info_trainer.txt' if TRAINING else 'version_info.txt',  # Windows file properties (publisher, description, version)
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -107,5 +123,5 @@ coll = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name='AcronymHunter',
+    name='AcronymHunterTraining' if TRAINING else 'AcronymHunter',
 )

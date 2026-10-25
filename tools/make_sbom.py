@@ -153,12 +153,14 @@ def file_components(root):
 
 
 def build(root, edition, version):
-    exe = os.path.join(root, "AcronymHunter.exe")
+    exe = next((os.path.join(root, n) for n in ("AcronymHunter.exe", "AcronymHunterTraining.exe")
+                if os.path.isfile(os.path.join(root, n))), os.path.join(root, "AcronymHunter.exe"))
     internal = os.path.join(root, "_internal")
     names = bundled_modules(exe) | internal_names(internal)
     comps = python_components(names) + native_components(root, internal)
     files = file_components(root)
-    app = {"type": "application", "name": "Acronym Hunter", "version": version, "bom-ref": "acronym-hunter",
+    app = {"type": "application", "name": "Acronym Hunter Training" if exe.endswith("Training.exe") else "Acronym Hunter",
+           "version": version, "bom-ref": "acronym-hunter",
            "description": f"{edition} edition. Runs fully offline; makes no network connections.",
            "supplier": {"name": "Nicholas Michalenko"}}
     if os.path.isfile(exe):

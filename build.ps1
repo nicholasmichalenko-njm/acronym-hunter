@@ -1,5 +1,7 @@
 # Builds the app ONCE and makes the package:
-#   AcronymHunter_US.zip           one program: scanner + Trainer window -> GitHub Release (generic data only)
+#   AcronymHunter_US.zip           Acronym Hunter: scans, saves corrections -> GitHub Release (generic data only)
+#   AcronymHunter_US_Training.zip  Acronym Hunter Training (-App training): imports corrections, trains the reader,
+#                                  exports Knowledge Packs -> GitHub Release (generic data only) (2.15.0)
 #   internal_builds\AcronymHunter_Internal_<pack>.zip     -> approved SharePoint ONLY (when -KnowledgePack is given)
 # Training features can be switched off for a distribution in base\config\app_settings.json (allow_training).
 #
@@ -15,7 +17,9 @@
 #                    Needs vendor\tesseract once: tools\build_tesseract.ps1 (built from source with no network library).
 #   -Edition legacy  RapidOCR + PaddleOCR (Baidu) models on ONNX Runtime, the v1.5.x engine: AcronymHunter_Legacy.zip.
 #   -Classic         US edition without docTR: Tesseract is the only reader (for reviewers who want no neural text finder).
-param([string]$KnowledgePack = "", [ValidateSet('us', 'legacy')][string]$Edition = 'us', [switch]$Classic)
+#   -App training    Acronym Hunter Training instead of Acronym Hunter (same code, its own program and package).
+param([string]$KnowledgePack = "", [ValidateSet('us', 'legacy')][string]$Edition = 'us', [switch]$Classic,
+      [ValidateSet('user', 'training')][string]$App = 'user')
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 
@@ -23,10 +27,13 @@ $env:AH_EDITION = $Edition
 $prefix = if ($Edition -eq 'us') { 'AcronymHunter_US' } else { 'AcronymHunter_Legacy' }
 $env:AH_CLASSIC = if ($Classic) { '1' } else { '' }
 if ($Classic) { $prefix = 'AcronymHunter_US_Classic' }
+$env:AH_APP = $App
+$exeName = if ($App -eq 'training') { 'AcronymHunterTraining' } else { 'AcronymHunter' }
+if ($App -eq 'training') { $prefix = "${prefix}_Training" }
 
 function Test-PublicPackage([string]$dir) {
     # 1. Only these files may sit outside _internal
-    $allowed = @('AcronymHunter.exe', 'acronym_database.csv', 'README.txt', 'OVERVIEW.md', 'SECURITY.md', 'CHECKSUM.txt',
+    $allowed = @("$exeName.exe", 'acronym_database.csv', 'README.txt', 'OVERVIEW.md', 'SECURITY.md', 'CHECKSUM.txt',
                  'config\app_settings.json', 'config\ocr_settings.json', 'config\ocr_corrections.csv', 'config\models\README.txt')
     $root = (Resolve-Path $dir).Path
     $files = Get-ChildItem $root -Recurse -File | ForEach-Object { $_.FullName.Substring($root.Length + 1) }
@@ -56,6 +63,10 @@ function Test-PublicPackage([string]$dir) {
         $engHash = (Get-FileHash "$root\_internal\tesseract\tessdata\eng.traineddata").Hash
         if ($engHash -ne '8280AED0782FE27257A68EA10FE7EF324CA0F8D85BD2FD145D1C2B560BCB66BA') { throw "LEAK CHECK FAILED: eng.traineddata is not Google's tessdata_best file" }
         if (-not (Test-Path "$root\_internal\tesseract\tesseract.exe")) { throw "BUILD CHECK FAILED: Tesseract engine missing" }
+        # 2.15.0: training belongs to Acronym Hunter Training. The user app ships no training tools and no training code.
+        $tools = @($files | Where-Object { $_ -match '\\(lstmtraining|lstmeval|combine_tessdata)\.exe$' })
+        if ($App -eq 'user' -and $tools) { throw "SPLIT CHECK FAILED: training tools in Acronym Hunter: $($tools -join ', ')" }
+        if ($App -eq 'training' -and $tools.Count -ne 3) { throw "BUILD CHECK FAILED: Acronym Hunter Training needs lstmtraining, lstmeval and combine_tessdata" }
         if (-not (Select-String -Path "$root\_internal\tesseract\SOURCE.txt" -Pattern 'DISABLE_CURL=ON' -Quiet)) { throw "BUILD CHECK FAILED: vendor\tesseract is not the no-network source build (run tools\build_tesseract.ps1)" }
     } else {
         $models = $files | Where-Object { $_ -like '*.onnx' -and $_ -notlike '_internal\rapidocr_onnxruntime\models\*' }
@@ -69,7 +80,7 @@ function Test-PublicPackage([string]$dir) {
 & .\venv\Scripts\pyinstaller.exe --noconfirm --clean AcronymHunter.spec
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed. See output above." }
 
-$out = 'dist\AcronymHunter'
+$out = "dist\$exeName"
 Copy-Item base\acronym_database.csv $out -Force                 # generic data from base\ only
 New-Item -ItemType Directory -Force "$out\config\models" | Out-Null
 Copy-Item base\config\* "$out\config" -Recurse -Force
@@ -98,11 +109,12 @@ if ($LASTEXITCODE -ne 0) { throw "LOGGING CHECK FAILED. See the list above." }
 & .\venv\Scripts\python.exe tools\network_audit.py $out
 if ($LASTEXITCODE -ne 0) { throw "NETWORK AUDIT FAILED. See the list above." }
 
-$exeHash = (Get-FileHash "$out\AcronymHunter.exe" -Algorithm SHA256).Hash
-"AcronymHunter.exe  SHA256  $exeHash" | Out-File -Encoding ascii "$out\CHECKSUM.txt"
+$exeHash = (Get-FileHash "$out\$exeName.exe" -Algorithm SHA256).Hash
+"$exeName.exe  SHA256  $exeHash" | Out-File -Encoding ascii "$out\CHECKSUM.txt"
 Test-PublicPackage $out
 # Software Bill of Materials (CycloneDX): what ships, with versions, licenses and SHA-256 of every program and model file
 $edLabel = if ($Classic) { 'US Classic (Tesseract only)' } elseif ($Edition -eq 'legacy') { 'Legacy' } else { 'US' }
+if ($App -eq 'training') { $edLabel = "$edLabel Training" }
 & .\venv\Scripts\python.exe tools\make_sbom.py $out "${prefix}_SBOM.cdx.json" $edLabel
 if ($LASTEXITCODE -ne 0) { throw "SBOM generation failed. See the output above." }
 $zip = "$prefix.zip"
@@ -110,12 +122,12 @@ Remove-Item $zip -ErrorAction SilentlyContinue
 Compress-Archive -Path $out -DestinationPath $zip -CompressionLevel Optimal
 $zipHash = (Get-FileHash $zip -Algorithm SHA256).Hash
 $lines = @("$zip  SHA256  $zipHash",
-           "AcronymHunter.exe  SHA256  $exeHash",
+           "$exeName.exe  SHA256  $exeHash",
            "Built $(Get-Date -Format 'yyyy-MM-dd HH:mm')")
 $stage = $out
 
 # Package 3 (optional): internal build with a Knowledge Pack pre-installed. SharePoint ONLY.
-if ($KnowledgePack) {
+if ($KnowledgePack -and $App -eq 'user') {
     if (-not (Test-Path $KnowledgePack)) { throw "Knowledge Pack not found: $KnowledgePack" }
     $istage = 'dist\internal\AcronymHunter'
     New-Item -ItemType Directory -Force (Split-Path $istage) | Out-Null

@@ -66,7 +66,7 @@ FEATURES = {
     ]),
     "more": ("More", ["none", "ml"], [
         ("Add Item, Client Lists", "Your own entries and customer lists, matched by rules", "none"),
-        ("Improve Reading (Tesseract training tools)", "Fine-tunes the picture reader on your corrected samples, on this PC",
+        ("Improve Reading (Tesseract training tools)", "Acronym Hunter Training only: fine-tunes the picture reader on the corrected samples",
          "ml"),
         ("docTR Training Kit (PyTorch, separate download)", "Optional; trains the second reader on this PC's GPU, offline",
          "ml"),

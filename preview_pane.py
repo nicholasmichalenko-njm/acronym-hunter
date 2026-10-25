@@ -277,7 +277,7 @@ class PreviewPane(ctk.CTkFrame):
         SP.button(erow, self.entry).pack(side="left", padx=(4, 0))
         row = ctk.CTkFrame(fix, fg_color="transparent")
         row.pack(fill="x", padx=4, pady=(0, 6))
-        self.btn_teach = ctk.CTkButton(row, text="Correct + Teach", width=130, height=30, fg_color="#0F766E", command=self.teach)
+        self.btn_teach = ctk.CTkButton(row, text="Report misreading", width=140, height=30, fg_color="#0F766E", command=self.teach)
         self.btn_teach.pack(side="left", padx=2)
         self.btn_junk = ctk.CTkButton(row, text="Not text", width=90, height=30, fg_color="#64748B", command=self.not_text)
         self.btn_junk.pack(side="left", padx=2)
@@ -296,7 +296,8 @@ class PreviewPane(ctk.CTkFrame):
         self.btn_undo.pack(side="left", padx=2)
         self.btn_trainer = ctk.CTkButton(row2, text="Open in Trainer", width=130, height=26,
                                          fg_color="#1E3A8A", command=self.open_trainer)
-        self.btn_trainer.pack(side="left", padx=2)
+        if eng.trainer_available():          # the Trainer lives in Acronym Hunter Training (2.15.0)
+            self.btn_trainer.pack(side="left", padx=2)
         self.lbl_msg = ctk.CTkLabel(self, text="", wraplength=PIC_W - 30, justify="left", anchor="w", text_color="#0F766E")
         self.lbl_msg.pack(fill="x", padx=10, pady=(0, 8))
         self._set_fix_state(False)
@@ -472,11 +473,11 @@ class PreviewPane(ctk.CTkFrame):
         self._update_controls()
 
     def _set_fix_state(self, picture_line):
-        can_train = eng.trainer_available()
+        can_train = eng.corrections_on()
         self.btn_teach.configure(state="normal" if picture_line and can_train and eng.ai_ml_on() else "disabled")
         self.btn_junk.configure(state="normal" if picture_line and can_train else "disabled")
         self.btn_undo.configure(state="normal" if can_train else "disabled")
-        self.btn_trainer.configure(state="normal" if can_train and self.pv.img is not None else "disabled")
+        self.btn_trainer.configure(state="normal" if eng.trainer_available() and self.pv.img is not None else "disabled")
         self.btn_excl.configure(state="normal" if self.term and self.app.excludable(self.term) else "disabled")
         self.btn_inst.configure(state="normal" if self.term and self.locs and self.app.excludable(self.term) else "disabled")
 
@@ -503,7 +504,7 @@ class PreviewPane(ctk.CTkFrame):
         path = self.app.path_for(name)
         if not path:
             self._blank(f"{name} is no longer where it was scanned, so it cannot be shown."); return
-        import trainer_gui as tg
+        import pictures as tg
         try:
             if path not in self.sources:
                 self.sources[path] = tg.list_sources(path)
@@ -549,7 +550,7 @@ class PreviewPane(ctk.CTkFrame):
             self.lbl_info.configure(text="AI and ML are off for this effort: the picture is shown, but its text is not read.")
 
     def ai_state(self, on):
-        """AI and ML switch (2.12.0): Correct + Teach collects training samples, so it is off with the switch."""
+        """AI and ML switch (2.12.0): Report misreading collects training samples, so it is off with the switch."""
         try:
             self.btn_teach.configure(state="normal" if on else "disabled")
         except Exception:
@@ -778,7 +779,7 @@ class PreviewPane(ctk.CTkFrame):
         if s[0] == "line":
             _b, t, c = self.pv.lines[s[1]]
             self.lbl_info.configure(text=f"Recognized text: \"{t}\" (confidence {c:.2f}). Fix the spelling and click "
-                                         "Correct + Teach, or click Not text.")
+                                         "Report misreading, or click Not text.")
         else:
             self._describe()
         if self.big is not None and self.big.winfo_exists():
@@ -848,7 +849,7 @@ class PreviewPane(ctk.CTkFrame):
                          int(min(img.width, x1 + margin)), int(min(img.height, y1 + margin))))
 
     def teach(self):
-        import trainer_gui as tg
+        import corrections as tg
         if self.sel is None or self.pv.img is None:
             return
         box, read, conf = self.pv.lines[self.sel]
@@ -863,19 +864,20 @@ class PreviewPane(ctk.CTkFrame):
             have = {r[0] for r in rows}
             for a, b in pairs:
                 if a not in have:
-                    rows.append([a, b, "Correct + Teach (preview)"]); have.add(a); added.append(f"{a} > {b}")
+                    rows.append([a, b, "Report misreading (preview)"]); have.add(a); added.append(f"{a} > {b}")
             if added:
                 eng.write_ocr_fix_rows(rows)
         tg._log_save({"time": tg._now(), "images": [rel], "ignored": [], "summary": f"line '{text}' (preview)"})
         diag.activity("correct_teach_saved")
-        msg = f"Saved \"{text}\" as a corrected line for teaching the reader."
+        msg = (f"Saved \"{text}\" as a corrected line for teaching the reader." if eng.TRAINING_APP else
+               f"Saved \"{text}\" for the training team. Send your corrections when you have a few (Tools > Send corrections).")
         if added:
             msg += " Fixed on the next scan right away: " + ", ".join(added) + "."
         self.lbl_msg.configure(text=msg)
         self.app.update_banner()
 
     def not_text(self):
-        import trainer_gui as tg
+        import corrections as tg
         if self.sel is None or self.pv.img is None:
             return
         img = self.pv.img
@@ -937,7 +939,7 @@ class PreviewPane(ctk.CTkFrame):
             self.btn_restore.pack_forget()
 
     def undo(self):
-        import trainer_gui as tg
+        import corrections as tg
         what = tg.remove_last_save()
         self.lbl_msg.configure(text=f"Removed: {what}" if what else "Nothing to undo.")
         self.app.update_banner()

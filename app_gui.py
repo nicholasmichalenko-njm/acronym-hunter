@@ -2272,7 +2272,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.14.0"            # keep in step with version_info.txt
+APP_VERSION = "2.15.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3104,9 +3104,15 @@ def save_settings(data):
 
 TRAIN_DIR = os.path.join(BASE_DIR, "training_data")   # the Trainer's saved samples (never shipped, never committed)
 
+TRAINING_APP = False   # True only inside Acronym Hunter Training (training_app.py sets it) (2.15.0)
+
 def trainer_available():
-    """Training features: on unless config\\app_settings.json sets allow_training to false."""
-    return bool(APP_CFG["allow_training"]) and importlib.util.find_spec("trainer_gui") is not None
+    """The Trainer, Improve Reading and Load Trained Models: only in Acronym Hunter Training (2.15.0)."""
+    return TRAINING_APP and bool(APP_CFG["allow_training"]) and importlib.util.find_spec("trainer_gui") is not None
+
+def corrections_on():
+    """Report misreading and Not text save corrections for the training team, unless allow_training is false."""
+    return bool(APP_CFG["allow_training"])
 
 class AcronymAppGUI(MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
@@ -3384,6 +3390,8 @@ class AcronymAppGUI(MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin
             self.after(5000, self._banner_tick)
 
     def update_banner(self):
+        if not TRAINING_APP:                      # Acronym Hunter: corrections go to the training team (2.15.0)
+            return self._send_banner()
         import tess_train
         show = trainer_available() and OCR_BACKEND == "tesseract" and ai_ml_on()   # ML: hidden while AI and ML are off
         n, new = self.training_state() if show else (0, 0)
@@ -3406,6 +3414,52 @@ class AcronymAppGUI(MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin
 
     def improve_reading(self):
         self.open_improve()
+
+    # ---------- corrections for the training team (2.15.0) ----------
+    def _send_banner(self):
+        try:
+            import corrections
+            lines, regions = corrections.unsent() if corrections_on() else ([], [])
+        except Exception:
+            diag.swallowed(); lines, regions = [], []
+        n = len(lines) + len(regions)
+        if not n:
+            self.banner.pack_forget(); return
+        self.lbl_banner.configure(text=f"{n} corrected reading(s) saved and not sent yet. Send them to the training team "
+                                       "so the next reader learns them.")
+        self.btn_improve.configure(text="Send corrections...", command=self.send_corrections, state="normal")
+        if not self.banner.winfo_ismapped():
+            self.banner.pack(fill="x", padx=15, pady=(0, 6), before=self.prog)
+
+    def send_corrections(self, path=None, everything=False, ask=True):
+        """Save a corrections pack for the training team (approved SharePoint folder). Returns the result, or None."""
+        import corrections, getpass
+        diag.activity("corrections_send_opened")
+        lines, regions = corrections.unsent()
+        if not (lines or regions or everything):
+            if ask:
+                messagebox.showinfo("Send corrections", "Nothing new to send. Report misreading and Not text in the picture "
+                                    "preview save corrections; they collect here until you send them.")
+            return None
+        if ask and not messagebox.askyesno(
+                "Send corrections", f"{len(lines)} corrected line(s) and {len(regions)} not-text region(s) are ready.\n\n"
+                "They are small pictures cut from your documents, with the right text. Save the pack ONLY to the approved "
+                "SharePoint folder for the training team. Never email, GitHub or personal storage.\n\nSave the pack now?"):
+            return None
+        if path is None:
+            name = f"AcronymHunter_Corrections_{re.sub(r'[^A-Za-z0-9]+', '', getpass.getuser()) or 'user'}_{datetime.datetime.now():%Y.%m.%d-%H%M}.zip"
+            path = filedialog.asksaveasfilename(title="Save corrections to the APPROVED SHAREPOINT folder", initialfile=name,
+                                                defaultextension=".zip", filetypes=[("Corrections pack", "*.zip")])
+            if not path:
+                return None
+        r = corrections.export_pack(path, everything=everything)
+        diag.activity("corrections_sent", n=r["lines"], items=r["regions"])
+        self.update_banner()
+        if ask:
+            messagebox.showinfo("Send corrections", f"Saved {os.path.basename(path)}: {r['lines']} line(s), {r['regions']} "
+                                "region(s). The training team imports it in Acronym Hunter Training; the better reader comes "
+                                "back to you in a Knowledge Pack.")
+        return r
 
     def _register_usage(self):
         """Usage logging: name the controls after their code attributes, then log clicks (no text, no data)."""
@@ -3740,7 +3794,11 @@ class AcronymAppGUI(MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin
             m.add_command(label="Improve Reading (teach the reader your corrections) [ML]...", command=self.open_improve, state=ml)
         if trainer_available():
             m.add_command(label="Trainer (check a picture, box missed text) [ML]...", command=self.open_trainer, state=ml)
-        m.add_command(label="Knowledge (share with your team, install, undo)...", command=self.open_knowledge)
+        if not TRAINING_APP:
+            m.add_command(label="Send corrections to the training team...", command=self.send_corrections,
+                          state="normal" if corrections_on() else "disabled")
+        m.add_command(label=("Knowledge (share with your team, install, undo)..." if TRAINING_APP else
+                             "Knowledge Packs (install the training team's reader, undo)..."), command=self.open_knowledge)
         m.add_command(label="Full Text (all typed and picture text, save as .txt)...", command=self.open_fulltext)
         m.add_command(label="Read all equation pictures (math add-on) [Gen AI]..." if MATH_DIR else "Read all equation pictures (math add-on not installed)",
                       command=lambda: self.read_equations([k for k, d in self.results.items() if d.get("category") == "Equation (picture)"]),
@@ -3761,7 +3819,7 @@ class AcronymAppGUI(MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin
     # ---------- math reader (add-on) ----------
     def _picture_png(self, loc):
         """PNG bytes of the picture at a location label (same loaders as the preview pane)."""
-        import trainer_gui as tg
+        import pictures as tg
         path = self.path_for(_file_of(loc))
         if not path:
             return None
@@ -3981,8 +4039,10 @@ class AcronymAppGUI(MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin
         win.transient(self); win.after(100, win.lift)
         ctk.CTkLabel(win, text="Knowledge Pack = your trained reader + database + OCR fixes + ignore list",
                      font=("Arial", 13, "bold")).pack(anchor="w", padx=16, pady=(14, 2))
-        ctk.CTkLabel(win, text="Improve Reading makes YOUR reader better on this PC. A Knowledge Pack SHARES everything learned "
-                     "with colleagues, or installs what they shared. Export it after Improve Reading.", wraplength=560,
+        ctk.CTkLabel(win, text=("Improve Reading makes the reader better on this PC. A Knowledge Pack SHARES everything learned "
+                     "with colleagues. Export it after Improve Reading." if TRAINING_APP else
+                     "The training team builds a better reader from everyone's corrections and ships it as a Knowledge "
+                     "Pack. Install it here; Undo puts the previous one back."), wraplength=560,
                      justify="left", text_color="gray").pack(anchor="w", padx=16, pady=(0, 4))
         lbl = ctk.CTkLabel(win, text="", justify="left", wraplength=560); lbl.pack(anchor="w", padx=16, pady=(0, 8))
         msg = ctk.CTkLabel(win, text="", justify="left", wraplength=560, text_color="#0F766E")
@@ -4010,7 +4070,7 @@ class AcronymAppGUI(MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin
             refresh(f"Restored the state from {what}." if what else "Nothing to undo.")
         ctk.CTkButton(win, text="Install Knowledge Pack...", command=install).pack(fill="x", padx=16, pady=4)
         ctk.CTkButton(win, text="Undo Last Knowledge Change", fg_color="#475569", command=undo).pack(fill="x", padx=16, pady=4)
-        if True:   # export is the "share" step, always available
+        if TRAINING_APP:   # loading trained models and exporting packs belong to Acronym Hunter Training (2.15.0)
             ctk.CTkLabel(win, text="Share and load", font=("Arial", 12, "bold")).pack(anchor="w", padx=16, pady=(14, 2))
             def load_models():
                 folder = filedialog.askdirectory(parent=win, title="Training Kit output folder (docTR: output\\models; or acronym.traineddata)")
@@ -5607,7 +5667,8 @@ def run_selftest(paths):
                 f.write(f"Training features: on (Trainer window and Improve Reading loaded; "
                         f"{len(tess_train.read_samples(TRAIN_DIR))} saved lines)\n")
             else:
-                f.write("Training features: off (allow_training = false)\n")
+                f.write("Training features: in Acronym Hunter Training; this program saves corrections only"
+                        + ("" if APP_CFG["allow_training"] else " (off: allow_training = false)") + "\n")
             if OCR_BACKEND == "tesseract":
                 f.write(f"OCR sandbox: {OCR_SANDBOX_STATUS}\n")
                 if APP_CFG["ocr_sandbox"] and os.name == "nt":

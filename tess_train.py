@@ -29,6 +29,10 @@ def read_samples(train_dir):
     """[(abs image path, text)] from labels.txt, skipping missing images and empty or 'not text' labels."""
     labels = os.path.join(train_dir, "labels.txt")
     out = []
+    try:                                       # lines the training team rejected are not taught (2.15.0)
+        rej = set(json.load(open(os.path.join(train_dir, "review.json"), encoding="utf-8")).get("rejected", []))
+    except (OSError, ValueError):
+        rej = set()
     if os.path.exists(labels):
         for line in open(labels, encoding="utf-8").read().splitlines():
             if "\t" not in line:
@@ -36,7 +40,7 @@ def read_samples(train_dir):
             rel, text = line.split("\t", 1)
             text = text.strip()
             path = os.path.join(train_dir, rel.replace("/", os.sep))
-            if text and text != "(not text)" and os.path.isfile(path):
+            if text and text != "(not text)" and rel not in rej and os.path.isfile(path):
                 out.append((path, text))
     return out
 

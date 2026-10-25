@@ -96,7 +96,7 @@ PAGES = {
                ["What it is", "An auto-correct rule", "Lessons that make the reader better"],
                ["What changes", "The label after reading", "How the scanner reads"],
                ["Helps with", "That exact misreading", "Similar letters and words never corrected"],
-               ["When it works", "Next scan", "After Improve Reading (20+ lessons)"],
+               ["When it works", "Next scan", "When the training team ships a new reader"],
                ["Best for", "Fixing today's results", "Fewer misreads from now on"]]),
     ("h", "Fix OCR: the instant fix"),
     ("img", "fixocr.png", 110),
@@ -105,18 +105,18 @@ PAGES = {
               ("When", "A misreading you see now, or one that keeps coming back."),
               ("Why", "No waiting and no setup. Every later scan, and every teammate with your Knowledge Pack, gets it right."),
               ("Careful", "Exact match only. Add a rule only for a reading that is always wrong.")]),
-    ("h", "Correct + Teach: collect lessons"),
+    ("h", "Report misreading: collect lessons"),
     ("img", "teach.png", 300),
-    ("rows", [("What", "In the picture preview, fix the reading and click Correct + Teach. It saves the picture line and the right text."),
+    ("rows", [("What", "In the picture preview, fix the reading and click Report misreading. It saves the picture line and the right text."),
               ("When", "Any time a picture is misread. It takes two seconds."),
               ("Why", "Each one is a lesson. Lessons are how the reader gets better over time.")]),
-    ("h", "Improve Reading: use the lessons"),
-    ("img", "improve_btn.png", 150),
-    ("img", "improve.png", 560),
-    ("rows", [("What", "Trains a new reader from your saved lessons, on this PC, offline, in a few minutes."),
-              ("When", "Once you have 20 or more lessons. The button tells you how many you have."),
-              ("Why", "The new reader learns your fonts and drawings, so it misreads less, even on words nobody corrected."),
-              ("Safe", "It tests the new reader first and keeps it only if it reads better. Put back the previous reader undoes it.")]),
+    ("h", "Send corrections: the training team teaches the reader"),
+    ("rows", [("What", "Tools > Send corrections (or the green bar) saves your lessons as one corrections pack."),
+              ("Where", "The approved SharePoint folder for the training team only. Never email, GitHub or USB."),
+              ("Then", "The training team imports everyone's packs in Acronym Hunter Training, checks each line, trains a "
+                       "better reader and tests it. Only a reader that reads better ships."),
+              ("Back to you", "It comes back as a numbered Knowledge Pack: Tools > Knowledge Packs > Install. Undo puts the "
+                              "previous one back.")]),
 ],
 "Effort list": [
     ("h", "One list per proposal"),
@@ -179,7 +179,7 @@ PAGES = {
                        "status, no longer found, or one volume. Double-click to edit a definition. Approve, Needs author, "
                        "Not a term, Volumes, Where from (documents, imports and every change), Show in Scan review."),
               ("Scan review", "Keep (Add to effort list), Not a term, Omit, Exclude, Exclude instance in the preview, and Fix "
-                              "OCR or Correct + Teach for a misreading (saved on this PC for training)."),
+                              "OCR or Report misreading for a misreading (sent to the training team)."),
               ("Use as definition", "Select words in the Source preview (the passage, or the recognized text of a picture) "
                                     "and click Use as definition, or right-click. When the documents, the customer's list or "
                                     "the nearby words already give a long form, the preview shows \"Found: ...\" with a Use "
@@ -270,12 +270,11 @@ PAGES = {
               ("Zoom", "Mouse wheel or + / -. Drag to move around. Whole shows the whole page or picture."),
               ("Enlarge", "Opens the picture in a big window. Click boxes there too."),
               ("Click a box", "Every box is something the scanner read. Click one to check or fix it."),
-              ("Correct + Teach", "Fix the spelling and save a lesson (see Fix OCR vs Training)."),
+              ("Report misreading", "Fix the spelling and save a lesson for the training team (see Fix OCR vs Training)."),
               ("Not text", "A line, arrow or speck read as text. The scanner ignores it from now on."),
               ("Exclude term", "A real reading, but not a term you want listed, anywhere (a database rule)."),
               ("Exclude instance", "Only this place is wrong: the term stays in its other places. Saved for this effort."),
-              ("Undo last save", "Takes back your last save in this panel."),
-              ("Open in Trainer", "Draw a box around text the scanner missed completely.")]),
+              ("Undo last save", "Takes back your last save in this panel.")]),
     ("p", "Tools > Show preview pane turns this panel on or off."),
 ],
 "Symbols": [
@@ -304,8 +303,9 @@ PAGES = {
 "Sharing": [
     ("h", "Work as a team"),
     ("img", "menubar.png", 420),
-    ("rows", [("Knowledge Pack", "Tools > Knowledge. Share with team saves your database, OCR fixes, ignore list and "
-                                 "trained reader in one file. Teammates install it. Undo puts theirs back."),
+    ("rows", [("Knowledge Pack", "Tools > Knowledge Packs. The training team ships the reader, database, OCR fixes and "
+                                 "ignore list in one numbered file. Install it; Undo puts the previous one back."),
+              ("Corrections", "Tools > Send corrections. Your lessons for the training team, in one file."),
               ("Where", "Your approved local SharePoint folder only. Never GitHub, email or USB."),
               ("Client Lists", "Load the client's own acronym list. Its definitions win over the database."),
               ("Projects", "Project > Save. A rescan reads only files that changed."),
@@ -318,8 +318,8 @@ PAGES = {
               ("Logs", "The app also logs errors and which controls are clicked, by internal name only. "
                        "No file names, terms or document text, ever.")]),
     ("h", "Good team habit"),
-    ("p", "One person collects fixes and lessons for a week, runs Improve Reading, and shares a Knowledge Pack. "
-          "Everyone installs it. The whole team gets the better reader."),
+    ("p", "Everyone reports misreadings and sends corrections. The training team runs Acronym Hunter Training, ships a "
+          "Knowledge Pack, and everyone installs it. The whole team gets the better reader."),
 ],
 "AI and ML": [
     ("h", "What runs each part"),
