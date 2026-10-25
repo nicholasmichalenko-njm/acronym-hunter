@@ -71,6 +71,34 @@ def step1():
     sw.destroy()
     again = [i["phrase"] for i in app.kw_compute(srcs)]
     check("added and rejected phrases are not suggested again", first not in again and rejected not in again)
+    # offerings catalog (2.17.0)
+    import offerings
+    ow = app.offerings_window(); ow.update(); api = ow._api
+    api["ents"]["Offering"].insert(0, "Orbital Thermal Suite"); api["ents"]["Other names"].insert(0, "Northwind Orbital")
+    api["ents"]["Group"].insert(0, "Thermal"); api["add"]()
+    lst = os.path.join(tmp, "offer.csv")
+    with open(lst, "w", newline="", encoding="utf-8") as f:
+        csv.writer(f).writerows([["Name", "Description"], ["Dream Chaser", "Spaceplane"], ["LIFE Habitat", "Inflatable habitat"],
+                                 ["Orbital Thermal Suite", "dup"]])
+    a, same = api["import"](lst)
+    check("catalog: add and import a list", a == 2 and same == 1 and len(offerings.load()) == 3, (a, same))
+    exp = api["export"](os.path.join(tmp, "Offerings_Catalog.csv"))
+    check("catalog: export to share keeps every column", open(exp, encoding="utf-8-sig").readline().startswith("Offering,Other names,Group"))
+    ow.destroy()
+    items = app.kw_compute(srcs)
+    off = [i for i in items if i["bucket"] == "Offering"]
+    check("suggestions mark an offering named in the documents", off and off[0]["phrase"] == "Orbital Thermal Suite"
+          and "offerings catalog" in off[0]["why"][0] and not any(i["phrase"] == "Northwind Orbital" for i in items),
+          [(i["phrase"], i["why"]) for i in off])
+    aw = app.attach_offerings_dialog(); aw.update()
+    tv2 = aw._api["tree"]
+    pick = [i for i in tv2.get_children() if tv2.set(i, "name") in ("Dream Chaser", "LIFE Habitat")]
+    tv2.selection_set(pick); n = aw._api["attach"](); aw.destroy()
+    k = app.effort.keyword("Dream Chaser")
+    check("attach offerings to the effort", n == 2 and k and k["Category"] == "Offering" and k["Source"] == "Offerings catalog", k)
+    app.kw_add("ThermaLoop radiator", "Our solution")
+    check("a keyword goes into the catalog", app.kw_to_catalog(["ThermaLoop radiator"]) == 1
+          and offerings.find(offerings.load(), "ThermaLoop radiator") and app.effort.keyword("ThermaLoop radiator")["Category"] == "Offering")
     # export
     out = os.path.join(tmp, "kw.xlsx")
     n = app.kw_export(out, keep_only=True)

@@ -120,6 +120,8 @@ class EffortMixin:
         m.add_command(label="Export terms (choose columns and volumes)...", command=self.export_picker, state=st)
         m.add_command(label="Keywords (for SharePoint tags)", command=lambda: self.show_view("Keywords"), state=st)
         m.add_command(label="Suggest keywords...", command=self.kw_suggest_dialog, state=st)
+        m.add_command(label="Attach offerings...", command=self.attach_offerings_dialog, state=st)
+        m.add_command(label="Offerings catalog...", command=self.offerings_window)
         m.add_command(label="Export the acronym lists as set in the wizard (Word and Excel)...", command=self.export_effort_lists_ui, state=st)
         m.add_command(label="Name volumes...", command=self.edit_volumes, state=st)
         m.add_command(label="Import a volume's acronym list...", command=self.import_volume_list, state=st)

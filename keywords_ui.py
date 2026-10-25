@@ -60,10 +60,14 @@ class KeywordsMixin:
         self.btn_kw_rej = ctk.CTkButton(b, text="Reject", width=70, fg_color="#B91C1C", command=lambda: self.kw_set_status("Reject"), **k)
         self.btn_kw_edit = ctk.CTkButton(b, text="Edit...", width=70, fg_color="#1E3A8A", command=self.kw_edit, **k)
         self.btn_kw_del = ctk.CTkButton(b, text="Remove", width=80, fg_color="#475569", command=self.kw_remove, **k)
-        for w in (self.btn_kw_add, self.btn_kw_keep, self.btn_kw_rej, self.btn_kw_edit, self.btn_kw_del):
+        self.btn_kw_cat = ctk.CTkButton(b, text="Add to catalog", width=110, fg_color="#475569", command=self.kw_to_catalog, **k)
+        for w in (self.btn_kw_add, self.btn_kw_keep, self.btn_kw_rej, self.btn_kw_edit, self.btn_kw_del, self.btn_kw_cat):
             w.pack(side="left", padx=(0, 6))
-        ctk.CTkButton(b, text="Export...", width=90, fg_color="#0F766E", command=self.kw_export_dialog, **k).pack(side="right")
-        ctk.CTkButton(b, text="Suggest keywords...", width=150, fg_color="#7C3AED", command=self.kw_suggest_dialog, **k).pack(side="right", padx=6)
+        b2 = ctk.CTkFrame(K, fg_color="transparent"); b2.pack(fill="x", pady=(6, 0))   # second row: fits at 1280 px
+        ctk.CTkButton(b2, text="Suggest keywords...", width=150, fg_color="#7C3AED", command=self.kw_suggest_dialog, **k).pack(side="left", padx=(0, 6))
+        ctk.CTkButton(b2, text="Attach offerings...", width=140, fg_color="#B45309", command=self.attach_offerings_dialog, **k).pack(side="left", padx=(0, 6))
+        ctk.CTkButton(b2, text="Offerings catalog...", width=150, fg_color="#475569", command=self.offerings_window, **k).pack(side="left", padx=(0, 6))
+        ctk.CTkButton(b2, text="Export...", width=90, fg_color="#0F766E", command=self.kw_export_dialog, **k).pack(side="right")
         self.bind_all("<Control-k>", lambda _e: (self.kw_quick(), "break")[1])
         self.bind_all("<Control-K>", lambda _e: (self.kw_quick(), "break")[1])
         self._kw_hotkey = None
@@ -76,7 +80,7 @@ class KeywordsMixin:
 
     def _kw_buttons(self):
         n = len(self.kw_selected())
-        for w in (self.btn_kw_keep, self.btn_kw_rej, self.btn_kw_del):
+        for w in (self.btn_kw_keep, self.btn_kw_rej, self.btn_kw_del, self.btn_kw_cat):
             w.configure(state="normal" if n else "disabled")
         self.btn_kw_edit.configure(state="normal" if n == 1 else "disabled")
         self.btn_kw_add.configure(state="normal" if self.effort is not None else "disabled")
@@ -281,7 +285,8 @@ class KeywordsMixin:
                 diag.swallowed()
         L = self.effort
         acr = [(t, r["Definition"]) for t, r in L.rows.items() if r["Status"] == "Approved" and r.get("Definition")] if L else []
-        return keywords.suggest(chunks, acr, [k["Keyword"] for k in (L.keywords if L else [])])
+        import offerings
+        return keywords.suggest(chunks, acr, [k["Keyword"] for k in (L.keywords if L else [])], offerings=offerings.load())
 
     def kw_suggest_dialog(self, sources=None, wait=False):
         if self.effort is None:
@@ -409,3 +414,173 @@ class KeywordsMixin:
         messagebox.showinfo("Export keywords", f"{n} keyword(s) saved to {os.path.basename(path)}. Copy them into the SharePoint "
                             "keyword fields; the app does not connect to SharePoint.")
         return path
+
+    # ------------------------------------------------------------ offerings catalog (2.17.0)
+    def kw_to_catalog(self, words=None):
+        """Put selected keywords in the offerings catalog (and mark them Offering here)."""
+        import offerings
+        words = words or self.kw_selected()
+        added = 0
+        for w in words:
+            k = self.effort.keyword(w) if self.effort is not None else None
+            if offerings.add(w, description=(k or {}).get("Why", "") if (k or {}).get("Source") != "Suggested" else "") == "added":
+                added += 1
+            if k and k["Category"] != "Offering":
+                self.effort.update_keyword(w, Category="Offering")
+        if words:
+            diag.activity("offerings_from_keywords", n=added)
+            self._kw_saved()
+            self.status.configure(text=f"Offerings catalog: {added} added, {len(words) - added} already there.")
+        return added
+
+    def attach_offerings(self, names):
+        """Attach catalog offerings to this effort as keywords (category Offering). Returns how many were added."""
+        import offerings
+        if self.effort is None:
+            return 0
+        items = offerings.load()
+        got = 0
+        for n in names:
+            it = offerings.find(items, n)
+            if it:
+                got += self.effort.add_keyword(it["Offering"], "Offering", "Offerings catalog", it.get("Description", "")) == "added"
+        if got:
+            diag.activity("offerings_attached", n=got)
+            self._kw_saved()
+        return got
+
+    def attach_offerings_dialog(self):
+        import offerings
+        if self.effort is None:
+            return None
+        items = offerings.load()
+        if not items:
+            if messagebox.askyesno("Attach offerings", "The offerings catalog is empty. Open it to add your offerings?"):
+                return self.offerings_window()
+            return None
+        win = ctk.CTkToplevel(self); win.title("Attach offerings"); win.geometry("760x520"); win.transient(self); win.after(150, win.lift)
+        diag.register(win, "offerings_attach")
+        ctk.CTkLabel(win, text=f"Pick the offerings this proposal uses. They join {self.effort.name}'s keywords as Offering.",
+                     anchor="w").pack(fill="x", padx=12, pady=(12, 4))
+        q = tk.StringVar(value="")
+        ctk.CTkEntry(win, textvariable=q, width=300, placeholder_text="Search").pack(anchor="w", padx=12)
+        tf = tk.Frame(win); tf.pack(fill="both", expand=True, padx=12, pady=6)
+        tf.grid_rowconfigure(0, weight=1); tf.grid_columnconfigure(0, weight=1)
+        tv = ttk.Treeview(tf, columns=("name", "group", "desc", "here"), show="headings", selectmode="extended")
+        for c, h, w in (("name", "Offering", 220), ("group", "Group", 120), ("desc", "Description", 300), ("here", "In this effort", 100)):
+            tv.heading(c, text=h); tv.column(c, width=w, stretch=c in ("name", "desc"))
+        vsb = ttk.Scrollbar(tf, orient="vertical", command=tv.yview); tv.configure(yscrollcommand=vsb.set)
+        tv.grid(row=0, column=0, sticky="nsew"); vsb.grid(row=0, column=1, sticky="ns")
+
+        def fill(*_):
+            tv.delete(*tv.get_children())
+            t = q.get().strip().casefold()
+            for i, it in enumerate(items):
+                if t and t not in " ".join(it.values()).casefold():
+                    continue
+                tv.insert("", "end", iid=str(i), values=(it["Offering"], it["Group"], it["Description"],
+                                                         "Yes" if self.effort.keyword(it["Offering"]) else ""))
+        q.trace_add("write", fill)
+
+        def attach():
+            n = self.attach_offerings([items[int(i)]["Offering"] for i in tv.selection()])
+            fill(); msg.configure(text=f"Attached {n} offering(s).")
+            return n
+        b = ctk.CTkFrame(win, fg_color="transparent"); b.pack(fill="x", padx=12, pady=10)
+        ctk.CTkButton(b, text="Attach selected", width=140, fg_color="#B45309", command=attach).pack(side="left")
+        msg = ctk.CTkLabel(b, text=""); msg.pack(side="left", padx=10)
+        ctk.CTkButton(b, text="Close", width=90, fg_color="#475569", command=win.destroy).pack(side="right")
+        fill()
+        win._api = {"tree": tv, "attach": attach, "items": items, "search": q}
+        return win
+
+    def offerings_window(self):
+        """The PC's offerings catalog: add, edit, remove, import a list, export to share."""
+        import offerings
+        if getattr(self, "_off_win", None) is not None and self._off_win.winfo_exists():
+            self._off_win.lift(); return self._off_win
+        win = ctk.CTkToplevel(self); win.title("Offerings catalog"); win.geometry("860x560"); win.transient(self); win.after(150, win.lift)
+        self._off_win = win
+        diag.register(win, "offerings")
+        ctk.CTkLabel(win, text=("Sierra Space offerings, kept once on this PC for every effort. Attach them to an effort's keywords "
+                                "(Keywords > Attach offerings); suggestions mark an offering when the documents name it."),
+                     anchor="w", justify="left", wraplength=820).pack(fill="x", padx=12, pady=(12, 4))
+        tf = tk.Frame(win); tf.pack(fill="both", expand=True, padx=12, pady=6)
+        tf.grid_rowconfigure(0, weight=1); tf.grid_columnconfigure(0, weight=1)
+        tv = ttk.Treeview(tf, columns=offerings.COLUMNS, show="headings", selectmode="extended")
+        for c, w in zip(offerings.COLUMNS, (220, 200, 120, 320)):
+            tv.heading(c, text=c); tv.column(c, width=w, stretch=c in ("Offering", "Description"))
+        vsb = ttk.Scrollbar(tf, orient="vertical", command=tv.yview); tv.configure(yscrollcommand=vsb.set)
+        tv.grid(row=0, column=0, sticky="nsew"); vsb.grid(row=0, column=1, sticky="ns")
+        form = ctk.CTkFrame(win); form.pack(fill="x", padx=12)
+        ents = {}
+        for i, (c, w) in enumerate(zip(offerings.COLUMNS, (200, 180, 120, 260))):
+            ctk.CTkLabel(form, text=c).grid(row=0, column=i, sticky="w", padx=4, pady=(6, 0))
+            e = ctk.CTkEntry(form, width=w); e.grid(row=1, column=i, padx=4, pady=(0, 8)); ents[c] = e
+        msg = ctk.CTkLabel(win, text="", text_color="#0F766E", anchor="w"); msg.pack(fill="x", padx=12)
+
+        def fill():
+            tv.delete(*tv.get_children())
+            for i, it in enumerate(offerings.load()):
+                tv.insert("", "end", iid=it["Offering"], values=[it[c] for c in offerings.COLUMNS])
+
+        def pick(_e=None):
+            sel = tv.selection()
+            if len(sel) == 1:
+                vals = tv.item(sel[0], "values")
+                for c, v in zip(offerings.COLUMNS, vals):
+                    ents[c].delete(0, "end"); ents[c].insert(0, v)
+
+        def add_update():
+            vals = {c: ents[c].get().strip() for c in offerings.COLUMNS}
+            if not vals["Offering"]:
+                msg.configure(text="Type the offering's name."); return None
+            if offerings.find(offerings.load(), vals["Offering"]):
+                offerings.update(vals["Offering"], **vals); msg.configure(text=f"Updated {vals['Offering']}.")
+            else:
+                offerings.add(vals["Offering"], vals["Other names"], vals["Group"], vals["Description"]); msg.configure(text=f"Added {vals['Offering']}.")
+                diag.activity("offering_added")
+            for e in ents.values():
+                e.delete(0, "end")
+            fill()
+            return vals["Offering"]
+
+        def remove():
+            sel = list(tv.selection())
+            if sel and messagebox.askyesno("Remove", f"Remove {len(sel)} offering(s) from the catalog? Efforts keep their keywords.", parent=win):
+                offerings.remove(sel); fill()
+
+        def imp(path=None):
+            path = path or filedialog.askopenfilename(parent=win, title="Offerings list", filetypes=[
+                ("Lists", "*.csv *.xlsx *.docx *.pdf *.txt"), ("All files", "*.*")])
+            if not path:
+                return None
+            try:
+                a, same = offerings.import_file(path)
+            except Exception as ex:
+                diag.swallowed(); msg.configure(text=f"Could not read {os.path.basename(path)} ({type(ex).__name__})."); return None
+            diag.activity("offerings_imported", added=a)
+            fill(); msg.configure(text=f"{a} offering(s) added, {same} already there.")
+            return a, same
+
+        def exp(path=None):
+            path = path or filedialog.asksaveasfilename(parent=win, title="Share the offerings catalog", initialfile="Offerings_Catalog.csv",
+                                                        defaultextension=".csv", filetypes=[("CSV", "*.csv")])
+            if not path:
+                return None
+            import shutil
+            offerings.save(offerings.load())
+            shutil.copyfile(offerings.path(), path)
+            msg.configure(text=f"Saved {os.path.basename(path)}. Others import it with Import list.")
+            return path
+
+        tv.bind("<<TreeviewSelect>>", pick)
+        b = ctk.CTkFrame(win, fg_color="transparent"); b.pack(fill="x", padx=12, pady=10)
+        ctk.CTkButton(b, text="Add / Update", width=120, fg_color="#0F766E", command=add_update).pack(side="left")
+        ctk.CTkButton(b, text="Remove", width=90, fg_color="#B91C1C", command=remove).pack(side="left", padx=6)
+        ctk.CTkButton(b, text="Import list...", width=110, fg_color="#475569", command=imp).pack(side="left")
+        ctk.CTkButton(b, text="Export to share...", width=130, fg_color="#475569", command=exp).pack(side="left", padx=6)
+        ctk.CTkButton(b, text="Close", width=90, fg_color="#475569", command=win.destroy).pack(side="right")
+        fill()
+        win._api = {"tree": tv, "ents": ents, "add": add_update, "import": imp, "export": exp, "remove": remove, "msg": msg}
+        return win

@@ -578,3 +578,16 @@ KEYWORD HARVEST (2.16.0)
   again.
 - Export: Excel or CSV (Keyword, Category, SharePoint field, Why, Source, Status, Added by, Date), Keep only or Keep and
   Proposed. The app never writes to SharePoint.
+
+OFFERINGS CATALOG (2.17.0)
+- SharePoint keywords are free text, with no fixed count; BD and Production pick them. The offerings catalog keeps
+  Sierra Space's offerings once on this PC for every effort: Offering, Other names (separated by ; or ,), Group,
+  Description. Stored in config\offerings.csv (company offering names, not proposal content).
+- Keywords > Offerings catalog (or Effort > Offerings catalog): add or update, remove, Import list (our catalog CSV
+  keeps every column; any other list in CSV, Excel, Word, PDF or text is read as offering and description pairs; names
+  already there are skipped), Export to share (a CSV others import).
+- Keywords > Attach offerings: search the catalog, select, and they join the effort's keywords as category Offering
+  with source "Offerings catalog" and the description as Why.
+- Suggest keywords lists catalog offerings named in the documents (by name or another name) as Offering, first, with
+  how often and where; those names are not suggested again under another kind.
+- Add to catalog: selected keywords go into the catalog and become Offering in this effort.

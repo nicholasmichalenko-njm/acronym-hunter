@@ -33,7 +33,7 @@ EMPHASIS = re.compile(r"\b(shall|must|will be evaluated|evaluat\w*|factor|criter
                       r"mission|priority|critical|essential|required)\b", re.I)
 WORD = re.compile(r"[A-Za-z][A-Za-z0-9&/\-']*")
 CLAUSE = re.compile(r"[.;:!?,()\[\]{}\"“”\n\t|]+")
-BUCKETS = ["Customer emphasis", "Our solution", "Differentiator", "Acronym"]
+BUCKETS = ["Customer emphasis", "Our solution", "Differentiator", "Offering", "Acronym"]
 _COMMON = None
 
 
@@ -89,7 +89,30 @@ def phrases(text, nmin=2, nmax=4):
     return out
 
 
-def suggest(chunks, acronyms=(), existing=(), limit=60):
+def offering_hits(chunks, offerings):
+    """{offering: {"customer", "ours", "samples"}} for catalog offerings named in the text (whole words, any case)."""
+    out = {}
+    for it in offerings:
+        pats = [re.compile(r"(?<![A-Za-z0-9])" + re.escape(n) + r"(?![A-Za-z0-9])", re.I) for n in _names(it) if len(n) >= 3]
+        h = {"customer": 0, "ours": 0, "samples": []}
+        for label, text, kind in chunks:
+            for p in pats:
+                for m in p.finditer(text or ""):
+                    h["customer" if kind == "customer" else "ours"] += 1
+                    if len(h["samples"]) < 3:
+                        a = text.rfind(".", 0, m.start()) + 1
+                        b = text.find(".", m.end())
+                        h["samples"].append((label, " ".join(text[a:(b + 1 if b >= 0 else len(text))].split())[:240]))
+        if h["customer"] or h["ours"]:
+            out[it["Offering"]] = h
+    return out
+
+
+def _names(it):
+    return [it["Offering"]] + [x.strip() for x in re.split(r"[;,]", it.get("Other names", "")) if x.strip()]
+
+
+def suggest(chunks, acronyms=(), existing=(), limit=60, offerings=()):
     """chunks: [(location label, text, kind)] with kind 'customer' or 'ours'. acronyms: [(term, long form)].
     existing: keywords already listed (any status), never suggested again. Returns [{"phrase", "bucket", "score",
     "why": [str], "samples": [(label, sentence)], "count", "customer", "ours", "sections"}], best first."""
@@ -161,6 +184,21 @@ def suggest(chunks, acronyms=(), existing=(), limit=60):
             why.append("everyday words: less distinctive")
         out.append({"phrase": surface, "bucket": bucket, "score": round(score, 2), "why": why, "samples": s["samples"],
                     "count": s["count"], "customer": s["customer"], "ours": s["ours"], "sections": spread})
+    names_lower = set()
+    for it in offerings:                                               # its names never show up twice
+        names_lower |= {n.lower() for n in _names(it)}
+    for name, h in offering_hits(chunks, offerings).items():          # 2.17.0: the offerings catalog
+        if name.casefold() in seen:
+            continue
+        n = h["customer"] + h["ours"]
+        why = [f"in the offerings catalog; named {n} times"]
+        if h["ours"]:
+            why.append(f"in our volumes ({h['ours']})")
+        if h["customer"]:
+            why.append(f"in the customer documents ({h['customer']})")
+        out.append({"phrase": name, "bucket": "Offering", "score": round(4.0 + math.log2(1 + n), 2), "why": why,
+                    "samples": h["samples"], "count": n, "customer": h["customer"], "ours": h["ours"], "sections": 0})
+    out = [o for o in out if o["bucket"] == "Offering" or o["phrase"].lower() not in names_lower]
     for term, long_form in acronyms:
         lf = " ".join((long_form or "").split())
         if not lf or lf.casefold() in seen or term.casefold() in seen:

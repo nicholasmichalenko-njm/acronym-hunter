@@ -194,6 +194,10 @@ PAGES = {
                           "how often and where, in a heading, near requirement or evaluation wording, only in our volumes. "
                           "Rules and counts only (No AI). Not a keyword keeps a phrase from coming back."),
               ("Decide", "Keep, Reject, Edit (category, why, SharePoint field) or Remove. Every change is in the History sheet."),
+              ("Offerings", "Offerings catalog: Sierra Space offerings kept once on this PC (name, other names, group, "
+                            "description). Import a list, export it to share. Attach offerings adds them to an effort's keywords "
+                            "in one step; suggestions mark an offering when the documents name it; Add to catalog turns a keyword "
+                            "into an offering."),
               ("Export", "Excel or CSV in the SharePoint columns: Keep only, or Keep and Proposed. The app never connects to "
                          "SharePoint.")]),
     ("h", "Volumes and export"),
