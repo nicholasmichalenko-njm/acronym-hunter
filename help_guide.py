@@ -147,6 +147,10 @@ PAGES = {
     ("rows", [("First use", "Acronyms only. Each must first appear as \"Spelled Out Words (ACR)\", per volume, per section "
                             "of each volume, or across the submission (the effort's first-use rule). Red: not defined. "
                             "Amber: the words differ from the list."),
+              ("Text, figures, tables", "First use is judged in the running text only. Tables, figures (pictures, diagrams, "
+                                        "charts, text boxes), captions, headers and footers never count as a first use. "
+                                        "The In figures or tables column shows where a term also appears in one; a term "
+                                        "used only there is listed in blue with nothing to check."),
               ("Per section", "Sections come from Word headings. Numbered headings group by their first number or letter "
                               "(2, 2.1 and 2.3 are all section 2; C.3 is section C); other headings are their own section. "
                               "PDFs and slides have no headings, so the whole file counts as one section. Effort > Effort settings "

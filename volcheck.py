@@ -4,7 +4,8 @@ Pure functions (no GUI, no files read except where a caller passes paths to writ
 app already has, the Effort List rows, and the volumes in submission order.
 
 Report parts:
-  first_use     acronyms only. Per volume (rule "volume"), per section of each volume (rule "section", 2.22.0) or across
+  first_use     acronyms only, judged in running text (2.23.0: figures, tables, captions, headers and notes are
+                reported in their own column, never as a first use). Per volume (rule "volume"), per section of each volume (rule "section", 2.22.0) or across
                 the submission (rule "submission"): where the
                 acronym first appears, whether it is written "Spelled Out Words (ACR)", whether the spelled-out words
                 match the effort list, later re-definitions.
@@ -21,6 +22,8 @@ LIST_TYPES = ("Acronym", "Abbreviation", "Unit")
 OK, WARN, BAD, INFO = "ok", "warn", "bad", "info"
 RULE_TEXT = {"volume": "Restarts in each volume", "section": "Restarts in each section of each volume",
              "submission": "Runs across the whole submission"}
+KIND_NAMES = {"table": "Table", "figure": "Figure", "caption": "Caption", "header": "Header or footer",
+              "notes": "Comment or notes"}
 RULE_SHORT = {"volume": "per volume", "section": "per section of each volume", "submission": "across the whole submission"}
 
 
@@ -96,12 +99,13 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
     seen_in = {}                               # term -> first volume where it appeared (submission rule)
     no_sections = set()                        # section rule: terms whose saved results predate 2.22.0 (rescan)
 
-    def _first_use_row(first_use, v, sec, term, u):
+    def _first_use_row(first_use, v, sec, term, u, fig=None):
         want = list_def(term)
         lf = u.get("lf", "")
         redefs = ["later in the same passage" if r == u["loc"] else r for r in u.get("redefs", [])]
         row = {"volume": v, "section": sec, "term": term, "loc": u["loc"], "written": lf, "list_definition": want,
-               "status": status(term), "also_defined": "; ".join(redefs[:5]), "level": OK, "state": ""}
+               "status": status(term), "also_defined": "; ".join(redefs[:5]), "level": OK, "state": "",
+               "in_figures": fig_text(fig)}
         pic = " (first use is in a picture)" if in_picture(u["loc"]) else ""
         earlier = seen_in.get(term) if rule == "submission" else None
         if earlier:
@@ -138,13 +142,16 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
             if rule == "submission":
                 defined_in[term] = v
         else:
-            row["level"], row["state"] = BAD, {"volume": "Never defined in this volume", "section": "Never defined in this section"}.get(
+            row["level"], row["state"] = BAD, {"volume": "Never defined in the text of this volume", "section": "Never defined in the text of this section"}.get(
                 rule, "Not defined at first use")
         if redefs and row["level"] == OK:
             row["level"] = INFO
             row["state"] += "; defined again later"
         row["state"] += pic
         first_use.append(row)
+
+    def fig_text(fig):
+        return f"{KIND_NAMES.get(fig['kind'], fig['kind'])}: {fig['loc']}" if fig else ""
 
     def units(d, v, term):
         """[(section, first use)] for one acronym in one volume: one entry per section under the section rule."""
@@ -162,8 +169,15 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
             d = results[term]
             if kind(d.get("category", "")) != "Acronym" or term in rejected:
                 continue
-            for sec, u in units(d, v, term):
-                _first_use_row(first_use, v, sec, term, u)
+            fig = (d.get("first_fig") or {}).get(v)
+            us = units(d, v, term)
+            for i, (sec, u) in enumerate(us):
+                _first_use_row(first_use, v, sec, term, u, fig if i == 0 else None)
+            if not us and fig:                  # used only in figures, tables, captions or headers (2.23.0)
+                first_use.append({"volume": v, "section": "", "term": term, "loc": "", "written": "",
+                                  "list_definition": list_def(term), "status": status(term), "also_defined": "",
+                                  "in_figures": fig_text(fig), "level": INFO,
+                                  "state": "Only in figures or tables; not in the text, so no first use to check"})
 
     # ---------------- missing / not approved / differs
     missing, not_approved, differs = [], [], []
@@ -278,14 +292,15 @@ def write_excel(report, path, effort_name=""):
             sh.auto_filter.ref = f"A1:{sh.cell(row=1, column=len(cols)).column_letter}{sh.max_row}"
 
     if s["rule"] == "section":
-        sheet("First use", ["Volume", "Section", "Acronym", "Result", "First use at", "Written as", "Effort list definition",
-                            "Also defined at", "List status"],
-              report["first_use"], ["volume", "section", "term", "state", "loc", "written", "list_definition", "also_defined",
-                                    "status"], [22, 12, 12, 46, 40, 34, 34, 30, 14], level_key="level")
+        sheet("First use", ["Volume", "Section", "Acronym", "Result", "First use in text", "In figures or tables", "Written as",
+                            "Effort list definition", "Also defined at", "List status"],
+              report["first_use"], ["volume", "section", "term", "state", "loc", "in_figures", "written", "list_definition",
+                                    "also_defined", "status"], [22, 12, 12, 46, 40, 40, 34, 34, 30, 14], level_key="level")
     else:
-        sheet("First use", ["Volume", "Acronym", "Result", "First use at", "Written as", "Effort list definition", "Also defined at", "List status"],
-              report["first_use"], ["volume", "term", "state", "loc", "written", "list_definition", "also_defined", "status"],
-              [22, 12, 46, 40, 34, 34, 30, 14], level_key="level")
+        sheet("First use", ["Volume", "Acronym", "Result", "First use in text", "In figures or tables", "Written as",
+                            "Effort list definition", "Also defined at", "List status"],
+              report["first_use"], ["volume", "term", "state", "loc", "in_figures", "written", "list_definition", "also_defined",
+                                    "status"], [22, 12, 46, 40, 40, 34, 34, 30, 14], level_key="level")
     sheet("Not in effort list", ["Term", "Type", "Volumes", "Count", "Suggested definition", "First found at"],
           report["missing"], ["term", "type", "volumes", "count", "suggestion", "loc"], [14, 13, 30, 8, 40, 40])
     sheet("Not approved", ["Term", "Type", "Status", "Definition", "Volumes", "First found at"],

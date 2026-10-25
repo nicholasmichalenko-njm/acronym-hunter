@@ -1060,16 +1060,34 @@ def chart_lines(root):
         lines += [v.text for v in cache.iter(_q("c", "v")) if v.text and v.text.strip()]
     return lines
 
-def word_paragraphs(root):
-    """(text, is_heading) per Word paragraph; text-box paragraphs counted once, deleted text ignored."""
+_CAPTION_RE = re.compile(r"^\s*(Figure|Fig\.|Table|Exhibit|Chart|Diagram)\s+[A-Z]?[\d.\-]+\s*[.:\u2013\u2014-]", re.I)
+
+def word_paragraph_kinds(root):
+    """(text, is_heading, kind) per Word paragraph. kind (2.23.0): "text" for running text, "table" inside a table,
+    "figure" inside a text box or drawing, "caption" for a caption (Caption style, or "Figure 3." / "Table 2:" at the
+    start). First use is judged in running text only."""
     W_P, W_T = _q("w", "p"), _q("w", "t")
+    W_TBL, W_TXBX = _q("w", "tbl"), _q("w", "txbxContent")
     for para in root.iter(W_P):
         if _in_fallback(para):
             continue
         text = "".join(t.text or "" for t in para.iter(W_T) if next(t.iterancestors(W_P), None) is para)
         style = para.find("%s/%s" % (_q("w", "pPr"), _q("w", "pStyle")))
-        sval = (style.get(_q("w", "val")) or "") if style is not None else ""
-        yield text, sval.lower().startswith(("heading", "title"))
+        sval = (style.get(_q("w", "val")) or "").lower() if style is not None else ""
+        kind = "text"
+        for anc in para.iterancestors():
+            if anc.tag == W_TXBX or anc.tag.endswith("}txbx") or anc.tag.endswith("}drawing"):
+                kind = "figure"; break
+            if anc.tag == W_TBL:
+                kind = "table"; break
+        if kind == "text" and (sval.startswith(("caption", "tableoffigures")) or _CAPTION_RE.match(text)):
+            kind = "caption"
+        yield text, sval.startswith(("heading", "title")) and kind == "text", kind
+
+def word_paragraphs(root):
+    """(text, is_heading) per Word paragraph; text-box paragraphs counted once, deleted text ignored."""
+    for text, is_heading, _kind in word_paragraph_kinds(root):
+        yield text, is_heading
 
 def shape_name(el):
     """Name the user sees in the Selection Pane / Alt Text for the shape holding this picture."""
@@ -1444,18 +1462,21 @@ def extract_docx(filepath, filename, status_callback, prefix, chunks):
         names = set(z.namelist())
         status_callback(f"{prefix} - Reading Word body...")
         body = _xml(z, "word/document.xml")
-        block, start, heading, idx = [], 1, "", 0
+        block, start, heading, idx, cur = [], 1, "", 0, "text"
+        tags = {"text": "", "table": "table, ", "figure": "text box, ", "caption": "caption, "}
 
         def flush(end):
             if block:
                 where = f"section '{heading[:60]}', " if heading else ""
-                chunks.append((f"{filename} ({where}para {start}-{end})", "\n".join(block)))
+                chunks.append((f"{filename} ({where}{tags[cur]}para {start}-{end})", "\n".join(block)))
 
-        for text, is_heading in word_paragraphs(body):
+        for text, is_heading, kind in word_paragraph_kinds(body):
             idx += 1
-            if is_heading and text.strip():
+            if text.strip() and (kind != cur or is_heading):   # tables, text boxes and captions get their own passages
                 flush(idx - 1)
-                block, start, heading = [], idx, text.strip()
+                block, start, cur = [], idx, kind
+                if is_heading:
+                    heading = text.strip()
             if text.strip():
                 block.append(text)
             if len(block) >= 25:
@@ -1913,11 +1934,28 @@ def section_of(label):
         h = mt.group(1).strip()
         k = _SEC_KEY.match(h)
         return k.group(1).upper() if k else h
-    if re.search(r"\(para \d", label):
+    if re.search(r"\((?:(?:table|caption|text box), )?para \d", label):
         return "(start)"
     if re.search(r"\((?:Body|Header|Footer|Footnotes|Endnotes|Comments)", label):
         return None
     return ""
+
+def loc_kind(label):
+    """Where a location sits (2.23.0): "text" (running text, footnotes), "table", "figure" (pictures, diagrams, charts,
+    SmartArt, text boxes), "caption", "header" (headers and footers) or "notes" (comments, speaker notes). First use is
+    judged in running text only; the others are reported apart."""
+    if _OCR_LOC.search(label) or EQ.PIC_LABEL in label or re.search(
+            r"\((?:Vector text|Image)\)|, SVG |, text box, | chart\)| SmartArt\)|\(Body", label):
+        return "figure"
+    if re.search(r"\((?:Header|Footer)\b", label):
+        return "header"
+    if re.search(r"\(Comments\b| notes\)|\(Slide \d+(?:, hidden)? notes", label):
+        return "notes"
+    if ", table, " in label or "(table, " in label:
+        return "table"
+    if ", caption, " in label or "(caption, " in label:
+        return "caption"
+    return "text"
 
 def _note(fu, key, label, paren, defs, term, text, mt):
     if key not in fu:
@@ -1940,9 +1978,15 @@ def note_first_use(findings, hits, label, text):
     From 2.22.0 the same is kept per section of each file (first_use_sec) for the per-section rule."""
     f = _file_of(label)
     sec = section_of(label)
+    kind = loc_kind(label)
     for term in dict.fromkeys(hits):
         d = findings.get(term)
         if d is None:
+            continue
+        if kind != "text":                              # figures, tables and captions: where, not first use (2.23.0)
+            ff = d.setdefault("first_fig", {})
+            if f not in ff:
+                ff[f] = {"loc": label, "kind": kind}
             continue
         pat = re.escape(term) + r"s?"
         mt = re.search(r"(?<![A-Za-z0-9])" + pat + r"(?![A-Za-z0-9])", text)
@@ -1981,6 +2025,12 @@ def first_use_lines(d, with_file=True):
         else:
             state = "NOT defined in this file"
         out.append(f"{loc}: {state}")
+    names = {"table": "a table", "figure": "a figure", "caption": "a caption", "header": "a header or footer",
+             "notes": "a comment or notes"}
+    for f, g in d.get("first_fig", {}).items():           # figures and tables are not first uses (2.23.0)
+        loc = g["loc"] if with_file else (g["loc"][len(f):].strip() or g["loc"])
+        where = names.get(g["kind"], g["kind"])
+        out.append(f"{loc}: in {where}" + ("" if f in d.get("first_use", {}) else " only (no first use in text)"))
     return out
 
 def ctx_text(d):
@@ -2333,7 +2383,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.22.0"            # keep in step with version_info.txt
+APP_VERSION = "2.23.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -4908,8 +4958,12 @@ class AcronymAppGUI(KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin,
         """Compact table text: where the first use is and whether it is defined there. Details and export say more."""
         if not first_use_lines(data):
             return ""
-        items = list(data["first_use"].items())
+        items = list(data.get("first_use", {}).items())
         one_file = len(set(_file_of(l) for l in data["locations"])) <= 1
+        if not items:                                       # used only in figures or tables (2.23.0)
+            f, g = next(iter(data["first_fig"].items()))
+            loc = (g["loc"][len(f):].strip() if one_file else g["loc"]) or g["loc"]
+            return self._wrap_px("only in a " + {"header": "header or footer", "notes": "comment or notes"}.get(g["kind"], g["kind"]) + f": {loc}", "firstuse", 2)
         f, u = items[0]
         loc = (u["loc"][len(f):].strip() if one_file else u["loc"]) or u["loc"]
         mark = {True: "defined", None: "check"}.get(u["defined"], "defined later" if u.get("later") else "NOT defined")

@@ -11,6 +11,12 @@ def make_docx(path, paras):
     W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
     def para(p):
         style = ""
+        if isinstance(p, tuple) and p[0] == "TABLE":  # ("TABLE", [["CDR", "Critical Design Review"], ...])
+            rows = "".join("<w:tr>" + "".join(f"<w:tc>{para(c)}</w:tc>" for c in r) + "</w:tr>" for r in p[1])
+            return f"<w:tbl>{rows}</w:tbl>"
+        if isinstance(p, tuple) and p[0] == "TEXTBOX":   # a text box in a drawing (a diagram label)
+            return (f'<w:p><w:r><w:pict><v:shape xmlns:v="urn:schemas-microsoft-com:vml"><v:textbox><w:txbxContent>'
+                    f'{para(p[1])}</w:txbxContent></v:textbox></v:shape></w:pict></w:r></w:p>')
         if isinstance(p, tuple):                      # ("Heading1", "2. Technical Approach")
             style, p = f'<w:pPr><w:pStyle w:val="{p[0]}"/></w:pPr>', p[1]
         return f'<w:p>{style}<w:r><w:t xml:space="preserve">{V._x(p)}</w:t></w:r></w:p>'
@@ -125,7 +131,7 @@ def run():
     r3 = V.build(res3, L.rows, ["Vol 3 Past Performance.docx"], "section", file_of=A._file_of, in_picture=pic)
     by3 = {(x["section"], x["term"]): x for x in r3["first_use"]}
     assert by3[("1", "SOW")]["level"] == V.OK and by3[("3", "SOW")]["level"] == V.OK, by3
-    assert by3[("2", "SOW")]["level"] == V.BAD and "Never defined in this section" in by3[("2", "SOW")]["state"]
+    assert by3[("2", "SOW")]["level"] == V.BAD and "Never defined in the text of this section" in by3[("2", "SOW")]["state"]
     assert by3[("1", "PDQ")]["level"] == V.BAD and "later" not in by3[("1", "PDQ")]["state"]
     assert by3[("3", "PDQ")]["level"] == V.OK and r3["summary"]["rescan_for_sections"] == 0
     # the per-volume rule on the same volume sees one first use
@@ -141,6 +147,34 @@ def run():
     assert [c.value for c in ws[1]][:3] == ["Volume", "Section", "Acronym"]
     assert load_workbook(xl3)["Summary"]["B3"].value == "Restarts in each section of each volume"
     L3 = E.EffortList(os.path.join(d, "Effort3.xlsx"), "Kestrel", "section"); L3.save()
+    # 2.23.0: first use is judged in running text only; tables, captions and text boxes are reported apart
+    k = A.loc_kind
+    assert k("V.docx (section '2. X', para 1-3)") == "text" and k("V.docx (section '2. X', table, para 4-9)") == "table"
+    assert k("V.docx (caption, para 3-3)") == "caption" and k("V.docx (section '2. X', text box, para 5-5)") == "figure"
+    assert k("V.docx (Body, image 'Figure 1') [OCR]") == "figure" and k("V.pptx (Slide 3 chart)") == "figure"
+    assert k("V.docx (Header 1)") == "header" and k("V.pptx (Slide 2 notes)") == "notes" and k("V.pdf (p.3)") == "text"
+    v4 = os.path.join(d, "Vol 4 Cost.docx")
+    make_docx(v4, [("Heading1", "1. Approach"),
+                   ("TABLE", [["CDR", "Critical Design Review"], ["MRB", "Material Review Board"]]),
+                   "Figure 1. The QZR schedule and the CDR gate.",
+                   ("TEXTBOX", "WBX feeds the bus"),
+                   "The Critical Design Review (CDR) closes the design. The Material Review Board (MRB) meets weekly.",
+                   "The QZR happens in month nine."])
+    res4 = A.analyze_batch([v4], lambda m: None)
+    chunks = [lbl for lbl, _t in A.typed_chunks(v4)]
+    assert any(", table, " in c for c in chunks) and any(", caption, " in c for c in chunks) and any(", text box, " in c for c in chunks), chunks
+    cdr = res4["CDR"]
+    assert cdr["first_use"]["Vol 4 Cost.docx"]["defined"] is True, cdr["first_use"]   # the table row before it does not count
+    assert cdr["first_fig"]["Vol 4 Cost.docx"]["kind"] == "table", cdr.get("first_fig")
+    assert res4["QZR"]["first_use"]["Vol 4 Cost.docx"]["defined"] is False             # caption skipped; text use is bare
+    assert res4["QZR"]["first_fig"]["Vol 4 Cost.docx"]["kind"] == "caption"
+    r4 = V.build(res4, L.rows, ["Vol 4 Cost.docx"], "volume", file_of=A._file_of, in_picture=pic)
+    by4 = {x["term"]: x for x in r4["first_use"]}
+    assert by4["CDR"]["level"] == V.OK and by4["CDR"]["in_figures"].startswith("Table: "), by4["CDR"]
+    assert by4["QZR"]["level"] == V.BAD and by4["QZR"]["in_figures"].startswith("Caption: ")
+    assert by4["WBX"]["level"] == V.INFO and "Only in figures or tables" in by4["WBX"]["state"] and by4["WBX"]["in_figures"].startswith("Figure: "), by4.get("WBX")
+    xl4 = os.path.join(d, "check4.xlsx"); V.write_excel(r4, xl4, "Kestrel")
+    assert [c.value for c in load_workbook(xl4)["First use"][1]][3:5] == ["First use in text", "In figures or tables"]
     L4 = E.EffortList(L3.path); L4.load(); assert L4.first_use == "section"
     print("volcheck ok")
 

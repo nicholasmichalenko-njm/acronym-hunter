@@ -118,14 +118,15 @@ class VolumeCheckMixin:
             return tv
 
         if s["rule"] == "section":
-            table("First use", ["Volume", "Section", "Acronym", "Result", "First use at", "Written as", "Effort list says",
-                                "Also defined at"],
-                  report["first_use"], ["volume", "section", "term", "state", "loc", "written", "list_definition", "also_defined"],
-                  [170, 80, 100, 330, 260, 190, 190, 200], level=True)
+            table("First use", ["Volume", "Section", "Acronym", "Result", "First use in text", "In figures or tables",
+                                "Written as", "Effort list says", "Also defined at"],
+                  report["first_use"], ["volume", "section", "term", "state", "loc", "in_figures", "written", "list_definition",
+                                        "also_defined"], [170, 80, 100, 330, 260, 260, 190, 190, 200], level=True)
         else:
-            table("First use", ["Volume", "Acronym", "Result", "First use at", "Written as", "Effort list says", "Also defined at"],
-                  report["first_use"], ["volume", "term", "state", "loc", "written", "list_definition", "also_defined"],
-                  [170, 100, 330, 260, 190, 190, 200], level=True)
+            table("First use", ["Volume", "Acronym", "Result", "First use in text", "In figures or tables", "Written as",
+                                "Effort list says", "Also defined at"],
+                  report["first_use"], ["volume", "term", "state", "loc", "in_figures", "written", "list_definition",
+                                        "also_defined"], [170, 100, 330, 260, 260, 190, 190, 200], level=True)
         table("Not in effort list", ["Term", "Type", "Count", "Volumes", "Suggested definition", "First found at"],
               report["missing"], ["term", "type", "count", "volumes", "suggestion", "loc"], [90, 90, 60, 220, 300, 300])
         table("Not approved", ["Term", "Status", "Definition", "Volumes", "First found at"],
@@ -153,7 +154,7 @@ class VolumeCheckMixin:
         """Select the term in the results table and show that location in the preview."""
         if not row or row.get("term") not in self.results:
             return
-        term, loc = row["term"], row.get("loc", "")
+        term, loc = row["term"], row.get("loc", "") or row.get("in_figures", "").split(": ", 1)[-1]
         diag.activity("volume_check_jump")
         if not self.tree.exists(term):
             self.clear_filters()

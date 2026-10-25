@@ -648,3 +648,14 @@ FIRST USE PER SECTION, MATH READS KEPT, LINE-REMOVAL PASS, OSV CHECK (2.22.0)
 - Build PC: tools\osv_check.py checks every Python package in the release SBOMs against the OSV database (package names
   and versions only). 2.22.0: 16 packages, no known advisories. The app itself never connects to anything.
 - User Guide: pictures of the Setup tab, Help > What runs where and a ? panel.
+
+FIRST USE IN TEXT ONLY; FIGURES AND TABLES REPORTED APART (2.23.0)
+- First use is judged in the running text only. Tables, figures (pictures, diagrams, charts, SmartArt, text boxes),
+  captions ("Figure 3." / "Table 2:" or the Caption style), headers and footers, comments and speaker notes never count
+  as a first use, before or after the text.
+- Word tables, text boxes and captions are now their own passages: "(section '2. Approach', table, para 4-9)",
+  "(..., text box, ...)", "(..., caption, ...)".
+- Volume check: "First use in text" plus a new "In figures or tables" column (Table, Figure, Caption, Header or footer,
+  with the first place). A term used only in figures or tables is listed in blue: "Only in figures or tables; not in
+  the text, so no first use to check". The Excel report has the same columns.
+- Results table: the First Use column and details say "only in a table: ..." or add "in a figure" lines.
