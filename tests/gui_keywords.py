@@ -64,6 +64,10 @@ def step1():
     check("a heading phrase from the RFP is suggested", any(i["phrase"].lower() == "thermal design" for i in items), [i["phrase"] for i in items[:8]])
     tv = sw._api["tree"]
     first = items[0]["phrase"]
+    tv.selection_set(tv.get_children()[:1]); srcw = sw._api["source"]()
+    check("Show in document highlights the phrase", srcw is not None and srcw._hits >= 1, getattr(srcw, "_hits", None))
+    if srcw is not None:
+        srcw.destroy()
     tv.selection_set(tv.get_children()[:2]); got = sw._api["add"]()
     check("add selected suggestions", got == 2 and app.effort.keyword(first)["Source"] == "Suggested")
     tv.selection_set(tv.get_children()[:1]); rejected = sw._api["st"]["items"][int(tv.selection()[0])]["phrase"]

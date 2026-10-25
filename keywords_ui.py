@@ -363,9 +363,17 @@ class KeywordsMixin:
         b = ctk.CTkFrame(win, fg_color="transparent"); b.pack(fill="x", padx=12, pady=10)
         ctk.CTkButton(b, text="Add selected as keywords", width=200, fg_color="#0F766E", command=add).pack(side="left")
         ctk.CTkButton(b, text="Not a keyword", width=130, fg_color="#B91C1C", command=reject).pack(side="left", padx=6)
+        def source():
+            sel = tv.selection()
+            if len(sel) == 1 and st["items"][int(sel[0])]["samples"]:
+                it = st["items"][int(sel[0])]
+                return self.kw_show_source(it["samples"][0][0], it["phrase"], srcs)
+            return None
+        ctk.CTkButton(b, text="Show in document", width=140, fg_color="#1E3A8A", command=source).pack(side="left")
+        tv.bind("<Double-1>", lambda _e: source())
         ctk.CTkButton(b, text="Close", width=90, fg_color="#475569", command=win.destroy).pack(side="right")
         srcs = sources if sources is not None else self.kw_sources()
-        win._api = {"tree": tv, "add": add, "reject": reject, "st": st, "head": head}
+        win._api = {"tree": tv, "add": add, "reject": reject, "st": st, "head": head, "source": source}
         if not srcs:
             head.configure(text="No documents yet: add customer documents to the effort or scan your volumes first.")
             return win
@@ -662,4 +670,36 @@ class KeywordsMixin:
         ctk.CTkButton(b, text="Clear", width=80, fg_color="#475569", command=clear).pack(side="left", padx=6)
         ctk.CTkButton(b, text="Close", width=90, fg_color="#475569", command=win.destroy).pack(side="right")
         win._api = {"build": build, "clear": clear, "label": lbl}
+        return win
+
+    # ------------------------------------------------------------ jump to the source of a suggestion (2.19.0)
+    def kw_show_source(self, label, phrase, sources=None):
+        """Show the passage a suggestion came from, with the phrase highlighted. Returns the window, or None."""
+        import re
+        eng = _eng()
+        name = label.split(" (", 1)[0]
+        path = next((p for p, _k in (sources if sources is not None else self.kw_sources()) if os.path.basename(p) == name), None)
+        if not path:
+            return None
+        try:
+            chunks = eng.typed_chunks(path)
+        except Exception:
+            diag.swallowed(); return None
+        text = next((t for lbl, t in chunks if lbl == label), None)
+        if text is None:
+            text = next((t for _l, t in chunks if phrase.lower() in t.lower()), "")
+        win = ctk.CTkToplevel(self); win.title(label[:120]); win.geometry("760x460"); win.transient(self); win.after(150, win.lift)
+        diag.register(win, "keyword_source")
+        box = tk.Text(win, wrap="word", font=("Segoe UI", 11), padx=10, pady=8)
+        box.pack(fill="both", expand=True, padx=10, pady=10)
+        box.insert("1.0", text)
+        box.tag_configure("hit", background="#FDE68A")
+        hits = [(m.start(), m.end()) for m in re.finditer(re.escape(phrase), text, re.I)]
+        for a, b in hits:
+            box.tag_add("hit", f"1.0+{a}c", f"1.0+{b}c")
+        if hits:
+            box.see(f"1.0+{hits[0][0]}c")
+        box.configure(state="disabled")
+        diag.activity("keyword_source_shown")
+        win._hits = len(hits)
         return win

@@ -197,6 +197,8 @@ PAGES = {
               ("Smarter", "Past proposals: build a baseline from a folder of past submissions; phrases every proposal uses score "
                           "lower, phrases new to this one higher. Keep and Reject teach later suggestions in every effort. Both "
                           "keep hashed phrases with counts only, never the text."),
+              ("Show in document", "Double-click a suggestion, or Show in document: the passage it came from, highlighted."),
+              ("Team", "Knowledge Packs carry the offerings catalog and the Keep/Reject learning, so the whole team gets them."),
               ("More capture", "Right-click a compliance row (its outline section), selected words in the requirement text, or a "
                                "Setup outline heading > Add as keyword."),
               ("Offerings", "Offerings catalog: Sierra Space offerings kept once on this PC (name, other names, group, "

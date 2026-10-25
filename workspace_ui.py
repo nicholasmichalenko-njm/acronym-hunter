@@ -3,7 +3,7 @@ unsaved work after a crash, backups and Restore earlier version, archive, and th
 
 Each effort has its own Workspace (workspace.py). With no effort open, the app uses config\\no_effort.
 """
-import datetime, json, os, shutil
+import datetime, json, os, shutil, time
 import tkinter as tk
 from tkinter import messagebox
 import customtkinter as ctk
@@ -211,6 +211,7 @@ class WorkspaceMixin:
         else:
             msg = "No effort open." + (f" Showing the last scan from {when}." if self.results and when else "")
         self.status.configure(text=msg + " Running offline: nothing leaves this PC.")
+        self._status_hold = time.time() + 5          # keep "Resumed <effort>" on screen for a few seconds
         if self.effort is not None:
             self._ws_beat = self.after(HEARTBEAT_MS, self._heartbeat)
 

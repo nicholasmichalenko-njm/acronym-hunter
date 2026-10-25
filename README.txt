@@ -602,3 +602,12 @@ SMARTER KEYWORD SUGGESTIONS (2.18.0)
   "rejected before (n)" lower. config\keyword_learning.json, hashed phrases with counts only.
 - More capture: right-click a compliance requirement > Add outline section as keyword; select words in the requirement
   text and right-click > Add as keyword; right-click a Setup outline heading > Add heading as keyword.
+
+TEAM KNOWLEDGE IN KNOWLEDGE PACKS, SHOW IN DOCUMENT (2.19.0)
+- Knowledge Packs now also carry the offerings catalog (offerings.csv) and the keyword Keep/Reject learning
+  (keyword_learning.json, hashed phrases with counts). Installing adds offerings this PC does not have (its own stay as
+  they are) and keeps the larger count for each hashed phrase, so installing the same pack twice counts nothing twice.
+  Undo Last Knowledge Change puts both back.
+- Suggest keywords > Show in document (or double-click a suggestion): the passage it came from, with the phrase
+  highlighted.
+- After a restart, "Resumed <effort>" stays on the status line for a few seconds before the result counts replace it.

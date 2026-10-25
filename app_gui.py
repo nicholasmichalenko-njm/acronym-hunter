@@ -2273,7 +2273,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.18.0"            # keep in step with version_info.txt
+APP_VERSION = "2.19.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -2721,7 +2721,14 @@ KNOWLEDGE_BACKUP_DIR = os.path.join(CONFIG_DIR, "knowledge_backups")
 PACK_MODEL_FILES = ("rec.onnx", "det.onnx", "cls.onnx", "rec_keys.txt", CUSTOM_TESS_MODEL + ".traineddata") + \
     tuple("doctr/" + f for f in DOCTR_FILES)      # trained docTR models (Training Kit), checked by SHA-256 on load
 PACK_DATA_FILES = {"acronym_database.csv": "DB", "ocr_corrections.csv": "FIXES", "ocr_ignore.csv": "IGNORE",
-                   "compliance_learned.json": "LEARNED"}   # compliance learning: hashed counts only, no RFP words (2.10.0)
+                   "compliance_learned.json": "LEARNED",   # compliance learning: hashed counts only, no RFP words (2.10.0)
+                   "offerings.csv": "OFFERINGS",           # the offerings catalog (2.19.0)
+                   "keyword_learning.json": "KWLEARN"}     # keyword Keep/Reject learning: hashed counts only (2.19.0)
+
+def _team_files():
+    """(name in the pack, path) for the offerings catalog and keyword learning (paths follow CONFIG_DIR)."""
+    return [("offerings.csv", os.path.join(CONFIG_DIR, "offerings.csv")),
+            ("keyword_learning.json", os.path.join(CONFIG_DIR, "keyword_learning.json"))]
 COMPLIANCE_LEARNED_FILE = os.path.join(CONFIG_DIR, "compliance_learned.json")
 PACK_MAX_MEMBER_BYTES = 400 * 1024 * 1024
 PACK_ROOT = "knowledge/"
@@ -2739,8 +2746,8 @@ def _sha256_file(path):
 def _knowledge_sources():
     """(name inside the pack, path on disk) for every knowledge file that exists in this copy."""
     out = []
-    for name, path in (("acronym_database.csv", DB_FILE), ("ocr_corrections.csv", OCR_FIXES_FILE),
-                       ("ocr_ignore.csv", OCR_IGNORE_FILE), ("compliance_learned.json", COMPLIANCE_LEARNED_FILE)):
+    for name, path in ([("acronym_database.csv", DB_FILE), ("ocr_corrections.csv", OCR_FIXES_FILE),
+                       ("ocr_ignore.csv", OCR_IGNORE_FILE), ("compliance_learned.json", COMPLIANCE_LEARNED_FILE)] + _team_files()):
         if os.path.isfile(path):
             out.append((name, path))
     for m in PACK_MODEL_FILES:
@@ -2806,7 +2813,7 @@ def read_knowledge_pack(path):
 
 def _backup_targets():
     return [DB_FILE, OCR_FIXES_FILE, OCR_IGNORE_FILE, KNOWLEDGE_INFO_FILE, COMPLIANCE_LEARNED_FILE] + \
-        [os.path.join(MODELS_DIR, m) for m in PACK_MODEL_FILES]
+        [os.path.join(MODELS_DIR, m) for m in PACK_MODEL_FILES] + [p for _n, p in _team_files()]
 
 def backup_knowledge(reason):
     stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -2950,6 +2957,27 @@ def install_knowledge_pack(path):
         n = L.merge_pack(data["compliance_learned.json"])
         L.save()
         report.append(f"Compliance learning: {n} decisions added from the team (your own decisions unchanged)")
+    if "offerings.csv" in data:                        # add-only: offerings already here are kept as they are
+        import offerings
+        os.makedirs(SANDBOX_TEMP, exist_ok=True)
+        tmp = os.path.join(SANDBOX_TEMP, f"pack_offerings_{os.getpid()}.csv")
+        with open(tmp, "wb") as f:
+            f.write(data["offerings.csv"])
+        try:
+            a, _same = offerings.import_file(tmp)
+        finally:
+            os.remove(tmp)
+        report.append(f"Offerings catalog: {a} offerings added (your own unchanged)")
+    if "keyword_learning.json" in data:                # hashed counts: the larger count per phrase wins (no double counting)
+        import keywords
+        mine, theirs = keywords.learning(), json.loads(data["keyword_learning.json"].decode("utf-8"))
+        n = 0
+        for side in ("keep", "reject"):
+            for h, c in (theirs.get(side) or {}).items():
+                if isinstance(c, int) and c > mine[side].get(h, 0):
+                    mine[side][h] = c; n += 1
+        keywords._write("keyword_learning.json", mine)
+        report.append(f"Keyword learning: {n} team decisions added")
     with open(KNOWLEDGE_INFO_FILE, "w", encoding="utf-8") as f:
         json.dump({"version": info.get("version"), "created": info.get("created"), "created_by": info.get("created_by"),
                    "notes": info.get("notes", ""), "models": sorted(models), "pack_sha256": _sha256_file(path),
@@ -4895,7 +4923,7 @@ class AcronymAppGUI(KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin,
         self._loc_width = (int(self.tree.column("locations", "width")), int(self.tree.column("firstuse", "width")))
 
         self.lbl_showing.configure(text=f"Showing {len(rows)} of {len(self.results)}" if self.results else "")
-        if self.results:
+        if self.results and time.time() >= getattr(self, "_status_hold", 0):   # a fresh "Resumed ..." stays readable
             self.status.configure(text=f"Active Findings: {v_count} ({a_count} need choice, {c_count} new candidates) | Suppressed Exclusions: {e_count}")
         if v_count > 0: self.btn_export.configure(state="normal")
         if self.selected_term and self.tree.exists(self.selected_term):
