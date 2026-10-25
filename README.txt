@@ -611,3 +611,14 @@ TEAM KNOWLEDGE IN KNOWLEDGE PACKS, SHOW IN DOCUMENT (2.19.0)
 - Suggest keywords > Show in document (or double-click a suggestion): the passage it came from, with the phrase
   highlighted.
 - After a restart, "Resumed <effort>" stays on the status line for a few seconds before the result counts replace it.
+
+HEADING WORDS IN CAPITALS (2.20.0, known gap F6)
+- An ordinary English word in capitals that only ever appears inside an all-capital heading or title (SECTION M -
+  EVALUATION FACTORS FOR AWARD, 3. THERMAL DESIGN, 1. SCOPE OF WORK) is no longer reported as a new acronym. It is set
+  aside as "EXCLUDED: heading word in capitals" (Show Excluded, or Status > Excluded, lists it).
+- Ordinary means: in the common English words list (2 to 6 letters), or 7 or more letters with a common English ending
+  (-tion, -ment, -ing, -ance, -al...). A heading run is the word next to another all-capital word on its line, or alone on
+  its line apart from section numbering (M.1, 3., C.1).
+- Kept as candidates: real acronyms in headings (PCU, MIL), and any word that also appears on its own in running text
+  ("The SOW tasks", "The REVIEW board"), so a reviewer still decides. Database entries are never affected.
+- On the sample set: 18 heading words set aside, known false alarms 4 of 8 down to 1 of 8, recall unchanged.

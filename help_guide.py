@@ -75,6 +75,8 @@ PAGES = {
                           "disagree, the row says \"meaning differs by place\". Nothing is applied until you choose: "
                           "right-click > Accept context suggestion, or Edit > Accept context suggestions. Rules only, "
                           "typed text only."),
+              ("Heading words", "Ordinary words in all-capital headings (EVALUATION FACTORS FOR AWARD) are set aside, not "
+                                "listed as acronyms. Show Excluded lists them; a word also used in running text stays."),
               ("Omit list", "Company names, locations and other terms you want found and recognized but never on the final "
                             "list. Right-click > Add to omit list (say what it stands for and why), or Edit > Omit list to add, "
                             "paste many (TERM, stands for, why) and remove. Rows say \"Found in omit list: <why>\"; they are "

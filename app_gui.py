@@ -1976,7 +1976,9 @@ def record_equation(findings, loc, text, m):
         record_symbol(findings, sym, loc, m)
 
 def finalize_symbols(findings, m):
-    """Give each symbol the meaning stated in the documents (where ṁ is ..., nomenclature lists and tables)."""
+    """Give each symbol the meaning stated in the documents (where ṁ is ..., nomenclature lists and tables).
+    Also sets aside capital-letter heading words (mark_heading_words, 2.20.0)."""
+    mark_heading_words(findings, m)
     stated = {}
     for _file, defs in m['symbol_defs'].items():
         for sym, desc in defs:
@@ -2086,7 +2088,8 @@ def match_chunks(findings, chunks, m):
                 if best and best[1] >= OCR_CFG["fuzzy_min_score"]:
                     record_included(findings, best[0], f"{loc_label} [OCR fix: {cand}]", m['include_db'])
                     continue
-            record_candidate(findings, cand, "Acronym (Candidate)", loc_label)
+            record_candidate(findings, cand, "Acronym (Candidate)", loc_label,
+                             caps_run=cand.isalpha() and in_caps_run(text, match.start(1), match.end(1)))
 
         for match in m['unit_re'].finditer(text):
             ucand = match.group(1)
@@ -2098,7 +2101,8 @@ def match_chunks(findings, chunks, m):
             if (ucand in m['include_db'] or ucand in m['exclude_db'] or
                     ucand.upper() in m['exclude_upper'] or ucand.lower() in NON_UNIT_WORDS or ucand.isdigit()):
                 continue
-            record_candidate(findings, ucand, "Unit (Candidate)", loc_label)
+            record_candidate(findings, ucand, "Unit (Candidate)", loc_label,
+                             caps_run=ucand.isalpha() and ucand.isupper() and in_caps_run(text, match.start(1), match.end(1)))
 
         for match in m['abbrev_re'].finditer(text):
             acand = match.group(1)
@@ -2273,7 +2277,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.19.0"            # keep in step with version_info.txt
+APP_VERSION = "2.20.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -2598,7 +2602,42 @@ def record_excluded(findings, term, loc, exclude_db):
     if loc not in findings[term]["locations"]:
         findings[term]["locations"].append(loc)
 
-def record_candidate(findings, term, cat, loc):
+_CAPS_WORD = re.compile(r"^[A-Z][A-Z&]+$")
+_ENGLISH_ENDINGS = ("tion", "tions", "sion", "sions", "ment", "ments", "ing", "ings", "ance", "ence", "ness", "ity", "ities",
+                    "ive", "ives", "al", "als", "ure", "ures", "ers", "ies", "ical", "ally", "ated", "ates")
+_NUMBERING = re.compile(r"[\d.]+|[A-Z]\.?[\d.]*")
+
+def in_caps_run(text, start, end):
+    """True when the token at text[start:end] sits among other all-capital words on its line (a heading or title
+    such as "SECTION M - EVALUATION FACTORS FOR AWARD"), or is alone on its line apart from numbering."""
+    ls = text.rfind("\n", 0, start) + 1
+    le = text.find("\n", end)
+    le = len(text) if le < 0 else le
+    strip = ".,;:()[]'\"-/"
+    before = [w.strip(strip) for w in text[ls:start].split()]
+    before = [w for w in before if w and not _NUMBERING.fullmatch(w)]
+    after = [w for w in (x.strip(strip) for x in text[end:le].split()) if w]
+    if not before and not after:
+        return True
+    near = before[-1:] + after[:1]
+    return any(_CAPS_WORD.match(w) and len(w) >= 2 for w in near)
+
+def mark_heading_words(findings, m):
+    """Known gap F6 (2.20.0): an ordinary English word in capitals that only ever appears inside an all-capital
+    heading or title (AWARD, DESIGN, SCOPE OF WORK) is not an acronym. It is kept as excluded (Show Excluded lists it);
+    a word that also appears on its own in running text (the SOW tasks) stays a candidate."""
+    common = m.get('common_words') or set()
+    for term, d in findings.items():
+        low = term.lower()
+        wordlike = low in common or (len(low) >= 7 and low.endswith(_ENGLISH_ENDINGS))   # the list holds words of 2-6 letters
+        if (d.get("status") == "NEW CANDIDATE" and d.get("category") == "Acronym (Candidate)" and not d.get("in_db")
+                and term.isalpha() and len(term) >= 2 and wordlike
+                and d.get("caps_run", 0) >= d.get("count", 0) > 0):
+            d["excluded"] = True
+            d["status"] = "EXCLUDED: heading word in capitals"
+            d["selected_definition"] = "An ordinary word that only appears in all-capital headings"
+
+def record_candidate(findings, term, cat, loc, caps_run=False):
     if _HITS is not None:
         _HITS.append(term)
     if term not in findings:
@@ -2608,6 +2647,8 @@ def record_candidate(findings, term, cat, loc):
             "selected_definition": "[Not in Database — Definition omitted]", "status": "NEW CANDIDATE"
         }
     findings[term]["count"] += 1
+    if caps_run:
+        findings[term]["caps_run"] = findings[term].get("caps_run", 0) + 1
     if loc not in findings[term]["locations"]:
         findings[term]["locations"].append(loc)
 
