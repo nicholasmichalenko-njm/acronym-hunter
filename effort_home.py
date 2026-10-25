@@ -17,6 +17,7 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 import customtkinter as ctk
 import diag
 import effort as E
+import alt_forms as AF
 
 VIEW_HOME, VIEW_SCAN, VIEW_KW, VIEW_QA = "Effort list (home)", "Scan review", "Keywords", "QA/QC"
 HOME_FILTERS = ["All terms", "Needs a definition", "Proposed", "Needs author", "Approved", "Rejected", "No longer found"]
@@ -104,9 +105,11 @@ class HomeMixin:
         self.btn_h_rej = ctk.CTkButton(b, text="Not a term", width=100, fg_color="#B91C1C",
                                        command=lambda: self.home_set_status("Rejected"), **K)
         self.btn_h_vol = ctk.CTkButton(b, text="Volumes...", width=100, fg_color="#1E3A8A", command=self.assign_volumes_dialog, **K)
+        self.btn_h_alt = ctk.CTkButton(b, text="Alt forms...", width=100, fg_color="#1E3A8A", command=self.alt_edit_dialog, **K)
         self.btn_h_where = ctk.CTkButton(b, text="Where from...", width=110, fg_color="#475569", command=self.home_where_from, **K)
         self.btn_h_scan = ctk.CTkButton(b, text="Show in Scan review", width=150, fg_color="#475569", command=self.home_show_in_scan, **K)
-        for w in (self.btn_h_def, self.btn_h_ok, self.btn_h_auth, self.btn_h_rej, self.btn_h_vol, self.btn_h_where, self.btn_h_scan):
+        for w in (self.btn_h_def, self.btn_h_ok, self.btn_h_auth, self.btn_h_rej, self.btn_h_vol, self.btn_h_alt, self.btn_h_where,
+                  self.btn_h_scan):
             w.pack(side="left", padx=(0, 6))
         self.btn_h_export = ctk.CTkButton(b, text="Export...", width=100, fg_color="#0F766E", command=self.export_picker, **K)
         self.btn_h_export.pack(side="right")
@@ -205,7 +208,7 @@ class HomeMixin:
 
     # ------------------------------------------------------------ home table
     def _home_match(self, t, r, f, q):
-        if q and q not in t.casefold() and q not in r.get("Definition", "").casefold():
+        if q and q not in t.casefold() and q not in r.get("Definition", "").casefold() and q not in r.get("Alt forms", "").casefold():
             return False
         if f == "Needs a definition":
             return not r.get("Definition") and r["Status"] != "Rejected"
@@ -249,7 +252,7 @@ class HomeMixin:
             tag = ("gone" if scan.startswith(E.SCAN_GONE) else r["Status"] if r["Status"] != "Proposed"
                    else "nodef" if not r.get("Definition") else "")
             tv.insert("", "end", iid=t, tags=(tag,) if tag else (),
-                      values=(t, r.get("Definition") or "(needs a definition)", r["Status"],
+                      values=(AF.join_term(t, r.get("Alt forms", "")), r.get("Definition") or "(needs a definition)", r["Status"],
                               "; ".join(self.term_volumes(t, r)), r.get("Found in", ""), scan, r.get("Source", "")))
             shown += 1
         rows = list(L.rows.values())
@@ -283,7 +286,7 @@ class HomeMixin:
         for w in (self.btn_h_ok, self.btn_h_auth, self.btn_h_rej, self.btn_h_vol):
             w.configure(state=st)
         one = "normal" if len(sel) == 1 else "disabled"
-        for w in (self.btn_h_def, self.btn_h_where):
+        for w in (self.btn_h_def, self.btn_h_where, self.btn_h_alt):
             w.configure(state=one)
         self.btn_h_scan.configure(state="normal" if len(sel) == 1 and sel[0] in self.results else "disabled")
         has = "normal" if self.effort is not None else "disabled"
@@ -300,6 +303,7 @@ class HomeMixin:
         m.add_command(label="Edit definition...", command=self.home_edit_definition)
         m.add_command(label="Where from...", command=self.home_where_from)
         m.add_command(label="Volumes...", command=self.assign_volumes_dialog)
+        m.add_command(label="Alt forms...", command=lambda: self.alt_edit_dialog(iid))
         r = self.effort.rows.get(iid, {})
         if hasattr(self, "kw_quick") and r.get("Definition"):
             m.add_command(label=f"Add as keyword: {r['Definition'][:40]}", command=lambda: self.kw_quick(r["Definition"], source=f"Effort list {iid}"))
@@ -661,9 +665,12 @@ class HomeMixin:
         added = filled = differs = same = 0
         pins = dict(self.ws.get("volume_pins", {}) or {})
         for t, d in pairs:
-            t, d = t.strip(), clean_definition(d, t)
+            t, alts = AF.split_term(t.strip())            # "TT&C (TTC)": primary with alt forms (2.26.0)
+            d = clean_definition(d, t)
             if not t:
                 continue
+            if t not in L.rows:                           # written with an alt form the list already knows
+                t = L.alt_map().get(t, t)
             row = L.rows.get(t)
             if row is None:
                 L.add_or_update(t, change_note=f"imported from {fname}" + (f" ({volume})" if volume else "") + (f": {d[:60]}" if d else ""),
@@ -680,6 +687,8 @@ class HomeMixin:
                 differs += 1
             else:
                 same += 1
+            if alts:
+                L.set_alts(t, L.alts(t) + alts, note=f"alt forms from imported {fname}: {', '.join(alts)}")
             if volume:
                 cur = self.term_volumes(t, L.rows[t])
                 pins[t] = list(dict.fromkeys(cur + [volume]))
@@ -713,6 +722,8 @@ class HomeMixin:
     # ------------------------------------------------------------ export picker
     def export_value(self, t, r, col):
         L = self.effort
+        if col == "Term":                               # the primary with its alt forms in parentheses (2.26.0)
+            return AF.join_term(t, r.get("Alt forms", ""))
         if col == "Volumes":
             return "; ".join(self.term_volumes(t, r))
         if col in ("Effort", "Client", "Solicitation"):

@@ -206,9 +206,16 @@ def acronym_list(path):
     or any number under an Acronyms / Abbreviations / Glossary heading). Empty entries when the volume has none."""
     import os, zipfile
     import xml.etree.ElementTree as ET
-    out = {"where": [], "entries": {}}
+    import alt_forms as AF
+    out = {"where": [], "entries": {}, "alts": {}}
     if os.path.splitext(path)[1].lower() != ".docx":
         return out
+
+    def put(t, d):
+        primary, alts = AF.split_term(t)             # "TT&C (TTC)": primary with an alt form (2.26.0)
+        out["entries"].setdefault(primary, d)
+        if alts:
+            out["alts"][primary] = AF.parse_alts(AF.merge_alts(out["alts"].get(primary, []), alts))
     W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
     with zipfile.ZipFile(path) as z:
         root = ET.fromstring(z.read("word/document.xml"))
@@ -219,12 +226,13 @@ def acronym_list(path):
             cells = [c for c in cells if c]
             if len(cells) >= 2:
                 pairs.append(cells[:2])
-        good = [p for p in pairs if _is_sf(p[0]) and _initials_fit(p[0], p[1]) >= 0.5]
+        good = [p for p in pairs if (_is_sf(p[0]) or AF.split_term(p[0])[1])
+                and _initials_fit(AF.split_term(p[0])[0], p[1]) >= 0.5]
         if len(pairs) >= 2 and len(good) >= 0.5 * len(pairs):
             out["where"].append(f"table {i}")
             for t, d in pairs:
-                if _is_sf(t):
-                    out["entries"].setdefault(t, d)
+                if _is_sf(t) or AF.split_term(t)[1]:
+                    put(t, d)
     # tab-separated lines outside tables
     in_table = {id(p) for tbl in root.iter(W + "tbl") for p in tbl.iter(W + "p")}
     run, under_head = [], False
@@ -235,7 +243,7 @@ def acronym_list(path):
         if run and (len(run) >= 3 and len(good) >= 0.5 * len(run) or under_head and good):
             out["where"].append("lines under a heading" if under_head else "tab-separated lines")
             for t, d in run:
-                out["entries"].setdefault(t, d)
+                put(t, d)
         run = []
 
     for p in root.iter(W + "p"):

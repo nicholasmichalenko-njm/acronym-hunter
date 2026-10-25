@@ -287,7 +287,7 @@ class VolumeCheckMixin:
             combo = {}
             for _v, rows in sets:
                 for x in rows:
-                    combo.setdefault(x["term"], x)
+                    combo.setdefault(x.get("key", x["term"]), x)
             sets.append(("All volumes", sorted(combo.values(), key=lambda x: (x["term"].lower(), x["term"]))))
         try:
             for v, rows in sets:

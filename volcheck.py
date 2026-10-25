@@ -17,6 +17,7 @@ Report parts:
 Nothing leaves the PC: the report is written only where the user saves it.
 """
 import re
+import alt_forms as AF
 
 LIST_TYPES = ("Acronym", "Abbreviation", "Unit")
 OK, WARN, BAD, INFO = "ok", "warn", "bad", "info"
@@ -95,6 +96,10 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
 
     rejected = {t for t, r in rows.items() if r.get("Status") == "Rejected"}
     vol_lists = vol_lists or {}
+    alts_found = {}                            # primary -> results of its alternate forms (2.26.0)
+    for t, d in results.items():
+        if d.get("alt_of"):
+            alts_found.setdefault(d["alt_of"], []).append(d)
 
     # ---------------- first use (acronyms only)
     first_use = []
@@ -158,6 +163,7 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
         n = ((results.get(term) or {}).get("uses") or {}).get(v)
         if n is None:
             return None                         # results saved before 2.25.0
+        n += sum(((x.get("uses") or {}).get(v) or 0) for x in alts_found.get(term, []))   # its alt forms count (2.26.0)
         listed = term in (vol_lists.get(v) or {}).get("entries", {})
         return n - 1 - (1 if listed else 0)
 
@@ -180,6 +186,8 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
             d = results[term]
             if kind(d.get("category", "")) != "Acronym" or term in rejected:
                 continue
+            if d.get("alt_of") and d["alt_of"] in used[v]:
+                continue                        # an alt form: its primary's first use is what counts (2.26.0)
             fig = (d.get("first_fig") or {}).get(v)
             us = units(d, v, term)
             for i, (sec, u) in enumerate(us):
@@ -215,12 +223,14 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
                              "state": "No acronym list found in this volume (a table, or lines of acronym<tab>definition)"})
             continue
         listed_up = {t.upper(): t for t in entries}
+        list_alts = {a: p for p, al in (info.get("alts") or {}).items() for a in al}
         for term in sorted(used[v], key=str.lower):
             d = results[term]
             k = kind(d.get("category", ""))
             if k not in ("Acronym", "Abbreviation") or term in rejected:
                 continue
-            if term not in entries and term.upper() not in listed_up:
+            if (term not in entries and term.upper() not in listed_up and term not in list_alts
+                    and d.get("alt_of") not in entries):
                 n = other_uses(term, v)
                 acr_list.append({"volume": v, "term": term, "level": BAD, "listed_as": "", "list_definition": list_def(term),
                                  "uses": "" if n is None else n + 1,
@@ -230,6 +240,9 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
             if term in results:
                 n = other_uses(term, v)
                 outside = None if n is None else n + 1          # uses outside the acronym list
+                for a in (info.get("alts") or {}).get(t, []):   # its alt forms written in the list (2.26.0)
+                    if outside is not None and a in results and not results[a].get("alt_of"):
+                        outside += ((results[a].get("uses") or {}).get(v) or 0) - 1
             else:
                 outside = 0
             want = list_def(term) if term in rows else ""
@@ -262,6 +275,8 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
         base = {"term": term, "type": kind(d.get("category", "")), "volumes": ", ".join(vols), "loc": first_loc,
                 "count": sum(len(l) for _, l in all_terms[term])}
         r = rows.get(term)
+        if r is None and d.get("alt_of") and d["alt_of"] in rows:
+            continue                            # an alt form of a term in the effort list (2.26.0)
         if r is None:
             sd = d.get("selected_definition", "")
             sd = "" if _placeholder(sd) else sd
@@ -282,7 +297,7 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
     unused = []
     for term in sorted(rows, key=str.lower):
         r = rows[term]
-        if r.get("Status") == "Rejected" or term in all_terms:
+        if r.get("Status") == "Rejected" or term in all_terms or any(a in all_terms for a in AF.parse_alts(r.get("Alt forms", ""))):
             continue
         unused.append({"term": term, "type": r.get("Type", ""), "status": r.get("Status", ""), "definition": r.get("Definition", "")})
 
@@ -290,17 +305,25 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
     lists = {}
     for v in volumes:
         out = []
-        for term in sorted(used[v], key=lambda t: (t.lower(), t)):
-            if term in rejected:
-                continue
-            d = results[term]
+        alt_used = {}
+        for term in used[v]:
+            p = results[term].get("alt_of")
+            if p and term not in rejected:
+                alt_used.setdefault(p, []).append(term)
+        for term in sorted(set(used[v]) | set(alt_used), key=lambda t: (t.lower(), t)):
+            if term in rejected or (results.get(term) or {}).get("alt_of"):
+                continue                        # alt forms are listed with their primary: "TT&C (TTC)" (2.26.0)
+            d = results.get(term) or (results[alt_used[term][0]] if term in alt_used else {})
             r = rows.get(term)
             if r:
                 definition, st = r.get("Definition", ""), r["Status"]
+                alts = AF.parse_alts(AF.merge_alts(r.get("Alt forms", ""), sorted(alt_used.get(term, []))))
             else:
                 sd = d.get("selected_definition", "")
                 definition, st = ("" if _placeholder(sd) else sd), "Not in effort list"
-            out.append({"term": term, "definition": definition, "status": st, "type": kind(d.get("category", ""))})
+                alts = sorted(alt_used.get(term, []))
+            out.append({"term": AF.join_term(term, alts), "key": term, "definition": definition, "status": st,
+                        "type": kind(d.get("category", ""))})
         lists[v] = out
 
     summary = {"volumes": len(volumes), "rule": rule,

@@ -11,11 +11,12 @@ open, Windows refuses the replace: the app says so and keeps the change pending 
 The list holds customer content (terms, definitions, wording). It lives on this PC or a synced SharePoint folder only.
 """
 import datetime, json, os, re, tempfile
+import alt_forms as A
 
-COLUMNS = ["Term", "Type", "Definition", "Source", "Customer document", "Customer wording", "Other definitions",
+COLUMNS = ["Term", "Type", "Definition", "Alt forms", "Source", "Customer document", "Customer wording", "Other definitions",
            "Status", "SS Approver", "Approved on", "Used in volumes", "First use", "Notes",
            "Found in", "First found", "Last found", "Scan status", "Effort", "Client", "Solicitation"]   # 2.14.0: last 7
-WIDTHS = [14, 14, 42, 14, 30, 50, 36, 14, 22, 13, 24, 30, 30, 44, 12, 12, 30, 22, 18, 18]
+WIDTHS = [14, 14, 42, 18, 14, 30, 50, 36, 14, 22, 13, 24, 30, 30, 44, 12, 12, 30, 22, 18, 18]
 SCAN_NEW, SCAN_FOUND, SCAN_GONE = "New in this scan", "Found", "No longer found in"
 STATUSES = ["Proposed", "Needs author", "Approved", "Rejected"]
 FIRST_USE_RULES = {"volume": "Restarts in each volume", "section": "Restarts in each section of each volume",
@@ -87,6 +88,11 @@ class EffortList:
                     row[c] = "" if v is None else str(v).strip()
                 if row["Status"] not in STATUSES:
                     row["Status"] = _norm_status(row["Status"])
+                primary, alts = A.split_term(term)       # "TT&C (TTC)" typed in Excel: primary with an alt form (2.26.0)
+                if alts:
+                    term = primary
+                    row["Term"] = primary
+                    row["Alt forms"] = A.merge_alts(row["Alt forms"], alts)
                 if term not in self.rows:
                     self.order.append(term)
                 self.rows[term] = row
@@ -148,6 +154,53 @@ class EffortList:
             self._hist(term, change_note or "changed " + ", ".join(changed))
             return "updated"
         return "unchanged"
+
+    # ------------------------------------------------------------ alternate forms (2.26.0)
+    def alts(self, term):
+        row = self.rows.get(term)
+        return A.parse_alts(row["Alt forms"]) if row else []
+
+    def alt_map(self):
+        """{alt form: primary term} for every row that is not Rejected."""
+        out = {}
+        for t, r in self.rows.items():
+            if r.get("Status") != "Rejected":
+                for a in A.parse_alts(r.get("Alt forms", "")):
+                    out.setdefault(a, t)
+        return out
+
+    def set_alts(self, term, alts, note=None):
+        """Replace a row's alternate forms. An alt form that had a row of its own is folded in: its row is removed
+        (its places and volumes stay on the primary). Returns the folded terms."""
+        row = self.rows.get(term)
+        if row is None:
+            return []
+        new = [a for a in A.parse_alts(A.merge_alts(alts)) if a != term]
+        old = A.parse_alts(row["Alt forms"])
+        folded = []
+        for a in new:
+            other = self.rows.get(a)
+            if other is not None and a != term:
+                for col in ("Used in volumes", "Found in"):
+                    have = [x for x in re.split(r"\s*;\s*", row.get(col, "")) if x]
+                    for x in re.split(r"\s*;\s*", other.get(col, "")):
+                        if x and x not in have:
+                            have.append(x)
+                    row[col] = "; ".join(have)
+                for b in A.parse_alts(other.get("Alt forms", "")):
+                    if b != term and b not in new:
+                        new.append(b)
+                del self.rows[a]
+                self.order = [t for t in self.order if t != a]
+                self._hist(a, f"made an alt form of {term}")
+                folded.append(a)
+        row["Alt forms"] = " | ".join(new)
+        if new != old:
+            self._hist(term, note or ("alt forms: " + (", ".join(new) or "none")))
+        return folded
+
+    def add_alt(self, term, alt):
+        return self.set_alts(term, A.parse_alts(self.rows[term]["Alt forms"]) + [alt]) if term in self.rows else []
 
     def set_status(self, terms, status, approver=None, note=None):
         if status not in STATUSES:

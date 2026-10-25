@@ -135,6 +135,7 @@ from setup_ui import SetupMixin   # Setup Builder in the compliance window (2.13
 from effort_wizard import WizardMixin   # effort start wizard, intake, review, record, exports (2.14.0)
 from effort_home import HomeMixin       # effort home, Scan review, volumes, export picker, Use as definition (2.14.0)
 from keywords_ui import KeywordsMixin   # Keyword Harvest (2.16.0)
+from alt_ui import AltFormsMixin        # alternate forms and the master's use history (2.26.0)
 from master_db import MasterMixin   # master database and Known in (2.14.0)
 import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
@@ -616,9 +617,13 @@ def load_database():
     if not os.path.exists(DB_FILE):
         return include_db, exclude_db, exclude_upper
 
+    import alt_forms
+    alts_of = {}                                       # 2.26.0: primary -> its alternate forms
     for raw_row in read_csv_rows(DB_FILE):
         row = db_row(raw_row)
-        term = fold(row.get("Term", ""))
+        cell, cell_alts = alt_forms.split_term(row.get("Term", ""))
+        term = fold(cell)
+        row_alts = cell_alts + alt_forms.parse_alts(raw_row.get(alt_forms.ALT_COL, ""))
         cat = row.get("Category") or "Acronym"
         defn = row.get("Definition", "")
         action = (row.get("Action") or "Include").capitalize()
@@ -644,7 +649,13 @@ def load_database():
                 include_db[term] = {"category": cat, "definitions": []}
             if defn not in include_db[term]["definitions"]:
                 include_db[term]["definitions"].append(defn)
+            for a in row_alts:
+                alts_of.setdefault(term, {}).setdefault(fold(a), defn)
 
+    for term, alts in alts_of.items():                 # alternate forms are looked for, and point to their primary
+        for a, defn in alts.items():
+            if a and a != term and a not in include_db and a not in exclude_db:
+                include_db[a] = {"category": include_db[term]["category"], "definitions": [defn], "alt_of": term}
     return include_db, exclude_db, exclude_upper
 
 # ==============================================================================
@@ -2344,7 +2355,21 @@ def analyze_batch(filepaths, status_callback, capture=None):
     finalize_symbols(findings, m)
     apply_client_overlay(findings, m)
     summarize_equations(findings)
+    mark_alt_forms(findings, m)
     return dict(sorted(findings.items(), key=lambda x: x[1]["count"], reverse=True))
+
+ALT_STATUS = "Alt form of"
+
+def mark_alt_forms(findings, m):
+    """A found alternate form keeps its own row, labelled with its primary and the primary's definition (2.26.0)."""
+    for term, d in findings.items():
+        alt_of = (m["include_db"].get(fold(term)) or {}).get("alt_of")
+        if alt_of and not d.get("excluded"):
+            d["alt_of"] = alt_of
+            d["status"] = f"{ALT_STATUS} {alt_of}"
+            defs = (m["include_db"].get(alt_of) or {}).get("definitions") or []
+            if len(defs) == 1:
+                d["selected_definition"] = defs[0]
 
 def refresh_batch(filepaths, status_callback, cache):
     """Match files again against the current database (2.14.0), reusing the text already read in this session when the
@@ -2381,12 +2406,13 @@ def refresh_batch(filepaths, status_callback, cache):
     finalize_symbols(findings, m)
     apply_client_overlay(findings, m)
     summarize_equations(findings)
+    mark_alt_forms(findings, m)
     return dict(sorted(findings.items(), key=lambda x: x[1]["count"], reverse=True))
 
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.25.0"            # keep in step with version_info.txt
+APP_VERSION = "2.26.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -2603,6 +2629,7 @@ def project_findings(project, status_callback, full=False, rescan=True):
     finalize_symbols(findings, m)
     apply_client_overlay(findings, m)
     summarize_equations(findings)
+    mark_alt_forms(findings, m)
     return dict(sorted(findings.items(), key=lambda x: x[1]["count"], reverse=True)), stats
 
 def _project_loop(project, files, cache, sig, weak, m, findings, stats, new_cache, status_callback, full, rescan):
@@ -3215,7 +3242,7 @@ ctk.CTkToplevel.__init__ = _toplevel_init   # every pop-up window gets the app i
 SETTINGS_FILE = os.path.join(SANDBOX_DIR, "settings.json")
 ALL_TYPES = "All types"
 STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", "Client list", "Client and database differ",
-                  "Equations and symbols", "Undefined symbols",
+                  "Alt forms", "Equations and symbols", "Undefined symbols",
                   "Added manually", "Customer documents", "Customer and database differ", "In effort list", "Not in effort list", "Effort: needs author", "Effort: approved",
                   "New since last scan", "Changed since last scan", "No longer found", "Errors / not scanned",
                   "Context suggests a meaning", "New in this scan (not in the effort list)", "Found in omit list",
@@ -3230,7 +3257,7 @@ _KIND_WORDS = (("error", ("COULD NOT READ FILE", "NOT SCANNED")),
                ("manual", ("ADDED MANUALLY",)),
                ("known", ("FOUND IN OMIT LIST", "KNOWN NAME")),
                ("resolved", ("RESOLVED", "DEFINED IN DOCUMENT", "USER SELECTED", "ADDED TO DB", "CLIENT LIST",
-                             "CUSTOMER DOCUMENT", "EFFORT LIST:")),
+                             "CUSTOMER DOCUMENT", "EFFORT LIST:", "ALT FORM OF")),
                ("gone", ("NO LONGER FOUND",)),
                ("excluded", ("EXCLUDED", "NOT A TERM IN THIS EFFORT")))
 RESOLVED_WORDS = ("Resolved", "Defined in document", "User Selected", "Added to DB", "Client list")   # the Resolved filter
@@ -3296,7 +3323,7 @@ def corrections_on():
     """Report misreading and Not text save corrections for the training team, unless allow_training is false."""
     return bool(APP_CFG["allow_training"])
 
-class AcronymAppGUI(KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Acronym Hunter {APP_VERSION}: acronyms, abbreviations and units (100% local)")
@@ -4921,6 +4948,7 @@ class AcronymAppGUI(KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin,
             "New candidates": kind == "candidate",
             "Resolved": kind == "resolved" and status_text(st).startswith(RESOLVED_WORDS),
             "Client list": data.get("client", False),
+            "Alt forms": bool(data.get("alt_of")),
             "Equations and symbols": data.get("category", "").startswith(("Equation", "Symbol")) or bool(data.get("symbol")),
             "Undefined symbols": bool(data.get("symbol")) and kind == "candidate" or (data.get("equation") and "not defined" in st),
             "Client and database differ": bool(data.get("client") and data.get("db_definitions")),

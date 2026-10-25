@@ -132,6 +132,7 @@ class EffortMixin:
         m.add_command(label="Reload the list (after editing in Excel)", command=self.reload_effort, state=st)
         m.add_command(label="Save list now", command=self.save_effort, state="normal" if has and self.effort.pending else "disabled")
         m.add_command(label="Export for approvals (Needs author, Conflicts, Approved)...", command=self.export_effort, state=st)
+        m.add_command(label="Add this effort to the master database...", command=self.master_add_effort, state=st)
         m.add_separator()
         m.add_command(label="QA/QC: check our Word deliverables (first use, missing, acronym lists)...", command=self.check_volumes,
                       state=st)
@@ -546,6 +547,8 @@ class EffortMixin:
         sub.add_command(label=f"Back to Proposed ({n})", command=lambda: self.set_effort_status("Proposed", sel))
         sub.add_separator()
         sub.add_command(label=f"Remove from effort list ({n})", command=lambda: self.remove_from_effort(sel))
+        if hasattr(self, "alt_context_menu"):          # alternate forms (2.26.0)
+            self.alt_context_menu(sub, iid)
         menu.add_cascade(label="Effort list", menu=sub)
 
     # ------------------------------------------------------------ customer documents (2.5.0)
@@ -612,19 +615,35 @@ class EffortMixin:
     # ------------------------------------------------------------ the scan step
     def apply_effort(self, reload=False):
         """Mark results with the effort list: approved definitions win; rejected terms are hidden for this effort."""
+        eng = _eng()
         if reload and self.effort is not None and not self.effort.pending:
             try:
                 self.effort.load()
             except Exception:
                 diag.swallowed()
         L = self.effort
+        alt_map = L.alt_map() if L is not None else {}
         for term, d in self.results.items():
             pre = d.get("_pre_effort")
             row = L.rows.get(term) if L is not None else None
+            primary = alt_map.get(term) if row is None else None
+            if primary is not None and primary in L.rows:    # an alt form of a term in the effort list (2.26.0)
+                if not pre:
+                    d["_pre_effort"] = (d.get("status", ""), d.get("selected_definition", ""), d.get("excluded", False))
+                    pre = d["_pre_effort"]
+                prow = L.rows[primary]
+                d["effort"] = prow["Status"]
+                d["alt_of"] = primary
+                d["excluded"] = pre[2]
+                d["status"] = f"{eng.ALT_STATUS} {primary} (effort list: {prow['Status']})"
+                d["selected_definition"] = prow["Definition"] or pre[1]
+                continue
             if row is None:
                 if pre:                                     # left the list, or the effort was closed: restore
                     d["status"], d["selected_definition"], d["excluded"] = pre
                     d.pop("_pre_effort", None); d.pop("effort", None)
+                    if d.get("alt_of") and not str(pre[0]).startswith(eng.ALT_STATUS):
+                        d.pop("alt_of", None)
                 continue
             if not pre:
                 d["_pre_effort"] = (d.get("status", ""), d.get("selected_definition", ""), d.get("excluded", False))

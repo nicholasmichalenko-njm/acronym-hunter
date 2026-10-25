@@ -12,7 +12,8 @@
   when the session still has it, else the files are read again). Nothing is dropped: rows the update does not
   find again stay, changed rows say "Database update", and decisions, picked definitions and the effort list stay.
 """
-import datetime, hashlib, json, os, shutil
+import csv, datetime, hashlib, json, os, re, shutil
+import alt_forms as AF
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import customtkinter as ctk
@@ -24,6 +25,10 @@ SRC_DOCS, SRC_LIST, SRC_MASTER = "Customer docs", "Customer list", "Master datab
 KNOWN_FILTERS = ["Known in: customer docs", "Known in: customer list", "Known in: master database only",
                  "Known in: no source"]
 CHANGE_DB = "Database update"
+# 2.26.0: one master row per term and meaning, with where it was used and its alternate forms
+USED_COL, TIMES_COL, LAST_COL = "Used in efforts", "Times used", "Last used"
+MASTER_EXTRAS = [AF.ALT_COL, USED_COL, TIMES_COL, LAST_COL]
+MASTER_COLUMNS = ["Term", "Category", "Definition", "Action"] + MASTER_EXTRAS
 
 
 def _eng():
@@ -57,12 +62,17 @@ def read_master_file(path):
     eng = _eng()
     ext = os.path.splitext(path)[1].lower()
     rows = []
+    headed = False                             # a database file with a Term column, even if it has no rows yet
     if ext == ".csv":
+        try:
+            headed = any(eng.db_field(h) == "Term" for h in eng.read_csv_header(path))
+        except (OSError, StopIteration):
+            headed = False
         for raw in eng.read_csv_rows(path):
             d = eng.db_row(raw)
             if d.get("Term"):
                 rows.append([d["Term"].strip(), d.get("Category") or "Acronym", (d.get("Definition") or "").strip(),
-                             d.get("Action") or "Include", {}])
+                             d.get("Action") or "Include", _extras(raw)])
     elif ext == ".xlsx":
         from openpyxl import load_workbook
         wb = load_workbook(path, read_only=True, data_only=True)
@@ -73,16 +83,39 @@ def read_master_file(path):
                 idx = {eng.db_field(h): i for i, h in enumerate(head) if eng.db_field(h)}
                 if "Term" not in idx:
                     continue
+                headed = True
                 for vals in it:
                     vals = list(vals or [])
                     get = lambda f: str(vals[idx[f]] if f in idx and idx[f] < len(vals) and vals[idx[f]] is not None else "").strip()
                     if get("Term"):
-                        rows.append([get("Term"), get("Category") or "Acronym", get("Definition"), get("Action") or "Include", {}])
+                        raw = {h: ("" if i >= len(vals) or vals[i] is None else str(vals[i]).strip()) for i, h in enumerate(head) if h}
+                        rows.append([get("Term"), get("Category") or "Acronym", get("Definition"), get("Action") or "Include",
+                                     _extras(raw)])
         finally:
             wb.close()
-    if not rows:                               # a plain acronym list (any format the client-list reader takes)
+    if not rows and not headed:                # a plain acronym list (any format the client-list reader takes)
         rows = [[t, "Acronym", d, "Include", {}] for t, d in eng.parse_client_list(path) if t]
+    for r in rows:                             # "TT&C (TTC)": primary TT&C with alternate form TTC (2.26.0)
+        primary, alts = AF.split_term(r[0])
+        if alts:
+            r[0] = primary
+            r[4][AF.ALT_COL] = AF.merge_alts(r[4].get(AF.ALT_COL, ""), alts)
     return rows
+
+
+_ALT_HEADS = ("alt forms", "alt form", "alternate forms", "alternate form", "aliases", "alias")
+
+
+def _extras(raw):
+    """The master columns the app keeps beside Term, Category, Definition and Action."""
+    out = {}
+    for k, v in (raw or {}).items():
+        key = (k or "").strip().lstrip("\ufeff").casefold()
+        for col in MASTER_EXTRAS:
+            if key == col.casefold() or (col == AF.ALT_COL and key in _ALT_HEADS):
+                if str(v or "").strip():
+                    out[col] = str(v).strip()
+    return out
 
 
 def _key(r):
@@ -105,12 +138,18 @@ def merge_master(new_rows):
         if extra.get(ORIGIN_COL) == ORIGIN_MASTER and k not in want:
             removed += 1
             continue
+        if extra.get(ORIGIN_COL) == ORIGIN_MASTER and k in want:      # alt forms and use history follow the master
+            new_extra = dict(extra)
+            for col in MASTER_EXTRAS:
+                new_extra[col] = (want[k][4] or {}).get(col, "")
+            r = [r[0], r[1], r[2], r[3], new_extra]
         out.append(r); have.add(k)
     added = 0
     for k, r in want.items():
         if k in have:
             continue
-        out.append([r[0], r[1], r[2], r[3], {ORIGIN_COL: ORIGIN_MASTER}])
+        out.append([r[0], r[1], r[2], r[3], dict({c: v for c, v in (r[4] or {}).items() if c in MASTER_EXTRAS},
+                                                   **{ORIGIN_COL: ORIGIN_MASTER})])
         have.add(k); added += 1
     eng.write_db_rows(out)
     return {"added": added, "removed": removed, "same": len(want) - added, "total": len(want)}
@@ -131,7 +170,7 @@ def load_master(path):
         shutil.copy2(path, os.path.join(keep, f"v{ver}_{os.path.basename(path)}"))
     except OSError:
         diag.swallowed()
-    info = {"version": ver, "file": os.path.basename(path), "loaded": datetime.datetime.now().isoformat(timespec="minutes"),
+    info = {"version": ver, "file": os.path.basename(path), "path": os.path.abspath(path), "loaded": datetime.datetime.now().isoformat(timespec="minutes"),
             "rows": counts["total"], "sha256": _sha256(path), **{k: counts[k] for k in ("added", "removed", "same")}}
     tmp = info_path() + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
@@ -162,6 +201,120 @@ def known_text(srcs):
     else:
         return "Not found in any source"
     return t + (" (also in master database)" if SRC_MASTER in s else "")
+
+
+# ------------------------------------------------------------------ combine an effort into the master (2.26.0)
+def effort_label(L):
+    return f"{L.name} ({L.solicitation})" if getattr(L, "solicitation", "") else L.name
+
+
+def base_cat(t):
+    t = (t or "").replace(" (Candidate)", "").strip()
+    return t or "Acronym"
+
+
+def combine(master_rows, effort_rows, label, when=None):
+    """Add one finished effort to the master rows. master_rows: [[term, category, definition, action, {extras}]].
+    effort_rows: the effort list's rows ({column: value}); only Approved rows with a definition count.
+    One master row per term and meaning: a row with the same term (or one of its alt forms) and the same definition gets
+    the effort added to Used in efforts and the effort's alt forms; anything else becomes a new row. Adding the same
+    effort again changes nothing. Returns (rows, {"added": [...], "updated": [...], "same": n})."""
+    eng = _eng()
+    when = when or datetime.date.today().isoformat()
+    rows = [[r[0], r[1], r[2], r[3], dict(r[4] or {})] for r in master_rows]
+    index = {}
+
+    def reindex(i):
+        r = rows[i]
+        for name in [r[0]] + AF.parse_alts(r[4].get(AF.ALT_COL, "")):
+            lst = index.setdefault(eng.fold(name).strip(), [])
+            if i not in lst:
+                lst.append(i)
+    for i in range(len(rows)):
+        reindex(i)
+    out = {"added": [], "updated": [], "same": 0}
+    for er in effort_rows:
+        if er.get("Status") != "Approved" or not (er.get("Definition") or "").strip():
+            continue
+        term, definition = er["Term"].strip(), er["Definition"].strip()
+        alts = AF.parse_alts(er.get(AF.ALT_COL, ""))
+        nd = eng.norm_def(definition)
+        hit = None
+        for name in [term] + alts:
+            for i in index.get(eng.fold(name).strip(), []):
+                if eng._action_kind(rows[i][3]) == "include" and eng.norm_def(rows[i][2]) == nd:
+                    hit = i
+                    break
+            if hit is not None:
+                break
+        if hit is None:
+            rows.append([term, base_cat(er.get("Type")), definition, "Include",
+                         {AF.ALT_COL: " | ".join(alts), USED_COL: label, TIMES_COL: "1", LAST_COL: when}])
+            reindex(len(rows) - 1)
+            out["added"].append(AF.join_term(term, alts))
+            continue
+        r = rows[hit]
+        before = dict(r[4])
+        extra_alts = alts + ([term] if eng.fold(term).strip() != eng.fold(r[0]).strip() else [])
+        r[4][AF.ALT_COL] = AF.merge_alts(r[4].get(AF.ALT_COL, ""), [a for a in extra_alts if a != r[0]])
+        used = [u.strip() for u in r[4].get(USED_COL, "").split("|") if u.strip()]
+        if label not in used:
+            used.append(label)
+            r[4][USED_COL] = " | ".join(used)
+            r[4][TIMES_COL] = str(len(used))
+            r[4][LAST_COL] = when
+        if r[4] != before:
+            reindex(hit)
+            out["updated"].append(AF.join_term(r[0], AF.parse_alts(r[4].get(AF.ALT_COL, ""))))
+        else:
+            out["same"] += 1
+    return rows, out
+
+
+def write_master(path, rows):
+    """Write the master database as Excel or CSV with the app's columns (Term, Category, Definition, Action, Alt forms,
+    Used in efforts, Times used, Last used) and any other columns the rows carry."""
+    extra_cols = []
+    for r in rows:
+        for k in (r[4] or {}):
+            if k not in MASTER_EXTRAS and k != ORIGIN_COL and k not in extra_cols:
+                extra_cols.append(k)
+    cols = MASTER_COLUMNS + extra_cols
+    vals = [[r[0], r[1], r[2], r[3]] + [(r[4] or {}).get(c, "") for c in MASTER_EXTRAS + extra_cols] for r in rows]
+    stem, ext = os.path.splitext(path)
+    tmp = stem + ".saving" + ext
+    if ext.lower() == ".csv":
+        with open(tmp, "w", newline="", encoding="utf-8-sig") as f:
+            w = csv.writer(f)
+            w.writerow(cols)
+            w.writerows(vals)
+    else:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Master database"
+        ws.append(cols)
+        for c in ws[1]:
+            c.font = Font(bold=True)
+        for v in vals:
+            ws.append(v)
+        for i, c in enumerate(cols, 1):
+            ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = {"Definition": 50, USED_COL: 50}.get(c, 18)
+        ws.freeze_panes = "A2"
+        ws.auto_filter.ref = ws.dimensions
+        wb.save(tmp)
+    os.replace(tmp, path)
+
+
+def backup_master(path):
+    """Copy the master file into a 'Master database backups' folder beside it, stamped with the date and time."""
+    folder = os.path.join(os.path.dirname(path), "Master database backups")
+    os.makedirs(folder, exist_ok=True)
+    stem, ext = os.path.splitext(os.path.basename(path))
+    dest = os.path.join(folder, f"{stem}_{datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')}{ext}")
+    shutil.copy2(path, dest)
+    return dest
 
 
 class MasterMixin:

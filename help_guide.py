@@ -238,6 +238,32 @@ PAGES = {
               ("Export", "Excel or CSV in the SharePoint columns: Keep only, or Keep and Proposed. The app never connects to "
                          "SharePoint.")]),
     ("img", "suggest.png", 460),
+    ("h", "Alt forms: one item, several ways of writing it"),
+    ("p", "An alt form (TTC for TT&C, SatCom for SATCOM) is never a row of its own. It lives in the Alt forms column of its "
+          "primary term, in the effort list and in the master database, and every list the app writes shows it in "
+          "parentheses: TT&C (TTC)."),
+    ("rows", [("Assign", "Scan review: right-click the alt form > Effort list > Make an alt form of..., and pick the primary "
+                         "(the closest match is offered first). If the alt form had its own row in the effort list, it is "
+                         "folded into the primary."),
+              ("Change", "Effort list (home): select the term > Alt forms... (or right-click). Type the forms separated by "
+                         "commas; clear the box to remove them. Right-click an alt form in Scan review > Not an alt form undoes it."),
+              ("Found", "The scanner looks for every alt form in the master database. A find keeps its own row, labelled "
+                        "\"Alt form of TT&C\" with TT&C's definition. Status > Alt forms lists them."),
+              ("Read", "Any list the app reads (master database, effort list typed in Excel, an imported list, a volume's own "
+                       "acronym list) takes \"TT&C (TTC)\" as primary TT&C with alt form TTC. A long form such as "
+                       "\"Statement of Work (SOW)\" is never split."),
+              ("QA/QC", "An alt form has no first use of its own, counts as a use of its primary, and is listed with it.")]),
+    ("h", "The master database across efforts"),
+    ("p", "When an effort is done: Effort > Add this effort to the master database. One master row per term and meaning; "
+          "no repeat rows."),
+    ("rows", [("What goes in", "The effort list's Approved terms with a definition, with their alt forms."),
+              ("Same item", "A master row with the same term (or one of its alt forms) and the same definition gets this "
+                            "effort added to Used in efforts, Times used goes up, Last used is today, and new alt forms are "
+                            "added. CDR (Critical Design Review) and CDR (Call Detail Record) stay two rows."),
+              ("New item", "Anything else becomes a new row. Adding the same effort again changes nothing."),
+              ("Saving", "You see the new and changed rows first. The app writes a new version of the master file you "
+                         "loaded, keeps the earlier one in a Master database backups folder beside it, and loads the new "
+                         "version on this PC. Share the file as usual (the approved SharePoint folder).")]),
     ("h", "Volumes and export"),
     ("rows", [("Name volumes", "Home > Name volumes (or Effort > Name volumes): Vol I Technical, Vol II Management... and tick "
                                "the files in each. Terms get their volumes from the files they were found in."),

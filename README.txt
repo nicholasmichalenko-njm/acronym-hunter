@@ -686,3 +686,18 @@ QA/QC: USED ONCE AND THE VOLUME'S OWN ACRONYM LIST (2.25.0)
     volume has no acronym list.
 - The top line adds the Acronym list counts and "defined but never used again". The Excel report adds an "Acronym list
   check" sheet and both counts on the Summary sheet.
+
+ALT FORMS AND THE MASTER DATABASE ACROSS EFFORTS (2.26.0)
+- Alt forms: another way of writing a term (TTC for TT&C) is kept in the primary's Alt forms column, in the effort
+  list and in the master database, never as a row of its own. Lists the app writes show "TT&C (TTC)".
+  - Assign: Scan review > right-click > Effort list > Make an alt form of... Change: Effort list > Alt forms...
+  - Found: the scanner looks for the master's alt forms; a find keeps its own row, "Alt form of TT&C", with TT&C's
+    definition. Status > Alt forms lists them.
+  - Read: "TT&C (TTC)" in any list the app reads (master, effort list typed in Excel, imported list, a volume's own
+    acronym list) is primary TT&C with alt form TTC. "Statement of Work (SOW)" is never split.
+  - QA/QC: an alt form counts as a use of its primary, has no first use of its own, and is listed with it.
+- Effort > Add this effort to the master database: the effort list's Approved terms go into the master file, one row
+  per term and meaning. Same term and definition: the effort is added to Used in efforts, Times used goes up, Last used
+  is today, new alt forms are added. New columns: Alt forms, Used in efforts, Times used, Last used. The app shows the
+  new and changed rows, writes a new version of the master file, keeps the earlier one in "Master database backups"
+  beside it, and loads the new version. Adding the same effort twice changes nothing.
