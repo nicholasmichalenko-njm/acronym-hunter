@@ -1785,11 +1785,73 @@ def _pdf_table_rows(page):
         rows.append(cells)
     return rows
 
-def parse_client_list(path):
+CLIENT_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp")
+
+def parse_client_text(text):
+    """(term, definition) pairs from pasted or typed text (2.28.0): rows pasted from Excel or Word (tabs), lines like
+    'ACR - definition', 'ACR: definition', 'ACR  definition', and 'Spelled Out Words (ACR)' in running text."""
+    lines = [l for l in (text or "").splitlines() if l.strip()]
+    pairs = []
+    if lines and sum("\t" in l for l in lines) >= len(lines) / 2:
+        pairs = _pairs_from_table([l.split("\t") for l in lines])
+    else:
+        for l in lines:
+            p = _pair_from_line(l, strict=True)            # "ACR - definition", "ACR: definition", "ACR  definition"
+            if p is None:
+                m = re.match(r"^\s*([A-Za-z0-9&/.\-]{2,16})\s+(.{3,})$", l)
+                t = m.group(1) if m else ""
+                if m and (sum(c.isupper() for c in t) >= 2 or any(c.isdigit() for c in t)) and not t.isdigit():
+                    p = _clean_pair(t, m.group(2))         # "ACR definition": only when it looks like an acronym
+            if p:
+                pairs.append(p)
+    try:
+        import custdefs
+        have = {t.casefold() for t, _d in pairs}
+        for term, hits in custdefs.extract([("Pasted", text or "")]).items():
+            if term.casefold() not in have and hits:
+                pairs.append([term, hits[0]["definition"]]); have.add(term.casefold())
+    except Exception:
+        diag.swallowed()
+    seen, out = set(), []
+    for t, d in pairs:
+        k = (t.casefold(), d.casefold())
+        if k not in seen:
+            seen.add(k); out.append([t, d])
+    return out
+
+def client_list_pictures(path):
+    """Text of a scanned PDF list or a picture of a list, read with the picture reader (2.28.0). '' when AI and ML are
+    off for this effort or the file has no pictures to read."""
+    if not ai_ml_on():
+        return ""
+    ext = os.path.splitext(path)[1].lower()
+    texts = []
+    if ext in CLIENT_IMAGE_EXTS:
+        with open(path, "rb") as f:
+            texts.append(read_image_bytes(f.read()))
+    elif ext == ".pdf":
+        doc = pdfium.PdfDocument(path)
+        try:
+            for i in range(min(len(doc), 30)):
+                page = doc[i]
+                try:
+                    pil = page.render(scale=int(OCR_CFG.get("pdf_scan_dpi", 300)) / 72.0).to_pil().convert("RGB")
+                finally:
+                    page.close()
+                b = io.BytesIO(); pil.save(b, "PNG")
+                texts.append(read_image_bytes(b.getvalue()))
+        finally:
+            doc.close()
+    return "\n".join(t for t in texts if t)
+
+def parse_client_list(path, pictures=True):
     """(term, definition) pairs from a client acronym list: CSV/TSV/TXT, Excel, Word (tables or 'TERM - definition'
-    lines), or PDF (tables, else lines). Files are only read; parsing uses the same hardened readers as scanning."""
+    lines), or PDF (tables, else lines). Files are only read; parsing uses the same hardened readers as scanning.
+    2.28.0: a scanned PDF with no typed text, or a picture of a list, is read with the picture reader (pictures=True)."""
     ext = os.path.splitext(path)[1].lower()
     pairs = []
+    if ext in CLIENT_IMAGE_EXTS:
+        return parse_client_text(client_list_pictures(path)) if pictures else []
     if ext in (".csv", ".tsv"):
         text, delim = _decode_csv(path)
         pairs = _pairs_from_table(list(csv.reader(io.StringIO(text, newline=""), delimiter="\t" if ext == ".tsv" else delim)))
@@ -1836,6 +1898,8 @@ def parse_client_list(path):
                 pairs = [p for p in (_pair_from_line(l, strict=True) for l in lines) if p]
         finally:
             doc.close()
+        if not pairs and pictures and not "".join(lines).strip():   # a scanned list: no typed text at all
+            pairs = parse_client_text(client_list_pictures(path))
     else:
         raise ValueError(f"Unsupported file type: {ext}")
     seen, out = set(), []
@@ -5849,21 +5913,109 @@ class AcronymAppGUI(AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, Wizard
         if hasattr(self, "btn_client"):
             self.btn_client.configure(text=f"Client Lists ({n})" if n else "Client Lists")
 
-    def _preview_client_list(self, name, rows):
-        """Show what was read from a client list; True if the user accepts it."""
-        win = ctk.CTkToplevel(self); win.title(f"Client list: {name}"); win.geometry("720x520"); win.transient(self)
-        win.grab_set(); win.after(100, win.lift)
-        ctk.CTkLabel(win, text=f"Read {len(rows)} acronyms from {name}. Check a few, then add the list.",
-                     font=("Arial", 13, "bold")).pack(anchor="w", padx=12, pady=(12, 4))
-        box = ctk.CTkTextbox(win, wrap="none", font=("Consolas", 12)); box.pack(fill="both", expand=True, padx=12, pady=4)
-        box.insert("1.0", "\n".join(f"{t:<16} {dfn}" for t, dfn in rows[:400]) + ("\n..." if len(rows) > 400 else ""))
-        box.configure(state="disabled")
-        result = {"ok": False}
+    def _preview_client_list(self, name, rows, note="", parent=None, wait=True):
+        """Every term and definition found, each with a tick (2.28.0): untick what is wrong, double-click to correct a
+        term or definition, then add the ticked ones. Returns the accepted [[term, definition]], or None (Cancel).
+        wait=False returns the window (tests call win._api)."""
+        win = ctk.CTkToplevel(parent or self); win.title(f"Confirm the customer's terms: {name}"); win.geometry("820x560")
+        win.transient(parent or self); win.after(100, win.lift)
+        ctk.CTkLabel(win, text=f"Found {len(rows)} terms in {name}. Untick anything that is not a term; double-click a term or "
+                               "definition to correct it." + (f"\n{note}" if note else ""),
+                     font=("Arial", 13, "bold"), wraplength=780, justify="left").pack(anchor="w", padx=12, pady=(12, 4))
+        fr = tk.Frame(win); fr.pack(fill="both", expand=True, padx=12, pady=4)
+        tv = ttk.Treeview(fr, columns=("use", "term", "definition"), show="headings", selectmode="extended")
+        for c, h, w in (("use", "Use", 60), ("term", "Term", 160), ("definition", "Definition", 540)):
+            tv.heading(c, text=h); tv.column(c, width=w, anchor="w" if c != "use" else "center")
+        sb = ttk.Scrollbar(fr, orient="vertical", command=tv.yview); tv.configure(yscrollcommand=sb.set)
+        sb.pack(side="right", fill="y"); tv.pack(fill="both", expand=True)
+        data = {}
+        for i, (t, d) in enumerate(rows):
+            iid = str(i); data[iid] = {"use": True, "term": t, "definition": d}
+            tv.insert("", "end", iid=iid, values=("\u2713", t, d))
+        count = ctk.CTkLabel(win, text="", anchor="w"); count.pack(fill="x", padx=12)
+
+        def redraw(iid):
+            r = data[iid]
+            tv.item(iid, values=("\u2713" if r["use"] else "", r["term"], r["definition"]))
+            count.configure(text=f"{sum(1 for x in data.values() if x['use'])} of {len(data)} ticked")
+
+        def toggle(iids, value=None):
+            for iid in iids:
+                data[iid]["use"] = (not data[iid]["use"]) if value is None else value
+                redraw(iid)
+
+        def click(e):
+            iid, col = tv.identify_row(e.y), tv.identify_column(e.x)
+            if iid and col == "#1":
+                toggle([iid])
+
+        def edit(e):
+            iid, col = tv.identify_row(e.y), tv.identify_column(e.x)
+            if not iid or col not in ("#2", "#3"):
+                return
+            key = "term" if col == "#2" else "definition"
+            new = simpledialog.askstring("Correct", f"{'Term' if key == 'term' else 'Definition'}:", initialvalue=data[iid][key],
+                                         parent=win)
+            if new is not None and new.strip():
+                data[iid][key] = " ".join(new.split()); redraw(iid)
+        tv.bind("<Button-1>", click, add="+")
+        tv.bind("<Double-1>", edit)
+        tv.bind("<space>", lambda _e: (toggle(tv.selection()), "break")[1])
+        for iid in data:
+            redraw(iid)
+        result = {"rows": None}
+
+        def ok():
+            result["rows"] = [[r["term"], r["definition"]] for r in data.values() if r["use"] and r["term"].strip()]
+            win.destroy()
+            return result["rows"]
         btns = ctk.CTkFrame(win, fg_color="transparent"); btns.pack(fill="x", padx=12, pady=10)
-        ctk.CTkButton(btns, text="Add This List", command=lambda: (result.update(ok=True), win.destroy())).pack(side="left")
+        ctk.CTkButton(btns, text="Add the ticked terms", fg_color="#6D28D9", command=ok).pack(side="left")
+        ctk.CTkButton(btns, text="Tick all", width=90, fg_color="#475569", command=lambda: toggle(list(data), True)).pack(side="left", padx=6)
+        ctk.CTkButton(btns, text="Untick all", width=90, fg_color="#475569", command=lambda: toggle(list(data), False)).pack(side="left")
         ctk.CTkButton(btns, text="Cancel", fg_color="#475569", command=win.destroy).pack(side="right")
+        win._api = {"ok": ok, "toggle": toggle, "data": data}
+        if not wait:
+            return win
+        win.grab_set()
         self.wait_window(win)
-        return result["ok"]
+        return result["rows"]
+
+    def client_paste_window(self, on_rows, parent=None):
+        """Paste or type a customer's list (2.28.0). Find terms reads it; the confirm window follows; on_rows(name, rows)
+        gets the ticked terms. Returns the window (tests call win._api["find"](text))."""
+        win = ctk.CTkToplevel(parent or self); win.title("Paste or type the customer's terms"); win.geometry("760x520")
+        win.transient(parent or self); win.after(100, win.lift)
+        ctk.CTkLabel(win, wraplength=720, justify="left", anchor="w", text=(
+            "Paste a list copied from Excel, Word, a PDF or an email, or type one term per line: \"ACR - definition\", "
+            "\"ACR: definition\", \"ACR<tab>definition\". Sentences with \"Spelled Out Words (ACR)\" work too. Find terms "
+            "shows everything found for you to confirm.")).pack(fill="x", padx=12, pady=(12, 4))
+        row = ctk.CTkFrame(win, fg_color="transparent"); row.pack(fill="x", padx=12)
+        ctk.CTkLabel(row, text="List name").pack(side="left")
+        name = ctk.CTkEntry(row, width=300); name.pack(side="left", padx=6)
+        name.insert(0, f"Pasted list {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        box = ctk.CTkTextbox(win, wrap="none", font=("Consolas", 12)); box.pack(fill="both", expand=True, padx=12, pady=6)
+        msg = ctk.CTkLabel(win, text="", text_color="#B91C1C", anchor="w"); msg.pack(fill="x", padx=12)
+
+        def find(text=None, confirm=True):
+            text = box.get("1.0", "end") if text is None else text
+            rows = parse_client_text(text)
+            diag.activity("client_list_pasted", n=len(rows))
+            if not rows:
+                msg.configure(text="No terms found. Put one term and its definition on each line.")
+                return []
+            if not confirm:
+                return rows
+            got = self._preview_client_list(name.get().strip() or "Pasted list", rows, parent=win)
+            if got:
+                on_rows(name.get().strip() or "Pasted list", got)
+                win.destroy()
+            return got
+        b = ctk.CTkFrame(win, fg_color="transparent"); b.pack(fill="x", padx=12, pady=10)
+        ctk.CTkButton(b, text="Find terms", fg_color="#6D28D9", command=find).pack(side="left")
+        ctk.CTkButton(b, text="Cancel", fg_color="#475569", command=win.destroy).pack(side="right")
+        win._api = {"find": find, "box": box, "name": name}
+        return win
 
     def open_client_lists(self):
         diag.activity("client_lists_opened")
@@ -5902,7 +6054,8 @@ class AcronymAppGUI(AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, Wizard
                     self.start_batch(self.queued_files)
         def add():
             paths = filedialog.askopenfilenames(parent=win, title="Add client acronym list(s)", initialdir=self.start_dir(),
-                                                filetypes=[("Acronym lists", "*.csv *.tsv *.txt *.xlsx *.docx *.pdf")])
+                                                filetypes=[("Acronym lists", "*.csv *.tsv *.txt *.xlsx *.docx *.pdf"),
+                                                           ("Pictures of a list", " ".join("*" + x for x in CLIENT_IMAGE_EXTS))])
             added = []
             for path in paths:
                 try:
@@ -5912,13 +6065,23 @@ class AcronymAppGUI(AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, Wizard
                     messagebox.showerror("Not read", f"{os.path.basename(path)}: {type(e).__name__}: {e}", parent=win); continue
                 if not rows:
                     messagebox.showwarning("No acronyms found", f"No acronym / definition pairs were found in {os.path.basename(path)}.\n"
-                                           "Lists work best as a two-column table (acronym, definition).", parent=win); continue
-                if self._preview_client_list(os.path.basename(path), rows):
-                    self.client_lists.append({"name": os.path.basename(path), "rows": rows,
+                                           "Lists work best as a two-column table (acronym, definition). Paste or type... "
+                                           "takes a list copied from anywhere.", parent=win); continue
+                note = ("Read from pictures with the picture reader: check every line." if os.path.splitext(path)[1].lower()
+                        in CLIENT_IMAGE_EXTS else "")
+                got = self._preview_client_list(os.path.basename(path), rows, note=note, parent=win)
+                if got:
+                    self.client_lists.append({"name": os.path.basename(path), "rows": got,
                                               "added": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")})
-                    added.append(f"{os.path.basename(path)} ({len(rows)})")
+                    added.append(f"{os.path.basename(path)} ({len(got)})")
             if added:
                 changed("Added: " + ", ".join(added))
+        def paste():
+            def take(name, rows):
+                self.client_lists.append({"name": name, "rows": rows, "added": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")})
+                changed(f"Added: {name} ({len(rows)})")
+            return self.client_paste_window(take, parent=win)
+        win._paste = paste
         def remove():
             sel = lb.curselection()
             if not sel: return
@@ -5933,10 +6096,12 @@ class AcronymAppGUI(AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, Wizard
             box.insert("1.0", "\n".join(f"{t:<16} {dfn}" for t, dfn in lst["rows"])); box.configure(state="disabled")
         btns = ctk.CTkFrame(win, fg_color="transparent"); btns.pack(fill="x", padx=12, pady=8)
         ctk.CTkButton(btns, text="Add List...", fg_color="#6D28D9", command=add).pack(side="left", padx=(0, 6))
+        ctk.CTkButton(btns, text="Paste or type...", fg_color="#6D28D9", command=paste).pack(side="left", padx=6)
         ctk.CTkButton(btns, text="View Terms", fg_color="#475569", command=view).pack(side="left", padx=6)
         ctk.CTkButton(btns, text="Remove", fg_color="#DC2626", command=remove).pack(side="left", padx=6)
         msg.pack(anchor="w", padx=12, pady=(0, 10))
         refresh()
+        return win
 
 def run_selftest(paths):
     os.makedirs(LOG_DIR, exist_ok=True)

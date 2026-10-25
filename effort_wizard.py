@@ -75,11 +75,11 @@ class WizardMixin:
         v["name"].trace_add("write", on_name)
 
         def step_master():
-            head.configure(text="1 of 6   " + __import__("master_db").MASTER_NAME)
+            head.configure(text="1 of 7   " + __import__("master_db").MASTER_NAME)
             self.master_step(body, win)
 
         def step0():
-            head.configure(text="2 of 6   Effort and client")
+            head.configure(text="2 of 7   Effort and client")
             e = entry(body, "Effort name (required)", v["name"], "e.g. Kestrel Thermal")
             entry(body, "Client (short name)", v["client"], "e.g. USSF SSC")
             entry(body, "Solicitation number", v["sol"], "e.g. FA8810-27-R-0042")
@@ -111,6 +111,14 @@ class WizardMixin:
                             rows = eng.parse_client_list(p)
                         except Exception:
                             diag.swallowed(); rows = []
+                        if not rows:
+                            msg.configure(text=f"No terms found in {os.path.basename(p)}. Paste or type... takes a list copied from anywhere.")
+                            continue
+                        note = ("Read from pictures with the picture reader: check every line."
+                                if os.path.splitext(p)[1].lower() in eng.CLIENT_IMAGE_EXTS else "")
+                        rows = self._preview_client_list(os.path.basename(p), rows, note=note, parent=win)
+                        if not rows:
+                            continue
                         st[key].append({"path": p, "rows": rows, "label": f"{os.path.basename(p)}   ({len(rows)} terms)"})
                     else:
                         st[key].append({"path": p, "label": os.path.basename(p)})
@@ -121,6 +129,13 @@ class WizardMixin:
                 refresh()
             row = ctk.CTkFrame(body, fg_color="transparent"); row.pack(fill="x", pady=6)
             ctk.CTkButton(row, text="Add files...", width=110, command=add).pack(side="left")
+            if key == "lists":                   # paste or type a list, then confirm (2.28.0)
+                def take(name, rows):
+                    st[key].append({"path": None, "name": name, "rows": rows, "label": f"{name}   ({len(rows)} terms)"})
+                    refresh()
+                ctk.CTkButton(row, text="Paste or type...", width=130, fg_color="#6D28D9",
+                              command=lambda: self.client_paste_window(take, parent=win)).pack(side="left", padx=6)
+                win._paste_take = take
             ctk.CTkButton(row, text="Remove", width=90, fg_color="#475569", command=remove).pack(side="left", padx=6)
             ctk.CTkLabel(body, text=note, anchor="w", wraplength=660, justify="left", text_color=("#475569", "#94A3B8")).pack(fill="x")
             refresh()
@@ -129,14 +144,14 @@ class WizardMixin:
                                                             {"path": p, "label": os.path.basename(p)}) for p in paths], refresh())
 
         def step1():
-            files_step("lists", "3 of 6   The customer's own lists",
+            files_step("lists", "3 of 7   The customer's own lists",
                        "Do you have known or provided customer acronyms, abbreviations or units of measure?",
                        "Excel, Word, PDF, CSV or text. The effort remembers them and every scan uses them; the customer's "
                        "definition comes before the company database. Skip if you have none yet (Client Lists adds them later).",
                        (".xlsx", ".docx", ".pdf", ".csv", ".tsv", ".txt"))
 
         def step2():
-            files_step("docs", "4 of 6   Customer documents",
+            files_step("docs", "4 of 7   Customer documents",
                        "Add the customer documents you have now (RFP sections, SOW, CDRLs, attachments).",
                        "They are copied into the effort folder's Customer documents. Their own definitions are used on every "
                        "scan. Add more any time with Effort > Add customer documents; only new files are read.",
@@ -144,8 +159,56 @@ class WizardMixin:
             ctk.CTkCheckBox(body, text="Read them when the effort is created and show the new terms for review",
                             variable=v["scan"]).pack(anchor="w", pady=(6, 0))
 
+        def step_structure():
+            """The response structure: suggested from the customer documents, or typed (2.28.0)."""
+            head.configure(text="5 of 7   Response structure")
+            ctk.CTkLabel(body, text="How will the response be organized?", anchor="w", font=("Segoe UI", 13, "bold")).pack(fill="x", pady=(6, 2))
+            ctk.CTkLabel(body, anchor="w", justify="left", wraplength=660, text=(
+                "One section per line: Volume I Technical, then 1.1 Technical Approach (indent or number the sections). "
+                "Suggested from the customer documents when they say how to organize the proposal; edit it or type your own. "
+                "The compliance matrix and Setup start from it.")).pack(fill="x")
+            box = ctk.CTkTextbox(body, height=190, wrap="none", font=("Consolas", 12)); box.pack(fill="both", expand=True, pady=6)
+            box.insert("1.0", st.get("outline", ""))
+            notes = ctk.CTkLabel(body, text="\n".join(st.get("outline_notes", [])), anchor="w", justify="left", wraplength=660,
+                                 text_color=("#0F766E", "#5EEAD4"))
+            notes.pack(fill="x")
+
+            def suggest():
+                if not st["docs"]:
+                    notes.configure(text="Add customer documents in step 4 to get a suggestion, or type the structure.")
+                    return None
+                import compliance as C, structure as S
+                fc = []
+                for item in st["docs"]:
+                    try:
+                        fc.append((os.path.basename(item["path"]), eng.typed_chunks(item["path"])))
+                    except Exception:
+                        diag.swallowed()
+                heads = []
+                try:
+                    C.extract(fc, heads)
+                except Exception:
+                    diag.swallowed()
+                res = S.suggest(fc, heads)
+                st["suggested"] = True
+                st["outline_notes"] = res["notes"]
+                if res["text"]:
+                    box.delete("1.0", "end"); box.insert("1.0", res["text"])
+                notes.configure(text="\n".join(res["notes"]))
+                diag.activity("structure_suggested", n=res["sections"], added=res["volumes"])
+                return res
+            row = ctk.CTkFrame(body, fg_color="transparent"); row.pack(fill="x")
+            ctk.CTkButton(row, text="Suggest from the customer documents", width=260, command=suggest).pack(side="left")
+            ctk.CTkButton(row, text="Clear", width=80, fg_color="#475569",
+                          command=lambda: box.delete("1.0", "end")).pack(side="left", padx=6)
+            st["_save"] = lambda: st.update(outline=box.get("1.0", "end").strip())
+            win._suggest = suggest
+            win._outline_box = box
+            if st["docs"] and not st.get("suggested") and not st.get("outline"):
+                suggest()
+
         def step3():
-            head.configure(text="5 of 6   How the list ships")
+            head.configure(text="6 of 7   How the list ships")
             ctk.CTkLabel(body, text="Acronym list", anchor="w", font=("Segoe UI", 13, "bold")).pack(fill="x", pady=(6, 2))
             for k, lab in LIST_FORMATS.items():
                 ctk.CTkRadioButton(body, text=lab, variable=v["format"], value=k).pack(anchor="w", pady=2)
@@ -155,7 +218,7 @@ class WizardMixin:
             entry(body, "Volumes folder (optional, for checking deliverables)", v["volumes"])
 
         def step4():
-            head.configure(text="6 of 6   Ready")
+            head.configure(text="7 of 7   Ready")
             lines = [f"Effort:  {v['name'].get().strip()}",
                      f"Client:  {v['client'].get().strip() or '-'}      Solicitation:  {v['sol'].get().strip() or '-'}"
                      + (f"      Internal:  {v['internal'].get().strip()}" if v['internal'].get().strip() else ""),
@@ -163,14 +226,17 @@ class WizardMixin:
                      "Master:  " + __import__("master_db").info_text(),
                      f"Customer lists:  {len(st['lists'])} ({sum(len(x['rows']) for x in st['lists'])} terms)",
                      f"Customer documents:  {len(st['docs'])}" + ("  (read now, then review)" if st["docs"] and v["scan"].get() else ""),
+                     "Response structure:  " + (f"{len([l for l in st.get('outline', '').splitlines() if l.strip()])} lines"
+                                                if st.get("outline") else "none yet (add it later in the compliance matrix)"),
                      f"List:  {LIST_FORMATS[v['format'].get()]};  first use {E.FIRST_USE_RULES[v['rule'].get()].lower()}"]
             ctk.CTkLabel(body, text="\n".join(lines), anchor="w", justify="left", font=("Segoe UI", 13)).pack(fill="x", pady=8)
             ctk.CTkLabel(body, text="Everything here can be changed later in Effort > Effort settings.", anchor="w",
                          text_color=("#475569", "#94A3B8")).pack(fill="x")
 
-        steps = [step_master, step0, step1, step2, step3, step4]
+        steps = [step_master, step0, step1, step2, step_structure, step3, step4]
 
         def show():
+            st.pop("_save", lambda: None)()          # keep what was typed on the step being left
             for w in body.winfo_children():
                 w.destroy()
             msg.configure(text="")
@@ -229,8 +295,11 @@ class WizardMixin:
             win.destroy()
             if not self.open_effort(name):
                 return
+            if st.get("outline"):                    # the response structure (2.28.0): the compliance matrix starts from it
+                self.ws.set("outline_text", st["outline"])
+                self.effort._hist("(structure)", f"response structure: {len(st['outline'].splitlines())} lines")
             if st["lists"]:
-                lists = [{"name": os.path.basename(x["path"]), "rows": x["rows"]} for x in st["lists"]]
+                lists = [{"name": x.get("name") or os.path.basename(x["path"]), "rows": x["rows"]} for x in st["lists"]]
                 self.ws.set("client_lists", lists)
                 self.set_client_lists(lists)
                 self.effort._hist("(customer lists)", f"{sum(len(x['rows']) for x in lists)} customer terms from {len(lists)} list(s)")

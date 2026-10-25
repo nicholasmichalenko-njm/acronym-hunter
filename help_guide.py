@@ -185,11 +185,20 @@ PAGES = {
               ("Acronym lists", "One Word file per volume (and one for all volumes): a Term and Definition table, sorted."),
               ("Record", "Writes Used in volumes and First use into the effort list.")]),
     ("h", "Start an effort"),
-    ("p", "Effort > Start a new effort (or Start an effort at the top) opens six short steps: the Acronyms, Abbreviations, Units and Symbols Master Database, the effort and client (short name, solicitation number, your internal "
-          "number), the customer's own acronym lists, the customer documents, how the list ships (one list, one per volume, or "
-          "both; the first-use rule), and ready. The documents are copied into the effort's Customer documents folder and read "
+    ("p", "Effort > Start a new effort (or Start an effort at the top) opens seven short steps: the Acronyms, Abbreviations, Units and Symbols Master Database, the effort and client (short name, solicitation number, your internal "
+          "number), the customer's own acronym lists, the customer documents, the response structure, how the list ships (one "
+          "list, one per volume, or both; the first-use rule), and ready. The documents are copied into the effort's Customer documents folder and read "
           "for a jump start; Review new terms adds what they hold in one click."),
-    ("rows", [("Customer documents later", "Effort > Add customer documents: copies the files in, reads only new or changed "
+    ("rows", [("Customer lists", "Add files (Excel, Word, CSV, text, PDF, or a picture or scan of a list, read with the "
+                                 "picture reader), or Paste or type...: paste a list copied from anywhere or type one term per "
+                                 "line. Every term found is shown with a tick: untick what is wrong, double-click to correct it, "
+                                 "then add the ticked ones. Client Lists does the same any time."),
+              ("Response structure", "Suggested from the customer documents: the volumes the instructions name (\"Volume I "
+                                     "Technical, Volume II Management...\"), their page limits, and the Section L headings under "
+                                     "each volume, numbered 1.1, 1.2 with the RFP reference in brackets. Edit it or type your "
+                                     "own. The compliance matrix starts its outline from it, and [L.4.1] references place "
+                                     "those requirements under that section."),
+              ("Customer documents later", "Effort > Add customer documents: copies the files in, reads only new or changed "
                                            "ones, and opens Review new terms."),
               ("Every scan", "Updates Found in, First found, Last found and Scan status in the effort list. Terms a rescan no "
                              "longer finds say \"No longer found in <file>\"; nothing is removed."),
@@ -359,10 +368,12 @@ PAGES = {
               ("Zoom", "Mouse wheel or + / -. Drag to move around. Whole shows the whole page or picture."),
               ("Enlarge", "Opens the picture in a big window. Click boxes there too."),
               ("Click a box", "Every box is something the scanner read. Click one to check or fix it."),
-              ("Report misreading", "Fix the spelling and save a lesson for the training team (see Fix OCR vs Training)."),
-              ("Not text", "A line, arrow or speck read as text. The scanner ignores it from now on."),
-              ("Exclude term", "A real reading, but not a term you want listed, anywhere (a database rule)."),
-              ("Exclude instance", "Only this place is wrong: the term stays in its other places. Saved for this effort."),
+              ("Report misreading", "The picture has real text but the reader got it wrong (RFF for RFP). Type the right "
+                                    "reading: it is fixed now and saved as a lesson for the training team."),
+              ("Not text", "The reader saw text where there is none: a line, arrow, logo edge or speck. The scanner ignores "
+                           "that reading from now on and the spot is saved as a no-text lesson."),
+              ("Exclude instance", "Only this place is wrong: the term stays in its other places. Saved for this effort. To "
+                                   "exclude the term everywhere use Exclude in the bottom bar; for this effort only, Not a term."),
               ("Undo last save", "Takes back your last save in this panel.")]),
     ("p", "Tools > Show preview pane turns this panel on or off."),
 ],
@@ -396,7 +407,8 @@ PAGES = {
                                  "ignore list in one numbered file. Install it; Undo puts the previous one back."),
               ("Corrections", "Tools > Send corrections. Your lessons for the training team, in one file."),
               ("Where", "Your approved local SharePoint folder only. Never GitHub, email or USB."),
-              ("Client Lists", "Load the client's own acronym list. Its definitions win over the database."),
+              ("Client Lists", "Load the client's own acronym list (a file, a picture of one, or Paste or type...), then "
+                               "confirm the terms found. Its definitions win over the database."),
               ("Projects", "Project > Save. A rescan reads only files that changed."),
               ("Full Text", "Tools > Full Text. All typed and picture text, saved as .txt.")]),
     ("h", "Feedback: bugs, improvements, ideas"),

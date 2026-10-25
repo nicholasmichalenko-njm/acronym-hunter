@@ -286,8 +286,7 @@ class PreviewPane(ctk.CTkFrame):
         self.btn_inst = ctk.CTkButton(row3, text="Exclude instance", width=130, height=30, fg_color="#C2410C",
                                       command=self.exclude_instance)
         self.btn_inst.pack(side="left", padx=2)
-        self.btn_excl = ctk.CTkButton(row3, text="Exclude term", width=110, height=30, fg_color="#DC2626", command=self.exclude)
-        self.btn_excl.pack(side="left", padx=2)
+        # 2.28.0: "Exclude term" left the preview; the bottom bar's Exclude does the same (one button, one place)
         self.btn_restore = ctk.CTkButton(row3, text="Restore instances", width=130, height=30, fg_color="#475569",
                                          command=self.restore_instances)
         row2 = ctk.CTkFrame(fix, fg_color="transparent")
@@ -482,7 +481,6 @@ class PreviewPane(ctk.CTkFrame):
         self.btn_junk.configure(state="normal" if picture_line and can_train else "disabled")
         self.btn_undo.configure(state="normal" if can_train else "disabled")
         self.btn_trainer.configure(state="normal" if eng.trainer_available() and self.pv.img is not None else "disabled")
-        self.btn_excl.configure(state="normal" if self.term and self.app.excludable(self.term) else "disabled")
         self.btn_inst.configure(state="normal" if self.term and self.locs and self.app.excludable(self.term) else "disabled")
 
     def _context_note(self, loc):

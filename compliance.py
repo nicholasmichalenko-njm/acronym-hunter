@@ -594,6 +594,11 @@ def suggest_map(item, outline, stats=None):
             s = 2.0 + o["num"].count(".") * 0.01           # deepest matching number wins
             if s > score:
                 best, score = o, s
+        for ref in re.findall(r"\[([A-Z]\.[\d.]*\d)\]", o["title"]):   # "1.1 Technical Approach [L.4.1]" (2.28.0)
+            if sec and (sec == ref or sec.startswith(ref + ".")):
+                s = 2.5 + ref.count(".") * 0.01
+                if s > score:
+                    best, score = o, s
     if best is not None:
         return outline_label(best), round(score, 2)
     w = _words(item["text"] + " " + item.get("lead", ""))

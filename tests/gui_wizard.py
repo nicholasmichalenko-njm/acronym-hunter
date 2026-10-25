@@ -67,7 +67,22 @@ def step1():
     v["name"].set("Kestrel Thermal"); v["client"].set("USSF SSC"); v["sol"].set("FA8810-27-R-0042"); v["internal"].set("SS-2027-114")
     st_ = api["st"]; st_["folder_set"] = True; v["folder"].set(FOLDER)
     api["next"](); w.update(); w._add_files([CL])
+    # 2.28.0: paste or type a list, confirm the terms found (one unticked)
+    pw = app.client_paste_window(lambda n, r: w._paste_take(n, r), parent=w); pw.update()
+    rows = pw._api["find"]("KTS - Kestrel Thermal System\nRWA: Reaction Wheel Assembly\nThe Ground Support Equipment (GSE) arrives.",
+                           confirm=False)
+    check("pasted text: three terms found", {r[0] for r in rows} == {"KTS", "RWA", "GSE"}, rows)
+    cw = app._preview_client_list("Pasted list", rows, parent=w, wait=False); cw.update(); time.sleep(0.2); cw.update()
+    cw._api["toggle"]([k for k, d in cw._api["data"].items() if d["term"] == "RWA"], False)
+    got = cw._api["ok"]()
+    w._paste_take("Pasted list", got); pw.destroy(); w.update()
+    check("confirm keeps only the ticked terms", [r[0] for r in got] == ["KTS", "GSE"], got)
     api["next"](); w.update(); w._add_files(DOCS)
+    api["next"](); w.update(); time.sleep(0.2); w.update()
+    outline = w._outline_box.get("1.0", "end")
+    check("response structure suggested from the customer documents", "Volume I Technical" in outline
+          and "1.1 Technical Approach [L.4.1]" in outline and "Volume III Cost" in outline, outline[:200])
+    w._outline_box.insert("end", "\n    3.1 Basis of Estimate")
     api["next"](); w.update(); v["format"].set("both")
     api["next"](); w.update()
     api["next"]()                                   # Create effort
@@ -83,6 +98,10 @@ def step2():
     check("customer documents copied into the effort folder",
           sorted(os.listdir(os.path.join(FOLDER, "Customer documents"))) == sorted(os.path.basename(p) for p in DOCS))
     check("customer lists remembered by the effort", "TRL" in A.CLIENT_DB and app.ws.get("client_lists"))
+    check("the pasted list is one of them", "KTS" in A.CLIENT_DB and "RWA" not in A.CLIENT_DB
+          and any(x["name"] == "Pasted list" for x in app.ws.get("client_lists")))
+    check("the response structure is kept with the effort", "3.1 Basis of Estimate" in (app.ws.get("outline_text") or "")
+          and "Volume II Management" in (app.ws.get("outline_text") or ""))
     rw = app._review_win; tv = rw._api["tree"]
     terms = list(tv.get_children())
     check("review opens with the new terms", len(terms) > 3, len(terms))

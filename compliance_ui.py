@@ -574,7 +574,8 @@ class ComplianceMixin:
         def done(items, heads, src, empty):
             M = C.Matrix(out, os.path.splitext(os.path.basename(out))[0].replace("_Compliance_Matrix", ""))
             M.items, M.headings, M.sources = items, heads, src
-            M.outline = C.outline_from_headings(heads, "L")
+            typed = (self.ws.get("outline_text") or "").strip() if getattr(self, "ws", None) else ""
+            M.outline = C.parse_outline(typed) if typed else C.outline_from_headings(heads, "L")   # 2.28.0
             M.log("matrix", f"read {len(paths)} RFP file(s): {len(items)} candidates")
             self.matrix = M
             self._c_save_now()
@@ -585,7 +586,8 @@ class ComplianceMixin:
             if empty:
                 msg += f"\n\n{len(empty)} file(s) have no typed text (scanned pages?): " + ", ".join(empty[:5]) + \
                        ". Scan them in the main window first, or ask for a typed copy."
-            messagebox.showinfo("Compliance matrix", msg + "\n\nThe starting outline comes from the Section L headings; edit it on the Outline tab.", parent=self._cwin)
+            src = ("the response structure set in Start an effort" if typed else "the Section L headings")
+            messagebox.showinfo("Compliance matrix", msg + f"\n\nThe starting outline comes from {src}; edit it on the Outline tab.", parent=self._cwin)
         self._c_read(paths, done)
 
     def compliance_add_files(self):
