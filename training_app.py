@@ -49,6 +49,15 @@ class TrainingApp(ctk.CTk):
         top = ctk.CTkFrame(self, fg_color="transparent"); top.pack(fill="x", padx=14, pady=(10, 0))
         ctk.CTkLabel(top, text="Acronym Hunter Training", font=("Segoe UI", 18, "bold")).pack(side="left")
         self.lbl_state = ctk.CTkLabel(top, text="", anchor="e", justify="right"); self.lbl_state.pack(side="right")
+        # Raw Tk tables are not scaled by CustomTkinter: size their text and rows for the display (2.21.0; rows were
+        # clipped at 150-200% display scaling)
+        import tkinter.font as tkfont
+        sc = max(1.0, float(ctk.ScalingTracker.get_widget_scaling(self)))
+        self.table_font = tkfont.Font(family="Segoe UI", size=int(round(11 * sc)))
+        self.head_font = tkfont.Font(family="Segoe UI", size=int(round(11 * sc)), weight="bold")
+        st = ttk.Style(self); st.theme_use("default")
+        st.configure("Treeview", font=self.table_font, rowheight=self.table_font.metrics("linespace") + int(8 * sc))
+        st.configure("Treeview.Heading", font=self.head_font, padding=(6, int(4 * sc)))
         self.tabs = ctk.CTkTabview(self); self.tabs.pack(fill="both", expand=True, padx=12, pady=8)
         self._corrections_tab(self.tabs.add("Corrections"))
         self._teach_tab(self.tabs.add("Teach the reader"))

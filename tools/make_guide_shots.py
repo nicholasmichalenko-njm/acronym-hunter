@@ -39,8 +39,17 @@ def grab(widget, name, pad=0):
     made.append(f"{name} {img.width}x{img.height}")
 
 
+import customtkinter as ctk
+
+
+def fit(win, w=0.8, h=0.78):
+    """Size a window to fit on screen above the taskbar (geometry is in scaled units)."""
+    sc = float(ctk.ScalingTracker.get_window_scaling(win))
+    win.geometry(f"{int(win.winfo_screenwidth() * w / sc)}x{int(win.winfo_screenheight() * h / sc)}+10+10")
+
+
 app = A.AcronymAppGUI()
-app.geometry("1500x900+20+20")
+fit(app)
 
 
 def wait(cond, then, n=0):
@@ -77,7 +86,7 @@ def step2():
     app.kw_set_status("Keep", ["thermal control system"])
     grab(app.kw_view, "keywords.png")
     sw = app.kw_suggest_dialog(wait=True)
-    sw.geometry("1000x620+80+80"); sw.update()
+    fit(sw, 0.7, 0.7); sw.update()
     tv = sw._api["tree"]
     if tv.get_children():
         tv.selection_set(tv.get_children()[0]); sw.update()
@@ -104,7 +113,7 @@ for t, r in (("RFP", "RFF"), ("SE&I", "SE8I"), ("TT&C", "TT8C")):
 pack = os.path.join(tmp, "AcronymHunter_Corrections_sample.zip")
 C.export_pack(pack)
 C.set_dir(os.path.join(tmp, "team_td"))
-tapp = T.TrainingApp(); tapp.geometry("1180x760+20+20")
+tapp = T.TrainingApp(); fit(tapp)
 
 
 def team():
