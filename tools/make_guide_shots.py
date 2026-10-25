@@ -115,7 +115,7 @@ def step3():
     app.setup_accept(); cw.update()
 
     def shot_setup():
-        fit(cw, 0.95, 0.88); cw.update(); time.sleep(0.5); cw.update()
+        cw.state("zoomed"); cw.update(); time.sleep(0.8); cw.update()
         out = cw.s_out
         for iid in out.get_children()[:3]:
             out.item(iid, open=True)
@@ -125,7 +125,8 @@ def step3():
         app.after(1200, lambda: shot_runs(w))
 
     def shot_runs(w):
-        fit(w, 0.85, 0.85); w.update(); time.sleep(0.5); w.update()
+        w.geometry("1100x680+10+10"); w.update(); time.sleep(0.8); w.update()
+        print("what runs geometry:", w.winfo_width(), w.winfo_height(), w.wm_geometry())
         grab(w, "whatruns.png")
         w.destroy(); app.update()
         s = app.show_stack("scan"); s.update()
