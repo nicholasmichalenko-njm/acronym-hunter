@@ -632,3 +632,19 @@ LAST KNOWN FALSE ALARMS, SHARPER TRAINING TABLE, GUIDE PICTURES (2.21.0)
   at 150% and 200% scaling.
 - Help > User Guide shows pictures of the effort list, Scan review, the Keywords view, Suggest keywords, the Effort box
   and Acronym Hunter Training. tools\make_guide_shots.py makes them again from the fictional samples.
+
+FIRST USE PER SECTION, MATH READS KEPT, LINE-REMOVAL PASS, OSV CHECK (2.22.0)
+- First use rule "Restarts in each section of each volume" (Effort settings, and step 5 of Start an effort). Sections
+  come from Word headings: numbered headings group by their first number or letter (2, 2.1 and 2.3 are section 2; C.3
+  and "Section C" are section C); other headings are their own section; text before the first heading is "(start)".
+  PDFs and slides have no headings, so the whole file is one section. The volume check report and its Excel export add
+  a Section column. Results saved before 2.22.0 fall back to the volume and the report says to rescan.
+- Math reader results are kept: in the .ahproj file for a project, otherwise in the effort's folder (settings.json).
+  After a rescan or reopening, pictures in unchanged files show what the math reader read without running it again.
+  A changed file drops its saved reads. With AI and ML off nothing is put back.
+- Pictures with table rules or box edges are read a second time with the lines painted out (OpenCV rules, no model);
+  only readings the first pass lacked are added. Hard diagram set: 142 to 143 of 146 labels (lines touching text 13 to
+  14 of 14), about 15% more picture time. Turn off with "line_removal_pass": 0 in config\ocr_settings.json.
+- Build PC: tools\osv_check.py checks every Python package in the release SBOMs against the OSV database (package names
+  and versions only). 2.22.0: 16 packages, no known advisories. The app itself never connects to anything.
+- User Guide: pictures of the Setup tab, Help > What runs where and a ? panel.

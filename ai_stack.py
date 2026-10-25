@@ -32,7 +32,7 @@ FEATURES = {
         ("RapidFuzz", "Matches definitions with small spelling differences", "none"),
         ("Context rules", "When a term has several meanings, nearby words, role and document cues, and the long form in "
                           "the same files suggest one; you decide", "none"),
-        ("OpenCV", "Cleans up pictures before reading (no model)", "none"),
+        ("OpenCV", "Cleans up pictures before reading; a second read with table and box lines removed (no model)", "none"),
         ("Tesseract 5 (Google, Apache 2.0)", "Reads text inside pictures and scans with a trained LSTM model; built without "
                                              "network support", "ml"),
         ("docTR via ONNX Runtime (Mindee, Microsoft)", "Second reader for hard diagrams: finds text boxes and reads them", "ml"),
