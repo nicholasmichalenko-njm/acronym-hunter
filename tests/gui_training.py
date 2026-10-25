@@ -47,8 +47,8 @@ app = A.AcronymAppGUI()
 
 def user_steps():
     check("Acronym Hunter: training lives elsewhere", not A.trainer_available() and A.corrections_on())
-    app.show_tools_menu()
     m = app.tools_menu
+    app.show_tools_menu(m)           # passing the menu builds it without popping it up (a popup blocks on Windows)
     labels = [m.entrycget(i, "label") for i in range(m.index("end") + 1) if m.type(i) == "command"]
     check("Tools: no Improve Reading or Trainer", not any(l.startswith(("Improve Reading", "Trainer")) for l in labels), labels)
     check("Tools: Send corrections", any(l.startswith("Send corrections") for l in labels))
