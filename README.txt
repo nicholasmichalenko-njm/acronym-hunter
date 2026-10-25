@@ -701,3 +701,16 @@ ALT FORMS AND THE MASTER DATABASE ACROSS EFFORTS (2.26.0)
   is today, new alt forms are added. New columns: Alt forms, Used in efforts, Times used, Last used. The app shows the
   new and changed rows, writes a new version of the master file, keeps the earlier one in "Master database backups"
   beside it, and loads the new version. Adding the same effort twice changes nothing.
+
+QA/QC: BANNED WORDS AND PHRASES (2.27.0)
+- QA/QC lists every banned word or phrase candidate in the Word volumes we write: what it found, the list entry,
+  where (text, table, caption, header or footer), the sentence around it, what to use instead and why. A cross "Fix"
+  for Banned entries, "! Check" for Avoid entries. Comments are skipped; text inside pictures is not checked.
+- Double-click a row: the whole passage with the word highlighted, and Open in Word.
+- QA/QC > Banned words list...: the team's list (Phrase, Level, Use instead, Why) in config\banned_words.csv. Add,
+  edit, remove, import a CSV, Excel or text list, export, or go back to the starter list of common proposal style rules
+  (unsupported claims, weak commitments, vague words, placeholders such as TBD). Knowledge Packs carry the list; on a PC
+  with no list of its own, the team's list replaces the starter list.
+- Matching: not case sensitive; hyphen or space alike ("state of the art" finds "state-of-the-art"); a single word also
+  finds -s, -ed and -ing; * stands for any letters (utiliz*); capitals up to 5 letters (TBD) match capitals only.
+- The QA/QC top line counts them; the Excel report adds a "Banned words" sheet.

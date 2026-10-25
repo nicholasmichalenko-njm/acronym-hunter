@@ -1,5 +1,5 @@
 """Volume check in the app: Effort > Check volumes on two volumes, report window, jump, exports, add missing, record use."""
-import os, sys, tempfile, zipfile
+import os, sys, tempfile, zipfile, time
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # Windows consoles default to cp1252
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["AH_OCR_ENGINE"] = "tesseract"
@@ -14,7 +14,7 @@ simpledialog.askstring = lambda *a, **k: "J. Smith"
 LIST = os.path.join(tmp, "Kestrel_Effort_List.xlsx")
 v1, v2 = os.path.join(tmp, "Vol 2 Management.docx"), os.path.join(tmp, "Vol 10 Cost.docx")
 make_docx(v1, ["This Statement of Work (SOW) covers the program.", "The GNX team owns pointing, and the QZR is in month nine."])
-make_docx(v2, ["The SOW applies; GNX reports monthly."])
+make_docx(v2, ["The SOW applies; GNX reports monthly. We guarantee the schedule."])
 app = A.AcronymAppGUI()
 out = {}
 
@@ -73,7 +73,27 @@ def wait():
     stv, _sdata = app._volwin._trees["First use"]
     sec_cols = list(stv["columns"])
     print("section rule columns:", sec_cols[:3], "| rows:", len(rs["first_use"]))
-    out["ok"] = "Acronym list" in win._trees and out["qa_view"] and bool(out["warned"]) and sec_cols[:4] == ["check", "volume", "section", "term"] and (r["volumes"] == ["Vol 2 Management.docx", "Vol 10 Cost.docx"] and "GNX" in L.rows and L.rows["GNX"]["Status"] == "Proposed"
+    # 2.27.0 banned words: the tab, the passage window, the list editor
+    btv, bdata = win._trees["Banned words"]
+    brow = next((x for x in bdata.values() if x["phrase"] == "guarantee"), None)
+    bw = app.banned_show(brow) if brow else None
+    if bw:
+        bw.update(); time.sleep(0.3); bw.update()
+    out["banned"] = bool(brow) and brow["volume"] == "Vol 10 Cost.docx" and bw is not None and "guarantee the schedule" in bw._text
+    print("banned word row:", brow and (brow["check"], brow["found"], brow["where"]), "| passage shown:", out["banned"])
+    if bw:
+        bw.destroy()
+    lw = app.banned_list_window(); lw.update(); time.sleep(0.3); lw.update()
+    n0 = len(lw._api["state"]["items"])
+    f = lw._api["form"](); f.update(); time.sleep(0.2); f.update()
+    f._ok({"Phrase": "game changer", "Level": "Avoid", "Use instead": "the measured gain", "Why": "Hype"})
+    lw._api["remove"](["very"])
+    import banned
+    saved = {x["Phrase"] for x in banned.load()}
+    out["banned_list"] = "game changer" in saved and "very" not in saved and len(saved) == n0
+    print("banned list edited:", out["banned_list"])
+    lw.update(); time.sleep(0.2); lw.destroy()
+    out["ok"] = out["banned"] and out["banned_list"] and "Acronym list" in win._trees and out["qa_view"] and bool(out["warned"]) and sec_cols[:4] == ["check", "volume", "section", "term"] and (r["volumes"] == ["Vol 2 Management.docx", "Vol 10 Cost.docx"] and "GNX" in L.rows and L.rows["GNX"]["Status"] == "Proposed"
                  and L.rows["SOW"]["Used in volumes"] == "Vol 2 Management.docx; Vol 10 Cost.docx" and len(lists) == 3
                  and app.tree.selection() == ("SOW",) and r["summary"]["unused"] == 1)
     print("GUI VOLCHECK", "PASS" if out["ok"] else "FAIL")

@@ -158,6 +158,13 @@ PAGES = {
                                "tables. The line at the top counts each."),
               ("Used once", "An acronym defined at first use but never used again gets ! Check: spell it out and leave out "
                             "the (ACR). Uses in tables and figures count; the volume's own acronym list does not."),
+              ("Banned words", "QA/QC also lists every banned word or phrase candidate in the volume: what it found, the "
+                               "list entry, where (text, table, caption, header), the sentence, and what to use instead. "
+                               "\u2717 Fix for Banned, ! Check for Avoid. Double-click a row for the whole passage with the word "
+                               "highlighted and an Open in Word button. Banned words list... edits the team's list (add, edit, "
+                               "remove, import a CSV or Excel list, export, back to the starter list); Knowledge Packs carry it. "
+                               "Matching: not case sensitive, hyphen or space alike, -s/-ed/-ing found, * for any letters, "
+                               "short capitals (TBD) match capitals only. Text inside pictures is not checked."),
               ("Acronym list", "The volume's own list (a table of acronym and definition, or lines of acronym<tab>definition) "
                                "is checked on its own tab: \u2717 used in the volume but not listed; ! listed but not used "
                                "anywhere else, or its definition differs from the effort list; \u2713 listed, used and "

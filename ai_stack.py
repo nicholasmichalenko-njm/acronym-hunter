@@ -51,6 +51,8 @@ FEATURES = {
         ("Effort folder", "Saved results, choices and backups for this effort only", "none"),
         ("Keyword Harvest (rules and counts)", "Suggests SharePoint keywords from phrase counts, headings, emphasis wording "
                                                "and where a phrase appears; you decide", "none"),
+        ("Banned words (rules)", "QA/QC finds the team's banned words and phrases in our Word volumes by pattern matching",
+         "none"),
         ("Alt forms and the master database (rules)", "Keeps other ways of writing a term with its primary, and adds a finished "
                                                        "effort to the master: one row per term and meaning, with where it "
                                                        "was used", "none"),

@@ -66,10 +66,12 @@ def _uses(d, vol, file_of):
     return [loc for loc in d.get("locations", []) if file_of(loc) == vol]
 
 
-def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in_picture=None, vol_lists=None):
+def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in_picture=None, vol_lists=None,
+          vol_banned=None):
     """results: the app's scan results {term: data}. rows: EffortList.rows {term: {column: value}}.
     volumes: file names (as in location labels) in submission order. vol_defs: {volume: custdefs.extract() result}.
     vol_lists: {volume: custdefs.acronym_list() result}: each volume's own acronym list (2.25.0).
+    vol_banned: {volume: banned.find() result}: banned word and phrase candidates (2.27.0).
     Returns a dict with the report parts (lists of dicts) and a summary."""
     vol_defs = vol_defs or {}
     file_of = file_of or (lambda loc: loc)
@@ -326,6 +328,16 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
                         "type": kind(d.get("category", ""))})
         lists[v] = out
 
+    # ---------------- banned words and phrases (2.27.0)
+    banned_rows = []
+    for v in volumes:
+        for h in (vol_banned or {}).get(v) or []:
+            lv = BAD if h["level"] == "Banned" else WARN
+            banned_rows.append({"volume": v, "found": h["found"], "phrase": h["phrase"], "use": h.get("use", ""),
+                                "why": h.get("why", ""), "loc": h["loc"], "where": f"{KIND_NAMES.get(h['kind'], 'Text')}: {h['loc']}",
+                                "sentence": h.get("sentence", ""), "level": lv, "check": CHECK_MARKS[lv],
+                                "state": "Banned" if lv == BAD else "Avoid"})
+
     summary = {"volumes": len(volumes), "rule": rule,
                "terms_used": len(all_terms),
                "first_use_problems": sum(1 for r in first_use if r["level"] in (BAD, WARN)),
@@ -333,10 +345,12 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
                "rescan_for_sections": len(no_sections),
                "checks": {lv: sum(1 for r in first_use if r["level"] == lv) for lv in (OK, BAD, WARN, INFO)},
                "used_once": sum(1 for r in first_use if r.get("once")),
+               "banned": {lv: sum(1 for r in banned_rows if r["level"] == lv) for lv in (BAD, WARN)},
+               "banned_checked": vol_banned is not None,
                "list_checks": {lv: sum(1 for r in acr_list if r["level"] == lv) for lv in (OK, BAD, WARN, INFO)}}
     return {"summary": summary, "first_use": first_use, "missing": missing, "not_approved": not_approved,
             "differs": differs, "unused": unused, "lists": lists, "volumes": list(volumes), "used": used,
-            "acronym_list": acr_list}
+            "acronym_list": acr_list, "banned": banned_rows}
 
 
 def effort_updates(report):
@@ -365,6 +379,7 @@ def write_excel(report, path, effort_name=""):
               ["Terms used", s["terms_used"]], ["First-use problems", s["first_use_problems"]],
               ["Defined at first use (OK)", s.get("checks", {}).get(OK, 0)],
               ["Defined but never used again", s.get("used_once", 0)],
+              ["Banned words found", sum(s.get("banned", {}).values())],
               ["Acronym list problems", sum(s.get("list_checks", {}).get(lv, 0) for lv in (BAD, WARN))],
               ["Checked on", "Word documents (.docx) only; PDF exports are not checked"],
               ["Not in effort list", s["missing"]], ["Not approved yet", s["not_approved"]],
@@ -411,6 +426,10 @@ def write_excel(report, path, effort_name=""):
           report["differs"], ["term", "volume", "written", "list_definition", "loc", "sentence"], [14, 22, 36, 36, 36, 60])
     sheet("Unused in volumes", ["Term", "Type", "Status", "Definition"],
           report["unused"], ["term", "type", "status", "definition"], [14, 13, 14, 50])
+    if s.get("banned_checked"):
+        sheet("Banned words", ["Check", "Volume", "Found", "Banned phrase", "Use instead", "Where", "Sentence", "Why"],
+              report.get("banned", []), ["check", "volume", "found", "phrase", "use", "where", "sentence", "why"],
+              [9, 22, 18, 20, 30, 40, 70, 24], level_key="level")
     if report.get("acronym_list"):
         sheet("Acronym list check", ["Check", "Volume", "Acronym", "Result", "In the list as", "Effort list definition",
                                      "Uses outside the list"],

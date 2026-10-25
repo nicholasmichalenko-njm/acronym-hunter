@@ -47,6 +47,8 @@ class VolumeCheckMixin:
         ctk.CTkLabel(top, text="QA/QC: our Word deliverables", font=("Arial", 15, "bold"), anchor="w").pack(side="left", padx=4)
         ctk.CTkButton(top, text="Check Word deliverables...", fg_color="#15803D", width=200,
                       command=self.check_volumes).pack(side="right", padx=4)
+        ctk.CTkButton(top, text="Banned words list...", fg_color="#475569", width=170,
+                      command=self.banned_list_window).pack(side="right", padx=4)
         note = ctk.CTkLabel(Q, text=WORD_ONLY, anchor="w", justify="left", wraplength=900, text_color=("#475569", "#94A3B8"))
         note.pack(fill="x", padx=4, pady=(2, 6))
         _wrap_to(note, Q)
@@ -67,7 +69,8 @@ class VolumeCheckMixin:
             "shows where a term also appears in one.\n"
             "It also flags an acronym defined at first use but never used again (spell it out instead), and checks each "
             "volume's own acronym list: acronyms used but not listed, listed but not used, and list definitions that differ "
-            "from the effort list."))
+            "from the effort list.\n"
+            "Banned words: every candidate from the team's Banned words list, with where it is and the sentence around it."))
         intro.pack(fill="x", padx=8, pady=8)
         _wrap_to(intro, self.qa_view)
 
@@ -100,7 +103,12 @@ class VolumeCheckMixin:
             messagebox.showwarning("Check volumes", "Two volumes have the same file name. Rename one so the report can tell them apart.")
             return
         diag.activity("volume_check_started", files=len(paths))
-        self._volcheck = {"paths": paths, "names": names, "defs": {}, "lists": {}}
+        self._volcheck = {"paths": paths, "names": names, "defs": {}, "lists": {}, "banned": {}}
+        import banned
+        try:
+            words = banned.load()
+        except Exception:
+            diag.swallowed(); words = []
 
         def after(cb):
             import custdefs
@@ -112,6 +120,10 @@ class VolumeCheckMixin:
                     diag.swallowed()
                 try:                                        # the volume's own acronym list (2.25.0)
                     self._volcheck["lists"][os.path.basename(p)] = custdefs.acronym_list(p)
+                except Exception:
+                    diag.swallowed()
+                try:                                        # banned words and phrases (2.27.0)
+                    self._volcheck["banned"][os.path.basename(p)] = banned.find(eng.typed_chunks(p), words, eng.loc_kind)
                 except Exception:
                     diag.swallowed()
         self.start_batch(paths, after=after)
@@ -126,7 +138,8 @@ class VolumeCheckMixin:
         report = V.build({t: d for t, d in self.results.items() if not d.get("known")}, self.effort.rows,   # known names stay off
                          vc["names"], self.effort.first_use, vc["defs"],
                          file_of=eng._file_of, in_picture=lambda loc: bool(eng._OCR_LOC.search(loc)),
-                         vol_lists=vc.get("lists"))
+                         vol_lists=vc.get("lists"), vol_banned=vc.get("banned"))
+        report["paths"] = {os.path.basename(p): p for p in vc["paths"]}
         self.volume_report = report
         s = report["summary"]
         diag.activity("volume_check_report", terms=s["terms_used"], rows=len(report["first_use"]), items=s["missing"])
@@ -149,6 +162,9 @@ class VolumeCheckMixin:
         c = s.get("checks", {})
         head = (f"First use {rule}:   \u2713 {c.get(V.OK, 0)} defined at first use     \u2717 {c.get(V.BAD, 0)} to fix     "
                 f"! {c.get(V.WARN, 0)} to check     i {c.get(V.INFO, 0)} notes")
+        bc = s.get("banned", {})
+        if s.get("banned_checked"):
+            head += f"          Banned words:  \u2717 {bc.get(V.BAD, 0)}   ! {bc.get(V.WARN, 0)}"
         lc = s.get("list_checks", {})
         head += (f"          Acronym list:  \u2713 {lc.get(V.OK, 0)}   \u2717 {lc.get(V.BAD, 0)}   ! {lc.get(V.WARN, 0)}"
                  if report.get("acronym_list") else "")
@@ -205,6 +221,11 @@ class VolumeCheckMixin:
                                 "Effort list says", "Also defined at"],
                   report["first_use"], ["check", "volume", "term", "state", "loc", "in_figures", "written", "list_definition",
                                         "also_defined"], [70, 170, 100, 330, 260, 260, 190, 190, 200], level=True)
+        if s.get("banned_checked"):
+            tvb = table("Banned words", ["Check", "Volume", "Found", "Banned phrase", "Use instead", "Where", "Sentence", "Why"],
+                        report.get("banned", []), ["check", "volume", "found", "phrase", "use", "where", "sentence", "why"],
+                        [70, 170, 130, 150, 220, 300, 520, 160], level=True, jump=False)
+            tvb.bind("<Double-1>", lambda e, tv=tvb: self.banned_show(win._trees["Banned words"][1].get(tv.focus())))
         if report.get("acronym_list"):
             table("Acronym list", ["Check", "Volume", "Acronym", "Result", "In the list as", "Effort list says",
                                    "Uses outside the list"],
@@ -331,3 +352,155 @@ class VolumeCheckMixin:
         self._save_effort_list()
         self.update_effort_ui()
         messagebox.showinfo("Effort list", f"Used in volumes and First use updated for {n} terms.", parent=self._volwin)
+
+    # ------------------------------------------------------------ banned words (2.27.0)
+    def banned_show(self, row):
+        """The passage a banned word candidate was found in, with the word highlighted; Open in Word opens the volume."""
+        if not row:
+            return None
+        eng = _eng()
+        path = ((getattr(self, "volume_report", None) or {}).get("paths") or {}).get(row["volume"])
+        text = ""
+        if path and os.path.isfile(path):
+            try:
+                text = next((t for lbl, t in eng.typed_chunks(path) if lbl == row["loc"]), "")
+            except Exception:
+                diag.swallowed()
+        win = ctk.CTkToplevel(self); win.title(f"Banned word: {row['found']}"); win.geometry("760x460"); win.transient(self)
+        win.after(150, win.lift)
+        diag.activity("banned_word_shown")
+        ctk.CTkLabel(win, text=f"{row['check']}   \"{row['found']}\"  ({row['phrase']}: {row['state']})   in {row['volume']}",
+                     anchor="w", font=("Arial", 13, "bold")).pack(fill="x", padx=12, pady=(10, 0))
+        ctk.CTkLabel(win, text=f"Where: {row['where']}" + (f"\nUse instead: {row['use']}" if row.get("use") else "")
+                     + (f"\nWhy: {row['why']}" if row.get("why") else ""), anchor="w", justify="left",
+                     wraplength=720).pack(fill="x", padx=12, pady=4)
+        box = tk.Text(win, wrap="word", font=("Segoe UI", 12), height=12, relief="flat", padx=8, pady=6)
+        box.pack(fill="both", expand=True, padx=12)
+        box.insert("1.0", text or row.get("sentence", ""))
+        box.tag_configure("hit", background="#FDE68A")
+        import banned
+        rx = banned.pattern(row["phrase"])
+        content = box.get("1.0", "end-1c")
+        first = None
+        for m in rx.finditer(content):
+            box.tag_add("hit", f"1.0+{m.start()}c", f"1.0+{m.end()}c")
+            first = first or f"1.0+{m.start()}c"
+        if first:
+            box.see(first)
+        box.configure(state="disabled")
+        b = ctk.CTkFrame(win, fg_color="transparent"); b.pack(fill="x", padx=12, pady=8)
+        if path and hasattr(os, "startfile"):
+            ctk.CTkButton(b, text="Open in Word", command=lambda: os.startfile(path)).pack(side="left")
+        ctk.CTkButton(b, text="Close", fg_color="#475569", command=win.destroy).pack(side="right")
+        win._text = content
+        return win
+
+    def banned_list_window(self):
+        """The team's banned words and phrases: add, edit, remove, import, export, back to the starter list."""
+        import banned
+        old = getattr(self, "_banwin", None)
+        if old is not None and old.winfo_exists():
+            old.lift(); return old
+        win = ctk.CTkToplevel(self); win.title("Banned words and phrases"); win.geometry("900x560"); win.transient(self)
+        win.after(150, win.lift)
+        self._banwin = win
+        diag.activity("banned_list_opened")
+        ctk.CTkLabel(win, anchor="w", justify="left", wraplength=860, text=(
+            "QA/QC lists every place our Word volumes use one of these. Not case sensitive; a hyphen or space between words "
+            "matches either way; a single word also finds -s, -ed and -ing; * stands for any letters (utiliz*). Words in "
+            "capitals up to 5 letters (TBD) match capitals only. Banned shows a cross (Fix); Avoid shows ! (Check). The "
+            "list travels to the team in Knowledge Packs.")).pack(fill="x", padx=12, pady=(10, 6))
+        fr = tk.Frame(win); fr.pack(fill="both", expand=True, padx=12)
+        tv = ttk.Treeview(fr, columns=banned.COLUMNS, show="headings", selectmode="extended")
+        for c, w in zip(banned.COLUMNS, (200, 80, 300, 220)):
+            tv.heading(c, text=c); tv.column(c, width=w, anchor="w")
+        sb = ttk.Scrollbar(fr, orient="vertical", command=tv.yview); tv.configure(yscrollcommand=sb.set)
+        sb.pack(side="right", fill="y"); tv.pack(fill="both", expand=True)
+        state = {"items": banned.load()}
+        lbl = ctk.CTkLabel(win, text="", anchor="w"); lbl.pack(fill="x", padx=12)
+
+        def fill():
+            tv.delete(*tv.get_children())
+            for i, it in enumerate(sorted(state["items"], key=lambda x: x["Phrase"].casefold())):
+                tv.insert("", "end", iid=str(i), values=[it[c] for c in banned.COLUMNS])
+            starter = not os.path.isfile(banned.path())
+            lbl.configure(text=f"{len(state['items'])} phrases" + ("  (starter list: edit it to make it the team's)" if starter else ""))
+
+        def selected():
+            vals = [tv.item(i, "values") for i in tv.selection()]
+            return [v[0] for v in vals]
+
+        def save():
+            banned.save(state["items"]); state["items"] = banned.load(); fill()
+
+        def form(item=None):
+            f = ctk.CTkToplevel(win); f.title("Banned phrase"); f.geometry("520x260"); f.transient(win); f.after(150, f.lift)
+            ents = {}
+            for r, c in enumerate(banned.COLUMNS):
+                ctk.CTkLabel(f, text=c).grid(row=r, column=0, sticky="w", padx=10, pady=4)
+                if c == "Level":
+                    v = tk.StringVar(value=(item or {}).get(c) or "Banned")
+                    ctk.CTkOptionMenu(f, variable=v, values=banned.LEVELS, width=140).grid(row=r, column=1, sticky="w", pady=4)
+                    ents[c] = v
+                else:
+                    e = ctk.CTkEntry(f, width=360); e.grid(row=r, column=1, sticky="w", pady=4)
+                    e.insert(0, (item or {}).get(c, "")); ents[c] = e
+
+            def ok(values=None):
+                new = values or {c: ents[c].get() for c in banned.COLUMNS}
+                if not str(new.get("Phrase", "")).strip():
+                    return False
+                if item is not None:
+                    state["items"] = [x for x in state["items"] if x["Phrase"].casefold() != item["Phrase"].casefold()]
+                state["items"].append(new)
+                save(); f.destroy()
+                diag.activity("banned_phrase_saved")
+                return True
+            bb = ctk.CTkFrame(f, fg_color="transparent"); bb.grid(row=5, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
+            ctk.CTkButton(bb, text="Save", fg_color="#0F766E", command=ok).pack(side="left")
+            ctk.CTkButton(bb, text="Cancel", fg_color="#475569", command=f.destroy).pack(side="right")
+            f._ok = ok
+            return f
+
+        def edit():
+            sel = selected()
+            if len(sel) == 1:
+                return form(next(x for x in state["items"] if x["Phrase"] == sel[0]))
+            return None
+
+        def remove(names=None):
+            names = {n.casefold() for n in (names or selected())}
+            state["items"] = [x for x in state["items"] if x["Phrase"].casefold() not in names]
+            save()
+
+        def imp(fp=None):
+            fp = fp or filedialog.askopenfilename(parent=win, title="Banned words list",
+                                                  filetypes=[("Lists", "*.csv *.xlsx *.txt"), ("All files", "*.*")])
+            if fp:
+                a, same = banned.import_file(fp)
+                state["items"] = banned.load(); fill()
+                lbl.configure(text=f"{a} added, {same} already in the list.")
+
+        def exp(fp=None):
+            fp = fp or filedialog.asksaveasfilename(parent=win, title="Export the banned words list", defaultextension=".csv",
+                                                    initialfile="Banned_Words.csv", filetypes=[("CSV", "*.csv")])
+            if fp:
+                import csv as _csv
+                with open(fp, "w", newline="", encoding="utf-8-sig") as fh:
+                    w = _csv.DictWriter(fh, fieldnames=banned.COLUMNS); w.writeheader(); w.writerows(state["items"])
+                lbl.configure(text=f"Saved {os.path.basename(fp)}")
+
+        def reset():
+            if messagebox.askyesno("Banned words", "Go back to the starter list? Your own phrases are removed.", parent=win):
+                state["items"] = banned.starter(); save()
+
+        tv.bind("<Double-1>", lambda _e: edit())
+        b = ctk.CTkFrame(win, fg_color="transparent"); b.pack(fill="x", padx=12, pady=10)
+        for text, cmd, color in (("Add...", lambda: form(), "#0F766E"), ("Edit...", edit, "#1E3A8A"), ("Remove", remove, "#B91C1C"),
+                                 ("Import...", imp, "#475569"), ("Export...", exp, "#475569"),
+                                 ("Starter list", reset, "#475569")):
+            ctk.CTkButton(b, text=text, width=100, fg_color=color, command=cmd).pack(side="left", padx=(0, 6))
+        ctk.CTkButton(b, text="Close", width=90, fg_color="#475569", command=win.destroy).pack(side="right")
+        fill()
+        win._api = {"tree": tv, "form": form, "remove": remove, "imp": imp, "exp": exp, "state": state}
+        return win
