@@ -2101,6 +2101,8 @@ def match_chunks(findings, chunks, m):
             if (ucand in m['include_db'] or ucand in m['exclude_db'] or
                     ucand.upper() in m['exclude_upper'] or ucand.lower() in NON_UNIT_WORDS or ucand.isdigit()):
                 continue
+            if (len(ucand) >= 3 and ucand[0].isupper() and ucand[1:].islower() and ucand.lower() in m['common_words']):
+                continue   # "1 Add ...", "3 Open ...": a capitalized ordinary word after a number, not a unit (2.21.0)
             record_candidate(findings, ucand, "Unit (Candidate)", loc_label,
                              caps_run=ucand.isalpha() and ucand.isupper() and in_caps_run(text, match.start(1), match.end(1)))
 
@@ -2603,6 +2605,9 @@ def record_excluded(findings, term, loc, exclude_db):
         findings[term]["locations"].append(loc)
 
 _CAPS_WORD = re.compile(r"^[A-Z][A-Z&]+$")
+_STRUCTURE_WORDS = {"appendix", "appendices", "attachment", "attachments", "exhibit", "exhibits", "annex", "section",
+                    "sections", "chapter", "enclosure", "addendum", "amendment", "contents", "glossary", "introduction",
+                    "summary", "overview", "background", "references", "foreword", "preface", "index"}
 _ENGLISH_ENDINGS = ("tion", "tions", "sion", "sions", "ment", "ments", "ing", "ings", "ance", "ence", "ness", "ity", "ities",
                     "ive", "ives", "al", "als", "ure", "ures", "ers", "ies", "ical", "ally", "ated", "ates")
 _NUMBERING = re.compile(r"[\d.]+|[A-Z]\.?[\d.]*")
@@ -2629,10 +2634,11 @@ def mark_heading_words(findings, m):
     common = m.get('common_words') or set()
     for term, d in findings.items():
         low = term.lower()
-        wordlike = low in common or (len(low) >= 7 and low.endswith(_ENGLISH_ENDINGS))   # the list holds words of 2-6 letters
+        structure = low in _STRUCTURE_WORDS          # APPENDIX A, SECTION L, ATTACHMENT 3: labels, never acronyms (2.21.0)
+        wordlike = structure or low in common or (len(low) >= 7 and low.endswith(_ENGLISH_ENDINGS))   # list: 2-6 letters
         if (d.get("status") == "NEW CANDIDATE" and d.get("category") == "Acronym (Candidate)" and not d.get("in_db")
                 and term.isalpha() and len(term) >= 2 and wordlike
-                and d.get("caps_run", 0) >= d.get("count", 0) > 0):
+                and (structure or d.get("caps_run", 0) >= d.get("count", 0) > 0)):
             d["excluded"] = True
             d["status"] = "EXCLUDED: heading word in capitals"
             d["selected_definition"] = "An ordinary word that only appears in all-capital headings"

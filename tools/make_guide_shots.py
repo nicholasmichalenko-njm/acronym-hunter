@@ -1,0 +1,121 @@
+"""Guide screenshots for 2.14 to 2.21 features (run on the Windows build PC with the desktop unlocked).
+
+    venv\\Scripts\\python.exe tools\\make_guide_shots.py
+
+Uses the fictional test_samples only, in a temporary config folder, and writes assets\\help\\topbar.png, home.png,
+scanreview.png, keywords.png, suggest.png and training.png. Each picture is the window region of one view, captured
+with PIL ImageGrab, so the window must be on screen and not covered.
+"""
+import os, sys, shutil, tempfile, time
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+os.environ["AH_TEST"] = "1"
+import app_gui as A, effort as E, effort_home as H
+from tkinter import messagebox
+from PIL import ImageGrab, Image
+
+OUT = os.path.join(A.BASE_DIR, "assets", "help")
+tmp = tempfile.mkdtemp()
+A.CONFIG_DIR = os.path.join(tmp, "config"); A.CHOICES_FILE = os.path.join(A.CONFIG_DIR, "choices.json")
+A.SETTINGS_FILE = os.path.join(tmp, "settings.json")
+for n in ("showinfo", "showwarning", "showerror"):
+    setattr(messagebox, n, lambda *a, **k: None)
+messagebox.askyesno = lambda *a, **k: True
+SAMPLES = os.path.join(A.BASE_DIR, "test_samples")
+CDIR = os.path.join(tmp, "Kestrel Thermal", "Customer documents"); os.makedirs(CDIR)
+for f in os.listdir(os.path.join(SAMPLES, "rfp")):
+    shutil.copy2(os.path.join(SAMPLES, "rfp", f), CDIR)
+LIST = os.path.join(tmp, "Kestrel Thermal", "Kestrel_Thermal_Effort_List.xlsx")
+VOL = os.path.join(SAMPLES, "Kestrel_Technical_Volume.docx")
+made = []
+
+
+def grab(widget, name, pad=0):
+    widget.update_idletasks(); widget.update()
+    time.sleep(0.6); widget.update()
+    x, y = widget.winfo_rootx() - pad, widget.winfo_rooty() - pad
+    w, h = widget.winfo_width() + 2 * pad, widget.winfo_height() + 2 * pad
+    img = ImageGrab.grab(bbox=(x, y, x + w, y + h), all_screens=True)
+    img.save(os.path.join(OUT, name))
+    made.append(f"{name} {img.width}x{img.height}")
+
+
+app = A.AcronymAppGUI()
+app.geometry("1500x900+20+20")
+
+
+def wait(cond, then, n=0):
+    if not cond() and n < 240:
+        app.after(500, lambda: wait(cond, then, n + 1)); return
+    then()
+
+
+def step1():
+    L = E.EffortList(LIST, "Kestrel Thermal", client="USSF SSC", solicitation="FA8810-27-R-0042"); L.pending = True; L.save()
+    app.efforts.put("Kestrel Thermal", path=LIST, customer_dir=CDIR, client="USSF SSC", solicitation="FA8810-27-R-0042")
+    app.open_effort("Kestrel Thermal")
+    app.start_batch([VOL] + [os.path.join(CDIR, f) for f in sorted(os.listdir(CDIR))])
+    wait(lambda: not app.busy() and not app.btn_cancel.winfo_ismapped(), step2)
+
+
+def step2():
+    terms = [t for t, d in app.results.items() if not d.get("excluded") and not d.get("file_error")][:14]
+    app.add_to_effort(terms)
+    app.add_volume("Vol I Technical", [VOL])
+    app.effort.set_status(terms[:4], "Approved", approver="J. Smith"); app._save_effort_list()
+    app.show_view(H.VIEW_SCAN); app.update()
+    grab(app.topbar, "topbar.png")
+    if app.tree.get_children():
+        first = app.tree.get_children()[0]
+        app.tree.selection_set(first); app.on_select(None)
+    grab(app.scan_view, "scanreview.png")
+    app.show_view(H.VIEW_HOME); app.home_refresh()
+    grab(app.home_view, "home.png")
+    app.show_view(H.VIEW_KW)
+    for t, c in (("thermal control system", "Our solution"), ("radiator panel sizing", "Differentiator"),
+                 ("Integrated Master Schedule", "Customer emphasis")):
+        app.kw_add(t, c, "Typed in")
+    app.kw_set_status("Keep", ["thermal control system"])
+    grab(app.kw_view, "keywords.png")
+    sw = app.kw_suggest_dialog(wait=True)
+    sw.geometry("1000x620+80+80"); sw.update()
+    tv = sw._api["tree"]
+    if tv.get_children():
+        tv.selection_set(tv.get_children()[0]); sw.update()
+    grab(sw, "suggest.png")
+    sw.destroy()
+    app.after(800, finish)
+
+
+def finish():
+    app.on_close()
+
+
+app.after(1500, step1)
+app.mainloop()
+
+# Acronym Hunter Training with one corrections pack
+import corrections as C, training_app as T
+C.set_dir(os.path.join(tmp, "user_td"))
+img = Image.new("RGB", (160, 36), "white")
+from PIL import ImageDraw
+for t, r in (("RFP", "RFF"), ("SE&I", "SE8I"), ("TT&C", "TT8C")):
+    im = img.copy(); ImageDraw.Draw(im).text((10, 10), r, fill="black")
+    C.save_sample(im, t, r, 0.55, "Kestrel_PDR_Briefing.pptx (Slide 5, image 'Diagram')", (0, 0, 160, 36))
+pack = os.path.join(tmp, "AcronymHunter_Corrections_sample.zip")
+C.export_pack(pack)
+C.set_dir(os.path.join(tmp, "team_td"))
+tapp = T.TrainingApp(); tapp.geometry("1180x760+20+20")
+
+
+def team():
+    tapp.import_packs([pack], ask=False)
+    kids = tapp.tv.get_children()
+    if kids:
+        tapp.tv.selection_set(kids[0]); tapp.show_picture()
+    grab(tapp, "training.png")
+    tapp.after(500, tapp.destroy)
+
+
+tapp.after(1500, team)
+tapp.mainloop()
+print("GUIDE SHOTS:", "; ".join(made))
