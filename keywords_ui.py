@@ -67,6 +67,7 @@ class KeywordsMixin:
         ctk.CTkButton(b2, text="Suggest keywords...", width=150, fg_color="#7C3AED", command=self.kw_suggest_dialog, **k).pack(side="left", padx=(0, 6))
         ctk.CTkButton(b2, text="Attach offerings...", width=140, fg_color="#B45309", command=self.attach_offerings_dialog, **k).pack(side="left", padx=(0, 6))
         ctk.CTkButton(b2, text="Offerings catalog...", width=150, fg_color="#475569", command=self.offerings_window, **k).pack(side="left", padx=(0, 6))
+        ctk.CTkButton(b2, text="Past proposals...", width=130, fg_color="#475569", command=self.kw_baseline_dialog, **k).pack(side="left", padx=(0, 6))
         ctk.CTkButton(b2, text="Export...", width=90, fg_color="#0F766E", command=self.kw_export_dialog, **k).pack(side="right")
         self.bind_all("<Control-k>", lambda _e: (self.kw_quick(), "break")[1])
         self.bind_all("<Control-K>", lambda _e: (self.kw_quick(), "break")[1])
@@ -125,8 +126,13 @@ class KeywordsMixin:
         return r
 
     def kw_set_status(self, status, words=None):
+        import keywords
         words = words or self.kw_selected()
-        n = sum(self.effort.update_keyword(w, Status=status) for w in words) if self.effort is not None else 0
+        n = 0
+        for w in (words if self.effort is not None else []):
+            if self.effort.update_keyword(w, Status=status):
+                n += 1
+                keywords.learn(w, status)            # later suggestions in every effort (hashed, counts only)
         if n:
             diag.activity("keyword_status", n=n)
             self._kw_saved()
@@ -286,7 +292,8 @@ class KeywordsMixin:
         L = self.effort
         acr = [(t, r["Definition"]) for t, r in L.rows.items() if r["Status"] == "Approved" and r.get("Definition")] if L else []
         import offerings
-        return keywords.suggest(chunks, acr, [k["Keyword"] for k in (L.keywords if L else [])], offerings=offerings.load())
+        return keywords.suggest(chunks, acr, [k["Keyword"] for k in (L.keywords if L else [])], offerings=offerings.load(),
+                                base=keywords.baseline(), learned=keywords.learning())
 
     def kw_suggest_dialog(self, sources=None, wait=False):
         if self.effort is None:
@@ -342,8 +349,11 @@ class KeywordsMixin:
 
         def reject():
             got = 0
+            import keywords
             for it in picked():
-                got += self.effort.add_keyword(it["phrase"], "Other", "Suggested", "Not a keyword", status="Reject") == "added"
+                if self.effort.add_keyword(it["phrase"], "Other", "Suggested", "Not a keyword", status="Reject") == "added":
+                    got += 1
+                    keywords.learn(it["phrase"], "Reject")
             if got:
                 self._kw_saved()
             for i in tv.selection():
@@ -583,4 +593,73 @@ class KeywordsMixin:
         ctk.CTkButton(b, text="Close", width=90, fg_color="#475569", command=win.destroy).pack(side="right")
         fill()
         win._api = {"tree": tv, "ents": ents, "add": add_update, "import": imp, "export": exp, "remove": remove, "msg": msg}
+        return win
+
+    # ------------------------------------------------------------ capture from any text box (2.18.0)
+    def kw_text_menu(self, event, text_widget, source):
+        try:
+            sel = text_widget.get("sel.first", "sel.last") if text_widget.tag_ranges("sel") else ""
+        except tk.TclError:
+            sel = ""
+        sel = " ".join(sel.split())
+        m = tk.Menu(self, tearoff=0)
+        m.add_command(label=(f"Add as keyword: {sel[:50]}" if sel else "Add as keyword (select words first)"),
+                      state="normal" if sel and self.effort is not None else "disabled",
+                      command=lambda: self.kw_quick(sel, source=source))
+        m.tk_popup(event.x_root, event.y_root)
+        return "break"
+
+    # ------------------------------------------------------------ past proposals baseline (2.18.0)
+    def kw_build_baseline(self, folder, progress=None):
+        """Read the typed text of every past proposal in a folder (one file = one proposal) and save phrase counts."""
+        import keywords
+        eng = _eng()
+        files = []
+        for root, _d, fs in os.walk(folder):
+            files += [os.path.join(root, f) for f in fs if f.lower().endswith((".docx", ".pdf", ".pptx")) and not f.startswith("~$")]
+        docs = []
+        for i, p in enumerate(sorted(files), 1):
+            if progress:
+                progress(f"Reading {i} of {len(files)}")
+            try:
+                docs.append([t for _l, t in eng.typed_chunks(p)])
+            except Exception:
+                diag.swallowed()
+        data = keywords.build_baseline(docs)
+        diag.activity("keyword_baseline_built", files=len(docs))
+        return data
+
+    def kw_baseline_dialog(self):
+        import keywords
+        win = ctk.CTkToplevel(self); win.title("Past proposals"); win.geometry("620x320"); win.transient(self); win.after(150, win.lift)
+        diag.register(win, "keyword_baseline")
+
+        def state_text():
+            b = keywords.baseline()
+            return (f"Baseline: {b['docs']} past proposals, built {b.get('built', '')}." if b.get("docs") else "No baseline yet.")
+        ctk.CTkLabel(win, text=("Pick a folder with past submissions (one file per proposal, Word, PDF or PowerPoint; 5 to 20 is a good "
+                                "start). Suggestions then score phrases every proposal uses lower and phrases new to this one higher. "
+                                "Only hashed phrases with counts are saved, never the text."), wraplength=580, justify="left",
+                     anchor="w").pack(fill="x", padx=14, pady=(12, 6))
+        lbl = ctk.CTkLabel(win, text=state_text(), anchor="w", font=("Segoe UI", 13, "bold")); lbl.pack(fill="x", padx=14, pady=6)
+
+        def build(folder=None):
+            folder = folder or filedialog.askdirectory(parent=win, title="Folder with past submissions")
+            if not folder:
+                return None
+            lbl.configure(text="Reading...")
+            def work():
+                data = self.kw_build_baseline(folder, progress=lambda m: self.after(0, lambda: win.winfo_exists() and lbl.configure(text=m)))
+                self.after(0, lambda: win.winfo_exists() and lbl.configure(text=state_text()))
+                return data
+            threading.Thread(target=work, daemon=True).start()
+            return True
+
+        def clear():
+            keywords.clear_baseline(); lbl.configure(text=state_text())
+        b = ctk.CTkFrame(win, fg_color="transparent"); b.pack(fill="x", padx=14, pady=12)
+        ctk.CTkButton(b, text="Build from a folder...", width=170, fg_color="#0F766E", command=build).pack(side="left")
+        ctk.CTkButton(b, text="Clear", width=80, fg_color="#475569", command=clear).pack(side="left", padx=6)
+        ctk.CTkButton(b, text="Close", width=90, fg_color="#475569", command=win.destroy).pack(side="right")
+        win._api = {"build": build, "clear": clear, "label": lbl}
         return win

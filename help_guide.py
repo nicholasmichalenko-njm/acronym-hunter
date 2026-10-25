@@ -194,6 +194,11 @@ PAGES = {
                           "how often and where, in a heading, near requirement or evaluation wording, only in our volumes. "
                           "Rules and counts only (No AI). Not a keyword keeps a phrase from coming back."),
               ("Decide", "Keep, Reject, Edit (category, why, SharePoint field) or Remove. Every change is in the History sheet."),
+              ("Smarter", "Past proposals: build a baseline from a folder of past submissions; phrases every proposal uses score "
+                          "lower, phrases new to this one higher. Keep and Reject teach later suggestions in every effort. Both "
+                          "keep hashed phrases with counts only, never the text."),
+              ("More capture", "Right-click a compliance row (its outline section), selected words in the requirement text, or a "
+                               "Setup outline heading > Add as keyword."),
               ("Offerings", "Offerings catalog: Sierra Space offerings kept once on this PC (name, other names, group, "
                             "description). Import a list, export it to share. Attach offerings adds them to an effort's keywords "
                             "in one step; suggestions mark an offering when the documents name it; Add to catalog turns a keyword "

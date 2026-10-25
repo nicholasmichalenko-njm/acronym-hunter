@@ -591,3 +591,14 @@ OFFERINGS CATALOG (2.17.0)
 - Suggest keywords lists catalog offerings named in the documents (by name or another name) as Offering, first, with
   how often and where; those names are not suggested again under another kind.
 - Add to catalog: selected keywords go into the catalog and become Offering in this effort.
+
+SMARTER KEYWORD SUGGESTIONS (2.18.0)
+- Keywords > Past proposals: build a baseline from a folder of past submissions (one Word, PDF or PowerPoint file per
+  proposal; 5 to 20 is a good start; typed text only). With 3 or more, suggestions score a phrase lower when half or
+  more of the past proposals use it ("common in past proposals (n of N)") and higher when none do ("new compared with
+  N past proposals"; only in our volumes and new = Differentiator). Saved in config\keyword_baseline.json as hashed
+  phrases with counts, never the text. Clear removes it.
+- Keep and Reject (and Not a keyword) teach later suggestions in every effort: "kept in other efforts (n)" scores higher,
+  "rejected before (n)" lower. config\keyword_learning.json, hashed phrases with counts only.
+- More capture: right-click a compliance requirement > Add outline section as keyword; select words in the requirement
+  text and right-click > Add as keyword; right-click a Setup outline heading > Add heading as keyword.

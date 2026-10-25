@@ -11,7 +11,7 @@ not start or end with a small word, never cross punctuation, and are not RFP boi
 Each suggestion carries a bucket (Customer emphasis, Our solution, Differentiator, Acronym), a score, the reasons in
 plain words, and up to three sample sentences with their location.
 """
-import math, os, re
+import datetime, hashlib, json, math, os, re
 from collections import defaultdict
 
 STOP = set("""a an the and or nor but if then than so as at by for from in into of on onto to with within without via per
@@ -112,7 +112,75 @@ def _names(it):
     return [it["Offering"]] + [x.strip() for x in re.split(r"[;,]", it.get("Other names", "")) if x.strip()]
 
 
-def suggest(chunks, acronyms=(), existing=(), limit=60, offerings=()):
+# ------------------------------------------------------------ past proposals and team history (2.18.0)
+# Both are stored as hashed phrases with counts only: no proposal text is kept, the same rule as compliance learning.
+def phrase_hash(text):
+    return hashlib.sha1(" ".join(text.lower().split()).encode("utf-8")).hexdigest()[:16]
+
+
+def _cfg(name):
+    import app_gui
+    return os.path.join(app_gui.CONFIG_DIR, name)
+
+
+def _read(name, default):
+    try:
+        with open(_cfg(name), encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return default
+
+
+def _write(name, data):
+    p = _cfg(name)
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    with open(p + ".tmp", "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    os.replace(p + ".tmp", p)
+
+
+def build_baseline(docs):
+    """docs: [[text, ...] per past proposal]. Saves in how many past proposals each phrase appears (hashed)."""
+    df = defaultdict(int)
+    for texts in docs:
+        keys = set()
+        for t in texts:
+            keys |= {k for k, _s, _a in phrases(t)}
+        for k in keys:
+            df[phrase_hash(k)] += 1
+    data = {"docs": len(docs), "built": datetime.date.today().isoformat(), "df": dict(df)}
+    _write("keyword_baseline.json", data)
+    return data
+
+
+def baseline():
+    return _read("keyword_baseline.json", {})
+
+
+def clear_baseline():
+    try:
+        os.remove(_cfg("keyword_baseline.json"))
+    except OSError:
+        pass
+
+
+def learning():
+    d = _read("keyword_learning.json", {})
+    return {"keep": d.get("keep", {}), "reject": d.get("reject", {})}
+
+
+def learn(phrase, status):
+    """Remember a Keep or Reject for later suggestions in every effort (hashed phrase, counts only)."""
+    if status not in ("Keep", "Reject"):
+        return
+    d = learning()
+    h = phrase_hash(phrase)
+    side = d["keep"] if status == "Keep" else d["reject"]
+    side[h] = side.get(h, 0) + 1
+    _write("keyword_learning.json", d)
+
+
+def suggest(chunks, acronyms=(), existing=(), limit=60, offerings=(), base=None, learned=None):
     """chunks: [(location label, text, kind)] with kind 'customer' or 'ours'. acronyms: [(term, long form)].
     existing: keywords already listed (any status), never suggested again. Returns [{"phrase", "bucket", "score",
     "why": [str], "samples": [(label, sentence)], "count", "customer", "ours", "sections"}], best first."""
@@ -182,6 +250,21 @@ def suggest(chunks, acronyms=(), existing=(), limit=60, offerings=()):
             why.append(f"near requirement or evaluation wording ({s['emph']}x)")
         if everyday:
             why.append("everyday words: less distinctive")
+        h = phrase_hash(k)
+        if base and base.get("docs", 0) >= 3:
+            n = base["docs"]; d = base.get("df", {}).get(h, 0)
+            if d / n >= 0.5:
+                score -= 1.5; why.append(f"common in past proposals ({d} of {n})")
+            elif d == 0:
+                score += 1.0; why.append(f"new compared with {n} past proposals")
+                if bucket == "Our solution":
+                    bucket = "Differentiator"
+        if learned:
+            kept, rej = learned.get("keep", {}).get(h, 0), learned.get("reject", {}).get(h, 0)
+            if kept:
+                score += 0.7 * min(kept, 3); why.append(f"kept in other efforts ({kept})")
+            if rej:
+                score -= 1.0 * min(rej, 3); why.append(f"rejected before ({rej})")
         out.append({"phrase": surface, "bucket": bucket, "score": round(score, 2), "why": why, "samples": s["samples"],
                     "count": s["count"], "customer": s["customer"], "ours": s["ours"], "sections": spread})
     names_lower = set()

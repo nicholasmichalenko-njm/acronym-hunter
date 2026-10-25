@@ -99,6 +99,28 @@ def step1():
     app.kw_add("ThermaLoop radiator", "Our solution")
     check("a keyword goes into the catalog", app.kw_to_catalog(["ThermaLoop radiator"]) == 1
           and offerings.find(offerings.load(), "ThermaLoop radiator") and app.effort.keyword("ThermaLoop radiator")["Category"] == "Offering")
+    # past proposals and team history (2.18.0)
+    import keywords, tkinter as tk
+    past = os.path.join(tmp, "past"); os.makedirs(past)
+    for f in ("Kestrel_Technical_Volume.docx", "Kestrel_Design_Note.docx", "Kestrel_Program_Manual.pdf", "Kestrel_PDR_Briefing.pptx"):
+        shutil.copy2(os.path.join(A.BASE_DIR, "test_samples", f), past)
+    data = app.kw_build_baseline(past)
+    raw = open(os.path.join(A.CONFIG_DIR, "keyword_baseline.json"), encoding="utf-8").read()
+    check("baseline from past proposals: counts only, no text", data["docs"] == 4 and "thermal" not in raw.lower() and len(data["df"]) > 50)
+    items = app.kw_compute(srcs)
+    check("suggestions compare with past proposals", any("past proposals" in w for i in items for w in i["why"]),
+          [i["why"] for i in items[:3]])
+    lr = open(os.path.join(A.CONFIG_DIR, "keyword_learning.json"), encoding="utf-8").read()
+    check("Keep and Reject are learned as hashed counts", keywords.learning()["keep"].get(keywords.phrase_hash("radiator panel sizing")) == 1
+          and "radiator" not in lr)
+    t = tk.Text(app); t.insert("1.0", "The cryogenic fluid management system is new."); t.tag_add("sel", "1.4", "1.37")
+    shown = {}
+    real_popup = tk.Menu.tk_popup
+    tk.Menu.tk_popup = lambda self, *a: shown.setdefault("label", self.entrycget(0, "label"))
+    class Ev: x_root = y_root = 10
+    app.kw_text_menu(Ev, t, "Compliance requirement")
+    tk.Menu.tk_popup = real_popup
+    check("right-click selected text: Add as keyword", shown.get("label", "").startswith("Add as keyword: cryogenic fluid management"), shown)
     # export
     out = os.path.join(tmp, "kw.xlsx")
     n = app.kw_export(out, keep_only=True)

@@ -90,6 +90,8 @@ class SetupMixin:
             tv.bind("<B1-Motion>", self._s_motion, add="+")
             tv.bind("<ButtonRelease-1>", self._s_release, add="+")
         out.bind("<<TreeviewSelect>>", lambda _e: self._s_show())
+        if hasattr(self, "kw_quick"):                # Keyword Harvest (2.18.0): a heading as a keyword
+            out.bind("<Button-3>", self._s_kw_menu, add="+")
         pool.bind("<Return>", lambda _e: self.setup_place_selected())
         win.s_drag = None
 
@@ -155,6 +157,21 @@ class SetupMixin:
                                  f"References: {SD.REF_FORMAT_LABELS[S['ref_format']]}")
 
     # ------------------------------------------------------------ selection helpers
+    def _s_kw_menu(self, event):
+        win = self._cwin
+        iid = win.s_out.identify_row(event.y)
+        if not iid:
+            return
+        kind, lab, _i = self._s_parse(iid)
+        m = tk.Menu(win, tearoff=0)
+        if kind == "section":
+            head = re.sub(r"^[\dA-Z]+(\.[\dA-Z]+)*\s+", "", lab.strip())
+            m.add_command(label=f"Add heading as keyword: {head[:50]}", state="normal" if self.effort is not None else "disabled",
+                          command=lambda: self.kw_quick(head, source=f"Setup outline {lab}"))
+        else:
+            m.add_command(label="Add as keyword: right-click a heading", state="disabled")
+        m.tk_popup(event.x_root, event.y_root)
+
     def _s_parse(self, iid):
         """('section', label, None) or ('item', label, id)."""
         if iid.startswith("S::"):

@@ -135,6 +135,9 @@ class ComplianceMixin:
         win.d_head = ctk.CTkLabel(right, text="Select a requirement", font=("Arial", 14, "bold"), anchor="w", justify="left", wraplength=400)
         win.d_head.pack(fill="x", padx=10, pady=(8, 2))
         win.d_text = ctk.CTkTextbox(right, height=110, wrap="word"); win.d_text.pack(fill="x", padx=10)
+        if hasattr(self, "kw_text_menu"):          # Keyword Harvest (2.18.0): selected words or the outline section
+            win.d_text.bind("<Button-3>", lambda e: self.kw_text_menu(e, win.d_text._textbox, "Compliance requirement"))
+            tv.bind("<Button-3>", self._c_kw_menu, add="+")
         bb = ctk.CTkFrame(right, fg_color="transparent"); bb.pack(fill="x", padx=10, pady=6)
         for text, cmd, color in (("Keep (K)", lambda: self.compliance_decide("Keep"), "#15803D"), ("Drop (D)", lambda: self.compliance_decide("Drop"), "#6B7280"),
                                  ("Undecided (U)", lambda: self.compliance_decide(""), "#475569"), ("Split (S)", self.compliance_split, "#9A3412"),
@@ -318,6 +321,22 @@ class ComplianceMixin:
             un = sum(1 for it in M.items if it["decision"] == "Keep" and not it["map"])
             win.o_tv.insert("", "end", values=("(kept, not mapped)", un))
         self._c_show()
+
+    def _c_kw_menu(self, event):
+        """Right-click a requirement: its outline section, or words selected in the requirement text, as a keyword."""
+        win = self._cwin
+        iid = win.tv.identify_row(event.y)
+        if not iid:
+            return
+        win.tv.selection_set(iid); self._c_show()
+        it = self._c_item(iid) or {}
+        m = tk.Menu(win, tearoff=0)
+        sec = re.sub(r"^[\dA-Z]+(\.[\dA-Z]+)*\s+", "", (it.get("map") or "").strip())
+        m.add_command(label=(f"Add outline section as keyword: {sec[:50]}" if sec else "Add outline section as keyword (not mapped yet)"),
+                      state="normal" if sec and self.effort is not None else "disabled",
+                      command=lambda: self.kw_quick(sec, source=f"Compliance outline {it.get('map', '')}"))
+        m.add_command(label="Select words in the requirement text, then right-click there to add them", state="disabled")
+        m.tk_popup(event.x_root, event.y_root)
 
     def _c_item(self, iid):
         return next((it for it in self.matrix.items if it["id"] == iid), None) if self.matrix else None
