@@ -17,6 +17,14 @@ WORD_ONLY = ("QA/QC checks the Word documents we produce (.docx), never customer
              "headings, so first-use results on a PDF would not be accurate.")
 
 
+def _wrap_to(label, frame):
+    """Wrap a label's text to its frame's width as the window is resized (works at any display scaling)."""
+    def fit(e):
+        sc = float(ctk.ScalingTracker.get_widget_scaling(label)) or 1.0
+        label.configure(wraplength=max(200, int(e.width / sc) - 30))
+    frame.bind("<Configure>", fit, add="+")
+
+
 def _eng():
     import app_gui
     return app_gui
@@ -37,15 +45,16 @@ class VolumeCheckMixin:
         ctk.CTkLabel(top, text="QA/QC: our Word deliverables", font=("Arial", 15, "bold"), anchor="w").pack(side="left", padx=4)
         ctk.CTkButton(top, text="Check Word deliverables...", fg_color="#15803D", width=200,
                       command=self.check_volumes).pack(side="right", padx=4)
-        ctk.CTkLabel(Q, text=WORD_ONLY, anchor="w", justify="left", wraplength=1100,
-                     text_color=("#475569", "#94A3B8")).pack(fill="x", padx=4, pady=(2, 6))
+        note = ctk.CTkLabel(Q, text=WORD_ONLY, anchor="w", justify="left", wraplength=900, text_color=("#475569", "#94A3B8"))
+        note.pack(fill="x", padx=4, pady=(2, 6))
+        _wrap_to(note, Q)
         self.qa_body = ctk.CTkFrame(Q, fg_color="transparent"); self.qa_body.pack(fill="both", expand=True)
         self._qa_empty()
 
     def _qa_empty(self):
         for w in self.qa_body.winfo_children():
             w.destroy()
-        ctk.CTkLabel(self.qa_body, anchor="w", justify="left", wraplength=1100, text=(
+        intro = ctk.CTkLabel(self.qa_body, anchor="w", justify="left", wraplength=900, text=(
             "Pick the final Word volumes (the file names set the submission order: Vol 2 before Vol 10). The check finds "
             "each acronym's first use in the running text and marks it:\n"
             "    \u2713  defined at first use (green)\n"
@@ -53,7 +62,9 @@ class VolumeCheckMixin:
             "    !  defined, but check it: the words differ from the effort list, or no spelled-out words before (ACR) (amber)\n"
             "    i  a note: defined again later, or used only in figures or tables (blue)\n"
             "Tables, figures, captions, headers and footers never count as a first use; the In figures or tables column "
-            "shows where a term also appears in one.")).pack(fill="x", padx=8, pady=8)
+            "shows where a term also appears in one."))
+        intro.pack(fill="x", padx=8, pady=8)
+        _wrap_to(intro, self.qa_body)
 
     def open_qa(self):
         if self.effort is None:
@@ -126,15 +137,18 @@ class VolumeCheckMixin:
         s = report["summary"]
         rule = V.RULE_SHORT.get(s["rule"], s["rule"])
         c = s.get("checks", {})
-        head = (f"First use {rule}:  \u2713 {c.get(V.OK, 0)} defined at first use   \u2717 {c.get(V.BAD, 0)} to fix   "
-                f"! {c.get(V.WARN, 0)} to check   i {c.get(V.INFO, 0)} notes     |  {s['volumes']} volume(s), "
-                f"{s['terms_used']} terms used  |  not in effort list {s['missing']}  |  not approved {s['not_approved']}  |  "
-                f"definition differs {s['differs']}  |  in the list, not used {s['unused']}")
-        ctk.CTkLabel(win, text=head, font=("Arial", 13, "bold"), wraplength=1140, justify="left").pack(anchor="w", padx=12, pady=(10, 0))
+        head = (f"First use {rule}:   \u2713 {c.get(V.OK, 0)} defined at first use     \u2717 {c.get(V.BAD, 0)} to fix     "
+                f"! {c.get(V.WARN, 0)} to check     i {c.get(V.INFO, 0)} notes")
+        more = (f"{s['volumes']} volume(s), {s['terms_used']} terms used  |  not in effort list {s['missing']}  |  "
+                f"not approved {s['not_approved']}  |  definition differs {s['differs']}  |  in the list, not used {s['unused']}")
+        for text, font in ((head, ("Arial", 14, "bold")), (more, ("Arial", 12))):
+            lb = ctk.CTkLabel(win, text=text, font=font, wraplength=900, justify="left", anchor="w")
+            lb.pack(fill="x", padx=12, pady=(8 if font[1] == 14 else 0, 0))
+            _wrap_to(lb, win)
         note = ("     Rescan the volumes to check first use by section: some results were saved before 2.22.0."
                 if s.get("rescan_for_sections") else "")
         ctk.CTkLabel(win, text="Order: " + "  >  ".join(report["volumes"]) + "     Double-click a row to jump to it." + note,
-                     text_color=("#475569", "#94A3B8"), wraplength=1140, justify="left").pack(anchor="w", padx=12, pady=(0, 4))
+                     text_color=("#475569", "#94A3B8"), wraplength=900, justify="left", anchor="w").pack(fill="x", padx=12, pady=(0, 4))
         b = ctk.CTkFrame(win, fg_color="transparent"); b.pack(side="bottom", fill="x", padx=10, pady=8)
         tabs = ctk.CTkTabview(win); tabs.pack(fill="both", expand=True, padx=8)
         win._trees = {}
@@ -193,7 +207,7 @@ class VolumeCheckMixin:
         ctk.CTkButton(b, text="Acronym lists for Word...", command=self.export_volume_lists).pack(side="left", padx=4)
         ctk.CTkButton(b, text=f"Add {s['missing']} missing to the effort list", fg_color="#0F766E",
                       state="normal" if s["missing"] else "disabled", command=self.add_volume_missing).pack(side="left", padx=4)
-        ctk.CTkButton(b, text="Record volumes and first use in the list", fg_color="#0F766E",
+        ctk.CTkButton(b, text="Record in the effort list", fg_color="#0F766E",
                       command=self.record_volume_use).pack(side="left", padx=4)
         ctk.CTkButton(b, text="Check again...", fg_color="#15803D", command=self.check_volumes).pack(side="right", padx=4)
         if s["first_use_problems"] == 0 and s["missing"]:
