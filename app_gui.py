@@ -1983,6 +1983,9 @@ def note_first_use(findings, hits, label, text):
         d = findings.get(term)
         if d is None:
             continue
+        if kind in ("text", "table", "figure", "caption"):   # uses per file, for QA/QC "never used again" (2.25.0)
+            u = d.setdefault("uses", {})
+            u[f] = u.get(f, 0) + hits.count(term)
         if kind != "text":                              # figures, tables and captions: where, not first use (2.23.0)
             ff = d.setdefault("first_fig", {})
             if f not in ff:
@@ -2383,7 +2386,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.24.0"            # keep in step with version_info.txt
+APP_VERSION = "2.25.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"

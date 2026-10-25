@@ -156,6 +156,12 @@ PAGES = {
                                "defined. ! Check (amber): defined, but the words differ from the effort list or no spelled-out "
                                "words come before (ACR). i Note (blue): defined again later, or used only in figures or "
                                "tables. The line at the top counts each."),
+              ("Used once", "An acronym defined at first use but never used again gets ! Check: spell it out and leave out "
+                            "the (ACR). Uses in tables and figures count; the volume's own acronym list does not."),
+              ("Acronym list", "The volume's own list (a table of acronym and definition, or lines of acronym<tab>definition) "
+                               "is checked on its own tab: \u2717 used in the volume but not listed; ! listed but not used "
+                               "anywhere else, or its definition differs from the effort list; \u2713 listed, used and "
+                               "matching. A volume with no list gets a note."),
               ("Text, figures, tables", "First use is judged in the running text only. Tables, figures (pictures, diagrams, "
                                         "charts, text boxes), captions, headers and footers never count as a first use. "
                                         "The In figures or tables column shows where a term also appears in one; a term "

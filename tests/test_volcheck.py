@@ -179,6 +179,43 @@ def run():
     assert by4["CDR"]["check"] == "\u2713 OK" and by4["QZR"]["check"] == "\u2717 Fix" and by4["WBX"]["check"] == "i Note", by4
     assert r4["summary"]["checks"][V.OK] >= 1 and r4["summary"]["checks"][V.BAD] >= 1
     assert load_workbook(xl4)["First use"]["A2"].value in V.CHECK_MARKS.values()
+    # 2.25.0 QA/QC: defined but never used again; the volume's own acronym list
+    import custdefs
+    v5 = os.path.join(d, "Vol 5 Ops.docx")
+    make_docx(v5, [("Heading1", "1. Operations"),
+                   "The Statement of Work (SOW) sets the tasks. The SOW also sets the reviews.",
+                   "The Quarterly Zonal Review (QZR) happens once.",
+                   "The GNX team owns pointing.",
+                   ("Heading1", "Acronyms"),
+                   ("TABLE", [["SOW", "Statement of Work"], ["QZR", "Quarterly Zonal Review"],
+                              ["PDQ", "Pretty Darn Quick"], ["TTK", "Telemetry Tracking Kontrol"]])])
+    al = custdefs.acronym_list(v5)
+    assert al["where"] == ["table 1"] and set(al["entries"]) == {"SOW", "QZR", "PDQ", "TTK"}, al
+    res5 = A.analyze_batch([v5], lambda m: None)
+    assert res5["SOW"]["uses"]["Vol 5 Ops.docx"] == 3, res5["SOW"].get("uses")   # two in text, one in the list
+    r5 = V.build(res5, L.rows, ["Vol 5 Ops.docx"], "volume", file_of=A._file_of, in_picture=pic,
+                 vol_lists={"Vol 5 Ops.docx": al})
+    fu5 = {x["term"]: x for x in r5["first_use"]}
+    assert fu5["SOW"]["level"] == V.OK, fu5["SOW"]
+    assert fu5["QZR"]["level"] == V.WARN and "never used again" in fu5["QZR"]["state"] and fu5["QZR"]["check"] == "! Check"
+    assert r5["summary"]["used_once"] == 1
+    assert "PDQ" not in fu5, "only in the acronym list: reported on the Acronym list tab, not as a figure or table note"
+    li = {x["term"]: x for x in r5["acronym_list"]}
+    assert li["SOW"]["level"] == V.OK and li["SOW"]["uses"] == 2, li["SOW"]
+    assert li["GNX"]["level"] == V.BAD and "not in its acronym list" in li["GNX"]["state"]
+    assert li["PDQ"]["level"] == V.WARN and "not used anywhere else" in li["PDQ"]["state"], li["PDQ"]
+    assert li["TTK"]["level"] == V.WARN and "not used anywhere else" in li["TTK"]["state"], li["TTK"]
+    xl5 = os.path.join(d, "check5.xlsx"); V.write_excel(r5, xl5, "Kestrel")
+    assert "Acronym list check" in load_workbook(xl5).sheetnames
+    # a volume with no acronym list gets a note; tab-separated lines under a heading count as a list
+    v6 = os.path.join(d, "Vol 6 Lines.docx")
+    make_docx(v6, ["The Statement of Work (SOW) applies. The SOW is binding.", ("Heading1", "Acronyms"),
+                   "SOW\tStatement of Work", "QZR\tQuarterly Zonal Review"])
+    al6 = custdefs.acronym_list(v6)
+    assert set(al6["entries"]) == {"SOW", "QZR"} and al6["where"] == ["lines under a heading"], al6
+    r6 = V.build(res5, L.rows, ["Vol 5 Ops.docx"], "volume", file_of=A._file_of, in_picture=pic,
+                 vol_lists={"Vol 5 Ops.docx": {"where": [], "entries": {}}})
+    assert r6["acronym_list"][0]["level"] == V.INFO and "No acronym list" in r6["acronym_list"][0]["state"]
     L4 = E.EffortList(L3.path); L4.load(); assert L4.first_use == "section"
     print("volcheck ok")
 

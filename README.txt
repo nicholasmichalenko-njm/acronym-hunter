@@ -673,3 +673,16 @@ QA/QC VIEW FOR OUR DELIVERABLES (2.24.0)
   come before (ACR), "i Note" (blue) for defined again later or used only in figures or tables. The top line counts
   each. The Excel report has the Check column and the count of OK rows.
 - Double-click a row: Scan review opens at that place in the preview; click QA/QC to come back.
+
+QA/QC: USED ONCE AND THE VOLUME'S OWN ACRONYM LIST (2.25.0)
+- An acronym defined at first use but never used again in the volume gets "! Check": spell it out and leave out the
+  (ACR). Uses in tables and figures count; the volume's own acronym list does not.
+- New Acronym list tab. The volume's own list is found as a table of acronym and definition, or as lines of
+  acronym<tab>definition (three or more in a row, or any under an Acronyms / Abbreviations / Glossary heading).
+  - Cross "Fix": an acronym or abbreviation used in the volume but not in its list.
+  - "! Check": in the list but not used anywhere else in the volume; the list's definition differs from the effort list;
+    or the effort list marks it Not a term.
+  - Check mark "OK": listed, used and matching the effort list. "i Note": listed but not in the effort list yet, or the
+    volume has no acronym list.
+- The top line adds the Acronym list counts and "defined but never used again". The Excel report adds an "Acronym list
+  check" sheet and both counts on the Summary sheet.

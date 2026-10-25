@@ -65,9 +65,10 @@ def _uses(d, vol, file_of):
     return [loc for loc in d.get("locations", []) if file_of(loc) == vol]
 
 
-def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in_picture=None):
+def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in_picture=None, vol_lists=None):
     """results: the app's scan results {term: data}. rows: EffortList.rows {term: {column: value}}.
     volumes: file names (as in location labels) in submission order. vol_defs: {volume: custdefs.extract() result}.
+    vol_lists: {volume: custdefs.acronym_list() result}: each volume's own acronym list (2.25.0).
     Returns a dict with the report parts (lists of dicts) and a summary."""
     vol_defs = vol_defs or {}
     file_of = file_of or (lambda loc: loc)
@@ -93,6 +94,7 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
         return r["Status"] if r else "Not in effort list"
 
     rejected = {t for t, r in rows.items() if r.get("Status") == "Rejected"}
+    vol_lists = vol_lists or {}
 
     # ---------------- first use (acronyms only)
     first_use = []
@@ -151,6 +153,14 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
         row["state"] += pic
         first_use.append(row)
 
+    def other_uses(term, v):
+        """Uses in the volume besides the first use and the volume's own acronym list (text, tables, figures)."""
+        n = ((results.get(term) or {}).get("uses") or {}).get(v)
+        if n is None:
+            return None                         # results saved before 2.25.0
+        listed = term in (vol_lists.get(v) or {}).get("entries", {})
+        return n - 1 - (1 if listed else 0)
+
     def fig_text(fig):
         return f"{KIND_NAMES.get(fig['kind'], fig['kind'])}: {fig['loc']}" if fig else ""
 
@@ -174,13 +184,69 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
             us = units(d, v, term)
             for i, (sec, u) in enumerate(us):
                 _first_use_row(first_use, v, sec, term, u, fig if i == 0 else None)
+            if not us and fig and term in (vol_lists.get(v) or {}).get("entries", {}) and (other_uses(term, v) or 0) <= -1:
+                continue                        # only in the volume's acronym list: the Acronym list tab reports it
             if not us and fig:                  # used only in figures, tables, captions or headers (2.23.0)
                 first_use.append({"volume": v, "section": "", "term": term, "loc": "", "written": "",
                                   "list_definition": list_def(term), "status": status(term), "also_defined": "",
                                   "in_figures": fig_text(fig), "level": INFO,
                                   "state": "Only in figures or tables; not in the text, so no first use to check"})
 
+    # ---------------- defined at first use but never used again (2.25.0)
     for r in first_use:
+        if r["level"] == OK and r.get("loc") and r["state"].startswith("Defined at first use"):
+            n = other_uses(r["term"], r["volume"])
+            if n is not None and n <= 0:
+                r["level"] = WARN
+                r["state"] = "Defined at first use, but never used again: spell it out and leave out the (ACR)"
+                r["once"] = True
+    for r in first_use:
+        r["check"] = CHECK_MARKS.get(r["level"], "")
+
+    # ---------------- each volume's own acronym list (2.25.0)
+    acr_list = []
+    for v in volumes:
+        info = vol_lists.get(v)
+        if info is None:
+            continue
+        entries = info.get("entries", {})
+        if not entries:
+            acr_list.append({"volume": v, "term": "", "level": INFO, "listed_as": "", "list_definition": "", "uses": "",
+                             "state": "No acronym list found in this volume (a table, or lines of acronym<tab>definition)"})
+            continue
+        listed_up = {t.upper(): t for t in entries}
+        for term in sorted(used[v], key=str.lower):
+            d = results[term]
+            k = kind(d.get("category", ""))
+            if k not in ("Acronym", "Abbreviation") or term in rejected:
+                continue
+            if term not in entries and term.upper() not in listed_up:
+                n = other_uses(term, v)
+                acr_list.append({"volume": v, "term": term, "level": BAD, "listed_as": "", "list_definition": list_def(term),
+                                 "uses": "" if n is None else n + 1,
+                                 "state": "Used in this volume but not in its acronym list"})
+        for t, written in entries.items():
+            term = t if t in results else next((x for x in results if x.upper() == t.upper()), t)
+            if term in results:
+                n = other_uses(term, v)
+                outside = None if n is None else n + 1          # uses outside the acronym list
+            else:
+                outside = 0
+            want = list_def(term) if term in rows else ""
+            row = {"volume": v, "term": t, "listed_as": written, "list_definition": want,
+                   "uses": "" if outside is None else max(outside, 0)}
+            if term in rejected:
+                row.update(level=WARN, state="In the acronym list, but the effort list marks it Not a term")
+            elif outside is not None and outside <= 0:
+                row.update(level=WARN, state="In the acronym list, but not used anywhere else in this volume")
+            elif want and not same_def(written, want):
+                row.update(level=WARN, state="The list's definition differs from the effort list")
+            elif not want:
+                row.update(level=INFO, state="In the acronym list; not in the effort list yet")
+            else:
+                row.update(level=OK, state="Listed, used and matches the effort list")
+            acr_list.append(row)
+    for r in acr_list:
         r["check"] = CHECK_MARKS.get(r["level"], "")
 
     # ---------------- missing / not approved / differs
@@ -242,9 +308,12 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
                "first_use_problems": sum(1 for r in first_use if r["level"] in (BAD, WARN)),
                "missing": len(missing), "not_approved": len(not_approved), "differs": len(differs), "unused": len(unused),
                "rescan_for_sections": len(no_sections),
-               "checks": {lv: sum(1 for r in first_use if r["level"] == lv) for lv in (OK, BAD, WARN, INFO)}}
+               "checks": {lv: sum(1 for r in first_use if r["level"] == lv) for lv in (OK, BAD, WARN, INFO)},
+               "used_once": sum(1 for r in first_use if r.get("once")),
+               "list_checks": {lv: sum(1 for r in acr_list if r["level"] == lv) for lv in (OK, BAD, WARN, INFO)}}
     return {"summary": summary, "first_use": first_use, "missing": missing, "not_approved": not_approved,
-            "differs": differs, "unused": unused, "lists": lists, "volumes": list(volumes), "used": used}
+            "differs": differs, "unused": unused, "lists": lists, "volumes": list(volumes), "used": used,
+            "acronym_list": acr_list}
 
 
 def effort_updates(report):
@@ -272,6 +341,8 @@ def write_excel(report, path, effort_name=""):
               ["First use rule", RULE_TEXT.get(s["rule"], s["rule"])],
               ["Terms used", s["terms_used"]], ["First-use problems", s["first_use_problems"]],
               ["Defined at first use (OK)", s.get("checks", {}).get(OK, 0)],
+              ["Defined but never used again", s.get("used_once", 0)],
+              ["Acronym list problems", sum(s.get("list_checks", {}).get(lv, 0) for lv in (BAD, WARN))],
               ["Checked on", "Word documents (.docx) only; PDF exports are not checked"],
               ["Not in effort list", s["missing"]], ["Not approved yet", s["not_approved"]],
               ["Definition differs", s["differs"]], ["In the list, not used", s["unused"]]):
@@ -317,6 +388,11 @@ def write_excel(report, path, effort_name=""):
           report["differs"], ["term", "volume", "written", "list_definition", "loc", "sentence"], [14, 22, 36, 36, 36, 60])
     sheet("Unused in volumes", ["Term", "Type", "Status", "Definition"],
           report["unused"], ["term", "type", "status", "definition"], [14, 13, 14, 50])
+    if report.get("acronym_list"):
+        sheet("Acronym list check", ["Check", "Volume", "Acronym", "Result", "In the list as", "Effort list definition",
+                                     "Uses outside the list"],
+              report["acronym_list"], ["check", "volume", "term", "state", "listed_as", "list_definition", "uses"],
+              [9, 22, 12, 50, 40, 40, 12], level_key="level")
     for i, v in enumerate(report["volumes"], 1):
         sheet(f"List {i} " + re.sub(r"[\[\]:*?/\\]", "", v)[:22], ["Term", "Definition", "Status", "Type"],
               report["lists"][v], ["term", "definition", "status", "type"], [14, 60, 18, 13])

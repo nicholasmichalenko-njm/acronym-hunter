@@ -64,7 +64,10 @@ class VolumeCheckMixin:
             "    !  defined, but check it: the words differ from the effort list, or no spelled-out words before (ACR) (amber)\n"
             "    i  a note: defined again later, or used only in figures or tables (blue)\n"
             "Tables, figures, captions, headers and footers never count as a first use; the In figures or tables column "
-            "shows where a term also appears in one."))
+            "shows where a term also appears in one.\n"
+            "It also flags an acronym defined at first use but never used again (spell it out instead), and checks each "
+            "volume's own acronym list: acronyms used but not listed, listed but not used, and list definitions that differ "
+            "from the effort list."))
         intro.pack(fill="x", padx=8, pady=8)
         _wrap_to(intro, self.qa_view)
 
@@ -97,7 +100,7 @@ class VolumeCheckMixin:
             messagebox.showwarning("Check volumes", "Two volumes have the same file name. Rename one so the report can tell them apart.")
             return
         diag.activity("volume_check_started", files=len(paths))
-        self._volcheck = {"paths": paths, "names": names, "defs": {}}
+        self._volcheck = {"paths": paths, "names": names, "defs": {}, "lists": {}}
 
         def after(cb):
             import custdefs
@@ -105,6 +108,10 @@ class VolumeCheckMixin:
                 eng.check_cancel()
                 try:
                     self._volcheck["defs"][os.path.basename(p)] = custdefs.extract(eng.typed_chunks(p) + custdefs.table_chunks(p))
+                except Exception:
+                    diag.swallowed()
+                try:                                        # the volume's own acronym list (2.25.0)
+                    self._volcheck["lists"][os.path.basename(p)] = custdefs.acronym_list(p)
                 except Exception:
                     diag.swallowed()
         self.start_batch(paths, after=after)
@@ -118,7 +125,8 @@ class VolumeCheckMixin:
         eng = _eng()
         report = V.build({t: d for t, d in self.results.items() if not d.get("known")}, self.effort.rows,   # known names stay off
                          vc["names"], self.effort.first_use, vc["defs"],
-                         file_of=eng._file_of, in_picture=lambda loc: bool(eng._OCR_LOC.search(loc)))
+                         file_of=eng._file_of, in_picture=lambda loc: bool(eng._OCR_LOC.search(loc)),
+                         vol_lists=vc.get("lists"))
         self.volume_report = report
         s = report["summary"]
         diag.activity("volume_check_report", terms=s["terms_used"], rows=len(report["first_use"]), items=s["missing"])
@@ -141,7 +149,11 @@ class VolumeCheckMixin:
         c = s.get("checks", {})
         head = (f"First use {rule}:   \u2713 {c.get(V.OK, 0)} defined at first use     \u2717 {c.get(V.BAD, 0)} to fix     "
                 f"! {c.get(V.WARN, 0)} to check     i {c.get(V.INFO, 0)} notes")
-        more = (f"{s['volumes']} volume(s), {s['terms_used']} terms used  |  not in effort list {s['missing']}  |  "
+        lc = s.get("list_checks", {})
+        head += (f"          Acronym list:  \u2713 {lc.get(V.OK, 0)}   \u2717 {lc.get(V.BAD, 0)}   ! {lc.get(V.WARN, 0)}"
+                 if report.get("acronym_list") else "")
+        more = (f"{s['volumes']} volume(s), {s['terms_used']} terms used  |  defined but never used again {s.get('used_once', 0)}  |  "
+                f"not in effort list {s['missing']}  |  "
                 f"not approved {s['not_approved']}  |  definition differs {s['differs']}  |  in the list, not used {s['unused']}")
         for text, font in ((head, ("Arial", 14, "bold")), (more, ("Arial", 12))):
             lb = ctk.CTkLabel(win, text=text, font=font, wraplength=900, justify="left", anchor="w")
@@ -193,6 +205,11 @@ class VolumeCheckMixin:
                                 "Effort list says", "Also defined at"],
                   report["first_use"], ["check", "volume", "term", "state", "loc", "in_figures", "written", "list_definition",
                                         "also_defined"], [70, 170, 100, 330, 260, 260, 190, 190, 200], level=True)
+        if report.get("acronym_list"):
+            table("Acronym list", ["Check", "Volume", "Acronym", "Result", "In the list as", "Effort list says",
+                                   "Uses outside the list"],
+                  report["acronym_list"], ["check", "volume", "term", "state", "listed_as", "list_definition", "uses"],
+                  [70, 170, 100, 380, 260, 260, 120], level=True)
         table("Not in effort list", ["Term", "Type", "Count", "Volumes", "Suggested definition", "First found at"],
               report["missing"], ["term", "type", "count", "volumes", "suggestion", "loc"], [90, 90, 60, 220, 300, 300])
         table("Not approved", ["Term", "Status", "Definition", "Volumes", "First found at"],

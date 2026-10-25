@@ -198,3 +198,56 @@ def table_chunks(path):
         if text:
             out.append((f"{name} ({'acronym table, ' if is_list else ''}{label})", text))
     return out
+
+
+def acronym_list(path):
+    """The acronym list inside one of our Word volumes (2.25.0 QA/QC): {"where": [...], "entries": {term: definition}}.
+    Found as a table whose rows mostly read "ACR | definition", or as lines "ACR<tab>definition" (at least 3 in a row,
+    or any number under an Acronyms / Abbreviations / Glossary heading). Empty entries when the volume has none."""
+    import os, zipfile
+    import xml.etree.ElementTree as ET
+    out = {"where": [], "entries": {}}
+    if os.path.splitext(path)[1].lower() != ".docx":
+        return out
+    W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    with zipfile.ZipFile(path) as z:
+        root = ET.fromstring(z.read("word/document.xml"))
+    for i, tbl in enumerate(root.iter(W + "tbl"), 1):
+        pairs = []
+        for tr in tbl.iter(W + "tr"):
+            cells = ["".join(t.text or "" for t in tc.iter(W + "t")).strip() for tc in tr.iter(W + "tc")]
+            cells = [c for c in cells if c]
+            if len(cells) >= 2:
+                pairs.append(cells[:2])
+        good = [p for p in pairs if _is_sf(p[0]) and _initials_fit(p[0], p[1]) >= 0.5]
+        if len(pairs) >= 2 and len(good) >= 0.5 * len(pairs):
+            out["where"].append(f"table {i}")
+            for t, d in pairs:
+                if _is_sf(t):
+                    out["entries"].setdefault(t, d)
+    # tab-separated lines outside tables
+    in_table = {id(p) for tbl in root.iter(W + "tbl") for p in tbl.iter(W + "p")}
+    run, under_head = [], False
+
+    def close():
+        nonlocal run
+        good = [r for r in run if _initials_fit(r[0], r[1]) >= 0.5]
+        if run and (len(run) >= 3 and len(good) >= 0.5 * len(run) or under_head and good):
+            out["where"].append("lines under a heading" if under_head else "tab-separated lines")
+            for t, d in run:
+                out["entries"].setdefault(t, d)
+        run = []
+
+    for p in root.iter(W + "p"):
+        if id(p) in in_table:
+            continue
+        text = "".join(("\t" if el.tag == W + "tab" else (el.text or "")) for el in p.iter() if el.tag in (W + "t", W + "tab"))
+        m = re.match(r"^\s*(" + SF_RE + r")\t+\s*([A-Za-z][^\t]{2,140}?)\s*$", text)
+        if m and _is_sf(m.group(1)):
+            run.append((m.group(1), m.group(2)))
+            continue
+        if text.strip():
+            close()
+            under_head = bool(_GLOSS_HEAD.match(text)) and len(text.split()) <= 6
+    close()
+    return out
