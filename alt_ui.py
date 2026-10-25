@@ -174,14 +174,14 @@ class AltFormsMixin:
             if not confirm:
                 return None
             ans = messagebox.askyesnocancel(
-                "Master database", "Which master database file should this effort be added to?\n\n"
+                M.MASTER_NAME, f"Which {M.MASTER_NAME} file should this effort be added to?\n\n"
                 "Yes: pick the team's master file (Excel or CSV).\nNo: start a new master file.\nCancel: stop.")
             if ans is None:
                 return None
             if ans:
-                path = filedialog.askopenfilename(title="Master database", filetypes=[("Database", "*.xlsx *.csv")])
+                path = filedialog.askopenfilename(title=M.MASTER_NAME, filetypes=[("Database", "*.xlsx *.csv")])
             else:
-                path = filedialog.asksaveasfilename(title="New master database", defaultextension=".xlsx",
+                path = filedialog.asksaveasfilename(title=f"New {M.MASTER_NAME}", defaultextension=".xlsx",
                                                     initialfile="Master_Acronym_Database.xlsx",
                                                     filetypes=[("Excel", "*.xlsx"), ("CSV", "*.csv")])
                 if path and not os.path.exists(path):
@@ -192,7 +192,7 @@ class AltFormsMixin:
             current = M.read_master_file(path) if os.path.getsize(path) else []
         except Exception:
             diag.swallowed()
-            messagebox.showerror("Master database", f"Could not read {os.path.basename(path)}. Is it open in Excel? Close it and try again.")
+            messagebox.showerror(M.MASTER_NAME, f"Could not read {os.path.basename(path)}. Is it open in Excel? Close it and try again.")
             return None
         label = M.effort_label(L)
         rows, rep = M.combine(current, [L.rows[t] for t in L.order], label)
@@ -204,27 +204,28 @@ class AltFormsMixin:
             return None
         if not rep["added"] and not rep["updated"]:
             if confirm:
-                messagebox.showinfo("Master database", "Nothing to add: the master already has this effort.")
+                messagebox.showinfo(M.MASTER_NAME, "Nothing to add: the master already has this effort.")
             return rep
         try:
             backup = M.backup_master(path) if os.path.getsize(path) else ""
             M.write_master(path, rows)
         except PermissionError:
-            messagebox.showerror("Master database", "The master file is open in Excel. Close it, then try again.")
+            messagebox.showerror(M.MASTER_NAME, "The master file is open in Excel. Close it, then try again.")
             return None
         info = self.master_load(path, ask=False)
-        L._hist("(effort)", f"added to the master database ({os.path.basename(path)}, version "
+        L._hist("(effort)", f"added to the {M.MASTER_NAME} ({os.path.basename(path)}, version "
                             f"{(info or {}).get('version', '?')}): {len(rep['added'])} new, {len(rep['updated'])} updated")
         self._save_effort_list()
         diag.activity("master_effort_added", added=len(rep["added"]), n=len(rep["updated"]))
         rep["backup"], rep["path"] = backup, path
         if confirm:
-            messagebox.showinfo("Master database", summary + (f"\n\nThe earlier file is kept in:\n{os.path.dirname(backup)}"
+            messagebox.showinfo(M.MASTER_NAME, summary + (f"\n\nThe earlier file is kept in:\n{os.path.dirname(backup)}"
                                                               if backup else ""))
         return rep
 
     def _master_preview(self, summary, rep):
-        win = ctk.CTkToplevel(self); win.title("Add this effort to the master database"); win.geometry("720x520")
+        import master_db as M
+        win = ctk.CTkToplevel(self); win.title("Add this effort to the Acronyms, Abbreviations, Units and Symbols Master Database"); win.geometry("720x520")
         win.transient(self); win.after(150, win.lift)
         ctk.CTkLabel(win, text=summary, anchor="w", justify="left", wraplength=680).pack(fill="x", padx=14, pady=(12, 6))
         box = ctk.CTkTextbox(win, wrap="word"); box.pack(fill="both", expand=True, padx=14)

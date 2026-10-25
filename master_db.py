@@ -19,6 +19,7 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 import diag
 
+MASTER_NAME = "Acronyms, Abbreviations, Units and Symbols Master Database"   # what the user sees (2.27.0)
 ORIGIN_COL = "Origin"
 ORIGIN_MASTER = "Master database"
 SRC_DOCS, SRC_LIST, SRC_MASTER = "Customer docs", "Customer list", "Master database"
@@ -182,8 +183,8 @@ def load_master(path):
 def info_text(info=None):
     info = master_info() if info is None else info
     if not info:
-        return "No master database loaded on this PC yet."
-    return (f"Master database version {info['version']}: {info.get('file', '')}, {info.get('rows', 0)} entries, "
+        return f"No {MASTER_NAME} loaded on this PC yet."
+    return (f"{MASTER_NAME}, version {info['version']}: {info.get('file', '')}, {info.get('rows', 0)} entries, "
             f"loaded {info.get('loaded', '').replace('T', ' ')}.")
 
 
@@ -367,7 +368,7 @@ class MasterMixin:
     # ------------------------------------------------------------ load and update
     def master_load(self, path=None, ask=True):
         """Load a (new) master database. Returns the version info, or None."""
-        path = path or filedialog.askopenfilename(title="Master database", filetypes=[("Database", "*.csv *.xlsx"),
+        path = path or filedialog.askopenfilename(title=MASTER_NAME, filetypes=[("Database", "*.csv *.xlsx"),
                                                                                        ("Acronym lists", "*.docx *.pdf *.txt"),
                                                                                        ("All files", "*.*")])
         if not path:
@@ -377,17 +378,17 @@ class MasterMixin:
         except Exception as ex:
             diag.swallowed()
             if ask:
-                messagebox.showerror("Master database", f"Could not load {os.path.basename(path)} ({type(ex).__name__}). "
+                messagebox.showerror(MASTER_NAME, f"Could not load {os.path.basename(path)} ({type(ex).__name__}). "
                                      "Is it open in Excel? Close it and try again.")
             return None
         diag.activity("master_loaded", rows=info["rows"], added=info["added"], removed=info["removed"])
         self.db_terms(refresh=True)
         self.update_master_label()
-        text = (f"Master database version {info['version']} loaded: {info['added']} new, {info['removed']} removed, "
+        text = (f"{MASTER_NAME}, version {info['version']} loaded: {info['added']} new, {info['removed']} removed, "
                 f"{info['same']} already there.")
         self.status.configure(text=text)
         if ask and self.results and not self.busy() and messagebox.askyesno(
-                "New master database", text + "\n\nUpdate the results against it now? Your results stay: rows the new "
+                f"New {MASTER_NAME}", text + "\n\nUpdate the results against it now? Your results stay: rows the new "
                 "database changes are updated and marked Database update, and your decisions and effort list are kept."):
             self.refresh_from_database()
         return info
@@ -450,9 +451,10 @@ class MasterMixin:
 
     def master_step(self, body, win):
         """The first step of Start an effort: load the master database so every result can be checked against it."""
-        ctk.CTkLabel(body, text="Load the master database first", anchor="w", font=("Segoe UI", 13, "bold")).pack(fill="x", pady=(6, 2))
+        ctk.CTkLabel(body, text=f"Load the {MASTER_NAME} first", anchor="w", font=("Segoe UI", 13, "bold"),
+                     wraplength=660, justify="left").pack(fill="x", pady=(6, 2))
         ctk.CTkLabel(body, text=("Every result is checked against the customer documents, the customer's own list and the "
-                                 "company's master database, and says where it was found: customer docs, customer list, "
+                                 f"company's {MASTER_NAME}, and says where it was found: customer docs, customer list, "
                                  "master database only, or not found in any source. The master database is shared by every "
                                  "effort on this PC."), anchor="w", justify="left", wraplength=660).pack(fill="x", pady=(0, 8))
         state = ctk.CTkLabel(body, text=info_text(), anchor="w", justify="left", wraplength=660, font=("Segoe UI", 13))
@@ -463,9 +465,9 @@ class MasterMixin:
             if info:
                 state.configure(text=info_text(info) + f"  ({info['added']} new, {info['removed']} removed, {info['same']} already there)")
             return info
-        ctk.CTkButton(body, text=("Load a newer master database..." if master_info() else "Load master database..."), width=230,
+        ctk.CTkButton(body, text=("Load a newer version..." if master_info() else f"Load the {MASTER_NAME}..."), width=230,
                       command=load).pack(anchor="w", pady=6)
         ctk.CTkLabel(body, text=("CSV or Excel (Term, Category, Definition, Action), or a plain acronym list. Load a newer "
-                                 "version any time: File > Load master database. Rows added on this PC stay."),
+                                 f"version any time: File > Load {MASTER_NAME}. Rows added on this PC stay."),
                      anchor="w", justify="left", wraplength=660, text_color=("#475569", "#94A3B8")).pack(fill="x")
         win._load_master = load

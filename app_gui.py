@@ -3709,8 +3709,10 @@ class AcronymAppGUI(AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, Wizard
         proj = tk.Menu(f, tearoff=0, postcommand=lambda: self.show_project_menu(proj))
         f.add_cascade(label="Project", menu=proj)
         f.add_separator()
-        f.add_command(label="Load master database...", command=c("file_master_load", self.master_load))
-        f.add_command(label="Update results against the master database", command=c("file_master_refresh", self.refresh_from_database))
+        f.add_command(label="Load the Acronyms, Abbreviations, Units and Symbols Master Database...",
+                      command=c("file_master_load", self.master_load))
+        f.add_command(label="Update results against the Acronyms, Abbreviations, Units and Symbols Master Database",
+                      command=c("file_master_refresh", self.refresh_from_database))
         f.add_separator()
         f.add_command(label="Export CSV...", accelerator="Ctrl+E", command=c("file_export_csv", self.export_csv))
         f.add_command(label="Restore an earlier version...", command=c("file_restore", self.restore_dialog))
@@ -5134,7 +5136,7 @@ class AcronymAppGUI(AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, Wizard
             if not qa:
                 self.scan_landed()         # every scan lands in Scan review (2.14.0)
         if dbr:
-            self.status.configure(text=f"Results updated against the master database: {dbr['changed']} changed (Status > Database "
+            self.status.configure(text=f"Results updated against the Acronyms, Abbreviations, Units and Symbols Master Database: {dbr['changed']} changed (Status > Database "
                                        f"update), {dbr['new']} new, {dbr['kept']} kept from before. Nothing was removed.")
 
     def populate_table(self):

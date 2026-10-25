@@ -714,3 +714,5 @@ QA/QC: BANNED WORDS AND PHRASES (2.27.0)
 - Matching: not case sensitive; hyphen or space alike ("state of the art" finds "state-of-the-art"); a single word also
   finds -s, -ed and -ing; * stands for any letters (utiliz*); capitals up to 5 letters (TBD) match capitals only.
 - The QA/QC top line counts them; the Excel report adds a "Banned words" sheet.
+- The master database is named in full where you load or update it: "Acronyms, Abbreviations, Units and Symbols
+  Master Database" (Start an effort step 1, File menu, Effort menu, its windows and the User Guide).

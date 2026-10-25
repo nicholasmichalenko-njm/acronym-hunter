@@ -185,7 +185,7 @@ PAGES = {
               ("Acronym lists", "One Word file per volume (and one for all volumes): a Term and Definition table, sorted."),
               ("Record", "Writes Used in volumes and First use into the effort list.")]),
     ("h", "Start an effort"),
-    ("p", "Effort > Start a new effort (or Start an effort at the top) opens six short steps: the master database, the effort and client (short name, solicitation number, your internal "
+    ("p", "Effort > Start a new effort (or Start an effort at the top) opens six short steps: the Acronyms, Abbreviations, Units and Symbols Master Database, the effort and client (short name, solicitation number, your internal "
           "number), the customer's own acronym lists, the customer documents, how the list ships (one list, one per volume, or "
           "both; the first-use rule), and ready. The documents are copied into the effort's Customer documents folder and read "
           "for a jump start; Review new terms adds what they hold in one click."),
@@ -194,8 +194,8 @@ PAGES = {
               ("Every scan", "Updates Found in, First found, Last found and Scan status in the effort list. Terms a rescan no "
                              "longer finds say \"No longer found in <file>\"; nothing is removed."),
               ("Activity", "Effort > Activity: what was added, from which document, by whom, newest first.")]),
-    ("h", "Master database and Known in"),
-    ("rows", [("Load it first", "The first step of Start an effort loads the company's master database (CSV or Excel with "
+    ("h", "Acronyms, Abbreviations, Units and Symbols Master Database and Known in"),
+    ("rows", [("Load it first", "The first step of Start an effort loads the company's Acronyms, Abbreviations, Units and Symbols Master Database (CSV or Excel with "
                                 "Term, Category, Definition, Action, or a plain acronym list). It is shared by every effort on this PC."),
               ("Known in", "Every result says where the term is known: Customer docs, Customer list, Master database only, or "
                            "Not found in any source. Status > Known in filters by it; the CSV export has the column."),
@@ -260,8 +260,9 @@ PAGES = {
                        "acronym list) takes \"TT&C (TTC)\" as primary TT&C with alt form TTC. A long form such as "
                        "\"Statement of Work (SOW)\" is never split."),
               ("QA/QC", "An alt form has no first use of its own, counts as a use of its primary, and is listed with it.")]),
-    ("h", "The master database across efforts"),
-    ("p", "When an effort is done: Effort > Add this effort to the master database. One master row per term and meaning; "
+    ("h", "The Acronyms, Abbreviations, Units and Symbols Master Database across efforts"),
+    ("p", "When an effort is done: Effort > Add this effort to the Acronyms, Abbreviations, Units and Symbols Master "
+          "Database. One master row per term and meaning; "
           "no repeat rows."),
     ("rows", [("What goes in", "The effort list's Approved terms with a definition, with their alt forms."),
               ("Same item", "A master row with the same term (or one of its alt forms) and the same definition gets this "

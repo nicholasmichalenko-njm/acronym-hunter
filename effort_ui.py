@@ -132,7 +132,8 @@ class EffortMixin:
         m.add_command(label="Reload the list (after editing in Excel)", command=self.reload_effort, state=st)
         m.add_command(label="Save list now", command=self.save_effort, state="normal" if has and self.effort.pending else "disabled")
         m.add_command(label="Export for approvals (Needs author, Conflicts, Approved)...", command=self.export_effort, state=st)
-        m.add_command(label="Add this effort to the master database...", command=self.master_add_effort, state=st)
+        m.add_command(label="Add this effort to the Acronyms, Abbreviations, Units and Symbols Master Database...",
+                      command=self.master_add_effort, state=st)
         m.add_separator()
         m.add_command(label="QA/QC: check our Word deliverables (first use, missing, acronym lists)...", command=self.check_volumes,
                       state=st)

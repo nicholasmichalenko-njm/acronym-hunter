@@ -134,7 +134,8 @@ class AIMixin:
         try:
             import master_db
             i = master_db.master_info()
-            return f"   |   Master database v{i['version']}" if i else "   |   No master database loaded"
+            return (f"   |   Acronyms Master Database v{i['version']}" if i
+                    else "   |   No Acronyms, Abbreviations, Units and Symbols Master Database loaded")
         except Exception:
             diag.swallowed()
             return ""

@@ -51,7 +51,8 @@ class WizardMixin:
         st = {"i": 0, "lists": [], "docs": []}
         desk = os.path.join(os.path.expanduser("~"), "Desktop")
         base = desk if os.path.isdir(desk) else os.path.expanduser("~")
-        head = ctk.CTkLabel(win, text="", font=("Segoe UI", 15, "bold"), anchor="w"); head.pack(fill="x", padx=18, pady=(14, 2))
+        head = ctk.CTkLabel(win, text="", font=("Segoe UI", 15, "bold"), anchor="w", justify="left", wraplength=680)
+        head.pack(fill="x", padx=18, pady=(14, 2))
         body = ctk.CTkFrame(win, fg_color="transparent"); body.pack(fill="both", expand=True, padx=18, pady=4)
         msg = ctk.CTkLabel(win, text="", text_color="#B91C1C", anchor="w", wraplength=680, justify="left"); msg.pack(fill="x", padx=18)
         nav = ctk.CTkFrame(win, fg_color="transparent"); nav.pack(fill="x", padx=18, pady=12)
@@ -74,7 +75,7 @@ class WizardMixin:
         v["name"].trace_add("write", on_name)
 
         def step_master():
-            head.configure(text="1 of 6   Master database")
+            head.configure(text="1 of 6   " + __import__("master_db").MASTER_NAME)
             self.master_step(body, win)
 
         def step0():
@@ -159,7 +160,7 @@ class WizardMixin:
                      f"Client:  {v['client'].get().strip() or '-'}      Solicitation:  {v['sol'].get().strip() or '-'}"
                      + (f"      Internal:  {v['internal'].get().strip()}" if v['internal'].get().strip() else ""),
                      f"Folder:  {v['folder'].get().strip()}",
-                     "Master database:  " + __import__("master_db").info_text(),
+                     "Master:  " + __import__("master_db").info_text(),
                      f"Customer lists:  {len(st['lists'])} ({sum(len(x['rows']) for x in st['lists'])} terms)",
                      f"Customer documents:  {len(st['docs'])}" + ("  (read now, then review)" if st["docs"] and v["scan"].get() else ""),
                      f"List:  {LIST_FORMATS[v['format'].get()]};  first use {E.FIRST_USE_RULES[v['rule'].get()].lower()}"]
