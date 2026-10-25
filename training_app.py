@@ -243,6 +243,9 @@ class TrainingApp(ctk.CTk):
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "--selftest":     # same self-test as Acronym Hunter, with training loaded
+        eng.run_selftest(sys.argv[2:])
+        sys.exit(0)
     try:
         TrainingApp().mainloop()
     except Exception:
