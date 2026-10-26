@@ -56,6 +56,8 @@ def drag(src, src_iid, dst, dst_iid, shift=False):
 
 app = A.AcronymAppGUI()
 app.geometry("1500x950+0+0")
+app.attributes("-topmost", True)        # the drags below use the real mouse: keep this window above anything else on screen
+app.after(500, lambda: (app.lift(), app.focus_force()))
 
 
 def go():
