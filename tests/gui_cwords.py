@@ -88,7 +88,7 @@ def go():
           str(tb.tag_cget("cword", "foreground")).lower() == "#1f3864", (tb.tag_cget("cword", "font"), tb.tag_cget("cword", "foreground")))
     # 6. Export all
     av = app.export_all_available()
-    check("Export all knows what is available", av["matrix"][0] and av["coverage"][0] and av["outline"][0] and not av["qaqc"][0], av)
+    check("Export all knows what is available", av["matrix"][0] and av["coverage"][0] and av["setup"][0] and "outline" not in av and not av["qaqc"][0], av)
     dw = app.export_all_dialog(); dw.update()
     check("Export all window ticks what is available", dw.api["vars"]["matrix"].get() and not dw.api["vars"]["qaqc"].get())
     dw.destroy()
@@ -96,7 +96,7 @@ def go():
     sub, made, problems = app.export_all(out)
     names = sorted(os.path.basename(p) for p in made)
     check("Export all writes every available part", any(n.endswith("_RFP_Coverage.docx") for n in names) and
-          any(n.endswith("_Outline_with_Requirements.docx") for n in names) and any("_Setup" in n for n in names) and
+          not any(n.endswith("_Outline_with_Requirements.docx") for n in names) and any("_Response_Setup" in n for n in names) and
           "Kestrel_Matrix.xlsx" in names and not problems, (names, problems))
     cx = zipfile.ZipFile(next(p for p in made if p.endswith("_RFP_Coverage.docx"))).read("word/document.xml").decode()
     check("exported report uses the style", "<w:i/>" in cx and "1F3864" in cx)
