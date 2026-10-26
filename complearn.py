@@ -60,8 +60,11 @@ class Learner:
         """A matrix is known by a hash of its file name, never the name itself."""
         return hashlib.sha256(os.path.basename(matrix_path).lower().encode()).hexdigest()[:16]
 
-    def learn(self, matrix_path, items):
-        """Replace this matrix's contribution with its current decisions. Returns the number of decisions used."""
+    def learn(self, matrix_path, items, outline=None):
+        """Replace this matrix's contribution with its current decisions. Returns the number of decisions used.
+        With the matrix's outline, its placements are learned too (2.30.0)."""
+        if outline:
+            self.placer().learn(self.source_id(matrix_path), items, outline)
         src = {"Keep": {}, "Drop": {}, "docs": {"Keep": 0, "Drop": 0}, "learned": datetime.date.today().isoformat()}
         n = 0
         for it in items:
@@ -93,11 +96,24 @@ class Learner:
                 clean[lab] = {str(int(b)): int(n) for b, n in (src.get(lab) or {}).items() if 0 <= int(b) < BUCKETS and int(n) > 0}
             self.data["sources"][sid] = clean
             added += clean["docs"]["Keep"] + clean["docs"]["Drop"]
+        import placelearn
+        self.placed_added = placelearn.merge_sources(self.data, d)
+        self._placer = None
         self._totals()
         return added
 
+    def placer(self, reload=False):
+        """Placement learning across proposals (2.30.0), kept in the same file; synonyms from the team list beside it."""
+        import placelearn
+        if reload or getattr(self, "_placer", None) is None:
+            syn = placelearn.load_synonyms(placelearn.synonyms_path(os.path.dirname(os.path.abspath(self.path))))
+            self._placer = placelearn.Placer(self.data, syn)
+        return self._placer
+
     def forget_all(self):
         self.data["sources"] = {}
+        self.data["placement"] = {"version": 1, "sources": {}}
+        self._placer = None
         self._totals()
 
     def save(self):

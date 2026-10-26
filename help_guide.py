@@ -340,6 +340,20 @@ PAGES = {
               ("Links", "Evaluation and SOW items link to the instructions they concern, by section number or shared wording."),
               ("Outline", "Outline tab: start from the Section L headings, import a Word outline's headings, or type one. "
                           "Map kept rows to a section; Suggest sections fills only clear matches, then learns from rows you mapped."),
+              ("Past proposals", "Every placed Keep and Context row teaches where the team puts sentences like it: their "
+                                 "words linked to the words of the section title, its parent titles and the volume type, "
+                                 "never section numbers, so it carries over to outlines numbered and titled differently. "
+                                 "The detail pane shows the top 3 sections from past proposals (click one to map the row), or "
+                                 "'no strong match'. Suggest sections uses a learned section only when it is a clear leader. "
+                                 "Suggestions start after 30 placed rows; most help comes after 5 to 10 proposals. Older "
+                                 "matrices count less (half after two years)."),
+              ("Self-check", "Learn from decisions scores this matrix using only what the other matrices taught: how often "
+                             "your section was in the top 3. The Outline tab shows the result and earlier checks, so you can "
+                             "see whether it is getting better."),
+              ("Synonyms", "Section word synonyms... (Outline tab) is the team's list of words that mean the same in "
+                           "section titles, one group per line (solution, approach, methodology). It travels in Knowledge "
+                           "Packs. Like the Keep and Drop learning, it stores numbered word buckets and counts, never RFP "
+                           "or outline text."),
               ("Merge", "Select two or more rows and press M (or Merge) to join a requirement that the rules split."),
               ("Learned", "The app learns from your Keep and Drop decisions (Learn from decisions, and after every save). The Learned "
                           "column shows how likely the team is to keep a row; Accept suggestions uses it once it has enough decisions. "

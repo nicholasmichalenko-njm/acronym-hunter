@@ -2476,7 +2476,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.29.0"            # keep in step with version_info.txt
+APP_VERSION = "2.30.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -2969,13 +2969,15 @@ PACK_DATA_FILES = {"acronym_database.csv": "DB", "ocr_corrections.csv": "FIXES",
                    "compliance_learned.json": "LEARNED",   # compliance learning: hashed counts only, no RFP words (2.10.0)
                    "offerings.csv": "OFFERINGS",           # the offerings catalog (2.19.0)
                    "keyword_learning.json": "KWLEARN",     # keyword Keep/Reject learning: hashed counts only (2.19.0)
-                   "banned_words.csv": "BANNED"}           # the team's banned words and phrases for QA/QC (2.27.0)
+                   "banned_words.csv": "BANNED",           # the team's banned words and phrases for QA/QC (2.27.0)
+                   "placement_synonyms.csv": "SYNONYMS"}   # section title words that mean the same (2.30.0)
 
 def _team_files():
     """(name in the pack, path) for the offerings catalog and keyword learning (paths follow CONFIG_DIR)."""
     return [("offerings.csv", os.path.join(CONFIG_DIR, "offerings.csv")),
             ("keyword_learning.json", os.path.join(CONFIG_DIR, "keyword_learning.json")),
-            ("banned_words.csv", os.path.join(CONFIG_DIR, "banned_words.csv"))]
+            ("banned_words.csv", os.path.join(CONFIG_DIR, "banned_words.csv")),
+            ("placement_synonyms.csv", os.path.join(CONFIG_DIR, "placement_synonyms.csv"))]
 COMPLIANCE_LEARNED_FILE = os.path.join(CONFIG_DIR, "compliance_learned.json")
 PACK_MAX_MEMBER_BYTES = 400 * 1024 * 1024
 PACK_ROOT = "knowledge/"
@@ -3204,6 +3206,8 @@ def install_knowledge_pack(path):
         n = L.merge_pack(data["compliance_learned.json"])
         L.save()
         report.append(f"Compliance learning: {n} decisions added from the team (your own decisions unchanged)")
+        if getattr(L, "placed_added", 0):
+            report.append(f"Placement learning: {L.placed_added} placed rows added from the team (your own unchanged)")
     if "offerings.csv" in data:                        # add-only: offerings already here are kept as they are
         import offerings
         os.makedirs(SANDBOX_TEMP, exist_ok=True)
@@ -3236,6 +3240,13 @@ def install_knowledge_pack(path):
         finally:
             os.remove(tmp)
         report.append(f"Banned words: {a} phrases added (your own unchanged)")
+    if "placement_synonyms.csv" in data:               # add-only: groups already here keep their own wording
+        import placelearn
+        sp = placelearn.synonyms_path(CONFIG_DIR)
+        text, a = placelearn.merge_synonym_text(placelearn.load_synonyms(sp),
+                                                data["placement_synonyms.csv"].decode("utf-8-sig", errors="replace"))
+        placelearn.save_synonyms(sp, text)
+        report.append(f"Section word synonyms: {a} groups added (your own unchanged)")
     with open(KNOWLEDGE_INFO_FILE, "w", encoding="utf-8") as f:
         json.dump({"version": info.get("version"), "created": info.get("created"), "created_by": info.get("created_by"),
                    "notes": info.get("notes", ""), "models": sorted(models), "pack_sha256": _sha256_file(path),

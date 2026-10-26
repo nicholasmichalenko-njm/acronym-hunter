@@ -57,7 +57,7 @@ hiddenimports += ['defusedxml', 'defusedxml.ElementTree']  # openpyxl uses it on
 hiddenimports += ['preview_pane', 'PIL.ImageTk', 'pictures', 'corrections']   # picture preview; corrections (2.15.0)
 if TRAINING:
     hiddenimports += ['trainer_gui', 'training_app']   # the Trainer and Improve Reading: Acronym Hunter Training only
-hiddenimports += ['equations', 'symbol_picker', 'help_guide', 'diag', 'feedback', 'effort', 'effort_ui', 'custdefs', 'volcheck', 'volcheck_ui', 'compliance', 'compliance_ui', 'docxw', 'complearn', 'workspace', 'workspace_ui', 'ai_stack', 'ai_ui', 'setupdoc', 'setup_ui', 'context', 'effort_wizard', 'effort_home', 'master_db', 'keywords', 'keywords_ui', 'offerings']   # equation and symbol recognition (2.0.0), symbol picker (2.3.0)
+hiddenimports += ['equations', 'symbol_picker', 'help_guide', 'diag', 'feedback', 'effort', 'effort_ui', 'custdefs', 'volcheck', 'volcheck_ui', 'compliance', 'compliance_ui', 'docxw', 'complearn', 'placelearn', 'workspace', 'workspace_ui', 'ai_stack', 'ai_ui', 'setupdoc', 'setup_ui', 'context', 'effort_wizard', 'effort_home', 'master_db', 'keywords', 'keywords_ui', 'offerings']   # equation and symbol recognition (2.0.0), symbol picker (2.3.0)
 hiddenimports += ['skia']   # Google Skia (BSD-3): draws SVG pictures for OCR
 datas += [('assets/scanner.ico', 'assets'), ('assets/trainer.ico', 'assets')]   # window/taskbar icons at runtime
 datas += [('assets/help', 'assets/help')]   # "?" guide screenshots

@@ -9,6 +9,7 @@ import customtkinter as ctk
 import diag
 import compliance as C
 import complearn as CL
+import placelearn as PL
 
 ALL = "All"
 LEVEL_COLORS = {"Keep": "#E7F6EC", "Context": "#E0F2FE", "Drop": "#EEEEEE"}
@@ -166,6 +167,7 @@ class ComplianceMixin:
         win.d_map = ctk.CTkComboBox(mp, values=[""], width=300); win.d_map.pack(side="left")
         ctk.CTkButton(mp, text="Map", width=60, command=self.compliance_map).pack(side="left", padx=4)
         win.d_sug = ctk.CTkButton(right, text="", width=10, fg_color="#1E3A8A", command=self.compliance_accept_map)
+        win.d_learn = ctk.CTkFrame(right, fg_color="transparent")      # 2.30.0: top 3 from past proposals
         win.d_sug_anchor = ctk.CTkFrame(right, fg_color="transparent", height=4); win.d_sug_anchor.pack(fill="x")
         win.fields = {}
         for lab, key in (("Owner", "owner"), ("Status", "status"), ("Response page", "response_page"), ("Notes", "notes")):
@@ -185,6 +187,9 @@ class ComplianceMixin:
         ctk.CTkButton(bar, text="From a Word outline (.docx headings)...", command=self.compliance_outline_from_word, width=10).pack(side="left", padx=8)
         ctk.CTkButton(bar, text="Apply outline", command=self.compliance_outline_apply, fg_color="#0F766E", width=10).pack(side="left", padx=3)
         ctk.CTkButton(bar, text="Suggest sections for kept items", command=self.compliance_suggest_all, fg_color="#1E3A8A", width=10).pack(side="left", padx=8)
+        ctk.CTkButton(bar, text="Section word synonyms...", command=self.compliance_synonyms, width=10).pack(side="left", padx=3)
+        win.o_learn = ctk.CTkLabel(fr, text="", anchor="w", justify="left", wraplength=1300, text_color=("#475569", "#94A3B8"))
+        win.o_learn.pack(fill="x", pady=(0, 4))
         body = ctk.CTkFrame(fr, fg_color="transparent"); body.pack(fill="both", expand=True)
         left = ctk.CTkFrame(body, fg_color="transparent"); left.pack(side="left", fill="both", expand=True)
         ctk.CTkLabel(left, text="One section per line: 1.2 Management Approach, Volume I - Technical, or indent with 4 spaces.",
@@ -307,9 +312,35 @@ class ComplianceMixin:
     def _c_suggest(self, it, stats=None):
         """Section suggestion: the rules first (same number, title words), then the most similar rows already mapped."""
         lab, score = C.suggest_map(it, self.matrix.outline, stats or C.word_df(self.matrix.items))
-        if not lab and _eng().ai_ml_on():
-            lab, score = CL.map_from_neighbors(it, self.matrix.items)
+        if lab or not _eng().ai_ml_on():
+            return lab, score
+        lab, score = CL.map_from_neighbors(it, self.matrix.items)
+        if self._c_learning_on() and (not lab or score < 0.6):   # 2.30.0: where the team placed sentences like this
+            ranked = self._c_learned_places(it)
+            if PL.Placer.band(ranked) == "strong":
+                return ranked[0]
         return lab, score
+
+    def _c_learned_places(self, it):
+        """Top 3 sections from placement learning across proposals, [] when off or not enough placed yet."""
+        if self.matrix is None or not self.matrix.outline or not self._c_learning_on():
+            return []
+        nb = getattr(self, "_c_nb", None)
+        if nb is None or nb[0] is not self.matrix or nb[1] != len(self.matrix.items):
+            self._c_nb = nb = (self.matrix, len(self.matrix.items), PL.neighbors_of(self.matrix.items))
+        try:
+            pl = self._c_learner().placer()
+            sig = (id(pl), pl.matrices(), id(self.matrix), tuple((o["num"], o["title"], o["level"]) for o in self.matrix.outline))
+            cache = getattr(self, "_c_place_cache", None)
+            if cache is None or cache[0] != sig:      # ranks stay valid while the outline and the learned matrices stay
+                self._c_place_cache = cache = (sig, {})
+            key = (it["id"], it["text"])
+            if key not in cache[1]:
+                cache[1][key] = pl.rank(it, self.matrix.outline, nb[2].get(it["id"], []))
+            return cache[1][key]
+        except Exception:
+            diag.swallowed()
+            return []
 
     def _c_refresh(self):
         win = self._cwin
@@ -322,6 +353,11 @@ class ComplianceMixin:
         M = self.matrix
         labels = [""] + [C.outline_label(o) for o in (M.outline if M else [])]
         win.d_map.configure(values=labels)
+        try:
+            win.o_learn.configure(text=self._c_place_text() if self._c_learning_on() else
+                                  "Placement across proposals is off (AI and ML switch, or Team learning).")
+        except Exception:
+            diag.swallowed()
         win.o_text.delete("1.0", "end")
         if M:
             win.o_text.insert("1.0", C.outline_text(M.outline))
@@ -365,6 +401,7 @@ class ComplianceMixin:
         for e in win.fields.values():
             e.delete(0, "end")
         win.d_sug.pack_forget()
+        win.d_learn.pack_forget()
         if len(sel) != 1:
             win.d_head.configure(text=f"{len(sel)} requirements selected: K / D / U apply to all" if sel else "Select a requirement")
             win.d_src.configure(text="")
@@ -393,6 +430,28 @@ class ComplianceMixin:
         if lab and lab != it["map"]:
             win.d_sug.configure(text=f"Suggested: {lab}  (click to map)")
             win.d_sug.pack(anchor="w", padx=10, pady=(2, 4), before=win.d_sug_anchor)
+        self._c_show_learned(it)
+
+    def _c_show_learned(self, it):
+        """'From past proposals': the top 3 sections, each a button that maps the row; or 'no strong match'."""
+        win = self._cwin
+        for w in win.d_learn.winfo_children():
+            w.destroy()
+        if self.matrix is None or not self.matrix.outline or not self._c_learning_on():
+            return
+        pl = self._c_learner().placer()
+        if not pl.ready():
+            return
+        ranked = self._c_learned_places(it)
+        band = PL.Placer.band(ranked)
+        head = {"strong": "From past proposals (strong match):", "possible": "From past proposals (possible):",
+                "": "From past proposals: no strong match"}[band]
+        ctk.CTkLabel(win.d_learn, text=head, anchor="w").pack(side="left")
+        if band:
+            for k, (lab, _s) in enumerate(ranked, 1):
+                ctk.CTkButton(win.d_learn, text=f"{k}. {lab}", width=10, height=24, fg_color="#475569",
+                              command=lambda lab=lab: (win.d_map.set(lab), self.compliance_map())).pack(side="left", padx=2)
+        win.d_learn.pack(fill="x", padx=10, pady=(0, 4), before=win.d_sug_anchor)
 
     # ------------------------------------------------------------ deciding
     def compliance_decide(self, decision):
@@ -552,6 +611,29 @@ class ComplianceMixin:
         self._c_changed()
         messagebox.showinfo("Outline", f"{n} kept requirements got a suggested section. Check them on the Requirements tab "
                                        "(filter Outline: Mapped); the rest stay unmapped.", parent=self._cwin)
+
+    def compliance_synonyms(self, text=None):
+        """Edit the team list of words that mean the same thing in section titles (2.30.0). text= saves without a window."""
+        path = PL.synonyms_path(_eng().CONFIG_DIR)
+        def save(t):
+            PL.save_synonyms(path, t)
+            self._c_learner().placer(reload=True)
+            diag.activity("compliance_synonyms_saved")
+            if self._cwin is not None and self._cwin.winfo_exists():
+                self._c_fill()
+        if text is not None:
+            save(text); return None
+        w = ctk.CTkToplevel(self._cwin); w.title("Section word synonyms"); w.geometry("640x520"); w.after(150, w.lift)
+        ctk.CTkLabel(w, text="One group per line, words separated by commas. Placement learning treats the words in a group as "
+                             "one word, so 'Technical Solution' and 'Technical Methodology' count as the same section title. "
+                             "Shared with the team in Knowledge Packs.", wraplength=600, justify="left", anchor="w").pack(fill="x", padx=12, pady=(10, 4))
+        box = ctk.CTkTextbox(w, wrap="none", font=("Consolas", 13)); box.pack(fill="both", expand=True, padx=12)
+        box.insert("1.0", PL.load_synonyms(path))
+        bar = ctk.CTkFrame(w, fg_color="transparent"); bar.pack(fill="x", padx=12, pady=8)
+        ctk.CTkButton(bar, text="Save", fg_color="#0F766E", command=lambda: (save(box.get("1.0", "end")), w.destroy())).pack(side="right")
+        ctk.CTkButton(bar, text="Cancel", command=w.destroy).pack(side="right", padx=6)
+        w.box = box
+        return w
 
     # ------------------------------------------------------------ files
     def _c_pick_rfp(self, title):
@@ -755,7 +837,7 @@ class ComplianceMixin:
             try:                                     # keep learning from the decisions (hashed counts only)
                 if self._c_learning_on():
                     L = self._c_learner()
-                    if L.learn(M.path, M.items):
+                    if L.learn(M.path, M.items, M.outline):
                         L.save()
             except Exception:
                 diag.swallowed()
@@ -830,7 +912,9 @@ class ComplianceMixin:
                                 "Decisions stay in the matrix; nothing is learned from them.", parent=self._cwin)
             return
         L = self._c_learner()
-        n = L.learn(M.path, M.items)
+        pl = L.placer()
+        chk = pl.check(CL.Learner.source_id(M.path), M.items, M.outline) if M.outline else None
+        n = L.learn(M.path, M.items, M.outline)
         L.save()
         cv = CL.Learner.cross_check(M.items)
         self._c_refresh()
@@ -844,7 +928,22 @@ class ComplianceMixin:
                     f"your decision on {agree} of {total} rows; the rule suggestions agree on {rule} of {total}.")
         if not L.ready():
             msg += "\n\nThe Learned column fills in once there are at least 5 Keep and 3 Drop decisions."
+        msg += "\n\n" + self._c_place_text(chk)
         messagebox.showinfo("Learn from decisions", msg, parent=self._cwin)
+
+    def _c_place_text(self, chk=None):
+        """Plain summary of placement learning across proposals and its self-check (2.30.0)."""
+        pl = self._c_learner().placer()
+        t = (f"Placement across proposals: {pl.placed()} placed rows from {pl.matrices()} matrices"
+             + ("." if pl.ready() else f"; suggestions start at {PL.MIN_PLACED} placed rows."))
+        if chk:
+            t += (f" Check on this matrix, using only what the other matrices taught: your section was in the top 3 "
+                  f"suggestions for {chk['top3']} of {chk['total']} placed rows ({round(100 * chk['top3'] / chk['total'])}%), "
+                  f"first choice for {chk['top1']}.")
+        hist = pl.history()
+        if len(hist) > 1:
+            t += " Earlier checks: " + ", ".join(f"{d} {round(100 * a / b)}%" for d, a, b in hist[-6:]) + "."
+        return t
 
     def compliance_merge(self):
         sel = self._c_selected()
