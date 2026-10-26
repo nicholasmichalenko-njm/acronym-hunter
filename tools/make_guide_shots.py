@@ -2,8 +2,9 @@
 
     venv\\Scripts\\python.exe tools\\make_guide_shots.py
 
-Uses the fictional test_samples only, in a temporary config folder, and writes assets\\help\\topbar.png, home.png,
-scanreview.png, keywords.png, suggest.png, setup.png, whatruns.png, stack.png, qa.png and training.png. Each picture is the window region of one view, captured
+Uses the fictional test_samples only, in a temporary config folder, and writes assets\\help\\topbar.png, shell.png,
+home.png, scanreview.png, keywords.png, suggest.png, compliance.png, place.png, prove.png, setup.png, whatruns.png, stack.png,
+qa.png and training.png (2.33.0: the one-feature-at-a-time layout). Each picture is the window region of one view, captured
 with PIL ImageGrab, so the window must be on screen and not covered.
 """
 import os, sys, shutil, tempfile, time
@@ -13,7 +14,7 @@ import app_gui as A, effort as E, effort_home as H
 from tkinter import messagebox
 from PIL import ImageGrab, Image
 
-OUT = os.path.join(A.BASE_DIR, "assets", "help")
+OUT = os.environ.get("AH_SHOTS_OUT") or os.path.join(A.BASE_DIR, "assets", "help")
 tmp = tempfile.mkdtemp()
 A.CONFIG_DIR = os.path.join(tmp, "config"); A.CHOICES_FILE = os.path.join(A.CONFIG_DIR, "choices.json")
 A.SETTINGS_FILE = os.path.join(tmp, "settings.json")
@@ -52,6 +53,14 @@ app = A.AcronymAppGUI()
 fit(app)
 
 
+def zoom():
+    try:
+        app.state("zoomed")              # Windows; elsewhere the window stays as it is
+    except Exception:
+        pass
+    app.update()
+
+
 def wait(cond, then, n=0):
     if not cond() and n < 240:
         app.after(500, lambda: wait(cond, then, n + 1)); return
@@ -71,15 +80,17 @@ def step2():
     app.add_to_effort(terms)
     app.add_volume("Vol I Technical", [VOL])
     app.effort.set_status(terms[:4], "Approved", approver="J. Smith"); app._save_effort_list()
-    app.show_view(H.VIEW_SCAN); app.update()
+    app.shell_go("home"); app.update()
+    grab(app, "shell.png")
+    app.shell_go("acronyms", "review"); app.update()
     grab(app.topbar, "topbar.png")
     if app.tree.get_children():
         first = app.tree.get_children()[0]
         app.tree.selection_set(first); app.on_select(None)
     grab(app.scan_view, "scanreview.png")
-    app.show_view(H.VIEW_HOME); app.home_refresh()
+    app.shell_go("acronyms", "approve"); app.update()
     grab(app.home_view, "home.png")
-    app.show_view(H.VIEW_KW)
+    app.shell_go("keywords")
     for t, c in (("thermal control system", "Our solution"), ("radiator panel sizing", "Differentiator"),
                  ("Integrated Master Schedule", "Customer emphasis")):
         app.kw_add(t, c, "Typed in")
@@ -109,18 +120,34 @@ def step3():
                                 "Volume II Management\n2.1 Schedule\n2.2 Staffing")
     for it in M.items:
         it["decision"] = "Keep" if it["suggest"] != "Drop" else "Drop"
+    for i, it in enumerate(M.items):
+        if i % 4 == 3 and it["type"] == "Context":
+            it["decision"] = "Context"
+    for it in M.items[-6:]:
+        it["decision"] = ""
     M.save()
     app.ws.set("compliance_path", mpath)
-    cw = app.open_compliance(); cw.tabs.set("Setup"); cw.update()
-    app.setup_accept(); cw.update()
+    app.open_compliance(); app.update()
+    app._c_load(mpath, quiet=True); app._c_refresh()
+    app.shell_go("compliance", "decide"); app.update()
+    app.compliance_next_undecided()
 
     def shot_setup():
-        cw.state("zoomed"); cw.update(); time.sleep(0.8); cw.update()
-        out = cw.s_out
+        zoom(); time.sleep(0.8); app.update()
+        grab(app.main, "compliance.png")
+        for it in app.matrix.items:
+            it["decision"] = it["decision"] or ("Drop" if it["suggest"] == "Drop" else "Keep")
+        app._c_changed()
+        app.shell_go("compliance", "place"); app.update()
+        grab(app.main, "place.png")
+        app.setup_accept(); app.update()
+        app._cwin.tabs.set("Setup"); app.update()          # the setup board is reached from Place
+        out = app._cwin.s_out
         for iid in out.get_children()[:3]:
             out.item(iid, open=True)
-        grab(cw, "setup.png")
-        cw.destroy(); app.update()
+        grab(app.main, "setup.png")
+        app.shell_go("compliance", "prove"); app.update()
+        grab(app.main, "prove.png")
         w = app.show_what_runs(); w.update()
         app.after(1200, lambda: shot_runs(w))
 
@@ -132,12 +159,13 @@ def step3():
         s = app.show_stack("scan"); s.update()
         app.after(1000, lambda: (grab(s, "stack.png"), s.destroy(), app.after(800, step4)))
 
-    app.after(1200, shot_setup)
+    app.after(1500, shot_setup)
 
 
 def step4():
     """QA/QC view after checking the sample technical volume (2.24.0)."""
-    app.state("zoomed"); app.update()
+    zoom()
+    app.shell_go("qaqc"); app.update()
     app.check_volumes([VOL])
     wait(lambda: not app.busy() and not app.btn_cancel.winfo_ismapped() and getattr(app, "volume_report", None),
          lambda: app.after(1500, lambda: (grab(app.qa_view, "qa.png"), app.after(500, finish))))

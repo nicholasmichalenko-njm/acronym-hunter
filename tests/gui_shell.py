@@ -83,6 +83,23 @@ def go():
     check("the page shades it green", "d_Keep" in t.tag_names(t.tag_ranges("r:L.4-01")[0]))
     t.event_generate("<Key>", keysym="c"); app.update()
     check("C decides Context", app._c_item("L.4-02")["decision"] == "Context")
+    # 2.33.0: Context is linked to the requirement it explains
+    check("Context linked to the nearest requirement", app._c_item("L.4-02").get("context_for") == "L.4-01",
+          app._c_item("L.4-02").get("context_for"))
+    app._cp_select("L.4-02"); app.update()
+    check("the dock names the requirement and the page marks it", "Context for L.4-01" in win.cp_l3.cget("text")
+          and bool(t.tag_ranges("linked")) and t.tag_ranges("linked")[0] == t.tag_ranges("r:L.4-01")[0], win.cp_l3.cget("text"))
+    t.event_generate("<Key>", keysym="l"); app.update()
+    r6 = t.tag_ranges("r:L.4.2-06"); t.see(r6[0]); app.update(); b6 = t.bbox(r6[0])
+    t.event_generate("<ButtonRelease-1>", x=b6[0] + 3, y=b6[1] + b6[3] // 2); app.update()
+    check("linking to a sentence that is not a requirement is refused", app._c_item("L.4-02")["context_for"] == "L.4-01"
+          and "not a requirement" in win.cp_l3.cget("text"), win.cp_l3.cget("text"))
+    app._c_item("L.4.2-06")["decision"] = "Keep"; app._c_changed(); app._cp_select("L.4-02"); app.update()
+    t.event_generate("<Key>", keysym="l"); app.update()
+    t.see(r6[0]); app.update(); b6 = t.bbox(t.tag_ranges("r:L.4.2-06")[0])
+    t.event_generate("<ButtonRelease-1>", x=b6[0] + 3, y=b6[1] + b6[3] // 2); app.update()
+    check("L then a click links it to another requirement", app._c_item("L.4-02")["context_for"] == "L.4.2-06")
+    app.cp_link_to("L.4-01"); app._c_item("L.4.2-06")["decision"] = ""; app._c_changed(); app._cp_select("L.4-02"); app.update()
     t.event_generate("<Key>", keysym="BackSpace"); app.update()
     check("Back returns to the previous sentence", app._c_selected()[0]["id"] == "L.4-02")
     # split by clicking between two words of the current sentence
@@ -110,6 +127,7 @@ def go():
     keys = list(app._cwin.pl_keys)
     app.pl_place("1.1 Thermal Design"); app.update()
     check("placing moves to the next one", app._c_item("L.4-01")["map"] == "1.1 Thermal Design" and app._cwin.pl_cur != "L.4-01")
+    check("its Context goes with it", app._c_item("L.4-02")["map"] == "1.1 Thermal Design")
     app._cwin.pl_cur = "L.4.1-03a"; app.pl_refresh(); app.update()
     app._cwin.pl_keys = ["1.1 Thermal Design"]
     nrun = app.pl_place_run(); app.update()

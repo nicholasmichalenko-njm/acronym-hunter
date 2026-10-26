@@ -40,6 +40,7 @@ PAGES = {
           "definition and where it appears. It reads typed text and the text inside pictures, scans and diagrams. "
           "Everything runs on this PC. Nothing is sent anywhere."),
     ("h", "One feature at a time"),
+    ("img", "shell.png", 640),
     ("p", "The dark list on the left holds the features in work order: Effort home, Compliance, Acronyms, QA/QC, Keywords. "
           "Click one and only its tools show. Across the top are its steps, in order: the current step is blue, steps with "
           "work done are green with a check mark. Click any step to go to it. Each feature ends in its own Export step; "
@@ -64,11 +65,13 @@ PAGES = {
               ("First Use", "Whether the document defines the acronym the first time it uses it."),
               ("Locations", "Every file, page, sheet or picture where it appears. Click a row to see it.")]),
     ("h", "Filters"),
-    ("img", "filters.png", 560),
-    ("p", "Show one type or status, or search. Show Excluded brings back terms you excluded."),
+    ("p", "The row above the results (Acronyms > Review): show one type or status, or search. Show excluded brings back "
+          "terms you excluded."),
     ("h", "The action bar (bottom)"),
-    ("img", "actionbar.png", 560),
-    ("rows", [("Apply Choice", "Pick one meaning when a term has several."),
+    ("img", "scanreview.png", 600),
+    ("rows", [("Add, Not a term, Skip", "With an effort open: A adds the term to the effort list, X marks it Not a term, "
+                                        "Space skips; the next term comes up. More holds Include in DB, Exclude, Omit and Fix OCR."),
+              ("Apply Choice", "Pick one meaning when a term has several."),
               ("Include in DB", "Type the definition and save it. Every future scan knows it."),
               ("Fix OCR", "The term is a misreading. Type the correct term. See the Fix OCR vs Training tab."),
               ("Exclude", "Not a real term (a heading word, a part number). Hidden from now on, everywhere."),
@@ -333,6 +336,7 @@ PAGES = {
           "something (shall, must, will, should, may, describe, provide, page limits, fonts, due dates) as requirements; "
           "every other sentence is a Context row, so nothing is skipped because it did not sound like a requirement. "
           "No AI writes anything."),
+    ("img", "compliance.png", 620),
     ("rows", [("Page view", "Decide shows the RFP as a page. Each sentence is shaded as you decide it: green Keep, blue Context, "
                             "grey Drop; undecided sentences are underlined in amber and the current one is outlined. The bar at "
                             "the bottom: Accept the suggestion (Enter), Keep (K), Context (C), Drop (D), Back (Backspace), "
@@ -340,6 +344,12 @@ PAGES = {
                             "right switches files and shows how far each one is."),
               ("Easy ones first", "Drop all... in the side panel drops the page headers, page numbers and markings in one go "
                                   "after showing you the list."),
+              ("Context for", "Each Context sentence is linked to the requirement it explains: by default the nearest Keep "
+                              "before it in the same RFP paragraph (or the next one when none comes before). The bar at the "
+                              "bottom names it and the page outlines it; press L and click another requirement to change it. "
+                              "In Place it goes with its requirement, the setup documents print it right under that "
+                              "requirement, the matrix has a Context for column, and the coverage report shows the link. Prove "
+                              "lists any Context sentence without a requirement or placed apart from it."),
               ("Place", "A second pass, after deciding: one Keep or Context sentence at a time with the sentences around it. "
                         "Press 1, 2 or 3 for the suggested sections (the rules' match and past proposals), pick another, or "
                         "Later (Space). Place all... puts every sentence of the same RFP paragraph in choice 1. Arrange the "
@@ -397,8 +407,10 @@ PAGES = {
                           "outline makes the proposal outline with each section's requirements in a table. Context rows go "
                           "to the Setup documents in blue, under the section they were placed in.")]),
     ("p", "The matrix holds customer content: keep it on this PC or SharePoint."),
+    ("img", "place.png", 620),
     ("h", "Setup: the first draft for authors"),
-    ("p", "The Setup tab puts the RFP text under the proposal outline and writes the setup documents: every heading of the "
+    ("img", "setup.png", 620),
+    ("p", "The setup board (Compliance > Place > Arrange the setup) puts the RFP text under the proposal outline and writes the setup documents: every heading of the "
           "outline, with the RFP text that section must answer and the proposal lead's direction."),
     ("rows", [("Place", "Drag RFP text from the left onto a section on the right. Shift+drag adds a copy to a second section. "
                         "Drag inside the outline to reorder, or back to the left to remove. Accept suggestions places what the "

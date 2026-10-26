@@ -151,6 +151,14 @@ class ComplianceMixin:
         if hasattr(self, "_cp_build_details"):          # 2.32.0: owner, status and page are set here, not during triage
             self._cp_build_details(fr)
 
+    def _c_goto_decide(self, iid):
+        """Open Decide on one sentence."""
+        if hasattr(self, "shell_go"):
+            self.shell_go("compliance", "decide")
+        if self._cwin.tv.exists(iid):
+            self._cwin.tv.selection_set(iid); self._cwin.tv.focus(iid); self._cwin.tv.see(iid)
+            self._c_show()
+
     def _c_build_export(self, fr):
         win = self._cwin
         ctk.CTkLabel(fr, text="Export the compliance work", font=("Segoe UI", 20, "bold"), anchor="w").pack(fill="x", padx=6, pady=(8, 2))
@@ -189,6 +197,17 @@ class ComplianceMixin:
             for j, v in enumerate(vals):
                 ctk.CTkLabel(g, text=str(v), anchor="w", font=("Segoe UI", 12, "bold" if r["file"] == "Total" else "normal")
                              ).grid(row=i, column=j, sticky="w", padx=(0, 18))
+        probs = C.context_problems(M.items)          # 2.33.0: Context with its requirement
+        nctx = c["Context"]
+        pr = ctk.CTkFrame(win.prove_rows, fg_color="transparent"); pr.pack(fill="x", pady=(10, 0))
+        ctk.CTkLabel(pr, text=(f"\u2713 All {nctx} Context sentences are linked to their requirement and placed with it." if not probs
+                               else f"{len(probs)} of {nctx} Context sentences are not with their requirement: "
+                                    + "; ".join(f"{it['id']} ({why})" for it, why in probs[:3]) + (" ..." if len(probs) > 3 else "")),
+                     anchor="w", justify="left", wraplength=900, font=("Segoe UI", 13, "bold" if probs else "normal"),
+                     text_color=("#B45309", "#FBBF24") if probs else ("#15803D", "#86EFAC")).pack(side="left")
+        if probs:
+            ctk.CTkButton(pr, text="Show the first", width=10, command=lambda i=probs[0][0]["id"]: self._c_goto_decide(i)).pack(side="left", padx=10)
+        win.prove_problems = probs
         if hasattr(win, "lbl_read"):
             win.lbl_read.configure(text=f"Open matrix: {os.path.basename(M.path)}, {len(M.items)} sentences from "
                                         f"{len(M.sources)} file(s). Next: Decide.")
@@ -690,6 +709,7 @@ class ComplianceMixin:
             x.update(text=p, id=f"{it['id']}{chr(97 + n)}", key=C.text_key(p), compound=False, decision="")
             new.append(x)
         self.matrix.items[i:i + 1] = new
+        C.remap_context_for(self.matrix.items, it["id"], new[0]["id"])     # Context for the old row: the first part
         self.matrix.log(it["id"], f"split into {len(new)} {how}")
         self._c_split_at = None
         diag.activity("compliance_split", n=len(new))
@@ -1053,6 +1073,8 @@ class ComplianceMixin:
             diag.swallowed()
 
     def _c_changed(self, refill=True):
+        if self.matrix is not None:
+            C.link_contexts(self.matrix.items)       # 2.33.0: every Context sentence has a requirement where one is near
         if getattr(self, "_c_snap_after", None):
             try:
                 self.after_cancel(self._c_snap_after)

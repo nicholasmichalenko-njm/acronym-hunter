@@ -394,7 +394,7 @@ def merge_reread(old, new):
         if o is not None:
             taken.add(id(o))
         if o:
-            for f in ("id", "decision", "map", "owner", "status", "notes", "response_page", "text"):
+            for f in ("id", "decision", "map", "owner", "status", "notes", "response_page", "text", "context_for"):
                 it[f] = o.get(f, "")
             it["new"] = ""
         else:
@@ -456,7 +456,77 @@ def merge_items(items, ids):
     first["notes"] = ((first.get("notes") or "") + "; " if first.get("notes") else "") + "merged " + ", ".join(r["id"] for r in rows[1:])
     for r in rows[1:]:
         items.remove(r)
+        remap_context_for(items, r["id"], first["id"])
     return first
+
+
+# ------------------------------------------------------------------ Context linked to its requirement (2.33.0)
+CONTEXT_REACH = 12          # how many sentences before or after to look for the requirement
+
+
+def default_context_for(items, it):
+    """The requirement a Context sentence explains: the nearest Keep before it in the same file and RFP section
+    (the same paragraph), else the nearest Keep after it there. '' when there is none nearby."""
+    try:
+        i = next(k for k, x in enumerate(items) if x is it)
+    except StopIteration:
+        return ""
+    same = lambda x: x.get("file", "") == it.get("file", "") and x.get("section", "") == it.get("section", "")
+    for j in range(i - 1, max(-1, i - 1 - CONTEXT_REACH), -1):
+        x = items[j]
+        if not same(x):
+            break
+        if x["decision"] == "Keep":
+            return x["id"]
+    for j in range(i + 1, min(len(items), i + 1 + CONTEXT_REACH)):
+        x = items[j]
+        if not same(x):
+            break
+        if x["decision"] == "Keep":
+            return x["id"]
+    return ""
+
+
+def link_contexts(items):
+    """Give every Context sentence without a requirement its default one; clear the link on rows no longer Context.
+    Returns the number of links made."""
+    n = 0
+    for it in items:
+        if it["decision"] == "Context":
+            if not it.get("context_for"):
+                cf = default_context_for(items, it)
+                if cf:
+                    it["context_for"] = cf
+                    n += 1
+        elif it.get("context_for"):
+            it["context_for"] = ""
+    return n
+
+
+def remap_context_for(items, old_id, new_id):
+    for it in items:
+        if it.get("context_for") == old_id:
+            it["context_for"] = new_id
+
+
+def context_problems(items):
+    """[(item, reason)] for Context sentences that are not with their requirement."""
+    by = {it["id"]: it for it in items}
+    out = []
+    for it in items:
+        if it["decision"] != "Context":
+            continue
+        cf = it.get("context_for", "")
+        req = by.get(cf)
+        if not cf:
+            out.append((it, "no requirement"))
+        elif req is None:
+            out.append((it, f"its requirement {cf} is no longer in the matrix"))
+        elif req["decision"] != "Keep":
+            out.append((it, f"its requirement {cf} is no longer Keep"))
+        elif it.get("map") and req.get("map") and it["map"] != req["map"]:
+            out.append((it, f"placed in {it['map']}, its requirement {cf} in {req['map']}"))
+    return out
 
 
 def _word_diff(old, new):
@@ -654,12 +724,13 @@ def suggest_map(item, outline, stats=None):
 
 # ------------------------------------------------------------------ the workbook
 COLUMNS = ["ID", "Decision", "Suggested", "Learned", "Section", "Section title", "Requirement", "Lead-in", "Actor", "Type", "Strength",
-           "Cross-references", "Linked items", "Outline section", "Owner", "Status", "Response page", "Notes",
+           "Cross-references", "Linked items", "Outline section", "Context for", "Owner", "Status", "Response page", "Notes",
            "Source file", "Location", "Compound", "Change", "Context", "Key"]
-WIDTHS = [12, 10, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 12, 12, 24, 26, 30, 9, 14, 60, 13]
+WIDTHS = [12, 10, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 14, 12, 12, 24, 26, 30, 9, 14, 60, 13]
 FIELD = {"ID": "id", "Decision": "decision", "Suggested": "suggest", "Learned": "learned", "Section": "section", "Section title": "section_title",
          "Requirement": "text", "Lead-in": "lead", "Actor": "actor", "Type": "type", "Strength": "strength",
-         "Cross-references": "xrefs", "Linked items": "links", "Outline section": "map", "Owner": "owner", "Status": "status",
+         "Cross-references": "xrefs", "Linked items": "links", "Outline section": "map", "Context for": "context_for",
+         "Owner": "owner", "Status": "status",
          "Response page": "response_page", "Notes": "notes", "Source file": "file", "Location": "loc",
          "Compound": "compound", "Change": "new", "Context": "context", "Key": "key"}
 
@@ -982,7 +1053,8 @@ def write_coverage_docx(matrix, path, title=""):
             d = it["decision"]
             txt = ((it["lead"] + " ") if it.get("lead") else "") + it["text"]
             where = it["map"] or ("not placed" if d in ("Keep", "Context") else "")
-            tag = f"   [{it['id']} · {d or 'UNDECIDED'}" + (f" · {where}" if where else "") + "]"
+            dlab = f"Context for {it['context_for']}" if d == "Context" and it.get("context_for") else (d or "UNDECIDED")
+            tag = f"   [{it['id']} · {dlab}" + (f" · {where}" if where else "") + "]"
             doc.rich(cwords.docx_parts(txt, {"fill": COVER_FILL.get(d, COVER_FILL[""]), "color": "6B7280" if d == "Drop" else None}, cw)
                      + [(tag, {"size": 16, "color": "B91C1C" if not d or where == "not placed" else "475569", "bold": not d})])
     doc.save(path)

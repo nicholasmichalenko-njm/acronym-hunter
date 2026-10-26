@@ -40,6 +40,8 @@ class CompliancePageMixin:
         win.cp_l1.pack(fill="x")
         win.cp_l2 = ctk.CTkLabel(info, text="", anchor="w", text_color="#E2E8F0", font=("Segoe UI", 14))
         win.cp_l2.pack(fill="x")
+        win.cp_l3 = ctk.CTkLabel(info, text="", anchor="w", text_color="#93C5FD", font=("Segoe UI", 12))
+        win.cp_linking = False
         B = dict(height=40, font=("Segoe UI", 14, "bold"), width=10)
         win.cp_accept = ctk.CTkButton(dock, text="Accept  (Enter)", command=self.cp_accept, fg_color="#F8FAFC",
                                       text_color="#0F172A", hover_color="#E2E8F0", **B)
@@ -48,6 +50,8 @@ class CompliancePageMixin:
             ctk.CTkButton(dock, text=text, command=lambda d=dec: self.cp_decide(d), fg_color=color, **B).pack(side="left", padx=4)
         G = dict(height=40, width=10, fg_color="transparent", border_width=1, border_color="#334155", text_color="#CBD5E1",
                  hover_color="#1E293B")
+        win.cp_link_btn = ctk.CTkButton(dock, text="Link  L", command=self.cp_link_start, **G)
+        win.cp_link_btn.pack(side="left", padx=4)
         ctk.CTkButton(dock, text="Back", command=self.cp_back, **G).pack(side="left", padx=4)
         ctk.CTkButton(dock, text="Split  S", command=self.cp_split, **G).pack(side="left", padx=(4, 12))
 
@@ -74,6 +78,7 @@ class CompliancePageMixin:
         except tk.TclError:
             diag.swallowed()
         t.tag_configure("cur", relief="solid", borderwidth=2, background="#FEF3C7")
+        t.tag_configure("linked", relief="ridge", borderwidth=2, foreground="#1E3A8A")   # the requirement a Context explains
         t.tag_raise("cur")
         t.bind("<ButtonRelease-1>", self._cp_click)
         t.bind("<Key>", self._cp_key)
@@ -237,6 +242,20 @@ class CompliancePageMixin:
         win.cp_accept.configure(text=f"Accept {sug}  (Enter)" if sug in ("Keep", "Context", "Drop") else "Accept  (Enter)",
                                 state="normal" if sug in ("Keep", "Context", "Drop") else "disabled")
         win.cp_head.configure(text=f"{it['id']}   {it['type']}" + (f"   {it['actor']}" if it.get("actor") else ""))
+        t = win.cp_text
+        t.tag_remove("linked", "1.0", "end")
+        if it["decision"] == "Context":
+            cf = it.get("context_for", "")
+            req = self._c_item(cf) if cf else None
+            win.cp_l3.configure(text=(f"Context for {cf}: {req['text'][:70]}   (L links it to another requirement)" if req
+                                      else "Context for: no requirement nearby. Press L, then click the requirement it explains."))
+            win.cp_l3.pack(fill="x")
+            r = t.tag_ranges("r:" + cf) if cf else ()
+            if r:
+                t.tag_add("linked", r[0], r[1])
+        else:
+            win.cp_l3.pack_forget()
+        win.cp_link_btn.configure(state="normal" if it["decision"] == "Context" else "disabled")
         sec = " ".join(x for x in (it.get("section", ""), it.get("section_title", "")) if x)
         win.cp_where.configure(text=(it.get("loc") or "") + (f"\nSection {sec}" if sec else ""))
 
@@ -264,6 +283,10 @@ class CompliancePageMixin:
         hit = next((tag[2:] for tag in t.tag_names(ix) if tag.startswith("r:")), None)
         if not hit:
             return
+        if win.cp_linking:                           # Link mode: this click names the requirement
+            win.cp_linking = False
+            self.cp_link_to(hit)
+            return
         sel = self._c_selected()
         if sel and sel[0]["id"] == hit:              # a click inside the current sentence: where to split
             r = t.tag_ranges("r:" + hit)
@@ -288,6 +311,13 @@ class CompliancePageMixin:
             self.cp_back()
         elif k == "s":
             self.cp_split()
+        elif k == "l":
+            self.cp_link_start()
+        elif k == "escape":
+            self._cwin.cp_linking = False
+            sel = self._c_selected()
+            if sel:
+                self._cp_show(sel[0])
         elif k == "m":
             self.compliance_merge()
         elif k == "n":
@@ -328,6 +358,34 @@ class CompliancePageMixin:
             if self._cwin.tv.exists(iid):
                 self._cp_select(iid)
                 return
+
+    def cp_link_start(self):
+        """L: the next click on a requirement links the current Context sentence to it."""
+        win = self._cwin
+        sel = self._c_selected()
+        if len(sel) != 1 or sel[0]["decision"] != "Context":
+            return
+        win.cp_linking = True
+        win.cp_l3.configure(text="Click the requirement this sentence explains (Esc cancels).")
+        win.cp_l3.pack(fill="x")
+        win.cp_text.focus_set()
+
+    def cp_link_to(self, req_id):
+        """Link the current Context sentence to a requirement (it must be Keep). Returns True when linked."""
+        sel = self._c_selected()
+        req = self._c_item(req_id)
+        if len(sel) != 1 or sel[0]["decision"] != "Context" or req is None:
+            return False
+        if req["decision"] != "Keep":
+            self._cwin.cp_l3.configure(text=f"{req_id} is not a requirement (Keep). Press L and click a green sentence.")
+            return False
+        it = sel[0]
+        it["context_for"] = req_id
+        self.matrix.log(it["id"], f"context for {req_id}")
+        diag.activity("compliance_context_linked")
+        self._c_changed(refill=False)
+        self._cp_show(it)
+        return True
 
     def cp_split(self):
         self.compliance_split()
@@ -426,10 +484,13 @@ class CompliancePageMixin:
         win.pl_text.configure(text=cur["text"])
         win.pl_after.configure(text=rows[i + 1]["text"] if i + 1 < len(rows) else "")
         choices = []
+        req = self._c_item(cur.get("context_for", "")) if cur["decision"] == "Context" and cur.get("context_for") else None
+        if req is not None and req.get("map"):
+            choices.append((req["map"], f"with its requirement {req['id']}"))
         ranked = self._c_learned_places(cur) if hasattr(self, "_c_learned_places") else []
         band = __import__("placelearn").Placer.band(ranked) if ranked else ""
         rule, _s = self._c_suggest(cur)
-        if rule:
+        if rule and rule not in [c[0] for c in choices]:
             choices.append((rule, "the rules: same RFP number or title words"))
         for lab, sc in ranked:
             if lab not in [c[0] for c in choices]:
@@ -477,9 +538,12 @@ class CompliancePageMixin:
             return 0
         cur = next((it for it in M.items if it["id"] == win.pl_cur), None)
         rows = rows or ([cur] if cur else [])
-        for it in rows:
+        ids = {it["id"] for it in rows}
+        follow = [x for x in M.items if x["decision"] == "Context" and x.get("context_for") in ids and not x["map"]
+                  and x["id"] not in ids]                 # 2.33.0: Context goes with the requirement it explains
+        for it in rows + follow:
             it["map"] = label
-            M.log(it["id"], f"mapped to {label} (placed)")
+            M.log(it["id"], f"mapped to {label} (placed" + (" with its requirement)" if it in follow else ")"))
         win.pl_flash = label
         diag.activity("compliance_placed", n=len(rows))
         self._c_changed(refill=False)

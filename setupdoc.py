@@ -145,6 +145,18 @@ def placed_in(M):
         for it in items:
             if lab in where[it["id"]] and it["id"] not in seen:
                 out[lab].append(it["id"]); seen.add(it["id"])
+        # 2.33.0: a Context sentence prints right under the requirement it explains (unless the order was set by hand)
+        byid = {it["id"]: it for it in items}
+        ordered = set(S["order"].get(lab, []))
+        ids = out[lab]
+        movers = [i for i in ids if i not in ordered and byid.get(i, {}).get("decision") == "Context"
+                  and byid[i].get("context_for") in ids and byid[i].get("context_for") != i]
+        if movers:
+            res = []
+            for i in (x for x in ids if x not in movers):
+                res.append(i)
+                res += [m for m in movers if byid[m]["context_for"] == i]
+            out[lab] = res
     return out
 
 
