@@ -14,8 +14,8 @@ FEATURES = (("home", "Effort home"), ("compliance", "Compliance"), ("acronyms", 
             ("keywords", "Keywords"))
 STEPS = {
     "home": (("overview", "Overview"),),
-    "compliance": (("read", "Read RFP"), ("decide", "Decide"), ("outline", "Outline"), ("place", "Place"),
-                   ("prove", "Prove"), ("export", "Export")),
+    "compliance": (("read", "Read RFP"), ("outline", "Structure"), ("decide", "Assign"),
+                   ("prove", "Prove"), ("export", "Export")),             # 2.36.0: Assign places as it decides
     "acronyms": (("scan", "Scan"), ("review", "Review"), ("approve", "Define and approve"), ("export", "Export")),
     "qaqc": (("check", "Check Word files"), ("export", "Export")),
     "keywords": (("decide", "Collect and decide"), ("export", "Export")),
@@ -250,8 +250,6 @@ class ShellMixin:
         act = self.shell_actions("compliance", "decide")
         ctk.CTkButton(act, text="Compliance word style...", command=self.compliance_word_style, **A).pack(side="left", padx=3)
         ctk.CTkButton(act, text="Save", command=self.compliance_save, fg_color="#0F766E", **A).pack(side="left", padx=3)
-        act = self.shell_actions("compliance", "place")
-        ctk.CTkButton(act, text="Save", command=self.compliance_save, fg_color="#0F766E", **A).pack(side="left", padx=3)
         act = self.shell_actions("compliance", "export")
         ctk.CTkButton(act, text="Save", command=self.compliance_save, fg_color="#0F766E", **A).pack(side="left", padx=3)
 
@@ -354,9 +352,8 @@ class ShellMixin:
                         r["Status"] in ("Approved", "Rejected") for r in self.effort.rows.values())
             if f == "compliance" and self.matrix is not None:
                 c = self.matrix.counts()
-                return {"read": bool(self.matrix.items), "decide": bool(self.matrix.items) and not c[""] and not c.get("drafts"),
-                        "outline": bool(self.matrix.outline),
-                        "place": c["Keep"] + c["Context"] > 0 and not c["needs_home"]}.get(s, False)
+                return {"read": bool(self.matrix.items), "outline": bool(self.matrix.outline),
+                        "decide": c["Keep"] + c["Context"] > 0 and not c["needs_home"]}.get(s, False)
             if f == "qaqc" and s == "check":
                 return bool(getattr(self, "volume_report", None))
         except Exception:
@@ -407,8 +404,7 @@ class ShellMixin:
                 if M is None or not M.items:
                     return "No matrix yet"
                 c = M.counts()
-                return f"{len(M.items) - c['']} of {len(M.items)} decided" + (f", {c['drafts']} draft" + ("s" if c["drafts"] != 1 else "")
-                                                                         if c.get("drafts") else "")
+                return f"{c['Keep']} requirements, {c['Context']} context"
             if key == "acronyms":
                 if L is not None:
                     ok = sum(1 for r in L.rows.values() if r["Status"] == "Approved")
@@ -454,10 +450,10 @@ class ShellMixin:
         M = self.matrix
         if M is None or not M.items:
             self._ov_target, text = ("compliance", "read"), "Next: Compliance, read the RFP"
-        elif M.counts()[""] or M.counts().get("drafts"):
-            c = M.counts()
-            self._ov_target, text = ("compliance", "decide"), (f"Next: Compliance, decide ({c['open']} left)" if c["open"]
-                                                                else f"Next: Compliance, commit {c['drafts']} draft decisions")
+        elif not M.outline:
+            self._ov_target, text = ("compliance", "outline"), "Next: Compliance, set the response structure"
+        elif not (M.counts()["Keep"] + M.counts()["Context"]):
+            self._ov_target, text = ("compliance", "decide"), "Next: Compliance, assign requirements and context"
         elif not L.rows:
             self._ov_target, text = ("acronyms", "scan"), "Next: Acronyms, scan our documents"
         else:

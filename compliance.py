@@ -570,7 +570,7 @@ def link_contexts(items):
     n = 0
     for it in items:
         if it["decision"] == "Context":
-            if not it.get("context_for"):
+            if not it.get("context_for") and not it.get("map"):    # 2.36.0: a section's context keeps no link
                 cf = default_context_for(items, it)
                 if cf:
                     it["context_for"] = cf
@@ -578,6 +578,48 @@ def link_contexts(items):
         elif it.get("context_for"):
             it["context_for"] = ""
     return n
+
+
+# ------------------------------------------------------------------ Assign (2.36.0): one step, tied to the structure
+def assign_requirement(items, rows, label):
+    """Rows become compliance requirements in the outline section label. Context that goes with them (first link)
+    follows them to the new section."""
+    for it in rows:
+        old = it.get("map", "")
+        it.update(decision="Keep", map=label, context_for="", draft="", draft_cf="")
+        for x in items:
+            links = cf_ids(x.get("context_for", ""))
+            if x.get("decision") == "Context" and links and links[0] == it["id"] and x.get("map", "") in ("", old):
+                x["map"] = label
+    return len(rows)
+
+
+def assign_context(items, rows, req_ids=None, section=None):
+    """Rows become Context: for the requirements req_ids (their section follows the first one), or for the outline
+    section itself (no requirement)."""
+    by = {it["id"]: it for it in items}
+    for it in rows:
+        it.update(decision="Context", draft="", draft_cf="")
+        if section:
+            it.update(context_for="", map=section)
+        else:
+            links = [r for r in (req_ids or []) if r != it["id"] and by.get(r, {}).get("decision") == "Keep"]
+            it["context_for"] = join_ids(links)
+            first = by.get(links[0]) if links else None
+            it["map"] = first.get("map", "") if first is not None else ""
+    return len(rows)
+
+
+def clear_assignment(items, rows):
+    """Not used: no decision, no section, no links; Context that pointed at these requirements loses the link."""
+    ids = {it["id"] for it in rows}
+    for it in rows:
+        it.update(decision="", map="", context_for="", draft="", draft_cf="")
+    for x in items:
+        links = cf_ids(x.get("context_for", ""))
+        if links and ids & set(links):
+            x["context_for"] = join_ids(i for i in links if i not in ids)
+    return len(rows)
 
 
 def remap_context_for(items, old_id, new_id):
@@ -598,7 +640,8 @@ def context_problems(items):
             continue
         ids = cf_ids(it.get("context_for", ""))
         if not ids:
-            out.append((it, "no requirement"))
+            if not it.get("map"):                     # 2.36.0: context for a section needs only the section
+                out.append((it, "not assigned to a requirement or a section"))
             continue
         bad = False
         for cf in ids:
@@ -1104,12 +1147,22 @@ def write_outline_docx(matrix, path, title=""):
 
 
 # ------------------------------------------------------------------ coverage report (2.29.0)
-COVER_FILL = {"Keep": "D9F2E3", "Context": "DBEAFE", "Drop": "EEEEEE", "": "FECACA"}
+COVER_FILL = {"Keep": "D9F2E3", "Context": "DBEAFE", "Drop": "F3F4F6", "": "F3F4F6"}
+LABEL = {"Keep": "Compliance requirement", "Context": "Context", "Drop": "Not used", "": "Not used"}
+
+
+def context_label(it):
+    """'Context for L.4-01; L.5-02', 'Context for section 1.2 Schedule' or 'Context'."""
+    if it.get("context_for"):
+        return f"Context for {it['context_for']}"
+    if it.get("map"):
+        return f"Context for section {it['map']}"
+    return "Context"
 
 
 def write_coverage_docx(matrix, path, title=""):
-    """Every sentence of the RFP in reading order, highlighted by its decision, with its ID, decision and where it was
-    placed: the proof that every line was considered. Opens with a table per file and a plain yes / no."""
+    """Every sentence of the RFP in reading order, highlighted by how it was assigned (2.36.0: compliance
+    requirement, context, or not used), with its ID and where it went: the proof that every line was read."""
     import docxw, cwords
     cw = cwords.load()
     doc = docxw.Doc()
@@ -1117,18 +1170,18 @@ def write_coverage_docx(matrix, path, title=""):
     cov = matrix.coverage()
     tot = cov[-1]
     doc.heading(title or f"{matrix.name}: RFP coverage, every sentence", 1)
-    done = tot["total"] and not tot[""]
-    doc.rich([(("Every sentence has a decision." if done else f"{tot['']} sentence(s) still need a decision (red below).")
-               + (f" {tot['needs_home']} Keep or Context sentence(s) are not placed in the outline yet." if tot["needs_home"] else
-                  " Every Keep and Context sentence is placed."), {"bold": True, "color": "15803D" if done and not tot["needs_home"] else "B91C1C"})])
+    unused = tot[""] + tot["Drop"]
+    ok = tot["total"] and not tot["needs_home"]
+    doc.rich([(f"Every sentence was read: {tot['Keep']} compliance requirement(s), {tot['Context']} context, {unused} not used."
+               + (f" {tot['needs_home']} assigned sentence(s) have no section yet." if tot["needs_home"] else
+                  " Every assigned sentence has a section."), {"bold": True, "color": "15803D" if ok else "B91C1C"})])
     doc.para(f"Built {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')} from the compliance matrix {os.path.basename(matrix.path)}.")
-    doc.table(["File", "Sentences", "Keep", "Context", "Drop", "Undecided", "Placed", "Need a home"],
-              [[r["file"], r["total"], r["Keep"], r["Context"], r["Drop"], r[""], r["placed"], r["needs_home"]] for r in cov],
-              [3160, 900, 760, 900, 760, 1000, 860, 1020])
-    doc.rich([("Key:  ", {"bold": True}), (" Keep (a requirement) ", {"fill": COVER_FILL["Keep"]}), ("  ", {}),
-              (" Context (goes with the response) ", {"fill": COVER_FILL["Context"]}), ("  ", {}),
-              (" Drop ", {"fill": COVER_FILL["Drop"], "color": "6B7280"}), ("  ", {}),
-              (" Undecided ", {"fill": COVER_FILL[""], "bold": True})])
+    doc.table(["File", "Sentences", "Compliance", "Context", "Not used", "In a section", "No section"],
+              [[r["file"], r["total"], r["Keep"], r["Context"], r[""] + r["Drop"], r["placed"], r["needs_home"]] for r in cov],
+              [3160, 900, 1100, 900, 1000, 1100, 1000])
+    doc.rich([("Key:  ", {"bold": True}), (" Compliance requirement ", {"fill": COVER_FILL["Keep"]}), ("  ", {}),
+              (" Context ", {"fill": COVER_FILL["Context"]}), ("  ", {}),
+              (" Not used ", {"fill": COVER_FILL[""], "color": "6B7280"})])
     by_file = {}
     for it in matrix.items:
         by_file.setdefault(it.get("file", ""), []).append(it)
@@ -1143,11 +1196,13 @@ def write_coverage_docx(matrix, path, title=""):
                 sec = head
             d = it["decision"]
             txt = ((it["lead"] + " ") if it.get("lead") else "") + it["text"]
-            where = it["map"] or ("not placed" if d in ("Keep", "Context") else "")
-            dlab = f"Context for {it['context_for']}" if d == "Context" and it.get("context_for") else (d or "UNDECIDED")
+            where = it["map"] or ("no section" if d in ("Keep", "Context") else "")
+            dlab = context_label(it) if d == "Context" else LABEL.get(d, "Not used")
+            if d == "Context" and not it.get("context_for"):
+                where = "" if it["map"] else where
             tag = f"   [{it['id']} · {dlab}" + (f" · {where}" if where else "") + "]"
-            doc.rich(cwords.docx_parts(txt, {"fill": COVER_FILL.get(d, COVER_FILL[""]), "color": "6B7280" if d == "Drop" else None}, cw)
-                     + [(tag, {"size": 16, "color": "B91C1C" if not d or where == "not placed" else "475569", "bold": not d})])
+            doc.rich(cwords.docx_parts(txt, {"fill": COVER_FILL.get(d, COVER_FILL[""]), "color": "6B7280" if d in ("", "Drop") else None}, cw)
+                     + [(tag, {"size": 16, "color": "B91C1C" if where == "no section" else "475569"})])
     doc.save(path)
     return {"sentences": tot["total"], "undecided": tot[""], "needs_home": tot["needs_home"], "files": len(cov) - 1}
 

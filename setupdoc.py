@@ -168,6 +168,11 @@ def placed_in(M):
                     if m not in used and i in C.cf_ids(byid[m].get("context_for", "")):
                         res.append(m); used.add(m)
             out[lab] = res
+        # 2.36.0: Context for the section itself (no requirement) prints first, right under the heading
+        top = [i for i in out[lab] if i not in ordered and byid.get(i, {}).get("decision") == "Context"
+               and not byid[i].get("context_for")]
+        if top:
+            out[lab] = top + [i for i in out[lab] if i not in top]
     return out
 
 

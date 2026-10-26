@@ -127,12 +127,12 @@ def run():
     ci = C.write_coverage_docx(N, cp)
     cx = zipfile.ZipFile(cp).read("word/document.xml").decode()
     minidom.parseString(cx.encode())
-    assert ci["sentences"] == len(N.items) and ci["undecided"] > 0 and "still need a decision" in cx, ci
+    assert ci["sentences"] == len(N.items) and ci["undecided"] > 0 and "Every sentence was read:" in cx and "Not used" in cx, ci
     for it in N.items:
         it["decision"] = it["decision"] or "Context"
     ci = C.write_coverage_docx(N, cp)
     cx = zipfile.ZipFile(cp).read("word/document.xml").decode()
-    assert ci["undecided"] == 0 and "Every sentence has a decision." in cx and C.COVER_FILL["Context"] in cx
+    assert ci["undecided"] == 0 and "Every sentence was read:" in cx and C.COVER_FILL["Context"] in cx
     print("compliance ok")
 
 

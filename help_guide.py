@@ -46,8 +46,8 @@ PAGES = {
           "work done are green with a check mark. Click any step to go to it. Each feature ends in its own Export step; "
           "Effort home and File > Export all write everything at once. One status line runs along the bottom."),
     ("rows", [("Effort home", "Where each feature stands for the open effort, the next step to take, and Export all."),
-              ("Compliance", "Read RFP, Decide (every sentence, in Page view), Outline, Place (a home for each kept "
-                             "sentence), Prove (nothing missed; owner, status and page), Export."),
+              ("Compliance", "Read RFP, Structure (the response outline), Assign (each sentence a compliance requirement in "
+                             "a section, context, or not used), Prove (nothing missed; owner, status and page), Export."),
               ("Acronyms", "Scan (Select Files, Scan Folder, Scan Again, Project), Review (the results, with their filters), "
                            "Define and approve (the effort list), Export."),
               ("QA/QC", "Check our Word deliverables (first use, banned words, acronym lists), Export the report."),
@@ -344,41 +344,29 @@ PAGES = {
           "every other sentence is a Context row, so nothing is skipped because it did not sound like a requirement. "
           "No AI writes anything."),
     ("img", "compliance.png", 620),
-    ("rows", [("Page view", "Decide shows the RFP as a page. Each sentence is shaded as you decide it: green Keep, blue Context, "
-                            "grey Drop, pale amber while undecided; the current one is outlined. The bar at the bottom: Accept "
-                            "the suggestion (Enter), Keep (K), Context (C), Drop (D), Link (L), Back (Backspace), Split (S) and "
-                            "Commit. Click any sentence to jump to it; the arrow keys step through them. The Files list on the "
-                            "right switches files and shows how far each one is."),
-              ("Draft, then commit", "Every decision is first a draft: lighter shading, underlined in its color. Drafts are "
-                                     "saved as you make them, so closing the app or a crash loses nothing. Commit makes them "
-                                     "count: Ctrl+Enter commits what is on screen; the side panel commits the selected "
-                                     "sentences, the RFP section, the file or every draft. The bar says what was committed "
-                                     "and how many drafts are left. Change a committed sentence and it is a draft again "
-                                     "until you commit it. Place, the setup documents, the exports and the coverage report "
-                                     "use committed decisions only; Prove says how many drafts are left out."),
-              ("Several at once", "Drag across several sentences: K, C or D decides them all, L links them, Ctrl+Enter "
-                                  "commits them. Esc clears the selection."),
-              ("The strip", "The thin strip beside the page maps the file: grey undecided, amber draft, green committed. "
-                            "Click it to jump there."),
-              ("Easy ones first", "Drop all... in the side panel drops the page headers, page numbers and markings in one go "
-                                  "(as drafts) after showing you the list."),
-              ("Context for", "A Context sentence can explain one requirement or several. C links it to the nearest Keep "
-                              "before it in the same RFP paragraph (or the next one) as a start, and stays on the sentence. "
-                              "Press L, then click every requirement it explains anywhere in the file; click one again to "
-                              "remove it; Enter or Esc when done. On a requirement, L works the other way: click each sentence "
-                              "that explains it. Pointing at a sentence lights up its links. In Place it goes with its first "
-                              "placed requirement; the setup documents print it under each requirement it explains, with "
-                              "\"Also context for\" naming the others; the matrix's Context for column lists them all. Prove "
-                              "lists any Context sentence without a requirement or placed apart from all of them."),
-              ("Place", "A second pass, after deciding: one Keep or Context sentence at a time with the sentences around it. "
-                        "Press 1, 2 or 3 for the suggested sections (the rules' match and past proposals), pick another, or "
-                        "Later (Space). Place all... puts every sentence of the same RFP paragraph in choice 1. Arrange the "
-                        "setup opens the board for order, direction and references."),
-              ("Prove", "Whether every sentence has a decision and every kept sentence a home, per file, and the coverage "
-                        "report. Owner, status and response page are set here: select requirements, type, Apply."),
-              ("Decide", "K keeps (a requirement), C keeps as Context (text the authors need beside a requirement), D drops, "
-                         "U takes it back. After Keep or Drop the next undecided sentence comes up (a setting in the side "
-                         "panel); after Context the sentence stays so L can link it. N jumps to the next undecided."),
+    ("rows", [("Assign", "The RFP reads like a page on the left; your response structure is always on the right. Click any "
+                         "sentence at any time to see how it is assigned and change it. Every choice counts at once and is "
+                         "saved as you go (a crash or closing the app loses nothing); there is no commit step."),
+              ("Compliance requirement", "R puts the sentence into a section. Click a section on the right to make it the "
+                                         "target, then R for each sentence; with no target, R waits for you to click a "
+                                         "section. 1, 2 and 3 pick the suggested sections (the rules' match and past "
+                                         "proposals). The target section's sentences are underlined."),
+              ("Context", "C makes the sentence Context for the nearest compliance requirement. Then click other compliance "
+                          "requirements in the page to add or remove them, or click a section on the right to make it context "
+                          "for that section or subsection itself. Enter when done. Pointing at a sentence lights up its links."),
+              ("Clear, Split, Combine", "X clears a sentence (not used). S splits it where you clicked between two words. "
+                                        "Drag across several sentences to assign them together, or M to combine them into one."),
+              ("Not used", "A sentence you do not assign is not used. Prove and the coverage report count compliance "
+                           "requirements, context and not used for every file, so you can see that every line was read."),
+              ("The strip", "The thin strip beside the page maps the file: grey not used, green compliance requirement, blue "
+                            "context. Click it to jump there."),
+              ("In the outputs", "A compliance requirement goes in its section. Context for requirements prints under each "
+                                 "requirement it supports, with \"Also context for\" naming the others; context for a section "
+                                 "prints first in that section. The matrix's Context for column lists the requirements."),
+              ("Setup board", "Arrange the setup... on the right opens the board for order, direction and references."),
+              ("Prove", "How many sentences are compliance requirements, context or not used, per file; any assigned sentence "
+                        "without a section; and the coverage report. Owner, status and response page are set here: select "
+                        "requirements, type, Apply."),
               ("Every line", "The count above the table says how many sentences are decided and shows a check mark when all "
                              "are. Filters show Context rows and Keep or Context rows that still need a home (no outline "
                              "section). Boilerplate and page headers are suggested Drop; Accept suggestions applies them."),
@@ -427,10 +415,9 @@ PAGES = {
                           "outline makes the proposal outline with each section's requirements in a table. Context rows go "
                           "to the Setup documents in blue, under the section they were placed in.")]),
     ("p", "The matrix holds customer content: keep it on this PC or SharePoint."),
-    ("img", "place.png", 620),
     ("h", "Setup: the first draft for authors"),
     ("img", "setup.png", 620),
-    ("p", "The setup board (Compliance > Place > Arrange the setup) puts the RFP text under the proposal outline and writes the setup documents: every heading of the "
+    ("p", "The setup board (Compliance > Assign > Arrange the setup...) puts the RFP text under the proposal outline and writes the setup documents: every heading of the "
           "outline, with the RFP text that section must answer and the proposal lead's direction."),
     ("rows", [("Place", "Drag RFP text from the left onto a section on the right. Shift+drag adds a copy to a second section. "
                         "Drag inside the outline to reorder, or back to the left to remove. Accept suggestions places what the "

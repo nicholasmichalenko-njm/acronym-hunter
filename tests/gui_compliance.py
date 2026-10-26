@@ -36,13 +36,12 @@ def wait():
     first = tv.get_children()[0]
     tv.selection_set(first); tv.focus(first); win.focus_force(); tv.focus_set(); win.update()
     win.cp_text.focus_set(); win.update()
-    win.cp_text.event_generate("<Key>", keysym="k"); win.update()      # 2.32.0: keys go to the Page view
+    app.compliance_decide("Keep"); win.update()                          # 2.36.0: the table's decision still works
     print("K on", first, "->", app._c_item(first)["decision"], "| moved to", tv.selection())
     win.f_sug.set("Drop"); app._c_fill()
     drops = list(tv.get_children())
     win.f_sug.set("All"); app._c_fill()
     app.compliance_accept()
-    app.compliance_commit()                                              # 2.35.0: accepted suggestions are drafts until committed
     c = M.counts()
     print("after accept:", {k: c[k] for k in ("Keep", "Drop", "")}, "| drop suggestions:", len(drops))
     icd = next(it for it in M.items if it["text"].startswith("The Contractor shall deliver the Interface"))
@@ -104,8 +103,7 @@ def wait():
         tv.selection_set(nxt); win.update()
         app.compliance_decide("Context"); win.update()
         after = tv.selection()
-        adv_ok = bool(after) and after[0] == nxt                        # 2.35.0: Context stays put so L can link more
-        app.compliance_commit()
+        adv_ok = bool(after) and after[0] == nxt                        # Context stays put
     keys_ok = {"c", "n", "C", "N"} <= set(tv.bind())
     ctx_ok = bool(ctx) and adv_ok and keys_ok and (nxt is None or app._c_item(nxt)["decision"] == "Context")
     for it in M.items:
@@ -114,7 +112,7 @@ def wait():
     cp = os.path.join(tmp, "coverage.docx")
     info = app.compliance_coverage(cp)
     cxml = zipfile.ZipFile(cp).read("word/document.xml").decode()
-    cov_ok = info and info["undecided"] == 0 and info["sentences"] == len(M.items) and "Every sentence has a decision." in cxml \
+    cov_ok = info and info["undecided"] == 0 and info["sentences"] == len(M.items) and "Every sentence was read:" in cxml and "Not used" in cxml \
         and C.COVER_FILL["Context"] in cxml and all(C.text_key(it["text"])[:0] == "" for it in M.items)
     app._c_save_now()
     N2 = C.Matrix(OUT).load()

@@ -46,7 +46,7 @@ class ComplianceMixin:
         if hasattr(self, "shell_go"):
             win = self._comp_ensure()
             if show:
-                self.shell_go("compliance", "decide" if self.matrix is not None and self.matrix.items else None)
+                self.shell_go("compliance", self._c_next_step())
             return win
         return self._comp_build()
 
@@ -151,6 +151,13 @@ class ComplianceMixin:
         if hasattr(self, "_cp_build_details"):          # 2.32.0: owner, status and page are set here, not during triage
             self._cp_build_details(fr)
 
+    def _c_next_step(self):
+        """Where to land: Read RFP with no matrix, Structure with no outline, else Assign (2.36.0)."""
+        M = self.matrix
+        if M is None or not M.items:
+            return None
+        return "decide" if M.outline else "outline"
+
     def _c_goto_decide(self, iid):
         """Open Decide on one sentence."""
         if hasattr(self, "shell_go"):
@@ -183,43 +190,38 @@ class ComplianceMixin:
                 win.lbl_read.configure(text="")
             return
         c = M.counts()
-        und = c[""]
         home = c.get("needs_home", 0)
         kc = c["Keep"] + c["Context"]
-        win.lbl_prove.configure(text=("\u2713 All " if not und else "") + f"{len(M.items) - und} of {len(M.items)} sentences have a decision"
-                                + f"   |   {kc - home} of {kc} Keep and Context sentences have a home")
-        hdr = ("File", "Sentences", "Keep", "Context", "Drop", "Undecided", "Placed", "Need a home")
+        unused = c[""] + c["Drop"]
+        win.lbl_prove.configure(text=f"Every sentence read: {c['Keep']} compliance requirement(s), {c['Context']} context, {unused} not used"
+                                + (f"   |   \u2713 every assigned sentence has a section" if kc and not home else
+                                   f"   |   {home} of {kc} assigned sentences have no section" if kc else ""))
+        hdr = ("File", "Sentences", "Compliance", "Context", "Not used", "In a section", "No section")
         g = ctk.CTkFrame(win.prove_rows, fg_color="transparent"); g.pack(fill="x")
         for j, h in enumerate(hdr):
             ctk.CTkLabel(g, text=h, font=("Segoe UI", 12, "bold"), anchor="w").grid(row=0, column=j, sticky="w", padx=(0, 18))
         for i, r in enumerate(M.coverage(), 1):
-            vals = (r["file"], r["total"], r["Keep"], r["Context"], r["Drop"], r[""], r["placed"], r["needs_home"])
+            vals = (r["file"], r["total"], r["Keep"], r["Context"], r[""] + r["Drop"], r["placed"], r["needs_home"])
             for j, v in enumerate(vals):
                 ctk.CTkLabel(g, text=str(v), anchor="w", font=("Segoe UI", 12, "bold" if r["file"] == "Total" else "normal")
                              ).grid(row=i, column=j, sticky="w", padx=(0, 18))
-        probs = C.context_problems(M.items)          # 2.33.0: Context with its requirement
+        probs = C.context_problems(M.items)          # 2.33.0: Context with its requirement or section
         nctx = c["Context"]
         pr = ctk.CTkFrame(win.prove_rows, fg_color="transparent"); pr.pack(fill="x", pady=(10, 0))
-        ctk.CTkLabel(pr, text=(f"\u2713 All {nctx} Context sentences are linked to their requirement and placed with it." if not probs
-                               else f"{len(probs)} of {nctx} Context sentences are not with their requirement: "
+        ctk.CTkLabel(pr, text=(f"\u2713 All {nctx} Context sentences are with their requirement or section." if not probs
+                               else f"{len(probs)} of {nctx} Context sentences need attention: "
                                     + "; ".join(f"{it['id']} ({why})" for it, why in probs[:3]) + (" ..." if len(probs) > 3 else "")),
                      anchor="w", justify="left", wraplength=900, font=("Segoe UI", 13, "bold" if probs else "normal"),
                      text_color=("#B45309", "#FBBF24") if probs else ("#15803D", "#86EFAC")).pack(side="left")
         if probs:
             ctk.CTkButton(pr, text="Show the first", width=10, command=lambda i=probs[0][0]["id"]: self._c_goto_decide(i)).pack(side="left", padx=10)
         win.prove_problems = probs
-        nd = c.get("drafts", 0)                      # 2.35.0: drafts are not counted until committed
-        dr = ctk.CTkFrame(win.prove_rows, fg_color="transparent"); dr.pack(fill="x", pady=(8, 0))
-        ctk.CTkLabel(dr, text=("\u2713 No drafts: every decision is committed." if not nd else
-                               f"{nd} draft decision{'s' if nd != 1 else ''} not committed yet: the counts above, Place and the "
-                               "exports use committed decisions only."),
-                     anchor="w", justify="left", wraplength=900, font=("Segoe UI", 13, "bold" if nd else "normal"),
-                     text_color=("#B45309", "#FBBF24") if nd else ("#15803D", "#86EFAC")).pack(side="left")
-        if nd:
-            first = C.drafts(M.items)[0]["id"]
-            ctk.CTkButton(dr, text="Show the first", width=10, command=lambda i=first: self._c_goto_decide(i)).pack(side="left", padx=10)
-            ctk.CTkButton(dr, text=f"Commit all {nd}", width=10, fg_color="#15803D",
-                          command=lambda: (self.compliance_commit(), self._c_prove_refresh())).pack(side="left")
+        if home:
+            first = next(it for it in M.items if it["decision"] in ("Keep", "Context") and not it["map"])
+            hr = ctk.CTkFrame(win.prove_rows, fg_color="transparent"); hr.pack(fill="x", pady=(8, 0))
+            ctk.CTkLabel(hr, text=f"{home} assigned sentence(s) have no section yet.", anchor="w",
+                         text_color=("#B45309", "#FBBF24"), font=("Segoe UI", 13, "bold")).pack(side="left")
+            ctk.CTkButton(hr, text="Show the first", width=10, command=lambda i=first["id"]: self._c_goto_decide(i)).pack(side="left", padx=10)
         if hasattr(win, "lbl_read"):
             win.lbl_read.configure(text=f"Open matrix: {os.path.basename(M.path)}, {len(M.items)} sentences from "
                                         f"{len(M.sources)} file(s). Next: Decide.")
@@ -401,13 +403,11 @@ class ComplianceMixin:
             return
         c = M.counts()
         shown = len(win.tv.get_children())
-        pct = int(c["decided"] * 100 / c["total"]) if c["total"] else 0
+        unused = c[""] + c["Drop"]
         bits = [f"{M.name}  |  {os.path.basename(M.path)}", f"{c['total']} sentences ({shown} shown)",
-                f"Every sentence: {c['decided']} decided ({pct}%), {c['']} undecided" + ("  \u2713 all decided" if c["total"] and not c[""] else ""),
-                f"Keep {c['Keep']}  Context {c['Context']}  Drop {c['Drop']}",
-                f"placed {c['placed']}, need a home {c['needs_home']}"]
-        if c.get("drafts"):
-            bits.insert(2, f"{c['drafts']} draft{'s' if c['drafts'] != 1 else ''} not committed (counts and outputs use committed decisions)")
+                f"Compliance requirements {c['Keep']}  Context {c['Context']}  Not used {unused}",
+                ("\u2713 every assigned sentence has a section" if c["Keep"] + c["Context"] and not c["needs_home"]
+                 else f"{c['needs_home']} assigned without a section" if c["needs_home"] else "nothing assigned yet")]
         if M.pending:
             bits.append("NOT SAVED yet" + (" (close the workbook in Excel, then Save)" if getattr(self, "_c_locked", False) else ""))
         win.lbl.configure(text="  |  ".join(bits))
@@ -609,23 +609,23 @@ class ComplianceMixin:
 
     # ------------------------------------------------------------ deciding
     def compliance_decide(self, decision, rows=None):
-        """2.35.0: pencil the decision as a draft (saved like any change); Commit makes it count. After a single Keep or
-        Drop the next undecided sentence comes up; after Context the sentence stays, so L can link more requirements."""
+        """Set the decision at once (2.36.0: no draft, no commit step; saved like every change)."""
         sel = rows if rows is not None else self._c_selected()
         if not sel:
             return "break"
         M = self.matrix
         for it in sel:
-            cf = None
-            if decision == "Context" and not C.eff_cf(it):
-                d = C.default_context_for(M.items, it, dec=C.eff)
-                cf = [d] if d else []
-            if C.set_draft(it, decision, cf):
-                M.log(it["id"], f"draft {decision or 'Undecided'}" + (f" (context for {C.eff_cf(it)})" if decision == "Context" and C.eff_cf(it) else ""))
+            if it["decision"] != decision or it.get("draft"):
+                if decision == "Context" and not it.get("context_for") and not it.get("map"):
+                    it["context_for"] = C.default_context_for(M.items, it)
+                if decision != "Context":
+                    it["context_for"] = ""
+                it.update(decision=decision, draft="", draft_cf="")
+                M.log(it["id"], f"decision {decision or 'Undecided'}")
         diag.activity("compliance_decided", n=len(sel))
         last = sel[-1]["id"]
         self._c_changed()
-        if len(sel) == 1 and decision in ("Keep", "Drop") and self._c_auto_next():   # on to the next undecided (2.29.0)
+        if len(sel) == 1 and decision in ("Keep", "Drop") and self._c_auto_next():
             self.compliance_next_undecided(after=last)
         return "break"
 
@@ -853,16 +853,14 @@ class ComplianceMixin:
                 d = it["suggest"]
             else:
                 continue
-            cf = None
+            it["decision"] = d; n += 1
             if d == "Context":
-                x = C.default_context_for(self.matrix.items, it, dec=C.eff)
-                cf = [x] if x else []
-            C.set_draft(it, d, cf); n += 1
-            self.matrix.log(it["id"], f"draft {d} (accepted " + ("learned " if d == lab else "") + "suggestion)")
+                it["context_for"] = C.default_context_for(self.matrix.items, it)
+            self.matrix.log(it["id"], f"decision {d} (accepted " + ("learned " if d == lab else "") + "suggestion)")
         diag.activity("compliance_accepted", n=n, items=learned)
         self._c_changed()
-        self._cwin.lbl.configure(text=self._cwin.lbl.cget("text") + f"  |  {n} suggestions accepted as drafts ({learned} learned); "
-                                 "Review rows stay undecided; Commit makes them count")
+        self._cwin.lbl.configure(text=self._cwin.lbl.cget("text") + f"  |  {n} suggestions accepted ({learned} learned); "
+                                 "Review rows stay undecided")
 
     def compliance_map(self):
         lab = self._cwin.d_map.get().strip()
@@ -1031,10 +1029,11 @@ class ComplianceMixin:
             self._c_remember(out)
             self._c_refresh()
             if hasattr(self, "shell_go"):
-                self.shell_go("compliance", "decide")          # straight on to deciding (2.32.0)
+                self.shell_go("compliance", self._c_next_step())   # Structure, then Assign (2.36.0)
             diag.activity("compliance_read", files=len(paths), items=len(items))
             nreq = sum(1 for it in items if it.get("type") != "Context")
-            msg = f"{len(items)} sentences from {len(paths)} file(s); {nreq} look like requirements. Every sentence gets a decision."
+            msg = (f"{len(items)} sentences from {len(paths)} file(s); {nreq} look like requirements. Check the response structure, "
+                   "then assign each sentence as a compliance requirement or context.")
             if empty:
                 msg += f"\n\n{len(empty)} file(s) have no typed text (scanned pages?): " + ", ".join(empty[:5]) + \
                        ". Scan them in the main window first, or ask for a typed copy."
@@ -1097,6 +1096,10 @@ class ComplianceMixin:
                 messagebox.showerror("Compliance matrix", f"The workbook could not be read ({type(ex).__name__}).", parent=self._cwin)
             return
         self._c_remember(path)
+        if C.drafts(self.matrix.items):              # 2.36.0: every choice counts at once; 2.35.0 drafts count now
+            C.commit(C.drafts(self.matrix.items))
+            self.matrix.log("matrix", "drafts from 2.35.0 committed")
+            self.matrix.pending = True
         diag.activity("compliance_loaded", items=len(self.matrix.items))
         rec = self.ws.read_recovery("matrix", path) if getattr(self, "ws", None) is not None else None
         if rec:
@@ -1104,6 +1107,7 @@ class ComplianceMixin:
             if self.ask_recover("compliance matrix", rec, f" ({n} changes)" if n else ""):
                 for k, v in rec["state"].items():
                     setattr(self.matrix, k, v)
+                C.commit(C.drafts(self.matrix.items))
                 self.matrix.pending = True
                 diag.activity("recovery_used")
                 self._c_changed()
@@ -1111,7 +1115,7 @@ class ComplianceMixin:
             self.ws.clear_recovery("matrix", path)
         self._c_refresh()
         if not quiet and hasattr(self, "shell_go"):
-            self.shell_go("compliance", "decide")
+            self.shell_go("compliance", self._c_next_step())
 
     def _c_remember(self, path):
         """The matrix belongs to the open effort (2.11.0); with no effort open, to scans with no effort."""

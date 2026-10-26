@@ -3,7 +3,7 @@
     venv\\Scripts\\python.exe tools\\make_guide_shots.py
 
 Uses the fictional test_samples only, in a temporary config folder, and writes assets\\help\\topbar.png, shell.png,
-home.png, scanreview.png, keywords.png, suggest.png, compliance.png, place.png, prove.png, setup.png, whatruns.png, stack.png,
+home.png, scanreview.png, keywords.png, suggest.png, compliance.png, prove.png, setup.png, whatruns.png, stack.png,
 qa.png and training.png (2.33.0: the one-feature-at-a-time layout). Each picture is the window region of one view, captured
 with PIL ImageGrab, so the window must be on screen and not covered.
 """
@@ -118,36 +118,29 @@ def step3():
     M.sources = [[f, "", "2026-10-24", os.path.join(CDIR, f)] for f in files]
     M.outline = C.parse_outline("Volume I Technical\n1.1 Thermal Design\n1.2 Risk Management\n"
                                 "Volume II Management\n2.1 Schedule\n2.2 Staffing")
-    for it in M.items:
-        it["decision"] = "Keep" if it["suggest"] != "Drop" else "Drop"
-    for i, it in enumerate(M.items):
-        if i % 4 == 3 and it["type"] == "Context":
-            it["decision"] = "Context"
-    for it in M.items[-14:]:
-        it["decision"] = ""
-    for it in M.items[-14:-7]:                                  # 2.35.0: some drafts, one Context for two requirements
-        C.set_draft(it, "Drop" if it["suggest"] == "Drop" else "Keep")
-    ctx = M.items[-8]
-    keeps = [x["id"] for x in M.items if x.get("file") == ctx.get("file") and C.eff(x) == "Keep" and x is not ctx][-2:]
-    C.set_draft(ctx, "Context", keeps)
+    labs = [C.outline_label(o) for o in M.outline if o["level"] > 1]   # 2.36.0: assigned into sections as it goes
+    stats = C.word_df(M.items)
+    for i, it in enumerate(M.items[:-12]):
+        if it["suggest"] == "Drop":
+            continue
+        lab = C.suggest_map(it, M.outline, stats)[0] or labs[i % len(labs)]
+        C.assign_requirement(M.items, [it], lab if lab in labs else labs[0])
+    ctx = M.items[-12]
+    keeps = [x["id"] for x in M.items if x.get("file") == ctx.get("file") and x["decision"] == "Keep"][-2:]
+    C.assign_context(M.items, [ctx], keeps)
     M.save()
     app.ws.set("compliance_path", mpath)
     app.open_compliance(); app.update()
     app._c_load(mpath, quiet=True); app._c_refresh()
     app.shell_go("compliance", "decide"); app.update()
+    app.cp_section_click(app.matrix.items[0]["map"] or labs[0]); app.update()
     app._cp_select(ctx["id"]); app.update()
 
     def shot_setup():
         zoom(); time.sleep(0.8); app.update()
         grab(app.main, "compliance.png")
-        app.compliance_commit()
-        for it in app.matrix.items:
-            it["decision"] = it["decision"] or ("Drop" if it["suggest"] == "Drop" else "Keep")
-        app._c_changed()
-        app.shell_go("compliance", "place"); app.update()
-        grab(app.main, "place.png")
         app.setup_accept(); app.update()
-        app._cwin.tabs.set("Setup"); app.update()          # the setup board is reached from Place
+        app._cwin.tabs.set("Setup"); app.update()          # the setup board opens from Assign
         out = app._cwin.s_out
         for iid in out.get_children()[:3]:
             out.item(iid, open=True)

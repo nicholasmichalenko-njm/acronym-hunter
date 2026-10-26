@@ -291,7 +291,19 @@ class EffortMixin:
         same = self.effort is not None and self.effort.name == name and \
             os.path.normcase(getattr(self.ws, "root", "")) == os.path.normcase(root)
         ws = self.ws if same else W.Workspace(root, name)
-        if not same and not ws.acquire_lock():
+        try:
+            got = same or ws.acquire_lock()
+        except OSError as ex:                       # 2.36.0: the effort folder could not be written: say where, do not crash
+            diag.swallowed()
+            text = (f"Acronym Hunter could not save in the effort's folder ({type(ex).__name__}):\n\n{root}\n\n"
+                    "If the folder is in OneDrive or SharePoint, check that OneDrive is running and the folder is kept on this "
+                    "PC (Always keep on this device), or create the effort in a local folder such as Documents.")
+            if quiet:
+                self.status.configure(text="Could not save in the effort's folder. Open the effort again to see why.")
+            else:
+                messagebox.showerror("Effort folder", text)
+            return False
+        if not got:
             who = ws.locked_by or {}
             since = who.get("time", "")[11:16]
             text = (f"'{name}' is open in another Acronym Hunter window by {who.get('user', '?')} on {who.get('computer', '?')}"

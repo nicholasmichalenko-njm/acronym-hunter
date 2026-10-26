@@ -34,11 +34,31 @@ def _default(o):
     return str(o)
 
 
+def long_path(path):
+    """Windows: the extended-length form for paths near or over the 260-character limit (deep OneDrive or SharePoint
+    folders), so opening a file there still works. Unchanged elsewhere."""
+    p = os.path.abspath(path)
+    if os.name != "nt" or len(p) < 240 or p.startswith("\\\\?\\"):
+        return p
+    return "\\\\?\\UNC\\" + p[2:] if p.startswith("\\\\") else "\\\\?\\" + p
+
+
 def write_json(path, data):
-    """Atomic write (temp file, then replace); retries while OneDrive holds the file for an upload."""
-    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    """Atomic write (temp file, then replace); retries while OneDrive holds the file for an upload, or has not
+    finished creating a new folder (2.36.0)."""
+    path = long_path(path)
+    folder = os.path.dirname(path)
     tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
+    for attempt in range(6):
+        try:
+            os.makedirs(folder, exist_ok=True)
+            f = open(tmp, "w", encoding="utf-8")
+            break
+        except (FileNotFoundError, PermissionError):
+            if attempt == 5:
+                raise
+            time.sleep(0.3)
+    with f:
         json.dump(data, f, ensure_ascii=False, default=_default, separators=(",", ":"))
         f.flush()
         try:
@@ -57,7 +77,7 @@ def write_json(path, data):
 
 def read_json(path, default=None):
     try:
-        with open(path, encoding="utf-8") as f:
+        with open(long_path(path), encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
         return default

@@ -24,7 +24,7 @@ def run():
     assert by["L.5-04"]["context_for"] == "L.5-05"                                    # none before in L.5: the one after
     assert by["L.6-06"]["context_for"] == "" and n == 2
     probs = dict((it["id"], why) for it, why in C.context_problems(items))
-    assert probs == {"L.6-06": "no requirement"}, probs
+    assert probs == {"L.6-06": "not assigned to a requirement or a section"}, probs
     # merging the requirement keeps the link on the merged row
     C.merge_items(items, ["L.4-01", "L.4-03"])
     assert by["L.4-02"]["context_for"] == "L.4-01"
