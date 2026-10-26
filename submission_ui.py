@@ -107,11 +107,12 @@ class SubmissionMixin:
         panes = tk.Frame(cp); panes.pack(fill="both", expand=True, padx=6, pady=(0, 8))
         panes.grid_columnconfigure(0, weight=1, uniform="p"); panes.grid_columnconfigure(1, weight=1, uniform="p")
         panes.grid_rowconfigure(1, weight=1)
-        self.cmp_hl = tk.Label(panes, text="", anchor="w", font=("Segoe UI", 11, "bold"), bg="#F8FAFC", fg="#0F172A", padx=10, pady=6)
-        self.cmp_hr = tk.Label(panes, text="", anchor="w", font=("Segoe UI", 11, "bold"), bg="#F8FAFC", fg="#0F172A", padx=10, pady=6)
-        self.cmp_hl.grid(row=0, column=0, sticky="ew"); self.cmp_hr.grid(row=0, column=1, sticky="ew")
         dpi = max(1.0, float(ctk.ScalingTracker.get_widget_scaling(cp)))
         size = int(round((getattr(self, "font_size", 13) + 1) * dpi))
+        hf = ("Segoe UI", max(10, size - 2), "bold")             # scaled like the panes (2.37.0)
+        self.cmp_hl = tk.Label(panes, text="", anchor="w", font=hf, bg="#F8FAFC", fg="#0F172A", padx=10, pady=6)
+        self.cmp_hr = tk.Label(panes, text="", anchor="w", font=hf, bg="#F8FAFC", fg="#0F172A", padx=10, pady=6)
+        self.cmp_hl.grid(row=0, column=0, sticky="ew"); self.cmp_hr.grid(row=0, column=1, sticky="ew")
         self.cmp_panes = []
         sb = ttk.Scrollbar(panes, orient="vertical", command=self._cmp_yview)
         for col in (0, 1):
