@@ -139,7 +139,8 @@ class ShellMixin:
         return c
 
     def _page_overview(self):
-        P = self.shell_page("overview")
+        P = ctk.CTkScrollableFrame(self.shell_page("overview"), fg_color="transparent")   # fits small windows
+        P.pack(fill="both", expand=True)
         self.ov_head = ctk.CTkLabel(P, text="", font=("Segoe UI", 20, "bold"), anchor="w")
         self.ov_head.pack(fill="x", padx=6, pady=(14, 2))
         self.ov_sub = ctk.CTkLabel(P, text="", anchor="w", justify="left", text_color=("#475569", "#94A3B8"))
@@ -332,6 +333,10 @@ class ShellMixin:
                 diag.swallowed()
         self._shell_strip()
         self._shell_rail_style()
+        for key, (_b, sub) in self._rail.items():             # the rail's status lines, now (not at the next tick)
+            t = self.shell_status(key)
+            if sub.cget("text") != t:
+                sub.configure(text=t)
         diag.menu(f"view_{feature}_{step}")         # the step opened (internal names only)
         if save and hasattr(self, "resume_changed"):
             self.resume_changed()
