@@ -5,8 +5,9 @@ sentence at any time to see how it is assigned and change it. Every choice count
 change (a recovery copy within half a second, the matrix file a few seconds later): there is no commit step.
 - Compliance requirement (R): into a section of the structure. Click a section on the right to make it the target and
   press R, or press 1, 2 or 3 for the suggested sections (the rules' match and past proposals).
-- Context (C): for the compliance requirements it supports (the nearest one to start; click others in the page to
-  add or remove them) or for a section or subsection itself (click it on the right). Enter or Esc when done.
+- Context (C): for the compliance requirements it supports (the nearest one to start; click other requirements in the
+  page to add or remove them) or for a section or subsection itself (click it on the right). No Done step: clicking
+  any other sentence, or the next key, simply moves on.
 - Clear (X): not used. Split (S): where you clicked in the sentence. Combine (M): the sentences you dragged across.
 A sentence that is not assigned is not used. Drag across several sentences to assign them together. Pointing at a
 sentence lights up its links; the target section's sentences are underlined. The strip beside the page maps the file:
@@ -125,6 +126,11 @@ class CompliancePageMixin:
         self._cp_card_title(side, "Response structure")
         win.cp_ohint = ctk.CTkLabel(side, text="", anchor="w", justify="left", wraplength=310, text_color=("#475569", "#94A3B8"))
         win.cp_ohint.pack(fill="x", padx=8)
+        win.cp_nostruct = ctk.CTkFrame(side, fg_color="transparent")       # 2.37.0: shown while there is no structure
+        ctk.CTkButton(win.cp_nostruct, text="Start it from the RFP headings", width=10, fg_color="#0F766E",
+                      command=self.compliance_structure_from_headings).pack(anchor="w", pady=2)
+        ctk.CTkButton(win.cp_nostruct, text="Type it or import a Word outline", width=10, fg_color="#475569",
+                      command=lambda: self.shell_go("compliance", "outline") if hasattr(self, "shell_go") else None).pack(anchor="w", pady=2)
         win.cp_outline = ctk.CTkFrame(side, fg_color="transparent"); win.cp_outline.pack(fill="x", padx=4, pady=(4, 0))
         orow = ctk.CTkFrame(side, fg_color="transparent"); orow.pack(fill="x", padx=8, pady=(6, 0))
         ctk.CTkButton(orow, text="Edit the structure", width=10, fg_color="#475569",
@@ -326,8 +332,14 @@ class CompliancePageMixin:
                 win.cp_orows[lab] = b
             win.cp_osig = sig
         if not labs:
-            win.cp_ohint.configure(text="No structure yet. Set the response structure first (Edit the structure); every "
-                                        "requirement goes into one of its sections.")
+            win.cp_ohint.configure(text="No response structure yet. Every compliance requirement goes into one of its "
+                                        "sections; context can wait.")
+            if not win.cp_nostruct.winfo_manager():
+                win.cp_nostruct.pack(fill="x", padx=8, pady=(4, 0), before=win.cp_outline)
+        elif win.cp_nostruct.winfo_manager():
+            win.cp_nostruct.pack_forget()
+        if not labs:
+            pass
         elif win.cp_mode and win.cp_mode[0] == "req":
             win.cp_ohint.configure(text="Click the section for this requirement.")
         elif win.cp_mode and win.cp_mode[0] == "ctx":
@@ -542,9 +554,12 @@ class CompliancePageMixin:
         hit = self._cp_hit(ix)
         if not hit:
             return
-        if win.cp_mode and win.cp_mode[0] == "ctx":  # choosing what this context supports: each click adds or removes
-            self.cp_ctx_click(hit)
-            return
+        if win.cp_mode and win.cp_mode[0] == "ctx":  # choosing what this context supports: a requirement is added or removed
+            x = self._c_item(hit)
+            if x is not None and x["decision"] == "Keep" and hit not in win.cp_mode[1]:
+                self.cp_ctx_click(hit)
+                return
+            self.cp_mode_end(quiet=True)             # 2.37.0: any other sentence just moves on; no Done needed
         if win.cp_mode:
             self.cp_mode_end()
         if win.cp_range:
@@ -566,7 +581,10 @@ class CompliancePageMixin:
         win = self._cwin
         if k in ("return", "kp_enter", "escape") and win.cp_mode:
             self.cp_mode_end()
-        elif k == "r":
+            return "break"
+        if win.cp_mode and win.cp_mode[0] == "ctx" and k not in ("next", "prior", "home", "end"):
+            self.cp_mode_end(quiet=True)             # 2.37.0: the next key moves on; no Done needed
+        if k == "r":
             self.cp_req()
         elif k == "c":
             self.cp_ctx()
@@ -759,14 +777,15 @@ class CompliancePageMixin:
             secs = {r["map"] for r in rows if not r.get("context_for") and r.get("map")}
             now = (f"supports {', '.join(links)}" if links else
                    f"context for section {', '.join(sorted(secs))}" if secs else "not attached yet")
-            win.cp_l3.configure(text=f"Context, {who}: {now}. Click compliance requirements in the page to add or remove them, "
-                                     "or a section on the right for the section itself. Enter when done.")
+            win.cp_l3.configure(text=f"Context, {who}: {now}. To change it, click other compliance requirements (green) to add or "
+                                     "remove them, or a section on the right. Otherwise just carry on.")
             for i in links:
                 r = t.tag_ranges("r:" + i)
                 if r:
                     t.tag_add("linked", r[0], r[1])
         win.cp_l3.pack(fill="x")
-        if not win.cp_done_btn.winfo_ismapped():
+        if mode == "req" and not win.cp_done_btn.winfo_ismapped():
+            win.cp_done_btn.configure(text="Cancel  Esc")
             win.cp_done_btn.pack(side="left", padx=(12, 4))
 
     def cp_mode_end(self, quiet=False):

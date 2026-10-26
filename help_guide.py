@@ -369,16 +369,18 @@ PAGES = {
           "every other sentence is a Context row, so nothing is skipped because it did not sound like a requirement. "
           "No AI writes anything."),
     ("img", "compliance.png", 620),
-    ("rows", [("Assign", "The RFP reads like a page on the left; your response structure is always on the right. Click any "
+    ("rows", [("Assign", "The RFP reads like a page on the left; your response structure is always on the right (with no "
+                         "structure yet, start it from the RFP headings there). Click any "
                          "sentence at any time to see how it is assigned and change it. Every choice counts at once and is "
                          "saved as you go (a crash or closing the app loses nothing); there is no commit step."),
               ("Compliance requirement", "R puts the sentence into a section. Click a section on the right to make it the "
                                          "target, then R for each sentence; with no target, R waits for you to click a "
                                          "section. 1, 2 and 3 pick the suggested sections (the rules' match and past "
                                          "proposals). The target section's sentences are underlined."),
-              ("Context", "C makes the sentence Context for the nearest compliance requirement. Then click other compliance "
-                          "requirements in the page to add or remove them, or click a section on the right to make it context "
-                          "for that section or subsection itself. Enter when done. Pointing at a sentence lights up its links."),
+              ("Context", "C makes the sentence Context for the nearest compliance requirement. To change that, click other "
+                          "compliance requirements (green) to add or remove them, or click a section on the right to make it "
+                          "context for that section or subsection itself. There is no Done step: clicking any other sentence, or "
+                          "the next key, simply moves on. Pointing at a sentence lights up its links."),
               ("Clear, Split, Combine", "X clears a sentence (not used). S splits it where you clicked between two words. "
                                         "Drag across several sentences to assign them together, or M to combine them into one."),
               ("Not used", "A sentence you do not assign is not used. Prove and the coverage report count compliance "

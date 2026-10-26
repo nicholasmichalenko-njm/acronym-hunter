@@ -104,7 +104,7 @@ def go():
     t.event_generate("<Key>", keysym="c"); app.update()
     it2 = app._c_item("L.4-02")
     check("C makes it Context for the nearest requirement", it2["decision"] == "Context" and it2["context_for"] == "L.4-01"
-          and win.cp_mode and win.cp_mode[0] == "ctx" and win.cp_done_btn.winfo_ismapped(), (it2["context_for"], win.cp_mode))
+          and win.cp_mode and win.cp_mode[0] == "ctx" and not win.cp_done_btn.winfo_ismapped(), (it2["context_for"], win.cp_mode))
     def click(iid):
         r = t.tag_ranges("r:" + iid); t.see(r[0]); app.update(); bx = t.bbox(r[0])
         t.event_generate("<ButtonRelease-1>", x=bx[0] + 3, y=bx[1] + bx[3] // 2); app.update()
@@ -113,11 +113,15 @@ def go():
           it2["context_for"])
     click("L.4.2-06")
     check("clicking it again removes it", it2["context_for"] == "L.4-01", it2["context_for"])
-    click("L.4.1-05")
-    check("a sentence that is not a requirement is refused", it2["context_for"] == "L.4-01" and "not a compliance requirement" in win.cp_l3.cget("text"))
     click("L.4.2-06")
-    t.event_generate("<Key>", keysym="Return"); app.update()
-    check("Enter ends choosing", win.cp_mode is None and it2["context_for"] == "L.4-01; L.4.2-06" and it2["map"] == "1.1 Thermal Design")
+    click("L.4.1-05")
+    check("no Done step: clicking another sentence just moves on", win.cp_mode is None and app._c_selected()[0]["id"] == "L.4.1-05"
+          and it2["context_for"] == "L.4-01; L.4.2-06" and it2["map"] == "1.1 Thermal Design", (win.cp_mode, it2["context_for"]))
+    app._cp_select("L.4.1-04"); app.update(); t.focus_set()
+    t.event_generate("<Key>", keysym="c"); app.update()
+    t.event_generate("<Key>", keysym="Down"); app.update()
+    check("or the next key moves on", win.cp_mode is None and app._c_selected()[0]["id"] == "L.4.1-05")
+    C.clear_assignment(app.matrix.items, [app._c_item("L.4.1-04")]); app._c_changed(); app.update()
     check("pointing at the Context lights up its requirements", app._cp_hover("L.4-02") == ["L.4-01", "L.4.2-06"])
     check("pointing at a requirement lights up its Context", app._cp_hover("L.4-01") == ["L.4-02"])
     app._cp_hover(None)
@@ -192,6 +196,18 @@ def go():
     N = C.Matrix(M.path).load()
     check("assignments, splits, sections and owners saved", next(x for x in N.items if x["id"] == "L.4-01")["owner"] == "J. Smith"
           and next(x for x in N.items if x["id"] == "L.4.1-03a")["map"] == "1.1 Thermal Design")
+    # 2.37.0: no response structure yet: still the RFP text, with buttons to start the structure
+    saved = list(app.matrix.outline)
+    app.matrix.outline = []; app._c_changed(); app.update()
+    check("with no structure the app still opens on the RFP text", app._c_next_step() == "decide")
+    app.shell_go("compliance", "decide"); app.update()
+    check("Assign offers to start the structure", app._cwin.cp_nostruct.winfo_manager() and app._cwin.cp_text.winfo_ismapped())
+    app.matrix.headings = [{"num": "L.4", "title": "TECHNICAL VOLUME", "file": "Section_L.docx"},
+                           {"num": "L.4.1", "title": "Technical Approach", "file": "Section_L.docx"}]
+    n = app.compliance_structure_from_headings(); app.update()
+    check("start it from the RFP headings", n == 2 and not app._cwin.cp_nostruct.winfo_manager()
+          and "L.4.1 Technical Approach" in app._cwin.cp_orows, list(app._cwin.cp_orows)[:3])
+    app.matrix.outline = saved; app._c_changed(); app.update()
     # one status line
     check("one status line at the bottom", app.status.master is app.statusbar and app.lbl_aistate.master is app.statusbar)
     app.shell_go("qaqc"); app.update()

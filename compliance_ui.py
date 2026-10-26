@@ -156,7 +156,7 @@ class ComplianceMixin:
         M = self.matrix
         if M is None or not M.items:
             return None
-        return "decide" if M.outline else "outline"
+        return "decide"            # always the RFP text; with no structure yet, Assign offers to build one (2.37.0)
 
     def _c_goto_decide(self, iid):
         """Open Decide on one sentence."""
@@ -886,6 +886,25 @@ class ComplianceMixin:
             self._c_changed(refill=False)
 
     # ------------------------------------------------------------ outline
+    def compliance_structure_from_headings(self):
+        """No structure yet: start one from the RFP's numbered headings (Section L first, else all) and apply it."""
+        M = self.matrix
+        if M is None:
+            return 0
+        ol = C.outline_from_headings(M.headings, "L") or C.outline_from_headings(M.headings, "")
+        if not ol:
+            messagebox.showinfo("Response structure", "The RFP files have no numbered headings to start from. Type the "
+                                "structure on the Structure step (one section per line), or import a Word outline there.",
+                                parent=self._cwin)
+            if hasattr(self, "shell_go"):
+                self.shell_go("compliance", "outline")
+            return 0
+        M.outline = ol
+        M.log("matrix", f"outline from RFP headings: {len(ol)} sections")
+        diag.activity("compliance_outline_rfp", items=len(ol))
+        self._c_changed()
+        return len(ol)
+
     def compliance_outline_from_rfp(self):
         if self.matrix is None:
             return
@@ -1022,7 +1041,8 @@ class ComplianceMixin:
             M = C.Matrix(out, os.path.splitext(os.path.basename(out))[0].replace("_Compliance_Matrix", ""))
             M.items, M.headings, M.sources = items, heads, src
             typed = (self.ws.get("outline_text") or "").strip() if getattr(self, "ws", None) else ""
-            M.outline = C.parse_outline(typed) if typed else C.outline_from_headings(heads, "L")   # 2.28.0
+            M.outline = C.parse_outline(typed) if typed else (C.outline_from_headings(heads, "L")    # 2.28.0
+                                                              or C.outline_from_headings(heads, ""))   # 2.37.0: any numbered headings
             M.log("matrix", f"read {len(paths)} RFP file(s): {len(items)} candidates")
             self.matrix = M
             self._c_save_now()
