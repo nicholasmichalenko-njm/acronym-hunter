@@ -3376,6 +3376,7 @@ COLUMNS = (  # id, heading, base width, anchor
     ("term", "Term / Unit", 120, "w"),
     ("category", "Type", 170, "w"),
     ("count", "Count", 70, "center"),
+    ("foundin", "Found in", 110, "w"),      # 2.38.0: customer documents, our documents, or both
     ("change", "Change", 130, "w"),
     ("status", "Status", 210, "w"),
     ("definition", "Definition", 300, "w"),
@@ -5049,8 +5050,33 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, SubmissionMixin, CompliancePageMixi
         defn = data["selected_definition"]
         if status_kind(data.get("status", "")) == "choice" and ctx_text(data):
             defn = f"Context: {ctx_text(data)}\n{defn}"
-        return (term, data["category"], data["count"], data.get("change", ""), data["status"],
+        return (term, data["category"], data["count"], self.found_in(data), data.get("change", ""), data["status"],
                 defn, self.known_cell(term, data), self.wrap_locations(data["locations"]))
+
+    def doc_kinds(self):
+        """{file name (lower case): 'customer' or 'ours'} for the open effort's documents (2.38.0)."""
+        L = getattr(self, "effort", None)
+        key = (L.name if L is not None else None, len(getattr(self, "efforts", {}) or {}))
+        cache = getattr(self, "_doc_kinds", None)
+        if cache is None or cache[0] != key or cache[2] < time.time() - 5:
+            kinds = {}
+            if L is not None and hasattr(self, "kw_sources"):
+                try:
+                    for p, kind in self.kw_sources():
+                        kinds.setdefault(os.path.basename(p).lower(), kind)
+                except Exception:
+                    diag.swallowed()
+            self._doc_kinds = cache = (key, kinds, time.time())
+        return cache[1]
+
+    def found_in(self, data):
+        """'Customer', 'Ours' or 'Both': where a term was found, by the effort's customer documents and our documents."""
+        kinds = self.doc_kinds()
+        if not kinds:
+            return ""
+        got = {kinds.get(_file_of(l).lower()) for l in data.get("locations", []) if l}
+        got.discard(None)
+        return "Both" if got == {"customer", "ours"} else "Customer" if got == {"customer"} else "Ours" if got == {"ours"} else ""
 
     def first_use_cell(self, data):
         """Compact table text: where the first use is and whether it is defined there. Details and export say more."""

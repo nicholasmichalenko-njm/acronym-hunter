@@ -941,6 +941,11 @@ class Matrix:
         finally:
             wb.close()
         assign_ids(self.items)
+        if self.setup and self.setup.get("owners"):  # 2.38.0: an owner equal to the section's lead was inherited, not set
+            import setupdoc
+            for it in self.items:
+                if it.get("owner") and it["owner"] == setupdoc.section_people(self, it.get("map", ""))["lead"]:
+                    it["owner"] = ""
         return self
 
     def _save_setup(self, wb, Font):
@@ -1036,8 +1041,13 @@ class Matrix:
         import cwords
         cw = cwords.load()                          # 2.31.0: compliance words in the user's style (bold by default)
         rcol = COLUMNS.index("Requirement")
+        owner = None
+        if self.setup:                              # 2.38.0: the Owner column shows the section's lead when none is set
+            import setupdoc
+            owner = lambda it: setupdoc.owner_of(self, it)
         for it in self.items:
-            ws.append([("Yes" if it.get(FIELD[c]) else "") if c == "Compound" else it.get(FIELD[c], "") for c in COLUMNS])
+            ws.append([("Yes" if it.get(FIELD[c]) else "") if c == "Compound" else
+                       (owner(it) if owner and c == "Owner" else it.get(FIELD[c], "")) for c in COLUMNS])
             ws.cell(row=ws.max_row, column=rcol + 1).value = cwords.xlsx_value(it.get("text", ""), cw)
             f = fills.get(it["decision"])
             if f:

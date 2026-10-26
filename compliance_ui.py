@@ -131,16 +131,19 @@ class ComplianceMixin:
                      anchor="w", text_color=("#475569", "#94A3B8")).pack(fill="x", padx=6)
 
     def _c_build_prove(self, fr):
-        """Compliance > Prove: every sentence decided and placed; learning; owner, status and page."""
+        """Compliance > Prove (2.38.0): the final check before export, as categories to clear."""
         win = self._cwin
-        ctk.CTkLabel(fr, text="Prove nothing was missed", font=("Segoe UI", 20, "bold"), anchor="w").pack(fill="x", padx=6, pady=(8, 2))
+        top = ctk.CTkFrame(fr, fg_color="transparent"); top.pack(fill="x", padx=6, pady=(8, 2))
+        ctk.CTkLabel(top, text="Prove nothing was missed", font=("Segoe UI", 20, "bold"), anchor="w").pack(side="left")
+        ctk.CTkButton(top, text="Coverage report (Word)...", command=self.compliance_coverage, fg_color="#1E3A8A", width=10).pack(side="right")
+        win.prove_go = ctk.CTkButton(top, text="Go to Export", width=10, fg_color="#15803D",
+                                     command=lambda: self.shell_go("compliance", "export") if hasattr(self, "shell_go") else None)
         win.lbl_prove = ctk.CTkLabel(fr, text="", anchor="w", justify="left", font=("Segoe UI", 15))
-        win.lbl_prove.pack(fill="x", padx=6, pady=(4, 8))
-        win.prove_rows = ctk.CTkFrame(fr, fg_color="transparent"); win.prove_rows.pack(fill="x", padx=6)
-        row = ctk.CTkFrame(fr, fg_color="transparent"); row.pack(fill="x", padx=6, pady=(12, 4))
-        ctk.CTkButton(row, text="Save the coverage report (Word)...", command=self.compliance_coverage, fg_color="#1E3A8A",
-                      height=40, font=("Segoe UI", 14, "bold")).pack(side="left")
-        lr = ctk.CTkFrame(fr, fg_color="transparent"); lr.pack(fill="x", padx=6, pady=(14, 4))
+        win.lbl_prove.pack(fill="x", padx=6, pady=(2, 6))
+        win.prove_rows = ctk.CTkFrame(fr, fg_color="transparent")
+        if hasattr(self, "_cp_build_details"):
+            self._cp_build_details(fr)
+        lr = ctk.CTkFrame(fr, fg_color="transparent"); lr.pack(fill="x", padx=6, pady=(4, 4))
         win.btn_learn = ctk.CTkButton(lr, text="Learn from decisions", command=self.compliance_learn, fg_color="#6D28D9", width=10)
         win.btn_learn.pack(side="left")
         win.team_var = tk.BooleanVar(value=bool(self.ws.get("team_learning", True)) if getattr(self, "ws", None) is not None else True)
@@ -148,8 +151,6 @@ class ComplianceMixin:
         win.chk_team.pack(side="left", padx=(12, 3))
         win.lbl_ai = ctk.CTkLabel(lr, text="", font=("Segoe UI", 11))
         win.lbl_ai.pack(side="left", padx=6)
-        if hasattr(self, "_cp_build_details"):          # 2.32.0: owner, status and page are set here, not during triage
-            self._cp_build_details(fr)
 
     def _c_next_step(self):
         """Where to land: Read RFP with no matrix, Structure with no outline, else Assign (2.36.0)."""
@@ -173,55 +174,101 @@ class ComplianceMixin:
                      text_color=("#475569", "#94A3B8")).pack(fill="x", padx=6, pady=(0, 10))
         for text, cmd in (("Matrix: open in Excel", self.compliance_excel),
                           ("Coverage report (Word)...", self.compliance_coverage),
-                          ("Word outline with requirements...", self.compliance_word),
-                          ("Setup documents for authors (Word)...", self.setup_export),
-                          ("Setup changes since the last export...", self.setup_export_changes)):
-            ctk.CTkButton(fr, text=text, command=cmd, height=40, width=300, anchor="w").pack(anchor="w", padx=6, pady=4)
+                          ("Response Setup (Word)...", self.setup_export),
+                          ("Response Setup changes since the last export...", self.setup_export_changes)):
+            ctk.CTkButton(fr, text=text, command=cmd, height=40, width=340, anchor="w").pack(anchor="w", padx=6, pady=4)
+        win.tables_var = tk.BooleanVar(value=False)
+        ctk.CTkCheckBox(fr, text="Response Setup: include each section's requirement table (reference, requirement, owner)",
+                        variable=win.tables_var, command=self.compliance_tables_toggle).pack(anchor="w", padx=10, pady=(8, 0))
+        ctk.CTkLabel(fr, text="The Response Setup holds every heading of the structure, who writes it, the RFP text it must "
+                              "answer and the lead's direction.", anchor="w", text_color=("#475569", "#94A3B8")).pack(fill="x", padx=10, pady=(4, 0))
+
+    def compliance_tables_toggle(self):
+        if self.matrix is None:
+            return
+        import setupdoc as SD
+        SD.setup_of(self.matrix)["tables"] = bool(self._cwin.tables_var.get())
+        self.matrix.pending = True
+        self._c_changed(refill=False)
+
+    def compliance_ask_references(self, files=None):
+        """RFP files with no section numbering: how should their sentences be referenced? (2.38.0) One dialog for all."""
+        import setupdoc as SD
+        M = self.matrix
+        if M is None:
+            return None
+        files = files if files is not None else SD.files_needing_reference(M)
+        if not files:
+            return None
+        w = ctk.CTkToplevel(self); w.title("How to reference these files"); w.geometry("820x" + str(min(640, 170 + 120 * len(files))))
+        w.transient(self); w.after(150, w.lift)
+        diag.register(w, "compliance_references")
+        ctk.CTkLabel(w, text="These RFP files have no section numbers. Choose how their sentences are referenced in the matrix and the "
+                             "Response Setup. You can change it later (Assign, the file's reference).", anchor="w", justify="left",
+                     wraplength=780).pack(fill="x", padx=14, pady=(12, 6))
+        sf = ctk.CTkScrollableFrame(w); sf.pack(fill="both", expand=True, padx=10)
+        rows = []
+        for f in files:
+            cur = SD.setup_of(M)["refmode"].get(f) or {}
+            card = ctk.CTkFrame(sf, corner_radius=10, border_width=1, border_color=("#CBD5E1", "#334155")); card.pack(fill="x", pady=4)
+            ctk.CTkLabel(card, text=f, font=("Segoe UI", 13, "bold"), anchor="w").pack(fill="x", padx=12, pady=(8, 2))
+            var = tk.StringVar(value=cur.get("mode") or "para")
+            r1 = ctk.CTkFrame(card, fg_color="transparent"); r1.pack(fill="x", padx=12)
+            ctk.CTkLabel(r1, text="Document name").pack(side="left")
+            nm = ctk.CTkEntry(r1, width=260); nm.insert(0, cur.get("name") or SD.short_name(f)); nm.pack(side="left", padx=6)
+            r2 = ctk.CTkFrame(card, fg_color="transparent"); r2.pack(fill="x", padx=12, pady=(4, 8))
+            ctk.CTkRadioButton(r2, text="Name and paragraph (Design Note, para 3)", variable=var, value="para").pack(side="left")
+            ctk.CTkRadioButton(r2, text="Name, page and paragraph", variable=var, value="page").pack(side="left", padx=10)
+            ctk.CTkRadioButton(r2, text="Prefix and number:", variable=var, value="prefix").pack(side="left")
+            px = ctk.CTkEntry(r2, width=80, placeholder_text="SOW"); px.pack(side="left", padx=4)
+            if cur.get("prefix"):
+                px.insert(0, cur["prefix"])
+            rows.append((f, var, nm, px))
+
+        def apply():
+            for f, var, nm, px in rows:
+                mode = var.get()
+                if mode == "prefix" and not px.get().strip():
+                    mode = "para"
+                SD.set_refmode(M, f, mode, nm.get(), px.get())
+            M.pending = True
+            diag.activity("compliance_references_set", n=len(rows))
+            w.destroy()
+            self._c_changed()
+            return len(rows)
+        b = ctk.CTkFrame(w, fg_color="transparent"); b.pack(fill="x", padx=14, pady=10)
+        ctk.CTkButton(b, text="Use these references", command=apply, fg_color="#1E3A8A").pack(side="right")
+        w._api = {"rows": rows, "apply": apply}
+        return w
 
     def _c_prove_refresh(self):
         win, M = self._cwin, self.matrix
         if win is None or not hasattr(win, "lbl_prove"):
             return
-        for w in win.prove_rows.winfo_children():
-            w.destroy()
         if M is None or not M.items:
             win.lbl_prove.configure(text="No matrix yet: start one on the Read RFP step.")
             if hasattr(win, "lbl_read"):
                 win.lbl_read.configure(text="")
             return
+        if hasattr(win, "tables_var"):
+            import setupdoc as SD
+            win.tables_var.set(bool(SD.setup_of(M).get("tables")))
         c = M.counts()
-        home = c.get("needs_home", 0)
-        kc = c["Keep"] + c["Context"]
-        unused = c[""] + c["Drop"]
-        win.lbl_prove.configure(text=f"Every sentence read: {c['Keep']} compliance requirement(s), {c['Context']} context, {unused} not used"
-                                + (f"   |   \u2713 every assigned sentence has a section" if kc and not home else
-                                   f"   |   {home} of {kc} assigned sentences have no section" if kc else ""))
-        hdr = ("File", "Sentences", "Compliance", "Context", "Not used", "In a section", "No section")
-        g = ctk.CTkFrame(win.prove_rows, fg_color="transparent"); g.pack(fill="x")
-        for j, h in enumerate(hdr):
-            ctk.CTkLabel(g, text=h, font=("Segoe UI", 12, "bold"), anchor="w").grid(row=0, column=j, sticky="w", padx=(0, 18))
-        for i, r in enumerate(M.coverage(), 1):
-            vals = (r["file"], r["total"], r["Keep"], r["Context"], r[""] + r["Drop"], r["placed"], r["needs_home"])
-            for j, v in enumerate(vals):
-                ctk.CTkLabel(g, text=str(v), anchor="w", font=("Segoe UI", 12, "bold" if r["file"] == "Total" else "normal")
-                             ).grid(row=i, column=j, sticky="w", padx=(0, 18))
-        probs = C.context_problems(M.items)          # 2.33.0: Context with its requirement or section
-        nctx = c["Context"]
-        pr = ctk.CTkFrame(win.prove_rows, fg_color="transparent"); pr.pack(fill="x", pady=(10, 0))
-        ctk.CTkLabel(pr, text=(f"\u2713 All {nctx} Context sentences are with their requirement or section." if not probs
-                               else f"{len(probs)} of {nctx} Context sentences need attention: "
-                                    + "; ".join(f"{it['id']} ({why})" for it, why in probs[:3]) + (" ..." if len(probs) > 3 else "")),
-                     anchor="w", justify="left", wraplength=900, font=("Segoe UI", 13, "bold" if probs else "normal"),
-                     text_color=("#B45309", "#FBBF24") if probs else ("#15803D", "#86EFAC")).pack(side="left")
-        if probs:
-            ctk.CTkButton(pr, text="Show the first", width=10, command=lambda i=probs[0][0]["id"]: self._c_goto_decide(i)).pack(side="left", padx=10)
+        probs = C.context_problems(M.items)
         win.prove_problems = probs
-        if home:
-            first = next(it for it in M.items if it["decision"] in ("Keep", "Context") and not it["map"])
-            hr = ctk.CTkFrame(win.prove_rows, fg_color="transparent"); hr.pack(fill="x", pady=(8, 0))
-            ctk.CTkLabel(hr, text=f"{home} assigned sentence(s) have no section yet.", anchor="w",
-                         text_color=("#B45309", "#FBBF24"), font=("Segoe UI", 13, "bold")).pack(side="left")
-            ctk.CTkButton(hr, text="Show the first", width=10, command=lambda i=first["id"]: self._c_goto_decide(i)).pack(side="left", padx=10)
+        todo = {k: len(self.prove_items(k)) for k in ("unused", "nosection", "ctx", "noowner", "changed")} \
+            if hasattr(self, "prove_items") else {}
+        left = sum(todo.values())
+        win.lbl_prove.configure(text=(f"Every sentence read: {c['Keep']} compliance requirement(s), {c['Context']} context, "
+                                      f"{c[''] + c['Drop']} not used.   ")
+                                + ("\u2713 Nothing left to check: ready to export." if not left else
+                                   f"{left} item(s) to check: click a category below."),
+                                text_color=("#15803D", "#86EFAC") if not left else ("#0F172A", "#F1F5F9"))
+        if hasattr(win, "prove_go"):
+            if not left and not win.prove_go.winfo_manager():
+                win.prove_go.pack(side="right", padx=8)
+            elif left and win.prove_go.winfo_manager():
+                win.prove_go.pack_forget()
         if hasattr(win, "lbl_read"):
             win.lbl_read.configure(text=f"Open matrix: {os.path.basename(M.path)}, {len(M.items)} sentences from "
                                         f"{len(M.sources)} file(s). Next: Decide.")
@@ -1050,6 +1097,7 @@ class ComplianceMixin:
             self._c_refresh()
             if hasattr(self, "shell_go"):
                 self.shell_go("compliance", self._c_next_step())   # Structure, then Assign (2.36.0)
+            self.after(300, self.compliance_ask_references)       # 2.38.0: files with no numbering
             diag.activity("compliance_read", files=len(paths), items=len(items))
             nreq = sum(1 for it in items if it.get("type") != "Context")
             msg = (f"{len(items)} sentences from {len(paths)} file(s); {nreq} look like requirements. Check the response structure, "

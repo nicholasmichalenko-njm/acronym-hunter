@@ -12,7 +12,7 @@ import customtkinter as ctk
 import diag
 
 PARTS = (("versions", "Customer document version history (Excel)"), ("matrix", "Compliance matrix (Excel)"), ("coverage", "Compliance coverage report (Word)"),
-         ("outline", "Compliance Word outline"), ("setup", "Setup documents for authors (Word)"),
+         ("setup", "Response Setup (Word)"),
          ("acronyms", "Acronym lists (Word and Excel)"), ("qaqc", "QA/QC report (Excel) and its acronym lists"),
          ("keywords", "Keyword list (Excel)"))
 
@@ -51,7 +51,6 @@ class ExportAllMixin:
             "versions": (bool(lib and lib.docs), "no customer documents in the history yet"),
             "matrix": (M is not None, "no compliance matrix for this effort"),
             "coverage": (M is not None and bool(M.items), "no compliance matrix for this effort"),
-            "outline": (M is not None and bool(M.outline), "the matrix has no outline yet"),
             "setup": (M is not None and bool(M.outline), "the matrix has no outline yet"),
             "acronyms": (L is not None and bool(L.order), "the effort list is empty"),
             "qaqc": (bool(r), "QA/QC has not been run in this session"),
@@ -72,7 +71,7 @@ class ExportAllMixin:
         sub = os.path.join(folder, f"{_safe(L.name)}_Export_{stamp}")
         os.makedirs(sub, exist_ok=True)
         made, problems = [], []
-        M = self._xa_matrix() if any(p in picks for p in ("matrix", "coverage", "outline", "setup")) else None
+        M = self._xa_matrix() if any(p in picks for p in ("matrix", "coverage", "setup")) else None
         stem = _safe(M.name) if M is not None else ""
         try:
             if "matrix" in picks:
@@ -82,8 +81,6 @@ class ExportAllMixin:
                 made.append(M.path)
             if "coverage" in picks:
                 p = os.path.join(sub, f"{stem}_RFP_Coverage.docx"); C.write_coverage_docx(M, p); made.append(p)
-            if "outline" in picks:
-                p = os.path.join(sub, f"{stem}_Outline_with_Requirements.docx"); C.write_outline_docx(M, p); made.append(p)
             if "setup" in picks:
                 made += SD.export(M, sub)          # the export record stays with this copy, not the working matrix
         except PermissionError:

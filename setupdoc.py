@@ -25,7 +25,10 @@ _NORM = re.compile(r"\W+")
 
 def new_setup():
     return {"order": {}, "copies": {}, "mgmt": {}, "notes": {}, "refs": {}, "rules": {}, "ref_format": "colon",
-            "exports": [], "context": []}
+            "exports": [], "context": [],
+            "refmode": {},     # 2.38.0: {file: {"mode": "numbering"|"para"|"page"|"prefix", "name", "prefix"}}
+            "owners": {},      # 2.38.0: {section label: {"lead": "", "with": ""}}
+            "tables": False}   # 2.38.0: Response Setup includes each section's requirement table
 
 
 def setup_of(M):
@@ -90,13 +93,67 @@ def inherited_sections(M):
     return out
 
 
+# ------------------------------------------------------------------ references by the document itself (2.38.0)
+_PARA = re.compile(r"\bpara (\d+)")
+_PAGE = re.compile(r"\(p\.(\d+)")
+
+
+def file_has_numbering(M, f):
+    """Does this RFP file carry section numbers the reference can use?"""
+    return any(it.get("section") for it in M.items if it.get("file", "") == f)
+
+
+def files_needing_reference(M):
+    """RFP files with no section numbering and no reference rule chosen yet."""
+    S = setup_of(M)
+    seen, out = set(), []
+    for it in M.items:
+        f = it.get("file", "")
+        if f and f not in seen:
+            seen.add(f)
+            if not file_has_numbering(M, f) and f not in S["refmode"]:
+                out.append(f)
+    return out
+
+
+def short_name(f):
+    import docversions as DV
+    return DV.display_name(f)
+
+
+def set_refmode(M, f, mode, name="", prefix=""):
+    S = setup_of(M)
+    S["refmode"][f] = {"mode": mode, "name": (name or short_name(f)).strip(), "prefix": (prefix or "").strip()}
+    _log(M, "(setup)", f"reference for {f}: {mode}")
+
+
+def _doc_ref(M, it, rule):
+    """A reference made from the document itself: 'Design Note, para 3', 'Design Note, p. 4, para 3' or 'SOW-3'."""
+    f = it.get("file", "")
+    loc = it.get("loc", "") or ""
+    mode = rule.get("mode")
+    if mode == "prefix" and rule.get("prefix"):
+        n = next((k for k, x in enumerate((x for x in M.items if x.get("file", "") == f), 1) if x is it), 0)
+        return f"{rule['prefix']}-{n}" if n else rule["prefix"]
+    m = _PARA.search(loc)
+    para = m.group(1) if m else ""
+    name = rule.get("name") or short_name(f)
+    if mode == "page":
+        pg = it.get("page") or (_PAGE.search(loc).group(1) if _PAGE.search(loc) else "")
+        return ", ".join(x for x in (name, f"p. {pg}" if pg else "", f"para {para}" if para else "") if x)
+    return f"{name}, para {para}" if para else name
+
+
 def ref_of(M, it, inherited=None):
-    """(reference, where it came from). Typed > RFP numbering or inherited, with a file rule for numbers without a
-    letter > nothing."""
+    """(reference, where it came from). Typed > the file's own reference rule (2.38.0) > RFP numbering or inherited,
+    with a file rule for numbers without a letter > nothing."""
     S = setup_of(M)
     if it["id"] in S["refs"]:
         v = S["refs"][it["id"]].strip()
         return (v, "Typed") if v else ("", "No reference found")
+    rule = S["refmode"].get(it.get("file", ""))
+    if rule and rule.get("mode") not in (None, "", "numbering"):
+        return _doc_ref(M, it, rule), "The document itself"
     sec, src = it.get("section", ""), "RFP numbering"
     if not sec:
         sec = (inherited if inherited is not None else inherited_sections(M)).get(it["id"], "")
@@ -173,6 +230,69 @@ def placed_in(M):
                and not byid[i].get("context_for")]
         if top:
             out[lab] = top + [i for i in out[lab] if i not in top]
+    return out
+
+
+# ------------------------------------------------------------------ people per section (2.38.0)
+def _parents(M, label):
+    """The section and its parents, nearest first."""
+    import compliance as C
+    labs = [(C.outline_label(o), o.get("level", 1)) for o in M.outline]
+    i = next((k for k, (l, _v) in enumerate(labs) if l == label), None)
+    if i is None:
+        return [label] if label else []
+    out, lvl = [labs[i][0]], labs[i][1]
+    for l, v in reversed(labs[:i]):
+        if v < lvl:
+            out.append(l); lvl = v
+    return out
+
+
+def section_people(M, label):
+    """{"lead", "with", "from"}: the section's people, else the nearest parent section's (inherited)."""
+    S = setup_of(M)
+    for l in _parents(M, label):
+        p = S["owners"].get(l) or {}
+        if p.get("lead") or p.get("with"):
+            return {"lead": p.get("lead", ""), "with": p.get("with", ""), "from": l}
+    return {"lead": "", "with": "", "from": ""}
+
+
+def set_people(M, label, lead="", with_=""):
+    S = setup_of(M)
+    lead, with_ = " ".join((lead or "").split()), ", ".join(x.strip() for x in (with_ or "").split(",") if x.strip())
+    if lead or with_:
+        S["owners"][label] = {"lead": lead, "with": with_}
+    else:
+        S["owners"].pop(label, None)
+    _log(M, "(setup)", f"people for {label}: {lead or '-'}" + (f"; with {with_}" if with_ else ""))
+
+
+def owner_of(M, it):
+    """Who writes this sentence: its own owner, else the lead of its section (or a parent section)."""
+    return (it.get("owner") or "").strip() or section_people(M, it.get("map", "")).get("lead", "")
+
+
+def people(M):
+    """Everyone named as a lead, contributor or owner, sorted."""
+    S = setup_of(M)
+    names = set()
+    for p in S["owners"].values():
+        names.add(p.get("lead", ""))
+        names |= {x.strip() for x in p.get("with", "").split(",")}
+    names |= {(it.get("owner") or "").strip() for it in M.items}
+    return sorted(n for n in names if n)
+
+
+def sections_of(M, person):
+    """Section labels where person is the lead or a contributor (directly or through a parent)."""
+    import compliance as C
+    out = []
+    for o in M.outline:
+        lab = C.outline_label(o)
+        p = section_people(M, lab)
+        if person and (p["lead"] == person or person in [x.strip() for x in p["with"].split(",")]):
+            out.append(lab)
     return out
 
 
@@ -305,6 +425,15 @@ def _doc_for(M, name, entries, P, inh, stamp):
     for o in entries:
         lab = C.outline_label(o)
         d.heading(lab, o.get("level", 1) - base + 1)
+        pp = S["owners"].get(lab) or {}
+        if pp.get("lead") or pp.get("with"):                      # 2.38.0: who writes this section
+            d.para("Lead: " + (pp.get("lead") or "-") + (f"   Contributors: {pp['with']}" if pp.get("with") else ""), color="1E3A8A")
+        if S.get("tables"):                                       # 2.38.0: the requirement table of the old Word outline
+            rows = [B[i] for i in P.get(lab, []) if B.get(i) is not None and B[i].get("decision") == "Keep"]
+            if rows:
+                d.table(["Reference", "Requirement", "Owner"],
+                        [[ref_of(M, it, inh)[0] or it["id"], cwords.docx_parts(((it.get("lead") or "") + " " + it["text"]).strip(), None, cw),
+                          owner_of(M, it)] for it in rows], [1900, 5860, 1600])
         last_req = None
         for iid in P.get(lab, []):
             it = B.get(iid)
@@ -348,7 +477,7 @@ def export(M, folder, when=None):
     groups = volume_groups(M)
     for name, entries in groups:
         part = "" if len(groups) == 1 else "_" + _safe(name)
-        p = os.path.join(folder, f"{stem}_Setup{part}_{tag}.docx")
+        p = os.path.join(folder, f"{stem}_Response_Setup{part}_{tag}.docx")
         _doc_for(M, name, entries, P, inh, stamp).save(p)
         paths.append(p)
     S = setup_of(M)

@@ -296,6 +296,8 @@ class ShellMixin:
         if feature not in STEPS:
             return
         steps = [k for k, _l in STEPS[feature]]
+        if feature == "acronyms" and step is None and self.effort is not None and self._shell_last.get("acronyms") == "scan":
+            step = "review"                    # 2.38.0: with an effort open, straight to what was found in its documents
         step = step if step in steps else self._shell_last.get(feature, steps[0])
         if feature == "home" and self.effort is None:
             self.ne_head.configure(text="No effort open")
@@ -316,6 +318,8 @@ class ShellMixin:
             self.view_var.set(legacy or f"{feature}:{step}")
         if (feature, step) == ("acronyms", "approve") and self.effort is not None:
             self.home_refresh()
+        elif (feature, step) == ("acronyms", "review") and self.effort is not None:
+            self.after(50, self.acronyms_effort_scan)
         elif feature == "keywords" and step == "decide" and self.effort is not None:
             self.kw_refresh()
         elif feature == "home":
@@ -351,6 +355,32 @@ class ShellMixin:
         diag.menu(f"view_{feature}_{step}")         # the step opened (internal names only)
         if save and hasattr(self, "resume_changed"):
             self.resume_changed()
+
+    def effort_doc_paths(self):
+        """The open effort's documents: its customer documents and our volumes, [(path, kind)] (2.38.0)."""
+        if self.effort is None or not hasattr(self, "kw_sources"):
+            return []
+        return list(self.kw_sources())
+
+    def acronyms_effort_scan(self, force=False):
+        """Acronyms > Review with an effort open and nothing found yet: scan the effort's documents once, without asking
+        for files. Returns the number of files started, 0 when nothing was needed."""
+        if self.effort is None or (self.results and not force) or self.busy():
+            return 0
+        done = self.__dict__.setdefault("_auto_scanned", set())
+        if self.effort.name in done and not force:
+            return 0
+        docs = self.effort_doc_paths()
+        if not docs:
+            self.status.configure(text="This effort has no documents yet: add customer documents (Start an effort, or Submission) "
+                                       "and our volumes (Effort > Volumes).")
+            return 0
+        done.add(self.effort.name)
+        nc = sum(1 for _p, k in docs if k == "customer")
+        self.status.configure(text=f"Scanning this effort's documents: {nc} customer, {len(docs) - nc} ours...")
+        diag.activity("acronyms_effort_scan", files=len(docs))
+        self.start_batch([p for p, _k in docs])
+        return len(docs)
 
     def _shell_done(self, f, s):
         """Whether a step has work done (green pill)."""

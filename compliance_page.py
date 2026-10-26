@@ -120,6 +120,10 @@ class CompliancePageMixin:
         win.cp_head.pack(fill="x", padx=8, pady=(6, 0))
         win.cp_where = ctk.CTkLabel(side, text="", anchor="w", justify="left", wraplength=310, text_color=("#475569", "#94A3B8"))
         win.cp_where.pack(fill="x", padx=8)
+        win.cp_ref = ctk.CTkLabel(side, text="", anchor="w", justify="left", wraplength=310)      # 2.38.0
+        win.cp_ref.pack(fill="x", padx=8, pady=(4, 0))
+        ctk.CTkButton(side, text="How this file is referenced...", width=10, height=24, fg_color="transparent", border_width=1,
+                      text_color=("#1E3A8A", "#BFDBFE"), command=self.cp_change_reference).pack(anchor="w", padx=8, pady=(2, 0))
         r = ctk.CTkFrame(side, fg_color="transparent"); r.pack(fill="x", padx=8, pady=(6, 4))
         ctk.CTkButton(r, text="Show page", width=90, command=self.compliance_show_page).pack(side="left")
         ctk.CTkButton(r, text="Open file", width=90, command=self.compliance_open_file).pack(side="left", padx=6)
@@ -131,8 +135,13 @@ class CompliancePageMixin:
                       command=self.compliance_structure_from_headings).pack(anchor="w", pady=2)
         ctk.CTkButton(win.cp_nostruct, text="Type it or import a Word outline", width=10, fg_color="#475569",
                       command=lambda: self.shell_go("compliance", "outline") if hasattr(self, "shell_go") else None).pack(anchor="w", pady=2)
+        wrow = ctk.CTkFrame(side, fg_color="transparent"); wrow.pack(fill="x", padx=8, pady=(4, 0))       # 2.38.0
+        ctk.CTkLabel(wrow, text="Show sections for").pack(side="left")
+        win.cp_who = ctk.CTkOptionMenu(wrow, values=["Everyone"], width=150, command=lambda _v: self._cp_side())
+        win.cp_who.pack(side="left", padx=6)
         win.cp_outline = ctk.CTkFrame(side, fg_color="transparent"); win.cp_outline.pack(fill="x", padx=4, pady=(4, 0))
         orow = ctk.CTkFrame(side, fg_color="transparent"); orow.pack(fill="x", padx=8, pady=(6, 0))
+        ctk.CTkButton(orow, text="People...", width=10, fg_color="#0F766E", command=self.cp_people_dialog).pack(side="left", padx=(0, 6))
         ctk.CTkButton(orow, text="Edit the structure", width=10, fg_color="#475569",
                       command=lambda: self.shell_go("compliance", "outline") if hasattr(self, "shell_go") else None).pack(side="left")
         ctk.CTkButton(orow, text="Arrange the setup...", width=10, fg_color="#475569",
@@ -324,11 +333,13 @@ class CompliancePageMixin:
             for w in win.cp_outline.winfo_children():
                 w.destroy()
             win.cp_orows = {}
+            win.cp_ovis = None
             for lab, lvl in labs:
                 b = ctk.CTkButton(win.cp_outline, text=lab, anchor="w", height=28, width=10,
                                   font=("Segoe UI", 12, "bold" if lvl == 1 else "normal"), border_width=1,
                                   command=lambda lab=lab: self.cp_section_click(lab))
                 b.pack(fill="x", padx=(4 + 14 * max(0, lvl - 1), 4), pady=1)
+                b.bind("<Button-3>", lambda _e, lab=lab: self.cp_people_dialog(lab))
                 win.cp_orows[lab] = b
             win.cp_osig = sig
         if not labs:
@@ -353,9 +364,26 @@ class CompliancePageMixin:
             if it["decision"] in ("Keep", "Context") and it.get("map"):
                 k = counts.setdefault(it["map"], [0, 0])
                 k[0 if it["decision"] == "Keep" else 1] += 1
+        import setupdoc as SD
+        names = ["Everyone"] + SD.people(M)
+        win.cp_who.configure(values=names)
+        if win.cp_who.get() not in names:
+            win.cp_who.set("Everyone")
+        mine = None if win.cp_who.get() == "Everyone" else set(SD.sections_of(M, win.cp_who.get()))
+        vis = [lab for lab in win.cp_orows if mine is None or lab in mine]
+        if vis != getattr(win, "cp_ovis", None):              # repack the shown sections in outline order
+            lvls = {C.outline_label(o): o.get("level", 1) for o in M.outline}
+            for b in win.cp_orows.values():
+                b.pack_forget()
+            for lab in vis:
+                win.cp_orows[lab].pack(fill="x", padx=(4 + 14 * max(0, lvls.get(lab, 1) - 1), 4), pady=1)
+            win.cp_ovis = vis
         for lab, b in win.cp_orows.items():
             nk, nc = counts.get(lab, [0, 0])
-            txt = lab + (f"    {nk} req" if nk else "") + (f", {nc} ctx" if nc else "")
+            pp = SD.setup_of(M)["owners"].get(lab) or {}
+            txt = lab + (f"    {nk} req" if nk else "") + (f", {nc} ctx" if nc else "") + (f"   \u00b7 {pp['lead']}" if pp.get("lead") else "")
+            if lab not in vis:
+                continue
             on = lab == win.cp_target
             b.configure(text=txt, fg_color=("#DCFCE7", "#14532D") if on else ("#FFFFFF", "#1F2937"),
                         text_color=("#0F172A", "#F1F5F9"), hover_color=("#E2E8F0", "#334155"),
@@ -408,10 +436,15 @@ class CompliancePageMixin:
             state = C.context_label(it) + (f" (in {it['map']})" if it.get("context_for") and it.get("map") else "")
         else:
             state = "Not assigned (not used)"
+        import setupdoc as SD
+        ref, how = SD.ref_of(self.matrix, it)
+        ref = ref or it["id"]
+        win.cp_ref.configure(text=f"Referenced as: {ref}" + (f"  ({how})" if how and how not in ("No reference found",) else ""))
+        owner = SD.owner_of(self.matrix, it) if it["decision"] in ("Keep", "Context") else ""
         if win.cp_range:
             win.cp_l1.configure(text=f"{len(win.cp_range)} sentences selected: R, C or X assigns them all; M combines them. Esc clears.")
         else:
-            win.cp_l1.configure(text=f"{it['id']}: {state}")
+            win.cp_l1.configure(text=f"{ref}: {state}" + (f"   Owner: {owner}" if owner else ""))
         win.cp_sugg = self._cp_suggestions(it)
         tgt = f"Target: {win.cp_target} (R assigns here)" if win.cp_target else "No target section: click one on the right"
         sug = "   Suggested: " + "   ".join(f"{k}  {lab}" for k, lab in enumerate(win.cp_sugg, 1)) if win.cp_sugg else ""
@@ -441,6 +474,55 @@ class CompliancePageMixin:
         sec = " ".join(x for x in (it.get("section", ""), it.get("section_title", "")) if x)
         win.cp_where.configure(text=(it.get("loc") or "") + (f"\nRFP section {sec}" if sec else ""))
         self._cp_side()
+
+    def cp_change_reference(self):
+        sel = self._c_selected()
+        if not sel or not hasattr(self, "compliance_ask_references"):
+            return None
+        return self.compliance_ask_references([sel[0].get("file", "")])
+
+    def cp_people_dialog(self, label=None):
+        """Who writes each section: a lead and contributors. Requirements in a section (and its subsections) inherit them
+        unless they have their own owner (2.38.0)."""
+        import setupdoc as SD
+        M = self.matrix
+        if M is None or not M.outline:
+            return None
+        labs = [label] if label else [C.outline_label(o) for o in M.outline]
+        w = ctk.CTkToplevel(self); w.title("People for each section"); w.geometry("760x" + str(min(680, 150 + 40 * len(labs))))
+        w.transient(self); w.after(150, w.lift)
+        diag.register(w, "compliance_people")
+        ctk.CTkLabel(w, text="A lead and contributors (names separated by commas). Requirements in a section and its subsections take "
+                             "its lead as owner unless you set another owner (Prove).", anchor="w", justify="left",
+                     wraplength=720).pack(fill="x", padx=14, pady=(12, 6))
+        sf = ctk.CTkScrollableFrame(w); sf.pack(fill="both", expand=True, padx=10)
+        hdr = ctk.CTkFrame(sf, fg_color="transparent"); hdr.pack(fill="x")
+        for txt, wd in (("Section", 300), ("Lead", 150), ("Contributors", 220)):
+            ctk.CTkLabel(hdr, text=txt, width=wd, anchor="w", font=("Segoe UI", 12, "bold")).pack(side="left", padx=4)
+        rows = []
+        lvls = {C.outline_label(o): o.get("level", 1) for o in M.outline}
+        for lab in labs:
+            pp = SD.setup_of(M)["owners"].get(lab) or {}
+            inh = SD.section_people(M, lab)
+            r = ctk.CTkFrame(sf, fg_color="transparent"); r.pack(fill="x", pady=1)
+            ctk.CTkLabel(r, text=("    " * max(0, lvls.get(lab, 1) - 1)) + lab, width=300, anchor="w").pack(side="left", padx=4)
+            le = ctk.CTkEntry(r, width=150, placeholder_text=inh["lead"] if inh["from"] and inh["from"] != lab else "")
+            le.insert(0, pp.get("lead", "")); le.pack(side="left", padx=4)
+            we = ctk.CTkEntry(r, width=220); we.insert(0, pp.get("with", "")); we.pack(side="left", padx=4)
+            rows.append((lab, le, we))
+
+        def save():
+            for lab, le, we in rows:
+                SD.set_people(M, lab, le.get(), we.get())
+            M.pending = True
+            diag.activity("compliance_people_set", n=len(rows))
+            w.destroy()
+            self._c_changed()
+            return len(rows)
+        b = ctk.CTkFrame(w, fg_color="transparent"); b.pack(fill="x", padx=14, pady=10)
+        ctk.CTkButton(b, text="Save", command=save, fg_color="#1E3A8A").pack(side="right")
+        w._api = {"rows": rows, "save": save}
+        return w
 
     def _cp_flash(self, text):
         """Say what just changed on the dock for a few seconds."""
@@ -1011,61 +1093,164 @@ class CompliancePageMixin:
             self.pl_skip()
         return "break"
 
-    # ------------------------------------------------------------ Prove: owner, status, response page
+    # ------------------------------------------------------------ Prove: the final check, as categories to clear (2.38.0)
+    PROVE_CATS = (("unused", "Not used, not confirmed"), ("nosection", "Assigned, no section"),
+                  ("ctx", "Context not attached"), ("noowner", "Requirements with no owner"),
+                  ("changed", "New in the latest RFP read"), ("all", "All compliance requirements"))
+    PROVE_HELP = {
+        "unused": "Sentences you did not assign. Check each one, then Confirm not used (it then counts as reviewed), or open "
+                  "it in Assign and assign it.",
+        "nosection": "Assigned as a requirement or context but not in a section of the structure. Open in Assign and pick a section.",
+        "ctx": "Context that supports no requirement and no section, or a requirement that is gone. Open in Assign and attach it.",
+        "noowner": "Compliance requirements nobody owns. Assign people to sections (Assign > People...), or set an owner here.",
+        "changed": "Sentences new in the latest read of an amended RFP. Check each one, then Mark checked.",
+        "all": "Every compliance requirement: set owner, status, response page and notes for one or several at once."}
+
+    def prove_items(self, cat):
+        """The sentences in one Prove category."""
+        import setupdoc as SD
+        M = self.matrix
+        if M is None:
+            return []
+        if cat == "unused":
+            return [it for it in M.items if not it["decision"]]
+        if cat == "nosection":
+            return [it for it in M.items if it["decision"] in ("Keep", "Context") and not it.get("map")]
+        if cat == "ctx":
+            bad = {it["id"] for it, _w in C.context_problems(M.items) if not _w.startswith("placed in")}
+            return [it for it in M.items if it["id"] in bad]
+        if cat == "noowner":
+            return [it for it in M.items if it["decision"] == "Keep" and not SD.owner_of(M, it)]
+        if cat == "changed":
+            return [it for it in M.items if it.get("new") == "New in latest read"]
+        return [it for it in M.items if it["decision"] == "Keep"]
+
     def _cp_build_details(self, fr):
         win = self._cwin
-        ctk.CTkLabel(fr, text="Owner, status and response page", font=("Segoe UI", 15, "bold"), anchor="w").pack(fill="x", padx=6, pady=(16, 2))
-        ctk.CTkLabel(fr, text="Select one or more kept requirements, type, then Apply.", anchor="w",
-                     text_color=("#475569", "#94A3B8")).pack(fill="x", padx=6)
+        win.pv_cat = "all"
+        tiles = ctk.CTkFrame(fr, fg_color="transparent"); tiles.pack(fill="x", padx=6, pady=(4, 4))
+        win.pv_tiles = {}
+        for k, (key, label) in enumerate(self.PROVE_CATS):
+            b = ctk.CTkButton(tiles, text=label, height=58, width=10, corner_radius=10, border_width=2, font=("Segoe UI", 13, "bold"),
+                              command=lambda c=key: self.pv_show(c))
+            b.grid(row=0, column=k, sticky="ew", padx=3)
+            tiles.grid_columnconfigure(k, weight=1, uniform="t")
+            win.pv_tiles[key] = b
+        win.pv_help = ctk.CTkLabel(fr, text="", anchor="w", justify="left", wraplength=1100, text_color=("#334155", "#CBD5E1"))
+        win.pv_help.pack(fill="x", padx=8, pady=(6, 2))
         tf = tk.Frame(fr); tf.pack(fill="both", expand=True, padx=6, pady=4)
-        cols = (("id", "ID", 90), ("text", "Requirement", 520), ("map", "Section", 180), ("owner", "Owner", 110),
-                ("status", "Status", 100), ("response_page", "Page", 70))
-        tv = ttk.Treeview(tf, columns=[c[0] for c in cols], show="headings", height=8, style="Cm.Treeview")
+        cols = (("ref", "Reference", 150), ("text", "Sentence", 560), ("map", "Section", 190), ("owner", "Owner", 120),
+                ("status", "Status", 90), ("response_page", "Page", 60))
+        tv = ttk.Treeview(tf, columns=[c[0] for c in cols], show="headings", height=9, style="Cm.Treeview")
         for k, h, w in cols:
             tv.heading(k, text=h); tv.column(k, width=w, anchor="w", stretch=k == "text")
         sb = ttk.Scrollbar(tf, orient="vertical", command=tv.yview); tv.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y"); tv.pack(fill="both", expand=True)
         win.pv_tv = tv
-        row = ctk.CTkFrame(fr, fg_color="transparent"); row.pack(fill="x", padx=6, pady=(4, 8))
-        win.pv_fields = {}
-        for lab, key, w in (("Owner", "owner", 150), ("Status", "status", 130), ("Response page", "response_page", 90), ("Notes", "notes", 240)):
-            ctk.CTkLabel(row, text=lab).pack(side="left", padx=(8, 4))
-            e = ctk.CTkEntry(row, width=w); e.pack(side="left")
-            win.pv_fields[key] = e
-        ctk.CTkButton(row, text="Apply to selected", width=10, command=self.pv_apply).pack(side="left", padx=10)
         tv.bind("<<TreeviewSelect>>", lambda _e: self._pv_fill_fields())
+        tv.bind("<Double-1>", lambda _e: self.pv_open())
+        act = ctk.CTkFrame(fr, fg_color="transparent"); act.pack(fill="x", padx=6, pady=(4, 8))
+        win.pv_act = act
+        win.pv_open_btn = ctk.CTkButton(act, text="Open in Assign", width=10, command=self.pv_open)
+        win.pv_confirm_btn = ctk.CTkButton(act, text="Confirm not used", width=10, fg_color="#475569", command=self.pv_confirm_unused)
+        win.pv_checked_btn = ctk.CTkButton(act, text="Mark checked", width=10, fg_color="#475569", command=self.pv_mark_checked)
+        win.pv_select_btn = ctk.CTkButton(act, text="Select all", width=10, fg_color="transparent", border_width=1,
+                                          text_color=("#334155", "#CBD5E1"), command=lambda: tv.selection_set(tv.get_children()))
+        win.pv_fields_row = ctk.CTkFrame(act, fg_color="transparent")
+        win.pv_fields = {}
+        for lab, key, w in (("Owner", "owner", 150), ("Status", "status", 120), ("Response page", "response_page", 80), ("Notes", "notes", 200)):
+            ctk.CTkLabel(win.pv_fields_row, text=lab).pack(side="left", padx=(8, 4))
+            e = ctk.CTkEntry(win.pv_fields_row, width=w); e.pack(side="left")
+            win.pv_fields[key] = e
+        ctk.CTkButton(win.pv_fields_row, text="Apply to selected", width=10, command=self.pv_apply).pack(side="left", padx=10)
+
+    def pv_show(self, cat):
+        self._cwin.pv_cat = cat
+        self.pv_refresh()
+        return self.prove_items(cat)
 
     def pv_refresh(self):
+        import setupdoc as SD
         win, M = self._cwin, self.matrix
         if win is None or not hasattr(win, "pv_tv"):
             return
+        counts = {k: len(self.prove_items(k)) for k, _l in self.PROVE_CATS}
+        cat = win.pv_cat
+        for key, label in self.PROVE_CATS:
+            n = counts[key]
+            todo = key != "all" and n > 0
+            on = key == cat
+            win.pv_tiles[key].configure(text=f"{n}\n{label}", fg_color=(("#FEF3C7", "#422006") if todo else ("#F0FDF4", "#052E16")) if not on
+                                        else ("#1E3A8A", "#1E3A8A"), text_color=("#FFFFFF", "#FFFFFF") if on else ("#0F172A", "#F1F5F9"),
+                                        border_color=("#B45309" if todo else "#15803D") if key != "all" else "#94A3B8",
+                                        hover_color=("#E2E8F0", "#334155"))
+        win.pv_help.configure(text=self.PROVE_HELP[cat])
         tv = win.pv_tv
         sel = tv.selection()
         tv.delete(*tv.get_children())
-        if M is None:
-            return
-        for it in M.items:
-            if it["decision"] == "Keep":
-                tv.insert("", "end", iid=it["id"], values=(it["id"], it["text"][:200], it["map"], it.get("owner", ""),
-                                                           it.get("status", ""), it.get("response_page", "")))
-        keep = [s for s in sel if tv.exists(s)]
+        inh = SD.inherited_sections(M) if M is not None else {}
+        for it in self.prove_items(cat):
+            tv.insert("", "end", iid=it["id"], values=(SD.ref_of(M, it, inh)[0] or it["id"], it["text"][:200], it.get("map", ""),
+                                                       SD.owner_of(M, it), it.get("status", ""), it.get("response_page", "")))
+        keep = [x for x in sel if tv.exists(x)]
         if keep:
             tv.selection_set(keep)
+        for w in win.pv_act.winfo_children():
+            w.pack_forget()
+        win.pv_open_btn.pack(side="left")
+        win.pv_select_btn.pack(side="left", padx=6)
+        if cat == "unused":
+            win.pv_confirm_btn.pack(side="left", padx=6)
+        if cat == "changed":
+            win.pv_checked_btn.pack(side="left", padx=6)
+        if cat in ("all", "noowner"):
+            win.pv_fields_row.pack(side="left", padx=6)
+        return counts
+
+    def _pv_rows(self):
+        return [x for x in (self._c_item(i) for i in self._cwin.pv_tv.selection()) if x]
+
+    def pv_open(self):
+        rows = self._pv_rows()
+        if rows:
+            self._c_goto_decide(rows[0]["id"])
+            return rows[0]["id"]
+        return None
+
+    def pv_confirm_unused(self):
+        """Not used, reviewed: these count as checked (stored as Drop)."""
+        rows = self._pv_rows()
+        for it in rows:
+            it["decision"] = "Drop"
+            self.matrix.log(it["id"], "not used (confirmed in Prove)")
+        if rows:
+            diag.activity("compliance_unused_confirmed", n=len(rows))
+            self._c_changed(refill=False)
+            self.pv_refresh()
+        return len(rows)
+
+    def pv_mark_checked(self):
+        rows = self._pv_rows()
+        for it in rows:
+            it["new"] = ""
+            self.matrix.log(it["id"], "amendment change checked")
+        if rows:
+            self._c_changed(refill=False)
+            self.pv_refresh()
+        return len(rows)
 
     def _pv_fill_fields(self):
         win = self._cwin
-        sel = win.pv_tv.selection()
-        items = [self._c_item(i) for i in sel]
+        items = self._pv_rows()
         for key, e in win.pv_fields.items():
             e.delete(0, "end")
-            vals = {it.get(key, "") for it in items if it}
+            vals = {it.get(key, "") for it in items}
             if len(vals) == 1:
                 e.insert(0, vals.pop())
 
     def pv_apply(self):
         win, M = self._cwin, self.matrix
-        sel = [self._c_item(i) for i in win.pv_tv.selection()]
-        sel = [it for it in sel if it]
+        sel = self._pv_rows()
         if not sel:
             return 0
         for key, e in win.pv_fields.items():
