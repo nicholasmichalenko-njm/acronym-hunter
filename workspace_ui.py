@@ -306,10 +306,11 @@ class WorkspaceMixin:
                 self.on_select(None)
             c = r.get("compliance") or {}
             if c.get("open"):
-                cw = self.open_compliance()
-                for var, val in zip((cw.f_dec, cw.f_type, cw.f_sug, cw.f_learn, cw.f_map, cw.f_q), c.get("filters") or []):
-                    var.set(val)
-                if c.get("tab"):
+                cw = self.open_compliance(show=False)
+                if not hasattr(cw, "cp_text"):                   # the Page view shows every sentence (2.32.0)
+                    for var, val in zip((cw.f_dec, cw.f_type, cw.f_sug, cw.f_learn, cw.f_map, cw.f_q), c.get("filters") or []):
+                        var.set(val)
+                if c.get("tab") and not hasattr(self, "shell_go"):
                     try:
                         cw.tabs.set(c["tab"])
                     except Exception:

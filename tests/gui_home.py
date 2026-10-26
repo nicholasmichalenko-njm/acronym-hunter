@@ -67,8 +67,8 @@ def step1():
     app.efforts.put("Kestrel", path=LIST, first_use="volume")
     assert app.open_effort("Kestrel")
     app.update()
-    check("an open effort starts on its home", app.view_var.get() == H.VIEW_HOME and app.home_view.winfo_ismapped()
-          and app.seg_view.winfo_ismapped(), app.view_var.get())
+    check("an open effort starts on its home", app.shell_feature == "home" and app.shell_page("overview").winfo_ismapped(),
+          app.view_var.get())
     app.start_batch([V1, V2])
     app.after(500, lambda: wait(lambda: not scanning(), step2))
 

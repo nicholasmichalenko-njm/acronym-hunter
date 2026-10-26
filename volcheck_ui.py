@@ -182,6 +182,8 @@ class VolumeCheckMixin:
         b = ctk.CTkFrame(win, fg_color="transparent"); b.pack(side="bottom", fill="x", padx=10, pady=8)
         tabs = ctk.CTkTabview(win); tabs.pack(fill="both", expand=True, padx=8)
         win._trees = {}
+        win._qa_tabs = tabs
+        rank = {V.BAD: 0, V.WARN: 1, V.INFO: 2, V.OK: 3}             # 2.32.0: worst first
         sc = ctk.ScalingTracker.get_widget_scaling(win)
         size = getattr(self, "font_size", 13)
         st = ttk.Style(win)
@@ -202,11 +204,16 @@ class VolumeCheckMixin:
             tv.configure(yscrollcommand=sb.set, xscrollcommand=hb.set)
             sb.pack(side="right", fill="y"); hb.pack(side="bottom", fill="x"); tv.pack(fill="both", expand=True)
             data = {}
+            if level:
+                rows = sorted(rows, key=lambda r: rank.get(r.get("level", ""), 4))
             for r in rows:
                 iid = tv.insert("", "end", values=[r.get(k, "") for k in keys], tags=(r.get("level", ""),) if level else ())
                 data[iid] = r
             if jump:
                 tv.bind("<Double-1>", lambda e, tv=tv, data=data: self._volume_jump(data.get(tv.focus())))
+            if level and hasattr(self, "qa_next_fix"):
+                for k in ("n", "N"):
+                    tv.bind(f"<KeyPress-{k}>", lambda _e: (self.qa_next_fix(), "break")[1])
             win._trees[tab] = (tv, data)
             return tv
 
@@ -243,6 +250,8 @@ class VolumeCheckMixin:
             table(f"List {i}: {v[:24]}", ["Term", "Definition", "Status"], report["lists"][v],
                   ["term", "definition", "status"], [110, 640, 160])
 
+        if hasattr(self, "qa_next_fix"):
+            ctk.CTkButton(b, text="Next fix  (N)", fg_color="#B91C1C", command=self.qa_next_fix).pack(side="left", padx=(4, 12))
         ctk.CTkButton(b, text="Export report (Excel)...", command=self.export_volume_report).pack(side="left", padx=4)
         ctk.CTkButton(b, text="Acronym lists for Word...", command=self.export_volume_lists).pack(side="left", padx=4)
         ctk.CTkButton(b, text=f"Add {s['missing']} missing to the effort list", fg_color="#0F766E",

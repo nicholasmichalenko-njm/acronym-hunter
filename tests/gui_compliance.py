@@ -35,7 +35,8 @@ def wait():
     print("outline from L:", [C.outline_label(o) for o in M.outline])
     first = tv.get_children()[0]
     tv.selection_set(first); tv.focus(first); win.focus_force(); tv.focus_set(); win.update()
-    tv.event_generate("<KeyPress-k>"); win.update()
+    win.cp_text.focus_set(); win.update()
+    win.cp_text.event_generate("<Key>", keysym="k"); win.update()      # 2.32.0: keys go to the Page view
     print("K on", first, "->", app._c_item(first)["decision"], "| moved to", tv.selection())
     win.f_sug.set("Drop"); app._c_fill()
     drops = list(tv.get_children())

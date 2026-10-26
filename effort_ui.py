@@ -36,18 +36,28 @@ class EffortMixin:
         # 2.11.0: the last effort is resumed by workspace_startup once the window is built
 
     def effort_actionbar(self, act):
-        """Keep, Not a term and Omit sit on their own row under the action bar while an effort is open (2.14.0)."""
+        """The everyday decisions on their own row while an effort is open: Add (A), Not a term (X), Skip (Space), and More
+        for the rarer ones (2.14.0; one decision then the next, 2.32.0)."""
         self.act_effort = row = ctk.CTkFrame(act.master, fg_color="transparent")
         self._act_main = act
-        ctk.CTkLabel(row, text="Effort decision:", anchor="w").pack(side="left", padx=(5, 4), pady=(0, 8))
-        self.btn_effort_add = ctk.CTkButton(row, text="Add to effort list", command=self.add_to_effort, state="disabled",
-                                            fg_color="#0F766E", width=150)
-        self.btn_effort_add.pack(side="left", padx=5, pady=(0, 8))
-        self.btn_effort_rej = ctk.CTkButton(row, text="Not a term", command=lambda: self.set_effort_status("Rejected"),
-                                            state="disabled", fg_color="#B91C1C", width=100)
-        self.btn_effort_rej.pack(side="left", padx=5, pady=(0, 8))
+        big = dict(height=36, font=("Segoe UI", 14, "bold"))
+        self.btn_effort_add = ctk.CTkButton(row, text="Add to effort list  (A)", command=self.rv_add if hasattr(self, "rv_add") else self.add_to_effort,
+                                            state="disabled", fg_color="#15803D", width=190, **big)
+        self.btn_effort_add.pack(side="left", padx=5, pady=(4, 6))
+        self.btn_effort_rej = ctk.CTkButton(row, text="Not a term  (X)",
+                                            command=self.rv_reject if hasattr(self, "rv_reject") else lambda: self.set_effort_status("Rejected"),
+                                            state="disabled", fg_color="#B91C1C", width=150, **big)
+        self.btn_effort_rej.pack(side="left", padx=5, pady=(4, 6))
+        if hasattr(self, "rv_next"):
+            ctk.CTkButton(row, text="Skip  (Space)", command=self.rv_next, width=120, fg_color="transparent", border_width=1,
+                          text_color=("#334155", "#CBD5E1"), height=36).pack(side="left", padx=5, pady=(4, 6))
+            self.btn_rv_more = ctk.CTkButton(row, text="More...", width=90, height=36, fg_color=("#E2E8F0", "#334155"),
+                                             text_color=("#0F172A", "#F1F5F9"), hover_color=("#CBD5E1", "#475569"),
+                                             command=lambda: self.rv_more_menu())
+            self.btn_rv_more.pack(side="left", padx=5, pady=(4, 6))
         self.btn_effort_omit = ctk.CTkButton(row, text="Omit...", command=self.mark_known, state="disabled", fg_color="#6B21A8", width=80)
-        self.btn_effort_omit.pack(side="left", padx=5, pady=(0, 8))
+        if not hasattr(self, "rv_next"):
+            self.btn_effort_omit.pack(side="left", padx=5, pady=(0, 8))
 
     def update_effort_ui(self):
         L = self.effort
@@ -69,8 +79,7 @@ class EffortMixin:
                 bits.append(f"last scan: {rec['new']} new, {rec['gone']} no longer found")
             if L.pending:
                 bits.append("NOT SAVED (close the list in Excel, then Effort > Save list now)")
-            self.lbl_effort.configure(text="  |  ".join(bits))
-            self.lbl_effort.pack(pady=(0, 2), before=self.status)
+            self.lbl_effort.configure(text="  |  ".join(bits))      # the rail and the overview show these now (2.32.0)
             self.btn_effort.configure(text=f"Effort: {L.name[:18]}")
             self.btn_volcheck.configure(state="normal")
         self.update_effort_buttons()
@@ -81,12 +90,18 @@ class EffortMixin:
         sel = [t for t in self.tree.selection() if t in self.results] if hasattr(self, "tree") else []
         ok = self.effort is not None and bool(sel)
         self.btn_effort_add.configure(state="normal" if ok else "disabled",
-                                      text=f"Add {len(sel)} to effort list" if ok and len(sel) > 1 else "Add to effort list")
+                                      text=f"Add {len(sel)} to effort list" if ok and len(sel) > 1 else "Add to effort list  (A)")
         if hasattr(self, "btn_effort_omit"):
             if self.effort is None:                  # the effort decision row belongs to an effort's Scan review
                 self.act_effort.pack_forget()
             elif not self.act_effort.winfo_manager():
-                self.act_effort.pack(fill="x", after=self._act_main)
+                self.act_effort.pack(fill="x", before=self._act_main)
+            if hasattr(self, "btn_rv_more"):         # Include in DB and Exclude move under More while an effort is open
+                for b in (self.btn_save, self.btn_exc):
+                    if self.effort is not None and b.winfo_manager():
+                        b.pack_forget()
+                    elif self.effort is None and not b.winfo_manager():
+                        b.pack(side="right" if b is self.btn_exc else "left", padx=5 if b is self.btn_save else 10, pady=(4, 8))
             can = bool(sel) and all(not self.results[t].get("file_error") and not self.results[t].get("manual") for t in sel)
             self.btn_effort_omit.configure(state="normal" if can else "disabled")
             self.btn_effort_rej.configure(state="normal" if ok else "disabled")

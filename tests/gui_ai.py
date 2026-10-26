@@ -53,7 +53,7 @@ def step1():
     M.save()
     assert app.open_effort("Alpha")
     badges = [(b.cget("text"), cls) for b, cls in app._ai_badges]
-    check("every sidebar section has labels", len(badges) >= 8 and ("ML", "ml") in badges and ("No AI", "none") in badges, badges)
+    check("every feature has its labels", len(badges) >= 6 and ("ML", "ml") in badges and ("No AI", "none") in badges, badges)
     check("switch on by default", app.ai_var.get() and A.ai_ml_on() and "AI and ML on" == app.sw_ai.cget("text"))
     check("state line shows offline and the effort", "Offline" in app.lbl_aistate.cget("text") and "Alpha" in app.lbl_aistate.cget("text"),
           app.lbl_aistate.cget("text"))

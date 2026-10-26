@@ -35,40 +35,47 @@ class ComplianceMixin:
     def compliance_init(self, toolbar, button_kw):
         self.matrix = None
         self._cwin = None
-        self.btn_compliance = ctk.CTkButton(toolbar, text="Compliance Matrix...", command=self.open_compliance, **button_kw)
-        self.btn_compliance.pack(fill="x", padx=8, pady=2)
+        if toolbar is not None:
+            self.btn_compliance = ctk.CTkButton(toolbar, text="Compliance Matrix...", command=self.open_compliance, **button_kw)
+            self.btn_compliance.pack(fill="x", padx=8, pady=2)
 
     # ------------------------------------------------------------ window
-    def open_compliance(self):
+    def open_compliance(self, show=True):
+        """The compliance matrix, inside the main window (2.32.0). Returns its frame."""
         diag.activity("compliance_opened")
-        if self._cwin is not None and self._cwin.winfo_exists():
-            self._cwin.deiconify(); self._cwin.lift(); return self._cwin
-        win = ctk.CTkToplevel(self); win.title("Compliance matrix")
+        if hasattr(self, "shell_go"):
+            win = self._comp_ensure()
+            if show:
+                self.shell_go("compliance", "decide" if self.matrix is not None and self.matrix.items else None)
+            return win
+        return self._comp_build()
+
+    def _comp_build(self):
+        import shell_ui
+        win = shell_ui.EmbeddedWindow(self.main, fg_color="transparent") if hasattr(self, "shell_go") else ctk.CTkToplevel(self)
+        win.title("Compliance matrix")
         win.geometry("1400x820"); win.after(150, win.lift)
         diag.register(win, "compliance")
         self._cwin = win
         win.protocol("WM_DELETE_WINDOW", self._close_compliance)
-        top = ctk.CTkFrame(win, fg_color="transparent"); top.pack(fill="x", padx=10, pady=(8, 2))
-        B = dict(height=30, width=10)
-        for text, cmd, color in (("New from RFP files...", self.compliance_new, "#9A3412"), ("Open matrix...", self.compliance_open, None),
-                                 ("Add RFP files...", self.compliance_add_files, None), ("Re-read RFP (amendment)...", self.compliance_reread, None),
-                                 ("Save", self.compliance_save, "#0F766E"), ("Open in Excel", self.compliance_excel, None),
-                                 ("Word outline...", self.compliance_word, "#1E3A8A"), ("Coverage report...", self.compliance_coverage, "#1E3A8A"),
-                                 ("Learn from decisions", self.compliance_learn, "#6D28D9"),
-                                 ("Amendment changes...", self.compliance_changes, None)):
-            kw = dict(B); kw.update(fg_color=color) if color else None
-            btn = ctk.CTkButton(top, text=text, command=cmd, **kw)
-            btn.pack(side="left", padx=3)
-            if cmd == self.compliance_learn:
-                win.btn_learn = btn
-        win.team_var = tk.BooleanVar(value=bool(self.ws.get("team_learning", True)) if getattr(self, "ws", None) is not None else True)
-        win.chk_team = ctk.CTkCheckBox(top, text="Team learning", variable=win.team_var, command=self.compliance_team_toggle, width=10)
-        win.chk_team.pack(side="left", padx=(8, 3))
-        win.lbl_ai = ctk.CTkLabel(top, text="", font=("Segoe UI", 11))
-        win.lbl_ai.pack(side="left", padx=6)
         win.lbl = ctk.CTkLabel(win, text="", anchor="w", justify="left", wraplength=1360)
-        win.lbl.pack(fill="x", padx=12)
-        flt = ctk.CTkFrame(win, fg_color="transparent"); flt.pack(fill="x", padx=10, pady=2)
+        win.lbl.pack(fill="x", padx=4, pady=(0, 2))
+        tabs = ctk.CTkTabview(win); tabs.pack(fill="both", expand=True, padx=0, pady=(0, 4))
+        win.tabs = tabs
+
+        def _set_now(name, _t=tabs):
+            """CTkTabview.set hides the other tabs 100 ms later; two quick sets then hide both. Hide them now."""
+            if name not in _t._tab_dict:
+                raise ValueError(f"no tab named {name!r}")
+            _t._current_name = name
+            _t._segmented_button.set(name)
+            _t._set_grid_current_tab()
+            _t._grid_forget_all_tabs(exclude_name=name)
+        tabs.set = _set_now
+        rd = tabs.add("Read RFP")
+        rq = tabs.add("Requirements")
+        flt = ctk.CTkFrame(rq, fg_color="transparent"); flt.pack(fill="x", pady=(0, 4))
+        win.c_flt = flt
         win.f_dec = tk.StringVar(value=ALL); win.f_type = tk.StringVar(value=ALL); win.f_sug = tk.StringVar(value=ALL)
         win.f_map = tk.StringVar(value=ALL); win.f_q = tk.StringVar(); win.f_learn = tk.StringVar(value=ALL)
         for lab, var, vals in (("Decision", win.f_dec, [ALL, "Undecided", "Keep", "Context", "Drop"]), ("Type", win.f_type, [ALL] + list(C.TYPES)),
@@ -81,17 +88,112 @@ class ComplianceMixin:
         e.bind("<KeyRelease>", lambda _e: self._c_fill())
         win.btn_accept = ctk.CTkButton(flt, text="Accept suggestions (shown, undecided)", command=self.compliance_accept, width=10)
         win.btn_accept.pack(side="left", padx=10)
-        tabs = ctk.CTkTabview(win); tabs.pack(fill="both", expand=True, padx=8, pady=(0, 8))
-        win.tabs = tabs
-        self._c_build_requirements(tabs.add("Requirements"))
+        body = ctk.CTkFrame(rq, fg_color="transparent"); body.pack(fill="both", expand=True)
+        self._c_build_requirements(body)
+        if hasattr(self, "_cp_build_decide"):            # 2.32.0: Decide in Page view, always
+            self._cp_build_decide(rq, body)
         self._c_build_outline(tabs.add("Outline"))
+        if hasattr(self, "_cp_build_place"):            # 2.32.0: Place, a second pass, one sentence at a time
+            self._cp_build_place(tabs.add("Place"))
         self._s_build(tabs.add("Setup"))           # Setup Builder (2.13.0)
+        pv = tabs.add("Prove")
+        ex = tabs.add("Export")
+        self._c_build_read(rd)
+        self._c_build_prove(pv)
+        self._c_build_export(ex)
+        if hasattr(self, "shell_go"):
+            try:
+                tabs._segmented_button.grid_forget()      # the step strip at the top chooses the tab
+            except Exception:
+                diag.swallowed()
         last = self.ws.get("compliance_path", "") if getattr(self, "ws", None) is not None else ""   # per effort (2.11.0)
         if self.matrix is None and last and os.path.isfile(last):
             self._c_load(last, quiet=True)
         self._c_ai_state()
         self._c_refresh()
+        tabs.set("Requirements" if self.matrix is not None and self.matrix.items else "Read RFP")
         return win
+
+    def _c_build_read(self, fr):
+        """Compliance > Read RFP: start a matrix from the RFP files, or open one."""
+        win = self._cwin
+        ctk.CTkLabel(fr, text="Read the RFP", font=("Segoe UI", 20, "bold"), anchor="w").pack(fill="x", padx=6, pady=(8, 2))
+        ctk.CTkLabel(fr, text="Pick the instructions, evaluation criteria, SOW and attachments. Every sentence becomes a row, in "
+                              "reading order, for you to decide in the next step.", anchor="w", justify="left", wraplength=900,
+                     text_color=("#475569", "#94A3B8")).pack(fill="x", padx=6, pady=(0, 10))
+        row = ctk.CTkFrame(fr, fg_color="transparent"); row.pack(fill="x", padx=6)
+        big = dict(height=44, font=("Segoe UI", 15, "bold"), width=200)
+        ctk.CTkButton(row, text="New from RFP files...", command=self.compliance_new, fg_color="#9A3412", **big).pack(side="left", padx=(0, 10))
+        ctk.CTkButton(row, text="Open a matrix...", command=self.compliance_open, **big).pack(side="left", padx=(0, 10))
+        win.lbl_read = ctk.CTkLabel(fr, text="", anchor="w", justify="left", wraplength=900)
+        win.lbl_read.pack(fill="x", padx=6, pady=(14, 4))
+        ctk.CTkLabel(fr, text="Amendment? Re-read RFP keeps your decisions for unchanged sentences (buttons above, in the strip).",
+                     anchor="w", text_color=("#475569", "#94A3B8")).pack(fill="x", padx=6)
+
+    def _c_build_prove(self, fr):
+        """Compliance > Prove: every sentence decided and placed; learning; owner, status and page."""
+        win = self._cwin
+        ctk.CTkLabel(fr, text="Prove nothing was missed", font=("Segoe UI", 20, "bold"), anchor="w").pack(fill="x", padx=6, pady=(8, 2))
+        win.lbl_prove = ctk.CTkLabel(fr, text="", anchor="w", justify="left", font=("Segoe UI", 15))
+        win.lbl_prove.pack(fill="x", padx=6, pady=(4, 8))
+        win.prove_rows = ctk.CTkFrame(fr, fg_color="transparent"); win.prove_rows.pack(fill="x", padx=6)
+        row = ctk.CTkFrame(fr, fg_color="transparent"); row.pack(fill="x", padx=6, pady=(12, 4))
+        ctk.CTkButton(row, text="Save the coverage report (Word)...", command=self.compliance_coverage, fg_color="#1E3A8A",
+                      height=40, font=("Segoe UI", 14, "bold")).pack(side="left")
+        lr = ctk.CTkFrame(fr, fg_color="transparent"); lr.pack(fill="x", padx=6, pady=(14, 4))
+        win.btn_learn = ctk.CTkButton(lr, text="Learn from decisions", command=self.compliance_learn, fg_color="#6D28D9", width=10)
+        win.btn_learn.pack(side="left")
+        win.team_var = tk.BooleanVar(value=bool(self.ws.get("team_learning", True)) if getattr(self, "ws", None) is not None else True)
+        win.chk_team = ctk.CTkCheckBox(lr, text="Team learning", variable=win.team_var, command=self.compliance_team_toggle, width=10)
+        win.chk_team.pack(side="left", padx=(12, 3))
+        win.lbl_ai = ctk.CTkLabel(lr, text="", font=("Segoe UI", 11))
+        win.lbl_ai.pack(side="left", padx=6)
+        if hasattr(self, "_cp_build_details"):          # 2.32.0: owner, status and page are set here, not during triage
+            self._cp_build_details(fr)
+
+    def _c_build_export(self, fr):
+        win = self._cwin
+        ctk.CTkLabel(fr, text="Export the compliance work", font=("Segoe UI", 20, "bold"), anchor="w").pack(fill="x", padx=6, pady=(8, 2))
+        ctk.CTkLabel(fr, text="Compliance words appear in your chosen style in every file (Compliance word style...).", anchor="w",
+                     text_color=("#475569", "#94A3B8")).pack(fill="x", padx=6, pady=(0, 10))
+        for text, cmd in (("Matrix: open in Excel", self.compliance_excel),
+                          ("Coverage report (Word)...", self.compliance_coverage),
+                          ("Word outline with requirements...", self.compliance_word),
+                          ("Setup documents for authors (Word)...", self.setup_export),
+                          ("Setup changes since the last export...", self.setup_export_changes)):
+            ctk.CTkButton(fr, text=text, command=cmd, height=40, width=300, anchor="w").pack(anchor="w", padx=6, pady=4)
+
+    def _c_prove_refresh(self):
+        win, M = self._cwin, self.matrix
+        if win is None or not hasattr(win, "lbl_prove"):
+            return
+        for w in win.prove_rows.winfo_children():
+            w.destroy()
+        if M is None or not M.items:
+            win.lbl_prove.configure(text="No matrix yet: start one on the Read RFP step.")
+            if hasattr(win, "lbl_read"):
+                win.lbl_read.configure(text="")
+            return
+        c = M.counts()
+        und = c[""]
+        home = c.get("needs_home", 0)
+        kc = c["Keep"] + c["Context"]
+        win.lbl_prove.configure(text=("\u2713 All " if not und else "") + f"{len(M.items) - und} of {len(M.items)} sentences have a decision"
+                                + f"   |   {kc - home} of {kc} Keep and Context sentences have a home")
+        hdr = ("File", "Sentences", "Keep", "Context", "Drop", "Undecided", "Placed", "Need a home")
+        g = ctk.CTkFrame(win.prove_rows, fg_color="transparent"); g.pack(fill="x")
+        for j, h in enumerate(hdr):
+            ctk.CTkLabel(g, text=h, font=("Segoe UI", 12, "bold"), anchor="w").grid(row=0, column=j, sticky="w", padx=(0, 18))
+        for i, r in enumerate(M.coverage(), 1):
+            vals = (r["file"], r["total"], r["Keep"], r["Context"], r["Drop"], r[""], r["placed"], r["needs_home"])
+            for j, v in enumerate(vals):
+                ctk.CTkLabel(g, text=str(v), anchor="w", font=("Segoe UI", 12, "bold" if r["file"] == "Total" else "normal")
+                             ).grid(row=i, column=j, sticky="w", padx=(0, 18))
+        if hasattr(win, "lbl_read"):
+            win.lbl_read.configure(text=f"Open matrix: {os.path.basename(M.path)}, {len(M.items)} sentences from "
+                                        f"{len(M.sources)} file(s). Next: Decide.")
+        if getattr(self, "shell_step", "") == "prove" and hasattr(self, "pv_refresh"):
+            self.pv_refresh()
 
     def _close_compliance(self):
         if self.matrix is not None and self.matrix.pending:
@@ -99,6 +201,9 @@ class ComplianceMixin:
                 if not messagebox.askyesno("Compliance matrix", "Changes are not saved (the workbook is open in Excel). Close anyway?", parent=self._cwin):
                     return
         self._cwin.destroy()
+        self._cwin = None
+        if getattr(self, "shell_feature", "") == "compliance":
+            self.shell_go("home" if getattr(self, "effort", None) is not None else "acronyms", save=False)
         if hasattr(self, "resume_changed"):
             self.resume_changed()
 
@@ -115,6 +220,7 @@ class ComplianceMixin:
         sc = size / 13 * getattr(self, "dpi", 1.0)   # columns follow the text size and display scaling, like the results table
         right = ctk.CTkScrollableFrame(fr, width=440); right.pack(side="right", fill="y", padx=(8, 0))
         left = ctk.CTkFrame(fr, fg_color="transparent"); left.pack(side="left", fill="both", expand=True)
+        win.c_left, win.c_right = left, right            # 2.32.0: the Page view replaces both on the Decide step
         cols = [("id", "ID", 90), ("decision", "Decision", 70), ("suggest", "Suggested", 80), ("learned", "Learned", 90), ("type", "Type", 90),
                 ("actor", "Actor", 85), ("strength", "Strength", 85), ("section", "Section", 70), ("map", "Outline section", 170),
                 ("text", "Requirement", 520)]
@@ -252,11 +358,14 @@ class ComplianceMixin:
         if keep:
             tv.selection_set(keep); tv.see(keep[0])
         self._c_refresh_label()
+        if hasattr(self, "_cp_sync"):
+            self._cp_sync()
 
     def _c_refresh_label(self):
         win, M = self._cwin, self.matrix
         if M is None:
             win.lbl.configure(text="No matrix open. New from RFP files reads the RFP (Word, PDF, Excel, PowerPoint) and lists every candidate requirement.")
+            self._c_prove_refresh()
             return
         c = M.counts()
         shown = len(win.tv.get_children())
@@ -268,6 +377,7 @@ class ComplianceMixin:
         if M.pending:
             bits.append("NOT SAVED yet" + (" (close the workbook in Excel, then Save)" if getattr(self, "_c_locked", False) else ""))
         win.lbl.configure(text="  |  ".join(bits))
+        self._c_prove_refresh()
 
     def _c_learning_on(self):
         """Learned suggestions need AI and ML on and this effort's Team learning on (2.12.0)."""
@@ -439,6 +549,8 @@ class ComplianceMixin:
             win.d_sug.configure(text=f"Suggested: {lab}  (click to map)")
             win.d_sug.pack(anchor="w", padx=10, pady=(2, 4), before=win.d_sug_anchor)
         self._c_show_learned(it)
+        if hasattr(self, "_cp_show"):
+            self._cp_show(it)
 
     def _c_show_learned(self, it):
         """'From past proposals': the top 3 sections, each a button that maps the row; or 'no strong match'."""
@@ -838,8 +950,11 @@ class ComplianceMixin:
             self._c_save_now()
             self._c_remember(out)
             self._c_refresh()
+            if hasattr(self, "shell_go"):
+                self.shell_go("compliance", "decide")          # straight on to deciding (2.32.0)
             diag.activity("compliance_read", files=len(paths), items=len(items))
-            msg = f"{len(items)} candidate requirements from {len(paths)} file(s)."
+            nreq = sum(1 for it in items if it.get("type") != "Context")
+            msg = f"{len(items)} sentences from {len(paths)} file(s); {nreq} look like requirements. Every sentence gets a decision."
             if empty:
                 msg += f"\n\n{len(empty)} file(s) have no typed text (scanned pages?): " + ", ".join(empty[:5]) + \
                        ". Scan them in the main window first, or ask for a typed copy."
@@ -915,6 +1030,8 @@ class ComplianceMixin:
                 return
             self.ws.clear_recovery("matrix", path)
         self._c_refresh()
+        if not quiet and hasattr(self, "shell_go"):
+            self.shell_go("compliance", "decide")
 
     def _c_remember(self, path):
         """The matrix belongs to the open effort (2.11.0); with no effort open, to scans with no effort."""

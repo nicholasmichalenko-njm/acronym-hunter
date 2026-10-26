@@ -33,11 +33,12 @@ def effort_code(name):
 
 class AIMixin:
     # ------------------------------------------------------------ building
-    def ai_section_header(self, parent, title):
-        """Sidebar section title with its labels and a ? (used by the sidebar's section())."""
-        row = ctk.CTkFrame(parent, fg_color="transparent")
-        row.pack(fill="x", padx=8, pady=(12, 2))
-        ctk.CTkLabel(row, text=title, font=("Segoe UI", 11, "bold"), text_color=("#64748B", "#94A3B8"), anchor="w").pack(side="left")
+    def ai_section_header(self, parent, title, show_title=True):
+        """Section title with its labels and a ? (the step strip shows the labels without the title, 2.32.0)."""
+        row = ctk.CTkFrame(parent, fg_color="transparent", height=24)
+        row.pack(fill="x", padx=8, pady=(12, 2) if show_title else 0)
+        if show_title:
+            ctk.CTkLabel(row, text=title, font=("Segoe UI", 11, "bold"), text_color=("#64748B", "#94A3B8"), anchor="w").pack(side="left")
         key = S.SIDEBAR_SECTIONS.get(title)
         if not key:
             return row
@@ -63,8 +64,12 @@ class AIMixin:
         self.sw_ai = ctk.CTkSwitch(bar, text="AI and ML on", variable=self.ai_var, command=self.toggle_ai_ml,
                                    onvalue=True, offvalue=False, progress_color="#0F766E")
         self.sw_ai.pack(side="right", pady=5)
-        self.lbl_aistate = ctk.CTkLabel(self.main, text="", font=("Segoe UI", 11), anchor="w", text_color=("#475569", "#94A3B8"))
-        self.lbl_aistate.pack(side="bottom", fill="x", padx=10, pady=(0, 3))
+        sb = getattr(self, "statusbar", None)          # one status line (2.32.0): the state sits at its right end
+        self.lbl_aistate = ctk.CTkLabel(sb or self.main, text="", font=("Segoe UI", 11), anchor="e", text_color=("#475569", "#94A3B8"))
+        if sb is not None:
+            self.lbl_aistate.pack(side="right", padx=12, pady=2)
+        else:
+            self.lbl_aistate.pack(side="bottom", fill="x", padx=10, pady=(0, 3))
 
     # ------------------------------------------------------------ state
     def ai_load_for_workspace(self):

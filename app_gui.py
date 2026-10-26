@@ -137,6 +137,8 @@ from effort_home import HomeMixin       # effort home, Scan review, volumes, exp
 from keywords_ui import KeywordsMixin   # Keyword Harvest (2.16.0)
 from alt_ui import AltFormsMixin        # alternate forms and the master's use history (2.26.0)
 from exportall_ui import ExportAllMixin  # Export all: every feature's outputs in one folder (2.31.0)
+from shell_ui import ShellMixin, RhythmMixin   # the app shell: feature rail and step strip; one decision then the next (2.32.0)
+from compliance_page import CompliancePageMixin   # Decide in Page view, Place pass, details on Prove (2.32.0)
 from master_db import MasterMixin   # master database and Known in (2.14.0)
 import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
@@ -2477,7 +2479,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.31.0"            # keep in step with version_info.txt
+APP_VERSION = "2.32.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3412,7 +3414,7 @@ def corrections_on():
     """Report misreading and Not text save corrections for the training team, unless allow_training is false."""
     return bool(APP_CFG["allow_training"])
 
-class AcronymAppGUI(ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(ShellMixin, RhythmMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Acronym Hunter {APP_VERSION}: acronyms, abbreviations and units (100% local)")
@@ -3441,114 +3443,59 @@ class AcronymAppGUI(ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, H
         self.font_size = int(self.settings.get("font_size", FONT_DEFAULT))
         self.font_size = max(FONT_MIN, min(FONT_MAX, self.font_size))
 
-        # ---- Layout (2.9.0): menu bar + a resizable, hideable sidebar on the left, the work area on the right ----
+        # ---- Layout (2.32.0): the feature rail on the left, the open feature on the right (one feature at a time) ----
         self.body = tk.PanedWindow(self, orient="horizontal", sashwidth=5, bd=0, sashrelief="flat",
                                    bg="#CBD5E1" if ctk.get_appearance_mode() == "Light" else "#334155")
         self.body.pack(fill="both", expand=True)
         wsc = ctk.ScalingTracker.get_window_scaling(self)
-        self.side = ctk.CTkFrame(self.body, corner_radius=0, fg_color=("#F1F5F9", "#1E293B"))
+        self.side = ctk.CTkFrame(self.body, corner_radius=0)
         self.main = ctk.CTkFrame(self.body, corner_radius=0, fg_color=("gray92", "gray14"))   # the window colour, light or dark
-        self.side_w = int(self.settings.get("sidebar_w", int(250 * wsc)))
-        self.body.add(self.side, minsize=int(190 * wsc), width=self.side_w, stretch="never")
+        self.side_w = int(self.settings.get("rail_w", int(220 * wsc)))
+        self.body.add(self.side, minsize=int(180 * wsc), width=self.side_w, stretch="never")
         self.body.add(self.main, minsize=int(560 * wsc), stretch="always")
         self.body.bind("<ButtonRelease-1>", self._sidebar_resized, add="+")
+        self.shell_build_rail(self.side)
         side_bottom = ctk.CTkFrame(self.side, fg_color="transparent")
         side_bottom.pack(side="bottom", fill="x", padx=10, pady=(4, 10))
-        sb = ctk.CTkScrollableFrame(self.side, fg_color="transparent")
-        sb.pack(fill="both", expand=True, padx=(4, 0), pady=(8, 0))
+        self.btn_hide_side = ctk.CTkButton(side_bottom, text="Hide  (Ctrl+B)", height=26, command=self.toggle_sidebar,
+                                           fg_color="transparent", text_color="#94A3B8", hover_color="#1E293B")
+        self.btn_hide_side.pack(fill="x", pady=(4, 0))
+        # controls other code refers to that now live in the menus (Help, View, Effort): kept here, never shown
+        self._legacy = sb = ctk.CTkFrame(self)
         self.sidebar = sb
 
         B = dict(height=32, font=("Segoe UI", 13), anchor="w", corner_radius=6)
         SEC = dict(fg_color=("#E2E8F0", "#334155"), hover_color=("#CBD5E1", "#475569"), text_color=("#0F172A", "#F1F5F9"),
                    text_color_disabled=("#94A3B8", "#64748B"))
         self._side_btn = lambda text, cmd, primary=False, **kw: ctk.CTkButton(sb, text=text, command=cmd, **B, **({} if primary else SEC), **kw)
+        self._side_section = lambda title: None
+        M = self.main
+        self.shell_build_strip(M)               # the open feature's steps and actions (2.32.0)
+        self.shell_build_statusbar(M)            # one status line at the bottom
+        self.status = ctk.CTkLabel(self.statusbar, text="Ready. Running offline: nothing leaves this PC.", font=("Segoe UI", 12), anchor="w")
+        self.status.pack(side="left", padx=12, pady=2)
+        self.shell_build_pages()                 # Scan, the Export steps, the overview (holds btn_files, btn_export...)
 
-        def section(title):
-            self.ai_section_header(sb, title)      # title with its No AI / ML / Gen AI labels and a ? (2.12.0)
-        self._side_section = section
-        P = dict(fill="x", padx=8, pady=2)
-
-        section("SCAN")
-        self.btn_files = self._side_btn("Select Files...", self.select_files, primary=True); self.btn_files.pack(**P)
-        self.btn_folder = self._side_btn("Scan Folder...", self.select_folder, primary=True); self.btn_folder.pack(**P)
-        self.btn_again = self._side_btn("Scan Again", self.scan_again, state="disabled"); self.btn_again.pack(**P)
-        self.btn_project = self._side_btn("Project", self.show_project_menu); self.btn_project.pack(**P)
-        self.project_menu = tk.Menu(self, tearoff=0)
-
-        section("REVIEW")
-        self.type_var = ctk.StringVar(value=ALL_TYPES)
-        ctk.CTkLabel(sb, text="Type", anchor="w").pack(fill="x", padx=8)
-        self.opt_type = ctk.CTkOptionMenu(sb, variable=self.type_var, values=[ALL_TYPES], command=lambda _v: self.populate_table())
-        self.opt_type.pack(**P)
-        self.status_var = ctk.StringVar(value=STATUS_FILTERS[0])
-        ctk.CTkLabel(sb, text="Status", anchor="w").pack(fill="x", padx=8)
-        self.opt_status = ctk.CTkOptionMenu(sb, variable=self.status_var, values=STATUS_FILTERS, command=lambda _v: self.populate_table())
-        self.opt_status.pack(**P)
-        ctk.CTkLabel(sb, text="Search", anchor="w").pack(fill="x", padx=8)
-        self.search_var = ctk.StringVar()
-        self.entry_search = ctk.CTkEntry(sb, textvariable=self.search_var)
-        self.entry_search.pack(**P)
-        SP.attach(self.entry_search)
-        self.search_var.trace_add("write", lambda *_a: self.populate_table())
-        row = ctk.CTkFrame(sb, fg_color="transparent"); row.pack(**P)
-        self.show_exc_var = ctk.BooleanVar(value=False)
-        self.chk_exc = ctk.CTkCheckBox(row, text="Show excluded", variable=self.show_exc_var, command=self.populate_table)
-        self.chk_exc.pack(side="left")
-        ctk.CTkButton(row, text="Clear", width=56, height=26, command=self.clear_filters, **SEC).pack(side="right")
-        self.lbl_showing = ctk.CTkLabel(sb, text="", text_color="gray", anchor="w")
-        self.lbl_showing.pack(fill="x", padx=8)
-
-        section("EFFORT")
         self.effort_init(sb, dict(B, **SEC))
-        section("COMPLIANCE")
-        self.compliance_init(sb, dict(B, **SEC))
+        self.compliance_init(None, dict(B, **SEC))
         self.workspace_init()          # top bar with the effort switcher; per-effort saved work (2.11.0)
         self.ai_init()                 # AI and ML switch, state line (2.12.0)
 
-        section("EXPORT")
-        self.btn_export = self._side_btn("Export CSV...", self.export_csv, state="disabled"); self.btn_export.pack(**P)
-
-        section("MORE")
-        self.btn_add = self._side_btn("Add Item...", self.open_add_item); self.btn_add.pack(**P)
-        self.btn_client = self._side_btn("Client Lists...", self.open_client_lists); self.btn_client.pack(**P)
-        self.btn_tools = self._side_btn("Tools", self.show_tools_menu); self.btn_tools.pack(**P)
-        self.btn_improve_top = self._side_btn("Improve Reading...", self.open_improve)
-        self.tools_menu = tk.Menu(self, tearoff=0)
-        # kept for code that refers to them; reached through the Tools menu
-        self.btn_db = self.btn_know = self.btn_fixes = self.btn_trainer = None
-
-        # pinned at the bottom of the sidebar: text size, Advanced, Guide, Feedback, Hide
-        size_row = ctk.CTkFrame(side_bottom, fg_color="transparent"); size_row.pack(fill="x", pady=2)
-        ctk.CTkLabel(size_row, text="Text size").pack(side="left")
+        size_row = ctk.CTkFrame(sb, fg_color="transparent")
         self.btn_bigger = ctk.CTkButton(size_row, text="A+", width=40, height=28, command=lambda: self.change_font_size(+1), **SEC)
-        self.btn_bigger.pack(side="right")
         self.lbl_size = ctk.CTkLabel(size_row, text="", width=48)
-        self.lbl_size.pack(side="right")
         self.btn_smaller = ctk.CTkButton(size_row, text="A-", width=40, height=28, command=lambda: self.change_font_size(-1), **SEC)
-        self.btn_smaller.pack(side="right")
         self.adv_var = ctk.BooleanVar(value=self.advanced_on)
-        self.sw_adv = ctk.CTkSwitch(side_bottom, text="Advanced", variable=self.adv_var, command=self.toggle_advanced)
-        if self.app_cfg["allow_advanced_toggle"]:
-            self.sw_adv.pack(fill="x", pady=(4, 4))
-        hb = ctk.CTkFrame(side_bottom, fg_color="transparent"); hb.pack(fill="x", pady=2)
-        self.btn_help = ctk.CTkButton(hb, text="Guide", width=10, height=28, command=lambda: (diag.activity("guide_opened"), HG.open_guide(self)), **SEC)
-        self.btn_help.pack(side="left", fill="x", expand=True, padx=(0, 3))
-        self.btn_feedback = ctk.CTkButton(hb, text="Feedback", width=10, height=28, command=lambda: FB.open_feedback(self), **SEC)
-        self.btn_feedback.pack(side="left", fill="x", expand=True, padx=(3, 0))
-        self.btn_hide_side = ctk.CTkButton(side_bottom, text="Hide sidebar  (Ctrl+B)", height=26, command=self.toggle_sidebar,
-                                           fg_color="transparent", text_color=("#475569", "#94A3B8"), hover_color=("#E2E8F0", "#334155"))
-        self.btn_hide_side.pack(fill="x", pady=(4, 0))
+        self.sw_adv = ctk.CTkSwitch(sb, text="Advanced", variable=self.adv_var, command=self.toggle_advanced)
+        self.btn_help = ctk.CTkButton(sb, text="Guide", width=10, height=28, command=lambda: (diag.activity("guide_opened"), HG.open_guide(self)), **SEC)
+        self.btn_feedback = ctk.CTkButton(sb, text="Feedback", width=10, height=28, command=lambda: FB.open_feedback(self), **SEC)
         self.bind_all("<Control-Shift-F>", lambda e: FB.open_feedback(self))
         self.bind_all("<Control-Shift-f>", lambda e: FB.open_feedback(self))
         self.bind_all("<F1>", lambda e: (diag.activity("guide_opened"), HG.open_guide(self)))
 
         # ---- work area ----
-        M = self.main
-        self.hdr = ctk.CTkFrame(M, fg_color="transparent", height=30)   # packed only while the sidebar is hidden
-        self.btn_show_side = ctk.CTkButton(self.hdr, text="Show sidebar", width=110, height=26, command=self.toggle_sidebar, **SEC)
-        self.lbl_project = ctk.CTkLabel(M, text="", font=("Arial", 13, "bold"), text_color="#1E3A8A")
-        self.status = ctk.CTkLabel(M, text="Ready. Running offline: nothing leaves this PC.", font=("Arial", 13))
-        self.status.pack(pady=(8, 4))
+        self.hdr = ctk.CTkFrame(M, fg_color="transparent", height=30)   # packed only while the rail is hidden
+        self.btn_show_side = ctk.CTkButton(self.hdr, text="Show features", width=120, height=26, command=self.toggle_sidebar, **SEC)
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         atexit.register(self._release_project_lock)
 
@@ -3560,8 +3507,8 @@ class AcronymAppGUI(ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, H
         self._training = False
         self.scanned_paths = {}   # file name -> full path of files scanned this session (for "Check in picture")
 
-        self.prog = ctk.CTkProgressBar(M)
-        self.prog.pack(fill="x", padx=15, pady=(0, 8))
+        self.prog = ctk.CTkProgressBar(M, height=6)
+        self.prog.pack(fill="x", padx=15, pady=(6, 6))
         self.btn_cancel = ctk.CTkButton(M, text="Cancel Scan", fg_color="#DC2626", width=130, height=30,
                                         command=self.cancel_scan)   # shown only while a scan runs
         self.prog.set(0)
@@ -3569,6 +3516,28 @@ class AcronymAppGUI(ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, H
         # ---- Scan review (the results table) and the effort home (2.14.0) ----
         self.scan_view = ctk.CTkFrame(M, fg_color="transparent")
         self.scan_view.pack(fill="both", expand=True)
+        fr = ctk.CTkFrame(self.scan_view, fg_color="transparent")       # Review filters (the sidebar's, 2.32.0)
+        fr.pack(fill="x", padx=15, pady=(0, 6))
+        self.type_var = ctk.StringVar(value=ALL_TYPES)
+        ctk.CTkLabel(fr, text="Type").pack(side="left", padx=(0, 4))
+        self.opt_type = ctk.CTkOptionMenu(fr, variable=self.type_var, values=[ALL_TYPES], width=150, command=lambda _v: self.populate_table())
+        self.opt_type.pack(side="left")
+        self.status_var = ctk.StringVar(value=STATUS_FILTERS[0])
+        ctk.CTkLabel(fr, text="Status").pack(side="left", padx=(12, 4))
+        self.opt_status = ctk.CTkOptionMenu(fr, variable=self.status_var, values=STATUS_FILTERS, width=170, command=lambda _v: self.populate_table())
+        self.opt_status.pack(side="left")
+        ctk.CTkLabel(fr, text="Search").pack(side="left", padx=(12, 4))
+        self.search_var = ctk.StringVar()
+        self.entry_search = ctk.CTkEntry(fr, textvariable=self.search_var, width=200)
+        self.entry_search.pack(side="left")
+        SP.attach(self.entry_search)
+        self.search_var.trace_add("write", lambda *_a: self.populate_table())
+        self.show_exc_var = ctk.BooleanVar(value=False)
+        self.chk_exc = ctk.CTkCheckBox(fr, text="Show excluded", variable=self.show_exc_var, command=self.populate_table, width=10)
+        self.chk_exc.pack(side="left", padx=(12, 4))
+        ctk.CTkButton(fr, text="Clear", width=56, height=26, command=self.clear_filters, **SEC).pack(side="left", padx=4)
+        self.lbl_showing = ctk.CTkLabel(fr, text="", text_color="gray", anchor="w")
+        self.lbl_showing.pack(side="left", padx=10)
         self.home_build(M, self.scan_view)
         t_frame = ctk.CTkFrame(self.scan_view)
         t_frame.pack(fill="both", expand=True, padx=15, pady=(0, 10))
@@ -3668,6 +3637,9 @@ class AcronymAppGUI(ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, H
             self.after(10, lambda: self.toggle_sidebar(save=False))
         self.after(1500, self._banner_tick)
         self.after(300, self.workspace_startup)   # resume the last effort (2.11.0)
+        self.shell_bind_rhythm()
+        self.shell_go("acronyms", "scan", save=False)    # the shell (2.32.0); the resumed effort may move it
+        self.after(1500, self.shell_tick)
 
     # ---------- training inside the scanner ----------
     def training_state(self):
@@ -3850,7 +3822,7 @@ class AcronymAppGUI(ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, H
             self.btn_show_side.pack_forget(); self.hdr.pack_forget()
         elif not want and shown:
             self.body.forget(self.side)
-            self.hdr.pack(fill="x", padx=15, pady=(8, 0), before=self.status)
+            self.hdr.pack(fill="x", padx=15, pady=(8, 0), before=self.strip)
             self.btn_show_side.pack(side="left")
         if hasattr(self, "side_var"):
             self.side_var.set(want)
@@ -3868,7 +3840,7 @@ class AcronymAppGUI(ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, H
                 w = self.side.winfo_width()
                 if w > 50 and abs(w - self.side_w) > 4:
                     self.side_w = w
-                    self.settings["sidebar_w"] = w
+                    self.settings["rail_w"] = w
                     save_settings(self.settings)
         except tk.TclError:
             diag.swallowed()
@@ -4087,8 +4059,11 @@ class AcronymAppGUI(ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, H
         """Advanced shows Fix OCR in the action bar and the OCR Fixes / Trainer items in the Tools menu."""
         self.btn_ocr.pack_forget()
         self.btn_improve_top.pack_forget()
-        if self.advanced_on:
-            self.btn_ocr.pack(side="left", padx=5, pady=(4, 8), after=self.btn_save)
+        if self.advanced_on and not (self.effort is not None and hasattr(self, "btn_rv_more")):   # under More with an effort
+            if self.btn_save.winfo_manager():
+                self.btn_ocr.pack(side="left", padx=5, pady=(4, 8), after=self.btn_save)
+            else:
+                self.btn_ocr.pack(side="left", padx=5, pady=(4, 8))
         if self.advanced_on and trainer_available() and OCR_BACKEND == "tesseract":   # always in Tools and the banner
             self.btn_improve_top.pack(fill="x", padx=8, pady=2, after=self.btn_tools)
 
@@ -4660,6 +4635,8 @@ class AcronymAppGUI(ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, H
         """after(status_callback): extra work on the worker thread once the files are read (volume check)."""
         self.queued_files = fps
         self.scanned_paths.update({os.path.basename(f): f for f in fps})
+        if after is None and getattr(self, "shell_feature", "") in ("acronyms", "home") and hasattr(self, "shell_go"):
+            self.shell_go("acronyms", "review", save=False)     # results come in on the Review step (2.32.0)
         capture = {}
         self.last_scan = {"paths": list(fps), "folder": folder, "cache": capture}
         diag.scan_started(len(fps), dict(collections.Counter(os.path.splitext(f)[1].lower() for f in fps)))
@@ -4916,7 +4893,7 @@ class AcronymAppGUI(ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, H
             who = proj.locked_by or {}
             bits.append(f"READ-ONLY (in use by {who.get('user', '?')})")
         self.lbl_project.configure(text="  |  ".join(bits))
-        self.lbl_project.pack(pady=(0, 2), before=self.status)
+        self.lbl_project.pack(fill="x", padx=6, pady=(4, 0), after=self.lbl_project_anchor)
         self.btn_project.configure(text=f"Project: {proj.name[:18]}")
         self.btn_folder.configure(text="Rescan Project" if proj.data.get("last_scan") else "Scan Project", command=self.rescan_project,
                                   state="disabled" if proj.read_only else "normal")

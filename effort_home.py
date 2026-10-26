@@ -20,6 +20,8 @@ import effort as E
 import alt_forms as AF
 
 VIEW_HOME, VIEW_SCAN, VIEW_KW, VIEW_QA = "Effort list (home)", "Scan review", "Keywords", "QA/QC"
+VIEW_STEPS = {VIEW_HOME: ("acronyms", "approve"), VIEW_SCAN: ("acronyms", "review"), VIEW_KW: ("keywords", "decide"),
+              VIEW_QA: ("qaqc", "check")}
 HOME_FILTERS = ["All terms", "Needs a definition", "Proposed", "Needs author", "Approved", "Rejected", "No longer found"]
 NO_VOLUME = "No volume"
 HOME_COLS = (("term", "Term", 110), ("definition", "Definition", 330), ("status", "Status", 110),
@@ -137,6 +139,10 @@ class HomeMixin:
 
     def show_view(self, which=None, save=True):
         which = which or self.view_var.get()
+        if hasattr(self, "shell_go"):                  # 2.32.0: the views are steps of the shell's features
+            f, s = VIEW_STEPS.get(which) or (tuple(which.split(":", 1)) if ":" in str(which) else ("acronyms", "review"))
+            self.shell_go(f, s, save=save)
+            return
         if self.effort is None or which not in self._views():
             which = VIEW_SCAN
         self.view_var.set(which)
@@ -164,6 +170,16 @@ class HomeMixin:
 
     def home_update(self):
         """Called whenever the effort or its list changes."""
+        if hasattr(self, "shell_go"):                  # 2.32.0: no view switch; refresh what is open
+            if self.effort is None and (self.shell_feature, self.shell_step) in __import__("shell_ui").NEEDS_EFFORT | {("home", "overview")}:
+                self.shell_go("acronyms", "scan", save=False)
+            elif self.shell_feature == "acronyms" and self.shell_step == "approve":
+                self.home_refresh()
+            elif self.shell_feature == "keywords" and self.shell_step == "decide":
+                self.kw_refresh()
+            elif self.shell_feature == "home":
+                self.shell_overview_refresh()
+            return
         if not hasattr(self, "seg_view"):
             return
         if self.effort is None:
@@ -196,7 +212,8 @@ class HomeMixin:
         finally:
             self._home_restoring = False
         self._home_sel = [t for t in h.get("selected") or [] if isinstance(t, str)]
-        self.show_view(h.get("view") or (VIEW_HOME if self.effort is not None else VIEW_SCAN), save=False)
+        default = ("home:overview" if hasattr(self, "shell_go") else VIEW_HOME) if self.effort is not None else VIEW_SCAN
+        self.show_view(h.get("view") or default, save=False)
 
     def _home_changed(self):
         if getattr(self, "_home_restoring", False):

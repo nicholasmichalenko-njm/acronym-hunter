@@ -39,16 +39,20 @@ PAGES = {
     ("p", "It reads your files and lists every acronym, abbreviation, unit, designator, symbol and equation, with its "
           "definition and where it appears. It reads typed text and the text inside pictures, scans and diagrams. "
           "Everything runs on this PC. Nothing is sent anywhere."),
-    ("h", "Four steps"),
-    ("img", "sidebar.png", 220),
-    ("rows", [("1. Scan", "Select Files or Scan Folder. Word, PowerPoint, Excel, PDF, pictures and drawings. "
-                         "Scan Again repeats the last scan after you change a definition or a choice."),
-              ("2. Review", "The results table lists every term found, with its status and where it appears."),
-              ("3. Resolve", "Click a row. Pick a definition, add it to the database, or exclude it."),
-              ("4. Export", "Export CSV gives you the acronym list for the proposal.")]),
-    ("p", "Everyday actions sit in the sidebar on the left; every command is also in the menu bar. Drag the sidebar's edge to "
-          "resize it, or hide it with View > Sidebar (Ctrl+B). Effort keeps one list per proposal and checks finished volumes. "
-          "Compliance builds the compliance matrix from the RFP."),
+    ("h", "One feature at a time"),
+    ("p", "The dark list on the left holds the features in work order: Effort home, Compliance, Acronyms, QA/QC, Keywords. "
+          "Click one and only its tools show. Across the top are its steps, in order: the current step is blue, steps with "
+          "work done are green with a check mark. Click any step to go to it. Each feature ends in its own Export step; "
+          "Effort home and File > Export all write everything at once. One status line runs along the bottom."),
+    ("rows", [("Effort home", "Where each feature stands for the open effort, the next step to take, and Export all."),
+              ("Compliance", "Read RFP, Decide (every sentence, in Page view), Outline, Place (a home for each kept "
+                             "sentence), Prove (nothing missed; owner, status and page), Export."),
+              ("Acronyms", "Scan (Select Files, Scan Folder, Scan Again, Project), Review (the results, with their filters), "
+                           "Define and approve (the effort list), Export."),
+              ("QA/QC", "Check our Word deliverables (first use, banned words, acronym lists), Export the report."),
+              ("Keywords", "Collect and decide the effort's keywords, Export them for SharePoint.")]),
+    ("p", "Every command is also in the menu bar. Text size, Advanced, the Guide and Feedback are in the View and Help menus. "
+          "Hide the feature list with View > Sidebar (Ctrl+B)."),
     ("h", "Where to get help on each tool"),
     ("p", "Use the tabs above. Each page says what a tool does, when to use it, and why it is worth it."),
 ],
@@ -143,14 +147,16 @@ PAGES = {
     ("p", "Effort list (approved) > customer documents > client lists > company database."),
     ("h", "QA/QC: check our deliverables before they ship"),
     ("p", "First use matters only in what we write: the response to the RFP. The QA/QC view (next to Effort list, Scan "
-          "review and Keywords) checks our Word volumes; customer documents are never checked for first use. Click Check "
-          "Word deliverables (or the QA/QC Deliverables button) and pick the final volumes; the file names set the submission "
+          "review and Keywords) checks our Word volumes; customer documents are never checked for first use. Open QA/QC in "
+          "the feature list, click Check Word deliverables and pick the final volumes; the file names set the submission "
           "order (Vol 2 before Vol 10)."),
     ("p", "Word documents (.docx) only. Run it on the Word files, not on PDF exports: a PDF loses the difference between "
           "running text, tables, captions, figures and headings, so first-use results on a PDF would not be accurate. A PDF "
           "you pick is left out, with a note."),
     ("img", "qa.png", 600),
-    ("rows", [("First use", "Acronyms only. Each must first appear as \"Spelled Out Words (ACR)\", per volume, per section "
+    ("rows", [("Fix list", "Rows are listed worst first: Fix, then Check, Note and OK. Next fix (N) jumps to the next red row "
+                           "across First use, Banned words and Acronym list and says what to fix on the status line."),
+              ("First use", "Acronyms only. Each must first appear as \"Spelled Out Words (ACR)\", per volume, per section "
                             "of each volume, or across the submission (the effort's first-use rule)."),
               ("Check column", "\u2713 OK (green): defined at first use. \u2717 Fix (red): not defined at first use, or never "
                                "defined. ! Check (amber): defined, but the words differ from the effort list or no spelled-out "
@@ -215,15 +221,16 @@ PAGES = {
                                      "picked definitions and effort list stay. File > Update results against the master database "
                                      "does it any time.")]),
     ("h", "Effort list (home) and Scan review"),
-    ("p", "With an effort open, the main window has two views. Effort list (home) shows every decision for the effort, "
-          "where each term came from and which volumes use it; it reopens exactly as you left it. Every scan lands in Scan "
-          "review, where you decide on what the scan found."),
+    ("p", "Acronyms has two working steps. Define and approve (the effort list) shows every decision for the effort, "
+          "where each term came from and which volumes use it; it reopens exactly as you left it. Every scan lands in Review, "
+          "where you decide on what the scan found."),
     ("img", "home.png", 600),
     ("rows", [("Home", "Counts at the top (terms, approved, need a definition, no longer found). Show: needs a definition, a "
                        "status, no longer found, or one volume. Double-click to edit a definition. Approve, Needs author, "
                        "Not a term, Volumes, Where from (documents, imports and every change), Show in Scan review."),
-              ("Scan review", "Keep (Add to effort list), Not a term, Omit, Exclude, Exclude instance in the preview, and Fix "
-                              "OCR or Report misreading for a misreading (sent to the training team)."),
+              ("Review", "A adds the term to the effort list, X marks it Not a term, Space skips; the next term comes up "
+                         "each time. More holds Include in the database, Exclude (all places), Omit and Fix OCR. In the preview: "
+                         "Exclude instance, and Report misreading for a misreading (sent to the training team)."),
               ("Use as definition", "Select words in the Source preview (the passage, or the recognized text of a picture) "
                                     "and click Use as definition, or right-click. When the documents, the customer's list or "
                                     "the nearby words already give a long form, the preview shows \"Found: ...\" with a Use "
@@ -231,15 +238,16 @@ PAGES = {
                                     "list when you Keep the term.")]),
     ("img", "scanreview.png", 600),
     ("h", "Keywords for SharePoint"),
-    ("p", "Collect the keywords for tagging the submission while you work, not after. The Keywords view (next to Effort "
-          "list and Scan review) keeps them in the effort list's Keywords sheet."),
+    ("p", "Collect the keywords for tagging the submission while you work, not after. Keywords in the feature list keeps "
+          "them in the effort list's Keywords sheet."),
     ("img", "keywords.png", 600),
     ("rows", [("Capture", "Ctrl+K in the app (selected preview text or the clipboard fills it in), right-click a result, "
                           "preview text or a home row > Add as keyword, or Ctrl+Alt+K anywhere in Windows after copying a phrase."),
               ("Suggest", "Suggest keywords reads the customer documents and your volumes and lists phrases with the reasons: "
                           "how often and where, in a heading, near requirement or evaluation wording, only in our volumes. "
                           "Rules and counts only (No AI). Not a keyword keeps a phrase from coming back."),
-              ("Decide", "Keep, Reject, Edit (category, why, SharePoint field) or Remove. Every change is in the History sheet."),
+              ("Decide", "Keep (K), Reject (R), Space for the next one; Edit (category, why, SharePoint field) or Remove. Every "
+                         "change is in the History sheet."),
               ("Smarter", "Past proposals: build a baseline from a folder of past submissions; phrases every proposal uses score "
                           "lower, phrases new to this one higher. Keep and Reject teach later suggestions in every effort. Both "
                           "keep hashed phrases with counts only, never the text."),
@@ -320,13 +328,25 @@ PAGES = {
 ],
 "Compliance matrix": [
     ("h", "Every sentence of the RFP, each with a decision and a home"),
-    ("p", "Compliance (top bar) > New from RFP files. Pick the instructions, evaluation criteria, SOW and attachments. Every "
+    ("p", "Compliance > Read RFP > New from RFP files. Pick the instructions, evaluation criteria, SOW and attachments. Every "
           "sentence becomes a row, in reading order, with its file, page or section. Rules mark the ones that ask for "
           "something (shall, must, will, should, may, describe, provide, page limits, fonts, due dates) as requirements; "
           "every other sentence is a Context row, so nothing is skipped because it did not sound like a requirement. "
           "No AI writes anything."),
-    ("img", "compliance.png", 620),
-    ("rows", [("Decide", "K keeps (a requirement), C keeps as Context (text the authors need beside a requirement), D drops, "
+    ("rows", [("Page view", "Decide shows the RFP as a page. Each sentence is shaded as you decide it: green Keep, blue Context, "
+                            "grey Drop; undecided sentences are underlined in amber and the current one is outlined. The bar at "
+                            "the bottom: Accept the suggestion (Enter), Keep (K), Context (C), Drop (D), Back (Backspace), "
+                            "Split (S). Click any sentence to jump to it; the arrow keys step through them. The Files list on the "
+                            "right switches files and shows how far each one is."),
+              ("Easy ones first", "Drop all... in the side panel drops the page headers, page numbers and markings in one go "
+                                  "after showing you the list."),
+              ("Place", "A second pass, after deciding: one Keep or Context sentence at a time with the sentences around it. "
+                        "Press 1, 2 or 3 for the suggested sections (the rules' match and past proposals), pick another, or "
+                        "Later (Space). Place all... puts every sentence of the same RFP paragraph in choice 1. Arrange the "
+                        "setup opens the board for order, direction and references."),
+              ("Prove", "Whether every sentence has a decision and every kept sentence a home, per file, and the coverage "
+                        "report. Owner, status and response page are set here: select requirements, type, Apply."),
+              ("Decide", "K keeps (a requirement), C keeps as Context (text the authors need beside a requirement), D drops, "
                          "U undoes. After each decision the next undecided sentence comes up; N jumps to it. Select many "
                          "rows to decide them together."),
               ("Every line", "The count above the table says how many sentences are decided and shows a check mark when all "
@@ -339,8 +359,8 @@ PAGES = {
                                   "The workbook has the same table on its Coverage sheet."),
               ("Suggested", "Government statements are suggested Drop, 'may' is Review, offeror and contractor duties are Keep. "
                             "Accept suggestions applies them to the undecided rows shown; Review rows stay for you."),
-              ("Split", "Click between two words in the sentence (above the decision buttons), or select the words to pull out, "
-                        "then press S or Split: the sentence is cut there and each part becomes its own row with its own "
+              ("Split", "Click the sentence, then click between two of its words (or select the words to pull out) and press "
+                        "S or Split: the sentence is cut there and each part becomes its own row with its own "
                         "decision and outline section. With no point chosen, S cuts where the rules see two requirements "
                         "('; ' or 'and shall'). Merge (M) joins rows back together."),
               ("Compliance words", "shall, must, will, should, may, required, not exceed, and order verbs such as describe or "
@@ -380,7 +400,6 @@ PAGES = {
     ("h", "Setup: the first draft for authors"),
     ("p", "The Setup tab puts the RFP text under the proposal outline and writes the setup documents: every heading of the "
           "outline, with the RFP text that section must answer and the proposal lead's direction."),
-    ("img", "setup.png", 620),
     ("rows", [("Place", "Drag RFP text from the left onto a section on the right. Shift+drag adds a copy to a second section. "
                         "Drag inside the outline to reorder, or back to the left to remove. Accept suggestions places what the "
                         "rules and your earlier mapping suggest. Placing a row also fills its Outline column, and the other way round."),
@@ -463,7 +482,7 @@ PAGES = {
 ],
 "AI and ML": [
     ("h", "What runs each part"),
-    ("p", "Every sidebar section shows what runs it. Click its ? to see each part and its job. Everything runs on this PC, "
+    ("p", "Next to each feature's name, the step strip shows what runs it. Click its ? to see each part and its job. Everything runs on this PC, "
           "with no network."),
     ("table", [["Label", "Meaning", "Examples"],
                ["No AI", "Fixed rules, counting and file reading. Same input, same output.", "Typed text, Effort list, volume check, compliance rules"],
@@ -478,7 +497,7 @@ PAGES = {
                       "Word, PowerPoint, Excel and PDFs is still read. Text inside pictures and scanned pages is not."),
               ("Logged", "Each change goes into the effort list's History sheet (date, Windows user, setting) and the usage "
                          "log (the effort appears as a number, never its name)."),
-              ("Team learning", "In the compliance window. Off: this effort's decisions are not learned and the Learned column "
+              ("Team learning", "Compliance > Prove. Off: this effort's decisions are not learned and the Learned column "
                                 "stays empty. AI and ML off turns it off too.")]),
     ("h", "For your security team"),
     ("p", "Help > What runs where lists every part and saves a one-page summary to hand to reviewers. The line at the "
