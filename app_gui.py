@@ -136,6 +136,7 @@ from effort_wizard import WizardMixin   # effort start wizard, intake, review, r
 from effort_home import HomeMixin       # effort home, Scan review, volumes, export picker, Use as definition (2.14.0)
 from keywords_ui import KeywordsMixin   # Keyword Harvest (2.16.0)
 from alt_ui import AltFormsMixin        # alternate forms and the master's use history (2.26.0)
+from exportall_ui import ExportAllMixin  # Export all: every feature's outputs in one folder (2.31.0)
 from master_db import MasterMixin   # master database and Known in (2.14.0)
 import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
@@ -2476,7 +2477,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.30.0"            # keep in step with version_info.txt
+APP_VERSION = "2.31.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3411,7 +3412,7 @@ def corrections_on():
     """Report misreading and Not text save corrections for the training team, unless allow_training is false."""
     return bool(APP_CFG["allow_training"])
 
-class AcronymAppGUI(AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Acronym Hunter {APP_VERSION}: acronyms, abbreviations and units (100% local)")
@@ -3790,6 +3791,7 @@ class AcronymAppGUI(AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, Wizard
                       command=c("file_master_refresh", self.refresh_from_database))
         f.add_separator()
         f.add_command(label="Export CSV...", accelerator="Ctrl+E", command=c("file_export_csv", self.export_csv))
+        f.add_command(label="Export all for this effort...", command=c("file_export_all", self.export_all_dialog))
         f.add_command(label="Restore an earlier version...", command=c("file_restore", self.restore_dialog))
         f.add_separator()
         f.add_command(label="Exit", command=c("file_exit", self.on_close))
@@ -3809,6 +3811,7 @@ class AcronymAppGUI(AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, Wizard
         mb.add_cascade(label="Effort", menu=ef)
         cm = tk.Menu(mb, tearoff=0)
         cm.add_command(label="Compliance Matrix...", accelerator="Ctrl+M", command=c("compliance_open", self.open_compliance))
+        cm.add_command(label="Compliance word style...", command=c("compliance_word_style", self.compliance_word_style))
         mb.add_cascade(label="Compliance", menu=cm)
         t = tk.Menu(mb, tearoff=0, postcommand=lambda: self.show_tools_menu(t))
         mb.add_cascade(label="Tools", menu=t)

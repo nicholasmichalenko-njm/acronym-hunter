@@ -291,7 +291,11 @@ PAGES = {
                                 "definition is kept under Other definitions."),
               ("Export", "Home > Export: tick the columns (Term and Definition by default), one file or one per volume, the "
                          "volumes to include, approved only, and CSV, Excel or Word. Rejected terms and the omit list are "
-                         "left out. Your last choice is remembered for this effort.")]),
+                         "left out. Your last choice is remembered for this effort."),
+              ("Export all", "Home > Export all (or File > Export all for this effort) writes every feature's outputs into one "
+                             "dated folder: compliance matrix, coverage report, Word outline, setup documents, acronym lists, "
+                             "the QA/QC report and the keyword list. Tick what to include; everything available starts ticked. "
+                             "Each feature keeps its own export too.")]),
     ("h", "Several efforts at once"),
     ("p", "Each effort keeps its own work: results, choices, compliance matrix, volume check and where you left off. "
           "Nothing from one effort shows up in another."),
@@ -335,7 +339,15 @@ PAGES = {
                                   "The workbook has the same table on its Coverage sheet."),
               ("Suggested", "Government statements are suggested Drop, 'may' is Review, offeror and contractor duties are Keep. "
                             "Accept suggestions applies them to the undecided rows shown; Review rows stay for you."),
-              ("Split", "S splits a compound requirement (two 'shall's, or items joined by ';') into separate rows."),
+              ("Split", "Click between two words in the sentence (above the decision buttons), or select the words to pull out, "
+                        "then press S or Split: the sentence is cut there and each part becomes its own row with its own "
+                        "decision and outline section. With no point chosen, S cuts where the rules see two requirements "
+                        "('; ' or 'and shall'). Merge (M) joins rows back together."),
+              ("Compliance words", "shall, must, will, should, may, required, not exceed, and order verbs such as describe or "
+                                   "provide (at the start of a sentence or after shall) are bold, on screen and in the Excel "
+                                   "matrix, setup documents, coverage report and Word outline. Compliance word style... (in the "
+                                   "compliance window or the Compliance menu) adds italic, underline, a color or a highlight "
+                                   "and edits the word list. Excel cannot highlight single words, so the matrix skips the highlight."),
               ("Type and actor", "Instruction (L), Evaluation (M), SOW (C), Format, Information; Offeror, Contractor or Government."),
               ("Links", "Evaluation and SOW items link to the instructions they concern, by section number or shared wording."),
               ("Outline", "Outline tab: start from the Section L headings, import a Word outline's headings, or type one. "

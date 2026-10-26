@@ -113,6 +113,8 @@ class HomeMixin:
             w.pack(side="left", padx=(0, 6))
         self.btn_h_export = ctk.CTkButton(b, text="Export...", width=100, fg_color="#0F766E", command=self.export_picker, **K)
         self.btn_h_export.pack(side="right")
+        self.btn_h_xall = ctk.CTkButton(b, text="Export all...", width=110, fg_color="#0F766E", command=self.export_all_dialog, **K)
+        self.btn_h_xall.pack(side="right", padx=(6, 0))
         self.btn_h_import = ctk.CTkButton(b, text="Import a list...", width=120, fg_color="#475569", command=self.import_volume_list, **K)
         self.btn_h_import.pack(side="right", padx=6)
         self.btn_h_setvol = ctk.CTkButton(b, text="Name volumes...", width=130, fg_color="#475569", command=self.edit_volumes, **K)

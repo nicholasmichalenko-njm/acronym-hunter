@@ -10,6 +10,7 @@ import diag
 import compliance as C
 import complearn as CL
 import placelearn as PL
+import cwords as CW
 
 ALL = "All"
 LEVEL_COLORS = {"Keep": "#E7F6EC", "Context": "#E0F2FE", "Drop": "#EEEEEE"}
@@ -140,6 +141,10 @@ class ComplianceMixin:
         win.d_head = ctk.CTkLabel(right, text="Select a requirement", font=("Arial", 14, "bold"), anchor="w", justify="left", wraplength=400)
         win.d_head.pack(fill="x", padx=10, pady=(8, 2))
         win.d_text = ctk.CTkTextbox(right, height=110, wrap="word"); win.d_text.pack(fill="x", padx=10)
+        win.d_text._textbox.bind("<ButtonRelease-1>", self._c_text_click, add="+")   # 2.31.0: where to split
+        win.d_text._textbox.bind("<KeyRelease>", self._c_text_click, add="+")
+        for k in ("s", "S"):
+            win.d_text._textbox.bind(f"<KeyPress-{k}>", lambda _e: self.compliance_split())
         if hasattr(self, "kw_text_menu"):          # Keyword Harvest (2.18.0): selected words or the outline section
             win.d_text.bind("<Button-3>", lambda e: self.kw_text_menu(e, win.d_text._textbox, "Compliance requirement"))
             tv.bind("<Button-3>", self._c_kw_menu, add="+")
@@ -158,6 +163,7 @@ class ComplianceMixin:
         sbar = ctk.CTkFrame(right, fg_color="transparent"); sbar.pack(fill="x", padx=10, pady=(4, 0))
         ctk.CTkButton(sbar, text="Show page", width=100, command=self.compliance_show_page).pack(side="left")
         ctk.CTkButton(sbar, text="Open file", width=100, command=self.compliance_open_file).pack(side="left", padx=6)
+        ctk.CTkButton(sbar, text="Compliance word style...", width=10, command=self.compliance_word_style).pack(side="left")
         ctk.CTkLabel(right, text="Source passage", anchor="w").pack(fill="x", padx=10, pady=(6, 0))
         win.d_ctx = tk.Text(right, height=7, wrap="word", font=("Segoe UI", int(round(10 * dpi))), relief="flat", bg="#F8FAFC", fg="#111827")
         win.d_ctx.tag_configure("hit", background="#FDE68A")
@@ -410,6 +416,8 @@ class ComplianceMixin:
         it = sel[0]
         win.d_head.configure(text=f"{it['id']}   {it['type']}   {it['actor']}   {it['strength']}" + ("   compound: S splits it" if it["compound"] else ""))
         win.d_text.insert("1.0", ((it["lead"] + "\n") if it["lead"] else "") + it["text"])
+        self._c_split_at = None
+        self._c_tag_words(win.d_text._textbox)
         win.d_text.configure(state="disabled")
         sec = " ".join(x for x in (it["section"], it["section_title"]) if x)
         win.d_src.configure(text=f"{it['loc']}" + (f"\nSection {sec}" if sec else "") +
@@ -488,14 +496,80 @@ class ComplianceMixin:
         self._cwin.d_head.configure(text="Every sentence shown has a decision.")
         return None
 
+    def _c_text_click(self, _e=None):
+        """Remember the clicked point, or the selected words, inside the sentence (not its lead-in) for Split."""
+        tb = self._cwin.d_text._textbox
+        sel = self._c_selected()
+        if len(sel) != 1:
+            return
+        start = "2.0" if sel[0]["lead"] else "1.0"
+        def off(ix):
+            return int(tb.count(start, ix, "chars")[0]) if tb.compare(ix, ">", start) else 0
+        try:
+            if tb.tag_ranges("sel"):
+                self._c_split_at = (off("sel.first"), off("sel.last"))
+            else:
+                self._c_split_at = (off("insert"), None)
+        except Exception:
+            diag.swallowed()
+            self._c_split_at = None
+
+    def _c_tag_words(self, tb):
+        """Show the compliance words in the sentence in the user's style (bold by default)."""
+        import tkinter.font as tkfont
+        try:
+            cfg = CW.load()
+            f = tkfont.Font(font=tb.cget("font"))
+            font, fg, bg = CW.tk_font_options(cfg, f.actual("family"), f.actual("size"))
+            opts = {"font": font}
+            if fg:
+                opts["foreground"] = fg
+            if bg:
+                opts["background"] = bg
+            tb.tag_configure("cword", **opts)
+            pos = 0
+            for t, w in CW.segments(tb.get("1.0", "end-1c"), cfg):
+                if w:
+                    tb.tag_add("cword", f"1.0+{pos}c", f"1.0+{pos + len(t)}c")
+                pos += len(t)
+        except Exception:
+            diag.swallowed()
+
+    @staticmethod
+    def _c_cut(text, at):
+        """Parts of a sentence cut where the person clicked (at = (offset, None)) or around the words they selected
+        (at = (start, end)); cuts snap to the nearest gap between words. [] when the cut would leave nothing."""
+        def snap(i):
+            i = max(0, min(len(text), i))
+            if 0 < i < len(text) and not text[i - 1].isspace() and not text[i].isspace():
+                left = text.rfind(" ", 0, i); right = text.find(" ", i)
+                cands = [c for c in (left, right) if c > 0]
+                i = min(cands, key=lambda c: abs(c - i)) if cands else i
+            return i
+        a, b = at
+        cuts = sorted({snap(a)} | ({snap(b)} if b is not None else set()))
+        pieces, prev = [], 0
+        for c in cuts + [len(text)]:
+            pieces.append(text[prev:c].strip())
+            prev = c
+        pieces = [p for p in pieces if len(p) > 2]
+        return pieces if len(pieces) >= 2 else []
+
     def compliance_split(self):
+        """Split the selected sentence where the person clicked in its text (or around the words they selected);
+        with no point chosen, where the rules see two requirements ('; ' or 'and shall'). Each part is its own row
+        with its own decision and outline section (2.31.0: split at the chosen point)."""
         sel = self._c_selected()
         if len(sel) != 1:
             return "break"
         it = sel[0]
-        parts = C.split_text(it["text"])
+        at = getattr(self, "_c_split_at", None)
+        parts = self._c_cut(it["text"], at) if at else []
+        how = "at the chosen point" if parts else "where the rules see two requirements"
+        if not parts:
+            parts = C.split_text(it["text"])
         if len(parts) < 2:
-            self._cwin.d_head.configure(text=f"{it['id']}: nothing to split (no '; ' or 'and shall')")
+            self._cwin.d_head.configure(text=f"{it['id']}: click between two words in the sentence (or select words), then Split")
             return "break"
         i = self.matrix.items.index(it)
         new = []
@@ -504,11 +578,78 @@ class ComplianceMixin:
             x.update(text=p, id=f"{it['id']}{chr(97 + n)}", key=C.text_key(p), compound=False, decision="")
             new.append(x)
         self.matrix.items[i:i + 1] = new
-        self.matrix.log(it["id"], f"split into {len(new)}")
+        self.matrix.log(it["id"], f"split into {len(new)} {how}")
+        self._c_split_at = None
         diag.activity("compliance_split", n=len(new))
         self._c_changed()
-        self._cwin.tv.selection_set(new[0]["id"]) if self._cwin.tv.exists(new[0]["id"]) else None
+        if self._cwin.tv.exists(new[0]["id"]):
+            self._cwin.tv.selection_set(new[0]["id"]); self._cwin.tv.see(new[0]["id"])
         return "break"
+
+    def compliance_word_style(self, cfg=None):
+        """Pick how compliance words look on screen and in every output (2.31.0). cfg= saves without a window."""
+        def done(c):
+            CW.save(c)
+            diag.activity("compliance_word_style_saved")
+            if self._cwin is not None and self._cwin.winfo_exists():
+                self._c_show()
+        if cfg is not None:
+            done(cfg); return None
+        cur = CW.load()
+        parent = self._cwin if self._cwin is not None and self._cwin.winfo_exists() else self
+        w = ctk.CTkToplevel(parent); w.title("Compliance word style"); w.geometry("620x620"); w.after(150, w.lift)
+        ctk.CTkLabel(w, text="Compliance words (shall, must, will, should, may, required, not exceed, and order verbs such as "
+                             "describe or provide at the start of a sentence or after shall) are shown in this style on screen "
+                             "and in the Excel matrix, setup documents, coverage report and Word outline.",
+                     wraplength=580, justify="left", anchor="w").pack(fill="x", padx=14, pady=(12, 6))
+        row = ctk.CTkFrame(w, fg_color="transparent"); row.pack(fill="x", padx=14)
+        v = {k: tk.BooleanVar(value=cur["style"][k]) for k in ("bold", "italic", "underline")}
+        for k, lab in (("bold", "Bold"), ("italic", "Italic"), ("underline", "Underline")):
+            ctk.CTkCheckBox(row, text=lab, variable=v[k], command=lambda: preview(), width=10).pack(side="left", padx=(0, 12))
+        row2 = ctk.CTkFrame(w, fg_color="transparent"); row2.pack(fill="x", padx=14, pady=6)
+        name_of = lambda table, hexv: next((n for n, h in table.items() if h == hexv), "None")
+        color = tk.StringVar(value=name_of(CW.COLORS, cur["style"]["color"]))
+        hl = tk.StringVar(value=name_of(CW.HIGHLIGHTS, cur["style"]["highlight"]))
+        ctk.CTkLabel(row2, text="Color").pack(side="left")
+        ctk.CTkOptionMenu(row2, variable=color, values=list(CW.COLORS), command=lambda _v: preview(), width=130).pack(side="left", padx=(6, 18))
+        ctk.CTkLabel(row2, text="Highlight").pack(side="left")
+        ctk.CTkOptionMenu(row2, variable=hl, values=list(CW.HIGHLIGHTS), command=lambda _v: preview(), width=130).pack(side="left", padx=6)
+        ctk.CTkLabel(w, text="Excel cells cannot highlight single words, so the matrix uses the other choices.",
+                     anchor="w", text_color=("#475569", "#94A3B8")).pack(fill="x", padx=14)
+        pv = tk.Text(w, height=3, wrap="word", relief="flat", bg="#F8FAFC", fg="#111827", font=("Segoe UI", 11))
+        pv.pack(fill="x", padx=14, pady=8)
+        ctk.CTkLabel(w, text="Words, one per line (phrases allowed):", anchor="w").pack(fill="x", padx=14)
+        box = ctk.CTkTextbox(w, height=180, wrap="none"); box.pack(fill="both", expand=True, padx=14)
+        box.insert("1.0", "\n".join(cur["words"]))
+        def gather():
+            words = [x.strip() for x in box.get("1.0", "end").splitlines() if x.strip()]
+            return {"style": {"bold": v["bold"].get(), "italic": v["italic"].get(), "underline": v["underline"].get(),
+                              "color": CW.COLORS[color.get()], "highlight": CW.HIGHLIGHTS[hl.get()]}, "words": words}
+        def preview():
+            pv.configure(state="normal"); pv.delete("1.0", "end")
+            pv.insert("1.0", "The Offeror shall describe the thermal design. Proposals shall not exceed 25 pages. "
+                             "Provide resumes for key personnel.")
+            cfg2 = CW._clean(gather())
+            font, fg, bg = CW.tk_font_options(cfg2, "Segoe UI", 11)
+            pv.tag_configure("cword", font=font, foreground=fg or "#111827", background=bg or "#F8FAFC")
+            pos = 0
+            for t, wd in CW.segments(pv.get("1.0", "end-1c"), cfg2):
+                if wd:
+                    pv.tag_add("cword", f"1.0+{pos}c", f"1.0+{pos + len(t)}c")
+                pos += len(t)
+            pv.configure(state="disabled")
+        bar = ctk.CTkFrame(w, fg_color="transparent"); bar.pack(fill="x", padx=14, pady=10)
+        ctk.CTkButton(bar, text="Save", fg_color="#0F766E", command=lambda: (done(gather()), w.destroy())).pack(side="right")
+        ctk.CTkButton(bar, text="Cancel", command=w.destroy).pack(side="right", padx=6)
+        def reset():
+            for k in v:
+                v[k].set(CW.DEFAULT_STYLE[k])
+            color.set("None"); hl.set("None")
+            box.delete("1.0", "end"); box.insert("1.0", "\n".join(CW.DEFAULT_WORDS)); preview()
+        ctk.CTkButton(bar, text="Back to the defaults", command=reset).pack(side="left")
+        preview()
+        w.api = {"vars": v, "color": color, "highlight": hl, "box": box, "preview": pv, "gather": gather}
+        return w
 
     def compliance_accept(self):
         if self.matrix is None:

@@ -828,8 +828,12 @@ class Matrix:
             c.font = Font(bold=True, color="FFFFFF"); c.fill = PatternFill("solid", fgColor="1E3A8A")
             ws.column_dimensions[c.column_letter].width = WIDTHS[i - 1]
         fills = {"Keep": "E7F6EC", "Drop": "EEEEEE"}
+        import cwords
+        cw = cwords.load()                          # 2.31.0: compliance words in the user's style (bold by default)
+        rcol = COLUMNS.index("Requirement")
         for it in self.items:
             ws.append([("Yes" if it.get(FIELD[c]) else "") if c == "Compound" else it.get(FIELD[c], "") for c in COLUMNS])
+            ws.cell(row=ws.max_row, column=rcol + 1).value = cwords.xlsx_value(it.get("text", ""), cw)
             f = fills.get(it["decision"])
             if f:
                 for c in ws[ws.max_row]:
@@ -911,7 +915,8 @@ class Matrix:
 def write_outline_docx(matrix, path, title=""):
     """Annotated outline: each outline section as a Word heading, with its kept requirements in a table
     (ID, RFP reference, requirement); then kept requirements not mapped yet."""
-    import docxw
+    import docxw, cwords
+    cw = cwords.load()
     doc = docxw.Doc()
     doc.heading(title or f"{matrix.name}: proposal outline with compliance requirements", 1)
     doc.para(f"Built {datetime.date.today().isoformat()} from the compliance matrix. Kept requirements only.")
@@ -923,12 +928,14 @@ def write_outline_docx(matrix, path, title=""):
         if rows:
             doc.table(["ID", "RFP reference", "Requirement"],
                       [[it["id"], " ".join(x for x in (it["section"], it["section_title"]) if x) or it["file"],
-                        (it["lead"] + " " if it["lead"] else "") + it["text"]] for it in rows], [1300, 2000, 6060])
+                        cwords.docx_parts((it["lead"] + " " if it["lead"] else "") + it["text"], None, cw)] for it in rows],
+                      [1300, 2000, 6060])
     rest = [it for it in kept if not it["map"]]
     if rest:
         doc.heading("Kept requirements not mapped to the outline", 2)
         doc.table(["ID", "RFP reference", "Requirement"],
-                  [[it["id"], " ".join(x for x in (it["section"], it["section_title"]) if x) or it["file"], it["text"]] for it in rest],
+                  [[it["id"], " ".join(x for x in (it["section"], it["section_title"]) if x) or it["file"],
+                    cwords.docx_parts(it["text"], None, cw)] for it in rest],
                   [1300, 2000, 6060])
     doc.save(path)
     return {"sections": len(matrix.outline), "mapped": sum(1 for it in kept if it["map"]), "unmapped": len(rest)}
@@ -941,7 +948,8 @@ COVER_FILL = {"Keep": "D9F2E3", "Context": "DBEAFE", "Drop": "EEEEEE", "": "FECA
 def write_coverage_docx(matrix, path, title=""):
     """Every sentence of the RFP in reading order, highlighted by its decision, with its ID, decision and where it was
     placed: the proof that every line was considered. Opens with a table per file and a plain yes / no."""
-    import docxw
+    import docxw, cwords
+    cw = cwords.load()
     doc = docxw.Doc()
     doc.props = {"AcronymHunterMatrix": matrix.name or "", "AcronymHunterCoverage": datetime.date.today().isoformat()}
     cov = matrix.coverage()
@@ -975,8 +983,8 @@ def write_coverage_docx(matrix, path, title=""):
             txt = ((it["lead"] + " ") if it.get("lead") else "") + it["text"]
             where = it["map"] or ("not placed" if d in ("Keep", "Context") else "")
             tag = f"   [{it['id']} · {d or 'UNDECIDED'}" + (f" · {where}" if where else "") + "]"
-            doc.rich([(txt, {"fill": COVER_FILL.get(d, COVER_FILL[""]), "color": "6B7280" if d == "Drop" else None}),
-                      (tag, {"size": 16, "color": "B91C1C" if not d or where == "not placed" else "475569", "bold": not d})])
+            doc.rich(cwords.docx_parts(txt, {"fill": COVER_FILL.get(d, COVER_FILL[""]), "color": "6B7280" if d == "Drop" else None}, cw)
+                     + [(tag, {"size": 16, "color": "B91C1C" if not d or where == "not placed" else "475569", "bold": not d})])
     doc.save(path)
     return {"sentences": tot["total"], "undecided": tot[""], "needs_home": tot["needs_home"], "files": len(cov) - 1}
 

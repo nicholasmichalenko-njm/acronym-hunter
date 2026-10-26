@@ -12,6 +12,7 @@ typed references, file rules, management direction, context paragraphs and expor
 and saved in the workbook (Setup sheets). Pure Python, no network.
 """
 import datetime, hashlib, os, re, zipfile
+import cwords
 
 PURPLE, GREEN = "7030A0", "00B050"
 CONTEXT_BLUE = "2E74B5"                  # 2.29.0: RFP sentences decided Context (not requirements) print in blue
@@ -270,6 +271,7 @@ def _doc_for(M, name, entries, P, inh, stamp):
     S = setup_of(M)
     B = by_id(M)
     d = docxw.Doc()
+    cw = cwords.load()
     d.props = {"AcronymHunterMatrix": M.name or "", "AcronymHunterSetupExported": stamp, "AcronymHunterSetupPart": name}
     base = min((o.get("level", 1) for o in entries), default=1)
     for o in entries:
@@ -279,7 +281,7 @@ def _doc_for(M, name, entries, P, inh, stamp):
             it = B.get(iid)
             if it is None:
                 continue
-            d.para(block_text(M, it, inh), color=CONTEXT_BLUE if kind_of(it) == "Context" else PURPLE)
+            d.rich(cwords.docx_parts(block_text(M, it, inh), {"color": CONTEXT_BLUE if kind_of(it) == "Context" else PURPLE}, cw))
             note = S["notes"].get(iid, "").strip()
             if note:
                 d.para(note, color=GREEN)
@@ -356,6 +358,7 @@ def export_changes(M, path):
     if ch is None:
         return None
     d = docxw.Doc()
+    cw = cwords.load()
     d.props = {"AcronymHunterMatrix": M.name or "", "AcronymHunterSetupChangesSince": M.setup["exports"][-1]["time"]}
     d.para(f"Setup changes since the export of {M.setup['exports'][-1]['time']}. Paste the purple and green paragraphs "
            "under the same headings in the styled setup.")
@@ -366,7 +369,7 @@ def export_changes(M, path):
             d.heading(lab, 2); cur = lab
         if kind in ("Added", "Changed"):
             d.para(f"{kind}:", bold=True)
-            d.para(text, color=PURPLE)
+            d.rich(cwords.docx_parts(text, {"color": PURPLE}, cw))
             if S["notes"].get(iid, "").strip():
                 d.para(S["notes"][iid].strip(), color=GREEN)
         elif kind == "Removed":

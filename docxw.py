@@ -9,6 +9,24 @@ def _x(s):
     return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
+def _runs(parts):
+    """Runs for a list of (text, format) parts; line breaks inside a part become Word line breaks."""
+    out = []
+    for text, f in parts:
+        f = f or {}
+        props = (("<w:b/>" if f.get("bold") else "") + ("<w:i/>" if f.get("italic") else "")
+                 + ('<w:u w:val="single"/>' if f.get("underline") else "")
+                 + (f'<w:color w:val="{f["color"]}"/>' if f.get("color") else "")
+                 + (f'<w:sz w:val="{int(f["size"])}"/>' if f.get("size") else "")
+                 + (f'<w:shd w:val="clear" w:color="auto" w:fill="{f["fill"]}"/>' if f.get("fill") else ""))
+        rpr = f"<w:rPr>{props}</w:rPr>" if props else ""
+        for i, ln in enumerate(str(text).split("\n")):
+            if i:
+                out.append("<w:r><w:br/></w:r>")
+            out.append(f'<w:r>{rpr}<w:t xml:space="preserve">{_x(ln)}</w:t></w:r>')
+    return "".join(out)
+
+
 def _run(text, bold=False, color=None):
     props = ("<w:b/>" if bold else "") + (f'<w:color w:val="{color}"/>' if color else "")
     rpr = f"<w:rPr>{props}</w:rPr>" if props else ""
@@ -34,24 +52,16 @@ class Doc:
         self.body.append(f"<w:p>{_run(text, bold, color)}</w:p>")
 
     def rich(self, parts):
-        """One paragraph of several runs: parts = [(text, {"bold", "color", "fill", "size", "italic"})] (2.29.0).
-        fill shades the run's background (a highlighter in any color); size is in half-points."""
-        runs = []
-        for text, f in parts:
-            f = f or {}
-            props = (("<w:b/>" if f.get("bold") else "") + ("<w:i/>" if f.get("italic") else "")
-                     + (f'<w:color w:val="{f["color"]}"/>' if f.get("color") else "")
-                     + (f'<w:sz w:val="{int(f["size"])}"/>' if f.get("size") else "")
-                     + (f'<w:shd w:val="clear" w:color="auto" w:fill="{f["fill"]}"/>' if f.get("fill") else ""))
-            rpr = f"<w:rPr>{props}</w:rPr>" if props else ""
-            runs.append(f'<w:r>{rpr}<w:t xml:space="preserve">{_x(text)}</w:t></w:r>')
-        self.body.append("<w:p>" + "".join(runs) + "</w:p>")
+        """One paragraph of several runs: parts = [(text, {"bold", "italic", "underline", "color", "fill", "size"})]
+        (2.29.0; underline 2.31.0). fill shades the run's background (a highlighter in any color); size is in half-points."""
+        self.body.append("<w:p>" + _runs(parts) + "</w:p>")
 
     def table(self, header, rows, widths):
         def cell(text, w, bold=False, shade=None):
             sh = f'<w:shd w:val="clear" w:color="auto" w:fill="{shade}"/>' if shade else ""
             return (f'<w:tc><w:tcPr><w:tcW w:w="{w}" w:type="dxa"/>{sh}</w:tcPr>'
-                    f'<w:p><w:pPr><w:spacing w:before="20" w:after="20"/></w:pPr>{_run(text, bold)}</w:p></w:tc>')
+                    f'<w:p><w:pPr><w:spacing w:before="20" w:after="20"/></w:pPr>'
+                    f'{_runs(text) if isinstance(text, list) else _run(text, bold)}</w:p></w:tc>')
         border = "".join(f'<w:{b} w:val="single" w:sz="4" w:space="0" w:color="808080"/>'
                          for b in ("top", "left", "bottom", "right", "insideH", "insideV"))
         trs = ['<w:tr><w:trPr><w:tblHeader/></w:trPr>' + "".join(cell(h, w, True, "D9E2F3") for h, w in zip(header, widths)) + "</w:tr>"]
