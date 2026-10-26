@@ -11,7 +11,7 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 import diag
 
-PARTS = (("matrix", "Compliance matrix (Excel)"), ("coverage", "Compliance coverage report (Word)"),
+PARTS = (("versions", "Customer document version history (Excel)"), ("matrix", "Compliance matrix (Excel)"), ("coverage", "Compliance coverage report (Word)"),
          ("outline", "Compliance Word outline"), ("setup", "Setup documents for authors (Word)"),
          ("acronyms", "Acronym lists (Word and Excel)"), ("qaqc", "QA/QC report (Excel) and its acronym lists"),
          ("keywords", "Keyword list (Excel)"))
@@ -46,7 +46,9 @@ class ExportAllMixin:
         M = self._xa_matrix()
         r = getattr(self, "volume_report", None)
         kws = [k for k in (L.keywords if L is not None else []) if k.get("Status") == "Keep"]
+        lib = self.doclib() if hasattr(self, "doclib") else None
         return {
+            "versions": (bool(lib and lib.docs), "no customer documents in the history yet"),
             "matrix": (M is not None, "no compliance matrix for this effort"),
             "coverage": (M is not None and bool(M.items), "no compliance matrix for this effort"),
             "outline": (M is not None and bool(M.outline), "the matrix has no outline yet"),
@@ -100,6 +102,11 @@ class ExportAllMixin:
                     V.write_docx([(x["term"], x["definition"]) for x in r["lists"][v]], p); made.append(p)
             except Exception:
                 diag.swallowed(); problems.append("The QA/QC report could not be written.")
+        if "versions" in picks:
+            try:
+                p = os.path.join(sub, f"{_safe(L.name)}_Customer_Document_Versions.xlsx"); self.sub_export_history(p); made.append(p)
+            except Exception:
+                diag.swallowed(); problems.append("The version history could not be written.")
         if "keywords" in picks:
             try:
                 p = os.path.join(sub, f"{_safe(L.name)}_Keywords.xlsx"); self.kw_export(p, keep_only=True); made.append(p)

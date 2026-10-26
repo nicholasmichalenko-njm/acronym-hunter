@@ -14,10 +14,11 @@ def _runs(parts):
     out = []
     for text, f in parts:
         f = f or {}
-        props = (("<w:b/>" if f.get("bold") else "") + ("<w:i/>" if f.get("italic") else "")
-                 + ('<w:u w:val="single"/>' if f.get("underline") else "")
+        props = (("<w:b/>" if f.get("bold") else "") + ("<w:i/>" if f.get("italic") else "")      # schema order (2.37.0)
+                 + ("<w:strike/>" if f.get("strike") else "")
                  + (f'<w:color w:val="{f["color"]}"/>' if f.get("color") else "")
                  + (f'<w:sz w:val="{int(f["size"])}"/>' if f.get("size") else "")
+                 + ('<w:u w:val="single"/>' if f.get("underline") else "")
                  + (f'<w:shd w:val="clear" w:color="auto" w:fill="{f["fill"]}"/>' if f.get("fill") else ""))
         rpr = f"<w:rPr>{props}</w:rPr>" if props else ""
         for i, ln in enumerate(str(text).split("\n")):

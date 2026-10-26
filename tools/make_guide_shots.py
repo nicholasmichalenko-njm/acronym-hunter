@@ -3,7 +3,7 @@
     venv\\Scripts\\python.exe tools\\make_guide_shots.py
 
 Uses the fictional test_samples only, in a temporary config folder, and writes assets\\help\\topbar.png, shell.png,
-home.png, scanreview.png, keywords.png, suggest.png, compliance.png, prove.png, setup.png, whatruns.png, stack.png,
+home.png, scanreview.png, keywords.png, suggest.png, submission.png, compare.png, compliance.png, prove.png, setup.png, whatruns.png, stack.png,
 qa.png and training.png (2.33.0: the one-feature-at-a-time layout). Each picture is the window region of one view, captured
 with PIL ImageGrab, so the window must be on screen and not covered.
 """
@@ -103,7 +103,32 @@ def step2():
         tv.selection_set(tv.get_children()[0]); sw.update()
     grab(sw, "suggest.png")
     sw.destroy()
+    shot_submission()
     app.after(800, step3)
+
+
+def shot_submission():
+    """2.37.0: Submission > Documents (version history) and Compare, with an amendment of the sample RFP."""
+    import zipfile
+    src = os.path.join(CDIR, "Kestrel_RFP_Sections_C_L_M.docx")
+    amd = os.path.join(tmp, "Kestrel_RFP_Sections_C_L_M_Amd1.docx")
+    with zipfile.ZipFile(src) as zi, zipfile.ZipFile(amd, "w", zipfile.ZIP_DEFLATED) as zo:
+        for item in zi.infolist():
+            data = zi.read(item.filename)
+            if item.filename == "word/document.xml":
+                data = data.decode("utf-8").replace("exceed 50 pages", "exceed 40 pages").replace(
+                    "the five highest", "the ten highest").encode("utf-8")
+            zo.writestr(item, data)
+    zoom()
+    app.shell_go("submission"); app.update()
+    w = app.sub_add_dialog(app.sub_unadded()); w.update(); w._api["add"]()
+    w = app.sub_add_dialog([amd]); w.update(); w._api["add"]()
+    lib = app.doclib()
+    d = next(x for x in lib.docs if len(x["versions"]) > 1)
+    app.sub_show(d["id"]); app.update()
+    grab(app.shell_page("sub_docs"), "submission.png")
+    app.sub_compare(d["id"]); app.update()
+    grab(app.shell_page("sub_compare"), "compare.png")
 
 
 def step3():

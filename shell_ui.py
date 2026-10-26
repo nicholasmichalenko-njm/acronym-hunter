@@ -10,10 +10,11 @@ import tkinter as tk
 import customtkinter as ctk
 import diag
 
-FEATURES = (("home", "Effort home"), ("compliance", "Compliance"), ("acronyms", "Acronyms"), ("qaqc", "QA/QC"),
+FEATURES = (("home", "Effort home"), ("submission", "Submission"), ("compliance", "Compliance"), ("acronyms", "Acronyms"), ("qaqc", "QA/QC"),
             ("keywords", "Keywords"))
 STEPS = {
     "home": (("overview", "Overview"),),
+    "submission": (("documents", "Documents"), ("compare", "Compare"), ("export", "Export")),     # 2.37.0
     "compliance": (("read", "Read RFP"), ("outline", "Structure"), ("decide", "Assign"),
                    ("prove", "Prove"), ("export", "Export")),             # 2.36.0: Assign places as it decides
     "acronyms": (("scan", "Scan"), ("review", "Review"), ("approve", "Define and approve"), ("export", "Export")),
@@ -22,8 +23,8 @@ STEPS = {
 }
 COMP_TABS = {"read": "Read RFP", "decide": "Requirements", "outline": "Outline", "place": "Place", "prove": "Prove",
              "export": "Export"}
-AI_SECTION = {"compliance": "COMPLIANCE", "acronyms": "SCAN", "qaqc": "EFFORT", "keywords": "EFFORT", "home": "EFFORT"}
-NEEDS_EFFORT = {("acronyms", "approve"), ("qaqc", "check"), ("qaqc", "export"), ("keywords", "decide"), ("keywords", "export")}
+AI_SECTION = {"submission": "EFFORT", "compliance": "COMPLIANCE", "acronyms": "SCAN", "qaqc": "EFFORT", "keywords": "EFFORT", "home": "EFFORT"}
+NEEDS_EFFORT = {("submission", "documents"), ("submission", "compare"), ("submission", "export"), ("acronyms", "approve"), ("qaqc", "check"), ("qaqc", "export"), ("keywords", "decide"), ("keywords", "export")}
 
 RAIL_BG = ("#0F172A", "#0B1220")
 RAIL_ON = "#1E3A8A"
@@ -121,6 +122,8 @@ class ShellMixin:
         self._page_qa_export()
         self._page_kw_export()
         self._page_compliance_actions()
+        if hasattr(self, "_page_submission"):
+            self._page_submission()
 
     # ------------------------------------------------------------ pages
     @staticmethod
@@ -281,6 +284,8 @@ class ShellMixin:
             except Exception:
                 diag.swallowed()
             return win
+        if f == "submission":
+            return self.shell_page({"documents": "sub_docs", "compare": "sub_compare", "export": "sub_export"}[s])
         return {("acronyms", "scan"): self.shell_page("scan"), ("acronyms", "review"): self.scan_view,
                 ("acronyms", "approve"): self.home_view, ("acronyms", "export"): self.shell_page("acr_export"),
                 ("qaqc", "check"): getattr(self, "qa_view", None), ("qaqc", "export"): self.shell_page("qa_export"),
@@ -315,6 +320,14 @@ class ShellMixin:
             self.kw_refresh()
         elif feature == "home":
             self.shell_overview_refresh()
+        elif feature == "submission":
+            try:
+                if step == "documents":
+                    self.sub_refresh()
+                elif step == "compare":
+                    self.cmp_fill()
+            except Exception:
+                diag.swallowed()
         elif feature == "compliance":
             try:
                 if step == "decide" and hasattr(self, "_cp_sync"):
@@ -356,6 +369,9 @@ class ShellMixin:
                         "decide": c["Keep"] + c["Context"] > 0 and not c["needs_home"]}.get(s, False)
             if f == "qaqc" and s == "check":
                 return bool(getattr(self, "volume_report", None))
+            if f == "submission" and s == "documents":
+                lib = self.doclib()
+                return bool(lib and lib.docs) and not lib.counts()["unreviewed"]
         except Exception:
             diag.swallowed()
         return False
@@ -399,6 +415,13 @@ class ShellMixin:
         try:
             if key == "home":
                 return L.name[:28] if L is not None else "No effort open"
+            if key == "submission":
+                lib = self.doclib() if hasattr(self, "doclib") else None
+                if lib is None or not lib.docs:
+                    return "No customer documents yet"
+                c = lib.counts()
+                return (f"{c['unreviewed']} change{'s' if c['unreviewed'] != 1 else ''} to review" if c["unreviewed"]
+                        else f"{c['docs']} documents, {c['versions']} versions")
             if key == "compliance":
                 M = self.matrix
                 if M is None or not M.items:

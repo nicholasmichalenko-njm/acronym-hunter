@@ -46,6 +46,8 @@ PAGES = {
           "work done are green with a check mark. Click any step to go to it. Each feature ends in its own Export step; "
           "Effort home and File > Export all write everything at once. One status line runs along the bottom."),
     ("rows", [("Effort home", "Where each feature stands for the open effort, the next step to take, and Export all."),
+              ("Submission", "Documents (every customer document with its versions), Compare (what changed between any two "
+                             "versions), Export (the version history)."),
               ("Compliance", "Read RFP, Structure (the response outline), Assign (each sentence a compliance requirement in "
                              "a section, context, or not used), Prove (nothing missed; owner, status and page), Export."),
               ("Acronyms", "Scan (Select Files, Scan Folder, Scan Again, Project), Review (the results, with their filters), "
@@ -337,6 +339,29 @@ PAGES = {
                                    "file is copied first, so a restore can be undone.")]),
 ],
 "Compliance matrix": [
+    ("h", "Submission: customer documents and their versions"),
+    ("p", "Customer documents keep arriving: amendments, questions and answers, revised attachments. Submission keeps every "
+          "version and shows exactly what changed, so a changed page limit or format rule is not missed."),
+    ("img", "submission.png", 620),
+    ("rows", [("Add", "Add customer documents... (or Add them... when new files appear in the customer documents folder) reads "
+                      "each file and suggests what it is: a new version of a document already here, matched by name and by how "
+                      "much of the text is the same, or a new document. You confirm or change each one. The same file twice is "
+                      "skipped. Files are copied into the customer documents folder."),
+              ("History", "Click a document to see its versions, newest first: when each arrived, who added it, the file, its "
+                          "fingerprint (SHA-256) and what changed from the version before. A copy of each version's text is kept "
+                          "in the effort's folder, so the history and Compare hold up even if a file is replaced or deleted."),
+              ("Review", "A new version shows Not reviewed yet until someone clicks Mark reviewed, which records who and when. "
+                         "The feature list shows how many changes wait for review."),
+              ("Fix a match", "Rename a document or version, or Move to document... when a file belongs to another document's history.")]),
+    ("img", "compare.png", 620),
+    ("rows", [("Compare", "Pick a document and two versions (any two, not only neighbors). The two versions sit side by side, "
+                          "lined up sentence by sentence: removed words are struck through in red on the left, added words are green "
+                          "on the right. Amber rows touch submission requirements (format, page limits, due dates, files and copies)."),
+              ("Filters", "Only changes (on at first) and Only submission requirements. Up and Down jump from change to change."),
+              ("Exports", "Export redline (Word): the changes in reading order with both files' names, dates and fingerprints. "
+                          "Export list (Excel): one row per change. Export > Version history (Excel): every document's versions "
+                          "and a sheet of changes for each new version; Export all includes it."),
+              ("Rules only", "No AI: the text is compared word by word. Nothing leaves this PC.")]),
     ("h", "Every sentence of the RFP, each with a decision and a home"),
     ("p", "Compliance > Read RFP > New from RFP files. Pick the instructions, evaluation criteria, SOW and attachments. Every "
           "sentence becomes a row, in reading order, with its file, page or section. Rules mark the ones that ask for "
