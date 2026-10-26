@@ -108,7 +108,7 @@ def step2():
 
 
 def shot_submission():
-    """2.37.0: Submission > Documents (version history) and Compare, with an amendment of the sample RFP."""
+    """2.37.0: Submission > Documents (version history) and Compare, with an amendment of the sample RFP; 2.39.0 Requirements."""
     import zipfile
     src = os.path.join(CDIR, "Kestrel_RFP_Sections_C_L_M.docx")
     amd = os.path.join(tmp, "Kestrel_RFP_Sections_C_L_M_Amd1.docx")
@@ -129,6 +129,12 @@ def shot_submission():
     grab(app.shell_page("sub_docs"), "submission.png")
     app.sub_compare(d["id"]); app.update()
     grab(app.shell_page("sub_compare"), "compare.png")
+    app.shell_go("submission", "requirements"); app.update()        # 2.39.0: requirements, with the bar above
+    for iid, r in app.req_rows.items():
+        if r["key"] == "Page limit | Proposal":
+            app.req_tree.selection_set(iid)
+    app.sub_bar_refresh(); app.update(); time.sleep(0.5); app.update()
+    grab(app.strip.master, "requirements.png")
 
 
 def step3():

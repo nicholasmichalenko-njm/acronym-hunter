@@ -1,6 +1,11 @@
 """Submission (2.37.0, phase 1): customer documents with their versions, and a clean compare.
+2.39.0 (phase 2): Requirements first: what to deliver and how, read from every version (subreq.py), with its history.
 
-Feature in the rail after Effort home. Steps: Documents, Compare, Export.
+Feature in the rail after Effort home. Steps: Requirements, Documents, Compare, Export.
+- Requirements: due date, questions deadline, page limits per volume, font, margins, page size, spacing, file format,
+  naming, copies, delivery and deliverables, each with where it was found and how it changed from version to version.
+  A change stays marked until someone reviews it; confirm, edit, hide or type in requirements. The same summary shows
+  as a bar across every feature and as the Submission card on Effort home.
 - Documents: every customer document of the effort with its versions, newest first: when it arrived, who added it,
   the file, its SHA-256 fingerprint (a copy of its text is kept), what changed from the version before, and whether
   the change was reviewed. Add customer documents... reads each file and suggests which document it is a new version
@@ -18,6 +23,7 @@ from tkinter import filedialog, messagebox, ttk
 import customtkinter as ctk
 import diag
 import docversions as DV
+import subreq as SR
 
 DOC_TYPES = (".docx", ".pdf", ".pptx", ".xlsx")
 
@@ -38,6 +44,16 @@ class SubmissionMixin:
         if lib is None or lib.folder != folder:
             self._doclib = lib = DV.Library(folder).load()
         return lib
+
+    def subreg(self):
+        """The submission requirements of the open effort (2.39.0)."""
+        lib = self.doclib()
+        if lib is None:
+            return None
+        r = getattr(self, "_subreg", None)
+        if r is None or r.lib is not lib:
+            self._subreg = r = SR.Register(lib)
+        return r
 
     def sub_customer_dir(self):
         L = self.effort
@@ -68,6 +84,7 @@ class SubmissionMixin:
     # ------------------------------------------------------------ pages
     def _page_submission(self):
         A = dict(height=30, width=10)
+        self._page_requirements()
         act = self.shell_actions("submission", "documents")
         ctk.CTkButton(act, text="Add customer documents...", command=self.sub_add_dialog, fg_color="#0F766E", **A).pack(side="left", padx=3)
         pg = self.shell_page("sub_docs")
@@ -142,6 +159,416 @@ class SubmissionMixin:
         ctk.CTkButton(c, text="Version history (Excel)...", width=10, command=self.sub_export_history).pack(anchor="w", padx=14, pady=12)
         ctk.CTkLabel(ex, text="The files hold customer content: keep them on this PC or SharePoint.", anchor="w",
                      text_color=("#475569", "#94A3B8")).pack(fill="x", padx=8, pady=6)
+
+    # ------------------------------------------------------------ Requirements (2.39.0)
+    REQ_SHOW = ("All requirements", "Changes to review", "Due dates and page limits", "Format and files", "Deliverables", "Hidden")
+
+    def _page_requirements(self):
+        A = dict(height=30, width=10)
+        act = self.shell_actions("submission", "requirements")
+        ctk.CTkButton(act, text="Add a requirement...", command=self.req_add_dialog, **A).pack(side="left", padx=3)
+        ctk.CTkButton(act, text="Export (Excel)...", command=self.req_export, fg_color="#475569", **A).pack(side="left", padx=3)
+        pg = self.shell_page("sub_reqs")
+        self._h(pg, "Submission requirements", "What to deliver and how, read from every version of the customer documents. "
+                                               "A change stays marked until someone reviews it. Rules only (No AI).")
+        self.req_card = ctk.CTkFrame(pg, corner_radius=12, fg_color=("#FFFFFF", "#1F2937"), border_width=1,
+                                     border_color=("#E2E8F0", "#334155"))
+        self.req_card.pack(fill="x", padx=6, pady=(0, 6))
+        self.req_cells = {}
+        for i, (k, label) in enumerate((("due", "DUE"), ("pages", "PAGE LIMITS"), ("format", "FORMAT"), ("files", "FILES"),
+                                       ("review", "TO REVIEW"))):
+            self.req_card.grid_columnconfigure(i, weight=1, uniform="rc")
+            cell = ctk.CTkFrame(self.req_card, fg_color="transparent")
+            cell.grid(row=0, column=i, sticky="nsew", padx=12, pady=10)
+            ctk.CTkLabel(cell, text=label, font=("Segoe UI", 10, "bold"), text_color=("#64748B", "#94A3B8"), anchor="w").pack(fill="x")
+            v = ctk.CTkLabel(cell, text="", font=("Segoe UI", 14, "bold"), anchor="w", justify="left", wraplength=230)
+            v.pack(fill="x")
+            sub = ctk.CTkLabel(cell, text="", font=("Segoe UI", 11), anchor="w", justify="left", wraplength=230,
+                               text_color=("#475569", "#94A3B8"))
+            sub.pack(fill="x")
+            self.req_cells[k] = (v, sub)
+        bar = ctk.CTkFrame(pg, fg_color="transparent"); bar.pack(fill="x", padx=6)
+        ctk.CTkLabel(bar, text="Show").pack(side="left")
+        self.req_show = ctk.CTkOptionMenu(bar, values=list(self.REQ_SHOW), width=230, command=lambda _v: self.req_refresh())
+        self.req_show.pack(side="left", padx=6)
+        self.req_count = ctk.CTkLabel(bar, text="", text_color=("#475569", "#94A3B8"))
+        self.req_count.pack(side="left", padx=10)
+        body = ctk.CTkFrame(pg, fg_color="transparent"); body.pack(fill="both", expand=True, padx=6, pady=6)
+        left = tk.Frame(body); left.pack(side="left", fill="both", expand=True)
+        cols = (("kind", "Kind", 110), ("subject", "Requirement", 190), ("value", "Says", 300), ("state", "Status", 170),
+                ("src", "From", 230))
+        self.req_tree = tv = ttk.Treeview(left, columns=[c[0] for c in cols], show="headings", selectmode="browse",
+                                          style=getattr(self, "tree_style", "Treeview"))
+        for k, t, w in cols:
+            tv.heading(k, text=t); tv.column(k, width=w, minwidth=60, anchor="w", stretch=k == "value")
+        tv.tag_configure("review", background="#FEF3C7", foreground="#78350F")
+        tv.tag_configure("confirmed", background="#DCFCE7", foreground="#14532D")
+        tv.tag_configure("manual", background="#E0F2FE", foreground="#0C4A6E")
+        tv.tag_configure("removed", foreground="#94A3B8")
+        sb = ttk.Scrollbar(left, orient="vertical", command=tv.yview); tv.configure(yscrollcommand=sb.set)
+        sb.pack(side="right", fill="y"); tv.pack(fill="both", expand=True)
+        tv.bind("<<TreeviewSelect>>", lambda _e: self._req_detail())
+        self.req_detail = ctk.CTkScrollableFrame(body, width=440); self.req_detail.pack(side="left", fill="y", padx=(10, 0))
+        self.req_rows, self.req_hist_at = {}, {}
+
+    def _req_state(self, r):
+        if r["manual"]:
+            return "Typed in", "manual"
+        if r["to_review"]:
+            return ("Removed: review" if r["removed"] else "Changed: review"), "review"
+        if r["hidden"]:
+            return "Hidden", "removed"
+        if r["removed"]:
+            return "No longer in the documents", "removed"
+        if r["confirmed"]:
+            return "Confirmed", "confirmed"
+        return "Found", ""
+
+    def req_filter(self, rows, show):
+        k = {"Due dates and page limits": ("Due", "Questions due", "Page limit"), "Format and files": ("Format", "File", "Copies", "Delivery"),
+             "Deliverables": ("Deliverable",)}
+        if show == "Changes to review":
+            return [r for r in rows if r["to_review"]]
+        if show == "Hidden":
+            return [r for r in rows if r["hidden"]]
+        if show in k:
+            return [r for r in rows if r["kind"] in k[show] and not r["hidden"]]
+        return [r for r in rows if not r["hidden"]]
+
+    def req_refresh(self):
+        """Fill the list and the summary card. Returns the rows shown."""
+        if not hasattr(self, "req_tree"):
+            return []
+        reg = self.subreg()
+        tv = self.req_tree
+        keep = tv.selection()
+        tv.delete(*tv.get_children())
+        self.req_rows = {}
+        if reg is None:
+            self._req_card(None)
+            self.req_count.configure(text="Open an effort first.")
+            self._req_detail()
+            return []
+        allrows = reg.rows(include_hidden=True)
+        self._req_card([r for r in allrows if not r["hidden"]])
+        rows = self.req_filter(allrows, self.req_show.get())
+        for r in rows:
+            st, tag = self._req_state(r)
+            src = "" if r["manual"] else f"{r['doc']}, {r['version']}"
+            iid = tv.insert("", "end", values=(r["kind"], r["subject"], r["value"], st, src), tags=(tag,) if tag else ())
+            self.req_rows[iid] = r
+        n_rev = sum(1 for r in allrows if r["to_review"])
+        lib = self.doclib()
+        self.req_count.configure(text=(f"{len(rows)} shown of {sum(1 for r in allrows if not r['hidden'])}" +
+                                       (f"  |  {n_rev} change{'s' if n_rev != 1 else ''} to review" if n_rev else "")
+                                       if allrows else ("No customer documents yet: add them on Documents." if not lib.docs
+                                                        else "No submission requirements found yet. Add a requirement... types one in.")))
+        sel = [i for i in tv.get_children() if self.req_rows[i]["key"] in {self.req_rows.get(k, {}).get("key") for k in keep}] \
+            if keep else []
+        want = getattr(self, "_req_want", None)
+        if want:
+            sel = [i for i in tv.get_children() if self.req_rows[i]["key"] == want] or sel
+            self._req_want = None
+        if not sel and tv.get_children():
+            sel = [tv.get_children()[0]]
+        if sel:
+            tv.selection_set(sel[0]); tv.see(sel[0])
+        self._req_detail()
+        return rows
+
+    def req_summary_text(self, rows=None):
+        """One line for the bar and the Effort home card: due date (days left), page limits, format, files, changes."""
+        if rows is None:
+            reg = self.subreg()
+            rows = reg.rows() if reg else []
+        if not rows:
+            return ""
+        s = SR.summary(rows)
+        bits = []
+        if s["due"]:
+            n = SR.days_until(s["due"]["value"])
+            bits.append(f"Due {s['due']['value']}" + ("" if n is None else " (due date passed)" if n < 0 else
+                                                      " (today)" if n == 0 else f" ({n} day{'s' if n != 1 else ''})"))
+        if s["pages"]:
+            bits.append("Pages: " + ", ".join(f"{subj} {SR._limit_n(v)}" for subj, v, _r in s["pages"]))
+        f = [r["value"] for r in s["format"] if r["subject"] in ("Font", "Margins")]
+        if f:
+            bits.append(", ".join(f))
+        ff = [r["value"] for r in s["files"] if r["subject"] == "File format"]
+        if ff:
+            bits.append(ff[0])
+        if s["to_review"]:
+            n = len(s["to_review"])
+            bits.append(f"{n} change{'s' if n != 1 else ''} to review")
+        return "  |  ".join(bits)
+
+    def _req_card(self, rows):
+        cells = self.req_cells
+        for v, sub in cells.values():
+            v.configure(text="-"); sub.configure(text="")
+        if not rows:
+            return
+        s = SR.summary(rows)
+        if s["due"]:
+            n = SR.days_until(s["due"]["value"])
+            cells["due"][0].configure(text=s["due"]["value"])
+            cells["due"][1].configure(text=("" if n is None else "The due date has passed" if n < 0 else "Today" if n == 0
+                                            else f"{n} day{'s' if n != 1 else ''} from today") +
+                                      ("" if not s["due"]["to_review"] else "  |  changed: review"))
+        if s["pages"]:
+            cells["pages"][0].configure(text="\n".join(f"{subj}: {v}" for subj, v, _r in s["pages"][:4]))
+            cells["pages"][1].configure(text="changed: review" if any(r["to_review"] for _a, _b, r in s["pages"]) else "")
+        if s["format"]:
+            cells["format"][0].configure(text="\n".join(r["value"] for r in s["format"][:3]))
+        if s["files"]:
+            cells["files"][0].configure(text="\n".join(r["value"][:40] for r in s["files"][:3]))
+        n = len(s["to_review"])
+        cells["review"][0].configure(text=str(n) if n else "None", text_color=("#B45309", "#FBBF24") if n else ("#15803D", "#86EFAC"))
+        cells["review"][1].configure(text=f"{len(s['deliverables'])} deliverable(s) found" if s["deliverables"] else "")
+
+    def req_selected(self):
+        sel = self.req_tree.selection() if hasattr(self, "req_tree") else ()
+        return self.req_rows.get(sel[0]) if sel else None
+
+    def _req_doc_of(self, vid):
+        lib = self.doclib()
+        for d in (lib.docs if lib else []):
+            for i, v in enumerate(d["versions"]):
+                if v["id"] == vid:
+                    return d, i
+        return None, -1
+
+    def _req_detail(self):
+        if not hasattr(self, "req_detail"):
+            return
+        for w in self.req_detail.winfo_children():
+            w.destroy()
+        r = self.req_selected()
+        if r is None:
+            return
+        D = self.req_detail
+        ctk.CTkLabel(D, text=r["subject"], font=("Segoe UI", 17, "bold"), anchor="w", justify="left", wraplength=400).pack(fill="x", padx=8, pady=(6, 0))
+        st, _tag = self._req_state(r)
+        ctk.CTkLabel(D, text=f"{r['kind']}  |  {st}", anchor="w", text_color=("#B45309", "#FBBF24") if r["to_review"]
+                     else ("#475569", "#94A3B8")).pack(fill="x", padx=8)
+        ctk.CTkLabel(D, text=r["value"], font=("Segoe UI", 15), anchor="w", justify="left", wraplength=400).pack(fill="x", padx=8, pady=(6, 0))
+        if not r["manual"] and r["value"] != r["found"]:
+            ctk.CTkLabel(D, text=f"Edited. The documents say: {r['found']}", anchor="w", justify="left", wraplength=400,
+                         text_color=("#475569", "#94A3B8")).pack(fill="x", padx=8)
+        if r["confirmed"]:
+            ctk.CTkLabel(D, text=f"Confirmed {r['confirmed']}", anchor="w", text_color=("#15803D", "#86EFAC")).pack(fill="x", padx=8)
+        if r["reviewed"] and not r["to_review"]:
+            ctk.CTkLabel(D, text=f"Change reviewed {r['reviewed']}", anchor="w", text_color=("#15803D", "#86EFAC")).pack(fill="x", padx=8)
+        row = ctk.CTkFrame(D, fg_color="transparent"); row.pack(fill="x", padx=4, pady=(8, 4))
+        B = dict(width=10, height=28)
+        if r["to_review"]:
+            ctk.CTkButton(row, text="Mark reviewed", fg_color="#B45309", command=lambda: self.req_review(r["key"]), **B).pack(side="left", padx=3)
+        if r["manual"]:
+            ctk.CTkButton(row, text="Remove", fg_color="#B91C1C", command=lambda: self.req_remove(r["key"]), **B).pack(side="left", padx=3)
+        else:
+            if not r["confirmed"]:
+                ctk.CTkButton(row, text="Confirm", fg_color="#15803D", command=lambda: self.req_confirm(r["key"]), **B).pack(side="left", padx=3)
+            ctk.CTkButton(row, text="Edit...", command=lambda: self.req_edit(r["key"]), **B).pack(side="left", padx=3)
+            ctk.CTkButton(row, text="Show again" if r["hidden"] else "Not a requirement", fg_color="#475569",
+                          command=lambda: self.req_hide(r["key"], not r["hidden"]), **B).pack(side="left", padx=3)
+        h = r["history"]
+        if not h:
+            return
+        ctk.CTkLabel(D, text="HISTORY", font=("Segoe UI", 10, "bold"), text_color=("#64748B", "#94A3B8"), anchor="w").pack(fill="x", padx=8, pady=(12, 0))
+        at = self.req_hist_at.get(r["key"], len(h) - 1)
+        at = max(0, min(at, len(h) - 1))
+        nav = ctk.CTkFrame(D, fg_color="transparent"); nav.pack(fill="x", padx=4)
+        ctk.CTkButton(nav, text="< Previous", state="normal" if at > 0 else "disabled",
+                      command=lambda: self.req_history(r["key"], at - 1), **B).pack(side="left", padx=3)
+        ctk.CTkLabel(nav, text=f"Version {at + 1} of {len(h)}").pack(side="left", padx=8)
+        ctk.CTkButton(nav, text="Next >", state="normal" if at < len(h) - 1 else "disabled",
+                      command=lambda: self.req_history(r["key"], at + 1), **B).pack(side="left", padx=3)
+        e = h[at]
+        word = {"first": "First found", "same": "No change", "changed": "Changed", "removed": "Removed"}[e["change"]]
+        card = ctk.CTkFrame(D, corner_radius=10, fg_color=("#FFFFFF", "#111827"), border_width=1,
+                            border_color="#B45309" if e["change"] in ("changed", "removed") else ("#E2E8F0", "#334155"))
+        card.pack(fill="x", padx=6, pady=6)
+        ctk.CTkLabel(card, text=f"{e['doc']}, {e['version']}  |  {word}", font=("Segoe UI", 13, "bold"), anchor="w",
+                     justify="left", wraplength=380).pack(fill="x", padx=12, pady=(8, 0))
+        if e["change"] == "changed" and at > 0:
+            ctk.CTkLabel(card, text=f"Was: {h[at - 1]['value'] or '(not stated)'}\nNow: {e['value']}", anchor="w", justify="left",
+                         wraplength=380).pack(fill="x", padx=12, pady=(4, 0))
+        elif e["change"] != "removed":
+            ctk.CTkLabel(card, text=e["value"], anchor="w", justify="left", wraplength=380).pack(fill="x", padx=12, pady=(4, 0))
+        if e["sentence"]:
+            ctk.CTkLabel(card, text=f"“{e['sentence']}”", font=("Georgia", 12, "italic"), anchor="w", justify="left",
+                         wraplength=380).pack(fill="x", padx=12, pady=(4, 0))
+        if e["loc"]:
+            ctk.CTkLabel(card, text=e["loc"], font=("Segoe UI", 11), anchor="w", justify="left", wraplength=380,
+                         text_color=("#475569", "#94A3B8")).pack(fill="x", padx=12)
+        ctk.CTkLabel(card, text=f"Added {e['added'].replace('T', ' ')} by {e['who']}  |  {e['file']}\n"
+                                f"Fingerprint (SHA-256) {DV.short_sha(e['sha256'])}", font=("Segoe UI", 11), anchor="w",
+                     justify="left", wraplength=380, text_color=("#475569", "#94A3B8")).pack(fill="x", padx=12, pady=(2, 0))
+        d, i = self._req_doc_of(e["version_id"])
+        if d is not None and i > 0 and e["change"] in ("changed", "removed"):
+            ctk.CTkButton(card, text="Show the change", command=lambda: self.req_show_change(r["key"], at), **B).pack(anchor="w", padx=10, pady=8)
+        else:
+            ctk.CTkFrame(card, fg_color="transparent", height=6).pack()
+
+    def req_history(self, key, at):
+        self.req_hist_at[key] = at
+        self._req_detail()
+        return at
+
+    def req_show_change(self, key, at=None):
+        """Compare the version that changed a requirement with the one before it, on the changed sentence."""
+        reg = self.subreg()
+        r = next((x for x in reg.rows(include_hidden=True) if x["key"] == key), None) if reg else None
+        if r is None or not r["history"]:
+            return None
+        at = len(r["history"]) - 1 if at is None else at
+        e = r["history"][at]
+        d, i = self._req_doc_of(e["version_id"])
+        if d is None or i < 1:
+            return None
+        rows = self.sub_compare(d["id"], d["versions"][i - 1]["id"], e["version_id"])
+        old = r["history"][at - 1]["sentence"] if at > 0 else ""
+        hit = next((j for j, x in enumerate(rows) if x["kind"] != "same" and
+                    ((e["sentence"] and x.get("new") == e["sentence"]) or (old and x.get("old") == old))), None)
+        if hit is not None:
+            self.cmp_at = hit - 1 if hit > 0 else -1
+            self.cmp_at = hit
+            for t in self.cmp_panes:
+                t.tag_remove("cur", "1.0", "end")
+                rg = t.tag_ranges("row:%d" % hit)
+                if rg:
+                    t.tag_add("cur", rg[0], rg[1]); t.see(rg[0])
+        return hit
+
+    def _req_after(self, key):
+        self._req_want = key
+        self.req_refresh()
+        self.sub_bar_refresh() if hasattr(self, "sub_bar_refresh") else None
+
+    def req_review(self, key):
+        reg = self.subreg()
+        if reg and reg.review(key):
+            diag.activity("submission_requirement_reviewed")
+            self._req_after(key)
+            return True
+        return False
+
+    def req_confirm(self, key):
+        reg = self.subreg()
+        if reg and reg.confirm(key):
+            diag.activity("submission_requirement_confirmed")
+            self._req_after(key)
+            return True
+        return False
+
+    def req_edit(self, key, value=None):
+        reg = self.subreg()
+        r = next((x for x in reg.rows(include_hidden=True) if x["key"] == key), None) if reg else None
+        if r is None:
+            return False
+        if value is None:
+            from tkinter import simpledialog
+            value = simpledialog.askstring("Edit requirement", f"{r['subject']} (leave empty to go back to what the documents say):",
+                                           initialvalue=r["value"], parent=self)
+            if value is None:
+                return False
+        reg.edit(key, value)
+        diag.activity("submission_requirement_edited")
+        self._req_after(key)
+        return True
+
+    def req_hide(self, key, hidden=True):
+        reg = self.subreg()
+        if reg and reg.hide(key, hidden):
+            diag.activity("submission_requirement_hidden")
+            self._req_after(key)
+            return True
+        return False
+
+    def req_remove(self, key):
+        reg = self.subreg()
+        if reg and reg.remove_manual(key):
+            diag.activity("submission_requirement_removed")
+            self._req_after(None)
+            return True
+        return False
+
+    def req_add_dialog(self, kind=None, subject=None, value=None):
+        """Type in a requirement the documents do not state, or state in a way the rules miss."""
+        reg = self.subreg()
+        if reg is None:
+            messagebox.showinfo("Add a requirement", "Open an effort first.")
+            return None
+        if value is not None:
+            k = reg.add(kind or "Format", subject or "", value)
+            if k:
+                diag.activity("submission_requirement_added")
+                self._req_after(k)
+            return k
+        w = ctk.CTkToplevel(self); w.title("Add a requirement"); w.transient(self)
+        w.geometry("520x260")
+        ctk.CTkLabel(w, text="Kind").grid(row=0, column=0, sticky="w", padx=12, pady=(14, 4))
+        om = ctk.CTkOptionMenu(w, values=list(SR.KINDS)); om.set("Page limit"); om.grid(row=0, column=1, sticky="w", padx=8, pady=(14, 4))
+        ctk.CTkLabel(w, text="Requirement").grid(row=1, column=0, sticky="w", padx=12, pady=4)
+        e1 = ctk.CTkEntry(w, width=320, placeholder_text="Volume II, Font, Attachment J-3..."); e1.grid(row=1, column=1, sticky="w", padx=8, pady=4)
+        ctk.CTkLabel(w, text="Says").grid(row=2, column=0, sticky="w", padx=12, pady=4)
+        e2 = ctk.CTkEntry(w, width=320, placeholder_text="15 pages"); e2.grid(row=2, column=1, sticky="w", padx=8, pady=4)
+
+        def ok():
+            k = reg.add(om.get(), e1.get(), e2.get())
+            if k:
+                diag.activity("submission_requirement_added")
+                w.destroy()
+                self._req_after(k)
+        ctk.CTkButton(w, text="Add", command=ok).grid(row=3, column=1, sticky="w", padx=8, pady=14)
+        e2.bind("<Return>", lambda _e: ok())
+        w._api = {"kind": om, "subject": e1, "value": e2, "ok": ok}
+        w.after(100, w.lift)
+        return w
+
+    def req_export(self, path=None):
+        reg = self.subreg()
+        if reg is None:
+            return None
+        rows = reg.rows(include_hidden=True)
+        if path is None:
+            path = filedialog.asksaveasfilename(parent=self, defaultextension=".xlsx", filetypes=[("Excel", "*.xlsx")],
+                                                initialfile=f"{self.effort.name}_Submission_Requirements.xlsx".replace(" ", "_"))
+        if not path:
+            return None
+        SR.export_excel(path, rows, self.effort.name)
+        diag.activity("submission_exported")
+        self.status.configure(text="Submission requirements written.")
+        return path
+
+    # ------------------------------------------------------------ the bar across every feature (2.39.0)
+    def sub_bar_build(self, M):
+        self.subbar = ctk.CTkFrame(M, corner_radius=0, fg_color=("#F1F5F9", "#1E293B"), height=28)
+        self.subbar_lbl = ctk.CTkLabel(self.subbar, text="", anchor="w", font=("Segoe UI", 12), cursor="hand2")
+        self.subbar_lbl.pack(side="left", fill="x", expand=True, padx=18, pady=3)
+        self.subbar_lbl.bind("<Button-1>", lambda _e: self.shell_go("submission", "requirements"))
+        self.subbar.bind("<Button-1>", lambda _e: self.shell_go("submission", "requirements"))
+        diag.register(self.subbar_lbl, "submission_bar") if hasattr(diag, "register") else None
+
+    def sub_bar_refresh(self):
+        """Show the submission summary under the step strip while an effort with requirements is open."""
+        if not hasattr(self, "subbar"):
+            return ""
+        try:
+            reg = self.subreg()
+            rows = reg.rows() if reg else []
+        except Exception:
+            diag.swallowed(); rows = []
+        text = self.req_summary_text(rows) if rows else ""
+        if text:
+            todo = any(r["to_review"] for r in rows)
+            self.subbar.configure(fg_color=("#FEF3C7", "#422006") if todo else ("#F1F5F9", "#1E293B"))
+            self.subbar_lbl.configure(text="SUBMISSION   " + text, text_color=("#78350F", "#FDE68A") if todo else ("#334155", "#CBD5E1"))
+            if not self.subbar.winfo_manager():
+                self.subbar.pack(fill="x", side="top", after=self.strip)
+        elif self.subbar.winfo_manager():
+            self.subbar.pack_forget()
+        return text
 
     # ------------------------------------------------------------ Documents
     def sub_refresh(self):

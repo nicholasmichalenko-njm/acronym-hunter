@@ -1,4 +1,4 @@
-"""2.37.0 Submission, phase 1: the customer documents folder shows files not in the history yet; Add reads them,
+"""2.37.0 Submission, phase 1 (and 2.39.0 phase 2, requirements): the customer documents folder shows files not in the history yet; Add reads them,
 suggests matches and records versions; a new amendment is matched to its document (strong match, preselected);
 the same file twice is skipped; the history shows each version with its fingerprint; Compare lines up the two
 versions with removed and added words marked; filters, jumping between changes, exports; Mark reviewed; the rail
@@ -44,7 +44,9 @@ def go():
     check("Submission sits second in the feature list", rail[1].endswith("Submission"), rail[:3])
     app.shell_go("submission"); app.update()
     pills = [w.cget("text").split("  ")[0] for w in app.strip_pills.winfo_children()]
-    check("its steps: Documents, Compare, Export", pills == ["1 Documents", "2 Compare", "3 Export"], pills)
+    check("its steps: Requirements, Documents, Compare, Export; with nothing read yet it opens on Documents",
+          pills == ["1 Requirements", "2 Documents", "3 Compare", "4 Export"] and app.shell_step == "documents", (pills, app.shell_step))
+    check("no bar until requirements are found", not app.subbar.winfo_manager())
     check("files in the customer documents folder not in the history yet show in a banner",
           app.sub_banner.winfo_manager() and "2 customer document" in app.sub_banner_lbl.cget("text"), app.sub_banner_lbl.cget("text"))
     w = app.sub_add_dialog(app.sub_unadded()); w.update()
@@ -112,19 +114,78 @@ def go():
     # review and export
     v2 = rfp["versions"][1]
     app.shell_go("submission", "documents"); app.update()
-    check("Mark reviewed records who and when", app.sub_mark_reviewed(v2["id"]) and v2["reviewed"]
-          and app.shell_status("submission") == "2 documents, 3 versions", app.shell_status("submission"))
+    check("Mark reviewed records who and when; the rail then says a requirement changed", app.sub_mark_reviewed(v2["id"]) and v2["reviewed"]
+          and app.shell_status("submission") == "1 requirement changed", app.shell_status("submission"))
+    # 2.39.0: submission requirements, followed across versions
+    app.shell_go("submission"); app.update()
+    check("Submission now opens on Requirements", app.shell_step == "requirements", app.shell_step)
+    rows = {app.req_rows[i]["key"]: (i, app.req_rows[i]) for i in app.req_tree.get_children()}
+    check("Requirements lists what the documents set", {"Due | Proposal", "Page limit | Proposal", "Format | Font", "File | File format",
+                                                         "File | File naming", "Deliverable | Attachment J-2"} <= set(rows), sorted(rows))
+    key = "Page limit | Proposal"
+    i, r = rows[key]
+    check("the changed page limit is marked to review, with its new value", r["to_review"] and r["value"] == "40 pages"
+          and app.req_tree.set(i, "state") == "Changed: review" and "review" in app.req_tree.item(i, "tags"), app.req_tree.item(i))
+    check("the card shows the due date, page limits and changes to review", "Proposal: 40 pages" in app.req_cells["pages"][0].cget("text")
+          and app.req_cells["due"][0].cget("text").startswith("December 15, 2026") and app.req_cells["review"][0].cget("text") == "1",
+          [v.cget("text") for v, _s in app.req_cells.values()])
+    bar = app.sub_bar_refresh(); app.update()
+    check("the bar shows due date, page limits, format and changes, across every feature", app.subbar.winfo_manager()
+          and "Due December 15, 2026" in bar and "Pages: Proposal 40" in bar and "12-point Times New Roman" in bar and "1 change to review" in bar, bar)
+    app.shell_go("compliance"); app.update()
+    check("still there in another feature", app.subbar.winfo_manager())
+    app.subbar_lbl.event_generate("<Button-1>"); app.update()
+    check("clicking the bar opens Requirements", (app.shell_feature, app.shell_step) == ("submission", "requirements"))
+    app.req_tree.selection_set(i); app.update()
+    texts.clear(); walk(app.req_detail)
+    joined = " | ".join(t for t in texts if isinstance(t, str))
+    check("the history opens on the latest version: was, now, the sentence, the file and its fingerprint",
+          "Version 2 of 2" in joined and "Was: 50 pages" in joined and "Now: 40 pages" in joined and "exceed 40 pages" in joined
+          and "Fingerprint (SHA-256)" in joined and "Amendment 1" in joined, joined[:400])
+    app.req_history(key, 0); app.update()
+    texts.clear(); walk(app.req_detail)
+    joined = " | ".join(t for t in texts if isinstance(t, str))
+    check("Previous goes back to the Original version", "Version 1 of 2" in joined and "First found" in joined and "exceed 50 pages" in joined)
+    hit = app.req_show_change(key); app.update()
+    check("Show the change opens Compare on the changed sentence", app.shell_step == "compare" and hit is not None
+          and "40 pages" in app.cmp_rows[hit]["new"] and app.cmp_panes[1].tag_ranges("cur"), hit)
+    app.shell_go("submission", "requirements"); app.update()
+    check("Mark reviewed clears it; the rail and the bar follow", app.req_review(key) and not app.req_selected()["to_review"]
+          and app.shell_status("submission") == "2 documents, 3 versions" and "to review" not in app.sub_bar_refresh(), app.shell_status("submission"))
+    app.req_edit("Format | Margins", "1-inch margins on all four sides")
+    check("Edit keeps what the documents say beside it", app.req_selected()["value"] == "1-inch margins on all four sides"
+          and app.req_selected()["found"] == "1-inch margins")
+    k = app.req_add_dialog("Page limit", "Volume I", "20 pages")
+    check("a typed-in requirement", k and app.req_selected()["manual"] and app.req_tree.set(app.req_tree.selection()[0], "state") == "Typed in")
+    app.req_hide("Format | Page size")
+    check("Not a requirement hides it; Show: Hidden lists it", "Format | Page size" not in {r["key"] for r in app.req_rows.values()})
+    app.req_show.set("Hidden"); app.req_refresh()
+    check("Show: Hidden lists only the hidden one", [r["key"] for r in app.req_rows.values()] == ["Format | Page size"])
+    app.req_show.set("All requirements"); app.req_refresh()
+    app.shell_go("home"); app.update()
+    card = app.ov_rows["submission"].cget("text")
+    check("the Submission card on Effort home shows the due date and page limits", "Due December 15, 2026" in card and "Pages: Proposal 40, Volume I 20" in card, card)
+    xp = app.req_export(os.path.join(tmp, "reqs.xlsx"))
+    from openpyxl import load_workbook as _lw
+    wbr = _lw(xp)
+    check("the requirements export has the list and the history", wbr.sheetnames == ["Submission requirements", "History"]
+          and wbr["History"].max_row > wbr["Submission requirements"].max_row)
     hp = app.sub_export_history(os.path.join(tmp, "history.xlsx"))
     from openpyxl import load_workbook
     wb = load_workbook(hp)
     check("the version history export has the trail and a sheet of changes", wb["Version history"].max_row == 4 and len(wb.worksheets) == 2)
-    sub, files, probs = app.export_all(os.path.join(tmp, "out"), ["versions"])
-    check("Export all includes the version history", any(f.endswith("_Customer_Document_Versions.xlsx") for f in files) and not probs, files)
+    sub, files, probs = app.export_all(os.path.join(tmp, "out"), ["versions", "requirements"])
+    check("Export all includes the version history and the requirements", any(f.endswith("_Customer_Document_Versions.xlsx") for f in files)
+          and any(f.endswith("_Submission_Requirements.xlsx") for f in files) and not probs, files)
     check("saved in the effort folder as it happens", os.path.isfile(os.path.join(app.ws.root, "documents", "index.json"))
           and DV.Library(os.path.join(app.ws.root, "documents")).load().counts()["versions"] == 3)
     # 2.38.0: Acronyms with an effort open: straight to Review, one button scans the effort's documents, Found in column
     VOL = os.path.join(A.BASE_DIR, "test_samples", "Kestrel_Technical_Volume.docx")
     app.add_volume("Vol I Technical", [VOL])
+    import subreq as SR
+    pg = SR.page_check({os.path.basename(VOL): VOL}, app.subreg().rows(), app.volumes())
+    check("QA/QC page limits: our volume against its limit and all volumes against the proposal limit",
+          [(p["volume"], p["level"], p["pages"]) for p in pg] == [("Kestrel_Technical_Volume.docx", "ok", 1), ("All volumes", "ok", 1)], pg)
     app.results = {}
     app.shell_go("acronyms"); app.update()
     check("Acronyms opens on Review, offering to scan the effort's documents", app.shell_step == "review"

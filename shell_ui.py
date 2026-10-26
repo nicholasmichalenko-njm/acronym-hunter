@@ -14,7 +14,7 @@ FEATURES = (("home", "Effort home"), ("submission", "Submission"), ("compliance"
             ("keywords", "Keywords"))
 STEPS = {
     "home": (("overview", "Overview"),),
-    "submission": (("documents", "Documents"), ("compare", "Compare"), ("export", "Export")),     # 2.37.0
+    "submission": (("requirements", "Requirements"), ("documents", "Documents"), ("compare", "Compare"), ("export", "Export")),  # 2.39.0
     "compliance": (("read", "Read RFP"), ("outline", "Structure"), ("decide", "Assign"),
                    ("prove", "Prove"), ("export", "Export")),             # 2.36.0: Assign places as it decides
     "acronyms": (("scan", "Scan"), ("review", "Review"), ("approve", "Define and approve"), ("export", "Export")),
@@ -24,7 +24,7 @@ STEPS = {
 COMP_TABS = {"read": "Read RFP", "decide": "Requirements", "outline": "Outline", "place": "Place", "prove": "Prove",
              "export": "Export"}
 AI_SECTION = {"submission": "EFFORT", "compliance": "COMPLIANCE", "acronyms": "SCAN", "qaqc": "EFFORT", "keywords": "EFFORT", "home": "EFFORT"}
-NEEDS_EFFORT = {("submission", "documents"), ("submission", "compare"), ("submission", "export"), ("acronyms", "approve"), ("qaqc", "check"), ("qaqc", "export"), ("keywords", "decide"), ("keywords", "export")}
+NEEDS_EFFORT = {("submission", "requirements"), ("submission", "documents"), ("submission", "compare"), ("submission", "export"), ("acronyms", "approve"), ("qaqc", "check"), ("qaqc", "export"), ("keywords", "decide"), ("keywords", "export")}
 
 RAIL_BG = ("#0F172A", "#0B1220")
 RAIL_ON = "#1E3A8A"
@@ -97,6 +97,8 @@ class ShellMixin:
         self.strip_act = ctk.CTkFrame(st, fg_color="transparent", height=34)
         self.strip_act.pack(side="right", padx=12)
         self._acts = {}
+        if hasattr(self, "sub_bar_build"):
+            self.sub_bar_build(M)                  # 2.39.0: due date, page limits, format, changes to review
 
     def shell_actions(self, feature, step):
         """The frame for one step's actions in the strip (made once, shown while that step is open)."""
@@ -285,7 +287,7 @@ class ShellMixin:
                 diag.swallowed()
             return win
         if f == "submission":
-            return self.shell_page({"documents": "sub_docs", "compare": "sub_compare", "export": "sub_export"}[s])
+            return self.shell_page({"requirements": "sub_reqs", "documents": "sub_docs", "compare": "sub_compare", "export": "sub_export"}[s])
         return {("acronyms", "scan"): self.shell_page("scan"), ("acronyms", "review"): self.scan_view,
                 ("acronyms", "approve"): self.home_view, ("acronyms", "export"): self.shell_page("acr_export"),
                 ("qaqc", "check"): getattr(self, "qa_view", None), ("qaqc", "export"): self.shell_page("qa_export"),
@@ -298,6 +300,13 @@ class ShellMixin:
         steps = [k for k, _l in STEPS[feature]]
         if feature == "acronyms" and step is None and self.effort is not None and self._shell_last.get("acronyms") == "scan":
             step = "review"                    # 2.38.0: with an effort open, straight to what was found in its documents
+        if feature == "submission" and step is None and self._shell_last.get("submission") == "requirements":
+            try:                               # 2.39.0: nothing read yet: start where customer documents are added
+                lib = self.doclib()
+                if lib is not None and not lib.docs:
+                    step = "documents"
+            except Exception:
+                diag.swallowed()
         step = step if step in steps else self._shell_last.get(feature, steps[0])
         if feature == "home" and self.effort is None:
             self.ne_head.configure(text="No effort open")
@@ -326,6 +335,8 @@ class ShellMixin:
             self.shell_overview_refresh()
         elif feature == "submission":
             try:
+                if step == "requirements":
+                    self.req_refresh()
                 if step == "documents":
                     self.sub_refresh()
                 elif step == "compare":
@@ -416,6 +427,10 @@ class ShellMixin:
                         "decide": c["Keep"] + c["Context"] > 0 and not c["needs_home"]}.get(s, False)
             if f == "qaqc" and s == "check":
                 return bool(getattr(self, "volume_report", None))
+            if f == "submission" and s == "requirements":
+                reg = self.subreg()
+                rows = reg.rows() if reg else []
+                return bool(rows) and not any(r["to_review"] for r in rows)
             if f == "submission" and s == "documents":
                 lib = self.doclib()
                 return bool(lib and lib.docs) and not lib.counts()["unreviewed"]
@@ -467,7 +482,11 @@ class ShellMixin:
                 if lib is None or not lib.docs:
                     return "No customer documents yet"
                 c = lib.counts()
-                return (f"{c['unreviewed']} change{'s' if c['unreviewed'] != 1 else ''} to review" if c["unreviewed"]
+                if c["unreviewed"]:
+                    return f"{c['unreviewed']} change{'s' if c['unreviewed'] != 1 else ''} to review"
+                reg = self.subreg()
+                n = sum(1 for r in reg.rows() if r["to_review"]) if reg else 0
+                return (f"{n} requirement{'s' if n != 1 else ''} changed" if n
                         else f"{c['docs']} documents, {c['versions']} versions")
             if key == "compliance":
                 M = self.matrix
@@ -505,6 +524,8 @@ class ShellMixin:
                 self._shell_strip()
             if self.shell_feature == "home":
                 self.shell_overview_refresh()
+            if hasattr(self, "sub_bar_refresh"):
+                self.sub_bar_refresh()
         except Exception:
             diag.swallowed()
         self.after(1500, self.shell_tick)
@@ -516,7 +537,11 @@ class ShellMixin:
         self.ov_head.configure(text=L.name)
         self.ov_sub.configure(text="  |  ".join(x for x in (L.client, L.solicitation, os.path.basename(L.path)) if x))
         for key, lab in self.ov_rows.items():
-            lab.configure(text=self.shell_status(key))
+            t = self.shell_status(key)
+            if key == "submission" and hasattr(self, "req_summary_text"):      # 2.39.0: the Submission card
+                more = self.req_summary_text()
+                t = t + ("\n" + more.replace("  |  ", "\n") if more else "")
+            lab.configure(text=t)
         M = self.matrix
         if M is None or not M.items:
             self._ov_target, text = ("compliance", "read"), "Next: Compliance, read the RFP"

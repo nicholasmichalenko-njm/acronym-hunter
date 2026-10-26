@@ -10,6 +10,7 @@ from tkinter import filedialog, messagebox, ttk
 import customtkinter as ctk
 import diag
 import volcheck as V
+import subreq
 
 TAG_COLORS = {V.BAD: "#FDE2E2", V.WARN: "#FEF3E2", V.INFO: "#E0F2FE", V.OK: "#DCFCE7"}
 WORD_ONLY = ("QA/QC checks the Word documents we produce (.docx), never customer documents. Run it on the Word files, "
@@ -140,6 +141,13 @@ class VolumeCheckMixin:
                          file_of=eng._file_of, in_picture=lambda loc: bool(eng._OCR_LOC.search(loc)),
                          vol_lists=vc.get("lists"), vol_banned=vc.get("banned"))
         report["paths"] = {os.path.basename(p): p for p in vc["paths"]}
+        try:                                                # 2.39.0: against the page limits in the customer documents
+            reg = self.subreg() if hasattr(self, "subreg") else None
+            report["pages"] = subreq.page_check(report["paths"], reg.rows(), self.volumes()) if reg else []
+        except Exception:
+            diag.swallowed(); report["pages"] = []
+        for r in report["pages"]:
+            r["check"] = V.CHECK_MARKS.get(r["level"], "")
         self.volume_report = report
         s = report["summary"]
         diag.activity("volume_check_report", terms=s["terms_used"], rows=len(report["first_use"]), items=s["missing"])
@@ -165,6 +173,9 @@ class VolumeCheckMixin:
         bc = s.get("banned", {})
         if s.get("banned_checked"):
             head += f"          Banned words:  \u2717 {bc.get(V.BAD, 0)}   ! {bc.get(V.WARN, 0)}"
+        pg = report.get("pages") or []
+        if pg:
+            head += f"          Page limits:  \u2713 {sum(r['level'] == V.OK for r in pg)}   \u2717 {sum(r['level'] == V.BAD for r in pg)}"
         lc = s.get("list_checks", {})
         head += (f"          Acronym list:  \u2713 {lc.get(V.OK, 0)}   \u2717 {lc.get(V.BAD, 0)}   ! {lc.get(V.WARN, 0)}"
                  if report.get("acronym_list") else "")
@@ -228,6 +239,10 @@ class VolumeCheckMixin:
                                 "Effort list says", "Also defined at"],
                   report["first_use"], ["check", "volume", "term", "state", "loc", "in_figures", "written", "list_definition",
                                         "also_defined"], [70, 170, 100, 330, 260, 260, 190, 190, 200], level=True)
+        if report.get("pages"):
+            table("Page limits", ["Check", "Volume", "Limit for", "Limit", "Pages (Word's count)", "Result", "From"],
+                  report["pages"], ["check", "volume", "limit_for", "limit", "pages", "result", "source"],
+                  [70, 220, 150, 90, 150, 380, 260], level=True, jump=False)
         if s.get("banned_checked"):
             tvb = table("Banned words", ["Check", "Volume", "Found", "Banned phrase", "Use instead", "Where", "Sentence", "Why"],
                         report.get("banned", []), ["check", "volume", "found", "phrase", "use", "where", "sentence", "why"],

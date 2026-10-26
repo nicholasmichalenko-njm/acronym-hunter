@@ -418,6 +418,10 @@ def write_excel(report, path, effort_name=""):
                             "Effort list definition", "Also defined at", "List status"],
               report["first_use"], ["check", "volume", "term", "state", "loc", "in_figures", "written", "list_definition",
                                     "also_defined", "status"], [9, 22, 12, 46, 40, 40, 34, 34, 30, 14], level_key="level")
+    if report.get("pages"):                                 # 2.39.0
+        sheet("Page limits", ["Check", "Volume", "Limit for", "Limit", "Pages (Word's count)", "Result", "From"],
+              report["pages"], ["check", "volume", "limit_for", "limit", "pages", "result", "source"], [9, 30, 18, 12, 14, 50, 30],
+              level_key="level")
     sheet("Not in effort list", ["Term", "Type", "Volumes", "Count", "Suggested definition", "First found at"],
           report["missing"], ["term", "type", "volumes", "count", "suggestion", "loc"], [14, 13, 30, 8, 40, 40])
     sheet("Not approved", ["Term", "Type", "Status", "Definition", "Volumes", "First found at"],

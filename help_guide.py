@@ -46,8 +46,8 @@ PAGES = {
           "work done are green with a check mark. Click any step to go to it. Each feature ends in its own Export step; "
           "Effort home and File > Export all write everything at once. One status line runs along the bottom."),
     ("rows", [("Effort home", "Where each feature stands for the open effort, the next step to take, and Export all."),
-              ("Submission", "Documents (every customer document with its versions), Compare (what changed between any two "
-                             "versions), Export (the version history)."),
+              ("Submission", "Requirements (what to deliver and how, and how it changed), Documents (every customer document "
+                             "with its versions), Compare (what changed between any two versions), Export."),
               ("Compliance", "Read RFP, Structure (the response outline), Assign (each sentence a compliance requirement in "
                              "a section, context, or not used), Prove (nothing missed; owner, status and page), Export."),
               ("Acronyms", "Scan (Select Files, Scan Folder, Scan Again, Project), Review (the results, with their filters), "
@@ -345,6 +345,28 @@ PAGES = {
     ("h", "Submission: customer documents and their versions"),
     ("p", "Customer documents keep arriving: amendments, questions and answers, revised attachments. Submission keeps every "
           "version and shows exactly what changed, so a changed page limit or format rule is not missed."),
+    ("h", "Submission requirements: front and center"),
+    ("p", "Requirements, the first Submission step, lists what to deliver and how, read from every version of every customer "
+          "document: the due date and time, the deadline for questions, page limits for each volume, font and size, margins, "
+          "page size, line spacing, file format, file naming, copies, delivery, and deliverables (volumes, attachments, forms). "
+          "Rules only (No AI)."),
+    ("img", "requirements.png", 620),
+    ("rows", [("Card and bar", "The card at the top shows the due date with the days left, the page limits, format, files and "
+                               "how many changes wait for review. The same line runs as a thin bar under the steps in every "
+                               "feature (amber while a change waits); click it to come back here. Effort home shows it too."),
+              ("History", "Click a requirement to see where it was found and each version's value, newest first. Previous and "
+                          "Next step through the versions: the sentence, the file, who added it, when, and its fingerprint. Was "
+                          "and Now show a change. Show the change opens Compare on that sentence."),
+              ("Review", "A requirement that changed or disappeared in a new version stays amber (Changed: review) until "
+                         "someone clicks Mark reviewed, which records who and when. A later change brings it back."),
+              ("Your corrections", "Confirm what is right; Edit... when the rules read it wrong (what the documents say stays beside "
+                                   "your wording); Not a requirement hides a false find; Add a requirement... types in one the "
+                                   "rules missed. All of it is saved in the effort's folder."),
+              ("Page limits in QA/QC", "When QA/QC checks our Word volumes, a Page limits tab compares each volume's page count (as Word "
+                                       "last saved it) with the limit for that volume, matched by volume number or name, and all "
+                                       "volumes together with a limit for the whole proposal. Open and save a file in Word if it "
+                                       "has no page count yet."),
+              ("Export", "Export (Excel) writes the requirements and their full history; Export all includes it.")]),
     ("img", "submission.png", 620),
     ("rows", [("Add", "Add customer documents... (or Add them... when new files appear in the customer documents folder) reads "
                       "each file and suggests what it is: a new version of a document already here, matched by name and by how "
