@@ -195,12 +195,13 @@ class SubmissionMixin:
         self.req_count.pack(side="left", padx=10)
         body = ctk.CTkFrame(pg, fg_color="transparent"); body.pack(fill="both", expand=True, padx=6, pady=6)
         left = tk.Frame(body); left.pack(side="left", fill="both", expand=True)
-        cols = (("kind", "Kind", 110), ("subject", "Requirement", 190), ("value", "Says", 300), ("state", "Status", 170),
+        cols = (("kind", "Kind", 120), ("subject", "Requirement", 190), ("value", "Says", 300), ("state", "Status", 170),
                 ("src", "From", 230))
         self.req_tree = tv = ttk.Treeview(left, columns=[c[0] for c in cols], show="headings", selectmode="browse",
                                           style=getattr(self, "tree_style", "Treeview"))
+        sc = float(ctk.ScalingTracker.get_widget_scaling(pg)) * getattr(self, "font_size", 13) / 13   # like the QA/QC tables
         for k, t, w in cols:
-            tv.heading(k, text=t); tv.column(k, width=w, minwidth=60, anchor="w", stretch=k == "value")
+            tv.heading(k, text=t); tv.column(k, width=int(w * sc), minwidth=60, anchor="w", stretch=k == "value")
         tv.tag_configure("review", background="#FEF3C7", foreground="#78350F")
         tv.tag_configure("confirmed", background="#DCFCE7", foreground="#14532D")
         tv.tag_configure("manual", background="#E0F2FE", foreground="#0C4A6E")
