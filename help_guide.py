@@ -394,9 +394,8 @@ PAGES = {
                                  "requirement it supports, with \"Also context for\" naming the others; context for a section "
                                  "prints first in that section. The matrix's Context for column lists the requirements."),
               ("Setup board", "Arrange the setup... on the right opens the board for order, direction and references."),
-              ("Prove", "The final check before export, as tiles to clear: Not used (not confirmed), Assigned with no section, "
-                        "Context not attached, Requirements with no owner, New in the latest RFP read, and All compliance "
-                        "requirements. Click a tile to list those sentences with what to do: Open in Assign (or double-click), "
+              ("Prove", "The final check before export, as tiles to clear: Not used, unconfirmed; No section; Context not "
+                        "attached; No owner; New in latest read; and All requirements. Click a tile to list those sentences with what to do: Open in Assign (or double-click), "
                         "Confirm not used, Mark checked, or set owner, status, response page and notes for several at once. "
                         "When nothing is left, Prove says ready to export. The coverage report is one button at the top."),
               ("People", "People... in Assign (or right-click a section) sets a lead and contributors for each section. "

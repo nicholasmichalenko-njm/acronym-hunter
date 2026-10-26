@@ -1094,9 +1094,9 @@ class CompliancePageMixin:
         return "break"
 
     # ------------------------------------------------------------ Prove: the final check, as categories to clear (2.38.0)
-    PROVE_CATS = (("unused", "Not used, not confirmed"), ("nosection", "Assigned, no section"),
-                  ("ctx", "Context not attached"), ("noowner", "Requirements with no owner"),
-                  ("changed", "New in the latest RFP read"), ("all", "All compliance requirements"))
+    PROVE_CATS = (("unused", "Not used, unconfirmed"), ("nosection", "No section"),
+                  ("ctx", "Context not attached"), ("noowner", "No owner"),
+                  ("changed", "New in latest read"), ("all", "All requirements"))
     PROVE_HELP = {
         "unused": "Sentences you did not assign. Check each one, then Confirm not used (it then counts as reviewed), or open "
                   "it in Assign and assign it.",
