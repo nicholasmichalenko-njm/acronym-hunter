@@ -194,9 +194,11 @@ class SubmissionMixin:
         self.req_count = ctk.CTkLabel(bar, text="", text_color=("#475569", "#94A3B8"))
         self.req_count.pack(side="left", padx=10)
         body = ctk.CTkFrame(pg, fg_color="transparent"); body.pack(fill="both", expand=True, padx=6, pady=6)
+        self.req_detail = ctk.CTkScrollableFrame(body, width=440)      # the history keeps its width; the table takes the rest
+        self.req_detail.pack(side="right", fill="y", padx=(10, 0))
         left = tk.Frame(body); left.pack(side="left", fill="both", expand=True)
-        cols = (("kind", "Kind", 120), ("subject", "Requirement", 190), ("value", "Says", 300), ("state", "Status", 170),
-                ("src", "From", 230))
+        cols = (("kind", "Kind", 100), ("subject", "Requirement", 150), ("value", "Says", 240), ("state", "Status", 140),
+                ("src", "From", 200))
         self.req_tree = tv = ttk.Treeview(left, columns=[c[0] for c in cols], show="headings", selectmode="browse",
                                           style=getattr(self, "tree_style", "Treeview"))
         sc = float(ctk.ScalingTracker.get_widget_scaling(pg)) * getattr(self, "font_size", 13) / 13   # like the QA/QC tables
@@ -209,7 +211,7 @@ class SubmissionMixin:
         sb = ttk.Scrollbar(left, orient="vertical", command=tv.yview); tv.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y"); tv.pack(fill="both", expand=True)
         tv.bind("<<TreeviewSelect>>", lambda _e: self._req_detail())
-        self.req_detail = ctk.CTkScrollableFrame(body, width=440); self.req_detail.pack(side="left", fill="y", padx=(10, 0))
+
         self.req_rows, self.req_hist_at = {}, {}
 
     def _req_state(self, r):
