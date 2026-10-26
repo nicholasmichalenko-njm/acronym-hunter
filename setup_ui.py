@@ -151,8 +151,8 @@ class SetupMixin:
             if out.exists(s):
                 out.selection_add(s)
         chk = SD.export_check(M)
-        kept = sum(1 for it in M.items if it.get("decision") == "Keep")
-        win.s_lbl.configure(text=f"{kept - len(chk['unplaced'])} of {kept} kept requirements placed  |  {chk['blocks']} blocks  |  "
+        kept = sum(1 for it in M.items if it.get("decision") in ("Keep", "Context"))
+        win.s_lbl.configure(text=f"{kept - len(chk['unplaced'])} of {kept} Keep and Context rows placed  |  {chk['blocks']} blocks  |  "
                                  f"{len(chk['no_ref'])} without a reference  |  {len(S['context'])} context paragraphs  |  "
                                  f"References: {SD.REF_FORMAT_LABELS[S['ref_format']]}")
 

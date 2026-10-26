@@ -33,6 +33,20 @@ class Doc:
     def para(self, text, bold=False, color=None):
         self.body.append(f"<w:p>{_run(text, bold, color)}</w:p>")
 
+    def rich(self, parts):
+        """One paragraph of several runs: parts = [(text, {"bold", "color", "fill", "size", "italic"})] (2.29.0).
+        fill shades the run's background (a highlighter in any color); size is in half-points."""
+        runs = []
+        for text, f in parts:
+            f = f or {}
+            props = (("<w:b/>" if f.get("bold") else "") + ("<w:i/>" if f.get("italic") else "")
+                     + (f'<w:color w:val="{f["color"]}"/>' if f.get("color") else "")
+                     + (f'<w:sz w:val="{int(f["size"])}"/>' if f.get("size") else "")
+                     + (f'<w:shd w:val="clear" w:color="auto" w:fill="{f["fill"]}"/>' if f.get("fill") else ""))
+            rpr = f"<w:rPr>{props}</w:rPr>" if props else ""
+            runs.append(f'<w:r>{rpr}<w:t xml:space="preserve">{_x(text)}</w:t></w:r>')
+        self.body.append("<w:p>" + "".join(runs) + "</w:p>")
+
     def table(self, header, rows, widths):
         def cell(text, w, bold=False, shade=None):
             sh = f'<w:shd w:val="clear" w:color="auto" w:fill="{shade}"/>' if shade else ""

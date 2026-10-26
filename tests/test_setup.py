@@ -98,7 +98,7 @@ def run():
     assert re.match(r"^[A-Z][\w.\-()]*: ", texts[i + 1]), texts[i + 1]                    # reference on the same line
     assert "Lead with the radiator. Owner: J. Ortiz." in texts and "We exceed this: cite the 2024 test." in texts
     assert texts.index("We exceed this: cite the 2024 test.") < texts.index("Lead with the radiator. Owner: J. Ortiz.")
-    assert colors(paths[0]) == {SD.PURPLE, SD.GREEN}, colors(paths[0])
+    assert colors(paths[0]) == {SD.PURPLE, SD.GREEN, SD.CONTEXT_BLUE}, colors(paths[0])   # context in blue (2.29.0)
     custom = zipfile.ZipFile(paths[0]).read("docProps/custom.xml").decode("utf-8")
     assert "AcronymHunterMatrix" in custom and "Kestrel" in custom
     assert "Volume II" in doc_paras(paths[1])[0][0]

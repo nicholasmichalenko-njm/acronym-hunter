@@ -20,7 +20,12 @@ def run():
     files = sorted(os.listdir(RFP))
     heads = []
     items = C.extract([(f, A.typed_chunks(os.path.join(RFP, f))) for f in files], heads)
-    assert len(items) == 27, len(items)
+    req = [it for it in items if it["type"] != "Context"]
+    assert len(req) == 27, len(req)
+    ctx = [it for it in items if it["type"] == "Context"]                  # 2.29.0: every sentence is a row
+    assert ctx and all(it["suggest"] in ("Context", "Drop") for it in ctx), [(it["text"], it["suggest"]) for it in ctx]
+    assert any("Resumes do not count toward the page limit" in it["text"] for it in ctx)
+    assert len(C.extract([(f, A.typed_chunks(os.path.join(RFP, f))) for f in files], every=False)) == 27
     ids = [it["id"] for it in items]
     assert len(set(ids)) == len(ids)
     # Section C (SOW)
@@ -32,7 +37,7 @@ def run():
     gov = by_text(items, "The Government will provide the launch vehicle")
     assert (gov["type"], gov["strength"], gov["suggest"]) == ("Information", "Information", "Drop")
     assert by_text(items, "The Contractor should use")["strength"] == "Desired"
-    assert not any(it["text"].startswith("This acquisition is for") for it in items), "plain statements are not requirements"
+    assert by_text(items, "This acquisition is for")["type"] == "Context", "plain statements are Context rows, not requirements"
     # Section L (instructions, format, lists)
     assert by_text(items, "Proposals shall not exceed 50 pages")["type"] == "Format"
     assert by_text(items, "Proposals are due no later than 2:00 p.m. Mountain Time")["type"] == "Format"
@@ -81,13 +86,13 @@ def run():
     th["map"], th["owner"] = "L.4.1 Technical Approach", "J. Smith"
     M.log(th["id"], "mapped"); M.save()
     N = C.Matrix(M.path).load()
-    assert len(N.items) == 27 and N.name == "Kestrel" and len(N.outline) == len(outline) and len(N.headings) == len(heads)
+    assert len(N.items) == len(items) and N.name == "Kestrel" and len(N.outline) == len(outline) and len(N.headings) == len(heads)
     t2 = [it for it in N.items if it["id"] == th["id"]][0]
     assert t2["map"] == "L.4.1 Technical Approach" and t2["owner"] == "J. Smith" and t2["decision"] == "Keep"
     assert [it for it in N.items if it["id"] == icd["id"]][0]["compound"] is True
     from openpyxl import load_workbook
     wb = load_workbook(M.path)
-    assert wb.sheetnames == ["Compliance Matrix", "Outline", "Sources", "RFP headings", "History", "About"], wb.sheetnames
+    assert wb.sheetnames == ["Compliance Matrix", "Outline", "Sources", "Coverage", "RFP headings", "History", "About"], wb.sheetnames
     ws = wb["Compliance Matrix"]
     for r in ws.iter_rows(min_row=2):
         if r[0].value == may["id"]:
@@ -114,6 +119,20 @@ def run():
     heads = C.outline_from_docx_xml(xml.encode())
     assert any(h["title"].startswith("Technical Approach") for h in heads), heads[:4]
     assert A.typed_chunks(out)
+    # 2.29.0: every sentence gets a decision; the coverage report says plainly whether any line was missed
+    cov = N.coverage()
+    tot = cov[-1]
+    assert tot["file"] == "Total" and tot["total"] == len(N.items), tot
+    cp = os.path.join(d, "coverage.docx")
+    ci = C.write_coverage_docx(N, cp)
+    cx = zipfile.ZipFile(cp).read("word/document.xml").decode()
+    minidom.parseString(cx.encode())
+    assert ci["sentences"] == len(N.items) and ci["undecided"] > 0 and "still need a decision" in cx, ci
+    for it in N.items:
+        it["decision"] = it["decision"] or "Context"
+    ci = C.write_coverage_docx(N, cp)
+    cx = zipfile.ZipFile(cp).read("word/document.xml").decode()
+    assert ci["undecided"] == 0 and "Every sentence has a decision." in cx and C.COVER_FILL["Context"] in cx
     print("compliance ok")
 
 

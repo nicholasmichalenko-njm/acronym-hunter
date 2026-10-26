@@ -315,12 +315,24 @@ PAGES = {
                                    "file is copied first, so a restore can be undone.")]),
 ],
 "Compliance matrix": [
-    ("h", "Every requirement in the RFP, with its source"),
-    ("p", "Compliance (top bar) > New from RFP files. Pick the instructions, evaluation criteria, SOW and attachments. Rules "
-          "list every sentence that asks for something (shall, must, will, should, may, describe, provide, page limits, "
-          "fonts, due dates), each with its file, page or section, and the passage it came from. No AI writes anything."),
+    ("h", "Every sentence of the RFP, each with a decision and a home"),
+    ("p", "Compliance (top bar) > New from RFP files. Pick the instructions, evaluation criteria, SOW and attachments. Every "
+          "sentence becomes a row, in reading order, with its file, page or section. Rules mark the ones that ask for "
+          "something (shall, must, will, should, may, describe, provide, page limits, fonts, due dates) as requirements; "
+          "every other sentence is a Context row, so nothing is skipped because it did not sound like a requirement. "
+          "No AI writes anything."),
     ("img", "compliance.png", 620),
-    ("rows", [("Decide", "K keeps, D drops, U undoes; the next row comes up. Select many rows to decide them together."),
+    ("rows", [("Decide", "K keeps (a requirement), C keeps as Context (text the authors need beside a requirement), D drops, "
+                         "U undoes. After each decision the next undecided sentence comes up; N jumps to it. Select many "
+                         "rows to decide them together."),
+              ("Every line", "The count above the table says how many sentences are decided and shows a check mark when all "
+                             "are. Filters show Context rows and Keep or Context rows that still need a home (no outline "
+                             "section). Boilerplate and page headers are suggested Drop; Accept suggestions applies them."),
+              ("Coverage report", "Coverage report... writes a Word file with every sentence of every RFP file in reading "
+                                  "order, shaded by its decision (green Keep, blue Context, grey Drop, red undecided) and "
+                                  "tagged with its ID and outline section. It opens with a table per file and a plain line "
+                                  "saying whether every sentence has a decision: the proof that every line was considered. "
+                                  "The workbook has the same table on its Coverage sheet."),
               ("Suggested", "Government statements are suggested Drop, 'may' is Review, offeror and contractor duties are Keep. "
                             "Accept suggestions applies them to the undecided rows shown; Review rows stay for you."),
               ("Split", "S splits a compound requirement (two 'shall's, or items joined by ';') into separate rows."),
@@ -335,8 +347,9 @@ PAGES = {
               ("Source page", "Show page opens a PDF row's page with the sentence highlighted. Open file opens any source document."),
               ("Amendments", "Re-read RFP keeps decisions, mapping and notes for unchanged sentences. Amendment changes pairs changed "
                              "sentences and shows the word differences: [-removed-] {+added+}; export it to Excel."),
-              ("Outputs", "The matrix is an Excel workbook (edits made in Excel count). Word outline makes the proposal outline "
-                          "with each section's requirements in a table.")]),
+              ("Outputs", "The matrix is an Excel workbook (edits made in Excel count; type Keep, Context or Drop). Word "
+                          "outline makes the proposal outline with each section's requirements in a table. Context rows go "
+                          "to the Setup documents in blue, under the section they were placed in.")]),
     ("p", "The matrix holds customer content: keep it on this PC or SharePoint."),
     ("h", "Setup: the first draft for authors"),
     ("p", "The Setup tab puts the RFP text under the proposal outline and writes the setup documents: every heading of the "

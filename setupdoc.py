@@ -14,6 +14,7 @@ and saved in the workbook (Setup sheets). Pure Python, no network.
 import datetime, hashlib, os, re, zipfile
 
 PURPLE, GREEN = "7030A0", "00B050"
+CONTEXT_BLUE = "2E74B5"                  # 2.29.0: RFP sentences decided Context (not requirements) print in blue
 REF_FORMATS = {"colon": "{ref}: ", "brackets": "[{ref}] ", "rfp": "RFP {ref} - "}
 REF_FORMAT_LABELS = {"colon": "L.4.2(a): text", "brackets": "[L.4.2(a)] text", "rfp": "RFP L.4.2(a) - text"}
 MISSING = "[REFERENCE MISSING]"
@@ -49,8 +50,8 @@ def labels(M):
 
 
 def all_items(M):
-    """Kept requirements (and evaluation rows) plus context paragraphs, in matrix order."""
-    return [it for it in M.items if it.get("decision") == "Keep"] + list(setup_of(M)["context"])
+    """Kept requirements (and evaluation rows), Context sentences (2.29.0) and context paragraphs, in matrix order."""
+    return [it for it in M.items if it.get("decision") in ("Keep", "Context")] + list(setup_of(M)["context"])
 
 
 def by_id(M):
@@ -58,7 +59,7 @@ def by_id(M):
 
 
 def kind_of(it):
-    if it.get("kind") == "context":
+    if it.get("kind") == "context" or it.get("decision") == "Context":
         return "Context"
     return "Evaluation" if it.get("type") == "Evaluation" else "Requirement"
 
@@ -255,7 +256,7 @@ def export_check(M):
     ids = {i for v in P.values() for i in v}
     B = by_id(M)
     no_ref = sorted(i for i in ids if not ref_of(M, B[i], inh)[0])
-    kept = [it for it in M.items if it.get("decision") == "Keep"]
+    kept = [it for it in M.items if it.get("decision") in ("Keep", "Context")]
     unp = [it["id"] for it in kept if it["id"] not in ids]
     return {"unplaced": unp, "no_ref": no_ref, "blocks": len(ids)}
 
@@ -278,7 +279,7 @@ def _doc_for(M, name, entries, P, inh, stamp):
             it = B.get(iid)
             if it is None:
                 continue
-            d.para(block_text(M, it, inh), color=PURPLE)
+            d.para(block_text(M, it, inh), color=CONTEXT_BLUE if kind_of(it) == "Context" else PURPLE)
             note = S["notes"].get(iid, "").strip()
             if note:
                 d.para(note, color=GREEN)

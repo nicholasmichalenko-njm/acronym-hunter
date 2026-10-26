@@ -11,7 +11,7 @@ import compliance as C
 import complearn as CL
 
 ALL = "All"
-LEVEL_COLORS = {"Keep": "#E7F6EC", "Drop": "#EEEEEE"}
+LEVEL_COLORS = {"Keep": "#E7F6EC", "Context": "#E0F2FE", "Drop": "#EEEEEE"}
 
 
 def _eng():
@@ -51,7 +51,8 @@ class ComplianceMixin:
         for text, cmd, color in (("New from RFP files...", self.compliance_new, "#9A3412"), ("Open matrix...", self.compliance_open, None),
                                  ("Add RFP files...", self.compliance_add_files, None), ("Re-read RFP (amendment)...", self.compliance_reread, None),
                                  ("Save", self.compliance_save, "#0F766E"), ("Open in Excel", self.compliance_excel, None),
-                                 ("Word outline...", self.compliance_word, "#1E3A8A"), ("Learn from decisions", self.compliance_learn, "#6D28D9"),
+                                 ("Word outline...", self.compliance_word, "#1E3A8A"), ("Coverage report...", self.compliance_coverage, "#1E3A8A"),
+                                 ("Learn from decisions", self.compliance_learn, "#6D28D9"),
                                  ("Amendment changes...", self.compliance_changes, None)):
             kw = dict(B); kw.update(fg_color=color) if color else None
             btn = ctk.CTkButton(top, text=text, command=cmd, **kw)
@@ -68,9 +69,9 @@ class ComplianceMixin:
         flt = ctk.CTkFrame(win, fg_color="transparent"); flt.pack(fill="x", padx=10, pady=2)
         win.f_dec = tk.StringVar(value=ALL); win.f_type = tk.StringVar(value=ALL); win.f_sug = tk.StringVar(value=ALL)
         win.f_map = tk.StringVar(value=ALL); win.f_q = tk.StringVar(); win.f_learn = tk.StringVar(value=ALL)
-        for lab, var, vals in (("Decision", win.f_dec, [ALL, "Undecided", "Keep", "Drop"]), ("Type", win.f_type, [ALL] + list(C.TYPES)),
-                               ("Suggested", win.f_sug, [ALL, "Keep", "Drop", "Review"]), ("Learned", win.f_learn, [ALL, "Keep", "Drop", "Review"]),
-                               ("Outline", win.f_map, [ALL, "Kept, not mapped", "Mapped"])):
+        for lab, var, vals in (("Decision", win.f_dec, [ALL, "Undecided", "Keep", "Context", "Drop"]), ("Type", win.f_type, [ALL] + list(C.TYPES)),
+                               ("Suggested", win.f_sug, [ALL, "Keep", "Context", "Drop", "Review"]), ("Learned", win.f_learn, [ALL, "Keep", "Drop", "Review"]),
+                               ("Outline", win.f_map, [ALL, "Needs a home", "Kept, not mapped", "Mapped"])):
             ctk.CTkLabel(flt, text=lab).pack(side="left", padx=(8, 3))
             ctk.CTkOptionMenu(flt, variable=var, values=vals, width=110, command=lambda _v: self._c_fill()).pack(side="left")
         ctk.CTkLabel(flt, text="Search").pack(side="left", padx=(12, 3))
@@ -120,14 +121,17 @@ class ComplianceMixin:
             tv.heading(k, text=h, command=lambda k=k: self._c_sort(k)); tv.column(k, width=int(w * sc), minwidth=40, anchor="w", stretch=False)
         tv.tag_configure("Keep", background=LEVEL_COLORS["Keep"], foreground="#111827")
         tv.tag_configure("Drop", background=LEVEL_COLORS["Drop"], foreground="#6B7280")
+        tv.tag_configure("Context", background=LEVEL_COLORS["Context"], foreground="#111827")
         sb = ttk.Scrollbar(left, orient="vertical", command=tv.yview)
         hb = ttk.Scrollbar(left, orient="horizontal", command=tv.xview)
         tv.configure(yscrollcommand=sb.set, xscrollcommand=hb.set)
         sb.pack(side="right", fill="y"); hb.pack(side="bottom", fill="x"); tv.pack(fill="both", expand=True)
         tv.bind("<<TreeviewSelect>>", lambda _e: (self._c_show(), self.resume_changed() if hasattr(self, "resume_changed") else None))
-        for key, dec in (("k", "Keep"), ("d", "Drop"), ("u", "")):
+        for key, dec in (("k", "Keep"), ("c", "Context"), ("d", "Drop"), ("u", "")):
             tv.bind(f"<KeyPress-{key}>", lambda _e, dec=dec: self.compliance_decide(dec))
             tv.bind(f"<KeyPress-{key.upper()}>", lambda _e, dec=dec: self.compliance_decide(dec))
+        tv.bind("<KeyPress-n>", lambda _e: self.compliance_next_undecided())
+        tv.bind("<KeyPress-N>", lambda _e: self.compliance_next_undecided())
         tv.bind("<KeyPress-s>", lambda _e: self.compliance_split())
         tv.bind("<KeyPress-m>", lambda _e: self.compliance_merge())
         win.tv = tv
@@ -139,10 +143,15 @@ class ComplianceMixin:
             win.d_text.bind("<Button-3>", lambda e: self.kw_text_menu(e, win.d_text._textbox, "Compliance requirement"))
             tv.bind("<Button-3>", self._c_kw_menu, add="+")
         bb = ctk.CTkFrame(right, fg_color="transparent"); bb.pack(fill="x", padx=10, pady=6)
-        for text, cmd, color in (("Keep (K)", lambda: self.compliance_decide("Keep"), "#15803D"), ("Drop (D)", lambda: self.compliance_decide("Drop"), "#6B7280"),
-                                 ("Undecided (U)", lambda: self.compliance_decide(""), "#475569"), ("Split (S)", self.compliance_split, "#9A3412"),
-                                 ("Merge (M)", self.compliance_merge, "#9A3412")):
+        for text, cmd, color in (("Keep (K)", lambda: self.compliance_decide("Keep"), "#15803D"),
+                                 ("Context (C)", lambda: self.compliance_decide("Context"), "#0369A1"),
+                                 ("Drop (D)", lambda: self.compliance_decide("Drop"), "#6B7280"),
+                                 ("Undecided (U)", lambda: self.compliance_decide(""), "#475569")):
             ctk.CTkButton(bb, text=text, command=cmd, fg_color=color, width=72).pack(side="left", padx=2)
+        bb2 = ctk.CTkFrame(right, fg_color="transparent"); bb2.pack(fill="x", padx=10, pady=(0, 6))
+        for text, cmd, color in (("Next undecided (N)", self.compliance_next_undecided, "#1E3A8A"),
+                                 ("Split (S)", self.compliance_split, "#9A3412"), ("Merge (M)", self.compliance_merge, "#9A3412")):
+            ctk.CTkButton(bb2, text=text, command=cmd, fg_color=color, width=72).pack(side="left", padx=2)
         win.d_src = ctk.CTkLabel(right, text="", anchor="w", justify="left", wraplength=400, text_color=("#475569", "#94A3B8"))
         win.d_src.pack(fill="x", padx=10)
         sbar = ctk.CTkFrame(right, fg_color="transparent"); sbar.pack(fill="x", padx=10, pady=(4, 0))
@@ -182,9 +191,9 @@ class ComplianceMixin:
                      anchor="w").pack(fill="x")
         win.o_text = ctk.CTkTextbox(left, wrap="none", font=("Consolas", 13)); win.o_text.pack(fill="both", expand=True)
         rightf = ctk.CTkFrame(body, fg_color="transparent"); rightf.pack(side="right", fill="both", padx=(8, 0))
-        ctk.CTkLabel(rightf, text="Kept requirements per section", anchor="w").pack(fill="x")
+        ctk.CTkLabel(rightf, text="Keep and Context rows per section", anchor="w").pack(fill="x")
         win.o_tv = ttk.Treeview(rightf, columns=("sec", "n"), show="headings", height=20, style="Cm.Treeview")
-        win.o_tv.heading("sec", text="Section"); win.o_tv.heading("n", text="Kept")
+        win.o_tv.heading("sec", text="Section"); win.o_tv.heading("n", text="Rows")
         win.o_tv.column("sec", width=360, anchor="w"); win.o_tv.column("n", width=60, anchor="center")
         win.o_tv.pack(fill="both", expand=True)
 
@@ -201,6 +210,7 @@ class ComplianceMixin:
             if sug != ALL and it["suggest"] != sug: continue
             if win.f_learn.get() != ALL and not str(it.get("learned", "")).startswith(win.f_learn.get()): continue
             if mp == "Kept, not mapped" and not (it["decision"] == "Keep" and not it["map"]): continue
+            if mp == "Needs a home" and not (it["decision"] in ("Keep", "Context") and not it["map"]): continue
             if mp == "Mapped" and not it["map"]: continue
             if q and q not in (it["text"] + " " + it["id"] + " " + it["section"] + " " + it["lead"]).casefold(): continue
             out.append(it)
@@ -239,8 +249,11 @@ class ComplianceMixin:
             return
         c = M.counts()
         shown = len(win.tv.get_children())
-        bits = [f"{M.name}  |  {os.path.basename(M.path)}", f"{c['total']} candidates ({shown} shown)",
-                f"Keep {c['Keep']}  Drop {c['Drop']}  Undecided {c['']}", f"kept and mapped {c['mapped']}, kept not mapped {c['kept_unmapped']}"]
+        pct = int(c["decided"] * 100 / c["total"]) if c["total"] else 0
+        bits = [f"{M.name}  |  {os.path.basename(M.path)}", f"{c['total']} sentences ({shown} shown)",
+                f"Every sentence: {c['decided']} decided ({pct}%), {c['']} undecided" + ("  \u2713 all decided" if c["total"] and not c[""] else ""),
+                f"Keep {c['Keep']}  Context {c['Context']}  Drop {c['Drop']}",
+                f"placed {c['placed']}, need a home {c['needs_home']}"]
         if M.pending:
             bits.append("NOT SAVED yet" + (" (close the workbook in Excel, then Save)" if getattr(self, "_c_locked", False) else ""))
         win.lbl.configure(text="  |  ".join(bits))
@@ -316,10 +329,10 @@ class ComplianceMixin:
         if M:
             for o in M.outline:
                 lab = C.outline_label(o)
-                n = sum(1 for it in M.items if it["decision"] == "Keep" and it["map"] == lab)
+                n = sum(1 for it in M.items if it["decision"] in ("Keep", "Context") and it["map"] == lab)
                 win.o_tv.insert("", "end", values=(("    " * (o["level"] - 1)) + lab, n))
-            un = sum(1 for it in M.items if it["decision"] == "Keep" and not it["map"])
-            win.o_tv.insert("", "end", values=("(kept, not mapped)", un))
+            un = sum(1 for it in M.items if it["decision"] in ("Keep", "Context") and not it["map"])
+            win.o_tv.insert("", "end", values=("(needs a home)", un))
         self._c_show()
 
     def _c_kw_menu(self, event):
@@ -392,11 +405,29 @@ class ComplianceMixin:
                 self.matrix.log(it["id"], f"decision {decision or 'Undecided'}")
         diag.activity("compliance_decided", n=len(sel))
         tv = self._cwin.tv
-        nxt = tv.next(sel[-1]["id"]) if len(sel) == 1 else ""
+        last = sel[-1]["id"]
         self._c_changed()
-        if nxt and tv.exists(nxt):
-            tv.selection_set(nxt); tv.focus(nxt); tv.see(nxt)
+        if len(sel) == 1 and decision:              # straight on to the next sentence that still needs a decision (2.29.0)
+            self.compliance_next_undecided(after=last)
         return "break"
+
+    def compliance_next_undecided(self, after=None):
+        """Select the next undecided sentence (in the order shown), wrapping to the top. Returns its ID or None."""
+        if self.matrix is None:
+            return None
+        tv = self._cwin.tv
+        rows = list(tv.get_children())
+        if not rows:
+            return None
+        cur = after or (tv.selection()[0] if tv.selection() else None)
+        start = rows.index(cur) + 1 if cur in rows else 0
+        for iid in rows[start:] + rows[:start]:
+            it = self._c_item(iid)
+            if it is not None and not it["decision"]:
+                tv.selection_set(iid); tv.focus(iid); tv.see(iid)
+                return iid
+        self._cwin.d_head.configure(text="Every sentence shown has a decision.")
+        return None
 
     def compliance_split(self):
         sel = self._c_selected()
@@ -427,8 +458,11 @@ class ComplianceMixin:
         for it in self._c_visible():
             if it["decision"]:
                 continue
-            lab = str(it.get("learned", "")).split(" ")[0]
-            if lab in ("Keep", "Drop"):
+            lab = str(it.get("learned", "")).split(" ")[0] if it.get("type") != "Context" else ""
+            if it.get("type") == "Context" and it["suggest"] in ("Context", "Drop"):
+                it["decision"] = it["suggest"]; n += 1
+                self.matrix.log(it["id"], f"decision {it['decision']} (accepted suggestion)")
+            elif lab in ("Keep", "Drop"):
                 it["decision"] = lab; n += 1; learned += 1
                 self.matrix.log(it["id"], f"decision {lab} (accepted learned suggestion)")
             elif it["suggest"] in ("Keep", "Drop") and lab != "Review":
@@ -764,6 +798,27 @@ class ComplianceMixin:
         diag.activity("compliance_word_outline", items=info["mapped"], rows=info["unmapped"])
         messagebox.showinfo("Word outline", f"Saved:\n{p}\n\n{info['sections']} sections, {info['mapped']} kept requirements mapped, "
                                             f"{info['unmapped']} kept but not mapped (listed at the end).", parent=self._cwin)
+
+    def compliance_coverage(self, p=None):
+        """Every sentence of the RFP, highlighted by its decision and where it was placed (2.29.0). Returns the counts."""
+        M = self.matrix
+        if M is None:
+            return None
+        p = p or filedialog.asksaveasfilename(parent=self._cwin, title="RFP coverage report", defaultextension=".docx",
+                                              initialfile=f"{re.sub(r'[^A-Za-z0-9_-]+', '_', M.name)}_RFP_Coverage.docx",
+                                              initialdir=os.path.dirname(M.path), filetypes=[("Word", "*.docx")])
+        if not p:
+            return None
+        try:
+            info = C.write_coverage_docx(M, p)
+        except PermissionError:
+            messagebox.showerror("Coverage report", "That file is open in Word. Close it, then try again.", parent=self._cwin); return None
+        diag.activity("compliance_coverage", rows=info["sentences"], n=info["undecided"])
+        messagebox.showinfo("Coverage report", f"Saved:\n{p}\n\n{info['sentences']} sentences from {info['files']} file(s): "
+                            + ("every one has a decision" if not info["undecided"] else f"{info['undecided']} still undecided (red)")
+                            + (f"; {info['needs_home']} Keep or Context sentences not placed yet." if info["needs_home"] else "; all placed.")
+                            + "\n\nIt holds RFP text: keep it on this PC or SharePoint.", parent=self._cwin)
+        return info
 
     # ------------------------------------------------------------ learning (C3), merge, source page, amendment changes
     def compliance_learn(self):

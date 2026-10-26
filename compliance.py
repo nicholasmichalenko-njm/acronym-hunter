@@ -50,8 +50,24 @@ _STOPW = set("""a an and or of the to for in on by with at as from is are be bee
 its it their his her our your any all each such which who whom than then also not no into within upon under over per
 offeror offerors contractor government proposal provide describe include""".split())
 
-DECISIONS = ("Keep", "Drop", "")
-TYPES = ("Instruction", "Evaluation", "SOW", "Format", "Information", "Requirement")
+DECISIONS = ("Keep", "Context", "Drop", "")      # 2.29.0: Context = not a requirement, but it gets a home too
+TYPES = ("Instruction", "Evaluation", "SOW", "Format", "Information", "Requirement", "Context")
+_BOILER = re.compile(r"^(?:page\s+\d+(?:\s+of\s+\d+)?|\d{1,4}|-\s*\d+\s*-|(?:un)?classified|cui|controlled unclassified information|"
+                     r"for official use only|fouo|proprietary(?: information)?|source selection information|"
+                     r"(?:solicitation|rfp)\s*(?:no\.?|number)?\s*[:#]?\s*[A-Z0-9-]+|draft|this page intentionally left blank)\.?$", re.I)
+
+
+def context_item(text, lead, cur, label=""):
+    """A sentence that is not a requirement (2.29.0): every sentence of the RFP becomes a row, so every one gets a
+    decision. Repeated headers, footers, page numbers and markings are suggested Drop; the rest Context."""
+    t = " ".join(text.split())
+    if not re.search(r"[A-Za-z]{2}", t):
+        return None
+    boiler = bool(_BOILER.match(t)) or bool(re.search(r"\((?:Header|Footer)\b", label or ""))
+    return {"text": t, "lead": lead if lead and lead != t else "", "section": cur[0], "section_title": cur[1],
+            "actor": "", "type": "Context", "strength": "", "suggest": "Drop" if boiler else "Context", "modal": "",
+            "xrefs": "; ".join(dict.fromkeys(m.group(0).strip() for m in _XREF.finditer(t) if m.group(0).strip() != cur[0])),
+            "compound": False}
 
 
 # ------------------------------------------------------------------ reading
@@ -145,9 +161,9 @@ def _section_from_line(line, cur):
     return None
 
 
-def read_items(chunks, file_name, file_kind="", heads_out=None):
+def read_items(chunks, file_name, file_kind="", heads_out=None, every=True):
     """chunks: [(label, text)] from one file. file_kind: '' or a hint from the file name (Instruction / Evaluation / SOW).
-    Returns candidate items (dicts)."""
+    Returns items (dicts): the requirement candidates and, with every=True (2.29.0), every other sentence as Context."""
     items = []
     cur = ("", "")                                   # (section number, title)
     heads = {}                                       # heading number -> title, for numbered paragraphs under it
@@ -196,6 +212,8 @@ def read_items(chunks, file_name, file_kind="", heads_out=None):
                     if txt.rstrip().endswith(":") and not sub:
                         continue                         # a lead-in ("the Offeror shall:") is carried by its items
                     it = classify(txt, ld, cur, file_kind)
+                    if it is None and every:
+                        it = context_item(txt, ld, cur, label)
                     if it:
                         it.update({"file": file_name, "loc": label, "page": _page(label), "context": body[:700]})
                         items.append(it)
@@ -331,12 +349,13 @@ def assign_ids(items):
     return items
 
 
-def extract(files_chunks, headings=None):
+def extract(files_chunks, headings=None, every=True):
     """files_chunks: [(file name, chunks)]. Returns items with IDs, links and suggestions.
-    headings (list): filled with the RFP's numbered headings [{num, title, file}]."""
+    headings (list): filled with the RFP's numbered headings [{num, title, file}].
+    every=True (2.29.0): every sentence is a row (requirements plus Context), so every sentence gets a decision."""
     items = []
     for name, chunks in files_chunks:
-        items += read_items(chunks, name, file_kind(name), headings)
+        items += read_items(chunks, name, file_kind(name), headings, every=every)
     seen, out = set(), []
     for it in items:                               # the same sentence repeated in a header or table: keep once
         k = (it["file"], text_key(it["text"]))
@@ -354,11 +373,26 @@ def extract(files_chunks, headings=None):
 def merge_reread(old, new):
     """Re-reading the RFP (an amendment): decisions, mapping and notes carry over to identical sentences.
     New sentences are marked; sentences no longer present are kept and marked 'Not in the latest read'."""
-    by_key = {it["key"]: it for it in old}
+    by_fk = {(it.get("file", ""), it["key"]): it for it in old}
+    by_key = {}
+    for it in old:
+        by_key.setdefault(it["key"], []).append(it)
     used_ids = {it["id"] for it in old}
-    out = []
+    out, taken = [], set()
+    new_fk = {(n.get("file", ""), n["key"]) for n in new}
+
+    def match(it):
+        """The same sentence in the same file first (a sentence repeated in two files stays two rows, 2.29.0), then the
+        same sentence anywhere (an amendment that renamed the file)."""
+        o = by_fk.get((it.get("file", ""), it["key"]))
+        if o is not None and id(o) not in taken:
+            return o
+        return next((x for x in by_key.get(it["key"], []) if id(x) not in taken and
+                     (x.get("file", ""), x["key"]) not in new_fk), None)
     for it in new:
-        o = by_key.pop(it["key"], None)
+        o = match(it)
+        if o is not None:
+            taken.add(id(o))
         if o:
             for f in ("id", "decision", "map", "owner", "status", "notes", "response_page", "text"):
                 it[f] = o.get(f, "")
@@ -367,9 +401,10 @@ def merge_reread(old, new):
             it["new"] = "New in latest read"
             it["id"] = "" if it["id"] in used_ids else it["id"]
         out.append(it)
-    for o in by_key.values():
-        o["new"] = "Not in the latest read"
-        out.append(o)
+    for o in old:
+        if id(o) not in taken:
+            o["new"] = "Not in the latest read"
+            out.append(o)
     assign_ids(out)
     link_items(out)
     return out
@@ -666,7 +701,8 @@ class Matrix:
                 if not row["text"]:
                     continue
                 row["compound"] = row["compound"].lower() in ("yes", "true", "1")
-                row["decision"] = {"k": "Keep", "keep": "Keep", "yes": "Keep", "d": "Drop", "drop": "Drop", "no": "Drop"}.get(row["decision"].lower(), "")
+                row["decision"] = {"k": "Keep", "keep": "Keep", "yes": "Keep", "d": "Drop", "drop": "Drop", "no": "Drop",
+                                   "c": "Context", "context": "Context"}.get(row["decision"].lower(), "")
                 row["page"] = _page(row["loc"])
                 row["key"] = row["key"] or text_key(row["text"])
                 self.items.append(row)
@@ -749,12 +785,34 @@ class Matrix:
                 return row[3]
         return ""
 
+    def coverage(self):
+        """Per source file (and a Total row): sentences, Keep, Context, Drop, undecided, placed, need a home (2.29.0)."""
+        order = [s[0] for s in self.sources] + [it.get("file", "") for it in self.items]
+        rows = {}
+        for f in dict.fromkeys(order):
+            rows[f] = {"file": f, "total": 0, "Keep": 0, "Context": 0, "Drop": 0, "": 0, "placed": 0, "needs_home": 0}
+        for it in self.items:
+            r = rows[it.get("file", "")]
+            r["total"] += 1
+            r[it["decision"]] = r.get(it["decision"], 0) + 1
+            if it["decision"] in ("Keep", "Context"):
+                r["placed" if it["map"] else "needs_home"] += 1
+        out = [r for r in rows.values() if r["total"]]
+        tot = {"file": "Total", **{k: sum(r[k] for r in out) for k in ("total", "Keep", "Context", "Drop", "", "placed", "needs_home")}}
+        return out + [tot]
+
     def counts(self):
-        c = {"total": len(self.items), "Keep": 0, "Drop": 0, "": 0, "mapped": 0, "kept_unmapped": 0}
+        c = {"total": len(self.items), "Keep": 0, "Context": 0, "Drop": 0, "": 0, "mapped": 0, "kept_unmapped": 0,
+             "context_mapped": 0, "context_unmapped": 0}
         for it in self.items:
             c[it["decision"]] = c.get(it["decision"], 0) + 1
             if it["decision"] == "Keep":
                 c["mapped" if it["map"] else "kept_unmapped"] += 1
+            elif it["decision"] == "Context":
+                c["context_mapped" if it["map"] else "context_unmapped"] += 1
+        c["decided"] = c["total"] - c[""]
+        c["placed"] = c["mapped"] + c["context_mapped"]
+        c["needs_home"] = c["kept_unmapped"] + c["context_unmapped"]
         return c
 
     def save(self):
@@ -782,18 +840,18 @@ class Matrix:
         ws.freeze_panes = "C2"
         last = ws.cell(row=1, column=len(COLUMNS)).column_letter
         ws.auto_filter.ref = f"A1:{last}{max(2, ws.max_row)}"
-        dv = DataValidation(type="list", formula1='"Keep,Drop"', allow_blank=True)
+        dv = DataValidation(type="list", formula1='"Keep,Context,Drop"', allow_blank=True)
         ws.add_data_validation(dv)
         dv.add(f"B2:B{max(2, ws.max_row) + 500}")
         for col in ("Context", "Key"):
             ws.column_dimensions[ws.cell(row=1, column=COLUMNS.index(col) + 1).column_letter].hidden = col == "Key"
         ol = wb.create_sheet("Outline")
-        ol.append(["Number", "Title", "Level", "Kept items mapped"])
+        ol.append(["Number", "Title", "Level", "Keep and Context rows placed"])
         for c in ol[1]:
             c.font = Font(bold=True)
         for o in self.outline:
             lab = outline_label(o)
-            ol.append([o["num"], o["title"], o["level"], sum(1 for it in self.items if it["decision"] == "Keep" and it["map"] == lab)])
+            ol.append([o["num"], o["title"], o["level"], sum(1 for it in self.items if it["decision"] in ("Keep", "Context") and it["map"] == lab)])
         for col, w in zip("ABCD", (12, 60, 8, 18)):
             ol.column_dimensions[col].width = w
         so = wb.create_sheet("Sources")
@@ -804,6 +862,15 @@ class Matrix:
             so.column_dimensions[col].width = w
         if self.setup:
             self._save_setup(wb, Font)
+        cv = wb.create_sheet("Coverage")             # 2.29.0: proof that every sentence was considered
+        cv.append(["File", "Sentences", "Keep", "Context", "Drop", "Undecided", "Placed", "Need a home", "Every sentence decided"])
+        for c in cv[1]:
+            c.font = Font(bold=True)
+        for row in self.coverage():
+            cv.append([row["file"], row["total"], row["Keep"], row["Context"], row["Drop"], row[""], row["placed"],
+                       row["needs_home"], "Yes" if row["total"] and not row[""] else "No"])
+        for col, w in zip("ABCDEFGHI", (50, 11, 8, 9, 8, 11, 9, 12, 22)):
+            cv.column_dimensions[col].width = w
         rh = wb.create_sheet("RFP headings")
         rh.append(["Number", "Title", "File"])
         for h in self.headings:
@@ -819,9 +886,10 @@ class Matrix:
         ab = wb.create_sheet("About")
         c = self.counts()
         for r in (["Matrix", self.name], ["Saved", datetime.datetime.now().strftime("%Y-%m-%d %H:%M")],
-                  ["Items", c["total"]], ["Keep", c["Keep"]], ["Drop", c["Drop"]], ["Undecided", c[""]],
-                  ["Kept and mapped", c["mapped"]], ["Kept, not mapped", c["kept_unmapped"]],
-                  ["Note", "Decision: Keep or Drop (blank = undecided). Edit here or in Acronym Hunter; keep the column headings. "
+                  ["Sentences", c["total"]], ["Keep", c["Keep"]], ["Context", c["Context"]], ["Drop", c["Drop"]],
+                  ["Undecided", c[""]], ["Placed (Keep or Context)", c["placed"]], ["Need a home", c["needs_home"]],
+                  ["Note", "Decision: Keep (a requirement), Context (not a requirement, but it goes with the response) or Drop; "
+                           "blank = undecided. Edit here or in Acronym Hunter; keep the column headings. "
                            "This workbook holds customer content: keep it on this PC or SharePoint."]):
             ab.append(r)
         ab.column_dimensions["A"].width = 18; ab.column_dimensions["B"].width = 90
@@ -864,6 +932,53 @@ def write_outline_docx(matrix, path, title=""):
                   [1300, 2000, 6060])
     doc.save(path)
     return {"sections": len(matrix.outline), "mapped": sum(1 for it in kept if it["map"]), "unmapped": len(rest)}
+
+
+# ------------------------------------------------------------------ coverage report (2.29.0)
+COVER_FILL = {"Keep": "D9F2E3", "Context": "DBEAFE", "Drop": "EEEEEE", "": "FECACA"}
+
+
+def write_coverage_docx(matrix, path, title=""):
+    """Every sentence of the RFP in reading order, highlighted by its decision, with its ID, decision and where it was
+    placed: the proof that every line was considered. Opens with a table per file and a plain yes / no."""
+    import docxw
+    doc = docxw.Doc()
+    doc.props = {"AcronymHunterMatrix": matrix.name or "", "AcronymHunterCoverage": datetime.date.today().isoformat()}
+    cov = matrix.coverage()
+    tot = cov[-1]
+    doc.heading(title or f"{matrix.name}: RFP coverage, every sentence", 1)
+    done = tot["total"] and not tot[""]
+    doc.rich([(("Every sentence has a decision." if done else f"{tot['']} sentence(s) still need a decision (red below).")
+               + (f" {tot['needs_home']} Keep or Context sentence(s) are not placed in the outline yet." if tot["needs_home"] else
+                  " Every Keep and Context sentence is placed."), {"bold": True, "color": "15803D" if done and not tot["needs_home"] else "B91C1C"})])
+    doc.para(f"Built {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')} from the compliance matrix {os.path.basename(matrix.path)}.")
+    doc.table(["File", "Sentences", "Keep", "Context", "Drop", "Undecided", "Placed", "Need a home"],
+              [[r["file"], r["total"], r["Keep"], r["Context"], r["Drop"], r[""], r["placed"], r["needs_home"]] for r in cov],
+              [3160, 900, 760, 900, 760, 1000, 860, 1020])
+    doc.rich([("Key:  ", {"bold": True}), (" Keep (a requirement) ", {"fill": COVER_FILL["Keep"]}), ("  ", {}),
+              (" Context (goes with the response) ", {"fill": COVER_FILL["Context"]}), ("  ", {}),
+              (" Drop ", {"fill": COVER_FILL["Drop"], "color": "6B7280"}), ("  ", {}),
+              (" Undecided ", {"fill": COVER_FILL[""], "bold": True})])
+    by_file = {}
+    for it in matrix.items:
+        by_file.setdefault(it.get("file", ""), []).append(it)
+    for r in cov[:-1]:
+        f = r["file"]
+        doc.heading(f or "(no file)", 2)
+        sec = None
+        for it in by_file.get(f, []):
+            head = " ".join(x for x in (it.get("section", ""), it.get("section_title", "")) if x)
+            if head and head != sec:
+                doc.heading(head, 3)
+                sec = head
+            d = it["decision"]
+            txt = ((it["lead"] + " ") if it.get("lead") else "") + it["text"]
+            where = it["map"] or ("not placed" if d in ("Keep", "Context") else "")
+            tag = f"   [{it['id']} · {d or 'UNDECIDED'}" + (f" · {where}" if where else "") + "]"
+            doc.rich([(txt, {"fill": COVER_FILL.get(d, COVER_FILL[""]), "color": "6B7280" if d == "Drop" else None}),
+                      (tag, {"size": 16, "color": "B91C1C" if not d or where == "not placed" else "475569", "bold": not d})])
+    doc.save(path)
+    return {"sentences": tot["total"], "undecided": tot[""], "needs_home": tot["needs_home"], "files": len(cov) - 1}
 
 
 # ------------------------------------------------------------------ source page (PDF)

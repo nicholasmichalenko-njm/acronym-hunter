@@ -186,7 +186,7 @@ class WizardMixin:
                         diag.swallowed()
                 heads = []
                 try:
-                    C.extract(fc, heads)
+                    C.extract(fc, heads, every=False)
                 except Exception:
                     diag.swallowed()
                 res = S.suggest(fc, heads)

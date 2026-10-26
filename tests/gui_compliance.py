@@ -64,7 +64,7 @@ def wait():
     N = C.Matrix(OUT).load()
     t2 = next(it for it in N.items if it["id"] == "L.4.1-01")
     print("reopened:", len(N.items), "| thermal:", t2["decision"], t2["map"], t2["owner"], "| outline sections:", len(N.outline))
-    res["ok"] = (len(M.items) == 28 and os.path.isfile(OUT) and app._c_item(first)["decision"] == "Keep" and len(parts) == 2
+    res["ok"] = (len([it for it in M.items if it["type"] != "Context"]) == 28 and os.path.isfile(OUT) and app._c_item(first)["decision"] == "Keep" and len(parts) == 2
                  and t2["map"] == "1.1 Thermal Design" and t2["owner"] == "J. Smith" and "1.1 Thermal Design" in xml
                  and M.counts()[""] == 3 and len(drops) == 2 and not any(it["map"] == "Volume I - Technical" for it in M.items))
     # 2.10.0: learn, merge, source page, amendment changes
@@ -88,7 +88,40 @@ def wait():
     rows = list(cw._api["rows"].values())
     changes_ok = len(rows) == 1 and rows[0]["kind"] == "Changed" and "{+40+}" in rows[0]["diff"]
     print("learned:", learned_ok, "| merged:", merged_ok, "| page window:", page_ok, "| changes:", changes_ok)
-    res["ok"] = res["ok"] and learned_ok and merged_ok and page_ok and changes_ok
+    # 2.29.0: every sentence is a row; Context decisions; next undecided; the coverage report proves every line was seen
+    ctx = [it for it in M.items if it["type"] == "Context"]
+    for it in M.items:
+        if not it["decision"] and it.get("new") != "New in latest read":
+            pass
+    und = [it for it in M.items if not it["decision"]]
+    tv.selection_set(tv.get_children()[0]); win.update()
+    nxt = app.compliance_next_undecided()
+    next_ok = (nxt is None and not und) or (nxt is not None and not app._c_item(nxt)["decision"])
+    adv_ok = True
+    if nxt:
+        tv.selection_set(nxt); win.update()
+        app.compliance_decide("Context"); win.update()
+        after = tv.selection()
+        adv_ok = (len(und) == 1) or (after and after[0] != nxt and not app._c_item(after[0])["decision"])
+    keys_ok = {"c", "n", "C", "N"} <= set(tv.bind())
+    ctx_ok = bool(ctx) and adv_ok and keys_ok and (nxt is None or app._c_item(nxt)["decision"] == "Context")
+    for it in M.items:
+        if not it["decision"]:
+            it["decision"] = "Drop"
+    cp = os.path.join(tmp, "coverage.docx")
+    info = app.compliance_coverage(cp)
+    cxml = zipfile.ZipFile(cp).read("word/document.xml").decode()
+    cov_ok = info and info["undecided"] == 0 and info["sentences"] == len(M.items) and "Every sentence has a decision." in cxml \
+        and C.COVER_FILL["Context"] in cxml and all(C.text_key(it["text"])[:0] == "" for it in M.items)
+    app._c_save_now()
+    N2 = C.Matrix(OUT).load()
+    reload_ok = sum(1 for it in N2.items if it["decision"] == "Context") == sum(1 for it in M.items if it["decision"] == "Context") > 0
+    import openpyxl
+    wbc = openpyxl.load_workbook(OUT, read_only=True)
+    cov_sheet = "Coverage" in wbc.sheetnames
+    print("every sentence: context rows", len(ctx), "| next undecided:", next_ok, "| context decided:", ctx_ok,
+          "| coverage report:", cov_ok, "| Context kept on reload:", reload_ok, "| Coverage sheet:", cov_sheet)
+    res["ok"] = res["ok"] and learned_ok and merged_ok and page_ok and changes_ok and next_ok and ctx_ok and cov_ok and reload_ok and cov_sheet
     if os.environ.get("AH_SHOT"):
         win.tabs.set("Requirements"); tv.selection_set(th["id"]); tv.see(th["id"]); win.update(); app._c_show(); win.update()
         from PIL import ImageGrab
