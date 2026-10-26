@@ -345,18 +345,31 @@ PAGES = {
           "No AI writes anything."),
     ("img", "compliance.png", 620),
     ("rows", [("Page view", "Decide shows the RFP as a page. Each sentence is shaded as you decide it: green Keep, blue Context, "
-                            "grey Drop; undecided sentences are underlined in amber and the current one is outlined. The bar at "
-                            "the bottom: Accept the suggestion (Enter), Keep (K), Context (C), Drop (D), Back (Backspace), "
-                            "Split (S). Click any sentence to jump to it; the arrow keys step through them. The Files list on the "
+                            "grey Drop, pale amber while undecided; the current one is outlined. The bar at the bottom: Accept "
+                            "the suggestion (Enter), Keep (K), Context (C), Drop (D), Link (L), Back (Backspace), Split (S) and "
+                            "Commit. Click any sentence to jump to it; the arrow keys step through them. The Files list on the "
                             "right switches files and shows how far each one is."),
+              ("Draft, then commit", "Every decision is first a draft: lighter shading, underlined in its color. Drafts are "
+                                     "saved as you make them, so closing the app or a crash loses nothing. Commit makes them "
+                                     "count: Ctrl+Enter commits what is on screen; the side panel commits the selected "
+                                     "sentences, the RFP section, the file or every draft. The bar says what was committed "
+                                     "and how many drafts are left. Change a committed sentence and it is a draft again "
+                                     "until you commit it. Place, the setup documents, the exports and the coverage report "
+                                     "use committed decisions only; Prove says how many drafts are left out."),
+              ("Several at once", "Drag across several sentences: K, C or D decides them all, L links them, Ctrl+Enter "
+                                  "commits them. Esc clears the selection."),
+              ("The strip", "The thin strip beside the page maps the file: grey undecided, amber draft, green committed. "
+                            "Click it to jump there."),
               ("Easy ones first", "Drop all... in the side panel drops the page headers, page numbers and markings in one go "
-                                  "after showing you the list."),
-              ("Context for", "Each Context sentence is linked to the requirement it explains: by default the nearest Keep "
-                              "before it in the same RFP paragraph (or the next one when none comes before). The bar at the "
-                              "bottom names it and the page outlines it; press L and click another requirement to change it. "
-                              "In Place it goes with its requirement, the setup documents print it right under that "
-                              "requirement, the matrix has a Context for column, and the coverage report shows the link. Prove "
-                              "lists any Context sentence without a requirement or placed apart from it."),
+                                  "(as drafts) after showing you the list."),
+              ("Context for", "A Context sentence can explain one requirement or several. C links it to the nearest Keep "
+                              "before it in the same RFP paragraph (or the next one) as a start, and stays on the sentence. "
+                              "Press L, then click every requirement it explains anywhere in the file; click one again to "
+                              "remove it; Enter or Esc when done. On a requirement, L works the other way: click each sentence "
+                              "that explains it. Pointing at a sentence lights up its links. In Place it goes with its first "
+                              "placed requirement; the setup documents print it under each requirement it explains, with "
+                              "\"Also context for\" naming the others; the matrix's Context for column lists them all. Prove "
+                              "lists any Context sentence without a requirement or placed apart from all of them."),
               ("Place", "A second pass, after deciding: one Keep or Context sentence at a time with the sentences around it. "
                         "Press 1, 2 or 3 for the suggested sections (the rules' match and past proposals), pick another, or "
                         "Later (Space). Place all... puts every sentence of the same RFP paragraph in choice 1. Arrange the "
@@ -364,8 +377,8 @@ PAGES = {
               ("Prove", "Whether every sentence has a decision and every kept sentence a home, per file, and the coverage "
                         "report. Owner, status and response page are set here: select requirements, type, Apply."),
               ("Decide", "K keeps (a requirement), C keeps as Context (text the authors need beside a requirement), D drops, "
-                         "U undoes. After each decision the next undecided sentence comes up; N jumps to it. Select many "
-                         "rows to decide them together."),
+                         "U takes it back. After Keep or Drop the next undecided sentence comes up (a setting in the side "
+                         "panel); after Context the sentence stays so L can link it. N jumps to the next undecided."),
               ("Every line", "The count above the table says how many sentences are decided and shows a check mark when all "
                              "are. Filters show Context rows and Keep or Context rows that still need a home (no outline "
                              "section). Boilerplate and page headers are suggested Drop; Accept suggestions applies them."),

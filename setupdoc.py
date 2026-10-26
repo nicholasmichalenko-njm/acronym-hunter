@@ -145,17 +145,28 @@ def placed_in(M):
         for it in items:
             if lab in where[it["id"]] and it["id"] not in seen:
                 out[lab].append(it["id"]); seen.add(it["id"])
-        # 2.33.0: a Context sentence prints right under the requirement it explains (unless the order was set by hand)
+        # 2.33.0: a Context sentence prints right under the requirement it explains (unless the order was set by hand).
+        # 2.35.0: one that explains several requirements prints under each of them, in every section they are in.
+        import compliance as C
         byid = {it["id"]: it for it in items}
         ordered = set(S["order"].get(lab, []))
         ids = out[lab]
-        movers = [i for i in ids if i not in ordered and byid.get(i, {}).get("decision") == "Context"
-                  and byid[i].get("context_for") in ids and byid[i].get("context_for") != i]
+        here = set(ids)
+        movers = []
+        for it in items:
+            i = it["id"]
+            if it.get("decision") != "Context" or i in ordered:
+                continue
+            links = [r for r in C.cf_ids(it.get("context_for", "")) if r != i]
+            if any(r in here for r in links):
+                movers.append(i)
         if movers:
-            res = []
+            res, used = [], set()
             for i in (x for x in ids if x not in movers):
                 res.append(i)
-                res += [m for m in movers if byid[m]["context_for"] == i]
+                for m in movers:
+                    if m not in used and i in C.cf_ids(byid[m].get("context_for", "")):
+                        res.append(m); used.add(m)
             out[lab] = res
     return out
 
@@ -289,11 +300,19 @@ def _doc_for(M, name, entries, P, inh, stamp):
     for o in entries:
         lab = C.outline_label(o)
         d.heading(lab, o.get("level", 1) - base + 1)
+        last_req = None
         for iid in P.get(lab, []):
             it = B.get(iid)
             if it is None:
                 continue
             d.rich(cwords.docx_parts(block_text(M, it, inh), {"color": CONTEXT_BLUE if kind_of(it) == "Context" else PURPLE}, cw))
+            if kind_of(it) == "Context":
+                links = C.cf_ids(it.get("context_for", ""))
+                others = [r for r in links if r != last_req]
+                if len(links) > 1 and others:          # 2.35.0: shared Context names the other requirements it explains
+                    d.para("Also context for " + ", ".join(others), color="6B7280")
+            else:
+                last_req = iid
             note = S["notes"].get(iid, "").strip()
             if note:
                 d.para(note, color=GREEN)

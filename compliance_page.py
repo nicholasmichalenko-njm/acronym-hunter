@@ -1,10 +1,17 @@
 """Compliance in passes (2.32.0): Decide in Page view, Place one sentence at a time, details on Prove.
 
 Decide: the RFP reads like a page. Each sentence is shaded by its decision (green Keep, blue Context, grey Drop,
-amber underline while undecided), the current one is outlined, compliance words show in the user's style. A dock at
-the bottom: Accept the suggestion (Enter), Keep (K), Context (C), Drop (D), Back (Backspace), Split (S); after each
-decision the next undecided sentence comes up. Click a sentence to jump to it; click between two of its words (or
-select words) and press S to split there.
+pale amber while undecided), the current one is outlined, compliance words show in the user's style. A dock at
+the bottom: Accept the suggestion (Enter), Keep (K), Context (C), Drop (D), Link (L), Back, Split (S), Commit.
+Click a sentence to jump to it; click between two of its words (or select words) and press S to split there.
+
+2.35.0 draft and commit: every decision is first a draft (lighter shading, underlined in the decision's color), saved
+like any change, and counts once committed (solid shading). Commit what is on screen (Ctrl+Enter), the selected
+sentences, the RFP section, the file or every draft; the dock says what was committed and how many drafts are left.
+Drag across several sentences and one key decides, links or commits them all. Link mode stays open: L on a Context
+sentence, then click every requirement it explains (click again to remove), Enter or Esc when done; L on a requirement
+picks its Context sentences the same way. Pointing at a sentence lights up its links. The strip beside the page maps
+the file: grey undecided, amber draft, green committed; click it to jump.
 
 Place (a second pass): one Keep or Context sentence at a time, with the sentences around it faded; the top 3 sections
 from past proposals (and the rules' match) on keys 1, 2 and 3; place a whole run of the same RFP paragraph at once.
@@ -15,12 +22,24 @@ The hidden requirements table stays the selection model, so every existing actio
 import tkinter as tk
 from tkinter import messagebox, ttk
 import customtkinter as ctk
+import compliance as C
 import diag
 import cwords as CW
 
 DEC_BG = {"Keep": "#BBF7D0", "Context": "#BFDBFE", "Drop": "#E5E7EB"}
+DRAFT_BG = {"Keep": "#E9FBEF", "Context": "#E6F0FE", "Drop": "#F3F4F6"}
+DRAFT_LINE = {"Keep": "#15803D", "Context": "#1D4ED8", "Drop": "#6B7280"}
+UNDECIDED_BG = "#FFFBEB"
+STRIP = {"": "#CBD5E1", "draft": "#F59E0B", "done": "#22C55E"}
 WHY = {"Keep": "reads as a requirement", "Context": "not a requirement, may help the authors", "Drop": "boilerplate or marking",
        "Review": "unclear: your call"}
+
+
+def _tag(it):
+    """The shading tag of a row: d_<decision> when committed (d_ when undecided), p_<decision> while a draft."""
+    if it.get("draft"):
+        return "p_" + C.eff(it)
+    return "d_" + (it.get("decision") or "")
 
 
 class CompliancePageMixin:
@@ -33,27 +52,36 @@ class CompliancePageMixin:
         win.cp_file = None
         win.cp_sig = None
         win.cp_hist = []
+        win.cp_range = []
+        win.cp_hover = None
+        win.cp_msg_after = None
         dock = ctk.CTkFrame(rq, corner_radius=10, fg_color=("#0F172A", "#0B1220"))
         dock.pack(side="bottom", fill="x", pady=(6, 0), before=body)
-        info = ctk.CTkFrame(dock, fg_color="transparent"); info.pack(side="left", fill="x", expand=True, padx=14, pady=8)
+        info = ctk.CTkFrame(dock, fg_color="transparent"); info.pack(side="top", fill="x", padx=14, pady=(8, 0))
+        keys = ctk.CTkFrame(dock, fg_color="transparent"); keys.pack(side="top", fill="x", padx=10, pady=(2, 8))
+        win.cp_l0 = ctk.CTkLabel(info, text="", anchor="w", text_color="#86EFAC", font=("Segoe UI", 12, "bold"))
         win.cp_l1 = ctk.CTkLabel(info, text="", anchor="w", text_color="#94A3B8", font=("Segoe UI", 12))
         win.cp_l1.pack(fill="x")
         win.cp_l2 = ctk.CTkLabel(info, text="", anchor="w", text_color="#E2E8F0", font=("Segoe UI", 14))
         win.cp_l2.pack(fill="x")
-        win.cp_l3 = ctk.CTkLabel(info, text="", anchor="w", text_color="#93C5FD", font=("Segoe UI", 12))
-        win.cp_linking = False
+        win.cp_l3 = ctk.CTkLabel(info, text="", anchor="w", text_color="#93C5FD", font=("Segoe UI", 12), justify="left", wraplength=640)
+        win.cp_linking = None
         B = dict(height=40, font=("Segoe UI", 14, "bold"), width=10)
-        win.cp_accept = ctk.CTkButton(dock, text="Accept  (Enter)", command=self.cp_accept, fg_color="#F8FAFC",
+        win.cp_accept = ctk.CTkButton(keys, text="Accept  (Enter)", command=self.cp_accept, fg_color="#F8FAFC",
                                       text_color="#0F172A", hover_color="#E2E8F0", **B)
-        win.cp_accept.pack(side="left", padx=4, pady=8)
+        win.cp_accept.pack(side="left", padx=4)
         for text, dec, color in (("Keep  K", "Keep", "#15803D"), ("Context  C", "Context", "#1D4ED8"), ("Drop  D", "Drop", "#475569")):
-            ctk.CTkButton(dock, text=text, command=lambda d=dec: self.cp_decide(d), fg_color=color, **B).pack(side="left", padx=4)
+            ctk.CTkButton(keys, text=text, command=lambda d=dec: self.cp_decide(d), fg_color=color, **B).pack(side="left", padx=4)
         G = dict(height=40, width=10, fg_color="transparent", border_width=1, border_color="#334155", text_color="#CBD5E1",
                  hover_color="#1E293B")
-        win.cp_link_btn = ctk.CTkButton(dock, text="Link  L", command=self.cp_link_start, **G)
+        win.cp_link_btn = ctk.CTkButton(keys, text="Link  L", command=self.cp_link_start, **G)
         win.cp_link_btn.pack(side="left", padx=4)
-        ctk.CTkButton(dock, text="Back", command=self.cp_back, **G).pack(side="left", padx=4)
-        ctk.CTkButton(dock, text="Split  S", command=self.cp_split, **G).pack(side="left", padx=(4, 12))
+        ctk.CTkButton(keys, text="Back", command=self.cp_back, **G).pack(side="left", padx=4)
+        ctk.CTkButton(keys, text="Split  S", command=self.cp_split, **G).pack(side="left", padx=4)
+        win.cp_commit_btn = ctk.CTkButton(keys, text="Commit  Ctrl+Enter", command=self.cp_commit_default, height=40, width=10,
+                                          fg_color="transparent", border_width=2, border_color="#22C55E", text_color="#86EFAC",
+                                          hover_color="#14532D", font=("Segoe UI", 13, "bold"))
+        win.cp_commit_btn.pack(side="left", padx=(12, 4))
 
         wrap = ctk.CTkFrame(body, fg_color="transparent"); wrap.pack(fill="both", expand=True)
         side = ctk.CTkScrollableFrame(wrap, width=290); side.pack(side="right", fill="y", padx=(8, 0))
@@ -66,22 +94,37 @@ class CompliancePageMixin:
                     spacing2=int(6 * dpi), spacing3=int(4 * dpi), bg="#FFFFFF", fg="#1E293B", cursor="arrow",
                     insertwidth=0, highlightthickness=0, exportselection=False)
         sb = ttk.Scrollbar(page, orient="vertical", command=t.yview); t.configure(yscrollcommand=sb.set)
-        sb.pack(side="right", fill="y"); t.pack(fill="both", expand=True, pady=(0, 8))
+        sb.pack(side="right", fill="y")
+        strip = tk.Canvas(page, width=int(14 * dpi), highlightthickness=0, bd=0, bg="#F8FAFC", cursor="hand2")
+        strip.pack(side="right", fill="y", pady=(0, 8))
+        win.cp_strip = strip
+        strip.bind("<Configure>", lambda _e: self._cp_strip())
+        strip.bind("<Button-1>", self._cp_strip_click)
+        t.pack(fill="both", expand=True, pady=(0, 8))
         win.cp_text = t
         t.tag_configure("head", font=("Segoe UI", max(10, size - 3), "bold"), spacing1=int(14 * dpi), spacing3=int(2 * dpi))
         for dec, bg in DEC_BG.items():
             t.tag_configure("d_" + dec, background=bg)
         t.tag_configure("d_Drop", foreground="#6B7280")
-        t.tag_configure("d_", background="#FFFBEB", underline=True)
-        try:
-            t.tag_configure("d_", underlinefg="#F59E0B")
-        except tk.TclError:
-            diag.swallowed()
+        t.tag_configure("d_", background=UNDECIDED_BG)
+        t.tag_configure("p_", background=UNDECIDED_BG)
+        for dec, bg in DRAFT_BG.items():
+            t.tag_configure("p_" + dec, background=bg, underline=True)
+            try:
+                t.tag_configure("p_" + dec, underlinefg=DRAFT_LINE[dec])
+            except tk.TclError:
+                diag.swallowed()
+        t.tag_configure("p_Drop", foreground="#6B7280")
+        t.tag_configure("rng", background="#FDE68A")
         t.tag_configure("cur", relief="solid", borderwidth=2, background="#FEF3C7")
-        t.tag_configure("linked", relief="ridge", borderwidth=2, foreground="#1E3A8A")   # the requirement a Context explains
+        t.tag_configure("linked", relief="ridge", borderwidth=2, foreground="#1E3A8A")   # the requirements a Context explains
+        t.tag_configure("hov", relief="ridge", borderwidth=2, foreground="#7C2D12")
+        t.tag_raise("rng")
         t.tag_raise("cur")
         t.bind("<ButtonRelease-1>", self._cp_click)
         t.bind("<Key>", self._cp_key)
+        t.bind("<Motion>", self._cp_motion)
+        t.bind("<Leave>", lambda _e: self._cp_hover(None))
         for seq in ("<Control-c>", "<Control-a>"):
             t.bind(seq, lambda _e: None)
         win.cp_head = ctk.CTkLabel(side, text="", font=("Segoe UI", 14, "bold"), anchor="w", justify="left", wraplength=270)
@@ -91,12 +134,30 @@ class CompliancePageMixin:
         r = ctk.CTkFrame(side, fg_color="transparent"); r.pack(fill="x", padx=8, pady=(6, 10))
         ctk.CTkButton(r, text="Show page", width=90, command=self.compliance_show_page).pack(side="left")
         ctk.CTkButton(r, text="Open file", width=90, command=self.compliance_open_file).pack(side="left", padx=6)
+        self._cp_card_title(side, "Commit")
+        win.cp_dcount = ctk.CTkLabel(side, text="", anchor="w", justify="left", wraplength=270)
+        win.cp_dcount.pack(fill="x", padx=8)
+        win.cp_cbtns = {}
+        for key, label in (("screen", "What is on screen  (Ctrl+Enter)"), ("selected", "The selected sentences"),
+                           ("section", "This RFP section"), ("file", "This file"), ("all", "Every draft")):
+            b = ctk.CTkButton(side, text=label, anchor="w", width=10, height=26, fg_color=("#DCFCE7", "#14532D"),
+                              text_color=("#14532D", "#DCFCE7"), hover_color=("#BBF7D0", "#166534"),
+                              command=lambda k=key: self.cp_commit(k))
+            b.pack(fill="x", padx=8, pady=1)
+            win.cp_cbtns[key] = b
+        win.cp_next_var = tk.BooleanVar(value=self._c_auto_next() if hasattr(self, "_c_auto_next") else True)
+        ctk.CTkCheckBox(side, text="After Keep or Drop, go to the next\nundecided sentence", variable=win.cp_next_var,
+                        command=self._cp_auto_next_set).pack(anchor="w", padx=8, pady=(6, 0))
         self._cp_card_title(side, "Highlighter key")
-        for txt, bg in (("Keep: a requirement", "#BBF7D0"), ("Context: authors need it", "#BFDBFE"), ("Drop: not needed", "#E5E7EB"),
-                        ("Not decided yet", "#FFFBEB")):
+        for txt, bg, line in (("Keep: a requirement", DEC_BG["Keep"], False), ("Context: authors need it", DEC_BG["Context"], False),
+                              ("Drop: not needed", DEC_BG["Drop"], False), ("Draft: underlined, lighter", DRAFT_BG["Keep"], True),
+                              ("Not decided yet", UNDECIDED_BG, False)):
             row = ctk.CTkFrame(side, fg_color="transparent"); row.pack(fill="x", padx=8, pady=1)
-            ctk.CTkLabel(row, text="", width=26, height=14, fg_color=bg, corner_radius=3).pack(side="left", padx=(0, 8))
+            ctk.CTkLabel(row, text="__" if line else "", width=26, height=14, fg_color=bg, corner_radius=3,
+                         text_color=DRAFT_LINE["Keep"]).pack(side="left", padx=(0, 8))
             ctk.CTkLabel(row, text=txt, anchor="w").pack(side="left")
+        ctk.CTkLabel(side, text="The strip beside the page: grey undecided, amber draft, green committed.", anchor="w",
+                     justify="left", wraplength=270, text_color=("#475569", "#94A3B8")).pack(fill="x", padx=8, pady=(4, 0))
         self._cp_card_title(side, "Clear the easy ones first")
         win.cp_boiler = ctk.CTkLabel(side, text="", anchor="w", justify="left", wraplength=270)
         win.cp_boiler.pack(fill="x", padx=8)
@@ -110,6 +171,12 @@ class CompliancePageMixin:
     @staticmethod
     def _cp_card_title(parent, text):
         ctk.CTkLabel(parent, text=text, font=("Segoe UI", 13, "bold"), anchor="w").pack(fill="x", padx=8, pady=(12, 4))
+
+    def _cp_auto_next_set(self):
+        try:
+            self.ws.set("compliance_auto_next", bool(self._cwin.cp_next_var.get()))
+        except Exception:
+            diag.swallowed()
 
     # ------------------------------------------------------------ Decide: render
     def _cp_items_of(self, f):
@@ -179,24 +246,29 @@ class CompliancePageMixin:
                 t.insert("end", piece, ("cword",) if w else ())
             end = t.index("end-1c")
             t.tag_add("r:" + it["id"], start, end)
-            t.tag_add("d_" + (it["decision"] or ""), start, end)
+            t.tag_add(_tag(it), start, end)
             t.insert("end", "  ")
+        t.tag_raise("rng")
         t.tag_raise("cur")
         t.configure(state="disabled")
-        win.cp_src.configure(text=f"{win.cp_file}: {len(rows)} sentences. Click a sentence to jump to it; click between two of "
-                                  "its words, then S, to split.")
+        win.cp_range = [i for i in win.cp_range if t.tag_ranges("r:" + i)]
+        win.cp_src.configure(text=f"{win.cp_file}: {len(rows)} sentences. Click a sentence to jump to it; drag across several "
+                                  "to decide them together; click between two words, then S, to split.")
         sel = self._c_selected()
         if sel:
             self._cp_mark(sel[0])
+        self._cp_strip()
 
     def _cp_shade(self, rows):
         t = self._cwin.cp_text
         for dec in ("Keep", "Context", "Drop", ""):
             t.tag_remove("d_" + dec, "1.0", "end")
+            t.tag_remove("p_" + dec, "1.0", "end")
         for it in rows:
             r = t.tag_ranges("r:" + it["id"])
             if r:
-                t.tag_add("d_" + (it["decision"] or ""), r[0], r[1])
+                t.tag_add(_tag(it), r[0], r[1])
+        self._cp_strip()
 
     def _cp_mark(self, it):
         win = self._cwin
@@ -207,21 +279,62 @@ class CompliancePageMixin:
             t.tag_add("cur", r[0], r[1])
             t.see(r[0])
 
+    def _cp_strip(self):
+        """The file at a glance: one mark per sentence, grey undecided, amber draft, green committed."""
+        win = self._cwin
+        cv = getattr(win, "cp_strip", None)
+        if cv is None or self.matrix is None or not cv.winfo_exists():
+            return
+        cv.delete("all")
+        rows = self._cp_items_of(win.cp_file) if win.cp_file is not None else []
+        h, w = max(1, cv.winfo_height()), max(4, cv.winfo_width())
+        n = len(rows)
+        if not n:
+            return
+        step = h / n
+        sel = self._c_selected()
+        cur = sel[0]["id"] if sel else None
+        for i, it in enumerate(rows):
+            kind = "draft" if it.get("draft") else ("done" if it.get("decision") else "")
+            y0 = i * step
+            cv.create_rectangle(2, y0, w - 2, y0 + max(2.0, step - (1 if step > 3 else 0)), fill=STRIP[kind], width=0)
+            if it["id"] == cur:
+                cv.create_rectangle(0, y0 - 1, w, y0 + max(3.0, step) + 1, outline="#0F172A", width=2)
+
+    def _cp_strip_click(self, e):
+        win = self._cwin
+        rows = self._cp_items_of(win.cp_file) if win.cp_file is not None else []
+        if not rows:
+            return None
+        h = max(1, win.cp_strip.winfo_height())
+        i = max(0, min(len(rows) - 1, int(e.y * len(rows) / h)))
+        self._cp_select(rows[i]["id"])
+        return rows[i]["id"]
+
     def _cp_side(self):
         win, M = self._cwin, self.matrix
-        boiler = [it for it in M.items if not it["decision"] and it.get("type") == "Context" and it.get("suggest") == "Drop"]
+        boiler = [it for it in M.items if not C.eff(it) and it.get("type") == "Context" and it.get("suggest") == "Drop"]
         win.cp_boiler.configure(text=f"{len(boiler)} page headers, page numbers and markings look like boilerplate."
                                 if boiler else "No undecided boilerplate left.")
         win.cp_boiler_btn.configure(state="normal" if boiler else "disabled",
                                     text=f"Drop all {len(boiler)}..." if boiler else "Drop them all...")
+        nall = len(C.drafts(M.items))
+        nfile = len(C.drafts(self._cp_items_of(win.cp_file))) if win.cp_file is not None else 0
+        win.cp_dcount.configure(text=(f"{nall} draft{'s' if nall != 1 else ''} not committed ({nfile} in this file). Drafts are saved "
+                                      "as you go; committed decisions are what Place and the exports use.") if nall
+                                else "No drafts: every decision is committed.")
+        for k, b in win.cp_cbtns.items():
+            b.configure(state="normal" if nall else "disabled")
+        win.cp_commit_btn.configure(state="normal" if nall else "disabled")
         for w in win.cp_files.winfo_children():
             w.destroy()
         for f in self._cp_files():
             rows = self._cp_items_of(f)
-            done = sum(1 for it in rows if it["decision"])
+            done = sum(1 for it in rows if it["decision"] and not it.get("draft"))
+            nd = sum(1 for it in rows if it.get("draft"))
             pct = int(done * 100 / len(rows)) if rows else 0
             on = f == win.cp_file
-            ctk.CTkButton(win.cp_files, text=f"{f[:30]}   {pct}%", anchor="w", width=270, height=28,
+            ctk.CTkButton(win.cp_files, text=f"{f[:26]}   {pct}%" + (f"  +{nd} draft" if nd else ""), anchor="w", width=270, height=28,
                           fg_color=("#DBEAFE", "#1E3A8A") if on else "transparent", text_color=("#0F172A", "#F1F5F9"),
                           hover_color=("#E2E8F0", "#334155"), command=lambda f=f: self.cp_open_file(f)).pack(fill="x", pady=1)
 
@@ -234,38 +347,138 @@ class CompliancePageMixin:
             win.cp_file = it.get("file", "")
             self._cp_sync()
         self._cp_mark(it)
+        self._cp_strip()
         rows = self._cp_items_of(win.cp_file)
         n = next((i for i, x in enumerate(rows, 1) if x["id"] == it["id"]), 0)
         sug = it.get("suggest", "")
-        win.cp_l1.configure(text=f"Sentence {n} of {len(rows)} in {win.cp_file}" + (f", now {it['decision']}" if it["decision"] else ", not decided"))
+        d = C.eff(it)
+        state = (f", draft {d or 'undecided'}" + (f" (committed: {it['decision']})" if it["decision"] else "") if it.get("draft")
+                 else (f", {d} (committed)" if d else ", not decided"))
+        if win.cp_range:
+            win.cp_l1.configure(text=f"{len(win.cp_range)} sentences selected: K, C or D decides them all, L links them, "
+                                     "Ctrl+Enter commits them. Esc clears.")
+        else:
+            win.cp_l1.configure(text=f"Sentence {n} of {len(rows)} in {win.cp_file}{state}")
         win.cp_l2.configure(text=f"Suggested: {sug}  ({WHY.get(sug, '')})" if sug else "No suggestion")
         win.cp_accept.configure(text=f"Accept {sug}  (Enter)" if sug in ("Keep", "Context", "Drop") else "Accept  (Enter)",
                                 state="normal" if sug in ("Keep", "Context", "Drop") else "disabled")
         win.cp_head.configure(text=f"{it['id']}   {it['type']}" + (f"   {it['actor']}" if it.get("actor") else ""))
         t = win.cp_text
         t.tag_remove("linked", "1.0", "end")
-        if it["decision"] == "Context":
-            cf = it.get("context_for", "")
-            req = self._c_item(cf) if cf else None
-            win.cp_l3.configure(text=(f"Context for {cf}: {req['text'][:70]}   (L links it to another requirement)" if req
-                                      else "Context for: no requirement nearby. Press L, then click the requirement it explains."))
+        if win.cp_linking:
+            self._cp_link_line()
+        elif d == "Context":
+            ids = C.cf_ids(C.eff_cf(it))
+            if ids:
+                first = self._c_item(ids[0])
+                shown = ", ".join(ids[:5]) + (f" and {len(ids) - 5} more" if len(ids) > 5 else "")
+                win.cp_l3.configure(text=f"Context for {shown}" + (f": {first['text'][:60]}" if first and len(ids) == 1 else "")
+                                    + "   (L links more requirements or removes one)")
+            else:
+                win.cp_l3.configure(text="Context for: no requirement yet. Press L, then click each requirement it explains.")
             win.cp_l3.pack(fill="x")
-            r = t.tag_ranges("r:" + cf) if cf else ()
-            if r:
-                t.tag_add("linked", r[0], r[1])
+            for cf in ids:
+                r = t.tag_ranges("r:" + cf)
+                if r:
+                    t.tag_add("linked", r[0], r[1])
+        elif d == "Keep":
+            ctx = [x["id"] for x in self.matrix.items if C.eff(x) == "Context" and it["id"] in C.cf_ids(C.eff_cf(x))]
+            win.cp_l3.configure(text=(f"Context for it: {', '.join(ctx[:6])}" + (" ..." if len(ctx) > 6 else "") if ctx
+                                      else "No Context sentences yet.") + "   (L picks its Context sentences)")
+            win.cp_l3.pack(fill="x")
+            for cid in ctx:
+                r = t.tag_ranges("r:" + cid)
+                if r:
+                    t.tag_add("linked", r[0], r[1])
         else:
             win.cp_l3.pack_forget()
-        win.cp_link_btn.configure(state="normal" if it["decision"] == "Context" else "disabled")
+        win.cp_link_btn.configure(state="normal")
         sec = " ".join(x for x in (it.get("section", ""), it.get("section_title", "")) if x)
         win.cp_where.configure(text=(it.get("loc") or "") + (f"\nSection {sec}" if sec else ""))
+
+    def _cp_commit_msg(self, text):
+        """Show what was committed on the dock for a few seconds."""
+        win = self._cwin
+        if win is None or not hasattr(win, "cp_l0"):
+            return
+        win.cp_l0.configure(text=text)
+        win.cp_l0.pack(fill="x", before=win.cp_l1)
+        if win.cp_msg_after:
+            try:
+                win.after_cancel(win.cp_msg_after)
+            except Exception:
+                diag.swallowed()
+        win.cp_msg_after = win.after(9000, lambda: win.winfo_exists() and win.cp_l0.pack_forget())
+
+    # ------------------------------------------------------------ Decide: pointing and ranges
+    def _cp_hit(self, ix):
+        return next((tag[2:] for tag in self._cwin.cp_text.tag_names(ix) if tag.startswith("r:")), None)
+
+    def _cp_motion(self, e):
+        t = self._cwin.cp_text
+        self._cp_hover(self._cp_hit(t.index(f"@{e.x},{e.y}")))
+
+    def _cp_hover(self, iid):
+        """Pointing at a sentence lights up its links: a Context sentence's requirements, a requirement's Context."""
+        win = self._cwin
+        if win is None or not hasattr(win, "cp_text") or iid == win.cp_hover:
+            return
+        win.cp_hover = iid
+        t = win.cp_text
+        t.tag_remove("hov", "1.0", "end")
+        it = self._c_item(iid) if iid else None
+        if it is None:
+            return []
+        d = C.eff(it)
+        if d == "Context":
+            ids = C.cf_ids(C.eff_cf(it))
+        elif d == "Keep":
+            ids = [x["id"] for x in self.matrix.items if C.eff(x) == "Context" and iid in C.cf_ids(C.eff_cf(x))]
+        else:
+            ids = []
+        for i in ids:
+            r = t.tag_ranges("r:" + i)
+            if r:
+                t.tag_add("hov", r[0], r[1])
+        return ids
+
+    def _cp_range_from_sel(self):
+        """IDs of the sentences the dragged selection touches (in page order), [] for one sentence or none."""
+        t = self._cwin.cp_text
+        if not t.tag_ranges("sel"):
+            return []
+        a, b = t.index("sel.first"), t.index("sel.last")
+        out = []
+        for it in self._cp_items_of(self._cwin.cp_file):
+            r = t.tag_ranges("r:" + it["id"])
+            if r and t.compare(r[0], "<", b) and t.compare(r[1], ">", a):
+                out.append(it["id"])
+        return out if len(out) > 1 else []
+
+    def cp_set_range(self, ids):
+        win = self._cwin
+        t = win.cp_text
+        win.cp_range = list(ids)
+        t.tag_remove("rng", "1.0", "end")
+        for i in win.cp_range:
+            r = t.tag_ranges("r:" + i)
+            if r:
+                t.tag_add("rng", r[0], r[1])
+        sel = self._c_selected()
+        if sel:
+            self._cp_show(sel[0])
+
+    def _cp_range_rows(self):
+        return [x for x in (self._c_item(i) for i in self._cwin.cp_range) if x]
 
     # ------------------------------------------------------------ Decide: actions
     def cp_open_file(self, f):
         win = self._cwin
         win.cp_file = f
+        self.cp_set_range([]) if win.cp_range else None
         self._cp_sync()
         rows = self._cp_items_of(f)
-        first = next((it for it in rows if not it["decision"]), rows[0] if rows else None)
+        first = next((it for it in rows if not C.eff(it)), rows[0] if rows else None)
         if first is not None:
             self._cp_select(first["id"])
 
@@ -280,13 +493,20 @@ class CompliancePageMixin:
         t = win.cp_text
         t.focus_set()
         ix = t.index(f"@{e.x},{e.y}")
-        hit = next((tag[2:] for tag in t.tag_names(ix) if tag.startswith("r:")), None)
+        rng = self._cp_range_from_sel() if not win.cp_linking else []
+        if rng:                                      # dragged across several sentences: decide them together
+            t.tag_remove("sel", "1.0", "end")
+            self._cp_select(rng[0]) if not self._c_selected() or self._c_selected()[0]["id"] not in rng else None
+            self.cp_set_range(rng)
+            return
+        hit = self._cp_hit(ix)
         if not hit:
             return
-        if win.cp_linking:                           # Link mode: this click names the requirement
-            win.cp_linking = False
-            self.cp_link_to(hit)
+        if win.cp_linking:                           # Link mode: each click adds or removes a link, the mode stays
+            self.cp_link_click(hit)
             return
+        if win.cp_range:
+            self.cp_set_range([])
         sel = self._c_selected()
         if sel and sel[0]["id"] == hit:              # a click inside the current sentence: where to split
             r = t.tag_ranges("r:" + hit)
@@ -301,10 +521,16 @@ class CompliancePageMixin:
 
     def _cp_key(self, e):
         k = (e.keysym or "").lower()
-        if k in ("k", "c", "d"):
+        ctrl = bool(e.state & 0x4)
+        win = self._cwin
+        if k in ("return", "kp_enter") and ctrl:
+            self.cp_commit_default()
+        elif win.cp_linking and k in ("return", "kp_enter", "escape", "l"):
+            self.cp_link_end()
+        elif k in ("k", "c", "d"):
             self.cp_decide({"k": "Keep", "c": "Context", "d": "Drop"}[k])
         elif k == "u":
-            self.compliance_decide("")
+            self.cp_decide("")
         elif k in ("return", "kp_enter"):
             self.cp_accept()
         elif k == "backspace":
@@ -314,7 +540,8 @@ class CompliancePageMixin:
         elif k == "l":
             self.cp_link_start()
         elif k == "escape":
-            self._cwin.cp_linking = False
+            if win.cp_range:
+                self.cp_set_range([])
             sel = self._c_selected()
             if sel:
                 self._cp_show(sel[0])
@@ -340,11 +567,19 @@ class CompliancePageMixin:
         self._cp_select(rows[j]["id"])
 
     def cp_decide(self, decision):
+        win = self._cwin
+        if win.cp_range:                             # the dragged sentences, all at once; the range stays
+            rows = self._cp_range_rows()
+            self.compliance_decide(decision, rows=rows)
+            self.cp_set_range([r["id"] for r in rows])
+            win.cp_text.focus_set()
+            return len(rows)
         sel = self._c_selected()
         if len(sel) == 1:
-            self._cwin.cp_hist.append(sel[0]["id"])
+            win.cp_hist.append(sel[0]["id"])
         self.compliance_decide(decision)
-        self._cwin.cp_text.focus_set()
+        win.cp_text.focus_set()
+        return len(sel)
 
     def cp_accept(self):
         sel = self._c_selected()
@@ -359,33 +594,154 @@ class CompliancePageMixin:
                 self._cp_select(iid)
                 return
 
+    # ------------------------------------------------------------ Decide: linking (2.35.0: many, and it stays open)
     def cp_link_start(self):
-        """L: the next click on a requirement links the current Context sentence to it."""
+        """L. On Context sentences (the current one, or the dragged ones): each click on a requirement adds or removes
+        it. On a requirement: each click on a sentence makes it Context for this requirement, or removes it. A sentence
+        that is not decided yet becomes Context first. Stays open until Enter, Esc or L."""
         win = self._cwin
-        sel = self._c_selected()
-        if len(sel) != 1 or sel[0]["decision"] != "Context":
-            return
-        win.cp_linking = True
-        win.cp_l3.configure(text="Click the requirement this sentence explains (Esc cancels).")
-        win.cp_l3.pack(fill="x")
+        rows = self._cp_range_rows() if win.cp_range else self._c_selected()[:1]
+        if not rows:
+            return None
+        if len(rows) == 1 and C.eff(rows[0]) == "Keep":
+            win.cp_linking = ("rev", rows[0]["id"])
+        else:
+            rows = [r for r in rows if C.eff(r) != "Keep"]
+            if not rows:
+                return None
+            for r in rows:
+                if C.eff(r) != "Context":
+                    C.set_draft(r, "Context", [])
+                    self.matrix.log(r["id"], "draft Context")
+            win.cp_linking = ("fwd", [r["id"] for r in rows])
+            self._c_changed(refill=False)
+        self._cp_link_line()
         win.cp_text.focus_set()
+        return win.cp_linking[0]
+
+    def _cp_link_line(self):
+        win = self._cwin
+        mode, what = win.cp_linking
+        t = win.cp_text
+        t.tag_remove("linked", "1.0", "end")
+        if mode == "fwd":
+            rows = [x for x in (self._c_item(i) for i in what) if x]
+            ids = []
+            for r in rows:
+                ids += [i for i in C.cf_ids(C.eff_cf(r)) if i not in ids]
+            who = rows[0]["id"] if len(rows) == 1 else f"{len(rows)} sentences"
+            win.cp_l3.configure(text=f"Linking {who}: click each requirement it explains; click again to remove. Enter or Esc "
+                                     f"when done.   Context for: {', '.join(ids) if ids else 'none yet'}")
+        else:
+            ids = [x["id"] for x in self.matrix.items if C.eff(x) == "Context" and what in C.cf_ids(C.eff_cf(x))]
+            win.cp_l3.configure(text=f"Picking Context for {what}: click each sentence that explains it; click again to remove. "
+                                     f"Enter or Esc when done.   Context: {', '.join(ids[:8]) if ids else 'none yet'}"
+                                     + (" ..." if len(ids) > 8 else ""))
+        win.cp_l3.pack(fill="x")
+        for i in ids:
+            r = t.tag_ranges("r:" + i)
+            if r:
+                t.tag_add("linked", r[0], r[1])
+
+    def cp_link_click(self, hit):
+        """One click in link mode. Returns 'added', 'removed' or a reason it did nothing."""
+        win = self._cwin
+        mode, what = win.cp_linking
+        M = self.matrix
+        x = self._c_item(hit)
+        if x is None:
+            return "none"
+        if mode == "fwd":
+            if C.eff(x) != "Keep":
+                win.cp_l3.configure(text=f"{hit} is not a requirement (Keep). Click a green sentence, or Enter when done.")
+                return "not a requirement"
+            rows = [r for r in (self._c_item(i) for i in what) if r and r["id"] != hit]
+            have = all(hit in C.cf_ids(C.eff_cf(r)) for r in rows)
+            for r in rows:
+                ids = [i for i in C.cf_ids(C.eff_cf(r)) if i != hit] if have else C.cf_ids(C.eff_cf(r)) + [hit]
+                C.set_draft(r, "Context", ids)
+                M.log(r["id"], f"draft context for {C.eff_cf(r) or 'none'}")
+            res = "removed" if have else "added"
+        else:
+            if hit == what:
+                return "itself"
+            if C.eff(x) == "Keep":
+                win.cp_l3.configure(text=f"{hit} is a requirement. Click the sentences that explain {what}, or Enter when done.")
+                return "a requirement"
+            ids = C.cf_ids(C.eff_cf(x)) if C.eff(x) == "Context" else []
+            res = "removed" if what in ids else "added"
+            ids = [i for i in ids if i != what] if res == "removed" else ids + [what]
+            C.set_draft(x, "Context", ids)
+            M.log(x["id"], f"draft context for {C.eff_cf(x) or 'none'}")
+        diag.activity("compliance_context_linked")
+        self._c_changed(refill=False)
+        self._cp_link_line()
+        return res
+
+    def cp_link_end(self):
+        win = self._cwin
+        win.cp_linking = None
+        sel = self._c_selected()
+        if sel:
+            self._cp_show(sel[0])
 
     def cp_link_to(self, req_id):
-        """Link the current Context sentence to a requirement (it must be Keep). Returns True when linked."""
+        """Link the current Context sentence to one more requirement (it must be Keep). Returns True when linked."""
         sel = self._c_selected()
         req = self._c_item(req_id)
-        if len(sel) != 1 or sel[0]["decision"] != "Context" or req is None:
+        if len(sel) != 1 or C.eff(sel[0]) != "Context" or req is None:
             return False
-        if req["decision"] != "Keep":
+        if C.eff(req) != "Keep":
             self._cwin.cp_l3.configure(text=f"{req_id} is not a requirement (Keep). Press L and click a green sentence.")
             return False
         it = sel[0]
-        it["context_for"] = req_id
-        self.matrix.log(it["id"], f"context for {req_id}")
-        diag.activity("compliance_context_linked")
-        self._c_changed(refill=False)
+        ids = C.cf_ids(C.eff_cf(it))
+        if req_id not in ids:
+            C.set_draft(it, "Context", ids + [req_id])
+            self.matrix.log(it["id"], f"draft context for {C.eff_cf(it)}")
+            diag.activity("compliance_context_linked")
+            self._c_changed(refill=False)
         self._cp_show(it)
         return True
+
+    # ------------------------------------------------------------ Decide: commit
+    def _cp_scope_rows(self, scope):
+        win, M = self._cwin, self.matrix
+        t = win.cp_text
+        sel = self._c_selected()
+        if scope == "selected":
+            return self._cp_range_rows() if win.cp_range else sel[:1]
+        if scope == "section":
+            if not sel:
+                return []
+            f, sec = sel[0].get("file", ""), sel[0].get("section", "")
+            return [it for it in M.items if it.get("file", "") == f and it.get("section", "") == sec]
+        if scope == "file":
+            return self._cp_items_of(win.cp_file)
+        if scope == "screen":
+            top, bot = t.index("@0,0"), t.index(f"@0,{max(1, t.winfo_height())}")
+            out = []
+            for it in self._cp_items_of(win.cp_file):
+                r = t.tag_ranges("r:" + it["id"])
+                if r and t.compare(r[1], ">", top) and t.compare(r[0], "<", f"{bot} lineend"):
+                    out.append(it)
+            return out
+        return None                                   # all
+
+    def cp_commit(self, scope="screen"):
+        """Commit the drafts in a scope: screen, selected, section, file or all."""
+        rows = self._cp_scope_rows(scope)
+        r = self.compliance_commit(rows, scope)
+        if r is not None and self._cwin is not None and hasattr(self._cwin, "cp_text"):
+            sel = self._c_selected()
+            if sel:
+                self._cp_show(sel[0])
+            self._cwin.cp_text.focus_set()
+        return r
+
+    def cp_commit_default(self):
+        """Ctrl+Enter: the dragged sentences when there are any, else what is on screen."""
+        return self.cp_commit("selected" if self._cwin.cp_range else "screen")
 
     def cp_split(self):
         self.compliance_split()
@@ -393,16 +749,16 @@ class CompliancePageMixin:
 
     def cp_drop_boilerplate(self, ask=True):
         M = self.matrix
-        rows = [it for it in M.items if not it["decision"] and it.get("type") == "Context" and it.get("suggest") == "Drop"]
+        rows = [it for it in M.items if not C.eff(it) and it.get("type") == "Context" and it.get("suggest") == "Drop"]
         if not rows:
             return 0
         if ask:
             sample = "\n".join(f"  {it['text'][:70]}" for it in rows[:12]) + (f"\n  ... and {len(rows) - 12} more" if len(rows) > 12 else "")
-            if not messagebox.askyesno("Clear the easy ones", f"Drop these {len(rows)} sentences?\n\n{sample}", parent=self._cwin):
+            if not messagebox.askyesno("Clear the easy ones", f"Drop these {len(rows)} sentences (as drafts)?\n\n{sample}", parent=self._cwin):
                 return 0
         for it in rows:
-            it["decision"] = "Drop"
-            M.log(it["id"], "decision Drop (boilerplate, accepted)")
+            C.set_draft(it, "Drop")
+            M.log(it["id"], "draft Drop (boilerplate, accepted)")
         diag.activity("compliance_boilerplate_dropped", n=len(rows))
         self._c_changed()
         return len(rows)
@@ -484,9 +840,11 @@ class CompliancePageMixin:
         win.pl_text.configure(text=cur["text"])
         win.pl_after.configure(text=rows[i + 1]["text"] if i + 1 < len(rows) else "")
         choices = []
-        req = self._c_item(cur.get("context_for", "")) if cur["decision"] == "Context" and cur.get("context_for") else None
-        if req is not None and req.get("map"):
-            choices.append((req["map"], f"with its requirement {req['id']}"))
+        if cur["decision"] == "Context":
+            for rid in C.cf_ids(cur.get("context_for", "")):
+                req = self._c_item(rid)
+                if req is not None and req.get("map") and req["map"] not in [c[0] for c in choices]:
+                    choices.append((req["map"], f"with its requirement {req['id']}"))
         ranked = self._c_learned_places(cur) if hasattr(self, "_c_learned_places") else []
         band = __import__("placelearn").Placer.band(ranked) if ranked else ""
         rule, _s = self._c_suggest(cur)
@@ -539,8 +897,8 @@ class CompliancePageMixin:
         cur = next((it for it in M.items if it["id"] == win.pl_cur), None)
         rows = rows or ([cur] if cur else [])
         ids = {it["id"] for it in rows}
-        follow = [x for x in M.items if x["decision"] == "Context" and x.get("context_for") in ids and not x["map"]
-                  and x["id"] not in ids]                 # 2.33.0: Context goes with the requirement it explains
+        follow = [x for x in M.items if x["decision"] == "Context" and set(C.cf_ids(x.get("context_for", ""))) & ids
+                  and not x["map"] and x["id"] not in ids]   # 2.33.0: Context goes with the requirement it explains
         for it in rows + follow:
             it["map"] = label
             M.log(it["id"], f"mapped to {label} (placed" + (" with its requirement)" if it in follow else ")"))

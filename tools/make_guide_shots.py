@@ -123,18 +123,24 @@ def step3():
     for i, it in enumerate(M.items):
         if i % 4 == 3 and it["type"] == "Context":
             it["decision"] = "Context"
-    for it in M.items[-6:]:
+    for it in M.items[-14:]:
         it["decision"] = ""
+    for it in M.items[-14:-7]:                                  # 2.35.0: some drafts, one Context for two requirements
+        C.set_draft(it, "Drop" if it["suggest"] == "Drop" else "Keep")
+    ctx = M.items[-8]
+    keeps = [x["id"] for x in M.items if x.get("file") == ctx.get("file") and C.eff(x) == "Keep" and x is not ctx][-2:]
+    C.set_draft(ctx, "Context", keeps)
     M.save()
     app.ws.set("compliance_path", mpath)
     app.open_compliance(); app.update()
     app._c_load(mpath, quiet=True); app._c_refresh()
     app.shell_go("compliance", "decide"); app.update()
-    app.compliance_next_undecided()
+    app._cp_select(ctx["id"]); app.update()
 
     def shot_setup():
         zoom(); time.sleep(0.8); app.update()
         grab(app.main, "compliance.png")
+        app.compliance_commit()
         for it in app.matrix.items:
             it["decision"] = it["decision"] or ("Drop" if it["suggest"] == "Drop" else "Keep")
         app._c_changed()

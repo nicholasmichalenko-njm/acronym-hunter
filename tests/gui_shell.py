@@ -78,28 +78,79 @@ def go():
     t.focus_set(); app.update()
     t.event_generate("<Key>", keysym="Return"); app.update()
     it1 = app._c_item("L.4-01")
-    check("Enter accepts the suggestion and moves on", it1["decision"] == "Keep" and app._c_selected()[0]["id"] == "L.4-02",
-          (it1["decision"], app._c_selected()[0]["id"]))
-    check("the page shades it green", "d_Keep" in t.tag_names(t.tag_ranges("r:L.4-01")[0]))
+    check("Enter accepts the suggestion as a draft and moves on", it1["draft"] == "Keep" and it1["decision"] == ""
+          and app._c_selected()[0]["id"] == "L.4-02", (it1["draft"], it1["decision"], app._c_selected()[0]["id"]))
+    check("a draft is shaded lighter and underlined", "p_Keep" in t.tag_names(t.tag_ranges("r:L.4-01")[0]))
+    # 2.35.0: commit, with the message on the dock
+    app._cp_select("L.4-01"); app.update()
+    t.focus_set(); t.event_generate("<Key>", keysym="Return", state=4); app.update()
+    check("Ctrl+Enter commits what is on screen and says so", it1["decision"] == "Keep" and not it1["draft"]
+          and win.cp_l0.cget("text").startswith("Committed 1 decision: 1 Keep."), win.cp_l0.cget("text"))
+    check("the page shades it solid green", "d_Keep" in t.tag_names(t.tag_ranges("r:L.4-01")[0]))
+    app._cp_select("L.4-02"); app.update()
     t.event_generate("<Key>", keysym="c"); app.update()
-    check("C decides Context", app._c_item("L.4-02")["decision"] == "Context")
+    it2 = app._c_item("L.4-02")
+    check("C drafts Context and stays on the sentence", C.eff(it2) == "Context" and app._c_selected()[0]["id"] == "L.4-02")
     # 2.33.0: Context is linked to the requirement it explains
-    check("Context linked to the nearest requirement", app._c_item("L.4-02").get("context_for") == "L.4-01",
-          app._c_item("L.4-02").get("context_for"))
+    check("Context linked to the nearest requirement", C.eff_cf(it2) == "L.4-01", C.eff_cf(it2))
     app._cp_select("L.4-02"); app.update()
     check("the dock names the requirement and the page marks it", "Context for L.4-01" in win.cp_l3.cget("text")
           and bool(t.tag_ranges("linked")) and t.tag_ranges("linked")[0] == t.tag_ranges("r:L.4-01")[0], win.cp_l3.cget("text"))
     t.event_generate("<Key>", keysym="l"); app.update()
     r6 = t.tag_ranges("r:L.4.2-06"); t.see(r6[0]); app.update(); b6 = t.bbox(r6[0])
     t.event_generate("<ButtonRelease-1>", x=b6[0] + 3, y=b6[1] + b6[3] // 2); app.update()
-    check("linking to a sentence that is not a requirement is refused", app._c_item("L.4-02")["context_for"] == "L.4-01"
+    check("linking to a sentence that is not a requirement is refused", C.eff_cf(it2) == "L.4-01"
           and "not a requirement" in win.cp_l3.cget("text"), win.cp_l3.cget("text"))
-    app._c_item("L.4.2-06")["decision"] = "Keep"; app._c_changed(); app._cp_select("L.4-02"); app.update()
-    t.event_generate("<Key>", keysym="l"); app.update()
+    app._c_item("L.4.2-06")["decision"] = "Keep"; app._c_changed(); app.update()
     t.see(r6[0]); app.update(); b6 = t.bbox(t.tag_ranges("r:L.4.2-06")[0])
     t.event_generate("<ButtonRelease-1>", x=b6[0] + 3, y=b6[1] + b6[3] // 2); app.update()
-    check("L then a click links it to another requirement", app._c_item("L.4-02")["context_for"] == "L.4.2-06")
-    app.cp_link_to("L.4-01"); app._c_item("L.4.2-06")["decision"] = ""; app._c_changed(); app._cp_select("L.4-02"); app.update()
+    check("link mode stays open: a second requirement is added", C.cf_ids(C.eff_cf(it2)) == ["L.4-01", "L.4.2-06"]
+          and win.cp_linking is not None, (C.eff_cf(it2), win.cp_linking))
+    t.event_generate("<ButtonRelease-1>", x=b6[0] + 3, y=b6[1] + b6[3] // 2); app.update()
+    check("clicking it again removes it", C.cf_ids(C.eff_cf(it2)) == ["L.4-01"], C.eff_cf(it2))
+    t.event_generate("<ButtonRelease-1>", x=b6[0] + 3, y=b6[1] + b6[3] // 2); app.update()
+    t.event_generate("<Key>", keysym="Return"); app.update()
+    check("Enter ends link mode", win.cp_linking is None and C.cf_ids(C.eff_cf(it2)) == ["L.4-01", "L.4.2-06"])
+    check("pointing at the Context lights up both requirements", app._cp_hover("L.4-02") == ["L.4-01", "L.4.2-06"])
+    check("pointing at a requirement lights up its Context", app._cp_hover("L.4-01") == ["L.4-02"])
+    app._cp_hover(None)
+    # drafts are saved as they are made: the file and the recovery copy both have them
+    app._c_save_now(); N = C.Matrix(app.matrix.path).load()
+    nit = next(x for x in N.items if x["id"] == "L.4-02")
+    check("drafts are saved in the matrix before they are committed", nit["draft"] == "Context" and nit["draft_cf"] == "L.4-01; L.4.2-06"
+          and nit["decision"] == "", (nit["draft"], nit["draft_cf"]))
+    app.cp_commit("all"); app.update()
+    check("committing makes the links count", it2["decision"] == "Context" and it2["context_for"] == "L.4-01; L.4.2-06"
+          and "with 2 links" in win.cp_l0.cget("text"), (it2["context_for"], win.cp_l0.cget("text")))
+    # L on a requirement picks its Context sentences
+    app._cp_select("L.4.2-06"); app.update()
+    t.event_generate("<Key>", keysym="l"); app.update()
+    check("L on a requirement picks its Context", win.cp_linking == ("rev", "L.4.2-06"), win.cp_linking)
+    r7 = t.tag_ranges("r:L.4.1-04"); t.see(r7[0]); app.update(); b7 = t.bbox(r7[0])
+    t.event_generate("<ButtonRelease-1>", x=b7[0] + 3, y=b7[1] + b7[3] // 2); app.update()
+    it7 = app._c_item("L.4.1-04")
+    check("a clicked sentence becomes Context for it (draft)", C.eff(it7) == "Context" and C.eff_cf(it7) == "L.4.2-06", (C.eff(it7), C.eff_cf(it7)))
+    t.event_generate("<Key>", keysym="Escape"); app.update()
+    # a range: drag across sentences, one key decides them all
+    app.cp_set_range(["L.4.1-04", "L.4.1-05"]); app.update()
+    check("a dragged range is marked and named on the dock", len(t.tag_ranges("rng")) == 4 and "2 sentences selected" in win.cp_l1.cget("text"),
+          win.cp_l1.cget("text"))
+    t.event_generate("<Key>", keysym="d"); app.update()
+    check("one key decides the whole range", all(C.eff(app._c_item(i)) == "Drop" for i in ("L.4.1-04", "L.4.1-05")))
+    r = app.cp_commit("selected"); app.update()
+    check("commit the selected sentences", r["n"] == 2 and all(app._c_item(i)["decision"] == "Drop" for i in ("L.4.1-04", "L.4.1-05")), r)
+    t.event_generate("<Key>", keysym="Escape"); app.update()
+    check("Esc clears the range", not win.cp_range)
+    # the strip maps the file
+    app.update(); hs = win.cp_strip.winfo_height()
+    marks = win.cp_strip.find_all()
+    check("the strip has a mark for every sentence", len(marks) >= len(app._cp_items_of(win.cp_file)), (len(marks), hs))
+    class Ev: y = 1
+    check("clicking the strip jumps there", app._cp_strip_click(Ev) == app._cp_items_of(win.cp_file)[0]["id"])
+    app._c_item("L.4-02")["context_for"] = "L.4-01"
+    for i in ("L.4.2-06", "L.4.1-04", "L.4.1-05"):
+        app._c_item(i).update(decision="", draft="", draft_cf="", context_for="")
+    app._c_changed(); app._cp_select("L.4-02"); app.update()
     t.event_generate("<Key>", keysym="BackSpace"); app.update()
     check("Back returns to the previous sentence", app._c_selected()[0]["id"] == "L.4-02")
     # split by clicking between two words of the current sentence
@@ -115,6 +166,7 @@ def go():
     check("the page shows both parts", all(p in t.get("1.0", "end") for p in parts))
     # clear the boilerplate
     n = app.cp_drop_boilerplate(ask=False)
+    app.cp_commit("all")
     check("boilerplate dropped in one go", n == 1 and app._c_item("L.4.1-05")["decision"] == "Drop")
     for x in app.matrix.items:
         if not x["decision"]:

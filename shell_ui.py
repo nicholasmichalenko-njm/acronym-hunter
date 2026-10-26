@@ -354,7 +354,7 @@ class ShellMixin:
                         r["Status"] in ("Approved", "Rejected") for r in self.effort.rows.values())
             if f == "compliance" and self.matrix is not None:
                 c = self.matrix.counts()
-                return {"read": bool(self.matrix.items), "decide": bool(self.matrix.items) and not c[""],
+                return {"read": bool(self.matrix.items), "decide": bool(self.matrix.items) and not c[""] and not c.get("drafts"),
                         "outline": bool(self.matrix.outline),
                         "place": c["Keep"] + c["Context"] > 0 and not c["needs_home"]}.get(s, False)
             if f == "qaqc" and s == "check":
@@ -407,7 +407,8 @@ class ShellMixin:
                 if M is None or not M.items:
                     return "No matrix yet"
                 c = M.counts()
-                return f"{len(M.items) - c['']} of {len(M.items)} decided"
+                return f"{len(M.items) - c['']} of {len(M.items)} decided" + (f", {c['drafts']} draft" + ("s" if c["drafts"] != 1 else "")
+                                                                         if c.get("drafts") else "")
             if key == "acronyms":
                 if L is not None:
                     ok = sum(1 for r in L.rows.values() if r["Status"] == "Approved")
@@ -453,8 +454,10 @@ class ShellMixin:
         M = self.matrix
         if M is None or not M.items:
             self._ov_target, text = ("compliance", "read"), "Next: Compliance, read the RFP"
-        elif M.counts()[""]:
-            self._ov_target, text = ("compliance", "decide"), f"Next: Compliance, decide ({M.counts()['']} left)"
+        elif M.counts()[""] or M.counts().get("drafts"):
+            c = M.counts()
+            self._ov_target, text = ("compliance", "decide"), (f"Next: Compliance, decide ({c['open']} left)" if c["open"]
+                                                                else f"Next: Compliance, commit {c['drafts']} draft decisions")
         elif not L.rows:
             self._ov_target, text = ("acronyms", "scan"), "Next: Acronyms, scan our documents"
         else:

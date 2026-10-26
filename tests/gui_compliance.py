@@ -42,6 +42,7 @@ def wait():
     drops = list(tv.get_children())
     win.f_sug.set("All"); app._c_fill()
     app.compliance_accept()
+    app.compliance_commit()                                              # 2.35.0: accepted suggestions are drafts until committed
     c = M.counts()
     print("after accept:", {k: c[k] for k in ("Keep", "Drop", "")}, "| drop suggestions:", len(drops))
     icd = next(it for it in M.items if it["text"].startswith("The Contractor shall deliver the Interface"))
@@ -103,7 +104,8 @@ def wait():
         tv.selection_set(nxt); win.update()
         app.compliance_decide("Context"); win.update()
         after = tv.selection()
-        adv_ok = (len(und) == 1) or (after and after[0] != nxt and not app._c_item(after[0])["decision"])
+        adv_ok = bool(after) and after[0] == nxt                        # 2.35.0: Context stays put so L can link more
+        app.compliance_commit()
     keys_ok = {"c", "n", "C", "N"} <= set(tv.bind())
     ctx_ok = bool(ctx) and adv_ok and keys_ok and (nxt is None or app._c_item(nxt)["decision"] == "Context")
     for it in M.items:

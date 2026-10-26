@@ -394,7 +394,7 @@ def merge_reread(old, new):
         if o is not None:
             taken.add(id(o))
         if o:
-            for f in ("id", "decision", "map", "owner", "status", "notes", "response_page", "text", "context_for"):
+            for f in ("id", "decision", "map", "owner", "status", "notes", "response_page", "text", "context_for", "draft", "draft_cf"):
                 it[f] = o.get(f, "")
             it["new"] = ""
         else:
@@ -461,12 +461,89 @@ def merge_items(items, ids):
 
 
 # ------------------------------------------------------------------ Context linked to its requirement (2.33.0)
+# 2.35.0: a Context sentence can explain several requirements ("Context for" holds IDs separated by "; "), and every
+# decision is first a draft. The committed decision ("decision", "context_for") is what Place, the setup documents, the
+# exports and the coverage report use; the draft ("draft", "draft_cf") is what Decide shows until it is committed.
 CONTEXT_REACH = 12          # how many sentences before or after to look for the requirement
+UNDECIDED = "Undecided"     # a draft that takes a decision back
 
 
-def default_context_for(items, it):
+def cf_ids(value):
+    """'L.4-01; L.5-02' -> ['L.4-01', 'L.5-02']."""
+    return [x.strip() for x in re.split(r"[;,]", value or "") if x.strip()]
+
+
+def join_ids(ids):
+    return "; ".join(dict.fromkeys(i for i in ids if i))
+
+
+def eff(it):
+    """The decision Decide shows: the draft when there is one, else the committed decision."""
+    d = it.get("draft", "")
+    return ("" if d == UNDECIDED else d) if d else it.get("decision", "")
+
+
+def eff_cf(it):
+    return it.get("draft_cf", "") if it.get("draft") else it.get("context_for", "")
+
+
+def set_draft(it, decision, cf=None):
+    """Pencil a decision (and for Context its requirements). Back to the committed state clears the draft.
+    Returns True when the row changed."""
+    decision = decision or ""
+    if decision == "Context":
+        new_cf = join_ids(cf) if cf is not None else (eff_cf(it) if eff(it) == "Context" else "")
+    else:
+        new_cf = ""
+    before = (it.get("draft", ""), it.get("draft_cf", ""))
+    committed_cf = it.get("context_for", "") if it.get("decision") == "Context" else ""
+    if decision == it.get("decision", "") and new_cf == committed_cf:
+        it["draft"], it["draft_cf"] = "", ""
+    else:
+        it["draft"], it["draft_cf"] = decision or UNDECIDED, new_cf
+    return (it["draft"], it["draft_cf"]) != before
+
+
+def drafts(items):
+    return [it for it in items if it.get("draft")]
+
+
+def commit(rows):
+    """Make the drafts in rows count. Returns {"n", "Keep", "Context", "Drop", "Undecided", "links"}."""
+    out = {"n": 0, "Keep": 0, "Context": 0, "Drop": 0, "Undecided": 0, "links": 0}
+    for it in rows:
+        if not it.get("draft"):
+            continue
+        d = eff(it)
+        it["decision"] = d
+        it["context_for"] = it.get("draft_cf", "") if d == "Context" else ""
+        it["draft"], it["draft_cf"] = "", ""
+        out["n"] += 1
+        out[d or "Undecided"] += 1
+        out["links"] += len(cf_ids(it["context_for"]))
+    return out
+
+
+def commit_text(r, left):
+    """'Committed 23 decisions: 15 Keep, 6 Context with 9 links, 2 Drop. 41 drafts left.'"""
+    if not r["n"]:
+        return "Nothing to commit here: no drafts."
+    bits = [f"{r['Keep']} Keep"] if r["Keep"] else []
+    if r["Context"]:
+        bits.append(f"{r['Context']} Context with {r['links']} link" + ("s" if r["links"] != 1 else ""))
+    if r["Drop"]:
+        bits.append(f"{r['Drop']} Drop")
+    if r["Undecided"]:
+        bits.append(f"{r['Undecided']} taken back to undecided")
+    return (f"Committed {r['n']} decision" + ("s" if r["n"] != 1 else "") + ": " + ", ".join(bits) + ". "
+            + (f"{left} draft" + ("s" if left != 1 else "") + " left." if left else "No drafts left."))
+
+
+def default_context_for(items, it, dec=None):
     """The requirement a Context sentence explains: the nearest Keep before it in the same file and RFP section
-    (the same paragraph), else the nearest Keep after it there. '' when there is none nearby."""
+    (the same paragraph), else the nearest Keep after it there. '' when there is none nearby. dec(row) gives the
+    decision to look at (the committed one by default; Decide passes eff for drafts)."""
+    dec = dec or (lambda x: x["decision"])
     try:
         i = next(k for k, x in enumerate(items) if x is it)
     except StopIteration:
@@ -476,20 +553,20 @@ def default_context_for(items, it):
         x = items[j]
         if not same(x):
             break
-        if x["decision"] == "Keep":
+        if dec(x) == "Keep":
             return x["id"]
     for j in range(i + 1, min(len(items), i + 1 + CONTEXT_REACH)):
         x = items[j]
         if not same(x):
             break
-        if x["decision"] == "Keep":
+        if dec(x) == "Keep":
             return x["id"]
     return ""
 
 
 def link_contexts(items):
-    """Give every Context sentence without a requirement its default one; clear the link on rows no longer Context.
-    Returns the number of links made."""
+    """Give every committed Context sentence without a requirement its default one; clear the link on rows no
+    longer Context. Returns the number of links made."""
     n = 0
     for it in items:
         if it["decision"] == "Context":
@@ -504,28 +581,37 @@ def link_contexts(items):
 
 
 def remap_context_for(items, old_id, new_id):
+    """A requirement was split or merged: its Context sentences (committed and drafted) follow the new ID."""
     for it in items:
-        if it.get("context_for") == old_id:
-            it["context_for"] = new_id
+        for f in ("context_for", "draft_cf"):
+            ids = cf_ids(it.get(f, ""))
+            if old_id in ids:
+                it[f] = join_ids(new_id if i == old_id else i for i in ids)
 
 
 def context_problems(items):
-    """[(item, reason)] for Context sentences that are not with their requirement."""
+    """[(item, reason)] for committed Context sentences that are not with their requirements."""
     by = {it["id"]: it for it in items}
     out = []
     for it in items:
         if it["decision"] != "Context":
             continue
-        cf = it.get("context_for", "")
-        req = by.get(cf)
-        if not cf:
+        ids = cf_ids(it.get("context_for", ""))
+        if not ids:
             out.append((it, "no requirement"))
-        elif req is None:
-            out.append((it, f"its requirement {cf} is no longer in the matrix"))
-        elif req["decision"] != "Keep":
-            out.append((it, f"its requirement {cf} is no longer Keep"))
-        elif it.get("map") and req.get("map") and it["map"] != req["map"]:
-            out.append((it, f"placed in {it['map']}, its requirement {cf} in {req['map']}"))
+            continue
+        bad = False
+        for cf in ids:
+            req = by.get(cf)
+            if req is None:
+                out.append((it, f"its requirement {cf} is no longer in the matrix")); bad = True
+            elif req["decision"] != "Keep":
+                out.append((it, f"its requirement {cf} is no longer Keep")); bad = True
+        if bad or not it.get("map"):
+            continue
+        maps = [by[cf].get("map") for cf in ids if by.get(cf) is not None and by[cf].get("map")]
+        if maps and it["map"] not in maps:
+            out.append((it, f"placed in {it['map']}, its requirement" + ("s" if len(ids) > 1 else "") + f" in {', '.join(dict.fromkeys(maps))}"))
     return out
 
 
@@ -725,14 +811,14 @@ def suggest_map(item, outline, stats=None):
 # ------------------------------------------------------------------ the workbook
 COLUMNS = ["ID", "Decision", "Suggested", "Learned", "Section", "Section title", "Requirement", "Lead-in", "Actor", "Type", "Strength",
            "Cross-references", "Linked items", "Outline section", "Context for", "Owner", "Status", "Response page", "Notes",
-           "Source file", "Location", "Compound", "Change", "Context", "Key"]
-WIDTHS = [12, 10, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 14, 12, 12, 24, 26, 30, 9, 14, 60, 13]
+           "Source file", "Location", "Compound", "Change", "Draft", "Draft context for", "Context", "Key"]
+WIDTHS = [12, 10, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 14, 12, 12, 24, 26, 30, 9, 14, 10, 16, 60, 13]
 FIELD = {"ID": "id", "Decision": "decision", "Suggested": "suggest", "Learned": "learned", "Section": "section", "Section title": "section_title",
          "Requirement": "text", "Lead-in": "lead", "Actor": "actor", "Type": "type", "Strength": "strength",
          "Cross-references": "xrefs", "Linked items": "links", "Outline section": "map", "Context for": "context_for",
          "Owner": "owner", "Status": "status",
          "Response page": "response_page", "Notes": "notes", "Source file": "file", "Location": "loc",
-         "Compound": "compound", "Change": "new", "Context": "context", "Key": "key"}
+         "Compound": "compound", "Change": "new", "Draft": "draft", "Draft context for": "draft_cf", "Context": "context", "Key": "key"}
 
 
 class Locked(Exception):
@@ -774,6 +860,9 @@ class Matrix:
                 row["compound"] = row["compound"].lower() in ("yes", "true", "1")
                 row["decision"] = {"k": "Keep", "keep": "Keep", "yes": "Keep", "d": "Drop", "drop": "Drop", "no": "Drop",
                                    "c": "Context", "context": "Context"}.get(row["decision"].lower(), "")
+                row["draft"] = {"keep": "Keep", "context": "Context", "drop": "Drop", "undecided": UNDECIDED}.get(row["draft"].lower(), "")
+                if not row["draft"]:
+                    row["draft_cf"] = ""
                 row["page"] = _page(row["loc"])
                 row["key"] = row["key"] or text_key(row["text"])
                 self.items.append(row)
@@ -882,6 +971,8 @@ class Matrix:
             elif it["decision"] == "Context":
                 c["context_mapped" if it["map"] else "context_unmapped"] += 1
         c["decided"] = c["total"] - c[""]
+        c["drafts"] = sum(1 for it in self.items if it.get("draft"))
+        c["open"] = sum(1 for it in self.items if not eff(it))            # not decided even as a draft
         c["placed"] = c["mapped"] + c["context_mapped"]
         c["needs_home"] = c["kept_unmapped"] + c["context_unmapped"]
         return c
