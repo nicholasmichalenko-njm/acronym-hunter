@@ -2480,7 +2480,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.37.0"            # keep in step with version_info.txt
+APP_VERSION = "2.38.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3372,6 +3372,7 @@ def status_kind(st):
     return "other"
 LOC_MAX_LINES = 3   # Locations wrap to at most this many lines in the table; double-click a row for all of them
 MANUAL_CATEGORIES = ["Acronym", "Abbreviation", "Unit", "Other"]
+FOUND_FILTERS = ("All documents", "Customer documents", "Ours", "Both")     # 2.38.0: where a term was found
 COLUMNS = (  # id, heading, base width, anchor
     ("term", "Term / Unit", 120, "w"),
     ("category", "Type", 170, "w"),
@@ -3518,8 +3519,16 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, SubmissionMixin, CompliancePageMixi
         # ---- Scan review (the results table) and the effort home (2.14.0) ----
         self.scan_view = ctk.CTkFrame(M, fg_color="transparent")
         self.scan_view.pack(fill="both", expand=True)
+        self.rv_scanbar = ctk.CTkFrame(self.scan_view, corner_radius=10, fg_color=("#EFF6FF", "#172554"), border_width=1,
+                                       border_color="#1E3A8A")      # 2.38.0: scan the open effort's documents, no file picking
+        self.rv_scanlbl = ctk.CTkLabel(self.rv_scanbar, text="", anchor="w")
+        self.rv_scanlbl.pack(side="left", padx=12, pady=8)
+        self.btn_rv_scan = ctk.CTkButton(self.rv_scanbar, text="Scan this effort's documents", fg_color="#1E3A8A", width=10,
+                                         command=lambda: self.acronyms_effort_scan(force=True))
+        self.btn_rv_scan.pack(side="left", padx=6)
         fr = ctk.CTkFrame(self.scan_view, fg_color="transparent")       # Review filters (the sidebar's, 2.32.0)
         fr.pack(fill="x", padx=15, pady=(0, 6))
+        self.rv_filters = fr
         self.type_var = ctk.StringVar(value=ALL_TYPES)
         ctk.CTkLabel(fr, text="Type").pack(side="left", padx=(0, 4))
         self.opt_type = ctk.CTkOptionMenu(fr, variable=self.type_var, values=[ALL_TYPES], width=150, command=lambda _v: self.populate_table())
@@ -3528,6 +3537,11 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, SubmissionMixin, CompliancePageMixi
         ctk.CTkLabel(fr, text="Status").pack(side="left", padx=(12, 4))
         self.opt_status = ctk.CTkOptionMenu(fr, variable=self.status_var, values=STATUS_FILTERS, width=170, command=lambda _v: self.populate_table())
         self.opt_status.pack(side="left")
+        self.found_var = ctk.StringVar(value=FOUND_FILTERS[0])         # 2.38.0
+        ctk.CTkLabel(fr, text="Found in").pack(side="left", padx=(12, 4))
+        self.opt_found = ctk.CTkOptionMenu(fr, variable=self.found_var, values=list(FOUND_FILTERS), width=150,
+                                           command=lambda _v: self.populate_table())
+        self.opt_found.pack(side="left")
         ctk.CTkLabel(fr, text="Search").pack(side="left", padx=(12, 4))
         self.search_var = ctk.StringVar()
         self.entry_search = ctk.CTkEntry(fr, textvariable=self.search_var, width=200)
@@ -5056,7 +5070,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, SubmissionMixin, CompliancePageMixi
     def doc_kinds(self):
         """{file name (lower case): 'customer' or 'ours'} for the open effort's documents (2.38.0)."""
         L = getattr(self, "effort", None)
-        key = (L.name if L is not None else None, len(getattr(self, "efforts", {}) or {}))
+        key = L.name if L is not None else None
         cache = getattr(self, "_doc_kinds", None)
         if cache is None or cache[0] != key or cache[2] < time.time() - 5:
             kinds = {}
@@ -5247,6 +5261,8 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, SubmissionMixin, CompliancePageMixi
             if excluded and not (show_exc or fstat == "Excluded"): continue
             if ftype != ALL_TYPES and base_type(data["category"]) != ftype: continue
             if fstat != STATUS_FILTERS[0] and not self.status_matches(data, fstat): continue
+            ffound = self.found_var.get() if hasattr(self, "found_var") else FOUND_FILTERS[0]
+            if ffound != FOUND_FILTERS[0] and self.found_in(data) != ffound.split()[0]: continue
             if query and query not in term.casefold() and query not in data["selected_definition"].casefold(): continue
             rows.append((term, data))
 

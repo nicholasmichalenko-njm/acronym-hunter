@@ -190,7 +190,47 @@ def go():
     check("owner and page set on several at once", app._c_item("L.4-01")["owner"] == "J. Smith" and app._c_item("L.4.2-06")["response_page"] == "12")
     check("Prove says every sentence was read and what is not used", "Every sentence read" in app._cwin.lbl_prove.cget("text")
           and "not used" in app._cwin.lbl_prove.cget("text"), app._cwin.lbl_prove.cget("text"))
+    # 2.38.0: Prove as categories to clear
+    cw = app._cwin
+    counts = app.pv_refresh()
+    unused = app.prove_items("unused")
+    check("Prove shows a tile per category with its count", set(cw.pv_tiles) == {k for k, _l in app.PROVE_CATS}
+          and cw.pv_tiles["unused"].cget("text").startswith(f"{len(unused)}\n"), cw.pv_tiles["unused"].cget("text"))
+    items = app.pv_show("unused"); app.update()
+    check("clicking a category lists its sentences, with what to do", [cw.pv_tv.item(i, "values")[0] for i in cw.pv_tv.get_children()]
+          and len(cw.pv_tv.get_children()) == len(items) and cw.pv_confirm_btn.winfo_manager()
+          and "Confirm not used" in cw.pv_help.cget("text"), cw.pv_help.cget("text")[:60])
+    if items:
+        cw.pv_tv.selection_set(cw.pv_tv.get_children()[0]); app.update()
+        n0 = len(items)
+        check("Confirm not used clears it from the list", app.pv_confirm_unused() == 1 and len(app.prove_items("unused")) == n0 - 1)
+    app.pv_show("noowner"); app.update()
+    nob = len(app.prove_items("noowner"))
+    w = app.cp_people_dialog(); w.update()
+    rows = w._api["rows"]
+    vol = next(r for r in rows if r[0] == "Volume I Technical")
+    vol[1].insert(0, "M. Ortiz"); vol[2].insert(0, "A. Lee, B. Chen")
+    w._api["save"](); app.update()
+    import setupdoc as SD
+    check("People: a section's lead owns its requirements unless they have their own owner",
+          SD.owner_of(app.matrix, app._c_item("L.4.2-06")) == "J. Smith" and len(app.prove_items("noowner")) < max(1, nob)
+          and SD.section_people(app.matrix, "1.1 Thermal Design")["lead"] == "M. Ortiz", nob)
+    app.shell_go("compliance", "decide"); app.update()
+    check("the structure panel shows each section's lead", "M. Ortiz" in cw.cp_orows["Volume I Technical"].cget("text"))
+    cw.cp_who.set("A. Lee"); app._cp_side(); app.update()
+    check("Show sections for one person", all(b.winfo_manager() for b in cw.cp_orows.values()))
+    cw.cp_who.set("Everyone"); app._cp_side()
+    rw = app.compliance_ask_references(["Section_L.docx"]); rw.update()
+    f, var, nm, px = rw._api["rows"][0]
+    var.set("prefix"); px.insert(0, "SL"); rw._api["apply"](); app.update()
+    app._cp_select("L.4-01"); app.update()
+    check("a file can be referenced by the document itself", cw.cp_ref.cget("text").startswith("Referenced as: SL-1")
+          and cw.cp_l1.cget("text").startswith("SL-1:"), cw.cp_ref.cget("text"))
+    SD.setup_of(app.matrix)["refmode"].pop("Section_L.docx", None); app._c_changed(); app.update()
     app.shell_go("compliance", "export"); app.update()
+    labels = [w.cget("text") for w in cw.tabs.tab("Export").winfo_children() if hasattr(w, "cget") and isinstance(w, __import__("customtkinter").CTkButton)]
+    check("one Response Setup export, no separate Word outline", any("Response Setup (Word)" in l for l in labels)
+          and not any("Word outline" in l for l in labels), labels)
     check("Export step shows the compliance outputs", app._cwin.tabs.get() == "Export")
     app._c_save_now()
     N = C.Matrix(M.path).load()

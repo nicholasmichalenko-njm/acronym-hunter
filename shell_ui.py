@@ -318,8 +318,8 @@ class ShellMixin:
             self.view_var.set(legacy or f"{feature}:{step}")
         if (feature, step) == ("acronyms", "approve") and self.effort is not None:
             self.home_refresh()
-        elif (feature, step) == ("acronyms", "review") and self.effort is not None:
-            self.after(50, self.acronyms_effort_scan)
+        elif (feature, step) == ("acronyms", "review"):
+            self.rv_scan_offer()
         elif feature == "keywords" and step == "decide" and self.effort is not None:
             self.kw_refresh()
         elif feature == "home":
@@ -362,20 +362,37 @@ class ShellMixin:
             return []
         return list(self.kw_sources())
 
+    def rv_scan_offer(self):
+        """Acronyms > Review with an effort open: one button scans the effort's documents (customer and ours); shown
+        while nothing has been found yet. Returns the offer text, '' when hidden."""
+        bar = getattr(self, "rv_scanbar", None)
+        if bar is None:
+            return ""
+        docs = self.effort_doc_paths() if self.effort is not None and not self.results and not self.busy() else []
+        if not docs:
+            if bar.winfo_manager():
+                bar.pack_forget()
+            return ""
+        nc = sum(1 for _p, k in docs if k == "customer")
+        text = f"Nothing found yet for {self.effort.name}. Its documents: {nc} customer, {len(docs) - nc} ours."
+        self.rv_scanlbl.configure(text=text)
+        self.btn_rv_scan.configure(text=f"Scan this effort's {len(docs)} document{'s' if len(docs) != 1 else ''}")
+        if not bar.winfo_manager():
+            bar.pack(fill="x", padx=15, pady=(0, 6), before=self.rv_filters)
+        return text
+
     def acronyms_effort_scan(self, force=False):
-        """Acronyms > Review with an effort open and nothing found yet: scan the effort's documents once, without asking
-        for files. Returns the number of files started, 0 when nothing was needed."""
+        """Scan the open effort's documents (customer documents and our volumes) without picking files. Returns the
+        number of files started, 0 when nothing was started."""
         if self.effort is None or (self.results and not force) or self.busy():
-            return 0
-        done = self.__dict__.setdefault("_auto_scanned", set())
-        if self.effort.name in done and not force:
             return 0
         docs = self.effort_doc_paths()
         if not docs:
             self.status.configure(text="This effort has no documents yet: add customer documents (Start an effort, or Submission) "
                                        "and our volumes (Effort > Volumes).")
             return 0
-        done.add(self.effort.name)
+        if getattr(self, "rv_scanbar", None) is not None and self.rv_scanbar.winfo_manager():
+            self.rv_scanbar.pack_forget()
         nc = sum(1 for _p, k in docs if k == "customer")
         self.status.configure(text=f"Scanning this effort's documents: {nc} customer, {len(docs) - nc} ours...")
         diag.activity("acronyms_effort_scan", files=len(docs))

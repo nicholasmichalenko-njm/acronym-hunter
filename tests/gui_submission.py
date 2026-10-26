@@ -122,8 +122,35 @@ def go():
     check("Export all includes the version history", any(f.endswith("_Customer_Document_Versions.xlsx") for f in files) and not probs, files)
     check("saved in the effort folder as it happens", os.path.isfile(os.path.join(app.ws.root, "documents", "index.json"))
           and DV.Library(os.path.join(app.ws.root, "documents")).load().counts()["versions"] == 3)
+    # 2.38.0: Acronyms with an effort open: straight to Review, one button scans the effort's documents, Found in column
+    VOL = os.path.join(A.BASE_DIR, "test_samples", "Kestrel_Technical_Volume.docx")
+    app.add_volume("Vol I Technical", [VOL])
+    app.results = {}
+    app.shell_go("acronyms"); app.update()
+    check("Acronyms opens on Review, offering to scan the effort's documents", app.shell_step == "review"
+          and app.rv_scanbar.winfo_manager() and "customer" in app.rv_scanlbl.cget("text"), app.rv_scanlbl.cget("text"))
+    n = app.acronyms_effort_scan(force=True)
+    wait(lambda: not app.busy() and app.results, lambda: found(n))
+
+
+def found(n):
+    app.update()
+    vals = {app.tree.set(i, "foundin") for i in app.tree.get_children()}
+    check("the scan covers customer documents and ours", n >= 3, n)
+    check("Found in says where each term was found", {"Customer", "Ours"} & vals and vals <= {"Customer", "Ours", "Both", ""}, vals)
+    app.found_var.set("Customer documents"); app.populate_table(); app.update()
+    only = {app.tree.set(i, "foundin") for i in app.tree.get_children()}
+    check("filter by where it was found", only == {"Customer"}, only)
+    app.found_var.set("All documents"); app.populate_table()
+    check("the scan offer goes away once something is found", not app.rv_scanbar.winfo_manager())
     print(f"GUI SUBMISSION {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
     app.after(200, app.on_close)
+
+
+def wait(cond, then, n=0):
+    if not cond() and n < 240:
+        app.after(500, lambda: wait(cond, then, n + 1)); return
+    then()
 
 
 A.set_ai_ml(True)

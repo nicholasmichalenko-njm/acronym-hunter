@@ -233,6 +233,9 @@ PAGES = {
     ("rows", [("Home", "Counts at the top (terms, approved, need a definition, no longer found). Show: needs a definition, a "
                        "status, no longer found, or one volume. Double-click to edit a definition. Approve, Needs author, "
                        "Not a term, Volumes, Where from (documents, imports and every change), Show in Scan review."),
+              ("Found in", "With an effort open, Acronyms opens on Review. Until something is found, one button scans the "
+                           "effort's documents (its customer documents and our volumes), no file picking. The Found in column "
+                           "and filter say where each term was found: Customer, Ours or Both."),
               ("Review", "A adds the term to the effort list, X marks it Not a term, Space skips; the next term comes up "
                          "each time. More holds Include in the database, Exclude (all places), Omit and Fix OCR. In the preview: "
                          "Exclude instance, and Report misreading for a misreading (sent to the training team)."),
@@ -313,7 +316,7 @@ PAGES = {
                          "volumes to include, approved only, and CSV, Excel or Word. Rejected terms and the omit list are "
                          "left out. Your last choice is remembered for this effort."),
               ("Export all", "Home > Export all (or File > Export all for this effort) writes every feature's outputs into one "
-                             "dated folder: compliance matrix, coverage report, Word outline, setup documents, acronym lists, "
+                             "dated folder: customer document version history, compliance matrix, coverage report, Response Setup, acronym lists, "
                              "the QA/QC report and the keyword list. Tick what to include; everything available starts ticked. "
                              "Each feature keeps its own export too.")]),
     ("h", "Several efforts at once"),
@@ -391,9 +394,18 @@ PAGES = {
                                  "requirement it supports, with \"Also context for\" naming the others; context for a section "
                                  "prints first in that section. The matrix's Context for column lists the requirements."),
               ("Setup board", "Arrange the setup... on the right opens the board for order, direction and references."),
-              ("Prove", "How many sentences are compliance requirements, context or not used, per file; any assigned sentence "
-                        "without a section; and the coverage report. Owner, status and response page are set here: select "
-                        "requirements, type, Apply."),
+              ("Prove", "The final check before export, as tiles to clear: Not used (not confirmed), Assigned with no section, "
+                        "Context not attached, Requirements with no owner, New in the latest RFP read, and All compliance "
+                        "requirements. Click a tile to list those sentences with what to do: Open in Assign (or double-click), "
+                        "Confirm not used, Mark checked, or set owner, status, response page and notes for several at once. "
+                        "When nothing is left, Prove says ready to export. The coverage report is one button at the top."),
+              ("People", "People... in Assign (or right-click a section) sets a lead and contributors for each section. "
+                         "Requirements in a section and its subsections take its lead as owner unless they have their own. "
+                         "The structure panel shows each lead; Show sections for lists one person's sections. The matrix's "
+                         "Owner column and the Response Setup show the people."),
+              ("References", "A sentence's reference is the RFP's own section number. For a file with no numbering, the app asks "
+                             "once how to reference it: by the document name and paragraph (Design Note, para 3), name, page and "
+                             "paragraph, or a prefix and number (SOW-3). Change it any time: How this file is referenced... in Assign."),
               ("Every line", "The count above the table says how many sentences are decided and shows a check mark when all "
                              "are. Filters show Context rows and Keep or Context rows that still need a home (no outline "
                              "section). Boilerplate and page headers are suggested Drop; Accept suggestions applies them."),
@@ -410,7 +422,7 @@ PAGES = {
                         "('; ' or 'and shall'). Merge (M) joins rows back together."),
               ("Compliance words", "shall, must, will, should, may, required, not exceed, and order verbs such as describe or "
                                    "provide (at the start of a sentence or after shall) are bold, on screen and in the Excel "
-                                   "matrix, setup documents, coverage report and Word outline. Compliance word style... (in the "
+                                   "matrix, Response Setup and coverage report. Compliance word style... (in the "
                                    "compliance window or the Compliance menu) adds italic, underline, a color or a highlight "
                                    "and edits the word list. Excel cannot highlight single words, so the matrix skips the highlight."),
               ("Type and actor", "Instruction (L), Evaluation (M), SOW (C), Format, Information; Offeror, Contractor or Government."),
@@ -438,9 +450,10 @@ PAGES = {
               ("Source page", "Show page opens a PDF row's page with the sentence highlighted. Open file opens any source document."),
               ("Amendments", "Re-read RFP keeps decisions, mapping and notes for unchanged sentences. Amendment changes pairs changed "
                              "sentences and shows the word differences: [-removed-] {+added+}; export it to Excel."),
-              ("Outputs", "The matrix is an Excel workbook (edits made in Excel count; type Keep, Context or Drop). Word "
-                          "outline makes the proposal outline with each section's requirements in a table. Context rows go "
-                          "to the Setup documents in blue, under the section they were placed in.")]),
+              ("Outputs", "The matrix is an Excel workbook (edits made in Excel count; type Keep, Context or Drop). Response "
+                          "Setup (Word) holds every heading of the structure with who writes it, the RFP text it must answer "
+                          "(context in blue) and the lead's direction; tick the option to add each section's requirement table "
+                          "(reference, requirement, owner).")]),
     ("p", "The matrix holds customer content: keep it on this PC or SharePoint."),
     ("h", "Setup: the first draft for authors"),
     ("img", "setup.png", 620),
