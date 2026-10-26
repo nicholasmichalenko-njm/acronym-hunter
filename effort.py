@@ -24,7 +24,7 @@ FIRST_USE_RULES = {"volume": "Restarts in each volume", "section": "Restarts in 
 SHEET, HIST, ABOUT = "Effort List", "History", "About"
 KEYWORDS = "Keywords"                       # 2.16.0 Keyword Harvest: the effort's SharePoint keywords
 KW_COLUMNS = ["Keyword", "Category", "Status", "Source", "Why", "Added by", "Date", "SharePoint field"]
-KW_CATEGORIES = ["Customer emphasis", "Our solution", "Differentiator", "Offering", "Acronym", "Other"]
+KW_CATEGORIES = ["Customer emphasis", "Shared language", "Our response", "Our solution", "Differentiator", "Offering", "Acronym", "Other"]
 KW_STATUSES = ["Proposed", "Keep", "Reject"]
 
 

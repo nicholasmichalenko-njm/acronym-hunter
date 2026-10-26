@@ -10,6 +10,13 @@ not start or end with a small word, never cross punctuation, and are not RFP boi
 - the effort list's approved acronyms with their long forms.
 Each suggestion carries a bucket (Customer emphasis, Our solution, Differentiator, Acronym), a score, the reasons in
 plain words, and up to three sample sentences with their location.
+
+2.34.0 both sides: each suggestion has a side (customer, both, ours). A phrase in both is the customer's words used in
+our answer (Shared language, scored up). A phrase only in our volumes is tied to the customer ask it answers when it
+sits in one of our sections that answers it: the compliance matrix's placement (a Keep requirement placed in an outline
+section whose heading matches our section), else our sections that use a phrase the customer emphasized. Tied phrases
+are Our response (scored up) and say which ask they answer. The list keeps a share of each side so one side never
+crowds out the other.
 """
 import datetime, hashlib, json, math, os, re
 from collections import defaultdict
@@ -33,7 +40,8 @@ EMPHASIS = re.compile(r"\b(shall|must|will be evaluated|evaluat\w*|factor|criter
                       r"mission|priority|critical|essential|required)\b", re.I)
 WORD = re.compile(r"[A-Za-z][A-Za-z0-9&/\-']*")
 CLAUSE = re.compile(r"[.;:!?,()\[\]{}\"“”\n\t|]+")
-BUCKETS = ["Customer emphasis", "Our solution", "Differentiator", "Offering", "Acronym"]
+BUCKETS = ["Customer emphasis", "Shared language", "Our response", "Our solution", "Differentiator", "Offering", "Acronym"]
+SIDES = {"customer": "From the customer", "both": "In both", "ours": "From our volumes"}
 _COMMON = None
 
 
@@ -87,6 +95,45 @@ def phrases(text, nmin=2, nmax=4):
                 surface = " ".join(t for t, _ in toks[i:j])
                 out.append((" ".join(w), surface, max(0, start) + toks[i][1]))
     return out
+
+
+_SEC = re.compile(r"\s*((?:[A-Z]\.)?\d+(?:\.\d+)*)\.?\s+(.*)")
+
+
+def _split_heading(h):
+    """'3.2 Thermal Control' -> ('3.2', 'thermal control'); no number -> ('', 'thermal control')."""
+    h = " ".join((h or "").split())
+    m = _SEC.match(h)
+    num, title = (m.group(1), m.group(2)) if m else ("", h)
+    return num, title.casefold().strip(" .:-")
+
+
+def heading_matches(ours, outline):
+    """Our section heading is the outline section the matrix placed a requirement in (same number, or the same title)."""
+    n1, t1 = _split_heading(ours)
+    n2, t2 = _split_heading(outline)
+    if n1 and n2:
+        return n1 == n2 or (t1 and t1 == t2)
+    if t1 and t2:
+        return t1 == t2 or (len(t2) >= 8 and (t2.startswith(t1) or t1.startswith(t2)) and min(len(t1), len(t2)) >= 8)
+    return False
+
+
+def _balance(out, limit, share=5):
+    """Best first, but each side (customer, both, ours) keeps up to limit/share places when it has candidates."""
+    if len(out) <= limit:
+        return out
+    keep, per = [], max(1, limit // share)
+    for side in ("customer", "both", "ours"):
+        keep += [o for o in out if o.get("side") == side and o["bucket"] not in ("Offering", "Acronym")][:per]
+    ids = {id(o) for o in keep}
+    for o in out:
+        if len(keep) >= limit:
+            break
+        if id(o) not in ids:
+            keep.append(o); ids.add(id(o))
+    keep.sort(key=lambda x: (-x["score"], x["phrase"].lower()))
+    return keep
 
 
 def offering_hits(chunks, offerings):
@@ -180,18 +227,26 @@ def learn(phrase, status):
     _write("keyword_learning.json", d)
 
 
-def suggest(chunks, acronyms=(), existing=(), limit=60, offerings=(), base=None, learned=None):
+def suggest(chunks, acronyms=(), existing=(), limit=60, offerings=(), base=None, learned=None, asks=()):
     """chunks: [(location label, text, kind)] with kind 'customer' or 'ours'. acronyms: [(term, long form)].
-    existing: keywords already listed (any status), never suggested again. Returns [{"phrase", "bucket", "score",
-    "why": [str], "samples": [(label, sentence)], "count", "customer", "ours", "sections"}], best first."""
+    existing: keywords already listed (any status), never suggested again. asks: [(requirement id, outline section)]
+    for Keep requirements the compliance matrix placed. Returns [{"phrase", "bucket", "score", "why": [str],
+    "samples": [(label, sentence)], "count", "customer", "ours", "sections", "side", "answers": [str]}], best first."""
     common = common_words()
     seen = {" ".join(e.split()).casefold() for e in existing}
     st = defaultdict(lambda: {"count": 0, "customer": 0, "ours": 0, "sections": set(), "heading": False, "emph": 0,
                               "surface": defaultdict(int), "samples": [], "files": set()})
+    ours_chunks = []                                                    # (heading, keys) of each section of ours
+    ours_at = {}
     for label, text, kind in chunks:
         if not text:
             continue
         head = _heading_of(label).lower()
+        if kind != "customer":
+            sk = (_file_of(label), _heading_of(label))
+            if sk not in ours_at or not sk[1]:                         # paragraphs of one section share one entry
+                ours_at[sk] = len(ours_chunks); ours_chunks.append((sk[1], set()))
+            cur_ours = ours_chunks[ours_at[sk]][1] if sk[1] else ours_chunks[-1][1]
         sec = (_file_of(label), head)
         for key, surface, at in phrases(text):
             s = st[key]
@@ -199,6 +254,8 @@ def suggest(chunks, acronyms=(), existing=(), limit=60, offerings=(), base=None,
             s[kind if kind in ("customer", "ours") else "ours"] += 1
             s["sections"].add(sec); s["files"].add(_file_of(label))
             s["surface"][surface] += 1
+            if kind != "customer":
+                cur_ours.add(key)
             a = text.rfind(".", 0, at) + 1
             b = text.find(".", at)
             sentence = " ".join(text[a:(b + 1 if b >= 0 else len(text))].split())
@@ -217,6 +274,25 @@ def suggest(chunks, acronyms=(), existing=(), limit=60, offerings=(), base=None,
         for longer in keys:
             if longer != k and len(longer) > len(k) and f" {k} " in f" {longer} " and st[longer]["count"] >= 0.8 * st[k]["count"]:
                 drop.add(k); break
+    # 2.34.0: which customer ask each of our chunks answers
+    emph = [k for k in keys if k not in drop and st[k]["customer"] and (st[k]["emph"] or st[k]["heading"])]
+    emph.sort(key=lambda k: -(st[k]["customer"] + 2 * st[k]["emph"] + (3 if st[k]["heading"] else 0)))
+    emph_set = set(emph[:80])
+    ties = defaultdict(lambda: defaultdict(int))                        # our-only phrase -> {ask label: count}
+    for head, ks in ours_chunks:
+        tied = []
+        for rid, sec in asks:
+            if head and sec and heading_matches(head, sec):
+                tied.append(f"{rid} ({sec[:50]})")
+        if not tied:
+            hk = {k for k, _s, _a in phrases(head)} if head else set()
+            used = [k for k in emph if k in emph_set and (k in hk or k in ks)]
+            tied = ["'" + (max(st[k]["surface"].items(), key=lambda x: x[1])[0] if st[k]["surface"] else k) + "'" for k in used[:3]]
+        if tied:
+            for k in ks:
+                if not st[k]["customer"]:
+                    for t in tied:
+                        ties[k][t] += 1
     out = []
     for k in keys:
         if k in drop or k in seen:
@@ -237,13 +313,28 @@ def suggest(chunks, acronyms=(), existing=(), limit=60, offerings=(), base=None,
             bucket = "Customer emphasis"
         else:
             bucket = "Our solution"
+        side = "both" if s["customer"] and s["ours"] else "customer" if s["customer"] else "ours"
+        answers = [t for t, _n in sorted(ties.get(k, {}).items(), key=lambda x: -x[1])][:3] if side == "ours" else []
+        if side == "both":
+            score += 1.0
+            if bucket != "Customer emphasis":
+                bucket = "Shared language"
+        if answers:
+            score += 1.0
+            if bucket in ("Our solution", "Differentiator"):
+                bucket = "Our response"                              # past proposals can still make it a Differentiator
         why = [f"{s['count']} times in {spread} section(s)" + (f" of {len(s['files'])} files" if len(s["files"]) > 1 else "")]
         if s["customer"] and s["ours"]:
-            why.append(f"in the customer documents ({s['customer']}) and our volumes ({s['ours']})")
+            why.append(f"the customer's words, used in our volumes (customer {s['customer']}, ours {s['ours']})")
         elif s["customer"]:
-            why.append("in the customer documents only")
+            why.append("in the customer documents only" + ("; not yet in our volumes" if ours_chunks else ""))
         elif s["ours"]:
             why.append("only in our volumes: what we propose")
+        if answers:
+            if answers[0].startswith("'"):
+                why.append("in our sections that answer the customer's " + ", ".join(answers))
+            else:
+                why.append("in our answer to " + ", ".join(answers) + " (placed there in the compliance matrix)")
         if s["heading"]:
             why.append("in a section heading")
         if s["emph"]:
@@ -257,7 +348,7 @@ def suggest(chunks, acronyms=(), existing=(), limit=60, offerings=(), base=None,
                 score -= 1.5; why.append(f"common in past proposals ({d} of {n})")
             elif d == 0:
                 score += 1.0; why.append(f"new compared with {n} past proposals")
-                if bucket == "Our solution":
+                if bucket in ("Our solution", "Our response"):
                     bucket = "Differentiator"
         if learned:
             kept, rej = learned.get("keep", {}).get(h, 0), learned.get("reject", {}).get(h, 0)
@@ -266,7 +357,8 @@ def suggest(chunks, acronyms=(), existing=(), limit=60, offerings=(), base=None,
             if rej:
                 score -= 1.0 * min(rej, 3); why.append(f"rejected before ({rej})")
         out.append({"phrase": surface, "bucket": bucket, "score": round(score, 2), "why": why, "samples": s["samples"],
-                    "count": s["count"], "customer": s["customer"], "ours": s["ours"], "sections": spread})
+                    "count": s["count"], "customer": s["customer"], "ours": s["ours"], "sections": spread,
+                    "side": side, "answers": answers})
     names_lower = set()
     for it in offerings:                                               # its names never show up twice
         names_lower |= {n.lower() for n in _names(it)}
@@ -280,7 +372,8 @@ def suggest(chunks, acronyms=(), existing=(), limit=60, offerings=(), base=None,
         if h["customer"]:
             why.append(f"in the customer documents ({h['customer']})")
         out.append({"phrase": name, "bucket": "Offering", "score": round(4.0 + math.log2(1 + n), 2), "why": why,
-                    "samples": h["samples"], "count": n, "customer": h["customer"], "ours": h["ours"], "sections": 0})
+                    "samples": h["samples"], "count": n, "customer": h["customer"], "ours": h["ours"], "sections": 0,
+                    "side": "both" if h["customer"] and h["ours"] else "customer" if h["customer"] else "ours", "answers": []})
     out = [o for o in out if o["bucket"] == "Offering" or o["phrase"].lower() not in names_lower]
     for term, long_form in acronyms:
         lf = " ".join((long_form or "").split())
@@ -289,6 +382,6 @@ def suggest(chunks, acronyms=(), existing=(), limit=60, offerings=(), base=None,
         hits = st.get(lf.lower(), {}).get("count", 0) if lf.lower() in st else 0
         out.append({"phrase": f"{lf} ({term})", "bucket": "Acronym", "score": round(2.0 + math.log2(1 + hits), 2),
                     "why": ["approved in the effort list" + (f"; the long form appears {hits} times" if hits else "")],
-                    "samples": [], "count": hits, "customer": 0, "ours": 0, "sections": 0})
+                    "samples": [], "count": hits, "customer": 0, "ours": 0, "sections": 0, "side": "", "answers": []})
     out.sort(key=lambda x: (-x["score"], x["phrase"].lower()))
-    return out[:limit]
+    return _balance(out, limit)

@@ -249,6 +249,13 @@ PAGES = {
               ("Suggest", "Suggest keywords reads the customer documents and your volumes and lists phrases with the reasons: "
                           "how often and where, in a heading, near requirement or evaluation wording, only in our volumes. "
                           "Rules and counts only (No AI). Not a keyword keeps a phrase from coming back."),
+              ("Both sides", "Suggestions come from three places, and Show picks one: From the customer (their emphasis, "
+                             "marked when we have not used it yet), In both (Shared language: the customer's words used in our "
+                             "answer, scored up), and From our volumes. A phrase only in our volumes is Our response when it sits "
+                             "in our section that answers a customer ask, and the Answers column names it: the requirement the "
+                             "compliance matrix placed in that section, else the customer's phrase that section uses. These are "
+                             "the words we offer in reply that the customer never wrote, and they score up too. The list keeps a "
+                             "share of each side, so neither crowds out the other."),
               ("Decide", "Keep (K), Reject (R), Space for the next one; Edit (category, why, SharePoint field) or Remove. Every "
                          "change is in the History sheet."),
               ("Smarter", "Past proposals: build a baseline from a folder of past submissions; phrases every proposal uses score "

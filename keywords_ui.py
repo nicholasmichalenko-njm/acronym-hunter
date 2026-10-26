@@ -8,7 +8,8 @@
   The system-wide key uses Windows RegisterHotKey (one key combination, not a keyboard hook) and reads the clipboard
   only when you press it.
 - Suggest keywords: phrases from the customer documents and our volumes, scored by rules and counts (No AI), with the
-  reasons and sample sentences. Not a keyword puts it on the list as Reject, so it is not suggested again.
+  reasons and sample sentences. 2.34.0: Show All / From the customer / In both / From our volumes, and an Answers
+  column naming the customer ask an our-volumes phrase answers (the matrix placement, else the customer's phrase). Not a keyword puts it on the list as Reject, so it is not suggested again.
 - Export: Excel or CSV laid out for the SharePoint columns. The app never writes to SharePoint (no network code).
 """
 import csv, datetime, os, sys, threading
@@ -293,7 +294,14 @@ class KeywordsMixin:
         acr = [(t, r["Definition"]) for t, r in L.rows.items() if r["Status"] == "Approved" and r.get("Definition")] if L else []
         import offerings
         return keywords.suggest(chunks, acr, [k["Keyword"] for k in (L.keywords if L else [])], offerings=offerings.load(),
-                                base=keywords.baseline(), learned=keywords.learning())
+                                base=keywords.baseline(), learned=keywords.learning(), asks=self.kw_asks())
+
+    def kw_asks(self):
+        """[(requirement id, outline section)] for the Keep requirements the compliance matrix placed (2.34.0)."""
+        M = getattr(self, "matrix", None)
+        if M is None:
+            return []
+        return [(it["id"], it["map"]) for it in M.items if it.get("decision") == "Keep" and it.get("map")]
 
     def kw_suggest_dialog(self, sources=None, wait=False):
         if self.effort is None:
@@ -305,31 +313,49 @@ class KeywordsMixin:
         body = ctk.CTkFrame(win, fg_color="transparent"); body.pack(fill="both", expand=True, padx=12)
         tf = tk.Frame(body); tf.pack(side="left", fill="both", expand=True)
         tf.grid_rowconfigure(0, weight=1); tf.grid_columnconfigure(0, weight=1)
-        tv = ttk.Treeview(tf, columns=("phrase", "bucket", "score", "why"), show="headings", selectmode="extended")
-        for c, h, w in (("phrase", "Phrase", 230), ("bucket", "Kind", 130), ("score", "Score", 60), ("why", "Why", 420)):
+        import keywords as KW
+        top = ctk.CTkFrame(win, fg_color="transparent"); top.pack(fill="x", padx=12, pady=(0, 4), before=body)
+        ctk.CTkLabel(top, text="Show:").pack(side="left")
+        side_opts = ["All"] + list(KW.SIDES.values())
+        side_var = ctk.StringVar(value="All")
+        seg = ctk.CTkSegmentedButton(top, values=side_opts, variable=side_var, command=lambda _v: fill(st["all"]))
+        seg.pack(side="left", padx=6)
+        counts = ctk.CTkLabel(top, text="", anchor="w"); counts.pack(side="left", padx=8)
+        tv = ttk.Treeview(tf, columns=("phrase", "bucket", "answers", "score", "why"), show="headings", selectmode="extended")
+        for c, h, w in (("phrase", "Phrase", 220), ("bucket", "Kind", 120), ("answers", "Answers", 170), ("score", "Score", 55),
+                        ("why", "Why", 380)):
             tv.heading(c, text=h); tv.column(c, width=w, stretch=c in ("phrase", "why"))
         vsb = ttk.Scrollbar(tf, orient="vertical", command=tv.yview); tv.configure(yscrollcommand=vsb.set)
         tv.grid(row=0, column=0, sticky="nsew"); vsb.grid(row=0, column=1, sticky="ns")
         side = ctk.CTkTextbox(body, width=320, wrap="word"); side.pack(side="left", fill="y", padx=(8, 0))
-        st = {"items": []}
+        st = {"items": [], "all": []}
 
         def show(_e=None):
             sel = tv.selection()
             side.configure(state="normal"); side.delete("1.0", "end")
             if len(sel) == 1:
                 it = st["items"][int(sel[0])]
-                side.insert("1.0", it["phrase"] + "\n\n" + "\n".join("- " + w for w in it["why"]) + "\n\n" +
+                where = KW.SIDES.get(it.get("side"), "")
+                tie = ("Answers: " + ", ".join(it["answers"]) + "\n") if it.get("answers") else ""
+                side.insert("1.0", it["phrase"] + "\n" + (where + "\n" if where else "") + tie + "\n" +
+                            "\n".join("- " + w for w in it["why"]) + "\n\n" +
                             "\n\n".join(f"{lbl}:\n{s}" for lbl, s in it["samples"]))
             side.configure(state="disabled")
         tv.bind("<<TreeviewSelect>>", show)
 
         def fill(items):
+            st["all"] = items
+            want = {v: k for k, v in KW.SIDES.items()}.get(side_var.get())
+            items = [it for it in items if want is None or it.get("side") == want]
             st["items"] = items
             tv.delete(*tv.get_children())
             for i, it in enumerate(items):
-                tv.insert("", "end", iid=str(i), values=(it["phrase"], it["bucket"], it["score"], "; ".join(it["why"])))
-            head.configure(text=f"{len(items)} suggestions from {len(srcs)} file(s). Select and add; Not a keyword keeps it from "
-                                "coming back. Rules and counts only (No AI).")
+                tv.insert("", "end", iid=str(i), values=(it["phrase"], it["bucket"], ", ".join(it.get("answers") or []),
+                                                         it["score"], "; ".join(it["why"])))
+            n = {k: sum(1 for x in st["all"] if x.get("side") == k) for k in KW.SIDES}
+            counts.configure(text=f"customer {n['customer']}, both {n['both']}, ours {n['ours']}")
+            head.configure(text=f"{len(st['all'])} suggestions from {len(srcs)} file(s): the customer's words, our answers, and "
+                                "where they meet. Select and add; Not a keyword keeps it from coming back. Rules and counts only (No AI).")
 
         def picked():
             return [st["items"][int(i)] for i in tv.selection()]
@@ -339,6 +365,7 @@ class KeywordsMixin:
             for it in picked():
                 cat = it["bucket"] if it["bucket"] in E.KW_CATEGORIES else "Other"
                 got += self.effort.add_keyword(it["phrase"], cat, "Suggested", "; ".join(it["why"])) == "added"
+                st["all"] = [x for x in st["all"] if x is not it]
             if got:
                 diag.activity("keywords_suggested_added", n=got)
                 self._kw_saved()
@@ -354,6 +381,7 @@ class KeywordsMixin:
                 if self.effort.add_keyword(it["phrase"], "Other", "Suggested", "Not a keyword", status="Reject") == "added":
                     got += 1
                     keywords.learn(it["phrase"], "Reject")
+                st["all"] = [x for x in st["all"] if x is not it]
             if got:
                 self._kw_saved()
             for i in tv.selection():
@@ -373,7 +401,8 @@ class KeywordsMixin:
         tv.bind("<Double-1>", lambda _e: source())
         ctk.CTkButton(b, text="Close", width=90, fg_color="#475569", command=win.destroy).pack(side="right")
         srcs = sources if sources is not None else self.kw_sources()
-        win._api = {"tree": tv, "add": add, "reject": reject, "st": st, "head": head, "source": source}
+        win._api = {"tree": tv, "add": add, "reject": reject, "st": st, "head": head, "source": source,
+                    "side": lambda v: (side_var.set(v), fill(st["all"]))}
         if not srcs:
             head.configure(text="No documents yet: add customer documents to the effort or scan your volumes first.")
             return win

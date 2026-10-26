@@ -62,6 +62,15 @@ def step1():
     items = sw._api["st"]["items"]
     check("suggestions with reasons", len(items) >= 5 and all(it["why"] for it in items), [i["phrase"] for i in items[:6]])
     check("a heading phrase from the RFP is suggested", any(i["phrase"].lower() == "thermal design" for i in items), [i["phrase"] for i in items[:8]])
+    sides = {i.get("side") for i in items}
+    tied = [i for i in items if i.get("answers")]
+    check("2.34.0 suggestions come from both sides", {"customer", "both", "ours"} <= sides, sides)
+    check("2.34.0 our wording is tied to the customer ask it answers", tied and all(i["side"] == "ours" for i in tied)
+          and all(i["bucket"] in ("Our response", "Differentiator") for i in tied), [(i["phrase"], i["answers"]) for i in tied[:4]])
+    sw._api["side"]("In both"); sw.update()
+    shown = sw._api["st"]["items"]
+    check("2.34.0 Show In both lists only shared phrases", shown and all(i["side"] == "both" for i in shown), len(shown))
+    sw._api["side"]("All"); sw.update(); items = sw._api["st"]["items"]
     tv = sw._api["tree"]
     first = items[0]["phrase"]
     tv.selection_set(tv.get_children()[:1]); srcw = sw._api["source"]()
