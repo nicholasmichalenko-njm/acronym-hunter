@@ -117,8 +117,8 @@ def go():
     check("Mark reviewed records who and when; the rail then says a requirement changed", app.sub_mark_reviewed(v2["id"]) and v2["reviewed"]
           and app.shell_status("submission") == "1 requirement changed", app.shell_status("submission"))
     # 2.39.0: submission requirements, followed across versions
-    app.shell_go("submission"); app.update()
-    check("Submission now opens on Requirements", app.shell_step == "requirements", app.shell_step)
+    app.shell_go("submission", "requirements"); app.update()
+    check("the Requirements step opens", app.shell_step == "requirements", app.shell_step)
     rows = {app.req_rows[i]["key"]: (i, app.req_rows[i]) for i in app.req_tree.get_children()}
     check("Requirements lists what the documents set", {"Due | Proposal", "Page limit | Proposal", "Format | Font", "File | File format",
                                                          "File | File naming", "Deliverable | Attachment J-2"} <= set(rows), sorted(rows))
@@ -134,8 +134,9 @@ def go():
           and "Due December 15, 2026" in bar and "Pages: Proposal 40" in bar and "12-point Times New Roman" in bar and "1 change to review" in bar, bar)
     app.shell_go("compliance"); app.update()
     check("still there in another feature", app.subbar.winfo_manager())
-    app.subbar_lbl.event_generate("<Button-1>"); app.update()
+    app.subbar_lbl._label.event_generate("<Button-1>"); app.update()
     check("clicking the bar opens Requirements", (app.shell_feature, app.shell_step) == ("submission", "requirements"))
+    i = next(x for x in app.req_tree.get_children() if app.req_rows[x]["key"] == key)
     app.req_tree.selection_set(i); app.update()
     texts.clear(); walk(app.req_detail)
     joined = " | ".join(t for t in texts if isinstance(t, str))
