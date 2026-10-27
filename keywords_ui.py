@@ -640,6 +640,8 @@ class KeywordsMixin:
             sel = ""
         sel = " ".join(sel.split())
         m = tk.Menu(self, tearoff=0)
+        if source == "Compliance requirement" and hasattr(self, "cw_menu_add"):
+            self.cw_menu_add(m, text_widget)               # 2.50.0
         m.add_command(label=(f"Add as keyword: {sel[:50]}" if sel else "Add as keyword (select words first)"),
                       state="normal" if sel and self.effort is not None else "disabled",
                       command=lambda: self.kw_quick(sel, source=source))

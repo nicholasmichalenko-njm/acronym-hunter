@@ -3846,7 +3846,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         a.add_cascade(label="Master database", menu=mdb)
         el = tk.Menu(a, tearoff=0, postcommand=lambda: self.show_effort_menu(el))
         a.add_cascade(label="Effort list and all effort commands", menu=el)
-        a.add_command(label="Compliance word style...", command=c("compliance_word_style", self.compliance_word_style))
+        a.add_command(label="Compliance words and style...", command=c("compliance_word_style", self.compliance_word_style))
         a.add_command(label="Make effort packages open in Stationkeeper (this Windows user)...",
                       command=c("pkg_associate", self.pkg_associate))
         t = tk.Menu(a, tearoff=0, postcommand=lambda: self.show_tools_menu(t))

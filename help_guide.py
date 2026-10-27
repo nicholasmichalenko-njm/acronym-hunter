@@ -625,9 +625,17 @@ PAGES = {
                         "('; ' or 'and shall'). Merge (M) joins rows back together."),
               ("Compliance words", "shall, must, will, should, may, required, not exceed, and order verbs such as describe or "
                                    "provide (at the start of a sentence or after shall) are bold, on screen and in the Excel "
-                                   "matrix, Response Setup and coverage report. Compliance word style... (in the "
-                                   "compliance window or the Compliance menu) adds italic, underline, a color or a highlight "
+                                   "matrix, Response Setup and coverage report. Compliance words... (in Assign, the "
+                                   "requirement panel, or Advanced > Compliance words and style) adds italic, underline, a color or a highlight "
                                    "and edits the word list. Excel cannot highlight single words, so the matrix skips the highlight."),
+              ("Add compliance words", "Words you add also make a sentence a requirement. Select a word or short phrase in "
+                                       "the review text (Assign, the requirement or the source passage), right-click, Add to "
+                                       "compliance words; or type it in Compliance words.... The app offers to rescan at once. "
+                                       "Rescan with compliance words (Read and Assign steps) checks every sentence again: one "
+                                       "not decided yet that holds a compliance word becomes a requirement candidate, suggested "
+                                       "Keep and marked [Found]; decided sentences keep their decision (the rescan says how many "
+                                       "hold a new word); a sentence found only by a word you took off the list goes back to "
+                                       "Context. Re-reading the RFP uses the added words too."),
               ("Type and actor", "Instruction (L), Evaluation (M), SOW (C), Format, Information; Offeror, Contractor or Government."),
               ("Links", "Evaluation and SOW items link to the instructions they concern, by section number or shared wording."),
               ("Outline", "Outline tab: start from the Section L headings, import a Word outline's headings, or type one. "

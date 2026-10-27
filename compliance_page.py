@@ -101,6 +101,7 @@ class CompliancePageMixin:
         strip.bind("<Button-1>", self._cp_strip_click)
         t.pack(fill="both", expand=True, pady=(0, 8))
         win.cp_text = t
+        t.bind("<Button-3>", self.cp_text_menu)            # 2.50.0: Add to compliance words, Add as keyword
         t.tag_configure("head", font=("Segoe UI", max(10, size - 3), "bold"), spacing1=int(14 * dpi), spacing3=int(2 * dpi))
         for dec, bg in DEC_BG.items():
             t.tag_configure("d_" + dec, background=bg)

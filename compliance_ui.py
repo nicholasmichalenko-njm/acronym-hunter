@@ -170,7 +170,7 @@ class ComplianceMixin:
     def _c_build_export(self, fr):
         win = self._cwin
         ctk.CTkLabel(fr, text="Export the compliance work", font=("Segoe UI", 20, "bold"), anchor="w").pack(fill="x", padx=6, pady=(8, 2))
-        ctk.CTkLabel(fr, text="Compliance words appear in your chosen style in every file (Compliance word style...).", anchor="w",
+        ctk.CTkLabel(fr, text="Compliance words appear in your chosen style in every file (Compliance words...).", anchor="w",
                      text_color=("#475569", "#94A3B8")).pack(fill="x", padx=6, pady=(0, 10))
         for text, cmd in (("Compliance matrix (Excel), designed here...", self.matrix_design_dialog),      # 2.48.0
                           ("Matrix and Response Setup together...", self.compliance_export_together),     # 2.48.0
@@ -352,10 +352,11 @@ class ComplianceMixin:
         sbar = ctk.CTkFrame(right, fg_color="transparent"); sbar.pack(fill="x", padx=10, pady=(4, 0))
         ctk.CTkButton(sbar, text="Original layout", width=100, command=self.compliance_show_page).pack(side="left")
         ctk.CTkButton(sbar, text="Open file", width=100, command=self.compliance_open_file).pack(side="left", padx=6)
-        ctk.CTkButton(sbar, text="Compliance word style...", width=10, command=self.compliance_word_style).pack(side="left")
+        ctk.CTkButton(sbar, text="Compliance words...", width=10, command=self.compliance_word_style).pack(side="left")
         ctk.CTkLabel(right, text="Source passage", anchor="w").pack(fill="x", padx=10, pady=(6, 0))
         win.d_ctx = tk.Text(right, height=7, wrap="word", font=("Segoe UI", int(round(10 * dpi))), relief="flat", bg="#F8FAFC", fg="#111827")
         win.d_ctx.tag_configure("hit", background="#FDE68A")
+        win.d_ctx.bind("<Button-3>", lambda e: self.cw_text_menu(e, win.d_ctx))    # 2.50.0
         win.d_ctx.pack(fill="x", padx=10)
         mp = ctk.CTkFrame(right, fg_color="transparent"); mp.pack(fill="x", padx=10, pady=(8, 2))
         ctk.CTkLabel(mp, text="Outline section").pack(anchor="w")
@@ -437,7 +438,8 @@ class ComplianceMixin:
             d = C.eff(it)
             tv.insert("", "end", iid=it["id"], tags=(d,) if d else (),
                       values=(it["id"], (d or "-") + (" (draft)" if it.get("draft") else ""), it["suggest"], it.get("learned", ""), it["type"], it["actor"], it["strength"], it["section"],
-                              it["map"], (("[New] " if it.get("new") == "New in latest read" else "[Gone] " if it.get("new") else "") + txt)[:400]))
+                              it["map"], ({"New in latest read": "[New] ", "Not in the latest read": "[Gone] ", C.FOUND: "[Found] ",
+                                "Added by the text check": "[Added] "}.get(it.get("new", ""), "") + txt)[:400]))
         keep = [s for s in sel if tv.exists(s)]
         if keep:
             tv.selection_set(keep); tv.see(keep[0])
@@ -823,18 +825,113 @@ class ComplianceMixin:
             self._cwin.tv.selection_set(new[0]["id"]); self._cwin.tv.see(new[0]["id"])
         return "break"
 
-    def compliance_word_style(self, cfg=None):
-        """Pick how compliance words look on screen and in every output (2.31.0). cfg= saves without a window."""
+    # ------------------------------------------------------------ 2.50.0: add compliance words, rescan
+    def compliance_rescan_words(self, show=True):
+        """Check every sentence again with the current compliance words: undecided sentences that now hold one become
+        requirement candidates (marked Found by a compliance word); decided ones keep their decision."""
+        if self.matrix is None:
+            if show:
+                messagebox.showinfo("Rescan", "Open or start a compliance matrix first.")
+            return None
+        res = C.rescan_words(self.matrix.items)
+        n = len(res["found"]) + len(res["back"])
+        if n:
+            self.matrix.log("", f"rescan with compliance words: {len(res['found'])} found, {len(res['back'])} back to Context")
+            self._c_changed()
+        self._c_redraw_words()
+        diag.activity("compliance_rescan_words", n=len(res["found"]), removed=len(res["back"]))
+        if show:
+            msg = (f"{len(res['found'])} sentence(s) now look like requirements (marked Found by a compliance word)."
+                   if res["found"] else "No new requirement sentences.")
+            if res["back"]:
+                msg += f"\n{len(res['back'])} sentence(s) found earlier by a word you took off the list are Context again."
+            if res["decided"]:
+                msg += (f"\n{len(res['decided'])} sentence(s) you already decided hold a compliance word now; "
+                        "their decisions stay as they are.")
+            messagebox.showinfo("Rescan with compliance words", msg, parent=self._c_parent())
+        return res
+
+    def _c_parent(self):
+        return self._cwin if getattr(self, "_cwin", None) is not None and self._cwin.winfo_exists() else self
+
+    def _c_redraw_words(self):
+        """Show the compliance words again in the review text (the Assign page and the detail)."""
+        win = getattr(self, "_cwin", None)
+        if win is None or not win.winfo_exists():
+            return
+        win.cp_sig = None
+        try:
+            self._c_refresh()
+            self._c_show()
+        except Exception:
+            diag.swallowed()
+
+    def compliance_add_words(self, words, rescan=None):
+        """Right-click > Add to compliance words: the selected words join the list; then rescan (asked, or rescan=)."""
+        new = CW.add_words(words if isinstance(words, (list, tuple)) else [words])
+        if not new:
+            if rescan is None:
+                messagebox.showinfo("Compliance words", "Already in the compliance words.", parent=self._c_parent())
+            return []
+        diag.activity("compliance_word_added", n=len(new))
+        self._c_redraw_words()
+        asked = rescan is None and self.matrix is not None
+        if asked:
+            rescan = messagebox.askyesno("Compliance words", f"Added: {', '.join(new)}.\n\nRescan the matrix now so sentences "
+                                         "with it are found?", parent=self._c_parent())
+        if rescan and self.matrix is not None:
+            self.compliance_rescan_words(show=asked)
+        return new
+
+    def cw_menu_add(self, m, text_widget):
+        """The Add to compliance words entry of a right-click menu over review text."""
+        try:
+            sel = text_widget.get("sel.first", "sel.last") if text_widget.tag_ranges("sel") else ""
+        except tk.TclError:
+            sel = ""
+        sel = " ".join(sel.split())
+        ok = bool(sel) and len(sel) <= 60
+        m.add_command(label=(f"Add to compliance words: {sel[:50]}" if ok else
+                             "Add to compliance words (select a word or short phrase first)"),
+                      state="normal" if ok else "disabled", command=lambda: self.compliance_add_words(sel))
+        return sel if ok else ""
+
+    def cw_text_menu(self, event, text_widget):
+        m = tk.Menu(self, tearoff=0)
+        self.cw_menu_add(m, text_widget)
+        m.tk_popup(event.x_root, event.y_root)
+        return "break"
+
+    def cp_text_menu(self, event):
+        t = self._cwin.cp_text
+        m = tk.Menu(self, tearoff=0)
+        sel = self.cw_menu_add(m, t)
+        if hasattr(self, "kw_quick"):
+            m.add_command(label=(f"Add as keyword: {sel[:50]}" if sel else "Add as keyword (select words first)"),
+                          state="normal" if sel and self.effort is not None else "disabled",
+                          command=lambda: self.kw_quick(sel, source="Compliance requirement"))
+        m.tk_popup(event.x_root, event.y_root)
+        return "break"
+
+    def compliance_word_style(self, cfg=None, rescan=False):
+        """Compliance words (2.31.0 style; 2.50.0 add words, rescan): the list and how the words look on screen and in
+        every output. cfg= saves without a window."""
         def done(c):
+            before = CW.added()
             CW.save(c)
             diag.activity("compliance_word_style_saved")
             if self._cwin is not None and self._cwin.winfo_exists():
-                self._c_show()
+                self._c_redraw_words()
+            changed = CW.added() != before
+            if self.matrix is not None and (rescan or (changed and cfg is None and messagebox.askyesno(
+                    "Compliance words", "The word list changed. Rescan the matrix now so sentences with the new words are found?",
+                    parent=self._c_parent()))):
+                self.compliance_rescan_words(show=cfg is None)
         if cfg is not None:
             done(cfg); return None
         cur = CW.load()
         parent = self._cwin if self._cwin is not None and self._cwin.winfo_exists() else self
-        w = ctk.CTkToplevel(parent); w.title("Compliance word style"); w.geometry("620x620"); w.after(150, w.lift)
+        w = ctk.CTkToplevel(parent); w.title("Compliance words"); w.geometry("620x660"); w.after(150, w.lift)
         ctk.CTkLabel(w, text="Compliance words (shall, must, will, should, may, required, not exceed, and order verbs such as "
                              "describe or provide at the start of a sentence or after shall) are shown in this style on screen "
                              "and in the Excel matrix, setup documents, coverage report and Word outline.",
@@ -855,7 +952,9 @@ class ComplianceMixin:
                      anchor="w", text_color=("#475569", "#94A3B8")).pack(fill="x", padx=14)
         pv = tk.Text(w, height=3, wrap="word", relief="flat", bg="#F8FAFC", fg="#111827", font=("Segoe UI", 11))
         pv.pack(fill="x", padx=14, pady=8)
-        ctk.CTkLabel(w, text="Words, one per line (phrases allowed):", anchor="w").pack(fill="x", padx=14)
+        ctk.CTkLabel(w, text="Words, one per line (phrases allowed). Words you add here, or with right-click > Add to compliance "
+                             "words on selected text, also make a sentence a requirement: Rescan with compliance words finds them "
+                             "in the open matrix.", anchor="w", justify="left", wraplength=580).pack(fill="x", padx=14)
         box = ctk.CTkTextbox(w, height=180, wrap="none"); box.pack(fill="both", expand=True, padx=14)
         box.insert("1.0", "\n".join(cur["words"]))
         def gather():

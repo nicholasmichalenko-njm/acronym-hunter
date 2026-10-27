@@ -247,6 +247,33 @@ def file_kind(name):
 
 
 # ------------------------------------------------------------------ classifying one sentence
+# 2.50.0: compliance words the team adds (Compliance words...) also make a sentence a requirement candidate
+_EXTRA = {"words": (), "re": None}
+
+
+def set_extra_words(words):
+    """The added compliance words (the ones not in the built-in list); [] turns them off."""
+    ws = tuple(sorted({" ".join(str(w).split()).lower() for w in (words or ()) if str(w).strip()}, key=len, reverse=True))
+    if ws != _EXTRA["words"]:
+        _EXTRA["words"] = ws
+        _EXTRA["re"] = re.compile(r"(?<![\w-])(" + "|".join(re.escape(w).replace(r"\ ", r"\s+") for w in ws) + r")(?![\w-])",
+                                  re.I) if ws else None
+    return list(ws)
+
+
+def sync_extra_words(cfg=None):
+    """Read the added words from the compliance words list on this PC (cwords)."""
+    try:
+        import cwords
+        if cfg is None and not cwords.path():
+            return list(_EXTRA["words"])          # no word list on this PC (tests, tools): keep what was set
+        cfg = cfg or cwords.load()
+        builtin = set(cwords.DEFAULT_WORDS) | set(MODALS.split("|"))
+        return set_extra_words([w for w in cfg["words"] if w not in builtin])
+    except Exception:
+        return set_extra_words([])
+
+
 def classify(text, lead, cur, kind_hint=""):
     t = " ".join(text.split())
     if len(t) < 12 or len(t) > 1500:
@@ -256,7 +283,8 @@ def classify(text, lead, cur, kind_hint=""):
     imper = _IMPER.match(t)
     ev = _EVAL.search(probe)
     fm = _FORMAT.search(t)
-    if not (modal or imper or ev or (fm and re.search(r"\d", t))):
+    xw = _EXTRA["re"].search(probe) if _EXTRA["re"] is not None else None
+    if not (modal or imper or ev or xw or (fm and re.search(r"\d", t))):
         return None
     word = modal.group(1).lower() if modal else ""
     # actor: the subject right before the modal; imperatives speak to the offeror
@@ -303,10 +331,10 @@ def classify(text, lead, cur, kind_hint=""):
     elif actor == "Government":
         strength = "Information"
     else:
-        strength = "Mandatory" if fm else "Check"
+        strength = "Mandatory" if (fm or xw) else "Check"
     if typ == "Information" or (actor == "Government" and typ != "Evaluation"):
         suggest = "Drop"
-    elif strength == "Optional" or actor == "Unclear" and not fm and typ == "Requirement":
+    elif strength == "Optional" or actor == "Unclear" and not fm and not xw and typ == "Requirement":
         suggest = "Review"
     else:
         suggest = "Keep"
@@ -314,7 +342,7 @@ def classify(text, lead, cur, kind_hint=""):
     compound = len(side) >= 2 or bool(re.search(r"\band\s+(?:shall|must|will)\b", t, re.I)) or \
         (bool(imper) and len(re.findall(r"[;]", t)) >= 1)
     return {"text": t, "lead": lead if lead and lead != t else "", "section": sec, "section_title": cur[1],
-            "actor": actor, "type": typ, "strength": strength, "suggest": suggest, "modal": word or (imper.group(1).lower() if imper else ""),
+            "actor": actor, "type": typ, "strength": strength, "suggest": suggest, "modal": word or (imper.group(1).lower() if imper else "") or (" ".join(xw.group(1).lower().split()) if xw else ""),
             "xrefs": "; ".join(dict.fromkeys(m.group(0).strip() for m in _XREF.finditer(t) if m.group(0).strip() != sec)),
             "compound": compound}
 
@@ -364,6 +392,7 @@ def extract(files_chunks, headings=None, every=True):
     """files_chunks: [(file name, chunks)]. Returns items with IDs, links and suggestions.
     headings (list): filled with the RFP's numbered headings [{num, title, file}].
     every=True (2.29.0): every sentence is a row (requirements plus Context), so every sentence gets a decision."""
+    sync_extra_words()
     items = []
     for name, chunks in files_chunks:
         items += read_items(chunks, name, file_kind(name), headings, every=every)
@@ -378,6 +407,42 @@ def extract(files_chunks, headings=None, every=True):
         out.append(it)
     assign_ids(out)
     link_items(out)
+    return out
+
+
+FOUND = "Found by a compliance word"
+_REQ_FIELDS = ("actor", "type", "strength", "suggest", "modal", "xrefs", "compound")
+
+
+def rescan_words(items, cfg=None):
+    """2.50.0 Rescan with the compliance words: every sentence is checked again with the current list. A sentence not
+    decided yet that now holds a compliance word becomes a requirement candidate (marked FOUND); one that was found
+    only by a word since taken off the list goes back to Context. Decided sentences keep their decision; the ones
+    that now hold a compliance word are counted so the person can look. Returns {"found", "back", "decided"} (ids)."""
+    sync_extra_words(cfg)
+    out = {"found": [], "back": [], "decided": []}
+    for it in items:
+        if it.get("type") == "Heading":
+            continue
+        new = classify(it.get("text", ""), it.get("lead", ""), (it.get("section", ""), it.get("section_title", "")),
+                       file_kind(it.get("file", "")))
+        was_req = it.get("type") != "Context"
+        if it.get("decision") or it.get("draft"):
+            if new is not None and not was_req:
+                out["decided"].append(it.get("id", ""))
+            continue
+        if new is not None and not was_req:
+            it.update({k: new[k] for k in _REQ_FIELDS})
+            if not it.get("new"):
+                it["new"] = FOUND
+            out["found"].append(it.get("id", ""))
+        elif new is None and was_req and it.get("new") == FOUND:
+            ctx = context_item(it.get("text", ""), it.get("lead", ""), (it.get("section", ""), it.get("section_title", "")),
+                               it.get("loc", ""))
+            if ctx:
+                it.update({k: ctx[k] for k in _REQ_FIELDS})
+            it["new"] = ""
+            out["back"].append(it.get("id", ""))
     return out
 
 

@@ -114,6 +114,23 @@ def segments(text, cfg=None):
     return out
 
 
+def add_words(words, config_dir=None):
+    """2.50.0: add words or phrases to the list (right-click > Add to compliance words). Returns the ones added."""
+    cfg = load(config_dir)
+    have = set(cfg["words"])
+    new = [w for w in dict.fromkeys(" ".join(str(x).split()).lower().strip(" .,;:()\"'") for x in words) if w and len(w) <= 60 and w not in have]
+    if new:
+        cfg["words"] = cfg["words"] + new
+        save(cfg, config_dir)
+    return new
+
+
+def added(cfg=None):
+    """The words the team added to the built-in list."""
+    cfg = cfg or load()
+    return [w for w in cfg["words"] if w not in DEFAULT_WORDS]
+
+
 def styled(cfg):
     st = cfg["style"]
     return st["bold"] or st["italic"] or st["underline"] or bool(st["color"]) or bool(st["highlight"])

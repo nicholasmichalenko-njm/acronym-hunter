@@ -259,11 +259,13 @@ class ShellMixin:
                                  ("Add RFP files...", self.compliance_add_files, None),
                                  ("Re-read RFP (amendment)...", self.compliance_reread, None),
                                  ("Amendment changes...", self.compliance_changes, None),
-                                 ("Text check...", self.compliance_text_check, "#15803D")):
+                                 ("Text check...", self.compliance_text_check, "#15803D"),
+                                 ("Rescan with compliance words", self.compliance_rescan_words, None)):
             kw = dict(A); kw.update(fg_color=color) if color else None
             ctk.CTkButton(act, text=text, command=cmd, **kw).pack(side="left", padx=3)
         act = self.shell_actions("compliance", "decide")
-        ctk.CTkButton(act, text="Compliance word style...", command=self.compliance_word_style, **A).pack(side="left", padx=3)
+        ctk.CTkButton(act, text="Compliance words...", command=self.compliance_word_style, **A).pack(side="left", padx=3)
+        ctk.CTkButton(act, text="Rescan with compliance words", command=self.compliance_rescan_words, **A).pack(side="left", padx=3)
         ctk.CTkButton(act, text="Save", command=self.compliance_save, fg_color="#0F766E", **A).pack(side="left", padx=3)
         act = self.shell_actions("compliance", "export")
         ctk.CTkButton(act, text="Save", command=self.compliance_save, fg_color="#0F766E", **A).pack(side="left", padx=3)
