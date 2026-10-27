@@ -3,6 +3,7 @@ track (Move stage..., Edit stages...), the gate goals, tasks, notes and open que
 
 Everything is saved in the effort's record.json (effortrec.py) as it happens. The features log to the timeline through
 rec_log(): customer document versions, requirement reviews, people and owners, QA/QC checks."""
+import uiquiet as UQ  # 2.47.0: smooth resizing
 import datetime, os
 import tkinter as tk
 from tkinter import messagebox
@@ -284,7 +285,7 @@ class EffortRecordMixin:
                     label.configure(wraplength=w)
             except Exception:
                 pass
-        ref.bind("<Configure>", fit, add="+")
+        ref.bind("<Configure>", UQ.debounced(ref, fit, 80), add="+")
 
     def _rec_draw_track(self, r):
         t = self.rec_track

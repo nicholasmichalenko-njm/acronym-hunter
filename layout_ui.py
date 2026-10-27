@@ -1,6 +1,7 @@
 """Compliance > Original layout (2.45.0): a PDF customer document page as it looks, every review sentence boxed in its
 decision's color; click one to work on it in Assign. Text not in the review is boxed in red; click it to add it to the
 review. Show page opens this view on the selected sentence's page. Rules only (No AI); nothing leaves the PC."""
+import uiquiet as UQ  # 2.47.0: smooth resizing
 import os
 import tkinter as tk
 from tkinter import messagebox
@@ -66,7 +67,7 @@ class LayoutMixin:
         sb = tk.Scrollbar(body, orient="vertical", command=cv.yview); cv.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y"); cv.pack(side="left", fill="both", expand=True)
         cv.bind("<Button-1>", self._lay_click)
-        cv.bind("<Configure>", lambda _e: self._lay_fit())
+        cv.bind("<Configure>", UQ.debounced(cv, lambda _e: self._lay_fit(), 200))
         cv.bind("<MouseWheel>", lambda e: cv.yview_scroll(int(-e.delta / 120), "units"))
         w.bind("<Prior>", lambda _e: self.layout_step(-1)); w.bind("<Next>", lambda _e: self.layout_step(1))
         w._cv = cv

@@ -4,6 +4,7 @@ definitions that differ, list entries the volumes do not use, and each volume's 
 PDF export loses the difference between running text, tables, captions, figures and headings, so first use would not
 be judged accurately. Double-click a row to jump to it in the preview.
 """
+import uiquiet as UQ  # 2.47.0: smooth resizing
 import os, re
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -24,8 +25,10 @@ def _wrap_to(label, frame):
         if not label.winfo_exists():
             return
         sc = float(ctk.ScalingTracker.get_widget_scaling(label)) or 1.0
-        label.configure(wraplength=max(200, int(e.width / sc) - 30))
-    frame.bind("<Configure>", fit, add="+")
+        w = max(200, int(e.width / sc) - 30)
+        if label.cget("wraplength") != w:
+            label.configure(wraplength=w)
+    frame.bind("<Configure>", UQ.debounced(frame, fit, 80), add="+")
 
 
 def _eng():

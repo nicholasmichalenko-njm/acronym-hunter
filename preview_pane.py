@@ -7,6 +7,7 @@ drag to move around, Enlarge for a big window. Find < > steps through every find
 Typed text in Word, PowerPoint and Excel is shown as text with every match highlighted.
 From the pane: correct a misread line and teach it, mark a reading "Not text", or Exclude the term.
 """
+import uiquiet as UQ  # 2.47.0: smooth resizing
 import os
 import diag
 import threading
@@ -40,7 +41,7 @@ class PicView:
         c.bind("<MouseWheel>", lambda e: self.zoom(1.25 if e.delta > 0 else 0.8, e.x, e.y))   # Windows
         c.bind("<Button-4>", lambda e: self.zoom(1.25, e.x, e.y))                              # Linux
         c.bind("<Button-5>", lambda e: self.zoom(0.8, e.x, e.y))
-        c.bind("<Configure>", self._resized)
+        c.bind("<Configure>", UQ.debounced(c, self._resized, 60))
 
     # ----- data
     def set_data(self, img, lines, hits, second, finds, sel):

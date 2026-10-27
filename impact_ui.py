@@ -4,6 +4,7 @@ The page shows one version at a time (the newest one not reviewed, or the one pi
 who added it and its fingerprint, then six cards: submission requirements, deliverables, compliance, structure,
 acronyms and keywords. Every card says what changed and offers the step that handles it; nothing changes until the
 person acts. Who it touches, the text compare, a Word report and Mark impact reviewed sit at the bottom."""
+import uiquiet as UQ  # 2.47.0: smooth resizing
 import os, re
 from tkinter import filedialog, messagebox
 import customtkinter as ctk
@@ -189,7 +190,7 @@ class ImpactMixin:
                     label.configure(wraplength=w)
             except Exception:
                 pass
-        card._body.bind("<Configure>", fit, add="+")
+        card._body.bind("<Configure>", UQ.debounced(card._body, fit, 80), add="+")
 
     def _imp_line(self, card, bold, rest="", color=None):
         t = f"{bold}\n{rest}" if rest else bold

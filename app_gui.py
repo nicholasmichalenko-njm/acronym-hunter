@@ -144,6 +144,8 @@ from layout_ui import LayoutMixin  # Compliance > Original layout (2.45.0)
 from readable_ui import ReadableMixin  # the readable copy of an effort (2.46.0)
 from keepsafe_ui import KeepSafeMixin  # exports kept dated, and the backup location (2.46.0)
 import coming_soon as CS  # Help > Coming soon (2.46.0)
+import uiquiet as UQ  # smooth moving and resizing (2.47.0)
+import bgwork  # background work that never touches the window (2.47.0)
 from effortrec_ui import EffortRecordMixin  # the effort record: stages, goals, notes, tasks, timeline (2.40.0)
 from shell_ui import ShellMixin, RhythmMixin   # the app shell: feature rail and step strip; one decision then the next (2.32.0)
 from compliance_page import CompliancePageMixin   # Decide in Page view, Place pass, details on Prove (2.32.0)
@@ -3664,6 +3666,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         self.shell_go("acronyms", "scan", save=False)    # the shell (2.32.0); the resumed effort may move it
         self.keep_start()                       # 2.46.0: exports kept dated; the backup location
         self.after(1500, self.backup_first_run)  # 2.46.0: the first start asks for a backup location (never blocks)
+        UQ.watch(self)                          # 2.47.0: the tick waits while the window is moved or resized
         self.after(1500, self.shell_tick)
 
     # ---------- training inside the scanner ----------

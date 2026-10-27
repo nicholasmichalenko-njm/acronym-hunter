@@ -37,8 +37,11 @@ def settle():
     """Let the readable copy catch up: the files changed, then stayed quiet for a moment."""
     for _ in range(3):
         app.readable_tick()
+        app.readable_wait()
         app._rd_since = time.time() - 10
-    return app.readable_tick()
+    r = app.readable_tick()
+    app.readable_wait()
+    return r
 
 
 app = A.AcronymAppGUI()
@@ -54,7 +57,7 @@ def go():
     check("opening an effort writes its readable copy beside the effort list", os.path.isfile(os.path.join(folder, "READ ME FIRST.txt"))
           and os.path.dirname(folder) == os.path.dirname(LIST), folder)
     app.rec_note_dialog(text="Asked the CO about the page limit.", question=True, label="RFP Section L"); app.update()
-    check("a change waits until the files are quiet", app.readable_tick() is False and not any("Asked the CO" in r["Text"] for r in rows("Notes and open questions.csv")))
+    check("a change waits until the files are quiet", (app.readable_wait(), app.readable_tick())[1] is False and not any("Asked the CO" in r["Text"] for r in rows("Notes and open questions.csv")))
     settle()
     check("then the open question is in the copy", any(r["Kind"] == "Open question" and r["Text"] == "Asked the CO about the page limit."
                                                         for r in rows("Notes and open questions.csv")))

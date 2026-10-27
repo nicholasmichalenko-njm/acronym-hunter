@@ -17,6 +17,7 @@ Place (the old second pass) is no longer a step; the setup board (order, directi
 Prove: owner, status and response page for each compliance requirement.
 The hidden requirements table stays the selection model, so every existing action works the same.
 """
+import uiquiet as UQ  # 2.47.0: smooth resizing
 import tkinter as tk
 from tkinter import messagebox, ttk
 import customtkinter as ctk
@@ -92,7 +93,7 @@ class CompliancePageMixin:
         strip = tk.Canvas(page, width=int(14 * dpi), highlightthickness=0, bd=0, bg="#F8FAFC", cursor="hand2")
         strip.pack(side="right", fill="y", pady=(0, 8))
         win.cp_strip = strip
-        strip.bind("<Configure>", lambda _e: self._cp_strip())
+        strip.bind("<Configure>", UQ.debounced(strip, lambda _e: self._cp_strip(), 100))
         strip.bind("<Button-1>", self._cp_strip_click)
         t.pack(fill="both", expand=True, pady=(0, 8))
         win.cp_text = t

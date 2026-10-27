@@ -11,6 +11,7 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 import diag
 import keepsafe as K
+import bgwork
 
 BACKUP_AFTER_S = 180.0           # a backup a few minutes after the last change, so a burst of work backs up once
 _APP = [None]                    # the window whose open effort an export belongs to
@@ -124,7 +125,7 @@ class KeepSafeMixin:
         Returns the thread, or None."""
         if self._bk_thread is not None and self._bk_thread.is_alive():
             if wait:
-                self._bk_thread.join()
+                bgwork.wait(self._bk_thread)
             else:
                 return None
         try:
@@ -143,10 +144,9 @@ class KeepSafeMixin:
             except Exception as e:
                 diag.swallowed()
                 self._bk_result = {"ok": False, "when": datetime.datetime.now(), "error": type(e).__name__, "sig": sig}
-        self._bk_thread = threading.Thread(target=run, name="stationkeeper-backup")   # not a daemon: a backup finishes
-        self._bk_thread.start()
+        self._bk_thread = bgwork.start(run, "stationkeeper-backup")     # not a daemon: a backup finishes
         if wait:
-            self._bk_thread.join()
+            bgwork.wait(self._bk_thread)
             self._backup_seen()
         return self._bk_thread
 

@@ -203,6 +203,8 @@ class WorkspaceMixin:
             self._restore_view(r)
             if hasattr(self, "home_restore"):
                 self.home_restore((r or {}).get("home"))
+            if r and r.get("shell"):
+                self.after(150, lambda r=r: self._restore_shell(r))
         finally:
             self._ws_restoring = False
         self.refresh_effort_bar()
@@ -282,7 +284,9 @@ class WorkspaceMixin:
             sel = cw.tv.selection()
             r["compliance"] = {"open": True, "selected": sel[0] if sel else "",
                                "filters": [v.get() for v in (cw.f_dec, cw.f_type, cw.f_sug, cw.f_learn, cw.f_map, cw.f_q)],
-                               "tab": cw.tabs.get()}
+                               "tab": cw.tabs.get(), "file": getattr(cw, "cp_file", None)}
+        if getattr(self, "shell_feature", ""):              # 2.47.0: the page and step you were on
+            r["shell"] = [self.shell_feature, getattr(self, "shell_step", "") or ""]
         try:
             self.ws.save_resume(r)
         except Exception:
@@ -320,6 +324,24 @@ class WorkspaceMixin:
                 self._c_fill()
                 if c.get("selected") and cw.tv.exists(c["selected"]):
                     cw.tv.selection_set(c["selected"]); cw.tv.see(c["selected"]); self._c_show()
+        except Exception:
+            diag.swallowed()
+
+    def _restore_shell(self, r):
+        """2.47.0: back on the page and step you were on (after a crash too), with the same compliance sentence selected
+        in Assign."""
+        try:
+            feature, step = (list(r.get("shell") or []) + ["", ""])[:2]
+            if not feature or not hasattr(self, "shell_go") or getattr(self, "effort", None) is None:
+                return
+            c = r.get("compliance") or {}
+            if feature == "compliance" and (getattr(self, "_cwin", None) is None or not self._cwin.winfo_exists()):
+                if not self.ws.get("compliance_path", ""):
+                    return
+                self.open_compliance(show=False)
+            self.shell_go(feature, step or None, save=False)
+            if feature == "compliance" and c.get("selected") and hasattr(self, "_cp_select") and self._c_item(c["selected"]) is not None:
+                self._cp_select(c["selected"])
         except Exception:
             diag.swallowed()
 

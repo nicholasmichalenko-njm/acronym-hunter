@@ -9,6 +9,7 @@ import os
 import tkinter as tk
 import customtkinter as ctk
 import diag
+import bgwork, uiquiet as UQ   # 2.47.0
 
 FEATURES = (("home", "Effort home"), ("submission", "Submission"), ("compliance", "Compliance"), ("acronyms", "Acronyms"), ("qaqc", "QA/QC"),
             ("keywords", "Keywords"))
@@ -524,7 +525,11 @@ class ShellMixin:
         return ""
 
     def shell_tick(self):
-        """Keep the rail's status lines and the pills current (cheap; every 1.5 seconds)."""
+        """Keep the rail's status lines and the pills current (cheap; every 1.5 seconds). 2.47.0: waits while the window
+        is being moved or resized."""
+        if UQ.busy():
+            self.after(400, self.shell_tick)
+            return
         try:
             for key, (_b, sub) in self._rail.items():
                 t = self.shell_status(key)
@@ -544,6 +549,7 @@ class ShellMixin:
                 self.readable_tick()                 # 2.46.0: the readable copy follows every saved change
             if hasattr(self, "keep_tick"):
                 self.keep_tick()                     # 2.46.0: dated copies of exports; backups
+            bgwork.settle()             # 2.47.0: background work done: the cycle collector back on
         except Exception:
             diag.swallowed()
         self.after(1500, self.shell_tick)
