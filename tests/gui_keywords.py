@@ -132,7 +132,8 @@ def step1():
     t = tk.Text(app); t.insert("1.0", "The cryogenic fluid management system is new."); t.tag_add("sel", "1.4", "1.37")
     shown = {}
     real_popup = tk.Menu.tk_popup
-    tk.Menu.tk_popup = lambda self, *a: shown.setdefault("label", self.entrycget(self.index("end"), "label"))   # 2.50.0: last entry
+    tk.Menu.tk_popup = lambda self, *a: shown.setdefault("label", next(self.entrycget(i, "label") for i in range(self.index("end") + 1)
+                                                                        if self.type(i) == "command" and self.entrycget(i, "label").startswith("Add as keyword")))
     class Ev: x_root = y_root = 10
     app.kw_text_menu(Ev, t, "Compliance requirement")
     tk.Menu.tk_popup = real_popup

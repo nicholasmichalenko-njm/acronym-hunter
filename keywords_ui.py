@@ -645,6 +645,8 @@ class KeywordsMixin:
         m.add_command(label=(f"Add as keyword: {sel[:50]}" if sel else "Add as keyword (select words first)"),
                       state="normal" if sel and self.effort is not None else "disabled",
                       command=lambda: self.kw_quick(sel, source=source))
+        if source == "Compliance requirement" and hasattr(self, "c_mark_entries"):
+            self.c_mark_entries(m, sel)                    # 2.51.0: Ignore, Customer information, Format, Section header
         m.tk_popup(event.x_root, event.y_root)
         return "break"
 

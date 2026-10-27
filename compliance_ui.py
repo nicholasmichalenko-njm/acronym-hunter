@@ -900,9 +900,109 @@ class ComplianceMixin:
 
     def cw_text_menu(self, event, text_widget):
         m = tk.Menu(self, tearoff=0)
-        self.cw_menu_add(m, text_widget)
+        sel = self.cw_menu_add(m, text_widget)
+        try:
+            ts = " ".join(text_widget.get("sel.first", "sel.last").split()) if text_widget.tag_ranges("sel") else ""
+        except tk.TclError:
+            ts = ""
+        self.c_mark_entries(m, ts)
         m.tk_popup(event.x_root, event.y_root)
         return "break"
+
+    # ------------------------------------------------------------ 2.51.0: mark what the text is
+    def _c_mark_rows(self):
+        if getattr(self, "_cwin", None) is None or not self._cwin.winfo_exists() or self.matrix is None:
+            return []
+        if hasattr(self, "_cp_rows") and getattr(self._cwin, "cp_range", None) is not None:
+            rows = self._cp_rows()
+            if rows:
+                return rows
+        return self._c_selected()
+
+    def c_mark_entries(self, m, sel=""):
+        """Ignore, Customer information, Format requirement, Section header... for the right-click menus."""
+        rows = self._c_mark_rows()
+        st = "normal" if rows else "disabled"
+        n = f" ({len(rows)} sentences)" if len(rows) > 1 else ""
+        m.add_separator()
+        m.add_command(label="Ignore (not used)" + n, state=st, command=lambda: self.compliance_decide("Drop", rows))
+        m.add_command(label="Customer information" + (": the selected words" if sel else n), state=st,
+                      command=lambda: self.c_mark_customer_info(rows, sel))
+        m.add_command(label="Format requirement" + n, state=st, command=lambda: self.c_mark_format(rows))
+        m.add_command(label="Section header...", state="normal" if len(rows) == 1 else "disabled",
+                      command=lambda: self.c_mark_header(rows[0]["id"]))
+
+    def c_mark_customer_info(self, rows, sel="", quiet=False):
+        """Names, e-mails, phone numbers, addresses: filed in the effort's Customer information (Effort home); the
+        sentences are not requirements (Not used) unless already decided."""
+        r = self.effrec() if hasattr(self, "effrec") else None
+        if r is None:
+            if not quiet:
+                messagebox.showinfo("Customer information", "Open an effort first: customer information is kept with the effort.",
+                                    parent=self._c_parent())
+            return []
+        text = sel or " ".join(it["text"] for it in rows)
+        src = ""
+        if rows:
+            it = rows[0]
+            src = it.get("file", "") + (f", p.{it['page']}" if it.get("page") else "")
+        added = r.add_customer_info(text, source=src)
+        for it in rows:
+            if not it.get("decision"):
+                it.update(decision="Drop", draft="", draft_cf="")
+            it["notes"] = (it.get("notes", "") + " " if it.get("notes") else "") + "Customer information" if "Customer information" not in it.get("notes", "") else it["notes"]
+        if rows:
+            self.matrix.log(rows[0]["id"], "marked customer information")
+            self._c_changed()
+        diag.activity("compliance_customer_info", n=len(added))
+        if not quiet:
+            msg = (f"Added to Customer information (Effort home): " + "; ".join(f"{c['kind']}: {c['value']}" for c in added)
+                   if added else "Already in Customer information.")
+            try:
+                self.status.configure(text=msg[:200])
+            except Exception:
+                diag.swallowed()
+        return added
+
+    def c_mark_format(self, rows):
+        n = C.mark_format(rows)
+        for it in rows:
+            self.matrix.log(it["id"], "marked format requirement")
+        diag.activity("compliance_format_marked", n=n)
+        self._c_changed()
+        return n
+
+    def c_mark_header(self, iid, num=None, title=None):
+        """The sentence is a section header: its number (Section L No.) and title go to the sentences under it."""
+        it = self._c_item(iid)
+        if it is None:
+            return None
+        if num is None:
+            pn, pt = C.parse_header(it["text"])
+            w = ctk.CTkToplevel(self); w.title("Section header"); w.transient(self); w.geometry("560x260")
+            ctk.CTkLabel(w, text="This line is a section header of the RFP. The sentences under it, up to the next header, take "
+                                 "its number and title (Section L No. in the matrix and the setup).", wraplength=520,
+                         justify="left", anchor="w").pack(fill="x", padx=16, pady=(14, 6))
+            row = ctk.CTkFrame(w, fg_color="transparent"); row.pack(fill="x", padx=16)
+            ctk.CTkLabel(row, text="Number", width=70, anchor="w").pack(side="left")
+            en = ctk.CTkEntry(row, width=140); en.insert(0, pn); en.pack(side="left", padx=6)
+            row2 = ctk.CTkFrame(w, fg_color="transparent"); row2.pack(fill="x", padx=16, pady=6)
+            ctk.CTkLabel(row2, text="Title", width=70, anchor="w").pack(side="left")
+            et = ctk.CTkEntry(row2, width=380); et.insert(0, pt); et.pack(side="left", padx=6)
+
+            def ok():
+                w.destroy()
+                self.c_mark_header(iid, en.get(), et.get())
+            ctk.CTkButton(w, text="Mark as section header", command=ok, fg_color="#1E3A8A").pack(side="right", padx=16, pady=10)
+            w._api = {"num": en, "title": et, "ok": ok}
+            w.after(100, w.lift)
+            return w
+        done = C.mark_header(self.matrix.items, iid, num, title)
+        self.matrix.log(iid, f"marked section header {num} {title}".strip())
+        diag.activity("compliance_header_marked", n=len(done))
+        self._c_changed()
+        self._c_redraw_words()
+        return done
 
     def cp_text_menu(self, event):
         t = self._cwin.cp_text
@@ -912,6 +1012,11 @@ class ComplianceMixin:
             m.add_command(label=(f"Add as keyword: {sel[:50]}" if sel else "Add as keyword (select words first)"),
                           state="normal" if sel and self.effort is not None else "disabled",
                           command=lambda: self.kw_quick(sel, source="Compliance requirement"))
+        try:
+            ts = " ".join(t.get("sel.first", "sel.last").split()) if t.tag_ranges("sel") else ""
+        except tk.TclError:
+            ts = ""
+        self.c_mark_entries(m, ts if ts and len(self._c_mark_rows()) <= 1 else "")
         m.tk_popup(event.x_root, event.y_root)
         return "break"
 

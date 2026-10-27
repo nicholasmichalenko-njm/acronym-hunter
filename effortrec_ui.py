@@ -213,6 +213,7 @@ class EffortRecordMixin:
 
     # ------------------------------------------------------------ Effort home
     HOME_SECTIONS = (("goals", "Gate goals", True), ("tasks", "Tasks", True), ("notes", "Notes and open questions", True),
+                     ("custinfo", "Customer information", True),                    # 2.51.0
                      ("calendar", "Calendar", True), ("timeline", "Timeline", False))
 
     def rec_build_home(self, P):
@@ -253,6 +254,7 @@ class EffortRecordMixin:
         ctk.CTkButton(cards["notes"][0], text="+ Question", command=lambda: self.rec_note_dialog(question=True), fg_color="#B45309",
                       **S).pack(side="right", padx=(6, 0))
         ctk.CTkButton(cards["notes"][0], text="+ Note", command=self.rec_note_dialog, **S).pack(side="right")
+        ctk.CTkButton(cards["custinfo"][0], text="+ Add...", command=self.rec_custinfo_dialog, **S).pack(side="right")
         ctk.CTkButton(cards["calendar"][0], text="Next >", command=lambda: self.rec_cal_step(1), fg_color="#475569", **S).pack(side="right")
         ctk.CTkButton(cards["calendar"][0], text="This month", command=lambda: self.rec_cal_step(0), fg_color="#475569", **S).pack(side="right", padx=6)
         ctk.CTkButton(cards["calendar"][0], text="< Previous", command=lambda: self.rec_cal_step(-1), fg_color="#475569", **S).pack(side="right")
@@ -310,7 +312,8 @@ class EffortRecordMixin:
         people = self.rec_people() if r is not None else []
         sig = (id(r), len(r.data["timeline"]) if r else 0, repr(r.data["stages"]) if r else "", repr(r.data["tasks"]) if r else "",
                repr(r.data["notes"]) if r else "", tuple(sorted(checks.items())), self.rec_who.get(), tuple(people),
-               getattr(self, "rec_cal_month", None), getattr(self, "rec_cal_day", None), r.data.get("due", "") if r else "")
+               getattr(self, "rec_cal_month", None), getattr(self, "rec_cal_day", None), r.data.get("due", "") if r else "",
+               repr(r.data.get("customer_info")) if r else "")
         if sig == getattr(self, "_rec_sig", None):
             return
         self._rec_sig = sig
@@ -328,6 +331,7 @@ class EffortRecordMixin:
         self._rec_draw_goals(r, checks)
         self._rec_draw_tasks(r)
         self._rec_draw_notes(r)
+        self._rec_draw_custinfo(r)
         self._rec_draw_calendar(r)
         self._rec_draw_timeline(r)
 
@@ -477,6 +481,48 @@ class EffortRecordMixin:
             ctk.CTkLabel(body, text=("No notes yet. Notes can go on the effort, a stage, a customer document or a requirement."
                                      if who == "Everyone" else f"No open questions for {who}."),
                          anchor="w", justify="left", wraplength=560).pack(fill="x")
+
+    # ------------------------------------------------------------ customer information (2.51.0)
+    def _rec_draw_custinfo(self, r):
+        _h, lab, body = self.rec_cards["custinfo"]
+        info = r.customer_info()
+        lab.configure(text=f"Customer information   {len(info)}")
+        if not info:
+            ctk.CTkLabel(body, text="Names, e-mails, phone numbers and addresses from the customer documents. In Compliance, select "
+                                    "them and right-click, Customer information; or + Add....", anchor="w", justify="left",
+                         wraplength=900, text_color=("#475569", "#94A3B8")).pack(fill="x")
+            return
+        X = dict(width=10, height=22, fg_color="transparent", text_color=("#475569", "#94A3B8"), hover_color=("#E2E8F0", "#334155"),
+                 font=("Segoe UI", 11))
+        import effortrec as RR
+        for kind in RR.INFO_KINDS:
+            for c in [c for c in info if c["kind"] == kind]:
+                line = ctk.CTkFrame(body, fg_color="transparent"); line.pack(fill="x", pady=1)
+                ctk.CTkLabel(line, text=kind.upper(), width=110, anchor="w", font=("Segoe UI", 11, "bold"),
+                             text_color=("#0369A1", "#7DD3FC")).pack(side="left", anchor="n")
+                ctk.CTkButton(line, text="Remove", command=lambda cid=c["id"]: self.rec_custinfo_remove(cid), **X).pack(side="right")
+                if c.get("source"):
+                    ctk.CTkLabel(line, text=c["source"], font=("Segoe UI", 11), text_color=("#64748B", "#94A3B8")).pack(side="right", padx=6)
+                ctk.CTkLabel(line, text=c["value"], anchor="w", justify="left", wraplength=600).pack(side="left", fill="x", expand=True)
+
+    def rec_custinfo_dialog(self, text=None):
+        r = self.effrec()
+        if r is None:
+            return None
+        if text is None:
+            from tkinter import simpledialog
+            text = simpledialog.askstring("Customer information", "Name, e-mail, phone number or address (several are fine):", parent=self)
+            if not text:
+                return None
+        added = r.add_customer_info(text, source="typed in")
+        self._rec_force()
+        return added
+
+    def rec_custinfo_remove(self, cid):
+        r = self.effrec()
+        ok = r.remove_customer_info(cid) if r is not None else False
+        self._rec_force()
+        return ok
 
     # ------------------------------------------------------------ calendar
     CAL_COLORS = {"due": ("#B91C1C", "#FCA5A5"), "stage": ("#1E3A8A", "#93C5FD"), "task": ("#B45309", "#FBBF24"),

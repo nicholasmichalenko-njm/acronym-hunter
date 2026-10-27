@@ -421,6 +421,57 @@ def extract(files_chunks, headings=None, every=True):
     return out
 
 
+def parse_header(text):
+    """'L.4.2 Technical Approach' -> ('L.4.2', 'Technical Approach'); 'SECTION L - INSTRUCTIONS' -> ('L', 'Instructions');
+    '3.1 Thermal' -> ('3.1', 'Thermal'); otherwise ('', the text)."""
+    t = " ".join((text or "").split())
+    m = _SEC_LETTER.match(t)
+    if m:
+        return f"{m.group(1)}.{m.group(2)}", m.group(3).strip(" .:-")
+    m = _SEC_WORD.match(t)
+    if m:
+        return m.group(1).upper(), m.group(2).strip(" .:-").title() if m.group(2).isupper() else m.group(2).strip(" .:-")
+    m = _SEC_NUM.match(t)
+    if m:
+        return m.group(1).rstrip("."), m.group(2).strip(" .:-")
+    return "", t.strip(" .:")
+
+
+def mark_header(items, iid, num, title):
+    """2.51.0 Section header: the sentence is a heading of the RFP; the sentences after it in the same file take its
+    section number and title, up to the next heading. Returns the ids renumbered."""
+    i = next((k for k, it in enumerate(items) if it.get("id") == iid), None)
+    if i is None:
+        return []
+    h = items[i]
+    num, title = " ".join((num or "").split()), " ".join((title or "").split())
+    h.update(type="Heading", section=num, section_title=title, decision=h.get("decision") or "Drop", header="Yes")
+    if h.get("draft"):
+        h["draft"] = ""
+    done = []
+    f = h.get("file", "")
+    for it in items[i + 1:]:
+        if it.get("file", "") != f:
+            continue
+        if it.get("type") == "Heading" or it.get("header") == "Yes":
+            break
+        it["section"], it["section_title"] = num, title
+        done.append(it.get("id", ""))
+    return done
+
+
+def mark_format(items):
+    """2.51.0 Format requirement: the sentences are formatting rules (font, margins, page limits, file format)."""
+    for it in items:
+        it["type"] = "Format"
+        if it.get("strength") in ("", "Information", "Check"):
+            it["strength"] = "Mandatory"
+        if not it.get("decision"):
+            it["decision"] = "Keep"
+            it["draft"] = ""
+    return len(items)
+
+
 FOUND = "Found by a compliance word"
 _REQ_FIELDS = ("actor", "type", "strength", "suggest", "modal", "xrefs", "compound")
 

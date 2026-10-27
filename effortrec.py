@@ -179,6 +179,28 @@ def short_date(iso):
     return f"{d.strftime('%b')} {d.day}"
 
 
+# ------------------------------------------------------------------ customer information (2.51.0)
+_EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
+_PHONE = re.compile(r"(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}(?:\s*(?:x|ext\.?)\s*\d+)?")
+_ADDR = re.compile(r"\b\d{1,6}\s+(?:[A-Z][\w.]*\s+){1,5}(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Court|Ct|"
+                   r"Place|Pl|Parkway|Pkwy|Circle|Highway|Hwy|Suite|Building|Bldg)\b[^;\n]*?(?:\b[A-Z]{2}\s+\d{5}(?:-\d{4})?|$)", re.I)
+INFO_KINDS = ("E-mail", "Phone", "Address", "Name or other")
+
+
+def info_pieces(text):
+    """[(kind, value)]: e-mails, phone numbers and street addresses found in the text; what is left (a name, an office)
+    is one 'Name or other' piece."""
+    out, rest = [], text
+    for kind, rx in (("E-mail", _EMAIL), ("Address", _ADDR), ("Phone", _PHONE)):
+        for m in rx.finditer(rest):
+            out.append((kind, m.group(0).strip(" ,;.")))
+        rest = rx.sub(" ", rest)
+    left = " ".join(re.sub(r"\b(?:e-?mail|phone|tel|telephone|fax|address|contact)\s*:?", " ", rest, flags=re.I).split()).strip(" ,;:.-")
+    if re.search(r"[A-Za-z]{2}", left):
+        out.append(("Name or other", left))
+    return out
+
+
 # ------------------------------------------------------------------ the record
 class Record:
     def __init__(self, folder):
@@ -194,6 +216,7 @@ class Record:
         import workspace as W
         d = W.read_json(self.path, None) or {}
         extra = {k: v for k, v in d.items() if k not in ("v", "due", "zone", "opportunity", "stages", "stage", "timeline", "notes", "tasks")}
+        extra.setdefault("customer_info", [])
         self.data = {**extra, "v": 1, "due": d.get("due", ""), "zone": d.get("zone", ""), "opportunity": d.get("opportunity", ""),
                      "stages": d.get("stages") or [], "stage": d.get("stage", ""), "timeline": d.get("timeline", []),
                      "notes": d.get("notes", []), "tasks": d.get("tasks", [])}
@@ -457,6 +480,35 @@ class Record:
         for d, kind, text in extra:
             put(d, kind, text)
         return out
+
+    # ------------------------------------------------------------ customer information (2.51.0)
+    def customer_info(self):
+        return list(self.data.get("customer_info", []))
+
+    def add_customer_info(self, text, source="", who=None):
+        """Names, e-mails, phone numbers, addresses picked from the customer documents. Each piece is filed by kind."""
+        text = " ".join((text or "").split())
+        if not text:
+            return []
+        lst = self.data.setdefault("customer_info", [])
+        have = {(c["kind"], c["value"].casefold()) for c in lst}
+        added = []
+        for kind, value in info_pieces(text):
+            if (kind, value.casefold()) in have:
+                continue
+            c = {"id": _id(), "kind": kind, "value": value, "source": _clean(source), "at": _now(), "who": _who(who)}
+            lst.append(c); have.add((kind, value.casefold())); added.append(c)
+        if added:
+            self.log("customer", f"Customer information added: {', '.join(c['kind'].lower() for c in added)}", who=who)
+            self.save()
+        return added
+
+    def remove_customer_info(self, cid):
+        lst = self.data.get("customer_info", [])
+        n = len(lst)
+        self.data["customer_info"] = [c for c in lst if c["id"] != cid]
+        self.save()
+        return len(self.data["customer_info"]) < n
 
     # ------------------------------------------------------------ tasks
     def add_task(self, title, owner="", due="", stage="", about="", notes="", who=None):
