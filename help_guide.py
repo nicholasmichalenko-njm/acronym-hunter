@@ -649,6 +649,13 @@ PAGES = {
               ("Export", "Export setup writes one Word file per volume: built-in headings, RFP text in purple, direction in green. "
                          "No hidden text and no styles of yours: click one purple paragraph, Home > Select > Select Text with "
                          "Similar Formatting, and apply your style; the same for green."),
+              ("Compliance matrix", "Export > Compliance matrix (Excel), designed here: tick the columns it shows (RFP "
+                                    "reference, requirement, proposal section, section lead, owner, page, compliance status, "
+                                    "notes and more), put them in order and rename them; choose compliance requirements, "
+                                    "context or both, and a sheet listing the customer's sentences. The preview shows the "
+                                    "first rows as they will look. Rows follow the response structure. The design stays with "
+                                    "the effort's matrix; Save as the team default makes new efforts start with it."),
+              ("Together", "Matrix and Response Setup together writes both, from the same decisions, into one dated folder."),
               ("Changed later", "The setup stays in the matrix, so you can export again any time. Export changes only writes just "
                                 "what was added, changed or removed since the last export. Compare a setup document checks a "
                                 "styled setup against the matrix and lists anything missing or under the wrong heading.")]),

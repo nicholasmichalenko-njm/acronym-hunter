@@ -145,6 +145,7 @@ from readable_ui import ReadableMixin  # the readable copy of an effort (2.46.0)
 from keepsafe_ui import KeepSafeMixin  # exports kept dated, and the backup location (2.46.0)
 import coming_soon as CS  # Help > Coming soon (2.46.0)
 from effortpic_ui import EffortPictureMixin  # the effort picture on Effort home (2.48.0)
+from matrixdesign_ui import MatrixDesignMixin  # the compliance matrix in Excel, designed in the app (2.48.0)
 import uiquiet as UQ  # smooth moving and resizing (2.47.0)
 import bgwork  # background work that never touches the window (2.47.0)
 from effortrec_ui import EffortRecordMixin  # the effort record: stages, goals, notes, tasks, timeline (2.40.0)
@@ -3438,7 +3439,7 @@ def corrections_on():
     """Report misreading and Not text save corrections for the training team, unless allow_training is false."""
     return bool(APP_CFG["allow_training"])
 
-class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixin, ImpactMixin, LayoutMixin, ReadableMixin, KeepSafeMixin, EffortPictureMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixin, ImpactMixin, LayoutMixin, ReadableMixin, KeepSafeMixin, EffortPictureMixin, MatrixDesignMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Stationkeeper {APP_VERSION}: proposal efforts, 100% local")

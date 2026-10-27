@@ -172,7 +172,9 @@ class ComplianceMixin:
         ctk.CTkLabel(fr, text="Export the compliance work", font=("Segoe UI", 20, "bold"), anchor="w").pack(fill="x", padx=6, pady=(8, 2))
         ctk.CTkLabel(fr, text="Compliance words appear in your chosen style in every file (Compliance word style...).", anchor="w",
                      text_color=("#475569", "#94A3B8")).pack(fill="x", padx=6, pady=(0, 10))
-        for text, cmd in (("Matrix: open in Excel", self.compliance_excel),
+        for text, cmd in (("Compliance matrix (Excel), designed here...", self.matrix_design_dialog),      # 2.48.0
+                          ("Matrix and Response Setup together...", self.compliance_export_together),     # 2.48.0
+                          ("Working matrix: open in Excel", self.compliance_excel),
                           ("Coverage report (Word)...", self.compliance_coverage),
                           ("Response Setup (Word)...", self.setup_export),
                           ("Response Setup changes since the last export...", self.setup_export_changes)):
