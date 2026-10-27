@@ -432,6 +432,14 @@ PAGES = {
                            "status (Not started, Drafting, In review, Final, Submitted) and notes. Set our file... links our "
                            "working Word file: its page count (as Word last saved it) is checked against the limit, and red "
                            "means over."),
+              ("Progress", "Type a percent done next to the status; the table shows it for every deliverable."),
+              ("Submission requirements", "Each deliverable lists its own page limit, font, margins, page size, line spacing, "
+                                          "file format, copies, delivery and due. Values the customer documents give for it "
+                                          "(its volume first, then the whole proposal) are suggested in blue: Confirm one, or "
+                                          "Confirm all from the documents. Edit types or clears any of them. A confirmed value "
+                                          "the customer later changes turns amber (Changed: now ...) until you confirm it "
+                                          "again. The Requirements column and the checklist show what is confirmed and what is "
+                                          "left to confirm."),
               ("What changed it", "Amber when the requirement or page limit behind it changed in a newer customer version and "
                                   "is not reviewed yet, or when the customer sent a newer version of its form."),
               ("Forms", "Link the customer's form or template (from Documents). Every version shows with its date and "

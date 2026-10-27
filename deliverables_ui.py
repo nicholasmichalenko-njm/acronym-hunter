@@ -32,8 +32,8 @@ class DeliverablesMixin:
         body = ctk.CTkFrame(pg, fg_color="transparent"); body.pack(fill="both", expand=True, padx=6, pady=6)
         self.dl_detail = ctk.CTkScrollableFrame(body, width=430); self.dl_detail.pack(side="right", fill="y", padx=(10, 0))
         left = tk.Frame(body); left.pack(side="left", fill="both", expand=True)
-        cols = (("name", "Deliverable", 170), ("state", "Status", 180), ("owner", "Owner", 90), ("limit", "Limit", 70),
-                ("format", "Format", 140), ("setby", "Set by", 150))
+        cols = (("name", "Deliverable", 170), ("state", "Status", 180), ("progress", "Progress", 70), ("owner", "Owner", 90),
+                ("limit", "Limit", 70), ("format", "Format", 140), ("reqs", "Requirements", 150), ("setby", "Set by", 150))
         self.dl_tree = tv = ttk.Treeview(left, columns=[c[0] for c in cols], show="headings", selectmode="browse",
                                          style=getattr(self, "tree_style", "Treeview"))
         sc = float(ctk.ScalingTracker.get_widget_scaling(pg)) * getattr(self, "font_size", 13) / 13
@@ -67,11 +67,15 @@ class DeliverablesMixin:
         for d in D.items(r):
             st = D.state(d, rows, lib, vols, r)
             tag = "over" if st["over"] else "changed" if st["changed"] else "final" if d["status"] in ("Final", "Submitted") else ""
-            iid = tv.insert("", "end", values=(d["name"], D.status_text(d, st), d["owner"] or "(nobody)", st["limit"], d["format"],
-                                               st["set_by"] or "typed in"), tags=(tag,) if tag else ())
+            sc = D.spec_counts(d, rows, vols)
+            reqs = (f"{sc['confirmed']} confirmed" + (f", {sc['to_confirm']} to confirm" if sc["to_confirm"] else "")
+                    + (f" ({sc['changed']} changed)" if sc["changed"] else ""))
+            tag = tag or ("changed" if sc["changed"] else "")
+            iid = tv.insert("", "end", values=(d["name"], D.status_text(d, st), f"{d.get('progress', 0)}%", d["owner"] or "(nobody)",
+                                               st["limit"], d["format"], reqs, st["set_by"] or "typed in"), tags=(tag,) if tag else ())
             self.dl_rows[iid] = ("d", d["id"])
         for s in D.suggestions(r, rows):
-            iid = tv.insert("", "end", values=(s["subject"], "Suggested: add it?", "", "", "", f"{s['doc']}, {s['version']}"), tags=("suggested",))
+            iid = tv.insert("", "end", values=(s["subject"], "Suggested: add it?", "", "", "", "", "", f"{s['doc']}, {s['version']}"), tags=("suggested",))
             self.dl_rows[iid] = ("s", s["key"])
         sm = D.summary(r, rows, lib, vols)
         for text, fg, bg in ((f"{sm['count']} deliverables", ("#0F172A", "#F1F5F9"), ("#FFFFFF", "#1F2937")),
@@ -136,6 +140,10 @@ class DeliverablesMixin:
         ctk.CTkLabel(row, text="Status").pack(side="left")
         om = ctk.CTkOptionMenu(row, values=list(D.STATUSES), width=150, command=lambda val: (D.update(r, d["id"], status=val), self._dl_after(d["id"])))
         om.set(d["status"]); om.pack(side="left", padx=8)
+        ctk.CTkLabel(row, text="Progress").pack(side="left", padx=(8, 4))          # 2.48.0: percent done
+        pe = ctk.CTkEntry(row, width=56); pe.insert(0, f"{d.get('progress', 0)}%"); pe.pack(side="left")
+        pe.bind("<Return>", lambda _e: (D.update(r, d["id"], progress=pe.get()), self._dl_after(d["id"])))
+        pe.bind("<FocusOut>", lambda _e: D.update(r, d["id"], progress=pe.get()) and self._dl_after(d["id"]))
         lines = [("Owner", d["owner"] or "nobody yet"), ("Format", d["format"] or "-"),
                  ("Limit", (st["limit"] + (f"  ({st['limit_from']})" if st["limit_from"] else "")) if st["limit"] else "-"),
                  ("Our file", os.path.basename(d["file"]) if d.get("file") else "none set")]
@@ -159,6 +167,8 @@ class DeliverablesMixin:
                       command=lambda: (D.mark_stage(r, d["id"], not st["done_here"]), self._dl_after(d["id"])), **B).pack(side="left", padx=3)
         ctk.CTkButton(row, text="Add note...", fg_color="#7C3AED",
                       command=lambda: self.rec_note_dialog(on="deliverable", on_id=d["id"], label=d["name"]), **B).pack(side="left", padx=3)
+        # 2.48.0: its submission requirements, suggested from the customer documents, confirmed or set by the team
+        self._dl_spec_block(P, r, d, rows, vols)
         # the customer form it is filled on
         ctk.CTkLabel(P, text="CUSTOMER FORM OR TEMPLATE", font=("Segoe UI", 10, "bold"), text_color=("#64748B", "#94A3B8"), anchor="w").pack(fill="x", padx=8, pady=(12, 0))
         f = st["form"]
@@ -199,6 +209,48 @@ class DeliverablesMixin:
         ctk.CTkButton(P, text="Remove this deliverable", fg_color="#B91C1C", command=lambda: self.dl_remove(d["id"]), **B).pack(anchor="w", padx=8, pady=12)
 
     # ------------------------------------------------------------ actions
+    def _dl_spec_block(self, P, r, d, rows, vols):
+        B = dict(width=10, height=24)
+        hd = ctk.CTkFrame(P, fg_color="transparent"); hd.pack(fill="x", padx=8, pady=(12, 0))
+        ctk.CTkLabel(hd, text="SUBMISSION REQUIREMENTS", font=("Segoe UI", 10, "bold"), text_color=("#64748B", "#94A3B8"), anchor="w").pack(side="left")
+        sp = D.spec(d, rows, vols)
+        if any(x["state"] in ("Suggested", "Changed: review") for x in sp):
+            ctk.CTkButton(hd, text="Confirm all from the documents", fg_color="#0F766E",
+                          command=lambda: (D.spec_confirm_all(r, d["id"], rows, vols), self._dl_after(d["id"])), **B).pack(side="right")
+        color = {"Confirmed": ("#15803D", "#86EFAC"), "Set by the team": ("#15803D", "#86EFAC"), "Suggested": ("#0369A1", "#7DD3FC"),
+                 "Changed: review": ("#B45309", "#FBBF24"), "Not set": ("#64748B", "#94A3B8")}
+        for x in sp:
+            ln = ctk.CTkFrame(P, fg_color="transparent"); ln.pack(fill="x", padx=8, pady=1)
+            ctk.CTkLabel(ln, text=x["field"], width=86, anchor="w", text_color=("#475569", "#94A3B8")).pack(side="left")
+            ctk.CTkLabel(ln, text=x["value"] or "-", anchor="w", justify="left", wraplength=170).pack(side="left", fill="x", expand=True)
+            ctk.CTkButton(ln, text="Edit", fg_color="#475569", command=lambda f=x["field"]: self.dl_spec_edit(d["id"], f), **B).pack(side="right", padx=(3, 0))
+            if x["state"] in ("Suggested", "Changed: review"):
+                ctk.CTkButton(ln, text="Confirm", fg_color="#0F766E",
+                              command=lambda f=x["field"]: (D.spec_confirm(r, d["id"], f, rows, vols), self._dl_after(d["id"])), **B).pack(side="right", padx=(3, 0))
+            ctk.CTkLabel(ln, text=x["state"] if x["state"] != "Changed: review" else f"Changed: now {x['suggested']}", anchor="e",
+                         text_color=color[x["state"]], font=("Segoe UI", 11)).pack(side="right", padx=4)
+        ctk.CTkLabel(P, text="Suggested values come from the customer documents (their source shows on Requirements); Confirm "
+                             "makes them this deliverable's. A confirmed value that the customer later changes turns amber.",
+                     anchor="w", justify="left", wraplength=400, text_color=("#64748B", "#94A3B8"), font=("Segoe UI", 11)).pack(fill="x", padx=8)
+
+    def dl_spec_edit(self, did, field, value=None):
+        """Type (or clear) one submission requirement of a deliverable."""
+        r, rows, lib, vols = self._dl_ctx()
+        if r is None:
+            return False
+        d = D.get(r, did)
+        if d is None:
+            return False
+        if value is None:
+            from tkinter import simpledialog
+            cur = next((x["value"] for x in D.spec(d, rows, vols) if x["field"] == field), "")
+            value = simpledialog.askstring(field, f"{field} for {d['name']} (empty clears it):", initialvalue=cur, parent=self)
+            if value is None:
+                return False
+        D.spec_set(r, did, field, value)
+        self._dl_after(did)
+        return True
+
     def dl_add_suggested(self, key):
         r, rows, lib, vols = self._dl_ctx()
         s = next((x for x in rows if x["key"] == key), None)

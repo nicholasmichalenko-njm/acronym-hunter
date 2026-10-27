@@ -198,6 +198,19 @@ def go():
     app.dl_tree.selection_set(row); app.update()
     dt = " | ".join(texts_of(app.dl_detail))
     check("the panel shows owner, limit, pages and the stage mark", "J. Smith" in dt and "27 (as Word last saved it)" in dt and "Done for Author drafts" in dt, dt[:300])
+    check("2.48.0: the panel lists its submission requirements", "SUBMISSION REQUIREMENTS" in dt and "Font" in dt and "Margins" in dt, dt[:400])
+    _r, rws, _l, vls = app._dl_ctx()
+    before = {x["field"]: x["state"] for x in DL.spec(DL.get(app.effrec(), v1), rws, vls)}
+    DL.spec_confirm_all(app.effrec(), v1, rws, vls); app._dl_after(v1); app.update()
+    after = {x["field"]: x["state"] for x in DL.spec(DL.get(app.effrec(), v1), rws, vls)}
+    check("2.48.0: Confirm all makes the suggested values this deliverable's", "Suggested" in before.values()
+          and "Suggested" not in after.values() and "Confirmed" in after.values(), (before, after))
+    app.dl_spec_edit(v1, "Copies", "1 electronic copy"); app.update()
+    check("2.48.0: a requirement can be typed in", app.dl_tree.set(row if app.dl_tree.exists(row) else app.dl_tree.get_children()[0], "reqs").count("confirmed") == 1
+          and DL.get(app.effrec(), v1)["spec"]["Copies"]["value"] == "1 electronic copy")
+    DL.update(app.effrec(), v1, progress=60); app._dl_after(v1); app.update()
+    prow = next(i for i, v in app.dl_rows.items() if v == ("d", v1))
+    check("2.48.0: progress shows in the table", app.dl_tree.set(prow, "progress") == "60%")
     DL.mark_stage(app.effrec(), v1); app._dl_after(v1)
     check("Done for this stage is recorded", app.effrec().stage()["id"] in DL.get(app.effrec(), v1)["stages_done"])
     xp = app.dl_export(os.path.join(tmp, "deliv.xlsx"))

@@ -79,7 +79,23 @@ def run():
     out = D.export_excel(os.path.join(d, "deliv.xlsx"), rec, reg.rows(), lib, (), "Kestrel")
     from openpyxl import load_workbook
     ws = load_workbook(out)["Deliverables"]
-    assert ws.max_row == 4 and ws.cell(1, 1).value == "Deliverable" and ws.cell(1, 11).value == "Done: Intake"
+    head = [c.value for c in ws[1]]
+    assert ws.max_row == 4 and head[0] == "Deliverable" and "Done: Intake" in head and "Progress" in head and "Font" in head, head
+    # 2.48.0: submission requirements per deliverable: suggested from the customer documents, confirmed or set by the team
+    vol = next(x for x in D.items(rec) if x["kind"] == "Volume")
+    rows2 = reg.rows()
+    sp = {x["field"]: x for x in D.spec(vol, rows2)}
+    assert sp["Font"]["state"] == "Suggested" and sp["Font"]["value"] and sp["Page limit"]["value"], sp
+    n = D.spec_confirm_all(rec, vol["id"], rows2, who="pm")
+    sp = {x["field"]: x for x in D.spec(D.get(rec, vol["id"]), rows2)}
+    assert n >= 2 and sp["Font"]["state"] == "Confirmed" and "pm" in sp["Font"]["confirmed"], sp["Font"]
+    D.spec_set(rec, vol["id"], "Copies", "3 printed copies", who="pm")
+    sp = {x["field"]: x for x in D.spec(D.get(rec, vol["id"]), rows2)}
+    assert sp["Copies"]["state"] == "Set by the team" and sp["Copies"]["value"] == "3 printed copies"
+    changed = [dict(r, value="11-point Arial") if r["kind"] == "Format" and r["subject"] == "Font" else r for r in rows2]
+    assert {x["field"]: x for x in D.spec(D.get(rec, vol["id"]), changed)}["Font"]["state"] == "Changed: review"
+    D.update(rec, vol["id"], progress="45%")
+    assert D.get(rec, vol["id"])["progress"] == 45 and D.spec_counts(D.get(rec, vol["id"]), changed)["changed"] == 1
     rec2 = ER.Record(d)
     assert len(D.items(rec2)) == 3 and rec2.data["deliv_dismissed"] == ["Deliverable | SF 33"]
     print("deliverables ok")
