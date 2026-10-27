@@ -140,12 +140,15 @@ def go():
     from tkinter import simpledialog
     keep_ask = simpledialog.askstring
     simpledialog.askstring = lambda *a, **k: "K. Ito"
+    keep_pick = app.rec_pick_person
+    app.rec_pick_person = lambda *a, **k: "K. Ito"       # 2.52.0: the owner comes from the team drop-down
     kept = [x for x in app.matrix.items if x["decision"] in ("Keep", "Context")]
     if kept:
         app._cp_select(kept[0]["id"]); app.update()
         n_o = app.cp_owner(); app.update()
         check("2.48.1: Owner... asks for the name and sets it", n_o == 1 and app._c_item(kept[0]["id"])["owner"] == "K. Ito")
     simpledialog.askstring = keep_ask
+    app.rec_pick_person = keep_pick
     cp = app.compliance_excel()
     check("2.48.1: Open in Excel opens a copy, so the working matrix is never locked", cp and os.path.isfile(cp)
           and cp != app.matrix.path and "view copy" in os.path.basename(cp), cp)
