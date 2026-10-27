@@ -49,7 +49,8 @@ PAGES = {
                               "each feature stands, the next step to take, and Export all."),
               ("Submission", "Requirements (what to deliver and how, and how it changed), Deliverables (what we owe and where "
                              "each stands), Documents (every customer document "
-                             "with its versions), Compare (what changed between any two versions), Export."),
+                             "with its versions), Impact (what a new version touched across the effort), Compare (what changed between any two "
+                             "versions), Export."),
               ("Compliance", "Read RFP, Structure (the response outline), Assign (each sentence a compliance requirement in "
                              "a section, context, or not used), Prove (nothing missed; owner, status and page), Export."),
               ("Acronyms", "Scan (Select Files, Scan Folder, Scan Again, Project), Review (the results, with their filters), "
@@ -406,6 +407,29 @@ PAGES = {
                            "has an owner and none is over its limit or changed without review."),
               ("Exports", "Checklist (Excel): every deliverable with its marks per stage; Export all and the effort status "
                           "include the deliverables.")]),
+    ("h", "Impact: what a new customer version touched"),
+    ("p", "When an amendment or a revised document is added, Submission > Impact opens on it: one review per new version, "
+          "compared with the version before it. Nothing you decided changes until you act on it. The Version list at the "
+          "top picks any other version; Documents has an Impact review button on each new version, and Effort home says "
+          "when one waits."),
+    ("img", "impact.png", 620),
+    ("rows", [("Submission requirements", "Each due date, page limit, format rule, file rule or deliverable the version "
+                                          "changed, added or removed, with was and now. Review in Requirements."),
+              ("Deliverables", "A deliverable whose page limit or requirement changed (with our file's page count), or whose "
+                               "form has a newer version to fill. Deliverables named for the first time: Add as a deliverable, "
+                               "or Not ours."),
+              ("Compliance", "Matrix sentences the version changed or removed, with their section and owner, and new "
+                             "sentences not assigned yet. Update the matrix reads the new version in place of the old one: "
+                             "decisions stay on unchanged sentences, new ones are marked [New] and removed ones [Gone]."),
+              ("Structure", "RFP headings renamed, added or removed, and our section named like the old heading (rename it "
+                            "to match on Compliance > Structure)."),
+              ("Acronyms and keywords", "Terms new in this version or gone from it, and whether the effort list or the "
+                                        "master database holds them; customer phrases new in this version used twice or "
+                                        "more (Add puts one in the keyword list as Proposed)."),
+              ("Who it touches", "The owners of the changed sentences and deliverables. Impact report (Word) holds it all, "
+                                 "to share with the team."),
+              ("Mark impact reviewed", "Marks the version reviewed and the requirement changes it made, and writes it in the "
+                                       "timeline.")]),
     ("h", "Submission requirements: front and center"),
     ("p", "Requirements, the first Submission step, lists what to deliver and how, read from every version of every customer "
           "document: the due date and time, the deadline for questions, page limits for each volume, font and size, margins, "

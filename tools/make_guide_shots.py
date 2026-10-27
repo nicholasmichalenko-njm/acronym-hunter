@@ -3,7 +3,7 @@
     venv\\Scripts\\python.exe tools\\make_guide_shots.py
 
 Uses the fictional test_samples only, in a temporary config folder, and writes assets\\help\\topbar.png, shell.png,
-home.png, scanreview.png, keywords.png, suggest.png, submission.png, compare.png, requirements.png, deliverables.png, compliance.png, prove.png, setup.png, whatruns.png, stack.png,
+home.png, scanreview.png, keywords.png, suggest.png, submission.png, compare.png, requirements.png, deliverables.png, impact.png, compliance.png, prove.png, setup.png, whatruns.png, stack.png,
 qa.png and training.png (2.33.0: the one-feature-at-a-time layout). Each picture is the window region of one view, captured
 with PIL ImageGrab, so the window must be on screen and not covered.
 """
@@ -132,7 +132,12 @@ def shot_submission():
             data = zi.read(item.filename)
             if item.filename == "word/document.xml":
                 data = data.decode("utf-8").replace("exceed 50 pages", "exceed 40 pages").replace(
-                    "the five highest", "the ten highest").encode("utf-8")
+                    "the five highest", "the ten highest").replace("December 15, 2026", "December 22, 2026").replace(
+                    "L.4.2 Management Approach", "L.4.2 Management and Schedule Approach").replace(
+                    "an Integrated Master Schedule (IMS) as Attachment J-2.",
+                    "an Integrated Master Schedule (IMS) as Attachment J-2. The Offeror shall provide a Small Business "
+                    "Participation Plan (SBPP) as Attachment J-7. The SBPP shall describe verification by analysis and test. "
+                    "Verification by analysis and test applies to every TRL claim.").encode("utf-8")   # 2.42.0: for Impact
             zo.writestr(item, data)
     zoom()
     app.shell_go("submission"); app.update()
@@ -201,6 +206,8 @@ def step3():
         grab(app.main, "setup.png")
         app.shell_go("compliance", "prove"); app.update()
         grab(app.main, "prove.png")
+        app.shell_go("submission", "impact"); app.update(); time.sleep(0.5); app.update()     # 2.42.0: the impact review
+        grab(app.strip.master, "impact.png")
         w = app.show_what_runs(); w.update()
         app.after(1200, lambda: shot_runs(w))
 

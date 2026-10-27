@@ -1240,6 +1240,14 @@ class ComplianceMixin:
         paths = self._c_pick_rfp("Re-read the RFP (all files, including the amendment)")
         if not paths:
             return
+        self.compliance_reread_paths(paths)
+
+    def compliance_reread_paths(self, paths, after=None):
+        """Re-read these RFP files into the open matrix (2.42.0: also from the impact review, with the new version in
+        place of the one before it). Decisions, mapping and notes carry over to unchanged sentences."""
+        if self.matrix is None:
+            return False
+        self._comp_ensure() if hasattr(self, "_comp_ensure") else None
 
         def done(items, heads, src, empty):
             merged = C.merge_reread(self.matrix.items, items)
@@ -1250,9 +1258,13 @@ class ComplianceMixin:
             self.matrix.log("matrix", f"re-read {len(paths)} file(s): {new} new, {gone} no longer present")
             diag.activity("compliance_reread", files=len(paths), added=new, removed=gone)
             self._c_changed()
-            messagebox.showinfo("Re-read", f"Decisions, mapping and notes kept for unchanged sentences.\n\n{new} new or changed "
-                                           f"sentences are marked [New]; {gone} sentences no longer in the RFP are marked [Gone].", parent=self._cwin)
+            if after is not None:
+                after(new, gone)
+            else:
+                messagebox.showinfo("Re-read", f"Decisions, mapping and notes kept for unchanged sentences.\n\n{new} new or changed "
+                                               f"sentences are marked [New]; {gone} sentences no longer in the RFP are marked [Gone].", parent=self._cwin)
         self._c_read(paths, done)
+        return True
 
     def compliance_open(self):
         p = filedialog.askopenfilename(parent=self._cwin, title="Open a compliance matrix", filetypes=[("Excel", "*.xlsx")])

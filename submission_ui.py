@@ -87,6 +87,8 @@ class SubmissionMixin:
         self._page_requirements()
         if hasattr(self, "_page_deliverables"):
             self._page_deliverables()                   # 2.41.0
+        if hasattr(self, "_page_impact"):
+            self._page_impact()                         # 2.42.0
         act = self.shell_actions("submission", "documents")
         ctk.CTkButton(act, text="Add customer documents...", command=self.sub_add_dialog, fg_color="#0F766E", **A).pack(side="left", padx=3)
         pg = self.shell_page("sub_docs")
@@ -667,6 +669,8 @@ class SubmissionMixin:
             if i:
                 ctk.CTkButton(row, text=f"Compare with {vs[i - 1]['label']}", width=10,
                               command=lambda a=vs[i - 1]["id"], b=v["id"]: self.sub_compare(d["id"], a, b)).pack(side="left", padx=3)
+                ctk.CTkButton(row, text="Impact review", width=10, fg_color="#0F766E",
+                              command=lambda vid=v["id"]: self.impact_show(vid)).pack(side="left", padx=3) if hasattr(self, "impact_show") else None
                 if not v.get("reviewed"):
                     ctk.CTkButton(row, text="Mark reviewed", width=10, fg_color="#B45309",
                                   command=lambda vid=v["id"]: self.sub_mark_reviewed(vid)).pack(side="left", padx=3)
@@ -906,7 +910,10 @@ class SubmissionMixin:
             made = self.sub_apply(gather())
             win.destroy()
             self.status.configure(text=f"Added {len(made)} customer document version(s).")
-            if made and hasattr(self, "shell_go"):
+            newer = [v for d, v in made if d["versions"].index(v)]
+            if newer and hasattr(self, "impact_show"):
+                self.impact_show(newer[-1]["id"])       # 2.42.0: a new version opens its impact review
+            elif made and hasattr(self, "shell_go"):
                 self.shell_go("submission", "documents")
             return made
 

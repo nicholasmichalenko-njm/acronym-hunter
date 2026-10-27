@@ -44,8 +44,8 @@ def go():
     check("Submission sits second in the feature list", rail[1].endswith("Submission"), rail[:3])
     app.shell_go("submission"); app.update()
     pills = [w.cget("text").split("  ")[0] for w in app.strip_pills.winfo_children()]
-    check("its steps: Requirements, Deliverables, Documents, Compare, Export; with nothing read yet it opens on Documents",
-          pills == ["1 Requirements", "2 Deliverables", "3 Documents", "4 Compare", "5 Export"] and app.shell_step == "documents", (pills, app.shell_step))
+    check("its steps: Requirements, Deliverables, Documents, Impact, Compare, Export; with nothing read yet it opens on Documents",
+          pills == ["1 Requirements", "2 Deliverables", "3 Documents", "4 Impact", "5 Compare", "6 Export"] and app.shell_step == "documents", (pills, app.shell_step))
     check("no bar until requirements are found", not app.subbar.winfo_manager())
     check("files in the customer documents folder not in the history yet show in a banner",
           app.sub_banner.winfo_manager() and "2 customer document" in app.sub_banner_lbl.cget("text"), app.sub_banner_lbl.cget("text"))
@@ -69,6 +69,8 @@ def go():
     w._api["add"](); app.update()
     check("the amendment is a new version, copied into the customer documents folder",
           len(rfp["versions"]) == 2 and os.path.isfile(os.path.join(CDIR, os.path.basename(AMD))))
+    check("a new version opens its impact review (2.42.0)", app.shell_step == "impact" and app.imp_r is not None
+          and app.imp_r["version"] == "Amendment 1", app.shell_step)
     w = app.sub_add_dialog([AMD]); w.update()
     check("the same file twice is skipped (same fingerprint)", w._api["plan"][0].get("dup") is not None)
     w.destroy()

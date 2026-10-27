@@ -14,7 +14,7 @@ FEATURES = (("home", "Effort home"), ("submission", "Submission"), ("compliance"
             ("keywords", "Keywords"))
 STEPS = {
     "home": (("overview", "Overview"),),
-    "submission": (("requirements", "Requirements"), ("deliverables", "Deliverables"), ("documents", "Documents"), ("compare", "Compare"), ("export", "Export")),  # 2.39.0
+    "submission": (("requirements", "Requirements"), ("deliverables", "Deliverables"), ("documents", "Documents"), ("impact", "Impact"), ("compare", "Compare"), ("export", "Export")),  # 2.39.0; Impact 2.42.0
     "compliance": (("read", "Read RFP"), ("outline", "Structure"), ("decide", "Assign"),
                    ("prove", "Prove"), ("export", "Export")),             # 2.36.0: Assign places as it decides
     "acronyms": (("scan", "Scan"), ("review", "Review"), ("approve", "Define and approve"), ("export", "Export")),
@@ -24,7 +24,7 @@ STEPS = {
 COMP_TABS = {"read": "Read RFP", "decide": "Requirements", "outline": "Outline", "place": "Place", "prove": "Prove",
              "export": "Export"}
 AI_SECTION = {"submission": "EFFORT", "compliance": "COMPLIANCE", "acronyms": "SCAN", "qaqc": "EFFORT", "keywords": "EFFORT", "home": "EFFORT"}
-NEEDS_EFFORT = {("submission", "requirements"), ("submission", "deliverables"), ("submission", "documents"), ("submission", "compare"), ("submission", "export"), ("acronyms", "approve"), ("qaqc", "check"), ("qaqc", "export"), ("keywords", "decide"), ("keywords", "export")}
+NEEDS_EFFORT = {("submission", "requirements"), ("submission", "deliverables"), ("submission", "documents"), ("submission", "impact"), ("submission", "compare"), ("submission", "export"), ("acronyms", "approve"), ("qaqc", "check"), ("qaqc", "export"), ("keywords", "decide"), ("keywords", "export")}
 
 RAIL_BG = ("#0F172A", "#0B1220")
 RAIL_ON = "#1E3A8A"
@@ -292,7 +292,7 @@ class ShellMixin:
                 diag.swallowed()
             return win
         if f == "submission":
-            return self.shell_page({"requirements": "sub_reqs", "deliverables": "sub_deliv", "documents": "sub_docs", "compare": "sub_compare", "export": "sub_export"}[s])
+            return self.shell_page({"requirements": "sub_reqs", "deliverables": "sub_deliv", "documents": "sub_docs", "impact": "sub_impact", "compare": "sub_compare", "export": "sub_export"}[s])
         return {("acronyms", "scan"): self.shell_page("scan"), ("acronyms", "review"): self.scan_view,
                 ("acronyms", "approve"): self.home_view, ("acronyms", "export"): self.shell_page("acr_export"),
                 ("qaqc", "check"): getattr(self, "qa_view", None), ("qaqc", "export"): self.shell_page("qa_export"),
@@ -346,6 +346,8 @@ class ShellMixin:
                     self.dl_refresh()
                 if step == "documents":
                     self.sub_refresh()
+                elif step == "impact" and hasattr(self, "impact_refresh"):
+                    self.impact_refresh()
                 elif step == "compare":
                     self.cmp_fill()
             except Exception:
@@ -441,6 +443,9 @@ class ShellMixin:
             if f == "submission" and s == "documents":
                 lib = self.doclib()
                 return bool(lib and lib.docs) and not lib.counts()["unreviewed"]
+            if f == "submission" and s == "impact":
+                lib = self.doclib()
+                return bool(lib and any(len(d["versions"]) > 1 for d in lib.docs)) and not lib.counts()["unreviewed"]
         except Exception:
             diag.swallowed()
         return False
@@ -554,7 +559,17 @@ class ShellMixin:
                 t = t + ("\n" + more.replace("  |  ", "\n") if more else "")
             lab.configure(text=t)
         M = self.matrix
-        if M is None or not M.items:
+        pend = []
+        try:
+            import impact as IM
+            lib = self.doclib() if hasattr(self, "doclib") else None
+            pend = IM.pending(lib) if lib is not None else []
+        except Exception:
+            diag.swallowed()
+        if pend:                                     # 2.42.0: a new customer version comes first
+            d, v = pend[0]
+            self._ov_target, text = ("submission", "impact"), f"Next: Submission, review what {v['label']} of {d['name'][:40]} touched"
+        elif M is None or not M.items:
             self._ov_target, text = ("compliance", "read"), "Next: Compliance, read the RFP"
         elif not M.outline:
             self._ov_target, text = ("compliance", "outline"), "Next: Compliance, set the response structure"
