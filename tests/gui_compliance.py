@@ -78,8 +78,10 @@ def wait():
     poc = next(it for it in M.items if it["text"].startswith("identify a point of contact"))
     tv.selection_set(poc["id"]); win.update()
     before = len(win.winfo_children())
-    app.compliance_show_page(); win.update()
-    page_ok = any("page 2" in w.title() for w in win.winfo_children() if hasattr(w, "title"))
+    lw = app.compliance_show_page(); win.update()       # 2.45.0: the Original layout view, on the sentence's page
+    page_ok = lw is not None and lw._page == 2 and lw._sel == poc["id"] and lw._map is not None
+    if lw is not None:
+        lw.destroy(); app._lay = None
     for it in M.items:
         if it["text"].startswith("Proposals shall not exceed"):
             it["new"] = "Not in the latest read"
