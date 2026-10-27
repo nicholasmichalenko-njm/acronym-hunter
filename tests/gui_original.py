@@ -46,6 +46,8 @@ def go():
     M.headings = heads
     M.sources = [["RFP.pdf", "", "2026-10-27", PDF]]
     M.items = [it for it in M.items if "risk register" not in it["text"]]       # one line never reached the review
+    import setupdoc as SD
+    SD.setup_of(M)["complete_v"] = 1          # 2.51.0: the once-on-open pass already ran (it would add the line back)
     M.save()
     app.ws.set("compliance_path", mpath)
     app.open_compliance(show=False); app.update()
