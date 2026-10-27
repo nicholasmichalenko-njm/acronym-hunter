@@ -74,6 +74,17 @@ def step2():
     w = app.rv_alt(); app.update()
     check("F with no term given asks which term (likely ones first)", w is not None and w._api["var"].get(), w and w._api["var"].get())
     w.destroy()
+    # 2.47.1: Add a missed term: where it was missed, straight into the effort list
+    aw = app.open_add_item(); app.update()
+    api = aw._add_api
+    docs = list(api["loc"].cget("values"))
+    check("Add a missed term offers the effort's documents for where it was missed", "Kestrel_Technical_Volume.docx" in docs, docs)
+    api["term"].insert(0, "QZT"); api["defn"].insert(0, "Quartz Thermal Test"); api["loc"].set("Kestrel_Technical_Volume.docx p.4")
+    check("with an effort open it goes to the effort list by default", api["dest"].get() == "effort")
+    api["add"](); app.update()
+    r = app.effort.rows.get("QZT", {})
+    check("the missed term is in the effort list with where it was missed", r.get("Definition") == "Quartz Thermal Test"
+          and "missed" in r.get("Source", "") and "p.4" in r.get("Found in", "") and app.results["QZT"].get("missed"), r)
     # the effort list (home): Not a term moves down, no jump
     app.shell_go("acronyms", "approve"); app.update()
     for t in list(app.results)[:12]:

@@ -2500,7 +2500,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.47.0"            # keep in step with version_info.txt
+APP_VERSION = "2.47.1"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3666,6 +3666,8 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
 
         self.btn_exc = ctk.CTkButton(act, text="Exclude", command=self.exclude_term, state="disabled", fg_color="#DC2626", width=110)
         self.btn_exc.pack(side="right", padx=10, pady=(4, 8))
+        self.btn_add_missed = ctk.CTkButton(act, text="Add a missed term...", command=self.open_add_item, fg_color="#0F766E", width=150)
+        self.btn_add_missed.pack(side="right", padx=5, pady=(4, 8))       # 2.47.1: a term the scan did not find, and where
 
         self.apply_advanced_visibility()
         self._build_menubar()
@@ -4539,7 +4541,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         if getattr(self, "add_win", None) is not None and self.add_win.winfo_exists():
             self.add_win.focus(); return self.add_win
         win = ctk.CTkToplevel(self); self.add_win = win
-        win.title("Add an item"); win.geometry("580x560"); win.resizable(False, False)
+        win.title("Add a missed term"); win.geometry("580x600"); win.resizable(False, False)
         win.transient(self); win.after(100, win.lift)
         pad = {"padx": 16, "pady": (8, 0), "anchor": "w"}
         ctk.CTkLabel(win, text="Term (required). A term already listed gets the definition as another meaning.").pack(**pad)
@@ -4551,13 +4553,17 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         ctk.CTkLabel(win, text="Definition").pack(**pad)
         e_def = ctk.CTkEntry(win, width=540); e_def.pack(padx=16, pady=2); SP.attach(e_def)
         SP.button(win, e_def, text="Ω  Symbols (for the field you clicked last)", width=300).pack(padx=16, pady=(4, 0), anchor="w")
-        ctk.CTkLabel(win, text="Where found (optional, e.g. 'Volume II, p.14')").pack(**pad)
-        e_loc = ctk.CTkEntry(win, width=540); e_loc.pack(padx=16, pady=2)
+        ctk.CTkLabel(win, text="Where it was missed (pick the document, then add the page or section, e.g. 'p.14')").pack(**pad)
+        docs = sorted({_file_of(l) for d0 in self.results.values() if not d0.get("file_error") and not d0.get("manual")
+                       for l in d0.get("locations", []) if _file_of(l)})
+        e_loc = ctk.CTkComboBox(win, values=docs or [""], width=540); e_loc.set(""); e_loc.pack(padx=16, pady=2)   # 2.47.0
         ctk.CTkLabel(win, text="Save it").pack(**pad)
-        dest = tk.StringVar(value="results")
+        dest = tk.StringVar(value="effort" if self.effort is not None else "results")
         df = ctk.CTkFrame(win, fg_color="transparent"); df.pack(padx=16, anchor="w")
-        for val, lab in (("results", "In these results only"), ("db", "Database: future scans find it"),
-                         ("omit", "Omit list: found, left off the final lists")):
+        opts = ((("effort", "The effort list (Proposed) and these results"),) if self.effort is not None else ()) + (
+                ("results", "In these results only"), ("db", "Database: future scans find it"),
+                ("omit", "Omit list: found, left off the final lists"))
+        for val, lab in opts:
             ctk.CTkRadioButton(df, text=lab, variable=dest, value=val).pack(anchor="w", pady=1)
         why = ctk.CTkComboBox(win, values=OMIT_REASONS, width=260); why.set(OMIT_REASONS[0])
         ctk.CTkLabel(win, text="Why omitted (omit list)").pack(**pad)
@@ -4615,13 +4621,22 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
                 return
             item = {"category": cat, "count": 1, "locations": [loc or "Added manually"],
                     "definitions": [defn] if defn else [], "in_db": True, "excluded": False, "manual": True,
-                    "selected_definition": defn or "[No definition given]",
-                    "status": "Added manually" + (" (saved to DB)" if where == "db" else "")}
+                    "selected_definition": defn or "[No definition given]", "missed": True,
+                    "status": "Added by hand: missed by the scan" + (" (saved to DB)" if where == "db" else "")}
             if where == "omit":
                 item.update(known=True, omit_reason=why.get(), status=KNOWN_STATUS + f": {why.get()}",
                             selected_definition=defn or KNOWN_BLANK)
             self.manual_items[term] = item
             self.results[term] = item
+            if where == "effort" and self.effort is not None:       # 2.47.0: straight into the effort list
+                self.effort.add_or_update(term, change_note=f"added by hand: missed by the scan ({loc or 'place not given'})",
+                                          Type=base_type(cat), Definition=defn or None, Source="Added by hand (missed by the scan)",
+                                          **({"Found in": loc} if loc else {}))
+                self._save_effort_list()
+                self.apply_effort(); self.update_effort_ui()
+                if hasattr(self, "home_refresh"):
+                    self.home_refresh()
+            diag.activity("add_item_missed")
             self.save_project()
             self.selected_term = term
             self.refresh_type_options(); self.populate_table()

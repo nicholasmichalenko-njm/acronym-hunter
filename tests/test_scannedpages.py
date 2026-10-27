@@ -40,7 +40,7 @@ def run():
     path = make(d)
     try:                                              # the container has no bundled OCR engine: stand in for it
         A._ocr_raw(A._pil_png(__import__("PIL.Image", fromlist=["Image"]).new("RGB", (50, 50), "white")))
-    except RuntimeError:
+    except Exception:
         A._ocr_raw = lambda _b: "L.5 MANAGEMENT VOLUME\nThe Offeror shall provide a staffing plan."
     typed = A.typed_chunks(path)
     got = A.rfp_chunks(path)

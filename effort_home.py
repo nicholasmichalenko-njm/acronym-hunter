@@ -97,7 +97,9 @@ class HomeMixin:
         tv.bind("<Double-1>", lambda _e: self.home_edit_definition())
         tv.bind("<Button-3>", self._home_menu)
         tv.bind("<Control-a>", lambda _e: (tv.selection_set(tv.get_children()), "break")[1])
-        b = ctk.CTkFrame(H, fg_color="transparent"); b.pack(fill="x", pady=(6, 0))
+        # 2.47.1: two rows of buttons, kept at the bottom so a small window never hides them: the decisions, then the rest
+        b2 = ctk.CTkFrame(H, fg_color="transparent"); b2.pack(side="bottom", fill="x", pady=(4, 0), before=tf)
+        b = ctk.CTkFrame(H, fg_color="transparent"); b.pack(side="bottom", fill="x", pady=(6, 0), after=b2)
         K = dict(height=30)
         self.btn_h_def = ctk.CTkButton(b, text="Edit definition...", width=130, command=self.home_edit_definition, **K)
         self.btn_h_ok = ctk.CTkButton(b, text="Approve...", width=100, fg_color="#15803D",
@@ -106,21 +108,24 @@ class HomeMixin:
                                         command=lambda: self.home_set_status("Needs author"), **K)
         self.btn_h_rej = ctk.CTkButton(b, text="Not a term", width=100, fg_color="#B91C1C",
                                        command=lambda: self.home_set_status("Rejected"), **K)
-        self.btn_h_vol = ctk.CTkButton(b, text="Volumes...", width=100, fg_color="#1E3A8A", command=self.assign_volumes_dialog, **K)
         self.btn_h_alt = ctk.CTkButton(b, text="Alt forms...", width=100, fg_color="#1E3A8A", command=self.alt_edit_dialog, **K)
         self.btn_h_altof = ctk.CTkButton(b, text="Alt form of...", width=110, fg_color="#1E3A8A", command=self.home_alt_of, **K)   # 2.47.0
-        self.btn_h_where = ctk.CTkButton(b, text="Where from...", width=110, fg_color="#475569", command=self.home_where_from, **K)
-        self.btn_h_scan = ctk.CTkButton(b, text="Show in Scan review", width=150, fg_color="#475569", command=self.home_show_in_scan, **K)
-        for w in (self.btn_h_def, self.btn_h_ok, self.btn_h_auth, self.btn_h_rej, self.btn_h_vol, self.btn_h_alt, self.btn_h_altof, self.btn_h_where,
-                  self.btn_h_scan):
+        self.btn_h_add = ctk.CTkButton(b, text="Add a missed term...", width=150, fg_color="#0F766E", command=self.open_add_item, **K)  # 2.47.1
+        for w in (self.btn_h_def, self.btn_h_ok, self.btn_h_auth, self.btn_h_rej, self.btn_h_alt, self.btn_h_altof):
             w.pack(side="left", padx=(0, 6))
-        self.btn_h_export = ctk.CTkButton(b, text="Export...", width=100, fg_color="#0F766E", command=self.export_picker, **K)
+        self.btn_h_add.pack(side="right")
+        self.btn_h_vol = ctk.CTkButton(b2, text="Volumes...", width=100, fg_color="#1E3A8A", command=self.assign_volumes_dialog, **K)
+        self.btn_h_where = ctk.CTkButton(b2, text="Where from...", width=110, fg_color="#475569", command=self.home_where_from, **K)
+        self.btn_h_scan = ctk.CTkButton(b2, text="Show in Scan review", width=150, fg_color="#475569", command=self.home_show_in_scan, **K)
+        for w in (self.btn_h_vol, self.btn_h_where, self.btn_h_scan):
+            w.pack(side="left", padx=(0, 6))
+        self.btn_h_export = ctk.CTkButton(b2, text="Export...", width=100, fg_color="#0F766E", command=self.export_picker, **K)
         self.btn_h_export.pack(side="right")
-        self.btn_h_xall = ctk.CTkButton(b, text="Export all...", width=110, fg_color="#0F766E", command=self.export_all_dialog, **K)
+        self.btn_h_xall = ctk.CTkButton(b2, text="Export all...", width=110, fg_color="#0F766E", command=self.export_all_dialog, **K)
         self.btn_h_xall.pack(side="right", padx=(6, 0))
-        self.btn_h_import = ctk.CTkButton(b, text="Import a list...", width=120, fg_color="#475569", command=self.import_volume_list, **K)
+        self.btn_h_import = ctk.CTkButton(b2, text="Import a list...", width=120, fg_color="#475569", command=self.import_volume_list, **K)
         self.btn_h_import.pack(side="right", padx=6)
-        self.btn_h_setvol = ctk.CTkButton(b, text="Name volumes...", width=130, fg_color="#475569", command=self.edit_volumes, **K)
+        self.btn_h_setvol = ctk.CTkButton(b2, text="Name volumes...", width=130, fg_color="#475569", command=self.edit_volumes, **K)
         self.btn_h_setvol.pack(side="right")
         self._home_after = None
         self._home_buttons()

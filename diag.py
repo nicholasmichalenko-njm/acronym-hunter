@@ -225,7 +225,11 @@ def _frames(tb):
     """Code locations only: file NAME (never its folder), line number, function name."""
     out = []
     for fr in traceback.extract_tb(tb)[-8:]:
-        out.append(f"{os.path.basename(fr.filename)}:{fr.lineno}:{fr.name}")
+        name = re.sub(r"[^A-Za-z0-9_.\-]", "_", os.path.basename(fr.filename))[:57]   # "<frozen runpy>" too (2.47.0)
+        if not name.endswith(".py"):
+            name += ".py"
+        fn = re.sub(r"[^A-Za-z0-9_<>]", "_", fr.name or "?")[:60]
+        out.append(f"{name}:{fr.lineno}:{fn}")
     return out
 
 

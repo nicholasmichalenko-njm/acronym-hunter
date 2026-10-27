@@ -119,7 +119,8 @@ PAGES = {
     ("rows", [("Add, Not a term, Skip", "With an effort open: A adds the term to the effort list, X marks it Not a term, "
                                         "Space skips; the next term comes up and the list stays where it was. F (Alt form of...) makes the term "
                                         "another way of writing a term already found or in the effort list. More holds Include in "
-                                        "DB, Exclude, Omit and Fix OCR."),
+                                        "DB, Exclude, Omit and Fix OCR. Add a missed term... adds a term the scan did not find, with the document and "
+                                        "page where it was missed; with an effort open it goes straight into the effort list."),
               ("Apply Choice", "Pick one meaning when a term has several."),
               ("Include in DB", "Type the definition and save it. Every future scan knows it."),
               ("Fix OCR", "The term is a misreading. Type the correct term. See the Fix OCR vs Training tab."),
@@ -278,15 +279,19 @@ PAGES = {
           "where you decide on what the scan found."),
     ("img", "home.png", 600),
     ("rows", [("Home", "Counts at the top (terms, approved, need a definition, no longer found). Show: needs a definition, a "
-                       "status, no longer found, or one volume. Double-click to edit a definition. Approve, Needs author, "
-                       "Not a term, Volumes, Where from (documents, imports and every change), Show in Scan review."),
+                       "status, no longer found, or one volume. Double-click to edit a definition. The first row of buttons holds "
+                       "the decisions: Edit definition, Approve, Needs author, Not a term, Alt forms, Alt form of and Add a "
+                       "missed term (each one then goes to the next term, the list stays where it was). The second row: "
+                       "Volumes, Where from (documents, imports and every change), Show in Scan review, Name volumes, "
+                       "Import a list and the exports."),
               ("Found in", "With an effort open, Acronyms opens on Review. Until something is found, one button scans the "
                            "effort's documents (its customer documents and our volumes), no file picking. The Found in column "
                            "and filter say where each term was found: Customer, Ours or Both."),
               ("Review", "A adds the term to the effort list, X marks it Not a term, Space skips; the next term comes up "
                          "each time, the list stays where it was and the preview follows. F (Alt form of...) makes it another way of "
                          "writing a term already found or in the effort list. More holds Include in the database, Exclude "
-                         "(all places), Omit and Fix OCR. In the preview: "
+                         "(all places), Omit and Fix OCR. Add a missed term... adds a term the scan did not find, with the document "
+                         "and page where it was missed. In the preview: "
                          "Exclude instance, and Report misreading for a misreading (sent to the training team)."),
               ("Use as definition", "Select words in the Source preview (the passage, or the recognized text of a picture) "
                                     "and click Use as definition, or right-click. When the documents, the customer's list or "
