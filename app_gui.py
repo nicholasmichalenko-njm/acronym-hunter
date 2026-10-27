@@ -143,6 +143,7 @@ from impact_ui import ImpactMixin  # Submission > Impact (2.42.0)
 from layout_ui import LayoutMixin  # Compliance > Original layout (2.45.0)
 from readable_ui import ReadableMixin  # the readable copy of an effort (2.46.0)
 from keepsafe_ui import KeepSafeMixin  # exports kept dated, and the backup location (2.46.0)
+import coming_soon as CS  # Help > Coming soon (2.46.0)
 from effortrec_ui import EffortRecordMixin  # the effort record: stages, goals, notes, tasks, timeline (2.40.0)
 from shell_ui import ShellMixin, RhythmMixin   # the app shell: feature rail and step strip; one decision then the next (2.32.0)
 from compliance_page import CompliancePageMixin   # Decide in Page view, Place pass, details on Prove (2.32.0)
@@ -3662,6 +3663,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         self.shell_bind_rhythm()
         self.shell_go("acronyms", "scan", save=False)    # the shell (2.32.0); the resumed effort may move it
         self.keep_start()                       # 2.46.0: exports kept dated; the backup location
+        self.after(1500, self.backup_first_run)  # 2.46.0: the first start asks for a backup location (never blocks)
         self.after(1500, self.shell_tick)
 
     # ---------- training inside the scanner ----------
@@ -3792,6 +3794,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         h = tk.Menu(mb, tearoff=0)
         h.add_command(label="How it works (Guide)", accelerator="F1", command=c("help_guide", lambda: HG.open_guide(self)))
         h.add_command(label="Submit an idea or report a problem...", accelerator="Ctrl+Shift+F", command=c("help_feedback", lambda: FB.open_feedback(self)))
+        h.add_command(label="Coming soon...", command=c("help_coming_soon", lambda: CS.open_window(self)))
         h.add_separator()
         h.add_command(label="What runs where (AI and ML)...", command=c("help_what_runs", self.show_what_runs))
         h.add_command(label="AI and ML: the difference...", command=c("help_ai_difference", self.show_ai_difference))
@@ -3826,7 +3829,6 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         el = tk.Menu(a, tearoff=0, postcommand=lambda: self.show_effort_menu(el))
         a.add_cascade(label="Effort list and all effort commands", menu=el)
         a.add_command(label="Compliance word style...", command=c("compliance_word_style", self.compliance_word_style))
-        a.add_command(label="Backup location...", command=c("backup_location", self.backup_location_dialog))
         a.add_command(label="Make effort packages open in Stationkeeper (this Windows user)...",
                       command=c("pkg_associate", self.pkg_associate))
         t = tk.Menu(a, tearoff=0, postcommand=lambda: self.show_tools_menu(t))
@@ -3898,6 +3900,8 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         m.add_command(label="Export all for this effort...", command=c("file_export_all", self.export_all_dialog), state=st)
         m.add_separator()
         m.add_command(label="Restore an earlier version...", command=c("file_restore", self.restore_dialog))
+        m.add_command(label="Backup location...", command=c("file_backup_location", self.backup_location_dialog))
+        m.add_command(label="Restore from a backup folder...", command=c("file_backup_restore", self.backup_restore_dialog))
         m.add_command(label="Exit", command=c("file_exit", self.on_close))
 
     def show_effort_top_menu(self, m):

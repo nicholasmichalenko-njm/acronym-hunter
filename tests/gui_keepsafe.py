@@ -1,7 +1,9 @@
 """2.46.0 exports kept and backups in the app: a real export (File > Effort status) and a folder export (Export all)
 are copied, dated, into "<effort> - exports (Stationkeeper)"; creating the effort list is not; with no effort open
-nothing is kept. Advanced > Backup location...: the suggested folder, the OneDrive caution, Back up now, a backup when
-the effort closes, Turn off."""
+nothing is kept. File > Backup location...: the suggested folder, the OneDrive caution, Back up now, a backup when
+the effort closes, Turn off. The app's folder deleted: the first start asks to select a backup location or an existing
+backup folder; restoring lists the effort again when its folder is still there, or restores it from the latest
+package when it is gone, with the app's settings."""
 import os, sys, tempfile, time, zipfile
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -99,12 +101,40 @@ def go():
         rec = z.read(next(n for n in z.namelist() if n.endswith("record.json"))).decode("utf-8")
     check("closing the effort backs it up with the latest change", os.path.getmtime(pk) > t0 and "Confirm red team reviewers" in rec)
     m = __import__("tkinter").Menu(app)
-    labels = []
-    for i in range(app.menubar.index("end") + 1):
-        if app.menubar.type(i) == "cascade" and app.menubar.entrycget(i, "label") == "Advanced":
-            sub = app.nametowidget(app.menubar.entrycget(i, "menu"))
-            labels = [sub.entrycget(j, "label") for j in range(sub.index("end") + 1) if sub.type(j) == "command"]
-    check("Advanced > Backup location...", "Backup location..." in labels, labels)
+    app.show_file_menu(m)
+    labels = [m.entrycget(j, "label") for j in range(m.index("end") + 1) if m.type(j) == "command"]
+    check("File > Backup location... and Restore from a backup folder...", "Backup location..." in labels
+          and "Restore from a backup folder..." in labels, labels)
+    # the app's folder is deleted: a new copy starts with no settings and no effort list
+    import shutil, effort as E
+    open(os.path.join(A.CONFIG_DIR, "banned_words_marker.txt"), "w").write("team list")
+    app.backup_now(wait=True) if app.effort is not None else None
+    zp = K.latest_settings(bdir)
+    with zipfile.ZipFile(zp) as z:
+        pass
+    shutil.rmtree(A.CONFIG_DIR); os.makedirs(A.CONFIG_DIR); os.remove(A.SETTINGS_FILE)
+    app.settings = A.load_settings(); app.efforts = E.Registry(os.path.join(A.CONFIG_DIR, "efforts.json")); app.effort = None
+    w = app.backup_first_run(force=True); app.update()
+    check("a new start asks: select a backup location or select an existing backup folder", w is not None and
+          any("select an existing backup folder" in str(x.cget("text")) for x in w.winfo_children() if hasattr(x, "cget") and "label" in str(x).lower()))
+    answer["dir"] = bdir
+    w._api["existing"](); app.update()
+    rw = [x for x in app.winfo_children() if getattr(x, "_api", {}).get("picks") is not None]
+    check("the backup folder lists the effort", rw and list(rw[-1]._api["picks"]) == ["Kestrel"], rw and list(rw[-1]._api["picks"]))
+    res = rw[-1]._api["go"](); app.update()
+    check("its folder is still there: listed again, settings restored, the folder is the backup location again",
+          res["relinked"] == ["Kestrel"] and res["settings"] > 0 and os.path.isfile(os.path.join(A.CONFIG_DIR, "banned_words_marker.txt"))
+          and app.backup_dir() == bdir and app.effort is not None and app.effort.name == "Kestrel", res)
+    # the effort's folder is gone too: restored from the latest package
+    app.leave_workspace(); app.effort = None
+    shutil.rmtree(os.path.dirname(LIST))
+    app.efforts = E.Registry(os.path.join(A.CONFIG_DIR, "efforts.json"))
+    newhome = os.path.join(tmp, "Restored"); os.makedirs(newhome)
+    rw = app.backup_restore_dialog(folder=bdir); app.update()
+    res = rw._api["go"](dest=newhome); app.update()
+    r = app.effrec()
+    check("its folder is gone: restored from the backup where it left off", res["restored"] == ["Kestrel"] and app.effort is not None
+          and app.effort.path.startswith(newhome) and any(t["title"] == "Confirm red team reviewers" for t in r.data["tasks"]), res)
     app.backup_set("")
     check("Turn off", app.backup_dir() == "" and app.backup_now() is None)
     n = sum(checks)

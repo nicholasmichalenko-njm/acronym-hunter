@@ -3,7 +3,7 @@ except to folders the person picks.
 
 - Every export made while an effort is open is also kept, dated, in "<effort> - exports (Stationkeeper)" beside the
   effort list. The app's save windows are watched, so every export is covered.
-- Advanced > Backup location...: a second copy of every effort outside its folder, for example Documents\\Stationkeeper
+- File > Backup location...: a second copy of every effort outside its folder, for example Documents\\Stationkeeper
   backups (refreshed a few minutes after changes and when the effort closes; written in the background).
 """
 import datetime, os, threading, time, tkinter as tk
@@ -202,7 +202,7 @@ class KeepSafeMixin:
         return f"Backing up to {d}" + (f"\nLast backup: {when}" if when else "\nNo backup yet.")
 
     def backup_location_dialog(self):
-        """Advanced > Backup location..."""
+        """File > Backup location..."""
         w = ctk.CTkToplevel(self); w.title("Backup location"); w.transient(self); w.geometry("700x430")
         ctk.CTkLabel(w, text="Backup location", font=("Segoe UI", 16, "bold"), anchor="w").pack(fill="x", padx=16, pady=(14, 2))
         ctk.CTkLabel(w, anchor="w", justify="left", wraplength=660, text=(
@@ -254,8 +254,164 @@ class KeepSafeMixin:
         row2 = ctk.CTkFrame(w, fg_color="transparent"); row2.pack(fill="x", padx=16, pady=4)
         ctk.CTkButton(row2, text="Back up now", command=now).pack(side="left")
         ctk.CTkButton(row2, text="Open the backup folder", command=open_, fg_color="#64748B").pack(side="left", padx=8)
+        ctk.CTkButton(row2, text="Restore from a backup folder...", command=lambda: (w.destroy(), self.backup_restore_dialog()),
+                      fg_color="#64748B").pack(side="left")
         ctk.CTkButton(w, text="Close", command=w.destroy, fg_color="#64748B").pack(side="right", padx=16, pady=14)
         show()
         w._api = {"suggested": suggested, "off": off, "now": now, "status": st, "warn": warn, "show": show}
+        w.after(100, w.lift)
+        return w
+
+    # ------------------------------------------------------------------ first start, and restoring from a backup folder
+    def backup_first_run(self, force=False):
+        """The first time the app starts with no backup location (a new PC, or the app folder was replaced): one window,
+        "Select a backup location or select an existing backup folder". Never blocking: Not now closes it, and File >
+        Backup location... is always there."""
+        if not force and (self.backup_dir() or self.settings.get("backup_asked") or os.environ.get("AH_TEST")):
+            return None
+        w = ctk.CTkToplevel(self); w.title("Backup location"); w.transient(self); w.geometry("660x330")
+        ctk.CTkLabel(w, text="Select a backup location or select an existing backup folder", font=("Segoe UI", 16, "bold"),
+                     anchor="w", wraplength=620, justify="left").pack(fill="x", padx=16, pady=(14, 4))
+        ctk.CTkLabel(w, anchor="w", justify="left", wraplength=620, text=(
+            "A backup location keeps a second copy of every effort outside the app's folder, so nothing is lost if the "
+            "app's folder or an effort's folder is deleted. If you used Stationkeeper before on this PC or another, select "
+            "your existing backup folder to bring your efforts and settings back where you left off.")).pack(fill="x", padx=16)
+
+        def done():
+            self.settings["backup_asked"] = True
+            __import__("app_gui").save_settings(self.settings)
+            w.destroy()
+
+        def suggested():
+            self.backup_set(K.default_backup_dir()); done()
+
+        def choose():
+            d = filedialog.askdirectory(parent=w, title="Backup location", initialdir=os.path.dirname(K.default_backup_dir()))
+            if d:
+                self.backup_set(d); done()
+
+        def existing():
+            done()
+            self.backup_restore_dialog()
+        col = ctk.CTkFrame(w, fg_color="transparent"); col.pack(fill="x", padx=16, pady=(14, 4))
+        ctk.CTkButton(col, text="Use Documents\\Stationkeeper backups", command=suggested, fg_color="#0F766E").pack(anchor="w", pady=3)
+        ctk.CTkButton(col, text="Choose a backup location...", command=choose).pack(anchor="w", pady=3)
+        ctk.CTkButton(col, text="Select an existing backup folder...", command=existing).pack(anchor="w", pady=3)
+        ctk.CTkButton(w, text="Not now", command=done, fg_color="#64748B").pack(side="right", padx=16, pady=12)
+        ctk.CTkLabel(w, text="File > Backup location... sets this up any time.", anchor="w",
+                     text_color=("#475569", "#94A3B8")).pack(side="left", padx=16, pady=12)
+        w.protocol("WM_DELETE_WINDOW", done)
+        w._api = {"suggested": suggested, "existing": existing, "not_now": done}
+        w.after(100, w.lift)
+        return w
+
+    def backup_restore(self, backup_dir, names=None, settings=True, dest=""):
+        """Bring efforts (and the app's settings) back from a backup folder. An effort whose folder is still where it was
+        is simply listed again; one whose folder is gone is restored from its latest package into dest. The folder then
+        becomes the backup location. Returns {"settings": files, "relinked": [...], "restored": [...], "skipped": [...]}."""
+        app = __import__("app_gui")
+        import effort as E
+        out = {"settings": 0, "relinked": [], "restored": [], "skipped": []}
+        found = [b for b in K.find_backups(backup_dir) if names is None or b["name"] in names]
+        if getattr(self, "effort", None) is not None and hasattr(self, "leave_workspace"):
+            self.leave_workspace()
+            self.effort = None
+        zp = K.latest_settings(backup_dir) if settings else ""
+        if zp:
+            out["settings"] = K.restore_settings(zp, app.CONFIG_DIR, app.SETTINGS_FILE)
+            self.efforts = E.Registry(os.path.join(app.CONFIG_DIR, "efforts.json"))
+            self.settings = app.load_settings()
+        for b in found:
+            have = self.efforts.get(b["name"]) or {}
+            if have.get("path") and os.path.isfile(have["path"]):
+                out["relinked"].append(b["name"])
+                continue
+            if b["original_list"] and os.path.isfile(b["original_list"]):
+                inf = __import__("effortpkg").read_manifest(b["package"]).get("info", {})
+                keep = {k: inf.get(k) for k in ("customer_dir", "volumes_dir", "first_use", "client", "solicitation",
+                                                "internal_no", "list_format") if inf.get(k) is not None}
+                self.efforts.put(b["name"], path=b["original_list"], **keep)
+                out["relinked"].append(b["name"])
+                continue
+            if not dest:
+                out["skipped"].append(b["name"])
+                continue
+            got = self.pkg_import_dialog(path=b["package"], dest=dest, mode="replace" if b["name"] in self.efforts.names() else None)
+            (out["restored"] if got else out["skipped"]).append(b["name"])
+        self.backup_set(backup_dir)
+        self.settings["backup_asked"] = True
+        app.save_settings(self.settings)
+        diag.activity("backup_restored", items=len(out["restored"]) + len(out["relinked"]), files=out["settings"])
+        return out
+
+    def backup_restore_dialog(self, folder=None):
+        """File > Restore from a backup folder...: pick the folder, see what it holds, restore."""
+        if folder is None:
+            folder = filedialog.askdirectory(title="Select an existing backup folder", initialdir=os.path.dirname(K.default_backup_dir()))
+            if not folder:
+                return None
+        found = K.find_backups(folder)
+        zp = K.latest_settings(folder)
+        if not found and not zp:
+            messagebox.showinfo("Restore from a backup folder", "That folder holds no Stationkeeper backups. Choose the folder "
+                                "that holds 'READ ME.txt' and one folder per effort.")
+            return None
+        w = ctk.CTkToplevel(self); w.title("Restore from a backup folder"); w.transient(self); w.geometry("760x520")
+        ctk.CTkLabel(w, text="Restore from a backup folder", font=("Segoe UI", 16, "bold"), anchor="w").pack(fill="x", padx=16, pady=(14, 2))
+        ctk.CTkLabel(w, text=folder, anchor="w", text_color=("#475569", "#94A3B8")).pack(fill="x", padx=16)
+        box = ctk.CTkScrollableFrame(w, height=260); box.pack(fill="both", expand=True, padx=16, pady=8)
+        picks = {}
+        for b in found:
+            here = (self.efforts.get(b["name"]) or {}).get("path", "")
+            if here and os.path.isfile(here):
+                how = "already on this PC: listed as it is"
+            elif b["original_list"] and os.path.isfile(b["original_list"]):
+                how = "its folder is still there: listed again"
+            else:
+                how = "restored from the backup"
+            when = b["saved_at"].replace("T", " ")
+            picks[b["name"]] = tk.BooleanVar(value=True)
+            ctk.CTkCheckBox(box, variable=picks[b["name"]], text=f"{b['name']}   (backed up {when}"
+                            + (f", {b['stage']}" if b["stage"] else "") + f"; {how})").pack(anchor="w", pady=2)
+        sv = tk.BooleanVar(value=bool(zp))
+        cb = ctk.CTkCheckBox(w, variable=sv, text="Also restore the app's settings, banned words, keyword knowledge and master database"
+                             + (f" ({os.path.basename(zp)[len('Stationkeeper settings and team lists '):-4]})" if zp else ""))
+        cb.pack(anchor="w", padx=16, pady=(4, 0))
+        if not zp:
+            cb.configure(state="disabled")
+        ctk.CTkLabel(w, text="This folder becomes the backup location.", anchor="w",
+                     text_color=("#475569", "#94A3B8")).pack(fill="x", padx=16, pady=(4, 0))
+
+        def go(dest=None):
+            names = [n for n, v in picks.items() if v.get()]
+            need = [b for b in found if b["name"] in names and not ((self.efforts.get(b["name"]) or {}).get("path") and
+                    os.path.isfile((self.efforts.get(b["name"]) or {}).get("path"))) and not (b["original_list"] and os.path.isfile(b["original_list"]))]
+            if need and dest is None:
+                dest = filedialog.askdirectory(parent=w, title="Where should the restored efforts go?",
+                                               initialdir=os.path.dirname(K.default_backup_dir()))
+                if not dest:
+                    return None
+            w.destroy()
+            res = self.backup_restore(folder, names=names, settings=sv.get(), dest=dest or "")
+            msg = []
+            if res["restored"]:
+                msg.append("Restored from the backup: " + ", ".join(res["restored"]))
+            if res["relinked"]:
+                msg.append("Listed again (their folders were still there): " + ", ".join(res["relinked"]))
+            if res["skipped"]:
+                msg.append("Not restored: " + ", ".join(res["skipped"]))
+            if res["settings"]:
+                msg.append("The app's settings, banned words, keyword knowledge and master database are restored; restart "
+                           "Stationkeeper to use all of them.")
+            messagebox.showinfo("Restore from a backup folder", "\n\n".join(msg) or "Nothing was restored.")
+            if res["restored"] or res["relinked"]:
+                n = (res["restored"] or res["relinked"])[0]
+                if getattr(self, "effort", None) is None:
+                    self.open_effort(n)
+            return res
+        bar = ctk.CTkFrame(w, fg_color="transparent"); bar.pack(fill="x", side="bottom", padx=16, pady=12)
+        ctk.CTkButton(bar, text="Restore", fg_color="#0F766E", command=go).pack(side="right")
+        ctk.CTkButton(bar, text="Cancel", fg_color="#64748B", command=w.destroy).pack(side="right", padx=6)
+        w._api = {"picks": picks, "settings": sv, "go": go}
         w.after(100, w.lift)
         return w

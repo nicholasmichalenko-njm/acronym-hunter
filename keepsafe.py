@@ -4,7 +4,7 @@
    list, with the date and time in each file name ("Kestrel_Response_Setup 2026-10-27 0840.docx"). Nothing there is ever
    overwritten. The app notices exports at its save windows (any save window, and folder windows for exports), so
    every export is covered, including future ones.
-2. A backup location outside the app's folder (Advanced > Backup location), one folder per effort:
+2. A backup location outside the app's folder (File > Backup location), one folder per effort:
    - "<effort> - latest.skpkg": the whole effort as an effort package (File > Import effort package restores it exactly;
      it also holds the readable copy, so it can be unzipped and read without the app); refreshed a few minutes after
      changes and when the effort closes;
@@ -245,13 +245,14 @@ def _mirror(src, dst):
 
 README = """Stationkeeper backups
 
-Written by Stationkeeper to a folder you picked (Advanced > Backup location), so the work survives if the app's folder
+Written by Stationkeeper to a folder you picked (File > Backup location), so the work survives if the app's folder
 or an effort's folder is deleted or damaged. One folder per effort:
 
   <effort> - latest.skpkg     The whole effort as it was at the last backup: stages, gate goals, notes, tasks,
                               deliverables, the timeline, customer documents and their versions, submission
                               requirements, the compliance matrix and every decision, acronyms, keywords, our volumes
-                              and the readable copy. To restore: Stationkeeper > File > Import effort package.
+                              and the readable copy. To restore: Stationkeeper > File > Restore from a backup
+                              folder... (every effort and the settings at once), or File > Import effort package.
                               Without the app: copy it, rename .skpkg to .zip, unzip, open the readable folder.
   <effort> <date>.skpkg       One package per day, kept {days} days.
   Readable copy\\              The effort's readable copy (CSV and text files; READ ME FIRST.txt explains them).
@@ -261,7 +262,7 @@ Beside the effort folders:
   Stationkeeper settings and team lists <date>.zip
                               The app's config folder: the Acronyms, Abbreviations, Units and Symbols Master Database,
                               banned words, keyword knowledge and settings. To restore, unzip it into the app's config
-                              folder (next to Stationkeeper.exe) while the app is closed.
+                              folder (next to Stationkeeper.exe) while the app is closed, or use File > Restore from a backup folder...
 
 Nothing here leaves this PC unless the folder itself is synced (for example by OneDrive). Keep proposal data only in
 folders your company allows for it.
@@ -306,3 +307,67 @@ def backup_effort(backup_dir, effort_name, list_path, data_dir, matrix_path="", 
         _prune(backup_dir, "Stationkeeper settings and team lists", ".zip", when.date())
         out["settings"] = z
     return out
+
+
+# ------------------------------------------------------------------ restoring from a backup folder
+def find_backups(backup_dir):
+    """The efforts in a backup folder: [{"name", "package", "saved_at", "stage", "saved_by", "original_list"}], newest
+    first. Each effort's latest package (or, when it is missing, its newest dated one)."""
+    import effortpkg as P
+    out = []
+    if not backup_dir or not os.path.isdir(backup_dir):
+        return out
+    for d in sorted(os.listdir(backup_dir)):
+        root = os.path.join(backup_dir, d)
+        if not os.path.isdir(root):
+            continue
+        pk = [f for f in os.listdir(root) if f.lower().endswith(P.EXTS) and not f.endswith(".tmp")]
+        if not pk:
+            continue
+        latest = [f for f in pk if f.endswith(" - latest" + os.path.splitext(f)[1])]
+        pick = latest[0] if latest else max(pk, key=lambda f: os.path.getmtime(os.path.join(root, f)))
+        path = os.path.join(root, pick)
+        try:
+            man = P.read_manifest(path)
+        except Exception:
+            continue
+        out.append({"name": man.get("effort") or d, "package": path, "saved_at": man.get("saved_at", ""),
+                    "stage": man.get("stage", ""), "saved_by": man.get("saved_by", ""),
+                    "original_list": (man.get("info") or {}).get("path", "") or ""})
+    out.sort(key=lambda b: b["saved_at"], reverse=True)
+    return out
+
+
+def latest_settings(backup_dir):
+    """The newest 'Stationkeeper settings and team lists <date>.zip' in a backup folder, or ''."""
+    if not backup_dir or not os.path.isdir(backup_dir):
+        return ""
+    z = sorted(f for f in os.listdir(backup_dir) if f.startswith("Stationkeeper settings and team lists ") and f.endswith(".zip"))
+    return os.path.join(backup_dir, z[-1]) if z else ""
+
+
+def restore_settings(zip_path, config_dir, settings_file=""):
+    """Put the app's config folder (and the settings file) back from a settings zip. Nothing outside those two is
+    written; files already there are replaced. Returns the number of files restored."""
+    n = 0
+    croot = os.path.abspath(config_dir)
+    with zipfile.ZipFile(zip_path) as zf:
+        for info in zf.infolist():
+            if info.is_dir():
+                continue
+            name = info.filename.replace("\\", "/")
+            if name.startswith("app settings/"):
+                if not settings_file:
+                    continue
+                target = os.path.abspath(settings_file)
+            else:
+                target = os.path.abspath(os.path.join(croot, *[p for p in name.split("/") if p not in ("", ".", "..")]))
+                if not (target == croot or target.startswith(croot + os.sep)):
+                    continue                          # nothing outside the config folder
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            tmp = target + ".tmp"
+            with zf.open(info) as src, open(tmp, "wb") as dst:
+                shutil.copyfileobj(src, dst)
+            os.replace(tmp, target)
+            n += 1
+    return n

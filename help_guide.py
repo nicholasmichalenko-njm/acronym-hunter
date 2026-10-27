@@ -391,12 +391,18 @@ PAGES = {
                                "kept, dated, in '<effort> - exports (Stationkeeper)' beside the effort list, for example "
                                "'Kestrel_Response_Setup 2026-10-27 0840.docx'. Nothing there is overwritten, so every version "
                                "of every export stays."),
-              ("Backup location", "Advanced > Backup location... keeps a second copy of every effort outside its folder, for "
+              ("Backup location", "File > Backup location... keeps a second copy of every effort outside its folder, for "
                                   "example Documents\\Stationkeeper backups: the whole effort as an effort package (File > Import "
                                   "effort package... picks up exactly where it was), one dated package per day for 30 days, the "
                                   "readable copy, the dated exports, and the app's settings, banned words, keyword knowledge and "
                                   "master database. Written a few minutes after changes and when the effort closes. If the folder "
-                                  "is synced by OneDrive, the copies go to that cloud too: use it only where your company allows."),
+                                  "is synced by OneDrive, the copies go to that cloud too: use it only where your company allows. "
+                                  "The first time Stationkeeper starts without one, it asks: select a backup location or "
+                                  "select an existing backup folder (Not now is fine)."),
+              ("Restore from a backup", "File > Restore from a backup folder... brings everything back after the app's folder "
+                                        "was deleted or on a new PC: pick the backup folder, and each effort comes back where "
+                                        "it was (from its latest backup if its folder is gone), with the app's settings, "
+                                        "banned words, keyword knowledge and master database."),
               ("Recover", "Changes that could not be saved (the app closed, or Excel had the file open) come back the next time "
                           "you open the effort: the app asks \"Recover them now?\""),
               ("Earlier versions", "File > Restore an earlier version lists dated copies of the effort list and compliance "
