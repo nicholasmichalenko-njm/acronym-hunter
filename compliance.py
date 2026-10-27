@@ -50,7 +50,8 @@ _STOPW = set("""a an and or of the to for in on by with at as from is are be bee
 its it their his her our your any all each such which who whom than then also not no into within upon under over per
 offeror offerors contractor government proposal provide describe include""".split())
 
-DECISIONS = ("Keep", "Context", "Drop", "")      # 2.29.0: Context = not a requirement, but it gets a home too
+DECISIONS = ("Keep", "Context", "Customer", "Drop", "")   # 2.29.0: Context gets a home too; 2.48.0: Customer = the
+#   customer's own obligation ("The Government will evaluate..."): identified, never answered, never in our response
 TYPES = ("Instruction", "Evaluation", "SOW", "Format", "Information", "Requirement", "Context")
 _BOILER = re.compile(r"^(?:page\s+\d+(?:\s+of\s+\d+)?|\d{1,4}|-\s*\d+\s*-|(?:un)?classified|cui|controlled unclassified information|"
                      r"for official use only|fouo|proprietary(?: information)?|source selection information|"
@@ -520,7 +521,7 @@ def drafts(items):
 
 def commit(rows):
     """Make the drafts in rows count. Returns {"n", "Keep", "Context", "Drop", "Undecided", "links"}."""
-    out = {"n": 0, "Keep": 0, "Context": 0, "Drop": 0, "Undecided": 0, "links": 0}
+    out = {"n": 0, "Keep": 0, "Context": 0, "Customer": 0, "Drop": 0, "Undecided": 0, "links": 0}
     for it in rows:
         if not it.get("draft"):
             continue
@@ -617,6 +618,15 @@ def assign_context(items, rows, req_ids=None, section=None):
             it["context_for"] = join_ids(links)
             first = by.get(links[0]) if links else None
             it["map"] = first.get("map", "") if first is not None else ""
+    return len(rows)
+
+
+def assign_customer(items, rows):
+    """2.48.0: the customer's own obligation ("The Government will evaluate..."): identified, never answered. No section,
+    no links; Context that pointed at these sentences loses the link."""
+    clear_assignment(items, rows)
+    for it in rows:
+        it["decision"] = "Customer"
     return len(rows)
 
 
@@ -912,7 +922,7 @@ class Matrix:
                     continue
                 row["compound"] = row["compound"].lower() in ("yes", "true", "1")
                 row["decision"] = {"k": "Keep", "keep": "Keep", "yes": "Keep", "d": "Drop", "drop": "Drop", "no": "Drop",
-                                   "c": "Context", "context": "Context"}.get(row["decision"].lower(), "")
+                                   "c": "Context", "context": "Context", "customer": "Customer", "customer's": "Customer"}.get(row["decision"].lower(), "")
                 row["draft"] = {"keep": "Keep", "context": "Context", "drop": "Drop", "undecided": UNDECIDED}.get(row["draft"].lower(), "")
                 if not row["draft"]:
                     row["draft_cf"] = ""
@@ -1008,7 +1018,7 @@ class Matrix:
         order = [s[0] for s in self.sources] + [it.get("file", "") for it in self.items]
         rows = {}
         for f in dict.fromkeys(order):
-            rows[f] = {"file": f, "total": 0, "Keep": 0, "Context": 0, "Drop": 0, "": 0, "placed": 0, "needs_home": 0}
+            rows[f] = {"file": f, "total": 0, "Keep": 0, "Context": 0, "Customer": 0, "Drop": 0, "": 0, "placed": 0, "needs_home": 0}
         for it in self.items:
             r = rows[it.get("file", "")]
             r["total"] += 1
@@ -1016,11 +1026,11 @@ class Matrix:
             if it["decision"] in ("Keep", "Context"):
                 r["placed" if it["map"] else "needs_home"] += 1
         out = [r for r in rows.values() if r["total"]]
-        tot = {"file": "Total", **{k: sum(r[k] for r in out) for k in ("total", "Keep", "Context", "Drop", "", "placed", "needs_home")}}
+        tot = {"file": "Total", **{k: sum(r[k] for r in out) for k in ("total", "Keep", "Context", "Customer", "Drop", "", "placed", "needs_home")}}
         return out + [tot]
 
     def counts(self):
-        c = {"total": len(self.items), "Keep": 0, "Context": 0, "Drop": 0, "": 0, "mapped": 0, "kept_unmapped": 0,
+        c = {"total": len(self.items), "Keep": 0, "Context": 0, "Customer": 0, "Drop": 0, "": 0, "mapped": 0, "kept_unmapped": 0,
              "context_mapped": 0, "context_unmapped": 0}
         for it in self.items:
             c[it["decision"]] = c.get(it["decision"], 0) + 1
@@ -1047,7 +1057,7 @@ class Matrix:
         for i, c in enumerate(ws[1], 1):
             c.font = Font(bold=True, color="FFFFFF"); c.fill = PatternFill("solid", fgColor="1E3A8A")
             ws.column_dimensions[c.column_letter].width = WIDTHS[i - 1]
-        fills = {"Keep": "E7F6EC", "Drop": "EEEEEE"}
+        fills = {"Keep": "E7F6EC", "Drop": "EEEEEE", "Customer": "F3E8FF"}
         import cwords
         cw = cwords.load()                          # 2.31.0: compliance words in the user's style (bold by default)
         rcol = COLUMNS.index("Requirement")
@@ -1092,13 +1102,13 @@ class Matrix:
         if self.setup:
             self._save_setup(wb, Font)
         cv = wb.create_sheet("Coverage")             # 2.29.0: proof that every sentence was considered
-        cv.append(["File", "Sentences", "Keep", "Context", "Drop", "Undecided", "Placed", "Need a home", "Every sentence decided"])
+        cv.append(["File", "Sentences", "Keep", "Context", "Customer", "Drop", "Undecided", "Placed", "Need a home", "Every sentence decided"])
         for c in cv[1]:
             c.font = Font(bold=True)
         for row in self.coverage():
-            cv.append([row["file"], row["total"], row["Keep"], row["Context"], row["Drop"], row[""], row["placed"],
+            cv.append([row["file"], row["total"], row["Keep"], row["Context"], row["Customer"], row["Drop"], row[""], row["placed"],
                        row["needs_home"], "Yes" if row["total"] and not row[""] else "No"])
-        for col, w in zip("ABCDEFGHI", (50, 11, 8, 9, 8, 11, 9, 12, 22)):
+        for col, w in zip("ABCDEFGHIJ", (50, 11, 8, 9, 10, 8, 11, 9, 12, 22)):
             cv.column_dimensions[col].width = w
         rh = wb.create_sheet("RFP headings")
         rh.append(["Number", "Title", "File"])
@@ -1115,9 +1125,10 @@ class Matrix:
         ab = wb.create_sheet("About")
         c = self.counts()
         for r in (["Matrix", self.name], ["Saved", datetime.datetime.now().strftime("%Y-%m-%d %H:%M")],
-                  ["Sentences", c["total"]], ["Keep", c["Keep"]], ["Context", c["Context"]], ["Drop", c["Drop"]],
+                  ["Sentences", c["total"]], ["Keep", c["Keep"]], ["Context", c["Context"]], ["Customer", c["Customer"]], ["Drop", c["Drop"]],
                   ["Undecided", c[""]], ["Placed (Keep or Context)", c["placed"]], ["Need a home", c["needs_home"]],
-                  ["Note", "Decision: Keep (a requirement), Context (not a requirement, but it goes with the response) or Drop; "
+                  ["Note", "Decision: Keep (a requirement), Context (not a requirement, but it goes with the response), "
+                           "Customer (the customer's own obligation: identified, not answered) or Drop; "
                            "blank = undecided. Edit here or in Stationkeeper; keep the column headings. "
                            "This workbook holds customer content: keep it on this PC or SharePoint."]):
             ab.append(r)
@@ -1167,8 +1178,9 @@ def write_outline_docx(matrix, path, title=""):
 
 
 # ------------------------------------------------------------------ coverage report (2.29.0)
-COVER_FILL = {"Keep": "D9F2E3", "Context": "DBEAFE", "Drop": "F3F4F6", "": "F3F4F6"}
-LABEL = {"Keep": "Compliance requirement", "Context": "Context", "Drop": "Not used", "": "Not used"}
+COVER_FILL = {"Keep": "D9F2E3", "Context": "DBEAFE", "Customer": "F3E8FF", "Drop": "F3F4F6", "": "F3F4F6"}
+LABEL = {"Keep": "Compliance requirement", "Context": "Context", "Customer": "Customer's (not ours to answer)", "Drop": "Not used",
+         "": "Not used"}
 
 
 def context_label(it):
@@ -1192,15 +1204,17 @@ def write_coverage_docx(matrix, path, title=""):
     doc.heading(title or f"{matrix.name}: RFP coverage, every sentence", 1)
     unused = tot[""] + tot["Drop"]
     ok = tot["total"] and not tot["needs_home"]
-    doc.rich([(f"Every sentence was read: {tot['Keep']} compliance requirement(s), {tot['Context']} context, {unused} not used."
+    doc.rich([(f"Every sentence was read: {tot['Keep']} compliance requirement(s), {tot['Context']} context, "
+               + (f"{tot['Customer']} the customer's, " if tot["Customer"] else "") + f"{unused} not used."
                + (f" {tot['needs_home']} assigned sentence(s) have no section yet." if tot["needs_home"] else
                   " Every assigned sentence has a section."), {"bold": True, "color": "15803D" if ok else "B91C1C"})])
     doc.para(f"Built {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')} from the compliance matrix {os.path.basename(matrix.path)}.")
-    doc.table(["File", "Sentences", "Compliance", "Context", "Not used", "In a section", "No section"],
-              [[r["file"], r["total"], r["Keep"], r["Context"], r[""] + r["Drop"], r["placed"], r["needs_home"]] for r in cov],
-              [3160, 900, 1100, 900, 1000, 1100, 1000])
+    doc.table(["File", "Sentences", "Compliance", "Context", "Customer", "Not used", "In a section", "No section"],
+              [[r["file"], r["total"], r["Keep"], r["Context"], r["Customer"], r[""] + r["Drop"], r["placed"], r["needs_home"]] for r in cov],
+              [2560, 900, 1100, 900, 1000, 900, 1000, 900])
     doc.rich([("Key:  ", {"bold": True}), (" Compliance requirement ", {"fill": COVER_FILL["Keep"]}), ("  ", {}),
               (" Context ", {"fill": COVER_FILL["Context"]}), ("  ", {}),
+              (" Customer's ", {"fill": COVER_FILL["Customer"]}), ("  ", {}),
               (" Not used ", {"fill": COVER_FILL[""], "color": "6B7280"})])
     by_file = {}
     for it in matrix.items:

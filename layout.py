@@ -173,7 +173,7 @@ def render(path, page_no, scale=2.0):
 
 
 COLORS = {"Keep": ((22, 163, 74), "Compliance requirement"), "Context": ((37, 99, 235), "Context"),
-          "Drop": ((100, 116, 139), "Not used"), "": ((217, 119, 6), "Not decided yet")}
+          "Customer": ((126, 34, 206), "Customer's"), "Drop": ((100, 116, 139), "Not used"), "": ((217, 119, 6), "Not decided yet")}
 MISSING = ((220, 38, 38), "Not in the review")
 
 

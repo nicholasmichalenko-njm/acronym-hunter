@@ -15,7 +15,8 @@ file. Rules only (No AI); nothing leaves the PC.
 import csv, datetime, io, os, re
 
 SUFFIX = " - readable copy (Stationkeeper)"
-ROLE = {"Keep": "Compliance requirement", "Context": "Context", "Drop": "Not used", "": "Not decided yet"}
+ROLE = {"Keep": "Compliance requirement", "Context": "Context", "Customer": "Customer's (not ours to answer)", "Drop": "Not used",
+        "": "Not decided yet"}
 
 
 def folder_for(list_path, effort_name=""):

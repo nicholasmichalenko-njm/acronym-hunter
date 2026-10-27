@@ -559,6 +559,9 @@ PAGES = {
                           "up its links."),
               ("Moving on", "After a compliance requirement, context or not used, Assign goes to the next sentence that is "
                             "not assigned, so you never click to move on (turn it off with the box on the right)."),
+              ("Customer's", "G marks a sentence that reads like a requirement but is the customer's to act on (\"The "
+                             "Government will evaluate...\"). It is identified and counted (Prove has a Customer's category, "
+                             "the coverage report and the matrix count it), never answered and never put in the response."),
               ("Clear, Split, Combine", "X clears a sentence (not used). S splits it where you clicked between two words. "
                                         "Drag across several sentences to assign them together, or M to combine them into one."),
               ("Not used", "A sentence you do not assign is not used. Prove and the coverage report count compliance "

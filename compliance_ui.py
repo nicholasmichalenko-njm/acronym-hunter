@@ -13,7 +13,7 @@ import placelearn as PL
 import cwords as CW
 
 ALL = "All"
-LEVEL_COLORS = {"Keep": "#E7F6EC", "Context": "#E0F2FE", "Drop": "#EEEEEE"}
+LEVEL_COLORS = {"Keep": "#E7F6EC", "Context": "#E0F2FE", "Customer": "#F3E8FF", "Drop": "#EEEEEE"}
 
 
 def _eng():
@@ -78,7 +78,7 @@ class ComplianceMixin:
         win.c_flt = flt
         win.f_dec = tk.StringVar(value=ALL); win.f_type = tk.StringVar(value=ALL); win.f_sug = tk.StringVar(value=ALL)
         win.f_map = tk.StringVar(value=ALL); win.f_q = tk.StringVar(); win.f_learn = tk.StringVar(value=ALL)
-        for lab, var, vals in (("Decision", win.f_dec, [ALL, "Undecided", "Keep", "Context", "Drop"]), ("Type", win.f_type, [ALL] + list(C.TYPES)),
+        for lab, var, vals in (("Decision", win.f_dec, [ALL, "Undecided", "Keep", "Context", "Customer", "Drop"]), ("Type", win.f_type, [ALL] + list(C.TYPES)),
                                ("Suggested", win.f_sug, [ALL, "Keep", "Context", "Drop", "Review"]), ("Learned", win.f_learn, [ALL, "Keep", "Drop", "Review"]),
                                ("Outline", win.f_map, [ALL, "Needs a home", "Kept, not mapped", "Mapped"])):
             ctk.CTkLabel(flt, text=lab).pack(side="left", padx=(8, 3))
@@ -310,6 +310,7 @@ class ComplianceMixin:
         tv.tag_configure("Keep", background=LEVEL_COLORS["Keep"], foreground="#111827")
         tv.tag_configure("Drop", background=LEVEL_COLORS["Drop"], foreground="#6B7280")
         tv.tag_configure("Context", background=LEVEL_COLORS["Context"], foreground="#111827")
+        tv.tag_configure("Customer", background=LEVEL_COLORS["Customer"], foreground="#111827")
         sb = ttk.Scrollbar(left, orient="vertical", command=tv.yview)
         hb = ttk.Scrollbar(left, orient="horizontal", command=tv.xview)
         tv.configure(yscrollcommand=sb.set, xscrollcommand=hb.set)
@@ -452,7 +453,7 @@ class ComplianceMixin:
         shown = len(win.tv.get_children())
         unused = c[""] + c["Drop"]
         bits = [f"{M.name}  |  {os.path.basename(M.path)}", f"{c['total']} sentences ({shown} shown)",
-                f"Compliance requirements {c['Keep']}  Context {c['Context']}  Not used {unused}",
+                f"Compliance requirements {c['Keep']}  Context {c['Context']}  Customer's {c['Customer']}  Not used {unused}",
                 ("\u2713 every assigned sentence has a section" if c["Keep"] + c["Context"] and not c["needs_home"]
                  else f"{c['needs_home']} assigned without a section" if c["needs_home"] else "nothing assigned yet")]
         if M.pending:

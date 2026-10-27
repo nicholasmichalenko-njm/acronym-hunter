@@ -25,9 +25,10 @@ import compliance as C
 import diag
 import cwords as CW
 
-DEC_BG = {"Keep": "#BBF7D0", "Context": "#BFDBFE", "Drop": "#F3F4F6"}
-STRIP = {"": "#CBD5E1", "Drop": "#E2E8F0", "Keep": "#22C55E", "Context": "#3B82F6"}
-NAME = {"Keep": "Compliance requirement", "Context": "Context", "Drop": "Not used", "": "Not used"}
+DEC_BG = {"Keep": "#BBF7D0", "Context": "#BFDBFE", "Customer": "#E9D5FF", "Drop": "#F3F4F6"}
+STRIP = {"": "#CBD5E1", "Drop": "#E2E8F0", "Keep": "#22C55E", "Context": "#3B82F6", "Customer": "#9333EA"}
+NAME = {"Keep": "Compliance requirement", "Context": "Context", "Customer": "Customer's (not ours to answer)", "Drop": "Not used",
+        "": "Not used"}
 
 
 def _tag(it):
@@ -69,6 +70,8 @@ class CompliancePageMixin:
         win.cp_ctx_btn.pack(side="left", padx=4)
         G = dict(height=40, width=10, fg_color="transparent", border_width=1, border_color="#334155", text_color="#CBD5E1",
                  hover_color="#1E293B")
+        win.cp_cust_btn = ctk.CTkButton(keys, text="Customer's  G", command=self.cp_customer, fg_color="#7E22CE", **B)   # 2.48.0
+        win.cp_cust_btn.pack(side="left", padx=4)
         ctk.CTkButton(keys, text="Clear  X", command=self.cp_clear, **G).pack(side="left", padx=(12, 4))
         ctk.CTkButton(keys, text="Split  S", command=self.cp_split, **G).pack(side="left", padx=4)
         ctk.CTkButton(keys, text="Combine  M", command=self.cp_combine, **G).pack(side="left", padx=4)
@@ -152,7 +155,8 @@ class CompliancePageMixin:
         ctk.CTkCheckBox(side, text="After assigning a sentence (requirement, context\nor not used), go to the next one not assigned",
                         variable=win.cp_next_var, command=self._cp_auto_next_set).pack(anchor="w", padx=8, pady=(10, 0))
         self._cp_card_title(side, "Highlighter key")
-        for txt, bg in (("Compliance requirement", DEC_BG["Keep"]), ("Context", DEC_BG["Context"]), ("Not used (not assigned)", "#FFFFFF")):
+        for txt, bg in (("Compliance requirement", DEC_BG["Keep"]), ("Context", DEC_BG["Context"]),
+                        ("Customer's (identified, not answered)", DEC_BG["Customer"]), ("Not used (not assigned)", "#FFFFFF")):
             row = ctk.CTkFrame(side, fg_color="transparent"); row.pack(fill="x", padx=8, pady=1)
             ctk.CTkLabel(row, text="", width=26, height=14, fg_color=bg, corner_radius=3, border_width=1,
                          border_color="#CBD5E1").pack(side="left", padx=(0, 8))
@@ -257,7 +261,7 @@ class CompliancePageMixin:
 
     def _cp_shade(self, rows):
         t = self._cwin.cp_text
-        for dec in ("Keep", "Context", "Drop", ""):
+        for dec in ("Keep", "Context", "Customer", "Drop", ""):
             t.tag_remove("d_" + dec, "1.0", "end")
         for tag in [x for x in t.tag_names() if x.startswith("p_")]:      # 2.35.0 draft tags, if any are left
             t.tag_remove(tag, "1.0", "end")
@@ -680,6 +684,8 @@ class CompliancePageMixin:
             self.cp_ctx()
         elif k in ("x", "delete"):
             self.cp_clear()
+        elif k == "g":
+            self.cp_customer()
         elif k == "s":
             self.cp_split()
         elif k == "m":
@@ -923,6 +929,22 @@ class CompliancePageMixin:
         self._cp_after(rows, (rows[0]["id"] if len(rows) == 1 else f"{len(rows)} sentences") + ": not used", advance=True)
         return len(rows)
 
+    def cp_customer(self):
+        """G (2.48.0): the customer's own obligation ("The Government will evaluate..."). It reads like a requirement, but
+        it is the customer's to act on: identified and counted, never answered, never in our response. Then the next."""
+        rows = self._cp_rows()
+        if not rows:
+            return 0
+        win = self._cwin
+        if win.cp_mode:
+            self.cp_mode_end(quiet=True)
+        C.assign_customer(self.matrix.items, rows)
+        for it in rows:
+            self.matrix.log(it["id"], "customer's (identified, not answered)")
+        self._cp_after(rows, (rows[0]["id"] if len(rows) == 1 else f"{len(rows)} sentences") + ": the customer's (not ours to answer)",
+                       advance=True)
+        return len(rows)
+
     def cp_owner(self, name=None):
         """O (2.40.0): give the selected compliance requirement(s) an owner of their own; empty goes back to the section's
         lead. People already named in the effort are offered."""
@@ -1154,7 +1176,7 @@ class CompliancePageMixin:
     # ------------------------------------------------------------ Prove: the final check, as categories to clear (2.38.0)
     PROVE_CATS = (("unused", "Not used, unconfirmed"), ("nosection", "No section"),
                   ("ctx", "Context not attached"), ("noowner", "No owner"),
-                  ("changed", "New in latest read"), ("all", "All requirements"))
+                  ("changed", "New in latest read"), ("customer", "Customer's"), ("all", "All requirements"))
     PROVE_HELP = {
         "unused": "Sentences you did not assign. Check each one, then Confirm not used (it then counts as reviewed), or open "
                   "it in Assign and assign it.",
@@ -1162,6 +1184,8 @@ class CompliancePageMixin:
         "ctx": "Context that supports no requirement and no section, or a requirement that is gone. Open in Assign and attach it.",
         "noowner": "Compliance requirements nobody owns. Assign people to sections (Assign > People...), or set an owner here.",
         "changed": "Sentences new in the latest read of an amended RFP. Check each one, then Mark checked.",
+        "customer": "Sentences that read like requirements but are the customer's to act on (\"The Government will "
+                    "evaluate...\"). Identified and counted, never answered. Open one in Assign to change it.",
         "all": "Every compliance requirement: set owner, status, response page and notes for one or several at once."}
 
     def prove_items(self, cat):
@@ -1181,6 +1205,8 @@ class CompliancePageMixin:
             return [it for it in M.items if it["decision"] == "Keep" and not SD.owner_of(M, it)]
         if cat == "changed":
             return [it for it in M.items if it.get("new") == "New in latest read"]
+        if cat == "customer":
+            return [it for it in M.items if it["decision"] == "Customer"]
         return [it for it in M.items if it["decision"] == "Keep"]
 
     def _cp_build_details(self, fr):
@@ -1236,11 +1262,11 @@ class CompliancePageMixin:
         cat = win.pv_cat
         for key, label in self.PROVE_CATS:
             n = counts[key]
-            todo = key != "all" and n > 0
+            todo = key not in ("all", "customer") and n > 0
             on = key == cat
             win.pv_tiles[key].configure(text=f"{n}\n{label}", fg_color=(("#FEF3C7", "#422006") if todo else ("#F0FDF4", "#052E16")) if not on
                                         else ("#1E3A8A", "#1E3A8A"), text_color=("#FFFFFF", "#FFFFFF") if on else ("#0F172A", "#F1F5F9"),
-                                        border_color=("#B45309" if todo else "#15803D") if key != "all" else "#94A3B8",
+                                        border_color=("#B45309" if todo else "#15803D") if key not in ("all", "customer") else "#94A3B8",
                                         hover_color=("#E2E8F0", "#334155"))
         win.pv_help.configure(text=self.PROVE_HELP[cat])
         tv = win.pv_tv
