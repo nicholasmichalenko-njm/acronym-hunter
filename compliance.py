@@ -521,7 +521,7 @@ def drafts(items):
 
 def commit(rows):
     """Make the drafts in rows count. Returns {"n", "Keep", "Context", "Drop", "Undecided", "links"}."""
-    out = {"n": 0, "Keep": 0, "Context": 0, "Customer": 0, "Drop": 0, "Undecided": 0, "links": 0}
+    out = {"n": 0, "Keep": 0, "Context": 0, "Drop": 0, "Undecided": 0, "links": 0}
     for it in rows:
         if not it.get("draft"):
             continue
@@ -530,7 +530,7 @@ def commit(rows):
         it["context_for"] = it.get("draft_cf", "") if d == "Context" else ""
         it["draft"], it["draft_cf"] = "", ""
         out["n"] += 1
-        out[d or "Undecided"] += 1
+        out[d or "Undecided"] = out.get(d or "Undecided", 0) + 1
         out["links"] += len(cf_ids(it["context_for"]))
     return out
 
