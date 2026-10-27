@@ -98,7 +98,10 @@ def run():
     assert re.match(r"^[A-Z][\w.\-()]*: ", texts[i + 1]), texts[i + 1]                    # reference on the same line
     assert "Lead with the radiator. Owner: J. Ortiz." in texts and "We exceed this: cite the 2024 test." in texts
     assert texts.index("We exceed this: cite the 2024 test.") < texts.index("Lead with the radiator. Owner: J. Ortiz.")
-    assert colors(paths[0]) == {SD.PURPLE, SD.GREEN, SD.CONTEXT_BLUE}, colors(paths[0])   # context in blue (2.29.0)
+    assert colors(paths[0]) - {"6B7280"} == {SD.PURPLE, SD.GREEN, SD.CONTEXT_BLUE}, colors(paths[0])   # context in blue (2.29.0); 2.52.0 where, in gray
+    import zipfile as _zf
+    _x = _zf.ZipFile(paths[0]).read("word/document.xml").decode("utf-8")
+    assert 'w:ind w:left="720"' in _x and "Support" in _x and 'w:left w:val="single"' in _x, "2.52.0: support indented, marked, a line at its left"
     custom = zipfile.ZipFile(paths[0]).read("docProps/custom.xml").decode("utf-8")
     assert "StationkeeperMatrix" in custom and "Kestrel" in custom
     assert "Volume II" in doc_paras(paths[1])[0][0]

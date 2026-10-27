@@ -184,14 +184,40 @@ def repoint(data_dir, customer_dir="", matrix_path="", moved=None):
     idx = os.path.join(data_dir, "documents", "index.json")
     d = W.read_json(idx, None)
     n = 0
+    here = {}                                           # 2.52.0: customer files by name, in any subfolder
+    for p in _files_in(customer_dir):
+        here.setdefault(os.path.basename(p).lower(), p)
+
+    def new_path(old, name=""):
+        """Where a file that was at old (on the PC that saved the package) is now."""
+        if old and moved and os.path.normcase(os.path.abspath(old)) in moved:
+            return moved[os.path.normcase(os.path.abspath(old))]
+        nm = (name or os.path.basename(old or "")).lower()
+        return here.get(nm, "")
     if d and customer_dir:
         for doc in d.get("docs", []):
             for v in doc.get("versions", []):
-                p = os.path.join(customer_dir, v.get("file", ""))
-                if v.get("file") and os.path.isfile(p):
+                p = new_path(v.get("path", ""), v.get("file", ""))
+                if p and os.path.isfile(p):
                     v["path"] = p
                     n += 1
         W.write_json(idx, d)
+    if matrix_path and os.path.isfile(matrix_path):     # 2.52.0: the matrix's RFP files are the unpacked customer files
+        try:
+            import compliance as C
+            M = C.Matrix(matrix_path).load()
+            changed = False
+            for src in M.sources:
+                if len(src) > 3:
+                    p = new_path(src[3], src[0])
+                    if p and os.path.isfile(p) and src[3] != p:
+                        src[3] = p
+                        changed = True
+                        n += 1
+            if changed:
+                M.save()
+        except Exception:
+            pass
     st = os.path.join(data_dir, "settings.json")
     s = W.read_json(st, None)
     if isinstance(s, dict) and matrix_path:

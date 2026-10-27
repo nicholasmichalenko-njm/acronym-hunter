@@ -108,6 +108,16 @@ PAGES = {
                                 "each stage's goals; the customer documents. Effort summary, complete history (Word)... is the "
                                 "same report with the whole timeline: the record of the proposal when it is done. Export all "
                                 "includes the status."),
+              ("Team", "Effort > Team... (or Team... on Effort home): the people on the effort and their roles. They are in "
+                       "every drop-down where a person is picked: section leads and contributors, owners, task owners, "
+                       "question assignees."),
+              ("Dates", "Pick opens a calendar for the due date, task due dates and each stage's planned start and end. The "
+                        "current stage says how many days are left, or how many days past its planned end (amber); the stage "
+                        "moves only when you move it."),
+              ("New PC or new version", "File > Save all efforts (one package each)... writes every effort as its own package "
+                                        "(greyed out with only one effort: Save effort package... is the current one). Import "
+                                        "each with File > Import effort package...: the documents, matrix and its RFP files "
+                                        "are pointed at the new place and the work carries on where it was."),
               ("Hand-off", "File > Save effort package... writes the whole effort into one .skpkg file (.ahpkg before 2.44.0; both open): stage, goals, notes, "
                            "tasks, timeline, customer document versions, submission requirements, the compliance matrix and "
                            "the acronym list, the customer files, our volumes and every file a deliverable points to (all "

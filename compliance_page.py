@@ -514,9 +514,17 @@ class CompliancePageMixin:
             inh = SD.section_people(M, lab)
             r = ctk.CTkFrame(sf, fg_color="transparent"); r.pack(fill="x", pady=1)
             ctk.CTkLabel(r, text=("    " * max(0, lvls.get(lab, 1) - 1)) + lab, width=300, anchor="w").pack(side="left", padx=4)
-            le = ctk.CTkEntry(r, width=150, placeholder_text=inh["lead"] if inh["from"] and inh["from"] != lab else "")
-            le.insert(0, pp.get("lead", "")); le.pack(side="left", padx=4)
-            we = ctk.CTkEntry(r, width=220); we.insert(0, pp.get("with", "")); we.pack(side="left", padx=4)
+            team = self.rec_people() if hasattr(self, "rec_people") else []      # 2.52.0: the team in drop-downs
+            le = ctk.CTkComboBox(r, width=150, values=[""] + team)
+            le.set(pp.get("lead", "")); le.pack(side="left", padx=4)
+            we = ctk.CTkEntry(r, width=220, placeholder_text="names, separated by commas"); we.insert(0, pp.get("with", "")); we.pack(side="left", padx=4)
+
+            def add_with(name, we=we):
+                cur = [x.strip() for x in we.get().split(",") if x.strip()]
+                if name and name not in cur:
+                    we.delete(0, "end"); we.insert(0, ", ".join(cur + [name]))
+            ad = ctk.CTkOptionMenu(r, width=110, values=team or ["(no team yet)"], command=add_with)
+            ad.set("+ add"); ad.pack(side="left", padx=2)
             rows.append((lab, le, we))
 
         def save():
@@ -958,12 +966,13 @@ class CompliancePageMixin:
             return 0
         M = self.matrix
         if name is None:
-            from tkinter import simpledialog
-            known = SD.people(M) + [p for p in (self.rec_people() if hasattr(self, "rec_people") else []) if p not in SD.people(M)]
             cur = rows[0].get("owner", "")
-            name = simpledialog.askstring("Owner", (f"Owner for {len(rows)} sentence(s)" if len(rows) > 1 else f"Owner for {rows[0]['id']}") +
-                                          " (empty: the section's lead).\nPeople in this effort: " + (", ".join(known[:12]) or "none yet"),
-                                          initialvalue=cur, parent=self)
+            prompt = (f"Owner for {len(rows)} sentence(s)" if len(rows) > 1 else f"Owner for {rows[0]['id']}") + " ((nobody): the section's lead)."
+            if hasattr(self, "rec_pick_person"):               # 2.52.0: the effort's team in a drop-down
+                name = self.rec_pick_person("Owner", prompt, cur)
+            else:
+                from tkinter import simpledialog
+                name = simpledialog.askstring("Owner", prompt, initialvalue=cur, parent=self)
             if name is None:
                 return 0
         name = " ".join(name.split())

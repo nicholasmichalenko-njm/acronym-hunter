@@ -40,6 +40,87 @@ class EffortRecordMixin:
         except Exception:
             diag.swallowed()
 
+    def rec_team_names(self):
+        r = self.effrec() if getattr(self, "effort", None) is not None else None
+        return [m["name"] for m in r.team()] if r is not None else []
+
+    def rec_pick_person(self, title, prompt, initial="", answer=None):
+        """2.52.0: pick a person from the effort's team (a drop-down; typing a new name works too). Returns the name,
+        "" for nobody, or None when cancelled. answer (tests): at once."""
+        if answer is not None:
+            return answer
+        people = self.rec_people()
+        w = ctk.CTkToplevel(self); w.title(title); w.transient(self); w.geometry("520x220"); w.resizable(False, False)
+        ctk.CTkLabel(w, text=prompt, anchor="w", justify="left", wraplength=480).pack(fill="x", padx=16, pady=(14, 6))
+        cb = ctk.CTkComboBox(w, values=["(nobody)"] + people, width=360); cb.set(initial or "(nobody)"); cb.pack(anchor="w", padx=16)
+        ctk.CTkLabel(w, text="The effort's team is in the list (Effort > Team...); a new name can be typed.", anchor="w",
+                     text_color=("#64748B", "#94A3B8")).pack(fill="x", padx=16, pady=4)
+        res = {"v": None}
+
+        def ok():
+            v = cb.get().strip()
+            res["v"] = "" if v == "(nobody)" else v
+            w.destroy()
+        bar = ctk.CTkFrame(w, fg_color="transparent"); bar.pack(fill="x", padx=16, pady=10)
+        ctk.CTkButton(bar, text="OK", command=ok, fg_color="#1E3A8A").pack(side="right")
+        ctk.CTkButton(bar, text="Cancel", command=w.destroy, fg_color="#64748B").pack(side="right", padx=8)
+        w.after(100, w.lift); w.grab_set(); self.wait_window(w)
+        return res["v"]
+
+    def rec_team_dialog(self, rows=None):
+        """Effort > Team... (2.52.0): the people on this effort and their roles. They are offered in every drop-down
+        where a lead, contributor, author, owner or assignee is picked. rows (tests): save at once."""
+        r = self.effrec()
+        if r is None:
+            messagebox.showinfo("Team", "Open an effort first.")
+            return None
+        if rows is not None:
+            out = r.set_team(rows)
+            self._rec_force() if hasattr(self, "rec_cards") else None
+            return out
+        w = ctk.CTkToplevel(self); w.title("Team"); w.transient(self); w.geometry("640x560")
+        ctk.CTkLabel(w, text="The team for this effort", font=("Segoe UI", 16, "bold"), anchor="w").pack(fill="x", padx=16, pady=(14, 2))
+        ctk.CTkLabel(w, text="Names (and a role if you like: Proposal manager, Volume lead, Author, Production...). Everyone here "
+                             "is in the drop-downs for section leads, contributors, owners, tasks and questions.", anchor="w",
+                     justify="left", wraplength=600, text_color=("#475569", "#94A3B8")).pack(fill="x", padx=16)
+        box = ctk.CTkScrollableFrame(w); box.pack(fill="both", expand=True, padx=16, pady=8)
+        items = [[m["name"], m["role"]] for m in r.team()]
+        widgets = []
+
+        def draw():
+            for x in box.winfo_children():
+                x.destroy()
+            widgets.clear()
+            for i, it in enumerate(items):
+                line = ctk.CTkFrame(box, fg_color="transparent"); line.pack(fill="x", pady=2)
+                ne = ctk.CTkEntry(line, width=240, placeholder_text="name"); ne.insert(0, it[0]); ne.pack(side="left")
+                re_ = ctk.CTkComboBox(line, width=200, values=["Proposal manager", "Capture lead", "Volume lead", "Author",
+                                                                "Reviewer", "Production", "Pricing", "Contracts"])
+                re_.set(it[1]); re_.pack(side="left", padx=6)
+                ctk.CTkButton(line, text="Remove", width=70, fg_color="#B91C1C", command=lambda i=i: (sync(), items.pop(i), draw())).pack(side="left")
+                widgets.append((ne, re_))
+
+        def sync():
+            for it, (ne, re_) in zip(items, widgets):
+                it[0], it[1] = ne.get(), re_.get()
+
+        def add():
+            sync(); items.append(["", ""]); draw()
+
+        def ok():
+            sync()
+            self.rec_team_dialog(rows=[tuple(it) for it in items])
+            w.destroy()
+        draw()
+        if not items:
+            add()
+        b = ctk.CTkFrame(w, fg_color="transparent"); b.pack(fill="x", padx=16, pady=10)
+        ctk.CTkButton(b, text="+ Add a person", command=add, fg_color="#475569").pack(side="left")
+        ctk.CTkButton(b, text="Save", command=ok, fg_color="#1E3A8A").pack(side="right")
+        w._api = {"items": items, "add": add, "ok": ok, "sync": sync}
+        w.after(100, w.lift)
+        return w
+
     def rec_people(self):
         """Everyone named in the effort: section leads and contributors, requirement owners, task owners."""
         names = set()
@@ -54,7 +135,8 @@ class EffortRecordMixin:
         if r is not None:
             names.update(t["owner"] for t in r.data["tasks"] if t["owner"])
             names.update(n["assignee"] for n in r.data["notes"] if n.get("assignee"))
-        return sorted(names, key=str.casefold)
+        team = self.rec_team_names() if r is not None else []              # 2.52.0: the team first, in its order
+        return team + sorted((n for n in names if n and n not in team), key=str.casefold)
 
     # ------------------------------------------------------------ what the app can check for the gate goals
     def rec_checks(self):
@@ -175,19 +257,51 @@ class EffortRecordMixin:
 
         if values is not None:
             return save(values)
-        w = ctk.CTkToplevel(self); w.title("Effort details"); w.transient(self); w.geometry("640x420")
+        w = ctk.CTkToplevel(self); w.title("Effort details"); w.transient(self); w.geometry("700x440")
         ents = {}
         for i, (k, lab, val, hint) in enumerate((("client", "Client", L.client, "USSF SSC"),
                                                   ("sol", "Solicitation or opportunity number", L.solicitation, "FA8810-26-R-0042"),
-                                                  ("internal", "Internal number", L.internal_no, ""),
-                                                  ("due", "Due date and time", due0, "December 15, 2026, 2:00 p.m. MT"))):
+                                                  ("internal", "Internal number", L.internal_no, ""))):
             ctk.CTkLabel(w, text=lab, anchor="w").grid(row=i, column=0, sticky="w", padx=14, pady=(14 if i == 0 else 6, 0))
             e = ctk.CTkEntry(w, width=360, placeholder_text=hint); e.insert(0, val or ""); e.grid(row=i, column=1, sticky="w", padx=8, pady=(14 if i == 0 else 6, 0))
             ents[k] = e
+        # 2.52.0: the due date from a calendar, the time and zone beside it (no date format to remember)
+        import datepick as DP
+        ctk.CTkLabel(w, text="Due date and time", anchor="w").grid(row=3, column=0, sticky="w", padx=14, pady=(6, 0))
+        dr = ctk.CTkFrame(w, fg_color="transparent"); dr.grid(row=3, column=1, sticky="w", padx=8, pady=(6, 0))
+        due_iso = (r.data.get("due") or "")[:10]
+        dd = DP.DateField(dr, due_iso, width=130); dd.pack(side="left")
+        hm = (r.data.get("due") or "")[11:16]
+        t0 = ""
+        if hm[:2].isdigit() and hm[3:5].isdigit():
+            h, mi = int(hm[:2]), int(hm[3:5])
+            t0 = f"{h % 12 or 12}:{mi:02d} {'a.m.' if h < 12 else 'p.m.'}"
+        te = ctk.CTkEntry(dr, width=90, placeholder_text="2:00 p.m."); te.insert(0, t0); te.pack(side="left", padx=6)
+        ze = ctk.CTkEntry(dr, width=60, placeholder_text="MT"); ze.insert(0, r.data.get("zone", "")); ze.pack(side="left")
+
+        class _Due:                                   # reads like the old text field for save()
+            @staticmethod
+            def get():
+                d = dd.get()
+                if not d:
+                    return dd.entry.get().strip()
+                return ", ".join(x for x in (DP.nice(d), (te.get().strip() + " " + ze.get().strip()).strip()) if x)
+
+            @staticmethod
+            def put(text):
+                iso, zone = R.parse_due_text(text)
+                if iso:
+                    dd.set(iso[:10]); ze.delete(0, "end"); ze.insert(0, zone or "")
+                    hm2 = iso[11:16]
+                    te.delete(0, "end")
+                    if hm2[:2].isdigit():
+                        h2, m2 = int(hm2[:2]), int(hm2[3:5])
+                        te.insert(0, f"{h2 % 12 or 12}:{m2:02d} {'a.m.' if h2 < 12 else 'p.m.'}")
+        ents["due"] = _Due
         found = self._rec_rfp_due()
         if found:
             def use():
-                ents["due"].delete(0, "end"); ents["due"].insert(0, found)
+                _Due.put(found)
             ctk.CTkLabel(w, text=f"The customer documents say: {found}", anchor="w", wraplength=560, justify="left",
                          text_color=("#475569", "#94A3B8")).grid(row=4, column=0, columnspan=2, sticky="w", padx=14, pady=(10, 0))
             ctk.CTkButton(w, text="Use it", width=10, command=use).grid(row=5, column=1, sticky="w", padx=8, pady=4)
@@ -198,7 +312,7 @@ class EffortRecordMixin:
             if save({k: e.get() for k, e in ents.items()}):
                 w.destroy()
         ctk.CTkButton(w, text="Save", command=ok, fg_color="#1E3A8A").grid(row=7, column=1, sticky="e", padx=14, pady=16)
-        w._api = {"entries": ents, "ok": ok}
+        w._api = {"entries": ents, "ok": ok, "date": dd, "time": te, "zone": ze}
         w.after(100, w.lift)
         return w
 
@@ -223,6 +337,7 @@ class EffortRecordMixin:
         bar = ctk.CTkFrame(P, fg_color="transparent"); bar.pack(fill="x", padx=6, pady=(0, 8))
         B = dict(width=10, height=32)
         ctk.CTkButton(bar, text="Effort details...", command=self.rec_details_dialog, fg_color="#475569", **B).pack(side="left", padx=(0, 6))
+        ctk.CTkButton(bar, text="Team...", command=self.rec_team_dialog, fg_color="#475569", **B).pack(side="left", padx=6)
         if hasattr(self, "status_export"):
             ctk.CTkButton(bar, text="Effort status (Word)...", command=self.status_export, **B).pack(side="left", padx=6)
         if hasattr(self, "pkg_save_dialog"):
@@ -364,7 +479,15 @@ class EffortRecordMixin:
         for i, s in enumerate(r.stages):                # one even row that shrinks with the window; names wrap
             st = r.state_of(s)
             bg, fg = STATE_COLORS[st]
-            when = R.short_date(s["started"]) if st != "ahead" else R.short_date(s["planned"]) if s["planned"] else ""
+            tm = r.stage_timing(s)
+            plan = (f"{R.short_date(s['planned'])}-{R.short_date(s['planned_end'])}" if s.get("planned") and s.get("planned_end")
+                    else R.short_date(s["planned"]) if s.get("planned") else "")
+            when = (R.short_date(s["started"]) if st != "ahead" else plan)
+            if st == "current" and tm["end"]:                      # 2.52.0: how long the stage was planned to last
+                when = (when + "\n" if when else "") + (f"{tm['left']} day{'s' if tm['left'] != 1 else ''} left" if tm["left"] is not None
+                                                         else f"{tm['over']} day{'s' if tm['over'] != 1 else ''} past plan")
+            if st == "current" and tm["over"]:
+                bg, fg = ("#B45309", "#FFFFFF")                    # past its planned end: amber, nothing else changes
             txt = s["name"] + ("  ✓" if st == "done" else "") + (f"\n{when}" if when else "")
             pills.grid_columnconfigure(i, weight=1, uniform="stage")
             lab = ctk.CTkLabel(pills, text=txt, fg_color=bg, text_color=fg, corner_radius=12, font=("Segoe UI", 12, "bold" if st == "current" else "normal"),
@@ -769,12 +892,14 @@ class EffortRecordMixin:
             diag.activity("stages_edited", n=len(r.stages))
             self._rec_force()
             return True
-        w = ctk.CTkToplevel(self); w.title("Edit stages"); w.transient(self); w.geometry("720x620")
+        w = ctk.CTkToplevel(self); w.title("Edit stages"); w.transient(self); w.geometry("900x620")
         ctk.CTkLabel(w, text="Stages for this effort", font=("Segoe UI", 16, "bold"), anchor="w").pack(fill="x", padx=16, pady=(14, 2))
-        ctk.CTkLabel(w, text="Rename, add, remove or reorder. New stages get the team's default goals when the name matches one.",
+        ctk.CTkLabel(w, text="Rename, add, remove or reorder; a planned start and end for each (Pick opens a calendar). New stages "
+                             "get the team's default goals when the name matches one. The stage moves only when you move it.",
                      anchor="w", text_color=("#475569", "#94A3B8")).pack(fill="x", padx=16)
         box = ctk.CTkScrollableFrame(w); box.pack(fill="both", expand=True, padx=16, pady=8)
-        items = [[s["id"], s["name"], s["planned"]] for s in r.stages]
+        items = [[s["id"], s["name"], s["planned"], s.get("planned_end", "")] for s in r.stages]
+        import datepick as DP
         widgets = []
 
         def draw():
@@ -783,8 +908,9 @@ class EffortRecordMixin:
             widgets.clear()
             for i, it in enumerate(items):
                 line = ctk.CTkFrame(box, fg_color="transparent"); line.pack(fill="x", pady=2)
-                ne = ctk.CTkEntry(line, width=280); ne.insert(0, it[1]); ne.pack(side="left")
-                pe = ctk.CTkEntry(line, width=130, placeholder_text="planned date"); pe.insert(0, it[2]); pe.pack(side="left", padx=6)
+                ne = ctk.CTkEntry(line, width=200); ne.insert(0, it[1]); ne.pack(side="left")
+                pe = DP.DateField(line, it[2], width=110, placeholder="start"); pe.pack(side="left", padx=(6, 2))
+                ee = DP.DateField(line, it[3], width=110, placeholder="end"); ee.pack(side="left", padx=(2, 6))
                 ctk.CTkButton(line, text="Up", width=44, command=lambda i=i: move(i, -1)).pack(side="left", padx=2)
                 ctk.CTkButton(line, text="Down", width=54, command=lambda i=i: move(i, 1)).pack(side="left", padx=2)
                 cur = it[0] == r.data["stage"]
@@ -792,11 +918,11 @@ class EffortRecordMixin:
                               command=lambda i=i: remove(i)).pack(side="left", padx=2)
                 if cur:
                     ctk.CTkLabel(line, text="current", text_color=("#1E3A8A", "#BFDBFE")).pack(side="left", padx=4)
-                widgets.append((ne, pe))
+                widgets.append((ne, pe, ee))
 
         def sync():
-            for it, (ne, pe) in zip(items, widgets):
-                it[1], it[2] = ne.get(), pe.get()
+            for it, (ne, pe, ee) in zip(items, widgets):
+                it[1], it[2], it[3] = ne.get(), pe.get(), ee.get()
 
         def move(i, d):
             sync()
@@ -809,7 +935,7 @@ class EffortRecordMixin:
             sync(); items.pop(i); draw()
 
         def add():
-            sync(); items.append([None, "New stage", ""]); draw()
+            sync(); items.append([None, "New stage", "", ""]); draw()
 
         def ok():
             sync()
@@ -821,7 +947,7 @@ class EffortRecordMixin:
         b = ctk.CTkFrame(w, fg_color="transparent"); b.pack(fill="x", padx=16, pady=10)
         ctk.CTkButton(b, text="+ Add a stage", command=add, fg_color="#475569").pack(side="left")
         ctk.CTkButton(b, text="Save", command=ok, fg_color="#1E3A8A").pack(side="right")
-        w._api = {"items": items, "add": add, "move": move, "remove": remove, "ok": ok}
+        w._api = {"items": items, "add": add, "move": move, "remove": remove, "ok": ok, "widgets": widgets}
         w.after(100, w.lift)
         return w
 
@@ -996,14 +1122,19 @@ class EffortRecordMixin:
         w = ctk.CTkToplevel(self); w.title("Task" if t else "New task"); w.transient(self); w.geometry("640x520")
         ents = {}
         people = self.rec_people()
+        import datepick as DP
         for i, (k, lab, hint) in enumerate((("title", "Task", "Cut Vol I to 25 pages"), ("owner", "Owner", ", ".join(people[:3]) or "a name"),
                                              ("due", "Due date", "2026-10-30"), ("about", "About (a section, document or deliverable)", ""))):
             ctk.CTkLabel(w, text=lab, anchor="w").grid(row=i, column=0, sticky="w", padx=14, pady=(12 if i == 0 else 4, 0))
-            e = ctk.CTkEntry(w, width=380, placeholder_text=hint)
-            if t:
-                e.insert(0, t[k])
-            elif k == "due" and due:
-                e.insert(0, due)
+            if k == "owner":                                   # 2.52.0: the team in a drop-down
+                e = ctk.CTkComboBox(w, width=380, values=people or [""])
+                e.set(t[k] if t else "")
+            elif k == "due":                                   # 2.52.0: a calendar
+                e = DP.DateField(w, (t[k] if t else due) or "", width=150)
+            else:
+                e = ctk.CTkEntry(w, width=380, placeholder_text=hint)
+                if t:
+                    e.insert(0, t[k])
             e.grid(row=i, column=1, sticky="w", padx=8, pady=(12 if i == 0 else 4, 0))
             ents[k] = e
         ctk.CTkLabel(w, text="Stage", anchor="w").grid(row=4, column=0, sticky="w", padx=14, pady=4)
@@ -1097,6 +1228,57 @@ class EffortRecordMixin:
         diag.activity("package_saved", files=len(man["files"]))
         self.status.configure(text=f"Effort package saved: {os.path.basename(man['path'])}")
         return man
+
+    def pkg_efforts(self):
+        """The efforts that can be saved: not archived, their list on this PC."""
+        out = []
+        for n in self.efforts.names():
+            inf = self.efforts.get(n) or {}
+            if not inf.get("archived") and inf.get("path") and os.path.isfile(inf["path"]):
+                out.append(n)
+        return out
+
+    def pkg_save_all(self, folder=None, customer=True, volumes=True):
+        """File > Save all efforts (2.52.0): one effort package per effort, in one folder: everything to carry to a new
+        PC or a new version of Stationkeeper. Returns the paths written."""
+        import effortpkg as P, workspace as W
+        names = self.pkg_efforts()
+        if not names:
+            messagebox.showinfo("Save all efforts", "No efforts to save.")
+            return []
+        if folder is None:
+            from tkinter import filedialog
+            folder = filedialog.askdirectory(title="Folder for the effort packages (one file per effort)")
+            if not folder:
+                return []
+        stamp = datetime.date.today().isoformat()
+        out, failed = [], []
+        app_v = getattr(__import__("app_gui"), "APP_VERSION", "")
+        for n in names:
+            inf = dict(self.efforts.get(n) or {})
+            p = os.path.join(folder, f"{n.replace(' ', '_')}_{stamp}{P.EXT}")
+            try:
+                if self.effort is not None and self.effort.name == n:
+                    man = self.pkg_save_dialog(path=p, customer=customer, volumes=volumes)
+                else:
+                    dd = W.data_dir_for(inf["path"])
+                    st = W.read_json(os.path.join(dd, "settings.json"), None) or {}
+                    rec = W.read_json(os.path.join(dd, "record.json"), None) or {}
+                    stg = next((x.get("name", "") for x in rec.get("stages", []) if x.get("id") == rec.get("stage")), "")
+                    man = P.save(p, n, inf["path"], dd, info={**inf, "name": n}, matrix_path=st.get("compliance_path", "") or "",
+                                 customer_dir=inf.get("customer_dir", ""), volumes_dir=inf.get("volumes_dir", ""), customer=customer,
+                                 volumes=volumes, stage=stg, app_version=app_v,
+                                 extra_files=[dl.get("file") for dl in rec.get("deliverables", []) if dl.get("file")])
+                if man:
+                    out.append(man["path"])
+            except Exception:
+                diag.swallowed()
+                failed.append(n)
+        diag.activity("packages_saved_all", files=len(out), errors=len(failed))
+        messagebox.showinfo("Save all efforts", f"{len(out)} effort package(s) saved in {folder}."
+                            + (f"\n\nNot saved: {', '.join(failed)}" if failed else "")
+                            + "\n\nOn a new PC or a new version: File > Import effort package... for each one.")
+        return out
 
     def pkg_import_dialog(self, path=None, dest=None, mode=None):
         """File > Import effort package...: open a package someone handed over and continue where it was.

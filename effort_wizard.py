@@ -60,7 +60,7 @@ class WizardMixin:
         b_next = ctk.CTkButton(nav, text="Next", width=120); b_next.pack(side="right")
         ctk.CTkButton(nav, text="Cancel", width=90, fg_color="transparent", text_color=("#334155", "#CBD5E1"),
                       command=win.destroy).pack(side="right", padx=8)
-        v = {k: tk.StringVar() for k in ("name", "client", "sol", "internal", "folder", "volumes", "due", "method", "contact")}
+        v = {k: tk.StringVar() for k in ("name", "client", "sol", "internal", "folder", "volumes", "due", "method", "contact", "team")}
         v["format"] = tk.StringVar(value="whole"); v["rule"] = tk.StringVar(value="volume"); v["scan"] = tk.BooleanVar(value=True)
 
         def entry(parent, label, var, hint=""):
@@ -84,10 +84,24 @@ class WizardMixin:
             entry(body, "Client (short name)", v["client"], "e.g. USSF SSC")
             entry(body, "Solicitation or opportunity number", v["sol"], "e.g. FA8810-27-R-0042")
             entry(body, "Internal number (optional, your own numbering)", v["internal"])
-            entry(body, "Due date and time (optional; the top bar counts down to it)", v["due"], "e.g. December 15, 2026, 2:00 p.m. MT")
+            ctk.CTkLabel(body, text="Due date and time (optional; the top bar counts down to it)", anchor="w").pack(fill="x", pady=(8, 0))
+            drow = ctk.CTkFrame(body, fg_color="transparent"); drow.pack(anchor="w")
+            ctk.CTkEntry(drow, textvariable=v["due"], width=520, placeholder_text="Pick a date, then add the time: 2:00 p.m. MT").pack(side="left")
+
+            def pick_due():                                  # 2.52.0: a calendar instead of a date format
+                import datepick as DP, effortrec as R_
+                cur = v["due"].get()
+                rest = ", ".join(cur.split(", ")[2:]) if R_.parse_date(", ".join(cur.split(", ")[:2])) else ""
+                def got(d):
+                    v["due"].set(DP.nice(d.isoformat()) + (", " + rest if rest else ", 2:00 p.m."))
+                return DP.CalendarPopup(drow, R_.parse_date(", ".join(cur.split(", ")[:2])) or __import__("datetime").date.today(), got)
+            ctk.CTkButton(drow, text="Pick a date", width=100, command=pick_due).pack(side="left", padx=6)
+            st["pick_due"] = pick_due
             entry(body, "How the proposal is submitted (optional; read from the customer documents too)", v["method"],
                   "e.g. DoD SAFE, PIEE, e-mail")                                                        # 2.49.0
             entry(body, "Submission contact (optional)", v["contact"], "e.g. Jane Doe, Contracting Officer, jane.doe@us.af.mil")
+            entry(body, "Team (optional; names separated by commas; offered whenever you pick a lead, author or owner)", v["team"],
+                  "e.g. J. Smith, K. Park, N. Michalenko")                                              # 2.52.0
             row = ctk.CTkFrame(body, fg_color="transparent"); row.pack(fill="x", pady=(8, 0))
             ctk.CTkLabel(row, text="Effort folder (holds the list, customer documents and saved work)", anchor="w").pack(fill="x")
             ctk.CTkEntry(row, textvariable=v["folder"], width=540).pack(side="left")
@@ -307,6 +321,8 @@ class WizardMixin:
                     iso, zone = __import__("effortrec").parse_due_text(v["due"].get()) if v["due"].get().strip() else ("", "")
                     if iso:
                         rec.set_due(iso, zone)
+                    for nm in [x.strip() for x in v["team"].get().split(",") if x.strip()]:     # 2.52.0: the team
+                        rec.add_member(nm)
                     rec.save()
                     reg = self.subreg() if hasattr(self, "subreg") else None         # 2.49.0: how and to whom, on Submission
                     if reg is not None:

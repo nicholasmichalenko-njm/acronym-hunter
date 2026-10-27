@@ -170,6 +170,16 @@ def ref_of(M, it, inherited=None):
     return sec, src
 
 
+def where_of(it):
+    """Where a sentence is in its customer document (2.52.0): 'Section L.docx, p.3' (the page when known)."""
+    f = it.get("file", "")
+    p = it.get("page")
+    if not p:
+        m = _PAGE.search(it.get("loc", "") or "")
+        p = m.group(1) if m else ""
+    return ", ".join(x for x in (f, (f"p.{p}" if p else "")) if x)
+
+
 def block_text(M, it, inherited=None):
     ref, _src = ref_of(M, it, inherited)
     body = ((it.get("lead") or "") + " " + it["text"]).strip() if it.get("lead") and not it["text"].startswith(it["lead"]) else it["text"]
@@ -439,13 +449,20 @@ def _doc_for(M, name, entries, P, inh, stamp):
             it = B.get(iid)
             if it is None:
                 continue
-            d.rich(cwords.docx_parts(block_text(M, it, inh), {"color": CONTEXT_BLUE if kind_of(it) == "Context" else PURPLE}, cw))
+            where = where_of(it)
             if kind_of(it) == "Context":
+                # 2.52.0: support language from the RFP: indented under the requirement it supports, a line down its left
+                # edge, and where it is in the customer document
                 links = C.cf_ids(it.get("context_for", ""))
+                lead_in = [("Support" + (f" for {links[0]}" if links else "") + (f" ({where})" if where else "") + ": ",
+                            {"color": CONTEXT_BLUE, "bold": True})]
+                d.rich(lead_in + cwords.docx_parts(block_text(M, it, inh), {"color": CONTEXT_BLUE}, cw), indent=720, border=CONTEXT_BLUE)
                 others = [r for r in links if r != last_req]
                 if len(links) > 1 and others:          # 2.35.0: shared Context names the other requirements it explains
-                    d.para("Also context for " + ", ".join(others), color="6B7280")
+                    d.rich([("Also support for " + ", ".join(others), {"color": "6B7280"})], indent=720)
             else:
+                d.rich(cwords.docx_parts(block_text(M, it, inh), {"color": PURPLE}, cw)
+                       + ([(f"  ({where})", {"color": "6B7280"})] if where else []))
                 last_req = iid
             note = S["notes"].get(iid, "").strip()
             if note:

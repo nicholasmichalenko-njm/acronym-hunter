@@ -56,10 +56,16 @@ class Doc:
         """Start a new page (2.43.0: one author brief per page)."""
         self.body.append('<w:p><w:r><w:br w:type="page"/></w:r></w:p>')
 
-    def rich(self, parts):
+    def rich(self, parts, indent=None, border=None):
         """One paragraph of several runs: parts = [(text, {"bold", "italic", "underline", "color", "fill", "size"})]
-        (2.29.0; underline 2.31.0). fill shades the run's background (a highlighter in any color); size is in half-points."""
-        self.body.append("<w:p>" + _runs(parts) + "</w:p>")
+        (2.29.0; underline 2.31.0). fill shades the run's background (a highlighter in any color); size is in half-points.
+        2.52.0: indent (twentieths of a point) moves the paragraph in from the left; border draws a line down its left
+        edge in that color (a support paragraph tied to the requirement above it)."""
+        ppr = ""
+        if indent or border:
+            bd = (f'<w:pBdr><w:left w:val="single" w:sz="18" w:space="8" w:color="{border}"/></w:pBdr>' if border else "")
+            ppr = f"<w:pPr>{bd}" + (f'<w:ind w:left="{int(indent)}"/>' if indent else "") + "</w:pPr>"
+        self.body.append("<w:p>" + ppr + _runs(parts) + "</w:p>")
 
     def table(self, header, rows, widths):
         def cell(text, w, bold=False, shade=None):

@@ -129,8 +129,8 @@ def go():
     top = [mb.entrycget(i, "label") for i in range(mb.index("end") + 1)]
     check("five menus: File, Effort, View, Help, Advanced", top == ["File", "Effort", "View", "Help", "Advanced"], top)
     fl = menu_labels(app.nametowidget(mb.entrycget(0, "menu")))
-    check("File: new, open, save and import an effort package, details, exports", fl[:4] == ["New effort...", "Open effort", "Save effort package...",
-          "Import effort package..."] and "Effort details..." in fl and "Export all for this effort..." in fl, fl)
+    check("File: new, open, save and import an effort package, details, exports", fl[:5] == ["New effort...", "Open effort", "Save effort package...",
+          "Save all efforts (one package each)...", "Import effort package..."] and "Effort details..." in fl and "Export all for this effort..." in fl, fl)
     hl = menu_labels(app.nametowidget(mb.entrycget(3, "menu")))
     check("Help: Guide, ideas and problems, AI and ML, what it is built on", hl == ["How it works (Guide)", "Submit an idea or report a problem...", "Export error logs...", "Open the logs folder", "Coming soon...",
           "What runs where (AI and ML)...", "AI and ML: the difference...", "What Stationkeeper is built on...", "About Stationkeeper"], hl)

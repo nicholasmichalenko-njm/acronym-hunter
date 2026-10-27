@@ -3939,6 +3939,8 @@ class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMix
         m.add_cascade(label="Open effort", menu=op)
         m.add_separator()
         m.add_command(label="Save effort package...", command=c("file_save_package", self.pkg_save_dialog), state=st)
+        m.add_command(label="Save all efforts (one package each)...", command=c("file_save_all", self.pkg_save_all),
+                      state="normal" if len(self.pkg_efforts()) > 1 else "disabled")                  # 2.52.0
         m.add_command(label="Import effort package...", command=c("file_import_package", self.pkg_import_dialog))
         m.add_separator()
         m.add_command(label="Effort details...", command=c("file_effort_details", self.rec_details_dialog), state=st)
@@ -3964,6 +3966,7 @@ class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMix
         m.add_command(label="Check our Word volumes (QA/QC)...", command=c("effort_qaqc", self.check_volumes), state=st)
         m.add_command(label="Name volumes...", command=c("effort_volumes", self.edit_volumes), state=st)
         m.add_separator()
+        m.add_command(label="Team...", command=c("effort_team", self.rec_team_dialog), state=st)     # 2.52.0
         m.add_command(label="Add a note...", command=c("effort_note", self.rec_note_dialog), state=st)
         m.add_command(label="Add a task...", command=c("effort_task", self.rec_task_dialog), state=st)
         m.add_command(label="Move stage...", command=c("effort_move_stage", self.rec_move_dialog), state=st)

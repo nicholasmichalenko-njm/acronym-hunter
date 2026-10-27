@@ -217,6 +217,7 @@ class Record:
         d = W.read_json(self.path, None) or {}
         extra = {k: v for k, v in d.items() if k not in ("v", "due", "zone", "opportunity", "stages", "stage", "timeline", "notes", "tasks")}
         extra.setdefault("customer_info", [])
+        extra.setdefault("team", [])
         self.data = {**extra, "v": 1, "due": d.get("due", ""), "zone": d.get("zone", ""), "opportunity": d.get("opportunity", ""),
                      "stages": d.get("stages") or [], "stage": d.get("stage", ""), "timeline": d.get("timeline", []),
                      "notes": d.get("notes", []), "tasks": d.get("tasks", [])}
@@ -269,7 +270,9 @@ class Record:
         cur = self.data["stage"]
         old = {s["id"]: s for s in self.stages}
         new, names = [], []
-        for sid, name, planned in rows:
+        for row in rows:
+            sid, name, planned = row[:3]
+            planned_end = row[3] if len(row) > 3 else None       # 2.52.0: a planned end date too
             name = _clean(name)
             if not name:
                 continue
@@ -281,6 +284,8 @@ class Record:
             else:
                 s = self._new_stage(name, _clean(planned))
                 self.log("stage", f"Stage added: {name}", who=who)
+            if planned_end is not None:
+                s["planned_end"] = _clean(planned_end)
             new.append(s); names.append(s["id"])
         if cur not in names:
             raise ValueError("The current stage cannot be removed.")
@@ -290,6 +295,19 @@ class Record:
         self.data["stages"] = new
         self.save()
         return new
+
+    def stage_timing(self, s=None, today=None):
+        """2.52.0: the plan for a stage against today: {"start", "end", "days", "left", "over"} (dates or None; days
+        planned, days left, days past the planned end). Nothing changes by itself: the stage moves only when the
+        proposal manager moves it."""
+        s = s or self.stage()
+        today = today or datetime.date.today()
+        a, b = parse_date(s.get("planned", "") or ""), parse_date(s.get("planned_end", "") or "")
+        out = {"start": a, "end": b, "days": (b - a).days + 1 if a and b and b >= a else None, "left": None, "over": None}
+        if b and self.state_of(s) == "current":
+            d = (b - today).days
+            out["left" if d >= 0 else "over"] = d if d >= 0 else -d
+        return out
 
     def move_to(self, sid, carry=(), who=None, planned=None):
         """The proposal manager moves the effort to another stage. carry: ids of the left stage's open goals to copy."""
@@ -467,7 +485,9 @@ class Record:
             put(parse_date(due[:10]), "due", "Proposal due" + (f" {hm}" if hm else ""))
         for s in self.stages:
             if s.get("planned"):
-                put(parse_date(s["planned"]), "stage", f"{s['name']} (planned)")
+                put(parse_date(s["planned"]), "stage", f"{s['name']} (planned start)" if s.get("planned_end") else f"{s['name']} (planned)")
+            if s.get("planned_end"):
+                put(parse_date(s["planned_end"]), "stage", f"{s['name']} (planned end)")
             if s.get("started"):
                 put(parse_date(s["started"][:10]), "stage", f"{s['name']} started")
         for t in self.data.get("tasks", []):
@@ -480,6 +500,37 @@ class Record:
         for d, kind, text in extra:
             put(d, kind, text)
         return out
+
+    # ------------------------------------------------------------ the team (2.52.0)
+    def team(self):
+        """[{name, role}]: the people on this effort, offered wherever a lead, author or owner is picked."""
+        return list(self.data.get("team", []))
+
+    def add_member(self, name, role="", who=None):
+        name = _clean(name)
+        if not name:
+            return False
+        lst = self.data.setdefault("team", [])
+        if any(m["name"].casefold() == name.casefold() for m in lst):
+            return False
+        lst.append({"name": name, "role": _clean(role)})
+        self.log("assign", f"Team: {name} added" + (f" ({_clean(role)})" if role else ""), who=who)
+        self.save()
+        return True
+
+    def set_team(self, rows, who=None):
+        """rows: [(name, role)] in order; replaces the list."""
+        new, seen = [], set()
+        for name, role in rows:
+            name = _clean(name)
+            if name and name.casefold() not in seen:
+                seen.add(name.casefold()); new.append({"name": name, "role": _clean(role)})
+        old = [m["name"] for m in self.data.get("team", [])]
+        self.data["team"] = new
+        if old != [m["name"] for m in new]:
+            self.log("assign", f"Team: {len(new)} people", who=who)
+        self.save()
+        return new
 
     # ------------------------------------------------------------ customer information (2.51.0)
     def customer_info(self):
