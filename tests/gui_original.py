@@ -1,7 +1,7 @@
 """2.45.0 Compliance > Original layout on screen: Original layout (was Show page) opens the PDF page of the selected
 sentence with every review sentence boxed; clicking a box selects that sentence in Assign; Assign moving to a sentence
 on another page turns the page; a decision recolors its box; text not in the review is boxed in red and one click adds it
-to the review; page buttons; a Word-only matrix explains that the view is for PDFs."""
+to the review, in its place in the document (2.47.0); page buttons; a Word-only matrix explains that the view is for PDFs."""
 import os, sys, tempfile
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -91,7 +91,19 @@ def go():
     check("a click on the red line adds it to the review, on its page, and the page has no red left",
           len(app.matrix.items) == n0 + 1 and added and LY._page_of(added[0]) == 1 and not w._map["missing"]
           and w._sel == added[0]["id"], (len(app.matrix.items), added and added[0].get("loc"), w._map["missing"], w._sel, added and added[0]["id"], added and added[0].get("page")))
+    texts = [it["text"] for it in app.matrix.items]
+    k = next(i for i, t in enumerate(texts) if "risk register" in t)
+    check("2.47.0: the added line sits where it is in the document, between the sentences before and after it",
+          "thermal design" in texts[k - 1] and "under 30 pages" in texts[k + 1]
+          and added[0].get("section") == app.matrix.items[k - 1].get("section"), texts[max(0, k - 1):k + 2])
     w.destroy(); app._lay = None; app.update()
+    # a matrix from before 2.47.0: the added line was put at the end; opening it moves the line to its place
+    it = app.matrix.items.pop(k); app.matrix.items.append(it); app.matrix.pending = True; app._c_save_now()
+    app._c_load(mpath, quiet=True); app.update()
+    texts = [x["text"] for x in app.matrix.items]
+    k2 = next(i for i, t in enumerate(texts) if "risk register" in t)
+    check("a matrix from before 2.47.0: the line added at the end moves to its place when the matrix opens",
+          "thermal design" in texts[k2 - 1] and app.matrix.items[k2]["id"] == added[0]["id"], texts)
     # a matrix with no PDF: the view explains itself
     for it in app.matrix.items:
         it["file"] = "RFP.docx"

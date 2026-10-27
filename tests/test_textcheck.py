@@ -42,6 +42,17 @@ def run():
     miss = [x for x in r["lines"] if x[2] == "missing"]
     assert r["missing"] >= 6 and miss and miss[0][1].startswith("Thermal analysis report") and miss[0][0] == "document", miss
     assert "not in the review yet" in T.summary_text(r)
+    # 2.47.0: a line added to the review goes where it is in the document, not at the end
+    import pdfmini
+    pdf = pdfmini.write(os.path.join(tempfile.mkdtemp(), "o.pdf"), [["Alpha shall be first.", "Bravo shall be second.",
+                                                                     "Charlie shall be third."], ["Delta shall be fourth."]])
+    rows = [{"id": "A", "file": "o.pdf", "text": "Alpha shall be first."}, {"id": "X", "file": "other.pdf", "text": "Elsewhere."},
+            {"id": "C", "file": "o.pdf", "text": "Charlie shall be third."}, {"id": "D", "file": "o.pdf", "text": "Delta shall be fourth."}]
+    pos, new = T.positions(pdf, [r for r in rows if r["file"] == "o.pdf"], ["Bravo shall be second", "Echo is nowhere"])
+    assert pos["A"] < new[0] < pos["C"] < pos["D"] and new[1] is None, (pos, new)
+    assert T.insert_at(rows, "o.pdf", pos, new[0]) == 2, "before Charlie, after Alpha (the other file's row stays)"
+    assert T.insert_at(rows, "o.pdf", pos, None) == 4, "not found: after the file's last row"
+    assert T.insert_at(rows, "new.pdf", pos, 3) == 4, "a file with no rows yet: at the end"
     print("textcheck ok")
 
 

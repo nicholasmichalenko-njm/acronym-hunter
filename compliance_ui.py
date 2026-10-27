@@ -1114,22 +1114,44 @@ class ComplianceMixin:
         return f"Text check: {miss} of {words} words in {sum(1 for r in results if r['missing'])} file(s) are not in the review yet."
 
     def compliance_add_missing(self, results):
-        """Add the text check's missing lines as sentences to assign (Context rows marked as added by the check)."""
+        """Add the text check's missing lines as sentences to assign (Context rows marked as added by the check). 2.47.0:
+        each goes where it is in the document (after the sentence before it, under the same RFP section, with its page),
+        not at the end of the review."""
+        import textcheck as TC, re as _re
         M = self.matrix
         added = []
+        paths = {src[0]: src[3] for src in M.sources if src and len(src) > 3}
         for r in results:
-            for where, line, kind in r.get("lines", []):
-                if kind != "missing":
-                    continue
+            lines = [(where, line) for where, line, kind in r.get("lines", []) if kind == "missing"]
+            if not lines:
+                continue
+            path = r.get("path") or paths.get(r["file"], "")
+            pos, new_pos = {}, [None] * len(lines)
+            if path and os.path.isfile(path):
+                try:
+                    pos, new_pos = TC.positions(path, [it for it in M.items if it.get("file") == r["file"]], [ln for _w, ln in lines])
+                except Exception:
+                    diag.swallowed()
+            for k, ((where, line), npos) in enumerate(zip(lines, new_pos)):
                 it = C.context_item(line, "", ("", ""), "")
                 if not it:
                     continue
-                it.update({"file": r["file"], "loc": f"{r['file']} ({where}, added by the text check)", "page": None, "context": line[:700],
-                           "key": C.text_key(line), "decision": "", "map": "", "owner": "", "status": "", "notes": "", "response_page": "",
-                           "links": "", "new": "Added by the text check", "learned": "", "context_for": ""})
-                M.items.append(it)
+                pm = _re.match(r"p\.(\d+)$", where or "")
+                it.update({"file": r["file"], "loc": f"{r['file']} ({where}, added by the text check)", "page": int(pm.group(1)) if pm else None,
+                           "context": line[:700], "key": C.text_key(line), "decision": "", "map": "", "owner": "", "status": "", "notes": "",
+                           "response_page": "", "links": "", "new": "Added by the text check", "learned": "", "context_for": ""})
+                at = TC.insert_at(M.items, r["file"], pos, npos)
+                prev = M.items[at - 1] if at > 0 and M.items[at - 1].get("file") == r["file"] else None
+                if prev is not None:                  # the same RFP section as the sentence before it
+                    it["section"], it["section_title"] = prev.get("section", ""), prev.get("section_title", "")
+                it["id"] = f"__new{len(added)}"
+                if npos is not None:
+                    pos[it["id"]] = npos
+                M.items.insert(at, it)
                 added.append(it)
         if added:
+            for it in added:
+                it["id"] = ""
             C.assign_ids(M.items)
             for it in added:
                 M.log(it["id"], "added by the text check")
@@ -1139,6 +1161,37 @@ class ComplianceMixin:
             self.rec_log("compliance", f"Text check added {len(added)} line(s) for review") if hasattr(self, "rec_log") else None
         diag.activity("compliance_text_added", n=len(added))
         return added
+
+    def compliance_place_added(self):
+        """2.47.0: lines the text check added before 2.47.0 were put at the end of the review. Move each to its place in
+        the document (IDs, decisions and notes unchanged). Returns how many moved."""
+        import textcheck as TC
+        M = self.matrix
+        extra = [it for it in M.items if it.get("new") == "Added by the text check"]
+        if not extra:
+            return 0
+        paths = {src[0]: src[3] for src in M.sources if src and len(src) > 3}
+        before = [it["id"] for it in M.items]
+        for name in {it.get("file") for it in extra}:
+            path = paths.get(name, "")
+            if not path or not os.path.isfile(path):
+                continue
+            mine = [it for it in extra if it.get("file") == name]
+            rest = [it for it in M.items if not (it.get("file") == name and it.get("new") == "Added by the text check")]
+            try:
+                pos, new_pos = TC.positions(path, [it for it in rest if it.get("file") == name], [it.get("text") or "" for it in mine])
+            except Exception:
+                diag.swallowed()
+                continue
+            for it, npos in sorted(zip(mine, new_pos), key=lambda x: (x[1] is None, x[1] or 0)):
+                rest.insert(TC.insert_at(rest, name, pos, npos), it)
+                if npos is not None:
+                    pos[it["id"]] = npos
+            M.items[:] = rest
+        moved = sum(1 for a, b in zip(before, (it["id"] for it in M.items)) if a != b)
+        if moved:
+            diag.activity("compliance_added_placed", n=moved)
+        return moved
 
     def _c_text_check_window(self, results):
         w = ctk.CTkToplevel(self); w.title("Text check"); w.transient(self); w.geometry("1000x680")
@@ -1285,6 +1338,9 @@ class ComplianceMixin:
         if C.drafts(self.matrix.items):              # 2.36.0: every choice counts at once; 2.35.0 drafts count now
             C.commit(C.drafts(self.matrix.items))
             self.matrix.log("matrix", "drafts from 2.35.0 committed")
+            self.matrix.pending = True
+        if self.compliance_place_added():            # 2.47.0: lines added before 2.47.0 move to their place
+            self.matrix.log("matrix", "lines added by the text check moved to their place in the document")
             self.matrix.pending = True
         diag.activity("compliance_loaded", items=len(self.matrix.items))
         rec = self.ws.read_recovery("matrix", path) if getattr(self, "ws", None) is not None else None

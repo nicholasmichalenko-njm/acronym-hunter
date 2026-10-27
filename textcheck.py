@@ -222,6 +222,53 @@ def check(path, items, headings=(), reader_chunks=None):
     return res
 
 
+def positions(path, items, new_lines):
+    """Where things sit in the file's reading order (2.47.0), so a line added to the review goes in its place and not
+    at the end. items: the review rows of this file, in review order; new_lines: the texts being added. Returns
+    ({item id: word position}, [word position or None per new line]). Items are matched in order, each after the one
+    before when it can be; a new line is matched to text not yet covered by the review."""
+    seq, _lines = _seq(raw_text(path))
+    words_ = [w for w, *_ in seq]
+    at = collections.defaultdict(list)
+    for i, w in enumerate(words_):
+        at[w].append(i)
+    cover = [False] * len(words_)
+
+    def find(ws, after=-1, free=False):
+        if not ws:
+            return None
+        hits = [p for p in at.get(ws[0], ()) if words_[p:p + len(ws)] == ws]
+        if free:
+            hits = [p for p in hits if not all(cover[p:p + len(ws)])] or hits
+        later = [p for p in hits if p > after]
+        return (later or hits or [None])[0]
+    pos, last = {}, -1
+    for it in items:
+        ws = line_words(it.get("text") or "")
+        p = find(ws, last)
+        if p is None:
+            continue
+        pos[it["id"]] = p
+        for k in range(p, min(p + len(ws), len(cover))):
+            cover[k] = True
+        last = p
+    return pos, [find(line_words(t), free=True) for t in new_lines]
+
+
+def insert_at(all_items, file_name, pos, new_pos):
+    """The index in all_items (the whole review) where a new row of file_name at word position new_pos goes: before the
+    first row of that file that comes later in the file, else right after the file's last row (else at the end)."""
+    last = None
+    for i, it in enumerate(all_items):
+        if it.get("file") != file_name:
+            continue
+        p = pos.get(it.get("id"))
+        if new_pos is not None and p is not None and p > new_pos:
+            return i
+        last = i
+    return len(all_items) if last is None else last + 1
+
+
 def summary_text(r):
     if not r["words"]:
         return f"{r['file']}: no typed text (pictures or a scanned file: read with OCR)."

@@ -520,14 +520,15 @@ PAGES = {
     ("p", "Text check (on Read RFP, and automatically after a read) proves that every piece of typed text reached the review. "
           "Each file is read again straight from its parts (body, tables, text boxes, headers, footers, footnotes, slides and "
           "speaker notes, cells, PDF pages) and compared word for word, in reading order, with the sentences in Assign. It "
-          "lists anything not in the review and adds it for review in one click. Numbered headings show as section titles; an "
+          "lists anything not in the review and adds it for review in one click, each line in its place in the document (after "
+          "the sentence before it, under the same RFP section). Numbered headings show as section titles; an "
           "unnumbered capitalized line such as NOTE TO OFFERORS is also a sentence to assign. Text inside pictures is read "
           "by OCR (AI and ML) and is not part of this check."),
     ("p", "Original layout (in Assign, under the sentence) shows a PDF customer document page as it looks, with every sentence "
           "of the review boxed in its decision's color: green a compliance requirement, blue context, gray not used, amber not "
           "decided yet. Click a box to work on that sentence in Assign; when Assign moves to a sentence on another page, the "
           "view turns the page. Text on the page that is not in the review is boxed in red (the text check's own rules): click "
-          "it to add it to the review. Page with the arrows or Page Up and Page Down. Word, Excel and PowerPoint files have "
+          "it to add it to the review, in its place between the sentences before and after it. Page with the arrows or Page Up and Page Down. Word, Excel and PowerPoint files have "
           "no fixed pages: their passage is in the panel and Open file opens them."),
     ("img", "layout.png", 560),
     ("img", "compliance.png", 620),
