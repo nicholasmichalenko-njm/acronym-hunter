@@ -108,9 +108,10 @@ class HomeMixin:
                                        command=lambda: self.home_set_status("Rejected"), **K)
         self.btn_h_vol = ctk.CTkButton(b, text="Volumes...", width=100, fg_color="#1E3A8A", command=self.assign_volumes_dialog, **K)
         self.btn_h_alt = ctk.CTkButton(b, text="Alt forms...", width=100, fg_color="#1E3A8A", command=self.alt_edit_dialog, **K)
+        self.btn_h_altof = ctk.CTkButton(b, text="Alt form of...", width=110, fg_color="#1E3A8A", command=self.home_alt_of, **K)   # 2.47.0
         self.btn_h_where = ctk.CTkButton(b, text="Where from...", width=110, fg_color="#475569", command=self.home_where_from, **K)
         self.btn_h_scan = ctk.CTkButton(b, text="Show in Scan review", width=150, fg_color="#475569", command=self.home_show_in_scan, **K)
-        for w in (self.btn_h_def, self.btn_h_ok, self.btn_h_auth, self.btn_h_rej, self.btn_h_vol, self.btn_h_alt, self.btn_h_where,
+        for w in (self.btn_h_def, self.btn_h_ok, self.btn_h_auth, self.btn_h_rej, self.btn_h_vol, self.btn_h_alt, self.btn_h_altof, self.btn_h_where,
                   self.btn_h_scan):
             w.pack(side="left", padx=(0, 6))
         self.btn_h_export = ctk.CTkButton(b, text="Export...", width=100, fg_color="#0F766E", command=self.export_picker, **K)
@@ -371,12 +372,32 @@ class HomeMixin:
             if approver is None:
                 return 0
             approver = approver.strip(); self._last_approver = approver
-        n = self.effort.set_status(sel, status, approver=approver or None)
-        diag.activity("home_status", n=n)
-        self._save_effort_list()
-        self.apply_effort()
-        self.update_effort_ui()
-        return n
+        out = {}
+
+        def act():
+            out["n"] = self.effort.set_status(sel, status, approver=approver or None)
+            diag.activity("home_status", n=out["n"])
+            self._save_effort_list()
+            self.apply_effort()
+            self.update_effort_ui()
+        if hasattr(self, "keep_place"):              # 2.47.0: stay in place and go to the next row
+            self.keep_place(self.home_tree, act)
+            self._home_buttons()
+        else:
+            act()
+        return out.get("n", 0)
+
+    def home_alt_of(self, primary=None):
+        """Effort list > Alt form of... (2.47.0): the selected term is another way of writing another term; it folds into
+        that term's Alt forms. Then the next row, without a jump."""
+        sel = self.home_selected()
+        if len(sel) != 1 or not hasattr(self, "alt_make_dialog"):
+            messagebox.showinfo("Alt form of", "Select one term in the effort list first.")
+            return None
+        term = sel[0]
+        if primary is not None:
+            return self.keep_place(self.home_tree, lambda: self.make_alt(term, primary)) if hasattr(self, "keep_place") else self.make_alt(term, primary)
+        return self.alt_make_dialog(term, wrap=(lambda change: self.keep_place(self.home_tree, change)) if hasattr(self, "keep_place") else None)
 
     def home_remove(self):
         sel = self.home_selected()

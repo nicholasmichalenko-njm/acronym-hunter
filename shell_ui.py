@@ -609,6 +609,8 @@ class RhythmMixin:
         for k in ("x", "X"):
             tv.bind(f"<KeyPress-{k}>", lambda _e: (self.rv_reject(), "break")[1])
         tv.bind("<space>", lambda _e: (self.rv_next(), "break")[1])
+        for k in ("f", "F"):                                              # 2.47.0: alt form of another term
+            tv.bind(f"<KeyPress-{k}>", lambda _e: (self.rv_alt(), "break")[1])
         kt = getattr(self, "kw_tree", None)
         if kt is not None:
             for k, st in (("k", "Keep"), ("K", "Keep"), ("r", "Reject"), ("R", "Reject")):
@@ -626,6 +628,24 @@ class RhythmMixin:
         tv.selection_set(nxt); tv.focus(nxt); tv.see(nxt)
         return nxt
 
+    @staticmethod
+    def keep_place(tv, act):
+        """2.47.0: run act() (which may refill the list) and stay where you were: the list keeps its scroll position and
+        the row after the one acted on is selected (no jump to the top). Returns the newly selected row or None."""
+        rows = list(tv.get_children())
+        sel = [s for s in tv.selection() if s in rows]
+        top = tv.yview()[0] if rows else 0.0
+        i = rows.index(sel[-1]) if sel else -1
+        later = rows[i + 1:] if i >= 0 else []
+        act()
+        new = list(tv.get_children())
+        if not new or i < 0:
+            return None
+        tv.yview_moveto(top)
+        pick = next((r for r in later if tv.exists(r)), None) or new[min(i, len(new) - 1)]
+        tv.selection_set(pick); tv.focus(pick); tv.see(pick)
+        return pick
+
     def rv_next(self):
         nxt = self._tree_next(self.tree)
         if nxt is not None:
@@ -636,26 +656,50 @@ class RhythmMixin:
         """A: add the selected term to the effort list (Include in DB with no effort), then the next one."""
         if not [t for t in self.tree.selection() if t in self.results]:
             return
-        if self.effort is not None:
-            self.add_to_effort()
-        elif str(self.btn_save.cget("state")) == "normal":
-            self.save_candidate()
-        self.rv_next()
+        def act():
+            if self.effort is not None:
+                self.add_to_effort()
+            elif str(self.btn_save.cget("state")) == "normal":
+                self.save_candidate()
+        if self.keep_place(self.tree, act) is not None:
+            self.on_select(None)
 
     def rv_reject(self):
         """X: not a term for this effort (Exclude with no effort), then the next one."""
         sel = [t for t in self.tree.selection() if t in self.results]
         if not sel:
             return
-        if self.effort is not None:
-            self.set_effort_status("Rejected")
-        else:
-            self.exclude_term()
-        self.rv_next()
+        def act():
+            if self.effort is not None:
+                self.set_effort_status("Rejected")
+            else:
+                self.exclude_term()
+        if self.keep_place(self.tree, act) is not None:
+            self.on_select(None)
+
+    def rv_alt(self, primary=None):
+        """F (2.47.0): the selected term is another way of writing a term already found or in the effort list. Asks which
+        one (likely ones first); then the next row, without a jump."""
+        sel = [t for t in self.tree.selection() if t in self.results]
+        if len(sel) != 1 or self.effort is None or not hasattr(self, "alt_make_dialog"):
+            return None
+        term = sel[0]
+        if primary is not None:
+            if self.keep_place(self.tree, lambda: self.make_alt(term, primary)) is not None:
+                self.on_select(None)
+            return True
+        def wrap(change):
+            if self.keep_place(self.tree, change) is not None:
+                self.on_select(None)
+        win = self.alt_make_dialog(term, wrap=wrap)
+        return win
 
     def rv_more_menu(self, widget=None):
         """The rarer Review actions in one menu: Include in DB, Exclude everywhere, Omit, Fix OCR."""
         m = tk.Menu(self, tearoff=0)
+        sel = [t for t in self.tree.selection() if t in self.results]
+        if self.effort is not None and hasattr(self, "rv_alt"):          # 2.47.0
+            m.add_command(label="Alt form of another term...  (F)", command=self.rv_alt, state="normal" if len(sel) == 1 else "disabled")
         for label, btn in (("Include in the database", self.btn_save), ("Exclude (all places, this scan)", self.btn_exc),
                            ("Omit (a name, not an acronym)...", getattr(self, "btn_effort_omit", None)),
                            ("Fix OCR", self.btn_ocr if self.advanced_on else None)):

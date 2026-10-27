@@ -51,6 +51,9 @@ class EffortMixin:
         if hasattr(self, "rv_next"):
             ctk.CTkButton(row, text="Skip  (Space)", command=self.rv_next, width=120, fg_color="transparent", border_width=1,
                           text_color=("#334155", "#CBD5E1"), height=36).pack(side="left", padx=5, pady=(4, 6))
+            if hasattr(self, "rv_alt"):                       # 2.47.0: alt form of another term
+                ctk.CTkButton(row, text="Alt form of...  (F)", command=self.rv_alt, width=150, fg_color="#1E3A8A",
+                              height=36).pack(side="left", padx=5, pady=(4, 6))
             self.btn_rv_more = ctk.CTkButton(row, text="More...", width=90, height=36, fg_color=("#E2E8F0", "#334155"),
                                              text_color=("#0F172A", "#F1F5F9"), hover_color=("#CBD5E1", "#475569"),
                                              command=lambda: self.rv_more_menu())

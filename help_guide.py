@@ -117,7 +117,9 @@ PAGES = {
     ("h", "The action bar (bottom)"),
     ("img", "scanreview.png", 600),
     ("rows", [("Add, Not a term, Skip", "With an effort open: A adds the term to the effort list, X marks it Not a term, "
-                                        "Space skips; the next term comes up. More holds Include in DB, Exclude, Omit and Fix OCR."),
+                                        "Space skips; the next term comes up and the list stays where it was. F (Alt form of...) makes the term "
+                                        "another way of writing a term already found or in the effort list. More holds Include in "
+                                        "DB, Exclude, Omit and Fix OCR."),
               ("Apply Choice", "Pick one meaning when a term has several."),
               ("Include in DB", "Type the definition and save it. Every future scan knows it."),
               ("Fix OCR", "The term is a misreading. Type the correct term. See the Fix OCR vs Training tab."),
@@ -282,7 +284,9 @@ PAGES = {
                            "effort's documents (its customer documents and our volumes), no file picking. The Found in column "
                            "and filter say where each term was found: Customer, Ours or Both."),
               ("Review", "A adds the term to the effort list, X marks it Not a term, Space skips; the next term comes up "
-                         "each time. More holds Include in the database, Exclude (all places), Omit and Fix OCR. In the preview: "
+                         "each time, the list stays where it was and the preview follows. F (Alt form of...) makes it another way of "
+                         "writing a term already found or in the effort list. More holds Include in the database, Exclude "
+                         "(all places), Omit and Fix OCR. In the preview: "
                          "Exclude instance, and Report misreading for a misreading (sent to the training team)."),
               ("Use as definition", "Select words in the Source preview (the passage, or the recognized text of a picture) "
                                     "and click Use as definition, or right-click. When the documents, the customer's list or "

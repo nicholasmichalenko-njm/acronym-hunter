@@ -37,8 +37,9 @@ class AltFormsMixin:
         close = [t for t in pool if _squash(t) == sq or _squash(t).startswith(sq) or sq.startswith(_squash(t)) and len(_squash(t)) >= 2]
         return close + [t for t in pool if t not in close]
 
-    def alt_make_dialog(self, alt, primary=None):
-        """Ask which term `alt` is an alternate form of. Returns the window (tests call win._api['ok'](name))."""
+    def alt_make_dialog(self, alt, primary=None, wrap=None):
+        """Ask which term `alt` is an alternate form of. Returns the window (tests call win._api['ok'](name)).
+        wrap (2.47.0): runs the change, for example keeping the list in place and going to the next row."""
         if self.effort is None:
             messagebox.showinfo("Alt forms", "Open an effort first: alternate forms are kept in the effort list.")
             return None
@@ -58,9 +59,12 @@ class AltFormsMixin:
             p = (name or var.get() or "").strip()
             if not p or p == alt:
                 return False
-            done = self.make_alt(alt, p)
             win.destroy()
-            return done
+            if wrap is not None:
+                out = {}
+                wrap(lambda: out.update(r=self.make_alt(alt, p)))
+                return out.get("r")
+            return self.make_alt(alt, p)
         b = ctk.CTkFrame(win, fg_color="transparent"); b.pack(fill="x", padx=14, pady=8)
         ctk.CTkButton(b, text="Make alt form", fg_color="#0F766E", command=ok).pack(side="left")
         ctk.CTkButton(b, text="Cancel", fg_color="#475569", command=win.destroy).pack(side="right")
