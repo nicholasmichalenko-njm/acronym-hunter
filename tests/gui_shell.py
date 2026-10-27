@@ -99,12 +99,16 @@ def go():
     it6 = app._c_item("L.4.2-06")
     check("R assigns to the target section", it6["decision"] == "Keep" and it6["map"] == "1.2 Schedule")
     check("sentences in the target section are underlined", bool(t.tag_ranges("insec")) and t.tag_ranges("insec")[0] == t.tag_ranges("r:L.4.2-06")[0])
-    # Context: the nearest requirement to start, click others to add or remove, Enter when done
+    # Context (2.47.0): C makes it context for the nearest requirement and moves on; C again on it changes what it supports
     app._cp_select("L.4-02"); app.update(); t.focus_set()
     t.event_generate("<Key>", keysym="c"); app.update()
     it2 = app._c_item("L.4-02")
-    check("C makes it Context for the nearest requirement", it2["decision"] == "Context" and it2["context_for"] == "L.4-01"
-          and win.cp_mode and win.cp_mode[0] == "ctx" and not win.cp_done_btn.winfo_ismapped(), (it2["context_for"], win.cp_mode))
+    check("C makes it Context for the nearest requirement and moves on to the next sentence", it2["decision"] == "Context"
+          and it2["context_for"] == "L.4-01" and win.cp_mode is None and app._c_selected()[0]["id"] != "L.4-02",
+          (it2["context_for"], win.cp_mode, app._c_selected()[0]["id"]))
+    app._cp_select("L.4-02"); app.update(); t.focus_set()
+    t.event_generate("<Key>", keysym="c"); app.update()
+    check("C again on it: choose what it supports", win.cp_mode and win.cp_mode[0] == "ctx" and not win.cp_done_btn.winfo_ismapped(), win.cp_mode)
     def click(iid):
         r = t.tag_ranges("r:" + iid); t.see(r[0]); app.update(); bx = t.bbox(r[0])
         t.event_generate("<ButtonRelease-1>", x=bx[0] + 3, y=bx[1] + bx[3] // 2); app.update()
@@ -119,13 +123,15 @@ def go():
           and it2["context_for"] == "L.4-01; L.4.2-06" and it2["map"] == "1.1 Thermal Design", (win.cp_mode, it2["context_for"]))
     app._cp_select("L.4.1-04"); app.update(); t.focus_set()
     t.event_generate("<Key>", keysym="c"); app.update()
-    t.event_generate("<Key>", keysym="Down"); app.update()
-    check("or the next key moves on", win.cp_mode is None and app._c_selected()[0]["id"] == "L.4.1-05")
+    check("C on another sentence moves on by itself", win.cp_mode is None and app._c_selected()[0]["id"] != "L.4.1-04"
+          and app._c_item("L.4.1-04")["decision"] == "Context")
     C.clear_assignment(app.matrix.items, [app._c_item("L.4.1-04")]); app._c_changed(); app.update()
     check("pointing at the Context lights up its requirements", app._cp_hover("L.4-02") == ["L.4-01", "L.4.2-06"])
     check("pointing at a requirement lights up its Context", app._cp_hover("L.4-01") == ["L.4-02"])
     app._cp_hover(None)
-    # context for a section itself
+    # context for a section itself: C, back to it, C again, click the section
+    app._cp_select("L.4.1-04"); app.update(); t.focus_set()
+    t.event_generate("<Key>", keysym="c"); app.update()
     app._cp_select("L.4.1-04"); app.update(); t.focus_set()
     t.event_generate("<Key>", keysym="c"); app.update()
     win.cp_orows["1.1 Thermal Design"].invoke(); app.update()
