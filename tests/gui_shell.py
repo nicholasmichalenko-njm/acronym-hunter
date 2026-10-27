@@ -219,7 +219,7 @@ def go():
     w = app.cp_people_dialog(); w.update()
     rows = w._api["rows"]
     vol = next(r for r in rows if r[0] == "Volume I Technical")
-    vol[1].insert(0, "M. Ortiz"); vol[2].insert(0, "A. Lee, B. Chen")
+    vol[1].set("M. Ortiz"); vol[2].insert(0, "A. Lee, B. Chen")
     w._api["save"](); app.update()
     import setupdoc as SD
     check("People: a section's lead owns its requirements unless they have their own owner",
