@@ -540,6 +540,8 @@ class ShellMixin:
                 self.sub_bar_refresh()
             if hasattr(self, "rec_strip_refresh"):
                 self.rec_strip_refresh()
+            if hasattr(self, "readable_tick"):
+                self.readable_tick()                 # 2.46.0: the readable copy follows every saved change
         except Exception:
             diag.swallowed()
         self.after(1500, self.shell_tick)

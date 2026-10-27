@@ -749,7 +749,8 @@ class EffortRecordMixin:
                                                              "internal_no": L.internal_no, "first_use": L.first_use},
                          matrix_path=mpath, customer_dir=info.get("customer_dir", ""), volumes_dir=info.get("volumes_dir", ""),
                          customer=customer, volumes=volumes, stage=stage, app_version=getattr(__import__("app_gui"), "APP_VERSION", ""),
-                         extra_files=[dl.get("file") for dl in (r.data.get("deliverables", []) if r else []) if dl.get("file")])
+                         extra_files=[dl.get("file") for dl in (r.data.get("deliverables", []) if r else []) if dl.get("file")],
+                         readable_dir=(self.readable_write_now() or "") if hasattr(self, "readable_write_now") else "")
         except (OSError, PermissionError) as e:
             diag.swallowed()
             messagebox.showerror("Save effort package", f"The package could not be written ({type(e).__name__}).")

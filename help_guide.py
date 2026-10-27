@@ -379,6 +379,14 @@ PAGES = {
                           "Nothing is deleted.")]),
     ("h", "If the app closes unexpectedly"),
     ("rows", [("Saved as you go", "Every choice, approval and compliance decision is written to disk within seconds."),
+              ("Readable copy", "Beside the effort list, the folder '<effort> - readable copy (Stationkeeper)' holds everything the "
+                                "effort captures as plain files anyone can open without Stationkeeper: stages and gate goals, tasks, "
+                                "notes and open questions, deliverables, the timeline, submission requirements, customer documents "
+                                "and their text, every compliance passage with its role (compliance requirement, context, not "
+                                "used), section, owner and section people, the response structure, acronyms and keywords. It is "
+                                "rewritten a few seconds after every saved change; READ ME FIRST.txt explains each file. Effort > "
+                                "Open the readable copy folder opens it. Effort packages carry it, so a package can be unzipped and "
+                                "read without the app."),
               ("Recover", "Changes that could not be saved (the app closed, or Excel had the file open) come back the next time "
                           "you open the effort: the app asks \"Recover them now?\""),
               ("Earlier versions", "File > Restore an earlier version lists dated copies of the effort list and compliance "

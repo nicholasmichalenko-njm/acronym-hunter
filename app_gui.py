@@ -141,6 +141,7 @@ from submission_ui import SubmissionMixin  # Submission: customer document versi
 from deliverables_ui import DeliverablesMixin  # Submission > Deliverables (2.41.0)
 from impact_ui import ImpactMixin  # Submission > Impact (2.42.0)
 from layout_ui import LayoutMixin  # Compliance > Original layout (2.45.0)
+from readable_ui import ReadableMixin  # the readable copy of an effort (2.46.0)
 from effortrec_ui import EffortRecordMixin  # the effort record: stages, goals, notes, tasks, timeline (2.40.0)
 from shell_ui import ShellMixin, RhythmMixin   # the app shell: feature rail and step strip; one decision then the next (2.32.0)
 from compliance_page import CompliancePageMixin   # Decide in Page view, Place pass, details on Prove (2.32.0)
@@ -2484,7 +2485,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.45.0"            # keep in step with version_info.txt
+APP_VERSION = "2.46.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3421,7 +3422,7 @@ def corrections_on():
     """Report misreading and Not text save corrections for the training team, unless allow_training is false."""
     return bool(APP_CFG["allow_training"])
 
-class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixin, ImpactMixin, LayoutMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixin, ImpactMixin, LayoutMixin, ReadableMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Stationkeeper {APP_VERSION}: proposal efforts, 100% local")
@@ -3911,6 +3912,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         m.add_command(label="Move stage...", command=c("effort_move_stage", self.rec_move_dialog), state=st)
         m.add_command(label="Edit stages...", command=c("effort_edit_stages", self.rec_stages_dialog), state=st)
         m.add_command(label="Timeline...", command=c("effort_timeline", self.rec_timeline_window), state=st)
+        m.add_command(label="Open the readable copy folder", command=c("effort_readable", self.readable_open), state=st)   # 2.46.0
         m.add_separator()
         arch = [n for n in self.efforts.names() if (self.efforts.get(n) or {}).get("archived")]
         if arch:
@@ -3925,8 +3927,9 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         edition = "US Classic (Tesseract only)" if not DOCTR_DIR else "US (Tesseract + docTR second reader)"
         messagebox.showinfo("About Stationkeeper",
                             f"Stationkeeper {APP_VERSION}\nEdition: {edition}\n\nRuns fully offline on this PC. It makes no network "
-                            "connections; picture reading runs in a no-network sandbox.\n\nFinds acronyms, abbreviations, units, symbols "
-                            "and equations; keeps an effort list per proposal; checks volumes; builds compliance matrices.", parent=self)
+                            "connections; picture reading runs in a no-network sandbox.\n\nRuns a proposal effort: customer documents and their "
+                            "versions, submission requirements, deliverables, compliance, acronyms, keywords, QA/QC, stages, notes, "
+                            "tasks and the paper trail. A readable copy of everything is kept beside the effort list.", parent=self)
 
     def toggle_preview(self):
         on = bool(self.preview_var.get())

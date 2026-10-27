@@ -9,6 +9,8 @@ A .skpkg file (.ahpkg before 2.44.0, still opened) is a zip with:
 - matrix/<matrix>.xlsx: the compliance matrix, when the effort has one;
 - customer/...: the customer files themselves (optional);
 - volumes/...: our volumes (optional).
+- readable/...: the effort's readable copy (2.46.0): plain CSV and text files, so the package can be unzipped and read
+  without Stationkeeper.
 
 Import unpacks into a folder the person picks, points the paths at the new place, and registers the effort. Rules only
 (No AI); nothing leaves the PC: the package goes where the person saves it (this PC or the approved SharePoint folder).
@@ -50,7 +52,7 @@ def _files_in(folder, types=None):
     return sorted(out)
 
 
-def plan(list_path, data_dir, matrix_path="", customer_dir="", volumes_dir="", customer=True, volumes=False, extra_files=()):
+def plan(list_path, data_dir, matrix_path="", customer_dir="", volumes_dir="", customer=True, volumes=False, extra_files=(), readable_dir=""):
     """[(arcname, path)] of what a package would hold, and its total size in bytes. extra_files: other files the effort
     points to (a deliverable's working file outside the folders above), packed under files/ (2.41.0)."""
     items = [("list/" + os.path.basename(list_path), list_path)]
@@ -64,6 +66,8 @@ def plan(list_path, data_dir, matrix_path="", customer_dir="", volumes_dir="", c
     if volumes:
         for p in _files_in(volumes_dir, (".docx",)):
             items.append(("volumes/" + os.path.relpath(p, volumes_dir).replace(os.sep, "/"), p))
+    for p in _files_in(readable_dir):
+        items.append(("readable/" + os.path.relpath(p, readable_dir).replace(os.sep, "/"), p))
     have = {os.path.normcase(os.path.abspath(p)) for _a, p in items}
     for i, p in enumerate(extra_files or ()):
         if p and os.path.isfile(p) and os.path.normcase(os.path.abspath(p)) not in have:
@@ -74,11 +78,11 @@ def plan(list_path, data_dir, matrix_path="", customer_dir="", volumes_dir="", c
 
 
 def save(out_path, effort_name, list_path, data_dir, info=None, matrix_path="", customer_dir="", volumes_dir="",
-         customer=True, volumes=True, stage="", app_version="", who=None, when=None, extra_files=()):
+         customer=True, volumes=True, stage="", app_version="", who=None, when=None, extra_files=(), readable_dir=""):
     """Write the package. Returns the manifest."""
     if not out_path.lower().endswith(EXTS):
         out_path += EXT
-    items, size = plan(list_path, data_dir, matrix_path, customer_dir, volumes_dir, customer, volumes, extra_files)
+    items, size = plan(list_path, data_dir, matrix_path, customer_dir, volumes_dir, customer, volumes, extra_files, readable_dir)
     man = {"format": FORMAT, "app": app_version, "effort": effort_name, "saved_by": who or getpass.getuser(),
            "saved_at": when or datetime.datetime.now().isoformat(timespec="minutes"), "stage": stage,
            "info": {k: v for k, v in (info or {}).items() if isinstance(v, (str, int, float, bool))},
@@ -87,15 +91,20 @@ def save(out_path, effort_name, list_path, data_dir, info=None, matrix_path="", 
                    "matrix": any(a.startswith("matrix/") for a, _p in items)},
            "files": {}, "origin": {}}
     tmp = out_path + ".tmp"
+    os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
         for arc, p in items:
             if not os.path.isfile(p):
                 continue
             man["files"][arc] = _sha(p)
-            if not arc.startswith(("data/", "list/")):
+            if not arc.startswith(("data/", "list/", "readable/")):
                 man["origin"][arc] = os.path.abspath(p)          # where it was, so links to it can follow it
             z.write(p, arc)
         z.writestr("manifest.json", json.dumps(man, indent=1))
+        if any(a.startswith("readable/") for a, _p in items):
+            z.writestr("READ ME.txt", "Stationkeeper effort package: " + effort_name + "\r\n\r\nOpen it in Stationkeeper with File > Import "
+                       "effort package. Without Stationkeeper, unzip it (rename .skpkg to .zip first if needed) and open the readable "
+                       "folder: READ ME FIRST.txt explains every file.\r\n")
     os.replace(tmp, out_path)
     man["path"], man["bytes"] = out_path, size
     return man
@@ -150,6 +159,10 @@ def unpack(pkg_path, dest_folder, data_dir_for):
                 target = os.path.join(out["volumes_dir"], *rest)
             elif top == "files":
                 target = os.path.join(dest_folder, "Our files", *rest)
+            elif top == "readable":
+                import readable as RD
+                out.setdefault("readable_dir", RD.folder_for(out["list"], man.get("effort", "")))
+                target = os.path.join(out["readable_dir"], *rest)
             else:
                 continue
             data = z.read(n)
