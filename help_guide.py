@@ -79,7 +79,8 @@ PAGES = {
                         "open until someone resolves it with the answer."),
               ("Tasks and people", "+ Task: owner, due date, stage, status and notes; late tasks show red. Pick a person to "
                                    "see their sections, compliance requirements and tasks. In Assign, O gives one compliance "
-                                   "requirement its own owner; People... sets a lead and contributors per section."),
+                                   "requirement its own owner (right after you assign it too: O is for the sentence just assigned when Assign has "
+                                   "moved on); People... sets a lead and contributors per section."),
               ("Timeline", "The paper trail, written as it happens: every customer document and version added (with what "
                            "changed), requirement reviews, stage moves, goals met, notes, tasks, owners, QA/QC checks. Full "
                            "timeline... shows all of it."),

@@ -719,6 +719,8 @@ class CompliancePageMixin:
         self._cp_flash(text)
         self._c_changed()
         win = self._cwin
+        if advance and rows:
+            self._cp_last = [r["id"] for r in rows if r.get("decision") in ("Keep", "Context")]   # O right after: their owner
         if advance and rows and bool(win.cp_next_var.get()):      # 2.47.0: also after a range of sentences
             if win.cp_range:
                 self.cp_set_range([])
@@ -925,6 +927,8 @@ class CompliancePageMixin:
         """O (2.40.0): give the selected compliance requirement(s) an owner of their own; empty goes back to the section's
         lead. People already named in the effort are offered."""
         rows = [it for it in self._cp_rows() if it["decision"] in ("Keep", "Context")]
+        if not rows:                                  # 2.47.0: Assign moved on: O is for the sentence(s) just assigned
+            rows = [it for it in (self._c_item(i) for i in getattr(self, "_cp_last", []) or []) if it and it["decision"] in ("Keep", "Context")]
         if not rows:
             self._cp_flash("Assign the sentence first, then give it an owner (O).") if hasattr(self, "_cp_flash") else None
             return 0

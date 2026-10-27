@@ -98,6 +98,10 @@ def go():
     t.event_generate("<Key>", keysym="r"); app.update()
     it6 = app._c_item("L.4.2-06")
     check("R assigns to the target section", it6["decision"] == "Keep" and it6["map"] == "1.2 Schedule")
+    n_own = app.cp_owner("K. Ito"); app.update()
+    check("2.47.0: O right after R gives the sentence just assigned its owner (Assign has moved on)",
+          n_own == 1 and app._c_item("L.4.2-06")["owner"] == "K. Ito", app._c_item("L.4.2-06").get("owner"))
+    app._cp_select("L.4.2-06"); app.update()
     check("sentences in the target section are underlined", bool(t.tag_ranges("insec")) and t.tag_ranges("insec")[0] == t.tag_ranges("r:L.4.2-06")[0])
     # Context (2.47.0): C makes it context for the nearest requirement and moves on; C again on it changes what it supports
     app._cp_select("L.4-02"); app.update(); t.focus_set()
