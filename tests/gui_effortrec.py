@@ -16,6 +16,8 @@ A.CONFIG_DIR = os.path.join(tmp, "config"); A.CHOICES_FILE = os.path.join(tmp, "
 A.SETTINGS_FILE = os.path.join(tmp, "settings.json")
 messagebox.showinfo = lambda *a, **k: None
 messagebox.askyesno = lambda *a, **k: True
+messagebox.showwarning = lambda *a, **k: None      # a test that checks a refusal must not leave a box on screen
+messagebox.showerror = lambda *a, **k: None
 LIST = os.path.join(tmp, "Kestrel", "Kestrel_Effort_List.xlsx")
 CDIR = os.path.join(tmp, "Kestrel", "Customer documents"); os.makedirs(CDIR)
 RFP = os.path.join(A.BASE_DIR, "test_samples", "rfp")
