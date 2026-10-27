@@ -32,8 +32,8 @@ class DeliverablesMixin:
         body = ctk.CTkFrame(pg, fg_color="transparent"); body.pack(fill="both", expand=True, padx=6, pady=6)
         self.dl_detail = ctk.CTkScrollableFrame(body, width=430); self.dl_detail.pack(side="right", fill="y", padx=(10, 0))
         left = tk.Frame(body); left.pack(side="left", fill="both", expand=True)
-        cols = (("name", "Deliverable", 190), ("setby", "Set by", 150), ("format", "Format", 140), ("limit", "Limit", 80),
-                ("owner", "Owner", 100), ("state", "Status", 190))
+        cols = (("name", "Deliverable", 170), ("state", "Status", 180), ("owner", "Owner", 90), ("limit", "Limit", 70),
+                ("format", "Format", 140), ("setby", "Set by", 150))
         self.dl_tree = tv = ttk.Treeview(left, columns=[c[0] for c in cols], show="headings", selectmode="browse",
                                          style=getattr(self, "tree_style", "Treeview"))
         sc = float(ctk.ScalingTracker.get_widget_scaling(pg)) * getattr(self, "font_size", 13) / 13
