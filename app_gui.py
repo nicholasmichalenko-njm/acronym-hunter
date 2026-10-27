@@ -142,6 +142,7 @@ from deliverables_ui import DeliverablesMixin  # Submission > Deliverables (2.41
 from impact_ui import ImpactMixin  # Submission > Impact (2.42.0)
 from layout_ui import LayoutMixin  # Compliance > Original layout (2.45.0)
 from readable_ui import ReadableMixin  # the readable copy of an effort (2.46.0)
+from keepsafe_ui import KeepSafeMixin  # exports kept dated, and the backup location (2.46.0)
 from effortrec_ui import EffortRecordMixin  # the effort record: stages, goals, notes, tasks, timeline (2.40.0)
 from shell_ui import ShellMixin, RhythmMixin   # the app shell: feature rail and step strip; one decision then the next (2.32.0)
 from compliance_page import CompliancePageMixin   # Decide in Page view, Place pass, details on Prove (2.32.0)
@@ -3422,7 +3423,7 @@ def corrections_on():
     """Report misreading and Not text save corrections for the training team, unless allow_training is false."""
     return bool(APP_CFG["allow_training"])
 
-class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixin, ImpactMixin, LayoutMixin, ReadableMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixin, ImpactMixin, LayoutMixin, ReadableMixin, KeepSafeMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Stationkeeper {APP_VERSION}: proposal efforts, 100% local")
@@ -3660,6 +3661,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         self.after(300, self.workspace_startup)   # resume the last effort (2.11.0)
         self.shell_bind_rhythm()
         self.shell_go("acronyms", "scan", save=False)    # the shell (2.32.0); the resumed effort may move it
+        self.keep_start()                       # 2.46.0: exports kept dated; the backup location
         self.after(1500, self.shell_tick)
 
     # ---------- training inside the scanner ----------
@@ -3824,6 +3826,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         el = tk.Menu(a, tearoff=0, postcommand=lambda: self.show_effort_menu(el))
         a.add_cascade(label="Effort list and all effort commands", menu=el)
         a.add_command(label="Compliance word style...", command=c("compliance_word_style", self.compliance_word_style))
+        a.add_command(label="Backup location...", command=c("backup_location", self.backup_location_dialog))
         a.add_command(label="Make effort packages open in Stationkeeper (this Windows user)...",
                       command=c("pkg_associate", self.pkg_associate))
         t = tk.Menu(a, tearoff=0, postcommand=lambda: self.show_tools_menu(t))

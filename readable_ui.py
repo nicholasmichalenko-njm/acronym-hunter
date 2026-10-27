@@ -31,6 +31,22 @@ class ReadableMixin:
                 sig.append((p, 0))
         return tuple(sig)
 
+    def _readable_matrix(self):
+        """The compliance matrix: the open one, or the saved workbook when the matrix window is closed (read again only
+        when the workbook changes)."""
+        M = getattr(self, "matrix", None)
+        if M is not None:
+            return M
+        ws = getattr(self, "ws", None)
+        p = (ws.get("compliance_path", "") or "") if ws is not None else ""
+        if not p or not os.path.isfile(p):
+            return None
+        key = (p, os.path.getmtime(p))
+        if getattr(self, "_rd_mkey", None) != key:
+            import compliance as C
+            self._rd_m, self._rd_mkey = C.Matrix(p).load(), key
+        return self._rd_m
+
     def readable_tick(self):
         """Called every 1.5 seconds: rewrite the copy once the saved files changed and then stayed quiet for a moment."""
         if getattr(self, "effort", None) is None:
@@ -57,7 +73,7 @@ class ReadableMixin:
             rec = self.effrec() if hasattr(self, "effrec") else None
             info = {"effort": L.name}
             app = __import__("app_gui")
-            parts = RD.build(L, rec, lib, rows, getattr(self, "matrix", None), info, getattr(app, "APP_VERSION", ""))
+            parts = RD.build(L, rec, lib, rows, self._readable_matrix(), info, getattr(app, "APP_VERSION", ""))
             folder = self.readable_folder()
             RD.write(folder, parts, lib)
         except Exception:

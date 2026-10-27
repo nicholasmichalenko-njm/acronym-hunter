@@ -142,6 +142,8 @@ class WorkspaceMixin:
                 if not self._c_save_now():
                     self._c_snapshot()              # could not save (Excel): keep the recovery copy current
             cw.destroy()
+        if hasattr(self, "backup_on_leave"):
+            self.backup_on_leave()                  # 2.46.0: everything is saved; the backup location gets a copy
         self._cwin = None
         self.matrix = None
         vw = getattr(self, "_volwin", None)

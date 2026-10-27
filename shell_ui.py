@@ -542,6 +542,8 @@ class ShellMixin:
                 self.rec_strip_refresh()
             if hasattr(self, "readable_tick"):
                 self.readable_tick()                 # 2.46.0: the readable copy follows every saved change
+            if hasattr(self, "keep_tick"):
+                self.keep_tick()                     # 2.46.0: dated copies of exports; backups
         except Exception:
             diag.swallowed()
         self.after(1500, self.shell_tick)

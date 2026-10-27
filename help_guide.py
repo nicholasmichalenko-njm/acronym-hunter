@@ -387,6 +387,16 @@ PAGES = {
                                 "rewritten a few seconds after every saved change; READ ME FIRST.txt explains each file. Effort > "
                                 "Open the readable copy folder opens it. Effort packages carry it, so a package can be unzipped and "
                                 "read without the app."),
+              ("Exports kept", "Every export made while an effort is open (Word, Excel, CSV, effort packages, Export all) is also "
+                               "kept, dated, in '<effort> - exports (Stationkeeper)' beside the effort list, for example "
+                               "'Kestrel_Response_Setup 2026-10-27 0840.docx'. Nothing there is overwritten, so every version "
+                               "of every export stays."),
+              ("Backup location", "Advanced > Backup location... keeps a second copy of every effort outside its folder, for "
+                                  "example Documents\\Stationkeeper backups: the whole effort as an effort package (File > Import "
+                                  "effort package... picks up exactly where it was), one dated package per day for 30 days, the "
+                                  "readable copy, the dated exports, and the app's settings, banned words, keyword knowledge and "
+                                  "master database. Written a few minutes after changes and when the effort closes. If the folder "
+                                  "is synced by OneDrive, the copies go to that cloud too: use it only where your company allows."),
               ("Recover", "Changes that could not be saved (the app closed, or Excel had the file open) come back the next time "
                           "you open the effort: the app asks \"Recover them now?\""),
               ("Earlier versions", "File > Restore an earlier version lists dated copies of the effort list and compliance "
