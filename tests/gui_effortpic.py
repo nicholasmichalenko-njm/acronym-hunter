@@ -35,9 +35,10 @@ def go():
     app.open_effort("Kestrel"); app.shell_go("home"); app.update()
     check("Effort home has a picture spot that invites a picture", "picture" in app.ep_label.cget("text").lower())
     dst = app.effort_picture_set(PIC); app.update()
-    im = Image.open(dst)
+    with Image.open(dst) as im:
+        fmt, size = im.format, im.size
     check("the picture is copied into the effort's folder as a smaller PNG", dst and os.path.dirname(dst) == app.ws.root
-          and im.format == "PNG" and max(im.size) == 800, (dst, im.size))
+          and fmt == "PNG" and max(size) == 800, (dst, size))
     app.shell_overview_refresh(); app.update()
     check("Effort home shows it", app._ep_img is not None and app.ep_label.cget("text") == "")
     man = app.pkg_save_dialog(path=os.path.join(tmp, "out", "Kestrel"), customer=False, volumes=False)

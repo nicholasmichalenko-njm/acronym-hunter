@@ -36,7 +36,8 @@ class EffortPictureMixin:
         if p and os.path.isfile(p):
             try:
                 from PIL import Image
-                im = Image.open(p)
+                with Image.open(p) as src:            # closed at once: Windows can then replace or remove the file
+                    im = src.copy()
                 im.thumbnail((BOX, BOX))
                 self._ep_img = ctk.CTkImage(light_image=im, dark_image=im, size=im.size)
                 lab.configure(image=self._ep_img, text="")
@@ -57,8 +58,8 @@ class EffortPictureMixin:
                 return None
         try:
             from PIL import Image
-            im = Image.open(path)
-            im.load()
+            with Image.open(path) as src:
+                im = src.copy()
             if im.mode not in ("RGB", "RGBA"):
                 im = im.convert("RGBA")
             im.thumbnail((KEEP, KEEP))
