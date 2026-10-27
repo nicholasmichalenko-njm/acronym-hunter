@@ -228,6 +228,12 @@ class ImpactMixin:
             self._imp_none(card, f"and {len(xs) - 8} more")
         if not xs:
             self._imp_none(card, "No due date, page limit, format, file or deliverable changed.")
+        if self.impact_new_due(r) is not None:
+            rec = self.effrec() if hasattr(self, "effrec") else None
+            had = bool(rec and rec.data.get("due"))
+            self._imp_line(card, "Effort details still hold the old due date" if had else "Effort details have no due date yet",
+                           "The countdown and the status report use it.", color=("#B45309", "#FBBF24"))
+            self._imp_btn(card, "Use the new due date" if had else "Use this due date", self.impact_use_due, main=True)
         self._imp_btn(card, "Review in Requirements", lambda: self.shell_go("submission", "requirements"), main=bool(xs))
         return card
 
@@ -427,9 +433,39 @@ class ImpactMixin:
         return path
 
     # ------------------------------------------------------------ author briefs (2.43.0)
-    def impact_due_text(self):
-        """'Dec 22, 2026, 2:00 p.m. MT (57 days, 4 hours)' from the effort record, else the due date the documents give."""
+    def impact_new_due(self, r=None):
+        """(text, iso, zone) when this version changed the proposal due date and Effort details still hold another date."""
         import effortrec as ER
+        r = r or self.imp_r
+        x = next((q for q in (r["requirements"] if r else []) if q["key"] == "Due | Proposal" and q["change"] in ("changed", "new")), None)
+        if x is None or not x["now"]:
+            return None
+        iso, zone = ER.parse_due_text(x["now"])
+        rec = self.effrec() if hasattr(self, "effrec") else None
+        if not iso or rec is None or rec.data.get("due") == iso:
+            return None
+        return x["now"], iso, zone
+
+    def impact_use_due(self):
+        """Effort details take the due date this version set (the countdown follows)."""
+        nd = self.impact_new_due()
+        rec = self.effrec() if hasattr(self, "effrec") else None
+        if nd is None or rec is None:
+            return False
+        rec.set_due(nd[1], nd[2])
+        diag.activity("impact_due_used")
+        self._rec_force() if hasattr(self, "_rec_force") else None
+        self.impact_refresh()
+        return True
+
+    def impact_due_text(self):
+        """'Dec 22, 2026, 2:00 p.m. MT (57 days, 4 hours)' from the effort record, else the due date the documents give.
+        When this version changed the due date, its new date (Effort details may still hold the old one)."""
+        import effortrec as ER
+        nd = self.impact_new_due()
+        if nd is not None:
+            cd = ER.countdown_text(nd[1])
+            return ER.due_text(nd[1], nd[2]) + (f" ({cd})" if cd else "")
         rec = self.effrec() if hasattr(self, "effrec") else None
         if rec is not None and rec.data.get("due"):
             cd = ER.countdown_text(rec.data["due"])

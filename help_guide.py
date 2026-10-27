@@ -443,7 +443,8 @@ PAGES = {
                                     "page count."),
               ("For everyone", "Due dates, page limits, format, file, copies and delivery rules the version changed. The "
                                "team brief holds this part alone, for everyone else."),
-              ("Due", "The proposal due date and the days left, from Effort details.")]),
+              ("Due", "The proposal due date and the days left. When the version moved the due date, the briefs use the "
+                      "new one, and the Impact page offers Use the new due date so Effort details and the countdown follow.")]),
     ("h", "Submission requirements: front and center"),
     ("p", "Requirements, the first Submission step, lists what to deliver and how, read from every version of every customer "
           "document: the due date and time, the deadline for questions, page limits for each volume, font and size, margins, "

@@ -148,6 +148,14 @@ def go():
     out = app.impact_export(os.path.join(tmp, "impact.docx"))
     x = zipfile.ZipFile(out).read("word/document.xml").decode("utf-8")
     check("the Word report", "IMPACT REVIEW" in x and "Amendment 1 of Kestrel RFP" in x and "Who it touches" in x)
+    # the due date (2.43.0): the version moved it; Effort details still hold the old one
+    rec.set_due("2026-12-15T14:00", "MT")
+    app.impact_refresh(); app.update()
+    req2 = " | ".join(cards["requirements"]._lines) if False else " | ".join(app.imp_cards["requirements"]._lines)
+    check("the old due date in Effort details is pointed out, with the new one offered", "Effort details still hold the old due date" in req2
+          and app.impact_due_text().startswith("Dec 22, 2026"), (req2[-120:], app.impact_due_text()))
+    check("Use the new due date: Effort details and the countdown follow", app.impact_use_due() and rec.data["due"] == "2026-12-22T14:00"
+          and "Effort details still hold" not in " | ".join(app.imp_cards["requirements"]._lines), rec.data["due"])
     # author briefs (2.43.0)
     check("the briefs button says how many people", app.imp_brief.cget("text").startswith("Author briefs (3 people)"), app.imp_brief.cget("text"))
     bw = app.impact_briefs_dialog(); bw.update()
