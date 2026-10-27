@@ -73,7 +73,7 @@ def run():
         if f.endswith(".docx"):
             with zipfile.ZipFile(os.path.join(out, f)) as z:
                 xml += z.read("word/document.xml").decode("utf-8")
-    assert xml.count("long eclipses") == 2 and "Also context for L.5-03" in xml and "Also context for L.4-01" in xml
+    assert xml.count("long eclipses") == 2 and "Also support for L.5-03" in xml and "Also support for L.4-01" in xml
     # the coverage report names every requirement
     cp = os.path.join(out, "cov.docx"); C.write_coverage_docx(M, cp)
     with zipfile.ZipFile(cp) as z:
