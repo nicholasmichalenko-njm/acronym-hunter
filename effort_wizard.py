@@ -60,7 +60,7 @@ class WizardMixin:
         b_next = ctk.CTkButton(nav, text="Next", width=120); b_next.pack(side="right")
         ctk.CTkButton(nav, text="Cancel", width=90, fg_color="transparent", text_color=("#334155", "#CBD5E1"),
                       command=win.destroy).pack(side="right", padx=8)
-        v = {k: tk.StringVar() for k in ("name", "client", "sol", "internal", "folder", "volumes", "due")}
+        v = {k: tk.StringVar() for k in ("name", "client", "sol", "internal", "folder", "volumes", "due", "method", "contact")}
         v["format"] = tk.StringVar(value="whole"); v["rule"] = tk.StringVar(value="volume"); v["scan"] = tk.BooleanVar(value=True)
 
         def entry(parent, label, var, hint=""):
@@ -85,6 +85,9 @@ class WizardMixin:
             entry(body, "Solicitation or opportunity number", v["sol"], "e.g. FA8810-27-R-0042")
             entry(body, "Internal number (optional, your own numbering)", v["internal"])
             entry(body, "Due date and time (optional; the top bar counts down to it)", v["due"], "e.g. December 15, 2026, 2:00 p.m. MT")
+            entry(body, "How the proposal is submitted (optional; read from the customer documents too)", v["method"],
+                  "e.g. DoD SAFE, PIEE, e-mail")                                                        # 2.49.0
+            entry(body, "Submission contact (optional)", v["contact"], "e.g. Jane Doe, Contracting Officer, jane.doe@us.af.mil")
             row = ctk.CTkFrame(body, fg_color="transparent"); row.pack(fill="x", pady=(8, 0))
             ctk.CTkLabel(row, text="Effort folder (holds the list, customer documents and saved work)", anchor="w").pack(fill="x")
             ctk.CTkEntry(row, textvariable=v["folder"], width=540).pack(side="left")
@@ -305,6 +308,12 @@ class WizardMixin:
                     if iso:
                         rec.set_due(iso, zone)
                     rec.save()
+                    reg = self.subreg() if hasattr(self, "subreg") else None         # 2.49.0: how and to whom, on Submission
+                    if reg is not None:
+                        if v["method"].get().strip():
+                            reg.add("Delivery", "Delivery", v["method"].get())
+                        if v["contact"].get().strip():
+                            reg.add("Contact", "Submission contact", v["contact"].get())
                 except Exception:
                     diag.swallowed()
             if st.get("outline"):                    # the response structure (2.28.0): the compliance matrix starts from it

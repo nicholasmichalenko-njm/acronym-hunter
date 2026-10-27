@@ -15,7 +15,7 @@ The register's state is saved in the effort's folder: documents\\register.json.
 """
 import datetime, getpass, re
 
-KINDS = ("Due", "Questions due", "Page limit", "Format", "File", "Copies", "Delivery", "Deliverable")
+KINDS = ("Due", "Questions due", "Page limit", "Format", "File", "Copies", "Delivery", "Contact", "Deliverable")   # Contact: 2.49.0
 ROMAN = {"i": 1, "ii": 2, "iii": 3, "iv": 4, "v": 5, "vi": 6, "vii": 7, "viii": 8}
 MONTHS = r"(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)"
 DATE = re.compile(r"\b" + MONTHS + r"\.?\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}\b|\b\d{1,2}/\d{1,2}/\d{2,4}\b|\b\d{4}-\d{2}-\d{2}\b|"
@@ -42,6 +42,9 @@ DELIVERY = re.compile(r"\b(?:submitted|delivered|sent|uploaded|e-?mailed)\s+(?:e
 ATTACH = re.compile(r"\b(?:Attachment|Exhibit|Enclosure|Annex)\s+[A-Z]?-?\d{1,3}[a-z]?\b(?:\s*,?\s*(?:the\s+)?((?:[A-Z][a-z]+\s?){1,4}))?")
 FORMS = re.compile(r"\b(?:SF|DD|Standard Form)\s?-?\s?\d{2,4}\b|\bRepresentations and Certifications\b|\bSmall Business Subcontracting Plan\b|"
                    r"\bCover (?:letter|page)\b", re.I)
+EMAIL = re.compile(r"\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b")
+CONTACT_ROLE = re.compile(r"\b(Contracting Officer|Contract Specialist|Contracting Specialist|Point of Contact|Buyer)\b(?:\s*\([A-Z]{2,4}\))?"
+                          r"(?:\s*,\s*|\s+)((?:(?:Mr|Ms|Mrs|Dr)\.?\s+)?[A-Z][a-z]+(?:\s+[A-Z]\.)?\s+[A-Z][a-zA-Z'-]+)?")
 SUBMIT = re.compile(r"\b(?:shall|must|will)\s+(?:submit|provide|include|deliver|complete|sign|furnish|consist|contain)\b|\bsubmit(?:ted)?\b|\binclude[sd]?\b|\brequired\b", re.I)
 
 
@@ -112,9 +115,16 @@ def find(sentence):
     m = COPIES.search(s)
     if m and SUBMIT.search(s):
         out.append(("Copies", "Copies", m.group(0)))
+    em = EMAIL.search(s)                               # 2.49.0: who receives the proposal or the questions
+    if em and (SUBMIT.search(s) or QUESTIONS.search(s) or CONTACT_ROLE.search(s)):
+        role = CONTACT_ROLE.search(s)
+        who = " ".join(x for x in ((role.group(2) or "") if role else "", f"({role.group(1)})" if role else "") if x)
+        out.append(("Contact", "Questions contact" if QUESTIONS.search(s) and not re.search(r"\bproposals?\b", s, re.I)
+                    else "Submission contact", (who + " " + em.group(0)).strip()))
     m = DELIVERY.search(s)
     if m and re.search(r"\bproposals?|\bvolumes?|\bofferors?|\bresponses?|\bquotes?", s, re.I):
-        out.append(("Delivery", "Delivery", _clean(m.group(1))[:80]))
+        how = re.split(r"\s+(?:to the|to|at|no later than|not later than|by|on or before)\s+", _clean(m.group(1)), maxsplit=1)[0]
+        out.append(("Delivery", "Delivery", (how or _clean(m.group(1)))[:80]))
     if SUBMIT.search(s):
         for m in ATTACH.finditer(s):
             name = re.match(r"\w+\s+[A-Z]?-?\d{1,3}[a-z]?", m.group(0)).group(0)
@@ -312,6 +322,8 @@ def summary(rows):
     fmt = [r for r in by.get("Format", [])]
     files = [r for r in by.get("File", [])]
     return {"due": due, "pages": pages, "format": fmt, "files": files, "deliverables": by.get("Deliverable", []),
+            "contact": by.get("Contact", []), "delivery": by.get("Delivery", []), "copies": by.get("Copies", []),
+            "questions_due": next((r for r in by.get("Questions due", [])), None),
             "to_review": [r for r in rows if r.get("to_review")], "count": len(rows)}
 
 

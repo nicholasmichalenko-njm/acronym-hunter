@@ -493,8 +493,14 @@ PAGES = {
           "page size, line spacing, file format, file naming, copies, delivery, and deliverables (volumes, attachments, forms). "
           "Rules only (No AI)."),
     ("img", "requirements.png", 620),
-    ("rows", [("Card and bar", "The card at the top shows the due date with the days left, the page limits, format, files and "
-                               "how many changes wait for review. The same line runs as a thin bar under the steps in every "
+    ("rows", [("Grouped", "The list is grouped: Submittal items, Page limits, Format, Files, How, where and to whom (delivery, "
+                          "copies, the submission and questions contacts), and Dates. Each group shows how many changes wait "
+                          "for review. Items marked Not a requirement are hidden; a box at the top shows them again."),
+              ("Card and bar", "The card at the top shows the proposal due date with the days left, questions due, how the "
+                               "proposal is submitted (for example DoD SAFE) and the submission contact, each with Edit..., and "
+                               "how many changes wait for review. The contact and the method are read from the customer documents "
+                               "(an e-mail address with the Contracting Officer or Contract Specialist) and can be typed in Start "
+                               "an effort. The summary line runs as a thin bar under the steps in every "
                                "feature (amber while a change waits); click it to come back here. Effort home shows it too."),
               ("History", "Click a requirement to see where it was found and each version's value, newest first. Previous and "
                           "Next step through the versions: the sentence, the file, who added it, when, and its fingerprint. Was "

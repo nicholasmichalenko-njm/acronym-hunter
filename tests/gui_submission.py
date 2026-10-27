@@ -121,16 +121,21 @@ def go():
     # 2.39.0: submission requirements, followed across versions
     app.shell_go("submission", "requirements"); app.update()
     check("the Requirements step opens", app.shell_step == "requirements", app.shell_step)
-    rows = {app.req_rows[i]["key"]: (i, app.req_rows[i]) for i in app.req_tree.get_children()}
+    rows = {app.req_rows[i]["key"]: (i, app.req_rows[i]) for i in app.req_items()}
+    groups = [app.req_tree.item(g, "text") for g in app.req_tree.get_children()]
+    check("2.49.0: requirements are grouped: submittal items, page limits, format, files, how and to whom, dates",
+          [g.split(" (")[0] for g in groups] == ["Submittal items", "Page limits", "Format", "Files", "How, where and to whom", "Dates"], groups)
     check("Requirements lists what the documents set", {"Due | Proposal", "Page limit | Proposal", "Format | Font", "File | File format",
                                                          "File | File naming", "Deliverable | Attachment J-2"} <= set(rows), sorted(rows))
     key = "Page limit | Proposal"
     i, r = rows[key]
     check("the changed page limit is marked to review, with its new value", r["to_review"] and r["value"] == "40 pages"
           and app.req_tree.set(i, "state") == "Changed: review" and "review" in app.req_tree.item(i, "tags"), app.req_tree.item(i))
-    check("the card shows the due date, page limits and changes to review", "Proposal: 40 pages" in app.req_cells["pages"][0].cget("text")
-          and app.req_cells["due"][0].cget("text").startswith("December 15, 2026") and app.req_cells["review"][0].cget("text") == "1",
-          [v.cget("text") for v, _s in app.req_cells.values()])
+    check("the card shows the due date and changes to review", app.req_cells["due"][0].cget("text").startswith("December 15, 2026")
+          and app.req_cells["review"][0].cget("text") == "1", [v.cget("text") for v, _s in app.req_cells.values()])
+    app.req_fact_edit("method", "DoD SAFE"); app.req_fact_edit("contact", "Jane Doe, Contracting Officer, jane.doe@us.af.mil"); app.update()
+    check("2.49.0: how it is submitted and the submission contact are on the screen and editable",
+          app.req_cells["method"][0].cget("text") == "DoD SAFE" and "jane.doe@us.af.mil" in app.req_cells["contact"][0].cget("text"))
     bar = app.sub_bar_refresh(); app.update()
     check("the bar shows due date, page limits, format and changes, across every feature", app.subbar.winfo_manager()
           and "Due December 15, 2026" in bar and "Pages: Proposal 40" in bar and "12-point Times New Roman" in bar and "1 change to review" in bar, bar)
@@ -138,7 +143,7 @@ def go():
     check("still there in another feature", app.subbar.winfo_manager())
     app.subbar_lbl._label.event_generate("<Button-1>"); app.update()
     check("clicking the bar opens Requirements", (app.shell_feature, app.shell_step) == ("submission", "requirements"))
-    i = next(x for x in app.req_tree.get_children() if app.req_rows[x]["key"] == key)
+    i = next(x for x in app.req_items() if app.req_rows[x]["key"] == key)
     app.req_tree.selection_set(i); app.update()
     texts.clear(); walk(app.req_detail)
     joined = " | ".join(t for t in texts if isinstance(t, str))
@@ -161,10 +166,10 @@ def go():
     k = app.req_add_dialog("Page limit", "Volume I", "20 pages")
     check("a typed-in requirement", k and app.req_selected()["manual"] and app.req_tree.set(app.req_tree.selection()[0], "state") == "Typed in")
     app.req_hide("Format | Page size")
-    check("Not a requirement hides it; Show: Hidden lists it", "Format | Page size" not in {r["key"] for r in app.req_rows.values()})
-    app.req_show.set("Hidden"); app.req_refresh()
-    check("Show: Hidden lists only the hidden one", [r["key"] for r in app.req_rows.values()] == ["Format | Page size"])
-    app.req_show.set("All requirements"); app.req_refresh()
+    check("Not a requirement hides it", "Format | Page size" not in {r["key"] for r in app.req_rows.values()})
+    app.req_hidden_var.set(True); app.req_refresh()
+    check("Show items marked Not a requirement lists it again", "Format | Page size" in {r["key"] for r in app.req_rows.values()})
+    app.req_hidden_var.set(False); app.req_refresh()
     app.shell_go("home"); app.update()
     card = app.ov_rows["submission"].cget("text")
     check("the Submission card on Effort home shows the due date and page limits", "Due December 15, 2026" in card and "Pages: Proposal 40, Volume I 20" in card, card)

@@ -164,8 +164,13 @@ class SubmissionMixin:
         ctk.CTkLabel(ex, text="The files hold customer content: keep them on this PC or SharePoint.", anchor="w",
                      text_color=("#475569", "#94A3B8")).pack(fill="x", padx=8, pady=6)
 
-    # ------------------------------------------------------------ Requirements (2.39.0)
-    REQ_SHOW = ("All requirements", "Changes to review", "Due dates and page limits", "Format and files", "Deliverables", "Hidden")
+    # ------------------------------------------------------------ Requirements (2.39.0; grouped, 2.49.0)
+    REQ_GROUPS = (("deliver", "Submittal items", ("Deliverable",)),
+                  ("pages", "Page limits", ("Page limit",)),
+                  ("format", "Format", ("Format",)),
+                  ("files", "Files", ("File",)),
+                  ("how", "How, where and to whom", ("Delivery", "Copies", "Contact")),
+                  ("dates", "Dates", ("Due", "Questions due")))
 
     def _page_requirements(self):
         A = dict(height=30, width=10)
@@ -173,14 +178,16 @@ class SubmissionMixin:
         ctk.CTkButton(act, text="Add a requirement...", command=self.req_add_dialog, **A).pack(side="left", padx=3)
         ctk.CTkButton(act, text="Export (Excel)...", command=self.req_export, fg_color="#475569", **A).pack(side="left", padx=3)
         pg = self.shell_page("sub_reqs")
-        self._h(pg, "Submission requirements", "What to deliver and how, read from every version of the customer documents. "
-                                               "A change stays marked until someone reviews it. Rules only (No AI).")
+        self._h(pg, "Submission requirements", "What to deliver, how it must look, and how, where and when it goes in: read "
+                                               "from every version of the customer documents, confirmed by the team. A change "
+                                               "stays marked until someone reviews it. Rules only (No AI).")
+        # 2.49.0: the facts the team checks most, on the screen: due, questions, how it is sent, to whom
         self.req_card = ctk.CTkFrame(pg, corner_radius=12, fg_color=("#FFFFFF", "#1F2937"), border_width=1,
                                      border_color=("#E2E8F0", "#334155"))
         self.req_card.pack(fill="x", padx=6, pady=(0, 6))
         self.req_cells = {}
-        for i, (k, label) in enumerate((("due", "DUE"), ("pages", "PAGE LIMITS"), ("format", "FORMAT"), ("files", "FILES"),
-                                       ("review", "TO REVIEW"))):
+        for i, (k, label) in enumerate((("due", "PROPOSAL DUE"), ("questions", "QUESTIONS DUE"), ("method", "SUBMIT VIA"),
+                                       ("contact", "SUBMISSION CONTACT"), ("review", "CHANGES TO REVIEW"))):
             self.req_card.grid_columnconfigure(i, weight=1, uniform="rc")
             cell = ctk.CTkFrame(self.req_card, fg_color="transparent")
             cell.grid(row=0, column=i, sticky="nsew", padx=12, pady=10)
@@ -190,24 +197,30 @@ class SubmissionMixin:
             sub = ctk.CTkLabel(cell, text="", font=("Segoe UI", 11), anchor="w", justify="left", wraplength=230,
                                text_color=("#475569", "#94A3B8"))
             sub.pack(fill="x")
+            if k in ("method", "contact", "due", "questions"):
+                ctk.CTkButton(cell, text="Edit...", width=10, height=22, font=("Segoe UI", 11), fg_color="transparent",
+                              text_color=("#1E3A8A", "#93C5FD"), hover_color=("#E2E8F0", "#334155"),
+                              command=lambda k=k: self.req_fact_edit(k)).pack(anchor="w", pady=(2, 0))
             self.req_cells[k] = (v, sub)
         bar = ctk.CTkFrame(pg, fg_color="transparent"); bar.pack(fill="x", padx=6)
-        ctk.CTkLabel(bar, text="Show").pack(side="left")
-        self.req_show = ctk.CTkOptionMenu(bar, values=list(self.REQ_SHOW), width=230, command=lambda _v: self.req_refresh())
-        self.req_show.pack(side="left", padx=6)
+        self.req_hidden_var = tk.BooleanVar(value=False)
+        ctk.CTkCheckBox(bar, text="Show items marked Not a requirement", variable=self.req_hidden_var,
+                        command=self.req_refresh).pack(side="left")
         self.req_count = ctk.CTkLabel(bar, text="", text_color=("#475569", "#94A3B8"))
         self.req_count.pack(side="left", padx=10)
         body = ctk.CTkFrame(pg, fg_color="transparent"); body.pack(fill="both", expand=True, padx=6, pady=6)
-        self.req_detail = ctk.CTkScrollableFrame(body, width=440)      # the history keeps its width; the table takes the rest
+        self.req_detail = ctk.CTkScrollableFrame(body, width=440)      # the history keeps its width; the list takes the rest
         self.req_detail.pack(side="right", fill="y", padx=(10, 0))
         left = tk.Frame(body); left.pack(side="left", fill="both", expand=True)
-        cols = (("kind", "Kind", 100), ("subject", "Requirement", 150), ("value", "Says", 240), ("state", "Status", 140),
-                ("src", "From", 200))
-        self.req_tree = tv = ttk.Treeview(left, columns=[c[0] for c in cols], show="headings", selectmode="browse",
+        cols = (("value", "Says", 300), ("state", "Status", 140), ("src", "From", 200))
+        self.req_tree = tv = ttk.Treeview(left, columns=[c[0] for c in cols], show="tree headings", selectmode="browse",
                                           style=getattr(self, "tree_style", "Treeview"))
         sc = float(ctk.ScalingTracker.get_widget_scaling(pg)) * getattr(self, "font_size", 13) / 13   # like the QA/QC tables
+        tv.heading("#0", text="Requirement"); tv.column("#0", width=int(230 * sc), minwidth=120, anchor="w", stretch=False)
         for k, t, w in cols:
             tv.heading(k, text=t); tv.column(k, width=int(w * sc), minwidth=60, anchor="w", stretch=k == "value")
+        tv.tag_configure("group", font=("Segoe UI", max(10, getattr(self, "font_size", 13) - 1), "bold"), background="#E8EEF8",
+                         foreground="#1E3A8A")
         tv.tag_configure("review", background="#FEF3C7", foreground="#78350F")
         tv.tag_configure("confirmed", background="#DCFCE7", foreground="#14532D")
         tv.tag_configure("manual", background="#E0F2FE", foreground="#0C4A6E")
@@ -224,31 +237,26 @@ class SubmissionMixin:
         if r["to_review"]:
             return ("Removed: review" if r["removed"] else "Changed: review"), "review"
         if r["hidden"]:
-            return "Hidden", "removed"
+            return "Not a requirement", "removed"
         if r["removed"]:
             return "No longer in the documents", "removed"
         if r["confirmed"]:
             return "Confirmed", "confirmed"
         return "Found", ""
 
-    def req_filter(self, rows, show):
-        k = {"Due dates and page limits": ("Due", "Questions due", "Page limit"), "Format and files": ("Format", "File", "Copies", "Delivery"),
-             "Deliverables": ("Deliverable",)}
-        if show == "Changes to review":
-            return [r for r in rows if r["to_review"]]
-        if show == "Hidden":
-            return [r for r in rows if r["hidden"]]
-        if show in k:
-            return [r for r in rows if r["kind"] in k[show] and not r["hidden"]]
-        return [r for r in rows if not r["hidden"]]
+    def req_items(self):
+        """The requirement rows of the list (not the group headings), in order."""
+        tv = self.req_tree
+        return [c for g in tv.get_children() for c in tv.get_children(g)]
 
     def req_refresh(self):
-        """Fill the list and the summary card. Returns the rows shown."""
+        """Fill the grouped list and the facts card. Returns the rows shown."""
         if not hasattr(self, "req_tree"):
             return []
         reg = self.subreg()
         tv = self.req_tree
         keep = tv.selection()
+        keep_key = self.req_rows.get(keep[0], {}).get("key") if keep else None
         tv.delete(*tv.get_children())
         self.req_rows = {}
         if reg is None:
@@ -258,30 +266,60 @@ class SubmissionMixin:
             return []
         allrows = reg.rows(include_hidden=True)
         self._req_card([r for r in allrows if not r["hidden"]])
-        rows = self.req_filter(allrows, self.req_show.get())
-        for r in rows:
-            st, tag = self._req_state(r)
-            src = "" if r["manual"] else f"{r['doc']}, {r['version']}"
-            iid = tv.insert("", "end", values=(r["kind"], r["subject"], r["value"], st, src), tags=(tag,) if tag else ())
-            self.req_rows[iid] = r
+        show_hidden = bool(self.req_hidden_var.get())
+        rows = [r for r in allrows if show_hidden or not r["hidden"]]
+        for gk, label, kinds in self.REQ_GROUPS:
+            mine = [r for r in rows if r["kind"] in kinds]
+            n_rev = sum(1 for r in mine if r["to_review"])
+            g = tv.insert("", "end", iid=f"group:{gk}", text=f"{label} ({len(mine)})", open=True, tags=("group",),
+                          values=("none found yet" if not mine else "", f"{n_rev} to review" if n_rev else "", ""))
+            for r in mine:
+                st, tag = self._req_state(r)
+                src = "" if r["manual"] else f"{r['doc']}, {r['version']}"
+                iid = tv.insert(g, "end", text=r["subject"], values=(r["value"], st, src), tags=(tag,) if tag else ())
+                self.req_rows[iid] = r
         n_rev = sum(1 for r in allrows if r["to_review"])
         lib = self.doclib()
-        self.req_count.configure(text=(f"{len(rows)} shown of {sum(1 for r in allrows if not r['hidden'])}" +
+        self.req_count.configure(text=(f"{sum(1 for r in allrows if not r['hidden'])} requirements" +
                                        (f"  |  {n_rev} change{'s' if n_rev != 1 else ''} to review" if n_rev else "")
                                        if allrows else ("No customer documents yet: add them on Documents." if not lib.docs
                                                         else "No submission requirements found yet. Add a requirement... types one in.")))
-        sel = [i for i in tv.get_children() if self.req_rows[i]["key"] in {self.req_rows.get(k, {}).get("key") for k in keep}] \
-            if keep else []
-        want = getattr(self, "_req_want", None)
-        if want:
-            sel = [i for i in tv.get_children() if self.req_rows[i]["key"] == want] or sel
-            self._req_want = None
-        if not sel and tv.get_children():
-            sel = [tv.get_children()[0]]
+        items = self.req_items()
+        want = getattr(self, "_req_want", None) or keep_key
+        self._req_want = None
+        sel = [i for i in items if self.req_rows[i]["key"] == want] if want else []
+        if not sel and items:
+            sel = [items[0]]
         if sel:
             tv.selection_set(sel[0]); tv.see(sel[0])
         self._req_detail()
         return rows
+
+    def req_fact_edit(self, which, value=None):
+        """Edit one of the facts on the card: the due date, questions due, how it is sent, the submission contact. A
+        found value is edited in place (the documents' wording stays in its history); a missing one is typed in."""
+        reg = self.subreg()
+        if reg is None:
+            return None
+        kind, subject, label = {"due": ("Due", "Proposal", "Proposal due"), "questions": ("Questions due", "Questions", "Questions due"),
+                                "method": ("Delivery", "Delivery", "How the proposal is submitted (for example DoD SAFE, PIEE, e-mail)"),
+                                "contact": ("Contact", "Submission contact", "Submission contact (name, role, e-mail)")}[which]
+        row = next((r for r in reg.rows() if r["kind"] == kind and (r["subject"] == subject or kind in ("Delivery",))), None)
+        if value is None:
+            from tkinter import simpledialog
+            value = simpledialog.askstring(label, label + ":", initialvalue=row["value"] if row else "", parent=self)
+            if value is None:
+                return None
+        value = " ".join(value.split())
+        if row is not None and not row["manual"]:
+            return self.req_edit(row["key"], value)
+        if row is not None:
+            reg.remove_manual(row["key"])
+        k = reg.add(kind, subject, value)
+        if hasattr(self, "rec_log"):
+            self.rec_log("submission", f"{label.split(' (')[0]} set: {value}")
+        self._req_after(k)
+        return k
 
     def req_summary_text(self, rows=None):
         """One line for the bar and the Effort home card: due date (days left), page limits, format, files, changes."""
@@ -322,20 +360,28 @@ class SubmissionMixin:
             cells["due"][1].configure(text=("" if n is None else "The due date has passed" if n < 0 else "Today" if n == 0
                                             else f"{n} day{'s' if n != 1 else ''} from today") +
                                       ("" if not s["due"]["to_review"] else "  |  changed: review"))
-        if s["pages"]:
-            cells["pages"][0].configure(text="\n".join(f"{subj}: {v}" for subj, v, _r in s["pages"][:4]))
-            cells["pages"][1].configure(text="changed: review" if any(r["to_review"] for _a, _b, r in s["pages"]) else "")
-        if s["format"]:
-            cells["format"][0].configure(text="\n".join(r["value"] for r in s["format"][:3]))
-        if s["files"]:
-            cells["files"][0].configure(text="\n".join(r["value"][:40] for r in s["files"][:3]))
+        q = s.get("questions_due")
+        if q:
+            n = SR.days_until(q["value"])
+            cells["questions"][0].configure(text=q["value"])
+            cells["questions"][1].configure(text="" if n is None else "Passed" if n < 0 else f"{n} day{'s' if n != 1 else ''} from today")
+        if s.get("delivery"):
+            cells["method"][0].configure(text=s["delivery"][0]["value"])
+            if s.get("copies"):
+                cells["method"][1].configure(text=s["copies"][0]["value"])
+        sc = [r for r in s.get("contact", []) if r["subject"] == "Submission contact"] or s.get("contact", [])
+        if sc:
+            cells["contact"][0].configure(text=sc[0]["value"])
+            qc = [r for r in s.get("contact", []) if r["subject"] == "Questions contact" and r is not sc[0]]
+            if qc:
+                cells["contact"][1].configure(text="Questions: " + qc[0]["value"])
         n = len(s["to_review"])
         cells["review"][0].configure(text=str(n) if n else "None", text_color=("#B45309", "#FBBF24") if n else ("#15803D", "#86EFAC"))
-        cells["review"][1].configure(text=f"{len(s['deliverables'])} deliverable(s) found" if s["deliverables"] else "")
+        cells["review"][1].configure(text=f"{len(s['deliverables'])} submittal item(s) found" if s["deliverables"] else "")
 
     def req_selected(self):
         sel = self.req_tree.selection() if hasattr(self, "req_tree") else ()
-        return self.req_rows.get(sel[0]) if sel else None
+        return self.req_rows.get(sel[0]) if sel else None          # a group heading selects nothing
 
     def _req_doc_of(self, vid):
         lib = self.doclib()

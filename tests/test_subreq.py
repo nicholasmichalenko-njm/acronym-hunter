@@ -110,6 +110,12 @@ def run():
     from openpyxl import load_workbook
     wb = load_workbook(os.path.join(d, "reqs.xlsx"))
     assert wb.sheetnames == ["Submission requirements", "History"] and wb["History"].max_row > 5
+    # 2.49.0: the submission contact and how the proposal is submitted
+    got = S.find("Proposals shall be submitted electronically via DoD SAFE to the Contracting Officer, Jane Doe, at "
+                  "jane.doe@us.af.mil no later than December 15, 2026.")
+    assert ("Contact", "Submission contact", "Jane Doe (Contracting Officer) jane.doe@us.af.mil") in got and ("Delivery", "Delivery", "DoD SAFE") in got, got
+    got = S.find("Questions shall be sent to the Contract Specialist, Mr. Bob Lee, at robert.lee.3@us.af.mil by November 2, 2026.")
+    assert got == [("Contact", "Questions contact", "Mr. Bob Lee (Contract Specialist) robert.lee.3@us.af.mil")], got
     print("subreq ok")
 
 
