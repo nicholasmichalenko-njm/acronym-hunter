@@ -126,7 +126,7 @@ class CompliancePageMixin:
         ctk.CTkButton(side, text="How this file is referenced...", width=10, height=24, fg_color="transparent", border_width=1,
                       text_color=("#1E3A8A", "#BFDBFE"), command=self.cp_change_reference).pack(anchor="w", padx=8, pady=(2, 0))
         r = ctk.CTkFrame(side, fg_color="transparent"); r.pack(fill="x", padx=8, pady=(6, 4))
-        ctk.CTkButton(r, text="Show page", width=90, command=self.compliance_show_page).pack(side="left")
+        ctk.CTkButton(r, text="Original layout", width=90, command=self.compliance_show_page).pack(side="left")
         ctk.CTkButton(r, text="Open file", width=90, command=self.compliance_open_file).pack(side="left", padx=6)
         self._cp_card_title(side, "Response structure")
         win.cp_ohint = ctk.CTkLabel(side, text="", anchor="w", justify="left", wraplength=310, text_color=("#475569", "#94A3B8"))

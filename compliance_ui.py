@@ -347,7 +347,7 @@ class ComplianceMixin:
         win.d_src = ctk.CTkLabel(right, text="", anchor="w", justify="left", wraplength=400, text_color=("#475569", "#94A3B8"))
         win.d_src.pack(fill="x", padx=10)
         sbar = ctk.CTkFrame(right, fg_color="transparent"); sbar.pack(fill="x", padx=10, pady=(4, 0))
-        ctk.CTkButton(sbar, text="Show page", width=100, command=self.compliance_show_page).pack(side="left")
+        ctk.CTkButton(sbar, text="Original layout", width=100, command=self.compliance_show_page).pack(side="left")
         ctk.CTkButton(sbar, text="Open file", width=100, command=self.compliance_open_file).pack(side="left", padx=6)
         ctk.CTkButton(sbar, text="Compliance word style...", width=10, command=self.compliance_word_style).pack(side="left")
         ctk.CTkLabel(right, text="Source passage", anchor="w").pack(fill="x", padx=10, pady=(6, 0))
@@ -632,6 +632,8 @@ class ComplianceMixin:
         self._c_show_learned(it)
         if hasattr(self, "_cp_show"):
             self._cp_show(it)
+        if hasattr(self, "layout_follow"):
+            self.layout_follow(it)                   # 2.45.0: the Original layout window follows Assign
 
     def _c_show_learned(self, it):
         """'From past proposals': the top 3 sections, each a button that maps the row; or 'no strong match'."""
@@ -1330,6 +1332,11 @@ class ComplianceMixin:
                 diag.swallowed()
         self._c_snap_after = self.after(400, self._c_snapshot)
         self.resume_changed() if hasattr(self, "resume_changed") else None
+        if getattr(self, "_lay", None) is not None:  # 2.45.0: decision colors on the Original layout
+            try:
+                self.layout_redraw()
+            except Exception:
+                diag.swallowed()
         if refill:
             self._c_refresh()
         else:
@@ -1513,10 +1520,13 @@ class ComplianceMixin:
             messagebox.showinfo("Open file", p, parent=self._cwin)
 
     def compliance_show_page(self):
-        """The PDF page a row came from, with the sentence highlighted. Other files: the passage is in the panel; Open file."""
+        """The PDF page a row came from, with the sentence highlighted. Other files: the passage is in the panel; Open file.
+        2.45.0: the Original layout view (every sentence on the page boxed and clickable) when it is available."""
         sel = self._c_selected()
         if len(sel) != 1:
             return
+        if hasattr(self, "compliance_layout") and sel[0]["file"].lower().endswith(".pdf"):
+            return self.compliance_layout(sel[0])
         it = sel[0]
         if not it["file"].lower().endswith(".pdf") or not it.get("page"):
             messagebox.showinfo("Show page", "Pages are shown for PDF files. For Word, Excel and PowerPoint the source passage is "

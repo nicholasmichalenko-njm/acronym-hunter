@@ -499,6 +499,13 @@ PAGES = {
           "lists anything not in the review and adds it for review in one click. Numbered headings show as section titles; an "
           "unnumbered capitalized line such as NOTE TO OFFERORS is also a sentence to assign. Text inside pictures is read "
           "by OCR (AI and ML) and is not part of this check."),
+    ("p", "Original layout (in Assign, under the sentence) shows a PDF customer document page as it looks, with every sentence "
+          "of the review boxed in its decision's color: green a compliance requirement, blue context, gray not used, amber not "
+          "decided yet. Click a box to work on that sentence in Assign; when Assign moves to a sentence on another page, the "
+          "view turns the page. Text on the page that is not in the review is boxed in red (the text check's own rules): click "
+          "it to add it to the review. Page with the arrows or Page Up and Page Down. Word, Excel and PowerPoint files have "
+          "no fixed pages: their passage is in the panel and Open file opens them."),
+    ("img", "layout.png", 560),
     ("img", "compliance.png", 620),
     ("rows", [("Assign", "The RFP reads like a page on the left; your response structure is always on the right (with no "
                          "structure yet, start it from the RFP headings there). Click any "
@@ -574,7 +581,7 @@ PAGES = {
               ("Learned", "The app learns from your Keep and Drop decisions (Learn from decisions, and after every save). The Learned "
                           "column shows how likely the team is to keep a row; Accept suggestions uses it once it has enough decisions. "
                           "It stores numbered word buckets and counts, never RFP text, and travels in Knowledge Packs."),
-              ("Source page", "Show page opens a PDF row's page with the sentence highlighted. Open file opens any source document."),
+              ("Source page", "Original layout opens a PDF row's page with every sentence boxed (see above). Open file opens any source document."),
               ("Amendments", "Re-read RFP keeps decisions, mapping and notes for unchanged sentences. Amendment changes pairs changed "
                              "sentences and shows the word differences: [-removed-] {+added+}; export it to Excel."),
               ("Outputs", "The matrix is an Excel workbook (edits made in Excel count; type Keep, Context or Drop). Response "

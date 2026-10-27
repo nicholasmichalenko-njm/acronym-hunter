@@ -3,7 +3,7 @@
     venv\\Scripts\\python.exe tools\\make_guide_shots.py
 
 Uses the fictional test_samples only, in a temporary config folder, and writes assets\\help\\topbar.png, shell.png,
-home.png, scanreview.png, keywords.png, suggest.png, submission.png, compare.png, requirements.png, deliverables.png, impact.png, briefs.png, compliance.png, prove.png, setup.png, whatruns.png, stack.png,
+home.png, scanreview.png, keywords.png, suggest.png, submission.png, compare.png, requirements.png, deliverables.png, impact.png, briefs.png, layout.png, compliance.png, prove.png, setup.png, whatruns.png, stack.png,
 qa.png and training.png (2.33.0: the one-feature-at-a-time layout). Each picture is the window region of one view, captured
 with PIL ImageGrab, so the window must be on screen and not covered.
 """
@@ -204,6 +204,18 @@ def step3():
     def shot_setup():
         zoom(); time.sleep(0.8); app.update()
         grab(app.main, "compliance.png")
+        pdf_it = next((x for x in app.matrix.items if x.get("file", "").lower().endswith(".pdf")), None)   # 2.45.0: Original layout
+        if pdf_it is not None:
+            app._cp_select(pdf_it["id"]); app.update()
+            lw = app.compliance_layout(pdf_it)
+            if lw is not None:
+                lw.geometry("980x900+10+10")
+                for _ in range(4):
+                    lw.update_idletasks(); lw.update(); time.sleep(0.4)
+                app._lay_fit(); lw.update()
+                grab(lw, "layout.png")
+                lw.destroy(); app._lay = None; app.update()
+            app._cp_select(ctx["id"]); app.update()
         app.setup_accept(); app.update()
         app._cwin.tabs.set("Setup"); app.update()          # the setup board opens from Assign
         out = app._cwin.s_out
