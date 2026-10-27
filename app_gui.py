@@ -28,10 +28,10 @@ except OSError as _e:
     import tkinter as _tk
     from tkinter import messagebox as _mb
     _r = _tk.Tk(); _r.withdraw()
-    _mb.showerror("Acronym Hunter cannot start",
+    _mb.showerror("Stationkeeper cannot start",
                   f"The app cannot write to its own folder:\n{BASE_DIR}\n\n"
-                  "Unzip the whole AcronymHunter folder to a location you can write to "
-                  "(for example Desktop or Documents), then run AcronymHunter.exe from there.\n\n"
+                  "Unzip the whole Stationkeeper folder to a location you can write to "
+                  "(for example Desktop or Documents), then run Stationkeeper.exe from there.\n\n"
                   f"Details: {_e}")
     sys.exit(1)
 
@@ -2483,7 +2483,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.43.0"            # keep in step with version_info.txt
+APP_VERSION = "2.44.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -2603,7 +2603,7 @@ class Project:
         with open(self.path, "r", encoding="utf-8-sig") as f:
             data = json.load(f)
         if data.get("format") != PROJECT_FORMAT:
-            raise ValueError("This is not an Acronym Hunter project file.")
+            raise ValueError("This is not a Stationkeeper project file.")
         base = self.new_data(); base.update(data); self.data = base
 
     def save(self):
@@ -3053,7 +3053,7 @@ def read_knowledge_pack(path):
             raise ValueError("pack_info.json is missing. Not a Knowledge Pack.")
         info = json.loads(z.read(PACK_ROOT + "pack_info.json").decode("utf-8"))
         if info.get("format") != KNOWLEDGE_FORMAT:
-            raise ValueError("Not an Acronym Hunter Knowledge Pack.")
+            raise ValueError("Not a Stationkeeper Knowledge Pack.")
         data = {}
         for name, meta in info.get("files", {}).items():
             member = PACK_ROOT + name
@@ -3410,10 +3410,10 @@ def save_settings(data):
 
 TRAIN_DIR = os.path.join(BASE_DIR, "training_data")   # the Trainer's saved samples (never shipped, never committed)
 
-TRAINING_APP = False   # True only inside Acronym Hunter Training (training_app.py sets it) (2.15.0)
+TRAINING_APP = False   # True only inside Stationkeeper Training (training_app.py sets it) (2.15.0)
 
 def trainer_available():
-    """The Trainer, Improve Reading and Load Trained Models: only in Acronym Hunter Training (2.15.0)."""
+    """The Trainer, Improve Reading and Load Trained Models: only in Stationkeeper Training (2.15.0)."""
     return TRAINING_APP and bool(APP_CFG["allow_training"]) and importlib.util.find_spec("trainer_gui") is not None
 
 def corrections_on():
@@ -3423,7 +3423,7 @@ def corrections_on():
 class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixin, ImpactMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title(f"Acronym Hunter {APP_VERSION}: acronyms, abbreviations and units (100% local)")
+        self.title(f"Stationkeeper {APP_VERSION}: proposal efforts, 100% local")
         apply_window_icon(self)
         self.geometry("1280x780")
         self.minsize(1000, 560)
@@ -3679,7 +3679,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
             self.after(5000, self._banner_tick)
 
     def update_banner(self):
-        if not TRAINING_APP:                      # Acronym Hunter: corrections go to the training team (2.15.0)
+        if not TRAINING_APP:                      # Stationkeeper: corrections go to the training team (2.15.0)
             return self._send_banner()
         import tess_train
         show = trainer_available() and OCR_BACKEND == "tesseract" and ai_ml_on()   # ML: hidden while AI and ML are off
@@ -3736,7 +3736,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
                 "SharePoint folder for the training team. Never email, GitHub or personal storage.\n\nSave the pack now?"):
             return None
         if path is None:
-            name = f"AcronymHunter_Corrections_{re.sub(r'[^A-Za-z0-9]+', '', getpass.getuser()) or 'user'}_{datetime.datetime.now():%Y.%m.%d-%H%M}.zip"
+            name = f"Stationkeeper_Corrections_{re.sub(r'[^A-Za-z0-9]+', '', getpass.getuser()) or 'user'}_{datetime.datetime.now():%Y.%m.%d-%H%M}.zip"
             path = filedialog.asksaveasfilename(title="Save corrections to the APPROVED SHAREPOINT folder", initialfile=name,
                                                 defaultextension=".zip", filetypes=[("Corrections pack", "*.zip")])
             if not path:
@@ -3746,7 +3746,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         self.update_banner()
         if ask:
             messagebox.showinfo("Send corrections", f"Saved {os.path.basename(path)}: {r['lines']} line(s), {r['regions']} "
-                                "region(s). The training team imports it in Acronym Hunter Training; the better reader comes "
+                                "region(s). The training team imports it in Stationkeeper Training; the better reader comes "
                                 "back to you in a Knowledge Pack.")
         return r
 
@@ -3791,9 +3791,9 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         h.add_separator()
         h.add_command(label="What runs where (AI and ML)...", command=c("help_what_runs", self.show_what_runs))
         h.add_command(label="AI and ML: the difference...", command=c("help_ai_difference", self.show_ai_difference))
-        h.add_command(label="What Acronym Hunter is built on...", command=c("help_components", self.show_components))
+        h.add_command(label="What Stationkeeper is built on...", command=c("help_components", self.show_components))
         h.add_separator()
-        h.add_command(label="About Acronym Hunter", command=c("help_about", self.show_about))
+        h.add_command(label="About Stationkeeper", command=c("help_about", self.show_about))
         mb.add_cascade(label="Help", menu=h)
         a = tk.Menu(mb, tearoff=0)
         scan = tk.Menu(a, tearoff=0)
@@ -3822,7 +3822,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         el = tk.Menu(a, tearoff=0, postcommand=lambda: self.show_effort_menu(el))
         a.add_cascade(label="Effort list and all effort commands", menu=el)
         a.add_command(label="Compliance word style...", command=c("compliance_word_style", self.compliance_word_style))
-        a.add_command(label="Make .ahpkg effort packages open in Acronym Hunter (this Windows user)...",
+        a.add_command(label="Make effort packages open in Stationkeeper (this Windows user)...",
                       command=c("pkg_associate", self.pkg_associate))
         t = tk.Menu(a, tearoff=0, postcommand=lambda: self.show_tools_menu(t))
         a.add_cascade(label="Reading, training and knowledge", menu=t)
@@ -3922,8 +3922,8 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
 
     def show_about(self):
         edition = "US Classic (Tesseract only)" if not DOCTR_DIR else "US (Tesseract + docTR second reader)"
-        messagebox.showinfo("About Acronym Hunter",
-                            f"Acronym Hunter {APP_VERSION}\nEdition: {edition}\n\nRuns fully offline on this PC. It makes no network "
+        messagebox.showinfo("About Stationkeeper",
+                            f"Stationkeeper {APP_VERSION}\nEdition: {edition}\n\nRuns fully offline on this PC. It makes no network "
                             "connections; picture reading runs in a no-network sandbox.\n\nFinds acronyms, abbreviations, units, symbols "
                             "and equations; keeps an effort list per proposal; checks volumes; builds compliance matrices.", parent=self)
 
@@ -4477,7 +4477,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
             refresh(f"Restored the state from {what}." if what else "Nothing to undo.")
         ctk.CTkButton(win, text="Install Knowledge Pack...", command=install).pack(fill="x", padx=16, pady=4)
         ctk.CTkButton(win, text="Undo Last Knowledge Change", fg_color="#475569", command=undo).pack(fill="x", padx=16, pady=4)
-        if TRAINING_APP:   # loading trained models and exporting packs belong to Acronym Hunter Training (2.15.0)
+        if TRAINING_APP:   # loading trained models and exporting packs belong to Stationkeeper Training (2.15.0)
             ctk.CTkLabel(win, text="Share and load", font=("Arial", 12, "bold")).pack(anchor="w", padx=16, pady=(14, 2))
             def load_models():
                 folder = filedialog.askdirectory(parent=win, title="Training Kit output folder (docTR: output\\models; or acronym.traineddata)")
@@ -4490,7 +4490,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
                     messagebox.showerror("Not loaded", f"{e}\n\nNothing was changed.", parent=win)
             def export():
                 notes = notes_box.get().strip()
-                name = f"AcronymHunter_Knowledge_{datetime.datetime.now():%Y.%m.%d-%H%M}.zip"
+                name = f"Stationkeeper_Knowledge_{datetime.datetime.now():%Y.%m.%d-%H%M}.zip"
                 path = filedialog.asksaveasfilename(parent=win, title="Save Knowledge Pack to the APPROVED SHAREPOINT folder",
                                                     initialfile=name, defaultextension=".zip", filetypes=[("Knowledge Pack", "*.zip")])
                 if not path: return
@@ -4813,7 +4813,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         stem = os.path.basename(os.path.normpath(folder)) if folder else os.path.splitext(os.path.basename(paths[0]))[0]
         path = filedialog.asksaveasfilename(title="Save results as a project (the project file goes with the documents)",
                                             initialdir=start, initialfile=stem + PROJECT_EXT, defaultextension=PROJECT_EXT,
-                                            filetypes=[("Acronym Hunter project", "*" + PROJECT_EXT)])
+                                            filetypes=[("Stationkeeper project", "*" + PROJECT_EXT)])
         if not path:
             return
         proj = Project(path); proj.data = Project.new_data()
@@ -4857,7 +4857,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
 
     def open_project(self, path=None):
         path = path or filedialog.askopenfilename(title="Open Project", initialdir=self.start_dir(),
-                                                  filetypes=[("Acronym Hunter project", "*" + PROJECT_EXT)])
+                                                  filetypes=[("Stationkeeper project", "*" + PROJECT_EXT)])
         if not path: return
         if not self.close_project(): return
         proj = Project(path)
@@ -6211,7 +6211,7 @@ def run_selftest(paths):
                 f.write(f"Training features: on (Trainer window and Improve Reading loaded; "
                         f"{len(tess_train.read_samples(TRAIN_DIR))} saved lines)\n")
             else:
-                f.write("Training features: in Acronym Hunter Training; this program saves corrections only"
+                f.write("Training features: in Stationkeeper Training; this program saves corrections only"
                         + ("" if APP_CFG["allow_training"] else " (off: allow_training = false)") + "\n")
             if OCR_BACKEND == "tesseract":
                 f.write(f"OCR sandbox: {OCR_SANDBOX_STATUS}\n")
@@ -6240,7 +6240,7 @@ if __name__ == "__main__":
         sys.exit(0)
     try:
         app = AcronymAppGUI()
-        pkg = next((a for a in sys.argv[1:] if a.lower().endswith(".ahpkg") and os.path.isfile(a)), None)
+        pkg = next((a for a in sys.argv[1:] if a.lower().endswith((".skpkg", ".ahpkg")) and os.path.isfile(a)), None)
         if pkg:                                     # 2.41.0: a package opened with the app (double-click or drop on it)
             app.after(1500, lambda: app.pkg_import_dialog(pkg))
         app.mainloop()

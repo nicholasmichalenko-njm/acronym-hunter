@@ -1,4 +1,4 @@
-"""Acronym Hunter Trainer: region rescans and OCR training-sample capture.
+"""Stationkeeper Trainer: region rescans and OCR training-sample capture.
 
 Opens as a window inside the scanner (TrainerWindow: Advanced > Trainer, or right-click a result > Check in picture)
 and shares its engine, config\\ folder, network guard, and sandbox. TrainerApp runs it on its own (from source).
@@ -162,7 +162,7 @@ class _TrainerUI:
     scanner = None
 
     def _build_ui(self, start_file=None, focus=None):
-        self.title(f"Acronym Hunter {eng.APP_VERSION}: Trainer (check pictures and teach the reader)")
+        self.title(f"Stationkeeper {eng.APP_VERSION}: Trainer (check pictures and teach the reader)")
         self.focus_target = focus      # (scanner location, term) from "Check in picture"
         self.focus_term = focus[1] if focus else None
         self.geometry("1300x800"); self.minsize(1000, 560)

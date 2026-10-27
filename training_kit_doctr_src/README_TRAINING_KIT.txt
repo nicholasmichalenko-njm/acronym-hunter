@@ -1,6 +1,6 @@
 ACRONYM HUNTER TRAINING KIT (docTR)
 ===================================
-Teaches Acronym Hunter's second reader (docTR) from your corrections. Runs on any Windows 10/11 PC with NO internet.
+Teaches Stationkeeper's second reader (docTR) from your corrections. Runs on any Windows 10/11 PC with NO internet.
 
 TWO VERSIONS
   AcronymHunter_TrainingKit_docTR_GPU   NVIDIA RTX graphics card (Blackwell: RTX 50, RTX PRO; tested on an RTX 5070 Ti,
@@ -33,7 +33,7 @@ STEP BY STEP
   2. Double-click Train.cmd. Choose 1 first (Check), then 2, 3 or 4.
      Minimums: 20 corrected words for the reader (more is better), 10 regions for the finder.
   3. The kit writes output\models\: doctr_det.onnx, doctr_reco.onnx, doctr_models.json, REPORT.txt.
-  4. In Acronym Hunter: Tools > Knowledge > Load Trained Models > pick output\models.
+  4. In Stationkeeper: Tools > Knowledge > Load Trained Models > pick output\models.
      The app checks every file's SHA-256 and uses the trained models at once. Undo Last Knowledge Change puts the
      previous models back.
   5. Rescan a folder you know. Keep the models if results improve.

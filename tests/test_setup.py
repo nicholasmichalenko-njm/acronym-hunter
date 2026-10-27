@@ -100,7 +100,7 @@ def run():
     assert texts.index("We exceed this: cite the 2024 test.") < texts.index("Lead with the radiator. Owner: J. Ortiz.")
     assert colors(paths[0]) == {SD.PURPLE, SD.GREEN, SD.CONTEXT_BLUE}, colors(paths[0])   # context in blue (2.29.0)
     custom = zipfile.ZipFile(paths[0]).read("docProps/custom.xml").decode("utf-8")
-    assert "AcronymHunterMatrix" in custom and "Kestrel" in custom
+    assert "StationkeeperMatrix" in custom and "Kestrel" in custom
     assert "Volume II" in doc_paras(paths[1])[0][0]
     # export changes only
     assert SD.changes_since_last(M) == []

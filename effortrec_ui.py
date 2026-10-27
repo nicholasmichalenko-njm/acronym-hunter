@@ -695,7 +695,7 @@ class EffortRecordMixin:
 
     # ------------------------------------------------------------ effort package (save and import)
     def pkg_save_dialog(self, path=None, customer=True, volumes=True):
-        """File > Save effort package...: the whole effort in one .ahpkg file for a hand-off."""
+        """File > Save effort package...: the whole effort in one .skpkg file for a hand-off."""
         import effortpkg as P, workspace as W
         L, ws = getattr(self, "effort", None), getattr(self, "ws", None)
         if L is None or ws is None:
@@ -736,7 +736,7 @@ class EffortRecordMixin:
                 fname = "_".join(x for x in (L.name, stage, stamp) if x).replace(" ", "_") + P.EXT
                 folder = os.path.dirname(info.get("customer_dir", "") or L.path)
                 p = filedialog.asksaveasfilename(parent=w, title="Save effort package", defaultextension=P.EXT, initialfile=fname,
-                                                 initialdir=folder, filetypes=[("Acronym Hunter effort package", "*" + P.EXT)])
+                                                 initialdir=folder, filetypes=[("Stationkeeper effort package", " ".join("*" + e for e in P.EXTS))])
                 if p:
                     w.destroy()
                     self.pkg_save_dialog(path=p, customer=cv.get(), volumes=vv.get())
@@ -765,7 +765,7 @@ class EffortRecordMixin:
         import effortpkg as P, workspace as W
         from tkinter import filedialog
         if path is None:
-            path = filedialog.askopenfilename(title="Import effort package", filetypes=[("Acronym Hunter effort package", "*" + P.EXT)])
+            path = filedialog.askopenfilename(title="Import effort package", filetypes=[("Stationkeeper effort package", " ".join("*" + e for e in P.EXTS))])
             if not path:
                 return None
         try:
@@ -966,32 +966,36 @@ class EffortRecordMixin:
         return path
 
     def pkg_associate(self, confirm=True):
-        """Advanced (2.41.0): double-clicking an .ahpkg file opens it in this copy of Acronym Hunter. Written for this
+        """Advanced (2.41.0): double-clicking an effort package (.skpkg, or .ahpkg from before 2.44.0) opens it in this copy of Stationkeeper. Written for this
         Windows user only (HKEY_CURRENT_USER\\Software\\Classes): no admin rights, nothing for other users or the system."""
         import sys
         if os.name != "nt" or not getattr(sys, "frozen", False):
             messagebox.showinfo("Effort packages", "This works in the installed program on Windows. Use File > Import effort package... here.")
             return False
         exe = os.path.abspath(sys.executable)
-        if confirm and not messagebox.askyesno("Effort packages", "Make .ahpkg effort packages open in Acronym Hunter when you double-click "
+        if confirm and not messagebox.askyesno("Effort packages", "Make effort packages (.skpkg, and .ahpkg from Acronym Hunter) open in Stationkeeper when you double-click "
                                                f"them?\n\nProgram: {exe}\n\nThis is set for your Windows user only. If you move the "
-                                               "Acronym Hunter folder, do this again."):
+                                               "Stationkeeper folder, do this again."):
             return False
         try:
             import winreg
+            import effortpkg
+            P_EXTS = effortpkg.EXTS
             base = r"Software\Classes"
-            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + r"\.ahpkg") as k:
-                winreg.SetValueEx(k, "", 0, winreg.REG_SZ, "AcronymHunter.EffortPackage")
-            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + r"\AcronymHunter.EffortPackage") as k:
-                winreg.SetValueEx(k, "", 0, winreg.REG_SZ, "Acronym Hunter effort package")
-            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + r"\AcronymHunter.EffortPackage\DefaultIcon") as k:
+            prog = "Stationkeeper.EffortPackage"
+            for ext in P_EXTS:                       # 2.44.0: the new type and the old one both open here
+                with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + "\\" + ext) as k:
+                    winreg.SetValueEx(k, "", 0, winreg.REG_SZ, prog)
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + "\\" + prog) as k:
+                winreg.SetValueEx(k, "", 0, winreg.REG_SZ, "Stationkeeper effort package")
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + "\\" + prog + r"\DefaultIcon") as k:
                 winreg.SetValueEx(k, "", 0, winreg.REG_SZ, f'"{exe}",0')
-            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + r"\AcronymHunter.EffortPackage\shell\open\command") as k:
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + "\\" + prog + r"\shell\open\command") as k:
                 winreg.SetValueEx(k, "", 0, winreg.REG_SZ, f'"{exe}" "%1"')
         except OSError as e:
             diag.swallowed()
             messagebox.showerror("Effort packages", f"Windows did not accept the setting ({type(e).__name__}). Use File > Import effort package... instead.")
             return False
         diag.activity("package_associated")
-        messagebox.showinfo("Effort packages", "Done. Double-click an .ahpkg file to open it here.")
+        messagebox.showinfo("Effort packages", "Done. Double-click an effort package (.skpkg or .ahpkg) to open it here.")
         return True

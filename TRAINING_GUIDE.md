@@ -1,4 +1,4 @@
-﻿# Making Acronym Hunter More Accurate Over Time
+﻿# Making Stationkeeper More Accurate Over Time
 
 This guide covers every way to improve results beyond adding rows to `acronym_database.csv`,
 from a two-second fix to training your own OCR model. Every step ends the same way:
@@ -423,7 +423,7 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1
 git add -A
 git commit -m "Describe the change"
 git push
-gh release create v1.4.0 AcronymHunter_Portable.zip AcronymHunter_WithTrainer.zip --title "Acronym Hunter 1.4.0"
+gh release create v1.4.0 AcronymHunter_Portable.zip AcronymHunter_WithTrainer.zip --title "Stationkeeper 1.4.0"
 ```
 Ship knowledge: **Knowledge > Export Knowledge Pack** > approved SharePoint folder.
 Optional internal all-in-one build (SharePoint only): `.\build.ps1 -KnowledgePack "<path to pack>"` writes

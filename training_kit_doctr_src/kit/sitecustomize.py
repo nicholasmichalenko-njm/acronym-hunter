@@ -1,4 +1,4 @@
-"""Acronym Hunter Training Kit (docTR): network lockdown.
+"""Stationkeeper Training Kit (docTR): network lockdown.
 
 Python loads this file automatically at startup (it sits in the kit's site-packages), before PyTorch, docTR or any
 training script runs, and in every worker process they start. It makes outbound network

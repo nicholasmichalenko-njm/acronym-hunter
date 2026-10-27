@@ -1,7 +1,7 @@
-"""Corrected readings (2.15.0: shared by Acronym Hunter and Acronym Hunter Training).
+"""Corrected readings (2.15.0: shared by Stationkeeper and Stationkeeper Training).
 
-Acronym Hunter saves what people correct (Report misreading, Not text) in the training_data folder beside the program, then
-sends them to the training team as a corrections pack (a zip for the approved SharePoint folder). Acronym Hunter
+Stationkeeper saves what people correct (Report misreading, Not text) in the training_data folder beside the program, then
+sends them to the training team as a corrections pack (a zip for the approved SharePoint folder). Stationkeeper
 Training imports the packs, lets the training team accept, reject or fix each line, trains a better reader, and
 ships it back in a versioned Knowledge Pack.
 
@@ -28,7 +28,7 @@ def set_dir(path):
     DET_LABELS_FILE = os.path.join(path, "det_labels.txt")  # detection format: regions/x.png<TAB>[boxes]
     SAVE_LOG = os.path.join(path, "save_log.jsonl")         # one line per save, so Undo removes the whole save
     PACKAGE_DIR = os.path.join(path, "package")
-    EXPORTED_FILE = os.path.join(path, "sent.json")         # Acronym Hunter: samples already sent to the training team
+    EXPORTED_FILE = os.path.join(path, "sent.json")         # Stationkeeper: samples already sent to the training team
     REVIEW_FILE = os.path.join(path, "review.json")         # Training: rejected samples (not taught)
     PACKS_FILE = os.path.join(path, "packs.json")           # Training: corrections packs imported
 

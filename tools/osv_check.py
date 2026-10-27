@@ -2,7 +2,7 @@
 (osv.dev, Google; covers PyPI advisories, GitHub advisories and more). Run on the build PC, which has internet; the app
 itself never runs this and never connects to anything.
 
-    venv\\Scripts\\python.exe tools\\osv_check.py AcronymHunter_US_SBOM.cdx.json AcronymHunter_US_Training_SBOM.cdx.json
+    venv\\Scripts\\python.exe tools\\osv_check.py Stationkeeper_US_SBOM.cdx.json Stationkeeper_US_Training_SBOM.cdx.json
 
 Sends package names and versions only (public facts, the same as the published SBOM). Prints one line per package
 with known advisories and exits 1 when any are found, 0 when none, 2 when OSV could not be reached.
@@ -51,4 +51,4 @@ def main(paths):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:] or ["AcronymHunter_US_SBOM.cdx.json", "AcronymHunter_US_Training_SBOM.cdx.json"]))
+    sys.exit(main(sys.argv[1:] or ["Stationkeeper_US_SBOM.cdx.json", "Stationkeeper_US_Training_SBOM.cdx.json"]))

@@ -1,4 +1,4 @@
-"""docTR text finder + reader for Acronym Hunter, run on ONNX Runtime.
+"""docTR text finder + reader for Stationkeeper, run on ONNX Runtime.
 
 Models: Mindee's docTR db_mobilenet_v3_large (finds text) and crnn_vgg16_bn (reads it), Apache 2.0, exported to
 ONNX by this project from Mindee's official weights (see doctr_models.json for weight and file SHA-256).

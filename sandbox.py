@@ -76,7 +76,7 @@ def container_sid():
     with _lock:
         if _sid_ptr is None:
             sid = ctypes.c_void_p()
-            hr = _userenv.CreateAppContainerProfile(PROFILE, "Acronym Hunter OCR sandbox",
+            hr = _userenv.CreateAppContainerProfile(PROFILE, "Acronym Hunter OCR sandbox",   # name kept: Windows registered it (2.44.0)
                                                     "Runs Tesseract with no network access", None, 0, ctypes.byref(sid))
             if hr == _ERR_EXISTS:
                 hr = _userenv.DeriveAppContainerSidFromAppContainerName(PROFILE, ctypes.byref(sid))

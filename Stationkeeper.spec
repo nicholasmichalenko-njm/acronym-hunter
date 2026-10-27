@@ -8,8 +8,8 @@ from PyInstaller.utils.hooks import collect_all
 #   legacy  RapidOCR + PaddleOCR PP-OCRv4 models on ONNX Runtime (v1.5.x engine).
 US = os.environ.get('AH_EDITION', 'us') == 'us'
 # App (set by build.ps1 -App, 2.15.0):
-#   user      Acronym Hunter: scans and saves corrections. No Trainer, no Improve Reading, no Tesseract training tools.
-#   training  Acronym Hunter Training: imports corrections packs, trains and tests the reader, exports Knowledge Packs.
+#   user      Stationkeeper: scans and saves corrections. No Trainer, no Improve Reading, no Tesseract training tools.
+#   training  Stationkeeper Training: imports corrections packs, trains and tests the reader, exports Knowledge Packs.
 TRAINING = os.environ.get('AH_APP', 'user') == 'training'
 
 datas = []
@@ -30,7 +30,7 @@ if US:
     if TRAINING:
         datas += [('vendor/tesseract', 'tesseract')]
         hiddenimports += ['tess_train', 'sandbox']
-    else:   # the user app ships the engine only: the training tools stay in Acronym Hunter Training
+    else:   # the user app ships the engine only: the training tools stay in Stationkeeper Training
         _tools = ('lstmtraining.exe', 'lstmeval.exe', 'combine_tessdata.exe')
         for _root, _dirs, _files in os.walk('vendor/tesseract'):
             for _f in _files:
@@ -56,7 +56,7 @@ hiddenimports = [h for h in hiddenimports if not h.startswith(_skip)]
 hiddenimports += ['defusedxml', 'defusedxml.ElementTree']  # openpyxl uses it only if importable
 hiddenimports += ['preview_pane', 'PIL.ImageTk', 'pictures', 'corrections']   # picture preview; corrections (2.15.0)
 if TRAINING:
-    hiddenimports += ['trainer_gui', 'training_app']   # the Trainer and Improve Reading: Acronym Hunter Training only
+    hiddenimports += ['trainer_gui', 'training_app']   # the Trainer and Improve Reading: Stationkeeper Training only
 hiddenimports += ['equations', 'symbol_picker', 'help_guide', 'diag', 'feedback', 'effort', 'effort_ui', 'custdefs', 'volcheck', 'volcheck_ui', 'compliance', 'compliance_ui', 'docxw', 'complearn', 'placelearn', 'cwords', 'exportall_ui', 'shell_ui', 'compliance_page', 'workspace', 'workspace_ui', 'ai_stack', 'ai_ui', 'setupdoc', 'setup_ui', 'context', 'effort_wizard', 'effort_home', 'master_db', 'keywords', 'keywords_ui', 'offerings']   # equation and symbol recognition (2.0.0), symbol picker (2.3.0)
 hiddenimports += ['skia']   # Google Skia (BSD-3): draws SVG pictures for OCR
 datas += [('assets/scanner.ico', 'assets'), ('assets/trainer.ico', 'assets')]   # window/taskbar icons at runtime
@@ -102,7 +102,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='AcronymHunterTraining' if TRAINING else 'AcronymHunter',
+    name='StationkeeperTraining' if TRAINING else 'Stationkeeper',
     icon='assets/trainer.ico' if TRAINING else 'assets/scanner.ico',
     version='version_info_trainer.txt' if TRAINING else 'version_info.txt',  # Windows file properties (publisher, description, version)
     debug=False,
@@ -123,5 +123,5 @@ coll = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name='AcronymHunterTraining' if TRAINING else 'AcronymHunter',
+    name='StationkeeperTraining' if TRAINING else 'Stationkeeper',
 )

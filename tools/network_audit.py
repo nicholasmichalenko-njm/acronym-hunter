@@ -8,8 +8,8 @@ Rules (exit code 1 on any violation):
 Limit: a program could still load a networking DLL by name at run time (LoadLibrary). Tesseract's source has no such
 code once libcurl is disabled, and the Tesseract processes also run in a no-network AppContainer.
 
-  python tools\\network_audit.py dist\\AcronymHunter              audit (used by build.ps1)
-  python tools\\network_audit.py dist\\AcronymHunter --report     list every flagged file and import
+  python tools\\network_audit.py dist\\Stationkeeper              audit (used by build.ps1)
+  python tools\\network_audit.py dist\\Stationkeeper --report     list every flagged file and import
 """
 import os
 import sys

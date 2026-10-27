@@ -18,7 +18,7 @@ GOOD_SAMPLES = 300        # below this, the report says to keep collecting
 def _tool(tess_dir, name):
     path = os.path.join(tess_dir, name)
     if not os.path.isfile(path):
-        raise RuntimeError(f"{name} is missing from {tess_dir}. Use the AcronymHunter_US_WithTrainer package.")
+        raise RuntimeError(f"{name} is missing from {tess_dir}. Use the Stationkeeper_US_Training package.")
     return path
 
 def _plain_runner(cmd, timeout=None):

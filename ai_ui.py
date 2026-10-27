@@ -209,7 +209,7 @@ class AIMixin:
             rows.append((f"{name} {ver}".strip(), what, ""))
         rows.append(("Our own code", "Everything else: the rules for acronyms, compliance, submission requirements, the effort "
                                      "record. Written for this program; no AI writes anything in Core.", ""))
-        return self._panel("What Acronym Hunter is built on", rows,
+        return self._panel("What Stationkeeper is built on", rows,
                            "Every part with its license and fingerprint: the SBOM file published with each release.")
 
     def show_what_runs(self):

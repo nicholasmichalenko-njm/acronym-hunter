@@ -295,7 +295,7 @@ class EffortMixin:
             got = same or ws.acquire_lock()
         except OSError as ex:                       # 2.36.0: the effort folder could not be written: say where, do not crash
             diag.swallowed()
-            text = (f"Acronym Hunter could not save in the effort's folder ({type(ex).__name__}):\n\n{root}\n\n"
+            text = (f"Stationkeeper could not save in the effort's folder ({type(ex).__name__}):\n\n{root}\n\n"
                     "If the folder is in OneDrive or SharePoint, check that OneDrive is running and the folder is kept on this "
                     "PC (Always keep on this device), or create the effort in a local folder such as Documents.")
             if quiet:
@@ -306,7 +306,7 @@ class EffortMixin:
         if not got:
             who = ws.locked_by or {}
             since = who.get("time", "")[11:16]
-            text = (f"'{name}' is open in another Acronym Hunter window by {who.get('user', '?')} on {who.get('computer', '?')}"
+            text = (f"'{name}' is open in another Stationkeeper window by {who.get('user', '?')} on {who.get('computer', '?')}"
                     + (f" (since {since})" if since else "") + ".")
             if quiet:
                 self.status.configure(text=text + " Pick it again from the Effort list to open it here.")

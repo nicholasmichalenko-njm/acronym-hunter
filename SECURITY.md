@@ -1,4 +1,4 @@
-# Acronym Hunter: Security and Data-Handling Statement
+# Stationkeeper: Security and Data-Handling Statement
 
 **Version covered:** 1.4.2 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
 **Verified:** 2026-10-20 (v1.0.1 live test; v1.0.2 added tiled OCR and the OCR Fixes window; v1.0.3 hardened XML parsing and capped embedded image size; no new file locations or network code) on the developer's Windows PC, from a fresh unzip of the shipped zip
@@ -315,6 +315,6 @@ at the top of the file, under "ZERO-FOOTPRINT FOLDER SANDBOX & OFFLINE NETWORK K
 
 ## 9. Change control
 
-Any change to `app_gui.py`, `trainer_gui.py`, `AcronymHunter.spec`, `requirements.txt`, `build.ps1`, `base\`, or the
+Any change to `app_gui.py`, `trainer_gui.py`, `Stationkeeper.spec`, `requirements.txt`, `build.ps1`, `base\`, or the
 Training Kit (`build_training_kit.ps1`, `training_kit_src\`) can change this statement.
 Before sharing a new build: re-run the network and file checks in section 8 and update the version and date at the top.

@@ -2,7 +2,7 @@ ACRONYM HUNTER: PROJECT GUIDE
 =============================
 Last cleaned: 2026-10-20
 
-This folder holds everything needed to share, run, modify, and rebuild Acronym Hunter.
+This folder holds everything needed to share, run, modify, and rebuild Stationkeeper.
 Nothing else is required. Every item below has one job.
 
 
@@ -28,7 +28,7 @@ base\
 
 assets\
   scanner.ico / trainer.ico: the app icons (navy scanner, teal Trainer: same magnifier, different tile and accent).
-  Built into both exes and their windows by AcronymHunter.spec. Redraw them with tools\make_icons.py
+  Built into both exes and their windows by Stationkeeper.spec. Redraw them with tools\make_icons.py
   (writes the .ico files, 256 px PNGs, and icon_preview.png at every size on light and dark backgrounds).
 
 build_training_kit.ps1  [-Gpu]
@@ -113,7 +113,7 @@ acronym_database.csv
   If missing, the app creates an empty one (header row only).
   The scorer (tools\evaluate.py) uses test_samples\test_database.csv instead, so scores stay comparable.
 
-AcronymHunter.spec
+Stationkeeper.spec
   PyInstaller recipe that turns app_gui.py into AcronymHunter.exe.
   Holds the fix for the startup crash (excludes the unused PyMuPDF layout add-on)
   and strips about 85 MB of unused files from the bundle.
@@ -157,7 +157,7 @@ WHAT WAS DELETED AND WHY
                               database. Created again by every build.
   build\                      PyInstaller scratch files. Created and removed by every build.
   build_log.txt               Output from an old build.
-  AcronymHunter.spec.bak      Backup of the spec before the crash fix. Obsolete.
+  Stationkeeper.spec.bak      Backup of the spec before the crash fix. Obsolete.
   app_gui.py.orig             Backup of the code before the bug fixes. Obsolete.
   acronym_database.csv.xlsx   Excel copy of the old starter database. Stale and a
                               source of "which database is real?" confusion.
@@ -172,7 +172,7 @@ HOW TO ...
 
 Share the app
   Publish the zips as a GitHub Release:
-    gh release create v1.4.0 AcronymHunter_Portable.zip AcronymHunter_WithTrainer.zip --title "Acronym Hunter 1.4.0"
+    gh release create v1.4.0 AcronymHunter_Portable.zip AcronymHunter_WithTrainer.zip --title "Stationkeeper 1.4.0"
   Colleagues download AcronymHunter_Portable.zip from the release, then install the newest Knowledge Pack
   from the approved SharePoint folder (Knowledge > Install Knowledge Pack).
 
@@ -240,7 +240,7 @@ RULES
 -----
   - acronym_database.csv in this folder is the master. All others are copies.
   - Build with build.ps1 only. Running pyinstaller with command-line flags
-    overwrites AcronymHunter.spec and brings back the startup crash.
+    overwrites Stationkeeper.spec and brings back the startup crash.
   - Do not install pymupdf4llm or pymupdf_layout into venv. They cause the crash.
   - Logs can contain file names. Do not zip an app folder by hand after using it;
     let build.ps1 make the zip.

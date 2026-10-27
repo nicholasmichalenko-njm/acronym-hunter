@@ -420,7 +420,7 @@ def _doc_for(M, name, entries, P, inh, stamp):
     B = by_id(M)
     d = docxw.Doc()
     cw = cwords.load()
-    d.props = {"AcronymHunterMatrix": M.name or "", "AcronymHunterSetupExported": stamp, "AcronymHunterSetupPart": name}
+    d.props = {"StationkeeperMatrix": M.name or "", "StationkeeperSetupExported": stamp, "StationkeeperSetupPart": name}
     base = min((o.get("level", 1) for o in entries), default=1)
     for o in entries:
         lab = C.outline_label(o)
@@ -524,7 +524,7 @@ def export_changes(M, path):
         return None
     d = docxw.Doc()
     cw = cwords.load()
-    d.props = {"AcronymHunterMatrix": M.name or "", "AcronymHunterSetupChangesSince": M.setup["exports"][-1]["time"]}
+    d.props = {"StationkeeperMatrix": M.name or "", "StationkeeperSetupChangesSince": M.setup["exports"][-1]["time"]}
     d.para(f"Setup changes since the export of {M.setup['exports'][-1]['time']}. Paste the purple and green paragraphs "
            "under the same headings in the styled setup.")
     S = setup_of(M)

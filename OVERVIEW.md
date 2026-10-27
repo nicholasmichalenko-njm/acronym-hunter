@@ -1,4 +1,4 @@
-# Acronym Hunter: Complete Overview
+# Stationkeeper: Complete Overview
 
 **Version:** 1.9.0 | **Updated:** 2026-10-22 | **Platform:** Windows 10/11, 64-bit
 
@@ -9,11 +9,11 @@ how to use it, how it improves over time, and why it is safe for sensitive docum
 
 ---
 
-# Part 1: How Acronym Hunter Works
+# Part 1: How Stationkeeper Works
 
 ## 1. What it is, in one paragraph
 
-Acronym Hunter is a desktop program that reads your documents and makes a list of every acronym
+Stationkeeper is a desktop program that reads your documents and makes a list of every acronym
 (SOW, CDR), abbreviation (approx., w/o), and unit of measure (psi, kWh) it finds. For each one it tells you
 what it means (from a list you control), where it appears (page, slide, section, picture), and whether it
 needs your attention, such as a term with two possible meanings or a new term it has never seen.
@@ -320,7 +320,7 @@ contents. Part 2, section 12 lists them and how IT normally controls them.
 | Licensing or activation calls? | None |
 | Update checks? | None |
 | Telemetry? | None. `onnxruntime.disable_telemetry_events()` is called at startup |
-| Can IT enforce it? | Yes. Optional Windows Firewall rule (admin): `New-NetFirewallRule -DisplayName "Block Acronym Hunter" -Direction Outbound -Program "<folder>\AcronymHunter.exe" -Action Block` |
+| Can IT enforce it? | Yes. Optional Windows Firewall rule (admin): `New-NetFirewallRule -DisplayName "Block Stationkeeper" -Direction Outbound -Program "<folder>\AcronymHunter.exe" -Action Block` |
 
 ## 5. Installation, privileges, and persistence
 
@@ -555,4 +555,4 @@ any file. Keep the app folder itself out of OneDrive. Details: SECURITY.md secti
 
 **Who maintains it?** The developer. Source, build scripts, documentation, and tests are in the project repository so another engineer can take it over.
 
-**Where is the source?** `app_gui.py` in the private repository, with `AcronymHunter.spec`, `build.ps1`, and `requirements.txt` to rebuild it.
+**Where is the source?** `app_gui.py` in the private repository, with `Stationkeeper.spec`, `build.ps1`, and `requirements.txt` to rebuild it.

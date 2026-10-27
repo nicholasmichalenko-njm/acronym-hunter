@@ -1,4 +1,4 @@
-# Acronym Hunter
+# Stationkeeper
 
 Offline Windows desktop app (scanner + Trainer) that scans PDF, Word, PowerPoint, Excel, image, and vector (SVG, EMF, WMF)
 files, finds acronyms, abbreviations, and units, matches them against a curated database, and flags ambiguous or new terms.

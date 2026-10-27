@@ -1,4 +1,4 @@
-"""What runs each part of Acronym Hunter (2.12.0): one list behind the AI labels, the ? panels, Help > What runs where,
+"""What runs each part of Stationkeeper (2.12.0): one list behind the AI labels, the ? panels, Help > What runs where,
 and the one-page summary for the security team.
 
 Labels:
@@ -73,7 +73,7 @@ FEATURES = {
     ]),
     "more": ("More", ["none", "ml"], [
         ("Add Item, Client Lists", "Your own entries and customer lists, matched by rules", "none"),
-        ("Improve Reading (Tesseract training tools)", "Acronym Hunter Training only: fine-tunes the picture reader on the corrected samples",
+        ("Improve Reading (Tesseract training tools)", "Stationkeeper Training only: fine-tunes the picture reader on the corrected samples",
          "ml"),
         ("docTR Training Kit (PyTorch, separate download)", "Optional; trains the second reader on this PC's GPU, offline",
          "ml"),
@@ -95,7 +95,7 @@ def classes_of(key):
 
 def summary_text(version, edition, math_installed, doctr_installed):
     """Plain one-page summary for the security team (Help > What runs where > Save summary)."""
-    out = [f"Acronym Hunter {version} ({edition}): what runs each part", "",
+    out = [f"Stationkeeper {version} ({edition}): what runs each part", "",
            "Everything runs on this PC. The program makes no network connections.", "",
            "Labels", "  No AI   fixed rules, counting and file reading",
            "  ML      trained model that recognizes characters or scores rows; outputs letters, boxes or numbers, never sentences",

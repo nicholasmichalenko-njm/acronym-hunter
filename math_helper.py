@@ -1,4 +1,4 @@
-"""Acronym Hunter math reader (optional add-on): reads equation pictures with IBM Granite-Docling-258M.
+"""Stationkeeper math reader (optional add-on): reads equation pictures with IBM Granite-Docling-258M.
 
 Runs only inside the app's no-network Windows sandbox (AppContainer with no capabilities); the app refuses to start
 it otherwise. Input on stdin, one JSON object:

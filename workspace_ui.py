@@ -64,9 +64,9 @@ class WorkspaceMixin:
         self.effort_var.set(self.effort.name if self.effort is not None else NO_EFFORT)
         eng = _eng()
         if self.effort is not None:
-            self.title(f"Acronym Hunter {eng.APP_VERSION} | Effort: {self.effort.name}")
+            self.title(f"Stationkeeper {eng.APP_VERSION} | Effort: {self.effort.name}")
         else:
-            self.title(f"Acronym Hunter {eng.APP_VERSION}: acronyms, abbreviations and units (100% local)")
+            self.title(f"Stationkeeper {eng.APP_VERSION}: proposal efforts, 100% local")
 
     def _switch_from_bar(self, value):
         if self.effort is not None and value == self.effort.name or self.effort is None and value == NO_EFFORT:

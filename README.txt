@@ -1,13 +1,23 @@
-ACRONYM HUNTER (Portable, Offline)
-==================================
+STATIONKEEPER (Portable, Offline)
+=================================
+
+NEW NAME (from 2.44.0)
+  Acronym Hunter is now Stationkeeper: it runs a whole proposal effort (customer documents and their versions,
+  submission requirements, deliverables, compliance, the impact of every new version, author briefs, gates, the
+  paper trail), and acronyms are one feature among many.
+  - Stationkeeper_US.zip holds Stationkeeper.exe; Stationkeeper_US_Training.zip holds StationkeeperTraining.exe.
+  - Effort packages are .skpkg files. Packages saved as .ahpkg by Acronym Hunter still open.
+  - Projects, team knowledge packs and corrections packs from Acronym Hunter still open.
+  - Moving from an Acronym Hunter folder: copy its config folder into the new Stationkeeper folder to keep your
+    settings and lists. Efforts keep their work next to their effort list, so they open as they were.
 
 ONE PROGRAM (from v1.7.0)
-  AcronymHunter_US.zip holds one program, AcronymHunter.exe. It reads text in pictures with Tesseract OCR
+  Stationkeeper_US.zip holds one program, Stationkeeper.exe (AcronymHunter_US.zip and AcronymHunter.exe before 2.44.0). It reads text in pictures with Tesseract OCR
   (Apache 2.0; created at HP, developed by Google) and Google's English model.
   - Tesseract is built from its source without any network library, and it runs inside a Windows sandbox
     that has no network permission. No Chinese-origin code or models. No GPU, no internet, no separate kit.
-  - From 2.15.0 the Trainer and Improve Reading live in a second program, Acronym Hunter Training (see TRAINING IS
-    ITS OWN PROGRAM at the end). Acronym Hunter only saves corrections and sends them to the training team.
+  - From 2.15.0 the Trainer and Improve Reading live in a second program, Stationkeeper Training (see TRAINING IS
+    ITS OWN PROGRAM at the end). Stationkeeper only saves corrections and sends them to the training team.
   - To give colleagues a copy that saves no corrections: set "allow_training": false in
     config\app_settings.json before sharing. Nothing gets saved to training_data\ then.
   Older versions: v1.6.0 (two packages), v1.5.1 (RapidOCR + PaddleOCR models from Baidu).
@@ -30,7 +40,7 @@ RUN
   0. If you received the zip by email, Teams, or download: right-click the zip > Properties >
      check "Unblock" > OK, BEFORE unzipping. This clears the internet-download flag Windows adds.
   1. Unzip anywhere (Desktop, USB drive, network share).
-  2. Open the AcronymHunter folder and double-click AcronymHunter.exe.
+  2. Open the Stationkeeper folder and double-click Stationkeeper.exe.
   3. Click "Select Files" or "Scan Folder".
   Supported: PDF, DOCX, XLSX, PPTX, PNG, JPG, TIF, BMP, WEBP, GIF, and vector graphics
   (SVG, EMF, WMF, including Visio and draw.io diagrams pasted into Office files).
@@ -88,7 +98,7 @@ CODES AND DESIGNATORS (v1.9.0)
   Their pieces are no longer reported as stray units or letters ("V", "B", "A"). Mixed-case acronyms
   such as DoD, DoE, IoT are found too.
 
-CHECK IN PICTURE AND IMPROVE READING (Acronym Hunter Training from 2.15.0; Acronym Hunter sends corrections)
+CHECK IN PICTURE AND IMPROVE READING (Stationkeeper Training from 2.15.0; Stationkeeper sends corrections)
   1. Right-click a result > "Check in picture". The picture it came from opens in the Trainer, read
      again, with that term outlined in yellow. Typed-text results have nothing to check.
   2. Fix what is wrong: correct the spelling and pick "Save as text", or mark "Not text". Click Save Choices.
@@ -162,8 +172,8 @@ MATH READER ADD-ON (from v2.2.0, optional)
   Equations that are pictures can be read exactly with the math reader: IBM's Granite-Docling-258M (Apache 2.0)
   on PyTorch, in its own program. In a test of 50 aerospace equations it read 96-98% of symbols (subscripts,
   Greek letters, dots, fractions) where the text reader managed about 10%.
-  Install: unzip AcronymHunter_MathAddon.zip into the AcronymHunter folder, so math_addon\ sits next to
-  AcronymHunter.exe. Restart the app. (About 1.4 GB on disk. Without it, everything else works as before.)
+  Install: unzip AcronymHunter_MathAddon.zip into the Stationkeeper folder, so math_addon\ sits next to
+  Stationkeeper.exe. Restart the app. (About 1.4 GB on disk. Without it, everything else works as before.)
   Use (only the pictures you choose are read, so scans stay fast):
   - Select one or many "Equation (picture)" rows, right-click > Read equation pictures with the math reader.
   - Or click "Read this equation with the math reader" in the preview pane.
@@ -233,7 +243,7 @@ KNOWLEDGE UPDATES (trained models + team database)
   This download contains no terms: the acronym database starts empty. Your team's knowledge (trained OCR models, the
   shared acronym database, OCR fixes, ignore list) comes as a Knowledge Pack from the approved
   SharePoint folder:
-    Knowledge > Install Knowledge Pack... > pick the newest AcronymHunter_Knowledge_<date>.zip
+    Knowledge > Install Knowledge Pack... > pick the newest Stationkeeper_Knowledge_<date>.zip (or AcronymHunter_Knowledge_ from before 2.44.0)
   The pack is checked first: any damaged or altered file and nothing is installed.
   Models are replaced. Database, fixes, and ignore list are merged add-only: your own rows,
   edits, and Exclude choices always win.
@@ -255,12 +265,12 @@ ONEDRIVE AND SHAREPOINT
   Across PCs the project lock only works as fast as OneDrive syncs. On a shared folder, have one
   person run the project. If OneDrive makes a conflict copy (Name-PCNAME.ahproj), keep the newer one.
   Files with an encryption sensitivity label cannot be read; they show as "Could not read".
-  Keep the AcronymHunter app folder itself OUT of OneDrive: its scratch files and Trainer samples
+  Keep the Stationkeeper app folder itself OUT of OneDrive: its scratch files and Trainer samples
   would sync to the cloud.
   Whether controlled documents (CUI, ITAR) may live in that OneDrive or SharePoint is your
   organization's decision. The app does not change it. When in doubt, scan local copies.
 
-TRAINER (a window inside AcronymHunter.exe: Advanced > Trainer, or right-click > Check in picture)
+TRAINER (a window inside Stationkeeper.exe: Advanced > Trainer, or right-click > Check in picture)
   Not included in the standard AcronymHunter_Portable.zip. Open a file, drag a box around text in a
   picture. Each line OCR found gets a number (matching the box on the picture) and a color:
     GREEN = the scanner keeps this reading (it can appear in results).
@@ -314,7 +324,7 @@ DATABASE FORMAT (acronym_database.csv)
 
 VERIFY YOUR COPY (optional)
   CHECKSUM.txt holds the exe fingerprint. In PowerShell:
-    Get-FileHash .\AcronymHunter.exe
+    Get-FileHash .\Stationkeeper.exe
   The Hash must match CHECKSUM.txt and the value the sender gave you.
   The app is not code-signed. Right-click > Properties > Details shows the publisher and version.
 
@@ -425,7 +435,7 @@ COMPLIANCE MATRIX: LEARNING AND COMPLEMENTS (2.10.0)
   any source document (the Sources sheet now records each file's path on this PC).
 - Amendment changes (after Re-read RFP) pairs changed sentences with their earlier version and shows the word
   differences as [-removed-] {+added+}, plus added and removed sentences; export to Excel.
-- Each release ships a Software Bill of Materials per edition (AcronymHunter_US_SBOM.cdx.json, CycloneDX 1.5): every
+- Each release ships a Software Bill of Materials per edition (Stationkeeper_US_SBOM.cdx.json, CycloneDX 1.5): every
   bundled Python package with version, license and PyPI identifier, the native parts (Python, Tcl/Tk, Tesseract,
   eng.traineddata, docTR models, PDFium), and the SHA-256 of every program and model file. Made by tools\make_sbom.py
   at build time from what actually ships.
@@ -536,20 +546,20 @@ EFFORT START, HOME AND VOLUMES (2.14.0)
   in one workbook.
 
 TRAINING IS ITS OWN PROGRAM (2.15.0)
-- Releases ship two zips. AcronymHunter_US_Classic.zip (no docTR) is built only on request (build.ps1 -Classic).
-- Two programs from the same code: Acronym Hunter (AcronymHunter_US.zip, the scanner everyone uses) and Acronym Hunter
-  Training (AcronymHunter_US_Training.zip, for the training team). Both run fully offline with the same engine,
+- Releases ship two zips. Stationkeeper_US_Classic.zip (no docTR) is built only on request (build.ps1 -Classic).
+- Two programs from the same code: Stationkeeper (Stationkeeper_US.zip, the program everyone uses) and Stationkeeper
+  Training (Stationkeeper_US_Training.zip, for the training team). Both run fully offline with the same engine,
   sandbox and network guard.
-- Acronym Hunter no longer trains. It has no Trainer, no Improve Reading, no Load Trained Models and no Export Knowledge
+- Stationkeeper no longer trains. It has no Trainer, no Improve Reading, no Load Trained Models and no Export Knowledge
   Pack, and its package carries no Tesseract training tools (lstmtraining, lstmeval, combine_tessdata). The build
   refuses to finish if they are there (SPLIT CHECK). It keeps: Fix OCR rules, Not text (ignore list), Report misreading
   (was Correct + Teach: saves the line picture and the right text in training_data), Undo last save, and Tools >
   Knowledge Packs (install, undo).
 - Tools > Send corrections (also on the green bar): saves the lessons not sent yet as a corrections pack
-  (AcronymHunter_Corrections_<user>_<date>.zip: line and region pictures, labels, samples.csv, and a manifest with the
+  (Stationkeeper_Corrections_<user>_<date>.zip: line and region pictures, labels, samples.csv, and a manifest with the
   SHA-256 of every file). Approved SharePoint folder for the training team only. Sent lessons are remembered
   (training_data\sent.json) and not sent twice.
-- Acronym Hunter Training:
+- Stationkeeper Training:
   - Corrections: Import corrections packs. Each pack is checked before anything is copied: format, only picture,
     label and sample files with safe names, the SHA-256 of every file, real PNG pictures, size limits. A lesson already
     imported is skipped. Every line shows with its picture; Accept, Reject (never taught, training_data\review.json)
@@ -557,8 +567,8 @@ TRAINING IS ITS OWN PROGRAM (2.15.0)
   - Teach the reader: Improve Reading (fine-tunes Tesseract on the taught lines, tests on held-out lines, keeps the new
     reader only if it reads better), the Trainer, and the package for the docTR Training Kit.
   - Knowledge Pack: export a numbered Knowledge Pack (reader, database, OCR fixes, ignore list), load trained models
-    from the Training Kit, undo. Acronym Hunter installs the pack.
-- Build: build.ps1 -App training makes AcronymHunter_US_Training.zip (AcronymHunterTraining.exe), with the same gates.
+    from the Training Kit, undo. Stationkeeper installs the pack.
+- Build: build.ps1 -App training makes Stationkeeper_US_Training.zip (StationkeeperTraining.exe), with the same gates.
 
 KEYWORD HARVEST (2.16.0)
 - Keywords view (with an effort open, next to Effort list and Scan review): the effort's SharePoint keywords with
@@ -628,10 +638,10 @@ LAST KNOWN FALSE ALARMS, SHARPER TRAINING TABLE, GUIDE PICTURES (2.21.0)
   set aside as heading words even when they also appear alone in running text ("see APPENDIX B").
 - A capitalized ordinary word right after a number ("2 Add", "3 Remove") is no longer read as a unit.
 - On the sample set: known false alarms 1 of 8 down to 0 of 8, recall unchanged.
-- Acronym Hunter Training: the corrections table rows and text scale with the display, so lines are no longer clipped
+- Stationkeeper Training: the corrections table rows and text scale with the display, so lines are no longer clipped
   at 150% and 200% scaling.
 - Help > User Guide shows pictures of the effort list, Scan review, the Keywords view, Suggest keywords, the Effort box
-  and Acronym Hunter Training. tools\make_guide_shots.py makes them again from the fictional samples.
+  and Stationkeeper Training. tools\make_guide_shots.py makes them again from the fictional samples.
 
 FIRST USE PER SECTION, MATH READS KEPT, LINE-REMOVAL PASS, OSV CHECK (2.22.0)
 - First use rule "Restarts in each section of each volume" (Effort settings, and step 5 of Start an effort). Sections

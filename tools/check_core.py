@@ -1,7 +1,7 @@
 """Build gate for the Core edition: no generative AI, no language-model runtime, no model weights beyond the listed OCR models.
 
 Usage:
-    python tools\\check_core.py dist\\AcronymHunter          check a built folder
+    python tools\\check_core.py dist\\Stationkeeper          check a built folder
     python tools\\check_core.py --source                      check the app's own source imports
 Exit code 0 = pass, 1 = fail.
 

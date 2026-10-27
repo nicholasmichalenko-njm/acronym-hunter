@@ -1,6 +1,6 @@
 """Effort package (2.40.0): the whole effort in one file, so someone else can open it and continue where it was.
 
-An .ahpkg file is a zip with:
+A .skpkg file (.ahpkg before 2.44.0, still opened) is a zip with:
 - manifest.json: format, app version, effort name, who saved it and when, its stage, the effort's details, and every
   file with its SHA-256 fingerprint (checked on import);
 - list/<effort list>.xlsx: the effort list;
@@ -16,7 +16,8 @@ Import unpacks into a folder the person picks, points the paths at the new place
 import datetime, getpass, hashlib, json, os, shutil, zipfile
 
 FORMAT = 1
-EXT = ".ahpkg"
+EXT = ".skpkg"
+EXTS = (".skpkg", ".ahpkg")             # 2.44.0: packages saved as Acronym Hunter still open
 SKIP_DIRS = {"backups", "recovery", "__pycache__"}
 SKIP_FILES = {"lock.json"}
 DOC_TYPES = (".docx", ".pdf", ".pptx", ".xlsx", ".xls", ".doc", ".txt", ".csv", ".zip", ".mpp")
@@ -75,7 +76,7 @@ def plan(list_path, data_dir, matrix_path="", customer_dir="", volumes_dir="", c
 def save(out_path, effort_name, list_path, data_dir, info=None, matrix_path="", customer_dir="", volumes_dir="",
          customer=True, volumes=True, stage="", app_version="", who=None, when=None, extra_files=()):
     """Write the package. Returns the manifest."""
-    if not out_path.lower().endswith(EXT):
+    if not out_path.lower().endswith(EXTS):
         out_path += EXT
     items, size = plan(list_path, data_dir, matrix_path, customer_dir, volumes_dir, customer, volumes, extra_files)
     man = {"format": FORMAT, "app": app_version, "effort": effort_name, "saved_by": who or getpass.getuser(),
@@ -105,9 +106,9 @@ def read_manifest(pkg_path):
         with zipfile.ZipFile(pkg_path) as z:
             man = json.loads(z.read("manifest.json").decode("utf-8"))
     except (KeyError, zipfile.BadZipFile, OSError, ValueError) as e:
-        raise PackageError("This file is not an Acronym Hunter effort package.") from e
+        raise PackageError("This file is not a Stationkeeper effort package.") from e
     if man.get("format", 0) > FORMAT:
-        raise PackageError("The package was saved by a newer Acronym Hunter. Update this PC's copy, then open it.")
+        raise PackageError("The package was saved by a newer Stationkeeper. Update this PC's copy, then open it.")
     return man
 
 

@@ -42,7 +42,7 @@ def main():
     bom = {"bomFormat": "CycloneDX", "specVersion": "1.5", "serialNumber": f"urn:uuid:{uuid.uuid4()}", "version": 1,
            "metadata": {"timestamp": datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat(),
                         "component": {"type": "application", "name": os.path.basename(os.path.normpath(kit)), "bom-ref": "kit",
-                                      "description": "Acronym Hunter docTR Training Kit. Runs offline; every network call is refused."}},
+                                      "description": "Stationkeeper docTR Training Kit. Runs offline; every network call is refused."}},
            "components": comps, "dependencies": [{"ref": "kit", "dependsOn": [c["bom-ref"] for c in comps]}]}
     with open(out, "w", encoding="utf-8") as f:
         json.dump(bom, f, indent=1)

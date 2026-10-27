@@ -295,7 +295,7 @@ class PreviewPane(ctk.CTkFrame):
         self.btn_undo.pack(side="left", padx=2)
         self.btn_trainer = ctk.CTkButton(row2, text="Open in Trainer", width=130, height=26,
                                          fg_color="#1E3A8A", command=self.open_trainer)
-        if eng.trainer_available():          # the Trainer lives in Acronym Hunter Training (2.15.0)
+        if eng.trainer_available():          # the Trainer lives in Stationkeeper Training (2.15.0)
             self.btn_trainer.pack(side="left", padx=2)
         self.lbl_msg = ctk.CTkLabel(self, text="", wraplength=PIC_W - 30, justify="left", anchor="w", text_color="#0F766E")
         self.lbl_msg.pack(fill="x", padx=10, pady=(0, 8))

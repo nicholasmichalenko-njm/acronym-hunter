@@ -986,7 +986,7 @@ class Matrix:
         sd.column_dimensions["A"].width = 34; sd.column_dimensions["B"].width = 100
         js = json.dumps(S, ensure_ascii=False, separators=(",", ":"))
         dd = wb.create_sheet("Setup data")
-        dd.append(["Saved by Acronym Hunter. Do not edit: change the setup in the app."])
+        dd.append(["Saved by Stationkeeper. Do not edit: change the setup in the app."])
         for k in range(0, len(js), 30000):
             dd.append([js[k:k + 30000]])
         dd.sheet_state = "hidden"
@@ -1118,7 +1118,7 @@ class Matrix:
                   ["Sentences", c["total"]], ["Keep", c["Keep"]], ["Context", c["Context"]], ["Drop", c["Drop"]],
                   ["Undecided", c[""]], ["Placed (Keep or Context)", c["placed"]], ["Need a home", c["needs_home"]],
                   ["Note", "Decision: Keep (a requirement), Context (not a requirement, but it goes with the response) or Drop; "
-                           "blank = undecided. Edit here or in Acronym Hunter; keep the column headings. "
+                           "blank = undecided. Edit here or in Stationkeeper; keep the column headings. "
                            "This workbook holds customer content: keep it on this PC or SharePoint."]):
             ab.append(r)
         ab.column_dimensions["A"].width = 18; ab.column_dimensions["B"].width = 90
@@ -1186,7 +1186,7 @@ def write_coverage_docx(matrix, path, title=""):
     import docxw, cwords
     cw = cwords.load()
     doc = docxw.Doc()
-    doc.props = {"AcronymHunterMatrix": matrix.name or "", "AcronymHunterCoverage": datetime.date.today().isoformat()}
+    doc.props = {"StationkeeperMatrix": matrix.name or "", "StationkeeperCoverage": datetime.date.today().isoformat()}
     cov = matrix.coverage()
     tot = cov[-1]
     doc.heading(title or f"{matrix.name}: RFP coverage, every sentence", 1)

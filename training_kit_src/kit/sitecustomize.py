@@ -1,4 +1,4 @@
-"""Acronym Hunter Training Kit: network lockdown.
+"""Stationkeeper Training Kit: network lockdown.
 
 Python loads this file automatically at startup (it sits in the kit's site-packages), before PaddlePaddle,
 PaddleOCR, or any training script runs, and in every worker process they start. It makes outbound network

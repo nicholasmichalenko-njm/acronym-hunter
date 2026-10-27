@@ -186,7 +186,7 @@ def list_reports():
 # ------------------------------------------------------------------ export
 def build_report_md(reports):
     import app_gui as eng
-    lines = [f"# Acronym Hunter feedback export", "",
+    lines = [f"# Stationkeeper feedback export", "",
              f"Exported {datetime.datetime.now():%Y-%m-%d %H:%M}, app version {eng.APP_VERSION}.",
              "Feature feedback and content-free diagnostics only: no file names, document text or found terms.", "",
              f"## Reports ({len(reports)})", ""]

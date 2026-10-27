@@ -578,7 +578,7 @@ class WizardMixin:
 
         def word(path, title, rs):
             d = docxw.Doc()
-            d.props = {"AcronymHunterEffort": L.name, "Client": L.client, "Solicitation": L.solicitation}
+            d.props = {"StationkeeperEffort": L.name, "Client": L.client, "Solicitation": L.solicitation}
             d.heading(title, 1)
             d.table(["Term", "Definition"], [[r["Term"], r["Definition"]] for r in rs], [1800, 7560])
             d.save(path); made.append(path)

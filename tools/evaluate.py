@@ -1,4 +1,4 @@
-"""Score Acronym Hunter against test_samples/ground_truth.csv and log the result.
+"""Score Stationkeeper against test_samples/ground_truth.csv and log the result.
 
 Run from the project folder:
     .\\venv\\Scripts\\python.exe tools\\evaluate.py                         (scan test_samples)

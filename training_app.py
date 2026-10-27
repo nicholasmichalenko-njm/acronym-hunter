@@ -1,6 +1,6 @@
-"""Acronym Hunter Training (2.15.0): corrections in, a better reader out. Its own program, built from the same code.
+"""Stationkeeper Training (2.15.0): corrections in, a better reader out. Its own program, built from the same code.
 
-Acronym Hunter (the scanner people use every day) only saves corrections: Report misreading and Not text in the
+Stationkeeper (the scanner people use every day) only saves corrections: Report misreading and Not text in the
 picture preview. People send them as corrections packs to the approved SharePoint folder. This program, run by the
 training team:
 - Corrections: imports the packs (each file checked against the pack's SHA-256 list first), shows every corrected
@@ -9,10 +9,10 @@ training team:
   Tesseract reader on this PC's processor, tests it on held-out lines, keeps it only if it reads better), and the
   package for the offline docTR Training Kit.
 - Knowledge Pack: exports the better reader, with the database, OCR fixes and ignore list, as a numbered Knowledge
-  Pack for the approved SharePoint folder; Acronym Hunter installs it (and can undo it). Loads trained models from
+  Pack for the approved SharePoint folder; Stationkeeper installs it (and can undo it). Loads trained models from
   the Training Kit.
 
-Same engine, sandbox and network guard as Acronym Hunter. Nothing leaves this PC.
+Same engine, sandbox and network guard as Stationkeeper. Nothing leaves this PC.
 """
 import app_gui as eng          # engine first: sandbox, temp redirect, network guard, OCR, config
 eng.TRAINING_APP = True
@@ -28,7 +28,7 @@ FILTERS = ["All lines", "Taught (not rejected)", "Rejected", "From packs", "Save
 
 
 class TrainingApp(ctk.CTk):
-    # the same windows Acronym Hunter used to open, now only here
+    # the same windows Stationkeeper used to open, now only here
     open_improve = eng.AcronymAppGUI.open_improve
     open_knowledge = eng.AcronymAppGUI.open_knowledge
     _undo_reader = eng.AcronymAppGUI._undo_reader
@@ -39,7 +39,7 @@ class TrainingApp(ctk.CTk):
         super().__init__()
         eng.ACTIVE_ICON = "trainer.ico"
         eng.apply_window_icon(self)
-        self.title(f"Acronym Hunter Training {eng.APP_VERSION}: corrections in, a better reader out (100% local)")
+        self.title(f"Stationkeeper Training {eng.APP_VERSION}: corrections in, a better reader out (100% local)")
         self.geometry("1180x760")
         self.report_callback_exception = lambda et, e, tb: (eng._excepthook(et, e, tb), messagebox.showerror(
             "Error", f"{et.__name__}: {e}\n\nDetails were saved to the logs folder (no file names or document content)."))
@@ -47,7 +47,7 @@ class TrainingApp(ctk.CTk):
         self._thumb = None
         diag.activity("training_app_started")
         top = ctk.CTkFrame(self, fg_color="transparent"); top.pack(fill="x", padx=14, pady=(10, 0))
-        ctk.CTkLabel(top, text="Acronym Hunter Training", font=("Segoe UI", 18, "bold")).pack(side="left")
+        ctk.CTkLabel(top, text="Stationkeeper Training", font=("Segoe UI", 18, "bold")).pack(side="left")
         self.lbl_state = ctk.CTkLabel(top, text="", anchor="e", justify="right"); self.lbl_state.pack(side="right")
         # Raw Tk tables are not scaled by CustomTkinter: size their text and rows for the display (2.21.0; rows were
         # clipped at 150-200% display scaling)
@@ -246,19 +246,19 @@ class TrainingApp(ctk.CTk):
         ctk.CTkButton(T, text="Knowledge Packs: export, load trained models, undo...", width=380, height=34,
                       fg_color="#B45309", command=self.open_knowledge).pack(anchor="w", padx=8, pady=8)
         ctk.CTkLabel(T, text=("Export Knowledge Pack writes a numbered pack: the reader trained here, plus the database, OCR fixes "
-                              "and ignore list. Put it in the approved SharePoint folder; people install it in Acronym Hunter "
+                              "and ignore list. Put it in the approved SharePoint folder; people install it in Stationkeeper "
                               "(Tools > Knowledge Packs) and can undo it."), wraplength=900, justify="left", anchor="w",
                      text_color=("#475569", "#94A3B8")).pack(fill="x", padx=8)
 
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] == "--selftest":     # same self-test as Acronym Hunter, with training loaded
+    if len(sys.argv) > 1 and sys.argv[1] == "--selftest":     # same self-test as Stationkeeper, with training loaded
         eng.run_selftest(sys.argv[2:])
         sys.exit(0)
     try:
         TrainingApp().mainloop()
     except Exception:
-        eng.log_error("Acronym Hunter Training failed to start")
+        eng.log_error("Stationkeeper Training failed to start")
         raise
 
 

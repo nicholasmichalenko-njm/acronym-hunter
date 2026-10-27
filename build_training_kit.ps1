@@ -1,4 +1,4 @@
-# Builds an Acronym Hunter Training Kit ONCE, on a PC with internet access. The finished kit runs on any Windows PC
+# Builds a Stationkeeper Training Kit ONCE, on a PC with internet access. The finished kit runs on any Windows PC
 # with NO internet: every Python inside it loads kit\sitecustomize.py first, which refuses all outbound connections.
 #
 #   powershell -ExecutionPolicy Bypass -File .\build_training_kit.ps1         CPU kit  (~410 MB zip)

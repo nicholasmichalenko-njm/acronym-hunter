@@ -1,4 +1,4 @@
-"""Pictures inside files, and reading a region of one (2.15.0: shared by Acronym Hunter and Acronym Hunter Training).
+"""Pictures inside files, and reading a region of one (2.15.0: shared by Stationkeeper and Stationkeeper Training).
 
 Every page or embedded picture in a file as (label, loader -> PIL RGB image), the scanner location that points at
 one, and region OCR that shows every reading, including ones below the scanner's confidence cutoff.

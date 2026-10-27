@@ -301,11 +301,11 @@ def export_redline(path, doc_name, v_old, v_new, rows, only_changes=True):
     """A Word file: every sentence in reading order, removed words struck through in red, added words green."""
     import docxw
     d = docxw.Doc()
-    d.props = {"AcronymHunterCompare": f"{doc_name}: {v_old['label']} to {v_new['label']}"}
+    d.props = {"StationkeeperCompare": f"{doc_name}: {v_old['label']} to {v_new['label']}"}
     d.heading(f"{doc_name}: {v_old['label']} compared with {v_new['label']}", 1)
     d.para(f"{v_old['label']}: {v_old['file']}, added {v_old['added']} by {v_old['who']}, SHA-256 {v_old['sha256']}")
     d.para(f"{v_new['label']}: {v_new['file']}, added {v_new['added']} by {v_new['who']}, SHA-256 {v_new['sha256']}")
-    d.para(summary_text(summary(rows)) + f". Built {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')} by Acronym Hunter.", bold=True)
+    d.para(summary_text(summary(rows)) + f". Built {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')} by Stationkeeper.", bold=True)
     sec = None
     for r in rows:
         if only_changes and r["kind"] == "same":

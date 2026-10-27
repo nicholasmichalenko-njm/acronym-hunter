@@ -810,7 +810,7 @@ class HomeMixin:
             import docxw
             L = self.effort
             d = docxw.Doc()
-            d.props = {"AcronymHunterEffort": L.name, "Client": L.client, "Solicitation": L.solicitation}
+            d.props = {"StationkeeperEffort": L.name, "Client": L.client, "Solicitation": L.solicitation}
             d.heading(title, 1)
             total = 9360
             first = 1800 if len(cols) > 1 else total

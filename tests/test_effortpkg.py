@@ -34,8 +34,11 @@ def run():
                  customer_dir=os.path.join(eff, "Customer documents"), volumes_dir=os.path.join(eff, "Volumes"), volumes=True,
                  stage="Red team", app_version="2.40.0", who="pm", when="2026-10-26T18:00", extra_files=[other])
     assert "files/1/elsewhere_draft.docx" in man["files"] and man["origin"]["files/1/elsewhere_draft.docx"] == os.path.abspath(other)
-    assert man["path"].endswith(".ahpkg") and man["has"] == {"customer": True, "volumes": True, "matrix": True} and man["info"] == {"client": "USSF"}
+    assert man["path"].endswith(".skpkg") and man["has"] == {"customer": True, "volumes": True, "matrix": True} and man["info"] == {"client": "USSF"}
     assert P.read_manifest(man["path"])["stage"] == "Red team"
+    import shutil                                              # 2.44.0: a package saved by Acronym Hunter (.ahpkg) still opens
+    old_pkg = shutil.copy(man["path"], os.path.join(d, "out", "From_Acronym_Hunter.ahpkg"))
+    assert P.read_manifest(old_pkg)["stage"] == "Red team" and ".ahpkg" in P.EXTS and P.EXT == ".skpkg"
     got = P.unpack(man["path"], os.path.join(d, "there", "Kestrel"), W.data_dir_for)
     assert open(got["list"], "rb").read() == b"list" and os.path.isfile(os.path.join(got["data"], "record.json"))
     assert open(os.path.join(got["customer_dir"], "RFP.docx"), "rb").read() == b"rfp" and os.path.isfile(os.path.join(got["volumes_dir"], "Vol_1.docx"))
@@ -68,7 +71,7 @@ def run():
     newer = os.path.join(d, "newer.ahpkg")
     with zipfile.ZipFile(newer, "w") as z:
         z.writestr("manifest.json", json.dumps({"format": 99}))
-    for p, word in ((newer, "newer"), (lst, "not an Acronym Hunter effort package")):
+    for p, word in ((newer, "newer"), (lst, "not a Stationkeeper effort package")):
         try:
             P.read_manifest(p); assert False
         except P.PackageError as e:

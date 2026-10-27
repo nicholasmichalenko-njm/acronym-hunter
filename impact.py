@@ -375,7 +375,7 @@ def export_word(path, r, effort_name=""):
     if r["people"]:
         d.heading("Who it touches", 2)
         d.table(["Owner", "What"], [[o, "; ".join(w)] for o, w in r["people"].items()], [2200, 7160])
-    d.rich([("Made by Acronym Hunter on this PC. Rules only, no AI. It holds customer content: share it the way you share "
+    d.rich([("Made by Stationkeeper on this PC. Rules only, no AI. It holds customer content: share it the way you share "
              "the proposal.", {"color": GRAY, "size": 16})])
     d.save(path)
     return path

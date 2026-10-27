@@ -1,9 +1,9 @@
 """Software Bill of Materials (CycloneDX 1.5 JSON) for a finished build, from what actually ships.
 
-    venv\\Scripts\\python.exe tools\\make_sbom.py dist\\AcronymHunter AcronymHunter_US_SBOM.cdx.json "US"
+    venv\\Scripts\\python.exe tools\\make_sbom.py dist\\Stationkeeper Stationkeeper_US_SBOM.cdx.json "US"
 
 Sources of truth:
-  - Python modules bundled inside AcronymHunter.exe (PyInstaller's embedded archive) and the folders and binaries in
+  - Python modules bundled inside Stationkeeper.exe (PyInstaller's embedded archive) and the folders and binaries in
     _internal, mapped to the installed distributions that own them (name, version, license, PyPI purl).
   - Native parts: Python runtime, Tcl/Tk, Tesseract (from its SOURCE.txt), Google's eng.traineddata, the docTR ONNX
     models (doctr_models.json), PDFium (pypdfium2), ONNX Runtime.
@@ -153,13 +153,13 @@ def file_components(root):
 
 
 def build(root, edition, version):
-    exe = next((os.path.join(root, n) for n in ("AcronymHunter.exe", "AcronymHunterTraining.exe")
-                if os.path.isfile(os.path.join(root, n))), os.path.join(root, "AcronymHunter.exe"))
+    exe = next((os.path.join(root, n) for n in ("Stationkeeper.exe", "StationkeeperTraining.exe", "AcronymHunter.exe", "AcronymHunterTraining.exe")
+                if os.path.isfile(os.path.join(root, n))), os.path.join(root, "Stationkeeper.exe"))
     internal = os.path.join(root, "_internal")
     names = bundled_modules(exe) | internal_names(internal)
     comps = python_components(names) + native_components(root, internal)
     files = file_components(root)
-    app = {"type": "application", "name": "Acronym Hunter Training" if exe.endswith("Training.exe") else "Acronym Hunter",
+    app = {"type": "application", "name": "Stationkeeper Training" if exe.endswith("Training.exe") else "Stationkeeper",
            "version": version, "bom-ref": "acronym-hunter",
            "description": f"{edition} edition. Runs fully offline; makes no network connections.",
            "supplier": {"name": "Nicholas Michalenko"}}
@@ -167,7 +167,7 @@ def build(root, edition, version):
         app["hashes"] = [{"alg": "SHA-256", "content": sha256(exe)}]
     return {"bomFormat": "CycloneDX", "specVersion": "1.5", "serialNumber": f"urn:uuid:{uuid.uuid4()}", "version": 1,
             "metadata": {"timestamp": datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat(),
-                         "tools": {"components": [{"type": "application", "name": "Acronym Hunter tools/make_sbom.py"}]},
+                         "tools": {"components": [{"type": "application", "name": "Stationkeeper tools/make_sbom.py"}]},
                          "component": app},
             "components": comps + files,
             "dependencies": [{"ref": "acronym-hunter", "dependsOn": [c["bom-ref"] for c in comps]}]}

@@ -35,7 +35,7 @@ def _img(name, w):
 
 PAGES = {
 "Start here": [
-    ("h", "What Acronym Hunter does"),
+    ("h", "What Stationkeeper does"),
     ("p", "It reads your files and lists every acronym, abbreviation, unit, designator, symbol and equation, with its "
           "definition and where it appears. It reads typed text and the text inside pictures, scans and diagrams. "
           "Everything runs on this PC. Nothing is sent anywhere."),
@@ -60,7 +60,7 @@ PAGES = {
     ("p", "The menu bar keeps what the team uses every day. File: New effort, Open effort, Save effort package, Import effort "
           "package, Effort details, Export all. Effort: Effort home, add customer documents, check our volumes, notes, tasks, "
           "stages, the timeline. View: sidebar (Ctrl+B), preview pane, text size. Help: the Guide, Submit an idea or report a "
-          "problem, what runs where (AI and ML), the difference between AI and ML, and what Acronym Hunter is built on. "
+          "problem, what runs where (AI and ML), the difference between AI and ML, and what Stationkeeper is built on. "
           "Advanced: everything else (scanning files outside an effort, the results list, the master database, all effort "
           "list commands, reading and training)."),
     ("h", "The effort record: where the effort stands, and how it got there"),
@@ -91,12 +91,12 @@ PAGES = {
                                 "each stage's goals; the customer documents. Effort summary, complete history (Word)... is the "
                                 "same report with the whole timeline: the record of the proposal when it is done. Export all "
                                 "includes the status."),
-              ("Hand-off", "File > Save effort package... writes the whole effort into one .ahpkg file: stage, goals, notes, "
+              ("Hand-off", "File > Save effort package... writes the whole effort into one .skpkg file (.ahpkg before 2.44.0; both open): stage, goals, notes, "
                            "tasks, timeline, customer document versions, submission requirements, the compliance matrix and "
                            "the acronym list, the customer files, our volumes and every file a deliverable points to (all "
                            "ticked at first). File > Import effort package... opens it on another PC where it was left, with "
-                           "every link pointed at the new folder; Advanced > Make .ahpkg effort packages open in Acronym "
-                           "Hunter lets a double-click open it (your Windows user only, no admin rights). Team-wide lists "
+                           "every link pointed at the new folder; Advanced > Make effort packages open in Stationkeeper "
+                           "lets a double-click open it (your Windows user only, no admin rights). Team-wide lists "
                            "(the master database, banned words, team keyword knowledge) stay with each PC; if the effort is already there, choose to "
                            "use the package (the old copy is backed up) or keep both. Save packages on this PC or in the "
                            "approved SharePoint folder only.")]),
@@ -168,7 +168,7 @@ PAGES = {
     ("h", "Send corrections: the training team teaches the reader"),
     ("rows", [("What", "Advanced > Reading, training and knowledge > Send corrections to the training team (or the green bar) saves your lessons as one corrections pack."),
               ("Where", "The approved SharePoint folder for the training team only. Never email, GitHub or USB."),
-              ("Then", "The training team imports everyone's packs in Acronym Hunter Training, checks each line, trains a "
+              ("Then", "The training team imports everyone's packs in Stationkeeper Training, checks each line, trains a "
                        "better reader and tests it. Only a reader that reads better ships."),
               ("Back to you", "It comes back as a numbered Knowledge Pack: Advanced > Reading, training and knowledge > Knowledge... > Install. Undo puts the "
                               "previous one back.")]),
@@ -662,7 +662,7 @@ PAGES = {
               ("Logs", "The app also logs errors and which controls are clicked, by internal name only. "
                        "No file names, terms or document text, ever.")]),
     ("h", "Good team habit"),
-    ("p", "Everyone reports misreadings and sends corrections. The training team runs Acronym Hunter Training, ships a "
+    ("p", "Everyone reports misreadings and sends corrections. The training team runs Stationkeeper Training, ships a "
           "Knowledge Pack, and everyone installs it. The whole team gets the better reader."),
 ],
 "AI and ML": [
@@ -699,10 +699,10 @@ def open_guide(parent, page=None):
             w._show(page)
         return w
     win = ctk.CTkToplevel(parent); _win[0] = win
-    win.title("How Acronym Hunter works"); win.geometry("820x680"); win.minsize(640, 420)
+    win.title("How Stationkeeper works"); win.geometry("820x680"); win.minsize(640, 420)
     win.transient(parent); win.after(150, win.lift)
     head = ctk.CTkFrame(win, fg_color="transparent"); head.pack(fill="x", padx=12, pady=(10, 4))
-    ctk.CTkLabel(head, text="How Acronym Hunter works", font=("Arial", 17, "bold")).pack(side="left")
+    ctk.CTkLabel(head, text="How Stationkeeper works", font=("Arial", 17, "bold")).pack(side="left")
     ctk.CTkButton(head, text="Close", width=80, fg_color="#475569", command=win.withdraw).pack(side="right")
     tab = tk.StringVar(value=page or "Start here")
     seg = ctk.CTkSegmentedButton(win, values=list(PAGES), variable=tab, command=lambda v: show(v))

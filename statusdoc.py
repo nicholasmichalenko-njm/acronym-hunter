@@ -152,8 +152,8 @@ def build(snap, path, final=False):
         _head(d, "Complete history")
         d.table(["Date", "Kind", "What", "Who"], [[h["when"], h["kind"], h["text"], h.get("who", "")] for h in s["history"]],
                 [1300, 1300, 5460, 1300])
-    d.rich([(f"Made by Acronym Hunter {s.get('app', '')} on this PC. Rules only, no AI. It holds effort content: share it the way "
+    d.rich([(f"Made by Stationkeeper {s.get('app', '')} on this PC. Rules only, no AI. It holds effort content: share it the way "
              "you share the proposal.", {"color": GRAY, "size": 16})])
-    d.props = {"AcronymHunterEffort": s.get("effort", ""), "AcronymHunterReport": kind.title()}
+    d.props = {"StationkeeperEffort": s.get("effort", ""), "StationkeeperReport": kind.title()}
     d.save(path)
     return path

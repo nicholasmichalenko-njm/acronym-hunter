@@ -251,7 +251,7 @@ def finish():
 app.after(1500, step1)
 app.mainloop()
 
-# Acronym Hunter Training with one corrections pack
+# Stationkeeper Training with one corrections pack
 import corrections as C, training_app as T
 C.set_dir(os.path.join(tmp, "user_td"))
 img = Image.new("RGB", (160, 36), "white")
@@ -259,7 +259,7 @@ from PIL import ImageDraw
 for t, r in (("RFP", "RFF"), ("SE&I", "SE8I"), ("TT&C", "TT8C")):
     im = img.copy(); ImageDraw.Draw(im).text((10, 10), r, fill="black")
     C.save_sample(im, t, r, 0.55, "Kestrel_PDR_Briefing.pptx (Slide 5, image 'Diagram')", (0, 0, 160, 36))
-pack = os.path.join(tmp, "AcronymHunter_Corrections_sample.zip")
+pack = os.path.join(tmp, "Stationkeeper_Corrections_sample.zip")
 C.export_pack(pack)
 C.set_dir(os.path.join(tmp, "team_td"))
 tapp = T.TrainingApp(); fit(tapp)

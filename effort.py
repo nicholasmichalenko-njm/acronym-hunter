@@ -361,7 +361,7 @@ class EffortList:
                   ["Internal number", self.internal_no], ["First use", FIRST_USE_RULES[self.first_use]],
                   ["Saved", datetime.datetime.now().strftime("%Y-%m-%d %H:%M")],
                   ["Statuses", ", ".join(STATUSES)],
-                  ["Note", "Edit Status, SS Approver and Notes here or in Acronym Hunter. Keep the column headings."]):
+                  ["Note", "Edit Status, SS Approver and Notes here or in Stationkeeper. Keep the column headings."]):
             ab.append(r)
         ab.column_dimensions["A"].width = 12; ab.column_dimensions["B"].width = 80
         fd, tmp = tempfile.mkstemp(prefix=".effort_", suffix=".xlsx", dir=d)

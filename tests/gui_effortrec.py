@@ -133,7 +133,7 @@ def go():
           "Import effort package..."] and "Effort details..." in fl and "Export all for this effort..." in fl, fl)
     hl = menu_labels(app.nametowidget(mb.entrycget(3, "menu")))
     check("Help: Guide, ideas and problems, AI and ML, what it is built on", hl == ["How it works (Guide)", "Submit an idea or report a problem...",
-          "What runs where (AI and ML)...", "AI and ML: the difference...", "What Acronym Hunter is built on...", "About Acronym Hunter"], hl)
+          "What runs where (AI and ML)...", "AI and ML: the difference...", "What Stationkeeper is built on...", "About Stationkeeper"], hl)
     al = menu_labels(app.nametowidget(mb.entrycget(4, "menu")))
     check("Advanced holds everything else", "Scan files outside an effort" in al and "Master database" in al and "Effort list and all effort commands" in al, al)
     pw = app.show_components(); pw.update()

@@ -1,4 +1,4 @@
-"""Acronym Hunter Training Kit driver. Runs fully offline (see kit\\sitecustomize.py).
+"""Stationkeeper Training Kit driver. Runs fully offline (see kit\\sitecustomize.py).
 
   Train.cmd                      menu: check, train reader, train finder, train both
   python\\python.exe kit\\train.py --check

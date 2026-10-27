@@ -1,8 +1,8 @@
 # Builds the app ONCE and makes the package:
-#   AcronymHunter_US.zip           Acronym Hunter: scans, saves corrections -> GitHub Release (generic data only)
-#   AcronymHunter_US_Training.zip  Acronym Hunter Training (-App training): imports corrections, trains the reader,
+#   Stationkeeper_US.zip           Stationkeeper: scans, saves corrections -> GitHub Release (generic data only)
+#   Stationkeeper_US_Training.zip  Stationkeeper Training (-App training): imports corrections, trains the reader,
 #                                  exports Knowledge Packs -> GitHub Release (generic data only) (2.15.0)
-#   internal_builds\AcronymHunter_Internal_<pack>.zip     -> approved SharePoint ONLY (when -KnowledgePack is given)
+#   internal_builds\Stationkeeper_Internal_<pack>.zip     -> approved SharePoint ONLY (when -KnowledgePack is given)
 # Training features can be switched off for a distribution in base\config\app_settings.json (allow_training).
 #
 # Data boundary: the GitHub packages are built from base\ ONLY, never from the working database or config\.
@@ -15,21 +15,21 @@
 #   -Edition us      (default) Tesseract OCR: HP origin, Google-developed, Google-trained English model. CPU training built in.
 #                    Plus docTR (Mindee, Apache 2.0) on ONNX Runtime (Microsoft) as a second text finder and reader.
 #                    Needs vendor\tesseract once: tools\build_tesseract.ps1 (built from source with no network library).
-#   -Edition legacy  RapidOCR + PaddleOCR (Baidu) models on ONNX Runtime, the v1.5.x engine: AcronymHunter_Legacy.zip.
+#   -Edition legacy  RapidOCR + PaddleOCR (Baidu) models on ONNX Runtime, the v1.5.x engine: Stationkeeper_Legacy.zip.
 #   -Classic         US edition without docTR: Tesseract is the only reader (for reviewers who want no neural text finder).
-#                    On request only: routine releases ship AcronymHunter_US.zip and AcronymHunter_US_Training.zip (from 2.15.0).
-#   -App training    Acronym Hunter Training instead of Acronym Hunter (same code, its own program and package).
+#                    On request only: routine releases ship Stationkeeper_US.zip and Stationkeeper_US_Training.zip (AcronymHunter_* before 2.44.0) (from 2.15.0).
+#   -App training    Stationkeeper Training instead of Stationkeeper (same code, its own program and package).
 param([string]$KnowledgePack = "", [ValidateSet('us', 'legacy')][string]$Edition = 'us', [switch]$Classic,
       [ValidateSet('user', 'training')][string]$App = 'user')
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 
 $env:AH_EDITION = $Edition
-$prefix = if ($Edition -eq 'us') { 'AcronymHunter_US' } else { 'AcronymHunter_Legacy' }
+$prefix = if ($Edition -eq 'us') { 'Stationkeeper_US' } else { 'Stationkeeper_Legacy' }
 $env:AH_CLASSIC = if ($Classic) { '1' } else { '' }
-if ($Classic) { $prefix = 'AcronymHunter_US_Classic' }
+if ($Classic) { $prefix = 'Stationkeeper_US_Classic' }
 $env:AH_APP = $App
-$exeName = if ($App -eq 'training') { 'AcronymHunterTraining' } else { 'AcronymHunter' }
+$exeName = if ($App -eq 'training') { 'StationkeeperTraining' } else { 'Stationkeeper' }
 if ($App -eq 'training') { $prefix = "${prefix}_Training" }
 
 function Test-PublicPackage([string]$dir) {
@@ -64,10 +64,10 @@ function Test-PublicPackage([string]$dir) {
         $engHash = (Get-FileHash "$root\_internal\tesseract\tessdata\eng.traineddata").Hash
         if ($engHash -ne '8280AED0782FE27257A68EA10FE7EF324CA0F8D85BD2FD145D1C2B560BCB66BA') { throw "LEAK CHECK FAILED: eng.traineddata is not Google's tessdata_best file" }
         if (-not (Test-Path "$root\_internal\tesseract\tesseract.exe")) { throw "BUILD CHECK FAILED: Tesseract engine missing" }
-        # 2.15.0: training belongs to Acronym Hunter Training. The user app ships no training tools and no training code.
+        # 2.15.0: training belongs to Stationkeeper Training. The user app ships no training tools and no training code.
         $tools = @($files | Where-Object { $_ -match '\\(lstmtraining|lstmeval|combine_tessdata)\.exe$' })
-        if ($App -eq 'user' -and $tools) { throw "SPLIT CHECK FAILED: training tools in Acronym Hunter: $($tools -join ', ')" }
-        if ($App -eq 'training' -and $tools.Count -ne 3) { throw "BUILD CHECK FAILED: Acronym Hunter Training needs lstmtraining, lstmeval and combine_tessdata" }
+        if ($App -eq 'user' -and $tools) { throw "SPLIT CHECK FAILED: training tools in Stationkeeper: $($tools -join ', ')" }
+        if ($App -eq 'training' -and $tools.Count -ne 3) { throw "BUILD CHECK FAILED: Stationkeeper Training needs lstmtraining, lstmeval and combine_tessdata" }
         if (-not (Select-String -Path "$root\_internal\tesseract\SOURCE.txt" -Pattern 'DISABLE_CURL=ON' -Quiet)) { throw "BUILD CHECK FAILED: vendor\tesseract is not the no-network source build (run tools\build_tesseract.ps1)" }
     } else {
         $models = $files | Where-Object { $_ -like '*.onnx' -and $_ -notlike '_internal\rapidocr_onnxruntime\models\*' }
@@ -78,7 +78,7 @@ function Test-PublicPackage([string]$dir) {
     "Leak check passed: $dir ($($files.Count) files, data identical to base\)"
 }
 
-& .\venv\Scripts\pyinstaller.exe --noconfirm --clean AcronymHunter.spec
+& .\venv\Scripts\pyinstaller.exe --noconfirm --clean Stationkeeper.spec
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed. See output above." }
 
 $out = "dist\$exeName"
@@ -130,16 +130,16 @@ $stage = $out
 # Package 3 (optional): internal build with a Knowledge Pack pre-installed. SharePoint ONLY.
 if ($KnowledgePack -and $App -eq 'user') {
     if (-not (Test-Path $KnowledgePack)) { throw "Knowledge Pack not found: $KnowledgePack" }
-    $istage = 'dist\internal\AcronymHunter'
+    $istage = 'dist\internal\Stationkeeper'
     New-Item -ItemType Directory -Force (Split-Path $istage) | Out-Null
     Copy-Item $stage $istage -Recurse -Force
-    $p = Start-Process -FilePath "$istage\AcronymHunter.exe" -ArgumentList '--install-knowledge', "`"$((Resolve-Path $KnowledgePack).Path)`"" -Wait -PassThru
+    $p = Start-Process -FilePath "$istage\Stationkeeper.exe" -ArgumentList '--install-knowledge', "`"$((Resolve-Path $KnowledgePack).Path)`"" -Wait -PassThru
     $log = Get-Content "$istage\logs\knowledge_install.txt" -Raw
     if ($log -notmatch 'INSTALL OK') { throw "Knowledge Pack install failed:`n$log" }
     Remove-Item -Recurse -Force "$istage\logs", "$istage\_local_sandbox", "$istage\config\knowledge_backups" -ErrorAction SilentlyContinue
-    $packName = [IO.Path]::GetFileNameWithoutExtension($KnowledgePack) -replace '^AcronymHunter_Knowledge_', ''
+    $packName = [IO.Path]::GetFileNameWithoutExtension($KnowledgePack) -replace '^(AcronymHunter|Stationkeeper)_Knowledge_', ''
     New-Item -ItemType Directory -Force internal_builds | Out-Null
-    $izip = "internal_builds\AcronymHunter_Internal_$packName.zip"
+    $izip = "internal_builds\Stationkeeper_Internal_$packName.zip"
     Remove-Item $izip -ErrorAction SilentlyContinue
     Compress-Archive -Path $istage -DestinationPath $izip -CompressionLevel Optimal
     "Internal build (SharePoint ONLY, never GitHub): $izip"

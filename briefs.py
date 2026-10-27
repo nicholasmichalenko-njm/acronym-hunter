@@ -132,7 +132,7 @@ def text(r, b, due=""):
     if due:
         L += ["", f"Proposal due {due}."]
     L += ["", "Questions: ask the proposal manager. The full impact review and the compare of the two versions are in "
-              "Acronym Hunter (Submission > Impact)."]
+              "Stationkeeper (Submission > Impact)."]
     return "\n".join(L)
 
 
@@ -169,7 +169,7 @@ def export_word(path, r, briefs, due="", effort_name=""):
             d.heading("For everyone", 2)
             for x in b["everyone"]:
                 d.para("- " + x)
-        d.rich([("Made by Acronym Hunter on this PC. Rules only, no AI. It quotes customer documents: share it the way you share "
+        d.rich([("Made by Stationkeeper on this PC. Rules only, no AI. It quotes customer documents: share it the way you share "
                  "the proposal.", {"color": GRAY, "size": 16})])
     d.save(path)
     return path

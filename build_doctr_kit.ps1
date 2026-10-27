@@ -1,4 +1,4 @@
-# Builds the Acronym Hunter docTR Training Kit ONCE, on a PC with internet access. The finished kit runs on any Windows
+# Builds the Stationkeeper docTR Training Kit ONCE, on a PC with internet access. The finished kit runs on any Windows
 # PC with NO internet: every Python inside it loads sitecustomize.py first, which refuses all outbound connections.
 #
 #   powershell -ExecutionPolicy Bypass -File .\build_doctr_kit.ps1        CPU kit

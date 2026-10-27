@@ -1,14 +1,14 @@
-"""Acronym Hunter Training Kit (docTR): teach docTR's finder and reader from your Trainer samples. Offline.
+"""Stationkeeper Training Kit (docTR): teach docTR's finder and reader from your Trainer samples. Offline.
 
     python\\python.exe kit\\train_doctr.py --check          lockdown, PyTorch, docTR, starting weights
     python\\python.exe kit\\train_doctr.py --reader         train the reader (corrected text lines)
     python\\python.exe kit\\train_doctr.py --finder         train the finder (boxed regions)
     python\\python.exe kit\\train_doctr.py --reader --finder
 
-Samples: copy each person's Acronym Hunter training_data\\ folder into samples\\<name>\\ (images\\ + labels.txt,
+Samples: copy each person's Stationkeeper training_data\\ folder into samples\\<name>\\ (images\\ + labels.txt,
 regions\\ + det_labels.txt). Results: output\\models\\ (doctr_det.onnx, doctr_reco.onnx, doctr_models.json,
 REPORT.txt). A model is exported only if it scores better than the current one on samples it did not learn from.
-In Acronym Hunter: Tools > Knowledge > Load Trained Models, and pick output\\models.
+In Stationkeeper: Tools > Knowledge > Load Trained Models, and pick output\\models.
 """
 import argparse, glob, hashlib, json, os, re, shutil, subprocess, sys, time
 KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -305,7 +305,7 @@ def export(reader, finder):
     from doctr.datasets import VOCABS
     base = json.load(open(os.path.join(BASE_MODELS, "doctr_models.json"), encoding="utf-8"))
     os.makedirs(OUT, exist_ok=True)
-    info = {"doctr": base.get("doctr", ""), "torch": torch.__version__, "trained_by": "Acronym Hunter Training Kit",
+    info = {"doctr": base.get("doctr", ""), "torch": torch.__version__, "trained_by": "Stationkeeper Training Kit",
             "trained": time.strftime("%Y-%m-%d %H:%M"), "models": {}}
     report = ["ACRONYM HUNTER TRAINING KIT REPORT", time.strftime("%Y-%m-%d %H:%M"), ""]
     for key, res, better in (("doctr_reco", reader, reader and reader["after"] is not None and reader["after"] > (reader["before"] or 0)),
@@ -333,7 +333,7 @@ def export(reader, finder):
             report.append(f"{'Reader' if key == 'doctr_reco' else 'Finder'}: {why}")
         info["models"][key] = entry
     json.dump(info, open(os.path.join(OUT, "doctr_models.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-    report += ["", "Install: Acronym Hunter > Tools > Knowledge > Load Trained Models > pick this folder.",
+    report += ["", "Install: Stationkeeper > Tools > Knowledge > Load Trained Models > pick this folder.",
                "Share: after installing, Knowledge > Export Knowledge Pack (approved SharePoint folder only)."]
     open(os.path.join(OUT, "REPORT.txt"), "w", encoding="utf-8").write("\n".join(report) + "\n")
     log("\n".join(report))
