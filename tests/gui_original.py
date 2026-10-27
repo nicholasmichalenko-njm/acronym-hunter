@@ -104,6 +104,20 @@ def go():
     k2 = next(i for i, t in enumerate(texts) if "risk register" in t)
     check("a matrix from before 2.47.0: the line added at the end moves to its place when the matrix opens",
           "thermal design" in texts[k2 - 1] and app.matrix.items[k2]["id"] == added[0]["id"], texts)
+    # 2.47.0: C (context) moves on to the next sentence by itself; C again on it changes what it supports
+    und = [x for x in app.matrix.items if not C.eff(x)]
+    app._cp_select(und[0]["id"]); app.update()
+    r = app.cp_ctx(); app.update()
+    now = app._c_selected()
+    check("C on a sentence: context for the nearest requirement, then on to the next sentence without a click",
+          r == "ctx_done" and app._c_item(und[0]["id"])["decision"] == "Context" and now and now[0]["id"] != und[0]["id"],
+          (r, now and now[0]["id"], app._c_item(und[0]["id"]).get("context_for")))
+    app._cp_select(und[0]["id"]); app.update()
+    r2 = app.cp_ctx(); app.update()
+    app.cp_mode_end(); app.update()
+    now = app._c_selected()
+    check("C again on a context sentence lets you change what it supports; Done moves on", r2 == "ctx" and now and now[0]["id"] != und[0]["id"],
+          (r2, now and now[0]["id"]))
     # a matrix with no PDF: the view explains itself
     for it in app.matrix.items:
         it["file"] = "RFP.docx"

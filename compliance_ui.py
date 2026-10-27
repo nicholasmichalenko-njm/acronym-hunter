@@ -674,7 +674,7 @@ class ComplianceMixin:
         diag.activity("compliance_decided", n=len(sel))
         last = sel[-1]["id"]
         self._c_changed()
-        if len(sel) == 1 and decision in ("Keep", "Drop") and self._c_auto_next():
+        if decision in ("Keep", "Drop", "Context") and self._c_auto_next():     # 2.47.0: Context too, and ranges
             self.compliance_next_undecided(after=last)
         return "break"
 

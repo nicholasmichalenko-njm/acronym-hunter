@@ -105,7 +105,7 @@ def wait():
         tv.selection_set(nxt); win.update()
         app.compliance_decide("Context"); win.update()
         after = tv.selection()
-        adv_ok = bool(after) and after[0] == nxt                        # Context stays put
+        adv_ok = bool(after) and after[0] != nxt                        # 2.47.0: Context moves on to the next sentence too
     keys_ok = {"c", "n", "C", "N"} <= set(tv.bind())
     ctx_ok = bool(ctx) and adv_ok and keys_ok and (nxt is None or app._c_item(nxt)["decision"] == "Context")
     for it in M.items:

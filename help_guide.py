@@ -540,10 +540,13 @@ PAGES = {
                                          "target, then R for each sentence; with no target, R waits for you to click a "
                                          "section. 1, 2 and 3 pick the suggested sections (the rules' match and past "
                                          "proposals). The target section's sentences are underlined."),
-              ("Context", "C makes the sentence Context for the nearest compliance requirement. To change that, click other "
-                          "compliance requirements (green) to add or remove them, or click a section on the right to make it "
-                          "context for that section or subsection itself. There is no Done step: clicking any other sentence, or "
-                          "the next key, simply moves on. Pointing at a sentence lights up its links."),
+              ("Context", "C makes the sentence Context for the nearest compliance requirement and moves on to the next "
+                          "sentence. To change what it supports, go back to it and press C again: click other compliance "
+                          "requirements (green) to add or remove them, or click a section on the right to make it context for "
+                          "that section or subsection itself; Done, Enter or the next key moves on. Pointing at a sentence lights "
+                          "up its links."),
+              ("Moving on", "After a compliance requirement, context or not used, Assign goes to the next sentence that is "
+                            "not assigned, so you never click to move on (turn it off with the box on the right)."),
               ("Clear, Split, Combine", "X clears a sentence (not used). S splits it where you clicked between two words. "
                                         "Drag across several sentences to assign them together, or M to combine them into one."),
               ("Not used", "A sentence you do not assign is not used. Prove and the coverage report count compliance "

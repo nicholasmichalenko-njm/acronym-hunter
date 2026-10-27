@@ -148,7 +148,7 @@ class CompliancePageMixin:
         ctk.CTkButton(orow, text="Arrange the setup...", width=10, fg_color="#475569",
                       command=lambda: self._cwin.tabs.set("Setup")).pack(side="left", padx=6)
         win.cp_next_var = tk.BooleanVar(value=self._c_auto_next() if hasattr(self, "_c_auto_next") else True)
-        ctk.CTkCheckBox(side, text="After assigning a requirement, go to the\nnext sentence that is not assigned",
+        ctk.CTkCheckBox(side, text="After assigning a sentence (requirement, context\nor not used), go to the next one not assigned",
                         variable=win.cp_next_var, command=self._cp_auto_next_set).pack(anchor="w", padx=8, pady=(10, 0))
         self._cp_card_title(side, "Highlighter key")
         for txt, bg in (("Compliance requirement", DEC_BG["Keep"]), ("Context", DEC_BG["Context"]), ("Not used (not assigned)", "#FFFFFF")):
@@ -718,8 +718,10 @@ class CompliancePageMixin:
         self._cp_flash(text)
         self._c_changed()
         win = self._cwin
-        if advance and len(rows) == 1 and not win.cp_range and bool(win.cp_next_var.get()):
-            self.compliance_next_undecided(after=rows[0]["id"])
+        if advance and rows and bool(win.cp_next_var.get()):      # 2.47.0: also after a range of sentences
+            if win.cp_range:
+                self.cp_set_range([])
+            self.compliance_next_undecided(after=rows[-1]["id"])
         else:
             sel = self._c_selected()
             if sel:
@@ -780,6 +782,7 @@ class CompliancePageMixin:
             return None
         if win.cp_mode:
             self.cp_mode_end(quiet=True)
+        again = all(it["decision"] == "Context" for it in rows)    # C on a context sentence: change what it supports
         for it in rows:
             if it["decision"] == "Context":
                 continue                              # already Context: keep what it supports, change it with clicks
@@ -791,6 +794,12 @@ class CompliancePageMixin:
             else:
                 C.assign_context(M.items, [it], [])
             M.log(it["id"], "context " + (f"for {it['context_for']}" if it["context_for"] else f"for section {it['map']}" if it["map"] else ""))
+        if not again and all(it.get("context_for") or it.get("map") for it in rows):
+            # 2.47.0: it supports the nearest compliance requirement (or the target section): done, on to the next
+            # sentence. Go back to it and press C again to change what it supports.
+            self._cp_after(rows, f"{rows[0]['id'] if len(rows) == 1 else str(len(rows)) + ' sentences'}: {C.context_label(rows[0])}"
+                                 " (back to it and C again to change)", advance=True)
+            return "ctx_done"
         win.cp_mode = ("ctx", [r["id"] for r in rows])
         diag.activity("compliance_assigned", n=len(rows))
         self._c_changed()
@@ -885,8 +894,14 @@ class CompliancePageMixin:
             rows = [r for r in (self._c_item(i) for i in win.cp_mode[1]) if r]
             if rows:
                 self._cp_flash(f"{rows[0]['id'] if len(rows) == 1 else str(len(rows)) + ' sentences'}: {C.context_label(rows[0])}")
+        was = win.cp_mode
         win.cp_mode = None
         win.cp_done_btn.pack_forget()
+        if was and was[0] == "ctx" and not quiet and bool(win.cp_next_var.get()):
+            rows = [r for r in (self._c_item(i) for i in was[1]) if r]
+            if rows:                                  # 2.47.0: context done: on to the next sentence
+                self.compliance_next_undecided(after=rows[-1]["id"])
+                return
         sel = self._c_selected()
         if sel and not quiet:
             self._cp_show(sel[0])
@@ -902,7 +917,7 @@ class CompliancePageMixin:
         C.clear_assignment(self.matrix.items, rows)
         for it in rows:
             self.matrix.log(it["id"], "not used (cleared)")
-        self._cp_after(rows, (rows[0]["id"] if len(rows) == 1 else f"{len(rows)} sentences") + ": not used")
+        self._cp_after(rows, (rows[0]["id"] if len(rows) == 1 else f"{len(rows)} sentences") + ": not used", advance=True)
         return len(rows)
 
     def cp_owner(self, name=None):
