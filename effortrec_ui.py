@@ -104,7 +104,7 @@ class EffortRecordMixin:
 
     # ------------------------------------------------------------ the countdown in the top bar
     def rec_strip_build(self, strip):
-        self.strip_due = ctk.CTkLabel(strip, text="", font=("Segoe UI", 13, "bold"), corner_radius=8, fg_color="transparent",
+        self.strip_due = ctk.CTkLabel(strip, text="", font=("Segoe UI", 12, "bold"), corner_radius=8, fg_color="transparent", justify="right",
                                       text_color=("#1E3A8A", "#BFDBFE"), cursor="hand2")
         self.strip_due.pack(side="right", padx=(6, 14))
         self.strip_due.bind("<Button-1>", lambda _e: self.rec_details_dialog())
@@ -118,7 +118,7 @@ class EffortRecordMixin:
             left = R.countdown(r.data["due"])
             dt = R.due_text(r.data["due"], r.data["zone"])
             short = dt.split(",")[0] + (dt[dt.rfind(","):] if dt.count(",") >= 2 else "")       # 'Dec 15, 2:00 p.m. MT'
-            text = f"{R.countdown_text(r.data['due'])}  to {short}"
+            text = f"{R.countdown_text(r.data['due'])}\nto {short}"
             color = ("#B91C1C", "#FCA5A5") if left and left[0] < 3 else ("#B45309", "#FBBF24") if left and left[0] < 8 else ("#1E3A8A", "#BFDBFE")
             self.strip_due.configure(text_color=color)
         elif r is not None:

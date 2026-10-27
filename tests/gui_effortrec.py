@@ -62,7 +62,7 @@ def go():
     check("the top bar asks for the due date until it is set", app.rec_strip_refresh() == "Set the due date...")
     app.rec_details_dialog(values={"client": "USSF SSC", "sol": "FA8810-26-R-0042", "internal": "SS-118", "due": "December 15, 2026, 2:00 p.m. MT"})
     top = app.rec_strip_refresh()
-    check("Effort details: the due date counts down in the top bar", top.endswith(" d  " + top.split(" d  ")[1]) and top.split("  to ")[1] == "Dec 15, 2:00 p.m. MT", top)
+    check("Effort details: the due date counts down in the top bar", " d  " in top.split("\n")[0] and top.split("\n")[1] == "to Dec 15, 2:00 p.m. MT", top)
     check("client, solicitation and internal number are saved with the effort", (app.effort.client, app.effort.solicitation, app.effort.internal_no)
           == ("USSF SSC", "FA8810-26-R-0042", "SS-118") and app.efforts.get("Kestrel")["internal_no"] == "SS-118")
     d = app.rec_details_dialog(); d.update()

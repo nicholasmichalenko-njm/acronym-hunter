@@ -84,6 +84,8 @@ class ShellMixin:
         st.pack(fill="x", side="top")
         self.strip_title = ctk.CTkLabel(st, text="", font=("Segoe UI", 18, "bold"))
         self.strip_title.pack(side="left", padx=(18, 8), pady=10)
+        if hasattr(self, "rec_strip_build"):
+            self.rec_strip_build(st)               # 2.40.0: days and hours to go, top right (packed early: it keeps its room)
         self.strip_badges = ctk.CTkFrame(st, fg_color="transparent", height=28)
         self.strip_badges.pack(side="left", padx=(0, 10))
         self._badge_rows = {}
@@ -94,8 +96,6 @@ class ShellMixin:
                 self._badge_rows[key].pack_forget()
         self.strip_pills = ctk.CTkFrame(st, fg_color="transparent", height=34)
         self.strip_pills.pack(side="left", pady=8)
-        if hasattr(self, "rec_strip_build"):
-            self.rec_strip_build(st)               # 2.40.0: due date and days and hours to go, top right
         self.strip_act = ctk.CTkFrame(st, fg_color="transparent", height=34)
         self.strip_act.pack(side="right", padx=12)
         self._acts = {}
