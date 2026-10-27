@@ -110,6 +110,7 @@ class ComplianceMixin:
         last = self.ws.get("compliance_path", "") if getattr(self, "ws", None) is not None else ""   # per effort (2.11.0)
         if self.matrix is None and last and os.path.isfile(last):
             self._c_load(last, quiet=True)
+        self._c_complete_once()
         self._c_ai_state()
         self._c_refresh()
         tabs.set("Requirements" if self.matrix is not None and self.matrix.items else "Read RFP")
@@ -1391,6 +1392,40 @@ class ComplianceMixin:
             return f"Text check: all {words} words of the RFP files are in the review."
         return f"Text check: {miss} of {words} words in {sum(1 for r in results if r['missing'])} file(s) are not in the review yet."
 
+    def _c_complete_once(self):
+        """2.51.0: a matrix read before 2.51.0 gets the completeness pass once when it opens (the reader then missed
+        some lines: a sentence said twice, a lead-in with no list, a phone number, a table cell)."""
+        M = self.matrix
+        if M is None or not M.items:
+            return 0
+        import setupdoc as SD
+        S = SD.setup_of(M)
+        if S.get("complete_v") == 1:
+            return 0
+        S["complete_v"] = 1
+        M.pending = True
+        n = self.compliance_complete()
+        if n:
+            try:
+                self.status.configure(text=f"{n} line(s) of the customer documents that were not in the review were added in their place.")
+            except Exception:
+                diag.swallowed()
+        return n
+
+    def compliance_complete(self):
+        """2.51.0: nothing is missed. After every read, re-read or added file, the text check compares each file word for
+        word with the review and adds any line not in it, in its place in the document (marked Added by the text check).
+        Returns the number added."""
+        if self.matrix is None or not self.matrix.items:
+            return 0
+        try:
+            res = self.compliance_text_check(show=False)
+            if any(r["missing"] for r in res):
+                return len(self.compliance_add_missing(res))
+        except Exception:
+            diag.swallowed()
+        return 0
+
     def compliance_add_missing(self, results):
         """Add the text check's missing lines as sentences to assign (Context rows marked as added by the check). 2.47.0:
         each goes where it is in the document (after the sentence before it, under the same RFP section, with its page),
@@ -1412,8 +1447,11 @@ class ComplianceMixin:
                     diag.swallowed()
             for k, ((where, line), npos) in enumerate(zip(lines, new_pos)):
                 it = C.context_item(line, "", ("", ""), "")
-                if not it:
-                    continue
+                if not it:                            # 2.51.0: whatever the line is, it goes in when asked for
+                    if not line.strip():
+                        continue
+                    it = {"text": " ".join(line.split()), "lead": "", "section": "", "section_title": "", "actor": "",
+                          "type": "Context", "strength": "", "suggest": "Context", "modal": "", "xrefs": "", "compound": False}
                 pm = _re.match(r"p\.(\d+)$", where or "")
                 it.update({"file": r["file"], "loc": f"{r['file']} ({where}, added by the text check)", "page": int(pm.group(1)) if pm else None,
                            "context": line[:700], "key": C.text_key(line), "decision": "", "map": "", "owner": "", "status": "", "notes": "",
@@ -1536,8 +1574,11 @@ class ComplianceMixin:
                 msg += f"\n\n{len(empty)} file(s) have no typed text (scanned pages?): " + ", ".join(empty[:5]) + \
                        ". Scan them in the main window first, or ask for a typed copy."
             try:                                                   # 2.40.0: every word of the files is in the review
+                fixed = self.compliance_complete()                 # 2.51.0: anything the reader missed goes in, in place
                 tc = self.compliance_text_check(show=False)
-                msg += "\n\n" + self.text_check_line(tc) + (" Open Read RFP > Text check... to see and add them." if any(r["missing"] for r in tc) else "")
+                if fixed:
+                    msg += f"\n\n{fixed} line(s) the reader did not split out were added in their place in the document."
+                msg += "\n\n" + self.text_check_line(tc) + (" Open Read RFP > Text check... to see them." if any(r["missing"] for r in tc) else "")
                 if hasattr(self, "rec_log"):
                     self.rec_log("compliance", f"Compliance matrix read: {len(items)} sentences from {len(paths)} file(s). " + self.text_check_line(tc))
             except Exception:
@@ -1556,7 +1597,8 @@ class ComplianceMixin:
 
         def done(items, heads, src, empty):
             have = {(it["file"], it["key"]) for it in self.matrix.items}
-            add = [it for it in items if (it["file"], it["key"]) not in have]
+            known = {it["file"] for it in self.matrix.items}
+            add = [it for it in items if it["file"] not in known or (it["file"], it["key"]) not in have]   # 2.51.0: a new file whole
             for it in add:
                 it["id"] = ""
             self.matrix.items += add
@@ -1564,8 +1606,10 @@ class ComplianceMixin:
             self.matrix.headings += heads; self.matrix.sources += src
             self.matrix.log("matrix", f"added {len(paths)} file(s): {len(add)} candidates")
             diag.activity("compliance_files_added", files=len(paths), added=len(add))
+            fixed = self.compliance_complete()                 # 2.51.0
             self._c_changed()
-            messagebox.showinfo("Compliance matrix", f"{len(add)} candidates added.", parent=self._cwin)
+            messagebox.showinfo("Compliance matrix", f"{len(add)} candidates added." + (f" {fixed} line(s) the reader did not split "
+                                "out were added in their place." if fixed else ""), parent=self._cwin)
         self._c_read(paths, done)
 
     def compliance_reread(self):
@@ -1591,6 +1635,7 @@ class ComplianceMixin:
             self.matrix.sources = src
             self.matrix.log("matrix", f"re-read {len(paths)} file(s): {new} new, {gone} no longer present")
             diag.activity("compliance_reread", files=len(paths), added=new, removed=gone)
+            self.compliance_complete()                         # 2.51.0: nothing missed after a re-read either
             self._c_changed()
             if after is not None:
                 after(new, gone)
@@ -1614,6 +1659,8 @@ class ComplianceMixin:
                 messagebox.showerror("Compliance matrix", f"The workbook could not be read ({type(ex).__name__}).", parent=self._cwin)
             return
         self._c_remember(path)
+        if not quiet:
+            self.after(200, self._c_complete_once)     # 2.51.0
         if C.drafts(self.matrix.items):              # 2.36.0: every choice counts at once; 2.35.0 drafts count now
             C.commit(C.drafts(self.matrix.items))
             self.matrix.log("matrix", "drafts from 2.35.0 committed")

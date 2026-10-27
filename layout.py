@@ -87,7 +87,8 @@ def page_map(path, page_no, items, headings=()):
                     cover[q] = val
             return best, best + k
         found = {}
-        here = [it for it in items if _page_of(it) in (page_no - 1, page_no, page_no + 1)]
+        # 2.51.0: a sentence with no page known (added before pages were kept) is looked for on every page
+        here = [it for it in items if _page_of(it) in (page_no - 1, page_no, page_no + 1) or _page_of(it) is None]
         for it in sorted(here, key=lambda it: abs((_page_of(it) or page_no) - page_no)):
             ws = T.line_words(it.get("text") or "")
             span = mark(ws, it["id"])
@@ -102,6 +103,13 @@ def page_map(path, page_no, items, headings=()):
                     if span:
                         part = "start"
                         break
+            if span is None and len(ws) > 6:             # 2.51.0: a word or two differs: mark the sentence in six-word pieces
+                for k in range(0, len(ws), 4):
+                    piece = ws[k:k + 6]
+                    if len(piece) >= 4:
+                        sp = mark(piece, it["id"])
+                        if sp is not None:
+                            found.setdefault(it["id"], []).append((sp, ""))
             if span is not None:
                 found.setdefault(it["id"], []).append((span, part))
             ld = (it.get("lead") or "").strip()

@@ -105,7 +105,7 @@ def raw_text(path):
     return out
 
 
-LIST_MARK = re.compile(r"^\s*(?:\(?(?:[a-z]|[ivx]{1,4}|\d{1,3})[.)]|[-\u2022\u25aa\u25cf\u2013*])\s+", re.I)
+LIST_MARK = re.compile(r"^\s*(?:\(?(?:[a-z]|[ivx]{1,4}|\d{1,2})[.)]|[-\u2022\u25aa\u25cf\u2013*])\s+", re.I)   # 2.51.0: (719) is not a list mark
 TRAIL = re.compile(r"[;,]\s*(?:and|or)\s*$", re.I)
 
 
@@ -162,9 +162,20 @@ def check(path, items, headings=(), reader_chunks=None):
     for i, w in enumerate(words_):
         at[w].append(i)
 
-    def mark(ws, val):
+    def mark(ws, val, split=True):
         if not ws:
             return False
+        if split and not _mark_exact(ws, val) and len(ws) > 6:
+            # 2.51.0: the reader and the raw read can differ in a word or two (a list mark, a joined line): mark the
+            # sentence in pieces so a small difference does not leave the whole sentence looking missing
+            for k in range(0, len(ws), 4):            # six-word pieces: long enough not to match some other sentence
+                piece = ws[k:k + 6]
+                if len(piece) >= 4:
+                    mark(piece, val, split=False)
+            return True
+        return _mark_exact(ws, val) if not split else True
+
+    def _mark_exact(ws, val):
         best = None
         for p in at.get(ws[0], ()):
             if words_[p:p + len(ws)] == ws:
@@ -179,18 +190,16 @@ def check(path, items, headings=(), reader_chunks=None):
                 cover[k] = val
         return True
 
-    leads = set()
-    for it in items:
-        mark(line_words(it.get("text") or ""), 1)
-        ld = (it.get("lead") or "").strip()
-        if ld and ld not in leads:
-            leads.add(ld)
-            mark(line_words(ld), 1)
     for li, (where, text, _n) in enumerate(lines):     # headings the reader uses as section titles
         if text and _looks_heading(text):
             for k, (_w, l2, _s, _e) in enumerate(seq):
                 if l2 == li and cover[k] == 0:
                     cover[k] = 2
+    for it in items:
+        ld = (it.get("lead") or "").strip()
+        if ld:                                         # 2.51.0: every list's lead-in, even when two lists share the words
+            mark(line_words(ld), 1)                    # (marking again prefers an occurrence not covered yet)
+        mark(line_words(it.get("text") or ""), 1)
     titles = set()
     for it in items:
         titles.add(((it.get("section") or "") + " " + (it.get("section_title") or "")).strip())
@@ -206,9 +215,11 @@ def check(path, items, headings=(), reader_chunks=None):
         ks = by_line.get(li, [])
         gap = [(k, w, s0, e0) for k, w, s0, e0 in ks if cover[k] == 0]
         real = [g for g in gap if g[1] not in TRIVIAL and not (len(g[1]) == 1 and g[1].isalpha())]
+        if real and len(ks) == 1 and len(gap) == 1 and gap[0][1].isdigit() and len(gap[0][1]) <= 4:
+            real = []                                  # 2.51.0: a line of one short number (a page number) is not text to assign
         if real:
             missing += len(real)
-            out_lines.append((where, nline[gap[0][2]:gap[-1][3]].strip(), "missing"))
+            out_lines.append((where, (nline.strip() if len(gap) == len(ks) else nline[gap[0][2]:gap[-1][3]].strip()), "missing"))
         elif ks and all(cover[k] == 2 for k, *_ in ks):
             out_lines.append((where, text, "heading"))
     trivial_gaps = sum(1 for k, (w, *_x) in enumerate(seq) if cover[k] == 0) - missing

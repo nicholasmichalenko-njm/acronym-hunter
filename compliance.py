@@ -73,7 +73,7 @@ def context_item(text, lead, cur, label=""):
     """A sentence that is not a requirement (2.29.0): every sentence of the RFP becomes a row, so every one gets a
     decision. Repeated headers, footers, page numbers and markings are suggested Drop; the rest Context."""
     t = " ".join(text.split())
-    if not re.search(r"[A-Za-z]{2}", t):
+    if not re.search(r"[A-Za-z0-9]", t):           # 2.51.0: a phone number, a table cell "25" or "I" is text too
         return None
     boiler = bool(_BOILER.match(t)) or bool(re.search(r"\((?:Header|Footer)\b", label or ""))
     return {"text": t, "lead": lead if lead and lead != t else "", "section": cur[0], "section_title": cur[1],
@@ -83,13 +83,29 @@ def context_item(text, lead, cur, label=""):
 
 
 # ------------------------------------------------------------------ reading
-def _join_lines(text):
-    """PDF text wraps mid-sentence: join a line to the next unless it ends a sentence, is a heading or a list item."""
+def _join_lines(text, paragraphs=False):
+    """PDF text wraps mid-sentence: join a line to the next unless it ends a sentence, is a heading or a list item.
+    2.51.0: paragraphs=True (Word, PowerPoint, Excel): every line is a paragraph of its own and is never joined to the
+    next ("Font: 12 point" and "Margins: 1 inch" stay two rows)."""
     out = []
+    lens = sorted(len(x.strip()) for x in text.splitlines() if x.strip())
+    full = lens[int(len(lens) * 0.8)] if len(lens) >= 5 else 0      # a full line's length on this page
+    prev_raw = ""
     for raw in text.splitlines():
         line = raw.strip()
         if not line:
             out.append("")
+            prev_raw = ""
+            continue
+        if paragraphs:
+            out.append(line)
+            continue
+        # 2.51.0: a short line followed by one starting with a capital ends its paragraph ("Font: 12 point Times New
+        # Roman" then "Margins: 1 inch"), even without a period
+        short_end = bool(full) and bool(prev_raw) and len(prev_raw) < 0.6 * full and line[:1].isupper()
+        prev_raw = line
+        if short_end:
+            out.append(line)
             continue
         starts_block = bool(_LIST.match(line) or _SEC_LETTER.match(line) or _SEC_WORD.match(line) or
                             (_SEC_NUM.match(line) and len(line) < 140))
@@ -193,7 +209,7 @@ def read_items(chunks, file_name, file_kind="", heads_out=None, every=True):
             continue
         # 2.40.0: a table cell, header, footer or footnote is never a heading (a short "CLIN 0001" cell or a page header
         # must stay text to assign, and must not rename the section of what follows)
-        plain = bool(re.search(r"\((?:table|Header|Footer|Footnotes|Endnotes|text box)\b", label or "", re.I))
+        plain = bool(re.search(r"[(,]\s*(?:table|Header|Footer|Footnotes|Endnotes|text box)\b", label or "", re.I))
         lab_sec = _label_section(label)
         if lab_sec:
             got = _section_from_line(lab_sec, cur)
@@ -202,7 +218,12 @@ def read_items(chunks, file_name, file_kind="", heads_out=None, every=True):
             elif _is_heading(lab_sec):
                 cur = (cur[0], lab_sec)
         lead_line = ""
-        for line in _join_lines(text):
+        all_lines = _join_lines(text, paragraphs=file_name.lower().endswith((".docx", ".docm", ".pptx", ".pptm", ".xlsx", ".xlsm")))
+        for li, line in enumerate(all_lines):
+            # 2.51.0: a line ending in ':' is a lead-in only when list items follow it ("Submit questions to:" followed
+            # by a name and an e-mail address is text to keep)
+            nxt = next((x for x in all_lines[li + 1:] if x), "")
+            lead_in_ok = bool(nxt) and bool(_LIST.match(nxt))
             if not line:
                 lead_line = ""
                 continue
@@ -231,7 +252,7 @@ def read_items(chunks, file_name, file_kind="", heads_out=None, every=True):
                 lead, sub = _split_inline_list(s)
                 group = [(x, lead) for x in sub] if sub else [(s, lead_line if is_item else "")]
                 for txt, ld in group:
-                    if txt.rstrip().endswith(":") and not sub:
+                    if txt.rstrip().endswith(":") and not sub and lead_in_ok and s is sents[-1]:
                         continue                         # a lead-in ("the Offeror shall:") is carried by its items
                     it = classify(txt, ld, cur, file_kind)
                     if it is None and every:
@@ -239,7 +260,7 @@ def read_items(chunks, file_name, file_kind="", heads_out=None, every=True):
                     if it:
                         it.update({"file": file_name, "loc": label, "page": _page(label), "context": body[:700]})
                         items.append(it)
-            if line.rstrip().endswith(":"):
+            if line.rstrip().endswith(":") and (lead_in_ok or is_item):
                 lead_line = (sents[-1] if sents else body) if not is_item else lead_line
             elif not is_item:
                 lead_line = ""
@@ -408,9 +429,12 @@ def extract(files_chunks, headings=None, every=True):
     for name, chunks in files_chunks:
         items += read_items(chunks, name, file_kind(name), headings, every=every)
     seen, out = set(), []
-    for it in items:                               # the same sentence repeated in a header or table: keep once
+    for it in items:
+        # the same header, footer or page marking repeated on every page: keep once. 2.51.0: a sentence the RFP says
+        # twice in its body (in two sections) is two rows, so nothing it says is lost
         k = (it["file"], text_key(it["text"]))
-        if k in seen:
+        repeat = bool(re.search(r"\((?:Header|Footer)\b|\bheader\b|\bfooter\b", it.get("loc", ""), re.I)) or bool(_BOILER.match(it["text"]))
+        if k in seen and repeat:
             continue
         seen.add(k)
         it.update({"key": text_key(it["text"]), "decision": "", "map": "", "owner": "", "status": "", "notes": "",
@@ -511,7 +535,9 @@ def rescan_words(items, cfg=None):
 def merge_reread(old, new):
     """Re-reading the RFP (an amendment): decisions, mapping and notes carry over to identical sentences.
     New sentences are marked; sentences no longer present are kept and marked 'Not in the latest read'."""
-    by_fk = {(it.get("file", ""), it["key"]): it for it in old}
+    by_fk = {}
+    for it in old:                                 # 2.51.0: a sentence said twice in a file is two rows
+        by_fk.setdefault((it.get("file", ""), it["key"]), []).append(it)
     by_key = {}
     for it in old:
         by_key.setdefault(it["key"], []).append(it)
@@ -522,8 +548,8 @@ def merge_reread(old, new):
     def match(it):
         """The same sentence in the same file first (a sentence repeated in two files stays two rows, 2.29.0), then the
         same sentence anywhere (an amendment that renamed the file)."""
-        o = by_fk.get((it.get("file", ""), it["key"]))
-        if o is not None and id(o) not in taken:
+        o = next((x for x in by_fk.get((it.get("file", ""), it["key"]), []) if id(x) not in taken), None)
+        if o is not None:
             return o
         return next((x for x in by_key.get(it["key"], []) if id(x) not in taken and
                      (x.get("file", ""), x["key"]) not in new_fk), None)
