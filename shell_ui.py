@@ -149,10 +149,14 @@ class ShellMixin:
     def _page_overview(self):
         P = ctk.CTkScrollableFrame(self.shell_page("overview"), fg_color="transparent")   # fits small windows
         P.pack(fill="both", expand=True)
-        self.ov_head = ctk.CTkLabel(P, text="", font=("Segoe UI", 20, "bold"), anchor="w")
-        self.ov_head.pack(fill="x", padx=6, pady=(14, 2))
-        self.ov_sub = ctk.CTkLabel(P, text="", anchor="w", justify="left", text_color=("#475569", "#94A3B8"))
-        self.ov_sub.pack(fill="x", padx=6, pady=(0, 8))
+        hd = ctk.CTkFrame(P, fg_color="transparent"); hd.pack(fill="x", padx=6, pady=(14, 8))
+        if hasattr(self, "effort_picture_build"):
+            self.effort_picture_build(hd)          # 2.48.0: the effort's picture, left of its name
+        tx = ctk.CTkFrame(hd, fg_color="transparent"); tx.pack(side="left", fill="x", expand=True)
+        self.ov_head = ctk.CTkLabel(tx, text="", font=("Segoe UI", 20, "bold"), anchor="w")
+        self.ov_head.pack(fill="x", pady=(0, 2))
+        self.ov_sub = ctk.CTkLabel(tx, text="", anchor="w", justify="left", text_color=("#475569", "#94A3B8"))
+        self.ov_sub.pack(fill="x")
         self.ov_next = ctk.CTkButton(P, text="", height=40, fg_color="#1E3A8A", font=("Segoe UI", 14, "bold"),
                                      command=lambda: self.shell_go(*self._ov_target))
         self.ov_next.pack(anchor="w", padx=6, pady=(0, 10))
@@ -559,6 +563,8 @@ class ShellMixin:
         if L is None or not hasattr(self, "ov_head"):
             return
         self.ov_head.configure(text=L.name)
+        if hasattr(self, "effort_picture_refresh"):
+            self.effort_picture_refresh()
         self.ov_sub.configure(text="  |  ".join(x for x in (L.client, L.solicitation, L.internal_no, os.path.basename(L.path)) if x))
         if hasattr(self, "rec_refresh"):
             self.rec_refresh()
