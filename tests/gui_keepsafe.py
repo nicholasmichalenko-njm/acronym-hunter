@@ -106,7 +106,7 @@ def go():
     check("File > Backup location... and Restore from a backup folder...", "Backup location..." in labels
           and "Restore from a backup folder..." in labels, labels)
     # the app's folder is deleted: a new copy starts with no settings and no effort list
-    import shutil, effort as E
+    import shutil
     open(os.path.join(A.CONFIG_DIR, "banned_words_marker.txt"), "w").write("team list")
     app.backup_now(wait=True) if app.effort is not None else None
     zp = K.latest_settings(bdir)
@@ -142,5 +142,12 @@ def go():
     app.after(300, app.destroy)
 
 
-app.after(400, go)
+def _go():
+    try:
+        go()
+    except Exception:
+        import traceback; traceback.print_exc(); print("GUI KEEPSAFE FAIL (exception)"); app.after(100, app.destroy)
+
+
+app.after(400, _go)
 app.mainloop()

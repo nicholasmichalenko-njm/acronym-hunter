@@ -99,6 +99,17 @@ def run():
     assert sorted(f for f in os.listdir(root) if f.endswith(".skpkg")) == ["Kestrel - latest.skpkg", "Kestrel 2026-10-01.skpkg", "Kestrel 2026-10-27.skpkg"]
     assert K.synced(r"C:\Users\jsmith\OneDrive - Sierra Space\Documents\Stationkeeper backups") and not K.synced(r"C:\Users\jsmith\Documents\x")
     assert K.default_backup_dir().endswith("Stationkeeper backups")
+    # restoring: what the backup folder holds, and the settings put back only inside the config folder
+    found = K.find_backups(bdir)
+    assert [b["name"] for b in found] == ["Kestrel"] and found[0]["package"] == out["latest"]
+    assert K.latest_settings(bdir) == out["settings"] and K.find_backups(os.path.join(d, "nowhere")) == []
+    bad = os.path.join(d, "bad.zip")
+    with zipfile.ZipFile(bad, "w") as z:
+        z.writestr("../outside.txt", "x"); z.writestr("banned_words.json", "{}"); z.writestr("app settings/settings.json", "{}")
+    cfg2, st2 = os.path.join(d, "cfg2"), os.path.join(d, "s2", "settings.json")
+    assert K.restore_settings(bad, cfg2, st2) == 3 and not os.path.exists(os.path.join(d, "outside.txt")) and os.path.isfile(st2)
+    import coming_soon as CS
+    assert "CUSTOM DICTIONARIES" in CS.text() and ".dic" in CS.text()
     print("keepsafe ok")
 
 
