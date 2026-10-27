@@ -70,7 +70,7 @@ def go():
     check("opens on Assign in Page view", app.shell_step == "decide" and win.cp_text.winfo_ismapped() and not win.c_left.winfo_ismapped())
     pills = [w.cget("text") for w in app.strip_pills.winfo_children()]
     check("step strip shows the compliance steps", [p.split("  ")[0] for p in pills] ==
-          ["1 Read RFP", "2 Structure", "3 Assign", "4 Prove", "5 Export"], pills)
+          ["1 Read RFP", "2 Structure", "3 Assign", "4 Matrix", "5 Prove", "6 Export"], pills)
     t = win.cp_text
     page = t.get("1.0", "end")
     check("the page reads like the RFP: headings and every sentence", "L.4.1 Technical Approach" in page and all(r[2] in page for r in ROWS))

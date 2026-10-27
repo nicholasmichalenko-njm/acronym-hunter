@@ -16,13 +16,13 @@ FEATURES = (("home", "Effort home"), ("submission", "Submission"), ("compliance"
 STEPS = {
     "home": (("overview", "Overview"),),
     "submission": (("requirements", "Requirements"), ("deliverables", "Deliverables"), ("documents", "Documents"), ("impact", "Impact"), ("compare", "Compare"), ("export", "Export")),  # 2.39.0; Impact 2.42.0
-    "compliance": (("read", "Read RFP"), ("outline", "Structure"), ("decide", "Assign"),
-                   ("prove", "Prove"), ("export", "Export")),             # 2.36.0: Assign places as it decides
+    "compliance": (("read", "Read RFP"), ("outline", "Structure"), ("decide", "Assign"), ("matrix", "Matrix"),
+                   ("prove", "Prove"), ("export", "Export")),             # 2.36.0: Assign places as it decides; 2.51.0 Matrix
     "acronyms": (("scan", "Scan"), ("review", "Review"), ("approve", "Define and approve"), ("export", "Export")),
     "qaqc": (("check", "Check Word files"), ("export", "Export")),
     "keywords": (("decide", "Collect and decide"), ("export", "Export")),
 }
-COMP_TABS = {"read": "Read RFP", "decide": "Requirements", "outline": "Outline", "place": "Place", "prove": "Prove",
+COMP_TABS = {"read": "Read RFP", "decide": "Requirements", "outline": "Outline", "place": "Place", "prove": "Prove", "matrix": "Matrix",
              "export": "Export"}
 AI_SECTION = {"submission": "EFFORT", "compliance": "COMPLIANCE", "acronyms": "SCAN", "qaqc": "EFFORT", "keywords": "EFFORT", "home": "EFFORT"}
 NEEDS_EFFORT = {("submission", "requirements"), ("submission", "deliverables"), ("submission", "documents"), ("submission", "impact"), ("submission", "compare"), ("submission", "export"), ("acronyms", "approve"), ("qaqc", "check"), ("qaqc", "export"), ("keywords", "decide"), ("keywords", "export")}
@@ -295,6 +295,8 @@ class ShellMixin:
             win = self._comp_ensure()
             try:
                 win.tabs.set(COMP_TABS[s])
+                if s == "matrix" and hasattr(self, "md_page_refresh"):
+                    self.md_page_refresh()
             except Exception:
                 diag.swallowed()
             return win

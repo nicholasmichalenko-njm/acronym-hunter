@@ -43,7 +43,10 @@ def go():
     app.open_compliance(show=False); app.update()
     app._c_load(mpath, quiet=True); app._c_refresh()
     app.shell_go("compliance", "export"); app.update()
-    w = app.matrix_design_dialog(); app.update()
+    app.shell_go("compliance", "matrix"); app.update()                     # 2.51.0: a step of its own
+    pills = [x.cget("text").split("  ")[0] for x in app.strip_pills.winfo_children()]
+    check("Compliance has a Matrix step after Assign", "4 Matrix" in pills and app._cwin.tabs.get() == "Matrix", pills)
+    w = app._cwin.md_page
     api = w._api
     tv = api["tree"]
     heads = [tv.heading(c, "text") for c in tv["columns"]]
@@ -77,7 +80,6 @@ def go():
     names = [os.path.basename(p) for p in t["files"]] if t else []
     check("Matrix and Response Setup together: one dated folder with both", t and os.path.basename(t["folder"]).startswith("Kestrel compliance export")
           and any(n.endswith(".xlsx") for n in names) and any(n.endswith(".docx") for n in names), names)
-    w.destroy()
     n = sum(checks)
     print(f"GUI MATRIXDESIGN PASS ({n}/{len(checks)})" if n == len(checks) else f"GUI MATRIXDESIGN FAIL ({n}/{len(checks)})")
     app.after(300, app.destroy)

@@ -96,6 +96,7 @@ class ComplianceMixin:
         if hasattr(self, "_cp_build_place"):            # 2.32.0: Place, a second pass, one sentence at a time
             self._cp_build_place(tabs.add("Place"))
         self._s_build(tabs.add("Setup"))           # Setup Builder (2.13.0)
+        win.md_page = tabs.add("Matrix")           # 2.51.0: the compliance matrix as a step of its own
         pv = tabs.add("Prove")
         ex = tabs.add("Export")
         self._c_build_read(rd)
@@ -172,7 +173,8 @@ class ComplianceMixin:
         ctk.CTkLabel(fr, text="Export the compliance work", font=("Segoe UI", 20, "bold"), anchor="w").pack(fill="x", padx=6, pady=(8, 2))
         ctk.CTkLabel(fr, text="Compliance words appear in your chosen style in every file (Compliance words...).", anchor="w",
                      text_color=("#475569", "#94A3B8")).pack(fill="x", padx=6, pady=(0, 10))
-        for text, cmd in (("Compliance matrix (Excel), designed here...", self.matrix_design_dialog),      # 2.48.0
+        for text, cmd in (("Compliance matrix (Excel): design it in the Matrix step", lambda: self.shell_go("compliance", "matrix")
+                           if hasattr(self, "shell_go") else self.matrix_design_dialog()),                 # 2.51.0
                           ("Matrix and Response Setup together...", self.compliance_export_together),     # 2.48.0
                           ("Working matrix: open a copy in Excel", self.compliance_excel),
                           ("Coverage report (Word)...", self.compliance_coverage),

@@ -39,17 +39,36 @@ class MatrixDesignMixin:
             diag.swallowed()
         return out
 
-    def matrix_design_dialog(self):
+    def md_page_refresh(self):
+        """Compliance > Matrix (2.51.0): the matrix design as a step of its own, built fresh each time it opens."""
+        win = getattr(self, "_cwin", None)
+        fr = getattr(win, "md_page", None) if win is not None else None
+        if fr is None or not fr.winfo_exists():
+            return None
+        for c in fr.winfo_children():
+            c.destroy()
+        if self.matrix is None or not self.matrix.items:
+            ctk.CTkLabel(fr, text="The compliance matrix", font=("Segoe UI", 20, "bold"), anchor="w").pack(fill="x", padx=6, pady=(8, 2))
+            ctk.CTkLabel(fr, text="Read the RFP first (Read RFP), then assign requirements and context; the matrix builds from "
+                                  "those decisions, in the response structure.", anchor="w").pack(fill="x", padx=6)
+            return None
+        return self.matrix_design_dialog(parent=fr)
+
+    def matrix_design_dialog(self, parent=None):
         M = self.matrix
         if M is None or not M.items:
             messagebox.showinfo("Compliance matrix", "Read the RFP files first.", parent=self._cwin)
             return None
         design = MD.design_for(M, self._md_config())
-        w = ctk.CTkToplevel(self); w.title("Compliance matrix (Excel)"); w.transient(self); w.geometry("1180x760")
-        w.after(150, w.lift)
-        ctk.CTkLabel(w, text="Design the compliance matrix", font=("Segoe UI", 17, "bold"), anchor="w").pack(fill="x", padx=14, pady=(12, 0))
-        ctk.CTkLabel(w, text="Tick the columns it shows, put them in order and rename them as the customer or the team wants. "
-                             "Rows follow the response structure. The design is kept with this effort's matrix.",
+        if parent is None:
+            w = ctk.CTkToplevel(self); w.title("Compliance matrix (Excel)"); w.transient(self); w.geometry("1180x760")
+            w.after(150, w.lift)
+        else:
+            w = parent
+        ctk.CTkLabel(w, text="The compliance matrix", font=("Segoe UI", 17, "bold"), anchor="w").pack(fill="x", padx=14, pady=(12, 0))
+        ctk.CTkLabel(w, text="Built from your decisions as you assign, in the response structure: each requirement with its "
+                             "context under it, and every section of the structure. Pick, order, rename and add columns as the "
+                             "customer or the team wants; the design is kept with this effort's matrix.",
                      anchor="w", justify="left", wraplength=1120, text_color=("#475569", "#94A3B8")).pack(fill="x", padx=14)
         body = ctk.CTkFrame(w, fg_color="transparent"); body.pack(fill="both", expand=True, padx=14, pady=8)
         left = ctk.CTkFrame(body); left.pack(side="left", fill="y", padx=(0, 10))
