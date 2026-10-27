@@ -143,7 +143,7 @@ def go():
     check("context for a section: click the section while choosing", it4["decision"] == "Context" and not it4["context_for"]
           and it4["map"] == "1.1 Thermal Design" and win.cp_mode is None, (it4["context_for"], it4["map"]))
     app._cp_select("L.4.1-04"); app.update()
-    check("clicking a sentence any time shows how it is assigned", "Context for section 1.1 Thermal Design" in win.cp_l1.cget("text"),
+    check("clicking a sentence any time shows how it is assigned", "Support for section 1.1 Thermal Design" in win.cp_l1.cget("text"),
           win.cp_l1.cget("text"))
     t.focus_set(); t.event_generate("<Key>", keysym="x"); app.update()
     check("X clears it: not used", it4["decision"] == "" and not it4["map"])

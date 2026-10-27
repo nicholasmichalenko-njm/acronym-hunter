@@ -1362,12 +1362,13 @@ LABEL = {"Keep": "Compliance requirement", "Context": "Context", "Customer": "Cu
 
 
 def context_label(it):
-    """'Context for L.4-01; L.5-02', 'Context for section 1.2 Schedule' or 'Context'."""
+    """'Support for L.4-01; L.5-02', 'Support for section 1.2 Schedule' or 'Support' (2.53.0: the team's word; the
+    decision is still stored as Context)."""
     if it.get("context_for"):
-        return f"Context for {it['context_for']}"
+        return f"Support for {it['context_for']}"
     if it.get("map"):
-        return f"Context for section {it['map']}"
-    return "Context"
+        return f"Support for section {it['map']}"
+    return "Support"
 
 
 def write_coverage_docx(matrix, path, title=""):

@@ -67,7 +67,7 @@ class CompliancePageMixin:
         B = dict(height=40, font=("Segoe UI", 14, "bold"), width=10)
         win.cp_req_btn = ctk.CTkButton(keys, text="Compliance requirement  R", command=self.cp_req, fg_color="#15803D", **B)
         win.cp_req_btn.pack(side="left", padx=4)
-        win.cp_ctx_btn = ctk.CTkButton(keys, text="Context  C", command=self.cp_ctx, fg_color="#1D4ED8", **B)
+        win.cp_ctx_btn = ctk.CTkButton(keys, text="Support (context)  C", command=self.cp_ctx, fg_color="#1D4ED8", **B)
         win.cp_ctx_btn.pack(side="left", padx=4)
         G = dict(height=40, width=10, fg_color="transparent", border_width=1, border_color="#334155", text_color="#CBD5E1",
                  hover_color="#1E293B")
@@ -92,13 +92,23 @@ class CompliancePageMixin:
         t = tk.Text(page, wrap="word", relief="flat", bd=0, padx=26, pady=12, font=("Georgia", size), spacing1=2,
                     spacing2=int(6 * dpi), spacing3=int(4 * dpi), bg="#FFFFFF", fg="#1E293B", cursor="arrow",
                     insertwidth=0, highlightthickness=0, exportselection=False)
-        sb = ttk.Scrollbar(page, orient="vertical", command=t.yview); t.configure(yscrollcommand=sb.set)
+        sb = ttk.Scrollbar(page, orient="vertical", command=t.yview)
+        t.configure(yscrollcommand=lambda *a: (sb.set(*a), self._cp_lines_soon()))     # 2.53.0: the lines follow the scroll
         sb.pack(side="right", fill="y")
         strip = tk.Canvas(page, width=int(14 * dpi), highlightthickness=0, bd=0, bg="#F8FAFC", cursor="hand2")
         strip.pack(side="right", fill="y", pady=(0, 8))
         win.cp_strip = strip
         strip.bind("<Configure>", UQ.debounced(strip, lambda _e: self._cp_strip(), 100))
         strip.bind("<Button-1>", self._cp_strip_click)
+        # 2.53.0: a banner above the text says what Support linked to; a margin on the left draws the relationships
+        win.cp_banner = ctk.CTkLabel(page, text="", fg_color="#1D4ED8", text_color="#FFFFFF", corner_radius=8,
+                                     font=("Segoe UI", 13, "bold"), anchor="w", justify="left", wraplength=640)
+        win.cp_banner_after = None
+        gut = tk.Canvas(page, width=int(34 * dpi), highlightthickness=0, bd=0, bg="#FFFFFF")
+        gut.pack(side="left", fill="y", pady=(0, 8))
+        gut.bind("<Configure>", UQ.debounced(gut, lambda _e: self._cp_lines(), 60))
+        win.cp_gut = gut
+        win.cp_lines_after = None
         t.pack(fill="both", expand=True, pady=(0, 8))
         win.cp_text = t
         t.bind("<Button-3>", self.cp_text_menu)            # 2.50.0: Add to compliance words, Add as keyword
@@ -111,6 +121,12 @@ class CompliancePageMixin:
             t.tag_configure("insec", underlinefg="#0F766E")
         except tk.TclError:
             diag.swallowed()
+        bsz = max(8, size - 6)
+        for k, (bg, fg) in {"req": ("#15803D", "#FFFFFF"), "ctx": ("#1D4ED8", "#FFFFFF"), "cust": ("#7E22CE", "#FFFFFF")}.items():
+            t.tag_configure("bt_" + k, background=bg, foreground=fg, font=("Segoe UI", bsz, "bold"))
+        t.tag_bind("badge", "<Button-1>", self._cp_badge_click)
+        t.tag_bind("badge", "<Enter>", lambda _e: t.configure(cursor="hand2"))
+        t.tag_bind("badge", "<Leave>", lambda _e: t.configure(cursor="arrow"))
         t.tag_configure("rng", background="#FDE68A")
         t.tag_configure("cur", relief="solid", borderwidth=2, background="#FEF3C7")
         t.tag_configure("linked", relief="ridge", borderwidth=2, foreground="#1E3A8A")
@@ -131,6 +147,8 @@ class CompliancePageMixin:
         win.cp_ref.pack(fill="x", padx=8, pady=(4, 0))
         ctk.CTkButton(side, text="How this file is referenced...", width=10, height=24, fg_color="transparent", border_width=1,
                       text_color=("#1E3A8A", "#BFDBFE"), command=self.cp_change_reference).pack(anchor="w", padx=8, pady=(2, 0))
+        self._cp_card_title(side, "Relationships")                  # 2.53.0
+        win.cp_rel = ctk.CTkFrame(side, fg_color="transparent"); win.cp_rel.pack(fill="x", padx=8)
         r = ctk.CTkFrame(side, fg_color="transparent"); r.pack(fill="x", padx=8, pady=(6, 4))
         ctk.CTkButton(r, text="Original layout", width=90, command=self.compliance_show_page).pack(side="left")
         ctk.CTkButton(r, text="Open file", width=90, command=self.compliance_open_file).pack(side="left", padx=6)
@@ -251,6 +269,8 @@ class CompliancePageMixin:
             t.insert("end", "  ")
         t.tag_raise("rng")
         t.tag_raise("cur")
+        win.cp_badge = {}
+        self._cp_badges(rows)
         t.configure(state="disabled")
         win.cp_range = [i for i in win.cp_range if t.tag_ranges("r:" + i)]
         win.cp_src.configure(text=f"{win.cp_file}: {len(rows)} sentences. Click any sentence to see or change it; drag across "
@@ -271,8 +291,13 @@ class CompliancePageMixin:
             r = t.tag_ranges("r:" + it["id"])
             if r:
                 t.tag_add(_tag(it), r[0], r[1])
+        st = t.cget("state")
+        t.configure(state="normal")
+        self._cp_badges(rows)
+        t.configure(state=st)
         self._cp_insec()
         self._cp_strip()
+        self._cp_lines()
 
     def _cp_insec(self):
         """Underline the sentences of this file that are in the target section."""
@@ -470,8 +495,8 @@ class CompliancePageMixin:
             win.cp_l3.pack(fill="x")
         elif d == "Keep":
             ids = [x["id"] for x in self.matrix.items if x["decision"] == "Context" and it["id"] in C.cf_ids(x.get("context_for", ""))]
-            win.cp_l3.configure(text=(f"Context for it: {', '.join(ids[:6])}" + (" ..." if len(ids) > 6 else "")) if ids
-                                else "No context for it yet. Select a sentence, press C, then click this requirement.")
+            win.cp_l3.configure(text=(f"Supported by: {', '.join(ids[:6])}" + (" ..." if len(ids) > 6 else "")) if ids
+                                else "No support for it yet. Select a sentence, press C (Support), and it links to the nearest requirement.")
             win.cp_l3.pack(fill="x")
         else:
             win.cp_l3.pack_forget()
@@ -481,7 +506,207 @@ class CompliancePageMixin:
                 t.tag_add("linked", r[0], r[1])
         sec = " ".join(x for x in (it.get("section", ""), it.get("section_title", "")) if x)
         win.cp_where.configure(text=(it.get("loc") or "") + (f"\nRFP section {sec}" if sec else ""))
+        self._cp_rel_panel(it)
+        self._cp_lines()
         self._cp_side()
+
+    # ------------------------------------------------------------ 2.53.0: relationships you can see
+    def _cp_badge_for(self, it):
+        d = it.get("decision", "")
+        if d == "Keep":
+            return "req", f"\u00a0REQ {it['id']}\u00a0"
+        if d == "Context":
+            hosts = C.cf_ids(it.get("context_for", ""))
+            if hosts:
+                return "ctx", "\u00a0SUPPORTS\u00a0" + ",\u00a0".join(h.replace(" ", "\u00a0") for h in hosts[:3]) + ("\u00a0+" if len(hosts) > 3 else "") + "\u00a0"
+            return "ctx", (f"\u00a0SUPPORTS section {it['map']}\u00a0" if it.get("map") else "\u00a0SUPPORT\u00a0")
+        if d == "Customer":
+            return "cust", "\u00a0CUSTOMER'S\u00a0"
+        return None, ""
+
+    def _cp_badges(self, rows):
+        """A small label before each sentence that is assigned: REQ L.4-02, SUPPORTS L.4-02, CUSTOMER'S. Kept outside
+        the sentence's own text, so splitting and selecting work as before."""
+        win = self._cwin
+        t = win.cp_text
+        have = getattr(win, "cp_badge", None)
+        if have is None:
+            have = win.cp_badge = {}
+        for it in rows:
+            kind, txt = self._cp_badge_for(it)
+            if have.get(it["id"]) == txt:
+                continue
+            old = t.tag_ranges("b:" + it["id"])
+            if old:
+                t.delete(old[0], old[1])
+            r = t.tag_ranges("r:" + it["id"])
+            if r and txt:
+                t.insert(r[0], txt, ("badge", "bt_" + kind, "b:" + it["id"]))
+            have[it["id"]] = txt
+
+    def _cp_badge_click(self, e):
+        """Click a label: a SUPPORTS label jumps to the requirement it supports; the others select their sentence."""
+        win = self._cwin
+        t = win.cp_text
+        ix = t.index(f"@{e.x},{e.y}")
+        iid = next((tg[2:] for tg in t.tag_names(ix) if tg.startswith("b:")), None)
+        it = self._c_item(iid) if iid else None
+        if it is None:
+            return "break"
+        hosts = C.cf_ids(it.get("context_for", "")) if it.get("decision") == "Context" else []
+        target = hosts[0] if hosts and self._c_item(hosts[0]) else iid
+        self._cp_select(target)
+        return "break"
+
+    def _cp_related(self, it):
+        """(the ids it is tied to, how): a requirement's support sentences, or a support sentence's requirements."""
+        if it is None:
+            return [], ""
+        if it.get("decision") == "Keep":
+            return [x["id"] for x in self.matrix.items if x.get("decision") == "Context" and it["id"] in C.cf_ids(x.get("context_for", ""))], "supports"
+        if it.get("decision") == "Context":
+            return [i for i in C.cf_ids(it.get("context_for", "")) if self._c_item(i)], "hosts"
+        return [], ""
+
+    def _cp_lines_soon(self):
+        win = self._cwin
+        if win is None or not hasattr(win, "cp_gut"):
+            return
+        if win.cp_lines_after:
+            try:
+                self.after_cancel(win.cp_lines_after)
+            except Exception:
+                pass
+        win.cp_lines_after = self.after(30, self._cp_lines)
+
+    def _cp_lines(self):
+        """Lines in the left margin from the selected sentence to every sentence it is tied to: a requirement to its
+        support, a support sentence to each requirement it supports. One off the screen gets an arrow at the edge."""
+        win = self._cwin
+        if win is None or not hasattr(win, "cp_gut") or not win.cp_gut.winfo_exists():
+            return 0
+        win.cp_lines_after = None
+        g, t = win.cp_gut, win.cp_text
+        g.delete("all")
+        sel = self._c_selected()
+        it = sel[0] if sel else None
+        ids, how = self._cp_related(it)
+        if not ids:
+            return 0
+        H, W = max(1, g.winfo_height()), max(10, g.winfo_width())
+
+        def ypos(iid):
+            r = t.tag_ranges("r:" + iid)
+            if not r:
+                return None
+            info = t.dlineinfo(r[0])
+            if info is not None:
+                return info[1] + info[3] / 2.0
+            return -1 if t.compare(r[0], "<", t.index("@0,0")) else H + 1
+        y0 = ypos(it["id"])
+        if y0 is None:
+            return 0
+        col = "#1D4ED8"
+        drawn = 0
+        ys = sorted(((ypos(i), i) for i in ids if ypos(i) is not None), key=lambda x: x[0])
+        for k, (y, _i) in enumerate(ys):
+            x = 6 + (k % 4) * 5
+            yc, ya = max(2, min(H - 2, y0)), max(2, min(H - 2, y))
+            g.create_line(W - 2, yc, x, yc, x, ya, W - 2, ya, fill=col, width=2, arrow="last" if 0 <= y <= H else "none")
+            if not 0 <= y <= H:
+                g.create_polygon(x - 4, ya + (6 if y < 0 else -6), x + 4, ya + (6 if y < 0 else -6), x, ya, fill=col)
+            drawn += 1
+        g.create_oval(W - 8, max(2, min(H - 2, y0)) - 4, W, max(2, min(H - 2, y0)) + 4, fill="#15803D" if how == "supports" else col, width=0)
+        return drawn
+
+    def _cp_banner(self, text, ms=None):
+        win = self._cwin
+        b = getattr(win, "cp_banner", None)
+        if b is None:
+            return
+        if win.cp_banner_after:
+            try:
+                self.after_cancel(win.cp_banner_after)
+            except Exception:
+                pass
+            win.cp_banner_after = None
+        if not text:
+            if b.winfo_manager():
+                b.pack_forget()
+            return
+        b.configure(text="  " + text)
+        if not b.winfo_manager():
+            b.pack(side="top", fill="x", padx=12, pady=(4, 2), before=win.cp_gut)
+        if ms:
+            win.cp_banner_after = self.after(ms, lambda: self._cp_banner(None))
+
+    def _cp_rel_panel(self, it):
+        """Relationships for the selected sentence: what it supports, or what supports it, each with Jump and Unlink."""
+        win = self._cwin
+        box = getattr(win, "cp_rel", None)
+        if box is None:
+            return
+        for w in box.winfo_children():
+            w.destroy()
+        ids, how = self._cp_related(it)
+        S = dict(width=10, height=24, font=("Segoe UI", 11))
+        if it.get("decision") == "Keep":
+            ctk.CTkLabel(box, text=f"Supported by {len(ids)} sentence(s)" if ids else "No support yet: select a sentence and press "
+                         "C (Support); it links to the nearest requirement.", anchor="w", justify="left", wraplength=300).pack(fill="x")
+        elif it.get("decision") == "Context":
+            ctk.CTkLabel(box, text=(f"Supports {len(ids)} requirement(s)" if ids else
+                                    (f"Support for section {it['map']}" if it.get("map") else "Support, not linked yet")),
+                         anchor="w").pack(fill="x")
+        elif it.get("decision") == "Customer":
+            ctk.CTkLabel(box, text="The customer's: identified, not answered.", anchor="w").pack(fill="x")
+            return
+        else:
+            ctk.CTkLabel(box, text="Not assigned. R: compliance requirement, C: support for the nearest requirement.", anchor="w",
+                         justify="left", wraplength=300, text_color=("#475569", "#94A3B8")).pack(fill="x")
+            return
+        for i in ids[:30]:
+            x = self._c_item(i)
+            if x is None:
+                continue
+            line = ctk.CTkFrame(box, fg_color=("#EFF6FF", "#172554"), corner_radius=6); line.pack(fill="x", pady=2)
+            top = ctk.CTkFrame(line, fg_color="transparent"); top.pack(fill="x", padx=6, pady=(4, 0))
+            ctk.CTkLabel(top, text=("REQ " if how == "hosts" else "SUPPORT ") + i, font=("Segoe UI", 11, "bold"),
+                         text_color=("#15803D", "#86EFAC") if how == "hosts" else ("#1D4ED8", "#93C5FD")).pack(side="left")
+            ctk.CTkButton(top, text="Unlink", fg_color="transparent", text_color=("#B91C1C", "#FCA5A5"), hover_color=("#FEE2E2", "#450A0A"),
+                          command=lambda a=it["id"], b=i: self.cp_unlink(a, b), **S).pack(side="right")
+            ctk.CTkButton(top, text="Jump", fg_color="transparent", text_color=("#1E3A8A", "#BFDBFE"), hover_color=("#DBEAFE", "#1E3A8A"),
+                          command=lambda b=i: self._cp_select(b), **S).pack(side="right")
+            ctk.CTkLabel(line, text=x["text"][:110] + ("..." if len(x["text"]) > 110 else ""), anchor="w", justify="left",
+                         wraplength=290, font=("Segoe UI", 11)).pack(fill="x", padx=6, pady=(0, 4))
+        if it.get("decision") == "Context":
+            ctk.CTkButton(box, text="Link to another requirement...", height=26, width=10,
+                          command=lambda: self.cp_link_more(it["id"])).pack(anchor="w", pady=(4, 0))
+
+    def cp_unlink(self, a, b):
+        """Take away the tie between two sentences (a support sentence and a requirement, in either order)."""
+        x, y = self._c_item(a), self._c_item(b)
+        if x is None or y is None:
+            return False
+        sup, req = (x, y) if x.get("decision") == "Context" else (y, x)
+        ids = [i for i in C.cf_ids(sup.get("context_for", "")) if i != req["id"]]
+        C.assign_context(self.matrix.items, [sup], ids, section=None if ids else (sup.get("map") or req.get("map") or None))
+        self.matrix.log(sup["id"], f"support no longer for {req['id']}")
+        diag.activity("compliance_context_unlinked")
+        self._c_changed()
+        sel = self._c_selected()
+        if sel:
+            self._cp_show(sel[0])
+        return True
+
+    def cp_link_more(self, iid):
+        """Choose more requirements for a support sentence: click each green sentence; Enter when done."""
+        win = self._cwin
+        if win.cp_mode:
+            self.cp_mode_end(quiet=True)
+        win.cp_mode = ("ctx", [iid])
+        self._cp_mode_line()
+        win.cp_text.focus_set()
+        return True
 
     def cp_change_reference(self):
         sel = self._c_selected()
@@ -816,6 +1041,10 @@ class CompliancePageMixin:
         if not again and all(it.get("context_for") or it.get("map") for it in rows):
             # 2.47.0: it supports the nearest compliance requirement (or the target section): done, on to the next
             # sentence. Go back to it and press C again to change what it supports.
+            hosts = C.cf_ids(rows[0].get("context_for", ""))
+            self._cp_banner((f"{rows[0]['id'] if len(rows) == 1 else str(len(rows)) + ' sentences'} supports "
+                             + (f"{', '.join(hosts)} (the nearest requirement)" if hosts else f"section {rows[0].get('map', '')}")
+                             + ". To change: C on it again, or Relationships."), 7000)
             self._cp_after(rows, f"{rows[0]['id'] if len(rows) == 1 else str(len(rows)) + ' sentences'}: {C.context_label(rows[0])}"
                                  " (back to it and C again to change)", advance=True)
             return "ctx_done"
@@ -896,8 +1125,10 @@ class CompliancePageMixin:
             secs = {r["map"] for r in rows if not r.get("context_for") and r.get("map")}
             now = (f"supports {', '.join(links)}" if links else
                    f"context for section {', '.join(sorted(secs))}" if secs else "not attached yet")
-            win.cp_l3.configure(text=f"Context, {who}: {now}. To change it, click other compliance requirements (green) to add or "
+            win.cp_l3.configure(text=f"Support, {who}: {now}. To change it, click other compliance requirements (green) to add or "
                                      "remove them, or a section on the right. Otherwise just carry on.")
+            self._cp_banner(f"SUPPORT for {who}: now {now}. Click each compliance requirement (green) it supports to add or remove "
+                            "it, or a section on the right. Enter when done.")
             for i in links:
                 r = t.tag_ranges("r:" + i)
                 if r:
@@ -916,6 +1147,7 @@ class CompliancePageMixin:
         was = win.cp_mode
         win.cp_mode = None
         win.cp_done_btn.pack_forget()
+        self._cp_banner(None)
         if was and was[0] == "ctx" and not quiet and bool(win.cp_next_var.get()):
             rows = [r for r in (self._c_item(i) for i in was[1]) if r]
             if rows:                                  # 2.47.0: context done: on to the next sentence

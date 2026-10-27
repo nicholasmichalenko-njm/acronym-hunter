@@ -719,6 +719,12 @@ PAGES = {
                            "evaluate...\"), right-click the sentence: The customer's (identified, never answered). Select a "
                            "highlighted word and right-click, Remove from compliance words, when it is not a compliance word "
                            "for the team; the app offers to rescan."),
+              ("Relationships", "Each compliance requirement shows a green REQ label; each support sentence a blue SUPPORTS "
+                                "label naming what it supports (click it to jump there); the customer's a purple label. Select a "
+                                "sentence: lines in the left margin run to the sentences it is tied to, and Relationships on the "
+                                "right lists them with Jump and Unlink (and Link to another requirement... for support). C "
+                                "(Support) links a sentence to the nearest requirement and the banner above the text says so; C "
+                                "on it again, or Link to another requirement..., changes it."),
               ("Mark the text", "In Assign, right-click a sentence (or select words in it): Ignore (not used); Customer "
                                 "information (names, e-mails, phone numbers, addresses, filed by kind in Customer information "
                                 "on Effort home; the sentence is not used); Format requirement (type Format, a compliance "

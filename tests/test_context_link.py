@@ -58,7 +58,7 @@ def run():
     N = C.Matrix(M.path).load()
     assert next(x for x in N.items if x["id"] == "L.4-01")["context_for"] == "L.4-03"
     cp = os.path.join(d, "cov.docx"); C.write_coverage_docx(N, cp)
-    assert "Context for L.4-03" in zipfile.ZipFile(cp).read("word/document.xml").decode()
+    assert "Support for L.4-03" in zipfile.ZipFile(cp).read("word/document.xml").decode()
     # an amendment re-read keeps the link for unchanged sentences
     new = [dict(x, context_for="", decision="") for x in items2]
     merged = C.merge_reread(N.items, new)

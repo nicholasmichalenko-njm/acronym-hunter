@@ -26,7 +26,7 @@ def run():
     C.assign_context(items, [b], ["L.4-01", "L.5-03", "L.5-05"])          # L.5-05 is not a requirement: ignored
     assert b["context_for"] == "L.4-01; L.5-03" and b["map"] == "1.1 Thermal", b
     C.assign_context(items, [d], section="1.2 Schedule")
-    assert d["context_for"] == "" and d["map"] == "1.2 Schedule" and C.context_label(d) == "Context for section 1.2 Schedule"
+    assert d["context_for"] == "" and d["map"] == "1.2 Schedule" and C.context_label(d) == "Support for section 1.2 Schedule"
     # a requirement moves: its Context (first link) follows
     C.assign_requirement(items, [a], "1.2 Schedule")
     assert b["map"] == "1.2 Schedule", b["map"]
@@ -51,7 +51,7 @@ def run():
     with zipfile.ZipFile(out) as z:
         x = z.read("word/document.xml").decode("utf-8")
     assert "Every sentence was read: 2 compliance requirement(s), 2 context, 1 not used." in x
-    assert "Compliance requirement" in x and "Context for section 1.2 Schedule" in x and "Not used" in x
+    assert "Compliance requirement" in x and "Support for section 1.2 Schedule" in x and "Not used" in x
     # link_contexts leaves a section's context alone
     C.link_contexts(items)
     assert d["context_for"] == ""

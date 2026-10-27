@@ -77,7 +77,7 @@ def run():
     # the coverage report names every requirement
     cp = os.path.join(out, "cov.docx"); C.write_coverage_docx(M, cp)
     with zipfile.ZipFile(cp) as z:
-        assert "Context for L.4-01; L.5-03" in z.read("word/document.xml").decode("utf-8")
+        assert "Support for L.4-01; L.5-03" in z.read("word/document.xml").decode("utf-8")
     print("draft commit ok")
 
 
