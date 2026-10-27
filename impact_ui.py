@@ -56,7 +56,6 @@ class ImpactMixin:
         A = dict(height=30, width=10)
         act = self.shell_actions("submission", "impact")
         ctk.CTkButton(act, text="Impact report (Word)...", command=self.impact_export, fg_color="#475569", **A).pack(side="left", padx=3)
-        ctk.CTkButton(act, text="Author briefs...", command=self.impact_briefs_dialog, fg_color="#475569", **A).pack(side="left", padx=3)
         pg = self.shell_page("sub_impact")
         top = ctk.CTkFrame(pg, fg_color="transparent"); top.pack(fill="x", padx=6, pady=(12, 2))
         self.imp_title = ctk.CTkLabel(top, text="Impact", font=("Segoe UI", 20, "bold"), anchor="w")
@@ -465,7 +464,7 @@ class ImpactMixin:
                              "everyone. Copy one into an email or a chat, or save them all as Word. Rules only (No AI).",
                      anchor="w", justify="left", wraplength=1060).pack(fill="x", padx=14, pady=(12, 6))
         body = ctk.CTkFrame(w, fg_color="transparent"); body.pack(fill="both", expand=True, padx=10)
-        left = ctk.CTkScrollableFrame(body, width=240); left.pack(side="left", fill="y")
+        left = ctk.CTkScrollableFrame(body, width=210); left.pack(side="left", fill="y")
         import tkinter as tk
         txt = tk.Text(body, wrap="word", relief="flat", padx=14, pady=10, font=("Segoe UI", max(10, getattr(self, "font_size", 13) - 1)))
         txt.pack(side="left", fill="both", expand=True, padx=(10, 0))

@@ -216,7 +216,9 @@ def step3():
         grab(app.strip.master, "impact.png")
         bw = app.impact_briefs_dialog()                                # 2.43.0: author briefs
         if bw is not None:
-            fit(bw, 0.62, 0.62); bw.update(); time.sleep(0.6); bw.update()
+            fit(bw, 0.62, 0.62)
+            for _ in range(4):                                         # let the window reach its size before the picture
+                bw.update_idletasks(); bw.update(); time.sleep(0.4)
             grab(bw, "briefs.png")
             bw.destroy(); app.update()
         w = app.show_what_runs(); w.update()
