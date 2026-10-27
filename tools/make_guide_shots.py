@@ -3,7 +3,7 @@
     venv\\Scripts\\python.exe tools\\make_guide_shots.py
 
 Uses the fictional test_samples only, in a temporary config folder, and writes assets\\help\\topbar.png, shell.png,
-home.png, scanreview.png, keywords.png, suggest.png, submission.png, compare.png, requirements.png, deliverables.png, impact.png, compliance.png, prove.png, setup.png, whatruns.png, stack.png,
+home.png, scanreview.png, keywords.png, suggest.png, submission.png, compare.png, requirements.png, deliverables.png, impact.png, briefs.png, compliance.png, prove.png, setup.png, whatruns.png, stack.png,
 qa.png and training.png (2.33.0: the one-feature-at-a-time layout). Each picture is the window region of one view, captured
 with PIL ImageGrab, so the window must be on screen and not covered.
 """
@@ -188,6 +188,11 @@ def step3():
     ctx = M.items[-12]
     keeps = [x["id"] for x in M.items if x.get("file") == ctx.get("file") and x["decision"] == "Keep"][-2:]
     C.assign_context(M.items, [ctx], keeps)
+    import setupdoc as SD                                          # 2.43.0: people per section (the briefs go to them)
+    for lab, lead, with_ in (("1.1 Thermal Design", "J. Smith", "K. Ito"), ("1.2 Risk Management", "R. Diaz", ""),
+                             ("2.1 Schedule", "B. Chen", ""), ("2.2 Staffing", "A. Lee", "")):
+        if lab in labs:
+            SD.set_people(M, lab, lead=lead, with_=with_)
     M.save()
     app.ws.set("compliance_path", mpath)
     app.open_compliance(); app.update()
@@ -209,6 +214,11 @@ def step3():
         grab(app.main, "prove.png")
         app.shell_go("submission", "impact"); app.update(); time.sleep(0.5); app.update()     # 2.42.0: the impact review
         grab(app.strip.master, "impact.png")
+        bw = app.impact_briefs_dialog()                                # 2.43.0: author briefs
+        if bw is not None:
+            fit(bw, 0.62, 0.62); bw.update(); time.sleep(0.6); bw.update()
+            grab(bw, "briefs.png")
+            bw.destroy(); app.update()
         w = app.show_what_runs(); w.update()
         app.after(1200, lambda: shot_runs(w))
 

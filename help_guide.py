@@ -426,10 +426,24 @@ PAGES = {
               ("Acronyms and keywords", "Terms new in this version or gone from it, and whether the effort list or the "
                                         "master database holds them; customer phrases new in this version used twice or "
                                         "more (Add puts one in the keyword list as Proposed)."),
-              ("Who it touches", "The owners of the changed sentences and deliverables. Impact report (Word) holds it all, "
-                                 "to share with the team."),
+              ("Who it touches", "The owners, leads and contributors of the sections touched, and the owners of the "
+                                 "deliverables touched. Impact report (Word) holds it all, to share with the team."),
               ("Mark impact reviewed", "Marks the version reviewed and the requirement changes it made, and writes it in the "
                                        "timeline.")]),
+    ("h", "Author briefs: tell each person what changed for them"),
+    ("p", "Author briefs... on the Impact page writes one short brief per person the new version touches, from fixed "
+          "sentences filled with the facts (rules only, No AI). Pick a person on the left to read theirs; Copy this brief "
+          "puts it on the clipboard for an email or a chat; Save all as Word writes every brief, one per page, and notes it "
+          "in the timeline."),
+    ("img", "briefs.png", 560),
+    ("rows", [("Your sections", "Each compliance sentence changed or removed in a section the person owns, leads or "
+                                "contributes to, quoted old and new; new sentences in an RFP section that feeds their section "
+                                "(not assigned yet); an RFP heading renamed that their section was named for."),
+              ("Your deliverables", "A page limit or requirement that changed, a newer form version to fill, and our file's "
+                                    "page count."),
+              ("For everyone", "Due dates, page limits, format, file, copies and delivery rules the version changed. The "
+                               "team brief holds this part alone, for everyone else."),
+              ("Due", "The proposal due date and the days left, from Effort details.")]),
     ("h", "Submission requirements: front and center"),
     ("p", "Requirements, the first Submission step, lists what to deliver and how, read from every version of every customer "
           "document: the due date and time, the deadline for questions, page limits for each volume, font and size, margins, "

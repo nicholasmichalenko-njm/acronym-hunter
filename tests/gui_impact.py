@@ -1,7 +1,7 @@
 """2.42.0 Submission > Impact on screen: a new amendment opens its impact review; the band (document, version, file,
 fingerprint, text counts); six cards (requirements, deliverables, compliance, structure, acronyms, keywords) with what
 changed; add the newly named attachment as a deliverable; add a new customer phrase as a keyword; update the matrix
-with the new version (decisions kept, new sentences marked); who it touches; the Word report; Mark impact reviewed
+with the new version (decisions kept, new sentences marked); who it touches; the Word report; author briefs (2.43.0: one per person, copy, Word); Mark impact reviewed
 (the version and its requirement changes, logged in the timeline); Effort home's Next line; the Impact review button
 on a version in Documents; the version picker."""
 import os, sys, tempfile, shutil, zipfile
@@ -119,7 +119,8 @@ def go():
     check("acronyms: the new terms", "SBPP" in ac and "TRL" in ac, ac)
     kw = " | ".join(cards["keywords"]._lines)
     check("keywords: the new customer phrase", "verification by analysis and test" in kw, kw)
-    check("who it touches", "B. Chen (1)" in app.imp_people.cget("text") and "J. Smith (1)" in app.imp_people.cget("text"), app.imp_people.cget("text"))
+    check("who it touches: the people the author briefs go to", "J. Smith (1 section)" in app.imp_people.cget("text")
+          and "B. Chen (1 deliverable)" in app.imp_people.cget("text") and "R. Diaz (1 section)" in app.imp_people.cget("text"), app.imp_people.cget("text"))
     # actions
     key = r["suggested"][0]["key"]
     did = app.impact_add_deliverable(key); app.update()
@@ -147,6 +148,25 @@ def go():
     out = app.impact_export(os.path.join(tmp, "impact.docx"))
     x = zipfile.ZipFile(out).read("word/document.xml").decode("utf-8")
     check("the Word report", "IMPACT REVIEW" in x and "Amendment 1 of Kestrel RFP" in x and "Who it touches" in x)
+    # author briefs (2.43.0)
+    check("the briefs button says how many people", app.imp_brief.cget("text").startswith("Author briefs (3 people)"), app.imp_brief.cget("text"))
+    bw = app.impact_briefs_dialog(); bw.update()
+    bs = bw._api["briefs"]
+    check("a brief per person it touches, and one for the team", list(bs) == ["J. Smith", "R. Diaz", "B. Chen", "Everyone"], list(bs))
+    shown = bw._api["text"].get("1.0", "end")
+    check("the first brief shows: subject, the person's section, the removed sentence quoted, the due date",
+          shown.startswith("Subject: Kestrel RFP, Amendment 1: what changed for J. Smith") and "YOUR SECTIONS\n1.1 Management Approach" in shown
+          and "flight-proven components" in shown and "Proposal due " in shown, shown[:400])
+    bw._api["show"]("B. Chen"); bw.update()
+    shown = bw._api["text"].get("1.0", "end")
+    check("another person's brief: their deliverable and its new limit", "YOUR DELIVERABLES\n- Volume I Technical: Page limit was 50 pages, now 40 pages" in shown, shown[:400])
+    copied = bw._api["copy"](); app.update()
+    check("Copy puts the brief on the clipboard", app.clipboard_get() == copied and copied.startswith("Subject: Kestrel RFP, Amendment 1: what changed for B. Chen"))
+    bp = bw._api["save"](os.path.join(tmp, "briefs.docx")); app.update()
+    bx = zipfile.ZipFile(bp).read("word/document.xml").decode("utf-8")
+    check("Save all as Word: one brief per page, logged in the timeline", bx.count('w:type="page"') == 3 and "AUTHOR BRIEF" in bx
+          and any(e["text"].startswith("Author briefs for Amendment 1 of Kestrel RFP: J. Smith, R. Diaz, B. Chen") for e in rec.events()[:3]))
+    bw.destroy(); app.update()
     # Effort home says what is next
     app.shell_go("home"); app.update(); app.shell_overview_refresh()
     check("Effort home: Next, review what the amendment touched", app.ov_next.cget("text").startswith("Next: Submission, review what Amendment 1")

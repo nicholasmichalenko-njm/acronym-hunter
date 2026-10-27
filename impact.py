@@ -158,7 +158,8 @@ def compliance(matrix, rows_cmp, owner_of=None):
         else:
             it = idx.get(C.text_key(r["new"]))
             out["added"].append({"text": r["new"], "section": r.get("section", ""), "id": it.get("id", "") if it else "",
-                                 "decision": it.get("decision", "") if it else ""})
+                                 "decision": it.get("decision", "") if it else "", "map": it.get("map", "") if it else "",
+                                 "owner": owner_of(it) if it and it.get("map") else ""})
             if it is not None:
                 out["in_matrix"] = True
     return out
@@ -284,22 +285,25 @@ def build(lib, vid, rows=(), rec=None, matrix=None, owner_of=None, in_list=lambd
            "acronyms": acronyms(old, new, in_list, in_master, common),
            "structure": structure(old, new, matrix.outline if matrix is not None else ()),
            "keywords": keywords(old, new, cmp_rows, keyword_list)}
-    out["people"] = people(out)
+    out["people"] = people(out, matrix, owner_of)
     out["counts"] = counts(out)
     return out
 
 
-def people(r):
-    """{owner: [what touches them]} from changed compliance sentences and affected deliverables."""
-    p = collections.OrderedDict()
-    for k in ("changed", "removed"):
-        for x in r["compliance"][k]:
-            if x["owner"]:
-                p.setdefault(x["owner"], []).append(f"{x['id']} {k}" + (f" in {x['map']}" if x["map"] else ""))
-    for d in r["deliverables"]:
-        if d["owner"]:
-            p.setdefault(d["owner"], []).append(f"{d['name']}: {d['why'][0]}")
-    return dict(p)
+def people(r, matrix=None, owner_of=None):
+    """{person: [what touches them]}: the same people the author briefs go to (2.43.0): owners, leads and contributors
+    of the sections touched, and deliverable owners."""
+    import briefs as BR
+    people_of = None
+    if matrix is not None:
+        import setupdoc
+        people_of = lambda label: setupdoc.section_people(matrix, label)        # noqa: E731
+    out = {}
+    for name, b in BR.build(r, matrix, owner_of, people_of).items():
+        if name == BR.EVERYONE:
+            continue
+        out[name] = [f"{label}: {x}" for label, xs in b["sections"].items() for x in xs] + list(b["deliverables"])
+    return out
 
 
 def counts(r):

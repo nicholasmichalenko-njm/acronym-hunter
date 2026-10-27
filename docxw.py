@@ -52,6 +52,10 @@ class Doc:
     def para(self, text, bold=False, color=None):
         self.body.append(f"<w:p>{_run(text, bold, color)}</w:p>")
 
+    def page_break(self):
+        """Start a new page (2.43.0: one author brief per page)."""
+        self.body.append('<w:p><w:r><w:br w:type="page"/></w:r></w:p>')
+
     def rich(self, parts):
         """One paragraph of several runs: parts = [(text, {"bold", "italic", "underline", "color", "fill", "size"})]
         (2.29.0; underline 2.31.0). fill shades the run's background (a highlighter in any color); size is in half-points."""

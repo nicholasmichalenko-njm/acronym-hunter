@@ -9,6 +9,7 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 import diag
 import impact as IM
+import briefs as BR
 
 AMBER, NAVY, GRAY = "#B45309", "#1E3A8A", ("#475569", "#94A3B8")
 CHANGE = {"changed": "Changed", "new": "New", "removed": "Removed", "renamed": "Renamed", "added": "New"}
@@ -55,6 +56,7 @@ class ImpactMixin:
         A = dict(height=30, width=10)
         act = self.shell_actions("submission", "impact")
         ctk.CTkButton(act, text="Impact report (Word)...", command=self.impact_export, fg_color="#475569", **A).pack(side="left", padx=3)
+        ctk.CTkButton(act, text="Author briefs...", command=self.impact_briefs_dialog, fg_color="#475569", **A).pack(side="left", padx=3)
         pg = self.shell_page("sub_impact")
         top = ctk.CTkFrame(pg, fg_color="transparent"); top.pack(fill="x", padx=6, pady=(12, 2))
         self.imp_title = ctk.CTkLabel(top, text="Impact", font=("Segoe UI", 20, "bold"), anchor="w")
@@ -75,6 +77,8 @@ class ImpactMixin:
         self.imp_done.pack(side="right", padx=(4, 12), pady=8)
         self.imp_cmp = ctk.CTkButton(self.imp_bottom, text="Compare the text", fg_color="#475569", command=self.impact_compare, **A)
         self.imp_cmp.pack(side="right", padx=4, pady=8)
+        self.imp_brief = ctk.CTkButton(self.imp_bottom, text="Author briefs...", fg_color=NAVY, command=self.impact_briefs_dialog, **A)
+        self.imp_brief.pack(side="right", padx=4, pady=8)
         self.imp_vid, self.imp_r, self._imp_map = None, None, {}
 
     def impact_show(self, vid):
@@ -114,7 +118,7 @@ class ImpactMixin:
                    "what it touched shows here.")
             ctk.CTkLabel(self.imp_scroll, text=msg, anchor="w", justify="left", wraplength=900).pack(fill="x", padx=10, pady=14)
             self.imp_people.configure(text="")
-            for b in (self.imp_done, self.imp_cmp):
+            for b in (self.imp_done, self.imp_cmp, self.imp_brief):
                 b.configure(state="disabled")
             return None
         self.imp_pick.set(next(k for k, v in self._imp_map.items() if v == r["version_id"]))
@@ -128,13 +132,23 @@ class ImpactMixin:
         for i, fn in enumerate(cards):
             card = fn(grid, r)
             card.grid(row=i // 3, column=i % 3, sticky="nsew", padx=5, pady=5)
-        who = r["people"]
-        self.imp_people.configure(text=("Who it touches: " + "; ".join(f"{o} ({len(w)})" for o, w in who.items()) +
-                                        ". Each owner's changed sentences and deliverables are in the Word report.") if who else
-                                  "It touches no owner's sections or deliverables yet.")
+        bs = self.impact_briefs()                        # 2.43.0: the same people the author briefs go to
+        ppl = []
+        for name, b in bs.items():
+            if name == BR.EVERYONE:
+                continue
+            c = BR.counts(b)
+            what = ", ".join(x for x in ((f"{c['sections']} section{'s' if c['sections'] != 1 else ''}" if c["sections"] else ""),
+                                         (f"{c['deliverables']} deliverable{'s' if c['deliverables'] != 1 else ''}" if c["deliverables"] else "")) if x)
+            ppl.append(f"{name} ({what})")
+        self.imp_people.configure(text=("Who it touches: " + "; ".join(ppl) + ". Author briefs tell each one what changed in their work.")
+                                  if ppl else "It touches no one's sections or deliverables yet." +
+                                  (" Changes for everyone: Author briefs." if BR.EVERYONE in bs else ""))
         self.imp_done.configure(state="disabled" if r["reviewed"] else "normal",
                                 text=f"Impact reviewed {r['reviewed'][:10]}" if r["reviewed"] else "Mark impact reviewed")
         self.imp_cmp.configure(state="normal")
+        n = len(ppl)
+        self.imp_brief.configure(state="normal", text=f"Author briefs ({n} {'person' if n == 1 else 'people'})..." if n else "Author briefs...")
         return r
 
     def _imp_band(self, r):
@@ -411,4 +425,105 @@ class ImpactMixin:
         IM.export_word(path, r, name)
         diag.activity("impact_exported")
         self.status.configure(text=f"Impact report saved: {path}")
+        return path
+
+    # ------------------------------------------------------------ author briefs (2.43.0)
+    def impact_due_text(self):
+        """'Dec 22, 2026, 2:00 p.m. MT (57 days, 4 hours)' from the effort record, else the due date the documents give."""
+        import effortrec as ER
+        rec = self.effrec() if hasattr(self, "effrec") else None
+        if rec is not None and rec.data.get("due"):
+            cd = ER.countdown_text(rec.data["due"])
+            return ER.due_text(rec.data["due"], rec.data.get("zone", "")) + (f" ({cd})" if cd else "")
+        reg = self.subreg() if hasattr(self, "subreg") else None
+        row = next((x for x in (reg.rows() if reg is not None else []) if x["key"] == "Due | Proposal"), None)
+        return row["value"] if row else ""
+
+    def impact_briefs(self):
+        r = self.imp_r
+        if r is None:
+            return {}
+        M = getattr(self, "matrix", None)
+        if M is not None:
+            import setupdoc
+            return BR.build(r, M, lambda it: setupdoc.owner_of(M, it), lambda lab: setupdoc.section_people(M, lab))
+        return BR.build(r)
+
+    def impact_briefs_dialog(self):
+        """A brief per person: pick one on the left, read it on the right, copy it or save them all as Word."""
+        r = self.imp_r
+        bs = self.impact_briefs()
+        if r is None or not bs:
+            messagebox.showinfo("Author briefs", "This version changed nothing in anyone's sections or deliverables, and no due date, "
+                                                 "page limit or format rule." if r is not None else "There is no new version yet.")
+            return None
+        due = self.impact_due_text()
+        w = ctk.CTkToplevel(self); w.title(f"Author briefs: {r['version']} of {r['doc']}"); w.geometry("1100x700")
+        w.transient(self); w.after(150, w.lift)
+        diag.register(w, "author_briefs")
+        ctk.CTkLabel(w, text="One brief per person this version touches: their sections, their deliverables, and what changed for "
+                             "everyone. Copy one into an email or a chat, or save them all as Word. Rules only (No AI).",
+                     anchor="w", justify="left", wraplength=1060).pack(fill="x", padx=14, pady=(12, 6))
+        body = ctk.CTkFrame(w, fg_color="transparent"); body.pack(fill="both", expand=True, padx=10)
+        left = ctk.CTkScrollableFrame(body, width=240); left.pack(side="left", fill="y")
+        import tkinter as tk
+        txt = tk.Text(body, wrap="word", relief="flat", padx=14, pady=10, font=("Segoe UI", max(10, getattr(self, "font_size", 13) - 1)))
+        txt.pack(side="left", fill="both", expand=True, padx=(10, 0))
+        cur = {"name": next(iter(bs))}
+        buttons = {}
+
+        def show(name):
+            cur["name"] = name
+            txt.configure(state="normal"); txt.delete("1.0", "end")
+            txt.insert("1.0", BR.text(r, bs[name], due))
+            txt.configure(state="disabled")
+            for n, b in buttons.items():
+                b.configure(fg_color=NAVY if n == name else ("#FFFFFF", "#1F2937"), text_color="#FFFFFF" if n == name else ("#0F172A", "#F1F5F9"))
+        for name, b in bs.items():
+            c = BR.counts(b)
+            sub = (f"{c['lines']} change(s) in {c['sections']} section(s)" if c["sections"] else "") + \
+                  ("; " if c["sections"] and c["deliverables"] else "") + (f"{c['deliverables']} deliverable(s)" if c["deliverables"] else "")
+            label = ("The team (everyone)" if name == BR.EVERYONE else name) + (f"\n{sub}" if sub else f"\n{c['everyone']} change(s) for everyone")
+            buttons[name] = ctk.CTkButton(left, text=label, anchor="w", height=48, border_width=1, border_color=("#E2E8F0", "#334155"),
+                                          hover_color=("#E2E8F0", "#334155"), command=lambda n=name: show(n))
+            buttons[name].pack(fill="x", pady=2)
+
+        def copy():
+            t = BR.text(r, bs[cur["name"]], due)
+            self.clipboard_clear(); self.clipboard_append(t)
+            self.status.configure(text=f"Brief for {cur['name']} copied: paste it into an email or a chat.")
+            diag.activity("author_brief_copied")
+            return t
+
+        def save(path=None):
+            p = self.impact_briefs_export(path, bs)
+            if p:
+                w.lift()
+            return p
+        bar = ctk.CTkFrame(w, fg_color="transparent"); bar.pack(fill="x", padx=14, pady=10)
+        ctk.CTkButton(bar, text="Close", fg_color="#475569", command=w.destroy).pack(side="right")
+        ctk.CTkButton(bar, text="Save all as Word...", fg_color=NAVY, command=save).pack(side="right", padx=8)
+        ctk.CTkButton(bar, text="Copy this brief", fg_color="#0F766E", command=copy).pack(side="right")
+        show(cur["name"])
+        w._api = {"briefs": bs, "show": show, "copy": copy, "save": save, "text": txt, "cur": cur, "buttons": buttons}
+        return w
+
+    def impact_briefs_export(self, path=None, bs=None):
+        r = self.imp_r
+        bs = bs if bs is not None else self.impact_briefs()
+        if r is None or not bs:
+            return None
+        if path is None:
+            base = re.sub(r"[^A-Za-z0-9_-]+", "_", f"{r['doc']}_{r['version']}_Author_Briefs")
+            path = filedialog.asksaveasfilename(title="Save the author briefs", defaultextension=".docx", initialfile=base + ".docx",
+                                                filetypes=[("Word", "*.docx")])
+            if not path:
+                return None
+        BR.export_word(path, r, bs, self.impact_due_text(), self.effort.name if self.effort is not None else "")
+        people = [n for n in bs if n != BR.EVERYONE]
+        if hasattr(self, "rec_log"):
+            self.rec_log("customer", f"Author briefs for {r['version']} of {r['doc']}: " + (", ".join(people) if people else "the team"),
+                         ref={"version": r["version_id"]})
+        diag.activity("author_briefs_saved", n=len(bs))
+        self.status.configure(text=f"Author briefs saved: {path}")
         return path
