@@ -496,6 +496,31 @@ def mark_format(items):
     return len(items)
 
 
+def progress(items):
+    """2.52.0 how far the review is: every sentence decided (compliance requirement, support, the customer's or not
+    used), per file and overall. {"total", "decided", "pct", "Keep", "Context", "Customer", "Drop", "needs_home",
+    "files": [{"file", "total", "decided", "pct"}]}."""
+    out = {"total": 0, "decided": 0, "Keep": 0, "Context": 0, "Customer": 0, "Drop": 0, "needs_home": 0, "files": []}
+    per = {}
+    for it in items:
+        f = it.get("file", "") or "(no file)"
+        d = per.setdefault(f, {"file": f, "total": 0, "decided": 0})
+        d["total"] += 1
+        out["total"] += 1
+        dec = it.get("decision", "")
+        if dec:
+            d["decided"] += 1
+            out["decided"] += 1
+            out[dec] = out.get(dec, 0) + 1
+            if dec in ("Keep", "Context") and not it.get("map") and not (dec == "Context" and it.get("context_for")):
+                out["needs_home"] += 1
+    for d in per.values():
+        d["pct"] = round(100.0 * d["decided"] / d["total"]) if d["total"] else 100
+        out["files"].append(d)
+    out["pct"] = round(100.0 * out["decided"] / out["total"]) if out["total"] else 0
+    return out
+
+
 FOUND = "Found by a compliance word"
 _REQ_FIELDS = ("actor", "type", "strength", "suggest", "modal", "xrefs", "compound")
 

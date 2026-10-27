@@ -78,6 +78,12 @@ def go():
     kinds = sorted(c["kind"] for c in added)
     check("Customer information filed by kind", kinds == ["E-mail", "Name or other", "Phone"] and q["decision"] == "Drop", kinds)
     app.shell_go("home"); app._rec_force(); app.update()
+    import compliance as Cm
+    pg = Cm.progress(app.matrix.items)
+    check("2.52.0: Effort home shows the compliance matrix's progress", app.rec_cards["compliance"][1].cget("text") == f"Compliance matrix   {pg['pct']}% reviewed"
+          and pg["decided"] >= 3, app.rec_cards["compliance"][1].cget("text"))
+    check("and the Read page lists each document's progress", "Instructions.docx:" in app._cwin.lbl_read.cget("text") and "reviewed" in app._cwin.lbl_read.cget("text"),
+          app._cwin.lbl_read.cget("text"))
     def texts(wd):
         out = []
         for c in wd.winfo_children():

@@ -49,7 +49,7 @@ def go():
     app.rec_details_dialog(values={"due": due.strftime("%B %d, %Y").replace(" 0", " ") + ", 2:00 p.m. MT"})
     app._rec_force(); app.update()
     keys = list(app.rec_cards)
-    check("Effort home sections: goals, tasks, notes and questions, calendar, timeline", keys == ["goals", "tasks", "notes", "custinfo", "calendar", "timeline"], keys)
+    check("Effort home sections: goals, tasks, notes and questions, calendar, timeline", keys == ["goals", "compliance", "tasks", "notes", "custinfo", "calendar", "timeline"], keys)
     check("the timeline starts closed, the others open", not app.rec_frames["timeline"]._body.winfo_manager()
           and app.rec_frames["goals"]._body.winfo_manager())
     app.rec_toggle("goals"); app.update()

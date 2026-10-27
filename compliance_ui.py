@@ -277,8 +277,12 @@ class ComplianceMixin:
             elif left and win.prove_go.winfo_manager():
                 win.prove_go.pack_forget()
         if hasattr(win, "lbl_read"):
-            win.lbl_read.configure(text=f"Open matrix: {os.path.basename(M.path)}, {len(M.items)} sentences from "
-                                        f"{len(M.sources)} file(s). Next: Decide.")
+            pg = C.progress(M.items)                    # 2.52.0: how far the review is, per document
+            lines = [f"Matrix: {os.path.basename(M.path)}, {pg['total']} sentences from {len(M.sources)} document(s). "
+                     f"Reviewed: {pg['decided']} of {pg['total']} ({pg['pct']}%)."]
+            lines += [f"    {'✓' if f['decided'] == f['total'] else ' '} {f['file']}: {f['decided']} of {f['total']} reviewed ({f['pct']}%)"
+                      for f in pg["files"]]
+            win.lbl_read.configure(text="\n".join(lines) + ("\nNext: Assign." if pg["decided"] < pg["total"] else "\nEvery sentence is reviewed."))
         if getattr(self, "shell_step", "") == "prove" and hasattr(self, "pv_refresh"):
             self.pv_refresh()
 

@@ -83,6 +83,10 @@ PAGES = {
                         "the words; Assign... gives a question to a person (pick one or type a name) and the timeline notes it; "
                         "Remove takes a note or question away. Show (top right of Effort home) picks one person: their tasks "
                         "and the open questions assigned to them."),
+              ("Compliance matrix", "On Effort home at every stage: the share of the customer documents' sentences "
+                                    "reviewed (each one a compliance requirement, support, the customer's or not used), what "
+                                    "still needs a proposal section, and each document's progress. Read customer documents..., "
+                                    "Assign and Matrix go straight there, to update the matrix when the customer sends more."),
               ("Calendar", "A month on Effort home: the due date, questions due to the customer (from the customer documents), "
                            "stage dates (planned and started), tasks by due date (done ones in green), and what happened each day "
                            "(documents added, stage moves, assignments). < Previous, This month and Next > move between months; "

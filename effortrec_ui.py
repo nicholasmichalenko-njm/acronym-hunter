@@ -212,7 +212,8 @@ class EffortRecordMixin:
             return ""
 
     # ------------------------------------------------------------ Effort home
-    HOME_SECTIONS = (("goals", "Gate goals", True), ("tasks", "Tasks", True), ("notes", "Notes and open questions", True),
+    HOME_SECTIONS = (("goals", "Gate goals", True), ("compliance", "Compliance matrix", True),     # 2.52.0
+                     ("tasks", "Tasks", True), ("notes", "Notes and open questions", True),
                      ("custinfo", "Customer information", True),                    # 2.51.0
                      ("calendar", "Calendar", True), ("timeline", "Timeline", False))
 
@@ -255,6 +256,11 @@ class EffortRecordMixin:
                       **S).pack(side="right", padx=(6, 0))
         ctk.CTkButton(cards["notes"][0], text="+ Note", command=self.rec_note_dialog, **S).pack(side="right")
         ctk.CTkButton(cards["custinfo"][0], text="+ Add...", command=self.rec_custinfo_dialog, **S).pack(side="right")
+        go = lambda st: self.shell_go("compliance", st) if hasattr(self, "shell_go") else None
+        ctk.CTkButton(cards["compliance"][0], text="Matrix", command=lambda: go("matrix"), fg_color="#475569", **S).pack(side="right")
+        ctk.CTkButton(cards["compliance"][0], text="Assign", command=lambda: go("decide"), **S).pack(side="right", padx=6)
+        ctk.CTkButton(cards["compliance"][0], text="Read customer documents...", fg_color="#9A3412", **S,
+                      command=lambda: (go("read"), self.compliance_read_docs() if hasattr(self, "compliance_read_docs") else None)).pack(side="right")
         ctk.CTkButton(cards["calendar"][0], text="Next >", command=lambda: self.rec_cal_step(1), fg_color="#475569", **S).pack(side="right")
         ctk.CTkButton(cards["calendar"][0], text="This month", command=lambda: self.rec_cal_step(0), fg_color="#475569", **S).pack(side="right", padx=6)
         ctk.CTkButton(cards["calendar"][0], text="< Previous", command=lambda: self.rec_cal_step(-1), fg_color="#475569", **S).pack(side="right")
@@ -313,7 +319,7 @@ class EffortRecordMixin:
         sig = (id(r), len(r.data["timeline"]) if r else 0, repr(r.data["stages"]) if r else "", repr(r.data["tasks"]) if r else "",
                repr(r.data["notes"]) if r else "", tuple(sorted(checks.items())), self.rec_who.get(), tuple(people),
                getattr(self, "rec_cal_month", None), getattr(self, "rec_cal_day", None), r.data.get("due", "") if r else "",
-               repr(r.data.get("customer_info")) if r else "")
+               repr(r.data.get("customer_info")) if r else "", self._rec_comp_sig())
         if sig == getattr(self, "_rec_sig", None):
             return
         self._rec_sig = sig
@@ -331,6 +337,7 @@ class EffortRecordMixin:
         self._rec_draw_goals(r, checks)
         self._rec_draw_tasks(r)
         self._rec_draw_notes(r)
+        self._rec_draw_compliance(r)
         self._rec_draw_custinfo(r)
         self._rec_draw_calendar(r)
         self._rec_draw_timeline(r)
@@ -481,6 +488,60 @@ class EffortRecordMixin:
             ctk.CTkLabel(body, text=("No notes yet. Notes can go on the effort, a stage, a customer document or a requirement."
                                      if who == "Everyone" else f"No open questions for {who}."),
                          anchor="w", justify="left", wraplength=560).pack(fill="x")
+
+    # ------------------------------------------------------------ the compliance matrix on Effort home (2.52.0)
+    def rec_matrix(self):
+        """The effort's compliance matrix: the open one, else read from its file (kept until the file changes)."""
+        M = getattr(self, "matrix", None)
+        if M is not None:
+            return M
+        ws = getattr(self, "ws", None)
+        p = ws.get("compliance_path", "") if ws is not None else ""
+        if not p or not os.path.isfile(p):
+            return None
+        key = (p, os.path.getmtime(p))
+        if getattr(self, "_rec_mx", (None, None))[0] != key:
+            try:
+                import compliance as CM
+                self._rec_mx = (key, CM.Matrix(p).load())
+            except Exception:
+                diag.swallowed()
+                self._rec_mx = (key, None)
+        return self._rec_mx[1]
+
+    def _rec_comp_sig(self):
+        M = self.rec_matrix()
+        if M is None:
+            return None
+        return (len(M.items), sum(1 for it in M.items if it.get("decision")), sum(1 for it in M.items if it.get("map")))
+
+    def _rec_draw_compliance(self, r):
+        _h, lab, body = self.rec_cards["compliance"]
+        M = self.rec_matrix()
+        if M is None or not M.items:
+            lab.configure(text="Compliance matrix   not started")
+            ctk.CTkLabel(body, text="Read the customer documents into the compliance review (Read customer documents...), then "
+                                    "assign each sentence. Progress shows here at every stage.", anchor="w", justify="left",
+                         wraplength=900, text_color=("#475569", "#94A3B8")).pack(fill="x")
+            return
+        import compliance as CM
+        pg = CM.progress(M.items)
+        lab.configure(text=f"Compliance matrix   {pg['pct']}% reviewed")
+        bar = ctk.CTkProgressBar(body, height=10); bar.pack(fill="x", pady=(0, 6)); bar.set(pg["pct"] / 100.0)
+        ctk.CTkLabel(body, text=(f"{pg['decided']} of {pg['total']} sentences reviewed: {pg['Keep']} compliance requirement(s), "
+                                 f"{pg['Context']} support, {pg.get('Customer', 0)} the customer's, {pg['Drop']} not used"
+                                 + (f";  {pg['needs_home']} still need a proposal section" if pg["needs_home"] else "") + "."),
+                     anchor="w", justify="left", wraplength=900).pack(fill="x")
+        for f in pg["files"]:
+            line = ctk.CTkFrame(body, fg_color="transparent"); line.pack(fill="x", pady=1)
+            done = f["decided"] == f["total"]
+            ctk.CTkLabel(line, text=("✓ " if done else "") + f"{f['pct']}%", width=60, anchor="w", font=("Segoe UI", 12, "bold"),
+                         text_color=("#15803D", "#86EFAC") if done else ("#B45309", "#FBBF24")).pack(side="left")
+            ctk.CTkLabel(line, text=f"{f['file']}   {f['decided']} of {f['total']}", anchor="w").pack(side="left", fill="x", expand=True)
+        added = sum(1 for it in M.items if it.get("new") == "Added by the text check")
+        tc = ("The text check runs after every read and adds any line of the customer documents the reader missed"
+              + (f" ({added} added so far)." if added else "."))
+        ctk.CTkLabel(body, text=tc, anchor="w", text_color=("#475569", "#94A3B8"), font=("Segoe UI", 11)).pack(fill="x", pady=(4, 0))
 
     # ------------------------------------------------------------ customer information (2.51.0)
     def _rec_draw_custinfo(self, r):
