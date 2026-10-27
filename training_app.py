@@ -46,7 +46,7 @@ class TrainingApp(ctk.CTk):
         self.title(f"Stationkeeper Training {eng.APP_VERSION}: corrections in, a better reader out (100% local)")
         self.geometry("1180x760")
         self.report_callback_exception = lambda et, e, tb: (eng._excepthook(et, e, tb), messagebox.showerror(
-            "Error", f"{et.__name__}: {e}\n\nDetails were saved to the logs folder (no file names or document content)."))
+            "Error", f"{et.__name__}: {e}\n\nDetails were saved to the logs folder (no file names or document content): Help > Export error logs... saves them for support."))
         self.project, self.queued_files, self._training, self.trainer_win = None, [], False, None
         self._thumb = None
         diag.activity("training_app_started")

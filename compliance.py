@@ -10,6 +10,17 @@ workbook (atomic save, re-read on open, edits made in Excel count). Nothing leav
 """
 import datetime, hashlib, json, os, re, tempfile
 
+# 2.50.0: characters a PDF can hand over that Excel and Word refuse (U+FFFE is PDFium's hyphen at a line break)
+_BAD_XML = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]")
+
+
+def clean_chars(s):
+    """Text safe for Excel and Word: PDFium's line-break hyphen becomes a hyphen, control characters go."""
+    if not isinstance(s, str):
+        return s
+    return _BAD_XML.sub(lambda m: "-" if m.group(0) == "\ufffe" else "", s) if _BAD_XML.search(s) else s
+
+
 # ------------------------------------------------------------------ vocabulary
 MODALS = r"shall not|must not|will not|may not|shall|must|will|should|may|is required to|are required to|is to|are to|is expected to|are expected to"
 _MODAL = re.compile(r"\b(" + MODALS + r")\b", re.I)
@@ -982,7 +993,7 @@ class Matrix:
                 row = {}
                 for col, f in FIELD.items():
                     v = vals[idx[col]] if col in idx and idx[col] < len(vals) else None
-                    row[f] = "" if v is None else str(v).strip()
+                    row[f] = "" if v is None else clean_chars(str(v)).strip()
                 if not row["text"]:
                     continue
                 row["compound"] = row["compound"].lower() in ("yes", "true", "1")
@@ -1131,9 +1142,9 @@ class Matrix:
             import setupdoc
             owner = lambda it: setupdoc.owner_of(self, it)
         for it in self.items:
-            ws.append([("Yes" if it.get(FIELD[c]) else "") if c == "Compound" else
-                       (owner(it) if owner and c == "Owner" else it.get(FIELD[c], "")) for c in COLUMNS])
-            ws.cell(row=ws.max_row, column=rcol + 1).value = cwords.xlsx_value(it.get("text", ""), cw)
+            ws.append([clean_chars(("Yes" if it.get(FIELD[c]) else "") if c == "Compound" else
+                       (owner(it) if owner and c == "Owner" else it.get(FIELD[c], ""))) for c in COLUMNS])
+            ws.cell(row=ws.max_row, column=rcol + 1).value = cwords.xlsx_value(clean_chars(it.get("text", "")), cw)
             f = fills.get(it["decision"])
             if f:
                 for c in ws[ws.max_row]:

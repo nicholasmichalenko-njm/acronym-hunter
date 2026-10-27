@@ -185,8 +185,9 @@ def export(M, path, design, effort_name="", when=None):
         ws.column_dimensions[cell.column_letter].width = COLUMNS[design["columns"][k - 1]["key"]][1]
     items, data = rows(M, design)
     fill = {"Context": PatternFill("solid", fgColor="EFF6FF")}
+    import compliance as _C
     for it, r in zip(items, data):
-        ws.append(r)
+        ws.append([_C.clean_chars(v) for v in r])
         for cell in ws[ws.max_row]:
             cell.alignment = Alignment(vertical="top", wrap_text=True)
             cell.border = Border(top=thin, bottom=thin, left=thin, right=thin)
@@ -232,19 +233,32 @@ def export(M, path, design, effort_name="", when=None):
     return {"path": path, "rows": len(data), "customer": len(cust)}
 
 
+def safe_name(name):
+    """A file or folder name Windows accepts (2.50.0: an effort name with / or : broke the export)."""
+    return "".join(ch if ch not in '<>:"/\\|?*' and ord(ch) >= 32 else " " for ch in name).strip().rstrip(".") or "export"
+
+
+def long_path(path):
+    """2.50.0: deep OneDrive or SharePoint folders pass Windows' 260-character limit; the long-path form has none."""
+    p = os.path.abspath(path)
+    if os.name == "nt" and len(p) > 200 and not p.startswith("\\\\?\\"):
+        return "\\\\?\\" + p if not p.startswith("\\\\") else "\\\\?\\UNC\\" + p[2:]
+    return path
+
+
 def export_together(M, folder, design, effort_name="", when=None):
     """The designed matrix and the Response Setup, from the same decisions, in one dated folder. Returns the folder and
     the files written."""
     import setupdoc as SD
     when = when or datetime.datetime.now()
     name = f"{(effort_name or M.name)} compliance export {when:%Y-%m-%d %H%M}"
-    name = "".join(ch if ch not in '<>:"/\\|?*' else " " for ch in name).strip()
-    sub = os.path.join(folder, name)
+    name = safe_name(name)
+    sub = long_path(os.path.join(folder, name))
     k = 2
     while os.path.exists(sub):
         sub = os.path.join(folder, f"{name} ({k})"); k += 1
     os.makedirs(sub)
-    mx = export(M, os.path.join(sub, f"{(effort_name or M.name).replace(' ', '_')}_Compliance_Matrix_{when:%Y-%m-%d}.xlsx"),
+    mx = export(M, os.path.join(sub, safe_name(f"{(effort_name or M.name).replace(' ', '_')}_Compliance_Matrix_{when:%Y-%m-%d}.xlsx")),
                 design, effort_name, when)
     files = [mx["path"]]
     if M.outline:

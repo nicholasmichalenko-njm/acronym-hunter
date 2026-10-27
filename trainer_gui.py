@@ -267,7 +267,7 @@ class TrainerApp(_TrainerUI, ctk.CTk):
         eng.ACTIVE_ICON = "trainer.ico"
         eng.apply_window_icon(self)
         self.report_callback_exception = lambda et, e, tb: (eng._excepthook(et, e, tb),
-            messagebox.showerror("Error", f"{et.__name__}: {e}\n\nDetails were saved to the logs folder (no file names or document content)."))
+            messagebox.showerror("Error", f"{et.__name__}: {e}\n\nDetails were saved to the logs folder (no file names or document content): Help > Export error logs... saves them for support."))
         self._build_ui(start_file)
 
 class TrainerWindow(_TrainerUI, ctk.CTkToplevel):

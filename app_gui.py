@@ -1594,7 +1594,8 @@ def extract_xlsx(filepath, filename, status_callback, prefix, chunks):
 def _pdf_page_text(page):
     tp = page.get_textpage()
     try:
-        return tp.get_text_range().replace("\r\n", "\n").replace("\r", "\n")
+        # 2.50.0: PDFium marks a hyphen at a line break as U+FFFE (shown as a box, and refused by Excel): keep a hyphen
+        return tp.get_text_range().replace("\r\n", "\n").replace("\r", "\n").replace("\ufffe", "-").replace("\uffff", "")
     finally:
         tp.close()
 
@@ -1784,7 +1785,7 @@ def _pdf_table_rows(page):
         for k in range(tp.count_rects()):
             left, bottom, right, top = tp.get_rect(k)
             h = top - bottom
-            txt = tp.get_text_bounded(left + 0.5, bottom + h * 0.25, right - 0.5, top - h * 0.25).strip()
+            txt = tp.get_text_bounded(left + 0.5, bottom + h * 0.25, right - 0.5, top - h * 0.25).replace("\ufffe", "-").strip()
             if txt:
                 segs.append((left, bottom, right, top, " ".join(txt.split())))
     finally:
@@ -3827,6 +3828,8 @@ class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMix
         h = tk.Menu(mb, tearoff=0)
         h.add_command(label="How it works (Guide)", accelerator="F1", command=c("help_guide", lambda: HG.open_guide(self)))
         h.add_command(label="Submit an idea or report a problem...", accelerator="Ctrl+Shift+F", command=c("help_feedback", lambda: FB.open_feedback(self)))
+        h.add_command(label="Export error logs...", command=c("help_export_logs", lambda: FB.export_dialog(self)))
+        h.add_command(label="Open the logs folder", command=c("help_logs_folder", self.open_logs_folder))
         h.add_command(label="Coming soon...", command=c("help_coming_soon", lambda: CS.open_window(self)))
         h.add_separator()
         h.add_command(label="What runs where (AI and ML)...", command=c("help_what_runs", self.show_what_runs))
@@ -3906,6 +3909,18 @@ class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMix
                     save_settings(self.settings)
         except tk.TclError:
             diag.swallowed()
+
+    def open_logs_folder(self):
+        """Help > Open the logs folder (2.50.0): where the content-free error and activity logs are."""
+        os.makedirs(LOG_DIR, exist_ok=True)
+        try:
+            if os.name == "nt":
+                os.startfile(LOG_DIR)
+            else:
+                messagebox.showinfo("Logs folder", LOG_DIR)
+        except OSError:
+            messagebox.showinfo("Logs folder", LOG_DIR)
+        return LOG_DIR
 
     def show_file_menu(self, m):
         """File (2.40.0): start, open, save and import an effort; its details, status and exports."""
@@ -4687,7 +4702,7 @@ class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMix
         if isinstance(exc, PermissionError):
             messagebox.showerror("Database locked", DB_LOCKED_MSG)
         else:
-            messagebox.showerror("Error", f"{exc_type.__name__}: {exc}\n\nDetails were saved to the logs folder (no file names or document content).")
+            messagebox.showerror("Error", f"{exc_type.__name__}: {exc}\n\nDetails were saved to the logs folder (no file names or document content): Help > Export error logs... saves them for support.")
 
     def open_trainer(self, path=None, focus=None):
         """Open the Trainer as a window of this program (same engine, same sandbox, same settings)."""
@@ -4812,7 +4827,7 @@ class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMix
         except Exception as e:
             log_error("Scan failed")
             diag.scan_finished(errors=1)
-            msg = f"{type(e).__name__}: {e}\n\nDetails were saved to the logs folder (no file names or document content)."
+            msg = f"{type(e).__name__}: {e}\n\nDetails were saved to the logs folder (no file names or document content): Help > Export error logs... saves them for support."
             self.after(0, lambda: messagebox.showerror("Scan failed", msg))
             self.after(0, self.reset_ui)
 

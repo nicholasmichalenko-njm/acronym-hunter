@@ -36,7 +36,8 @@ check("rescan: other sentences stay as they were", next(it for it in items if "C
 cfg["words"] = [w for w in cfg["words"] if w != "responsible for"]
 res = C.rescan_words(items, cfg=cfg)
 check("a word taken off the list: its sentences are Context again", resp["type"] == "Context" and resp["new"] == "" and res["back"] == [resp["id"]])
-C.set_extra_words(["responsible for"])
+W._config_dir = lambda: tmp                        # the list on "this PC" (whether or not the app is loaded)
+W.add_words(["responsible for"], config_dir=tmp)
 items2 = C.extract([("Section L Instructions.docx", [("Page 1", TEXT)])])
 check("a new read uses the added words too", next(it for it in items2 if "quarterly" in it["text"])["type"] != "Context")
 C.set_extra_words([])
