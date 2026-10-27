@@ -47,7 +47,8 @@ PAGES = {
           "Effort home and File > Export all write everything at once. One status line runs along the bottom."),
     ("rows", [("Effort home", "The effort's stage, the goals for this gate, tasks, notes and open questions, the timeline, where "
                               "each feature stands, the next step to take, and Export all."),
-              ("Submission", "Requirements (what to deliver and how, and how it changed), Documents (every customer document "
+              ("Submission", "Requirements (what to deliver and how, and how it changed), Deliverables (what we owe and where "
+                             "each stands), Documents (every customer document "
                              "with its versions), Compare (what changed between any two versions), Export."),
               ("Compliance", "Read RFP, Structure (the response outline), Assign (each sentence a compliance requirement in "
                              "a section, context, or not used), Prove (nothing missed; owner, status and page), Export."),
@@ -91,8 +92,11 @@ PAGES = {
                                 "includes the status."),
               ("Hand-off", "File > Save effort package... writes the whole effort into one .ahpkg file: stage, goals, notes, "
                            "tasks, timeline, customer document versions, submission requirements, the compliance matrix and "
-                           "the acronym list, and if you like the customer files and our volumes. File > Import effort "
-                           "package... opens it on another PC where it was left; if the effort is already there, choose to "
+                           "the acronym list, the customer files, our volumes and every file a deliverable points to (all "
+                           "ticked at first). File > Import effort package... opens it on another PC where it was left, with "
+                           "every link pointed at the new folder; Advanced > Make .ahpkg effort packages open in Acronym "
+                           "Hunter lets a double-click open it (your Windows user only, no admin rights). Team-wide lists "
+                           "(the master database, banned words, team keyword knowledge) stay with each PC; if the effort is already there, choose to "
                            "use the package (the old copy is backed up) or keep both. Save packages on this PC or in the "
                            "approved SharePoint folder only.")]),
     ("h", "Where to get help on each tool"),
@@ -384,6 +388,24 @@ PAGES = {
     ("h", "Submission: customer documents and their versions"),
     ("p", "Customer documents keep arriving: amendments, questions and answers, revised attachments. Submission keeps every "
           "version and shows exactly what changed, so a changed page limit or format rule is not missed."),
+    ("h", "Deliverables: what we owe and where each stands"),
+    ("p", "Submission > Deliverables lists everything the effort must produce: volumes, attachments, forms, plans, slides. "
+          "Deliverables the customer documents name are suggested at the bottom in blue: Add as a deliverable, or Not ours. "
+          "Add a deliverable... types in any other."),
+    ("img", "deliverables.png", 620),
+    ("rows", [("Each one", "Format, limit and rules (from the page limits in Requirements when you leave it empty), owner, "
+                           "status (Not started, Drafting, In review, Final, Submitted) and notes. Set our file... links our "
+                           "working Word file: its page count (as Word last saved it) is checked against the limit, and red "
+                           "means over."),
+              ("What changed it", "Amber when the requirement or page limit behind it changed in a newer customer version and "
+                                  "is not reviewed yet, or when the customer sent a newer version of its form."),
+              ("Forms", "Link the customer's form or template (from Documents). Every version shows with its date and "
+                        "fingerprint; the newest is marked CURRENT: FILL THIS and the old one stays for the record. Compare "
+                        "versions shows what the customer changed."),
+              ("By stage", "Done for <stage> marks it for the current gate. The gate goals check that every deliverable "
+                           "has an owner and none is over its limit or changed without review."),
+              ("Exports", "Checklist (Excel): every deliverable with its marks per stage; Export all and the effort status "
+                          "include the deliverables.")]),
     ("h", "Submission requirements: front and center"),
     ("p", "Requirements, the first Submission step, lists what to deliver and how, read from every version of every customer "
           "document: the due date and time, the deadline for questions, page limits for each volume, font and size, margins, "

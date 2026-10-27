@@ -36,15 +36,17 @@ AUTO = {
     "banned_clean": "No banned words left",
     "pages_ok": "Every volume within its page limit",
     "tasks_done": "Every task for this stage done",
+    "deliverables_set": "Deliverables confirmed, each with an owner",           # 2.41.0
+    "deliverables_ok": "No deliverable over its limit or changed without review",
 }
 DEFAULT_GOALS = {
     "Intake": ["docs_added", "reqs_reviewed", "structure_set", "sections_led"],
-    "Author drafts": ["reqs_placed", "reqs_owned", "Author briefs sent to every section lead"],
+    "Author drafts": ["reqs_placed", "reqs_owned", "deliverables_set", "Author briefs sent to every section lead"],
     "Red team": ["qa_run", "Red team reviewers confirmed", "tasks_done"],
     "Red team recovery": ["Every red team comment has an owner", "docs_reviewed", "reqs_reviewed", "acr_approved", "pages_ok"],
-    "Gold team": ["pages_ok", "first_use_clean", "banned_clean", "acr_approved", "prove_clear"],
+    "Gold team": ["pages_ok", "first_use_clean", "banned_clean", "acr_approved", "prove_clear", "deliverables_ok"],
     "Gold team recovery": ["Every gold team comment has an owner", "docs_reviewed", "reqs_reviewed", "pages_ok", "first_use_clean"],
-    "Final to pubs": ["pages_ok", "first_use_clean", "banned_clean", "Files named as the customer requires", "Forms signed", "tasks_done"],
+    "Final to pubs": ["pages_ok", "first_use_clean", "banned_clean", "deliverables_ok", "Files named as the customer requires", "Forms signed", "tasks_done"],
 }
 MONTHS = {m: i for i, m in enumerate(("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"), 1)}
 
@@ -191,7 +193,8 @@ class Record:
     def load(self):
         import workspace as W
         d = W.read_json(self.path, None) or {}
-        self.data = {"v": 1, "due": d.get("due", ""), "zone": d.get("zone", ""), "opportunity": d.get("opportunity", ""),
+        extra = {k: v for k, v in d.items() if k not in ("v", "due", "zone", "opportunity", "stages", "stage", "timeline", "notes", "tasks")}
+        self.data = {**extra, "v": 1, "due": d.get("due", ""), "zone": d.get("zone", ""), "opportunity": d.get("opportunity", ""),
                      "stages": d.get("stages") or [], "stage": d.get("stage", ""), "timeline": d.get("timeline", []),
                      "notes": d.get("notes", []), "tasks": d.get("tasks", [])}
         if not self.data["stages"]:

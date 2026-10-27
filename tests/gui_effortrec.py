@@ -172,12 +172,41 @@ def go():
           and any(f"Compliance requirement {keep['id']} assigned to K. Park" in e["text"] for e in rec.events()))
     check("people in the effort include task and requirement owners", {"K. Park", "J. Smith", "N. Michalenko"} <= set(app.rec_people()), app.rec_people())
     app._c_save_now()
+    # 2.41.0: deliverables
+    import deliverables as DL
+    app.shell_go("submission", "deliverables"); app.update()
+    pills = [w.cget("text").split("  ")[0] for w in app.strip_pills.winfo_children()]
+    check("Submission has a Deliverables step after Requirements", pills[:2] == ["1 Requirements", "2 Deliverables"], pills)
+    vals = {app.dl_tree.set(i, "name"): app.dl_tree.set(i, "state") for i in app.dl_tree.get_children()}
+    check("deliverables named in the customer documents are suggested", vals.get("Attachment J-2") == "Suggested: add it?", vals)
+    sk = next(v[1] for v in app.dl_rows.values() if v[0] == "s")
+    j2 = app.dl_add_suggested(sk)
+    check("Add as a deliverable", DL.get(app.effrec(), j2)["name"] == "Attachment J-2" and DL.get(app.effrec(), j2)["kind"] == "Attachment")
+    import zipfile as _z
+    ourdir = os.path.join(tmp, "Our drafts"); os.makedirs(ourdir)
+    vol = os.path.join(ourdir, "Kestrel_Vol_1_Technical.docx")
+    with _z.ZipFile(vol, "w") as z:
+        z.writestr("word/document.xml", "<w:document/>")
+        z.writestr("docProps/app.xml", "<Properties><Pages>27</Pages></Properties>")
+    v1 = app.dl_edit_dialog(values={"name": "Volume I Technical", "kind": "Volume", "limit": "25 pages", "owner": "J. Smith"})
+    app.dl_set_file(v1, vol); app.update()
+    row = next(i for i, v in app.dl_rows.items() if v == ("d", v1))
+    check("our Word file's page count against the limit: over is red", app.dl_tree.set(row, "state") == "Over: 27 of 25 pages"
+          and "over" in app.dl_tree.item(row, "tags"), app.dl_tree.set(row, "state"))
+    app.dl_tree.selection_set(row); app.update()
+    dt = " | ".join(texts_of(app.dl_detail))
+    check("the panel shows owner, limit, pages and the stage mark", "J. Smith" in dt and "27 (as Word last saved it)" in dt and "Done for Author drafts" in dt, dt[:300])
+    DL.mark_stage(app.effrec(), v1); app._dl_after(v1)
+    check("Done for this stage is recorded", app.effrec().stage()["id"] in DL.get(app.effrec(), v1)["stages_done"])
+    xp = app.dl_export(os.path.join(tmp, "deliv.xlsx"))
+    check("the deliverables checklist (Excel)", os.path.isfile(xp))
     # 2.40.0: the effort status report and the effort summary
     import zipfile
     sp = app.status_export(os.path.join(tmp, "status.docx"))
     x = zipfile.ZipFile(sp).read("word/document.xml").decode("utf-8")
     check("Effort status: effort, countdown, stage track, tiles, where we are", "EFFORT STATUS" in x and "Kestrel" in x and "to submission: Dec 15, 2026" in x
           and "Author drafts" in x and "gate goals met" in x and "Where we are" in x and "Left in this stage" in x)
+    check("it lists the deliverables (2.41.0)", ">Deliverables<" in x and "Over: 27 of 25 pages" in x and "deliverables final" in x)
     check("it holds the open questions and notes, people, tasks, changes and requirements", "Kickoff held" in x and "People and assignments" in x
           and "K. Park" in x and "Book the gold team room" in x and "What changed since Author drafts began" in x and "Submission requirements" in x
           and "Customer documents" in x and "Complete history" not in x)
@@ -206,6 +235,10 @@ def go():
     check("the customer documents and their versions came along, pointing at the new folder",
           lib.docs and all(v["path"].startswith(os.path.join(tmp, "elsewhere")) for d in lib.docs for v in d["versions"]))
     check("the matrix came along", os.path.normcase(app.ws.get("compliance_path", "")).startswith(os.path.normcase(os.path.join(tmp, "elsewhere"))))
+    dl2 = DL.items(app.effrec())
+    vrow = next(d for d in dl2 if d["name"] == "Volume I Technical")
+    check("a deliverable's own file travelled and points at the new folder (2.41.0)", vrow["file"].startswith(os.path.join(tmp, "elsewhere"))
+          and os.path.isfile(vrow["file"]) and len(dl2) == 2, vrow["file"])
     check("the import is in its timeline", app.effrec().events()[0]["text"].startswith("Effort package imported: saved by"))
     try:
         P.read_manifest(os.path.join(CDIR, files[0]))

@@ -11,7 +11,7 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 import diag
 
-PARTS = (("status", "Effort status (Word)"), ("requirements", "Submission requirements and their history (Excel)"),
+PARTS = (("status", "Effort status (Word)"), ("deliverables", "Deliverables checklist (Excel)"), ("requirements", "Submission requirements and their history (Excel)"),
          ("versions", "Customer document version history (Excel)"), ("matrix", "Compliance matrix (Excel)"), ("coverage", "Compliance coverage report (Word)"),
          ("setup", "Response Setup (Word)"),
          ("acronyms", "Acronym lists (Word and Excel)"), ("qaqc", "QA/QC report (Excel) and its acronym lists"),
@@ -49,6 +49,8 @@ class ExportAllMixin:
         kws = [k for k in (L.keywords if L is not None else []) if k.get("Status") == "Keep"]
         lib = self.doclib() if hasattr(self, "doclib") else None
         return {
+            "deliverables": (L is not None and hasattr(self, "effrec") and bool(__import__("deliverables").items(self.effrec())) if L is not None else False,
+                             "no deliverables yet"),
             "status": (L is not None and hasattr(self, "status_export"), "no effort open"),
             "requirements": (bool(lib and lib.docs) and bool(self.subreg().rows(include_hidden=True)) if lib else False,
                              "no submission requirements found yet"),
@@ -103,6 +105,11 @@ class ExportAllMixin:
                     V.write_docx([(x["term"], x["definition"]) for x in r["lists"][v]], p); made.append(p)
             except Exception:
                 diag.swallowed(); problems.append("The QA/QC report could not be written.")
+        if "deliverables" in picks:
+            try:
+                p = os.path.join(sub, f"{_safe(L.name)}_Deliverables.xlsx"); self.dl_export(p); made.append(p)
+            except Exception:
+                diag.swallowed(); problems.append("The deliverables checklist could not be written.")
         if "status" in picks:
             try:
                 p = os.path.join(sub, f"{_safe(L.name)}_Effort_Status.docx"); self.status_export(p); made.append(p)

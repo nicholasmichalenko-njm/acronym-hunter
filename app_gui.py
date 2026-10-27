@@ -138,6 +138,7 @@ from keywords_ui import KeywordsMixin   # Keyword Harvest (2.16.0)
 from alt_ui import AltFormsMixin        # alternate forms and the master's use history (2.26.0)
 from exportall_ui import ExportAllMixin  # Export all: every feature's outputs in one folder (2.31.0)
 from submission_ui import SubmissionMixin  # Submission: customer document versions and compare (2.37.0)
+from deliverables_ui import DeliverablesMixin  # Submission > Deliverables (2.41.0)
 from effortrec_ui import EffortRecordMixin  # the effort record: stages, goals, notes, tasks, timeline (2.40.0)
 from shell_ui import ShellMixin, RhythmMixin   # the app shell: feature rail and step strip; one decision then the next (2.32.0)
 from compliance_page import CompliancePageMixin   # Decide in Page view, Place pass, details on Prove (2.32.0)
@@ -2481,7 +2482,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.40.0"            # keep in step with version_info.txt
+APP_VERSION = "2.41.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3418,7 +3419,7 @@ def corrections_on():
     """Report misreading and Not text save corrections for the training team, unless allow_training is false."""
     return bool(APP_CFG["allow_training"])
 
-class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Acronym Hunter {APP_VERSION}: acronyms, abbreviations and units (100% local)")
@@ -3820,6 +3821,8 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, SubmissionMixin,
         el = tk.Menu(a, tearoff=0, postcommand=lambda: self.show_effort_menu(el))
         a.add_cascade(label="Effort list and all effort commands", menu=el)
         a.add_command(label="Compliance word style...", command=c("compliance_word_style", self.compliance_word_style))
+        a.add_command(label="Make .ahpkg effort packages open in Acronym Hunter (this Windows user)...",
+                      command=c("pkg_associate", self.pkg_associate))
         t = tk.Menu(a, tearoff=0, postcommand=lambda: self.show_tools_menu(t))
         a.add_cascade(label="Reading, training and knowledge", menu=t)
         mb.add_cascade(label="Advanced", menu=a)
@@ -6236,6 +6239,9 @@ if __name__ == "__main__":
         sys.exit(0)
     try:
         app = AcronymAppGUI()
+        pkg = next((a for a in sys.argv[1:] if a.lower().endswith(".ahpkg") and os.path.isfile(a)), None)
+        if pkg:                                     # 2.41.0: a package opened with the app (double-click or drop on it)
+            app.after(1500, lambda: app.pkg_import_dialog(pkg))
         app.mainloop()
     except Exception:
         log_error("Application failed to start")

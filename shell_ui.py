@@ -14,7 +14,7 @@ FEATURES = (("home", "Effort home"), ("submission", "Submission"), ("compliance"
             ("keywords", "Keywords"))
 STEPS = {
     "home": (("overview", "Overview"),),
-    "submission": (("requirements", "Requirements"), ("documents", "Documents"), ("compare", "Compare"), ("export", "Export")),  # 2.39.0
+    "submission": (("requirements", "Requirements"), ("deliverables", "Deliverables"), ("documents", "Documents"), ("compare", "Compare"), ("export", "Export")),  # 2.39.0
     "compliance": (("read", "Read RFP"), ("outline", "Structure"), ("decide", "Assign"),
                    ("prove", "Prove"), ("export", "Export")),             # 2.36.0: Assign places as it decides
     "acronyms": (("scan", "Scan"), ("review", "Review"), ("approve", "Define and approve"), ("export", "Export")),
@@ -24,7 +24,7 @@ STEPS = {
 COMP_TABS = {"read": "Read RFP", "decide": "Requirements", "outline": "Outline", "place": "Place", "prove": "Prove",
              "export": "Export"}
 AI_SECTION = {"submission": "EFFORT", "compliance": "COMPLIANCE", "acronyms": "SCAN", "qaqc": "EFFORT", "keywords": "EFFORT", "home": "EFFORT"}
-NEEDS_EFFORT = {("submission", "requirements"), ("submission", "documents"), ("submission", "compare"), ("submission", "export"), ("acronyms", "approve"), ("qaqc", "check"), ("qaqc", "export"), ("keywords", "decide"), ("keywords", "export")}
+NEEDS_EFFORT = {("submission", "requirements"), ("submission", "deliverables"), ("submission", "documents"), ("submission", "compare"), ("submission", "export"), ("acronyms", "approve"), ("qaqc", "check"), ("qaqc", "export"), ("keywords", "decide"), ("keywords", "export")}
 
 RAIL_BG = ("#0F172A", "#0B1220")
 RAIL_ON = "#1E3A8A"
@@ -292,7 +292,7 @@ class ShellMixin:
                 diag.swallowed()
             return win
         if f == "submission":
-            return self.shell_page({"requirements": "sub_reqs", "documents": "sub_docs", "compare": "sub_compare", "export": "sub_export"}[s])
+            return self.shell_page({"requirements": "sub_reqs", "deliverables": "sub_deliv", "documents": "sub_docs", "compare": "sub_compare", "export": "sub_export"}[s])
         return {("acronyms", "scan"): self.shell_page("scan"), ("acronyms", "review"): self.scan_view,
                 ("acronyms", "approve"): self.home_view, ("acronyms", "export"): self.shell_page("acr_export"),
                 ("qaqc", "check"): getattr(self, "qa_view", None), ("qaqc", "export"): self.shell_page("qa_export"),
@@ -342,6 +342,8 @@ class ShellMixin:
             try:
                 if step == "requirements":
                     self.req_refresh()
+                elif step == "deliverables" and hasattr(self, "dl_refresh"):
+                    self.dl_refresh()
                 if step == "documents":
                     self.sub_refresh()
                 elif step == "compare":

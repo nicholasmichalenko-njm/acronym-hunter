@@ -3,7 +3,7 @@
     venv\\Scripts\\python.exe tools\\make_guide_shots.py
 
 Uses the fictional test_samples only, in a temporary config folder, and writes assets\\help\\topbar.png, shell.png,
-home.png, scanreview.png, keywords.png, suggest.png, submission.png, compare.png, compliance.png, prove.png, setup.png, whatruns.png, stack.png,
+home.png, scanreview.png, keywords.png, suggest.png, submission.png, compare.png, requirements.png, deliverables.png, compliance.png, prove.png, setup.png, whatruns.png, stack.png,
 qa.png and training.png (2.33.0: the one-feature-at-a-time layout). Each picture is the window region of one view, captured
 with PIL ImageGrab, so the window must be on screen and not covered.
 """
@@ -141,6 +141,14 @@ def shot_submission():
             app.req_tree.selection_set(iid)
     app.sub_bar_refresh(); app.update(); time.sleep(0.5); app.update()
     grab(app.strip.master, "requirements.png")
+    import deliverables as DL                                     # 2.41.0: deliverables
+    rec = app.effrec()
+    DL.add(rec, "Volume I Technical", kind="Volume", fmt="Word, sent as searchable PDF", limit="25 pages", owner="J. Smith")
+    DL.add(rec, "Volume II Management", kind="Volume", fmt="Word, sent as searchable PDF", limit="15 pages", owner="R. Diaz")
+    did = DL.add(rec, "SF 33", kind="Form", fmt="Signed PDF", owner="Contracts")
+    DL.update(rec, did, status="In review")
+    app.shell_go("submission", "deliverables"); app.update(); time.sleep(0.4); app.update()
+    grab(app.strip.master, "deliverables.png")
 
 
 def step3():

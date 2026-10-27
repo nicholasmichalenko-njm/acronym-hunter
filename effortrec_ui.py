@@ -12,9 +12,10 @@ import effortrec as R
 
 STATE_COLORS = {"done": ("#DCFCE7", "#14532D"), "current": ("#1E3A8A", "#FFFFFF"), "ahead": ("#E2E8F0", "#334155")}
 KIND_COLORS = {"customer": "#B45309", "ours": "#1E3A8A", "stage": "#0F766E", "note": "#7C3AED", "task": "#334155",
-               "assign": "#0369A1", "requirement": "#B45309", "effort": "#0F766E", "qa": "#15803D", "compliance": "#1D4ED8"}
+               "assign": "#0369A1", "requirement": "#B45309", "effort": "#0F766E", "qa": "#15803D", "compliance": "#1D4ED8",
+               "deliverable": "#0E7490"}
 KIND_WORDS = {"customer": "CUSTOMER", "ours": "OURS", "stage": "STAGE", "note": "NOTE", "task": "TASK", "assign": "PEOPLE",
-              "requirement": "REQUIREMENT", "effort": "EFFORT", "qa": "QA/QC", "compliance": "COMPLIANCE"}
+              "requirement": "REQUIREMENT", "effort": "EFFORT", "qa": "QA/QC", "compliance": "COMPLIANCE", "deliverable": "DELIVERABLE"}
 
 
 class EffortRecordMixin:
@@ -98,6 +99,13 @@ class EffortRecordMixin:
             r = self.effrec()
             if r is not None:
                 c["tasks_done"] = not r.tasks(stage=r.data["stage"], open_only=True)
+                import deliverables as DL                     # 2.41.0
+                ds = DL.items(r)
+                if ds:
+                    vols = self.volumes() if hasattr(self, "volumes") else []
+                    sm = DL.summary(r, rows, lib, vols)
+                    c["deliverables_set"] = not sm["noowner"] and not sm["suggested"]
+                    c["deliverables_ok"] = not sm["over"] and not sm["changed"]
         except Exception:
             diag.swallowed()
         return c
@@ -686,7 +694,7 @@ class EffortRecordMixin:
         return w
 
     # ------------------------------------------------------------ effort package (save and import)
-    def pkg_save_dialog(self, path=None, customer=True, volumes=False):
+    def pkg_save_dialog(self, path=None, customer=True, volumes=True):
         """File > Save effort package...: the whole effort in one .ahpkg file for a hand-off."""
         import effortpkg as P, workspace as W
         L, ws = getattr(self, "effort", None), getattr(self, "ws", None)
@@ -740,7 +748,8 @@ class EffortRecordMixin:
             man = P.save(path, L.name, L.path, ws.root, info={**info, "name": L.name, "client": L.client, "solicitation": L.solicitation,
                                                              "internal_no": L.internal_no, "first_use": L.first_use},
                          matrix_path=mpath, customer_dir=info.get("customer_dir", ""), volumes_dir=info.get("volumes_dir", ""),
-                         customer=customer, volumes=volumes, stage=stage, app_version=getattr(__import__("app_gui"), "APP_VERSION", ""))
+                         customer=customer, volumes=volumes, stage=stage, app_version=getattr(__import__("app_gui"), "APP_VERSION", ""),
+                         extra_files=[dl.get("file") for dl in (r.data.get("deliverables", []) if r else []) if dl.get("file")])
         except (OSError, PermissionError) as e:
             diag.swallowed()
             messagebox.showerror("Save effort package", f"The package could not be written ({type(e).__name__}).")
@@ -806,7 +815,7 @@ class EffortRecordMixin:
             diag.swallowed()
             messagebox.showerror("Import effort package", str(e) if isinstance(e, P.PackageError) else f"The package could not be unpacked ({type(e).__name__}).")
             return None
-        P.repoint(got["data"], got["customer_dir"], got["matrix"])
+        P.repoint(got["data"], got["customer_dir"], got["matrix"], got.get("moved"))
         inf = man.get("info", {})
         put = {k: inf.get(k) for k in ("first_use", "client", "solicitation", "internal_no", "list_format") if inf.get(k) is not None}
         self.efforts.put(new_name, path=got["list"], customer_dir=got["customer_dir"] or os.path.join(folder, "Customer documents"),
@@ -899,12 +908,26 @@ class EffortRecordMixin:
                           "status": t["status"] + (" (late)" if r.task_overdue(t) else ""), "late": r.task_overdue(t)}
                          for t in ts if final or t["status"] != "Done"]
         since = cur["started"] if not final else ""
-        kinds = ("customer", "requirement", "stage", "assign", "compliance")
+        kinds = ("customer", "requirement", "stage", "assign", "compliance", "deliverable")
         ev = r.events(since=since or None, kinds=kinds)
         snap["changes_title"] = f"What changed since {cur['name']} began ({R.short_date(cur['started'])})" if since else "What changed"
         snap["changes"] = [] if final else [{"when": R.short_date(e["at"]), "text": e["text"], "who": e["who"]} for e in ev[:40]]
         lines = [x for x in (self.req_summary_text(rows).split("  |  ") if rows and hasattr(self, "req_summary_text") else []) if x]
         snap["requirements"] = {"lines": lines, "to_review": [f"{x['kind']}, {x['subject']}: {x['value']}" for x in rows if x["to_review"]]}
+        try:                                                  # 2.41.0: deliverables
+            import deliverables as DL
+            vols = self.volumes() if hasattr(self, "volumes") else []
+            snap["deliverables"] = []
+            for dd in DL.items(r):
+                stt = DL.state(dd, rows, lib, vols, r)
+                snap["deliverables"].append({"name": dd["name"], "format": dd["format"], "limit": stt["limit"], "owner": dd["owner"],
+                                             "status": DL.status_text(dd, stt), "flag": "over" if stt["over"] else "changed" if stt["changed"] else ""})
+            snap["deliverables_suggested"] = [x["subject"] for x in DL.suggestions(r, rows)]
+            if DL.items(r):
+                sm = DL.summary(r, rows, lib, vols)
+                snap["tiles"].insert(1, (f"{sm['final']} of {sm['count']}", "deliverables final", "15803D" if sm["final"] == sm["count"] else "1E3A8A"))
+        except Exception:
+            diag.swallowed()
         snap["documents"] = [{"name": dd["name"], "versions": ", ".join(v["label"] for v in dd["versions"]),
                               "latest": f"{dd['versions'][-1]['label']}, {R.short_date(dd['versions'][-1]['added'])}"}
                              for dd in (lib.docs if lib else []) if dd["versions"]]
@@ -941,3 +964,34 @@ class EffortRecordMixin:
         self.rec_log("effort", ("Effort summary" if final else "Effort status") + f" exported: {os.path.basename(path)}")
         self.status.configure(text=("Effort summary" if final else "Effort status") + " written.")
         return path
+
+    def pkg_associate(self, confirm=True):
+        """Advanced (2.41.0): double-clicking an .ahpkg file opens it in this copy of Acronym Hunter. Written for this
+        Windows user only (HKEY_CURRENT_USER\\Software\\Classes): no admin rights, nothing for other users or the system."""
+        import sys
+        if os.name != "nt" or not getattr(sys, "frozen", False):
+            messagebox.showinfo("Effort packages", "This works in the installed program on Windows. Use File > Import effort package... here.")
+            return False
+        exe = os.path.abspath(sys.executable)
+        if confirm and not messagebox.askyesno("Effort packages", "Make .ahpkg effort packages open in Acronym Hunter when you double-click "
+                                               f"them?\n\nProgram: {exe}\n\nThis is set for your Windows user only. If you move the "
+                                               "Acronym Hunter folder, do this again."):
+            return False
+        try:
+            import winreg
+            base = r"Software\Classes"
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + r"\.ahpkg") as k:
+                winreg.SetValueEx(k, "", 0, winreg.REG_SZ, "AcronymHunter.EffortPackage")
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + r"\AcronymHunter.EffortPackage") as k:
+                winreg.SetValueEx(k, "", 0, winreg.REG_SZ, "Acronym Hunter effort package")
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + r"\AcronymHunter.EffortPackage\DefaultIcon") as k:
+                winreg.SetValueEx(k, "", 0, winreg.REG_SZ, f'"{exe}",0')
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + r"\AcronymHunter.EffortPackage\shell\open\command") as k:
+                winreg.SetValueEx(k, "", 0, winreg.REG_SZ, f'"{exe}" "%1"')
+        except OSError as e:
+            diag.swallowed()
+            messagebox.showerror("Effort packages", f"Windows did not accept the setting ({type(e).__name__}). Use File > Import effort package... instead.")
+            return False
+        diag.activity("package_associated")
+        messagebox.showinfo("Effort packages", "Done. Double-click an .ahpkg file to open it here.")
+        return True

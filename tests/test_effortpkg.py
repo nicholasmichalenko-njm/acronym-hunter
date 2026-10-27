@@ -21,6 +21,9 @@ def run():
     open(os.path.join(data, "backups", "old.xlsx"), "wb").write(b"b")
     W.write_json(os.path.join(data, "documents", "index.json"), {"docs": [{"id": "d", "name": "RFP", "versions": [{"id": "v", "file": "RFP.docx",
                                                                        "path": os.path.join(eff, "Customer documents", "RFP.docx")}]}]})
+    other = os.path.join(d, "elsewhere_draft.docx"); open(other, "wb").write(b"draft")
+    rec = W.read_json(os.path.join(data, "record.json")); rec["deliverables"] = [{"id": "x", "name": "Vol I", "file": other}]
+    W.write_json(os.path.join(data, "record.json"), rec)
     items, size = P.plan(lst, data, mx, os.path.join(eff, "Customer documents"), os.path.join(eff, "Volumes"), True, False)
     arcs = [a for a, _p in items]
     assert "list/Kestrel_Effort_List.xlsx" in arcs and "data/record.json" in arcs and "matrix/Kestrel_Matrix.xlsx" in arcs
@@ -29,15 +32,18 @@ def run():
     os.makedirs(os.path.dirname(pkg))
     man = P.save(pkg, "Kestrel", lst, data, info={"client": "USSF", "bad": object()}, matrix_path=mx,
                  customer_dir=os.path.join(eff, "Customer documents"), volumes_dir=os.path.join(eff, "Volumes"), volumes=True,
-                 stage="Red team", app_version="2.40.0", who="pm", when="2026-10-26T18:00")
+                 stage="Red team", app_version="2.40.0", who="pm", when="2026-10-26T18:00", extra_files=[other])
+    assert "files/1/elsewhere_draft.docx" in man["files"] and man["origin"]["files/1/elsewhere_draft.docx"] == os.path.abspath(other)
     assert man["path"].endswith(".ahpkg") and man["has"] == {"customer": True, "volumes": True, "matrix": True} and man["info"] == {"client": "USSF"}
     assert P.read_manifest(man["path"])["stage"] == "Red team"
     got = P.unpack(man["path"], os.path.join(d, "there", "Kestrel"), W.data_dir_for)
     assert open(got["list"], "rb").read() == b"list" and os.path.isfile(os.path.join(got["data"], "record.json"))
     assert open(os.path.join(got["customer_dir"], "RFP.docx"), "rb").read() == b"rfp" and os.path.isfile(os.path.join(got["volumes_dir"], "Vol_1.docx"))
-    n = P.repoint(got["data"], got["customer_dir"], got["matrix"])
+    n = P.repoint(got["data"], got["customer_dir"], got["matrix"], got["moved"])
     idx = W.read_json(os.path.join(got["data"], "documents", "index.json"))
-    assert n == 1 and idx["docs"][0]["versions"][0]["path"] == os.path.join(got["customer_dir"], "RFP.docx")
+    newf = W.read_json(os.path.join(got["data"], "record.json"))["deliverables"][0]["file"]
+    assert newf == os.path.join(d, "there", "Kestrel", "Our files", "1", "elsewhere_draft.docx") and open(newf, "rb").read() == b"draft", newf
+    assert n == 2 and idx["docs"][0]["versions"][0]["path"] == os.path.join(got["customer_dir"], "RFP.docx")
     assert W.read_json(os.path.join(got["data"], "settings.json"))["compliance_path"] == got["matrix"]
     # tampered, unsafe, newer, not a package
     bad = os.path.join(d, "bad.ahpkg")

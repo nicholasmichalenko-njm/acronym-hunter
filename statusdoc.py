@@ -110,6 +110,17 @@ def build(snap, path, final=False):
                 [[t["title"], t.get("owner", ""), t.get("due", ""), t.get("stage", ""),
                   [(t["status"], {"bold": True, "color": RED if t.get("late") else GREEN if t["status"] == "Done" else NAVY})]] for t in tasks],
                 [3700, 1500, 1200, 1500, 1460])
+    dl = s.get("deliverables") or []
+    if dl or s.get("deliverables_suggested"):
+        _head(d, "Deliverables")
+        if dl:
+            d.table(["Deliverable", "Format", "Limit", "Owner", "Status"],
+                    [[x["name"], x.get("format", ""), x.get("limit", ""), x.get("owner", "") or "nobody yet",
+                      [(x["status"], {"bold": bool(x.get("flag")), "color": RED if x.get("flag") == "over" else AMBER if x.get("flag") else INK})]]
+                     for x in dl], [2600, 2000, 1100, 1500, 2160])
+        if s.get("deliverables_suggested"):
+            d.rich([("Named in the customer documents, not confirmed yet: ", {"bold": True, "color": AMBER}),
+                    (", ".join(s["deliverables_suggested"]), {})])
     # changes
     ch = s.get("changes") or []
     if ch:

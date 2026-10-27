@@ -44,8 +44,8 @@ def go():
     check("Submission sits second in the feature list", rail[1].endswith("Submission"), rail[:3])
     app.shell_go("submission"); app.update()
     pills = [w.cget("text").split("  ")[0] for w in app.strip_pills.winfo_children()]
-    check("its steps: Requirements, Documents, Compare, Export; with nothing read yet it opens on Documents",
-          pills == ["1 Requirements", "2 Documents", "3 Compare", "4 Export"] and app.shell_step == "documents", (pills, app.shell_step))
+    check("its steps: Requirements, Deliverables, Documents, Compare, Export; with nothing read yet it opens on Documents",
+          pills == ["1 Requirements", "2 Deliverables", "3 Documents", "4 Compare", "5 Export"] and app.shell_step == "documents", (pills, app.shell_step))
     check("no bar until requirements are found", not app.subbar.winfo_manager())
     check("files in the customer documents folder not in the history yet show in a banner",
           app.sub_banner.winfo_manager() and "2 customer document" in app.sub_banner_lbl.cget("text"), app.sub_banner_lbl.cget("text"))

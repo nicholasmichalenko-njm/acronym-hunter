@@ -49,8 +49,9 @@ def _files_in(folder, types=None):
     return sorted(out)
 
 
-def plan(list_path, data_dir, matrix_path="", customer_dir="", volumes_dir="", customer=True, volumes=False):
-    """[(arcname, path)] of what a package would hold, and its total size in bytes."""
+def plan(list_path, data_dir, matrix_path="", customer_dir="", volumes_dir="", customer=True, volumes=False, extra_files=()):
+    """[(arcname, path)] of what a package would hold, and its total size in bytes. extra_files: other files the effort
+    points to (a deliverable's working file outside the folders above), packed under files/ (2.41.0)."""
     items = [("list/" + os.path.basename(list_path), list_path)]
     for p in _files_in(data_dir):
         items.append(("data/" + os.path.relpath(p, data_dir).replace(os.sep, "/"), p))
@@ -62,29 +63,36 @@ def plan(list_path, data_dir, matrix_path="", customer_dir="", volumes_dir="", c
     if volumes:
         for p in _files_in(volumes_dir, (".docx",)):
             items.append(("volumes/" + os.path.relpath(p, volumes_dir).replace(os.sep, "/"), p))
+    have = {os.path.normcase(os.path.abspath(p)) for _a, p in items}
+    for i, p in enumerate(extra_files or ()):
+        if p and os.path.isfile(p) and os.path.normcase(os.path.abspath(p)) not in have:
+            items.append((f"files/{i + 1}/{os.path.basename(p)}", p))
+            have.add(os.path.normcase(os.path.abspath(p)))
     size = sum(os.path.getsize(p) for _a, p in items if os.path.isfile(p))
     return items, size
 
 
 def save(out_path, effort_name, list_path, data_dir, info=None, matrix_path="", customer_dir="", volumes_dir="",
-         customer=True, volumes=False, stage="", app_version="", who=None, when=None):
+         customer=True, volumes=True, stage="", app_version="", who=None, when=None, extra_files=()):
     """Write the package. Returns the manifest."""
     if not out_path.lower().endswith(EXT):
         out_path += EXT
-    items, size = plan(list_path, data_dir, matrix_path, customer_dir, volumes_dir, customer, volumes)
+    items, size = plan(list_path, data_dir, matrix_path, customer_dir, volumes_dir, customer, volumes, extra_files)
     man = {"format": FORMAT, "app": app_version, "effort": effort_name, "saved_by": who or getpass.getuser(),
            "saved_at": when or datetime.datetime.now().isoformat(timespec="minutes"), "stage": stage,
            "info": {k: v for k, v in (info or {}).items() if isinstance(v, (str, int, float, bool))},
            "has": {"customer": bool(customer and any(a.startswith("customer/") for a, _p in items)),
                    "volumes": bool(volumes and any(a.startswith("volumes/") for a, _p in items)),
                    "matrix": any(a.startswith("matrix/") for a, _p in items)},
-           "files": {}}
+           "files": {}, "origin": {}}
     tmp = out_path + ".tmp"
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
         for arc, p in items:
             if not os.path.isfile(p):
                 continue
             man["files"][arc] = _sha(p)
+            if not arc.startswith(("data/", "list/")):
+                man["origin"][arc] = os.path.abspath(p)          # where it was, so links to it can follow it
             z.write(p, arc)
         z.writestr("manifest.json", json.dumps(man, indent=1))
     os.replace(tmp, out_path)
@@ -116,7 +124,7 @@ def unpack(pkg_path, dest_folder, data_dir_for):
     Every file is checked against the fingerprint in the manifest."""
     man = read_manifest(pkg_path)
     os.makedirs(dest_folder, exist_ok=True)
-    out = {"list": "", "data": "", "matrix": "", "customer_dir": "", "volumes_dir": "", "manifest": man}
+    out = {"list": "", "data": "", "matrix": "", "customer_dir": "", "volumes_dir": "", "manifest": man, "moved": {}}
     with zipfile.ZipFile(pkg_path) as z:
         names = [n for n in z.namelist() if n != "manifest.json" and not n.endswith("/")]
         lst = next((n for n in names if n.startswith("list/")), None)
@@ -139,6 +147,8 @@ def unpack(pkg_path, dest_folder, data_dir_for):
             elif top == "volumes":
                 out["volumes_dir"] = os.path.join(dest_folder, "Volumes")
                 target = os.path.join(out["volumes_dir"], *rest)
+            elif top == "files":
+                target = os.path.join(dest_folder, "Our files", *rest)
             else:
                 continue
             data = z.read(n)
@@ -148,11 +158,14 @@ def unpack(pkg_path, dest_folder, data_dir_for):
             os.makedirs(os.path.dirname(target), exist_ok=True)
             with open(target, "wb") as f:
                 f.write(data)
+            if n in man.get("origin", {}):
+                out["moved"][os.path.normcase(man["origin"][n])] = target
     return out
 
 
-def repoint(data_dir, customer_dir="", matrix_path=""):
-    """After an import: point the saved work at the new place (the customer document versions' files, the matrix)."""
+def repoint(data_dir, customer_dir="", matrix_path="", moved=None):
+    """After an import: point the saved work at the new place (the customer document versions' files, the matrix,
+    and any file a deliverable points to: moved maps its old path to where it was unpacked)."""
     import workspace as W
     idx = os.path.join(data_dir, "documents", "index.json")
     d = W.read_json(idx, None)
@@ -170,6 +183,15 @@ def repoint(data_dir, customer_dir="", matrix_path=""):
     if isinstance(s, dict) and matrix_path:
         s["compliance_path"] = matrix_path
         W.write_json(st, s)
+    rp = os.path.join(data_dir, "record.json")
+    rec = W.read_json(rp, None)
+    if isinstance(rec, dict) and moved:
+        for dl in rec.get("deliverables", []):
+            f = dl.get("file")
+            if f and os.path.normcase(os.path.abspath(f)) in moved:
+                dl["file"] = moved[os.path.normcase(os.path.abspath(f))]
+                n += 1
+        W.write_json(rp, rec)
     for p in (os.path.join(data_dir, "lock.json"),):
         if os.path.exists(p):
             os.remove(p)

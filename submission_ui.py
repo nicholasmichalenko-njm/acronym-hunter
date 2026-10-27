@@ -85,6 +85,8 @@ class SubmissionMixin:
     def _page_submission(self):
         A = dict(height=30, width=10)
         self._page_requirements()
+        if hasattr(self, "_page_deliverables"):
+            self._page_deliverables()                   # 2.41.0
         act = self.shell_actions("submission", "documents")
         ctk.CTkButton(act, text="Add customer documents...", command=self.sub_add_dialog, fg_color="#0F766E", **A).pack(side="left", padx=3)
         pg = self.shell_page("sub_docs")
