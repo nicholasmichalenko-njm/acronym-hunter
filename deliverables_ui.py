@@ -67,11 +67,11 @@ class DeliverablesMixin:
         for d in D.items(r):
             st = D.state(d, rows, lib, vols, r)
             tag = "over" if st["over"] else "changed" if st["changed"] else "final" if d["status"] in ("Final", "Submitted") else ""
-            iid = tv.insert("", "end", values=(d["name"], st["set_by"] or "typed in", d["format"], st["limit"], d["owner"] or "(nobody)",
-                                               D.status_text(d, st)), tags=(tag,) if tag else ())
+            iid = tv.insert("", "end", values=(d["name"], D.status_text(d, st), d["owner"] or "(nobody)", st["limit"], d["format"],
+                                               st["set_by"] or "typed in"), tags=(tag,) if tag else ())
             self.dl_rows[iid] = ("d", d["id"])
         for s in D.suggestions(r, rows):
-            iid = tv.insert("", "end", values=(s["subject"], f"{s['doc']}, {s['version']}", "", "", "", "Suggested: add it?"), tags=("suggested",))
+            iid = tv.insert("", "end", values=(s["subject"], "Suggested: add it?", "", "", "", f"{s['doc']}, {s['version']}"), tags=("suggested",))
             self.dl_rows[iid] = ("s", s["key"])
         sm = D.summary(r, rows, lib, vols)
         for text, fg, bg in ((f"{sm['count']} deliverables", ("#0F172A", "#F1F5F9"), ("#FFFFFF", "#1F2937")),
