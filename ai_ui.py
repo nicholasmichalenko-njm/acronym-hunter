@@ -182,6 +182,36 @@ class AIMixin:
         diag.activity("ai_difference_opened")
         return self._panel("AI and ML: the difference", [(a, b, "") for a, b in S.DIFFERENCE], "Both run only on this PC. No network.")
 
+    COMPONENTS = (("Python", None, "The language the program is written in; its runtime ships inside the program."),
+                  ("customtkinter", "customtkinter", "The windows, buttons and lists (on Tcl/Tk, which ships with Python)."),
+                  ("openpyxl", "openpyxl", "Reads and writes the Excel files: effort lists, matrices, exports."),
+                  ("Pillow", "pillow", "Pictures: page images, screenshots in the Guide."),
+                  ("pypdfium2", "pypdfium2", "Reads PDF text and draws PDF pages (PDFium, the engine in Chrome)."),
+                  ("Tesseract OCR", None, "Reads text in pictures and scanned pages (ML, an LSTM model, on this PC)."),
+                  ("ONNX Runtime", "onnxruntime", "Runs the optional docTR second reader's models (ML, on this PC)."),
+                  ("NumPy", "numpy", "Number arrays for the picture readers."),
+                  ("darkdetect", "darkdetect", "Follows the Windows light or dark setting."))
+
+    def show_components(self):
+        """Help > What it is built on: the main parts, their versions here, and what each does."""
+        diag.activity("components_opened")
+        import importlib.metadata as md, platform
+        rows = []
+        for name, dist, what in self.COMPONENTS:
+            ver = platform.python_version() if name == "Python" else ""
+            if dist:
+                try:
+                    ver = md.version(dist)
+                except Exception:
+                    ver = ""
+                    if dist == "onnxruntime":
+                        continue                     # only with the docTR add-on
+            rows.append((f"{name} {ver}".strip(), what, ""))
+        rows.append(("Our own code", "Everything else: the rules for acronyms, compliance, submission requirements, the effort "
+                                     "record. Written for this program; no AI writes anything in Core.", ""))
+        return self._panel("What Acronym Hunter is built on", rows,
+                           "Every part with its license and fingerprint: the SBOM file published with each release.")
+
     def show_what_runs(self):
         """Help > What runs where: every part of the app, and a summary to save for the security team."""
         diag.activity("ai_what_runs_opened")

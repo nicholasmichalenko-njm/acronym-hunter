@@ -138,6 +138,7 @@ from keywords_ui import KeywordsMixin   # Keyword Harvest (2.16.0)
 from alt_ui import AltFormsMixin        # alternate forms and the master's use history (2.26.0)
 from exportall_ui import ExportAllMixin  # Export all: every feature's outputs in one folder (2.31.0)
 from submission_ui import SubmissionMixin  # Submission: customer document versions and compare (2.37.0)
+from effortrec_ui import EffortRecordMixin  # the effort record: stages, goals, notes, tasks, timeline (2.40.0)
 from shell_ui import ShellMixin, RhythmMixin   # the app shell: feature rail and step strip; one decision then the next (2.32.0)
 from compliance_page import CompliancePageMixin   # Decide in Page view, Place pass, details on Prove (2.32.0)
 from master_db import MasterMixin   # master database and Known in (2.14.0)
@@ -2480,7 +2481,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.39.0"            # keep in step with version_info.txt
+APP_VERSION = "2.40.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3417,7 +3418,7 @@ def corrections_on():
     """Report misreading and Not text save corrections for the training team, unless allow_training is false."""
     return bool(APP_CFG["allow_training"])
 
-class AcronymAppGUI(ShellMixin, RhythmMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Acronym Hunter {APP_VERSION}: acronyms, abbreviations and units (100% local)")
@@ -3761,48 +3762,16 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, SubmissionMixin, CompliancePageMixi
         return lambda: (diag.menu(name), func())
 
     def _build_menubar(self):
-        """Every command lives in the menu bar; the sidebar keeps the everyday ones. Menus that depend on state
-        (Project, Effort, Tools) are rebuilt each time they open."""
+        """2.40.0: five menus for what the team does every day. File: start, open, save and import an effort, its details,
+        status and exports. Effort: work on the open effort. View. Help: the Guide, ideas and problems, AI and ML, what the
+        program is built on. Advanced: everything else, unchanged, one level down. Menus that depend on state are rebuilt
+        each time they open."""
         mb = tk.Menu(self, tearoff=0)
         c = self._menu_cmd
-        f = tk.Menu(mb, tearoff=0)
-        f.add_command(label="Select Files...", accelerator="Ctrl+O", command=c("file_select_files", self.select_files))
-        f.add_command(label="Scan Folder...", accelerator="Ctrl+Shift+O", command=c("file_scan_folder", self.select_folder))
-        f.add_command(label="Scan Again", accelerator="F5", command=c("file_scan_again", self.scan_again))
-        f.add_separator()
-        proj = tk.Menu(f, tearoff=0, postcommand=lambda: self.show_project_menu(proj))
-        f.add_cascade(label="Project", menu=proj)
-        f.add_separator()
-        f.add_command(label="Load the Acronyms, Abbreviations, Units and Symbols Master Database...",
-                      command=c("file_master_load", self.master_load))
-        f.add_command(label="Update results against the Acronyms, Abbreviations, Units and Symbols Master Database",
-                      command=c("file_master_refresh", self.refresh_from_database))
-        f.add_separator()
-        f.add_command(label="Export CSV...", accelerator="Ctrl+E", command=c("file_export_csv", self.export_csv))
-        f.add_command(label="Export all for this effort...", command=c("file_export_all", self.export_all_dialog))
-        f.add_command(label="Restore an earlier version...", command=c("file_restore", self.restore_dialog))
-        f.add_separator()
-        f.add_command(label="Exit", command=c("file_exit", self.on_close))
+        f = tk.Menu(mb, tearoff=0, postcommand=lambda: self.show_file_menu(f))
         mb.add_cascade(label="File", menu=f)
-        e = tk.Menu(mb, tearoff=0)
-        e.add_command(label="Add Item...", command=c("edit_add_item", self.open_add_item))
-        e.add_command(label="Client Lists...", command=c("edit_client_lists", self.open_client_lists))
-        e.add_separator()
-        e.add_command(label="Find (search box)", accelerator="Ctrl+F", command=c("edit_find", lambda: self.entry_search.focus_set()))
-        e.add_command(label="Clear filters", command=c("edit_clear_filters", self.clear_filters))
-        e.add_separator()
-        e.add_command(label="Add selected to the omit list...", command=c("edit_omit_add", self.mark_known))
-        e.add_command(label="Omit list...", command=c("edit_omit_list", self.open_omit_list))
-        e.add_command(label="Accept context suggestions (rows that have one)", command=c("edit_accept_context", lambda: self.accept_context(list(self.results))))
-        mb.add_cascade(label="Edit", menu=e)
-        ef = tk.Menu(mb, tearoff=0, postcommand=lambda: self.show_effort_menu(ef))
+        ef = tk.Menu(mb, tearoff=0, postcommand=lambda: self.show_effort_top_menu(ef))
         mb.add_cascade(label="Effort", menu=ef)
-        cm = tk.Menu(mb, tearoff=0)
-        cm.add_command(label="Compliance Matrix...", accelerator="Ctrl+M", command=c("compliance_open", self.open_compliance))
-        cm.add_command(label="Compliance word style...", command=c("compliance_word_style", self.compliance_word_style))
-        mb.add_cascade(label="Compliance", menu=cm)
-        t = tk.Menu(mb, tearoff=0, postcommand=lambda: self.show_tools_menu(t))
-        mb.add_cascade(label="Tools", menu=t)
         v = tk.Menu(mb, tearoff=0)
         self.side_var = tk.BooleanVar(value=bool(self.settings.get("sidebar", True)))
         v.add_checkbutton(label="Sidebar", accelerator="Ctrl+B", variable=self.side_var, command=c("view_sidebar", lambda: self.toggle_sidebar(var=True)))
@@ -3816,11 +3785,44 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, SubmissionMixin, CompliancePageMixi
         mb.add_cascade(label="View", menu=v)
         h = tk.Menu(mb, tearoff=0)
         h.add_command(label="How it works (Guide)", accelerator="F1", command=c("help_guide", lambda: HG.open_guide(self)))
-        h.add_command(label="Send feedback...", accelerator="Ctrl+Shift+F", command=c("help_feedback", lambda: FB.open_feedback(self)))
+        h.add_command(label="Submit an idea or report a problem...", accelerator="Ctrl+Shift+F", command=c("help_feedback", lambda: FB.open_feedback(self)))
         h.add_separator()
         h.add_command(label="What runs where (AI and ML)...", command=c("help_what_runs", self.show_what_runs))
+        h.add_command(label="AI and ML: the difference...", command=c("help_ai_difference", self.show_ai_difference))
+        h.add_command(label="What Acronym Hunter is built on...", command=c("help_components", self.show_components))
+        h.add_separator()
         h.add_command(label="About Acronym Hunter", command=c("help_about", self.show_about))
         mb.add_cascade(label="Help", menu=h)
+        a = tk.Menu(mb, tearoff=0)
+        scan = tk.Menu(a, tearoff=0)
+        scan.add_command(label="Select Files...", accelerator="Ctrl+O", command=c("file_select_files", self.select_files))
+        scan.add_command(label="Scan Folder...", accelerator="Ctrl+Shift+O", command=c("file_scan_folder", self.select_folder))
+        scan.add_command(label="Scan Again", accelerator="F5", command=c("file_scan_again", self.scan_again))
+        proj = tk.Menu(scan, tearoff=0, postcommand=lambda: self.show_project_menu(proj))
+        scan.add_cascade(label="Project", menu=proj)
+        scan.add_command(label="Export CSV...", accelerator="Ctrl+E", command=c("file_export_csv", self.export_csv))
+        a.add_cascade(label="Scan files outside an effort", menu=scan)
+        res = tk.Menu(a, tearoff=0)
+        res.add_command(label="Add Item...", command=c("edit_add_item", self.open_add_item))
+        res.add_command(label="Find (search box)", accelerator="Ctrl+F", command=c("edit_find", lambda: self.entry_search.focus_set()))
+        res.add_command(label="Clear filters", command=c("edit_clear_filters", self.clear_filters))
+        res.add_command(label="Add selected to the omit list...", command=c("edit_omit_add", self.mark_known))
+        res.add_command(label="Omit list...", command=c("edit_omit_list", self.open_omit_list))
+        res.add_command(label="Accept context suggestions (rows that have one)", command=c("edit_accept_context", lambda: self.accept_context(list(self.results))))
+        a.add_cascade(label="Results list", menu=res)
+        a.add_command(label="Customer acronym lists...", command=c("edit_client_lists", self.open_client_lists))
+        mdb = tk.Menu(a, tearoff=0)
+        mdb.add_command(label="Load the Acronyms, Abbreviations, Units and Symbols Master Database...",
+                        command=c("file_master_load", self.master_load))
+        mdb.add_command(label="Update results against the Acronyms, Abbreviations, Units and Symbols Master Database",
+                        command=c("file_master_refresh", self.refresh_from_database))
+        a.add_cascade(label="Master database", menu=mdb)
+        el = tk.Menu(a, tearoff=0, postcommand=lambda: self.show_effort_menu(el))
+        a.add_cascade(label="Effort list and all effort commands", menu=el)
+        a.add_command(label="Compliance word style...", command=c("compliance_word_style", self.compliance_word_style))
+        t = tk.Menu(a, tearoff=0, postcommand=lambda: self.show_tools_menu(t))
+        a.add_cascade(label="Reading, training and knowledge", menu=t)
+        mb.add_cascade(label="Advanced", menu=a)
         self.configure(menu=mb)
         self.menubar = mb
         keys = (("<Control-o>", self.select_files), ("<Control-O>", self.select_folder), ("<F5>", self.scan_again),
@@ -3860,6 +3862,59 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, SubmissionMixin, CompliancePageMixi
                     save_settings(self.settings)
         except tk.TclError:
             diag.swallowed()
+
+    def show_file_menu(self, m):
+        """File (2.40.0): start, open, save and import an effort; its details, status and exports."""
+        m.delete(0, "end")
+        c = self._menu_cmd
+        has = self.effort is not None
+        st = "normal" if has else "disabled"
+        m.add_command(label="New effort...", command=c("file_new_effort", self.open_wizard))
+        op = tk.Menu(m, tearoff=0)
+        names = [n for n in self.efforts.names() if not (self.efforts.get(n) or {}).get("archived")]
+        for n in names:
+            op.add_command(label=n + ("  (open)" if has and n == self.effort.name else ""), command=lambda n=n: self.open_effort(n))
+        if names:
+            op.add_separator()
+        op.add_command(label="An effort list file...", command=self.open_effort_file)
+        m.add_cascade(label="Open effort", menu=op)
+        m.add_separator()
+        m.add_command(label="Save effort package...", command=c("file_save_package", self.pkg_save_dialog), state=st)
+        m.add_command(label="Import effort package...", command=c("file_import_package", self.pkg_import_dialog))
+        m.add_separator()
+        m.add_command(label="Effort details...", command=c("file_effort_details", self.rec_details_dialog), state=st)
+        if hasattr(self, "status_export"):
+            m.add_command(label="Effort status (Word)...", command=c("file_status", self.status_export), state=st)
+            m.add_command(label="Effort summary, complete history (Word)...", command=c("file_summary", lambda: self.status_export(final=True)), state=st)
+        m.add_command(label="Export all for this effort...", command=c("file_export_all", self.export_all_dialog), state=st)
+        m.add_separator()
+        m.add_command(label="Restore an earlier version...", command=c("file_restore", self.restore_dialog))
+        m.add_command(label="Exit", command=c("file_exit", self.on_close))
+
+    def show_effort_top_menu(self, m):
+        """Effort (2.40.0): the open effort's everyday work."""
+        m.delete(0, "end")
+        c = self._menu_cmd
+        st = "normal" if self.effort is not None else "disabled"
+        m.add_command(label="Effort home", command=c("effort_home", lambda: self.shell_go("home")), state=st)
+        m.add_command(label="Add customer documents...", command=c("effort_add_docs", self.sub_add_dialog), state=st)
+        m.add_command(label="Check our Word volumes (QA/QC)...", command=c("effort_qaqc", self.check_volumes), state=st)
+        m.add_command(label="Name volumes...", command=c("effort_volumes", self.edit_volumes), state=st)
+        m.add_separator()
+        m.add_command(label="Add a note...", command=c("effort_note", self.rec_note_dialog), state=st)
+        m.add_command(label="Add a task...", command=c("effort_task", self.rec_task_dialog), state=st)
+        m.add_command(label="Move stage...", command=c("effort_move_stage", self.rec_move_dialog), state=st)
+        m.add_command(label="Edit stages...", command=c("effort_edit_stages", self.rec_stages_dialog), state=st)
+        m.add_command(label="Timeline...", command=c("effort_timeline", self.rec_timeline_window), state=st)
+        m.add_separator()
+        arch = [n for n in self.efforts.names() if (self.efforts.get(n) or {}).get("archived")]
+        if arch:
+            sub = tk.Menu(m, tearoff=0)
+            for n in arch:
+                sub.add_command(label=f"Reopen {n}", command=lambda n=n: self.unarchive_effort(n))
+            m.add_cascade(label="Archived efforts", menu=sub)
+        m.add_command(label="Archive this effort...", command=c("effort_archive", self.archive_effort), state=st)
+        m.add_command(label="Close effort", command=c("effort_close", self.close_effort), state=st)
 
     def show_about(self):
         edition = "US Classic (Tesseract only)" if not DOCTR_DIR else "US (Tesseract + docTR second reader)"

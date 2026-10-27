@@ -179,6 +179,9 @@ def read_items(chunks, file_name, file_kind="", heads_out=None, every=True):
     for label, text in chunks:
         if not text:
             continue
+        # 2.40.0: a table cell, header, footer or footnote is never a heading (a short "CLIN 0001" cell or a page header
+        # must stay text to assign, and must not rename the section of what follows)
+        plain = bool(re.search(r"\((?:table|Header|Footer|Footnotes|Endnotes|text box)\b", label or "", re.I))
         lab_sec = _label_section(label)
         if lab_sec:
             got = _section_from_line(lab_sec, cur)
@@ -191,14 +194,21 @@ def read_items(chunks, file_name, file_kind="", heads_out=None, every=True):
             if not line:
                 lead_line = ""
                 continue
-            got = _section_from_line(line, cur)
+            got = None if plain else _section_from_line(line, cur)
             if got:
                 cur = titled(got[0], got[1] if not got[2] else "")
                 line = got[2]
                 if not line:
                     continue
-            elif _is_heading(line):
+            elif not plain and _is_heading(line):
                 cur = (cur[0], line.strip())
+                if every and not (_SEC_WORD.match(line.strip()) or _SEC_LETTER.match(line.strip()) or _SEC_NUM.match(line.strip())):
+                    # 2.40.0: an unnumbered capitalized line ("NOTE TO OFFERORS: SUBMIT QUESTIONS EARLY") is also a
+                    # sentence to assign, so no text is only a title
+                    it = context_item(line.strip(), "", cur, label)
+                    if it:
+                        it.update({"type": "Heading", "file": file_name, "loc": label, "page": _page(label), "context": line.strip()[:700]})
+                        items.append(it)
                 continue
             is_item = bool(_LIST.match(line))
             body = _LIST.sub("", line, count=1) if is_item else line

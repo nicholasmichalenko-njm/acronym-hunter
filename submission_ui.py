@@ -443,6 +443,11 @@ class SubmissionMixin:
                     t.tag_add("cur", rg[0], rg[1]); t.see(rg[0])
         return hit
 
+    def _req_trail(self, key, what):
+        if hasattr(self, "rec_log"):
+            kind, _sep, subject = key.partition(" | ")
+            self.rec_log("requirement", f"{kind}, {subject}: {what}")
+
     def _req_after(self, key):
         self._req_want = key
         self.req_refresh()
@@ -452,6 +457,7 @@ class SubmissionMixin:
         reg = self.subreg()
         if reg and reg.review(key):
             diag.activity("submission_requirement_reviewed")
+            self._req_trail(key, "change reviewed")
             self._req_after(key)
             return True
         return False
@@ -460,6 +466,7 @@ class SubmissionMixin:
         reg = self.subreg()
         if reg and reg.confirm(key):
             diag.activity("submission_requirement_confirmed")
+            self._req_trail(key, "confirmed")
             self._req_after(key)
             return True
         return False
@@ -477,6 +484,7 @@ class SubmissionMixin:
                 return False
         reg.edit(key, value)
         diag.activity("submission_requirement_edited")
+        self._req_trail(key, f"edited to: {value}" if " ".join((value or "").split()) else "back to what the documents say")
         self._req_after(key)
         return True
 
@@ -484,6 +492,7 @@ class SubmissionMixin:
         reg = self.subreg()
         if reg and reg.hide(key, hidden):
             diag.activity("submission_requirement_hidden")
+            self._req_trail(key, "marked not a requirement" if hidden else "shown again")
             self._req_after(key)
             return True
         return False
@@ -506,6 +515,7 @@ class SubmissionMixin:
             k = reg.add(kind or "Format", subject or "", value)
             if k:
                 diag.activity("submission_requirement_added")
+                self._req_trail(k, f"typed in: {value}")
                 self._req_after(k)
             return k
         w = ctk.CTkToplevel(self); w.title("Add a requirement"); w.transient(self)
@@ -521,6 +531,7 @@ class SubmissionMixin:
             k = reg.add(om.get(), e1.get(), e2.get())
             if k:
                 diag.activity("submission_requirement_added")
+                self._req_trail(k, f"typed in: {e2.get().strip()}")
                 w.destroy()
                 self._req_after(k)
         ctk.CTkButton(w, text="Add", command=ok).grid(row=3, column=1, sticky="w", padx=8, pady=14)
@@ -677,6 +688,10 @@ class SubmissionMixin:
         lib = self.doclib()
         if lib and lib.mark_reviewed(vid):
             diag.activity("submission_reviewed")
+            d = next((x for x in lib.docs for v in x["versions"] if v["id"] == vid), None)
+            v = next((v for v in (d["versions"] if d else []) if v["id"] == vid), None)
+            if v is not None and hasattr(self, "rec_log"):
+                self.rec_log("customer", f"{d['name']}: {v['label']} changes reviewed", ref={"version": vid})
             self.sub_refresh()
             self._shell_rail_style() if hasattr(self, "_shell_rail_style") else None
             return True
@@ -794,6 +809,17 @@ class SubmissionMixin:
         if made:
             diag.activity("submission_added", n=len(made))
             self.sub_cur = made[-1][0]["id"]
+            for d, v in made:                              # 2.40.0: the paper trail
+                i = d["versions"].index(v)
+                what = ""
+                if i:
+                    try:
+                        what = "; " + DV.summary_text(DV.summary(DV.compare(lib.text(d["versions"][i - 1]), lib.text(v))))
+                    except Exception:
+                        diag.swallowed()
+                self.rec_log("customer", f"{d['name']}: {v['label']} added ({v['file']}){what}" if i else
+                             f"{d['name']} added ({v['file']}, {v.get('sentences', 0)} sentences)", ref={"version": v["id"]}) \
+                    if hasattr(self, "rec_log") else None
         self.sub_refresh()
         if hasattr(self, "_shell_rail_style"):
             self._shell_rail_style()

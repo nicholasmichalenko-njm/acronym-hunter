@@ -151,6 +151,11 @@ class VolumeCheckMixin:
         self.volume_report = report
         s = report["summary"]
         diag.activity("volume_check_report", terms=s["terms_used"], rows=len(report["first_use"]), items=s["missing"])
+        if hasattr(self, "rec_log"):                       # 2.40.0: the paper trail
+            pg = report.get("pages") or []
+            self.rec_log("qa", f"QA/QC checked {s['volumes']} volume(s): {s.get('first_use_problems', 0)} first-use fixes, "
+                               f"{sum(s.get('banned', {}).values()) if s.get('banned_checked') else 0} banned words"
+                               + (f", {sum(1 for p in pg if p['level'] == 'bad')} over a page limit" if pg else ""))
         self.show_volume_report(report)
         return True
 

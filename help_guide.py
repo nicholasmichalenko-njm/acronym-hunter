@@ -45,7 +45,8 @@ PAGES = {
           "Click one and only its tools show. Across the top are its steps, in order: the current step is blue, steps with "
           "work done are green with a check mark. Click any step to go to it. Each feature ends in its own Export step; "
           "Effort home and File > Export all write everything at once. One status line runs along the bottom."),
-    ("rows", [("Effort home", "Where each feature stands for the open effort, the next step to take, and Export all."),
+    ("rows", [("Effort home", "The effort's stage, the goals for this gate, tasks, notes and open questions, the timeline, where "
+                              "each feature stands, the next step to take, and Export all."),
               ("Submission", "Requirements (what to deliver and how, and how it changed), Documents (every customer document "
                              "with its versions), Compare (what changed between any two versions), Export."),
               ("Compliance", "Read RFP, Structure (the response outline), Assign (each sentence a compliance requirement in "
@@ -54,8 +55,46 @@ PAGES = {
                            "Define and approve (the effort list), Export."),
               ("QA/QC", "Check our Word deliverables (first use, banned words, acronym lists), Export the report."),
               ("Keywords", "Collect and decide the effort's keywords, Export them for SharePoint.")]),
-    ("p", "Every command is also in the menu bar. Text size, Advanced, the Guide and Feedback are in the View and Help menus. "
-          "Hide the feature list with View > Sidebar (Ctrl+B)."),
+    ("p", "The menu bar keeps what the team uses every day. File: New effort, Open effort, Save effort package, Import effort "
+          "package, Effort details, Export all. Effort: Effort home, add customer documents, check our volumes, notes, tasks, "
+          "stages, the timeline. View: sidebar (Ctrl+B), preview pane, text size. Help: the Guide, Submit an idea or report a "
+          "problem, what runs where (AI and ML), the difference between AI and ML, and what Acronym Hunter is built on. "
+          "Advanced: everything else (scanning files outside an effort, the results list, the master database, all effort "
+          "list commands, reading and training)."),
+    ("h", "The effort record: where the effort stands, and how it got there"),
+    ("rows", [("Effort details", "File > Effort details (or the date in the top right corner): client, solicitation or "
+                                 "opportunity number, internal number, and the due date and time. The top right corner then "
+                                 "counts down the days and hours on every screen (amber inside a week, red inside three days). "
+                                 "When the customer documents state a due date, Effort details offers it."),
+              ("Stages", "The team's gates: Intake, Author drafts, Red team, Red team recovery, Gold team, Gold team recovery, "
+                         "Final to pubs. Edit stages... renames, adds, removes and reorders them for this effort, each with a "
+                         "planned date. Only the proposal manager moves the stage (Move to...); the open goals of the stage "
+                         "being left can carry over."),
+              ("Gate goals", "What must be true at each gate, with a progress bar. Goals the app can check tick themselves "
+                             "(documents reviewed, every requirement in a section, page limits met, first use clean...); "
+                             "written goals are ticked by hand, with who and when. + Goal adds one."),
+              ("Notes", "+ Note on the effort, a stage, a customer document or a requirement. Tick Open question to keep it "
+                        "open until someone resolves it with the answer."),
+              ("Tasks and people", "+ Task: owner, due date, stage, status and notes; late tasks show red. Pick a person to "
+                                   "see their sections, compliance requirements and tasks. In Assign, O gives one compliance "
+                                   "requirement its own owner; People... sets a lead and contributors per section."),
+              ("Timeline", "The paper trail, written as it happens: every customer document and version added (with what "
+                           "changed), requirement reviews, stage moves, goals met, notes, tasks, owners, QA/QC checks. Full "
+                           "timeline... shows all of it."),
+              ("Effort status", "File > Effort status (Word)... (or Effort status on Effort home) answers \"Where are we?\" "
+                                "for leadership in one Word file: the countdown, a stage track (done, current, ahead), tiles "
+                                "for goals, requirements placed, open questions, late tasks and changes to review; what is "
+                                "done, in progress and left in this stage; open questions and notes; the projected timeline; "
+                                "people and assignments; tasks; what changed since this stage began; submission requirements; "
+                                "each stage's goals; the customer documents. Effort summary, complete history (Word)... is the "
+                                "same report with the whole timeline: the record of the proposal when it is done. Export all "
+                                "includes the status."),
+              ("Hand-off", "File > Save effort package... writes the whole effort into one .ahpkg file: stage, goals, notes, "
+                           "tasks, timeline, customer document versions, submission requirements, the compliance matrix and "
+                           "the acronym list, and if you like the customer files and our volumes. File > Import effort "
+                           "package... opens it on another PC where it was left; if the effort is already there, choose to "
+                           "use the package (the old copy is backed up) or keep both. Save packages on this PC or in the "
+                           "approved SharePoint folder only.")]),
     ("h", "Where to get help on each tool"),
     ("p", "Use the tabs above. Each page says what a tool does, when to use it, and why it is worth it."),
 ],
@@ -393,6 +432,12 @@ PAGES = {
           "something (shall, must, will, should, may, describe, provide, page limits, fonts, due dates) as requirements; "
           "every other sentence is a Context row, so nothing is skipped because it did not sound like a requirement. "
           "No AI writes anything."),
+    ("p", "Text check (on Read RFP, and automatically after a read) proves that every piece of typed text reached the review. "
+          "Each file is read again straight from its parts (body, tables, text boxes, headers, footers, footnotes, slides and "
+          "speaker notes, cells, PDF pages) and compared word for word, in reading order, with the sentences in Assign. It "
+          "lists anything not in the review and adds it for review in one click. Numbered headings show as section titles; an "
+          "unnumbered capitalized line such as NOTE TO OFFERORS is also a sentence to assign. Text inside pictures is read "
+          "by OCR (AI and ML) and is not part of this check."),
     ("img", "compliance.png", 620),
     ("rows", [("Assign", "The RFP reads like a page on the left; your response structure is always on the right (with no "
                          "structure yet, start it from the RFP headings there). Click any "

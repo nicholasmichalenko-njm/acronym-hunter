@@ -105,6 +105,8 @@ def go():
     try:
         mb = app.nametowidget(app.cget("menu"))
         fm = app.nametowidget(mb.entrycget(0, "menu"))
+        if fm.cget("postcommand"):
+            app.tk.eval(fm.cget("postcommand"))     # 2.40.0: File is built when it opens
         menu_ok = any(fm.type(i) == "command" and fm.entrycget(i, "label") == "Export all for this effort..."
                       for i in range(fm.index("end") + 1))
     except Exception as ex:

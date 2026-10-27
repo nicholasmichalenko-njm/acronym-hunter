@@ -80,6 +80,12 @@ def step2():
     app.add_to_effort(terms)
     app.add_volume("Vol I Technical", [VOL])
     app.effort.set_status(terms[:4], "Approved", approver="J. Smith"); app._save_effort_list()
+    app.rec_details_dialog(values={"client": "USSF SSC", "sol": "FA8810-27-R-0042", "internal": "SS-2026-118",
+                                   "due": "December 15, 2026, 2:00 p.m. MT"})            # 2.40.0: the effort record
+    app.rec_note_dialog(text="Does the 50-page limit include the executive summary? Asked the CO.", question=True, label="RFP Section L")
+    app.rec_note_dialog(text="Kickoff held; capture lead confirmed the win themes.")
+    app.rec_task_dialog(values={"title": "Draft the thermal design section", "owner": "J. Smith", "due": "2030-11-06"})
+    app.rec_task_dialog(values={"title": "Confirm red team reviewers", "owner": "N. Michalenko", "due": "2030-11-10"})
     app.shell_go("home"); app.update()
     grab(app, "shell.png")
     app.shell_go("acronyms", "review"); app.update()

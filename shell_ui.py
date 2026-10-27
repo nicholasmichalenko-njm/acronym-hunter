@@ -94,6 +94,8 @@ class ShellMixin:
                 self._badge_rows[key].pack_forget()
         self.strip_pills = ctk.CTkFrame(st, fg_color="transparent", height=34)
         self.strip_pills.pack(side="left", pady=8)
+        if hasattr(self, "rec_strip_build"):
+            self.rec_strip_build(st)               # 2.40.0: due date and days and hours to go, top right
         self.strip_act = ctk.CTkFrame(st, fg_color="transparent", height=34)
         self.strip_act.pack(side="right", padx=12)
         self._acts = {}
@@ -153,6 +155,8 @@ class ShellMixin:
         self.ov_next = ctk.CTkButton(P, text="", height=40, fg_color="#1E3A8A", font=("Segoe UI", 14, "bold"),
                                      command=lambda: self.shell_go(*self._ov_target))
         self.ov_next.pack(anchor="w", padx=6, pady=(0, 10))
+        if hasattr(self, "rec_build_home"):
+            self.rec_build_home(P)                 # 2.40.0: stage, gate goals, tasks, notes, timeline
         self._ov_target = ("acronyms", "scan")
         self.ov_rows = {}
         for key, name in FEATURES[1:]:
@@ -249,7 +253,8 @@ class ShellMixin:
         for text, cmd, color in (("New from RFP files...", self.compliance_new, "#9A3412"), ("Open matrix...", self.compliance_open, None),
                                  ("Add RFP files...", self.compliance_add_files, None),
                                  ("Re-read RFP (amendment)...", self.compliance_reread, None),
-                                 ("Amendment changes...", self.compliance_changes, None)):
+                                 ("Amendment changes...", self.compliance_changes, None),
+                                 ("Text check...", self.compliance_text_check, "#15803D")):
             kw = dict(A); kw.update(fg_color=color) if color else None
             ctk.CTkButton(act, text=text, command=cmd, **kw).pack(side="left", padx=3)
         act = self.shell_actions("compliance", "decide")
@@ -526,6 +531,8 @@ class ShellMixin:
                 self.shell_overview_refresh()
             if hasattr(self, "sub_bar_refresh"):
                 self.sub_bar_refresh()
+            if hasattr(self, "rec_strip_refresh"):
+                self.rec_strip_refresh()
         except Exception:
             diag.swallowed()
         self.after(1500, self.shell_tick)
@@ -535,7 +542,9 @@ class ShellMixin:
         if L is None or not hasattr(self, "ov_head"):
             return
         self.ov_head.configure(text=L.name)
-        self.ov_sub.configure(text="  |  ".join(x for x in (L.client, L.solicitation, os.path.basename(L.path)) if x))
+        self.ov_sub.configure(text="  |  ".join(x for x in (L.client, L.solicitation, L.internal_no, os.path.basename(L.path)) if x))
+        if hasattr(self, "rec_refresh"):
+            self.rec_refresh()
         for key, lab in self.ov_rows.items():
             t = self.shell_status(key)
             if key == "submission" and hasattr(self, "req_summary_text"):      # 2.39.0: the Submission card

@@ -1072,6 +1072,103 @@ class ComplianceMixin:
             done(items, heads, res["src"], empty)
         poll()
 
+    # ------------------------------------------------------------ text check (2.40.0)
+    def compliance_text_check(self, show=True):
+        """Prove that every piece of typed text in the RFP files reached the review: each file is read again straight
+        from its parts and compared word for word with the sentences in Assign. Returns [result] (textcheck.check)."""
+        import textcheck as TC
+        M = self.matrix
+        if M is None or not M.items:
+            if show:
+                messagebox.showinfo("Text check", "Read the RFP files first.", parent=self._cwin)
+            return []
+        out = []
+        for src in M.sources:
+            name = src[0] if src else ""
+            path = src[3] if len(src) > 3 else ""
+            if not path or not os.path.isfile(path):
+                out.append({"file": name, "words": 0, "in_review": 0, "in_headings": 0, "missing": 0, "pct": 0, "lines": [], "gone": True})
+                continue
+            try:
+                r = TC.check(path, [it for it in M.items if it.get("file") == name], M.headings)
+            except Exception:
+                diag.swallowed()
+                r = {"file": name, "words": 0, "in_review": 0, "in_headings": 0, "missing": 0, "pct": 0, "lines": [], "error": True}
+            r["path"] = path
+            out.append(r)
+        diag.activity("compliance_text_check", files=len(out), n=sum(r["missing"] for r in out))
+        if show:
+            self._c_text_check_window(out)
+        return out
+
+    @staticmethod
+    def text_check_line(results):
+        miss = sum(r["missing"] for r in results)
+        words = sum(r["words"] for r in results)
+        if not results:
+            return ""
+        if not miss:
+            return f"Text check: all {words} words of the RFP files are in the review."
+        return f"Text check: {miss} of {words} words in {sum(1 for r in results if r['missing'])} file(s) are not in the review yet."
+
+    def compliance_add_missing(self, results):
+        """Add the text check's missing lines as sentences to assign (Context rows marked as added by the check)."""
+        M = self.matrix
+        added = []
+        for r in results:
+            for where, line, kind in r.get("lines", []):
+                if kind != "missing":
+                    continue
+                it = C.context_item(line, "", ("", ""), "")
+                if not it:
+                    continue
+                it.update({"file": r["file"], "loc": f"{r['file']} ({where}, added by the text check)", "page": None, "context": line[:700],
+                           "key": C.text_key(line), "decision": "", "map": "", "owner": "", "status": "", "notes": "", "response_page": "",
+                           "links": "", "new": "Added by the text check", "learned": "", "context_for": ""})
+                M.items.append(it)
+                added.append(it)
+        if added:
+            C.assign_ids(M.items)
+            for it in added:
+                M.log(it["id"], "added by the text check")
+            M.pending = True
+            self._c_save_now()
+            self._c_refresh()
+            self.rec_log("compliance", f"Text check added {len(added)} line(s) for review") if hasattr(self, "rec_log") else None
+        diag.activity("compliance_text_added", n=len(added))
+        return added
+
+    def _c_text_check_window(self, results):
+        w = ctk.CTkToplevel(self); w.title("Text check"); w.transient(self); w.geometry("1000x680")
+        ctk.CTkLabel(w, text="Is every piece of text in the review?", font=("Segoe UI", 17, "bold"), anchor="w").pack(fill="x", padx=16, pady=(14, 2))
+        ctk.CTkLabel(w, text="Each file was read again straight from its parts (body, tables, text boxes, headers, footers, footnotes, "
+                             "slides and speaker notes, cells, PDF pages) and compared word for word with the sentences in Assign. "
+                             "Numbered headings are shown as section titles. Text inside pictures is read by OCR and is not part of this check.",
+                     anchor="w", justify="left", wraplength=940, text_color=("#475569", "#94A3B8")).pack(fill="x", padx=16)
+        import textcheck as TC
+        box = ctk.CTkScrollableFrame(w); box.pack(fill="both", expand=True, padx=16, pady=10)
+        for r in results:
+            ok = not r["missing"] and not r.get("gone") and not r.get("error")
+            head = ("The file is no longer where it was read; open it again with Add RFP files." if r.get("gone") else
+                    "The file could not be read again." if r.get("error") else TC.summary_text(r))
+            ctk.CTkLabel(box, text=("✓ " if ok else "! ") + head, anchor="w", justify="left", wraplength=900, font=("Segoe UI", 14, "bold"),
+                         text_color=("#15803D", "#86EFAC") if ok else ("#B45309", "#FBBF24")).pack(fill="x", pady=(8, 2))
+            for where, line, kind in r.get("lines", [])[:200]:
+                ctk.CTkLabel(box, text=f"    {'NOT IN THE REVIEW' if kind == 'missing' else 'section title'}   {where}   {line[:150]}",
+                             anchor="w", justify="left", wraplength=920,
+                             text_color=("#B91C1C", "#FCA5A5") if kind == "missing" else ("#64748B", "#94A3B8")).pack(fill="x")
+        n = sum(1 for r in results for x in r.get("lines", []) if x[2] == "missing")
+        b = ctk.CTkFrame(w, fg_color="transparent"); b.pack(fill="x", padx=16, pady=10)
+        ctk.CTkLabel(b, text=self.text_check_line(results), anchor="w").pack(side="left")
+        if n:
+            ctk.CTkButton(b, text=f"Add the {n} missing line(s) for review", fg_color="#B45309",
+                          command=lambda: (self.compliance_add_missing(results), w.destroy())).pack(side="right")
+        else:
+            ctk.CTkButton(b, text="Close", command=w.destroy).pack(side="right")
+        w._api = {"results": results}
+        w.after(100, w.lift)
+        return w
+
     def compliance_new(self):
         paths = self._c_pick_rfp("RFP files: instructions, evaluation criteria, SOW, attachments")
         if not paths:
@@ -1105,6 +1202,13 @@ class ComplianceMixin:
             if empty:
                 msg += f"\n\n{len(empty)} file(s) have no typed text (scanned pages?): " + ", ".join(empty[:5]) + \
                        ". Scan them in the main window first, or ask for a typed copy."
+            try:                                                   # 2.40.0: every word of the files is in the review
+                tc = self.compliance_text_check(show=False)
+                msg += "\n\n" + self.text_check_line(tc) + (" Open Read RFP > Text check... to see and add them." if any(r["missing"] for r in tc) else "")
+                if hasattr(self, "rec_log"):
+                    self.rec_log("compliance", f"Compliance matrix read: {len(items)} sentences from {len(paths)} file(s). " + self.text_check_line(tc))
+            except Exception:
+                diag.swallowed()
             src = ("the response structure set in Start an effort" if typed else "the Section L headings")
             messagebox.showinfo("Compliance matrix", msg + f"\n\nThe starting outline comes from {src}; edit it on the Outline tab.", parent=self._cwin)
         self._c_read(paths, done)

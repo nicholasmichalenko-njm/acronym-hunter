@@ -50,7 +50,7 @@ def go():
     right = app.btn_exc.winfo_rootx() + app.btn_exc.winfo_width()
     fits = app.btn_exc.winfo_ismapped() and right <= app.winfo_rootx() + app.winfo_width()
     print("Exclude visible at 1280:", fits)
-    res["ok"] = (labels == ["File", "Edit", "Effort", "Compliance", "Tools", "View", "Help"] and all(n >= 1 for n in counts.values())
+    res["ok"] = (labels == ["File", "Effort", "View", "Help", "Advanced"] and all(n >= 1 for n in counts.values())
                  and counts["Effort"] >= 5 and hidden and saved is False and shown and ctrl_b and logged and fits)
     print("GUI LAYOUT", "PASS" if res["ok"] else "FAIL")
     app.destroy()

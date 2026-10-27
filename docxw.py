@@ -71,6 +71,21 @@ class Doc:
         self.body.append(f'<w:tbl><w:tblPr><w:tblW w:w="{sum(widths)}" w:type="dxa"/><w:tblBorders>{border}</w:tblBorders>'
                          f'<w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>{grid}</w:tblGrid>' + "".join(trs) + "</w:tbl><w:p/>")
 
+    def band(self, cells, widths, borders=False):
+        """One row of shaded boxes (2.40.0: the stage track and the summary tiles in the effort status report).
+        cells = [(parts, fill)] where parts is [(text, format)] as in rich(); text is centered."""
+        tcs = []
+        for (parts, fill), w in zip(cells, widths):
+            sh = f'<w:shd w:val="clear" w:color="auto" w:fill="{fill}"/>' if fill else ""
+            tcs.append(f'<w:tc><w:tcPr><w:tcW w:w="{w}" w:type="dxa"/>{sh}<w:vAlign w:val="center"/></w:tcPr>'
+                       f'<w:p><w:pPr><w:spacing w:before="60" w:after="60"/><w:jc w:val="center"/></w:pPr>{_runs(parts)}</w:p></w:tc>')
+        b = "".join(f'<w:{x} w:val="{"single" if borders else "single"}" w:sz="{8 if borders else 18}" w:space="0" w:color="{"D0D7E2" if borders else "FFFFFF"}"/>'
+                    for x in ("top", "left", "bottom", "right", "insideH", "insideV"))
+        grid = "".join(f'<w:gridCol w:w="{w}"/>' for w in widths)
+        self.body.append(f'<w:tbl><w:tblPr><w:tblW w:w="{sum(widths)}" w:type="dxa"/><w:tblBorders>{b}</w:tblBorders>'
+                         f'<w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>{grid}</w:tblGrid><w:tr><w:trPr><w:cantSplit/></w:trPr>'
+                         + "".join(tcs) + "</w:tr></w:tbl><w:p/>")
+
     def save(self, path):
         sect = ('<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" '
                 'w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>')

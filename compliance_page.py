@@ -71,6 +71,7 @@ class CompliancePageMixin:
         ctk.CTkButton(keys, text="Clear  X", command=self.cp_clear, **G).pack(side="left", padx=(12, 4))
         ctk.CTkButton(keys, text="Split  S", command=self.cp_split, **G).pack(side="left", padx=4)
         ctk.CTkButton(keys, text="Combine  M", command=self.cp_combine, **G).pack(side="left", padx=4)
+        ctk.CTkButton(keys, text="Owner  O", command=self.cp_owner, **G).pack(side="left", padx=(12, 4))   # 2.40.0
         win.cp_done_btn = ctk.CTkButton(keys, text="Done  Enter", command=self.cp_mode_end, height=40, width=10,
                                         fg_color="transparent", border_width=2, border_color="#93C5FD", text_color="#BFDBFE",
                                         hover_color="#1E3A8A", font=("Segoe UI", 13, "bold"))
@@ -512,8 +513,14 @@ class CompliancePageMixin:
             rows.append((lab, le, we))
 
         def save():
+            before = {lab: dict(SD.setup_of(M)["owners"].get(lab) or {}) for lab, _le, _we in rows}
             for lab, le, we in rows:
                 SD.set_people(M, lab, le.get(), we.get())
+            if hasattr(self, "rec_log"):                     # 2.40.0: the paper trail
+                for lab, _le, _we in rows:
+                    after = SD.setup_of(M)["owners"].get(lab) or {}
+                    if (after.get("lead", ""), after.get("with", "")) != (before[lab].get("lead", ""), before[lab].get("with", "")):
+                        self.rec_log("assign", f"{lab}: lead {after.get('lead') or 'none'}" + (f", with {after['with']}" if after.get("with") else ""))
             M.pending = True
             diag.activity("compliance_people_set", n=len(rows))
             w.destroy()
@@ -676,6 +683,8 @@ class CompliancePageMixin:
             self.cp_split()
         elif k == "m":
             self.cp_combine()
+        elif k == "o":
+            self.cp_owner()
         elif k in ("1", "2", "3", "kp_1", "kp_2", "kp_3"):
             self.cp_pick(int(k[-1]))
         elif k == "escape":
@@ -894,6 +903,35 @@ class CompliancePageMixin:
         for it in rows:
             self.matrix.log(it["id"], "not used (cleared)")
         self._cp_after(rows, (rows[0]["id"] if len(rows) == 1 else f"{len(rows)} sentences") + ": not used")
+        return len(rows)
+
+    def cp_owner(self, name=None):
+        """O (2.40.0): give the selected compliance requirement(s) an owner of their own; empty goes back to the section's
+        lead. People already named in the effort are offered."""
+        rows = [it for it in self._cp_rows() if it["decision"] in ("Keep", "Context")]
+        if not rows:
+            self._cp_flash("Assign the sentence first, then give it an owner (O).") if hasattr(self, "_cp_flash") else None
+            return 0
+        M = self.matrix
+        if name is None:
+            from tkinter import simpledialog
+            known = SD.people(M) + [p for p in (self.rec_people() if hasattr(self, "rec_people") else []) if p not in SD.people(M)]
+            cur = rows[0].get("owner", "")
+            name = simpledialog.askstring("Owner", (f"Owner for {len(rows)} sentence(s)" if len(rows) > 1 else f"Owner for {rows[0]['id']}") +
+                                          " (empty: the section's lead).\nPeople in this effort: " + (", ".join(known[:12]) or "none yet"),
+                                          initialvalue=cur, parent=self)
+            if name is None:
+                return 0
+        name = " ".join(name.split())
+        for it in rows:
+            it["owner"] = name
+            M.log(it["id"], f"owner: {name or '(section lead)'}")
+        M.pending = True
+        if hasattr(self, "rec_log"):
+            self.rec_log("assign", (f"{len(rows)} compliance requirements" if len(rows) > 1 else f"Compliance requirement {rows[0]['id']}")
+                         + (f" assigned to {name}" if name else " back to the section lead"))
+        diag.activity("compliance_owner_set", n=len(rows))
+        self._cp_after(rows, (rows[0]["id"] if len(rows) == 1 else f"{len(rows)} sentences") + f": owner {name or 'from the section'}")
         return len(rows)
 
     def cp_combine(self):
