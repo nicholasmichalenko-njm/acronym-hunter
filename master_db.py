@@ -378,8 +378,14 @@ class MasterMixin:
         except Exception as ex:
             diag.swallowed()
             if ask:
-                messagebox.showerror(MASTER_NAME, f"Could not load {os.path.basename(path)} ({type(ex).__name__}). "
-                                     "Is it open in Excel? Close it and try again.")
+                if isinstance(ex, ValueError) and "no terms" in str(ex):     # 2.48.1: say what the file needs
+                    messagebox.showerror(MASTER_NAME, f"No terms were found in {os.path.basename(path)}. The file needs a "
+                                         "column headed Term (or Acronym), with Definition beside it; or two columns: "
+                                         "the term, then its definition, one per row.")
+                elif isinstance(ex, PermissionError):
+                    messagebox.showerror(MASTER_NAME, f"{os.path.basename(path)} is open in Excel. Close it and try again.")
+                else:
+                    messagebox.showerror(MASTER_NAME, f"Could not load {os.path.basename(path)} ({type(ex).__name__}).")
             return None
         diag.activity("master_loaded", rows=info["rows"], added=info["added"], removed=info["removed"])
         self.db_terms(refresh=True)

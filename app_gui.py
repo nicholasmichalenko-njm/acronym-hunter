@@ -2502,7 +2502,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.48.0"            # keep in step with version_info.txt
+APP_VERSION = "2.48.1"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -4452,7 +4452,8 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
                 self.after(0, lambda: done(f"Stopped. {len(st['texts'])} file(s) read."))
             except Exception as e:
                 log_error("Full text failed")
-                self.after(0, lambda: done(f"Error: {type(e).__name__}: {e}"))
+                msg = f"Error: {type(e).__name__}: {e}"        # 2.48.1: e is gone by the time the callback runs
+                self.after(0, lambda m=msg: done(m))
         def go():
             if self.btn_cancel.winfo_ismapped():
                 messagebox.showinfo("Busy", "Wait for the current scan to finish.", parent=win); return

@@ -22,6 +22,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 import customtkinter as ctk
 import compliance as C
+import setupdoc as SD          # 2.48.1: module-wide (Owner... failed with a NameError: SD was only imported inside some functions)
 import diag
 import cwords as CW
 

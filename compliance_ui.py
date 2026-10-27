@@ -2,7 +2,7 @@
 its source; the person keeps or drops each one (K / D / U, S splits), builds or imports the proposal outline, maps the
 keepers, and exports the Excel matrix (the working file itself) and an annotated Word outline. No language model.
 """
-import datetime, hashlib, os, re, threading, zipfile
+import datetime, hashlib, os, re, shutil, threading, zipfile
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import customtkinter as ctk
@@ -174,7 +174,7 @@ class ComplianceMixin:
                      text_color=("#475569", "#94A3B8")).pack(fill="x", padx=6, pady=(0, 10))
         for text, cmd in (("Compliance matrix (Excel), designed here...", self.matrix_design_dialog),      # 2.48.0
                           ("Matrix and Response Setup together...", self.compliance_export_together),     # 2.48.0
-                          ("Working matrix: open in Excel", self.compliance_excel),
+                          ("Working matrix: open a copy in Excel", self.compliance_excel),
                           ("Coverage report (Word)...", self.compliance_coverage),
                           ("Response Setup (Word)...", self.setup_export),
                           ("Response Setup changes since the last export...", self.setup_export_changes)):
@@ -1450,13 +1450,38 @@ class ComplianceMixin:
             messagebox.showwarning("Compliance matrix", "The workbook is open in Excel. Close it there, then click Save. Your changes are kept.", parent=self._cwin)
 
     def compliance_excel(self):
+        """Open a copy of the working matrix in Excel (2.48.1): the app keeps saving the working file, so Excel must not
+        lock it (saves failed while it was open) and a matrix not saved yet is saved first."""
         if self.matrix is None:
-            return
+            return None
         self._c_save_now()
+        src = self.matrix.path
+        if not os.path.isfile(src):
+            messagebox.showinfo("Compliance matrix", "The matrix has not been saved yet. Save it (Save on the strip), then open "
+                                "it again.", parent=self._cwin)
+            return None
+        eng = _eng()
+        d = os.path.join(getattr(eng, "SANDBOX_TEMP", "") or os.path.dirname(src), "matrix views")
+        os.makedirs(d, exist_ok=True)
+        stem = os.path.splitext(os.path.basename(src))[0]
+        dst = os.path.join(d, f"{stem} (view copy {datetime.datetime.now():%Y-%m-%d %H%M%S}).xlsx")
         try:
-            os.startfile(self.matrix.path)
+            shutil.copy2(src, dst)
+        except OSError:
+            diag.swallowed()
+            messagebox.showerror("Compliance matrix", "The matrix could not be copied for Excel.", parent=self._cwin)
+            return None
+        diag.activity("compliance_excel_copy")
+        try:
+            os.startfile(dst)                          # noqa (Windows)
         except AttributeError:
-            messagebox.showinfo("Compliance matrix", self.matrix.path, parent=self._cwin)
+            pass
+        except OSError:
+            diag.swallowed()
+        if hasattr(self, "status"):
+            self.status.configure(text="A copy of the matrix is open in Excel; changes in it are not read back. Work in "
+                                       "Stationkeeper, or export the designed matrix (Excel).")
+        return dst
 
     def compliance_word(self):
         M = self.matrix

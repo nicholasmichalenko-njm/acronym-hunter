@@ -134,6 +134,19 @@ def go():
         check("2.48.0: G marks the sentence the customer's and moves on", n == 1 and app._c_item(und[0]["id"])["decision"] == "Customer"
               and not app._c_item(und[0]["id"])["map"] and now and now[0]["id"] != und[0]["id"], (now and now[0]["id"]))
         check("Prove has a Customer's category with it", [x["id"] for x in app.prove_items("customer")] == [und[0]["id"]])
+    # 2.48.1: Owner... asks for a name (it failed with a NameError before) and Open in Excel opens a copy
+    from tkinter import simpledialog
+    keep_ask = simpledialog.askstring
+    simpledialog.askstring = lambda *a, **k: "K. Ito"
+    kept = [x for x in app.matrix.items if x["decision"] in ("Keep", "Context")]
+    if kept:
+        app._cp_select(kept[0]["id"]); app.update()
+        n_o = app.cp_owner(); app.update()
+        check("2.48.1: Owner... asks for the name and sets it", n_o == 1 and app._c_item(kept[0]["id"])["owner"] == "K. Ito")
+    simpledialog.askstring = keep_ask
+    cp = app.compliance_excel()
+    check("2.48.1: Open in Excel opens a copy, so the working matrix is never locked", cp and os.path.isfile(cp)
+          and cp != app.matrix.path and "view copy" in os.path.basename(cp), cp)
     # a matrix with no PDF: the view explains itself
     for it in app.matrix.items:
         it["file"] = "RFP.docx"
