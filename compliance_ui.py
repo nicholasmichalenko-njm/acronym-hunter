@@ -991,8 +991,9 @@ class ComplianceMixin:
             et = ctk.CTkEntry(row2, width=380); et.insert(0, pt); et.pack(side="left", padx=6)
 
             def ok():
+                num_, title_ = en.get(), et.get()
                 w.destroy()
-                self.c_mark_header(iid, en.get(), et.get())
+                self.c_mark_header(iid, num_, title_)
             ctk.CTkButton(w, text="Mark as section header", command=ok, fg_color="#1E3A8A").pack(side="right", padx=16, pady=10)
             w._api = {"num": en, "title": et, "ok": ok}
             w.after(100, w.lift)
