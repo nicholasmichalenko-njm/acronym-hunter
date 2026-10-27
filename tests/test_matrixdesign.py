@@ -33,18 +33,37 @@ def run():
                               {"key": "text"}, {"key": "owner", "heading": "Author"}], "roles": ["Keep", "Nope"]})
     assert [c["key"] for c in d["columns"]] == ["text", "ref", "owner"] and d["columns"][0]["heading"] == "Requirement text"
     assert d["roles"] == ["Keep"] and d["customer_sheet"] is True
-    items, data = MD.rows(M, MD.default())
+    old_cols = [{"key": k, "heading": MD.COLUMNS[k][0]} for k in ("ref", "text", "section", "owner", "page", "status", "notes")]
+    keep_only = dict(MD.default(), columns=old_cols, roles=["Keep"])
+    items, data = MD.rows(M, keep_only)
     assert [it["id"] for it in items] == ["L.4-02", "L.5-01"], "in the structure's order: 1.1 Thermal before 1.2 Schedule"
     assert data[0][3] == "J. Smith" and data[1][4] == "12" and data[1][5] == "Compliant", data
-    both = dict(MD.default(), roles=["Keep", "Context"])
+    both = dict(keep_only, roles=["Keep", "Context"])
     assert [it["id"] for it in MD.rows(M, both)[0]] == ["L.4-02", "L.4-03", "L.5-01"]
+    # 2.51.0: Order, Context under its requirement, Volume, deliverable facts, empty sections, own columns
+    full = MD.clean(dict(MD.default(), columns=MD.default()["columns"] + [{"key": "deliverable"}, {"key": "format"}, {"key": "far"},
+                                                                       {"key": "custom:Reviewer"}]))
+    ctx = {"deliverables": [{"name": "Volume I", "limit": "25 pages", "format": "Font: 12 point Times"}]}
+    M.outline = C.parse_outline("Volume I\n1.1 Thermal\n1.2 Schedule\n1.3 Risk")
+    its, dat = MD.rows(M, full, ctx)
+    col = {c["key"]: k for k, c in enumerate(full["columns"])}
+    assert [it.get("_kind") for it in its] == ["req", "ctx", "req", "empty"], [it.get("_kind") for it in its]
+    assert [r[col["order"]] for r in dat] == [1, 2, 3, 4]
+    assert dat[1][col["text"]].startswith("Thermal margins") and its[1]["_host"] == "L.4-02", "context under its requirement"
+    assert dat[0][col["volume"]] == "Volume I" and dat[0][col["page_limit"]] == "25 pages" and dat[0][col["deliverable"]] == "Volume I"
+    assert dat[0][col["format"]] == "Font: 12 point Times" and dat[0][col["custom:Reviewer"]] == ""
+    assert dat[3][col["section"]] == "1.3 Risk" and dat[3][col["text"]] == "(nothing assigned yet)", "a section with nothing assigned"
+    assert full["columns"][-1] == {"key": "custom:Reviewer", "heading": "Reviewer"}
+    assert len(MD.rows(M, dict(full, empty_sections=False))[0]) == 3
+    assert "id" not in [k for k in its[0] if k.startswith("_")] and "_kind" not in M.items[0], "the matrix rows are not touched"
+    M.outline = C.parse_outline("Volume I\n1.1 Thermal\n1.2 Schedule")
     out = os.path.join(tempfile.mkdtemp(), "x", "Kestrel_Compliance_Matrix.xlsx")
     res = MD.export(M, out, d, "Kestrel")
     assert res == {"path": out, "rows": 2, "customer": 1}, res
     from openpyxl import load_workbook
     wb = load_workbook(out)
     ws = wb["Compliance Matrix"]
-    assert ws["A1"].value == "Kestrel: Compliance Matrix" and [c.value for c in ws[4]] == ["Requirement text", "RFP reference", "Author"]
+    assert ws["A1"].value == "Kestrel: Compliance Matrix" and [c.value for c in ws[4]] == ["Requirement text", "Section L No.", "Author"]
     assert ws.cell(row=5, column=1).value == "The Offeror shall describe the thermal design." and ws.cell(row=5, column=3).value == "J. Smith"
     assert wb.sheetnames == ["Compliance Matrix", "Customer's", "About"]
     assert "Government will evaluate" in wb["Customer's"].cell(row=3, column=2).value

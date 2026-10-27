@@ -1,5 +1,7 @@
 """Compliance > Export > Compliance matrix (Excel), designed here (2.48.0): pick, order and rename the columns, choose
-the roles, see the first rows as they will look, export; or export the matrix and the Response Setup together.
+the roles, see the rows as they will look, export; or export the matrix and the Response Setup together.
+2.51.0: every row in the preview, fitted to the window; Context rows under their requirement (indented, lighter);
+columns of the team's own (add, rename, remove); Volume, Deliverable, Page limit and Format from the effort.
 Rules only (No AI); nothing leaves the PC."""
 import os
 import tkinter as tk
@@ -17,6 +19,26 @@ class MatrixDesignMixin:
         L = getattr(self, "effort", None)
         return L.name if L is not None else (self.matrix.name if self.matrix is not None else "")
 
+    def _md_ctx(self):
+        """What the matrix takes from the effort (2.51.0): each deliverable's name, page limit and format."""
+        out = {"deliverables": []}
+        try:
+            r = self.effrec() if hasattr(self, "effrec") else None
+            if r is None:
+                return out
+            import deliverables as DL
+            reg = self.subreg() if hasattr(self, "subreg") else None
+            rows = reg.rows() if reg else []
+            vols = self.volumes() if hasattr(self, "volumes") else []
+            for d in DL.items(r):
+                sp = {x["field"]: x["value"] for x in DL.spec(d, rows, vols)}
+                fmt = "; ".join(f"{f}: {sp[f]}" for f in ("Font", "Margins", "Page size", "Line spacing", "File format") if sp.get(f))
+                out["deliverables"].append({"name": d["name"], "limit": sp.get("Page limit") or d.get("limit", ""),
+                                            "format": fmt or d.get("format", "")})
+        except Exception:
+            diag.swallowed()
+        return out
+
     def matrix_design_dialog(self):
         M = self.matrix
         if M is None or not M.items:
@@ -32,7 +54,7 @@ class MatrixDesignMixin:
         body = ctk.CTkFrame(w, fg_color="transparent"); body.pack(fill="both", expand=True, padx=14, pady=8)
         left = ctk.CTkFrame(body); left.pack(side="left", fill="y", padx=(0, 10))
         ctk.CTkLabel(left, text="Columns, in order", font=("Segoe UI", 13, "bold"), anchor="w").pack(fill="x", padx=10, pady=(8, 2))
-        lb = tk.Listbox(left, height=16, width=34, exportselection=False, font=("Segoe UI", max(10, getattr(self, "font_size", 13) - 2)))
+        lb = tk.Listbox(left, height=18, width=34, exportselection=False, font=("Segoe UI", max(10, getattr(self, "font_size", 13) - 2)))
         lb.pack(padx=10, pady=4)
         state = {"d": design}
 
@@ -51,6 +73,20 @@ class MatrixDesignMixin:
         def keys_in_list():
             on = [c["key"] for c in state["d"]["columns"]]
             return on + [k for k in MD.COLUMNS if k not in on]
+
+        def add_column(name=None):
+            """A column of the team's own (2.51.0): blank in the export, filled in Excel."""
+            if name is None:
+                from tkinter import simpledialog
+                name = simpledialog.askstring("Add a column", "Heading for the new column:", parent=w)
+            name = " ".join((name or "").split())[:40]
+            if not name:
+                return None
+            key = MD.CUSTOM + name
+            if key not in [c["key"] for c in state["d"]["columns"]]:
+                state["d"]["columns"].append({"key": key, "heading": name})
+            fill_list(len(state["d"]["columns"]) - 1)
+            return key
 
         def picked():
             s = lb.curselection()
@@ -92,6 +128,9 @@ class MatrixDesignMixin:
         bb = ctk.CTkFrame(left, fg_color="transparent"); bb.pack(fill="x", padx=10)
         for txt, cmd in (("Show or hide", toggle), ("Up", lambda: move(-1)), ("Down", lambda: move(1)), ("Rename...", rename)):
             ctk.CTkButton(bb, text=txt, width=10, height=28, command=cmd).pack(side="left", padx=(0, 4), pady=2)
+        ctk.CTkButton(left, text="Add a column...", height=28, command=add_column).pack(anchor="w", padx=10, pady=(4, 0))
+        ctk.CTkLabel(left, text="A column you add is blank in Excel for the team to fill; hiding it removes it.", anchor="w",
+                     justify="left", wraplength=250, text_color=("#475569", "#94A3B8"), font=("Segoe UI", 11)).pack(fill="x", padx=10)
         ctk.CTkLabel(left, text="Rows", font=("Segoe UI", 13, "bold"), anchor="w").pack(fill="x", padx=10, pady=(12, 2))
         rv = {r: tk.BooleanVar(value=r in design["roles"]) for r, _l in MD.ROLES}
 
@@ -100,6 +139,9 @@ class MatrixDesignMixin:
             show()
         for r, lab in MD.ROLES:
             ctk.CTkCheckBox(left, text=lab, variable=rv[r], command=roles_changed).pack(anchor="w", padx=12, pady=1)
+        ev = tk.BooleanVar(value=design.get("empty_sections", True))
+        ctk.CTkCheckBox(left, text="Proposal sections with nothing assigned yet", variable=ev,
+                        command=lambda: (state["d"].update(empty_sections=bool(ev.get())), show())).pack(anchor="w", padx=12, pady=1)
         cv = tk.BooleanVar(value=design["customer_sheet"])
         ctk.CTkCheckBox(left, text="A sheet listing the customer's sentences", variable=cv,
                         command=lambda: state["d"].update(customer_sheet=bool(cv.get()))).pack(anchor="w", padx=12, pady=(1, 8))
@@ -107,19 +149,45 @@ class MatrixDesignMixin:
         info = ctk.CTkLabel(right, text="", anchor="w"); info.pack(fill="x")
         tf = tk.Frame(right); tf.pack(fill="both", expand=True, pady=4)
         tv = ttk.Treeview(tf, show="headings", height=14)
-        hsb = ttk.Scrollbar(tf, orient="horizontal", command=tv.xview); tv.configure(xscrollcommand=hsb.set)
-        hsb.pack(side="bottom", fill="x"); tv.pack(fill="both", expand=True)
+        hsb = ttk.Scrollbar(tf, orient="horizontal", command=tv.xview)
+        vsb = ttk.Scrollbar(tf, orient="vertical", command=tv.yview)
+        tv.configure(xscrollcommand=hsb.set, yscrollcommand=vsb.set)
+        hsb.pack(side="bottom", fill="x"); vsb.pack(side="right", fill="y"); tv.pack(fill="both", expand=True)
+        tv.tag_configure("ctx", foreground="#475569", background="#F1F5F9")
+        tv.tag_configure("empty", foreground="#94A3B8")
+        tv.tag_configure("req", foreground="#0F172A")
+
+        def fit(_e=None):
+            """Columns share the preview's width (the requirement wider), so the whole row shows."""
+            cols = state["d"]["columns"]
+            avail = max(400, tv.winfo_width() - 4)
+            weights = [MD.width_of(c["key"]) for c in cols]
+            tot = float(sum(weights)) or 1.0
+            for k, wt in enumerate(weights):
+                tv.column(f"c{k}", width=max(50, int(avail * wt / tot)), stretch=True)
+        tv.bind("<Configure>", lambda e: fit())
 
         def show():
-            heads, data, n = MD.preview(M, state["d"])
+            heads, data, n = MD.preview(M, state["d"], ctx=ctxd)
+            items = MD.rows(M, state["d"], ctxd)[0]
             tv.configure(columns=[f"c{k}" for k in range(len(heads))])
+            text_k = next((k for k, c in enumerate(state["d"]["columns"]) if c["key"] == "text"), None)
             for k, h in enumerate(heads):
-                key = state["d"]["columns"][k]["key"]
-                tv.heading(f"c{k}", text=h); tv.column(f"c{k}", width=MD.COLUMNS[key][1] * 7, stretch=key == "text", anchor="w")
+                tv.heading(f"c{k}", text=h); tv.column(f"c{k}", anchor="w")
+            fit()
             tv.delete(*tv.get_children())
-            for r in data:
-                tv.insert("", "end", values=[str(v)[:160] for v in r])
-            info.configure(text=f"Preview: the first {len(data)} of {n} rows, as they will appear.")
+            for it, r in zip(items, data):
+                vals = [str(v)[:200] for v in r]
+                kind = it.get("_kind", "req")
+                if kind == "ctx" and text_k is not None:
+                    vals[text_k] = "      " + vals[text_k]
+                tv.insert("", "end", values=vals, tags=(kind,))
+            nc = sum(1 for it in items if it.get("_kind") == "ctx")
+            ne = sum(1 for it in items if it.get("_kind") == "empty")
+            info.configure(text=f"All {n} rows, as they will appear: {n - nc - ne} compliance requirement(s), {nc} context "
+                                f"(indented, under the requirement they support)" + (f", {ne} section(s) with nothing assigned yet" if ne else "")
+                                + ". Sort on Order in Excel to get this layout back.")
+        ctxd = self._md_ctx()
 
         def remember():
             MD.set_matrix(M, state["d"])
@@ -150,7 +218,7 @@ class MatrixDesignMixin:
                 if not path:
                     return None
             try:
-                res = MD.export(M, path, state["d"], self._md_effort_name())
+                res = MD.export(M, path, state["d"], self._md_effort_name(), ctx=self._md_ctx())
             except PermissionError:
                 messagebox.showerror("Compliance matrix", "That file is open in Excel. Close it, then export again.", parent=w)
                 return None
@@ -169,7 +237,7 @@ class MatrixDesignMixin:
         ctk.CTkButton(bar, text="Save as the team default", fg_color="#475569", command=team_save).pack(side="left")
         ctk.CTkButton(bar, text="Use the team default", fg_color="#475569", command=team_use).pack(side="left", padx=6)
         fill_list(0)
-        w._api = {"state": state, "lb": lb, "toggle": toggle, "move": move, "export": export, "together": together,
+        w._api = {"state": state, "lb": lb, "toggle": toggle, "move": move, "export": export, "together": together, "add": add_column,
                   "roles": rv, "customer": cv, "tree": tv, "team_save": team_save, "team_use": team_use, "info": info}
         return w
 
@@ -185,7 +253,7 @@ class MatrixDesignMixin:
             if not folder:
                 return None
         try:
-            res = MD.export_together(M, folder, MD.design_for(M, self._md_config()), self._md_effort_name())
+            res = MD.export_together(M, folder, MD.design_for(M, self._md_config()), self._md_effort_name(), ctx=self._md_ctx())
         except PermissionError:
             messagebox.showerror("Export", "A file with that name is open in Excel or Word. Close it, then export again.",
                                  parent=parent or self._cwin)

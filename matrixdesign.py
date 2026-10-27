@@ -10,11 +10,17 @@ import copy, datetime, json, os
 
 # key: (default heading, width)
 COLUMNS = {
-    "ref": ("RFP reference", 16),
-    "rfp_section": ("RFP section", 28),
+    "order": ("Order", 8),                          # 2.51.0: sort on it to get the original layout back
+    "ref": ("Section L No.", 16),                   # 2.51.0: the RFP section the sentence is in, else page and paragraph
+    "rfp_section": ("Section L title", 28),
     "text": ("Requirement", 70),
     "role": ("Role", 22),
+    "volume": ("Volume", 22),                       # 2.51.0
     "section": ("Proposal section", 30),
+    "deliverable": ("Deliverable", 22),             # 2.51.0: from the effort's deliverables
+    "page_limit": ("Page limit", 10),               # 2.51.0
+    "format": ("Format", 30),                       # 2.51.0: font, margins, page size, spacing, file format
+    "far": ("FAR reference", 18),                   # 2.51.0: FAR, DFARS and NFS clauses named in the sentence
     "lead": ("Section lead", 18),
     "owner": ("Owner", 18),
     "page": ("Proposal page", 12),
@@ -27,9 +33,20 @@ COLUMNS = {
     "type": ("Type", 14),
     "id": ("Stationkeeper ID", 14),
 }
+CUSTOM = "custom:"                                   # 2.51.0: a column of the team's own, filled in Excel
 ROLES = (("Keep", "Compliance requirements"), ("Context", "Context"))
-DEFAULT = {"columns": [{"key": k, "heading": COLUMNS[k][0]} for k in ("ref", "text", "section", "owner", "page", "status", "notes")],
-           "roles": ["Keep"], "customer_sheet": True, "title": ""}
+DEFAULT = {"columns": [{"key": k, "heading": COLUMNS[k][0]} for k in
+                       ("order", "ref", "text", "volume", "section", "page_limit", "owner", "page", "status", "notes")],
+           "roles": ["Keep", "Context"], "customer_sheet": True, "title": "", "empty_sections": True}
+_FAR = __import__("re").compile(r"\b(?:FAR|DFARS|NFS|AFFARS|DFARS PGI)\s+(?:clause\s+)?\d{1,3}\.\d{2,4}(?:-\d+)?(?:\([a-z0-9]+\))*", __import__("re").I)
+
+
+def width_of(key):
+    return COLUMNS[key][1] if key in COLUMNS else 20
+
+
+def heading_of(key):
+    return COLUMNS[key][0] if key in COLUMNS else key[len(CUSTOM):] if key.startswith(CUSTOM) else key
 
 
 def default():
@@ -43,15 +60,26 @@ def clean(d):
         return out
     cols = []
     for c in d.get("columns") or []:
-        if isinstance(c, dict) and c.get("key") in COLUMNS and c["key"] not in [x["key"] for x in cols]:
-            h = " ".join(str(c.get("heading") or COLUMNS[c["key"]][0]).split())[:60] or COLUMNS[c["key"]][0]
-            cols.append({"key": c["key"], "heading": h})
+        if not isinstance(c, dict):
+            continue
+        k = str(c.get("key") or "")
+        if k.startswith(CUSTOM):
+            k = CUSTOM + " ".join(k[len(CUSTOM):].split())[:40]
+            if k == CUSTOM:
+                continue
+        elif k not in COLUMNS:
+            continue
+        if k in [x["key"] for x in cols]:
+            continue
+        h = " ".join(str(c.get("heading") or heading_of(k)).split())[:60] or heading_of(k)
+        cols.append({"key": k, "heading": h})
     if cols:
         out["columns"] = cols
     roles = [r for r in (d.get("roles") or []) if r in dict(ROLES)]
     out["roles"] = roles or out["roles"]
     out["customer_sheet"] = bool(d.get("customer_sheet", True))
     out["title"] = " ".join(str(d.get("title") or "").split())[:120]
+    out["empty_sections"] = bool(d.get("empty_sections", True))
     return out
 
 
@@ -93,10 +121,64 @@ def design_for(M, config_dir=""):
     return of_matrix(M) or (load_team(config_dir) if config_dir else None) or default()
 
 
-def _value(M, it, key, inh, people):
+def _where(it):
+    """'p.3, para 2' from where a sentence was found (for RFPs without section numbers)."""
+    import re
+    loc = it.get("loc", "")
+    page = it.get("page") or (re.search(r"\bp\.?\s*(\d+)|page\s+(\d+)", loc, re.I) or [None])
+    if not isinstance(page, (str, int)):
+        m = re.search(r"\bp\.?\s*(\d+)|page\s+(\d+)", loc, re.I)
+        page = (m.group(1) or m.group(2)) if m else ""
+    para = re.search(r"\bpara(?:graph)?\.?\s*(\d+)", loc, re.I)
+    return ", ".join(x for x in ((f"p.{page}" if page else ""), (f"para {para.group(1)}" if para else "")) if x)
+
+
+def volume_map(M):
+    """{proposal section label: its volume (the top-level heading above it)}."""
+    import compliance as C
+    out, vol = {}, ""
+    top = min((o.get("level", 1) for o in M.outline), default=1)
+    for o in M.outline:
+        lab = C.outline_label(o)
+        if o.get("level", 1) == top:
+            vol = lab
+        out[lab] = vol
+    return out
+
+
+def _deliv(ctx, vol):
+    """The effort deliverable that matches a volume: {name, limit, format}, or None."""
+    if not ctx or not vol:
+        return None
+    import subreq as SR
+    for d in ctx.get("deliverables") or []:
+        if SR.match_volume(vol, d["name"]) or SR.match_volume(d["name"], vol) or d["name"].lower() == vol.lower():
+            return d
+    return None
+
+
+def _value(M, it, key, inh, people, ctx=None, vols=None):
     import setupdoc as SD, compliance as C
+    if it.get("_kind") == "empty":
+        vol = (vols or {}).get(it["map"], "")
+        d = _deliv(ctx, vol)
+        return {"section": it["map"], "volume": vol, "text": "(nothing assigned yet)", "role": "Proposal section",
+                "deliverable": d["name"] if d else "", "page_limit": d.get("limit", "") if d else "",
+                "format": d.get("format", "") if d else "", "order": it.get("_order", "")}.get(key, "")
+    if key == "order":
+        return it.get("_order", "")
     if key == "ref":
-        return SD.ref_of(M, it, inh)[0] or it.get("section", "") or it["id"]
+        return SD.ref_of(M, it, inh)[0] or _where(it) or it["id"]
+    if key in ("volume", "deliverable", "page_limit", "format"):
+        vol = (vols or {}).get(it.get("map", ""), "")
+        if key == "volume":
+            return vol
+        d = _deliv(ctx, vol)
+        return (d.get({"deliverable": "name", "page_limit": "limit", "format": "format"}[key], "") if d else "")
+    if key == "far":
+        return "; ".join(dict.fromkeys(" ".join(m.group(0).split()) for m in _FAR.finditer(it.get("text", ""))))
+    if key.startswith(CUSTOM):
+        return (it.get("cols") or {}).get(key[len(CUSTOM):], "")
     if key == "rfp_section":
         return " ".join(x for x in (it.get("section", ""), it.get("section_title", "")) if x)
     if key == "text":
@@ -134,15 +216,50 @@ def _value(M, it, key, inh, people):
     return ""
 
 
-def rows(M, design):
-    """The matrix rows in our structure's order: (items, [[value, ...]])."""
+def rows(M, design, ctx=None):
+    """The matrix rows (2.51.0): our structure's sections in outline order; in each, the compliance requirements in
+    the order they appear in the RFP, each followed by the Context rows that support it (in document order); Context
+    for the section without a requirement after them; a section with nothing assigned yet keeps one row so it is not
+    lost. Every row gets an Order number (sort on it to get this layout back). Returns (items, [[value, ...]]); an
+    item's "_kind" is "req", "ctx" (supports the row above) or "empty"."""
     import setupdoc as SD, compliance as C
-    order = {C.outline_label(o): k for k, o in enumerate(M.outline)}
-    pick = [it for it in M.items if it.get("decision") in design["roles"]]
+    labels = [C.outline_label(o) for o in M.outline]
+    pos = {id(it): i for i, it in enumerate(M.items)}
+    roles = design["roles"]
+    keep = [it for it in M.items if it.get("decision") == "Keep" and "Keep" in roles]
+    ctxs = [it for it in M.items if it.get("decision") == "Context" and "Context" in roles]
+    keep_ids = {it["id"] for it in keep}
+    under, loose = {}, []
+    for it in ctxs:
+        host = next((h for h in C.cf_ids(it.get("context_for", "")) if h in keep_ids), None)
+        (under.setdefault(host, []) if host else loose).append(it)
+    by_sec = {}
+    for it in keep + loose:
+        by_sec.setdefault(it.get("map", ""), []).append(it)
+    out = []
+    order = labels + [s for s in sorted(by_sec, key=lambda s: min(pos[id(x)] for x in by_sec[s])) if s not in labels]
+    parents = set()
+    for i, o in enumerate(M.outline):
+        nxt = M.outline[i + 1] if i + 1 < len(M.outline) else None
+        if nxt is not None and nxt.get("level", 1) > o.get("level", 1):
+            parents.add(labels[i])
+    for sec in order:
+        group = sorted(by_sec.get(sec, []), key=lambda x: (x.get("decision") != "Keep", pos[id(x)]))
+        if not group:
+            if design.get("empty_sections", True) and sec in labels and sec not in parents:
+                out.append({"_kind": "empty", "map": sec, "id": "", "decision": ""})
+            continue
+        for it in group:                          # copies: the matrix's own rows are not touched
+            out.append(dict(it, _kind="req" if it.get("decision") == "Keep" else "ctx"))
+            if it.get("decision") == "Keep":
+                for c in sorted(under.get(it["id"], []), key=lambda x: pos[id(x)]):
+                    out.append(dict(c, _kind="ctx", _host=it["id"]))
+    for n, it in enumerate(out, 1):
+        it["_order"] = n
     inh = SD.inherited_sections(M)
-    pick.sort(key=lambda it: (order.get(it.get("map", ""), len(order)), C.sec_key(it.get("section", "") or ""), M.items.index(it)))
+    vols = volume_map(M)
     people = {}
-    return pick, [[_value(M, it, c["key"], inh, people) for c in design["columns"]] for it in pick]
+    return out, [[_value(M, it, c["key"], inh, people, ctx, vols) for c in design["columns"]] for it in out]
 
 
 def customer_rows(M):
@@ -152,12 +269,13 @@ def customer_rows(M):
              _value(M, it, "location", inh, {})] for it in M.items if it.get("decision") == "Customer"]
 
 
-def preview(M, design, n=8):
-    _items, r = rows(M, design)
-    return [c["heading"] for c in design["columns"]], r[:n], len(r)
+def preview(M, design, n=None, ctx=None):
+    """Headings, rows and the count; 2.51.0: every row unless n is given."""
+    _items, r = rows(M, design, ctx)
+    return [c["heading"] for c in design["columns"]], (r if n is None else r[:n]), len(r)
 
 
-def export(M, path, design, effort_name="", when=None):
+def export(M, path, design, effort_name="", when=None, ctx=None):
     """Write the designed compliance matrix workbook. Returns {"path", "rows", "customer"}."""
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
@@ -182,17 +300,29 @@ def export(M, path, design, effort_name="", when=None):
         cell.fill = PatternFill("solid", fgColor="1E3A8A")
         cell.alignment = Alignment(vertical="center", wrap_text=True)
         cell.border = Border(top=thin, bottom=thin, left=thin, right=thin)
-        ws.column_dimensions[cell.column_letter].width = COLUMNS[design["columns"][k - 1]["key"]][1]
-    items, data = rows(M, design)
-    fill = {"Context": PatternFill("solid", fgColor="EFF6FF")}
+        ws.column_dimensions[cell.column_letter].width = width_of(design["columns"][k - 1]["key"])
+    items, data = rows(M, design, ctx)
+    # 2.51.0: a requirement and the Context rows under it read as one block: Context rows lighter, indented, with no
+    # line between them and the requirement; a section with nothing assigned yet is gray and italic
+    ctx_fill, empty_fill = PatternFill("solid", fgColor="F1F5F9"), PatternFill("solid", fgColor="FAFAFA")
+    none = Side(style=None)
+    text_col = next((k for k, c in enumerate(design["columns"]) if c["key"] == "text"), None)
     import compliance as _C
-    for it, r in zip(items, data):
+    for i, (it, r) in enumerate(zip(items, data)):
         ws.append([_C.clean_chars(v) for v in r])
-        for cell in ws[ws.max_row]:
-            cell.alignment = Alignment(vertical="top", wrap_text=True)
-            cell.border = Border(top=thin, bottom=thin, left=thin, right=thin)
-            if it.get("decision") in fill:
-                cell.fill = fill[it["decision"]]
+        kind = it.get("_kind")
+        nxt = items[i + 1].get("_kind") if i + 1 < len(items) else None
+        attached_below = nxt == "ctx" and items[i + 1].get("_host") in (it.get("id"), it.get("_host"))
+        for k, cell in enumerate(ws[ws.max_row]):
+            cell.alignment = Alignment(vertical="top", wrap_text=True, indent=2 if (kind == "ctx" and k == text_col) else 0)
+            cell.border = Border(top=none if (kind == "ctx" and it.get("_host")) else thin,
+                                 bottom=none if attached_below else thin, left=thin, right=thin)
+            if kind == "ctx":
+                cell.fill = ctx_fill
+                cell.font = Font(color="475569", size=10)
+            elif kind == "empty":
+                cell.fill = empty_fill
+                cell.font = Font(color="94A3B8", italic=True)
     ws.freeze_panes = "A5"
     if data:
         ws.auto_filter.ref = f"A4:{ws.cell(row=4, column=len(heads)).column_letter}{ws.max_row}"
@@ -246,7 +376,7 @@ def long_path(path):
     return path
 
 
-def export_together(M, folder, design, effort_name="", when=None):
+def export_together(M, folder, design, effort_name="", when=None, ctx=None):
     """The designed matrix and the Response Setup, from the same decisions, in one dated folder. Returns the folder and
     the files written."""
     import setupdoc as SD
@@ -259,7 +389,7 @@ def export_together(M, folder, design, effort_name="", when=None):
         sub = os.path.join(folder, f"{name} ({k})"); k += 1
     os.makedirs(sub)
     mx = export(M, os.path.join(sub, safe_name(f"{(effort_name or M.name).replace(' ', '_')}_Compliance_Matrix_{when:%Y-%m-%d}.xlsx")),
-                design, effort_name, when)
+                design, effort_name, when, ctx)
     files = [mx["path"]]
     if M.outline:
         files += SD.export(M, sub, when)
