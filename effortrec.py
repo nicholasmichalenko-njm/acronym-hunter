@@ -322,6 +322,18 @@ class Record:
         self.save()
         return g["id"]
 
+    def edit_goal(self, sid, gid, text, who=None):
+        """2.49.0: change a goal's wording."""
+        s = self.stage(sid)
+        g = next((x for x in s["goals"] if x["id"] == gid), None) if s else None
+        text = _clean(text)
+        if g is None or not text or text == g["text"]:
+            return False
+        old, g["text"] = g["text"], text
+        self.log("stage", f"Goal changed in {s['name']}: {old} > {text}", who=who)
+        self.save()
+        return True
+
     def remove_goal(self, sid, gid):
         s = self.stage(sid)
         if s is None:
@@ -371,6 +383,35 @@ class Record:
         self.save()
         return True
 
+    def update_note(self, nid, who=None, **fields):
+        """2.49.0: change a note's text, make it a question or a note, or assign it to a person (assignee)."""
+        n = next((x for x in self.data["notes"] if x["id"] == nid), None)
+        if n is None:
+            return False
+        changed = []
+        for k, v in fields.items():
+            if k == "text":
+                v = (v or "").strip()
+                if not v:
+                    continue
+            elif k == "assignee":
+                v = _clean(v)
+            elif k == "question":
+                v = bool(v)
+            else:
+                continue
+            if n.get(k, "" if k != "question" else False) != v:
+                n[k] = v
+                changed.append(k)
+        if "assignee" in changed:
+            self.log("assign", (("Question" if n["question"] else "Note") + f" assigned to {n['assignee'] or 'nobody'}: "
+                                + _clean(n["text"])[:100]), ref={"note": nid}, who=who)
+        if "text" in changed:
+            self.log("note", f"{'Question' if n['question'] else 'Note'} changed: {_clean(n['text'])[:120]}", ref={"note": nid}, who=who)
+        if changed:
+            self.save()
+        return bool(changed)
+
     def remove_note(self, nid):
         n = len(self.data["notes"])
         self.data["notes"] = [x for x in self.data["notes"] if x["id"] != nid]
@@ -382,8 +423,40 @@ class Record:
                and (not open_only or (n["question"] and not n["resolved"]))]
         return sorted(out, key=lambda n: n["at"], reverse=True)
 
-    def open_questions(self):
-        return self.notes(open_only=True)
+    def open_questions(self, assignee=None):
+        qs = self.notes(open_only=True)
+        return qs if assignee is None else [q for q in qs if q.get("assignee", "") == assignee]
+
+    def calendar(self, first=None, last=None, extra=()):
+        """2.49.0: what falls on each day: {date: [(kind, text)]}. kind: due, stage, task, done, event. extra: more
+        (date, kind, text) from elsewhere (questions due from the customer documents). Between first and last when given."""
+        out = {}
+
+        def put(d, kind, text):
+            if d and (first is None or d >= first) and (last is None or d <= last):
+                out.setdefault(d, []).append((kind, text))
+        due = self.data.get("due", "")
+        if due:
+            hm = due[11:16] if len(due) > 10 else ""
+            if hm[:2].isdigit() and hm[3:5].isdigit():
+                h, mi = int(hm[:2]), int(hm[3:5])
+                hm = f"{h % 12 or 12}:{mi:02d} {'a.m.' if h < 12 else 'p.m.'}"
+            put(parse_date(due[:10]), "due", "Proposal due" + (f" {hm}" if hm else ""))
+        for s in self.stages:
+            if s.get("planned"):
+                put(parse_date(s["planned"]), "stage", f"{s['name']} (planned)")
+            if s.get("started"):
+                put(parse_date(s["started"][:10]), "stage", f"{s['name']} started")
+        for t in self.data.get("tasks", []):
+            if t.get("due"):
+                put(parse_date(t["due"]), "done" if t["status"] == "Done" else "task",
+                    t["title"] + (f" ({t['owner']})" if t.get("owner") else ""))
+        for e in self.data.get("timeline", []):
+            if e["kind"] in ("document", "stage", "deliverable", "assign") and e.get("at") and not e["text"].startswith("Goal "):
+                put(parse_date(e["at"][:10]), "event", e["text"][:80])
+        for d, kind, text in extra:
+            put(d, kind, text)
+        return out
 
     # ------------------------------------------------------------ tasks
     def add_task(self, title, owner="", due="", stage="", about="", notes="", who=None):

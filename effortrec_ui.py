@@ -53,6 +53,7 @@ class EffortRecordMixin:
         r = self.effrec()
         if r is not None:
             names.update(t["owner"] for t in r.data["tasks"] if t["owner"])
+            names.update(n["assignee"] for n in r.data["notes"] if n.get("assignee"))
         return sorted(names, key=str.casefold)
 
     # ------------------------------------------------------------ what the app can check for the gate goals
@@ -211,7 +212,12 @@ class EffortRecordMixin:
             return ""
 
     # ------------------------------------------------------------ Effort home
+    HOME_SECTIONS = (("goals", "Gate goals", True), ("tasks", "Tasks", True), ("notes", "Notes and open questions", True),
+                     ("calendar", "Calendar", True), ("timeline", "Timeline", False))
+
     def rec_build_home(self, P):
+        """2.49.0: the effort's working sections, full width, each one opens and closes (remembered): gate goals, tasks,
+        notes and open questions, a calendar, the timeline. One Show filter picks a person for tasks and questions."""
         bar = ctk.CTkFrame(P, fg_color="transparent"); bar.pack(fill="x", padx=6, pady=(0, 8))
         B = dict(width=10, height=32)
         ctk.CTkButton(bar, text="Effort details...", command=self.rec_details_dialog, fg_color="#475569", **B).pack(side="left", padx=(0, 6))
@@ -219,28 +225,77 @@ class EffortRecordMixin:
             ctk.CTkButton(bar, text="Effort status (Word)...", command=self.status_export, **B).pack(side="left", padx=6)
         if hasattr(self, "pkg_save_dialog"):
             ctk.CTkButton(bar, text="Save effort package...", command=self.pkg_save_dialog, fg_color="#0F766E", **B).pack(side="left", padx=6)
+        self.rec_who = ctk.CTkOptionMenu(bar, values=["Everyone"], width=170, command=lambda _v: self._rec_force())
+        self.rec_who.pack(side="right")
+        ctk.CTkLabel(bar, text="Show tasks and questions for").pack(side="right", padx=6)
         self.rec_track = ctk.CTkFrame(P, corner_radius=12, fg_color=("#FFFFFF", "#1F2937"), border_width=1, border_color=("#E2E8F0", "#334155"))
         self.rec_track.pack(fill="x", padx=6, pady=(0, 6))
-        grid = ctk.CTkFrame(P, fg_color="transparent"); grid.pack(fill="x", padx=0)
-        grid.grid_columnconfigure(0, weight=1, uniform="g"); grid.grid_columnconfigure(1, weight=1, uniform="g")
         cards = {}
-        for key, title, col, row in (("goals", "Gate goals", 0, 0), ("tasks", "Tasks", 0, 1), ("notes", "Notes and open questions", 1, 0),
-                                     ("timeline", "Timeline", 1, 1)):
-            c = ctk.CTkFrame(grid, corner_radius=12, fg_color=("#FFFFFF", "#1F2937"), border_width=1, border_color=("#E2E8F0", "#334155"))
-            c.grid(row=row, column=col, sticky="nsew", padx=6, pady=6)
-            head = ctk.CTkFrame(c, fg_color="transparent"); head.pack(fill="x", padx=14, pady=(10, 4))
-            lab = ctk.CTkLabel(head, text=title, font=("Segoe UI", 15, "bold"), anchor="w"); lab.pack(side="left")
-            body = ctk.CTkFrame(c, fg_color="transparent"); body.pack(fill="x", padx=12, pady=(0, 10))
+        self.rec_open = dict({k: d for k, _t, d in self.HOME_SECTIONS}, **(self.settings.get("home_sections") or {}))
+        for key, title, _d in self.HOME_SECTIONS:
+            c = ctk.CTkFrame(P, corner_radius=12, fg_color=("#FFFFFF", "#1F2937"), border_width=1, border_color=("#E2E8F0", "#334155"))
+            c.pack(fill="x", padx=6, pady=4)
+            head = ctk.CTkFrame(c, fg_color="transparent"); head.pack(fill="x", padx=10, pady=(8, 6))
+            tog = ctk.CTkButton(head, text="", width=26, height=26, fg_color="transparent", text_color=("#1E3A8A", "#93C5FD"),
+                                hover_color=("#E2E8F0", "#334155"), font=("Segoe UI", 14, "bold"),
+                                command=lambda k=key: self.rec_toggle(k))
+            tog.pack(side="left")
+            lab = ctk.CTkLabel(head, text=title, font=("Segoe UI", 15, "bold"), anchor="w", cursor="hand2")
+            lab.pack(side="left", padx=(2, 0))
+            lab.bind("<Button-1>", lambda _e, k=key: self.rec_toggle(k))
+            body = ctk.CTkFrame(c, fg_color="transparent")
             cards[key] = (head, lab, body)
+            c._tog, c._body = tog, body
+            self.__dict__.setdefault("rec_frames", {})[key] = c
         S = dict(width=10, height=28)
         ctk.CTkButton(cards["goals"][0], text="+ Goal", command=self.rec_add_goal_dialog, **S).pack(side="right")
         ctk.CTkButton(cards["tasks"][0], text="+ Task", command=self.rec_task_dialog, **S).pack(side="right")
-        self.rec_who = ctk.CTkOptionMenu(cards["tasks"][0], values=["Everyone"], width=150, command=lambda _v: self._rec_force())
-        self.rec_who.pack(side="right", padx=6)
+        ctk.CTkButton(cards["notes"][0], text="+ Question", command=lambda: self.rec_note_dialog(question=True), fg_color="#B45309",
+                      **S).pack(side="right", padx=(6, 0))
         ctk.CTkButton(cards["notes"][0], text="+ Note", command=self.rec_note_dialog, **S).pack(side="right")
+        ctk.CTkButton(cards["calendar"][0], text="Next >", command=lambda: self.rec_cal_step(1), fg_color="#475569", **S).pack(side="right")
+        ctk.CTkButton(cards["calendar"][0], text="This month", command=lambda: self.rec_cal_step(0), fg_color="#475569", **S).pack(side="right", padx=6)
+        ctk.CTkButton(cards["calendar"][0], text="< Previous", command=lambda: self.rec_cal_step(-1), fg_color="#475569", **S).pack(side="right")
         ctk.CTkButton(cards["timeline"][0], text="Full timeline...", command=self.rec_timeline_window, fg_color="#475569", **S).pack(side="right")
         self.rec_cards = cards
+        self.rec_cal_month = datetime.date.today().replace(day=1)
+        self.rec_cal_day = None
         self._rec_sig = None
+        for key in self.rec_open:
+            self._rec_apply_open(key)
+
+    def _rec_apply_open(self, key):
+        c = self.rec_frames.get(key)
+        if c is None:
+            return
+        on = bool(self.rec_open.get(key, True))
+        c._tog.configure(text="\u25be" if on else "\u25b8")        # small triangles (text symbols)
+        if on and not c._body.winfo_manager():
+            c._body.pack(fill="x", padx=12, pady=(0, 10))
+        elif not on and c._body.winfo_manager():
+            c._body.pack_forget()
+
+    def rec_toggle(self, key, on=None):
+        """Open or close one Effort home section (remembered)."""
+        self.rec_open[key] = (not self.rec_open.get(key, True)) if on is None else bool(on)
+        self._rec_apply_open(key)
+        try:
+            self.settings["home_sections"] = dict(self.rec_open)
+            __import__("app_gui").save_settings(self.settings)
+        except Exception:
+            diag.swallowed()
+        return self.rec_open[key]
+
+    def rec_cal_step(self, d):
+        m = self.rec_cal_month
+        if d == 0:
+            self.rec_cal_month = datetime.date.today().replace(day=1)
+        else:
+            y, mo = m.year + (m.month - 1 + d) // 12, (m.month - 1 + d) % 12 + 1
+            self.rec_cal_month = datetime.date(y, mo, 1)
+        self.rec_cal_day = None
+        self._rec_force()
+        return self.rec_cal_month
 
     def _rec_force(self):
         self._rec_sig = None
@@ -254,7 +309,8 @@ class EffortRecordMixin:
         checks = self.rec_checks() if r is not None else {}
         people = self.rec_people() if r is not None else []
         sig = (id(r), len(r.data["timeline"]) if r else 0, repr(r.data["stages"]) if r else "", repr(r.data["tasks"]) if r else "",
-               repr(r.data["notes"]) if r else "", tuple(sorted(checks.items())), self.rec_who.get(), tuple(people))
+               repr(r.data["notes"]) if r else "", tuple(sorted(checks.items())), self.rec_who.get(), tuple(people),
+               getattr(self, "rec_cal_month", None), getattr(self, "rec_cal_day", None), r.data.get("due", "") if r else "")
         if sig == getattr(self, "_rec_sig", None):
             return
         self._rec_sig = sig
@@ -272,6 +328,7 @@ class EffortRecordMixin:
         self._rec_draw_goals(r, checks)
         self._rec_draw_tasks(r)
         self._rec_draw_notes(r)
+        self._rec_draw_calendar(r)
         self._rec_draw_timeline(r)
 
     @staticmethod
@@ -321,11 +378,17 @@ class EffortRecordMixin:
             ctk.CTkCheckBox(line, text="", variable=var, width=24, checkbox_width=18, checkbox_height=18,
                             command=lambda: (r.set_goal(s["id"], g["id"], var.get()), self._rec_force())).pack(side="left")
         where = "by the app" if auto_known else ("by hand" + (f": {g['by']}" if g.get("by") and done else ""))
-        ctk.CTkLabel(line, text=where, text_color=("#64748B", "#94A3B8"), font=("Segoe UI", 11)).pack(side="right", anchor="n")
+        if carry_var is None:
+            X = dict(width=10, height=22, fg_color="transparent", text_color=("#475569", "#94A3B8"), hover_color=("#E2E8F0", "#334155"),
+                     font=("Segoe UI", 11))
+            ctk.CTkButton(line, text="Remove", command=lambda: self.rec_goal_remove(s["id"], g["id"]), **X).pack(side="right", anchor="n")
+            if not g.get("auto"):
+                ctk.CTkButton(line, text="Edit", command=lambda: self.rec_goal_edit(s["id"], g["id"]), **X).pack(side="right", anchor="n")
+        ctk.CTkLabel(line, text=where, text_color=("#64748B", "#94A3B8"), font=("Segoe UI", 11)).pack(side="right", anchor="n", padx=(0, 4))
         txt = g["text"] + (f"   (from {g['from']})" if g.get("from") else "")
         lab = ctk.CTkLabel(line, text=txt, anchor="w", justify="left", wraplength=300)
         lab.pack(side="left", padx=4, fill="x", expand=True)
-        self._autowrap(lab, line, pad=110)
+        self._autowrap(lab, line, pad=200)
         return line
 
     def _rec_draw_goals(self, r, checks):
@@ -382,27 +445,123 @@ class EffortRecordMixin:
 
     def _rec_draw_notes(self, r):
         _h, lab, body = self.rec_cards["notes"]
-        qs = r.open_questions()
-        notes = [n for n in r.notes() if not (n["question"] and not n["resolved"])]
-        lab.configure(text=f"Notes and open questions   {len(qs)} open")
-        for n in (qs + notes)[:10]:
+        who = self.rec_who.get()
+        qs = r.open_questions(assignee=None if who == "Everyone" else who)
+        notes = [n for n in r.notes() if not (n["question"] and not n["resolved"])] if who == "Everyone" else []
+        lab.configure(text=f"Notes and open questions   {len(qs)} open" + ("" if who == "Everyone" else f" for {who}"))
+        X = dict(width=10, height=24, fg_color="transparent", text_color=("#1E3A8A", "#93C5FD"), hover_color=("#E2E8F0", "#334155"),
+                 font=("Segoe UI", 11))
+        for n in (qs + notes)[:14]:
             line = ctk.CTkFrame(body, fg_color="transparent"); line.pack(fill="x", pady=2)
             q = n["question"] and not n["resolved"]
             kind = "QUESTION" if q else ("ANSWERED" if n["question"] else "NOTE")
             ctk.CTkLabel(line, text=kind, width=86, anchor="w", font=("Segoe UI", 11, "bold"),
                          text_color=("#B45309", "#FBBF24") if q else ("#7C3AED", "#C4B5FD")).pack(side="left", anchor="n")
+            ctk.CTkButton(line, text="Remove", command=lambda nid=n["id"]: self.rec_note_remove(nid), **X).pack(side="right", anchor="n")
+            ctk.CTkButton(line, text="Edit", command=lambda nid=n["id"]: self.rec_note_edit_dialog(nid), **X).pack(side="right", anchor="n")
             if q:
                 ctk.CTkButton(line, text="Resolve...", width=10, height=24, fg_color="#B45309",
                               command=lambda nid=n["id"]: self.rec_resolve_dialog(nid)).pack(side="right", padx=4, anchor="n")
+                ctk.CTkButton(line, text="Assign...", width=10, height=24, fg_color="#475569",
+                              command=lambda nid=n["id"]: self.rec_note_edit_dialog(nid, focus="assignee")).pack(side="right", padx=(4, 0), anchor="n")
             col = ctk.CTkFrame(line, fg_color="transparent"); col.pack(side="left", fill="x", expand=True)
             txt = n["text"] + (f"\nAnswer: {n['answer']}" if n.get("answer") else "")
-            lab = ctk.CTkLabel(col, text=txt, anchor="w", justify="left", wraplength=300); lab.pack(fill="x")
-            self._autowrap(lab, col)
-            meta = " | ".join(x for x in (n["label"], R.short_date(n["at"]), n["who"]) if x)
+            tl = ctk.CTkLabel(col, text=txt, anchor="w", justify="left", wraplength=300); tl.pack(fill="x")
+            self._autowrap(tl, col)
+            meta = " | ".join(x for x in (n["label"], R.short_date(n["at"]), n["who"],
+                                          ("assigned to " + n["assignee"]) if n.get("assignee") else "") if x)
             ctk.CTkLabel(col, text=meta, font=("Segoe UI", 11), anchor="w", text_color=("#64748B", "#94A3B8")).pack(fill="x")
+        if len(qs) + len(notes) > 14:
+            ctk.CTkLabel(body, text=f"and {len(qs) + len(notes) - 14} more", anchor="w", text_color=("#475569", "#94A3B8")).pack(fill="x")
         if not qs and not notes:
-            ctk.CTkLabel(body, text="No notes yet. Notes can go on the effort, a stage, a customer document or a requirement.",
+            ctk.CTkLabel(body, text=("No notes yet. Notes can go on the effort, a stage, a customer document or a requirement."
+                                     if who == "Everyone" else f"No open questions for {who}."),
                          anchor="w", justify="left", wraplength=560).pack(fill="x")
+
+    # ------------------------------------------------------------ calendar
+    CAL_COLORS = {"due": ("#B91C1C", "#FCA5A5"), "stage": ("#1E3A8A", "#93C5FD"), "task": ("#B45309", "#FBBF24"),
+                  "done": ("#15803D", "#86EFAC"), "event": ("#475569", "#94A3B8"), "questions": ("#7C3AED", "#C4B5FD")}
+
+    def rec_cal_extra(self):
+        """Dates from the customer documents: questions due, and the due date when the effort has none of its own."""
+        out = []
+        try:
+            reg = self.subreg() if hasattr(self, "subreg") else None
+            if reg is not None:
+                import subreq as SR
+                sm = SR.summary(reg.rows())
+                q = sm.get("questions_due")
+                if q:
+                    d = R.parse_date(q["value"].split(" at ")[0]) or R.parse_date(",".join(q["value"].split(",")[:2]))
+                    out.append((d, "questions", "Questions due to the customer"))
+                r = self.effrec()
+                if sm.get("due") and r is not None and not r.data.get("due"):
+                    v = sm["due"]["value"]
+                    out.append((R.parse_date(",".join(v.split(",")[:2])) or R.parse_date(v.split(" at ")[0]), "due", "Proposal due"))
+        except Exception:
+            diag.swallowed()
+        return [x for x in out if x[0]]
+
+    def rec_cal_days(self, month=None):
+        """{date: [(kind, text)]} for one month (Effort home, the status export)."""
+        import calendar as CAL
+        r = self.effrec()
+        m = month or getattr(self, "rec_cal_month", None) or datetime.date.today().replace(day=1)
+        last = m.replace(day=CAL.monthrange(m.year, m.month)[1])
+        return r.calendar(first=m, last=last, extra=self.rec_cal_extra()) if r is not None else {}
+
+    def _rec_draw_calendar(self, r):
+        import calendar as CAL
+        head, lab, body = self.rec_cards["calendar"]
+        m = self.rec_cal_month
+        days = self.rec_cal_days(m)
+        lab.configure(text=f"Calendar   {m.strftime('%B %Y')}")
+        grid = ctk.CTkFrame(body, fg_color="transparent"); grid.pack(fill="x")
+        for i, dn in enumerate(("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")):
+            grid.grid_columnconfigure(i, weight=1, uniform="cal")
+            ctk.CTkLabel(grid, text=dn, font=("Segoe UI", 11, "bold"), text_color=("#64748B", "#94A3B8")).grid(row=0, column=i, sticky="ew")
+        today = datetime.date.today()
+        self.rec_cal_cells = {}
+        for wi, week in enumerate(CAL.Calendar(0).monthdatescalendar(m.year, m.month)):
+            for di, d in enumerate(week):
+                inm = d.month == m.month
+                items = days.get(d, []) if inm else []
+                sel = d == self.rec_cal_day
+                cell = ctk.CTkFrame(grid, corner_radius=6, height=64, border_width=2 if (d == today or sel) else 1,
+                                    border_color=("#1E3A8A", "#93C5FD") if sel else ("#B91C1C", "#FCA5A5") if d == today else ("#E2E8F0", "#334155"),
+                                    fg_color=("#FFFFFF", "#1F2937") if inm else ("#F8FAFC", "#111827"))
+                cell.grid(row=wi + 1, column=di, sticky="nsew", padx=1, pady=1)
+                cell.grid_propagate(False)
+                ctk.CTkLabel(cell, text=str(d.day), font=("Segoe UI", 11, "bold" if d == today else "normal"), height=16,
+                             text_color=("#0F172A", "#F1F5F9") if inm else ("#CBD5E1", "#475569")).pack(anchor="nw", padx=4)
+                for kind, text in items[:2]:
+                    ctk.CTkLabel(cell, text=text[:22], font=("Segoe UI", 10), height=14, anchor="w",
+                                 text_color=self.CAL_COLORS.get(kind, ("#334155", "#CBD5E1"))).pack(fill="x", padx=4)
+                if len(items) > 2:
+                    ctk.CTkLabel(cell, text=f"+{len(items) - 2} more", font=("Segoe UI", 10), height=14, anchor="w",
+                                 text_color=("#64748B", "#94A3B8")).pack(fill="x", padx=4)
+                if inm:
+                    for w in [cell] + list(cell.winfo_children()):
+                        w.bind("<Button-1>", lambda _e, d=d: self.rec_cal_pick(d))
+                    self.rec_cal_cells[d] = cell
+        legend = ctk.CTkFrame(body, fg_color="transparent"); legend.pack(fill="x", pady=(6, 0))
+        for kind, word in (("due", "Due"), ("questions", "Questions due"), ("stage", "Stages"), ("task", "Tasks due"),
+                           ("done", "Tasks done"), ("event", "What happened")):
+            ctk.CTkLabel(legend, text="■ " + word, font=("Segoe UI", 11), text_color=self.CAL_COLORS[kind]).pack(side="left", padx=(0, 12))
+        d = self.rec_cal_day
+        if d is not None:
+            box = ctk.CTkFrame(body, fg_color=("#F1F5F9", "#0F172A"), corner_radius=8); box.pack(fill="x", pady=(8, 0))
+            ctk.CTkLabel(box, text=d.strftime("%A, %B %d, %Y").replace(" 0", " "), font=("Segoe UI", 13, "bold"), anchor="w").pack(fill="x", padx=10, pady=(6, 2))
+            for kind, text in days.get(d, []) or [("event", "Nothing on this day.")]:
+                ctk.CTkLabel(box, text=text, anchor="w", justify="left", wraplength=900,
+                             text_color=self.CAL_COLORS.get(kind, ("#334155", "#CBD5E1"))).pack(fill="x", padx=16)
+            ctk.CTkButton(box, text="+ Task due this day", width=10, height=26,
+                          command=lambda: self.rec_task_dialog(due=d.isoformat())).pack(anchor="w", padx=10, pady=6)
+
+    def rec_cal_pick(self, d):
+        self.rec_cal_day = None if d == self.rec_cal_day else d
+        self._rec_force()
+        return self.rec_cal_day
 
     def _rec_draw_timeline(self, r):
         _h, _lab, body = self.rec_cards["timeline"]
@@ -581,6 +740,75 @@ class EffortRecordMixin:
         self._rec_force()
         return gid
 
+    def rec_goal_edit(self, sid, gid, text=None):
+        r = self.effrec()
+        if r is None:
+            return False
+        if text is None:
+            from tkinter import simpledialog
+            s = r.stage(sid); g = next((x for x in s["goals"] if x["id"] == gid), None) if s else None
+            if g is None:
+                return False
+            text = simpledialog.askstring("Edit goal", "The goal:", initialvalue=g["text"], parent=self)
+            if text is None:
+                return False
+        ok = r.edit_goal(sid, gid, text)
+        self._rec_force()
+        return ok
+
+    def rec_goal_remove(self, sid, gid, confirm=True):
+        r = self.effrec()
+        if r is None or (confirm and not messagebox.askyesno("Remove goal", "Remove this goal from the stage?", parent=self)):
+            return False
+        s = r.stage(sid)
+        g = next((x for x in s["goals"] if x["id"] == gid), None) if s else None
+        ok = r.remove_goal(sid, gid)
+        if ok:
+            r.log("stage", f"Goal removed from {s['name']}: {g['text']}", save=True)
+        self._rec_force()
+        return ok
+
+    def rec_note_remove(self, nid, confirm=True):
+        r = self.effrec()
+        if r is None or (confirm and not messagebox.askyesno("Remove", "Remove this note or question?", parent=self)):
+            return False
+        ok = r.remove_note(nid)
+        self._rec_force()
+        return ok
+
+    def rec_note_edit_dialog(self, nid, focus="text", values=None):
+        """Edit a note or question: its words, note or question, and who it is assigned to."""
+        r = self.effrec()
+        n = next((x for x in r.data["notes"] if x["id"] == nid), None) if r is not None else None
+        if n is None:
+            return None
+        if values is not None:
+            ok = r.update_note(nid, **values)
+            if ok and values.get("assignee"):
+                diag.activity("question_assigned")
+            self._rec_force()
+            return ok
+        w = ctk.CTkToplevel(self); w.title("Edit note or question"); w.transient(self); w.geometry("640x400")
+        tb = ctk.CTkTextbox(w, height=150); tb.pack(fill="both", expand=True, padx=16, pady=(14, 8)); tb.insert("1.0", n["text"])
+        qv = tk.BooleanVar(value=n["question"])
+        ctk.CTkCheckBox(w, text="Open question (stays open until resolved)", variable=qv).pack(anchor="w", padx=16)
+        row = ctk.CTkFrame(w, fg_color="transparent"); row.pack(fill="x", padx=16, pady=8)
+        ctk.CTkLabel(row, text="Assigned to").pack(side="left")
+        people = ["(nobody)"] + sorted(set(self.rec_people()) | ({n["assignee"]} if n.get("assignee") else set()), key=str.casefold)
+        cb = ctk.CTkComboBox(row, values=people, width=300); cb.set(n.get("assignee") or "(nobody)"); cb.pack(side="left", padx=8)
+        ctk.CTkLabel(w, text="Pick a person or type a name.", anchor="w", text_color=("#64748B", "#94A3B8")).pack(fill="x", padx=16)
+
+        def ok():
+            who = cb.get().strip()
+            vals = {"text": tb.get("1.0", "end"), "question": qv.get(), "assignee": "" if who == "(nobody)" else who}
+            if r.update_note(nid, **vals) and vals["assignee"]:
+                diag.activity("question_assigned")
+            w.destroy(); self._rec_force()
+        ctk.CTkButton(w, text="Save", command=ok, fg_color="#1E3A8A").pack(side="right", padx=16, pady=10)
+        w._api = {"text": tb, "question": qv, "assignee": cb, "ok": ok}
+        w.after(100, w.lift); w.after(150, (cb if focus == "assignee" else tb).focus_set)
+        return w
+
     # ------------------------------------------------------------ notes
     def rec_note_dialog(self, on="effort", on_id="", label="", text=None, question=False):
         """A note or an open question on the effort, a stage, a document version, a requirement, a task..."""
@@ -631,7 +859,7 @@ class EffortRecordMixin:
         return ok
 
     # ------------------------------------------------------------ tasks
-    def rec_task_dialog(self, tid=None, values=None):
+    def rec_task_dialog(self, tid=None, values=None, due=""):
         """Add or edit a task: title, owner, due date, stage, status, about, notes. values (tests): save at once."""
         r = self.effrec()
         if r is None:
@@ -667,6 +895,8 @@ class EffortRecordMixin:
             e = ctk.CTkEntry(w, width=380, placeholder_text=hint)
             if t:
                 e.insert(0, t[k])
+            elif k == "due" and due:
+                e.insert(0, due)
             e.grid(row=i, column=1, sticky="w", padx=8, pady=(12 if i == 0 else 4, 0))
             ents[k] = e
         ctk.CTkLabel(w, text="Stage", anchor="w").grid(row=4, column=0, sticky="w", padx=14, pady=4)
@@ -886,7 +1116,9 @@ class EffortRecordMixin:
                            "done": [g["text"] for g in cur["goals"] if r.goal_done(g, checks)] + [f"{t['title']} ({t['owner']})" if t["owner"] else t["title"] for t in here if t["status"] == "Done"],
                            "in_progress": [f"{t['title']}" + (f" ({t['owner']}" + (f", due {R.nice_date(t['due'])}" if t["due"] else "") + ")" if t["owner"] else "") for t in here if t["status"] == "In progress"],
                            "left": [g["text"] for g in cur["goals"] if not r.goal_done(g, checks)] + [f"{t['title']}" + (f" ({t['owner']})" if t["owner"] else "") for t in here if t["status"] == "Not started"]}
-        snap["questions"] = [{"text": n["text"], "about": n["label"], "when": R.short_date(n["at"]), "who": n["who"]} for n in r.open_questions()]
+        snap["questions"] = [{"text": n["text"], "about": n["label"], "when": R.short_date(n["at"]), "who": n["who"],
+                              "assignee": n.get("assignee", "")} for n in r.open_questions()]
+        snap["calendar"] = self.status_calendar()
         others = [n for n in r.notes() if not (n["question"] and not n["resolved"])]
         snap["notes"] = [{"text": n["text"], "about": n["label"], "when": R.short_date(n["at"]), "who": n["who"], "answer": n.get("answer", "")}
                          for n in (others if final else others[:12])]
@@ -938,6 +1170,29 @@ class EffortRecordMixin:
                                 "kind": KIND_WORDS.get(e["kind"], e["kind"].upper()).title(), "text": e["text"], "who": e["who"]}
                                for e in reversed(r.events())]
         return snap
+
+    def status_calendar(self, most=3):
+        """2.49.0: months for the status report: this month through the due month (at most `most`)."""
+        import calendar as CAL
+        r = self.effrec()
+        if r is None:
+            return []
+        m = datetime.date.today().replace(day=1)
+        due = R.parse_date((r.data.get("due") or "")[:10])
+        if due is None:
+            for d, kind, _t in self.rec_cal_extra():
+                if kind == "due":
+                    due = d
+        out = []
+        for _ in range(most):
+            days = self.rec_cal_days(m)
+            weeks = [[(d.day, days.get(d, [])) if d.month == m.month else (0, []) for d in wk]
+                     for wk in CAL.Calendar(0).monthdatescalendar(m.year, m.month)]
+            out.append({"title": m.strftime("%B %Y"), "weeks": weeks})
+            if due is None or (m.year, m.month) >= (due.year, due.month):
+                break
+            m = datetime.date(m.year + m.month // 12, m.month % 12 + 1, 1)
+        return out
 
     def status_export(self, path=None, final=False):
         """File > Effort status (Word)...: where the effort stands, for leadership. final: the effort summary with the

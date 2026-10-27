@@ -45,7 +45,7 @@ PAGES = {
           "Click one and only its tools show. Across the top are its steps, in order: the current step is blue, steps with "
           "work done are green with a check mark. Click any step to go to it. Each feature ends in its own Export step; "
           "Effort home and File > Export all write everything at once. One status line runs along the bottom."),
-    ("rows", [("Effort home", "The effort's stage, the goals for this gate, tasks, notes and open questions, the timeline, where "
+    ("rows", [("Effort home", "The effort's stage, the goals for this gate, tasks, notes and open questions, a calendar, the timeline, where "
                               "each feature stands, the next step to take, and Export all."),
               ("Submission", "Requirements (what to deliver and how, and how it changed), Deliverables (what we owe and where "
                              "each stands), Documents (every customer document "
@@ -74,9 +74,20 @@ PAGES = {
                          "being left can carry over."),
               ("Gate goals", "What must be true at each gate, with a progress bar. Goals the app can check tick themselves "
                              "(documents reviewed, every requirement in a section, page limits met, first use clean...); "
-                             "written goals are ticked by hand, with who and when. + Goal adds one."),
+                             "written goals are ticked by hand, with who and when. + Goal adds one; Edit changes a written "
+                             "goal's words and Remove takes a goal off the stage. Each section of Effort home (Gate goals, Tasks, "
+                             "Notes and open questions, Calendar, Timeline) opens and closes with the small triangle or its title; "
+                             "the app remembers which are open."),
               ("Notes", "+ Note on the effort, a stage, a customer document or a requirement. Tick Open question to keep it "
-                        "open until someone resolves it with the answer."),
+                        "open until someone resolves it with the answer. + Question adds one straight away. Edit changes "
+                        "the words; Assign... gives a question to a person (pick one or type a name) and the timeline notes it; "
+                        "Remove takes a note or question away. Show (top right of Effort home) picks one person: their tasks "
+                        "and the open questions assigned to them."),
+              ("Calendar", "A month on Effort home: the due date, questions due to the customer (from the customer documents), "
+                           "stage dates (planned and started), tasks by due date (done ones in green), and what happened each day "
+                           "(documents added, stage moves, assignments). < Previous, This month and Next > move between months; "
+                           "click a day to see everything on it and add a task due that day. The Effort status report has the "
+                           "same calendar, this month through the due month."),
               ("Tasks and people", "+ Task: owner, due date, stage, status and notes; late tasks show red. Pick a person to "
                                    "see their sections, compliance requirements and tasks. In Assign, O gives one compliance "
                                    "requirement its own owner (right after you assign it too: O is for the sentence just assigned when Assign has "
@@ -87,7 +98,8 @@ PAGES = {
               ("Effort status", "File > Effort status (Word)... (or Effort status on Effort home) answers \"Where are we?\" "
                                 "for leadership in one Word file: the countdown, a stage track (done, current, ahead), tiles "
                                 "for goals, requirements placed, open questions, late tasks and changes to review; what is "
-                                "done, in progress and left in this stage; open questions and notes; the projected timeline; "
+                                "done, in progress and left in this stage; open questions (and who each is assigned to) and notes; the projected timeline; "
+                                "a calendar; "
                                 "people and assignments; tasks; what changed since this stage began; submission requirements; "
                                 "each stage's goals; the customer documents. Effort summary, complete history (Word)... is the "
                                 "same report with the whole timeline: the record of the proposal when it is done. Export all "

@@ -8,7 +8,7 @@ status_snapshot), so the report can be made and tested without the screens:
 3. Tiles: gate goals met, requirements placed, open questions, tasks late, changes to review.
 4. Where we are: the current stage, what is done, in progress and left (its gate goals and tasks).
 5. Open questions and the proposal manager's notes.
-6. Projected timeline: the planned stage dates and the due date.
+6. Projected timeline: the planned stage dates and the due date; 2.49.0: a month calendar (this month to the due date).
 7. People and assignments: sections, compliance requirements and open tasks per person; requirements nobody owns.
 8. What changed: customer documents, requirement changes and stage moves since the current stage began (or all of it).
 9. Submission requirements: due date, page limits, format, files, and the changes not reviewed yet.
@@ -82,7 +82,8 @@ def build(snap, path, final=False):
         for q in qs:
             d.rich([("Question  ", {"bold": True, "color": AMBER}), (q["text"], {}),
                     (f"   {q['about']}" if q.get("about") else "", {"color": GRAY, "size": 18}),
-                    (f"   {q['when']}, {q['who']}", {"color": GRAY, "size": 18})])
+                    (f"   {q['when']}, {q['who']}", {"color": GRAY, "size": 18}),
+                    (f"   assigned to {q['assignee']}" if q.get("assignee") else "", {"color": NAVY, "size": 18, "bold": True})])
         for n in notes:
             d.rich([(("Answered  " if n.get("answer") else "Note  "), {"bold": True, "color": NAVY}), (n["text"], {}),
                     (f"  Answer: {n['answer']}" if n.get("answer") else "", {"italic": True}),
@@ -93,6 +94,30 @@ def build(snap, path, final=False):
     if proj:
         _head(d, "Projected timeline")
         d.table(["Stage", "Planned", "Status"], [[p["name"], p.get("planned", ""), p.get("status", "")] for p in proj], [4200, 2400, 2760])
+    cal = s.get("calendar") or []
+    if cal:
+        _head(d, "Calendar")
+        COL = {"due": RED, "questions": "7C3AED", "stage": NAVY, "task": AMBER, "done": GREEN, "event": GRAY}
+        for m in cal:
+            d.rich([(m["title"], {"bold": True, "size": 24, "color": INK})])
+            rows = []
+            for week in m["weeks"]:
+                row = []
+                for day, items in week:
+                    if not day:
+                        row.append("")
+                        continue
+                    parts = [(str(day), {"bold": True, "size": 16, "color": INK})]
+                    for kind, text in items[:4]:
+                        parts.append(("\n" + text[:40], {"size": 14, "color": COL.get(kind, INK)}))
+                    if len(items) > 4:
+                        parts.append((f"\n+{len(items) - 4} more", {"size": 14, "color": GRAY}))
+                    row.append(parts)
+                rows.append(row)
+            d.table(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], rows, _w(7))
+        d.rich([("Due  ", {"color": RED, "bold": True, "size": 16}), ("Questions due  ", {"color": "7C3AED", "bold": True, "size": 16}),
+                ("Stages  ", {"color": NAVY, "bold": True, "size": 16}), ("Tasks due  ", {"color": AMBER, "bold": True, "size": 16}),
+                ("Tasks done  ", {"color": GREEN, "bold": True, "size": 16}), ("What happened", {"color": GRAY, "bold": True, "size": 16})])
     # people
     ppl = s.get("people") or []
     if ppl:
