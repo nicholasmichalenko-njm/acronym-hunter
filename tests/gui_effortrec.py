@@ -62,7 +62,7 @@ def go():
     check("the top bar asks for the due date until it is set", app.rec_strip_refresh() == "Set the due date...")
     app.rec_details_dialog(values={"client": "USSF SSC", "sol": "FA8810-26-R-0042", "internal": "SS-118", "due": "December 15, 2026, 2:00 p.m. MT"})
     top = app.rec_strip_refresh()
-    check("Effort details: the due date counts down in the top bar", top.startswith("Due Dec 15, 2026, 2:00 p.m. MT") and " d " in top, top)
+    check("Effort details: the due date counts down in the top bar", top.endswith(" d  " + top.split(" d  ")[1]) and top.split("  to ")[1] == "Dec 15, 2:00 p.m. MT", top)
     check("client, solicitation and internal number are saved with the effort", (app.effort.client, app.effort.solicitation, app.effort.internal_no)
           == ("USSF SSC", "FA8810-26-R-0042", "SS-118") and app.efforts.get("Kestrel")["internal_no"] == "SS-118")
     d = app.rec_details_dialog(); d.update()
@@ -74,7 +74,7 @@ def go():
     check("the stage track shows the team's stages, Intake current", sum(1 for s in R.DEFAULT_STAGES if any(t.startswith(s) for t in track)) == 7
           and any(t.startswith("Move to Author drafts") for t in track), track[:10])
     g = " | ".join(texts_of(app.rec_cards["goals"][2]))
-    check("gate goals: documents added is checked by the app", "Customer documents added" in g and "checked by the app" in g
+    check("gate goals: documents added is checked by the app", "Customer documents added" in g and "by the app" in g
           and app.rec_cards["goals"][1].cget("text").startswith("Intake: gate goals"), g[:200])
     app.rec_note_dialog(on="version", on_id="x", label="RFP, Original", text="Does the page limit include the cover?", question=True)
     app.rec_note_dialog(text="Kickoff held with the capture lead.")

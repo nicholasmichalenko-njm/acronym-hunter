@@ -116,7 +116,9 @@ class EffortRecordMixin:
         text = ""
         if r is not None and r.data["due"]:
             left = R.countdown(r.data["due"])
-            text = f"Due {R.due_text(r.data['due'], r.data['zone'])}   {R.countdown_text(r.data['due'])}"
+            dt = R.due_text(r.data["due"], r.data["zone"])
+            short = dt.split(",")[0] + (dt[dt.rfind(","):] if dt.count(",") >= 2 else "")       # 'Dec 15, 2:00 p.m. MT'
+            text = f"{R.countdown_text(r.data['due'])}  to {short}"
             color = ("#B91C1C", "#FCA5A5") if left and left[0] < 3 else ("#B45309", "#FBBF24") if left and left[0] < 8 else ("#1E3A8A", "#BFDBFE")
             self.strip_due.configure(text_color=color)
         elif r is not None:
@@ -263,17 +265,35 @@ class EffortRecordMixin:
         self._rec_draw_notes(r)
         self._rec_draw_timeline(r)
 
+    @staticmethod
+    def _autowrap(label, ref, pad=8, least=120):
+        """Wrap a label's text to the width its row really has (cards are half the window; windows vary)."""
+        def fit(e):
+            try:
+                sc = float(ctk.ScalingTracker.get_widget_scaling(label))
+                w = max(least, int(e.width / sc) - pad)
+                if label.cget("wraplength") != w:
+                    label.configure(wraplength=w)
+            except Exception:
+                pass
+        ref.bind("<Configure>", fit, add="+")
+
     def _rec_draw_track(self, r):
         t = self.rec_track
-        row = ctk.CTkFrame(t, fg_color="transparent"); row.pack(fill="x", padx=12, pady=10)
+        row = ctk.CTkFrame(t, fg_color="transparent"); row.pack(fill="x", padx=12, pady=(10, 4))
         ctk.CTkLabel(row, text="STAGE", font=("Segoe UI", 10, "bold"), text_color=("#64748B", "#94A3B8")).pack(side="left", padx=(2, 8))
-        for i, s in enumerate(r.stages):
+        pills = ctk.CTkFrame(t, fg_color="transparent"); pills.pack(fill="x", padx=12, pady=(0, 10))
+        n = max(1, len(r.stages))
+        for i, s in enumerate(r.stages):                # one even row that shrinks with the window; names wrap
             st = r.state_of(s)
             bg, fg = STATE_COLORS[st]
             when = R.short_date(s["started"]) if st != "ahead" else R.short_date(s["planned"]) if s["planned"] else ""
             txt = s["name"] + ("  ✓" if st == "done" else "") + (f"\n{when}" if when else "")
-            ctk.CTkLabel(row, text=txt, fg_color=bg, text_color=fg, corner_radius=14, font=("Segoe UI", 12, "bold" if st == "current" else "normal"),
-                         padx=10, pady=4).pack(side="left", padx=2)
+            pills.grid_columnconfigure(i, weight=1, uniform="stage")
+            lab = ctk.CTkLabel(pills, text=txt, fg_color=bg, text_color=fg, corner_radius=12, font=("Segoe UI", 12, "bold" if st == "current" else "normal"),
+                               padx=4, pady=4, justify="center")
+            lab.grid(row=0, column=i, sticky="nsew", padx=2)
+            self._autowrap(lab, lab, pad=10, least=50)
         B = dict(width=10, height=30)
         ctk.CTkButton(row, text="Edit stages...", command=self.rec_stages_dialog, fg_color="#475569", **B).pack(side="right", padx=(6, 0))
         nxt = r.index() + 1
@@ -291,10 +311,12 @@ class EffortRecordMixin:
             var = tk.BooleanVar(value=done)
             ctk.CTkCheckBox(line, text="", variable=var, width=24, checkbox_width=18, checkbox_height=18,
                             command=lambda: (r.set_goal(s["id"], g["id"], var.get()), self._rec_force())).pack(side="left")
+        where = "by the app" if auto_known else ("by hand" + (f": {g['by']}" if g.get("by") and done else ""))
+        ctk.CTkLabel(line, text=where, text_color=("#64748B", "#94A3B8"), font=("Segoe UI", 11)).pack(side="right", anchor="n")
         txt = g["text"] + (f"   (from {g['from']})" if g.get("from") else "")
-        ctk.CTkLabel(line, text=txt, anchor="w", justify="left", wraplength=430).pack(side="left", padx=4)
-        where = "checked by the app" if auto_known else ("by hand" + (f": {g['by']}" if g.get("by") and done else ""))
-        ctk.CTkLabel(line, text=where, text_color=("#64748B", "#94A3B8"), font=("Segoe UI", 11)).pack(side="right")
+        lab = ctk.CTkLabel(line, text=txt, anchor="w", justify="left", wraplength=300)
+        lab.pack(side="left", padx=4, fill="x", expand=True)
+        self._autowrap(lab, line, pad=110)
         return line
 
     def _rec_draw_goals(self, r, checks):
@@ -325,11 +347,12 @@ class EffortRecordMixin:
             col = ("#15803D", "#86EFAC") if done else ("#B91C1C", "#FCA5A5") if late else ("#1E3A8A", "#BFDBFE") if t["status"] == "In progress" else ("#475569", "#94A3B8")
             ctk.CTkLabel(line, text=t["status"] + (" (late)" if late else ""), width=120, anchor="w", text_color=col,
                          font=("Segoe UI", 12, "bold")).pack(side="left")
-            b = ctk.CTkButton(line, text=t["title"][:60], anchor="w", fg_color="transparent", text_color=("#0F172A", "#F1F5F9"),
-                              hover_color=("#E2E8F0", "#334155"), height=26, command=lambda tid=t["id"]: self.rec_task_dialog(tid))
+            ctk.CTkLabel(line, text=" | ".join(x for x in (t["owner"], ("due " + R.nice_date(t["due"])) if t["due"] else "") if x),
+                         text_color=("#475569", "#94A3B8"), font=("Segoe UI", 11)).pack(side="right")
+            b = ctk.CTkButton(line, text=t["title"][:48] + ("..." if len(t["title"]) > 48 else ""), anchor="w", fg_color="transparent",
+                              text_color=("#0F172A", "#F1F5F9"), hover_color=("#E2E8F0", "#334155"), height=26, width=40,
+                              command=lambda tid=t["id"]: self.rec_task_dialog(tid))
             b.pack(side="left", fill="x", expand=True)
-            ctk.CTkLabel(line, text=" | ".join(x for x in (t["owner"], ("due " + R.short_date(R.parse_date(t["due"]).isoformat())) if R.parse_date(t["due"]) else t["due"]) if x),
-                         text_color=("#475569", "#94A3B8")).pack(side="right")
         if len(ts) > 12:
             ctk.CTkLabel(body, text=f"and {len(ts) - 12} more", anchor="w", text_color=("#475569", "#94A3B8")).pack(fill="x")
 
@@ -359,13 +382,15 @@ class EffortRecordMixin:
             kind = "QUESTION" if q else ("ANSWERED" if n["question"] else "NOTE")
             ctk.CTkLabel(line, text=kind, width=86, anchor="w", font=("Segoe UI", 11, "bold"),
                          text_color=("#B45309", "#FBBF24") if q else ("#7C3AED", "#C4B5FD")).pack(side="left", anchor="n")
-            txt = n["text"] + (f"\nAnswer: {n['answer']}" if n.get("answer") else "")
-            ctk.CTkLabel(line, text=txt, anchor="w", justify="left", wraplength=400).pack(side="left", fill="x", expand=True)
-            meta = " | ".join(x for x in (n["label"], R.short_date(n["at"]), n["who"]) if x)
-            ctk.CTkLabel(line, text=meta, font=("Segoe UI", 11), text_color=("#64748B", "#94A3B8")).pack(side="right", anchor="n")
             if q:
                 ctk.CTkButton(line, text="Resolve...", width=10, height=24, fg_color="#B45309",
                               command=lambda nid=n["id"]: self.rec_resolve_dialog(nid)).pack(side="right", padx=4, anchor="n")
+            col = ctk.CTkFrame(line, fg_color="transparent"); col.pack(side="left", fill="x", expand=True)
+            txt = n["text"] + (f"\nAnswer: {n['answer']}" if n.get("answer") else "")
+            lab = ctk.CTkLabel(col, text=txt, anchor="w", justify="left", wraplength=300); lab.pack(fill="x")
+            self._autowrap(lab, col)
+            meta = " | ".join(x for x in (n["label"], R.short_date(n["at"]), n["who"]) if x)
+            ctk.CTkLabel(col, text=meta, font=("Segoe UI", 11), anchor="w", text_color=("#64748B", "#94A3B8")).pack(fill="x")
         if not qs and not notes:
             ctk.CTkLabel(body, text="No notes yet. Notes can go on the effort, a stage, a customer document or a requirement.",
                          anchor="w", justify="left", wraplength=560).pack(fill="x")
@@ -382,8 +407,10 @@ class EffortRecordMixin:
         ctk.CTkLabel(line, text=R.short_date(e["at"]), width=56, anchor="w", text_color=("#64748B", "#94A3B8")).pack(side="left", anchor="n")
         ctk.CTkLabel(line, text=KIND_WORDS.get(e["kind"], e["kind"].upper()), width=104, anchor="w", font=("Segoe UI", 11, "bold"),
                      text_color=KIND_COLORS.get(e["kind"], "#334155")).pack(side="left", anchor="n")
-        ctk.CTkLabel(line, text=e["text"] + (f"  ({e['who']})" if e.get("who") else ""), anchor="w", justify="left",
-                     wraplength=wrap).pack(side="left", fill="x", expand=True)
+        lab = ctk.CTkLabel(line, text=e["text"] + (f"  ({e['who']})" if e.get("who") else ""), anchor="w", justify="left",
+                           wraplength=min(wrap, 300))
+        lab.pack(side="left", fill="x", expand=True)
+        self._autowrap(lab, line, pad=170)
 
     def rec_timeline_window(self, kinds=None):
         r = self.effrec()
