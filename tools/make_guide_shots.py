@@ -145,7 +145,8 @@ def shot_submission():
     w = app.sub_add_dialog([amd]); w.update(); w._api["add"]()
     lib = app.doclib()
     d = next(x for x in lib.docs if len(x["versions"]) > 1)
-    app.sub_show(d["id"]); app.update()
+    app.shell_go("submission", "documents")       # 2.42.0: adding an amendment opens Impact; the picture is Documents
+    app.sub_show(d["id"]); app.update(); time.sleep(0.4); app.update()
     grab(app.shell_page("sub_docs"), "submission.png")
     app.sub_compare(d["id"]); app.update()
     grab(app.shell_page("sub_compare"), "compare.png")

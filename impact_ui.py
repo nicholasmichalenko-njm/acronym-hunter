@@ -142,13 +142,15 @@ class ImpactMixin:
                             border_color=("#E2E8F0", "#334155"))
         band.pack(fill="x", padx=6, pady=(0, 6))
         t = r["text"]
-        cells = (("DOCUMENT", r["doc"]), ("VERSION", f"{r['version']} (was {r['prev']})"), ("FILE", r["file"]),
+        f = r["file"]
+        f = f if len(f) <= 34 else f[:20] + "..." + f[-12:]       # whole words stay whole; the full name is in the report
+        cells = (("DOCUMENT", r["doc"]), ("VERSION", f"{r['version']} (was {r['prev']})"), ("FILE", f),
                  ("ADDED", f"{r['added'].replace('T', ' ')} by {r['who']}"), ("FINGERPRINT (SHA-256)", IM.DV.short_sha(r["sha256"])),
                  ("TEXT", f"{t['changed']} changed, {t['added']} added, {t['removed']} removed"))
         for c, (k, v) in enumerate(cells):
             band.grid_columnconfigure(c, weight=1)
             ctk.CTkLabel(band, text=k, font=("Segoe UI", 10, "bold"), text_color=GRAY, anchor="w").grid(row=0, column=c, sticky="w", padx=12, pady=(8, 0))
-            ctk.CTkLabel(band, text=v, anchor="w", justify="left", wraplength=230).grid(row=1, column=c, sticky="w", padx=12, pady=(0, 8))
+            ctk.CTkLabel(band, text=v, anchor="w", justify="left", wraplength=260).grid(row=1, column=c, sticky="w", padx=12, pady=(0, 8))
 
     def _imp_card(self, parent, key, title, n, warn=True):
         hot = bool(n) and warn
@@ -164,17 +166,31 @@ class ImpactMixin:
         return card
 
     @staticmethod
-    def _imp_line(card, bold, rest="", color=None):
+    def _imp_fit(label, card):
+        """Wrap to the card's real width (the cards are a third of the window; windows vary)."""
+        def fit(e):
+            try:
+                sc = float(ctk.ScalingTracker.get_widget_scaling(label))
+                w = max(140, int(e.width / sc) - 12)
+                if label.cget("wraplength") != w:
+                    label.configure(wraplength=w)
+            except Exception:
+                pass
+        card._body.bind("<Configure>", fit, add="+")
+
+    def _imp_line(self, card, bold, rest="", color=None):
         t = f"{bold}\n{rest}" if rest else bold
-        lab = ctk.CTkLabel(card._body, text=t, anchor="w", justify="left", wraplength=360,
+        lab = ctk.CTkLabel(card._body, text=t, anchor="w", justify="left", wraplength=300,
                            text_color=color if color else ("#0F172A", "#F1F5F9"))
         lab.pack(fill="x", pady=(2, 4))
+        self._imp_fit(lab, card)
         card._lines.append(t)
         return lab
 
-    @staticmethod
-    def _imp_none(card, text):
-        ctk.CTkLabel(card._body, text=text, anchor="w", justify="left", wraplength=360, text_color=GRAY).pack(fill="x", pady=4)
+    def _imp_none(self, card, text):
+        lab = ctk.CTkLabel(card._body, text=text, anchor="w", justify="left", wraplength=300, text_color=GRAY)
+        lab.pack(fill="x", pady=4)
+        self._imp_fit(lab, card)
         card._lines.append(text)
 
     @staticmethod
@@ -290,7 +306,7 @@ class ImpactMixin:
         card = self._imp_card(grid, "keywords", "Keywords", len(xs), warn=False)
         for x in xs:
             row = ctk.CTkFrame(card._body, fg_color="transparent"); row.pack(fill="x", pady=2)
-            ctk.CTkLabel(row, text=f'"{x["phrase"]}" ({x["count"]} times)', anchor="w", justify="left", wraplength=250).pack(side="left")
+            ctk.CTkLabel(row, text=f'"{x["phrase"]}" ({x["count"]} times)', anchor="w", justify="left", wraplength=230).pack(side="left")
             ctk.CTkButton(row, text="Add", height=26, width=10, fg_color="#0F766E",
                           command=lambda p=x["phrase"]: self.impact_add_keyword(p)).pack(side="right")
             card._lines.append(x["phrase"])
