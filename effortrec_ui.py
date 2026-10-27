@@ -1230,7 +1230,7 @@ class EffortRecordMixin:
             messagebox.showinfo("Effort packages", "This works in the installed program on Windows. Use File > Import effort package... here.")
             return False
         exe = os.path.abspath(sys.executable)
-        if confirm and not messagebox.askyesno("Effort packages", "Make effort packages (.skpkg, and .ahpkg from Acronym Hunter) open in Stationkeeper when you double-click "
+        if confirm and not messagebox.askyesno("Effort packages", "Make effort packages (.skpkg, and .ahpkg from Acronym Hunter) and Knowledge Packs (.skknow) open in Stationkeeper when you double-click "
                                                f"them?\n\nProgram: {exe}\n\nThis is set for your Windows user only. If you move the "
                                                "Stationkeeper folder, do this again."):
             return False
@@ -1249,10 +1249,19 @@ class EffortRecordMixin:
                 winreg.SetValueEx(k, "", 0, winreg.REG_SZ, f'"{exe}",0')
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + "\\" + prog + r"\shell\open\command") as k:
                 winreg.SetValueEx(k, "", 0, winreg.REG_SZ, f'"{exe}" "%1"')
+            kprog = "Stationkeeper.KnowledgePack"         # 2.50.0: Knowledge Packs open the install card
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + "\\.skknow") as k:
+                winreg.SetValueEx(k, "", 0, winreg.REG_SZ, kprog)
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + "\\" + kprog) as k:
+                winreg.SetValueEx(k, "", 0, winreg.REG_SZ, "Stationkeeper Knowledge Pack")
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + "\\" + kprog + r"\DefaultIcon") as k:
+                winreg.SetValueEx(k, "", 0, winreg.REG_SZ, f'"{exe}",0')
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + "\\" + kprog + r"\shell\open\command") as k:
+                winreg.SetValueEx(k, "", 0, winreg.REG_SZ, f'"{exe}" "%1"')
         except OSError as e:
             diag.swallowed()
             messagebox.showerror("Effort packages", f"Windows did not accept the setting ({type(e).__name__}). Use File > Import effort package... instead.")
             return False
         diag.activity("package_associated")
-        messagebox.showinfo("Effort packages", "Done. Double-click an effort package (.skpkg or .ahpkg) to open it here.")
+        messagebox.showinfo("Effort packages", "Done. Double-click an effort package (.skpkg or .ahpkg) to open it here, or a Knowledge Pack (.skknow) to see its install card.")
         return True

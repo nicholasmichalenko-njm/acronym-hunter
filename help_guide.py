@@ -184,10 +184,15 @@ PAGES = {
     ("h", "Send corrections: the training team teaches the reader"),
     ("rows", [("What", "Advanced > Reading, training and knowledge > Send corrections to the training team (or the green bar) saves your lessons as one corrections pack."),
               ("Where", "The approved SharePoint folder for the training team only. Never email, GitHub or USB."),
-              ("Then", "The training team imports everyone's packs in Stationkeeper Training, checks each line, trains a "
-                       "better reader and tests it. Only a reader that reads better ships."),
-              ("Back to you", "It comes back as a numbered Knowledge Pack: Advanced > Reading, training and knowledge > Knowledge... > Install. Undo puts the "
-                              "previous one back.")]),
+              ("Then", "The training team works through five steps in Stationkeeper Training: 1 Gather (corrections packs "
+                       "and past compliance matrices), 2 Review (accept, reject or fix each line; about one line in ten is set "
+                       "aside as the test set), 3 Train (Improve Reading), 4 Measure (a scorecard: each area tested with the "
+                       "knowledge as it was and as it is now; an area that got worse is left out automatically), 5 Build the pack."),
+              ("Back to you", "It comes back as one Knowledge Pack file (.skknow). Double-click it, or File > Install Knowledge "
+                              "Pack...: one card says what was tested and what it adds; click Install. Your own corrections, "
+                              "decisions and rows stay. Undo (Advanced > Reading, training and knowledge > Knowledge...) puts the "
+                              "previous state back. Advanced > Make effort packages and Knowledge Packs open in Stationkeeper "
+                              "sets up the double-click.")]),
     ("img", "training.png", 480),
 ],
 "Effort list": [
@@ -737,8 +742,10 @@ PAGES = {
 ],
 "Sharing": [
     ("h", "Work as a team"),
-    ("rows", [("Knowledge Pack", "Advanced > Reading, training and knowledge > Knowledge.... The training team ships the reader, database, OCR fixes and "
-                                 "ignore list in one numbered file. Install it; Undo puts the previous one back."),
+    ("rows", [("Knowledge Pack", "The training team ships what the team learned (the reader, database, OCR fixes, ignore list, "
+                                 "compliance and keyword learning, banned words) in one .skknow file, with the tests it passed. "
+                                 "Double-click it or File > Install Knowledge Pack...; Undo (Advanced > Reading, training and "
+                                 "knowledge > Knowledge...) puts the previous state back."),
               ("Corrections", "Advanced > Reading, training and knowledge > Send corrections to the training team. Your lessons for the training team, in one file."),
               ("Where", "Your approved local SharePoint folder only. Never GitHub, email or USB."),
               ("Client Lists", "Load the client's own acronym list (a file, a picture of one, or Paste or type...), then "

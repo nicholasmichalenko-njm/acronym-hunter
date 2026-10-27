@@ -146,6 +146,7 @@ from keepsafe_ui import KeepSafeMixin  # exports kept dated, and the backup loca
 import coming_soon as CS  # Help > Coming soon (2.46.0)
 from effortpic_ui import EffortPictureMixin  # the effort picture on Effort home (2.48.0)
 from matrixdesign_ui import MatrixDesignMixin  # the compliance matrix in Excel, designed in the app (2.48.0)
+from knowledge_ui import KnowledgeCardMixin  # install a Knowledge Pack from one card (2.50.0)
 import uiquiet as UQ  # smooth moving and resizing (2.47.0)
 import bgwork  # background work that never touches the window (2.47.0)
 from effortrec_ui import EffortRecordMixin  # the effort record: stages, goals, notes, tasks, timeline (2.40.0)
@@ -2502,7 +2503,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.49.0"            # keep in step with version_info.txt
+APP_VERSION = "2.50.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3031,9 +3032,13 @@ def _knowledge_sources():
             out.append(("models/" + m, path))
     return out
 
-def make_knowledge_pack(out_path, notes=""):
-    """Write a Knowledge Pack zip of this copy's database, OCR fixes, ignore list, and models. Returns its info."""
+def make_knowledge_pack(out_path, notes="", include=None, scorecard=None):
+    """Write a Knowledge Pack zip of this copy's database, OCR fixes, ignore list, and models. Returns its info.
+    2.50.0 (Training Studio): include = the pack names to ship (the areas kept), scorecard = the tests shown on the
+    install card. The file may be named .skknow (opens the install card on double-click) or .zip."""
     files = _knowledge_sources()
+    if include is not None:
+        files = [(n, p) for n, p in files if n in include]
     now = datetime.datetime.now()
     info = {"format": KNOWLEDGE_FORMAT, "version": now.strftime("%Y.%m.%d-%H%M"), "created": now.strftime("%Y-%m-%d %H:%M"),
             "created_by": getpass.getuser(), "computer": platform.node(), "app_version": APP_VERSION,
@@ -3048,6 +3053,16 @@ def make_knowledge_pack(out_path, notes=""):
         diag.swallowed()
         info["counts"] = {}
     info["models"] = [n.split("/", 1)[1] for n, _ in files if n.startswith("models/")]
+    if scorecard is not None:
+        info["scorecard"] = [{k: r.get(k) for k in ("area", "title", "test", "now", "after", "change", "n", "include", "why", "files")}
+                             for r in scorecard]
+        shipped = {n for n, _p in files}
+        if "acronym_database.csv" not in shipped:
+            info["counts"].pop("database_rows", None)
+        if "ocr_corrections.csv" not in shipped:
+            info["counts"].pop("ocr_fixes", None)
+        if "ocr_ignore.csv" not in shipped:
+            info["counts"].pop("ignored_readings", None)
     tmp = out_path + ".tmp"
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr(PACK_ROOT + "pack_info.json", json.dumps(info, indent=1, ensure_ascii=False))
@@ -3439,7 +3454,7 @@ def corrections_on():
     """Report misreading and Not text save corrections for the training team, unless allow_training is false."""
     return bool(APP_CFG["allow_training"])
 
-class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixin, ImpactMixin, LayoutMixin, ReadableMixin, KeepSafeMixin, EffortPictureMixin, MatrixDesignMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixin, ImpactMixin, LayoutMixin, ReadableMixin, KeepSafeMixin, EffortPictureMixin, MatrixDesignMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Stationkeeper {APP_VERSION}: proposal efforts, 100% local")
@@ -3847,7 +3862,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         el = tk.Menu(a, tearoff=0, postcommand=lambda: self.show_effort_menu(el))
         a.add_cascade(label="Effort list and all effort commands", menu=el)
         a.add_command(label="Compliance words and style...", command=c("compliance_word_style", self.compliance_word_style))
-        a.add_command(label="Make effort packages open in Stationkeeper (this Windows user)...",
+        a.add_command(label="Make effort packages and Knowledge Packs open in Stationkeeper (this Windows user)...",
                       command=c("pkg_associate", self.pkg_associate))
         t = tk.Menu(a, tearoff=0, postcommand=lambda: self.show_tools_menu(t))
         a.add_cascade(label="Reading, training and knowledge", menu=t)
@@ -3920,6 +3935,8 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
         m.add_command(label="Restore an earlier version...", command=c("file_restore", self.restore_dialog))
         m.add_command(label="Backup location...", command=c("file_backup_location", self.backup_location_dialog))
         m.add_command(label="Restore from a backup folder...", command=c("file_backup_restore", self.backup_restore_dialog))
+        m.add_separator()
+        m.add_command(label="Install Knowledge Pack...", command=c("file_install_knowledge", self.knowledge_card))
         m.add_command(label="Exit", command=c("file_exit", self.on_close))
 
     def show_effort_top_menu(self, m):
@@ -4493,7 +4510,7 @@ class AcronymAppGUI(ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixi
                     self.rescan_project()
         def install():
             path = filedialog.askopenfilename(parent=win, title="Install Knowledge Pack (from the approved SharePoint folder)",
-                                              filetypes=[("Knowledge Pack", "*.zip")])
+                                              filetypes=[("Knowledge Pack", "*.skknow *.zip")])
             if not path: return
             try:
                 after_change(install_knowledge_pack(path))
@@ -6286,6 +6303,9 @@ if __name__ == "__main__":
         pkg = next((a for a in sys.argv[1:] if a.lower().endswith((".skpkg", ".ahpkg")) and os.path.isfile(a)), None)
         if pkg:                                     # 2.41.0: a package opened with the app (double-click or drop on it)
             app.after(1500, lambda: app.pkg_import_dialog(pkg))
+        kp = next((a for a in sys.argv[1:] if a.lower().endswith(".skknow") and os.path.isfile(a)), None)
+        if kp:                                      # 2.50.0: a Knowledge Pack double-clicked: the install card
+            app.after(1500, lambda: app.knowledge_card(kp))
         app.mainloop()
     except Exception:
         log_error("Application failed to start")
