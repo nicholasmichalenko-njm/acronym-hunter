@@ -125,12 +125,12 @@ PAGES = {
                           "spelled out in the same files. The Definition column says \"Context: ...\" and why, Apply Choice "
                           "starts on it, and the Source preview says what it likely means at each place. When places "
                           "disagree, the row says \"meaning differs by place\". Nothing is applied until you choose: "
-                          "right-click > Accept context suggestion, or Edit > Accept context suggestions. Rules only, "
+                          "right-click > Accept context suggestion, or Advanced > Results list > Accept context suggestions. Rules only, "
                           "typed text only."),
               ("Heading words", "Ordinary words in all-capital headings (EVALUATION FACTORS FOR AWARD) are set aside, not "
                                 "listed as acronyms. Show Excluded lists them; a word also used in running text stays."),
               ("Omit list", "Company names, locations and other terms you want found and recognized but never on the final "
-                            "list. Right-click > Add to omit list (say what it stands for and why), or Edit > Omit list to add, "
+                            "list. Right-click > Add to omit list (say what it stands for and why), or Advanced > Results list > Omit list to add, "
                             "paste many (TERM, stands for, why) and remove. Rows say \"Found in omit list: <why>\"; they are "
                             "never flagged for first use and stay off the CSV export and the volume acronym lists. Saved in "
                             "the company database, so every scan and every effort recognizes them."),
@@ -165,11 +165,11 @@ PAGES = {
               ("When", "Any time a picture is misread. It takes two seconds."),
               ("Why", "Each one is a lesson. Lessons are how the reader gets better over time.")]),
     ("h", "Send corrections: the training team teaches the reader"),
-    ("rows", [("What", "Tools > Send corrections (or the green bar) saves your lessons as one corrections pack."),
+    ("rows", [("What", "Advanced > Reading, training and knowledge > Send corrections to the training team (or the green bar) saves your lessons as one corrections pack."),
               ("Where", "The approved SharePoint folder for the training team only. Never email, GitHub or USB."),
               ("Then", "The training team imports everyone's packs in Acronym Hunter Training, checks each line, trains a "
                        "better reader and tests it. Only a reader that reads better ships."),
-              ("Back to you", "It comes back as a numbered Knowledge Pack: Tools > Knowledge Packs > Install. Undo puts the "
+              ("Back to you", "It comes back as a numbered Knowledge Pack: Advanced > Reading, training and knowledge > Knowledge... > Install. Undo puts the "
                               "previous one back.")]),
     ("img", "training.png", 480),
 ],
@@ -179,7 +179,7 @@ PAGES = {
           "It starts on your desktop and can live in a synced SharePoint folder so the team sees the same list."),
     ("img", "effort_setup.png", 460),
     ("img", "effort_line.png", 560),
-    ("rows", [("Start", "Effort > New effort. Name it, pick where the list lives, choose the first-use rule, and point to the "
+    ("rows", [("Start", "File > New effort. Name it, pick where the list lives, choose the first-use rule, and point to the "
                         "customer documents folder."),
               ("Customer first", "Every scan reads the customer documents' own definitions: \"Spelled Out (ACR)\" and acronym "
                                  "tables. The customer's definition beats the database. Two different ones: you choose."),
@@ -187,7 +187,7 @@ PAGES = {
               ("Approve", "Right-click > Effort list > Approve. Enter the SS approver; several names are fine, separated by ;."),
               ("Not a term", "Right-click > Effort list > Not a term in this effort. Hidden for this proposal only."),
               ("Scan Again", "Approved definitions win on every later scan. Edits made in Excel are read too."),
-              ("Export", "Effort > Export for approvals: sheets for Needs author, Conflicts, Approved and All."),
+              ("Export", "Advanced > Effort list and all effort commands > Export for approvals: sheets for Needs author, Conflicts, Approved and All."),
               ("Excel open", "If the list is open in Excel, the app asks you to close it and keeps your change until it can save.")]),
     ("p", "The Add to effort list button sits in the bottom bar:"),
     ("img", "effort_add.png", 150),
@@ -229,7 +229,7 @@ PAGES = {
                                         "used only there is listed in blue with nothing to check."),
               ("Per section", "Sections come from Word headings. Numbered headings group by their first number or letter "
                               "(2, 2.1 and 2.3 are all section 2; C.3 is section C); other headings are their own section. "
-                              "PDFs and slides have no headings, so the whole file counts as one section. Effort > Effort settings "
+                              "PDFs and slides have no headings, so the whole file counts as one section. Advanced > Effort list and all effort commands > Effort settings "
                               "changes the rule."),
               ("Not in effort list", "Terms the volume uses that the list does not have. One click adds them as Proposed."),
               ("Not approved", "In the list, but still Proposed or Needs an author."),
@@ -239,7 +239,7 @@ PAGES = {
               ("Acronym lists", "One Word file per volume (and one for all volumes): a Term and Definition table, sorted."),
               ("Record", "Writes Used in volumes and First use into the effort list.")]),
     ("h", "Start an effort"),
-    ("p", "Effort > Start a new effort (or Start an effort at the top) opens seven short steps: the Acronyms, Abbreviations, Units and Symbols Master Database, the effort and client (short name, solicitation number, your internal "
+    ("p", "File > New effort (or Start an effort at the top) opens seven short steps: the Acronyms, Abbreviations, Units and Symbols Master Database, the effort and client (short name, solicitation number, your internal "
           "number), the customer's own acronym lists, the customer documents, the response structure, how the list ships (one "
           "list, one per volume, or both; the first-use rule), and ready. The documents are copied into the effort's Customer documents folder and read "
           "for a jump start; Review new terms adds what they hold in one click."),
@@ -256,17 +256,17 @@ PAGES = {
                                            "ones, and opens Review new terms."),
               ("Every scan", "Updates Found in, First found, Last found and Scan status in the effort list. Terms a rescan no "
                              "longer finds say \"No longer found in <file>\"; nothing is removed."),
-              ("Activity", "Effort > Activity: what was added, from which document, by whom, newest first.")]),
+              ("Activity", "Advanced > Effort list and all effort commands > Activity: what was added, from which document, by whom, newest first.")]),
     ("h", "Acronyms, Abbreviations, Units and Symbols Master Database and Known in"),
     ("rows", [("Load it first", "The first step of Start an effort loads the company's Acronyms, Abbreviations, Units and Symbols Master Database (CSV or Excel with "
                                 "Term, Category, Definition, Action, or a plain acronym list). It is shared by every effort on this PC."),
               ("Known in", "Every result says where the term is known: Customer docs, Customer list, Master database only, or "
                            "Not found in any source. Status > Known in filters by it; the CSV export has the column."),
-              ("A newer version", "File > Load master database. Each load is a numbered version. Rows added on this PC stay; "
+              ("A newer version", "Advanced > Master database > Load the Acronyms, Abbreviations, Units and Symbols Master Database. Each load is a numbered version. Rows added on this PC stay; "
                                   "rows the new version dropped are removed; new rows are added."),
               ("Update the results", "After a new version the app offers to update the results. Nothing is removed: rows the "
                                      "database changes say Database update (Status > Database update), and your decisions, "
-                                     "picked definitions and effort list stay. File > Update results against the master database "
+                                     "picked definitions and effort list stay. Advanced > Master database > Update results against the master database "
                                      "does it any time.")]),
     ("h", "Effort list (home) and Scan review"),
     ("p", "Acronyms has two working steps. Define and approve (the effort list) shows every decision for the effort, "
@@ -336,7 +336,7 @@ PAGES = {
                        "\"Statement of Work (SOW)\" is never split."),
               ("QA/QC", "An alt form has no first use of its own, counts as a use of its primary, and is listed with it.")]),
     ("h", "The Acronyms, Abbreviations, Units and Symbols Master Database across efforts"),
-    ("p", "When an effort is done: Effort > Add this effort to the Acronyms, Abbreviations, Units and Symbols Master "
+    ("p", "When an effort is done: Advanced > Effort list and all effort commands > Add this effort to the Acronyms, Abbreviations, Units and Symbols Master "
           "Database. One master row per term and meaning; "
           "no repeat rows."),
     ("rows", [("What goes in", "The effort list's Approved terms with a definition, with their alt forms."),
@@ -580,7 +580,7 @@ PAGES = {
               ("Exclude instance", "Only this place is wrong: the term stays in its other places. Saved for this effort. To "
                                    "exclude the term everywhere use Exclude in the bottom bar; for this effort only, Not a term."),
               ("Undo last save", "Takes back your last save in this panel.")]),
-    ("p", "Tools > Show preview pane turns this panel on or off."),
+    ("p", "View > Preview pane turns this panel on or off."),
 ],
 "Symbols": [
     ("h", "Symbol picker: no more copy and paste"),
@@ -607,15 +607,14 @@ PAGES = {
 ],
 "Sharing": [
     ("h", "Work as a team"),
-    ("img", "menubar.png", 420),
-    ("rows", [("Knowledge Pack", "Tools > Knowledge Packs. The training team ships the reader, database, OCR fixes and "
+    ("rows", [("Knowledge Pack", "Advanced > Reading, training and knowledge > Knowledge.... The training team ships the reader, database, OCR fixes and "
                                  "ignore list in one numbered file. Install it; Undo puts the previous one back."),
-              ("Corrections", "Tools > Send corrections. Your lessons for the training team, in one file."),
+              ("Corrections", "Advanced > Reading, training and knowledge > Send corrections to the training team. Your lessons for the training team, in one file."),
               ("Where", "Your approved local SharePoint folder only. Never GitHub, email or USB."),
               ("Client Lists", "Load the client's own acronym list (a file, a picture of one, or Paste or type...), then "
                                "confirm the terms found. Its definitions win over the database."),
               ("Projects", "Project > Save. A rescan reads only files that changed."),
-              ("Full Text", "Tools > Full Text. All typed and picture text, saved as .txt.")]),
+              ("Full Text", "Advanced > Reading, training and knowledge > Full Text. All typed and picture text, saved as .txt.")]),
     ("h", "Feedback: bugs, improvements, ideas"),
     ("rows", [("Open", "The Feedback button, or Ctrl+Shift+F."),
               ("Write", "Pick Bug, Improvement or Idea and the feature. Describe the feature, never your documents."),

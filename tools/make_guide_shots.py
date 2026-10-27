@@ -10,6 +10,10 @@ with PIL ImageGrab, so the window must be on screen and not covered.
 import os, sys, shutil, tempfile, time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["AH_TEST"] = "1"
+for _k in ("LOGNAME", "USER", "LNAME", "USERNAME"):        # 2.41.0: pictures show a neutral user and PC, never the build PC's
+    os.environ[_k] = "jsmith"
+import platform
+platform.node = lambda: "TEAM-PC"
 import app_gui as A, effort as E, effort_home as H
 from tkinter import messagebox
 from PIL import ImageGrab, Image
