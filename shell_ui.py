@@ -255,8 +255,8 @@ class ShellMixin:
         """Each compliance step's actions in the strip (the old window's toolbar, split by step)."""
         A = dict(height=30, width=10)
         act = self.shell_actions("compliance", "read")
-        for text, cmd, color in (("New from RFP files...", self.compliance_new, "#9A3412"), ("Open matrix...", self.compliance_open, None),
-                                 ("Add RFP files...", self.compliance_add_files, None),
+        # 2.52.0: one way in: Read customer documents adds to the matrix (never starts over with a matrix open)
+        for text, cmd, color in (("Read customer documents...", self.compliance_read_docs, "#9A3412"),
                                  ("Re-read RFP (amendment)...", self.compliance_reread, None),
                                  ("Amendment changes...", self.compliance_changes, None),
                                  ("Text check...", self.compliance_text_check, "#15803D"),

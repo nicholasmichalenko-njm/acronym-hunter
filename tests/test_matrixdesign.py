@@ -56,6 +56,12 @@ def run():
     assert full["columns"][-1] == {"key": "custom:Reviewer", "heading": "Reviewer"}
     assert len(MD.rows(M, dict(full, empty_sections=False))[0]) == 3
     assert "id" not in [k for k in its[0] if k.startswith("_")] and "_kind" not in M.items[0], "the matrix rows are not touched"
+    assert MD._value(M, its[1], "role", {}, {}) == "Support for L.4-02" and MD._value(M, its[0], "role", {}, {}) == "Compliance requirement"
+    xo = os.path.join(tempfile.mkdtemp(), "styled.xlsx")
+    MD.export(M, xo, full, "Kestrel", ctx=ctx)
+    from openpyxl import load_workbook as _lw
+    cell = _lw(xo, rich_text=True)["Compliance Matrix"].cell(row=5, column=col["text"] + 1).value
+    assert type(cell).__name__ == "CellRichText" and any(getattr(b, "text", "") == "shall" for b in cell), "compliance words styled in the export"
     M.outline = C.parse_outline("Volume I\n1.1 Thermal\n1.2 Schedule")
     out = os.path.join(tempfile.mkdtemp(), "x", "Kestrel_Compliance_Matrix.xlsx")
     res = MD.export(M, out, d, "Kestrel")

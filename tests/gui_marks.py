@@ -89,6 +89,29 @@ def go():
         return out
     ci = " | ".join(texts(app.rec_cards["custinfo"][2]))
     check("Effort home shows the customer information", "jane.doe@us.af.mil" in ci and "(719) 555-0142" in ci and "E-MAIL" in ci, ci[:200])
+    # 2.52.0: compliance words that apply to the customer
+    sc = by("shall provide a schedule")
+    app._cp_select(sc["id"]); app.update()
+    t = app._cwin.cp_text
+    r = t.tag_ranges("r:" + sc["id"])
+    a = t.get(r[0], r[1]).index("shall")
+    t.tag_add("sel", f"{r[0]}+{a}c", f"{r[0]}+{a + 5}c")
+    app.cp_text_menu(Ev); app.update()
+    labels = [menus[-1].entrycget(i, "label") for i in range(menus[-1].index("end") + 1) if menus[-1].type(i) == "command"]
+    check("a highlighted compliance word: the customer's, or remove it from the compliance words",
+          any(l.startswith("The customer's") for l in labels) and "Remove from compliance words: shall" in labels, labels)
+    t.tag_remove("sel", "1.0", "end")
+    app.c_mark_customers([sc]); app.update()
+    check("the customer's: identified, not ours to answer", sc["decision"] == "Customer")
+    import cwords as CWm
+    app.compliance_remove_word("shall", rescan=False)
+    check("a word taken off the compliance words", "shall" not in CWm.load()["words"])
+    n_before = len(app.matrix.items)
+    said = []
+    messagebox.showinfo = lambda *a, **k: said.append(a[1] if len(a) > 1 else "")
+    app.compliance_read_docs(); app.update()
+    check("one way in: Read customer documents with a matrix open never starts over", len(app.matrix.items) == n_before
+          and app.matrix.items[0]["id"] == items[0]["id"], said[-1:] if said else None)
     pb = by("program began")
     app.compliance_decide("Drop", [pb])
     check("Ignore: not used", pb["decision"] == "Drop")

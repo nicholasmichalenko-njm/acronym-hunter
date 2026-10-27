@@ -125,8 +125,10 @@ class ComplianceMixin:
                      text_color=("#475569", "#94A3B8")).pack(fill="x", padx=6, pady=(0, 10))
         row = ctk.CTkFrame(fr, fg_color="transparent"); row.pack(fill="x", padx=6)
         big = dict(height=44, font=("Segoe UI", 15, "bold"), width=200)
-        ctk.CTkButton(row, text="New from RFP files...", command=self.compliance_new, fg_color="#9A3412", **big).pack(side="left", padx=(0, 10))
-        ctk.CTkButton(row, text="Open a matrix...", command=self.compliance_open, **big).pack(side="left", padx=(0, 10))
+        ctk.CTkButton(row, text="Read customer documents...", command=self.compliance_read_docs, fg_color="#9A3412", **big).pack(side="left", padx=(0, 10))
+        win.btn_open = ctk.CTkButton(row, text="Open a matrix...", command=self.compliance_open, **big)
+        if getattr(self, "effort", None) is None:    # 2.52.0: in an effort the matrix is the effort's own
+            win.btn_open.pack(side="left", padx=(0, 10))
         win.lbl_read = ctk.CTkLabel(fr, text="", anchor="w", justify="left", wraplength=900)
         win.lbl_read.pack(fill="x", padx=6, pady=(14, 4))
         ctk.CTkLabel(fr, text="Amendment? Re-read RFP keeps your decisions for unchanged sentences (buttons above, in the strip).",
@@ -453,7 +455,7 @@ class ComplianceMixin:
     def _c_refresh_label(self):
         win, M = self._cwin, self.matrix
         if M is None:
-            win.lbl.configure(text="No matrix open. New from RFP files reads the RFP (Word, PDF, Excel, PowerPoint) and lists every candidate requirement.")
+            win.lbl.configure(text="No matrix open. Read customer documents reads the RFP (Word, PDF, Excel, PowerPoint) and lists every candidate requirement.")
             self._c_prove_refresh()
             return
         c = M.counts()
@@ -894,6 +896,9 @@ class ComplianceMixin:
             sel = ""
         sel = " ".join(sel.split())
         ok = bool(sel) and len(sel) <= 60
+        if ok and sel.lower().strip(" .,;:()") in CW.load()["words"]:
+            m.add_command(label=f"Already a compliance word: {sel[:50]}", state="disabled")
+            return sel
         m.add_command(label=(f"Add to compliance words: {sel[:50]}" if ok else
                              "Add to compliance words (select a word or short phrase first)"),
                       state="normal" if ok else "disabled", command=lambda: self.compliance_add_words(sel))
@@ -926,12 +931,43 @@ class ComplianceMixin:
         st = "normal" if rows else "disabled"
         n = f" ({len(rows)} sentences)" if len(rows) > 1 else ""
         m.add_separator()
+        # 2.52.0: compliance words that apply to the customer, not to us
+        m.add_command(label="The customer's: applies to the customer, not us" + n, state=st, command=lambda: self.c_mark_customers(rows))
+        cw = " ".join((sel or "").split()).lower().strip(" .,;:()")
+        if cw and cw in CW.load()["words"]:
+            m.add_command(label=f"Remove from compliance words: {cw}", command=lambda: self.compliance_remove_word(cw))
         m.add_command(label="Ignore (not used)" + n, state=st, command=lambda: self.compliance_decide("Drop", rows))
         m.add_command(label="Customer information" + (": the selected words" if sel else n), state=st,
                       command=lambda: self.c_mark_customer_info(rows, sel))
         m.add_command(label="Format requirement" + n, state=st, command=lambda: self.c_mark_format(rows))
         m.add_command(label="Section header...", state="normal" if len(rows) == 1 else "disabled",
                       command=lambda: self.c_mark_header(rows[0]["id"]))
+
+    def c_mark_customers(self, rows):
+        """The sentence reads like a requirement (it has compliance words), but it is the customer's to act on: identified
+        as the customer's, never answered (2.48.0 Customer's; 2.52.0 from the right-click menu)."""
+        if hasattr(self, "cp_customer") and getattr(self._cwin, "cp_text", None) is not None and rows == self._c_mark_rows():
+            return self.cp_customer()
+        C.assign_customer(self.matrix.items, rows)
+        for it in rows:
+            self.matrix.log(it["id"], "customer's (identified, not answered)")
+        self._c_changed()
+        return len(rows)
+
+    def compliance_remove_word(self, word, rescan=None):
+        """2.52.0: a highlighted word is not a compliance word for this team: off the list, then rescan (asked)."""
+        cfg = CW.load()
+        if word not in cfg["words"]:
+            return False
+        cfg["words"] = [w for w in cfg["words"] if w != word]
+        CW.save(cfg)
+        diag.activity("compliance_word_removed")
+        self._c_redraw_words()
+        if self.matrix is not None and (rescan if rescan is not None else messagebox.askyesno(
+                "Compliance words", f"'{word}' is no longer a compliance word.\n\nRescan the matrix now? Sentences found only by "
+                "it go back to Context; decided sentences keep their decision.", parent=self._c_parent())):
+            self.compliance_rescan_words(show=rescan is None)
+        return True
 
     def c_mark_customer_info(self, rows, sel="", quiet=False):
         """Names, e-mails, phone numbers, addresses: filed in the effort's Customer information (Effort home); the
@@ -1520,7 +1556,7 @@ class ComplianceMixin:
         box = ctk.CTkScrollableFrame(w); box.pack(fill="both", expand=True, padx=16, pady=10)
         for r in results:
             ok = not r["missing"] and not r.get("gone") and not r.get("error")
-            head = ("The file is no longer where it was read; open it again with Add RFP files." if r.get("gone") else
+            head = ("The file is no longer where it was read; read it again with Read customer documents." if r.get("gone") else
                     "The file could not be read again." if r.get("error") else TC.summary_text(r))
             ctk.CTkLabel(box, text=("✓ " if ok else "! ") + head, anchor="w", justify="left", wraplength=900, font=("Segoe UI", 14, "bold"),
                          text_color=("#15803D", "#86EFAC") if ok else ("#B45309", "#FBBF24")).pack(fill="x", pady=(8, 2))
@@ -1587,6 +1623,22 @@ class ComplianceMixin:
             messagebox.showinfo("Compliance matrix", msg + f"\n\nThe starting outline comes from {src}; edit it on the Outline tab.", parent=self._cwin)
         self._c_read(paths, done)
 
+    def compliance_read_docs(self):
+        """2.52.0: the one way to bring customer documents into the review. With no matrix it starts one; with a matrix
+        open it adds the documents not read yet, in place, and never starts over (decisions are kept)."""
+        if self.matrix is None or not self.matrix.items:
+            return self.compliance_new()
+        if getattr(self, "effort", None) is not None and hasattr(self, "doclib") and self.doclib() is not None:
+            read = {os.path.normcase(r[3]) for r in self.matrix.sources if len(r) > 3 and r[3]}
+            read_names = {r[0] for r in self.matrix.sources if r}
+            left = [x for x in self.c_effort_docs() if os.path.normcase(x[2]) not in read and os.path.basename(x[2]) not in read_names]
+            if not left:
+                messagebox.showinfo("Read customer documents", "Every customer document of this effort is in the review.\n\n"
+                                    "New documents are added in Customer Documents; a new version of one (an amendment) "
+                                    "comes in with Re-read RFP (amendment), which keeps your decisions.", parent=self._cwin)
+                return None
+        return self.compliance_add_files()
+
     def compliance_add_files(self):
         if self.matrix is None:
             return self.compliance_new()
@@ -1615,7 +1667,7 @@ class ComplianceMixin:
     def compliance_reread(self):
         if self.matrix is None:
             return
-        paths = self._c_pick_rfp("Re-read the RFP (all files, including the amendment)")
+        paths = self._c_docs_or_pick("Re-read: the customer documents, latest versions (amendments included)")   # 2.52.0
         if not paths:
             return
         self.compliance_reread_paths(paths)

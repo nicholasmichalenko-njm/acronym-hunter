@@ -553,7 +553,7 @@ PAGES = {
                           "and a sheet of changes for each new version; Export all includes it."),
               ("Rules only", "No AI: the text is compared word by word. Nothing leaves this PC.")]),
     ("h", "Every sentence of the RFP, each with a decision and a home"),
-    ("p", "Compliance > Read RFP > New from RFP files. Pick the instructions, evaluation criteria, SOW and attachments. Every "
+    ("p", "Compliance > Read RFP > Read customer documents. Tick the instructions, evaluation criteria, SOW and attachments. Every "
           "sentence becomes a row, in reading order, with its file, page or section. Rules mark the ones that ask for "
           "something (shall, must, will, should, may, describe, provide, page limits, fonts, due dates) as requirements; "
           "every other sentence is a Context row, so nothing is skipped because it did not sound like a requirement. "
@@ -695,11 +695,16 @@ PAGES = {
                                     "nothing assigned yet. The preview shows every row and fits the window. Columns: Order "
                                     "(sort on it in Excel to get this layout back after any sort or filter), Section L No. (the "
                                     "RFP section the sentence is in, else page and paragraph; separate from Source document), "
-                                    "Section L title, Requirement, Volume, Proposal section, Deliverable, Page limit and Format "
+                                    "Section L title, RFP text (compliance requirements and their support rows in the one column, the "
+                                    "compliance words in the team's style), Compliance or support (Support for L.4-02...), Volume, Proposal section, Deliverable, Page limit and Format "
                                     "(from the effort's deliverables), FAR reference, owner, page, compliance status, notes and "
                                     "more. Tick, order, rename, and Add a column... of the team's own (blank, to fill in Excel; "
                                     "hiding it removes it). The design stays with the effort's matrix; Save as the team default "
                                     "makes new efforts start with it."),
+              ("Not ours", "When the highlighted compliance words are about the customer (\"The Government will "
+                           "evaluate...\"), right-click the sentence: The customer's (identified, never answered). Select a "
+                           "highlighted word and right-click, Remove from compliance words, when it is not a compliance word "
+                           "for the team; the app offers to rescan."),
               ("Mark the text", "In Assign, right-click a sentence (or select words in it): Ignore (not used); Customer "
                                 "information (names, e-mails, phone numbers, addresses, filed by kind in Customer information "
                                 "on Effort home; the sentence is not used); Format requirement (type Format, a compliance "

@@ -56,11 +56,11 @@ def go():
           and tv.item(kids[0], "values")[2].startswith("The Offeror shall describe")
           and tv.item(kids[1], "tags") == ("ctx",) and tv.item(kids[1], "values")[2].startswith("      Thermal margins")
           and "All 3 rows" in api["info"].cget("text"), [tv.item(k, "values")[:3] for k in kids])
-    api["lb"].selection_clear(0, "end"); api["lb"].selection_set(9); api["toggle"](); app.update()          # hide Notes (the 10th column)
+    api["lb"].selection_clear(0, "end"); api["lb"].selection_set(10); api["toggle"](); app.update()         # hide Notes (the 11th column)
     check("hiding a column changes the preview", "Notes" not in [tv.heading(c, "text") for c in tv["columns"]])
     for i in (2, 1):                                                                                        # Requirement first
         api["lb"].selection_clear(0, "end"); api["lb"].selection_set(i); api["move"](-1); app.update()
-    check("moving a column changes the order", tv.heading(tv["columns"][0], "text") == "Requirement")
+    check("moving a column changes the order", tv.heading(tv["columns"][0], "text") == "RFP text")
     k = api["add"]("Reviewer"); app.update()
     check("a column of the team's own is added", k == "custom:Reviewer" and tv.heading(tv["columns"][-1], "text") == "Reviewer")
     api["lb"].selection_clear(0, "end"); api["lb"].selection_set(len(api["state"]["d"]["columns"]) - 1); api["toggle"](); app.update()

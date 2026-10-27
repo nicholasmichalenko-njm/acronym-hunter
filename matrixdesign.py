@@ -13,8 +13,8 @@ COLUMNS = {
     "order": ("Order", 8),                          # 2.51.0: sort on it to get the original layout back
     "ref": ("Section L No.", 16),                   # 2.51.0: the RFP section the sentence is in, else page and paragraph
     "rfp_section": ("Section L title", 28),
-    "text": ("Requirement", 70),
-    "role": ("Role", 22),
+    "text": ("RFP text", 70),                       # 2.52.0: compliance and support rows in the one column
+    "role": ("Compliance or support", 22),
     "volume": ("Volume", 22),                       # 2.51.0
     "section": ("Proposal section", 30),
     "deliverable": ("Deliverable", 22),             # 2.51.0: from the effort's deliverables
@@ -36,7 +36,7 @@ COLUMNS = {
 CUSTOM = "custom:"                                   # 2.51.0: a column of the team's own, filled in Excel
 ROLES = (("Keep", "Compliance requirements"), ("Context", "Context"))
 DEFAULT = {"columns": [{"key": k, "heading": COLUMNS[k][0]} for k in
-                       ("order", "ref", "text", "volume", "section", "page_limit", "owner", "page", "status", "notes")],
+                       ("order", "ref", "text", "role", "volume", "section", "page_limit", "owner", "page", "status", "notes")],
            "roles": ["Keep", "Context"], "customer_sheet": True, "title": "", "empty_sections": True}
 _FAR = __import__("re").compile(r"\b(?:FAR|DFARS|NFS|AFFARS|DFARS PGI)\s+(?:clause\s+)?\d{1,3}\.\d{2,4}(?:-\d+)?(?:\([a-z0-9]+\))*", __import__("re").I)
 
@@ -183,8 +183,11 @@ def _value(M, it, key, inh, people, ctx=None, vols=None):
         return " ".join(x for x in (it.get("section", ""), it.get("section_title", "")) if x)
     if key == "text":
         return ((it.get("lead") + " ") if it.get("lead") else "") + it.get("text", "")
-    if key == "role":
-        return C.context_label(it) if it.get("decision") == "Context" else C.LABEL.get(it.get("decision", ""), "Not used")
+    if key == "role":                           # 2.52.0: a support row says which requirement it supports
+        if it.get("decision") == "Context":
+            host = it.get("_host") or (C.cf_ids(it.get("context_for", "")) or [""])[0]
+            return f"Support for {host}" if host else ("Support for " + it["map"] if it.get("map") else "Support")
+        return C.LABEL.get(it.get("decision", ""), "Not used")
     if key == "section":
         return it.get("map", "")
     if key == "lead":
@@ -308,8 +311,12 @@ def export(M, path, design, effort_name="", when=None, ctx=None):
     none = Side(style=None)
     text_col = next((k for k, c in enumerate(design["columns"]) if c["key"] == "text"), None)
     import compliance as _C
+    import cwords as _CW
+    cw = _CW.load()                                  # 2.52.0: compliance words in the team's style, as on screen
     for i, (it, r) in enumerate(zip(items, data)):
         ws.append([_C.clean_chars(v) for v in r])
+        if text_col is not None and it.get("_kind") in ("req", "ctx"):
+            ws.cell(row=ws.max_row, column=text_col + 1).value = _CW.xlsx_value(_C.clean_chars(r[text_col]), cw)
         kind = it.get("_kind")
         nxt = items[i + 1].get("_kind") if i + 1 < len(items) else None
         attached_below = nxt == "ctx" and items[i + 1].get("_host") in (it.get("id"), it.get("_host"))
