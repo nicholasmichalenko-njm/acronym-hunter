@@ -31,6 +31,11 @@ made = []
 
 
 def grab(widget, name, pad=0):
+    top = widget.winfo_toplevel()                  # 2.41.0: keep our window above anything else on the screen, so a
+    try:                                           # picture never captures another program's window
+        top.attributes("-topmost", True); top.lift()
+    except Exception:
+        pass
     widget.update_idletasks(); widget.update()
     time.sleep(0.6); widget.update()
     x, y = widget.winfo_rootx() - pad, widget.winfo_rooty() - pad
