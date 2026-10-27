@@ -177,7 +177,7 @@ def go():
     bw.destroy(); app.update()
     # Effort home says what is next
     app.shell_go("home"); app.update(); app.shell_overview_refresh()
-    check("Effort home: Next, review what the amendment touched", app.ov_next.cget("text").startswith("Next: Submission, review what Amendment 1")
+    check("Effort home: Next, review what the amendment touched", app.ov_next.cget("text").startswith("Next: Customer Documents, review what Amendment 1")
           and app._ov_target == ("submission", "impact"), app.ov_next.cget("text"))
     app.shell_go(*app._ov_target); app.update()
     reg = app.subreg()
@@ -189,7 +189,7 @@ def go():
           and lib.docs[0]["versions"][1]["reviewed"] and "Impact of Amendment 1 of Kestrel RFP reviewed" in ev, (before, after, ev[:200]))
     check("the button shows it is done", app.imp_done.cget("state") == "disabled" and app.imp_done.cget("text").startswith("Impact reviewed"))
     app.shell_overview_refresh()
-    check("Effort home moves on", not app.ov_next.cget("text").startswith("Next: Submission, review"), app.ov_next.cget("text"))
+    check("Effort home moves on", not app.ov_next.cget("text").startswith("Next: Customer Documents, review"), app.ov_next.cget("text"))
     # Documents: the Impact review button; the picker
     app.shell_go("submission", "documents"); app.sub_show(rfp["id"]); app.update()
     btn = next((b for b in app.sub_detail.winfo_children()[1].winfo_children()[-1].winfo_children() if getattr(b, "cget", None)

@@ -62,7 +62,7 @@ def go():
     t.tag_add("sel", f"{r[0]}+{a}c", f"{r[0]}+{a + len('responsible for')}c")
     app.cp_text_menu(Ev); app.update()
     m = menus[-1]
-    labels = [m.entrycget(i, "label") for i in range(m.index("end") + 1)]
+    labels = [m.entrycget(i, "label") for i in range(m.index("end") + 1) if m.type(i) == "command"]
     check("right-click on selected words offers Add to compliance words", labels[0] == "Add to compliance words: responsible for"
           and labels[1].startswith("Add as keyword"), labels)
     m.invoke(0); app.update()
