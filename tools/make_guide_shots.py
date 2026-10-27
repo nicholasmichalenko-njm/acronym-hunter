@@ -216,7 +216,7 @@ def step3():
         grab(app.strip.master, "impact.png")
         bw = app.impact_briefs_dialog()                                # 2.43.0: author briefs
         if bw is not None:
-            fit(bw, 0.62, 0.62)
+            bw.geometry("1100x700+10+10")                              # its own size (scaled by Windows): the brief fits
             for _ in range(4):                                         # let the window reach its size before the picture
                 bw.update_idletasks(); bw.update(); time.sleep(0.4)
             grab(bw, "briefs.png")
