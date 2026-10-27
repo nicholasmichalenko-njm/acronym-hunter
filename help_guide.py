@@ -47,7 +47,7 @@ PAGES = {
           "Effort home and File > Export all write everything at once. One status line runs along the bottom."),
     ("rows", [("Effort home", "The effort's stage, the goals for this gate, tasks, notes and open questions, a calendar, the timeline, where "
                               "each feature stands, the next step to take, and Export all."),
-              ("Submission", "Requirements (what to deliver and how, and how it changed), Deliverables (what we owe and where "
+              ("Customer Documents", "Requirements (what to deliver and how, and how it changed), Deliverables (what we owe and where "
                              "each stands), Documents (every customer document "
                              "with its versions), Impact (what a new version touched across the effort), Compare (what changed between any two "
                              "versions), Export."),
@@ -437,11 +437,11 @@ PAGES = {
                                    "file is copied first, so a restore can be undone.")]),
 ],
 "Compliance matrix": [
-    ("h", "Submission: customer documents and their versions"),
+    ("h", "Customer Documents: the customer documents and their versions"),
     ("p", "Customer documents keep arriving: amendments, questions and answers, revised attachments. Submission keeps every "
           "version and shows exactly what changed, so a changed page limit or format rule is not missed."),
     ("h", "Deliverables: what we owe and where each stands"),
-    ("p", "Submission > Deliverables lists everything the effort must produce: volumes, attachments, forms, plans, slides. "
+    ("p", "Customer Documents > Deliverables lists everything the effort must produce: volumes, attachments, forms, plans, slides. "
           "Deliverables the customer documents name are suggested at the bottom in blue: Add as a deliverable, or Not ours. "
           "Add a deliverable... types in any other."),
     ("img", "deliverables.png", 620),
@@ -467,7 +467,7 @@ PAGES = {
               ("Exports", "Checklist (Excel): every deliverable with its marks per stage; Export all and the effort status "
                           "include the deliverables.")]),
     ("h", "Impact: what a new customer version touched"),
-    ("p", "When an amendment or a revised document is added, Submission > Impact opens on it: one review per new version, "
+    ("p", "When an amendment or a revised document is added, Customer Documents > Impact opens on it: one review per new version, "
           "compared with the version before it. Nothing you decided changes until you act on it. The Version list at the "
           "top picks any other version; Documents has an Impact review button on each new version, and Effort home says "
           "when one waits."),
@@ -688,12 +688,24 @@ PAGES = {
               ("Export", "Export setup writes one Word file per volume: built-in headings, RFP text in purple, direction in green. "
                          "No hidden text and no styles of yours: click one purple paragraph, Home > Select > Select Text with "
                          "Similar Formatting, and apply your style; the same for green."),
-              ("Compliance matrix", "Export > Compliance matrix (Excel), designed here: tick the columns it shows (RFP "
-                                    "reference, requirement, proposal section, section lead, owner, page, compliance status, "
-                                    "notes and more), put them in order and rename them; choose compliance requirements, "
-                                    "context or both, and a sheet listing the customer's sentences. The preview shows the "
-                                    "first rows as they will look. Rows follow the response structure. The design stays with "
-                                    "the effort's matrix; Save as the team default makes new efforts start with it."),
+              ("Compliance matrix", "Compliance > Matrix (its own step, after Assign) builds the matrix from your decisions as "
+                                    "you work, in the response structure: each compliance requirement in the order it appears "
+                                    "in the RFP, the Context rows that support it right under it (indented and lighter, with no "
+                                    "line between them in Excel), and every section of the structure, including ones with "
+                                    "nothing assigned yet. The preview shows every row and fits the window. Columns: Order "
+                                    "(sort on it in Excel to get this layout back after any sort or filter), Section L No. (the "
+                                    "RFP section the sentence is in, else page and paragraph; separate from Source document), "
+                                    "Section L title, Requirement, Volume, Proposal section, Deliverable, Page limit and Format "
+                                    "(from the effort's deliverables), FAR reference, owner, page, compliance status, notes and "
+                                    "more. Tick, order, rename, and Add a column... of the team's own (blank, to fill in Excel; "
+                                    "hiding it removes it). The design stays with the effort's matrix; Save as the team default "
+                                    "makes new efforts start with it."),
+              ("Mark the text", "In Assign, right-click a sentence (or select words in it): Ignore (not used); Customer "
+                                "information (names, e-mails, phone numbers, addresses, filed by kind in Customer information "
+                                "on Effort home; the sentence is not used); Format requirement (type Format, a compliance "
+                                "requirement); Section header... (the line is a heading of the RFP: give or confirm its number "
+                                "and title; the sentences under it, up to the next heading, take them, so Section L No. is "
+                                "right in the matrix and the setup)."),
               ("Together", "Matrix and Response Setup together writes both, from the same decisions, into one dated folder."),
               ("Changed later", "The setup stays in the matrix, so you can export again any time. Export changes only writes just "
                                 "what was added, changed or removed since the last export. Compare a setup document checks a "

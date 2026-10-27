@@ -41,7 +41,7 @@ def go():
     app.efforts.put("Kestrel", path=LIST, customer_dir=CDIR)
     app.open_effort("Kestrel"); app.update()
     rail = [app._rail[k][0].cget("text") for k in app._rail]
-    check("Submission sits second in the feature list", rail[1].endswith("Submission"), rail[:3])
+    check("Customer Documents sits second in the feature list", rail[1].endswith("Customer Documents"), rail[:3])
     app.shell_go("submission"); app.update()
     pills = [w.cget("text").split("  ")[0] for w in app.strip_pills.winfo_children()]
     check("its steps: Requirements, Deliverables, Documents, Impact, Compare, Export; with nothing read yet it opens on Documents",

@@ -11,7 +11,7 @@ import customtkinter as ctk
 import diag
 import bgwork, uiquiet as UQ   # 2.47.0
 
-FEATURES = (("home", "Effort home"), ("submission", "Submission"), ("compliance", "Compliance"), ("acronyms", "Acronyms"), ("qaqc", "QA/QC"),
+FEATURES = (("home", "Effort home"), ("submission", "Customer Documents"), ("compliance", "Compliance"), ("acronyms", "Acronyms"), ("qaqc", "QA/QC"),
             ("keywords", "Keywords"))
 STEPS = {
     "home": (("overview", "Overview"),),
@@ -588,7 +588,7 @@ class ShellMixin:
             diag.swallowed()
         if pend:                                     # 2.42.0: a new customer version comes first
             d, v = pend[0]
-            self._ov_target, text = ("submission", "impact"), f"Next: Submission, review what {v['label']} of {d['name'][:40]} touched"
+            self._ov_target, text = ("submission", "impact"), f"Next: Customer Documents, review what {v['label']} of {d['name'][:40]} touched"
         elif M is None or not M.items:
             self._ov_target, text = ("compliance", "read"), "Next: Compliance, read the RFP"
         elif not M.outline:

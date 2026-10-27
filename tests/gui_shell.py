@@ -47,7 +47,7 @@ app.geometry("1500x940+0+0")
 def go():
     # the rail and the strip
     names = [b.cget("text").split("   ", 1)[1] for b, _s in app._rail.values()]
-    check("rail lists the features in work order", names == ["Effort home", "Submission", "Compliance", "Acronyms", "QA/QC", "Keywords"], names)
+    check("rail lists the features in work order", names == ["Effort home", "Customer Documents", "Compliance", "Acronyms", "QA/QC", "Keywords"], names)
     check("each feature ends in its own Export step", all(SH.STEPS[k][-1][1] == "Export" for k in ("submission", "compliance", "acronyms", "qaqc", "keywords")))
     app.shell_go("acronyms", "scan"); app.update()
     check("Acronyms > Scan shows the scan buttons", app.btn_files.winfo_ismapped() and not app.scan_view.winfo_ismapped())

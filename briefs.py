@@ -132,7 +132,7 @@ def text(r, b, due=""):
     if due:
         L += ["", f"Proposal due {due}."]
     L += ["", "Questions: ask the proposal manager. The full impact review and the compare of the two versions are in "
-              "Stationkeeper (Submission > Impact)."]
+              "Stationkeeper (Customer Documents > Impact)."]
     return "\n".join(L)
 
 

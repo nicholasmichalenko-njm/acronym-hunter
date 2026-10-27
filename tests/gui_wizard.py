@@ -97,6 +97,11 @@ def step2():
     check("list's About sheet names the client", L.client == "USSF SSC" and L.solicitation == "FA8810-27-R-0042")
     check("customer documents copied into the effort folder",
           sorted(os.listdir(os.path.join(FOLDER, "Customer documents"))) == sorted(os.path.basename(p) for p in DOCS))
+    lib = app.doclib()
+    check("2.51.0: the documents are in Customer Documents at once", lib is not None and sorted(v["file"] for d in lib.docs for v in d["versions"])
+          == sorted(os.path.basename(p) for p in DOCS), [d["name"] for d in (lib.docs if lib else [])])
+    got = app.compliance_pick_docs(answer=[p for _n, _l, p in app.c_effort_docs()][:2])
+    check("Compliance reads them from there (no file picking)", len(got) == 2 and all(os.path.isfile(p) for p in got), got)
     check("customer lists remembered by the effort", "TRL" in A.CLIENT_DB and app.ws.get("client_lists"))
     check("the pasted list is one of them", "KTS" in A.CLIENT_DB and "RWA" not in A.CLIENT_DB
           and any(x["name"] == "Pasted list" for x in app.ws.get("client_lists")))

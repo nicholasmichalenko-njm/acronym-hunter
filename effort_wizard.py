@@ -325,6 +325,11 @@ class WizardMixin:
                 self.set_client_lists(lists)
                 self.effort._hist("(customer lists)", f"{sum(len(x['rows']) for x in lists)} customer terms from {len(lists)} list(s)")
                 self._save_effort_list()
+            if copied and hasattr(self, "sub_plan"):  # 2.51.0: the documents are in Customer Documents at once
+                try:
+                    self.sub_apply(self.sub_plan(copied))
+                except Exception:
+                    diag.swallowed()
             diag.activity("wizard_finished", files=len(copied), n=len(st["lists"]))
             if copied and v["scan"].get():
                 self.intake(copied)
@@ -341,6 +346,8 @@ class WizardMixin:
         if self.effort is None:
             messagebox.showinfo("Customer documents", "Open or create an effort first.")
             return
+        if hasattr(self, "sub_add_dialog") and paths is None:     # 2.51.0: customer documents are added in Customer Documents
+            return self.sub_add_dialog()
         paths = paths or filedialog.askopenfilenames(title="Customer documents for this effort",
                                                      filetypes=[("Documents", " ".join("*" + x for x in DOC_EXTS))])
         if not paths:

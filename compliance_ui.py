@@ -1245,6 +1245,74 @@ class ComplianceMixin:
         return w
 
     # ------------------------------------------------------------ files
+    def c_effort_docs(self):
+        """2.51.0: the effort's customer documents (latest version of each) from Customer Documents: [(name, label, path)]."""
+        lib = self.doclib() if hasattr(self, "doclib") and getattr(self, "effort", None) is not None else None
+        out = []
+        for d in (lib.docs if lib else []):
+            if d["versions"]:
+                v = d["versions"][-1]
+                p = v.get("path", "")
+                if p and os.path.isfile(p) and p.lower().endswith((".docx", ".pdf", ".xlsx", ".pptx")):
+                    out.append((d["name"], v["label"], p))
+        return out
+
+    def compliance_pick_docs(self, title="Read the RFP", answer=None, exclude=()):
+        """2.51.0: which of the effort's customer documents to read: ticked boxes, all ticked to start. answer (tests):
+        a list of paths at once. Returns the paths, [] when cancelled, None when the effort has none yet."""
+        docs = [x for x in self.c_effort_docs() if os.path.normcase(x[2]) not in {os.path.normcase(e) for e in exclude}]
+        if not docs:
+            return None
+        if answer is not None:
+            return [p for _n, _l, p in docs if p in answer]
+        w = ctk.CTkToplevel(self); w.title(title); w.transient(self); w.geometry("700x520")
+        ctk.CTkLabel(w, text=title, font=("Segoe UI", 16, "bold"), anchor="w").pack(fill="x", padx=16, pady=(14, 2))
+        ctk.CTkLabel(w, text="The customer documents of this effort (Customer Documents), latest version of each. Tick the ones to "
+                             "read: instructions, evaluation criteria, SOW, attachments.", anchor="w", justify="left", wraplength=660,
+                     text_color=("#475569", "#94A3B8")).pack(fill="x", padx=16)
+        box = ctk.CTkScrollableFrame(w); box.pack(fill="both", expand=True, padx=16, pady=8)
+        vars_ = []
+        for name, label, p in docs:
+            v = tk.BooleanVar(value=True)
+            ctk.CTkCheckBox(box, text=f"{name}   ({label}: {os.path.basename(p)})", variable=v).pack(anchor="w", pady=2)
+            vars_.append((v, p))
+        res = {"paths": []}
+        bar = ctk.CTkFrame(w, fg_color="transparent"); bar.pack(fill="x", padx=16, pady=10)
+
+        def ok():
+            res["paths"] = [p for v, p in vars_ if v.get()]
+            w.destroy()
+
+        def more():
+            w.destroy()
+            if hasattr(self, "shell_go"):
+                self.shell_go("submission", "documents")
+            if hasattr(self, "sub_add_dialog"):
+                self.sub_add_dialog()
+        ctk.CTkButton(bar, text="Read these", fg_color="#9A3412", command=ok).pack(side="right")
+        ctk.CTkButton(bar, text="Cancel", fg_color="#64748B", command=w.destroy).pack(side="right", padx=8)
+        ctk.CTkButton(bar, text="Add customer documents...", fg_color="#475569", command=more).pack(side="left")
+        w.after(100, w.lift)
+        w.grab_set()
+        self.wait_window(w)
+        return res["paths"]
+
+    def _c_docs_or_pick(self, title, exclude=()):
+        """With an effort: its customer documents (2.51.0); with none added yet, say where to add them. Without an
+        effort: pick files."""
+        if getattr(self, "effort", None) is not None and hasattr(self, "doclib") and self.doclib() is not None:
+            paths = self.compliance_pick_docs(title, exclude=exclude)
+            if paths is None:
+                if messagebox.askyesno("Customer documents", "This effort has no customer documents yet. They are added in Customer "
+                                       "Documents, then every feature reads them from there.\n\nAdd them now?", parent=self._cwin):
+                    if hasattr(self, "shell_go"):
+                        self.shell_go("submission", "documents")
+                    if hasattr(self, "sub_add_dialog"):
+                        self.sub_add_dialog()
+                return []
+            return paths
+        return list(self._c_pick_rfp(title) or [])
+
     def _c_pick_rfp(self, title):
         d = ""
         if getattr(self, "effort", None) is not None:
@@ -1434,8 +1502,8 @@ class ComplianceMixin:
         w.after(100, w.lift)
         return w
 
-    def compliance_new(self):
-        paths = self._c_pick_rfp("RFP files: instructions, evaluation criteria, SOW, attachments")
+    def compliance_new(self, paths=None):
+        paths = paths or self._c_docs_or_pick("Read the RFP: which customer documents?")
         if not paths:
             return
         stem = re.sub(r"[^A-Za-z0-9_-]+", "_", self.effort.name) if getattr(self, "effort", None) else "RFP"
@@ -1481,7 +1549,8 @@ class ComplianceMixin:
     def compliance_add_files(self):
         if self.matrix is None:
             return self.compliance_new()
-        paths = self._c_pick_rfp("More RFP files (amendments, attachments)")
+        read = [r[3] for r in self.matrix.sources if len(r) > 3 and r[3]]
+        paths = self._c_docs_or_pick("Add to the matrix: which customer documents?", exclude=read)
         if not paths:
             return
 
