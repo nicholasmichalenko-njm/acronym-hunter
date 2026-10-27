@@ -1053,7 +1053,7 @@ class ComplianceMixin:
             try:
                 fc, src = [], []
                 for p in paths:
-                    fc.append((os.path.basename(p), eng.typed_chunks(p)))
+                    fc.append((os.path.basename(p), eng.rfp_chunks(p)))     # 2.47.0: scanned pages too
                     src.append([os.path.basename(p), _sha256(p), datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), os.path.abspath(p)])
                 res["fc"], res["src"] = fc, src
             except Exception as ex:

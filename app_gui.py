@@ -1023,8 +1023,19 @@ def typed_chunks(filepath):
     finally:
         _typed_only.on = False
 
-def read_image_bytes(image_bytes):
-    if getattr(_typed_only, "on", False):
+def rfp_chunks(filepath):
+    """2.47.0: customer documents for the compliance review and Submission: typed text, plus scanned PDF pages read
+    whole by OCR (AI and ML, when on for the effort), so no page is left out. Pictures inside typed pages are not read."""
+    _typed_only.on = True
+    _typed_only.pages = True
+    try:
+        return extract_chunks_from_file(filepath, lambda _m: None, 1, 1)
+    finally:
+        _typed_only.on = False
+        _typed_only.pages = False
+
+def read_image_bytes(image_bytes, page=False):
+    if getattr(_typed_only, "on", False) and not (page and getattr(_typed_only, "pages", False)):
         return ""
     _OCR_CALLS[0] += 1                 # the file has pictures: its saved results depend on the picture reader
     if not ai_ml_on():
@@ -1602,7 +1613,7 @@ def extract_pdf(filepath, filename, status_callback, prefix, chunks):
                     parts = [digital_text]
                     if len(digital_text.strip()) < OCR_CFG["scanned_page_max_chars"]:  # scanned page: OCR it whole
                         pil = page.render(scale=int(OCR_CFG["pdf_scan_dpi"]) / 72.0).to_pil().convert("RGB")
-                        parts.append(read_image_bytes(_pil_png(pil)))
+                        parts.append(read_image_bytes(_pil_png(pil), page=True))
                     else:  # digital page: OCR each embedded figure once per document
                         for obj in page.get_objects(filter=[_pdfium_raw.FPDF_PAGEOBJ_IMAGE], max_depth=5):
                             try:

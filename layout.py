@@ -123,7 +123,7 @@ def page_map(path, page_no, items, headings=()):
             span = mark(T.line_words(title), "#h")
             if span:
                 heads.append((seq[span[0]][1], seq[span[1] - 1][2]))
-        out = {"size": (w, h), "pages": len(pdf), "items": [], "headings": [], "missing": []}
+        out = {"size": (w, h), "pages": len(pdf), "items": [], "headings": [], "missing": [], "chars": n}
         for iid, spans in found.items():
             rs = []
             parts = set()

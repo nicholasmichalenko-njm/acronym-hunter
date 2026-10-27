@@ -83,6 +83,13 @@ def go():
     check("Assign moving to a sentence on page 2 turns the page", w._page == 2 and w._sel == p2["id"], (w._page, w._sel))
     app.layout_step(-1); app.update()
     check("the page buttons go back to page 1", w._page == 1 and w._pl.cget("text") == "Page 1 of 2", w._pl.cget("text"))
+    # 2.47.0: the wheel turns to the next page at the bottom of a page, so every page is reached in order
+    for _ in range(40):
+        if w._page == 2:
+            break
+        app._lay_wheel(1); app.update()
+    check("2.47.0: scrolling past the bottom of page 1 turns to page 2", w._page == 2, w._page)
+    app.layout_step(-1); app.update()
     # add the red line to the review
     n0 = len(app.matrix.items)
     ml, mt, mr, mb = w._map["missing"][0]["rects"][0]

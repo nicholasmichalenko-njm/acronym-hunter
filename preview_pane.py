@@ -337,7 +337,8 @@ class PreviewPane(ctk.CTkFrame):
         self._update_restore(d)
         self._math_info(term, d)
         pics = self.app.picture_locations(term)
-        self.locs = pics + [l for l in d.get("locations", []) if l not in pics]
+        # 2.47.0: in document order, so the preview opens on the first place the term was found
+        self.locs = list(d.get("locations", [])) + [l for l in pics if l not in d.get("locations", [])]
         kind = lambda l: "PDF page: " if "(p." in l and l.lower().split(" (p.")[0].endswith(".pdf") else "Image: "
         names = [((kind(l) if l in pics else "Text: ") + l)[:90] for l in self.locs] or ["(no location)"]
         self.opt_loc.configure(values=names)
@@ -668,15 +669,19 @@ class PreviewPane(ctk.CTkFrame):
                 s = img.height / h_pt
                 tp = page.get_textpage()
                 out = []
-                srch = tp.search(self.term, match_case=True, match_whole_word=True)
-                occ = srch.get_next()
-                while occ:
-                    idx, cnt = occ
-                    for r in range(tp.count_rects(idx, cnt)):
-                        l, b, rr, t = tp.get_rect(r)
-                        out.append((l * s, (h_pt - t) * s, rr * s, (h_pt - b) * s))
+                for case, whole in ((True, True), (False, False)):   # 2.47.0: then any case, inside longer words
+                    srch = tp.search(self.term, match_case=case, match_whole_word=whole)
                     occ = srch.get_next()
-                srch.close(); tp.close(); page.close()
+                    while occ:
+                        idx, cnt = occ
+                        for r in range(tp.count_rects(idx, cnt)):
+                            l, b, rr, t = tp.get_rect(r)
+                            out.append((l * s, (h_pt - t) * s, rr * s, (h_pt - b) * s))
+                        occ = srch.get_next()
+                    srch.close()
+                    if out:
+                        break
+                tp.close(); page.close()
                 return out
             finally:
                 doc.close()
@@ -690,7 +695,8 @@ class PreviewPane(ctk.CTkFrame):
         if self.term:
             ft = eng.fold(self.term)
             f += [("line", i) for i, (_b, t, _c) in enumerate(lines) if ft and ft in eng.fold(t)]
-        return f
+        box = lambda x: hits[x[1]] if x[0] == "hit" else lines[x[1]][0]
+        return sorted(f, key=lambda x: (round(box(x)[1] / 12), box(x)[0]))     # 2.47.0: the first on the page first
 
     def _find_box(self, f):
         if f[0] == "hit":

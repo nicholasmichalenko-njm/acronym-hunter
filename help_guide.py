@@ -533,7 +533,9 @@ PAGES = {
           "of the review boxed in its decision's color: green a compliance requirement, blue context, gray not used, amber not "
           "decided yet. Click a box to work on that sentence in Assign; when Assign moves to a sentence on another page, the "
           "view turns the page. Text on the page that is not in the review is boxed in red (the text check's own rules): click "
-          "it to add it to the review, in its place between the sentences before and after it. Page with the arrows or Page Up and Page Down. Word, Excel and PowerPoint files have "
+          "it to add it to the review, in its place between the sentences before and after it. A scanned page (a picture "
+          "of the page) is read by OCR (AI and ML) so its text is in the review; boxes cannot be drawn on it. Scroll past "
+          "the bottom of a page for the next one; Home and End for the first and last. Page with the arrows or Page Up and Page Down. Word, Excel and PowerPoint files have "
           "no fixed pages: their passage is in the panel and Open file opens them."),
     ("img", "layout.png", 560),
     ("img", "compliance.png", 620),

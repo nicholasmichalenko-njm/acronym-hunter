@@ -68,7 +68,9 @@ class LayoutMixin:
         sb.pack(side="right", fill="y"); cv.pack(side="left", fill="both", expand=True)
         cv.bind("<Button-1>", self._lay_click)
         cv.bind("<Configure>", UQ.debounced(cv, lambda _e: self._lay_fit(), 200))
-        cv.bind("<MouseWheel>", lambda e: cv.yview_scroll(int(-e.delta / 120), "units"))
+        cv.bind("<MouseWheel>", lambda e: self._lay_wheel(-1 if e.delta > 0 else 1))      # 2.47.0: on to the next page at the end
+        cv.bind("<Button-4>", lambda _e: self._lay_wheel(-1)); cv.bind("<Button-5>", lambda _e: self._lay_wheel(1))
+        w.bind("<Home>", lambda _e: self.layout_show(w._file, 1)); w.bind("<End>", lambda _e: self.layout_show(w._file, w._pages))
         w.bind("<Prior>", lambda _e: self.layout_step(-1)); w.bind("<Next>", lambda _e: self.layout_step(1))
         w._cv = cv
         w.protocol("WM_DELETE_WINDOW", lambda: (w.destroy(), setattr(self, "_lay", None)))
@@ -108,11 +110,35 @@ class LayoutMixin:
         w._pl.configure(text=f"Page {page} of {n}")
         m = w._map
         nmiss = len(m["missing"])
-        w._info.configure(text=f"{len(m['items'])} sentence(s) of the review on this page" +
-                          (f"; {nmiss} line(s) of text not in the review (red): click one to add it." if nmiss else
-                           "; all its text is in the review.") + " Click a sentence to work on it in Assign.")
+        if not m.get("chars", 1):                     # 2.47.0: a scanned page has no text layer to box
+            w._info.configure(text="This page is a scanned picture with no typed text. Its text is read by OCR (AI and ML, when "
+                                   "on for the effort) and is in the review, but boxes cannot be drawn on a picture. "
+                                   "Use < and > (or Page Up and Page Down) to move through every page.")
+        else:
+            w._info.configure(text=f"{len(m['items'])} sentence(s) of the review on this page" +
+                              (f"; {nmiss} line(s) of text not in the review (red): click one to add it." if nmiss else
+                               "; all its text is in the review.") + " Click a sentence to work on it in Assign.")
         self._lay_fit()
         return m
+
+    def _lay_wheel(self, d):
+        """The wheel scrolls the page; past its bottom (or top) it turns to the next (or previous) page, so every page
+        is reached in order."""
+        w = getattr(self, "_lay", None)
+        if w is None or not w._file:
+            return
+        top, bot = w._cv.yview()
+        if d > 0 and bot >= 0.999:
+            if w._page < w._pages:
+                self.layout_step(1)
+                w._cv.yview_moveto(0)
+            return
+        if d < 0 and top <= 0.001:
+            if w._page > 1:
+                self.layout_step(-1)
+                w._cv.yview_moveto(1)
+            return
+        w._cv.yview_scroll(d * 3, "units")
 
     def layout_step(self, d):
         w = getattr(self, "_lay", None)

@@ -3,6 +3,20 @@ built and what is next. Edit PLANNED to add an idea; nothing here does anything.
 import customtkinter as ctk
 
 PLANNED = [
+    ("Compliance: customer sentences", [
+        "A fourth role beside compliance requirement, context and not used: Customer, for sentences that read like "
+        "requirements but are the customer's to act on (\"The Government will evaluate...\").",
+        "Its own key and color; counted in Prove and the coverage report; never put in our response.",
+    ]),
+    ("Compliance matrix in Excel, designed in the app", [
+        "Pick, order and rename the columns (reference, requirement, our section, owner, page, status, notes...).",
+        "Choose which roles to include and see the first rows before exporting; save the design as the team default.",
+        "One export writes the Excel compliance matrix and the Response Setup together, from the same decisions.",
+    ]),
+    ("Deliverables list", [
+        "Each deliverable with its format, page limit, owner, progress (Not started to Delivered, with percent) and notes.",
+        "A full table to sort and export.",
+    ]),
     ("Custom dictionaries", [
         "Keep several custom dictionaries in Stationkeeper and see every word in them.",
         "Import an existing Word custom dictionary (.dic).",

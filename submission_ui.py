@@ -746,7 +746,7 @@ class SubmissionMixin:
     def sub_read(self, path):
         """The text of a file, sentence by sentence (typed text only)."""
         try:
-            chunks = _eng().typed_chunks(path)
+            chunks = _eng().rfp_chunks(path)          # 2.47.0: scanned pages too
         except Exception:
             diag.swallowed()
             chunks = []
