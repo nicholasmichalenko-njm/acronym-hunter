@@ -132,6 +132,7 @@ from compliance_ui import ComplianceMixin   # compliance matrix (2.8.0)
 from workspace_ui import WorkspaceMixin   # effort profiles, session, recovery, backups (2.11.0)
 from ai_ui import AIMixin   # what runs where (2.12.0)
 from pageview_ui import PageViewMixin   # 2.56.0: Assign on the real page
+from assigncard_ui import AssignCardMixin   # 2.58.0: the sentence card in Assign
 from trainpack_ui import TrainPackMixin   # one training data pack for the training team (2.55.0)
 from setup_ui import SetupMixin   # Setup Builder in the compliance window (2.13.0)
 from effort_wizard import WizardMixin   # effort start wizard, intake, review, record, exports (2.14.0)
@@ -2392,7 +2393,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.57.0"            # keep in step with version_info.txt
+APP_VERSION = "2.58.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3341,7 +3342,7 @@ def corrections_on():
     """Report misreading and Not text save corrections for the training team, unless allow_training is false."""
     return bool(APP_CFG["allow_training"])
 
-class AcronymAppGUI(PageViewMixin, TrainPackMixin, KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixin, ImpactMixin, LayoutMixin, ReadableMixin, KeepSafeMixin, EffortPictureMixin, MatrixDesignMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(AssignCardMixin, PageViewMixin, TrainPackMixin, KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixin, ImpactMixin, LayoutMixin, ReadableMixin, KeepSafeMixin, EffortPictureMixin, MatrixDesignMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Stationkeeper {APP_VERSION}: proposal efforts, 100% local")

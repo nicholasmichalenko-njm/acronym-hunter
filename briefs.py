@@ -38,7 +38,7 @@ def build(r, matrix=None, owner_of=None, people_of=None):
     out = collections.OrderedDict()
 
     def who(label, owner=""):
-        names = [owner] if owner else []
+        names = [" ".join(x.split()) for x in owner.replace(";", ",").split(",")] if owner else []   # 2.58.0: several authors
         p = people_of(label) if label else {"lead": "", "with": ""}
         names += [p.get("lead", "")] + [x.strip() for x in (p.get("with") or "").split(",")]
         seen = []
@@ -75,7 +75,8 @@ def build(r, matrix=None, owner_of=None, people_of=None):
             line = f"New in RFP {num}, which this section answers (not assigned yet): {_q(a['text'])}"
             names = who(label, "")
             if not names and matrix is not None:
-                names = sorted({owner_of(it) for it in matrix.items if it.get("map") == label and owner_of(it)})
+                names = sorted({" ".join(n.split()) for it in matrix.items if it.get("map") == label and owner_of(it)
+                                for n in owner_of(it).replace(";", ",").split(",") if n.strip()})
             for n in names:
                 add(n, label, line)
     for s in r["structure"]:

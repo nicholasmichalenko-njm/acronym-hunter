@@ -570,7 +570,7 @@ class EffortRecordMixin:
             try:
                 import setupdoc as SD
                 secs = SD.sections_of(M, who)
-                reqs = sum(1 for it in M.items if it["decision"] == "Keep" and SD.owner_of(M, it) == who)
+                reqs = sum(1 for it in M.items if it["decision"] == "Keep" and who in SD.owners_list(M, it))
             except Exception:
                 diag.swallowed()
         ctk.CTkLabel(body, text=f"{who}: {len(secs)} section(s)" + (f" ({', '.join(secs[:4])}{'...' if len(secs) > 4 else ''})" if secs else "")
@@ -1419,7 +1419,7 @@ class EffortRecordMixin:
             import setupdoc as SD
             for p in self.rec_people():
                 secs = SD.sections_of(M, p) if M is not None else []
-                reqs = sum(1 for it in M.items if it["decision"] == "Keep" and SD.owner_of(M, it) == p) if M is not None else 0
+                reqs = sum(1 for it in M.items if it["decision"] == "Keep" and p in SD.owners_list(M, it)) if M is not None else 0
                 op = [t for t in ts if t["owner"] == p and t["status"] != "Done"]
                 people.append({"person": p, "sections": ", ".join(secs[:6]) + ("..." if len(secs) > 6 else ""), "reqs": reqs,
                                "tasks": len(op), "late": sum(1 for t in op if r.task_overdue(t))})

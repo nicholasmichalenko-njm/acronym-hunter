@@ -90,7 +90,7 @@ class CompliancePageMixin:
                                         hover_color="#1E3A8A", font=("Segoe UI", 13, "bold"))
 
         wrap = ctk.CTkFrame(body, fg_color="transparent"); wrap.pack(fill="both", expand=True)
-        side = ctk.CTkScrollableFrame(wrap, width=330); side.pack(side="right", fill="y", padx=(8, 0))
+        side = ctk.CTkScrollableFrame(wrap, width=360); side.pack(side="right", fill="y", padx=(8, 0))
         win.cp_sidef = side
         page = ctk.CTkFrame(wrap, corner_radius=12, fg_color=("#FFFFFF", "#111827")); page.pack(side="left", fill="both", expand=True)
         win.cp_src = ctk.CTkLabel(page, text="", anchor="w", text_color=("#64748B", "#94A3B8"))
@@ -161,16 +161,24 @@ class CompliancePageMixin:
         t.bind("<Leave>", lambda _e: self._cp_hover(None))
         for seq in ("<Control-c>", "<Control-a>"):
             t.bind(seq, lambda _e: None)
-        win.cp_head = ctk.CTkLabel(side, text="", font=("Segoe UI", 14, "bold"), anchor="w", justify="left", wraplength=310)
-        win.cp_head.pack(fill="x", padx=8, pady=(6, 0))
-        win.cp_where = ctk.CTkLabel(side, text="", anchor="w", justify="left", wraplength=310, text_color=("#475569", "#94A3B8"))
+        # 2.58.0 the sentence card: everything decided about the selected sentence, in one place
+        card = ctk.CTkFrame(side, corner_radius=10, border_width=1, border_color=("#CBD5E1", "#334155"),
+                            fg_color=("#FFFFFF", "#0F172A"))
+        card.pack(fill="x", padx=2, pady=(4, 0))
+        win.ac_card = card
+        win.cp_head = ctk.CTkLabel(card, text="", font=("Segoe UI", 14, "bold"), anchor="w", justify="left", wraplength=320)
+        win.cp_head.pack(fill="x", padx=8, pady=(8, 0))
+        win.cp_where = ctk.CTkLabel(card, text="", anchor="w", justify="left", wraplength=320, text_color=("#334155", "#CBD5E1"))
         win.cp_where.pack(fill="x", padx=8)
-        win.cp_ref = ctk.CTkLabel(side, text="", anchor="w", justify="left", wraplength=310)      # 2.38.0
-        win.cp_ref.pack(fill="x", padx=8, pady=(4, 0))
-        ctk.CTkButton(side, text="How this file is referenced...", width=10, height=24, fg_color="transparent", border_width=1,
-                      text_color=("#1E3A8A", "#BFDBFE"), command=self.cp_change_reference).pack(anchor="w", padx=8, pady=(2, 0))
-        self._cp_card_title(side, "Relationships")                  # 2.53.0
-        win.cp_rel = ctk.CTkFrame(side, fg_color="transparent"); win.cp_rel.pack(fill="x", padx=8)
+        win.cp_ref = ctk.CTkLabel(card, text="", anchor="w", justify="left", wraplength=320, text_color=("#475569", "#94A3B8"),
+                                  font=("Segoe UI", 11))      # 2.38.0
+        win.cp_ref.pack(fill="x", padx=8, pady=(2, 0))
+        ctk.CTkButton(card, text="How this file is referenced...", width=10, height=22, fg_color="transparent", border_width=1,
+                      text_color=("#1E3A8A", "#BFDBFE"), font=("Segoe UI", 11),
+                      command=self.cp_change_reference).pack(anchor="w", padx=8, pady=(2, 0))
+        self._ac_build(card)
+        self._cp_card_title(card, "Relationships")                  # 2.53.0
+        win.cp_rel = ctk.CTkFrame(card, fg_color="transparent"); win.cp_rel.pack(fill="x", padx=8, pady=(0, 8))
         self._cp_card_title(side, "RFP outline")                    # 2.54.0
         ctk.CTkLabel(side, text="The RFP's own sections in order. H marks a header; click one to go there, right-click to "
                                 "rename, change its level, map it to a proposal section or remove it.", anchor="w",
@@ -796,6 +804,10 @@ class CompliancePageMixin:
         sec = " ".join(x for x in (it.get("section", ""), it.get("section_title", "")) if x)
         win.cp_where.configure(text=(it.get("loc") or "") + (f"\nRFP section {sec}" if sec else ""))
         self._cp_rel_panel(it)
+        try:
+            self._ac_show(it)                          # 2.58.0: the sentence card
+        except Exception:
+            diag.swallowed()
         self._cp_lines()
         self._cp_side()
 
@@ -988,9 +1000,9 @@ class CompliancePageMixin:
             w.destroy()
         ids, how = self._cp_related(it)
         S = dict(width=10, height=24, font=("Segoe UI", 11))
-        secs = SD.item_sections(self.matrix, it) if it.get("decision") in ("Keep", "Context") and not (
-            it.get("decision") == "Context" and it.get("context_for")) else []
-        if secs:                                       # 2.56.0: every section it is in, each with Remove
+        secs = SD.item_sections(self.matrix, it) if it.get("decision") == "Context" and not it.get("context_for") else []
+        if secs:                                       # 2.56.0: every section it is in, each with Remove (2.58.0: a
+                                                       # requirement's sections are chips on the card)
             ctk.CTkLabel(box, text="In section" + ("s" if len(secs) > 1 else "") + " (R with another target adds one):",
                          anchor="w", font=("Segoe UI", 11, "bold")).pack(fill="x")
             for lab in secs:
@@ -1025,8 +1037,14 @@ class CompliancePageMixin:
                           command=lambda a=it["id"], b=i: self.cp_unlink(a, b), **S).pack(side="right")
             ctk.CTkButton(top, text="Jump", fg_color="transparent", text_color=("#1E3A8A", "#BFDBFE"), hover_color=("#DBEAFE", "#1E3A8A"),
                           command=lambda b=i: self._cp_select(b), **S).pack(side="right")
-            ctk.CTkLabel(line, text=x["text"][:110] + ("..." if len(x["text"]) > 110 else ""), anchor="w", justify="left",
-                         wraplength=290, font=("Segoe UI", 11)).pack(fill="x", padx=6, pady=(0, 4))
+            try:
+                import matrixdesign as MD
+                loc = MD.ctx_ref(self.matrix, x)          # 2.58.0: where it is in the RFP
+            except Exception:
+                diag.swallowed()
+                loc = ""
+            ctk.CTkLabel(line, text=(f"({loc}) " if loc else "") + x["text"][:110] + ("..." if len(x["text"]) > 110 else ""),
+                         anchor="w", justify="left", wraplength=300, font=("Segoe UI", 11)).pack(fill="x", padx=6, pady=(0, 4))
         if it.get("decision") == "Context":
             ctk.CTkButton(box, text="Link to another requirement...", height=26, width=10,
                           command=lambda: self.cp_link_more(it["id"])).pack(anchor="w", pady=(4, 0))

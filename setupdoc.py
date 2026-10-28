@@ -279,8 +279,22 @@ def set_people(M, label, lead="", with_=""):
 
 
 def owner_of(M, it):
-    """Who writes this sentence: its own owner, else the lead of its section (or a parent section)."""
+    """Who writes this sentence: its own author(s) ("A. Lee, K. Park"), else the lead of its section (or a parent)."""
     return (it.get("owner") or "").strip() or section_people(M, it.get("map", "")).get("lead", "")
+
+
+def owners_list(M, it):
+    """2.58.0: the sentence's author(s) as a list: a sentence can have several, separated by commas or semicolons."""
+    return split_names(owner_of(M, it))
+
+
+def split_names(text):
+    out = []
+    for n in re.split(r"[;,]", text or ""):
+        n = " ".join(n.split())
+        if n and n not in out:
+            out.append(n)
+    return out
 
 
 def people(M):
@@ -290,7 +304,7 @@ def people(M):
     for p in S["owners"].values():
         names.add(p.get("lead", ""))
         names |= {x.strip() for x in p.get("with", "").split(",")}
-    names |= {(it.get("owner") or "").strip() for it in M.items}
+    names |= {n for it in M.items for n in split_names(it.get("owner", ""))}
     return sorted(n for n in names if n)
 
 

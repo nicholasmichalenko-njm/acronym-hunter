@@ -532,3 +532,34 @@ def place_all(pdf, items):
         out[it["id"]] = (spans(idx), lp)
         cur = max(cur, idx[-1] + 1)
     return out
+
+
+def where(pdf, place):
+    """(page, paragraph on that page) of a place: the paragraph is counted among the page's paragraphs without headers
+    and footers (1 = the first on the page). (0, 0) when the place is not on this PDF."""
+    sp = parse_place(place)
+    if not sp:
+        return 0, 0
+    pg, a, _b = sp[0]
+    try:
+        doc = doc_of(pdf)
+    except Exception:
+        return pg, 0
+    if pg - 1 >= len(doc["pages"]):
+        return pg, 0
+    lines = doc["pages"][pg - 1]["lines"]
+    k = 0
+    for para in doc.get("paras") or ():
+        mine = [li for pi, li in para["lines"] if pi == pg - 1]
+        if not mine or para["kind"] == "heading":
+            continue                                   # headings are not counted as paragraphs
+        k += 1
+        if any(lines[li]["a"] <= a < lines[li]["b"] + 1 for li in mine):
+            return pg, k
+    return pg, 0
+
+
+def where_text(pdf, place):
+    """'p.3, para 2' for a place, '' when there is none."""
+    pg, para = where(pdf, place) if pdf else (parse_place(place)[0][0] if parse_place(place) else 0, 0)
+    return ", ".join(x for x in ((f"p.{pg}" if pg else ""), (f"para {para}" if para else "")) if x)

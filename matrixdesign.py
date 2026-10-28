@@ -46,7 +46,9 @@ DEFAULT = {"columns": [{"key": k, "heading": h} for k, h in
                         ("rfp_ref", "RFP L No."), ("text", "RFP content"), ("authors", "Author(s)"), ("notes", "Notes"))],
            "v": 2,
            "roles": ["Keep", "Context"], "customer_sheet": True, "title": "", "empty_sections": True,
-           "order": "rfp"}                          # 2.54.0: rows in the RFP's order (or "structure": our sections' order)
+           "order": "rfp",                          # 2.54.0: rows in the RFP's order (or "structure": our sections' order)
+           "context": "cell"}                       # 2.58.0: support in its requirement's cell, each piece with its RFP place
+                                                    # ("rows": a row of its own under the requirement)
 _FAR = __import__("re").compile(r"\b(?:FAR|DFARS|NFS|AFFARS|DFARS PGI)\s+(?:clause\s+)?\d{1,3}\.\d{2,4}(?:-\d+)?(?:\([a-z0-9]+\))*", __import__("re").I)
 
 
@@ -96,6 +98,7 @@ def clean(d):
     out["title"] = " ".join(str(d.get("title") or "").split())[:120]
     out["empty_sections"] = bool(d.get("empty_sections", True))
     out["order"] = d.get("order") if d.get("order") in ("rfp", "structure") else "rfp"
+    out["context"] = d.get("context") if d.get("context") in ("cell", "rows") else "cell"
     out["v"] = 2
     return out
 
@@ -138,9 +141,21 @@ def design_for(M, config_dir=""):
     return of_matrix(M) or (load_team(config_dir) if config_dir else None) or default()
 
 
-def _where(it):
-    """'p.3, para 2' from where a sentence was found (for RFPs without section numbers)."""
+def _where(it, M=None):
+    """'p.3, para 2' from where a sentence was found (for RFPs without section numbers). 2.58.0: a sentence read from
+    the page (it has a place) says its page and its paragraph on that page, counted without headings."""
     import re
+    if it.get("place"):
+        pdf = ""
+        if M is not None and str(it.get("file", "")).lower().endswith(".pdf"):
+            pdf = M.path_of(it.get("file", ""))
+        try:
+            import pagesent as PS
+            w = PS.where_text(pdf, it["place"])
+        except Exception:
+            w = ""
+        if w:
+            return w
     loc = it.get("loc", "")
     page = it.get("page") or (re.search(r"\bp\.?\s*(\d+)|page\s+(\d+)", loc, re.I) or [None])
     if not isinstance(page, (str, int)):
@@ -181,7 +196,7 @@ def _value(M, it, key, inh, people, ctx=None, vols=None):
     if key == "order":
         return it.get("_order", "")
     if key == "ref":
-        return SD.ref_of(M, it, inh)[0] or _where(it) or it["id"]
+        return SD.ref_of(M, it, inh)[0] or _where(it, M) or it["id"]
     if key in ("volume", "deliverable", "page_limit", "format"):
         vol = (vols or {}).get(it.get("map", ""), "")
         if key == "volume":
@@ -196,7 +211,7 @@ def _value(M, it, key, inh, people, ctx=None, vols=None):
         return " ".join(x for x in (it.get("section", ""), it.get("section_title", "")) if x)
     if key == "rfp_ref":                        # 2.56.0: the RFP's section number and title as written (else where it is)
         num = it.get("section", "") or SD.ref_of(M, it, inh)[0]
-        return " ".join(x for x in (num, it.get("section_title", "")) if x) or _where(it) or it["id"]
+        return " ".join(x for x in (num, it.get("section_title", "")) if x) or _where(it, M) or it["id"]
     if key in ("section_no", "section_name"):
         lab = it.get("map", "")
         o = next((o for o in M.outline if C.outline_label(o) == lab), None)
@@ -204,14 +219,18 @@ def _value(M, it, key, inh, people, ctx=None, vols=None):
             return lab if key == "section_name" else ""
         return o.get("num", "") if key == "section_no" else (o.get("title", "") or lab)
     if key == "authors":
-        own = (it.get("owner") or "").strip()
+        own = SD.split_names(it.get("owner", ""))
         if own:
-            return own
+            return ", ".join(own)
         p = SD.section_people(M, it.get("map", "")) if it.get("map") else {}
         names = [p.get("lead", "")] + [x.strip() for x in (p.get("with", "") or "").split(",")]
         return ", ".join(dict.fromkeys(n for n in names if n))
     if key == "text":
-        return ((it.get("lead") + " ") if it.get("lead") else "") + it.get("text", "")
+        base = ((it.get("lead") + " ") if it.get("lead") else "") + it.get("text", "")
+        if it.get("_ctx"):                       # 2.58.0: its support in the same cell, each with where it is in the RFP
+            base += "\n\nSupporting context:" + "".join(f"\n({ctx_ref(M, c, inh)}) " + _value(M, c, "text", inh, people, ctx, vols)
+                                                          for c in it["_ctx"])
+        return base
     if key == "role":                           # 2.52.0: a support row says which requirement it supports
         if it.get("decision") == "Context":
             host = it.get("_host") or (C.cf_ids(it.get("context_for", "")) or [""])[0]
@@ -237,6 +256,9 @@ def _value(M, it, key, inh, people, ctx=None, vols=None):
     if key == "source":
         return it.get("file", "")
     if key == "location":
+        w = _where(it, M) if it.get("place") else ""
+        if w:
+            return w
         p = it.get("page")
         return f"p.{p}" if p else (it.get("loc", "").split("(", 1)[-1].rstrip(")") if "(" in it.get("loc", "") else "")
     if key == "strength":
@@ -246,6 +268,30 @@ def _value(M, it, key, inh, people, ctx=None, vols=None):
     if key == "id":
         return it.get("id", "")
     return ""
+
+
+def ctx_ref(M, it, inh=None):
+    """Where a support sentence is in the RFP, for its requirement's cell: its RFP section number (else the heading
+    number or the heading name) and its page: "L.4.2, p.3"; "Technical Approach, p.3"; "p.3, para 2"."""
+    import setupdoc as SD
+    inh = inh if inh is not None else SD.inherited_sections(M)
+    num = it.get("section", "") or SD.ref_of(M, it, inh)[0]
+    sec = num or it.get("section_title", "")
+    w = _where(it, M)
+    pg = w.split(",")[0] if w else (f"p.{it['page']}" if it.get("page") else "")
+    return ", ".join(x for x in (sec, pg if sec else w) if x) or it.get("id", "")
+
+
+def _fold(out):
+    """Support rows into their requirement's row (context in the requirement's cell, 2.58.0). A support sentence that
+    supports several requirements is in each of their cells. Support for a section only keeps a row of its own."""
+    res = []
+    for it in out:
+        if it.get("_kind") == "ctx" and it.get("_host") and res and res[-1].get("_kind") == "req":
+            res[-1].setdefault("_ctx", []).append(it)
+            continue
+        res.append(it)
+    return res
 
 
 def rows(M, design, ctx=None):
@@ -267,8 +313,11 @@ def rows(M, design, ctx=None):
     for it in ctxs:
         if it.get("_also") and it.get("context_for"):
             continue                                  # support for requirements follows its requirements, not copies
-        host = next((h for h in C.cf_ids(it.get("context_for", "")) if h in keep_ids), None)
-        (under.setdefault(host, []) if host else loose).append(it)
+        hosts = [h for h in C.cf_ids(it.get("context_for", "")) if h in keep_ids]
+        for host in hosts:                            # 2.58.0: under every requirement it supports, repeated
+            under.setdefault(host, []).append(it)
+        if not hosts:
+            loose.append(it)
     by_sec = {}
     for it in keep + loose:
         by_sec.setdefault(it.get("map", ""), []).append(it)
@@ -286,6 +335,8 @@ def rows(M, design, ctx=None):
             used = {it.get("map", "") for it in keep + loose}
             par = {labels[i] for i, o in enumerate(M.outline) if i + 1 < len(M.outline) and M.outline[i + 1].get("level", 1) > o.get("level", 1)}
             out += [{"_kind": "empty", "map": lab, "id": "", "decision": ""} for lab in labels if lab not in used and lab not in par]
+        if design.get("context", "cell") == "cell":
+            out = _fold(out)
         for n, it in enumerate(out, 1):
             it["_order"] = n
         inh = SD.inherited_sections(M)
@@ -309,6 +360,8 @@ def rows(M, design, ctx=None):
             if it.get("decision") == "Keep":
                 for c in sorted(under.get(it["id"], []), key=lambda x: pos[id(x)]):
                     out.append(dict(c, _kind="ctx", _host=it["id"], map=it.get("map", c.get("map", ""))))
+    if design.get("context", "cell") == "cell":
+        out = _fold(out)
     for n, it in enumerate(out, 1):
         it["_order"] = n
     inh = SD.inherited_sections(M)

@@ -637,6 +637,13 @@ PAGES = {
               ("Customer's", "G marks a sentence that reads like a requirement but is the customer's to act on (\"The "
                              "Government will evaluate...\"). It is identified and counted (Prove has a Customer's category, "
                              "the coverage report and the matrix count it), never answered and never put in the response."),
+              ("The sentence card", "Click any sentence: the card beside the page shows everything decided about it. Source: "
+                                    "the file, the page and paragraph, and the RFP reference. Decision: the sections a "
+                                    "compliance requirement is in (x takes it out of one, + Section adds one), or the "
+                                    "requirements a support sentence backs up (x unlinks, + Requirement adds). Author(s): "
+                                    "type one or more names, or pick from the team; empty means the section's lead. "
+                                    "Relationships: what supports it or what it supports, with where each is in the RFP. "
+                                    "Notes. The matrix and the Response Setup are built from what the card shows."),
               ("Clear, Split, Combine", "X clears a sentence (not used). S splits it where you clicked between two words. "
                                         "Drag across several sentences, or Ctrl+click each one (even far apart), to assign them "
                                         "together, or M to combine them into one; each part keeps its place on the page."),
