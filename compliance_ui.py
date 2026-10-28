@@ -1335,6 +1335,15 @@ class ComplianceMixin:
         for it in self.matrix.items:
             if it["map"] and it["map"] not in labels:
                 it["map"] = ""; lost += 1
+        S = SD.setup_of(self.matrix)                     # 2.56.0: extra sections gone from the outline go too
+        for lab in [l for l in S["copies"] if l not in labels]:
+            S["copies"].pop(lab, None)
+        for it in self.matrix.items:                     # a sentence that lost its first section keeps its next one
+            if not it["map"]:
+                rest = SD.item_sections(self.matrix, it)
+                if rest:
+                    it["map"] = rest[0]
+                    S["copies"][rest[0]] = [i for i in S["copies"].get(rest[0], []) if i != it["id"]]
         self.matrix.log("outline", f"outline set: {len(ol)} sections" + (f"; {lost} mappings cleared" if lost else ""))
         diag.activity("compliance_outline_applied", items=len(ol), removed=lost)
         self._c_changed()

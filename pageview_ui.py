@@ -25,7 +25,7 @@ class PageViewMixin:
     def _pv_build(self, page, text_parts):
         """The Page view / Text view switch and the page canvas (packed when Page view is on)."""
         win = self._cwin
-        win.pv = {"on": False, "file": None, "pdf": "", "sizes": [], "tops": [], "scale": 1.0, "maps": {}, "base": {},
+        win.pv = {"zoom": 1.0, "on": False, "file": None, "pdf": "", "sizes": [], "tops": [], "scale": 1.0, "maps": {}, "base": {},
                   "photos": {}, "page_of": {}, "sig": None, "busy": False, "msg": "", "drag": None, "conv": set()}
         win.pv_text_parts = text_parts
         bar = ctk.CTkFrame(page, fg_color="transparent")
@@ -37,13 +37,26 @@ class PageViewMixin:
         fr = tk.Frame(page, bg="#E2E8F0")
         cv = tk.Canvas(fr, highlightthickness=0, bg="#E2E8F0", cursor="arrow", takefocus=1)
         sb = tk.Scrollbar(fr, orient="vertical", command=lambda *a: (cv.yview(*a), self._pv_soon()))
-        cv.configure(yscrollcommand=sb.set)
-        sb.pack(side="right", fill="y"); cv.pack(side="left", fill="both", expand=True)
+        xb = tk.Scrollbar(fr, orient="horizontal", command=cv.xview)
+        cv.configure(yscrollcommand=sb.set, xscrollcommand=xb.set)
+        sb.pack(side="right", fill="y"); xb.pack(side="bottom", fill="x"); cv.pack(side="left", fill="both", expand=True)
+        # zoom: Ctrl+wheel, Ctrl+plus and Ctrl+minus; Ctrl+0 fits the page to the width again
+        cv.bind("<Control-MouseWheel>", lambda e: (self.pv_zoom(1.15 if e.delta > 0 else 1 / 1.15), "break")[-1])
+        cv.bind("<Control-Button-4>", lambda _e: (self.pv_zoom(1.15), "break")[-1])
+        cv.bind("<Control-Button-5>", lambda _e: (self.pv_zoom(1 / 1.15), "break")[-1])
+        for seq in ("<Control-plus>", "<Control-equal>", "<Control-KP_Add>"):
+            cv.bind(seq, lambda _e: (self.pv_zoom(1.15), "break")[-1])
+        for seq in ("<Control-minus>", "<Control-KP_Subtract>"):
+            cv.bind(seq, lambda _e: (self.pv_zoom(1 / 1.15), "break")[-1])
+        cv.bind("<Control-0>", lambda _e: (self.pv_zoom(None), "break")[-1])
         cv.bind("<ButtonPress-1>", self._pv_press)
         cv.bind("<B1-Motion>", self._pv_motion)
         cv.bind("<ButtonRelease-1>", self._pv_release)
         cv.bind("<Key>", self._cp_key)
         cv.bind("<Button-3>", self._pv_menu)
+        cv.bind("<Next>", lambda _e: (cv.yview_scroll(1, "pages"), self._pv_soon(), "break")[-1])
+        cv.bind("<Prior>", lambda _e: (cv.yview_scroll(-1, "pages"), self._pv_soon(), "break")[-1])
+        cv.bind("<Control-z>", lambda _e: (self.cp_undo(), "break")[-1])
         cv.bind("<Configure>", lambda _e: self._pv_soon(relayout=True))
         cv.bind("<MouseWheel>", lambda e: (cv.yview_scroll(-3 if e.delta > 0 else 3, "units"), self._pv_soon()))
         cv.bind("<Button-4>", lambda _e: (cv.yview_scroll(-3, "units"), self._pv_soon()))
@@ -219,7 +232,7 @@ class PageViewMixin:
         cv = win.pv_cv
         cw = max(500, cv.winfo_width())
         maxw = max(w for w, _h in pv["sizes"])
-        scale = round(max(0.4, (cw - MARGIN - 24) / maxw), 3)
+        scale = round(max(0.4, (cw - MARGIN - 24) / maxw * pv.get("zoom", 1.0)), 3)
         if pv.get("relayout") or abs(scale - pv["scale"]) > 0.01:
             pv["scale"] = scale
             pv["base"], pv["photos"] = {}, {}
@@ -228,7 +241,7 @@ class PageViewMixin:
                 tops.append(y)
                 y += int(h * scale) + GAP
             pv["tops"] = tops
-            cv.configure(scrollregion=(0, 0, cw, y))
+            cv.configure(scrollregion=(0, 0, max(cw, int(MARGIN + maxw * scale + 24)), y))
             pv["relayout"] = False
         top = cv.canvasy(0)
         bot = top + cv.winfo_height()
@@ -241,7 +254,8 @@ class PageViewMixin:
         sel = self._c_selected()
         cur = sel[0]["id"] if sel else ""
         rng = set(win.cp_range or [])
-        dec = {it["id"]: it.get("decision", "") for it in self.matrix.items}
+        dec = {it["id"]: ("Heading" if it.get("type") == "Heading" and not it.get("decision") else it.get("decision", ""))
+               for it in self.matrix.items}
         from PIL import ImageTk
         photos = {}
         for n in range(1, len(pv["sizes"]) + 1):
@@ -257,7 +271,7 @@ class PageViewMixin:
                     diag.swallowed()
                     continue
             m = self._pv_map(n)
-            img = LY.overlay(pv["base"][n], m, dec, scale, (rng | {cur}) if rng else cur, True)
+            img = LY.overlay(pv["base"][n], m, dec, scale, (rng | {cur}) if rng else cur, True, quiet=True)
             photos[n] = ImageTk.PhotoImage(img)
             cv.create_image(MARGIN, y0, image=photos[n], anchor="nw")
             cv.create_text(MARGIN - 8, y0 + 4, text=f"Page {n}", anchor="ne", fill="#64748B", font=("Segoe UI", 9))
@@ -275,6 +289,15 @@ class PageViewMixin:
                 cv.create_text(MARGIN - 8, ly, text=txt.replace(" ", " ").strip(), anchor="ne",
                                fill=LABEL_FG.get(kind, "#334155"), font=("Segoe UI", 9, "bold"), width=MARGIN - 14)
         pv["photos"] = photos
+        for iid in ([cur] if cur else []) + [i for i in rng if i != cur]:      # the selected sentence: a frame to find it at once
+            n = pv["page_of"].get(iid)
+            if n not in photos:
+                continue
+            x = next((x for x in pv["maps"][n]["items"] if x["id"] == iid), None)
+            for l, t_, r, b in (x or {}).get("rects", []):
+                cv.create_rectangle(MARGIN + l * scale - 5, pv["tops"][n - 1] + t_ * scale - 5, MARGIN + r * scale + 5,
+                                    pv["tops"][n - 1] + b * scale + 5, outline="#F59E0B" if iid == cur else "#FBBF24",
+                                    width=3 if iid == cur else 2)
         self._pv_lines(cur)
 
     def _pv_box(self, iid):
@@ -443,6 +466,19 @@ class PageViewMixin:
         self.cp_set_range(ids if len(ids) > 1 else [])
         self._pv_soon()
         return ids
+
+    def pv_zoom(self, factor):
+        """Bigger or smaller pages (factor), or fit to the width again (None). Kept for the session."""
+        win = self._cwin
+        pv = win.pv
+        pv["zoom"] = 1.0 if factor is None else max(0.6, min(3.0, pv.get("zoom", 1.0) * factor))
+        pv["relayout"] = True
+        win.pv_note.configure(text=f"Zoom {round(pv['zoom'] * 100)}%  (Ctrl+wheel, Ctrl+plus, Ctrl+minus; Ctrl+0 fits the width)")
+        self._pv_soon(relayout=True)
+        sel = self._c_selected()
+        if sel:
+            win.after(120, lambda: self.pv_follow(sel[0]))
+        return pv["zoom"]
 
     def pv_follow(self, it):
         """The selected sentence changed: bring its box into view and redraw."""

@@ -5986,6 +5986,9 @@ class AcronymAppGUI(PageViewMixin, TrainPackMixin, KnowledgeCardMixin, ShellMixi
         refresh()
         return win
 
+import compliance_page as _CPG          # 2.56.0: Ctrl+Z undoes the last assignment in Assign
+_CPG.install_undo(AcronymAppGUI)
+
 def run_selftest(paths):
     os.makedirs(LOG_DIR, exist_ok=True)
     out = os.path.join(LOG_DIR, "selftest.txt")

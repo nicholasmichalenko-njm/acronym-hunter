@@ -79,6 +79,11 @@ def go():
     app.compliance_split(); app.update()
     parts = [x["text"] for x in app.matrix.items if x["file"] == "Hard_RFP.pdf" and x["id"].startswith(tgt["id"])]
     check("a click on a word of the selected sentence: S splits it there", parts == ["The technical volume", "shall not exceed 50 pages."], (hit, parts))
+    s0 = pv["scale"]
+    app.pv_zoom(1.15); app._pv_draw(); app.update()
+    s1 = pv["scale"]
+    app.pv_zoom(None); app._pv_draw(); app.update()
+    check("zoom in makes the pages bigger; Ctrl+0 fits the width again", s1 > s0 * 1.1 and abs(pv["scale"] - s0) < 0.02, (s0, s1, pv["scale"]))
     win.pv_switch.set("Text view"); app._pv_switch("Text view"); app.update()
     check("Text view is one click away", not pv["on"] and win.cp_text.winfo_manager())
     win.pv_switch.set("Page view"); app._pv_switch("Page view"); app.update()

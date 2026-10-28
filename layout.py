@@ -136,6 +136,8 @@ def page_map(path, page_no, items, headings=()):
             rs, ws = [], []
             parts = set()
             for (a, b), part in spans:
+                if part == "lead":                      # 2.56.0: a list's lead-in is not boxed with each list item
+                    continue
                 rs += rects(seq[a][1], seq[b - 1][2])
                 parts.add(part)
                 if part != "lead":                      # 2.56.0: each word's box, in order (split at a clicked word)
@@ -191,9 +193,10 @@ COLORS = {"Keep": ((22, 163, 74), "Compliance requirement"), "Context": ((37, 99
 MISSING = ((220, 38, 38), "Not in the review")
 
 
-def overlay(img, pmap, decisions, scale, selected="", show_missing=True):
+def overlay(img, pmap, decisions, scale, selected="", show_missing=True, quiet=False):
     """The page picture with each sentence boxed in its decision's color (selected one heavier) and, when asked, the
-    text not in the review boxed in red. decisions: {id: decision}."""
+    text not in the review boxed in red. decisions: {id: decision}. quiet (2.56.0, Assign's Page view): a sentence not
+    assigned yet gets a light grey outline only, so the assigned ones stand out; "Heading" a thin slate outline."""
     from PIL import Image, ImageDraw
     base = img.convert("RGBA")
     over = Image.new("RGBA", base.size, (0, 0, 0, 0))
@@ -203,8 +206,14 @@ def overlay(img, pmap, decisions, scale, selected="", show_missing=True):
         l, t, rr, b = r
         d.rectangle([l * scale - 2, t * scale - 2, rr * scale + 2, b * scale + 2], fill=rgb + (fill_a,), outline=rgb + (255,), width=width)
     for it in pmap["items"]:
-        rgb = COLORS.get(decisions.get(it["id"], ""), COLORS[""])[0]
+        dk = decisions.get(it["id"], "")
         on = it["id"] == selected or (isinstance(selected, (set, frozenset, list, tuple)) and it["id"] in selected)
+        if quiet and dk in ("", "Heading") and not on:
+            rgb = (148, 163, 184) if dk == "" else (100, 116, 139)
+            for r in it["rects"]:
+                box(r, rgb, 0, 1)
+            continue
+        rgb = COLORS.get(dk, COLORS[""])[0]
         for r in it["rects"]:
             box(r, rgb, 90 if on else 38, 4 if on else 2)
     if show_missing:

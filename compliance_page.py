@@ -84,6 +84,7 @@ class CompliancePageMixin:
         ctk.CTkButton(keys, text="Split  S", command=self.cp_split, **G).pack(side="left", padx=4)
         ctk.CTkButton(keys, text="Combine  M", command=self.cp_combine, **G).pack(side="left", padx=4)
         ctk.CTkButton(keys, text="Owner  O", command=self.cp_owner, **G).pack(side="left", padx=(12, 4))   # 2.40.0
+        ctk.CTkButton(keys, text="Undo  Ctrl+Z", command=self.cp_undo, **G).pack(side="left", padx=4)       # 2.56.0
         win.cp_done_btn = ctk.CTkButton(keys, text="Done  Enter", command=self.cp_mode_end, height=40, width=10,
                                         fg_color="transparent", border_width=2, border_color="#93C5FD", text_color="#BFDBFE",
                                         hover_color="#1E3A8A", font=("Segoe UI", 13, "bold"))
@@ -155,6 +156,7 @@ class CompliancePageMixin:
         t.tag_raise("cur")
         t.bind("<ButtonRelease-1>", self._cp_click)
         t.bind("<Key>", self._cp_key)
+        t.bind("<Control-z>", lambda _e: (self.cp_undo(), "break")[-1])      # 2.56.0
         t.bind("<Motion>", self._cp_motion)
         t.bind("<Leave>", lambda _e: self._cp_hover(None))
         for seq in ("<Control-c>", "<Control-a>"):
@@ -1508,6 +1510,8 @@ class CompliancePageMixin:
             return all(rid in C.cf_ids(r.get("context_for", "")) for r in rows if r.get("decision") == "Context")
 
         def toggle(kind, key, var):
+            before = self._undo_snapshot()               # Ctrl+Z takes a tick back too
+            M.__dict__.setdefault("undo_stack", []).append(before)
             for r in rows:
                 if kind == "req":
                     ids = C.cf_ids(r.get("context_for", "")) if r.get("decision") == "Context" else []
@@ -2107,3 +2111,86 @@ class CompliancePageMixin:
         self._c_changed(refill=False)
         self.pv_refresh()
         return len(sel)
+
+
+# ------------------------------------------------------------ 2.56.0: undo (Ctrl+Z) for every assignment in Assign
+UNDO_DEPTH = 40
+UNDOABLE = ("cp_req", "cp_ctx", "cp_clear", "cp_customer", "cp_section_click", "cp_owner", "cp_remove_section", "cp_unlink",
+            "cp_pick", "compliance_split", "compliance_merge", "c_mark_header", "c_unmark_header", "c_mark_format",
+            "c_mark_customers", "c_mark_customer_info", "c_fix_text", "compliance_decide")
+
+
+def _assign_sig(M):
+    import json
+    S = SD.setup_of(M)
+    return hash((tuple((it.get("id"), it.get("decision"), it.get("map"), it.get("context_for"), it.get("owner"), it.get("type"),
+                        it.get("text"), it.get("section")) for it in M.items),
+                 json.dumps([S.get("copies"), S.get("header_levels")], sort_keys=True, default=str)))
+
+
+def _undoable(fn):
+    import functools
+
+    @functools.wraps(fn)
+    def run(self, *a, **k):
+        M = getattr(self, "matrix", None)
+        if M is None or getattr(self, "_undo_depth", 0):
+            return fn(self, *a, **k)
+        self._undo_depth = 1
+        try:
+            before = self._undo_snapshot()
+            r = fn(self, *a, **k)
+            if self.matrix is M and _assign_sig(M) != before[2]:
+                stack = M.__dict__.setdefault("undo_stack", [])
+                stack.append(before)
+                del stack[:-UNDO_DEPTH]
+            return r
+        finally:
+            self._undo_depth = 0
+    return run
+
+
+def install_undo(cls):
+    """Wrap the assigning actions so each one that changes the review can be taken back with Ctrl+Z."""
+    for name in UNDOABLE:
+        f = getattr(cls, name, None)
+        if f is not None and not getattr(f, "_undo", False):
+            w = _undoable(f)
+            w._undo = True
+            setattr(cls, name, w)
+
+
+def _undo_methods():
+    def _undo_snapshot(self):
+        import copy
+        M = self.matrix
+        return (copy.deepcopy(M.items), copy.deepcopy(SD.setup_of(M)), _assign_sig(M))
+
+    def cp_undo(self):
+        """Ctrl+Z: put the review back as it was before the last assignment (up to 40 steps)."""
+        M = getattr(self, "matrix", None)
+        stack = M.__dict__.get("undo_stack") if M is not None else None
+        if not stack:
+            try:
+                self._cp_flash("Nothing to undo.")
+            except Exception:
+                diag.swallowed()
+            return False
+        items, setup, _sig = stack.pop()
+        M.items[:] = items
+        M.setup = setup
+        M.pending = True
+        diag.activity("compliance_undo")
+        self._c_changed()
+        try:
+            self._cwin.cp_sig = None
+            self._cp_sync()
+            self._cp_flash(f"Undone. {len(stack)} more step(s) can be undone (Ctrl+Z).")
+        except Exception:
+            diag.swallowed()
+        return True
+    return {"_undo_snapshot": _undo_snapshot, "cp_undo": cp_undo}
+
+
+for _n, _f in _undo_methods().items():
+    setattr(CompliancePageMixin, _n, _f)
