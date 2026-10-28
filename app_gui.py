@@ -501,14 +501,21 @@ class TesseractEngine:
             text = _TESS_LEAD_ONE.sub("I", text)   # "1CD-204" -> "ICD-204": a diagram line touching a capital I
             x, y, w, h = (int(v) - (12 if i < 2 else 0) for i, v in enumerate(c[6:10]))
             lines.setdefault((c[2], c[3], c[4]), []).append((x, y, x + w, y + h, text, conf))
-        out = []
+        import eqlayout as EL           # 2.55.0: equations by position rules (sub- and superscripts, fractions)
+        flat = []
         for words in lines.values():
             words.sort(key=lambda t: t[0])
             x0, y0 = min(t[0] for t in words), min(t[1] for t in words)
             x1, y1 = max(t[2] for t in words), max(t[3] for t in words)
             conf = sum(t[5] for t in words) / len(words) / 100.0
-            out.append(([[x0, y0], [x1, y0], [x1, y1], [x0, y1]], " ".join(t[4] for t in words), conf))
-        return out
+            flat.append((x0, y0, x1, y1, EL.join_words(words), conf))
+        if len(flat) > 1:
+            try:
+                gray = img if img.ndim == 2 else cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                flat = EL.fractions(flat, gray[12:-12, 12:-12])   # word boxes are in unpadded coordinates
+            except Exception:
+                diag.swallowed()
+        return [([[x0, y0], [x1, y0], [x1, y1], [x0, y1]], t, c) for x0, y0, x1, y1, t, c in flat]
 
     def __call__(self, img, use_det=True, text_score=None, **_ignored):
         if not use_det:
@@ -2382,7 +2389,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.54.0"            # keep in step with version_info.txt
+APP_VERSION = "2.55.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"

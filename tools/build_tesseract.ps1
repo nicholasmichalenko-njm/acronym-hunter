@@ -1,7 +1,8 @@
 # Builds Tesseract 5.5.3 from the official source WITHOUT any network library, into vendor\tesseract.
 #   -DDISABLE_CURL=ON     no libcurl: Tesseract cannot fetch a URL (the code is not compiled in)
 #   -DDISABLE_ARCHIVE=ON  no libarchive
-#   training tools ON     lstmtraining, lstmeval, combine_tessdata for the in-app "Improve Reading"
+#   training tools ON     lstmtraining, lstmeval, combine_tessdata for the in-app "Improve Reading"; 2.55.0 also
+#                         unicharset_extractor, merge_unicharsets, combine_lang_model (add Greek, math and unit signs)
 # Toolchain: MSYS2 UCRT64 (GCC, CMake, Ninja, Leptonica) unpacked into a user folder. No admin rights needed.
 # Internet is used only while this script runs (toolchain packages, source tarball, Google's model).
 #   powershell -ExecutionPolicy Bypass -File .\tools\build_tesseract.ps1
@@ -48,7 +49,7 @@ Msys "cd '$u' && cmake --build build -j `$(nproc) | tail -3"
 $dst = "$proj\vendor\tesseract"
 Remove-Item -Recurse -Force $dst -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force "$dst\tessdata\configs", "$dst\doc" | Out-Null
-$exes = 'tesseract.exe', 'lstmtraining.exe', 'lstmeval.exe', 'combine_tessdata.exe'
+$exes = 'tesseract.exe', 'lstmtraining.exe', 'lstmeval.exe', 'combine_tessdata.exe', 'unicharset_extractor.exe', 'merge_unicharsets.exe', 'combine_lang_model.exe'
 $dlls = @{}
 foreach ($e in $exes) {
     $exe = "$src\build\bin\$e"
@@ -59,6 +60,8 @@ foreach ($e in $exes) {
 }
 foreach ($d in $dlls.Keys) { Copy-Item (& "$msys\usr\bin\cygpath.exe" -w $d) $dst }
 Copy-Item "$src\tessdata\configs\lstm.train" "$dst\tessdata\configs"
+New-Item -ItemType Directory -Force "$dst\langdata" | Out-Null
+Copy-Item "$proj\tools\tess_langdata\*" "$dst\langdata"
 Copy-Item "$src\LICENSE", "$src\AUTHORS" "$dst\doc"
 Invoke-WebRequest $ENG_URL -OutFile "$dst\tessdata\eng.traineddata"
 if ((Get-FileHash "$dst\tessdata\eng.traineddata").Hash -ne $ENG_SHA) { throw 'eng.traineddata SHA-256 mismatch' }

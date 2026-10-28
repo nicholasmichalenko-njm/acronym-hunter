@@ -31,10 +31,13 @@ if US:
         datas += [('vendor/tesseract', 'tesseract')]
         hiddenimports += ['tess_train', 'sandbox']
     else:   # the user app ships the engine only: the training tools stay in Stationkeeper Training
-        _tools = ('lstmtraining.exe', 'lstmeval.exe', 'combine_tessdata.exe')
+        _tools = ('lstmtraining.exe', 'lstmeval.exe', 'combine_tessdata.exe', 'unicharset_extractor.exe', 'merge_unicharsets.exe',
+                  'combine_lang_model.exe')
         for _root, _dirs, _files in os.walk('vendor/tesseract'):
+            if 'langdata' in os.path.relpath(_root, 'vendor/tesseract').split(os.sep):
+                continue                              # 2.55.0: the character-set table is for training only
             for _f in _files:
-                if _f.lower() not in _tools:
+                if _f.lower() not in _tools and not _f.lower().startswith('libicu'):   # ICU: only the training tools load it
                     _rel = os.path.relpath(_root, 'vendor/tesseract')
                     datas += [(os.path.join(_root, _f), 'tesseract' if _rel == '.' else os.path.join('tesseract', _rel))]
         hiddenimports += ['sandbox']

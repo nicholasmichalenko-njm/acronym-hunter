@@ -152,6 +152,15 @@ def test_reading(report):
             "n": report.get("check_lines", 0), "unit": "%", "applied": bool(report.get("better"))}
 
 
+def test_symbols(report):
+    """2.55.0 Symbols and equations: characters read right on the set-aside lines that hold Greek letters, math or unit
+    signs (Improve Reading measures them apart), before and after."""
+    if not report or report.get("symbols_correct_after_pct") is None:
+        return None
+    return {"now": report.get("symbols_correct_before_pct"), "after": report.get("symbols_correct_after_pct"),
+            "n": report.get("symbol_lines", 0), "unit": "%"}
+
+
 def test_compliance(matrices):
     """Keep or not: each decided row predicted by a model that did not see it (5 folds over all gathered matrices),
     against the rule suggestions; sections: each matrix scored with what was learned from the others (top 3)."""
@@ -189,9 +198,9 @@ def scorecard(samples, fixes, ignore, report, matrices, have_files, left_out=())
     left_out: areas the trainer left out. have_files: pack names that exist on this PC."""
     rows = []
 
-    def row(area, test, res=None):
+    def row(area, test, res=None, title=None):
         files = [f for f in have_files if area_of(f) == area]
-        r = {"area": area, "title": TITLES[area], "test": test, "now": None, "after": None, "change": None, "n": 0,
+        r = {"area": area, "title": title or TITLES[area], "test": test, "now": None, "after": None, "change": None, "n": 0,
              "files": files}
         if res:
             r.update({k: res.get(k) for k in ("now", "after", "n")})
@@ -205,6 +214,12 @@ def scorecard(samples, fixes, ignore, report, matrices, have_files, left_out=())
     r = row("reading", "Words read right (set-aside lines)", rd)
     if rd and not rd.get("applied"):
         r["why_auto"] = "Improve Reading did not keep the new reader (it did not read better)"
+    sy = test_symbols(report)                           # the same reader file: worse here leaves the reader out too
+    r2 = row("reading", ("Characters right on set-aside lines with Greek, math or unit signs" if sy else
+                         "Needs corrected lines with Greek, math or unit signs (Report misreading on equation pictures)"),
+             sy, title="Symbols and equations")
+    if rd and not rd.get("applied"):
+        r2["why_auto"] = r["why_auto"]
     row("fixes", "Words right on corrected lines", test_fixes(samples, fixes, ignore))
     comp = test_compliance(matrices)
     if comp:

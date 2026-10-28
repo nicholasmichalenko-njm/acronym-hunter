@@ -1,0 +1,4 @@
+radical-stroke.txt from https://github.com/tesseract-ocr/langdata_lstm (Apache License 2.0), unmodified.
+SHA-256 9b441331169924e640233ae3abff9b4ac7019e33978a074c9d322f89afab1b89
+combine_lang_model reads it when Improve Reading adds characters (Greek letters, math and unit signs) to the reader.
+It is a data table (character codes and stroke counts); no code.

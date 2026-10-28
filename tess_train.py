@@ -13,6 +13,56 @@ import cv2
 
 _NOWIN = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 MIN_SAMPLES = 20          # below this, training is refused (it would only memorize a handful of lines)
+# 2.55.0: the characters the reader learns beyond Google's English set, so equation pictures read without a math add-on
+MATH_CHARS = ("αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩϑϕϵ"
+              "−×·÷±∓√∑∏∫∂∇≈≤≥≠≡∝∞′″°µΩÅ‰"
+              "₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₒₓₕₖₗₘₙₚₛₜ⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱ")
+ADD_TOOLS = ("unicharset_extractor.exe", "merge_unicharsets.exe", "combine_lang_model.exe")
+
+
+def read_unicharset(path):
+    """The characters in a Tesseract unicharset file."""
+    out = set()
+    try:
+        lines = open(path, encoding="utf-8").read().splitlines()
+    except OSError:
+        return out
+    for l in lines[1:]:
+        if l.strip():
+            out.add(l.split(" ", 1)[0])
+    return out
+
+
+def new_characters(known, texts, extra=MATH_CHARS):
+    """Characters in the corrected lines (and the math set) that the reader does not know yet."""
+    want = set(extra)
+    for t in texts:
+        want |= {c for c in t if not c.isspace()}
+    return sorted(c for c in want if c not in known)
+
+
+def extend_traineddata(run, tess_dir, work, base, chars, texts):
+    """A traineddata whose character set is Google's plus chars, built with the engine's own tools (no network).
+    Returns its path, or None when the tools or the data table are not in this copy (training then keeps Google's set)."""
+    langdata = os.path.join(tess_dir, "langdata")
+    if not all(os.path.isfile(os.path.join(tess_dir, t)) for t in ADD_TOOLS) or \
+            not os.path.isfile(os.path.join(langdata, "radical-stroke.txt")):
+        return None
+    txt = os.path.join(work, "chars.txt")
+    with open(txt, "w", encoding="utf-8", newline="\n") as f:
+        f.write("\n".join(chars) + "\n" + "\n".join(texts) + "\n")
+    new_u, merged = os.path.join(work, "added.unicharset"), os.path.join(work, "merged.unicharset")
+    code, log = run([os.path.join(tess_dir, "unicharset_extractor.exe"), "--output_unicharset", new_u, "--norm_mode", "1", txt])
+    if code != 0 or not os.path.isfile(new_u):
+        return None
+    code, log = run([os.path.join(tess_dir, "merge_unicharsets.exe"), os.path.join(work, "eng.lstm-unicharset"), new_u, merged])
+    if code != 0 or not os.path.isfile(merged):
+        return None
+    out = os.path.join(work, "lang")
+    code, log = run([os.path.join(tess_dir, "combine_lang_model.exe"), "--input_unicharset", merged, "--script_dir", langdata,
+                     "--output_dir", out, "--lang", "eng"])
+    td = os.path.join(out, "eng", "eng.traineddata")
+    return td if code == 0 and os.path.isfile(td) else None
 GOOD_SAMPLES = 300        # below this, the report says to keep collecting
 
 def _tool(tess_dir, name):
@@ -130,7 +180,9 @@ def train(tess_dir, train_dir, out_dir, progress=lambda msg, frac=None: None, ca
         (eval_l if int(hashlib.sha1(text.encode()).hexdigest(), 16) % 10 == 0 else train_l).append(path)
     if not eval_l:
         eval_l.append(train_l.pop())
-    for name, rows in (("list.train", train_l), ("list.eval", eval_l)):
+    text_of = dict(lstmf)
+    eval_math = [p for p in eval_l if any(c in MATH_CHARS for c in text_of.get(p, ""))]   # Symbols and equations
+    for name, rows in (("list.train", train_l), ("list.eval", eval_l), ("list.eval_math", eval_math)):
         with open(os.path.join(work, name), "w", encoding="utf-8", newline="\n") as f:
             f.write("".join(r + "\n" for r in rows))
     check()
@@ -139,12 +191,26 @@ def train(tess_dir, train_dir, out_dir, progress=lambda msg, frac=None: None, ca
     if code != 0:
         raise RuntimeError("Could not unpack the base model:\n" + log[-500:])
     _code, before_log = _run([lstmeval, "--model", current, "--eval_listfile", os.path.join(work, "list.eval")])
+    math_before = _run([lstmeval, "--model", current, "--eval_listfile", os.path.join(work, "list.eval_math")])[1] if eval_math else ""
     check()
+    # 2.55.0: Greek letters, math and unit signs the corrected lines (and the math set) need are added to the reader
+    added, traineddata = [], base
+    _run([combine, "-e", base, os.path.join(work, "eng.lstm-unicharset")])
+    known = read_unicharset(os.path.join(work, "eng.lstm-unicharset"))
+    if known:
+        added = new_characters(known, [t for _p, t in lstmf])
+        if added:
+            progress(f"Step 2 of 4: adding {len(added)} characters the reader does not know yet (Greek, math and unit signs)", 0.29)
+            td = extend_traineddata(_run, tess_dir, work, base, added, [t for _p, t in lstmf])
+            if td:
+                traineddata = td
+            else:
+                added = []
     iters = int(iterations or min(3000, max(400, 4 * len(train_l))))
     est = max(20, int(iters * 0.05 + len(train_l) * 0.02))
     progress(f"Step 3 of 4: teaching the reader ({len(train_l)} lines, about {max(1, round(est / 60))} min on this PC)", 0.30)
     cmd = [lstmtraining, "--model_output", os.path.join(work, "acr"), "--continue_from", os.path.join(work, "eng.lstm"),
-           "--traineddata", base, "--train_listfile", os.path.join(work, "list.train"),
+           "--traineddata", traineddata] + (["--old_traineddata", base] if traineddata != base else []) + ["--train_listfile", os.path.join(work, "list.train"),
            "--eval_listfile", os.path.join(work, "list.eval"), "--max_iterations", str(iters), "--target_error_rate", "0.005"]
     t0 = time.time()
     code, log = _run(cmd, timeout=6 * 3600)
@@ -153,11 +219,12 @@ def train(tess_dir, train_dir, out_dir, progress=lambda msg, frac=None: None, ca
         raise RuntimeError("Training produced no checkpoint:\n" + "\n".join(log.splitlines()[-15:]))
     os.makedirs(out_dir, exist_ok=True)
     model = os.path.join(out_dir, "acronym.traineddata")
-    code, log = _run([lstmtraining, "--stop_training", "--continue_from", ckpt, "--traineddata", base, "--model_output", model])
+    code, log = _run([lstmtraining, "--stop_training", "--continue_from", ckpt, "--traineddata", traineddata, "--model_output", model])
     if code != 0 or not os.path.isfile(model):
         raise RuntimeError("Could not write the trained model:\n" + log[-500:])
     progress("Step 4 of 4: measuring the new reader on the same held-out lines", 0.95)
     _code, after_log = _run([lstmeval, "--model", model, "--eval_listfile", os.path.join(work, "list.eval")])
+    math_after = _run([lstmeval, "--model", model, "--eval_listfile", os.path.join(work, "list.eval_math")])[1] if eval_math else ""
     before_bad, after_bad = _misreads(before_log), _misreads(after_log)
     fixed = [(t, before_bad[t]) for t in before_bad if t not in after_bad][:6]
     broke = [(t, after_bad[t]) for t in after_bad if t not in before_bad][:6]
@@ -168,7 +235,10 @@ def train(tess_dir, train_dir, out_dir, progress=lambda msg, frac=None: None, ca
               "words_correct_before_pct": _pct(b_w), "words_correct_after_pct": _pct(a_w),
               "chars_correct_before_pct": _pct(b_c), "chars_correct_after_pct": _pct(a_c),
               "compared_with": "your previous trained reader" if current != base else "Google's English reader",
-              "fixed_examples": fixed, "new_mistakes": broke, "model": model}
+              "fixed_examples": fixed, "new_mistakes": broke, "model": model, "added_characters": "".join(added),
+              "symbol_lines": len(eval_math),
+              "symbols_correct_before_pct": _pct(_bcer(math_before)) if eval_math else None,
+              "symbols_correct_after_pct": _pct(_bcer(math_after)) if eval_math else None}
     report["better"] = a_c is not None and (b_c is None or a_c <= b_c)
     with open(os.path.join(out_dir, "training_report.json"), "w", encoding="utf-8") as f:
         json.dump(report, f, indent=1)
@@ -182,6 +252,8 @@ def describe(r):
     lines = [f"Words read correctly: {fmt(r.get('words_correct_before_pct'))} before, {fmt(r.get('words_correct_after_pct'))} after "
              f"(on {r['check_lines']} of your lines the reader did not learn from; before = {r.get('compared_with', 'current reader')}).",
              f"Characters read correctly: {fmt(r.get('chars_correct_before_pct'))} before, {fmt(r.get('chars_correct_after_pct'))} after."]
+    if r.get("added_characters"):
+        lines.append(f"New characters the reader learned: {r['added_characters']}")
     if r.get("skipped"):
         lines.append(f"{r['skipped']} saved lines could not be used.")
     if r["samples"] < GOOD_SAMPLES:
