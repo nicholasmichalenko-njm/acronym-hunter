@@ -41,8 +41,7 @@ RAIL = [("EFFORT", [("home", "Effort home"), ("dashboard", "Dashboard"), ("recor
                         ("crosswalk", "L/M crosswalk")]),
         ("DELIVER", [("matrix", "Matrix"), ("setup", "Response Setup")]),
         ("QUALITY", [("qa", "QA/QC"), ("keywords", "Keywords")]),
-        ("EFFORT FILES", [("exportall", "Export all"), ("settings", "Settings")]),
-        ("IN STATIONKEEPER (CLASSIC) FOR NOW", [("", "Author briefs"), ("", "Client lists and packs")])]
+        ("EFFORT FILES", [("exportall", "Export all"), ("settings", "Settings")])]
 TITLES = {"home": ("Effort home", "Stage, gate goals, tasks, questions and the calendar"),
           "dashboard": ("Dashboard", "The effort on one screen"),
           "record": ("Effort record", "Details, team, stages and gates, status, package and backup"),

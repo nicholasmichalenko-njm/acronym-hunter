@@ -54,6 +54,8 @@ class AcronymPage(QWidget):
         for b in (self.b_files, self.b_folder, self.b_again, self.b_cancel):
             top.addWidget(b)
         self.progress = D.label("", "muted", wrap=False); top.addWidget(self.progress, 1)
+        top.addWidget(D.button("Customer acronym lists...", None, lambda: self.client_lists(),
+                               "The customer's own acronym lists: their terms are found and their definitions come first"))
         self.p_active = D.Pill("0 terms", "accent"); self.p_choice = D.Pill("0 need a choice", "ok"); self.p_new = D.Pill("0 new", "ok")
         for p in (self.p_active, self.p_choice, self.p_new):
             top.addWidget(p)
@@ -410,3 +412,102 @@ class AcronymPage(QWidget):
         diag.activity("qt_acronym_report", n=n)
         self.host.toast(f"{n} rows exported")
         return path
+
+
+# ---------------------------------------------------------------- the customer's acronym lists (2.67.0)
+def _client_lists(self, add_paths=None, paste=None, remove=None, run=True):
+    """The customer's acronym lists for this effort. add_paths, paste (name, text), remove (index) act at once (tests)."""
+    import datetime as DT
+    from PySide6.QtWidgets import QDialog, QDialogButtonBox, QInputDialog, QListWidget
+    s = self.session
+    if s is None:
+        return None
+    lists = list(s.client_lists)
+
+    def stamp():
+        return DT.datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    def save(note):
+        s.set_client_lists(lists)
+        s.ws.set("client_lists", lists)
+        diag.activity("client_lists_changed", n=len(lists))
+        self.host.toast(note + (". Scan again to apply them." if s.results else ""))
+
+    def add_files(paths):
+        got = []
+        for p in paths:
+            try:
+                rows = A.parse_client_list(p)
+            except Exception:
+                A.log_error("Client list could not be read", ext=os.path.splitext(p)[1].lower())
+                rows = []
+            if rows:
+                lists.append({"name": os.path.basename(p), "rows": [list(r) for r in rows], "added": stamp()})
+                got.append(f"{os.path.basename(p)} ({len(rows)})")
+        if got:
+            save("Added: " + ", ".join(got))
+        else:
+            self.host.status("No acronym and definition pairs were found. Lists work best as two columns: acronym, definition.")
+        return got
+
+    def add_text(name, text):
+        rows = A.parse_client_text(text)
+        if rows:
+            lists.append({"name": name or f"Pasted list {stamp()}", "rows": rows, "added": stamp()})
+            save(f"Added: {lists[-1]['name']} ({len(rows)})")
+        return rows
+    if add_paths is not None:
+        return add_files(add_paths)
+    if paste is not None:
+        return add_text(*paste)
+    if remove is not None:
+        gone = lists.pop(remove)
+        save(f"Removed {gone['name']}")
+        return gone
+    dlg = QDialog(self); dlg.setWindowTitle("Customer acronym lists"); dlg.setMinimumSize(680, 460)
+    v = QVBoxLayout(dlg)
+    v.addWidget(D.label("Acronym lists from the customer (an RFP's acronym list, for example). Their terms are found in your documents "
+                        "even when the database does not hold them, and the customer's definition comes first. Kept with this effort.", "muted"))
+    lw = QListWidget(); v.addWidget(lw, 1)
+
+    def fill():
+        lw.clear()
+        for x in lists:
+            lw.addItem(f"{x['name']}   ({len(x['rows'])} acronyms, added {x.get('added', '')})")
+    fill()
+    row = QHBoxLayout()
+
+    def do_add():
+        exts = " ".join("*" + e for e in sorted(A.CLIENT_IMAGE_EXTS))
+        paths, _ = QFileDialog.getOpenFileNames(dlg, "Add customer acronym list(s)", "",
+                                                f"Acronym lists (*.csv *.tsv *.txt *.xlsx *.docx *.pdf);;Pictures of a list ({exts})")
+        if paths:
+            add_files(paths); fill()
+
+    def do_paste():
+        text, ok = QInputDialog.getMultiLineText(dlg, "Paste or type the customer's terms",
+                                                 "One per line: ACR - definition, ACR: definition, or rows copied from Excel or Word:")
+        if ok and text.strip():
+            add_text("", text); fill()
+
+    def do_view():
+        i = lw.currentRow()
+        if i >= 0:
+            QInputDialog.getMultiLineText(dlg, lists[i]["name"], "Terms:", "\n".join(f"{t}\t{d}" for t, d in lists[i]["rows"]))
+
+    def do_remove():
+        i = lw.currentRow()
+        if i >= 0:
+            gone = lists.pop(i); save(f"Removed {gone['name']}"); fill()
+    for text, kind, fn in (("Add list...", "primary", do_add), ("Paste or type...", None, do_paste), ("View terms", None, do_view),
+                           ("Remove", "danger", do_remove)):
+        row.addWidget(D.button(text, kind, fn))
+    row.addStretch(1)
+    v.addLayout(row)
+    bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(dlg.reject); v.addWidget(bb)
+    if run:
+        dlg.exec()
+    return dlg
+
+
+AcronymPage.client_lists = _client_lists

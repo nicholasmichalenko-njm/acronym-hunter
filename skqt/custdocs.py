@@ -708,6 +708,9 @@ class ImpactPage(QWidget):
         top.addWidget(D.label("Version", "label", wrap=False))
         self.pick = QComboBox(); self.pick.setMinimumWidth(420); self.pick.activated.connect(lambda _i: self.build())
         top.addWidget(self.pick); top.addStretch(1)
+        self.b_due = D.button("Use the new due date", None, lambda: self.use_due(), "This version changed the proposal due date")
+        top.addWidget(self.b_due)
+        top.addWidget(D.button("Author briefs...", None, lambda: self.briefs_dialog(), "One brief per person this version touches"))
         top.addWidget(D.button("Mark reviewed", "primary", lambda: self.mark_reviewed()))
         top.addWidget(D.button("Export (Word)...", None, lambda: self.export()))
         self.head = D.label("", "title"); v.addWidget(self.head)
@@ -765,6 +768,7 @@ class ImpactPage(QWidget):
             self.view.setHtml("")
             return None
         self.head.setText(IM.headline(r))
+        self.b_due.setVisible(self.new_due() is not None)
         t = D.tokens()
 
         def sec(title, items):
@@ -799,6 +803,111 @@ class ImpactPage(QWidget):
         self.host.go("assign")
         self.host.assign_page.select(iid)
         return iid
+
+    # ------------------------------------------------------------ the due date and author briefs (2.67.0)
+    def new_due(self):
+        """(text, iso, zone) when this version changed the proposal due date and the effort still holds another date."""
+        r = self.r
+        x = next((q for q in (r["requirements"] if r else []) if q["key"] == "Due | Proposal" and q["change"] in ("changed", "new")), None)
+        if x is None or not x["now"]:
+            return None
+        iso, zone = R.parse_due_text(x["now"])
+        if not iso or self.ctx.rec.data.get("due") == iso:
+            return None
+        return x["now"], iso, zone
+
+    def use_due(self):
+        nd = self.new_due()
+        if nd is None:
+            return False
+        self.ctx.rec.set_due(nd[1], nd[2])
+        diag.activity("impact_due_used")
+        self.host.toast("The effort's due date now follows this version")
+        self.build()
+        return True
+
+    def due_text(self):
+        nd = self.new_due()
+        if nd is not None:
+            cd = R.countdown_text(nd[1])
+            return R.due_text(nd[1], nd[2]) + (f" ({cd})" if cd else "")
+        rec = self.ctx.rec
+        if rec.data.get("due"):
+            cd = R.countdown_text(rec.data["due"])
+            return R.due_text(rec.data["due"], rec.data.get("zone", "")) + (f" ({cd})" if cd else "")
+        row = next((x for x in self.ctx.reg.rows() if x["key"] == "Due | Proposal"), None)
+        return row["value"] if row else ""
+
+    def briefs(self):
+        import briefs as BR
+        if self.r is None:
+            return {}
+        M = self.host.review.M if self.host.review is not None else None
+        if M is not None:
+            import setupdoc as SD
+            return BR.build(self.r, M, lambda it: SD.owner_of(M, it), lambda lab: SD.section_people(M, lab))
+        return BR.build(self.r)
+
+    def briefs_dialog(self, run=True):
+        """A brief per person: pick one, read it, copy it or save them all as Word."""
+        import briefs as BR
+        from PySide6.QtGui import QGuiApplication
+        from PySide6.QtWidgets import QListWidget
+        bs = self.briefs()
+        if self.r is None or not bs:
+            self.host.status("This version changed nothing in anyone's sections or deliverables, and no due date, page limit or "
+                             "format rule." if self.r is not None else "There is no new version yet.")
+            return None
+        due = self.due_text()
+        dlg = QDialog(self); dlg.setWindowTitle(f"Author briefs: {self.r['version']} of {self.r['doc']}"); dlg.setMinimumSize(1000, 640)
+        v = QVBoxLayout(dlg)
+        v.addWidget(D.label("One brief per person this version touches: their sections, their deliverables, and what changed for everyone. "
+                            "Copy one into an email or a chat, or save them all as Word. Rules only (No AI).", "muted"))
+        split = QSplitter(Qt.Horizontal); v.addWidget(split, 1)
+        people = QListWidget(); split.addWidget(people)
+        txt = QTextBrowser(); split.addWidget(txt); split.setSizes([260, 740])
+        names = list(bs)
+        for n in names:
+            c = BR.counts(bs[n])
+            people.addItem(("The team (everyone)" if n == BR.EVERYONE else n) + "\n" + (
+                f"{c['lines']} change(s) in {c['sections']} section(s)" if c["sections"] else f"{c['everyone']} change(s) for everyone"))
+        people.currentRowChanged.connect(lambda i: txt.setPlainText(BR.text(self.r, bs[names[i]], due)) if 0 <= i < len(names) else None)
+        people.setCurrentRow(0)
+        row = QHBoxLayout(); row.addStretch(1)
+
+        def copy():
+            i = people.currentRow()
+            t = BR.text(self.r, bs[names[i]], due)
+            QGuiApplication.clipboard().setText(t)
+            diag.activity("author_brief_copied")
+            self.host.toast(f"Brief for {names[i]} copied: paste it into an email or a chat")
+            return t
+        row.addWidget(D.button("Copy this brief", None, copy))
+        row.addWidget(D.button("Save all as Word...", "primary", lambda: self.briefs_export(None, bs)))
+        row.addWidget(D.button("Close", "ghost", dlg.reject))
+        v.addLayout(row)
+        dlg.api = {"briefs": bs, "names": names, "list": people, "text": txt, "copy": copy}
+        if run:
+            dlg.exec()
+        return dlg
+
+    def briefs_export(self, path=None, bs=None):
+        import briefs as BR
+        bs = bs if bs is not None else self.briefs()
+        if self.r is None or not bs:
+            return None
+        if path is None:
+            path, _ = QFileDialog.getSaveFileName(self, "Save the author briefs",
+                                                  f"{self.r['doc']}_{self.r['version']}_Author_Briefs.docx".replace(" ", "_"), "Word (*.docx)")
+            if not path:
+                return None
+        BR.export_word(path, self.r, bs, self.due_text(), self.host.effort_name)
+        people = [n for n in bs if n != BR.EVERYONE]
+        self.ctx.log("customer", f"Author briefs for {self.r['version']} of {self.r['doc']}: " + (", ".join(people) if people else "the team"),
+                     {"version": self.r["version_id"]})
+        diag.activity("author_briefs_saved", n=len(bs))
+        self.host.toast("Author briefs saved")
+        return path
 
     def mark_reviewed(self):
         vid = self.pick.currentData()

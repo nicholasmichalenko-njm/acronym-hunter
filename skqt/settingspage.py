@@ -42,6 +42,12 @@ class SettingsPage(QWidget):
                          actions=[D.button("Choose the folder...", None, lambda: self.set_backup()), D.button("Turn off", "ghost", lambda: self.set_backup(""))])
         self.bk_text = self.bk.add(D.label("", "muted"))
         v.addWidget(self.bk)
+        self.tr = D.Card("The training team", "What this PC taught goes to the training team in one file; what they release "
+                                              "comes back to everyone as a Knowledge Pack. Through the approved SharePoint folder only.",
+                         actions=[D.button("Send training data...", None, lambda: self.send_training()),
+                                  D.button("Install a Knowledge Pack...", None, lambda: self.install_pack())])
+        self.tr_text = self.tr.add(D.label("", "muted"))
+        v.addWidget(self.tr)
         v.addStretch(1)
 
     def refresh(self):
@@ -58,6 +64,11 @@ class SettingsPage(QWidget):
             diag.swallowed()
         bd = self.backup_dir()
         self.bk_text.setText(f"Backups go to {bd}." if bd else "Backups are off.")
+        try:
+            n = sum(self._tp_gather(None, False, False)["counts"].values())
+            self.tr_text.setText(f"{n} item(s) waiting to be sent." if n else "Nothing new to send.")
+        except Exception:
+            diag.swallowed()
 
     # ------------------------------------------------------------ efforts
     def new_effort(self, values=None):
@@ -192,3 +203,144 @@ class SettingsPage(QWidget):
             diag.activity("backup_location_off")
         self.refresh()
         return st["backup_dir"]
+
+
+class _TrainingHelper:
+    """The classic window's gathering of what this PC taught (every effort's matrix, compliance words, choices,
+    keywords, banned words), without a window."""
+
+    def __init__(self, efforts, matrix=None):
+        self.efforts, self.matrix = efforts, matrix
+
+
+def _helper(host):
+    from trainpack_ui import TrainPackMixin
+    cls = type("TrainingHelper", (_TrainingHelper, TrainPackMixin), {})
+    return cls(host.efforts, host.review.M if host.review is not None else None)
+
+
+def _tp_gather(self, areas, everything, text):
+    import app_gui
+    import trainpack as TP
+    return TP.gather(config_dir=app_gui.CONFIG_DIR, **_helper(self.host).tp_args(areas, everything, text))
+
+
+def send_training(self, out=None, areas=None, everything=False, text=False, acknowledged=None):
+    """Save the training data pack. With out and acknowledged (tests) it saves at once."""
+    import app_gui
+    import trainpack as TP
+    from PySide6.QtWidgets import QCheckBox
+    if out is None or acknowledged is None:
+        dlg = QDialog(self); dlg.setWindowTitle("Send training data to the training team"); dlg.setMinimumWidth(640)
+        v = QVBoxLayout(dlg)
+        v.addWidget(D.label("What this PC taught, in one file for Stationkeeper Training. The next Knowledge Pack brings it back to everyone.", "muted"))
+        boxes = {}
+        for a, title in TP.AREAS:
+            cb = QCheckBox(title); cb.setChecked(True); boxes[a] = cb; v.addWidget(cb)
+        ev = QCheckBox("Everything, not only what is new since the last send"); v.addWidget(ev)
+        tv = QCheckBox("Include the sentence text (RFP sentences and section titles)"); v.addWidget(tv)
+        v.addWidget(D.label("Left out always: customer information, team names, file paths, user and PC names.", "muted"))
+        warn = D.label(TP.WARNING); t = D.tokens()
+        warn.setStyleSheet(f"background:{t['warn_soft']};color:{t['warn']};border-radius:6px;padding:8px;")
+        v.addWidget(warn)
+        ack = QCheckBox("I have read this. I am responsible for what this pack holds."); v.addWidget(ack)
+        lbl = D.label("", "muted"); v.addWidget(lbl)
+        bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); v.addWidget(bb)
+        bb.accepted.connect(dlg.accept); bb.rejected.connect(dlg.reject)
+
+        def chosen():
+            return [a for a, cb in boxes.items() if cb.isChecked()]
+
+        def refresh():
+            try:
+                c = self._tp_gather(chosen(), ev.isChecked(), tv.isChecked())["counts"]
+            except Exception:
+                diag.swallowed(); c = {}
+            total = sum(c.get(a, 0) for a in chosen())
+            for a, title in TP.AREAS:
+                boxes[a].setText(f"{title}  ({c.get(a, 0)} waiting)" if boxes[a].isChecked() else f"{title}  (left out)")
+            lbl.setText(("Nothing new to send." if not total else f"{total} item(s) to send.") + ("" if ack.isChecked() else "  Tick the box above to save."))
+            bb.button(QDialogButtonBox.Save).setEnabled(bool(ack.isChecked() and total))
+        for w in list(boxes.values()) + [ev, tv, ack]:
+            w.toggled.connect(lambda _on: refresh())
+        refresh()
+        if dlg.exec() != QDialog.Accepted:
+            return None
+        areas, everything, text, acknowledged = chosen(), ev.isChecked(), tv.isChecked(), ack.isChecked()
+        if out is None:
+            import datetime, getpass
+            name = (f"Stationkeeper_Training_Data_{re.sub(r'[^A-Za-z0-9]+', '', getpass.getuser()) or 'user'}_"
+                    f"{datetime.datetime.now():%Y.%m.%d-%H%M}{TP.EXT}")
+            out, _ = QFileDialog.getSaveFileName(self, "Save to the APPROVED SHAREPOINT folder only", name, f"Training data (*{TP.EXT})")
+            if not out:
+                return None
+    if not acknowledged:
+        return None
+    r = TP.build(out, app_gui.CONFIG_DIR, app_version=app_gui.APP_VERSION, acknowledged=True,
+                 **_helper(self.host).tp_args(areas, everything, text))
+    c = r["counts"]
+    diag.activity("training_data_sent", n=sum(c.values()), items=1 if text else 0)
+    self.host.toast("Nothing new to send." if not r["path"] else f"Saved {os.path.basename(out)}: "
+                    + ", ".join(f"{n} {a}" for a, n in c.items() if n))
+    self.refresh()
+    return r
+
+
+def install_pack(self, path=None, answer=None):
+    """The Knowledge Pack card: what it improves and adds, then Install. answer (tests): 'install' at once."""
+    import app_gui
+    import studio as ST
+    if path is None:
+        path, _ = QFileDialog.getOpenFileName(self, "Install Knowledge Pack (from the approved SharePoint folder)", "",
+                                              f"Knowledge Pack (*{ST.EXT} *.zip)")
+        if not path:
+            return None
+    try:
+        info, _data = app_gui.read_knowledge_pack(path)
+    except Exception as e:
+        diag.swallowed()
+        self.host.status(f"Not a Knowledge Pack: {type(e).__name__}. Nothing was changed.")
+        return None
+    if answer is None:
+        counts = info.get("counts") or {}
+        words = {"database_rows": "acronym database rows (added only when new)", "ocr_fixes": "OCR fixes", "ignored_readings": "ignored readings"}
+        adds = [f"{n} {words.get(k, k.replace('_', ' '))}" for k, n in counts.items() if isinstance(n, int) and n]
+        dlg = QDialog(self); dlg.setWindowTitle("Install Knowledge Pack"); dlg.setMinimumWidth(600)
+        v = QVBoxLayout(dlg)
+        v.addWidget(D.label(f"Install Knowledge Pack {info.get('created', info.get('version', ''))[:10]}?", "title"))
+        v.addWidget(D.label(f"From the training team ({info.get('created_by', '?')}), made {info.get('created', '?')}"
+                            + (f" with Stationkeeper {info['app_version']}" if info.get("app_version") else "") + ".", "muted"))
+        tested = ST.card_lines(info)
+        if tested:
+            v.addWidget(D.SectionTitle("Tested before release"))
+            for t in tested:
+                v.addWidget(D.label("\u2713  " + t))
+        if adds:
+            v.addWidget(D.SectionTitle("Adds")); v.addWidget(D.label(", ".join(adds)))
+        if info.get("notes"):
+            v.addWidget(D.label("Notes: " + info["notes"]))
+        v.addWidget(D.label("Your own corrections, decisions and database rows stay. A backup is taken first, so it can be undone.", "muted"))
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.button(QDialogButtonBox.Ok).setText("Install")
+        bb.button(QDialogButtonBox.Cancel).setText("Not now")
+        bb.accepted.connect(dlg.accept); bb.rejected.connect(dlg.reject); v.addWidget(bb)
+        answer = "install" if dlg.exec() == QDialog.Accepted else "later"
+    if answer != "install":
+        return None
+    try:
+        rep = app_gui.install_knowledge_pack(path)
+    except PermissionError:
+        self.host.status(app_gui.DB_LOCKED_MSG)
+        return None
+    except Exception as e:
+        app_gui.log_error("Knowledge Pack install failed")
+        self.host.status(f"Not installed: {type(e).__name__}. Nothing was changed.")
+        return None
+    diag.activity("knowledge_installed_card")
+    self.host.toast("Knowledge Pack installed")
+    self.refresh()
+    return rep
+
+
+SettingsPage._tp_gather = _tp_gather
+SettingsPage.send_training = send_training
+SettingsPage.install_pack = install_pack
