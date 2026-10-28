@@ -8,7 +8,8 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE)); sys.path.insert(0, HERE)
 os.environ["AH_OCR_ENGINE"] = "tesseract"; os.environ["AH_TEST"] = "1"
-import app_gui as A, compliance as C, effort as E, matrixdesign as MD
+import app_gui as A, compliance as C, effort as E, matrixdesign as MD, office_pdf as OP
+OP.available = lambda: False          # not a Page view test: Office must not convert files in a folder this test moves away
 from tkinter import messagebox
 tmp = tempfile.mkdtemp()
 A.CONFIG_DIR = os.path.join(tmp, "config"); A.CHOICES_FILE = os.path.join(tmp, "config", "choices.json"); A.SETTINGS_FILE = os.path.join(tmp, "settings.json")
