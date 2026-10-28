@@ -742,9 +742,8 @@ PAGES = {
                                 "information (names, e-mails, phone numbers, addresses, filed by kind in Customer information "
                                 "on Effort home; the sentence is not used); Format requirement (type Format, a compliance "
                                 "requirement); RFP section header... (H)."),
-              ("RFP sections", "The RFP's own sections and subsections, numbered or not. Short title lines the app thinks "
-                               "are headers show HEADER?: click it (or press H on the line) to confirm, or right-click, Not a "
-                               "header, to dismiss it. H asks for the level (Section, Subsection, Sub-subsection) and the number; "
+              ("RFP sections", "The RFP's own sections and subsections, numbered or not. Click a header line and press H "
+                               "(or right-click it, RFP section header...). H asks for the level (Section, Subsection, Sub-subsection) and the number; "
                                "when the RFP has none, the app numbers it by its order (3, 3.1, 3.2). The sentences under a "
                                "header, up to the next one, take its number and title; an amber band in the margin shows the "
                                "section the selected sentence is in. RFP outline on the right lists every section with what it "

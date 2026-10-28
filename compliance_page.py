@@ -817,12 +817,7 @@ class CompliancePageMixin:
         have = getattr(win, "cp_badge", None)
         if have is None:
             have = win.cp_badge = {}
-        try:                                          # 2.54.0: suggested headers, to confirm or dismiss
-            import rfpoutline as RO
-            win.cp_hsug = set(RO.candidates(self.matrix))
-        except Exception:
-            diag.swallowed()
-            win.cp_hsug = set()
+        win.cp_hsug = set()                            # 2.56.0: no suggested headers; H (or right-click) marks one
         for it in rows:
             kind, txt = self._cp_badge_for(it)
             if have.get(it["id"]) == txt:

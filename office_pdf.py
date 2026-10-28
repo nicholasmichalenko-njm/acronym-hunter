@@ -23,8 +23,10 @@ $app = New-Object -ComObject Word.Application
 $was = $app.Documents.Count
 $app.Visible = $false; $app.DisplayAlerts = 0
 try { $app.AutomationSecurity = 3 } catch {}
-$d = $app.Documents.Open($env:SK_SRC, $false, $true, $false)
-try { $d.ExportAsFixedFormat($env:SK_OUT, 17) } finally { $d.Close(0) }
+foreach ($pair in ($env:SK_LIST -split "`n")) { if (-not $pair) { continue }
+  $src, $out = $pair -split "`t"
+  try { $d = $app.Documents.Open($src, $false, $true, $false)
+        try { $d.ExportAsFixedFormat($out, 17) } finally { $d.Close(0) } } catch { Write-Error "$($_.Exception.Message)" -ErrorAction Continue } }
 if ($was -eq 0) { $app.Quit() }
 """,
     "excel": r"""
@@ -33,8 +35,10 @@ $app = New-Object -ComObject Excel.Application
 $was = $app.Workbooks.Count
 $app.Visible = $false; $app.DisplayAlerts = $false
 try { $app.AutomationSecurity = 3 } catch {}
-$wb = $app.Workbooks.Open($env:SK_SRC, 0, $true)
-try { $wb.ExportAsFixedFormat(0, $env:SK_OUT) } finally { $wb.Close($false) }
+foreach ($pair in ($env:SK_LIST -split "`n")) { if (-not $pair) { continue }
+  $src, $out = $pair -split "`t"
+  try { $wb = $app.Workbooks.Open($src, 0, $true)
+        try { $wb.ExportAsFixedFormat(0, $out) } finally { $wb.Close($false) } } catch { Write-Error "$($_.Exception.Message)" -ErrorAction Continue } }
 if ($was -eq 0) { $app.Quit() }
 """,
     "powerpoint": r"""
@@ -42,8 +46,10 @@ $ErrorActionPreference = 'Stop'
 $app = New-Object -ComObject PowerPoint.Application
 $was = $app.Presentations.Count
 try { $app.AutomationSecurity = 3 } catch {}
-$p = $app.Presentations.Open($env:SK_SRC, -1, 0, 0)
-try { $p.SaveAs($env:SK_OUT, 32) } finally { $p.Close() }
+foreach ($pair in ($env:SK_LIST -split "`n")) { if (-not $pair) { continue }
+  $src, $out = $pair -split "`t"
+  try { $p = $app.Presentations.Open($src, -1, 0, 0)
+        try { $p.SaveAs($out, 32) } finally { $p.Close() } } catch { Write-Error "$($_.Exception.Message)" -ErrorAction Continue } }
 if ($was -eq 0) { $app.Quit() }
 """,
 }
@@ -71,42 +77,56 @@ def available():
     return sys.platform.startswith("win")
 
 
-def make(path, folder, timeout=180, runner=None):
-    """The PDF copy of a Word, Excel or PowerPoint file (made now if needed). Returns its path. Raises RuntimeError with
-    a plain reason when Office is not on this PC or could not save it. runner(cmd, env, timeout) -> (code, out, err)
-    replaces the real call in tests."""
-    k = kind(path)
-    if not k:
-        raise RuntimeError("not a Word, Excel or PowerPoint file")
-    os.makedirs(folder, exist_ok=True)
-    out = copy_path(path, folder)
-    if os.path.isfile(out) and os.path.getsize(out) > 0:
-        return out
-    tmp = out + ".part.pdf"
-    try:
-        os.remove(tmp)
-    except OSError:
-        pass
-    env = dict(os.environ, SK_SRC=os.path.abspath(path), SK_OUT=os.path.abspath(tmp))
-    cmd = ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", _SCRIPT[k]]
-    if runner is None:
-        if not available():
-            raise RuntimeError("Microsoft Office is needed to show Word, Excel and PowerPoint files as they look")
+def make_many(paths, folder, timeout=600, runner=None):
+    """PDF copies of several files, one Office session per program (Office starting is the slow part). Returns
+    {path: copy path or RuntimeError}."""
+    out, todo = {}, {}
+    for p in paths:
+        k = kind(p)
+        if not k:
+            out[p] = RuntimeError("not a Word, Excel or PowerPoint file")
+            continue
+        os.makedirs(folder, exist_ok=True)
+        c = copy_path(p, folder)
+        if os.path.isfile(c) and os.path.getsize(c) > 0:
+            out[p] = c
+        else:
+            todo.setdefault(k, []).append((p, c))
+    for k, pairs in todo.items():
+        listing = "\n".join(f"{os.path.abspath(p)}\t{os.path.abspath(c)}.part.pdf" for p, c in pairs)
+        env = dict(os.environ, SK_LIST=listing)
+        cmd = ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", _SCRIPT[k]]
+        err = b""
         try:
-            r = subprocess.run(cmd, env=env, capture_output=True, timeout=timeout,
-                               creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-            code, err = r.returncode, r.stderr
+            if runner is not None:
+                _code, _o, err = runner(cmd, env, timeout)
+            elif not available():
+                err = b"Microsoft Office is needed"
+            else:
+                r = subprocess.run(cmd, env=env, capture_output=True, timeout=timeout,
+                                   creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                err = r.stderr
         except subprocess.TimeoutExpired:
-            raise RuntimeError("Office took too long to save the PDF copy")
+            err = b"Office took too long to save the PDF copies"
         except OSError as e:
-            raise RuntimeError(f"Windows PowerShell could not start ({type(e).__name__})")
-    else:
-        code, _o, err = runner(cmd, env, timeout)
-    if code != 0 or not os.path.isfile(tmp) or os.path.getsize(tmp) == 0:
+            err = f"Windows PowerShell could not start ({type(e).__name__})".encode()
         msg = (err or b"").decode("utf-8", "replace") if isinstance(err, (bytes, bytearray)) else str(err or "")
-        low = msg.lower()
-        if "80040154" in low or "class not registered" in low or "comobject" in low and "retriev" in low:
-            raise RuntimeError(f"Microsoft {k.capitalize()} is not installed on this PC")
-        raise RuntimeError(f"{k.capitalize()} could not save a PDF copy" + (f": {msg.strip().splitlines()[-1][:160]}" if msg.strip() else ""))
-    os.replace(tmp, out)
+        for p, c in pairs:
+            part = c + ".part.pdf"
+            if os.path.isfile(part) and os.path.getsize(part) > 0:
+                os.replace(part, c)
+                out[p] = c
+            else:
+                low = msg.lower()
+                why = (f"Microsoft {k.capitalize()} is not installed on this PC" if "80040154" in low or "class not registered" in low
+                       else f"{k.capitalize()} could not save a PDF copy" + (f": {msg.strip().splitlines()[-1][:160]}" if msg.strip() else ""))
+                out[p] = RuntimeError(why)
     return out
+
+
+def make(path, folder, timeout=180, runner=None):
+    """The PDF copy of one file (made now if needed). Returns its path; raises RuntimeError with a plain reason."""
+    r = make_many([path], folder, timeout, runner).get(path)
+    if isinstance(r, Exception) or r is None:
+        raise r or RuntimeError("no PDF copy")
+    return r

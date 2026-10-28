@@ -50,7 +50,7 @@ def go():
     check("unnumbered title lines are suggested as headers", tech["id"] in cand and test["id"] in cand and mgmt["id"] in cand
           and by("The Offeror shall describe")["id"] not in cand, [x for x in cand])
     whole = app._cwin.cp_text.get("1.0", "end").replace(" ", " ")
-    check("a suggested header shows HEADER? in the text", "HEADER?" in whole)
+    check("2.56.0: no suggested headers in the text (H marks one)", "HEADER?" not in whole)
     app._cp_select(tech["id"]); app.update()
     w = app.c_mark_header(tech["id"]); app.update()
     check("H: a header the RFP did not number is numbered by its order", w._api["num"].get() == "1" or w._api["num"].get().isdigit(),
