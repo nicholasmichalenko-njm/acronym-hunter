@@ -163,8 +163,8 @@ class AssignPage(QWidget):
         bar.addWidget(self.files)
         self.keys = {}
         for text, kind, fn, tip in (("Requirement  R", "req", self.do_req, "The selected sentences become compliance requirements in the target section"),
-                                    ("L  L", "req", lambda: self.do_lm("L"), "L: Instructions, Conditions and Notices to Offerors (a requirement)"),
-                                    ("M  E", "req", lambda: self.do_lm("M"), "M: Evaluation Factors for Award (a requirement)"),
+                                    ("L", "req", lambda: self.do_lm("L"), "L: Instructions, Conditions and Notices to Offerors (a requirement). Key: L"),
+                                    ("M  E", "req", lambda: self.do_lm("M"), "M: Evaluation Factors for Award (a requirement). Key: E"),
                                     ("Support  C", "ctx", self.do_ctx, "Supporting context for the last requirement you clicked"),
                                     ("Customer's  G", "cust", self.do_customer, "The customer's to act on: identified, never answered"),
                                     ("Not used  X", None, self.do_clear, "No decision"),
@@ -173,8 +173,6 @@ class AssignPage(QWidget):
                                     ("Undo  Ctrl+Z", "ghost", self.do_undo, "Put back the last change")):
             b = D.button(text, kind, fn, tip)
             self.keys[text.split()[0]] = b
-            if text.split()[0] in ("L", "M"):
-                b.setFixedWidth(46)
             bar.addWidget(b)
         bar.addStretch(1)
         fit = QPushButton("Fit width"); fit.clicked.connect(lambda: self.view.fit()); bar.addWidget(fit)
