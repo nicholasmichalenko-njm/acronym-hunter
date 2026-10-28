@@ -17,7 +17,7 @@ Feature in the rail after Effort home. Steps: Requirements, Documents, Compare, 
 - Export: the version history of every document (Excel), with a sheet of changes for each new version.
 Saved in the effort's folder as it happens (documents\\), like everything else. Rules and counts only (No AI).
 """
-import datetime, os, shutil
+import os
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import customtkinter as ctk
@@ -771,88 +771,22 @@ class SubmissionMixin:
 
     # ------------------------------------------------------------ adding documents
     def sub_read(self, path):
-        """The text of a file, sentence by sentence (typed text only)."""
-        try:
-            chunks = _eng().rfp_chunks(path)          # 2.47.0: scanned pages too
-        except Exception:
-            diag.swallowed()
-            chunks = []
-        return DV.snapshot(os.path.basename(path), chunks)
+        """The text of a file, sentence by sentence (2.65.0: docintake.read, shared with the Qt edition)."""
+        import docintake as DI
+        return DI.read(path)
 
     def sub_plan(self, paths):
-        """For each new file: its text and the suggested match. Files are taken oldest first so a later file can be
-        matched to an earlier one in the same batch. Returns [entry]."""
-        lib = self.doclib()
-        plan = []
-        for p in paths:
-            try:
-                h = DV.sha256(p)
-            except OSError:
-                continue
-            got = lib.find_sha(h)
-            if got:
-                plan.append({"path": p, "sha": h, "dup": got, "sents": [], "choice": "skip"})
-                continue
-            sents = self.sub_read(p)
-            cands = [(d, sc, how) for d, sc, how in lib.suggest(os.path.basename(p), [s["x"] for s in sents])]
-            for k, e in enumerate(plan):           # earlier files in this batch that will become new documents
-                if e.get("dup") or e["choice"] != "new":
-                    continue
-                ns = DV.name_similarity(os.path.basename(p), os.path.basename(e["path"]))
-                ts = DV.text_similarity([s["x"] for s in sents], [s["x"] for s in e["sents"]])
-                sc = round(max(ts, 0.5 * ns + 0.5 * ts), 3)
-                cands.append(({"id": f"batch:{k}", "name": e["name"], "versions": []}, sc,
-                              f"{int(round(ts * 100))}% of the text is the same" + ("; the name matches" if ns >= 0.9 else "")))
-            cands.sort(key=lambda x: -x[1])
-            best = cands[0] if cands and DV.Library.band(cands[0][1]) else None
-            e = {"path": p, "sha": h, "sents": sents, "cands": cands, "best": best,
-                 "choice": "version" if best and DV.Library.band(best[1]) == "strong" else "new",
-                 "doc": best[0]["id"] if best else None,
-                 "name": DV.display_name(p),
-                 "label": ""}
-            plan.append(e)
-        return plan
+        """For each new file: its text and the suggested match (2.65.0: docintake.plan)."""
+        import docintake as DI
+        return DI.plan(self.doclib(), paths, self.sub_read)
 
     def sub_apply(self, plan):
-        """Add the planned files: copy each into the customer documents folder, then record it. Returns [(doc, version)]."""
-        lib = self.doclib()
-        cd = self.sub_customer_dir()
-        made, batch_doc = [], {}
-        for k, e in enumerate(plan):
-            if e.get("dup") or e["choice"] == "skip":
-                continue
-            src = e["path"]
-            dest = src
-            if cd and os.path.isdir(cd) and os.path.normcase(os.path.dirname(os.path.abspath(src))) != os.path.normcase(os.path.abspath(cd)):
-                dest = os.path.join(cd, os.path.basename(src))
-                if os.path.exists(dest) and DV.sha256(dest) != e["sha"]:
-                    base, ext = os.path.splitext(dest)
-                    dest = f"{base}_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}{ext}"
-                try:
-                    if not os.path.exists(dest):
-                        shutil.copy2(src, dest)
-                except OSError:
-                    diag.swallowed(); dest = src
-            doc_id = e.get("doc") if e["choice"] == "version" else None
-            if doc_id and str(doc_id).startswith("batch:"):
-                doc_id = batch_doc.get(int(doc_id.split(":")[1]))
-            d, v = lib.add(dest, e["sents"], doc_id=doc_id, doc_name=e.get("name", ""), label=e.get("label", ""), sha=e["sha"])
-            batch_doc[k] = d["id"]
-            made.append((d, v))
+        """Add the planned files (2.65.0: docintake.apply). Returns [(doc, version)]."""
+        import docintake as DI
+        log = (lambda kind, text, ref: self.rec_log(kind, text, ref=ref)) if hasattr(self, "rec_log") else None
+        made = DI.apply(self.doclib(), plan, self.sub_customer_dir(), log)
         if made:
-            diag.activity("submission_added", n=len(made))
             self.sub_cur = made[-1][0]["id"]
-            for d, v in made:                              # 2.40.0: the paper trail
-                i = d["versions"].index(v)
-                what = ""
-                if i:
-                    try:
-                        what = "; " + DV.summary_text(DV.summary(DV.compare(lib.text(d["versions"][i - 1]), lib.text(v))))
-                    except Exception:
-                        diag.swallowed()
-                self.rec_log("customer", f"{d['name']}: {v['label']} added ({v['file']}){what}" if i else
-                             f"{d['name']} added ({v['file']}, {v.get('sentences', 0)} sentences)", ref={"version": v["id"]}) \
-                    if hasattr(self, "rec_log") else None
         self.sub_refresh()
         if hasattr(self, "_shell_rail_style"):
             self._shell_rail_style()

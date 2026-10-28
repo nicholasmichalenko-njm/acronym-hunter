@@ -272,8 +272,10 @@ class EmptyState(QFrame):
         v = QVBoxLayout(self)
         v.setAlignment(Qt.AlignCenter)
         v.setSpacing(SPACE["s"])
-        t = label(title, "title"); t.setAlignment(Qt.AlignCenter); v.addWidget(t)
-        b = label(body, "muted"); b.setAlignment(Qt.AlignCenter); b.setMaximumWidth(460); v.addWidget(b, 0, Qt.AlignCenter)
+        t = label(title, "title", wrap=False); t.setAlignment(Qt.AlignCenter); v.addWidget(t)
+        b = label(body, "muted"); b.setAlignment(Qt.AlignCenter); b.setFixedWidth(440)
+        b.setMinimumHeight(b.heightForWidth(440) + 4)               # a wrapped line is never cut off
+        v.addWidget(b, 0, Qt.AlignCenter)
         if action_text and on_action:
             v.addWidget(button(action_text, "primary", on_action), 0, Qt.AlignCenter)
 

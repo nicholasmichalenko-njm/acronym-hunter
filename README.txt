@@ -4,7 +4,7 @@ STATIONKEEPER (Portable, Offline)
 STATIONKEEPER (QT) (from 2.59.0)
   Stationkeeper is moving to a new window system (Qt, through PySide6: The Qt Company, Finland, LGPL 3; its libraries
   ship as separate files). StationkeeperQt.exe sits next to Stationkeeper.exe and shares its config and every effort
-  file. It holds Effort home, the effort dashboard (2.62.0), the effort record and color team reviews (2.63.0), acronym scan and review and the effort list (2.64.0), and all of Compliance: Read RFP, Structure, Assign,
+  file. It holds Effort home, the effort dashboard (2.62.0), the effort record and color team reviews (2.63.0), acronym scan and review and the effort list (2.64.0), Customer Documents (2.65.0), and all of Compliance: Read RFP, Structure, Assign,
   Prove, the L/M crosswalk, Matrix and Response Setup (2.61.0); the other areas follow one per release,
   and the classic window retires when Qt does everything.
   - Open an effort in one program at a time: the other says the effort is open elsewhere.

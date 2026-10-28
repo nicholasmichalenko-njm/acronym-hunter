@@ -5,7 +5,7 @@ import os
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (QButtonGroup, QComboBox, QCompleter, QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
-                               QMessageBox, QPushButton, QStackedWidget, QVBoxLayout, QWidget)
+                               QMessageBox, QPushButton, QScrollArea, QStackedWidget, QVBoxLayout, QWidget)
 import diag
 import compliance as C
 import effort as E
@@ -26,19 +26,26 @@ from .recordpage import RecordPage
 from .reviewpage import ReviewPage
 from .acronympage import AcronymPage
 from .effortlistpage import EffortListPage
+from .custdocs import ComparePage, DeliverablesPage, DocsPage, ImpactPage, RequirementsPage
 
 
 RAIL = [("EFFORT", [("home", "Effort home"), ("dashboard", "Dashboard"), ("record", "Effort record"), ("reviews", "Reviews")]),
+        ("CUSTOMER DOCUMENTS", [("docs", "Documents"), ("requirements", "Requirements"), ("compare", "Compare"),
+                                ("impact", "Impact review"), ("deliverables", "Deliverables")]),
         ("ACRONYMS", [("acronyms", "Scan and review"), ("acrlist", "Effort list")]),
         ("COMPLIANCE", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove"),
                         ("crosswalk", "L/M crosswalk")]),
         ("DELIVER", [("matrix", "Matrix"), ("setup", "Response Setup")]),
-        ("IN STATIONKEEPER (CLASSIC) FOR NOW", [("", "Keywords"), ("", "Submission and deliverables"),
-                                                ("", "QA/QC")])]
+        ("IN STATIONKEEPER (CLASSIC) FOR NOW", [("", "Keywords"), ("", "QA/QC")])]
 TITLES = {"home": ("Effort home", "Stage, gate goals, tasks, questions and the calendar"),
           "dashboard": ("Dashboard", "The effort on one screen"),
           "record": ("Effort record", "Details, team, stages and gates, status, package and backup"),
           "reviews": ("Reviews", "Color team review packets, read back onto each requirement"),
+          "docs": ("Documents", "The customer's documents and every version of them"),
+          "requirements": ("Requirements", "What the customer documents require of the submission"),
+          "compare": ("Compare", "Two versions side by side, each change beside the matrix requirement it touches"),
+          "impact": ("Impact review", "What one new version touched across the effort"),
+          "deliverables": ("Deliverables", "What the effort owes the customer, and where each stands"),
           "acronyms": ("Scan and review", "Every acronym, abbreviation, unit and symbol, and the effort list"),
           "acrlist": ("Effort list", "The effort's acronyms: definitions, status, approvers, and the lists to deliver"),
           "read": ("Read RFP", "Bring the customer's documents into the review"),
@@ -82,7 +89,10 @@ class MainWindow(QMainWindow):
                 rv.addWidget(b)
         rv.addStretch(1)
         ver = QLabel(f"Offline. No AI. {version}"); ver.setObjectName("railhead"); rv.addWidget(ver)
-        rh.addWidget(rail)
+        rail_scroll = QScrollArea(); rail_scroll.setObjectName("railbox"); rail_scroll.setWidgetResizable(True)    # 2.65.0: a long rail scrolls
+        rail_scroll.setFrameShape(QFrame.NoFrame); rail_scroll.setFixedWidth(232); rail_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        rail.setFixedWidth(232 - 2); rail_scroll.setWidget(rail)
+        rh.addWidget(rail_scroll)
         col = QWidget(); cv = QVBoxLayout(col); cv.setContentsMargins(0, 0, 0, 0); cv.setSpacing(0)
         # the top bar: where you are, the effort, search, and whether everything is saved
         bar = QFrame(); bar.setProperty("bar", True)
@@ -108,6 +118,11 @@ class MainWindow(QMainWindow):
         self.review_page = ReviewPage(self)
         self.acronym_page = AcronymPage(self)
         self.acrlist_page = EffortListPage(self)
+        self.docs_page = DocsPage(self)
+        self.requirements_page = RequirementsPage(self)
+        self.compare_page = ComparePage(self)
+        self.impact_page = ImpactPage(self)
+        self.deliverables_page = DeliverablesPage(self)
         self.read_page = ReadPage(self)
         self.structure_page = StructurePage(self)
         self.assign_page = AssignPage(self)
@@ -115,7 +130,8 @@ class MainWindow(QMainWindow):
         self.crosswalk_page = CrosswalkPage(self)
         self.matrix_page = MatrixPage(self)
         self.setup_page = SetupPage(self)
-        self.pages = {"home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
+        self.pages = {"home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page,
+                      "impact": self.impact_page, "deliverables": self.deliverables_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)

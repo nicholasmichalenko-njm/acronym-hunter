@@ -78,8 +78,8 @@ class ReadPage(QWidget):
             self.list.addWidget(cb)
             self.boxes.append(cb)
         if not docs and R is None:
-            self.list.addWidget(D.EmptyState("No customer documents yet", "Add the RFP files to Customer Documents in "
-                                             "Stationkeeper (classic), or Add files... here.", "Add files...", self.pick))
+            self.list.addWidget(D.EmptyState("No customer documents yet", "Add the RFP files in Customer Documents: every "
+                                             "version is kept, and new ones are compared.", "Go to Documents", lambda: self.host.go("docs")))
         self.go_btn.setEnabled(R is not None and bool(R.M.items))
         self.read_btn.setEnabled(bool(self.boxes))
 
