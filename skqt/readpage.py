@@ -3,10 +3,13 @@ documents not read yet to the open one, keeping every decision). Reading runs in
 compliance_read, exactly as in the tkinter edition."""
 import os, re
 from PySide6.QtCore import Qt, QThread, Signal
-from PySide6.QtWidgets import (QCheckBox, QFileDialog, QHBoxLayout, QLabel, QPushButton, QScrollArea, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QHBoxLayout, QHeaderView, QLabel,
+                               QLineEdit, QPushButton, QScrollArea, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 from . import design as D
 import diag
 import compliance_read as CR
+import docversions as DV
+import setupdoc as SD
 
 
 class ReadWorker(QThread):
@@ -72,8 +75,11 @@ class ReadPage(QWidget):
         else:
             self.info.setText("The effort's customer documents (latest version of each). Tick the ones to read: instructions, "
                               "evaluation criteria, SOW, attachments. Read starts the compliance matrix.")
+        known = self.identities_known()
         for name, label, path in docs:
-            cb = QCheckBox(f"{name}   ({label})   {os.path.basename(path)}"); cb.setChecked(True)
+            ident = known.get(os.path.basename(path)) or {}
+            tag = f"[{ident['initial']}  {ident.get('type', '')}]" if ident.get("initial") else "[needs an initial and type]"
+            cb = QCheckBox(f"{tag}   {name}   ({label})   {os.path.basename(path)}"); cb.setChecked(True)
             cb.path = path
             self.list.addWidget(cb)
             self.boxes.append(cb)
@@ -94,10 +100,135 @@ class ReadPage(QWidget):
     def chosen(self):
         return [cb.path for cb in self.boxes if cb.isChecked()]
 
-    def read(self, paths=None, out=None):
+    # ------------------------------------------------------------ 2.68.0: every document has an initial and a type
+    def library(self):
+        return DV.Library(self.host.ws.p("documents")).load() if self.host.ws is not None else None
+
+    def identities_known(self):
+        """{file name: {"initial", "type"}} from Customer Documents and the open matrix."""
+        out = dict(SD.docs_of(self.host.review.M)) if self.host.review is not None else {}
+        lib = self.library()
+        if lib is not None:
+            for f, ident in lib.identity_map().items():
+                if ident.get("initial") or f not in out:
+                    out[f] = ident
+        return out
+
+    def unidentified(self, paths):
+        known = self.identities_known()
+        return [p for p in paths if not (known.get(os.path.basename(p)) or {}).get("initial")
+                or not (known.get(os.path.basename(p)) or {}).get("type")]
+
+    def suggest(self, paths):
+        """[(path, initial, type)] suggested for files with none yet."""
+        lib = self.library() or DV.Library(os.path.join(os.path.dirname(paths[0]), ".none"))
+        taken = {i.get("initial") for i in self.identities_known().values() if i.get("initial")}
+        out = []
+        for p in paths:
+            d = lib.doc_of_file(os.path.basename(p))
+            dtype = (d or {}).get("type") or DV.guess_type(os.path.basename(p))
+            ini = lib.suggest_initial(dtype, taken)
+            taken.add(ini)
+            out.append((p, ini, dtype))
+        return out
+
+    def ask_identity(self, sugg):
+        """The person gives each file its initial and type. Returns {path: (initial, type)} or None (cancelled)."""
+        dlg = QDialog(self); dlg.setWindowTitle("Initial and type for each document"); dlg.setMinimumWidth(720)
+        v = QVBoxLayout(dlg)
+        v.addWidget(D.label("Every customer document needs an initial and a type before it is read. The initial starts each "
+                            "requirement's reference in the matrix (R-L-4.2.1), so sections with the same number in different "
+                            "documents never get mixed up.", "muted"))
+        t = QTableWidget(len(sugg), 3); t.setHorizontalHeaderLabels(["File", "Initial", "Type"])
+        t.verticalHeader().setVisible(False); t.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        rows = []
+        for i, (p, ini, dtype) in enumerate(sugg):
+            t.setItem(i, 0, QTableWidgetItem(os.path.basename(p)))
+            e = QLineEdit(ini); e.setMaxLength(6)
+            c = QComboBox(); c.addItems(list(DV.DOC_TYPES)); c.setCurrentIndex(max(0, c.findText(dtype)))
+            t.setCellWidget(i, 1, e); t.setCellWidget(i, 2, c)
+            rows.append((p, e, c))
+        v.addWidget(t)
+        prob = D.label("", "crit"); prob.hide(); v.addWidget(prob)
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        bb.button(QDialogButtonBox.Ok).setText("Set and read")
+        got = {}
+
+        def ok():
+            ans = {p: (e.text(), c.currentText()) for p, e, c in rows}
+            why = self.identity_problems(ans)
+            if why:
+                prob.setText(" ".join(why)); prob.show()
+                return
+            got.update(ans)
+            dlg.accept()
+        bb.accepted.connect(ok); bb.rejected.connect(dlg.reject)
+        v.addWidget(bb)
+        return got if dlg.exec() == QDialog.Accepted else None
+
+    def identity_problems(self, ans):
+        known = self.identities_known()
+        out, seen = [], {}
+        names = {os.path.basename(p) for p in ans}
+        for f, i in known.items():
+            if i.get("initial") and f not in names:
+                seen.setdefault(i["initial"], i.get("doc") or f)
+        lib = self.library()
+        for p, (ini, dtype) in ans.items():
+            f = os.path.basename(p)
+            d = lib.doc_of_file(f) if lib is not None else None
+            ini = DV.clean_initial(ini)
+            if not ini:
+                out.append(f"{f}: give it an initial.")
+            elif ini in seen and seen[ini] != ((d or {}).get("name") or f):
+                out.append(f"{f}: {ini} is already used.")
+            if dtype not in DV.DOC_TYPES:
+                out.append(f"{f}: pick its type.")
+            seen[ini] = (d or {}).get("name") or f
+        return out
+
+    def identify(self, ans):
+        """Keep the initials and types: in Customer Documents for its documents, else with the matrix when it is read."""
+        lib = self.library()
+        self._pending_ids = {}
+        for p, (ini, dtype) in ans.items():
+            f = os.path.basename(p)
+            d = lib.doc_of_file(f) if lib is not None else None
+            if d is not None:
+                lib.set_identity(d["id"], ini, dtype)
+            else:
+                self._pending_ids[f] = (DV.clean_initial(ini), dtype)
+        diag.activity("compliance_documents_identified", n=len(ans))
+
+    def _apply_pending(self, M):
+        for f, (ini, dtype) in (getattr(self, "_pending_ids", None) or {}).items():
+            SD.set_doc(M, f, ini, dtype)
+        self._pending_ids = {}
+        lib = self.library()
+        if lib is not None:
+            SD.sync_docs(M, lib)
+
+    def read(self, paths=None, out=None, identities=None):
+        """identities: {path: (initial, type)} for files with none yet, or "suggested" (tests); else the person is asked."""
         paths = paths or self.chosen()
         if not paths or self.worker is not None:
             return None
+        need = self.unidentified(paths)
+        if need:
+            if identities is None and os.environ.get("AH_TEST"):
+                identities = "suggested"
+            if identities == "suggested":
+                identities = {p: (i, t) for p, i, t in self.suggest(need)}
+            elif identities is None:
+                identities = self.ask_identity(self.suggest(need))
+                if identities is None:
+                    self.host.status("Not read: every document needs an initial and a type.")
+                    return None
+            why = self.identity_problems({p: identities.get(p, ("", "")) for p in need})
+            if why:
+                self.host.status("Not read: " + " ".join(why))
+                return None
+            self.identify({p: identities[p] for p in need})
         if self.host.review is None:
             if out is None:
                 ef = self.host.effort_name or "RFP"
@@ -129,11 +260,13 @@ class ReadPage(QWidget):
         if self.host.review is None:
             M = CR.new_matrix(self._out, items, heads, src, (self.host.ws.get("outline_text") or "") if self.host.ws else "")
             fixed = CR.complete(M)
+            self._apply_pending(M)
             self.host.set_matrix(M, new=True)
             msg = f"{len(items)} sentences from {len(src)} file(s)."
         else:
             add = CR.add_read(self.host.review.M, items, heads, src)
             fixed = CR.complete(self.host.review.M)
+            self._apply_pending(self.host.review.M)
             self.host.changed()
             msg = f"{len(add)} sentences added."
         if fixed:

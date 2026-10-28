@@ -2,8 +2,9 @@
 click; Ctrl+click adds or takes out a sentence; drag a rubber band around several (Ctrl+drag adds); Ctrl+wheel zooms.
 Headers and footers have no box. Labels in the left margin say what each sentence is. Beside the page: the sentence
 card (source, decision, author(s), relationships, notes) and the response structure (click a section: the target for
-R). Keys: R requirement, C support, G customer's, X not used, M combine, S split (where you clicked in the selected
-sentence), Ctrl+Z undo. Every decision goes through assign_ops, the same rules as the tkinter edition.
+R). Keys: R requirement, L and E (M) the Shipley designation, C support, G customer's, X not used, J combine (2.68.0;
+M before), S split (where you clicked in the selected
+sentence), Ctrl+Z undo. 2.68.0: the structure is built beside the page as you assign, volume by volume. Every decision goes through assign_ops, the same rules as the tkinter edition.
 """
 import os, re
 from PySide6.QtCore import Qt, QEvent, QRectF, QThread, QTimer, Signal

@@ -106,12 +106,16 @@ class AddDialog(QDialog):
         self.plan = plan
         v = QVBoxLayout(self)
         v.addWidget(D.label("Each file is matched by its name and its text to the documents already here. Check what each "
-                            "one is, then Add.", "muted"))
-        self.table = QTableWidget(len(plan), 4)
-        self.table.setHorizontalHeaderLabels(["File", "What it is", "Name", "Version label"])
+                            "one is, then Add. Every new document needs an initial and a type: the initial starts each "
+                            "requirement's reference in the matrix (R-L-4.2.1), so sections with the same number in "
+                            "different documents never get mixed up. A new version keeps its document's initial.", "muted"))
+        self.lib = lib
+        self.table = QTableWidget(len(plan), 6)
+        self.table.setHorizontalHeaderLabels(["File", "What it is", "Initial", "Type", "Name", "Version label"])
         self.table.verticalHeader().setVisible(False)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.table.setColumnWidth(0, 260); self.table.setColumnWidth(2, 220); self.table.setColumnWidth(3, 150)
+        self.table.setColumnWidth(0, 240); self.table.setColumnWidth(2, 70); self.table.setColumnWidth(3, 120)
+        self.table.setColumnWidth(4, 200); self.table.setColumnWidth(5, 130)
         self.rows = []
         for i, e in enumerate(plan):
             self.table.setItem(i, 0, QTableWidgetItem(os.path.basename(e["path"])))
@@ -126,19 +130,54 @@ class AddDialog(QDialog):
                 if e["choice"] == "version" and e.get("doc"):
                     cb.setCurrentIndex(max(0, next((k for k in range(cb.count()) if cb.itemData(k) == ("version", e["doc"])), 0)))
             name = QLineEdit(e.get("name", "")); label = QLineEdit(e.get("label", "")); label.setPlaceholderText("next number")
-            self.table.setCellWidget(i, 1, cb); self.table.setCellWidget(i, 2, name); self.table.setCellWidget(i, 3, label)
-            self.rows.append((cb, name, label))
+            ini = QLineEdit(e.get("initial", "")); ini.setMaxLength(6); ini.setPlaceholderText("R")
+            ty = QComboBox(); ty.addItems(list(DV.DOC_TYPES))
+            ty.setCurrentIndex(max(0, ty.findText(e.get("type", "RFP"))))
+            ty.currentTextChanged.connect(lambda t, w=ini, r=i: self._type_changed(r, t, w))
+            self.table.setCellWidget(i, 1, cb); self.table.setCellWidget(i, 2, ini); self.table.setCellWidget(i, 3, ty)
+            self.table.setCellWidget(i, 4, name); self.table.setCellWidget(i, 5, label)
+            cb.currentIndexChanged.connect(lambda _k, r=i: self._choice_changed(r))
+            self.rows.append((cb, name, label, ini, ty))
+            self._choice_changed(i)
         v.addWidget(self.table)
+        self.problem = D.label("", "crit"); self.problem.hide()
+        v.addWidget(self.problem)
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.button(QDialogButtonBox.Ok).setText("Add")
         bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
         v.addWidget(bb)
 
+    def _choice_changed(self, r):
+        cb, _n, _l, ini, ty = self.rows[r]
+        new = (cb.currentData() or ("",))[0] == "new"
+        ini.setEnabled(new); ty.setEnabled(new)
+        if not new and (cb.currentData() or ("", None))[0] == "version":
+            d = self.lib.doc(cb.currentData()[1]) if self.lib else None
+            if d is not None and d.get("initial"):
+                ini.setText(d["initial"])
+
+    def _type_changed(self, r, dtype, ini):
+        """A new type suggests its letter, unless the person typed their own."""
+        e = self.plan[r]
+        if not ini.text().strip() or ini.text().strip() == e.get("initial", ""):
+            taken = [w[3].text().strip().upper() for k, w in enumerate(self.rows) if k != r]
+            e["initial"] = self.lib.suggest_initial(dtype, taken)
+            ini.setText(e["initial"])
+
+    def accept(self):
+        problems = DI.check(self.lib, self.result_plan())
+        if problems:
+            self.problem.setText("Before adding: " + " ".join(problems))
+            self.problem.show()
+            return
+        super().accept()
+
     def result_plan(self):
-        for e, (cb, name, label) in zip(self.plan, self.rows):
+        for e, (cb, name, label, ini, ty) in zip(self.plan, self.rows):
             choice, doc = cb.currentData()
             e["choice"], e["doc"] = choice, doc
             e["name"], e["label"] = name.text().strip() or e.get("name", ""), label.text().strip()
+            e["initial"], e["type"] = DV.clean_initial(ini.text()), ty.currentText()
         return self.plan
 
 
@@ -151,7 +190,8 @@ class DocsPage(QWidget):
         v = _scroll_page(self)
         top = QHBoxLayout(); top.setSpacing(D.SPACE["m"]); v.addLayout(top)
         self.p_docs = D.Pill("0 documents", "accent"); self.p_ver = D.Pill("0 versions", "accent"); self.p_rev = D.Pill("0 to review", "ok")
-        for p in (self.p_docs, self.p_ver, self.p_rev):
+        self.p_id = D.Pill("every document identified", "ok")
+        for p in (self.p_docs, self.p_ver, self.p_rev, self.p_id):
             top.addWidget(p)
         top.addStretch(1)
         self.b_folder = D.button("Add from the customer folder", None, lambda: self.add(self.ctx.unadded() if self.ctx else []),
@@ -159,12 +199,16 @@ class DocsPage(QWidget):
         top.addWidget(self.b_folder)
         top.addWidget(D.button("Add files...", "primary", lambda: self.add()))
         card = D.Card("Documents and their versions", "Every version is kept with its text, so Compare works even when the file moves.")
-        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Document / version", "File", "Added", "Sentences", "Changes", "Reviewed"])
-        self.tree.setColumnWidth(0, 280); self.tree.setColumnWidth(1, 280); self.tree.setColumnWidth(2, 110); self.tree.setColumnWidth(3, 80)
-        self.tree.setColumnWidth(4, 280); self.tree.setMinimumHeight(420)
+        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Document / version", "Initial", "Type", "File", "Added", "Sentences",
+                                                              "Changes", "Reviewed"])
+        self.tree.setColumnWidth(0, 260); self.tree.setColumnWidth(1, 60); self.tree.setColumnWidth(2, 100)
+        self.tree.setColumnWidth(3, 260); self.tree.setColumnWidth(4, 100); self.tree.setColumnWidth(5, 80)
+        self.tree.setColumnWidth(6, 260); self.tree.setMinimumHeight(420)
+        self.tree.itemDoubleClicked.connect(lambda i, c: self.identity() if c in (1, 2) else None)
         card.add(self.tree)
         row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
-        for text, kind, fn in (("Mark reviewed", "primary", lambda: self.mark_reviewed()), ("Rename...", None, lambda: self.rename()),
+        for text, kind, fn in (("Mark reviewed", "primary", lambda: self.mark_reviewed()),
+                               ("Initial and type...", None, lambda: self.identity()), ("Rename...", None, lambda: self.rename()),
                                ("A version of another document...", None, lambda: self.move()),
                                ("Compare with the one before", None, lambda: self.compare()), ("Impact review", None, lambda: self.impact())):
             row.addWidget(D.button(text, kind, fn))
@@ -184,12 +228,19 @@ class DocsPage(QWidget):
         n = c.lib.counts()
         self.p_docs.setText(f"{n['docs']} documents"); self.p_ver.setText(f"{n['versions']} versions")
         self.p_rev.setText(f"{n['unreviewed']} to review"); self.p_rev.set_tone("warn" if n["unreviewed"] else "ok")
+        miss = c.lib.missing_identity()
+        self.p_id.setText(f"{len(miss)} need an initial and type" if miss else "every document identified")
+        self.p_id.set_tone("crit" if miss else "ok")
         un = c.unadded()
         self.b_folder.setText(f"Add from the customer folder ({len(un)})" if un else "Add from the customer folder")
         self.b_folder.setEnabled(bool(un))
         for d in c.lib.docs:
-            top = QTreeWidgetItem([d["name"], "", "", "", f"{len(d['versions'])} version(s)", ""])
-            f = top.font(0); f.setBold(True); top.setFont(0, f)
+            top = QTreeWidgetItem([d["name"], d.get("initial", "") or "needed", d.get("type", "") or "needed", "", "", "",
+                                   f"{len(d['versions'])} version(s)", ""])
+            f = top.font(0); f.setBold(True); top.setFont(0, f); top.setFont(1, f)
+            for k in (1, 2):
+                if not d.get(("initial", "type")[k - 1]):
+                    top.setForeground(k, D.color("crit"))
             top.setData(0, Qt.UserRole, ("doc", d["id"], None))
             self.tree.addTopLevelItem(top)
             for i, ver in enumerate(d["versions"]):
@@ -200,9 +251,9 @@ class DocsPage(QWidget):
                     except Exception:
                         diag.swallowed()
                 rv = "first version" if not i else (ver.get("reviewed", "") or "not yet")
-                it = QTreeWidgetItem([ver["label"], ver.get("file", ""), ver.get("added", "")[:10], str(ver.get("sentences", "")), ch, rv])
+                it = QTreeWidgetItem([ver["label"], "", "", ver.get("file", ""), ver.get("added", "")[:10], str(ver.get("sentences", "")), ch, rv])
                 if i and not ver.get("reviewed"):
-                    it.setForeground(5, D.color("warn"))
+                    it.setForeground(7, D.color("warn"))
                 it.setData(0, Qt.UserRole, ("version", d["id"], ver["id"]))
                 top.addChild(it)
         self.tree.expandAll()
@@ -239,6 +290,10 @@ class DocsPage(QWidget):
         else:
             for e, ch in zip(plan, choices):
                 e.update(ch)
+            problems = DI.check(c.lib, plan)
+            if problems:
+                self.host.status("Before adding: " + " ".join(problems))
+                return None
         made = DI.apply(c.lib, plan, c.customer_dir(), c.log)
         diag.activity("qt_documents_added", n=len(made))
         self.host.toast(f"{len(made)} document version(s) added")
@@ -246,6 +301,45 @@ class DocsPage(QWidget):
         if made:
             self.select_version(made[-1][1]["id"])
         return made
+
+    def identity(self, initial=None, dtype=None, doc_id=None):
+        """2.68.0: the selected document's initial and type (required: the matrix reference starts with the initial).
+        Returns '' when set, else why not (None when cancelled)."""
+        s = self._sel()
+        doc_id = doc_id or (s[1] if s else None)
+        c = self.ctx
+        d = c.lib.doc(doc_id) if c is not None and doc_id else None
+        if d is None:
+            self.host.status("Click a document first.")
+            return None
+        if initial is None:
+            dlg = QDialog(self); dlg.setWindowTitle("Initial and type")
+            f = QFormLayout(dlg)
+            f.addRow(D.label(f"{d['name']}: the initial starts each requirement's reference (R-L-4.2.1); every version of "
+                             "the document shares it.", "muted"))
+            ini = QLineEdit(d.get("initial", "") or c.lib.suggest_initial(d.get("type") or DV.guess_type(d["name"])))
+            ini.setMaxLength(6)
+            ty = QComboBox(); ty.addItems(list(DV.DOC_TYPES))
+            ty.setCurrentIndex(max(0, ty.findText(d.get("type") or DV.guess_type(d["name"]))))
+            f.addRow("Initial", ini); f.addRow("Type", ty)
+            bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+            bb.accepted.connect(dlg.accept); bb.rejected.connect(dlg.reject)
+            f.addRow(bb)
+            if dlg.exec() != QDialog.Accepted:
+                return None
+            initial, dtype = ini.text(), ty.currentText()
+        why = c.lib.set_identity(doc_id, initial, dtype or d.get("type") or "RFP")
+        if why:
+            self.host.status(why)
+        else:
+            diag.activity("qt_document_identity_set")
+            c.log("customer", f"{d['name']}: initial {d['initial']}, type {d['type']}")
+            self.host.toast(f"{d['name']}: {d['initial']} ({d['type']})")
+            if getattr(self.host, "review", None) is not None:
+                import setupdoc as SD
+                SD.sync_docs(self.host.review.M, c.lib)
+        self.refresh()
+        return why
 
     def mark_reviewed(self, vid=None):
         s = self._sel()

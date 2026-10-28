@@ -13,7 +13,11 @@ COLUMNS = {
     "order": ("Order", 8),                          # 2.51.0: sort on it to get the original layout back
     "section_no": ("Response section no.", 14),     # 2.56.0: our proposal section, number and name apart
     "section_name": ("Response section name", 30),
-    "rfp_ref": ("RFP L No.", 30),                   # 2.56.0: the RFP's own section number and title, as written
+    "reference": ("Reference", 16),                 # 2.68.0: document initial, L or M, section: R-L-4.2.1
+    "doc": ("Doc", 7),                              # 2.68.0: the customer document's initial
+    "lm": ("L/M", 6),                               # 2.68.0: Section L (instructions) or M (evaluation), Shipley
+    "doc_type": ("Document type", 14),              # 2.68.0: RFP, SOW, SOO, Amendment ...
+    "rfp_ref": ("Section", 30),                     # 2.56.0: the RFP's own section number and title, as written
     "authors": ("Author(s)", 24),                   # 2.56.0: the sentence's owner, else the section lead and contributors
     "ref": ("Section L No.", 16),                   # 2.51.0: the RFP section the sentence is in, else page and paragraph
     "rfp_section": ("Section L title", 28),
@@ -39,11 +43,13 @@ COLUMNS = {
 }
 CUSTOM = "custom:"                                   # 2.51.0: a column of the team's own, filled in Excel
 ROLES = (("Keep", "Compliance requirements"), ("Context", "Context"))
-# 2.56.0 (the user's default): Volume, Response section no., Response section name, RFP L No., RFP content (compliance
-# requirements and their support, told apart by the row style), Author(s), Notes; every other column stays available
+# 2.56.0 (the user's default): Volume, Response section no., Response section name, RFP section, RFP content (compliance
+# requirements and their support, told apart by the row style), Author(s), Notes; every other column stays available.
+# 2.68.0: Reference (R-L-4.2.1), Doc, L/M and Section (the customer document's own number and title)
 DEFAULT = {"columns": [{"key": k, "heading": h} for k, h in
                        (("volume", "Volume"), ("section_no", "Response section no."), ("section_name", "Response section name"),
-                        ("rfp_ref", "RFP L No."), ("text", "RFP content"), ("authors", "Author(s)"), ("notes", "Notes"))],
+                        ("reference", "Reference"), ("doc", "Doc"), ("lm", "L/M"), ("rfp_ref", "Section"),
+                        ("text", "RFP content"), ("authors", "Author(s)"), ("notes", "Notes"))],
            "v": 2,
            "roles": ["Keep", "Context"], "customer_sheet": True, "title": "", "empty_sections": True,
            "order": "rfp",                          # 2.54.0: rows in the RFP's order (or "structure": our sections' order)
@@ -195,6 +201,19 @@ def _value(M, it, key, inh, people, ctx=None, vols=None):
                 "format": d.get("format", "") if d else "", "order": it.get("_order", "")}.get(key, "")
     if key == "order":
         return it.get("_order", "")
+    if key in ("reference", "doc", "lm", "doc_type"):              # 2.68.0
+        if key == "doc":
+            return SD.initial_of(M, it)
+        if key == "doc_type":
+            return (SD.docs_of(M).get(it.get("file", "")) or {}).get("type", "")
+        lm = SD.lm_of(M, it, inh)
+        if not lm and it.get("decision") == "Context":            # support takes the L and M of what it supports
+            byid = {x["id"]: x for x in M.items}
+            lm = "/".join(dict.fromkeys(SD.lm_of(M, byid[h], inh) for h in C.cf_ids(it.get("context_for", ""))
+                                        if h in byid and SD.lm_of(M, byid[h], inh)))
+        if key == "lm":
+            return lm
+        return SD.full_ref(M, dict(it, lm=lm) if lm and "/" not in lm else it, inh)
     if key == "ref":
         return SD.ref_of(M, it, inh)[0] or _where(it, M) or it["id"]
     if key in ("volume", "deliverable", "page_limit", "format"):
@@ -386,8 +405,7 @@ def preview(M, design, n=None, ctx=None):
 def export(M, path, design, effort_name="", when=None, ctx=None):
     """Write the designed compliance matrix workbook. Returns {"path", "rows", "customer"}."""
     from openpyxl import Workbook
-    from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
-    import compliance as C
+    from openpyxl.styles import Alignment, Font, PatternFill
     when = when or datetime.datetime.now()
     design = clean(design)
     wb = Workbook()
@@ -400,6 +418,71 @@ def export(M, path, design, effort_name="", when=None, ctx=None):
                + ", ".join(lab for r, lab in ROLES if r in design["roles"]) + "."])
     ws["A2"].font = Font(italic=True, color="475569")
     ws.append([])
+    items, data = rows(M, design, ctx)
+    _table(ws, design, items, data)
+    # 2.68.0: a tab for each volume, with the rows in that volume's sections (the first tab keeps every row)
+    vols = volume_map(M)
+    mode, _n, heads_ = __import__("setupdoc").volumes_of(M)
+    tabs = []
+    if mode == "several" and len(heads_) > 1:
+        for v in heads_:
+            pick = [k for k, it in enumerate(items) if vols.get(it.get("map", "")) == v]
+            if not pick:
+                continue
+            name = _sheet_name(v, [ws.title] + [t.title for t in tabs])
+            vs = wb.create_sheet(name)
+            vs.append([f"{title}: {v}"])
+            vs["A1"].font = Font(bold=True, size=14, color="1E3A8A")
+            vs.append([f"The rows in {v}. Built {when:%B %d, %Y %H:%M}."])
+            vs["A2"].font = Font(italic=True, color="475569")
+            vs.append([])
+            _table(vs, design, [items[k] for k in pick], [data[k] for k in pick])
+            tabs.append(vs)
+    cust = customer_rows(M) if design["customer_sheet"] else []
+    if design["customer_sheet"]:
+        cs = wb.create_sheet("Customer's")
+        cs.append(["Sentences that read like requirements but are the customer's to act on. Identified, not answered."])
+        cs["A1"].font = Font(italic=True, color="475569")
+        cs.append(["RFP reference", "Sentence", "Source document", "Location in the document"])
+        for cell in cs[2]:
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill("solid", fgColor="7E22CE")
+        for r in cust:
+            cs.append(r)
+            for cell in cs[cs.max_row]:
+                cell.alignment = Alignment(vertical="top", wrap_text=True)
+        for col, w in zip("ABCD", (16, 80, 28, 20)):
+            cs.column_dimensions[col].width = w
+    ab = wb.create_sheet("About")
+    c = M.counts()
+    for r in (["Effort", effort_name or M.name], ["Built", f"{when:%Y-%m-%d %H:%M}"],
+              ["Compliance requirements", c["Keep"]], ["Context", c["Context"]], ["Customer's", c.get("Customer", 0)],
+              ["Not used", c[""] + c["Drop"]], ["Rows in this matrix", len(data)],
+              ["Note", "Built by Stationkeeper from the compliance decisions; the working matrix stays in Stationkeeper. "
+                       "This workbook holds customer content: keep it on this PC or SharePoint."]):
+        ab.append(r)
+    ab.column_dimensions["A"].width = 26
+    ab.column_dimensions["B"].width = 90
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    tmp = path + ".tmp"
+    wb.save(tmp)
+    os.replace(tmp, path)
+    return {"path": path, "rows": len(data), "customer": len(cust)}
+
+
+def _sheet_name(v, taken):
+    """An Excel tab name for a volume: 31 characters, none of []:*?/\\, not taken."""
+    base = "".join(ch for ch in v if ch not in '[]:*?/\\').strip()[:31] or "Volume"
+    name, k = base, 2
+    while name in taken:
+        name = f"{base[:27]} ({k})"
+        k += 1
+    return name
+
+
+def _table(ws, design, items, data):
+    """The heading row (row 4) and the rows, styled: a requirement and its support read as one block."""
+    from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
     heads = [c["heading"] for c in design["columns"]]
     ws.append(heads)
     thin = Side(style="thin", color="CBD5E1")
@@ -409,7 +492,6 @@ def export(M, path, design, effort_name="", when=None, ctx=None):
         cell.alignment = Alignment(vertical="center", wrap_text=True)
         cell.border = Border(top=thin, bottom=thin, left=thin, right=thin)
         ws.column_dimensions[cell.column_letter].width = width_of(design["columns"][k - 1]["key"])
-    items, data = rows(M, design, ctx)
     # 2.51.0: a requirement and the Context rows under it read as one block: Context rows lighter, indented, with no
     # line between them and the requirement; a section with nothing assigned yet is gray and italic
     ctx_fill, empty_fill = PatternFill("solid", fgColor="F1F5F9"), PatternFill("solid", fgColor="FAFAFA")
@@ -443,36 +525,6 @@ def export(M, path, design, effort_name="", when=None, ctx=None):
     ws.page_setup.fitToWidth = 1
     ws.sheet_properties.pageSetUpPr.fitToPage = True
     ws.page_setup.fitToHeight = 0
-    cust = customer_rows(M) if design["customer_sheet"] else []
-    if design["customer_sheet"]:
-        cs = wb.create_sheet("Customer's")
-        cs.append(["Sentences that read like requirements but are the customer's to act on. Identified, not answered."])
-        cs["A1"].font = Font(italic=True, color="475569")
-        cs.append(["RFP reference", "Sentence", "Source document", "Location in the document"])
-        for cell in cs[2]:
-            cell.font = Font(bold=True, color="FFFFFF")
-            cell.fill = PatternFill("solid", fgColor="7E22CE")
-        for r in cust:
-            cs.append(r)
-            for cell in cs[cs.max_row]:
-                cell.alignment = Alignment(vertical="top", wrap_text=True)
-        for col, w in zip("ABCD", (16, 80, 28, 20)):
-            cs.column_dimensions[col].width = w
-    ab = wb.create_sheet("About")
-    c = M.counts()
-    for r in (["Effort", effort_name or M.name], ["Built", f"{when:%Y-%m-%d %H:%M}"],
-              ["Compliance requirements", c["Keep"]], ["Context", c["Context"]], ["Customer's", c.get("Customer", 0)],
-              ["Not used", c[""] + c["Drop"]], ["Rows in this matrix", len(data)],
-              ["Note", "Built by Stationkeeper from the compliance decisions; the working matrix stays in Stationkeeper. "
-                       "This workbook holds customer content: keep it on this PC or SharePoint."]):
-        ab.append(r)
-    ab.column_dimensions["A"].width = 26
-    ab.column_dimensions["B"].width = 90
-    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    tmp = path + ".tmp"
-    wb.save(tmp)
-    os.replace(tmp, path)
-    return {"path": path, "rows": len(data), "customer": len(cust)}
 
 
 def safe_name(name):

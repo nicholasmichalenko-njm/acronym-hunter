@@ -646,7 +646,21 @@ PAGES = {
                                     "Notes. The matrix and the Response Setup are built from what the card shows."),
               ("Clear, Split, Combine", "X clears a sentence (not used). S splits it where you clicked between two words. "
                                         "Drag across several sentences, or Ctrl+click each one (even far apart), to assign them "
-                                        "together, or M to combine them into one; each part keeps its place on the page."),
+                                        "together, or J to combine them into one (M in the classic window); each part keeps its place "
+                                        "on the page."),
+              ("L and M (2.68.0)", "A compliance requirement is L (Instructions, Conditions and Notices to Offerors) or M "
+                                   "(Evaluation Factors for Award). Press L or E, or use the L and M buttons; a sentence not "
+                                   "yet a requirement becomes one. Stationkeeper suggests L or M from the section (L.4.2, "
+                                   "M.2) and the document type. Support can back up any number of L and M requirements. "
+                                   "The matrix reference joins the document initial, L or M and the section: R-L-4.2.1."),
+              ("Build the structure as you read (2.68.0)", "Assigning does not wait for a structure: R with no section "
+                                   "clicked keeps the sentence as a requirement for later. Beside the page: + Volume, "
+                                   "+ Heading (after the clicked section), + Subheading (under it, as deep as you need), "
+                                   "From sentence (a section named with the selected sentence), Rename or double-click, "
+                                   "the arrows to move, indent and outdent, and Delete (its sentences go to the section "
+                                   "above). New sections number themselves and every requirement follows its section. "
+                                   "The volume switcher picks the volume you are working in: the structure shows its "
+                                   "sections and new ones go into it."),
               ("Not used", "A sentence you do not assign is not used. Prove and the coverage report count compliance "
                            "requirements, context and not used for every file, so you can see that every line was read."),
               ("The strip", "The thin strip beside the page maps the file: grey not used, green compliance requirement, blue "

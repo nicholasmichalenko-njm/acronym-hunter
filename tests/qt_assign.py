@@ -1,7 +1,7 @@
 """2.59.0 the Qt edition, offscreen: open an effort (held with the classic app's lock), Read RFP starts the matrix in
 the background (headers and footers left out), Assign: click, Ctrl+click two sentences far apart, R into the target
 section, C support for the last requirement, the card (source with page and paragraph, chips, authors, relationships),
-+ Section and its x, M combine, S split at a clicked word, Ctrl+Z, autosave to the matrix file, and reopening the
++ Section and its x, J combine, S split at a clicked word, Ctrl+Z, autosave to the matrix file, and reopening the
 effort brings it all back. Another window holding the effort keeps the Qt edition out."""
 import os, sys, tempfile, time
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -108,8 +108,8 @@ check("relationships say where the support is in the RFP", any("(L.1, p.1)" in l
 x1, x2 = by("Pages shall be"), by("Each page shall be numbered")
 click(x1["id"]); click(x2["id"], ctrl=True)
 check("Ctrl+click adds a sentence far from the first", [x["id"] for x in pg.selected()] == [x1["id"], x2["id"]])
-QTest.keyClick(pg.view, Qt.Key_M); app.processEvents()
-check("M combines them; both parts boxed", x2 not in M.items and len(pg.view.boxes[x1["id"]].path().toFillPolygons()) >= 2)
+QTest.keyClick(pg.view, Qt.Key_J); app.processEvents()
+check("J combines them (2.68.0: M is the M designation); both parts boxed", x2 not in M.items and len(pg.view.boxes[x1["id"]].path().toFillPolygons()) >= 2)
 click(x1["id"])
 k = [m.group(0) for m in __import__("re").finditer(r"[A-Za-z0-9]+", x1["text"])].index("Each")
 r = pg.view.words[x1["id"]][k]

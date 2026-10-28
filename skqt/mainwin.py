@@ -244,6 +244,12 @@ class MainWindow(QMainWindow):
     def set_matrix(self, M, new=False):
         self.review = AO.Review(M)
         SD.setup_of(M)
+        if self.ws is not None:                     # 2.68.0: each file's document initial and type
+            try:
+                import docversions as DV
+                SD.sync_docs(M, DV.Library(self.ws.p("documents")).load())
+            except Exception:
+                diag.swallowed()
         if self.ws is not None:
             self.ws.set("compliance_path", M.path)
         if new:

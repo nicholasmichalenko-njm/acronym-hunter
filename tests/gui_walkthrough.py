@@ -193,14 +193,15 @@ def wait_read():
     cols = rows[hdr]
     body = rows[hdr + 1:]
     ci = {h: k for k, h in enumerate(cols)}
-    check("the matrix has the default columns", cols[:7] == ["Volume", "Response section no.", "Response section name", "RFP L No.",
-                                                             "RFP content", "Author(s)", "Notes"], cols)
+    check("the matrix has the default columns", cols[:10] == ["Volume", "Response section no.", "Response section name", "Reference",
+                                                              "Doc", "L/M", "Section", "RFP content", "Author(s)", "Notes"], cols)
     ims_rows = [r for r in body if "Integrated Master Schedule" in r[ci["RFP content"]]]
     check("the IMS: one row per section", sorted(r[ci["Response section no."]] for r in ims_rows) == ["1.1", "2.1"], [r[:5] for r in ims_rows])
     k = next(i for i, r in enumerate(body) if r[ci["RFP content"]].startswith("The Offeror shall describe its technical approach"))
     check("support in its requirement's cell, with its RFP place (2.58.0)", "Supporting context:\n(" in body[k][ci["RFP content"]]
           and "Thermal margins" in body[k][ci["RFP content"]], body[k][ci["RFP content"]][-200:])
-    check("RFP L No. is the RFP's section", body[k][ci["RFP L No."]].startswith("L.3.1"), body[k][ci["RFP L No."]])
+    check("Section is the RFP's section, L/M follows it (2.68.0)", body[k][ci["Section"]].startswith("L.3.1") and body[k][ci["L/M"]] == "L"
+          and body[k][ci["Reference"]].endswith("L-3.1"), (body[k][ci["Section"]], body[k][ci["L/M"]], body[k][ci["Reference"]]))
     xml = "".join(zipfile.ZipFile(p).read("word/document.xml").decode("utf-8") for p in res["files"] if p.endswith(".docx"))
     import re
     plain = re.sub(r"<[^>]+>", "", xml)

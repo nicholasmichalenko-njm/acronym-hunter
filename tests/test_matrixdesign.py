@@ -69,8 +69,8 @@ def run():
         [(x.get("id"), x["_kind"]) for x in rfp]
     assert MD.clean({})["order"] == "rfp" and MD.clean({"order": "nonsense"})["order"] == "rfp"
     # 2.56.0: the default columns; an old default never changed takes the new one; a changed one is kept
-    assert [c["heading"] for c in MD.default()["columns"]] == ["Volume", "Response section no.", "Response section name", "RFP L No.",
-                                                               "RFP content", "Author(s)", "Notes"]
+    assert [c["heading"] for c in MD.default()["columns"]] == ["Volume", "Response section no.", "Response section name", "Reference",
+                                                               "Doc", "L/M", "Section", "RFP content", "Author(s)", "Notes"]
     assert [c["key"] for c in MD.clean({"columns": olddef})["columns"]] == [c["key"] for c in MD.default()["columns"]]
     assert [c["key"] for c in MD.clean({"columns": olddef[:3]})["columns"]] == MD._OLD_DEFAULT_KEYS[:3]
     nd = MD.default()

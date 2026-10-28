@@ -44,6 +44,8 @@ def sync_docs(M, lib):
     keep what was set for them). Returns the number of files known."""
     d = docs_of(M)
     for f, ident in lib.identity_map().items():
+        if not ident.get("initial") and (d.get(f) or {}).get("initial"):
+            continue                                 # set when it was read; the library has none yet
         if d.get(f) != ident:
             d[f] = ident
             if hasattr(M, "pending"):

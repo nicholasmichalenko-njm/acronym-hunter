@@ -1,11 +1,27 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+DOCUMENT INITIALS, L AND M, AND THE STRUCTURE BUILT AS YOU READ (2.68.0)
+  - Every customer document needs an initial and a type (RFP, Amendment, SOW, SOO, PWS, Section L, Section M, Q&A,
+    Attachment, CDRL, DD 254, Other) before it is read. Customer Documents suggests both and shows them; Read RFP asks
+    for any that are missing. No two documents share an initial; every version of a document keeps its initial.
+  - In Assign, a requirement is L (Instructions, Conditions and Notices to Offerors) or M (Evaluation Factors for
+    Award): the L and M buttons, or the L and E keys. Stationkeeper suggests it from the section (L.4.2, M.2) and the
+    document type. Support (context) can serve as many L and M requirements as needed. Combine moved to J.
+  - The matrix has Reference (R-L-4.2.1: document initial, L or M, section), Doc, L/M and Section columns, and a
+    tab for each volume next to the full Compliance Matrix tab. The Response Setup is one file per volume, as before.
+  - Assign no longer waits for a structure: R keeps a sentence as a requirement with no section yet. Beside the page:
+    + Volume, + Heading, + Subheading (as many levels deep as needed), From sentence (a section named with the RFP's
+    words), Rename (or double-click), up, down, indent, outdent, Delete. Sections made here number themselves (1,
+    1.1, 1.1.1 ...), restarting in each volume, and every requirement follows its section when numbers change.
+  - The volume switcher above the structure picks the volume you are working in: the structure shows its sections
+    and new sections go into it. A sentence in more than one volume shows each volume on its card and in the margin.
+
 STATIONKEEPER (QT) (from 2.59.0)
   Stationkeeper is moving to a new window system (Qt, through PySide6: The Qt Company, Finland, LGPL 3; its libraries
   ship as separate files). StationkeeperQt.exe sits next to Stationkeeper.exe and shares its config and every effort
   file. It holds Effort home, the effort dashboard (2.62.0), the effort record and color team reviews (2.63.0), acronym scan and review and the effort list (2.64.0), Customer Documents (2.65.0), QA/QC, Keywords, Export all and Settings (2.66.0), author briefs, customer acronym lists, training data and
-  Knowledge Packs (2.67.0), and all of Compliance: Read RFP, Structure, Assign,
+  Knowledge Packs (2.67.0), and all of Compliance (L and M, document initials and building the structure while assigning in 2.68.0): Read RFP, Structure, Assign,
   Prove, the L/M crosswalk, Matrix and Response Setup (2.61.0); the other areas follow one per release,
   and the classic window retires when Qt does everything.
   - Open an effort in one program at a time: the other says the effort is open elsewhere.

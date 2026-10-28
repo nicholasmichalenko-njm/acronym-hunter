@@ -93,6 +93,7 @@ QLabel[role="display"] {{ font-size: {TYPE['display']}pt; font-weight: 600; }}
 QLabel[role="title"] {{ font-size: {TYPE['title']}pt; font-weight: 600; }}
 QLabel[role="label"] {{ font-size: {TYPE['label']}pt; font-weight: 600; color: {t['muted']}; letter-spacing: 0.6px; }}
 QLabel[role="muted"] {{ color: {t['muted']}; }}
+QLabel[role="crit"] {{ color: {t['crit']}; font-weight: 600; }}
 QLabel[role="mono"] {{ font-family: "{MONO_FONT}", Consolas, monospace; font-size: {TYPE['small']}pt; color: {t['muted']}; }}
 QLabel[role="reading"] {{ font-family: Georgia, "Times New Roman", serif; font-size: 12pt; }}
 QFrame[card="true"] {{ background: {t['surface']}; border: 1px solid {t['border']}; border-radius: {r['card']}px; }}
