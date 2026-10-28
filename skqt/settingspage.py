@@ -186,6 +186,9 @@ class SettingsPage(QWidget):
             os.makedirs(folder, exist_ok=True)
         st["backup_dir"] = os.path.abspath(folder) if folder else ""
         app_gui.save_settings(st)
-        diag.activity("backup_location_set" if folder else "backup_location_off")
+        if folder:
+            diag.activity("backup_location_set")
+        else:
+            diag.activity("backup_location_off")
         self.refresh()
         return st["backup_dir"]
