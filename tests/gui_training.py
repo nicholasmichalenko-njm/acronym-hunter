@@ -51,10 +51,10 @@ def user_steps():
     app.show_tools_menu(m)           # passing the menu builds it without popping it up (a popup blocks on Windows)
     labels = [m.entrycget(i, "label") for i in range(m.index("end") + 1) if m.type(i) == "command"]
     check("Tools: no Improve Reading or Trainer", not any(l.startswith(("Improve Reading", "Trainer")) for l in labels), labels)
-    check("Tools: Send corrections", any(l.startswith("Send corrections") for l in labels))
+    check("Tools: Send training data", any(l.startswith("Send training data") for l in labels))
     app.update_banner(); app.update()
     check("banner offers to send", app.banner.winfo_manager() and "not sent" in app.lbl_banner.cget("text")
-          and app.btn_improve.cget("text") == "Send corrections...", app.lbl_banner.cget("text"))
+          and app.btn_improve.cget("text") == "Send training data...", app.lbl_banner.cget("text"))
     check("preview button says Report misreading", app.preview.btn_teach.cget("text") == "Report misreading"
           and not app.preview.btn_trainer.winfo_manager())
     w = app.open_knowledge(); app.update()

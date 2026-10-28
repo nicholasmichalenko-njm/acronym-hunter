@@ -851,10 +851,16 @@ class PreviewPane(ctk.CTkFrame):
                 eng.write_ocr_fix_rows(rows)
         tg._log_save({"time": tg._now(), "images": [rel], "ignored": [], "summary": f"line '{text}' (preview)"})
         diag.activity("correct_teach_saved")
-        msg = (f"Saved \"{text}\" as a corrected line for teaching the reader." if eng.TRAINING_APP else
-               f"Saved \"{text}\" for the training team. Send your corrections when you have a few (Tools > Send corrections).")
-        if added:
-            msg += " Fixed on the next scan right away: " + ", ".join(added) + "."
+        if eng.TRAINING_APP:
+            msg = f"Saved \"{text}\" as a corrected line for teaching the reader."
+            if added:
+                msg += " Fixed on the next scan right away: " + ", ".join(added) + "."
+        elif added:                                      # 2.55.0: the fix first, then what goes to the training team
+            msg = ("Fixed now on this PC: " + ", ".join(added) + ". Every scan from now on reads it this way. Also saved "
+                   "for the training team (File > Send training data), so the next Knowledge Pack fixes it for everyone.")
+        else:
+            msg = (f"Saved \"{text}\" for the training team (File > Send training data). The next Knowledge Pack reads "
+                   "this line right for everyone.")
         self.lbl_msg.configure(text=msg)
         self.app.update_banner()
 

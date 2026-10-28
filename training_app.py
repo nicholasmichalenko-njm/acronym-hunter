@@ -76,7 +76,7 @@ class TrainingApp(ctk.CTk):
     # ------------------------------------------------------------ corrections
     def _corrections_tab(self, T):
         bar = ctk.CTkFrame(T, fg_color="transparent"); bar.pack(fill="x")
-        ctk.CTkButton(bar, text="Import corrections packs...", width=200, fg_color="#0F766E", command=self.import_packs).pack(side="left")
+        ctk.CTkButton(bar, text="Import training data...", width=200, fg_color="#0F766E", command=self.import_packs).pack(side="left")
         ctk.CTkLabel(bar, text="Show").pack(side="left", padx=(16, 4))
         self.filter = tk.StringVar(value=FILTERS[0])
         ctk.CTkOptionMenu(bar, variable=self.filter, values=FILTERS, width=190, command=lambda _v: self.fill()).pack(side="left")
@@ -163,14 +163,28 @@ class TrainingApp(ctk.CTk):
         pass
 
     def import_packs(self, paths=None, ask=True):
-        paths = paths or filedialog.askopenfilenames(title="Corrections packs (from the approved SharePoint folder)",
-                                                     filetypes=[("Corrections pack", "*.zip")])
+        """Gather > Import training data... (2.55.0): .sktrain training data packs, each area filed where it belongs;
+        older corrections packs (.zip) still import."""
+        import trainpack as TP
+        paths = paths or filedialog.askopenfilenames(title="Training data (from the approved SharePoint folder)",
+                                                     filetypes=[("Training data", "*.sktrain *.zip")])
         done, failed = [], []
         for p in paths or []:
             try:
+                if p.lower().endswith(TP.EXT):
+                    r = TP.import_pack(p, os.path.join(eng.BASE_DIR, "training_data", "imported"),
+                                       os.path.join(eng.CONFIG_DIR, "compliance_learned.json"),
+                                       merge_fixes=eng.merge_pack_fixes, merge_ignore=eng.merge_pack_ignore)
+                    done.append(f"{os.path.basename(p)}: {r['reading']} misread lines and regions, {r['ocrfix']} OCR fixes, "
+                                f"{r['compliance']} compliance decisions ({r['learned']} learned), {r['words']} word choices"
+                                + (" (with sentence text)" if r["text"] else "")
+                                + (f" ({r['skipped']} already here)" if r["skipped"] else ""))
+                    continue
                 r = C.import_pack(p)
                 done.append(f"{os.path.basename(p)}: {r['lines']} lines, {r['regions']} regions"
                             + (f" ({r['skipped']} already here)" if r["skipped"] else ""))
+            except TP.PackError as ex:
+                failed.append(f"{os.path.basename(p)}: {ex}")
             except C.PackError as ex:
                 failed.append(f"{os.path.basename(p)}: {ex}")
             except Exception as ex:
@@ -260,7 +274,7 @@ class TrainingApp(ctk.CTk):
                              "learned as numbered word buckets and counts only, never their words.", wraplength=1000,
                      justify="left", anchor="w", text_color=("#475569", "#94A3B8")).pack(fill="x", padx=8)
         bar = ctk.CTkFrame(T, fg_color="transparent"); bar.pack(fill="x", padx=8, pady=10)
-        ctk.CTkButton(bar, text="Import corrections packs...", width=230, fg_color="#0F766E", command=self.import_packs).pack(side="left")
+        ctk.CTkButton(bar, text="Import training data...", width=230, fg_color="#0F766E", command=self.import_packs).pack(side="left")
         ctk.CTkButton(bar, text="Add past compliance matrices...", width=250, command=self.gather_matrices).pack(side="left", padx=8)
         self.lbl_gather = ctk.CTkLabel(T, text="", anchor="w", justify="left", font=("Segoe UI", 13)); self.lbl_gather.pack(fill="x", padx=8, pady=6)
         ctk.CTkButton(T, text="Next: 2 Review >", width=200, command=lambda: self.tabs.set(STEPS[1])).pack(anchor="w", padx=8, pady=8)

@@ -130,7 +130,8 @@ from effort_ui import EffortMixin   # Effort List (2.4.0)
 from volcheck_ui import VolumeCheckMixin   # volume check and first use (2.7.0)
 from compliance_ui import ComplianceMixin   # compliance matrix (2.8.0)
 from workspace_ui import WorkspaceMixin   # effort profiles, session, recovery, backups (2.11.0)
-from ai_ui import AIMixin   # AI and ML labels and switch (2.12.0)
+from ai_ui import AIMixin   # what runs where (2.12.0)
+from trainpack_ui import TrainPackMixin   # one training data pack for the training team (2.55.0)
 from setup_ui import SetupMixin   # Setup Builder in the compliance window (2.13.0)
 from effort_wizard import WizardMixin   # effort start wizard, intake, review, record, exports (2.14.0)
 from effort_home import HomeMixin       # effort home, Scan review, volumes, export picker, Use as definition (2.14.0)
@@ -3330,7 +3331,7 @@ def corrections_on():
     """Report misreading and Not text save corrections for the training team, unless allow_training is false."""
     return bool(APP_CFG["allow_training"])
 
-class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixin, ImpactMixin, LayoutMixin, ReadableMixin, KeepSafeMixin, EffortPictureMixin, MatrixDesignMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
+class AcronymAppGUI(TrainPackMixin, KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixin, ImpactMixin, LayoutMixin, ReadableMixin, KeepSafeMixin, EffortPictureMixin, MatrixDesignMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title(f"Stationkeeper {APP_VERSION}: proposal efforts, 100% local")
@@ -3631,7 +3632,7 @@ class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMix
             self.banner.pack_forget(); return
         self.lbl_banner.configure(text=f"{n} corrected reading(s) saved and not sent yet. Send them to the training team "
                                        "so the next reader learns them.")
-        self.btn_improve.configure(text="Send corrections...", command=self.send_corrections, state="normal")
+        self.btn_improve.configure(text="Send training data...", command=self.send_training_data, state="normal")
         if not self.banner.winfo_ismapped():
             self.banner.pack(fill="x", padx=15, pady=(0, 6), before=self.prog)
 
@@ -3828,6 +3829,9 @@ class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMix
         m.add_command(label="Backup location...", command=c("file_backup_location", self.backup_location_dialog))
         m.add_command(label="Restore from a backup folder...", command=c("file_backup_restore", self.backup_restore_dialog))
         m.add_separator()
+        if not TRAINING_APP:
+            m.add_command(label="Send training data to the training team...", command=c("file_send_training", self.send_training_data),
+                          state="normal" if corrections_on() else "disabled")
         m.add_command(label="Install Knowledge Pack...", command=c("file_install_knowledge", self.knowledge_card))
         m.add_command(label="Exit", command=c("file_exit", self.on_close))
 
@@ -4078,7 +4082,7 @@ class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMix
         if trainer_available():
             m.add_command(label="Trainer (check a picture, box missed text) [ML]...", command=self.open_trainer, state=ml)
         if not TRAINING_APP:
-            m.add_command(label="Send corrections to the training team...", command=self.send_corrections,
+            m.add_command(label="Send training data to the training team...", command=self.send_training_data,
                           state="normal" if corrections_on() else "disabled")
         m.add_command(label=("Knowledge (share with your team, install, undo)..." if TRAINING_APP else
                              "Knowledge Packs (install the training team's reader, undo)..."), command=self.open_knowledge)

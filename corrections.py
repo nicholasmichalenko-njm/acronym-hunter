@@ -268,8 +268,9 @@ def _sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def export_pack(out_path, everything=False):
-    """Write a corrections pack for the training team. Returns {"lines", "regions", "path"} (0 and 0: nothing written)."""
+def export_pack(out_path, everything=False, anonymous=False):
+    """Write a corrections pack for the training team. Returns {"lines", "regions", "path"} (0 and 0: nothing written).
+    anonymous (2.55.0, inside a training data pack): no user or PC name, and each picture's source is a code."""
     lines, regions = unsent()
     if everything:
         lines = [l.split("\t", 1)[0] for l in _label_lines(LABELS_FILE)]
@@ -282,6 +283,9 @@ def export_pack(out_path, everything=False):
     lab = [l for l in _label_lines(LABELS_FILE) if l.split("\t", 1)[0] in want]
     det = [l for l in _label_lines(DET_LABELS_FILE) if l.split("\t", 1)[0] in want]
     meta = [m for rel, m in meta_rows().items() if rel in want]
+    if anonymous:
+        meta = [list(m[:5]) + [hashlib.sha256(str(m[5] if len(m) > 5 else "").lower().encode("utf-8")).hexdigest()[:10]]
+                + list(m[6:]) for m in meta]
     files = {}
     tmp = out_path + ".tmp"
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
@@ -296,7 +300,8 @@ def export_pack(out_path, everything=False):
         data = buf.getvalue().encode("utf-8"); z.writestr("samples.csv", data); files["samples.csv"] = _sha(data)
         manifest = {"format": PACK_FORMAT, "version": 1, "app_version": eng.APP_VERSION,
                     "created": datetime.datetime.now().isoformat(timespec="seconds"),
-                    "from": f"{getpass.getuser()} on {platform.node()}", "lines": len(lines), "regions": len(regions),
+                    "from": (hashlib.sha256(f"{getpass.getuser()}@{platform.node()}".lower().encode("utf-8")).hexdigest()[:10]
+                             if anonymous else f"{getpass.getuser()} on {platform.node()}"), "lines": len(lines), "regions": len(regions),
                     "files": files}
         z.writestr("manifest.json", json.dumps(manifest, indent=1))
     os.replace(tmp, out_path)

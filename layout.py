@@ -90,7 +90,7 @@ def page_map(path, page_no, items, headings=()):
         # 2.51.0: a sentence with no page known (added before pages were kept) is looked for on every page
         here = [it for it in items if _page_of(it) in (page_no - 1, page_no, page_no + 1) or _page_of(it) is None]
         for it in sorted(here, key=lambda it: abs((_page_of(it) or page_no) - page_no)):
-            ws = T.line_words(it.get("text") or "")
+            ws = T.line_words(it.get("orig_text") or it.get("text") or "")
             span = mark(ws, it["id"])
             part = ""
             if span is None and len(ws) >= 4:            # runs over a page break: its end at the top, or its start at the bottom

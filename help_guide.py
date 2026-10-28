@@ -192,14 +192,22 @@ PAGES = {
               ("Careful", "Exact match only. Add a rule only for a reading that is always wrong.")]),
     ("h", "Report misreading: collect lessons"),
     ("img", "teach.png", 300),
-    ("rows", [("What", "In the picture preview, fix the reading and click Report misreading. It saves the picture line and the right text."),
+    ("rows", [("What", "In the picture preview, fix the reading and click Report misreading. A word the reader gets wrong is "
+                       "fixed now on this PC, in every scan from then on; the picture line and the right text are saved "
+                       "for the training team."),
               ("When", "Any time a picture is misread. It takes two seconds."),
               ("Why", "Each one is a lesson. Lessons are how the reader gets better over time.")]),
-    ("h", "Send corrections: the training team teaches the reader"),
-    ("rows", [("What", "Advanced > Reading, training and knowledge > Send corrections to the training team (or the green bar) saves your lessons as one corrections pack."),
+    ("h", "Send training data: the training team teaches everyone"),
+    ("rows", [("What", "File > Send training data to the training team... (or the green bar) saves one .sktrain file: "
+                       "misreadings and not-text regions, OCR fixes, compliance decisions, support links, RFP headers and "
+                       "levels, Format and Customer's marks, the RFP outline and response structure, compliance words, "
+                       "acronym, keyword and banned-word choices. Each area is a box; new since the last send by default."),
+              ("Left out", "Customer information, team names, file paths, user and PC names, always. Sentence text (the RFP "
+                           "sentences and section titles) only when you tick its box; read the warning and tick that you "
+                           "are responsible for what the pack holds, or Save stays greyed."),
               ("Where", "The approved SharePoint folder for the training team only. Never email, GitHub or USB."),
-              ("Then", "The training team works through five steps in Stationkeeper Training: 1 Gather (corrections packs "
-                       "and past compliance matrices), 2 Review (accept, reject or fix each line; about one line in ten is set "
+              ("Then", "The training team works through five steps in Stationkeeper Training: 1 Gather (training data packs, "
+                       "older corrections packs and past compliance matrices), 2 Review (accept, reject or fix each line; about one line in ten is set "
                        "aside as the test set), 3 Train (Improve Reading), 4 Measure (a scorecard: each area tested with the "
                        "knowledge as it was and as it is now; an area that got worse is left out automatically), 5 Build the pack."),
               ("Back to you", "It comes back as one Knowledge Pack file (.skknow). Double-click it, or File > Install Knowledge "

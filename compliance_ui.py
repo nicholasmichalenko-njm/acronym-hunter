@@ -950,12 +950,56 @@ class ComplianceMixin:
         m.add_command(label="Customer information" + (": the selected words" if sel else n), state=st,
                       command=lambda: self.c_mark_customer_info(rows, sel))
         m.add_command(label="Format requirement" + n, state=st, command=lambda: self.c_mark_format(rows))
+        m.add_command(label="Fix the text (misread)...", state="normal" if len(rows) == 1 else "disabled",
+                      command=lambda: self.c_fix_text(rows[0]["id"]))
         m.add_command(label="RFP section header...  H", state="normal" if len(rows) == 1 else "disabled",
                       command=lambda: self.c_mark_header(rows[0]["id"]))
         if len(rows) == 1 and rows[0].get("type") == "Heading":
             m.add_command(label="Not a section header", command=lambda: self.c_unmark_header(rows[0]["id"]))
         elif len(rows) == 1 and rows[0]["id"] in getattr(self._cwin, "cp_hsug", ()):
             m.add_command(label="Not a header (dismiss the suggestion)", command=lambda: self.c_dismiss_header(rows[0]["id"]))
+
+    def c_fix_text(self, iid, text=None):
+        """2.55.0 Fix the text: a sentence the reader got wrong (a scanned page, odd characters) is corrected now, in
+        this matrix and everything made from it, and kept for the training team (File > Send training data).
+        text= applies without the window. Returns the window, or True when applied."""
+        import trainpack as TP
+        it = self._c_item(iid) if hasattr(self, "_c_item") else next((x for x in self.matrix.items if x.get("id") == iid), None)
+        if it is None:
+            return None
+
+        def apply(new):
+            new = " ".join((new or "").split())
+            old = it.get("text", "")
+            if not new or new == old:
+                return False
+            if not it.get("orig_text"):
+                it["orig_text"] = old
+            it["text"] = new
+            it["key"] = C.text_key(new)
+            pairs = TP.record_text_fix(_eng().CONFIG_DIR, old, new)
+            self.matrix.log(it["id"], "text fixed")
+            diag.activity("compliance_text_fixed", n=len(pairs))
+            self._c_changed()
+            return True
+        if text is not None:
+            return apply(text)
+        w = ctk.CTkToplevel(self._c_parent()); w.title("Fix the text"); w.transient(self._c_parent()); w.after(150, w.lift)
+        ctk.CTkLabel(w, text="Correct what the reader got wrong. The fix applies now, here and in every output, and goes "
+                             "to the training team with your training data.", wraplength=560, justify="left",
+                     anchor="w").pack(fill="x", padx=14, pady=(12, 6))
+        box = ctk.CTkTextbox(w, width=560, height=120, wrap="word"); box.pack(padx=14)
+        box.insert("1.0", it.get("text", ""))
+        res = {}
+
+        def ok():
+            res["v"] = apply(box.get("1.0", "end"))
+            w.destroy()
+        bar = ctk.CTkFrame(w, fg_color="transparent"); bar.pack(fill="x", padx=14, pady=10)
+        ctk.CTkButton(bar, text="Fix it", width=100, fg_color="#15803D", command=ok).pack(side="right")
+        ctk.CTkButton(bar, text="Cancel", width=90, fg_color="#475569", command=w.destroy).pack(side="right", padx=8)
+        w._api = {"box": box, "ok": ok, "result": res}
+        return w
 
     def c_mark_customers(self, rows):
         """The sentence reads like a requirement (it has compliance words), but it is the customer's to act on: identified

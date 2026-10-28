@@ -199,7 +199,7 @@ def check(path, items, headings=(), reader_chunks=None):
         ld = (it.get("lead") or "").strip()
         if ld:                                         # 2.51.0: every list's lead-in, even when two lists share the words
             mark(line_words(ld), 1)                    # (marking again prefers an occurrence not covered yet)
-        mark(line_words(it.get("text") or ""), 1)
+        mark(line_words(it.get("orig_text") or it.get("text") or ""), 1)   # 2.55.0: a fixed sentence matches the page as read
     titles = set()
     for it in items:
         titles.add(((it.get("section") or "") + " " + (it.get("section_title") or "")).strip())
@@ -255,7 +255,7 @@ def positions(path, items, new_lines):
         return (later or hits or [None])[0]
     pos, last = {}, -1
     for it in items:
-        ws = line_words(it.get("text") or "")
+        ws = line_words(it.get("orig_text") or it.get("text") or "")
         p = find(ws, last)
         if p is None:
             continue

@@ -1052,14 +1052,15 @@ def suggest_map(item, outline, stats=None):
 # ------------------------------------------------------------------ the workbook
 COLUMNS = ["ID", "Decision", "Suggested", "Learned", "Section", "Section title", "Requirement", "Lead-in", "Actor", "Type", "Strength",
            "Cross-references", "Linked items", "Outline section", "Context for", "Owner", "Status", "Response page", "Notes",
-           "Source file", "Location", "Compound", "Change", "Draft", "Draft context for", "Context", "Key"]
-WIDTHS = [12, 10, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 14, 12, 12, 24, 26, 30, 9, 14, 10, 16, 60, 13]
+           "Source file", "Location", "Compound", "Change", "Draft", "Draft context for", "Context", "Key", "As read"]
+WIDTHS = [12, 10, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 14, 12, 12, 24, 26, 30, 9, 14, 10, 16, 60, 13, 40]
 FIELD = {"ID": "id", "Decision": "decision", "Suggested": "suggest", "Learned": "learned", "Section": "section", "Section title": "section_title",
          "Requirement": "text", "Lead-in": "lead", "Actor": "actor", "Type": "type", "Strength": "strength",
          "Cross-references": "xrefs", "Linked items": "links", "Outline section": "map", "Context for": "context_for",
          "Owner": "owner", "Status": "status",
          "Response page": "response_page", "Notes": "notes", "Source file": "file", "Location": "loc",
-         "Compound": "compound", "Change": "new", "Draft": "draft", "Draft context for": "draft_cf", "Context": "context", "Key": "key"}
+         "Compound": "compound", "Change": "new", "Draft": "draft", "Draft context for": "draft_cf", "Context": "context", "Key": "key",
+         "As read": "orig_text"}    # 2.55.0 Fix the text: the sentence as the reader read it (empty when not fixed)
 
 
 class Locked(Exception):
@@ -1261,7 +1262,7 @@ class Matrix:
         ws.add_data_validation(dv)
         dv.add(f"B2:B{max(2, ws.max_row) + 500}")
         for col in ("Context", "Key"):
-            ws.column_dimensions[ws.cell(row=1, column=COLUMNS.index(col) + 1).column_letter].hidden = col == "Key"
+            ws.column_dimensions[ws.cell(row=1, column=COLUMNS.index(col) + 1).column_letter].hidden = col in ("Key", "As read")
         ol = wb.create_sheet("Outline")
         ol.append(["Number", "Title", "Level", "Keep and Context rows placed"])
         for c in ol[1]:
