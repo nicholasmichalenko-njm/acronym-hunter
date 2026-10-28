@@ -84,6 +84,7 @@ class AcronymSession(EffortMixin, HomeMixin, MasterMixin, WizardMixin, KeywordsM
         self.last_scan = None
         self.volume_report = None
         self.selected_term = None
+        self.matrix = None                                   # the Qt edition sets the open compliance matrix (keyword asks)
         self.sort_col, self.sort_desc = "term", False
         self.effort = E.EffortList(effort_path, getattr(ws, "name", "") or "").load() if effort_path else None
         self.tree, self.entry_def, self.status = _Tree(), _Entry(), _Status()
@@ -112,6 +113,9 @@ class AcronymSession(EffortMixin, HomeMixin, MasterMixin, WizardMixin, KeywordsM
         pass
 
     def home_refresh(self):
+        pass
+
+    def kw_refresh(self):
         pass
 
     def _save_effort_list(self, L=None, backup=True):
@@ -191,6 +195,59 @@ class AcronymSession(EffortMixin, HomeMixin, MasterMixin, WizardMixin, KeywordsM
         rec = self.effort_after_scan(self.queued_files) if self.effort is not None else None
         self.save()
         return rec
+
+    # ------------------------------------------------------------ QA/QC of our Word volumes (2.66.0)
+    def qa_check(self, paths, status_callback=None, reg_rows=(), volumes=()):
+        """Scan our Word volumes and check them against the effort list (first use, missing, not approved, definitions
+        that differ, unused, each volume's acronym list, banned words, page limits). Returns the report (also kept in
+        the effort's session, where the classic window reads it)."""
+        import banned
+        import volcheck as V
+        import volcheck_ui as VU
+        cb = status_callback or (lambda _m: None)
+        paths = sorted({os.path.abspath(p) for p in paths if p.lower().endswith(".docx")}, key=lambda p: V.natural_key(os.path.basename(p)))
+        names = [os.path.basename(p) for p in paths]
+        if not paths or len(set(names)) != len(names) or self.effort is None:
+            return None
+        diag.activity("volume_check_started", files=len(paths))
+        try:
+            words = banned.load()
+        except Exception:
+            diag.swallowed(); words = []
+        vc = {"paths": paths, "names": names, "defs": {}, "lists": {}, "banned": {}}
+        self.queued_files = list(paths)
+        self.scanned_paths.update({os.path.basename(f): f for f in paths})
+        A.CANCEL.clear()
+        results = A.analyze_batch(list(paths), cb)
+        VU.qa_collect(paths, A, words, vc)
+        self.after_scan(results)
+        report = VU.qa_report(self.results, self.effort, vc, A, list(reg_rows), list(volumes))
+        self.volume_report = report
+        s = self.ws.load_session() or {}
+        s["volume_report"] = report
+        self.ws.save_session(s)
+        diag.activity("volume_check_report", terms=report["summary"]["terms_used"], rows=len(report["first_use"]))
+        return report
+
+    def qa_add_missing(self):
+        import volcheck_ui as VU
+        if not self.volume_report or self.effort is None:
+            return 0
+        n = VU.qa_add_missing(self.effort, self.volume_report)
+        diag.activity("volume_missing_added", added=n)
+        self._save_effort_list()
+        self.apply_effort()
+        self.save()
+        return n
+
+    def qa_record_use(self):
+        import volcheck_ui as VU
+        if not self.volume_report or self.effort is None:
+            return 0
+        n = VU.qa_record_use(self.effort, self.volume_report)
+        diag.activity("volume_use_recorded", n=n)
+        self._save_effort_list()
+        return n
 
     # ------------------------------------------------------------ decisions
     def choose(self, term, choice):

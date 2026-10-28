@@ -27,6 +27,10 @@ from .reviewpage import ReviewPage
 from .acronympage import AcronymPage
 from .effortlistpage import EffortListPage
 from .custdocs import ComparePage, DeliverablesPage, DocsPage, ImpactPage, RequirementsPage
+from .qapage import QAPage
+from .keywordspage import KeywordsPage
+from .exportallpage import ExportAllPage
+from .settingspage import SettingsPage
 
 
 RAIL = [("EFFORT", [("home", "Effort home"), ("dashboard", "Dashboard"), ("record", "Effort record"), ("reviews", "Reviews")]),
@@ -36,7 +40,9 @@ RAIL = [("EFFORT", [("home", "Effort home"), ("dashboard", "Dashboard"), ("recor
         ("COMPLIANCE", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove"),
                         ("crosswalk", "L/M crosswalk")]),
         ("DELIVER", [("matrix", "Matrix"), ("setup", "Response Setup")]),
-        ("IN STATIONKEEPER (CLASSIC) FOR NOW", [("", "Keywords"), ("", "QA/QC")])]
+        ("QUALITY", [("qa", "QA/QC"), ("keywords", "Keywords")]),
+        ("EFFORT FILES", [("exportall", "Export all"), ("settings", "Settings")]),
+        ("IN STATIONKEEPER (CLASSIC) FOR NOW", [("", "Author briefs"), ("", "Client lists and packs")])]
 TITLES = {"home": ("Effort home", "Stage, gate goals, tasks, questions and the calendar"),
           "dashboard": ("Dashboard", "The effort on one screen"),
           "record": ("Effort record", "Details, team, stages and gates, status, package and backup"),
@@ -48,6 +54,10 @@ TITLES = {"home": ("Effort home", "Stage, gate goals, tasks, questions and the c
           "deliverables": ("Deliverables", "What the effort owes the customer, and where each stands"),
           "acronyms": ("Scan and review", "Every acronym, abbreviation, unit and symbol, and the effort list"),
           "acrlist": ("Effort list", "The effort's acronyms: definitions, status, approvers, and the lists to deliver"),
+          "qa": ("QA/QC", "Our Word volumes against the effort list, banned words and page limits"),
+          "keywords": ("Keywords", "The effort's keywords, suggestions with reasons, and the SharePoint export"),
+          "exportall": ("Export all", "Every feature's outputs in one dated folder"),
+          "settings": ("Settings", "New effort, the effort's folders, the master database, backups"),
           "read": ("Read RFP", "Bring the customer's documents into the review"),
           "structure": ("Structure", "The sections of your response"),
           "assign": ("Assign", "Decide every sentence on the page"),
@@ -123,6 +133,10 @@ class MainWindow(QMainWindow):
         self.compare_page = ComparePage(self)
         self.impact_page = ImpactPage(self)
         self.deliverables_page = DeliverablesPage(self)
+        self.qa_page = QAPage(self)
+        self.keywords_page = KeywordsPage(self)
+        self.exportall_page = ExportAllPage(self)
+        self.settings_page = SettingsPage(self)
         self.read_page = ReadPage(self)
         self.structure_page = StructurePage(self)
         self.assign_page = AssignPage(self)
@@ -131,7 +145,8 @@ class MainWindow(QMainWindow):
         self.matrix_page = MatrixPage(self)
         self.setup_page = SetupPage(self)
         self.pages = {"home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page,
-                      "impact": self.impact_page, "deliverables": self.deliverables_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
+                      "impact": self.impact_page, "deliverables": self.deliverables_page, "qa": self.qa_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
+                      "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)

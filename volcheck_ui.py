@@ -19,6 +19,87 @@ WORD_ONLY = ("QA/QC checks the Word documents we produce (.docx), never customer
              "headings, so first-use results on a PDF would not be accurate.")
 
 
+def qa_collect(paths, eng, words, vc):
+    """2.65.1: for each Word volume, its own definitions, its acronym list and its banned words (both programs)."""
+    import banned
+    import custdefs
+    for p in paths:
+        eng.check_cancel()
+        try:
+            vc["defs"][os.path.basename(p)] = custdefs.extract(eng.typed_chunks(p) + custdefs.table_chunks(p))
+        except Exception:
+            diag.swallowed()
+        try:                                        # the volume's own acronym list (2.25.0)
+            vc["lists"][os.path.basename(p)] = custdefs.acronym_list(p)
+        except Exception:
+            diag.swallowed()
+        try:                                        # banned words and phrases (2.27.0)
+            vc["banned"][os.path.basename(p)] = banned.find(eng.typed_chunks(p), words, eng.loc_kind)
+        except Exception:
+            diag.swallowed()
+    return vc
+
+
+def qa_report(results, L, vc, eng, reg_rows=(), volumes=()):
+    """2.65.1: the QA/QC report of a finished check (both programs)."""
+    report = V.build({t: d for t, d in results.items() if not d.get("known")}, L.rows,   # known names stay off
+                     vc["names"], L.first_use, vc["defs"],
+                     file_of=eng._file_of, in_picture=lambda loc: bool(eng._OCR_LOC.search(loc)),
+                     vol_lists=vc.get("lists"), vol_banned=vc.get("banned"))
+    report["paths"] = {os.path.basename(p): p for p in vc["paths"]}
+    try:                                                # 2.39.0: against the page limits in the customer documents
+        report["pages"] = subreq.page_check(report["paths"], reg_rows, volumes) if reg_rows else []
+    except Exception:
+        diag.swallowed(); report["pages"] = []
+    for r in report["pages"]:
+        r["check"] = V.CHECK_MARKS.get(r["level"], "")
+    return report
+
+
+def qa_log_text(report):
+    s = report["summary"]
+    pg = report.get("pages") or []
+    return (f"QA/QC checked {s['volumes']} volume(s): {s.get('first_use_problems', 0)} first-use fixes, "
+            f"{sum(s.get('banned', {}).values()) if s.get('banned_checked') else 0} banned words"
+            + (f", {sum(1 for p in pg if p['level'] == 'bad')} over a page limit" if pg else ""))
+
+
+def qa_add_missing(L, report):
+    n = 0
+    for m in report["missing"]:
+        res = L.add_or_update(m["term"], change_note="added by volume check (Proposed)", Type=m["type"],
+                              Definition=m["suggestion"] or None, Source="Volume check", **{"Used in volumes": m["volumes"]})
+        n += res == "added"
+    return n
+
+
+def qa_record_use(L, report):
+    n = 0
+    for term, fields in V.effort_updates(report).items():
+        if term in L.rows:
+            n += L.add_or_update(term, change_note="volume check: volumes and first use", **fields) == "updated"
+    return n
+
+
+def qa_volume_lists(report, folder):
+    """One Word acronym list per volume (and one for all volumes). Returns ([file names], open items)."""
+    written, open_items = [], 0
+    sets = [(v, report["lists"][v]) for v in report["volumes"]]
+    if len(sets) > 1:
+        combo = {}
+        for _v, rows in sets:
+            for x in rows:
+                combo.setdefault(x.get("key", x["term"]), x)
+        sets.append(("All volumes", sorted(combo.values(), key=lambda x: (x["term"].lower(), x["term"]))))
+    for v, rows in sets:
+        p = os.path.join(folder, re.sub(r"[^A-Za-z0-9 _.-]+", "_", os.path.splitext(v)[0]) + "_Acronym_List.docx")
+        V.write_docx([(x["term"], x["definition"]) for x in rows], p)
+        written.append(os.path.basename(p))
+        if v != "All volumes":
+            open_items += sum(1 for x in rows if x["status"] != "Approved" or not x["definition"])
+    return written, open_items
+
+
 def _wrap_to(label, frame):
     """Wrap a label's text to its frame's width as the window is resized (works at any display scaling)."""
     def fit(e):
@@ -115,21 +196,7 @@ class VolumeCheckMixin:
             diag.swallowed(); words = []
 
         def after(cb):
-            import custdefs
-            for p in paths:
-                eng.check_cancel()
-                try:
-                    self._volcheck["defs"][os.path.basename(p)] = custdefs.extract(eng.typed_chunks(p) + custdefs.table_chunks(p))
-                except Exception:
-                    diag.swallowed()
-                try:                                        # the volume's own acronym list (2.25.0)
-                    self._volcheck["lists"][os.path.basename(p)] = custdefs.acronym_list(p)
-                except Exception:
-                    diag.swallowed()
-                try:                                        # banned words and phrases (2.27.0)
-                    self._volcheck["banned"][os.path.basename(p)] = banned.find(eng.typed_chunks(p), words, eng.loc_kind)
-                except Exception:
-                    diag.swallowed()
+            qa_collect(paths, eng, words, self._volcheck)
         self.start_batch(paths, after=after)
 
     def volume_check_after_scan(self):
@@ -139,26 +206,17 @@ class VolumeCheckMixin:
         if not vc or self.effort is None:
             return False
         eng = _eng()
-        report = V.build({t: d for t, d in self.results.items() if not d.get("known")}, self.effort.rows,   # known names stay off
-                         vc["names"], self.effort.first_use, vc["defs"],
-                         file_of=eng._file_of, in_picture=lambda loc: bool(eng._OCR_LOC.search(loc)),
-                         vol_lists=vc.get("lists"), vol_banned=vc.get("banned"))
-        report["paths"] = {os.path.basename(p): p for p in vc["paths"]}
-        try:                                                # 2.39.0: against the page limits in the customer documents
-            reg = self.subreg() if hasattr(self, "subreg") else None
-            report["pages"] = subreq.page_check(report["paths"], reg.rows(), self.volumes()) if reg else []
+        reg = self.subreg() if hasattr(self, "subreg") else None
+        try:
+            reg_rows = reg.rows() if reg else []
         except Exception:
-            diag.swallowed(); report["pages"] = []
-        for r in report["pages"]:
-            r["check"] = V.CHECK_MARKS.get(r["level"], "")
+            diag.swallowed(); reg_rows = []
+        report = qa_report(self.results, self.effort, vc, eng, reg_rows, self.volumes() if hasattr(self, "volumes") else [])
         self.volume_report = report
         s = report["summary"]
         diag.activity("volume_check_report", terms=s["terms_used"], rows=len(report["first_use"]), items=s["missing"])
         if hasattr(self, "rec_log"):                       # 2.40.0: the paper trail
-            pg = report.get("pages") or []
-            self.rec_log("qa", f"QA/QC checked {s['volumes']} volume(s): {s.get('first_use_problems', 0)} first-use fixes, "
-                               f"{sum(s.get('banned', {}).values()) if s.get('banned_checked') else 0} banned words"
-                               + (f", {sum(1 for p in pg if p['level'] == 'bad')} over a page limit" if pg else ""))
+            self.rec_log("qa", qa_log_text(report))
         self.show_volume_report(report)
         return True
 
@@ -334,21 +392,8 @@ class VolumeCheckMixin:
                                     initialdir=os.path.dirname(self.effort.path))
         if not d:
             return
-        written, open_items = [], 0
-        sets = [(v, r["lists"][v]) for v in r["volumes"]]
-        if len(sets) > 1:
-            combo = {}
-            for _v, rows in sets:
-                for x in rows:
-                    combo.setdefault(x.get("key", x["term"]), x)
-            sets.append(("All volumes", sorted(combo.values(), key=lambda x: (x["term"].lower(), x["term"]))))
         try:
-            for v, rows in sets:
-                p = os.path.join(d, re.sub(r"[^A-Za-z0-9 _.-]+", "_", os.path.splitext(v)[0]) + "_Acronym_List.docx")
-                V.write_docx([(x["term"], x["definition"]) for x in rows], p)
-                written.append(os.path.basename(p))
-                if v != "All volumes":
-                    open_items += sum(1 for x in rows if x["status"] != "Approved" or not x["definition"])
+            written, open_items = qa_volume_lists(r, d)
         except PermissionError:
             messagebox.showerror("Acronym lists", "A list with that name is open in Word. Close it, then try again.", parent=self._volwin); return
         diag.activity("volume_lists_exported", files=len(written))
@@ -360,12 +405,7 @@ class VolumeCheckMixin:
         r = getattr(self, "volume_report", None)
         if not r or self.effort is None:
             return
-        n = 0
-        for m in r["missing"]:
-            res = self.effort.add_or_update(m["term"], change_note="added by volume check (Proposed)", Type=m["type"],
-                                            Definition=m["suggestion"] or None, Source="Volume check",
-                                            **{"Used in volumes": m["volumes"]})
-            n += res == "added"
+        n = qa_add_missing(self.effort, r)
         diag.activity("volume_missing_added", added=n)
         self._save_effort_list()
         self.apply_effort()
@@ -376,10 +416,7 @@ class VolumeCheckMixin:
         r = getattr(self, "volume_report", None)
         if not r or self.effort is None:
             return
-        n = 0
-        for term, fields in V.effort_updates(r).items():
-            if term in self.effort.rows:
-                n += self.effort.add_or_update(term, change_note="volume check: volumes and first use", **fields) == "updated"
+        n = qa_record_use(self.effort, r)
         diag.activity("volume_use_recorded", n=n)
         self._save_effort_list()
         self.update_effort_ui()

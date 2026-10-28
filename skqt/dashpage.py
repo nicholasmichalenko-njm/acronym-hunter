@@ -67,8 +67,8 @@ class DashPage(QWidget):
             "owned": D.Tile("-", "requirements with an owner", "accent", lambda: go("assign"), "Assign: People..."),
             "questions": D.Tile("-", "open questions", "accent", lambda: go("home"), "Effort home: notes and open questions"),
             "late": D.Tile("-", "tasks late", "accent", lambda: go("home"), "Effort home: tasks"),
-            "review": D.Tile("-", "customer changes to review", "accent", None,
-                             "Customer document and requirement changes (in Stationkeeper (classic) for now)")}
+            "review": D.Tile("-", "customer changes to review", "accent", lambda: go("docs"),
+                             "Customer Documents: versions and requirements to review")}
         self.tile_row = QWidget()
         tg = QGridLayout(self.tile_row); tg.setContentsMargins(0, 0, 0, 0); tg.setSpacing(D.SPACE["m"])
         for i, t in enumerate(self.tiles.values()):
@@ -246,7 +246,7 @@ class DashPage(QWidget):
         self.acr_legend.addWidget(D.legend(segs) if a["total"] else D.label("No acronyms in the effort's list yet.", "muted"))
         q = d["qa"]
         if q is None:
-            self.qa_text.setText("QA/QC has not checked the drafts yet (in Stationkeeper (classic) for now).")
+            self.qa_text.setText("QA/QC has not checked the drafts yet: QA/QC, Check Word files.")
             return
         for val, cap, bad in ((q["banned"], "banned words", q["banned"]), (q["avoid"], "words to avoid", q["avoid"]),
                               (q["first_use"], "first-use fixes", q["first_use"]), (q["pages_over"], "volumes over the page limit", q["pages_over"])):

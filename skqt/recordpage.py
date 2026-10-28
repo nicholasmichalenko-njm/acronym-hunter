@@ -137,8 +137,7 @@ class RecordPage(QWidget):
             self._team_row(m["name"], m.get("role", ""))
         self.fill_stages(r)
         bd = self.backup_dir()
-        self.backup_text.setText(f"Backups go to {bd}." if bd else "Backups are off. Choose the backup folder in Stationkeeper (classic): "
-                                                               "Keep safe.")
+        self.backup_text.setText(f"Backups go to {bd}." if bd else "Backups are off. Choose the backup folder in Settings.")
 
     # ------------------------------------------------------------ details
     def use_customer_due(self):
@@ -374,7 +373,7 @@ class RecordPage(QWidget):
         h = self.host
         bd = folder or self.backup_dir()
         if h.ws is None or not bd:
-            h.status("Backups are off. Choose the backup folder in Stationkeeper (classic): Keep safe.")
+            h.status("Backups are off. Choose the backup folder in Settings.")
             return None
         a = self._package_args()
         try:

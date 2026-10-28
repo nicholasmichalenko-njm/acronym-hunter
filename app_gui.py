@@ -2393,7 +2393,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.65.0"            # keep in step with version_info.txt
+APP_VERSION = "2.66.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3343,7 +3343,7 @@ def corrections_on():
     return bool(APP_CFG["allow_training"])
 
 def write_acronym_report(path, terms, results, known_cell):
-    """The acronym report (CSV, opens in Excel): one row per term shown (2.65.0: shared with the Qt edition)."""
+    """The acronym report (CSV, opens in Excel): one row per term shown (2.66.0: shared with the Qt edition)."""
     strip = lambda x: x[len(CLIENT_TAG):] if x.startswith(CLIENT_TAG) else x[len(DB_TAG):] if x.startswith(DB_TAG) else x
     with open(path, "w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f)
