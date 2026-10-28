@@ -24,18 +24,23 @@ from .homepage import HomePage
 from .dashpage import DashPage
 from .recordpage import RecordPage
 from .reviewpage import ReviewPage
+from .acronympage import AcronymPage
+from .effortlistpage import EffortListPage
 
 
 RAIL = [("EFFORT", [("home", "Effort home"), ("dashboard", "Dashboard"), ("record", "Effort record"), ("reviews", "Reviews")]),
+        ("ACRONYMS", [("acronyms", "Scan and review"), ("acrlist", "Effort list")]),
         ("COMPLIANCE", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove"),
                         ("crosswalk", "L/M crosswalk")]),
         ("DELIVER", [("matrix", "Matrix"), ("setup", "Response Setup")]),
-        ("IN STATIONKEEPER (CLASSIC) FOR NOW", [("", "Acronym scan"), ("", "Submission and deliverables"),
+        ("IN STATIONKEEPER (CLASSIC) FOR NOW", [("", "Keywords"), ("", "Submission and deliverables"),
                                                 ("", "QA/QC")])]
 TITLES = {"home": ("Effort home", "Stage, gate goals, tasks, questions and the calendar"),
           "dashboard": ("Dashboard", "The effort on one screen"),
           "record": ("Effort record", "Details, team, stages and gates, status, package and backup"),
           "reviews": ("Reviews", "Color team review packets, read back onto each requirement"),
+          "acronyms": ("Scan and review", "Every acronym, abbreviation, unit and symbol, and the effort list"),
+          "acrlist": ("Effort list", "The effort's acronyms: definitions, status, approvers, and the lists to deliver"),
           "read": ("Read RFP", "Bring the customer's documents into the review"),
           "structure": ("Structure", "The sections of your response"),
           "assign": ("Assign", "Decide every sentence on the page"),
@@ -101,6 +106,8 @@ class MainWindow(QMainWindow):
         self.dash_page = DashPage(self)
         self.record_page = RecordPage(self)
         self.review_page = ReviewPage(self)
+        self.acronym_page = AcronymPage(self)
+        self.acrlist_page = EffortListPage(self)
         self.read_page = ReadPage(self)
         self.structure_page = StructurePage(self)
         self.assign_page = AssignPage(self)
@@ -108,7 +115,7 @@ class MainWindow(QMainWindow):
         self.crosswalk_page = CrosswalkPage(self)
         self.matrix_page = MatrixPage(self)
         self.setup_page = SetupPage(self)
-        self.pages = {"home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
+        self.pages = {"home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)

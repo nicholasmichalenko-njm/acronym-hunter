@@ -2393,7 +2393,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.63.0"            # keep in step with version_info.txt
+APP_VERSION = "2.64.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3341,6 +3341,29 @@ def trainer_available():
 def corrections_on():
     """Report misreading and Not text save corrections for the training team, unless allow_training is false."""
     return bool(APP_CFG["allow_training"])
+
+def write_acronym_report(path, terms, results, known_cell):
+    """The acronym report (CSV, opens in Excel): one row per term shown (2.64.0: shared with the Qt edition)."""
+    strip = lambda x: x[len(CLIENT_TAG):] if x.startswith(CLIENT_TAG) else x[len(DB_TAG):] if x.startswith(DB_TAG) else x
+    with open(path, "w", newline="", encoding="utf-8-sig") as f:
+        w = csv.writer(f)
+        w.writerow(["Term", "Type", "Count", "Change", "Status", "Selected definition", "Possible definitions",
+                    "Client list definition", "Database definition", "Author decision",
+                    "Locations",
+                    "First found by a scan (date)", "Last found by a scan (date)", "Known in", "Context suggests"])
+        for term in terms:
+            d = results[term]
+            defs = d.get("definitions", [])
+            client = d.get("client_definitions", [])
+            dbdefs = d.get("db_definitions", []) if d.get("client") else ([] if d.get("excluded") else
+                                                                          [x for x in defs if not d.get("manual")])
+            w.writerow([term, d["category"], d["count"], d.get("change", ""), d["status"], d["selected_definition"],
+                        "\n".join(defs) if len(defs) > 1 or d.get("client") else "",
+                        "\n".join(client), "\n".join(strip(x) for x in dbdefs), "",
+                        "\n".join(d["locations"]), d.get("first_seen", ""), d.get("last_seen", ""),
+                        known_cell(term, d), ctx_text(d)])
+    return len(terms)
+
 
 class AcronymAppGUI(AssignCardMixin, PageViewMixin, TrainPackMixin, KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixin, ImpactMixin, LayoutMixin, ReadableMixin, KeepSafeMixin, EffortPictureMixin, MatrixDesignMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
@@ -5743,24 +5766,7 @@ class AcronymAppGUI(AssignCardMixin, PageViewMixin, TrainPackMixin, KnowledgeCar
                                             filetypes=[("CSV Report", "*.csv")], initialfile=self.export_name())
         if not path:
             return
-        strip = lambda x: x[len(CLIENT_TAG):] if x.startswith(CLIENT_TAG) else x[len(DB_TAG):] if x.startswith(DB_TAG) else x
-        with open(path, "w", newline="", encoding="utf-8-sig") as f:
-            w = csv.writer(f)
-            w.writerow(["Term", "Type", "Count", "Change", "Status", "Selected definition", "Possible definitions",
-                        "Client list definition", "Database definition", "Author decision",
-                        "Locations",
-                        "First found by a scan (date)", "Last found by a scan (date)", "Known in", "Context suggests"])
-            for term in terms:
-                d = self.results[term]
-                defs = d.get("definitions", [])
-                client = d.get("client_definitions", [])
-                dbdefs = d.get("db_definitions", []) if d.get("client") else ([] if d.get("excluded") else
-                                                                              [x for x in defs if not d.get("manual")])
-                w.writerow([term, d["category"], d["count"], d.get("change", ""), d["status"], d["selected_definition"],
-                            "\n".join(defs) if len(defs) > 1 or d.get("client") else "",
-                            "\n".join(client), "\n".join(strip(x) for x in dbdefs), "",
-                            "\n".join(d["locations"]), d.get("first_seen", ""), d.get("last_seen", ""),
-                            self.known_cell(term, d), ctx_text(d)])
+        write_acronym_report(path, terms, self.results, self.known_cell)
         view = self.status_var.get() if self.status_var.get() != STATUS_FILTERS[0] else "all statuses"
         messagebox.showinfo("Exported", f"{len(terms)} rows exported ({view}) to:\n{path}\n\n"
                             + (f"{left_out} term(s) on the omit list left out (Status > Found in omit list shows them).\n\n" if left_out else "")
