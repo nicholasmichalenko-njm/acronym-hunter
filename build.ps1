@@ -36,6 +36,7 @@ function Test-PublicPackage([string]$dir) {
     # 1. Only these files may sit outside _internal
     $allowed = @("$exeName.exe", 'acronym_database.csv', 'README.txt', 'OVERVIEW.md', 'SECURITY.md', 'CHECKSUM.txt',
                  'config\app_settings.json', 'config\ocr_settings.json', 'config\ocr_corrections.csv', 'config\models\README.txt')
+    if ($App -eq 'user') { $allowed += 'StationkeeperQt.exe' }   # 2.59.0: the Qt edition, in the same folder
     $root = (Resolve-Path $dir).Path
     $files = Get-ChildItem $root -Recurse -File | ForEach-Object { $_.FullName.Substring($root.Length + 1) }
     $outside = $files | Where-Object { $_ -notlike '_internal\*' }
@@ -119,6 +120,11 @@ if ($LASTEXITCODE -ne 0) { throw "NETWORK AUDIT FAILED. See the list above." }
 
 $exeHash = (Get-FileHash "$out\$exeName.exe" -Algorithm SHA256).Hash
 "$exeName.exe  SHA256  $exeHash" | Out-File -Encoding ascii "$out\CHECKSUM.txt"
+$qtLine = $null
+if (Test-Path "$out\StationkeeperQt.exe") {
+    $qtLine = "StationkeeperQt.exe  SHA256  $((Get-FileHash "$out\StationkeeperQt.exe" -Algorithm SHA256).Hash)"
+    $qtLine | Out-File -Encoding ascii -Append "$out\CHECKSUM.txt"
+}
 Test-PublicPackage $out
 # Software Bill of Materials (CycloneDX): what ships, with versions, licenses and SHA-256 of every program and model file
 $edLabel = if ($Classic) { 'US Classic (Tesseract only)' } elseif ($Edition -eq 'legacy') { 'Legacy' } else { 'US' }
@@ -130,8 +136,7 @@ Remove-Item $zip -ErrorAction SilentlyContinue
 Compress-Archive -Path $out -DestinationPath $zip -CompressionLevel Optimal
 $zipHash = (Get-FileHash $zip -Algorithm SHA256).Hash
 $lines = @("$zip  SHA256  $zipHash",
-           "$exeName.exe  SHA256  $exeHash",
-           "Built $(Get-Date -Format 'yyyy-MM-dd HH:mm')")
+           "$exeName.exe  SHA256  $exeHash") + $(if ($qtLine) { @($qtLine) } else { @() }) + @("Built $(Get-Date -Format 'yyyy-MM-dd HH:mm')")
 $stage = $out
 
 # Package 3 (optional): internal build with a Knowledge Pack pre-installed. SharePoint ONLY.
