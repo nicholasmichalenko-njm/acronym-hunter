@@ -1617,7 +1617,7 @@ class CompliancePageMixin:
                       text_color=("#334155", "#CBD5E1")).pack(side="left", padx=10)
         tk.Misc.bind(card, "<Key>", self._pl_key)          # the frame itself takes the focus and the keys
         for w in (card, win.pl_text, win.pl_before, win.pl_after):
-            w.bind("<Button-1>", lambda _e: self._cwin.pl_card.focus_set(), add="+")
+            w.bind("<Button-1>", lambda _e=None: self._cwin.pl_card.focus_set(), add="+")
 
     def _pl_queue(self):
         M = self.matrix

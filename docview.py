@@ -252,6 +252,8 @@ def missing_runs(lines, res):
     for a, b, _li in fixed:
         la, sa = seq[a][1], seq[a][2]
         lb, eb = seq[b][1], seq[b][3]
+        while sa > 0 and lines[la][1][sa - 1] not in " \u00a0":     # an opening bracket or quote: "(719)"
+            sa -= 1
         if la == lb:
             t = lines[la][1][sa:eb]
         else:

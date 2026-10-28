@@ -63,9 +63,11 @@ def go():
     m = w._map
     on1 = [it["id"] for it in app.matrix.items if LY._page_of(it) == 1]
     check("every review sentence on the page is boxed", [x["id"] for x in m["items"]] == on1, ([x["id"] for x in m["items"]], on1))
-    check("the line not in the review is boxed in red, and the window says so",
-          [x["text"] for x in m["missing"]] == ["The Offeror shall provide a risk register as Attachment J-3"]
-          and "1 line(s) of text not in the review" in w._info.cget("text"), w._info.cget("text"))
+    # 2.55.0: Assign shows the whole document and puts a line not in the review into it at once, so the page has no red
+    check("2.55.0: the line not in the review was put in by Assign, so no red box is left, and the window says so",
+          not m["missing"] and "all its text is in the review" in w._info.cget("text")
+          and any("risk register" in it["text"] and it.get("new") == "Added by the text check" for it in app.matrix.items),
+          w._info.cget("text"))
     # click the second sentence's box: Assign selects it
     second = m["items"][1]
     l, t, r, b = second["rects"][0]
@@ -92,14 +94,8 @@ def go():
         app._lay_wheel(1); app.update()
     check("2.47.0: scrolling past the bottom of page 1 turns to page 2", w._page == 2, w._page)
     app.layout_step(-1); app.update()
-    # add the red line to the review
-    n0 = len(app.matrix.items)
-    ml, mt, mr, mb = w._map["missing"][0]["rects"][0]
-    app.layout_pick((ml + mr) / 2, (mt + mb) / 2); app.update()
     added = [it for it in app.matrix.items if "risk register" in it["text"]]
-    check("a click on the red line adds it to the review, on its page, and the page has no red left",
-          len(app.matrix.items) == n0 + 1 and added and LY._page_of(added[0]) == 1 and not w._map["missing"]
-          and w._sel == added[0]["id"], (len(app.matrix.items), added and added[0].get("loc"), w._map["missing"], w._sel, added and added[0]["id"], added and added[0].get("page")))
+    check("the added line is on its page", len(added) == 1 and LY._page_of(added[0]) == 1, added and added[0].get("loc"))
     texts = [it["text"] for it in app.matrix.items]
     k = next(i for i, t in enumerate(texts) if "risk register" in t)
     check("2.47.0: the added line sits where it is in the document, between the sentences before and after it",

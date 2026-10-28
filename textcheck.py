@@ -34,24 +34,30 @@ _W_SPACE = {_W + "tab", _W + "br", _W + "cr", _W + "ptab"}
 def w_text(el, owner=None):
     """2.55.0: a Word element's text as it reads: a tab or a line break inside a paragraph is a space (before, the words
     on either side ran together: "pages.Pages", "Offerorsshall"), a non-breaking hyphen is a hyphen. owner: only the
-    text of that paragraph (not of a text box inside it)."""
+    text of that paragraph (not of a text box paragraph inside it). Works with lxml and the standard library."""
     out = []
-    for x in el.iter(_W + "t", _W + "tab", _W + "br", _W + "cr", _W + "ptab", _W + "noBreakHyphen"):
-        if owner is not None and _owner_para(x, _W + "p") is not owner:
-            continue
-        if _in_fallback(x):
-            continue
-        if x.tag == _W + "t":
-            out.append(x.text or "")
-        elif x.getparent() is not None and x.getparent().tag == _W + "r":   # a tab stop in the paragraph's settings is not text
-            out.append("-" if x.tag == _W + "noBreakHyphen" else " ")
+    space = (_W + "tab", _W + "br", _W + "cr", _W + "ptab")
+
+    def walk(node):
+        for ch in node:
+            tag = ch.tag
+            if tag == MC_FALLBACK or (owner is not None and tag == _W + "p" and ch is not owner):
+                continue
+            if tag == _W + "t":
+                out.append(ch.text or "")
+            elif node.tag == _W + "r" and tag in space:         # a tab stop in the paragraph's settings is not text
+                out.append(" ")
+            elif node.tag == _W + "r" and tag == _W + "noBreakHyphen":
+                out.append("-")
+            walk(ch)
+    walk(el)
     return "".join(out)
 
 
 def a_text(p):
     """A DrawingML (PowerPoint) paragraph's text: a line break (a:br) inside it is a space."""
     A = "{%s}" % A_NS
-    return "".join((x.text or "") if x.tag == A + "t" else " " for x in p.iter(A + "t", A + "br") if not _in_fallback(x))
+    return "".join((x.text or "") if x.tag == A + "t" else " " for x in p.iter() if x.tag in (A + "t", A + "br"))
 
 
 def _para_text(root, p_tag, t_tags):
