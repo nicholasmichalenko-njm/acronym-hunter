@@ -11,6 +11,10 @@ import copy, datetime, json, os
 # key: (default heading, width)
 COLUMNS = {
     "order": ("Order", 8),                          # 2.51.0: sort on it to get the original layout back
+    "section_no": ("Response section no.", 14),     # 2.56.0: our proposal section, number and name apart
+    "section_name": ("Response section name", 30),
+    "rfp_ref": ("RFP L No.", 30),                   # 2.56.0: the RFP's own section number and title, as written
+    "authors": ("Author(s)", 24),                   # 2.56.0: the sentence's owner, else the section lead and contributors
     "ref": ("Section L No.", 16),                   # 2.51.0: the RFP section the sentence is in, else page and paragraph
     "rfp_section": ("Section L title", 28),
     "text": ("RFP text", 70),                       # 2.52.0: compliance and support rows in the one column
@@ -35,8 +39,12 @@ COLUMNS = {
 }
 CUSTOM = "custom:"                                   # 2.51.0: a column of the team's own, filled in Excel
 ROLES = (("Keep", "Compliance requirements"), ("Context", "Context"))
-DEFAULT = {"columns": [{"key": k, "heading": COLUMNS[k][0]} for k in
-                       ("order", "ref", "text", "role", "volume", "section", "page_limit", "owner", "page", "status", "notes")],
+# 2.56.0 (the user's default): Volume, Response section no., Response section name, RFP L No., RFP content (compliance
+# requirements and their support, told apart by the row style), Author(s), Notes; every other column stays available
+DEFAULT = {"columns": [{"key": k, "heading": h} for k, h in
+                       (("volume", "Volume"), ("section_no", "Response section no."), ("section_name", "Response section name"),
+                        ("rfp_ref", "RFP L No."), ("text", "RFP content"), ("authors", "Author(s)"), ("notes", "Notes"))],
+           "v": 2,
            "roles": ["Keep", "Context"], "customer_sheet": True, "title": "", "empty_sections": True,
            "order": "rfp"}                          # 2.54.0: rows in the RFP's order (or "structure": our sections' order)
 _FAR = __import__("re").compile(r"\b(?:FAR|DFARS|NFS|AFFARS|DFARS PGI)\s+(?:clause\s+)?\d{1,3}\.\d{2,4}(?:-\d+)?(?:\([a-z0-9]+\))*", __import__("re").I)
@@ -54,11 +62,17 @@ def default():
     return copy.deepcopy(DEFAULT)
 
 
+_OLD_DEFAULT_KEYS = ["order", "ref", "text", "role", "volume", "section", "page_limit", "owner", "page", "status", "notes"]
+
+
 def clean(d):
-    """A design read from a file or the matrix: only known columns and roles, every heading a short plain string."""
+    """A design read from a file or the matrix: only known columns and roles, every heading a short plain string.
+    2.56.0: a design that still has the old default columns, never changed, takes the new default."""
     out = default()
     if not isinstance(d, dict):
         return out
+    if not d.get("v") and [str(c.get("key")) for c in (d.get("columns") or []) if isinstance(c, dict)] == _OLD_DEFAULT_KEYS:
+        d = dict(d, columns=out["columns"])
     cols = []
     for c in d.get("columns") or []:
         if not isinstance(c, dict):
@@ -82,6 +96,7 @@ def clean(d):
     out["title"] = " ".join(str(d.get("title") or "").split())[:120]
     out["empty_sections"] = bool(d.get("empty_sections", True))
     out["order"] = d.get("order") if d.get("order") in ("rfp", "structure") else "rfp"
+    out["v"] = 2
     return out
 
 
@@ -164,7 +179,9 @@ def _value(M, it, key, inh, people, ctx=None, vols=None):
     if it.get("_kind") == "empty":
         vol = (vols or {}).get(it["map"], "")
         d = _deliv(ctx, vol)
+        o = next((o for o in M.outline if C.outline_label(o) == it["map"]), None)
         return {"section": it["map"], "volume": vol, "text": "(nothing assigned yet)", "role": "Proposal section",
+                "section_no": o.get("num", "") if o else "", "section_name": (o.get("title", "") if o else "") or it["map"],
                 "deliverable": d["name"] if d else "", "page_limit": d.get("limit", "") if d else "",
                 "format": d.get("format", "") if d else "", "order": it.get("_order", "")}.get(key, "")
     if key == "order":
@@ -183,6 +200,22 @@ def _value(M, it, key, inh, people, ctx=None, vols=None):
         return (it.get("cols") or {}).get(key[len(CUSTOM):], "")
     if key == "rfp_section":
         return " ".join(x for x in (it.get("section", ""), it.get("section_title", "")) if x)
+    if key == "rfp_ref":                        # 2.56.0: the RFP's section number and title as written (else where it is)
+        num = it.get("section", "") or SD.ref_of(M, it, inh)[0]
+        return " ".join(x for x in (num, it.get("section_title", "")) if x) or _where(it) or it["id"]
+    if key in ("section_no", "section_name"):
+        lab = it.get("map", "")
+        o = next((o for o in M.outline if C.outline_label(o) == lab), None)
+        if o is None:
+            return lab if key == "section_name" else ""
+        return o.get("num", "") if key == "section_no" else (o.get("title", "") or lab)
+    if key == "authors":
+        own = (it.get("owner") or "").strip()
+        if own:
+            return own
+        p = SD.section_people(M, it.get("map", "")) if it.get("map") else {}
+        names = [p.get("lead", "")] + [x.strip() for x in (p.get("with", "") or "").split(",")]
+        return ", ".join(dict.fromkeys(n for n in names if n))
     if key == "text":
         return ((it.get("lead") + " ") if it.get("lead") else "") + it.get("text", "")
     if key == "role":                           # 2.52.0: a support row says which requirement it supports

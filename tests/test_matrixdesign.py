@@ -42,7 +42,8 @@ def run():
     both = dict(keep_only, roles=["Keep", "Context"])
     assert [it["id"] for it in MD.rows(M, both)[0]] == ["L.4-02", "L.4-03", "L.5-01"]
     # 2.51.0: Order, Context under its requirement, Volume, deliverable facts, empty sections, own columns
-    full = MD.clean(dict(MD.default(), columns=MD.default()["columns"] + [{"key": "deliverable"}, {"key": "format"}, {"key": "far"},
+    olddef = [{"key": k} for k in MD._OLD_DEFAULT_KEYS]
+    full = MD.clean(dict(MD.default(), v=2, columns=olddef + [{"key": "deliverable"}, {"key": "format"}, {"key": "far"},
                                                                        {"key": "custom:Reviewer"}], order="structure"))
     ctx = {"deliverables": [{"name": "Volume I", "limit": "25 pages", "format": "Font: 12 point Times"}]}
     M.outline = C.parse_outline("Volume I\n1.1 Thermal\n1.2 Schedule\n1.3 Risk")
@@ -61,6 +62,17 @@ def run():
     assert [(x.get("id"), x["_kind"]) for x in rfp] == [("L.5-01", "req"), ("L.4-02", "req"), ("L.4-03", "ctx"), ("", "empty")], \
         [(x.get("id"), x["_kind"]) for x in rfp]
     assert MD.clean({})["order"] == "rfp" and MD.clean({"order": "nonsense"})["order"] == "rfp"
+    # 2.56.0: the default columns; an old default never changed takes the new one; a changed one is kept
+    assert [c["heading"] for c in MD.default()["columns"]] == ["Volume", "Response section no.", "Response section name", "RFP L No.",
+                                                               "RFP content", "Author(s)", "Notes"]
+    assert [c["key"] for c in MD.clean({"columns": olddef})["columns"]] == [c["key"] for c in MD.default()["columns"]]
+    assert [c["key"] for c in MD.clean({"columns": olddef[:3]})["columns"]] == MD._OLD_DEFAULT_KEYS[:3]
+    nd = MD.default()
+    ncol = {c["key"]: k for k, c in enumerate(nd["columns"])}
+    its2, dat2 = MD.rows(M, dict(nd, order="structure"), ctx)
+    r0 = dat2[0]
+    assert r0[ncol["section_no"]] == "1.1" and r0[ncol["section_name"]] == "Thermal" and r0[ncol["volume"]] == "Volume I", r0
+    assert r0[ncol["rfp_ref"]].startswith("L.4") and r0[ncol["authors"]] == "J. Smith" and r0[ncol["text"]].startswith("The Offeror"), r0
     assert MD._value(M, its[1], "role", {}, {}) == "Support for L.4-02" and MD._value(M, its[0], "role", {}, {}) == "Compliance requirement"
     xo = os.path.join(tempfile.mkdtemp(), "styled.xlsx")
     MD.export(M, xo, full, "Kestrel", ctx=ctx)
