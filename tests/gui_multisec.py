@@ -62,13 +62,13 @@ def go():
                 pass
             out += texts(c)
         return out
-    rel = " | ".join(texts(win.cp_rel))
-    check("Relationships lists both sections with Remove", "1.1 Thermal" in rel and "1.2 Schedule" in rel and rel.count("Remove") >= 2, rel[:200])
+    rel = " | ".join(texts(win.ac_dec))
+    check("the card lists both sections, each with its x (2.58.0)", "1.1 Thermal" in rel and "1.2 Schedule" in rel and rel.count("\u00d7") >= 2, rel[:200])
     app._cp_select(sup["id"]); app.update()
     app.cp_ctx(); app.update()
     check("C on the next sentence: support for that requirement (the last one clicked)", sup["decision"] == "Context"
           and sup["context_for"] == req["id"], sup.get("context_for"))
-    d = dict(MD.DEFAULT); d["order"] = "structure"
+    d = dict(MD.DEFAULT); d["order"] = "structure"; d["context"] = "rows"
     items, vals = MD.rows(app.matrix, d)
     mine = [(x.get("_kind"), x.get("id"), x.get("map")) for x in items if x.get("id") in (req["id"], sup["id"])]
     check("the matrix: one row per section, the support under each", mine == [("req", req["id"], "1.1 Thermal"), ("ctx", sup["id"], "1.1 Thermal"),

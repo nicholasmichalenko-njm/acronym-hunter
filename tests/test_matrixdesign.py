@@ -35,16 +35,22 @@ def run():
     assert [c["key"] for c in d["columns"]] == ["text", "ref", "owner"] and d["columns"][0]["heading"] == "Requirement text"
     assert d["roles"] == ["Keep"] and d["customer_sheet"] is True
     old_cols = [{"key": k, "heading": MD.COLUMNS[k][0]} for k in ("ref", "text", "section", "owner", "page", "status", "notes")]
-    keep_only = dict(MD.default(), columns=old_cols, roles=["Keep"], order="structure")
+    keep_only = dict(MD.default(), columns=old_cols, roles=["Keep"], order="structure", context="rows")
     items, data = MD.rows(M, keep_only)
     assert [it["id"] for it in items] == ["L.4-02", "L.5-01"], "in the structure's order: 1.1 Thermal before 1.2 Schedule"
     assert data[0][3] == "J. Smith" and data[1][4] == "12" and data[1][5] == "Compliant", data
     both = dict(keep_only, roles=["Keep", "Context"])
     assert [it["id"] for it in MD.rows(M, both)[0]] == ["L.4-02", "L.4-03", "L.5-01"]
+    # 2.58.0: support in its requirement's cell (the default), with where it is in the RFP
+    cell_items, cell_data = MD.rows(M, dict(both, context="cell"))
+    assert [it["id"] for it in cell_items] == ["L.4-02", "L.5-01"] and [c["id"] for c in cell_items[0]["_ctx"]] == ["L.4-03"]
+    tcol = [c["key"] for c in both["columns"]].index("text")
+    assert "\n\nSupporting context:\n(" in cell_data[0][tcol] and "Thermal margins" in cell_data[0][tcol], cell_data[0][tcol]
+    assert MD.default()["context"] == "cell" and MD.clean({"context": "rows"})["context"] == "rows" and MD.clean({})["context"] == "cell"
     # 2.51.0: Order, Context under its requirement, Volume, deliverable facts, empty sections, own columns
     olddef = [{"key": k} for k in MD._OLD_DEFAULT_KEYS]
     full = MD.clean(dict(MD.default(), v=2, columns=olddef + [{"key": "deliverable"}, {"key": "format"}, {"key": "far"},
-                                                                       {"key": "custom:Reviewer"}], order="structure"))
+                                                                       {"key": "custom:Reviewer"}], order="structure", context="rows"))
     ctx = {"deliverables": [{"name": "Volume I", "limit": "25 pages", "format": "Font: 12 point Times"}]}
     M.outline = C.parse_outline("Volume I\n1.1 Thermal\n1.2 Schedule\n1.3 Risk")
     its, dat = MD.rows(M, full, ctx)

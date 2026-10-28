@@ -198,7 +198,8 @@ def wait_read():
     ims_rows = [r for r in body if "Integrated Master Schedule" in r[ci["RFP content"]]]
     check("the IMS: one row per section", sorted(r[ci["Response section no."]] for r in ims_rows) == ["1.1", "2.1"], [r[:5] for r in ims_rows])
     k = next(i for i, r in enumerate(body) if r[ci["RFP content"]].startswith("The Offeror shall describe its technical approach"))
-    check("support right under its requirement", "Thermal margins" in body[k + 1][ci["RFP content"]], body[k + 1][:5])
+    check("support in its requirement's cell, with its RFP place (2.58.0)", "Supporting context:\n(" in body[k][ci["RFP content"]]
+          and "Thermal margins" in body[k][ci["RFP content"]], body[k][ci["RFP content"]][-200:])
     check("RFP L No. is the RFP's section", body[k][ci["RFP L No."]].startswith("L.3.1"), body[k][ci["RFP L No."]])
     xml = "".join(zipfile.ZipFile(p).read("word/document.xml").decode("utf-8") for p in res["files"] if p.endswith(".docx"))
     import re
