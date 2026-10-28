@@ -265,6 +265,5 @@ def go():
     app.after(200, app.on_close)
 
 
-A.set_ai_ml(True)
 app.after(900, go)
 app.mainloop()

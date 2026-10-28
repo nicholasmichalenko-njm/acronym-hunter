@@ -70,9 +70,11 @@ def go():
           f"{len(mapped)} of {len(Mx.items)} mapped, {right} right")
     for it in Mx.items:
         it["map"] = truth[it["id"]]
-    said.clear(); app.compliance_learn(); win.update()
-    msg = said[-1] if said else ""
-    check("Learn from decisions reports the placement self-check", "top 3" in msg and "Placement across proposals" in msg, msg[-260:])
+    L = app._c_learner(); pl0 = L.placer()          # 2.55.0: the training team learns this; a Knowledge Pack brings it
+    chk = pl0.check(app._c_learner().source_id(Mx.path), Mx.items, Mx.outline)
+    L.learn(Mx.path, Mx.items, Mx.outline); L.save(); app._c_refresh(); win.update()
+    msg = app._c_place_text(chk)
+    check("the placement self-check still reports", "top 3" in msg and "Placement across proposals" in msg, msg[-260:])
     pl = app._c_learner().placer()
     check("this matrix's placements were learned", pl.matrices() == 6, pl.matrices())
     check("Outline tab shows the placement summary", "placed rows from 6 matrices" in win.o_learn.cget("text"), win.o_learn.cget("text")[:90])
@@ -83,17 +85,11 @@ def go():
     app.compliance_synonyms("thermal, heat, temperature\n")
     check("saved synonyms are used", "~thermal" in app._c_learner().placer().syn.values() and
           os.path.isfile(PL.synonyms_path(A.CONFIG_DIR)))
-    # AI and ML off: nothing learned is shown or suggested
-    A.set_ai_ml(False); app._c_refresh(); app._c_show(); win.update()
-    check("AI and ML off: no learned sections", not win.d_learn.winfo_children() and app._c_learned_places(thermal) == [],
-          win.o_learn.cget("text")[:60])
-    A.set_ai_ml(True)
     # the Knowledge Pack carries the synonym list
     check("Knowledge Packs include the synonym list", "placement_synonyms.csv" in A.PACK_DATA_FILES)
     print(f"GUI PLACEMENT {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
     app.after(200, app.destroy)
 
 
-A.set_ai_ml(True)
 app.after(800, go)
 app.mainloop()

@@ -219,8 +219,6 @@ class PreviewPane(ctk.CTkFrame):
         self.opt_loc.pack(padx=10, pady=(0, 4))
         self.lbl_math = ctk.CTkLabel(self, text="", wraplength=PIC_W - 20, justify="left", anchor="w",
                                      fg_color="#E0E7FF", text_color="#312E81", corner_radius=6, font=("Cambria", 14))
-        self.btn_math = ctk.CTkButton(self, text="Read this equation with the math reader", height=28, fg_color="#4338CA",
-                                      command=lambda: self.term and self.app.read_equations([self.term]))
         # find stepper + view controls
         self.ctl = ctk.CTkFrame(self, fg_color="transparent")
         self.ctl.pack(fill="x", padx=10, pady=(0, 4))
@@ -366,15 +364,8 @@ class PreviewPane(ctk.CTkFrame):
             if uses:
                 txt += "\nUsed in:  " + "\n          ".join(u[:70] for u in uses[:4]) + (f"\n          (+{len(uses) - 4} more)" if len(uses) > 4 else "")
         elif cat == "Equation (picture)":
-            read = d.get("math_read") or {}
-            if read:
-                txt = "Math reader:\n" + "\n".join(l for v in read.values() for l in v) if any(read.values()) else "Math reader found no equation here."
-            elif eng.math_available():
-                txt = ("This picture looks like an equation. The math reader can read it exactly: subscripts, Greek letters "
-                       "and fractions. Click below (about 5 s for a small equation).")
-            else:
-                txt = ("This picture looks like an equation. Check its symbols by eye: the text reader reads letters well "
-                       "but can miss subscripts, Greek letters and fraction bars. The math add-on reads equations exactly.")
+            txt = ("This picture looks like an equation. The text reader reads its symbols with position rules (subscripts, "
+                   "superscripts, fractions); check them by eye, and Report misreading fixes any it got wrong.")
         if d.get("custdef_all") and not txt:
             hits = d["custdef_all"]
             txt = "Customer document" + ("s define it differently:" if len(hits) > 1 else ":") + "".join(
@@ -386,10 +377,6 @@ class PreviewPane(ctk.CTkFrame):
             self.lbl_math.pack(fill="x", padx=10, pady=(0, 4), before=self.ctl)
         else:
             self.lbl_math.pack_forget()
-        if cat == "Equation (picture)" and eng.math_available() and not d.get("math_read"):
-            self.btn_math.pack(fill="x", padx=10, pady=(0, 4), before=self.ctl)
-        else:
-            self.btn_math.pack_forget()
 
     # ---------- Use as definition (2.14.0) ----------
     def refresh_found(self):
@@ -479,7 +466,7 @@ class PreviewPane(ctk.CTkFrame):
 
     def _set_fix_state(self, picture_line):
         can_train = eng.corrections_on()
-        self.btn_teach.configure(state="normal" if picture_line and can_train and eng.ai_ml_on() else "disabled")
+        self.btn_teach.configure(state="normal" if picture_line and can_train else "disabled")
         self.btn_junk.configure(state="normal" if picture_line and can_train else "disabled")
         self.btn_undo.configure(state="normal" if can_train else "disabled")
         self.btn_trainer.configure(state="normal" if eng.trainer_available() and self.pv.img is not None else "disabled")
@@ -525,9 +512,9 @@ class PreviewPane(ctk.CTkFrame):
         diag.activity("preview_picture")
         label, loader = srcs[k]
         self.src_label = label
-        key = (path, label, eng.ai_ml_on())
+        key = (path, label)
         if key in self.cache:
-            self._paint(*self.cache[key]); self._ai_note(); return
+            self._paint(*self.cache[key]); return
         self._use("picture")
         self.pv.clear()
         self.lbl_info.configure(text="Reading the picture...")
@@ -535,30 +522,16 @@ class PreviewPane(ctk.CTkFrame):
         def work():
             try:
                 img = loader()
-                if eng.ai_ml_on():
-                    lines = tg.read_region_lines(img)
-                    lines, second = self._second_reader(img, lines)
-                else:                                   # AI and ML off (2.12.0): show the picture, read nothing
-                    lines, second = [], set()
+                lines = tg.read_region_lines(img)
+                lines, second = self._second_reader(img, lines)
                 hits = self._pdf_hits(path, loc, img)
                 self.cache[key] = (img, lines, hits, second)
-                self.after(0, lambda: req == self.req and (self._paint(img, lines, hits, second), self._ai_note()))
+                self.after(0, lambda: req == self.req and self._paint(img, lines, hits, second))
             except Exception as e:
                 eng.log_error("Preview could not read the picture")
                 msg = f"Could not read this picture: {type(e).__name__}"
                 self.after(0, lambda: req == self.req and self._blank(msg))
         threading.Thread(target=work, daemon=True).start()
-
-    def _ai_note(self):
-        if not eng.ai_ml_on():
-            self.lbl_info.configure(text="AI and ML are off for this effort: the picture is shown, but its text is not read.")
-
-    def ai_state(self, on):
-        """AI and ML switch (2.12.0): Report misreading collects training samples, so it is off with the switch."""
-        try:
-            self.btn_teach.configure(state="normal" if on else "disabled")
-        except Exception:
-            diag.swallowed()
 
     def _second_reader(self, img, lines):
         """Add the words only docTR found (as the scanner does), so a term docTR found gets a box too."""

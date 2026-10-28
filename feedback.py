@@ -152,7 +152,6 @@ def system_info():
             "windows": platform.platform(terse=True), "python": platform.python_version(),
             "ocr_engine": getattr(eng, "OCR_BACKEND", "?"),
             "doctr": bool(getattr(eng, "doctr_active", lambda: False)()) if callable(getattr(eng, "doctr_active", None)) else None,
-            "math_addon_installed": bool(getattr(eng, "MATH_DIR", None)),
             "advanced_mode": None}
     try:
         settings = eng.load_ocr_settings() if hasattr(eng, "load_ocr_settings") else {}

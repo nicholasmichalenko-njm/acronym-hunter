@@ -266,6 +266,5 @@ def go():
     app.after(200, app.destroy)
 
 
-A.set_ai_ml(True)
 app.after(900, go)
 app.mainloop()

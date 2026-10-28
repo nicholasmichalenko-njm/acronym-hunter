@@ -186,27 +186,10 @@ The app works identically with the network cable unplugged or Wi-Fi off.
 
 The app sends image bytes on stdin and reads results on stdout: no file names, no URLs.
 
-**Math reader add-on (v2.2.0+, optional, separate download).**
-- **What it is:** `math_addon\AcronymHunterMath.exe`, a separate program built with PyInstaller from
-  `math_helper.py`. It contains PyTorch 2.14 CPU (Linux Foundation / Meta, BSD-3) and Hugging Face transformers 4.57
-  (Apache 2.0). It ships with IBM's Granite-Docling-258M files (Apache 2.0, unmodified).
-- **Only in the sandbox:** the app starts it only inside the AppContainer with no capabilities, the same as Tesseract,
-  so Windows denies all network access. There is no unsandboxed fallback: if the sandbox cannot start, the math
-  reader does not run.
-- **Read-only access:** it can read only `math_addon\` and write only `training_data\math_work`. Its TEMP, cache
-  and profile folders point there.
-- **Network code inside it:** transformers and its Hugging Face client contain network code. Offline mode is forced
-  (`HF_HUB_OFFLINE`, `TRANSFORMERS_OFFLINE`), the model loads with `local_files_only`, and the sandbox blocks the
-  network regardless.
-- **Model loading:**
-  - Weights load only from safetensors (`use_safetensors=True`, no pickle).
-  - Every model file's SHA-256 is checked against `math_models.json` before loading.
-  - Pickle-format model files in the model folder are refused.
-  - model.safetensors must match IBM's published file (SHA-256 1CDAD234…6F61); `build_math_addon.ps1` refuses
-    to build otherwise.
-- **Data:** picture bytes go in on stdin and LaTeX comes out on stdout. Results are cached locally in
-  `config\math_results.json`, which holds equation text from your documents. It stays on the PC like project files;
-  delete it to clear the cache.
+**No generative AI (2.55.0).** The optional math reader add-on (IBM Granite-Docling on PyTorch) is removed: the app
+no longer looks for it, starts it or lists it, and the build no longer makes it. Equation pictures are read by the
+text reader (Tesseract, ML) with position rules. An old `math_addon\` folder or `config\math_results.json` left on a
+PC is never used; delete them.
 
 **docTR second reader (v2.1.0+).**
 - **What it is:** two ONNX models from Mindee's docTR (Paris, Apache 2.0), a DBNet text finder and a CRNN text

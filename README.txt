@@ -168,23 +168,10 @@ EQUATIONS AND SYMBOLS (from v2.0.0)
   "Equations and symbols" and "Undefined symbols" show them. Select a symbol to see its meaning and
   every equation that uses it. "TRL = 6" and "cost = $4.2M" are not treated as equations.
 
-MATH READER ADD-ON (from v2.2.0, optional)
-  Equations that are pictures can be read exactly with the math reader: IBM's Granite-Docling-258M (Apache 2.0)
-  on PyTorch, in its own program. In a test of 50 aerospace equations it read 96-98% of symbols (subscripts,
-  Greek letters, dots, fractions) where the text reader managed about 10%.
-  Install: unzip AcronymHunter_MathAddon.zip into the Stationkeeper folder, so math_addon\ sits next to
-  Stationkeeper.exe. Restart the app. (About 1.4 GB on disk. Without it, everything else works as before.)
-  Use (only the pictures you choose are read, so scans stay fast):
-  - Select one or many "Equation (picture)" rows, right-click > Read equation pictures with the math reader.
-  - Or click "Read this equation with the math reader" in the preview pane.
-  - Or Tools > Read all equation pictures.
-  About 5 seconds per small equation on a laptop CPU; whole figures take longer. A progress window shows each
-  picture and has a Stop button. Each equation becomes an Equation row with its symbols, and the OCR pieces of
-  that picture (stray "units" and "symbols") are removed. Results are saved by picture fingerprint in
-  config\math_results.json, so a picture is read only once; delete that file to forget them.
-  Security: the math reader runs only inside the same no-network Windows sandbox as Tesseract. If the sandbox
-  cannot start, it does not run. It loads IBM's model only from safetensors files, after checking every file's
-  SHA-256 (math_addon\math_models.json).
+EQUATION PICTURES (2.55.0; the math reader add-on is gone)
+  Equation pictures are read by the text reader (ML, on this PC), which learns math and unit characters (Greek,
+  operators, degrees, micro, ohm). Position rules turn smaller lowered characters into subscripts, raised ones into
+  superscripts, and a short line between text into a fraction (a/b). No generative AI is in the program.
 
 SYMBOL PICKER (from v2.3.0)
   Type Greek letters, subscripts, superscripts, math operators, accents and units without leaving the app.

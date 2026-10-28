@@ -308,15 +308,6 @@ def _find_doctr():
 DOCTR_DIR = _find_doctr()
 EDITION_NAME = "US Classic (Tesseract only)" if not DOCTR_DIR else "US (Tesseract + docTR second reader)"
 
-def _find_math():
-    """Math reader add-on folder (math_addon folder next to the app, from AcronymHunter_MathAddon.zip). None = not installed."""
-    for d in (os.environ.get("AH_MATH_DIR", ""), os.path.join(BASE_DIR, "math_addon"), os.path.join(BASE_DIR, "dist_math", "math_addon")):
-        if d and os.path.isfile(os.path.join(d, "AcronymHunterMath.exe")) and os.path.isfile(os.path.join(d, "math_models.json")):
-            return d
-    return None
-
-MATH_DIR = _find_math()
-MATH_CACHE_FILE = os.path.join(BASE_DIR, "config", "math_results.json")   # picture fingerprint -> equations read
 SP.set_storage(os.path.join(BASE_DIR, "config", "symbol_recent.json"))     # the symbol picker's "Recent" row
 OCR_BACKEND = os.environ.get("AH_OCR_ENGINE") or ("tesseract" if TESS_DIR else "rapidocr")
 
@@ -582,22 +573,11 @@ def _build_ocr_configured():
         OCR_MODEL_INFO = "bundled PP-OCRv4 (custom model failed to load; see the logs folder)"
     return engine
 
-# ---- AI and ML switch (2.12.0): per effort, on by default. Off = no trained model runs at all. ----
-_AIML = {"on": True}
-
+# 2.55.0: no AI and ML switch. Picture reading (ML) always runs; there is no generative AI in the app.
 def ai_ml_on():
-    return _AIML["on"]
-
-def set_ai_ml(on):
-    _AIML["on"] = bool(on)
-
-def math_available():
-    """The math reader add-on is installed and AI and ML are on."""
-    return bool(MATH_DIR) and ai_ml_on()
+    return True
 
 def get_ocr():
-    if not ai_ml_on():
-        raise RuntimeError("AI and ML are off for this effort, so text inside pictures is not read.")
     global _ocr_engine
     with _ocr_lock:
         if _ocr_engine is None:
@@ -793,11 +773,8 @@ def _models_allowed():
             _allow_models.append(True)
     return _allow_models[0]
 
-if not _models_allowed():
-    MATH_DIR = None
-
 def doctr_active():
-    if not _models_allowed() or not ai_ml_on():
+    if not _models_allowed():
         return False
     return bool(DOCTR_DIR) and OCR_BACKEND == "tesseract" and bool(int(OCR_CFG.get("doctr_enabled", 1))) and not _doctr_failed[0]
 
@@ -894,101 +871,6 @@ def _doctr_extra(image_bytes, tess_lines, clean_shape):
             seen.add(ln_txt); out.append(ln_txt)
     return "\n".join(out)
 
-# ---------------------------------------------------------------------------
-# Math reader add-on (IBM Granite-Docling on PyTorch, in its own program, inside the no-network sandbox)
-# ---------------------------------------------------------------------------
-_math_cache = None
-
-def math_cache():
-    global _math_cache
-    if _math_cache is None:
-        try:
-            _math_cache = json.load(open(MATH_CACHE_FILE, encoding="utf-8"))
-        except Exception:
-            diag.swallowed()
-            _math_cache = {}
-    return _math_cache
-
-def save_math_cache():
-    try:
-        tmp = MATH_CACHE_FILE + ".tmp"
-        json.dump(math_cache(), open(tmp, "w", encoding="utf-8"), ensure_ascii=False)
-        os.replace(tmp, MATH_CACHE_FILE)
-    except Exception:
-        log_error("Could not save math_results.json")
-
-def math_info():
-    if not MATH_DIR:
-        return "not installed (AcronymHunter_MathAddon.zip adds it)"
-    try:
-        man = json.load(open(os.path.join(MATH_DIR, "math_models.json"), encoding="utf-8"))
-        return f"installed: {man.get('model', 'Granite-Docling')}; runs only in the no-network sandbox"
-    except Exception as e:
-        diag.swallowed()
-        return f"damaged ({type(e).__name__})"
-
-def run_math_reader(items, on_status, on_result, cancel):
-    """items: [(id, png bytes)]. Calls on_result(id, formulas, cached, seconds) as each picture is read.
-    Cached pictures return at once. The add-on program runs ONLY inside the AppContainer sandbox (no network);
-    if the sandbox cannot start, nothing runs."""
-    cache = math_cache()
-    todo = []
-    for pid, png in items:
-        key = hashlib.sha1(png).hexdigest()
-        if key in cache:
-            on_result(pid, cache[key], True, 0.0)
-        else:
-            todo.append((pid, png, key))
-    if not todo:
-        return
-    if not MATH_DIR:
-        raise RuntimeError("The math reader add-on is not installed.")
-    if not ai_ml_on():
-        raise RuntimeError("AI and ML are off for this effort, so the math reader does not run.")
-    import sandbox
-    work = os.path.join(BASE_DIR, "training_data", "math_work")
-    try:
-        sandbox.grant(MATH_DIR, write=False)
-        sandbox.grant(work, write=True)
-    except Exception as e:
-        diag.swallowed()
-        raise RuntimeError(f"The math reader runs only inside the no-network sandbox, and the sandbox could not start: {e}")
-    keys = {pid: key for pid, _png, key in todo}
-    # Windows gives a sandboxed program its own temp folder (LOCALAPPDATA\Packages\<sandbox>\AC\Temp) based on these
-    # variables, so they keep their real values. Model caches point at the one folder the sandbox may write.
-    env = {k: os.environ[k] for k in ("SystemRoot", "SystemDrive", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE", "OS",
-                                      "LOCALAPPDATA", "APPDATA", "USERPROFILE", "HOMEDRIVE", "HOMEPATH") if k in os.environ}
-    env.update({"HF_HOME": work, "TORCH_HOME": work, "XDG_CACHE_HOME": work,
-                "PATH": os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32")})
-    payload = json.dumps({"items": [{"id": pid, "png": base64.b64encode(png).decode("ascii")} for pid, png, _k in todo],
-                          "threads": os.cpu_count() or 4}).encode("utf-8")
-    errors = []
-    def line(b):
-        try:
-            obj = json.loads(b.decode("utf-8", "replace"))
-        except Exception:
-            diag.swallowed()
-            return
-        if obj.get("ready"):
-            on_status(f"Math reader ready ({obj.get('load_sec')} s to load)")
-        elif "error" in obj and "id" not in obj:
-            errors.append(obj["error"])
-        elif "id" in obj:
-            forms = obj.get("formulas", []) if "error" not in obj else []
-            if "error" not in obj:
-                cache[keys.get(obj["id"], "")] = forms
-            on_result(obj["id"], forms, False, float(obj.get("sec", 0)))
-    exe = os.path.join(MATH_DIR, "AcronymHunterMath.exe")
-    try:
-        code, _out, err = sandbox.run([exe], payload, timeout=180 + 150 * len(todo), env=env, cwd=MATH_DIR,
-                                      on_line=line, cancel=cancel)
-    finally:
-        save_math_cache()
-    if errors:
-        raise RuntimeError("Math reader: " + errors[0])
-    if code != 0:
-        raise RuntimeError("Math reader stopped: " + err.decode("utf-8", "replace").strip()[-300:])
-
 def _ocr_raw(image_bytes):
     clean_img = enhance_image_for_ocr(image_bytes)
     if clean_img is None:
@@ -1041,9 +923,6 @@ def read_image_bytes(image_bytes, page=False):
     if getattr(_typed_only, "on", False) and not (page and getattr(_typed_only, "pages", False)):
         return ""
     _OCR_CALLS[0] += 1                 # the file has pictures: its saved results depend on the picture reader
-    if not ai_ml_on():
-        note_skip("AI and ML off", "AI and ML are off for this effort, so text inside pictures and scanned pages was not read.")
-        return ""
     key = hashlib.sha1(image_bytes).hexdigest()
     if key not in _OCR_CACHE:
         try:
@@ -1850,8 +1729,6 @@ def parse_client_text(text):
 def client_list_pictures(path):
     """Text of a scanned PDF list or a picture of a list, read with the picture reader (2.28.0). '' when AI and ML are
     off for this effort or the file has no pictures to read."""
-    if not ai_ml_on():
-        return ""
     ext = os.path.splitext(path)[1].lower()
     texts = []
     if ext in CLIENT_IMAGE_EXTS:
@@ -2555,8 +2432,6 @@ def ocr_signature():
         except Exception:
             diag.swallowed()
             dsig = "doctr"
-    if not ai_ml_on():
-        return _sha12(["ai_ml_off"])       # pictures were skipped: turning AI and ML back on re-reads them
     return _sha12([OCR_BACKEND, OCR_CFG, models, sorted(_OCR_IGNORE), dsig])
 
 def engine_signature(weak=()):
@@ -3722,7 +3597,7 @@ class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMix
         if not TRAINING_APP:                      # Stationkeeper: corrections go to the training team (2.15.0)
             return self._send_banner()
         import tess_train
-        show = trainer_available() and OCR_BACKEND == "tesseract" and ai_ml_on()   # ML: hidden while AI and ML are off
+        show = trainer_available() and OCR_BACKEND == "tesseract"
         n, new = self.training_state() if show else (0, 0)
         if self._training:
             self.lbl_banner.configure(text="Improving the reader in the background (see the Improve Reading window)...")
@@ -4005,10 +3880,6 @@ class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMix
     def open_improve(self):
         """One window, one action: teach the reader from the saved corrections, test it, and apply it if it reads better."""
         diag.activity("improve_reading_opened")
-        if not ai_ml_on():
-            messagebox.showinfo("Improve Reading", "AI and ML are off for this effort. Improve Reading trains the picture reader "
-                                "(ML), so it is off too. Turn AI and ML on in the top bar to use it.")
-            return
         import tess_train
         if getattr(self, "improve_win", None) is not None and self.improve_win.winfo_exists():
             self.improve_win.lift(); self.improve_win.focus(); return
@@ -4141,14 +4012,6 @@ class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMix
         self.tree.focus(iid)
         menu = tk.Menu(self, tearoff=0)
         menu.add_command(label="Details...", command=self.show_details)
-        pics_sel = [k for k in self.tree.selection() if self.results.get(k, {}).get("category") == "Equation (picture)"]
-        if pics_sel:
-            if math_available():
-                menu.add_command(label=f"Read equation picture{'s' if len(pics_sel) > 1 else ''} with the math reader ({len(pics_sel)})",
-                                 command=lambda: self.read_equations(pics_sel))
-            else:
-                menu.add_command(label="Read equation pictures (math add-on not installed)" if not MATH_DIR else
-                                 "Read equation pictures (Gen AI: off for this effort)", state="disabled")
         if trainer_available():
             pics = self.picture_locations(iid)
             if len(pics) == 1:
@@ -4209,7 +4072,7 @@ class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMix
     def show_tools_menu(self, menu=None):
         m = menu or self.tools_menu
         m.delete(0, "end")
-        ml = "normal" if ai_ml_on() else "disabled"
+        ml = "normal"
         if trainer_available() and OCR_BACKEND == "tesseract":
             m.add_command(label="Improve Reading (teach the reader your corrections) [ML]...", command=self.open_improve, state=ml)
         if trainer_available():
@@ -4220,9 +4083,6 @@ class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMix
         m.add_command(label=("Knowledge (share with your team, install, undo)..." if TRAINING_APP else
                              "Knowledge Packs (install the training team's reader, undo)..."), command=self.open_knowledge)
         m.add_command(label="Full Text (all typed and picture text, save as .txt)...", command=self.open_fulltext)
-        m.add_command(label="Read all equation pictures (math add-on) [Gen AI]..." if MATH_DIR else "Read all equation pictures (math add-on not installed)",
-                      command=lambda: self.read_equations([k for k, d in self.results.items() if d.get("category") == "Equation (picture)"]),
-                      state="normal" if math_available() else "disabled")
         m.add_command(label="What runs where (AI and ML)...", command=self.show_what_runs)
         m.add_command(label="How it works (guide, F1)...", command=lambda: (diag.activity("guide_opened"), HG.open_guide(self)))
         m.add_command(label="Feedback: bug, improvement or idea (Ctrl+Shift+F)...", command=lambda: FB.open_feedback(self))
@@ -4235,160 +4095,6 @@ class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMix
                           command=self.toggle_preview)
         if menu is None:
             m.tk_popup(self.btn_tools.winfo_rootx() + self.btn_tools.winfo_width(), self.btn_tools.winfo_rooty())
-
-    # ---------- math reader (add-on) ----------
-    def _picture_png(self, loc):
-        """PNG bytes of the picture at a location label (same loaders as the preview pane)."""
-        import pictures as tg
-        path = self.path_for(_file_of(loc))
-        if not path:
-            return None
-        srcs = tg.list_sources(path)
-        k = tg.match_source([lbl for lbl, _ in srcs], loc)
-        if k is None:
-            return None
-        img = srcs[k][1]()
-        b = io.BytesIO(); img.save(b, "PNG")
-        return b.getvalue()
-
-    def read_equations(self, keys):
-        """Read the pictures behind the selected equation-picture rows with the math reader, in the background."""
-        diag.activity("math_reader_started")
-        targets = [(k, loc) for k in keys for loc in self.results.get(k, {}).get("locations", [])]
-        if not targets:
-            messagebox.showinfo("Read equations", "No equation pictures selected."); return
-        if getattr(self, "math_win", None) is not None and self.math_win.winfo_exists():
-            self.math_win.focus(); return
-        win = ctk.CTkToplevel(self); self.math_win = win
-        win.title("Math reader"); win.geometry("520x210"); win.resizable(False, False); win.transient(self)
-        ctk.CTkLabel(win, text=f"Reading {len(targets)} equation picture(s) with the math reader.", anchor="w").pack(fill="x", padx=14, pady=(14, 2))
-        ctk.CTkLabel(win, text="Runs on this PC inside the no-network sandbox. About 5 s per small equation; whole figures take longer.",
-                     anchor="w", text_color=("#475569", "#94A3B8"), wraplength=490, justify="left").pack(fill="x", padx=14)
-        prog = ctk.CTkProgressBar(win, width=490); prog.set(0); prog.pack(padx=14, pady=10)
-        stat = ctk.CTkLabel(win, text="Starting...", anchor="w"); stat.pack(fill="x", padx=14)
-        cancel = threading.Event()
-        btn = ctk.CTkButton(win, text="Stop", width=90, fg_color="#DC2626", command=cancel.set); btn.pack(pady=10)
-        win.protocol("WM_DELETE_WINDOW", lambda: (cancel.set(), win.destroy()))
-        m = build_matcher()
-        done = {"n": 0, "eq": 0}
-        ids = {f"{i}": t for i, t in enumerate(targets)}
-        def ui(f):
-            self.after(0, lambda: win.winfo_exists() and f())
-        def on_result(pid, formulas, cached, sec):
-            key, loc = ids[pid]
-            done["n"] += 1; done["eq"] += len(formulas)
-            self.after(0, lambda: self.apply_math_result(key, loc, formulas, m))
-            ui(lambda: (prog.set(done["n"] / len(targets)),
-                        stat.configure(text=f"{done['n']} of {len(targets)} read{' (saved result)' if cached else f' in {sec:.0f} s'}: "
-                                            f"{len(formulas)} equation(s)")))
-        def work():
-            try:
-                items = []
-                for pid, (key, loc) in ids.items():
-                    if cancel.is_set():
-                        return
-                    png = self._picture_png(loc)
-                    if png:
-                        items.append((pid, png))
-                    else:
-                        done["n"] += 1
-                ui(lambda: stat.configure(text="Loading the math reader..."))
-                run_math_reader(items, lambda t: ui(lambda: stat.configure(text=t)), on_result, cancel)
-                ui(lambda: (prog.set(1), stat.configure(text=f"Done: {done['eq']} equation(s) from {done['n']} picture(s)."),
-                            btn.configure(text="Close", fg_color="#475569", command=win.destroy)))
-            except InterruptedError:
-                ui(lambda: (stat.configure(text=f"Stopped. {done['n']} picture(s) read; results kept."),
-                            btn.configure(text="Close", fg_color="#475569", command=win.destroy)))
-            except Exception as e:
-                log_error("Math reader failed")
-                msg = f"{type(e).__name__}: {e}"
-                ui(lambda: (stat.configure(text=msg[:160]), btn.configure(text="Close", fg_color="#475569", command=win.destroy)))
-        threading.Thread(target=work, daemon=True).start()
-
-    # ---------- math reader results kept with the project or effort (2.22.0) ----------
-    def _file_stamp(self, loc):
-        path = self.path_for(_file_of(loc))
-        try:
-            st = os.stat(path)
-            return [st.st_size, int(st.st_mtime)]
-        except (OSError, TypeError):
-            return None
-
-    def math_reads(self):
-        """{picture location: {"key", "formulas", "stamp"}}: the open project's (in the .ahproj file), otherwise the
-        effort's or this PC's workspace settings."""
-        if self.project is not None and self.project.data is not None:
-            return self.project.data.setdefault("math", {})
-        return dict(self.ws.get("math_reads", {}) or {})
-
-    def _keep_math_read(self, pic_key, loc, formulas):
-        rec = {"key": pic_key, "formulas": list(formulas), "stamp": self._file_stamp(loc)}
-        if self.project is not None and self.project.data is not None:
-            if not self.project.read_only:
-                self.project.data.setdefault("math", {})[loc] = rec
-                self.save_project()
-            return
-        d = self.math_reads(); d[loc] = rec
-        if len(d) > 2000:                                  # keep the newest only
-            d = dict(list(d.items())[-2000:])
-        self.ws.set("math_reads", d)
-
-    def reapply_math_reads(self):
-        """After a scan or reopening, put back what the math reader read for pictures that are unchanged, so nobody reads
-        the same equation twice. A changed file drops its saved reads."""
-        if not ai_ml_on():
-            return 0
-        m, n = None, 0
-        for loc, rec in list(self.math_reads().items()):
-            d = self.results.get(rec.get("key"))
-            if not d or loc not in d.get("locations", []) or loc in (d.get("math_read") or {}):
-                continue
-            if rec.get("stamp") != self._file_stamp(loc):
-                continue
-            m = m or build_matcher()
-            self.apply_math_result(rec["key"], loc, rec.get("formulas", []), m, restore=True)
-            n += 1
-        return n
-
-    def apply_math_result(self, pic_key, loc, formulas, m, restore=False):
-        """Replace OCR's pieces of an equation picture with what the math reader read."""
-        if not restore:
-            try:
-                self._keep_math_read(pic_key, loc, formulas)
-            except Exception:
-                log_error("Math reader result could not be kept")
-        ocr_cats = ("Equation", "Symbol", "Unit (Candidate)", "Abbreviation (Candidate)", "Acronym (Candidate)")
-        for term in list(self.results):
-            d = self.results[term]
-            if d.get("category") in ocr_cats and not d.get("in_db") and not d.get("manual") and loc in d.get("locations", []) \
-                    and not d.get("math_reader"):
-                d["locations"].remove(loc)
-                d["count"] = max(0, d.get("count", 1) - 1)
-                if not d["locations"]:
-                    del self.results[term]
-        read_loc = loc + " (math reader)"
-        lines = []
-        for f in formulas:
-            lin, syms = EQ.latex_symbols(f)
-            if not lin:
-                continue
-            record_equation(self.results, read_loc, lin + "\t" + "|".join(syms), m)
-            key = lin if len(lin) <= 160 else lin[:157] + "..."
-            if key in self.results:
-                self.results[key]["math_reader"] = True
-                self.results[key]["latex"] = f
-            lines.append(lin)
-        summarize_equations(self.results)
-        pic = self.results.get(pic_key)
-        if pic is not None:
-            pic.setdefault("math_read", {})[loc] = lines
-            n = sum(len(v) for v in pic["math_read"].values())
-            left = [l for l in pic["locations"] if l not in pic["math_read"]]
-            pic["status"] = (f"READ BY MATH READER: {n} equation(s)" if not left
-                             else f"READ {len(pic['math_read'])} of {len(pic['locations'])} PICTURES")
-            pic["selected_definition"] = "Math reader: " + ("; ".join(l for v in pic["math_read"].values() for l in v)[:300] or "no equation found")
-        if not restore:
-            self.populate_table()
 
     # ---------- full text mode ----------
     def open_fulltext(self):
@@ -4710,10 +4416,6 @@ class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMix
     def open_trainer(self, path=None, focus=None):
         """Open the Trainer as a window of this program (same engine, same sandbox, same settings)."""
         diag.activity("trainer_opened")
-        if not ai_ml_on():
-            messagebox.showinfo("Trainer", "AI and ML are off for this effort. The Trainer reads pictures (ML), so it is off "
-                                "too. Turn AI and ML on in the top bar to use it.")
-            return
         if not trainer_available():
             messagebox.showinfo("Trainer", "Training features are turned off (config\\app_settings.json: allow_training)."); return
         import trainer_gui
@@ -5351,10 +5053,6 @@ class AcronymAppGUI(KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMix
         self.mark_known_in()               # customer docs, customer list, master database, or no source (2.14.0)
         rec = self.effort_after_scan(getattr(self, "queued_files", []) or []) if self.effort is not None else None   # 2.14.0
         dbr = self.after_db_refresh()      # a database update keeps every row and marks what changed (2.14.0)
-        try:
-            self.reapply_math_reads()      # what the math reader already read stays read (2.22.0)
-        except Exception:
-            log_error("Saved math reader results could not be put back")
         self.save_project()
         self.reset_ui()
         self.refresh_type_options()
@@ -6280,7 +5978,7 @@ def run_selftest(paths):
     with open(out, "w", encoding="utf-8") as f:
         try:
             res = analyze_batch(paths, lambda m: f.write(m + "\n"))
-            f.write(f"\nOCR models: {OCR_MODEL_INFO}\nText finder: {doctr_info()}\nMath reader: {math_info()}\nKnowledge: {knowledge_status()}\nOCR settings: {json.dumps(OCR_CFG)}\n")
+            f.write(f"\nOCR models: {OCR_MODEL_INFO}\nText finder: {doctr_info()}\nKnowledge: {knowledge_status()}\nOCR settings: {json.dumps(OCR_CFG)}\n")
             import openpyxl.xml as _oxml
             f.write(f"Security: network guard={socket.socket.connect is _guarded_connect}, "
                     f"office XML entities disabled={_SAFE_XML is not None}, openpyxl defusedxml={_oxml.DEFUSEDXML}\n")

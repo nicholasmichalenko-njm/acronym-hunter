@@ -148,13 +148,8 @@ class ComplianceMixin:
         if hasattr(self, "_cp_build_details"):
             self._cp_build_details(fr)
         lr = ctk.CTkFrame(fr, fg_color="transparent"); lr.pack(fill="x", padx=6, pady=(4, 4))
-        win.btn_learn = ctk.CTkButton(lr, text="Learn from decisions", command=self.compliance_learn, fg_color="#6D28D9", width=10)
-        win.btn_learn.pack(side="left")
-        win.team_var = tk.BooleanVar(value=bool(self.ws.get("team_learning", True)) if getattr(self, "ws", None) is not None else True)
-        win.chk_team = ctk.CTkCheckBox(lr, text="Team learning", variable=win.team_var, command=self.compliance_team_toggle, width=10)
-        win.chk_team.pack(side="left", padx=(12, 3))
-        win.lbl_ai = ctk.CTkLabel(lr, text="", font=("Segoe UI", 11))
-        win.lbl_ai.pack(side="left", padx=6)
+        win.lbl_ai = ctk.CTkLabel(lr, text="", font=("Segoe UI", 11), anchor="w", justify="left")
+        win.lbl_ai.pack(side="left", padx=0)
 
     def _c_next_step(self):
         """Where to land: Read RFP with no matrix, Structure with no outline, else Assign (2.36.0)."""
@@ -497,32 +492,22 @@ class ComplianceMixin:
         self._c_prove_refresh()
 
     def _c_learning_on(self):
-        """Learned suggestions need AI and ML on and this effort's Team learning on (2.12.0)."""
-        team = bool(self.ws.get("team_learning", True)) if getattr(self, "ws", None) is not None else True
-        return _eng().ai_ml_on() and team
+        """2.55.0: learned suggestions always run; they come from the Knowledge Packs installed on this PC (the
+        training team learns from everyone's decisions; this PC no longer learns on its own)."""
+        return True
 
     def _c_ai_state(self):
         win = self._cwin
         if win is None or not win.winfo_exists():
             return
-        on = _eng().ai_ml_on()
-        win.btn_learn.configure(state="normal" if self._c_learning_on() else "disabled")
-        win.chk_team.configure(state="normal" if on else "disabled")
-        win.lbl_ai.configure(text="Rules: No AI  |  Learned column: ML" + ("" if self._c_learning_on() else
-                             (" (off: AI and ML are off)" if not on else " (off: Team learning is off)")))
-
-    def compliance_team_toggle(self):
-        on = bool(self._cwin.team_var.get())
         try:
-            self.ws.set("team_learning", on)
+            s = self._c_learner().summary()
+            n = s.get("decisions", 0)
         except Exception:
             diag.swallowed()
-        if on:
-            diag.activity("team_learning_on")
-        else:
-            diag.activity("team_learning_off")
-        self._c_ai_state()
-        self._c_refresh()
+            n = 0
+        win.lbl_ai.configure(text="Rules: No AI  |  Learned column: ML, from the Knowledge Packs installed on this PC"
+                             + (f" ({n} team decisions)" if n else " (none installed yet: File > Install Knowledge Pack)"))
 
     def _c_learner(self):
         if getattr(self, "_learner", None) is None:
@@ -545,7 +530,7 @@ class ComplianceMixin:
     def _c_suggest(self, it, stats=None):
         """Section suggestion: the rules first (same number, title words), then the most similar rows already mapped."""
         lab, score = C.suggest_map(it, self.matrix.outline, stats or C.word_df(self.matrix.items))
-        if lab or not _eng().ai_ml_on():
+        if lab:
             return lab, score
         lab, score = CL.map_from_neighbors(it, self.matrix.items)
         if self._c_learning_on() and (not lab or score < 0.6):   # 2.30.0: where the team placed sentences like this
@@ -587,8 +572,7 @@ class ComplianceMixin:
         labels = [""] + [C.outline_label(o) for o in (M.outline if M else [])]
         win.d_map.configure(values=labels)
         try:
-            win.o_learn.configure(text=self._c_place_text() if self._c_learning_on() else
-                                  "Placement across proposals is off (AI and ML switch, or Team learning).")
+            win.o_learn.configure(text=self._c_place_text())
         except Exception:
             diag.swallowed()
         win.o_text.delete("1.0", "end")
@@ -1873,13 +1857,6 @@ class ComplianceMixin:
                     self.ws.backup(M.path, "matrix")
                 except OSError:
                     diag.swallowed()
-            try:                                     # keep learning from the decisions (hashed counts only)
-                if self._c_learning_on():
-                    L = self._c_learner()
-                    if L.learn(M.path, M.items, M.outline):
-                        L.save()
-            except Exception:
-                diag.swallowed()
         except C.Locked:
             self._c_locked = True
             ok = False
@@ -1967,34 +1944,6 @@ class ComplianceMixin:
         return info
 
     # ------------------------------------------------------------ learning (C3), merge, source page, amendment changes
-    def compliance_learn(self):
-        M = self.matrix
-        if M is None:
-            return
-        if not self._c_learning_on():
-            messagebox.showinfo("Learn from decisions", "Learning is off for this effort (AI and ML switch, or Team learning). "
-                                "Decisions stay in the matrix; nothing is learned from them.", parent=self._cwin)
-            return
-        L = self._c_learner()
-        pl = L.placer()
-        chk = pl.check(CL.Learner.source_id(M.path), M.items, M.outline) if M.outline else None
-        n = L.learn(M.path, M.items, M.outline)
-        L.save()
-        cv = CL.Learner.cross_check(M.items)
-        self._c_refresh()
-        s = L.summary()
-        diag.activity("compliance_learned", rows=n, items=s["decisions"])
-        msg = (f"Learned from {n} decisions in this matrix ({s['decisions']} decisions across {s['matrices']} matrices on this PC).\n\n"
-               "The model stores numbered word buckets and counts only, never RFP text, in config\\compliance_learned.json.")
-        if cv:
-            agree, total, rule = cv
-            msg += (f"\n\nCheck on this matrix (each row predicted by a model that did not see it): the learned model agrees with "
-                    f"your decision on {agree} of {total} rows; the rule suggestions agree on {rule} of {total}.")
-        if not L.ready():
-            msg += "\n\nThe Learned column fills in once there are at least 5 Keep and 3 Drop decisions."
-        msg += "\n\n" + self._c_place_text(chk)
-        messagebox.showinfo("Learn from decisions", msg, parent=self._cwin)
-
     def _c_place_text(self, chk=None):
         """Plain summary of placement learning across proposals and its self-check (2.30.0)."""
         pl = self._c_learner().placer()

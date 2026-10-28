@@ -666,17 +666,15 @@ PAGES = {
                                  "'no strong match'. Suggest sections uses a learned section only when it is a clear leader. "
                                  "Suggestions start after 30 placed rows; most help comes after 5 to 10 proposals. Older "
                                  "matrices count less (half after two years)."),
-              ("Self-check", "Learn from decisions scores this matrix using only what the other matrices taught: how often "
-                             "your section was in the top 3. The Outline tab shows the result and earlier checks, so you can "
-                             "see whether it is getting better."),
               ("Synonyms", "Section word synonyms... (Outline tab) is the team's list of words that mean the same in "
                            "section titles, one group per line (solution, approach, methodology). It travels in Knowledge "
                            "Packs. Like the Keep and Drop learning, it stores numbered word buckets and counts, never RFP "
                            "or outline text."),
               ("Merge", "Select two or more rows and press M (or Merge) to join a requirement that the rules split."),
-              ("Learned", "The app learns from your Keep and Drop decisions (Learn from decisions, and after every save). The Learned "
-                          "column shows how likely the team is to keep a row; Accept suggestions uses it once it has enough decisions. "
-                          "It stores numbered word buckets and counts, never RFP text, and travels in Knowledge Packs."),
+              ("Learned", "The Learned column shows how likely the team is to keep a row; Accept suggestions uses it once it "
+                          "has enough decisions. It comes from the Knowledge Packs installed on this PC: the training team "
+                          "learns from everyone's decisions (File > Send training data) and ships the result. It stores "
+                          "numbered word buckets and counts, never RFP text."),
               ("Source page", "Original layout opens a PDF row's page with every sentence boxed (see above). Open file opens any source document."),
               ("Amendments", "Re-read RFP keeps decisions, mapping and notes for unchanged sentences. Amendment changes pairs changed "
                              "sentences and shows the word differences: [-removed-] {+added+}; export it to Excel."),
@@ -776,14 +774,13 @@ PAGES = {
     ("h", "Equations and symbols"),
     ("p", "Typed equations are read automatically. Their symbols (Isp, g₀, Δv) are listed as Symbols, with the "
           "definition when the document gives one."),
-    ("h", "Math reader (optional add-on)"),
-    ("img", "math.png", 440),
-    ("rows", [("What", "Reads an equation picture and writes out the whole equation, 96-98% of symbols right."),
-              ("How", "Click an Equation (picture) row, then Read this equation with the math reader. "
-                      "Select several rows and right-click to read them all."),
-              ("When", "Pictures of equations. Without it, the scanner reads them as loose letters."),
-              ("Speed", "About 5 seconds per small equation. Results are remembered."),
-              ("Install", "Unzip AcronymHunter_MathAddon.zip next to the app. It runs only in the no-network sandbox.")]),
+    ("h", "Equation pictures"),
+    ("rows", [("How", "The text reader (ML) reads the characters, including Greek letters and math signs; position rules "
+                      "turn smaller lowered characters into subscripts, raised ones into superscripts, and a short line "
+                      "between text into a fraction (a/b)."),
+              ("Check", "Click an Equation (picture) row to see the picture. Report misreading fixes a wrong symbol now, on "
+                        "this PC, and sends it to the training team, so the next Knowledge Pack reads it right everywhere."),
+              ("No generative AI", "Nothing writes the equation out; every symbol is a character the reader recognized.")]),
 ],
 "Sharing": [
     ("h", "Work as a team"),
@@ -791,7 +788,10 @@ PAGES = {
                                  "compliance and keyword learning, banned words) in one .skknow file, with the tests it passed. "
                                  "Double-click it or File > Install Knowledge Pack...; Undo (Advanced > Reading, training and "
                                  "knowledge > Knowledge...) puts the previous state back."),
-              ("Corrections", "Advanced > Reading, training and knowledge > Send corrections to the training team. Your lessons for the training team, in one file."),
+              ("Training data", "File > Send training data to the training team...: one .sktrain file with what this PC "
+                                "taught (misreadings and fixes, compliance decisions, sections, compliance words, choices). "
+                                "New since the last send by default. Sentence text is an option, off until you tick it, "
+                                "with a warning to read and accept each time."),
               ("Where", "Your approved local SharePoint folder only. Never GitHub, email or USB."),
               ("Client Lists", "Load the client's own acronym list (a file, a picture of one, or Paste or type...), then "
                                "confirm the terms found. Its definitions win over the database."),
@@ -805,7 +805,7 @@ PAGES = {
               ("Logs", "The app also logs errors and which controls are clicked, by internal name only. "
                        "No file names, terms or document text, ever.")]),
     ("h", "Good team habit"),
-    ("p", "Everyone reports misreadings and sends corrections. The training team runs Stationkeeper Training, ships a "
+    ("p", "Everyone fixes misreadings and sends training data. The training team runs Stationkeeper Training, ships a "
           "Knowledge Pack, and everyone installs it. The whole team gets the better reader."),
 ],
 "AI and ML": [
@@ -815,21 +815,16 @@ PAGES = {
     ("table", [["Label", "Meaning", "Examples"],
                ["No AI", "Fixed rules, counting and file reading. Same input, same output.", "Typed text, Effort list, volume check, compliance rules"],
                ["ML", "A trained model that recognizes or scores. Outputs letters, boxes or numbers, never sentences.",
-                "Text in pictures (Tesseract, docTR), learned compliance suggestions, Improve Reading"],
-               ["Gen AI", "A model that writes text. Separate add-on, runs in the no-network sandbox.", "Math reader add-on"]]),
+                "Text in pictures and equation pictures (Tesseract, docTR), learned compliance suggestions, Improve Reading"]]),
     ("img", "stack.png", 380),
-    ("h", "The AI and ML switch"),
-    ("rows", [("Where", "Top right of the window. The ? next to it explains AI vs ML."),
-              ("Per effort", "Each effort keeps its own setting. New efforts start with AI and ML on."),
-              ("Off", "Every ML and Gen AI part stops: the model code refuses to run, and its buttons grey out. Typed text in "
-                      "Word, PowerPoint, Excel and PDFs is still read. Text inside pictures and scanned pages is not."),
-              ("Logged", "Each change goes into the effort list's History sheet (date, Windows user, setting) and the usage "
-                         "log (the effort appears as a number, never its name)."),
-              ("Team learning", "Compliance > Prove. Off: this effort's decisions are not learned and the Learned column "
-                                "stays empty. AI and ML off turns it off too.")]),
+    ("h", "No generative AI"),
+    ("rows", [("None", "Nothing in Stationkeeper writes text. The optional math reader add-on (a generative model) is gone "
+                       "since 2.55.0; equation pictures are read by the text reader with position rules."),
+              ("Always on", "Picture reading and the learned suggestions run on this PC, with no network. There is no switch "
+                            "to turn them off; nothing they do leaves the PC.")]),
     ("h", "For your security team"),
     ("p", "Help > What runs where lists every part and saves a one-page summary to hand to reviewers. The line at the "
-          "bottom of the window always shows the effort and whether AI and ML are on."),
+          "bottom of the window always shows the effort and that there is no generative AI."),
     ("img", "whatruns.png", 520),
 ],
 }

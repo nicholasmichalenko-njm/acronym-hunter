@@ -1,11 +1,9 @@
-"""AI and ML labels and switch (2.12.0).
+"""What runs each part (2.12.0; 2.55.0 no switch, no generative AI).
 
-- Every sidebar section header shows what runs it: No AI, ML or Gen AI, with a ? that lists the parts and their jobs.
-- The top bar holds the AI and ML switch for the open effort (on by default, no restriction). Off turns off every ML and
-  Gen AI part: text in pictures (Tesseract, docTR), learned compliance suggestions, Improve Reading, the math reader.
-  The model code refuses to run while it is off; buttons are greyed so the state is visible.
-- Each change is recorded in the effort list's History sheet and in the usage log (by a number, never the effort name).
-- A line at the bottom of the window always shows: offline, the effort, AI and ML on or off.
+- Every sidebar section header shows what runs it: No AI or ML, with a ? that lists the parts and their jobs.
+- 2.55.0: the AI and ML switch is gone. Picture reading and the learned suggestions (ML, on this PC) always run; there
+  is no generative AI anywhere in the app. The top bar keeps a ? that explains rules and ML.
+- A line at the bottom of the window always shows: offline, the effort, no generative AI.
 - Help > What runs where lists every part and saves a one-page summary for the security team.
 """
 import hashlib, os
@@ -17,8 +15,7 @@ import diag
 
 BADGE = {"none": (("#E2E8F0", "#334155"), ("#334155", "#E2E8F0")),
          "ml": (("#DBEAFE", "#1E3A5F"), ("#1D4ED8", "#BFDBFE")),
-         "gen": (("#EDE9FE", "#3B2A5C"), ("#6D28D9", "#DDD6FE")),
-         "off": (("#F1F5F9", "#1E293B"), ("#94A3B8", "#64748B"))}
+}
 
 
 def _eng():
@@ -55,15 +52,11 @@ class AIMixin:
         return row
 
     def ai_init(self):
-        """The switch in the top bar, its ?, and the always-visible state line at the bottom of the window."""
+        """The ? in the top bar and the always-visible state line at the bottom of the window."""
         bar = self.topbar_right
-        self.ai_var = tk.BooleanVar(value=True)
         ctk.CTkButton(bar, text="?", width=24, height=24, corner_radius=12, font=("Segoe UI", 11, "bold"),
                       fg_color=("#CBD5E1", "#334155"), hover_color=("#94A3B8", "#475569"), text_color=("#0F172A", "#F1F5F9"),
                       command=self.show_ai_difference).pack(side="right", padx=(6, 0), pady=5)
-        self.sw_ai = ctk.CTkSwitch(bar, text="AI and ML on", variable=self.ai_var, command=self.toggle_ai_ml,
-                                   onvalue=True, offvalue=False, progress_color="#0F766E")
-        self.sw_ai.pack(side="right", pady=5)
         sb = getattr(self, "statusbar", None)          # one status line (2.32.0): the state sits at its right end
         self.lbl_aistate = ctk.CTkLabel(sb or self.main, text="", font=("Segoe UI", 11), anchor="e", text_color=("#475569", "#94A3B8"))
         if sb is not None:
@@ -73,67 +66,13 @@ class AIMixin:
 
     # ------------------------------------------------------------ state
     def ai_load_for_workspace(self):
-        """Read the open effort's setting (default on) and apply it."""
-        on = True
-        try:
-            on = bool(self.ws.get("ai_ml", True))
-        except Exception:
-            diag.swallowed()
-        self.ai_var.set(on)
-        self.ai_apply()
-
-    def toggle_ai_ml(self):
-        on = bool(self.ai_var.get())
-        try:
-            self.ws.set("ai_ml", on)
-        except Exception:
-            diag.swallowed()
-        name = self.effort.name if self.effort is not None else ""
-        if on:
-            diag.activity("ai_ml_turned_on", effort_code=effort_code(name))
-        else:
-            diag.activity("ai_ml_turned_off", effort_code=effort_code(name))
-        if self.effort is not None:            # the effort list's History sheet: date, Windows user, setting
-            self.effort._hist("(setting)", "AI and ML turned " + ("on" if on else "off"))
-            self._save_effort_list()
-        self.ai_apply()
-        self.status.configure(text=("AI and ML are on" if on else "AI and ML are off") +
-                              (f" for {name}." if name else " for scans with no effort.") +
-                              ("" if on else " Typed text is still read; text inside pictures and scans is not."))
-
-    def ai_apply(self):
-        eng = _eng()
-        on = bool(self.ai_var.get())
-        eng.set_ai_ml(on)
-        self.sw_ai.configure(text="AI and ML on" if on else "AI and ML off")
-        for b, cls in getattr(self, "_ai_badges", []):
-            if cls == "none":
-                continue
-            look = BADGE["off"] if not on else BADGE[cls]
-            b.configure(text=S.LABELS[cls] + ("" if on else " off"), fg_color=look[0], text_color=look[1])
-        st = "normal" if on else "disabled"
-        for w in (getattr(self, "btn_improve_top", None), getattr(self, "btn_improve", None)):
-            if w is not None:
-                try:
-                    w.configure(state=st)
-                except Exception:
-                    diag.swallowed()
-        cw = getattr(self, "_cwin", None)
-        if cw is not None and cw.winfo_exists():
-            self._c_ai_state()
-            self._c_refresh()
-        if getattr(self, "preview", None) is not None and hasattr(self.preview, "ai_state"):
-            self.preview.ai_state(on)
+        """Nothing to switch since 2.55.0; refresh the state line for the open effort."""
         self.ai_state_line()
 
     def ai_state_line(self):
-        eng = _eng()
-        on = eng.ai_ml_on()
         who = self.effort.name if getattr(self, "effort", None) is not None else "no effort"
-        gen = "math reader add-on installed (runs only when you click it)" if eng.MATH_DIR else "no generative AI installed"
-        self.lbl_aistate.configure(text=f"Offline: nothing leaves this PC   |   Effort: {who}   |   AI and ML: "
-                                        + ("on" if on else "off (rules only; text in pictures not read)")
-                                        + f"   |   {gen}" + self._master_bit())
+        self.lbl_aistate.configure(text=f"Offline: nothing leaves this PC   |   Effort: {who}   |   No generative AI"
+                                        + self._master_bit())
 
     def _master_bit(self):
         try:
@@ -174,13 +113,11 @@ class AIMixin:
         title, classes, parts = S.FEATURES[key]
         rows = [(p, j, c) for p, j, c in parts if eng.DOCTR_DIR or "docTR via" not in p]
         foot = "Runs on this PC. No network."
-        if not eng.ai_ml_on() and any(c != "none" for c in classes):
-            foot += "  AI and ML are off for this effort: the ML and Gen AI parts are not running."
         return self._panel(f"What runs {title}", rows, foot)
 
     def show_ai_difference(self):
         diag.activity("ai_difference_opened")
-        return self._panel("AI and ML: the difference", [(a, b, "") for a, b in S.DIFFERENCE], "Both run only on this PC. No network.")
+        return self._panel("Rules and ML: the difference", [(a, b, "") for a, b in S.DIFFERENCE], "Everything runs only on this PC. No network.")
 
     COMPONENTS = (("Python", None, "The language the program is written in; its runtime ships inside the program."),
                   ("customtkinter", "customtkinter", "The windows, buttons and lists (on Tcl/Tk, which ships with Python)."),
@@ -208,7 +145,7 @@ class AIMixin:
                         continue                     # only with the docTR add-on
             rows.append((f"{name} {ver}".strip(), what, ""))
         rows.append(("Our own code", "Everything else: the rules for acronyms, compliance, submission requirements, the effort "
-                                     "record. Written for this program; no AI writes anything in Core.", ""))
+                                     "record. Written for this program; no AI writes anything, and there is no generative AI.", ""))
         return self._panel("What Stationkeeper is built on", rows,
                            "Every part with its license and fingerprint: the SBOM file published with each release.")
 
@@ -218,9 +155,6 @@ class AIMixin:
         eng = _eng()
         rows = []
         for key, (title, classes, parts) in S.FEATURES.items():
-            if key == "math" and not eng.MATH_DIR:
-                rows.append((title, "Not installed.", "gen"))
-                continue
             for p, j, c in parts:
                 if "docTR via" in p and not eng.DOCTR_DIR:
                     continue
@@ -234,7 +168,7 @@ class AIMixin:
             if not p:
                 return
             with open(p, "w", encoding="utf-8") as f:
-                f.write(S.summary_text(eng.APP_VERSION, eng.EDITION_NAME, bool(eng.MATH_DIR), bool(eng.DOCTR_DIR)))
+                f.write(S.summary_text(eng.APP_VERSION, eng.EDITION_NAME, bool(eng.DOCTR_DIR)))
             diag.activity("ai_summary_saved")
             messagebox.showinfo("What runs where", f"Saved:\n{p}", parent=win)
         ctk.CTkButton(win, text="Save summary for security...", command=save).pack(anchor="w", padx=14, pady=(0, 12))

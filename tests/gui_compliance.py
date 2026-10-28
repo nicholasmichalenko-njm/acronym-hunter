@@ -69,9 +69,8 @@ def wait():
                  and t2["map"] == "1.1 Thermal Design" and t2["owner"] == "J. Smith" and "1.1 Thermal Design" in xml
                  and M.counts()[""] == 3 and len(drops) == 2 and not any(it["map"] == "Volume I - Technical" for it in M.items))
     # 2.10.0: learn, merge, source page, amendment changes
-    app.compliance_learn()
-    print("learn said:", said[-1][:90].replace("\n", " "))
-    learned_ok = "Learned from" in said[-1] and os.path.isfile(os.path.join(A.CONFIG_DIR, "compliance_learned.json"))
+    L = app._c_learner(); L.learn(M.path, M.items, M.outline); L.save()      # 2.55.0: learning arrives in Knowledge Packs
+    learned_ok = not hasattr(app, "compliance_learn") and os.path.isfile(os.path.join(A.CONFIG_DIR, "compliance_learned.json"))
     a_ = next(it for it in M.items if it["text"].startswith("(a) identify")); b_ = next(it for it in M.items if it["text"].startswith("(b) describe"))
     tv.selection_set((a_["id"], b_["id"])); win.update(); app.compliance_merge(); win.update()
     merged_ok = not any(it["id"] == b_["id"] for it in M.items) and "(b) describe" in a_["text"]

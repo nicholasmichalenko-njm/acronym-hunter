@@ -18,15 +18,10 @@ def run():
     sentence = "The Ground Support Equipment (GSE) arrives first. The team meets weekly."
     assert P(sentence) == {"GSE": "Ground Support Equipment"}, P(sentence)
     assert A.parse_client_text("") == [] and A.parse_client_text("just some words here") == []
-    # a picture of a list goes through the picture reader; with AI and ML off nothing is read
+    # a picture of a list goes through the picture reader (2.55.0: always on); pictures=False skips it
     d = tempfile.mkdtemp()
     from PIL import Image
     png = os.path.join(d, "list.png"); Image.new("RGB", (200, 60), "white").save(png)
-    A.set_ai_ml(False)
-    try:
-        assert A.parse_client_list(png) == [] and A.client_list_pictures(png) == ""
-    finally:
-        A.set_ai_ml(True)
     assert A.parse_client_list(png, pictures=False) == []
 
     # the response structure from the sample RFP

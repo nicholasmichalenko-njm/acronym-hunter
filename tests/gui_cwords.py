@@ -117,6 +117,5 @@ def go():
     app.after(200, app.destroy)
 
 
-A.set_ai_ml(True)
 app.after(800, go)
 app.mainloop()

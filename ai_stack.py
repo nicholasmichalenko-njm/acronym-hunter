@@ -4,23 +4,21 @@ and the one-page summary for the security team.
 Labels:
   none  No AI   fixed rules, counting and file reading; the same input always gives the same output
   ml    ML      a trained model on this PC that recognizes characters or scores rows; outputs letters, boxes or numbers
-  gen   Gen AI  a model that writes text; separate add-on, runs in the no-network sandbox
 
-The AI and ML switch (per effort) turns off every ml and gen part. A build test checks that each sidebar section and
+2.55.0: no generative AI anywhere (the math reader add-on is gone) and no AI and ML switch. A build test checks that each sidebar section and
 labeled feature has an entry here.
 """
 
-LABELS = {"none": "No AI", "ml": "ML", "gen": "Gen AI"}
+LABELS = {"none": "No AI", "ml": "ML"}
 
 DIFFERENCE = [
+    ("Rules (No AI)", "Fixed rules, counting and file reading: the same input always gives the same output. Finding "
+                      "acronyms, compliance sentences, sections, the matrix and the setup all run on rules."),
     ("ML (machine learning)", "A trained model that recognizes or scores things: letters in a picture, how likely your team "
                               "keeps a row. It outputs letters, boxes or numbers, never sentences."),
-    ("AI (generative AI)", "A model that writes text, like the math reader writing out an equation."),
-    ("Where they run", "Both run only on this PC, with no network."),
-    ("Why the switch turns off both", "Both give results learned from training data rather than fixed rules. With the switch "
-                                      "off, every result comes from rules you can trace."),
-    ("With the switch off", "Typed text in Word, PowerPoint, Excel and PDFs is still read everywhere. Text inside pictures "
-                            "and scanned pages is not, and the learned compliance suggestions and add-ons are off."),
+    ("No generative AI", "Nothing in Stationkeeper writes text. Equation pictures are read by the trained text reader with "
+                         "position rules, not by a model that writes."),
+    ("Where they run", "Everything runs only on this PC, with no network."),
 ]
 
 # key: (title, [label classes shown], [(part, job, class)])
@@ -78,11 +76,6 @@ FEATURES = {
         ("docTR Training Kit (PyTorch, separate download)", "Optional; trains the second reader on this PC's GPU, offline",
          "ml"),
     ]),
-    "math": ("Math reader add-on", ["gen"], [
-        ("Granite-Docling (IBM, Apache 2.0)", "Generative model that writes an equation picture out as text", "gen"),
-        ("Windows AppContainer sandbox", "Runs it with no network and no file access beyond its job", "gen"),
-        ("Separate download", "Shown only when the add-on is installed; runs only when you click it", "gen"),
-    ]),
 }
 
 SIDEBAR_SECTIONS = {"SCAN": "scan", "REVIEW": "review", "EFFORT": "effort", "COMPLIANCE": "compliance", "EXPORT": "export",
@@ -93,24 +86,19 @@ def classes_of(key):
     return FEATURES[key][1]
 
 
-def summary_text(version, edition, math_installed, doctr_installed):
+def summary_text(version, edition, doctr_installed):
     """Plain one-page summary for the security team (Help > What runs where > Save summary)."""
     out = [f"Stationkeeper {version} ({edition}): what runs each part", "",
            "Everything runs on this PC. The program makes no network connections.", "",
            "Labels", "  No AI   fixed rules, counting and file reading",
            "  ML      trained model that recognizes characters or scores rows; outputs letters, boxes or numbers, never sentences",
-           "  Gen AI  model that writes text; separate add-on in the no-network sandbox", "",
-           "The AI and ML switch (top bar, per effort, on by default) turns off every ML and Gen AI part. Each change is",
-           "recorded in the effort list's History sheet (date, Windows user, setting) and in the usage log (no names).", ""]
+           "", "No generative AI: nothing in the program writes text.", ""]
     for key, (title, classes, parts) in FEATURES.items():
-        if key == "math" and not math_installed:
-            out += [f"{title}: not installed", ""]
-            continue
         out.append(f"{title}  [{' + '.join(LABELS[c] for c in classes)}]")
         for part, job, cls in parts:
             if "docTR via" in part and not doctr_installed:
                 continue
             out.append(f"  - {part} ({LABELS[cls]}): {job}")
         out.append("")
-    out += ["AI and ML: the difference"] + [f"  - {a}: {b}" for a, b in DIFFERENCE]
+    out += ["Rules and ML: the difference"] + [f"  - {a}: {b}" for a, b in DIFFERENCE]
     return "\n".join(out) + "\n"
