@@ -1,6 +1,25 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+HOW THE RESPONSE STRUCTURE STARTS, AND RFPS WITHOUT SECTIONS L AND M (2.69.0)
+  - Read RFP asks how the structure starts: Choose after reading (the default when no outline was typed for the
+    effort), What the RFP prescribes, The RFP's headings, The outline typed for this effort, or Blank.
+  - What the RFP prescribes: the volumes it names in its headings or text (Volume 2 - Price Proposal, TECHNICAL
+    VOLUME), the sections under each volume heading, and any list after "shall be organized as follows:". Structure
+    shows where each part came from; edit it, then Apply. Nothing depends on the RFP using Sections L and M.
+  - Structure: What the RFP prescribes, RFP headings from one document or all (any numbering), RFP outline, Word
+    outline, Blank. Indented lines are subsections, so sections under a volume keep their place.
+  - Assign: Copy RFP section puts the RFP section of the selected sentence (and its subsections, if you want) under
+    the target, titled as the RFP titles it. Its requirements with no section yet go into it, and its other sentences
+    suggest it. Rename or move it to say it your way.
+  - L and M are our labels (Shipley); most RFPs do not use them. Stationkeeper suggests one from a Section L or M
+    number, the RFP section's title (Proposal Preparation Instructions, Evaluation Criteria, Basis for Award), the
+    sentence's wording (the Offeror shall describe... / the Government will evaluate...) and the document type, and
+    says why on the card. SOW, PWS and SOO work gets no suggestion. A suggestion goes into the matrix only once you
+    set it (Section L or M numbering counts as set). A requirement with no L or M is fine: its reference is R-4.2.1.
+  - Sections made in Assign keep numbering themselves after the matrix is saved and reopened, and a new section never
+    takes a number already used.
+
 DOCUMENT INITIALS, L AND M, AND THE STRUCTURE BUILT AS YOU READ (2.68.0)
   - Every customer document needs an initial and a type (RFP, Amendment, SOW, SOO, PWS, Section L, Section M, Q&A,
     Attachment, CDRL, DD 254, Other) before it is read. Customer Documents suggests both and shows them; Read RFP asks
@@ -21,7 +40,7 @@ STATIONKEEPER (QT) (from 2.59.0)
   Stationkeeper is moving to a new window system (Qt, through PySide6: The Qt Company, Finland, LGPL 3; its libraries
   ship as separate files). StationkeeperQt.exe sits next to Stationkeeper.exe and shares its config and every effort
   file. It holds Effort home, the effort dashboard (2.62.0), the effort record and color team reviews (2.63.0), acronym scan and review and the effort list (2.64.0), Customer Documents (2.65.0), QA/QC, Keywords, Export all and Settings (2.66.0), author briefs, customer acronym lists, training data and
-  Knowledge Packs (2.67.0), and all of Compliance (L and M, document initials and building the structure while assigning in 2.68.0): Read RFP, Structure, Assign,
+  Knowledge Packs (2.67.0), and all of Compliance (L and M, document initials and building the structure while assigning in 2.68.0; how the structure starts in 2.69.0): Read RFP, Structure, Assign,
   Prove, the L/M crosswalk, Matrix and Response Setup (2.61.0); the other areas follow one per release,
   and the classic window retires when Qt does everything.
   - Open an effort in one program at a time: the other says the effort is open elsewhere.

@@ -653,6 +653,12 @@ PAGES = {
                                    "yet a requirement becomes one. Stationkeeper suggests L or M from the section (L.4.2, "
                                    "M.2) and the document type. Support can back up any number of L and M requirements. "
                                    "The matrix reference joins the document initial, L or M and the section: R-L-4.2.1."),
+              ("How the structure starts (2.69.0)", "Read RFP asks: choose after reading (Structure shows what the RFP "
+                                   "prescribes and its headings), what the RFP prescribes, its headings, the outline typed "
+                                   "for the effort, or blank. Most RFPs do not use Sections L and M: volumes and sections are "
+                                   "found by their words and numbering, whatever the RFP uses. In Assign, Copy RFP section "
+                                   "puts the selected sentence's RFP section (and its subsections) under the target; rename "
+                                   "or move it to say it your way."),
               ("Build the structure as you read (2.68.0)", "Assigning does not wait for a structure: R with no section "
                                    "clicked keeps the sentence as a requirement for later. Beside the page: + Volume, "
                                    "+ Heading (after the clicked section), + Subheading (under it, as deep as you need), "

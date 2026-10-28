@@ -71,19 +71,52 @@ def files_without_identity(M):
     return [f for f in files if not (d.get(f) or {}).get("initial") or not (d.get(f) or {}).get("type")]
 
 
-def lm_suggest(M, it, inherited=None):
-    """L or M from where the sentence is: a Section L or M number (L.4.2, M.2), else its document's type."""
-    sec = it.get("section", "") or ((inherited if inherited is not None else {}).get(it["id"], "") if inherited is not None else "")
+_L_TITLE = re.compile(r"instruction|preparation|proposal (?:format|content|submission|organization)|submission|"
+                      r"conditions|notices to offerors|volume|format|page limit", re.I)
+_M_TITLE = re.compile(r"evaluat|basis (?:for|of) award|award (?:factor|criteria)|selection|factor|criteri|rating|"
+                      r"best value|tradeoff|trade-off", re.I)
+
+
+def lm_why(M, it, inherited=None):
+    """2.69.0: (L, M or '', why) for a sentence. Most RFPs do not letter their sections L and M, so the suggestion
+    reads, in order: a Section L or M number (L.4.2, M.2); the RFP section's title (Proposal Preparation
+    Instructions, Evaluation Criteria, Basis for Award); the sentence's own wording (the Offeror shall describe...
+    is an instruction; the Government will evaluate... is an evaluation); the document's type. Work the contractor
+    does (SOW, PWS, SOO) gets no suggestion: the person decides."""
+    sec = it.get("section", "") or ((inherited or {}).get(it["id"], "") if inherited is not None else "")
     m = re.match(r"^(?:Section\s+)?([LM])(?:[.\s-]|$)", sec or "", re.I)
     if m:
-        return m.group(1).upper()
-    t = (docs_of(M).get(it.get("file", "")) or {}).get("type", "")
-    return {"Section L": "L", "Section M": "M"}.get(t, "")
+        return m.group(1).upper(), f"Section {m.group(1).upper()} numbering"
+    title = it.get("section_title", "") or ""
+    if title:
+        if _M_TITLE.search(title) and not re.search(r"instruction", title, re.I):
+            return "M", f"the RFP section is titled {title}"
+        if _L_TITLE.search(title):
+            return "L", f"the RFP section is titled {title}"
+    typ = it.get("type", "")
+    dtype = (docs_of(M).get(it.get("file", "")) or {}).get("type", "")
+    if dtype in ("SOW", "PWS", "SOO") or typ == "SOW":
+        return "", "work the contractor does (SOW, PWS or SOO): your call"
+    if typ == "Evaluation":
+        return "M", "the wording says how it is evaluated"
+    if typ in ("Instruction", "Format"):
+        return "L", "the wording tells the offeror what to submit"
+    t = {"Section L": "L", "Section M": "M"}.get(dtype, "")
+    return (t, f"the document is {dtype}") if t else ("", "")
+
+
+def lm_suggest(M, it, inherited=None):
+    """L or M suggested for a sentence ('' when there is no good reason): see lm_why."""
+    return lm_why(M, it, inherited)[0]
 
 
 def lm_of(M, it, inherited=None):
-    """The designation set in Assign, else the one its place suggests ('' when neither)."""
-    return it.get("lm") or lm_suggest(M, it, inherited)
+    """The designation set in Assign, else one the RFP's own Section L or M numbering makes certain ('' otherwise).
+    2.69.0: a suggestion from titles or wording shows on the card but goes into the matrix only once it is set."""
+    if it.get("lm"):
+        return it["lm"]
+    code, why = lm_why(M, it, inherited)
+    return code if why.startswith("Section ") else ""
 
 
 def set_lm(M, items, lm):

@@ -966,6 +966,8 @@ def parse_outline(text):
             title, num = num, ""
         if num.lower().startswith(("volume", "vol")):
             level = 1
+        elif indent:                                 # 2.69.0: indentation says the level (sections under a volume)
+            level = indent // 4 + 1
         elif num:
             level = num.count(".") + 1 if num[0].isdigit() else num.count(".") + 1
         else:
@@ -1147,7 +1149,12 @@ class Matrix:
                             lvl = int(r[2] or 1)
                         except (TypeError, ValueError):
                             lvl = 1
-                        self.outline.append({"num": str(r[0] or "").strip(), "title": str(r[1] or r[0]).strip(), "level": lvl})
+                        o = {"num": str(r[0] or "").strip(), "title": str(r[1] or r[0]).strip(), "level": lvl}
+                        if len(r) >= 5 and str(r[4] or "").strip().lower() == "auto":
+                            o["auto"] = True           # 2.69.0: numbered by its place (made in Assign)
+                        if len(r) >= 6 and r[5]:
+                            o["from"] = str(r[5]).strip()   # 2.69.0: the RFP section it was copied from
+                        self.outline.append(o)
             if "Sources" in wb.sheetnames:
                 self.sources = [[("" if v is None else str(v)) for v in (list(r) + ["", "", "", ""])[:4]]
                                 for r in list(wb["Sources"].iter_rows(values_only=True))[1:] if r and r[0]]
@@ -1295,13 +1302,14 @@ class Matrix:
         for col in ("Context", "Key"):
             ws.column_dimensions[ws.cell(row=1, column=COLUMNS.index(col) + 1).column_letter].hidden = col in ("Key", "As read", "Place", "Lead place")
         ol = wb.create_sheet("Outline")
-        ol.append(["Number", "Title", "Level", "Keep and Context rows placed"])
+        ol.append(["Number", "Title", "Level", "Keep and Context rows placed", "Numbering", "From RFP section"])
         for c in ol[1]:
             c.font = Font(bold=True)
         for o in self.outline:
             lab = outline_label(o)
-            ol.append([o["num"], o["title"], o["level"], sum(1 for it in self.items if it["decision"] in ("Keep", "Context") and it["map"] == lab)])
-        for col, w in zip("ABCD", (12, 60, 8, 18)):
+            ol.append([o["num"], o["title"], o["level"], sum(1 for it in self.items if it["decision"] in ("Keep", "Context") and it["map"] == lab),
+                       "auto" if o.get("auto") else "", o.get("from", "")])
+        for col, w in zip("ABCDEF", (12, 60, 8, 18, 12, 16)):
             ol.column_dimensions[col].width = w
         so = wb.create_sheet("Sources")
         so.append(["File", "SHA-256", "Read on", "Path on this PC"])

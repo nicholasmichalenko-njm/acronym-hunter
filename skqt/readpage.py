@@ -10,6 +10,7 @@ import diag
 import compliance_read as CR
 import docversions as DV
 import setupdoc as SD
+import structstart as SS
 
 
 class ReadWorker(QThread):
@@ -49,6 +50,12 @@ class ReadPage(QWidget):
         self.area.setWidget(self.inner)
         card.add(self.area)
         v.addWidget(card, 1)
+        srow = QHBoxLayout(); v.addLayout(srow)                     # 2.69.0: how the response structure starts
+        self.start_lbl = D.label("Start the response structure from", "label", wrap=False); srow.addWidget(self.start_lbl)
+        self.start = QComboBox(); self.start.setMinimumWidth(360); srow.addWidget(self.start)
+        self.start.setToolTip("Choose after reading: Structure shows what the RFP prescribes and its headings to pick from. "
+                              "Blank: build it in Assign as you read.")
+        srow.addStretch(1)
         row = QHBoxLayout(); v.addLayout(row)
         self.add_btn = D.button("Add files...", None, self.pick, "Read files that are not in Customer Documents"); row.addWidget(self.add_btn)
         row.addStretch(1)
@@ -86,8 +93,46 @@ class ReadPage(QWidget):
         if not docs and R is None:
             self.list.addWidget(D.EmptyState("No customer documents yet", "Add the RFP files in Customer Documents: every "
                                              "version is kept, and new ones are compared.", "Go to Documents", lambda: self.host.go("docs")))
+        self.fill_start()
         self.go_btn.setEnabled(R is not None and bool(R.M.items))
         self.read_btn.setEnabled(bool(self.boxes))
+
+    START = (("choose", "Choose after reading (see what the RFP prescribes and its headings)"),
+             ("prescribed", "What the RFP prescribes (volumes and sections it spells out)"),
+             ("headings", "The RFP's headings"),
+             ("typed", "The outline typed for this effort"),
+             ("blank", "Blank: build it in Assign as I read"))
+
+    def fill_start(self):
+        new = self.host.review is None
+        self.start_lbl.setVisible(new); self.start.setVisible(new)
+        if not new:
+            return
+        typed = bool((self.host.ws.get("outline_text") or "").strip()) if self.host.ws else False
+        keep = self.start.currentData()
+        self.start.clear()
+        for key, text in self.START:
+            if key == "typed" and not typed:
+                continue
+            self.start.addItem(text, key)
+        want = keep or ("typed" if typed else "choose")
+        self.start.setCurrentIndex(max(0, self.start.findData(want)))
+
+    def _start_structure(self, M, choice):
+        """Set the new matrix's starting structure. Returns a line for the status bar."""
+        if choice in (None, "auto", "typed"):
+            return ""
+        if choice == "prescribed":
+            ol, _why = SS.prescribed(M)
+            SS.apply(M, ol)
+            return (f"Structure: {len(ol)} sections the RFP prescribes." if ol else
+                    "The RFP does not spell out a response structure that rules can find: the structure is blank.")
+        if choice == "headings":
+            ol = SS.from_headings(M, "L") or SS.from_headings(M, "All")
+            SS.apply(M, ol)
+            return f"Structure: {len(ol)} RFP headings."
+        SS.apply(M, [])
+        return "" if choice == "choose" else "Blank structure: build it beside the page in Assign."
 
     def pick(self):
         paths, _ = QFileDialog.getOpenFileNames(self, "RFP documents", "", "RFP documents (*.docx *.pdf *.xlsx *.pptx)")
@@ -208,11 +253,13 @@ class ReadPage(QWidget):
         if lib is not None:
             SD.sync_docs(M, lib)
 
-    def read(self, paths=None, out=None, identities=None):
-        """identities: {path: (initial, type)} for files with none yet, or "suggested" (tests); else the person is asked."""
+    def read(self, paths=None, out=None, identities=None, start=None):
+        """identities: {path: (initial, type)} for files with none yet, or "suggested" (tests); else the person is asked.
+        start (a new matrix): choose, prescribed, headings, typed, blank; tests that give none keep the 2.68 start."""
         paths = paths or self.chosen()
         if not paths or self.worker is not None:
             return None
+        self._start = start or ("auto" if os.environ.get("AH_TEST") else self.start.currentData())
         need = self.unidentified(paths)
         if need:
             if identities is None and os.environ.get("AH_TEST"):
@@ -261,8 +308,9 @@ class ReadPage(QWidget):
             M = CR.new_matrix(self._out, items, heads, src, (self.host.ws.get("outline_text") or "") if self.host.ws else "")
             fixed = CR.complete(M)
             self._apply_pending(M)
+            start_msg = self._start_structure(M, getattr(self, "_start", "auto"))
             self.host.set_matrix(M, new=True)
-            msg = f"{len(items)} sentences from {len(src)} file(s)."
+            msg = f"{len(items)} sentences from {len(src)} file(s). {start_msg}".strip()
         else:
             add = CR.add_read(self.host.review.M, items, heads, src)
             fixed = CR.complete(self.host.review.M)
@@ -276,4 +324,8 @@ class ReadPage(QWidget):
         diag.activity("compliance_read", files=len(src), items=len(items))
         self.host.status(msg + " " + CR.text_check_line(CR.text_check(self.host.review.M)))
         self.refresh()
+        if getattr(self, "_start", "") == "choose" and not self.host.review.M.outline:
+            self.host.go("structure")
+            self.host.structure_page.offer_start()
+            return
         self.host.go("assign")

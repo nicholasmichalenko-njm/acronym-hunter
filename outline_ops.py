@@ -72,6 +72,11 @@ def relabel(M, mapping):
     for c in S.get("context", []):
         if c.get("loc") in mapping:
             c["loc"] = mapping[c["loc"]]
+    rm = S.get("rfp_map")
+    if isinstance(rm, dict):                       # 2.69.0: RFP sections mapped to our sections follow them
+        for k, v in list(rm.items()):
+            if v in mapping:
+                rm[k] = mapping[v]
     M.pending = True
     return len(mapping)
 
@@ -81,25 +86,21 @@ def renumber(M):
     1, and so on, as deep as it goes. Returns {old label: new label}."""
     heads = volume_heads(M)
     old = labels(M)
-    counters = {}                                  # (parent index) -> next child number
+    counters = {}                                  # (parent index) -> sections seen under it so far
     nums = {}
     for i, o in enumerate(M.outline):
         p = parent_of(M, i)
+        counters[p] = counters.get(p, 0) + 1       # 2.69.0: every sibling counts, typed or made here
         if not o.get("auto"):
             nums[i] = o.get("num", "")
             continue
-        n = counters.get(p, 0) + 1
-        counters[p] = n
+        n = counters[p]
         base = ""
         if p is not None and C.outline_label(M.outline[p]) not in heads:
             base = nums.get(p, M.outline[p].get("num", ""))
             base = base if re.match(r"^[0-9A-Za-z]+(\.[0-9A-Za-z]+)*$", base or "") else ""
         o["num"] = f"{base}.{n}" if base else str(n)
         nums[i] = o["num"]
-    for i, o in enumerate(M.outline):            # a section typed in still counts as a sibling for the auto numbers
-        if not o.get("auto"):
-            p = parent_of(M, i)
-            counters[p] = counters.get(p, 0) + 1
     mapping = {a: C.outline_label(o) for a, o in zip(old, M.outline)}
     relabel(M, mapping)
     return {a: b for a, b in mapping.items() if a != b}
@@ -187,6 +188,10 @@ def delete(M, label):
             S["copies"].setdefault(to, []).extend(x for x in ids if x not in S["copies"].get(to, []))
     S["order"].pop(label, None)
     S["owners"].pop(label, None)
+    rm = S.get("rfp_map")
+    if isinstance(rm, dict):
+        for k in [k for k, v in rm.items() if v == label]:
+            rm.pop(k)
     V = S.get("volumes") or {}
     if label in (V.get("heads") or []):
         V["heads"] = [h for h in V["heads"] if h != label]

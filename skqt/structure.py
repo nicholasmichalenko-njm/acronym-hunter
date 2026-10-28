@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QComboBox, QFileDialog, QHBoxLayout, QPlainTextEd
 import diag
 import compliance as C
 import structure_ops as STR
+import structstart as SS
 from . import design as D
 
 
@@ -23,11 +24,17 @@ class StructurePage(QWidget):
                             "Response Setup follow this order.", "muted"))
         bar = QHBoxLayout(); bar.setSpacing(D.SPACE["s"]); v.addLayout(bar)
         bar.addWidget(D.label("Start from:", wrap=False))
-        self.letter = QComboBox(); self.letter.addItems(["Section L", "Section M", "Section C", "All headings"])
+        bar.addWidget(D.button("What the RFP prescribes", None, self.from_prescribed,
+                               "The volumes and sections the RFP spells out (Volume II - Management, \"shall be organized as "
+                               "follows:\"), whether or not it uses Sections L and M"))
+        self.letter = QComboBox(); self.letter.addItems(["All headings", "Section L", "Section M", "Section C"])
         bar.addWidget(self.letter)
-        bar.addWidget(D.button("RFP headings", None, self.from_headings, "The RFP's numbered headings in that section"))
+        self.doc = QComboBox(); self.doc.setMinimumWidth(180); self.doc.setToolTip("Headings from one document, or all")
+        bar.addWidget(self.doc)
+        bar.addWidget(D.button("RFP headings", None, self.from_headings, "The RFP's numbered headings (one section letter or all, one document or all)"))
         bar.addWidget(D.button("RFP outline", None, self.from_rfp_outline, "The RFP's own outline (the headers marked in Assign)"))
         bar.addWidget(D.button("Word outline...", None, self.from_word, "Heading 1-6 paragraphs of a Word document"))
+        bar.addWidget(D.button("Blank", None, self.blank, "Start with no sections: build them in Assign as you read"))
         bar.addStretch(1)
         bar.addWidget(D.button("Volumes...", None, lambda: self.host.assign_page.volumes_dialog()))
         bar.addWidget(D.button("People...", None, lambda: self.host.assign_page.people_dialog()))
@@ -48,6 +55,8 @@ class StructurePage(QWidget):
         right.add(self.state)
         split.addWidget(left); split.addWidget(right); split.setSizes([620, 560])
         v.addWidget(split, 1)
+        self.why = D.label("", "muted"); self.why.hide()
+        v.insertWidget(2, self.why)
         self.preview_timer = QTimer(self, singleShot=True, interval=300, timeout=self.preview)
 
     def refresh(self):
@@ -56,6 +65,12 @@ class StructurePage(QWidget):
         self.text.blockSignals(True)
         self.text.setPlainText(C.outline_text(R.M.outline) if R and R.M.outline else "")
         self.text.blockSignals(False)
+        self.why.hide()
+        keep = self.doc.currentData()
+        self.doc.clear(); self.doc.addItem("All documents", "")
+        for f in (SS.files_with_headings(R.M) if R else []):
+            self.doc.addItem(f, f)
+        self.doc.setCurrentIndex(max(0, self.doc.findData(keep)))
         self.preview()
 
     def set_text(self, ol, what):
@@ -67,9 +82,42 @@ class StructurePage(QWidget):
         self.host.status(f"{len(ol)} sections from {what}. Edit them, then Apply.")
         return True
 
+    def from_prescribed(self):
+        """2.69.0: what the RFP spells out, with where each part came from."""
+        ol, why = SS.prescribed(self.host.review.M)
+        diag.activity("compliance_outline_prescribed", n=len(ol))
+        if ol:
+            self.why.setText("From the RFP: " + "; ".join(w.strip() for w in why) + ". Edit it, then Apply.")
+            self.why.show()
+        return self.set_text(ol, "what the RFP prescribes (it names no volumes or organized list that rules can find)"
+                             if not ol else "what the RFP prescribes")
+
+    def blank(self):
+        self.text.setPlainText("")
+        self.why.setText("A blank structure: Apply, then build it in Assign (+ Volume, + Heading, + Subheading, From "
+                         "sentence, Copy RFP section) as you read.")
+        self.why.show()
+        self.preview()
+        return True
+
+    def offer_start(self):
+        """2.69.0: a new matrix with no structure: show what the RFP prescribes (else its headings) to start from."""
+        self.why.show()
+        if self.from_prescribed():
+            return "prescribed"
+        self.letter.setCurrentText("All headings")
+        if self.from_headings():
+            self.why.setText("The RFP does not spell out a response structure that rules can find. These are its headings: "
+                             "edit them and Apply, or press Blank and build the structure in Assign as you read.")
+            self.why.show()
+            return "headings"
+        self.blank()
+        return "blank"
+
     def from_headings(self):
         letter = {"Section L": "L", "Section M": "M", "Section C": "C"}.get(self.letter.currentText(), "All")
-        ol = STR.from_headings(self.host.review.M, letter)
+        files = [self.doc.currentData()] if self.doc.currentData() else None
+        ol = SS.from_headings(self.host.review.M, letter, files)
         diag.activity("compliance_outline_rfp", items=len(ol))
         return self.set_text(ol, f"the numbered headings ({self.letter.currentText()})")
 

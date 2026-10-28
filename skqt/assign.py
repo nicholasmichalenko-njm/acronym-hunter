@@ -21,6 +21,7 @@ import setupdoc as SD
 import pagesent as PS
 import matrixdesign as MD
 import outline_ops as O
+import structstart as SS
 import office_pdf as OP
 from . import design as D
 
@@ -201,7 +202,10 @@ class AssignPage(QWidget):
         srow = QHBoxLayout(); srow.setSpacing(4); sv.addLayout(srow)
         for text, fn, tip in (("+ Heading", lambda: self.new_section(sub=False), "A section at the level of the target (after it), or a first section"),
                               ("+ Subheading", lambda: self.new_section(sub=True), "A section under the target, one level down"),
-                              ("From sentence", lambda: self.section_from_sentence(), "A section under the target, named with the selected sentence")):
+                              ("From sentence", lambda: self.section_from_sentence(), "A section under the target, named with the selected sentence"),
+                              ("Copy RFP section", lambda: self.copy_rfp_section(),
+                               "The RFP section the selected sentence is in (and its subsections, if you want) under the "
+                               "target, titled as the RFP titles it; its requirements with no section yet go into it")):
             srow.addWidget(D.button(text, None, fn, tip))
         srow.addStretch(1)
         row = QHBoxLayout(); row.setSpacing(4); sv.addLayout(row)
@@ -516,14 +520,16 @@ class AssignPage(QWidget):
         if d == "Keep":                                                 # 2.68.0: L or M, and the reference it makes
             lmw = QWidget(); lh = QHBoxLayout(lmw); lh.setContentsMargins(0, 0, 0, 0); lh.setSpacing(D.SPACE["s"])
             cur_lm = it.get("lm", "")
-            sug = SD.lm_suggest(M, it)
+            sug, why = SD.lm_why(M, it)
             for code in ("L", "M"):
                 b = D.button(f"{code}  {SD.LM[code].split(',')[0].split(' ')[0]}", "req" if cur_lm == code else None,
                              lambda _=False, c=code: self.set_lm(rows, c), SD.LM[code])
                 lh.addWidget(b)
-            lh.addWidget(D.label(f"{'Set: ' + cur_lm if cur_lm else ('Suggested: ' + sug if sug else 'Not set')}", "muted", wrap=False))
+            lh.addWidget(D.label(f"{'Set: ' + cur_lm if cur_lm else ('Suggested: ' + sug if sug else 'Not set (optional)')}", "muted", wrap=False))
             lh.addStretch(1)
             self.add(lmw)
+            if sug and not cur_lm and why:
+                self.lm_why = self.add(D.label(f"Suggested because {why}. L and M are our labels (Shipley); the RFP need not use them.", "muted"))
             fr = SD.full_ref(M, it)
             self.ref_label = self.add(D.label(f"Reference in the matrix: {fr}" if fr else "Reference: set the document initial and L or M", "mono"))
             vols = O.volumes_of_item(M, it)
@@ -855,6 +861,37 @@ class AssignPage(QWidget):
         self.target = lab
         self.after(f"Section added from the sentence: {lab}")
         return lab
+
+    def copy_rfp_section(self, with_subs=None):
+        """2.69.0: hybrid structures: copy an RFP section (with its subsections) under the target, then rename or move it
+        to say it our way. Returns the new labels."""
+        rows = self.selected()
+        if not rows or self.M is None:
+            self.host.status("Select a sentence (or the heading) of the RFP section to copy.")
+            return None
+        it = rows[-1]
+        f, num, title = SS.rfp_section_of(self.M, it)
+        subs = SS.subsections(self.M, f, num)
+        if with_subs is None:
+            with_subs = False
+            if subs:
+                from PySide6.QtWidgets import QMessageBox
+                ans = QMessageBox.question(self, "Copy RFP section", f"Also copy the {len(subs)} subsection(s) under "
+                                           f"{num} {title}?", QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+                if ans == QMessageBox.Cancel:
+                    return None
+                with_subs = ans == QMessageBox.Yes
+        self.R.snap()
+        tgt = self.target if self.target in set(O.labels(self.M)) else (self.active_volume or None)
+        made = SS.copy_section(self.M, it, parent=tgt, with_subsections=with_subs)
+        if not made:
+            self.host.status("That sentence is in no RFP section to copy.")
+            return None
+        diag.activity("qt_rfp_section_copied", n=len(made))
+        self.target = made[0]
+        self.after(f"{num or 'RFP section'} copied into the structure as {made[0]}"
+                   + (f" with {len(made) - 1} subsection(s)" if len(made) > 1 else "") + ". Rename or move it to say it your way.")
+        return made
 
     def rename_section(self, label, title=None):
         if not label or self.M is None:
