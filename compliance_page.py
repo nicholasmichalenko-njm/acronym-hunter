@@ -106,7 +106,7 @@ class CompliancePageMixin:
         strip = tk.Canvas(page, width=int(14 * dpi), highlightthickness=0, bd=0, bg="#F8FAFC", cursor="hand2")
         strip.pack(side="right", fill="y", pady=(0, 8))
         win.cp_strip = strip
-        strip.bind("<Configure>", UQ.debounced(strip, lambda _e: self._cp_strip(), 100))
+        strip.bind("<Configure>", UQ.debounced(strip, lambda _e=None: self._cp_strip(), 100))
         strip.bind("<Button-1>", self._cp_strip_click)
         # 2.53.0: a banner above the text says what Support linked to; a margin on the left draws the relationships
         win.cp_banner = ctk.CTkLabel(page, text="", fg_color="#1D4ED8", text_color="#FFFFFF", corner_radius=8,
@@ -114,7 +114,7 @@ class CompliancePageMixin:
         win.cp_banner_after = None
         gut = tk.Canvas(page, width=int(34 * dpi), highlightthickness=0, bd=0, bg="#FFFFFF")
         gut.pack(side="left", fill="y", pady=(0, 8))
-        gut.bind("<Configure>", UQ.debounced(gut, lambda _e: self._cp_lines(), 60))
+        gut.bind("<Configure>", UQ.debounced(gut, lambda _e=None: self._cp_lines(), 60))
         win.cp_gut = gut
         win.cp_lines_after = None
         t.pack(fill="both", expand=True, pady=(0, 8))
@@ -139,8 +139,8 @@ class CompliancePageMixin:
             t.tag_configure("bt_" + k, background=bg, foreground=fg, font=("Segoe UI", bsz, "bold"))
         t.tag_configure("bt_hsug", relief="ridge", borderwidth=1)
         t.tag_bind("badge", "<Button-1>", self._cp_badge_click)
-        t.tag_bind("badge", "<Enter>", lambda _e: t.configure(cursor="hand2"))
-        t.tag_bind("badge", "<Leave>", lambda _e: t.configure(cursor="arrow"))
+        t.tag_bind("badge", "<Enter>", lambda _e=None: t.configure(cursor="hand2"))
+        t.tag_bind("badge", "<Leave>", lambda _e=None: t.configure(cursor="arrow"))
         # 2.55.0 Assign shows the document itself: its headings, list lead-ins, the words a sentence lacks, where a page or
         # header starts, and any text not in the review
         t.tag_configure("where", font=("Segoe UI", max(8, size - 6)), foreground="#94A3B8", spacing1=int(10 * dpi))
@@ -156,11 +156,11 @@ class CompliancePageMixin:
         t.tag_raise("cur")
         t.bind("<ButtonRelease-1>", self._cp_click)
         t.bind("<Key>", self._cp_key)
-        t.bind("<Control-z>", lambda _e: (self.cp_undo(), "break")[-1])      # 2.56.0
+        t.bind("<Control-z>", lambda _e=None: (self.cp_undo(), "break")[-1])      # 2.56.0
         t.bind("<Motion>", self._cp_motion)
-        t.bind("<Leave>", lambda _e: self._cp_hover(None))
+        t.bind("<Leave>", lambda _e=None: self._cp_hover(None))
         for seq in ("<Control-c>", "<Control-a>"):
-            t.bind(seq, lambda _e: None)
+            t.bind(seq, lambda _e=None: None)
         # 2.58.0 the sentence card: everything decided about the selected sentence, in one place
         card = ctk.CTkFrame(side, corner_radius=10, border_width=1, border_color=("#CBD5E1", "#334155"),
                             fg_color=("#FFFFFF", "#0F172A"))
@@ -2032,8 +2032,8 @@ class CompliancePageMixin:
         sb = ttk.Scrollbar(tf, orient="vertical", command=tv.yview); tv.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y"); tv.pack(fill="both", expand=True)
         win.pv_tv = tv
-        tv.bind("<<TreeviewSelect>>", lambda _e: self._pv_fill_fields())
-        tv.bind("<Double-1>", lambda _e: self.pv_open())
+        tv.bind("<<TreeviewSelect>>", lambda _e=None: self._pv_fill_fields())
+        tv.bind("<Double-1>", lambda _e=None: self.pv_open())
         act = ctk.CTkFrame(fr, fg_color="transparent"); act.pack(fill="x", padx=6, pady=(4, 8))
         win.pv_act = act
         win.pv_open_btn = ctk.CTkButton(act, text="Open in Assign", width=10, command=self.pv_open)
