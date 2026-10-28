@@ -43,6 +43,7 @@ class PageViewMixin:
         cv.bind("<B1-Motion>", self._pv_motion)
         cv.bind("<ButtonRelease-1>", self._pv_release)
         cv.bind("<Key>", self._cp_key)
+        cv.bind("<Button-3>", self._pv_menu)
         cv.bind("<Configure>", lambda _e: self._pv_soon(relayout=True))
         cv.bind("<MouseWheel>", lambda e: (cv.yview_scroll(-3 if e.delta > 0 else 3, "units"), self._pv_soon()))
         cv.bind("<Button-4>", lambda _e: (cv.yview_scroll(-3, "units"), self._pv_soon()))
@@ -395,6 +396,26 @@ class PageViewMixin:
             self.cp_set_range([])
         self._cp_select(iid)
         return ("item", iid)
+
+    def _pv_menu(self, e):
+        """Right-click a sentence on the page: the same marks as in the text (header, format, customer's...)."""
+        win = self._cwin
+        cv = win.pv_cv
+        x, y = cv.canvasx(e.x), cv.canvasy(e.y)
+        at = self._pv_at(x, y)
+        if at is not None:
+            h = LY.hit(self._pv_map(at[0]), at[1], at[2], False)
+            if h and h[0] == "item" and h[1] not in (win.cp_range or []):
+                if win.cp_range:
+                    self.cp_set_range([])
+                self._cp_select(h[1])
+        m = tk.Menu(self, tearoff=0)
+        sel = self._c_selected()
+        if sel and sel[0].get("decision") in ("Context", "") and hasattr(self, "cp_support_picker"):
+            m.add_command(label="Support for... (pick requirements or sections)", command=self.cp_support_picker)
+        self.c_mark_entries(m, "")
+        m.tk_popup(e.x_root, e.y_root)
+        return "break"
 
     def pv_select_box(self, x0, y0, x1, y1):
         """Drag across sentences: every sentence with a box in the rectangle is selected together."""

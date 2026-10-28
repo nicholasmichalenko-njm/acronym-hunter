@@ -601,6 +601,19 @@ PAGES = {
                          "structure yet, start it from the RFP headings there). Click any "
                          "sentence at any time to see how it is assigned and change it. Every choice counts at once and is "
                          "saved as you go (a crash or closing the app loses nothing); there is no commit step."),
+              ("Page view", "The customer document exactly as it looks, every page in one scroll, each sentence boxed in "
+                            "its color. Click a box to select it; drag across several (or Shift+click) to select them "
+                            "together; R, C, X, G, H, S and 1 to 3 work as usual (S splits at the word you clicked in the "
+                            "selected sentence). Right-click for the marks (header, format, customer's). Labels in the left "
+                            "margin say what each sentence is; a line runs to the sentences tied to the selected one. Word, "
+                            "Excel and PowerPoint files show through a PDF copy your own Microsoft Office makes on this PC "
+                            "(once per file, kept in the effort folder). Text view is one click away."),
+              ("Several sections", "R with a target section puts a compliance requirement in that section too; it keeps "
+                                   "the others. Relationships lists its sections, each with Remove. The matrix has one row "
+                                   "per section; the Response Setup prints it in each."),
+              ("Support for", "C makes the sentence support for the last compliance requirement you clicked (the button "
+                              "next to C says which). Its arrow, or C on a support sentence, opens a checklist of "
+                              "requirements (the same RFP section first, with a search box) and sections: tick one or more."),
               ("The whole document", "The page is the customer document itself, read straight from the file: every word, "
                                      "in the document's order, with page, header and footer marks. Each review sentence is "
                                      "laid over its own words. List lead-ins are in italics (click one for its list); "
