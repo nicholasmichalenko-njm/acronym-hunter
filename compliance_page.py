@@ -2006,25 +2006,9 @@ class CompliancePageMixin:
         "all": "Every compliance requirement: set owner, status, response page and notes for one or several at once."}
 
     def prove_items(self, cat):
-        """The sentences in one Prove category."""
-        import setupdoc as SD
-        M = self.matrix
-        if M is None:
-            return []
-        if cat == "unused":
-            return [it for it in M.items if not it["decision"]]
-        if cat == "nosection":
-            return [it for it in M.items if it["decision"] in ("Keep", "Context") and not it.get("map")]
-        if cat == "ctx":
-            bad = {it["id"] for it, _w in C.context_problems(M.items) if not _w.startswith("placed in")}
-            return [it for it in M.items if it["id"] in bad]
-        if cat == "noowner":
-            return [it for it in M.items if it["decision"] == "Keep" and not SD.owner_of(M, it)]
-        if cat == "changed":
-            return [it for it in M.items if it.get("new") == "New in latest read"]
-        if cat == "customer":
-            return [it for it in M.items if it["decision"] == "Customer"]
-        return [it for it in M.items if it["decision"] == "Keep"]
+        """The sentences in one Prove category (2.62.0: effortstate.prove_items)."""
+        import effortstate as ES
+        return ES.prove_items(self.matrix, cat)
 
     def _cp_build_details(self, fr):
         win = self._cwin

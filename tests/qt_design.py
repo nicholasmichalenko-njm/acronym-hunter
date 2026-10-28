@@ -48,7 +48,7 @@ w = MainWindow(app, os.path.join(tmp, "config"), A.APP_VERSION); w.resize(1400, 
 rail = [b.text() for b in w.findChildren(type(w.step_btns["read"])) if b.objectName() == "rail"]
 steps = [b.text() for k, b in w.step_btns.items()]
 check("the rail: the steps in Qt, then the areas still in the classic app (grey)", rail[:len(steps)] == steps
-      and steps[:4] == ["Read RFP", "Structure", "Assign", "Prove"] and "Matrix" in steps
+      and steps[:6] == ["Effort home", "Dashboard", "Read RFP", "Structure", "Assign", "Prove"] and "Matrix" in steps
       and all(not b.isEnabled() for b in w.findChildren(type(w.step_btns["read"])) if b.objectName() == "rail" and b.text() not in steps), rail)
 w.go("prove"); app.processEvents()
 check("the top bar names the page", w.page_title.text() == "Prove" and w.stack.currentWidget() is w.prove_page)

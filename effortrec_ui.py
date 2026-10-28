@@ -123,76 +123,24 @@ class EffortRecordMixin:
 
     def rec_people(self):
         """Everyone named in the effort: section leads and contributors, requirement owners, task owners."""
-        names = set()
-        M = getattr(self, "matrix", None)
-        if M is not None:
-            try:
-                import setupdoc as SD
-                names.update(SD.people(M))
-            except Exception:
-                diag.swallowed()
-        r = self.effrec()
-        if r is not None:
-            names.update(t["owner"] for t in r.data["tasks"] if t["owner"])
-            names.update(n["assignee"] for n in r.data["notes"] if n.get("assignee"))
-        team = self.rec_team_names() if r is not None else []              # 2.52.0: the team first, in its order
-        return team + sorted((n for n in names if n and n not in team), key=str.casefold)
+        import effortstate as ES
+        return ES.people_of(self.effrec(), getattr(self, "matrix", None))
 
     # ------------------------------------------------------------ what the app can check for the gate goals
     def rec_checks(self):
-        c = {k: None for k in R.AUTO}
+        """2.62.0: the checks live in effortstate (the Qt edition uses them too)."""
+        import effortstate as ES
         try:
             lib = self.doclib() if hasattr(self, "doclib") else None
-            if lib is not None:
-                c["docs_added"] = bool(lib.docs)
-                if lib.docs:
-                    c["docs_reviewed"] = not lib.counts()["unreviewed"]
             reg = self.subreg() if hasattr(self, "subreg") else None
             rows = reg.rows() if reg is not None else []
-            if rows:
-                c["reqs_reviewed"] = not any(x["to_review"] for x in rows)
-            M = getattr(self, "matrix", None)
-            if M is not None and M.items:
-                import setupdoc as SD
-                cnt = M.counts()
-                c["structure_set"] = bool(M.outline)
-                c["reqs_placed"] = cnt["Keep"] > 0 and not cnt["needs_home"]
-                keeps = [it for it in M.items if it["decision"] == "Keep"]
-                c["reqs_owned"] = bool(keeps) and all(SD.owner_of(M, it) for it in keeps)
-                tops = [o for o in M.outline if o.get("level", 1) <= 1] if M.outline else []
-                if tops:
-                    import compliance as C
-                    c["sections_led"] = all(SD.section_people(M, C.outline_label(o))["lead"] for o in tops)
-                if hasattr(self, "prove_items"):
-                    try:
-                        c["prove_clear"] = all(not self.prove_items(k) for k in ("unused", "nosection", "ctx", "noowner"))
-                    except Exception:
-                        diag.swallowed()
-            L = getattr(self, "effort", None)
-            if L is not None and L.rows:
-                c["acr_approved"] = all(x["Status"] in ("Approved", "Rejected") for x in L.rows.values())
-            rep = getattr(self, "volume_report", None)
-            c["qa_run"] = bool(rep) or None
-            if rep:
-                s = rep.get("summary", {})
-                c["first_use_clean"] = not s.get("first_use_problems")
-                if s.get("banned_checked"):
-                    c["banned_clean"] = not s.get("banned", {}).get("bad", 0)
-                if rep.get("pages"):
-                    c["pages_ok"] = not any(p["level"] == "bad" for p in rep["pages"])
-            r = self.effrec()
-            if r is not None:
-                c["tasks_done"] = not r.tasks(stage=r.data["stage"], open_only=True)
-                import deliverables as DL                     # 2.41.0
-                ds = DL.items(r)
-                if ds:
-                    vols = self.volumes() if hasattr(self, "volumes") else []
-                    sm = DL.summary(r, rows, lib, vols)
-                    c["deliverables_set"] = not sm["noowner"] and not sm["suggested"]
-                    c["deliverables_ok"] = not sm["over"] and not sm["changed"]
+            vols = self.volumes() if hasattr(self, "volumes") else []
+            return ES.checks_of(self.effrec(), getattr(self, "matrix", None), lib, rows, getattr(self, "effort", None),
+                                getattr(self, "volume_report", None), vols,
+                                prove=self.prove_items if hasattr(self, "prove_items") else None)
         except Exception:
             diag.swallowed()
-        return c
+            return {k: None for k in R.AUTO}
 
     # ------------------------------------------------------------ the countdown in the top bar
     def rec_strip_build(self, strip):
@@ -714,23 +662,13 @@ class EffortRecordMixin:
 
     def rec_cal_extra(self):
         """Dates from the customer documents: questions due, and the due date when the effort has none of its own."""
-        out = []
+        import effortstate as ES
         try:
             reg = self.subreg() if hasattr(self, "subreg") else None
-            if reg is not None:
-                import subreq as SR
-                sm = SR.summary(reg.rows())
-                q = sm.get("questions_due")
-                if q:
-                    d = R.parse_date(q["value"].split(" at ")[0]) or R.parse_date(",".join(q["value"].split(",")[:2]))
-                    out.append((d, "questions", "Questions due to the customer"))
-                r = self.effrec()
-                if sm.get("due") and r is not None and not r.data.get("due"):
-                    v = sm["due"]["value"]
-                    out.append((R.parse_date(",".join(v.split(",")[:2])) or R.parse_date(v.split(" at ")[0]), "due", "Proposal due"))
+            return ES.cal_extra_of(self.effrec(), reg.rows() if reg is not None else [])
         except Exception:
             diag.swallowed()
-        return [x for x in out if x[0]]
+            return []
 
     def rec_cal_days(self, month=None):
         """{date: [(kind, text)]} for one month (Effort home, the status export)."""

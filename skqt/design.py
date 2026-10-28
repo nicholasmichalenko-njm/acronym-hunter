@@ -7,11 +7,11 @@ Tokens
   slate; ok green, warning amber, critical red. Text on every surface meets WCAG 2.1 AA contrast (checked in tests).
 - Type: Segoe UI for the interface, Segoe UI Semibold for titles, Cascadia Mono (else Consolas) for IDs and references.
 - Spacing: 4, 8, 12, 16, 24, 32. Radius: 6 for controls, 10 for cards, 12 for chips and pills.
-Components: Card, Pill, Chip, SectionTitle, EmptyState, Toast, and button kinds (primary, secondary, ghost, danger,
+Components: Card, Pill, Chip, SectionTitle, EmptyState, Toast, Tile, StackBar (2.62.0), and button kinds (primary, secondary, ghost, danger,
 plus decision buttons) set with the "kind" property. Rules only (No AI); nothing leaves the PC.
 """
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve
-from PySide6.QtGui import QColor, QFont, QPalette
+from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPalette
 from PySide6.QtWidgets import (QFrame, QGraphicsOpacityEffect, QHBoxLayout, QLabel, QPushButton, QToolButton,
                                QVBoxLayout, QWidget)
 
@@ -308,3 +308,88 @@ class Toast(QLabel):
         self.anim.setEndValue(0.0)
         self.anim.finished.connect(self.hide)
         self.anim.start()
+
+
+class Tile(QFrame):
+    """2.62.0: one number that matters, with what it counts, in its meaning color; clickable when it leads somewhere."""
+
+    def __init__(self, value="", caption="", tone="accent", on_click=None, tip=""):
+        super().__init__()
+        self.setObjectName("tile")
+        self.on_click = on_click
+        v = QVBoxLayout(self)
+        v.setContentsMargins(SPACE["l"], SPACE["m"], SPACE["l"], SPACE["m"])
+        v.setSpacing(2)
+        self.value = QLabel(str(value)); self.caption = QLabel(caption); self.caption.setWordWrap(True)
+        v.addWidget(self.value); v.addWidget(self.caption)
+        if on_click:
+            self.setCursor(Qt.PointingHandCursor)
+        if tip:
+            self.setToolTip(tip)
+        self.set(value, caption, tone)
+
+    def set(self, value, caption=None, tone=None):
+        t = tokens()
+        self.tone = tone or getattr(self, "tone", "accent")
+        fg = t.get(self.tone, t["accent"])
+        self.value.setText(str(value))
+        if caption is not None:
+            self.caption.setText(caption)
+        self.setStyleSheet(f"QFrame#tile{{background:{t['surface']};border:1px solid {t['border']};border-left:4px solid {fg};"
+                           f"border-radius:{RADIUS['card']}px;}} QLabel{{background:transparent;}}")
+        self.value.setStyleSheet(f"color:{fg};font-size:{TYPE['display'] + 4}pt;font-weight:600;")
+        self.caption.setStyleSheet(f"color:{t['muted']};font-size:{TYPE['small']}pt;font-weight:600;")
+
+    def mouseReleaseEvent(self, e):
+        if self.on_click and e.button() == Qt.LeftButton:
+            self.on_click()
+        super().mouseReleaseEvent(e)
+
+
+class StackBar(QWidget):
+    """2.62.0: parts of a whole as one rounded bar: segments [(count, token, label)], with a legend under it."""
+
+    def __init__(self, height=14):
+        super().__init__()
+        self.segments = []
+        self.bar_h = height
+        self.setMinimumHeight(height + 2)
+        self.setMinimumWidth(120)
+
+    def set(self, segments):
+        self.segments = [(max(0, int(n or 0)), tok, lab) for n, tok, lab in segments]
+        total = sum(n for n, _t, _l in self.segments)
+        self.setToolTip("\n".join(f"{lab}: {n}" for n, _t, lab in self.segments if n) if total else "")
+        self.update()
+
+    def paintEvent(self, _e):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        t = tokens()
+        w, h = self.width(), self.bar_h
+        y = (self.height() - h) / 2
+        clip = QPainterPath(); clip.addRoundedRect(0, y, w, h, h / 2, h / 2)
+        p.setClipPath(clip)
+        p.fillRect(0, int(y), w, h, QColor(t["surface2"]))
+        total = sum(n for n, _t, _l in self.segments)
+        x = 0.0
+        for n, tok, _lab in self.segments:
+            if not n or not total:
+                continue
+            seg = w * n / total
+            p.fillRect(int(x), int(y), int(round(x + seg)) - int(x), h, QColor(t.get(tok, t["accent"])))
+            x += seg
+        p.end()
+
+
+def legend(segments):
+    """A row of colored marks and labels for a StackBar ("Placed 41", "Not placed 3")."""
+    w = QWidget()
+    h = QHBoxLayout(w); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(SPACE["l"])
+    t = tokens()
+    for n, tok, lab in segments:
+        l = QLabel(f"<span style='color:{t.get(tok, t['accent'])}'>\u25a0</span> {lab} {n}")
+        l.setStyleSheet(f"color:{t['muted']};font-size:{TYPE['small']}pt;background:transparent;")
+        h.addWidget(l)
+    h.addStretch(1)
+    return w

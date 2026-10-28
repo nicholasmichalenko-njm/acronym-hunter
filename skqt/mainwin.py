@@ -20,13 +20,19 @@ from .prove import ProvePage
 from .crosswalkpage import CrosswalkPage
 from .matrixpage import MatrixPage
 from .setuppage import SetupPage
+from .homepage import HomePage
+from .dashpage import DashPage
 
 
-RAIL = [("COMPLIANCE", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove"),
+RAIL = [("EFFORT", [("home", "Effort home"), ("dashboard", "Dashboard")]),
+        ("COMPLIANCE", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove"),
                         ("crosswalk", "L/M crosswalk")]),
         ("DELIVER", [("matrix", "Matrix"), ("setup", "Response Setup")]),
-        ("IN STATIONKEEPER (CLASSIC) FOR NOW", [("", "Effort home"), ("", "Acronym scan"), ("", "Submission and deliverables")])]
-TITLES = {"read": ("Read RFP", "Bring the customer's documents into the review"),
+        ("IN STATIONKEEPER (CLASSIC) FOR NOW", [("", "Effort details and team"), ("", "Acronym scan"), ("", "Submission and deliverables"),
+                                                ("", "QA/QC")])]
+TITLES = {"home": ("Effort home", "Stage, gate goals, tasks, questions and the calendar"),
+          "dashboard": ("Dashboard", "The effort on one screen"),
+          "read": ("Read RFP", "Bring the customer's documents into the review"),
           "structure": ("Structure", "The sections of your response"),
           "assign": ("Assign", "Decide every sentence on the page"),
           "prove": ("Prove", "Every line read and decided"),
@@ -87,6 +93,8 @@ class MainWindow(QMainWindow):
         self.saved = D.Pill("Saved", "ok"); bh.addWidget(self.saved)
         cv.addWidget(bar)
         self.stack = QStackedWidget()
+        self.home_page = HomePage(self)
+        self.dash_page = DashPage(self)
         self.read_page = ReadPage(self)
         self.structure_page = StructurePage(self)
         self.assign_page = AssignPage(self)
@@ -94,7 +102,7 @@ class MainWindow(QMainWindow):
         self.crosswalk_page = CrosswalkPage(self)
         self.matrix_page = MatrixPage(self)
         self.setup_page = SetupPage(self)
-        self.pages = {"read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
+        self.pages = {"home": self.home_page, "dashboard": self.dash_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)
