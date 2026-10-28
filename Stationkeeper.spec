@@ -82,7 +82,8 @@ def make_analysis(script):
     # Excluding it turns that import into a clean ImportError that PyMuPDF swallows.
     excludes=['pymupdf', 'fitz', 'pymupdf.layout', 'pymupdf4llm', 'matplotlib', 'scipy', 'pandas',
               'IPython', 'jupyter', 'notebook', 'pytest',
-              'onnxruntime.quantization', 'onnxruntime.transformers', 'onnxruntime.tools'] + _edition_excludes
+              'onnxruntime.quantization', 'onnxruntime.transformers', 'onnxruntime.tools',
+              'PySide6', 'shiboken6'] + _edition_excludes   # the Qt Assign test (prototypes/) is never in the app
              + ([] if TRAINING else ['trainer_gui', 'tess_train', 'training_app']),
     noarchive=False,
     optimize=0,
