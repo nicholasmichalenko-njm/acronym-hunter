@@ -69,7 +69,7 @@ def go():
           and by("program began")["section"] == "L.4.2" and head["type"] == "Heading", (th["section"], head["type"]))
     th["decision"], th["map"] = "Keep", "1.1 Thermal"
     _its, data = MD.rows(app.matrix, MD.default())
-    check("the matrix's Section L No. is the header's number", data[0][1] == "L.4.2", data[0][:3])
+    check("the matrix's RFP L No. is the header's number and title", data[0][3].startswith("L.4.2"), data[0][:4])
     fm = by("12 point")
     app.c_mark_format([fm]); app.update()
     check("Format requirement: type Format, a compliance requirement", fm["type"] == "Format" and fm["decision"] == "Keep")

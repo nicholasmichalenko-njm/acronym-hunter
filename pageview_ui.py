@@ -317,6 +317,8 @@ class PageViewMixin:
     def _pv_at(self, x, y):
         """(page, x, y in PDF points) under a canvas point, or None."""
         pv = self._cwin.pv
+        if not pv["tops"]:
+            self._pv_draw()                            # not laid out yet: lay it out now
         s = pv["scale"]
         for n, t in enumerate(pv["tops"], 1):
             w, h = pv["sizes"][n - 1]

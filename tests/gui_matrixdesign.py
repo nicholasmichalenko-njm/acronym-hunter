@@ -53,18 +53,18 @@ def go():
     check("the preview shows the designed columns", heads == [c["heading"] for c in MD.DEFAULT["columns"]], heads)
     kids = tv.get_children()
     check("every row, in the RFP's order (2.54.0), support under its requirement", len(kids) == 3
-          and tv.item(kids[0], "values")[2].startswith("The Offeror shall provide the schedule")
-          and tv.item(kids[2], "tags") == ("ctx",) and tv.item(kids[2], "values")[2].startswith("      Thermal margins")
+          and tv.item(kids[0], "values")[4].startswith("The Offeror shall provide the schedule")
+          and tv.item(kids[2], "tags") == ("ctx",) and tv.item(kids[2], "values")[4].startswith("      Thermal margins")
           and "All 3 rows" in api["info"].cget("text"), [tv.item(k, "values")[:3] for k in kids])
     api["order"].set("Our structure"); api["state"]["d"]["order"] = "structure"      # shown with the next change
-    api["lb"].selection_clear(0, "end"); api["lb"].selection_set(10); api["toggle"](); app.update()         # hide Notes (the 11th column)
+    api["lb"].selection_clear(0, "end"); api["lb"].selection_set(6); api["toggle"](); app.update()          # hide Notes (the 7th column)
     check("hiding a column changes the preview", "Notes" not in [tv.heading(c, "text") for c in tv["columns"]])
     kids = tv.get_children()
     check("Rows in: Our structure puts 1.1 Thermal first", any("thermal design" in str(v) for v in tv.item(kids[0], "values")),
           [tv.item(k, "values")[:3] for k in kids])
-    for i in (2, 1):                                                                                        # Requirement first
+    for i in (4, 3, 2, 1):                                                                                  # RFP content first
         api["lb"].selection_clear(0, "end"); api["lb"].selection_set(i); api["move"](-1); app.update()
-    check("moving a column changes the order", tv.heading(tv["columns"][0], "text") == "RFP text")
+    check("moving a column changes the order", tv.heading(tv["columns"][0], "text") == "RFP content")
     k = api["add"]("Reviewer"); app.update()
     check("a column of the team's own is added", k == "custom:Reviewer" and tv.heading(tv["columns"][-1], "text") == "Reviewer")
     api["lb"].selection_clear(0, "end"); api["lb"].selection_set(len(api["state"]["d"]["columns"]) - 1); api["toggle"](); app.update()

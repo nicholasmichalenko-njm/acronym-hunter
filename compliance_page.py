@@ -966,7 +966,13 @@ class CompliancePageMixin:
             return
         b.configure(text="  " + text)
         if not b.winfo_manager():
-            b.pack(side="top", fill="x", padx=12, pady=(4, 2), before=win.cp_gut)
+            # 2.56.0: above the page in Page view (the text view's margin is not packed then)
+            anchor = next((w for w in (getattr(win, "pv_frame", None), win.cp_gut, win.cp_text)
+                           if w is not None and w.winfo_manager()), None)
+            if anchor is not None:
+                b.pack(side="top", fill="x", padx=12, pady=(4, 2), before=anchor)
+            else:
+                b.pack(side="top", fill="x", padx=12, pady=(4, 2))
         if ms:
             win.cp_banner_after = self.after(ms, lambda: self._cp_banner(None))
 

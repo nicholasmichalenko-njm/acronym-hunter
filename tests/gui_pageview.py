@@ -48,6 +48,7 @@ def go():
     for _ in range(5):
         app.update(); win.update()
     pv = win.pv
+    app._pv_draw(); app.update()
     check("Page view is on for a PDF, the page canvas shown", pv["on"] and win.pv_frame.winfo_manager() and not win.cp_text.winfo_manager())
     m = app._pv_map(1)
     check("every sentence on page 1 is boxed", len(m["items"]) >= 15, len(m["items"]))

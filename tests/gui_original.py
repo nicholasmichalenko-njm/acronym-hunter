@@ -119,10 +119,11 @@ def go():
           (r, now and now[0]["id"], app._c_item(und[0]["id"]).get("context_for")))
     app._cp_select(und[0]["id"]); app.update()
     r2 = app.cp_ctx(); app.update()
-    app.cp_mode_end(); app.update()
-    now = app._c_selected()
-    check("C again on a context sentence lets you change what it supports; Done moves on", r2 == "ctx" and now and now[0]["id"] != und[0]["id"],
-          (r2, now and now[0]["id"]))
+    pw = getattr(app._cwin, "cp_sup_win", None)
+    check("2.56.0: C again on a support sentence opens the checklist of what it supports", r2 == "ctx_pick" and pw is not None
+          and pw.winfo_exists(), r2)
+    if pw is not None:
+        pw.destroy()
     # 2.48.0: G marks a sentence the customer's (identified, not answered), then the next; Prove lists it
     und = [x for x in app.matrix.items if not C.eff(x)]
     if und:
