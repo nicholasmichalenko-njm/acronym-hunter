@@ -8,6 +8,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE)); sys.path.insert(0, HERE)
 os.environ["AH_OCR_ENGINE"] = "tesseract"; os.environ["AH_TEST"] = "1"
 import app_gui as A, compliance as C, effort as E, setupdoc as SD, office_pdf as OP
+OP.available = lambda: False          # this test gives the copy itself; Office is not started (gui_walkthrough uses it)
 from tkinter import messagebox
 tmp = tempfile.mkdtemp()
 A.CONFIG_DIR = os.path.join(tmp, "config"); A.CHOICES_FILE = os.path.join(tmp, "choices.json"); A.SETTINGS_FILE = os.path.join(tmp, "settings.json")

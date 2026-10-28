@@ -78,8 +78,11 @@ def wait_read():
     # the Office copy of the Word file (on the PC, Word makes it; here LibreOffice stands in)
     src = app._cp_path("Section_L.docx")
     folder = app._pv_copies_dir(); os.makedirs(folder, exist_ok=True)
-    subprocess.run(["soffice", "--headless", "--convert-to", "pdf", "--outdir", tmp, src], capture_output=True)
-    shutil.copy2(os.path.join(tmp, "Section_L.pdf"), OP.copy_path(src, folder))
+    if shutil.which("soffice"):
+        subprocess.run(["soffice", "--headless", "--convert-to", "pdf", "--outdir", tmp, src], capture_output=True)
+        shutil.copy2(os.path.join(tmp, "Section_L.pdf"), OP.copy_path(src, folder))
+    else:                                            # on the build PC: Microsoft Word makes it, as for the team
+        OP.make(src, folder)
     timed("open Assign", lambda: (app.shell_go("compliance", "decide"), app.cp_open_file("Section_L.docx")))
     app._pv_draw(); app.update()
     pv = win.pv
