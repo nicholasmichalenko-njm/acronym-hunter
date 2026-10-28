@@ -22,6 +22,14 @@ def main(argv=None):
     import diag
     diag.activity("qt_started")
     w = MainWindow(app, A.CONFIG_DIR, A.APP_VERSION)
+    if "--selftest" in (argv or sys.argv):            # the build checks the built program starts (no effort opened)
+        w.show()
+        app.processEvents()
+        ok = w.windowTitle().startswith("Stationkeeper (Qt)")
+        with open(os.path.join(A.SANDBOX_DIR, "qt_selftest.txt"), "w", encoding="utf-8") as f:
+            f.write("QT SELFTEST " + ("PASS" if ok else "FAIL") + "\n")
+        w.close()
+        return 0 if ok else 1
     w.show()
     if w.efforts.current:
         w.open_effort(w.efforts.current)

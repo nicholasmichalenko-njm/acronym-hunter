@@ -86,6 +86,13 @@ Copy-Item base\acronym_database.csv $out -Force                 # generic data f
 New-Item -ItemType Directory -Force "$out\config\models" | Out-Null
 Copy-Item base\config\* "$out\config" -Recurse -Force
 Copy-Item README.txt, OVERVIEW.md, SECURITY.md $out -Force
+# 2.59.0: the Qt edition starts (window shown and closed at once; no effort opened)
+if (Test-Path "$out\StationkeeperQt.exe") {
+    $q = Start-Process -FilePath "$out\StationkeeperQt.exe" -ArgumentList '--selftest' -Wait -PassThru
+    $qt = Get-Content "$out\_local_sandbox\qt_selftest.txt" -ErrorAction SilentlyContinue
+    if ($q.ExitCode -ne 0 -or -not ($qt -match 'PASS')) { throw "QT SELFTEST FAILED: StationkeeperQt.exe did not start (exit $($q.ExitCode))" }
+    "Qt selftest: StationkeeperQt.exe starts"
+}
 Remove-Item -Recurse -Force "$out\_local_sandbox", "$out\logs" -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
 

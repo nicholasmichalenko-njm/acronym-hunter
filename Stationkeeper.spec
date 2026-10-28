@@ -84,7 +84,7 @@ def make_analysis(script, qt=False):
     excludes=['pymupdf', 'fitz', 'pymupdf.layout', 'pymupdf4llm', 'matplotlib', 'scipy', 'pandas',
               'IPython', 'jupyter', 'notebook', 'pytest',
               'onnxruntime.quantization', 'onnxruntime.transformers', 'onnxruntime.tools',
-              ] + ([] if qt else ['PySide6', 'shiboken6']) + _edition_excludes   # Qt only in Stationkeeper (Qt), 2.59.0
+              ] + (['PySide6.QtNetwork'] if qt else ['PySide6', 'shiboken6']) + _edition_excludes   # Qt only in Stationkeeper (Qt), 2.59.0
              + ([] if TRAINING else ['trainer_gui', 'tess_train', 'training_app']),
     noarchive=False,
     optimize=0,
@@ -103,8 +103,14 @@ a.binaries = [e for e in a.binaries if _keep(e)]
 QT_APP = not TRAINING and os.environ.get('AH_QT', '1') == '1'
 if QT_APP:
     aq = make_analysis('skqt_main.py', qt=True)
-    aq.datas = [e for e in aq.datas if _keep(e)]
-    aq.binaries = [e for e in aq.binaries if _keep(e)]
+    # No Qt network parts: QtNetwork and the plugins that need it (TLS back ends, network information) are left out.
+    # The app imports none of them; tools\network_audit.py would fail the build on Qt6Network.dll.
+    def _keep_qt(entry):
+        dest = entry[0].replace('/', '\\').lower()
+        return _keep(entry) and not ('qt6network' in dest or 'qtnetwork' in dest or '\\plugins\\tls' in dest
+                                     or '\\plugins\\networkinformation' in dest)
+    aq.datas = [e for e in aq.datas if _keep_qt(e)]
+    aq.binaries = [e for e in aq.binaries if _keep_qt(e)]
 
 pyz = PYZ(a.pure)
 

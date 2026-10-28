@@ -9,3 +9,4 @@ _internal\libcrypto-3.dll | OpenSSL crypto library used by hashlib (SHA-256 chec
 _internal\lxml\etree.cp311-win_amd64.pyd | libxml2 inside lxml. Office XML is parsed with no_network=True, no DTD, no entities (hardened parser)
 _internal\lxml\objectify.cp311-win_amd64.pyd | Same libxml2 build as lxml.etree; not used for network access
 _internal\tcl86t.dll | Tcl runtime behind the Tk window. Its socket command runs only from Tcl scripts; the app runs none
+_internal\PySide6\Qt6Core.dll | Qt core library (2.59.0, Stationkeeper (Qt)). Links Winsock only for its event loop's socket notifier; it opens no connection itself. The build ships no QtNetwork, and the Python network guard refuses every connect and DNS call
