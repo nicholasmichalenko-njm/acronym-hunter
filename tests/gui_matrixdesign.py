@@ -52,18 +52,20 @@ def go():
     heads = [tv.heading(c, "text") for c in tv["columns"]]
     check("the preview shows the designed columns", heads == [c["heading"] for c in MD.DEFAULT["columns"]], heads)
     kids = tv.get_children()
+    _keys = [c["key"] for c in MD.DEFAULT["columns"]]
+    TX = _keys.index("text")                                    # 2.68.0: Reference, Doc, L/M come before the text
     check("every row, in the RFP's order (2.54.0), support in its requirement's cell (2.58.0)", len(kids) == 2
-          and tv.item(kids[0], "values")[4].startswith("The Offeror shall provide the schedule")
-          and "Supporting context:" in tv.item(kids[1], "values")[4] and "Thermal margins" in tv.item(kids[1], "values")[4]
+          and tv.item(kids[0], "values")[TX].startswith("The Offeror shall provide the schedule")
+          and "Supporting context:" in tv.item(kids[1], "values")[TX] and "Thermal margins" in tv.item(kids[1], "values")[TX]
           and "All 2 rows" in api["info"].cget("text"), [tv.item(k, "values")[:3] for k in kids])
     api["context"].set("On its own rows"); api["state"]["d"]["context"] = "rows"   # shown with the next change
     api["order"].set("Our structure"); api["state"]["d"]["order"] = "structure"      # shown with the next change
-    api["lb"].selection_clear(0, "end"); api["lb"].selection_set(6); api["toggle"](); app.update()          # hide Notes (the 7th column)
+    api["lb"].selection_clear(0, "end"); api["lb"].selection_set(_keys.index("notes")); api["toggle"](); app.update()          # hide Notes
     check("hiding a column changes the preview", "Notes" not in [tv.heading(c, "text") for c in tv["columns"]])
     kids = tv.get_children()
     check("Rows in: Our structure puts 1.1 Thermal first", any("thermal design" in str(v) for v in tv.item(kids[0], "values")),
           [tv.item(k, "values")[:3] for k in kids])
-    for i in (4, 3, 2, 1):                                                                                  # RFP content first
+    for i in range(TX, 0, -1):                                                                              # RFP content first
         api["lb"].selection_clear(0, "end"); api["lb"].selection_set(i); api["move"](-1); app.update()
     check("moving a column changes the order", tv.heading(tv["columns"][0], "text") == "RFP content")
     k = api["add"]("Reviewer"); app.update()
