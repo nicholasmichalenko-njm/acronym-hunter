@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (QComboBox, QCompleter, QDialog, QDialogButtonBox,
                                QScrollArea, QSplitter, QStyle, QLayout, QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
                                QCheckBox, QButtonGroup)
 import diag
+import effortrec as R_
 import compliance as C
 import setupdoc as SD
 import pagesent as PS
@@ -396,6 +397,9 @@ class AssignPage(QWidget):
             self.view.ensureVisible(b, 40, 140)
         self._guard = False
         self.on_select()
+        if b is None and it is not None:                  # 2.63.0: no page copy to show it on: the card still opens
+            self.cur = iid
+            self.show_card([it])
 
     def on_word(self, iid, k):
         it = self.R.item(iid)
@@ -533,7 +537,28 @@ class AssignPage(QWidget):
         self.notes.setFixedHeight(72)
         self.notes_for = it["id"]
         self.notes.textChanged.connect(self.notes_timer.start)
+        self.review_labels = []                               # 2.63.0: color team comments read back from review packets
+        rv = self.review_notes(it["id"])
+        if rv:
+            self.head(f"Review comments ({len(rv)})")
+            t_ = D.tokens()
+            for n in rv:
+                b = D.label(f"{n['text']}\n{R_.short_date(n['at'])}" + (f" | {n['who']}" if n.get("who") else ""))
+                b.setStyleSheet(f"background:{t_['warn_soft']};border:1px solid {t_['border']};border-radius:{D.RADIUS['control']}px;padding:6px")
+                self.review_labels.append(self.add(b))
         QTimer.singleShot(0, self.fit_card)
+
+    def review_notes(self, iid):
+        """The review notes on this sentence in the effort's record (newest first)."""
+        ws = getattr(self.host, "ws", None)
+        if ws is None:
+            return []
+        try:
+            import reviewpkt as RP
+            return RP.review_notes(R_.Record(ws.root), iid)
+        except Exception:
+            diag.swallowed()
+            return []
 
     def save_notes(self):
         n = self.notes

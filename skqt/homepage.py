@@ -7,7 +7,7 @@ import datetime
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtGui import QTextCharFormat
 from PySide6.QtWidgets import (QCalendarWidget, QCheckBox, QComboBox, QDateEdit, QDialog, QDialogButtonBox, QFormLayout,
-                               QFrame, QGridLayout, QHBoxLayout, QInputDialog, QLineEdit, QPlainTextEdit, QScrollArea,
+                               QFrame, QGridLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QPlainTextEdit, QScrollArea,
                                QVBoxLayout, QWidget)
 import diag
 import effortrec as R
@@ -157,6 +157,8 @@ class HomePage(QWidget):
                       "ahead": (t["surface2"], t["muted"])}[st]
             if st == "current" and tm["over"]:
                 bg, fg = t["warn_soft"], t["warn"]
+            if r.gate_of(s):                                         # 2.63.0
+                when = (when + "\n" if when else "") + ("hard gate" if r.gate_of(s) == "hard" else "soft gate")
             f = QFrame(); f.setObjectName("stage")
             f.setStyleSheet(f"QFrame#stage{{background:{bg};border-radius:{D.RADIUS['card']}px;border:1px solid "
                             f"{t['border'] if st == 'ahead' else bg};}} QLabel{{background:transparent;color:{fg};}}")
@@ -195,17 +197,46 @@ class HomePage(QWidget):
             v.addWidget(D.label("Open goals to carry over to the new stage:", "muted"))
             for g in open_goals:
                 cb = QCheckBox(g["text"]); cb.setChecked(True); v.addWidget(cb); boxes.append((cb, g["id"]))
+        gate = QLabel(); gate.setWordWrap(True); v.addWidget(gate)          # 2.63.0: the stage's gate
+        reason = QLineEdit(); reason.setPlaceholderText("Reason (kept in the timeline)"); v.addWidget(reason)
+
+        def show_gate():
+            gc = r.gate_check(to.currentData(), checks)
+            n = len(gc["open"])
+            if not (gc["forward"] and gc["mode"] and n):
+                gate.setText(""); gate.hide(); reason.hide()
+                return gc
+            t = D.tokens()
+            hard = gc["mode"] == "hard"
+            gate.setStyleSheet(f"background:{t['crit_soft' if hard else 'warn_soft']};color:{t['crit' if hard else 'warn']};"
+                               f"border-radius:{D.RADIUS['control']}px;padding:8px;font-weight:600;")
+            gate.setText((f"Hard gate: {r.stage()['name']} has {plural(n, 'open goal')}. Moving on is held until they are met; "
+                          "the proposal manager can override it with a reason.") if hard else
+                         (f"Soft gate: {plural(n, 'open goal')}. Moving on is allowed and logged with the open goals."))
+            gate.show(); reason.setVisible(True)
+            return gc
+        to.currentIndexChanged.connect(lambda _i: show_gate())
+        show_gate()
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); v.addWidget(bb)
         bb.accepted.connect(dlg.accept); bb.rejected.connect(dlg.reject)
-        dlg.api = {"to": to, "carry": boxes}
+        dlg.api = {"to": to, "carry": boxes, "gate": gate, "reason": reason, "show_gate": show_gate}
         if not run:
             return dlg
-        if dlg.exec() == QDialog.Accepted:
-            return self.move_stage(to.currentData(), [gid for cb, gid in boxes if cb.isChecked()])
+        while dlg.exec() == QDialog.Accepted:
+            ok = self.move_stage(to.currentData(), [gid for cb, gid in boxes if cb.isChecked()], reason.text())
+            if ok is not None:
+                return ok
+            reason.setFocus()                                   # held by a hard gate: a reason is needed
         return None
 
-    def move_stage(self, sid, carry=()):
-        ok = self.rec.move_to(sid, carry=carry)
+    def move_stage(self, sid, carry=(), reason=""):
+        """Move the effort; None when a hard gate holds the move and no reason was given."""
+        try:
+            ok = self.rec.move_to(sid, carry=carry, reason=reason, checks=self.checks)
+        except R.GateClosed as e:
+            self.host.status(str(e))
+            diag.activity("qt_gate_held")
+            return None
         if ok:
             self.host.toast(f"Moved to {self.rec.stage()['name']}")
             diag.activity("qt_stage_moved")

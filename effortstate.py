@@ -299,8 +299,11 @@ class State:
                            "context": pg["Context"], "customer": pg.get("Customer", 0), "dropped": pg["Drop"],
                            "undecided": pg["total"] - pg["decided"]}
             out["volumes"] = coverage_by_volume(M)
+            import reviewpkt as RP                         # 2.63.0: the latest color team review read back
+            done = RP.stages_reviewed(M)
+            out["review"] = (done[-1], RP.score(M, done[-1])) if done else None
         else:
-            out["reqs"], out["volumes"] = None, []
+            out["reqs"], out["volumes"], out["review"] = None, [], None
         import setupdoc as SD
         out["people"] = []
         for p in self.people():

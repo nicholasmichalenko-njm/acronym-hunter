@@ -166,8 +166,11 @@ class DashPage(QWidget):
                 (q["dropped"], "border_strong", "Not used"), (q["undecided"], "faint", "Not decided yet")]
         self.comp_bar.set(segs)
         self.comp_legend.addWidget(D.legend([s for s in segs if s[0]]))
+        rv = d.get("review")
         self.comp_text.setText(f"{q['decided']} of {q['sentences']} sentences decided ({q['pct']}%). "
-                               + (f"{plural(q['undecided'], 'sentence')} still to decide in Assign." if q["undecided"] else "Every sentence is decided."))
+                               + (f"{plural(q['undecided'], 'sentence')} still to decide in Assign." if q["undecided"] else "Every sentence is decided.")
+                               + (f"\n{rv[0]} review: {rv[1]['Compliant']} compliant, {rv[1]['Partly']} partly, {rv[1]['Not compliant']} not "
+                                  f"compliant, {rv[1]['Not addressed']} not addressed, {rv[1]['not_reviewed']} not reviewed." if rv else ""))
 
     def fill_volumes(self, d):
         t = self.vol_table
