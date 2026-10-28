@@ -772,7 +772,7 @@ class EffortRecordMixin:
                                  text_color=("#64748B", "#94A3B8")).pack(fill="x", padx=4)
                 if inm:
                     for w in [cell] + list(cell.winfo_children()):
-                        w.bind("<Button-1>", lambda _e, d=d: self.rec_cal_pick(d))
+                        w.bind("<Button-1>", lambda _e=None, d=d: self.rec_cal_pick(d))
                     self.rec_cal_cells[d] = cell
         legend = ctk.CTkFrame(body, fg_color="transparent"); legend.pack(fill="x", pady=(6, 0))
         for kind, word in (("due", "Due"), ("questions", "Questions due"), ("stage", "Stages"), ("task", "Tasks due"),
