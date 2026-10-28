@@ -17,15 +17,22 @@ from .readpage import ReadPage
 from .assign import AssignPage
 from .structure import StructurePage
 from .prove import ProvePage
+from .crosswalkpage import CrosswalkPage
+from .matrixpage import MatrixPage
+from .setuppage import SetupPage
 
 
-RAIL = [("COMPLIANCE", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove")]),
-        ("IN STATIONKEEPER (CLASSIC) FOR NOW", [("", "Matrix and Response Setup"), ("", "Effort home"), ("", "Acronym scan"),
-                                                ("", "Submission and deliverables")])]
+RAIL = [("COMPLIANCE", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove"),
+                        ("crosswalk", "L/M crosswalk")]),
+        ("DELIVER", [("matrix", "Matrix"), ("setup", "Response Setup")]),
+        ("IN STATIONKEEPER (CLASSIC) FOR NOW", [("", "Effort home"), ("", "Acronym scan"), ("", "Submission and deliverables")])]
 TITLES = {"read": ("Read RFP", "Bring the customer's documents into the review"),
           "structure": ("Structure", "The sections of your response"),
           "assign": ("Assign", "Decide every sentence on the page"),
-          "prove": ("Prove", "Every line read and decided")}
+          "prove": ("Prove", "Every line read and decided"),
+          "crosswalk": ("L/M crosswalk", "Each instruction, the factor that scores it, and the work it describes"),
+          "matrix": ("Matrix", "The compliance matrix as the customer will see it"),
+          "setup": ("Response Setup", "The Word documents your writers start from")}
 
 
 class MainWindow(QMainWindow):
@@ -84,7 +91,11 @@ class MainWindow(QMainWindow):
         self.structure_page = StructurePage(self)
         self.assign_page = AssignPage(self)
         self.prove_page = ProvePage(self)
-        self.pages = {"read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page}
+        self.crosswalk_page = CrosswalkPage(self)
+        self.matrix_page = MatrixPage(self)
+        self.setup_page = SetupPage(self)
+        self.pages = {"read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
+                      "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)
         cv.addWidget(self.stack, 1)

@@ -46,8 +46,10 @@ from skqt.mainwin import MainWindow
 tmp = tempfile.mkdtemp()
 w = MainWindow(app, os.path.join(tmp, "config"), A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 rail = [b.text() for b in w.findChildren(type(w.step_btns["read"])) if b.objectName() == "rail"]
-check("the rail: Compliance steps, then the areas still in the classic app", rail[:4] == ["Read RFP", "Structure", "Assign", "Prove"]
-      and all(not b.isEnabled() for b in w.findChildren(type(w.step_btns["read"])) if b.objectName() == "rail" and b.text() not in rail[:4]), rail)
+steps = [b.text() for k, b in w.step_btns.items()]
+check("the rail: the steps in Qt, then the areas still in the classic app (grey)", rail[:len(steps)] == steps
+      and steps[:4] == ["Read RFP", "Structure", "Assign", "Prove"] and "Matrix" in steps
+      and all(not b.isEnabled() for b in w.findChildren(type(w.step_btns["read"])) if b.objectName() == "rail" and b.text() not in steps), rail)
 w.go("prove"); app.processEvents()
 check("the top bar names the page", w.page_title.text() == "Prove" and w.stack.currentWidget() is w.prove_page)
 check("no effort: the saved state says so", w.saved.text() == "No matrix")

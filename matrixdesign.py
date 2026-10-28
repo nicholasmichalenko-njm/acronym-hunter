@@ -506,3 +506,26 @@ def export_together(M, folder, design, effort_name="", when=None, ctx=None):
     if M.outline:
         files += SD.export(M, sub, when)
     return {"folder": sub, "files": files, "rows": mx["rows"]}
+
+
+def effort_ctx(ws):
+    """What the matrix takes from the effort, without a screen (2.61.0, the Qt edition): each deliverable's name, page
+    limit and format, from the effort record, the submission requirements and the named volumes."""
+    out = {"deliverables": []}
+    if ws is None:
+        return out
+    try:
+        import effortrec as R, deliverables as DL, docversions as DV, subreq as SR
+        r = R.Record(ws.root)
+        lib = DV.Library(ws.p("documents")).load()
+        rows = SR.Register(lib).rows() if lib.docs else []
+        vols = [x for x in (ws.get("volumes", []) or []) if isinstance(x, dict) and x.get("name")]
+        for d in DL.items(r):
+            sp = {x["field"]: x["value"] for x in DL.spec(d, rows, vols)}
+            fmt = "; ".join(f"{f}: {sp[f]}" for f in ("Font", "Margins", "Page size", "Line spacing", "File format") if sp.get(f))
+            out["deliverables"].append({"name": d["name"], "limit": sp.get("Page limit") or d.get("limit", ""),
+                                        "format": fmt or d.get("format", "")})
+    except Exception:
+        import diag
+        diag.swallowed()
+    return out
