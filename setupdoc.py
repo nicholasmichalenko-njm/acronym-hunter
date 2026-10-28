@@ -339,6 +339,66 @@ def place(M, iid, label, before=None, copy=False):
     _log(M, iid, f"setup: placed under {label}" + (" (copy)" if copy else ""))
 
 
+def item_sections(M, it):
+    """2.56.0: every proposal section a sentence is in: its Outline column first, then its extra copies."""
+    out = [it["map"]] if it.get("map") else []
+    for lab, ids in setup_of(M)["copies"].items():
+        if it.get("id") in ids and lab not in out:
+            out.append(lab)
+    return out
+
+
+def add_section(M, it, label):
+    """2.56.0: put a sentence in one more section (it keeps the ones it is in). Returns True when it was added."""
+    if label in item_sections(M, it):
+        return False
+    if not it.get("map"):
+        it["map"] = label
+    else:
+        lst = setup_of(M)["copies"].setdefault(label, [])
+        lst.append(it["id"])
+    return True
+
+
+def remove_section(M, it, label):
+    """2.56.0: take a sentence out of one of its sections; when that was its Outline column, its next section takes
+    that place. Returns True when it was removed."""
+    S = setup_of(M)
+    secs = item_sections(M, it)
+    if label not in secs:
+        return False
+    if it.get("map") == label:
+        rest = [x for x in secs if x != label]
+        it["map"] = rest[0] if rest else ""
+        if rest:
+            S["copies"][rest[0]] = [i for i in S["copies"].get(rest[0], []) if i != it["id"]]
+    else:
+        S["copies"][label] = [i for i in S["copies"].get(label, []) if i != it["id"]]
+    S["order"][label] = [i for i in S["order"].get(label, []) if i != it["id"]]
+    return True
+
+
+def clear_sections(M, it):
+    """No section at all (the sentence is cleared or decided another way)."""
+    S = setup_of(M)
+    for lab in list(S["copies"]):
+        S["copies"][lab] = [i for i in S["copies"][lab] if i != it.get("id")]
+    it["map"] = ""
+
+
+def expand(M, items):
+    """2.56.0: one copy of each sentence per section it is in (dict copies with map set; the first is the sentence's
+    own section), for outputs that list a sentence once per section."""
+    out = []
+    for it in items:
+        secs = item_sections(M, it)
+        if len(secs) <= 1:
+            out.append(it)
+        else:
+            out += [dict(it, map=lab, _also=k > 0) for k, lab in enumerate(secs)]
+    return out
+
+
 def unplace(M, iid, label):
     S = setup_of(M)
     it = by_id(M).get(iid)

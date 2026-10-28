@@ -103,28 +103,29 @@ def go():
           n_own == 1 and app._c_item("L.4.2-06")["owner"] == "K. Ito", app._c_item("L.4.2-06").get("owner"))
     app._cp_select("L.4.2-06"); app.update()
     check("sentences in the target section are underlined", bool(t.tag_ranges("insec")) and t.tag_ranges("insec")[0] == t.tag_ranges("r:L.4.2-06")[0])
-    # Context (2.47.0): C makes it context for the nearest requirement and moves on; C again on it changes what it supports
+    # 2.56.0: C makes it support for the last requirement clicked, and moves on; C again on it opens the checklist
+    app._cp_select("L.4-01"); app.update()
     app._cp_select("L.4-02"); app.update(); t.focus_set()
+    check("the dock says what C attaches to: the last requirement clicked", "for: L.4-01" in win.cp_sup_btn.cget("text"), win.cp_sup_btn.cget("text"))
     t.event_generate("<Key>", keysym="c"); app.update()
     it2 = app._c_item("L.4-02")
-    check("C makes it Context for the nearest requirement and moves on to the next sentence", it2["decision"] == "Context"
+    check("C makes it support for the last requirement clicked and moves on to the next sentence", it2["decision"] == "Context"
           and it2["context_for"] == "L.4-01" and win.cp_mode is None and app._c_selected()[0]["id"] != "L.4-02",
           (it2["context_for"], win.cp_mode, app._c_selected()[0]["id"]))
     app._cp_select("L.4-02"); app.update(); t.focus_set()
     t.event_generate("<Key>", keysym="c"); app.update()
-    check("C again on it: choose what it supports", win.cp_mode and win.cp_mode[0] == "ctx" and not win.cp_done_btn.winfo_ismapped(), win.cp_mode)
-    def click(iid):
-        r = t.tag_ranges("r:" + iid); t.see(r[0]); app.update(); bx = t.bbox(r[0])
-        t.event_generate("<ButtonRelease-1>", x=bx[0] + 3, y=bx[1] + bx[3] // 2); app.update()
-    click("L.4.2-06")
-    check("clicking another requirement adds it", C.cf_ids(it2["context_for"]) == ["L.4-01", "L.4.2-06"] and win.cp_mode is not None,
-          it2["context_for"])
-    click("L.4.2-06")
-    check("clicking it again removes it", it2["context_for"] == "L.4-01", it2["context_for"])
-    click("L.4.2-06")
-    click("L.4.1-05")
-    check("no Done step: clicking another sentence just moves on", win.cp_mode is None and app._c_selected()[0]["id"] == "L.4.1-05"
-          and it2["context_for"] == "L.4-01; L.4.2-06" and it2["map"] == "1.1 Thermal Design", (win.cp_mode, it2["context_for"]))
+    pw = getattr(win, "cp_sup_win", None)
+    check("C again on it: the checklist of what it supports opens, with L.4-01 ticked", pw is not None and pw.winfo_exists()
+          and pw._api["vars"][("req", "L.4-01")][1].get())
+    v = pw._api["vars"][("req", "L.4.2-06")][1]
+    v.set(True); pw._api["toggle"]("req", "L.4.2-06", v); app.update()
+    check("ticking another requirement adds it", C.cf_ids(it2["context_for"]) == ["L.4-01", "L.4.2-06"], it2["context_for"])
+    v.set(False); pw._api["toggle"]("req", "L.4.2-06", v); app.update()
+    check("unticking it removes it", it2["context_for"] == "L.4-01", it2["context_for"])
+    v.set(True); pw._api["toggle"]("req", "L.4.2-06", v); app.update()
+    pw.destroy()
+    check("both kept, its section from the first", it2["context_for"] == "L.4-01; L.4.2-06" and it2["map"] == "1.1 Thermal Design",
+          (it2["context_for"], it2["map"]))
     app._cp_select("L.4.1-04"); app.update(); t.focus_set()
     t.event_generate("<Key>", keysym="c"); app.update()
     check("C on another sentence moves on by itself", win.cp_mode is None and app._c_selected()[0]["id"] != "L.4.1-04"
@@ -133,15 +134,21 @@ def go():
     check("pointing at the Context lights up its requirements", app._cp_hover("L.4-02") == ["L.4-01", "L.4.2-06"])
     check("pointing at a requirement lights up its Context", app._cp_hover("L.4-01") == ["L.4-02"])
     app._cp_hover(None)
-    # context for a section itself: C, back to it, C again, click the section
-    app._cp_select("L.4.1-04"); app.update(); t.focus_set()
-    t.event_generate("<Key>", keysym="c"); app.update()
-    app._cp_select("L.4.1-04"); app.update(); t.focus_set()
-    t.event_generate("<Key>", keysym="c"); app.update()
-    win.cp_orows["1.1 Thermal Design"].invoke(); app.update()
+    # support for a section itself (2.56.0: one or several sections, from the checklist)
+    app._cp_select("L.4.1-04"); app.update()
+    pw = app.cp_support_picker(); app.update()
+    v = pw._api["vars"][("sec", "1.1 Thermal Design")][1]
+    v.set(True); pw._api["toggle"]("sec", "1.1 Thermal Design", v); app.update()
     it4 = app._c_item("L.4.1-04")
-    check("context for a section: click the section while choosing", it4["decision"] == "Context" and not it4["context_for"]
-          and it4["map"] == "1.1 Thermal Design" and win.cp_mode is None, (it4["context_for"], it4["map"]))
+    check("support for a section: tick the section", it4["decision"] == "Context" and not it4["context_for"]
+          and it4["map"] == "1.1 Thermal Design", (it4["context_for"], it4["map"]))
+    v2 = pw._api["vars"][("sec", "1.2 Schedule")][1]
+    v2.set(True); pw._api["toggle"]("sec", "1.2 Schedule", v2); app.update()
+    import setupdoc as SD
+    check("2.56.0: support for two sections", SD.item_sections(app.matrix, it4) == ["1.1 Thermal Design", "1.2 Schedule"],
+          SD.item_sections(app.matrix, it4))
+    v2.set(False); pw._api["toggle"]("sec", "1.2 Schedule", v2); app.update()
+    pw.destroy()
     app._cp_select("L.4.1-04"); app.update()
     check("clicking a sentence any time shows how it is assigned", "Support for section 1.1 Thermal Design" in win.cp_l1.cget("text"),
           win.cp_l1.cget("text"))

@@ -229,13 +229,17 @@ def rows(M, design, ctx=None):
     item's "_kind" is "req", "ctx" (supports the row above) or "empty"."""
     import setupdoc as SD, compliance as C
     labels = [C.outline_label(o) for o in M.outline]
-    pos = {id(it): i for i, it in enumerate(M.items)}
+    pos0 = {it.get("id"): i for i, it in enumerate(M.items)}
     roles = design["roles"]
-    keep = [it for it in M.items if it.get("decision") == "Keep" and "Keep" in roles]
-    ctxs = [it for it in M.items if it.get("decision") == "Context" and "Context" in roles]
+    # 2.56.0: a sentence in several sections is a row in each of them (one row per section)
+    keep = SD.expand(M, [it for it in M.items if it.get("decision") == "Keep" and "Keep" in roles])
+    ctxs = SD.expand(M, [it for it in M.items if it.get("decision") == "Context" and "Context" in roles])
+    pos = {id(it): (pos0.get(it.get("id"), 0), 1 if it.get("_also") else 0) for it in keep + ctxs}
     keep_ids = {it["id"] for it in keep}
     under, loose = {}, []
     for it in ctxs:
+        if it.get("_also") and it.get("context_for"):
+            continue                                  # support for requirements follows its requirements, not copies
         host = next((h for h in C.cf_ids(it.get("context_for", "")) if h in keep_ids), None)
         (under.setdefault(host, []) if host else loose).append(it)
     by_sec = {}
@@ -250,7 +254,7 @@ def rows(M, design, ctx=None):
             out.append(dict(it, _kind="req" if it.get("decision") == "Keep" else "ctx"))
             if it.get("decision") == "Keep":
                 for c in sorted(under.get(it["id"], []), key=lambda x: pos[id(x)]):
-                    out.append(dict(c, _kind="ctx", _host=it["id"]))
+                    out.append(dict(c, _kind="ctx", _host=it["id"], map=it.get("map", c.get("map", ""))))
         if design.get("empty_sections", True):
             used = {it.get("map", "") for it in keep + loose}
             par = {labels[i] for i, o in enumerate(M.outline) if i + 1 < len(M.outline) and M.outline[i + 1].get("level", 1) > o.get("level", 1)}
@@ -277,7 +281,7 @@ def rows(M, design, ctx=None):
             out.append(dict(it, _kind="req" if it.get("decision") == "Keep" else "ctx"))
             if it.get("decision") == "Keep":
                 for c in sorted(under.get(it["id"], []), key=lambda x: pos[id(x)]):
-                    out.append(dict(c, _kind="ctx", _host=it["id"]))
+                    out.append(dict(c, _kind="ctx", _host=it["id"], map=it.get("map", c.get("map", ""))))
     for n, it in enumerate(out, 1):
         it["_order"] = n
     inh = SD.inherited_sections(M)

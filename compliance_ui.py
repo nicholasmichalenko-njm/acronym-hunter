@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import customtkinter as ctk
 import diag
+import setupdoc as SD          # 2.56.0: a sentence in several sections
 import compliance as C
 import complearn as CL
 import placelearn as PL
@@ -582,7 +583,7 @@ class ComplianceMixin:
         if M:
             for o in M.outline:
                 lab = C.outline_label(o)
-                n = sum(1 for it in M.items if it["decision"] in ("Keep", "Context") and it["map"] == lab)
+                n = sum(1 for it in M.items if it["decision"] in ("Keep", "Context") and lab in SD.item_sections(M, it))
                 win.o_tv.insert("", "end", values=(("    " * (o["level"] - 1)) + lab, n))
             un = sum(1 for it in M.items if it["decision"] in ("Keep", "Context") and not it["map"])
             win.o_tv.insert("", "end", values=("(needs a home)", un))

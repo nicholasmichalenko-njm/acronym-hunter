@@ -70,7 +70,12 @@ class CompliancePageMixin:
         win.cp_req_btn = ctk.CTkButton(keys, text="Compliance requirement  R", command=self.cp_req, fg_color="#15803D", **B)
         win.cp_req_btn.pack(side="left", padx=4)
         win.cp_ctx_btn = ctk.CTkButton(keys, text="Support (context)  C", command=self.cp_ctx, fg_color="#1D4ED8", **B)
-        win.cp_ctx_btn.pack(side="left", padx=4)
+        win.cp_ctx_btn.pack(side="left", padx=(4, 0))
+        # 2.56.0: what C attaches to: the last compliance requirement clicked; the arrow opens the checklist
+        win.cp_last_req = None
+        win.cp_sup_btn = ctk.CTkButton(keys, text="for: (click a requirement)  \u25be", command=self.cp_support_picker,
+                                       fg_color="#1E3A8A", hover_color="#1E40AF", height=40, width=10, font=("Segoe UI", 12))
+        win.cp_sup_btn.pack(side="left", padx=(2, 4))
         G = dict(height=40, width=10, fg_color="transparent", border_width=1, border_color="#334155", text_color="#CBD5E1",
                  hover_color="#1E293B")
         win.cp_cust_btn = ctk.CTkButton(keys, text="Customer's  G", command=self.cp_customer, fg_color="#7E22CE", **B)   # 2.48.0
@@ -500,7 +505,7 @@ class CompliancePageMixin:
         if not win.cp_target or win.cp_file is None:
             return
         for it in self._cp_items_of(win.cp_file):
-            if it.get("map") == win.cp_target and it["decision"] in ("Keep", "Context"):
+            if win.cp_target in SD.item_sections(self.matrix, it) and it["decision"] in ("Keep", "Context"):
                 r = t.tag_ranges("r:" + it["id"])
                 if r:
                     t.tag_add("insec", r[0], r[1])
@@ -588,9 +593,9 @@ class CompliancePageMixin:
         counts = {}
         for it in M.items:
             if it["decision"] in ("Keep", "Context") and it.get("map"):
-                k = counts.setdefault(it["map"], [0, 0])
-                k[0 if it["decision"] == "Keep" else 1] += 1
-        import setupdoc as SD
+                for lab in SD.item_sections(M, it):          # 2.56.0: counted in every section it is in
+                    k = counts.setdefault(lab, [0, 0])
+                    k[0 if it["decision"] == "Keep" else 1] += 1
         names = ["Everyone"] + SD.people(M)
         win.cp_who.configure(values=names)
         if win.cp_who.get() not in names:
@@ -731,6 +736,9 @@ class CompliancePageMixin:
             self._cp_sync()
         self._cp_mark(it)
         self._cp_strip()
+        if it.get("decision") == "Keep":              # 2.56.0: C attaches support to the last requirement clicked
+            win.cp_last_req = it["id"]
+        self._cp_sup_label()
         rows = self._cp_items_of(win.cp_file)
         n = next((i for i, x in enumerate(rows, 1) if x["id"] == it["id"]), 0)
         d = it["decision"]
@@ -969,6 +977,17 @@ class CompliancePageMixin:
             w.destroy()
         ids, how = self._cp_related(it)
         S = dict(width=10, height=24, font=("Segoe UI", 11))
+        secs = SD.item_sections(self.matrix, it) if it.get("decision") in ("Keep", "Context") and not (
+            it.get("decision") == "Context" and it.get("context_for")) else []
+        if secs:                                       # 2.56.0: every section it is in, each with Remove
+            ctk.CTkLabel(box, text="In section" + ("s" if len(secs) > 1 else "") + " (R with another target adds one):",
+                         anchor="w", font=("Segoe UI", 11, "bold")).pack(fill="x")
+            for lab in secs:
+                row = ctk.CTkFrame(box, fg_color=("#F0FDF4", "#052E16"), corner_radius=6); row.pack(fill="x", pady=1)
+                ctk.CTkLabel(row, text=lab[:44], anchor="w", font=("Segoe UI", 11)).pack(side="left", padx=6)
+                ctk.CTkButton(row, text="Remove", fg_color="transparent", text_color=("#B91C1C", "#FCA5A5"),
+                              hover_color=("#FEE2E2", "#450A0A"), command=lambda l=lab: self.cp_remove_section(it["id"], l),
+                              **S).pack(side="right")
         if it.get("decision") == "Keep":
             ctk.CTkLabel(box, text=f"Supported by {len(ids)} sentence(s)" if ids else "No support yet: select a sentence and press "
                          "C (Support); it links to the nearest requirement.", anchor="w", justify="left", wraplength=300).pack(fill="x")
@@ -1000,6 +1019,18 @@ class CompliancePageMixin:
         if it.get("decision") == "Context":
             ctk.CTkButton(box, text="Link to another requirement...", height=26, width=10,
                           command=lambda: self.cp_link_more(it["id"])).pack(anchor="w", pady=(4, 0))
+
+    def cp_remove_section(self, iid, label):
+        """2.56.0: take a sentence out of one of its proposal sections (it stays in the others)."""
+        it = self._c_item(iid)
+        if it is None or not SD.remove_section(self.matrix, it, label):
+            return False
+        self.matrix.log(iid, f"removed from {label}")
+        self._c_changed()
+        self._cp_flash(f"{iid}: out of {label}" + (f"; still in {'; '.join(SD.item_sections(self.matrix, it))}"
+                                                   if SD.item_sections(self.matrix, it) else ""))
+        self._cp_show(it)
+        return True
 
     def cp_unlink(self, a, b):
         """Take away the tie between two sentences (a support sentence and a requirement, in either order)."""
@@ -1314,11 +1345,28 @@ class CompliancePageMixin:
         known = {C.outline_label(o) for o in M.outline}
         if not rows or label not in known:
             return 0
-        C.assign_requirement(M.items, rows, label)
-        for it in rows:
+        # 2.56.0: a compliance requirement already in another section is put in this one too (it keeps the others);
+        # Relationships lists its sections, each with Remove
+        new = [it for it in rows if it.get("decision") != "Keep" or not it.get("map")]
+        more = [it for it in rows if it not in new]
+        if new:
+            for it in new:
+                SD.clear_sections(M, it)
+            C.assign_requirement(M.items, new, label)
+        added = [it for it in more if SD.add_section(M, it, label)]
+        for it in new:
             M.log(it["id"], f"compliance requirement in {label}")
+        if len(rows) == 1:
+            self._cwin.cp_last_req = rows[0]["id"]    # the requirement just made is what the next C supports
+        for it in added:
+            M.log(it["id"], f"also in {label}")
         who = rows[0]["id"] if len(rows) == 1 else f"{len(rows)} sentences"
-        self._cp_after(rows, f"{who}: compliance requirement in {label}", advance=True)
+        if more and len(rows) == 1:
+            secs = SD.item_sections(M, rows[0])
+            msg = f"{who}: compliance requirement in {len(secs)} sections: {'; '.join(secs)} (Remove one in Relationships)"
+        else:
+            msg = f"{who}: compliance requirement in {label}"
+        self._cp_after(rows, msg, advance=True)
         return len(rows)
 
     def cp_req(self):
@@ -1363,10 +1411,17 @@ class CompliancePageMixin:
         if win.cp_mode:
             self.cp_mode_end(quiet=True)
         again = all(it["decision"] == "Context" for it in rows)    # C on a context sentence: change what it supports
+        last = self._c_item(win.cp_last_req) if win.cp_last_req else None
+        if last is not None and (last.get("decision") != "Keep" or last in rows):
+            last = None
+        if again and len(rows) == 1:                  # 2.56.0: C on a support sentence opens the checklist
+            self.cp_support_picker()
+            return "ctx_pick"
         for it in rows:
             if it["decision"] == "Context":
                 continue                              # already Context: keep what it supports, change it with clicks
-            d = C.default_context_for(M.items, it)
+            d = last["id"] if last is not None else C.default_context_for(M.items, it)   # 2.56.0: the last requirement clicked
+            SD.clear_sections(M, it)
             if d:
                 C.assign_context(M.items, [it], [d])
             elif win.cp_target:
@@ -1379,8 +1434,9 @@ class CompliancePageMixin:
             # sentence. Go back to it and press C again to change what it supports.
             hosts = C.cf_ids(rows[0].get("context_for", ""))
             self._cp_banner((f"{rows[0]['id'] if len(rows) == 1 else str(len(rows)) + ' sentences'} supports "
-                             + (f"{', '.join(hosts)} (the nearest requirement)" if hosts else f"section {rows[0].get('map', '')}")
-                             + ". To change: C on it again, or Relationships."), 7000)
+                             + (f"{', '.join(hosts)} ({'the last requirement you clicked' if last is not None else 'the nearest requirement'})"
+                                if hosts else f"section {rows[0].get('map', '')}")
+                             + ". To change or add more: the arrow next to Support, or C on it again."), 7000)
             self._cp_after(rows, f"{rows[0]['id'] if len(rows) == 1 else str(len(rows)) + ' sentences'}: {C.context_label(rows[0])}"
                                  " (back to it and C again to change)", advance=True)
             return "ctx_done"
@@ -1391,6 +1447,113 @@ class CompliancePageMixin:
         self._cp_side()
         win.cp_text.focus_set()
         return "ctx"
+
+    def _cp_sup_label(self):
+        """The dock's 'for:' button says what C attaches to (or, on a support sentence, what it supports)."""
+        win = self._cwin
+        b = getattr(win, "cp_sup_btn", None)
+        if b is None:
+            return
+        sel = self._c_selected()
+        it = sel[0] if sel else None
+        if it is not None and it.get("decision") == "Context":
+            hosts = C.cf_ids(it.get("context_for", ""))
+            txt = ("supports " + ", ".join(hosts[:2]) + (" +" if len(hosts) > 2 else "")) if hosts else \
+                (f"supports section {it['map'][:18]}" if it.get("map") else "supports: nothing yet")
+        else:
+            last = self._c_item(win.cp_last_req) if win.cp_last_req else None
+            txt = f"for: {last['id']}" if last is not None and last.get("decision") == "Keep" else "for: (click a requirement)"
+        b.configure(text=txt + "  \u25be")
+
+    def cp_support_picker(self, iid=None):
+        """2.56.0: what a support sentence supports, as a checklist: compliance requirements (those of the same RFP
+        section first, with a search box) and proposal sections. Each tick counts at once. With a sentence that is not
+        support yet, it becomes support for what is ticked. Returns the window (tests drive w._api)."""
+        win, M = self._cwin, self.matrix
+        rows = [self._c_item(iid)] if iid else self._cp_rows()
+        rows = [r for r in rows if r]
+        if not rows or M is None:
+            return None
+        old = getattr(win, "cp_sup_win", None)
+        if old is not None and old.winfo_exists():
+            old.destroy()
+        w = ctk.CTkToplevel(self._c_parent()); w.title("Support for"); w.geometry("560x560"); w.transient(self._c_parent())
+        w.after(120, w.lift)
+        win.cp_sup_win = w
+        who = rows[0]["id"] if len(rows) == 1 else f"{len(rows)} sentences"
+        ctk.CTkLabel(w, text=f"{who} supports (tick one or more):", font=("Segoe UI", 14, "bold"), anchor="w").pack(fill="x", padx=12, pady=(10, 2))
+        q = ctk.CTkEntry(w, placeholder_text="search: an ID or words"); q.pack(fill="x", padx=12, pady=(0, 6))
+        box = ctk.CTkScrollableFrame(w); box.pack(fill="both", expand=True, padx=12)
+        here = rows[0]
+        idx = {it["id"]: k for k, it in enumerate(M.items)}
+        me = idx.get(here["id"], 0)
+        reqs = [it for it in M.items if it.get("decision") == "Keep" and it not in rows]
+        reqs.sort(key=lambda x: (x.get("file") != here.get("file"), (x.get("section") or "") != (here.get("section") or ""),
+                                 abs(idx.get(x["id"], 0) - me)))
+        labels = [C.outline_label(o) for o in M.outline]
+        vars_ = {}
+
+        def linked(rid):
+            return all(rid in C.cf_ids(r.get("context_for", "")) for r in rows if r.get("decision") == "Context")
+
+        def toggle(kind, key, var):
+            for r in rows:
+                if kind == "req":
+                    ids = C.cf_ids(r.get("context_for", "")) if r.get("decision") == "Context" else []
+                    ids = (ids + [key]) if var.get() and key not in ids else [i for i in ids if i != key or var.get()]
+                    if r.get("decision") != "Context" or r.get("context_for") == "" and r.get("map"):
+                        SD.clear_sections(M, r)
+                    C.assign_context(M.items, [r], ids)
+                    M.log(r["id"], f"context for {r['context_for'] or 'nothing yet'}")
+                else:
+                    if var.get():
+                        if r.get("decision") == "Context" and not r.get("context_for") and r.get("map"):
+                            SD.add_section(M, r, key)
+                        else:
+                            SD.clear_sections(M, r)
+                            C.assign_context(M.items, [r], section=key)
+                    else:
+                        SD.remove_section(M, r, key)
+                    M.log(r["id"], f"context for section {key}")
+            diag.activity("compliance_support_picked")
+            self._c_changed()
+            for k2, (kk, v2) in vars_.items():          # a requirement ticked clears the section ticks, and back
+                if kk == "req":
+                    v2.set(linked(k2[1]))
+                else:
+                    v2.set(all(k2[1] in SD.item_sections(M, r) and not r.get("context_for") for r in rows))
+            self._cp_sup_label()
+
+        def fill(*_a):
+            for c in box.winfo_children():
+                c.destroy()
+            needle = q.get().strip().lower()
+            ctk.CTkLabel(box, text="Compliance requirements", font=("Segoe UI", 12, "bold"), anchor="w").pack(fill="x")
+            n = 0
+            for x in reqs:
+                line = f"{x['id']}  {x['text'][:80]}"
+                if needle and needle not in line.lower():
+                    continue
+                n += 1
+                if n > 200:
+                    break
+                key = ("req", x["id"])
+                v = vars_.get(key, (None, tk.BooleanVar(value=linked(x["id"]))))[1]
+                vars_[key] = ("req", v)
+                ctk.CTkCheckBox(box, text=line, variable=v, command=lambda k=x["id"], vv=v: toggle("req", k, vv)).pack(anchor="w", pady=1)
+            ctk.CTkLabel(box, text="Or support for a proposal section itself", font=("Segoe UI", 12, "bold"), anchor="w").pack(fill="x", pady=(8, 0))
+            for lab in labels:
+                if needle and needle not in lab.lower():
+                    continue
+                key = ("sec", lab)
+                v = vars_.get(key, (None, tk.BooleanVar(value=all(lab in SD.item_sections(M, r) and not r.get("context_for") for r in rows))))[1]
+                vars_[key] = ("sec", v)
+                ctk.CTkCheckBox(box, text=lab, variable=v, command=lambda k=lab, vv=v: toggle("sec", k, vv)).pack(anchor="w", pady=1)
+        q.bind("<KeyRelease>", fill)
+        fill()
+        ctk.CTkButton(w, text="Done", width=90, command=w.destroy).pack(anchor="e", padx=12, pady=8)
+        w._api = {"vars": vars_, "toggle": toggle, "search": q, "fill": fill}
+        return w
 
     def cp_ctx_click(self, hit):
         """A click while choosing context: a compliance requirement is added or removed. Returns 'added', 'removed' or
@@ -1426,7 +1589,12 @@ class CompliancePageMixin:
             return self.cp_assign_req(rows, label)
         if mode and mode[0] == "ctx":
             rows = [r for r in (self._c_item(i) for i in mode[1]) if r]
-            C.assign_context(M.items, rows, section=label)
+            for r in rows:                            # 2.56.0: support for a section can be support for several sections
+                if r.get("decision") == "Context" and not r.get("context_for") and r.get("map"):
+                    SD.add_section(M, r, label)
+                else:
+                    SD.clear_sections(M, r)
+                    C.assign_context(M.items, [r], section=label)
             for r in rows:
                 M.log(r["id"], f"context for section {label}")
             win.cp_mode = None
@@ -1503,6 +1671,7 @@ class CompliancePageMixin:
             self.cp_mode_end(quiet=True)
         C.clear_assignment(self.matrix.items, rows)
         for it in rows:
+            SD.clear_sections(self.matrix, it)
             self.matrix.log(it["id"], "not used (cleared)")
         self._cp_after(rows, (rows[0]["id"] if len(rows) == 1 else f"{len(rows)} sentences") + ": not used", advance=True)
         return len(rows)
@@ -1518,6 +1687,7 @@ class CompliancePageMixin:
             self.cp_mode_end(quiet=True)
         C.assign_customer(self.matrix.items, rows)
         for it in rows:
+            SD.clear_sections(self.matrix, it)
             self.matrix.log(it["id"], "customer's (identified, not answered)")
         self._cp_after(rows, (rows[0]["id"] if len(rows) == 1 else f"{len(rows)} sentences") + ": the customer's (not ours to answer)",
                        advance=True)
