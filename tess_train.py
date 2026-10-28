@@ -268,7 +268,8 @@ def train(tess_dir, train_dir, out_dir, progress=lambda msg, frac=None: None, ca
               "symbol_lines": len(eval_math),
               "symbols_correct_before_pct": _pct(_bcer(math_before)) if eval_math else None,
               "symbols_correct_after_pct": _pct(_bcer(math_after)) if eval_math else None}
-    report["better"] = a_c is not None and (b_c is None or a_c <= b_c)
+    # with no line both readers can write (all new characters), the new reader must stand on its own: 90%+ right
+    report["better"] = a_c is not None and (a_c <= b_c if b_c is not None else a_c <= 10.0)
     with open(os.path.join(out_dir, "training_report.json"), "w", encoding="utf-8") as f:
         json.dump(report, f, indent=1)
     if not os.environ.get("AH_KEEP_TRAIN_WORK"):
