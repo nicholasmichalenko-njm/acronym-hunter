@@ -133,12 +133,18 @@ def page_map(path, page_no, items, headings=()):
                 heads.append((seq[span[0]][1], seq[span[1] - 1][2]))
         out = {"size": (w, h), "pages": len(pdf), "items": [], "headings": [], "missing": [], "chars": n}
         for iid, spans in found.items():
-            rs = []
+            rs, ws = [], []
             parts = set()
             for (a, b), part in spans:
                 rs += rects(seq[a][1], seq[b - 1][2])
                 parts.add(part)
-            out["items"].append({"id": iid, "rects": rs, "part": "end" if "end" in parts else "start" if "start" in parts else ""})
+                if part != "lead":                      # 2.56.0: each word's box, in order (split at a clicked word)
+                    for q in range(a, b):
+                        r = rects(seq[q][1], seq[q][2])
+                        if r:
+                            ws.append(r[0])
+            out["items"].append({"id": iid, "rects": rs, "words": ws,
+                                 "part": "end" if "end" in parts else "start" if "start" in parts else ""})
         out["headings"] = [r for a, b in heads for r in rects(a, b)]
         run = []                                           # text not in the review, line by line, as the text check counts it
         def flush():
@@ -198,7 +204,7 @@ def overlay(img, pmap, decisions, scale, selected="", show_missing=True):
         d.rectangle([l * scale - 2, t * scale - 2, rr * scale + 2, b * scale + 2], fill=rgb + (fill_a,), outline=rgb + (255,), width=width)
     for it in pmap["items"]:
         rgb = COLORS.get(decisions.get(it["id"], ""), COLORS[""])[0]
-        on = it["id"] == selected
+        on = it["id"] == selected or (isinstance(selected, (set, frozenset, list, tuple)) and it["id"] in selected)
         for r in it["rects"]:
             box(r, rgb, 90 if on else 38, 4 if on else 2)
     if show_missing:

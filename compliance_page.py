@@ -118,6 +118,10 @@ class CompliancePageMixin:
         win.cp_lines_after = None
         t.pack(fill="both", expand=True, pady=(0, 8))
         win.cp_text = t
+        # 2.56.0: Page view (the document as it looks) or Text view; the text parts are re-packed in this order
+        win.pv_text_opts = [dict(side="right", fill="y"), dict(side="right", fill="y", pady=(0, 8)),
+                            dict(side="left", fill="y", pady=(0, 8)), dict(fill="both", expand=True, pady=(0, 8))]
+        self._pv_build(page, [sb, strip, gut, t])
         t.bind("<Button-3>", self.cp_text_menu)            # 2.50.0: Add to compliance words, Add as keyword
         t.tag_configure("head", font=("Segoe UI", max(10, size - 3), "bold"), spacing1=int(14 * dpi), spacing3=int(2 * dpi))
         for dec, bg in DEC_BG.items():
@@ -253,6 +257,8 @@ class CompliancePageMixin:
         else:
             self._cp_shade(rows)
         self._cp_side()
+        if hasattr(self, "_pv_refresh"):
+            self._pv_refresh()
 
     def _cp_path(self, f):
         """The customer document behind a file name in the review (as read, else where the effort keeps it)."""
@@ -739,6 +745,8 @@ class CompliancePageMixin:
         if it.get("decision") == "Keep":              # 2.56.0: C attaches support to the last requirement clicked
             win.cp_last_req = it["id"]
         self._cp_sup_label()
+        if hasattr(self, "pv_follow"):
+            self.pv_follow(it)
         rows = self._cp_items_of(win.cp_file)
         n = next((i for i, x in enumerate(rows, 1) if x["id"] == it["id"]), 0)
         d = it["decision"]
@@ -775,7 +783,7 @@ class CompliancePageMixin:
         elif d == "Keep":
             ids = [x["id"] for x in self.matrix.items if x["decision"] == "Context" and it["id"] in C.cf_ids(x.get("context_for", ""))]
             win.cp_l3.configure(text=(f"Supported by: {', '.join(ids[:6])}" + (" ..." if len(ids) > 6 else "")) if ids
-                                else "No support for it yet. Select a sentence, press C (Support), and it links to the nearest requirement.")
+                                else "No support for it yet. Select a sentence and press C (Support): it links to this requirement, the last one you clicked.")
             win.cp_l3.pack(fill="x")
         else:
             win.cp_l3.pack_forget()
@@ -984,8 +992,8 @@ class CompliancePageMixin:
                               hover_color=("#FEE2E2", "#450A0A"), command=lambda l=lab: self.cp_remove_section(it["id"], l),
                               **S).pack(side="right")
         if it.get("decision") == "Keep":
-            ctk.CTkLabel(box, text=f"Supported by {len(ids)} sentence(s)" if ids else "No support yet: select a sentence and press "
-                         "C (Support); it links to the nearest requirement.", anchor="w", justify="left", wraplength=300).pack(fill="x")
+            ctk.CTkLabel(box, text=f"Supported by {len(ids)} sentence(s)" if ids else "No support yet: click this requirement, then a "
+                         "sentence, and press C (Support); it links to the last requirement you clicked.", anchor="w", justify="left", wraplength=300).pack(fill="x")
         elif it.get("decision") == "Context":
             ctk.CTkLabel(box, text=(f"Supports {len(ids)} requirement(s)" if ids else
                                     (f"Support for section {it['map']}" if it.get("map") else "Support, not linked yet")),
@@ -994,7 +1002,7 @@ class CompliancePageMixin:
             ctk.CTkLabel(box, text="The customer's: identified, not answered.", anchor="w").pack(fill="x")
             return
         else:
-            ctk.CTkLabel(box, text="Not assigned. R: compliance requirement, C: support for the nearest requirement.", anchor="w",
+            ctk.CTkLabel(box, text="Not assigned. R: compliance requirement, C: support for the last requirement you clicked.", anchor="w",
                          justify="left", wraplength=300, text_color=("#475569", "#94A3B8")).pack(fill="x")
             return
         for i in ids[:30]:
@@ -1178,6 +1186,8 @@ class CompliancePageMixin:
 
     def cp_set_range(self, ids):
         win = self._cwin
+        if hasattr(self, "_pv_soon"):
+            self._pv_soon()
         t = win.cp_text
         win.cp_range = list(ids)
         t.tag_remove("rng", "1.0", "end")
