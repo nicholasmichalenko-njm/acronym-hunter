@@ -27,13 +27,46 @@ def _in_fallback(el):
     return any(a.tag == MC_FALLBACK for a in el.iterancestors())
 
 
+_W = "{%s}" % W_NS
+_W_SPACE = {_W + "tab", _W + "br", _W + "cr", _W + "ptab"}
+
+
+def w_text(el, owner=None):
+    """2.55.0: a Word element's text as it reads: a tab or a line break inside a paragraph is a space (before, the words
+    on either side ran together: "pages.Pages", "Offerorsshall"), a non-breaking hyphen is a hyphen. owner: only the
+    text of that paragraph (not of a text box inside it)."""
+    out = []
+    for x in el.iter(_W + "t", _W + "tab", _W + "br", _W + "cr", _W + "ptab", _W + "noBreakHyphen"):
+        if owner is not None and _owner_para(x, _W + "p") is not owner:
+            continue
+        if _in_fallback(x):
+            continue
+        if x.tag == _W + "t":
+            out.append(x.text or "")
+        elif x.getparent() is not None and x.getparent().tag == _W + "r":   # a tab stop in the paragraph's settings is not text
+            out.append("-" if x.tag == _W + "noBreakHyphen" else " ")
+    return "".join(out)
+
+
+def a_text(p):
+    """A DrawingML (PowerPoint) paragraph's text: a line break (a:br) inside it is a space."""
+    A = "{%s}" % A_NS
+    return "".join((x.text or "") if x.tag == A + "t" else " " for x in p.iter(A + "t", A + "br") if not _in_fallback(x))
+
+
 def _para_text(root, p_tag, t_tags):
     out = []
     for p in root.iter(p_tag):
         if _in_fallback(p):
             continue
         # a paragraph inside a text box inside a paragraph: count it once, as its own line
-        txt = "".join(t.text or "" for t in p.iter(*t_tags) if not _in_fallback(t) and _owner_para(t, p_tag) is p)
+        if p_tag == _W + "p":
+            txt = w_text(p, owner=p)
+        elif p_tag == "{%s}p" % A_NS:
+            txt = "".join((x.text or "") if x.tag.endswith("}t") else " " for x in p.iter(*t_tags, "{%s}br" % A_NS)
+                          if not _in_fallback(x) and _owner_para(x, p_tag) is p)
+        else:
+            txt = "".join(t.text or "" for t in p.iter(*t_tags) if not _in_fallback(t) and _owner_para(t, p_tag) is p)
         if txt.strip():
             out.append(txt)
     return out

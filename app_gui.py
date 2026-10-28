@@ -974,7 +974,7 @@ def drawingml_lines(root):
     for para in root.iter(_q("a", "p")):
         if _in_fallback(para):
             continue
-        text = "".join(t.text or "" for t in para.iter(_q("a", "t")))
+        text = _TC.a_text(para)                 # 2.55.0: a line break inside a paragraph is a space
         if text.strip():
             lines.append(text)
     return lines
@@ -987,6 +987,8 @@ def chart_lines(root):
 
 _CAPTION_RE = re.compile(r"^\s*(Figure|Fig\.|Table|Exhibit|Chart|Diagram)\s+[A-Z]?[\d.\-]+\s*[.:\u2013\u2014-]", re.I)
 
+import textcheck as _TC   # 2.55.0: Word text as it reads (tabs and line breaks are spaces)
+
 def word_paragraph_kinds(root):
     """(text, is_heading, kind) per Word paragraph. kind (2.23.0): "text" for running text, "table" inside a table,
     "figure" inside a text box or drawing, "caption" for a caption (Caption style, or "Figure 3." / "Table 2:" at the
@@ -996,7 +998,7 @@ def word_paragraph_kinds(root):
     for para in root.iter(W_P):
         if _in_fallback(para):
             continue
-        text = "".join(t.text or "" for t in para.iter(W_T) if next(t.iterancestors(W_P), None) is para)
+        text = _TC.w_text(para, owner=para)     # 2.55.0: tabs and line breaks are spaces
         style = para.find("%s/%s" % (_q("w", "pPr"), _q("w", "pStyle")))
         sval = (style.get(_q("w", "val")) or "").lower() if style is not None else ""
         kind = "text"
@@ -1315,7 +1317,7 @@ def docx_math(body, filename, chunks):
         idx += 1
         style = para.find("%s/%s" % (_q("w", "pPr"), _q("w", "pStyle")))
         if style is not None and (style.get(_q("w", "val")) or "").lower().startswith(("heading", "title")):
-            heading = "".join(t.text or "" for t in para.iter(W_T)).strip() or heading
+            heading = _TC.w_text(para).strip() or heading
         for om in _outer_maths(para):
             if next(om.iterancestors(W_P), None) is not para:
                 continue
@@ -1327,7 +1329,7 @@ def docx_math(body, filename, chunks):
         cells = []
         for tc in tr.iter(W_TC):
             math = " ".join(" ".join(EQ.omml_text(om).split()) for om in _outer_maths(tc)).strip()
-            words = " ".join("".join(t.text or "" for t in tc.iter(W_T)).split())
+            words = " ".join(_TC.w_text(tc).split())
             cells.append((math, words))
         if len(cells) >= 2:
             sym_cell = next((m for m, w in cells if m and not w and not _is_equation(m)), None)
@@ -1786,7 +1788,7 @@ def parse_client_list(path, pictures=True):
         W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
         with zipfile.ZipFile(path) as z:
             root = _xml(z, "word/document.xml")
-        text_of = lambda el: "".join(t.text or "" for t in el.iter(W + "t"))
+        text_of = lambda el: _TC.w_text(el)
         for tbl in root.iter(W + "tbl"):
             pairs += _pairs_from_table([[text_of(tc) for tc in tr.iter(W + "tc")] for tr in tbl.iter(W + "tr")])
         body = root.find(W + "body")

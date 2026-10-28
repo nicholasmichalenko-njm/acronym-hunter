@@ -185,7 +185,7 @@ def table_chunks(path):
         for i, tbl in enumerate(root.iter(W + "tbl"), 1):
             rows = []
             for tr in tbl.iter(W + "tr"):
-                cells = ["".join(t.text or "" for t in tc.iter(W + "t")).strip() for tc in tr.iter(W + "tc")]
+                cells = [__import__("textcheck").w_text(tc).strip() for tc in tr.iter(W + "tc")]
                 cells = [c for c in cells if c]
                 if cells:
                     rows.append(cells)
@@ -222,7 +222,7 @@ def acronym_list(path):
     for i, tbl in enumerate(root.iter(W + "tbl"), 1):
         pairs = []
         for tr in tbl.iter(W + "tr"):
-            cells = ["".join(t.text or "" for t in tc.iter(W + "t")).strip() for tc in tr.iter(W + "tc")]
+            cells = [__import__("textcheck").w_text(tc).strip() for tc in tr.iter(W + "tc")]
             cells = [c for c in cells if c]
             if len(cells) >= 2:
                 pairs.append(cells[:2])

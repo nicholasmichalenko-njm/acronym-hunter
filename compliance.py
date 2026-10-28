@@ -985,7 +985,8 @@ def outline_from_docx_xml(document_xml):
         m = re.match(r"^(?:Heading|heading)\s*(\d)$", st.get(W + "val", ""))
         if not m:
             continue
-        txt = "".join(t.text or "" for t in p.iter(W + "t")).strip()
+        import textcheck as _TC
+        txt = _TC.w_text(p).strip()
         if txt:
             o = parse_outline(txt)[0] if parse_outline(txt) else {"num": "", "title": txt}
             out.append({"num": o["num"], "title": o["title"], "level": int(m.group(1))})

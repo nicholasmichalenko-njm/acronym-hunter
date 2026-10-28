@@ -25,6 +25,8 @@ import compliance as C
 import setupdoc as SD          # 2.48.1: module-wide (Owner... failed with a NameError: SD was only imported inside some functions)
 import diag
 import cwords as CW
+import os, re
+import docview as DV          # 2.55.0: Assign shows the document itself
 
 DEC_BG = {"Keep": "#BBF7D0", "Context": "#BFDBFE", "Customer": "#E9D5FF", "Drop": "#F3F4F6"}
 STRIP = {"": "#CBD5E1", "Drop": "#E2E8F0", "Keep": "#22C55E", "Context": "#3B82F6", "Customer": "#9333EA"}
@@ -129,6 +131,13 @@ class CompliancePageMixin:
         t.tag_bind("badge", "<Button-1>", self._cp_badge_click)
         t.tag_bind("badge", "<Enter>", lambda _e: t.configure(cursor="hand2"))
         t.tag_bind("badge", "<Leave>", lambda _e: t.configure(cursor="arrow"))
+        # 2.55.0 Assign shows the document itself: its headings, list lead-ins, the words a sentence lacks, where a page or
+        # header starts, and any text not in the review
+        t.tag_configure("where", font=("Segoe UI", max(8, size - 6)), foreground="#94A3B8", spacing1=int(10 * dpi))
+        t.tag_configure("lead", foreground="#475569", font=(None, size, "italic"))
+        t.tag_configure("gap", background="#FED7AA", underline=True)
+        t.tag_configure("miss", background="#FDBA74", underline=True)
+        t.tag_configure("lostlab", font=("Segoe UI", max(8, size - 5), "bold"), foreground="#B45309")
         t.tag_configure("rng", background="#FDE68A")
         t.tag_configure("cur", relief="solid", borderwidth=2, background="#FEF3C7")
         t.tag_configure("linked", relief="ridge", borderwidth=2, foreground="#1E3A8A")
@@ -240,7 +249,183 @@ class CompliancePageMixin:
             self._cp_shade(rows)
         self._cp_side()
 
+    def _cp_path(self, f):
+        """The customer document behind a file name in the review (as read, else where the effort keeps it)."""
+        M = self.matrix
+        for src in (M.sources or []) if M is not None else []:
+            if src and len(src) > 3 and src[0] == f and src[3] and os.path.isfile(src[3]):
+                return src[3]
+        try:
+            for p in self.c_effort_docs():
+                if os.path.basename(p) == f:
+                    return p
+        except Exception:
+            diag.swallowed()
+        return ""
+
     def _cp_render(self, rows):
+        """2.55.0: the page is the document itself (docview), every character in the document's order, with the review
+        sentences laid over it; without the file (moved, or a scanned file with no typed text), the sentences alone."""
+        win = self._cwin
+        path = self._cp_path(win.cp_file)
+        lines = DV.doc_lines(path) if path else []
+        win.cp_doc = bool(lines)
+        if not lines:
+            return self._cp_render_items(rows)
+        res = DV.align(lines, rows)
+        self._cp_add_missing_runs(rows, lines, res)
+        t = win.cp_text
+        t.configure(state="normal")
+        t.delete("1.0", "end")
+        cfg = CW.load()
+        font, fg, bg = CW.tk_font_options(cfg, "Georgia", 16)
+        try:
+            import tkinter.font as tkfont
+            f = tkfont.Font(font=t.cget("font"))
+            font, fg, bg = CW.tk_font_options(cfg, f.actual("family"), f.actual("size"))
+        except Exception:
+            diag.swallowed()
+        opts = {"font": font}
+        if fg:
+            opts["foreground"] = fg
+        if bg:
+            opts["background"] = bg
+        t.tag_configure("cword", **opts)
+        t.tag_raise("cword")
+        by_id = {it["id"]: it for it in rows}
+        ext = {}                                       # item id: [first index, last index]
+        line_of = {q: w[1] for q, w in enumerate(res["words"])}
+        lost_after = {}
+        placed = set(res["span"])
+        for iid, after, why in res["lost"]:
+            lost_after.setdefault(line_of.get(after, -1), []).append((iid, why))
+        for it in rows:                                 # a sentence with no words at all: shown with the lost ones
+            if it["id"] not in placed and not any(it["id"] == x for v in lost_after.values() for x, _w in v):
+                lost_after.setdefault(-1, []).append((it["id"], "not found in the document as written"))
+
+        def put(text, tags, owner_id=None):
+            if not text:
+                return
+            a = t.index("end-1c")
+            for piece, w in CW.segments(text, cfg):
+                t.insert("end", piece, tags + (("cword",) if w else ()))
+            if owner_id:
+                b = t.index("end-1c")
+                e = ext.setdefault(owner_id, [a, b])
+                e[1] = b
+
+        def put_lost(li):
+            for iid, why in lost_after.get(li, []):
+                it = by_id.get(iid)
+                if it is None:
+                    continue
+                t.insert("end", "\n" if t.index("end-1c") != "1.0" else "")
+                t.insert("end", f"[{why}]  ", ("lostlab",))
+                put(it.get("text", ""), (), iid)
+        put_lost(-1)
+        runs = DV.runs(lines, res)
+        by_line = {}
+        for li, a, b, o in runs:
+            by_line.setdefault(li, []).append((a, b, o))
+        prev_where = None
+        for li, (where, line) in enumerate(lines):
+            if where != prev_where:
+                lab = DV.where_label(where)
+                if lab:
+                    t.insert("end", ("\n" if t.index("end-1c") != "1.0" else "") + lab, ("where",))
+                prev_where = where
+            if t.index("end-1c") != "1.0":
+                t.insert("end", "\n")
+            for a, b, o in by_line.get(li, []):
+                txt = line[a:b]
+                if isinstance(o, tuple):
+                    kind, iid = o
+                    if kind == "i":
+                        put(txt, (), iid)
+                    elif kind == "g":
+                        put(txt, ("gap",), iid)
+                    else:
+                        put(txt, ("lead", "ld:" + iid))
+                elif o == "h":
+                    put(txt, ("head",))
+                elif o is None:
+                    put(txt, ("miss",))
+                else:
+                    t.insert("end", txt)
+            put_lost(li)
+        for iid, (a, b) in ext.items():
+            it = by_id.get(iid)
+            if it is not None:
+                t.tag_add("r:" + iid, a, b)
+                t.tag_add(_tag(it), a, b)
+        t.tag_raise("rng")
+        t.tag_raise("cur")
+        win.cp_badge = {}
+        self._cp_badges(rows)
+        t.configure(state="disabled")
+        win.cp_range = [i for i in win.cp_range if t.tag_ranges("r:" + i)]
+        nd = len(res["diff"])
+        nl = sum(len(v) for v in lost_after.values())
+        win.cp_src.configure(text=f"{win.cp_file}: the whole document, {len(rows)} sentences. Click a sentence to see or change it; "
+                                  "drag across several to assign them together; click between two words, then S, to split."
+                             + (f"  {nd} sentence(s) differ from the document (orange words)." if nd else "")
+                             + (f"  {nl} not found as written (marked)." if nl else ""))
+        self._cp_insec()
+        sel = self._c_selected()
+        if sel:
+            self._cp_mark(sel[0])
+        self._cp_strip()
+
+    def _cp_add_missing_runs(self, rows, lines, res):
+        """Text of the document not in the review goes in, in its place (the same promise as the text check, now
+        word for word on the page you see). Each stretch is added once per session, so nothing can loop."""
+        win = self._cwin
+        miss = DV.missing_runs(lines, res)
+        done = self.matrix.__dict__.setdefault("page_added_keys", set())   # per matrix as loaded
+        miss = [m for m in miss if (win.cp_file, C.text_key(m[0])) not in done]
+        if not miss:
+            return 0
+        M = self.matrix
+        owner = res["owner"]
+        added = []
+        for text, a, _b in miss:
+            done.add((win.cp_file, C.text_key(text)))
+            prev = next((owner[q][1] for q in range(a - 1, -1, -1) if isinstance(owner[q], tuple) and owner[q][0] in ("i", "g")), None)
+            nxt = next((owner[q][1] for q in range(a, len(owner)) if isinstance(owner[q], tuple)), None)
+            idx = {it["id"]: k for k, it in enumerate(M.items)}
+            if prev in idx:
+                at = idx[prev] + 1
+            elif nxt in idx:
+                at = idx[nxt]
+            else:
+                at = next((k for k, it in enumerate(M.items) if it.get("file") == win.cp_file), len(M.items))
+            it = C.context_item(text, "", ("", ""), "") or {
+                "text": text, "lead": "", "section": "", "section_title": "", "actor": "", "type": "Context", "strength": "",
+                "suggest": "Context", "modal": "", "xrefs": "", "compound": False}
+            where = lines[res["words"][a][1]][0]
+            pm = re.match(r"p\.(\d+)$", where or "")
+            nb = M.items[at - 1] if at > 0 and M.items[at - 1].get("file") == win.cp_file else (M.items[at] if at < len(M.items) else None)
+            it.update({"file": win.cp_file, "loc": f"{win.cp_file} ({where}, added: not in the review)", "page": int(pm.group(1)) if pm else None,
+                       "context": text[:700], "key": C.text_key(text), "decision": "", "map": "", "owner": "", "status": "",
+                       "notes": "", "response_page": "", "links": "", "new": "Added by the text check", "learned": "",
+                       "context_for": "", "id": "",
+                       "section": (nb or {}).get("section", ""), "section_title": (nb or {}).get("section_title", "")})
+            M.items.insert(at, it)
+            added.append(it)
+        C.assign_ids(M.items)
+        for it in added:
+            M.log(it["id"], "added: on the page, not in the review")
+        M.pending = True
+        try:
+            self._c_save_now()                         # kept at once, so a reload cannot lose them
+        except Exception:
+            diag.swallowed()
+        diag.activity("compliance_page_added", n=len(added))
+        win.after_idle(lambda: (self._c_changed(), self._cp_flash(f"{len(added)} line(s) of the document were not in the review: "
+                                                                 "added in their place (marked Added by the text check).")))
+        return len(added)
+
+    def _cp_render_items(self, rows):
         win = self._cwin
         t = win.cp_text
         t.configure(state="normal")
@@ -921,7 +1106,9 @@ class CompliancePageMixin:
 
     # ------------------------------------------------------------ Assign: pointing and ranges
     def _cp_hit(self, ix):
-        return next((tag[2:] for tag in self._cwin.cp_text.tag_names(ix) if tag.startswith("r:")), None)
+        tags = self._cwin.cp_text.tag_names(ix)
+        return next((tag[2:] for tag in tags if tag.startswith("r:")), None) or \
+            next((tag[3:] for tag in tags if tag.startswith("ld:")), None)     # a list lead-in: its list's first sentence
 
     def _cp_motion(self, e):
         t = self._cwin.cp_text
@@ -1031,7 +1218,18 @@ class CompliancePageMixin:
         if sel and sel[0]["id"] == hit:              # a click inside the current sentence: where to split
             r = t.tag_ranges("r:" + hit)
             def off(i):
-                return int(t.count(r[0], i, "chars")[0]) if t.compare(i, ">", r[0]) else 0
+                if not t.compare(i, ">", r[0]):
+                    return 0
+                if not getattr(win, "cp_doc", False):
+                    return int(t.count(r[0], i, "chars")[0])
+                # 2.55.0: the page shows the document's words; count them and split the sentence at the same word
+                shown = t.get(r[0], i)
+                n = len(DV.WORD.findall(shown))
+                if shown and shown[-1].isalnum() and t.get(i).isalnum():
+                    n -= 1                               # inside a word: split before it
+                txt = sel[0].get("text", "")
+                ms = list(DV.WORD.finditer(txt))
+                return 0 if n <= 0 else len(txt) if n >= len(ms) else ms[n].start()
             if t.tag_ranges("sel") and t.compare("sel.first", ">=", r[0]) and t.compare("sel.last", "<=", r[1]):
                 self._c_split_at = (off("sel.first"), off("sel.last"))
             else:

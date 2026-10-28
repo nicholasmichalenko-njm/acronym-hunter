@@ -601,6 +601,13 @@ PAGES = {
                          "structure yet, start it from the RFP headings there). Click any "
                          "sentence at any time to see how it is assigned and change it. Every choice counts at once and is "
                          "saved as you go (a crash or closing the app loses nothing); there is no commit step."),
+              ("The whole document", "The page is the customer document itself, read straight from the file: every word, "
+                                     "in the document's order, with page, header and footer marks. Each review sentence is "
+                                     "laid over its own words. List lead-ins are in italics (click one for its list); "
+                                     "headings in bold. Orange words: the document has them inside a sentence that lacks "
+                                     "them. A sentence marked [not found in the document as written] is still shown. Text "
+                                     "of the document not in the review is added to it in its place, so nothing is left "
+                                     "out (marked Added by the text check)."),
               ("Compliance requirement", "R puts the sentence into a section. Click a section on the right to make it the "
                                          "target, then R for each sentence; with no target, R waits for you to click a "
                                          "section. 1, 2 and 3 pick the suggested sections (the rules' match and past "
