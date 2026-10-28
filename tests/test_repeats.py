@@ -14,7 +14,7 @@ assert not [l for l in r["lines"] if l[2] == "missing" and "FA8811" in l[1]], [l
 lines = DV.doc_lines(PDF)
 res = DV.align(lines, items)
 assert not [m for m in DV.missing_runs(lines, res) if "FA8811" in m[0]], DV.missing_runs(lines, res)
-assert sum(1 for o in res["owner"] if o == "r") >= 4, "the other pages' headers are repeats"
+assert not any("FA8811" in l for _w, l in lines), "2.57.0: headers and footers are not text of the page view at all"
 # copies added before 2.56.1 are taken out once (undecided ones only)
 M = C.Matrix(os.path.join(os.path.dirname(PDF), "_none.xlsx"), "K")
 M.items = [dict(x) for x in items]

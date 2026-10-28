@@ -14,6 +14,7 @@ import diag
 import layout as LY
 import docview as DV
 import office_pdf as OP
+import pagesent as PS
 
 GAP = 18            # between pages
 MARGIN = 150        # left margin for the labels
@@ -183,7 +184,7 @@ class PageViewMixin:
             self._pv_show_canvas(False)
             win.pv_note.configure(text=(f"Text view: {why}." if pv["want"] and why else ""))
             return
-        win.pv_note.configure(text="Click a sentence; drag across several; R, C, X, G, H, S as usual.")
+        win.pv_note.configure(text="Click a sentence; drag across several, or Ctrl+click each (even far apart); R, C, X, G, H, S, M as usual.")
         rows = self._cp_items_of(f)
         sig = (f, pdf, tuple((it["id"], it["text"]) for it in rows))
         if sig != pv["sig"] or force or pdf != pv["pdf"]:
@@ -193,7 +194,10 @@ class PageViewMixin:
         self._pv_soon(relayout=True)
 
     def _pv_load(self, f, pdf, rows):
-        """Page sizes, which page each sentence is on (laid over the PDF's own words), and fresh page maps."""
+        """Page sizes, where each sentence is on the pages and fresh page maps. 2.57.0: each sentence is placed on the
+        page's own words (pagesent.place_all: its place from the page, or its exact words in reading order); headers
+        and footers are page furniture, never boxed and never clickable. A PDF with too little typed text (scanned)
+        or too few sentences placed keeps the 2.56 layout (laid over the PDF's words with docview.align)."""
         import pypdfium2 as pdfium
         pv = self._cwin.pv
         doc = pdfium.PdfDocument(pdf)
@@ -201,23 +205,47 @@ class PageViewMixin:
             pv["sizes"] = [doc[i].get_size() for i in range(len(doc))]
         finally:
             doc.close()
-        lines = DV.doc_lines(pdf)
-        page_of = {}
-        if lines:
-            res = DV.align(lines, rows)
-            for iid, (a, _b) in res["span"].items():
-                where = lines[res["words"][a][1]][0]
-                if where.startswith("p."):
-                    page_of[iid] = int(where[2:])
-        pv.update(file=f, pdf=pdf, page_of=page_of, maps={}, base={}, photos={}, relayout=True)
+        page_of, placed, mode = {}, {}, "align"
+        try:
+            if PS.has_text(PS.doc_of(pdf)):
+                placed = PS.place_all(pdf, rows)
+                if rows and len(placed) >= 0.5 * len(rows):
+                    mode = "page"
+        except Exception:
+            diag.swallowed()
+            placed = {}
+        if mode == "page":
+            for iid, (pl, _lp) in placed.items():
+                sp = PS.parse_place(pl)
+                if sp:
+                    page_of[iid] = sp[0][0]
+        else:
+            lines = DV.doc_lines(pdf)
+            if lines:
+                res = DV.align(lines, rows)
+                for iid, (a, _b) in res["span"].items():
+                    where = lines[res["words"][a][1]][0]
+                    if where.startswith("p."):
+                        page_of[iid] = int(where[2:])
+        pv.update(file=f, pdf=pdf, page_of=page_of, maps={}, base={}, photos={}, relayout=True, mode=mode, placed=placed)
 
     def _pv_map(self, n):
         pv = self._cwin.pv
         if n not in pv["maps"]:
-            items = [dict(it, page=pv["page_of"].get(it["id"], -99)) for it in self._cp_items_of(pv["file"])]
+            rows = self._cp_items_of(pv["file"])
+            heads = [x for x in self.matrix.headings if x.get("file") in ("", None, pv["file"])]
             try:
-                pv["maps"][n] = LY.page_map(pv["pdf"], n, items, self.matrix.headings)
-                pv["maps"][n]["missing"] = DV.repeats_filter(pv["maps"][n]["missing"], items)   # 2.56.1: no repeats in red
+                if pv.get("mode") == "page":
+                    pl = pv.get("placed", {})
+                    items = [dict(it, place=pl[it["id"]][0], lead_place=pl[it["id"]][1]) for it in rows if it["id"] in pl]
+                    pv["maps"][n] = PS.place_map(pv["pdf"], n, items, heads)
+                else:
+                    items = [dict(it, page=pv["page_of"].get(it["id"], -99)) for it in rows]
+                    pv["maps"][n] = LY.page_map(pv["pdf"], n, items, self.matrix.headings)
+                    furn = PS.furniture(PS.doc_of(pv["pdf"]), n, PS.doc_of(pv["pdf"]).get("skip"))
+                    pv["maps"][n]["missing"] = [m for m in pv["maps"][n]["missing"] if not _over(m["rects"], furn)]
+                    pv["maps"][n]["furniture"] = furn
+                pv["maps"][n]["missing"] = DV.repeats_filter(pv["maps"][n]["missing"], rows)   # 2.56.1: no repeats in red
             except Exception:
                 diag.swallowed()
                 pv["maps"][n] = {"size": pv["sizes"][n - 1], "items": [], "headings": [], "missing": [], "chars": 0}
@@ -354,7 +382,7 @@ class PageViewMixin:
         win = self._cwin
         cv = win.pv_cv
         cv.focus_set()
-        win.pv["drag"] = (cv.canvasx(e.x), cv.canvasy(e.y), bool(e.state & 0x0001))
+        win.pv["drag"] = (cv.canvasx(e.x), cv.canvasy(e.y), bool(e.state & 0x0005))     # Shift or Ctrl: add or take out
 
     def _pv_motion(self, e):
         win = self._cwin
@@ -373,12 +401,14 @@ class PageViewMixin:
         cv.delete("rubber")
         x, y = cv.canvasx(e.x), cv.canvasy(e.y)
         if d and abs(x - d[0]) + abs(y - d[1]) > 8:
-            return self.pv_select_box(min(d[0], x), min(d[1], y), max(d[0], x), max(d[1], y))
+            return self.pv_select_box(min(d[0], x), min(d[1], y), max(d[0], x), max(d[1], y), add=bool(d[2]))
         return self.pv_click(x, y, shift=bool(d and d[2]))
 
     def pv_click(self, x, y, shift=False):
-        """A click at a canvas point: a sentence is selected (Shift adds it to the selected ones; a click on a word of
-        the selected sentence is where S splits it); red text not in the review is added to it."""
+        """A click at a canvas point: a sentence is selected (Ctrl or Shift adds it to the selected ones, or takes it
+        out: sentences far apart can be selected together and combined with M; a click on a word of the selected
+        sentence is where S splits it); red text not in the review is added to it. Headers and footers are not boxes:
+        a click on them does nothing."""
         win = self._cwin
         at = self._pv_at(x, y)
         if at is None:
@@ -397,12 +427,7 @@ class PageViewMixin:
             return ("added", added[0]["id"] if added else None)
         iid = h[1]
         if shift:
-            rng = list(win.cp_range or [])
-            sel = self._c_selected()
-            if not rng and sel:
-                rng = [sel[0]["id"]]
-            rng = [i for i in rng if i != iid] if iid in rng else rng + [iid]
-            self.cp_set_range(rng)
+            rng = self.cp_toggle(iid)
             self._pv_soon()
             return ("range", rng)
         sel = self._c_selected()
@@ -443,8 +468,10 @@ class PageViewMixin:
         m.tk_popup(e.x_root, e.y_root)
         return "break"
 
-    def pv_select_box(self, x0, y0, x1, y1):
-        """Drag across sentences: every sentence with a box in the rectangle is selected together."""
+    def pv_select_box(self, x0, y0, x1, y1, add=False):
+        """Drag across sentences: every sentence with a box in the rectangle is selected together (add: with Ctrl or
+        Shift held, they join the sentences already selected). Headers and footers have no box, so a drag over a page
+        break never takes them in."""
         win = self._cwin
         pv = win.pv
         s = pv["scale"]
@@ -458,6 +485,9 @@ class PageViewMixin:
                     if L < x1 and R > x0 and T < y1 and B > y0 and x["id"] not in ids:
                         ids.append(x["id"])
         order = {it["id"]: k for k, it in enumerate(self.matrix.items)}
+        if add:
+            sel = self._c_selected()
+            ids = list(dict.fromkeys(list(win.cp_range or ([sel[0]["id"]] if sel else [])) + ids))
         ids.sort(key=lambda i: order.get(i, 0))
         if not ids:
             return []
@@ -498,6 +528,11 @@ class PageViewMixin:
                 total = float(cv.cget("scrollregion").split()[3]) if cv.cget("scrollregion") else 1.0
                 cv.yview_moveto(max(0.0, (y - cv.winfo_height() * 0.3) / max(1.0, total)))
         self._pv_soon()
+
+
+def _over(rects, boxes):
+    """Does any of rects overlap any of boxes (PDF points)?"""
+    return any(l < R and r > L and t < B and b > T for l, t, r, b in rects for L, T, R, B in boxes)
 
 
 def _eng():

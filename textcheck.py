@@ -144,6 +144,26 @@ def raw_text(path):
     return out
 
 
+def content_text(path):
+    """raw_text without page furniture (2.57.0, user 2026-10-28): headers and footers are not text of the review, so
+    they are not checked, not shown as text to add and never part of a selection. Word: the header and footer parts.
+    PDF: the lines pagesent.running finds (repeated at the top or bottom of pages, page numbers, short lines standing
+    apart in the margins)."""
+    raw = raw_text(path)
+    ext = os.path.splitext(path)[1].lower()
+    if ext in (".docx", ".docm"):
+        return [(w, l) for w, l in raw if not re.match(r"(header|footer)\d*$", w)]
+    if ext == ".pdf":
+        try:
+            import pagesent as PS
+            d = PS.doc_of(path)
+            furn = {(f"p.{pi + 1}", PS._norm(d["pages"][pi]["lines"][li]["text"])) for pi, li in d.get("skip", ())}
+        except Exception:
+            return raw
+        return [(w, l) for w, l in raw if (w, PS._norm(l)) not in furn]
+    return raw
+
+
 LIST_MARK = re.compile(r"^\s*(?:\(?(?:[a-z]|[ivx]{1,4}|\d{1,2})[.)]|[-\u2022\u25aa\u25cf\u2013*])\s+", re.I)   # 2.51.0: (719) is not a list mark
 TRAIL = re.compile(r"[;,]\s*(?:and|or)\s*$", re.I)
 
@@ -192,7 +212,7 @@ def check(path, items, headings=(), reader_chunks=None):
     what is left is missing. Returns {"file", "words", "in_review", "in_headings", "missing", "pct",
     "lines": [(where, text, kind)], "reader_missing"}: kind "missing" (text = the words not in the review, as written)
     or "heading" (a section title)."""
-    raw = raw_text(path)
+    raw = content_text(path)
     seq, lines = _seq(raw)
     words_ = [w for w, *_ in seq]
     n = len(words_)
@@ -285,7 +305,7 @@ def positions(path, items, new_lines):
     at the end. items: the review rows of this file, in review order; new_lines: the texts being added. Returns
     ({item id: word position}, [word position or None per new line]). Items are matched in order, each after the one
     before when it can be; a new line is matched to text not yet covered by the review."""
-    seq, _lines = _seq(raw_text(path))
+    seq, _lines = _seq(content_text(path))
     words_ = [w for w, *_ in seq]
     at = collections.defaultdict(list)
     for i, w in enumerate(words_):

@@ -45,7 +45,8 @@ def go():
     app.efforts.put("Kestrel", path=LIST)
     app.open_effort("Kestrel"); app.shell_go("home"); app.update()
     today = datetime.date.today()
-    due = today.replace(day=min(today.day + 1, 28)) if today.day < 28 else today
+    # the due date sits next to today in the same month, never on it (four things on one day show "+2 more")
+    due = today + datetime.timedelta(days=1 if today.day < 28 else -1)
     app.rec_details_dialog(values={"due": due.strftime("%B %d, %Y").replace(" 0", " ") + ", 2:00 p.m. MT"})
     app._rec_force(); app.update()
     keys = list(app.rec_cards)

@@ -8,7 +8,7 @@ change (a recovery copy within half a second, the matrix file a few seconds late
 - Context (C): for the compliance requirements it supports (the nearest one to start; click other requirements in the
   page to add or remove them) or for a section or subsection itself (click it on the right). No Done step: clicking
   any other sentence, or the next key, simply moves on.
-- Clear (X): not used. Split (S): where you clicked in the sentence. Combine (M): the sentences you dragged across.
+- Clear (X): not used. Split (S): where you clicked in the sentence. Combine (M): the sentences you dragged across, or Ctrl+clicked (they need not be next to each other).
 A sentence that is not assigned is not used. Drag across several sentences to assign them together. Pointing at a
 sentence lights up its links; the target section's sentences are underlined. The strip beside the page maps the file:
 grey not used, green compliance requirement, blue context; click it to jump.
@@ -1207,6 +1207,27 @@ class CompliancePageMixin:
         if sel:
             self._cp_show(sel[0])
 
+    def cp_toggle(self, iid):
+        """Ctrl+click (or Shift+click) a sentence: it joins the selected sentences, or leaves them when it is already
+        one of them. The sentences need not be next to each other: R, C, X and the rest apply to all of them, and M
+        combines them into one (each part keeps its place on the page). Returns the selection."""
+        win = self._cwin
+        rng = list(win.cp_range or [])
+        sel = self._c_selected()
+        if not rng and sel:
+            rng = [sel[0]["id"]]
+        rng = [i for i in rng if i != iid] if iid in rng else rng + [iid]
+        order = {it["id"]: k for k, it in enumerate(self.matrix.items)}
+        rng.sort(key=lambda i: order.get(i, 0))
+        if rng and (not sel or sel[0]["id"] not in rng):
+            self._cp_select(rng[0])
+        self.cp_set_range(rng if len(rng) > 1 else [])
+        if len(rng) > 1:
+            win.cp_l3.configure(text=f"{len(rng)} sentences selected. R, C, X apply to all; M combines them into one.")
+            win.cp_l3.pack(fill="x")
+        diag.activity("assign_ctrl_select", n=len(rng))
+        return rng
+
     def _cp_rows(self):
         """The sentences an action applies to: the dragged ones, else the current one."""
         win = self._cwin
@@ -1237,9 +1258,15 @@ class CompliancePageMixin:
         t = win.cp_text
         t.focus_set()
         ix = t.index(f"@{e.x},{e.y}")
+        add = bool(getattr(e, "state", 0) & 0x0004) and not win.cp_mode      # 2.57.0: Ctrl adds or takes out
         rng = self._cp_range_from_sel() if not win.cp_mode else []
         if rng:                                      # dragged across several sentences: assign them together
             t.tag_remove("sel", "1.0", "end")
+            if add:
+                sel = self._c_selected()
+                order = {it["id"]: k for k, it in enumerate(self.matrix.items)}
+                rng = sorted(dict.fromkeys(list(win.cp_range or ([sel[0]["id"]] if sel else [])) + rng),
+                             key=lambda i: order.get(i, 0))
             sel = self._c_selected()
             if not sel or sel[0]["id"] not in rng:
                 self._cp_select(rng[0])
@@ -1247,6 +1274,10 @@ class CompliancePageMixin:
             return
         hit = self._cp_hit(ix)
         if not hit:
+            return
+        if add:
+            t.tag_remove("sel", "1.0", "end")
+            self.cp_toggle(hit)
             return
         if win.cp_mode and win.cp_mode[0] == "ctx":  # choosing what this context supports: a requirement is added or removed
             x = self._c_item(hit)
@@ -1745,11 +1776,15 @@ class CompliancePageMixin:
         win = self._cwin
         rows = self._cp_rows()
         if len(rows) < 2:
-            win.cp_l3.configure(text="Drag across two or more sentences, then Combine (M).")
+            win.cp_l3.configure(text="Drag across two or more sentences, or Ctrl+click each one (they need not be next to each other), then Combine (M).")
             win.cp_l3.pack(fill="x")
             return None
         tv = win.tv
         ids = [r["id"] for r in rows if tv.exists(r["id"])]
+        placed = getattr(win, "pv", {}).get("placed") or {}
+        for r in rows:                                 # 2.57.0: each part's place on the page goes with the combined one
+            if not r.get("place") and r["id"] in placed:
+                r["place"] = placed[r["id"]][0]
         tv.selection_set(ids)
         win.cp_range = []
         self.compliance_merge()

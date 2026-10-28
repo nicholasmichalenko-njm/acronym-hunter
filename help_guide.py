@@ -602,12 +602,14 @@ PAGES = {
                          "sentence at any time to see how it is assigned and change it. Every choice counts at once and is "
                          "saved as you go (a crash or closing the app loses nothing); there is no commit step."),
               ("Page view", "The customer document exactly as it looks, every page in one scroll, each sentence boxed in "
-                            "its color. Click a box to select it; drag across several (or Shift+click) to select them "
-                            "together; R, C, X, G, H, S and 1 to 3 work as usual (S splits at the word you clicked in the "
+                            "its color. Click a box to select it; drag across several, or Ctrl+click each one (they need "
+                            "not be next to each other), to select them together; R, C, X, G, H, S and 1 to 3 work as usual (S splits at the word you clicked in the "
                             "selected sentence). Right-click for the marks (header, format, customer's). Labels in the left "
                             "margin say what each sentence is; a line runs to the sentences tied to the selected one. Word, "
                             "Excel and PowerPoint files show through a PDF copy your own Microsoft Office makes on this PC "
-                            "(once per file, kept in the effort folder). Text view is one click away."),
+                            "(once per file, kept in the effort folder). Headers, footers and page numbers are not part of "
+                            "the review: they have no box and a selection never takes them in, even across a page break. "
+                            "Text view is one click away."),
               ("Several sections", "R with a target section puts a compliance requirement in that section too; it keeps "
                                    "the others. Relationships lists its sections, each with Remove. The matrix has one row "
                                    "per section; the Response Setup prints it in each."),
@@ -636,7 +638,8 @@ PAGES = {
                              "Government will evaluate...\"). It is identified and counted (Prove has a Customer's category, "
                              "the coverage report and the matrix count it), never answered and never put in the response."),
               ("Clear, Split, Combine", "X clears a sentence (not used). S splits it where you clicked between two words. "
-                                        "Drag across several sentences to assign them together, or M to combine them into one."),
+                                        "Drag across several sentences, or Ctrl+click each one (even far apart), to assign them "
+                                        "together, or M to combine them into one; each part keeps its place on the page."),
               ("Not used", "A sentence you do not assign is not used. Prove and the coverage report count compliance "
                            "requirements, context and not used for every file, so you can see that every line was read."),
               ("The strip", "The thin strip beside the page maps the file: grey not used, green compliance requirement, blue "

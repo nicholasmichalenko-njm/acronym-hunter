@@ -9,6 +9,7 @@ import customtkinter as ctk
 import diag
 import setupdoc as SD          # 2.56.0: a sentence in several sections
 import compliance as C
+import pagesent as PS          # 2.57.0: sentences cut from the page
 import complearn as CL
 import placelearn as PL
 import cwords as CW
@@ -112,6 +113,7 @@ class ComplianceMixin:
         if self.matrix is None and last and os.path.isfile(last):
             self._c_load(last, quiet=True)
         self._c_drop_repeats()
+        self._c_drop_furniture()
         self._c_complete_once()
         self._c_ai_state()
         self._c_refresh()
@@ -1476,11 +1478,23 @@ class ComplianceMixin:
 
         def work():
             try:
-                fc, src = [], []
+                fc, src, places = [], [], {}
                 for p in paths:
-                    fc.append((os.path.basename(p), eng.rfp_chunks(p)))     # 2.47.0: scanned pages too
-                    src.append([os.path.basename(p), _sha256(p), datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), os.path.abspath(p)])
-                res["fc"], res["src"] = fc, src
+                    name = os.path.basename(p)
+                    pg = None
+                    if p.lower().endswith(".pdf"):
+                        try:
+                            pg = PS.chunks_for(p, name)     # 2.57.0: sentences cut from the page, headers and footers left out
+                        except Exception:
+                            diag.swallowed()
+                            pg = None
+                    if pg is not None:
+                        fc.append((name, pg[0]))
+                        places[name] = pg[1]
+                    else:
+                        fc.append((name, eng.rfp_chunks(p)))     # 2.47.0: scanned pages too
+                    src.append([name, _sha256(p), datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), os.path.abspath(p)])
+                res["fc"], res["src"], res["places"] = fc, src, places
             except Exception as ex:
                 diag.swallowed()
                 res["err"] = type(ex).__name__
@@ -1495,6 +1509,11 @@ class ComplianceMixin:
                 self._c_refresh_label(); return
             heads = []
             items = C.extract(res["fc"], heads)
+            for name, pl in res.get("places", {}).items():
+                try:
+                    PS.place([it for it in items if it.get("file") == name], pl)
+                except Exception:
+                    diag.swallowed()
             empty = [n for n, ch in res["fc"] if not any(t for _l, t in ch)]
             done(items, heads, res["src"], empty)
         poll()
@@ -1615,6 +1634,42 @@ class ComplianceMixin:
             diag.activity("compliance_repeats_removed", n=len(drop))
             try:
                 self.status.configure(text=f"{len(drop)} repeated line(s) (a header or footer on every page) taken out of the review.")
+            except Exception:
+                diag.swallowed()
+        return len(drop)
+
+    def _c_drop_furniture(self):
+        """2.57.0: headers and footers are page furniture, not text of the review. A sentence read before 2.57.0 from a
+        Word header or footer, or that is a PDF's running header, footer or page number, is taken out once when the
+        matrix opens, unless it was decided or has notes. Returns how many."""
+        M = self.matrix
+        if M is None or not M.items:
+            return 0
+        S = SD.setup_of(M)
+        if S.get("furniture_v") == 1:
+            return 0
+        S["furniture_v"] = 1
+        M.pending = True
+        furn = {}
+        for src in M.sources:
+            name, path = (src[0] if src else ""), (src[3] if len(src) > 3 else "")
+            if path.lower().endswith(".pdf") and os.path.isfile(path):
+                try:
+                    d = PS.doc_of(path)
+                    furn[name] = {PS._norm(d["pages"][pi]["lines"][li]["text"]) for pi, li in d.get("skip", ())}
+                except Exception:
+                    diag.swallowed()
+        drop = [it for it in M.items if not it.get("decision") and not it.get("draft") and not it.get("notes")
+                and (C._FURNITURE.search(it.get("loc") or "")
+                     or PS._norm(it.get("text", "")) in furn.get(it.get("file"), ()))]
+        if drop:
+            ids = {id(x) for x in drop}
+            M.items[:] = [x for x in M.items if id(x) not in ids]
+            for x in drop:
+                M.log(x["id"], "removed: a header or footer (page furniture, not text of the review)")
+            diag.activity("compliance_furniture_removed", n=len(drop))
+            try:
+                self.status.configure(text=f"{len(drop)} header or footer line(s) taken out of the review.")
             except Exception:
                 diag.swallowed()
         return len(drop)

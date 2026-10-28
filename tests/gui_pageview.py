@@ -1,7 +1,9 @@
 """2.56.0 Assign on the real page: Page view shows the PDF as it looks with every sentence boxed; a click selects a
 sentence; a drag selects several; the keys assign as usual and the box recolors; REQ labels sit in the margin; a click
 on a word of the selected sentence is where S splits it; Text view is one click away; a Word file shows through its PDF
-copy (made by Office on the PC; here the copy is given), and without one the text view says why."""
+copy (made by Office on the PC; here the copy is given), and without one the text view says why.
+2.57.0: the sentences sit on the page's own words; the header and footer are not boxes, not red and not clickable;
+Ctrl+click selects sentences that are not next to each other (Page view and Text view) and M combines them."""
 import os, sys, tempfile, shutil
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -89,6 +91,47 @@ def go():
     check("Text view is one click away", not pv["on"] and win.cp_text.winfo_manager())
     win.pv_switch.set("Page view"); app._pv_switch("Page view"); app.update()
     check("and back to Page view", pv["on"])
+    # 2.57.0: sentences placed on the page's own words; headers and footers are furniture
+    app._pv_draw(); app.update()
+    m = app._pv_map(1)
+    check("2.57.0: the sentences are placed on the page's words", pv.get("mode") == "page", pv.get("mode"))
+    check("the header and footer are furniture: no box, not red", len(m.get("furniture", [])) == 2
+          and not any("FA8811" in x["text"] or "CUI" in x["text"] for x in m["missing"]), (m.get("furniture"), m["missing"]))
+    fl, ft, fr, fb = m["furniture"][0]
+    before = app._c_selected()[0]["id"]
+    h = app.pv_click(150 + (fl + fr) / 2 * pv["scale"], pv["tops"][0] + (ft + fb) / 2 * pv["scale"]); app.update()
+    check("a click on the header selects nothing", h is None and app._c_selected()[0]["id"] == before, h)
+    s = pv["scale"]
+    rows = [it for it in app.matrix.items if it["file"] == "Hard_RFP.pdf" and it["decision"] != "Keep"]
+    c1, c2 = rows[1], rows[5]
+    def center(iid):
+        x = next(x for x in app._pv_map(1)["items"] if x["id"] == iid)["rects"][0]
+        return 150 + (x[0] + 2) * s, pv["tops"][0] + (x[1] + x[3]) / 2 * s
+    app.cp_set_range([]); app.pv_click(*center(c1["id"])); app.update()
+    h = app.pv_click(*center(c2["id"]), shift=True); app.update()
+    check("Ctrl+click adds a sentence far from the first", h and h[0] == "range" and win.cp_range == [c1["id"], c2["id"]], (h, win.cp_range))
+    t1, t2 = c1["text"], c2["text"]
+    mid = app.cp_combine(); app.update()
+    mi = app._c_item(mid)
+    check("M combines them into one, each part keeping its place", mi is not None and mi["text"] == t1 + " " + t2
+          and mi.get("place", "").count(";") >= 1, (mid, mi and mi.get("place")))
+    app._pv_refresh(force=True); app._pv_draw(); app.update()
+    xm = next((x for x in app._pv_map(1)["items"] if x["id"] == mid), None)
+    check("the combined sentence is boxed in both places", xm is not None and len(xm["rects"]) >= 2, xm and len(xm["rects"]))
+    win.pv_switch.set("Text view"); app._pv_switch("Text view"); app.update()
+    t = win.cp_text
+    rows = [it for it in app.matrix.items if it["file"] == "Hard_RFP.pdf" and t.tag_ranges("r:" + it["id"])]
+    d1, d2 = rows[2], rows[6]
+    app.cp_set_range([]); app._cp_select(d1["id"]); app.update()
+    t.see(t.tag_ranges("r:" + d2["id"])[0]); app.update()
+    bx = t.bbox(t.tag_ranges("r:" + d2["id"])[0])
+    import types
+    app._cp_click(types.SimpleNamespace(x=bx[0] + 2, y=bx[1] + 2, state=0x0004)); app.update()
+    check("Text view: Ctrl+click adds a sentence that is not next to the selected one", win.cp_range == [d1["id"], d2["id"]], win.cp_range)
+    app._cp_click(types.SimpleNamespace(x=bx[0] + 2, y=bx[1] + 2, state=0x0004)); app.update()
+    check("and Ctrl+click again takes it out", not win.cp_range and app._c_selected()[0]["id"] == d1["id"], win.cp_range)
+    app.cp_set_range([])
+    win.pv_switch.set("Page view"); app._pv_switch("Page view"); app.update()
     app.cp_open_file("Hard_RFP.docx"); app.update(); app.update()
     for _ in range(30):
         app.update()

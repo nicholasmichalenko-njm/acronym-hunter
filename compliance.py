@@ -189,6 +189,9 @@ def _section_from_line(line, cur):
     return None
 
 
+_FURNITURE = re.compile(r"\((?:Header|Footer)\b[^()]*\)$")
+
+
 def read_items(chunks, file_name, file_kind="", heads_out=None, every=True):
     """chunks: [(label, text)] from one file. file_kind: '' or a hint from the file name (Instruction / Evaluation / SOW).
     Returns items (dicts): the requirement candidates and, with every=True (2.29.0), every other sentence as Context."""
@@ -205,7 +208,9 @@ def read_items(chunks, file_name, file_kind="", heads_out=None, every=True):
         best = max((k for k in heads if sec == k or sec.startswith(k + ".")), key=len, default="")
         return sec, heads.get(best, "")
     for label, text in chunks:
-        if not text:
+        if _FURNITURE.search(label or ""):
+            continue                    # 2.57.0: headers and footers are page furniture, not text of the review
+        if not text and not _label_section(label):
             continue
         # 2.40.0: a table cell, header, footer or footnote is never a heading (a short "CLIN 0001" cell or a page header
         # must stay text to assign, and must not rename the section of what follows)
@@ -213,10 +218,15 @@ def read_items(chunks, file_name, file_kind="", heads_out=None, every=True):
         lab_sec = _label_section(label)
         if lab_sec:
             got = _section_from_line(lab_sec, cur)
+            bare = re.match(r"^\s*(\d{1,2})\.?\s+([A-Za-z].{0,90})$", lab_sec)    # 2.57.0: "3 Program Management"
             if got:
                 cur = titled(got[0], got[1] or lab_sec)
-            elif _is_heading(lab_sec):
+            elif bare:
+                cur = titled(bare.group(1), bare.group(2).strip())
+            elif _is_heading(lab_sec) or label.endswith(", heading)"):
                 cur = (cur[0], lab_sec)
+        if not text:
+            continue
         lead_line = ""
         all_lines = _join_lines(text, paragraphs=file_name.lower().endswith((".docx", ".docm", ".pptx", ".pptm", ".xlsx", ".xlsm")))
         for li, line in enumerate(all_lines):
@@ -651,6 +661,11 @@ def merge_items(items, ids):
     if len(rows) < 2:
         return None
     first = rows[0]
+    if all(r.get("place") for r in rows):          # 2.57.0: the combined sentence keeps each part's place on the page
+        import pagesent as PS
+        first["place"] = PS.merge_places(rows)
+    else:
+        first["place"] = ""
     first["text"] = " ".join(r["text"].rstrip() for r in rows)
     first["key"] = text_key(first["text"])
     first["xrefs"] = "; ".join(dict.fromkeys(x for r in rows for x in r.get("xrefs", "").split("; ") if x))
@@ -1066,15 +1081,16 @@ def suggest_map(item, outline, stats=None):
 # ------------------------------------------------------------------ the workbook
 COLUMNS = ["ID", "Decision", "Suggested", "Learned", "Section", "Section title", "Requirement", "Lead-in", "Actor", "Type", "Strength",
            "Cross-references", "Linked items", "Outline section", "Context for", "Owner", "Status", "Response page", "Notes",
-           "Source file", "Location", "Compound", "Change", "Draft", "Draft context for", "Context", "Key", "As read"]
-WIDTHS = [12, 10, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 14, 12, 12, 24, 26, 30, 9, 14, 10, 16, 60, 13, 40]
+           "Source file", "Location", "Compound", "Change", "Draft", "Draft context for", "Context", "Key", "As read", "Place", "Lead place"]
+WIDTHS = [12, 10, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 14, 12, 12, 24, 26, 30, 9, 14, 10, 16, 60, 13, 40, 16, 16]
 FIELD = {"ID": "id", "Decision": "decision", "Suggested": "suggest", "Learned": "learned", "Section": "section", "Section title": "section_title",
          "Requirement": "text", "Lead-in": "lead", "Actor": "actor", "Type": "type", "Strength": "strength",
          "Cross-references": "xrefs", "Linked items": "links", "Outline section": "map", "Context for": "context_for",
          "Owner": "owner", "Status": "status",
          "Response page": "response_page", "Notes": "notes", "Source file": "file", "Location": "loc",
          "Compound": "compound", "Change": "new", "Draft": "draft", "Draft context for": "draft_cf", "Context": "context", "Key": "key",
-         "As read": "orig_text"}    # 2.55.0 Fix the text: the sentence as the reader read it (empty when not fixed)
+         "As read": "orig_text",    # 2.55.0 Fix the text: the sentence as the reader read it (empty when not fixed)
+         "Place": "place", "Lead place": "lead_place"}   # 2.57.0: where the sentence is on its page ("1:117-218;2:0-30")
 
 
 class Locked(Exception):
@@ -1276,7 +1292,7 @@ class Matrix:
         ws.add_data_validation(dv)
         dv.add(f"B2:B{max(2, ws.max_row) + 500}")
         for col in ("Context", "Key"):
-            ws.column_dimensions[ws.cell(row=1, column=COLUMNS.index(col) + 1).column_letter].hidden = col in ("Key", "As read")
+            ws.column_dimensions[ws.cell(row=1, column=COLUMNS.index(col) + 1).column_letter].hidden = col in ("Key", "As read", "Place", "Lead place")
         ol = wb.create_sheet("Outline")
         ol.append(["Number", "Title", "Level", "Keep and Context rows placed"])
         for c in ol[1]:

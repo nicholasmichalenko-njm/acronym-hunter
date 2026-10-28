@@ -31,7 +31,7 @@ def doc_lines(path):
         if len(_CACHE) > 8:
             _CACHE.clear()
         try:
-            _CACHE[key] = [(w, l.replace("\t", " ")) for w, l in T.raw_text(path)]
+            _CACHE[key] = [(w, l.replace("\t", " ")) for w, l in T.content_text(path)]   # 2.57.0: no headers or footers
         except Exception:
             _CACHE[key] = []
     return _CACHE[key]
