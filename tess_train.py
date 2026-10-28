@@ -188,31 +188,53 @@ def train(tess_dir, train_dir, out_dir, progress=lambda msg, frac=None: None, ca
     if not eval_l:
         eval_l.append(train_l.pop())
     text_of = dict(lstmf)
-    eval_math = [p for p in eval_l if any(c in MATH_CHARS for c in text_of.get(p, ""))]   # Symbols and equations
-    for name, rows in (("list.train", train_l), ("list.eval", eval_l), ("list.eval_math", eval_math)):
-        with open(os.path.join(work, name), "w", encoding="utf-8", newline="\n") as f:
-            f.write("".join(r + "\n" for r in rows))
     check()
-    progress(f"Step 2 of 4: measuring the current reader on {len(eval_l)} lines it will not learn from", 0.27)
     code, log = _run([combine, "-e", base, os.path.join(work, "eng.lstm")])
     if code != 0:
         raise RuntimeError("Could not unpack the base model:\n" + log[-500:])
-    _code, before_log = _run([lstmeval, "--model", current, "--eval_listfile", os.path.join(work, "list.eval")])
-    math_before = _run([lstmeval, "--model", current, "--eval_listfile", os.path.join(work, "list.eval_math")])[1] if eval_math else ""
-    check()
     # 2.55.0: Greek letters, math and unit signs the corrected lines (and the math set) need are added to the reader
     added, traineddata = [], base
     _run([combine, "-e", base, os.path.join(work, "eng.lstm-unicharset")])
-    known = read_unicharset(os.path.join(work, "eng.lstm-unicharset"))
-    if known:
-        added = new_characters(known, [t for _p, t in lstmf])
+    known_base = read_unicharset(os.path.join(work, "eng.lstm-unicharset"))
+    known_new = known_base
+    if known_base:
+        added = new_characters(known_base, [t for _p, t in lstmf])
         if added:
-            progress(f"Step 2 of 4: adding {len(added)} characters the reader does not know yet (Greek, math and unit signs)", 0.29)
+            progress(f"Step 2 of 4: adding {len(added)} characters the reader does not know yet (Greek, math and unit signs)", 0.26)
             td = extend_traineddata(_run, tess_dir, work, base, added, [t for _p, t in lstmf])
             if td:
                 traineddata = td
+                known_new = read_unicharset(os.path.join(work, "merged.unicharset")) or known_base
             else:
                 added = []
+    known_cur = known_base
+    if current != base:
+        _run([combine, "-e", current, os.path.join(work, "cur.lstm-unicharset")])
+        known_cur = read_unicharset(os.path.join(work, "cur.lstm-unicharset")) or known_base
+    # A line with a character a model cannot write would stall Tesseract's tools: each list holds only lines the
+    # model in question can write (the new reader for teaching, both readers for the before-and-after check).
+    fits = lambda p, k: not k or all(c.isspace() or c in k for c in text_of.get(p, ""))
+    dropped = [p for p in train_l + eval_l if not fits(p, known_new)]
+    train_l = [p for p in train_l if fits(p, known_new)]
+    eval_l = [p for p in eval_l if fits(p, known_new)]
+    if not eval_l and train_l:
+        eval_l.append(train_l.pop())
+    if len(train_l) < 1 or not eval_l:
+        raise RuntimeError("No corrected line can be taught: their characters are not in the reader's set.")
+    skipped += len(dropped)
+    check_l = [p for p in eval_l if fits(p, known_cur)]                       # the same lines before and after
+    eval_math = [p for p in eval_l if any(c in MATH_CHARS for c in text_of.get(p, ""))]   # Symbols and equations
+    math_cur = [p for p in eval_math if fits(p, known_cur)]
+    for name, rows in (("list.train", train_l), ("list.eval", eval_l), ("list.check", check_l),
+                       ("list.eval_math", eval_math), ("list.math_cur", math_cur)):
+        with open(os.path.join(work, name), "w", encoding="utf-8", newline="\n") as f:
+            f.write("".join(r + "\n" for r in rows))
+    check()
+    progress(f"Step 2 of 4: measuring the current reader on {len(check_l)} lines it will not learn from", 0.28)
+    ev = lambda model, lst: _run([lstmeval, "--model", model, "--eval_listfile", os.path.join(work, lst)])[1]
+    before_log = ev(current, "list.check") if check_l else ""
+    math_before = ev(current, "list.math_cur") if math_cur else ""
+    check()
     iters = int(iterations or min(3000, max(400, 4 * len(train_l))))
     est = max(20, int(iters * 0.05 + len(train_l) * 0.02))
     progress(f"Step 3 of 4: teaching the reader ({len(train_l)} lines, about {max(1, round(est / 60))} min on this PC)", 0.30)
@@ -230,14 +252,14 @@ def train(tess_dir, train_dir, out_dir, progress=lambda msg, frac=None: None, ca
     if code != 0 or not os.path.isfile(model):
         raise RuntimeError("Could not write the trained model:\n" + log[-500:])
     progress("Step 4 of 4: measuring the new reader on the same held-out lines", 0.95)
-    _code, after_log = _run([lstmeval, "--model", model, "--eval_listfile", os.path.join(work, "list.eval")])
-    math_after = _run([lstmeval, "--model", model, "--eval_listfile", os.path.join(work, "list.eval_math")])[1] if eval_math else ""
+    after_log = ev(model, "list.check") if check_l else ev(model, "list.eval")
+    math_after = ev(model, "list.eval_math") if eval_math else ""
     before_bad, after_bad = _misreads(before_log), _misreads(after_log)
     fixed = [(t, before_bad[t]) for t in before_bad if t not in after_bad][:6]
     broke = [(t, after_bad[t]) for t in after_bad if t not in before_bad][:6]
     b_c, a_c, b_w, a_w = _bcer(before_log), _bcer(after_log), _bwer(before_log), _bwer(after_log)
     report = {"date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), "samples": len(samples), "prepared": len(lstmf),
-              "skipped": skipped, "train_lines": len(train_l), "check_lines": len(eval_l), "steps": iters,
+              "skipped": skipped, "train_lines": len(train_l), "check_lines": len(check_l or eval_l), "steps": iters,
               "seconds": int(time.time() - t0), "char_error_before_pct": b_c, "char_error_after_pct": a_c,
               "words_correct_before_pct": _pct(b_w), "words_correct_after_pct": _pct(a_w),
               "chars_correct_before_pct": _pct(b_c), "chars_correct_after_pct": _pct(a_c),
