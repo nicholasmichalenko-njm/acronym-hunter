@@ -1,6 +1,14 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+STATIONKEEPER (QT) (from 2.59.0)
+  Stationkeeper is moving to a new window system (Qt, through PySide6: The Qt Company, Finland, LGPL 3; its libraries
+  ship as separate files). StationkeeperQt.exe sits next to Stationkeeper.exe and shares its config and every effort
+  file. In 2.59.0 it holds Compliance Read RFP and Assign; the other areas follow one per release, and the classic
+  window retires when Qt does everything.
+  - Open an effort in one program at a time: the other says the effort is open elsewhere.
+  - Qt runs fully offline; no Qt network or web parts are included.
+
 NEW NAME (from 2.44.0)
   Acronym Hunter is now Stationkeeper: it runs a whole proposal effort (customer documents and their versions,
   submission requirements, deliverables, compliance, the impact of every new version, author briefs, gates, the

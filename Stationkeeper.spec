@@ -66,13 +66,14 @@ datas += [('assets/scanner.ico', 'assets'), ('assets/trainer.ico', 'assets')]   
 datas += [('assets/help', 'assets/help')]   # "?" guide screenshots
 datas += [('assets/common_words.txt', 'assets')]   # SCOWL common words: sentence-end words are not abbreviations
 
-def make_analysis(script):
+def make_analysis(script, qt=False):
   return Analysis(
     [script],
     pathex=[],
     binaries=binaries,
     datas=datas,
-    hiddenimports=hiddenimports,
+    hiddenimports=hiddenimports + (['skqt', 'skqt.mainwin', 'skqt.readpage', 'skqt.assign', 'skqt.theme', 'compliance_read',
+                                    'assign_ops'] if qt else []),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -83,7 +84,7 @@ def make_analysis(script):
     excludes=['pymupdf', 'fitz', 'pymupdf.layout', 'pymupdf4llm', 'matplotlib', 'scipy', 'pandas',
               'IPython', 'jupyter', 'notebook', 'pytest',
               'onnxruntime.quantization', 'onnxruntime.transformers', 'onnxruntime.tools',
-              'PySide6', 'shiboken6'] + _edition_excludes   # the Qt Assign test (prototypes/) is never in the app
+              ] + ([] if qt else ['PySide6', 'shiboken6']) + _edition_excludes   # Qt only in Stationkeeper (Qt), 2.59.0
              + ([] if TRAINING else ['trainer_gui', 'tess_train', 'training_app']),
     noarchive=False,
     optimize=0,
@@ -98,6 +99,12 @@ def _keep(entry):
                 or dest.startswith('onnxruntime\\datasets'))   # ONNX Runtime demo models: unused, and the leak check allows no stray .onnx
 a.datas = [e for e in a.datas if _keep(e)]
 a.binaries = [e for e in a.binaries if _keep(e)]
+# 2.59.0: Stationkeeper (Qt), the Qt edition, in the same folder (same config and effort files; its own temp folder)
+QT_APP = not TRAINING and os.environ.get('AH_QT', '1') == '1'
+if QT_APP:
+    aq = make_analysis('skqt_main.py', qt=True)
+    aq.datas = [e for e in aq.datas if _keep(e)]
+    aq.binaries = [e for e in aq.binaries if _keep(e)]
 
 pyz = PYZ(a.pure)
 
@@ -120,10 +127,19 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
 )
+extra = []
+if QT_APP:
+    pyzq = PYZ(aq.pure)
+    exeq = EXE(pyzq, aq.scripts, [], exclude_binaries=True, name='StationkeeperQt', icon='assets/scanner.ico',
+               version='version_info.txt', debug=False, bootloader_ignore_signals=False, strip=False, upx=False,
+               console=False, disable_windowed_traceback=False, argv_emulation=False, target_arch=None,
+               codesign_identity=None, entitlements_file=None)
+    extra = [exeq, aq.binaries, aq.datas]
 coll = COLLECT(
     exe,
     a.binaries,
     a.datas,
+    *extra,
     strip=False,
     upx=False,
     upx_exclude=[],

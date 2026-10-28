@@ -10,6 +10,7 @@ import diag
 import setupdoc as SD          # 2.56.0: a sentence in several sections
 import compliance as C
 import pagesent as PS          # 2.57.0: sentences cut from the page
+import compliance_read as CR    # 2.59.0: reading without a screen (both editions)
 import complearn as CL
 import placelearn as PL
 import cwords as CW
@@ -1478,23 +1479,7 @@ class ComplianceMixin:
 
         def work():
             try:
-                fc, src, places = [], [], {}
-                for p in paths:
-                    name = os.path.basename(p)
-                    pg = None
-                    if p.lower().endswith(".pdf"):
-                        try:
-                            pg = PS.chunks_for(p, name)     # 2.57.0: sentences cut from the page, headers and footers left out
-                        except Exception:
-                            diag.swallowed()
-                            pg = None
-                    if pg is not None:
-                        fc.append((name, pg[0]))
-                        places[name] = pg[1]
-                    else:
-                        fc.append((name, eng.rfp_chunks(p)))     # 2.47.0: scanned pages too
-                    src.append([name, _sha256(p), datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), os.path.abspath(p)])
-                res["fc"], res["src"], res["places"] = fc, src, places
+                res["items"], res["heads"], res["src"], res["empty"] = CR.read_files(paths, eng.rfp_chunks)   # 2.59.0
             except Exception as ex:
                 diag.swallowed()
                 res["err"] = type(ex).__name__
@@ -1507,14 +1492,7 @@ class ComplianceMixin:
             if "err" in res:
                 messagebox.showerror("Compliance matrix", f"An RFP file could not be read ({res['err']}).", parent=win)
                 self._c_refresh_label(); return
-            heads = []
-            items = C.extract(res["fc"], heads)
-            for name, pl in res.get("places", {}).items():
-                try:
-                    PS.place([it for it in items if it.get("file") == name], pl)
-                except Exception:
-                    diag.swallowed()
-            empty = [n for n, ch in res["fc"] if not any(t for _l, t in ch)]
+            items, heads, empty = res["items"], res["heads"], res["empty"]
             done(items, heads, res["src"], empty)
         poll()
 
@@ -1528,20 +1506,7 @@ class ComplianceMixin:
             if show:
                 messagebox.showinfo("Text check", "Read the RFP files first.", parent=self._cwin)
             return []
-        out = []
-        for src in M.sources:
-            name = src[0] if src else ""
-            path = src[3] if len(src) > 3 else ""
-            if not path or not os.path.isfile(path):
-                out.append({"file": name, "words": 0, "in_review": 0, "in_headings": 0, "missing": 0, "pct": 0, "lines": [], "gone": True})
-                continue
-            try:
-                r = TC.check(path, [it for it in M.items if it.get("file") == name], M.headings)
-            except Exception:
-                diag.swallowed()
-                r = {"file": name, "words": 0, "in_review": 0, "in_headings": 0, "missing": 0, "pct": 0, "lines": [], "error": True}
-            r["path"] = path
-            out.append(r)
+        out = CR.text_check(M)                       # 2.59.0: shared with the Qt edition
         diag.activity("compliance_text_check", files=len(out), n=sum(r["missing"] for r in out))
         if show:
             self._c_text_check_window(out)
@@ -1549,13 +1514,7 @@ class ComplianceMixin:
 
     @staticmethod
     def text_check_line(results):
-        miss = sum(r["missing"] for r in results)
-        words = sum(r["words"] for r in results)
-        if not results:
-            return ""
-        if not miss:
-            return f"Text check: all {words} words of the RFP files are in the review."
-        return f"Text check: {miss} of {words} words in {sum(1 for r in results if r['missing'])} file(s) are not in the review yet."
+        return CR.text_check_line(results)
 
     def compliance_volumes_dialog(self, mode=None, name="", heads=None):
         """2.56.1 Structure > Volumes...: the person decides the response's volumes: one volume (a name, or blank) or
@@ -1712,48 +1671,9 @@ class ComplianceMixin:
         """Add the text check's missing lines as sentences to assign (Context rows marked as added by the check). 2.47.0:
         each goes where it is in the document (after the sentence before it, under the same RFP section, with its page),
         not at the end of the review."""
-        import textcheck as TC, re as _re
         M = self.matrix
-        added = []
-        paths = {src[0]: src[3] for src in M.sources if src and len(src) > 3}
-        for r in results:
-            lines = [(where, line) for where, line, kind in r.get("lines", []) if kind == "missing"]
-            if not lines:
-                continue
-            path = r.get("path") or paths.get(r["file"], "")
-            pos, new_pos = {}, [None] * len(lines)
-            if path and os.path.isfile(path):
-                try:
-                    pos, new_pos = TC.positions(path, [it for it in M.items if it.get("file") == r["file"]], [ln for _w, ln in lines])
-                except Exception:
-                    diag.swallowed()
-            for k, ((where, line), npos) in enumerate(zip(lines, new_pos)):
-                it = C.context_item(line, "", ("", ""), "")
-                if not it:                            # 2.51.0: whatever the line is, it goes in when asked for
-                    if not line.strip():
-                        continue
-                    it = {"text": " ".join(line.split()), "lead": "", "section": "", "section_title": "", "actor": "",
-                          "type": "Context", "strength": "", "suggest": "Context", "modal": "", "xrefs": "", "compound": False}
-                pm = _re.match(r"p\.(\d+)$", where or "")
-                it.update({"file": r["file"], "loc": f"{r['file']} ({where}, added by the text check)", "page": int(pm.group(1)) if pm else None,
-                           "context": line[:700], "key": C.text_key(line), "decision": "", "map": "", "owner": "", "status": "", "notes": "",
-                           "response_page": "", "links": "", "new": "Added by the text check", "learned": "", "context_for": ""})
-                at = TC.insert_at(M.items, r["file"], pos, npos)
-                prev = M.items[at - 1] if at > 0 and M.items[at - 1].get("file") == r["file"] else None
-                if prev is not None:                  # the same RFP section as the sentence before it
-                    it["section"], it["section_title"] = prev.get("section", ""), prev.get("section_title", "")
-                it["id"] = f"__new{len(added)}"
-                if npos is not None:
-                    pos[it["id"]] = npos
-                M.items.insert(at, it)
-                added.append(it)
+        added = CR.add_missing(M, results)          # 2.59.0: shared with the Qt edition
         if added:
-            for it in added:
-                it["id"] = ""
-            C.assign_ids(M.items)
-            for it in added:
-                M.log(it["id"], "added by the text check")
-            M.pending = True
             self._c_save_now()
             self._c_refresh()
             self.rec_log("compliance", f"Text check added {len(added)} line(s) for review") if hasattr(self, "rec_log") else None
@@ -1894,15 +1814,7 @@ class ComplianceMixin:
             return
 
         def done(items, heads, src, empty):
-            have = {(it["file"], it["key"]) for it in self.matrix.items}
-            known = {it["file"] for it in self.matrix.items}
-            add = [it for it in items if it["file"] not in known or (it["file"], it["key"]) not in have]   # 2.51.0: a new file whole
-            for it in add:
-                it["id"] = ""
-            self.matrix.items += add
-            C.assign_ids(self.matrix.items); C.link_items(self.matrix.items)
-            self.matrix.headings += heads; self.matrix.sources += src
-            self.matrix.log("matrix", f"added {len(paths)} file(s): {len(add)} candidates")
+            add = CR.add_read(self.matrix, items, heads, src)     # 2.59.0: shared with the Qt edition
             diag.activity("compliance_files_added", files=len(paths), added=len(add))
             fixed = self.compliance_complete()                 # 2.51.0
             self._c_changed()
