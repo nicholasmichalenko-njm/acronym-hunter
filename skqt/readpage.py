@@ -4,6 +4,7 @@ compliance_read, exactly as in the tkinter edition."""
 import os, re
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (QCheckBox, QFileDialog, QHBoxLayout, QLabel, QPushButton, QScrollArea, QVBoxLayout, QWidget)
+from . import design as D
 import diag
 import compliance_read as CR
 
@@ -34,20 +35,22 @@ class ReadPage(QWidget):
         self.host = host
         self.worker = None
         self.chunks_of = default_chunks
+        self.setObjectName("page")
         v = QVBoxLayout(self)
-        v.setContentsMargins(18, 14, 18, 14)
-        t = QLabel("Read the RFP"); t.setStyleSheet("font-size:18px;font-weight:bold"); v.addWidget(t)
-        self.info = QLabel(""); self.info.setWordWrap(True); v.addWidget(self.info)
+        v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"])
+        v.setSpacing(D.SPACE["m"])
+        self.info = D.label("", "muted"); v.addWidget(self.info)
+        card = D.Card("Customer documents", "The latest version of each, from Customer Documents.")
         self.area = QScrollArea(); self.area.setWidgetResizable(True)
         self.inner = QWidget(); self.list = QVBoxLayout(self.inner); self.list.setAlignment(Qt.AlignTop)
         self.area.setWidget(self.inner)
-        v.addWidget(self.area, 1)
+        card.add(self.area)
+        v.addWidget(card, 1)
         row = QHBoxLayout(); v.addLayout(row)
-        self.add_btn = QPushButton("Add files..."); self.add_btn.clicked.connect(self.pick); row.addWidget(self.add_btn)
+        self.add_btn = D.button("Add files...", None, self.pick, "Read files that are not in Customer Documents"); row.addWidget(self.add_btn)
         row.addStretch(1)
-        self.go_btn = QPushButton("Go to Assign"); self.go_btn.clicked.connect(lambda: self.host.go("assign")); row.addWidget(self.go_btn)
-        self.read_btn = QPushButton("Read"); self.read_btn.setStyleSheet("background:#15803D;color:white;font-weight:bold;padding:6px 18px")
-        self.read_btn.clicked.connect(self.read); row.addWidget(self.read_btn)
+        self.go_btn = D.button("Go to Assign", None, lambda: self.host.go("assign")); row.addWidget(self.go_btn)
+        self.read_btn = D.button("Read", "primary", self.read, "Read the ticked documents into the review"); row.addWidget(self.read_btn)
         self.boxes = []
 
     def refresh(self):
@@ -75,7 +78,8 @@ class ReadPage(QWidget):
             self.list.addWidget(cb)
             self.boxes.append(cb)
         if not docs and R is None:
-            self.list.addWidget(QLabel("No customer documents in this effort yet: Add files..."))
+            self.list.addWidget(D.EmptyState("No customer documents yet", "Add the RFP files to Customer Documents in "
+                                             "Stationkeeper (classic), or Add files... here.", "Add files...", self.pick))
         self.go_btn.setEnabled(R is not None and bool(R.M.items))
         self.read_btn.setEnabled(bool(self.boxes))
 

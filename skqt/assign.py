@@ -6,12 +6,12 @@ R). Keys: R requirement, C support, G customer's, X not used, M combine, S split
 sentence), Ctrl+Z undo. Every decision goes through assign_ops, the same rules as the tkinter edition.
 """
 import os, re
-from PySide6.QtCore import Qt, QRectF, QThread, QTimer, Signal
+from PySide6.QtCore import Qt, QEvent, QRectF, QThread, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QFont, QImage, QKeySequence, QPainter, QPainterPath, QPen, QPixmap, QShortcut
 from PySide6.QtWidgets import (QComboBox, QCompleter, QDialog, QDialogButtonBox, QFormLayout, QFrame, QGraphicsItem,
                                QGraphicsPathItem, QGraphicsPixmapItem, QGraphicsScene, QGraphicsSimpleTextItem,
                                QGraphicsView, QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QPushButton, QRadioButton,
-                               QScrollArea, QSplitter, QStyle, QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+                               QScrollArea, QSplitter, QStyle, QLayout, QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
                                QCheckBox, QButtonGroup)
 import diag
 import compliance as C
@@ -19,7 +19,7 @@ import setupdoc as SD
 import pagesent as PS
 import matrixdesign as MD
 import office_pdf as OP
-from . import theme as T
+from . import design as D
 
 SCALE = 2.0          # pixels per PDF point in the page pictures (sharp when zoomed in)
 GAP = 24             # between pages, in points
@@ -44,7 +44,7 @@ class SentenceBox(QGraphicsPathItem):
     def style(self, dec=None, current=None):
         self.dec = self.dec if dec is None else dec
         self.current = self.current if current is None else current
-        col = QColor(T.DEC.get(self.dec, T.DEC[""])[0])
+        col = QColor(D.PAGE_DEC.get(self.dec, D.PAGE_DEC[""]))
         sel = self.isSelected()
         fill = QColor("#FDE68A") if (sel and not self.dec) else QColor(col)
         fill.setAlpha((140 if sel else 0) if not self.dec else (115 if sel else 70))
@@ -78,7 +78,7 @@ class PageView(QGraphicsView):
         self.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
         self.setDragMode(QGraphicsView.RubberBandDrag)
         self.setRubberBandSelectionMode(Qt.IntersectsItemShape)
-        self.setBackgroundBrush(QColor("#E2E8F0"))
+        self.setBackgroundBrush(D.color("page"))
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.boxes = {}
         self.words = {}                            # sentence id -> [scene rects of its words, in order]
@@ -106,11 +106,13 @@ class PageView(QGraphicsView):
         super().mousePressEvent(e)
 
     def fit(self):
-        r = self.scene().itemsBoundingRect()
+        r = self.scene().itemsBoundingRect().united(QRectF(0, 0, 1, 1))
         if r.width() > 0:
+            self.scene().setSceneRect(QRectF(0, r.top(), r.right() + 12, r.height()))
             self.resetTransform()
-            self.zoom = max(0.3, (self.viewport().width() - 30) / r.width())
+            self.zoom = max(0.3, (self.viewport().width() - 24) / (r.right() + 12))
             self.scale(self.zoom, self.zoom)
+            self.horizontalScrollBar().setValue(self.horizontalScrollBar().minimum())
 
 
 class CopyWorker(QThread):
@@ -130,21 +132,7 @@ class CopyWorker(QThread):
         self.done.emit({p: (str(r) if isinstance(r, Exception) else "") for p, r in res.items()})
 
 
-class Chip(QFrame):
-    def __init__(self, text, color, on_remove=None, on_jump=None):
-        super().__init__()
-        self.setObjectName("chip")
-        self.setStyleSheet(f"QFrame#chip{{background:{color};border-radius:11px}} QLabel{{background:transparent}}")
-        h = QHBoxLayout(self)
-        h.setContentsMargins(10, 2, 4, 2)
-        self.label = QLabel(text)
-        h.addWidget(self.label, 1)
-        if on_jump:
-            b = QToolButton(text="Jump"); b.setAutoRaise(True); b.clicked.connect(on_jump); h.addWidget(b)
-        if on_remove:
-            b = QToolButton(text="×"); b.setAutoRaise(True); b.setStyleSheet("color:#DC2626;font-weight:bold")
-            b.setToolTip("Take it out"); b.clicked.connect(on_remove); h.addWidget(b)
-            self.remove = b
+Chip = D.Chip
 
 
 class AssignPage(QWidget):
@@ -170,15 +158,20 @@ class AssignPage(QWidget):
         bar.addWidget(QLabel("File:"))
         self.files = QComboBox(); self.files.setMinimumWidth(280); self.files.currentTextChanged.connect(self.open_file)
         bar.addWidget(self.files)
-        for text, color, fn in (("Requirement  R", "#15803D", self.do_req), ("Support  C", "#1D4ED8", self.do_ctx),
-                                ("Customer's  G", "#7E22CE", self.do_customer), ("Not used  X", "#475569", self.do_clear),
-                                ("Combine  M", "#475569", self.do_combine), ("Split  S", "#475569", self.do_split),
-                                ("Undo  Ctrl+Z", "#475569", self.do_undo)):
-            b = QPushButton(text); b.setObjectName("key"); b.setStyleSheet(f"background:{color}"); b.clicked.connect(fn)
+        self.keys = {}
+        for text, kind, fn, tip in (("Requirement  R", "req", self.do_req, "The selected sentences become compliance requirements in the target section"),
+                                    ("Support  C", "ctx", self.do_ctx, "Supporting context for the last requirement you clicked"),
+                                    ("Customer's  G", "cust", self.do_customer, "The customer's to act on: identified, never answered"),
+                                    ("Not used  X", None, self.do_clear, "No decision"),
+                                    ("Combine  M", None, self.do_combine, "One sentence from the selected ones (they need not be next to each other)"),
+                                    ("Split  S", None, self.do_split, "Split the selected sentence before the word you clicked"),
+                                    ("Undo  Ctrl+Z", "ghost", self.do_undo, "Put back the last change")):
+            b = D.button(text, kind, fn, tip)
+            self.keys[text.split()[0]] = b
             bar.addWidget(b)
         bar.addStretch(1)
         fit = QPushButton("Fit width"); fit.clicked.connect(lambda: self.view.fit()); bar.addWidget(fit)
-        self.note = QLabel(""); self.note.setObjectName("muted"); v.addWidget(self.note)
+        self.note = D.label("", "muted"); v.addWidget(self.note)
         self.view = PageView()
         self.view.scene().selectionChanged.connect(self.on_select)
         self.view.clicked_word.connect(self.on_word)
@@ -186,6 +179,7 @@ class AssignPage(QWidget):
         self.card_area = QScrollArea(); self.card_area.setWidgetResizable(True)
         self.card_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.card = QWidget(); self.card_lay = QVBoxLayout(self.card); self.card_lay.setAlignment(Qt.AlignTop)
+        self.card_area.viewport().installEventFilter(self)              # wrapped text keeps its height; the card scrolls
         self.card_area.setWidget(self.card)
         sw = QWidget(); sv = QVBoxLayout(sw); sv.setContentsMargins(0, 0, 0, 0)
         self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Your response structure (click: the target for R)", "Req."])
@@ -276,8 +270,10 @@ class AssignPage(QWidget):
         self.file = f
         self.pdf, why = self.pdf_of(f)
         sc = self.view.scene()
-        sc.clear()
         self.view.boxes, self.view.words, self.labels, self.tops = {}, {}, [], []
+        self._guard = True                          # clearing the page deselects: not a new selection
+        sc.clear()
+        self._guard = False
         if not self.pdf:
             t = sc.addText(f"{f}: {why}.")
             t.setDefaultTextColor(QColor("#334155"))
@@ -309,9 +305,11 @@ class AssignPage(QWidget):
 
     def build_boxes(self):
         sc = self.view.scene()
-        for b in self.view.boxes.values():
+        old, self.view.boxes, self.view.words = self.view.boxes, {}, {}
+        self._guard = True
+        for b in old.values():
             sc.removeItem(b)
-        self.view.boxes, self.view.words = {}, {}
+        self._guard = False
         rows = self.R.rows_of(self.file)
         try:
             self.placed = PS.place_all(self.pdf, rows)
@@ -352,8 +350,8 @@ class AssignPage(QWidget):
             if it is None:
                 continue
             dec = it.get("decision", "")
-            box.style(dec if dec in T.DEC else "", iid == self.cur)
-            tag = T.DEC.get(dec, T.DEC[""])[2]
+            box.style(dec if dec in D.PAGE_DEC else "", iid == self.cur)
+            tag = D.decision(dec)[2]
             if not tag:
                 continue
             y = max(box.boundingRect().top(), last_y + 11)
@@ -362,7 +360,7 @@ class AssignPage(QWidget):
             txt = f"{tag} {', '.join(hosts[:2])}" if hosts else f"{tag} {iid}"
             lab = QGraphicsSimpleTextItem(txt)
             lab.setFont(QFont("Segoe UI", 7, QFont.Bold))
-            lab.setBrush(QColor(T.DEC[dec][0]))
+            lab.setBrush(QColor(D.PAGE_DEC[dec]))
             lab.setPos(MARGIN - 8 - lab.boundingRect().width(), y)
             sc.addItem(lab)
             self.labels.append(lab)
@@ -412,6 +410,19 @@ class AssignPage(QWidget):
             self.host.status("Click a word after the first one: S splits the sentence before it.")
 
     # ------------------------------------------------------------ the card
+    def eventFilter(self, obj, ev):
+        if obj is self.card_area.viewport() and ev.type() == QEvent.Resize:
+            QTimer.singleShot(0, self.fit_card)
+        return False
+
+    def fit_card(self):
+        """A scroll area does not ask wrapped text how tall it is at the width shown: the card's height is set from
+        its layout at that width, so long text scrolls instead of being cut off."""
+        w = self.card_area.viewport().width()
+        if w > 50:
+            self.card.setMinimumHeight(self.card_lay.totalHeightForWidth(w) if self.card_lay.hasHeightForWidth()
+                                       else self.card_lay.sizeHint().height())
+
     def clear_card(self):
         while self.card_lay.count():
             w = self.card_lay.takeAt(0).widget()
@@ -427,25 +438,33 @@ class AssignPage(QWidget):
         return w
 
     def head(self, text):
-        l = self.add(QLabel(text)); l.setObjectName("h")
+        l = self.add(D.SectionTitle(text))
+        l.setContentsMargins(0, D.SPACE["m"], 0, 0)
         return l
 
     def show_card(self, rows):
         self.clear_card()
         self.notes = None
         if self.R is None or not rows:
-            self.add(QLabel("Click a sentence on the page. Ctrl+click adds more; drag a box around several."))
+            self.add(D.EmptyState("No sentence selected", "Click a sentence on the page to see everything decided about it. "
+                                  "Ctrl+click adds more; drag a box around several."))
             return
         M = self.M
-        dark = T.is_dark(self.host.app)
         it = rows[-1]
         d = it.get("decision", "")
         kind = "Heading" if it.get("type") == "Heading" and not d else d
-        color, label, _tag = T.DEC.get(kind, T.DEC[""])
-        k = self.add(QLabel(f"{label}" + (f"   (and {len(rows) - 1} more selected)" if len(rows) > 1 else "")))
-        k.setObjectName("kind"); k.setStyleSheet(f"background:{color}")
+        tone, label, _tag = D.decision(kind)
+        top = QWidget(); th = QHBoxLayout(top); th.setContentsMargins(0, 0, 0, 0); th.setSpacing(D.SPACE["s"])
+        k = D.Pill(label, tone if tone != "faint" else "head")
+        th.addWidget(k)
+        if len(rows) > 1:
+            th.addWidget(D.label(f"and {len(rows) - 1} more selected", "muted", wrap=False))
+        th.addStretch(1)
+        idl = D.label(it["id"], "mono", wrap=False); th.addWidget(idl)
+        self.add(top)
         self.kind_label = k
-        t = self.add(QLabel(it.get("text", ""))); t.setStyleSheet("font-family:Georgia;font-size:14px;margin:6px 0")
+        t = self.add(D.label(it.get("text", ""), "reading"))
+        t.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.head("Source")
         place = self.placed.get(it["id"], ("",))[0] or it.get("place", "")
         where = PS.where_text(self.pdf, place) if (self.pdf and place) else MD._where(it)
@@ -453,13 +472,13 @@ class AssignPage(QWidget):
         ref, _how = SD.ref_of(M, it)
         src = [f"File: {it.get('file', '')}"] + ([f"Where: {where}"] if where else []) + ([f"RFP: {sec}"] if sec else []) \
             + ([f"Referenced as: {ref}"] if ref and ref != it.get("section") else []) + [f"ID: {it['id']}    Type: {it.get('type', '')}"]
-        self.source_label = self.add(QLabel("\n".join(src)))
+        self.source_label = self.add(D.label("\n".join(src)))
         self.head("Decision")
         self.chips = []
         if d == "Keep":
             secs = SD.item_sections(M, it)
             for lab in secs:
-                self.chips.append(self.add(Chip(lab, T.chip(dark, "req"), on_remove=lambda _=False, l=lab: self.act(self.R.remove_section, it, l))))
+                self.chips.append(self.add(Chip(lab, "req", on_remove=lambda _=False, l=lab: self.act(self.R.remove_section, it, l))))
             if not secs:
                 self.add(QLabel("No section yet: click one in your structure, then R."))
             cb = QComboBox(); cb.addItem("+ Section")
@@ -469,7 +488,7 @@ class AssignPage(QWidget):
         elif d == "Context":
             for i in C.cf_ids(it.get("context_for", "")):
                 x = self.R.item(i)
-                self.chips.append(self.add(Chip(f"{i}   {x.get('map', '') if x else ''}", T.chip(dark, "ctx"),
+                self.chips.append(self.add(Chip(f"{i}   {x.get('map', '') if x else ''}", "ctx",
                                                 on_remove=lambda _=False, b=i: self.act(self.R.unlink, it, b),
                                                 on_jump=lambda _=False, b=i: self.select(b))))
             cb = QComboBox(); cb.addItem("+ Requirement")
@@ -492,12 +511,11 @@ class AssignPage(QWidget):
         self.authors = ed
         lead = SD.section_people(M, it.get("map", "")).get("lead", "") if it.get("map") else ""
         if on and not it.get("owner"):
-            n = self.add(QLabel(f"Empty: the section lead writes it ({lead})." if lead else "Empty: the section's lead, once one is named (People...)."))
-            n.setObjectName("muted")
+            self.add(D.label(f"Empty: the section lead writes it ({lead})." if lead else "Empty: the section's lead, once one is named (People...).", "muted"))
         self.head("Relationships")
         ids, how = self.R.related(it)
         if not ids:
-            self.add(QLabel("None yet."))
+            self.add(D.label("None yet.", "muted"))
         self.rel_labels = []
         for i in ids:
             x = self.R.item(i)
@@ -506,7 +524,8 @@ class AssignPage(QWidget):
             role = "REQ" if how == "hosts" else "SUPPORT"
             b = QLabel(f"<a href='{i}'><b>{role} {i}</b></a> ({MD.ctx_ref(M, x)}) {x['text'][:140]}")
             b.setTextFormat(Qt.RichText)
-            b.setStyleSheet("border:1px solid palette(mid);border-radius:6px;padding:6px")
+            t_ = D.tokens()
+            b.setStyleSheet(f"background:{t_['surface2']};border:1px solid {t_['border']};border-radius:{D.RADIUS['control']}px;padding:6px")
             b.linkActivated.connect(lambda href: self.select(href))
             self.rel_labels.append(self.add(b))
         self.head("Notes")
@@ -514,6 +533,7 @@ class AssignPage(QWidget):
         self.notes.setFixedHeight(72)
         self.notes_for = it["id"]
         self.notes.textChanged.connect(self.notes_timer.start)
+        QTimer.singleShot(0, self.fit_card)
 
     def save_notes(self):
         n = self.notes
@@ -549,7 +569,7 @@ class AssignPage(QWidget):
             node.setData(0, Qt.UserRole, lab)
             if lab == self.target:
                 f = node.font(0); f.setBold(True); node.setFont(0, f)
-                node.setBackground(0, QColor("#FEF3C7")); node.setForeground(0, QColor("#0F172A"))
+                node.setBackground(0, D.color("warn_soft")); node.setForeground(0, D.color("text"))
             while stack and stack[-1][0] >= lvl:
                 stack.pop()
             (stack[-1][1].addChild(node) if stack else self.tree.addTopLevelItem(node))

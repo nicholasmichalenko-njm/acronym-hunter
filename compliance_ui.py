@@ -11,6 +11,7 @@ import setupdoc as SD          # 2.56.0: a sentence in several sections
 import compliance as C
 import pagesent as PS          # 2.57.0: sentences cut from the page
 import compliance_read as CR    # 2.59.0: reading without a screen (both editions)
+import structure_ops as STR     # 2.60.0: the response structure without a screen
 import complearn as CL
 import placelearn as PL
 import cwords as CW
@@ -1333,23 +1334,8 @@ class ComplianceMixin:
     def compliance_outline_apply(self):
         if self.matrix is None:
             return
-        ol = C.parse_outline(self._cwin.o_text.get("1.0", "end"))
-        self.matrix.outline = ol
-        labels = {C.outline_label(o) for o in ol}
-        lost = 0
-        for it in self.matrix.items:
-            if it["map"] and it["map"] not in labels:
-                it["map"] = ""; lost += 1
-        S = SD.setup_of(self.matrix)                     # 2.56.0: extra sections gone from the outline go too
-        for lab in [l for l in S["copies"] if l not in labels]:
-            S["copies"].pop(lab, None)
-        for it in self.matrix.items:                     # a sentence that lost its first section keeps its next one
-            if not it["map"]:
-                rest = SD.item_sections(self.matrix, it)
-                if rest:
-                    it["map"] = rest[0]
-                    S["copies"][rest[0]] = [i for i in S["copies"].get(rest[0], []) if i != it["id"]]
-        self.matrix.log("outline", f"outline set: {len(ol)} sections" + (f"; {lost} mappings cleared" if lost else ""))
+        n, lost = STR.apply(self.matrix, self._cwin.o_text.get("1.0", "end"))     # 2.60.0: shared with the Qt edition
+        ol = self.matrix.outline
         diag.activity("compliance_outline_applied", items=len(ol), removed=lost)
         self._c_changed()
         if lost:

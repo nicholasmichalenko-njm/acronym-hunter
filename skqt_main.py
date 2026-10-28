@@ -11,14 +11,14 @@ import app_gui as A                                        # network guard, sand
 def main(argv=None):
     from PySide6.QtWidgets import QApplication
     from PySide6.QtGui import QIcon
-    from skqt import theme
+    from skqt import design
     from skqt.mainwin import MainWindow
     app = QApplication(sys.argv if argv is None else argv)
     app.setApplicationName("Stationkeeper (Qt)")
     ico = os.path.join(A.BASE_DIR, "assets", "scanner.ico")
     if os.path.isfile(ico):
         app.setWindowIcon(QIcon(ico))
-    theme.apply(app)
+    design.apply(app)
     import diag
     diag.activity("qt_started")
     w = MainWindow(app, A.CONFIG_DIR, A.APP_VERSION)

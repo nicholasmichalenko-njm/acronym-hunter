@@ -72,7 +72,7 @@ def make_analysis(script, qt=False):
     pathex=[],
     binaries=binaries,
     datas=datas,
-    hiddenimports=hiddenimports + (['skqt', 'skqt.mainwin', 'skqt.readpage', 'skqt.assign', 'skqt.theme', 'compliance_read',
+    hiddenimports=hiddenimports + (['skqt', 'skqt.mainwin', 'skqt.readpage', 'skqt.assign', 'skqt.theme', 'skqt.design', 'skqt.structure', 'skqt.prove', 'structure_ops', 'compliance_read',
                                     'assign_ops'] if qt else []),
     hookspath=[],
     hooksconfig={},

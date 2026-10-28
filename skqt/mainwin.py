@@ -2,17 +2,30 @@
 the tkinter edition), the steps of Compliance that are in Qt so far (Read RFP, Assign), the status line, and autosave
 of the compliance matrix two seconds after each change."""
 import os
-from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import (QButtonGroup, QComboBox, QHBoxLayout, QLabel, QMainWindow, QMessageBox, QPushButton,
-                               QStackedWidget, QVBoxLayout, QWidget)
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtWidgets import (QButtonGroup, QComboBox, QCompleter, QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
+                               QMessageBox, QPushButton, QStackedWidget, QVBoxLayout, QWidget)
 import diag
 import compliance as C
 import effort as E
 import setupdoc as SD
 import workspace as W
 import assign_ops as AO
+from . import design as D
 from .readpage import ReadPage
 from .assign import AssignPage
+from .structure import StructurePage
+from .prove import ProvePage
+
+
+RAIL = [("COMPLIANCE", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove")]),
+        ("IN STATIONKEEPER (CLASSIC) FOR NOW", [("", "Matrix and Response Setup"), ("", "Effort home"), ("", "Acronym scan"),
+                                                ("", "Submission and deliverables")])]
+TITLES = {"read": ("Read RFP", "Bring the customer's documents into the review"),
+          "structure": ("Structure", "The sections of your response"),
+          "assign": ("Assign", "Decide every sentence on the page"),
+          "prove": ("Prove", "Every line read and decided")}
 
 
 class MainWindow(QMainWindow):
@@ -27,37 +40,95 @@ class MainWindow(QMainWindow):
         self.effort_path = ""
         self.review = None
         self.resize(1600, 1000)
-        top = QWidget(); tv = QVBoxLayout(top); tv.setContentsMargins(0, 0, 0, 0); tv.setSpacing(0)
-        bar = QWidget(); bh = QHBoxLayout(bar); bh.setContentsMargins(10, 6, 10, 6)
-        bh.addWidget(QLabel("Effort:"))
-        self.effort_box = QComboBox(); self.effort_box.setMinimumWidth(240)
-        self.effort_box.activated.connect(lambda i: self.open_effort(self.effort_box.itemText(i)))
-        bh.addWidget(self.effort_box)
-        bh.addSpacing(24)
+        root = QWidget(); rh = QHBoxLayout(root); rh.setContentsMargins(0, 0, 0, 0); rh.setSpacing(0)
+        # the navigation rail: areas of the app, the ones still in the classic window shown but not clickable
+        rail = QWidget(); rail.setObjectName("railbox"); rail.setFixedWidth(232)
+        rv = QVBoxLayout(rail); rv.setContentsMargins(D.SPACE["s"], 0, D.SPACE["s"], D.SPACE["m"]); rv.setSpacing(2)
+        brand = QLabel("Stationkeeper"); brand.setObjectName("brand"); rv.addWidget(brand)
         self.steps = QButtonGroup(self)
         self.step_btns = {}
-        for key, text in (("read", "1  Read RFP"), ("assign", "2  Assign")):
-            b = QPushButton(text); b.setObjectName("step"); b.setCheckable(True)
-            b.clicked.connect(lambda _=False, k=key: self.go(k))
-            self.steps.addButton(b); self.step_btns[key] = b
-            bh.addWidget(b)
-        later = QLabel("   Structure, Matrix and the rest of the app: in Stationkeeper (classic) until they move to Qt.")
-        later.setObjectName("muted")
-        bh.addWidget(later)
-        bh.addStretch(1)
-        tv.addWidget(bar)
+        for head, items in RAIL:
+            h = QLabel(head); h.setObjectName("railhead"); h.setWordWrap(True); rv.addWidget(h)
+            for key, text in items:
+                b = QPushButton(text); b.setObjectName("rail"); b.setCheckable(bool(key))
+                if key:
+                    b.clicked.connect(lambda _=False, k=key: self.go(k))
+                    self.steps.addButton(b); self.step_btns[key] = b
+                else:
+                    b.setEnabled(False)
+                    b.setToolTip("Still in Stationkeeper (classic): it moves to Qt in a coming release.")
+                rv.addWidget(b)
+        rv.addStretch(1)
+        ver = QLabel(f"Offline. No AI. {version}"); ver.setObjectName("railhead"); rv.addWidget(ver)
+        rh.addWidget(rail)
+        col = QWidget(); cv = QVBoxLayout(col); cv.setContentsMargins(0, 0, 0, 0); cv.setSpacing(0)
+        # the top bar: where you are, the effort, search, and whether everything is saved
+        bar = QFrame(); bar.setProperty("bar", True)
+        bh = QHBoxLayout(bar); bh.setContentsMargins(D.SPACE["xl"], D.SPACE["m"], D.SPACE["xl"], D.SPACE["m"]); bh.setSpacing(D.SPACE["m"])
+        tcol = QVBoxLayout(); tcol.setSpacing(0)
+        self.page_title = D.label("", "display", wrap=False); tcol.addWidget(self.page_title)
+        self.page_sub = D.label("", "muted", wrap=False); tcol.addWidget(self.page_sub)
+        bh.addLayout(tcol, 1)
+        self.search = QLineEdit(); self.search.setPlaceholderText("Find a sentence (words or ID)...")
+        self.search.setMinimumWidth(320); self.search.setClearButtonEnabled(True)
+        self.search.returnPressed.connect(self.find_go)
+        bh.addWidget(self.search)
+        bh.addWidget(D.label("Effort", "label", wrap=False))
+        self.effort_box = QComboBox(); self.effort_box.setMinimumWidth(220)
+        self.effort_box.activated.connect(lambda i: self.open_effort(self.effort_box.itemText(i)))
+        bh.addWidget(self.effort_box)
+        self.saved = D.Pill("Saved", "ok"); bh.addWidget(self.saved)
+        cv.addWidget(bar)
         self.stack = QStackedWidget()
         self.read_page = ReadPage(self)
+        self.structure_page = StructurePage(self)
         self.assign_page = AssignPage(self)
-        self.stack.addWidget(self.read_page)
-        self.stack.addWidget(self.assign_page)
-        tv.addWidget(self.stack, 1)
-        self.setCentralWidget(top)
+        self.prove_page = ProvePage(self)
+        self.pages = {"read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page}
+        for pg in self.pages.values():
+            self.stack.addWidget(pg)
+        cv.addWidget(self.stack, 1)
+        rh.addWidget(col, 1)
+        self.setCentralWidget(root)
+        self.toaster = D.Toast(self)
+        QShortcut(QKeySequence("Ctrl+F"), self, activated=lambda: (self.search.setFocus(), self.search.selectAll()))
         self.save_timer = QTimer(self, singleShot=True, interval=2000, timeout=self.save_now)
         self.lock_timer = QTimer(self, interval=60000, timeout=lambda: self.ws.refresh_lock() if self.ws else None)
         self.lock_timer.start()
         self.fill_efforts()
+        self.go("read")
         self.title()
+
+    # ------------------------------------------------------------ finding a sentence
+    def fill_search(self):
+        R = self.review
+        items = [f"{it['id']}   {it['text'][:110]}" for it in R.M.items] if R else []
+        comp = QCompleter(items, self)
+        comp.setCaseSensitivity(Qt.CaseInsensitive)
+        comp.setFilterMode(Qt.MatchContains)
+        comp.setMaxVisibleItems(14)
+        comp.activated.connect(lambda text: self.find_go(text))
+        self.search.setCompleter(comp)
+
+    def find_go(self, text=None):
+        """Go to the sentence picked (or the first one whose ID or words match) in Assign."""
+        R = self.review
+        q = (text if isinstance(text, str) and text else self.search.text()).strip()
+        if R is None or not q:
+            return None
+        iid = q.split("   ", 1)[0]
+        it = R.item(iid)
+        if it is None:
+            ql = q.casefold()
+            it = next((x for x in R.M.items if ql == x["id"].casefold()), None) or \
+                next((x for x in R.M.items if ql in x["text"].casefold()), None)
+        if it is None:
+            self.status(f"No sentence has \"{q}\".")
+            return None
+        self.go("assign")
+        self.assign_page.select(it["id"])
+        diag.activity("qt_find_sentence")
+        return it["id"]
 
     # ------------------------------------------------------------ efforts
     def fill_efforts(self):
@@ -116,6 +187,7 @@ class MainWindow(QMainWindow):
         if new:
             self.save_now()
         self.assign_page.load()
+        self.fill_search()
         self.title()
 
     def people(self):
@@ -135,6 +207,7 @@ class MainWindow(QMainWindow):
             try:
                 self.review.M.save()
                 self.review.M.pending = False
+                self.fill_search()
             except PermissionError:
                 self.status("The matrix is open in Excel: close it there, and it is saved again in two seconds.")
                 self.save_timer.start()
@@ -145,18 +218,29 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------ the rest
     def go(self, step):
-        if step == "read":
-            self.read_page.refresh()
-        self.stack.setCurrentWidget(self.read_page if step == "read" else self.assign_page)
+        pg = self.pages[step]
+        if hasattr(pg, "refresh"):
+            pg.refresh()
+        self.stack.setCurrentWidget(pg)
         self.step_btns[step].setChecked(True)
+        t, sub = TITLES[step]
+        self.page_title.setText(t)
+        self.page_sub.setText(sub + (f"  \u00b7  {self.effort_name}" if self.effort_name else ""))
 
     def status(self, text):
         self.statusBar().showMessage(text, 9000)
+
+    def toast(self, text):
+        self.toaster.show_text(text)
+        self.status(text)
 
     def title(self):
         dirty = self.review is not None and self.review.M.pending
         self.setWindowTitle(("* " if dirty else "") + (f"{self.effort_name}: " if self.effort_name else "")
                             + f"Stationkeeper (Qt) {self.version}".strip())
+        if hasattr(self, "saved"):
+            self.saved.setText("Saving..." if dirty else ("Saved" if self.review is not None else "No matrix"))
+            self.saved.set_tone("warn" if dirty else ("ok" if self.review is not None else "head"))
 
     def closeEvent(self, e):
         self.assign_page.save_notes()
