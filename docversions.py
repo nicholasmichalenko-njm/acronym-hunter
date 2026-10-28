@@ -92,6 +92,32 @@ def snapshot(name, chunks):
              "l": it.get("loc", "")} for it in items]
 
 
+# ------------------------------------------------------------------ what each customer document is (2.68.0)
+DOC_TYPES = ("RFP", "Amendment", "SOW", "SOO", "PWS", "Section L", "Section M", "Q&A", "Attachment", "CDRL", "DD 254", "Other")
+TYPE_INITIAL = {"RFP": "R", "Amendment": "A", "SOW": "S", "SOO": "O", "PWS": "P", "Section L": "L", "Section M": "M", "Q&A": "Q",
+                "Attachment": "J", "CDRL": "C", "DD 254": "D", "Other": "X"}
+
+
+def clean_initial(text):
+    """An initial: letters and digits only, upper case, at most 6 characters."""
+    import re
+    return re.sub(r"[^A-Za-z0-9]", "", text or "").upper()[:6]
+
+
+def guess_type(name):
+    """The document type a file name suggests (the person confirms it)."""
+    import re
+    n = (name or "").lower()
+    for pat, t in ((r"amend|\bamd\b|_amd|amd\d|\bmod\b", "Amendment"), (r"\bsow\b|statement[\s_-]*of[\s_-]*work", "SOW"),
+                   (r"\bsoo\b|statement[\s_-]*of[\s_-]*objectives", "SOO"), (r"\bpws\b|performance[\s_-]*work", "PWS"),
+                   (r"q\s*&\s*a|questions|\bqa\b", "Q&A"), (r"cdrl", "CDRL"), (r"dd[\s_-]*254", "DD 254"),
+                   (r"attachment|\batt\b|exhibit|\bj-\d", "Attachment"), (r"section[\s_]*l\b", "Section L"),
+                   (r"section[\s_]*m\b", "Section M"), (r"\brfp\b|solicitation|\brfq\b", "RFP")):
+        if re.search(pat, n.replace("_", " ")):
+            return t
+    return "RFP"
+
+
 # ------------------------------------------------------------------ the library
 class Library:
     def __init__(self, folder):
@@ -159,12 +185,15 @@ class Library:
         n = len(d["versions"])
         return f"Amendment {n}" if n else "Original"
 
-    def add(self, path, sents, doc_id=None, doc_name="", label="", sha=None, when=None, who=None):
-        """Add a file as a new version of doc_id, or as a new document. Returns (doc, version)."""
+    def add(self, path, sents, doc_id=None, doc_name="", label="", sha=None, when=None, who=None, initial="", dtype=""):
+        """Add a file as a new version of doc_id, or as a new document (2.68.0: with its initial and type). Returns
+        (doc, version)."""
         h = sha or sha256(path)
         d = self.doc(doc_id) if doc_id else None
         if d is None:
-            d = {"id": uuid.uuid4().hex[:12], "name": doc_name or display_name(path), "versions": []}
+            d = {"id": uuid.uuid4().hex[:12], "name": doc_name or display_name(path), "versions": [],
+                 "initial": clean_initial(initial) if clean_initial(initial) not in self.initials() else "",
+                 "type": dtype if dtype in DOC_TYPES else ""}
             self.docs.append(d)
         v = {"id": uuid.uuid4().hex[:12], "label": label or self.next_label(d), "file": os.path.basename(path),
              "added": when or datetime.datetime.now().isoformat(timespec="minutes"), "who": who or getpass.getuser(),
@@ -202,6 +231,61 @@ class Library:
                     v["label"] = name
         self.save()
         return True
+
+    # ------------------------------------------------------------ identity (2.68.0)
+    def initials(self, but=None):
+        return {d.get("initial", "") for d in self.docs if d.get("initial") and d["id"] != but}
+
+    def suggest_initial(self, dtype, taken=()):
+        """The type's letter, numbered when taken (R, R2...; amendments A1, A2...)."""
+        base = TYPE_INITIAL.get(dtype, "X")
+        used = self.initials() | set(taken)
+        if dtype == "Amendment":
+            n = 1
+            while f"{base}{n}" in used:
+                n += 1
+            return f"{base}{n}"
+        if base not in used:
+            return base
+        n = 2
+        while f"{base}{n}" in used:
+            n += 1
+        return f"{base}{n}"
+
+    def check_identity(self, initial, dtype, doc_id=None):
+        """'' when fine, else what is wrong (the person sees it)."""
+        ini = clean_initial(initial)
+        if not ini:
+            return "Give the document an initial (letters and digits, up to 6)."
+        if dtype not in DOC_TYPES:
+            return "Pick the document's type."
+        if ini in self.initials(but=doc_id):
+            return f"Another document already uses {ini}."
+        return ""
+
+    def set_identity(self, doc_id, initial, dtype):
+        """The document's initial and type. Returns '' when set, else why not."""
+        d = self.doc(doc_id)
+        if d is None:
+            return "No such document."
+        why = self.check_identity(initial, dtype, doc_id)
+        if why:
+            return why
+        d["initial"], d["type"] = clean_initial(initial), dtype
+        self.save()
+        return ""
+
+    def missing_identity(self):
+        return [d for d in self.docs if not d.get("initial") or not d.get("type")]
+
+    def doc_of_file(self, file_name):
+        f = os.path.basename(file_name or "").lower()
+        return next((d for d in self.docs if any(v.get("file", "").lower() == f for v in d["versions"])), None)
+
+    def identity_map(self):
+        """{file name: {"initial", "type", "doc"}} for every version of every document."""
+        return {v.get("file", ""): {"initial": d.get("initial", ""), "type": d.get("type", ""), "doc": d["name"]}
+                for d in self.docs for v in d["versions"] if v.get("file")}
 
     def mark_reviewed(self, vid, who=None):
         for d in self.docs:

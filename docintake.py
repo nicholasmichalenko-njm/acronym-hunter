@@ -47,9 +47,31 @@ def plan(lib, paths, reader=read):
                           f"{int(round(ts * 100))}% of the text is the same" + ("; the name matches" if ns >= 0.9 else "")))
         cands.sort(key=lambda x: -x[1])
         best = cands[0] if cands and DV.Library.band(cands[0][1]) else None
+        dtype = DV.guess_type(os.path.basename(p))                  # 2.68.0: the person confirms the type and initial
+        taken = [e.get("initial", "") for e in out]
         out.append({"path": p, "sha": h, "sents": sents, "cands": cands, "best": best,
                     "choice": "version" if best and DV.Library.band(best[1]) == "strong" else "new",
-                    "doc": best[0]["id"] if best else None, "name": DV.display_name(p), "label": ""})
+                    "doc": best[0]["id"] if best else None, "name": DV.display_name(p), "label": "",
+                    "type": dtype, "initial": lib.suggest_initial(dtype, taken)})
+    return out
+
+
+def check(lib, entries):
+    """2.68.0: what is wrong with a plan before it is added: every new document needs an initial and a type, and no two
+    documents share an initial. [] when it can be added."""
+    out, seen = [], set(lib.initials())
+    for e in entries:
+        if e.get("dup") or e["choice"] != "new":
+            continue
+        ini = DV.clean_initial(e.get("initial", ""))
+        name = os.path.basename(e["path"])
+        if not ini:
+            out.append(f"{name}: give it an initial.")
+        elif ini in seen:
+            out.append(f"{name}: the initial {ini} is already used.")
+        if e.get("type") not in DV.DOC_TYPES:
+            out.append(f"{name}: pick its type.")
+        seen.add(ini)
     return out
 
 
@@ -75,7 +97,8 @@ def apply(lib, entries, customer_dir="", log=None):
         doc_id = e.get("doc") if e["choice"] == "version" else None
         if doc_id and str(doc_id).startswith("batch:"):
             doc_id = batch_doc.get(int(doc_id.split(":")[1]))
-        d, v = lib.add(dest, e["sents"], doc_id=doc_id, doc_name=e.get("name", ""), label=e.get("label", ""), sha=e["sha"])
+        d, v = lib.add(dest, e["sents"], doc_id=doc_id, doc_name=e.get("name", ""), label=e.get("label", ""), sha=e["sha"],
+                       initial=e.get("initial", ""), dtype=e.get("type", ""))
         batch_doc[k] = d["id"]
         made.append((d, v))
     if made:

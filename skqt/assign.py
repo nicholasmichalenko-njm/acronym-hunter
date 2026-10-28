@@ -19,6 +19,7 @@ import compliance as C
 import setupdoc as SD
 import pagesent as PS
 import matrixdesign as MD
+import outline_ops as O
 import office_pdf as OP
 from . import design as D
 
@@ -161,14 +162,18 @@ class AssignPage(QWidget):
         bar.addWidget(self.files)
         self.keys = {}
         for text, kind, fn, tip in (("Requirement  R", "req", self.do_req, "The selected sentences become compliance requirements in the target section"),
+                                    ("L  L", "req", lambda: self.do_lm("L"), "L: Instructions, Conditions and Notices to Offerors (a requirement)"),
+                                    ("M  E", "req", lambda: self.do_lm("M"), "M: Evaluation Factors for Award (a requirement)"),
                                     ("Support  C", "ctx", self.do_ctx, "Supporting context for the last requirement you clicked"),
                                     ("Customer's  G", "cust", self.do_customer, "The customer's to act on: identified, never answered"),
                                     ("Not used  X", None, self.do_clear, "No decision"),
-                                    ("Combine  M", None, self.do_combine, "One sentence from the selected ones (they need not be next to each other)"),
+                                    ("Combine  J", None, self.do_combine, "One sentence from the selected ones (they need not be next to each other)"),
                                     ("Split  S", None, self.do_split, "Split the selected sentence before the word you clicked"),
                                     ("Undo  Ctrl+Z", "ghost", self.do_undo, "Put back the last change")):
             b = D.button(text, kind, fn, tip)
             self.keys[text.split()[0]] = b
+            if text.split()[0] in ("L", "M"):
+                b.setFixedWidth(46)
             bar.addWidget(b)
         bar.addStretch(1)
         fit = QPushButton("Fit width"); fit.clicked.connect(lambda: self.view.fit()); bar.addWidget(fit)
@@ -183,20 +188,44 @@ class AssignPage(QWidget):
         self.card_area.viewport().installEventFilter(self)              # wrapped text keeps its height; the card scrolls
         self.card_area.setWidget(self.card)
         sw = QWidget(); sv = QVBoxLayout(sw); sv.setContentsMargins(0, 0, 0, 0)
-        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Your response structure (click: the target for R)", "Req."])
+        vrow = QHBoxLayout(); sv.addLayout(vrow)                       # 2.68.0: the volume you are working on
+        vrow.addWidget(D.label("Volume", "label", wrap=False))
+        self.volume = QComboBox(); self.volume.setMinimumWidth(200)
+        self.volume.activated.connect(lambda _i: self.pick_volume(self.volume.currentData()))
+        vrow.addWidget(self.volume, 1)
+        vrow.addWidget(D.button("+ Volume", None, lambda: self.new_volume(), "A new volume at the end of the structure"))
+        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Your response structure (click: the target for R, L, M)", "Req."])
         self.tree.setColumnWidth(0, 310)
         self.tree.itemClicked.connect(lambda i, _c: self.set_target(i.data(0, Qt.UserRole)))
+        self.tree.itemDoubleClicked.connect(lambda i, _c: self.rename_section(i.data(0, Qt.UserRole)))
         sv.addWidget(self.tree)
-        row = QHBoxLayout(); sv.addLayout(row)
+        srow = QHBoxLayout(); srow.setSpacing(4); sv.addLayout(srow)
+        for text, fn, tip in (("+ Heading", lambda: self.new_section(sub=False), "A section at the level of the target (after it), or a first section"),
+                              ("+ Subheading", lambda: self.new_section(sub=True), "A section under the target, one level down"),
+                              ("From sentence", lambda: self.section_from_sentence(), "A section under the target, named with the selected sentence")):
+            srow.addWidget(D.button(text, None, fn, tip))
+        srow.addStretch(1)
+        row = QHBoxLayout(); row.setSpacing(4); sv.addLayout(row)
+        for text, fn, tip in (("Rename", lambda: self.rename_section(self.target), "Rename the target (or double-click it)"),
+                              ("\u2191", lambda: self.outline_op(O.move, -1), "Up"), ("\u2193", lambda: self.outline_op(O.move, 1), "Down"),
+                              ("\u2192", lambda: self.outline_op(O.indent), "One level down (under the section above)"),
+                              ("\u2190", lambda: self.outline_op(O.outdent), "One level up"),
+                              ("Delete", lambda: self.delete_section(), "Take the target out; its sentences go to the section above")):
+            b = D.button(text, "ghost" if text != "Delete" else "danger", fn, tip)
+            if len(text) == 1:
+                b.setFixedWidth(34)
+            row.addWidget(b)
+        row.addStretch(1)
         for text, fn in (("People...", self.people_dialog), ("Volumes...", self.volumes_dialog)):
             b = QPushButton(text); b.clicked.connect(fn); row.addWidget(b)
-        row.addStretch(1)
+        self.active_volume = ""
         right.addWidget(self.card_area); right.addWidget(sw); right.setSizes([620, 360])
         split = QSplitter(Qt.Horizontal); split.addWidget(self.view); split.addWidget(right); split.setSizes([1100, 470])
         v.addWidget(split, 1)
         self.notes_timer = QTimer(self, singleShot=True, interval=700, timeout=self.save_notes)
         for key, fn in (("R", self.do_req), ("C", self.do_ctx), ("G", self.do_customer), ("X", self.do_clear),
-                        ("Delete", self.do_clear), ("M", self.do_combine), ("S", self.do_split), ("Ctrl+Z", self.do_undo),
+                        ("L", lambda: self.do_lm("L")), ("E", lambda: self.do_lm("M")), ("Shift+M", lambda: self.do_lm("M")),
+                        ("Delete", self.do_clear), ("J", self.do_combine), ("S", self.do_split), ("Ctrl+Z", self.do_undo),
                         ("Escape", lambda: self.view.scene().clearSelection())):
             QShortcut(QKeySequence(key), self.view, activated=fn)
         self.show_card([])
@@ -359,6 +388,10 @@ class AssignPage(QWidget):
             last_y = y
             hosts = C.cf_ids(it.get("context_for", "")) if dec == "Context" else []
             txt = f"{tag} {', '.join(hosts[:2])}" if hosts else f"{tag} {iid}"
+            if dec == "Keep":                                           # 2.68.0: L or M and its volumes in the margin
+                lmv = it.get("lm") or ""
+                vols = [v.split(" ")[1] if v.lower().startswith("volume ") and len(v.split(" ")) > 1 else v[:6] for v in O.volumes_of_item(self.M, it)]
+                txt = " ".join(x for x in (tag, lmv, iid, ("V " + "+".join(vols)) if vols else "") if x)
             lab = QGraphicsSimpleTextItem(txt)
             lab.setFont(QFont("Segoe UI", 7, QFont.Bold))
             lab.setBrush(QColor(D.PAGE_DEC[dec]))
@@ -477,6 +510,31 @@ class AssignPage(QWidget):
         src = [f"File: {it.get('file', '')}"] + ([f"Where: {where}"] if where else []) + ([f"RFP: {sec}"] if sec else []) \
             + ([f"Referenced as: {ref}"] if ref and ref != it.get("section") else []) + [f"ID: {it['id']}    Type: {it.get('type', '')}"]
         self.source_label = self.add(D.label("\n".join(src)))
+        ident = SD.docs_of(M).get(it.get("file", "")) or {}
+        idl2 = (f"Document {ident.get('initial')} ({ident.get('type', '')})" if ident.get("initial") else
+                "This document has no initial and type yet: set them in Customer Documents.")
+        self.ident_label = self.add(D.label(idl2, "muted" if ident.get("initial") else None))
+        if d == "Keep":                                                 # 2.68.0: L or M, and the reference it makes
+            lmw = QWidget(); lh = QHBoxLayout(lmw); lh.setContentsMargins(0, 0, 0, 0); lh.setSpacing(D.SPACE["s"])
+            cur_lm = it.get("lm", "")
+            sug = SD.lm_suggest(M, it)
+            for code in ("L", "M"):
+                b = D.button(f"{code}  {SD.LM[code].split(',')[0].split(' ')[0]}", "req" if cur_lm == code else None,
+                             lambda _=False, c=code: self.set_lm(rows, c), SD.LM[code])
+                lh.addWidget(b)
+            lh.addWidget(D.label(f"{'Set: ' + cur_lm if cur_lm else ('Suggested: ' + sug if sug else 'Not set')}", "muted", wrap=False))
+            lh.addStretch(1)
+            self.add(lmw)
+            fr = SD.full_ref(M, it)
+            self.ref_label = self.add(D.label(f"Reference in the matrix: {fr}" if fr else "Reference: set the document initial and L or M", "mono"))
+            vols = O.volumes_of_item(M, it)
+            if vols:
+                vw = QWidget(); vh = QHBoxLayout(vw); vh.setContentsMargins(0, 0, 0, 0); vh.setSpacing(4)
+                vh.addWidget(D.label("In", "muted", wrap=False))
+                for vname in vols:
+                    vh.addWidget(D.Pill(vname, "accent"))
+                vh.addStretch(1)
+                self.vol_badges = self.add(vw)
         self.head("Decision")
         self.chips = []
         if d == "Keep":
@@ -484,7 +542,7 @@ class AssignPage(QWidget):
             for lab in secs:
                 self.chips.append(self.add(Chip(lab, "req", on_remove=lambda _=False, l=lab: self.act(self.R.remove_section, it, l))))
             if not secs:
-                self.add(QLabel("No section yet: click one in your structure, then R."))
+                self.add(QLabel("No section yet: click one in your structure (or build one: + Heading), then R."))
             cb = QComboBox(); cb.addItem("+ Section")
             cb.addItems([lab for lab in self.R.labels() if lab not in secs])
             cb.activated.connect(lambda i, cb=cb: self.act(self.R.add_section, it, cb.itemText(i)) if i > 0 else None)
@@ -571,6 +629,11 @@ class AssignPage(QWidget):
         except RuntimeError:
             pass                                    # the card was rebuilt
 
+    def set_lm(self, rows, lm):
+        self.R.set_lm(rows, lm)
+        diag.activity("compliance_lm_set", n=len(rows))
+        self.after(f"{len(rows)} sentence(s): {lm}")
+
     def set_authors(self, rows, text):
         if self.R.set_authors(rows, text):
             diag.activity("assign_card_authors", n=len(rows))
@@ -581,14 +644,38 @@ class AssignPage(QWidget):
         self.after()
 
     # ------------------------------------------------------------ the structure
+    def fill_volumes(self):
+        self.volume.blockSignals(True)
+        self.volume.clear()
+        self.volume.addItem("All volumes", "")
+        mode, name, heads = SD.volumes_of(self.M) if self.M is not None else ("", "", [])
+        for h in (heads if mode == "several" else []):
+            self.volume.addItem(h, h)
+        if self.active_volume and self.volume.findData(self.active_volume) < 0:
+            self.active_volume = ""
+        self.volume.setCurrentIndex(max(0, self.volume.findData(self.active_volume)))
+        self.volume.blockSignals(False)
+
+    def pick_volume(self, vol):
+        """Work in one volume: the structure shows its sections, and new sections go into it."""
+        self.active_volume = vol or ""
+        if self.target and self.active_volume and self.target not in O.in_volume(self.M, self.active_volume):
+            self.target = None
+        self.fill_tree()
+        self.host.status(f"Working in {vol}." if vol else "Showing every volume.")
+
     def fill_tree(self):
         self.tree.clear()
         if self.R is None:
             return
+        self.fill_volumes()
         counts = self.R.counts()
+        show = set(O.in_volume(self.M, self.active_volume))
         stack = []
         for o in self.M.outline:
             lab = C.outline_label(o)
+            if lab not in show:
+                continue
             lvl = o.get("level", 1)
             node = QTreeWidgetItem([lab, str(counts.get(lab, "") or "")])
             node.setData(0, Qt.UserRole, lab)
@@ -696,12 +783,122 @@ class AssignPage(QWidget):
         rows = self.selected()
         if not rows:
             return
-        if not self.target:
-            self.host.status("Click a section in your structure first (the target for R).")
-            return
-        n = self.R.req(rows, self.target)
+        n = self.R.req(rows, self.target or "")
         diag.activity("compliance_assigned", n=n)
-        self.after(f"{rows[0]['id'] if n == 1 else str(n) + ' sentences'}: compliance requirement in {self.target}")
+        self.after(f"{rows[0]['id'] if n == 1 else str(n) + ' sentences'}: compliance requirement "
+                   + (f"in {self.target}" if self.target else "(no section yet: click one, or build one with + Heading)"))
+
+    def do_lm(self, lm):
+        """2.68.0: L or M; a sentence that is not a requirement yet becomes one (in the target section, if any)."""
+        rows = self.selected()
+        if not rows:
+            return
+        new = [it for it in rows if it.get("decision") != "Keep"]
+        if new:
+            self.R.req(new, self.target or "")
+        self.R.set_lm(rows, lm)
+        diag.activity("compliance_lm_set", n=len(rows))
+        self.after(f"{len(rows)} sentence(s): {lm} ({SD.LM[lm]})")
+
+    # ------------------------------------------------------------ building the structure as you go (2.68.0)
+    def _ask(self, title, label, text=""):
+        from PySide6.QtWidgets import QInputDialog
+        t, ok = QInputDialog.getText(self, title, label, QLineEdit.Normal, text)
+        return t.strip() if ok and t.strip() else None
+
+    def new_volume(self, title=None):
+        if self.M is None:
+            return None
+        title = title if title is not None else self._ask("New volume", "Volume name (for example Technical):")
+        if not title:
+            return None
+        self.R.snap()
+        lab = O.add_volume(self.M, title)
+        diag.activity("qt_volume_added")
+        self.active_volume = lab
+        self.target = lab
+        self.after(f"Volume added: {lab}. New sections go into it.")
+        return lab
+
+    def new_section(self, sub=False, title=None):
+        """+ Heading (after the target, at its level) or + Subheading (under the target). With no target: a first
+        section in the volume you are working in."""
+        if self.M is None:
+            return None
+        title = title if title is not None else self._ask("New subheading" if sub else "New heading", "Section title:")
+        if not title:
+            return None
+        self.R.snap()
+        tgt = self.target if self.target in set(O.labels(self.M)) else None
+        heads = O.volume_heads(self.M)
+        if tgt and (sub or tgt in heads):
+            lab = O.add(self.M, title, parent=tgt)
+        elif tgt:
+            lab = O.add(self.M, title, after=tgt)
+        elif self.active_volume:
+            lab = O.add(self.M, title, parent=self.active_volume)
+        else:
+            lab = O.add(self.M, title)
+        diag.activity("qt_section_added")
+        self.target = lab
+        self.after(f"Section added: {lab}. It is the target: R, L or M puts the selected sentences there.")
+        return lab
+
+    def section_from_sentence(self):
+        rows = self.selected()
+        if not rows or self.M is None:
+            self.host.status("Select the sentence to name the section with.")
+            return None
+        self.R.snap()
+        tgt = self.target if self.target in set(O.labels(self.M)) else (self.active_volume or None)
+        lab = O.from_sentence(self.M, rows[-1], parent=tgt)
+        diag.activity("qt_section_added")
+        self.target = lab
+        self.after(f"Section added from the sentence: {lab}")
+        return lab
+
+    def rename_section(self, label, title=None):
+        if not label or self.M is None:
+            return None
+        o = next((x for x in self.M.outline if C.outline_label(x) == label), None)
+        if o is None:
+            return None
+        title = title if title is not None else self._ask("Rename", f"New title for {label}:", o.get("title", ""))
+        if not title:
+            return None
+        self.R.snap()
+        new = O.rename(self.M, label, title)
+        if label in O.volume_heads(self.M) or self.active_volume == label:
+            self.active_volume = new if self.active_volume == label else self.active_volume
+        self.target = new
+        self.after(f"Renamed: {new}")
+        return new
+
+    def outline_op(self, fn, *args):
+        if not self.target or self.M is None:
+            self.host.status("Click a section in your structure first.")
+            return None
+        self.R.snap()
+        new = fn(self.M, self.target, *args)
+        if new is None:
+            self.host.status("It cannot go there.")
+            return None
+        self.target = new
+        self.after()
+        return new
+
+    def delete_section(self, label=None):
+        label = label or self.target
+        if not label or self.M is None:
+            return None
+        self.R.snap()
+        to = O.delete(self.M, label)
+        if self.active_volume == label:
+            self.active_volume = ""
+        self.target = to or None
+        diag.activity("qt_section_removed")
+        self.after(f"Section {label} taken out" + (f"; its sentences are in {to}" if to else "; its sentences have no section now"))
+        return to
 
     def do_ctx(self):
         rows = self.selected()

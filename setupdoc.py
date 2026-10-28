@@ -28,7 +28,82 @@ def new_setup():
             "exports": [], "context": [],
             "refmode": {},     # 2.38.0: {file: {"mode": "numbering"|"para"|"page"|"prefix", "name", "prefix"}}
             "owners": {},      # 2.38.0: {section label: {"lead": "", "with": ""}}
-            "tables": False}   # 2.38.0: Response Setup includes each section's requirement table
+            "tables": False,   # 2.38.0: Response Setup includes each section's requirement table
+            "docs": {}}        # 2.68.0: {file: {"initial", "type", "doc"}} from Customer Documents
+
+
+LM = {"L": "Instructions, Conditions and Notices to Offerors", "M": "Evaluation Factors for Award"}     # 2.68.0 (Shipley)
+
+
+def docs_of(M):
+    return setup_of(M)["docs"]
+
+
+def sync_docs(M, lib):
+    """Each file's document initial and type from the effort's Customer Documents (files read but not in the library
+    keep what was set for them). Returns the number of files known."""
+    d = docs_of(M)
+    for f, ident in lib.identity_map().items():
+        if d.get(f) != ident:
+            d[f] = ident
+            if hasattr(M, "pending"):
+                M.pending = True
+    return len(d)
+
+
+def set_doc(M, file_name, initial, dtype, doc=""):
+    import docversions as DV
+    docs_of(M)[file_name] = {"initial": DV.clean_initial(initial), "type": dtype, "doc": doc or file_name}
+    if hasattr(M, "pending"):
+        M.pending = True
+
+
+def initial_of(M, it):
+    return (docs_of(M).get(it.get("file", "")) or {}).get("initial", "")
+
+
+def files_without_identity(M):
+    """Files in the matrix whose document has no initial or type yet."""
+    d = docs_of(M)
+    files = dict.fromkeys(it.get("file", "") for it in M.items if it.get("file"))
+    return [f for f in files if not (d.get(f) or {}).get("initial") or not (d.get(f) or {}).get("type")]
+
+
+def lm_suggest(M, it, inherited=None):
+    """L or M from where the sentence is: a Section L or M number (L.4.2, M.2), else its document's type."""
+    sec = it.get("section", "") or ((inherited if inherited is not None else {}).get(it["id"], "") if inherited is not None else "")
+    m = re.match(r"^(?:Section\s+)?([LM])(?:[.\s-]|$)", sec or "", re.I)
+    if m:
+        return m.group(1).upper()
+    t = (docs_of(M).get(it.get("file", "")) or {}).get("type", "")
+    return {"Section L": "L", "Section M": "M"}.get(t, "")
+
+
+def lm_of(M, it, inherited=None):
+    """The designation set in Assign, else the one its place suggests ('' when neither)."""
+    return it.get("lm") or lm_suggest(M, it, inherited)
+
+
+def set_lm(M, items, lm):
+    lm = lm if lm in LM else ""
+    n = 0
+    for it in items:
+        if it.get("lm", "") != lm:
+            it["lm"] = lm
+            n += 1
+            _log(M, it["id"], f"designated {lm or 'neither L nor M'}")
+    if n and hasattr(M, "pending"):
+        M.pending = True
+    return n
+
+
+def full_ref(M, it, inherited=None):
+    """2.68.0: the document initial, L or M, and the section in the customer document: R-L-4.2.1."""
+    sec = it.get("section", "") or ((inherited if inherited is not None else inherited_sections(M)).get(it["id"], ""))
+    lm = lm_of(M, it, inherited)
+    if sec and lm and re.match(rf"^(?:Section\s+)?{lm}[.\s-]", sec, re.I):
+        sec = re.sub(rf"^(?:Section\s+)?{lm}[.\s-]+", "", sec, flags=re.I) or sec    # R-L-4.2 rather than R-L-L.4.2
+    return "-".join(x for x in (initial_of(M, it), lm, sec) if x)
 
 
 def setup_of(M):

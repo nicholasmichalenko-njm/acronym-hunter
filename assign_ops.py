@@ -76,7 +76,20 @@ class Review:
     # ------------------------------------------------------------ decisions
     def req(self, rows, label):
         """R: compliance requirements in section label; one already in another section is put in this one too."""
-        if not rows or label not in set(self.labels()):
+        if not rows:
+            return 0
+        if not label:                                  # 2.68.0: a requirement before the structure exists; placed later
+            self.snap()
+            for it in rows:
+                if it.get("decision") != "Keep":
+                    SD.clear_sections(self.M, it)
+                    C.assign_requirement(self.M.items, [it], "")
+                    self.M.log(it["id"], "compliance requirement (no section yet)")
+            if len(rows) == 1:
+                self.last_req = rows[0]["id"]
+            self.changed()
+            return len(rows)
+        if label not in set(self.labels()):
             return 0
         self.snap()
         new = [it for it in rows if it.get("decision") != "Keep" or not it.get("map")]
@@ -198,6 +211,16 @@ class Review:
         C.assign_context(self.M.items, [sup], ids, section=None if ids else (sup.get("map") or None))
         self.M.log(sup["id"], f"support no longer for {req_id}")
         self.changed()
+
+    def set_lm(self, rows, lm):
+        """2.68.0: L (Instructions, Conditions and Notices to Offerors) or M (Evaluation Factors for Award); a sentence
+        not yet a requirement becomes one (in the target section, or none yet)."""
+        if not rows:
+            return 0
+        self.snap()
+        n = SD.set_lm(self.M, rows, lm)
+        self.changed()
+        return n
 
     def set_authors(self, rows, text):
         value = ", ".join(SD.split_names(text))

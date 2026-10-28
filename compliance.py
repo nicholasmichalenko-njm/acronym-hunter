@@ -970,7 +970,7 @@ def parse_outline(text):
             level = num.count(".") + 1 if num[0].isdigit() else num.count(".") + 1
         else:
             level = indent // 4 + 1
-        out.append({"num": num, "title": title or num, "level": max(1, min(level, 6))})
+        out.append({"num": num, "title": title or num, "level": max(1, min(level, 12))})     # 2.68.0: deeper than 6
     return out
 
 
@@ -1081,8 +1081,8 @@ def suggest_map(item, outline, stats=None):
 # ------------------------------------------------------------------ the workbook
 COLUMNS = ["ID", "Decision", "Suggested", "Learned", "Section", "Section title", "Requirement", "Lead-in", "Actor", "Type", "Strength",
            "Cross-references", "Linked items", "Outline section", "Context for", "Owner", "Status", "Response page", "Notes",
-           "Source file", "Location", "Compound", "Change", "Draft", "Draft context for", "Context", "Key", "As read", "Place", "Lead place"]
-WIDTHS = [12, 10, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 14, 12, 12, 24, 26, 30, 9, 14, 10, 16, 60, 13, 40, 16, 16]
+           "Source file", "Location", "Compound", "Change", "Draft", "Draft context for", "Context", "Key", "As read", "Place", "Lead place", "L/M"]
+WIDTHS = [12, 10, 10, 10, 10, 24, 70, 30, 12, 13, 12, 22, 16, 28, 14, 14, 12, 12, 24, 26, 30, 9, 14, 10, 16, 60, 13, 40, 16, 16, 6]
 FIELD = {"ID": "id", "Decision": "decision", "Suggested": "suggest", "Learned": "learned", "Section": "section", "Section title": "section_title",
          "Requirement": "text", "Lead-in": "lead", "Actor": "actor", "Type": "type", "Strength": "strength",
          "Cross-references": "xrefs", "Linked items": "links", "Outline section": "map", "Context for": "context_for",
@@ -1090,7 +1090,8 @@ FIELD = {"ID": "id", "Decision": "decision", "Suggested": "suggest", "Learned": 
          "Response page": "response_page", "Notes": "notes", "Source file": "file", "Location": "loc",
          "Compound": "compound", "Change": "new", "Draft": "draft", "Draft context for": "draft_cf", "Context": "context", "Key": "key",
          "As read": "orig_text",    # 2.55.0 Fix the text: the sentence as the reader read it (empty when not fixed)
-         "Place": "place", "Lead place": "lead_place"}   # 2.57.0: where the sentence is on its page ("1:117-218;2:0-30")
+         "Place": "place", "Lead place": "lead_place",    # 2.57.0: where the sentence is on its page ("1:117-218;2:0-30")
+         "L/M": "lm"}                                     # 2.68.0: Instructions (L) or Evaluation (M), Shipley
 
 
 class Locked(Exception):
