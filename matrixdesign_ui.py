@@ -158,6 +158,10 @@ class MatrixDesignMixin:
             show()
         for r, lab in MD.ROLES:
             ctk.CTkCheckBox(left, text=lab, variable=rv[r], command=roles_changed).pack(anchor="w", padx=12, pady=1)
+        ctk.CTkLabel(left, text="Rows in", anchor="w").pack(fill="x", padx=12, pady=(6, 0))       # 2.54.0
+        ov = ctk.CTkSegmentedButton(left, values=["RFP order", "Our structure"],
+                                    command=lambda v: (state["d"].update(order="rfp" if v == "RFP order" else "structure"), show()))
+        ov.set("RFP order" if design.get("order", "rfp") == "rfp" else "Our structure"); ov.pack(anchor="w", padx=12, pady=(0, 4))
         ev = tk.BooleanVar(value=design.get("empty_sections", True))
         ctk.CTkCheckBox(left, text="Proposal sections with nothing assigned yet", variable=ev,
                         command=lambda: (state["d"].update(empty_sections=bool(ev.get())), show())).pack(anchor="w", padx=12, pady=1)
@@ -256,7 +260,7 @@ class MatrixDesignMixin:
         ctk.CTkButton(bar, text="Save as the team default", fg_color="#475569", command=team_save).pack(side="left")
         ctk.CTkButton(bar, text="Use the team default", fg_color="#475569", command=team_use).pack(side="left", padx=6)
         fill_list(0)
-        w._api = {"state": state, "lb": lb, "toggle": toggle, "move": move, "export": export, "together": together, "add": add_column,
+        w._api = {"state": state, "lb": lb, "toggle": toggle, "move": move, "export": export, "together": together, "add": add_column, "order": ov,
                   "roles": rv, "customer": cv, "tree": tv, "team_save": team_save, "team_use": team_use, "info": info}
         return w
 

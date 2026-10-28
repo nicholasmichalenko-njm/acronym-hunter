@@ -190,6 +190,27 @@ class ComplianceMixin:
         ctk.CTkLabel(fr, text="The Response Setup holds every heading of the structure, who writes it, the RFP text it must "
                               "answer and the lead's direction.", anchor="w", text_color=("#475569", "#94A3B8")).pack(fill="x", padx=10, pady=(4, 0))
 
+    def compliance_outline_from_rfp_outline(self):
+        """2.54.0: start the response structure from the RFP's own outline (every header marked or found, in order,
+        with its level), then edit it on the Outline tab."""
+        import rfpoutline as RO
+        M = self.matrix
+        if M is None:
+            return None
+        out = RO.as_outline(M)
+        if not out:
+            messagebox.showinfo("Response structure", "No RFP section headers yet: press H on a header line in Assign.", parent=self._c_parent())
+            return None
+        for o in out:                                    # each RFP section maps to the proposal section made from it
+            if o["num"] and not RO.mapped(M, o["num"]):  # a mapping the user made stays
+                RO.map_section(M, o["num"], C.outline_label(o))
+        diag.activity("compliance_outline_from_rfp_outline", n=len(out))
+        try:                                             # like the other starting points: into the box, then Apply outline
+            self._cwin.o_text.delete("1.0", "end"); self._cwin.o_text.insert("1.0", C.outline_text(out))
+        except Exception:
+            diag.swallowed()
+        return out
+
     def compliance_tables_toggle(self):
         if self.matrix is None:
             return
@@ -388,6 +409,7 @@ class ComplianceMixin:
         bar = ctk.CTkFrame(fr, fg_color="transparent"); bar.pack(fill="x", pady=(2, 6))
         win.o_letter = tk.StringVar(value="L")
         ctk.CTkButton(bar, text="From RFP headings in Section", command=self.compliance_outline_from_rfp, width=10).pack(side="left", padx=3)
+        ctk.CTkButton(bar, text="From the RFP outline", command=self.compliance_outline_from_rfp_outline, width=10).pack(side="left", padx=3)   # 2.54.0
         ctk.CTkOptionMenu(bar, variable=win.o_letter, values=["L", "M", "C", "All"], width=70).pack(side="left")
         ctk.CTkButton(bar, text="From a Word outline (.docx headings)...", command=self.compliance_outline_from_word, width=10).pack(side="left", padx=8)
         ctk.CTkButton(bar, text="Apply outline", command=self.compliance_outline_apply, fg_color="#0F766E", width=10).pack(side="left", padx=3)
@@ -944,8 +966,12 @@ class ComplianceMixin:
         m.add_command(label="Customer information" + (": the selected words" if sel else n), state=st,
                       command=lambda: self.c_mark_customer_info(rows, sel))
         m.add_command(label="Format requirement" + n, state=st, command=lambda: self.c_mark_format(rows))
-        m.add_command(label="Section header...", state="normal" if len(rows) == 1 else "disabled",
+        m.add_command(label="RFP section header...  H", state="normal" if len(rows) == 1 else "disabled",
                       command=lambda: self.c_mark_header(rows[0]["id"]))
+        if len(rows) == 1 and rows[0].get("type") == "Heading":
+            m.add_command(label="Not a section header", command=lambda: self.c_unmark_header(rows[0]["id"]))
+        elif len(rows) == 1 and rows[0]["id"] in getattr(self._cwin, "cp_hsug", ()):
+            m.add_command(label="Not a header (dismiss the suggestion)", command=lambda: self.c_dismiss_header(rows[0]["id"]))
 
     def c_mark_customers(self, rows):
         """The sentence reads like a requirement (it has compliance words), but it is the customer's to act on: identified
@@ -1013,38 +1039,78 @@ class ComplianceMixin:
         self._c_changed()
         return n
 
-    def c_mark_header(self, iid, num=None, title=None):
-        """The sentence is a section header: its number (Section L No.) and title go to the sentences under it."""
+    LEVELS = ("Section", "Subsection", "Sub-subsection")
+
+    def c_mark_header(self, iid, num=None, title=None, level=None):
+        """The sentence is an RFP section header (2.51.0; 2.54.0 with its level): its number (Section L No.) and title
+        go to the sentences under it, up to the next header. A header the RFP did not number is numbered by its order
+        (3, 3.1, 3.2); the number can be changed."""
+        import rfpoutline as RO
         it = self._c_item(iid)
         if it is None:
             return None
+        idx = self.matrix.items.index(it)
         if num is None:
             pn, pt = C.parse_header(it["text"])
-            w = ctk.CTkToplevel(self); w.title("Section header"); w.transient(self); w.geometry("560x260")
-            ctk.CTkLabel(w, text="This line is a section header of the RFP. The sentences under it, up to the next header, take "
-                                 "its number and title (Section L No. in the matrix and the setup).", wraplength=520,
+            lv0 = RO.guess_level(pn) if pn else (int(RO._S(self.matrix)["header_levels"].get(iid, 1)))
+            w = ctk.CTkToplevel(self); w.title("RFP section header"); w.transient(self); w.geometry("600x330")
+            ctk.CTkLabel(w, text="This line is a section header of the RFP. The sentences under it, up to the next header, take its "
+                                 "number and title (Section L No. in the matrix and the setup).", wraplength=560,
                          justify="left", anchor="w").pack(fill="x", padx=16, pady=(14, 6))
-            row = ctk.CTkFrame(w, fg_color="transparent"); row.pack(fill="x", padx=16)
+            row0 = ctk.CTkFrame(w, fg_color="transparent"); row0.pack(fill="x", padx=16)
+            ctk.CTkLabel(row0, text="Level", width=70, anchor="w").pack(side="left")
+            lv = ctk.CTkSegmentedButton(row0, values=list(self.LEVELS)); lv.set(self.LEVELS[min(2, lv0 - 1)]); lv.pack(side="left", padx=6)
+            row = ctk.CTkFrame(w, fg_color="transparent"); row.pack(fill="x", padx=16, pady=(8, 0))
             ctk.CTkLabel(row, text="Number", width=70, anchor="w").pack(side="left")
-            en = ctk.CTkEntry(row, width=140); en.insert(0, pn); en.pack(side="left", padx=6)
+            en = ctk.CTkEntry(row, width=140); en.pack(side="left", padx=6)
+            hint = ctk.CTkLabel(row, text="", text_color=("#64748B", "#94A3B8")); hint.pack(side="left", padx=6)
+
+            def renumber(_v=None):
+                if pn:
+                    return
+                n = RO.auto_number(self.matrix, idx, self.LEVELS.index(lv.get()) + 1, it.get("file", ""))
+                en.delete(0, "end"); en.insert(0, n)
+                hint.configure(text="numbered by its order (the RFP has no number); change it if you like")
+            lv.configure(command=renumber)
+            if pn:
+                en.insert(0, pn)
+                hint.configure(text="as the RFP numbers it")
+            else:
+                renumber()
             row2 = ctk.CTkFrame(w, fg_color="transparent"); row2.pack(fill="x", padx=16, pady=6)
             ctk.CTkLabel(row2, text="Title", width=70, anchor="w").pack(side="left")
-            et = ctk.CTkEntry(row2, width=380); et.insert(0, pt); et.pack(side="left", padx=6)
+            et = ctk.CTkEntry(row2, width=420); et.insert(0, pt); et.pack(side="left", padx=6)
 
             def ok():
-                num_, title_ = en.get(), et.get()
+                num_, title_, lvl_ = en.get(), et.get(), self.LEVELS.index(lv.get()) + 1
                 w.destroy()
-                self.c_mark_header(iid, num_, title_)
-            ctk.CTkButton(w, text="Mark as section header", command=ok, fg_color="#1E3A8A").pack(side="right", padx=16, pady=10)
-            w._api = {"num": en, "title": et, "ok": ok}
+                self.c_mark_header(iid, num_, title_, lvl_)
+            ctk.CTkButton(w, text="Mark as RFP section header", command=ok, fg_color="#1E3A8A").pack(side="right", padx=16, pady=10)
+            w._api = {"num": en, "title": et, "level": lv, "ok": ok}
             w.after(100, w.lift)
             return w
+        if not (num or "").strip():
+            num = RO.auto_number(self.matrix, idx, level or 1, it.get("file", ""))
         done = C.mark_header(self.matrix.items, iid, num, title)
+        RO.set_level(self.matrix, iid, level or RO.guess_level(num))
         self.matrix.log(iid, f"marked section header {num} {title}".strip())
         diag.activity("compliance_header_marked", n=len(done))
         self._c_changed()
         self._c_redraw_words()
         return done
+
+    def c_unmark_header(self, iid):
+        import rfpoutline as RO
+        done = RO.unmark(self.matrix, iid)
+        self.matrix.log(iid, "no longer a section header")
+        self._c_changed(); self._c_redraw_words()
+        return done
+
+    def c_dismiss_header(self, iid):
+        import rfpoutline as RO
+        RO.dismiss(self.matrix, iid)
+        self._c_changed(); self._c_redraw_words()
+        return True
 
     def cp_text_menu(self, event):
         t = self._cwin.cp_text

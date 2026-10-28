@@ -30,11 +30,12 @@ def build():
 def run():
     M = build()
     d = MD.clean({"columns": [{"key": "text", "heading": "  Requirement   text "}, {"key": "bogus"}, {"key": "ref"},
-                              {"key": "text"}, {"key": "owner", "heading": "Author"}], "roles": ["Keep", "Nope"]})
+                              {"key": "text"}, {"key": "owner", "heading": "Author"}], "roles": ["Keep", "Nope"],
+                  "order": "structure"})
     assert [c["key"] for c in d["columns"]] == ["text", "ref", "owner"] and d["columns"][0]["heading"] == "Requirement text"
     assert d["roles"] == ["Keep"] and d["customer_sheet"] is True
     old_cols = [{"key": k, "heading": MD.COLUMNS[k][0]} for k in ("ref", "text", "section", "owner", "page", "status", "notes")]
-    keep_only = dict(MD.default(), columns=old_cols, roles=["Keep"])
+    keep_only = dict(MD.default(), columns=old_cols, roles=["Keep"], order="structure")
     items, data = MD.rows(M, keep_only)
     assert [it["id"] for it in items] == ["L.4-02", "L.5-01"], "in the structure's order: 1.1 Thermal before 1.2 Schedule"
     assert data[0][3] == "J. Smith" and data[1][4] == "12" and data[1][5] == "Compliant", data
@@ -42,7 +43,7 @@ def run():
     assert [it["id"] for it in MD.rows(M, both)[0]] == ["L.4-02", "L.4-03", "L.5-01"]
     # 2.51.0: Order, Context under its requirement, Volume, deliverable facts, empty sections, own columns
     full = MD.clean(dict(MD.default(), columns=MD.default()["columns"] + [{"key": "deliverable"}, {"key": "format"}, {"key": "far"},
-                                                                       {"key": "custom:Reviewer"}]))
+                                                                       {"key": "custom:Reviewer"}], order="structure"))
     ctx = {"deliverables": [{"name": "Volume I", "limit": "25 pages", "format": "Font: 12 point Times"}]}
     M.outline = C.parse_outline("Volume I\n1.1 Thermal\n1.2 Schedule\n1.3 Risk")
     its, dat = MD.rows(M, full, ctx)
@@ -56,6 +57,10 @@ def run():
     assert full["columns"][-1] == {"key": "custom:Reviewer", "heading": "Reviewer"}
     assert len(MD.rows(M, dict(full, empty_sections=False))[0]) == 3
     assert "id" not in [k for k in its[0] if k.startswith("_")] and "_kind" not in M.items[0], "the matrix rows are not touched"
+    rfp = MD.rows(M, dict(full, order="rfp"), ctx)[0]                 # 2.54.0: the RFP's order, support under its requirement
+    assert [(x.get("id"), x["_kind"]) for x in rfp] == [("L.5-01", "req"), ("L.4-02", "req"), ("L.4-03", "ctx"), ("", "empty")], \
+        [(x.get("id"), x["_kind"]) for x in rfp]
+    assert MD.clean({})["order"] == "rfp" and MD.clean({"order": "nonsense"})["order"] == "rfp"
     assert MD._value(M, its[1], "role", {}, {}) == "Support for L.4-02" and MD._value(M, its[0], "role", {}, {}) == "Compliance requirement"
     xo = os.path.join(tempfile.mkdtemp(), "styled.xlsx")
     MD.export(M, xo, full, "Kestrel", ctx=ctx)

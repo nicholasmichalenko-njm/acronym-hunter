@@ -37,7 +37,8 @@ CUSTOM = "custom:"                                   # 2.51.0: a column of the t
 ROLES = (("Keep", "Compliance requirements"), ("Context", "Context"))
 DEFAULT = {"columns": [{"key": k, "heading": COLUMNS[k][0]} for k in
                        ("order", "ref", "text", "role", "volume", "section", "page_limit", "owner", "page", "status", "notes")],
-           "roles": ["Keep", "Context"], "customer_sheet": True, "title": "", "empty_sections": True}
+           "roles": ["Keep", "Context"], "customer_sheet": True, "title": "", "empty_sections": True,
+           "order": "rfp"}                          # 2.54.0: rows in the RFP's order (or "structure": our sections' order)
 _FAR = __import__("re").compile(r"\b(?:FAR|DFARS|NFS|AFFARS|DFARS PGI)\s+(?:clause\s+)?\d{1,3}\.\d{2,4}(?:-\d+)?(?:\([a-z0-9]+\))*", __import__("re").I)
 
 
@@ -80,6 +81,7 @@ def clean(d):
     out["customer_sheet"] = bool(d.get("customer_sheet", True))
     out["title"] = " ".join(str(d.get("title") or "").split())[:120]
     out["empty_sections"] = bool(d.get("empty_sections", True))
+    out["order"] = d.get("order") if d.get("order") in ("rfp", "structure") else "rfp"
     return out
 
 
@@ -240,6 +242,25 @@ def rows(M, design, ctx=None):
     for it in keep + loose:
         by_sec.setdefault(it.get("map", ""), []).append(it)
     out = []
+    if design.get("order", "rfp") == "rfp":
+        # 2.54.0: the RFP's order: requirements as the customer wrote them (file by file, top to bottom), each with its
+        # support under it; support for a section and nothing else sits where it is in the RFP; proposal sections with
+        # nothing assigned yet come last
+        for it in sorted(keep + loose, key=lambda x: pos[id(x)]):
+            out.append(dict(it, _kind="req" if it.get("decision") == "Keep" else "ctx"))
+            if it.get("decision") == "Keep":
+                for c in sorted(under.get(it["id"], []), key=lambda x: pos[id(x)]):
+                    out.append(dict(c, _kind="ctx", _host=it["id"]))
+        if design.get("empty_sections", True):
+            used = {it.get("map", "") for it in keep + loose}
+            par = {labels[i] for i, o in enumerate(M.outline) if i + 1 < len(M.outline) and M.outline[i + 1].get("level", 1) > o.get("level", 1)}
+            out += [{"_kind": "empty", "map": lab, "id": "", "decision": ""} for lab in labels if lab not in used and lab not in par]
+        for n, it in enumerate(out, 1):
+            it["_order"] = n
+        inh = SD.inherited_sections(M)
+        vols = volume_map(M)
+        people = {}
+        return out, [[_value(M, it, c["key"], inh, people, ctx, vols) for c in design["columns"]] for it in out]
     order = labels + [s for s in sorted(by_sec, key=lambda s: min(pos[id(x)] for x in by_sec[s])) if s not in labels]
     parents = set()
     for i, o in enumerate(M.outline):

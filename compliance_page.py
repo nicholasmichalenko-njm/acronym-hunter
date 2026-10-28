@@ -122,8 +122,10 @@ class CompliancePageMixin:
         except tk.TclError:
             diag.swallowed()
         bsz = max(8, size - 6)
-        for k, (bg, fg) in {"req": ("#15803D", "#FFFFFF"), "ctx": ("#1D4ED8", "#FFFFFF"), "cust": ("#7E22CE", "#FFFFFF")}.items():
+        for k, (bg, fg) in {"req": ("#15803D", "#FFFFFF"), "ctx": ("#1D4ED8", "#FFFFFF"), "cust": ("#7E22CE", "#FFFFFF"),
+                            "hdr": ("#334155", "#FFFFFF"), "hsug": ("#FEF3C7", "#92400E")}.items():
             t.tag_configure("bt_" + k, background=bg, foreground=fg, font=("Segoe UI", bsz, "bold"))
+        t.tag_configure("bt_hsug", relief="ridge", borderwidth=1)
         t.tag_bind("badge", "<Button-1>", self._cp_badge_click)
         t.tag_bind("badge", "<Enter>", lambda _e: t.configure(cursor="hand2"))
         t.tag_bind("badge", "<Leave>", lambda _e: t.configure(cursor="arrow"))
@@ -149,6 +151,12 @@ class CompliancePageMixin:
                       text_color=("#1E3A8A", "#BFDBFE"), command=self.cp_change_reference).pack(anchor="w", padx=8, pady=(2, 0))
         self._cp_card_title(side, "Relationships")                  # 2.53.0
         win.cp_rel = ctk.CTkFrame(side, fg_color="transparent"); win.cp_rel.pack(fill="x", padx=8)
+        self._cp_card_title(side, "RFP outline")                    # 2.54.0
+        ctk.CTkLabel(side, text="The RFP's own sections in order. H marks a header; click one to go there, right-click to "
+                                "rename, change its level, map it to a proposal section or remove it.", anchor="w",
+                     justify="left", wraplength=310, text_color=("#475569", "#94A3B8"), font=("Segoe UI", 11)).pack(fill="x", padx=8)
+        win.cp_rfp = ctk.CTkFrame(side, fg_color="transparent"); win.cp_rfp.pack(fill="x", padx=8)
+        win.cp_rfp_sig = None
         r = ctk.CTkFrame(side, fg_color="transparent"); r.pack(fill="x", padx=8, pady=(6, 4))
         ctk.CTkButton(r, text="Original layout", width=90, command=self.compliance_show_page).pack(side="left")
         ctk.CTkButton(r, text="Open file", width=90, command=self.compliance_open_file).pack(side="left", padx=6)
@@ -422,6 +430,7 @@ class CompliancePageMixin:
                         text_color=("#0F172A", "#F1F5F9"), hover_color=("#E2E8F0", "#334155"),
                         border_color="#0F766E" if lab == here else ("#15803D" if on else ("#E2E8F0", "#334155")),
                         border_width=2 if lab == here or on else 1)
+        self._cp_rfp_panel()
         for w in win.cp_files.winfo_children():
             w.destroy()
         for f in self._cp_files():
@@ -433,14 +442,91 @@ class CompliancePageMixin:
                           fg_color=("#DBEAFE", "#1E3A8A") if on else "transparent", text_color=("#0F172A", "#F1F5F9"),
                           hover_color=("#E2E8F0", "#334155"), command=lambda f=f: self.cp_open_file(f)).pack(fill="x", pady=1)
 
+    def _cp_rfp_panel(self):
+        """The RFP outline: headers in order, indented by level, with what each holds and where it maps."""
+        import rfpoutline as RO
+        win, M = self._cwin, self.matrix
+        box = getattr(win, "cp_rfp", None)
+        if box is None or M is None:
+            return
+        hs = RO.headers(M)
+        cn = RO.counts(M)
+        sig = tuple((h["id"], h["num"], h["title"], h["level"], tuple(cn.get((h["file"], h["num"]), [0, 0])), RO.mapped(M, h["num"])) for h in hs)
+        if sig == win.cp_rfp_sig:
+            return
+        win.cp_rfp_sig = sig
+        for w in box.winfo_children():
+            w.destroy()
+        if not hs:
+            ctk.CTkLabel(box, text="No RFP section headers yet: press H on a header line.", anchor="w").pack(fill="x")
+            return
+        last_file = None
+        for h in hs[:400]:
+            if h["file"] != last_file and len({x["file"] for x in hs}) > 1:
+                ctk.CTkLabel(box, text=h["file"], anchor="w", font=("Segoe UI", 11, "bold"), text_color=("#64748B", "#94A3B8")).pack(fill="x", pady=(4, 0))
+                last_file = h["file"]
+            nk, nc = cn.get((h["file"], h["num"]), [0, 0])
+            mp = RO.mapped(M, h["num"])
+            txt = (f"{h['num']}  " if h["num"] else "") + (h["title"] or "")[:40] + (f"   {nk} req" if nk else "") + (f", {nc} sup" if nc else "") \
+                + (f"\n      -> {mp}" if mp else "")
+            b = ctk.CTkButton(box, text=txt, anchor="w", height=24, width=10, fg_color="transparent", text_color=("#0F172A", "#F1F5F9"),
+                              hover_color=("#E2E8F0", "#334155"), font=("Segoe UI", 12 if h["level"] <= 1 else 11, "bold" if h["level"] <= 1 else "normal"),
+                              command=lambda h=h: self.cp_rfp_go(h))
+            b.pack(fill="x", padx=(14 * (h["level"] - 1), 0))
+            b.bind("<Button-3>", lambda e, h=h: self.cp_rfp_menu(e, h))
+
+    def cp_rfp_go(self, h):
+        M = self.matrix
+        it = M.items[h["pos"]] if 0 <= h["pos"] < len(M.items) else None
+        if it is not None:
+            self._cp_select(it["id"])
+        return it
+
+    def cp_rfp_menu(self, event, h):
+        import rfpoutline as RO
+        m = tk.Menu(self, tearoff=0)
+        if h["id"]:
+            m.add_command(label="Rename or renumber...", command=lambda: self.c_mark_header(h["id"]))
+            lv = tk.Menu(m, tearoff=0)
+            for k, name in enumerate(("Section", "Subsection", "Sub-subsection"), 1):
+                lv.add_command(label=name, command=lambda k=k: (RO.set_level(self.matrix, h["id"], k), self._c_changed(), self._c_redraw_words()))
+            m.add_cascade(label="Level", menu=lv)
+        mp = tk.Menu(m, tearoff=0)
+        for o in self.matrix.outline:
+            lab = C.outline_label(o)
+            mp.add_command(label=("    " * (o.get("level", 1) - 1)) + lab, command=lambda lab=lab: self.cp_rfp_map(h["num"], lab))
+        mp.add_separator()
+        mp.add_command(label="(no mapping)", command=lambda: self.cp_rfp_map(h["num"], ""))
+        m.add_cascade(label="Maps to proposal section", menu=mp, state="normal" if self.matrix.outline and h["num"] else "disabled")
+        if h["id"]:
+            m.add_separator()
+            m.add_command(label="Not a section header", command=lambda: self.c_unmark_header(h["id"]))
+        m.tk_popup(event.x_root, event.y_root)
+        return m
+
+    def cp_rfp_map(self, num, label):
+        """Map an RFP section to a proposal section: its sentences get that section as the first suggestion (1)."""
+        import rfpoutline as RO
+        RO.map_section(self.matrix, num, label)
+        diag.activity("compliance_rfp_mapped")
+        self._c_changed()
+        sel = self._c_selected()
+        if sel:
+            self._cp_show(sel[0])
+        return True
+
     def _cp_suggestions(self, it):
         """Up to 3 sections for a sentence: the rules' match, then past proposals."""
         if self.matrix is None or not self.matrix.outline:
             return []
         out = []
         try:
+            import rfpoutline as RO
+            m = RO.mapped(self.matrix, it.get("section", ""))     # 2.54.0: the RFP section's mapping comes first
+            if m:
+                out.append(m)
             rule, _s = self._c_suggest(it)
-            if rule:
+            if rule and rule not in out:
                 out.append(rule)
             for lab, _sc in (self._c_learned_places(it) if hasattr(self, "_c_learned_places") else []):
                 if lab not in out:
@@ -512,6 +598,12 @@ class CompliancePageMixin:
 
     # ------------------------------------------------------------ 2.53.0: relationships you can see
     def _cp_badge_for(self, it):
+        if it.get("type") == "Heading":                # 2.54.0: an RFP section header shows its number and level
+            import rfpoutline as RO
+            lv = int(RO._S(self.matrix)["header_levels"].get(it["id"], RO.guess_level(it.get("section", ""))))
+            return "hdr", "\u00a0" + "\u00a7" * max(1, min(3, lv)) + "\u00a0" + (it.get("section") or "").replace(" ", "\u00a0") + "\u00a0"
+        if it["id"] in getattr(self._cwin, "cp_hsug", ()):
+            return "hsug", "\u00a0HEADER?\u00a0"
         d = it.get("decision", "")
         if d == "Keep":
             return "req", f"\u00a0REQ {it['id']}\u00a0"
@@ -532,6 +624,12 @@ class CompliancePageMixin:
         have = getattr(win, "cp_badge", None)
         if have is None:
             have = win.cp_badge = {}
+        try:                                          # 2.54.0: suggested headers, to confirm or dismiss
+            import rfpoutline as RO
+            win.cp_hsug = set(RO.candidates(self.matrix))
+        except Exception:
+            diag.swallowed()
+            win.cp_hsug = set()
         for it in rows:
             kind, txt = self._cp_badge_for(it)
             if have.get(it["id"]) == txt:
@@ -552,6 +650,10 @@ class CompliancePageMixin:
         iid = next((tg[2:] for tg in t.tag_names(ix) if tg.startswith("b:")), None)
         it = self._c_item(iid) if iid else None
         if it is None:
+            return "break"
+        if iid in getattr(win, "cp_hsug", ()) and it.get("type") != "Heading" and hasattr(self, "c_mark_header"):
+            self._cp_select(iid)                      # a suggested header: confirm it (number, title, level)
+            self.c_mark_header(iid)
             return "break"
         hosts = C.cf_ids(it.get("context_for", "")) if it.get("decision") == "Context" else []
         target = hosts[0] if hosts and self._c_item(hosts[0]) else iid
@@ -590,10 +692,11 @@ class CompliancePageMixin:
         g.delete("all")
         sel = self._c_selected()
         it = sel[0] if sel else None
+        H, W = max(1, g.winfo_height()), max(10, g.winfo_width())
+        self._cp_band(g, t, it, H)                    # 2.54.0: the RFP section the sentence is in
         ids, how = self._cp_related(it)
         if not ids:
             return 0
-        H, W = max(1, g.winfo_height()), max(10, g.winfo_width())
 
         def ypos(iid):
             r = t.tag_ranges("r:" + iid)
@@ -618,6 +721,37 @@ class CompliancePageMixin:
             drawn += 1
         g.create_oval(W - 8, max(2, min(H - 2, y0)) - 4, W, max(2, min(H - 2, y0)) + 4, fill="#15803D" if how == "supports" else col, width=0)
         return drawn
+
+    def _cp_band(self, g, t, it, H):
+        """A band down the left edge from the RFP section header above the selected sentence to the last sentence
+        before the next header: what that section holds."""
+        if it is None or self._cwin.cp_file is None:
+            return None
+        rows = self._cp_items_of(self._cwin.cp_file)
+        try:
+            i = next(k for k, x in enumerate(rows) if x["id"] == it["id"])
+        except StopIteration:
+            return None
+        a = next((k for k in range(i, -1, -1) if rows[k].get("type") == "Heading"), None)
+        if a is None:
+            return None
+        b = next((k for k in range(a + 1, len(rows)) if rows[k].get("type") == "Heading"), len(rows)) - 1
+
+        def y(k, end=False):
+            r = t.tag_ranges("r:" + rows[k]["id"])
+            if not r:
+                return None
+            info = t.dlineinfo(r[1] if end else r[0])
+            if info is None:
+                return -1 if t.compare(r[0], "<", t.index("@0,0")) else H + 1
+            return info[1] + (info[3] if end else 0)
+        ya, yb = y(a), y(b, True)
+        if ya is None or yb is None:
+            return None
+        ya, yb = max(0, min(H, ya)), max(0, min(H, yb))
+        if yb > ya:
+            g.create_rectangle(1, ya, 4, yb, fill="#F59E0B", width=0)
+        return (ya, yb)
 
     def _cp_banner(self, text, ms=None):
         win = self._cwin
@@ -927,6 +1061,10 @@ class CompliancePageMixin:
             self.cp_combine()
         elif k == "o":
             self.cp_owner()
+        elif k == "h":                                # 2.54.0: an RFP section header
+            sel = self._c_selected()
+            if sel and hasattr(self, "c_mark_header"):
+                self.c_mark_header(sel[0]["id"])
         elif k in ("1", "2", "3", "kp_1", "kp_2", "kp_3"):
             self.cp_pick(int(k[-1]))
         elif k == "escape":

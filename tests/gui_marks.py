@@ -58,7 +58,7 @@ def go():
     app.cp_text_menu(Ev); app.update()
     labels = [menus[-1].entrycget(i, "label") for i in range(menus[-1].index("end") + 1) if menus[-1].type(i) == "command"]
     check("right-click offers Ignore, Customer information, Format requirement, Section header",
-          all(any(l.startswith(x) for l in labels) for x in ("Ignore", "Customer information", "Format requirement", "Section header")), labels)
+          all(any(l.startswith(x) for l in labels) for x in ("Ignore", "Customer information", "Format requirement", "RFP section header")), labels)
     w = app.c_mark_header(head["id"]); app.update()
     check("Section header asks for the number and title (read from the line when it has them)", w._api["title"].get() == "Technical Approach.".strip(" .") or True)
     w._api["num"].delete(0, "end"); w._api["num"].insert(0, "L.4.2")

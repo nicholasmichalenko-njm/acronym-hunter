@@ -728,9 +728,17 @@ PAGES = {
               ("Mark the text", "In Assign, right-click a sentence (or select words in it): Ignore (not used); Customer "
                                 "information (names, e-mails, phone numbers, addresses, filed by kind in Customer information "
                                 "on Effort home; the sentence is not used); Format requirement (type Format, a compliance "
-                                "requirement); Section header... (the line is a heading of the RFP: give or confirm its number "
-                                "and title; the sentences under it, up to the next heading, take them, so Section L No. is "
-                                "right in the matrix and the setup)."),
+                                "requirement); RFP section header... (H)."),
+              ("RFP sections", "The RFP's own sections and subsections, numbered or not. Short title lines the app thinks "
+                               "are headers show HEADER?: click it (or press H on the line) to confirm, or right-click, Not a "
+                               "header, to dismiss it. H asks for the level (Section, Subsection, Sub-subsection) and the number; "
+                               "when the RFP has none, the app numbers it by its order (3, 3.1, 3.2). The sentences under a "
+                               "header, up to the next one, take its number and title; an amber band in the margin shows the "
+                               "section the selected sentence is in. RFP outline on the right lists every section with what it "
+                               "holds; right-click to rename, change the level, or Maps to proposal section..., which makes that "
+                               "proposal section the first suggestion for its sentences. Not a section header takes a header back. "
+                               "In Outline, From the RFP outline starts the response structure from the RFP's sections. The "
+                               "matrix lists rows in RFP order by default (Matrix, Rows in: RFP order or Our structure)."),
               ("Together", "Matrix and Response Setup together writes both, from the same decisions, into one dated folder."),
               ("Changed later", "The setup stays in the matrix, so you can export again any time. Export changes only writes just "
                                 "what was added, changed or removed since the last export. Compare a setup document checks a "
