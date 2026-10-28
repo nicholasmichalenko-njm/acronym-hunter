@@ -178,6 +178,10 @@ def wait_read():
     out = os.path.join(tmp, "out")
     res = timed("export together", app.compliance_export_together, out, limit=6)
     check("the matrix and the Response Setup are written together", res and len(res["files"]) >= 2, res)
+    if os.environ.get("AH_KEEP_OUT") and res:
+        os.makedirs(os.environ["AH_KEEP_OUT"], exist_ok=True)
+        for p_ in res["files"]:
+            shutil.copy2(p_, os.environ["AH_KEEP_OUT"])
     xl = next(p for p in res["files"] if p.endswith(".xlsx"))
     from openpyxl import load_workbook
     ws = load_workbook(xl)["Compliance Matrix"]
