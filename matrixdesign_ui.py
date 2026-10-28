@@ -257,6 +257,8 @@ class MatrixDesignMixin:
         bar = ctk.CTkFrame(w, fg_color="transparent"); bar.pack(fill="x", padx=14, pady=(0, 12))
         ctk.CTkButton(bar, text="Export the matrix...", fg_color="#0F766E", command=export).pack(side="right")
         ctk.CTkButton(bar, text="Matrix and Response Setup together...", fg_color="#1E3A8A", command=together).pack(side="right", padx=6)
+        if hasattr(self, "compliance_volumes_dialog"):     # 2.56.1: the Volume column is the person's answer
+            ctk.CTkButton(bar, text="Volumes...", fg_color="#7C3AED", width=10, command=self.compliance_volumes_dialog).pack(side="right", padx=6)
         ctk.CTkButton(bar, text="Save as the team default", fg_color="#475569", command=team_save).pack(side="left")
         ctk.CTkButton(bar, text="Use the team default", fg_color="#475569", command=team_use).pack(side="left", padx=6)
         fill_list(0)

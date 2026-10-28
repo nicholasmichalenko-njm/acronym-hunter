@@ -420,6 +420,9 @@ def assign_ids(items):
     return items
 
 
+_RUNNING_NO = re.compile(r"\b(shall|must|will|should|required|offeror|contractor)\b", re.I)
+
+
 def extract(files_chunks, headings=None, every=True):
     """files_chunks: [(file name, chunks)]. Returns items with IDs, links and suggestions.
     headings (list): filled with the RFP's numbered headings [{num, title, file}].
@@ -428,12 +431,22 @@ def extract(files_chunks, headings=None, every=True):
     items = []
     for name, chunks in files_chunks:
         items += read_items(chunks, name, file_kind(name), headings, every=every)
+    # 2.56.1: a short line with no compliance words on two or more pages of a file (a PDF's running header or footer,
+    # "Source Selection Information", the solicitation number) is kept once, like a Word header or footer
+    pages_of = {}
+    for it in items:
+        if len(it["text"].split()) <= 10 and not _RUNNING_NO.search(it["text"]):
+            m = re.search(r"\(p\.(\d+)", it.get("loc", "") or "")
+            if m:
+                pages_of.setdefault((it["file"], text_key(it["text"])), set()).add(m.group(1))
+    running = {k for k, v in pages_of.items() if len(v) >= 2}
     seen, out = set(), []
     for it in items:
         # the same header, footer or page marking repeated on every page: keep once. 2.51.0: a sentence the RFP says
         # twice in its body (in two sections) is two rows, so nothing it says is lost
         k = (it["file"], text_key(it["text"]))
-        repeat = bool(re.search(r"\((?:Header|Footer)\b|\bheader\b|\bfooter\b", it.get("loc", ""), re.I)) or bool(_BOILER.match(it["text"]))
+        repeat = bool(re.search(r"\((?:Header|Footer)\b|\bheader\b|\bfooter\b", it.get("loc", ""), re.I)) or bool(_BOILER.match(it["text"])) \
+            or k in running
         if k in seen and repeat:
             continue
         seen.add(k)

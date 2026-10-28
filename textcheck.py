@@ -250,6 +250,14 @@ def check(path, items, headings=(), reader_chunks=None):
     by_line = collections.defaultdict(list)
     for k, (w, li, s0, e0) in enumerate(seq):
         by_line[li].append((k, w, s0, e0))
+    # 2.56.1: a line the review already holds elsewhere (a header or footer on every page of a PDF, boilerplate said
+    # again) is a repeat, not missing text: counted as in the review, never added a second time
+    bank = "|" + "|".join(" " + " ".join(line_words(it.get("orig_text") or it.get("text") or "")) + " " for it in items) + "|"
+    for li, ks in by_line.items():
+        gap = [k for k, *_x in ks if cover[k] == 0]
+        if gap and (" " + " ".join(words_[k] for k in gap) + " ") in bank:
+            for k in gap:
+                cover[k] = 1
     for li, (where, text, nline) in enumerate(lines):
         ks = by_line.get(li, [])
         gap = [(k, w, s0, e0) for k, w, s0, e0 in ks if cover[k] == 0]

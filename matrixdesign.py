@@ -151,16 +151,10 @@ def _where(it):
 
 
 def volume_map(M):
-    """{proposal section label: its volume (the top-level heading above it)}."""
-    import compliance as C
-    out, vol = {}, ""
-    top = min((o.get("level", 1) for o in M.outline), default=1)
-    for o in M.outline:
-        lab = C.outline_label(o)
-        if o.get("level", 1) == top:
-            vol = lab
-        out[lab] = vol
-    return out
+    """{proposal section label: its volume}: 2.56.1 what the person decided in Structure > Volumes... (one volume, or
+    which headings start a volume); nothing is guessed from section or deliverable names."""
+    import setupdoc as SD
+    return SD.volume_of_sections(M)
 
 
 def _deliv(ctx, vol):

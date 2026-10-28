@@ -156,6 +156,23 @@ def align(lines, items, heading_test=None):
             for q in range(p, p + len(ld)):
                 if owner[q] is None:
                     owner[q] = ("l", it["id"])
+    # 2.56.1: text the review already holds elsewhere (a header or footer on every page, boilerplate said again) is a
+    # repeat, not text missing from the review: it is shown plain and never added a second time
+    bank = "|" + "|".join(" " + " ".join(T.line_words(it.get("orig_text") or it.get("text") or "")) + " "
+                          for it in order) + "|"
+    q = 0
+    while q < n:
+        if owner[q] is not None:
+            q += 1
+            continue
+        r = q
+        while r < n and owner[r] is None and seq[r][1] == seq[q][1]:
+            r += 1
+        stretch = " " + " ".join(words[q:r]) + " "
+        if r - q >= 1 and stretch in bank:
+            for k in range(q, r):
+                owner[k] = "r"
+        q = r
     # headings and the small stuff
     test = heading_test or T._looks_heading
     head_lines = set()
@@ -177,6 +194,13 @@ def align(lines, items, heading_test=None):
         if len(qs) == 1 and owner[qs[0]] is None and words[qs[0]].isdigit() and len(words[qs[0]]) <= 4:
             owner[qs[0]] = "m"
     return {"owner": owner, "words": seq, "lost": lost, "diff": diff, "span": span}
+
+
+def repeats_filter(missing, items):
+    """2.56.1: of the page's text not in the review, leave out what the review holds elsewhere (a repeated header or
+    footer, boilerplate said again)."""
+    bank = "|" + "|".join(" " + " ".join(T.line_words(it.get("orig_text") or it.get("text") or "")) + " " for it in items) + "|"
+    return [m for m in missing if not T.line_words(m.get("text", "")) or (" " + " ".join(T.line_words(m["text"])) + " ") not in bank]
 
 
 def runs(lines, res):

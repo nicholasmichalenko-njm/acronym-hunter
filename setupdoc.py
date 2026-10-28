@@ -454,19 +454,73 @@ def context_from_chunks(M, file_name, chunks, min_len=40):
 
 
 # ------------------------------------------------------------------ export
+def volumes_of(M):
+    """2.56.1: the response's volumes, as the person decided them in Structure > Volumes...: ("one", name, []) for one
+    volume (the name may be empty), ("several", "", [section labels that start a volume]), or, not decided yet, the
+    structure's own 'Volume ...' headings (else ("", "", []): no volume)."""
+    import compliance as C
+    V = setup_of(M).get("volumes") or {}
+    labs = [C.outline_label(o) for o in M.outline]
+    if V.get("mode") == "one":
+        return "one", str(V.get("name") or ""), []
+    if V.get("mode") == "several":
+        return "several", "", [l for l in V.get("heads", []) if l in labs]
+    heads = [labs[i] for i, o in enumerate(M.outline) if o.get("level", 1) == min((x.get("level", 1) for x in M.outline), default=1)
+             and ((o.get("num") or "").lower().startswith("vol") or (o.get("title") or "").lower().startswith("volume"))]
+    return ("several" if heads else ""), "", heads
+
+
+def set_volumes(M, mode, name="", heads=()):
+    setup_of(M)["volumes"] = {"mode": mode if mode in ("one", "several") else "", "name": " ".join(str(name or "").split())[:80],
+                              "heads": list(heads)}
+    if hasattr(M, "pending"):
+        M.pending = True
+
+
+def volume_of_sections(M):
+    """{section label: its volume name ('' when there is none)}."""
+    import compliance as C
+    mode, name, heads = volumes_of(M)
+    out, cur = {}, ""
+    for o in M.outline:
+        lab = C.outline_label(o)
+        if mode == "one":
+            out[lab] = name
+            continue
+        if lab in heads:
+            cur = lab
+        out[lab] = cur if mode == "several" else ""
+    if mode == "several" and heads:                  # sections before the first volume heading go with it
+        first = heads[0]
+        for lab in list(out):
+            if out[lab]:
+                break
+            out[lab] = first
+    return out
+
+
 def volume_groups(M):
-    """[(name, [outline entries])]: one group per 'Volume ...' entry (entries before the first go with it), else one."""
+    """[(name, [outline entries])]: one Response Setup document per volume (2.56.1: the volumes decided in Structure),
+    else one document."""
+    import compliance as C
+    mode, name, heads = volumes_of(M)
+    if mode != "several" or not heads:
+        return [((name if mode == "one" and name else M.name) or "Setup", list(M.outline))]
     groups, cur = [], None
     for o in M.outline:
-        if (o.get("num") or "").lower().startswith("vol") or (o.get("title") or "").lower().startswith("volume") and o.get("level", 1) == 1:
-            cur = (" ".join(x for x in (o.get("num", ""), o.get("title", "")) if x).strip(), [o])
+        lab = C.outline_label(o)
+        if lab in heads:
+            cur = (lab, [o])
             groups.append(cur)
         else:
             if cur is None:
-                cur = (M.name or "Setup", [])
+                cur = (heads[0], [])
                 groups.append(cur)
             cur[1].append(o)
-    return groups or [(M.name or "Setup", [])]
+    merged = {}
+    for nm, entries in groups:                       # entries before the first volume join it
+        merged.setdefault(nm, []).extend(entries)
+    return list(merged.items()) or [(M.name or "Setup", [])]
 
 
 def export_check(M):

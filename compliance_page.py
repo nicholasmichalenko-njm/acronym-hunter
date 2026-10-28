@@ -197,8 +197,8 @@ class CompliancePageMixin:
         ctk.CTkButton(orow, text="People...", width=10, fg_color="#0F766E", command=self.cp_people_dialog).pack(side="left", padx=(0, 6))
         ctk.CTkButton(orow, text="Edit the structure", width=10, fg_color="#475569",
                       command=lambda: self.shell_go("compliance", "outline") if hasattr(self, "shell_go") else None).pack(side="left")
-        ctk.CTkButton(orow, text="Arrange the setup...", width=10, fg_color="#475569",
-                      command=lambda: self._cwin.tabs.set("Setup")).pack(side="left", padx=6)
+        ctk.CTkButton(orow, text="Volumes...", width=10, fg_color="#7C3AED",
+                      command=self.compliance_volumes_dialog).pack(side="left", padx=6)        # 2.56.1
         win.cp_next_var = tk.BooleanVar(value=self._c_auto_next() if hasattr(self, "_c_auto_next") else True)
         ctk.CTkCheckBox(side, text="After assigning a sentence (requirement, context\nor not used), go to the next one not assigned",
                         variable=win.cp_next_var, command=self._cp_auto_next_set).pack(anchor="w", padx=8, pady=(10, 0))

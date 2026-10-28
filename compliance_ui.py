@@ -111,6 +111,7 @@ class ComplianceMixin:
         last = self.ws.get("compliance_path", "") if getattr(self, "ws", None) is not None else ""   # per effort (2.11.0)
         if self.matrix is None and last and os.path.isfile(last):
             self._c_load(last, quiet=True)
+        self._c_drop_repeats()
         self._c_complete_once()
         self._c_ai_state()
         self._c_refresh()
@@ -409,6 +410,7 @@ class ComplianceMixin:
         ctk.CTkOptionMenu(bar, variable=win.o_letter, values=["L", "M", "C", "All"], width=70).pack(side="left")
         ctk.CTkButton(bar, text="From a Word outline (.docx headings)...", command=self.compliance_outline_from_word, width=10).pack(side="left", padx=8)
         ctk.CTkButton(bar, text="Apply outline", command=self.compliance_outline_apply, fg_color="#0F766E", width=10).pack(side="left", padx=3)
+        ctk.CTkButton(bar, text="Volumes...", command=self.compliance_volumes_dialog, fg_color="#7C3AED", width=10).pack(side="left", padx=3)   # 2.56.1
         ctk.CTkButton(bar, text="Suggest sections for kept items", command=self.compliance_suggest_all, fg_color="#1E3A8A", width=10).pack(side="left", padx=8)
         ctk.CTkButton(bar, text="Section word synonyms...", command=self.compliance_synonyms, width=10).pack(side="left", padx=3)
         win.o_learn = ctk.CTkLabel(fr, text="", anchor="w", justify="left", wraplength=1300, text_color=("#475569", "#94A3B8"))
@@ -1535,6 +1537,87 @@ class ComplianceMixin:
         if not miss:
             return f"Text check: all {words} words of the RFP files are in the review."
         return f"Text check: {miss} of {words} words in {sum(1 for r in results if r['missing'])} file(s) are not in the review yet."
+
+    def compliance_volumes_dialog(self, mode=None, name="", heads=None):
+        """2.56.1 Structure > Volumes...: the person decides the response's volumes: one volume (a name, or blank) or
+        several (which headings of the structure start a volume). The matrix's Volume column and the Response Setup
+        (one document per volume) follow it; nothing is guessed. mode= saves without the window (tests)."""
+        M = self.matrix
+        if M is None:
+            return None
+        if mode is not None:
+            SD.set_volumes(M, mode, name, heads or [])
+            diag.activity("compliance_volumes_set")
+            self._c_changed()
+            if hasattr(self, "md_page_refresh"):
+                try:
+                    self.md_page_refresh()
+                except Exception:
+                    diag.swallowed()
+            return SD.volumes_of(M)
+        cur_mode, cur_name, cur_heads = SD.volumes_of(M)
+        w = ctk.CTkToplevel(self._c_parent()); w.title("Volumes"); w.geometry("560x560"); w.transient(self._c_parent())
+        w.after(120, w.lift)
+        ctk.CTkLabel(w, text="How many volumes does the response have?", font=("Segoe UI", 15, "bold"), anchor="w").pack(fill="x", padx=14, pady=(12, 4))
+        mv = tk.StringVar(value=cur_mode or "")
+        ctk.CTkRadioButton(w, text="One volume", variable=mv, value="one").pack(anchor="w", padx=18, pady=2)
+        row = ctk.CTkFrame(w, fg_color="transparent"); row.pack(fill="x", padx=40)
+        ctk.CTkLabel(row, text="Its name (or leave blank):").pack(side="left")
+        ne = ctk.CTkEntry(row, width=240); ne.pack(side="left", padx=6)
+        ne.insert(0, cur_name)
+        ctk.CTkRadioButton(w, text="Several volumes: tick the headings of your structure that start a volume", variable=mv,
+                           value="several").pack(anchor="w", padx=18, pady=(8, 2))
+        box = ctk.CTkScrollableFrame(w, height=280); box.pack(fill="both", expand=True, padx=40, pady=(0, 6))
+        hv = {}
+        for o in M.outline:
+            lab = C.outline_label(o)
+            hv[lab] = tk.BooleanVar(value=lab in cur_heads)
+            ctk.CTkCheckBox(box, text=("    " * (o.get("level", 1) - 1)) + lab, variable=hv[lab]).pack(anchor="w", pady=1)
+        ctk.CTkRadioButton(w, text="Not decided (no Volume in the matrix)", variable=mv, value="").pack(anchor="w", padx=18, pady=(4, 2))
+
+        def save():
+            heads = [l for l, v in hv.items() if v.get()]
+            m = mv.get()
+            if m == "several" and not heads:
+                messagebox.showinfo("Volumes", "Tick at least one heading that starts a volume.", parent=w)
+                return
+            self.compliance_volumes_dialog(mode=m, name=ne.get(), heads=heads)
+            w.destroy()
+        ctk.CTkButton(w, text="Save", width=100, fg_color="#15803D", command=save).pack(anchor="e", padx=14, pady=10)
+        w._api = {"mode": mv, "name": ne, "heads": hv, "save": save}
+        return w
+
+    def _c_drop_repeats(self):
+        """2.56.1: 2.55.0 and 2.56.0 could add a header or footer that repeats on every page once per page (marked Added
+        by the text check). Such a line, not decided, whose text another sentence of the same file already holds, is
+        taken out once when the matrix opens. Returns how many."""
+        M = self.matrix
+        if M is None or not M.items:
+            return 0
+        S = SD.setup_of(M)
+        if S.get("repeats_v") == 1:
+            return 0
+        S["repeats_v"] = 1
+        M.pending = True
+        seen, drop = set(), []
+        for it in M.items:
+            k = (it.get("file"), C.text_key(it.get("text", "")))
+            running = len(it.get("text", "").split()) <= 10 and not C._RUNNING_NO.search(it.get("text", ""))
+            if k in seen and (it.get("new") == "Added by the text check" or running) and not it.get("decision") \
+                    and not it.get("notes"):
+                drop.append(it)
+            seen.add(k)
+        if drop:
+            ids = {id(x) for x in drop}
+            M.items[:] = [x for x in M.items if id(x) not in ids]
+            for x in drop:
+                M.log(x["id"], "removed: a repeat of a line already in the review")
+            diag.activity("compliance_repeats_removed", n=len(drop))
+            try:
+                self.status.configure(text=f"{len(drop)} repeated line(s) (a header or footer on every page) taken out of the review.")
+            except Exception:
+                diag.swallowed()
+        return len(drop)
 
     def _c_complete_once(self):
         """2.51.0: a matrix read before 2.51.0 gets the completeness pass once when it opens (the reader then missed

@@ -217,6 +217,7 @@ class PageViewMixin:
             items = [dict(it, page=pv["page_of"].get(it["id"], -99)) for it in self._cp_items_of(pv["file"])]
             try:
                 pv["maps"][n] = LY.page_map(pv["pdf"], n, items, self.matrix.headings)
+                pv["maps"][n]["missing"] = DV.repeats_filter(pv["maps"][n]["missing"], items)   # 2.56.1: no repeats in red
             except Exception:
                 diag.swallowed()
                 pv["maps"][n] = {"size": pv["sizes"][n - 1], "items": [], "headings": [], "missing": [], "chars": 0}
