@@ -59,6 +59,7 @@ def extend_traineddata(run, tess_dir, work, base, chars, texts):
     if code != 0 or not os.path.isfile(merged):
         return None
     out = os.path.join(work, "lang")
+    os.makedirs(os.path.join(out, "eng"), exist_ok=True)      # the tool writes into it but does not make it
     code, log = run([os.path.join(tess_dir, "combine_lang_model.exe"), "--input_unicharset", merged, "--script_dir", langdata,
                      "--output_dir", out, "--lang", "eng"])
     td = os.path.join(out, "eng", "eng.traineddata")
