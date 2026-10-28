@@ -60,7 +60,13 @@ def extend_traineddata(run, tess_dir, work, base, chars, texts):
         return None
     out = os.path.join(work, "lang")
     os.makedirs(os.path.join(out, "eng"), exist_ok=True)      # the tool writes into it but does not make it
-    code, log = run([os.path.join(tess_dir, "combine_lang_model.exe"), "--input_unicharset", merged, "--script_dir", langdata,
+    script = os.path.join(work, "langdata")                    # the table with plain line ends (a CR breaks its reader)
+    os.makedirs(script, exist_ok=True)
+    with open(os.path.join(langdata, "radical-stroke.txt"), "rb") as f:
+        table = f.read().replace(b"\r\n", b"\n")
+    with open(os.path.join(script, "radical-stroke.txt"), "wb") as f:
+        f.write(table)
+    code, log = run([os.path.join(tess_dir, "combine_lang_model.exe"), "--input_unicharset", merged, "--script_dir", script,
                      "--output_dir", out, "--lang", "eng"])
     td = os.path.join(out, "eng", "eng.traineddata")
     return td if code == 0 and os.path.isfile(td) else None
