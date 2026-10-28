@@ -17,6 +17,14 @@ import datetime, getpass, os, re, uuid
 
 DEFAULT_STAGES = ("Intake", "Author drafts", "Red team", "Red team recovery", "Gold team", "Gold team recovery", "Final to pubs")
 TASK_STATUS = ("Not started", "In progress", "Done")
+# 2.63.0 stage gates: none; soft (moving on with open goals is allowed, and logged with the open goals and any reason);
+# hard (moving on is held until every goal is met, unless the proposal manager overrides it with a written reason)
+GATES = {"": "No gate", "soft": "Soft gate: warn and log", "hard": "Hard gate: hold until the goals are met"}
+
+
+class GateClosed(Exception):
+    """The current stage has a hard gate with open goals, and no reason to override it was given."""
+
 NOTE_ON = ("effort", "stage", "document", "version", "requirement", "section", "task", "deliverable")
 
 # Goals the app can check from the features. Each maps to a key of the checks dict the app builds (see checks() in the
@@ -309,11 +317,47 @@ class Record:
             out["left" if d >= 0 else "over"] = d if d >= 0 else -d
         return out
 
-    def move_to(self, sid, carry=(), who=None, planned=None):
-        """The proposal manager moves the effort to another stage. carry: ids of the left stage's open goals to copy."""
+    # ------------------------------------------------------------ stage gates (2.63.0)
+    def gate_of(self, s=None):
+        s = s or self.stage()
+        return s.get("gate", "") if s.get("gate", "") in GATES else ""
+
+    def set_gate(self, sid, mode, who=None):
+        s = self.stage(sid)
+        mode = mode if mode in GATES else ""
+        if s is None or s.get("gate", "") == mode:
+            return False
+        s["gate"] = mode
+        self.log("stage", f"Gate for {s['name']}: {GATES[mode].split(':')[0].lower()}", who=who)
+        self.save()
+        return True
+
+    def gate_check(self, sid, checks=None):
+        """What moving to stage sid meets at the current stage's gate: {"mode", "open": [goal texts], "forward",
+        "blocked"}. Moving back to an earlier stage is never held."""
+        to, frm = self.stage(sid), self.stage()
+        forward = to is not None and self.stages.index(to) > self.stages.index(frm)
+        open_ = [g["text"] for g in frm["goals"] if not self.goal_done(g, checks)]
+        mode = self.gate_of(frm)
+        return {"mode": mode, "open": open_, "forward": forward, "blocked": forward and mode == "hard" and bool(open_)}
+
+    def move_to(self, sid, carry=(), who=None, planned=None, reason="", checks=None):
+        """The proposal manager moves the effort to another stage. carry: ids of the left stage's open goals to copy.
+        2.63.0: a hard gate with open goals holds the move (GateClosed) unless a reason is given; a soft or overridden
+        gate is logged with the open goals and the reason."""
         to, frm = self.stage(sid), self.stage()
         if to is None or to is frm:
             return False
+        gc = self.gate_check(sid, checks)
+        reason = _clean(reason)
+        if gc["blocked"] and not reason:
+            raise GateClosed(f"{frm['name']} has a hard gate and {len(gc['open'])} open goal{'s' if len(gc['open']) != 1 else ''}. "
+                             "Meet them, or override the gate with a reason.")
+        if gc["forward"] and gc["mode"] and gc["open"]:
+            n = len(gc["open"])
+            self.log("gate", (f"Hard gate overridden at {frm['name']}" if gc["mode"] == "hard" else f"Soft gate passed at {frm['name']}")
+                     + f" with {n} open goal{'s' if n != 1 else ''}: " + "; ".join(gc["open"])[:300]
+                     + (f". Reason: {reason}" if reason else ""), who=who)
         now = _now()
         frm["ended"] = now
         to["started"], to["ended"] = now, ""

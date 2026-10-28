@@ -19,7 +19,7 @@ CAL_ORDER = ("due", "questions", "stage", "task", "done", "event")
 CAL_WORDS = (("due", "Due"), ("questions", "Questions due"), ("stage", "Stages"), ("task", "Tasks due"), ("done", "Tasks done"),
              ("event", "What happened"))
 KIND_WORDS = {"customer": "CUSTOMER", "ours": "OURS", "stage": "STAGE", "note": "NOTE", "task": "TASK", "assign": "PEOPLE",
-              "requirement": "REQUIREMENT", "effort": "EFFORT", "qa": "QA/QC", "compliance": "COMPLIANCE", "deliverable": "DELIVERABLE"}
+              "requirement": "REQUIREMENT", "effort": "EFFORT", "qa": "QA/QC", "compliance": "COMPLIANCE", "deliverable": "DELIVERABLE", "gate": "GATE", "review": "REVIEW"}
 
 
 def clear(layout):

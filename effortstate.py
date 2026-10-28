@@ -7,6 +7,9 @@ import datetime
 import diag
 import effortrec as R
 
+KIND_WORDS = {"customer": "CUSTOMER", "ours": "OURS", "stage": "STAGE", "note": "NOTE", "task": "TASK", "assign": "PEOPLE",
+              "requirement": "REQUIREMENT", "effort": "EFFORT", "qa": "QA/QC", "compliance": "COMPLIANCE", "deliverable": "DELIVERABLE",
+              "gate": "GATE", "review": "REVIEW"}
 PROVE_CATS = ("unused", "nosection", "ctx", "noowner", "changed", "customer", "all")
 
 
@@ -174,24 +177,31 @@ def stage_plan(rec, today=None, checks=None):
 class State:
     """The open effort, read from its files. Cheap to make again after a change; nothing is held open."""
 
-    def __init__(self, ws, effort_path="", M=None):
+    _NOT = object()
+
+    def __init__(self, ws, effort_path="", M=None, rec=None, lib=_NOT, rows=None, L=None, report=_NOT, volumes=None):
+        """Read from the effort's files; the classic window passes what it already holds (2.63.0)."""
         self.ws, self.effort_path, self.M = ws, effort_path, M
-        self.rec = R.Record(ws.root)
-        self.lib = self.reg = None
-        self.rows = []
-        try:
-            import docversions as DV
-            import subreq as SR
-            self.lib = DV.Library(ws.p("documents")).load()
-            self.reg = SR.Register(self.lib)
-            self.rows = self.reg.rows()
-        except Exception:
-            diag.swallowed()
-        self._L = None
-        v = ws.get("volumes", []) or []
-        self.volumes = [x for x in v if isinstance(x, dict) and x.get("name")]
-        s = ws.load_session() or {}
-        self.report = s.get("volume_report") or None
+        self.rec = rec or R.Record(ws.root)
+        self.lib, self.reg, self.rows = (None if lib is State._NOT else lib), None, rows or []
+        if lib is State._NOT:
+            try:
+                import docversions as DV
+                import subreq as SR
+                self.lib = DV.Library(ws.p("documents")).load()
+                self.reg = SR.Register(self.lib)
+                self.rows = self.reg.rows()
+            except Exception:
+                diag.swallowed()
+        self._L = L
+        if volumes is None:
+            v = ws.get("volumes", []) or []
+            volumes = [x for x in v if isinstance(x, dict) and x.get("name")]
+        self.volumes = volumes
+        if report is State._NOT:
+            s = ws.load_session() or {}
+            report = s.get("volume_report") or None
+        self.report = report
 
     @property
     def L(self):
@@ -300,3 +310,132 @@ class State:
                                   "tasks": len(op), "late": sum(1 for t in op if r.task_overdue(t, today)),
                                   "questions": len(r.open_questions(assignee=p))})
         return out
+
+
+# ------------------------------------------------------------------ the effort status report (2.63.0: from the classic window)
+def status_calendar(st, most=3, today=None):
+    """Months for the status report: this month through the due month (at most `most`)."""
+    import calendar as CAL
+    r = st.rec
+    m = (today or datetime.date.today()).replace(day=1)
+    due = R.parse_date((r.data.get("due") or "")[:10])
+    if due is None:
+        for d, kind, _t in st.cal_extra():
+            if kind == "due":
+                due = d
+    out = []
+    for _ in range(most):
+        last = m.replace(day=CAL.monthrange(m.year, m.month)[1])
+        days = st.calendar(first=m, last=last)
+        weeks = [[(d.day, days.get(d, [])) if d.month == m.month else (0, []) for d in wk]
+                 for wk in CAL.Calendar(0).monthdatescalendar(m.year, m.month)]
+        out.append({"title": m.strftime("%B %Y"), "weeks": weeks})
+        if due is None or (m.year, m.month) >= (due.year, due.month):
+            break
+        m = datetime.date(m.year + m.month // 12, m.month % 12 + 1, 1)
+    return out
+
+
+def status_snapshot(st, final=False, app_version="", name="", client="", solicitation="", internal=""):
+    """Everything the status report shows (a plain dict: statusdoc.build)."""
+    import getpass
+    import subreq as SR
+    r = st.rec
+    L = st.L
+    name = name or (L.name if L is not None else "")
+    client = client or (L.client if L is not None else "")
+    solicitation = solicitation or (L.solicitation if L is not None else "")
+    internal = internal or (L.internal_no if L is not None else "")
+    checks = st.checks()
+    now = datetime.datetime.now()
+    snap = {"effort": name, "client": client, "solicitation": solicitation, "internal": internal,
+            "due": R.due_text(r.data["due"], r.data["zone"]), "countdown": R.countdown_text(r.data["due"]),
+            "generated": f"{now.strftime('%b')} {now.day}, {now.year}, {now.hour % 12 or 12}:{now.minute:02d} {'a.m.' if now.hour < 12 else 'p.m.'}",
+            "who": getpass.getuser(), "app": app_version}
+    stages = []
+    for s in r.stages:
+        state = r.state_of(s)
+        met = sum(1 for g in s["goals"] if r.goal_done(g, checks))
+        dates = (f"{R.short_date(s['started'])} to {R.short_date(s['ended'])}" if state == "done" and s["started"] else
+                 f"since {R.short_date(s['started'])}" if state == "current" and s["started"] else
+                 (f"planned {R.short_date(s['planned']) or s['planned']}" if s["planned"] else ""))
+        stages.append({"name": s["name"], "state": state, "met": met, "goals": len(s["goals"]), "dates": dates,
+                       "when": R.short_date(s["started"]) if state != "ahead" else (R.short_date(s["planned"]) or s["planned"]),
+                       "open": [g["text"] for g in s["goals"] if not r.goal_done(g, checks)]})
+    snap["stages"] = stages
+    cur = r.stage()
+    met, total = r.goal_progress(checks=checks)
+    ts = r.tasks()
+    late = [t for t in ts if r.task_overdue(t)]
+    stage_name = {s["id"]: s["name"] for s in r.stages}
+    rows, lib, M = st.rows, st.lib, st.M
+    to_review = (lib.counts()["unreviewed"] if lib and lib.docs else 0) + sum(1 for x in rows if x["to_review"])
+    tiles = [(f"{met} of {total}", "gate goals met", "1E3A8A")]
+    if M is not None and M.items:
+        keeps = [it for it in M.items if it["decision"] == "Keep"]
+        placed = sum(1 for it in keeps if it.get("map"))
+        tiles.append((f"{placed} of {len(keeps)}", "requirements placed", "15803D" if placed == len(keeps) else "B45309"))
+    tiles += [(len(r.open_questions()), "open questions", "B45309" if r.open_questions() else "15803D"),
+              (len(late), "tasks late", "B91C1C" if late else "15803D"),
+              (to_review, "changes to review", "B45309" if to_review else "15803D")]
+    snap["tiles"] = tiles
+    here = [t for t in ts if t["stage"] == cur["id"]]
+    snap["current"] = {"name": cur["name"], "since": R.short_date(cur["started"]),
+                       "summary": f"{met} of {total} gate goals met" + (f"; {len(late)} task(s) late" if late else ""),
+                       "done": [g["text"] for g in cur["goals"] if r.goal_done(g, checks)] + [f"{t['title']} ({t['owner']})" if t["owner"] else t["title"] for t in here if t["status"] == "Done"],
+                       "in_progress": [f"{t['title']}" + (f" ({t['owner']}" + (f", due {R.nice_date(t['due'])}" if t["due"] else "") + ")" if t["owner"] else "") for t in here if t["status"] == "In progress"],
+                       "left": [g["text"] for g in cur["goals"] if not r.goal_done(g, checks)] + [f"{t['title']}" + (f" ({t['owner']})" if t["owner"] else "") for t in here if t["status"] == "Not started"]}
+    snap["questions"] = [{"text": n["text"], "about": n["label"], "when": R.short_date(n["at"]), "who": n["who"],
+                          "assignee": n.get("assignee", "")} for n in r.open_questions()]
+    snap["calendar"] = status_calendar(st)
+    others = [n for n in r.notes() if not (n["question"] and not n["resolved"])]
+    snap["notes"] = [{"text": n["text"], "about": n["label"], "when": R.short_date(n["at"]), "who": n["who"], "answer": n.get("answer", "")}
+                     for n in (others if final else others[:12])]
+    snap["projected"] = [{"name": x["name"], "planned": (R.short_date(s["planned"]) or s["planned"]) if s["planned"] else "",
+                          "status": {"done": "Done " + R.short_date(s["ended"]), "current": "Now", "ahead": "Ahead"}[x["state"]]}
+                         for x, s in zip(stages, r.stages)] + ([{"name": "Submission", "planned": snap["due"], "status": snap["countdown"]}] if snap["due"] else [])
+    people = []
+    try:
+        import setupdoc as SD
+        for p in st.people():
+            secs = SD.sections_of(M, p) if M is not None else []
+            reqs = sum(1 for it in M.items if it["decision"] == "Keep" and p in SD.owners_list(M, it)) if M is not None else 0
+            op = [t for t in ts if t["owner"] == p and t["status"] != "Done"]
+            people.append({"person": p, "sections": ", ".join(secs[:6]) + ("..." if len(secs) > 6 else ""), "reqs": reqs,
+                           "tasks": len(op), "late": sum(1 for t in op if r.task_overdue(t))})
+        snap["no_owner"] = sum(1 for it in M.items if it["decision"] == "Keep" and not SD.owner_of(M, it)) if M is not None else 0
+    except Exception:
+        diag.swallowed()
+    snap["people"] = people
+    snap["tasks"] = [{"title": t["title"], "owner": t["owner"], "due": R.nice_date(t["due"]), "stage": stage_name.get(t["stage"], ""),
+                      "status": t["status"] + (" (late)" if r.task_overdue(t) else ""), "late": r.task_overdue(t)}
+                     for t in ts if final or t["status"] != "Done"]
+    since = cur["started"] if not final else ""
+    kinds = ("customer", "requirement", "stage", "assign", "compliance", "deliverable", "gate", "review")
+    ev = r.events(since=since or None, kinds=kinds)
+    snap["changes_title"] = f"What changed since {cur['name']} began ({R.short_date(cur['started'])})" if since else "What changed"
+    snap["changes"] = [] if final else [{"when": R.short_date(e["at"]), "text": e["text"], "who": e["who"]} for e in ev[:40]]
+    lines = [x for x in SR.summary_text(rows).split("  |  ") if x] if rows else []
+    snap["requirements"] = {"lines": lines, "to_review": [f"{x['kind']}, {x['subject']}: {x['value']}" for x in rows if x["to_review"]]}
+    try:                                                  # 2.41.0: deliverables
+        import deliverables as DL
+        vols = st.volumes
+        snap["deliverables"] = []
+        for dd in DL.items(r):
+            stt = DL.state(dd, rows, lib, vols, r)
+            snap["deliverables"].append({"name": dd["name"], "format": dd["format"], "limit": stt["limit"], "owner": dd["owner"],
+                                         "status": DL.status_text(dd, stt), "flag": "over" if stt["over"] else "changed" if stt["changed"] else ""})
+        snap["deliverables_suggested"] = [x["subject"] for x in DL.suggestions(r, rows)]
+        if DL.items(r):
+            sm = DL.summary(r, rows, lib, vols)
+            snap["tiles"].insert(1, (f"{sm['final']} of {sm['count']}", "deliverables final", "15803D" if sm["final"] == sm["count"] else "1E3A8A"))
+    except Exception:
+        diag.swallowed()
+    snap["documents"] = [{"name": dd["name"], "versions": ", ".join(v["label"] for v in dd["versions"]),
+                          "latest": f"{dd['versions'][-1]['label']}, {R.short_date(dd['versions'][-1]['added'])}"}
+                         for dd in (lib.docs if lib else []) if dd["versions"]]
+    if final:
+        snap["history"] = [{"when": R.short_date(e["at"]) + (f" {e['at'][:4]}" if e["at"][:4] != str(now.year) else ""),
+                            "kind": KIND_WORDS.get(e["kind"], e["kind"].upper()).title(), "text": e["text"], "who": e["who"]}
+                           for e in reversed(r.events())]
+    return snap

@@ -14,9 +14,8 @@ import effortrec as R
 STATE_COLORS = {"done": ("#DCFCE7", "#14532D"), "current": ("#1E3A8A", "#FFFFFF"), "ahead": ("#E2E8F0", "#334155")}
 KIND_COLORS = {"customer": "#B45309", "ours": "#1E3A8A", "stage": "#0F766E", "note": "#7C3AED", "task": "#334155",
                "assign": "#0369A1", "requirement": "#B45309", "effort": "#0F766E", "qa": "#15803D", "compliance": "#1D4ED8",
-               "deliverable": "#0E7490"}
-KIND_WORDS = {"customer": "CUSTOMER", "ours": "OURS", "stage": "STAGE", "note": "NOTE", "task": "TASK", "assign": "PEOPLE",
-              "requirement": "REQUIREMENT", "effort": "EFFORT", "qa": "QA/QC", "compliance": "COMPLIANCE", "deliverable": "DELIVERABLE"}
+               "deliverable": "#0E7490", "gate": "#B45309", "review": "#7C3AED"}
+from effortstate import KIND_WORDS  # noqa: E402  (2.63.0: one list for both programs)
 
 
 class EffortRecordMixin:
@@ -773,7 +772,11 @@ class EffortRecordMixin:
         checks = self.rec_checks()
         open_goals = [g for g in cur["goals"] if not r.goal_done(g, checks)]
         if to is not None:
-            ok = r.move_to(to, carry=[g["id"] for g in open_goals] if carry is None else carry, planned=planned)
+            try:
+                ok = r.move_to(to, carry=[g["id"] for g in open_goals] if carry is None else carry, planned=planned, checks=checks)
+            except R.GateClosed as e:                          # 2.63.0: a hard gate set in Stationkeeper (Qt)
+                self.status.configure(text=str(e))
+                return False
             if ok:
                 diag.activity("stage_moved")
                 self._rec_force(); self.shell_overview_refresh() if hasattr(self, "shell_overview_refresh") else None
@@ -805,7 +808,15 @@ class EffortRecordMixin:
             target = next((s for s in r.stages if s["name"] == om.get()), None)
             if target is None:
                 return False
-            done = r.move_to(target["id"], carry=[gid for gid, v in vars_ if v.get()], planned=pe.get() or None)
+            try:
+                done = r.move_to(target["id"], carry=[gid for gid, v in vars_ if v.get()], planned=pe.get() or None, checks=checks)
+            except R.GateClosed as e:                          # 2.63.0: the proposal manager may override with a reason
+                from tkinter import simpledialog
+                why = simpledialog.askstring("Hard gate", f"{e}\n\nReason to override the gate (kept in the timeline):", parent=w)
+                if not why:
+                    return False
+                done = r.move_to(target["id"], carry=[gid for gid, v in vars_ if v.get()], planned=pe.get() or None, reason=why,
+                                 checks=checks)
             if done:
                 diag.activity("stage_moved")
                 w.destroy()
@@ -1298,128 +1309,24 @@ class EffortRecordMixin:
         return got
 
     # ------------------------------------------------------------ effort status report (2.40.0)
-    def status_snapshot(self, final=False):
-        """Everything the status report shows, gathered from the record and the features (a plain dict: statusdoc.build)."""
-        r, L = self.effrec(), self.effort
-        checks = self.rec_checks()
-        now = datetime.datetime.now()
-        snap = {"effort": L.name, "client": L.client, "solicitation": L.solicitation, "internal": L.internal_no,
-                "due": R.due_text(r.data["due"], r.data["zone"]), "countdown": R.countdown_text(r.data["due"]),
-                "generated": f"{now.strftime('%b')} {now.day}, {now.year}, {now.hour % 12 or 12}:{now.minute:02d} {'a.m.' if now.hour < 12 else 'p.m.'}",
-                "who": __import__("getpass").getuser(), "app": getattr(__import__("app_gui"), "APP_VERSION", "")}
-        stages = []
-        for s in r.stages:
-            state = r.state_of(s)
-            met = sum(1 for g in s["goals"] if r.goal_done(g, checks))
-            dates = (f"{R.short_date(s['started'])} to {R.short_date(s['ended'])}" if state == "done" and s["started"] else
-                     f"since {R.short_date(s['started'])}" if state == "current" and s["started"] else
-                     (f"planned {R.short_date(s['planned']) or s['planned']}" if s["planned"] else ""))
-            stages.append({"name": s["name"], "state": state, "met": met, "goals": len(s["goals"]), "dates": dates,
-                           "when": R.short_date(s["started"]) if state != "ahead" else (R.short_date(s["planned"]) or s["planned"]),
-                           "open": [g["text"] for g in s["goals"] if not r.goal_done(g, checks)]})
-        snap["stages"] = stages
-        cur = r.stage()
-        met, total = r.goal_progress(checks=checks)
-        ts = r.tasks()
-        late = [t for t in ts if r.task_overdue(t)]
-        stage_name = {s["id"]: s["name"] for s in r.stages}
+    def _es_state(self):
+        """2.63.0: the open effort as effortstate sees it, from what this window holds."""
+        import effortstate as ES
         reg = self.subreg() if hasattr(self, "subreg") else None
-        rows = reg.rows() if reg else []
-        lib = self.doclib() if hasattr(self, "doclib") else None
-        to_review = (lib.counts()["unreviewed"] if lib and lib.docs else 0) + sum(1 for x in rows if x["to_review"])
-        M = getattr(self, "matrix", None)
-        tiles = [(f"{met} of {total}", "gate goals met", "1E3A8A")]
-        if M is not None and M.items:
-            keeps = [it for it in M.items if it["decision"] == "Keep"]
-            placed = sum(1 for it in keeps if it.get("map"))
-            tiles.append((f"{placed} of {len(keeps)}", "requirements placed", "15803D" if placed == len(keeps) else "B45309"))
-        tiles += [(len(r.open_questions()), "open questions", "B45309" if r.open_questions() else "15803D"),
-                  (len(late), "tasks late", "B91C1C" if late else "15803D"),
-                  (to_review, "changes to review", "B45309" if to_review else "15803D")]
-        snap["tiles"] = tiles
-        here = [t for t in ts if t["stage"] == cur["id"]]
-        snap["current"] = {"name": cur["name"], "since": R.short_date(cur["started"]),
-                           "summary": f"{met} of {total} gate goals met" + (f"; {len(late)} task(s) late" if late else ""),
-                           "done": [g["text"] for g in cur["goals"] if r.goal_done(g, checks)] + [f"{t['title']} ({t['owner']})" if t["owner"] else t["title"] for t in here if t["status"] == "Done"],
-                           "in_progress": [f"{t['title']}" + (f" ({t['owner']}" + (f", due {R.nice_date(t['due'])}" if t["due"] else "") + ")" if t["owner"] else "") for t in here if t["status"] == "In progress"],
-                           "left": [g["text"] for g in cur["goals"] if not r.goal_done(g, checks)] + [f"{t['title']}" + (f" ({t['owner']})" if t["owner"] else "") for t in here if t["status"] == "Not started"]}
-        snap["questions"] = [{"text": n["text"], "about": n["label"], "when": R.short_date(n["at"]), "who": n["who"],
-                              "assignee": n.get("assignee", "")} for n in r.open_questions()]
-        snap["calendar"] = self.status_calendar()
-        others = [n for n in r.notes() if not (n["question"] and not n["resolved"])]
-        snap["notes"] = [{"text": n["text"], "about": n["label"], "when": R.short_date(n["at"]), "who": n["who"], "answer": n.get("answer", "")}
-                         for n in (others if final else others[:12])]
-        snap["projected"] = [{"name": x["name"], "planned": (R.short_date(s["planned"]) or s["planned"]) if s["planned"] else "",
-                              "status": {"done": "Done " + R.short_date(s["ended"]), "current": "Now", "ahead": "Ahead"}[x["state"]]}
-                             for x, s in zip(stages, r.stages)] + ([{"name": "Submission", "planned": snap["due"], "status": snap["countdown"]}] if snap["due"] else [])
-        people = []
-        try:
-            import setupdoc as SD
-            for p in self.rec_people():
-                secs = SD.sections_of(M, p) if M is not None else []
-                reqs = sum(1 for it in M.items if it["decision"] == "Keep" and p in SD.owners_list(M, it)) if M is not None else 0
-                op = [t for t in ts if t["owner"] == p and t["status"] != "Done"]
-                people.append({"person": p, "sections": ", ".join(secs[:6]) + ("..." if len(secs) > 6 else ""), "reqs": reqs,
-                               "tasks": len(op), "late": sum(1 for t in op if r.task_overdue(t))})
-            snap["no_owner"] = sum(1 for it in M.items if it["decision"] == "Keep" and not SD.owner_of(M, it)) if M is not None else 0
-        except Exception:
-            diag.swallowed()
-        snap["people"] = people
-        snap["tasks"] = [{"title": t["title"], "owner": t["owner"], "due": R.nice_date(t["due"]), "stage": stage_name.get(t["stage"], ""),
-                          "status": t["status"] + (" (late)" if r.task_overdue(t) else ""), "late": r.task_overdue(t)}
-                         for t in ts if final or t["status"] != "Done"]
-        since = cur["started"] if not final else ""
-        kinds = ("customer", "requirement", "stage", "assign", "compliance", "deliverable")
-        ev = r.events(since=since or None, kinds=kinds)
-        snap["changes_title"] = f"What changed since {cur['name']} began ({R.short_date(cur['started'])})" if since else "What changed"
-        snap["changes"] = [] if final else [{"when": R.short_date(e["at"]), "text": e["text"], "who": e["who"]} for e in ev[:40]]
-        lines = [x for x in (self.req_summary_text(rows).split("  |  ") if rows and hasattr(self, "req_summary_text") else []) if x]
-        snap["requirements"] = {"lines": lines, "to_review": [f"{x['kind']}, {x['subject']}: {x['value']}" for x in rows if x["to_review"]]}
-        try:                                                  # 2.41.0: deliverables
-            import deliverables as DL
-            vols = self.volumes() if hasattr(self, "volumes") else []
-            snap["deliverables"] = []
-            for dd in DL.items(r):
-                stt = DL.state(dd, rows, lib, vols, r)
-                snap["deliverables"].append({"name": dd["name"], "format": dd["format"], "limit": stt["limit"], "owner": dd["owner"],
-                                             "status": DL.status_text(dd, stt), "flag": "over" if stt["over"] else "changed" if stt["changed"] else ""})
-            snap["deliverables_suggested"] = [x["subject"] for x in DL.suggestions(r, rows)]
-            if DL.items(r):
-                sm = DL.summary(r, rows, lib, vols)
-                snap["tiles"].insert(1, (f"{sm['final']} of {sm['count']}", "deliverables final", "15803D" if sm["final"] == sm["count"] else "1E3A8A"))
-        except Exception:
-            diag.swallowed()
-        snap["documents"] = [{"name": dd["name"], "versions": ", ".join(v["label"] for v in dd["versions"]),
-                              "latest": f"{dd['versions'][-1]['label']}, {R.short_date(dd['versions'][-1]['added'])}"}
-                             for dd in (lib.docs if lib else []) if dd["versions"]]
-        if final:
-            snap["history"] = [{"when": R.short_date(e["at"]) + (f" {e['at'][:4]}" if e["at"][:4] != str(now.year) else ""),
-                                "kind": KIND_WORDS.get(e["kind"], e["kind"].upper()).title(), "text": e["text"], "who": e["who"]}
-                               for e in reversed(r.events())]
-        return snap
+        return ES.State(self.ws, getattr(self.effort, "path", ""), getattr(self, "matrix", None), rec=self.effrec(),
+                        lib=self.doclib() if hasattr(self, "doclib") else None, rows=reg.rows() if reg is not None else [],
+                        L=self.effort, report=getattr(self, "volume_report", None),
+                        volumes=self.volumes() if hasattr(self, "volumes") else [])
+
+    def status_snapshot(self, final=False):
+        """Everything the status report shows (2.63.0: effortstate.status_snapshot, shared with the Qt edition)."""
+        import effortstate as ES
+        return ES.status_snapshot(self._es_state(), final=final, app_version=getattr(__import__("app_gui"), "APP_VERSION", ""))
 
     def status_calendar(self, most=3):
         """2.49.0: months for the status report: this month through the due month (at most `most`)."""
-        import calendar as CAL
-        r = self.effrec()
-        if r is None:
-            return []
-        m = datetime.date.today().replace(day=1)
-        due = R.parse_date((r.data.get("due") or "")[:10])
-        if due is None:
-            for d, kind, _t in self.rec_cal_extra():
-                if kind == "due":
-                    due = d
-        out = []
-        for _ in range(most):
-            days = self.rec_cal_days(m)
-            weeks = [[(d.day, days.get(d, [])) if d.month == m.month else (0, []) for d in wk]
-                     for wk in CAL.Calendar(0).monthdatescalendar(m.year, m.month)]
-            out.append({"title": m.strftime("%B %Y"), "weeks": weeks})
-            if due is None or (m.year, m.month) >= (due.year, due.month):
-                break
-            m = datetime.date(m.year + m.month // 12, m.month % 12 + 1, 1)
-        return out
+        import effortstate as ES
+        return ES.status_calendar(self._es_state(), most)
 
     def status_export(self, path=None, final=False):
         """File > Effort status (Word)...: where the effort stands, for leadership. final: the effort summary with the

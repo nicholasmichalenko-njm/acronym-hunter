@@ -322,30 +322,11 @@ class SubmissionMixin:
         return k
 
     def req_summary_text(self, rows=None):
-        """One line for the bar and the Effort home card: due date (days left), page limits, format, files, changes."""
+        """One line for the bar and the Effort home card (2.63.0: subreq.summary_text)."""
         if rows is None:
             reg = self.subreg()
             rows = reg.rows() if reg else []
-        if not rows:
-            return ""
-        s = SR.summary(rows)
-        bits = []
-        if s["due"]:
-            n = SR.days_until(s["due"]["value"])
-            bits.append(f"Due {s['due']['value']}" + ("" if n is None else " (due date passed)" if n < 0 else
-                                                      " (today)" if n == 0 else f" ({n} day{'s' if n != 1 else ''})"))
-        if s["pages"]:
-            bits.append("Pages: " + ", ".join(f"{subj} {SR._limit_n(v)}" for subj, v, _r in s["pages"]))
-        f = [r["value"] for r in s["format"] if r["subject"] in ("Font", "Margins")]
-        if f:
-            bits.append(", ".join(f))
-        ff = [r["value"] for r in s["files"] if r["subject"] == "File format"]
-        if ff:
-            bits.append(ff[0])
-        if s["to_review"]:
-            n = len(s["to_review"])
-            bits.append(f"{n} change{'s' if n != 1 else ''} to review")
-        return "  |  ".join(bits)
+        return SR.summary_text(rows)
 
     def _req_card(self, rows):
         cells = self.req_cells

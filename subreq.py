@@ -467,3 +467,27 @@ def export_excel(path, rows, effort_name=""):
         wb.properties.title = f"{effort_name} submission requirements"
     wb.save(path)
     return path
+
+
+def summary_text(rows):
+    """One line: due date (days left), page limits, format, files, changes to review (2.63.0, from the classic bar)."""
+    if not rows:
+        return ""
+    s = summary(rows)
+    bits = []
+    if s["due"]:
+        n = days_until(s["due"]["value"])
+        bits.append(f"Due {s['due']['value']}" + ("" if n is None else " (due date passed)" if n < 0 else
+                                                  " (today)" if n == 0 else f" ({n} day{'s' if n != 1 else ''})"))
+    if s["pages"]:
+        bits.append("Pages: " + ", ".join(f"{subj} {_limit_n(v)}" for subj, v, _r in s["pages"]))
+    f = [r["value"] for r in s["format"] if r["subject"] in ("Font", "Margins")]
+    if f:
+        bits.append(", ".join(f))
+    ff = [r["value"] for r in s["files"] if r["subject"] == "File format"]
+    if ff:
+        bits.append(ff[0])
+    if s["to_review"]:
+        n = len(s["to_review"])
+        bits.append(f"{n} change{'s' if n != 1 else ''} to review")
+    return "  |  ".join(bits)
