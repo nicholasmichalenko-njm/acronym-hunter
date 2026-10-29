@@ -23,11 +23,14 @@ row = QWidget(); fl = FlowLayout(row, 8)
 btns = [QPushButton(f"Button number {i}") for i in range(8)]
 for b in btns:
     fl.addWidget(b)
-row.resize(1600, 200); row.show(); app.processEvents()
+row.show(); app.processEvents()
+wide = sum(b.sizeHint().width() for b in btns) + 8 * len(btns) + 40       # room for all of them at this PC's display scale
+row.resize(wide, 200); app.processEvents()
 one_line = len({b.y() for b in btns})
-row.resize(420, 400); app.processEvents()
+narrow = max(b.sizeHint().width() for b in btns) * 2 + 30
+row.resize(narrow, 800); app.processEvents()
 check("a button row wraps onto more lines when narrow", one_line == 1 and len({b.y() for b in btns}) > 1
-      and all(b.x() + b.width() <= 420 for b in btns))
+      and all(b.x() + b.width() <= narrow for b in btns), (one_line, wide, narrow))
 t = QTableWidget(5, 3); t.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
 t.setItem(0, 0, QTableWidgetItem("x" * 80))
 t.resize(500, 300); t.show(); app.processEvents()
