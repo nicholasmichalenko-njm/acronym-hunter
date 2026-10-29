@@ -8,6 +8,8 @@ import os, sys, tempfile, shutil, time, zipfile, subprocess
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE)); sys.path.insert(0, HERE)
+import hangguard
+hangguard.arm('GUI WALKTHROUGH', info=lambda: {'said': said[-5:], 'checks': len(checks)})
 os.environ["AH_OCR_ENGINE"] = "tesseract"; os.environ["AH_TEST"] = "1"
 import app_gui as A, compliance as C, effort as E, setupdoc as SD, office_pdf as OP, docview as DV
 from tkinter import messagebox, filedialog

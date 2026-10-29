@@ -8,6 +8,8 @@ import os, sys, tempfile, shutil
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE)); sys.path.insert(0, HERE)
+import hangguard
+hangguard.arm('GUI PAGEVIEW')
 os.environ["AH_OCR_ENGINE"] = "tesseract"; os.environ["AH_TEST"] = "1"
 import app_gui as A, compliance as C, effort as E, setupdoc as SD, office_pdf as OP
 OP.available = lambda: False          # this test gives the copy itself; Office is not started (gui_walkthrough uses it)

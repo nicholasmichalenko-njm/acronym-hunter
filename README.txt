@@ -1,6 +1,13 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+OFFICE COPIES CLEAN UP AFTER THEMSELVES (2.71.0)
+  - Page view makes a PDF copy of a Word, Excel or PowerPoint file through Office on this PC. When a copy takes too
+    long, Stationkeeper now ends the hidden Office program that copy started (only that one: Office windows you
+    opened are never touched). Before, a hidden Word stayed running and could hold up the next copies.
+  - A password-protected Word or Excel file now fails at once with a reason, instead of waiting on a hidden password
+    prompt.
+
 NOTHING THE READER MISSES STAYS MISSED (2.70.0)
   - A list's lead-in, the sentence ending in a colon just before bullets ("The description shall address the
     following:"), is a sentence of its own: it has a box on the page and is assigned like any other. Its bullets still

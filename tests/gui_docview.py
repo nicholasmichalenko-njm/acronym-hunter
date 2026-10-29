@@ -7,6 +7,8 @@ import os, sys, tempfile
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE)); sys.path.insert(0, HERE)
+import hangguard
+hangguard.arm('GUI DOCVIEW')
 os.environ["AH_OCR_ENGINE"] = "tesseract"; os.environ["AH_TEST"] = "1"
 import app_gui as A, compliance as C, effort as E, docview as DV, textcheck as T
 from tkinter import messagebox
