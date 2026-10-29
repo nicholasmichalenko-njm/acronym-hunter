@@ -40,7 +40,8 @@ WHATS_NEW = {
                "Submission rules (was Requirements) shows what the customer requires now, with Was and Now in the row for "
                "anything a version changed.",
                "A requirement a version changed keeps its old wording and waits for its owner to confirm. Customer versions now "
-               "lives in Library."],
+               "lives in Library.",
+               "The mouse wheel scrolls the page; it no longer changes a drop-down, number or date it passes over."],
     "2.84.0": ["Read and assign any document: library documents that do not build the matrix open in Assign beside the "
                "response structure (File list: Library: ...). Select text, then choose where it goes: context for a "
                "section (C), for a requirement (F), a note (N), a question (Q), a task (T), or make it a requirement (R).",
