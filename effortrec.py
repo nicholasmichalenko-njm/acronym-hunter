@@ -587,6 +587,14 @@ class Record:
             if t.get("due"):
                 put(parse_date(t["due"]), "done" if t["status"] == "Done" else "task",
                     t["title"] + (f" ({t['owner']})" if t.get("owner") else ""))
+        for e in self.data.get("events", []):                 # 2.88.0: reviews, meetings, orals, milestones from a calendar file
+            st = e.get("start", "")
+            when = ""
+            if st:
+                h, mi = int(st[:2]), int(st[3:5])
+                when = f"{h % 12 or 12}:{mi:02d} {'a.m.' if h < 12 else 'p.m.'}" + (f" {e['zone']}" if e.get("zone") else "") + " "
+            put(parse_date(e["date"]), "questions" if e["kind"] == "Questions due" else "meeting",
+                when + e["title"] + (f" ({e['location']})" if e.get("location") else ""))
         for e in self.data.get("timeline", []):
             if e["kind"] in ("document", "stage", "deliverable", "assign") and e.get("at") and not e["text"].startswith("Goal "):
                 put(parse_date(e["at"][:10]), "event", e["text"][:80])

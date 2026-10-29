@@ -71,7 +71,7 @@ p = qp.export(os.path.join(tmp, "qa.xlsx")); made = qp.lists(os.path.join(tmp, "
 check("export the report and the volume's acronym list", p and os.path.isfile(p) and made and made[0].endswith("_Acronym_List.docx"))
 # 2.86.0 response quality: submission volumes marked once, the lists to submit leave out what no volume uses
 w.go("qa"); app.processEvents()
-check("the page says which end it serves", "END" in qp.where.text() and "Submission check" == w.page_title.text())
+check("the page says which end it serves", "END" in qp.where.text() and "Submission Check" == w.page_title.text())
 check("submission volumes are marked once and saved", qp.add_volumes([VOL]) == 1 and qp.add_volumes([VOL]) == 0
       and qp.vol_list.count() == 1 and w.ws.get("submission_volumes") == [VOL])
 qp.check_volumes()

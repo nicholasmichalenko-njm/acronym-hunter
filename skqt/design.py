@@ -26,7 +26,7 @@ LIGHT = {
     "accent": "#1F5FAD", "accent_hover": "#184E90", "accent_fg": "#FFFFFF", "accent_soft": "#E2ECF8",
     "rail": "#0F1E33", "rail_text": "#C7D3E3", "rail_active": "#1F5FAD", "rail_active_text": "#FFFFFF",
     "ok": "#146C36", "ok_soft": "#DCF3E4", "warn": "#9A4508", "warn_soft": "#FCEFD9", "crit": "#B91C1C", "crit_soft": "#FBE2E2",
-    "req": "#146C36", "req_soft": "#DCF3E4", "ctx": "#1D4ED8", "ctx_soft": "#DFE8FB", "cust": "#7E22CE", "cust_soft": "#EFE1FA",
+    "req": "#146C36", "req_soft": "#DCF3E4", "ctx": "#1D4ED8", "ctx_soft": "#DFE8FB", "cust": "#7E22CE", "cust_soft": "#EFE1FA", "cui": "#502B85", "cui_soft": "#EDE6F6",
     "head": "#334155", "head_soft": "#E5E9EF", "focus": "#2E7BE0", "page": "#DCE3EC",
 }
 DARK = {
@@ -35,7 +35,7 @@ DARK = {
     "accent": "#5B9BEB", "accent_hover": "#76ADF0", "accent_fg": "#06101F", "accent_soft": "#1A2C47",
     "rail": "#070D18", "rail_text": "#AFC0D6", "rail_active": "#2A5FA3", "rail_active_text": "#FFFFFF",
     "ok": "#4ADE80", "ok_soft": "#123323", "warn": "#FBBF24", "warn_soft": "#3A2A0B", "crit": "#F87171", "crit_soft": "#3B1414",
-    "req": "#4ADE80", "req_soft": "#133524", "ctx": "#7FA8F5", "ctx_soft": "#172A4D", "cust": "#C59AF5", "cust_soft": "#2C1A44",
+    "req": "#4ADE80", "req_soft": "#133524", "ctx": "#7FA8F5", "ctx_soft": "#172A4D", "cust": "#C59AF5", "cust_soft": "#2C1A44", "cui": "#C4B0EC", "cui_soft": "#2A1D42",
     "head": "#B3C0D2", "head_soft": "#1E293B", "focus": "#76ADF0", "page": "#1A2436",
 }
 # what each decision is called and how it is tagged in the page margin (colors come from the tokens)
@@ -118,7 +118,7 @@ QPushButton#rail:hover {{ background: rgba(255,255,255,0.07); }}
 QPushButton#rail:checked {{ background: {t['rail_active']}; color: {t['rail_active_text']}; }}
 QPushButton#rail:disabled {{ color: #5E6E84; }}
 QWidget#railbox {{ background: {t['rail']}; }}
-QLabel#railhead {{ color: #7F91AA; font-size: {TYPE['label']}pt; font-weight: 600; letter-spacing: 0.8px; padding: 10px 12px 2px 12px; }}
+QLabel#railhead {{ color: #8FA1BA; font-size: {TYPE['small']}pt; font-weight: 600; letter-spacing: 0.3px; padding: 12px 12px 2px 12px; }}
 QLabel#brand {{ color: #FFFFFF; font-size: {TYPE['title']}pt; font-weight: 600; padding: 14px 12px 8px 12px; }}
 QLineEdit, QPlainTextEdit, QComboBox {{ background: {t['surface']}; color: {t['text']}; border: 1px solid {t['border_strong']};
                                        border-radius: {r['control']}px; padding: 4px 8px; selection-background-color: {t['accent']}; }}

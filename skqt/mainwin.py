@@ -33,37 +33,37 @@ from .exportallpage import ExportAllPage
 from .settingspage import SettingsPage
 
 
-RAIL = [("EFFORT", [("home", "Effort home"), ("deliverables", "Deliverables"), ("dashboard", "Dashboard"), ("record", "Effort record"),
+RAIL = [("Effort", [("home", "Effort Home"), ("deliverables", "Deliverables"), ("dashboard", "Dashboard"), ("record", "Effort Record"),
                     ("reviews", "Reviews")]),
-        ("DOCUMENTS", [("library", "Library"), ("compare", "Changes"), ("requirements", "Submission rules")]),
-        ("COMPLIANCE", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove"),
-                        ("crosswalk", "L/M crosswalk")]),
-        ("DELIVER", [("matrix", "Matrix"), ("setup", "Response Setup")]),
-        ("RESPONSE QUALITY", [("acronyms", "Customer terms"), ("acrlist", "Effort list"), ("qa", "Submission check"),
-                              ("lists", "Lists to submit"), ("keywords", "Keywords")]),
-        ("EFFORT FILES", [("exportall", "Export all"), ("settings", "Settings")])]
-TITLES = {"home": ("Effort home", "Stage, gate goals, tasks, questions and the calendar"),
+        ("Documents", [("library", "Library"), ("compare", "Changes"), ("requirements", "Submission Rules")]),
+        ("Compliance", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove"),
+                        ("crosswalk", "L/M Crosswalk")]),
+        ("Deliver", [("matrix", "Matrix"), ("setup", "Response Setup")]),
+        ("Response Quality", [("acronyms", "Customer Terms"), ("acrlist", "Effort List"), ("qa", "Submission Check"),
+                              ("lists", "Lists to Submit"), ("keywords", "Keywords")]),
+        ("Effort Files", [("exportall", "Export All"), ("settings", "Settings")])]
+TITLES = {"home": ("Effort Home", "Stage, gate goals, tasks, questions and the calendar"),
           "dashboard": ("Dashboard", "The effort on one screen"),
-          "record": ("Effort record", "Details, team, stages and gates, status, package and backup"),
+          "record": ("Effort Record", "Details, team, stages and gates, status, package and backup"),
           "reviews": ("Reviews", "Color team review packets, read back onto each requirement"),
           "library": ("Library", "Every document of the effort: categories, folders, tags, roles and search"),
-          "docs": ("Customer versions", "The customer's documents and every version of them"),
-          "requirements": ("Submission rules", "What the customer requires of the submission now, and what changed it"),
+          "docs": ("Customer Versions", "The customer's documents and every version of them"),
+          "requirements": ("Submission Rules", "What the customer requires of the submission now, and what changed it"),
           "compare": ("Changes", "What a new version changed, what it touches, and a decision on every change"),
-          "impact": ("Impact review", "What one new version touched across the effort"),
+          "impact": ("Impact Review", "What one new version touched across the effort"),
           "deliverables": ("Deliverables", "Every deliverable at a glance: where each stands and what is missing"),
-          "acronyms": ("Customer terms", "Start: the acronyms the customer's documents use, offered to the effort list"),
-          "acrlist": ("Effort list", "Throughout: the effort's glossary, with approved definitions"),
-          "qa": ("Submission check", "End: the volumes you will submit, against the effort list, banned words and page limits"),
-          "lists": ("Lists to submit", "End: the acronym lists for your volumes, built from what each one uses"),
+          "acronyms": ("Customer Terms", "Start: the acronyms the customer's documents use, offered to the effort list"),
+          "acrlist": ("Effort List", "Throughout: the effort's glossary, with approved definitions"),
+          "qa": ("Submission Check", "End: the volumes you will submit, against the effort list, banned words and page limits"),
+          "lists": ("Lists to Submit", "End: the acronym lists for your volumes, built from what each one uses"),
           "keywords": ("Keywords", "The effort's keywords, suggestions with reasons, and the SharePoint export"),
-          "exportall": ("Export all", "Every feature's outputs in one dated folder"),
+          "exportall": ("Export All", "Every feature's outputs in one dated folder"),
           "settings": ("Settings", "New effort, the effort's folders, the master database, backups"),
           "read": ("Read RFP", "Bring the customer's documents into the review"),
           "structure": ("Structure", "The sections of your response"),
           "assign": ("Assign", "Decide every sentence on the page"),
           "prove": ("Prove", "Every line read and decided"),
-          "crosswalk": ("L/M crosswalk", "Each instruction, the factor that scores it, and the work it describes"),
+          "crosswalk": ("L/M Crosswalk", "Each instruction, the factor that scores it, and the work it describes"),
           "matrix": ("Matrix", "The compliance matrix as the customer will see it"),
           "setup": ("Response Setup", "The Word documents your writers start from")}
 
@@ -91,7 +91,8 @@ class MainWindow(QMainWindow):
         # the navigation rail: areas of the app, the ones still in the classic window shown but not clickable
         rail = QWidget(); rail.setObjectName("railbox"); rail.setFixedWidth(232)
         rv = QVBoxLayout(rail); rv.setContentsMargins(D.SPACE["s"], 0, D.SPACE["s"], D.SPACE["m"]); rv.setSpacing(2)
-        brand = QLabel("Stationkeeper"); brand.setObjectName("brand"); rv.addWidget(brand)
+        from .brandview import MarkingStrip, RailBrand, RailFooter
+        self.rail_brand = RailBrand(self)                                   # 2.88.0: the company logos, always in view
         self.steps = QButtonGroup(self)
         self.step_btns = {}
         for head, items in RAIL:
@@ -106,11 +107,14 @@ class MainWindow(QMainWindow):
                     b.setToolTip("Still in Stationkeeper (classic): it moves to Qt in a coming release.")
                 rv.addWidget(b)
         rv.addStretch(1)
-        ver = QLabel(f"Offline. No AI. {version}"); ver.setObjectName("railhead"); rv.addWidget(ver)
+        self.rail_footer = RailFooter(version)                              # 2.88.0: the Stationkeeper mark, always in view
         rail_scroll = QScrollArea(); rail_scroll.setObjectName("railbox"); rail_scroll.setWidgetResizable(True)    # 2.65.0: a long rail scrolls
         rail_scroll.setFrameShape(QFrame.NoFrame); rail_scroll.setFixedWidth(232); rail_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         rail.setFixedWidth(232 - 2); rail_scroll.setWidget(rail)
-        rh.addWidget(rail_scroll)
+        rail_col = QWidget(); rail_col.setObjectName("railbox"); rail_col.setFixedWidth(232)
+        rcv = QVBoxLayout(rail_col); rcv.setContentsMargins(0, 0, 0, D.SPACE["m"]); rcv.setSpacing(0)
+        rcv.addWidget(self.rail_brand); rcv.addWidget(rail_scroll, 1); rcv.addWidget(self.rail_footer)
+        rh.addWidget(rail_col)
         col = QWidget(); cv = QVBoxLayout(col); cv.setContentsMargins(0, 0, 0, 0); cv.setSpacing(0)
         # the top bar: where you are, the effort, search, and whether everything is saved
         bar = QFrame(); bar.setProperty("bar", True)
@@ -128,6 +132,7 @@ class MainWindow(QMainWindow):
         self.effort_box.activated.connect(lambda i: self.open_effort(self.effort_box.itemText(i)))
         bh.addWidget(self.effort_box)
         self.saved = D.Pill("Saved", "ok"); bh.addWidget(self.saved)
+        self.marking = MarkingStrip(); cv.addWidget(self.marking)            # 2.88.0: CUI or proprietary, on every page
         cv.addWidget(bar)
         from .adaptive import PageStack
         self.stack = PageStack()                   # 2.86.0: a page scrolls only when the window is smaller than it needs
@@ -297,7 +302,30 @@ class MainWindow(QMainWindow):
             self.toast(repaired[0])
         elif any(i["severity"] == "error" for i in _issues):
             self.status("Effort health: a problem needs you. See Effort record > Effort health.")
+        self.apply_marking()
         self.title()
+        return True
+
+    def apply_marking(self):
+        """2.88.0: the strip across every page for an effort marked CUI, Proprietary or the team's own marking."""
+        sens = ""
+        if self.ws is not None:
+            try:
+                import branding as BR
+                import effortrec as _R
+                sens = BR.identity(_R.Record(self.ws.root))["sensitivity"]
+            except Exception:
+                diag.swallowed()
+        self.marking.show_marking(sens)
+        return sens
+
+    def go_branding(self):
+        """2.88.0: Settings, at the Branding card."""
+        self.go("settings")
+        try:
+            self.settings_page.scroll.ensureWidgetVisible(self.settings_page.branding_card, 0, 0)
+        except Exception:
+            diag.swallowed()
         return True
 
     def close_effort(self):
@@ -313,6 +341,8 @@ class MainWindow(QMainWindow):
             except Exception:
                 diag.swallowed()
         self.ws, self.review = None, None
+        if hasattr(self, "marking"):
+            self.marking.show_marking("")
 
     def set_matrix(self, M, new=False):
         self.review = AO.Review(M)

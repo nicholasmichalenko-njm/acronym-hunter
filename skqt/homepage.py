@@ -14,10 +14,10 @@ import effortrec as R
 import effortstate as ES
 from . import design as D
 
-CAL_TONE = {"due": "crit", "questions": "cust", "stage": "accent", "task": "warn", "done": "ok", "event": "muted"}
-CAL_ORDER = ("due", "questions", "stage", "task", "done", "event")
-CAL_WORDS = (("due", "Due"), ("questions", "Questions due"), ("stage", "Stages"), ("task", "Tasks due"), ("done", "Tasks done"),
-             ("event", "What happened"))
+CAL_TONE = {"due": "crit", "questions": "cust", "meeting": "ctx", "stage": "accent", "task": "warn", "done": "ok", "event": "muted"}
+CAL_ORDER = ("due", "questions", "meeting", "stage", "task", "done", "event")
+CAL_WORDS = (("due", "Due"), ("questions", "Questions due"), ("meeting", "Reviews and meetings"), ("stage", "Stages"), ("task", "Tasks due"),
+             ("done", "Tasks done"), ("event", "What happened"))
 KIND_WORDS = {"customer": "CUSTOMER", "ours": "OURS", "stage": "STAGE", "note": "NOTE", "task": "TASK", "assign": "PEOPLE",
               "requirement": "REQUIREMENT", "effort": "EFFORT", "qa": "QA/QC", "compliance": "COMPLIANCE", "deliverable": "DELIVERABLE", "gate": "GATE", "review": "REVIEW"}
 
@@ -65,10 +65,15 @@ class HomePage(QWidget):
         inner = QWidget(); inner.setObjectName("page"); scroll.setWidget(inner)
         v = QVBoxLayout(inner)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
+        # 2.88.0: the effort banner, then this person's layout
+        from .brandview import EffortBanner
+        self.banner = EffortBanner(self); v.addWidget(self.banner)
+        self.due = self.banner.due
+        self.deliv = self.banner.page_deliv
         top = QHBoxLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)
-        self.due = D.Pill("", "accent"); top.addWidget(self.due)
-        self.deliv = D.button("", "ghost", lambda: self.host.go("deliverables"), "The deliverables board")   # 2.87.0
-        top.addWidget(self.deliv)
+        self.role_pill = D.Pill("", "head"); top.addWidget(self.role_pill)
+        top.addWidget(D.button("Customize Home...", "ghost", lambda: self.customize(), "Your role's layout; show, hide and order the "
+                                                                                       "sections. Yours alone, on this PC."))
         top.addStretch(1)
         top.addWidget(D.label("Show tasks and questions for", "muted", wrap=False))
         self.who = QComboBox(); self.who.setMinimumWidth(180); self.who.addItem("Everyone")
@@ -78,18 +83,20 @@ class HomePage(QWidget):
         self.move_btn = D.button("Move stage...", "primary", self.move_dialog, "Move the effort to its next stage")
         self.track = D.Card("Stage", "Where the effort is. The stage moves only when you move it.", actions=[self.move_btn])
         self.track_row = QHBoxLayout(); self.track_row.setSpacing(D.SPACE["xs"]); self.track.body.addLayout(self.track_row)
-        v.addWidget(self.track)
-        grid = QGridLayout(); grid.setSpacing(D.SPACE["m"]); v.addLayout(grid)
-        grid.setColumnStretch(0, 1); grid.setColumnStretch(1, 1)
+        self.deliv_card = D.Card("Deliverables", actions=[D.button("Open the board", None, lambda: self.host.go("deliverables"))])
+        self.deliv_box = QVBoxLayout(); self.deliv_box.setSpacing(D.SPACE["xs"]); self.deliv_card.body.addLayout(self.deliv_box)
+        self.mywork = D.Card("My work", "What is assigned to you in this effort.")
+        self.mywork_box = QVBoxLayout(); self.mywork_box.setSpacing(D.SPACE["xs"]); self.mywork.body.addLayout(self.mywork_box)
         self.goals = D.Card("Gate goals", actions=[D.button("+ Goal", None, lambda: self.goal_dialog()),
                                                    D.button("Defaults...", "ghost", lambda: self.save_defaults(),
                                                             "Save this stage's goals as the default for new efforts")])
         self.tasks = D.Card("Tasks", actions=[D.button("+ Task", None, lambda: self.task_dialog())])
         self.notes = D.Card("Notes and open questions", actions=[D.button("+ Note", None, lambda: self.note_dialog()),
                                                                  D.button("+ Question", None, lambda: self.note_dialog(question=True))])
-        self.cal_card = D.Card("Calendar", "Due dates, stages, tasks and what happened. Pick a day to see it.")
-        for c, r, col in ((self.goals, 0, 0), (self.notes, 0, 1), (self.tasks, 1, 0), (self.cal_card, 1, 1)):
-            grid.addWidget(c, r, col, Qt.AlignTop)
+        from .calview import CalendarFiles                           # 2.88.0: the calendar as a file
+        self.calfiles = CalendarFiles(self)
+        self.cal_card = D.Card("Calendar", "Due dates, stages, tasks, reviews and meetings, and what happened. Pick a day to see it.",
+                               actions=self.calfiles.buttons())
         self.cal = QCalendarWidget(); self.cal.setGridVisible(False); self.cal.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
         self.cal.setFirstDayOfWeek(Qt.Monday); self.cal.setMinimumHeight(260)
         plain = QTextCharFormat(); plain.setForeground(D.color("text"))
@@ -109,10 +116,13 @@ class HomePage(QWidget):
         self.day_box = QVBoxLayout(); self.day_box.setSpacing(2); self.cal_card.body.addLayout(self.day_box)
         self.info = D.Card("Customer information", "Names, e-mails, phone numbers and addresses from the customer documents.",
                            actions=[D.button("+ Add...", None, lambda: self.info_dialog())])
-        v.addWidget(self.info)
         self.timeline = D.Card("Timeline", "The effort's paper trail, newest first.")
-        v.addWidget(self.timeline)
+        self.body = QVBoxLayout(); self.body.setSpacing(D.SPACE["m"]); v.addLayout(self.body)
         v.addStretch(1)
+        self.cards = {"stage": self.track, "deliverables": self.deliv_card, "mywork": self.mywork, "goals": self.goals,
+                      "notes": self.notes, "tasks": self.tasks, "calendar": self.cal_card, "info": self.info, "timeline": self.timeline}
+        self.lay = None
+        self.apply_layout()
         self.sections = {k: QVBoxLayout() for k in ("goals", "tasks", "notes", "info", "timeline")}
         for k, card in (("goals", self.goals), ("tasks", self.tasks), ("notes", self.notes), ("info", self.info),
                         ("timeline", self.timeline)):
@@ -141,21 +151,31 @@ class HomePage(QWidget):
         keep = self.who.currentText()
         people = self.state.people()
         self.who.clear(); self.who.addItems(["Everyone"] + people)
+        me = self.my_name()
+        if not getattr(self, "_who_set", False) and self.lay["role"] == "Author" and me in people:
+            keep = me                                               # 2.88.0: an author starts on their own tasks
+        self._who_set = True
         self.who.setCurrentText(keep if keep in people else "Everyone")
-        due = r.data.get("due", "")
-        self.due.setText(("Due " + R.due_text(due, r.data.get("zone", "")) + "  ·  " + R.countdown_text(due)) if due
-                         else "No due date set yet")
-        self.due.set_tone("accent" if due else "head")
+        L = h.record_page.effort_list()
+        try:
+            stage = (r.stage() or {}).get("name", "")
+        except Exception:
+            stage = ""
+        self.banner.fill(r, L, stage)                               # 2.88.0: the effort banner
+        self.cards_now = []
         try:                                                        # 2.87.0: the deliverables in one line
             import delivboard as DB
             from .custdocs import Ctx
             c = Ctx(h)
-            cards = DB.board(c.rec, c.reg.rows(), c.lib, c.volumes(), h.review.M if h.review is not None else None, h.ws.root,
-                             getattr(getattr(h.acronym_page, "session", None), "volume_report", None))
-            self.deliv.setText(DB.summary_line(cards) + "  \u203a")
+            self.cards_now = DB.board(c.rec, c.reg.rows(), c.lib, c.volumes(), h.review.M if h.review is not None else None, h.ws.root,
+                                      getattr(getattr(h.acronym_page, "session", None), "volume_report", None))
+            self.deliv.setText(DB.summary_line(self.cards_now) + "  \u203a")
         except Exception:
             diag.swallowed()
             self.deliv.setText("Deliverables  \u203a")
+        self.draw_deliverables()
+        self.draw_mywork()
+        self.calfiles.refresh()
         checks = self.checks = self.state.checks()
         self.draw_track(r)
         self.draw_goals(r, checks)
@@ -168,6 +188,138 @@ class HomePage(QWidget):
 
     def changed(self):
         self.refresh()
+
+    # ------------------------------------------------------------ 2.88.0: this person's layout
+    def my_name(self):
+        from .modes import settings
+        return (settings() or {}).get("my_name", "")
+
+    def apply_layout(self):
+        import branding as BR
+        from .modes import settings
+        self.lay = BR.layout(settings())
+        while self.body.count():                                     # take the cards out without deleting them
+            it = self.body.takeAt(0)
+            if it.layout() is not None:
+                lay = it.layout()
+                while lay.count():
+                    x = lay.takeAt(0)
+                    if x.widget() is not None:
+                        x.widget().setParent(None)
+                lay.deleteLater()
+            elif it.widget() is not None:
+                it.widget().setParent(None)
+        for c in self.cards.values():
+            c.setParent(None)
+        self.shown = BR.shown(self.lay)
+        for row in BR.rows(self.shown):
+            if len(row) == 1 and BR.WIDTH[row[0]] == "wide":
+                self.body.addWidget(self.cards[row[0]])
+            else:
+                hl = QHBoxLayout(); hl.setSpacing(D.SPACE["m"])
+                for k in row:
+                    hl.addWidget(self.cards[k], 1, Qt.AlignTop)
+                if len(row) == 1:
+                    hl.addStretch(1)
+                self.body.addLayout(hl)
+        for k, c in self.cards.items():
+            c.setVisible(k in self.shown)
+        self.role_pill.setText(f"Home for: {self.lay['role']}" + ("  (customized)" if self.lay["custom"] else ""))
+        return self.shown
+
+    def customize(self, answer=None):
+        """Customize Home. answer (tests): {role, order, hidden, me}."""
+        import branding as BR
+        from .modes import save
+        if answer is None:
+            from .brandview import CustomizeDialog
+            names = self.state.people() if self.state is not None else []
+            if not names and getattr(self.host, "authors", None) is not None:
+                try:
+                    names = self.host.authors.names()
+                except Exception:
+                    names = []
+            dlg = CustomizeDialog(self, self.lay, names, self.my_name())
+            if dlg.exec() != QDialog.Accepted:
+                return False
+            answer = dlg.values()
+        lay = BR.custom_layout(answer.get("role", self.lay["role"]), answer.get("order", self.lay["order"]), answer.get("hidden", []))
+        kv = {"home_layout": BR.to_json(lay)}
+        if "me" in answer:
+            kv["my_name"] = answer["me"]
+        save(**kv)
+        diag.activity("qt_home_customized")
+        self._who_set = False
+        self.apply_layout()
+        if self.host.ws is not None:
+            self.refresh()
+        return True
+
+    def draw_deliverables(self):
+        import delivboard as DB
+        clear(self.deliv_box)
+        cards = getattr(self, "cards_now", [])
+        if not cards:
+            self.deliv_box.addWidget(D.label("No deliverables yet. Add them on the board.", "muted"))
+            return
+        self.deliv_box.addWidget(D.label(DB.summary_line(cards), None))
+        from .delivboardview import HEALTH, TONE
+        for c in cards[:5]:
+            row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
+            row.addWidget(D.Pill(HEALTH[c["health"]], TONE[c["health"]]))
+            row.addWidget(D.label(f"<b>{c['name']}</b>  " + (c["missing"][0][1] if c["missing"] else "Nothing missing"), None), 1)
+            row.addWidget(D.button("Open", "ghost", lambda _=False, i=c["id"]: (self.host.go("deliverables"), self.host.deliverables_page.pick(i))))
+            self.deliv_box.addLayout(row)
+        if len(cards) > 5:
+            self.deliv_box.addWidget(D.label(f"and {len(cards) - 5} more on the board", "muted"))
+
+    def my_items(self):
+        """(requirement rows, my tasks, my questions) for the person this Home is for."""
+        me = self.my_name() or (self.person() or "")
+        reqs, tasks, qs = [], [], []
+        if not me:
+            return me, reqs, tasks, qs
+        h = self.host
+        if h.review is not None:
+            import setupdoc as SD
+            wait = set()
+            try:
+                import changereview as CR
+                wait = set(CR.Review(h.ws.root).load().awaiting())
+            except Exception:
+                diag.swallowed()
+            for it in h.review.M.items:
+                if it.get("decision") == "Keep" and (SD.owner_of(h.review.M, it) or "").casefold() == me.casefold():
+                    reqs.append({"id": it["id"], "section": it.get("map", ""), "text": it.get("text", ""), "awaiting": it["id"] in wait})
+        r = self.rec
+        tasks = [t for t in r.tasks() if (t.get("owner") or "").casefold() == me.casefold() and t.get("status") != "Done"] if r else []
+        try:
+            qs = [n for n in r.notes() if n.get("question") and not n.get("resolved") and (n.get("assignee") or "").casefold() == me.casefold()]
+        except Exception:
+            qs = []
+        return me, reqs, tasks, qs
+
+    def draw_mywork(self):
+        clear(self.mywork_box)
+        if "mywork" not in getattr(self, "shown", []):
+            return
+        me, reqs, tasks, qs = self.my_items()
+        if not me:
+            self.mywork_box.addWidget(D.label("Customize Home > I am: pick your name, and what is assigned to you shows here.", "muted"))
+            return
+        wait = [x for x in reqs if x["awaiting"]]
+        self.mywork_box.addWidget(D.label(f"<b>{me}</b>: {plural(len(reqs), 'requirement')} to answer"
+                                          + (f", {len(wait)} changed by a customer version and waiting for you" if wait else "")
+                                          + f", {plural(len(tasks), 'open task')}, {plural(len(qs), 'open question')}.", None))
+        for x in (wait + [y for y in reqs if not y["awaiting"]])[:8]:
+            row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
+            if x["awaiting"]:
+                row.addWidget(D.Pill("Confirm it", "warn"))
+            row.addWidget(D.label(f"<b>{x['id']}</b>  {x['section']}", None), 1)
+            row.addWidget(D.button("Open", "ghost", lambda _=False, i=x["id"]: self.host.deliverables_page.open_requirement(i)))
+            self.mywork_box.addLayout(row)
+        if len(reqs) > 8:
+            self.mywork_box.addWidget(D.label(f"and {len(reqs) - 8} more in Assign", "muted"))
 
     # ------------------------------------------------------------ stage track
     def draw_track(self, r):
@@ -627,8 +779,24 @@ class HomePage(QWidget):
         t = D.tokens()
         for kind, text in items or [("event", "Nothing on this day.")]:
             self.day_box.addWidget(D.label(f"<span style='color:{t[CAL_TONE.get(kind, 'muted')]}'>■</span> {text}"))
+        import html as _h
+        import effortcal as EC
+        for e in [e for e in self.rec.data.get("events", []) if e["date"] == d.isoformat()]:      # 2.88.0: the details
+            bits = [x for x in (("Until " + EC.nice_time(e["end"])) if e.get("end") else "",
+                                f"Owner: {e['owner']}" if e.get("owner") else "", f"Stage: {e['stage']}" if e.get("stage") else "",
+                                e.get("details", "")) if x]
+            row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
+            row.addWidget(D.label(f"<b>{_h.escape(e['title'])}</b>  " + _h.escape("  ·  ".join(bits)), "muted"), 1)
+            row.addWidget(D.button("Remove", "ghost", lambda _=False, i=e["id"]: self.remove_event(i)), 0, Qt.AlignTop)
+            self.day_box.addLayout(row)
         self.day_box.addWidget(D.button("+ Task due this day", None, lambda: self.task_dialog(due=d.isoformat())), 0, Qt.AlignLeft)
         return items
+
+    def remove_event(self, eid):
+        import effortcal as EC
+        ok = EC.remove_event(R.Record(self.host.ws.root), eid)
+        self.refresh()
+        return ok
 
     # ------------------------------------------------------------ timeline
     def draw_timeline(self, r):

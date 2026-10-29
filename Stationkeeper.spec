@@ -62,7 +62,7 @@ if TRAINING:
     hiddenimports += ['trainer_gui', 'training_app']   # the Trainer and Improve Reading: Stationkeeper Training only
 hiddenimports += ['equations', 'symbol_picker', 'help_guide', 'diag', 'feedback', 'effort', 'effort_ui', 'custdefs', 'volcheck', 'volcheck_ui', 'compliance', 'compliance_ui', 'docxw', 'complearn', 'placelearn', 'cwords', 'exportall_ui', 'shell_ui', 'compliance_page', 'workspace', 'workspace_ui', 'ai_stack', 'ai_ui', 'setupdoc', 'setup_ui', 'context', 'effort_wizard', 'effort_home', 'master_db', 'keywords', 'keywords_ui', 'offerings']   # equation and symbol recognition (2.0.0), symbol picker (2.3.0)
 hiddenimports += ['skia']   # Google Skia (BSD-3): draws SVG pictures for OCR
-datas += [('assets/scanner.ico', 'assets'), ('assets/trainer.ico', 'assets')]   # window/taskbar icons at runtime
+datas += [('assets/scanner.ico', 'assets'), ('assets/trainer.ico', 'assets'), ('assets/scanner_256.png', 'assets')]   # window/taskbar icons; the menu's Stationkeeper mark (2.88.0)
 datas += [('assets/help', 'assets/help')]   # "?" guide screenshots
 datas += [('assets/common_words.txt', 'assets')]   # SCOWL common words: sentence-end words are not abbreviations
 
@@ -72,7 +72,7 @@ def make_analysis(script, qt=False):
     pathex=[],
     binaries=binaries,
     datas=datas,
-    hiddenimports=hiddenimports + (['skqt', 'skqt.mainwin', 'skqt.readpage', 'skqt.assign', 'skqt.theme', 'skqt.design', 'skqt.structure', 'skqt.prove', 'structure_ops', 'skqt.matrixpage', 'skqt.setuppage', 'skqt.crosswalkpage', 'crosswalk', 'effortstate', 'skqt.homepage', 'skqt.dashpage', 'reviewpkt', 'skqt.recordpage', 'skqt.reviewpage', 'acrsession', 'skqt.acronympage', 'skqt.effortlistpage', 'docintake', 'skqt.custdocs', 'skqt.qapage', 'skqt.keywordspage', 'skqt.exportallpage', 'skqt.settingspage', 'outline_ops', 'structstart', 'capture', 'skqt.trainingwin', 'skqt.trainerpage', 'skqt.pkgimport', 'skqt.updates', 'updatepack', 'edsign', 'skqt.people', 'authorlist', 'skqt.safety', 'skqt.modes', 'lineage', 'workmode', 'datahome', 'effortcheck', 'supportfile', 'skqt.helpcenter', 'skqt.progress', 'skqt.librarypage', 'ctxdocs', 'skqt.ctxassign', 'changereview', 'skqt.changeview', 'skqt.listspage', 'skqt.adaptive', 'skqt.whereview', 'delivboard', 'skqt.delivboardview', 'compliance_read',
+    hiddenimports=hiddenimports + (['skqt', 'skqt.mainwin', 'skqt.readpage', 'skqt.assign', 'skqt.theme', 'skqt.design', 'skqt.structure', 'skqt.prove', 'structure_ops', 'skqt.matrixpage', 'skqt.setuppage', 'skqt.crosswalkpage', 'crosswalk', 'effortstate', 'skqt.homepage', 'skqt.dashpage', 'reviewpkt', 'skqt.recordpage', 'skqt.reviewpage', 'acrsession', 'skqt.acronympage', 'skqt.effortlistpage', 'docintake', 'skqt.custdocs', 'skqt.qapage', 'skqt.keywordspage', 'skqt.exportallpage', 'skqt.settingspage', 'outline_ops', 'structstart', 'capture', 'skqt.trainingwin', 'skqt.trainerpage', 'skqt.pkgimport', 'skqt.updates', 'updatepack', 'edsign', 'skqt.people', 'authorlist', 'skqt.safety', 'skqt.modes', 'lineage', 'workmode', 'datahome', 'effortcheck', 'supportfile', 'skqt.helpcenter', 'skqt.progress', 'skqt.librarypage', 'ctxdocs', 'skqt.ctxassign', 'changereview', 'skqt.changeview', 'skqt.listspage', 'skqt.adaptive', 'skqt.whereview', 'delivboard', 'skqt.delivboardview', 'branding', 'effortcal', 'skqt.brandview', 'skqt.calview', 'compliance_read',
                                     'assign_ops'] if qt else []),
     hookspath=[],
     hooksconfig={},

@@ -44,6 +44,9 @@ class SettingsPage(QWidget):
         from .people import AuthorListCard               # 2.77.0: the one place names come from
         self.authors = AuthorListCard(host)
         v.addWidget(self.authors)
+        from .brandview import BrandingCard              # 2.88.0: the company logos at the top of the menu
+        self.branding_card = BrandingCard(host)
+        v.addWidget(self.branding_card)
         self.scroll = sc
         self.db = D.Card("Master database", "The company's acronyms, abbreviations, units and symbols, shared by every effort on this PC.",
                          actions=[D.button("Load a new version...", None, lambda: self.load_master())])
