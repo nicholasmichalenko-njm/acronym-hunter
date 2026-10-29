@@ -154,8 +154,8 @@ class ReadPage(QWidget):
         self._guard = False
         empty = not docs and R is None
         if empty:
-            self.list.addWidget(D.EmptyState("No customer documents yet", "Add the RFP files in Customer Documents: every "
-                                             "version is kept, and new ones are compared.", "Go to Documents", lambda: self.host.go("docs")))
+            self.list.addWidget(D.EmptyState("No customer documents yet", "Add the RFP files in Library (Customer documents): every "
+                                             "version is kept, and new ones are compared.", "Go to Library", lambda: self.host.go("library")))
         self.area.setVisible(empty); self.tree.setVisible(not empty)
         self.fill_only()
         self.show_count()

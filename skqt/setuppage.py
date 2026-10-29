@@ -121,7 +121,8 @@ class SetupPage(QWidget):
                 return None
         try:
             os.makedirs(folder, exist_ok=True)
-            paths = SD.export(R.M, folder)
+            import ctxdocs as CX
+            paths = SD.export(R.M, folder, context=CX.section_context(self.host.ws.root))
         except PermissionError:
             self.host.status("A file with that name is open in Word: close it, then export again.")
             return None

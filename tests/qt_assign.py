@@ -144,8 +144,8 @@ w.close()
 pgA = w.assign_page
 col = pgA.tree.parentWidget()
 check("decisions beside the response structure, the target named above them",
-      all(pgA.keys[k].parentWidget() is pgA.dec_box for k in ("Requirement", "L", "M", "Support", "Customer's", "Not"))
-      and pgA.dec_box.parentWidget() is col and pgA.keys["Combine"].parentWidget() is not pgA.dec_box
+      all(pgA.dec_box.isAncestorOf(pgA.keys[k]) for k in ("Requirement", "L", "M", "Support", "Customer's", "Not"))
+      and pgA.dec_box.parentWidget() is col and not pgA.dec_box.isAncestorOf(pgA.keys["Combine"])
       and (pgA.target or "Click a section") and ("into" in pgA.target_lbl.text() or "Click a section" in pgA.target_lbl.text()), pgA.target_lbl.text())
 
 n = sum(checks)

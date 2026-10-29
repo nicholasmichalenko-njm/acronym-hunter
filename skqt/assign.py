@@ -192,6 +192,8 @@ class AssignPage(QWidget):
         self.conv = set()
         self.conv_err = {}
         self.workers = []
+        self.cx = None                             # 2.84.0: the library document open (ctxassign.CtxMode), else None
+        self.lib_entries = {}
         v = QVBoxLayout(self)
         v.setContentsMargins(6, 6, 6, 6)
         bar = QHBoxLayout(); v.addLayout(bar)
@@ -228,7 +230,7 @@ class AssignPage(QWidget):
         dec = QFrame(); dec.setProperty("card", True); dv = QVBoxLayout(dec)       # 2.82.0: decide, next to the structure
         dv.setContentsMargins(D.SPACE["m"], D.SPACE["s"], D.SPACE["m"], D.SPACE["s"]); dv.setSpacing(D.SPACE["xs"])
         self.target_lbl = D.label("", None); self.target_lbl.setTextFormat(Qt.RichText); dv.addWidget(self.target_lbl)
-        grid = QGridLayout(); grid.setSpacing(D.SPACE["xs"]); dv.addLayout(grid)
+        grid = QGridLayout(); grid.setSpacing(D.SPACE["xs"]); grid.setContentsMargins(0, 0, 0, 0)
         self.dec_box = dec
         for k, (text, kind, fn, tip) in enumerate((
                 ("Requirement  R", "req", self.do_req, "The selected sentences become compliance requirements in the target section"),
@@ -240,6 +242,23 @@ class AssignPage(QWidget):
             b = D.button(text, kind, fn, tip)
             self.keys[text.split()[0]] = b
             grid.addWidget(b, k // 3, k % 3)
+        self.dec_grid = QWidget(); self.dec_grid.setLayout(grid)
+        dv.addWidget(self.dec_grid)
+        cgrid = QGridLayout(); cgrid.setSpacing(D.SPACE["xs"])                # 2.84.0: for a library document
+        self.ctx_keys = {}
+        for k, (text, kind, fn, tip) in enumerate((
+                ("Context for section  C", "ctx", lambda: self.do_ctx(), "Context for the target section: shows in the section and in Response Setup"),
+                ("For a requirement  F", "ctx", lambda: self.do_for_req(), "Context for a compliance requirement of the target section"),
+                ("Make it a requirement  R", "req", lambda: self.do_req(), "Into the matrix as a compliance requirement in the target section"),
+                ("Note  N", None, lambda: self.do_record("note"), "A note in the effort record, quoting it"),
+                ("Question  Q", "cust", lambda: self.do_record("question"), "A question for the customer, quoting it"),
+                ("Task  T", None, lambda: self.do_record("task"), "A task in the effort record, quoting it"),
+                ("Not needed  X", None, lambda: self.do_clear(), "Take its attachments off"))):
+            b = D.button(text, kind, fn, tip)
+            self.ctx_keys[text.split("  ")[0]] = b
+            cgrid.addWidget(b, k // 3, k % 3)
+        self.ctx_grid = QWidget(); self.ctx_grid.setLayout(cgrid); self.ctx_grid.hide()
+        dv.addWidget(self.ctx_grid)
         sv.addWidget(dec)
         vrow = QHBoxLayout(); sv.addLayout(vrow)                       # 2.68.0: the volume you are working on
         vrow.addWidget(D.label("Volume", "label", wrap=False))
@@ -247,7 +266,7 @@ class AssignPage(QWidget):
         self.volume.activated.connect(lambda _i: self.pick_volume(self.volume.currentData()))
         vrow.addWidget(self.volume, 1)
         vrow.addWidget(D.button("+ Volume", None, lambda: self.new_volume(), "A new volume at the end of the structure"))
-        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Your response structure (click a section: the target)", "Req."])
+        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Your response structure (click a section: the target)", "Req.", "Ctx"])
         self.tree.setColumnWidth(0, 380)
         self.tree.itemClicked.connect(lambda i, _c: self.set_target(i.data(0, Qt.UserRole)))
         self.tree.itemDoubleClicked.connect(lambda i, _c: self.rename_section(i.data(0, Qt.UserRole)))
@@ -282,6 +301,8 @@ class AssignPage(QWidget):
         for key, fn in (("R", self.do_req), ("C", self.do_ctx), ("G", self.do_customer), ("X", self.do_clear),
                         ("L", lambda: self.do_lm("L")), ("E", lambda: self.do_lm("M")), ("Shift+M", lambda: self.do_lm("M")),
                         ("Delete", self.do_clear), ("J", self.do_combine), ("S", self.do_split), ("Ctrl+Z", self.do_undo),
+                        ("F", lambda: self.do_for_req()), ("N", lambda: self.do_record("note")),
+                        ("Q", lambda: self.do_record("question")), ("T", lambda: self.do_record("task")),
                         ("Escape", lambda: self.toggle_capture(False) if self.view.capturing else self.view.scene().clearSelection())):
             QShortcut(QKeySequence(key), self.view, activated=fn)
         self.show_card([])
@@ -297,11 +318,8 @@ class AssignPage(QWidget):
 
     def load(self):
         """The review changed (opened, read): fill the file list and the structure."""
-        self.files.blockSignals(True)
-        self.files.clear()
-        if self.R:
-            self.files.addItems(self.R.files())
-        self.files.blockSignals(False)
+        self.fill_file_list()
+        self.cx = None
         self.fill_tree()
         if self.R and self.R.files():
             self.open_file(self.R.files()[0])
@@ -309,12 +327,58 @@ class AssignPage(QWidget):
             self.view.scene().clear()
             self.view.boxes = {}
 
+    def fill_file_list(self):
+        """The matrix's files, then (2.84.0) the library documents to read beside the structure."""
+        from . import ctxassign as CXA
+        self.files.blockSignals(True)
+        self.files.clear()
+        self.lib_entries = {}
+        if self.R:
+            self.files.addItems(self.R.files())
+            try:
+                ents = CXA.library_entries(self)
+            except Exception:
+                diag.swallowed()
+                ents = []
+            if ents:
+                self.files.insertSeparator(self.files.count())
+                for lab, did in ents:
+                    self.files.addItem(lab)
+                    self.lib_entries[lab] = did
+        self.files.blockSignals(False)
+
+    def load_files_keep(self):
+        cur = self.files.currentText()
+        self.fill_file_list()
+        self.files.blockSignals(True)
+        if cur:
+            self.files.setCurrentText(cur)
+        self.files.blockSignals(False)
+
+    def _ctx_counts(self):
+        try:
+            import ctxdocs as CX
+            return CX.Store(self.host.ws.root).load().section_counts() if self.host.ws is not None else {}
+        except Exception:
+            diag.swallowed()
+            return {}
+
+    def set_mode(self):
+        """2.84.0: the decision buttons for the matrix, or for a library document."""
+        lib = self.cx is not None
+        self.dec_grid.setVisible(not lib); self.ctx_grid.setVisible(lib)
+        for k in ("Combine", "Split"):
+            self.keys[k].setEnabled(not lib)
+        self.show_target()
+
     def copies_dir(self):
         ws = self.host.ws
         return ws.p("page copies") if ws is not None else ""
 
     def pdf_of(self, f):
         """(pdf, why not)."""
+        if self.cx is not None:
+            return self.cx.pdf()
         path = self.M.path_of(f)
         if not path:
             return "", f"{f} is not on this PC"
@@ -353,6 +417,19 @@ class AssignPage(QWidget):
     def open_file(self, f):
         if not f or self.R is None:
             return
+        if f in self.lib_entries:                  # 2.84.0: a library document beside the structure
+            from . import ctxassign as CXA
+            try:
+                self.cx = CXA.CtxMode(self, self.lib_entries[f])
+            except Exception:
+                diag.swallowed()
+                self.cx = None
+                self.host.status("That library document could not be opened.")
+                return
+            diag.activity("library_document_opened_in_assign")
+        else:
+            self.cx = None
+        self.set_mode()
         self.file = f
         self.pdf, why = self.pdf_of(f)
         sc = self.view.scene()
@@ -396,13 +473,13 @@ class AssignPage(QWidget):
         for b in old.values():
             sc.removeItem(b)
         self._guard = False
-        rows = self.R.rows_of(self.file)
+        rows = self.cx.rows if self.cx is not None else self.R.rows_of(self.file)
         try:
             self.placed = PS.place_all(self.pdf, rows)
         except Exception:
             diag.swallowed()
             self.placed = {}
-        heads = [x for x in self.M.headings if x.get("file") in ("", None, self.file)]
+        heads = [] if self.cx is not None else [x for x in self.M.headings if x.get("file") in ("", None, self.file)]
         items = [dict(it, place=self.placed[it["id"]][0], lead_place=self.placed[it["id"]][1]) for it in rows if it["id"] in self.placed]
         rects = {}
         for n in range(1, len(self.tops) + 1):
@@ -426,6 +503,8 @@ class AssignPage(QWidget):
 
     # ------------------------------------------------------------ drawing decisions
     def restyle(self):
+        if self.cx is not None:
+            return self.cx.restyle()
         sc = self.view.scene()
         for lab in self.labels:
             sc.removeItem(lab)
@@ -458,6 +537,8 @@ class AssignPage(QWidget):
     def selected(self):
         if self.R is None:
             return []
+        if self.cx is not None:
+            return self.cx.selected()
         ids = [b.iid for b in self.view.scene().selectedItems() if isinstance(b, SentenceBox)]
         order = {it["id"]: k for k, it in enumerate(self.M.items)}
         return [x for x in (self.R.item(i) for i in sorted(ids, key=lambda i: order.get(i, 0))) if x]
@@ -465,6 +546,8 @@ class AssignPage(QWidget):
     def on_select(self):
         if self._guard or self.R is None:
             return
+        if self.cx is not None:
+            return self.cx.on_select()
         self.save_notes()
         rows = self.selected()
         self.split_at = None
@@ -475,6 +558,15 @@ class AssignPage(QWidget):
         self.show_card(rows)
 
     def select(self, iid):
+        if self.cx is not None and iid in self.cx.byid:
+            self._guard = True
+            self.view.scene().clearSelection()
+            b = self.view.boxes.get(iid)
+            if b is not None:
+                b.setSelected(True)
+                self.view.ensureVisible(b, 40, 140)
+            self._guard = False
+            return self.cx.on_select()
         it = self.R.item(iid)
         if it is not None and it.get("file") != self.file:
             self.files.setCurrentText(it["file"])
@@ -536,6 +628,8 @@ class AssignPage(QWidget):
         return l
 
     def show_card(self, rows):
+        if self.cx is not None:
+            return self.cx.show_card(rows)
         self.clear_card()
         self.notes = None
         if self.R is None or not rows:
@@ -647,6 +741,16 @@ class AssignPage(QWidget):
             b.setStyleSheet(f"background:{t_['surface2']};border:1px solid {t_['border']};border-radius:{D.RADIUS['control']}px;padding:6px")
             b.linkActivated.connect(lambda href: self.select(href))
             self.rel_labels.append(self.add(b))
+        from . import ctxassign as CXA                  # 2.84.0: what people attached to it from library documents
+        lib_ctx = CXA.library_for_requirement(self, it["id"])
+        self.lib_labels = []
+        if lib_ctx:
+            self.head(f"From the library ({len(lib_ctx)})")
+            t_ = D.tokens()
+            for text_, docn, where_, _aid in lib_ctx:
+                b = D.label(f"{text_[:300]}\n{docn}" + (f", {where_}" if where_ else ""))
+                b.setStyleSheet(f"background:{t_['ctx_soft']};border:1px solid {t_['border']};border-radius:{D.RADIUS['control']}px;padding:6px")
+                self.lib_labels.append(self.add(b))
         self.head("Notes")
         self.notes = self.add(QPlainTextEdit(it.get("notes", "")))
         self.notes.setFixedHeight(72)
@@ -728,6 +832,7 @@ class AssignPage(QWidget):
             return
         self.fill_volumes()
         counts = self.R.counts()
+        ctxn = self._ctx_counts()
         show = set(O.in_volume(self.M, self.active_volume))
         stack = []
         for o in self.M.outline:
@@ -735,7 +840,9 @@ class AssignPage(QWidget):
             if lab not in show:
                 continue
             lvl = o.get("level", 1)
-            node = QTreeWidgetItem([lab, str(counts.get(lab, "") or "")])
+            node = QTreeWidgetItem([lab, str(counts.get(lab, "") or ""), str(ctxn.get(lab, "") or "")])
+            if ctxn.get(lab):
+                node.setToolTip(2, f"{ctxn[lab]} sentence(s) from library documents attached as context")
             node.setData(0, Qt.UserRole, lab)
             if lab == self.target:
                 f = node.font(0); f.setBold(True); node.setFont(0, f)
@@ -752,6 +859,9 @@ class AssignPage(QWidget):
         import html
         if self.R is None or not self.M.outline:
             self.target_lbl.setText("<b>Decide</b> &nbsp;Requirements go into the response structure: add a section below first.")
+        elif self.cx is not None:
+            self.target_lbl.setText("<b>From the library</b> &nbsp;" + (f"C and R put the selected sentences into <b>{html.escape(self.target)}</b>"
+                                    if self.target else "Click a section below: C and R put the selected sentences there."))
         elif self.target:
             self.target_lbl.setText(f"<b>Decide</b> &nbsp;R, L and M put the selected sentences into "
                                     f"<b>{html.escape(self.target)}</b>")
@@ -852,6 +962,8 @@ class AssignPage(QWidget):
             self.host.status(msg)
 
     def do_req(self):
+        if self.cx is not None:
+            return self.cx.promote()
         rows = self.selected()
         if not rows:
             return
@@ -862,6 +974,8 @@ class AssignPage(QWidget):
 
     def do_lm(self, lm):
         """2.68.0: L or M; a sentence that is not a requirement yet becomes one (in the target section, if any)."""
+        if self.cx is not None:
+            return self.host.status("L and M are for the matrix's documents. R makes this sentence a requirement first.")
         rows = self.selected()
         if not rows:
             return
@@ -1044,6 +1158,11 @@ class AssignPage(QWidget):
             return None
         self.R.snap()
         new = O.rename(self.M, label, title)
+        try:                                          # 2.84.0: library context follows the section's new name
+            import ctxdocs as CX
+            CX.Store(self.host.ws.root).load().rename_section(label, new)
+        except Exception:
+            diag.swallowed()
         if label in O.volume_heads(self.M) or self.active_volume == label:
             self.active_volume = new if self.active_volume == label else self.active_volume
         self.target = new
@@ -1076,7 +1195,21 @@ class AssignPage(QWidget):
         self.after(f"Section {label} taken out" + (f"; its sentences are in {to}" if to else "; its sentences have no section now"))
         return to
 
+    def do_for_req(self):
+        """2.84.0: F, a library sentence as context for a compliance requirement."""
+        if self.cx is None:
+            return self.host.status("F is for library documents: open one from the File list (Library: ...).")
+        return self.cx.for_requirement()
+
+    def do_record(self, kind):
+        """2.84.0: N, Q, T: a note, a question or a task from a library sentence."""
+        if self.cx is None:
+            return self.host.status("N, Q and T are for library documents: open one from the File list (Library: ...).")
+        return self.cx.record(kind)
+
     def do_ctx(self):
+        if self.cx is not None:
+            return self.cx.attach("section")
         rows = self.selected()
         if rows:
             self.R.ctx(rows)
@@ -1084,18 +1217,24 @@ class AssignPage(QWidget):
             self.after(f"{len(rows)} sentence(s): support for {rows[0].get('context_for') or 'nothing yet (+ Requirement on the card)'}")
 
     def do_customer(self):
+        if self.cx is not None:
+            return self.host.status("G is for the matrix's documents.")
         rows = self.selected()
         if rows:
             self.R.customer(rows)
             self.after(f"{len(rows)} sentence(s): the customer's")
 
     def do_clear(self):
+        if self.cx is not None:
+            return self.cx.clear()
         rows = self.selected()
         if rows:
             self.R.clear(rows)
             self.after(f"{len(rows)} sentence(s): not used")
 
     def do_combine(self):
+        if self.cx is not None:
+            return self.host.status("Combine and Split are for the matrix's documents.")
         rows = self.selected()
         if len(rows) < 2:
             self.host.status("Select two or more sentences (Ctrl+click or drag), then M.")
@@ -1107,6 +1246,8 @@ class AssignPage(QWidget):
         self.after(f"Combined {len(rows)} sentences into {first['id']}")
 
     def do_split(self):
+        if self.cx is not None:
+            return self.host.status("Combine and Split are for the matrix's documents.")
         rows = self.selected()
         if len(rows) != 1:
             self.host.status("Select one sentence, click the word to split before, then S.")

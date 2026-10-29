@@ -662,7 +662,10 @@ def _safe(s):
     return re.sub(r"[^A-Za-z0-9 _.-]+", "", s).strip().replace(" ", "_")[:60] or "Setup"
 
 
-def _doc_for(M, name, entries, P, inh, stamp):
+LIBRARY_TEAL = "0F766E"
+
+
+def _doc_for(M, name, entries, P, inh, stamp, context=None):
     import docxw, compliance as C
     S = setup_of(M)
     B = by_id(M)
@@ -708,6 +711,9 @@ def _doc_for(M, name, entries, P, inh, stamp):
         mg = S["mgmt"].get(lab, "").strip()
         if mg:
             d.para(mg, color=GREEN)
+        for text, docname, where in (context or {}).get(lab, []):    # 2.84.0: context taken from library documents
+            d.rich([("From " + docname + (f" ({where})" if where else "") + ": ", {"color": LIBRARY_TEAL, "bold": True}),
+                    (text, {"color": LIBRARY_TEAL})], indent=720, border=LIBRARY_TEAL)
     return d
 
 
@@ -720,8 +726,9 @@ def snapshot(M):
             "mgmt": {lab: _sig(S["mgmt"].get(lab, "")) for lab in P}}
 
 
-def export(M, folder, when=None):
-    """Write one .docx per volume into folder. Returns the paths. Records a snapshot for Export changes only."""
+def export(M, folder, when=None, context=None):
+    """Write one .docx per volume into folder. Returns the paths. Records a snapshot for Export changes only.
+    context (2.84.0): {section label: [(text, document, where)]}, sentences from library documents attached to sections."""
     when = when or datetime.datetime.now()
     stamp = when.strftime("%Y-%m-%d %H:%M")
     tag = when.strftime("%Y-%m-%d_%H%M")
@@ -733,7 +740,7 @@ def export(M, folder, when=None):
     for name, entries in groups:
         part = "" if len(groups) == 1 else "_" + _safe(name)
         p = os.path.join(folder, f"{stem}_Response_Setup{part}_{tag}.docx")
-        _doc_for(M, name, entries, P, inh, stamp).save(p)
+        _doc_for(M, name, entries, P, inh, stamp, context).save(p)
         paths.append(p)
     S = setup_of(M)
     snap = snapshot(M)

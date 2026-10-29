@@ -1,6 +1,22 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+READ AND ASSIGN ANY DOCUMENT (2.84.0)
+  - Library documents that do not build the matrix (attachments, ICDs, Q&A, standards, past proposals) are in Assign's
+    File list under "Library: ...", or open them with Library > Read it in Assign. They open on the same page, beside
+    the same response structure. The rule is the same: select text, then choose where it goes.
+  - The buttons beside the structure change for a library document: Context for section (C) into the target section;
+    For a requirement (F), one of the target section's requirements; Note (N), Question (Q) and Task (T) in the effort
+    record, quoting the sentence; Make it a requirement (R), into the matrix in the target section with its document
+    and place; Not needed (X) takes its attachments off. Topics can be added on the card.
+  - Where it shows: the structure's Ctx column counts each section's context; the page tags it in the margin; a
+    requirement's card lists what was attached to it; Response Setup prints the context under its section, with the
+    document and place; renaming a section keeps its context.
+  - Library > Taken from documents... lists every sentence taken and what it is attached to, filters by kind,
+    document and topic, opens one in Assign, and exports it all to Excel for writers.
+  - Each attachment keeps the quoted text and the version it came from, so it reads the same if the file moves or is
+    left out of a package.
+
 THE DOCUMENT LIBRARY (2.83.0)
   - Documents > Library holds every document of the effort: Customer documents, Bidders library, Q&A, Our effort
     documents, and categories you add (New category...). The left side lists the categories and their folders; the

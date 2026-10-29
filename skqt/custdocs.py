@@ -462,7 +462,7 @@ class RequirementsPage(QWidget):
         shown = [r for r in allrows if self.hidden.isChecked() or not r["hidden"]]
         n_rev = sum(1 for r in allrows if r["to_review"])
         self.facts.setText(SR.summary_text([r for r in allrows if not r["hidden"]]) or
-                           ("No submission requirements found yet." if c.lib.docs else "No customer documents yet: add them on Documents."))
+                           ("No submission requirements found yet." if c.lib.docs else "No customer documents yet: add them in Library."))
         sel = None
         for _gk, label, kinds in REQ_GROUPS:
             mine = [r for r in shown if r["kind"] in kinds]
@@ -654,7 +654,7 @@ class ComparePage(QWidget):
         for d in docs:
             self.doc.addItem(f"{d['name']} ({len(d['versions'])} versions)", d["id"])
         if not docs:
-            self.sum.setText("No customer documents yet: add them on Documents.")
+            self.sum.setText("No customer documents yet: add them in Library.")
             self.table.setRowCount(0)
             return
         want = self.sel[0] if self.sel[0] in [d["id"] for d in docs] else next((d["id"] for d in docs if len(d["versions"]) > 1), docs[0]["id"])

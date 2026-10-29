@@ -219,6 +219,9 @@ class LibraryPage(QWidget):
         for p in (self.p_docs, self.p_und, self.p_miss):
             top.addWidget(p)
         top.addStretch(1)
+        self.b_taken = D.button("Taken from documents...", None, lambda: self.show_taken(),
+                                "Every sentence taken from a library document in Assign, and what it is attached to (2.84.0)")
+        top.addWidget(self.b_taken)
         self.b_cat = D.button("New category...", None, lambda: self.new_category(), "A category of your own (Competitor intel, Pricing...)")
         top.addWidget(self.b_cat)
         self.b_folder = D.button("Add a folder...", None, lambda: self.add_folder(), "Every document in a folder and its subfolders; the folder names become tags")
@@ -291,6 +294,10 @@ class LibraryPage(QWidget):
         self.d_tags = QLineEdit(); self.d_tags.setPlaceholderText("Comma between tags")
         self.d_tags.editingFinished.connect(self.set_tags)
         self.side.addWidget(self.d_tags)
+        self.b_read = D.button("Read it in Assign", "primary", lambda: self.read_in_assign(),
+                               "Open it beside your response structure: select text, then choose where it goes (2.84.0)")
+        self.side.addWidget(self.b_read)
+        self.d_taken = D.label("", "muted"); self.side.addWidget(self.d_taken)
         self.side.addWidget(D.label("Versions", "label", wrap=False))
         self.d_versions = QListWidget(); self.d_versions.setMaximumHeight(130); self.side.addWidget(self.d_versions)
         self.hits_lbl = D.label("Found in the text", "label", wrap=False); self.side.addWidget(self.hits_lbl)
@@ -465,6 +472,13 @@ class LibraryPage(QWidget):
             self.d_cat.addItem(n, k)
         self.d_cat.setCurrentIndex(max(0, self.d_cat.findData(d.get("category", "customer")))); self.d_cat.blockSignals(False)
         self.d_folder.setText(d.get("folder", "")); self.d_tags.setText(", ".join(d.get("tags", [])))
+        try:
+            import ctxdocs as CX
+            nt = len(CX.Store(self.host.ws.root).load().of_doc(d["id"]))
+        except Exception:
+            nt = 0
+        self.d_taken.setText(f"{nt} sentence(s) taken from it" if nt else "Nothing taken from it yet.")
+        self.b_read.setEnabled(self.lib.role_of(d) != "not_needed")
         self.d_versions.clear()
         for i, ver in enumerate(reversed(d["versions"])):
             here = lib.has_original(ver)
@@ -531,6 +545,37 @@ class LibraryPage(QWidget):
             diag.activity("library_category_added")
             self.fill_tree()
         return key
+
+    def read_in_assign(self, doc_id=None):
+        """2.84.0: open the document in Assign, beside the response structure."""
+        doc_id = doc_id or self.current_id()
+        h = self.host
+        if not doc_id or h.ws is None:
+            return False
+        if h.review is None:
+            h.status("Read RFP first: Assign reads library documents beside the response structure of the matrix.")
+            return False
+        h.go("assign")
+        ap = h.assign_page
+        ap.load_files_keep()
+        lab = next((k for k, did in ap.lib_entries.items() if did == doc_id), None)
+        if lab is None:
+            d = self.lib.doc(doc_id) if self.lib else None
+            if d is not None and d["versions"] and d["versions"][-1].get("file") in h.review.files():
+                ap.files.setCurrentText(d["versions"][-1]["file"])
+                return True
+            h.status("That document builds the matrix: it is read in Read RFP.")
+            return False
+        ap.files.setCurrentText(lab)
+        return True
+
+    def show_taken(self, run=True):
+        if self.host.ws is None:
+            return None
+        dlg = TakenDialog(self)
+        if run:
+            dlg.exec()
+        return dlg
 
     # ------------------------------------------------------------ bringing documents in
     def running(self):
@@ -656,3 +701,89 @@ class LibraryPage(QWidget):
             rec.save()
         except Exception:
             diag.swallowed()
+
+
+# ====================================================================== what was taken from the library (2.84.0)
+class TakenDialog(QDialog):
+    """Every sentence taken from a library document, and what it is attached to: filter by kind, document, section
+    or topic, search the words, export it all for writers, or open one in Assign."""
+
+    def __init__(self, page):
+        super().__init__(page)
+        import ctxdocs as CX
+        self.page, self.CX = page, CX
+        self.setWindowTitle("Taken from the library"); self.resize(1180, 640)
+        self.lib = DV.Library(page.host.ws.p("documents")).load()
+        self.store = CX.Store(page.host.ws.root).load()
+        v = QVBoxLayout(self)
+        bar = QHBoxLayout(); v.addLayout(bar)
+        self.kind = QComboBox(); self.kind.addItem("Everything", "")
+        for k, n in CX.KINDS:
+            self.kind.addItem(n, k)
+        self.doc = QComboBox(); self.doc.addItem("Every document", "")
+        for d in sorted({a["doc"] for a in self.store.att}, key=lambda i: (self.lib.doc(i) or {}).get("name", "")):
+            self.doc.addItem((self.lib.doc(d) or {}).get("name", d), d)
+        self.topic = QComboBox(); self.topic.addItem("Every topic", "")
+        for t in sorted({t for a in self.store.att for t in a.get("topics", [])}, key=str.lower):
+            self.topic.addItem(t, t)
+        self.q = QLineEdit(); self.q.setPlaceholderText("Words in the text or the note")
+        for w in (self.kind, self.doc, self.topic):
+            w.currentIndexChanged.connect(lambda _i: self.fill()); bar.addWidget(w)
+        self.q.textChanged.connect(lambda _t: self.fill()); bar.addWidget(self.q, 1)
+        self.table = QTableWidget(0, 6)
+        self.table.setHorizontalHeaderLabels(["Attached as", "To", "Text", "Document", "Where", "Topics"])
+        self.table.verticalHeader().setVisible(False)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        for c, wdt in ((0, 160), (1, 170), (3, 190), (4, 150), (5, 140)):
+            self.table.setColumnWidth(c, wdt)
+        self.table.itemDoubleClicked.connect(lambda _i: self.open_selected())
+        v.addWidget(self.table, 1)
+        row = QHBoxLayout(); v.addLayout(row)
+        self.count = D.label("", "muted", wrap=False); row.addWidget(self.count); row.addStretch(1)
+        row.addWidget(D.button("Open in Assign", None, lambda: self.open_selected(), "Show the sentence on its page"))
+        row.addWidget(D.button("Export to Excel...", "primary", lambda: self.export(), "Every row, for writers"))
+        bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(self.reject); row.addWidget(bb)
+        self.fill()
+
+    def fill(self):
+        rows = self.store.rows(self.lib, self.kind.currentData(), self.doc.currentData(), "", self.topic.currentData(), self.q.text())
+        self.rows = rows
+        self.table.setRowCount(len(rows))
+        for r, a in enumerate(rows):
+            for c, val in enumerate((a["kind_name"], a.get("target", ""), a["text"], a["doc_name"], a.get("loc", ""), ", ".join(a.get("topics", [])))):
+                self.table.setItem(r, c, _item(val, a["id"] if c == 0 else None, a["text"] if c == 2 else ""))
+        self.count.setText(f"{len(rows)} of {len(self.store.att)}")
+        return len(rows)
+
+    def open_selected(self):
+        r = self.table.currentRow()
+        if r < 0 or r >= len(self.rows):
+            return False
+        a = self.rows[r]
+        h = self.page.host
+        ap = h.assign_page
+        h.go("assign")
+        lab = next((k for k, did in ap.lib_entries.items() if did == a["doc"]), None)
+        if lab is None:
+            h.status("That document is not offered in Assign (its role is Not needed, or it builds the matrix).")
+            return False
+        ap.files.setCurrentText(lab)
+        ap.select(a["iid"])
+        self.accept()
+        return True
+
+    def export(self, path=None):
+        if path is None:
+            path, _ = QFileDialog.getSaveFileName(self, "Export what was taken from the library", "Taken_from_the_library.xlsx", "Excel (*.xlsx)")
+            if not path:
+                return None
+        try:
+            self.store.export_xlsx(path, self.lib)
+        except PermissionError:
+            self.page.host.status("That file is open in Excel: close it, then export again.")
+            return None
+        diag.activity("library_taken_exported", n=len(self.store.att))
+        self.page.host.toast("Exported")
+        return path

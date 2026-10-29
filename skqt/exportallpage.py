@@ -128,7 +128,8 @@ class ExportAllPage(QWidget):
                 if "coverage" in picks:
                     p = os.path.join(sub, f"{stem}_RFP_Coverage.docx"); C.write_coverage_docx(M, p); out.append(p)
                 if "setup" in picks:
-                    out += SD.export(M, sub)
+                    import ctxdocs as CX
+                    out += SD.export(M, sub, context=CX.section_context(self.host.ws.root))
                 return out
             part("The compliance files", compliance)
         if "acronyms" in picks and s is not None:
