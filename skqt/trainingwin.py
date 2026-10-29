@@ -58,7 +58,7 @@ class TrainingWindow(QMainWindow):
     def __init__(self, app=None):
         super().__init__()
         self.app = app
-        self.setWindowTitle(f"Stationkeeper Training (Qt) {eng.APP_VERSION}: corrections in, a better reader out (100% local)")
+        self.setWindowTitle(f"Stationkeeper Training {eng.APP_VERSION}: corrections in, a better reader out (100% local)")
         self.resize(1360, 880)
         self.score_rows, self.worker, self.train_fn = [], None, None
         root = QWidget(); rh = QHBoxLayout(root); rh.setContentsMargins(0, 0, 0, 0); rh.setSpacing(0)

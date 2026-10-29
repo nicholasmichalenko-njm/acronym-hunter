@@ -72,7 +72,7 @@ def make_analysis(script, qt=False):
     pathex=[],
     binaries=binaries,
     datas=datas,
-    hiddenimports=hiddenimports + (['skqt', 'skqt.mainwin', 'skqt.readpage', 'skqt.assign', 'skqt.theme', 'skqt.design', 'skqt.structure', 'skqt.prove', 'structure_ops', 'skqt.matrixpage', 'skqt.setuppage', 'skqt.crosswalkpage', 'crosswalk', 'effortstate', 'skqt.homepage', 'skqt.dashpage', 'reviewpkt', 'skqt.recordpage', 'skqt.reviewpage', 'acrsession', 'skqt.acronympage', 'skqt.effortlistpage', 'docintake', 'skqt.custdocs', 'skqt.qapage', 'skqt.keywordspage', 'skqt.exportallpage', 'skqt.settingspage', 'outline_ops', 'structstart', 'capture', 'skqt.trainingwin', 'skqt.trainerpage', 'compliance_read',
+    hiddenimports=hiddenimports + (['skqt', 'skqt.mainwin', 'skqt.readpage', 'skqt.assign', 'skqt.theme', 'skqt.design', 'skqt.structure', 'skqt.prove', 'structure_ops', 'skqt.matrixpage', 'skqt.setuppage', 'skqt.crosswalkpage', 'crosswalk', 'effortstate', 'skqt.homepage', 'skqt.dashpage', 'reviewpkt', 'skqt.recordpage', 'skqt.reviewpage', 'acrsession', 'skqt.acronympage', 'skqt.effortlistpage', 'docintake', 'skqt.custdocs', 'skqt.qapage', 'skqt.keywordspage', 'skqt.exportallpage', 'skqt.settingspage', 'outline_ops', 'structstart', 'capture', 'skqt.trainingwin', 'skqt.trainerpage', 'skqt.pkgimport', 'compliance_read',
                                     'assign_ops'] if qt else []),
     hookspath=[],
     hooksconfig={},
@@ -120,7 +120,9 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='StationkeeperTraining' if TRAINING else 'Stationkeeper',
+    # 2.74.0: the Qt window is Stationkeeper.exe (StationkeeperTraining.exe); the classic window ships beside it as a
+    # fallback for one more release
+    name=('StationkeeperTraining' if TRAINING else 'Stationkeeper') + ('Classic' if QT_APP else ''),
     icon='assets/trainer.ico' if TRAINING else 'assets/scanner.ico',
     version='version_info_trainer.txt' if TRAINING else 'version_info.txt',  # Windows file properties (publisher, description, version)
     debug=False,
@@ -137,7 +139,7 @@ exe = EXE(
 extra = []
 if QT_APP:
     pyzq = PYZ(aq.pure)
-    exeq = EXE(pyzq, aq.scripts, [], exclude_binaries=True, name='StationkeeperTrainingQt' if TRAINING else 'StationkeeperQt',
+    exeq = EXE(pyzq, aq.scripts, [], exclude_binaries=True, name='StationkeeperTraining' if TRAINING else 'Stationkeeper',
                icon='assets/trainer.ico' if TRAINING else 'assets/scanner.ico',
                version='version_info_trainer.txt' if TRAINING else 'version_info.txt', debug=False, bootloader_ignore_signals=False, strip=False, upx=False,
                console=False, disable_windowed_traceback=False, argv_emulation=False, target_arch=None,

@@ -1,6 +1,16 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+STATIONKEEPER.EXE IS THE QT WINDOW (2.74.0)
+  - Stationkeeper.exe now opens the Qt window (it was StationkeeperQt.exe), and StationkeeperTraining.exe opens
+    Stationkeeper Training in Qt (it was StationkeeperTrainingQt.exe). Your shortcuts keep working and open the Qt window.
+  - The classic window ships beside it for one more release as StationkeeperClassic.exe (and
+    StationkeeperTrainingClassic.exe), as a fallback; its title says "(classic)". Both share config and every effort
+    file; open an effort in one program at a time.
+  - Double-click an effort package (.skpkg) or a Knowledge Pack (.skknow) and the Qt window opens it. Settings >
+    Import effort package... opens a package someone handed over: keep both, or use the package (this PC's copy is
+    backed up first).
+
 THE TRAINER IN QT (2.73.0)
   - Stationkeeper Training (Qt) has the Trainer as a page (rail: Teach by hand > Trainer; or Train > Trainer): open a
     document or picture, pick a page or picture, and drag a box around text the reader missed (or Select the whole

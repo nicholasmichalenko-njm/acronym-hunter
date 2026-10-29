@@ -303,6 +303,11 @@ class MainWindow(QMainWindow):
         self.page_title.setText(t)
         self.page_sub.setText(sub + (f"  \u00b7  {self.effort_name}" if self.effort_name else ""))
 
+    def import_package(self, path=None, dest=None, mode=None):
+        """2.74.0: an effort package (.skpkg) someone handed over."""
+        from .pkgimport import import_package
+        return import_package(self, path, dest, mode)
+
     def status(self, text):
         self.statusBar().showMessage(text, 9000)
 
@@ -313,7 +318,7 @@ class MainWindow(QMainWindow):
     def title(self):
         dirty = self.review is not None and self.review.M.pending
         self.setWindowTitle(("* " if dirty else "") + (f"{self.effort_name}: " if self.effort_name else "")
-                            + f"Stationkeeper (Qt) {self.version}".strip())
+                            + f"Stationkeeper {self.version}".strip())
         if hasattr(self, "saved"):
             self.saved.setText("Saving..." if dirty else ("Saved" if self.review is not None else "No matrix"))
             self.saved.set_tone("warn" if dirty else ("ok" if self.review is not None else "head"))

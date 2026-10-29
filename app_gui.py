@@ -2393,7 +2393,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.73.0"            # keep in step with version_info.txt
+APP_VERSION = "2.74.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3368,7 +3368,7 @@ def write_acronym_report(path, terms, results, known_cell):
 class AcronymAppGUI(AssignCardMixin, PageViewMixin, TrainPackMixin, KnowledgeCardMixin, ShellMixin, RhythmMixin, EffortRecordMixin, DeliverablesMixin, ImpactMixin, LayoutMixin, ReadableMixin, KeepSafeMixin, EffortPictureMixin, MatrixDesignMixin, SubmissionMixin, CompliancePageMixin, ExportAllMixin, AltFormsMixin, KeywordsMixin, MasterMixin, HomeMixin, WizardMixin, AIMixin, WorkspaceMixin, EffortMixin, VolumeCheckMixin, SetupMixin, ComplianceMixin, ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title(f"Stationkeeper {APP_VERSION}: proposal efforts, 100% local")
+        self.title(f"Stationkeeper (classic) {APP_VERSION}: proposal efforts, 100% local")   # 2.74.0: Stationkeeper.exe is Qt
         apply_window_icon(self)
         self.geometry("1280x780")
         self.minsize(1000, 560)

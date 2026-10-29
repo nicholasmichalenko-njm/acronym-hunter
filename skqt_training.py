@@ -16,7 +16,7 @@ def main(argv=None):
     from skqt import design
     from skqt.trainingwin import TrainingWindow
     app = QApplication(sys.argv if argv is None else argv)
-    app.setApplicationName("Stationkeeper Training (Qt)")
+    app.setApplicationName("Stationkeeper Training")
     ico = os.path.join(A.BASE_DIR, "assets", "trainer.ico")
     if os.path.isfile(ico):
         app.setWindowIcon(QIcon(ico))
@@ -25,7 +25,7 @@ def main(argv=None):
     if "--selftest" in (argv or sys.argv):            # the build checks the built program starts and reads its training set
         w.show()
         app.processEvents()
-        ok = w.windowTitle().startswith("Stationkeeper Training (Qt)") and w.stack.count() == 6
+        ok = w.windowTitle().startswith("Stationkeeper Training ") and w.stack.count() == 6
         try:
             import tess_train
             tools = all(os.path.isfile(os.path.join(A.TESS_DIR, t)) for t in ("lstmtraining.exe", "combine_tessdata.exe")) \
@@ -39,6 +39,10 @@ def main(argv=None):
         with open(os.path.join(A.SANDBOX_DIR, "qt_training_selftest.txt"), "w", encoding="utf-8") as f:
             f.write("QT TRAINING SELFTEST " + ("PASS" if ok else "FAIL") + f" ({detail})\n")
         w.close()
+        args = list(argv or sys.argv)
+        files = [x for x in args[args.index("--selftest") + 1:] if os.path.isfile(x)]
+        if files:                                        # 2.74.0: the release smoke test scans the sample files
+            A.run_selftest(files)
         return 0 if ok else 1
     w.show()
     return app.exec()

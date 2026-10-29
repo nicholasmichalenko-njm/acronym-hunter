@@ -23,7 +23,8 @@ class SettingsPage(QWidget):
         v = QVBoxLayout(self)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         self.eff = D.Card("Efforts", "One effort per proposal: its acronym list workbook, records and compliance files.",
-                          actions=[D.button("New effort...", "primary", lambda: self.new_effort())])
+                          actions=[D.button("Import effort package...", None, lambda: self.host.import_package()),
+                                   D.button("New effort...", "primary", lambda: self.new_effort())])
         f = QFormLayout(); self.eff.body.addLayout(f)
         self.cust = QLineEdit(); self.vols = QLineEdit()
         self.rule = QComboBox()
