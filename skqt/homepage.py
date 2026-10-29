@@ -67,6 +67,8 @@ class HomePage(QWidget):
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         top = QHBoxLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)
         self.due = D.Pill("", "accent"); top.addWidget(self.due)
+        self.deliv = D.button("", "ghost", lambda: self.host.go("deliverables"), "The deliverables board")   # 2.87.0
+        top.addWidget(self.deliv)
         top.addStretch(1)
         top.addWidget(D.label("Show tasks and questions for", "muted", wrap=False))
         self.who = QComboBox(); self.who.setMinimumWidth(180); self.who.addItem("Everyone")
@@ -144,6 +146,16 @@ class HomePage(QWidget):
         self.due.setText(("Due " + R.due_text(due, r.data.get("zone", "")) + "  ·  " + R.countdown_text(due)) if due
                          else "No due date set yet")
         self.due.set_tone("accent" if due else "head")
+        try:                                                        # 2.87.0: the deliverables in one line
+            import delivboard as DB
+            from .custdocs import Ctx
+            c = Ctx(h)
+            cards = DB.board(c.rec, c.reg.rows(), c.lib, c.volumes(), h.review.M if h.review is not None else None, h.ws.root,
+                             getattr(getattr(h.acronym_page, "session", None), "volume_report", None))
+            self.deliv.setText(DB.summary_line(cards) + "  \u203a")
+        except Exception:
+            diag.swallowed()
+            self.deliv.setText("Deliverables  \u203a")
         checks = self.checks = self.state.checks()
         self.draw_track(r)
         self.draw_goals(r, checks)

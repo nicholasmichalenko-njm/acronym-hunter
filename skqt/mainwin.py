@@ -33,9 +33,9 @@ from .exportallpage import ExportAllPage
 from .settingspage import SettingsPage
 
 
-RAIL = [("EFFORT", [("home", "Effort home"), ("dashboard", "Dashboard"), ("record", "Effort record"), ("reviews", "Reviews")]),
-        ("DOCUMENTS", [("library", "Library"), ("compare", "Changes"), ("requirements", "Submission rules"),
-                       ("deliverables", "Deliverables")]),
+RAIL = [("EFFORT", [("home", "Effort home"), ("deliverables", "Deliverables"), ("dashboard", "Dashboard"), ("record", "Effort record"),
+                    ("reviews", "Reviews")]),
+        ("DOCUMENTS", [("library", "Library"), ("compare", "Changes"), ("requirements", "Submission rules")]),
         ("COMPLIANCE", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove"),
                         ("crosswalk", "L/M crosswalk")]),
         ("DELIVER", [("matrix", "Matrix"), ("setup", "Response Setup")]),
@@ -51,7 +51,7 @@ TITLES = {"home": ("Effort home", "Stage, gate goals, tasks, questions and the c
           "requirements": ("Submission rules", "What the customer requires of the submission now, and what changed it"),
           "compare": ("Changes", "What a new version changed, what it touches, and a decision on every change"),
           "impact": ("Impact review", "What one new version touched across the effort"),
-          "deliverables": ("Deliverables", "What the effort owes the customer, and where each stands"),
+          "deliverables": ("Deliverables", "Every deliverable at a glance: where each stands and what is missing"),
           "acronyms": ("Customer terms", "Start: the acronyms the customer's documents use, offered to the effort list"),
           "acrlist": ("Effort list", "Throughout: the effort's glossary, with approved definitions"),
           "qa": ("Submission check", "End: the volumes you will submit, against the effort list, banned words and page limits"),

@@ -20,6 +20,14 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "2.87.0": ["Deliverables moved up with the effort, right after Effort home, and opens as a board: one card per "
+               "deliverable, the ones that need action first.",
+               "Each card shows its owner, status, pages against the limit, the volume it holds in the response structure, "
+               "its requirements and how many have an author, and what is missing.",
+               "Click a card to see its requirements (double-click one to open it in Assign), what a customer version "
+               "changed, its submission check, its library context and its files.",
+               "A Volume deliverable links to its volume by name; pick another volume on the card to change it.",
+               "Effort home and the dashboard say how the deliverables stand. The table is still there under View: List."],
     "2.86.0": ["Response quality: Customer terms (start), Effort list (the glossary), Submission check and Lists to submit "
                "(end), in one group; each page says which end it serves.",
                "Customer terms scans the Library's customer documents with one button. Submission volumes are marked once.",

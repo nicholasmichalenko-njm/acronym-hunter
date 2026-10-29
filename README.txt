@@ -1,6 +1,22 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+DELIVERABLES BOARD (2.87.0)
+  - Deliverables moved to the EFFORT group, right after Effort home. It opens as a board: one card per deliverable,
+    the ones that need action first (no owner, over the page limit), then the ones that need attention, then the ones
+    on track.
+  - A card shows the owner, status, pages against the limit (a bar), the volume it holds in the response structure,
+    that volume's requirements and how many have an author, library context attached to its sections, and the first
+    things missing: no owner, no working file, not linked to a volume, requirements with no author, requirements a
+    customer version changed that wait for their owner, a newer customer form, acronym list entries to finish.
+  - Click a card to see everything about it beside the board: what is missing, the volume (pick another to relink
+    it), its requirements with their author and state (double-click one to open it in Assign), what changed, its
+    latest Submission check, its context and its files. Edit..., Done for this stage and Check this volume are there.
+  - A Volume deliverable links to the response volume with the same name or number (Volume II, Vol 2). Edit... has a
+    Volume choice too.
+  - Effort home has a line for the deliverables (click it for the board) and the dashboard counts the ones that need
+    attention. View: List shows the table as before.
+
 RESPONSE QUALITY (2.86.0)
   - The ACRONYMS and QUALITY groups are now one group, Response quality, in the order the work happens: Customer terms
     (start), Effort list (throughout), Submission check and Lists to submit (end). Each page says which end it serves.

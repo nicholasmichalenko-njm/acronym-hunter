@@ -1204,11 +1204,24 @@ class DeliverablesPage(QWidget):
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         top = QHBoxLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)
         self.sumlab = D.label("", "title"); top.addWidget(self.sumlab, 1)
+        self.view = QComboBox(); self.view.addItems(["Board", "List"])                  # 2.87.0: the board first
+        self.view.currentIndexChanged.connect(lambda i: self.show_view(i))
+        top.addWidget(self.view)
         top.addWidget(D.button("+ Deliverable...", "primary", lambda: self.edit()))
         top.addWidget(D.button("Export (Excel)...", None, lambda: self.export()))
         self.sugg = D.Card("The customer documents name these", "Add each one the effort owes, or say it is not ours.")
         self.sugg_box = QVBoxLayout(); self.sugg.body.addLayout(self.sugg_box)
         v.addWidget(self.sugg)
+        from .delivboardview import Board, Detail
+        self.board_split = QSplitter(Qt.Horizontal)
+        bsa = QScrollArea(); bsa.setWidgetResizable(True); bsa.setFrameShape(QFrame.NoFrame)
+        self.board = Board(self); bsa.setWidget(self.board)
+        self.board_split.addWidget(bsa)
+        self.detail = Detail(self); self.board_split.addWidget(self.detail)
+        self.board_split.setSizes([900, 460])
+        v.addWidget(self.board_split, 1)
+        self.cards, self.picked = [], None
+        self.list_box = QWidget(); lv = QVBoxLayout(self.list_box); lv.setContentsMargins(0, 0, 0, 0)
         self.table = QTableWidget(0, len(self.COLS))
         self.table.setHorizontalHeaderLabels(self.COLS)
         self.table.verticalHeader().setVisible(False); self.table.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -1218,12 +1231,59 @@ class DeliverablesPage(QWidget):
             if i:
                 self.table.setColumnWidth(i, w)
         self.table.cellDoubleClicked.connect(lambda r, _c: self.edit(self.ids[r]))
-        v.addWidget(self.table, 1)
-        row = QHBoxLayout(); row.setSpacing(D.SPACE["s"]); v.addLayout(row)
+        lv.addWidget(self.table, 1)
+        row = QHBoxLayout(); row.setSpacing(D.SPACE["s"]); lv.addLayout(row)
         row.addWidget(D.button("Edit...", None, lambda: self.edit(self.current())))
         row.addWidget(D.button("Done for this stage", None, lambda: self.mark_stage()))
         row.addWidget(D.button("Remove", "danger", lambda: self.remove()))
         row.addStretch(1)
+        v.addWidget(self.list_box, 1)
+        self.list_box.hide()
+
+    # ------------------------------------------------------------ 2.87.0 the board
+    def show_view(self, i):
+        self.board_split.setVisible(i == 0); self.list_box.setVisible(i == 1)
+
+    def pick(self, did):
+        self.picked = did
+        c = next((x for x in self.cards if x["id"] == did), None)
+        self.board.fill(self.cards, did)
+        self.detail.show_card(c)
+        if did in self.ids:
+            self.table.selectRow(self.ids.index(did))
+        return c
+
+    def volume_heads(self):
+        M = self.host.review.M if self.host.review is not None else None
+        if M is None:
+            return []
+        import outline_ops as O
+        import compliance as C
+        heads = O.volume_heads(M)
+        return [C.outline_label(o) for o in M.outline if C.outline_label(o) in heads]
+
+    def link_volume(self, did, vol):
+        import deliverables as DL
+        DL.update(self.ctx.rec, did, volume=vol or "")
+        diag.activity("deliverable_volume_linked")
+        self.refresh()
+        self.pick(did)
+        return True
+
+    def check_volume(self, did):
+        import deliverables as DL
+        d = DL.get(self.ctx.rec, did)
+        if not d or not d.get("file"):
+            return None
+        self.host.go("qa")
+        return self.host.qa_page.check([d["file"]])
+
+    def open_requirement(self, iid):
+        if self.host.review is None or self.host.review.item(iid) is None:
+            return False
+        self.host.go("assign")
+        self.host.assign_page.select(iid)
+        return True
 
     def current(self):
         i = self.table.currentRow()
@@ -1252,9 +1312,15 @@ class DeliverablesPage(QWidget):
                 if col == 6 and st["flags"]:
                     it.setForeground(D.color("crit" if "over" in st["flags"] else "warn"))
                 self.table.setItem(i, col, it)
-        sm = DL.summary(rec, rows, c.lib, vols)
-        self.sumlab.setText(f"{sm['count']} deliverables: {sm['final']} final, {sm['over']} over the limit, {sm['changed']} changed, "
-                            f"{sm['noowner']} without an owner")
+        import delivboard as DB
+        M = h.review.M if h.review is not None else None
+        rep = getattr(getattr(h.acronym_page, "session", None), "volume_report", None)
+        self.cards = DB.board(rec, rows, c.lib, vols, M, h.ws.root, rep)
+        self.sumlab.setText(DB.summary_line(self.cards))
+        if self.picked not in [x["id"] for x in self.cards]:
+            self.picked = None
+        self.board.fill(self.cards, self.picked)
+        self.detail.show_card(next((x for x in self.cards if x["id"] == self.picked), None))
         while self.sugg_box.count():
             it = self.sugg_box.takeAt(0)
             w = it.widget() or None
@@ -1301,19 +1367,26 @@ class DeliverablesPage(QWidget):
             fmt = QLineEdit(d.get("format", "") if d else ""); limit = QLineEdit(d.get("limit", "") if d else "")
             status = QComboBox(); status.addItems(DL.STATUSES); status.setCurrentText(d.get("status", "Not started") if d else "Not started")
             fl = QLineEdit(d.get("file", "") if d else ""); fl.setPlaceholderText("Our Word file (for the page count)")
-            for lab, w in (("Name", name), ("Kind", kind), ("Owner", owner), ("Format", fmt), ("Page limit", limit), ("Status", status), ("Our file", fl)):
+            vol = QComboBox(); vol.addItem("(not linked)", "")                       # 2.87.0: the volume it holds
+            for hd in self.volume_heads():
+                vol.addItem(hd, hd)
+            vol.setCurrentIndex(max(0, vol.findData(d.get("volume", "") if d else "")))
+            for lab, w in (("Name", name), ("Kind", kind), ("Owner", owner), ("Format", fmt), ("Page limit", limit), ("Status", status),
+                           ("Our file", fl), ("Volume", vol)):
                 f.addRow(lab, w)
             bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(dlg.accept); bb.rejected.connect(dlg.reject)
             f.addRow(bb)
             if dlg.exec() != QDialog.Accepted:
                 return None
             values = {"name": name.text(), "kind": kind.currentText(), "owner": combo_name(owner), "format": fmt.text(),
-                      "limit": limit.text(), "status": status.currentText(), "file": fl.text()}
+                      "limit": limit.text(), "status": status.currentText(), "file": fl.text(), "volume": vol.currentData() or ""}
         if d is None:
             did = DL.add(rec, values.get("name", ""), values.get("kind", ""), fmt=values.get("format", ""), limit=values.get("limit", ""),
                          owner=values.get("owner", ""), file=values.get("file", ""))
             if did and values.get("status") and values["status"] != "Not started":
                 DL.update(rec, did, status=values["status"])
+            if did and values.get("volume"):
+                DL.update(rec, did, volume=values["volume"])
         else:
             DL.update(rec, did, **{k: v for k, v in values.items() if k != "kind"})
         diag.activity("qt_deliverable_saved")

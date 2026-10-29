@@ -69,6 +69,8 @@ class DashPage(QWidget):
             "late": D.Tile("-", "tasks late", "accent", lambda: go("home"), "Effort home: tasks"),
             "review": D.Tile("-", "customer changes to review", "accent", lambda: go("compare"),
                              "Customer Documents: versions and requirements to review"),
+            "deliv": D.Tile("-", "deliverables need attention", "accent", lambda: go("deliverables"),
+                            "The deliverables board (2.87.0)"),
             "library": D.Tile("-", "library roles to confirm", "accent", lambda: go("library"),
                               "Library: documents whose role is only suggested (2.83.0)")}
         self.tile_row = QWidget()
@@ -166,6 +168,18 @@ class DashPage(QWidget):
             T["review"].set(und + d["to_review"], "customer changes to decide" + (f" ({wait} awaiting the owner)" if wait else ""), "warn")
         else:
             T["review"].set(d["to_review"], "customer changes to review", "warn" if d["to_review"] else "ok")
+        try:                                       # 2.87.0: the deliverables
+            import delivboard as DB
+            from .custdocs import Ctx
+            hh = self.host
+            c = Ctx(hh)
+            cards = DB.board(c.rec, c.reg.rows(), c.lib, c.volumes(), hh.review.M if hh.review is not None else None, hh.ws.root,
+                             getattr(getattr(hh.acronym_page, "session", None), "volume_report", None))
+            need = sum(1 for x in cards if x["health"] != "ok")
+            T["deliv"].set(need, f"of {len(cards)} deliverables need attention" if cards else "deliverables (none yet)",
+                           "crit" if any(x["health"] == "crit" for x in cards) else "warn" if need else "ok" if cards else "head")
+        except Exception:
+            diag.swallowed()
         try:                                       # 2.83.0: the library
             import docversions as DV
             lib = DV.Library(self.host.ws.p("documents")).load()
