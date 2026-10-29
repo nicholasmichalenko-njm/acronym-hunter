@@ -41,7 +41,7 @@ DARK = {
 # what each decision is called and how it is tagged in the page margin (colors come from the tokens)
 DECISIONS = {"Keep": ("req", "Compliance requirement", "REQ"), "Context": ("ctx", "Supporting context", "SUPPORTS"),
              "Customer": ("cust", "The customer's (identified, not answered)", "CUSTOMER'S"),
-             "Heading": ("head", "RFP heading", ""), "": ("faint", "Not used (not assigned)", "")}
+             "Heading": ("head", "RFP heading", ""), "": ("faint", "Ignored (not assigned)", "")}
 # box colors on the white page: the same meaning colors, chosen to read on paper in both themes
 PAGE_DEC = {"Keep": "#16A34A", "Context": "#2563EB", "Customer": "#7E22CE", "Heading": "#334155", "": "#94A3B8"}
 

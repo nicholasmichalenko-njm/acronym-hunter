@@ -78,7 +78,7 @@ def click(iid, ctrl=False):
 
 
 click(a["id"])
-check("a click selects the sentence and the card shows it", [x["id"] for x in pg.selected()] == [a["id"]] and "Not used" in pg.kind_label.text())
+check("a click selects the sentence and the card shows it", [x["id"] for x in pg.selected()] == [a["id"]] and "Ignored" in pg.kind_label.text())
 src = pg.source_label.text()
 check("the card: file, page and paragraph, RFP section", "File: Section_L_print.pdf" in src and "Where: p.1, para" in src
       and "RFP: L.3.1 Technical Approach" in src, src)
@@ -144,7 +144,7 @@ w.close()
 pgA = w.assign_page
 col = pgA.tree.parentWidget()
 check("decisions beside the response structure, the target named above them",
-      all(pgA.dec_box.isAncestorOf(pgA.keys[k]) for k in ("Requirement", "L", "M", "Support", "Customer's", "Not"))
+      all(pgA.dec_box.isAncestorOf(pgA.keys[k]) for k in ("Requirement", "L", "M", "Support", "Customer's", "Ignore"))
       and pgA.dec_box.parentWidget() is col and not pgA.dec_box.isAncestorOf(pgA.keys["Combine"])
       and (pgA.target or "Click a section") and ("into" in pgA.target_lbl.text() or "Click a section" in pgA.target_lbl.text()), pgA.target_lbl.text())
 

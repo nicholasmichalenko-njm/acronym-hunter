@@ -260,6 +260,11 @@ class MainWindow(QMainWindow):
             self.fill_efforts()
             return False
         self.ws, self.effort_name, self.effort_path = ws, name, info["path"]
+        if self.efforts.current != name:          # 2.84.0: the next start (after an update too) reopens this effort
+            try:
+                self.efforts.current = name
+            except OSError:
+                diag.swallowed()
         diag.activity("qt_effort_opened")
         say(0.1, f"{name}: checking the effort's files")
         _issues, repaired = self.safety.health()   # 2.80.0: check the effort; put back a damaged list or matrix

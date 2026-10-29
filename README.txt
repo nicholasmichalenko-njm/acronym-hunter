@@ -47,6 +47,10 @@ CHANGES: ONE PLACE FOR WHAT A NEW VERSION CHANGED (2.85.0)
     Was and Now in its row, in color, and "Open the change in Changes" goes straight to it.
 
 READ AND ASSIGN ANY DOCUMENT (2.84.0)
+  - Every start, after an update too, reopens the effort you last had open, with its documents and work; with one
+    effort on the PC it opens that one. (Before, the Qt window did not remember it, so an effort could look empty
+    until you picked it in the Effort box.)
+  - Assign: "Not used" is now "Ignore" (X).
   - Library documents that do not build the matrix (attachments, ICDs, Q&A, standards, past proposals) are in Assign's
     File list under "Library: ...", or open them with Library > Read it in Assign. They open on the same page, beside
     the same response structure. The rule is the same: select text, then choose where it goes.
