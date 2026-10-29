@@ -47,6 +47,10 @@ DELIVERABLES BOARD (2.87.0)
     Volume choice too.
   - Effort home has a line for the deliverables (click it for the board) and the dashboard counts the ones that need
     attention. View: List shows the table as before.
+  - Author list: Edit which efforts... (was Shows in...) opens where the selected names show. With All efforts ticked,
+    every effort shows ticked and cannot be changed, since they all apply. Untick All efforts and the efforts open up:
+    unticked for a name that showed in all efforts, or the ones it had before. Nothing changes until OK, so ticking All
+    efforts by mistake loses no one's choices. The dialog says where the names will show.
 
 RESPONSE QUALITY (2.86.0)
   - The ACRONYMS and QUALITY groups are now one group, Response quality, in the order the work happens: Customer terms
@@ -228,7 +232,7 @@ ONE AUTHOR LIST FOR EVERY NAME (2.77.0)
   - Settings > Author list is the only place names come from. Author(s) in Assign, a section's lead and contributors,
     a task's owner, a question's answerer and a deliverable's owner all pick from it; names are never typed there.
   - Each name shows in All efforts or in the efforts named next to it: Joe G. set to Effort A shows in Effort A's
-    drop-downs and not in Effort B's. Shows in... sets the efforts; Show in this effort and Not in this effort change
+    drop-downs and not in Effort B's. Edit which efforts... sets the efforts; Show in this effort and Not in this effort change
     the open effort only.
   - Add names (one per line), or Import a list (.txt one name per line; .csv or .xlsx with a Name column and an
     optional Efforts column: All efforts, or effort names separated by semicolons). An import adds only names that are

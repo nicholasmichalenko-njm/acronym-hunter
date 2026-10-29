@@ -142,6 +142,54 @@ class NamesField(QWidget):
 
 
 # ---------------------------------------------------------------- the Settings card
+class EffortsDialog(QDialog):
+    """Where names show (2.87.0): All efforts, or the efforts ticked. With All efforts ticked every effort shows ticked
+    and cannot be changed (they all apply). Unticking it brings back the efforts the names had (none for a name that
+    showed in all efforts). Nothing changes until OK."""
+
+    def __init__(self, parent, efforts, current, title):
+        super().__init__(parent)
+        self.setWindowTitle(title); self.setMinimumWidth(400)
+        v = QVBoxLayout(self)
+        self.alle = QCheckBox("All efforts (now and new ones)"); v.addWidget(self.alle)
+        v.addWidget(D.label("Or only these efforts:", "muted"))
+        cur = [] if current == AL.ALL else [x.casefold() for x in current or []]
+        self.picked = {e for e in efforts if e.casefold() in cur}      # what the efforts boxes hold when All is off
+        self.boxes = []
+        for e in efforts:
+            b = QCheckBox(e); b.toggled.connect(lambda _on, b=b: self._box(b)); v.addWidget(b); self.boxes.append(b)
+        self.summary = D.label("", None); v.addWidget(self.summary)
+        v.addWidget(D.label("Nothing changes until you click OK.", "muted"))
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
+        v.addWidget(bb)
+        self._quiet = False
+        self.alle.toggled.connect(self._all)
+        self.alle.setChecked(current == AL.ALL)
+        self._all(current == AL.ALL)
+
+    def _all(self, on):
+        self._quiet = True
+        for b in self.boxes:
+            b.setChecked(True if on else b.text() in self.picked)
+            b.setEnabled(not on)
+        self._quiet = False
+        self._say()
+
+    def _box(self, b):
+        if self._quiet or self.alle.isChecked():
+            return
+        (self.picked.add if b.isChecked() else self.picked.discard)(b.text())
+        self._say()
+
+    def _say(self):
+        v = self.values()
+        self.summary.setText("Shows in every effort, now and new ones." if v == AL.ALL else
+                             ("Shows in: " + ", ".join(v)) if v else "Shows in no effort yet.")
+
+    def values(self):
+        return AL.ALL if self.alle.isChecked() else [b.text() for b in self.boxes if b.text() in self.picked]
+
+
 class AuthorListCard(D.Card):
     def __init__(self, host):
         super().__init__("Author list", "The only place names come from. Author, section lead, contributor and owner "
@@ -160,7 +208,10 @@ class AuthorListCard(D.Card):
         self.table.doubleClicked.connect(lambda _i: self.choose_efforts())
         self.add(self.table)
         row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
-        for text, fn in (("Shows in...", self.choose_efforts), ("Show in this effort", lambda: self.this_effort(True)),
+        self.edit_btn = D.button("Edit which efforts...", "primary", lambda: self.choose_efforts(),
+                                 "Choose the efforts the selected name(s) show in: all efforts, or only the ones you tick")
+        row.addWidget(self.edit_btn)
+        for text, fn in (("Show in this effort", lambda: self.this_effort(True)),
                          ("Not in this effort", lambda: self.this_effort(False)), ("Rename...", self.rename), ("Remove", self.remove)):
             row.addWidget(D.button(text, None, lambda _=False, fn=fn: fn()))
         row.addStretch(1)
@@ -176,7 +227,7 @@ class AuthorListCard(D.Card):
         effs = effort_names(self.host)
         if not effs:
             self.banner.setText("No effort exists yet. Create or select an effort first (Efforts > New effort... above), "
-                                "then choose which efforts each name shows in. Names added now show in all efforts.")
+                                "then choose which efforts each name shows in (Edit which efforts...). Names added now show in all efforts.")
         elif not _eff(self.host):
             self.banner.setText("No effort is open. Select or create an effort first to see whose names show in it.")
         else:
@@ -308,18 +359,10 @@ class AuthorListCard(D.Card):
             return None
         if answer is not None:
             return answer
-        d = QDialog(self); d.setWindowTitle(title); d.setMinimumWidth(380); v = QVBoxLayout(d)
-        alle = QCheckBox("All efforts (now and new ones)"); alle.setChecked(current == AL.ALL); v.addWidget(alle)
-        boxes = []
-        for e in effs:
-            b = QCheckBox(e); b.setChecked(current != AL.ALL and e.casefold() in [x.casefold() for x in current or []])
-            b.setEnabled(not alle.isChecked()); v.addWidget(b); boxes.append(b)
-        alle.toggled.connect(lambda on: [b.setEnabled(not on) for b in boxes])
-        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
-        v.addWidget(bb)
+        d = EffortsDialog(self, effs, current, title)
         if d.exec() != QDialog.Accepted:
             return None
-        return AL.ALL if alle.isChecked() else [b.text() for b in boxes if b.isChecked()]
+        return d.values()
 
     def choose_efforts(self, names=None, answer=None):
         names = names if names is not None else self.selected()
