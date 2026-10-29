@@ -653,6 +653,11 @@ PAGES = {
                                    "yet a requirement becomes one. Stationkeeper suggests L or M from the section (L.4.2, "
                                    "M.2) and the document type. Support can back up any number of L and M requirements. "
                                    "The matrix reference joins the document initial, L or M and the section: R-L-4.2.1."),
+              ("Add missed text (2.70.0)", "If the reader missed some text, press Add missed text, then drag a box "
+                                   "around it on the page. Stationkeeper reads the area (the PDF's own text, else OCR), you "
+                                   "check or type the words, and it becomes a sentence in its place, ready to assign. A "
+                                   "list's lead-in (the sentence ending in a colon before bullets) is always a sentence of "
+                                   "its own."),
               ("How the structure starts (2.69.0)", "Read RFP asks: choose after reading (Structure shows what the RFP "
                                    "prescribes and its headings), what the RFP prescribes, its headings, the outline typed "
                                    "for the effort, or blank. Most RFPs do not use Sections L and M: volumes and sections are "

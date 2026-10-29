@@ -261,14 +261,23 @@ def read_items(chunks, file_name, file_kind="", heads_out=None, every=True):
             for s in sents:
                 lead, sub = _split_inline_list(s)
                 group = [(x, lead) for x in sub] if sub else [(s, lead_line if is_item else "")]
+                if sub and lead.strip(" :"):                 # 2.70.0: an inline list's lead-in is a sentence too
+                    li_it = classify(lead, "", cur, file_kind) or (context_item(lead, "", cur, label) if every else None)
+                    if li_it:
+                        li_it.update({"file": file_name, "loc": label, "page": _page(label), "context": body[:700], "lead_in": True})
+                        items.append(li_it)
                 for txt, ld in group:
-                    if txt.rstrip().endswith(":") and not sub and lead_in_ok and s is sents[-1]:
-                        continue                         # a lead-in ("the Offeror shall:") is carried by its items
+                    lead_in = txt.rstrip().endswith(":") and not sub and lead_in_ok and s is sents[-1]
+                    # 2.70.0: a lead-in ("the Offeror shall address the following:") is a sentence of its own, to
+                    # assign like any other (it used to live only in its items, so the page had no box for it); its
+                    # items still carry it in the matrix
                     it = classify(txt, ld, cur, file_kind)
                     if it is None and every:
                         it = context_item(txt, ld, cur, label)
                     if it:
                         it.update({"file": file_name, "loc": label, "page": _page(label), "context": body[:700]})
+                        if lead_in:
+                            it["lead_in"] = True
                         items.append(it)
             if line.rstrip().endswith(":") and (lead_in_ok or is_item):
                 lead_line = (sents[-1] if sents else body) if not is_item else lead_line

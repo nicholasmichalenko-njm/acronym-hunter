@@ -250,6 +250,14 @@ class MainWindow(QMainWindow):
                 SD.sync_docs(M, DV.Library(self.ws.p("documents")).load())
             except Exception:
                 diag.swallowed()
+        try:                                        # 2.70.0: list lead-ins an older read kept inside their items
+            import capture as CAP
+            got = CAP.add_lead_ins(M)
+            if got:
+                diag.activity("compliance_lead_ins_added", n=len(got))
+                self.status(f"{len(got)} list lead-in(s) are now sentences of their own, ready to assign.")
+        except Exception:
+            diag.swallowed()
         if self.ws is not None:
             self.ws.set("compliance_path", M.path)
         if new:

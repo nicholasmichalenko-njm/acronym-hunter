@@ -22,6 +22,7 @@ import pagesent as PS
 import matrixdesign as MD
 import outline_ops as O
 import structstart as SS
+import capture as CAP
 import office_pdf as OP
 from . import design as D
 
@@ -75,6 +76,7 @@ class SentenceBox(QGraphicsPathItem):
 
 class PageView(QGraphicsView):
     clicked_word = Signal(str, int)               # (sentence id, word index) for S
+    captured = Signal(QRectF)                     # 2.70.0: an area dragged in Add missed text mode (scene coordinates)
 
     def __init__(self):
         super().__init__()
@@ -87,6 +89,37 @@ class PageView(QGraphicsView):
         self.boxes = {}
         self.words = {}                            # sentence id -> [scene rects of its words, in order]
         self.zoom = 1.0
+        self.capturing = False
+        self._cap0, self._cap_item = None, None
+
+    def set_capture(self, on):
+        self.capturing = on
+        self.setDragMode(QGraphicsView.NoDrag if on else QGraphicsView.RubberBandDrag)
+        self.viewport().setCursor(Qt.CrossCursor if on else Qt.ArrowCursor)
+
+    def mouseMoveEvent(self, e):
+        if self.capturing and self._cap0 is not None:
+            r = QRectF(self._cap0, self.mapToScene(e.position().toPoint())).normalized()
+            if self._cap_item is None:
+                pen = QPen(QColor("#B45309")); pen.setWidthF(1.2); pen.setCosmetic(True); pen.setStyle(Qt.DashLine)
+                self._cap_item = self.scene().addRect(r, pen, QBrush(QColor(245, 158, 11, 40)))
+                self._cap_item.setZValue(5)
+            else:
+                self._cap_item.setRect(r)
+            return
+        super().mouseMoveEvent(e)
+
+    def mouseReleaseEvent(self, e):
+        if self.capturing and self._cap0 is not None:
+            r = QRectF(self._cap0, self.mapToScene(e.position().toPoint())).normalized()
+            self._cap0 = None
+            if self._cap_item is not None:
+                self.scene().removeItem(self._cap_item)
+                self._cap_item = None
+            if r.width() > 3 and r.height() > 3:
+                self.captured.emit(r)
+            return
+        super().mouseReleaseEvent(e)
 
     def wheelEvent(self, e):
         if e.modifiers() & Qt.ControlModifier:
@@ -98,6 +131,9 @@ class PageView(QGraphicsView):
         super().wheelEvent(e)
 
     def mousePressEvent(self, e):
+        if self.capturing and e.button() == Qt.LeftButton:
+            self._cap0 = self.mapToScene(e.position().toPoint())
+            return
         it = self.itemAt(e.position().toPoint())
         sel = [b for b in self.scene().selectedItems() if isinstance(b, SentenceBox)]
         if isinstance(it, SentenceBox) and len(sel) == 1 and sel[0] is it and not (e.modifiers() & (Qt.ControlModifier | Qt.ShiftModifier)):
@@ -176,11 +212,17 @@ class AssignPage(QWidget):
             self.keys[text.split()[0]] = b
             bar.addWidget(b)
         bar.addStretch(1)
+        self.cap_btn = D.button("Add missed text", None, lambda: self.toggle_capture(),
+                                "Drag a box around text the reader missed: Stationkeeper reads it (the PDF's text, else OCR) "
+                                "and adds it as a sentence in its place, ready to assign")
+        self.cap_btn.setCheckable(True)
+        bar.addWidget(self.cap_btn)
         fit = QPushButton("Fit width"); fit.clicked.connect(lambda: self.view.fit()); bar.addWidget(fit)
         self.note = D.label("", "muted"); v.addWidget(self.note)
         self.view = PageView()
         self.view.scene().selectionChanged.connect(self.on_select)
         self.view.clicked_word.connect(self.on_word)
+        self.view.captured.connect(lambda r: self.capture_area(r))
         right = QSplitter(Qt.Vertical)
         self.card_area = QScrollArea(); self.card_area.setWidgetResizable(True)
         self.card_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -229,7 +271,7 @@ class AssignPage(QWidget):
         for key, fn in (("R", self.do_req), ("C", self.do_ctx), ("G", self.do_customer), ("X", self.do_clear),
                         ("L", lambda: self.do_lm("L")), ("E", lambda: self.do_lm("M")), ("Shift+M", lambda: self.do_lm("M")),
                         ("Delete", self.do_clear), ("J", self.do_combine), ("S", self.do_split), ("Ctrl+Z", self.do_undo),
-                        ("Escape", lambda: self.view.scene().clearSelection())):
+                        ("Escape", lambda: self.toggle_capture(False) if self.view.capturing else self.view.scene().clearSelection())):
             QShortcut(QKeySequence(key), self.view, activated=fn)
         self.show_card([])
 
@@ -861,6 +903,79 @@ class AssignPage(QWidget):
         self.target = lab
         self.after(f"Section added from the sentence: {lab}")
         return lab
+
+    # ------------------------------------------------------------ text the reader missed (2.70.0)
+    def toggle_capture(self, on=None):
+        on = (not self.view.capturing) if on is None else on
+        if on and not self.pdf:
+            self.host.status("Add missed text works on the page view of a document.")
+            on = False
+        self.view.set_capture(on)
+        self.cap_btn.setChecked(on)
+        self.note.setText("Drag a box around the text the reader missed (Esc cancels)." if on else
+                          "Click a sentence; Ctrl+click adds one (even far apart); drag a box around several. Ctrl+wheel zooms.")
+        return on
+
+    def _page_of(self, y):
+        n = 0
+        for k, top in enumerate(self.tops):
+            if y >= top:
+                n = k
+        return n
+
+    def capture_area(self, rect, text=None, how=None, as_req=False):
+        """Read the text inside an area of the page and add it as a sentence in its place. text (tests, or when nothing
+        could be read): use it instead of asking. Returns the new row."""
+        self.toggle_capture(False)
+        if self.R is None or not self.pdf or not self.tops:
+            return None
+        n = self._page_of(rect.center().y())
+        area = (rect.left() - MARGIN, rect.top() - self.tops[n], rect.right() - MARGIN, rect.bottom() - self.tops[n])
+        got, found = "", ""
+        try:
+            got, found = CAP.text_in(self.pdf, n, area)
+        except Exception:
+            diag.swallowed()
+        if text is None:
+            ans = self.ask_text(got, found)
+            if ans is None:
+                return None
+            text, as_req = ans
+            how = found if text == got and found else "typed"
+        how = how or found or "typed"
+        above = [(b.path().boundingRect().top(), iid) for iid, b in self.view.boxes.items()
+                 if b.path().boundingRect().top() <= rect.top() + 2]
+        after = max(above)[1] if above else None    # nothing above it: before this file's first sentence
+        self.R.snap()
+        it = CAP.add_sentence(self.M, self.file, text, after_id=after, page=n + 1, how=how, at_start=after is None)
+        if it is None:
+            return None
+        diag.activity("compliance_text_added_from_page", n=1)
+        self.build_boxes()
+        self.select(it["id"])
+        if as_req:
+            self.do_req()
+        self.after(f"{it['id']}: added from the page" + (" (read by OCR: check the wording)" if how == "ocr" else "")
+                   + (", a compliance requirement" if as_req else ", ready to assign"))
+        return it
+
+    def ask_text(self, got, how):
+        """The text found (or nothing), to check or type. Returns (text, as a requirement) or None."""
+        d = QDialog(self); d.setWindowTitle("Add missed text"); d.setMinimumWidth(560)
+        lay = QVBoxLayout(d)
+        lay.addWidget(D.label({"pdf": "Read from the PDF's own text. Check it, then add it.",
+                               "ocr": "Read by OCR from the picture of the page. Check every word, then add it."}.get(
+            how, "Nothing could be read in that area. Type the text as the document shows it."), "muted"))
+        ed = QPlainTextEdit(got); ed.setMinimumHeight(110); lay.addWidget(ed)
+        req = QCheckBox("Make it a compliance requirement" + (f" in {self.target}" if self.target else " (no section yet)"))
+        lay.addWidget(req)
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        bb.button(QDialogButtonBox.Ok).setText("Add to the review")
+        bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
+        lay.addWidget(bb)
+        if d.exec() != QDialog.Accepted or not ed.toPlainText().strip():
+            return None
+        return " ".join(ed.toPlainText().split()), req.isChecked()
 
     def copy_rfp_section(self, with_subs=None):
         """2.69.0: hybrid structures: copy an RFP section (with its subsections) under the target, then rename or move it

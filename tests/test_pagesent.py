@@ -71,8 +71,9 @@ check("the page map has the headers as furniture, not boxes", len(mp["furniture"
       and not any(r[1] < 60 for x in mp["items"] for r in x["rects"]), mp["furniture"])
 st = os.path.join(B, "rfp_stress", "Stress_RFP.pdf")
 items, heads, info = PS.read_review(st, "St.pdf", C.extract)
-leads = [it for it in items if it.get("lead_place")]
-check("two lists with the same lead-in each get their lead-in placed", len(leads) == 2, [it["text"][:20] for it in leads])
+leads = [it for it in items if it["text"].endswith(":") and it.get("place")]
+check("two lists with the same lead-in: each lead-in is a sentence placed on its own words (2.70.0)", len(leads) >= 2
+      and not any(it.get("lead_place") for it in items), [it["text"][:20] for it in leads])
 for i, it in enumerate(items):
     it["id"] = f"X{i}"
 check("Stress: nothing missing on the pages", not any(PS.place_map(st, p, items, heads)["missing"] for p in (1, 2)))

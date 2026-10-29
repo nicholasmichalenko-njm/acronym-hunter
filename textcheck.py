@@ -255,9 +255,7 @@ def check(path, items, headings=(), reader_chunks=None):
                 if l2 == li and cover[k] == 0:
                     cover[k] = 2
     for it in items:
-        ld = (it.get("lead") or "").strip()
-        if ld:                                         # 2.51.0: every list's lead-in, even when two lists share the words
-            mark(line_words(ld), 1)                    # (marking again prefers an occurrence not covered yet)
+        # 2.70.0: a list's lead-in is a sentence of its own; the lead its items carry no longer counts as reading it
         mark(line_words(it.get("orig_text") or it.get("text") or ""), 1)   # 2.55.0: a fixed sentence matches the page as read
     titles = set()
     for it in items:

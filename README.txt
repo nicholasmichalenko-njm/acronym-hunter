@@ -1,6 +1,18 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+NOTHING THE READER MISSES STAYS MISSED (2.70.0)
+  - A list's lead-in, the sentence ending in a colon just before bullets ("The description shall address the
+    following:"), is a sentence of its own: it has a box on the page and is assigned like any other. Its bullets still
+    carry it in the matrix. It used to live only inside its bullets, so it could not be clicked, and the text check
+    counted it as read.
+  - Matrices read before 2.70 get their lead-ins as sentences when they open (decisions are kept).
+  - Assign: Add missed text. Press it, drag a box around text the reader missed, and Stationkeeper reads what is
+    inside: the PDF's own text first, the built-in OCR when the page is a picture. Check or type the text, tick
+    "Make it a compliance requirement" if it is one, and it is added as a sentence in its place, with a box. Esc
+    cancels.
+  - A digital signature on a PDF does not stop reading: it only blocks changes to the file.
+
 HOW THE RESPONSE STRUCTURE STARTS, AND RFPS WITHOUT SECTIONS L AND M (2.69.0)
   - Read RFP asks how the structure starts: Choose after reading (the default when no outline was typed for the
     effort), What the RFP prescribes, The RFP's headings, The outline typed for this effort, or Blank.

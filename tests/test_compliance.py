@@ -21,11 +21,11 @@ def run():
     heads = []
     items = C.extract([(f, A.typed_chunks(os.path.join(RFP, f))) for f in files], heads)
     req = [it for it in items if it["type"] != "Context"]
-    assert len(req) == 27, len(req)
+    assert len(req) == 29, len(req)                 # 2.70.0: the two lists' lead-ins are sentences of their own
     ctx = [it for it in items if it["type"] == "Context"]                  # 2.29.0: every sentence is a row
     assert ctx and all(it["suggest"] in ("Context", "Drop") for it in ctx), [(it["text"], it["suggest"]) for it in ctx]
     assert any("Resumes do not count toward the page limit" in it["text"] for it in ctx)
-    assert len(C.extract([(f, A.typed_chunks(os.path.join(RFP, f))) for f in files], every=False)) == 27
+    assert len(C.extract([(f, A.typed_chunks(os.path.join(RFP, f))) for f in files], every=False)) == 29
     ids = [it["id"] for it in items]
     assert len(set(ids)) == len(ids)
     # Section C (SOW)
@@ -53,7 +53,9 @@ def run():
     assert "Volume III Cost" in vol["text"] and vol["page"] == 1
     poc = by_text(items, "identify a point of contact")
     assert poc["page"] == 2 and poc["lead"].startswith("For each reference, the Offeror shall") and poc["section"] == "L.3"
-    assert not any(it["text"].endswith(":") for it in items), "lead-ins are not items"
+    leads = [it for it in items if it["text"].endswith(":")]
+    assert any(it["text"].startswith("For each reference, the Offeror shall") for it in leads), "2.70.0: a lead-in is a sentence"
+    assert all(it["lead"] == "" for it in leads), "a lead-in carries no lead of its own"
     assert by_text(items, "The Government will not evaluate")["suggest"] == "Drop"
     # Section M (evaluation) linked back to the instructions
     m21 = by_text(items, "The Government will evaluate the offeror's thermal design")
