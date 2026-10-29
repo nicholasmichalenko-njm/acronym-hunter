@@ -8,7 +8,7 @@ import compliance_read as CR
 from . import design as D
 
 COLS = [("file", "File"), ("total", "Sentences"), ("Keep", "Requirements"), ("Context", "Context"), ("Customer", "Customer's"),
-        ("unused", "Not used"), ("needs_home", "No section yet")]
+        ("unused", "Ignored"), ("needs_home", "No section yet")]
 
 
 class ProvePage(QWidget):

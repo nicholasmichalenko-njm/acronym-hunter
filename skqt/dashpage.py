@@ -173,7 +173,7 @@ class DashPage(QWidget):
             return
         segs = [(q["placed"], "req", "Requirements placed"), (q["reqs"] - q["placed"], "warn", "Requirements not placed"),
                 (q["context"], "ctx", "Supporting context"), (q["customer"], "cust", "The customer's"),
-                (q["dropped"], "border_strong", "Not used"), (q["undecided"], "faint", "Not decided yet")]
+                (q["dropped"], "border_strong", "Ignored"), (q["undecided"], "faint", "Not decided yet")]
         self.comp_bar.set(segs)
         self.comp_legend.addWidget(D.legend([s for s in segs if s[0]]))
         rv = d.get("review")

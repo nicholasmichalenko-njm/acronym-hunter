@@ -2,7 +2,7 @@
 click; Ctrl+click adds or takes out a sentence; drag a rubber band around several (Ctrl+drag adds); Ctrl+wheel zooms.
 Headers and footers have no box. Labels in the left margin say what each sentence is. Beside the page: the sentence
 card (source, decision, author(s), relationships, notes) and the response structure (click a section: the target for
-R). Keys: R requirement, L and E (M) the Shipley designation, C support, G customer's, X not used, J combine (2.68.0;
+R). Keys: R requirement, L and E (M) the Shipley designation, C support, G customer's, X ignore, J combine (2.68.0;
 M before), S split (where you clicked in the selected
 sentence), Ctrl+Z undo. 2.68.0: the structure is built beside the page as you assign, volume by volume. Every decision goes through assign_ops, the same rules as the tkinter edition.
 """
@@ -238,7 +238,7 @@ class AssignPage(QWidget):
                 ("M  E", "req", lambda: self.do_lm("M"), "M: Evaluation Factors for Award (a requirement), into the target. Key: E"),
                 ("Support  C", "ctx", self.do_ctx, "Supporting context for the last requirement you clicked"),
                 ("Customer's  G", "cust", self.do_customer, "The customer's to act on: identified, never answered"),
-                ("Not used  X", None, self.do_clear, "No decision"))):
+                ("Ignore  X", None, self.do_clear, "Ignore it: no decision, not in the response"))):
             b = D.button(text, kind, fn, tip)
             self.keys[text.split()[0]] = b
             grid.addWidget(b, k // 3, k % 3)
@@ -253,7 +253,7 @@ class AssignPage(QWidget):
                 ("Note  N", None, lambda: self.do_record("note"), "A note in the effort record, quoting it"),
                 ("Question  Q", "cust", lambda: self.do_record("question"), "A question for the customer, quoting it"),
                 ("Task  T", None, lambda: self.do_record("task"), "A task in the effort record, quoting it"),
-                ("Not needed  X", None, lambda: self.do_clear(), "Take its attachments off"))):
+                ("Ignore  X", None, lambda: self.do_clear(), "Ignore it: take its attachments off"))):
             b = D.button(text, kind, fn, tip)
             self.ctx_keys[text.split("  ")[0]] = b
             cgrid.addWidget(b, k // 3, k % 3)
@@ -1230,7 +1230,7 @@ class AssignPage(QWidget):
         rows = self.selected()
         if rows:
             self.R.clear(rows)
-            self.after(f"{len(rows)} sentence(s): not used")
+            self.after(f"{len(rows)} sentence(s): ignored")
 
     def do_combine(self):
         if self.cx is not None:
