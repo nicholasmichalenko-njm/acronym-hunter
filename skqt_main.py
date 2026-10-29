@@ -81,6 +81,7 @@ def main(argv=None):
     import diag
     diag.activity("qt_started")
     w = MainWindow(app, A.CONFIG_DIR, A.APP_VERSION)
+    w.safety.install_crash_screen()                  # 2.78.0: save first, then a plain message
     if "--selftest" in args:            # the build checks the built program starts (no effort opened)
         w.show()
         app.processEvents()

@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+NEVER LOSE WORK (2.78.0)
+  - Automatic backups are back: a few minutes after changes and when the effort closes, the whole effort is copied to
+    the backup folder (Settings > Backups) as "<effort> - latest.skpkg", plus one copy a day kept 30 days and the app's
+    settings and team lists. Choose the approved SharePoint folder so progress is never only on this PC. (From 2.74.0 to
+    2.77.0 only Back up now copied it.)
+  - The effort's own folder keeps dated copies of the compliance matrix and the effort list (the last 10 and one a day
+    for 14 days).
+  - Every change writes a recovery copy. If Stationkeeper or Windows stops before a save, the next opening offers to
+    put the changes back.
+  - Effort record > Restore... lists every copy, newest first, and puts one back; what you have now is kept as a copy
+    first.
+  - The effort reopens where you were: the page, the sentence, the volume and the structure target.
+  - On an unexpected error your work is saved first, then a plain message offers Keep working or Restart.
+
 ONE AUTHOR LIST FOR EVERY NAME (2.77.0)
   - Settings > Author list is the only place names come from. Author(s) in Assign, a section's lead and contributors,
     a task's owner, a question's answerer and a deliverable's owner all pick from it; names are never typed there.

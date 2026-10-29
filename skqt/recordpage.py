@@ -88,6 +88,7 @@ class RecordPage(QWidget):
         row.addWidget(D.button("Effort summary (Word)...", None, lambda: self.status_export(final=True), "The effort with its complete history"))
         row.addWidget(D.button("Save effort package...", None, lambda: self.save_package(), "The whole effort in one .skpkg file for a hand-off"))
         row.addWidget(D.button("Back up now", None, lambda: self.backup_now()))
+        row.addWidget(D.button("Restore...", None, lambda: self.restore_dialog(), "Put back an earlier copy of this effort"))
         row.addStretch(1)
         self.out.body.addLayout(row)
         self.backup_text = self.out.add(D.label("", "muted"))
@@ -136,8 +137,7 @@ class RecordPage(QWidget):
         self.use_found.setVisible(bool(self.customer_due))
         self.fill_team(r)
         self.fill_stages(r)
-        bd = self.backup_dir()
-        self.backup_text.setText(f"Backups go to {bd}." if bd else "Backups are off. Choose the backup folder in Settings.")
+        self.backup_text.setText(self.host.safety.status_text())     # 2.78.0: automatic, with the last time
 
     # ------------------------------------------------------------ details
     def use_customer_due(self):
@@ -396,6 +396,32 @@ class RecordPage(QWidget):
         except Exception:
             diag.swallowed()
             return ""
+
+    def restore_dialog(self, pick=None):
+        """2.78.0 Restore points: the effort's dated copies and its backup packages, newest first. pick (tests): an index."""
+        sf = self.host.safety
+        pts = sf.points()
+        if not pts:
+            self.host.status("No earlier copies yet: they appear after the first saves and backups.")
+            return None
+        if pick is None:
+            from .safety import _nice
+            d = QDialog(self); d.setWindowTitle("Restore an earlier copy"); d.setMinimumSize(560, 420)
+            v = QVBoxLayout(d)
+            v.addWidget(D.label("Pick the copy to put back. What you have now is kept as a copy first, so this can be undone "
+                                "the same way.", "muted"))
+            lw = QListWidget(); v.addWidget(lw, 1)
+            for pt in pts:
+                lw.addItem(f"{_nice(pt['when'])}    {pt['label']}")
+            lw.setCurrentRow(0)
+            bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.button(QDialogButtonBox.Ok).setText("Put it back")
+            bb.accepted.connect(d.accept); bb.rejected.connect(d.reject); v.addWidget(bb)
+            if d.exec() != QDialog.Accepted or lw.currentRow() < 0:
+                return None
+            pick = lw.currentRow()
+        ok = sf.restore(pts[pick])
+        self.refresh() if self.host.ws is not None else None
+        return pts[pick] if ok else None
 
     def backup_now(self, folder=None):
         """Back up the open effort to the backup folder set in Keep safe (folder: tests)."""

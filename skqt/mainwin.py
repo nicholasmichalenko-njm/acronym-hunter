@@ -158,6 +158,8 @@ class MainWindow(QMainWindow):
         self.save_timer = QTimer(self, singleShot=True, interval=2000, timeout=self.save_now)
         self.lock_timer = QTimer(self, interval=60000, timeout=lambda: self.ws.refresh_lock() if self.ws else None)
         self.lock_timer.start()
+        from .safety import Safety                 # 2.78.0: backups, recovery, where you were, the crash screen
+        self.safety = Safety(self)
         self.fill_efforts()
         self.go("read")
         self.title()
@@ -219,9 +221,14 @@ class MainWindow(QMainWindow):
         self.ws, self.effort_name, self.effort_path = ws, name, info["path"]
         diag.activity("qt_effort_opened")
         p = ws.get("compliance_path") or ""
+        recovered = False
         if p and os.path.isfile(p):
             try:
-                self.set_matrix(C.Matrix(p).load())
+                M = C.Matrix(p).load()
+                recovered = self.safety.offer_recovery(M)
+                self.set_matrix(M)
+                if recovered:
+                    self.save_now()
             except Exception:
                 diag.swallowed()
                 self.status("The compliance matrix could not be opened.")
@@ -230,11 +237,17 @@ class MainWindow(QMainWindow):
             self.assign_page.load()
         self.read_page.refresh()
         self.go("assign" if self.review is not None and self.review.M.items else "read")
+        self.safety.opened()
+        self.safety.restore_view()                 # 2.78.0: back where you were in this effort
+        if recovered:
+            self.toast(self.safety.recovered_text)
         self.title()
         return True
 
     def close_effort(self):
         self.save_now()
+        if self.ws is not None and hasattr(self, "safety"):
+            self.safety.closing()
         if self.ws is not None:
             try:
                 self.ws.release_lock()
@@ -303,6 +316,7 @@ class MainWindow(QMainWindow):
         if self.review is not None:
             self.review.M.pending = True
             self.save_timer.start()
+            self.safety.changed()                  # 2.78.0: the recovery copy, written as you work
         self.title()
 
     def save_now(self):
@@ -311,6 +325,7 @@ class MainWindow(QMainWindow):
             try:
                 self.review.M.save()
                 self.review.M.pending = False
+                self.safety.saved(self.review.M.path)      # 2.78.0: clear the recovery copy; a dated copy now and then
                 self.fill_search()
             except PermissionError:
                 self.status("The matrix is open in Excel: close it there, and it is saved again in two seconds.")

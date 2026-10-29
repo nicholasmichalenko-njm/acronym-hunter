@@ -46,8 +46,12 @@ class SettingsPage(QWidget):
                          actions=[D.button("Load a new version...", None, lambda: self.load_master())])
         self.db_text = self.db.add(D.label("", "muted"))
         v.addWidget(self.db)
-        self.bk = D.Card("Backups (Keep safe)", "Every open effort is backed up to this folder: the latest, and one copy a day.",
-                         actions=[D.button("Choose the folder...", None, lambda: self.set_backup()), D.button("Turn off", "ghost", lambda: self.set_backup(""))])
+        self.bk = D.Card("Backups (Keep safe)", "The open effort is copied to this folder automatically a few minutes after "
+                         "changes and when it closes: the latest copy, and one a day for 30 days. Use the approved SharePoint "
+                         "folder so progress is never only on this PC.",
+                         actions=[D.button("Choose the folder...", None, lambda: self.set_backup()),
+                                  D.button("Back up now", None, lambda: self.host.safety.backup_now(wait=True, force=True) and self.refresh()),
+                                  D.button("Turn off", "ghost", lambda: self.set_backup(""))])
         self.bk_text = self.bk.add(D.label("", "muted"))
         v.addWidget(self.bk)
         self.tr = D.Card("The training team", "What this PC taught goes to the training team in one file; what they release "
@@ -108,7 +112,8 @@ class SettingsPage(QWidget):
         except Exception:
             diag.swallowed()
         bd = self.backup_dir()
-        self.bk_text.setText(f"Backups go to {bd}." if bd else "Backups are off.")
+        self.bk_text.setText(self.host.safety.status_text())
+        self.bk_text.setWordWrap(True)
         try:
             n = sum(self._tp_gather(None, False, False)["counts"].values())
             self.tr_text.setText(f"{n} item(s) waiting to be sent." if n else "Nothing new to send.")
