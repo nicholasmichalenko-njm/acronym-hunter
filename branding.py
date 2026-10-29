@@ -239,16 +239,18 @@ ROLE_SAYS = {"Proposal Manager": "Stage, gate goals, questions, tasks and the ca
              "Capture": "Stage, customer information and questions first."}
 
 
-def preset(role):
-    shown = list(ROLES.get(role, ROLES[DEFAULT_ROLE]))
+def preset(role, team=None):
+    """A role's starting layout: the team's (a team pack, 2.89.0) where it has one, else the built-in one."""
+    team = team or {}
+    shown = [k for k in (team.get(role) or ROLES.get(role, ROLES[DEFAULT_ROLE])) if k in KEYS] or list(ROLES[DEFAULT_ROLE])
     return {"role": role if role in ROLES else DEFAULT_ROLE, "order": shown + [k for k in KEYS if k not in shown], "hidden":
             [k for k in KEYS if k not in shown], "custom": False}
 
 
-def layout(settings):
-    """The person's layout: {role, order (every key), hidden, custom}."""
+def layout(settings, team=None):
+    """The person's layout: {role, order (every key), hidden, custom}. team: the team's role layouts."""
     lay = (settings or {}).get("home_layout") or {}
-    base = preset(lay.get("role", DEFAULT_ROLE))
+    base = preset(lay.get("role", DEFAULT_ROLE), team)
     if not lay.get("custom"):
         return base
     order = [k for k in lay.get("order", []) if k in KEYS]
@@ -277,10 +279,11 @@ def rows(keys):
     return out
 
 
-def custom_layout(role, order, hidden):
+def custom_layout(role, order, hidden, team=None):
     order = [k for k in order if k in KEYS] + [k for k in KEYS if k not in order]
     lay = {"role": role if role in ROLES else DEFAULT_ROLE, "order": order, "hidden": [k for k in hidden if k in KEYS], "custom": True}
-    if lay["order"] == preset(lay["role"])["order"] and sorted(lay["hidden"]) == sorted(preset(lay["role"])["hidden"]):
+    base = preset(lay["role"], team)
+    if lay["order"] == base["order"] and sorted(lay["hidden"]) == sorted(base["hidden"]):
         lay["custom"] = False
     return lay
 

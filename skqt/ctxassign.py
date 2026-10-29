@@ -175,7 +175,25 @@ class CtxMode:
             tp.setPlaceholderText("Comma between topics (the document's tags, a section, anything)")
             tp.editingFinished.connect(lambda a=att[-1], tp=tp: self.store.set_topics(a["id"], tp.text().split(",")))
             self.topics = pg.add(tp)
+            try:                                                   # 2.89.0: the team's topics, one click each
+                import teampack as TP
+                team = [t for t in TP.topics(self.page.host.config_dir) if t.casefold() not in {x.casefold() for x in att[-1].get("topics", [])}]
+            except Exception:
+                team = []
+            if team:
+                from .adaptive import FlowLayout
+                box = QWidget(); fl = FlowLayout(box, 6)
+                self.team_topic_btns = []
+                for t in team[:16]:
+                    b = D.button("+ " + t, "ghost", lambda _=False, a=att[-1], t=t: self.add_topic(a, t), "A team topic")
+                    fl.addWidget(b); self.team_topic_btns.append(b)
+                pg.add(box)
         QTimer.singleShot(0, pg.fit_card)
+
+    def add_topic(self, a, t):
+        self.store.set_topics(a["id"], list(a.get("topics", [])) + [t])
+        self.show_card(self.selected())
+        return True
 
     # ------------------------------------------------------------ decisions
     def _done(self, msg, n=0):

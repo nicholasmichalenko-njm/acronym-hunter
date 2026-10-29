@@ -47,6 +47,9 @@ class SettingsPage(QWidget):
         from .brandview import BrandingCard              # 2.88.0: the company logos at the top of the menu
         self.branding_card = BrandingCard(host)
         v.addWidget(self.branding_card)
+        from .teamview import TeamCard                   # 2.89.0: one file sets up every PC the same way
+        self.team_card = TeamCard(host)
+        v.addWidget(self.team_card)
         self.scroll = sc
         self.db = D.Card("Master database", "The company's acronyms, abbreviations, units and symbols, shared by every effort on this PC.",
                          actions=[D.button("Load a new version...", None, lambda: self.load_master())])

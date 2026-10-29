@@ -74,6 +74,13 @@ check("C: context for the target section", len(st.for_section("1.1 Technical App
 node = ap.tree.findItems("1.1 Technical Approach", __import__("PySide6.QtCore", fromlist=["Qt"]).Qt.MatchRecursive | __import__("PySide6.QtCore", fromlist=["Qt"]).Qt.MatchContains, 0)[0]
 check("the structure counts it", node.text(2) == "1", node.text(2))
 check("the page tags it in the margin", any("CTX 1.1" in l.text() for l in ap.labels))
+import teampack as TP                                      # 2.89.0: the team's topics, one click each
+TP.save_topics(cfg, ["Thermal", "Schedule"])
+ap.select(first); app.processEvents()
+btns = getattr(ap.cx, "team_topic_btns", [])
+check("the team's topics are offered on the card", [b.text() for b in btns] == ["+ Thermal", "+ Schedule"], [b.text() for b in btns])
+btns[0].click(); app.processEvents()
+check("one click tags the context with a team topic", "Thermal" in CX.Store(ws.root).load().att[0]["topics"])
 # F to a requirement
 M = w.review.M
 w.assign_page.files.setCurrentText("Section_L_print.pdf"); app.processEvents()

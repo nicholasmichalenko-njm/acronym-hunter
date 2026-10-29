@@ -197,7 +197,9 @@ class HomePage(QWidget):
     def apply_layout(self):
         import branding as BR
         from .modes import settings
-        self.lay = BR.layout(settings())
+        import teampack as TP
+        self.team_roles = TP.roles(self.host.config_dir)              # 2.89.0: the team's layout for each role
+        self.lay = BR.layout(settings(), self.team_roles)
         while self.body.count():                                     # take the cards out without deleting them
             it = self.body.takeAt(0)
             if it.layout() is not None:
@@ -247,11 +249,12 @@ class HomePage(QWidget):
                     names = self.host.authors.names()
                 except Exception:
                     names = []
-            dlg = CustomizeDialog(self, self.lay, names, self.my_name())
+            dlg = CustomizeDialog(self, self.lay, names, self.my_name(), self.team_roles, self.host.config_dir)
             if dlg.exec() != QDialog.Accepted:
                 return False
             answer = dlg.values()
-        lay = BR.custom_layout(answer.get("role", self.lay["role"]), answer.get("order", self.lay["order"]), answer.get("hidden", []))
+        lay = BR.custom_layout(answer.get("role", self.lay["role"]), answer.get("order", self.lay["order"]), answer.get("hidden", []),
+                               self.team_roles)
         kv = {"home_layout": BR.to_json(lay)}
         if "me" in answer:
             kv["my_name"] = answer["me"]
@@ -528,6 +531,10 @@ class HomePage(QWidget):
         """2.86.0: this stage's goals become the default for the same stage in new efforts (this PC; team defaults later)."""
         r = self.rec
         if r is None:
+            return None
+        import teampack as TP
+        if TP.locked(self.host.config_dir, "goals"):               # 2.89.0: the team pack set them
+            self.host.status("The team pack set the default gate goals. They change when the team sends a new pack.")
             return None
         s = r.stage()
         if answer is None:

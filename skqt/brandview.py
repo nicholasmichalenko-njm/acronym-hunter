@@ -8,7 +8,7 @@ from PySide6.QtCore import QRectF, QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPixmap
 from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QFrame,
                                QGridLayout, QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMenu, QMessageBox,
-                               QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget)
+                               QPushButton, QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget)
 import branding as BR
 import diag
 from . import design as D
@@ -256,7 +256,13 @@ class DetailsDialog(QDialog):
         self.pm.addItems([""] + names); self.pm.setCurrentText(ident["pm"])
         self.client = QLineEdit(client); self.client.setPlaceholderText("USSF SSC")
         self.sol = QLineEdit(solicitation); self.sol.setPlaceholderText("FA8810-26-R-0042")
-        self.sens = QComboBox(); self.sens.setEditable(True); self.sens.addItems(["", *BR.MARKINGS]); self.sens.setCurrentText(ident["sensitivity"])
+        import teampack as TP
+        team_marks = TP.markings(host.config_dir)                    # 2.89.0: the team's markings
+        marks = list(dict.fromkeys([*BR.MARKINGS, *team_marks])) if not TP.locked(host.config_dir, "markings") else ([BR.NOT_CUI] + team_marks)
+        self.sens = QComboBox(); self.sens.setEditable(not TP.locked(host.config_dir, "markings")); self.sens.addItems(["", *marks])
+        if ident["sensitivity"] and self.sens.findText(ident["sensitivity"]) < 0:
+            self.sens.addItem(ident["sensitivity"])
+        self.sens.setCurrentText(ident["sensitivity"])
         self.sens.setToolTip("CUI and Proprietary mark every page with a strip across the top. Type your own marking if the team uses another.")
         f.addRow("Proposal manager", self.pm); f.addRow("Client", self.client); f.addRow("Solicitation", self.sol)
         f.addRow("Sensitivity", self.sens)
@@ -376,8 +382,9 @@ class RailFooter(QWidget):
 class CustomizeDialog(QDialog):
     """Customize Home: a role's starting layout, then show, hide and order the sections. Kept for this person on this PC."""
 
-    def __init__(self, parent, lay, names, me):
+    def __init__(self, parent, lay, names, me, team=None, config_dir=""):
         super().__init__(parent)
+        self.team, self.config_dir = team or {}, config_dir
         self.setWindowTitle("Customize Home")
         self.setMinimumWidth(460)
         v = QVBoxLayout(self)
@@ -398,6 +405,13 @@ class CustomizeDialog(QDialog):
         row.addWidget(D.button("Up", None, lambda: self.move(-1))); row.addWidget(D.button("Down", None, lambda: self.move(1)))
         row.addStretch(1)
         row.addWidget(D.button("Reset to the role", "ghost", lambda: self.use_role()))
+        import teampack as TP
+        self.team_btn = D.button("Save as the team's layout for this role", "ghost", lambda: self.save_team(),
+                                 "Kept on this PC; a team pack carries it to everyone (Settings > Team defaults)")
+        self.team_btn.setEnabled(bool(config_dir) and not TP.locked(config_dir, "roles"))
+        if config_dir and TP.locked(config_dir, "roles"):
+            self.team_btn.setToolTip("The team pack set the role layouts")
+        row.addWidget(self.team_btn)
         bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
         v.addWidget(bb)
 
@@ -412,8 +426,19 @@ class CustomizeDialog(QDialog):
 
     def use_role(self):
         r = self.role.currentText()
-        self.role_says.setText(BR.ROLE_SAYS.get(r, ""))
-        self.fill(BR.preset(r))
+        self.role_says.setText(BR.ROLE_SAYS.get(r, "") + ("  (the team's layout)" if r in self.team else ""))
+        self.fill(BR.preset(r, self.team))
+
+    def save_team(self):
+        """2.89.0: what is ticked, in this order, becomes the team's layout for the role on this PC."""
+        import teampack as TP
+        v = self.values()
+        cur = TP.roles(self.config_dir)
+        cur[v["role"]] = [k for k in v["order"] if k not in v["hidden"]]
+        TP._write(os.path.join(self.config_dir, TP.FILES["roles"]), cur)
+        self.team = cur
+        diag.activity("qt_team_role_layout_saved")
+        return cur
 
     def move(self, step):
         i = self.list.currentRow(); j = i + step
@@ -460,13 +485,24 @@ class BrandingCard(D.Card):
                 b = D.button(text, "ghost", fn); br.addWidget(b)
             self.row.addWidget(box)
         self.row.addStretch(1)
-        self.note.setText("" if paths else "No logo yet. Add a PNG or JPG; a logo on a clear background looks best.")
+        import teampack as TP
+        lk = TP.locks(self.host.config_dir).get("logos")
+        self.locked = bool(lk)
+        for b in self.findChildren(QPushButton):
+            if b.text() in ("<", ">", "Remove", "Add logo..."):
+                b.setEnabled(not lk)
+        self.note.setText(f"Set by the team pack {lk}: the logos change when the team sends a new pack." if lk else
+                          "" if paths else "No logo yet. Add a PNG or JPG; a logo on a clear background looks best.")
 
     def changed(self):
         self.refresh()
         self.host.rail_brand.refresh()
 
     def add_logo(self, path=None):
+        import teampack as TP
+        if TP.locked(self.host.config_dir, "logos"):
+            self.host.status("The team pack set the logos. They change when the team sends a new pack.")
+            return False
         if path is None:
             path, _ = QFileDialog.getOpenFileName(self, "Company logo", "", "Pictures (*.png *.jpg *.jpeg *.bmp *.gif)")
         if not path:
@@ -485,7 +521,11 @@ class BrandingCard(D.Card):
         return True
 
     def remove(self, p):
-        BR.remove_logo(self.host.config_dir, p); self.changed()
+        if not getattr(self, "locked", False):
+            BR.remove_logo(self.host.config_dir, p)
+        self.changed()
 
     def move(self, p, step):
-        BR.move_logo(self.host.config_dir, p, step); self.changed()
+        if not getattr(self, "locked", False):
+            BR.move_logo(self.host.config_dir, p, step)
+        self.changed()

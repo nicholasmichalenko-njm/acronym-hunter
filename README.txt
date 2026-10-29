@@ -1,6 +1,26 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+TEAM DEFAULTS (2.89.0)
+  - Settings > Team defaults: one file (.skteam) sets up every PC on the team the same way. Make a team pack ticks
+    what it carries: the author list, the team matrix design, banned words and phrases, default gate goals, company
+    logos, Effort Home layouts by role, sensitivity markings and team topics.
+  - Installing shows what changes, part by part, before anything does. Names, phrases, goals, markings and topics the
+    PC lacks are added; nothing of the PC's own is changed or removed. The matrix design, logos and role layouts are
+    taken only where the PC has none of its own.
+  - Lock: the maker can lock the matrix design, logos, role layouts, default gate goals and markings. A locked part
+    replaces each PC's own and stays as the team set it: Settings says so, and the controls that would change it are
+    off until the pack is undone or a new pack arrives.
+  - Undo puts back everything the last install changed and lifts its locks.
+  - The pack is checked before anything is read from it: only the files a team pack holds, each matching its
+    fingerprint, pictures that open as pictures. It holds names: keep it on the approved SharePoint folder, never on
+    GitHub.
+  - Customize Home > Save as the team's layout for this role: what is ticked, in that order, becomes the team's layout
+    for the role on this PC, and a team pack carries it.
+  - Team topics...: one topic per line. When you take context from a library document, the card offers each team
+    topic as a one-click tag. Sensitivity markings...: the markings the team writes (CUI//SP-PROPIN, Proprietary),
+    offered in Effort Home > Edit details.
+
 BRANDED EFFORT HOME AND THE CALENDAR AS A FILE (2.88.0)
   - Effort Home opens with the effort's banner: the effort's picture (click the spot to add a mission patch, logo or
     cover image), its name, client and solicitation, the proposal manager, its sensitivity, and the effort's own spots

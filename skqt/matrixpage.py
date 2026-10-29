@@ -192,6 +192,10 @@ class MatrixPage(QWidget):
 
     # ------------------------------------------------------------ team default and export
     def team_save(self):
+        import teampack as TP
+        if TP.locked(self.host.config_dir, "design"):              # 2.89.0: the team pack set it
+            self.host.status("The team pack set the team matrix design. It changes when the team sends a new pack.")
+            return None
         p = MD.save_team(self.host.config_dir, self.d)
         diag.activity("matrix_design_team_saved")
         self.host.toast("Saved as the team default design")
