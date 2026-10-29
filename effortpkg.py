@@ -52,12 +52,22 @@ def _files_in(folder, types=None):
     return sorted(out)
 
 
-def plan(list_path, data_dir, matrix_path="", customer_dir="", volumes_dir="", customer=True, volumes=False, extra_files=(), readable_dir=""):
+LIBRARY_KEEP = {"customer": ("qa",)}       # 2.83.0: "customer": the library's Q&A originals go, the others stay behind
+
+
+def plan(list_path, data_dir, matrix_path="", customer_dir="", volumes_dir="", customer=True, volumes=False, extra_files=(), readable_dir="",
+         library="all"):
     """[(arcname, path)] of what a package would hold, and its total size in bytes. extra_files: other files the effort
-    points to (a deliverable's working file outside the folders above), packed under files/ (2.41.0)."""
+    points to (a deliverable's working file outside the folders above), packed under files/ (2.41.0).
+    library (2.83.0): "all" packs every library original; "customer" packs only the Q&A originals besides the customer
+    documents. Every document's record, text copy, tags and role always go, so the package works without the others."""
     items = [("list/" + os.path.basename(list_path), list_path)]
+    keep = LIBRARY_KEEP.get(library)
     for p in _files_in(data_dir):
-        items.append(("data/" + os.path.relpath(p, data_dir).replace(os.sep, "/"), p))
+        rel = os.path.relpath(p, data_dir).replace(os.sep, "/")
+        if keep is not None and rel.startswith("library/") and rel.split("/")[1] not in keep:
+            continue
+        items.append(("data/" + rel, p))
     if matrix_path and os.path.isfile(matrix_path):
         items.append(("matrix/" + os.path.basename(matrix_path), matrix_path))
     if customer:
@@ -78,17 +88,18 @@ def plan(list_path, data_dir, matrix_path="", customer_dir="", volumes_dir="", c
 
 
 def save(out_path, effort_name, list_path, data_dir, info=None, matrix_path="", customer_dir="", volumes_dir="",
-         customer=True, volumes=True, stage="", app_version="", who=None, when=None, extra_files=(), readable_dir="", extra=None):
+         customer=True, volumes=True, stage="", app_version="", who=None, when=None, extra_files=(), readable_dir="", extra=None,
+         library="all"):
     """Write the package. Returns the manifest."""
     if not out_path.lower().endswith(EXTS):
         out_path += EXT
-    items, size = plan(list_path, data_dir, matrix_path, customer_dir, volumes_dir, customer, volumes, extra_files, readable_dir)
+    items, size = plan(list_path, data_dir, matrix_path, customer_dir, volumes_dir, customer, volumes, extra_files, readable_dir, library)
     man = {"format": FORMAT, "app": app_version, "effort": effort_name, "saved_by": who or getpass.getuser(),
            "saved_at": when or datetime.datetime.now().isoformat(timespec="minutes"), "stage": stage,
            "info": {k: v for k, v in (info or {}).items() if isinstance(v, (str, int, float, bool))},
            "has": {"customer": bool(customer and any(a.startswith("customer/") for a, _p in items)),
                    "volumes": bool(volumes and any(a.startswith("volumes/") for a, _p in items)),
-                   "matrix": any(a.startswith("matrix/") for a, _p in items)},
+                   "matrix": any(a.startswith("matrix/") for a, _p in items), "library": library},
            "files": {}, "origin": {}}
     if extra:                                     # 2.79.0: the effort's settings that live in the app (author names, revision)
         man["extra"] = extra

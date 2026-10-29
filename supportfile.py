@@ -20,6 +20,14 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "2.83.0": ["Library: every document of the effort in one place: customer documents, the bidders library, Q&A, our "
+               "documents and categories of your own, with folders, tags and search across the text of every document.",
+               "Add a folder (or drag folders and files onto the Library): every document comes in with a progress bar, its "
+               "category suggested from its folders and its folder names as tags, all checked in one table first.",
+               "Every document has a role: Builds the matrix, Context, Reference only or Not needed, kept with who, when "
+               "and why. Read RFP ticks the documents that build the matrix.",
+               "Save effort package: all documents, or the customer documents and Q&A only; the package still carries "
+               "every document's record and text."],
     "2.82.0": ["Moving between pages is fast with many documents: version changes and submission requirements are worked "
                "out once, in the background, and kept until something changes.",
                "Read shows its progress: the file and page, a running clock, Stop, and a clear message if a file cannot be "

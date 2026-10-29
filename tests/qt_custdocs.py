@@ -42,7 +42,7 @@ W.Workspace(W.data_dir_for(LIST), "Kestrel").set("outline_text", "Volume I Techn
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel")
-check("the rail has Customer Documents", [k for k in w.step_btns][4:9] == ["docs", "requirements", "compare", "impact", "deliverables"],
+check("the rail has Documents: Library, then the customer pages", [k for k in w.step_btns][4:10] == ["library", "docs", "requirements", "compare", "impact", "deliverables"],
       list(w.step_btns))
 # a compliance matrix with the page-limit sentence as a requirement
 w.read_page.read([os.path.join(CDIR, "Kestrel_RFP_Sections_C_L_M.docx")], os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))

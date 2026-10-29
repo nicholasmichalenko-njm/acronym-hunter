@@ -133,10 +133,70 @@ def guess_type(name):
 
 
 # ------------------------------------------------------------------ the library
+# ------------------------------------------------------------------ the document library (2.83.0)
+CATEGORIES = (("customer", "Customer documents"), ("bidders", "Bidders library"), ("qa", "Q&A"), ("ours", "Our effort documents"))
+ROLES = (("matrix", "Builds the matrix"), ("context", "Context"), ("reference", "Reference only"), ("not_needed", "Not needed"))
+ROLE_NAMES = dict(ROLES)
+MATRIX_TYPES = {"RFP", "Amendment", "SOW", "SOO", "PWS", "Section L", "Section M"}
+_CAT_WORDS = (("qa", r"q\s*&\s*a|\bqa\b|questions?\b|answers?\b"),
+              ("bidders", r"bidders?|library|reference|standards?|\bmil[\s_-]*(std|hdbk)|specs?\b|handbook"),
+              ("ours", r"\bours?\b|proposal|draft|past[\s_-]*perf|resumes?|capture|win[\s_-]*theme|internal|cpars"),
+              ("customer", r"customer|\brfp\b|solicitation|amendment|\bamd\b|section[\s_]*[lmc]\b|\bsow\b|\bpws\b|\bsoo\b|attachment|cdrl|dd[\s_-]*254|rfi\b"))
+_TEXTS = {}                           # (library folder, version id) -> lower-case sentences, for search, this session
+
+
+def suggest_role(category, dtype=""):
+    """The role a document's category and type suggest (the person confirms or changes it)."""
+    if category == "customer":
+        return "matrix" if dtype in MATRIX_TYPES or not dtype else "context"
+    return {"qa": "context", "bidders": "reference", "ours": "reference"}.get(category, "reference")
+
+
+def guess_category(relpath, default="customer"):
+    """The category a file's folder path and name suggest: the most specific folder decides."""
+    parts = [x for x in re.split(r"[\\/]+", relpath or "") if x]
+    for part in reversed(parts):
+        low = part.lower().replace("_", " ")
+        for cat, pat in _CAT_WORDS:
+            if re.search(pat, low):
+                return cat
+    return default
+
+
+def folder_tags(folder):
+    """2.83.0: every folder name in the path is a tag (the person's own organizing, kept)."""
+    out = []
+    for x in re.split(r"[\\/]+", folder or ""):
+        x = " ".join(x.split())
+        if x and x.lower() not in {t.lower() for t in out}:
+            out.append(x)
+    return out
+
+
+def clean_tags(tags):
+    out = []
+    for t in tags or []:
+        t = " ".join(str(t).replace(",", " ").split())[:40]
+        if t and t.lower() not in {x.lower() for x in out}:
+            out.append(t)
+    return out
+
+
 class Library:
     def __init__(self, folder):
         self.folder = folder                       # <effort app data>\documents
-        self.docs = []                             # [{"id", "name", "versions": [version...]}], versions oldest first
+        self.all = []                              # 2.83.0: every document; .docs is the customer documents
+        self.extra_categories = []                 # categories the person added: [[key, name]]
+
+    @property
+    def docs(self):
+        """The customer documents: what requirements, Compare, Impact review and Read RFP work on (2.83.0: the library
+        also holds the bidders library, Q&A and our documents, which those leave alone)."""
+        return [d for d in self.all if d.get("category", "customer") == "customer"]
+
+    @property
+    def data_dir(self):
+        return os.path.dirname(self.folder)
 
     @property
     def index_path(self):
@@ -145,12 +205,13 @@ class Library:
     def load(self):
         import workspace as W
         d = W.read_json(self.index_path, None) or {}
-        self.docs = d.get("docs", [])
+        self.all = d.get("docs", [])
+        self.extra_categories = [c for c in d.get("categories", []) if isinstance(c, list) and len(c) == 2]
         return self
 
     def save(self):
         import workspace as W
-        W.write_json(self.index_path, {"v": 1, "docs": self.docs})
+        W.write_json(self.index_path, {"v": 2, "docs": self.all, "categories": self.extra_categories})
 
     def text(self, version):
         import workspace as W
@@ -161,7 +222,7 @@ class Library:
         W.write_json(os.path.join(self.folder, vid + ".json"), sents)
 
     def doc(self, doc_id):
-        return next((d for d in self.docs if d["id"] == doc_id), None)
+        return next((d for d in self.all if d["id"] == doc_id), None)
 
     def change_text(self, d, i):
         """What changed from the version before (2.82.0): worked out once and kept with the version, because two
@@ -201,14 +262,14 @@ class Library:
                     pass
 
     def find_sha(self, h):
-        for d in self.docs:
+        for d in self.all:
             for v in d["versions"]:
                 if v.get("sha256") == h:
                     return d, v
         return None
 
     def files(self):
-        return {v.get("file", "").lower() for d in self.docs for v in d["versions"]}
+        return {v.get("file", "").lower() for d in self.all for v in d["versions"]}
 
     def latest(self, d):
         return d["versions"][-1] if d.get("versions") else None
@@ -216,7 +277,7 @@ class Library:
     def suggest(self, name, sents):
         """[(doc, score, how)] best first: how the new file matches each document."""
         out = []
-        for d in self.docs:
+        for d in self.all:
             last = self.latest(d)
             if last is None:
                 continue
@@ -236,27 +297,39 @@ class Library:
         n = len(d["versions"])
         return f"Amendment {n}" if n else "Original"
 
-    def add(self, path, sents, doc_id=None, doc_name="", label="", sha=None, when=None, who=None, initial="", dtype=""):
-        """Add a file as a new version of doc_id, or as a new document (2.68.0: with its initial and type). Returns
-        (doc, version)."""
+    def add(self, path, sents, doc_id=None, doc_name="", label="", sha=None, when=None, who=None, initial="", dtype="",
+            category="customer", folder="", tags=None, role=None, save=True, role_confirmed=True):
+        """Add a file as a new version of doc_id, or as a new document (2.68.0: with its initial and type; 2.83.0: its
+        category, folder, tags and role). Returns (doc, version)."""
         h = sha or sha256(path)
         d = self.doc(doc_id) if doc_id else None
         if d is None:
+            cat = category if category in self.category_keys() else "customer"
+            cust = cat == "customer"
             d = {"id": uuid.uuid4().hex[:12], "name": doc_name or display_name(path), "versions": [],
-                 "initial": clean_initial(initial) if clean_initial(initial) not in self.initials() else "",
-                 "type": dtype if dtype in DOC_TYPES else ""}
-            self.docs.append(d)
+                 "initial": clean_initial(initial) if cust and clean_initial(initial) not in self.initials() else "",
+                 "type": dtype if dtype in DOC_TYPES and cust else "", "category": cat, "folder": (folder or "").strip("/\\"),
+                 "tags": clean_tags((tags if tags is not None else []) + folder_tags(folder))}
+            r = role if role in ROLE_NAMES else suggest_role(cat, d["type"])
+            d["role"] = r
+            d["role_by"] = {"who": who or getpass.getuser(), "when": datetime.datetime.now().isoformat(timespec="minutes"),
+                            "why": "", "suggested": role not in ROLE_NAMES or not role_confirmed}
+            self.all.append(d)
         v = {"id": uuid.uuid4().hex[:12], "label": label or self.next_label(d), "file": os.path.basename(path),
              "added": when or datetime.datetime.now().isoformat(timespec="minutes"), "who": who or getpass.getuser(),
              "sha256": h, "sentences": len(sents), "reviewed": "", "path": os.path.abspath(path)}
+        rel = self._rel(path)
+        if rel:
+            v["rel"] = rel                         # 2.83.0: a copy inside the effort: found again wherever the effort goes
         self._write_text(v["id"], sents)
         d["versions"].append(v)
-        self.save()
+        if save:
+            self.save()
         return d, v
 
     def move_version(self, vid, to_doc_id, label=""):
         """'This file is a version of another document': move a version (keeps its text and fingerprint)."""
-        src = next((d for d in self.docs if any(v["id"] == vid for v in d["versions"])), None)
+        src = next((d for d in self.all if any(v["id"] == vid for v in d["versions"])), None)
         dst = self.doc(to_doc_id)
         if src is None or dst is None or src is dst:
             return False
@@ -266,7 +339,7 @@ class Library:
         dst["versions"].append(v)
         dst["versions"].sort(key=lambda x: x.get("added", ""))
         if not src["versions"]:
-            self.docs.remove(src)
+            self.all.remove(src)
         self.save()
         return True
 
@@ -274,7 +347,7 @@ class Library:
         name = " ".join((name or "").split())
         if not name:
             return False
-        for d in self.docs:
+        for d in self.all:
             if doc_id and d["id"] == doc_id:
                 d["name"] = name
             for v in d["versions"]:
@@ -339,13 +412,150 @@ class Library:
                 for d in self.docs for v in d["versions"] if v.get("file")}
 
     def mark_reviewed(self, vid, who=None):
-        for d in self.docs:
+        for d in self.all:
             for v in d["versions"]:
                 if v["id"] == vid:
                     v["reviewed"] = f"{datetime.date.today().isoformat()} {who or getpass.getuser()}"
                     self.save()
                     return True
         return False
+
+    # ------------------------------------------------------------ the library (2.83.0)
+    def _rel(self, path):
+        """path relative to the effort's data folder, when the file is inside it (a copy kept with the effort)."""
+        try:
+            base = os.path.normcase(os.path.abspath(self.data_dir))
+            p = os.path.normcase(os.path.abspath(path))
+            if p.startswith(base + os.sep):
+                return os.path.relpath(os.path.abspath(path), os.path.abspath(self.data_dir)).replace(os.sep, "/")
+        except (TypeError, ValueError):
+            pass
+        return ""
+
+    def path_of(self, v):
+        """Where a version's original file is now: the copy kept with the effort when there is one, else where it was."""
+        if v.get("rel"):                           # the effort's own copy: only that counts, wherever the effort is
+            return os.path.join(self.data_dir, *v["rel"].split("/"))
+        return v.get("path", "")
+
+    def has_original(self, v):
+        p = self.path_of(v)
+        return bool(p) and os.path.isfile(p)
+
+    def categories(self):
+        """[(key, name)]: the four, then the person's own."""
+        return list(CATEGORIES) + [tuple(c) for c in self.extra_categories]
+
+    def category_keys(self):
+        return [k for k, _n in self.categories()]
+
+    def category_name(self, key):
+        return dict(self.categories()).get(key, key)
+
+    def add_category(self, name):
+        name = " ".join((name or "").split())[:40]
+        if not name:
+            return None
+        for k, n in self.categories():
+            if n.lower() == name.lower():
+                return k
+        key = "c_" + re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")[:24]
+        self.extra_categories.append([key, name])
+        self.save()
+        return key
+
+    def in_category(self, key):
+        return [d for d in self.all if d.get("category", "customer") == key]
+
+    def folders(self, key):
+        """The folders used in a category, sorted, each with its parents."""
+        out = set()
+        for d in self.in_category(key):
+            parts = [x for x in (d.get("folder") or "").split("/") if x]
+            for i in range(1, len(parts) + 1):
+                out.add("/".join(parts[:i]))
+        return sorted(out, key=str.lower)
+
+    def role_of(self, d):
+        return d.get("role") or suggest_role(d.get("category", "customer"), d.get("type", ""))
+
+    def set_role(self, doc_id, role, why="", who=None):
+        d = self.doc(doc_id)
+        if d is None or role not in ROLE_NAMES:
+            return False
+        d["role"] = role
+        d["role_by"] = {"who": who or getpass.getuser(), "when": datetime.datetime.now().isoformat(timespec="minutes"),
+                        "why": " ".join((why or "").split())[:200], "suggested": False}
+        self.save()
+        return True
+
+    def set_category(self, doc_id, key, folder=None):
+        """Move a document to another category (a customer document leaving keeps its initial for the matrix's sake)."""
+        d = self.doc(doc_id)
+        if d is None or key not in self.category_keys():
+            return False
+        d["category"] = key
+        if folder is not None:
+            d["folder"] = (folder or "").strip("/\\")
+        self.save()
+        return True
+
+    def set_tags(self, doc_id, tags):
+        d = self.doc(doc_id)
+        if d is None:
+            return False
+        d["tags"] = clean_tags(tags)
+        self.save()
+        return True
+
+    def all_tags(self):
+        seen = {}
+        for d in self.all:
+            for t in d.get("tags", []):
+                seen.setdefault(t.lower(), t)
+        return sorted(seen.values(), key=str.lower)
+
+    def undecided(self):
+        """Documents whose role is only suggested (nobody confirmed it)."""
+        return [d for d in self.all if (d.get("role_by") or {}).get("suggested", True)]
+
+    def search(self, query, docs=None, limit=200):
+        """Every document (latest version) whose name, tags or text holds all the words: [(doc, hits)] with hits =
+        [(sentence index, sentence)] for up to 3 sentences that hold them all; name and tag matches first."""
+        words = [w for w in re.findall(r"[\w&-]+", (query or "").lower()) if w]
+        if not words:
+            return []
+        out = []
+        for d in (docs if docs is not None else self.all):
+            v = self.latest(d)
+            meta = " ".join([d.get("name", ""), d.get("initial", ""), d.get("type", ""), d.get("folder", ""),
+                             " ".join(d.get("tags", [])), " ".join(x.get("file", "") for x in d["versions"])]).lower()
+            in_meta = all(w in meta for w in words)
+            hits = []
+            if v is not None:
+                key = (self.folder, v["id"])
+                low = _TEXTS.get(key)
+                if low is None:
+                    sents = self.text(v)
+                    low = _TEXTS[key] = [(x.get("x") or "") for x in sents]
+                for i, x in enumerate(low):
+                    xl = x.lower()
+                    if all(w in xl for w in words):
+                        hits.append((i, x))
+                        if len(hits) >= 3:
+                            break
+            if in_meta or hits:
+                out.append((d, hits, in_meta))
+            if len(out) >= limit:
+                break
+        out.sort(key=lambda t: (not t[2], t[0].get("name", "").lower()))
+        return [(d, h) for d, h, _m in out]
+
+    def counts_by_category(self):
+        c = {k: 0 for k in self.category_keys()}
+        for d in self.all:
+            c[d.get("category", "customer")] = c.get(d.get("category", "customer"), 0) + 1
+        return c
 
     def counts(self):
         return {"docs": len(self.docs), "versions": sum(len(d["versions"]) for d in self.docs),

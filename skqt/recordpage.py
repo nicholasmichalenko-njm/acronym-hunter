@@ -5,7 +5,7 @@ kept in the effort's acronym list workbook, as the classic window keeps them. Ru
 import datetime, os
 from PySide6.QtCore import QDate, Qt, QTime
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDateEdit, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QHeaderView,
-                               QDialog, QDialogButtonBox, QLineEdit, QListWidget, QListWidgetItem, QScrollArea, QTableWidget, QTableWidgetItem, QTimeEdit, QVBoxLayout, QWidget)
+                               QDialog, QDialogButtonBox, QLineEdit, QListWidget, QListWidgetItem, QMessageBox, QScrollArea, QTableWidget, QTableWidgetItem, QTimeEdit, QVBoxLayout, QWidget)
 import diag
 import effortrec as R
 import effortstate as ES
@@ -374,10 +374,43 @@ class RecordPage(QWidget):
                           "internal_no": L.internal_no if L else "", "first_use": L.first_use if L else "volume"},
                     stage=r.stage()["name"], app_version=h.version)
 
-    def save_package(self, path=None, customer=True, volumes=True):
+    def library_choice(self, answer=None):
+        """2.83.0: all documents, or the customer documents and Q&A only, when the library holds others. answer
+        (tests): 'all' or 'customer'. None when cancelled."""
+        import docversions as DV
+        lib = DV.Library(self.host.ws.p("documents")).load()
+        others = [d for d in lib.all if d.get("category", "customer") not in ("customer", "qa")]
+        if not others:
+            return "all"
+        if answer is not None:
+            return answer
+        size = 0
+        for d in others:
+            for v in d["versions"]:
+                p = lib.path_of(v)
+                if p and os.path.isfile(p):
+                    size += os.path.getsize(p)
+        box = QMessageBox(self)
+        box.setWindowTitle("Save effort package")
+        box.setText(f"The library holds {len(others)} document(s) besides the customer documents and Q&A "
+                    f"({size / 1e6:.0f} MB of original files).")
+        box.setInformativeText("Either way the package carries every document's record, text, tags and role, so search and "
+                               "the library still work; only the original files of the left-out documents stay behind, "
+                               "marked 'original not here' for the person who opens it.")
+        b_all = box.addButton("All documents", QMessageBox.AcceptRole)
+        b_cust = box.addButton("Customer documents and Q&A only", QMessageBox.AcceptRole)
+        box.addButton(QMessageBox.Cancel)
+        box.setDefaultButton(b_all)
+        box.exec()
+        return "all" if box.clickedButton() is b_all else "customer" if box.clickedButton() is b_cust else None
+
+    def save_package(self, path=None, customer=True, volumes=True, library=None):
         import effortpkg as P
         h = self.host
         if h.ws is None:
+            return None
+        library = self.library_choice(library if library is not None else ("all" if path is not None else None))
+        if library is None:
             return None
         a = self._package_args()
         if path is None:
@@ -391,7 +424,7 @@ class RecordPage(QWidget):
             man = P.save(path, a["effort_name"], a["list_path"], a["data_dir"], info=a["info"], matrix_path=a["matrix_path"],
                          customer_dir=a["customer_dir"] if customer else "", volumes_dir=a["volumes_dir"] if volumes else "",
                          customer=customer and bool(a["customer_dir"]), volumes=volumes and bool(a["volumes_dir"]), stage=a["stage"],
-                         app_version=a["app_version"], extra_files=a["extra_files"], extra=self.package_extra())
+                         app_version=a["app_version"], extra_files=a["extra_files"], extra=self.package_extra(), library=library)
         except (OSError, PermissionError) as e:
             diag.swallowed()
             h.status(f"The package could not be written ({type(e).__name__}).")

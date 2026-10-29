@@ -34,7 +34,7 @@ from .settingspage import SettingsPage
 
 
 RAIL = [("EFFORT", [("home", "Effort home"), ("dashboard", "Dashboard"), ("record", "Effort record"), ("reviews", "Reviews")]),
-        ("CUSTOMER DOCUMENTS", [("docs", "Documents"), ("requirements", "Requirements"), ("compare", "Compare"),
+        ("DOCUMENTS", [("library", "Library"), ("docs", "Customer versions"), ("requirements", "Requirements"), ("compare", "Compare"),
                                 ("impact", "Impact review"), ("deliverables", "Deliverables")]),
         ("ACRONYMS", [("acronyms", "Scan and review"), ("acrlist", "Effort list")]),
         ("COMPLIANCE", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove"),
@@ -46,7 +46,8 @@ TITLES = {"home": ("Effort home", "Stage, gate goals, tasks, questions and the c
           "dashboard": ("Dashboard", "The effort on one screen"),
           "record": ("Effort record", "Details, team, stages and gates, status, package and backup"),
           "reviews": ("Reviews", "Color team review packets, read back onto each requirement"),
-          "docs": ("Documents", "The customer's documents and every version of them"),
+          "library": ("Library", "Every document of the effort: categories, folders, tags, roles and search"),
+          "docs": ("Customer versions", "The customer's documents and every version of them"),
           "requirements": ("Requirements", "What the customer documents require of the submission"),
           "compare": ("Compare", "Two versions side by side, each change beside the matrix requirement it touches"),
           "impact": ("Impact review", "What one new version touched across the effort"),
@@ -130,6 +131,8 @@ class MainWindow(QMainWindow):
         self.acronym_page = AcronymPage(self)
         self.acrlist_page = EffortListPage(self)
         self.docs_page = DocsPage(self)
+        from .librarypage import LibraryPage
+        self.library_page = LibraryPage(self)        # 2.83.0
         self.requirements_page = RequirementsPage(self)
         self.compare_page = ComparePage(self)
         self.impact_page = ImpactPage(self)
@@ -145,7 +148,7 @@ class MainWindow(QMainWindow):
         self.crosswalk_page = CrosswalkPage(self)
         self.matrix_page = MatrixPage(self)
         self.setup_page = SetupPage(self)
-        self.pages = {"home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page,
+        self.pages = {"home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page,
                       "impact": self.impact_page, "deliverables": self.deliverables_page, "qa": self.qa_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page}

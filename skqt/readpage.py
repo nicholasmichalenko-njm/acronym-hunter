@@ -41,13 +41,14 @@ class DocRow(QTreeWidgetItem):
     """2.82.0: one document in Read RFP's list: a tick, its initial, type, name, version and file; many can be selected
     and ticked together."""
 
-    def __init__(self, tree, path, name, label, ident):
+    def __init__(self, tree, path, name, label, ident, role="matrix"):
         super().__init__(tree, [name, ident.get("initial", "") or "(needs one)", ident.get("type", "") or "(needs one)",
-                                label, os.path.basename(path)])
+                                DV.ROLE_NAMES.get(role, ""), label, os.path.basename(path)])
         self.path = path
         self.dtype = ident.get("type", "")
+        self.role = role
         self.setFlags(self.flags() | Qt.ItemIsUserCheckable)
-        self.setCheckState(0, Qt.Checked)
+        self.setCheckState(0, Qt.Checked if role == "matrix" else Qt.Unchecked)   # 2.83.0: the matrix documents ticked
 
     def isChecked(self):
         return self.checkState(0) == Qt.Checked
@@ -96,7 +97,7 @@ class ReadPage(QWidget):
         trow.addWidget(self.only)
         trow.addStretch(1)
         self.count = D.label("", "muted", wrap=False); trow.addWidget(self.count)
-        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Document", "Initial", "Type", "Version", "File"])
+        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Document", "Initial", "Type", "Role", "Version", "File"])
         self.tree.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.tree.setRootIsDecorated(False); self.tree.setAlternatingRowColors(True)
         self.tree.setColumnWidth(0, 340); self.tree.setColumnWidth(1, 90); self.tree.setColumnWidth(2, 110); self.tree.setColumnWidth(3, 110)
@@ -139,13 +140,17 @@ class ReadPage(QWidget):
                                  if left else "Every customer document of this effort is in it."))
             docs = left
         else:
-            self.info.setText("The effort's customer documents (latest version of each). Tick the ones to read: instructions, "
-                              "evaluation criteria, SOW, attachments. Read starts the compliance matrix.")
+            self.info.setText("The effort's customer documents (latest version of each). The ones whose role is Builds the matrix "
+                              "are ticked (set roles in Library); tick any others to read into the matrix too. Read starts "
+                              "the compliance matrix.")
         known = self.identities_known()
+        lib = self.library()
         self._guard = True
         self.tree.clear()
         for name, label, path in docs:
-            self.boxes.append(DocRow(self.tree, path, name, label, known.get(os.path.basename(path)) or {}))
+            d = lib.doc_of_file(path) if lib is not None else None
+            role = lib.role_of(d) if d is not None else "matrix"
+            self.boxes.append(DocRow(self.tree, path, name, label, known.get(os.path.basename(path)) or {}, role))
         self._guard = False
         empty = not docs and R is None
         if empty:

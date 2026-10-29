@@ -1,6 +1,27 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE DOCUMENT LIBRARY (2.83.0)
+  - Documents > Library holds every document of the effort: Customer documents, Bidders library, Q&A, Our effort
+    documents, and categories you add (New category...). The left side lists the categories and their folders; the
+    table shows each document's category, versions, tags and role; search finds names, tags and the text of every
+    document, with the sentences it found.
+  - Add a folder... (or drag folders and files from File Explorer onto the Library) reads every document in it and its
+    subfolders in the background, with a progress bar and Stop (nothing is added until you accept). One table shows
+    each file's suggested category (from its folder names), role, tags (every folder name is a tag), and whether it is
+    a new version of a document already here; select rows to set many at once. Customer documents still need an
+    initial and type.
+  - Customer documents still go to the customer documents folder; the others are copied into the effort's library
+    folder, so the effort is complete wherever it goes. Requirements, Compare, Impact review and Read RFP work on the
+    customer documents only.
+  - Every document has a role: Builds the matrix, Context, Reference only or Not needed. It is suggested from the
+    category and type; setting it keeps who, when and why. Read RFP ticks the customer documents that build the
+    matrix and shows each one's role.
+  - Save effort package asks, when the library holds other documents: All documents, or Customer documents and Q&A
+    only. Either way every document's record, text copy, tags and role go, so search and the library work for the
+    person who opens it; a left-out original shows as "original not here".
+  - The Documents page is now called Customer versions.
+
 FASTER MOVING BETWEEN PAGES (2.82.0)
   - Documents, Requirements, Effort home and the dashboard no longer work everything out again on every visit. What
     changed between two versions, the submission requirements each version sets and the fingerprints of the customer

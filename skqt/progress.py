@@ -220,3 +220,27 @@ class Overlay(QFrame):
         from PySide6.QtWidgets import QApplication
         self.repaint()
         QApplication.processEvents()
+
+
+from PySide6.QtCore import QThread, Signal
+
+
+class JobWorker(QThread):
+    """2.83.0: any long job off the window's thread. fn(progress, stop) -> result; progress(fraction, text); stop()
+    is True once Stop was pressed. done carries the result, or the exception it raised."""
+    done = Signal(object)
+    progress = Signal(float, str)
+
+    def __init__(self, fn):
+        super().__init__()
+        self.fn = fn
+        self.stop_asked = False
+
+    def run(self):
+        try:
+            res = self.fn(lambda f, t="": self.progress.emit(float(f), t), lambda: self.stop_asked)
+        except Exception as ex:
+            import diag
+            diag.swallowed()
+            res = ex
+        self.done.emit(res)
