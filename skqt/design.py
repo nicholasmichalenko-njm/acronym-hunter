@@ -172,6 +172,9 @@ def apply(app):
     if not getattr(app, "_sk_tuner", None):         # 2.86.0: compact tables, resizable columns, scrolling left and right
         from .adaptive import install
         install(app)
+    if not hasattr(app, "_sk_nowheel"):                     # 2.85.0: the wheel scrolls; it never changes a choice
+        from .nowheel import install as _nowheel
+        _nowheel(app)
     return dark
 
 
