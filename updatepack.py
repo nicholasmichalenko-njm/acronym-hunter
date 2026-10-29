@@ -566,6 +566,32 @@ def check_text(r):
 
 
 # ---------------------------------------------------------------- restart
+# ---------------------------------------------------------------- the hand-over to the new version (2.82.0)
+HANDOFF = "started.json"
+
+
+def clear_handoff(app_dir):
+    try:
+        os.remove(_udir(app_dir, HANDOFF))
+    except OSError:
+        pass
+
+
+def signal_started(app_dir, version):
+    """The new version says its window is up, so the old one (showing 'Starting the new version') can close."""
+    try:
+        os.makedirs(_udir(app_dir), exist_ok=True)
+        with open(_udir(app_dir, HANDOFF), "w", encoding="utf-8") as f:
+            json.dump({"version": version, "pid": os.getpid(), "time": time.time()}, f)
+        return True
+    except OSError:
+        return False
+
+
+def started_seen(app_dir):
+    return os.path.isfile(_udir(app_dir, HANDOFF))
+
+
 def restart(app_dir, program, args=()):
     exe = os.path.join(app_dir, program + ".exe")
     if not os.path.isfile(exe):

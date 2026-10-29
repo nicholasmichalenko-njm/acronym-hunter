@@ -57,6 +57,12 @@ def main(argv=None):
             A.run_selftest(files)
         return 0 if ok else 1
     w.show()
+    try:                                                 # 2.82.0: the old version's "Starting..." closes now
+        import updatepack as _U
+        from skqt import updates as _UPD
+        _U.signal_started(_UPD.app_dir(), A.APP_VERSION)
+    except Exception:
+        pass
     upk = next((a for a in args0[1:] if a.lower().endswith(".skupdate") and os.path.isfile(a)), None)
     if upk:                                              # 2.76.0: an update pack double-clicked
         from PySide6.QtCore import QTimer

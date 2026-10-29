@@ -210,8 +210,25 @@ class MainWindow(QMainWindow):
         if cur in names:
             self.effort_box.setCurrentText(cur)
 
-    def open_effort(self, name, force=False):
-        """Hold the effort (the same lock as the tkinter edition) and open its compliance matrix. Returns True."""
+    def open_with_progress(self, name, title=""):
+        """2.82.0: open an effort under a cover that says what is happening (after an update, at start), so the pause
+        while the matrix loads never looks like lost work."""
+        from .progress import Overlay
+        if getattr(self, "overlay", None) is None:
+            self.overlay = Overlay(self)
+        self.overlay.begin(title or f"Opening {name}", "Getting ready")
+        try:
+            ok = self.open_effort(name, progress=self.overlay.step)
+        finally:
+            self.overlay.finish()
+        if ok:
+            self.toast(f"{name} is open, as you left it.")
+        return ok
+
+    def open_effort(self, name, force=False, progress=None):
+        """Hold the effort (the same lock as the tkinter edition) and open its compliance matrix. Returns True.
+        progress(fraction, text): 2.82.0, each step as it opens (open_with_progress)."""
+        say = progress or (lambda _f, _t: None)
         info = self.efforts.get(name) or {}
         if not info.get("path"):
             return False
@@ -232,10 +249,12 @@ class MainWindow(QMainWindow):
             return False
         self.ws, self.effort_name, self.effort_path = ws, name, info["path"]
         diag.activity("qt_effort_opened")
+        say(0.1, f"{name}: checking the effort's files")
         _issues, repaired = self.safety.health()   # 2.80.0: check the effort; put back a damaged list or matrix
         p = ws.get("compliance_path") or ""
         recovered = False
         if p and os.path.isfile(p):
+            say(0.3, f"{name}: loading the compliance matrix")
             try:
                 M = C.Matrix(p).load()
                 recovered = self.safety.offer_recovery(M)
@@ -248,10 +267,12 @@ class MainWindow(QMainWindow):
         else:
             self.review = None
             self.assign_page.load()
+        say(0.7, f"{name}: setting up the pages")
         self.read_page.refresh()
         self.go("assign" if self.review is not None and self.review.M.items else "read")
         self.safety.opened()
         self.warm_up()                             # 2.82.0: pages that read every document are ready before you open them
+        say(0.9, f"{name}: back where you were")
         self.safety.restore_view()                 # 2.78.0: back where you were in this effort
         if recovered:
             self.toast(self.safety.recovered_text)

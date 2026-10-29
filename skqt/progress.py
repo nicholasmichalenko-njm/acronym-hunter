@@ -168,3 +168,55 @@ class StatusTask:
 
     def running(self):
         return self.bar.isVisible() or bool(self.title)
+
+
+class Overlay(QFrame):
+    """2.82.0: covers the window while the work the person left open comes back (after an update, at start, or after
+    a restore), so a pause never looks like lost work: what is happening, a bar, and that nothing is lost."""
+
+    def __init__(self, window):
+        from PySide6.QtCore import QEvent
+        super().__init__(window)
+        self._ev = QEvent.Resize
+        self.win = window
+        self.setObjectName("overlay")
+        t = D.tokens()
+        self.setStyleSheet(f"QFrame#overlay{{background:{t['bg']};}} QFrame#overlaycard{{background:{t['surface']};"
+                           f"border:1px solid {t['border']};border-radius:{D.RADIUS['card']}px;}} QLabel{{background:transparent;}}")
+        outer = QVBoxLayout(self); outer.setAlignment(Qt.AlignCenter)
+        card = QFrame(); card.setObjectName("overlaycard"); card.setFixedWidth(560); outer.addWidget(card, 0, Qt.AlignCenter)
+        v = QVBoxLayout(card); v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["s"])
+        self.title = D.label("", "title"); v.addWidget(self.title)
+        self.detail = D.label("", None); v.addWidget(self.detail)
+        self.bar = QProgressBar(); self.bar.setRange(0, SCALE); self.bar.setTextVisible(False); self.bar.setMaximumHeight(10)
+        v.addWidget(self.bar)
+        self.safe = D.label("Your work is safe. Nothing is lost while it opens.", "muted"); v.addWidget(self.safe)
+        window.installEventFilter(self)
+        self.hide()
+
+    def eventFilter(self, obj, ev):
+        if obj is self.win and ev.type() == self._ev:
+            self.setGeometry(self.win.rect())
+        return False
+
+    def begin(self, title, detail=""):
+        self.title.setText(title); self.detail.setText(detail); self.bar.setValue(0)
+        self.setGeometry(self.win.rect()); self.raise_(); self.show()
+        self._paint()
+
+    def step(self, frac, detail=""):
+        if not self.isVisible():
+            return
+        self.bar.setValue(int(max(0.0, min(1.0, frac)) * SCALE))
+        if detail:
+            self.detail.setText(detail)
+        self._paint()
+
+    def finish(self):
+        self.bar.setValue(SCALE)
+        self.hide()
+
+    def _paint(self):
+        from PySide6.QtWidgets import QApplication
+        self.repaint()
+        QApplication.processEvents()

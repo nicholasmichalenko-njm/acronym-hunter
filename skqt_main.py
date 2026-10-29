@@ -98,19 +98,32 @@ def main(argv=None):
             A.run_selftest(files)
         return 0 if ok else 1
     w.show()
+    app.processEvents()
+    last = (A.load_settings() or {}).get("last_version", "")
+    after = "--after-update" in args or bool(last and last != A.APP_VERSION)
+    from skqt import updates as UPD
+    import updatepack as UPK
+    UPK.signal_started(UPD.app_dir(), A.APP_VERSION)   # 2.82.0: the old version's "Starting..." closes now
     from PySide6.QtCore import QTimer as _QT
     _QT.singleShot(8000, lambda: SF.started(A.SANDBOX_DIR))
     from skqt import helpcenter as HC
-    _QT.singleShot(1500, lambda: HC.after_update(w))  # what's new, once after an update
     from skqt import modes as MO                     # 2.79.0: where is this PC used? (asked once)
-    if not MO.mode():
-        QTimerX = __import__("PySide6.QtCore", fromlist=["QTimer"]).QTimer
-        QTimerX.singleShot(300, lambda: MO.ask_mode(w))
+
+    def then():                                      # questions and what's new wait until the work is back on screen
+        if not MO.mode():
+            MO.ask_mode(w)
+        HC.after_update(w)
+
     if safe:
         w.status("Safe start: Stationkeeper did not finish starting twice, so the last effort was not opened. Open it from "
                  "the Effort box; if it fails again, create a support file (Settings > Help and support).")
+        _QT.singleShot(800, then)
     elif w.efforts.current:
-        w.open_effort(w.efforts.current)
+        cur = w.efforts.current                      # 2.82.0: reopened under a cover that says what is happening
+        title = (f"Stationkeeper {A.APP_VERSION} is ready. Reopening your work" if after else f"Opening {cur}")
+        _QT.singleShot(0, lambda: (w.open_with_progress(cur, title), _QT.singleShot(600, then)))
+    else:
+        _QT.singleShot(800, then)
     from PySide6.QtCore import QTimer
     pkg = next((a for a in args[1:] if a.lower().endswith((".skpkg", ".ahpkg")) and os.path.isfile(a)), None)
     if pkg:                                              # 2.74.0: an effort package double-clicked

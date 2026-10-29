@@ -4,7 +4,8 @@ compliance_read, exactly as in the tkinter edition."""
 import os, re
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QHBoxLayout, QHeaderView, QLabel,
-                               QLineEdit, QPushButton, QScrollArea, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
+                               QLineEdit, QPushButton, QScrollArea, QTableWidget, QTableWidgetItem, QTreeWidget, QTreeWidgetItem,
+                               QAbstractItemView, QVBoxLayout, QWidget)
 from . import design as D
 from .progress import TaskPanel
 import diag
@@ -36,6 +37,31 @@ class ReadWorker(QThread):
         self.done.emit(res)
 
 
+class DocRow(QTreeWidgetItem):
+    """2.82.0: one document in Read RFP's list: a tick, its initial, type, name, version and file; many can be selected
+    and ticked together."""
+
+    def __init__(self, tree, path, name, label, ident):
+        super().__init__(tree, [name, ident.get("initial", "") or "(needs one)", ident.get("type", "") or "(needs one)",
+                                label, os.path.basename(path)])
+        self.path = path
+        self.dtype = ident.get("type", "")
+        self.setFlags(self.flags() | Qt.ItemIsUserCheckable)
+        self.setCheckState(0, Qt.Checked)
+
+    def isChecked(self):
+        return self.checkState(0) == Qt.Checked
+
+    def setChecked(self, on):
+        self.setCheckState(0, Qt.Checked if on else Qt.Unchecked)
+
+    def isEnabled(self):
+        return not self.isDisabled()
+
+    def setEnabled(self, on):
+        self.setDisabled(not on)
+
+
 _ORPHANS = []          # reads left running when their effort closed; kept until they end so Qt never loses them
 
 
@@ -56,10 +82,30 @@ class ReadPage(QWidget):
         v.setSpacing(D.SPACE["m"])
         self.info = D.label("", "muted"); v.addWidget(self.info)
         self.panel = TaskPanel(self.stop, host); v.addWidget(self.panel)   # 2.82.0: running, how far, how it ended
-        card = D.Card("Customer documents", "The latest version of each, from Customer Documents.")
+        card = D.Card("Customer documents", "The latest version of each, from Customer Documents. Click, Shift+click or "
+                      "Ctrl+click to select several; Space or a tick on a selected row ticks them all.")
+        trow = QHBoxLayout(); trow.setSpacing(D.SPACE["s"]); card.body.addLayout(trow)     # 2.82.0: tick many at once
+        self.tick_all = D.button("Tick all", None, lambda: self.tick(True), "Tick every document"); trow.addWidget(self.tick_all)
+        self.tick_none = D.button("Untick all", None, lambda: self.tick(False), "Untick every document"); trow.addWidget(self.tick_none)
+        self.tick_sel = D.button("Tick selected", None, lambda: self.tick(True, selected=True), "Tick the selected rows (Space)")
+        trow.addWidget(self.tick_sel)
+        self.untick_sel = D.button("Untick selected", None, lambda: self.tick(False, selected=True), "Untick the selected rows")
+        trow.addWidget(self.untick_sel)
+        self.only = QComboBox(); self.only.setToolTip("Tick only the documents of one type")
+        self.only.activated.connect(lambda _i: self.tick_type(self.only.currentData()))
+        trow.addWidget(self.only)
+        trow.addStretch(1)
+        self.count = D.label("", "muted", wrap=False); trow.addWidget(self.count)
+        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Document", "Initial", "Type", "Version", "File"])
+        self.tree.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.tree.setRootIsDecorated(False); self.tree.setAlternatingRowColors(True)
+        self.tree.setColumnWidth(0, 340); self.tree.setColumnWidth(1, 90); self.tree.setColumnWidth(2, 110); self.tree.setColumnWidth(3, 110)
+        self.tree.itemChanged.connect(self._ticked)
+        self.tree.installEventFilter(self)
+        card.add(self.tree)
         self.area = QScrollArea(); self.area.setWidgetResizable(True)
         self.inner = QWidget(); self.list = QVBoxLayout(self.inner); self.list.setAlignment(Qt.AlignTop)
-        self.area.setWidget(self.inner)
+        self.area.setWidget(self.inner); self.area.hide()
         card.add(self.area)
         v.addWidget(card, 1)
         srow = QHBoxLayout(); v.addLayout(srow)                     # 2.69.0: how the response structure starts
@@ -74,6 +120,7 @@ class ReadPage(QWidget):
         self.go_btn = D.button("Go to Assign", None, lambda: self.host.go("assign")); row.addWidget(self.go_btn)
         self.read_btn = D.button("Read", "primary", self.read, "Read the ticked documents into the review"); row.addWidget(self.read_btn)
         self.boxes = []
+        self._guard = False
 
     def refresh(self):
         while self.list.count():
@@ -95,16 +142,18 @@ class ReadPage(QWidget):
             self.info.setText("The effort's customer documents (latest version of each). Tick the ones to read: instructions, "
                               "evaluation criteria, SOW, attachments. Read starts the compliance matrix.")
         known = self.identities_known()
+        self._guard = True
+        self.tree.clear()
         for name, label, path in docs:
-            ident = known.get(os.path.basename(path)) or {}
-            tag = f"[{ident['initial']}  {ident.get('type', '')}]" if ident.get("initial") else "[needs an initial and type]"
-            cb = QCheckBox(f"{tag}   {name}   ({label})   {os.path.basename(path)}"); cb.setChecked(True)
-            cb.path = path
-            self.list.addWidget(cb)
-            self.boxes.append(cb)
-        if not docs and R is None:
+            self.boxes.append(DocRow(self.tree, path, name, label, known.get(os.path.basename(path)) or {}))
+        self._guard = False
+        empty = not docs and R is None
+        if empty:
             self.list.addWidget(D.EmptyState("No customer documents yet", "Add the RFP files in Customer Documents: every "
                                              "version is kept, and new ones are compared.", "Go to Documents", lambda: self.host.go("docs")))
+        self.area.setVisible(empty); self.tree.setVisible(not empty)
+        self.fill_only()
+        self.show_count()
         self.fill_start()
         self.go_btn.setEnabled(R is not None and bool(R.M.items))
         self.lock_controls()
@@ -116,11 +165,13 @@ class ReadPage(QWidget):
         """2.82.0: while a read runs, Read, Add files, the start choice and the ticks are locked, so a second read can
         never start and the files being read cannot change under it."""
         busy = self.running()
-        self.read_btn.setEnabled(bool(self.boxes) and not busy)
+        self.read_btn.setEnabled(any(r.isChecked() for r in self.boxes) and not busy)
         self.read_btn.setText("Reading..." if busy else "Read")
         self.read_btn.setToolTip("Reading is running: wait for it or press Stop." if busy else "Read the ticked documents into the review")
         self.add_btn.setEnabled(not busy)
         self.start.setEnabled(not busy)
+        for b in (self.tick_all, self.tick_none, self.tick_sel, self.untick_sel, self.only):
+            b.setEnabled(not busy)
         for cb in self.boxes:
             cb.setEnabled(not busy)
 
@@ -204,11 +255,72 @@ class ReadPage(QWidget):
 
     def pick(self):
         paths, _ = QFileDialog.getOpenFileNames(self, "RFP documents", "", "RFP documents (*.docx *.pdf *.xlsx *.pptx)")
+        self._guard = True
         for p in paths:
-            cb = QCheckBox(os.path.basename(p)); cb.setChecked(True); cb.path = p
-            self.list.addWidget(cb)
-            self.boxes.append(cb)
-        self.read_btn.setEnabled(bool(self.boxes))
+            self.boxes.append(DocRow(self.tree, p, os.path.basename(p), "added here", {}))
+        self._guard = False
+        if paths:
+            self.area.hide(); self.tree.show()
+        self.fill_only(); self.show_count()
+        self.lock_controls()
+
+    # 2.82.0: ticking many at once
+    def tick(self, on, selected=False):
+        rows = [r for r in self.boxes if r.isSelected()] if selected else list(self.boxes)
+        self._guard = True
+        for r in rows:
+            r.setChecked(on)
+        self._guard = False
+        self.show_count()
+        return len(rows)
+
+    def tick_type(self, dtype):
+        if not dtype:
+            return 0
+        self._guard = True
+        for r in self.boxes:
+            r.setChecked(r.dtype == dtype)
+        self._guard = False
+        self.only.setCurrentIndex(0)
+        self.show_count()
+        return sum(r.isChecked() for r in self.boxes)
+
+    def _ticked(self, item, col):
+        """A tick on a selected row ticks (or unticks) every selected row."""
+        if self._guard or col != 0 or not isinstance(item, DocRow):
+            return
+        if item.isSelected():
+            on = item.isChecked()
+            self._guard = True
+            for r in self.boxes:
+                if r.isSelected() and r is not item:
+                    r.setChecked(on)
+            self._guard = False
+        self.show_count()
+
+    def eventFilter(self, obj, ev):
+        from PySide6.QtCore import QEvent
+        if obj is getattr(self, "tree", None) and ev.type() == QEvent.KeyPress and ev.key() == Qt.Key_Space and not self.running():
+            sel = [r for r in self.boxes if r.isSelected()]
+            if sel:
+                self.tick(not all(r.isChecked() for r in sel), selected=True)
+                return True
+        return super().eventFilter(obj, ev)
+
+    def fill_only(self):
+        types = sorted({r.dtype for r in self.boxes if r.dtype})
+        self.only.blockSignals(True)
+        self.only.clear(); self.only.addItem("Tick only type...", "")
+        for t in types:
+            self.only.addItem(t, t)
+        self.only.blockSignals(False)
+        self.only.setVisible(len(types) > 1)
+
+    def show_count(self):
+        n = sum(r.isChecked() for r in self.boxes)
+        self.count.setText(f"{n} of {len(self.boxes)} ticked" if self.boxes else "")
+        if not self.running():
+            self.read_btn.setEnabled(n > 0)
 
     def chosen(self):
         return [cb.path for cb in self.boxes if cb.isChecked()]

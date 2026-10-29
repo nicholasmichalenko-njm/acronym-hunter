@@ -72,6 +72,20 @@ def wait(cond, secs=30):
     return cond()
 
 
+# 0. ticking many at once
+from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
+rp.tick(False)
+check("Untick all: none ticked, Read waits", rp.chosen() == [] and not rp.read_btn.isEnabled() and rp.count.text() == "0 of 3 ticked")
+rp.boxes[0].setSelected(True); rp.boxes[2].setSelected(True)
+rp.tree.setFocus(); QTest.keyClick(rp.tree, Qt.Key_Space); app.processEvents()
+check("select several, Space ticks them all", [r.isChecked() for r in rp.boxes] == [True, False, True] and rp.read_btn.isEnabled(),
+      [r.isChecked() for r in rp.boxes])
+rp.boxes[0].setChecked(False); app.processEvents()
+check("unticking one selected row unticks every selected row", [r.isChecked() for r in rp.boxes] == [False, False, False])
+check("Tick all", rp.tick(True) == 3 and len(rp.chosen()) == 3 and rp.count.text() == "3 of 3 ticked")
+rp.tree.clearSelection()
+
 # 1. a file that cannot be read
 mode.update(fail="Section M.docx", slow=False)
 out = os.path.join(tmp, "Heron", "Heron_Compliance_Matrix.xlsx")

@@ -14,9 +14,16 @@ FASTER MOVING BETWEEN PAGES (2.82.0)
     read; nothing is written). A step quiet for a minute says it is still working. A file that cannot be read stops
     the read in red, names the file, says nothing was written and what to do. The window's status bar shows the bar
     from any page.
+  - Read RFP's documents are a table (initial, type, version, file): Tick all, Untick all, Tick selected, Untick
+    selected and Tick only one type; Shift+click or Ctrl+click selects several, and Space or a tick on a selected row
+    ticks them all. A count shows how many are ticked.
   - One read at a time: Read, Add files, the start choice and the ticks are locked while it runs, so there is never a
     second read or a second matrix. Switching effort or closing the window during a read asks first, then throws the
     read away without writing anything.
+  - No blank pause after an update: the version being updated shows "Updated to X. Starting the new version" until
+    the new window is up (from 2.82 on), and the new version reopens your last effort under a cover that shows each
+    step (checking the files, loading the matrix, setting up the pages, back where you were) and that nothing is lost.
+    Normal starts show the same cover while the last effort opens.
   - Assign: the decision buttons (Requirement R, L, M E, Support C, Customer's G, Not used X) sit beside the response
     structure, under a line naming the section R, L and M put sentences into. Combine, Split and Undo stay by the page.
 

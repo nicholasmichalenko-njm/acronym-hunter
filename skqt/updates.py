@@ -82,12 +82,61 @@ def _confirm(win, title, text, ok_text):
     return box.clickedButton() is ok
 
 
-def _finish(win, on_close, restart):
-    """Save and close, start the new version, and quit this one."""
+HANDOFF_WAIT_S = 120
+
+
+class Handoff(QDialog):
+    """2.82.0: shown by the old version from the moment the files are swapped until the new version's window is up,
+    so there is never a blank gap: what happened, that the new version is starting, and that the work reopens."""
+
+    def __init__(self, folder, to, kind="update"):
+        super().__init__(None)
+        import time
+        from PySide6.QtCore import Qt, QTimer
+        from PySide6.QtWidgets import QProgressBar
+        self.folder, self.t0, self.time = folder, time.time(), time
+        self.setWindowTitle("Stationkeeper")
+        self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
+        self.setMinimumWidth(520)
+        v = QVBoxLayout(self); v.setSpacing(D.SPACE["s"])
+        head = f"Updated to {to}" if kind == "update" else f"Back to {to}"
+        self.title = D.label(f"{head}. Starting the new version...", "title"); v.addWidget(self.title)
+        self.detail = D.label("Your work was saved before the update and reopens where you left off in a moment. "
+                              "Program files only changed; efforts, settings and data were not touched.")
+        v.addWidget(self.detail)
+        self.bar = QProgressBar(); self.bar.setRange(0, 0); self.bar.setMaximumHeight(10); v.addWidget(self.bar)
+        self.ok = D.button("Close", None, self.accept); self.ok.hide(); v.addWidget(self.ok, 0, Qt.AlignRight)
+        self.state = "waiting"
+        self.timer = QTimer(self, interval=300, timeout=self.poll)
+        self.timer.start()
+
+    def poll(self):
+        if U.started_seen(self.folder):
+            self.state = "started"
+            self.timer.stop()
+            self.accept()
+        elif self.time.time() - self.t0 > HANDOFF_WAIT_S:
+            self.state = "slow"
+            self.timer.stop()
+            self.bar.setRange(0, 1); self.bar.setValue(0)
+            self.title.setText("The new version is taking longer than usual to start.")
+            self.detail.setText("Look for Stationkeeper on the taskbar. If no window appears, start Stationkeeper.exe "
+                                "again from its folder: the update is installed and your work is saved.")
+            self.ok.show()
+
+
+def _finish(win, on_close, restart, to="", kind="update"):
+    """Save and close, start the new version, show the hand-over until its window is up, then quit this one."""
     if on_close:
         on_close()
     if restart is None:
-        U.restart(app_dir(), program_name())
+        folder = app_dir()
+        U.clear_handoff(folder)
+        started = U.restart(folder, program_name(), ["--after-update"])
+        if started and to:
+            win.hide()
+            d = Handoff(folder, to, kind)
+            d.exec()
         QApplication.instance().quit()
     else:
         restart()
@@ -129,7 +178,7 @@ def install_update(win, path=None, answer=None, on_close=None, restart=None):
         return None
     diag.activity("update_installed", files=res["copied"])
     win.toast(f"Updated to {res['to']}. Opening the new version...")
-    _finish(win, on_close, restart)
+    _finish(win, on_close, restart, res["to"], "update")
     return res
 
 
@@ -151,7 +200,7 @@ def undo_update(win, answer=None, on_close=None, restart=None):
         return None
     diag.activity("update_undone")
     win.toast(f"Back to {res['to']}. Opening it...")
-    _finish(win, on_close, restart)
+    _finish(win, on_close, restart, res["to"], "undo")
     return res
 
 

@@ -24,6 +24,9 @@ WHATS_NEW = {
                "out once, in the background, and kept until something changes.",
                "Read shows its progress: the file and page, a running clock, Stop, and a clear message if a file cannot be "
                "read. Read is locked while it runs, so there is never a second read or a second matrix.",
+               "Read RFP: tick all, tick selected, or tick one type; select several rows with Shift or Ctrl.",
+               "After an update the new version shows each step while it reopens your work, so a pause never looks "
+               "like lost work.",
                "Assign: the decision buttons (Requirement, L, M, Support, Customer's, Not used) sit beside the response "
                "structure, under the section they put sentences into."],
     "2.81.0": ["Help and support in Settings: create a support file (no document content), the keyboard shortcuts, and this card.",
