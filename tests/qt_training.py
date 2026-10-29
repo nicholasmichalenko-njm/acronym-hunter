@@ -30,6 +30,9 @@ CO.set_dir(os.path.join(tmp, "team_td"))
 img = Image.new("RGB", (80, 24), "white")
 for i in range(40):
     CO.save_sample(img, f"TT&C link {i}", f"TT8C link {i}", 0.5, "Deck.pptx (Slide 2)", (0, 0, 80, 24))
+import studio as _ST                  # 2.74.0: line names carry the time, so one run in ~70 set none aside
+while not any(_ST.in_test_set(x["rel"]) for x in CO.samples()) and _ST.TEST_SHARE < 100:
+    _ST.TEST_SHARE += 5
 from PySide6.QtWidgets import QApplication, QMessageBox
 QMessageBox.information = staticmethod(lambda *a, **k: None)
 from skqt import design as D
