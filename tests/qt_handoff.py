@@ -72,6 +72,8 @@ check("the bar only moves forward", [f for f, *_ in seen] == sorted(f for f, *_ 
 check("it says nothing is lost", "Nothing is lost" in w.overlay.safe.text())
 check("then the cover goes and the effort is open as left", ok and not w.overlay.isVisible() and w.effort_name == "Heron"
       and w.review is not None and "as you left it" in w.statusBar().currentMessage(), w.statusBar().currentMessage())
+check("the effort opened is remembered, so the next start (after an update too) reopens it",
+      E.Registry(os.path.join(cfg, "efforts.json")).current == "Heron")
 w.resize(1000, 700); w.overlay.begin("x"); app.processEvents()
 check("the cover fills the window when it changes size", w.overlay.geometry() == w.rect()); w.overlay.finish()
 msrc = open(os.path.join(A.BASE_DIR, "skqt_main.py"), encoding="utf-8").read()
@@ -79,6 +81,7 @@ check("start: the new version signals, then reopens under the cover; questions w
       and "w.open_with_progress(cur, title)" in msrc and "def then():" in msrc and msrc.index("signal_started(") < msrc.index("open_with_progress"))
 tsrc = open(os.path.join(A.BASE_DIR, "skqt_training.py"), encoding="utf-8").read()
 check("Training signals too", "signal_started(" in tsrc)
+check("a start reopens the effort last open, or the only one", "w.efforts.current or len(w.efforts.names()) == 1" in msrc)
 w.close()
 n = sum(checks)
 print(f"QT HANDOFF PASS ({n}/{len(checks)})" if n == len(checks) else f"QT HANDOFF FAIL ({n}/{len(checks)})")
