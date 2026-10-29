@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogBut
 import branding as BR
 import diag
 from . import design as D
+from .adaptive import FlowLayout
 
 PIC = 132                    # the effort picture on the banner, square
 
@@ -94,12 +95,17 @@ class EffortBanner(QFrame):
         self.sub = D.label("", "muted"); mid.addWidget(self.sub)
         self.grid = QGridLayout(); self.grid.setHorizontalSpacing(D.SPACE["xl"]); self.grid.setVerticalSpacing(4)
         mid.addLayout(self.grid)
-        acts = QHBoxLayout(); acts.setSpacing(D.SPACE["s"]); mid.addLayout(acts)
+        acts = FlowLayout(None, D.SPACE["s"]); mid.addLayout(acts)
         self.edit_btn = D.button("Edit details...", None, lambda: self.edit_dialog(), "Proposal manager, client, sensitivity and "
                                  "the effort's own spots. They travel with the effort.")
         acts.addWidget(self.edit_btn)
         acts.addWidget(D.button("Open effort folder", None, lambda: self.host.open_effort_folder(),
                                 "The effort's folder in File Explorer: customer documents, volumes, Response Setup, exports"))
+        acts.addWidget(D.button("Export overview...", None, lambda: self.host.record_page.status_export(),
+                                "The effort as it stands now, in Word: your summary, stages, people and how far along they are, "
+                                "open questions, the newest customer documents, what is coming up"))
+        acts.addWidget(D.button("Readable copy", None, lambda: self.host.open_readable(),
+                                "Everything in the effort as plain files that open without Stationkeeper"))
         self.page_deliv = D.button("", "ghost", lambda: self.host.go("deliverables"), "The deliverables board")
         acts.addWidget(self.page_deliv)
         acts.addStretch(1)
@@ -163,7 +169,19 @@ class EffortBanner(QFrame):
             self.grid.addWidget(a, r * 2, c); self.grid.addWidget(b, r * 2 + 1, c)
         self.due_iso = rec.data.get("due", "")
         import effortrec as R
-        self.due.setText(("Due " + R.due_text(self.due_iso, rec.data.get("zone", ""))) if self.due_iso else "No due date set yet. Set it in Edit details.")
+        import tzones as TZ
+        from .modes import settings
+        self.zone_key = rec.zone_key()
+        self.my_zone = TZ.my_zone(settings())
+        if self.due_iso and self.zone_key and len(self.due_iso) > 10:          # 2.92.0: the customer's zone and yours
+            import datetime as _dt
+            first, mine = TZ.both(_dt.datetime.fromisoformat(self.due_iso), self.zone_key, self.my_zone)
+            self.due.setText("Due " + first + (f"\n{mine}" if mine else ""))
+            self.due.setToolTip(f"The submission's time zone: {TZ.name(self.zone_key)}. Yours: {TZ.name(self.my_zone)} "
+                                "(Settings > Your time zone).")
+        else:
+            self.due.setText(("Due " + R.due_text(self.due_iso, rec.data.get("zone", ""))) if self.due_iso else
+                             "No due date set yet. Set it in Edit details.")
         self.tick()
         if self.due_iso and not self.timer.isActive():
             self.timer.start()
@@ -171,7 +189,7 @@ class EffortBanner(QFrame):
             self.timer.stop()
 
     def tick(self, now=None):
-        c = BR.countdown(self.due_iso, now)
+        c = BR.countdown(self.due_iso, now, getattr(self, "zone_key", ""))
         self.cd = c
         if c is None:
             self.due_head.setText("DUE DATE"); self.days.setText("-"); self.clock.setText("")
@@ -224,6 +242,17 @@ class EffortBanner(QFrame):
         h = self.host
         rec = R.Record(h.ws.root)
         BR.set_identity(rec, pm=v.get("pm"), sensitivity=v.get("sensitivity"), fields=v.get("fields"))
+        if "due" in v and v["due"] != rec.data.get("due", ""):                  # 2.92.0: the due date and time, here too
+            import tzones as TZ
+            zk = v.get("zone_key", rec.zone_key()) or ""
+            rec.set_due(v["due"], (zk if zk in TZ.ZONES else zk) if v["due"] else "", zone_key=zk if v["due"] else "")
+            rec = R.Record(h.ws.root)
+        if "zone_key" in v and v["zone_key"] != rec.zone_key():                  # 2.92.0: the submission's time zone
+            import tzones as TZ
+            rec.data["zone_key"] = v["zone_key"] or ""
+            if v["zone_key"]:
+                rec.data["zone"] = v["zone_key"] if v["zone_key"] in TZ.ZONES else v["zone_key"]
+            rec.log("effort", f"Submission time zone: {TZ.name(v['zone_key']) or 'not set'}", save=True)
         if "client" in v or "solicitation" in v:
             L = h.record_page.effort_list()
             if L is not None:
@@ -266,7 +295,33 @@ class DetailsDialog(QDialog):
             self.sens.addItem(ident["sensitivity"])
         self.sens.setCurrentText(ident["sensitivity"])
         self.sens.setToolTip("CUI and Proprietary mark every page with a strip across the top. Type your own marking if the team uses another.")
+        import tzones as TZ
+        import effortrec as _R
+        rec = _R.Record(host.ws.root)
+        self.zone = QComboBox(); self.zone.addItem("Not set", "")
+        for k, text in TZ.choices():
+            self.zone.addItem(text, k)
+        zk = rec.zone_key()
+        if zk and self.zone.findData(zk) < 0:
+            self.zone.addItem(zk, zk)
+        self.zone.setCurrentIndex(max(0, self.zone.findData(zk)))
+        self.zone.setToolTip("The time zone the customer's deadline is written in. Your own is in Settings.")
         f.addRow("Proposal manager", self.pm); f.addRow("Client", self.client); f.addRow("Solicitation", self.sol)
+        from PySide6.QtCore import QDate, QTime
+        from PySide6.QtWidgets import QCheckBox, QDateEdit, QTimeEdit
+        due = rec.data.get("due", "")
+        dd = _R.parse_date(due[:10]) if due else None
+        self.has_due = QCheckBox("Due date set"); self.has_due.setChecked(dd is not None)
+        self.due_date = QDateEdit(); self.due_date.setCalendarPopup(True); self.due_date.setDisplayFormat("MMM d, yyyy")
+        self.due_date.setDate(QDate(dd.year, dd.month, dd.day) if dd else QDate.currentDate().addDays(30))
+        self.due_time = QTimeEdit(); self.due_time.setDisplayFormat("h:mm AP")
+        hm = due[11:16] if len(due) > 15 else "14:00"
+        self.due_time.setTime(QTime(int(hm[:2]), int(hm[3:5])))
+        self.due_date.dateChanged.connect(lambda *_a: self.has_due.setChecked(True))
+        self.due_time.timeChanged.connect(lambda *_a: self.has_due.setChecked(True))
+        drow = QHBoxLayout(); drow.addWidget(self.due_date); drow.addWidget(self.due_time); drow.addWidget(self.has_due); drow.addStretch(1)
+        f.addRow("Proposal due", drow)
+        f.addRow("Submission time zone", self.zone)
         f.addRow("Sensitivity", self.sens)
         v.addWidget(D.label("The effort's own spots: anything the team wants on the banner (capture manager, contract vehicle, "
                             "value, place of performance).", "muted"))
@@ -293,7 +348,9 @@ class DetailsDialog(QDialog):
             a, b = self.table.item(i, 0), self.table.item(i, 1)
             if a and a.text().strip():
                 fields.append({"label": a.text(), "value": b.text() if b else ""})
-        return {"pm": self.pm.currentText(), "client": self.client.text(), "solicitation": self.sol.text(),
+        due = (self.due_date.date().toPython().isoformat() + "T" + self.due_time.time().toString("HH:mm")) if self.has_due.isChecked() else ""
+        return {"pm": self.pm.currentText(), "client": self.client.text(), "solicitation": self.sol.text(), "zone_key": self.zone.currentData(),
+                "due": due,
                 "sensitivity": self.sens.currentText(), "fields": fields}
 
 

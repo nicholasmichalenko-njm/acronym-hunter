@@ -223,8 +223,8 @@ class State:
     def cal_extra(self):
         return cal_extra_of(self.rec, self.rows)
 
-    def calendar(self, first=None, last=None):
-        return self.rec.calendar(first=first, last=last, extra=self.cal_extra())
+    def calendar(self, first=None, last=None, mine=""):
+        return self.rec.calendar(first=first, last=last, extra=self.cal_extra(), mine=mine)
 
     def acronyms(self):
         """{"total", "Approved", "Proposed", "Needs author", "Rejected"} from the effort's acronym list."""
@@ -339,7 +339,7 @@ def status_calendar(st, most=3, today=None):
     return out
 
 
-def status_snapshot(st, final=False, app_version="", name="", client="", solicitation="", internal=""):
+def status_snapshot(st, final=False, app_version="", name="", client="", solicitation="", internal="", my_zone=""):
     """Everything the status report shows (a plain dict: statusdoc.build)."""
     import getpass
     import subreq as SR
@@ -399,13 +399,22 @@ def status_snapshot(st, final=False, app_version="", name="", client="", solicit
                          for x, s in zip(stages, r.stages)] + ([{"name": "Submission", "planned": snap["due"], "status": snap["countdown"]}] if snap["due"] else [])
     people = []
     try:
+        import changereview as CRV
+        awaiting = set(CRV.Review(st.ws.root).load().awaiting())
+    except Exception:
+        awaiting = set()
+    try:
         import setupdoc as SD
         for p in st.people():
             secs = SD.sections_of(M, p) if M is not None else []
             reqs = sum(1 for it in M.items if it["decision"] == "Keep" and p in SD.owners_list(M, it)) if M is not None else 0
             op = [t for t in ts if t["owner"] == p and t["status"] != "Done"]
+            dn = [t for t in ts if t["owner"] == p and t["status"] == "Done"]
+            waiting = sum(1 for it in M.items if it["decision"] == "Keep" and it["id"] in awaiting and p in SD.owners_list(M, it)) if M is not None else 0
+            qn = sum(1 for q in r.open_questions() if (q.get("assignee") or "") == p)
             people.append({"person": p, "sections": ", ".join(secs[:6]) + ("..." if len(secs) > 6 else ""), "reqs": reqs,
-                           "tasks": len(op), "late": sum(1 for t in op if r.task_overdue(t))})
+                           "tasks": len(op), "late": sum(1 for t in op if r.task_overdue(t)), "done": len(dn), "waiting": waiting,
+                           "questions": qn})
         snap["no_owner"] = sum(1 for it in M.items if it["decision"] == "Keep" and not SD.owner_of(M, it)) if M is not None else 0
     except Exception:
         diag.swallowed()
@@ -434,9 +443,45 @@ def status_snapshot(st, final=False, app_version="", name="", client="", solicit
             snap["tiles"].insert(1, (f"{sm['final']} of {sm['count']}", "deliverables final", "15803D" if sm["final"] == sm["count"] else "1E3A8A"))
     except Exception:
         diag.swallowed()
+    last = r.data.get("overview_last", "")            # 2.92.0: newest first; versions since the last overview marked new
+    docs = [dd for dd in (lib.docs if lib else []) if dd["versions"]]
+    docs.sort(key=lambda dd: dd["versions"][-1].get("added", ""), reverse=True)
     snap["documents"] = [{"name": dd["name"], "versions": ", ".join(v["label"] for v in dd["versions"]),
-                          "latest": f"{dd['versions'][-1]['label']}, {R.short_date(dd['versions'][-1]['added'])}"}
-                         for dd in (lib.docs if lib else []) if dd["versions"]]
+                          "latest": f"{dd['versions'][-1]['label']}, {R.short_date(dd['versions'][-1]['added'])}",
+                          "new": [v["label"] for v in dd["versions"] if last and v.get("added", "") > last]}
+                         for dd in docs]
+    snap["overview_last"] = R.short_date(last) if last else ""
+    try:                                                  # 2.92.0: the banner, both time zones, the summary, what is coming
+        import branding as BR
+        import tzones as TZ
+        idt = BR.identity(r)
+        snap["pm"] = BR.proposal_manager(r, idt)
+        snap["sensitivity"] = idt["sensitivity"]
+        snap["marking"] = BR.marking(idt["sensitivity"])
+        snap["spots"] = [(f["label"], f["value"]) for f in idt["fields"]]
+        zk = r.zone_key()
+        snap["zone"] = TZ.name(zk) if zk else ""
+        snap["my_zone"] = TZ.name(my_zone) if my_zone else ""
+        if r.data.get("due") and zk and len(r.data["due"]) > 10:
+            first, mine = TZ.both(datetime.datetime.fromisoformat(r.data["due"]), zk, my_zone)
+            snap["due"] = first
+            snap["due_mine"] = mine
+            c = BR.countdown(r.data["due"], None, zk)
+            snap["countdown"] = BR.countdown_words(c).split("  ")[0] if c else snap["countdown"]
+        snap["pm_summary"] = r.data.get("pm_summary", "")
+        today = datetime.date.today()
+        cal = r.calendar(first=today, last=today + datetime.timedelta(days=30), extra=st.cal_extra(), mine=my_zone)
+        snap["coming"] = [{"when": f"{d.strftime('%a')} {R.short_date(d.isoformat())}", "kind": k, "text": t}
+                          for d in sorted(cal) for k, t in cal[d] if k != "event"]
+        ps = r.data.get("postsub")
+        if isinstance(ps, dict) and ps.get("items"):
+            import postsub as PS
+            done, tot, nlate = PS.progress(r)
+            snap["postsub"] = {"submitted": (ps.get("submitted") or "").replace("T", " "), "done": done, "total": tot, "late": nlate,
+                               "open": [f"{i['text']}" + (f" ({i['owner']})" if i.get("owner") else "") for i in ps["items"]
+                                        if i["status"] not in ("Done", "Not needed")][:12]}
+    except Exception:
+        diag.swallowed()
     if final:
         snap["history"] = [{"when": R.short_date(e["at"]) + (f" {e['at'][:4]}" if e["at"][:4] != str(now.year) else ""),
                             "kind": KIND_WORDS.get(e["kind"], e["kind"].upper()).title(), "text": e["text"], "who": e["who"]}

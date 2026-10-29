@@ -46,9 +46,24 @@ def build(snap, path, final=False):
                                    ("Internal " + s["internal"]) if s.get("internal") else "") if x)
     if ids:
         d.rich([(ids, {"color": GRAY, "size": 22})])
+    if s.get("marking"):                                  # 2.92.0: CUI or proprietary on every page
+        d.marking = (s["marking"][0], "502B85" if s["marking"][1] == "cui" else "9A4508")
+    facts = [("Proposal manager", s.get("pm", ""))] + list(s.get("spots") or [])
+    facts = [(k, v) for k, v in facts if v]
+    if facts:
+        parts = []
+        for k, v in facts:
+            parts += [(f"{k}: ", {"color": GRAY, "size": 18, "bold": True}), (f"{v}     ", {"size": 18})]
+        d.rich(parts)
     if s.get("due"):
         d.band([([(s.get("countdown") or "", {"bold": True, "size": 32, "color": "FFFFFF"}),
-                  (f"\nto submission: {s['due']}", {"size": 18, "color": "FFFFFF"})], NAVY)], [PAGE_W])
+                  (f"\nto submission: {s['due']}", {"size": 18, "color": "FFFFFF"}),
+                  ((f"\n{s['due_mine']}") if s.get("due_mine") else "", {"size": 16, "color": "DCE3EC"})], NAVY)], [PAGE_W])
+    if s.get("pm_summary"):
+        _head(d, "The proposal manager's summary")
+        for para in s["pm_summary"].split("\n"):
+            if para.strip():
+                d.para(para.strip())
     # the stage track
     st = s.get("stages") or []
     if st:
@@ -89,6 +104,12 @@ def build(snap, path, final=False):
                     (f"  Answer: {n['answer']}" if n.get("answer") else "", {"italic": True}),
                     (f"   {n['about']}" if n.get("about") else "", {"color": GRAY, "size": 18}),
                     (f"   {n['when']}, {n['who']}", {"color": GRAY, "size": 18})])
+    coming = s.get("coming") or []
+    if coming:
+        _head(d, "Coming up (the next 30 days)")
+        COLK = {"due": RED, "deadline": AMBER, "questions": "7C3AED", "meeting": "1D4ED8", "stage": NAVY, "task": AMBER, "done": GREEN}
+        d.table(["When", "What"], [[c["when"], [(c["text"], {"color": COLK.get(c["kind"], INK), "bold": c["kind"] in ("due", "deadline")})]]
+                                   for c in coming[:40]], [2000, 7360])
     # projected timeline
     proj = s.get("projected") or []
     if proj:
@@ -122,10 +143,13 @@ def build(snap, path, final=False):
     ppl = s.get("people") or []
     if ppl:
         _head(d, "People and assignments")
-        d.table(["Person", "Sections", "Compliance requirements", "Open tasks"],
+        d.table(["Person", "Sections", "Requirements", "Waiting on them", "Tasks done / open", "Open questions"],
                 [[p["person"], p.get("sections", ""), str(p.get("reqs", 0)),
-                  [(str(p.get("tasks", 0)), {}), ((f"  ({p['late']} late)" if p.get("late") else ""), {"color": RED, "bold": True})]]
-                 for p in ppl], [2200, 3800, 1700, 1660])
+                  [(str(p.get("waiting", 0)), {"color": AMBER if p.get("waiting") else INK, "bold": bool(p.get("waiting"))})],
+                  [(f"{p.get('done', 0)} / {p.get('tasks', 0)}", {}), ((f"  ({p['late']} late)" if p.get("late") else ""), {"color": RED, "bold": True})],
+                  str(p.get("questions", 0))]
+                 for p in ppl], [1800, 2860, 1100, 1200, 1400, 1000])
+        d.rich([("Waiting on them: requirements a customer version changed that their owner has not confirmed yet.", {"color": GRAY, "size": 16})])
         if s.get("no_owner"):
             d.rich([(f"{s['no_owner']} compliance requirement(s) have no owner yet.", {"color": RED, "bold": True})])
     tasks = s.get("tasks") or []
@@ -171,8 +195,18 @@ def build(snap, path, final=False):
         d.table(["Stage", "Dates", "Goals met", "Left"], rows, [2100, 2300, 1100, 3860])
     docs = s.get("documents") or []
     if docs:
-        _head(d, "Customer documents")
-        d.table(["Document", "Versions", "Latest"], [[x["name"], x["versions"], x["latest"]] for x in docs], [3400, 3900, 2060])
+        _head(d, "Customer documents, newest first")
+        if s.get("overview_last"):
+            d.rich([(f"NEW marks versions received since the last overview ({s['overview_last']}).", {"color": GRAY, "size": 16})])
+        d.table(["Document", "Versions", "Latest"], [[x["name"], [(x["versions"], {})] + ([("   NEW: " + ", ".join(x["new"]), {"bold": True, "color": RED})]
+                                                                                       if x.get("new") else []), x["latest"]] for x in docs], [3400, 3900, 2060])
+    ps = s.get("postsub")
+    if ps:
+        _head(d, "After submission")
+        d.rich([(f"{ps['done']} of {ps['total']} done", {"bold": True}), (f", {ps['late']} late" if ps.get("late") else "", {"color": RED, "bold": True}),
+                (f". Submitted {ps['submitted']}." if ps.get("submitted") else ". Not marked submitted yet.", {})])
+        for x in ps.get("open", []):
+            d.para("  " + x)
     if final and s.get("history"):
         _head(d, "Complete history")
         d.table(["Date", "Kind", "What", "Who"], [[h["when"], h["kind"], h["text"], h.get("who", "")] for h in s["history"]],

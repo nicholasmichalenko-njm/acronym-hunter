@@ -183,8 +183,11 @@ def move_logo(config_dir, path, step):
 
 
 # ------------------------------------------------------------------ the countdown
-def countdown(due_iso, now=None):
-    """(days, hours, minutes, seconds) to the due time, or ('passed', days since) once it has passed; None without one."""
+def countdown(due_iso, now=None, zone="", now_utc=None):
+    """(days, hours, minutes, seconds) to the due time, or ('passed', days since) once it has passed; None without one.
+    2.92.0: with zone (the submission's time zone key) the due time is read in that zone and compared with the time now
+    in UTC (now_utc, else the PC's clock), so a customer three time zones away counts down right. Without a zone it is
+    read as this PC's local time."""
     if not due_iso:
         return None
     try:
@@ -193,7 +196,11 @@ def countdown(due_iso, now=None):
         return None
     if len(due_iso) <= 10:
         due = due.replace(hour=23, minute=59)
-    secs = int((due - (now or datetime.datetime.now())).total_seconds())
+    import tzones as TZ
+    if zone and TZ.valid(zone) and now is None:
+        secs = int((TZ.to_utc(due, zone) - (now_utc or datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None))).total_seconds())
+    else:
+        secs = int((due - (now or datetime.datetime.now())).total_seconds())
     if secs < 0:
         return ("passed", (-secs) // 86400)
     return (secs // 86400, (secs % 86400) // 3600, (secs % 3600) // 60, secs % 60)

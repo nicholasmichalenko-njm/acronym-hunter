@@ -1,6 +1,37 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+TIME ZONES, DUE DATES AND EVENTS, THE READABLE COPY AND THE OVERVIEW (2.92.0)
+  - Time zones: Settings > Your time zone is where you are (guessed from Windows until you save it; yours alone). The
+    submission's time zone belongs to the effort (Effort Home > Edit details, or as written in Effort Record). Built
+    in: Eastern, Central, Mountain, Arizona (no daylight time), Pacific, Alaska, Hawaii and UTC, with US daylight saving
+    time, and UTC+hh:mm for anywhere else. Nothing to install.
+  - Effort Home shows the deadline in the customer's zone and in yours ("Dec 15, 2026, 2:00 p.m. EST" and "12:00 p.m.
+    MST your time"), and the countdown compares the two exactly. Edit details sets the due date and time too.
+  - Effort Record: the due date's boxes always work; changing one sets the due date ("Due date set" untick clears it).
+  - Calendar: + Due date... (something due at a date and time: drafts to Production, packets) and + Event... (a
+    review, a meeting, orals: start and end, where, who). Each has its own time zone; times in another zone show your
+    time beside them. Pick a day to Edit or Remove one. Import, Export and the template carry Due, the zones and the
+    times; the Outlook file has exact moments (UTC), so each lands at the right time in your calendar.
+  - The readable copy is kept current again (the Qt window had not been writing it since 2.74.0): a few seconds after
+    any change, in the background, "<effort> - readable copy (Stationkeeper)" beside the effort list is rewritten with
+    READ ME FIRST, the summary and CSV files as before, plus Effort details, Calendar (Excel, CSV and Outlook), the
+    post-submission checklist (Excel), Library documents, Taken from documents, Change decisions and Team, and the
+    Effort overview (Word) each time the effort closes or is backed up. Names, never internal IDs. Readable copy
+    (Effort Home) and Effort Record > Readable copy open it; Effort Record says when it was last written.
+  - Export overview... (Effort Home; Effort Record > Effort status): first a box for the proposal manager's summary in
+    their own words (kept for next time; it prints first), then the effort's details and both time zones, the stages,
+    people and how far along they are (requirements, those waiting on their confirmation, tasks done and open,
+    questions assigned), open questions, the next 30 days of the calendar, customer documents newest first with NEW on
+    versions received since the last overview, deliverables and the post-submission checklist. A CUI or proprietary
+    effort's marking prints in every page's header and footer.
+  - Export tasks and questions... (Effort Home): for the person picked in "Show tasks and questions for", or the full
+    team: a workbook (Tasks and Questions sheets) saying who it is for, when and by whom, named
+    <effort>_Tasks_and_Questions_<person or Full_Team>_<date>_<time>.xlsx, in the effort's Exports folder to start.
+    With a person picked, their name shows large at the top of Effort Home (Show everyone goes back).
+  - Edit stages... on Effort Home's Stage card: rename, add, remove and reorder the stages with their dates and gates
+    (the same table as Effort Record's).
+
 HOME, UNFILED WORK AND THE POST-SUBMISSION CHECKLIST (2.91.0)
   - Home (All Efforts, first in the menu) shows every effort on this PC as a card, the soonest due first: its
     picture, name, client and solicitation, sensitivity, stage, days to the due date, open tasks (and how many are

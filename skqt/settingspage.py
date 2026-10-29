@@ -28,6 +28,19 @@ class SettingsPage(QWidget):
         from .modes import ModeCard                      # 2.79.0: Secured or Connected
         self.mode = ModeCard(host)
         v.addWidget(self.mode)
+        import tzones as TZ                              # 2.92.0: your own time zone (the submission's is the effort's)
+        self.tz_card = D.Card("Your time zone", "Where you are. Effort Home shows a deadline in the customer's time zone and "
+                              "in yours; calendar times show in yours too. Yours alone, on this PC.")
+        trow = QHBoxLayout(); self.tz_card.body.addLayout(trow)
+        self.tz = QComboBox()
+        for k, text in TZ.choices():
+            self.tz.addItem(text, k)
+        self.tz_other = QLineEdit(); self.tz_other.setPlaceholderText("Elsewhere: UTC+01:00"); self.tz_other.setMaximumWidth(180)
+        trow.addWidget(self.tz); trow.addWidget(self.tz_other)
+        trow.addWidget(D.button("Save", "primary", lambda: self.save_zone())); trow.addStretch(1)
+        self.tz_note = self.tz_card.add(D.label("", "muted"))
+        v.addWidget(self.tz_card)
+        self.fill_zone()
         self.eff = D.Card("Efforts", "One effort per proposal: its acronym list workbook, records and compliance files.",
                           actions=[D.button("Open effort folder", None, lambda: self.host.open_effort_folder(),
                                             "The open effort's folder in File Explorer"),
@@ -165,6 +178,30 @@ class SettingsPage(QWidget):
             diag.swallowed()
 
     # ------------------------------------------------------------ efforts
+    def fill_zone(self):
+        import tzones as TZ
+        from .modes import settings
+        k = TZ.my_zone(settings())
+        i = self.tz.findData(k)
+        self.tz.setCurrentIndex(max(0, i))
+        self.tz_other.setText("" if i >= 0 else k)
+        guessed = not (settings() or {}).get("my_zone")
+        self.tz_note.setText(f"{TZ.name(k)}" + (" (from Windows; Save to keep it)" if guessed else "") + ".")
+        return k
+
+    def save_zone(self, key=None):
+        import tzones as TZ
+        from .modes import save
+        key = key or (self.tz_other.text().strip().upper() or self.tz.currentData())
+        if not TZ.valid(key):
+            self.host.status("Write another time zone as UTC+01:00 or UTC-03:30.")
+            return False
+        save(my_zone=key)
+        diag.activity("qt_my_zone_saved")
+        self.fill_zone()
+        self.host.toast(f"Your time zone: {TZ.name(key)}")
+        return True
+
     def new_effort(self, values=None):
         """Create an effort and open it. values (tests): name, path, first_use, customer_dir, volumes_dir, client, solicitation,
         internal_no."""

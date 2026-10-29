@@ -44,6 +44,7 @@ class Doc:
     def __init__(self):
         self.body = []
         self.props = {}          # custom document properties (File > Info > Properties > Advanced > Custom)
+        self.marking = None      # 2.92.0: (text, color): a marking centered in every page's header and footer (CUI)
 
     def heading(self, text, level=1):
         level = max(1, min(int(level), 6))
@@ -97,9 +98,12 @@ class Doc:
                          + "".join(tcs) + "</w:tr></w:tbl><w:p/>")
 
     def save(self, path):
-        sect = ('<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" '
+        R = 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"'
+        hf = ('<w:headerReference w:type="default" r:id="rIdH"/><w:footerReference w:type="default" r:id="rIdF"/>'
+              if self.marking else "")
+        sect = (f'<w:sectPr>{hf}<w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" '
                 'w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>')
-        doc = f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document {W}><w:body>{"".join(self.body)}{sect}</w:body></w:document>'
+        doc = f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document {W} {R}><w:body>{"".join(self.body)}{sect}</w:body></w:document>'
         heads = "".join(
             f'<w:style w:type="paragraph" w:styleId="Heading{i}"><w:name w:val="heading {i}"/><w:basedOn w:val="Normal"/>'
             f'<w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="{240 - 20 * i}" w:after="80"/>'
@@ -117,7 +121,10 @@ class Doc:
               '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
               '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
               + ('<Override PartName="/docProps/custom.xml" ContentType="application/vnd.openxmlformats-officedocument.custom-properties+xml"/>'
-                 if self.props else "") + '</Types>')
+                 if self.props else "")
+              + ('<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>'
+                 '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>'
+                 if self.marking else "") + '</Types>')
         rel = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/{t}" Target="{g}"/></Relationships>')
@@ -138,4 +145,18 @@ class Doc:
                 z.writestr("_rels/.rels", rel.format(t="officeDocument", g="word/document.xml"))
             z.writestr("word/document.xml", doc)
             z.writestr("word/styles.xml", styles)
-            z.writestr("word/_rels/document.xml.rels", rel.format(t="styles", g="styles.xml"))
+            if self.marking:
+                text, color = self.marking
+                para = (f'<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="{color}"/><w:sz w:val="22"/></w:rPr>'
+                        f'<w:t xml:space="preserve">{_x(text)}</w:t></w:r></w:p>')
+                z.writestr("word/header1.xml", f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr {W}>{para}</w:hdr>')
+                z.writestr("word/footer1.xml", f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr {W}>{para}</w:ftr>')
+                z.writestr("word/_rels/document.xml.rels",
+                           '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                           '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                           '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
+                           '<Relationship Id="rIdH" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>'
+                           '<Relationship Id="rIdF" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>'
+                           '</Relationships>')
+            else:
+                z.writestr("word/_rels/document.xml.rels", rel.format(t="styles", g="styles.xml"))

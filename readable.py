@@ -189,6 +189,12 @@ def summary_text(info, rec, out, app_version=""):
             L.append(f"Proposal due: {ER.due_text(info['due'], info.get('zone', ''))} ({ER.countdown_text(info['due'])} when this was written)")
         except Exception:
             L.append(f"Proposal due: {info['due']} {info.get('zone', '')}")
+    if rec is not None:                                    # 2.92.0: the banner's details
+        idt = rec.data.get("identity") or {}
+        for lab, v in (("Proposal manager", idt.get("pm", "")), ("Sensitivity", idt.get("sensitivity", ""))):
+            if v:
+                L.append(f"{lab}: {v}")
+        L += [f"{f.get('label', '')}: {f.get('value', '')}" for f in idt.get("fields", []) if f.get("label")]
     if rec is not None:
         st = rec.stage()
         L.append(f"Current stage: {st['name']}" + (f" (since {_when(st.get('started'))})" if st.get("started") else ""))
@@ -247,8 +253,8 @@ def readme_text(info, out, app_version=""):
          "Every file opens without Stationkeeper: the .csv files in Excel (or Notepad), the .txt files in Notepad or Word.",
          "Do not edit these files to change the effort: the app rewrites them. Make changes in the app, or copy a file elsewhere first.",
          "", "WHAT IS HERE"]
-    for f, what in FILES:
-        if f in out or (f == "Customer document text" and out.get("_texts")):
+    for f, what in FILES + MORE_FILES:
+        if f in out or (f == "Customer document text" and out.get("_texts")) or f in out.get("_also", ()):
             L.append(f"  {f}")
             L.append(f"      {what}")
     L += ["", "THE EFFORT'S WORKING FILES (what the app itself saves, beside this folder)",
@@ -272,7 +278,7 @@ def write(folder, parts, lib=None):
     os.makedirs(folder, exist_ok=True)
     done = []
     for name, val in parts.items():
-        if name == "_texts":
+        if name in ("_texts", "_also"):
             continue
         p = os.path.join(folder, name)
         if isinstance(val, tuple):
@@ -299,3 +305,82 @@ def write(folder, parts, lib=None):
             if _write(p, "\n".join(lines) + "\n"):
                 done.append("Customer document text/" + fname)
     return done
+
+
+# ------------------------------------------------------------------ 2.92.0: everything newer, kept in the readable copy
+MORE_FILES = [
+    ("Effort details.csv", "The effort's banner: proposal manager, client, solicitation, sensitivity, the submission's time zone and the effort's own spots."),
+    ("Calendar.xlsx", "Every date the effort has (the due date, stage plans, tasks, due dates, reviews and meetings) with times, time zones, owners, places and details. Calendar.csv is the same; Calendar.ics opens in Outlook."),
+    ("Post-submission checklist.xlsx", "What the team does after submission: owners, due dates, status, who finished each and when, notes."),
+    ("Library documents.csv", "Every document in the effort's library (customer, bidders, Q&A, ours): category, folder, tags, role, versions and where each file is."),
+    ("Taken from documents.csv", "Every sentence taken from a library document and where it went: context for a section or requirement, a note, question or task."),
+    ("Change decisions.csv", "What each new customer version changed and the decision made on it: who, when and why."),
+    ("Team.csv", "The people on the effort and their roles."),
+    ("Effort overview.docx", "The effort status report as of the last time the effort was closed or backed up: stages, people and how far along they are, open questions, newest customer documents, the proposal manager's summary."),
+]
+
+
+def more(rec, lib, data_dir="", info=None):
+    """The CSV parts for what came after 2.46.0 (pure apart from reading the effort's own JSON files)."""
+    import workspace as W
+    out = {}
+    info = info or {}
+    if rec is not None:
+        idt = rec.data.get("identity") or {}
+        rows = [["Proposal manager", idt.get("pm", "")], ["Client", info.get("client", "")], ["Solicitation", info.get("solicitation", "")],
+                ["Sensitivity", idt.get("sensitivity", "")], ["Submission time zone", rec.zone_key() if hasattr(rec, "zone_key") else rec.data.get("zone", "")],
+                ["Proposal due", rec.data.get("due", "").replace("T", " ")]]
+        rows += [[f.get("label", ""), f.get("value", "")] for f in idt.get("fields", [])]
+        out["Effort details.csv"] = (["Detail", "Value"], rows)
+        out["Team.csv"] = (["Name", "Role"], [[m.get("name", ""), m.get("role", "")] for m in rec.data.get("team", [])])
+        ps = rec.data.get("postsub")
+        if isinstance(ps, dict) and ps.get("items"):
+            import postsub as PS
+            out["Post-submission checklist.csv"] = (["Task", "Owner", "Due", "Status", "Done by", "Done on", "Notes"],
+                                                     [[i["text"], i.get("owner", ""), (PS.due_of(rec, i).isoformat() if PS.due_of(rec, i) else ""),
+                                                       i.get("status", ""), i.get("done_by", ""), _when(i.get("done_at")), i.get("notes", "")]
+                                                      for i in ps["items"]])
+    if lib is not None:
+        rows = []
+        for d in getattr(lib, "all", lib.docs):
+            for v in d["versions"]:
+                rows.append([d["name"], d.get("category", "customer"), d.get("folder", ""), ", ".join(d.get("tags", [])), d.get("role", ""),
+                             v.get("label", ""), v.get("file", ""), lib.path_of(v) if hasattr(lib, "path_of") else v.get("path", ""),
+                             _when(v.get("added")), v.get("who", "")])
+        out["Library documents.csv"] = (["Document", "Category", "Folder", "Tags", "Role", "Version", "File", "Where the file is",
+                                         "Added", "Added by"], rows)
+    if data_dir:
+        ctx = W.read_json(os.path.join(data_dir, "context", "attach.json"), None) or {}
+        att = ctx.get("att", []) if isinstance(ctx, dict) else []
+        if att:
+            docs = {d["id"]: d for d in (getattr(lib, "all", []) if lib is not None else [])}
+            ver = {v["id"]: v.get("label", "") for d in docs.values() for v in d["versions"]}
+            try:
+                import ctxdocs as CX
+                kinds = CX.KIND_NAMES
+            except Exception:
+                kinds = {}
+            out["Taken from documents.csv"] = (["Document", "Version", "Where", "Text", "Kind", "Attached to", "Topics", "Note", "Who", "When"],
+                                               [[(docs.get(a.get("doc", "")) or {}).get("name", a.get("doc", "")), ver.get(a.get("ver", ""), ""),
+                                                 a.get("loc", ""), a.get("text", ""), kinds.get(a.get("kind", ""), a.get("kind", "")), a.get("target", ""),
+                                                 ", ".join(a.get("topics", [])), a.get("note", ""), a.get("who", ""), _when(a.get("when"))] for a in att])
+        cr = W.read_json(os.path.join(data_dir, "changes", "review.json"), None) or {}
+        pairs = cr.get("pairs", {}) if isinstance(cr, dict) else {}
+        docs = {d["id"]: d for d in (getattr(lib, "all", []) if lib is not None else [])}
+        ver = {v["id"]: v.get("label", "") for d in docs.values() for v in d["versions"]}
+        try:
+            import changereview as CR
+            kn = CR.KIND_NAMES
+        except Exception:
+            kn = {}
+        rows = []
+        for pk, p in (pairs.items() if isinstance(pairs, dict) else []):
+            dname = (docs.get(p.get("doc", "")) or {}).get("name", "")
+            vv = f"{ver.get(p.get('from', ''), '')} to {ver.get(p.get('to', ''), '')}".strip()
+            for key, lst in (p.get("decisions") or {}).items():
+                for x in lst if isinstance(lst, list) else []:
+                    rows.append([dname, vv, key[:120], kn.get(x.get("kind", ""), x.get("kind", "")), x.get("target", ""), x.get("why", ""),
+                                 x.get("who", ""), _when(x.get("when"))])
+        if rows:
+            out["Change decisions.csv"] = (["Document", "Version", "Change", "Decision", "On", "Why", "Who", "When"], rows)
+    return out

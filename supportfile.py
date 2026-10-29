@@ -20,6 +20,13 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "2.92.0": ["Time zones: yours in Settings, the submission's with the effort. Effort Home shows the deadline in both and the "
+               "countdown is right across zones.",
+               "Calendar: + Due date and + Event, with times, end times, zones, owners and places; your time shows beside theirs.",
+               "The readable copy is kept current again: everything in the effort as Excel, Word, CSV and Outlook files.",
+               "Export overview (Effort Home): your summary first, people's progress, newest documents, what is coming up.",
+               "Export tasks and questions for one person or the full team; a picked person's name shows large. Edit stages "
+               "on Effort Home; the due date in Effort Record needs no hidden switch."],
     "2.91.0": ["Home (All Efforts) shows every effort as a card: stage, days to due, open tasks and questions, who has it "
                "open. + Add an Effort is the way to start one.",
                "Start without an effort: Unfiled works with every tool. A strip reminds you to file the work; Make it an "

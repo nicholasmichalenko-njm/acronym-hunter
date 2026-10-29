@@ -42,7 +42,9 @@ def summary(name, info, now=None):
     out["stage"] = stages[cur]["name"] if stages else ""
     out["due"], out["zone"] = rec.get("due", ""), rec.get("zone", "")
     if out["due"]:
-        c = BR.countdown(out["due"], now)
+        import tzones as TZ
+        zk = rec.get("zone_key") or TZ.guess(out["zone"])
+        c = BR.countdown(out["due"], None, zk) if zk and len(out["due"]) > 10 else BR.countdown(out["due"], now)
         out["days"] = (-c[1] if c and c[0] == "passed" else c[0]) if c else None
     today = now.date()
     for t in rec.get("tasks", []):

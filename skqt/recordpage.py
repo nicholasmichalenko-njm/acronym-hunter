@@ -11,6 +11,7 @@ import effortfolders as EF
 import effortrec as R
 import effortstate as ES
 from . import design as D
+from .stagesedit import StageTableMixin
 
 
 def _table(cols):
@@ -23,7 +24,7 @@ def _table(cols):
     return t
 
 
-class RecordPage(QWidget):
+class RecordPage(StageTableMixin, QWidget):
     def __init__(self, host):
         super().__init__()
         self.setObjectName("page")
@@ -48,7 +49,12 @@ class RecordPage(QWidget):
         self.due_date = QDateEdit(); self.due_date.setCalendarPopup(True); self.due_date.setDisplayFormat("MMM d, yyyy")
         self.due_time = QTimeEdit(); self.due_time.setDisplayFormat("h:mm AP")
         self.zone = QLineEdit(); self.zone.setPlaceholderText("MT"); self.zone.setMaximumWidth(140)
-        self.has_due.toggled.connect(lambda on: (self.due_date.setEnabled(on), self.due_time.setEnabled(on), self.zone.setEnabled(on)))
+        self.has_due.setText("Due date set")                    # 2.92.0: the boxes always work; changing one sets the due date
+        self.has_due.setToolTip("Untick to clear the due date")
+        for w_ in (self.due_date, self.due_time):
+            sig = w_.dateChanged if w_ is self.due_date else w_.timeChanged
+            sig.connect(lambda *_a: None if getattr(self, "_filling_due", False) else self.has_due.setChecked(True))
+        self.zone.setPlaceholderText("ET, CT, MT, PT, UTC...")
         for w in (self.has_due, self.due_date, self.due_time, self.zone):
             due.addWidget(w)
         due.addStretch(1)
@@ -83,6 +89,11 @@ class RecordPage(QWidget):
         self.stage_note = self.stages.add(D.label("Dates as Nov 3, 2026 or 2026-11-03. The current stage cannot be removed.", "muted"))
         v.addWidget(self.stages)
         # 2.80.0 effort health
+        self.readable = D.Card("Readable copy", "Everything in the effort as plain files (Excel, Word, CSV, text) in its folder, "
+                               "rewritten a few seconds after every change, so the effort can carry on without Stationkeeper.",
+                               actions=[D.button("Open the readable copy", "primary", lambda: self.host.open_readable())])
+        self.readable_text = self.readable.add(D.label("", "muted"))
+        v.addWidget(self.readable)
         self.health = D.Card("Effort health", "Checked each time the effort opens. A damaged list or matrix is put back from its "
                              "newest good copy automatically.", actions=[D.button("Check now", None, lambda: self.check_health())])
         self.health_box = QVBoxLayout(); self.health.body.addLayout(self.health_box)
@@ -131,13 +142,14 @@ class RecordPage(QWidget):
             w.setText(val or "")
         due = r.data.get("due", "")
         d = R.parse_date(due[:10]) if due else None
+        self._filling_due = True
         self.has_due.setChecked(d is not None)
         self.due_date.setDate(QDate(d) if d else QDate.currentDate().addDays(30))
         hm = due[11:16] if len(due) > 15 else ""
         self.due_time.setTime(QTime(int(hm[:2]), int(hm[3:5])) if hm[:2].isdigit() and hm[3:5].isdigit() else QTime(14, 0))
         self.zone.setText(r.data.get("zone", ""))
-        for w in (self.due_date, self.due_time, self.zone):
-            w.setEnabled(d is not None)
+        self._filling_due = False
+
         st = ES.State(h.ws, h.effort_path, None)
         import subreq as SR
         sm = SR.summary(st.rows)
@@ -148,6 +160,10 @@ class RecordPage(QWidget):
         self.fill_stages(r)
         self.fill_health(self.host.safety.issues)
         self.backup_text.setText(self.host.safety.status_text())     # 2.78.0: automatic, with the last time
+        import readable as RD
+        rf = RD.folder_for(h.effort_path, h.effort_name)
+        self.readable_text.setText(f"{rf}" + (f"\nLast written {h.rd_written}." if getattr(h, "rd_written", "") else
+                                   ("\nWritten after the next change." if not os.path.isdir(rf) else "")))
         import workmode as WM
         from .modes import settings
         self.team_btn.setVisible(bool(WM.team_dir(settings())))
@@ -253,96 +269,35 @@ class RecordPage(QWidget):
         return new
 
     # ------------------------------------------------------------ stages and gates
-    def fill_stages(self, r):
-        t = self.stage_table
-        t.setRowCount(0)
-        for s in r.stages:
-            self._stage_row(s["id"], s["name"], s.get("planned", ""), s.get("planned_end", ""), r.gate_of(s), s["id"] == r.data["stage"])
-
-    def _stage_row(self, sid, name, start, end, gate, current=False, at=None):
-        t = self.stage_table
-        i = t.rowCount() if at is None else at
-        t.insertRow(i)
-        it = QTableWidgetItem(name); it.setData(Qt.UserRole, sid)
-        if current:
-            it.setToolTip("The current stage"); it.setForeground(D.color("accent"))
-        t.setItem(i, 0, it)
-        for c, val in ((1, start), (2, end)):
-            d = R.parse_date(val) if val else None
-            t.setItem(i, c, QTableWidgetItem(R.short_date(d.isoformat()) + f", {d.year}" if d else (val or "")))
-        cb = QComboBox()
-        for k, text in R.GATES.items():
-            cb.addItem(text, k)
-        cb.setCurrentIndex(max(0, cb.findData(gate)))
-        t.setCellWidget(i, 3, cb)
-        return i
-
-    def _stage_values(self, i):
-        t = self.stage_table
-        it = t.item(i, 0)
-        return (it.data(Qt.UserRole) if it else None, it.text() if it else "", t.item(i, 1).text() if t.item(i, 1) else "",
-                t.item(i, 2).text() if t.item(i, 2) else "", t.cellWidget(i, 3).currentData())
-
-    def move_row(self, d):
-        t = self.stage_table
-        i = t.currentRow()
-        j = i + d
-        if i < 0 or not (0 <= j < t.rowCount()):
-            return False
-        vals = self._stage_values(i)
-        cur = t.item(i, 0).toolTip() == "The current stage"
-        t.removeRow(i)
-        self._stage_row(vals[0], vals[1], vals[2], vals[3], vals[4], cur, at=j)
-        t.setCurrentCell(j, 0)
-        return True
-
-    def add_stage(self, name="New stage"):
-        i = self._stage_row(None, name, "", "", "")
-        self.stage_table.setCurrentCell(i, 0)
-        return i
-
-    def remove_stage(self):
-        t = self.stage_table
-        i = t.currentRow()
-        if i < 0:
-            return False
-        if t.item(i, 0).toolTip() == "The current stage":
-            self.host.status("The current stage cannot be removed.")
-            return False
-        t.removeRow(i)
-        return True
-
-    def save_stages(self):
-        r = self.rec
-        rows, gates, bad = [], [], []
-        for i in range(self.stage_table.rowCount()):
-            sid, name, start, end, gate = self._stage_values(i)
-            ds, de = (R.parse_date(start) if start.strip() else None), (R.parse_date(end) if end.strip() else None)
-            if (start.strip() and ds is None) or (end.strip() and de is None):
-                bad.append(name)
-            rows.append((sid, name, ds.isoformat() if ds else "", de.isoformat() if de else ""))
-            gates.append(gate)
-        if bad:
-            self.host.status("Dates not understood for: " + ", ".join(bad) + ". Write them like Nov 3, 2026.")
-            return False
-        try:
-            new = r.edit_stages(rows)
-        except ValueError as e:
-            self.host.status(str(e))
-            return False
-        for s, g in zip(new, gates):
-            r.set_gate(s["id"], g)
-        diag.activity("qt_stages_saved")
-        self.host.toast("Stages saved")
-        self.refresh()
-        return True
-
     # ------------------------------------------------------------ status, package, backup
-    def status_export(self, path=None, final=False):
+    def pm_summary(self, answer=None):
+        """2.92.0: the proposal manager's summary for the overview, in their own words; kept for next time. answer
+        (tests): the text. None when cancelled."""
+        r = self.rec
+        if answer is None:
+            from PySide6.QtWidgets import QDialog, QDialogButtonBox, QPlainTextEdit, QVBoxLayout
+            dlg = QDialog(self); dlg.setWindowTitle("The proposal manager's summary"); dlg.resize(620, 380)
+            v = QVBoxLayout(dlg)
+            v.addWidget(D.label("In your own words: where the effort stands, what worries you, what you need. It prints first in the "
+                                "overview and is kept for next time. Leave it empty to leave it out.", "muted"))
+            ed = QPlainTextEdit(r.data.get("pm_summary", "")); v.addWidget(ed, 1)
+            bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.button(QDialogButtonBox.Ok).setText("Write the overview")
+            bb.accepted.connect(dlg.accept); bb.rejected.connect(dlg.reject); v.addWidget(bb)
+            if dlg.exec() != QDialog.Accepted:
+                return None
+            answer = ed.toPlainText()
+        r.data["pm_summary"] = (answer or "").strip()[:6000]
+        r.save()
+        return r.data["pm_summary"]
+
+    def status_export(self, path=None, final=False, summary=None):
         import statusdoc as SDOC
         h = self.host
         if h.ws is None:
             return None
+        if path is None or summary is not None:                  # 2.92.0: the proposal manager's words first
+            if self.pm_summary(summary) is None:
+                return None
         if path is None:
             kind = "Effort_Summary" if final else "Effort_Status"
             fname = f"{h.effort_name}_{kind}_{datetime.date.today().isoformat()}.docx".replace(" ", "_")
@@ -352,10 +307,14 @@ class RecordPage(QWidget):
                 return None
         st = ES.State(h.ws, h.effort_path, h.review.M if h.review is not None else None)
         try:
-            SDOC.build(ES.status_snapshot(st, final=final, app_version=h.version, name=h.effort_name), path, final=final)
+            import tzones as TZ
+            from .modes import settings
+            SDOC.build(ES.status_snapshot(st, final=final, app_version=h.version, name=h.effort_name, my_zone=TZ.my_zone(settings())),
+                       path, final=final)
         except PermissionError:
             h.status("That file is open in Word. Close it, then save again.")
             return None
+        st.rec.data["overview_last"] = datetime.datetime.now().isoformat(timespec="minutes")   # NEW marks count from here
         st.rec.log("effort", ("Effort summary" if final else "Effort status") + f" exported: {os.path.basename(path)}", save=True)
         diag.activity("qt_status_exported")
         h.toast(("Effort summary" if final else "Effort status") + " written")
@@ -544,6 +503,8 @@ class RecordPage(QWidget):
         import keepsafe as K
         h = self.host
         bd = folder or self.backup_dir()
+        if h.ws is not None:
+            h.readable_now(overview=True, wait=False)           # 2.92.0: the readable copy, with the overview, too
         if h.ws is None or not bd:
             h.status("Backups are off. Choose the backup folder in Settings.")
             return None

@@ -14,9 +14,9 @@ import effortrec as R
 import effortstate as ES
 from . import design as D
 
-CAL_TONE = {"due": "crit", "questions": "cust", "meeting": "ctx", "stage": "accent", "task": "warn", "done": "ok", "event": "muted"}
-CAL_ORDER = ("due", "questions", "meeting", "stage", "task", "done", "event")
-CAL_WORDS = (("due", "Due"), ("questions", "Questions due"), ("meeting", "Reviews and meetings"), ("stage", "Stages"), ("task", "Tasks due"),
+CAL_TONE = {"due": "crit", "deadline": "warn", "questions": "cust", "meeting": "ctx", "stage": "accent", "task": "warn", "done": "ok", "event": "muted"}
+CAL_ORDER = ("due", "deadline", "questions", "meeting", "stage", "task", "done", "event")
+CAL_WORDS = (("due", "Proposal due"), ("deadline", "Due dates"), ("questions", "Questions due"), ("meeting", "Reviews and meetings"), ("stage", "Stages"), ("task", "Tasks due"),
              ("done", "Tasks done"), ("event", "What happened"))
 KIND_WORDS = {"customer": "CUSTOMER", "ours": "OURS", "stage": "STAGE", "note": "NOTE", "task": "TASK", "assign": "PEOPLE",
               "requirement": "REQUIREMENT", "effort": "EFFORT", "qa": "QA/QC", "compliance": "COMPLIANCE", "deliverable": "DELIVERABLE", "gate": "GATE", "review": "REVIEW"}
@@ -79,9 +79,24 @@ class HomePage(QWidget):
         self.who = QComboBox(); self.who.setMinimumWidth(180); self.who.addItem("Everyone")
         self.who.activated.connect(lambda _i: self.refresh())
         top.addWidget(self.who)
+        top.addWidget(D.button("Export tasks and questions...", None, lambda: self.export_tq(),
+                               "A workbook of the tasks and questions for the person shown (or the full team), dated and named for them"))
+        # 2.92.0: when one person is picked, their name, large, says the page is theirs
+        self.for_box = QFrame(); self.for_box.setObjectName("forBox")
+        fb = QHBoxLayout(self.for_box); fb.setContentsMargins(D.SPACE["l"], D.SPACE["s"], D.SPACE["l"], D.SPACE["s"])
+        self.for_name = QLabel(""); self.for_name.setObjectName("forName"); fb.addWidget(self.for_name, 1)
+        fb.addWidget(D.button("Show everyone", None, lambda: (self.who.setCurrentText("Everyone"), self.refresh())))
+        t0 = D.tokens()
+        self.for_box.setStyleSheet(f"QFrame#forBox{{background:{t0['accent_soft']};border-radius:{D.RADIUS['card']}px;}}"
+                                   f"QLabel#forName{{font-size:18pt;font-weight:700;color:{t0['accent']};background:transparent;}}")
+        self.for_box.setVisible(False)
+        v.addWidget(self.for_box)
         # the stage track
         self.move_btn = D.button("Move stage...", "primary", self.move_dialog, "Move the effort to its next stage")
-        self.track = D.Card("Stage", "Where the effort is. The stage moves only when you move it.", actions=[self.move_btn])
+        self.track = D.Card("Stage", "Where the effort is. The stage moves only when you move it.",
+                            actions=[D.button("Edit stages...", None, lambda: self.edit_stages(),
+                                              "Rename, add, remove and reorder this effort's stages, with dates and gates"),
+                                     self.move_btn])
         self.track_row = QHBoxLayout(); self.track_row.setSpacing(D.SPACE["xs"]); self.track.body.addLayout(self.track_row)
         self.deliv_card = D.Card("Deliverables", actions=[D.button("Open the board", None, lambda: self.host.go("deliverables"))])
         self.deliv_box = QVBoxLayout(); self.deliv_box.setSpacing(D.SPACE["xs"]); self.deliv_card.body.addLayout(self.deliv_box)
@@ -107,6 +122,7 @@ class HomePage(QWidget):
         self.cal.clicked.connect(lambda d: self.pick_day(d.toPython()))
         self.cal.currentPageChanged.connect(lambda _y, _m: self.paint_calendar())
         self.cal_card.add(self.cal)
+        self.cal_card.body.addLayout(self.calfiles.file_row())
         leg = QHBoxLayout(); leg.setSpacing(D.SPACE["m"])
         t = D.tokens()
         for kind, word in CAL_WORDS:
@@ -156,6 +172,9 @@ class HomePage(QWidget):
             keep = me                                               # 2.88.0: an author starts on their own tasks
         self._who_set = True
         self.who.setCurrentText(keep if keep in people else "Everyone")
+        p = self.person()
+        self.for_box.setVisible(bool(p))
+        self.for_name.setText(f"{p}: tasks and questions" if p else "")
         L = h.record_page.effort_list()
         try:
             stage = (r.stage() or {}).get("name", "")
@@ -366,6 +385,19 @@ class HomePage(QWidget):
             self.track_row.addWidget(f, 1)
         nxt = r.index() + 1
         self.move_btn.setText(f"Move to {r.stages[nxt]['name']}..." if nxt < len(r.stages) else "Move stage...")
+
+    def edit_stages(self, run=True):
+        """2.92.0: the stage table, here on Effort Home (the same as Effort Record's). run=False (tests): the dialog."""
+        if self.host.ws is None:
+            return None
+        from .stagesedit import StagesDialog
+        dlg = StagesDialog(self)
+        if not run:
+            return dlg
+        dlg.exec()
+        if dlg.saved:
+            self.refresh()
+        return dlg.saved
 
     def move_dialog(self, run=True):
         r = self.rec
@@ -760,7 +792,33 @@ class HomePage(QWidget):
         y, m = self.cal.yearShown(), self.cal.monthShown()
         first = datetime.date(y, m, 1)
         return self.state.calendar(first=first - datetime.timedelta(days=7),
-                                   last=first.replace(day=CAL.monthrange(y, m)[1]) + datetime.timedelta(days=14))
+                                   last=first.replace(day=CAL.monthrange(y, m)[1]) + datetime.timedelta(days=14), mine=self.my_zone_key())
+
+    def export_tq(self, path=None):
+        """2.92.0: the tasks and questions for the person shown, or the full team, in a dated workbook named for them."""
+        import effortfolders as EF
+        import tqexport as TQ
+        import branding as BR
+        h = self.host
+        if h.ws is None:
+            return ""
+        who = self.person() or ""
+        if path is None:
+            from PySide6.QtWidgets import QFileDialog
+            path, _ = QFileDialog.getSaveFileName(self, "Export tasks and questions", EF.out(h.effort_path, TQ.file_name(h.effort_name, who)),
+                                                  "Excel (*.xlsx)")
+        if not path:
+            return ""
+        r = R.Record(h.ws.root)
+        _p, nt, nq = TQ.export(r, path, h.effort_name, who, sensitivity=BR.identity(r)["sensitivity"] if BR.marking(BR.identity(r)["sensitivity"]) else "")
+        diag.activity("qt_tq_exported", n=nt + nq)
+        h.toast(f"Tasks and questions for {who or 'the full team'}: {nt} task(s), {nq} question(s)")
+        return path
+
+    def my_zone_key(self):
+        import tzones as TZ
+        from .modes import settings
+        return TZ.my_zone(settings())
 
     def paint_calendar(self):
         self.cal.setDateTextFormat(QDate(), QTextCharFormat())          # clears every marked day
@@ -789,7 +847,7 @@ class HomePage(QWidget):
         d = self.day
         if d is None or self.state is None:
             return []
-        items = self.state.calendar(first=d, last=d).get(d, [])
+        items = self.state.calendar(first=d, last=d, mine=self.my_zone_key()).get(d, [])
         self.day_box.addWidget(D.label(d.strftime("%A, %B %d, %Y").replace(" 0", " "), "title"))
         t = D.tokens()
         for kind, text in items or [("event", "Nothing on this day.")]:
@@ -797,14 +855,22 @@ class HomePage(QWidget):
         import html as _h
         import effortcal as EC
         for e in [e for e in self.rec.data.get("events", []) if e["date"] == d.isoformat()]:      # 2.88.0: the details
-            bits = [x for x in (("Until " + EC.nice_time(e["end"])) if e.get("end") else "",
+            bits = [x for x in (e.get("kind", ""), EC.entry_times(e, self.my_zone_key()),
                                 f"Owner: {e['owner']}" if e.get("owner") else "", f"Stage: {e['stage']}" if e.get("stage") else "",
                                 e.get("details", "")) if x]
             row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
             row.addWidget(D.label(f"<b>{_h.escape(e['title'])}</b>  " + _h.escape("  ·  ".join(bits)), "muted"), 1)
+            from .calview import entry_dialog
+            row.addWidget(D.button("Edit", "ghost", lambda _=False, x=dict(e): entry_dialog(self, entry=x)), 0, Qt.AlignTop)
             row.addWidget(D.button("Remove", "ghost", lambda _=False, i=e["id"]: self.remove_event(i)), 0, Qt.AlignTop)
             self.day_box.addLayout(row)
-        self.day_box.addWidget(D.button("+ Task due this day", None, lambda: self.task_dialog(due=d.isoformat())), 0, Qt.AlignLeft)
+        add = QHBoxLayout()
+        add.addWidget(D.button("+ Task due this day", None, lambda: self.task_dialog(due=d.isoformat())))
+        from .calview import entry_dialog
+        add.addWidget(D.button("+ Due date this day", None, lambda: entry_dialog(self, "Due", day=d)))
+        add.addWidget(D.button("+ Event this day", None, lambda: entry_dialog(self, "Meeting", day=d)))
+        add.addStretch(1)
+        self.day_box.addLayout(add)
         return items
 
     def remove_event(self, eid):

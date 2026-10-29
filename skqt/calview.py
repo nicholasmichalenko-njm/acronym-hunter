@@ -1,7 +1,7 @@
 """The effort calendar as a file, in Qt (2.88.0): Template..., Import... (a preview of what every row does, then Apply),
 Undo import, and Export... (Excel in the template's columns, or an .ics file for Outlook). The rules are effortcal's.
 Rules only (No AI); nothing leaves the PC."""
-import os
+import datetime, os
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QFileDialog, QHBoxLayout, QMenu, QTableWidget, QTableWidgetItem,
                                QVBoxLayout)
@@ -52,12 +52,22 @@ class CalendarFiles:
         self.host = page.host
 
     def buttons(self):
+        """The card's own buttons: + Due date... and + Event... (the file buttons are file_row())."""
+        return [D.button("+ Due date...", "primary", lambda: entry_dialog(self.page, "Due"), "Something due at a date and time: drafts, "
+                         "reviews' packets, the questions to the customer"),
+                D.button("+ Event...", None, lambda: entry_dialog(self.page, "Meeting"), "A review, a meeting, orals: when, where, who")]
+
+    def file_row(self):
+        """2.92.0: Import, Export, Template and Undo import, in a row that wraps under the calendar."""
+        from .adaptive import FlowLayout
+        row = FlowLayout(None, D.SPACE["s"])
         self.undo_btn = D.button("Undo import", "ghost", lambda: self.undo(), "Put the calendar back as it was before the last import")
-        return [D.button("Import...", None, lambda: self.import_file(), "A calendar file (the template, a CSV or an Outlook .ics): "
-                         "its due date, stage dates, tasks, reviews and meetings"),
-                D.button("Export...", None, lambda: self.export_menu(), "The whole calendar with its details: Excel or Outlook (.ics)"),
-                D.button("Template...", "ghost", lambda: self.template(), "An Excel calendar for people to fill in"),
-                self.undo_btn]
+        for b in (D.button("Import...", None, lambda: self.import_file(), "A calendar file (the template, a CSV or an Outlook .ics): "
+                           "its due date, stage dates, tasks, due dates, reviews and meetings"),
+                  D.button("Export...", None, lambda: self.export_menu(), "The whole calendar with its details: Excel or Outlook (.ics)"),
+                  D.button("Template...", "ghost", lambda: self.template(), "An Excel calendar for people to fill in"), self.undo_btn):
+            row.addWidget(b)
+        return row
 
     def refresh(self):
         h = self.host
@@ -143,3 +153,98 @@ class CalendarFiles:
         diag.activity("qt_calendar_exported", n=len(rows))
         h.toast(f"Calendar exported: {len(rows)} date(s)")
         return path
+
+
+class EntryDialog(QDialog):
+    """2.92.0: a due date or an event typed in the app: what, when (date, time, end), its time zone, who, where, details."""
+
+    def __init__(self, parent, host, kind="Due", entry=None, day=None):
+        from PySide6.QtCore import QDate, QTime
+        from PySide6.QtWidgets import QCheckBox, QComboBox, QDateEdit, QFormLayout, QLineEdit, QPlainTextEdit, QTimeEdit
+        import tzones as TZ
+        from .modes import settings
+        super().__init__(parent)
+        e = dict(entry or {})
+        self.setWindowTitle(("Change " if entry else "New ") + ("due date" if (e.get("kind") or kind) in EC.DUE_KINDS else "event"))
+        self.setMinimumWidth(520)
+        v = QVBoxLayout(self)
+        f = QFormLayout(); v.addLayout(f)
+        self.kind = QComboBox(); self.kind.addItems(list(EC.EVENT_KINDS)); self.kind.setCurrentText(e.get("kind") or kind)
+        self.title = QLineEdit(e.get("title", "")); self.title.setPlaceholderText("Drafts to Production, Red team review...")
+        self.date = QDateEdit(); self.date.setCalendarPopup(True); self.date.setDisplayFormat("MMM d, yyyy")
+        dd = EC.parse_date(e.get("date")) if e.get("date") else (day or datetime.date.today())
+        self.date.setDate(QDate(dd.year, dd.month, dd.day))
+        self.timed = QCheckBox("At a time"); self.timed.setChecked(bool(e.get("start")) or not entry)
+        self.start = QTimeEdit(); self.start.setDisplayFormat("h:mm AP")
+        self.end = QTimeEdit(); self.end.setDisplayFormat("h:mm AP")
+        st = e.get("start") or ("17:00" if kind in EC.DUE_KINDS else "09:00")
+        self.start.setTime(QTime(int(st[:2]), int(st[3:5])))
+        en = e.get("end") or ""
+        self.has_end = QCheckBox("Ends at"); self.has_end.setChecked(bool(en))
+        self.end.setTime(QTime(int(en[:2]), int(en[3:5])) if en else QTime(int(st[:2]) + 1 if int(st[:2]) < 23 else 23, int(st[3:5])))
+        self.zone = QComboBox()
+        for k, text in TZ.choices():
+            self.zone.addItem(text, k)
+        rec = R.Record(host.ws.root)
+        mine = TZ.my_zone(settings())
+        zk = e.get("zone") if TZ.valid(e.get("zone", "")) else ((rec.zone_key() or mine) if kind in EC.DUE_KINDS else mine)
+        if self.zone.findData(zk) < 0:
+            self.zone.addItem(zk, zk)
+        self.zone.setCurrentIndex(max(0, self.zone.findData(zk)))
+        self.owner = QComboBox(); self.owner.setEditable(True); self.owner.addItems([""] + (host.people() if hasattr(host, "people") else []))
+        self.owner.setCurrentText(e.get("owner", ""))
+        self.location = QLineEdit(e.get("location", "")); self.location.setPlaceholderText("Room 2B, a Teams meeting, a site")
+        self.details = QPlainTextEdit(e.get("details", "")); self.details.setMaximumHeight(90)
+        times = QHBoxLayout(); times.addWidget(self.timed); times.addWidget(self.start); times.addWidget(self.has_end); times.addWidget(self.end); times.addStretch(1)
+        f.addRow("Kind", self.kind); f.addRow("What", self.title); f.addRow("Date", self.date); f.addRow("Time", times)
+        f.addRow("Time zone", self.zone); f.addRow("Owner", self.owner); f.addRow("Where", self.location); f.addRow("Details", self.details)
+        self.mine = D.label("", "muted"); v.addWidget(self.mine)
+        for w in (self.timed, self.has_end):
+            w.toggled.connect(lambda _on: self._enable())
+        for sig in (self.start.timeChanged, self.date.dateChanged):
+            sig.connect(lambda *_a: self._say())
+        self.zone.currentIndexChanged.connect(lambda _i: self._say())
+        self.my_zone = mine
+        bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
+        v.addWidget(bb)
+        self._enable()
+
+    def _enable(self):
+        self.start.setEnabled(self.timed.isChecked()); self.has_end.setEnabled(self.timed.isChecked())
+        self.end.setEnabled(self.timed.isChecked() and self.has_end.isChecked())
+        self._say()
+
+    def _say(self):
+        x = self.values()
+        self.mine.setText(EC.entry_times(x, self.my_zone) if x["start"] else "All day.")
+
+    def values(self):
+        return {"kind": self.kind.currentText(), "title": self.title.text(), "date": self.date.date().toPython().isoformat(),
+                "start": self.start.time().toString("HH:mm") if self.timed.isChecked() else "",
+                "end": self.end.time().toString("HH:mm") if self.timed.isChecked() and self.has_end.isChecked() else "",
+                "zone": self.zone.currentData() if self.timed.isChecked() else "", "owner": self.owner.currentText().strip(),
+                "location": self.location.text(), "details": self.details.toPlainText()}
+
+
+def entry_dialog(page, kind="Due", entry=None, day=None, answer=None):
+    """+ Due date..., + Event... and Edit: returns the id saved, or None. answer (tests): the values."""
+    h = page.host
+    if h.ws is None:
+        return None
+    if answer is None:
+        dlg = EntryDialog(page, h, kind, entry, day)
+        if dlg.exec() != QDialog.Accepted:
+            return None
+        answer = dlg.values()
+    rec = R.Record(h.ws.root)
+    if entry:
+        EC.update_entry(rec, entry["id"], **answer)
+        eid = entry["id"]
+    else:
+        eid = EC.add_entry(rec, **answer)
+        if eid is None:
+            h.status("Give it a date and say what it is.")
+            return None
+    diag.activity("qt_calendar_entry_saved")
+    page.refresh()
+    return eid

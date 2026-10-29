@@ -278,12 +278,33 @@ class Record:
         W.write_json(self.path, self.data)
 
     # ------------------------------------------------------------ basics
-    def set_due(self, due_iso, zone="", who=None):
+    def set_due(self, due_iso, zone="", who=None, zone_key=None):
+        """2.92.0: zone_key is the submission's time zone (tzones key); when not given it is read from zone, the zone as
+        the customer wrote it."""
+        import tzones as TZ
         old = self.data["due"]
         self.data["due"], self.data["zone"] = due_iso or "", _clean(zone)
+        self.data["zone_key"] = zone_key if zone_key is not None and (TZ.valid(zone_key) or zone_key == "") else TZ.guess(zone)
         if old != self.data["due"]:
             self.log("effort", ("Due date set to " + due_text(due_iso, zone)) if due_iso else "Due date cleared", who=who)
         self.save()
+
+    def zone_key(self):
+        """2.92.0: the submission's time zone key ('' when unknown)."""
+        import tzones as TZ
+        k = self.data.get("zone_key")
+        return k if k and TZ.valid(k) else TZ.guess(self.data.get("zone", ""))
+
+    def due_utc(self):
+        """The due time in UTC (naive), or None without a due time or a known zone."""
+        import tzones as TZ
+        due, k = self.data.get("due", ""), self.zone_key()
+        if not due or not k or len(due) <= 10:
+            return None
+        try:
+            return TZ.to_utc(datetime.datetime.fromisoformat(due), k)
+        except ValueError:
+            return None
 
     # ------------------------------------------------------------ stages
     @staticmethod
@@ -561,7 +582,7 @@ class Record:
         qs = self.notes(open_only=True)
         return qs if assignee is None else [q for q in qs if q.get("assignee", "") == assignee]
 
-    def calendar(self, first=None, last=None, extra=()):
+    def calendar(self, first=None, last=None, extra=(), mine=""):
         """2.49.0: what falls on each day: {date: [(kind, text)]}. kind: due, stage, task, done, event. extra: more
         (date, kind, text) from elsewhere (questions due from the customer documents). Between first and last when given."""
         out = {}
@@ -587,14 +608,12 @@ class Record:
             if t.get("due"):
                 put(parse_date(t["due"]), "done" if t["status"] == "Done" else "task",
                     t["title"] + (f" ({t['owner']})" if t.get("owner") else ""))
-        for e in self.data.get("events", []):                 # 2.88.0: reviews, meetings, orals, milestones from a calendar file
-            st = e.get("start", "")
-            when = ""
-            if st:
-                h, mi = int(st[:2]), int(st[3:5])
-                when = f"{h % 12 or 12}:{mi:02d} {'a.m.' if h < 12 else 'p.m.'}" + (f" {e['zone']}" if e.get("zone") else "") + " "
-            put(parse_date(e["date"]), "questions" if e["kind"] == "Questions due" else "meeting",
-                when + e["title"] + (f" ({e['location']})" if e.get("location") else ""))
+        import effortcal as EC
+        for e in self.data.get("events", []):                 # 2.88.0: reviews, meetings, orals, milestones; 2.92.0: due dates
+            when = EC.entry_times(e, mine)
+            kind = "questions" if e["kind"] == "Questions due" else "deadline" if e["kind"] == "Due" else "meeting"
+            put(parse_date(e["date"]), kind, ((("Due " if kind == "deadline" else "") + when + " ") if when else ("Due: " if kind == "deadline" else ""))
+                + e["title"] + (f" ({e['location']})" if e.get("location") else ""))
         for e in self.data.get("timeline", []):
             if e["kind"] in ("document", "stage", "deliverable", "assign") and e.get("at") and not e["text"].startswith("Goal "):
                 put(parse_date(e["at"][:10]), "event", e["text"][:80])

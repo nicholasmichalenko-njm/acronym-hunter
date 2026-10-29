@@ -142,8 +142,8 @@ check("skipped rows say why", "No date" in pl[5]["why"] and "Blue team" in pl[6]
 check("nothing changes until Apply", RR.Record(w.ws.root).data["due"] == due.strftime("%Y-%m-%dT%H:%M"))
 hp.calfiles.import_file(os.path.join(tmp, "cal.xlsx"), apply=True)
 r = RR.Record(w.ws.root)
-check("Proposal due sets the due date to the minute, with its zone", r.data["due"] == "2026-12-15T14:30" and r.data["zone"] == "Mountain Time")
-check("the banner countdown follows it", "Dec 15, 2026, 2:30 p.m. Mountain Time" in bn.due.text(), bn.due.text())
+check("Proposal due sets the due date to the minute, with its zone", r.data["due"] == "2026-12-15T14:30" and r.data["zone"] == "MT" and r.zone_key() == "MT")
+check("the banner countdown follows it", "Dec 15, 2026, 2:30 p.m. MST" in bn.due.text(), bn.due.text())
 rt = r.stage(next(s["id"] for s in r.stages if s["name"] == "Red team"))
 check("stage rows set the stage's planned start and end", rt["planned"] == "2026-11-18" and rt["planned_end"] == "2026-11-21")
 t = next((t for t in r.data["tasks"] if t["title"] == "Draft the management volume"), None)
@@ -153,7 +153,7 @@ e = ev.get("Red team review", {})
 check("reviews and meetings go on the calendar with times, place and details", e.get("start") == "09:00" and e.get("end") == "16:00"
       and e.get("location") == "Room 2B" and ev.get("Orals dry run", {}).get("start") == "12:00")
 cal = r.calendar(first=datetime.date(2026, 11, 20), last=datetime.date(2026, 11, 20))
-check("the calendar shows the review on its day, with its time", any(k == "meeting" and "9:00 a.m. MT Red team review (Room 2B)" == x
+check("the calendar shows the review on its day, with its time", any(k == "meeting" and "9:00 a.m. MST to 4:00 p.m. Red team review (Room 2B)" == x
                                                                      for k, x in cal.get(datetime.date(2026, 11, 20), [])), cal)
 hp.pick_day(datetime.date(2026, 11, 20)); app.processEvents()
 pl2 = hp.calfiles.import_file(os.path.join(tmp, "cal.xlsx"), apply=False)
@@ -177,7 +177,7 @@ check("an export imports back unchanged", all(p["action"] in ("same",) for p in 
       [(p["kind"], p["action"], p["why"]) for p in EC.plan(rows, RR.Record(w.ws.root)) if p["action"] != "same"])
 ics = hp.calfiles.export("ics", os.path.join(tmp, "out.ics"))
 txt = open(ics, encoding="utf-8").read()
-check("Outlook export: one event per date, times to the minute", txt.count("BEGIN:VEVENT") == len(rows) and "DTSTART:20261215T143000" in txt
+check("Outlook export: one event per date, times to the minute", txt.count("BEGIN:VEVENT") == len(rows) and "DTSTART:20261215T213000Z" in txt
       and "LOCATION:Room 2B" in txt)
 back = EC.read_rows(ics, "Kestrel")
 check("an Outlook export imports back unchanged", all(p["action"] == "same" for p in EC.plan(back, RR.Record(w.ws.root))),
@@ -188,7 +188,7 @@ open(outlook, "w").write("BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nDTSTART;TZID=Mounta
                          "LOCATION:Teams\r\nDESCRIPTION:Agenda\\, roles\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
 p3 = EC.plan(EC.read_rows(outlook), RR.Record(w.ws.root))
 check("an Outlook calendar file imports: its kind from its wording", p3[0]["kind"] == "Review" and p3[0]["start"] == "13:00"
-      and p3[0]["zone"] == "Mountain Standard Time" and p3[0]["details"] == "Agenda, roles", p3[0])
+      and p3[0]["zone"] == "MT" and p3[0]["details"] == "Agenda, roles", p3[0])
 check("times read every common way", [EC.parse_time(v) for v in ("2:00 PM", "14:00", "2 p.m.", "1400", "noon", "9am", "25:00")]
       == ["14:00", "14:00", "14:00", "14:00", "12:00", "09:00", None])
 w.close()

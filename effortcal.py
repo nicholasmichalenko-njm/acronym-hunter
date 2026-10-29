@@ -18,8 +18,9 @@ for Outlook. Files are only read and written here; nothing leaves the PC. Rules 
 import csv, datetime, json, os, re, shutil, uuid
 
 COLUMNS = ("Date", "Start time", "End time", "Time zone", "Kind", "What", "Owner", "Stage", "Location", "Details")
-KINDS = ("Proposal due", "Questions due", "Stage start", "Stage end", "Review", "Meeting", "Orals", "Milestone", "Task", "Other")
-EVENT_KINDS = ("Questions due", "Review", "Meeting", "Orals", "Milestone", "Other")
+KINDS = ("Proposal due", "Due", "Questions due", "Stage start", "Stage end", "Review", "Meeting", "Orals", "Milestone", "Task", "Other")
+EVENT_KINDS = ("Due", "Questions due", "Review", "Meeting", "Orals", "Milestone", "Other")
+DUE_KINDS = ("Due", "Questions due")                 # 2.92.0: deadlines (a time they are due); the rest are events
 _HEAD = {"date": "Date", "day": "Date", "start": "Start time", "start time": "Start time", "time": "Start time", "from": "Start time",
          "end": "End time", "end time": "End time", "to": "End time", "time zone": "Time zone", "zone": "Time zone", "tz": "Time zone",
          "kind": "Kind", "type": "Kind", "category": "Kind", "what": "What", "title": "What", "event": "What", "subject": "What",
@@ -95,7 +96,7 @@ def kind_of(text, title=""):
     for k in KINDS:
         if t == k.casefold():
             return k
-    alias = {"due": "Proposal due", "proposal": "Proposal due", "submission due": "Proposal due", "questions": "Questions due",
+    alias = {"proposal": "Proposal due", "submission due": "Proposal due", "deadline": "Due", "questions": "Questions due",
              "start": "Stage start", "end": "Stage end", "color team": "Review", "meeting": "Meeting", "orals": "Orals",
              "milestone": "Milestone", "task": "Task", "to do": "Task"}
     if t in alias:
@@ -110,6 +111,13 @@ def kind_of(text, title=""):
     if re.search(r"\b(pink|red|gold|green|blue|white|black) team\b|\breview\b", w):
         return "Review"
     return "Meeting" if t in ("", "appointment", "event") and w else ("Other" if t else "Meeting")
+
+
+def _zone(v):
+    """2.92.0: a time zone as written -> its key (ET, MT, UTC+01:00) when known, else the text as written."""
+    import tzones as TZ
+    t = _norm(v, 40)
+    return (t.upper() if TZ.valid(t.upper()) else TZ.guess(t)) or t
 
 
 def _norm(s, n=300):
@@ -202,6 +210,8 @@ def read_ics(path, effort=""):
                     cur["Time zone"] = cur.pop("_zone")
                 if "_end" in cur:
                     cur["End time"] = cur.pop("_end")
+                if "_local" in cur:                                  # our export: the date and time as written, in its zone
+                    cur["Date"], cur["Start time"] = cur.pop("_local")
                 if cur.pop("_ours", False):                            # our export: Details as written, not the summary for Outlook
                     cur["Details"] = cur.pop("_details", "")
                 out.append(cur)
@@ -235,6 +245,10 @@ def read_ics(path, effort=""):
             cur["Stage"] = _ics_unescape(value)
         elif name == "X-SK-KIND":
             cur["_cat"] = _ics_unescape(value); cur["_ours"] = True
+        elif name == "X-SK-LOCAL":
+            m = re.fullmatch(r"(\d{8})T(\d{2})(\d{2})", value.strip())
+            if m:
+                cur["_local"] = (datetime.datetime.strptime(m.group(1), "%Y%m%d").date(), f"{m.group(2)}:{m.group(3)}")
         elif name == "X-SK-END":
             cur["_end"] = "" if value.strip() == "none" else value.strip()
         elif name == "X-SK-ZONE":
@@ -265,7 +279,7 @@ def plan(rows, rec):
         d = parse_date(r.get("Date"))
         st, en = parse_time(r.get("Start time")), parse_time(r.get("End time"))
         p = {"row": r.get("row"), "kind": kind, "date": d.isoformat() if d else "", "start": st or "", "end": en or "",
-             "zone": _norm(r.get("Time zone"), 40), "title": _norm(r.get("What"), 200), "owner": _norm(r.get("Owner"), 80),
+             "zone": _zone(r.get("Time zone")), "title": _norm(r.get("What"), 200), "owner": _norm(r.get("Owner"), 80),
              "stage": _norm(r.get("Stage"), 80), "location": _norm(r.get("Location"), 200), "details": _norm(r.get("Details"), 2000),
              "action": "skip", "ok": False, "why": ""}
         if d is None:
@@ -354,7 +368,9 @@ def apply(pl, rec, source="", who=None):
         if not p["ok"] or a == "same":
             continue
         if a == "due":
+            import tzones as TZ
             rec.data["due"], rec.data["zone"] = p["iso"], p["zone"]
+            rec.data["zone_key"] = p["zone"] if TZ.valid(p["zone"]) else TZ.guess(p["zone"])
             n["due"] += 1
         elif a in ("stage start", "stage end"):
             stages[p["stage"]]["planned" if a == "stage start" else "planned_end"] = p["date"]
@@ -459,7 +475,8 @@ def rows_of(rec, extra=()):
 GUIDE = (("Date", "The day: 12/15/2026, 2026-12-15 or Dec 15, 2026. Required."),
          ("Start time", "2:00 PM or 14:00. Blank for an all-day entry. For Proposal due, the exact due time."),
          ("End time", "When a review, meeting or orals ends. Optional."),
-         ("Time zone", "As the customer writes it: MT, Mountain Time, ET. Shown beside the time."),
+         ("Time zone", "ET, CT, MT, AZ (Arizona), PT, AK, HI or UTC (or Eastern, Mountain Time...), or UTC+01:00 elsewhere. Effort "
+                       "Home shows each time in it and in your own time zone."),
          ("Kind", "Proposal due sets the effort's due date and time. Stage start and Stage end set the planned dates of the stage "
                   "named in Stage. Task adds a task. Questions due, Review, Meeting, Orals, Milestone and Other go on the calendar."),
          ("What", "The wording shown on the calendar (Red team review, Kickoff). For Task, the task."),
@@ -537,7 +554,8 @@ def _fold(line):
 
 def write_ics(path, rows, effort=""):
     """An .ics file Outlook opens: every row an event (all-day when it has no time), in the PC's local time."""
-    now = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    import tzones as TZ
+    now = TZ.utc_now().strftime("%Y%m%dT%H%M%SZ")
     out = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Stationkeeper//Effort calendar//EN", "CALSCALE:GREGORIAN",
            f"X-WR-CALNAME:{_ics_escape((effort + ' calendar').strip())}"]
     for i, r in enumerate(rows):
@@ -551,7 +569,12 @@ def write_ics(path, rows, effort=""):
             start = datetime.datetime.combine(d, datetime.time(int(st[:2]), int(st[3:5])))
             en = r["End time"]
             end = datetime.datetime.combine(d, datetime.time(int(en[:2]), int(en[3:5]))) if en else start + datetime.timedelta(minutes=30)
-            out += [f"DTSTART:{start.strftime('%Y%m%dT%H%M%S')}", f"DTEND:{end.strftime('%Y%m%dT%H%M%S')}"]
+            zk = r["Time zone"] if TZ.valid(r["Time zone"]) else TZ.guess(r["Time zone"])
+            if zk:                                             # 2.92.0: exact moments (UTC), so Outlook shows them right
+                out += [f"DTSTART:{TZ.to_utc(start, zk).strftime('%Y%m%dT%H%M%SZ')}", f"DTEND:{TZ.to_utc(end, zk).strftime('%Y%m%dT%H%M%SZ')}",
+                        f"X-SK-LOCAL:{start.strftime('%Y%m%dT%H%M')}"]
+            else:
+                out += [f"DTSTART:{start.strftime('%Y%m%dT%H%M%S')}", f"DTEND:{end.strftime('%Y%m%dT%H%M%S')}"]
         else:
             out += [f"DTSTART;VALUE=DATE:{d.strftime('%Y%m%d')}", f"DTEND;VALUE=DATE:{(d + datetime.timedelta(days=1)).strftime('%Y%m%d')}"]
         title = r["What"] if r["Kind"] in ("Proposal due", "Questions due") or not effort else f"{effort}: {r['What']}"
@@ -578,3 +601,55 @@ def write_ics(path, rows, effort=""):
     with open(path, "w", encoding="utf-8", newline="") as f:
         f.write("\r\n".join(out) + "\r\n")
     return path
+
+
+# ------------------------------------------------------------------ 2.92.0: entries made in the app
+ENTRY_FIELDS = ("kind", "date", "start", "end", "zone", "title", "owner", "stage", "location", "details")
+
+
+def add_entry(rec, who=None, **f):
+    """A due date or an event typed in the app. Returns its id (None without a date or a title)."""
+    e = {k: _norm(f.get(k, ""), 2000 if k == "details" else 200) for k in ENTRY_FIELDS}
+    if not e["date"] or not (e["title"] or e["kind"]):
+        return None
+    e["kind"] = e["kind"] if e["kind"] in EVENT_KINDS else "Other"
+    e["title"] = e["title"] or e["kind"]
+    e["id"] = uuid.uuid4().hex[:10]
+    e["source"] = "typed"
+    evs = rec.data.setdefault("events", [])
+    evs.append(e)
+    evs.sort(key=lambda x: (x["date"], x.get("start", "")))
+    rec.log("effort", f"Calendar: {e['kind'].lower()} {e['title']} ({e['date']}" + (f" {e['start']}" if e["start"] else "") + ")", who=who)
+    rec.save()
+    return e["id"]
+
+
+def update_entry(rec, eid, who=None, **f):
+    e = next((x for x in rec.data.get("events", []) if x["id"] == eid), None)
+    if e is None:
+        return False
+    for k in ENTRY_FIELDS:
+        if k in f:
+            e[k] = _norm(f[k], 2000 if k == "details" else 200)
+    rec.data["events"].sort(key=lambda x: (x["date"], x.get("start", "")))
+    rec.log("effort", f"Calendar: changed {e['title']} ({e['date']})", who=who)
+    rec.save()
+    return True
+
+
+def entry_times(e, mine=""):
+    """How an entry's time reads: '9:00 a.m. MST' and, when the person's zone differs, '(8:00 a.m. PST your time)'."""
+    import tzones as TZ
+    if not e.get("start"):
+        return ""
+    d = parse_date(e["date"])
+    st = datetime.datetime.combine(d, datetime.time(int(e["start"][:2]), int(e["start"][3:5])))
+    zk = e.get("zone", "") if TZ.valid(e.get("zone", "")) else ""
+    txt = TZ.fmt_time(st, zk) if zk else nice_time(e["start"]) + (f" {e['zone']}" if e.get("zone") else "")
+    if e.get("end"):
+        txt += " to " + nice_time(e["end"])
+    if zk and mine and mine != zk:
+        other = TZ.convert(st, zk, mine)
+        if other is not None:
+            txt += f" ({TZ.fmt_time(other, mine)} your time" + (f", {other.strftime('%b')} {other.day}" if other.date() != st.date() else "") + ")"
+    return txt

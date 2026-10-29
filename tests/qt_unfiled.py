@@ -67,7 +67,7 @@ while w.review is None and time.time() - t < 60:
 w.save_now()
 lib = DV.Library(w.ws.p("documents")).load()
 cdoc = shutil.copy2(os.path.join(B, "Kestrel_RFP_Sections_C_L_M.docx"), w.efforts.get(UF.NAME)["customer_dir"])
-lib.add(cdoc, ["The Offeror shall describe its approach."], doc_name="Kestrel RFP", initial="R", dtype="RFP")
+lib.add(cdoc, [{"x": "The Offeror shall describe its approach.", "l": "p.1", "s": "L.3", "t": "Approach"}], doc_name="Kestrel RFP", initial="R", dtype="RFP")
 L = E.EffortList(w.effort_path, UF.NAME).load(); L.add_or_update("CDRL", Definition="Contract Data Requirements List"); L.add_or_update("SOW", Definition="Statement of Work"); L.pending = True; L.save()
 c = UF.counts(w.efforts)
 check("tools work in Unfiled: Read RFP made a matrix and filed its document", c["matrix"] == 1 and c["documents"] >= 1 and c["terms"] == 2, c)

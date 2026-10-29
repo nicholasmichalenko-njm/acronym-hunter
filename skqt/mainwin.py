@@ -190,6 +190,11 @@ class MainWindow(QMainWindow):
         self.save_timer = QTimer(self, singleShot=True, interval=2000, timeout=self.save_now)
         self.lock_timer = QTimer(self, interval=60000, timeout=lambda: self.ws.refresh_lock() if self.ws else None)
         self.lock_timer.start()
+        self._rd_seen = self._rd_done = None                   # 2.92.0: the readable copy, kept current
+        self._rd_thread = None
+        self.rd_written = ""
+        self.rd_timer = QTimer(self, interval=3000, timeout=self.readable_tick)
+        self.rd_timer.start()
         from .safety import Safety                 # 2.78.0: backups, recovery, where you were, the crash screen
         self.safety = Safety(self)
         self.fill_efforts()
@@ -362,8 +367,94 @@ class MainWindow(QMainWindow):
             diag.swallowed()
         return True
 
+    # ------------------------------------------------------------ 2.92.0 the readable copy
+    def _readable_on(self):
+        return not os.environ.get("AH_TEST") or bool(os.environ.get("SK_READABLE_TEST"))
+
+    def readable_job(self, overview=False):
+        import readablejob as RJ
+        import tzones as TZ
+        from .modes import settings
+        if self.ws is None:
+            return None
+        info = dict(self.efforts.get(self.effort_name) or {})
+        mp = self.ws.get("compliance_path", "") or ""
+        return RJ.job(self.effort_name, self.effort_path, self.ws.root, mp, info, self.version, overview, TZ.my_zone(settings()))
+
+    def readable_tick(self):
+        """Every few seconds: when the effort's saved files changed and have been quiet since the last look, rewrite the
+        readable copy in the background."""
+        import readablejob as RJ
+        if self.ws is None or not self._readable_on() or (self._rd_thread is not None and self._rd_thread.is_alive()):
+            return False
+        sig = RJ.signature(self.effort_path, self.ws.root, self.ws.get("compliance_path", "") or "")
+        quiet = sig == self._rd_seen
+        self._rd_seen = sig
+        if not quiet or sig == self._rd_done:
+            return False
+        self._rd_done = sig
+        self.readable_start(self.readable_job())
+        return True
+
+    def readable_start(self, job):
+        import bgwork
+        import readablejob as RJ
+        if job is None:
+            return None
+
+        def run():
+            try:
+                RJ.write(job)
+                import datetime as _dt
+                self.rd_written = _dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+            except Exception:
+                diag.swallowed()
+        self._rd_thread = bgwork.start(run, "stationkeeper-readable")
+        diag.activity("qt_readable_written")
+        return self._rd_thread
+
+    def readable_now(self, overview=True, wait=True):
+        """Write the readable copy now (with the Effort overview). Returns its folder, or ''."""
+        import readablejob as RJ
+        job = self.readable_job(overview)
+        if job is None:
+            return ""
+        if self._rd_thread is not None and self._rd_thread.is_alive():
+            self._rd_thread.join(timeout=120)
+        if wait:
+            try:
+                RJ.write(job)
+                import datetime as _dt
+                self.rd_written = _dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+            except Exception:
+                diag.swallowed()
+                self.status("The readable copy could not be written just now; it is written again after the next change.")
+                return ""
+        else:
+            self.readable_start(job)
+        return job["folder"]
+
+    def open_readable(self, open_it=True):
+        """The readable copy's folder in File Explorer (written first)."""
+        if self.ws is None:
+            self.status("Open an effort first.")
+            return ""
+        d = self.readable_now(overview=True)
+        if d and open_it and not os.environ.get("AH_TEST"):
+            from PySide6.QtCore import QUrl
+            from PySide6.QtGui import QDesktopServices
+            QDesktopServices.openUrl(QUrl.fromLocalFile(d))
+        diag.activity("qt_readable_opened")
+        return d
+
     def close_effort(self):
         self._warm_stop = True
+        if self.ws is not None and self._readable_on():         # 2.92.0: the readable copy, with the overview, as it closes
+            try:
+                self.save_now()
+                self.readable_now(overview=True, wait=False)
+            except Exception:
+                diag.swallowed()
         if hasattr(self, "read_page"):
             self.read_page.abandon()                 # 2.82.0: a read of this effort ends with it, writing nothing
         self.save_now()

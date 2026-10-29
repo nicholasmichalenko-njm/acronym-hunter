@@ -74,7 +74,7 @@ w.changed(); w.save_now()
 # Effort home
 w.go("home"); app.processEvents()
 hp = w.home_page
-check("Effort home shows the due date and the countdown", "Due " in hp.due.text() and "Mountain" in hp.due.text(), hp.due.text())
+check("Effort home shows the due date and the countdown", "Due " in hp.due.text() and ("MST" in hp.due.text() or "MDT" in hp.due.text()), hp.due.text())
 check("the stage track: one box per stage", hp.track_row.count() == len(rec.stages))
 check("the current stage is past its planned end (days past plan)",
       any("2 days past plan" in l.text() for i in range(hp.track_row.count()) for l in hp.track_row.itemAt(i).widget().findChildren(QLabel)))
