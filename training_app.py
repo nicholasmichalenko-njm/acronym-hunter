@@ -426,6 +426,20 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] == "--selftest":     # same self-test as Stationkeeper, with training loaded
         eng.run_selftest(sys.argv[2:])
         sys.exit(0)
+    if "--trainer" in sys.argv:                # 2.72.0: the Trainer alone, opened from Stationkeeper Training (Qt)
+        app = TrainingApp()
+        app.withdraw()
+        app.open_trainer()
+
+        def watch():
+            w = getattr(app, "trainer_win", None)
+            if w is None or not w.winfo_exists():
+                app.destroy()
+            else:
+                app.after(800, watch)
+        app.after(1500, watch)
+        app.mainloop()
+        return
     try:
         TrainingApp().mainloop()
     except Exception:

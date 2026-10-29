@@ -30,13 +30,15 @@ $env:AH_CLASSIC = if ($Classic) { '1' } else { '' }
 if ($Classic) { $prefix = 'Stationkeeper_US_Classic' }
 $env:AH_APP = $App
 $exeName = if ($App -eq 'training') { 'StationkeeperTraining' } else { 'Stationkeeper' }
+$qtExe = if ($App -eq 'training') { 'StationkeeperTrainingQt' } else { 'StationkeeperQt' }        # 2.72.0
+$qtTest = if ($App -eq 'training') { 'qt_training_selftest.txt' } else { 'qt_selftest.txt' }
 if ($App -eq 'training') { $prefix = "${prefix}_Training" }
 
 function Test-PublicPackage([string]$dir) {
     # 1. Only these files may sit outside _internal
     $allowed = @("$exeName.exe", 'acronym_database.csv', 'README.txt', 'OVERVIEW.md', 'SECURITY.md', 'CHECKSUM.txt',
                  'config\app_settings.json', 'config\ocr_settings.json', 'config\ocr_corrections.csv', 'config\models\README.txt')
-    if ($App -eq 'user') { $allowed += 'StationkeeperQt.exe' }   # 2.59.0: the Qt edition, in the same folder
+    $allowed += "$qtExe.exe"                                     # 2.59.0 / 2.72.0: the Qt edition, in the same folder
     $root = (Resolve-Path $dir).Path
     $files = Get-ChildItem $root -Recurse -File | ForEach-Object { $_.FullName.Substring($root.Length + 1) }
     $outside = $files | Where-Object { $_ -notlike '_internal\*' }
@@ -88,11 +90,11 @@ New-Item -ItemType Directory -Force "$out\config\models" | Out-Null
 Copy-Item base\config\* "$out\config" -Recurse -Force
 Copy-Item README.txt, OVERVIEW.md, SECURITY.md $out -Force
 # 2.59.0: the Qt edition starts (window shown and closed at once; no effort opened)
-if (Test-Path "$out\StationkeeperQt.exe") {
-    $q = Start-Process -FilePath "$out\StationkeeperQt.exe" -ArgumentList '--selftest' -Wait -PassThru
-    $qt = Get-Content "$out\_local_sandbox\qt_selftest.txt" -ErrorAction SilentlyContinue
-    if ($q.ExitCode -ne 0 -or -not ($qt -match 'PASS')) { throw "QT SELFTEST FAILED: StationkeeperQt.exe did not start (exit $($q.ExitCode))" }
-    "Qt selftest: StationkeeperQt.exe starts"
+if (Test-Path "$out\$qtExe.exe") {
+    $q = Start-Process -FilePath "$out\$qtExe.exe" -ArgumentList '--selftest' -Wait -PassThru
+    $qt = Get-Content "$out\_local_sandbox\$qtTest" -ErrorAction SilentlyContinue
+    if ($q.ExitCode -ne 0 -or -not ($qt -match 'PASS')) { throw "QT SELFTEST FAILED: $qtExe.exe did not start (exit $($q.ExitCode)): $qt" }
+    "Qt selftest: $qtExe.exe starts ($qt)"
 }
 Remove-Item -Recurse -Force "$out\_local_sandbox", "$out\logs" -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
@@ -121,8 +123,8 @@ if ($LASTEXITCODE -ne 0) { throw "NETWORK AUDIT FAILED. See the list above." }
 $exeHash = (Get-FileHash "$out\$exeName.exe" -Algorithm SHA256).Hash
 "$exeName.exe  SHA256  $exeHash" | Out-File -Encoding ascii "$out\CHECKSUM.txt"
 $qtLine = $null
-if (Test-Path "$out\StationkeeperQt.exe") {
-    $qtLine = "StationkeeperQt.exe  SHA256  $((Get-FileHash "$out\StationkeeperQt.exe" -Algorithm SHA256).Hash)"
+if (Test-Path "$out\$qtExe.exe") {
+    $qtLine = "$qtExe.exe  SHA256  $((Get-FileHash "$out\$qtExe.exe" -Algorithm SHA256).Hash)"
     $qtLine | Out-File -Encoding ascii -Append "$out\CHECKSUM.txt"
 }
 Test-PublicPackage $out

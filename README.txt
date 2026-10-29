@@ -1,6 +1,19 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+STATIONKEEPER TRAINING (QT) (2.72.0)
+  - Stationkeeper_US_Training.zip now also holds StationkeeperTrainingQt.exe: the Training Studio in the Qt window,
+    next to StationkeeperTraining.exe. Same training data, config and Knowledge Packs.
+  - 1 Gather: import training data packs (.sktrain, older .zip) and add past compliance matrices.
+  - 2 Review: every corrected line with its picture; filter (taught, rejected, test set, from packs, saved here) and
+    search; Accept, Reject (never taught) and Fix the text (or double-click).
+  - 3 Train: Improve Reading runs in the background with its progress; the new reader is kept only if it reads the
+    held-out lines better. Put back the previous reader. Prepare the docTR Training Kit package. The Trainer (box text
+    in pictures) opens in the Training program's window.
+  - 4 Measure: the scorecard; an area that got worse is left out, and double-click leaves an area out or puts it back.
+  - 5 Build the pack: one .skknow file; load trained models, export a Knowledge Pack, undo the last knowledge change.
+    Knowledge Packs and training data go to the approved SharePoint folder only, never GitHub.
+
 OFFICE COPIES CLEAN UP AFTER THEMSELVES (2.71.0)
   - Page view makes a PDF copy of a Word, Excel or PowerPoint file through Office on this PC. When a copy takes too
     long, Stationkeeper now ends the hidden Office program that copy started (only that one: Office windows you

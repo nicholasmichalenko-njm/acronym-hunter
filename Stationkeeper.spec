@@ -72,7 +72,7 @@ def make_analysis(script, qt=False):
     pathex=[],
     binaries=binaries,
     datas=datas,
-    hiddenimports=hiddenimports + (['skqt', 'skqt.mainwin', 'skqt.readpage', 'skqt.assign', 'skqt.theme', 'skqt.design', 'skqt.structure', 'skqt.prove', 'structure_ops', 'skqt.matrixpage', 'skqt.setuppage', 'skqt.crosswalkpage', 'crosswalk', 'effortstate', 'skqt.homepage', 'skqt.dashpage', 'reviewpkt', 'skqt.recordpage', 'skqt.reviewpage', 'acrsession', 'skqt.acronympage', 'skqt.effortlistpage', 'docintake', 'skqt.custdocs', 'skqt.qapage', 'skqt.keywordspage', 'skqt.exportallpage', 'skqt.settingspage', 'outline_ops', 'structstart', 'capture', 'compliance_read',
+    hiddenimports=hiddenimports + (['skqt', 'skqt.mainwin', 'skqt.readpage', 'skqt.assign', 'skqt.theme', 'skqt.design', 'skqt.structure', 'skqt.prove', 'structure_ops', 'skqt.matrixpage', 'skqt.setuppage', 'skqt.crosswalkpage', 'crosswalk', 'effortstate', 'skqt.homepage', 'skqt.dashpage', 'reviewpkt', 'skqt.recordpage', 'skqt.reviewpage', 'acrsession', 'skqt.acronympage', 'skqt.effortlistpage', 'docintake', 'skqt.custdocs', 'skqt.qapage', 'skqt.keywordspage', 'skqt.exportallpage', 'skqt.settingspage', 'outline_ops', 'structstart', 'capture', 'skqt.trainingwin', 'compliance_read',
                                     'assign_ops'] if qt else []),
     hookspath=[],
     hooksconfig={},
@@ -100,9 +100,10 @@ def _keep(entry):
 a.datas = [e for e in a.datas if _keep(e)]
 a.binaries = [e for e in a.binaries if _keep(e)]
 # 2.59.0: Stationkeeper (Qt), the Qt edition, in the same folder (same config and effort files; its own temp folder)
-QT_APP = not TRAINING and os.environ.get('AH_QT', '1') == '1'
+# 2.72.0: Stationkeeper Training (Qt) beside Stationkeeper Training (the Training Studio in Qt)
+QT_APP = os.environ.get('AH_QT', '1') == '1'
 if QT_APP:
-    aq = make_analysis('skqt_main.py', qt=True)
+    aq = make_analysis('skqt_training.py' if TRAINING else 'skqt_main.py', qt=True)
     # No Qt network parts: QtNetwork and the plugins that need it (TLS back ends, network information) are left out.
     # The app imports none of them; tools\network_audit.py would fail the build on Qt6Network.dll.
     def _keep_qt(entry):
@@ -136,8 +137,9 @@ exe = EXE(
 extra = []
 if QT_APP:
     pyzq = PYZ(aq.pure)
-    exeq = EXE(pyzq, aq.scripts, [], exclude_binaries=True, name='StationkeeperQt', icon='assets/scanner.ico',
-               version='version_info.txt', debug=False, bootloader_ignore_signals=False, strip=False, upx=False,
+    exeq = EXE(pyzq, aq.scripts, [], exclude_binaries=True, name='StationkeeperTrainingQt' if TRAINING else 'StationkeeperQt',
+               icon='assets/trainer.ico' if TRAINING else 'assets/scanner.ico',
+               version='version_info_trainer.txt' if TRAINING else 'version_info.txt', debug=False, bootloader_ignore_signals=False, strip=False, upx=False,
                console=False, disable_windowed_traceback=False, argv_emulation=False, target_arch=None,
                codesign_identity=None, entitlements_file=None)
     extra = [exeq, aq.binaries, aq.datas]
