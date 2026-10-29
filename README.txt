@@ -1,6 +1,37 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+BRANDED EFFORT HOME AND THE CALENDAR AS A FILE (2.88.0)
+  - Effort Home opens with the effort's banner: the effort's picture (click the spot to add a mission patch, logo or
+    cover image), its name, client and solicitation, the proposal manager, its sensitivity, and the effort's own spots
+    (capture manager, contract vehicle, anything: Edit details...). On the right, the due date with a live countdown in
+    days, hours, minutes and seconds; it turns amber inside ten days and red inside three.
+  - What travels with the effort and what is yours: the banner's details, the picture and the calendar are kept in the
+    effort, so everyone who opens it sees the same and packages and backups carry them. The layout of Effort Home is
+    yours alone, kept in your settings on this PC.
+  - Sensitivity: Not CUI, CUI, Proprietary, or the team's own words. CUI and every marking other than Not CUI show in a
+    strip across the top of every page while the effort is open. Stationkeeper marks the screen; it does not decide or
+    certify what is CUI.
+  - Branding: Settings > Branding holds up to three company logos (a prime and its teammates), in order, shown on a
+    light plate at the top of the menu on every page. The Stationkeeper mark and version sit at the foot of the menu.
+    The menu, its groups and the page names are in Title Case (Effort Home, Effort Record, Lists to Submit).
+  - Customize Home: My role picks a starting layout. Proposal Manager: stage, gate goals, questions, tasks, calendar.
+    Production: deliverables, calendar, tasks. Author: My work, tasks, questions, calendar. Reviewer: stage, calendar,
+    questions. Capture: stage, customer information, questions. Then tick what shows and set the order; half-width
+    sections sit side by side. I am: your name, for My work and the tasks filter.
+  - My work (for an author): the compliance requirements you answer, the ones a customer version changed that wait for
+    you to confirm (first), your open tasks and the questions assigned to you. Open takes you to the requirement.
+  - Calendar > Template...: an Excel workbook with Date, Start time, End time, Time zone, Kind, What, Owner, Stage,
+    Location and Details, a Kind drop-down and a sheet that explains each column.
+  - Calendar > Import... (.xlsx, .csv or an Outlook .ics): a preview lists every row and what it will do, and nothing
+    changes until Apply. Proposal due sets the effort's due date and time to the minute, with its time zone. Stage
+    start and Stage end set the planned dates of the stage named in Stage. Task adds a task with its owner and due date.
+    Questions due, Review, Meeting, Orals, Milestone and Other go on the calendar with their times, place and details;
+    pick a day to see them (Remove takes one off). Importing again updates what matches instead of adding copies, and
+    Undo import puts the calendar back as it was before the last import.
+  - Calendar > Export...: every date the effort has, with its details, to Excel in the template's columns (it imports
+    back) or to an Outlook calendar file (.ics).
+
 DELIVERABLES BOARD (2.87.0)
   - Deliverables moved to the EFFORT group, right after Effort home. It opens as a board: one card per deliverable,
     the ones that need action first (no owner, over the page limit), then the ones that need attention, then the ones

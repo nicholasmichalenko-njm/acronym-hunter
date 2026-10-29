@@ -20,6 +20,15 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "2.88.0": ["Effort Home opens with the effort's banner: its picture, name, client, solicitation, proposal manager, "
+               "sensitivity and your own spots, with the due date and a live countdown. They travel with the effort.",
+               "A CUI or proprietary effort shows its marking in a strip across the top of every page.",
+               "Your company logos sit at the top of the menu (Settings > Branding); the Stationkeeper mark is at its foot. "
+               "The menu and page names are in Title Case.",
+               "Customize Home: pick your role (Proposal Manager, Production, Author, Reviewer, Capture) and show, hide and "
+               "order the sections. It is yours alone, on this PC. Authors get My work.",
+               "Calendar: Template... for people to fill in, Import... with a preview (the due date to the minute, stage "
+               "dates, tasks, reviews and meetings), Undo import, and Export... to Excel or Outlook (.ics)."],
     "2.87.0": ["Deliverables moved up with the effort, right after Effort home, and opens as a board: one card per "
                "deliverable, the ones that need action first.",
                "Each card shows its owner, status, pages against the limit, the volume it holds in the response structure, "

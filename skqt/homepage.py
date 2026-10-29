@@ -206,6 +206,12 @@ class HomePage(QWidget):
                     x = lay.takeAt(0)
                     if x.widget() is not None:
                         x.widget().setParent(None)
+                    elif x.layout() is not None:
+                        while x.layout().count():
+                            y = x.layout().takeAt(0)
+                            if y.widget() is not None:
+                                y.widget().setParent(None)
+                        x.layout().deleteLater()
                 lay.deleteLater()
             elif it.widget() is not None:
                 it.widget().setParent(None)
@@ -217,8 +223,10 @@ class HomePage(QWidget):
                 self.body.addWidget(self.cards[row[0]])
             else:
                 hl = QHBoxLayout(); hl.setSpacing(D.SPACE["m"])
-                for k in row:
-                    hl.addWidget(self.cards[k], 1, Qt.AlignTop)
+                for k in row:                                     # a column each: the card at its full height, then space
+                    col = QVBoxLayout(); col.setSpacing(0)
+                    col.addWidget(self.cards[k]); col.addStretch(1)
+                    hl.addLayout(col, 1)
                 if len(row) == 1:
                     hl.addStretch(1)
                 self.body.addLayout(hl)
