@@ -23,7 +23,7 @@ WHY_NO_ADMIN = (
     "carry the publisher's signature.\n\n"
     "Running does not mean approved. It runs because this PC does not block programs in your own folders "
     "(AppLocker or WDAC); IT can turn that on at any time, and company policy may require approval for any program. "
-    "Give IT security SECURITY.md (in this folder), the SBOM and the checksums. Because the program folder is yours, "
+    "Give IT security SECURITY.md (in About Stationkeeper), the SBOM and the checksums. Because the program folder is yours, "
     "other software running as you could change its files: Check program files compares every file with this "
     "version's list.")
 

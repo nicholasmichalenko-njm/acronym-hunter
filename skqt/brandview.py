@@ -98,6 +98,8 @@ class EffortBanner(QFrame):
         self.edit_btn = D.button("Edit details...", None, lambda: self.edit_dialog(), "Proposal manager, client, sensitivity and "
                                  "the effort's own spots. They travel with the effort.")
         acts.addWidget(self.edit_btn)
+        acts.addWidget(D.button("Open effort folder", None, lambda: self.host.open_effort_folder(),
+                                "The effort's folder in File Explorer: customer documents, volumes, Response Setup, exports"))
         self.page_deliv = D.button("", "ghost", lambda: self.host.go("deliverables"), "The deliverables board")
         acts.addWidget(self.page_deliv)
         acts.addStretch(1)

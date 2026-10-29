@@ -6,6 +6,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QComboBox, QFileDialog, QHBoxLayout, QHeaderView, QSplitter, QTableWidget, QTableWidgetItem,
                                QVBoxLayout, QWidget)
 import diag
+import effortfolders as EF
 import crosswalk as X
 from . import design as D
 
@@ -142,7 +143,7 @@ class CrosswalkPage(QWidget):
             return None
         if path is None:
             name = (self.host.effort_name or R.M.name).replace(" ", "_")
-            path, _ = QFileDialog.getSaveFileName(self, "Export the L/M crosswalk", os.path.join(os.path.dirname(R.M.path),
+            path, _ = QFileDialog.getSaveFileName(self, "Export the L/M crosswalk", os.path.join(EF.out(self.host.effort_path) or os.path.dirname(R.M.path),
                                                                                                 f"{name}_LM_Crosswalk.xlsx"), "Excel (*.xlsx)")
             if not path:
                 return None

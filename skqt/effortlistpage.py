@@ -6,6 +6,7 @@ import os
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QHeaderView, QInputDialog, QLineEdit,
                                QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 import diag
+import effortfolders as EF
 import effort as E
 from . import design as D
 from .adaptive import FlowLayout
@@ -187,7 +188,7 @@ class EffortListPage(QWidget):
         if s is None or s.effort is None:
             return None
         if folder is None:
-            folder = QFileDialog.getExistingDirectory(self, "Folder for the acronym lists", os.path.dirname(s.effort.path))
+            folder = QFileDialog.getExistingDirectory(self, "Folder for the acronym lists", EF.out(s.effort.path))
             if not folder:
                 return None
         try:

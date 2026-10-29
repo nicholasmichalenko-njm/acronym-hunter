@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "2.90.0": ["The program folder holds Stationkeeper.exe, _internal and About Stationkeeper (the read-me files). No "
+               "empty database or settings ship; Stationkeeper makes them in Stationkeeper Data.",
+               "A new effort gets Customer Documents, Volumes, Response Setup and Exports folders, and saves start there.",
+               "Open effort folder (Effort Home, Settings) shows the effort's folder in File Explorer."],
     "2.89.0": ["Team defaults (Settings): one file sets up every PC the same way: the author list, matrix design, banned "
                "words, default gate goals, company logos, Effort Home layouts by role, sensitivity markings and team topics.",
                "Installing adds what a PC lacks and keeps its own. Parts the team locks replace each PC's own and stay as the "

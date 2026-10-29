@@ -6,6 +6,7 @@ import datetime, os
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 import diag
+import effortfolders as EF
 import compliance as C
 import setupdoc as SD
 from . import design as D
@@ -116,7 +117,7 @@ class SetupPage(QWidget):
         if R is None or not R.M.outline:
             return None
         if folder is None:
-            folder = QFileDialog.getExistingDirectory(self, "Folder for the setup documents", os.path.dirname(R.M.path))
+            folder = QFileDialog.getExistingDirectory(self, "Folder for the setup documents", EF.out(self.host.effort_path, kind="setup") or os.path.dirname(R.M.path))
             if not folder:
                 return None
         try:
@@ -146,7 +147,7 @@ class SetupPage(QWidget):
         if path is None:
             stem = os.path.splitext(os.path.basename(R.M.path))[0]
             path, _ = QFileDialog.getSaveFileName(self, "Setup changes", os.path.join(
-                os.path.dirname(R.M.path), f"{stem}_Setup_changes_{datetime.datetime.now():%Y-%m-%d_%H%M}.docx"), "Word (*.docx)")
+                EF.out(self.host.effort_path, kind="setup") or os.path.dirname(R.M.path), f"{stem}_Setup_changes_{datetime.datetime.now():%Y-%m-%d_%H%M}.docx"), "Word (*.docx)")
             if not path:
                 return None
         SD.export_changes(R.M, path)

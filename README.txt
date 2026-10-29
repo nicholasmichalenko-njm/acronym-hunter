@@ -1,6 +1,45 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+A TIDY PROGRAM FOLDER AND AN EFFORT FOLDER YOU CAN FIND YOUR WAY AROUND (2.90.0)
+  - The download holds the program and one folder of read-me files, nothing else:
+        Stationkeeper\
+          _internal\               the program itself (leave it as it is)
+          About Stationkeeper\     this README, the overview, the security notes and the exe's checksum
+          Stationkeeper.exe        double-click to start
+    The empty acronym database and the default settings no longer ship: Stationkeeper makes the master database the
+    first time it starts, in Stationkeeper Data, and has its settings built in. While it runs, the program folder also
+    holds logs\ and _local_sandbox\ (its own working files), and _update\ after an update pack (for Undo).
+  - Why _internal\ stays as it is: copies from 2.76.0 on check that an update pack only changes the exe, _internal\ and
+    the read-me files, so renaming it would stop update packs working, and a program that hides its own folders is the
+    kind of thing antivirus software flags.
+  - Copies brought up to date by an update pack get the same layout: the read-me files now live in the program
+    (_internal\docs), the update takes the old ones off the top of the folder, and Stationkeeper fills About
+    Stationkeeper from them each time it starts. A copy that still holds acronym_database.csv or config\ in its program
+    folder (every download before 2.90.0 shipped them) has them moved into Stationkeeper Data\From the old program folder\; the
+    copies Stationkeeper uses have been in the data folder since 2.80.0. Nothing is deleted. A program folder IT
+    installed in Program Files (where the data lives in the program folder) is left exactly as it is.
+  - Your work sits beside the program folder:
+        Stationkeeper Data\
+          Efforts\
+            Kestrel\
+              Customer Documents\      the RFP and attachments as the customer sent them
+              Volumes\                 your Word volumes
+              Response Setup\          the documents writers start from
+              Exports\                 acronym lists, status reports, the calendar, reviews, Export all
+              Kestrel_Compliance_Matrix.xlsx
+              Kestrel_Effort_List.xlsx
+              Kestrel_Effort_List - app data\   the app's working files for the effort (a note inside says not to
+                                                 edit them; packages and backups carry it)
+          acronym_database.csv          your master acronym database
+          READ ME.txt                   one line on each item
+          config\, feedback\, training_data\   settings, the author list and what you send to improve the reader
+  - New effort makes the four folders and uses Customer Documents and Volumes as the effort's folders unless you pick
+    others. Every save still asks where to put the file; the dialogs start in the effort's Exports folder (Response
+    Setup in its own). An older effort keeps its files where they are; a folder appears the first time something is
+    saved into it.
+  - Open effort folder (Effort Home and Settings > Efforts) opens the effort's folder in File Explorer.
+
 TEAM DEFAULTS (2.89.0)
   - Settings > Team defaults: one file (.skteam) sets up every PC on the team the same way. Make a team pack ticks
     what it carries: the author list, the team matrix design, banned words and phrases, default gate goals, company
@@ -415,8 +454,9 @@ ONE PROGRAM (from v1.7.0)
     that has no network permission. No Chinese-origin code or models. No GPU, no internet, no separate kit.
   - From 2.15.0 the Trainer and Improve Reading live in a second program, Stationkeeper Training (see TRAINING IS
     ITS OWN PROGRAM at the end). Stationkeeper only saves corrections and sends them to the training team.
-  - To give colleagues a copy that saves no corrections: set "allow_training": false in
-    config\app_settings.json before sharing. Nothing gets saved to training_data\ then.
+  - To give colleagues a copy that saves no corrections: put config\app_settings.json in the program folder before
+    sharing, holding {"allow_training": false} (from 2.90.0 the download ships no config folder; the first start copies
+    it into Stationkeeper Data). Nothing gets saved to training_data\ then.
   Older versions: v1.6.0 (two packages), v1.5.1 (RapidOCR + PaddleOCR models from Baidu).
 
 SECOND READER: docTR (from v2.1.0)
@@ -707,7 +747,7 @@ DATABASE FORMAT (acronym_database.csv)
   symbols into "?". The app also reads "Unicode Text" (UTF-16) files, and re-saves them as UTF-8.
 
 VERIFY YOUR COPY (optional)
-  CHECKSUM.txt holds the exe fingerprint. In PowerShell:
+  About Stationkeeper\CHECKSUM.txt holds the exe fingerprint. In PowerShell:
     Get-FileHash .\Stationkeeper.exe
   The Hash must match CHECKSUM.txt and the value the sender gave you.
   The app is not code-signed. Right-click > Properties > Details shows the publisher and version.

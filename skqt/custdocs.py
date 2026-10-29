@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, 
                                QHeaderView, QInputDialog, QLabel, QLineEdit, QScrollArea, QSplitter, QTableWidget, QTableWidgetItem,
                                QTextBrowser, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 import diag
+import effortfolders as EF
 import docintake as DI
 import docversions as DV
 import effortrec as R
@@ -640,8 +641,8 @@ class RequirementsPage(QWidget):
         if self.ctx is None:
             return None
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Export the submission requirements", os.path.join(
-                os.path.dirname(self.host.effort_path), f"{self.host.effort_name}_Submission_Requirements.xlsx".replace(" ", "_")), "Excel (*.xlsx)")
+            path, _ = QFileDialog.getSaveFileName(self, "Export the submission requirements", EF.out(
+                self.host.effort_path, f"{self.host.effort_name}_Submission_Requirements.xlsx".replace(" ", "_")), "Excel (*.xlsx)")
             if not path:
                 return None
         try:
@@ -932,7 +933,7 @@ class ComparePage(QWidget):
         if d is None or va is None or va is vb:
             return None
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Redline", f"{d['name']}_{va['label']}_to_{vb['label']}_Redline.docx".replace(" ", "_"), "Word (*.docx)")
+            path, _ = QFileDialog.getSaveFileName(self, "Redline", EF.out(self.host.effort_path, f"{d['name']}_{va['label']}_to_{vb['label']}_Redline.docx".replace(" ", "_")), "Word (*.docx)")
             if not path:
                 return None
         DV.export_redline(path, d["name"], va, vb, self.rows, only_changes=self.only.isChecked())
@@ -944,7 +945,7 @@ class ComparePage(QWidget):
         if d is None or va is None or va is vb:
             return None
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Change list", f"{d['name']}_{va['label']}_to_{vb['label']}_Changes.xlsx".replace(" ", "_"), "Excel (*.xlsx)")
+            path, _ = QFileDialog.getSaveFileName(self, "Change list", EF.out(self.host.effort_path, f"{d['name']}_{va['label']}_to_{vb['label']}_Changes.xlsx".replace(" ", "_")), "Excel (*.xlsx)")
             if not path:
                 return None
         DV.export_list(path, self.ctx.lib, doc=d, compares=[(d, va, vb, self.rows)])
@@ -1156,7 +1157,7 @@ class ImpactPage(QWidget):
             return None
         if path is None:
             path, _ = QFileDialog.getSaveFileName(self, "Save the author briefs",
-                                                  f"{self.r['doc']}_{self.r['version']}_Author_Briefs.docx".replace(" ", "_"), "Word (*.docx)")
+                                                  EF.out(self.host.effort_path, f"{self.r['doc']}_{self.r['version']}_Author_Briefs.docx".replace(" ", "_")), "Word (*.docx)")
             if not path:
                 return None
         BR.export_word(path, self.r, bs, self.due_text(), self.host.effort_name)
@@ -1182,7 +1183,7 @@ class ImpactPage(QWidget):
         if self.r is None:
             return None
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Impact review", f"{self.r['doc']}_{self.r['version']}_Impact.docx".replace(" ", "_"), "Word (*.docx)")
+            path, _ = QFileDialog.getSaveFileName(self, "Impact review", EF.out(self.host.effort_path, f"{self.r['doc']}_{self.r['version']}_Impact.docx".replace(" ", "_")), "Word (*.docx)")
             if not path:
                 return None
         IM.export_word(path, self.r, self.host.effort_name)
@@ -1417,7 +1418,7 @@ class DeliverablesPage(QWidget):
         if c is None:
             return None
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Deliverables", os.path.join(os.path.dirname(self.host.effort_path),
+            path, _ = QFileDialog.getSaveFileName(self, "Deliverables", EF.out(self.host.effort_path,
                                                   f"{self.host.effort_name}_Deliverables_{datetime.date.today().isoformat()}.xlsx".replace(" ", "_")), "Excel (*.xlsx)")
             if not path:
                 return None

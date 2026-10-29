@@ -13,7 +13,9 @@
   during a full scan and while idle.
 - **Everything the app creates stays in its two folders.** From 2.80.0 the program folder holds the program, logs and
   temporary files, and "Stationkeeper Data" beside it holds settings, the database, knowledge and training lines
-  (section 13). Effort files go where the person creates them (by default in Stationkeeper Data\Efforts).
+  (section 13). Effort files go where the person creates them (by default in Stationkeeper Data\Efforts). From 2.90.0
+  the download ships no data and no config: the program folder is `Stationkeeper.exe`, `_internal\` and
+  `About Stationkeeper\` (this file, the README, the overview and `CHECKSUM.txt`).
 - **Delete the two folders and the app's data is gone.** No installer, no services, no files in AppData or
   Program Files, no registry keys created by the app.
 - **Your documents are never changed.** Files are opened read-only. Images and pages being OCR'd are processed

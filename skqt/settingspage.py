@@ -29,7 +29,9 @@ class SettingsPage(QWidget):
         self.mode = ModeCard(host)
         v.addWidget(self.mode)
         self.eff = D.Card("Efforts", "One effort per proposal: its acronym list workbook, records and compliance files.",
-                          actions=[D.button("Import effort package...", None, lambda: self.host.import_package()),
+                          actions=[D.button("Open effort folder", None, lambda: self.host.open_effort_folder(),
+                                            "The open effort's folder in File Explorer"),
+                                   D.button("Import effort package...", None, lambda: self.host.import_package()),
                                    D.button("New effort...", "primary", lambda: self.new_effort())])
         f = QFormLayout(); self.eff.body.addLayout(f)
         self.cust = QLineEdit(); self.vols = QLineEdit()
@@ -191,6 +193,8 @@ class SettingsPage(QWidget):
             form.addRow("", D.label("Efforts work best on this PC. Share them through packages and backups in the team "
                                     "folder: a live effort in a OneDrive folder can collide with the sync.", "muted"))
             form.addRow("First use", rule)
+            cust.setPlaceholderText("Blank: the effort's own Customer Documents folder")
+            vols.setPlaceholderText("Blank: the effort's own Volumes folder")
             form.addRow("Customer documents folder", _folder_row(cust, dlg, "Customer documents folder"))
             form.addRow("Volumes folder", _folder_row(vols, dlg, "Volumes folder"))
             form.addRow("Client (short name)", client); form.addRow("Solicitation number", sol); form.addRow("Internal number", internal)
@@ -220,6 +224,11 @@ class SettingsPage(QWidget):
             diag.swallowed()
             h.status(f"Could not create the list: {type(ex).__name__}")
             return None
+        import effortfolders as EF                       # 2.90.0: Customer Documents, Volumes, Response Setup, Exports
+        EF.create_all(path)
+        values = dict(values)
+        values["customer_dir"] = values.get("customer_dir") or EF.folder(path, "customer")
+        values["volumes_dir"] = values.get("volumes_dir") or EF.folder(path, "volumes")
         h.efforts.put(name, path=path, first_use=values.get("first_use", "volume"),
                       **{k: values.get(k, "") for k in ("customer_dir", "volumes_dir", "client", "solicitation", "internal_no")})
         diag.activity("qt_effort_created")

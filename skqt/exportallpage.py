@@ -5,6 +5,7 @@ Nothing leaves the PC."""
 import datetime, os
 from PySide6.QtWidgets import QCheckBox, QFileDialog, QHBoxLayout, QVBoxLayout, QWidget
 import diag
+import effortfolders as EF
 import exportall_ui as XA
 from . import design as D
 
@@ -73,7 +74,7 @@ class ExportAllPage(QWidget):
         if h.ws is None:
             return None
         if folder is None:
-            folder = QFileDialog.getExistingDirectory(self, "Folder for the export", os.path.dirname(h.effort_path))
+            folder = QFileDialog.getExistingDirectory(self, "Folder for the export", EF.out(h.effort_path))
             if not folder:
                 return None
         av = self.available()

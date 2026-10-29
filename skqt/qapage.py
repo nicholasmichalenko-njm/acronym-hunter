@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (QFileDialog, QGridLayout, QHBoxLayout, QHeaderView, QListWidget, QListWidgetItem, QTableWidget, QTableWidgetItem, QTabWidget,
                                QVBoxLayout, QWidget)
 import diag
+import effortfolders as EF
 import app_gui as A
 import volcheck as V
 import volcheck_ui as VU
@@ -319,7 +320,7 @@ class QAPage(QWidget):
         if not r:
             return None
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Save the QA/QC report", os.path.join(os.path.dirname(self.host.effort_path),
+            path, _ = QFileDialog.getSaveFileName(self, "Save the QA/QC report", EF.out(self.host.effort_path,
                                                   f"{self.host.effort_name}_QAQC_Report.xlsx".replace(" ", "_")), "Excel (*.xlsx)")
             if not path:
                 return None
@@ -338,7 +339,7 @@ class QAPage(QWidget):
             return None
         if folder is None:
             folder = QFileDialog.getExistingDirectory(self, "Folder for the acronym lists (one Word file per volume)",
-                                                      os.path.dirname(self.host.effort_path))
+                                                      EF.out(self.host.effort_path))
             if not folder:
                 return None
         try:

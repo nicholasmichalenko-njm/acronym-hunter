@@ -51,6 +51,12 @@ try:
     DATA_MOVED = _DH.ensure(DATA_DIR, BASE_DIR)
 except OSError:
     DATA_DIR, DATA_WHY, DATA_MOVED = BASE_DIR, "program folder", []
+if _DH.frozen():                  # 2.90.0: the program folder holds the program; read-me files in About Stationkeeper
+    _DH.ensure_about(BASE_DIR)
+    try:
+        _DH.tidy_program_folder(BASE_DIR, DATA_DIR)
+    except Exception:
+        pass
 
 def cleanup_sandbox():
     if os.path.exists(SANDBOX_TEMP):
@@ -2402,7 +2408,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.89.0"            # keep in step with version_info.txt
+APP_VERSION = "2.90.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"

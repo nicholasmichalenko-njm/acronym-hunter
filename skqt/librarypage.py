@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogBut
                                QHeaderView, QInputDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem, QScrollArea,
                                QSplitter, QTableWidget, QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 import diag
+import effortfolders as EF
 import docintake as DI
 import docversions as DV
 from . import design as D
@@ -807,7 +808,7 @@ class TakenDialog(QDialog):
 
     def export(self, path=None):
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Export what was taken from the library", "Taken_from_the_library.xlsx", "Excel (*.xlsx)")
+            path, _ = QFileDialog.getSaveFileName(self, "Export what was taken from the library", EF.out(self.host.effort_path, "Taken_from_the_library.xlsx"), "Excel (*.xlsx)")
             if not path:
                 return None
         try:

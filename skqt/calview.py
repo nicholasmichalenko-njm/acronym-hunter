@@ -6,6 +6,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QFileDialog, QHBoxLayout, QMenu, QTableWidget, QTableWidgetItem,
                                QVBoxLayout)
 import diag
+import effortfolders as EF
 import effortcal as EC
 import effortrec as R
 from . import design as D
@@ -68,7 +69,7 @@ class CalendarFiles:
     def template(self, path=None):
         h = self.host
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self.page, "Calendar template", f"{h.effort_name or 'Effort'}_Calendar_Template.xlsx",
+            path, _ = QFileDialog.getSaveFileName(self.page, "Calendar template", EF.out(h.effort_path, f"{h.effort_name or 'Effort'}_Calendar_Template.xlsx"),
                                                   "Excel (*.xlsx)")
         if not path:
             return ""
@@ -132,7 +133,7 @@ class CalendarFiles:
             return ""
         ext = ".xlsx" if kind == "xlsx" else ".ics"
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self.page, "Export the calendar", f"{h.effort_name}_Calendar{ext}",
+            path, _ = QFileDialog.getSaveFileName(self.page, "Export the calendar", EF.out(h.effort_path, f"{h.effort_name}_Calendar{ext}"),
                                                   "Excel (*.xlsx)" if kind == "xlsx" else "Calendar (*.ics)")
         if not path:
             return ""

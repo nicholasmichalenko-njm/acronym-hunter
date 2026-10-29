@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QHeaderView, QLineEdit, QPlainTextEdit, QScrollArea,
                                QSplitter, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 import diag
+import effortfolders as EF
 import app_gui as A
 import acrsession as S
 from . import design as D
@@ -479,7 +480,7 @@ class AcronymPage(QWidget):
             return None
         if path is None:
             name = f"{self.host.effort_name}_Acronym_Report_{datetime.date.today().isoformat()}.csv".replace(" ", "_")
-            path, _ = QFileDialog.getSaveFileName(self, "Export the acronym report", os.path.join(os.path.dirname(self.host.effort_path), name),
+            path, _ = QFileDialog.getSaveFileName(self, "Export the acronym report", EF.out(self.host.effort_path, name),
                                                   "CSV report (*.csv)")
             if not path:
                 return None

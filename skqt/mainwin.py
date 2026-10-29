@@ -265,6 +265,11 @@ class MainWindow(QMainWindow):
             self.fill_efforts()
             return False
         self.ws, self.effort_name, self.effort_path = ws, name, info["path"]
+        try:                                       # 2.90.0: a note in the effort's app data folder: the app's files
+            import effortfolders as EF
+            EF.note_app_data(ws.root)
+        except Exception:
+            diag.swallowed()
         if self.efforts.current != name:          # 2.84.0: the next start (after an update too) reopens this effort
             try:
                 self.efforts.current = name
@@ -305,6 +310,20 @@ class MainWindow(QMainWindow):
         self.apply_marking()
         self.title()
         return True
+
+    def open_effort_folder(self, kind=None, open_it=True):
+        """2.90.0: the effort's folder (or one of its folders) in File Explorer. Returns the folder."""
+        import effortfolders as EF
+        if self.ws is None:
+            self.status("Open an effort first.")
+            return ""
+        d = EF.folder(self.effort_path, kind) if kind else EF.root(self.effort_path)
+        if open_it and not os.environ.get("AH_TEST"):
+            from PySide6.QtCore import QUrl
+            from PySide6.QtGui import QDesktopServices
+            QDesktopServices.openUrl(QUrl.fromLocalFile(d))
+        diag.activity("qt_effort_folder_opened")
+        return d
 
     def apply_marking(self):
         """2.88.0: the strip across every page for an effort marked CUI, Proprietary or the team's own marking."""

@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QComboBox, QFileDialog, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLineEdit, QScrollArea,
                                QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 import diag
+import effortfolders as EF
 import effortrec as R
 import reviewpkt as RP
 from . import design as D
@@ -122,7 +123,7 @@ class ReviewPage(QWidget):
         stage = self.stage.currentText() or "Review"
         if path is None:
             fname = f"{h.effort_name}_{stage}_Review_Packet_{datetime.date.today().isoformat()}.docx".replace(" ", "_")
-            path, _ = QFileDialog.getSaveFileName(self, "Save the review packet", os.path.join(os.path.dirname(h.review.M.path), fname),
+            path, _ = QFileDialog.getSaveFileName(self, "Save the review packet", EF.out(h.effort_path, fname),
                                                   "Word (*.docx)")
             if not path:
                 return None

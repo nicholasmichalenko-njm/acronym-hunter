@@ -9,6 +9,7 @@ from PySide6.QtGui import QColor, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QHeaderView, QInputDialog, QLineEdit,
                                QListWidget, QListWidgetItem, QSplitter, QTableView, QVBoxLayout, QWidget, QAbstractItemView)
 import diag
+import effortfolders as EF
 import matrixdesign as MD
 from . import design as D
 
@@ -224,7 +225,7 @@ class MatrixPage(QWidget):
         if path is None:
             stem = self._effort_name().replace(" ", "_")
             path, _ = QFileDialog.getSaveFileName(self, "Export the compliance matrix", os.path.join(
-                os.path.dirname(R.M.path), f"{stem}_Compliance_Matrix_{datetime.date.today():%Y-%m-%d}.xlsx"), "Excel (*.xlsx)")
+                EF.out(self.host.effort_path) or os.path.dirname(R.M.path), f"{stem}_Compliance_Matrix_{datetime.date.today():%Y-%m-%d}.xlsx"), "Excel (*.xlsx)")
             if not path:
                 return None
         try:
@@ -243,7 +244,7 @@ class MatrixPage(QWidget):
         if R is None:
             return None
         if folder is None:
-            folder = QFileDialog.getExistingDirectory(self, "Folder for the compliance package", os.path.dirname(R.M.path))
+            folder = QFileDialog.getExistingDirectory(self, "Folder for the compliance package", EF.out(self.host.effort_path) or os.path.dirname(R.M.path))
             if not folder:
                 return None
         try:

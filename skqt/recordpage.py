@@ -7,6 +7,7 @@ from PySide6.QtCore import QDate, Qt, QTime
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDateEdit, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QHeaderView,
                                QDialog, QDialogButtonBox, QLineEdit, QListWidget, QListWidgetItem, QMessageBox, QScrollArea, QTableWidget, QTableWidgetItem, QTimeEdit, QVBoxLayout, QWidget)
 import diag
+import effortfolders as EF
 import effortrec as R
 import effortstate as ES
 from . import design as D
@@ -346,7 +347,7 @@ class RecordPage(QWidget):
             kind = "Effort_Summary" if final else "Effort_Status"
             fname = f"{h.effort_name}_{kind}_{datetime.date.today().isoformat()}.docx".replace(" ", "_")
             path, _ = QFileDialog.getSaveFileName(self, "Save the effort summary" if final else "Save the effort status",
-                                                  os.path.join(os.path.dirname(h.effort_path), fname), "Word (*.docx)")
+                                                  EF.out(h.effort_path, fname), "Word (*.docx)")
             if not path:
                 return None
         st = ES.State(h.ws, h.effort_path, h.review.M if h.review is not None else None)

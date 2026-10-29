@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QButtonGroup, QFileDialog, QHBoxLayout, QHeaderView, QRadioButton, QTableWidget, QTableWidgetItem,
                                QTabWidget, QVBoxLayout, QWidget)
 import diag
+import effortfolders as EF
 import volcheck as V
 from . import design as D
 
@@ -157,7 +158,7 @@ class ListsPage(QWidget):
         if not r:
             return None
         if folder is None:
-            folder = QFileDialog.getExistingDirectory(self, "Folder for the acronym lists", os.path.dirname(self.host.effort_path))
+            folder = QFileDialog.getExistingDirectory(self, "Folder for the acronym lists", EF.out(self.host.effort_path))
             if not folder:
                 return None
         import re
@@ -181,7 +182,7 @@ class ListsPage(QWidget):
         if not r:
             return None
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Acronym lists", "Acronym_Lists.xlsx", "Excel (*.xlsx)")
+            path, _ = QFileDialog.getSaveFileName(self, "Acronym lists", EF.out(self.host.effort_path, "Acronym_Lists.xlsx"), "Excel (*.xlsx)")
             if not path:
                 return None
         import openpyxl

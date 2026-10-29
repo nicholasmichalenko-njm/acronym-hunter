@@ -37,17 +37,21 @@ if ($App -eq 'training') { $prefix = "${prefix}_Training" }
 
 function Test-PublicPackage([string]$dir) {
     # 1. Only these files may sit outside _internal
-    $allowed = @("$exeName.exe", 'acronym_database.csv', 'README.txt', 'OVERVIEW.md', 'SECURITY.md', 'CHECKSUM.txt',
-                 'config\app_settings.json', 'config\ocr_settings.json', 'config\ocr_corrections.csv', 'config\models\README.txt')
+    # 2.90.0: the program, its read-me folder and nothing else (no data, no config: the app makes those in Stationkeeper Data)
+    $allowed = @("$exeName.exe", 'About Stationkeeper\README.txt', 'About Stationkeeper\OVERVIEW.md', 'About Stationkeeper\SECURITY.md',
+                 'About Stationkeeper\CHECKSUM.txt')
     $root = (Resolve-Path $dir).Path
     $files = Get-ChildItem $root -Recurse -File | ForEach-Object { $_.FullName.Substring($root.Length + 1) }
     $outside = $files | Where-Object { $_ -notlike '_internal\*' }
     $extra = $outside | Where-Object { $allowed -notcontains $_ }
     if ($extra) { throw "LEAK CHECK FAILED: unexpected file(s) in public package: $($extra -join ', ')" }
-    # 2. Data files must be byte-identical to base\
-    foreach ($f in 'acronym_database.csv', 'config\app_settings.json', 'config\ocr_settings.json', 'config\ocr_corrections.csv', 'config\models\README.txt') {
-        if ((Get-FileHash "$root\$f").Hash -ne (Get-FileHash "base\$f").Hash) { throw "LEAK CHECK FAILED: $f differs from base\$f" }
+    # 2. The read-me files are this project's own, byte for byte (in the program and in About Stationkeeper)
+    foreach ($f in 'README.txt', 'OVERVIEW.md', 'SECURITY.md') {
+        foreach ($c in "_internal\docs\$f", "About Stationkeeper\$f") {
+            if ((Get-FileHash "$root\$c").Hash -ne (Get-FileHash $f).Hash) { throw "LEAK CHECK FAILED: $c differs from $f" }
+        }
     }
+    if (Test-Path "$root\config") { throw "LEAK CHECK FAILED: a config folder in the public package" }
     # 3. No model files except the public ones bundled with RapidOCR; no working data anywhere
     if ($Edition -eq 'us') {
         # US edition: no Chinese-origin OCR code or models; Google's public English model; and only the two docTR
@@ -85,10 +89,10 @@ function Test-PublicPackage([string]$dir) {
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed. See output above." }
 
 $out = "dist\$exeName"
-Copy-Item base\acronym_database.csv $out -Force                 # generic data from base\ only
-New-Item -ItemType Directory -Force "$out\config\models" | Out-Null
-Copy-Item base\config\* "$out\config" -Recurse -Force
-Copy-Item README.txt, OVERVIEW.md, SECURITY.md $out -Force
+# 2.90.0: no data or config ships (the app makes the master database and its settings in Stationkeeper Data on first
+# start). The read-me files are in _internal\docs (update packs carry them) and in About Stationkeeper for people to read.
+New-Item -ItemType Directory -Force "$out\About Stationkeeper" | Out-Null
+Copy-Item README.txt, OVERVIEW.md, SECURITY.md "$out\About Stationkeeper" -Force
 # 2.59.0: the Qt edition starts (window shown and closed at once; no effort opened)
 if (Test-Path "$out\$qtExe.exe") {
     $q = Start-Process -FilePath "$out\$qtExe.exe" -ArgumentList '--selftest' -Wait -PassThru
@@ -121,7 +125,8 @@ if ($LASTEXITCODE -ne 0) { throw "LOGGING CHECK FAILED. See the list above." }
 if ($LASTEXITCODE -ne 0) { throw "NETWORK AUDIT FAILED. See the list above." }
 
 $exeHash = (Get-FileHash "$out\$exeName.exe" -Algorithm SHA256).Hash
-"$exeName.exe  SHA256  $exeHash" | Out-File -Encoding ascii "$out\CHECKSUM.txt"
+"$exeName.exe  SHA256  $exeHash" | Out-File -Encoding ascii "$out\_internal\docs\CHECKSUM.txt"
+Copy-Item "$out\_internal\docs\CHECKSUM.txt" "$out\About Stationkeeper\CHECKSUM.txt" -Force
 $qtLine = $null
 # 2.76.0: the list of this build's program files (update packs and Check program files compare against it)
 $ver = (Select-String -Path app_gui.py -Pattern '^APP_VERSION = "([0-9.]+)"').Matches[0].Groups[1].Value
@@ -138,7 +143,7 @@ if ($Edition -eq 'us' -and -not $Classic) {
     Copy-Item $out $ut -Recurse; Copy-Item $out $ub -Recurse
     New-Item -ItemType Directory -Force $um | Out-Null
     Copy-Item "$out\_internal\program_manifest.json" "$um\$exeName-$ver.json"
-    Add-Content "$ub\README.txt" "UPDATE TEST LINE"
+    Add-Content "$ub\_internal\docs\README.txt" "UPDATE TEST LINE"
     & .\venv\Scripts\python.exe tools\make_update.py --manifest $ub --program $exeName --edition $Edition --version "$ver.1" | Out-Null
     & .\venv\Scripts\python.exe tools\make_update.py --pack $ub --key $updKey --out "$ut.skupdate" --always "$exeName.exe" --manifests $um --no-save
     if ($LASTEXITCODE -ne 0) { throw "UPDATE CHECK FAILED: the test pack was not made" }
@@ -147,8 +152,8 @@ if ($Edition -eq 'us' -and -not $Classic) {
     foreach ($a in $steps) {
         $q = Start-Process -FilePath "$ut\$exeName.exe" -ArgumentList $a -Wait -PassThru
         if ($q.ExitCode -ne 0) { throw "UPDATE CHECK FAILED: $exeName.exe $($a[0]) exited $($q.ExitCode): $(Get-Content "$ut\logs\update.txt" -Raw -ErrorAction SilentlyContinue)" }
-        if ($a[0] -eq '--apply-update' -and -not (Select-String -Path "$ut\README.txt" -Pattern 'UPDATE TEST LINE' -Quiet)) { throw "UPDATE CHECK FAILED: the update did not change README.txt" }
-        if ($a[0] -eq '--undo-update' -and (Select-String -Path "$ut\README.txt" -Pattern 'UPDATE TEST LINE' -Quiet)) { throw "UPDATE CHECK FAILED: undo did not bring README.txt back" }
+        if ($a[0] -eq '--apply-update' -and -not (Select-String -Path "$ut\_internal\docs\README.txt" -Pattern 'UPDATE TEST LINE' -Quiet)) { throw "UPDATE CHECK FAILED: the update did not change README.txt" }
+        if ($a[0] -eq '--undo-update' -and (Select-String -Path "$ut\_internal\docs\README.txt" -Pattern 'UPDATE TEST LINE' -Quiet)) { throw "UPDATE CHECK FAILED: undo did not bring README.txt back" }
     }
     $ul = (Get-Content "$ut\logs\update.txt") -join ' | '
     if ($ul -notmatch 'UPDATE OK' -or $ul -notmatch 'CHECK OK' -or $ul -notmatch 'UNDO OK') { throw "UPDATE CHECK FAILED: $ul" }
