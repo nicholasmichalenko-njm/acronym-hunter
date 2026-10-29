@@ -42,7 +42,8 @@ WHATS_NEW = {
                "Click a card to see its requirements (double-click one to open it in Assign), what a customer version "
                "changed, its submission check, its library context and its files.",
                "A Volume deliverable links to its volume by name; pick another volume on the card to change it.",
-               "Effort home and the dashboard say how the deliverables stand. The table is still there under View: List."],
+               "Effort home and the dashboard say how the deliverables stand. The table is still there under View: List.",
+               "Author list: Edit which efforts... With All efforts ticked every effort shows ticked; nothing changes until OK."],
     "2.86.0": ["Response quality: Customer terms (start), Effort list (the glossary), Submission check and Lists to submit "
                "(end), in one group; each page says which end it serves.",
                "Customer terms scans the Library's customer documents with one button. Submission volumes are marked once.",
