@@ -61,6 +61,11 @@ def _update_args(args):
     return UP.undo_headless(log) if args[1] == "--undo-update" else UP.check_headless(log)
 
 
+def _real(w):
+    """2.91.0: the efforts on this PC other than Unfiled work."""
+    return [n for n in w.efforts.names() if not (w.efforts.get(n) or {}).get("unfiled")]
+
+
 def main(argv=None):
     args = list(sys.argv if argv is None else argv)
     if len(args) > 2 and args[1] == "--install-knowledge":     # 2.74.0: Stationkeeper.exe is the Qt window now
@@ -118,13 +123,14 @@ def main(argv=None):
         w.status("Safe start: Stationkeeper did not finish starting twice, so the last effort was not opened. Open it from "
                  "the Effort box; if it fails again, create a support file (Settings > Help and support).")
         _QT.singleShot(800, then)
-    elif w.efforts.current or len(w.efforts.names()) == 1:
-        cur = w.efforts.current or w.efforts.names()[0]   # 2.84.0: the effort last open (or the only one), every start
+    elif w.efforts.current or len(_real(w)) == 1:
+        cur = w.efforts.current or _real(w)[0]   # 2.84.0: the effort last open (or the only one), every start
         title = (f"Stationkeeper {A.APP_VERSION} is ready. Reopening your work" if after else f"Opening {cur}")
         _QT.singleShot(0, lambda: (w.open_with_progress(cur, title), _QT.singleShot(600, then)))
     else:
-        if w.efforts.names():                        # 2.84.0: several efforts and none remembered: say where they are
-            w.status("Pick your effort in the Effort box (top right): its work is all there.")
+        w.go("efforts")                              # 2.91.0: Home: every effort, + Add an Effort, or start unfiled
+        if _real(w):
+            w.status("Pick an effort on Home (or in the Effort box, top right): its work is all there.")
         _QT.singleShot(800, then)
     from PySide6.QtCore import QTimer
     pkg = next((a for a in args[1:] if a.lower().endswith((".skpkg", ".ahpkg")) and os.path.isfile(a)), None)

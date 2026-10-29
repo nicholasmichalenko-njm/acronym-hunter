@@ -20,6 +20,12 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "2.91.0": ["Home (All Efforts) shows every effort as a card: stage, days to due, open tasks and questions, who has it "
+               "open. + Add an Effort is the way to start one.",
+               "Start without an effort: Unfiled works with every tool. A strip reminds you to file the work; Make it an "
+               "effort or Add to an effort files it.",
+               "Post-Submission: a checklist with owners and due dates after submission, your own items, a default for new "
+               "efforts and a formatted Excel export."],
     "2.90.0": ["The program folder holds Stationkeeper.exe, _internal and About Stationkeeper (the read-me files). No "
                "empty database or settings ship; Stationkeeper makes them in Stationkeeper Data.",
                "A new effort gets Customer Documents, Volumes, Response Setup and Exports folders, and saves start there.",

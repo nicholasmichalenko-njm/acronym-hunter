@@ -141,10 +141,11 @@ def _safe_arc(arc):
     return parts
 
 
-def unpack(pkg_path, dest_folder, data_dir_for):
-    """Unpack into dest_folder (list, matrix, Customer documents, Volumes) and the list's app data folder.
+def unpack(pkg_path, dest_folder, data_dir_for, list_name=""):
+    """Unpack into dest_folder (list, matrix, Customer Documents, Volumes) and the list's app data folder.
     data_dir_for: workspace.data_dir_for. Returns {"list", "data", "matrix", "customer_dir", "volumes_dir", "manifest"}.
-    Every file is checked against the fingerprint in the manifest."""
+    Every file is checked against the fingerprint in the manifest. list_name (2.91.0): the effort list's new file name
+    (Unfiled work made into an effort takes the effort's name)."""
     man = read_manifest(pkg_path)
     os.makedirs(dest_folder, exist_ok=True)
     out = {"list": "", "data": "", "matrix": "", "customer_dir": "", "volumes_dir": "", "manifest": man, "moved": {}}
@@ -153,7 +154,7 @@ def unpack(pkg_path, dest_folder, data_dir_for):
         lst = next((n for n in names if n.startswith("list/")), None)
         if lst is None:
             raise PackageError("The package has no effort list.")
-        out["list"] = os.path.join(dest_folder, _safe_arc(lst)[-1])
+        out["list"] = os.path.join(dest_folder, list_name or _safe_arc(lst)[-1])
         out["data"] = data_dir_for(out["list"])
         for n in names:
             parts = _safe_arc(n)
@@ -165,7 +166,7 @@ def unpack(pkg_path, dest_folder, data_dir_for):
             elif top == "matrix":
                 target = out["matrix"] = os.path.join(dest_folder, *rest)
             elif top == "customer":
-                out["customer_dir"] = os.path.join(dest_folder, "Customer documents")
+                out["customer_dir"] = os.path.join(dest_folder, "Customer Documents")
                 target = os.path.join(out["customer_dir"], *rest)
             elif top == "volumes":
                 out["volumes_dir"] = os.path.join(dest_folder, "Volumes")

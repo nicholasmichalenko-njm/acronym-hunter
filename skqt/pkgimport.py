@@ -81,9 +81,9 @@ def import_package(win, path=None, dest=None, mode=None):
     P.repoint(got["data"], got["customer_dir"], got["matrix"], got.get("moved"))
     inf = man.get("info", {})
     put = {k: inf.get(k) for k in ("first_use", "client", "solicitation", "internal_no", "list_format") if inf.get(k) is not None}
-    win.efforts.put(new_name, path=got["list"], customer_dir=got["customer_dir"] or os.path.join(folder, "Customer documents"),
+    win.efforts.put(new_name, path=got["list"], customer_dir=got["customer_dir"] or os.path.join(folder, "Customer Documents"),
                     volumes_dir=got["volumes_dir"] or "", **put)
-    os.makedirs(os.path.join(folder, "Customer documents"), exist_ok=True)
+    os.makedirs(os.path.join(folder, "Customer Documents"), exist_ok=True)
     diag.activity("package_imported", files=len(man.get("files", {})))
     if not win.open_effort(new_name):
         return got

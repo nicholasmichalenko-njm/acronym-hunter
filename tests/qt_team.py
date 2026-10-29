@@ -42,6 +42,8 @@ BR.add_logo(cfgA, pic("a1.png", (200, 30, 40))); BR.add_logo(cfgA, pic("a2.png",
 TP._write(os.path.join(cfgA, "team_roles.json"), {"Author": ["mywork", "calendar", "tasks"]})
 TP.save_markings(cfgA, ["CUI//SP-PROPIN", "Proprietary"])
 TP.save_topics(cfgA, ["Thermal", "Schedule", "Key personnel"])
+import postsub as PS
+PS.save_default(cfgA, [{"text": "Archive the final volumes", "owner": "Production", "days": 1}])
 have = TP.available(cfgA)
 check("the maker's PC lists what it can share", set(have) == set(TP.PARTS), have)
 pack = os.path.join(tmp, f"Team{TP.EXT}")

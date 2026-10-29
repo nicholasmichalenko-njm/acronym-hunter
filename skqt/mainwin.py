@@ -33,16 +33,18 @@ from .exportallpage import ExportAllPage
 from .settingspage import SettingsPage
 
 
-RAIL = [("Effort", [("home", "Effort Home"), ("deliverables", "Deliverables"), ("dashboard", "Dashboard"), ("record", "Effort Record"),
+RAIL = [("Home", [("efforts", "All Efforts")]),
+        ("Effort", [("home", "Effort Home"), ("deliverables", "Deliverables"), ("dashboard", "Dashboard"), ("record", "Effort Record"),
                     ("reviews", "Reviews")]),
         ("Documents", [("library", "Library"), ("compare", "Changes"), ("requirements", "Submission Rules")]),
         ("Compliance", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove"),
                         ("crosswalk", "L/M Crosswalk")]),
-        ("Deliver", [("matrix", "Matrix"), ("setup", "Response Setup")]),
+        ("Deliver", [("matrix", "Matrix"), ("setup", "Response Setup"), ("postsub", "Post-Submission")]),
         ("Response Quality", [("acronyms", "Customer Terms"), ("acrlist", "Effort List"), ("qa", "Submission Check"),
                               ("lists", "Lists to Submit"), ("keywords", "Keywords")]),
         ("Effort Files", [("exportall", "Export All"), ("settings", "Settings")])]
-TITLES = {"home": ("Effort Home", "Stage, gate goals, tasks, questions and the calendar"),
+TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and work not filed yet"),
+          "home": ("Effort Home", "Stage, gate goals, tasks, questions and the calendar"),
           "dashboard": ("Dashboard", "The effort on one screen"),
           "record": ("Effort Record", "Details, team, stages and gates, status, package and backup"),
           "reviews": ("Reviews", "Color team review packets, read back onto each requirement"),
@@ -65,7 +67,8 @@ TITLES = {"home": ("Effort Home", "Stage, gate goals, tasks, questions and the c
           "prove": ("Prove", "Every line read and decided"),
           "crosswalk": ("L/M Crosswalk", "Each instruction, the factor that scores it, and the work it describes"),
           "matrix": ("Matrix", "The compliance matrix as the customer will see it"),
-          "setup": ("Response Setup", "The Word documents your writers start from")}
+          "setup": ("Response Setup", "The Word documents your writers start from"),
+          "postsub": ("Post-Submission", "What the team does after the proposal goes in: owners, due dates, done")}
 
 
 class MainWindow(QMainWindow):
@@ -133,9 +136,13 @@ class MainWindow(QMainWindow):
         bh.addWidget(self.effort_box)
         self.saved = D.Pill("Saved", "ok"); bh.addWidget(self.saved)
         self.marking = MarkingStrip(); cv.addWidget(self.marking)            # 2.88.0: CUI or proprietary, on every page
+        from .unfiledview import UnfiledStrip
+        self.unfiled_strip = UnfiledStrip(self); cv.addWidget(self.unfiled_strip)   # 2.91.0: work not filed yet
         cv.addWidget(bar)
         from .adaptive import PageStack
         self.stack = PageStack()                   # 2.86.0: a page scrolls only when the window is smaller than it needs
+        from .effortshome import EffortsHome
+        self.efforts_page = EffortsHome(self)        # 2.91.0: Home: every effort, + Add an Effort, Unfiled work
         self.home_page = HomePage(self)
         self.dash_page = DashPage(self)
         self.record_page = RecordPage(self)
@@ -162,10 +169,12 @@ class MainWindow(QMainWindow):
         self.crosswalk_page = CrosswalkPage(self)
         self.matrix_page = MatrixPage(self)
         self.setup_page = SetupPage(self)
-        self.pages = {"home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page,
+        from .postsubpage import PostSubPage
+        self.postsub_page = PostSubPage(self)          # 2.91.0
+        self.pages = {"efforts": self.efforts_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page,
                       "impact": self.impact_page, "deliverables": self.deliverables_page, "qa": self.qa_page, "lists": self.lists_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
-                      "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page}
+                      "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "postsub": self.postsub_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)
         cv.addWidget(self.stack, 1)
@@ -308,8 +317,14 @@ class MainWindow(QMainWindow):
         elif any(i["severity"] == "error" for i in _issues):
             self.status("Effort health: a problem needs you. See Effort record > Effort health.")
         self.apply_marking()
+        self.unfiled_strip.refresh()
         self.title()
         return True
+
+    def make_unfiled_effort(self, name=None):
+        """2.91.0: Unfiled work becomes a named effort (see unfiledview)."""
+        from .unfiledview import make_effort
+        return make_effort(self, name)
 
     def open_effort_folder(self, kind=None, open_it=True):
         """2.90.0: the effort's folder (or one of its folders) in File Explorer. Returns the folder."""
@@ -362,6 +377,8 @@ class MainWindow(QMainWindow):
         self.ws, self.review = None, None
         if hasattr(self, "marking"):
             self.marking.show_marking("")
+        if hasattr(self, "unfiled_strip"):
+            self.unfiled_strip.setVisible(False)
 
     def set_matrix(self, M, new=False):
         self.review = AO.Review(M)

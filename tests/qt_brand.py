@@ -42,11 +42,11 @@ app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 # ---- the menu
 texts = [b.text() for b in w.step_btns.values()]
-check("the menu is in Title Case", texts[:5] == ["Effort Home", "Deliverables", "Dashboard", "Effort Record", "Reviews"]
+check("the menu is in Title Case", texts[1:6] == ["Effort Home", "Deliverables", "Dashboard", "Effort Record", "Reviews"]
       and "Response Setup" in texts and "Lists to Submit" in texts and "L/M Crosswalk" in texts, texts)
 from PySide6.QtWidgets import QLabel
 heads = [l.text() for l in w.findChildren(QLabel) if l.objectName() == "railhead"]
-check("menu groups are in Title Case", heads[:3] == ["Effort", "Documents", "Compliance"] and "Response Quality" in heads, heads)
+check("menu groups are in Title Case", heads[:4] == ["Home", "Effort", "Documents", "Compliance"] and "Response Quality" in heads, heads)
 check("the Stationkeeper mark and name at the foot of the menu", w.rail_footer.word.text() == "Stationkeeper" and A.APP_VERSION in w.rail_footer.sub.text())
 # ---- logos
 check("no logo yet: a quiet prompt to add one", w.rail_brand.add.isVisibleTo(w) and not w.rail_brand.plate.isVisibleTo(w))

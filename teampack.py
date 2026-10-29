@@ -24,13 +24,13 @@ FORMAT = "sk-team-1"
 EXT = ".skteam"
 INFO = "team_pack.json"
 MAX_BYTES = 8 * 1024 * 1024
-PARTS = ("authors", "design", "banned", "goals", "logos", "roles", "markings", "topics")
+PARTS = ("authors", "design", "banned", "goals", "logos", "roles", "markings", "topics", "postsub")
 PART_NAMES = {"authors": "Author list", "design": "Matrix design", "banned": "Banned words and phrases", "goals": "Default gate goals",
               "logos": "Company logos", "roles": "Effort Home layouts by role", "markings": "Sensitivity markings",
-              "topics": "Team topics"}
-LOCKABLE = ("design", "logos", "roles", "goals", "markings")
+              "topics": "Team topics", "postsub": "Post-submission checklist"}
+LOCKABLE = ("design", "logos", "roles", "goals", "markings", "postsub")
 FILES = {"authors": "author_list.json", "design": "matrix design.json", "banned": "banned_words.csv", "goals": "stage_goals.json",
-         "roles": "team_roles.json", "markings": "team_markings.json", "topics": "team_topics.json"}
+         "roles": "team_roles.json", "markings": "team_markings.json", "topics": "team_topics.json", "postsub": "postsub_default.json"}
 LOCKS = "team_locks.json"
 INSTALLED = "team_installed.json"
 BACKUPS = "team_backups"
@@ -136,6 +136,9 @@ def available(config_dir):
         out["markings"] = ", ".join(markings(config_dir))
     if topics(config_dir):
         out["topics"] = f"{len(topics(config_dir))} topic(s)"
+    ps = (_read(os.path.join(config_dir, FILES["postsub"]), {}) or {}).get("items") or []
+    if ps:
+        out["postsub"] = f"{len(ps)} item(s)"
     return out
 
 
@@ -150,7 +153,7 @@ def make(config_dir, out_path, parts, lock=(), name="", notes="", role_layouts=N
         lst = AL.load(config_dir)
         members[FILES["authors"]] = json.dumps({"format": AL.FORMAT, "people": [{"name": x["name"], "efforts": x["efforts"]} for x in lst.people]},
                                                ensure_ascii=False, indent=1).encode("utf-8")
-    for part in ("design", "banned", "goals"):
+    for part in ("design", "banned", "goals", "postsub"):
         if part in parts:
             p = os.path.join(config_dir, FILES[part])
             if os.path.isfile(p):
@@ -276,6 +279,10 @@ def preview(config_dir, info, data):
     if FILES["topics"] in data:
         new = [t for t in json.loads(data[FILES["topics"]]) if t.casefold() not in {x.casefold() for x in topics(config_dir)}]
         out.append(("topics", f"{len(new)} team topic(s) added"))
+    if FILES["postsub"] in data:
+        mine = os.path.isfile(os.path.join(config_dir, FILES["postsub"]))
+        out.append(("postsub", "Replaces the default post-submission checklist (locked)" if "postsub" in lk else
+                    "Kept: this PC has its own default checklist" if mine else "Becomes the default post-submission checklist"))
     return out
 
 
@@ -373,6 +380,11 @@ def install(config_dir, info, data, who=None):
         save_markings(config_dir, theirs if "markings" in lk else markings(config_dir) + theirs)
     if FILES["topics"] in data:
         save_topics(config_dir, topics(config_dir) + json.loads(data[FILES["topics"]]))
+    if FILES["postsub"] in data:
+        p = os.path.join(config_dir, FILES["postsub"])
+        if "postsub" in lk or not os.path.isfile(p):
+            with open(p, "wb") as f:
+                f.write(data[FILES["postsub"]])
     cur = locks(config_dir)
     for p in lk:
         cur[p] = info.get("name", "Team defaults")

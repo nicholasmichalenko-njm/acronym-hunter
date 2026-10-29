@@ -1,6 +1,34 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+HOME, UNFILED WORK AND THE POST-SUBMISSION CHECKLIST (2.91.0)
+  - Home (All Efforts, first in the menu) shows every effort on this PC as a card, the soonest due first: its
+    picture, name, client and solicitation, sensitivity, stage, days to the due date, open tasks (and how many are
+    late), open questions, deliverables with no owner, when it was last worked on, and whether someone has it open.
+    Home reads each effort's saved files without opening it. Click a card to open the effort on Effort Home.
+  - + Add an Effort, on Home, is the way to start an effort: its folder, with Customer Documents, Volumes, Response
+    Setup and Exports. Settings keeps the same New effort... button.
+  - Start without an effort: Unfiled is a workspace that is always there (Stationkeeper Data\Efforts\Unfiled). Every
+    tool works in it: add documents to the Library, Read RFP, scan for terms, check a Word file. While Unfiled is open,
+    a strip across the top says what it holds and offers the two ways to file it:
+      Make it an effort: Unfiled becomes a named effort in its own folder (an effort package carries every file and
+        path), and Unfiled starts empty again. A copy of the old Unfiled folder is kept in the new effort's backups.
+      Add to an effort: pick the effort and the documents. Each goes into that effort's Library with every version,
+        its role, tags, initial, type and text; customer documents are copied into its Customer Documents folder.
+        Unfiled's acronyms join its effort list without replacing any. Adding again adds nothing twice.
+    Home shows an Unfiled card while it holds anything, with Clear Unfiled (a copy is kept in Stationkeeper
+    Data\config\unfiled_cleared).
+  - Post-Submission (Deliver): the checklist for after the proposal goes in, filled in for a new effort: confirm
+    receipt, record the submission time, archive the final volumes and the as-submitted matrix, save the final package,
+    watch for clarifications and final proposal revisions, plan orals, lessons learned, update the libraries, clean up
+    the team folder, request a debrief. Each item has an owner (a role to start; pick a name), days after submission,
+    a status (Not started, In progress, Done, Not needed; Done keeps who and when) and notes. + Item, reword in place,
+    Remove, Up and Down. Due dates count from the due date until Mark submitted, then from the submission; late items
+    show in red. Save as default makes this list the start for new efforts on this PC (a team pack carries it, and can
+    lock it). Export to Excel writes a formatted workbook (the effort and its dates on top, a Status drop-down, done
+    rows in green and late ones in red, frozen headings, one page wide when printed), saved by default in the effort's
+    Exports folder.
+
 A TIDY PROGRAM FOLDER AND AN EFFORT FOLDER YOU CAN FIND YOUR WAY AROUND (2.90.0)
   - The download holds the program and one folder of read-me files, nothing else:
         Stationkeeper\

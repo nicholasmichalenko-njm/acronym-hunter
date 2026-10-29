@@ -81,7 +81,7 @@ check("start: the new version signals, then reopens under the cover; questions w
       and "w.open_with_progress(cur, title)" in msrc and "def then():" in msrc and msrc.index("signal_started(") < msrc.index("open_with_progress"))
 tsrc = open(os.path.join(A.BASE_DIR, "skqt_training.py"), encoding="utf-8").read()
 check("Training signals too", "signal_started(" in tsrc)
-check("a start reopens the effort last open, or the only one", "w.efforts.current or len(w.efforts.names()) == 1" in msrc)
+check("a start reopens the effort last open, or the only one (Unfiled aside)", "w.efforts.current or len(_real(w)) == 1" in msrc and "def _real(w)" in msrc)
 w.close()
 n = sum(checks)
 print(f"QT HANDOFF PASS ({n}/{len(checks)})" if n == len(checks) else f"QT HANDOFF FAIL ({n}/{len(checks)})")
