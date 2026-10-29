@@ -18,6 +18,88 @@ import changereview as CR
 from . import design as D
 
 COLORS = {"changed": "warn", "added": "ok", "removed": "crit"}
+TAG_NAMES = {"req": "REQ", "rule": "RULE", "deliv": "DELIV", "term": "TERM", "new": "NEW"}
+
+
+def _words(s):
+    import re
+    return set(re.findall(r"[A-Za-z0-9&]+", s or ""))
+
+
+def tag_rows(rows, links, impact):
+    """What each change touches: req (a compliance requirement), new (an added sentence not in the matrix), rule (a
+    submission rule), deliv (a deliverable), term (a term new in this version). [tuple of tags] aligned with rows."""
+    rules = (impact or {}).get("requirements", [])
+    dels = (impact or {}).get("deliverables", [])
+    terms = {t["term"] if isinstance(t, dict) else t for t in ((impact or {}).get("acronyms") or {}).get("new", [])}
+    out = []
+    for i, r in enumerate(rows):
+        if r["kind"] == "same":
+            out.append(())
+            continue
+        tg = []
+        txt = (r.get("new") or "") + " " + (r.get("old") or "")
+        if i < len(links) and links[i]:
+            tg.append("req")
+        elif r["kind"] == "added":
+            tg.append("new")
+        rule_hit = r.get("submission") or any(q.get("sentence") and q["sentence"] in txt for q in rules)
+        if rule_hit:
+            tg.append("rule")
+            if dels and any(("page" in txt.lower() and "limit" in " ".join(d_["why"]).lower()) or d_["name"].lower() in txt.lower()
+                            for d_ in dels):
+                tg.append("deliv")
+        elif any(d_["name"].lower() in txt.lower() for d_ in dels):
+            tg.append("deliv")
+        if terms and (_words(r.get("new")) & terms):
+            tg.append("term")
+        out.append(tuple(tg))
+    return out
+
+
+class SummaryStrip(QWidget):
+    """2.85.0: what the version touches, on one line of chips (what Impact review was for). Click one to filter."""
+
+    def __init__(self, page):
+        super().__init__()
+        self.page = page
+        self.h = QHBoxLayout(self); self.h.setContentsMargins(0, 0, 0, 0); self.h.setSpacing(D.SPACE["s"])
+        self.chips = {}
+
+    def fill(self):
+        pg = self.page
+        while self.h.count():
+            w = self.h.takeAt(0).widget()
+            if w is not None:
+                w.setParent(None)
+        self.chips = {}
+        rows = pg.rows or []
+        if not rows:
+            self.hide()
+            return
+        self.show()
+        tags = getattr(pg, "tags", [])
+        n = sum(1 for r in rows if r["kind"] != "same")
+        cnt = lambda t: sum(1 for x in tags if t in x)                       # noqa: E731
+        im = getattr(pg, "impact", None) or {}
+        owners = sorted({h["owner"] for ls in pg.links for h in ls if h.get("owner")})
+        rules = sorted({q["subject"] for q in im.get("requirements", [])})
+        dels = sorted({d_["name"] for d_ in im.get("deliverables", [])})
+        terms = [t["term"] if isinstance(t, dict) else t for t in (im.get("acronyms") or {}).get("new", [])]
+        undec = sum(1 for r in rows if r["kind"] != "same" and not pg.decided_text(r.get("key", "")))
+        items = [("all", f"{n} changes", ""), ("req", f"{cnt('req')} compliance requirements", ", ".join(owners[:3])),
+                 ("new", f"{cnt('new')} not in the matrix yet", ""),
+                 ("rule", f"{cnt('rule')} submission rules", ", ".join(rules[:3])),
+                 ("deliv", f"{cnt('deliv')} deliverables", ", ".join(dels[:2])), ("term", f"{cnt('term')} new terms", ", ".join(terms[:3])),
+                 ("open", f"{undec} to decide", "")]
+        for key, text, sub in items:
+            if key not in ("all", "open") and not cnt(key):
+                continue
+            b = D.button(text + (f"  \u00b7  {sub}" if sub else ""), "primary" if pg.tag_filter == key else None,
+                         lambda _=False, k=key: pg.set_tag_filter(k))
+            self.chips[key] = b
+            self.h.addWidget(b)
+        self.h.addStretch(1)
 
 
 def _esc(s):
@@ -138,7 +220,7 @@ class DecidePanel(QScrollArea):
         v.addWidget(self.why)
         g = QGridLayout(); g.setSpacing(4); v.addLayout(g)
         self.btns = {}
-        for k, (kind, tone) in enumerate((("updates", "req"), ("new", "req"), ("context", "ctx"), ("removes", "danger"),
+        for k, (kind, tone) in enumerate((("updates", "req"), ("new", "req"), ("rule", None), ("context", "ctx"), ("removes", "danger"),
                                           ("task", None), ("question", "cust"), ("note", None), ("none", "ghost"))):
             b = D.button(CR.KIND_NAMES[kind], tone, lambda _=False, kd=kind: self.decide(kd))
             g.addWidget(b, k // 2, k % 2)
@@ -158,6 +240,8 @@ class DecidePanel(QScrollArea):
         on = r is not None and r["kind"] != "same"
         for b in self.btns.values():
             b.setEnabled(on)
+        tags = pg.tags[i] if (r is not None and i < len(getattr(pg, "tags", []))) else ()
+        self.btns["rule"].setVisible("rule" in tags)
         self.req.setEnabled(on); self.sec.setEnabled(on); self.why.setEnabled(on)
         if r is None:
             self.title.setText("Click a change"); self.hint.setText("Each change gets a decision; Compare counts what is left.")
@@ -238,6 +322,8 @@ class DecidePanel(QScrollArea):
             ref = self._context(d, vb, r, target)
         elif kind in ("task", "question", "note"):
             ref = self._record(kind, d, vb, r)
+        elif kind == "rule":
+            ref = self._rule(r, vb)
         dec = rv.decide(pg.pk, r["key"], kind, target or "", why, ref)
         self.why.clear()
         diag.activity("change_decided")
@@ -257,6 +343,27 @@ class DecidePanel(QScrollArea):
         elif pg.shown:
             pg.table.selectRow(min(k, len(pg.shown) - 1))
         return dec
+
+    def _rule(self, r, vb):
+        """The submission rules this change sets take the new value: reviewed in Submission rules; a new due date becomes
+        the effort's due date."""
+        pg = self.page
+        reg = pg.ctx.reg
+        txt = (r.get("new") or "") + " " + (r.get("old") or "")
+        keys = []
+        for q in ((getattr(pg, "impact", None) or {}).get("requirements", [])):
+            if (q.get("sentence") and q["sentence"] in txt) or (q.get("now") and q["now"] in txt):
+                keys.append(q["key"])
+        for k in keys:
+            reg.review(k)
+            if k == "Due | Proposal":
+                q = next(x for x in pg.impact["requirements"] if x["key"] == k)
+                import effortrec as R_
+                iso, zone = R_.parse_due_text(q["now"])
+                if iso:
+                    pg.ctx.rec.set_due(iso, zone)
+        pg.host.status(f"{len(keys)} submission rule(s) updated" if keys else "Marked: this change updates a submission rule.")
+        return ",".join(keys)
 
     def _quote(self, d, vb, r):
         return f"\"{(r.get('new') or r.get('old'))[:400]}\" ({d['name']} {vb['label']}, {r['kind']})"
