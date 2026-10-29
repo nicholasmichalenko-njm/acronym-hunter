@@ -26,8 +26,8 @@ STAGES, GATES AND ROLES, DEADLINES INSIDE A STAGE, AND A VISIBLE SPLIT (2.93.0)
     Click the word the second part starts with: a red cut line appears, the second part is tinted, and Split here and
     Cancel sit just under the sentence; the card previews Part 1 and Part 2. Split here (or S) splits; Esc or Cancel
     keeps it whole. The Split button on the toolbar waits until a split point is set.
-  - A new effort's stages are kept the moment it is made, so every part of the app sees the same stages from the
-    start (before, changing the stages of a brand-new effort could say "The current stage cannot be removed").
+  - A brand-new effort's stages are the same in every part of the app from the start, so changing them right away
+    works (before, it could say "The current stage cannot be removed").
   - PDF copies made with Word, Excel or PowerPoint close the program they started even when a file fails, and end it
     if it lingers, so hidden copies of Word no longer pile up in the background.
 

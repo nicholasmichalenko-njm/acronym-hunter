@@ -315,13 +315,10 @@ class Record:
                      "notes": d.get("notes", []), "tasks": d.get("tasks", [])}
         if not self.data["stages"]:
             self.data["stages"] = [self._new_stage(n) for n in DEFAULT_STAGES]
+            for k, st in enumerate(self.data["stages"], 1):   # 2.93.0: the same ids at every reading until it is first saved
+                st["id"] = f"st{k:02d}"
             self.data["stage"] = self.data["stages"][0]["id"]
             self.data["stages"][0]["started"] = _now()
-            if os.path.isdir(self.folder):           # 2.93.0: kept at once, so every reader sees the same stages (and ids)
-                try:
-                    self.save()
-                except OSError:
-                    pass
         return self
 
     def save(self):
