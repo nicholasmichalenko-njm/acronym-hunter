@@ -67,7 +67,7 @@ class DashPage(QWidget):
             "owned": D.Tile("-", "requirements with an owner", "accent", lambda: go("assign"), "Assign: People..."),
             "questions": D.Tile("-", "open questions", "accent", lambda: go("home"), "Effort home: notes and open questions"),
             "late": D.Tile("-", "tasks late", "accent", lambda: go("home"), "Effort home: tasks"),
-            "review": D.Tile("-", "customer changes to review", "accent", lambda: go("docs"),
+            "review": D.Tile("-", "customer changes to review", "accent", lambda: go("compare"),
                              "Customer Documents: versions and requirements to review"),
             "library": D.Tile("-", "library roles to confirm", "accent", lambda: go("library"),
                               "Library: documents whose role is only suggested (2.83.0)")}
@@ -154,7 +154,18 @@ class DashPage(QWidget):
         T["questions"].set(d["questions"], "open questions" + (f" ({d['questions_unassigned']} not assigned)" if d["questions_unassigned"] else ""),
                            "warn" if d["questions"] else "ok")
         T["late"].set(d["tasks_late"], f"tasks late of {d['tasks_open']} open", "crit" if d["tasks_late"] else "ok")
-        T["review"].set(d["to_review"], "customer changes to review", "warn" if d["to_review"] else "ok")
+        try:                                       # 2.85.0: changes still to decide in Compare, and owners to confirm
+            import changereview as CHR
+            crv = CHR.Review(self.host.ws.root).load()
+            und = sum(n for _a, _b, n in crv.undecided())
+            wait = len(crv.awaiting())
+        except Exception:
+            diag.swallowed()
+            und = wait = 0
+        if und or wait:
+            T["review"].set(und + d["to_review"], "customer changes to decide" + (f" ({wait} awaiting the owner)" if wait else ""), "warn")
+        else:
+            T["review"].set(d["to_review"], "customer changes to review", "warn" if d["to_review"] else "ok")
         try:                                       # 2.83.0: the library
             import docversions as DV
             lib = DV.Library(self.host.ws.p("documents")).load()

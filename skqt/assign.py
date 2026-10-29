@@ -751,6 +751,27 @@ class AssignPage(QWidget):
                 b = D.label(f"{text_[:300]}\n{docn}" + (f", {where_}" if where_ else ""))
                 b.setStyleSheet(f"background:{t_['ctx_soft']};border:1px solid {t_['border']};border-radius:{D.RADIUS['control']}px;padding:6px")
                 self.lib_labels.append(self.add(b))
+        self.hist_labels = []                           # 2.85.0: what customer versions did to it
+        try:
+            import changereview as CHR
+            hrv = CHR.Review(self.host.ws.root).load()
+            hist = hrv.history(it["id"])
+        except Exception:
+            diag.swallowed()
+            hist = []
+        if hist:
+            self.head(f"History ({len(hist)})")
+            names = {"updated": "Wording changed", "removed": "Removed", "added": "Added"}
+            for e in hist:
+                txt = f"{names.get(e['kind'], e['kind'])} by {e.get('doc', '')} {e.get('label', '')} ({e.get('when', '')[:10]})"
+                if e["kind"] == "updated":
+                    txt += f"\nWas: {e.get('old', '')[:200]}"
+                if e["kind"] in ("updated", "removed"):
+                    txt += "\n" + (f"Owner confirmed {e['confirmed']}" if e.get("confirmed") else "Awaiting the owner")
+                self.hist_labels.append(self.add(D.label(txt, None if e.get("confirmed") or e["kind"] == "added" else "crit")))
+            if it["id"] in hrv.awaiting():
+                self.confirm_btn = self.add(D.button("Confirm it still fits", "primary", lambda _=False, i=it["id"]: self.confirm_change(i),
+                                                     "The answer was checked against the new wording"))
         self.head("Notes")
         self.notes = self.add(QPlainTextEdit(it.get("notes", "")))
         self.notes.setFixedHeight(72)
@@ -766,6 +787,19 @@ class AssignPage(QWidget):
                 b.setStyleSheet(f"background:{t_['warn_soft']};border:1px solid {t_['border']};border-radius:{D.RADIUS['control']}px;padding:6px")
                 self.review_labels.append(self.add(b))
         QTimer.singleShot(0, self.fit_card)
+
+    def confirm_change(self, iid):
+        """2.85.0: the owner checked the answer against the new wording."""
+        import changereview as CHR
+        if not CHR.Review(self.host.ws.root).load().confirm(iid):
+            return False
+        it = self.R.item(iid)
+        if it is not None and (it.get("new") or "").endswith("owner to confirm"):
+            it["new"] = it["new"].replace("owner to confirm", "owner confirmed")
+            self.M.pending = True
+        diag.activity("change_confirmed")
+        self.after(f"{iid}: the owner confirmed the answer still fits")
+        return True
 
     def review_notes(self, iid):
         """The review notes on this sentence in the effort's record (newest first)."""

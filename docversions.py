@@ -600,7 +600,8 @@ def compare(old, new, pair_ratio=0.5):
     for op, i1, i2, j1, j2 in difflib.SequenceMatcher(None, A, B, autojunk=False).get_opcodes():
         if op == "equal":
             for k in range(i2 - i1):
-                rows.append({"kind": "same", "old": A[i1 + k], "new": B[j1 + k], "section": sec(new[j1 + k]), "diff": []})
+                rows.append({"kind": "same", "old": A[i1 + k], "new": B[j1 + k], "section": sec(new[j1 + k]), "diff": [],
+                             "oi": i1 + k, "nj": j1 + k})
             continue
         olds = list(range(i1, i2))
         news = list(range(j1, j2))
@@ -616,12 +617,13 @@ def compare(old, new, pair_ratio=0.5):
             if best is not None and score >= pair_ratio:
                 used.add(best)
                 block.append((best, {"kind": "changed", "old": A[oi], "new": B[best], "section": sec(new[best]),
-                                     "diff": word_diff(A[oi], B[best])}))
+                                     "diff": word_diff(A[oi], B[best]), "oi": oi, "nj": best}))
             else:                                  # a removed sentence sits where it stood, before what follows it
-                block.append((j1 + (oi - i1) - 0.5, {"kind": "removed", "old": A[oi], "new": "", "section": sec(old[oi]), "diff": []}))
+                block.append((j1 + (oi - i1) - 0.5, {"kind": "removed", "old": A[oi], "new": "", "section": sec(old[oi]), "diff": [],
+                                                     "oi": oi, "nj": None}))
         for nj in news:
             if nj not in used:
-                block.append((nj, {"kind": "added", "old": "", "new": B[nj], "section": sec(new[nj]), "diff": []}))
+                block.append((nj, {"kind": "added", "old": "", "new": B[nj], "section": sec(new[nj]), "diff": [], "oi": None, "nj": nj}))
         rows += [r for _k, r in sorted(block, key=lambda x: x[0])]
     for r in rows:
         r["submission"] = r["kind"] != "same" and (is_submission(r["old"]) or is_submission(r["new"]))

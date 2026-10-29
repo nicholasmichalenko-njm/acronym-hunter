@@ -49,7 +49,7 @@ TITLES = {"home": ("Effort home", "Stage, gate goals, tasks, questions and the c
           "library": ("Library", "Every document of the effort: categories, folders, tags, roles and search"),
           "docs": ("Customer versions", "The customer's documents and every version of them"),
           "requirements": ("Requirements", "What the customer documents require of the submission"),
-          "compare": ("Compare", "Two versions side by side, each change beside the matrix requirement it touches"),
+          "compare": ("Compare", "Two versions side by side, and a decision on every change"),
           "impact": ("Impact review", "What one new version touched across the effort"),
           "deliverables": ("Deliverables", "What the effort owes the customer, and where each stands"),
           "acronyms": ("Scan and review", "Every acronym, abbreviation, unit and symbol, and the effort list"),

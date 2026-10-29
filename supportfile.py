@@ -20,6 +20,12 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "2.85.0": ["Change review in Compare: each change side by side in its place (removed words struck in red, new in green) "
+               "and on a strip of where the changes are.",
+               "Every change gets a decision: updates a requirement, new requirement, context, removes a requirement, task, "
+               "question, note or no action. Compare counts what is decided and marks the version reviewed when all are.",
+               "A requirement a version changed keeps its old wording in its history and waits for its owner to confirm "
+               "(Assign's card, or Compare > Requirement history). The dashboard counts changes to decide."],
     "2.84.0": ["Read and assign any document: library documents that do not build the matrix open in Assign beside the "
                "response structure (File list: Library: ...). Select text, then choose where it goes: context for a "
                "section (C), for a requirement (F), a note (N), a question (Q), a task (T), or make it a requirement (R).",

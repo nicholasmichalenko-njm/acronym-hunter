@@ -619,23 +619,39 @@ class ComparePage(QWidget):
         self.a.activated.connect(lambda _i: self.run()); self.b.activated.connect(lambda _i: self.run())
         self.only = QCheckBox("Only changes"); self.only.setChecked(True); self.only.toggled.connect(lambda _on: self.fill())
         self.in_matrix = QCheckBox("Only what touches the matrix"); self.in_matrix.toggled.connect(lambda _on: self.fill())
-        top.addWidget(self.only); top.addWidget(self.in_matrix); top.addStretch(1)
+        self.undec = QCheckBox("Only undecided"); self.undec.toggled.connect(lambda _on: self.fill())   # 2.85.0
+        top.addWidget(self.only); top.addWidget(self.in_matrix); top.addWidget(self.undec); top.addStretch(1)
+        top.addWidget(D.button("Requirement history...", None, lambda: self.history_dialog(),
+                               "Every requirement a version changed or removed, its history, and whether its owner confirmed it"))
         top.addWidget(D.button("Redline (Word)...", None, lambda: self.export_redline()))
         top.addWidget(D.button("Change list (Excel)...", None, lambda: self.export_list()))
-        self.sum = D.label("", "muted"); v.addWidget(self.sum)
+        srow = QHBoxLayout(); v.addLayout(srow)
+        self.sum = D.label("", "muted"); srow.addWidget(self.sum, 1)
+        self.p_dec = D.Pill("", "ok"); self.p_dec.hide(); srow.addWidget(self.p_dec)
         split = QSplitter(Qt.Vertical)
-        self.table = QTableWidget(0, 4)
-        self.table.setHorizontalHeaderLabels(["Change", "Sentence (was and now)", "In the compliance matrix", "Section"])
+        self.table = QTableWidget(0, 5)
+        self.table.setHorizontalHeaderLabels(["Change", "Sentence (was and now)", "In the compliance matrix", "Section", "Decision"])
         self.table.verticalHeader().setVisible(False); self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectRows); self.table.setSelectionMode(QTableWidget.SingleSelection)
         self.table.setWordWrap(True)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.table.setColumnWidth(0, 90); self.table.setColumnWidth(2, 330); self.table.setColumnWidth(3, 140)
+        self.table.setColumnWidth(0, 90); self.table.setColumnWidth(2, 300); self.table.setColumnWidth(3, 130); self.table.setColumnWidth(4, 190)
         self.table.itemSelectionChanged.connect(self.show_row)
         self.table.cellDoubleClicked.connect(lambda r, _c: self.open_in_assign(r))
-        split.addWidget(self.table)
+        trow = QWidget(); th = QHBoxLayout(trow); th.setContentsMargins(0, 0, 0, 0); th.setSpacing(4)
+        th.addWidget(self.table, 1)
+        from .changeview import ChangeStrip, DecidePanel, SideBySide
+        self.strip = ChangeStrip(self); th.addWidget(self.strip)              # 2.85.0: where the changes are
+        split.addWidget(trow)
+        low = QSplitter(Qt.Horizontal)
+        lw = QWidget(); lv = QVBoxLayout(lw); lv.setContentsMargins(0, 0, 0, 0); lv.setSpacing(4)
+        self.sbs = SideBySide(); lv.addWidget(self.sbs, 3)                     # 2.85.0: the change in its place, both versions
         self.detail = QTextBrowser(); self.detail.setOpenLinks(False); self.detail.anchorClicked.connect(lambda u: self.open_item(u.toString()))
-        split.addWidget(self.detail); split.setSizes([600, 220])
+        lv.addWidget(self.detail, 2)
+        low.addWidget(lw)
+        self.decide_panel = DecidePanel(self); low.addWidget(self.decide_panel)  # 2.85.0: what the change means
+        low.setSizes([760, 420])
+        split.addWidget(low); split.setSizes([420, 380])
         v.addWidget(split, 1)
 
     def refresh(self):
@@ -698,7 +714,12 @@ class ComparePage(QWidget):
             self.fill()
             return []
         self.sel = (d["id"], va["id"], vb["id"])
-        self.rows = DV.compare(lib.text(va), lib.text(vb))
+        import changereview as CR
+        self.rows = CR.keyed(DV.compare(lib.text(va), lib.text(vb)))
+        self.texts = (lib.text(va), lib.text(vb))
+        self.review = CR.Review(self.host.ws.root).load()
+        self.pk = CR.pair_key(va, vb)
+        self.review.opened(d, va, vb, self.rows)
         M = self.host.review.M if self.host.review is not None else None
         owner_of = None
         if M is not None:
@@ -714,9 +735,24 @@ class ComparePage(QWidget):
         self.fill()
         return self.rows
 
+    def decided_text(self, key):
+        import changereview as CR
+        decs = self.review.decisions(self.pk, key) if getattr(self, "review", None) else []
+        return "; ".join(CR.KIND_NAMES[x["kind"]] + (f" {x['target']}" if x.get("target") else "") for x in decs)
+
+    def show_progress(self):
+        if not getattr(self, "review", None) or not self.rows:
+            self.p_dec.hide()
+            return
+        dn, n = self.review.progress(self.pk, self.rows)
+        self.p_dec.setText(f"{dn} of {n} decided" if n else "no changes")
+        self.p_dec.set_tone("ok" if dn == n else "warn")
+        self.p_dec.show()
+
     def fill(self):
         idx = [i for i, r in enumerate(self.rows) if (not self.only.isChecked() or r["kind"] != "same")
-               and (not self.in_matrix.isChecked() or self.links[i])]
+               and (not self.in_matrix.isChecked() or self.links[i])
+               and (not self.undec.isChecked() or (r["kind"] != "same" and not self.decided_text(r.get("key", ""))))]
         self.shown = idx
         self.table.setRowCount(len(idx))
         tone = {"changed": "warn", "added": "ok", "removed": "crit", "same": "muted"}
@@ -733,19 +769,40 @@ class ComparePage(QWidget):
                 m.setForeground(D.color("accent"))
             self.table.setItem(k, 2, m)
             self.table.setItem(k, 3, QTableWidgetItem(r.get("section", "")))
+            dt = self.decided_text(r.get("key", "")) if r["kind"] != "same" else ""
+            di = QTableWidgetItem(dt or ("to decide" if r["kind"] != "same" else ""))
+            di.setForeground(D.color("ok" if dt else "warn"))
+            self.table.setItem(k, 4, di)
             if r.get("submission"):
-                for c in range(4):
+                for c in range(5):
                     self.table.item(k, c).setBackground(D.color("warn_soft"))
         self.table.resizeRowsToContents()
+        self.show_progress()
+        self.strip.update()
         self.show_row()
+
+    def current_index(self):
+        k = self.table.currentRow()
+        return self.shown[k] if 0 <= k < len(self.shown) else None
+
+    def select_index(self, i):
+        if i in self.shown:
+            self.table.selectRow(self.shown.index(i))
+            return True
+        return False
 
     def show_row(self):
         k = self.table.currentRow()
         if not (0 <= k < len(self.shown)):
             self.detail.setHtml("")
+            self.sbs.clear()
+            self.decide_panel.show_change(None)
             return
         i = self.shown[k]
         r = self.rows[i]
+        d, va, vb = getattr(self, "cur", (None, None, None))
+        self.sbs.show_change(r, self.texts, va, vb)
+        self.decide_panel.show_change(i)
         links = self.links[i] if i < len(self.links) else []
         t = D.tokens()
         html = f"<p style='font-size:12pt'>{diff_html(r)}</p>"
@@ -755,6 +812,11 @@ class ComparePage(QWidget):
                 + (f", in {_esc(h['map'])}" if h["map"] else "") + (f", owner {_esc(h['owner'])}" if h["owner"] else "")
                 + f" <span style='color:{t['muted']}'>({h['how']})</span>" for h in links) + "</p>"
         self.detail.setHtml(html)
+
+    def history_dialog(self, run=True):
+        """2.85.0: every requirement a version touched, its history, and the owner's confirmation."""
+        from .changeview import history_dialog
+        return history_dialog(self, run)
 
     def open_item(self, iid):
         if self.host.review is None or self.host.review.item(iid) is None:

@@ -1,6 +1,21 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+CHANGE REVIEW (2.85.0)
+  - Compare shows each change in its place in both versions, side by side (WAS and NOW, two sentences either side):
+    removed words struck through in red, new words in green. A strip beside the list marks where every change sits in
+    the document; click a mark to go to it.
+  - Every change gets a decision, from the panel beside it; several can apply to one change, each with who, when and
+    why: Updates a requirement (the requirement takes the new wording; the old wording goes to its history; it is
+    marked "owner to confirm"), New requirement (into the section picked), Context for a requirement, Removes a
+    requirement (marked removed by that version, never deleted), Task, Question, Note, or No action (with a reason;
+    "editorial" when none is typed). Taking a decision off undoes what it did.
+  - Compare counts "8 of 23 decided", filters Only undecided, and marks the version reviewed when every change is
+    decided. Decisions stay with their change however often the versions are compared.
+  - Requirement history (Compare) lists every requirement a version changed, removed or added: what it said, what it
+    says now and which version did it. The owner confirms the answer still fits there or on Assign's card. The
+    dashboard counts changes to decide and requirements awaiting their owner.
+
 READ AND ASSIGN ANY DOCUMENT (2.84.0)
   - Library documents that do not build the matrix (attachments, ICDs, Q&A, standards, past proposals) are in Assign's
     File list under "Library: ...", or open them with Library > Read it in Assign. They open on the same page, beside
