@@ -64,7 +64,7 @@ check("the program counts starts and skips the last effort in a safe start", "SF
 # what's new
 st = A.load_settings(); st["last_version"] = "2.78.0"; A.save_settings(st)
 d = HC.after_update(w, run=False)
-check("what's new once after an update, with each version since the last one", d is not None and [v for v, _n in d.notes][:2] == [A.APP_VERSION, "2.80.0"]
+check("what's new once after an update, with each version since the last one", d is not None and [v for v, _n in d.notes][0] == A.APP_VERSION and "2.79.0" in [v for v, _n in d.notes]
       and "2.78.0" not in [v for v, _n in d.notes] and HC.after_update(w, run=False) is None)
 check("a first start shows nothing", SF.whats_new("", A.APP_VERSION) == [])
 # Ctrl+K
