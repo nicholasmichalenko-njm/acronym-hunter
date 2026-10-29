@@ -34,7 +34,7 @@ def run():
                  customer_dir=os.path.join(eff, "Customer documents"), volumes_dir=os.path.join(eff, "Volumes"), volumes=True,
                  stage="Red team", app_version="2.40.0", who="pm", when="2026-10-26T18:00", extra_files=[other])
     assert "files/1/elsewhere_draft.docx" in man["files"] and man["origin"]["files/1/elsewhere_draft.docx"] == os.path.abspath(other)
-    assert man["path"].endswith(".skpkg") and man["has"] == {"customer": True, "volumes": True, "matrix": True} and man["info"] == {"client": "USSF"}
+    assert man["path"].endswith(".skpkg") and man["has"] == {"customer": True, "volumes": True, "matrix": True, "library": "all"} and man["info"] == {"client": "USSF"}
     assert P.read_manifest(man["path"])["stage"] == "Red team"
     import shutil                                              # 2.44.0: a package saved by Acronym Hunter (.ahpkg) still opens
     old_pkg = shutil.copy(man["path"], os.path.join(d, "out", "From_Acronym_Hunter.ahpkg"))
