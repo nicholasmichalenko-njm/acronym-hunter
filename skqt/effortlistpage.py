@@ -21,6 +21,10 @@ class EffortListPage(QWidget):
         self.terms = []
         v = QVBoxLayout(self)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
+        from PySide6.QtCore import Qt
+        self.where = D.label("<b>THROUGHOUT</b> &nbsp;The effort's glossary: approved definitions writers work from. It is not the "
+                             "list you submit: Lists to submit holds only the terms your volumes use.", "muted")
+        self.where.setTextFormat(Qt.RichText); v.addWidget(self.where)                  # 2.86.0
         top = QHBoxLayout(); top.setSpacing(D.SPACE["m"]); v.addLayout(top)
         self.pills = {k: D.Pill(f"0 {k.lower()}", TONE[k]) for k in E.STATUSES}
         for p in self.pills.values():
@@ -32,13 +36,19 @@ class EffortListPage(QWidget):
             self.scope.addItem(text, k)
         top.addWidget(self.scope)
         self.approved_only = QCheckBox("Approved only"); top.addWidget(self.approved_only)
-        top.addWidget(D.button("Export the lists...", "primary", lambda: self.export(), "Word and Excel"))
+        top.addWidget(D.button("Export the effort list...", None, lambda: self.export(),
+                               "The glossary in Word and Excel. The lists for your volumes are in Lists to submit."))
         f = QHBoxLayout(); f.setSpacing(D.SPACE["s"]); v.addLayout(f)
         self.f_status = QComboBox(); self.f_status.addItems(["All statuses"] + E.STATUSES)
         self.f_status.currentIndexChanged.connect(lambda _i: self.fill())
+        self.f_use = QComboBox()                                                            # 2.86.0: in the submission or not
+        self.f_use.addItems(["In the submission or not", "Used in the submission volumes", "Not used in any submission volume"])
+        self.f_use.setToolTip("From the latest Submission check: terms no volume uses stay out of the lists you submit")
+        self.f_use.currentIndexChanged.connect(lambda _i: self.fill())
         self.f_search = QLineEdit(); self.f_search.setPlaceholderText("Search terms and definitions"); self.f_search.setClearButtonEnabled(True)
         self.f_search.textChanged.connect(lambda _t: self.fill())
-        f.addWidget(self.f_status); f.addWidget(self.f_search, 1)
+        f.addWidget(self.f_status); f.addWidget(self.f_use); f.addWidget(self.f_search, 1)
+        self.p_unused = D.Pill("", "accent"); self.p_unused.hide(); top.insertWidget(len(E.STATUSES), self.p_unused)
         for text, kind, fn in (("Approve...", "primary", lambda: self.approve()), ("Needs author", None, lambda: self.set_status("Needs author")),
                                ("Proposed", None, lambda: self.set_status("Proposed")), ("Not a term", "danger", lambda: self.set_status("Rejected")),
                                ("Edit definition...", None, lambda: self.edit_definition()), ("Take out", "ghost", lambda: self.remove())):
@@ -80,9 +90,16 @@ class EffortListPage(QWidget):
         rows = L.rows if L is not None else {}
         st, q = self.f_status.currentText(), self.f_search.text().strip().casefold()
         keep = set(self.selected())
+        unused = self.unused_terms()
+        use = self.f_use.currentIndex()
         self.terms = [t for t in (L.order if L is not None else []) if t in rows
                       and (st == "All statuses" or rows[t]["Status"] == st)
+                      and (use == 0 or unused is None or ((t in unused) == (use == 2)))
                       and (not q or q in t.casefold() or q in rows[t].get("Definition", "").casefold())]
+        if unused is None:
+            self.p_unused.hide()
+        else:
+            self.p_unused.setText(f"{len(unused)} not used in the submission"); self.p_unused.show()
         self.terms.sort(key=str.casefold)
         self.empty.setVisible(not rows); self.table.setVisible(bool(rows))
         self.table.setRowCount(len(self.terms))
@@ -98,6 +115,14 @@ class EffortListPage(QWidget):
         for k, p in self.pills.items():
             n = sum(1 for r in rows.values() if r["Status"] == k)
             p.setText(f"{n} {k.lower()}")
+
+    def unused_terms(self):
+        """2.86.0: effort-list terms no submission volume uses (the latest check), or None before any check."""
+        s = self.session
+        r = s.volume_report if s is not None else None
+        if not r:
+            return None
+        return {x["term"] for x in r.get("unused", [])}
 
     def selected(self):
         rows = sorted({ix.row() for ix in self.table.selectedIndexes()})

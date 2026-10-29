@@ -20,6 +20,11 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "2.86.0": ["Response quality: Customer terms (start), Effort list (the glossary), Submission check and Lists to submit "
+               "(end), in one group; each page says which end it serves.",
+               "Customer terms scans the Library's customer documents with one button. Submission volumes are marked once.",
+               "Lists to submit holds only the terms each volume uses: one per volume, a master list, or both. Terms no "
+               "volume uses are left out and listed, and the effort list can show them."],
     "2.85.0": ["Change review in Compare: each change side by side in its place (removed words struck in red, new in green) "
                "and on a strip of where the changes are.",
                "Every change gets a decision: updates a requirement, new requirement, context, removes a requirement, task, "

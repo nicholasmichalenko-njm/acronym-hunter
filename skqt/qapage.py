@@ -4,8 +4,8 @@ words and phrases, and page limits from the customer documents. Word (.docx) onl
 classic window's own (volcheck, volcheck_ui); the report is kept in the effort's session. Rules only (No AI); nothing
 leaves the PC."""
 import os
-from PySide6.QtCore import QThread, Signal
-from PySide6.QtWidgets import (QFileDialog, QGridLayout, QHBoxLayout, QHeaderView, QTableWidget, QTableWidgetItem, QTabWidget,
+from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtWidgets import (QFileDialog, QGridLayout, QHBoxLayout, QHeaderView, QListWidget, QListWidgetItem, QTableWidget, QTableWidgetItem, QTabWidget,
                                QVBoxLayout, QWidget)
 import diag
 import app_gui as A
@@ -46,13 +46,26 @@ class QAPage(QWidget):
         self.tables = {}
         v = QVBoxLayout(self)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
+        self.where = D.label("<b>END</b> &nbsp;Only the documents you will submit, checked against the effort list, banned words "
+                             "and page limits. The acronym lists to submit are built from this check (Lists to submit).", "muted")
+        self.where.setTextFormat(Qt.RichText); v.addWidget(self.where)                  # 2.86.0
+        vc = D.Card("Submission volumes", "Marked once: the Word files you will submit, in submission order. Volumes in "
+                    "Deliverables with a Word file are included.")
+        self.vol_list = QListWidget(); self.vol_list.setMaximumHeight(110); vc.add(self.vol_list)
+        vrow = QHBoxLayout(); vc.body.addLayout(vrow)
+        self.b_run = D.button("Check the submission volumes", "primary", lambda: self.check_volumes(), "Checks every volume listed here")
+        vrow.addWidget(self.b_run)
+        vrow.addWidget(D.button("Add volumes...", None, lambda: self.add_volumes()))
+        vrow.addWidget(D.button("Take out", "ghost", lambda: self.remove_volume()))
+        vrow.addStretch(1)
+        v.addWidget(vc)
         top = QHBoxLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)
-        self.b_check = D.button("Check Word files...", "primary", lambda: self.pick(), "Our Word volumes; submission order follows the file names")
+        self.b_check = D.button("Check other Word files...", None, lambda: self.pick(), "Any Word files, once (not saved as submission volumes)")
         self.b_cancel = D.button("Cancel", "danger", lambda: A.CANCEL.set()); self.b_cancel.hide()
         top.addWidget(self.b_check); top.addWidget(self.b_cancel)
         self.progress = D.label("", "muted", wrap=False); top.addWidget(self.progress, 1)
         self.b_export = D.button("Export report (Excel)...", None, lambda: self.export())
-        self.b_lists = D.button("Acronym lists for Word...", None, lambda: self.lists())
+        self.b_lists = D.button("Lists to submit", None, lambda: self.host.go("lists"), "The acronym lists for your volumes, from this check")
         self.b_missing = D.button("Add missing to the effort list", None, lambda: self.add_missing())
         self.b_record = D.button("Record in the effort list", None, lambda: self.record(), "Used in volumes and First use, for terms in the list")
         for b in (self.b_export, self.b_lists, self.b_missing, self.b_record):
@@ -67,19 +80,91 @@ class QAPage(QWidget):
         v.addWidget(self.tile_row)
         self.order = D.label("", "muted"); v.addWidget(self.order)
         self.tabs = QTabWidget(); v.addWidget(self.tabs, 1)
-        self.empty = D.EmptyState("No QA/QC check yet", "Check our Word volumes against the effort list: first use, missing and "
-                                                        "unapproved terms, banned words, page limits.", "Check Word files...", self.pick)
+        self.empty = D.EmptyState("No submission check yet", "Add the Word volumes you will submit above, then check them against "
+                                                             "the effort list: first use, missing and unapproved terms, banned words, "
+                                                             "page limits.", "Add volumes...", lambda: self.add_volumes())
         v.addWidget(self.empty)
 
     @property
     def session(self):
         return self.host.acronym_page.session
 
+    # ------------------------------------------------------------ 2.86.0 submission volumes, marked once
+    def volumes(self):
+        """[(path, where from)]: the effort's submission volumes (saved here, then Deliverables' Word files)."""
+        h = self.host
+        if h.ws is None:
+            return []
+        out, seen = [], set()
+        for p in h.ws.get("submission_volumes", []) or []:
+            k = os.path.normcase(os.path.abspath(p))
+            if k not in seen:
+                seen.add(k); out.append((p, "added here"))
+        try:
+            import effortrec as R
+            for dl in R.Record(h.ws.root).data.get("deliverables", []):
+                f = dl.get("file") or ""
+                if f.lower().endswith(".docx") and (dl.get("kind") or "").lower().startswith("volume"):
+                    k = os.path.normcase(os.path.abspath(f))
+                    if k not in seen:
+                        seen.add(k); out.append((f, "from Deliverables"))
+        except Exception:
+            diag.swallowed()
+        return sorted(out, key=lambda x: V.natural_key(os.path.basename(x[0])))
+
+    def fill_volumes(self):
+        self.vol_list.clear()
+        for p, src in self.volumes():
+            here = os.path.isfile(p)
+            it = QListWidgetItem(f"{os.path.basename(p)}   ({src}" + ("" if here else ", not on this PC") + ")")
+            it.setData(0x0100, p)
+            if not here:
+                it.setForeground(D.color("warn"))
+            self.vol_list.addItem(it)
+        self.b_run.setEnabled(any(os.path.isfile(p) for p, _s in self.volumes()) and self.worker is None)
+
+    def add_volumes(self, paths=None):
+        if self.host.ws is None:
+            return 0
+        if paths is None:
+            start = (self.host.efforts.get(self.host.effort_name) or {}).get("volumes_dir", "") or ""
+            paths, _ = QFileDialog.getOpenFileNames(self, "The Word volumes you will submit", start, "Word documents (*.docx)")
+        paths = [p for p in (paths or []) if p.lower().endswith(".docx")]
+        if not paths:
+            return 0
+        have = list(self.host.ws.get("submission_volumes", []) or [])
+        keys = {os.path.normcase(os.path.abspath(p)) for p in have}
+        add = [p for p in paths if os.path.normcase(os.path.abspath(p)) not in keys]
+        self.host.ws.set("submission_volumes", have + add)
+        diag.activity("submission_volumes_added", files=len(add))
+        self.fill_volumes()
+        return len(add)
+
+    def remove_volume(self, path=None):
+        it = self.vol_list.currentItem()
+        path = path or (it.data(0x0100) if it else None)
+        have = list(self.host.ws.get("submission_volumes", []) or []) if self.host.ws is not None else []
+        keep = [p for p in have if os.path.normcase(os.path.abspath(p)) != os.path.normcase(os.path.abspath(path or ""))]
+        if path is None or len(keep) == len(have):
+            self.host.status("Only volumes added here can be taken out; Deliverables' volumes are changed in Deliverables.")
+            return False
+        self.host.ws.set("submission_volumes", keep)
+        self.fill_volumes()
+        return True
+
+    def check_volumes(self):
+        paths = [p for p, _s in self.volumes() if os.path.isfile(p)]
+        if not paths:
+            self.host.status("Add the Word volumes you will submit first.")
+            return None
+        return self.check(paths)
+
     def refresh(self):
         h = self.host
         if h.ws is not None and self.session is None:
             h.acronym_page.load()
         self.setEnabled(h.ws is not None)
+        self.fill_volumes()
         self.show_report(self.session.volume_report if self.session is not None else None)
 
     def pick(self):
@@ -115,7 +200,7 @@ class QAPage(QWidget):
         self.worker.progress.connect(self.progress.setText)
         self.worker.finished_ok.connect(self.done)
         self.worker.failed.connect(self.failed)
-        self.b_check.setEnabled(False); self.b_cancel.show()
+        self.b_check.setEnabled(False); self.b_run.setEnabled(False); self.b_cancel.show()
         self.worker.start()
         return self.worker
 
@@ -124,6 +209,7 @@ class QAPage(QWidget):
             self.worker.wait(2000)
         self.worker = None
         self.b_check.setEnabled(True); self.b_cancel.hide(); self.progress.setText("")
+        self.fill_volumes()
 
     def done(self, report):
         self._end()

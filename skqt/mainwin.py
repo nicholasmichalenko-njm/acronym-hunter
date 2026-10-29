@@ -36,11 +36,11 @@ from .settingspage import SettingsPage
 RAIL = [("EFFORT", [("home", "Effort home"), ("dashboard", "Dashboard"), ("record", "Effort record"), ("reviews", "Reviews")]),
         ("DOCUMENTS", [("library", "Library"), ("docs", "Customer versions"), ("requirements", "Requirements"), ("compare", "Compare"),
                                 ("impact", "Impact review"), ("deliverables", "Deliverables")]),
-        ("ACRONYMS", [("acronyms", "Scan and review"), ("acrlist", "Effort list")]),
         ("COMPLIANCE", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove"),
                         ("crosswalk", "L/M crosswalk")]),
         ("DELIVER", [("matrix", "Matrix"), ("setup", "Response Setup")]),
-        ("QUALITY", [("qa", "QA/QC"), ("keywords", "Keywords")]),
+        ("RESPONSE QUALITY", [("acronyms", "Customer terms"), ("acrlist", "Effort list"), ("qa", "Submission check"),
+                              ("lists", "Lists to submit"), ("keywords", "Keywords")]),
         ("EFFORT FILES", [("exportall", "Export all"), ("settings", "Settings")])]
 TITLES = {"home": ("Effort home", "Stage, gate goals, tasks, questions and the calendar"),
           "dashboard": ("Dashboard", "The effort on one screen"),
@@ -52,9 +52,10 @@ TITLES = {"home": ("Effort home", "Stage, gate goals, tasks, questions and the c
           "compare": ("Compare", "Two versions side by side, and a decision on every change"),
           "impact": ("Impact review", "What one new version touched across the effort"),
           "deliverables": ("Deliverables", "What the effort owes the customer, and where each stands"),
-          "acronyms": ("Scan and review", "Every acronym, abbreviation, unit and symbol, and the effort list"),
-          "acrlist": ("Effort list", "The effort's acronyms: definitions, status, approvers, and the lists to deliver"),
-          "qa": ("QA/QC", "Our Word volumes against the effort list, banned words and page limits"),
+          "acronyms": ("Customer terms", "Start: the acronyms the customer's documents use, offered to the effort list"),
+          "acrlist": ("Effort list", "Throughout: the effort's glossary, with approved definitions"),
+          "qa": ("Submission check", "End: the volumes you will submit, against the effort list, banned words and page limits"),
+          "lists": ("Lists to submit", "End: the acronym lists for your volumes, built from what each one uses"),
           "keywords": ("Keywords", "The effort's keywords, suggestions with reasons, and the SharePoint export"),
           "exportall": ("Export all", "Every feature's outputs in one dated folder"),
           "settings": ("Settings", "New effort, the effort's folders, the master database, backups"),
@@ -133,6 +134,8 @@ class MainWindow(QMainWindow):
         self.docs_page = DocsPage(self)
         from .librarypage import LibraryPage
         self.library_page = LibraryPage(self)        # 2.83.0
+        from .listspage import ListsPage
+        self.lists_page = ListsPage(self)            # 2.86.0
         self.requirements_page = RequirementsPage(self)
         self.compare_page = ComparePage(self)
         self.impact_page = ImpactPage(self)
@@ -149,7 +152,7 @@ class MainWindow(QMainWindow):
         self.matrix_page = MatrixPage(self)
         self.setup_page = SetupPage(self)
         self.pages = {"home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page,
-                      "impact": self.impact_page, "deliverables": self.deliverables_page, "qa": self.qa_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
+                      "impact": self.impact_page, "deliverables": self.deliverables_page, "qa": self.qa_page, "lists": self.lists_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page}
         for pg in self.pages.values():

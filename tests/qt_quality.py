@@ -69,6 +69,53 @@ check("Add missing to the effort list (Proposed)", n == r["summary"]["missing"] 
 check("Record in the effort list", qp.record() >= 0)
 p = qp.export(os.path.join(tmp, "qa.xlsx")); made = qp.lists(os.path.join(tmp, "lists"))
 check("export the report and the volume's acronym list", p and os.path.isfile(p) and made and made[0].endswith("_Acronym_List.docx"))
+# 2.86.0 response quality: submission volumes marked once, the lists to submit leave out what no volume uses
+w.go("qa"); app.processEvents()
+check("the page says which end it serves", "END" in qp.where.text() and "Submission check" == w.page_title.text())
+check("submission volumes are marked once and saved", qp.add_volumes([VOL]) == 1 and qp.add_volumes([VOL]) == 0
+      and qp.vol_list.count() == 1 and w.ws.get("submission_volumes") == [VOL])
+qp.check_volumes()
+t = time.time()
+while qp.worker is not None and time.time() - t < 240:
+    app.processEvents(); time.sleep(0.05)
+r = s.volume_report
+check("Check the submission volumes runs on them without picking", r and r["volumes"] == ["Kestrel_Technical_Volume.docx"])
+Lx = E.EffortList(LIST).load()
+Lx.rows["ZZTOP"] = {"Term": "ZZTOP", "Definition": "A customer term no volume uses", "Status": "Approved", "Type": "Acronym"}
+Lx.order.append("ZZTOP"); Lx.pending = True; Lx.save()
+w.acronym_page.load(); qp.check_volumes()
+t = time.time()
+while qp.worker is not None and time.time() - t < 240:
+    app.processEvents(); time.sleep(0.05)
+r = w.acronym_page.session.volume_report
+w.go("lists"); app.processEvents()
+lp = w.lists_page
+names = [lp.tabs.tabText(i) for i in range(lp.tabs.count())]
+check("Lists to submit: the volume's list, and what is left out", names[0].startswith("Kestrel_Technical_Volume") and any(n.startswith("Left out") for n in names), names)
+used = {x["key"] for x in r["lists"]["Kestrel_Technical_Volume.docx"]}
+check("a term no volume uses is left out of the list, and named", "ZZTOP" not in used and any(x["term"] == "ZZTOP" for x in r["unused"])
+      and "left out" in lp.p_out.text())
+lp.set_mode("master")
+check("one master list, set once for the effort", w.ws.get("acronym_list_mode") == "master" and lp.tabs.tabText(0).startswith("All volumes"))
+outw = lp.export_word(os.path.join(tmp, "lists2"))
+check("the Word lists follow the setting", outw and [os.path.basename(x) for x in outw] == ["All volumes_Acronym_List.docx"], outw)
+outx = lp.export_excel(os.path.join(tmp, "lists.xlsx"))
+import openpyxl
+wbx = openpyxl.load_workbook(outx)
+check("Excel: the lists and what was left out", "Left out" in wbx.sheetnames and any(c.value == "ZZTOP" for c in wbx["Left out"]["A"]))
+w.go("acrlist"); app.processEvents()
+ep = w.acrlist_page
+ep.f_use.setCurrentIndex(2); app.processEvents()
+check("Effort list: filter the terms not used in the submission", ep.terms == sorted(x["term"] for x in r["unused"]) and "ZZTOP" in ep.terms
+      and "not used in the submission" in ep.p_unused.text(), ep.terms[:5])
+ep.f_use.setCurrentIndex(0)
+import docversions as DV
+cdoc = os.path.join(CDIR, "Kestrel_RFP_Sections_C_L_M.docx")
+DV.Library(w.ws.p("documents")).load().add(cdoc, [{"x": "The Offeror shall comply.", "l": "1"}], doc_name="Kestrel RFP")
+DV.Library(w.ws.p("documents")).load().add(VOL, [{"x": "Our approach.", "l": "1"}], doc_name="Our volume", category="ours")
+w.go("acronyms"); app.processEvents()
+check("Customer terms scans the Library's customer documents, not ours", w.acronym_page.customer_paths() == [cdoc]
+      and "START" in w.acronym_page.where.text(), w.acronym_page.customer_paths())
 # keywords
 w.go("keywords"); app.processEvents()
 kp = w.keywords_page

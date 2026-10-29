@@ -46,8 +46,14 @@ class AcronymPage(QWidget):
         self.terms = []
         v = QVBoxLayout(self)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
+        self.where = D.label("<b>START</b> &nbsp;What the customer's documents use. Add the terms to the effort list; the lists you "
+                             "submit come from Submission check and Lists to submit.", "muted")
+        self.where.setTextFormat(Qt.RichText); v.addWidget(self.where)                  # 2.86.0: which end this page serves
         top = QHBoxLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)
-        self.b_files = D.button("Scan files...", "primary", lambda: self.pick_files())
+        self.b_cust = D.button("Scan the customer documents", "primary", lambda: self.scan_customer(),
+                               "Every customer document in the Library (the newest version of each), no picking")
+        top.addWidget(self.b_cust)
+        self.b_files = D.button("Scan files...", None, lambda: self.pick_files())
         self.b_folder = D.button("Scan a folder...", None, lambda: self.pick_folder())
         self.b_again = D.button("Scan again", None, lambda: self.scan_again(), "The same files again: new choices and definitions apply")
         self.b_cancel = D.button("Cancel", "danger", lambda: self.cancel()); self.b_cancel.hide()
@@ -96,8 +102,9 @@ class AcronymPage(QWidget):
         split.addWidget(self.card_area)
         split.setSizes([1000, 420])
         v.addWidget(split, 1)
-        self.empty = D.EmptyState("No terms yet", "Scan the customer documents or your drafts: every acronym, abbreviation, unit "
-                                                  "and symbol, in typed text and in pictures.", "Scan files...", self.pick_files)
+        self.empty = D.EmptyState("No terms yet", "Scan the customer documents: every acronym, abbreviation, unit "
+                                                  "and symbol they use, in typed text and in pictures.", "Scan the customer documents",
+                                   lambda: self.scan_customer())
         v.addWidget(self.empty)
 
     # ------------------------------------------------------------ the effort
@@ -328,6 +335,28 @@ class AcronymPage(QWidget):
         if folder:
             self.scan(self.folder_files(folder), folder)
 
+    def customer_paths(self):
+        """2.86.0: the newest version of every customer document in the Library that is on this PC."""
+        if self.host.ws is None:
+            return []
+        import docversions as DV
+        lib = DV.Library(self.host.ws.p("documents")).load()
+        out = []
+        for d in lib.docs:
+            v = lib.latest(d)
+            p = lib.path_of(v) if v else ""
+            if p and os.path.isfile(p) and os.path.splitext(p)[1].lower() in A.SUPPORTED_EXTS:
+                out.append(p)
+        return out
+
+    def scan_customer(self):
+        paths = self.customer_paths()
+        if not paths:
+            self.host.status("No customer documents on this PC yet: add them in Library.")
+            return None
+        diag.activity("customer_terms_scan", files=len(paths))
+        return self.scan(paths)
+
     @staticmethod
     def folder_files(folder):
         return [os.path.join(r, f) for r, _, fs in os.walk(folder) for f in fs
@@ -351,7 +380,7 @@ class AcronymPage(QWidget):
         self.worker.progress.connect(self.progress.setText)
         self.worker.finished_ok.connect(self.scan_done)
         self.worker.failed.connect(self.scan_failed)
-        for b in (self.b_files, self.b_folder, self.b_again):
+        for b in (self.b_files, self.b_folder, self.b_again, self.b_cust):
             b.setEnabled(False)
         self.b_cancel.show()
         self.worker.start()
@@ -365,7 +394,7 @@ class AcronymPage(QWidget):
         if self.worker is not None:
             self.worker.wait(2000)
         self.worker = None
-        for b in (self.b_files, self.b_folder):
+        for b in (self.b_files, self.b_folder, self.b_cust):
             b.setEnabled(True)
         self.b_cancel.hide()
 

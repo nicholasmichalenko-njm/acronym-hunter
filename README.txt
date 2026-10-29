@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+RESPONSE QUALITY (2.86.0)
+  - The ACRONYMS and QUALITY groups are now one group, Response quality, in the order the work happens: Customer terms
+    (start), Effort list (throughout), Submission check and Lists to submit (end). Each page says which end it serves.
+  - Customer terms: Scan the customer documents reads the newest version of every customer document in the Library,
+    with no picking. Their terms are offered to the effort list with the customer's definitions first.
+  - Effort list: the glossary writers work from, not the list you submit. A filter shows the terms used in the
+    submission volumes, or not used in any, from the latest Submission check.
+  - Submission check: the Word volumes you will submit are marked once (and Deliverables' volumes with a Word file are
+    included); Check the submission volumes checks them all. Check other Word files... stays for a one-off check.
+  - Lists to submit: one list per volume, one master list, or both, set once for the effort. Each list holds only the
+    terms that volume uses, with the effort list's definitions; terms that need a definition or approval are marked.
+    Effort-list terms no volume uses are left out of every list and shown on a Left out tab. Export to Word (one file
+    per list) and Excel (with the left-out terms).
+
 CHANGE REVIEW (2.85.0)
   - Compare shows each change in its place in both versions, side by side (WAS and NOW, two sentences either side):
     removed words struck through in red, new words in green. A strip beside the list marks where every change sits in
