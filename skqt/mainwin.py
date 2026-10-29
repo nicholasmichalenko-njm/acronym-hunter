@@ -73,6 +73,7 @@ class MainWindow(QMainWindow):
         self.config_dir = config_dir
         self.version = version
         self.efforts = E.Registry(os.path.join(config_dir, "efforts.json"))
+        self.authors = self._load_authors(config_dir)          # 2.77.0: the one place names come from
         self.ws = None
         self.effort_name = ""
         self.effort_path = ""
@@ -267,8 +268,35 @@ class MainWindow(QMainWindow):
         self.title()
 
     def people(self):
-        names = SD.people(self.review.M) if self.review else []
-        return names
+        """2.77.0: the names on the author list that show in the open effort (the only names pickers offer)."""
+        return self.authors.for_effort(self.effort_name) if self.ws is not None else []
+
+    def _load_authors(self, config_dir):
+        import authorlist as AL
+        lst = AL.load(config_dir)
+        if not lst.exists:                       # first start of 2.77.0: start from each effort's team; nothing disappears
+            teams = []
+            for n in self.efforts.names():
+                path = (self.efforts.get(n) or {}).get("path")
+                if path:
+                    try:
+                        rec = W.read_json(os.path.join(W.data_dir_for(path), "record.json"), None) or {}
+                        teams.append((n, [m.get("name", "") for m in rec.get("team", []) if isinstance(m, dict)]))
+                    except Exception:
+                        diag.swallowed()
+            try:
+                AL.seed(lst, teams)
+            except OSError:
+                diag.swallowed()
+        return lst
+
+    def authors_changed(self):
+        """The author list changed: pages that show names refresh."""
+        try:
+            if self.ws is not None:
+                self.record_page.refresh()
+        except Exception:
+            diag.swallowed()
 
     # ------------------------------------------------------------ saving
     def changed(self):

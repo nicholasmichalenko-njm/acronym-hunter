@@ -75,11 +75,11 @@ def main(argv=None):
     if a.pack:
         m = U.read_manifest(a.pack)
         if m is None:
-            print("FAILED: the build has no program manifest (run --manifest first)")
+            print("REFUSED: the build has no program manifest (run --manifest first)")
             return 1
         secret = U.load_secret(a.key)
         if edsign.public_key(secret).hex() not in U.PUBLIC_KEYS:
-            print("FAILED: this key is not one of the public keys in updatepack.PUBLIC_KEYS")
+            print("REFUSED: this key is not one of the public keys in updatepack.PUBLIC_KEYS")
             return 1
         earlier = earlier_manifests(m["program"], m["version"], a.manifests)
         if earlier:

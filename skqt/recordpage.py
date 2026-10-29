@@ -5,7 +5,7 @@ kept in the effort's acronym list workbook, as the classic window keeps them. Ru
 import datetime, os
 from PySide6.QtCore import QDate, Qt, QTime
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDateEdit, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QHeaderView,
-                               QLineEdit, QScrollArea, QTableWidget, QTableWidgetItem, QTimeEdit, QVBoxLayout, QWidget)
+                               QDialog, QDialogButtonBox, QLineEdit, QListWidget, QListWidgetItem, QScrollArea, QTableWidget, QTableWidgetItem, QTimeEdit, QVBoxLayout, QWidget)
 import diag
 import effortrec as R
 import effortstate as ES
@@ -59,11 +59,13 @@ class RecordPage(QWidget):
         self.details.body.addLayout(self.found_row)
         v.addWidget(self.details)
         # team
-        self.team = D.Card("Team", "The people on this effort, offered wherever a lead, author or owner is picked.",
-                           actions=[D.button("+ Person", None, lambda: self.add_person()), D.button("Remove", "ghost", lambda: self.remove_person()),
-                                    D.button("Save team", "primary", lambda: self.save_team())])
+        self.team = D.Card("Team", "The names from the author list that show in this effort, offered wherever an author, lead or "
+                                   "owner is picked, with each person's role here. Every name lives in Settings > Author list.",
+                           actions=[D.button("Choose people...", None, lambda: self.choose_team()),
+                                    D.button("Save roles", "primary", lambda: self.save_team())])
         self.team_table = _table(["Name", "Role"]); self.team_table.setColumnWidth(1, 260); self.team_table.setMinimumHeight(180)
         self.team.add(self.team_table)
+        self.team_note = self.team.add(D.label("", "muted"))
         v.addWidget(self.team)
         # stages and gates
         self.stages = D.Card("Stages and gates", "Planned dates for each stage, and its gate: none; soft (moving on with open goals "
@@ -132,9 +134,7 @@ class RecordPage(QWidget):
         self.customer_due = sm["due"]["value"] if sm.get("due") else ""
         self.found.setText(f"The customer documents say: {self.customer_due}" if self.customer_due else "")
         self.use_found.setVisible(bool(self.customer_due))
-        self.team_table.setRowCount(0)
-        for m in r.team():
-            self._team_row(m["name"], m.get("role", ""))
+        self.fill_team(r)
         self.fill_stages(r)
         bd = self.backup_dir()
         self.backup_text.setText(f"Backups go to {bd}." if bd else "Backups are off. Choose the backup folder in Settings.")
@@ -181,31 +181,61 @@ class RecordPage(QWidget):
         self.refresh()
         return True
 
-    # ------------------------------------------------------------ team
-    def _team_row(self, name, role):
+    # ------------------------------------------------------------ team (2.77.0: from the author list)
+    def fill_team(self, r=None):
+        r = r or self.rec
+        roles = {m["name"].casefold(): m.get("role", "") for m in r.team()}
+        names = self.host.authors.for_effort(self.host.effort_name)
         t = self.team_table
-        i = t.rowCount(); t.insertRow(i)
-        t.setItem(i, 0, QTableWidgetItem(name)); t.setItem(i, 1, QTableWidgetItem(role))
-        return i
+        t.setRowCount(0)
+        for n in names:
+            i = t.rowCount(); t.insertRow(i)
+            it = QTableWidgetItem(n); it.setFlags(it.flags() & ~Qt.ItemIsEditable); t.setItem(i, 0, it)
+            t.setItem(i, 1, QTableWidgetItem(roles.get(n.casefold(), "")))
+        self.team_note.setText("" if names else f"No names show in {self.host.effort_name} yet. Choose people adds names from "
+                               "the author list; add new names in Settings > Author list.")
 
-    def add_person(self, name="", role=""):
-        i = self._team_row(name, role)
-        self.team_table.setCurrentCell(i, 0)
-        if not name:
-            self.team_table.editItem(self.team_table.item(i, 0))
-        return i
-
-    def remove_person(self):
-        i = self.team_table.currentRow()
-        if i >= 0:
-            self.team_table.removeRow(i)
+    def choose_team(self, answer=None):
+        """Tick the names (from the whole author list) that show in this effort. answer (tests): the names."""
+        from .people import effort_names
+        L, here = self.host.authors, self.host.effort_name
+        if not L.people:
+            self.host.status("The author list is empty. Add names in Settings > Author list.")
+            if answer is None:
+                self.host.go("settings"); self.host.settings_page.focus_authors()
+            return None
+        if answer is None:
+            d = QDialog(self); d.setWindowTitle(f"People on {here}"); d.setMinimumSize(420, 460)
+            v = QVBoxLayout(d)
+            v.addWidget(D.label("Tick who shows in this effort. A name set to all efforts shows here too; untick it to keep "
+                                "it in the other efforts only.", "muted"))
+            lw = QListWidget(); v.addWidget(lw, 1)
+            for p in sorted(L.people, key=lambda p: p["name"].casefold()):
+                it = QListWidgetItem(p["name"] + ("  (all efforts)" if p["efforts"] == "all" else "")); it.setData(Qt.UserRole, p["name"])
+                it.setFlags(it.flags() | Qt.ItemIsUserCheckable)
+                it.setCheckState(Qt.Checked if L.shows_in(p, here) else Qt.Unchecked)
+                lw.addItem(it)
+            bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
+            v.addWidget(bb)
+            if d.exec() != QDialog.Accepted:
+                return None
+            answer = [lw.item(i).data(Qt.UserRole) for i in range(lw.count()) if lw.item(i).checkState() == Qt.Checked]
+        want = {n.casefold() for n in answer}
+        effs = effort_names(self.host)
+        n = 0
+        for p in list(L.people):
+            n += L.show_in(p["name"], here, p["name"].casefold() in want, effs)
+        diag.activity("qt_team_chosen", n=len(want))
+        self.host.toast(f"{len(L.for_effort(here))} people show in {here}")
+        self.fill_team()
+        return L.for_effort(here)
 
     def save_team(self):
         t = self.team_table
         rows = [((t.item(i, 0).text() if t.item(i, 0) else ""), (t.item(i, 1).text() if t.item(i, 1) else "")) for i in range(t.rowCount())]
         new = self.rec.set_team(rows)
         diag.activity("qt_team_saved")
-        self.host.toast(f"Team saved: {len(new)} people")
+        self.host.toast(f"Team roles saved: {len(new)} people")
         self.refresh()
         return new
 

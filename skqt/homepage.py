@@ -341,8 +341,8 @@ class HomePage(QWidget):
         dlg = QDialog(self); dlg.setWindowTitle("Task" if t else "New task"); dlg.setMinimumWidth(480)
         form = QFormLayout(dlg)
         title = QLineEdit(t["title"] if t else "")
-        owner = QComboBox(); owner.setEditable(True); owner.addItems([""] + self.state.people())
-        owner.setCurrentText(t["owner"] if t else (self.person() or ""))
+        from .people import combo_name, name_combo       # 2.77.0: owners come from the author list only
+        owner = name_combo(self.host, t["owner"] if t else (self.person() or ""))
         has_due = QCheckBox("Due on")
         when = QDateEdit(); when.setCalendarPopup(True); when.setDisplayFormat("MMM d, yyyy")
         d = R.parse_date(t["due"]) if t and t.get("due") else R.parse_date(due) if due else None
@@ -366,7 +366,7 @@ class HomePage(QWidget):
         form.addRow(bb)
 
         def values():
-            return {"title": title.text(), "owner": owner.currentText(), "due": when.date().toPython().isoformat() if has_due.isChecked() else "",
+            return {"title": title.text(), "owner": combo_name(owner), "due": when.date().toPython().isoformat() if has_due.isChecked() else "",
                     "status": status.currentText(), "stage": stage.currentData(), "notes": notes.toPlainText()}
         dlg.api = {"title": title, "owner": owner, "has_due": has_due, "when": when, "status": status, "stage": stage, "notes": notes,
                    "values": values}
@@ -453,11 +453,12 @@ class HomePage(QWidget):
         return ok
 
     def assign_dialog(self, nid, who=None):
-        if who is None:
-            people = [""] + self.state.people()
-            who, ok = QInputDialog.getItem(self, "Assign the question", "Who answers it:", people, 0, True)
-            if not ok:
+        if who is None:                                  # 2.77.0: from the author list only
+            from .people import pick_names
+            got = pick_names(self.host, [], "Who answers the question", multi=False, parent=self)
+            if not got:
                 return False
+            who = got[0]
         ok = self.rec.update_note(nid, assignee=who)
         diag.activity("qt_question_assigned")
         self.changed()

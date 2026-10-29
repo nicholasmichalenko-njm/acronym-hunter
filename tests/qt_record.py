@@ -61,9 +61,12 @@ L2 = E.EffortList(LIST).load()
 r = RR.Record(ws0.root)
 check("details are kept in the acronym list and the record", L2.client == "USSF SSC" and L2.solicitation == "FA8810-26-R-0042"
       and r.data["due"].startswith((today + datetime.timedelta(days=30)).isoformat()) and r.data["zone"] == "MT", (L2.client, r.data["due"]))
-rp.add_person("A. Lee", "Volume lead"); rp.add_person("R. Reviewer", "Red team reviewer")
+w.authors.merge([("A. Lee", None), ("R. Reviewer", None), ("Z. Other", None)], default=["Osprey"])   # 2.77.0: the author list
+rp.choose_team(answer=["A. Lee", "R. Reviewer"])
+rp.team_table.item(0, 1).setText("Volume lead"); rp.team_table.item(1, 1).setText("Red team reviewer")
 rp.save_team()
-check("the team is saved in order", [m["name"] for m in RR.Record(ws0.root).team()] == ["A. Lee", "R. Reviewer"])
+check("the team: names from the author list that show in this effort, with roles", [m["name"] for m in RR.Record(ws0.root).team()] == ["A. Lee", "R. Reviewer"]
+      and rp.team_table.rowCount() == 2 and "Z. Other" not in w.people())
 check("the stage table lists every stage with a gate box", rp.stage_table.rowCount() == len(r.stages) and rp.stage_table.cellWidget(0, 3) is not None)
 rp.stage_table.item(0, 1).setText((today - datetime.timedelta(days=3)).strftime("%b %d, %Y"))
 rp.stage_table.cellWidget(0, 3).setCurrentIndex(rp.stage_table.cellWidget(0, 3).findData("hard"))

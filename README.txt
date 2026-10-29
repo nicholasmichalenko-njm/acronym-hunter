@@ -1,6 +1,22 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+ONE AUTHOR LIST FOR EVERY NAME (2.77.0)
+  - Settings > Author list is the only place names come from. Author(s) in Assign, a section's lead and contributors,
+    a task's owner, a question's answerer and a deliverable's owner all pick from it; names are never typed there.
+  - Each name shows in All efforts or in the efforts named next to it: Joe G. set to Effort A shows in Effort A's
+    drop-downs and not in Effort B's. Shows in... sets the efforts; Show in this effort and Not in this effort change
+    the open effort only.
+  - Add names (one per line), or Import a list (.txt one name per line; .csv or .xlsx with a Name column and an
+    optional Efforts column: All efforts, or effort names separated by semicolons). An import adds only names that are
+    not on the list yet; names already there stay exactly as they are, efforts included. Export the list to hand an
+    updated list to the rest of the team.
+  - With no effort, the list and the pickers say to select or create an effort first.
+  - First start of 2.77.0: the list starts from every effort's team, so nobody disappears. A name already assigned
+    that is not on the list stays on its sentences, marked "(not on the author list)".
+  - Effort record > Team shows the names from the list for this effort with their roles; Choose people ticks who
+    shows in the effort.
+
 UPDATE PACKS: INSTALL ONCE, THEN UPDATE WITH ONE FILE (2.76.0)
   - 2.76.0 is the last full download. Each later version also comes as one update pack, for example
     Stationkeeper_US_Update_2.77.0.skupdate (and Stationkeeper_US_Training_Update_2.77.0.skupdate for Training).

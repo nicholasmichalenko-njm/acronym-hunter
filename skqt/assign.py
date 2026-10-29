@@ -611,12 +611,11 @@ class AssignPage(QWidget):
         else:
             self.add(QLabel("R: requirement (in the target section).  C: support for the last requirement you clicked.  G: the customer's."))
         self.head("Author(s)")
-        ed = self.add(QLineEdit(", ".join(SD.split_names(it.get("owner", "")))))
-        ed.setPlaceholderText("names, separated by commas (empty: the section's lead)")
         on = d in ("Keep", "Context")
+        from .people import NamesField                  # 2.77.0: authors come from the author list only
+        ed = self.add(NamesField(self.host, SD.split_names(it.get("owner", "")), empty="(the section's lead)", title="Authors",
+                                 on_change=lambda names, rows=rows: self.set_authors(rows, ", ".join(names))))
         ed.setEnabled(on)
-        comp = QCompleter(self.host.people()); comp.setCaseSensitivity(Qt.CaseInsensitive); ed.setCompleter(comp)
-        ed.editingFinished.connect(lambda ed=ed: self.set_authors(rows, ed.text()))
         self.authors = ed
         lead = SD.section_people(M, it.get("map", "")).get("lead", "") if it.get("map") else ""
         if on and not it.get("owner"):
@@ -745,18 +744,20 @@ class AssignPage(QWidget):
             return None
         d = QDialog(self); d.setWindowTitle("People for each section"); d.resize(720, 520)
         lay = QVBoxLayout(d)
-        lay.addWidget(QLabel("A lead and contributors (names separated by commas). Requirements in a section and its subsections "
+        lay.addWidget(QLabel("A lead and contributors, from the author list. Requirements in a section and its subsections "
                              "take its lead as author unless they have their own."))
+        from .people import NamesField, combo_name, empty_text, name_combo
+        if not self.host.people():                     # 2.77.0: the author list is the only source of names
+            warn = D.label(empty_text(self.host), "crit"); warn.setWordWrap(True); lay.addWidget(warn)
         area = QScrollArea(); area.setWidgetResizable(True); inner = QWidget(); form = QFormLayout(inner); area.setWidget(inner)
         lay.addWidget(area, 1)
         rows = []
-        team = self.host.people()
         for o in self.M.outline:
             lab = C.outline_label(o)
             pp = SD.setup_of(self.M)["owners"].get(lab) or {}
             w = QWidget(); h = QHBoxLayout(w); h.setContentsMargins(0, 0, 0, 0)
-            le = QComboBox(); le.setEditable(True); le.addItems([""] + team); le.setCurrentText(pp.get("lead", ""))
-            we = QLineEdit(pp.get("with", "")); we.setPlaceholderText("contributors")
+            le = name_combo(self.host, pp.get("lead", ""))
+            we = NamesField(self.host, SD.split_names(pp.get("with", "")), empty="(no contributors)", title=f"Contributors: {lab}")
             h.addWidget(le, 1); h.addWidget(we, 2)
             form.addRow(("    " * max(0, o.get("level", 1) - 1)) + lab, w)
             rows.append((lab, le, we))
@@ -766,7 +767,7 @@ class AssignPage(QWidget):
         def save():
             self.R.snap()
             for lab, le, we in rows:
-                SD.set_people(self.M, lab, le.currentText(), we.text())
+                SD.set_people(self.M, lab, combo_name(le), we.text())
             self.M.pending = True
             diag.activity("compliance_people_set", n=len(rows))
             d.accept()

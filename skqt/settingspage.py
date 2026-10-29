@@ -38,6 +38,10 @@ class SettingsPage(QWidget):
         f.addRow("First use of an acronym", self.rule)
         self.eff.body.addWidget(D.button("Save for this effort", None, lambda: self.save_effort()))
         v.addWidget(self.eff)
+        from .people import AuthorListCard               # 2.77.0: the one place names come from
+        self.authors = AuthorListCard(host)
+        v.addWidget(self.authors)
+        self.scroll = sc
         self.db = D.Card("Master database", "The company's acronyms, abbreviations, units and symbols, shared by every effort on this PC.",
                          actions=[D.button("Load a new version...", None, lambda: self.load_master())])
         self.db_text = self.db.add(D.label("", "muted"))
@@ -60,6 +64,11 @@ class SettingsPage(QWidget):
         self.sec = UP.security_card()
         v.addWidget(self.sec)
         v.addStretch(1)
+
+    def focus_authors(self):
+        self.authors.fill()
+        self.scroll.ensureWidgetVisible(self.authors, 0, 0)
+        self.authors.table.setFocus()
 
     def _before_restart(self):
         try:
@@ -92,6 +101,7 @@ class SettingsPage(QWidget):
             self.db_text.setText(MD.info_text())
         except Exception:
             diag.swallowed()
+        self.authors.fill()
         try:
             from . import updates as UP
             self.up.lbl.setText(UP.version_text())

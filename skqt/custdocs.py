@@ -1132,13 +1132,8 @@ class DeliverablesPage(QWidget):
             f = QFormLayout(dlg)
             name = QLineEdit(d["name"] if d else "")
             kind = QComboBox(); kind.addItems(DL.KINDS); kind.setCurrentText(d.get("kind", "Volume") if d else "Volume")
-            owner = QComboBox(); owner.setEditable(True)
-            try:
-                import effortstate as ES
-                owner.addItems([""] + ES.people_of(rec, self.host.review.M if self.host.review else None))
-            except Exception:
-                diag.swallowed()
-            owner.setCurrentText(d.get("owner", "") if d else "")
+            from .people import combo_name, name_combo   # 2.77.0: owners come from the author list only
+            owner = name_combo(self.host, d.get("owner", "") if d else "")
             fmt = QLineEdit(d.get("format", "") if d else ""); limit = QLineEdit(d.get("limit", "") if d else "")
             status = QComboBox(); status.addItems(DL.STATUSES); status.setCurrentText(d.get("status", "Not started") if d else "Not started")
             fl = QLineEdit(d.get("file", "") if d else ""); fl.setPlaceholderText("Our Word file (for the page count)")
@@ -1148,7 +1143,7 @@ class DeliverablesPage(QWidget):
             f.addRow(bb)
             if dlg.exec() != QDialog.Accepted:
                 return None
-            values = {"name": name.text(), "kind": kind.currentText(), "owner": owner.currentText(), "format": fmt.text(),
+            values = {"name": name.text(), "kind": kind.currentText(), "owner": combo_name(owner), "format": fmt.text(),
                       "limit": limit.text(), "status": status.currentText(), "file": fl.text()}
         if d is None:
             did = DL.add(rec, values.get("name", ""), values.get("kind", ""), fmt=values.get("format", ""), limit=values.get("limit", ""),

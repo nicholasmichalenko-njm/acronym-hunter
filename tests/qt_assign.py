@@ -102,8 +102,9 @@ plus.activated.emit(next(i for i in range(plus.count()) if plus.itemText(i) == "
 check("+ Section: in a second section", SD.item_sections(M, a) == ["1.1 Technical Approach", "1.2 Risk"])
 pg.chips[1].remove.click(); app.processEvents()
 check("the chip's x takes it out", SD.item_sections(M, a) == ["1.1 Technical Approach"])
-pg.authors.setText("A. Lee, K. Park"); pg.authors.editingFinished.emit(); app.processEvents()
-check("several authors", a["owner"] == "A. Lee, K. Park")
+w.authors.merge([("A. Lee", None), ("K. Park", None)], default=["Kestrel"])     # 2.77.0: names come from the author list
+pg.authors.choose(answer=["A. Lee", "K. Park", "Not Listed"]); app.processEvents()
+check("several authors, from the author list only", a["owner"] == "A. Lee, K. Park", a["owner"])
 check("relationships say where the support is in the RFP", any("(L.1, p.1)" in l.text() for l in pg.rel_labels), [l.text()[:60] for l in pg.rel_labels])
 x1, x2 = by("Pages shall be"), by("Each page shall be numbered")
 click(x1["id"]); click(x2["id"], ctrl=True)
