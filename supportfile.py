@@ -30,7 +30,8 @@ WHATS_NEW = {
                "response structure (File list: Library: ...). Select text, then choose where it goes: context for a "
                "section (C), for a requirement (F), a note (N), a question (Q), a task (T), or make it a requirement (R).",
                "Context shows on the structure (Ctx column), on a requirement's card, and in Response Setup under its section.",
-               "Library > Taken from documents lists everything taken, filters it by kind, document and topic, and exports it."],
+               "Library > Taken from documents lists everything taken, filters it by kind, document and topic, and exports it.",
+               "Every start, after an update too, reopens the effort you last had open. Assign: Not used is now Ignore."],
     "2.83.0": ["Library: every document of the effort in one place: customer documents, the bidders library, Q&A, our "
                "documents and categories of your own, with folders, tags and search across the text of every document.",
                "Add a folder (or drag folders and files onto the Library): every document comes in with a progress bar, its "

@@ -118,11 +118,13 @@ def main(argv=None):
         w.status("Safe start: Stationkeeper did not finish starting twice, so the last effort was not opened. Open it from "
                  "the Effort box; if it fails again, create a support file (Settings > Help and support).")
         _QT.singleShot(800, then)
-    elif w.efforts.current:
-        cur = w.efforts.current                      # 2.82.0: reopened under a cover that says what is happening
+    elif w.efforts.current or len(w.efforts.names()) == 1:
+        cur = w.efforts.current or w.efforts.names()[0]   # 2.84.0: the effort last open (or the only one), every start
         title = (f"Stationkeeper {A.APP_VERSION} is ready. Reopening your work" if after else f"Opening {cur}")
         _QT.singleShot(0, lambda: (w.open_with_progress(cur, title), _QT.singleShot(600, then)))
     else:
+        if w.efforts.names():                        # 2.84.0: several efforts and none remembered: say where they are
+            w.status("Pick your effort in the Effort box (top right): its work is all there.")
         _QT.singleShot(800, then)
     from PySide6.QtCore import QTimer
     pkg = next((a for a in args[1:] if a.lower().endswith((".skpkg", ".ahpkg")) and os.path.isfile(a)), None)
