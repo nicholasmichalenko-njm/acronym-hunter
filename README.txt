@@ -14,6 +14,17 @@ RESPONSE QUALITY (2.86.0)
     terms that volume uses, with the effort list's definitions; terms that need a definition or approval are marked.
     Effort-list terms no volume uses are left out of every list and shown on a Left out tab. Export to Word (one file
     per list) and Excel (with the left-out terms).
+  - Customer terms: a term's card shows where it was found, zoomed in: a picture of the lines around it on the PDF page
+    (outlined), or the Word paragraph with the term highlighted and the paragraphs either side; Previous and Next
+    place step through every use. A plural (CDRLs) is marked "Plural of CDRL": it stays a found term in every scan,
+    counts for its singular, and never shows as its own row in the lists you submit ("Not a plural" undoes it). The
+    separate Customer acronym lists button is gone: the customer's terms are every acronym in its documents, and a
+    glossary in a customer document gives its definitions first.
+  - Gate goals: click a goal's wording to change it, remove it, or (for a goal the app checks) tick it by hand.
+    Defaults... saves the current stage's goals as the default for new efforts on this PC.
+  - The window adapts to its size: button rows wrap onto a second line instead of cutting buttons off, and a page
+    scrolls only when the window is smaller than it needs. Tables are compact; columns resize by dragging (double-click
+    an edge to fit), long text ends in "..." with the full text on hover, and wide tables scroll left and right.
 
 CHANGES: ONE PLACE FOR WHAT A NEW VERSION CHANGED (2.85.0)
   - Compare, Impact review and the review part of Requirements are now one page, Changes. Documents in the rail is:

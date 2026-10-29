@@ -75,6 +75,11 @@ class MainWindow(QMainWindow):
         self.config_dir = config_dir
         self.version = version
         self.efforts = E.Registry(os.path.join(config_dir, "efforts.json"))
+        try:                                       # 2.86.0: default gate goals saved on this PC
+            import effortrec as _ER
+            _ER.load_default_goals(config_dir)
+        except Exception:
+            diag.swallowed()
         self.authors = self._load_authors(config_dir)          # 2.77.0: the one place names come from
         self.ws = None
         self.effort_name = ""
@@ -124,7 +129,8 @@ class MainWindow(QMainWindow):
         bh.addWidget(self.effort_box)
         self.saved = D.Pill("Saved", "ok"); bh.addWidget(self.saved)
         cv.addWidget(bar)
-        self.stack = QStackedWidget()
+        from .adaptive import PageStack
+        self.stack = PageStack()                   # 2.86.0: a page scrolls only when the window is smaller than it needs
         self.home_page = HomePage(self)
         self.dash_page = DashPage(self)
         self.record_page = RecordPage(self)

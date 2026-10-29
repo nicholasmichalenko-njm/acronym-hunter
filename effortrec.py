@@ -56,6 +56,44 @@ DEFAULT_GOALS = {
     "Gold team recovery": ["Every gold team comment has an owner", "docs_reviewed", "reqs_reviewed", "pages_ok", "first_use_clean"],
     "Final to pubs": ["pages_ok", "first_use_clean", "banned_clean", "deliverables_ok", "Files named as the customer requires", "Forms signed", "tasks_done"],
 }
+CUSTOM_GOALS = {}                    # 2.86.0: {stage name: [goal key or text]}: this PC's (or team's) defaults for new efforts
+GOALS_FILE = "stage_goals.json"
+
+
+def load_default_goals(config_dir):
+    """2.86.0: the default gate goals for new efforts saved on this PC, over the built-in ones."""
+    import json
+    CUSTOM_GOALS.clear()
+    try:
+        with open(os.path.join(config_dir, GOALS_FILE), encoding="utf-8") as f:
+            d = json.load(f)
+        for k, v in (d.get("stages") or {}).items():
+            if isinstance(v, list):
+                CUSTOM_GOALS[k] = [str(x) for x in v if str(x).strip()]
+    except (OSError, ValueError, AttributeError):
+        pass
+    return dict(CUSTOM_GOALS)
+
+
+def save_default_goals(config_dir, stage, goals):
+    """Save a stage's goals ([goal dict]) as the default for new efforts. Returns the keys saved."""
+    import json
+    keys = [g["auto"] if g.get("auto") else _clean(g.get("text", "")) for g in goals if g.get("auto") or _clean(g.get("text", ""))]
+    path = os.path.join(config_dir, GOALS_FILE)
+    try:
+        with open(path, encoding="utf-8") as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        d = {}
+    d.setdefault("stages", {})[stage] = keys
+    os.makedirs(config_dir, exist_ok=True)
+    with open(path + ".tmp", "w", encoding="utf-8") as f:
+        json.dump(d, f, indent=1, ensure_ascii=False)
+    os.replace(path + ".tmp", path)
+    CUSTOM_GOALS[stage] = keys
+    return keys
+
+
 MONTHS = {m: i for i, m in enumerate(("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"), 1)}
 
 
@@ -251,7 +289,7 @@ class Record:
     @staticmethod
     def _new_stage(name, planned=""):
         goals = []
-        for g in DEFAULT_GOALS.get(name, []):
+        for g in CUSTOM_GOALS.get(name, DEFAULT_GOALS.get(name, [])):
             goals.append({"id": _id(), "text": AUTO.get(g, g), "auto": g if g in AUTO else "", "done": False, "by": "", "at": ""})
         return {"id": _id(), "name": name, "planned": planned, "started": "", "ended": "", "goals": goals}
 
@@ -416,6 +454,17 @@ class Record:
             return False
         old, g["text"] = g["text"], text
         self.log("stage", f"Goal changed in {s['name']}: {old} > {text}", who=who)
+        self.save()
+        return True
+
+    def make_manual(self, sid, gid, who=None):
+        """2.86.0: the app stops checking this goal; a person ticks it (its wording stays)."""
+        s = self.stage(sid)
+        g = next((x for x in s["goals"] if x["id"] == gid), None) if s else None
+        if g is None or not g.get("auto"):
+            return False
+        g["auto"] = ""
+        self.log("stage", f"Goal now ticked by hand in {s['name']}: {g['text']}", who=who)
         self.save()
         return True
 

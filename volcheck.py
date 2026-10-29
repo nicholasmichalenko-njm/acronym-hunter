@@ -299,7 +299,8 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
     unused = []
     for term in sorted(rows, key=str.lower):
         r = rows[term]
-        if r.get("Status") == "Rejected" or term in all_terms or any(a in all_terms for a in AF.parse_alts(r.get("Alt forms", ""))):
+        if r.get("Status") == "Rejected" or term in all_terms or any(a in all_terms for a in AF.parse_alts(r.get("Alt forms", ""))) \
+                or any((results.get(x) or {}).get("plural_of") == term for x in all_terms):
             continue
         unused.append({"term": term, "type": r.get("Type", ""), "status": r.get("Status", ""), "definition": r.get("Definition", "")})
 
@@ -308,14 +309,18 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
     for v in volumes:
         out = []
         alt_used = {}
+        plural_used = set()
         for term in used[v]:
             p = results[term].get("alt_of")
-            if p and term not in rejected:
+            if results[term].get("plural_of") and term not in rejected:
+                plural_used.add(results[term]["plural_of"])              # 2.86.0: a plural lists its singular, never itself
+            elif p and term not in rejected:
                 alt_used.setdefault(p, []).append(term)
-        for term in sorted(set(used[v]) | set(alt_used), key=lambda t: (t.lower(), t)):
+        for term in sorted(set(used[v]) | set(alt_used) | plural_used, key=lambda t: (t.lower(), t)):
             if term in rejected or (results.get(term) or {}).get("alt_of"):
                 continue                        # alt forms are listed with their primary: "TT&C (TTC)" (2.26.0)
-            d = results.get(term) or (results[alt_used[term][0]] if term in alt_used else {})
+            d = results.get(term) or (results[alt_used[term][0]] if term in alt_used else
+                                      next((results[x] for x in used[v] if (results.get(x) or {}).get("plural_of") == term), {}))
             r = rows.get(term)
             if r:
                 definition, st = r.get("Definition", ""), r["Status"]

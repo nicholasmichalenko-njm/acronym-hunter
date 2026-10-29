@@ -85,6 +85,22 @@ r2 = RR.Record(ws0.root)
 check("+ Goal is kept in the record", any(g["text"] == "Kickoff held with every section lead" for g in r2.stage()["goals"]))
 hp.set_goal(gid, True)
 check("ticking a goal records who and when", next(g for g in RR.Record(ws0.root).stage()["goals"] if g["id"] == gid)["done"])
+# 2.86.0: click a goal to change it: its wording, remove it, or tick an app-checked goal by hand
+from skqt.homepage import ClickLabel
+labs = [l for l in hp.goals.findChildren(ClickLabel)]
+check("each goal's wording is clickable", any("Kickoff held" in l.text() for l in labs))
+hp.goal_dialog(gid, text="Kickoff held with every section lead and the PM")
+check("change its wording", any(g["text"].endswith("and the PM") for g in RR.Record(ws0.root).stage()["goals"]))
+auto = next(g for g in RR.Record(ws0.root).stage()["goals"] if g.get("auto"))
+hp.goal_dialog(auto["id"], action="manual")
+check("an app-checked goal can be ticked by hand instead", not next(g for g in RR.Record(ws0.root).stage()["goals"] if g["id"] == auto["id"])["auto"])
+n0 = len(RR.Record(ws0.root).stage()["goals"])
+hp.goal_dialog(auto["id"], action="remove")
+check("and removed", len(RR.Record(ws0.root).stage()["goals"]) == n0 - 1)
+keys = hp.save_defaults(answer=True)
+import effortrec as ER
+check("this stage's goals become the default for new efforts", bool(keys)
+      and ER.Record._new_stage(RR.Record(ws0.root).stage()["name"])["goals"][-1]["text"].endswith("and the PM"))
 check("tasks: the late one is marked late", "1 open" not in hp.tasks.title.text() and "2 open" in hp.tasks.title.text())
 dlg = hp.task_dialog(late, run=False)
 check("the task dialog opens on the task", dlg.api["title"].text() == "Send the kickoff notes" and dlg.api["has_due"].isChecked())

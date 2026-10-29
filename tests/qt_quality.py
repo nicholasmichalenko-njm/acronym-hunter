@@ -88,6 +88,24 @@ t = time.time()
 while qp.worker is not None and time.time() - t < 240:
     app.processEvents(); time.sleep(0.05)
 r = w.acronym_page.session.volume_report
+# a plural counts for its singular: map a term the volume uses as the plural of ZZTOP, check again
+sess = w.acronym_page.session
+used_term = sorted(x["key"] for x in r["lists"]["Kestrel_Technical_Volume.docx"])[0]
+sess.set_plural(used_term, "ZZTOP")
+qp.check_volumes()
+t = time.time()
+while qp.worker is not None and time.time() - t < 240:
+    app.processEvents(); time.sleep(0.05)
+r2 = sess.volume_report
+keys2 = {x["key"] for x in r2["lists"]["Kestrel_Technical_Volume.docx"]}
+check("a plural lists its singular and never itself", "ZZTOP" in keys2 and used_term not in keys2
+      and not any(x["term"] == "ZZTOP" for x in r2["unused"]), (used_term, sorted(keys2)[:6]))
+sess.clear_plural(used_term)
+qp.check_volumes()
+t = time.time()
+while qp.worker is not None and time.time() - t < 240:
+    app.processEvents(); time.sleep(0.05)
+r = sess.volume_report
 w.go("lists"); app.processEvents()
 lp = w.lists_page
 names = [lp.tabs.tabText(i) for i in range(lp.tabs.count())]

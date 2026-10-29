@@ -83,6 +83,7 @@ class AcronymSession(EffortMixin, HomeMixin, MasterMixin, WizardMixin, KeywordsM
         self.scanned_paths, self.queued_files = {}, []
         self.last_scan = None
         self.volume_report = None
+        self.plurals = {}
         self.selected_term = None
         self.matrix = None                                   # the Qt edition sets the open compliance matrix (keyword asks)
         self.sort_col, self.sort_desc = "term", False
@@ -152,14 +153,17 @@ class AcronymSession(EffortMixin, HomeMixin, MasterMixin, WizardMixin, KeywordsM
             self.last_scan = {"paths": ls["paths"], "folder": ls.get("folder"), "cache": {}}
             self.scanned_paths.update({os.path.basename(f): f for f in ls["paths"]})
         self.volume_report = s.get("volume_report") or None
+        self.plurals = dict(s.get("plurals") or {})                   # 2.86.0: {plural: singular}
         if self.results:
             self.apply_effort()
+            self.apply_plurals()
         return len(self.results)
 
     def save(self):
         """Write the results back where the classic window keeps them, so either program resumes them."""
         s = self.ws.load_session() or {}
         s.update({"results": self.results, "manual_items": self.manual_items, "session_decisions": self.session_decisions,
+                  "plurals": getattr(self, "plurals", {}),
                   "last_scan": {"paths": (self.last_scan or {}).get("paths", []), "folder": (self.last_scan or {}).get("folder")}
                   if self.last_scan else s.get("last_scan")})
         self.ws.save_session(s)
@@ -192,9 +196,59 @@ class AcronymSession(EffortMixin, HomeMixin, MasterMixin, WizardMixin, KeywordsM
             if d.get("known") and not d.get("effort") and not d.get("excluded"):
                 d["status"] = A.KNOWN_STATUS + (f": {d['omit_reason']}" if d.get("omit_reason") else "")
         self.mark_known_in()
+        self.apply_plurals()
         rec = self.effort_after_scan(self.queued_files) if self.effort is not None else None
         self.save()
         return rec
+
+    # ------------------------------------------------------------ plurals (2.86.0)
+    PLURAL = "Plural of"
+
+    def apply_plurals(self):
+        """A plural (CDRLs) stays a found term, tied to its singular (CDRL): its uses count for the singular, it is never
+        a row of its own in the lists you submit, and it keeps being found in every scan."""
+        pl = getattr(self, "plurals", None) or {}
+        for term, d in self.results.items():
+            sing = pl.get(term)
+            if sing:
+                d["plural_of"] = sing
+                d["alt_of"] = sing
+                d["status"] = f"{self.PLURAL} {sing}"
+                sd = self.results.get(sing) or {}
+                if sd.get("selected_definition") and not d.get("selected_definition"):
+                    d["selected_definition"] = sd["selected_definition"]
+            elif d.get("plural_of"):
+                d.pop("plural_of", None)
+
+    @staticmethod
+    def singular_guess(term):
+        """CDRLs -> CDRL, SOWs -> SOW, ICD's -> ICD; '' when it does not look like a plural."""
+        import re
+        m = re.match(r"^([A-Z][A-Z0-9&/.-]+?)(?:'s|s|es)$", term or "")
+        return m.group(1) if m and len(m.group(1)) >= 2 else ""
+
+    def set_plural(self, term, singular):
+        singular = " ".join((singular or "").split())
+        if not term or not singular or term == singular:
+            return False
+        self.plurals = dict(getattr(self, "plurals", {}) or {})
+        self.plurals[term] = singular
+        self.apply_plurals()
+        self.save()
+        return True
+
+    def clear_plural(self, term):
+        pl = dict(getattr(self, "plurals", {}) or {})
+        if pl.pop(term, None) is None:
+            return False
+        self.plurals = pl
+        d = self.results.get(term)
+        if d is not None:
+            d.pop("plural_of", None); d.pop("alt_of", None)
+            d["status"] = "Needs Review"
+        self.apply_effort()
+        self.save()
+        return True
 
     # ------------------------------------------------------------ QA/QC of our Word volumes (2.66.0)
     def qa_check(self, paths, status_callback=None, reg_rows=(), volumes=()):

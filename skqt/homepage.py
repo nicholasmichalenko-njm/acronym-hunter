@@ -8,7 +8,7 @@ from PySide6.QtCore import QDate, Qt
 from PySide6.QtGui import QTextCharFormat
 from PySide6.QtWidgets import (QCalendarWidget, QCheckBox, QComboBox, QDateEdit, QDialog, QDialogButtonBox, QFormLayout,
                                QFrame, QGridLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QPlainTextEdit, QScrollArea,
-                               QVBoxLayout, QWidget)
+                               QMessageBox, QVBoxLayout, QWidget)
 import diag
 import effortrec as R
 import effortstate as ES
@@ -35,6 +35,21 @@ def clear(layout):
 
 def plural(n, word, many=None):
     return f"{n} {word if n == 1 else (many or word + 's')}"
+
+
+class ClickLabel(QLabel):
+    """2.86.0: a goal's wording: click it to change it."""
+
+    def __init__(self, text, on_click):
+        super().__init__(text)
+        self.setWordWrap(True)
+        self.on_click = on_click
+        self.setCursor(Qt.PointingHandCursor)
+
+    def mouseReleaseEvent(self, e):
+        if e.button() == Qt.LeftButton:
+            self.on_click()
+        super().mouseReleaseEvent(e)
 
 
 class HomePage(QWidget):
@@ -64,7 +79,9 @@ class HomePage(QWidget):
         v.addWidget(self.track)
         grid = QGridLayout(); grid.setSpacing(D.SPACE["m"]); v.addLayout(grid)
         grid.setColumnStretch(0, 1); grid.setColumnStretch(1, 1)
-        self.goals = D.Card("Gate goals", actions=[D.button("+ Goal", None, lambda: self.goal_dialog())])
+        self.goals = D.Card("Gate goals", actions=[D.button("+ Goal", None, lambda: self.goal_dialog()),
+                                                   D.button("Defaults...", "ghost", lambda: self.save_defaults(),
+                                                            "Save this stage's goals as the default for new efforts")])
         self.tasks = D.Card("Tasks", actions=[D.button("+ Task", None, lambda: self.task_dialog())])
         self.notes = D.Card("Notes and open questions", actions=[D.button("+ Note", None, lambda: self.note_dialog()),
                                                                  D.button("+ Question", None, lambda: self.note_dialog(question=True))])
@@ -264,13 +281,12 @@ class HomePage(QWidget):
                 cb = QCheckBox(); cb.setChecked(done); cb.setToolTip("Tick when it is done")
                 cb.toggled.connect(lambda on, gid=g["id"]: self.set_goal(gid, on))
             row.addWidget(cb, 0, Qt.AlignTop)
-            txt = D.label(g["text"] + (f"   (from {g['from']})" if g.get("from") else ""))
+            txt = ClickLabel(g["text"] + (f"   (from {g['from']})" if g.get("from") else ""),   # 2.86.0: click to change it
+                             lambda gid=g["id"]: self.goal_dialog(gid))
+            txt.setToolTip("Click to change the wording, remove it, or tick it by hand")
             row.addWidget(txt, 1)
             row.addWidget(D.label("by the app" if auto else ("by hand" + (f": {g['by']}" if g.get("by") and done else "")),
                                   "muted", wrap=False), 0, Qt.AlignTop)
-            if not g.get("auto"):
-                row.addWidget(D.button("Edit", "ghost", lambda _=False, gid=g["id"]: self.goal_dialog(gid)), 0, Qt.AlignTop)
-            row.addWidget(D.button("Remove", "ghost", lambda _=False, gid=g["id"]: self.remove_goal(gid)), 0, Qt.AlignTop)
             lay.addLayout(row)
 
     def set_goal(self, gid, on):
@@ -278,11 +294,25 @@ class HomePage(QWidget):
         diag.activity("qt_goal_set")
         self.changed()
 
-    def goal_dialog(self, gid=None, text=None):
+    def goal_dialog(self, gid=None, text=None, action=None):
+        """Add a goal, or (2.86.0) change one: its wording, remove it, or tick it by hand instead of the app's check.
+        action (tests): 'remove' or 'manual'."""
         r = self.rec
         if r is None:
             return None
         g = next((x for x in r.stage()["goals"] if x["id"] == gid), None) if gid else None
+        if g is not None and text is None and action is None:
+            text, action = self._goal_box(g)
+            if text is None and action is None:
+                return None
+        if action == "remove":
+            return self.remove_goal(gid)
+        if action == "manual":
+            ok = r.make_manual(r.data["stage"], gid)
+            diag.activity("qt_goal_made_manual")
+            self.changed()
+            if text is None or text == g["text"]:
+                return ok
         if text is None:
             text, ok = QInputDialog.getText(self, "Gate goal", "What has to be true before the effort leaves this stage:",
                                             QLineEdit.Normal, g["text"] if g else "")
@@ -298,6 +328,46 @@ class HomePage(QWidget):
             diag.activity("qt_goal_added")
             self.changed()
         return nid
+
+    def _goal_box(self, g):
+        """(new wording or None, 'remove' | 'manual' | None) from a small dialog about one goal."""
+        from PySide6.QtWidgets import QDialog, QDialogButtonBox, QVBoxLayout
+        d = QDialog(self); d.setWindowTitle("Gate goal"); d.setMinimumWidth(520)
+        v = QVBoxLayout(d)
+        v.addWidget(D.label("What has to be true before the effort leaves this stage:", "muted"))
+        ed = QLineEdit(g["text"]); v.addWidget(ed)
+        if g.get("auto"):
+            v.addWidget(D.label("The app checks this one. Tick it by hand instead if the check does not fit this effort.", "muted"))
+        out = {"action": None}
+        bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        rm = bb.addButton("Remove it", QDialogButtonBox.DestructiveRole)
+        rm.clicked.connect(lambda: (out.update(action="remove"), d.accept()))
+        if g.get("auto"):
+            mb = bb.addButton("Tick it by hand", QDialogButtonBox.ActionRole)
+            mb.clicked.connect(lambda: (out.update(action="manual"), d.accept()))
+        bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
+        v.addWidget(bb)
+        if d.exec() != QDialog.Accepted:
+            return None, None
+        t = " ".join(ed.text().split())
+        return (t if t and t != g["text"] else None), out["action"]
+
+    def save_defaults(self, answer=None):
+        """2.86.0: this stage's goals become the default for the same stage in new efforts (this PC; team defaults later)."""
+        r = self.rec
+        if r is None:
+            return None
+        s = r.stage()
+        if answer is None:
+            answer = QMessageBox.question(self, "Default gate goals", f"Use these {len(s['goals'])} goals for {s['name']} in every new "
+                                          "effort on this PC? Efforts already started keep their own goals.") == QMessageBox.Yes
+        if not answer:
+            return None
+        import effortrec as ER
+        keys = ER.save_default_goals(self.host.config_dir, s["name"], s["goals"])
+        diag.activity("qt_goal_defaults_saved", n=len(keys))
+        self.host.toast(f"New efforts start {s['name']} with these {len(keys)} goals")
+        return keys
 
     def remove_goal(self, gid):
         ok = self.rec.remove_goal(self.rec.data["stage"], gid)

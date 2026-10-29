@@ -24,7 +24,9 @@ WHATS_NEW = {
                "(end), in one group; each page says which end it serves.",
                "Customer terms scans the Library's customer documents with one button. Submission volumes are marked once.",
                "Lists to submit holds only the terms each volume uses: one per volume, a master list, or both. Terms no "
-               "volume uses are left out and listed, and the effort list can show them."],
+               "volume uses are left out and listed, and the effort list can show them.",
+               "A term's card shows where it was found, zoomed in. Plurals are marked Plural of ... and stay found.",
+               "Click a gate goal to change, remove or tick it by hand. Button rows wrap and tables resize and scroll."],
     "2.85.0": ["Changes: Compare, Impact review and the requirements review are one page. A summary says what the new version "
                "touches; each change shows side by side in its place and gets a decision.",
                "Submission rules (was Requirements) shows what the customer requires now, with Was and Now in the row for "

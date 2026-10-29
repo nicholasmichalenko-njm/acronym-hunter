@@ -12,6 +12,7 @@ import app_gui as A
 import volcheck as V
 import volcheck_ui as VU
 from . import design as D
+from .adaptive import FlowLayout
 
 LEVEL_TONE = {V.BAD: "crit", V.WARN: "warn", V.INFO: "accent", V.OK: "ok"}
 RANK = {V.BAD: 0, V.WARN: 1, V.INFO: 2, V.OK: 3}
@@ -59,7 +60,7 @@ class QAPage(QWidget):
         vrow.addWidget(D.button("Take out", "ghost", lambda: self.remove_volume()))
         vrow.addStretch(1)
         v.addWidget(vc)
-        top = QHBoxLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)
+        top = FlowLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)
         self.b_check = D.button("Check other Word files...", None, lambda: self.pick(), "Any Word files, once (not saved as submission volumes)")
         self.b_cancel = D.button("Cancel", "danger", lambda: A.CANCEL.set()); self.b_cancel.hide()
         top.addWidget(self.b_check); top.addWidget(self.b_cancel)

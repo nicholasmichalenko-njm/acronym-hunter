@@ -88,6 +88,27 @@ t = time.time()
 while ap.worker is not None and time.time() - t < 240:
     app.processEvents(); time.sleep(0.05)
 check("Scan again: approved and rejected decisions hold", s.results["SOW"]["status"] == "Effort list: Approved" and s.results["SCOPE"]["excluded"])
+# 2.86.0: where it was found, zoomed in; a plural tied to its singular
+w.go("acronyms"); app.processEvents()
+ap.f_status.setCurrentIndex(0); ap.f_search.setText(""); app.processEvents()
+ap.select("SOW"); app.processEvents()
+wv = getattr(ap, "where_view", None)
+check("the card shows the spot where it was found, with Next place", wv is not None and wv.state in ("text", "picture")
+      and "SOW" in (wv.pic.text() or "SOW") and wv.where.text().startswith("1 of"), wv and (wv.state, wv.where.text()))
+import copy
+s.results["SOWs"] = copy.deepcopy(s.results["SOW"]); s.results["SOWs"]["effort"] = ""; s.results["SOWs"]["status"] = "Needs Review"
+check("a plural's singular is guessed", s.singular_guess("SOWs") == "SOW" and s.singular_guess("ICD's") == "ICD" and s.singular_guess("SOW") == "")
+ap.fill(); ap.select("SOWs"); app.processEvents()
+from PySide6.QtWidgets import QPushButton
+btn = next((b for b in ap.card.findChildren(QPushButton) if b.text() == "Plural of SOW"), None)
+check("the card offers Plural of SOW (not Not a term)", btn is not None)
+ap.plural("SOWs", "SOW")
+check("Plural of: still a term, tied to its singular", s.results["SOWs"]["plural_of"] == "SOW" and s.results["SOWs"]["status"] == "Plural of SOW"
+      and not s.results["SOWs"].get("excluded"))
+s3 = S.AcronymSession(s.ws, LIST, w.efforts); s3.restore()
+check("kept for every scan from now on", s3.plurals.get("SOWs") == "SOW" and s3.results["SOWs"]["plural_of"] == "SOW")
+check("Not a plural makes it a term of its own again", ap.not_plural("SOWs") and "plural_of" not in s.results["SOWs"])
+ap.plural("SOWs", "SOW")
 # the effort list itself
 w.go("acrlist"); app.processEvents()
 lp = w.acrlist_page

@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, Q
 import diag
 import effort as E
 from . import design as D
+from .adaptive import FlowLayout
 
 COLS = ["Term", "Definition", "Type", "Status", "SS Approver", "Approved on", "Found in", "Notes"]
 TONE = {"Approved": "ok", "Needs author": "warn", "Proposed": "accent", "Rejected": "faint"}
@@ -25,7 +26,7 @@ class EffortListPage(QWidget):
         self.where = D.label("<b>THROUGHOUT</b> &nbsp;The effort's glossary: approved definitions writers work from. It is not the "
                              "list you submit: Lists to submit holds only the terms your volumes use.", "muted")
         self.where.setTextFormat(Qt.RichText); v.addWidget(self.where)                  # 2.86.0
-        top = QHBoxLayout(); top.setSpacing(D.SPACE["m"]); v.addLayout(top)
+        top = FlowLayout(); top.setSpacing(D.SPACE["m"]); v.addLayout(top)
         self.pills = {k: D.Pill(f"0 {k.lower()}", TONE[k]) for k in E.STATUSES}
         for p in self.pills.values():
             top.addWidget(p)
@@ -38,7 +39,7 @@ class EffortListPage(QWidget):
         self.approved_only = QCheckBox("Approved only"); top.addWidget(self.approved_only)
         top.addWidget(D.button("Export the effort list...", None, lambda: self.export(),
                                "The glossary in Word and Excel. The lists for your volumes are in Lists to submit."))
-        f = QHBoxLayout(); f.setSpacing(D.SPACE["s"]); v.addLayout(f)
+        f = FlowLayout(); f.setSpacing(D.SPACE["s"]); v.addLayout(f)
         self.f_status = QComboBox(); self.f_status.addItems(["All statuses"] + E.STATUSES)
         self.f_status.currentIndexChanged.connect(lambda _i: self.fill())
         self.f_use = QComboBox()                                                            # 2.86.0: in the submission or not
@@ -46,6 +47,7 @@ class EffortListPage(QWidget):
         self.f_use.setToolTip("From the latest Submission check: terms no volume uses stay out of the lists you submit")
         self.f_use.currentIndexChanged.connect(lambda _i: self.fill())
         self.f_search = QLineEdit(); self.f_search.setPlaceholderText("Search terms and definitions"); self.f_search.setClearButtonEnabled(True)
+        self.f_search.setMinimumWidth(280)
         self.f_search.textChanged.connect(lambda _t: self.fill())
         f.addWidget(self.f_status); f.addWidget(self.f_use); f.addWidget(self.f_search, 1)
         self.p_unused = D.Pill("", "accent"); self.p_unused.hide(); top.insertWidget(len(E.STATUSES), self.p_unused)

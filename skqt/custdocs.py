@@ -13,6 +13,7 @@ import docversions as DV
 import effortrec as R
 import subreq as SR
 from . import design as D
+from .adaptive import FlowLayout
 
 REQ_GROUPS = (("deliver", "Submittal items", ("Deliverable",)), ("pages", "Page limits", ("Page limit",)), ("format", "Format", ("Format",)),
               ("files", "Files", ("File",)), ("how", "How, where and to whom", ("Delivery", "Copies", "Contact")),
@@ -663,7 +664,7 @@ class ComparePage(QWidget):
         self.sel = (None, None, None)
         v = QVBoxLayout(self)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
-        top = QHBoxLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)
+        top = FlowLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)
         self.doc = QComboBox(); self.doc.setMinimumWidth(260); self.a = QComboBox(); self.b = QComboBox()
         for lab, w in (("Document", self.doc), ("From", self.a), ("To", self.b)):
             top.addWidget(D.label(lab, "label", wrap=False)); top.addWidget(w)

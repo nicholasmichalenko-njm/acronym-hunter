@@ -18,6 +18,7 @@ import diag
 import docintake as DI
 import docversions as DV
 from . import design as D
+from .adaptive import FlowLayout
 from .progress import JobWorker, TaskPanel
 
 CAT_TONE = {"customer": "crit", "bidders": "warn", "qa": "ok", "ours": "cust"}
@@ -213,7 +214,7 @@ class LibraryPage(QWidget):
         self.setObjectName("page")
         v = QVBoxLayout(self)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
-        top = QHBoxLayout(); top.setSpacing(D.SPACE["m"]); v.addLayout(top)
+        top = FlowLayout(); top.setSpacing(D.SPACE["m"]); v.addLayout(top)
         self.p_docs = D.Pill("0 documents", "accent"); self.p_und = D.Pill("every role confirmed", "ok")
         self.p_miss = D.Pill("every original here", "ok")
         for p in (self.p_docs, self.p_und, self.p_miss):

@@ -63,7 +63,8 @@ class SummaryStrip(QWidget):
     def __init__(self, page):
         super().__init__()
         self.page = page
-        self.h = QHBoxLayout(self); self.h.setContentsMargins(0, 0, 0, 0); self.h.setSpacing(D.SPACE["s"])
+        from .adaptive import FlowLayout
+        self.h = FlowLayout(self, D.SPACE["s"])
         self.chips = {}
 
     def fill(self):

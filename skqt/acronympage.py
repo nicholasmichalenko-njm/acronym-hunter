@@ -11,6 +11,7 @@ import diag
 import app_gui as A
 import acrsession as S
 from . import design as D
+from .adaptive import FlowLayout
 
 COLS = ["Term", "Type", "Count", "Found in", "Status", "Definition", "Known in", "Effort list"]
 KIND_TONE = {"choice": "warn", "candidate": "cust", "resolved": "ok", "error": "crit", "excluded": "head", "other": "accent"}
@@ -49,7 +50,7 @@ class AcronymPage(QWidget):
         self.where = D.label("<b>START</b> &nbsp;What the customer's documents use. Add the terms to the effort list; the lists you "
                              "submit come from Submission check and Lists to submit.", "muted")
         self.where.setTextFormat(Qt.RichText); v.addWidget(self.where)                  # 2.86.0: which end this page serves
-        top = QHBoxLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)
+        top = FlowLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)
         self.b_cust = D.button("Scan the customer documents", "primary", lambda: self.scan_customer(),
                                "Every customer document in the Library (the newest version of each), no picking")
         top.addWidget(self.b_cust)
@@ -60,16 +61,17 @@ class AcronymPage(QWidget):
         for b in (self.b_files, self.b_folder, self.b_again, self.b_cancel):
             top.addWidget(b)
         self.progress = D.label("", "muted", wrap=False); top.addWidget(self.progress, 1)
-        top.addWidget(D.button("Customer acronym lists...", None, lambda: self.client_lists(),
-                               "The customer's own acronym lists: their terms are found and their definitions come first"))
+        # 2.86.0: no separate customer acronym list: the customer's terms are every acronym in its documents, and a
+        # glossary the customer includes is one of those documents: its definitions come first automatically
         self.p_active = D.Pill("0 terms", "accent"); self.p_choice = D.Pill("0 need a choice", "ok"); self.p_new = D.Pill("0 new", "ok")
         for p in (self.p_active, self.p_choice, self.p_new):
             top.addWidget(p)
-        f = QHBoxLayout(); f.setSpacing(D.SPACE["s"]); v.addLayout(f)
+        f = FlowLayout(); f.setSpacing(D.SPACE["s"]); v.addLayout(f)
         self.f_type = QComboBox(); self.f_type.addItem(A.ALL_TYPES)
         self.f_status = QComboBox(); self.f_status.addItems(A.STATUS_FILTERS)
         self.f_found = QComboBox(); self.f_found.addItems(list(A.FOUND_FILTERS))
         self.f_search = QLineEdit(); self.f_search.setPlaceholderText("Search terms and definitions"); self.f_search.setClearButtonEnabled(True)
+        self.f_search.setMinimumWidth(280)
         self.f_excl = QCheckBox("Show excluded")
         for w in (self.f_type, self.f_status, self.f_found):
             w.currentIndexChanged.connect(lambda _i: self.fill())
@@ -244,6 +246,8 @@ class AcronymPage(QWidget):
         row.addWidget(D.Pill(A.status_text(d.get("status", "")), KIND_TONE.get(kind, "accent")))
         if d.get("effort"):
             row.addWidget(D.Pill(f"Effort list: {d['effort']}", "ok" if d["effort"] == "Approved" else "accent"))
+        if d.get("plural_of"):
+            row.addWidget(D.Pill(f"Plural of {d['plural_of']}", "ctx"))
         row.addStretch(1)
         self.body.addLayout(row)
         self.body.addWidget(D.label(f"{d.get('category', '')}  |  found {d.get('count', 0)} time(s)"
@@ -268,8 +272,11 @@ class AcronymPage(QWidget):
         locs = d.get("locations", [])
         if locs:
             self.body.addWidget(D.SectionTitle(f"Where it was found ({len(locs)})"))
+            from .whereview import WhereView                          # 2.86.0: the spot, zoomed in
+            self.where_view = WhereView(t, locs, self.path_of)
+            self.body.addWidget(self.where_view)
             box = QPlainTextEdit("\n".join(locs[:200]) + (f"\n... and {len(locs) - 200} more" if len(locs) > 200 else ""))
-            box.setReadOnly(True); box.setMinimumHeight(140)
+            box.setReadOnly(True); box.setMinimumHeight(100)
             self.body.addWidget(box)
         self.body.addStretch(1)
 
@@ -285,6 +292,49 @@ class AcronymPage(QWidget):
         r2.addWidget(D.button("Include" if excl else "Exclude", "ghost", lambda: self.exclude(terms, not excl)))
         r2.addStretch(1)
         self.body.addLayout(r2)
+        if len(terms) == 1:                                                  # 2.86.0: a plural is not "not a term"
+            t = terms[0]
+            d = self.session.results.get(t) or {}
+            r3 = QHBoxLayout(); r3.setSpacing(D.SPACE["s"])
+            if d.get("plural_of"):
+                r3.addWidget(D.button("Not a plural", "ghost", lambda: self.not_plural(t), "Make it a term of its own again"))
+            else:
+                g = self.session.singular_guess(t)
+                r3.addWidget(D.button(f"Plural of {g}" if g else "Plural of...", None, lambda: self.plural(t, g or None),
+                                      "Still found in every scan; counted with its singular; never its own row in the lists you submit"))
+            r3.addStretch(1)
+            self.body.addLayout(r3)
+
+    def path_of(self, name):
+        """Where a scanned file is (the last scan, else the Library's customer documents)."""
+        s = self.session
+        p = (getattr(s, "scanned_paths", {}) or {}).get(name, "") if s is not None else ""
+        if p and os.path.isfile(p):
+            return p
+        for q in self.customer_paths():
+            if os.path.basename(q) == name:
+                return q
+        return p
+
+    def plural(self, term, singular=None):
+        """2.86.0: the term is the plural of another term."""
+        if singular is None:
+            from PySide6.QtWidgets import QInputDialog
+            singular, ok = QInputDialog.getText(self, "Plural of...", f"{term} is the plural of:", text=self.session.singular_guess(term))
+            if not ok:
+                return False
+        ok = self.session.set_plural(term, singular)
+        if ok:
+            diag.activity("acronym_plural_set")
+            self.host.toast(f"{term}: plural of {singular.strip()}. Still found; never its own row in the lists you submit.")
+            self.fill()
+        return ok
+
+    def not_plural(self, term):
+        ok = self.session.clear_plural(term)
+        if ok:
+            self.fill()
+        return ok
 
     # ------------------------------------------------------------ decisions
     def choose(self, term, choice):

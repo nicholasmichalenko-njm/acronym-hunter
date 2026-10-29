@@ -169,6 +169,9 @@ def apply(app):
     f = QFont(UI_FONT, TYPE["body"])
     app.setFont(f)
     app.setStyleSheet(qss(t))
+    if not getattr(app, "_sk_tuner", None):         # 2.86.0: compact tables, resizable columns, scrolling left and right
+        from .adaptive import install
+        install(app)
     return dark
 
 
