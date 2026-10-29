@@ -169,6 +169,9 @@ def apply(app):
     f = QFont(UI_FONT, TYPE["body"])
     app.setFont(f)
     app.setStyleSheet(qss(t))
+    if not hasattr(app, "_sk_nowheel"):                     # 2.85.0: the wheel scrolls; it never changes a choice
+        from .nowheel import install as _nowheel
+        _nowheel(app)
     return dark
 
 
