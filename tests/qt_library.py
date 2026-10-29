@@ -159,6 +159,9 @@ lib = DV.Library(ws.p("documents")).load()
 check("dropping a folder and a file adds both", any(d["name"] == "NASA-STD-5001" and d["category"] == "bidders" for d in lib.all)
       and pg.panel.state == "done", pg.panel.detail.text())
 
+w.go("dashboard"); app.processEvents()
+check("the dashboard counts library roles to confirm", w.dash_page.tiles["library"].value.text() == str(len(DV.Library(ws.p("documents")).load().undecided())))
+
 # a package: all documents, or customer documents and Q&A only, and it still works
 import effortpkg as P, zipfile
 QM = __import__("PySide6.QtWidgets", fromlist=["QMessageBox"]).QMessageBox

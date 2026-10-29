@@ -68,7 +68,9 @@ class DashPage(QWidget):
             "questions": D.Tile("-", "open questions", "accent", lambda: go("home"), "Effort home: notes and open questions"),
             "late": D.Tile("-", "tasks late", "accent", lambda: go("home"), "Effort home: tasks"),
             "review": D.Tile("-", "customer changes to review", "accent", lambda: go("docs"),
-                             "Customer Documents: versions and requirements to review")}
+                             "Customer Documents: versions and requirements to review"),
+            "library": D.Tile("-", "library roles to confirm", "accent", lambda: go("library"),
+                              "Library: documents whose role is only suggested (2.83.0)")}
         self.tile_row = QWidget()
         tg = QGridLayout(self.tile_row); tg.setContentsMargins(0, 0, 0, 0); tg.setSpacing(D.SPACE["m"])
         for i, t in enumerate(self.tiles.values()):
@@ -153,6 +155,14 @@ class DashPage(QWidget):
                            "warn" if d["questions"] else "ok")
         T["late"].set(d["tasks_late"], f"tasks late of {d['tasks_open']} open", "crit" if d["tasks_late"] else "ok")
         T["review"].set(d["to_review"], "customer changes to review", "warn" if d["to_review"] else "ok")
+        try:                                       # 2.83.0: the library
+            import docversions as DV
+            lib = DV.Library(self.host.ws.p("documents")).load()
+            und = len(lib.undecided())
+            T["library"].set(und, f"library roles to confirm of {len(lib.all)} documents" if lib.all else "documents in the library (none yet)",
+                             "warn" if und else "ok" if lib.all else "head")
+        except Exception:
+            diag.swallowed()
 
     def fill_compliance(self, d):
         clear(self.comp_legend)

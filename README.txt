@@ -20,6 +20,9 @@ THE DOCUMENT LIBRARY (2.83.0)
   - Save effort package asks, when the library holds other documents: All documents, or Customer documents and Q&A
     only. Either way every document's record, text copy, tags and role go, so search and the library work for the
     person who opens it; a left-out original shows as "original not here".
+  - Automatic backups keep every document's record, text, tags and role, and the customer and Q&A originals. The other
+    library originals are copies of files you added from your own folders, so backups leave them out to stay fast;
+    a saved effort package with All documents carries them.
   - The Documents page is now called Customer versions.
 
 FASTER MOVING BETWEEN PAGES (2.82.0)

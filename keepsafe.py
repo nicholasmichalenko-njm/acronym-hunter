@@ -283,7 +283,7 @@ def backup_effort(backup_dir, effort_name, list_path, data_dir, matrix_path="", 
     man = P.save(os.path.join(root, f"{_safe(effort_name)} - latest"), effort_name, list_path, data_dir, info=info or {},
                  matrix_path=matrix_path, customer_dir=customer_dir, volumes_dir=volumes_dir, customer=bool(customer_dir),
                  volumes=bool(volumes_dir), stage=stage, app_version=app_version, extra_files=extra_files,
-                 readable_dir=readable_dir)
+                 readable_dir=readable_dir, library="customer")   # 2.83.0: library originals are copies; records and text go
     out["latest"] = man["path"]
     dated = os.path.join(root, f"{_safe(effort_name)} {when:%Y-%m-%d}{P.EXT}")
     shutil.copy2(man["path"], dated)              # today's copy follows the latest until the day ends
