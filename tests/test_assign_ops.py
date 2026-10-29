@@ -11,7 +11,7 @@ PDF = os.path.join(B, "rfp_walk", "Section_L_print.pdf")
 
 def run():
     items, heads, src, empty = CR.read_files([PDF], lambda p: [])
-    assert len(items) == 44 and not empty and src[0][0] == "Section_L_print.pdf" and len(src[0][1]) == 64, (len(items), empty)
+    assert len(items) == 45 and not empty and src[0][0] == "Section_L_print.pdf" and len(src[0][1]) == 64, (len(items), empty)
     assert all(it.get("place") for it in items), "every PDF sentence has its place"
     assert not any("FA8811-26-R-0099" in it["text"] for it in items), "no header in the review"
     M = CR.new_matrix(os.path.join(B, "_none_Compliance_Matrix.xlsx"), items, heads, src)

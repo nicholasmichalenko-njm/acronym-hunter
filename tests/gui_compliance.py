@@ -65,7 +65,7 @@ def wait():
     N = C.Matrix(OUT).load()
     t2 = next(it for it in N.items if it["id"] == "L.4.1-01")
     print("reopened:", len(N.items), "| thermal:", t2["decision"], t2["map"], t2["owner"], "| outline sections:", len(N.outline))
-    res["ok"] = (len([it for it in M.items if it["type"] != "Context"]) == 28 and os.path.isfile(OUT) and app._c_item(first)["decision"] == "Keep" and len(parts) == 2
+    res["ok"] = (len([it for it in M.items if it["type"] != "Context"]) == 30 and os.path.isfile(OUT) and app._c_item(first)["decision"] == "Keep" and len(parts) == 2
                  and t2["map"] == "1.1 Thermal Design" and t2["owner"] == "J. Smith" and "1.1 Thermal Design" in xml
                  and M.counts()[""] == 3 and len(drops) == 2 and not any(it["map"] == "Volume I - Technical" for it in M.items))
     # 2.10.0: learn, merge, source page, amendment changes

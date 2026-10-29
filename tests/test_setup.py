@@ -80,7 +80,9 @@ def run():
     S["mgmt"]["1.1 Thermal Design"] = "Lead with the radiator. Owner: J. Ortiz."
     S["notes"][ids[1]] = "We exceed this: cite the 2024 test."
     # context paragraphs
-    n = SD.context_from_chunks(M, files[0], A.typed_chunks(os.path.join(RFP, files[0])))
+    # 2.70.0: every sentence of the file is a row now (list lead-ins too), so the file leaves no paragraph out
+    assert SD.context_from_chunks(M, files[0], A.typed_chunks(os.path.join(RFP, files[0]))) == 0
+    n = SD.context_from_chunks(M, files[0], [("Background", "The mission background paragraph that no row holds yet, kept as context.")])
     assert n > 0 and S["context"][0]["id"] == "X-001" and SD.kind_of(S["context"][0]) == "Context"
     SD.place(M, "X-001", "1.2 Risk Management")
     # export check and export
