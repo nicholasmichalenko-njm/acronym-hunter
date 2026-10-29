@@ -109,8 +109,12 @@ def wait_read():
         return it
 
     def key(k):
+        # 2.72.0: the key goes straight to the page view's key handler. A generated key event needs the window to have
+        # the keyboard focus, which Windows does not give while another program is in front (the build console, or the
+        # person working), so keys were lost in the build and every later step waited.
+        from types import SimpleNamespace
         cv.focus_set()
-        timed("key " + k, lambda: cv.event_generate("<Key>", keysym=k))
+        timed("key " + k, lambda: app._cp_key(SimpleNamespace(keysym=k, char=k, state=0, widget=cv)))
 
     def target(label):
         win.cp_orows[label].invoke(); app.update()
@@ -119,7 +123,7 @@ def wait_read():
     req = click("The Offeror shall describe its technical approach"); key("r")
     check("R puts the requirement in the target section", req["decision"] == "Keep" and req["map"] == "1.1 Technical Approach")
     sup = click("Thermal margins are of particular interest"); key("c")
-    check("C: support for the requirement just made", sup["decision"] == "Context" and sup["context_for"] == req["id"], sup.get("context_for"))
+    check("C: support for the requirement just made", sup["decision"] == "Context" and sup.get("context_for") == req["id"], sup.get("context_for"))
     shot("02_req_and_support")
     # 2. the list: drag across (a) to (d), R
     a = box("thermal control design")
@@ -139,7 +143,7 @@ def wait_read():
     check("R with no target waits for the section click", rk["decision"] == "Keep" and rk["map"] == "1.2 Technical Risk", rk.get("map"))
     tbl = click("Risks shall be presented in a table"); key("c")
     s_ = pv["scale"]
-    check("C after it: support for that requirement", tbl["context_for"] == rk["id"], tbl.get("context_for"))
+    check("C after it: support for that requirement", tbl.get("context_for") == rk["id"], tbl.get("context_for"))
     # 4. the IMS in two sections
     target("2.1 Schedule")
     ims = click("The Offeror shall provide an Integrated Master Schedule"); key("r")
@@ -177,7 +181,7 @@ def wait_read():
     th = click("The Contractor shall maintain all components"); key("r")
     ec = click("The thermal design shall accommodate eclipse"); key("c")
     target("1.1 Technical Approach")
-    check("SOW: requirement and its support", th["decision"] == "Keep" and ec["context_for"] == th["id"], ec.get("context_for"))
+    check("SOW: requirement and its support", th["decision"] == "Keep" and ec.get("context_for") == th["id"], ec.get("context_for"))
     shot("04_sow")
     # 8. export the matrix and the Response Setup together
     out = os.path.join(tmp, "out")
