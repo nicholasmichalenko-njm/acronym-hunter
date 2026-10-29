@@ -10,6 +10,15 @@ FASTER MOVING BETWEEN PAGES (2.82.0)
     page never shows something stale.
   - Measured with 40 documents of 3 versions and a 2,800-sentence matrix: Requirements went from about 3 seconds to
     0.01; every page opens in under 0.2 seconds.
+  - Read RFP shows its progress: the file and the page within it, a running clock, and Stop (stops after the file being
+    read; nothing is written). A step quiet for a minute says it is still working. A file that cannot be read stops
+    the read in red, names the file, says nothing was written and what to do. The window's status bar shows the bar
+    from any page.
+  - One read at a time: Read, Add files, the start choice and the ticks are locked while it runs, so there is never a
+    second read or a second matrix. Switching effort or closing the window during a read asks first, then throws the
+    read away without writing anything.
+  - Assign: the decision buttons (Requirement R, L, M E, Support C, Customer's G, Not used X) sit beside the response
+    structure, under a line naming the section R, L and M put sentences into. Combine, Split and Undo stay by the page.
 
 HELP WITHOUT SENDING DATA (2.81.0)
   - Settings > Help and support > Create a support file: one zip with versions, the content-free logs and the checks

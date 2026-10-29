@@ -9,7 +9,7 @@ sentence), Ctrl+Z undo. 2.68.0: the structure is built beside the page as you as
 import os, re
 from PySide6.QtCore import Qt, QEvent, QRectF, QThread, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QFont, QImage, QKeySequence, QPainter, QPainterPath, QPen, QPixmap, QShortcut
-from PySide6.QtWidgets import (QComboBox, QCompleter, QDialog, QDialogButtonBox, QFormLayout, QFrame, QGraphicsItem,
+from PySide6.QtWidgets import (QComboBox, QCompleter, QDialog, QDialogButtonBox, QFormLayout, QFrame, QGraphicsItem, QGridLayout,
                                QGraphicsPathItem, QGraphicsPixmapItem, QGraphicsScene, QGraphicsSimpleTextItem,
                                QGraphicsView, QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QPushButton, QRadioButton,
                                QScrollArea, QSplitter, QStyle, QLayout, QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
@@ -199,13 +199,8 @@ class AssignPage(QWidget):
         self.files = QComboBox(); self.files.setMinimumWidth(280); self.files.currentTextChanged.connect(self.open_file)
         bar.addWidget(self.files)
         self.keys = {}
-        for text, kind, fn, tip in (("Requirement  R", "req", self.do_req, "The selected sentences become compliance requirements in the target section"),
-                                    ("L", "req", lambda: self.do_lm("L"), "L: Instructions, Conditions and Notices to Offerors (a requirement). Key: L"),
-                                    ("M  E", "req", lambda: self.do_lm("M"), "M: Evaluation Factors for Award (a requirement). Key: E"),
-                                    ("Support  C", "ctx", self.do_ctx, "Supporting context for the last requirement you clicked"),
-                                    ("Customer's  G", "cust", self.do_customer, "The customer's to act on: identified, never answered"),
-                                    ("Not used  X", None, self.do_clear, "No decision"),
-                                    ("Combine  J", None, self.do_combine, "One sentence from the selected ones (they need not be next to each other)"),
+        # 2.82.0: sentence edits stay by the page; the decisions sit beside the response structure, where they land
+        for text, kind, fn, tip in (("Combine  J", None, self.do_combine, "One sentence from the selected ones (they need not be next to each other)"),
                                     ("Split  S", None, self.do_split, "Split the selected sentence before the word you clicked"),
                                     ("Undo  Ctrl+Z", "ghost", self.do_undo, "Put back the last change")):
             b = D.button(text, kind, fn, tip)
@@ -230,14 +225,30 @@ class AssignPage(QWidget):
         self.card_area.viewport().installEventFilter(self)              # wrapped text keeps its height; the card scrolls
         self.card_area.setWidget(self.card)
         sw = QWidget(); sv = QVBoxLayout(sw); sv.setContentsMargins(0, 0, 0, 0)
+        dec = QFrame(); dec.setProperty("card", True); dv = QVBoxLayout(dec)       # 2.82.0: decide, next to the structure
+        dv.setContentsMargins(D.SPACE["m"], D.SPACE["s"], D.SPACE["m"], D.SPACE["s"]); dv.setSpacing(D.SPACE["xs"])
+        self.target_lbl = D.label("", None); self.target_lbl.setTextFormat(Qt.RichText); dv.addWidget(self.target_lbl)
+        grid = QGridLayout(); grid.setSpacing(D.SPACE["xs"]); dv.addLayout(grid)
+        self.dec_box = dec
+        for k, (text, kind, fn, tip) in enumerate((
+                ("Requirement  R", "req", self.do_req, "The selected sentences become compliance requirements in the target section"),
+                ("L", "req", lambda: self.do_lm("L"), "L: Instructions, Conditions and Notices to Offerors (a requirement), into the target. Key: L"),
+                ("M  E", "req", lambda: self.do_lm("M"), "M: Evaluation Factors for Award (a requirement), into the target. Key: E"),
+                ("Support  C", "ctx", self.do_ctx, "Supporting context for the last requirement you clicked"),
+                ("Customer's  G", "cust", self.do_customer, "The customer's to act on: identified, never answered"),
+                ("Not used  X", None, self.do_clear, "No decision"))):
+            b = D.button(text, kind, fn, tip)
+            self.keys[text.split()[0]] = b
+            grid.addWidget(b, k // 3, k % 3)
+        sv.addWidget(dec)
         vrow = QHBoxLayout(); sv.addLayout(vrow)                       # 2.68.0: the volume you are working on
         vrow.addWidget(D.label("Volume", "label", wrap=False))
         self.volume = QComboBox(); self.volume.setMinimumWidth(200)
         self.volume.activated.connect(lambda _i: self.pick_volume(self.volume.currentData()))
         vrow.addWidget(self.volume, 1)
         vrow.addWidget(D.button("+ Volume", None, lambda: self.new_volume(), "A new volume at the end of the structure"))
-        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Your response structure (click: the target for R, L, M)", "Req."])
-        self.tree.setColumnWidth(0, 310)
+        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Your response structure (click a section: the target)", "Req."])
+        self.tree.setColumnWidth(0, 380)
         self.tree.itemClicked.connect(lambda i, _c: self.set_target(i.data(0, Qt.UserRole)))
         self.tree.itemDoubleClicked.connect(lambda i, _c: self.rename_section(i.data(0, Qt.UserRole)))
         sv.addWidget(self.tree)
@@ -264,7 +275,7 @@ class AssignPage(QWidget):
         for text, fn in (("People...", self.people_dialog), ("Volumes...", self.volumes_dialog)):
             b = QPushButton(text); b.clicked.connect(fn); row.addWidget(b)
         self.active_volume = ""
-        right.addWidget(self.card_area); right.addWidget(sw); right.setSizes([620, 360])
+        right.addWidget(self.card_area); right.addWidget(sw); right.setSizes([440, 540])
         split = QSplitter(Qt.Horizontal); split.addWidget(self.view); split.addWidget(right); split.setSizes([1100, 470])
         v.addWidget(split, 1)
         self.notes_timer = QTimer(self, singleShot=True, interval=700, timeout=self.save_notes)
@@ -713,6 +724,7 @@ class AssignPage(QWidget):
     def fill_tree(self):
         self.tree.clear()
         if self.R is None:
+            self.show_target()
             return
         self.fill_volumes()
         counts = self.R.counts()
@@ -733,6 +745,18 @@ class AssignPage(QWidget):
             (stack[-1][1].addChild(node) if stack else self.tree.addTopLevelItem(node))
             stack.append((lvl, node))
         self.tree.expandAll()
+        self.show_target()
+
+    def show_target(self):
+        """2.82.0: where R, L and M put the selected sentences, said above the decision buttons."""
+        import html
+        if self.R is None or not self.M.outline:
+            self.target_lbl.setText("<b>Decide</b> &nbsp;Requirements go into the response structure: add a section below first.")
+        elif self.target:
+            self.target_lbl.setText(f"<b>Decide</b> &nbsp;R, L and M put the selected sentences into "
+                                    f"<b>{html.escape(self.target)}</b>")
+        else:
+            self.target_lbl.setText("<b>Decide</b> &nbsp;Click a section below: R, L and M put the selected sentences there.")
 
     def set_target(self, lab):
         self.target = lab

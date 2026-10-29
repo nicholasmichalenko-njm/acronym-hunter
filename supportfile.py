@@ -21,7 +21,11 @@ _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_require
 
 WHATS_NEW = {
     "2.82.0": ["Moving between pages is fast with many documents: version changes and submission requirements are worked "
-               "out once, in the background, and kept until something changes."],
+               "out once, in the background, and kept until something changes.",
+               "Read shows its progress: the file and page, a running clock, Stop, and a clear message if a file cannot be "
+               "read. Read is locked while it runs, so there is never a second read or a second matrix.",
+               "Assign: the decision buttons (Requirement, L, M, Support, Customer's, Not used) sit beside the response "
+               "structure, under the section they put sentences into."],
     "2.81.0": ["Help and support in Settings: create a support file (no document content), the keyboard shortcuts, and this card.",
                "Ctrl+K searches pages, efforts, sentences and people from anywhere.",
                "After two starts in a row that did not finish, Stationkeeper opens without the last effort and says why."],

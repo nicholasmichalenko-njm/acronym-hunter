@@ -4,6 +4,7 @@ app (tkinter and Qt). Moved out of compliance_ui so the Qt edition reads exactly
 - read_files(paths, chunks_of): PDFs are read in their page form (pagesent: headers and footers left out, every
   sentence with its exact place); a PDF with a scanned page, and Word, Excel and PowerPoint files, through the
   program's reader (chunks_of, app_gui.rfp_chunks). Returns (items, headings, sources, empty files).
+  2.82.0: progress and Stop; a file that cannot be read stops the read and names the file.
 - new_matrix(...): a compliance matrix from a read, with the starting outline.
 - text_check(M) and add_missing(M, results): nothing missed; any line not in the review goes in, in its place.
 Rules only (No AI); nothing leaves the PC.
@@ -22,24 +23,71 @@ def sha256(path):
     return h.hexdigest()
 
 
-def read_files(paths, chunks_of):
-    """(items, headings, sources, empty): the review sentences of the files, in order."""
+class Stopped(Exception):
+    """2.82.0: the person pressed Stop; nothing was read into the matrix."""
+
+
+class ReadFailed(Exception):
+    """2.82.0: one file could not be read; nothing was read into the matrix. .name: the file; .cause: the error."""
+
+    def __init__(self, name, cause):
+        super().__init__(f"{name}: {type(cause).__name__}")
+        self.name, self.cause = name, cause
+
+
+_PAGE = re.compile(r"page (\d+)/(\d+)", re.I)
+
+
+def _takes_say(fn):
+    try:
+        import inspect
+        return len(inspect.signature(fn).parameters) >= 2
+    except (TypeError, ValueError):
+        return False
+
+
+def read_files(paths, chunks_of, progress=None, stop=None):
+    """(items, headings, sources, empty): the review sentences of the files, in order.
+    2.82.0: progress(fraction, text) as it goes (each file, its pages when the reader reports them, then finding the
+    requirements); stop() True between files raises Stopped; a file that cannot be read raises ReadFailed naming it."""
     fc, src, places = [], [], {}
-    for p in paths:
+    n = len(paths) + 1                               # the last step: finding the requirements
+    say = progress or (lambda _f, _t: None)
+    for k, p in enumerate(paths):
+        if stop is not None and stop():
+            raise Stopped()
         name = os.path.basename(p)
-        pg = None
-        if p.lower().endswith(".pdf"):
-            try:
-                pg = PS.chunks_for(p, name)          # 2.57.0: sentences cut from the page, headers and footers left out
-            except Exception:
-                diag.swallowed()
-                pg = None
-        if pg is not None:
-            fc.append((name, pg[0]))
-            places[name] = pg[1]
-        else:
-            fc.append((name, chunks_of(p)))          # 2.47.0: scanned pages too
-        src.append([name, sha256(p), datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), os.path.abspath(p)])
+        head = f"File {k + 1} of {len(paths)}: {name}"
+        say(k / n, head)
+        try:
+            pg = None
+            if p.lower().endswith(".pdf"):
+                try:
+                    pg = PS.chunks_for(p, name)          # 2.57.0: sentences cut from the page, headers and footers left out
+                except Exception:
+                    diag.swallowed()
+                    pg = None
+            if pg is not None:
+                fc.append((name, pg[0]))
+                places[name] = pg[1]
+            elif progress is not None and _takes_say(chunks_of):
+                def pages(msg, k=k, head=head):
+                    m = _PAGE.search(msg or "")
+                    if m and int(m.group(2)):
+                        a, b = int(m.group(1)), int(m.group(2))
+                        say((k + min(a, b) / b) / n, f"{head} (page {a} of {b})")
+                fc.append((name, chunks_of(p, pages)))   # 2.47.0: scanned pages too
+            else:
+                fc.append((name, chunks_of(p)))
+            src.append([name, sha256(p), datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), os.path.abspath(p)])
+        except Stopped:
+            raise
+        except Exception as ex:
+            diag.swallowed()
+            raise ReadFailed(name, ex)
+    if stop is not None and stop():
+        raise Stopped()
+    say(len(paths) / n, "Finding the requirements in every sentence")
     heads = []
     items = C.extract(fc, heads)
     for name, pl in places.items():
@@ -47,7 +95,8 @@ def read_files(paths, chunks_of):
             PS.place([it for it in items if it.get("file") == name], pl)
         except Exception:
             diag.swallowed()
-    empty = [n for n, ch in fc if not any(t for _l, t in ch)]
+    empty = [n_ for n_, ch in fc if not any(t for _l, t in ch)]
+    say(1.0, "Read")
     return items, heads, src, empty
 
 

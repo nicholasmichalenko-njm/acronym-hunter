@@ -926,13 +926,14 @@ def typed_chunks(filepath):
     finally:
         _typed_only.on = False
 
-def rfp_chunks(filepath):
+def rfp_chunks(filepath, say=None):
     """2.47.0: customer documents for the compliance review and Submission: typed text, plus scanned PDF pages read
-    whole by OCR (AI and ML, when on for the effort), so no page is left out. Pictures inside typed pages are not read."""
+    whole by OCR (AI and ML, when on for the effort), so no page is left out. Pictures inside typed pages are not read.
+    say(text): 2.82.0, the reader's progress lines ("PDF page 3/40"), for a progress bar."""
     _typed_only.on = True
     _typed_only.pages = True
     try:
-        return extract_chunks_from_file(filepath, lambda _m: None, 1, 1)
+        return extract_chunks_from_file(filepath, say or (lambda _m: None), 1, 1)
     finally:
         _typed_only.on = False
         _typed_only.pages = False

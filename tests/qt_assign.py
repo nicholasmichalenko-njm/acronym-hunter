@@ -140,6 +140,14 @@ os.remove(other.p("lock.json"))
 check("reopening brings everything back", w.open_effort("Kestrel") and w.stack.currentWidget() is w.assign_page
       and w.review.item(a["id"])["owner"] == "A. Lee, K. Park")
 w.close()
+# 2.82.0: the decision buttons sit beside the response structure (where they land); sentence edits stay by the page
+pgA = w.assign_page
+col = pgA.tree.parentWidget()
+check("decisions beside the response structure, the target named above them",
+      all(pgA.keys[k].parentWidget() is pgA.dec_box for k in ("Requirement", "L", "M", "Support", "Customer's", "Not"))
+      and pgA.dec_box.parentWidget() is col and pgA.keys["Combine"].parentWidget() is not pgA.dec_box
+      and (pgA.target or "Click a section") and ("into" in pgA.target_lbl.text() or "Click a section" in pgA.target_lbl.text()), pgA.target_lbl.text())
+
 n = sum(checks)
 print(f"QT ASSIGN PASS ({n}/{len(checks)})" if n == len(checks) else f"QT ASSIGN FAIL ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

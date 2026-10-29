@@ -155,6 +155,8 @@ class MainWindow(QMainWindow):
         rh.addWidget(col, 1)
         self.setCentralWidget(root)
         self.toaster = D.Toast(self)
+        from .progress import StatusTask
+        self.task = StatusTask(self)                # 2.82.0: a running job's bar in the status bar, on every page
         QShortcut(QKeySequence("Ctrl+F"), self, activated=lambda: (self.search.setFocus(), self.search.selectAll()))
         from . import helpcenter as HC               # 2.81.0: find anything, and the shortcuts
         QShortcut(QKeySequence("Ctrl+K"), self, activated=lambda: HC.open_finder(self))
@@ -213,6 +215,9 @@ class MainWindow(QMainWindow):
         info = self.efforts.get(name) or {}
         if not info.get("path"):
             return False
+        if hasattr(self, "read_page") and not self.read_page.confirm_stop():   # 2.82.0: a read is running
+            self.fill_efforts()
+            return False
         from .modes import warn_open                # 2.79.0 Connected mode: someone else has it open
         if not warn_open(self, name, self.presence_answer):
             return False
@@ -259,6 +264,8 @@ class MainWindow(QMainWindow):
 
     def close_effort(self):
         self._warm_stop = True
+        if hasattr(self, "read_page"):
+            self.read_page.abandon()                 # 2.82.0: a read of this effort ends with it, writing nothing
         self.save_now()
         if self.ws is not None and hasattr(self, "safety"):
             self.safety.closing()
@@ -372,6 +379,16 @@ class MainWindow(QMainWindow):
     def status(self, text):
         self.statusBar().showMessage(text, 9000)
 
+    # 2.82.0: the running job in the status bar (TaskPanel calls these)
+    def task_start(self, title):
+        self.task.start(title)
+
+    def task_step(self, frac, detail=""):
+        self.task.step(frac, detail)
+
+    def task_end(self):
+        self.task.end()
+
     def toast(self, text):
         self.toaster.show_text(text)
         self.status(text)
@@ -425,6 +442,14 @@ class MainWindow(QMainWindow):
             return ""
 
     def closeEvent(self, e):
+        if not self.read_page.confirm_stop():         # 2.82.0: a read is running
+            e.ignore()
+            return
         self.assign_page.save_notes()
         self.close_effort()
+        from .readpage import _ORPHANS
+        if _ORPHANS:                                  # stopped reads end after their current file; wait so none is cut off
+            self.hide()
+            for wk in list(_ORPHANS):
+                wk.wait(600000)
         e.accept()

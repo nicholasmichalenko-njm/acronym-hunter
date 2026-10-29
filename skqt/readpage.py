@@ -6,6 +6,7 @@ from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QHBoxLayout, QHeaderView, QLabel,
                                QLineEdit, QPushButton, QScrollArea, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 from . import design as D
+from .progress import TaskPanel
 import diag
 import compliance_read as CR
 import docversions as DV
@@ -14,23 +15,33 @@ import structstart as SS
 
 
 class ReadWorker(QThread):
+    """2.82.0: reports progress (fraction, text) and stops between files when asked."""
     done = Signal(object)
+    progress = Signal(float, str)
 
     def __init__(self, paths, chunks_of):
         super().__init__()
         self.paths, self.chunks_of = paths, chunks_of
+        self.stop_asked = False
+        self.abandoned = False                     # the effort closed: the result is thrown away
 
     def run(self):
         try:
-            self.done.emit(CR.read_files(self.paths, self.chunks_of))
+            res = CR.read_files(self.paths, self.chunks_of, progress=lambda f, t: self.progress.emit(float(f), t),
+                                stop=lambda: self.stop_asked or self.abandoned)
         except Exception as ex:
-            diag.swallowed()
-            self.done.emit(ex)
+            if not isinstance(ex, (CR.Stopped, CR.ReadFailed)):
+                diag.swallowed()
+            res = ex
+        self.done.emit(res)
 
 
-def default_chunks(path):
+_ORPHANS = []          # reads left running when their effort closed; kept until they end so Qt never loses them
+
+
+def default_chunks(path, say=None):
     import app_gui
-    return app_gui.rfp_chunks(path)
+    return app_gui.rfp_chunks(path, say)
 
 
 class ReadPage(QWidget):
@@ -44,6 +55,7 @@ class ReadPage(QWidget):
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"])
         v.setSpacing(D.SPACE["m"])
         self.info = D.label("", "muted"); v.addWidget(self.info)
+        self.panel = TaskPanel(self.stop, host); v.addWidget(self.panel)   # 2.82.0: running, how far, how it ended
         card = D.Card("Customer documents", "The latest version of each, from Customer Documents.")
         self.area = QScrollArea(); self.area.setWidgetResizable(True)
         self.inner = QWidget(); self.list = QVBoxLayout(self.inner); self.list.setAlignment(Qt.AlignTop)
@@ -95,7 +107,63 @@ class ReadPage(QWidget):
                                              "version is kept, and new ones are compared.", "Go to Documents", lambda: self.host.go("docs")))
         self.fill_start()
         self.go_btn.setEnabled(R is not None and bool(R.M.items))
-        self.read_btn.setEnabled(bool(self.boxes))
+        self.lock_controls()
+
+    def running(self):
+        return self.worker is not None or getattr(self, "_busy", False)
+
+    def lock_controls(self):
+        """2.82.0: while a read runs, Read, Add files, the start choice and the ticks are locked, so a second read can
+        never start and the files being read cannot change under it."""
+        busy = self.running()
+        self.read_btn.setEnabled(bool(self.boxes) and not busy)
+        self.read_btn.setText("Reading..." if busy else "Read")
+        self.read_btn.setToolTip("Reading is running: wait for it or press Stop." if busy else "Read the ticked documents into the review")
+        self.add_btn.setEnabled(not busy)
+        self.start.setEnabled(not busy)
+        for cb in self.boxes:
+            cb.setEnabled(not busy)
+
+    def stop(self):
+        """Stop after the file being read now; nothing is written."""
+        if self.worker is not None:
+            self.worker.stop_asked = True
+            diag.activity("compliance_read_stop_asked")
+
+    def abandon(self):
+        """The effort is closing while a read runs: stop it and throw the result away (it belongs to that effort)."""
+        wk = self.worker
+        if wk is None:
+            return False
+        wk.abandoned = True
+        try:
+            wk.done.disconnect(); wk.progress.disconnect()
+        except (RuntimeError, TypeError):
+            pass
+        _ORPHANS.append(wk)
+        wk.finished.connect(lambda wk=wk: _ORPHANS.remove(wk) if wk in _ORPHANS else None)
+        self.worker = None; self._busy = False
+        self.panel.stopped("Reading stopped", "The effort closed while it read. Nothing was written to the matrix.",
+                           "Open the effort and press Read again.")
+        diag.activity("compliance_read_abandoned")
+        self.lock_controls()
+        return True
+
+    def confirm_stop(self, answer=None):
+        """Before the effort or the window closes during a read. answer: True/False (tests). Returns True to go on."""
+        if not self.running():
+            return True
+        if answer is None:
+            if os.environ.get("AH_TEST"):
+                answer = True
+            else:
+                from PySide6.QtWidgets import QMessageBox
+                answer = QMessageBox.question(self, "Reading is running", "Reading the customer documents is still running.\n\n"
+                                              "Stop it and go on? Nothing is written to the matrix; you can Read again later.",
+                                              QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes
+        if answer:
+            self.abandon()
+        return bool(answer)
 
     START = (("choose", "Choose after reading (see what the RFP prescribes and its headings)"),
              ("prescribed", "What the RFP prescribes (volumes and sections it spells out)"),
@@ -256,9 +324,21 @@ class ReadPage(QWidget):
     def read(self, paths=None, out=None, identities=None, start=None):
         """identities: {path: (initial, type)} for files with none yet, or "suggested" (tests); else the person is asked.
         start (a new matrix): choose, prescribed, headings, typed, blank; tests that give none keep the 2.68 start."""
-        paths = paths or self.chosen()
-        if not paths or self.worker is not None:
+        if self.running():                          # 2.82.0: one read at a time, never two copies of a matrix
+            self.host.status("Reading is already running. Wait for it to finish, or press Stop.")
             return None
+        paths = paths or self.chosen()
+        if not paths:
+            return None
+        self._busy = True
+        try:
+            return self._read(paths, out, identities, start)
+        finally:
+            if self.worker is None:
+                self._busy = False
+                self.lock_controls()
+
+    def _read(self, paths, out, identities, start):
         self._start = start or ("auto" if os.environ.get("AH_TEST") else self.start.currentData())
         need = self.unidentified(paths)
         if need:
@@ -286,7 +366,8 @@ class ReadPage(QWidget):
                 if not out:
                     return None
         self._out = out
-        self.read_btn.setEnabled(False)
+        self._root = self.host.ws.root if self.host.ws is not None else None
+        self._new = self.host.review is None
         self.host.status(f"Reading {len(paths)} file(s)...")
         if self.host.review is None:
             diag.activity("compliance_new", files=len(paths))
@@ -294,15 +375,50 @@ class ReadPage(QWidget):
             diag.activity("compliance_files_added", files=len(paths))
         self.worker = ReadWorker(paths, self.chunks_of)
         self.worker.done.connect(self.read_done)
+        self.worker.progress.connect(self.panel.step)
+        self.panel.start(("Starting the compliance matrix" if self._new else "Adding documents to the compliance matrix")
+                         + f": {len(paths)} file(s)", "Getting ready")
+        self.lock_controls()
         self.worker.start()
         return self.worker
 
     def read_done(self, res):
-        self.worker = None
-        if isinstance(res, Exception):
-            self.host.status(f"A file could not be read ({type(res).__name__}).")
-            self.refresh()
+        self.worker = None; self._busy = False
+        try:
+            self._finish(res)
+        except Exception as ex:                     # 2.82.0: an error after reading is shown, never silent
+            diag.swallowed()
+            self.panel.failed("The read did not finish", f"Building the matrix stopped with an error ({type(ex).__name__}). "
+                              + ("No compliance matrix was made." if self._new else "Your matrix is as it was before Read."),
+                              "Press Read to try again. If it happens again, Help > Create a support file and send it in.")
+            self.host.status("The read did not finish. See the message on Read RFP.")
+        finally:
+            self.lock_controls()
+            try:
+                self.refresh()
+            except Exception:
+                diag.swallowed()
+
+    def _finish(self, res):
+        if self.host.ws is None or self.host.ws.root != getattr(self, "_root", None):
+            self.panel.stopped("Reading stopped", "The effort changed while it read. Nothing was written.", "Press Read again.")
             return
+        if isinstance(res, CR.Stopped):
+            self.panel.stopped("Reading stopped", "You pressed Stop. Nothing was written to the matrix.",
+                               "Press Read when you are ready.")
+            self.host.status("Reading stopped. Nothing was written.")
+            diag.activity("compliance_read_stopped")
+            return
+        if isinstance(res, CR.ReadFailed):
+            self.panel.failed("A file could not be read", f"{res.name} stopped the read ({type(res.cause).__name__}). "
+                              + ("No compliance matrix was made." if self._new else "Your matrix is as it was before Read."),
+                              "Open the file to check it, save it again (or as PDF), then Read again; or untick it and Read "
+                              "the others.")
+            self.host.status(f"Not read: {res.name} could not be read.")
+            diag.activity("compliance_read_failed")
+            return
+        if isinstance(res, Exception):
+            raise res
         items, heads, src, empty = res
         if self.host.review is None:
             M = CR.new_matrix(self._out, items, heads, src, (self.host.ws.get("outline_text") or "") if self.host.ws else "")
@@ -323,6 +439,7 @@ class ReadPage(QWidget):
             msg += f" {len(empty)} file(s) have no typed text (scanned pages?)."
         diag.activity("compliance_read", files=len(src), items=len(items))
         self.host.status(msg + " " + CR.text_check_line(CR.text_check(self.host.review.M)))
+        self.panel.done("Read", msg)
         self.refresh()
         if getattr(self, "_start", "") == "choose" and not self.host.review.M.outline:
             self.host.go("structure")
