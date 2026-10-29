@@ -2,8 +2,8 @@
 and volumes folders), change the open effort's folders and first-use rule, load a new master database, and choose
 where backups go (Keep safe). The same files and settings the classic window uses. Nothing leaves the PC."""
 import os, re
-from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QHBoxLayout, QLineEdit, QVBoxLayout,
-                               QWidget)
+from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QLineEdit,
+                               QScrollArea, QVBoxLayout, QWidget)
 import diag
 import effort as E
 from . import design as D
@@ -20,7 +20,10 @@ class SettingsPage(QWidget):
         super().__init__()
         self.setObjectName("page")
         self.host = host
-        v = QVBoxLayout(self)
+        outer = QVBoxLayout(self); outer.setContentsMargins(0, 0, 0, 0)
+        sc = QScrollArea(); sc.setWidgetResizable(True); sc.setFrameShape(QFrame.NoFrame)   # 2.76.0: more cards than fit
+        inner = QWidget(); inner.setObjectName("page"); sc.setWidget(inner); outer.addWidget(sc)
+        v = QVBoxLayout(inner)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         self.eff = D.Card("Efforts", "One effort per proposal: its acronym list workbook, records and compliance files.",
                           actions=[D.button("Import effort package...", None, lambda: self.host.import_package()),
@@ -49,7 +52,33 @@ class SettingsPage(QWidget):
                                   D.button("Install a Knowledge Pack...", None, lambda: self.install_pack())])
         self.tr_text = self.tr.add(D.label("", "muted"))
         v.addWidget(self.tr)
+        from . import updates as UP                      # 2.76.0: update packs, and why no admin password is needed
+        self.up = UP.updates_card(host, on_close=self._before_restart, install=lambda: self.install_update(),
+                                  undo=lambda: self.undo_update())
+        self.up.lbl.setWordWrap(True)
+        v.addWidget(self.up)
+        self.sec = UP.security_card()
+        v.addWidget(self.sec)
         v.addStretch(1)
+
+    def _before_restart(self):
+        try:
+            self.host.assign_page.save_notes()
+        except Exception:
+            diag.swallowed()
+        self.host.close_effort()
+
+    def install_update(self, path=None, answer=None, restart=None):
+        from . import updates as UP
+        r = UP.install_update(self.host, path, answer, on_close=self._before_restart, restart=restart)
+        self.refresh()
+        return r
+
+    def undo_update(self, answer=None, restart=None):
+        from . import updates as UP
+        r = UP.undo_update(self.host, answer, on_close=self._before_restart, restart=restart)
+        self.refresh()
+        return r
 
     def refresh(self):
         h = self.host
@@ -61,6 +90,11 @@ class SettingsPage(QWidget):
         try:
             import master_db as MD
             self.db_text.setText(MD.info_text())
+        except Exception:
+            diag.swallowed()
+        try:
+            from . import updates as UP
+            self.up.lbl.setText(UP.version_text())
         except Exception:
             diag.swallowed()
         bd = self.backup_dir()

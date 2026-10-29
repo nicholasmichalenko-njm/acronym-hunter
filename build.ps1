@@ -123,7 +123,38 @@ if ($LASTEXITCODE -ne 0) { throw "NETWORK AUDIT FAILED. See the list above." }
 $exeHash = (Get-FileHash "$out\$exeName.exe" -Algorithm SHA256).Hash
 "$exeName.exe  SHA256  $exeHash" | Out-File -Encoding ascii "$out\CHECKSUM.txt"
 $qtLine = $null
+# 2.76.0: the list of this build's program files (update packs and Check program files compare against it)
+$ver = (Select-String -Path app_gui.py -Pattern '^APP_VERSION = "([0-9.]+)"').Matches[0].Groups[1].Value
+& .\venv\Scripts\python.exe tools\make_update.py --manifest $out --program $exeName --edition $Edition --version $ver
+if ($LASTEXITCODE -ne 0) { throw "PROGRAM MANIFEST FAILED. See the output above." }
 Test-PublicPackage $out
+$updKey = '_local_sandbox\keys\update_signing_key.txt'
+if ($Edition -eq 'us' -and -not $Classic) {
+    if (-not (Test-Path $updKey)) { throw "UPDATE CHECK FAILED: the publisher's signing key is missing ($updKey)" }
+    # 2.76.0: update packs end to end on the built program. A copy installs a signed pack (one changed document, and its
+    # own exe replaced while it runs), starts, checks its files, undoes the update and starts again.
+    $ut = "_local_sandbox\upd_$exeName"; $ub = "_local_sandbox\upd_${exeName}_next"; $um = "_local_sandbox\upd_${exeName}_manifests"
+    Remove-Item -Recurse -Force $ut, $ub, $um, "$ut.skupdate" -ErrorAction SilentlyContinue
+    Copy-Item $out $ut -Recurse; Copy-Item $out $ub -Recurse
+    New-Item -ItemType Directory -Force $um | Out-Null
+    Copy-Item "$out\_internal\program_manifest.json" "$um\$exeName-$ver.json"
+    Add-Content "$ub\README.txt" "UPDATE TEST LINE"
+    & .\venv\Scripts\python.exe tools\make_update.py --manifest $ub --program $exeName --edition $Edition --version "$ver.1" | Out-Null
+    & .\venv\Scripts\python.exe tools\make_update.py --pack $ub --key $updKey --out "$ut.skupdate" --always "$exeName.exe" --manifests $um --no-save
+    if ($LASTEXITCODE -ne 0) { throw "UPDATE CHECK FAILED: the test pack was not made" }
+    $pk = (Resolve-Path "$ut.skupdate").Path
+    $steps = @(@('--apply-update', $pk), @('--selftest'), @('--check-program'), @('--undo-update'), @('--selftest'))
+    foreach ($a in $steps) {
+        $q = Start-Process -FilePath "$ut\$exeName.exe" -ArgumentList $a -Wait -PassThru
+        if ($q.ExitCode -ne 0) { throw "UPDATE CHECK FAILED: $exeName.exe $($a[0]) exited $($q.ExitCode): $(Get-Content "$ut\logs\update.txt" -Raw -ErrorAction SilentlyContinue)" }
+        if ($a[0] -eq '--apply-update' -and -not (Select-String -Path "$ut\README.txt" -Pattern 'UPDATE TEST LINE' -Quiet)) { throw "UPDATE CHECK FAILED: the update did not change README.txt" }
+        if ($a[0] -eq '--undo-update' -and (Select-String -Path "$ut\README.txt" -Pattern 'UPDATE TEST LINE' -Quiet)) { throw "UPDATE CHECK FAILED: undo did not bring README.txt back" }
+    }
+    $ul = (Get-Content "$ut\logs\update.txt") -join ' | '
+    if ($ul -notmatch 'UPDATE OK' -or $ul -notmatch 'CHECK OK' -or $ul -notmatch 'UNDO OK') { throw "UPDATE CHECK FAILED: $ul" }
+    "Update check: $exeName.exe installed a signed pack while running, started, matched its files, undid it and started again ($ul)"
+    Remove-Item -Recurse -Force $ut, $ub, $um, "$ut.skupdate" -ErrorAction SilentlyContinue
+}
 # Software Bill of Materials (CycloneDX): what ships, with versions, licenses and SHA-256 of every program and model file
 $edLabel = if ($Classic) { 'US Classic (Tesseract only)' } elseif ($Edition -eq 'legacy') { 'Legacy' } else { 'US' }
 if ($App -eq 'training') { $edLabel = "$edLabel Training" }
@@ -136,6 +167,15 @@ $zipHash = (Get-FileHash $zip -Algorithm SHA256).Hash
 $lines = @("$zip  SHA256  $zipHash",
            "$exeName.exe  SHA256  $exeHash") + $(if ($qtLine) { @($qtLine) } else { @() }) + @("Built $(Get-Date -Format 'yyyy-MM-dd HH:mm')")
 $stage = $out
+# 2.76.0: the signed update pack for every copy from 2.76.0 on (none for the first release), and this release's manifest
+# kept in tools\manifests for the next pack
+if ($Edition -eq 'us' -and -not $Classic) {
+    $upd = "${prefix}_Update_$ver.skupdate"
+    Remove-Item $upd -ErrorAction SilentlyContinue
+    & .\venv\Scripts\python.exe tools\make_update.py --pack $out --key $updKey --out $upd
+    if ($LASTEXITCODE -ne 0) { throw "UPDATE PACK FAILED. See the output above." }
+    if (Test-Path $upd) { $lines = @($lines[0], "$upd  SHA256  $((Get-FileHash $upd -Algorithm SHA256).Hash)") + $lines[1..($lines.Count - 1)] }
+}
 
 # Package 3 (optional): internal build with a Knowledge Pack pre-installed. SharePoint ONLY.
 if ($KnowledgePack -and $App -eq 'user') {

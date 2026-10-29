@@ -47,3 +47,7 @@ internal_builds/
 /Claude outputs/
 feedback/reports/
 *_SBOM.cdx.json
+# 2.76.0: update packs are release files; the publisher's signing key never leaves the build PC
+*.skupdate
+*.skupdate.part
+*signing_key*

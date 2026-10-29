@@ -5,6 +5,19 @@ import os
 import sys
 
 os.environ.setdefault("SK_SANDBOX_TEMP", "temp_qt")      # never the classic app's temp folder (it is wiped at start)
+
+
+def _recover_update():
+    """2.76.0: before anything else loads, put back an update that stopped part-way (standard library only)."""
+    try:
+        import updatepack
+        here = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
+        return updatepack.recover(here)
+    except Exception:
+        return ""
+
+
+_recover_update()
 import app_gui as A                                        # network guard, sandbox, config folder, the readers
 
 
@@ -36,10 +49,25 @@ def _install_knowledge(path):
     return 0
 
 
+def _update_args(args):
+    """2.76.0, with no window (IT, or the release build's test): --apply-update <pack>, --undo-update, --check-program.
+    The result goes to logs/update.txt."""
+    if len(args) < 2 or args[1] not in ("--apply-update", "--undo-update", "--check-program"):
+        return None
+    from skqt import updates as UP
+    log = os.path.join(A.LOG_DIR, "update.txt")
+    if args[1] == "--apply-update":
+        return UP.apply_headless(args[2], log) if len(args) > 2 else 2
+    return UP.undo_headless(log) if args[1] == "--undo-update" else UP.check_headless(log)
+
+
 def main(argv=None):
     args = list(sys.argv if argv is None else argv)
     if len(args) > 2 and args[1] == "--install-knowledge":     # 2.74.0: Stationkeeper.exe is the Qt window now
         return _install_knowledge(args[2])
+    up = _update_args(args)
+    if up is not None:
+        return up
     from PySide6.QtWidgets import QApplication
     from PySide6.QtGui import QIcon
     from skqt import design
@@ -73,6 +101,9 @@ def main(argv=None):
     pkg = next((a for a in args[1:] if a.lower().endswith((".skpkg", ".ahpkg")) and os.path.isfile(a)), None)
     if pkg:                                              # 2.74.0: an effort package double-clicked
         QTimer.singleShot(800, lambda: w.import_package(pkg))
+    upk = next((a for a in args[1:] if a.lower().endswith(".skupdate") and os.path.isfile(a)), None)
+    if upk:                                              # 2.76.0: an update pack double-clicked: what it changes, then Update
+        QTimer.singleShot(800, lambda: (w.go("settings"), w.settings_page.install_update(upk)))
     kp = next((a for a in args[1:] if a.lower().endswith(".skknow") and os.path.isfile(a)), None)
     if kp:                                               # a Knowledge Pack double-clicked: the install card
         QTimer.singleShot(800, lambda: (w.go("settings"), w.settings_page.install_pack(kp)))

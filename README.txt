@@ -1,6 +1,39 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+UPDATE PACKS: INSTALL ONCE, THEN UPDATE WITH ONE FILE (2.76.0)
+  - 2.76.0 is the last full download. Each later version also comes as one update pack, for example
+    Stationkeeper_US_Update_2.77.0.skupdate (and Stationkeeper_US_Training_Update_2.77.0.skupdate for Training).
+  - Settings > Updates > Install update pack... (or double-click the .skupdate file): Stationkeeper shows what changes,
+    saves your work, closes, updates its program files and opens again. Stationkeeper Training: Build > Updates.
+  - Only program files change (Stationkeeper.exe, _internal\ and the documents). Efforts, settings (config\), the
+    acronym database, logs and training data are never touched. Unzipping a new copy over an old one overwrote
+    acronym_database.csv and the settings; an update pack never does.
+  - One pack serves every copy from 2.76.0 on, so you can skip versions. It holds only the files that changed, usually a
+    few MB instead of the 220 MB zip.
+  - Signed: the publisher signs each pack; Stationkeeper refuses a pack that someone else made or that changed after it
+    was made, and checks every file before anything changes. No internet: you pick the file, nothing checks online.
+  - Undo last update goes back to the version before. Check program files compares every program file with this
+    version's list and names any that are changed, missing or not part of it.
+  - IT can push a pack with no window: Stationkeeper.exe --apply-update <pack> (also --undo-update, --check-program);
+    the result goes to logs\update.txt.
+  - Get packs only from the approved SharePoint folder.
+
+WHY IT RUNS WITHOUT AN ADMINISTRATOR PASSWORD
+  - Windows asks for an admin password only when a program declares that it needs one, or when it writes to protected,
+    machine-wide places: Program Files, the Windows folder, the machine-wide registry, services and drivers. Installers
+    ask because they write there.
+  - Stationkeeper has no installer. Its exe declares "run as the person who started me" (asInvoker), and it writes only
+    inside its own folder, which you own. Windows has nothing to ask permission for.
+  - The Windows sandbox is not the reason. Only the OCR reader (Tesseract) runs in a Windows AppContainer, and that
+    takes rights away: no network, no files beyond two folders. A sandbox cannot grant or skip admin rights.
+  - Not an approval: it can read and write what you can, as any program you run can. Its protection comes from having no
+    network code (checked at every build), the no-network sandbox for the OCR reader, pinned and checked components
+    (SBOM, known-advisory check), read-only documents and signed update packs.
+  - Running does not mean approved. It runs because this PC does not block programs in your own folders (AppLocker or
+    WDAC); IT can turn that on at any time. Give IT security SECURITY.md, the SBOM and the checksums.
+  - The full explanation is in SECURITY.md (section 10) and in Settings > About and security.
+
 ONE PROGRAM: THE CLASSIC WINDOW IS RETIRED (2.75.0)
   - Stationkeeper_US.zip holds Stationkeeper.exe, the Qt window; Stationkeeper_US_Training.zip holds
     StationkeeperTraining.exe, Stationkeeper Training in Qt with the Trainer. StationkeeperClassic.exe and

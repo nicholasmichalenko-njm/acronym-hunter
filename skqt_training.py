@@ -6,11 +6,23 @@ import os
 import sys
 
 os.environ.setdefault("SK_SANDBOX_TEMP", "temp_qt_training")   # never the classic app's temp folder (wiped at start)
+try:                                                             # 2.76.0: put back an update that stopped part-way
+    import updatepack
+    updatepack.recover(os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__)))
+except Exception:
+    pass
 import app_gui as A                                              # network guard, sandbox, config folder, the readers
 A.TRAINING_APP = True
 
 
 def main(argv=None):
+    args0 = list(sys.argv if argv is None else argv)
+    if len(args0) > 1 and args0[1] in ("--apply-update", "--undo-update", "--check-program"):   # 2.76.0, no window
+        from skqt import updates as UP
+        log = os.path.join(A.LOG_DIR, "update.txt")
+        if args0[1] == "--apply-update":
+            return UP.apply_headless(args0[2], log) if len(args0) > 2 else 2
+        return UP.undo_headless(log) if args0[1] == "--undo-update" else UP.check_headless(log)
     from PySide6.QtWidgets import QApplication
     from PySide6.QtGui import QIcon
     from skqt import design
@@ -45,6 +57,11 @@ def main(argv=None):
             A.run_selftest(files)
         return 0 if ok else 1
     w.show()
+    upk = next((a for a in args0[1:] if a.lower().endswith(".skupdate") and os.path.isfile(a)), None)
+    if upk:                                              # 2.76.0: an update pack double-clicked
+        from PySide6.QtCore import QTimer
+        from skqt import updates as UP
+        QTimer.singleShot(800, lambda: (w.go("build"), UP.install_update(w, upk)))
     return app.exec()
 
 

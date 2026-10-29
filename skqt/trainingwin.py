@@ -589,6 +589,11 @@ class TrainingWindow(QMainWindow):
         know.add(D.label("Knowledge Packs contain what was learned from internal documents. Save them only to the approved "
                          "SharePoint folder: never GitHub, email or personal storage.", "crit"))
         v.addWidget(know)
+        from . import updates as UP                      # 2.76.0: update packs, and why no admin password is needed
+        self.up = UP.updates_card(self)
+        self.up.lbl.setWordWrap(True)
+        v.addWidget(self.up)
+        v.addWidget(UP.security_card())
         v.addStretch(1)
 
     def build_pack(self, path=None):

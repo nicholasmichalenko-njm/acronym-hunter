@@ -1,6 +1,6 @@
 # Stationkeeper: Security and Data-Handling Statement
 
-**Version covered:** 1.4.2 (exe SHA-256 recorded in `AcronymHunter_SHA256.txt` and `CHECKSUM.txt`)
+**Version covered:** 2.76.0 (exe SHA-256 recorded in `Stationkeeper_US_SHA256.txt` and `CHECKSUM.txt`; every program file's SHA-256 in `_internal\program_manifest.json`). Sections 10 and 11 added in 2.76.0
 **Verified:** 2026-10-20 (v1.0.1 live test; v1.0.2 added tiled OCR and the OCR Fixes window; v1.0.3 hardened XML parsing and capped embedded image size; no new file locations or network code) on the developer's Windows PC, from a fresh unzip of the shipped zip
 **Audience:** users, security and IT reviewers
 
@@ -52,7 +52,8 @@ Untrusted-file hardening (v1.0.3): Office XML is parsed with entity expansion, D
 disabled (tested against an entity bomb and an XXE file read); openpyxl uses defusedxml; embedded images over
 100 MB are skipped. Macros, embedded objects, and PDF scripts are never executed. Full detail: OVERVIEW.md Part 2.
 
-There is no server, no cloud service, no account, no license check, no telemetry, and no auto-update.
+There is no server, no cloud service, no account, no license check, no telemetry, and no auto-update. New versions
+arrive only as signed update packs that the user picks and installs (section 11).
 The app is a single process. It starts no child programs while scanning (verified: 0 child processes).
 
 ---
@@ -82,6 +83,8 @@ Complete list from a line-by-line audit of `app_gui.py` (every `open(... "w"/"a"
 | `training_data\images\*.png`, `labels.txt`, `samples.csv` | **Cropped document images** + their text, source file name, location | Only when you click Save in the Trainer | **Yes: document content.** Never shipped in the zip or committed to Git |
 | `training_data\regions\*.png`, `det_labels.txt`, `save_log.jsonl` | **The whole box drawn in the Trainer** + text box positions; save history for Undo | Trainer **Save Choices** | **Yes: document content.** Same handling as above |
 | `training_data\package\*.txt` | Train/check lists of the sample file names, a short report | **Prepare Training Package** | File names and label text |
+| `_update\staged\`, `_update\backup\`, `_update\journal.json` (2.76.0) | Program files of an update pack while it installs; the replaced program files (for Undo last update); the install's progress | **Install update pack**, **Undo last update** | No: program files only |
+| `logs\update.txt` | One line per `--apply-update`, `--undo-update` or `--check-program` run: versions, counts, program file names | Only with those options | No |
 
 **Writes outside the folder are yours to direct:**
 
@@ -298,6 +301,54 @@ at the top of the file, under "ZERO-FOOTPRINT FOLDER SANDBOX & OFFLINE NETWORK K
 
 ## 9. Change control
 
-Any change to `app_gui.py`, `trainer_gui.py`, `Stationkeeper.spec`, `requirements.txt`, `build.ps1`, `base\`, or the
+Any change to `app_gui.py`, `trainer_gui.py`, `updatepack.py`, `edsign.py`, `Stationkeeper.spec`, `requirements.txt`, `build.ps1`, `base\`, or the
 Training Kit (`build_training_kit.ps1`, `training_kit_src\`) can change this statement.
 Before sharing a new build: re-run the network and file checks in section 8 and update the version and date at the top.
+
+---
+
+## 10. Why it runs without administrator rights (2.76.0)
+
+**Short answer.** Windows asks for an administrator password only when a program declares that it needs one, or when it
+writes to protected, machine-wide places. Stationkeeper does neither, so Windows has nothing to ask permission for.
+
+| Question | Answer |
+|---|---|
+| When does Windows ask for admin rights? | When a program's manifest requests them (`requireAdministrator`), or when it writes to Program Files, the Windows folder, the machine-wide registry (HKLM), or installs services, drivers or machine-wide shell extensions. Installers (setup.exe, .msi) ask because they do these things |
+| What does Stationkeeper declare? | Its exe's manifest says `asInvoker`: run with the rights of the person who started it (the PyInstaller default; `Stationkeeper.spec` sets no `uac_admin`). Windows' installer-detection guesswork does not apply to an exe that declares its level |
+| Where does it write? | Only inside its own folder (section 3), which the person who unzipped it owns, plus files the user saves where they choose. No Program Files, no registry, no services, no AppData |
+| Is it the Windows sandbox? | **No.** Only the OCR reader (Tesseract) runs in a Windows AppContainer, and that takes rights away: no network (not even loopback) and read access to two folders. Creating an AppContainer needs no admin rights, and a sandbox cannot grant them |
+| Then why do other approved apps need admin? | They are installed for every user into protected places, often with services or auto-updaters. On managed PCs IT installs them through a deployment tool that has admin rights, which is also where approval happens |
+
+**Does it make Stationkeeper less of a threat?** Its ceiling is lower, which helps: without admin rights it cannot change
+Windows, install services or drivers, change security settings, or touch other users' files. It is not a clean bill of
+health: a program running as you can read and write everything you can (documents, mapped drives, synced folders), and
+most data-stealing malware runs without admin rights too. Stationkeeper's protection comes from what it does and does not
+contain: no network code, a build that fails if any program file links a networking API (section 4), the OCR reader in
+the no-network AppContainer, pinned third-party components listed in the SBOM and checked against the OSV advisory
+database at every release, read-only document handling with hardened XML parsing, and signed update packs (section 11).
+
+**Is it a security risk?** The honest list:
+
+| Risk | What it means | What reduces it |
+|---|---|---|
+| **Policy** | Running without admin is not approval. It runs because the PC does not block unknown programs in user folders (AppLocker or Windows Defender Application Control). IT can enforce that at any time, and most companies require approval for any software, portable or not | Submit it to IT security with this file, the SBOM (`Stationkeeper_US_SBOM.cdx.json`) and the published checksums. A company code-signing certificate would let IT allow it by publisher |
+| **Program files in a folder you can change** | Program Files is protected by admin rights; your own folder is not. Other malware running as you could change Stationkeeper's files (for example plant a DLL). This is the one way an IT-installed app is better protected | **Check program files** (Settings > Updates) compares every file with this version's list and names changed, missing and extra files. Update packs carry the publisher's signature. Keep the folder on a local, encrypted drive |
+| **Not code-signed** | Windows cannot show a verified publisher; only the published SHA-256 proves which exe is genuine | Compare `Get-FileHash` with the release's checksum file; update packs are signed (section 11) |
+| **The in-process network block** | The Python-level block (section 2) is defense in depth inside the app's own process, not an operating-system boundary | The app contains no network code (audited at every build); the OCR reader, which reads untrusted pictures, runs in the AppContainer, which is an operating-system boundary |
+
+## 11. Update packs (2.76.0)
+
+Install Stationkeeper once (2.76.0 or later); each new version then comes as one `.skupdate` file.
+
+| Question | Answer |
+|---|---|
+| What can a pack change? | Program files only: `Stationkeeper.exe` (or `StationkeeperTraining.exe`), `_internal\`, `README.txt`, `OVERVIEW.md`, `SECURITY.md`, `CHECKSUM.txt`. Never `config\`, `acronym_database.csv`, efforts, logs or training data. A path outside these, a drive letter, `..`, a reserved device name, or a file in the zip that the signed list does not name, stops the install before anything changes |
+| How is a pack proved genuine? | `update_info.json` lists every program file of the new version with its SHA-256. The publisher signs it with an Ed25519 private key that stays on the build PC (never in GitHub, never in a package). The app holds only the public key (`updatepack.PUBLIC_KEYS`) and refuses a pack whose signature does not match; every file is checked against its signed SHA-256 as it is unpacked. Verified: a pack signed with another key, a pack with one changed byte in its list, and a pack with a swapped file were all refused with nothing changed |
+| Is it riskier than downloading a new copy? | No. A downloaded zip is trusted only if someone compares its SHA-256 by hand; a pack is checked by the app, automatically, against a key an attacker does not have. The new asset to protect is the signing key: whoever holds it can make packs every copy accepts. If it is lost or exposed, publish one full download with a new key |
+| Does the app go online? | No. The person picks the file. There is still no update check, no download and no network code |
+| Can it install an older version? | No. A pack must be newer than the copy. **Undo last update** goes back exactly one step, from the files kept in `_update\backup\` |
+| What if it stops part-way? | Files are moved, not overwritten (Windows allows a running program's files to be renamed). Any failure moves everything back at once; a crash or power cut part-way is put back at the next start, before the program loads anything else |
+| Admin rights? | None. It changes only the folder the person owns. If IT installed the program in a protected folder, the install fails safely and says so |
+| What can IT automate? | `Stationkeeper.exe --apply-update <pack>`, `--undo-update`, `--check-program` with no window; results in `logs\update.txt` |
+| How is it tested? | Every release build installs a signed test pack into a copy of the built program (replacing the running exe), starts it, checks every program file, undoes the update and starts it again |

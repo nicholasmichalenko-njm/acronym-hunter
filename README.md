@@ -33,6 +33,15 @@ Knowledge Packs (trained models, the real acronym database, OCR fixes, ignore li
 SharePoint folder. They are never committed or attached to a release. The working `acronym_database.csv` and `config/`
 are ignored by Git.
 
+## Update packs (2.76.0)
+- Every release after 2.76.0 also publishes `Stationkeeper_US_Update_<version>.skupdate` (and the Training one): only the
+  program files changed since 2.76.0, signed with Ed25519. Users install it from Settings > Updates; data is never touched.
+- `build.ps1` writes `_internal\program_manifest.json`, tests an update end to end on the built program, makes the pack
+  and keeps each release's manifest in `tools/manifests/` (commit it with the release).
+- The signing key is `_local_sandbox\keys\update_signing_key.txt` on the build PC only. Never commit it; back it up
+  offline. `tools/make_update.py --public <key>` prints the public key that `updatepack.PUBLIC_KEYS` must hold.
+- Why the app needs no admin rights, and what that does and does not mean: `SECURITY.md` section 10.
+
 ## Notes
 - The exe is not code-signed. See `PROJECT_GUIDE.txt` > Signing and security approval.
 - Test sample content and any CUI/ITAR markings in it are fictional.
