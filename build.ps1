@@ -30,9 +30,8 @@ $env:AH_CLASSIC = if ($Classic) { '1' } else { '' }
 if ($Classic) { $prefix = 'Stationkeeper_US_Classic' }
 $env:AH_APP = $App
 $exeName = if ($App -eq 'training') { 'StationkeeperTraining' } else { 'Stationkeeper' }
-# 2.74.0: Stationkeeper.exe (StationkeeperTraining.exe) is the Qt window; the classic window ships beside it
+# 2.74.0: Stationkeeper.exe (StationkeeperTraining.exe) is the Qt window. 2.75.0: the classic window no longer ships.
 $qtExe = $exeName
-$classicExe = "${exeName}Classic"
 $qtTest = if ($App -eq 'training') { 'qt_training_selftest.txt' } else { 'qt_selftest.txt' }
 if ($App -eq 'training') { $prefix = "${prefix}_Training" }
 
@@ -40,7 +39,6 @@ function Test-PublicPackage([string]$dir) {
     # 1. Only these files may sit outside _internal
     $allowed = @("$exeName.exe", 'acronym_database.csv', 'README.txt', 'OVERVIEW.md', 'SECURITY.md', 'CHECKSUM.txt',
                  'config\app_settings.json', 'config\ocr_settings.json', 'config\ocr_corrections.csv', 'config\models\README.txt')
-    $allowed += "$classicExe.exe"                                # 2.74.0: the classic window, in the same folder
     $root = (Resolve-Path $dir).Path
     $files = Get-ChildItem $root -Recurse -File | ForEach-Object { $_.FullName.Substring($root.Length + 1) }
     $outside = $files | Where-Object { $_ -notlike '_internal\*' }
@@ -125,10 +123,6 @@ if ($LASTEXITCODE -ne 0) { throw "NETWORK AUDIT FAILED. See the list above." }
 $exeHash = (Get-FileHash "$out\$exeName.exe" -Algorithm SHA256).Hash
 "$exeName.exe  SHA256  $exeHash" | Out-File -Encoding ascii "$out\CHECKSUM.txt"
 $qtLine = $null
-if (Test-Path "$out\$classicExe.exe") {
-    $qtLine = "$classicExe.exe  SHA256  $((Get-FileHash "$out\$classicExe.exe" -Algorithm SHA256).Hash)"
-    $qtLine | Out-File -Encoding ascii -Append "$out\CHECKSUM.txt"
-}
 Test-PublicPackage $out
 # Software Bill of Materials (CycloneDX): what ships, with versions, licenses and SHA-256 of every program and model file
 $edLabel = if ($Classic) { 'US Classic (Tesseract only)' } elseif ($Edition -eq 'legacy') { 'Legacy' } else { 'US' }

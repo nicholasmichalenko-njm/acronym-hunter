@@ -90,39 +90,38 @@ def make_analysis(script, qt=False):
     optimize=0,
   )
 
-a = make_analysis('training_app.py' if TRAINING else 'app_gui.py')
+# 2.75.0: only the Qt window ships. Stationkeeper.exe (skqt_main.py) and StationkeeperTraining.exe (skqt_training.py);
+# the classic tkinter programs are no longer built (AH_QT=0 builds the classic program alone, for a one-off comparison).
+QT_APP = os.environ.get('AH_QT', '1') == '1'
 # Strip payload the app never uses: PyMuPDF layout models + C headers/libs, OpenCV video (FFmpeg) DLL.
 def _keep(entry):
     dest = entry[0].replace('/', '\\').lower()
     return not (dest.startswith('pymupdf\\layout') or dest.startswith('pymupdf\\mupdf-devel')
                 or 'opencv_videoio_ffmpeg' in dest
                 or dest.startswith('onnxruntime\\datasets'))   # ONNX Runtime demo models: unused, and the leak check allows no stray .onnx
-a.datas = [e for e in a.datas if _keep(e)]
-a.binaries = [e for e in a.binaries if _keep(e)]
-# 2.59.0: Stationkeeper (Qt), the Qt edition, in the same folder (same config and effort files; its own temp folder)
-# 2.72.0: Stationkeeper Training (Qt) beside Stationkeeper Training (the Training Studio in Qt)
-QT_APP = os.environ.get('AH_QT', '1') == '1'
+# No Qt network parts: QtNetwork and the plugins that need it (TLS back ends, network information) are left out.
+# The app imports none of them; tools\network_audit.py would fail the build on Qt6Network.dll.
+def _keep_qt(entry):
+    dest = entry[0].replace('/', '\\').lower()
+    return _keep(entry) and not ('qt6network' in dest or 'qtnetwork' in dest or '\\plugins\\tls' in dest
+                                 or '\\plugins\\networkinformation' in dest)
+
 if QT_APP:
-    aq = make_analysis('skqt_training.py' if TRAINING else 'skqt_main.py', qt=True)
-    # No Qt network parts: QtNetwork and the plugins that need it (TLS back ends, network information) are left out.
-    # The app imports none of them; tools\network_audit.py would fail the build on Qt6Network.dll.
-    def _keep_qt(entry):
-        dest = entry[0].replace('/', '\\').lower()
-        return _keep(entry) and not ('qt6network' in dest or 'qtnetwork' in dest or '\\plugins\\tls' in dest
-                                     or '\\plugins\\networkinformation' in dest)
-    aq.datas = [e for e in aq.datas if _keep_qt(e)]
-    aq.binaries = [e for e in aq.binaries if _keep_qt(e)]
+    a = make_analysis('skqt_training.py' if TRAINING else 'skqt_main.py', qt=True)
+    a.datas = [e for e in a.datas if _keep_qt(e)]
+    a.binaries = [e for e in a.binaries if _keep_qt(e)]
+else:
+    a = make_analysis('training_app.py' if TRAINING else 'app_gui.py')
+    a.datas = [e for e in a.datas if _keep(e)]
+    a.binaries = [e for e in a.binaries if _keep(e)]
 
 pyz = PYZ(a.pure)
-
 exe = EXE(
     pyz,
     a.scripts,
     [],
     exclude_binaries=True,
-    # 2.74.0: the Qt window is Stationkeeper.exe (StationkeeperTraining.exe); the classic window ships beside it as a
-    # fallback for one more release
-    name=('StationkeeperTraining' if TRAINING else 'Stationkeeper') + ('Classic' if QT_APP else ''),
+    name='StationkeeperTraining' if TRAINING else 'Stationkeeper',
     icon='assets/trainer.ico' if TRAINING else 'assets/scanner.ico',
     version='version_info_trainer.txt' if TRAINING else 'version_info.txt',  # Windows file properties (publisher, description, version)
     debug=False,
@@ -136,20 +135,10 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
 )
-extra = []
-if QT_APP:
-    pyzq = PYZ(aq.pure)
-    exeq = EXE(pyzq, aq.scripts, [], exclude_binaries=True, name='StationkeeperTraining' if TRAINING else 'Stationkeeper',
-               icon='assets/trainer.ico' if TRAINING else 'assets/scanner.ico',
-               version='version_info_trainer.txt' if TRAINING else 'version_info.txt', debug=False, bootloader_ignore_signals=False, strip=False, upx=False,
-               console=False, disable_windowed_traceback=False, argv_emulation=False, target_arch=None,
-               codesign_identity=None, entitlements_file=None)
-    extra = [exeq, aq.binaries, aq.datas]
 coll = COLLECT(
     exe,
     a.binaries,
     a.datas,
-    *extra,
     strip=False,
     upx=False,
     upx_exclude=[],

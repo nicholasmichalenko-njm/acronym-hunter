@@ -1,12 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+ONE PROGRAM: THE CLASSIC WINDOW IS RETIRED (2.75.0)
+  - Stationkeeper_US.zip holds Stationkeeper.exe, the Qt window; Stationkeeper_US_Training.zip holds
+    StationkeeperTraining.exe, Stationkeeper Training in Qt with the Trainer. StationkeeperClassic.exe and
+    StationkeeperTrainingClassic.exe are no longer included.
+  - Nothing changes in your files: every effort, matrix, list, setting, training line and Knowledge Pack made in either
+    window opens in Stationkeeper.exe.
+  - When you unzip 2.75.0 over 2.74.0, delete StationkeeperClassic.exe (and StationkeeperTrainingClassic.exe) if they
+    are still in the folder: they belong to the older version.
+
 STATIONKEEPER.EXE IS THE QT WINDOW (2.74.0)
   - Stationkeeper.exe now opens the Qt window (it was StationkeeperQt.exe), and StationkeeperTraining.exe opens
     Stationkeeper Training in Qt (it was StationkeeperTrainingQt.exe). Your shortcuts keep working and open the Qt window.
-  - The classic window ships beside it for one more release as StationkeeperClassic.exe (and
-    StationkeeperTrainingClassic.exe), as a fallback; its title says "(classic)". Both share config and every effort
-    file; open an effort in one program at a time.
+  - The classic window shipped beside it in 2.74.0 only, as StationkeeperClassic.exe (and
+    StationkeeperTrainingClassic.exe); 2.75.0 retires it.
   - Double-click an effort package (.skpkg) or a Knowledge Pack (.skknow) and the Qt window opens it. Settings >
     Import effort package... opens a package someone handed over: keep both, or use the package (this PC's copy is
     backed up first).
@@ -93,8 +101,8 @@ STATIONKEEPER (QT) (from 2.59.0)
   ship as separate files). StationkeeperQt.exe sits next to Stationkeeper.exe and shares its config and every effort
   file. It holds Effort home, the effort dashboard (2.62.0), the effort record and color team reviews (2.63.0), acronym scan and review and the effort list (2.64.0), Customer Documents (2.65.0), QA/QC, Keywords, Export all and Settings (2.66.0), author briefs, customer acronym lists, training data and
   Knowledge Packs (2.67.0), and all of Compliance (L and M, document initials and building the structure while assigning in 2.68.0; how the structure starts in 2.69.0): Read RFP, Structure, Assign,
-  Prove, the L/M crosswalk, Matrix and Response Setup (2.61.0); the other areas follow one per release,
-  and the classic window retires when Qt does everything.
+  Prove, the L/M crosswalk, Matrix and Response Setup (2.61.0); Training in Qt (2.72.0) and the Trainer (2.73.0).
+  From 2.74.0 Stationkeeper.exe is the Qt window; 2.75.0 retires the classic window.
   - Open an effort in one program at a time: the other says the effort is open elsewhere.
   - Qt runs fully offline; no Qt network or web parts are included.
 
