@@ -84,6 +84,26 @@ check("Not in this effort (a name in all efforts stays in the others)", card.thi
       and "T. Nguyen" not in w.people() and "T. Nguyen" in w.authors.for_effort("Effort A"))
 check("Shows in...: set the efforts for a name", card.choose_efforts(["R. Diaz"], answer=["Effort A", "Effort B"]) == ["Effort A", "Effort B"]
       and "R. Diaz" in w.authors.for_effort("Effort A"))
+from skqt.people import EffortsDialog                     # 2.87.0: All efforts ticks (and locks) every effort; OK commits
+dl = EffortsDialog(card, ["Effort A", "Effort B"], AL.ALL, "Where S. Patel shows")
+check("All efforts: every effort shows ticked and cannot be changed", dl.alle.isChecked() and all(b.isChecked() and not b.isEnabled() for b in dl.boxes)
+      and dl.values() == AL.ALL and "every effort" in dl.summary.text())
+dl.alle.setChecked(False)
+check("untick All efforts: the efforts open up, unticked", all(b.isEnabled() and not b.isChecked() for b in dl.boxes) and dl.values() == []
+      and "no effort" in dl.summary.text())
+dl.boxes[0].setChecked(True); dl.alle.setChecked(True)
+check("ticking All efforts again ticks every effort", all(b.isChecked() and not b.isEnabled() for b in dl.boxes) and dl.values() == AL.ALL)
+dl.alle.setChecked(False)
+check("and unticking it brings back what was picked (nothing lost by a slip)", [b.isChecked() for b in dl.boxes] == [True, False]
+      and dl.values() == ["Effort A"])
+dl2 = EffortsDialog(card, ["Effort A", "Effort B"], ["Effort B"], "Where R. Diaz shows")
+dl2.alle.setChecked(True); dl2.reject()
+check("a name in chosen efforts: Cancel after ticking All efforts changes nothing", w.authors.find("R. Diaz")["efforts"] == ["Effort A", "Effort B"]
+      and not dl2.alle.isChecked() is False)
+dl3 = EffortsDialog(card, ["Effort A", "Effort B"], ["Effort B"], "x")
+check("a name in chosen efforts opens with those ticked", not dl3.alle.isChecked() and [b.isChecked() for b in dl3.boxes] == [False, True])
+card.add_names("Lee Ortiz", efforts=AL.ALL)
+check("a name added to all efforts shows in the open effort", "Lee Ortiz" in w.people() and f"show in {w.effort_name}" in card.info.text())
 ex = os.path.join(tmp, "Author list.xlsx")
 check("export the list for the rest of the team", card.export(ex) == len(w.authors.people) and len(AL.read_file(ex)) == len(w.authors.people))
 check("rename and remove", card.rename("S. Patel", "Sam Patel") and card.remove(["Sam Patel"], answer="yes") == 1)
