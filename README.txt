@@ -45,6 +45,9 @@ CHANGES: ONE PLACE FOR WHAT A NEW VERSION CHANGED (2.85.0)
     changed, removed or added; the owner confirms the answer still fits there or on Assign's card.
   - Submission rules (was Requirements) is a reference: what the customer requires now. A rule a version changed shows
     Was and Now in its row, in color, and "Open the change in Changes" goes straight to it.
+  - The mouse wheel never changes a choice: over a drop-down, a number box, a date or time box, the wheel scrolls the
+    page (or the table the box is in). A value changes only when you open the drop-down and pick, type, or use the
+    arrows. An open drop-down list still scrolls with the wheel.
 
 READ AND ASSIGN ANY DOCUMENT (2.84.0)
   - Every start, after an update too, reopens the effort you last had open, with its documents and work; with one
