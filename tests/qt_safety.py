@@ -123,6 +123,7 @@ check("and the effort is open again", w2.ws is not None and w2.effort_name == "H
 R = w2.review
 R.req([R.M.items[1]], "1.2 Schedule"); w2.changed()
 w2.safety.crash_answer = "keep"
+sys.excepthook = lambda *a: None                # the log entry, quietly (the console would print a traceback)
 hook = w2.safety.install_crash_screen()
 try:
     raise RuntimeError("test: something went wrong")

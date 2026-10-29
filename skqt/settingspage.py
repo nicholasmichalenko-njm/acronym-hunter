@@ -25,6 +25,9 @@ class SettingsPage(QWidget):
         inner = QWidget(); inner.setObjectName("page"); sc.setWidget(inner); outer.addWidget(sc)
         v = QVBoxLayout(inner)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
+        from .modes import ModeCard                      # 2.79.0: Secured or Connected
+        self.mode = ModeCard(host)
+        v.addWidget(self.mode)
         self.eff = D.Card("Efforts", "One effort per proposal: its acronym list workbook, records and compliance files.",
                           actions=[D.button("Import effort package...", None, lambda: self.host.import_package()),
                                    D.button("New effort...", "primary", lambda: self.new_effort())])
@@ -106,6 +109,7 @@ class SettingsPage(QWidget):
         except Exception:
             diag.swallowed()
         self.authors.fill()
+        self.mode.fill()
         try:
             from . import updates as UP
             self.up.lbl.setText(UP.version_text())
@@ -249,6 +253,10 @@ class SettingsPage(QWidget):
         app_gui.save_settings(st)
         if folder:
             diag.activity("backup_location_set")
+            import workmode as WM
+            warn = WM.folder_warning(app_gui.load_settings() or {}, folder)
+            if warn:
+                self.host.status(warn)
         else:
             diag.activity("backup_location_off")
         self.refresh()

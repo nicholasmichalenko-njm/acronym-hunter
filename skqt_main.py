@@ -96,6 +96,10 @@ def main(argv=None):
             A.run_selftest(files)
         return 0 if ok else 1
     w.show()
+    from skqt import modes as MO                     # 2.79.0: where is this PC used? (asked once)
+    if not MO.mode():
+        QTimerX = __import__("PySide6.QtCore", fromlist=["QTimer"]).QTimer
+        QTimerX.singleShot(300, lambda: MO.ask_mode(w))
     if w.efforts.current:
         w.open_effort(w.efforts.current)
     from PySide6.QtCore import QTimer

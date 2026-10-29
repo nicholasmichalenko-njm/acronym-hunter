@@ -24,13 +24,22 @@ def import_package(win, path=None, dest=None, mode=None):
     except P.PackageError as e:
         win.status(str(e))
         return None
+    try:                                                 # 2.79.0: a package from a newer Stationkeeper waits for the update
+        import updatepack as U
+        if man.get("app") and U.vtuple(man["app"]) > U.vtuple(win.version or "0"):
+            win.status(f"This package was saved by Stationkeeper {man['app']}; this PC has {win.version}. Install the "
+                       f"update pack for {man['app']} (Settings > Updates), then open the package.")
+            return None
+    except U.UpdateError:
+        pass
     name = man.get("effort") or "Effort"
     desc = (f"{name}\nSaved by {man.get('saved_by', '?')} on {man.get('saved_at', '').replace('T', ' ')}"
             + (f"\nStage: {man['stage']}" if man.get("stage") else "") + f"\n{len(man.get('files', {}))} files")
     exists = name in win.efforts.names()
+    compare = compare_with(win, name, path, man) if exists else None
     if mode is None and exists:
         box = QMessageBox(win); box.setWindowTitle("Import effort package")
-        box.setText(desc + f"\n\n'{name}' is already on this PC.")
+        box.setText(desc + f"\n\n'{name}' is already on this PC.\n\n" + compare["text"])
         use = box.addButton("Use the package (back up this PC's copy first)", QMessageBox.AcceptRole)
         both = box.addButton("Keep both", QMessageBox.ActionRole)
         box.addButton(QMessageBox.Cancel)
@@ -93,7 +102,52 @@ def import_package(win, path=None, dest=None, mode=None):
                                    + (f" at {man['stage']}" if man.get("stage") else ""), save=True)
     except Exception:
         diag.swallowed()
+    merge_authors(win, man, new_name)
     win.go("home")
+    win.safety.restore_view()                            # 2.79.0: where the sender was
     win.toast(f"{new_name}: package imported")
     got["name"] = new_name
+    got["compare"] = compare
     return got
+
+
+def compare_with(win, name, path, man):
+    """2.79.0: which copy is newer, and what differs in the compliance matrix. {relation, text, diff}"""
+    import json, tempfile, zipfile
+    import lineage as LG
+    old = win.efforts.get(name) or {}
+    od = W.data_dir_for(old.get("path", "")) if old.get("path") else ""
+    mine = LG.read(od) if od else None
+    theirs, their_matrix = None, ""
+    try:
+        with zipfile.ZipFile(path) as z:
+            if "data/revision.json" in z.namelist():
+                theirs = json.loads(z.read("data/revision.json").decode("utf-8"))
+            mx = next((n for n in z.namelist() if n.startswith("matrix/") and n.lower().endswith(".xlsx")), None)
+            if mx:
+                their_matrix = os.path.join(tempfile.mkdtemp(), os.path.basename(mx))
+                with open(their_matrix, "wb") as f:
+                    f.write(z.read(mx))
+    except (OSError, zipfile.BadZipFile, ValueError, KeyError):
+        diag.swallowed()
+    c = LG.compare(mine, theirs)
+    my_matrix = (W.read_json(os.path.join(od, "settings.json"), None) or {}).get("compliance_path", "") if od else ""
+    d = LG.diff_matrices(my_matrix, their_matrix) if their_matrix else None
+    text = LG.describe(c) + ("\n" + LG.diff_text(d) if d else "")
+    return {"relation": c["relation"], "text": text, "diff": d, "compare": c}
+
+
+def merge_authors(win, man, effort):
+    """2.79.0: the author-list names that showed in this effort on the sender's PC show here too (added, never removed)."""
+    names = [a.get("name", "") for a in (man.get("extra") or {}).get("authors", []) if isinstance(a, dict)]
+    added = 0
+    for n in names:
+        if not win.authors.find(n):
+            added += win.authors.add(n, [effort], source="from a package", save=False)
+        elif not win.authors.shows_in(win.authors.find(n), effort):
+            win.authors.find(n)["efforts"].append(effort)
+    if names:
+        win.authors.save()
+    if added:
+        diag.activity("package_authors_added", added=added)
+    return added

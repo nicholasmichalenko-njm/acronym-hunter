@@ -87,6 +87,9 @@ class RecordPage(QWidget):
         row.addWidget(D.button("Effort status (Word)...", "primary", lambda: self.status_export(), "Where the effort stands, for leadership"))
         row.addWidget(D.button("Effort summary (Word)...", None, lambda: self.status_export(final=True), "The effort with its complete history"))
         row.addWidget(D.button("Save effort package...", None, lambda: self.save_package(), "The whole effort in one .skpkg file for a hand-off"))
+        self.team_btn = D.button("Save to the team folder", None, lambda: self.save_to_team(),
+                                 "Connected mode: the package goes to the team's OneDrive-synced SharePoint folder")
+        row.addWidget(self.team_btn)
         row.addWidget(D.button("Back up now", None, lambda: self.backup_now()))
         row.addWidget(D.button("Restore...", None, lambda: self.restore_dialog(), "Put back an earlier copy of this effort"))
         row.addStretch(1)
@@ -138,6 +141,9 @@ class RecordPage(QWidget):
         self.fill_team(r)
         self.fill_stages(r)
         self.backup_text.setText(self.host.safety.status_text())     # 2.78.0: automatic, with the last time
+        import workmode as WM
+        from .modes import settings
+        self.team_btn.setVisible(bool(WM.team_dir(settings())))
 
     # ------------------------------------------------------------ details
     def use_customer_due(self):
@@ -379,7 +385,7 @@ class RecordPage(QWidget):
             man = P.save(path, a["effort_name"], a["list_path"], a["data_dir"], info=a["info"], matrix_path=a["matrix_path"],
                          customer_dir=a["customer_dir"] if customer else "", volumes_dir=a["volumes_dir"] if volumes else "",
                          customer=customer and bool(a["customer_dir"]), volumes=volumes and bool(a["volumes_dir"]), stage=a["stage"],
-                         app_version=a["app_version"], extra_files=a["extra_files"])
+                         app_version=a["app_version"], extra_files=a["extra_files"], extra=self.package_extra())
         except (OSError, PermissionError) as e:
             diag.swallowed()
             h.status(f"The package could not be written ({type(e).__name__}).")
@@ -388,6 +394,36 @@ class RecordPage(QWidget):
         diag.activity("qt_package_saved", files=len(man["files"]))
         h.toast(f"Effort package saved: {os.path.basename(man['path'])}")
         return man
+
+    def package_extra(self):
+        """2.79.0: what the receiver needs from this PC's settings: the author-list names that show in this effort, and
+        the revision (so the receiver's copy can be compared)."""
+        h = self.host
+        h.safety.save_view()
+        h.safety.revise()
+        out = {"authors": [{"name": n} for n in h.authors.for_effort(h.effort_name)]}
+        try:
+            import lineage as LG
+            out["revision"] = LG.current(LG.read(h.ws.root))
+        except Exception:
+            diag.swallowed()
+        return out
+
+    def save_to_team(self):
+        """Connected mode: the package goes to the team folder, named with the effort, stage, who and when."""
+        import workmode as WM
+        from .modes import settings
+        team = WM.team_dir(settings())
+        if not team or self.host.ws is None:
+            self.host.status("Choose the team folder first (Settings > Where Stationkeeper is used).")
+            return None
+        import getpass, effortpkg as P
+        a_stage = self.rec.stage()["name"]
+        name = " ".join(x for x in (self.host.effort_name, a_stage, getpass.getuser(),
+                                    datetime.datetime.now().strftime("%Y-%m-%d %H%M")) if x)
+        folder = WM.packages_dir(team, self.host.effort_name)
+        os.makedirs(folder, exist_ok=True)
+        return self.save_package(os.path.join(folder, WM._safe(name) + P.EXT))
 
     def backup_dir(self):
         try:

@@ -21,7 +21,7 @@ import diag
 BACKUP_AFTER_S = 180.0          # a burst of work backs up once, a few minutes after it stops
 TICK_MS = 15000
 _SKIP_DIRS = {"backups", "recovery", "__pycache__"}
-_SKIP_FILES = {"lock.json", "qt_view.json"}
+_SKIP_FILES = {"lock.json", "qt_view.json", "revision.json"}
 
 
 def _nice(dt):
@@ -45,6 +45,7 @@ class Safety:
         self._last_crash = 0.0
         self.test_dir = None
         self.recovered_text = ""
+        self.rev_sig = None
         self.snap_timer = QTimer(host, singleShot=True, interval=400, timeout=self.snapshot)
         self.timer = QTimer(host, interval=TICK_MS, timeout=self.tick)
         self.timer.start()
@@ -61,7 +62,10 @@ class Safety:
     def backup_dir(self):
         if os.environ.get("AH_TEST") and self.test_dir is None:
             return ""                             # tests never write to a real backup folder; qt_safety sets test_dir
-        return self.test_dir or self.settings().get("backup_dir", "") or ""
+        if self.test_dir:
+            return self.test_dir
+        import workmode as WM                     # 2.79.0: Connected mode with no folder chosen: the team folder's Backups
+        return WM.backup_dir(self.settings())
 
     def last_backup(self):
         v = self.settings().get("backup_last", "")
@@ -77,6 +81,10 @@ class Safety:
                     "so every effort is copied there automatically.")
         last = self.last_backup()
         res = self.result or {}
+        import workmode as WM
+        warn = WM.folder_warning(self.settings(), d)
+        if warn:
+            return f"Backups go to {d}. {warn}"
         if res.get("ok") is False:
             return f"The last backup to {d} did not finish ({res.get('error', 'error')}). It is tried again after the next change."
         return f"Backups go to {d}" + (f"; the last one was {_nice(last)}." if last else "; none yet.") + \
@@ -194,6 +202,8 @@ class Safety:
             return False
         self.list_copy()
         self.save_view()
+        self.revise()
+        self.presence()
         if not self.backup_dir():
             return False
         sig = self.signature()
@@ -222,6 +232,36 @@ class Safety:
         if got:
             self.list_mtime = m
         return got
+
+    # ------------------------------------------------------------ 2.79.0: revisions and who has it open
+    def revise(self, force=False):
+        """A new revision when the saved work changed since the last one (one per burst of work). Returns it or None."""
+        h = self.host
+        if h.ws is None:
+            return None
+        sig = self.signature()
+        if not force and sig == self.rev_sig:
+            return None
+        self.rev_sig = sig
+        try:
+            import lineage as LG
+            return LG.bump(h.ws.root)
+        except Exception:
+            diag.swallowed()
+            return None
+
+    def presence(self):
+        """Connected mode: keep the team folder's marker saying this effort is open here."""
+        h = self.host
+        import workmode as WM
+        team = WM.team_dir(self.settings())
+        if h.ws is None or not team:
+            return None
+        try:
+            return WM.mark(team, h.effort_name, h.version)
+        except OSError:
+            diag.swallowed()
+            return None
 
     # ------------------------------------------------------------ the matrix: recovery copy and dated copies
     def changed(self):
@@ -327,16 +367,31 @@ class Safety:
     def opened(self):
         h = self.host
         self.done_sig = self.signature()          # what is on disk now is what the next backup compares with
+        self.rev_sig = self.done_sig
         self.seen_sig, self.list_mtime, self.result = None, None, None
+        try:
+            import lineage as LG
+            LG.ensure(h.ws.root)
+        except Exception:
+            diag.swallowed()
+        self.presence()
         if not self.backup_dir():
             h.status("Backups are off: choose a folder in Settings > Backups so your work is copied there automatically.")
 
     def closing(self):
         """The effort is closing (its work just saved): back it up if anything changed, and remember where you were."""
         self.save_view()
+        self.revise()
         try:
             if self.backup_dir():
                 self.backup_now(wait=True)
+        except Exception:
+            diag.swallowed()
+        try:
+            import workmode as WM
+            team = WM.team_dir(self.settings())
+            if team:
+                WM.unmark(team, self.host.effort_name)
         except Exception:
             diag.swallowed()
 

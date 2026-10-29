@@ -78,6 +78,7 @@ class MainWindow(QMainWindow):
         self.effort_name = ""
         self.effort_path = ""
         self.review = None
+        self.presence_answer = None                # tests: "open" or "cancel"
         self.resize(1600, 1000)
         root = QWidget(); rh = QHBoxLayout(root); rh.setContentsMargins(0, 0, 0, 0); rh.setSpacing(0)
         # the navigation rail: areas of the app, the ones still in the classic window shown but not clickable
@@ -208,6 +209,9 @@ class MainWindow(QMainWindow):
         """Hold the effort (the same lock as the tkinter edition) and open its compliance matrix. Returns True."""
         info = self.efforts.get(name) or {}
         if not info.get("path"):
+            return False
+        from .modes import warn_open                # 2.79.0 Connected mode: someone else has it open
+        if not warn_open(self, name, self.presence_answer):
             return False
         self.close_effort()
         ws = W.Workspace(W.data_dir_for(info["path"]), name)
@@ -361,10 +365,19 @@ class MainWindow(QMainWindow):
     def title(self):
         dirty = self.review is not None and self.review.M.pending
         self.setWindowTitle(("* " if dirty else "") + (f"{self.effort_name}: " if self.effort_name else "")
-                            + f"Stationkeeper {self.version}".strip())
+                            + f"Stationkeeper {self.version}".strip() + self._mode_badge())
         if hasattr(self, "saved"):
             self.saved.setText("Saving..." if dirty else ("Saved" if self.review is not None else "No matrix"))
             self.saved.set_tone("warn" if dirty else ("ok" if self.review is not None else "head"))
+
+    def _mode_badge(self):
+        try:
+            from .modes import badge
+            b = badge()
+            return f"  \u00b7  {b}" if b else ""
+        except Exception:
+            diag.swallowed()
+            return ""
 
     def closeEvent(self, e):
         self.assign_page.save_notes()

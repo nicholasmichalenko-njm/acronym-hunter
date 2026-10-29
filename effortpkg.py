@@ -78,7 +78,7 @@ def plan(list_path, data_dir, matrix_path="", customer_dir="", volumes_dir="", c
 
 
 def save(out_path, effort_name, list_path, data_dir, info=None, matrix_path="", customer_dir="", volumes_dir="",
-         customer=True, volumes=True, stage="", app_version="", who=None, when=None, extra_files=(), readable_dir=""):
+         customer=True, volumes=True, stage="", app_version="", who=None, when=None, extra_files=(), readable_dir="", extra=None):
     """Write the package. Returns the manifest."""
     if not out_path.lower().endswith(EXTS):
         out_path += EXT
@@ -90,6 +90,8 @@ def save(out_path, effort_name, list_path, data_dir, info=None, matrix_path="", 
                    "volumes": bool(volumes and any(a.startswith("volumes/") for a, _p in items)),
                    "matrix": any(a.startswith("matrix/") for a, _p in items)},
            "files": {}, "origin": {}}
+    if extra:                                     # 2.79.0: the effort's settings that live in the app (author names, revision)
+        man["extra"] = extra
     tmp = out_path + ".tmp"
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
