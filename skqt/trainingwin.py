@@ -193,7 +193,7 @@ class TrainingWindow(QMainWindow):
         for p in paths or []:
             try:
                 if p.lower().endswith(TP.EXT):
-                    r = TP.import_pack(p, os.path.join(eng.BASE_DIR, "training_data", "imported"),
+                    r = TP.import_pack(p, os.path.join(getattr(eng, "DATA_DIR", eng.BASE_DIR), "training_data", "imported"),
                                        os.path.join(eng.CONFIG_DIR, "compliance_learned.json"),
                                        merge_fixes=eng.merge_pack_fixes, merge_ignore=eng.merge_pack_ignore)
                     done.append(f"{os.path.basename(p)}: {r['reading']} misread lines and regions, {r['ocrfix']} OCR fixes, "

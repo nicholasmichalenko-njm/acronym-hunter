@@ -1,6 +1,24 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+YOUR DATA IN ITS OWN FOLDER, AND EFFORT HEALTH (2.80.0)
+  - Your settings, author list, master acronym database, OCR fixes, knowledge, training lines and feedback now live in
+    "Stationkeeper Data", a folder beside the Stationkeeper program folder. The first start copies them there from the
+    program folder (nothing is deleted). Update packs and new downloads never touch it; unzip a new download beside it
+    and it picks your data up. Delete both folders to remove everything. Settings > Your data shows where it is and
+    can move it.
+  - If the folder beside cannot be created (a program folder IT installed in Program Files), the data stays in the
+    program folder as before.
+  - New efforts are created in Stationkeeper Data\Efforts on this PC. Share them through packages and backups in the
+    team folder: a live effort in a OneDrive folder can collide with the sync.
+  - Effort health is checked each time an effort opens (Effort record > Effort health): a damaged effort list or
+    matrix is put back from its newest good copy automatically, with the damaged file kept beside it; a moved customer
+    documents folder, a live effort in a synced folder (Move to this PC), long paths, low disk space and sync conflict
+    copies are flagged with a fix where there is one.
+  - Before saving the matrix, Stationkeeper checks whether another copy saved it meanwhile and asks: keep yours (theirs
+    is kept as a dated copy) or open theirs (yours is kept beside it).
+  - Saves wait a moment when OneDrive or a virus scanner holds a file, instead of failing.
+
 WORK MODES AND HAND-OFFS EXACTLY AS YOU SEE THEM (2.79.0)
   - At first start Stationkeeper asks where the PC is used; Settings > Where Stationkeeper is used changes it. The
     title bar shows the mode. Stationkeeper works offline and never connects in either mode.

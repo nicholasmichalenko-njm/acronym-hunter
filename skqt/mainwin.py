@@ -224,6 +224,7 @@ class MainWindow(QMainWindow):
             return False
         self.ws, self.effort_name, self.effort_path = ws, name, info["path"]
         diag.activity("qt_effort_opened")
+        _issues, repaired = self.safety.health()   # 2.80.0: check the effort; put back a damaged list or matrix
         p = ws.get("compliance_path") or ""
         recovered = False
         if p and os.path.isfile(p):
@@ -245,6 +246,10 @@ class MainWindow(QMainWindow):
         self.safety.restore_view()                 # 2.78.0: back where you were in this effort
         if recovered:
             self.toast(self.safety.recovered_text)
+        if repaired:
+            self.toast(repaired[0])
+        elif any(i["severity"] == "error" for i in _issues):
+            self.status("Effort health: a problem needs you. See Effort record > Effort health.")
         self.title()
         return True
 
@@ -261,6 +266,7 @@ class MainWindow(QMainWindow):
 
     def set_matrix(self, M, new=False):
         self.review = AO.Review(M)
+        self.safety.loaded(M.path)                 # 2.80.0: what is on disk now, to notice another copy's save
         SD.setup_of(M)
         if self.ws is not None:                     # 2.68.0: each file's document initial and type
             try:
@@ -326,6 +332,9 @@ class MainWindow(QMainWindow):
     def save_now(self):
         self.save_timer.stop()
         if self.review is not None and self.review.M.pending:
+            if not self.safety.before_save(self.review.M):
+                self.title()
+                return
             try:
                 self.review.M.save()
                 self.review.M.pending = False

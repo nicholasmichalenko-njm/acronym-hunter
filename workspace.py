@@ -20,6 +20,20 @@ BACKUP_EVERY_S = 600          # at most one backup of a file every 10 minutes (s
 KEEP_RECENT, KEEP_DAYS = 10, 14
 
 
+def replace_retry(src, dst, tries=8, wait=0.25):
+    """os.replace that waits a moment when Windows refuses (2.80.0): OneDrive, a virus scanner or the search indexer can
+    hold a file for a second while reading it. Excel holding the file keeps refusing, and the last PermissionError is
+    raised for the caller to report."""
+    for i in range(tries):
+        try:
+            os.replace(src, dst)
+            return
+        except PermissionError:
+            if i == tries - 1:
+                raise
+            time.sleep(wait)
+
+
 def data_dir_for(list_path):
     """The effort's folder: '<list name> - app data' beside the Effort List workbook."""
     d, n = os.path.split(os.path.abspath(list_path))

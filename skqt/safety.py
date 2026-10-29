@@ -46,6 +46,9 @@ class Safety:
         self.test_dir = None
         self.recovered_text = ""
         self.rev_sig = None
+        self.issues = []
+        self.disk_mtime = self.disk_sha = None
+        self.conflict_answer = None     # tests: "mine" or "theirs"
         self.snap_timer = QTimer(host, singleShot=True, interval=400, timeout=self.snapshot)
         self.timer = QTimer(host, interval=TICK_MS, timeout=self.tick)
         self.timer.start()
@@ -279,8 +282,72 @@ class Safety:
             diag.swallowed()
             return False
 
+    @staticmethod
+    def _sha(path):
+        import hashlib
+        h = hashlib.sha256()
+        with open(path, "rb") as f:
+            for b in iter(lambda: f.read(1 << 20), b""):
+                h.update(b)
+        return h.hexdigest()
+
+    def loaded(self, path):
+        try:
+            self.disk_mtime, self.disk_sha = os.path.getmtime(path), self._sha(path)
+        except OSError:
+            self.disk_mtime, self.disk_sha = None, None
+
+    def before_save(self, M):
+        """2.80.0 check before overwrite: when the matrix on disk changed since it was loaded or saved here (another PC,
+        or OneDrive brought a newer copy), ask before overwriting. True: go ahead and save. conflict_answer (tests):
+        'mine' or 'theirs'."""
+        try:
+            cur = os.path.getmtime(M.path)
+        except OSError:
+            return True
+        if self.disk_mtime is None or abs(cur - self.disk_mtime) < 0.001:
+            return True
+        try:
+            if self._sha(M.path) == self.disk_sha:     # touched (a sync tool), not changed
+                self.disk_mtime = cur
+                return True
+        except OSError:
+            return True
+        h = self.host
+        ans = self.conflict_answer
+        if ans is None:
+            box = QMessageBox(h); box.setWindowTitle("The matrix changed on disk")
+            box.setText("The compliance matrix was saved by another copy since you opened it (another PC, or OneDrive brought "
+                        "a newer copy). Keep yours (theirs is kept as a dated copy), or open theirs (yours is kept as a copy "
+                        "beside it, to compare).")
+            mine = box.addButton("Keep mine", QMessageBox.AcceptRole); box.addButton("Open theirs", QMessageBox.RejectRole)
+            box.exec()
+            ans = "mine" if box.clickedButton() is mine else "theirs"
+        diag.activity("qt_disk_conflict")
+        if ans == "mine":
+            if h.ws is not None:
+                h.ws.backup(M.path, "matrix", force=True)
+            return True
+        import getpass
+        stem, ext = os.path.splitext(M.path)
+        mine_path = f"{stem} (yours {getpass.getuser()} {datetime.datetime.now():%Y-%m-%d %H%M}){ext}"
+        real = M.path
+        try:
+            M.path = mine_path
+            M.save()
+        finally:
+            M.path = real
+        import compliance as C
+        name = h.effort_name
+        h.review.M.pending = False
+        h.close_effort()
+        h.open_effort(name)
+        h.status(f"Opened the newer copy. Yours is kept as {os.path.basename(mine_path)}.")
+        return False
+
     def saved(self, path):
         h = self.host
+        self.loaded(path)
         if h.ws is None:
             return
         try:
@@ -394,6 +461,51 @@ class Safety:
                 WM.unmark(team, self.host.effort_name)
         except Exception:
             diag.swallowed()
+
+    # ------------------------------------------------------------ 2.80.0: effort health and repairs
+    def health(self, repair=True):
+        """Check the open effort; with repair, a list or matrix that cannot be read is replaced by its newest good dated copy
+        (the damaged file is kept beside it). Returns (issues left, what was repaired)."""
+        import effortcheck as EC
+        h = self.host
+        if h.ws is None:
+            return [], []
+        info = h.efforts.get(h.effort_name) or {}
+        mp = h.ws.get("compliance_path", "") or ""
+        issues = EC.check(h.ws, h.effort_path, mp, info.get("customer_dir", ""), info.get("volumes_dir", ""))
+        fixed = []
+        if repair:
+            for i in [x for x in issues if x["fix"] in ("restore_list", "restore_matrix")]:
+                kind, target = ("effort", h.effort_path) if i["fix"] == "restore_list" else ("matrix", mp)
+                used = EC.restore_copy(h.ws, kind, target)
+                if used:
+                    fixed.append(("The effort list" if kind == "effort" else "The compliance matrix")
+                                 + " could not be read, so its newest good copy was put back; the damaged file is kept beside it.")
+                    diag.activity("qt_health_repaired")
+            if fixed:
+                issues = EC.check(h.ws, h.effort_path, mp, info.get("customer_dir", ""), info.get("volumes_dir", ""))
+        self.issues = issues
+        return issues, fixed
+
+    def move_to_pc(self, dest_root=None):
+        """Move the open effort into Stationkeeper Data\\Efforts on this PC (through its package; the old folder is backed
+        up first and left in place). Returns the new list path or None."""
+        import tempfile
+        import app_gui, datahome
+        h = self.host
+        if h.ws is None:
+            return None
+        dest_root = dest_root or datahome.efforts_dir(app_gui.DATA_DIR)
+        rp = h.record_page
+        pk = os.path.join(tempfile.mkdtemp(), "move.skpkg")
+        if not rp.save_package(pk):
+            return None
+        got = h.import_package(pk, dest=dest_root, mode="replace")
+        if got:
+            diag.activity("qt_effort_moved_local")
+            h.toast(f"{h.effort_name} now lives on this PC: {os.path.dirname(got['list'])}")
+            return got["list"]
+        return None
 
     # ------------------------------------------------------------ restore points
     def points(self):

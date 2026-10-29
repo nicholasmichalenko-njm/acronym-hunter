@@ -1365,7 +1365,8 @@ class Matrix:
         try:
             wb.save(tmp)
             try:
-                os.replace(tmp, self.path)
+                import workspace as _W                  # 2.80.0: a sync tool holding the file for a moment is waited out
+                _W.replace_retry(tmp, self.path)
             except PermissionError:
                 raise Locked(self.path)
         finally:

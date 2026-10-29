@@ -81,6 +81,11 @@ class RecordPage(QWidget):
         self.stages.add(self.stage_table)
         self.stage_note = self.stages.add(D.label("Dates as Nov 3, 2026 or 2026-11-03. The current stage cannot be removed.", "muted"))
         v.addWidget(self.stages)
+        # 2.80.0 effort health
+        self.health = D.Card("Effort health", "Checked each time the effort opens. A damaged list or matrix is put back from its "
+                             "newest good copy automatically.", actions=[D.button("Check now", None, lambda: self.check_health())])
+        self.health_box = QVBoxLayout(); self.health.body.addLayout(self.health_box)
+        v.addWidget(self.health)
         # reports, package, backup
         self.out = D.Card("Status, package and backup")
         row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
@@ -140,6 +145,7 @@ class RecordPage(QWidget):
         self.use_found.setVisible(bool(self.customer_due))
         self.fill_team(r)
         self.fill_stages(r)
+        self.fill_health(self.host.safety.issues)
         self.backup_text.setText(self.host.safety.status_text())     # 2.78.0: automatic, with the last time
         import workmode as WM
         from .modes import settings
@@ -394,6 +400,46 @@ class RecordPage(QWidget):
         diag.activity("qt_package_saved", files=len(man["files"]))
         h.toast(f"Effort package saved: {os.path.basename(man['path'])}")
         return man
+
+    # ------------------------------------------------------------ 2.80.0 effort health
+    def fill_health(self, issues):
+        import effortcheck as EC
+        while self.health_box.count():
+            w = self.health_box.takeAt(0).widget()
+            if w is not None:
+                w.deleteLater()
+        self.health_box.addWidget(D.label(EC.summary(issues), "muted"))
+        labels = {"find_customer": "Find the folder...", "find_volumes": "Find the folder...", "move_local": "Move to this PC",
+                  "restore_package": "Restore...", "restore_list": "Put back a copy", "restore_matrix": "Put back a copy"}
+        for i in issues:
+            row = QWidget(); h = QHBoxLayout(row); h.setContentsMargins(0, 0, 0, 0)
+            lab = D.label(("Problem: " if i["severity"] == "error" else "") + i["text"], "crit" if i["severity"] == "error" else "")
+            lab.setWordWrap(True); h.addWidget(lab, 1)
+            if i["fix"] in labels:
+                h.addWidget(D.button(labels[i["fix"]], None, lambda _=False, f=i["fix"]: self.fix(f)))
+            self.health_box.addWidget(row)
+
+    def check_health(self):
+        issues, fixed = self.host.safety.health()
+        for f in fixed:
+            self.host.toast(f)
+        self.fill_health(issues)
+        diag.activity("qt_health_checked", n=len(issues))
+        return issues
+
+    def fix(self, what, folder=None):
+        h = self.host
+        if what in ("find_customer", "find_volumes"):
+            if folder is None:
+                folder = QFileDialog.getExistingDirectory(self, "Where is the folder now?")
+                if not folder:
+                    return None
+            h.efforts.put(h.effort_name, **({"customer_dir": folder} if what == "find_customer" else {"volumes_dir": folder}))
+        elif what == "move_local":
+            return h.safety.move_to_pc(folder)
+        elif what in ("restore_package", "restore_list", "restore_matrix"):
+            return self.restore_dialog()
+        return self.check_health()
 
     def package_extra(self):
         """2.79.0: what the receiver needs from this PC's settings: the author-list names that show in this effort, and

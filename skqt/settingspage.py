@@ -57,6 +57,11 @@ class SettingsPage(QWidget):
                                   D.button("Turn off", "ghost", lambda: self.set_backup(""))])
         self.bk_text = self.bk.add(D.label("", "muted"))
         v.addWidget(self.bk)
+        self.data = D.Card("Your data", "Settings, the author list, the master database, knowledge and training lines live in "
+                           "their own folder. Update packs and new downloads never change it.",
+                           actions=[D.button("Move the data folder...", None, lambda: self.move_data())])
+        self.data_text = self.data.add(D.label("", "muted")); self.data_text.setWordWrap(True)
+        v.addWidget(self.data)
         self.tr = D.Card("The training team", "What this PC taught goes to the training team in one file; what they release "
                                               "comes back to everyone as a Knowledge Pack. Through the approved SharePoint folder only.",
                          actions=[D.button("Send training data...", None, lambda: self.send_training()),
@@ -71,6 +76,29 @@ class SettingsPage(QWidget):
         self.sec = UP.security_card()
         v.addWidget(self.sec)
         v.addStretch(1)
+
+    def data_where(self):
+        import app_gui
+        why = {"beside": "beside the program folder", "pointer": "where you moved it", "program folder":
+               "in the program folder (the folder beside it could not be created, for example in Program Files)",
+               "source": "in the source folder", "env": "set for this run"}.get(getattr(app_gui, "DATA_WHY", ""), "")
+        return f"Your data is in {app_gui.DATA_DIR}" + (f" ({why})." if why else ".") + " New efforts go in its Efforts folder."
+
+    def move_data(self, folder=None):
+        """Copy the data folder to a new place and use it from the next start."""
+        import app_gui, datahome
+        if folder is None:
+            folder = QFileDialog.getExistingDirectory(self, "An empty folder for Stationkeeper's data")
+            if not folder:
+                return None
+        try:
+            new = datahome.set_location(app_gui.BASE_DIR, folder, app_gui.DATA_DIR)
+        except OSError as e:
+            self.host.status(str(e) if "empty folder" in str(e) else f"The data could not be copied ({type(e).__name__}).")
+            return None
+        diag.activity("data_folder_moved")
+        self.host.status(f"Data copied to {new}. Restart Stationkeeper to use it; the old folder can be deleted afterwards.")
+        return new
 
     def focus_authors(self):
         self.authors.fill()
@@ -110,6 +138,7 @@ class SettingsPage(QWidget):
             diag.swallowed()
         self.authors.fill()
         self.mode.fill()
+        self.data_text.setText(self.data_where())
         try:
             from . import updates as UP
             self.up.lbl.setText(UP.version_text())
@@ -133,8 +162,8 @@ class SettingsPage(QWidget):
             dlg = QDialog(self); dlg.setWindowTitle("New effort"); dlg.setMinimumWidth(640)
             form = QFormLayout(dlg)
             name = QLineEdit(); path = QLineEdit()
-            desk = os.path.join(os.path.expanduser("~"), "Desktop")
-            base = desk if os.path.isdir(desk) else os.path.expanduser("~")
+            import app_gui, datahome                     # 2.80.0: new efforts live on this PC, in Stationkeeper Data\Efforts
+            base = datahome.efforts_dir(app_gui.DATA_DIR)
             path.setText(os.path.join(base, "Effort_List.xlsx"))
 
             def named(t):
@@ -150,7 +179,8 @@ class SettingsPage(QWidget):
                 rule.addItem(lab, k)
             cust, vols, client, sol, internal = QLineEdit(), QLineEdit(), QLineEdit(), QLineEdit(), QLineEdit()
             form.addRow("Effort name", name); form.addRow("List file", pr)
-            form.addRow("", D.label("Tip: a OneDrive-synced SharePoint folder lets the team see the same list.", "muted"))
+            form.addRow("", D.label("Efforts work best on this PC. Share them through packages and backups in the team "
+                                    "folder: a live effort in a OneDrive folder can collide with the sync.", "muted"))
             form.addRow("First use", rule)
             form.addRow("Customer documents folder", _folder_row(cust, dlg, "Customer documents folder"))
             form.addRow("Volumes folder", _folder_row(vols, dlg, "Volumes folder"))

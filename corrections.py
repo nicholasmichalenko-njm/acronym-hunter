@@ -33,7 +33,7 @@ def set_dir(path):
     PACKS_FILE = os.path.join(path, "packs.json")           # Training: corrections packs imported
 
 
-set_dir(os.path.join(eng.BASE_DIR, "training_data"))
+set_dir(os.path.join(getattr(eng, "DATA_DIR", eng.BASE_DIR), "training_data"))
 
 # --------------------------------------------------------------------------------------
 # Training data store (inside the app folder; never shipped in the zip or committed)

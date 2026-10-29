@@ -133,7 +133,7 @@ class Guard:
 # ------------------------------------------------------------------ storage
 def feedback_dir():
     import app_gui as eng
-    d = os.path.join(eng.BASE_DIR, "feedback", "reports")
+    d = os.path.join(getattr(eng, "DATA_DIR", eng.BASE_DIR), "feedback", "reports")
     os.makedirs(d, exist_ok=True)
     return d
 

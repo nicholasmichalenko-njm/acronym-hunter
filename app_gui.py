@@ -44,6 +44,14 @@ os.environ["TMP"] = SANDBOX_TEMP
 os.environ["TMPDIR"] = SANDBOX_TEMP
 os.environ["PYTHONPYCACHEPREFIX"] = os.path.join(SANDBOX_DIR, "pycache")
 
+# 2.80.0: your data lives in "Stationkeeper Data" beside the program folder (datahome.py); updates never touch it
+import datahome as _DH
+DATA_DIR, DATA_WHY = _DH.resolve(BASE_DIR)
+try:
+    DATA_MOVED = _DH.ensure(DATA_DIR, BASE_DIR)
+except OSError:
+    DATA_DIR, DATA_WHY, DATA_MOVED = BASE_DIR, "program folder", []
+
 def cleanup_sandbox():
     if os.path.exists(SANDBOX_TEMP):
         shutil.rmtree(SANDBOX_TEMP, ignore_errors=True)
@@ -158,7 +166,7 @@ from compliance_page import CompliancePageMixin   # Decide in Page view, Place p
 from master_db import MasterMixin   # master database and Known in (2.14.0)
 import equations as EQ             # equations and their symbols (equation-editor math, typed math, definitions)
 
-DB_FILE = os.path.join(BASE_DIR, "acronym_database.csv")
+DB_FILE = os.path.join(DATA_DIR, "acronym_database.csv")
 
 # ---- Text encoding: read any common CSV encoding, always write UTF-8 with BOM (Excel-friendly) ----
 CSV_WRITE_ENCODING = "utf-8-sig"   # holds every Unicode character; the BOM tells Excel it is UTF-8
@@ -226,7 +234,7 @@ def fold(text):
     return unicodedata.normalize("NFC", text).translate(_FOLD)
 
 # ---- User-tunable accuracy files (config\ folder beside the exe) ----
-CONFIG_DIR = os.path.join(BASE_DIR, "config")
+CONFIG_DIR = os.path.join(DATA_DIR, "config")
 CHOICES_FILE = os.path.join(CONFIG_DIR, "choices.json")   # Apply Choice, kept for every later scan on this PC
 OCR_FIXES_FILE = os.path.join(CONFIG_DIR, "ocr_corrections.csv")
 OCR_IGNORE_FILE = os.path.join(CONFIG_DIR, "ocr_ignore.csv")   # OCR readings that are not text (diagram lines, specks)
@@ -297,7 +305,7 @@ def doctr_folder_ok(d):
 def _find_doctr():
     """Folder with docTR's ONNX models. Trained models installed in config\\models\\doctr (Training Kit or a
     Knowledge Pack) win when their SHA-256 checks pass; otherwise the bundled models (Mindee, Apache 2.0)."""
-    trained = os.path.join(BASE_DIR, "config", "models", "doctr")
+    trained = os.path.join(CONFIG_DIR, "models", "doctr")
     if os.path.isfile(os.path.join(trained, "doctr_models.json")):
         if doctr_folder_ok(trained):
             return trained
@@ -311,7 +319,7 @@ def _find_doctr():
 DOCTR_DIR = _find_doctr()
 EDITION_NAME = "US Classic (Tesseract only)" if not DOCTR_DIR else "US (Tesseract + docTR second reader)"
 
-SP.set_storage(os.path.join(BASE_DIR, "config", "symbol_recent.json"))     # the symbol picker's "Recent" row
+SP.set_storage(os.path.join(CONFIG_DIR, "symbol_recent.json"))     # the symbol picker's "Recent" row
 OCR_BACKEND = os.environ.get("AH_OCR_ENGINE") or ("tesseract" if TESS_DIR else "rapidocr")
 
 def load_ocr_settings():
@@ -2398,7 +2406,7 @@ diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
 LOCK_STALE_HOURS = 12
-SKIP_DIRS = {"_internal", "_local_sandbox", "training_data", "logs", "config", "__pycache__", ".git"}
+SKIP_DIRS = {"_internal", "_local_sandbox", "training_data", "logs", "config", "__pycache__", ".git", "Stationkeeper Data"}
 CHANGE_LABELS = {"new": "New", "changed": "Changed", "unchanged": "Unchanged", "gone": "No longer found"}
 
 _NUM_TOKEN = re.compile(r"[\d.,]+")
@@ -2999,7 +3007,7 @@ def backup_knowledge(reason):
     os.makedirs(dest, exist_ok=True)
     manifest = {"reason": reason, "time": stamp, "files": {}}
     for i, path in enumerate(_backup_targets()):
-        rel = os.path.relpath(path, BASE_DIR)
+        rel = os.path.relpath(path, DATA_DIR)
         if os.path.isfile(path):
             shutil.copy2(path, os.path.join(dest, f"{i}.bak"))
             manifest["files"][rel] = f"{i}.bak"
@@ -3022,7 +3030,7 @@ def restore_last_knowledge_backup():
     src = os.path.join(KNOWLEDGE_BACKUP_DIR, backups[-1])
     manifest = json.load(open(os.path.join(src, "manifest.json"), encoding="utf-8"))
     for rel, bak in manifest["files"].items():
-        path = os.path.join(BASE_DIR, rel)
+        path = os.path.join(DATA_DIR, rel)
         if bak is None:
             if os.path.isfile(path):
                 os.remove(path)
@@ -3256,7 +3264,7 @@ ctk.CTkToplevel.__init__ = _toplevel_init   # every pop-up window gets the app i
 # ==============================================================================
 # 7. DESKTOP GUI APPLICATION
 # ==============================================================================
-SETTINGS_FILE = os.path.join(SANDBOX_DIR, "settings.json")
+SETTINGS_FILE = os.path.join(DATA_DIR, "settings.json") if DATA_DIR != BASE_DIR else os.path.join(SANDBOX_DIR, "settings.json")
 ALL_TYPES = "All types"
 STATUS_FILTERS = ["All statuses", "Needs choice", "New candidates", "Resolved", "Client list", "Client and database differ",
                   "Alt forms", "Equations and symbols", "Undefined symbols",
@@ -3330,7 +3338,7 @@ def save_settings(data):
         diag.swallowed()
         pass
 
-TRAIN_DIR = os.path.join(BASE_DIR, "training_data")   # the Trainer's saved samples (never shipped, never committed)
+TRAIN_DIR = os.path.join(DATA_DIR, "training_data")   # the Trainer's saved samples (never shipped, never committed)
 
 TRAINING_APP = False   # True only inside Stationkeeper Training (training_app.py sets it) (2.15.0)
 

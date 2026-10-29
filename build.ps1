@@ -183,7 +183,9 @@ if ($KnowledgePack -and $App -eq 'user') {
     $istage = 'dist\internal\Stationkeeper'
     New-Item -ItemType Directory -Force (Split-Path $istage) | Out-Null
     Copy-Item $stage $istage -Recurse -Force
+    $env:SK_DATA_DIR = (Resolve-Path $istage).Path     # 2.80.0: install into the package's own config, not a data folder beside it
     $p = Start-Process -FilePath "$istage\Stationkeeper.exe" -ArgumentList '--install-knowledge', "`"$((Resolve-Path $KnowledgePack).Path)`"" -Wait -PassThru
+    Remove-Item Env:SK_DATA_DIR
     $log = Get-Content "$istage\logs\knowledge_install.txt" -Raw
     if ($log -notmatch 'INSTALL OK') { throw "Knowledge Pack install failed:`n$log" }
     Remove-Item -Recurse -Force "$istage\logs", "$istage\_local_sandbox", "$istage\config\knowledge_backups" -ErrorAction SilentlyContinue

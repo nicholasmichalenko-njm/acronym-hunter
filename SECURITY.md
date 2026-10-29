@@ -11,11 +11,11 @@
 - **No internet, ever.** The app makes no network connections. Nothing in its code calls out, its OCR models
   ship inside the folder, and it actively blocks outbound connections at runtime. Verified: 0 connections
   during a full scan and while idle.
-- **Everything the app creates stays in its folder.** Results, logs, settings, the database, and temporary
-  files are written only inside the `AcronymHunter` folder. Verified by code audit and by monitoring the
-  file system during a live run.
-- **Delete the folder and the app's data is gone.** No installer, no services, no files in AppData or
-  Program Files, no registry keys created by the app. Verified by deleting the folder and searching for leftovers.
+- **Everything the app creates stays in its two folders.** From 2.80.0 the program folder holds the program, logs and
+  temporary files, and "Stationkeeper Data" beside it holds settings, the database, knowledge and training lines
+  (section 13). Effort files go where the person creates them (by default in Stationkeeper Data\Efforts).
+- **Delete the two folders and the app's data is gone.** No installer, no services, no files in AppData or
+  Program Files, no registry keys created by the app.
 - **Your documents are never changed.** Files are opened read-only. Images and pages being OCR'd are processed
   in memory and never saved.
 
@@ -362,3 +362,14 @@ Install Stationkeeper once (2.76.0 or later); each new version then comes as one
 | What does Secured mode enforce? | It flags (does not block) any backup, package or team folder that OneDrive or another sync tool uploads, hides the team folder, and describes moving packages through the site's approved transfer process |
 | Does Secured mode make the app approved for classified use? | No. The mode changes no control of the PC and certifies nothing. A site's security officer (ISSM) authorizes software on a classified system; give them this file, the SBOM and the checksums |
 | What does the team folder hold? | Effort packages (customer content: handle at the effort's sensitivity), backups, the app's settings and team lists (daily zip), and small "Working on" marker files with a Windows user name, computer name and time |
+
+## 13. Where data lives (2.80.0)
+
+| Folder | Holds | Changed by |
+|---|---|---|
+| Program folder (`Stationkeeper\`) | The program (`Stationkeeper.exe`, `_internal\`), the documents, `logs\`, `_local_sandbox\temp\` | Update packs and new downloads (program files only); logs and temp by the app |
+| `Stationkeeper Data\` beside it | `config\` (efforts list, author list, OCR fixes, models, knowledge backups), `acronym_database.csv`, `settings.json`, `training_data\`, `feedback\`, `Efforts\` | The app, as the person works. Never by updates |
+
+- The data folder is found by `SK_DATA_DIR` (tests), else `data_location.txt` in the program folder (Settings > Move the data folder), else beside the program folder. If it cannot be created there, the data stays in the program folder as before 2.80.0.
+- The first start of 2.80.0 copies the old data across and deletes nothing; a note in the old `config\` says where it went.
+- Live efforts belong on the local disk; packages and backups go to the team folder. OneDrive keeps both copies (renaming one after the computer) when two PCs save the same file, so the app checks a matrix before overwriting it, flags sync conflict copies, and waits out a file a sync tool holds for a moment.
