@@ -1,6 +1,17 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+HELP WITHOUT SENDING DATA (2.81.0)
+  - Settings > Help and support > Create a support file: one zip with versions, the content-free logs and the checks
+    (Check program files, effort health by kind, which settings are on), for whoever maintains Stationkeeper. It holds
+    no document text, terms, names, file names or folder paths; every value is checked before it goes in. You save it
+    and decide who gets it.
+  - Ctrl+K finds a page, an effort, a sentence (by its words or number) or a person, from anywhere. F1 lists the
+    keyboard shortcuts.
+  - After an update, one card says what changed (also Settings > Help and support > What's new).
+  - Safe start: after two starts in a row that did not finish, Stationkeeper opens without the last effort and says
+    why, so one damaged effort cannot keep the program from starting.
+
 YOUR DATA IN ITS OWN FOLDER, AND EFFORT HEALTH (2.80.0)
   - Your settings, author list, master acronym database, OCR fixes, knowledge, training lines and feedback now live in
     "Stationkeeper Data", a folder beside the Stationkeeper program folder. The first start copies them there from the

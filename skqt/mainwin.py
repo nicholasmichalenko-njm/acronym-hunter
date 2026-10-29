@@ -156,6 +156,9 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(root)
         self.toaster = D.Toast(self)
         QShortcut(QKeySequence("Ctrl+F"), self, activated=lambda: (self.search.setFocus(), self.search.selectAll()))
+        from . import helpcenter as HC               # 2.81.0: find anything, and the shortcuts
+        QShortcut(QKeySequence("Ctrl+K"), self, activated=lambda: HC.open_finder(self))
+        QShortcut(QKeySequence("F1"), self, activated=lambda: HC.show_shortcuts(self))
         self.save_timer = QTimer(self, singleShot=True, interval=2000, timeout=self.save_now)
         self.lock_timer = QTimer(self, interval=60000, timeout=lambda: self.ws.refresh_lock() if self.ws else None)
         self.lock_timer.start()

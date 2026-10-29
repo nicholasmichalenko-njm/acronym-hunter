@@ -80,6 +80,8 @@ def main(argv=None):
     design.apply(app)
     import diag
     diag.activity("qt_started")
+    import supportfile as SF                         # 2.81.0: two starts in a row that never finished: a safe start
+    safe = SF.begin(A.SANDBOX_DIR) if "--selftest" not in args else False
     w = MainWindow(app, A.CONFIG_DIR, A.APP_VERSION)
     w.safety.install_crash_screen()                  # 2.78.0: save first, then a plain message
     if "--selftest" in args:            # the build checks the built program starts (no effort opened)
@@ -96,11 +98,18 @@ def main(argv=None):
             A.run_selftest(files)
         return 0 if ok else 1
     w.show()
+    from PySide6.QtCore import QTimer as _QT
+    _QT.singleShot(8000, lambda: SF.started(A.SANDBOX_DIR))
+    from skqt import helpcenter as HC
+    _QT.singleShot(1500, lambda: HC.after_update(w))  # what's new, once after an update
     from skqt import modes as MO                     # 2.79.0: where is this PC used? (asked once)
     if not MO.mode():
         QTimerX = __import__("PySide6.QtCore", fromlist=["QTimer"]).QTimer
         QTimerX.singleShot(300, lambda: MO.ask_mode(w))
-    if w.efforts.current:
+    if safe:
+        w.status("Safe start: Stationkeeper did not finish starting twice, so the last effort was not opened. Open it from "
+                 "the Effort box; if it fails again, create a support file (Settings > Help and support).")
+    elif w.efforts.current:
         w.open_effort(w.efforts.current)
     from PySide6.QtCore import QTimer
     pkg = next((a for a in args[1:] if a.lower().endswith((".skpkg", ".ahpkg")) and os.path.isfile(a)), None)

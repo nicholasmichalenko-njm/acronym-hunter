@@ -75,6 +75,9 @@ class SettingsPage(QWidget):
         v.addWidget(self.up)
         self.sec = UP.security_card()
         v.addWidget(self.sec)
+        from . import helpcenter as HC                   # 2.81.0
+        self.help = HC.support_card(host)
+        v.addWidget(self.help)
         v.addStretch(1)
 
     def data_where(self):
