@@ -71,8 +71,13 @@ def _stages(rec):
     for k, s in enumerate(data["stages"], 1):
         cur = "current" if s["id"] == data["stage"] else ("done" if s.get("ended") else "")
         goals = s.get("goals") or [{}]
+        import effortrec as R
+        starts = (s.get("planned", "") + (" " + s["planned_time"] if s.get("planned_time") and s.get("planned") else "")).strip()
+        ends = (s.get("planned_end", "") + (" " + s["planned_end_time"] if s.get("planned_end_time") and s.get("planned_end") else "")).strip()
+        gate = R.GATES.get(s.get("gate", ""), "") if s.get("gate") else ""
         for g in goals:
-            rows.append([k, s["name"], cur, s.get("planned", ""), _when(s.get("started")), _when(s.get("ended")), g.get("text", ""),
+            rows.append([k, s["name"], cur, starts, ends, gate, _when(s.get("started")), _when(s.get("ended")), g.get("text", ""),
+                         g.get("owner", ""), (g.get("due", "") or "").replace("T", " "),
                          ("checked by the app" if g.get("auto") else "checked by hand") if g else "",
                          "yes" if g.get("done") else ("no" if g else ""), g.get("by", ""), _when(g.get("at"))])
     return names, rows
@@ -85,10 +90,10 @@ def build(effort=None, rec=None, lib=None, req_rows=(), matrix=None, info=None, 
     names = {}
     if rec is not None:
         names, srows = _stages(rec)
-        out["Stages and gate goals.csv"] = (["Order", "Stage", "State", "Planned", "Started", "Ended", "Gate goal", "How checked",
-                                             "Done", "Done by", "Done at"], srows)
+        out["Stages and gate goals.csv"] = (["Order", "Stage", "State", "Planned start", "Planned end", "Gate", "Started", "Ended",
+                                             "Gate goal", "Goal owner", "Goal deadline", "How checked", "Done", "Done by", "Done at"], srows)
         out["Tasks.csv"] = (["Task", "Owner", "Due", "Stage", "Status", "About", "Notes", "Added", "Added by", "Done"],
-                            [[t["title"], t.get("owner", ""), t.get("due", ""), names.get(t.get("stage"), ""), t.get("status", ""),
+                            [[t["title"], t.get("owner", ""), t.get("due", "").replace("T", " "), names.get(t.get("stage"), ""), t.get("status", ""),
                               t.get("about", ""), t.get("notes", ""), _when(t.get("created")), t.get("by", ""), t.get("done", "")]
                              for t in rec.data.get("tasks", [])])
         out["Notes and open questions.csv"] = (["When", "Who", "Kind", "About", "Text", "Answer", "Resolved", "Stage"],
@@ -231,7 +236,7 @@ def summary_text(info, rec, out, app_version=""):
 
 FILES = [
     ("Effort summary.txt", "The effort at a glance: details, due date, current stage and its gate goals, open questions, open tasks, last changes."),
-    ("Stages and gate goals.csv", "Every stage in order with its dates and gate goals: met or not, by whom, when; checked by the app or by hand."),
+    ("Stages and gate goals.csv", "Every stage in order with its planned start and end, its gate, and its gate goals: owner, deadline, met or not, by whom, when; checked by the app or by hand."),
     ("Tasks.csv", "Every task: owner, due date, stage, status, what it is about, notes."),
     ("Notes and open questions.csv", "Every note and question: when, who, what it is about, the answer when resolved."),
     ("Deliverables.csv", "What the effort must deliver: kind, owner, status, format, page limit, our working file, the customer form, done marks per stage."),

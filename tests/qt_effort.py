@@ -106,7 +106,22 @@ dlg = hp.task_dialog(late, run=False)
 check("the task dialog opens on the task", dlg.api["title"].text() == "Send the kickoff notes" and dlg.api["has_due"].isChecked())
 dlg.api["status"].setCurrentText("Done"); hp.save_task(late, dlg.api["values"]()); dlg.deleteLater()
 check("a task marked done in the dialog is done in the record", RR.Record(ws0.root).task(late)["status"] == "Done")
-nt = hp.save_task(None, {"title": "Pink team comments", "owner": "K. Park", "due": (today + datetime.timedelta(days=3)).isoformat(),
+bad = hp.save_task(None, {"title": "Pink team comments", "owner": "K. Park", "due": (today + datetime.timedelta(days=3)).isoformat(),
+                          "status": "In progress", "stage": rec.data["stage"], "notes": ""})
+check("2.93.0: a deadline after the stage's planned end is refused, with the stage's dates",
+      bad is None and "runs" in hp.task_problem and "pick a time inside it" in hp.task_problem, hp.task_problem)
+dlg = hp.task_dialog(run=False)
+dlg.api["title"].setText("Inside the window"); dlg.api["has_due"].setChecked(True)
+dlg.api["when"].setDate(datetime.date.today() + datetime.timedelta(days=3)); dlg.api["time"].setCurrentText("2:00 PM")
+check("2.93.0: the task dialog shows the stage's dates and keeps itself open on a deadline outside them",
+      any(" runs " in l.text() and "has to fall inside it" in l.text() for l in dlg.findChildren(__import__("PySide6.QtWidgets", fromlist=["QLabel"]).QLabel)))
+why = dlg.api["check"]()
+check("2.93.0: ... with the reason in the dialog", bool(why) and dlg.api["error"].isVisibleTo(dlg) and dlg.result() == 0, why)
+dlg.api["when"].setDate(datetime.date.today() - datetime.timedelta(days=3))
+check("2.93.0: a time inside the window is accepted, with its time", dlg.api["values"]()["due"].endswith("T14:00") and not dlg.api["problem"](),
+      dlg.api["values"]())
+dlg.deleteLater()
+nt = hp.save_task(None, {"title": "Pink team comments", "owner": "K. Park", "due": (today - datetime.timedelta(days=3)).isoformat() + "T14:00",
                          "status": "In progress", "stage": rec.data["stage"], "notes": ""})
 check("+ Task with an owner, a due date and a status", RR.Record(ws0.root).task(nt)["status"] == "In progress")
 hp.who.setCurrentText("K. Park"); hp.refresh()

@@ -63,12 +63,12 @@ check("details are kept in the acronym list and the record", L2.client == "USSF 
       and r.data["due"].startswith((today + datetime.timedelta(days=30)).isoformat()) and r.data["zone"] == "MT", (L2.client, r.data["due"]))
 w.authors.merge([("A. Lee", None), ("R. Reviewer", None), ("Z. Other", None)], default=["Osprey"])   # 2.77.0: the author list
 rp.choose_team(answer=["A. Lee", "R. Reviewer"])
-rp.team_table.item(0, 1).setText("Volume lead"); rp.team_table.item(1, 1).setText("Red team reviewer")
+rp.team_table.cellWidget(0, 1).setCurrentText("Volume lead"); rp.team_table.cellWidget(1, 1).setCurrentText("Red team reviewer")
 rp.save_team()
 check("the team: names from the author list that show in this effort, with roles", [m["name"] for m in RR.Record(ws0.root).team()] == ["A. Lee", "R. Reviewer"]
       and rp.team_table.rowCount() == 2 and "Z. Other" not in w.people())
 check("the stage table lists every stage with a gate box", rp.stage_table.rowCount() == len(r.stages) and rp.stage_table.cellWidget(0, 3) is not None)
-rp.stage_table.item(0, 1).setText((today - datetime.timedelta(days=3)).strftime("%b %d, %Y"))
+rp.stage_table.cellWidget(0, 1).set_value((today - datetime.timedelta(days=3)).isoformat())
 rp.stage_table.cellWidget(0, 3).setCurrentIndex(rp.stage_table.cellWidget(0, 3).findData("hard"))
 rp.stage_table.cellWidget(1, 3).setCurrentIndex(rp.stage_table.cellWidget(1, 3).findData("soft"))
 rp.add_stage("Pink team")
@@ -78,8 +78,10 @@ r = RR.Record(ws0.root)
 check("gates and planned dates are kept", r.gate_of(r.stages[0]) == "hard" and r.gate_of(r.stages[1]) == "soft"
       and r.stages[0]["planned"] == (today - datetime.timedelta(days=3)).isoformat()
       and [s["name"] for s in r.stages][-2] == "Pink team", [s["name"] for s in r.stages])
-rp.stage_table.item(1, 1).setText("someday")
-check("a date that is not understood is refused", not rp.save_stages())
+rp.stage_table.cellWidget(1, 1).set_value("2030-01-10", "08:00"); rp.stage_table.cellWidget(1, 2).set_value("2030-01-05")
+check("a stage that ends before it starts is refused", not rp.save_stages())
+rp.stage_table.cellWidget(1, 2).set_value("2030-01-12", "17:00"); rp.stage_table.cellWidget(1, 2).time.setCurrentText("half past")
+check("a time that is not understood is refused", not rp.save_stages())
 rp.refresh()
 # the gates
 w.go("home"); app.processEvents()

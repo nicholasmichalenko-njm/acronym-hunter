@@ -20,6 +20,26 @@ TASK_STATUS = ("Not started", "In progress", "Done")
 # 2.63.0 stage gates: none; soft (moving on with open goals is allowed, and logged with the open goals and any reason);
 # hard (moving on is held until every goal is met, unless the proposal manager overrides it with a written reason)
 GATES = {"": "No gate", "soft": "Soft gate: warn and log", "hard": "Hard gate: hold until the goals are met"}
+GATE_BEHAVIOR = {"": "", "soft": "soft", "hard": "hard"}   # 2.93.0: a gate's id -> what it does ("", soft, hard)
+DEFAULT_STAGE_GATES = {}                                   # 2.93.0: the team's default gate for a new effort's stage
+GATE_ABOUT = {}                                            # 2.93.0: what each gate means, in the team's words
+
+
+def set_process(P):
+    """2.93.0: the team's gates and default stages (process.py)."""
+    global DEFAULT_STAGES
+    GATES.clear(); GATE_BEHAVIOR.clear(); GATE_ABOUT.clear()
+    for g in P.get("gates", []):
+        GATES[g["id"]] = g["name"]
+        GATE_BEHAVIOR[g["id"]] = g.get("behavior", "")
+        GATE_ABOUT[g["id"]] = g.get("about", "")
+    for k, b in (("", ""), ("soft", "soft"), ("hard", "hard")):
+        GATES.setdefault(k, {"": "No gate", "soft": "Soft gate: warn and log", "hard": "Hard gate: hold until the goals are met"}[k])
+        GATE_BEHAVIOR.setdefault(k, b)
+    if P.get("stages"):
+        DEFAULT_STAGES = tuple(n for n, _g in P["stages"])
+        DEFAULT_STAGE_GATES.clear()
+        DEFAULT_STAGE_GATES.update({n: g for n, g in P["stages"]})
 
 
 class GateClosed(Exception):
@@ -214,6 +234,32 @@ def nice_date(text, today=None):
     return f"{d.strftime('%b')} {d.day}" + ("" if d.year == (today or datetime.date.today()).year else f", {d.year}")
 
 
+def parse_when(text, end_of_day=False):
+    """2.93.0: 'YYYY-MM-DD' or 'YYYY-MM-DDTHH:MM' (or any date parse_date reads) -> datetime, else None. A date alone is
+    its start of day (its end with end_of_day)."""
+    t = _clean(text)
+    if not t:
+        return None
+    if "T" in t:
+        try:
+            return datetime.datetime.fromisoformat(t[:16])
+        except ValueError:
+            return None
+    d = parse_date(t)
+    return datetime.datetime.combine(d, datetime.time(23, 59) if end_of_day else datetime.time(0, 0)) if d else None
+
+
+def when_text(text):
+    """'2026-11-20T14:00' -> 'Nov 20, 2:00 p.m.'; '2026-11-20' -> 'Nov 20'."""
+    w = parse_when(text)
+    if w is None:
+        return text or ""
+    s = f"{w.strftime('%b')} {w.day}"
+    if "T" in (text or ""):
+        s += f", {w.hour % 12 or 12}:{w.minute:02d} {'a.m.' if w.hour < 12 else 'p.m.'}"
+    return s
+
+
 def short_date(iso):
     """'2026-10-26T09:14' or '2026-10-26' -> 'Oct 26'."""
     if not iso:
@@ -312,7 +358,8 @@ class Record:
         goals = []
         for g in CUSTOM_GOALS.get(name, DEFAULT_GOALS.get(name, [])):
             goals.append({"id": _id(), "text": AUTO.get(g, g), "auto": g if g in AUTO else "", "done": False, "by": "", "at": ""})
-        return {"id": _id(), "name": name, "planned": planned, "started": "", "ended": "", "goals": goals}
+        return {"id": _id(), "name": name, "planned": planned, "started": "", "ended": "", "goals": goals,
+                "gate": DEFAULT_STAGE_GATES.get(name, "")}
 
     @property
     def stages(self):
@@ -340,6 +387,7 @@ class Record:
         for row in rows:
             sid, name, planned = row[:3]
             planned_end = row[3] if len(row) > 3 else None       # 2.52.0: a planned end date too
+            times = row[4:6] if len(row) > 5 else None           # 2.93.0: and the times they start and end
             name = _clean(name)
             if not name:
                 continue
@@ -353,6 +401,8 @@ class Record:
                 self.log("stage", f"Stage added: {name}", who=who)
             if planned_end is not None:
                 s["planned_end"] = _clean(planned_end)
+            if times is not None:
+                s["planned_time"], s["planned_end_time"] = _clean(times[0]), _clean(times[1])
             new.append(s); names.append(s["id"])
         if cur not in names:
             raise ValueError("The current stage cannot be removed.")
@@ -377,9 +427,14 @@ class Record:
         return out
 
     # ------------------------------------------------------------ stage gates (2.63.0)
-    def gate_of(self, s=None):
+    def gate_id(self, s=None):
+        """2.93.0: the gate chosen for the stage (one of the team's gates)."""
         s = s or self.stage()
         return s.get("gate", "") if s.get("gate", "") in GATES else ""
+
+    def gate_of(self, s=None):
+        """What the stage's gate does: '' (no hold), 'soft' or 'hard'."""
+        return GATE_BEHAVIOR.get(self.gate_id(s), "")
 
     def set_gate(self, sid, mode, who=None):
         s = self.stage(sid)
@@ -390,6 +445,71 @@ class Record:
         self.log("stage", f"Gate for {s['name']}: {GATES[mode].split(':')[0].lower()}", who=who)
         self.save()
         return True
+
+    # ------------------------------------------------------------ 2.93.0 a stage's window and deadlines inside it
+    def stage_window(self, s=None):
+        """(start, end) datetimes of the stage's planned window: start at its planned date and time (00:00 when no
+        time), end at its planned end date and time (23:59 when no time). None for a side not set."""
+        s = s or self.stage()
+
+        def at(d, t, default):
+            dd = parse_date(d or "")
+            if not dd:
+                return None
+            hm = t if t and len(t) == 5 else default
+            return datetime.datetime.combine(dd, datetime.time(int(hm[:2]), int(hm[3:5])))
+        return at(s.get("planned"), s.get("planned_time"), "00:00"), at(s.get("planned_end"), s.get("planned_end_time"), "23:59")
+
+    def window_text(self, s=None):
+        a, b = self.stage_window(s)
+        f = lambda x: f"{x.strftime('%b')} {x.day}, {x.hour % 12 or 12}:{x.minute:02d} {'a.m.' if x.hour < 12 else 'p.m.'}"  # noqa: E731
+        return (f"{f(a)} to {f(b)}" if a and b else f"from {f(a)}" if a else f"until {f(b)}" if b else "")
+
+    def deadline_problem(self, sid, when):
+        """'' when the deadline (a datetime, or a date: its end of day) falls inside the stage's planned window, else
+        why not, in words the person reads."""
+        s = self.stage(sid)
+        if s is None or when is None:
+            return ""
+        if isinstance(when, datetime.date) and not isinstance(when, datetime.datetime):
+            when = datetime.datetime.combine(when, datetime.time(23, 59))
+        a, b = self.stage_window(s)
+        if (a and when < a) or (b and when > b):
+            return (f"{s['name']} runs {self.window_text(s)}; pick a time inside it, or change the stage's dates "
+                    "(Edit stages...).")
+        return ""
+
+    def due_problem(self, sid, due):
+        """'' when a deadline written as text ('YYYY-MM-DD' or 'YYYY-MM-DDTHH:MM') fits the stage's dates, else why not."""
+        if not due:
+            return ""
+        w = parse_when(due, end_of_day=True)
+        return "The deadline was not understood." if w is None else self.deadline_problem(sid, w)
+
+    def set_goal_deadline(self, sid, gid, due="", owner=None, who=None):
+        """2.93.0: a goal's deadline (YYYY-MM-DDTHH:MM, or '' for none) and owner. Returns '' when saved, else why not."""
+        s = self.stage(sid)
+        g = next((x for x in s["goals"] if x["id"] == gid), None) if s else None
+        if g is None:
+            return "No such goal."
+        if due:
+            when = parse_when(due, end_of_day=True)
+            if when is None:
+                return "The deadline was not understood."
+            why = self.deadline_problem(sid, when)
+            if why:
+                return why
+        changed = []
+        if (g.get("due", "") or "") != (due or ""):
+            g["due"] = due or ""
+            changed.append(f"due {due.replace('T', ' ')}" if due else "no deadline")
+        if owner is not None and (g.get("owner", "") or "") != _clean(owner):
+            g["owner"] = _clean(owner)
+            changed.append(f"owner {g['owner'] or '(none)'}")
+        if changed:
+            self.log("stage", f"Goal in {s['name']}: {g['text'][:80]} ({', '.join(changed)})", who=who)
+            self.save()
+        return ""
 
     def gate_check(self, sid, checks=None):
         """What moving to stage sid meets at the current stage's gate: {"mode", "open": [goal texts], "forward",
@@ -606,8 +726,15 @@ class Record:
                 put(parse_date(s["started"][:10]), "stage", f"{s['name']} started")
         for t in self.data.get("tasks", []):
             if t.get("due"):
-                put(parse_date(t["due"]), "done" if t["status"] == "Done" else "task",
-                    t["title"] + (f" ({t['owner']})" if t.get("owner") else ""))
+                hm = when_text(t["due"]).split(", ", 1)[1] + " " if "T" in t["due"] else ""
+                put(parse_date(t["due"][:10]), "done" if t["status"] == "Done" else "task",
+                    hm + t["title"] + (f" ({t['owner']})" if t.get("owner") else ""))
+        for s in self.stages:                                   # 2.93.0: gate goals with a deadline
+            for g in s.get("goals", []):
+                if g.get("due"):
+                    hm = when_text(g["due"]).split(", ", 1)[1] + " " if "T" in g["due"] else ""
+                    put(parse_date(g["due"][:10]), "done" if g.get("done") else "task",
+                        f"{hm}Gate goal ({s['name']}): {g['text']}" + (f" ({g['owner']})" if g.get("owner") else ""))
         import effortcal as EC
         for e in self.data.get("events", []):                 # 2.88.0: reviews, meetings, orals, milestones; 2.92.0: due dates
             when = EC.entry_times(e, mine)
@@ -637,6 +764,27 @@ class Record:
         self.log("assign", f"Team: {name} added" + (f" ({_clean(role)})" if role else ""), who=who)
         self.save()
         return True
+
+    def set_role(self, name, role, who=None):
+        """2.93.0: one person's role on this effort (added to the team when missing). True when it changed."""
+        name, role = _clean(name), _clean(role)
+        if not name:
+            return False
+        lst = self.data.setdefault("team", [])
+        m = next((x for x in lst if x["name"].casefold() == name.casefold()), None)
+        if m is None:
+            lst.append({"name": name, "role": role})
+        elif m.get("role", "") == role:
+            return False
+        else:
+            m["role"] = role
+        self.log("assign", f"Role: {name} is {role}" if role else f"Role: {name} has no role", who=who)
+        self.save()
+        return True
+
+    def role_of(self, name):
+        m = next((x for x in self.data.get("team", []) if x["name"].casefold() == (name or "").casefold()), None)
+        return m.get("role", "") if m else ""
 
     def set_team(self, rows, who=None):
         """rows: [(name, role)] in order; replaces the list."""
@@ -736,5 +884,23 @@ class Record:
         return sorted(out, key=lambda t: (t["status"] == "Done", t["due"] or "9999", t["created"]))
 
     def task_overdue(self, t, today=None):
-        d = parse_date(t.get("due", ""))
-        return bool(d) and t["status"] != "Done" and d < (today or datetime.date.today())
+        w = parse_when(t.get("due", ""), end_of_day=True)
+        if not w or t["status"] == "Done":
+            return False
+        if today is not None or "T" not in t.get("due", ""):
+            return w.date() < (today or datetime.date.today())
+        return w < datetime.datetime.now()
+
+    def deadlines_outside(self):
+        """2.93.0: open goals and tasks whose deadline falls outside their stage's dates: [{"kind", "id", "stage", "text",
+        "due"}] (the stage's dates were changed after the deadline was set)."""
+        out = []
+        for s in self.stages:
+            for g in s.get("goals", []):
+                if g.get("due") and not g.get("done") and self.deadline_problem(s["id"], parse_when(g["due"], True)):
+                    out.append({"kind": "goal", "id": g["id"], "stage": s["name"], "text": g["text"], "due": g["due"]})
+            for t in self.data.get("tasks", []):
+                if t.get("stage") == s["id"] and t.get("due") and t.get("status") != "Done" \
+                        and self.deadline_problem(s["id"], parse_when(t["due"], True)):
+                    out.append({"kind": "task", "id": t["id"], "stage": s["name"], "text": t["title"], "due": t["due"]})
+        return out

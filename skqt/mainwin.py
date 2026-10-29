@@ -81,6 +81,8 @@ class MainWindow(QMainWindow):
         try:                                       # 2.86.0: default gate goals saved on this PC
             import effortrec as _ER
             _ER.load_default_goals(config_dir)
+            import process as _PR                  # 2.93.0: the team's stages, gates and roles
+            _PR.apply(config_dir)
         except Exception:
             diag.swallowed()
         self.authors = self._load_authors(config_dir)          # 2.77.0: the one place names come from

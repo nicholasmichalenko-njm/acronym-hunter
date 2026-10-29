@@ -175,7 +175,7 @@ def tune(view):
     if isinstance(view, QTableWidget):
         vh = view.verticalHeader()
         sized_to_text = vh.count() > 0 and vh.sectionResizeMode(0) == QHeaderView.ResizeToContents
-        if not sized_to_text:
+        if not sized_to_text and not view.property("sk_rows_fixed"):     # 2.93.0: tables of pickers keep their row height
             vh.setDefaultSectionSize(ROW_H)                 # rows a table sizes to their text keep that size
         _hover_text(view)
 

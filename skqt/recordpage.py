@@ -66,27 +66,31 @@ class RecordPage(StageTableMixin, QWidget):
         self.details.body.addLayout(self.found_row)
         v.addWidget(self.details)
         # team
-        self.team = D.Card("Team", "The names from the author list that show in this effort, offered wherever an author, lead or "
-                                   "owner is picked, with each person's role here. Every name lives in Settings > Author list.",
-                           actions=[D.button("Choose people...", None, lambda: self.choose_team()),
-                                    D.button("Save roles", "primary", lambda: self.save_team())])
-        self.team_table = _table(["Name", "Role"]); self.team_table.setColumnWidth(1, 260); self.team_table.setMinimumHeight(180)
-        self.team.add(self.team_table)
-        self.team_note = self.team.add(D.label("", "muted"))
+        self.team = D.Card("People and roles", "The names from the author list that show in this effort, offered wherever an "
+                                               "author, lead or owner is picked, with each person's role here. Every name lives in "
+                                               "Settings > Author list.",
+                           actions=[D.button("Choose people...", "primary", lambda: self.choose_team())])
+        from .rolesview import TeamRoles                     # 2.93.0: a role drop-down per person that saves when picked
+        self.team_roles = TeamRoles(host)
+        self.team.add(self.team_roles)
+        self.team_table, self.team_note = self.team_roles.table, self.team_roles.note
         v.addWidget(self.team)
         # stages and gates
-        self.stages = D.Card("Stages and gates", "Planned dates for each stage, and its gate: none; soft (moving on with open goals "
-                                                 "is logged); hard (held until the goals are met, or overridden with a reason).",
+        self.stages = D.Card("Stages and gates", "When each stage starts and ends (click a date to pick it; the time is optional), "
+                                                 "and its gate. The gate choices are your team's: Settings > Stages, gates and roles.",
                              actions=[D.button("Up", None, lambda: self.move_row(-1)), D.button("Down", None, lambda: self.move_row(1)),
                                       D.button("+ Stage", None, lambda: self.add_stage()), D.button("Remove", "ghost", lambda: self.remove_stage()),
                                       D.button("Save stages", "primary", lambda: self.save_stages())])
-        self.stage_table = _table(["Stage", "Planned start", "Planned end", "Gate"])
-        for i, w in enumerate((0, 150, 150, 300)):
-            if i:
-                self.stage_table.setColumnWidth(i, w)
+        from .stagesedit import stage_table                  # 2.93.0: date pickers and times, a readable Stage column
+        self.stage_table = stage_table()
         self.stage_table.setMinimumHeight(300)
         self.stages.add(self.stage_table)
-        self.stage_note = self.stages.add(D.label("Dates as Nov 3, 2026 or 2026-11-03. The current stage cannot be removed.", "muted"))
+        srow = QHBoxLayout()
+        self.stage_note = D.label("Double-click a stage's name to rename it. The current stage cannot be removed.", "muted")
+        srow.addWidget(self.stage_note, 1)
+        srow.addWidget(D.button("Gate choices and default stages...", "ghost",
+                                lambda: (self.host.go("settings"), self.host.settings_page.focus_process())))
+        self.stages.body.addLayout(srow)
         v.addWidget(self.stages)
         # 2.80.0 effort health
         self.readable = D.Card("Readable copy", "Everything in the effort as plain files (Excel, Word, CSV, text) in its folder, "
@@ -212,17 +216,7 @@ class RecordPage(StageTableMixin, QWidget):
 
     # ------------------------------------------------------------ team (2.77.0: from the author list)
     def fill_team(self, r=None):
-        r = r or self.rec
-        roles = {m["name"].casefold(): m.get("role", "") for m in r.team()}
-        names = self.host.authors.for_effort(self.host.effort_name)
-        t = self.team_table
-        t.setRowCount(0)
-        for n in names:
-            i = t.rowCount(); t.insertRow(i)
-            it = QTableWidgetItem(n); it.setFlags(it.flags() & ~Qt.ItemIsEditable); t.setItem(i, 0, it)
-            t.setItem(i, 1, QTableWidgetItem(roles.get(n.casefold(), "")))
-        self.team_note.setText("" if names else f"No names show in {self.host.effort_name} yet. Choose people adds names from "
-                               "the author list; add new names in Settings > Author list.")
+        self.team_roles.fill()
 
     def choose_team(self, answer=None):
         """Tick the names (from the whole author list) that show in this effort. answer (tests): the names."""
@@ -261,7 +255,8 @@ class RecordPage(StageTableMixin, QWidget):
 
     def save_team(self):
         t = self.team_table
-        rows = [((t.item(i, 0).text() if t.item(i, 0) else ""), (t.item(i, 1).text() if t.item(i, 1) else "")) for i in range(t.rowCount())]
+        rows = [((t.item(i, 0).text() if t.item(i, 0) else ""), (t.cellWidget(i, 1).currentText() if t.cellWidget(i, 1) else ""))
+                for i in range(t.rowCount())]
         new = self.rec.set_team(rows)
         diag.activity("qt_team_saved")
         self.host.toast(f"Team roles saved: {len(new)} people")

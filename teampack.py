@@ -24,13 +24,14 @@ FORMAT = "sk-team-1"
 EXT = ".skteam"
 INFO = "team_pack.json"
 MAX_BYTES = 8 * 1024 * 1024
-PARTS = ("authors", "design", "banned", "goals", "logos", "roles", "markings", "topics", "postsub")
+PARTS = ("authors", "design", "banned", "goals", "process", "logos", "roles", "markings", "topics", "postsub")
 PART_NAMES = {"authors": "Author list", "design": "Matrix design", "banned": "Banned words and phrases", "goals": "Default gate goals",
               "logos": "Company logos", "roles": "Effort Home layouts by role", "markings": "Sensitivity markings",
-              "topics": "Team topics", "postsub": "Post-submission checklist"}
-LOCKABLE = ("design", "logos", "roles", "goals", "markings", "postsub")
+              "topics": "Team topics", "postsub": "Post-submission checklist", "process": "Stages, gates and roles"}
+LOCKABLE = ("design", "logos", "roles", "goals", "markings", "postsub", "process")
 FILES = {"authors": "author_list.json", "design": "matrix design.json", "banned": "banned_words.csv", "goals": "stage_goals.json",
-         "roles": "team_roles.json", "markings": "team_markings.json", "topics": "team_topics.json", "postsub": "postsub_default.json"}
+         "roles": "team_roles.json", "markings": "team_markings.json", "topics": "team_topics.json", "postsub": "postsub_default.json",
+         "process": "process.json"}
 LOCKS = "team_locks.json"
 INSTALLED = "team_installed.json"
 BACKUPS = "team_backups"
@@ -136,6 +137,10 @@ def available(config_dir):
         out["markings"] = ", ".join(markings(config_dir))
     if topics(config_dir):
         out["topics"] = f"{len(topics(config_dir))} topic(s)"
+    if os.path.isfile(os.path.join(config_dir, FILES["process"])):        # 2.93.0
+        import process as PR
+        P = PR.load(config_dir)
+        out["process"] = f"{len(P['stages'])} default stage(s), {len(P['gates'])} gate choice(s), {len(P['roles'])} role(s)"
     ps = (_read(os.path.join(config_dir, FILES["postsub"]), {}) or {}).get("items") or []
     if ps:
         out["postsub"] = f"{len(ps)} item(s)"
@@ -153,7 +158,7 @@ def make(config_dir, out_path, parts, lock=(), name="", notes="", role_layouts=N
         lst = AL.load(config_dir)
         members[FILES["authors"]] = json.dumps({"format": AL.FORMAT, "people": [{"name": x["name"], "efforts": x["efforts"]} for x in lst.people]},
                                                ensure_ascii=False, indent=1).encode("utf-8")
-    for part in ("design", "banned", "goals", "postsub"):
+    for part in ("design", "banned", "goals", "postsub", "process"):
         if part in parts:
             p = os.path.join(config_dir, FILES[part])
             if os.path.isfile(p):
@@ -283,6 +288,11 @@ def preview(config_dir, info, data):
         mine = os.path.isfile(os.path.join(config_dir, FILES["postsub"]))
         out.append(("postsub", "Replaces the default post-submission checklist (locked)" if "postsub" in lk else
                     "Kept: this PC has its own default checklist" if mine else "Becomes the default post-submission checklist"))
+    if FILES["process"] in data:
+        mine = os.path.isfile(os.path.join(config_dir, FILES["process"]))
+        out.append(("process", "Replaces the stages, gates and roles here (locked by the team)" if "process" in lk else
+                    "Adds the team's gate choices and roles; this PC's default stages stay" if mine else
+                    "Becomes this PC's default stages, gate choices and roles"))
     return out
 
 
@@ -385,6 +395,18 @@ def install(config_dir, info, data, who=None):
         if "postsub" in lk or not os.path.isfile(p):
             with open(p, "wb") as f:
                 f.write(data[FILES["postsub"]])
+    if FILES["process"] in data:                                       # 2.93.0
+        import process as PR
+        p = os.path.join(config_dir, FILES["process"])
+        theirs = json.loads(data[FILES["process"]])
+        if "process" in lk or not os.path.isfile(p):
+            _write(p, theirs)
+        else:
+            mine = PR.load(config_dir)
+            ids = {g["id"] for g in mine["gates"]}
+            PR.save(config_dir, gates=mine["gates"] + [g for g in theirs.get("gates", []) if isinstance(g, dict) and g.get("id") not in ids],
+                    roles=mine["roles"] + [r for r in theirs.get("roles", []) if isinstance(r, str)])
+        PR.apply(config_dir)
     cur = locks(config_dir)
     for p in lk:
         cur[p] = info.get("name", "Team defaults")
@@ -424,6 +446,8 @@ def undo(config_dir):
         import effortrec as R
         R.CUSTOM_GOALS.clear()
         R.load_default_goals(config_dir)
+        import process as PR
+        PR.apply(config_dir)
     except Exception:
         pass
     shutil.rmtree(bdir, ignore_errors=True)

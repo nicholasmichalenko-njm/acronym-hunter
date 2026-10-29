@@ -44,6 +44,9 @@ TP.save_markings(cfgA, ["CUI//SP-PROPIN", "Proprietary"])
 TP.save_topics(cfgA, ["Thermal", "Schedule", "Key personnel"])
 import postsub as PS
 PS.save_default(cfgA, [{"text": "Archive the final volumes", "owner": "Production", "days": 1}])
+import process as PR
+PR.save(cfgA, gates=PR.load(cfgA)["gates"] + [{"name": "Color team sign-off", "behavior": "hard", "about": "Signed by the capture lead"}],
+        roles=["Proposal Manager", "Book Boss"])
 have = TP.available(cfgA)
 check("the maker's PC lists what it can share", set(have) == set(TP.PARTS), have)
 pack = os.path.join(tmp, f"Team{TP.EXT}")

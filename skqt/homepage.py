@@ -492,6 +492,13 @@ class HomePage(QWidget):
                              lambda gid=g["id"]: self.goal_dialog(gid))
             txt.setToolTip("Click to change the wording, remove it, or tick it by hand")
             row.addWidget(txt, 1)
+            meta = [x for x in (g.get("owner", ""), ("due " + R.when_text(g["due"])) if g.get("due") else "") if x]   # 2.93.0
+            late = bool(g.get("due")) and not done and (R.parse_when(g["due"], True) or datetime.datetime.max) < datetime.datetime.now()
+            if meta:
+                ml = D.label(" | ".join(meta) + ("  (late)" if late else ""), "muted", wrap=False)
+                if late:
+                    ml.setStyleSheet(f"color:{D.tokens()['crit']};")
+                row.addWidget(ml, 0, Qt.AlignTop)
             row.addWidget(D.label("by the app" if auto else ("by hand" + (f": {g['by']}" if g.get("by") and done else "")),
                                   "muted", wrap=False), 0, Qt.AlignTop)
             lay.addLayout(row)
@@ -501,17 +508,36 @@ class HomePage(QWidget):
         diag.activity("qt_goal_set")
         self.changed()
 
-    def goal_dialog(self, gid=None, text=None, action=None):
-        """Add a goal, or (2.86.0) change one: its wording, remove it, or tick it by hand instead of the app's check.
-        action (tests): 'remove' or 'manual'."""
+    def goal_dialog(self, gid=None, text=None, action=None, due=None, owner=None):
+        """Add a goal, or (2.86.0) change one: its wording, remove it, or tick it by hand instead of the app's check;
+        (2.93.0) its deadline and owner. action (tests): 'remove' or 'manual'. A deadline outside the stage's dates is
+        refused: self.goal_problem says why."""
         r = self.rec
         if r is None:
             return None
+        self.goal_problem = ""
         g = next((x for x in r.stage()["goals"] if x["id"] == gid), None) if gid else None
-        if g is not None and text is None and action is None:
-            text, action = self._goal_box(g)
-            if text is None and action is None:
+        if text is None and action is None and due is None and owner is None:
+            got = self._goal_box(g)
+            if got is None:
                 return None
+            text, action, due, owner = got
+            if g is not None and text is None and action is None and due == g.get("due", "") and owner == g.get("owner", ""):
+                return None
+        if due is not None or owner is not None:
+            if g is None:
+                nid = r.add_goal(r.data["stage"], text)
+                if not nid:
+                    return None
+                g, gid, text = next(x for x in r.stage()["goals"] if x["id"] == nid), nid, None
+            why = r.set_goal_deadline(r.data["stage"], gid, due if due is not None else g.get("due", ""), owner)
+            if why:
+                self.goal_problem = why
+                self.host.status(why)
+            diag.activity("qt_goal_deadline")
+            if text is None and action is None:
+                self.changed()
+                return gid
         if action == "remove":
             return self.remove_goal(gid)
         if action == "manual":
@@ -536,28 +562,53 @@ class HomePage(QWidget):
             self.changed()
         return nid
 
-    def _goal_box(self, g):
-        """(new wording or None, 'remove' | 'manual' | None) from a small dialog about one goal."""
+    def _goal_box(self, g, run=True):
+        """(new wording or None, 'remove' | 'manual' | None, deadline, owner) from a small dialog about one goal (g None:
+        a new one), or None when cancelled. A deadline outside the stage's dates keeps the dialog open with the reason."""
         from PySide6.QtWidgets import QDialog, QDialogButtonBox, QVBoxLayout
-        d = QDialog(self); d.setWindowTitle("Gate goal"); d.setMinimumWidth(520)
+        from .people import combo_name, name_combo
+        from .stagesedit import DeadlineRow, window_hint
+        r = self.rec
+        d = QDialog(self); d.setWindowTitle("Gate goal" if g else "New gate goal"); d.setMinimumWidth(560)
         v = QVBoxLayout(d)
         v.addWidget(D.label("What has to be true before the effort leaves this stage:", "muted"))
-        ed = QLineEdit(g["text"]); v.addWidget(ed)
-        if g.get("auto"):
+        ed = QLineEdit(g["text"] if g else ""); v.addWidget(ed)
+        if g and g.get("auto"):
             v.addWidget(D.label("The app checks this one. Tick it by hand instead if the check does not fit this effort.", "muted"))
+        form = QFormLayout(); v.addLayout(form)
+        owner = name_combo(self.host, g.get("owner", "") if g else ""); form.addRow("Owner", owner)
+        dl = DeadlineRow(g.get("due", "") if g else ""); form.addRow("Deadline", dl)
+        v.addWidget(D.label(window_hint(r, r.data["stage"]), "muted"))
+        err = D.label("", "muted"); err.setStyleSheet(f"color:{D.tokens()['crit']};"); err.hide(); v.addWidget(err)
         out = {"action": None}
         bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-        rm = bb.addButton("Remove it", QDialogButtonBox.DestructiveRole)
-        rm.clicked.connect(lambda: (out.update(action="remove"), d.accept()))
-        if g.get("auto"):
+        if g:
+            rm = bb.addButton("Remove it", QDialogButtonBox.DestructiveRole)
+            rm.clicked.connect(lambda: (out.update(action="remove"), d.accept()))
+        if g and g.get("auto"):
             mb = bb.addButton("Tick it by hand", QDialogButtonBox.ActionRole)
             mb.clicked.connect(lambda: (out.update(action="manual"), d.accept()))
-        bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
+
+        def check():
+            due = dl.value()
+            why = "The time was not understood (write it like 2:00 PM)." if due is None else r.due_problem(r.data["stage"], due)
+            if not g and not " ".join(ed.text().split()):
+                why = "Write what has to be true first."
+            err.setText(why); err.setVisible(bool(why))
+            if not why:
+                d.accept()
+            return why
+        bb.accepted.connect(check); bb.rejected.connect(d.reject)
         v.addWidget(bb)
+        d.api = {"text": ed, "owner": owner, "deadline": dl, "error": err, "check": check, "out": out}
+        if not run:
+            return d
         if d.exec() != QDialog.Accepted:
-            return None, None
+            return None
         t = " ".join(ed.text().split())
-        return (t if t and t != g["text"] else None), out["action"]
+        if not g:
+            return t, None, dl.value() or "", combo_name(owner)
+        return (t if t and t != g["text"] else None), out["action"], dl.value() or "", combo_name(owner)
 
     def save_defaults(self, answer=None):
         """2.86.0: this stage's goals become the default for the same stage in new efforts (this PC; team defaults later)."""
@@ -608,7 +659,7 @@ class HomePage(QWidget):
             p = D.Pill(t["status"] + (" (late)" if late else ""), tone); p.setFixedWidth(130); row.addWidget(p)
             b = D.button(t["title"], "ghost", lambda _=False, tid=t["id"]: self.task_dialog(tid))
             b.setStyleSheet("text-align:left;"); row.addWidget(b, 1)
-            row.addWidget(D.label(" | ".join(x for x in (t["owner"], ("due " + R.nice_date(t["due"])) if t["due"] else "") if x),
+            row.addWidget(D.label(" | ".join(x for x in (t["owner"], ("due " + R.when_text(t["due"])) if t["due"] else "") if x),
                                   "muted", wrap=False))
             lay.addLayout(row)
         if len(ts) > 14:
@@ -624,33 +675,46 @@ class HomePage(QWidget):
         title = QLineEdit(t["title"] if t else "")
         from .people import combo_name, name_combo       # 2.77.0: owners come from the author list only
         owner = name_combo(self.host, t["owner"] if t else (self.person() or ""))
-        has_due = QCheckBox("Due on")
-        when = QDateEdit(); when.setCalendarPopup(True); when.setDisplayFormat("MMM d, yyyy")
-        d = R.parse_date(t["due"]) if t and t.get("due") else R.parse_date(due) if due else None
-        has_due.setChecked(d is not None)
-        when.setDate(QDate(d) if d else QDate.currentDate().addDays(7))
-        when.setEnabled(d is not None); has_due.toggled.connect(when.setEnabled)
-        drow = QHBoxLayout(); drow.addWidget(has_due); drow.addWidget(when, 1)
+        from .stagesedit import DeadlineRow, window_hint          # 2.93.0: a time too, kept inside the stage's dates
+        dl = DeadlineRow(t["due"] if t and t.get("due") else (due or ""), "Due")
         status = QComboBox(); status.addItems(R.TASK_STATUS); status.setCurrentText(t["status"] if t else R.TASK_STATUS[0])
         stage = QComboBox()
         for s in r.stages:
             stage.addItem(s["name"], s["id"])
         stage.setCurrentIndex(stage.findData(t["stage"] if t else r.data["stage"]))
+        hint = D.label("", "muted")
+        stage.currentIndexChanged.connect(lambda _i: hint.setText(window_hint(r, stage.currentData())))
+        hint.setText(window_hint(r, stage.currentData()))
         notes = QPlainTextEdit(t.get("notes", "") if t else ""); notes.setFixedHeight(80)
-        form.addRow("Task", title); form.addRow("Owner", owner); form.addRow("Due", drow); form.addRow("Status", status)
-        form.addRow("Stage", stage); form.addRow("Notes", notes)
+        form.addRow("Task", title); form.addRow("Owner", owner); form.addRow("Stage", stage); form.addRow("Deadline", dl)
+        form.addRow("", hint); form.addRow("Status", status); form.addRow("Notes", notes)
+        err = D.label("", "muted"); err.setStyleSheet(f"color:{D.tokens()['crit']};"); err.hide(); form.addRow(err)
         bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         if t:
             rm = bb.addButton("Remove", QDialogButtonBox.DestructiveRole)
             rm.clicked.connect(lambda: (self.remove_task(tid), dlg.reject()))
-        bb.accepted.connect(dlg.accept); bb.rejected.connect(dlg.reject)
+
+        def problem():
+            v = dl.value()
+            if v is None:
+                return "The time was not understood (write it like 2:00 PM)."
+            return r.due_problem(stage.currentData(), v)
+
+        def check():
+            why = problem()
+            err.setText(why); err.setVisible(bool(why))
+            if not why:
+                dlg.accept()
+            return why
+        bb.accepted.connect(check); bb.rejected.connect(dlg.reject)
         form.addRow(bb)
 
         def values():
-            return {"title": title.text(), "owner": combo_name(owner), "due": when.date().toPython().isoformat() if has_due.isChecked() else "",
+            return {"title": title.text(), "owner": combo_name(owner), "due": dl.value() or "",
                     "status": status.currentText(), "stage": stage.currentData(), "notes": notes.toPlainText()}
-        dlg.api = {"title": title, "owner": owner, "has_due": has_due, "when": when, "status": status, "stage": stage, "notes": notes,
-                   "values": values}
+        dlg.api = {"title": title, "owner": owner, "has_due": dl.has, "when": dl.date, "time": dl.time, "deadline": dl,
+                   "status": status, "stage": stage, "notes": notes, "values": values, "check": check, "problem": problem,
+                   "error": err}
         if not run:
             return dlg
         if dlg.exec() == QDialog.Accepted:
@@ -658,7 +722,12 @@ class HomePage(QWidget):
         return None
 
     def save_task(self, tid, values):
+        """Adds or changes a task. A deadline outside its stage's dates is refused (None; self.task_problem says why)."""
         r = self.rec
+        self.task_problem = r.due_problem(values.get("stage") or r.data["stage"], values.get("due", ""))
+        if self.task_problem:
+            self.host.status(self.task_problem)
+            return None
         if tid:
             r.update_task(tid, **values)
             diag.activity("qt_task_changed")

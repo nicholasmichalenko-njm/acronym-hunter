@@ -99,6 +99,8 @@ class EffortBanner(QFrame):
         self.edit_btn = D.button("Edit details...", None, lambda: self.edit_dialog(), "Proposal manager, client, sensitivity and "
                                  "the effort's own spots. They travel with the effort.")
         acts.addWidget(self.edit_btn)
+        acts.addWidget(D.button("People and roles...", None, lambda: self.people_roles(),     # 2.93.0
+                                "Who works on this effort and in what role; a role saves when picked"))
         acts.addWidget(D.button("Open effort folder", None, lambda: self.host.open_effort_folder(),
                                 "The effort's folder in File Explorer: customer documents, volumes, Response Setup, exports"))
         acts.addWidget(D.button("Export overview...", None, lambda: self.host.record_page.status_export(),
@@ -226,6 +228,15 @@ class EffortBanner(QFrame):
         return True
 
     # ------------------------------------------------------------ details
+    def people_roles(self, run=True):
+        from .rolesview import PeopleRolesDialog
+        d = PeopleRolesDialog(self.host, self)
+        if not run:
+            return d
+        d.exec()
+        self.host.home_page.refresh() if hasattr(self.host.home_page, "refresh") else None
+        return d
+
     def edit_dialog(self, answer=None):
         """Edit the effort's identity. answer (tests): {pm, sensitivity, fields, client, solicitation}."""
         if self.host.ws is None:
