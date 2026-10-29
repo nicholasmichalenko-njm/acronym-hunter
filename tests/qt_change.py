@@ -68,6 +68,32 @@ L_html, R_html = cp.sbs.left.toHtml(), cp.sbs.right.toHtml()
 check("side by side: the old words struck in red, the new in green, around the change", "line-through" in L_html and "50" in L_html
       and "40" in R_html and "WAS: ORIGINAL" in cp.sbs.l_title.text() and "NOW: AMENDMENT 1" in cp.sbs.r_title.text())
 check("the strip marks every change", len(cp.strip.marks()) == 2)
+# 2.85.0 one Changes page: the summary of what the version touches, changes tagged, filtered by a click
+check("each change says what it touches", "rule" in cp.tags[hit] and "req" in cp.tags[hit], cp.tags[hit])
+chips = list(cp.strip_sum.chips)
+check("the summary strip: requirements, submission rules, to decide", "req" in chips and "rule" in chips and "open" in chips, chips)
+cp.strip_sum.chips["rule"].click(); app.processEvents()
+check("a click on submission rules filters the list", cp.shown == [hit], cp.shown)
+cp.set_tag_filter("all"); app.processEvents()
+cp.select_index(hit); app.processEvents()
+check("a rule change offers Updates a submission rule", cp.decide_panel.btns["rule"].isVisibleTo(cp.decide_panel))
+dec_rule = cp.decide_panel.decide("rule")
+rr = {r["key"]: r for r in cp.ctx.reg.rows()}
+pk_rule = next(k for k, r in rr.items() if r["kind"] == "Page limit" and "40" in r["value"])
+check("Updates a submission rule: the rule is no longer waiting", dec_rule and not rr[pk_rule]["to_review"])
+w.go("requirements"); app.processEvents()
+sr = w.requirements_page
+sr.select(pk_rule); app.processEvents()
+html = sr.now_html(sr.rows[pk_rule])
+check("Submission rules shows Was and Now in the row", html and "line-through" in html and "50" in html and "40" in html)
+check("and opens the change in Changes", sr.open_change(pk_rule) and w.stack.currentWidget() is cp and cp.current_index() == hit)
+bd = cp.author_briefs(run=False)
+check("author briefs from the Changes page", bd is not None or w.impact_page.r is not None)
+w.go("docs"); app.processEvents()
+check("Customer versions and Impact review still open (from Library and Changes), off the rail", w.stack.currentWidget() is w.docs_page
+      and "docs" not in w.step_btns and "impact" not in w.step_btns)
+w.go("compare"); app.processEvents()
+rows = cp.show(d["id"], None, v["id"]); cp.select_index(hit); app.processEvents()
 dpnl = cp.decide_panel
 check("the touched requirement is offered first", dpnl.req.currentData() == pl["id"], dpnl.req.currentText())
 dec = dpnl.decide("updates")
@@ -110,7 +136,7 @@ check("Only undecided", cp.shown == [])
 cp.undec.setChecked(False)
 # compared again: the decisions stay with the change
 rows2 = cp.show(d["id"], None, v["id"])
-check("compared again, the decisions stay", "2 of 2 decided" in cp.p_dec.text() and cp.decided_text(rows2[hit]["key"]).startswith("Updates a requirement"))
+check("compared again, the decisions stay", "2 of 2 decided" in cp.p_dec.text() and "Updates a requirement" in cp.decided_text(rows2[hit]["key"]))
 # removal and no action, directly on the review rules
 rv = CR.Review(w.ws.root).load()
 e = CR.apply_remove(M, rv, newid, d["name"], "Amendment 1")

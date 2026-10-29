@@ -5,7 +5,7 @@ record are the same files the classic window keeps. Rules only (No AI); nothing 
 import datetime, os
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QFrame, QHBoxLayout,
-                               QHeaderView, QInputDialog, QLineEdit, QScrollArea, QSplitter, QTableWidget, QTableWidgetItem,
+                               QHeaderView, QInputDialog, QLabel, QLineEdit, QScrollArea, QSplitter, QTableWidget, QTableWidgetItem,
                                QTextBrowser, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 import diag
 import docintake as DI
@@ -426,11 +426,11 @@ class RequirementsPage(QWidget):
         top.addWidget(D.button("Add a requirement...", None, lambda: self.add()))
         top.addWidget(D.button("Export...", None, lambda: self.export()))
         split = QSplitter(Qt.Horizontal)
-        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Requirement", "Says", "State", "Source"])
-        self.tree.setColumnWidth(0, 230); self.tree.setColumnWidth(1, 330); self.tree.setColumnWidth(2, 160)
+        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Rule", "Now", "Changed by", "Source"])     # 2.85.0
+        self.tree.setColumnWidth(0, 230); self.tree.setColumnWidth(1, 380); self.tree.setColumnWidth(2, 210)
         self.tree.itemSelectionChanged.connect(self.show_detail)
         split.addWidget(self.tree)
-        self.card = D.Card("Requirement"); self.card.setMinimumWidth(380)
+        self.card = D.Card("Submission rule"); self.card.setMinimumWidth(380)
         self.body = QVBoxLayout(); self.card.body.addLayout(self.body)
         split.addWidget(self.card); split.setSizes([900, 420])
         v.addWidget(split, 1)
@@ -448,6 +448,26 @@ class RequirementsPage(QWidget):
         if r["confirmed"]:
             return "Confirmed", "ok"
         return "Found", "text"
+
+    @staticmethod
+    def last_change(r):
+        """2.85.0: (was, now, version label, version id) of the newest change to a rule, or None."""
+        hist = r.get("history") or []
+        for k in range(len(hist) - 1, -1, -1):
+            h = hist[k]
+            if h["change"] in ("changed", "removed"):
+                was = next((x["value"] for x in reversed(hist[:k]) if x["value"]), "")
+                return was, (h["value"] if h["change"] != "removed" else ""), h.get("version", ""), h.get("version_id", "")
+        return None
+
+    def now_html(self, r):
+        lc = None if r["manual"] else self.last_change(r)
+        if not lc:
+            return None
+        t = D.tokens()
+        was, now, _lab, _vid = lc
+        return (f"<span style='color:{t['crit']};text-decoration:line-through'>{_esc(was)}</span> &rarr; "
+                f"<span style='color:{t['ok']};font-weight:600'>{_esc(now or 'removed')}</span>")
 
     def refresh(self, want=None):
         h = self.host
@@ -467,14 +487,21 @@ class RequirementsPage(QWidget):
         for _gk, label, kinds in REQ_GROUPS:
             mine = [r for r in shown if r["kind"] in kinds]
             nr = sum(1 for r in mine if r["to_review"])
-            g = QTreeWidgetItem([f"{label} ({len(mine)})", "none found yet" if not mine else "", f"{nr} to review" if nr else "", ""])
+            g = QTreeWidgetItem([f"{label} ({len(mine)})", "none found yet" if not mine else "", f"{nr} to decide in Changes" if nr else "", ""])
             f = g.font(0); f.setBold(True); g.setFont(0, f)
             self.tree.addTopLevelItem(g)
             for r in mine:
                 st, tone = self.state(r)
-                it = QTreeWidgetItem([r["subject"], r["value"], st, "" if r["manual"] else f"{r['doc']}, {r['version']}"])
-                it.setForeground(2, D.color(tone)); it.setData(0, Qt.UserRole, r["key"])
+                lc = None if r["manual"] else self.last_change(r)
+                by = ("Typed in" if r["manual"] else (f"{lc[2]}" + (" (decide in Changes)" if r["to_review"] else "")) if lc
+                      else ("Not a requirement" if r["hidden"] else r.get("version") or "Original"))
+                it = QTreeWidgetItem([r["subject"], "" if lc else r["value"], by, "" if r["manual"] else f"{r['doc']}, {r['version']}"])
+                it.setForeground(2, D.color("warn" if r["to_review"] else tone)); it.setData(0, Qt.UserRole, r["key"])
                 g.addChild(it)
+                html = self.now_html(r)
+                if html:                                   # 2.85.0: Was and Now, in the row
+                    lab = QLabel(html); lab.setTextFormat(Qt.RichText); lab.setContentsMargins(4, 0, 4, 0)
+                    self.tree.setItemWidget(it, 1, lab)
                 self.rows[r["key"]] = r
                 if r["key"] == keep:
                     sel = it
@@ -503,27 +530,33 @@ class RequirementsPage(QWidget):
                 w.setParent(None); w.deleteLater()
         r = self.rows.get(self.current())
         if r is None:
-            self.card.title.setText("Requirement")
-            self.body.addWidget(D.label("Select a requirement to see what the documents say and its history.", "muted"))
+            self.card.title.setText("Submission rule")
+            self.body.addWidget(D.label("Click a rule: what the customer requires now, and each version that set it.", "muted"))
             return
         st, tone = self.state(r)
         self.card.title.setText(f"{r['kind']}: {r['subject']}")
         self.body.addWidget(D.Pill(st, tone if tone != "text" else "accent"))
-        self.body.addWidget(D.label(r["value"], "title"))
+        self.body.addWidget(D.label(r["value"] or "(no longer in the documents)", "title"))
+        html = self.now_html(r)
+        if html:
+            lab = QLabel(html); lab.setTextFormat(Qt.RichText); lab.setWordWrap(True); self.body.addWidget(lab)
         if r.get("found") and r["found"] != r["value"]:
             self.body.addWidget(D.label(f"The documents say: {r['found']}", "muted"))
         if r.get("sentence"):
             self.body.addWidget(D.SectionTitle("The sentence"))
             self.body.addWidget(D.label(r["sentence"]))
         if r["history"]:
-            self.body.addWidget(D.SectionTitle(f"History ({len(r['history'])})"))
+            self.body.addWidget(D.SectionTitle("Each version"))
             for e in r["history"]:
-                self.body.addWidget(D.label(f"{e['doc']}, {e['version']} ({e['added'][:10]}): {e['change']}"
-                                            + (f": {e['value']}" if e["value"] else ""), "muted"))
+                what = {"first": "set it", "same": "kept it", "changed": "changed it", "removed": "took it out"}.get(e["change"], e["change"])
+                self.body.addWidget(D.label(f"{e['version']} ({e['added'][:10]}) {what}" + (f": {e['value']}" if e["value"] else ""),
+                                            None if e["change"] in ("changed", "removed") else "muted"))
         row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
         k = r["key"]
-        if r["to_review"]:
-            row.addWidget(D.button("Mark reviewed", "primary", lambda: self.act("review", k)))
+        lc = None if r["manual"] else self.last_change(r)
+        if lc:
+            row.addWidget(D.button("Open the change in Changes", "primary" if r["to_review"] else None,
+                                   lambda: self.open_change(k), "The change on both versions, with its decision"))
         if not r["manual"]:
             row.addWidget(D.button("Confirm", None, lambda: self.act("confirm", k)))
             row.addWidget(D.button("Edit...", None, lambda: self.edit(k)))
@@ -532,6 +565,25 @@ class RequirementsPage(QWidget):
             row.addWidget(D.button("Remove", "danger", lambda: self.act("remove", k)))
         w = QWidget(); w.setLayout(row)
         self.body.addWidget(w)
+
+    def open_change(self, key):
+        """2.85.0: the change that set this rule, in Changes (both versions, its decision)."""
+        r = self.rows.get(key)
+        lc = self.last_change(r) if r else None
+        if not lc:
+            return False
+        vid = lc[3]
+        d = next((x for x in self.ctx.lib.docs if any(v["id"] == vid for v in x["versions"])), None)
+        if d is None:
+            return False
+        self.host.go("compare")
+        cp = self.host.compare_page
+        cp.show(d["id"], None, vid)
+        hit = next((i for i, row in enumerate(cp.rows) if row["kind"] != "same" and (r.get("sentence") and r["sentence"] in (row.get("new") or "", row.get("old") or "")
+                                                                                       or (lc[1] and lc[1] in (row.get("new") or "")))), None)
+        if hit is not None:
+            cp.select_index(hit)
+        return True
 
     def act(self, what, key, flag=True):
         reg, c = self.ctx.reg, self.ctx
@@ -623,19 +675,24 @@ class ComparePage(QWidget):
         top.addWidget(self.only); top.addWidget(self.in_matrix); top.addWidget(self.undec); top.addStretch(1)
         top.addWidget(D.button("Requirement history...", None, lambda: self.history_dialog(),
                                "Every requirement a version changed or removed, its history, and whether its owner confirmed it"))
+        top.addWidget(D.button("Author briefs...", None, lambda: self.author_briefs(), "One brief per person this version touches"))
         top.addWidget(D.button("Redline (Word)...", None, lambda: self.export_redline()))
         top.addWidget(D.button("Change list (Excel)...", None, lambda: self.export_list()))
         srow = QHBoxLayout(); v.addLayout(srow)
         self.sum = D.label("", "muted"); srow.addWidget(self.sum, 1)
         self.p_dec = D.Pill("", "ok"); self.p_dec.hide(); srow.addWidget(self.p_dec)
+        from .changeview import SummaryStrip
+        self.strip_sum = SummaryStrip(self); v.addWidget(self.strip_sum)       # 2.85.0: what the version touches (was Impact review)
+        self.tag_filter = "all"
         split = QSplitter(Qt.Vertical)
-        self.table = QTableWidget(0, 5)
-        self.table.setHorizontalHeaderLabels(["Change", "Sentence (was and now)", "In the compliance matrix", "Section", "Decision"])
+        self.table = QTableWidget(0, 6)
+        self.table.setHorizontalHeaderLabels(["Change", "Sentence (was and now)", "In the compliance matrix", "Section", "Decision", "Touches"])
         self.table.verticalHeader().setVisible(False); self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectRows); self.table.setSelectionMode(QTableWidget.SingleSelection)
         self.table.setWordWrap(True)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.table.setColumnWidth(0, 90); self.table.setColumnWidth(2, 300); self.table.setColumnWidth(3, 130); self.table.setColumnWidth(4, 190)
+        self.table.setColumnWidth(0, 90); self.table.setColumnWidth(2, 260); self.table.setColumnWidth(3, 120); self.table.setColumnWidth(4, 180)
+        self.table.setColumnWidth(5, 150)
         self.table.itemSelectionChanged.connect(self.show_row)
         self.table.cellDoubleClicked.connect(lambda r, _c: self.open_in_assign(r))
         trow = QWidget(); th = QHBoxLayout(trow); th.setContentsMargins(0, 0, 0, 0); th.setSpacing(4)
@@ -720,12 +777,28 @@ class ComparePage(QWidget):
         self.review = CR.Review(self.host.ws.root).load()
         self.pk = CR.pair_key(va, vb)
         self.review.opened(d, va, vb, self.rows)
+        self.impact = None
+        try:                                                   # 2.85.0: what this version touches across the effort
+            i_a, i_b = d["versions"].index(va), d["versions"].index(vb)
+            if i_b == i_a + 1:
+                import impact as IM
+                Mx = self.host.review.M if self.host.review is not None else None
+                own = None
+                if Mx is not None:
+                    import setupdoc as SD
+                    own = lambda it: SD.owner_of(Mx, it)                     # noqa: E731
+                self.impact = IM.build(lib, vb["id"], self.ctx.reg.rows(), self.ctx.rec, Mx, own, volumes=self.ctx.volumes())
+        except Exception:
+            diag.swallowed()
+            self.impact = None
         M = self.host.review.M if self.host.review is not None else None
         owner_of = None
         if M is not None:
             import setupdoc as SD
             owner_of = lambda it: SD.owner_of(M, it)                  # noqa: E731
         self.links = DI.link(M, self.rows, owner_of, files=(va.get("file", ""), vb.get("file", "")))
+        from .changeview import tag_rows
+        self.tags = tag_rows(self.rows, self.links, self.impact)
         c = DV.summary(self.rows)
         n_m = sum(1 for x in self.links if x)
         self.sum.setText(f"{va['label']} to {vb['label']}: {DV.summary_text(c)} in {len(self.rows)} sentences. "
@@ -752,7 +825,9 @@ class ComparePage(QWidget):
     def fill(self):
         idx = [i for i, r in enumerate(self.rows) if (not self.only.isChecked() or r["kind"] != "same")
                and (not self.in_matrix.isChecked() or self.links[i])
-               and (not self.undec.isChecked() or (r["kind"] != "same" and not self.decided_text(r.get("key", ""))))]
+               and (not self.undec.isChecked() or (r["kind"] != "same" and not self.decided_text(r.get("key", ""))))
+               and (self.tag_filter == "all" or (self.tag_filter == "open" and r["kind"] != "same" and not self.decided_text(r.get("key", "")))
+                    or self.tag_filter in (self.tags[i] if i < len(getattr(self, "tags", [])) else ()))]
         self.shown = idx
         self.table.setRowCount(len(idx))
         tone = {"changed": "warn", "added": "ok", "removed": "crit", "same": "muted"}
@@ -773,12 +848,17 @@ class ComparePage(QWidget):
             di = QTableWidgetItem(dt or ("to decide" if r["kind"] != "same" else ""))
             di.setForeground(D.color("ok" if dt else "warn"))
             self.table.setItem(k, 4, di)
+            from .changeview import TAG_NAMES
+            tg = QTableWidgetItem("  ".join(TAG_NAMES[t] for t in (self.tags[i] if i < len(getattr(self, "tags", [])) else ())))
+            tg.setForeground(D.color("accent"))
+            self.table.setItem(k, 5, tg)
             if r.get("submission"):
-                for c in range(5):
+                for c in range(6):
                     self.table.item(k, c).setBackground(D.color("warn_soft"))
         self.table.resizeRowsToContents()
         self.show_progress()
         self.strip.update()
+        self.strip_sum.fill()
         self.show_row()
 
     def current_index(self):
@@ -812,6 +892,20 @@ class ComparePage(QWidget):
                 + (f", in {_esc(h['map'])}" if h["map"] else "") + (f", owner {_esc(h['owner'])}" if h["owner"] else "")
                 + f" <span style='color:{t['muted']}'>({h['how']})</span>" for h in links) + "</p>"
         self.detail.setHtml(html)
+
+    def set_tag_filter(self, tag):
+        self.tag_filter = tag
+        self.fill()
+
+    def author_briefs(self, run=True):
+        """2.85.0: author briefs for this version (built as the impact review built them)."""
+        d, va, vb = getattr(self, "cur", (None, None, None))
+        if vb is None:
+            return None
+        ip = self.host.impact_page
+        ip.refresh()
+        ip.show(vb["id"])
+        return ip.briefs_dialog(run=run)
 
     def history_dialog(self, run=True):
         """2.85.0: every requirement a version touched, its history, and the owner's confirmation."""

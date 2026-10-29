@@ -6,6 +6,8 @@ decision, and each decision lands where people work:
 - context:  context for a requirement (through the library's attachments, ctxdocs);
 - removes:  the requirement is marked removed by that version (never deleted; its history stays);
 - task, question, note: in the effort record, quoting the change;
+- rule:     a submission rule (page limit, due date, format...) takes the new value: Submission rules shows Was and
+            Now, the deliverables are checked again, and a new due date becomes the effort's;
 - none:     no action, with the reason ("editorial"), so the question never comes back.
 Several decisions can apply to one change. Each records who, when and why.
 
@@ -16,7 +18,8 @@ nothing leaves the PC.
 """
 import datetime, getpass, hashlib, os, uuid
 
-KINDS = (("updates", "Updates a requirement"), ("new", "New requirement"), ("context", "Context for a requirement"),
+KINDS = (("updates", "Updates a requirement"), ("new", "New requirement"), ("rule", "Updates a submission rule"),
+         ("context", "Context for a requirement"),
          ("removes", "Removes a requirement"), ("task", "Task"), ("question", "Question for the customer"),
          ("note", "Note"), ("none", "No action"))
 KIND_NAMES = dict(KINDS)

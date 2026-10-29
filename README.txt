@@ -1,20 +1,25 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
-CHANGE REVIEW (2.85.0)
-  - Compare shows each change in its place in both versions, side by side (WAS and NOW, two sentences either side):
-    removed words struck through in red, new words in green. A strip beside the list marks where every change sits in
-    the document; click a mark to go to it.
-  - Every change gets a decision, from the panel beside it; several can apply to one change, each with who, when and
-    why: Updates a requirement (the requirement takes the new wording; the old wording goes to its history; it is
-    marked "owner to confirm"), New requirement (into the section picked), Context for a requirement, Removes a
-    requirement (marked removed by that version, never deleted), Task, Question, Note, or No action (with a reason;
-    "editorial" when none is typed). Taking a decision off undoes what it did.
-  - Compare counts "8 of 23 decided", filters Only undecided, and marks the version reviewed when every change is
-    decided. Decisions stay with their change however often the versions are compared.
-  - Requirement history (Compare) lists every requirement a version changed, removed or added: what it said, what it
-    says now and which version did it. The owner confirms the answer still fits there or on Assign's card. The
-    dashboard counts changes to decide and requirements awaiting their owner.
+CHANGES: ONE PLACE FOR WHAT A NEW VERSION CHANGED (2.85.0)
+  - Compare, Impact review and the review part of Requirements are now one page, Changes. Documents in the rail is:
+    Library, Changes, Submission rules, Deliverables. Customer versions now lives in Library (versions, Initial and
+    type, Rename); Impact review is the summary on Changes.
+  - The summary strip on top says what the version touches: compliance requirements (and their owners), sentences
+    not in the matrix yet, submission rules, deliverables, new terms, and how many changes are left to decide. Click
+    one to show only those changes. Each change is tagged REQ, NEW, RULE, DELIV or TERM.
+  - Each change shows in its place in both versions, side by side (WAS and NOW, two sentences either side): removed
+    words struck through in red, new words in green. A strip beside the list marks where every change sits.
+  - Every change gets a decision; several can apply, each with who, when and why: Updates a requirement (new wording;
+    the old wording goes to its history; "owner to confirm"), New requirement (into the section picked), Updates a
+    submission rule (the rule takes the new value; a new due date becomes the effort's), Context for a requirement,
+    Removes a requirement (marked, never deleted), Task, Question, Note, or No action (with a reason). Taking a
+    decision off undoes what it did.
+  - "8 of 23 decided"; Only undecided; the version is marked reviewed when every change is decided; decisions stay
+    with their change. Author briefs come from the same page. Requirement history lists every requirement a version
+    changed, removed or added; the owner confirms the answer still fits there or on Assign's card.
+  - Submission rules (was Requirements) is a reference: what the customer requires now. A rule a version changed shows
+    Was and Now in its row, in color, and "Open the change in Changes" goes straight to it.
 
 READ AND ASSIGN ANY DOCUMENT (2.84.0)
   - Library documents that do not build the matrix (attachments, ICDs, Q&A, standards, past proposals) are in Assign's

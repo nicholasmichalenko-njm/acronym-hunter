@@ -294,6 +294,10 @@ class LibraryPage(QWidget):
         self.d_tags = QLineEdit(); self.d_tags.setPlaceholderText("Comma between tags")
         self.d_tags.editingFinished.connect(self.set_tags)
         self.side.addWidget(self.d_tags)
+        idrow = QHBoxLayout(); self.side.addLayout(idrow)                  # 2.85.0: what Customer versions did
+        self.b_ident = D.button("Initial and type...", None, lambda: self.identity(), "A customer document's initial and type")
+        self.b_rename = D.button("Rename...", None, lambda: self.rename())
+        idrow.addWidget(self.b_ident); idrow.addWidget(self.b_rename); idrow.addStretch(1)
         self.b_read = D.button("Read it in Assign", "primary", lambda: self.read_in_assign(),
                                "Open it beside your response structure: select text, then choose where it goes (2.84.0)")
         self.side.addWidget(self.b_read)
@@ -479,6 +483,7 @@ class LibraryPage(QWidget):
             nt = 0
         self.d_taken.setText(f"{nt} sentence(s) taken from it" if nt else "Nothing taken from it yet.")
         self.b_read.setEnabled(self.lib.role_of(d) != "not_needed")
+        self.b_ident.setVisible(d.get("category", "customer") == "customer")
         self.d_versions.clear()
         for i, ver in enumerate(reversed(d["versions"])):
             here = lib.has_original(ver)
@@ -545,6 +550,31 @@ class LibraryPage(QWidget):
             diag.activity("library_category_added")
             self.fill_tree()
         return key
+
+    def identity(self, initial=None, dtype=None):
+        """A customer document's initial and type (what Customer versions did)."""
+        did = self.current_id()
+        if not did:
+            return None
+        dp = self.host.docs_page
+        dp.refresh()
+        why = dp.identity(initial, dtype, doc_id=did)
+        self.refresh(); self.select(did)
+        return why
+
+    def rename(self, name=None):
+        did = self.current_id()
+        if not did or self.lib is None:
+            return False
+        d = self.lib.doc(did)
+        if name is None:
+            name, ok = QInputDialog.getText(self, "Rename", "Name of the document:", text=d["name"])
+            if not ok:
+                return False
+        ok = self.lib.rename(doc_id=did, name=name)
+        if ok:
+            self.refresh(); self.select(did)
+        return ok
 
     def read_in_assign(self, doc_id=None):
         """2.84.0: open the document in Assign, beside the response structure."""

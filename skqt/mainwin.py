@@ -34,8 +34,8 @@ from .settingspage import SettingsPage
 
 
 RAIL = [("EFFORT", [("home", "Effort home"), ("dashboard", "Dashboard"), ("record", "Effort record"), ("reviews", "Reviews")]),
-        ("DOCUMENTS", [("library", "Library"), ("docs", "Customer versions"), ("requirements", "Requirements"), ("compare", "Compare"),
-                                ("impact", "Impact review"), ("deliverables", "Deliverables")]),
+        ("DOCUMENTS", [("library", "Library"), ("compare", "Changes"), ("requirements", "Submission rules"),
+                       ("deliverables", "Deliverables")]),
         ("ACRONYMS", [("acronyms", "Scan and review"), ("acrlist", "Effort list")]),
         ("COMPLIANCE", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove"),
                         ("crosswalk", "L/M crosswalk")]),
@@ -48,8 +48,8 @@ TITLES = {"home": ("Effort home", "Stage, gate goals, tasks, questions and the c
           "reviews": ("Reviews", "Color team review packets, read back onto each requirement"),
           "library": ("Library", "Every document of the effort: categories, folders, tags, roles and search"),
           "docs": ("Customer versions", "The customer's documents and every version of them"),
-          "requirements": ("Requirements", "What the customer documents require of the submission"),
-          "compare": ("Compare", "Two versions side by side, and a decision on every change"),
+          "requirements": ("Submission rules", "What the customer requires of the submission now, and what changed it"),
+          "compare": ("Changes", "What a new version changed, what it touches, and a decision on every change"),
           "impact": ("Impact review", "What one new version touched across the effort"),
           "deliverables": ("Deliverables", "What the effort owes the customer, and where each stands"),
           "acronyms": ("Scan and review", "Every acronym, abbreviation, unit and symbol, and the effort list"),
@@ -390,7 +390,11 @@ class MainWindow(QMainWindow):
         if hasattr(pg, "refresh"):
             pg.refresh()
         self.stack.setCurrentWidget(pg)
-        self.step_btns[step].setChecked(True)
+        if step in self.step_btns:                  # 2.85.0: Customer versions and Impact review live inside other pages
+            self.step_btns[step].setChecked(True)
+        else:
+            for b in self.step_btns.values():
+                b.setChecked(False)
         t, sub = TITLES[step]
         self.page_title.setText(t)
         self.page_sub.setText(sub + (f"  \u00b7  {self.effort_name}" if self.effort_name else ""))
