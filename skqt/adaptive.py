@@ -3,7 +3,7 @@ scrolls only when the window is smaller than the page needs; every table and tre
 dragging (double-click a column edge to fit it), long text ends in "..." with the full text on hover, and a table
 wider than its space scrolls left and right. Nothing here changes what a page does."""
 from PySide6.QtCore import QEvent, QObject, QPoint, QRect, QSize, Qt
-from PySide6.QtWidgets import (QAbstractItemView, QFrame, QHeaderView, QLayout, QScrollArea, QStackedWidget, QTableWidget,
+from PySide6.QtWidgets import (QAbstractItemView, QCalendarWidget, QComboBox, QFrame, QHeaderView, QLayout, QScrollArea, QStackedWidget, QTableWidget,
                                QTreeView, QTreeWidget, QWidgetItem)
 
 
@@ -136,11 +136,22 @@ class ViewTuner(QObject):
     def eventFilter(self, obj, ev):
         if ev.type() == QEvent.Show and isinstance(obj, QAbstractItemView) and not obj.property("sk_tuned"):
             obj.setProperty("sk_tuned", True)
+            if _inside_calendar(obj) or isinstance(obj.parentWidget(), QComboBox) or obj.objectName().startswith("qt_"):
+                return False                                # a calendar's days and a drop-down's list keep Qt's own layout
             try:
                 tune(obj)
             except Exception:
                 pass
         return False
+
+
+def _inside_calendar(w):
+    p = w.parentWidget()
+    while p is not None:
+        if isinstance(p, (QCalendarWidget, QComboBox)):
+            return True
+        p = p.parentWidget()
+    return False
 
 
 def tune(view):
@@ -163,8 +174,9 @@ def tune(view):
         hh.setToolTip("Drag a column edge to resize it; double-click the edge to fit the column")
     if isinstance(view, QTableWidget):
         vh = view.verticalHeader()
-        if not view.wordWrap():
-            vh.setDefaultSectionSize(ROW_H)
+        sized_to_text = vh.count() > 0 and vh.sectionResizeMode(0) == QHeaderView.ResizeToContents
+        if not sized_to_text:
+            vh.setDefaultSectionSize(ROW_H)                 # rows a table sizes to their text keep that size
         _hover_text(view)
 
 
