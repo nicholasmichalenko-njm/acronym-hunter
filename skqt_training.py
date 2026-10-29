@@ -25,7 +25,7 @@ def main(argv=None):
     if "--selftest" in (argv or sys.argv):            # the build checks the built program starts and reads its training set
         w.show()
         app.processEvents()
-        ok = w.windowTitle().startswith("Stationkeeper Training (Qt)") and w.stack.count() == 5
+        ok = w.windowTitle().startswith("Stationkeeper Training (Qt)") and w.stack.count() == 6
         try:
             import tess_train
             tools = all(os.path.isfile(os.path.join(A.TESS_DIR, t)) for t in ("lstmtraining.exe", "combine_tessdata.exe")) \

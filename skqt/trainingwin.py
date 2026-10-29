@@ -5,7 +5,7 @@ previous reader; the docTR Training Kit package; the Trainer), 4 Measure (the sc
 out), 5 Build the pack (.skknow), with loading trained models, exporting and undoing Knowledge. The same engine as the
 classic Training program (corrections, studio, trainpack, tess_train); nothing leaves the PC. No generative AI.
 """
-import datetime, json, os, subprocess, sys
+import datetime, json, os
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (QAbstractItemView, QButtonGroup, QComboBox, QFileDialog, QFrame, QHBoxLayout, QHeaderView,
@@ -23,7 +23,8 @@ TITLES = {"gather": ("Gather", "What the team learned: training data packs and p
           "review": ("Review", "Every corrected line with its picture: taught unless you reject it"),
           "train": ("Train", "Teach the reader on this PC's processor, offline"),
           "measure": ("Measure", "Did this training help? Each area is tested on what it did not learn from"),
-          "build": ("Build the pack", "One .skknow file for the approved SharePoint folder")}
+          "build": ("Build the pack", "One .skknow file for the approved SharePoint folder"),
+          "trainer": ("Trainer", "Box text the reader missed in a document or picture, and teach it")}
 
 
 class TrainWorker(QThread):
@@ -70,6 +71,10 @@ class TrainingWindow(QMainWindow):
             b = QPushButton(text); b.setObjectName("rail"); b.setCheckable(True)
             b.clicked.connect(lambda _=False, k=key: self.go(k))
             self.group.addButton(b); self.step_btns[key] = b; rv.addWidget(b)
+        h2 = QLabel("TEACH BY HAND"); h2.setObjectName("railhead"); rv.addWidget(h2)        # 2.73.0: the Trainer in Qt
+        b = QPushButton("Trainer"); b.setObjectName("rail"); b.setCheckable(True)
+        b.clicked.connect(lambda _=False: self.go("trainer"))
+        self.group.addButton(b); self.step_btns["trainer"] = b; rv.addWidget(b)
         rv.addStretch(1)
         ver = QLabel(f"Offline. No AI. {eng.APP_VERSION}"); ver.setObjectName("railhead"); rv.addWidget(ver)
         rh.addWidget(rail)
@@ -93,6 +98,9 @@ class TrainingWindow(QMainWindow):
         for key, build in (("gather", self._gather), ("review", self._review), ("train", self._train),
                            ("measure", self._measure), ("build", self._build)):
             w = QWidget(); w.setObjectName("page"); build(w); self.stack.addWidget(w); self.pages[key] = w
+        from .trainerpage import TrainerPage
+        self.trainer = TrainerPage(self)
+        self.stack.addWidget(self.trainer); self.pages["trainer"] = self.trainer
         diag.activity("training_qt_started")
         self.refresh()
         self.go("gather")
@@ -377,9 +385,9 @@ class TrainingWindow(QMainWindow):
         v.addWidget(card)
         more = D.Card("More ways to teach")
         r2 = QHBoxLayout(); r2.setSpacing(D.SPACE["s"])
-        r2.addWidget(D.button("Trainer...", None, lambda: self.open_trainer(),
+        r2.addWidget(D.button("Trainer", None, lambda: self.open_trainer(),
                               "Box text the reader missed in a document or picture, read a region, save lines or Not text "
-                              "regions (opens the Trainer window)"))
+                              "regions"))
         r2.addWidget(D.button("Prepare a package for the docTR Training Kit", None, lambda: self.prepare_package()))
         r2.addStretch(1)
         more.body.addLayout(r2)
@@ -486,22 +494,13 @@ class TrainingWindow(QMainWindow):
             QMessageBox.information(self, "Training package", rep)
         return rep
 
-    def trainer_command(self):
-        """The Trainer runs in the Training program's own window (Training (classic) with --trainer)."""
-        if getattr(sys, "frozen", False):
-            return [os.path.join(os.path.dirname(sys.executable), "StationkeeperTraining.exe"), "--trainer"]
-        return [sys.executable, os.path.join(eng.BASE_DIR, "training_app.py"), "--trainer"]
-
-    def open_trainer(self, run=True):
-        cmd = self.trainer_command()
-        if not run:
-            return cmd
-        if not os.path.isfile(cmd[0]) and getattr(sys, "frozen", False):
-            QMessageBox.information(self, "Trainer", "StationkeeperTraining.exe is not next to this program.")
-            return None
+    def open_trainer(self, path=None):
+        """2.73.0: the Trainer is a page of this window (it used to open the classic Training program)."""
         diag.activity("trainer_opened")
-        subprocess.Popen(cmd, cwd=eng.BASE_DIR)
-        return cmd
+        self.go("trainer")
+        if path:
+            self.trainer.load_file(path)
+        return self.trainer
 
     # ------------------------------------------------------------ 4 measure
     def _measure(self, w):

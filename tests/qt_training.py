@@ -59,7 +59,7 @@ def matrix(name, n):
 
 app = QApplication([]); D.apply(app)
 w = TrainingWindow(app); w.resize(1360, 880); w.show(); app.processEvents()
-check("five steps on the rail", list(w.step_btns) == ["gather", "review", "train", "measure", "build"] and w.stack.count() == 5)
+check("five steps and the Trainer on the rail", list(w.step_btns) == ["gather", "review", "train", "measure", "build", "trainer"] and w.stack.count() == 6)
 res = w.gather_matrices([matrix("Kestrel_Matrix.xlsx", 20), matrix("Osprey_Matrix.xlsx", 18)])
 g = w.lbl_gather.text()
 check("Gather: matrices learned, lines counted with the test set", [n for _f, n in res] == [40, 36]
@@ -114,8 +114,8 @@ check("a failure says so and leaves the reader alone", "lstmtraining stopped" in
       and w.stage.text().startswith("Stopped") and w.btn_teach.isEnabled())
 rep = w.prepare_package(show=False)
 check("the docTR Training Kit package", "Training package written to" in rep, rep.splitlines()[0])
-cmd = w.open_trainer(run=False)
-check("the Trainer opens in the Training program's window", cmd[-1] == "--trainer" and cmd[-2].endswith("training_app.py"), cmd)
+tp = w.open_trainer()
+check("the Trainer is a page of this window (2.73.0)", w.stack.currentWidget() is w.trainer and tp is w.trainer)
 # Measure
 w.go("measure"); app.processEvents()
 rows = w.measure()

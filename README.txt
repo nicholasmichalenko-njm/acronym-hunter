@@ -1,6 +1,16 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE TRAINER IN QT (2.73.0)
+  - Stationkeeper Training (Qt) has the Trainer as a page (rail: Teach by hand > Trainer; or Train > Trainer): open a
+    document or picture, pick a page or picture, and drag a box around text the reader missed (or Select the whole
+    picture). The box is read in the background; each line shows with its confidence and a numbered box on the picture.
+  - For each line: Skip, Save as text (fix the spelling first; typing picks it) or Not text (lines, arrows or specks read
+    as letters). Save choices keeps one tight picture per text line and the region; a Not text reading the scanner
+    keeps today goes on the ignore list.
+  - Whole box as one line, Add OCR fixes from corrections, Undo last save, the ignore list and the training folder,
+    How training works.
+
 STATIONKEEPER TRAINING (QT) (2.72.0)
   - Stationkeeper_US_Training.zip now also holds StationkeeperTrainingQt.exe: the Training Studio in the Qt window,
     next to StationkeeperTraining.exe. Same training data, config and Knowledge Packs.
