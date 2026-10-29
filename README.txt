@@ -1,6 +1,21 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+WORK MODES AND HAND-OFFS EXACTLY AS YOU SEE THEM (2.79.0)
+  - At first start Stationkeeper asks where the PC is used; Settings > Where Stationkeeper is used changes it. The
+    title bar shows the mode. Stationkeeper works offline and never connects in either mode.
+  - Secured (a SCIF or any closed network): backups and packages go to a local folder or your site's approved transfer
+    location; a folder OneDrive uploads is flagged; move packages only through your site's approved transfer process.
+    The mode certifies nothing: your site's security officer approves software for a classified system.
+  - Connected (Microsoft 365 with OneDrive): choose the team's OneDrive-synced SharePoint folder once. Backups go to its
+    Backups folder; Effort record > Save to the team folder writes the package to Packages\<effort>. A marker in
+    "Working on" shows who has which effort open, and opening one someone else has open asks first.
+  - Packages now carry where you were (page, sentence, structure target), the author-list names that show in the
+    effort (added on the receiver's PC, never removed) and the effort's revision history.
+  - Importing an effort that is already on the PC says which copy is newer ("6 saves newer than your copy", "older",
+    or "you both changed it") and what differs in the compliance matrix, before you replace or keep both.
+  - A package saved by a newer Stationkeeper asks for the update pack first.
+
 NEVER LOSE WORK (2.78.0)
   - Automatic backups are back: a few minutes after changes and when the effort closes, the whole effort is copied to
     the backup folder (Settings > Backups) as "<effort> - latest.skpkg", plus one copy a day kept 30 days and the app's

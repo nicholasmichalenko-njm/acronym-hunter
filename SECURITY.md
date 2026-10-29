@@ -352,3 +352,13 @@ Install Stationkeeper once (2.76.0 or later); each new version then comes as one
 | Admin rights? | None. It changes only the folder the person owns. If IT installed the program in a protected folder, the install fails safely and says so |
 | What can IT automate? | `Stationkeeper.exe --apply-update <pack>`, `--undo-update`, `--check-program` with no window; results in `logs\update.txt` |
 | How is it tested? | Every release build installs a signed test pack into a copy of the built program (replacing the running exe), starts it, checks every program file, undoes the update and starts it again |
+
+## 12. Work modes (2.79.0)
+
+| Question | Answer |
+|---|---|
+| What is a work mode? | A statement of where the PC is used, chosen by the person: **Secured** (a SCIF or any closed network) or **Connected** (Microsoft 365 with OneDrive). It decides where backups and packages go, what the app warns about and which steps it shows |
+| Does Connected mode add network code? | No. The app writes files into a folder that the OneDrive client already syncs; OneDrive does the upload under the company's Microsoft 365 controls. The build's network audit is unchanged |
+| What does Secured mode enforce? | It flags (does not block) any backup, package or team folder that OneDrive or another sync tool uploads, hides the team folder, and describes moving packages through the site's approved transfer process |
+| Does Secured mode make the app approved for classified use? | No. The mode changes no control of the PC and certifies nothing. A site's security officer (ISSM) authorizes software on a classified system; give them this file, the SBOM and the checksums |
+| What does the team folder hold? | Effort packages (customer content: handle at the effort's sensitivity), backups, the app's settings and team lists (daily zip), and small "Working on" marker files with a Windows user name, computer name and time |
