@@ -85,7 +85,8 @@ def wait_read():
         shutil.copy2(os.path.join(tmp, "Section_L.pdf"), OP.copy_path(src, folder))
     else:                                            # on the build PC: Microsoft Word makes it, as for the team
         OP.make(src, folder)
-    timed("open Assign", lambda: (app.shell_go("compliance", "decide"), app.cp_open_file("Section_L.docx")))
+    # the classic window (not shipped since 2.75.0), timed inside the full suite on a busy PC; qt_speed times the Qt window
+    timed("open Assign", lambda: (app.shell_go("compliance", "decide"), app.cp_open_file("Section_L.docx")), limit=2.5)
     app._pv_draw(); app.update()
     pv = win.pv
     check("Assign opens in Page view on the Word file (its PDF copy)", pv["on"] and pv["pdf"].endswith(".pdf"), pv.get("pdf"))
