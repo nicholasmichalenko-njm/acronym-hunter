@@ -20,6 +20,15 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "2.93.0": ["Settings > Stages, gates and roles: your team's default stages, gate choices (rename the built-in ones, add "
+               "your own with what each does and means) and the roles offered for people on an effort. A team pack can carry them.",
+               "Stage tables: pick a stage's start and end from a calendar, with an optional time; the Stage column is readable.",
+               "Gate goals and tasks take a deadline (date and time) and an owner, accepted only inside the stage's dates; "
+               "the app says the stage's dates when one falls outside.",
+               "People and roles: a role drop-down per person (Effort Record, and People and roles... on Effort Home) that "
+               "saves when you pick.",
+               "Split in Assign shows on the page: a red line where it splits, the second part tinted, Split here and Cancel "
+               "beside it, and both parts in the card."],
     "2.92.0": ["Time zones: yours in Settings, the submission's with the effort. Effort Home shows the deadline in both and the "
                "countdown is right across zones.",
                "Calendar: + Due date and + Event, with times, end times, zones, owners and places; your time shows beside theirs.",

@@ -369,7 +369,7 @@ class HomePage(QWidget):
             if st == "current" and tm["over"]:
                 bg, fg = t["warn_soft"], t["warn"]
             if r.gate_of(s):                                         # 2.63.0
-                when = (when + "\n" if when else "") + ("hard gate" if r.gate_of(s) == "hard" else "soft gate")
+                when = (when + "\n" if when else "") + R.GATES.get(r.gate_id(s), "gate").split(":")[0]   # 2.93.0: the team's name for it
             f = QFrame(); f.setObjectName("stage")
             f.setStyleSheet(f"QFrame#stage{{background:{bg};border-radius:{D.RADIUS['card']}px;border:1px solid "
                             f"{t['border'] if st == 'ahead' else bg};}} QLabel{{background:transparent;color:{fg};}}")
@@ -434,9 +434,12 @@ class HomePage(QWidget):
             hard = gc["mode"] == "hard"
             gate.setStyleSheet(f"background:{t['crit_soft' if hard else 'warn_soft']};color:{t['crit' if hard else 'warn']};"
                                f"border-radius:{D.RADIUS['control']}px;padding:8px;font-weight:600;")
-            gate.setText((f"Hard gate: {r.stage()['name']} has {plural(n, 'open goal')}. Moving on is held until they are met; "
+            gid = r.gate_id()                                          # 2.93.0: a team gate says its own name
+            head = ("Hard gate" if hard else "Soft gate") if gid in ("soft", "hard") else \
+                f"{R.GATES.get(gid, 'Gate').split(':')[0]} ({'held' if hard else 'logged'})"
+            gate.setText((f"{head}: {r.stage()['name']} has {plural(n, 'open goal')}. Moving on is held until they are met; "
                           "the proposal manager can override it with a reason.") if hard else
-                         (f"Soft gate: {plural(n, 'open goal')}. Moving on is allowed and logged with the open goals."))
+                         (f"{head}: {plural(n, 'open goal')}. Moving on is allowed and logged with the open goals."))
             gate.show(); reason.setVisible(True)
             return gc
         to.currentIndexChanged.connect(lambda _i: show_gate())

@@ -76,6 +76,7 @@ class SentenceBox(QGraphicsPathItem):
 
 class PageView(QGraphicsView):
     clicked_word = Signal(str, int)               # (sentence id, word index) for S
+    hover_word = Signal(str, int)                 # 2.93.0: the word under the mouse in the selected sentence ("", -1: none)
     captured = Signal(QRectF)                     # 2.70.0: an area dragged in Add missed text mode (scene coordinates)
 
     def __init__(self):
@@ -91,13 +92,36 @@ class PageView(QGraphicsView):
         self.zoom = 1.0
         self.capturing = False
         self._cap0, self._cap_item = None, None
+        self._hovered = ("", -1)
+        self.viewport().setMouseTracking(True)
 
     def set_capture(self, on):
         self.capturing = on
         self.setDragMode(QGraphicsView.NoDrag if on else QGraphicsView.RubberBandDrag)
         self.viewport().setCursor(Qt.CrossCursor if on else Qt.ArrowCursor)
 
+    def word_at(self, pos):
+        """(sentence id, word index) under a view position, inside the one selected sentence; ("", -1) otherwise."""
+        it = self.itemAt(pos)
+        sel = [b for b in self.scene().selectedItems() if isinstance(b, SentenceBox)]
+        if not (isinstance(it, SentenceBox) and len(sel) == 1 and sel[0] is it):
+            return "", -1
+        p = self.mapToScene(pos)
+        for k, r in enumerate(self.words.get(it.iid, [])):
+            if r.adjusted(-1, -1, 1, 1).contains(p):
+                return it.iid, k
+        return it.iid, -1
+
     def mouseMoveEvent(self, e):
+        if not self.capturing and not e.buttons():          # 2.93.0: show where a click would split
+            h = self.word_at(e.position().toPoint())
+            if h != self._hovered:
+                self._hovered = h
+                self.hover_word.emit(*h)
+            b = self.boxes.get(h[0]) if h[0] else None
+            if b is not None:                                # the sentence's own cursor wins over the page's
+                b.setCursor(Qt.SplitHCursor if h[1] > 0 else Qt.PointingHandCursor)
+                self.viewport().setCursor(b.cursor())
         if self.capturing and self._cap0 is not None:
             r = QRectF(self._cap0, self.mapToScene(e.position().toPoint())).normalized()
             if self._cap_item is None:
@@ -186,7 +210,7 @@ class AssignPage(QWidget):
         self.labels = []
         self.target = None
         self.cur = None
-        self.split_at = None
+        self.split_at, self.split_word, self.split_bar = None, None, None
         self.notes = None
         self._guard = False
         self.conv = set()
@@ -208,6 +232,9 @@ class AssignPage(QWidget):
             b = D.button(text, kind, fn, tip)
             self.keys[text.split()[0]] = b
             bar.addWidget(b)
+        self.keys["Split"].setEnabled(False)
+        self.keys["Split"].setToolTip("Select a sentence, then click the word the second part starts with: a red line "
+                                      "shows the split, and this button (or S) makes it")
         bar.addStretch(1)
         self.cap_btn = D.button("Add missed text", None, lambda: self.toggle_capture(),
                                 "Drag a box around text the reader missed: Stationkeeper reads it (the PDF's text, else OCR) "
@@ -219,6 +246,8 @@ class AssignPage(QWidget):
         self.view = PageView()
         self.view.scene().selectionChanged.connect(self.on_select)
         self.view.clicked_word.connect(self.on_word)
+        self.view.hover_word.connect(self.on_hover_word)
+        self._split_items, self._hover_item = [], None
         self.view.captured.connect(lambda r: self.capture_area(r))
         right = QSplitter(Qt.Vertical)
         self.card_area = QScrollArea(); self.card_area.setWidgetResizable(True)
@@ -303,7 +332,8 @@ class AssignPage(QWidget):
                         ("Delete", self.do_clear), ("J", self.do_combine), ("S", self.do_split), ("Ctrl+Z", self.do_undo),
                         ("F", lambda: self.do_for_req()), ("N", lambda: self.do_record("note")),
                         ("Q", lambda: self.do_record("question")), ("T", lambda: self.do_record("task")),
-                        ("Escape", lambda: self.toggle_capture(False) if self.view.capturing else self.view.scene().clearSelection())):
+                        ("Escape", lambda: self.toggle_capture(False) if self.view.capturing else
+                         (self.clear_split() if self.split_at is not None else self.view.scene().clearSelection()))):
             QShortcut(QKeySequence(key), self.view, activated=fn)
         self.show_card([])
 
@@ -367,8 +397,8 @@ class AssignPage(QWidget):
         """2.84.0: the decision buttons for the matrix, or for a library document."""
         lib = self.cx is not None
         self.dec_grid.setVisible(not lib); self.ctx_grid.setVisible(lib)
-        for k in ("Combine", "Split"):
-            self.keys[k].setEnabled(not lib)
+        self.keys["Combine"].setEnabled(not lib)
+        self.keys["Split"].setEnabled(not lib and self.split_at is not None)     # 2.93.0: ready once a split point is set
         self.show_target()
 
     def copies_dir(self):
@@ -550,7 +580,7 @@ class AssignPage(QWidget):
             return self.cx.on_select()
         self.save_notes()
         rows = self.selected()
-        self.split_at = None
+        self.clear_split(card=False)
         self.cur = rows[-1]["id"] if rows else None
         if len(rows) == 1 and rows[0].get("decision") == "Keep":
             self.R.last_req = rows[0]["id"]
@@ -589,10 +619,98 @@ class AssignPage(QWidget):
         ms = list(WORD.finditer(it.get("text", "")))      # the boxes hold the sentence's words in order, page by page
         if 0 < k < len(ms):
             self.split_at = ms[k].start()
-            self.host.status(f"S splits {iid} before \"{ms[k].group(0)}\".")
+            self.split_word = (iid, k)
+            self.show_split(iid, k)
+            self.host.status(f"Split here (S) splits {iid} before \"{ms[k].group(0)}\". Esc cancels.")
         else:
-            self.split_at = None
-            self.host.status("Click a word after the first one: S splits the sentence before it.")
+            self.clear_split()
+            self.host.status("Click a word after the first one: the second part starts with the word you click.")
+        self.show_card(self.selected())
+
+    # ------------------------------------------------------------ 2.93.0 the split, shown on the page
+    def _drop(self, item):
+        try:
+            if item is None:
+                return
+            if item.scene() is not None:
+                item.scene().removeItem(item)
+        except RuntimeError:                               # the page was drawn again: the item is gone already
+            pass
+
+    def on_hover_word(self, iid, k):
+        self._drop(self._hover_item); self._hover_item = None
+        rects = self.view.words.get(iid, []) if iid else []
+        if k <= 0 or k >= len(rects) or getattr(self, "split_word", None) == (iid, k):
+            return
+        r = rects[k]
+        pen = QPen(QColor("#DC2626")); pen.setWidthF(1.6); pen.setCosmetic(True); pen.setStyle(Qt.DashLine)
+        self._hover_item = self.view.scene().addLine(r.left() - 1.5, r.top() - 3, r.left() - 1.5, r.bottom() + 3, pen)
+        self._hover_item.setZValue(15)
+        self._hover_item.setToolTip("Click: split here")
+
+    def show_split(self, iid, k):
+        for x in self._split_items:
+            self._drop(x)
+        self._split_items = []
+        rects = self.view.words.get(iid, [])
+        if not (0 < k < len(rects)):
+            return
+        sc = self.view.scene()
+        tint = QColor("#93C5FD"); tint.setAlpha(110)
+        for r in rects[k:]:                                  # the second part, tinted
+            it = sc.addRect(r.adjusted(-1, -1, 1, 1), QPen(Qt.NoPen), QBrush(tint)); it.setZValue(12)
+            self._split_items.append(it)
+        r = rects[k]
+        pen = QPen(QColor("#DC2626")); pen.setWidthF(3); pen.setCosmetic(True)
+        cut = sc.addLine(r.left() - 1.5, r.top() - 5, r.left() - 1.5, r.bottom() + 5, pen); cut.setZValue(16)
+        self._split_items.append(cut)
+        px = self._split_bar_item(sc)
+        last = rects[-1]                                     # under the sentence, so neither part is covered
+        px.setPos(r.left() - 2, max(r.bottom(), last.bottom()) + 4)
+        px.show()
+        self.split_bar = px.widget()
+        b = self.keys.get("Split")
+        if b is not None:
+            b.setEnabled(True); b.setText("Split here  S")
+        self.view.ensureVisible(px, 40, 60)
+
+    def _split_bar_item(self, sc):
+        """The Split here / Cancel bar on the page: made once per drawing of the page, then moved and shown or hidden
+        (never deleted while the page shows, which Qt does not like for a widget on a page)."""
+        px = getattr(self, "_split_px", None)
+        try:
+            if px is not None and px.scene() is sc:
+                return px
+        except RuntimeError:
+            pass
+        bar = QWidget(); bar.setObjectName("splitBar")
+        h = QHBoxLayout(bar); h.setContentsMargins(4, 3, 4, 3); h.setSpacing(4)
+        h.addWidget(D.button("Split here  S", "primary", self.do_split, "Split the sentence at the red line"))
+        h.addWidget(D.button("Cancel", "ghost", lambda: self.clear_split(), "Keep the sentence whole (Esc)"))
+        bar.setStyleSheet(f"QWidget#splitBar{{background:{D.tokens()['surface']};border:1px solid #DC2626;border-radius:6px;}}")
+        px = sc.addWidget(bar)
+        px.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
+        px.setZValue(30)
+        px.hide()
+        self._split_px = px
+        return px
+
+    def clear_split(self, card=True):
+        for x in self._split_items:
+            self._drop(x)
+        self._split_items = []
+        try:
+            if getattr(self, "_split_px", None) is not None:
+                self._split_px.hide()
+        except RuntimeError:
+            self._split_px = None
+        self._drop(self._hover_item); self._hover_item = None
+        self.split_at, self.split_word, self.split_bar = None, None, None
+        b = self.keys.get("Split")
+        if b is not None:
+            b.setEnabled(False); b.setText("Split  S")
+        if card and self.cx is None:
+            self.show_card(self.selected())
 
     # ------------------------------------------------------------ the card
     def eventFilter(self, obj, ev):
@@ -652,6 +770,24 @@ class AssignPage(QWidget):
         self.kind_label = k
         t = self.add(D.label(it.get("text", ""), "reading"))
         t.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        if len(rows) == 1 and self.R is not None:            # 2.93.0: splitting, said where you are looking
+            text = it.get("text", "")
+            if self.split_at is not None and getattr(self, "split_word", None) and self.split_word[0] == it["id"]:
+                box = QFrame(); box.setObjectName("splitPrev")
+                box.setStyleSheet(f"QFrame#splitPrev{{border:1px solid #DC2626;border-radius:6px;}}")
+                bv = QVBoxLayout(box); bv.setContentsMargins(D.SPACE["s"], D.SPACE["s"], D.SPACE["s"], D.SPACE["s"])
+                bv.addWidget(D.label("Split preview", "label"))
+                bv.addWidget(D.label("Part 1: " + text[:self.split_at].strip()))
+                p2 = D.label("Part 2: " + text[self.split_at:].strip()); p2.setStyleSheet("background:rgba(147,197,253,0.35);")
+                bv.addWidget(p2)
+                br = QHBoxLayout(); bv.addLayout(br)
+                br.addWidget(D.button("Split here  S", "primary", self.do_split)); br.addWidget(D.button("Cancel", "ghost", lambda: self.clear_split()))
+                br.addStretch(1)
+                self.split_preview = box
+                self.add(box)
+            else:
+                self.split_preview = None
+                self.add(D.label("To split it, click the word the second part starts with.", "muted"))
         self.head("Source")
         place = self.placed.get(it["id"], ("",))[0] or it.get("place", "")
         where = PS.where_text(self.pdf, place) if (self.pdf and place) else MD._where(it)
@@ -1291,7 +1427,7 @@ class AssignPage(QWidget):
             self.host.status("Click the word to split before (in the selected sentence), then S.")
             return
         diag.activity("compliance_split", n=len(parts))
-        self.split_at = None
+        self.clear_split(card=False)
         self.build_boxes()
         self.select(parts[0]["id"])
         self.after(f"Split into {', '.join(p['id'] for p in parts)}")

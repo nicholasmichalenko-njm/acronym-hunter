@@ -1,6 +1,36 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+STAGES, GATES AND ROLES, DEADLINES INSIDE A STAGE, AND A VISIBLE SPLIT (2.93.0)
+  - Settings > Stages, gates and roles (the Go to row at the top of Settings reaches it): three tabs.
+    Default stages: the stages a new effort starts with, in order, each with its gate. Gate choices: what a stage's
+    gate can be; the three built-in ones (No gate; Soft: moving on with open goals is allowed and logged; Hard: held
+    until the goals are met or overridden with a reason) can be renamed and described but always stay; add your own
+    (for example "Color team sign-off", held) with what it means, shown when someone hovers over it. Roles: what the
+    role drop-downs offer (anyone can still type another). Efforts already started keep their own stages. A team pack
+    can carry these and lock them.
+  - The stage table (Effort Record > Stages and gates, and Edit stages... on Effort Home): Stage, Starts, Ends, Gate.
+    Click a date to pick it from a calendar (Clear the date takes it off); the time beside it is optional (without
+    one a stage starts at the start of its day and ends at the end of it). A stage that ends before it starts is
+    refused with the reason.
+  - Deadlines inside a stage: a gate goal (click it on Effort Home, or + Goal) and a task take an owner and a deadline
+    with an optional time. The dialog shows the stage's dates and keeps itself open, saying why, when the deadline
+    falls outside them ("Red team runs Nov 18, 8:00 a.m. to Nov 21, 5:00 p.m.; pick a time inside it, or change the
+    stage's dates"). Moving a stage's dates later names any deadline now outside them. Deadlines show on Effort Home,
+    on the calendar with their times, and in the readable copy (Stages and gate goals.csv has the stage's start and
+    end, its gate, each goal's owner and deadline).
+  - People and roles: Effort Record's People and roles card and Effort Home's People and roles... list everyone who
+    shows in the effort with a role drop-down that saves the moment you pick (or type) a role; the change is on the
+    timeline. Choose people... adds or removes names from the author list.
+  - Split in Assign: select a sentence, then hover over its words: a dashed red line shows where a click would split.
+    Click the word the second part starts with: a red cut line appears, the second part is tinted, and Split here and
+    Cancel sit just under the sentence; the card previews Part 1 and Part 2. Split here (or S) splits; Esc or Cancel
+    keeps it whole. The Split button on the toolbar waits until a split point is set.
+  - A new effort's stages are kept the moment it is made, so every part of the app sees the same stages from the
+    start (before, changing the stages of a brand-new effort could say "The current stage cannot be removed").
+  - PDF copies made with Word, Excel or PowerPoint close the program they started even when a file fails, and end it
+    if it lingers, so hidden copies of Word no longer pile up in the background.
+
 TIME ZONES, DUE DATES AND EVENTS, THE READABLE COPY AND THE OVERVIEW (2.92.0)
   - Time zones: Settings > Your time zone is where you are (guessed from Windows until you save it; yours alone). The
     submission's time zone belongs to the effort (Effort Home > Edit details, or as written in Effort Record). Built

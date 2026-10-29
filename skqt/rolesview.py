@@ -8,6 +8,7 @@ import diag
 import effortrec as R
 import process as PR
 from . import design as D
+from .stagesedit import clear_table
 
 
 def role_combo(roles, current=""):
@@ -44,7 +45,7 @@ class TeamRoles(QWidget):
     def fill(self):
         r = self.rec
         t = self.table
-        t.setRowCount(0)
+        clear_table(t)
         if r is None:
             return
         roles = PR.load(self.host.config_dir)["roles"]

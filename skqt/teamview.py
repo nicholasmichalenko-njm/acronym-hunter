@@ -85,7 +85,7 @@ class TeamCard(D.Card):
         self.inst_btn = D.button("Install a team pack...", "primary", lambda: self.install())
         self.undo_btn = D.button("Undo", "ghost", lambda: self.undo(), "Put back everything the last team pack changed")
         super().__init__("Team defaults", "One file sets up every PC the same way: the author list, matrix design, banned words, "
-                         "default gate goals, company logos, Effort Home layouts by role, sensitivity markings and team topics.",
+                         "default gate goals, stages, gates and roles, company logos, Effort Home layouts by role, sensitivity markings, team topics and the post-submission checklist.",
                          actions=[self.make_btn, self.inst_btn, self.undo_btn])
         self.host = host
         self.state = self.add(D.label("", None))

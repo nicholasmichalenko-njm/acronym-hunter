@@ -16,6 +16,24 @@ from . import design as D
 ANY = "Any time"
 
 
+def clear_table(t):
+    """Empty a table whose cells hold widgets: the old widgets are hidden at once (Qt deletes them a moment later, and
+    until then a hidden one could show again over the new rows)."""
+    for i in range(t.rowCount()):
+        for c in range(t.columnCount()):
+            w = t.cellWidget(i, c)
+            if w is not None:
+                w.hide()
+    t.setRowCount(0)
+
+
+def set_cell_widget(t, i, c, w):
+    old = t.cellWidget(i, c)
+    if old is not None:
+        old.hide()
+    t.setCellWidget(i, c, w)
+
+
 def times():
     """The times offered: every half hour (any other can be typed, like 8:15 AM)."""
     return [ANY] + [nice_hm(f"{h:02d}:{m:02d}") for h in range(24) for m in (0, 30)]
@@ -133,7 +151,7 @@ class StageTableMixin:
 
     def fill_stages(self, r):
         t = self.stage_table
-        t.setRowCount(0)
+        clear_table(t)
         for s in r.stages:
             self._stage_row(s["id"], s["name"], (s.get("planned", ""), s.get("planned_time", "")),
                             (s.get("planned_end", ""), s.get("planned_end_time", "")), r.gate_id(s), s["id"] == r.data["stage"])
@@ -173,6 +191,8 @@ class StageTableMixin:
             return False
         vals = self._stage_values(i)
         cur = self._is_current(i)
+        for c in (1, 2, 3):
+            t.cellWidget(i, c).hide()
         t.removeRow(i)
         self._stage_row(vals[0], vals[1], tuple(x or "" for x in vals[2]), tuple(x or "" for x in vals[3]), vals[4], cur, at=j)
         t.setCurrentCell(j, 0)
@@ -191,6 +211,8 @@ class StageTableMixin:
         if self._is_current(i):
             self.host.status("The current stage cannot be removed.")
             return False
+        for c in (1, 2, 3):
+            t.cellWidget(i, c).hide()
         t.removeRow(i)
         return True
 

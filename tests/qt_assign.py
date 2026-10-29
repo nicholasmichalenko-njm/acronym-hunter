@@ -14,7 +14,7 @@ import compliance as C, effort as E, setupdoc as SD, workspace as W, office_pdf 
 OP.available = lambda: False
 from PySide6.QtCore import Qt, QPoint
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QLabel, QMessageBox
 QMessageBox.information = staticmethod(lambda *a, **k: None)
 from skqt import theme
 from skqt.mainwin import MainWindow
@@ -114,6 +114,27 @@ check("J combines them (2.68.0: M is the M designation); both parts boxed", x2 n
 click(x1["id"])
 k = [m.group(0) for m in __import__("re").finditer(r"[A-Za-z0-9]+", x1["text"])].index("Each")
 r = pg.view.words[x1["id"]][k]
+check("2.93.0: Split waits for a split point", not pg.keys["Split"].isEnabled()
+      and pg.card.findChildren(QLabel) and any("click the word the second part starts with" in l.text() for l in pg.card.findChildren(QLabel)))
+from PySide6.QtGui import QMouseEvent
+from PySide6.QtCore import QEvent, QPointF
+_hp = QPointF(pg.view.mapFromScene(r.center()))
+app.sendEvent(pg.view.viewport(), QMouseEvent(QEvent.MouseMove, _hp, pg.view.viewport().mapToGlobal(_hp), Qt.NoButton, Qt.NoButton, Qt.NoModifier))
+app.processEvents()
+check("2.93.0: hovering a word in the selected sentence shows where a click splits", pg._hover_item is not None
+      and pg.view.viewport().cursor().shape() == Qt.SplitHCursor)
+QTest.mouseClick(pg.view.viewport(), Qt.LeftButton, Qt.NoModifier, pg.view.mapFromScene(r.center()))
+app.processEvents()
+check("2.93.0: a clicked word shows the cut line, the second part tinted, and Split here at the cut",
+      len(pg._split_items) >= 3 and pg.split_bar is not None and pg.split_bar.graphicsProxyWidget().isVisible()
+      and pg.keys["Split"].isEnabled() and pg.keys["Split"].text().startswith("Split here"))
+if os.environ.get("SHOT_DIR"):
+    pg.view.ensureVisible(pg.split_bar.graphicsProxyWidget(), 40, 60); app.processEvents(); w.grab().save(os.path.join(os.environ["SHOT_DIR"], "split.png"))
+check("2.93.0: the card previews both parts", pg.split_preview is not None and any(l.text().startswith("Part 2: Each page")
+      for l in pg.split_preview.findChildren(QLabel)))
+QTest.keyClick(pg.view, Qt.Key_Escape); app.processEvents()
+check("2.93.0: Esc cancels the split point and keeps the sentence selected", pg.split_at is None and not pg._split_items and not pg._split_px.isVisible()
+      and not pg.keys["Split"].isEnabled() and [x["id"] for x in pg.selected()] == [x1["id"]])
 QTest.mouseClick(pg.view.viewport(), Qt.LeftButton, Qt.NoModifier, pg.view.mapFromScene(r.center()))
 app.processEvents()
 QTest.keyClick(pg.view, Qt.Key_S); app.processEvents()

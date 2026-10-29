@@ -317,6 +317,11 @@ class Record:
             self.data["stages"] = [self._new_stage(n) for n in DEFAULT_STAGES]
             self.data["stage"] = self.data["stages"][0]["id"]
             self.data["stages"][0]["started"] = _now()
+            if os.path.isdir(self.folder):           # 2.93.0: kept at once, so every reader sees the same stages (and ids)
+                try:
+                    self.save()
+                except OSError:
+                    pass
         return self
 
     def save(self):

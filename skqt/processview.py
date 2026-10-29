@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QHBoxLayout, QHeade
 import diag
 import process as PR
 from . import design as D
+from .stagesedit import clear_table, set_cell_widget
 
 BEHAVIOR_TEXT = [("", "No hold"), ("soft", "Logged: allowed, open goals are logged"), ("hard", "Held: until the goals are met or overridden")]
 
@@ -40,7 +41,7 @@ class ProcessCard(D.Card):
         self.st = _table(["Stage", "Gate"], (260, 0)); v.addWidget(self.st, 1)
         row = QHBoxLayout(); v.addLayout(row)
         for text, fn in (("Up", lambda: self.move_stage(-1)), ("Down", lambda: self.move_stage(1)),
-                         ("+ Stage", lambda: self.add_stage()), ("Remove", lambda: self.st.removeRow(self.st.currentRow()))):
+                         ("+ Stage", lambda: self.add_stage()), ("Remove", lambda: self.remove_stage())):
             row.addWidget(D.button(text, "ghost" if text == "Remove" else None, fn))
         row.addStretch(1)
         self.tabs.addTab(w, "Default stages")
@@ -71,10 +72,10 @@ class ProcessCard(D.Card):
     # ------------------------------------------------------------ filling
     def fill(self, P=None):
         P = P or PR.load(self.host.config_dir)
-        self.gt.setRowCount(0)
+        clear_table(self.gt)
         for g in P["gates"]:
             self._gate_row(g)
-        self.st.setRowCount(0)
+        clear_table(self.st)
         for name, gate in P["stages"]:
             self._stage_row(name, gate)
         self.rl.clear()
@@ -131,7 +132,7 @@ class ProcessCard(D.Card):
     def _refresh_stage_gates(self):
         for i in range(self.st.rowCount()):
             cur = self.st.cellWidget(i, 1).currentData()
-            self.st.setCellWidget(i, 1, self._gate_combo(cur))
+            set_cell_widget(self.st, i, 1, self._gate_combo(cur))
 
     # ------------------------------------------------------------ editing
     def add_stage(self, name="New stage"):
@@ -139,12 +140,20 @@ class ProcessCard(D.Card):
         self.st.setCurrentCell(i, 0)
         return i
 
+    def remove_stage(self):
+        i = self.st.currentRow()
+        if i < 0:
+            return False
+        self.st.cellWidget(i, 1).hide()
+        self.st.removeRow(i)
+        return True
+
     def move_stage(self, d):
         t = self.st; i = t.currentRow(); j = i + d
         if i < 0 or not (0 <= j < t.rowCount()):
             return False
         name, gate = t.item(i, 0).text(), t.cellWidget(i, 1).currentData()
-        t.removeRow(i); t.insertRow(j)
+        t.cellWidget(i, 1).hide(); t.removeRow(i); t.insertRow(j)
         t.setItem(j, 0, QTableWidgetItem(name)); t.setCellWidget(j, 1, self._gate_combo(gate))
         t.setCurrentCell(j, 0)
         return True
@@ -163,7 +172,7 @@ class ProcessCard(D.Card):
         if self.gt.item(i, 0).data(Qt.UserRole) in ("", "soft", "hard"):
             self.host.status("The built-in gates stay. Rename one instead.")
             return False
-        self.gt.removeRow(i)
+        self.gt.cellWidget(i, 1).hide(); self.gt.removeRow(i)
         self._refresh_stage_gates()
         return True
 

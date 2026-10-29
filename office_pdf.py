@@ -23,6 +23,8 @@ $before = @(Get-Process WINWORD -ErrorAction SilentlyContinue | ForEach-Object {
 $app = New-Object -ComObject Word.Application
 $mine = @(Get-Process WINWORD -ErrorAction SilentlyContinue | Where-Object { $before -notcontains $_.Id } | ForEach-Object { $_.Id })
 if ($env:SK_PIDFILE -and $mine) { Set-Content -Path $env:SK_PIDFILE -Value ($mine -join ',') }
+$was = $null
+try {
 $was = $app.Documents.Count
 $app.Visible = $false; $app.DisplayAlerts = 0
 try { $app.AutomationSecurity = 3 } catch {}
@@ -30,7 +32,11 @@ foreach ($pair in ($env:SK_LIST -split "`n")) { if (-not $pair) { continue }
   $src, $out = $pair -split "`t"
   try { $d = $app.Documents.Open($src, $false, $true, $false, 'sk-no-password', 'sk-no-password')
         try { $d.ExportAsFixedFormat($out, 17) } finally { $d.Close(0) } } catch { Write-Error "$($_.Exception.Message)" -ErrorAction Continue } }
-if ($was -eq 0) { $app.Quit() }
+} finally {
+  if ($mine -or $was -eq 0) { try { $app.Quit() } catch {} }
+  try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($app) } catch {}
+  foreach ($id in $mine) { for ($i = 0; $i -lt 30 -and (Get-Process -Id $id -ErrorAction SilentlyContinue); $i++) { Start-Sleep -Milliseconds 500 }
+    Stop-Process -Id $id -Force -ErrorAction SilentlyContinue } }
 """,
     "excel": r"""
 $ErrorActionPreference = 'Stop'
@@ -38,6 +44,8 @@ $before = @(Get-Process EXCEL -ErrorAction SilentlyContinue | ForEach-Object { $
 $app = New-Object -ComObject Excel.Application
 $mine = @(Get-Process EXCEL -ErrorAction SilentlyContinue | Where-Object { $before -notcontains $_.Id } | ForEach-Object { $_.Id })
 if ($env:SK_PIDFILE -and $mine) { Set-Content -Path $env:SK_PIDFILE -Value ($mine -join ',') }
+$was = $null
+try {
 $was = $app.Workbooks.Count
 $app.Visible = $false; $app.DisplayAlerts = $false
 try { $app.AutomationSecurity = 3 } catch {}
@@ -45,7 +53,11 @@ foreach ($pair in ($env:SK_LIST -split "`n")) { if (-not $pair) { continue }
   $src, $out = $pair -split "`t"
   try { $wb = $app.Workbooks.Open($src, 0, $true, [Type]::Missing, 'sk-no-password', 'sk-no-password')
         try { $wb.ExportAsFixedFormat(0, $out) } finally { $wb.Close($false) } } catch { Write-Error "$($_.Exception.Message)" -ErrorAction Continue } }
-if ($was -eq 0) { $app.Quit() }
+} finally {
+  if ($mine -or $was -eq 0) { try { $app.Quit() } catch {} }
+  try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($app) } catch {}
+  foreach ($id in $mine) { for ($i = 0; $i -lt 30 -and (Get-Process -Id $id -ErrorAction SilentlyContinue); $i++) { Start-Sleep -Milliseconds 500 }
+    Stop-Process -Id $id -Force -ErrorAction SilentlyContinue } }
 """,
     "powerpoint": r"""
 $ErrorActionPreference = 'Stop'
@@ -53,13 +65,19 @@ $before = @(Get-Process POWERPNT -ErrorAction SilentlyContinue | ForEach-Object 
 $app = New-Object -ComObject PowerPoint.Application
 $mine = @(Get-Process POWERPNT -ErrorAction SilentlyContinue | Where-Object { $before -notcontains $_.Id } | ForEach-Object { $_.Id })
 if ($env:SK_PIDFILE -and $mine) { Set-Content -Path $env:SK_PIDFILE -Value ($mine -join ',') }
+$was = $null
+try {
 $was = $app.Presentations.Count
 try { $app.AutomationSecurity = 3 } catch {}
 foreach ($pair in ($env:SK_LIST -split "`n")) { if (-not $pair) { continue }
   $src, $out = $pair -split "`t"
   try { $p = $app.Presentations.Open($src, -1, 0, 0)
         try { $p.SaveAs($out, 32) } finally { $p.Close() } } catch { Write-Error "$($_.Exception.Message)" -ErrorAction Continue } }
-if ($was -eq 0) { $app.Quit() }
+} finally {
+  if ($mine -or $was -eq 0) { try { $app.Quit() } catch {} }
+  try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($app) } catch {}
+  foreach ($id in $mine) { for ($i = 0; $i -lt 30 -and (Get-Process -Id $id -ErrorAction SilentlyContinue); $i++) { Start-Sleep -Milliseconds 500 }
+    Stop-Process -Id $id -Force -ErrorAction SilentlyContinue } }
 """,
 }
 

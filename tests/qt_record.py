@@ -86,7 +86,7 @@ rp.refresh()
 # the gates
 w.go("home"); app.processEvents()
 hp = w.home_page
-check("the stage track names the gate", any("hard gate" in l.text() for i in range(hp.track_row.count())
+check("the stage track names the gate", any("hard gate" in l.text().lower() for i in range(hp.track_row.count())
                                              for l in hp.track_row.itemAt(i).widget().findChildren(type(hp.due).__mro__[1])))
 dlg = hp.move_dialog(run=False)
 check("the move dialog warns of the hard gate", "Hard gate" in dlg.api["gate"].text() and dlg.api["reason"].isVisibleTo(dlg), dlg.api["gate"].text())
