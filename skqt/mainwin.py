@@ -246,6 +246,7 @@ class MainWindow(QMainWindow):
         self.read_page.refresh()
         self.go("assign" if self.review is not None and self.review.M.items else "read")
         self.safety.opened()
+        self.warm_up()                             # 2.82.0: pages that read every document are ready before you open them
         self.safety.restore_view()                 # 2.78.0: back where you were in this effort
         if recovered:
             self.toast(self.safety.recovered_text)
@@ -257,6 +258,7 @@ class MainWindow(QMainWindow):
         return True
 
     def close_effort(self):
+        self._warm_stop = True
         self.save_now()
         if self.ws is not None and hasattr(self, "safety"):
             self.safety.closing()
@@ -381,6 +383,37 @@ class MainWindow(QMainWindow):
         if hasattr(self, "saved"):
             self.saved.setText("Saving..." if dirty else ("Saved" if self.review is not None else "No matrix"))
             self.saved.set_tone("warn" if dirty else ("ok" if self.review is not None else "head"))
+
+    def warm_up(self, wait=False):
+        """Work out version changes and submission requirements in the background, so Documents, Requirements, Effort
+        home and the dashboard open at once. Returns the thread."""
+        import threading
+        import docversions as DV
+        if self.ws is None:
+            return None
+        folder, root = self.ws.p("documents"), self.ws.root
+        cd = (self.efforts.get(self.effort_name) or {}).get("customer_dir", "") or ""
+        self._warm_stop = False
+        stop = lambda: self._warm_stop or self.ws is None or self.ws.root != root
+
+        def run():
+            try:
+                DV.Library(folder).load().warm(stop=stop)
+                if cd and os.path.isdir(cd):                 # fingerprints of the customer folder's files, for Documents
+                    for f in sorted(os.listdir(cd)):
+                        if stop():
+                            break
+                        p = os.path.join(cd, f)
+                        if os.path.isfile(p) and f.lower().endswith((".docx", ".pdf", ".pptx", ".xlsx", ".txt")):
+                            DV.sha256_cached(p)
+            except Exception:
+                diag.swallowed()
+        t = threading.Thread(target=run, name="stationkeeper-warm-up", daemon=True)
+        t.start()
+        if wait:
+            t.join()
+        self._warm_thread = t
+        return t
 
     def _mode_badge(self):
         try:

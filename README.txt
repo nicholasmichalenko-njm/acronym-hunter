@@ -1,6 +1,16 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+FASTER MOVING BETWEEN PAGES (2.82.0)
+  - Documents, Requirements, Effort home and the dashboard no longer work everything out again on every visit. What
+    changed between two versions, the submission requirements each version sets and the fingerprints of the customer
+    folder's files are worked out once (in the background when an effort opens) and kept: in memory, with each version,
+    and in the effort's documents\found folder for the next start.
+  - Kept results follow every change: a new version, a renamed document or an edited file is worked out again, so a
+    page never shows something stale.
+  - Measured with 40 documents of 3 versions and a 2,800-sentence matrix: Requirements went from about 3 seconds to
+    0.01; every page opens in under 0.2 seconds.
+
 HELP WITHOUT SENDING DATA (2.81.0)
   - Settings > Help and support > Create a support file: one zip with versions, the content-free logs and the checks
     (Check program files, effort health by kind, which settings are on), for whoever maintains Stationkeeper. It holds

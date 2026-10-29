@@ -153,6 +153,39 @@ def key_of(kind, subject):
 
 
 # ------------------------------------------------------------------ the register
+RULES = 1                      # 2.82.0: bump when find() changes, so saved results are worked out again
+_FOUND = {}                    # (library folder, version id, fingerprint) -> what that version's text sets
+_BUILT = {}                    # (library folder, library signature) -> build(lib)
+
+
+def _found_for(lib, v):
+    """What one version sets: {key: (kind, subject, value, sentence, loc)}. A version's text never changes, so this is
+    worked out once, kept in memory and in documents\\found\\<version>.json, and read back after that (2.82.0)."""
+    import os
+    import workspace as W
+    key = (lib.folder, v["id"], v.get("sha256", ""))
+    if key in _FOUND:
+        return _FOUND[key]
+    p = os.path.join(lib.folder, "found", v["id"] + ".json")
+    d = W.read_json(p, None)
+    if isinstance(d, dict) and d.get("rules") == RULES and d.get("sha") == v.get("sha256", "") and isinstance(d.get("found"), dict):
+        found = {k: tuple(x) for k, x in d["found"].items()}
+    else:
+        found = {}
+        for s in lib.text(v):
+            for kind, subj, val in find(s["x"]):
+                k = key_of(kind, subj)
+                if k not in found:
+                    found[k] = (kind, subj, val, s["x"], s.get("l", ""))
+        try:
+            os.makedirs(os.path.dirname(p), exist_ok=True)
+            W.write_json(p, {"rules": RULES, "sha": v.get("sha256", ""), "found": {k: list(x) for k, x in found.items()}})
+        except OSError:
+            pass
+    _FOUND[key] = found
+    return found
+
+
 def build(lib):
     """Read every version of every document in the library. Returns {key: requirement} where requirement is
     {"key", "kind", "subject", "value", "sentence", "doc", "doc_id", "version", "version_id", "loc", "history": [...],
@@ -162,12 +195,7 @@ def build(lib):
     for d in lib.docs:
         prev = {}
         for v in d["versions"]:
-            found = {}
-            for s in lib.text(v):
-                for kind, subj, val in find(s["x"]):
-                    k = key_of(kind, subj)
-                    if k not in found:
-                        found[k] = (kind, subj, val, s["x"], s.get("l", ""))
+            found = _found_for(lib, v)
             for k, (kind, subj, val, sent, loc) in found.items():
                 r = reqs.setdefault(k, {"key": k, "kind": kind, "subject": subj, "history": []})
                 before = prev.get(k)
@@ -206,9 +234,14 @@ class Register:
 
     def found(self):
         """build(lib), kept until the library gains, loses or renames a version."""
-        sig = tuple((d["name"], v["id"], v["label"]) for d in self.lib.docs for v in d["versions"])
+        sig = tuple((d["name"], v["id"], v["label"], v.get("added", "")) for d in self.lib.docs for v in d["versions"])
         if self._built[0] != sig:
-            self._built = (sig, build(self.lib))
+            key = (self.lib.folder, sig)              # 2.82.0: kept across pages, so moving between them is instant
+            if key not in _BUILT:
+                if len(_BUILT) > 8:
+                    _BUILT.clear()
+                _BUILT[key] = build(self.lib)
+            self._built = (sig, _BUILT[key])
         return self._built[1]
 
     @property

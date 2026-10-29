@@ -26,6 +26,20 @@ VERSION_WORDS = re.compile(
 PAGE_LIMIT = re.compile(r"\b(?:exceed|limit(?:ed)?|maximum|no more than|up to)\b[^.]{0,40}\b\d{1,3}\s*(?:-\s*)?pages?\b|"
                         r"\b\d{1,3}[- ]page (?:limit|maximum)\b", re.I)
 STRONG, POSSIBLE = 0.6, 0.3
+COMPARE_RULES = 1                     # 2.82.0: bump when compare() or summary_text() change; kept summaries are redone
+_SHA = {}                             # (path, size, modified) -> fingerprint, for files already fingerprinted this session
+_CHANGE = {}                          # (library folder, older version id, newer version id) -> what changed, this session
+
+
+def sha256_cached(path):
+    """sha256(path), worked out once per file until its size or time changes (2.82.0: a folder of large PDFs is not
+    read again each time a page opens)."""
+    st = os.stat(path)
+    key = (os.path.abspath(path), st.st_size, st.st_mtime_ns)
+    h = _SHA.get(key)
+    if h is None:
+        h = _SHA[key] = sha256(path)
+    return h
 
 
 def sha256(path):
@@ -148,6 +162,43 @@ class Library:
 
     def doc(self, doc_id):
         return next((d for d in self.docs if d["id"] == doc_id), None)
+
+    def change_text(self, d, i):
+        """What changed from the version before (2.82.0): worked out once and kept with the version, because two
+        versions' texts never change. Returns (text, newly worked out)."""
+        if i <= 0 or i >= len(d["versions"]):
+            return "", False
+        v, prev = d["versions"][i], d["versions"][i - 1]
+        c = v.get("change") or {}
+        if c.get("prev") == prev["id"] and c.get("rules") == COMPARE_RULES and "text" in c:
+            return c["text"], False
+        key = (self.folder, prev["id"], v["id"])
+        text = _CHANGE.get(key)
+        if text is None:
+            text = _CHANGE[key] = summary_text(summary(compare(self.text(prev), self.text(v))))
+        v["change"] = {"prev": prev["id"], "text": text, "rules": COMPARE_RULES}
+        return text, True
+
+    def warm(self, stop=None):
+        """Work out, in the background when an effort opens, what pages would otherwise work out on first view: what
+        changed between versions and the submission requirements each version sets. Memory and per-version files only;
+        the index is saved by the page that shows them (2.82.0). stop(): True to give up early."""
+        import subreq as SR
+        for d in list(self.docs):
+            for i, v in enumerate(list(d["versions"])):
+                if stop and stop():
+                    return
+                try:
+                    SR._found_for(self, v)
+                    if i:
+                        prev = d["versions"][i - 1]
+                        c = v.get("change") or {}
+                        if not (c.get("prev") == prev["id"] and c.get("rules") == COMPARE_RULES):
+                            key = (self.folder, prev["id"], v["id"])
+                            if key not in _CHANGE:
+                                _CHANGE[key] = summary_text(summary(compare(self.text(prev), self.text(v))))
+                except Exception:
+                    pass
 
     def find_sha(self, h):
         for d in self.docs:

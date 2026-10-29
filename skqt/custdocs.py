@@ -79,7 +79,7 @@ class Ctx:
             p = os.path.join(cd, f)
             if os.path.isfile(p) and not f.startswith("~$") and f.lower().endswith((".docx", ".pdf", ".pptx", ".xlsx", ".txt")):
                 try:
-                    if DV.sha256(p) not in have:
+                    if DV.sha256_cached(p) not in have:
                         out.append(p)
                 except OSError:
                     diag.swallowed()
@@ -234,6 +234,7 @@ class DocsPage(QWidget):
         un = c.unadded()
         self.b_folder.setText(f"Add from the customer folder ({len(un)})" if un else "Add from the customer folder")
         self.b_folder.setEnabled(bool(un))
+        worked = False
         for d in c.lib.docs:
             top = QTreeWidgetItem([d["name"], d.get("initial", "") or "needed", d.get("type", "") or "needed", "", "", "",
                                    f"{len(d['versions'])} version(s)", ""])
@@ -247,7 +248,8 @@ class DocsPage(QWidget):
                 ch = ""
                 if i:
                     try:
-                        ch = DV.summary_text(DV.summary(DV.compare(c.lib.text(d["versions"][i - 1]), c.lib.text(ver))))
+                        ch, new = c.lib.change_text(d, i)        # 2.82.0: kept with the version, not compared again
+                        worked = worked or new
                     except Exception:
                         diag.swallowed()
                 rv = "first version" if not i else (ver.get("reviewed", "") or "not yet")
@@ -256,6 +258,11 @@ class DocsPage(QWidget):
                     it.setForeground(7, D.color("warn"))
                 it.setData(0, Qt.UserRole, ("version", d["id"], ver["id"]))
                 top.addChild(it)
+        if worked:
+            try:
+                c.lib.save()
+            except OSError:
+                diag.swallowed()
         self.tree.expandAll()
 
     def _sel(self):
