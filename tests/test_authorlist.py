@@ -17,6 +17,8 @@ def check(name, ok, info=""):
 tmp = tempfile.mkdtemp()
 L = AL.load(tmp)
 check("a new list: empty, not on disk yet", L.people == [] and not L.exists)
+check("no teams to start from: nothing is written (a new PC, the build's self-test)", AL.seed(L, [("Heron", [])]) == 0
+      and not os.path.exists(L.path))
 check("seed from the efforts' teams: each name shows where it was on a team", AL.seed(L, [("Heron", ["A. Lee", "K. Park"]), ("Osprey", ["a. lee", "R. Diaz"])]) == 3
       and L.for_effort("Heron") == ["A. Lee", "K. Park"] and L.for_effort("Osprey") == ["A. Lee", "R. Diaz"] and L.exists)
 check("seed runs once only", AL.seed(L, [("Kite", ["Z. New"])]) == 0 and not L.find("Z. New"))

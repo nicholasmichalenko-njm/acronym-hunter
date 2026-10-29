@@ -44,6 +44,7 @@ card0 = w0.settings_page.authors
 w0.go("settings"); w0.settings_page.refresh(); app.processEvents()
 check("no effort yet: Settings says to create or select an effort first", card0.banner.isVisible()
       and "Create or select an effort first" in card0.banner.text(), card0.banner.text())
+check("opening with no efforts writes no author list (the release build's leak check)", not os.path.exists(os.path.join(cfg0, AL.FILE)))
 res = card0.add_names("Joe G.\nM. Chen")
 check("names can still be added: they show in all efforts", res["added"] == ["Joe G.", "M. Chen"] and w0.authors.find("Joe G.")["efforts"] == AL.ALL)
 check("choosing efforts with none: create or select an effort first", card0.choose_efforts(["Joe G."]) is None

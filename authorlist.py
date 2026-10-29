@@ -277,6 +277,8 @@ def seed(lst, efforts):
             c = clean(n)
             if c:
                 found.setdefault(c.casefold(), [c, []])[1].append(eff)
+    if not found:                               # nothing to start from: write nothing (a new PC, the build's self-test)
+        return 0
     for _k, (n, effs) in sorted(found.items()):
         lst.people.append({"name": n, "efforts": list(dict.fromkeys(effs)), "added": _today(), "source": "from the effort's team"})
     lst._log("started from the efforts' teams", added=len(found))
