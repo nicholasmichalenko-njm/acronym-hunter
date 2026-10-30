@@ -170,6 +170,21 @@ check("... logging stops", diag.OFF and diag.LOG_DIR is None and not diag.usage_
 check("a fresh program over a sealed data folder is still SCIF-ready", secure.scif(os.path.join(tmp, "fresh"), dat))
 check("... and so is a sealed program with a new data folder", secure.scif(base, os.path.join(tmp, "new data")))
 secure.ACTIVE = False
+# 3.0.1: --selftest with files in SCIF-ready keeps no logs folder and no file names or terms
+sample = os.path.join(A.BASE_DIR, "test_samples", "Kestrel_Design_Note.docx")
+old_dirs = (A.LOG_DIR, A.SANDBOX_DIR)
+A.LOG_DIR, A.SANDBOX_DIR = os.path.join(tmp, "scif prog", "logs"), os.path.join(tmp, "scif prog", "_local_sandbox")
+secure.ACTIVE = True
+A.run_selftest([sample])
+rep = open(os.path.join(A.SANDBOX_DIR, "selftest.txt"), encoding="utf-8").read()
+check("SCIF-ready self test: no logs folder, a content-free report", not os.path.exists(A.LOG_DIR) and "SELFTEST OK" in rep
+      and "1 file(s) read" in rep and "Kestrel" not in rep and "RESULTS" not in rep and "Reading" not in rep, rep)
+check("... and the update and knowledge results go beside it, never to logs", A.admin_report("update.txt").startswith(A.SANDBOX_DIR)
+      and not os.path.exists(A.LOG_DIR))
+secure.ACTIVE = False
+A.run_selftest([sample])
+check("... a regular install keeps the full report in logs, as before", "RESULTS:" in open(os.path.join(A.LOG_DIR, "selftest.txt"), encoding="utf-8").read())
+A.LOG_DIR, A.SANDBOX_DIR = old_dirs
 shutil.rmtree(tmp, ignore_errors=True)
 n = sum(checks)
 print(f"TEST SENSITIVITY {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

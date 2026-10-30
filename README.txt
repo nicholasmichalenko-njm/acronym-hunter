@@ -8,6 +8,10 @@ REVIEW, AND A CLEANER CUSTOMER Q&A (3.0.1)
   - Customer Q&A exported to Word: No., Reference (the document, then section, page and paragraph), RFP Text (the
     customer's exact words), Question and Government Response. Include the answers fills the last column. Only what
     the customer needs goes out: never the owner, status, category or internal notes.
+  - SCIF-ready: the administrator self test (Stationkeeper.exe --selftest <files>) now keeps a content-free result
+    (how many files and terms, the security checks, OK) in _local_sandbox\selftest.txt. It used to write a full report
+    with file names and terms into a logs folder. The update and knowledge-pack command-line results also stay out of
+    a logs folder in SCIF-ready. The build's SCIF check now reads a real sample file and fails on any of this.
 
 AMENDMENTS AS INSTRUCTIONS, AND TASK AND DELIVERY ORDERS (3.0.0)
   - Many amendments do not reissue the document; they say what to change: "In paragraph L.4.2, delete "twenty (20)

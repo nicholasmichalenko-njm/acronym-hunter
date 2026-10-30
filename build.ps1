@@ -116,7 +116,10 @@ if (Test-Path "$out\$qtExe.exe") {
         $env:SK_DATA_DIR = (Resolve-Path $scifData).Path
     }
     try {
-        $q = Start-Process -FilePath "$out\$qtExe.exe" -ArgumentList '--selftest' -Wait -PassThru
+        # 3.0.1: the SCIF build also reads a real sample file, so the check below proves --selftest with files keeps no
+        # logs and no file names or terms in SCIF-ready
+        $stArgs = if ($Scif) { @('--selftest', (Resolve-Path 'test_samples\Kestrel_Design_Note.docx').Path) } else { @('--selftest') }
+        $q = Start-Process -FilePath "$out\$qtExe.exe" -ArgumentList $stArgs -Wait -PassThru
     } finally {
         if ($Scif) { Remove-Item Env:SK_DATA_DIR -ErrorAction SilentlyContinue }
     }
@@ -129,7 +132,10 @@ if (Test-Path "$out\$qtExe.exe") {
         if (-not (Test-Path "$out\SCIF-READY.seal") -or -not (Test-Path "$scifData\SCIF-READY.seal")) { throw "SCIF CHECK FAILED: the seal was not written" }
         $kept = @('logs', 'training_data', 'feedback') | ForEach-Object { "$out\$_", "$scifData\$_" } | Where-Object { Test-Path $_ }
         if ($kept) { throw "SCIF CHECK FAILED: the SCIF build wrote $($kept -join ', ')" }
-        "SCIF check: started SCIF-ready, sealed its program and data folders, wrote no logs, training data or bug reports"
+        $st = Get-Content "$out\_local_sandbox\selftest.txt" -Raw -ErrorAction SilentlyContinue
+        if (-not ($st -match 'SELFTEST OK') -or $st -match 'Kestrel|RESULTS:|Reading Word') { throw "SCIF CHECK FAILED: the self test report is missing or holds content: $st" }
+        Remove-Item -Force "$out\_local_sandbox\selftest.txt" -ErrorAction SilentlyContinue
+        "SCIF check: started SCIF-ready, sealed its program and data folders, read a sample file, wrote no logs, training data or bug reports, and kept no file names or terms"
         Remove-Item -Force "$out\SCIF-READY.seal"          # each install seals itself on its first start
         Remove-Item -Recurse -Force $scifData -ErrorAction SilentlyContinue
     }

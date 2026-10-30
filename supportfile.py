@@ -23,7 +23,8 @@ WHATS_NEW = {
     "3.0.1": ["Assign is now Review: the page where you read every sentence, decide it and capture what it holds. Reviews "
               "(color team packets) is now Color Reviews.",
               "Customer Q&A in Word: one Reference column (the document, then section, page and paragraph), the customer's "
-              "words, your question and a Government Response column. Nothing internal goes out."],
+              "words, your question and a Government Response column. Nothing internal goes out.",
+              "SCIF-ready: the administrator self test keeps only a content-free result and never creates a logs folder."],
     "3.0.0": ["Amendments that say what to change (delete and insert, replace or delete a paragraph, add one) are applied to "
               "the document they change: Library > Apply its instructions makes its Conformed version and says what did not apply.",
               "Task orders and delivery orders are document types of their own, filed under the base contract or RFP in Library."],

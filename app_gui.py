@@ -6017,16 +6017,35 @@ class AcronymAppGUI(AssignCardMixin, PageViewMixin, TrainPackMixin, KnowledgeCar
 import compliance_page as _CPG          # 2.56.0: Ctrl+Z undoes the last assignment in Assign
 _CPG.install_undo(AcronymAppGUI)
 
+def admin_report(name):
+    """3.0.1: where a command-line result goes (--selftest with files, --install-knowledge, the update commands): logs\\
+    normally. SCIF-ready keeps no logs at all, so there it goes to the program's _local_sandbox folder, beside
+    qt_selftest.txt, and never creates a logs folder."""
+    d = SANDBOX_DIR if secure.ACTIVE else LOG_DIR
+    os.makedirs(d, exist_ok=True)
+    return os.path.join(d, name)
+
+
 def run_selftest(paths):
-    os.makedirs(LOG_DIR, exist_ok=True)
-    out = os.path.join(LOG_DIR, "selftest.txt")
+    """--selftest <files>: read the files and report. 3.0.1: in SCIF-ready the report is content-free (how many files and
+    terms, the security checks, OK or the error's type): no file names, no progress lines, no terms or definitions."""
+    scif = bool(secure.ACTIVE)
+    out = admin_report("selftest.txt")
     with open(out, "w", encoding="utf-8") as f:
         try:
-            res = analyze_batch(paths, lambda m: f.write(m + "\n"))
-            f.write(f"\nOCR models: {OCR_MODEL_INFO}\nText finder: {doctr_info()}\nKnowledge: {knowledge_status()}\nOCR settings: {json.dumps(OCR_CFG)}\n")
+            res = analyze_batch(paths, (lambda m: None) if scif else (lambda m: f.write(m + "\n")))
             import openpyxl.xml as _oxml
-            f.write(f"Security: network guard={socket.socket.connect is _guarded_connect}, "
-                    f"office XML entities disabled={_SAFE_XML is not None}, openpyxl defusedxml={_oxml.DEFUSEDXML}\n")
+            security = (f"Security: network guard={socket.socket.connect is _guarded_connect}, "
+                        f"office XML entities disabled={_SAFE_XML is not None}, openpyxl defusedxml={_oxml.DEFUSEDXML}\n")
+            if scif:
+                f.write(f"SCIF-ready self test: {len(paths)} file(s) read, {len(res)} term(s) found. Nothing about the files "
+                        "or what they hold is kept.\n" + security)
+                if OCR_BACKEND == "tesseract":
+                    f.write(f"OCR sandbox: {OCR_SANDBOX_STATUS}\n")
+                f.write("SELFTEST OK\n")
+                return
+            f.write(f"\nOCR models: {OCR_MODEL_INFO}\nText finder: {doctr_info()}\nKnowledge: {knowledge_status()}\nOCR settings: {json.dumps(OCR_CFG)}\n")
+            f.write(security)
             if trainer_available():
                 import trainer_gui, tess_train   # the Trainer window and Improve Reading load inside this program
                 f.write(f"Training features: on (Trainer window and Improve Reading loaded; "
@@ -6043,8 +6062,8 @@ def run_selftest(paths):
             for term, d in res.items():
                 f.write(f"{term}\t{d['category']}\t{d['count']}\t{d['status']}\t{d['selected_definition']}\n")
             f.write("SELFTEST OK\n")
-        except Exception:
-            f.write(traceback.format_exc())
+        except Exception as e:
+            f.write(f"{type(e).__name__}\n" if scif else traceback.format_exc())     # SCIF: the type only, never a message
             f.write("SELFTEST FAILED\n")
 
 if __name__ == "__main__":
@@ -6052,8 +6071,7 @@ if __name__ == "__main__":
         run_selftest(sys.argv[2:])
         sys.exit(0)
     if len(sys.argv) > 2 and sys.argv[1] == "--install-knowledge":   # used by build.ps1 -KnowledgePack
-        os.makedirs(LOG_DIR, exist_ok=True)
-        with open(os.path.join(LOG_DIR, "knowledge_install.txt"), "w", encoding="utf-8") as f:
+        with open(admin_report("knowledge_install.txt"), "w", encoding="utf-8") as f:
             try:
                 f.write(install_knowledge_pack(sys.argv[2]) + "\nINSTALL OK\n")
             except Exception:

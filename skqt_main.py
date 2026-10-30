@@ -40,8 +40,7 @@ def _selftest_scan():
 def _install_knowledge(path):
     """--install-knowledge (build.ps1 -KnowledgePack): install a pack with no window and write the result to the logs."""
     import traceback
-    os.makedirs(A.LOG_DIR, exist_ok=True)
-    with open(os.path.join(A.LOG_DIR, "knowledge_install.txt"), "w", encoding="utf-8") as f:
+    with open(A.admin_report("knowledge_install.txt"), "w", encoding="utf-8") as f:     # 3.0.1: never logs\ in SCIF-ready
         try:
             f.write(A.install_knowledge_pack(path) + "\nINSTALL OK\n")
         except Exception:
@@ -51,11 +50,11 @@ def _install_knowledge(path):
 
 def _update_args(args):
     """2.76.0, with no window (IT, or the release build's test): --apply-update <pack>, --undo-update, --check-program.
-    The result goes to logs/update.txt."""
+    The result goes to logs/update.txt (3.0.1: _local_sandbox/update.txt in SCIF-ready, which keeps no logs)."""
     if len(args) < 2 or args[1] not in ("--apply-update", "--undo-update", "--check-program"):
         return None
     from skqt import updates as UP
-    log = os.path.join(A.LOG_DIR, "update.txt")
+    log = A.admin_report("update.txt")
     if args[1] == "--apply-update":
         return UP.apply_headless(args[2], log) if len(args) > 2 else 2
     return UP.undo_headless(log) if args[1] == "--undo-update" else UP.check_headless(log)
