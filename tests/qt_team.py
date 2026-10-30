@@ -49,6 +49,8 @@ PR.save(cfgA, gates=PR.load(cfgA)["gates"] + [{"name": "Color team sign-off", "b
         roles=["Proposal Manager", "Book Boss"])
 import doctypes as DT
 DT.save(cfgA, DT.load(cfgA)["types"] + [{"name": "Pricing Instructions", "initial": "PI"}])
+import folderplan as FP
+FP.save(cfgA, dict(FP.default(), company="Acme Space"))
 have = TP.available(cfgA)
 check("the maker's PC lists what it can share", set(have) == set(TP.PARTS), have)
 pack = os.path.join(tmp, f"Team{TP.EXT}")
