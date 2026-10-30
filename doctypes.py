@@ -22,6 +22,9 @@ BUILT_IN = [
     {"name": "Attachment", "initial": "J", "numbered": False, "matrix": False, "words": ""},
     {"name": "CDRL", "initial": "C", "numbered": False, "matrix": False, "words": ""},
     {"name": "DD 254", "initial": "D", "numbered": False, "matrix": False, "words": ""},
+    {"name": "Contract", "initial": "CT", "numbered": False, "matrix": False, "words": ""},
+    {"name": "Task order", "initial": "TO", "numbered": True, "matrix": True, "words": ""},
+    {"name": "Delivery order", "initial": "DO", "numbered": True, "matrix": True, "words": ""},
     {"name": "Other", "initial": "X", "numbered": False, "matrix": False, "words": ""},
 ]
 

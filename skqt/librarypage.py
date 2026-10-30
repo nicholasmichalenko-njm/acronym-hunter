@@ -306,6 +306,13 @@ class LibraryPage(QWidget):
         self.b_ident = D.button("Initial and type...", None, lambda: self.identity(), "A customer document's initial and type")
         self.b_rename = D.button("Rename...", None, lambda: self.rename())
         idrow.addWidget(self.b_ident); idrow.addWidget(self.b_rename); idrow.addStretch(1)
+        urow = QHBoxLayout(); self.side.addLayout(urow)                    # task and delivery orders under their base
+        urow.addWidget(D.label("Filed under", "label", wrap=False))
+        self.d_under = QComboBox(); self.d_under.activated.connect(lambda _i: self.set_under()); urow.addWidget(self.d_under, 1)
+        self.b_conform = D.button("Apply its instructions...", None, lambda: self.conform(),
+                                  "An amendment that says what to change (delete and insert, replace a paragraph): apply it to "
+                                  "the base document to get the conformed version")
+        self.side.addWidget(self.b_conform)
         self.b_read = D.button("Read it in Assign", "primary", lambda: self.read_in_assign(),
                                "Open it beside your response structure: select text, then choose where it goes (2.84.0)")
         self.side.addWidget(self.b_read)
@@ -412,12 +419,13 @@ class LibraryPage(QWidget):
     def fill(self):
         if self.lib is None:
             return
-        docs = self.shown()
+        docs = under_parents(self.shown())
         keep = self.current_id()
         self.table.setRowCount(len(docs))
         for r, d in enumerate(docs):
             vs = d["versions"]
-            name = d["name"] + (f" ({d['initial']})" if d.get("initial") else "")
+            name = ("\u21b3 " if d.get("under") and any(x["id"] == d["under"] for x in docs) else "") + d["name"] \
+                + (f" ({d['initial']})" if d.get("initial") else "")
             it = _item(name, d["id"], vs[-1].get("file", "") if vs else "")
             if d.get("withdrawn"):                                   # 2.94.0
                 it.setText(name + "  (withdrawn)"); it.setForeground(D.color("muted"))
@@ -444,6 +452,59 @@ class LibraryPage(QWidget):
             self.select(keep)
         self.show_doc()
 
+    def set_under(self, base_id=None):
+        """A task or delivery order filed under its contract or RFP (or taken out)."""
+        d = self.lib.doc(self.current_id()) if self.lib and self.current_id() else None
+        if d is None:
+            return False
+        base_id = self.d_under.currentData() if base_id is None else base_id
+        ok = self.lib.set_under(d["id"], base_id or "")
+        if not ok:
+            self.host.status("Not filed there: a document cannot be under itself or one of its own.")
+        else:
+            diag.activity("library_filed_under")
+            self.fill()
+            self.select(d["id"])
+        return ok
+
+    def conform(self, base_id=None, pick=None, answer=None):
+        """Apply an amendment's instructions to its base document. answer (tests): skip the dialog (True to make it)."""
+        import amendinst as AI
+        d = self.lib.doc(self.current_id()) if self.lib and self.current_id() else None
+        if d is None:
+            return None
+        ins = AI.instructions_of(self.lib, d["versions"][-1])
+        if not ins:
+            self.host.status(f"{d['name']} holds no change instructions (delete and insert, replace a paragraph...). "
+                             "When an amendment reissues the document, add it as a new version instead.")
+            return None
+        if base_id is None:
+            base = self.lib.base_for_orders() or next((x for x in self.lib.docs if x["id"] != d["id"]), None)
+            base_id = base["id"] if base else None
+        if answer is None:
+            dlg = ConformDialog(self, self.lib, d, ins, base_id)
+            if dlg.exec() != QDialog.Accepted:
+                return None
+            base_id, pick = dlg.values()
+        base = self.lib.doc(base_id) if base_id else None
+        if base is None:
+            self.host.status("Pick the document the amendment changes.")
+            return None
+        dd, v, res = AI.conform(self.lib, d, base, pick)
+        self.last_conform = res
+        if v is None:
+            self.host.status("None of the instructions could be applied: " + "; ".join(r["why"] for r in res if r["why"])[:300])
+            return None
+        diag.activity("amendment_conformed", n=sum(1 for r in res if r["status"] == "applied"))
+        self.host.toast(f"{base['name']}: {v['label']} added. {AI.summary(res)}.")
+        self.fill(); self.select(base["id"])
+        try:
+            from .whatview import after_added
+            after_added(self.host, [(dd, v)], self.lib)
+        except Exception:
+            diag.swallowed()
+        return v
+
     def current_id(self):
         r = self.table.currentRow()
         it = self.table.item(r, 0) if r >= 0 else None
@@ -463,8 +524,9 @@ class LibraryPage(QWidget):
     def show_doc(self):
         d = self.lib.doc(self.current_id()) if self.lib and self.current_id() else None
         many = len(self.selected_ids()) > 1 if self.lib else False
-        for w in list(self.role_btns.values()) + [self.why, self.d_cat, self.d_folder, self.d_tags]:
+        for w in list(self.role_btns.values()) + [self.why, self.d_cat, self.d_folder, self.d_tags, self.d_under]:
             w.setEnabled(d is not None)
+        self.b_conform.setVisible(bool(d) and d.get("type") == "Amendment")
         if d is None:
             self.d_name.setText("Click a document"); self.d_info.setText("Its role, category, folder, tags and versions show here.")
             self.role_by.setText(""); self.d_versions.clear(); self.d_hits.clear()
@@ -492,6 +554,17 @@ class LibraryPage(QWidget):
             self.d_cat.addItem(n, k)
         self.d_cat.setCurrentIndex(max(0, self.d_cat.findData(d.get("category", "customer")))); self.d_cat.blockSignals(False)
         self.d_folder.setText(d.get("folder", "")); self.d_tags.setText(", ".join(d.get("tags", [])))
+        self.d_under.blockSignals(True); self.d_under.clear(); self.d_under.addItem("(not under another document)", "")
+        for o in lib.docs:
+            if o["id"] != d["id"] and o.get("category", "customer") == "customer":
+                self.d_under.addItem(o["name"] + (f" ({o['initial']})" if o.get("initial") else ""), o["id"])
+        self.d_under.setCurrentIndex(max(0, self.d_under.findData(d.get("under", "")))); self.d_under.blockSignals(False)
+        kids = lib.children(d["id"])
+        if d.get("under") and lib.doc(d["under"]):
+            bits.append(f"under {lib.doc(d['under'])['name']}")
+        if kids:
+            bits.append(f"{len(kids)} order(s) under it")
+        self.d_info.setText("  ·  ".join(bits))
         try:
             import ctxdocs as CX
             nt = len(CX.Store(self.host.ws.root).load().of_doc(d["id"]))
@@ -856,3 +929,83 @@ class TakenDialog(QDialog):
         diag.activity("library_taken_exported", n=len(self.store.att))
         self.page.host.toast("Exported")
         return path
+
+
+class ConformDialog(QDialog):
+    """The amendment's instructions, each ticked, the document they change, and what applying them does (applied, or why
+    not), before the conformed version is made."""
+
+    def __init__(self, parent, lib, amend, ins, base_id):
+        super().__init__(parent)
+        import amendinst as AI
+        self.lib, self.ins = lib, ins
+        self.setWindowTitle(f"Apply {amend['name']}'s instructions")
+        self.setMinimumWidth(760)
+        v = QVBoxLayout(self)
+        v.addWidget(D.label(f"{len(ins)} change instruction(s) found in {amend['name']}. Each is applied to the latest version "
+                            "of the document it changes; the result is its next version, Conformed, which Changes and Assign "
+                            "show like any reissued version. Nothing in the files changes.", "muted"))
+        row = QHBoxLayout(); v.addLayout(row)
+        row.addWidget(D.label("It changes", "label", wrap=False))
+        self.base = QComboBox()
+        for o in lib.docs:
+            if o["id"] != amend["id"] and o.get("category", "customer") == "customer":
+                self.base.addItem(o["name"], o["id"])
+        self.base.setCurrentIndex(max(0, self.base.findData(base_id)))
+        self.base.currentIndexChanged.connect(lambda _i: self.preview())
+        row.addWidget(self.base, 1)
+        self.list = QListWidget(); v.addWidget(self.list, 1)
+        for i, x in enumerate(ins):
+            it = QListWidgetItem(AI.describe(x)); it.setFlags(it.flags() | Qt.ItemIsUserCheckable); it.setCheckState(Qt.Checked)
+            it.setData(Qt.UserRole, i); self.list.addItem(it)
+        self.list.itemChanged.connect(lambda _it: self.preview())
+        self.result = D.label("", None); self.result.setWordWrap(True); v.addWidget(self.result)
+        bb = QDialogButtonBox(QDialogButtonBox.Cancel)
+        self.go = bb.addButton("Make the conformed version", QDialogButtonBox.AcceptRole)
+        bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
+        v.addWidget(bb)
+        self.preview()
+
+    def values(self):
+        pick = [self.list.item(k).data(Qt.UserRole) for k in range(self.list.count()) if self.list.item(k).checkState() == Qt.Checked]
+        return self.base.currentData(), pick
+
+    def preview(self):
+        import amendinst as AI
+        base = self.lib.doc(self.base.currentData())
+        if base is None:
+            self.result.setText(""); self.go.setEnabled(False)
+            return
+        bid, pick = self.values()
+        _out, res = AI.apply(self.lib.text(base["versions"][-1]), [self.ins[i] for i in pick])
+        for k in range(self.list.count()):
+            it = self.list.item(k); i = it.data(Qt.UserRole)
+            r = next((x for j, x in zip(pick, res) if j == i), None)
+            it.setForeground(D.color("muted") if r is None else (D.color("ok") if r["status"] == "applied" else D.color("crit")))
+            it.setToolTip("" if r is None else (r["why"] or f"applied to {r['n']} sentence(s)"))
+        self.result.setText(AI.summary(res) + ". Red ones were not found in " + base["name"] + "; hover for why." if res else "Tick an instruction.")
+        self.go.setEnabled(any(r["status"] == "applied" for r in res))
+
+
+def under_parents(docs):
+    """Each document followed by the task and delivery orders filed under it (those shown), in their order."""
+    ids = {d["id"] for d in docs}
+    kids = {}
+    for d in docs:
+        if d.get("under") in ids:
+            kids.setdefault(d["under"], []).append(d)
+    out, seen = [], set()
+
+    def put(d):
+        if d["id"] in seen:
+            return
+        seen.add(d["id"]); out.append(d)
+        for k in kids.get(d["id"], []):
+            put(k)
+    for d in docs:
+        if d.get("under") not in ids:
+            put(d)
+    for d in docs:
+        put(d)
+    return out
+

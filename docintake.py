@@ -108,7 +108,8 @@ def plan(lib, paths, reader=read, progress=None, stop=None, folders=None, catego
                     "doc": best[0]["id"] if best else None, "name": DV.display_name(p), "label": "",
                     "type": dtype, "initial": lib.suggest_initial(dtype, taken) if cat == "customer" else "",
                     "category": cat, "folder": rel, "tags": DV.folder_tags(rel), "role": DV.suggest_role(cat, dtype),
-                    "suggested_role": DV.suggest_role(cat, dtype), "sensitivity": level})
+                    "suggested_role": DV.suggest_role(cat, dtype), "sensitivity": level,
+                    "under": (lib.base_for_orders() or {}).get("id", "") if dtype in DV.ORDER_TYPES else ""})
     if progress is not None:
         progress(1.0, "Read")
     return out
@@ -176,6 +177,8 @@ def apply(lib, entries, customer_dir="", log=None, progress=None):
                        initial=e.get("initial", ""), dtype=e.get("type", ""), category=cat, folder=e.get("folder", ""),
                        tags=[t for t in e.get("tags", []) if t not in DV.folder_tags(e.get("folder", ""))], role=e.get("role"),
                        save=False, role_confirmed=e.get("role") != e.get("suggested_role", e.get("role")))
+        if e.get("under") and not d.get("under") and e["choice"] == "new":   # an order, under its contract or RFP
+            lib.set_under(d["id"], e["under"], save=False)
         if e.get("sensitivity", -1) > d.get("sensitivity", -1):     # 2.97.0: the highest level found in its versions
             d["sensitivity"] = e["sensitivity"]
         batch_doc[k] = d["id"]

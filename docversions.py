@@ -107,12 +107,15 @@ def snapshot(name, chunks):
 
 
 # ------------------------------------------------------------------ what each customer document is (2.68.0)
-DOC_TYPES = ("RFP", "Amendment", "SOW", "SOO", "PWS", "Section L", "Section M", "Q&A", "Attachment", "CDRL", "DD 254", "Other")
+DOC_TYPES = ("RFP", "Amendment", "SOW", "SOO", "PWS", "Section L", "Section M", "Q&A", "Attachment", "CDRL", "DD 254", "Contract",
+             "Task order", "Delivery order", "Other")
 TYPE_INITIAL = {"RFP": "R", "Amendment": "A", "SOW": "S", "SOO": "O", "PWS": "P", "Section L": "L", "Section M": "M", "Q&A": "Q",
-                "Attachment": "J", "CDRL": "C", "DD 254": "D", "Other": "X"}
+                "Attachment": "J", "CDRL": "C", "DD 254": "D", "Contract": "CT", "Task order": "TO", "Delivery order": "DO", "Other": "X"}
+ORDER_TYPES = ("Task order", "Delivery order")      # filed under the base contract or RFP, each with its own versions (mods)
+BASE_TYPES = ("Contract", "RFP")
 
 
-NUMBERED = {"Amendment"}            # 2.94.0: types whose documents are numbered (A1, A2...)
+NUMBERED = {"Amendment", "Task order", "Delivery order"}            # 2.94.0: types numbered (A1, A2...; TO1, TO2...)
 TYPE_ALIAS = {}                     # 2.94.0: an old type name -> its new name (Settings > Document types renamed it)
 TYPE_WORDS = {}                     # 2.94.0: a team type -> words in a file name that suggest it
 _BUILT_IN_GUESS = set(DOC_TYPES)
@@ -149,7 +152,10 @@ def guess_type(name):
         for w in [x.strip().lower() for x in re.split(r"[,;]", words) if x.strip()]:
             if re.search(r"(?<![a-z0-9])" + re.escape(w) + r"(?![a-z0-9])", n.replace("_", " ")):
                 return t
-    for pat, t in ((r"amend|\bamd\b|_amd|amd\d|\bmod\b", "Amendment"), (r"\bsow\b|statement[\s_-]*of[\s_-]*work", "SOW"),
+    for pat, t in ((r"\btask[\s_-]*order\b|\bto[\s_-]?\d{2,4}\b", "Task order"),
+                   (r"\bdelivery[\s_-]*order\b|\bdo[\s_-]?\d{2,4}\b", "Delivery order"),
+                   (r"\bidiq\b|\bbase[\s_-]*contract\b|\bcontract\b(?!.*\b(?:amend|mod)\b)", "Contract"),
+                   (r"amend|\bamd\b|_amd|amd\d|\bmod\b", "Amendment"), (r"\bsow\b|statement[\s_-]*of[\s_-]*work", "SOW"),
                    (r"\bsoo\b|statement[\s_-]*of[\s_-]*objectives", "SOO"), (r"\bpws\b|performance[\s_-]*work", "PWS"),
                    (r"q\s*&\s*a|questions|\bqa\b", "Q&A"), (r"cdrl", "CDRL"), (r"dd[\s_-]*254", "DD 254"),
                    (r"attachment|\batt\b|exhibit|\bj-\d", "Attachment"), (r"section[\s_]*l\b", "Section L"),
@@ -164,7 +170,7 @@ def guess_type(name):
 CATEGORIES = (("customer", "Customer documents"), ("bidders", "Bidders library"), ("qa", "Q&A"), ("ours", "Our effort documents"))
 ROLES = (("matrix", "Builds the matrix"), ("context", "Context"), ("reference", "Reference only"), ("not_needed", "Not needed"))
 ROLE_NAMES = dict(ROLES)
-MATRIX_TYPES = {"RFP", "Amendment", "SOW", "SOO", "PWS", "Section L", "Section M"}
+MATRIX_TYPES = {"RFP", "Amendment", "SOW", "SOO", "PWS", "Section L", "Section M", "Task order", "Delivery order"}
 _CAT_WORDS = (("qa", r"q\s*&\s*a|\bqa\b|questions?\b|answers?\b"),
               ("bidders", r"bidders?|library|reference|standards?|\bmil[\s_-]*(std|hdbk)|specs?\b|handbook"),
               ("ours", r"\bours?\b|proposal|draft|past[\s_-]*perf|resumes?|capture|win[\s_-]*theme|internal|cpars"),
@@ -431,6 +437,36 @@ class Library:
 
     def missing_identity(self):
         return [d for d in self.docs if not d.get("initial") or not d.get("type")]
+
+    def set_under(self, doc_id, base_id, save=True):
+        """A task or delivery order (any document) filed under a base document ('' takes it out). False when it would
+        be filed under itself or one of its own."""
+        d = self.doc(doc_id)
+        if d is None or base_id == doc_id or (base_id and self.doc(base_id) is None):
+            return False
+        b = base_id
+        while b:
+            if b == doc_id:
+                return False
+            b = (self.doc(b) or {}).get("under", "")
+        if base_id:
+            d["under"] = base_id
+        else:
+            d.pop("under", None)
+        if save:
+            self.save()
+        return True
+
+    def children(self, base_id):
+        return [d for d in self.docs if d.get("under") == base_id]
+
+    def base_for_orders(self):
+        """Where an order goes by default: the contract, else the RFP (the first customer document of that type)."""
+        for t in BASE_TYPES:
+            d = next((x for x in self.docs if x.get("type") == t and not x.get("under")), None)
+            if d is not None:
+                return d
+        return None
 
     def doc_of_file(self, file_name):
         f = os.path.basename(file_name or "").lower()

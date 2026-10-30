@@ -26,6 +26,16 @@ def after_added(host, made, lib, run=None):
             s = None
         if s:
             out.append(s)
+        elif d.get("type") == "Amendment":               # an amendment that says what to change, not a reissue
+            try:
+                import amendinst as AI
+                n = len(AI.instructions_of(lib, v))
+                if n:
+                    host.last_hint = (f"{d.get('name', 'The amendment')} holds {n} change instruction(s): Library > Apply its "
+                                      "instructions makes the conformed version of the document it changes.")
+                    host.status(host.last_hint)
+            except Exception:
+                diag.swallowed()
     host.last_changes = out
     if out:
         diag.activity("what_changed_shown", n=len(out))
