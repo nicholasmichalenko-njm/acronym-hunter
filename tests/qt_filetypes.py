@@ -118,6 +118,11 @@ check("a click on a word in a cell sets the split there, shown on the sheet", pg
 pg.do_split(); app.processEvents()
 parts = [it for it in M.items if it["id"].startswith(r1["id"])]
 check("Split works in Sheet view", len(parts) == 2 and parts[1]["text"].startswith("to the program office"), [p["text"] for p in parts])
+check("the queue: two documents, Next document goes to the one not reviewed", "of 2" in pg.queue_lbl.text())
+pg.mark_reviewed(); cur = pg.file
+nx = pg.next_file(); app.processEvents()
+check("... Next document", nx == os.path.basename(PIC) and pg.file == nx and not pg.next_btn.isVisible())
+pg.files.setCurrentText(os.path.basename(XL)); app.processEvents()
 pg.toggle_sheet(); app.processEvents()
 check("Page view: the workbook's PDF copy (Office makes it on the PC)", pg.sheet is None and pg.sheet_btn.text() == "Sheet view")
 pg.toggle_sheet(); app.processEvents()

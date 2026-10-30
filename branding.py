@@ -227,16 +227,17 @@ def countdown_tone(c):
 SECTIONS = (("stage", "Stage", "wide"), ("deliverables", "Deliverables", "wide"), ("mywork", "My work", "half"),
             ("goals", "Gate goals", "half"), ("notes", "Notes and open questions", "half"), ("tasks", "Tasks", "half"),
             ("calendar", "Calendar", "half"), ("formatting", "Formatting requirements", "half"),     # 2.94.0
+            ("submission", "Submission instructions", "half"),                                        # 2.96.0
             ("info", "Customer information", "wide"), ("timeline", "Timeline", "wide"))
 KEYS = tuple(k for k, _t, _w in SECTIONS)
 TITLE = {k: t for k, t, _w in SECTIONS}
 WIDTH = {k: w for k, _t, w in SECTIONS}
 ROLES = {
-    "Proposal Manager": ("stage", "formatting", "goals", "notes", "tasks", "calendar", "deliverables", "info", "timeline"),
-    "Production": ("deliverables", "formatting", "calendar", "tasks", "stage", "notes", "timeline"),
+    "Proposal Manager": ("stage", "formatting", "submission", "goals", "notes", "tasks", "calendar", "deliverables", "info", "timeline"),
+    "Production": ("deliverables", "formatting", "submission", "calendar", "tasks", "stage", "notes", "timeline"),
     "Author": ("mywork", "tasks", "notes", "calendar", "formatting", "stage"),
     "Reviewer": ("stage", "calendar", "notes", "tasks", "formatting", "deliverables"),
-    "Capture": ("stage", "info", "notes", "calendar", "goals", "timeline"),
+    "Capture": ("stage", "info", "submission", "notes", "calendar", "goals", "timeline"),
 }
 ROLE_NAMES = tuple(ROLES)
 DEFAULT_ROLE = "Proposal Manager"

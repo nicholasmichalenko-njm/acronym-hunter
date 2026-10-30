@@ -32,7 +32,9 @@ def new_setup():
             "docs": {}}        # 2.68.0: {file: {"initial", "type", "doc"}} from Customer Documents
 
 
-LM = {"L": "Instructions, Conditions and Notices to Offerors", "M": "Evaluation Factors for Award"}     # 2.68.0 (Shipley)
+LM = {"L": "Instructions, Conditions and Notices to Offerors", "M": "Evaluation Factors for Award",     # 2.68.0 (Shipley)
+      "C": "Statement of Work: what the contractor shall do (Section C, SOW, PWS)"}                       # 2.96.0
+LM_SHORT = {"L": "L (Instructions)", "M": "M (Evaluation)", "C": "SOW (Work)"}                             # 2.96.0: the buttons
 
 
 def docs_of(M):

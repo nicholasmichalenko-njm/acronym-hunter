@@ -14,7 +14,7 @@ SETTINGS = {"": "Decide from the documents", "yes": "Page-limited", "no": "Not p
 def _where(r):
     """'Kestrel RFP Sections C L M, L.1 General Instructions, p. 3': the document's name, the section and page, short."""
     import re
-    if r.get("manual"):
+    if r.get("manual") and not r.get("captured"):
         return "typed in"
     name = (r.get("doc") or "").split(", ")[0]
     loc = r.get("loc") or ""
@@ -72,6 +72,23 @@ def spot_text(c):
     if c["page_limited"] is True:
         return "Yes" + (f": {limits_text(c)}" if c["limits"] else "")
     return "No" if c["page_limited"] is False else "Not found yet"
+
+
+SUBMIT_KINDS = ("Due", "Questions due", "Delivery", "Copies", "Contact")
+
+
+def submission(rows):
+    """2.96.0: the submission instructions for Effort Home: [{label, value, where, row}] (due, questions due, delivery,
+    copies, contacts), in that order."""
+    names = {"Due": "Proposal due", "Questions due": "Questions due", "Delivery": "Delivery", "Copies": "Copies"}
+    out = []
+    for k in SUBMIT_KINDS:
+        for r in [r for r in rows if r["kind"] == k]:
+            lab = names.get(k) or r["subject"]
+            if k == "Due" and r["subject"] not in ("Proposal", "Due"):
+                lab = f"{r['subject']} due"
+            out.append({"label": lab, "value": r["value"], "where": _where(r), "row": r})
+    return out
 
 
 def for_effort(lib, rec):

@@ -1,6 +1,37 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+EVERY KIND OF CUSTOMER FILE, AND ASSIGN AS THE REVIEW PANEL (2.96.0)
+  - Pictures (PNG, JPG, TIFF, BMP, GIF, WEBP) and old Office files (.doc, .xls, .ppt) are customer documents: added,
+    versioned, watched and read like the others. An old Office file is read from the PDF copy Microsoft Office makes.
+  - A picture, or a PDF with scanned pages, gets a page copy with its words laid invisibly over the page where they
+    are (the way a searchable PDF works), made once per file contents in the effort's page copies folder. Read RFP
+    cuts its sentences from that copy and Assign boxes them on it exactly as on a typed PDF: click, combine, split,
+    decide. Typed pages keep their own words; scanned pages are read by the OCR reader (AI and ML). The original is
+    never changed.
+  - Sheet view: an Excel workbook opens in Assign as its sheets, columns and rows, each cell's text wrapped inside it,
+    each sentence boxed in its cell. Page view (beside File) shows the PDF copy instead.
+  - The documents as a queue: Assign says "Document 2 of 5 · 3 not reviewed yet"; Mark reviewed when a document's
+    sentences are all looked at (kept with the effort); Next document goes to the next one not reviewed.
+  - The decisions: L (Instructions) (key L), M (Evaluation) (key E) and SOW (Work) (key R): each makes the sentence a
+    compliance requirement in the target section with that designation (SOW's code is C: R-C-3.1). On the card,
+    clicking the one set takes it off (a requirement, neither L, M nor SOW).
+  - Drag across words inside the selected sentence to pick them (they turn green; the card says what you picked). A
+    click still sets the split point.
+  - Capture (under the decisions) files what the picked words, or the selected sentence, hold, with the document and
+    place it came from:
+      Contact: a point of contact: name, title or role, organization, e-mail, phone, address, guessed from the text
+      for you to fix, plus fields of your own (an office symbol, a second phone). File it as a new contact or add it to
+      one filed. Effort Home's Customer information shows each contact as a card; the readable copy has Customer
+      contacts.csv.
+      Submission: due date and time, questions due, delivery, copies, file format and naming. A due date can become
+      the effort's due date with its time zone (ticked when found). Effort Home's new Submission instructions card
+      lists them with where each came from.
+      Formatting: page limits, font, margins, page size, line spacing, headers and footers. Effort Home's Formatting
+      requirements shows them as captured from the document.
+      Acronym: the abbreviation and its long form ("Integrated Master Schedule (IMS)"), into the effort list with the
+      customer document and wording.
+
 FOLDERS AND FILE NAMES (2.95.0)
   - Settings > Folders and file names (the Go to row reaches it), three tabs:
     Folder tree: the effort's folders as your team keeps them on SharePoint, in order, with subfolders (+ Folder,

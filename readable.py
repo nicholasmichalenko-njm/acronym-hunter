@@ -339,6 +339,7 @@ MORE_FILES = [
     ("Taken from documents.csv", "Every sentence taken from a library document and where it went: context for a section or requirement, a note, question or task."),
     ("Change decisions.csv", "What each new customer version changed and the decision made on it: who, when and why."),
     ("Team.csv", "The people on the effort and their roles."),
+    ("Customer contacts.csv", "The customer's points of contact captured from the documents: name, title, organization, e-mail, phone, address, where found."),
     ("Effort overview.docx", "The effort status report as of the last time the effort was closed or backed up: stages, people and how far along they are, open questions, newest customer documents, the proposal manager's summary."),
 ]
 
@@ -356,6 +357,11 @@ def more(rec, lib, data_dir="", info=None):
         rows += [[f.get("label", ""), f.get("value", "")] for f in idt.get("fields", [])]
         out["Effort details.csv"] = (["Detail", "Value"], rows)
         out["Team.csv"] = (["Name", "Role"], [[m.get("name", ""), m.get("role", "")] for m in rec.data.get("team", [])])
+        out["Customer contacts.csv"] = (["Name", "Title", "Organization", "E-mail", "Phone", "Address", "Other", "Found in"],   # 2.96.0
+                                        [[c.get("name", ""), c.get("title", ""), c.get("org", ""), c.get("email", ""), c.get("phone", ""),
+                                          c.get("address", ""), "; ".join(f"{o['label']}: {o['value']}" for o in c.get("other", [])),
+                                          "; ".join(", ".join(x for x in (s_.get("doc"), s_.get("loc")) if x) for s_ in c.get("sources", []))]
+                                         for c in rec.data.get("contacts", [])])
         ps = rec.data.get("postsub")
         if isinstance(ps, dict) and ps.get("items"):
             import postsub as PS

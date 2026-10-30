@@ -133,6 +133,8 @@ class HomePage(QWidget):
         self.info = D.Card("Customer information", "Names, e-mails, phone numbers and addresses from the customer documents.",
                            actions=[D.button("+ Add...", None, lambda: self.info_dialog())])
         self.timeline = D.Card("Timeline", "The effort's paper trail, newest first.")
+        self.sub_card = D.Card("Submission instructions", "How and when the proposal goes in, as the customer documents say "  # 2.96.0
+                               "it.", actions=[D.button("Submission rules", "ghost", lambda: self.host.go("requirements"))])
         self.fmt_card = D.Card("Formatting requirements", "What the customer documents require for format and files, and "     # 2.94.0
                                "what they leave unsaid.", actions=[D.button("+ Add...", None, lambda: self.format_dialog()),
                                                                    D.button("Submission rules", "ghost", lambda: self.host.go("requirements"))])
@@ -140,12 +142,12 @@ class HomePage(QWidget):
         v.addStretch(1)
         self.cards = {"stage": self.track, "deliverables": self.deliv_card, "mywork": self.mywork, "goals": self.goals,
                       "notes": self.notes, "tasks": self.tasks, "calendar": self.cal_card, "info": self.info, "timeline": self.timeline,
-                      "formatting": self.fmt_card}
+                      "formatting": self.fmt_card, "submission": self.sub_card}
         self.lay = None
         self.apply_layout()
-        self.sections = {k: QVBoxLayout() for k in ("goals", "tasks", "notes", "info", "timeline", "formatting")}
+        self.sections = {k: QVBoxLayout() for k in ("goals", "tasks", "notes", "info", "timeline", "formatting", "submission")}
         for k, card in (("goals", self.goals), ("tasks", self.tasks), ("notes", self.notes), ("info", self.info),
-                        ("timeline", self.timeline), ("formatting", self.fmt_card)):
+                        ("timeline", self.timeline), ("formatting", self.fmt_card), ("submission", self.sub_card)):
             self.sections[k].setSpacing(D.SPACE["xs"]); card.body.addLayout(self.sections[k])
 
     # ------------------------------------------------------------ the effort
@@ -202,6 +204,7 @@ class HomePage(QWidget):
         checks = self.checks = self.state.checks()
         self.draw_track(r)
         self.draw_formatting(r)
+        self.draw_submission(r)
         self.draw_goals(r, checks)
         self.draw_tasks(r)
         self.draw_notes(r)
@@ -512,6 +515,31 @@ class HomePage(QWidget):
                                            "The documents do not really require this (it stays in Submission rules, hidden)"), 0, Qt.AlignTop)
             else:
                 row.addWidget(D.label("Not specified in the documents", "muted"), 1)
+            lay.addLayout(row)
+
+    def draw_submission(self, r):
+        """2.96.0: due dates, delivery, copies and contacts, each with where it was found."""
+        import formatreq as FR
+        lay = self.sections["submission"]; clear(lay)
+        try:
+            lines = FR.submission(self._register().rows())
+        except Exception:
+            diag.swallowed()
+            lines = []
+        self.sub_now = lines
+        if not lines:
+            lay.addWidget(D.label("None found yet. Read the customer documents, or capture an instruction in Assign "
+                                  "(select the sentence, then Capture > Submission).", "muted"))
+        t = D.tokens()
+        for x in lines[:12]:
+            row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
+            lab = D.label(x["label"], None, wrap=False); lab.setMinimumWidth(130); row.addWidget(lab, 0, Qt.AlignTop)
+            col = QVBoxLayout(); col.setSpacing(0)
+            v = ClickLabel(x["value"], lambda: self.host.go("requirements")); v.setStyleSheet(f"color:{t['text']};font-weight:600;")
+            col.addWidget(v)
+            if x["where"]:
+                col.addWidget(D.label(x["where"], "muted"))
+            row.addLayout(col, 1)
             lay.addLayout(row)
 
     def _register(self):
@@ -912,8 +940,28 @@ class HomePage(QWidget):
     def draw_info(self, r):
         lay = self.sections["info"]; clear(lay)
         info = r.customer_info()
-        self.info.title.setText(f"Customer information   {len(info)}")
-        if not info:
+        people = r.contacts()                                            # 2.96.0: points of contact, captured in Assign
+        self.info.title.setText(f"Customer information   {len(people)} contact(s), {len(info)} other")
+        t = D.tokens()
+        for c in people:
+            box = QFrame(); box.setObjectName("contact")
+            box.setStyleSheet(f"QFrame#contact{{border:1px solid {t['border']};border-radius:{D.RADIUS['card']}px;}}")
+            bv = QVBoxLayout(box); bv.setContentsMargins(D.SPACE["s"], D.SPACE["xs"], D.SPACE["s"], D.SPACE["xs"]); bv.setSpacing(0)
+            top = QHBoxLayout()
+            nm = D.label(" · ".join(x for x in (c.get("name"), c.get("title")) if x) or c.get("email") or "Contact", None)
+            nm.setStyleSheet("font-weight:700;"); top.addWidget(nm, 1)
+            top.addWidget(D.button("Remove", "ghost", lambda _=False, cid=c["id"]: self.remove_contact(cid)))
+            bv.addLayout(top)
+            for k in ("org", "email", "phone", "address"):
+                if c.get(k):
+                    bv.addWidget(D.label(c[k]))
+            for o in c.get("other", []):
+                bv.addWidget(D.label(f"{o['label']}: {o['value']}"))
+            if c.get("sources"):
+                s0 = c["sources"][-1]
+                bv.addWidget(D.label("From " + ", ".join(x for x in (s0.get("doc"), s0.get("loc")) if x), "muted"))
+            lay.addWidget(box)
+        if not info and not people:
             lay.addWidget(D.label("None yet. + Add... files names, e-mails, phone numbers and addresses by kind.", "muted"))
         for kind in R.INFO_KINDS:
             for c in [c for c in info if c["kind"] == kind]:
@@ -936,6 +984,12 @@ class HomePage(QWidget):
         diag.activity("qt_custinfo_added")
         self.changed()
         return added
+
+    def remove_contact(self, cid):
+        ok = self.rec.remove_contact(cid)
+        diag.activity("qt_contact_removed")
+        self.changed()
+        return ok
 
     def remove_info(self, cid):
         ok = self.rec.remove_customer_info(cid)

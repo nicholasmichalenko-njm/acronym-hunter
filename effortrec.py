@@ -309,6 +309,7 @@ class Record:
         d = W.read_json(self.path, None) or {}
         extra = {k: v for k, v in d.items() if k not in ("v", "due", "zone", "opportunity", "stages", "stage", "timeline", "notes", "tasks")}
         extra.setdefault("customer_info", [])
+        extra.setdefault("contacts", [])
         extra.setdefault("team", [])
         self.data = {**extra, "v": 1, "due": d.get("due", ""), "zone": d.get("zone", ""), "opportunity": d.get("opportunity", ""),
                      "stages": d.get("stages") or [], "stage": d.get("stage", ""), "timeline": d.get("timeline", []),
@@ -823,6 +824,51 @@ class Record:
             self.log("customer", f"Customer information added: {', '.join(c['kind'].lower() for c in added)}", who=who)
             self.save()
         return added
+
+    # ------------------------------------------------------------ 2.96.0 points of contact
+    CONTACT_FIELDS = ("name", "title", "org", "email", "phone", "address")
+
+    def contacts(self):
+        return list(self.data.get("contacts", []))
+
+    def contact(self, cid):
+        return next((c for c in self.data.get("contacts", []) if c["id"] == cid), None)
+
+    def save_contact(self, fields, cid=None, source=None, who=None):
+        """Add a point of contact, or fill in one (cid): the fields given replace, empty ones are left as they were;
+        other: [{label, value}] the team's own fields; source: {doc, loc, text} where it was found. Returns its id."""
+        lst = self.data.setdefault("contacts", [])
+        c = self.contact(cid) if cid else None
+        new = c is None
+        if new:
+            c = {"id": _id(), **{k: "" for k in self.CONTACT_FIELDS}, "other": [], "sources": [], "at": _now(), "who": _who(who)}
+        for k in self.CONTACT_FIELDS:
+            v = _clean((fields or {}).get(k, ""))
+            if v:
+                c[k] = v
+        for o in (fields or {}).get("other", []) or []:
+            lab, val = _clean(o.get("label")), _clean(o.get("value"))
+            if lab and val:
+                c["other"] = [x for x in c["other"] if x["label"].casefold() != lab.casefold()] + [{"label": lab, "value": val}]
+        if source and source.get("text"):
+            c["sources"].append({"doc": _clean(source.get("doc")), "loc": _clean(source.get("loc")), "text": _clean(source.get("text"))[:400],
+                                 "at": _now()})
+        if not any(c[k] for k in self.CONTACT_FIELDS) and not c["other"]:
+            return None
+        if new:
+            lst.append(c)
+        label = c["name"] or c["email"] or c["title"] or "a contact"
+        self.log("customer", f"Contact {'added' if new else 'updated'}: {label}" + (f" ({c['title']})" if c["title"] and c["name"] else ""),
+                 who=who)
+        self.save()
+        return c["id"]
+
+    def remove_contact(self, cid):
+        lst = self.data.get("contacts", [])
+        n = len(lst)
+        self.data["contacts"] = [c for c in lst if c["id"] != cid]
+        self.save()
+        return len(self.data["contacts"]) < n
 
     def remove_customer_info(self, cid):
         lst = self.data.get("customer_info", [])

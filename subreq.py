@@ -281,8 +281,10 @@ class Register:
             row["manual"] = False
             out.append(row)
         for m in self.state["manual"]:
+            src = m.get("source") or {}
             out.append({"key": m["key"], "kind": m["kind"], "subject": m["subject"], "value": m["value"], "found": "",
-                        "sentence": "", "doc": "Typed in", "version": "", "version_id": "", "loc": "", "history": [],
+                        "sentence": src.get("text", ""), "doc": src.get("doc") or "Typed in", "version": "", "version_id": "",
+                        "loc": src.get("loc", ""), "history": [], "captured": bool(src),
                         "changed": False, "removed": False, "confirmed": m.get("who", ""), "hidden": False,
                         "to_review": False, "reviewed": "", "manual": True})
         order = {k: i for i, k in enumerate(KINDS)}
@@ -328,13 +330,17 @@ class Register:
         self.save()
         return True
 
-    def add(self, kind, subject, value, who=None):
+    def add(self, kind, subject, value, who=None, source=None):
+        """A requirement the person adds; 2.96.0: source {doc, loc, text}: captured from a sentence in Assign."""
         subject, value = _clean(subject), _clean(value)
         if not value:
             return None
         k = key_of(kind, subject or kind)
         self.state["manual"] = [m for m in self.state["manual"] if m["key"] != k]
-        self.state["manual"].append({"key": k, "kind": kind, "subject": subject or kind, "value": value, "who": self.stamp(who)})
+        m = {"key": k, "kind": kind, "subject": subject or kind, "value": value, "who": self.stamp(who)}
+        if source and source.get("text"):
+            m["source"] = {"doc": _clean(source.get("doc")), "loc": _clean(source.get("loc")), "text": _clean(source.get("text"))[:400]}
+        self.state["manual"].append(m)
         self.save()
         return k
 

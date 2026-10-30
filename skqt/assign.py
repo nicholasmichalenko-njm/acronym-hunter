@@ -78,6 +78,8 @@ class SentenceBox(QGraphicsPathItem):
 class PageView(QGraphicsView):
     clicked_word = Signal(str, int)               # (sentence id, word index) for S
     hover_word = Signal(str, int)                 # 2.93.0: the word under the mouse in the selected sentence ("", -1: none)
+    word_drag = Signal(str, int, int)             # 2.96.0: words being dragged across inside the selected sentence (first, last)
+    grabbed = Signal(str, int, int)               # 2.96.0: the words dragged across, when the mouse is let go
     captured = Signal(QRectF)                     # 2.70.0: an area dragged in Add missed text mode (scene coordinates)
 
     def __init__(self):
@@ -95,6 +97,7 @@ class PageView(QGraphicsView):
         self.capturing = False
         self._cap0, self._cap_item = None, None
         self._hovered = ("", -1)
+        self._drag = None                         # 2.96.0: (sentence id, first word, last word) while dragging inside it
         self.viewport().setMouseTracking(True)
 
     def set_capture(self, on):
@@ -102,9 +105,13 @@ class PageView(QGraphicsView):
         self.setDragMode(QGraphicsView.NoDrag if on else QGraphicsView.RubberBandDrag)
         self.viewport().setCursor(Qt.CrossCursor if on else Qt.ArrowCursor)
 
+    def box_at(self, pos):
+        """The sentence box under a view position, looking past marks drawn over it (tints, the cut line)."""
+        return next((i for i in self.items(pos) if isinstance(i, SentenceBox)), None)
+
     def word_at(self, pos):
         """(sentence id, word index) under a view position, inside the one selected sentence; ("", -1) otherwise."""
-        it = self.itemAt(pos)
+        it = self.box_at(pos)
         sel = [b for b in self.scene().selectedItems() if isinstance(b, SentenceBox)]
         if not (isinstance(it, SentenceBox) and len(sel) == 1 and sel[0] is it):
             return "", -1
@@ -115,6 +122,12 @@ class PageView(QGraphicsView):
         return it.iid, -1
 
     def mouseMoveEvent(self, e):
+        if self._drag is not None and e.buttons() & Qt.LeftButton:     # 2.96.0: dragging across words
+            iid, k, k2 = self.word_at(e.position().toPoint())[0], self._drag[1], self.word_at(e.position().toPoint())[1]
+            if iid == self._drag[0] and k2 >= 0 and k2 != self._drag[2]:
+                self._drag = (iid, k, k2)
+                self.word_drag.emit(iid, min(k, k2), max(k, k2))
+            return
         if not self.capturing and not e.buttons():          # 2.93.0: show where a click would split
             h = self.word_at(e.position().toPoint())
             if h != self._hovered:
@@ -136,6 +149,14 @@ class PageView(QGraphicsView):
         super().mouseMoveEvent(e)
 
     def mouseReleaseEvent(self, e):
+        if self._drag is not None:                          # 2.96.0: a click splits; a drag picks words
+            iid, a, b = self._drag
+            self._drag = None
+            if a == b:
+                self.clicked_word.emit(iid, a)
+            else:
+                self.grabbed.emit(iid, min(a, b), max(a, b))
+            return
         if self.capturing and self._cap0 is not None:
             r = QRectF(self._cap0, self.mapToScene(e.position().toPoint())).normalized()
             self._cap0 = None
@@ -160,13 +181,16 @@ class PageView(QGraphicsView):
         if self.capturing and e.button() == Qt.LeftButton:
             self._cap0 = self.mapToScene(e.position().toPoint())
             return
-        it = self.itemAt(e.position().toPoint())
+        top = self.itemAt(e.position().toPoint())
+        if top is not None and top.isWidget():           # the Split here bar: its buttons take the click
+            return super().mousePressEvent(e)
+        it = self.box_at(e.position().toPoint())
         sel = [b for b in self.scene().selectedItems() if isinstance(b, SentenceBox)]
         if isinstance(it, SentenceBox) and len(sel) == 1 and sel[0] is it and not (e.modifiers() & (Qt.ControlModifier | Qt.ShiftModifier)):
             p = self.mapToScene(e.position().toPoint())
             for k, r in enumerate(self.words.get(it.iid, [])):
                 if r.adjusted(-1, -1, 1, 1).contains(p):
-                    self.clicked_word.emit(it.iid, k)
+                    self._drag = (it.iid, k, k)       # 2.96.0: decided on release: a click (split) or a drag (words)
                     break
             return                                  # a click inside the selected sentence keeps it selected
         super().mousePressEvent(e)
@@ -237,6 +261,10 @@ class AssignPage(QWidget):
         bar.addWidget(QLabel("File:"))
         self.files = QComboBox(); self.files.setMinimumWidth(280); self.files.currentTextChanged.connect(self.open_file)
         bar.addWidget(self.files)
+        self.queue_lbl = D.label("", "muted", wrap=False); bar.addWidget(self.queue_lbl)       # 2.96.0: the documents as a queue
+        self.done_btn = D.button("Mark reviewed", None, lambda: self.mark_reviewed(), "This document's sentences are all looked at")
+        self.next_btn = D.button("Next document \u203a", None, lambda: self.next_file(), "The next document not reviewed yet")
+        bar.addWidget(self.done_btn); bar.addWidget(self.next_btn)
         self.keys = {}
         # 2.82.0: sentence edits stay by the page; the decisions sit beside the response structure, where they land
         for text, kind, fn, tip in (("Combine  J", None, self.do_combine, "One sentence from the selected ones (they need not be next to each other)"),
@@ -265,6 +293,9 @@ class AssignPage(QWidget):
         self.view.scene().selectionChanged.connect(self.on_select)
         self.view.clicked_word.connect(self.on_word)
         self.view.hover_word.connect(self.on_hover_word)
+        self.view.word_drag.connect(lambda i, a, b: self.show_grab(i, a, b, final=False))
+        self.view.grabbed.connect(lambda i, a, b: self.show_grab(i, a, b, final=True))
+        self.grab, self._grab_items = None, []
         self._split_items, self._hover_item = [], None
         self.view.captured.connect(lambda r: self.capture_area(r))
         right = QSplitter(Qt.Vertical)
@@ -280,17 +311,33 @@ class AssignPage(QWidget):
         grid = QGridLayout(); grid.setSpacing(D.SPACE["xs"]); grid.setContentsMargins(0, 0, 0, 0)
         self.dec_box = dec
         for k, (text, kind, fn, tip) in enumerate((
-                ("Requirement  R", "req", self.do_req, "The selected sentences become compliance requirements in the target section"),
-                ("L", "req", lambda: self.do_lm("L"), "L: Instructions, Conditions and Notices to Offerors (a requirement), into the target. Key: L"),
-                ("M  E", "req", lambda: self.do_lm("M"), "M: Evaluation Factors for Award (a requirement), into the target. Key: E"),
+                ("L (Instructions)  L", "req", lambda: self.do_lm("L"), "L: Instructions, Conditions and Notices to Offerors. A compliance "
+                 "requirement in the target section. Key: L"),
+                ("M (Evaluation)  E", "req", lambda: self.do_lm("M"), "M: Evaluation Factors for Award. A compliance requirement in the "
+                 "target section. Key: E"),
+                ("SOW (Work)  R", "req", lambda: self.do_lm("C"), "What the contractor shall do (Section C, SOW, PWS). A compliance "
+                 "requirement in the target section. Key: R"),
                 ("Support  C", "ctx", self.do_ctx, "Supporting context for the last requirement you clicked"),
                 ("Customer's  G", "cust", self.do_customer, "The customer's to act on: identified, never answered"),
                 ("Ignore  X", None, self.do_clear, "Ignore it: no decision, not in the response"))):
             b = D.button(text, kind, fn, tip)
-            self.keys[text.split()[0]] = b
+            self.keys[{"L": "L", "M": "M", "SOW": "Requirement"}.get(text.split()[0], text.split()[0])] = b
             grid.addWidget(b, k // 3, k % 3)
         self.dec_grid = QWidget(); self.dec_grid.setLayout(grid)
         dv.addWidget(self.dec_grid)
+        caprow = QHBoxLayout(); caprow.setSpacing(D.SPACE["xs"])           # 2.96.0: capture what the sentence holds
+        caprow.addWidget(D.label("Capture", "label", wrap=False))
+        self.cap_keys = {}
+        for key, text, tip in (("contact", "Contact", "A point of contact: name, title, e-mail, phone, address (Customer information)"),
+                               ("submit", "Submission", "A submission instruction: due date and time, delivery, copies, file format"),
+                               ("format", "Formatting", "A formatting rule: page limit, font, margins, page size, spacing"),
+                               ("acronym", "Acronym", "The acronym and what it stands for, into the effort list")):
+            b = D.button(text, "ghost", lambda _=False, k=key: self.do_capture(k), tip + ". Uses the words you dragged across, "
+                         "else the selected sentence.")
+            self.cap_keys[key] = b
+            caprow.addWidget(b)
+        caprow.addStretch(1)
+        dv.addLayout(caprow)
         cgrid = QGridLayout(); cgrid.setSpacing(D.SPACE["xs"])                # 2.84.0: for a library document
         self.ctx_keys = {}
         for k, (text, kind, fn, tip) in enumerate((
@@ -345,7 +392,7 @@ class AssignPage(QWidget):
         split = QSplitter(Qt.Horizontal); split.addWidget(self.view); split.addWidget(right); split.setSizes([1100, 470])
         v.addWidget(split, 1)
         self.notes_timer = QTimer(self, singleShot=True, interval=700, timeout=self.save_notes)
-        for key, fn in (("R", self.do_req), ("C", self.do_ctx), ("G", self.do_customer), ("X", self.do_clear),
+        for key, fn in (("R", lambda: self.do_lm("C") if self.cx is None else self.do_req()), ("C", self.do_ctx), ("G", self.do_customer), ("X", self.do_clear),
                         ("L", lambda: self.do_lm("L")), ("E", lambda: self.do_lm("M")), ("Shift+M", lambda: self.do_lm("M")),
                         ("Delete", self.do_clear), ("J", self.do_combine), ("S", self.do_split), ("Ctrl+Z", self.do_undo),
                         ("F", lambda: self.do_for_req()), ("N", lambda: self.do_record("note")),
@@ -374,6 +421,52 @@ class AssignPage(QWidget):
         else:
             self.view.scene().clear()
             self.view.boxes = {}
+
+    # ------------------------------------------------------------ 2.96.0 the customer documents as a queue
+    def reviewed(self):
+        return dict(self.host.ws.get("assign_reviewed", {}) or {}) if self.host.ws is not None else {}
+
+    def show_queue(self):
+        files = self.R.files() if self.R else []
+        if not files or self.cx is not None or self.file not in files:
+            self.queue_lbl.setText(""); self.done_btn.setVisible(False); self.next_btn.setVisible(False)
+            return
+        done = self.reviewed()
+        left = [f for f in files if f not in done]
+        here = self.file in done
+        self.queue_lbl.setText(f"Document {files.index(self.file) + 1} of {len(files)}  ·  "
+                               + (f"{len(left)} not reviewed yet" if left else "all reviewed"))
+        self.done_btn.setVisible(True); self.next_btn.setVisible(bool([f for f in left if f != self.file]))
+        self.done_btn.setText("Reviewed \u2713" if here else "Mark reviewed")
+        self.done_btn.setToolTip(f"Marked reviewed {done[self.file]}. Click to take the mark off." if here else
+                                 "This document's sentences are all looked at")
+
+    def mark_reviewed(self, on=None):
+        if self.host.ws is None or not self.file:
+            return False
+        done = self.reviewed()
+        on = (self.file not in done) if on is None else on
+        if on:
+            import datetime as _dt
+            done[self.file] = _dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+        else:
+            done.pop(self.file, None)
+        self.host.ws.set("assign_reviewed", done)
+        diag.activity("assign_file_reviewed" if on else "assign_file_unreviewed")
+        self.show_queue()
+        return on
+
+    def next_file(self):
+        files = self.R.files() if self.R else []
+        done = self.reviewed()
+        if not files:
+            return None
+        k = files.index(self.file) if self.file in files else -1
+        order = files[k + 1:] + files[:k + 1]
+        nxt = next((f for f in order if f not in done and f != self.file), None)
+        if nxt:
+            self.files.setCurrentText(nxt)
+        return nxt
 
     def fill_file_list(self):
         """The matrix's files, then (2.84.0) the library documents to read beside the structure."""
@@ -492,6 +585,7 @@ class AssignPage(QWidget):
         self.set_mode()
         self.file = f
         self.sheet = None
+        self.show_queue()
         xl = self.M.path_of(f) if self.cx is None else ""
         if xl and xl.lower().endswith((".xlsx", ".xlsm")) and self.sheet_on and os.path.isfile(xl):   # 2.96.0: Sheet view
             self.sheet_btn.setVisible(True)
@@ -694,6 +788,7 @@ class AssignPage(QWidget):
         self.save_notes()
         rows = self.selected()
         self.clear_split(card=False)
+        self.clear_grab()
         self.cur = rows[-1]["id"] if rows else None
         if len(rows) == 1 and rows[0].get("decision") == "Keep":
             self.R.last_req = rows[0]["id"]
@@ -739,6 +834,86 @@ class AssignPage(QWidget):
             self.clear_split()
             self.host.status("Click a word after the first one: the second part starts with the word you click.")
         self.show_card(self.selected())
+
+    # ------------------------------------------------------------ 2.96.0 words dragged across, and captures
+    def clear_grab(self):
+        for x in self._grab_items:
+            self._drop(x)
+        self._grab_items, self.grab = [], None
+
+    def show_grab(self, iid, a, b, final=True):
+        """The words a..b of the sentence, tinted; when the mouse is let go they are what a capture uses."""
+        for x in self._grab_items:
+            self._drop(x)
+        self._grab_items = []
+        rects = self.view.words.get(iid, [])
+        tint = QColor("#86EFAC"); tint.setAlpha(140)
+        for r in rects[a:b + 1]:
+            it = self.view.scene().addRect(r.adjusted(-1, -1, 1, 1), QPen(Qt.NoPen), QBrush(tint)); it.setZValue(13)
+            self._grab_items.append(it)
+        if not final:
+            return None
+        row = self.R.item(iid) if self.cx is None else next((x for x in self.cx.rows if x["id"] == iid), None)
+        text = (row or {}).get("text", "")
+        ms = list(WORD.finditer(text))
+        if not (0 <= a <= b < len(ms)):
+            return None
+        tail = re.match(r"[\w@.\-]*", text[ms[b].end():]).group(0)        # an e-mail or a number runs on past the word
+        self.grab = {"iid": iid, "a": a, "b": b, "text": text[ms[a].start():ms[b].end() + len(tail)].strip(" ,;:").rstrip(".")}
+        self.clear_split(card=False)
+        self.host.status(f"Picked: \"{self.grab['text'][:80]}\". Capture uses these words; click elsewhere to drop them.")
+        self.show_card(self.selected())
+        return self.grab
+
+    def capture_source(self):
+        """(text, source) for a capture: the words dragged across, else the selected sentences."""
+        rows = self.selected()
+        if self.grab and any(it["id"] == self.grab["iid"] for it in rows):
+            it = next(it for it in rows if it["id"] == self.grab["iid"])
+            text = self.grab["text"]
+        elif rows:
+            it = rows[0]
+            text = " ".join(x.get("text", "") for x in rows)
+        else:
+            return "", {}
+        place = self.placed.get(it["id"], ("",))[0] or it.get("place", "")
+        loc = (PS.where_text(self.pdf, place) if (self.pdf and place) else "") or " ".join(x for x in (it.get("section", ""), it.get("section_title", "")) if x)
+        return text, {"doc": it.get("file", "") or (self.file or ""), "loc": loc, "text": it.get("text", "")}
+
+    def do_capture(self, kind, answer=None):
+        """Contact, Submission, Formatting or Acronym from the picked words or the selected sentence. answer (tests): the
+        dialog's values."""
+        from . import captureview as CV
+        import effortrec as RR
+        text, src = self.capture_source()
+        if not text:
+            return self.host.status("Select a sentence first (drag across words inside it to pick just those).")
+        if kind == "contact":
+            if answer is None:
+                d = CV.ContactDialog(self, text, RR.Record(self.host.ws.root).contacts())
+                if d.exec() != QDialog.Accepted:
+                    return None
+                answer = d.values()
+            values, cid = answer
+            return CV.file_contact(self.host, values, cid, src)
+        if kind in ("submit", "format"):
+            if answer is None:
+                d = CV.RuleDialog(self, text, kind)
+                if d.exec() != QDialog.Accepted:
+                    return None
+                answer = d.values()
+            rules, due = answer
+            got = CV.file_rules(self.host, rules, due, src)
+            self.host.changed()
+            return got
+        if kind == "acronym":
+            if answer is None:
+                d = CV.AcronymDialog(self, text)
+                if d.exec() != QDialog.Accepted:
+                    return None
+                answer = d.values()
+            return CV.file_acronym(self.host, answer[0], answer[1], src)
+        return None
 
     # ------------------------------------------------------------ 2.93.0 the split, shown on the page
     def _drop(self, item):
@@ -900,7 +1075,13 @@ class AssignPage(QWidget):
                 self.add(box)
             else:
                 self.split_preview = None
-                self.add(D.label("To split it, click the word the second part starts with.", "muted"))
+                if getattr(self, "grab", None) and self.grab["iid"] == it["id"]:          # 2.96.0
+                    pk = self.add(D.label(f"Picked words: \u201c{self.grab['text']}\u201d. Capture (Contact, Submission, "
+                                          "Formatting, Acronym) uses them.", None))
+                    pk.setStyleSheet("background:rgba(134,239,172,0.35);padding:4px;border-radius:4px;")
+                else:
+                    self.add(D.label("To split it, click the word the second part starts with. To capture part of it, drag "
+                                     "across those words.", "muted"))
         self.head("Source")
         place = self.placed.get(it["id"], ("",))[0] or it.get("place", "")
         where = PS.where_text(self.pdf, place) if (self.pdf and place) else MD._where(it)
@@ -917,9 +1098,9 @@ class AssignPage(QWidget):
             lmw = QWidget(); lh = QHBoxLayout(lmw); lh.setContentsMargins(0, 0, 0, 0); lh.setSpacing(D.SPACE["s"])
             cur_lm = it.get("lm", "")
             sug, why = SD.lm_why(M, it)
-            for code in ("L", "M"):
-                b = D.button(f"{code}  {SD.LM[code].split(',')[0].split(' ')[0]}", "req" if cur_lm == code else None,
-                             lambda _=False, c=code: self.set_lm(rows, c), SD.LM[code])
+            for code in ("L", "M", "C"):
+                b = D.button(SD.LM_SHORT[code], "req" if cur_lm == code else None,
+                             lambda _=False, c=code: self.set_lm(rows, c), SD.LM[code] + (" (click again to take it off)" if cur_lm == code else ""))
                 lh.addWidget(b)
             lh.addWidget(D.label(f"{'Set: ' + cur_lm if cur_lm else ('Suggested: ' + sug if sug else 'Not set (optional)')}", "muted", wrap=False))
             lh.addStretch(1)
@@ -963,7 +1144,7 @@ class AssignPage(QWidget):
         elif d == "Customer":
             self.add(QLabel("Counted, never answered and never put in the response."))
         else:
-            self.add(QLabel("R: requirement (in the target section).  C: support for the last requirement you clicked.  G: the customer's."))
+            self.add(QLabel("L, M or SOW (keys L, E, R): a requirement in the target section.  C: support for the last requirement you clicked.  G: the customer's."))
         self.head("Author(s)")
         on = d in ("Keep", "Context")
         from .people import NamesField                  # 2.77.0: authors come from the author list only
@@ -1074,9 +1255,11 @@ class AssignPage(QWidget):
             pass                                    # the card was rebuilt
 
     def set_lm(self, rows, lm):
+        if rows and all(it.get("lm", "") == lm for it in rows):          # 2.96.0: clicking the one set takes it off
+            lm = ""
         self.R.set_lm(rows, lm)
         diag.activity("compliance_lm_set", n=len(rows))
-        self.after(f"{len(rows)} sentence(s): {lm}")
+        self.after(f"{len(rows)} sentence(s): {SD.LM_SHORT.get(lm, lm) if lm else 'a requirement, neither L, M nor SOW'}")
 
     def set_authors(self, rows, text):
         if self.R.set_authors(rows, text):
@@ -1146,10 +1329,10 @@ class AssignPage(QWidget):
             self.target_lbl.setText("<b>From the library</b> &nbsp;" + (f"C and R put the selected sentences into <b>{html.escape(self.target)}</b>"
                                     if self.target else "Click a section below: C and R put the selected sentences there."))
         elif self.target:
-            self.target_lbl.setText(f"<b>Decide</b> &nbsp;R, L and M put the selected sentences into "
+            self.target_lbl.setText(f"<b>Decide</b> &nbsp;L, M and SOW put the selected sentences into "
                                     f"<b>{html.escape(self.target)}</b>")
         else:
-            self.target_lbl.setText("<b>Decide</b> &nbsp;Click a section below: R, L and M put the selected sentences there.")
+            self.target_lbl.setText("<b>Decide</b> &nbsp;Click a section below: L, M and SOW put the selected sentences there.")
 
     def set_target(self, lab):
         self.target = lab
@@ -1267,7 +1450,7 @@ class AssignPage(QWidget):
             self.R.req(new, self.target or "")
         self.R.set_lm(rows, lm)
         diag.activity("compliance_lm_set", n=len(rows))
-        self.after(f"{len(rows)} sentence(s): {lm} ({SD.LM[lm]})")
+        self.after(f"{len(rows)} sentence(s): {SD.LM_SHORT.get(lm, lm)} ({SD.LM[lm]})")
 
     # ------------------------------------------------------------ building the structure as you go (2.68.0)
     def _ask(self, title, label, text=""):

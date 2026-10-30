@@ -20,6 +20,13 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "2.96.0": ["Every kind of customer file: pictures and scanned pages get their words laid over them so you select "
+               "sentences exactly as on a typed PDF; old .doc, .xls and .ppt files are read; Excel opens in Sheet view (its "
+               "cells as a grid).",
+               "Assign: L (Instructions), M (Evaluation) and SOW (Work); drag across words to pick them; Capture files a "
+               "contact, submission instructions (a due date can become the effort's), formatting rules or an acronym, each "
+               "with where it came from. Effort Home has a Submission instructions card and contact cards.",
+               "The documents as a queue: Document 2 of 5, Mark reviewed, Next document."],
     "2.95.0": ["Settings > Folders and file names: your effort folder tree as you keep it on SharePoint (fields like "
                "{Solicitation} in folder names), the folder each thing the app makes goes to, and its name pattern, with a "
                "sample of the exact path. New efforts get the whole tree; existing folders are never renamed or moved.",
