@@ -188,7 +188,7 @@ class EffortListPage(QWidget):
         if s is None or s.effort is None:
             return None
         if folder is None:
-            folder = QFileDialog.getExistingDirectory(self, "Folder for the acronym lists", EF.out(s.effort.path))
+            folder = QFileDialog.getExistingDirectory(self, "Folder for the acronym lists", self.host.out_path("acronym_lists") if self.host.effort_path else EF.out(s.effort.path))
             if not folder:
                 return None
         try:

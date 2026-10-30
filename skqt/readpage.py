@@ -488,7 +488,8 @@ class ReadPage(QWidget):
                 base = os.path.dirname(self.host.effort_path) if self.host.effort_path else os.path.expanduser("~")
                 stem = re.sub(r"[^A-Za-z0-9_-]+", "_", ef)
                 out, _ = QFileDialog.getSaveFileName(self, "Where should the compliance matrix live?",
-                                                     os.path.join(base, f"{stem}_Compliance_Matrix.xlsx"), "Excel (*.xlsx)")
+                                                     self.host.out_path("compliance_matrix") if self.host.effort_path
+                                                     else os.path.join(base, f"{stem}_Compliance_Matrix.xlsx"), "Excel (*.xlsx)")
                 if not out:
                     return None
         self._out = out

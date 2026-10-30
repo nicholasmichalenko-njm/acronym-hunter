@@ -21,6 +21,11 @@ ROLE = {"Keep": "Compliance requirement", "Context": "Context", "Customer": "Cus
 
 def folder_for(list_path, effort_name=""):
     d, n = os.path.split(os.path.abspath(list_path))
+    try:                                           # 2.95.0: in the effort's root when the list sits in a folder of the tree
+        import effortfolders as EF
+        d = EF.root(list_path) or d
+    except Exception:
+        pass
     name = effort_name or os.path.splitext(n)[0]
     return os.path.join(d, _safe(name) + SUFFIX)
 

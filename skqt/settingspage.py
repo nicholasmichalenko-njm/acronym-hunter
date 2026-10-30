@@ -62,6 +62,9 @@ class SettingsPage(QWidget):
         from .processview import ProcessCard             # 2.93.0: the team's stages, gate choices and roles
         self.process_card = ProcessCard(host)
         v.addWidget(self.process_card)
+        from .folderplanview import FolderPlanCard       # 2.95.0: the team's folders and file names
+        self.folders_card = FolderPlanCard(host)
+        v.addWidget(self.folders_card)
         from .doctypesview import DocTypesCard           # 2.94.0: customer document types and their initials
         self.doctypes_card = DocTypesCard(host)
         v.addWidget(self.doctypes_card)
@@ -77,7 +80,7 @@ class SettingsPage(QWidget):
         jl = D.label("Go to:", "muted", wrap=False); self.jump_row.addWidget(jl)
         for text, card in (("Your time zone", self.tz_card), ("Efforts", self.eff), ("Author list", self.authors),
                            ("Stages, gates and roles", self.process_card),
-                           ("Document types", self.doctypes_card), ("Branding", self.branding_card), ("Team pack", self.team_card)):
+                           ("Document types", self.doctypes_card), ("Folders and file names", self.folders_card), ("Branding", self.branding_card), ("Team pack", self.team_card)):
             self.jump_row.addWidget(D.button(text, "ghost", lambda _=False, c=card: self.jump(c)))
         v.insertLayout(0, self.jump_row)
         self.db = D.Card("Master database", "The company's acronyms, abbreviations, units and symbols, shared by every effort on this PC.",
@@ -234,14 +237,17 @@ class SettingsPage(QWidget):
             dlg = QDialog(self); dlg.setWindowTitle("New effort"); dlg.setMinimumWidth(640)
             form = QFormLayout(dlg)
             name = QLineEdit(); path = QLineEdit()
+            cust, vols, client, sol, internal = QLineEdit(), QLineEdit(), QLineEdit(), QLineEdit(), QLineEdit()
             import app_gui, datahome                     # 2.80.0: new efforts live on this PC, in Stationkeeper Data\Efforts
             base = datahome.efforts_dir(app_gui.DATA_DIR)
             path.setText(os.path.join(base, "Effort_List.xlsx"))
 
             def named(t):
-                n = re.sub(r"[^A-Za-z0-9 _.-]+", "", t).strip().replace(" ", "_")
-                if n:
-                    path.setText(os.path.join(base, n, f"{n}_Effort_List.xlsx"))
+                n = re.sub(r"[^A-Za-z0-9 _.-]+", "", t).strip()
+                if n:                                    # 2.95.0: the team's home folder and list name
+                    import effortfolders as EF
+                    path.setText(EF.new_list_path(base, n, {"Client": client.text(), "Solicitation": sol.text(),
+                                                            "Internal": internal.text()})[0])
             name.textChanged.connect(named)
             pr = QHBoxLayout(); pr.addWidget(path, 1)
             pr.addWidget(D.button("Browse...", None, lambda: (lambda p: path.setText(p) if p else None)(
@@ -249,7 +255,6 @@ class SettingsPage(QWidget):
             rule = QComboBox()
             for k, lab in E.FIRST_USE_RULES.items():
                 rule.addItem(lab, k)
-            cust, vols, client, sol, internal = QLineEdit(), QLineEdit(), QLineEdit(), QLineEdit(), QLineEdit()
             form.addRow("Effort name", name); form.addRow("List file", pr)
             form.addRow("", D.label("Efforts work best on this PC. Share them through packages and backups in the team "
                                     "folder: a live effort in a OneDrive folder can collide with the sync.", "muted"))
@@ -286,7 +291,13 @@ class SettingsPage(QWidget):
             h.status(f"Could not create the list: {type(ex).__name__}")
             return None
         import effortfolders as EF                       # 2.90.0: Customer Documents, Volumes, Response Setup, Exports
-        EF.create_all(path)
+        import folderplan as FP                          # 2.95.0: the team's tree, with the list in its home folder
+        import workspace as W
+        home = FP.folder_path(FP.current().get("home", ""), {"Effort": name})
+        if home and os.path.normpath(os.path.dirname(os.path.abspath(path))).split(os.sep)[-len(home):] == home:
+            W.Workspace(W.data_dir_for(path), name).set("root_up", len(home))
+        EF.create_all(path, {"Effort": name, "Client": values.get("client", ""), "Solicitation": values.get("solicitation", ""),
+                             "Internal": values.get("internal_no", "")})
         values = dict(values)
         values["customer_dir"] = values.get("customer_dir") or EF.folder(path, "customer")
         values["volumes_dir"] = values.get("volumes_dir") or EF.folder(path, "volumes")

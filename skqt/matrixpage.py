@@ -223,9 +223,8 @@ class MatrixPage(QWidget):
         if R is None:
             return None
         if path is None:
-            stem = self._effort_name().replace(" ", "_")
-            path, _ = QFileDialog.getSaveFileName(self, "Export the compliance matrix", os.path.join(
-                EF.out(self.host.effort_path) or os.path.dirname(R.M.path), f"{stem}_Compliance_Matrix_{datetime.date.today():%Y-%m-%d}.xlsx"), "Excel (*.xlsx)")
+            path, _ = QFileDialog.getSaveFileName(self, "Export the compliance matrix", self.host.out_path("matrix_export", Effort=self._effort_name())
+                                                  if self.host.effort_path else os.path.join(os.path.dirname(R.M.path), f"{self._effort_name().replace(' ', '_')}_Compliance_Matrix_{datetime.date.today():%Y-%m-%d}.xlsx"), "Excel (*.xlsx)")
             if not path:
                 return None
         try:
@@ -244,7 +243,7 @@ class MatrixPage(QWidget):
         if R is None:
             return None
         if folder is None:
-            folder = QFileDialog.getExistingDirectory(self, "Folder for the compliance package", EF.out(self.host.effort_path) or os.path.dirname(R.M.path))
+            folder = QFileDialog.getExistingDirectory(self, "Folder for the compliance package", (self.host.out_path("compliance_package") if self.host.effort_path else "") or os.path.dirname(R.M.path))
             if not folder:
                 return None
         try:

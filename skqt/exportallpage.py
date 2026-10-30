@@ -74,7 +74,7 @@ class ExportAllPage(QWidget):
         if h.ws is None:
             return None
         if folder is None:
-            folder = QFileDialog.getExistingDirectory(self, "Folder for the export", EF.out(h.effort_path))
+            folder = QFileDialog.getExistingDirectory(self, "Folder for the export", h.out_path("export_all") if h.effort_path else "")
             if not folder:
                 return None
         av = self.available()

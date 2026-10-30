@@ -79,7 +79,7 @@ class CalendarFiles:
     def template(self, path=None):
         h = self.host
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self.page, "Calendar template", EF.out(h.effort_path, f"{h.effort_name or 'Effort'}_Calendar_Template.xlsx"),
+            path, _ = QFileDialog.getSaveFileName(self.page, "Calendar template", h.out_path("calendar_template"),
                                                   "Excel (*.xlsx)")
         if not path:
             return ""
@@ -143,7 +143,7 @@ class CalendarFiles:
             return ""
         ext = ".xlsx" if kind == "xlsx" else ".ics"
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self.page, "Export the calendar", EF.out(h.effort_path, f"{h.effort_name}_Calendar{ext}"),
+            path, _ = QFileDialog.getSaveFileName(self.page, "Export the calendar", h.out_path("calendar", ext=ext),
                                                   "Excel (*.xlsx)" if kind == "xlsx" else "Calendar (*.ics)")
         if not path:
             return ""

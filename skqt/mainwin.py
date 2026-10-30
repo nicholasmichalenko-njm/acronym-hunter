@@ -85,6 +85,8 @@ class MainWindow(QMainWindow):
             _PR.apply(config_dir)
             import doctypes as _DT                 # 2.94.0: the team's document types and initials
             _DT.apply(config_dir)
+            import folderplan as _FP               # 2.95.0: the team's folders and file names
+            _FP.apply(config_dir)
         except Exception:
             diag.swallowed()
         self.authors = self._load_authors(config_dir)          # 2.77.0: the one place names come from
@@ -330,6 +332,7 @@ class MainWindow(QMainWindow):
             self.status("Effort health: a problem needs you. See Effort record > Effort health.")
         self.apply_marking()
         self.unfiled_strip.refresh()
+        self.remember_fields()                     # 2.95.0: folder and file names use the effort's fields
         self.watch_found = None; self.watch_strip.setVisible(False)
         self.watch_start()                         # 2.94.0: what changed in the watched folders since last time
         self.title()
@@ -379,6 +382,23 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------ 2.92.0 the readable copy
     def _readable_on(self):
         return not os.environ.get("AH_TEST") or bool(os.environ.get("SK_READABLE_TEST"))
+
+    # ------------------------------------------------------------ 2.95.0 folders and file names
+    def effort_fields(self):
+        info = self.efforts.get(self.effort_name) or {}
+        return {"Effort": self.effort_name, "Client": info.get("client", ""), "Solicitation": info.get("solicitation", ""),
+                "Internal": info.get("internal_no", "")}
+
+    def remember_fields(self):
+        import effortfolders as EF
+        if self.effort_path:
+            EF.remember(self.effort_path, self.effort_fields())
+
+    def out_path(self, key, ext=None, **fields):
+        """Where a save dialog starts for an output: its folder and name by Settings > Folders and file names."""
+        import effortfolders as EF
+        self.remember_fields()
+        return EF.place(self.effort_path, key, fields, ext)
 
     # ------------------------------------------------------------ 2.94.0 watched folders
     WATCH_EVERY_S = 180

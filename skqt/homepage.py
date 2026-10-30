@@ -962,7 +962,7 @@ class HomePage(QWidget):
         who = self.person() or ""
         if path is None:
             from PySide6.QtWidgets import QFileDialog
-            path, _ = QFileDialog.getSaveFileName(self, "Export tasks and questions", EF.out(h.effort_path, TQ.file_name(h.effort_name, who)),
+            path, _ = QFileDialog.getSaveFileName(self, "Export tasks and questions", h.out_path("tasks_questions", Person=__import__("re").sub(r"[^A-Za-z0-9]+", "_", who).strip("_") if who else "Full_Team"),
                                                   "Excel (*.xlsx)")
         if not path:
             return ""

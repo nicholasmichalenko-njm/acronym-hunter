@@ -117,7 +117,7 @@ class SetupPage(QWidget):
         if R is None or not R.M.outline:
             return None
         if folder is None:
-            folder = QFileDialog.getExistingDirectory(self, "Folder for the setup documents", EF.out(self.host.effort_path, kind="setup") or os.path.dirname(R.M.path))
+            folder = QFileDialog.getExistingDirectory(self, "Folder for the setup documents", (self.host.out_path("setup_documents") if self.host.effort_path else "") or os.path.dirname(R.M.path))
             if not folder:
                 return None
         try:
@@ -146,8 +146,8 @@ class SetupPage(QWidget):
             return []
         if path is None:
             stem = os.path.splitext(os.path.basename(R.M.path))[0]
-            path, _ = QFileDialog.getSaveFileName(self, "Setup changes", os.path.join(
-                EF.out(self.host.effort_path, kind="setup") or os.path.dirname(R.M.path), f"{stem}_Setup_changes_{datetime.datetime.now():%Y-%m-%d_%H%M}.docx"), "Word (*.docx)")
+            path, _ = QFileDialog.getSaveFileName(self, "Setup changes", self.host.out_path("setup_changes", Matrix=stem) if self.host.effort_path else os.path.join(
+                os.path.dirname(R.M.path), f"{stem}_Setup_changes_{datetime.datetime.now():%Y-%m-%d_%H%M}.docx"), "Word (*.docx)")
             if not path:
                 return None
         SD.export_changes(R.M, path)

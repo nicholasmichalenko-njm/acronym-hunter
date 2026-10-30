@@ -832,7 +832,7 @@ class TakenDialog(QDialog):
 
     def export(self, path=None):
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Export what was taken from the library", EF.out(self.host.effort_path, "Taken_from_the_library.xlsx"), "Excel (*.xlsx)")
+            path, _ = QFileDialog.getSaveFileName(self, "Export what was taken from the library", self.host.out_path("taken_from_library"), "Excel (*.xlsx)")
             if not path:
                 return None
         try:

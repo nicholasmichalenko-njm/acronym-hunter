@@ -479,8 +479,7 @@ class AcronymPage(QWidget):
             self.host.status("No rows are showing. Change the filters, then export.")
             return None
         if path is None:
-            name = f"{self.host.effort_name}_Acronym_Report_{datetime.date.today().isoformat()}.csv".replace(" ", "_")
-            path, _ = QFileDialog.getSaveFileName(self, "Export the acronym report", EF.out(self.host.effort_path, name),
+            path, _ = QFileDialog.getSaveFileName(self, "Export the acronym report", self.host.out_path("acronym_report"),
                                                   "CSV report (*.csv)")
             if not path:
                 return None

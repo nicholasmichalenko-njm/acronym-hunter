@@ -643,8 +643,7 @@ class RequirementsPage(QWidget):
         if self.ctx is None:
             return None
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Export the submission requirements", EF.out(
-                self.host.effort_path, f"{self.host.effort_name}_Submission_Requirements.xlsx".replace(" ", "_")), "Excel (*.xlsx)")
+            path, _ = QFileDialog.getSaveFileName(self, "Export the submission requirements", self.host.out_path("submission_rules"), "Excel (*.xlsx)")
             if not path:
                 return None
         try:
@@ -935,7 +934,7 @@ class ComparePage(QWidget):
         if d is None or va is None or va is vb:
             return None
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Redline", EF.out(self.host.effort_path, f"{d['name']}_{va['label']}_to_{vb['label']}_Redline.docx".replace(" ", "_")), "Word (*.docx)")
+            path, _ = QFileDialog.getSaveFileName(self, "Redline", self.host.out_path("redline", Doc=d["name"], From=va["label"], To=vb["label"]), "Word (*.docx)")
             if not path:
                 return None
         DV.export_redline(path, d["name"], va, vb, self.rows, only_changes=self.only.isChecked())
@@ -947,7 +946,7 @@ class ComparePage(QWidget):
         if d is None or va is None or va is vb:
             return None
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Change list", EF.out(self.host.effort_path, f"{d['name']}_{va['label']}_to_{vb['label']}_Changes.xlsx".replace(" ", "_")), "Excel (*.xlsx)")
+            path, _ = QFileDialog.getSaveFileName(self, "Change list", self.host.out_path("change_list", Doc=d["name"], From=va["label"], To=vb["label"]), "Excel (*.xlsx)")
             if not path:
                 return None
         DV.export_list(path, self.ctx.lib, doc=d, compares=[(d, va, vb, self.rows)])
@@ -1159,7 +1158,7 @@ class ImpactPage(QWidget):
             return None
         if path is None:
             path, _ = QFileDialog.getSaveFileName(self, "Save the author briefs",
-                                                  EF.out(self.host.effort_path, f"{self.r['doc']}_{self.r['version']}_Author_Briefs.docx".replace(" ", "_")), "Word (*.docx)")
+                                                  self.host.out_path("author_briefs", Doc=self.r["doc"], DocVersion=self.r["version"]), "Word (*.docx)")
             if not path:
                 return None
         BR.export_word(path, self.r, bs, self.due_text(), self.host.effort_name)
@@ -1185,7 +1184,7 @@ class ImpactPage(QWidget):
         if self.r is None:
             return None
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Impact review", EF.out(self.host.effort_path, f"{self.r['doc']}_{self.r['version']}_Impact.docx".replace(" ", "_")), "Word (*.docx)")
+            path, _ = QFileDialog.getSaveFileName(self, "Impact review", self.host.out_path("impact_review", Doc=self.r["doc"], DocVersion=self.r["version"]), "Word (*.docx)")
             if not path:
                 return None
         IM.export_word(path, self.r, self.host.effort_name)
@@ -1420,8 +1419,7 @@ class DeliverablesPage(QWidget):
         if c is None:
             return None
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Deliverables", EF.out(self.host.effort_path,
-                                                  f"{self.host.effort_name}_Deliverables_{datetime.date.today().isoformat()}.xlsx".replace(" ", "_")), "Excel (*.xlsx)")
+            path, _ = QFileDialog.getSaveFileName(self, "Deliverables", self.host.out_path("deliverables"), "Excel (*.xlsx)")
             if not path:
                 return None
         DL.export_excel(path, c.rec, c.reg.rows(), c.lib, c.volumes(), self.host.effort_name)

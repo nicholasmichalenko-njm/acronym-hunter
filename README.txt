@@ -1,6 +1,31 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+FOLDERS AND FILE NAMES (2.95.0)
+  - Settings > Folders and file names (the Go to row reaches it), three tabs:
+    Folder tree: the effort's folders as your team keeps them on SharePoint, in order, with subfolders (+ Folder,
+    + Subfolder, Up, Down, Remove; double-click a name to change it). A name can use {Effort}, {Client}, {Solicitation},
+    {Internal} and {Company} ("02 {Solicitation} Capture"). Four folders have a job: where customer documents go, where
+    the volumes are, where Response Setup documents go, and where exports go by default. A job belongs to one folder.
+    Where things go: every thing the app makes (the effort list and compliance matrix of a new effort, the matrix
+    export, the compliance package, the L/M crosswalk, Response Setup documents and changes, the effort status and
+    summary, tasks and questions, the calendar and its template, the post-submission checklist, deliverables, the
+    submission requirements, review packets, redlines and change lists, author briefs, impact reviews, the acronym
+    report and lists, keywords, the QA/QC report, what was taken from the library, Export all): the folder it goes to
+    and its file name, with a sample of the exact path. Fields: {Effort} {Client} {Solicitation} {Internal} {Company}
+    {Date} {Time} {Version} {Person} {Stage} {Doc} {DocVersion} {From} {To} {Matrix}. An empty field leaves no doubled
+    separator; characters Windows refuses are dropped; {Version} is v1, then v2... (the first not used in the folder).
+    Options: how dates are written (2026-11-03, 20261103, 11-03-2026, 03Nov2026, 2026.11.03), what a space in a name
+    becomes (underscore, hyphen, a space, nothing), your company's name for {Company}, and the folder of the tree where
+    a new effort's list and its app data sit (the app data folder always stays beside the list; the readable copy goes
+    in the effort's own folder).
+  - A new effort gets the whole tree, with its customer documents and volumes folders from the tree. An effort that
+    exists keeps its folders: a folder of the tree appears the first time something is saved into it, and nothing is
+    ever renamed or moved. Make the folders in this effort adds every folder of the tree the open effort lacks.
+  - Customer files keep the names the customer gave them (copied in as they are). Every save still asks where: the
+    plan decides where the dialog starts and the name it suggests.
+  - A team pack can carry the folders and file names, and lock them, so every PC builds the same folders and names.
+
 PAGE-LIMITED AND FORMATTING REQUIREMENTS, DOCUMENT TYPES, WATCHED FOLDERS (2.94.0)
   - Page-limited, front and center: Effort Home's banner says PAGE-LIMITED (with the limits: "50 pages", or "Vol I 40,
     Vol II 20") when the customer documents set a page limit, Not page-limited when the proposal manager says so, and

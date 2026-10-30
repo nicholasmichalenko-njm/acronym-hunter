@@ -320,8 +320,7 @@ class QAPage(QWidget):
         if not r:
             return None
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Save the QA/QC report", EF.out(self.host.effort_path,
-                                                  f"{self.host.effort_name}_QAQC_Report.xlsx".replace(" ", "_")), "Excel (*.xlsx)")
+            path, _ = QFileDialog.getSaveFileName(self, "Save the QA/QC report", self.host.out_path("qaqc_report"), "Excel (*.xlsx)")
             if not path:
                 return None
         try:
@@ -339,7 +338,7 @@ class QAPage(QWidget):
             return None
         if folder is None:
             folder = QFileDialog.getExistingDirectory(self, "Folder for the acronym lists (one Word file per volume)",
-                                                      EF.out(self.host.effort_path))
+                                                      self.host.out_path("acronym_lists"))
             if not folder:
                 return None
         try:

@@ -122,8 +122,7 @@ class ReviewPage(QWidget):
             return None
         stage = self.stage.currentText() or "Review"
         if path is None:
-            fname = f"{h.effort_name}_{stage}_Review_Packet_{datetime.date.today().isoformat()}.docx".replace(" ", "_")
-            path, _ = QFileDialog.getSaveFileName(self, "Save the review packet", EF.out(h.effort_path, fname),
+            path, _ = QFileDialog.getSaveFileName(self, "Save the review packet", h.out_path("review_packet", Stage=stage),
                                                   "Word (*.docx)")
             if not path:
                 return None

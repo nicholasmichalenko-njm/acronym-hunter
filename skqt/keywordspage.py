@@ -162,8 +162,7 @@ class KeywordsPage(QWidget):
         if s is None or s.effort is None:
             return None
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Export keywords for SharePoint", EF.out(self.host.effort_path,
-                                                  f"{self.host.effort_name}_Keywords.xlsx".replace(" ", "_")), "Excel (*.xlsx);;CSV (*.csv)")
+            path, _ = QFileDialog.getSaveFileName(self, "Export keywords for SharePoint", self.host.out_path("keywords"), "Excel (*.xlsx);;CSV (*.csv)")
             if not path:
                 return None
         try:

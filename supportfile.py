@@ -20,6 +20,11 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "2.95.0": ["Settings > Folders and file names: your effort folder tree as you keep it on SharePoint (fields like "
+               "{Solicitation} in folder names), the folder each thing the app makes goes to, and its name pattern, with a "
+               "sample of the exact path. New efforts get the whole tree; existing folders are never renamed or moved.",
+               "Dates and spaces in names as your team writes them, your company's name for {Company}, and {Version} counting "
+               "up. The effort list and its app data can sit in a folder of your tree. A team pack can carry and lock it all."],
     "2.94.0": ["Effort Home shows whether the effort is page-limited, front and center (PAGE-LIMITED: 50 pages, or Not "
                "page-limited when you say so in Edit details), and a Formatting requirements card: each rule required (what and "
                "where) or not specified.",

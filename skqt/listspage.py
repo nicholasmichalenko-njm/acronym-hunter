@@ -158,7 +158,7 @@ class ListsPage(QWidget):
         if not r:
             return None
         if folder is None:
-            folder = QFileDialog.getExistingDirectory(self, "Folder for the acronym lists", EF.out(self.host.effort_path))
+            folder = QFileDialog.getExistingDirectory(self, "Folder for the acronym lists", self.host.out_path("acronym_lists"))
             if not folder:
                 return None
         import re
@@ -182,7 +182,7 @@ class ListsPage(QWidget):
         if not r:
             return None
         if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Acronym lists", EF.out(self.host.effort_path, "Acronym_Lists.xlsx"), "Excel (*.xlsx)")
+            path, _ = QFileDialog.getSaveFileName(self, "Acronym lists", self.host.out_path("acronym_lists_book"), "Excel (*.xlsx)")
             if not path:
                 return None
         import openpyxl

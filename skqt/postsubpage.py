@@ -198,7 +198,7 @@ class PostSubPage(QWidget):
             return ""
         if path is None:
             path, _ = QFileDialog.getSaveFileName(self, "Export the post-submission checklist",
-                                                  EF.out(h.effort_path, f"{h.effort_name}_Post-Submission_Checklist.xlsx".replace(" ", "_")),
+                                                  h.out_path("postsub"),
                                                   "Excel (*.xlsx)")
         if not path:
             return ""

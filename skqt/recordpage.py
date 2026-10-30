@@ -294,10 +294,8 @@ class RecordPage(StageTableMixin, QWidget):
             if self.pm_summary(summary) is None:
                 return None
         if path is None:
-            kind = "Effort_Summary" if final else "Effort_Status"
-            fname = f"{h.effort_name}_{kind}_{datetime.date.today().isoformat()}.docx".replace(" ", "_")
             path, _ = QFileDialog.getSaveFileName(self, "Save the effort summary" if final else "Save the effort status",
-                                                  EF.out(h.effort_path, fname), "Word (*.docx)")
+                                                  h.out_path("effort_summary" if final else "effort_status"), "Word (*.docx)")
             if not path:
                 return None
         st = ES.State(h.ws, h.effort_path, h.review.M if h.review is not None else None)
