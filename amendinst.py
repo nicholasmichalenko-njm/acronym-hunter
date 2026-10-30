@@ -29,15 +29,15 @@ def _q(n):
 
 
 PATTERNS = [
-    ("words", re.compile(r"(?:in\s+)?" + _sec() + r"[^\"“]{0,80}?\b(?:delete|strike)\s+" + _q("old") +
+    ("words", re.compile(r"(?:in\s+)?" + _sec() + r"(?:(?![.;:]\s)[^\"“]){0,80}?\b(?:delete|strike)\s+" + _q("old") +
                          r"\s*,?\s*and\s+(?:insert|substitute|add|replace\s+(?:it\s+)?with)\s+(?:in\s+its\s+place\s+)?" + _q("new"), re.I | re.S)),
-    ("words", re.compile(r"(?:in\s+)?" + _sec() + r"[^\"“]{0,80}?\bchange\s+" + _q("old") + r"\s+to\s+(?:read\s+)?" + _q("new"), re.I | re.S)),
-    ("words", re.compile(r"(?:in\s+)?" + _sec() + r"[^\"“]{0,80}?\breplace\s+" + _q("old") + r"\s+with\s+" + _q("new"), re.I | re.S)),
+    ("words", re.compile(r"(?:in\s+)?" + _sec() + r"(?:(?![.;:]\s)[^\"“]){0,80}?\bchange\s+" + _q("old") + r"\s+to\s+(?:read\s+)?" + _q("new"), re.I | re.S)),
+    ("words", re.compile(r"(?:in\s+)?" + _sec() + r"(?:(?![.;:]\s)[^\"“]){0,80}?\breplace\s+" + _q("old") + r"\s+with\s+" + _q("new"), re.I | re.S)),
     ("section", re.compile(_sec() + r"\s+(?:is|are)\s+(?:hereby\s+)?(?:deleted\s+(?:in\s+its\s+entirety\s+)?and\s+replaced|replaced|revised|amended)"
-                           r"\s+(?:in\s+its\s+entirety\s+)?(?:with|to\s+read|as\s+follows)[^\"“]{0,40}?" + _q("new"), re.I | re.S)),
+                           r"\s+(?:in\s+its\s+entirety\s+)?(?:with|to\s+read|as\s+follows)(?:(?![.;]\s)[^\"“]){0,40}?" + _q("new"), re.I | re.S)),
     ("add", re.compile(r"\b(?:add|insert)(?:ed)?\s+(?:the\s+following\s+)?(?:new\s+)?" + _sec() +
-                       r"(?:\s*,?\s*(?:after|following)\s+" + _sec("after") + r")?[^\"“]{0,40}?" + _q("new"), re.I | re.S)),
-    ("add", re.compile(_sec() + r"\s+(?:is|are)\s+(?:hereby\s+)?added(?:\s+(?:after|following)\s+" + _sec("after") + r")?[^\"“]{0,40}?" + _q("new"),
+                       r"(?:\s*,?\s*(?:after|following)\s+" + _sec("after") + r")?(?:(?![.;]\s)[^\"“]){0,40}?" + _q("new"), re.I | re.S)),
+    ("add", re.compile(_sec() + r"\s+(?:is|are)\s+(?:hereby\s+)?added(?:\s+(?:after|following)\s+" + _sec("after") + r")?(?:(?![.;]\s)[^\"“]){0,40}?" + _q("new"),
                        re.I | re.S)),
     ("delete", re.compile(_sec() + r"\s+(?:is|are)\s+(?:hereby\s+)?(?:deleted|removed|rescinded)(?:\s+in\s+its\s+entirety)?(?!\s+and\s+replaced)(?=[\s.;,]|$)",
                           re.I | re.S)),

@@ -77,7 +77,7 @@ v = pg.conform(base_id=base["id"], answer=True)
 lib = DV.Library(w.ws.p("documents")).load()
 check("applied: the RFP's Conformed version", v and v["label"] == "Conformed (A1)" and len(lib.doc(base["id"])["versions"]) == 2)
 s = (getattr(w, "last_changes", None) or [None])[0]
-check("... and what changed is said at once", s and s["title"].startswith("What changed in Conformed (A1)") and s["changed"] == 1 and s["removed"] == 1,
+check("... and what changed is said at once", s and s["title"].startswith("What changed in Conformed (A1)") and s["changed"] == 1 and s["removed"] == 2,          # M.2.4: its heading and its sentence
       s and s["text"])
 # a task order under the contract
 pg.add([PC], choices={"IDIQ_Base_Contract.pdf": {"choice": "new", "initial": "CT", "type": "Contract"}}); wait(lambda: pg.worker is None and pg.panel.state == "done")
