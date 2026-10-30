@@ -46,7 +46,7 @@ check("the menu is in Title Case", texts[1:6] == ["Effort Home", "Deliverables",
       and "Response Setup" in texts and "Lists to Submit" in texts and "L/M Crosswalk" in texts, texts)
 from PySide6.QtWidgets import QLabel
 heads = [l.text() for l in w.findChildren(QLabel) if l.objectName() == "railhead"]
-check("menu groups are in Title Case", heads[:4] == ["Home", "Effort", "Documents", "Compliance"] and "Response Quality" in heads, heads)
+check("menu groups are in Title Case", heads[:4] == ["Home", "Effort", "Compliance", "Documents"] and "Response Quality" in heads, heads)
 check("the Stationkeeper mark and name at the foot of the menu", w.rail_footer.word.text() == "Stationkeeper" and A.APP_VERSION in w.rail_footer.sub.text())
 # ---- logos
 check("no logo yet: a quiet prompt to add one", w.rail_brand.add.isVisibleTo(w) and not w.rail_brand.plate.isVisibleTo(w))
