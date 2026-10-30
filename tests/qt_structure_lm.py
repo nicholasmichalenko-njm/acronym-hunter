@@ -85,7 +85,7 @@ def click(iid, ctrl=False):
 click(a["id"])
 QTest.keyClick(pg.view, Qt.Key_R); app.processEvents()
 check("R with no structure: a compliance requirement with no section yet", a["decision"] == "Keep" and not a.get("map"))
-check("L suggested from the section (L.3.1)", SD.lm_of(M, a) == "L" and not a.get("lm"))
+check("2.96.0: R is SOW (Work); the section still suggests L (L.3.1)", a.get("lm") == "C" and SD.lm_suggest(M, a) == "L")
 QTest.keyClick(pg.view, Qt.Key_L); app.processEvents()
 check("L sets it", a.get("lm") == "L")
 check("the card: the document, L, and the reference", "Document R (Section L)" in pg.ident_label.text()
@@ -168,7 +168,7 @@ heads = [c.value for c in ws[4]]
 check("the matrix columns: Reference, Doc, L/M, Section", heads[3:7] == ["Reference", "Doc", "L/M", "Section"], heads)
 rows = [[c.value for c in r] for r in ws.iter_rows(min_row=5)]
 ra = next(r for r in rows if str(r[heads.index("RFP content")] or "").startswith("The Offeror shall describe its technical approach"))
-check("a row: R, L, and R-L-3.1", ra[heads.index("Doc")] == "R" and ra[heads.index("L/M")] == "L" and ra[heads.index("Reference")] == "R-L-3.1", ra[:8])
+check("a row: R, C (SOW, set by R), and R-C-L.3.1", ra[heads.index("Doc")] == "R" and ra[heads.index("L/M")] == "C" and ra[heads.index("Reference")] == "R-C-L.3.1", ra[:8])
 check("a tab per volume", v1 in wb.sheetnames and v2 in wb.sheetnames, wb.sheetnames)
 w.close()
 n = sum(checks)

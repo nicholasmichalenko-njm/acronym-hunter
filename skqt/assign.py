@@ -315,7 +315,7 @@ class AssignPage(QWidget):
                  "requirement in the target section. Key: L"),
                 ("M (Evaluation)  E", "req", lambda: self.do_lm("M"), "M: Evaluation Factors for Award. A compliance requirement in the "
                  "target section. Key: E"),
-                ("SOW (Work)  R", "req", lambda: self.do_lm("C"), "What the contractor shall do (Section C, SOW, PWS). A compliance "
+                ("SOW (Work)  R", "req", lambda: self.do_sow(), "What the contractor shall do (Section C, SOW, PWS). A compliance "
                  "requirement in the target section. Key: R"),
                 ("Support  C", "ctx", self.do_ctx, "Supporting context for the last requirement you clicked"),
                 ("Customer's  G", "cust", self.do_customer, "The customer's to act on: identified, never answered"),
@@ -392,7 +392,7 @@ class AssignPage(QWidget):
         split = QSplitter(Qt.Horizontal); split.addWidget(self.view); split.addWidget(right); split.setSizes([1100, 470])
         v.addWidget(split, 1)
         self.notes_timer = QTimer(self, singleShot=True, interval=700, timeout=self.save_notes)
-        for key, fn in (("R", lambda: self.do_lm("C") if self.cx is None else self.do_req()), ("C", self.do_ctx), ("G", self.do_customer), ("X", self.do_clear),
+        for key, fn in (("R", lambda: self.do_sow()), ("C", self.do_ctx), ("G", self.do_customer), ("X", self.do_clear),
                         ("L", lambda: self.do_lm("L")), ("E", lambda: self.do_lm("M")), ("Shift+M", lambda: self.do_lm("M")),
                         ("Delete", self.do_clear), ("J", self.do_combine), ("S", self.do_split), ("Ctrl+Z", self.do_undo),
                         ("F", lambda: self.do_for_req()), ("N", lambda: self.do_record("note")),
@@ -1439,6 +1439,19 @@ class AssignPage(QWidget):
         n = self.R.req(rows, self.target or "")
         diag.activity("compliance_assigned", n=n)
         self.after(f"{rows[0]['id'] if n == 1 else str(n) + ' sentences'}: compliance requirement "
+                   + (f"in {self.target}" if self.target else "(no section yet: click one, or build one with + Heading)"))
+
+    def do_sow(self):
+        """2.96.0: SOW (Work): a compliance requirement in the target section (as R always did), designated SOW."""
+        if self.cx is not None:
+            return self.cx.promote()
+        rows = self.selected()
+        if not rows:
+            return
+        n = self.R.req(rows, self.target or "")
+        self.R.set_lm(rows, "C")
+        diag.activity("compliance_assigned", n=n)
+        self.after(f"{rows[0]['id'] if n == 1 else str(n) + ' sentences'}: SOW (Work) requirement "
                    + (f"in {self.target}" if self.target else "(no section yet: click one, or build one with + Heading)"))
 
     def do_lm(self, lm):
