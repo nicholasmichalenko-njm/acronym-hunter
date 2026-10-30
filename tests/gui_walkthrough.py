@@ -32,7 +32,7 @@ def check(name, ok, info=""):
     checks.append(bool(ok)); print("PASS" if ok else "FAIL", name, info)
 
 
-def timed(label, f, *a, limit=1.5):
+def timed(label, f, *a, limit=2.5):          # the classic window does not ship; qt_speed times the Qt one
     t = time.time()
     r = f(*a)
     app.update(); app.update()
