@@ -53,7 +53,7 @@ ws = W.Workspace(W.data_dir_for(LIST), "Kestrel Thermal")
 ws.set("outline_text", "Volume I Technical\n1.1 Thermal Design\n1.2 Risk Management\nVolume II Management\n2.1 Schedule\n2.2 Staffing")
 A.save_settings(dict(A.load_settings() or {}, work_mode="offline", time_zone="America/Denver"))   # a mode is set: no "Mode not set" chip
 app = QApplication([]); theme.apply(app)
-w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1600, 1000); w.show()
+w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1760, 1000); w.show()
 
 
 def wait(cond, secs=180):

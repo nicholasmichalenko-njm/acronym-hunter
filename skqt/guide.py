@@ -276,7 +276,8 @@ def topic_html(key):
         out.append("</ol>")
     p = shot_path(k)
     if p:
-        out.append(f"<p><img src='{QUrl.fromLocalFile(p).toString()}' width='760'></p>")
+        out.append(f"<p><a href='shot:{k}'><img src='{QUrl.fromLocalFile(p).toString()}' width='780'></a><br>"
+                   "<span style='color:#6b7686;font-size:12px'>Click the picture to see it full size.</span></p>")
     if tips:
         out.append("<h3 style='margin:14px 0 6px 0'>Tips</h3><ul style='margin-top:0'>")
         out += [f"<li style='margin-bottom:6px'>{e(s)}</li>" for s in tips]
@@ -299,7 +300,8 @@ class GuideWindow(QDialog):
         self.list.currentItemChanged.connect(lambda cur, _old: self.show_topic(cur.data(Qt.UserRole)) if cur and cur.data(Qt.UserRole) else None)
         lv.addWidget(self.search); lv.addWidget(self.list, 1)
         right = QWidget(); rv = QVBoxLayout(right); rv.setContentsMargins(0, 0, 0, 0)
-        self.view = QTextBrowser(); self.view.setOpenExternalLinks(False)
+        self.view = QTextBrowser(); self.view.setOpenExternalLinks(False); self.view.setOpenLinks(False)
+        self.view.anchorClicked.connect(self._link)
         row = QHBoxLayout()
         self.prev = D.button("< Previous", None, lambda: self._step(-1))
         self.next = D.button("Next >", None, lambda: self._step(1))
@@ -354,6 +356,14 @@ class GuideWindow(QDialog):
         i = order.index(key)
         self.prev.setEnabled(i > 0); self.next.setEnabled(i < len(order) - 1)
 
+    def _link(self, url):
+        """A picture clicked: the same picture full size, in its own window."""
+        s = url.toString()
+        if s.startswith("shot:"):
+            p = shot_path(s[5:])
+            if p:
+                self.big = picture_window(self, p)
+
     def _step(self, d):
         order = [t[0] for t in TOPICS]
         self.show_topic(order[max(0, min(len(order) - 1, order.index(self.key) + d))])
@@ -361,6 +371,15 @@ class GuideWindow(QDialog):
     def _go(self):
         if self.key in getattr(self.host, "pages", {}):
             self.host.go(self.key)
+
+
+def picture_window(parent, path):
+    from PySide6.QtGui import QPixmap
+    from PySide6.QtWidgets import QLabel, QScrollArea
+    dlg = QDialog(parent); dlg.setWindowTitle("Stationkeeper Guide: picture")
+    lay = QVBoxLayout(dlg); sa = QScrollArea(); lab = QLabel(); lab.setPixmap(QPixmap(path)); sa.setWidget(lab)
+    lay.addWidget(sa); dlg.resize(1400, 900); dlg.show()
+    return dlg
 
 
 def current_key(host):

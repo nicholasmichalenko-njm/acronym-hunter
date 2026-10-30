@@ -61,6 +61,19 @@ check("the start topic has no page to go to", not g.go_btn.isVisibleTo(g) and g.
 g.show_topic("keys")
 check("the shortcuts are a topic, F1 among them", "The Guide, open at the page you are on" in g.view.toPlainText())
 check("a topic with no picture still reads: no broken image", ("<img" not in GD.topic_html("safe")) or bool(GD.shot_path("safe")))
+import shutil
+from PySide6.QtCore import QUrl
+pic = os.path.join(A.BASE_DIR, "assets", "help", "guide_prove.png")
+made_pic = not os.path.exists(pic)
+if made_pic:
+    from PySide6.QtGui import QPixmap
+    pm = QPixmap(40, 30); pm.fill(); pm.save(pic)
+g.show_topic("prove")
+check("a topic with its picture shows it, and says a click enlarges it", "full size" in g.view.toPlainText())
+g._link(QUrl("shot:prove")); app.processEvents()
+check("... clicking it opens the picture full size", getattr(g, "big", None) is not None and g.big.isVisible())
+if made_pic:
+    os.remove(pic)
 from skqt import helpcenter as HC
 card = HC.support_card(w)
 btns = [b.text() for b in card.findChildren(type(HC.D.button("x", None, None)))]
