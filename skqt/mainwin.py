@@ -83,6 +83,8 @@ class MainWindow(QMainWindow):
             _ER.load_default_goals(config_dir)
             import process as _PR                  # 2.93.0: the team's stages, gates and roles
             _PR.apply(config_dir)
+            import doctypes as _DT                 # 2.94.0: the team's document types and initials
+            _DT.apply(config_dir)
         except Exception:
             diag.swallowed()
         self.authors = self._load_authors(config_dir)          # 2.77.0: the one place names come from
@@ -140,6 +142,9 @@ class MainWindow(QMainWindow):
         self.marking = MarkingStrip(); cv.addWidget(self.marking)            # 2.88.0: CUI or proprietary, on every page
         from .unfiledview import UnfiledStrip
         self.unfiled_strip = UnfiledStrip(self); cv.addWidget(self.unfiled_strip)   # 2.91.0: work not filed yet
+        from .watchview import WatchStrip
+        self.watch_strip = WatchStrip(self); cv.addWidget(self.watch_strip)         # 2.94.0: new, changed, missing files
+        self.watch_found, self._wa_thread, self._wa_result, self._wa_last = None, None, None, 0.0
         cv.addWidget(bar)
         from .adaptive import PageStack
         self.stack = PageStack()                   # 2.86.0: a page scrolls only when the window is smaller than it needs
@@ -195,7 +200,7 @@ class MainWindow(QMainWindow):
         self._rd_seen = self._rd_done = None                   # 2.92.0: the readable copy, kept current
         self._rd_thread = None
         self.rd_written = ""
-        self.rd_timer = QTimer(self, interval=3000, timeout=self.readable_tick)
+        self.rd_timer = QTimer(self, interval=3000, timeout=lambda: (self.readable_tick(), self.watch_tick()))
         self.rd_timer.start()
         from .safety import Safety                 # 2.78.0: backups, recovery, where you were, the crash screen
         self.safety = Safety(self)
@@ -325,6 +330,8 @@ class MainWindow(QMainWindow):
             self.status("Effort health: a problem needs you. See Effort record > Effort health.")
         self.apply_marking()
         self.unfiled_strip.refresh()
+        self.watch_found = None; self.watch_strip.setVisible(False)
+        self.watch_start()                         # 2.94.0: what changed in the watched folders since last time
         self.title()
         return True
 
@@ -372,6 +379,123 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------ 2.92.0 the readable copy
     def _readable_on(self):
         return not os.environ.get("AH_TEST") or bool(os.environ.get("SK_READABLE_TEST"))
+
+    # ------------------------------------------------------------ 2.94.0 watched folders
+    WATCH_EVERY_S = 180
+
+    def _watch_on(self):
+        return not os.environ.get("AH_TEST") or bool(os.environ.get("SK_WATCH_TEST"))
+
+    def watch_customer_dir(self):
+        import effortfolders as EF
+        info = self.efforts.get(self.effort_name) or {}
+        return info.get("customer_dir") or (EF.folder(self.effort_path, "customer", make=False) if self.effort_path else "")
+
+    def watch_lib_rec(self):
+        import docversions as DV
+        import effortrec as RR
+        return DV.Library(self.ws.p("documents")).load(), RR.Record(self.ws.root)
+
+    def watch_now(self):
+        """Check the watched folders now (in this thread) and show what was found. Returns it."""
+        import watch as WA
+        if self.ws is None:
+            return None
+        lib, _rec = self.watch_lib_rec()
+        found = WA.check(lib, self.ws.root, self.watch_customer_dir())
+        return self.watch_show(found)
+
+    def watch_show(self, found):
+        self.watch_found = found
+        self.watch_strip.show_found(found)
+        if found and found.get("missing"):
+            diag.activity("qt_watch_missing", n=len(found["missing"]))
+        return found
+
+    def watch_start(self, force=False):
+        """Check the watched folders in the background (shown when it finishes)."""
+        import bgwork
+        import time
+        import watch as WA
+        if self.ws is None or (not force and not self._watch_on()) or (self._wa_thread is not None and self._wa_thread.is_alive()):
+            return None
+        root, cust, docs, name = self.ws.root, self.watch_customer_dir(), self.ws.p("documents"), self.effort_name
+        self._wa_last = time.monotonic()
+
+        def run():
+            import docversions as DV
+            try:
+                self._wa_result = (name, WA.check(DV.Library(docs).load(), root, cust))
+            except Exception:
+                diag.swallowed()
+        self._wa_thread = bgwork.start(run, "stationkeeper-watch")
+        return self._wa_thread
+
+    def watch_tick(self):
+        import time
+        if self._wa_result is not None and (self._wa_thread is None or not self._wa_thread.is_alive()):
+            name, found = self._wa_result
+            self._wa_result = None
+            if self.ws is not None and name == self.effort_name:
+                self.watch_show(found)
+            return True
+        if self.ws is not None and self._watch_on() and time.monotonic() - self._wa_last > self.WATCH_EVERY_S:
+            self.watch_start()
+        return False
+
+    def watch_add(self, choices=None):
+        """Add them...: the new and changed files go to the Library's reading table (a changed file comes up as a new
+        version of its document), one category at a time."""
+        import watch as WA
+        f = self.watch_found or {}
+        items = list(f.get("new", [])) + [(p, d.get("category", "customer")) for p, d, _v in f.get("changed", [])]
+        if not items or self.ws is None:
+            return None
+        cats = {}
+        for p, c in items:
+            cats.setdefault(c, []).append(p)
+        cat, paths = next(iter(cats.items()))
+        rel = WA.relative_folders(paths, self.ws.root, self.watch_customer_dir())
+        self.go("library")
+        if len(cats) > 1:
+            self.status(f"Adding the {self.library_page.lib.category_name(cat) if self.library_page.lib else cat} files first; "
+                        "Add them... again for the rest.")
+        diag.activity("qt_watch_add", n=len(paths))
+        return self.library_page.add(paths, folders=rel, category=cat, choices=choices)
+
+    def watch_set_aside(self):
+        import watch as WA
+        f = self.watch_found or {}
+        paths = [p for p, _c in f.get("new", [])] + [p for p, _d, _v in f.get("changed", [])]
+        if self.ws is None or not paths:
+            return 0
+        n = WA.set_aside(self.ws.root, paths)
+        diag.activity("qt_watch_set_aside", n=n)
+        self.toast(f"{n} file(s) set aside: they come back only if they change")
+        self.watch_show(dict(f, new=[], changed=[]))
+        return n
+
+    def watch_missing(self, run=True):
+        from .watchview import MissingDialog
+        if not (self.watch_found or {}).get("missing"):
+            return None
+        d = MissingDialog(self, self.watch_found)
+        if not run:
+            return d
+        d.exec()
+        self.watch_now()
+        self.library_page.refresh() if hasattr(self, "library_page") else None
+        return d
+
+    def watch_folders(self, run=True):
+        from .watchview import FoldersDialog
+        if self.ws is None:
+            return None
+        d = FoldersDialog(self)
+        if not run:
+            return d
+        d.exec()
+        return d
 
     def readable_job(self, overview=False):
         import readablejob as RJ

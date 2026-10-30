@@ -193,6 +193,14 @@ def build(snap, path, final=False):
             else:
                 rows.append([x["name"], x.get("dates", ""), f"{x.get('met', 0)} of {x.get('goals', 0)}", "; ".join(x.get("open", [])) or "nothing left"])
         d.table(["Stage", "Dates", "Goals met", "Left"], rows, [2100, 2300, 1100, 3860])
+    fm = s.get("formatting")
+    if fm:                                                          # 2.94.0
+        _head(d, "Formatting requirements")
+        d.rich([(fm["flag"], {"bold": True, "color": RED if fm["page_limited"] else GRAY if fm["page_limited"] is None else GREEN}),
+                ({"set": "  (set by the proposal manager)", "found": "  (found in the customer documents)"}.get(fm["how"], ""), {"color": GRAY})])
+        rows = [[lab, ("Required: " + val) if req else "Not specified in the documents", where] for lab, val, where, req in fm["lines"]]
+        rows = [[f"Page limit: {sub_}", val, where] for sub_, val, where in fm["limits"]] + rows
+        d.table(["Rule", "What the documents say", "Where"], rows, [2300, 4300, 2760])
     docs = s.get("documents") or []
     if docs:
         _head(d, "Customer documents, newest first")

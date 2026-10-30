@@ -69,7 +69,7 @@ def wait(cond, secs=30):
 
 # Stop while reading
 slow["on"] = True; gate.clear()
-pg.add_folder(IN, reader=reader, choices={})
+pg.add_folder(IN, watch=False, reader=reader, choices={})
 app.processEvents()
 check("reading runs in the background with a progress bar; the buttons wait", pg.panel.state == "running" and not pg.b_folder.isEnabled())
 pg.panel.stop_btn.click(); gate.set()
@@ -100,7 +100,7 @@ res = dlg.result_plan()
 check("skipped rows are not added; the rest keep their choices", res[r_win]["choice"] == "skip" and res[r_std]["role"] == "context"
       and dlg.count.text() == "4 to add")
 # add a folder, through the page
-pg.add_folder(IN, reader=reader, choices={"MIL-STD-1540E.pdf": {"role": "reference"}})
+pg.add_folder(IN, watch=False, reader=reader, choices={"MIL-STD-1540E.pdf": {"role": "reference"}})
 wait(lambda: pg.worker is None and pg.panel.state == "done")
 lib = DV.Library(ws.p("documents")).load()
 by = {d["name"]: d for d in lib.all}

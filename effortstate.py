@@ -480,6 +480,11 @@ def status_snapshot(st, final=False, app_version="", name="", client="", solicit
             snap["postsub"] = {"submitted": (ps.get("submitted") or "").replace("T", " "), "done": done, "total": tot, "late": nlate,
                                "open": [f"{i['text']}" + (f" ({i['owner']})" if i.get("owner") else "") for i in ps["items"]
                                         if i["status"] not in ("Done", "Not needed")][:12]}
+        import formatreq as FR                                      # 2.94.0: page-limited and the formatting rules
+        fc = FR.card(rows, r.data.get("page_limited", ""))
+        snap["formatting"] = {"flag": FR.flag_text(fc), "page_limited": fc["page_limited"], "how": fc["how"],
+                              "limits": [(x["subject"], x["value"], x["where"]) for x in fc["limits"]],
+                              "lines": [(x["label"], x["value"], x["where"], x["required"]) for x in fc["lines"]]}
     except Exception:
         diag.swallowed()
     if final:

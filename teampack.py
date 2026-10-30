@@ -24,14 +24,15 @@ FORMAT = "sk-team-1"
 EXT = ".skteam"
 INFO = "team_pack.json"
 MAX_BYTES = 8 * 1024 * 1024
-PARTS = ("authors", "design", "banned", "goals", "process", "logos", "roles", "markings", "topics", "postsub")
+PARTS = ("authors", "design", "banned", "goals", "process", "doctypes", "logos", "roles", "markings", "topics", "postsub")
 PART_NAMES = {"authors": "Author list", "design": "Matrix design", "banned": "Banned words and phrases", "goals": "Default gate goals",
               "logos": "Company logos", "roles": "Effort Home layouts by role", "markings": "Sensitivity markings",
-              "topics": "Team topics", "postsub": "Post-submission checklist", "process": "Stages, gates and roles"}
-LOCKABLE = ("design", "logos", "roles", "goals", "markings", "postsub", "process")
+              "topics": "Team topics", "postsub": "Post-submission checklist", "process": "Stages, gates and roles",
+              "doctypes": "Document types"}
+LOCKABLE = ("design", "logos", "roles", "goals", "markings", "postsub", "process", "doctypes")
 FILES = {"authors": "author_list.json", "design": "matrix design.json", "banned": "banned_words.csv", "goals": "stage_goals.json",
          "roles": "team_roles.json", "markings": "team_markings.json", "topics": "team_topics.json", "postsub": "postsub_default.json",
-         "process": "process.json"}
+         "process": "process.json", "doctypes": "doc_types.json"}
 LOCKS = "team_locks.json"
 INSTALLED = "team_installed.json"
 BACKUPS = "team_backups"
@@ -141,6 +142,9 @@ def available(config_dir):
         import process as PR
         P = PR.load(config_dir)
         out["process"] = f"{len(P['stages'])} default stage(s), {len(P['gates'])} gate choice(s), {len(P['roles'])} role(s)"
+    if os.path.isfile(os.path.join(config_dir, FILES["doctypes"])):       # 2.94.0
+        import doctypes as DT
+        out["doctypes"] = f"{len(DT.load(config_dir)['types'])} document type(s)"
     ps = (_read(os.path.join(config_dir, FILES["postsub"]), {}) or {}).get("items") or []
     if ps:
         out["postsub"] = f"{len(ps)} item(s)"
@@ -158,7 +162,7 @@ def make(config_dir, out_path, parts, lock=(), name="", notes="", role_layouts=N
         lst = AL.load(config_dir)
         members[FILES["authors"]] = json.dumps({"format": AL.FORMAT, "people": [{"name": x["name"], "efforts": x["efforts"]} for x in lst.people]},
                                                ensure_ascii=False, indent=1).encode("utf-8")
-    for part in ("design", "banned", "goals", "postsub", "process"):
+    for part in ("design", "banned", "goals", "postsub", "process", "doctypes"):
         if part in parts:
             p = os.path.join(config_dir, FILES[part])
             if os.path.isfile(p):
@@ -293,6 +297,10 @@ def preview(config_dir, info, data):
         out.append(("process", "Replaces the stages, gates and roles here (locked by the team)" if "process" in lk else
                     "Adds the team's gate choices and roles; this PC's default stages stay" if mine else
                     "Becomes this PC's default stages, gate choices and roles"))
+    if FILES["doctypes"] in data:
+        mine = os.path.isfile(os.path.join(config_dir, FILES["doctypes"]))
+        out.append(("doctypes", "Replaces the document types here (locked by the team)" if "doctypes" in lk else
+                    "Adds the team's document types; the ones here stay" if mine else "Becomes this PC's document types"))
     return out
 
 
@@ -407,6 +415,17 @@ def install(config_dir, info, data, who=None):
             PR.save(config_dir, gates=mine["gates"] + [g for g in theirs.get("gates", []) if isinstance(g, dict) and g.get("id") not in ids],
                     roles=mine["roles"] + [r for r in theirs.get("roles", []) if isinstance(r, str)])
         PR.apply(config_dir)
+    if FILES["doctypes"] in data:                                      # 2.94.0
+        import doctypes as DT
+        p = os.path.join(config_dir, FILES["doctypes"])
+        theirs = json.loads(data[FILES["doctypes"]]).get("types") or []
+        if "doctypes" in lk or not os.path.isfile(p):
+            _write(p, {"types": theirs})
+        else:
+            mine = DT.load(config_dir)["types"]
+            have = {t["name"].casefold() for t in mine}
+            DT.save(config_dir, mine + [t for t in theirs if isinstance(t, dict) and str(t.get("name", "")).casefold() not in have])
+        DT.apply(config_dir)
     cur = locks(config_dir)
     for p in lk:
         cur[p] = info.get("name", "Team defaults")
@@ -448,6 +467,8 @@ def undo(config_dir):
         R.load_default_goals(config_dir)
         import process as PR
         PR.apply(config_dir)
+        import doctypes as DT
+        DT.apply(config_dir)
     except Exception:
         pass
     shutil.rmtree(bdir, ignore_errors=True)

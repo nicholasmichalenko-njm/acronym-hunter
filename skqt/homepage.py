@@ -133,15 +133,19 @@ class HomePage(QWidget):
         self.info = D.Card("Customer information", "Names, e-mails, phone numbers and addresses from the customer documents.",
                            actions=[D.button("+ Add...", None, lambda: self.info_dialog())])
         self.timeline = D.Card("Timeline", "The effort's paper trail, newest first.")
+        self.fmt_card = D.Card("Formatting requirements", "What the customer documents require for format and files, and "     # 2.94.0
+                               "what they leave unsaid.", actions=[D.button("+ Add...", None, lambda: self.format_dialog()),
+                                                                   D.button("Submission rules", "ghost", lambda: self.host.go("requirements"))])
         self.body = QVBoxLayout(); self.body.setSpacing(D.SPACE["m"]); v.addLayout(self.body)
         v.addStretch(1)
         self.cards = {"stage": self.track, "deliverables": self.deliv_card, "mywork": self.mywork, "goals": self.goals,
-                      "notes": self.notes, "tasks": self.tasks, "calendar": self.cal_card, "info": self.info, "timeline": self.timeline}
+                      "notes": self.notes, "tasks": self.tasks, "calendar": self.cal_card, "info": self.info, "timeline": self.timeline,
+                      "formatting": self.fmt_card}
         self.lay = None
         self.apply_layout()
-        self.sections = {k: QVBoxLayout() for k in ("goals", "tasks", "notes", "info", "timeline")}
+        self.sections = {k: QVBoxLayout() for k in ("goals", "tasks", "notes", "info", "timeline", "formatting")}
         for k, card in (("goals", self.goals), ("tasks", self.tasks), ("notes", self.notes), ("info", self.info),
-                        ("timeline", self.timeline)):
+                        ("timeline", self.timeline), ("formatting", self.fmt_card)):
             self.sections[k].setSpacing(D.SPACE["xs"]); card.body.addLayout(self.sections[k])
 
     # ------------------------------------------------------------ the effort
@@ -197,6 +201,7 @@ class HomePage(QWidget):
         self.calfiles.refresh()
         checks = self.checks = self.state.checks()
         self.draw_track(r)
+        self.draw_formatting(r)
         self.draw_goals(r, checks)
         self.draw_tasks(r)
         self.draw_notes(r)
@@ -471,6 +476,86 @@ class HomePage(QWidget):
         return ok
 
     # ------------------------------------------------------------ gate goals
+    # ------------------------------------------------------------ 2.94.0 formatting requirements
+    def draw_formatting(self, r):
+        import formatreq as FR
+        lay = self.sections["formatting"]; clear(lay)
+        c = getattr(self.banner, "fmt", None) or FR.card([], r.data.get("page_limited", ""))
+        self.fmt_now = c
+        t = D.tokens()
+        pl = c["page_limited"]
+        head = D.label(FR.flag_text(c), "title" if pl is not None else None)
+        head.setStyleSheet(f"font-weight:700;color:{t['warn' if pl else ('ok' if pl is False else 'muted')]};")
+        lay.addWidget(head)
+        for x in c["limits"][:6]:
+            lay.addWidget(D.label((f"{x['subject']}: " if len(c["limits"]) > 1 or x["subject"] != "Proposal" else "") + x["value"]
+                                  + (f"  ·  {x['where']}" if x["where"] else ""), "muted"))
+        req = sum(1 for x in c["lines"] if x["required"])
+        lay.addWidget(D.label(f"{req} of {len(c['lines'])} formatting rules required by the documents", "label"))
+        for x in c["lines"]:
+            row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
+            lab = D.label(x["label"], None, wrap=False); lab.setMinimumWidth(170); row.addWidget(lab, 0, Qt.AlignTop)
+            if x["required"]:
+                col = QVBoxLayout(); col.setSpacing(0)
+                val = ClickLabel(f"Required: {x['value']}", lambda: self.host.go("requirements"))
+                val.setToolTip("Open Submission rules: the sentence, its history, edit or confirm")
+                val.setStyleSheet(f"color:{t['text']};font-weight:600;")
+                col.addWidget(val)
+                if x["where"]:
+                    col.addWidget(D.label(x["where"], "muted"))
+                row.addLayout(col, 1)
+                rr = x["row"]
+                if rr is not None and rr.get("manual"):
+                    row.addWidget(D.button("Remove", "ghost", lambda _=False, k=rr["key"]: self.format_remove(k)), 0, Qt.AlignTop)
+                elif rr is not None:
+                    row.addWidget(D.button("Not required", "ghost", lambda _=False, k=rr["key"]: self.format_hide(k),
+                                           "The documents do not really require this (it stays in Submission rules, hidden)"), 0, Qt.AlignTop)
+            else:
+                row.addWidget(D.label("Not specified in the documents", "muted"), 1)
+            lay.addLayout(row)
+
+    def _register(self):
+        import docversions as DV
+        import subreq as SR
+        return SR.Register(DV.Library(self.host.ws.p("documents")).load())
+
+    def format_dialog(self, answer=None):
+        """+ Add...: a formatting rule the documents set that the app did not find (or one the team must follow).
+        answer (tests): (rule, value)."""
+        if self.host.ws is None:
+            return None
+        if answer is None:
+            import formatreq as FR
+            from PySide6.QtWidgets import QDialog, QDialogButtonBox
+            d = QDialog(self); d.setWindowTitle("Formatting requirement"); f = QFormLayout(d)
+            what = QComboBox(); what.setEditable(True); what.addItems([s for _k, s in FR.ASPECTS] + ["Page limit", "Headers and footers",
+                                                                                                    "Page numbering", "Graphics and tables"])
+            val = QLineEdit(); val.setPlaceholderText("12-point Times New Roman")
+            f.addRow("Rule", what); f.addRow("Required", val)
+            bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
+            f.addRow(bb)
+            if d.exec() != QDialog.Accepted:
+                return None
+            answer = (what.currentText(), val.text())
+        rule, value = answer
+        kind = "Page limit" if rule.strip().lower() == "page limit" else ("File" if rule.strip() in ("File format", "File naming") else "Format")
+        k = self._register().add(kind, rule if kind != "Page limit" else "Proposal", value)
+        if k:
+            diag.activity("qt_format_rule_added")
+            self.changed()
+        return k
+
+    def format_hide(self, key):
+        ok = self._register().hide(key)
+        diag.activity("qt_format_rule_hidden")
+        self.changed()
+        return ok
+
+    def format_remove(self, key):
+        ok = self._register().remove_manual(key)
+        self.changed()
+        return ok
+
     def draw_goals(self, r, checks):
         lay = self.sections["goals"]; clear(lay)
         s = r.stage()

@@ -47,6 +47,8 @@ PS.save_default(cfgA, [{"text": "Archive the final volumes", "owner": "Productio
 import process as PR
 PR.save(cfgA, gates=PR.load(cfgA)["gates"] + [{"name": "Color team sign-off", "behavior": "hard", "about": "Signed by the capture lead"}],
         roles=["Proposal Manager", "Book Boss"])
+import doctypes as DT
+DT.save(cfgA, DT.load(cfgA)["types"] + [{"name": "Pricing Instructions", "initial": "PI"}])
 have = TP.available(cfgA)
 check("the maker's PC lists what it can share", set(have) == set(TP.PARTS), have)
 pack = os.path.join(tmp, f"Team{TP.EXT}")

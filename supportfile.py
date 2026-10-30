@@ -20,6 +20,14 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "2.94.0": ["Effort Home shows whether the effort is page-limited, front and center (PAGE-LIMITED: 50 pages, or Not "
+               "page-limited when you say so in Edit details), and a Formatting requirements card: each rule required (what and "
+               "where) or not specified.",
+               "Settings > Document types: your own types with their initials; picking a type fills in the initial when "
+               "adding customer documents.",
+               "Watched folders: Customer Documents (and any folder you add, subfolders too) is checked for new, changed and "
+               "missing files. A strip says what was found: Add them..., Not these, or Review missing... (find it, keep the "
+               "record without it, or mark it withdrawn)."],
     "2.93.0": ["Settings > Stages, gates and roles: your team's default stages, gate choices (rename the built-in ones, add "
                "your own with what each does and means) and the roles offered for people on an effort. A team pack can carry them.",
                "Stage tables: pick a stage's start and end from a calendar, with an optional time; the Stage column is readable.",

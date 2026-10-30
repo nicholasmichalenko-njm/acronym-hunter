@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, 
                                QLineEdit, QPushButton, QScrollArea, QTableWidget, QTableWidgetItem, QTreeWidget, QTreeWidgetItem,
                                QAbstractItemView, QVBoxLayout, QWidget)
 from . import design as D
+from .doctypeui import follow, type_box
 from .progress import TaskPanel
 import diag
 import compliance_read as CR
@@ -369,14 +370,22 @@ class ReadPage(QWidget):
         v.addWidget(D.label("Every customer document needs an initial and a type before it is read. The initial starts each "
                             "requirement's reference in the matrix (R-L-4.2.1), so sections with the same number in different "
                             "documents never get mixed up.", "muted"))
-        t = QTableWidget(len(sugg), 3); t.setHorizontalHeaderLabels(["File", "Initial", "Type"])
+        t = QTableWidget(len(sugg), 3); t.setHorizontalHeaderLabels(["File", "Type", "Initial"])
         t.verticalHeader().setVisible(False); t.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        t.setColumnWidth(1, 170); t.setColumnWidth(2, 90)
         rows = []
+        lib = self.library() or DV.Library(os.path.join(os.path.dirname(sugg[0][0]), ".none")) if sugg else None
         for i, (p, ini, dtype) in enumerate(sugg):
             t.setItem(i, 0, QTableWidgetItem(os.path.basename(p)))
             e = QLineEdit(ini); e.setMaxLength(6)
-            c = QComboBox(); c.addItems(list(DV.DOC_TYPES)); c.setCurrentIndex(max(0, c.findText(dtype)))
-            t.setCellWidget(i, 1, e); t.setCellWidget(i, 2, c)
+            c = type_box(dtype)
+
+            def sug(ty, me=e):                                     # 2.94.0: the initial follows the type until typed
+                taken = {x[1].text().strip().upper() for x in rows if x[1] is not me} | \
+                        {i2.get("initial") for i2 in self.identities_known().values() if i2.get("initial")}
+                return lib.suggest_initial(ty, taken) if lib is not None else DV.TYPE_INITIAL.get(ty, "X")
+            follow(e, c, sug)
+            t.setCellWidget(i, 1, c); t.setCellWidget(i, 2, e)
             rows.append((p, e, c))
         v.addWidget(t)
         prob = D.label("", "crit"); prob.hide(); v.addWidget(prob)

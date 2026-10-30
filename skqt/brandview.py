@@ -91,6 +91,7 @@ class EffortBanner(QFrame):
         self.name = QLabel(""); self.name.setObjectName("bannerName"); self.name.setWordWrap(True)
         top.addWidget(self.name, 1)
         self.sens = D.Pill("", "head"); top.addWidget(self.sens, 0, Qt.AlignTop)
+        self.pagelim = D.Pill("", "head"); top.addWidget(self.pagelim, 0, Qt.AlignTop)    # 2.94.0: page-limited, front and center
         self.stage = D.Pill("", "accent"); top.addWidget(self.stage, 0, Qt.AlignTop)
         self.sub = D.label("", "muted"); mid.addWidget(self.sub)
         self.grid = QGridLayout(); self.grid.setHorizontalSpacing(D.SPACE["xl"]); self.grid.setVerticalSpacing(4)
@@ -152,12 +153,27 @@ class EffortBanner(QFrame):
         self.sens.setText(sens or "Sensitivity not set"); self.sens.set_tone(BR.tone(sens))
         self.sens.setToolTip("How the effort is marked. CUI and Proprietary mark every page with a strip across the top.")
         self.stage.setText(stage); self.stage.setVisible(bool(stage))
+        try:                                                                    # 2.94.0
+            import docversions as DV
+            import formatreq as FR
+            self.fmt = FR.for_effort(DV.Library(h.ws.p("documents")).load(), rec)
+        except Exception:
+            diag.swallowed()
+            import formatreq as FR
+            self.fmt = FR.card([], rec.data.get("page_limited", ""))
+        pl = self.fmt["page_limited"]
+        self.pagelim.setText(FR.flag_text(self.fmt))
+        self.pagelim.set_tone("warn" if pl else ("ok" if pl is False else "head"))
+        self.pagelim.setToolTip({"set": "Set by the proposal manager (Edit details).", "found": "Page limits found in the customer documents "
+                                 "(Submission rules). Edit details can set it."}.get(self.fmt["how"], "No page limit found in the customer "
+                                 "documents yet. Edit details can say the effort is page-limited or not."))
         L = effort_list
         self.client = (L.client if L else "") or ""
         self.solicitation = (L.solicitation if L else "") or ""
         self.sub.setText("  ·  ".join(x for x in (self.client, self.solicitation) if x) or "Client and solicitation not set yet")
         spots = [("PROPOSAL MANAGER", BR.proposal_manager(rec, self.ident) or "Not set")]
         spots += [("CLIENT", self.client or "Not set"), ("SOLICITATION", self.solicitation or "Not set")]
+        spots += [("PAGE-LIMITED", FR.spot_text(self.fmt))]                    # 2.94.0
         spots += [(f["label"].upper(), f["value"] or "-") for f in self.ident["fields"]]
         self.spots = spots
         while self.grid.count():
@@ -264,6 +280,10 @@ class EffortBanner(QFrame):
             if v["zone_key"]:
                 rec.data["zone"] = v["zone_key"] if v["zone_key"] in TZ.ZONES else v["zone_key"]
             rec.log("effort", f"Submission time zone: {TZ.name(v['zone_key']) or 'not set'}", save=True)
+        if "page_limited" in v and (v["page_limited"] or "") != rec.data.get("page_limited", ""):    # 2.94.0
+            import formatreq as FR
+            rec.data["page_limited"] = v["page_limited"] or ""
+            rec.log("effort", f"Page-limited: {FR.SETTINGS.get(rec.data['page_limited'], '').lower()}", save=True)
         if "client" in v or "solicitation" in v:
             L = h.record_page.effort_list()
             if L is not None:
@@ -334,6 +354,13 @@ class DetailsDialog(QDialog):
         f.addRow("Proposal due", drow)
         f.addRow("Submission time zone", self.zone)
         f.addRow("Sensitivity", self.sens)
+        import formatreq as FR                                                  # 2.94.0
+        self.pagelim = QComboBox()
+        for k, t in FR.SETTINGS.items():
+            self.pagelim.addItem(t, k)
+        self.pagelim.setCurrentIndex(max(0, self.pagelim.findData(rec.data.get("page_limited", ""))))
+        self.pagelim.setToolTip("Decide from the documents: page-limited when a page limit is found. Or say so yourself.")
+        f.addRow("Page-limited", self.pagelim)
         v.addWidget(D.label("The effort's own spots: anything the team wants on the banner (capture manager, contract vehicle, "
                             "value, place of performance).", "muted"))
         self.table = QTableWidget(0, 2); self.table.setHorizontalHeaderLabels(["Spot", "Value"])
@@ -361,7 +388,7 @@ class DetailsDialog(QDialog):
                 fields.append({"label": a.text(), "value": b.text() if b else ""})
         due = (self.due_date.date().toPython().isoformat() + "T" + self.due_time.time().toString("HH:mm")) if self.has_due.isChecked() else ""
         return {"pm": self.pm.currentText(), "client": self.client.text(), "solicitation": self.sol.text(), "zone_key": self.zone.currentData(),
-                "due": due,
+                "due": due, "page_limited": self.pagelim.currentData() or "",
                 "sensitivity": self.sens.currentText(), "fields": fields}
 
 

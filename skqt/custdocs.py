@@ -14,6 +14,7 @@ import docversions as DV
 import effortrec as R
 import subreq as SR
 from . import design as D
+from .doctypeui import follow, type_box
 from .adaptive import FlowLayout
 
 REQ_GROUPS = (("deliver", "Submittal items", ("Deliverable",)), ("pages", "Page limits", ("Page limit",)), ("format", "Format", ("Format",)),
@@ -132,9 +133,10 @@ class AddDialog(QDialog):
                 if e["choice"] == "version" and e.get("doc"):
                     cb.setCurrentIndex(max(0, next((k for k in range(cb.count()) if cb.itemData(k) == ("version", e["doc"])), 0)))
             name = QLineEdit(e.get("name", "")); label = QLineEdit(e.get("label", "")); label.setPlaceholderText("next number")
-            ini = QLineEdit(e.get("initial", "")); ini.setMaxLength(6); ini.setPlaceholderText("R")
-            ty = QComboBox(); ty.addItems(list(DV.DOC_TYPES))
-            ty.setCurrentIndex(max(0, ty.findText(e.get("type", "RFP"))))
+            ini = QLineEdit(e.get("initial", "")); ini.setMaxLength(6); ini.setPlaceholderText(DV.TYPE_INITIAL.get(e.get("type", ""), "R"))
+            ty = type_box(e.get("type", ""))
+            ini.setProperty("sk_typed", False)                  # 2.94.0: the initial follows the type until you type one
+            ini.textEdited.connect(lambda t, w=ini: w.setProperty("sk_typed", bool(t.strip())))
             ty.currentTextChanged.connect(lambda t, w=ini, r=i: self._type_changed(r, t, w))
             self.table.setCellWidget(i, 1, cb); self.table.setCellWidget(i, 2, ini); self.table.setCellWidget(i, 3, ty)
             self.table.setCellWidget(i, 4, name); self.table.setCellWidget(i, 5, label)
@@ -161,7 +163,7 @@ class AddDialog(QDialog):
     def _type_changed(self, r, dtype, ini):
         """A new type suggests its letter, unless the person typed their own."""
         e = self.plan[r]
-        if not ini.text().strip() or ini.text().strip() == e.get("initial", ""):
+        if not ini.property("sk_typed"):
             taken = [w[3].text().strip().upper() for k, w in enumerate(self.rows) if k != r]
             e["initial"] = self.lib.suggest_initial(dtype, taken)
             ini.setText(e["initial"])
@@ -328,9 +330,9 @@ class DocsPage(QWidget):
                              "the document shares it.", "muted"))
             ini = QLineEdit(d.get("initial", "") or c.lib.suggest_initial(d.get("type") or DV.guess_type(d["name"])))
             ini.setMaxLength(6)
-            ty = QComboBox(); ty.addItems(list(DV.DOC_TYPES))
-            ty.setCurrentIndex(max(0, ty.findText(d.get("type") or DV.guess_type(d["name"]))))
-            f.addRow("Initial", ini); f.addRow("Type", ty)
+            ty = type_box(d.get("type") or DV.guess_type(d["name"]))
+            follow(ini, ty, lambda t: c.lib.suggest_initial(t) if t != d.get("type") or not d.get("initial") else d["initial"])
+            f.addRow("Type", ty); f.addRow("Initial", ini)
             bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
             bb.accepted.connect(dlg.accept); bb.rejected.connect(dlg.reject)
             f.addRow(bb)

@@ -1,6 +1,38 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+PAGE-LIMITED AND FORMATTING REQUIREMENTS, DOCUMENT TYPES, WATCHED FOLDERS (2.94.0)
+  - Page-limited, front and center: Effort Home's banner says PAGE-LIMITED (with the limits: "50 pages", or "Vol I 40,
+    Vol II 20") when the customer documents set a page limit, Not page-limited when the proposal manager says so, and
+    "Page limits: none found yet" otherwise; the app never calls an effort not page-limited on a guess. Edit details >
+    Page-limited: Decide from the documents, Page-limited, or Not page-limited (a choice wins over what is found, and
+    is on the timeline). The overview and the readable copy (Formatting requirements.csv) say it too.
+  - Formatting requirements (a card on Effort Home, next to the stage for the proposal manager): page limits, font,
+    font in tables and figures, margins, page size, line spacing, file format and file naming, each either
+    "Required: 12-point Times New Roman" with the document and section it came from (click to open Submission rules) or
+    "Not specified in the documents". + Add... a rule the documents set that the app did not find (headers and
+    footers, page numbering); Not required hides one the documents do not really require (it stays in Submission
+    rules).
+  - Settings > Document types: the kinds of customer document and the initial each starts with (RFP R, Amendment A1,
+    A2..., SOW S...). Add your own (Pricing Instructions PI), with words in a file name that suggest it (pricing, cost
+    volume), whether its documents are numbered, and whether it builds the matrix by default. A renamed type keeps
+    its documents; Other always stays. A team pack can carry the types and lock them.
+  - The initial follows the type: when adding customer documents (Customer Documents, Library, Read RFP, Initial and
+    type), picking a type fills in its initial until you type one of your own (emptying the box hands it back).
+  - Watched folders: the effort's Customer Documents folder, every folder inside it, and any folder added in Library
+    (Add a folder... asks whether to keep watching it; Watched folders... lists, adds and removes them) are checked
+    when the effort opens, when the Library refreshes and every few minutes, in the background. A strip under the
+    header says what was found:
+      new files (no document has them): Add them... reads them into the Library's table, prefilled, from where they
+      are (a file in a subfolder of Customer Documents is not copied again; its folder becomes a tag), or Not these
+      (not offered again unless the file changes);
+      changed files (the file a document was read from now holds other contents): Add them... offers each as the next
+      version of its document;
+      missing files (a document's file is gone): Review missing... for each one: Find it... (the same file at a new
+      place), Keep without it (the record and its text stay; the Library says "original missing"), or Withdrawn (the
+      customer withdrew it: it stays, marked withdrawn, and stops building the matrix). Each choice is on the timeline.
+    The check reads a file again only when its size or time changed, and never adds, removes or renames anything itself.
+
 STAGES, GATES AND ROLES, DEADLINES INSIDE A STAGE, AND A VISIBLE SPLIT (2.93.0)
   - Settings > Stages, gates and roles (the Go to row at the top of Settings reaches it): three tabs.
     Default stages: the stages a new effort starts with, in order, each with its gate. Gate choices: what a stage's

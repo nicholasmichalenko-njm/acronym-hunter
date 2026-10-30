@@ -12,13 +12,14 @@ the PC."""
 import os
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFrame, QHBoxLayout,
-                               QHeaderView, QInputDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem, QScrollArea,
+                               QHeaderView, QInputDialog, QLabel, QLineEdit, QListWidget, QMessageBox, QListWidgetItem, QScrollArea,
                                QSplitter, QTableWidget, QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 import diag
 import effortfolders as EF
 import docintake as DI
 import docversions as DV
 from . import design as D
+from .doctypeui import type_box
 from .adaptive import FlowLayout
 from .progress import JobWorker, TaskPanel
 
@@ -99,7 +100,9 @@ class IntakeDialog(QDialog):
                 role.addItem(n, k)
             role.setCurrentIndex(max(0, role.findData(e.get("role") or "matrix")))
             ini = QLineEdit(e.get("initial", "")); ini.setMaxLength(6)
-            ty = QComboBox(); ty.addItems(list(DV.DOC_TYPES)); ty.setCurrentIndex(max(0, ty.findText(e.get("type", "RFP"))))
+            ini.setProperty("sk_typed", False)                 # 2.94.0: the initial follows the type until you type one
+            ini.textEdited.connect(lambda t, w=ini: w.setProperty("sk_typed", bool(t.strip())))
+            ty = type_box(e.get("type", ""))
             name = QLineEdit(e.get("name", ""))
             tags = QLineEdit(", ".join(e.get("tags", []))); tags.setToolTip("Comma between tags; the folder names are always tags")
             for c, w in ((2, what), (3, cat), (4, role), (5, ini), (6, ty), (7, name), (8, tags)):
@@ -148,7 +151,7 @@ class IntakeDialog(QDialog):
         if w["cat"].currentData() == "customer":
             w["role"].setCurrentIndex(max(0, w["role"].findData(DV.suggest_role("customer", w["ty"].currentText()))))
             e = self.plan[r]
-            if not w["ini"].text().strip() or w["ini"].text().strip() == e.get("initial", ""):
+            if not w["ini"].property("sk_typed"):
                 taken = [x["ini"].text().strip().upper() for k, x in enumerate(self.rows) if k != r]
                 e["initial"] = self.lib.suggest_initial(w["ty"].currentText(), taken)
                 w["ini"].setText(e["initial"])
@@ -228,6 +231,9 @@ class LibraryPage(QWidget):
         top.addWidget(self.b_cat)
         self.b_folder = D.button("Add a folder...", None, lambda: self.add_folder(), "Every document in a folder and its subfolders; the folder names become tags")
         top.addWidget(self.b_folder)
+        self.b_watch = D.button("Watched folders...", None, lambda: self.host.watch_folders(),     # 2.94.0
+                                "The folders checked for new, changed and missing files (Customer Documents always)")
+        top.addWidget(self.b_watch)
         self.b_files = D.button("Add files...", "primary", lambda: self.add(), "Pick documents")
         top.addWidget(self.b_files)
         self.panel = TaskPanel(self.stop, host); v.addWidget(self.panel)
@@ -348,6 +354,8 @@ class LibraryPage(QWidget):
         self.lib = DV.Library(h.ws.p("documents")).load()
         self.fill_tree()
         self.fill()
+        if hasattr(h, "watch_start"):
+            h.watch_start()                         # 2.94.0: the watched folders, checked in the background
 
     def fill_tree(self):
         lib = self.lib
@@ -411,7 +419,13 @@ class LibraryPage(QWidget):
             vs = d["versions"]
             name = d["name"] + (f" ({d['initial']})" if d.get("initial") else "")
             it = _item(name, d["id"], vs[-1].get("file", "") if vs else "")
-            if vs and not self.lib.has_original(vs[-1]):
+            if d.get("withdrawn"):                                   # 2.94.0
+                it.setText(name + "  (withdrawn)"); it.setForeground(D.color("muted"))
+                it.setToolTip(f"Marked withdrawn {d['withdrawn'].get('when', '').replace('T', ' ')} by {d['withdrawn'].get('who', '')}: its file is gone")
+            elif vs and vs[-1].get("missing_kept"):
+                it.setText(name + "  (original missing)"); it.setForeground(D.color("warn"))
+                it.setToolTip("Its file was removed; the record and its text were kept on purpose")
+            elif vs and not self.lib.has_original(vs[-1]):
                 it.setForeground(D.color("warn")); it.setToolTip("The original file is not here (left out of a package or moved). Its text and record are.")
             self.table.setItem(r, 0, it)
             ci = _item(self.lib.category_name(d.get("category", "customer"))); ci.setForeground(D.color(CAT_TONE.get(d.get("category"), "text")))
@@ -622,13 +636,23 @@ class LibraryPage(QWidget):
         if self.worker is not None:
             self.worker.stop_asked = True
 
-    def add_folder(self, folder=None, **kw):
+    def add_folder(self, folder=None, watch=None, **kw):
+        """Every document in a folder and its subfolders; (2.94.0) and keep watching it for new, changed and missing files
+        (asked; watch (tests): True or False)."""
         if self.lib is None:
             return None
         if folder is None:
             folder = QFileDialog.getExistingDirectory(self, "Add every document in a folder (and its subfolders)")
             if not folder:
                 return None
+        if watch is None:
+            watch = QMessageBox.question(self, "Keep watching?", "Keep watching this folder? New files in it (or in the folders "
+                                         "inside it) are offered to add, changed files as new versions, and a document whose "
+                                         "file is removed is reported.", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes) == QMessageBox.Yes
+        if watch:
+            import watch as WA
+            if WA.add_folder(self.host.ws.root, folder, kw.get("category") or ""):
+                diag.activity("qt_watch_folder_added")
         found = DI.walk(folder)
         if not found:
             self.host.status("No documents (Word, PDF, PowerPoint, Excel, text) in that folder.")

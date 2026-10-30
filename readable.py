@@ -107,6 +107,18 @@ def build(effort=None, rec=None, lib=None, req_rows=(), matrix=None, info=None, 
                                      d.get("limit", ""), d.get("file", ""), _doc_name(lib, d.get("doc_id")),
                                      "; ".join(f"{names.get(sid, sid)} ({v})" for sid, v in (d.get("stages_done") or {}).items()),
                                      d.get("notes", ""), _when(d.get("created")), d.get("by", "")] for d in rec.data.get("deliverables", [])])
+        if lib is not None:                                         # 2.94.0: page-limited and the formatting rules
+            try:
+                import formatreq as FR
+                fc = FR.for_effort(lib, rec)
+                out["Formatting requirements.csv"] = (["Rule", "Required", "What the documents say", "Where"],
+                                                       [["Page-limited", "", FR.flag_text(fc), {"set": "set by the proposal manager",
+                                                                                               "found": "found in the documents"}.get(fc["how"], "")]]
+                                                       + [[f"Page limit: {x['subject']}", "yes", x["value"], x["where"]] for x in fc["limits"]]
+                                                       + [[x["label"], "yes" if x["required"] else "no", x["value"] or "Not specified in the documents",
+                                                           x["where"]] for x in fc["lines"]])
+            except Exception:
+                pass
         out["Timeline (paper trail).csv"] = (["When", "Who", "Kind", "Stage", "What happened"],
                                              [[_when(e.get("at")), e.get("who", ""), e.get("kind", ""), names.get(e.get("stage"), ""), e.get("text", "")]
                                               for e in rec.data.get("timeline", [])])
@@ -240,6 +252,7 @@ FILES = [
     ("Tasks.csv", "Every task: owner, due date, stage, status, what it is about, notes."),
     ("Notes and open questions.csv", "Every note and question: when, who, what it is about, the answer when resolved."),
     ("Deliverables.csv", "What the effort must deliver: kind, owner, status, format, page limit, our working file, the customer form, done marks per stage."),
+    ("Formatting requirements.csv", "Whether the effort is page-limited, its page limits, and each formatting rule: required (what and where) or not specified."),
     ("Timeline (paper trail).csv", "Everything that happened, in order: documents added, decisions, stage moves, assignments, notes, tasks."),
     ("Submission requirements.csv", "Due dates, page limits, format, files, copies, delivery and deliverables: the value, the sentence and document it came from, and whether a change is reviewed."),
     ("Customer documents.csv", "Every customer document and version: file, when added, by whom, fingerprint, whether its changes are reviewed."),

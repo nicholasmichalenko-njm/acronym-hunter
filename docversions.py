@@ -112,6 +112,29 @@ TYPE_INITIAL = {"RFP": "R", "Amendment": "A", "SOW": "S", "SOO": "O", "PWS": "P"
                 "Attachment": "J", "CDRL": "C", "DD 254": "D", "Other": "X"}
 
 
+NUMBERED = {"Amendment"}            # 2.94.0: types whose documents are numbered (A1, A2...)
+TYPE_ALIAS = {}                     # 2.94.0: an old type name -> its new name (Settings > Document types renamed it)
+TYPE_WORDS = {}                     # 2.94.0: a team type -> words in a file name that suggest it
+_BUILT_IN_GUESS = set(DOC_TYPES)
+
+
+def set_types(types):
+    """2.94.0: the team's document types (doctypes.py): names in order, initials, numbered, builds the matrix, file name
+    words, old names."""
+    global DOC_TYPES
+    DOC_TYPES = tuple(t["name"] for t in types)
+    TYPE_INITIAL.clear(); TYPE_INITIAL.update({t["name"]: t["initial"] for t in types})
+    NUMBERED.clear(); NUMBERED.update(t["name"] for t in types if t.get("numbered"))
+    MATRIX_TYPES.clear(); MATRIX_TYPES.update(t["name"] for t in types if t.get("matrix"))
+    TYPE_ALIAS.clear(); TYPE_ALIAS.update({a: t["name"] for t in types for a in t.get("aliases", [])})
+    TYPE_WORDS.clear(); TYPE_WORDS.update({t["name"]: t["words"] for t in types if t.get("words")})
+
+
+def type_of(name):
+    """A stored type name as it is called now (a renamed type follows its new name)."""
+    return TYPE_ALIAS.get(name, name) if name else name
+
+
 def clean_initial(text):
     """An initial: letters and digits only, upper case, at most 6 characters."""
     import re
@@ -122,14 +145,18 @@ def guess_type(name):
     """The document type a file name suggests (the person confirms it)."""
     import re
     n = (name or "").lower()
+    for t, words in TYPE_WORDS.items():          # 2.94.0: the team's own types first, by their words
+        for w in [x.strip().lower() for x in re.split(r"[,;]", words) if x.strip()]:
+            if re.search(r"(?<![a-z0-9])" + re.escape(w) + r"(?![a-z0-9])", n.replace("_", " ")):
+                return t
     for pat, t in ((r"amend|\bamd\b|_amd|amd\d|\bmod\b", "Amendment"), (r"\bsow\b|statement[\s_-]*of[\s_-]*work", "SOW"),
                    (r"\bsoo\b|statement[\s_-]*of[\s_-]*objectives", "SOO"), (r"\bpws\b|performance[\s_-]*work", "PWS"),
                    (r"q\s*&\s*a|questions|\bqa\b", "Q&A"), (r"cdrl", "CDRL"), (r"dd[\s_-]*254", "DD 254"),
                    (r"attachment|\batt\b|exhibit|\bj-\d", "Attachment"), (r"section[\s_]*l\b", "Section L"),
                    (r"section[\s_]*m\b", "Section M"), (r"\brfp\b|solicitation|\brfq\b", "RFP")):
-        if re.search(pat, n.replace("_", " ")):
+        if re.search(pat, n.replace("_", " ")) and t in DOC_TYPES:
             return t
-    return "RFP"
+    return "RFP" if "RFP" in DOC_TYPES else (DOC_TYPES[0] if DOC_TYPES else "Other")
 
 
 # ------------------------------------------------------------------ the library
@@ -206,6 +233,9 @@ class Library:
         import workspace as W
         d = W.read_json(self.index_path, None) or {}
         self.all = d.get("docs", [])
+        for x in self.all:                          # 2.94.0: a renamed type: its documents follow the new name
+            if x.get("type") in TYPE_ALIAS:
+                x["type"] = TYPE_ALIAS[x["type"]]
         self.extra_categories = [c for c in d.get("categories", []) if isinstance(c, list) and len(c) == 2]
         return self
 
@@ -364,7 +394,7 @@ class Library:
         """The type's letter, numbered when taken (R, R2...; amendments A1, A2...)."""
         base = TYPE_INITIAL.get(dtype, "X")
         used = self.initials() | set(taken)
-        if dtype == "Amendment":
+        if dtype in NUMBERED:
             n = 1
             while f"{base}{n}" in used:
                 n += 1

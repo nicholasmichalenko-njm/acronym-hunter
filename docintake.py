@@ -139,7 +139,8 @@ def apply(lib, entries, customer_dir="", log=None, progress=None):
         cd = customer_dir if cat == "customer" else library_dir(lib, cat, e.get("folder", ""))
         if cat != "customer":
             os.makedirs(cd, exist_ok=True)
-        if cd and os.path.isdir(cd) and os.path.normcase(os.path.dirname(os.path.abspath(src))) != os.path.normcase(os.path.abspath(cd)):
+        inside = cd and os.path.normcase(os.path.abspath(src)).startswith(os.path.normcase(os.path.abspath(cd)) + os.sep)
+        if cd and os.path.isdir(cd) and not inside:        # 2.94.0: a file already in the folder (or a subfolder) stays put
             dest = os.path.join(cd, os.path.basename(src))
             if os.path.exists(dest) and DV.sha256(dest) != e["sha"]:
                 base, ext = os.path.splitext(dest)

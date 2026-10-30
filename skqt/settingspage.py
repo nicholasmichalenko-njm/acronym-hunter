@@ -62,6 +62,9 @@ class SettingsPage(QWidget):
         from .processview import ProcessCard             # 2.93.0: the team's stages, gate choices and roles
         self.process_card = ProcessCard(host)
         v.addWidget(self.process_card)
+        from .doctypesview import DocTypesCard           # 2.94.0: customer document types and their initials
+        self.doctypes_card = DocTypesCard(host)
+        v.addWidget(self.doctypes_card)
         from .brandview import BrandingCard              # 2.88.0: the company logos at the top of the menu
         self.branding_card = BrandingCard(host)
         v.addWidget(self.branding_card)
@@ -73,7 +76,8 @@ class SettingsPage(QWidget):
         self.jump_row = FlowLayout(None, D.SPACE["s"])
         jl = D.label("Go to:", "muted", wrap=False); self.jump_row.addWidget(jl)
         for text, card in (("Your time zone", self.tz_card), ("Efforts", self.eff), ("Author list", self.authors),
-                           ("Stages, gates and roles", self.process_card), ("Branding", self.branding_card), ("Team pack", self.team_card)):
+                           ("Stages, gates and roles", self.process_card),
+                           ("Document types", self.doctypes_card), ("Branding", self.branding_card), ("Team pack", self.team_card)):
             self.jump_row.addWidget(D.button(text, "ghost", lambda _=False, c=card: self.jump(c)))
         v.insertLayout(0, self.jump_row)
         self.db = D.Card("Master database", "The company's acronyms, abbreviations, units and symbols, shared by every effort on this PC.",
