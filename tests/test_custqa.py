@@ -78,7 +78,7 @@ check("the template's header row is found by its column names", found and found[
 out = os.path.join(tmp, "filled.xlsx")
 n, fields = Q.fill_template(t, out, Q.items(rec))
 w2 = openpyxl.load_workbook(out)["Questions"]
-check("filled under the header, in its columns, the rest as it was", n == 3 and w2["A5"].value == 1 and w2["B5"].value == "L.4.2"
+check("filled under the header, in its columns, the rest as it was", n == 3 and w2["A5"].value == 1 and w2["B5"].value == "Section_L.pdf: L.4.2"
       and w2["D5"].value.startswith("Will the Government") and w2["E5"].value in (None, "") and w2["A1"].value.startswith("FA8810")
       and w2["A40"].value.startswith("Instructions"))
 # the customer's Word template
@@ -88,7 +88,10 @@ d.para("Return this form by the questions due date."); d.save(tw)
 ow = os.path.join(tmp, "QA_Form_filled.docx")
 Q.fill_template(tw, ow, Q.items(rec))
 rows = Q._docx_tables(ow)[0]
-check("the Word template: a row per question in its table, the blank row used", len(rows) == 4 and rows[1][:3] == ["1", "Section L.4.2, p.12, para 3", "Will the Government accept a 25-page Volume II?"], rows[1])
+check("the Word template: a row per question in its table, the blank row used", len(rows) == 4 and rows[1][:3] == ["1", "Section_L.pdf: Section L.4.2, p.12, para 3", "Will the Government accept a 25-page Volume II?"], rows[1])
+check("3.0.1: a template with no document column still names the customer file in its reference column",
+      all(w2.cell(5 + i, 2).value.startswith(q["doc"]) and rows[1 + i][1].startswith(q["doc"]) for i, q in enumerate(Q.items(rec))),
+      [w2.cell(5 + i, 2).value for i in range(3)])
 check("... and the rest of the form kept", "Return this form" in zipfile.ZipFile(ow).read("word/document.xml").decode())
 nq = os.path.join(tmp, "no_questions.docx")
 d = docxw.Doc(); d.table(["Name", "Value"], [["a", "b"]], [3000, 3000]); d.save(nq)

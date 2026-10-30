@@ -8,6 +8,8 @@ REVIEW, AND A CLEANER CUSTOMER Q&A (3.0.1)
   - Customer Q&A exported to Word: No., Reference (the document, then section, page and paragraph), RFP Text (the
     customer's exact words), Question and Government Response. Include the answers fills the last column. Only what
     the customer needs goes out: never the owner, status, category or internal notes.
+  - Every exported question names the customer file it is about. Filling the customer's own template that has no
+    document column puts the file name first in its reference column ("Section_L.pdf: L.4.2").
   - SCIF-ready: the administrator self test (Stationkeeper.exe --selftest <files>) now keeps a content-free result
     (how many files and terms, the security checks, OK) in _local_sandbox\selftest.txt. It used to write a full report
     with file names and terms into a logs folder. The update and knowledge-pack command-line results also stay out of

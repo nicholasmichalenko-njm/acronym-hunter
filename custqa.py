@@ -262,10 +262,15 @@ def column_of(header):
     return ""
 
 
-def _values(q, k, numbers, full_ref=False):
-    """full_ref: the template has no page column, so its section column carries section, page and paragraph."""
+def _values(q, k, numbers, full_ref=False, doc_in_section=False):
+    """full_ref: the template has no page column, so its section column carries section, page and paragraph.
+    doc_in_section (3.0.1): the template has no document column, so the section column names the document first: every
+    question always says which customer file it is about."""
+    section = where(q) if (full_ref or not q.get("section")) else q.get("section", "")
+    if doc_in_section and q.get("doc"):
+        section = f"{q['doc']}: {section}" if section else q["doc"]
     return {"n": q.get("n", k) if numbers == "list" else k, "doc": q.get("doc", ""),
-            "section": where(q) if (full_ref or not q.get("section")) else q.get("section", ""), "page": q.get("page", ""),
+            "section": section, "page": q.get("page", ""),
             "para": q.get("para", ""),
             "quote": q.get("quote", ""), "question": q.get("question", ""), "category": q.get("category", ""), "answer": ""}
 
@@ -312,8 +317,9 @@ def fill_template(template, out, rows, numbers="list"):
             r += 1
         style_row = hrow + 1
         full = "page" not in cols.values()
+        dis = "doc" not in cols.values()
         for k, q in enumerate(rows, start=1):
-            vals = _values(q, k, numbers, full)
+            vals = _values(q, k, numbers, full, dis)
             for c, field in cols.items():
                 cell = ws.cell(r, c, vals.get(field, ""))
                 src = ws.cell(style_row, c)
@@ -323,8 +329,8 @@ def fill_template(template, out, rows, numbers="list"):
             r += 1
         wb.save(out)
         return len(rows), sorted(set(cols.values()))
-    full = "page" not in cols.values()
-    _docx_fill(template, out, where_, hrow, cols, [_values(q, k, numbers, full) for k, q in enumerate(rows, start=1)])
+    full, dis = "page" not in cols.values(), "doc" not in cols.values()
+    _docx_fill(template, out, where_, hrow, cols, [_values(q, k, numbers, full, dis) for k, q in enumerate(rows, start=1)])
     return len(rows), sorted(set(cols.values()))
 
 
