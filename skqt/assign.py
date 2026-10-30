@@ -452,7 +452,10 @@ class AssignPage(QWidget):
         else:
             done.pop(self.file, None)
         self.host.ws.set("assign_reviewed", done)
-        diag.activity("assign_file_reviewed" if on else "assign_file_unreviewed")
+        if on:
+            diag.activity("assign_file_reviewed")
+        else:
+            diag.activity("assign_file_unreviewed")
         self.show_queue()
         return on
 
