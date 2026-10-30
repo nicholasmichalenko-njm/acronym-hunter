@@ -14,7 +14,8 @@ effort's app data (watch.json). Standard library plus the effort modules.
 import datetime, getpass, os
 
 FILE = "watch.json"
-KINDS = (".docx", ".pdf", ".pptx", ".xlsx", ".xls", ".doc", ".txt", ".csv", ".rtf", ".pptm", ".docm", ".xlsm")
+KINDS = (".docx", ".pdf", ".pptx", ".xlsx", ".xls", ".doc", ".txt", ".csv", ".rtf", ".pptm", ".docm", ".xlsm", ".ppt",
+         ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".gif", ".webp")                         # 2.96.0: pictures
 
 
 def _now():

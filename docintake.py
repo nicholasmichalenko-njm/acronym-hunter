@@ -10,10 +10,17 @@ import docversions as DV
 
 
 def read(path):
-    """The text of a file, sentence by sentence (typed text, and scanned pages through the reader)."""
+    """The text of a file, sentence by sentence (typed text, and scanned pages and pictures through the reader).
+    2.96.0: an old .doc, .xls or .ppt file is read from its PDF copy (Microsoft Office makes it)."""
     try:
         import app_gui
-        chunks = app_gui.rfp_chunks(path)
+        import ocrpdf
+        src = path
+        if ocrpdf.is_legacy(path):
+            import tempfile
+            import office_pdf as OP
+            src = OP.make(path, tempfile.mkdtemp(prefix="sk_legacy_"))
+        chunks = app_gui.rfp_chunks(src)
     except Exception:
         diag.swallowed()
         chunks = []
@@ -24,7 +31,8 @@ class Stopped(Exception):
     """2.83.0: the person pressed Stop while files were being read; nothing was added."""
 
 
-FILE_TYPES = (".docx", ".pdf", ".pptx", ".xlsx", ".txt")
+FILE_TYPES = (".docx", ".pdf", ".pptx", ".xlsx", ".txt", ".doc", ".xls", ".ppt",            # 2.96.0: old Office files
+              ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".gif", ".webp")                  # and pictures
 
 
 def walk(folder):

@@ -667,7 +667,7 @@ class LibraryPage(QWidget):
                 self.host.status("Documents are being read: wait for it, or press Stop.")
             return None
         if paths is None:
-            paths, _ = QFileDialog.getOpenFileNames(self, "Add documents to the library", "", "Documents (*.docx *.pdf *.pptx *.xlsx *.txt)")
+            paths, _ = QFileDialog.getOpenFileNames(self, "Add documents to the library", "", "Documents (*.docx *.pdf *.pptx *.xlsx *.txt *.doc *.xls *.ppt *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.gif *.webp)")
         if not paths:
             return None
         lib, rd = self.lib, reader or DI.read

@@ -46,7 +46,7 @@ def _takes_say(fn):
         return False
 
 
-def read_files(paths, chunks_of, progress=None, stop=None):
+def read_files(paths, chunks_of, progress=None, stop=None, page_copy=None):
     """(items, headings, sources, empty): the review sentences of the files, in order.
     2.82.0: progress(fraction, text) as it goes (each file, its pages when the reader reports them, then finding the
     requirements); stop() True between files raises Stopped; a file that cannot be read raises ReadFailed naming it."""
@@ -61,7 +61,20 @@ def read_files(paths, chunks_of, progress=None, stop=None):
         say(k / n, head)
         try:
             pg = None
-            if p.lower().endswith(".pdf"):
+            pc = None
+            if page_copy is not None:                   # 2.96.0: a picture or scanned PDF: its copy with words
+                try:
+                    pc = page_copy(p, lambda msg, k=k, head=head: say(k / n, f"{head} ({msg})"))
+                except Exception:
+                    diag.swallowed()
+                    pc = None
+            if pc:
+                try:
+                    pg = PS.chunks_for(pc, name)
+                except Exception:
+                    diag.swallowed()
+                    pg = None
+            if pg is None and p.lower().endswith(".pdf"):
                 try:
                     pg = PS.chunks_for(p, name)          # 2.57.0: sentences cut from the page, headers and footers left out
                 except Exception:

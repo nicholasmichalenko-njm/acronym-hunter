@@ -80,7 +80,7 @@ class Ctx:
         out = []
         for f in sorted(os.listdir(cd)):
             p = os.path.join(cd, f)
-            if os.path.isfile(p) and not f.startswith("~$") and f.lower().endswith((".docx", ".pdf", ".pptx", ".xlsx", ".txt")):
+            if os.path.isfile(p) and not f.startswith("~$") and f.lower().endswith(DI.FILE_TYPES):
                 try:
                     if DV.sha256_cached(p) not in have:
                         out.append(p)
@@ -289,7 +289,7 @@ class DocsPage(QWidget):
             return None
         if paths is None:
             paths, _ = QFileDialog.getOpenFileNames(self, "Add customer documents", c.customer_dir(),
-                                                    "Documents (*.docx *.pdf *.pptx *.xlsx *.txt)")
+                                                    "Documents (*.docx *.pdf *.pptx *.xlsx *.txt *.doc *.xls *.ppt *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.gif *.webp)")
         if not paths:
             return None
         plan = DI.plan(c.lib, list(paths))

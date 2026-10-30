@@ -29,6 +29,7 @@ from . import design as D
 SCALE = 2.0          # pixels per PDF point in the page pictures (sharp when zoomed in)
 GAP = 24             # between pages, in points
 MARGIN = 160         # the label margin left of the pages, in points
+SHEET_X = 8          # 2.96.0: Sheet view starts near the left edge (its row numbers are its labels)
 WORD = re.compile(r"[A-Za-z0-9]+")
 
 
@@ -87,6 +88,7 @@ class PageView(QGraphicsView):
         self.setRubberBandSelectionMode(Qt.IntersectsItemShape)
         self.setBackgroundBrush(D.color("page"))
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+        self.setAlignment(Qt.AlignLeft | Qt.AlignTop)        # 2.96.0: a short sheet sits at the top, not in the middle
         self.boxes = {}
         self.words = {}                            # sentence id -> [scene rects of its words, in order]
         self.zoom = 1.0
@@ -188,11 +190,22 @@ class CopyWorker(QThread):
         self.paths, self.folder = paths, folder
 
     def run(self):
+        import ocrpdf
+        ocr = [p for p in self.paths if ocrpdf.needs_copy(p)]             # 2.96.0: pictures and scanned PDFs
+        office = [p for p in self.paths if p not in ocr]
+        res = {}
         try:
-            res = OP.make_many(self.paths, self.folder)
+            res.update(OP.make_many(office, self.folder) if office else {})
         except Exception:
             diag.swallowed()
-            res = {p: RuntimeError("Office could not save a PDF copy") for p in self.paths}
+            res.update({p: RuntimeError("Office could not save a PDF copy") for p in office})
+        for p in ocr:
+            try:
+                ocrpdf.make(p, self.folder)
+                res[p] = ""
+            except Exception:
+                diag.swallowed()
+                res[p] = RuntimeError("the words on the page could not be read")
         self.done.emit({p: (str(r) if isinstance(r, Exception) else "") for p, r in res.items()})
 
 
@@ -241,6 +254,11 @@ class AssignPage(QWidget):
                                 "and adds it as a sentence in its place, ready to assign")
         self.cap_btn.setCheckable(True)
         bar.addWidget(self.cap_btn)
+        self.sheet_on, self.sheet = True, None          # 2.96.0: Excel files open in Sheet view
+        self.sheet_btn = D.button("Page view", None, lambda: self.toggle_sheet(), "Switch an Excel file between its cells (Sheet "
+                                  "view) and its PDF copy (Page view)")
+        self.sheet_btn.setVisible(False)
+        bar.addWidget(self.sheet_btn)
         fit = QPushButton("Fit width"); fit.clicked.connect(lambda: self.view.fit()); bar.addWidget(fit)
         self.note = D.label("", "muted"); v.addWidget(self.note)
         self.view = PageView()
@@ -412,11 +430,22 @@ class AssignPage(QWidget):
         path = self.M.path_of(f)
         if not path:
             return "", f"{f} is not on this PC"
+        import ocrpdf                               # 2.96.0: pictures and scanned pages, with their words laid over them
+        folder = self.copies_dir()
+        if ocrpdf.needs_copy(path):
+            c = ocrpdf.copy_path(path, folder) if folder else ""
+            if c and os.path.isfile(c):
+                return c, ""
+            if path.lower().endswith(".pdf") and not folder:
+                return path, ""
+            if path in self.conv_err:
+                return (path, "") if path.lower().endswith(".pdf") else ("", self.conv_err[path])
+            self.make_copies()
+            return "", "Reading the words on the page so they can be selected (once per file)"
         if path.lower().endswith(".pdf"):
             return path, ""
         if not OP.kind(path):
-            return "", "Page view shows PDF, Word, Excel and PowerPoint files"
-        folder = self.copies_dir()
+            return "", "Page view shows PDF, Word, Excel, PowerPoint files and pictures"
         c = OP.copy_path(path, folder) if folder else ""
         if c and os.path.isfile(c):
             return c, ""
@@ -428,7 +457,8 @@ class AssignPage(QWidget):
         return "", f"Microsoft {OP.kind(path).capitalize()} is making a PDF copy (once per file; about a minute)"
 
     def make_copies(self):
-        paths = [p for p in (self.M.path_of(f) for f in self.R.files()) if p and OP.kind(p) and p not in self.conv]
+        import ocrpdf
+        paths = [p for p in (self.M.path_of(f) for f in self.R.files()) if p and (OP.kind(p) or ocrpdf.needs_copy(p)) and p not in self.conv]
         if not paths:
             return
         self.conv |= set(paths)
@@ -461,6 +491,12 @@ class AssignPage(QWidget):
             self.cx = None
         self.set_mode()
         self.file = f
+        self.sheet = None
+        xl = self.M.path_of(f) if self.cx is None else ""
+        if xl and xl.lower().endswith((".xlsx", ".xlsm")) and self.sheet_on and os.path.isfile(xl):   # 2.96.0: Sheet view
+            self.sheet_btn.setVisible(True)
+            return self.draw_sheet(xl)
+        self.sheet_btn.setVisible(bool(xl and xl.lower().endswith((".xlsx", ".xlsm"))))
         self.pdf, why = self.pdf_of(f)
         sc = self.view.scene()
         self.view.boxes, self.view.words, self.labels, self.tops = {}, {}, [], []
@@ -496,8 +532,85 @@ class AssignPage(QWidget):
         self.note.setText("Click a sentence; Ctrl+click adds one (even far apart); drag a box around several. Ctrl+wheel zooms.")
         QTimer.singleShot(0, self.view.fit)
 
+    # ------------------------------------------------------------ 2.96.0 Sheet view (an Excel workbook as its cells)
+    def sheet_font(self):
+        f = QFont("Consolas"); f.setStyleHint(QFont.Monospace); f.setPointSizeF(8.5)
+        from PySide6.QtGui import QFontMetricsF
+        fm = QFontMetricsF(f)
+        return f, fm.horizontalAdvance("M"), fm.height() * 1.08
+
+    def draw_sheet(self, path):
+        import sheetview as SV
+        sc = self.view.scene()
+        self.view.boxes, self.view.words, self.labels, self.tops = {}, {}, [], []
+        self._guard = True
+        sc.clear()
+        self._guard = False
+        self.pdf = ""
+        try:
+            sheets = SV.read(path)
+        except Exception:
+            diag.swallowed()
+            t = sc.addText(f"{self.file}: the workbook could not be read; Page view shows its PDF copy.")
+            t.setDefaultTextColor(QColor("#334155"))
+            return
+        font, cw, lh = self.sheet_font()
+        cells, labels, _h = SV.layout(sheets, cw, lh)
+        grid = QPen(QColor("#CBD5E1")); grid.setCosmetic(True); grid.setWidthF(0.6)
+        ink, muted = QColor("#0F172A"), QColor("#64748B")
+        for c in cells:
+            x, y, w, h = c["rect"]
+            r = sc.addRect(QRectF(x + SHEET_X, y, w, h), grid, QBrush(QColor("#FFFFFF"))); r.setZValue(-1)
+            for i, (_s, line) in enumerate(c["lines"]):
+                if line:
+                    t = sc.addSimpleText(line, font); t.setBrush(ink); t.setPos(x + SHEET_X + 4, y + 4 + i * lh)
+        for text, x, y, kind in labels:
+            t = sc.addSimpleText(text, font if kind != "sheet" else QFont(font.family(), 11, QFont.Bold))
+            t.setBrush(muted if kind != "sheet" else ink)
+            t.setPos(x + SHEET_X - (0 if kind != "row" else 0), y)
+        self.sheet = {"path": path, "cells": cells, "cw": cw, "lh": lh}
+        self.build_boxes()
+        self.note.setText("Sheet view: each cell as it is in the workbook. Click a sentence in a cell; Ctrl+click adds one; "
+                          "Page view (beside File) shows the PDF copy instead.")
+        QTimer.singleShot(0, self.view.fit)
+
+    def toggle_sheet(self):
+        self.sheet_on = not self.sheet_on
+        self.sheet_btn.setText("Page view" if self.sheet_on else "Sheet view")
+        diag.activity("assign_sheet_view_toggled")
+        if self.file:
+            self.open_file(self.file)
+
+    def build_sheet_boxes(self):
+        import sheetview as SV
+        sc = self.view.scene()
+        rows = self.R.rows_of(self.file)
+        S = self.sheet
+        found = SV.match(rows, S["cells"])
+        self.placed = {}
+        for it in rows:
+            if it["id"] not in found:
+                continue
+            k, start = found[it["id"]]
+            words = SV.word_rects(S["cells"][k], it.get("text", ""), start, S["cw"], S["lh"])
+            if not words:
+                continue
+            rects = [(l + SHEET_X, t, r + SHEET_X, b) for l, t, r, b in SV.sentence_rects(words)]
+            box = SentenceBox(it["id"], rects)
+            sc.addItem(box)
+            self.view.boxes[it["id"]] = box
+            self.view.words[it["id"]] = [QRectF(x + SHEET_X, y, w, h) for x, y, w, h in words]
+        self.restyle()
+
     def build_boxes(self):
         sc = self.view.scene()
+        if getattr(self, "sheet", None):                  # 2.96.0
+            old, self.view.boxes, self.view.words = self.view.boxes, {}, {}
+            self._guard = True
+            for b in old.values():
+                sc.removeItem(b)
+            self._guard = False
+            return self.build_sheet_boxes()
         old, self.view.boxes, self.view.words = self.view.boxes, {}, {}
         self._guard = True
         for b in old.values():

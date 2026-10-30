@@ -22,7 +22,8 @@ EXT = ".skpkg"
 EXTS = (".skpkg", ".ahpkg")             # 2.44.0: packages saved as Acronym Hunter still open
 SKIP_DIRS = {"backups", "recovery", "__pycache__"}
 SKIP_FILES = {"lock.json"}
-DOC_TYPES = (".docx", ".pdf", ".pptx", ".xlsx", ".xls", ".doc", ".txt", ".csv", ".zip", ".mpp")
+DOC_TYPES = (".docx", ".pdf", ".pptx", ".xlsx", ".xls", ".doc", ".txt", ".csv", ".zip", ".mpp", ".ppt",
+             ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".gif", ".webp")                     # 2.96.0: pictures
 
 
 class PackageError(Exception):

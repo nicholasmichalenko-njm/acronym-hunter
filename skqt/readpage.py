@@ -21,16 +21,18 @@ class ReadWorker(QThread):
     done = Signal(object)
     progress = Signal(float, str)
 
-    def __init__(self, paths, chunks_of):
+    def __init__(self, paths, chunks_of, copies=""):
         super().__init__()
-        self.paths, self.chunks_of = paths, chunks_of
+        self.paths, self.chunks_of, self.copies = paths, chunks_of, copies
         self.stop_asked = False
         self.abandoned = False                     # the effort closed: the result is thrown away
 
     def run(self):
         try:
+            import ocrpdf
             res = CR.read_files(self.paths, self.chunks_of, progress=lambda f, t: self.progress.emit(float(f), t),
-                                stop=lambda: self.stop_asked or self.abandoned)
+                                stop=lambda: self.stop_asked or self.abandoned,
+                                page_copy=(lambda p, say: ocrpdf.page_copy(p, self.copies, say)) if self.copies else None)
         except Exception as ex:
             if not isinstance(ex, (CR.Stopped, CR.ReadFailed)):
                 diag.swallowed()
@@ -260,7 +262,7 @@ class ReadPage(QWidget):
         return "" if choice == "choose" else "Blank structure: build it beside the page in Assign."
 
     def pick(self):
-        paths, _ = QFileDialog.getOpenFileNames(self, "RFP documents", "", "RFP documents (*.docx *.pdf *.xlsx *.pptx)")
+        paths, _ = QFileDialog.getOpenFileNames(self, "RFP documents", "", "RFP documents (*.docx *.pdf *.xlsx *.pptx *.doc *.xls *.ppt *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.gif *.webp)")
         self._guard = True
         for p in paths:
             self.boxes.append(DocRow(self.tree, p, os.path.basename(p), "added here", {}))
@@ -500,7 +502,7 @@ class ReadPage(QWidget):
             diag.activity("compliance_new", files=len(paths))
         else:
             diag.activity("compliance_files_added", files=len(paths))
-        self.worker = ReadWorker(paths, self.chunks_of)
+        self.worker = ReadWorker(paths, self.chunks_of, self.host.ws.p("page copies") if self.host.ws is not None else "")
         self.worker.done.connect(self.read_done)
         self.worker.progress.connect(self.panel.step)
         self.panel.start(("Starting the compliance matrix" if self._new else "Adding documents to the compliance matrix")
