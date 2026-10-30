@@ -47,6 +47,8 @@ app.geometry("1300x860+0+0")
 
 def go():
     L = E.EffortList(LIST, "Kestrel"); L.pending = True; L.save()
+    import branding as BR, effortrec as RR, workspace as WS
+    BR.set_identity(RR.Record(WS.data_dir_for(LIST)), sensitivity="CUI")    # 2.97.0: only efforts at most CUI go to training
     app.efforts.put("Kestrel", path=LIST)
     app.open_effort("Kestrel")
     app.ws.set("compliance_path", M.path)
