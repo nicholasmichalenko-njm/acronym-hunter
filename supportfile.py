@@ -20,6 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.0.0": ["Amendments that say what to change (delete and insert, replace or delete a paragraph, add one) are applied to "
+              "the document they change: Library > Apply its instructions makes its Conformed version and says what did not apply.",
+              "Task orders and delivery orders are document types of their own, filed under the base contract or RFP in Library."],
     "2.99.0": ["More captures in Assign: evaluation factors with their importance, page limits, deliverables, effort details "
                "(NAICS, contract type, set-aside...) and hot buttons. Effort Home shows Evaluation and hot buttons.",
                "Tasks and team questions on a sentence, shown on its card and in the effort record.",

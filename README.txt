@@ -1,6 +1,21 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+AMENDMENTS AS INSTRUCTIONS, AND TASK AND DELIVERY ORDERS (3.0.0)
+  - Many amendments do not reissue the document; they say what to change: "In paragraph L.4.2, delete "twenty (20)
+    pages" and insert "twenty-five (25) pages"", "Paragraph L.5.3 is deleted in its entirety and replaced with the
+    following...", "Paragraph M.2.4 is hereby deleted", "Add the following new paragraph L.5.6 after paragraph L.5.5...",
+    or words changed everywhere. Stationkeeper finds these instructions in the amendment's text.
+  - Adding such an amendment says how many instructions it holds. In Library, select it and press Apply its
+    instructions: each instruction is listed and ticked, you pick the document it changes, and the dialog says which
+    apply and which are not found (hover for why: the paragraph is not in the document, or the words are not in it).
+  - Applying makes the base document's next version, Conformed (A1). What changed reports it at once, and Changes and
+    Assign treat it like any reissued version. A text file of the conformed document, listing what was applied and
+    what was not, is kept beside the library. Nothing in the customer's files changes.
+  - Task orders and delivery orders are document types of their own (TO1, TO2...; DO1...), with Contract for the base
+    contract. A new order is filed under the contract (or the RFP) and listed right under it in Library; Filed under
+    moves it or takes it out. Each order keeps its own versions (its modifications), compared in Changes.
+
 MORE OF THE REVIEW IN ASSIGN (2.99.0)
   - The Compliance pages (Read RFP, Structure, Assign, Prove, L/M Crosswalk) sit right under Effort in the menu: the
     review of the customer's documents is where an effort starts.
