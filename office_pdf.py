@@ -33,10 +33,9 @@ foreach ($pair in ($env:SK_LIST -split "`n")) { if (-not $pair) { continue }
   try { $d = $app.Documents.Open($src, $false, $true, $false, 'sk-no-password', 'sk-no-password')
         try { $d.ExportAsFixedFormat($out, 17) } finally { $d.Close(0) } } catch { Write-Error "$($_.Exception.Message)" -ErrorAction Continue } }
 } finally {
-  if ($mine -or $was -eq 0) { try { $app.Quit() } catch {} }
+  if ($was -eq 0 -or $was -eq $null) { try { $app.Quit() } catch {} }
   try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($app) } catch {}
-  foreach ($id in $mine) { for ($i = 0; $i -lt 30 -and (Get-Process -Id $id -ErrorAction SilentlyContinue); $i++) { Start-Sleep -Milliseconds 500 }
-    Stop-Process -Id $id -Force -ErrorAction SilentlyContinue } }
+  $app = $null; [GC]::Collect(); [GC]::WaitForPendingFinalizers() }
 """,
     "excel": r"""
 $ErrorActionPreference = 'Stop'
@@ -54,10 +53,9 @@ foreach ($pair in ($env:SK_LIST -split "`n")) { if (-not $pair) { continue }
   try { $wb = $app.Workbooks.Open($src, 0, $true, [Type]::Missing, 'sk-no-password', 'sk-no-password')
         try { $wb.ExportAsFixedFormat(0, $out) } finally { $wb.Close($false) } } catch { Write-Error "$($_.Exception.Message)" -ErrorAction Continue } }
 } finally {
-  if ($mine -or $was -eq 0) { try { $app.Quit() } catch {} }
+  if ($was -eq 0 -or $was -eq $null) { try { $app.Quit() } catch {} }
   try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($app) } catch {}
-  foreach ($id in $mine) { for ($i = 0; $i -lt 30 -and (Get-Process -Id $id -ErrorAction SilentlyContinue); $i++) { Start-Sleep -Milliseconds 500 }
-    Stop-Process -Id $id -Force -ErrorAction SilentlyContinue } }
+  $app = $null; [GC]::Collect(); [GC]::WaitForPendingFinalizers() }
 """,
     "powerpoint": r"""
 $ErrorActionPreference = 'Stop'
@@ -74,10 +72,9 @@ foreach ($pair in ($env:SK_LIST -split "`n")) { if (-not $pair) { continue }
   try { $p = $app.Presentations.Open($src, -1, 0, 0)
         try { $p.SaveAs($out, 32) } finally { $p.Close() } } catch { Write-Error "$($_.Exception.Message)" -ErrorAction Continue } }
 } finally {
-  if ($mine -or $was -eq 0) { try { $app.Quit() } catch {} }
+  if ($was -eq 0 -or $was -eq $null) { try { $app.Quit() } catch {} }
   try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($app) } catch {}
-  foreach ($id in $mine) { for ($i = 0; $i -lt 30 -and (Get-Process -Id $id -ErrorAction SilentlyContinue); $i++) { Start-Sleep -Milliseconds 500 }
-    Stop-Process -Id $id -Force -ErrorAction SilentlyContinue } }
+  $app = $null; [GC]::Collect(); [GC]::WaitForPendingFinalizers() }
 """,
 }
 
