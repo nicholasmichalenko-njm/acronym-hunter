@@ -1,4 +1,4 @@
-"""Read and assign any document in Assign (2.84.0): a library document that does not build the matrix opens on the
+"""Read and assign any document in Review (2.84.0): a library document that does not build the matrix opens on the
 same page, beside the same response structure, and the same rule applies: select text, then choose where it goes.
 
 The decision buttons beside the structure change for a library document:
@@ -46,7 +46,7 @@ def library_entries(page):
 
 
 class CtxMode:
-    """The library document open in Assign."""
+    """The library document open in Review."""
 
     def __init__(self, page, doc_id):
         self.page = page

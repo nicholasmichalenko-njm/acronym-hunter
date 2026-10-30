@@ -141,7 +141,7 @@ class HomePage(QWidget):
         self.qa_card = D.Card("Customer Q&A", "The questions we submit to the customer, and their answers.",          # 2.98.0
                               actions=[D.button("Customer Q&&A", "ghost", lambda: self.host.go("custqa"))])
         self.focus_card = D.Card("Evaluation and hot buttons", "How the customer will judge the proposal, and what their "   # 2.99.0
-                                 "documents stress. Capture them in Assign (More captures).")
+                                 "documents stress. Capture them in Review (More captures).")
         self.body = QVBoxLayout(); self.body.setSpacing(D.SPACE["m"]); v.addLayout(self.body)
         v.addStretch(1)
         self.cards = {"stage": self.track, "deliverables": self.deliv_card, "mywork": self.mywork, "goals": self.goals,
@@ -365,7 +365,7 @@ class HomePage(QWidget):
             row.addWidget(D.button("Open", "ghost", lambda _=False, i=x["id"]: self.host.deliverables_page.open_requirement(i)))
             self.mywork_box.addLayout(row)
         if len(reqs) > 8:
-            self.mywork_box.addWidget(D.label(f"and {len(reqs) - 8} more in Assign", "muted"))
+            self.mywork_box.addWidget(D.label(f"and {len(reqs) - 8} more in Review", "muted"))
 
     # ------------------------------------------------------------ stage track
     def draw_track(self, r):
@@ -536,7 +536,7 @@ class HomePage(QWidget):
             lines = []
         self.sub_now = lines
         if not lines:
-            lay.addWidget(D.label("None found yet. Read the customer documents, or capture an instruction in Assign "
+            lay.addWidget(D.label("None found yet. Read the customer documents, or capture an instruction in Review "
                                   "(select the sentence, then Capture > Submission).", "muted"))
         t = D.tokens()
         for x in lines[:12]:
@@ -568,7 +568,7 @@ class HomePage(QWidget):
             row.addWidget(v, 1)
             lay.addLayout(row)
         if not Q.items(r):
-            lay.addWidget(D.label("In Assign, select a sentence and press Capture > Question to quote it.", "muted"))
+            lay.addWidget(D.label("In Review, select a sentence and press Capture > Question to quote it.", "muted"))
 
     def draw_focus(self, r):
         """2.99.0: the evaluation factors (subfactors under them) with their relative importance, then the hot buttons."""
@@ -577,7 +577,7 @@ class HomePage(QWidget):
         fs, hs = F.factors(r), F.hot_buttons(r)
         self.focus_now = {"factors": [f["name"] for f in fs], "hot": [h["text"] for h in hs]}
         if not fs and not hs:
-            lay.addWidget(D.label("None yet. In Assign, select the sentence and press More captures > Evaluation factor or Hot button.", "muted"))
+            lay.addWidget(D.label("None yet. In Review, select the sentence and press More captures > Evaluation factor or Hot button.", "muted"))
             return
         for f in fs:
             imp = f.get("importance", "Not stated")
@@ -988,7 +988,7 @@ class HomePage(QWidget):
     def draw_info(self, r):
         lay = self.sections["info"]; clear(lay)
         info = r.customer_info()
-        people = r.contacts()                                            # 2.96.0: points of contact, captured in Assign
+        people = r.contacts()                                            # 2.96.0: points of contact, captured in Review
         self.info.title.setText(f"Customer information   {len(people)} contact(s), {len(info)} other")
         t = D.tokens()
         for c in people:

@@ -1,6 +1,6 @@
 """Customer Documents in Qt (2.65.0): the customer's documents and every version of them, the submission requirements
 they set, Compare (linked to the compliance matrix: each changed sentence shows the matrix requirement it touches, one
-click opens it in Assign), the impact review of a new version, and the deliverables. The library, the register and the
+click opens it in Review), the impact review of a new version, and the deliverables. The library, the register and the
 record are the same files the classic window keeps. Rules only (No AI); nothing leaves the PC."""
 import datetime, os
 from PySide6.QtCore import Qt
@@ -813,7 +813,7 @@ class ComparePage(QWidget):
         c = DV.summary(self.rows)
         n_m = sum(1 for x in self.links if x)
         self.sum.setText(f"{va['label']} to {vb['label']}: {DV.summary_text(c)} in {len(self.rows)} sentences. "
-                         + (f"{n_m} change(s) touch the compliance matrix; double-click one to open it in Assign." if M is not None
+                         + (f"{n_m} change(s) touch the compliance matrix; double-click one to open it in Review." if M is not None
                             else "Open the compliance matrix (Read RFP) to see which changes touch it."))
         diag.activity("qt_compared", n=c["changed"] + c["added"] + c["removed"])
         self.fill()

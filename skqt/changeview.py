@@ -470,7 +470,7 @@ class HistoryDialog(QDialog):
         row = QHBoxLayout(); v.addLayout(row)
         self.count = D.label("", "muted", wrap=False); row.addWidget(self.count); row.addStretch(1)
         row.addWidget(D.button("Confirm it still fits", "primary", lambda: self.confirm(), "The owner checked the answer against the new wording"))
-        row.addWidget(D.button("Open in Assign", None, lambda: self.open()))
+        row.addWidget(D.button("Open in Review", None, lambda: self.open()))
         bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(self.reject); row.addWidget(bb)
         self.fill()
 

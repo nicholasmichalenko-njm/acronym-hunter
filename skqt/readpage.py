@@ -116,12 +116,12 @@ class ReadPage(QWidget):
         self.start_lbl = D.label("Start the response structure from", "label", wrap=False); srow.addWidget(self.start_lbl)
         self.start = QComboBox(); self.start.setMinimumWidth(360); srow.addWidget(self.start)
         self.start.setToolTip("Choose after reading: Structure shows what the RFP prescribes and its headings to pick from. "
-                              "Blank: build it in Assign as you read.")
+                              "Blank: build it in Review as you read.")
         srow.addStretch(1)
         row = QHBoxLayout(); v.addLayout(row)
         self.add_btn = D.button("Add files...", None, self.pick, "Read files that are not in Customer Documents"); row.addWidget(self.add_btn)
         row.addStretch(1)
-        self.go_btn = D.button("Go to Assign", None, lambda: self.host.go("assign")); row.addWidget(self.go_btn)
+        self.go_btn = D.button("Go to Review", None, lambda: self.host.go("assign")); row.addWidget(self.go_btn)
         self.read_btn = D.button("Read", "primary", self.read, "Read the ticked documents into the review"); row.addWidget(self.read_btn)
         self.boxes = []
         self._guard = False
@@ -228,7 +228,7 @@ class ReadPage(QWidget):
              ("prescribed", "What the RFP prescribes (volumes and sections it spells out)"),
              ("headings", "The RFP's headings"),
              ("typed", "The outline typed for this effort"),
-             ("blank", "Blank: build it in Assign as I read"))
+             ("blank", "Blank: build it in Review as I read"))
 
     def fill_start(self):
         new = self.host.review is None
@@ -259,7 +259,7 @@ class ReadPage(QWidget):
             SS.apply(M, ol)
             return f"Structure: {len(ol)} RFP headings."
         SS.apply(M, [])
-        return "" if choice == "choose" else "Blank structure: build it beside the page in Assign."
+        return "" if choice == "choose" else "Blank structure: build it beside the page in Review."
 
     def pick(self):
         paths, _ = QFileDialog.getOpenFileNames(self, "RFP documents", "", "RFP documents (*.docx *.pdf *.xlsx *.pptx *.doc *.xls *.ppt *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.gif *.webp)")

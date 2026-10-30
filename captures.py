@@ -1,4 +1,4 @@
-"""Captures in Assign (2.96.0): what a selected sentence, or the words dragged across inside it, holds, filed where the
+"""Captures in Review (2.96.0): what a selected sentence, or the words dragged across inside it, holds, filed where the
 effort keeps it. Rules only (No AI); the person confirms every capture.
 
 - contact_guess(text): a point of contact's pieces: name, title, organization, e-mail, phone, address (what the

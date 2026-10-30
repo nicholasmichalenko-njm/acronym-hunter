@@ -2021,7 +2021,7 @@ def change_html(ch):
 
 
 class OldPageDialog(QDialog):
-    """2.98.0: the previous version's page, the old sentence highlighted (Show the old page in Assign)."""
+    """2.98.0: the previous version's page, the old sentence highlighted (Show the old page in Review)."""
 
     def __init__(self, parent, pdf, found, title, old_text):
         super().__init__(parent)

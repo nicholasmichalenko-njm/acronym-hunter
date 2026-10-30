@@ -1,5 +1,5 @@
 """The Qt edition's main window (2.59.0): the effort (picked from the efforts on this PC, held with the same lock as
-the tkinter edition), the steps of Compliance that are in Qt so far (Read RFP, Assign), the status line, and autosave
+the tkinter edition), the steps of Compliance that are in Qt so far (Read RFP, Review), the status line, and autosave
 of the compliance matrix two seconds after each change."""
 import os
 from PySide6.QtCore import Qt, QTimer
@@ -35,8 +35,8 @@ from .settingspage import SettingsPage
 
 RAIL = [("Home", [("efforts", "All Efforts")]),
         ("Effort", [("home", "Effort Home"), ("deliverables", "Deliverables"), ("dashboard", "Dashboard"), ("record", "Effort Record"),
-                    ("reviews", "Reviews")]),
-        ("Compliance", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove"),     # 2.99.0: near the
+                    ("reviews", "Color Reviews")]),
+        ("Compliance", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Review"), ("prove", "Prove"),     # 2.99.0: near the
                         ("crosswalk", "L/M Crosswalk")]),                                                              # top: the review starts here
         ("Documents", [("library", "Library"), ("compare", "Changes"), ("requirements", "Submission Rules"),
                        ("custqa", "Customer Q&A")]),
@@ -48,7 +48,7 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "home": ("Effort Home", "Stage, gate goals, tasks, questions and the calendar"),
           "dashboard": ("Dashboard", "The effort on one screen"),
           "record": ("Effort Record", "Details, team, stages and gates, status, package and backup"),
-          "reviews": ("Reviews", "Color team review packets, read back onto each requirement"),
+          "reviews": ("Color Reviews", "Color team review packets, read back onto each requirement"),
           "library": ("Library", "Every document of the effort: categories, folders, tags, roles and search"),
           "docs": ("Customer Versions", "The customer's documents and every version of them"),
           "requirements": ("Submission Rules", "What the customer requires of the submission now, and what changed it"),
@@ -65,7 +65,7 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "settings": ("Settings", "New effort, the effort's folders, the master database, backups"),
           "read": ("Read RFP", "Bring the customer's documents into the review"),
           "structure": ("Structure", "The sections of your response"),
-          "assign": ("Assign", "Decide every sentence on the page"),
+          "assign": ("Review", "Read every sentence on the page: decide it and capture what it holds"),
           "prove": ("Prove", "Every line read and decided"),
           "crosswalk": ("L/M Crosswalk", "Each instruction, the factor that scores it, and the work it describes"),
           "matrix": ("Matrix", "The compliance matrix as the customer will see it"),
@@ -228,7 +228,7 @@ class MainWindow(QMainWindow):
         self.search.setCompleter(comp)
 
     def find_go(self, text=None):
-        """Go to the sentence picked (or the first one whose ID or words match) in Assign."""
+        """Go to the sentence picked (or the first one whose ID or words match) in Review."""
         R = self.review
         q = (text if isinstance(text, str) and text else self.search.text()).strip()
         if R is None or not q:

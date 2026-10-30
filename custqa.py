@@ -165,9 +165,11 @@ def file_name(effort, kind, when=None):
 
 
 # ------------------------------------------------------------------ Word
-def export_docx(path, rows, effort="", solicitation="", offeror="", contact="", marking="", when=None, numbers="list"):
+def export_docx(path, rows, effort="", solicitation="", offeror="", contact="", marking="", when=None, numbers="list",
+                answers=False):
     """The polished Word document. rows: questions (chosen()). numbers: 'list' keeps each question's number in the list;
-    'new' numbers the exported ones 1, 2, 3. Returns the path."""
+    'new' numbers the exported ones 1, 2, 3. answers: fill Government Response with the answers we have. Only what the
+    customer needs goes out: never the owner, status, category or internal notes. Returns the path."""
     import docxw
     when = when or datetime.date.today()
     d = docxw.Doc()
@@ -179,13 +181,16 @@ def export_docx(path, rows, effort="", solicitation="", offeror="", contact="", 
     cover = [("Solicitation", solicitation or effort), ("Offeror", offeror), ("Date submitted", when.strftime("%B %d, %Y").replace(" 0", " ")),
              ("Point of contact", contact), ("Questions", str(len(rows)))]
     d.table(["", ""], [[[(k, {"bold": True})], v] for k, v in cover if v], [2600, 10360])
-    head = ["No.", "Document", "Section / Page / Para.", "RFP Text", "Question"]
-    widths = [700, 1900, 2000, 4100, 4260]
+    # 3.0.1: one Reference column (the document, then where in it) so the customer's words and the question get the room,
+    # and a Government Response column for the customer to answer in (filled only with answers=True)
+    head = ["No.", "Reference", "RFP Text", "Question", "Government Response"]
+    widths = [620, 2140, 3700, 3700, 2800]
     body = []
     for k, q in enumerate(rows, start=1):
         n = q.get("n", k) if numbers == "list" else k
+        ref = [(q.get("doc", ""), {"bold": True})] + ([("\n" + where(q), None)] if where(q) else []) if q.get("doc") else where(q)
         quote = [(f"“{q['quote']}”", {"italic": True})] if q.get("quote") else ""
-        body.append([str(n), q.get("doc", ""), where(q), quote, q.get("question", "")])
+        body.append([str(n), ref, quote, q.get("question", ""), q.get("answer", "") if answers else ""])
     d.table(head, body, widths)
     d.save(path)
     return path

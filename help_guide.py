@@ -51,7 +51,7 @@ PAGES = {
                              "each stands), Documents (every customer document "
                              "with its versions), Impact (what a new version touched across the effort), Compare (what changed between any two "
                              "versions), Export."),
-              ("Compliance", "Read RFP, Structure (the response outline), Assign (each sentence a compliance requirement in "
+              ("Compliance", "Read RFP, Structure (the response outline), Review (each sentence a compliance requirement in "
                              "a section, context, or not used), Prove (nothing missed; owner, status and page), Export."),
               ("Acronyms", "Scan (Select Files, Scan Folder, Scan Again, Project), Review (the results, with their filters), "
                            "Define and approve (the effort list), Export."),
@@ -86,15 +86,15 @@ PAGES = {
               ("Compliance matrix", "On Effort home at every stage: the share of the customer documents' sentences "
                                     "reviewed (each one a compliance requirement, support, the customer's or not used), what "
                                     "still needs a proposal section, and each document's progress. Read customer documents..., "
-                                    "Assign and Matrix go straight there, to update the matrix when the customer sends more."),
+                                    "Review and Matrix go straight there, to update the matrix when the customer sends more."),
               ("Calendar", "A month on Effort home: the due date, questions due to the customer (from the customer documents), "
                            "stage dates (planned and started), tasks by due date (done ones in green), and what happened each day "
                            "(documents added, stage moves, assignments). < Previous, This month and Next > move between months; "
                            "click a day to see everything on it and add a task due that day. The Effort status report has the "
                            "same calendar, this month through the due month."),
               ("Tasks and people", "+ Task: owner, due date, stage, status and notes; late tasks show red. Pick a person to "
-                                   "see their sections, compliance requirements and tasks. In Assign, O gives one compliance "
-                                   "requirement its own owner (right after you assign it too: O is for the sentence just assigned when Assign has "
+                                   "see their sections, compliance requirements and tasks. In Review, O gives one compliance "
+                                   "requirement its own owner (right after you assign it too: O is for the sentence just assigned when Review has "
                                    "moved on); People... sets a lead and contributors per section."),
               ("Timeline", "The paper trail, written as it happens: every customer document and version added (with what "
                            "changed), requirement reviews, stage moves, goals met, notes, tasks, owners, QA/QC checks. Full "
@@ -582,14 +582,14 @@ PAGES = {
           "No AI writes anything."),
     ("p", "Text check (on Read RFP, and automatically after a read) proves that every piece of typed text reached the review. "
           "Each file is read again straight from its parts (body, tables, text boxes, headers, footers, footnotes, slides and "
-          "speaker notes, cells, PDF pages) and compared word for word, in reading order, with the sentences in Assign. It "
+          "speaker notes, cells, PDF pages) and compared word for word, in reading order, with the sentences in Review. It "
           "lists anything not in the review and adds it for review in one click, each line in its place in the document (after "
           "the sentence before it, under the same RFP section). Numbered headings show as section titles; an "
           "unnumbered capitalized line such as NOTE TO OFFERORS is also a sentence to assign. Text inside pictures is read "
           "by OCR (AI and ML) and is not part of this check."),
-    ("p", "Original layout (in Assign, under the sentence) shows a PDF customer document page as it looks, with every sentence "
+    ("p", "Original layout (in Review, under the sentence) shows a PDF customer document page as it looks, with every sentence "
           "of the review boxed in its decision's color: green a compliance requirement, blue context, gray not used, amber not "
-          "decided yet. Click a box to work on that sentence in Assign; when Assign moves to a sentence on another page, the "
+          "decided yet. Click a box to work on that sentence in Review; when Review moves to a sentence on another page, the "
           "view turns the page. Text on the page that is not in the review is boxed in red (the text check's own rules): click "
           "it to add it to the review, in its place between the sentences before and after it. A scanned page (a picture "
           "of the page) is read by OCR (AI and ML) so its text is in the review; boxes cannot be drawn on it. Scroll past "
@@ -597,7 +597,7 @@ PAGES = {
           "no fixed pages: their passage is in the panel and Open file opens them."),
     ("img", "layout.png", 560),
     ("img", "compliance.png", 620),
-    ("rows", [("Assign", "The RFP reads like a page on the left; your response structure is always on the right (with no "
+    ("rows", [("Review", "The RFP reads like a page on the left; your response structure is always on the right (with no "
                          "structure yet, start it from the RFP headings there). Click any "
                          "sentence at any time to see how it is assigned and change it. Every choice counts at once and is "
                          "saved as you go (a crash or closing the app loses nothing); there is no commit step."),
@@ -632,7 +632,7 @@ PAGES = {
                           "requirements (green) to add or remove them, or click a section on the right to make it context for "
                           "that section or subsection itself; Done, Enter or the next key moves on. Pointing at a sentence lights "
                           "up its links."),
-              ("Moving on", "After a compliance requirement, context or not used, Assign goes to the next sentence that is "
+              ("Moving on", "After a compliance requirement, context or not used, Review goes to the next sentence that is "
                             "not assigned, so you never click to move on (turn it off with the box on the right)."),
               ("Customer's", "G marks a sentence that reads like a requirement but is the customer's to act on (\"The "
                              "Government will evaluate...\"). It is identified and counted (Prove has a Customer's category, "
@@ -661,7 +661,7 @@ PAGES = {
               ("How the structure starts (2.69.0)", "Read RFP asks: choose after reading (Structure shows what the RFP "
                                    "prescribes and its headings), what the RFP prescribes, its headings, the outline typed "
                                    "for the effort, or blank. Most RFPs do not use Sections L and M: volumes and sections are "
-                                   "found by their words and numbering, whatever the RFP uses. In Assign, Copy RFP section "
+                                   "found by their words and numbering, whatever the RFP uses. In Review, Copy RFP section "
                                    "puts the selected sentence's RFP section (and its subsections) under the target; rename "
                                    "or move it to say it your way."),
               ("Build the structure as you read (2.68.0)", "Assigning does not wait for a structure: R with no section "
@@ -681,16 +681,16 @@ PAGES = {
                                  "prints first in that section. The matrix's Context for column lists the requirements."),
               ("Setup board", "Arrange the setup... on the right opens the board for order, direction and references."),
               ("Prove", "The final check before export, as tiles to clear: Not used, unconfirmed; No section; Context not "
-                        "attached; No owner; New in latest read; and All requirements. Click a tile to list those sentences with what to do: Open in Assign (or double-click), "
+                        "attached; No owner; New in latest read; and All requirements. Click a tile to list those sentences with what to do: Open in Review (or double-click), "
                         "Confirm not used, Mark checked, or set owner, status, response page and notes for several at once. "
                         "When nothing is left, Prove says ready to export. The coverage report is one button at the top."),
-              ("People", "People... in Assign (or right-click a section) sets a lead and contributors for each section. "
+              ("People", "People... in Review (or right-click a section) sets a lead and contributors for each section. "
                          "Requirements in a section and its subsections take its lead as owner unless they have their own. "
                          "The structure panel shows each lead; Show sections for lists one person's sections. The matrix's "
                          "Owner column and the Response Setup show the people."),
               ("References", "A sentence's reference is the RFP's own section number. For a file with no numbering, the app asks "
                              "once how to reference it: by the document name and paragraph (Design Note, para 3), name, page and "
-                             "paragraph, or a prefix and number (SOW-3). Change it any time: How this file is referenced... in Assign."),
+                             "paragraph, or a prefix and number (SOW-3). Change it any time: How this file is referenced... in Review."),
               ("Every line", "The count above the table says how many sentences are decided and shows a check mark when all "
                              "are. Filters show Context rows and Keep or Context rows that still need a home (no outline "
                              "section). Boilerplate and page headers are suggested Drop; Accept suggestions applies them."),
@@ -707,13 +707,13 @@ PAGES = {
                         "('; ' or 'and shall'). Merge (M) joins rows back together."),
               ("Compliance words", "shall, must, will, should, may, required, not exceed, and order verbs such as describe or "
                                    "provide (at the start of a sentence or after shall) are bold, on screen and in the Excel "
-                                   "matrix, Response Setup and coverage report. Compliance words... (in Assign, the "
+                                   "matrix, Response Setup and coverage report. Compliance words... (in Review, the "
                                    "requirement panel, or Advanced > Compliance words and style) adds italic, underline, a color or a highlight "
                                    "and edits the word list. Excel cannot highlight single words, so the matrix skips the highlight."),
               ("Add compliance words", "Words you add also make a sentence a requirement. Select a word or short phrase in "
-                                       "the review text (Assign, the requirement or the source passage), right-click, Add to "
+                                       "the review text (Review, the requirement or the source passage), right-click, Add to "
                                        "compliance words; or type it in Compliance words.... The app offers to rescan at once. "
-                                       "Rescan with compliance words (Read and Assign steps) checks every sentence again: one "
+                                       "Rescan with compliance words (Read RFP and Review steps) checks every sentence again: one "
                                        "not decided yet that holds a compliance word becomes a requirement candidate, suggested "
                                        "Keep and marked [Found]; decided sentences keep their decision (the rescan says how many "
                                        "hold a new word); a sentence found only by a word you took off the list goes back to "
@@ -748,7 +748,7 @@ PAGES = {
     ("p", "The matrix holds customer content: keep it on this PC or SharePoint."),
     ("h", "Setup: the first draft for authors"),
     ("img", "setup.png", 620),
-    ("p", "The setup board (Compliance > Assign > Arrange the setup...) puts the RFP text under the proposal outline and writes the setup documents: every heading of the "
+    ("p", "The setup board (Compliance > Review > Arrange the setup...) puts the RFP text under the proposal outline and writes the setup documents: every heading of the "
           "outline, with the RFP text that section must answer and the proposal lead's direction."),
     ("rows", [("Place", "Drag RFP text from the left onto a section on the right. Shift+drag adds a copy to a second section. "
                         "Drag inside the outline to reorder, or back to the left to remove. Accept suggestions places what the "
@@ -763,7 +763,7 @@ PAGES = {
               ("Export", "Export setup writes one Word file per volume: built-in headings, RFP text in purple, direction in green. "
                          "No hidden text and no styles of yours: click one purple paragraph, Home > Select > Select Text with "
                          "Similar Formatting, and apply your style; the same for green."),
-              ("Compliance matrix", "Compliance > Matrix (its own step, after Assign) builds the matrix from your decisions as "
+              ("Compliance matrix", "Compliance > Matrix (its own step, after Review) builds the matrix from your decisions as "
                                     "you work, in the response structure: each compliance requirement in the order it appears "
                                     "in the RFP, the Context rows that support it right under it (indented and lighter, with no "
                                     "line between them in Excel), and every section of the structure, including ones with "
@@ -786,7 +786,7 @@ PAGES = {
                                 "right lists them with Jump and Unlink (and Link to another requirement... for support). C "
                                 "(Support) links a sentence to the nearest requirement and the banner above the text says so; C "
                                 "on it again, or Link to another requirement..., changes it."),
-              ("Mark the text", "In Assign, right-click a sentence (or select words in it): Ignore (not used); Customer "
+              ("Mark the text", "In Review, right-click a sentence (or select words in it): Ignore (not used); Customer "
                                 "information (names, e-mails, phone numbers, addresses, filed by kind in Customer information "
                                 "on Effort home; the sentence is not used); Format requirement (type Format, a compliance "
                                 "requirement); RFP section header... (H)."),

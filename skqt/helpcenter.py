@@ -12,15 +12,15 @@ from . import design as D
 SHORTCUTS = [("Anywhere", "Ctrl+K", "Find a page, an effort, a sentence or a person"),
              ("Anywhere", "Ctrl+F", "Find a sentence by its words or number"),
              ("Anywhere", "F1", "These keyboard shortcuts"),
-             ("Assign (on the page)", "R", "SOW (Work): the selected sentences go to the target section as requirements"),
-             ("Assign (on the page)", "C", "Context: support for the last requirement you clicked"),
-             ("Assign (on the page)", "G", "The customer's (counted, never answered)"),
-             ("Assign (on the page)", "L / E", "L (Instructions) / M (Evaluation): requirements with that designation"),
-             ("Assign (on the page)", "X or Delete", "Clear the decision"),
-             ("Assign (on the page)", "J / S", "Join the selected sentences / split one"),
-             ("Assign (on the page)", "Ctrl+Z", "Undo the last change"),
-             ("Assign (on the page)", "Ctrl+click", "Select several sentences"),
-             ("Assign (on the page)", "Escape", "Clear the selection, or stop drawing a box for missed text")]
+             ("Review (on the page)", "R", "SOW (Work): the selected sentences go to the target section as requirements"),
+             ("Review (on the page)", "C", "Context: support for the last requirement you clicked"),
+             ("Review (on the page)", "G", "The customer's (counted, never answered)"),
+             ("Review (on the page)", "L / E", "L (Instructions) / M (Evaluation): requirements with that designation"),
+             ("Review (on the page)", "X or Delete", "Clear the decision"),
+             ("Review (on the page)", "J / S", "Join the selected sentences / split one"),
+             ("Review (on the page)", "Ctrl+Z", "Undo the last change"),
+             ("Review (on the page)", "Ctrl+click", "Select several sentences"),
+             ("Review (on the page)", "Escape", "Clear the selection, or stop drawing a box for missed text")]
 
 
 def support_card(host):

@@ -32,9 +32,9 @@ class StructurePage(QWidget):
         self.doc = QComboBox(); self.doc.setMinimumWidth(180); self.doc.setToolTip("Headings from one document, or all")
         bar.addWidget(self.doc)
         bar.addWidget(D.button("RFP headings", None, self.from_headings, "The RFP's numbered headings (one section letter or all, one document or all)"))
-        bar.addWidget(D.button("RFP outline", None, self.from_rfp_outline, "The RFP's own outline (the headers marked in Assign)"))
+        bar.addWidget(D.button("RFP outline", None, self.from_rfp_outline, "The RFP's own outline (the headers marked in Review)"))
         bar.addWidget(D.button("Word outline...", None, self.from_word, "Heading 1-6 paragraphs of a Word document"))
-        bar.addWidget(D.button("Blank", None, self.blank, "Start with no sections: build them in Assign as you read"))
+        bar.addWidget(D.button("Blank", None, self.blank, "Start with no sections: build them in Review as you read"))
         bar.addStretch(1)
         bar.addWidget(D.button("Volumes...", None, lambda: self.host.assign_page.volumes_dialog()))
         bar.addWidget(D.button("People...", None, lambda: self.host.assign_page.people_dialog()))
@@ -94,7 +94,7 @@ class StructurePage(QWidget):
 
     def blank(self):
         self.text.setPlainText("")
-        self.why.setText("A blank structure: Apply, then build it in Assign (+ Volume, + Heading, + Subheading, From "
+        self.why.setText("A blank structure: Apply, then build it in Review (+ Volume, + Heading, + Subheading, From "
                          "sentence, Copy RFP section) as you read.")
         self.why.show()
         self.preview()
@@ -108,7 +108,7 @@ class StructurePage(QWidget):
         self.letter.setCurrentText("All headings")
         if self.from_headings():
             self.why.setText("The RFP does not spell out a response structure that rules can find. These are its headings: "
-                             "edit them and Apply, or press Blank and build the structure in Assign as you read.")
+                             "edit them and Apply, or press Blank and build the structure in Review as you read.")
             self.why.show()
             return "headings"
         self.blank()
@@ -125,7 +125,7 @@ class StructurePage(QWidget):
         self.host.review.snap()
         ol = STR.from_rfp_outline(self.host.review.M)
         diag.activity("compliance_outline_from_rfp_outline", n=len(ol))
-        return self.set_text(ol, "the RFP outline (press H on header lines in Assign to mark them)")
+        return self.set_text(ol, "the RFP outline (press H on header lines in Review to mark them)")
 
     def from_word(self, path=None):
         if path is None:

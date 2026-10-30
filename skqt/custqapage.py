@@ -1,6 +1,6 @@
 """Customer Q&A (2.98.0): the formal list of questions we submit to the customer. Each row quotes the customer's exact
 wording and where it is, then our question, its category, owner and status (Draft, Approved, Submitted, Answered) and,
-when the answer comes back, the answer and the document it came in. Capture > Question in Assign adds them from the
+when the answer comes back, the answer and the document it came in. Capture > Question in Review adds them from the
 page; + Question adds one by hand. Export as a polished Word document, the government Excel layout, or into the
 customer's own template; exporting can mark the questions Submitted. Rules only (No AI); nothing leaves the PC."""
 import os
@@ -75,7 +75,7 @@ class ExportDialog(QDialog):
         self.keep.setChecked(True); v.addWidget(self.keep); v.addWidget(self.new)
         self.mark = QCheckBox("Mark the exported questions Submitted"); v.addWidget(self.mark)
         self.answers = QCheckBox("Include the answers we have (Government Response column)")
-        if kind == "xlsx":
+        if kind in ("xlsx", "docx"):                 # 3.0.1: Word has the column too
             v.addWidget(self.answers)
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
         v.addWidget(bb)
@@ -103,12 +103,12 @@ class CustQAPage(QWidget):
         self.find = QLineEdit(); self.find.setPlaceholderText("Find words"); self.find.setClearButtonEnabled(True); self.find.setMaximumWidth(220)
         self.find.textChanged.connect(lambda _t: self.fill()); top.addWidget(self.find)
         bar = QHBoxLayout(); v.addLayout(bar)
-        for text, kind, fn, tip in (("+ Question", "primary", lambda: self.add(), "A question typed here (Capture > Question in Assign quotes the page for you)"),
+        for text, kind, fn, tip in (("+ Question", "primary", lambda: self.add(), "A question typed here (Capture > Question in Review quotes the page for you)"),
                                     ("Edit", None, lambda: self.edit(), "Every field, the answer included"),
                                     ("Approve", None, lambda: self.set_status("Approved"), "Ready to send"),
                                     ("Up", "ghost", lambda: self.move(-1), "Earlier in the list (the numbers follow)"),
                                     ("Down", "ghost", lambda: self.move(1), "Later in the list"),
-                                    ("Show on the page", "ghost", lambda: self.show_page(), "The sentence in Assign"),
+                                    ("Show on the page", "ghost", lambda: self.show_page(), "The sentence in Review"),
                                     ("Remove", "danger", lambda: self.remove(), "Take it out of the list")):
             bar.addWidget(D.button(text, kind, fn, tip))
         bar.addStretch(1)
@@ -125,7 +125,7 @@ class CustQAPage(QWidget):
             self.table.setColumnWidth(k, w)
         self.table.itemDoubleClicked.connect(lambda _i: self.edit())
         v.addWidget(self.table, 1)
-        self.empty = D.label("No customer questions yet. In Assign, select a sentence (or drag across words in it) and press "
+        self.empty = D.label("No customer questions yet. In Review, select a sentence (or drag across words in it) and press "
                              "Capture > Question; or press + Question here.", "muted")
         v.addWidget(self.empty)
 
@@ -294,7 +294,7 @@ class CustQAPage(QWidget):
         info = export_info(self.host, rec)
         try:
             if kind == "docx":
-                Q.export_docx(path, rows, numbers=choice.get("numbers", "list"), **info)
+                Q.export_docx(path, rows, numbers=choice.get("numbers", "list"), answers=choice.get("answers", False), **info)
             elif kind == "xlsx":
                 info.pop("contact", None)
                 Q.export_xlsx(path, rows, numbers=choice.get("numbers", "list"), answers=choice.get("answers", False), **info)

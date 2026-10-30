@@ -63,8 +63,8 @@ class DashPage(QWidget):
         self.tiles = {
             "due": D.Tile("-", "days to the due date", "accent", lambda: go("home"), "Effort home: the stage track and the calendar"),
             "goals": D.Tile("-", "gate goals met", "accent", lambda: go("home"), "Effort home: the gate goals of this stage"),
-            "placed": D.Tile("-", "requirements placed in a section", "accent", lambda: go("assign"), "Assign"),
-            "owned": D.Tile("-", "requirements with an owner", "accent", lambda: go("assign"), "Assign: People..."),
+            "placed": D.Tile("-", "requirements placed in a section", "accent", lambda: go("assign"), "Review"),
+            "owned": D.Tile("-", "requirements with an owner", "accent", lambda: go("assign"), "Review: People..."),
             "questions": D.Tile("-", "open questions", "accent", lambda: go("home"), "Effort home: notes and open questions"),
             "late": D.Tile("-", "tasks late", "accent", lambda: go("home"), "Effort home: tasks"),
             "review": D.Tile("-", "customer changes to review", "accent", lambda: go("compare"),
@@ -82,7 +82,7 @@ class DashPage(QWidget):
         grid = QGridLayout(self.body); grid.setContentsMargins(0, 0, 0, 0); grid.setSpacing(D.SPACE["m"])
         grid.setColumnStretch(0, 3); grid.setColumnStretch(1, 2)
         # compliance review
-        self.comp = D.Card("Compliance review", actions=[D.button("Assign", None, lambda: go("assign")),
+        self.comp = D.Card("Compliance review", actions=[D.button("Review", None, lambda: go("assign")),
                                                           D.button("Prove", None, lambda: go("prove"))])
         self.comp_bar = D.StackBar(16); self.comp.add(self.comp_bar)
         self.comp_legend = QVBoxLayout(); self.comp.body.addLayout(self.comp_legend)
@@ -203,7 +203,7 @@ class DashPage(QWidget):
         self.comp_legend.addWidget(D.legend([s for s in segs if s[0]]))
         rv = d.get("review")
         self.comp_text.setText(f"{q['decided']} of {q['sentences']} sentences decided ({q['pct']}%). "
-                               + (f"{plural(q['undecided'], 'sentence')} still to decide in Assign." if q["undecided"] else "Every sentence is decided.")
+                               + (f"{plural(q['undecided'], 'sentence')} still to decide in Review." if q["undecided"] else "Every sentence is decided.")
                                + (f"\n{rv[0]} review: {rv[1]['Compliant']} compliant, {rv[1]['Partly']} partly, {rv[1]['Not compliant']} not "
                                   f"compliant, {rv[1]['Not addressed']} not addressed, {rv[1]['not_reviewed']} not reviewed." if rv else ""))
 
@@ -299,5 +299,5 @@ class DashPage(QWidget):
             _cell(t, i, 0, p["person"]); _cell(t, i, 1, p["sections"]); _cell(t, i, 2, p["reqs"]); _cell(t, i, 3, p["tasks"])
             _cell(t, i, 4, p["late"], "crit" if p["late"] else None); _cell(t, i, 5, p["questions"], "warn" if p["questions"] else None)
         if not rows:
-            t.setRowCount(1); _cell(t, 0, 0, "Nobody named yet: name section leads in Assign (People...) or give tasks an owner.", "muted")
+            t.setRowCount(1); _cell(t, 0, 0, "Nobody named yet: name section leads in Review (People...) or give tasks an owner.", "muted")
         _fit(t, 16)

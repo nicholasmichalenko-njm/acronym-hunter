@@ -1,4 +1,4 @@
-"""Capture in Assign (2.96.0): the selected sentence, or the words dragged across inside it, filed where the effort
+"""Capture in Review (2.96.0): the selected sentence, or the words dragged across inside it, filed where the effort
 keeps it, with the document and place it came from:
 - Contact: a point of contact (name, title, organization, e-mail, phone, address, and fields of your own), new or
   added to one already filed; it shows in Effort Home's Customer information.

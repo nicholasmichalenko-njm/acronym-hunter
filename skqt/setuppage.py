@@ -78,7 +78,7 @@ class SetupPage(QWidget):
         self.p_blocks.setText(f"{chk['blocks']} blocks placed")
         self.p_unplaced.setText(f"{len(chk['unplaced'])} not placed"); self.p_unplaced.set_tone("warn" if chk["unplaced"] else "ok")
         self.p_noref.setText(f"{len(chk['no_ref'])} without a reference"); self.p_noref.set_tone("warn" if chk["no_ref"] else "ok")
-        self.unplaced.setText(("Not placed (assign them to a section in Assign): " + ", ".join(chk["unplaced"][:12])
+        self.unplaced.setText(("Not placed (assign them to a section in Review): " + ", ".join(chk["unplaced"][:12])
                                + (" ..." if len(chk["unplaced"]) > 12 else "")) if chk["unplaced"] else "Every requirement and context is placed.")
 
     def _sel(self):

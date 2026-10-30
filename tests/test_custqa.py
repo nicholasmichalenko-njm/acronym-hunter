@@ -47,6 +47,13 @@ x = z.read("word/document.xml").decode()
 check("Word: landscape, the cover block, the quote, our question", 'w:orient="landscape"' in x and "FA8810-26-R-0001" in x
       and "Sierra Space" in x and "Volume II shall not exceed 20 pages." in x and "Should the IMS be in Microsoft Project?" in x)
 check("... only the statuses chosen", "CDRL A003 due monthly" not in x)
+check("3.0.1 Word: a Reference column with the document and where in it, and a Government Response column",
+      all(h in x for h in ("Reference", "RFP Text", "Government Response")) and "Section_L.pdf" in x and "Section L.4.2, p.12, para 3" in x)
+check("... and nothing internal: no category, status or who changed it", "Format and submission" not in x and "Approved" not in x
+      and "nmich" not in x)
+wa = os.path.join(tmp, "qa.docx")
+Q.export_docx(wa, Q.items(rec), effort="Osprey", answers=True)
+check("... with the answers when asked", "Monthly, per CDRL A003 block 10." in zipfile.ZipFile(wa).read("word/document.xml").decode())
 check("... and the marking in the header and footer", "CUI" in z.read("word/header1.xml").decode() and "CUI" in z.read("word/footer1.xml").decode())
 # Excel
 xl = os.path.join(tmp, "q.xlsx")

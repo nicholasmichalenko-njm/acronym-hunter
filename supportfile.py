@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.0.1": ["Assign is now Review: the page where you read every sentence, decide it and capture what it holds. Reviews "
+              "(color team packets) is now Color Reviews.",
+              "Customer Q&A in Word: one Reference column (the document, then section, page and paragraph), the customer's "
+              "words, your question and a Government Response column. Nothing internal goes out."],
     "3.0.0": ["Amendments that say what to change (delete and insert, replace or delete a paragraph, add one) are applied to "
               "the document they change: Library > Apply its instructions makes its Conformed version and says what did not apply.",
               "Task orders and delivery orders are document types of their own, filed under the base contract or RFP in Library."],

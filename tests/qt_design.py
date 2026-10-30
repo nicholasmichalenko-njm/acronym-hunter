@@ -48,7 +48,7 @@ w = MainWindow(app, os.path.join(tmp, "config"), A.APP_VERSION); w.resize(1400, 
 rail = [b.text() for b in w.findChildren(type(w.step_btns["read"])) if b.objectName() == "rail"]
 steps = [b.text() for k, b in w.step_btns.items()]
 check("the rail: the steps in Qt, then the areas still in the classic app (grey)", rail[:len(steps)] == steps
-      and steps[1:15] == ["Effort Home", "Deliverables", "Dashboard", "Effort Record", "Reviews", "Read RFP", "Structure", "Assign", "Prove",
+      and steps[1:15] == ["Effort Home", "Deliverables", "Dashboard", "Effort Record", "Color Reviews", "Read RFP", "Structure", "Review", "Prove",
                           "L/M Crosswalk", "Library", "Changes", "Submission Rules", "Customer Q&&A"] and "Matrix" in steps   # 2.99.0: Compliance up
       and steps[18:22] == ["Customer Terms", "Effort List", "Submission Check", "Lists to Submit"]
       and all(not b.isEnabled() for b in w.findChildren(type(w.step_btns["read"])) if b.objectName() == "rail" and b.text() not in steps), rail)

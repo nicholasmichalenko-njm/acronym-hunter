@@ -1,7 +1,7 @@
 """What changed, the moment a new version is added (2.98.0): one card per new version, "What changed in Amendment 1 of
 the RFP": how many sentences changed, were added or removed; the submission rules it touches; the compliance
 requirements it touches and their owners; new sentences not in the matrix yet; and how many changes are still to decide.
-Review the changes opens Changes on that pair; Show on the page opens Assign with the changes outlined. Rules only
+Review the changes opens Changes on that pair; Show on the page opens Review with the changes outlined. Rules only
 (No AI); nothing leaves the PC."""
 import os
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QHBoxLayout, QVBoxLayout

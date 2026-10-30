@@ -138,7 +138,7 @@ class Detail(QScrollArea):
             self.vol_combo = cb
             self.v.addWidget(cb)
         else:
-            self.v.addWidget(D.label("The response structure has no volumes yet (Structure, or Volumes... in Assign).", "muted"))
+            self.v.addWidget(D.label("The response structure has no volumes yet (Structure, or Volumes... in Review).", "muted"))
         # requirements
         rr = c.get("req_rows") or []
         if c["volume"]:
@@ -155,7 +155,7 @@ class Detail(QScrollArea):
             tb.cellDoubleClicked.connect(lambda r, _c, rr=rr: pg.open_requirement(rr[r]["id"]))
             self.req_table = tb
             self.v.addWidget(tb)
-            self.v.addWidget(D.label("Double-click one to open it in Assign.", "muted"))
+            self.v.addWidget(D.label("Double-click one to open it in Review.", "muted"))
         # changes
         if c["changed"] or c["awaiting"] or c["changed_reqs"]:
             self.v.addWidget(D.SectionTitle("What changed"))

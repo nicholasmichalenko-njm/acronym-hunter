@@ -225,7 +225,7 @@ class LibraryPage(QWidget):
             top.addWidget(p)
         top.addStretch(1)
         self.b_taken = D.button("Taken from documents...", None, lambda: self.show_taken(),
-                                "Every sentence taken from a library document in Assign, and what it is attached to (2.84.0)")
+                                "Every sentence taken from a library document in Review, and what it is attached to (2.84.0)")
         top.addWidget(self.b_taken)
         self.b_cat = D.button("New category...", None, lambda: self.new_category(), "A category of your own (Competitor intel, Pricing...)")
         top.addWidget(self.b_cat)
@@ -313,7 +313,7 @@ class LibraryPage(QWidget):
                                   "An amendment that says what to change (delete and insert, replace a paragraph): apply it to "
                                   "the base document to get the conformed version")
         self.side.addWidget(self.b_conform)
-        self.b_read = D.button("Read it in Assign", "primary", lambda: self.read_in_assign(),
+        self.b_read = D.button("Read it in Review", "primary", lambda: self.read_in_assign(),
                                "Open it beside your response structure: select text, then choose where it goes (2.84.0)")
         self.side.addWidget(self.b_read)
         self.d_taken = D.label("", "muted"); self.side.addWidget(self.d_taken)
@@ -666,13 +666,13 @@ class LibraryPage(QWidget):
         return ok
 
     def read_in_assign(self, doc_id=None):
-        """2.84.0: open the document in Assign, beside the response structure."""
+        """2.84.0: open the document in Review, beside the response structure."""
         doc_id = doc_id or self.current_id()
         h = self.host
         if not doc_id or h.ws is None:
             return False
         if h.review is None:
-            h.status("Read RFP first: Assign reads library documents beside the response structure of the matrix.")
+            h.status("Read RFP first: Review reads library documents beside the response structure of the matrix.")
             return False
         h.go("assign")
         ap = h.assign_page
@@ -848,7 +848,7 @@ class LibraryPage(QWidget):
 # ====================================================================== what was taken from the library (2.84.0)
 class TakenDialog(QDialog):
     """Every sentence taken from a library document, and what it is attached to: filter by kind, document, section
-    or topic, search the words, export it all for writers, or open one in Assign."""
+    or topic, search the words, export it all for writers, or open one in Review."""
 
     def __init__(self, page):
         super().__init__(page)
@@ -884,7 +884,7 @@ class TakenDialog(QDialog):
         v.addWidget(self.table, 1)
         row = QHBoxLayout(); v.addLayout(row)
         self.count = D.label("", "muted", wrap=False); row.addWidget(self.count); row.addStretch(1)
-        row.addWidget(D.button("Open in Assign", None, lambda: self.open_selected(), "Show the sentence on its page"))
+        row.addWidget(D.button("Open in Review", None, lambda: self.open_selected(), "Show the sentence on its page"))
         row.addWidget(D.button("Export to Excel...", "primary", lambda: self.export(), "Every row, for writers"))
         bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(self.reject); row.addWidget(bb)
         self.fill()
@@ -909,7 +909,7 @@ class TakenDialog(QDialog):
         h.go("assign")
         lab = next((k for k, did in ap.lib_entries.items() if did == a["doc"]), None)
         if lab is None:
-            h.status("That document is not offered in Assign (its role is Not needed, or it builds the matrix).")
+            h.status("That document is not offered in Review (its role is Not needed, or it builds the matrix).")
             return False
         ap.files.setCurrentText(lab)
         ap.select(a["iid"])
@@ -943,7 +943,7 @@ class ConformDialog(QDialog):
         self.setMinimumWidth(760)
         v = QVBoxLayout(self)
         v.addWidget(D.label(f"{len(ins)} change instruction(s) found in {amend['name']}. Each is applied to the latest version "
-                            "of the document it changes; the result is its next version, Conformed, which Changes and Assign "
+                            "of the document it changes; the result is its next version, Conformed, which Changes and Review "
                             "show like any reissued version. Nothing in the files changes.", "muted"))
         row = QHBoxLayout(); v.addLayout(row)
         row.addWidget(D.label("It changes", "label", wrap=False))

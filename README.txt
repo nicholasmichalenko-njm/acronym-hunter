@@ -1,6 +1,14 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+REVIEW, AND A CLEANER CUSTOMER Q&A (3.0.1)
+  - Assign is now Review (Compliance > Review): the page where you read every sentence of the customer's documents,
+    decide it and capture what it holds. The keys, your decisions and your saved work are unchanged.
+  - Reviews (color team review packets) is now Color Reviews, so the two are not confused.
+  - Customer Q&A exported to Word: No., Reference (the document, then section, page and paragraph), RFP Text (the
+    customer's exact words), Question and Government Response. Include the answers fills the last column. Only what
+    the customer needs goes out: never the owner, status, category or internal notes.
+
 AMENDMENTS AS INSTRUCTIONS, AND TASK AND DELIVERY ORDERS (3.0.0)
   - Many amendments do not reissue the document; they say what to change: "In paragraph L.4.2, delete "twenty (20)
     pages" and insert "twenty-five (25) pages"", "Paragraph L.5.3 is deleted in its entirety and replaced with the

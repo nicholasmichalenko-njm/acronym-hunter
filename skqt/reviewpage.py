@@ -56,7 +56,7 @@ class ReviewPage(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch); self.table.setMinimumHeight(220)
         self.score.add(self.table)
         v.addWidget(self.score)
-        self.found = D.Card("Comments read back", "Each one is also on the requirement's sentence card. Double-click to open it in Assign.")
+        self.found = D.Card("Comments read back", "Each one is also on the requirement's sentence card. Double-click to open it in Review.")
         self.notes = QTableWidget(0, 3)
         self.notes.setHorizontalHeaderLabels(["Requirement", "Comment", "When"])
         self.notes.verticalHeader().setVisible(False); self.notes.setEditTriggers(QTableWidget.NoEditTriggers)
