@@ -10,6 +10,8 @@ import os, platform, shutil, sys, tempfile, time
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT_DIR); sys.path.insert(0, os.path.join(ROOT_DIR, "tests"))
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
+if os.name == "nt":                                       # offscreen Qt on Windows finds no fonts by itself
+    os.environ.setdefault("QT_QPA_FONTDIR", os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts"))
 os.environ["AH_TEST"] = "1"
 os.environ["SK_SANDBOX_TEMP"] = "temp_shots"
 for _k in ("LOGNAME", "USER", "LNAME", "USERNAME"):        # the pictures show a neutral user and PC, never this PC's
@@ -73,6 +75,9 @@ def shot(key, page=None):
     if page:
         w.go(page)
     settle()
+    if page == "assign":                                   # the page copy (Word, on the PC) draws a moment later
+        wait(lambda: len(getattr(pg.view, "boxes", {}) or {}) > 0, 120)
+        settle(40)
     p = os.path.join(OUT, f"guide_{key}.png")
     w.grab().save(p)
     made.append(os.path.basename(p))
