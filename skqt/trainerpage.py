@@ -161,6 +161,9 @@ class TrainerPage(QWidget):
 
     def load_file(self, path):
         from pictures import list_sources
+        from .sensgate import training_gate                 # 2.97.0: nothing above CUI; an unmarked file is declared
+        if not training_gate(self, path, getattr(self, "declare_answer", None), self.status.setText):
+            return False
         try:
             self.sources = list_sources(path)
         except Exception as e:
@@ -256,6 +259,10 @@ class TrainerPage(QWidget):
         self.worker = None
         if err:
             self.status.setText(f"The reader could not read the box: {err}")
+            return
+        from .sensgate import training_lines                # 2.97.0: words marked above CUI are not shown or kept
+        if not training_lines([t for _b, t, _c in lines] + [one[0] if one else ""], self.status.setText):
+            self.region_img = None
             return
         cutoff = eng.ocr_cutoff()
         ignored = eng.load_ocr_ignore()

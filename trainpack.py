@@ -149,7 +149,7 @@ def _outline(M, text):
 
 
 def gather(matrices=(), config_dir="", areas=None, everything=False, text=False, ocr_fixes=(), ocr_ignore=(),
-           words=None):
+           words=None, sensitivity=None):
     """What a pack would hold now: {"counts": {area: n}, "parts": {member: bytes}, "keys": [new record keys]}.
     matrices: loaded compliance.Matrix objects. ocr_fixes: [[misread, correct, note]]; ocr_ignore: [[reading, note]];
     words: {"cwords_added", "cwords_removed", "choices", "keywords", "banned"}."""
@@ -232,6 +232,10 @@ def build(out_path, config_dir, app_version="", acknowledged=False, **kw):
     was nothing to send)."""
     if not acknowledged:
         raise PermissionError("the warning was not acknowledged")
+    import secure
+    if secure.ACTIVE:                                   # 2.97.0
+        raise PermissionError("SCIF-ready: training data is never sent")
+    sens = kw.pop("sensitivity", None) or "CUI"
     g = gather(config_dir=config_dir, **kw)
     areas = set(kw.get("areas") or [a for a, _ in AREAS])
     parts = dict(g["parts"])
@@ -248,7 +252,9 @@ def build(out_path, config_dir, app_version="", acknowledged=False, **kw):
     now = datetime.datetime.now().isoformat(timespec="seconds")
     man = {"format": FORMAT, "version": 1, "app_version": app_version, "created": now,
            "from": code(getpass.getuser() + "@" + platform.node()), "text": bool(kw.get("text")),
-           "areas": sorted(areas), "counts": g["counts"], "files": {n: _sha(b) for n, b in parts.items()}}
+           "areas": sorted(areas), "counts": g["counts"], "files": {n: _sha(b) for n, b in parts.items()},
+           "sensitivity": sens,                                     # 2.97.0: the highest level inside; never above CUI
+           "sensitivity_rule": "Only efforts at most CUI with a known sensitivity; nothing from SCIF-ready."}
     tmp = out_path + ".tmp"
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
         for n, b in parts.items():
@@ -302,11 +308,32 @@ def read(path):
     return man, out
 
 
-def import_pack(path, store_dir, learned_path, merge_fixes=None, merge_ignore=None):
+def sensitivity_problem(man, confirmed_old=False):
+    """2.97.0: why Stationkeeper Training refuses a pack ('' when it may be imported): its sensitivity must be known and
+    at most CUI. A pack from before 2.97 says nothing: it is refused unless the person confirms it holds nothing above
+    CUI."""
+    import sensitivity as S
+    s = man.get("sensitivity")
+    if s is None:
+        return "" if confirmed_old else ("This pack was made before Stationkeeper 2.97 and does not say its sensitivity. "
+                                         "Import it only if you know it holds nothing above CUI.")
+    lv = S.level_of_words(s)
+    if lv < 0:
+        return f"This pack's sensitivity ({str(s)[:40]}) is not known. It is not imported."
+    if lv > S.TRAINING_MAX:
+        return f"This pack is marked {S.name(lv)}. Nothing above CUI is ever imported for training."
+    return ""
+
+
+def import_pack(path, store_dir, learned_path, merge_fixes=None, merge_ignore=None, confirmed_old=False):
     """Stationkeeper Training: file each area where it belongs. Reading goes into the training set (as a corrections
     pack); OCR fixes and ignores merge add-only; compliance learning merges into the team's learning; the records,
-    outlines and words are kept under store_dir for the Training Studio. Returns {area: count, "from", "created"}."""
+    outlines and words are kept under store_dir for the Training Studio. Returns {area: count, "from", "created"}.
+    2.97.0: a pack above CUI, or of unknown sensitivity, is refused (PackError) before anything is used."""
     man, data = read(path)
+    why = sensitivity_problem(man, confirmed_old)
+    if why:
+        raise PackError(why)
     got = {"reading": 0, "ocrfix": 0, "compliance": 0, "learned": 0, "words": 0, "skipped": 0}
     if "reading.zip" in data:
         import corrections

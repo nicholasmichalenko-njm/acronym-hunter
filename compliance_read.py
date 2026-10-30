@@ -13,6 +13,7 @@ import datetime, hashlib, os, re
 import diag
 import compliance as C
 import pagesent as PS
+import sensitivity as S
 
 
 def sha256(path):
@@ -62,6 +63,7 @@ def read_files(paths, chunks_of, progress=None, stop=None, page_copy=None):
         try:
             pg = None
             pc = None
+            level = S.guard(p)                           # 2.97.0: marked above CUI: stop before any copy is made
             if page_copy is not None:                   # 2.96.0: a picture or scanned PDF: its copy with words
                 try:
                     pc = page_copy(p, lambda msg, k=k, head=head: say(k / n, f"{head} ({msg})"))
@@ -74,6 +76,15 @@ def read_files(paths, chunks_of, progress=None, stop=None, page_copy=None):
                 except Exception:
                     diag.swallowed()
                     pg = None
+                if pg is not None:                       # 2.97.0: words read from a scanned page or picture, banners too
+                    try:
+                        S.guard_lines(name, S.typed_lines(pc), level)
+                    except S.Spill:
+                        try:
+                            os.remove(pc)                # the page copy of a document marked above CUI is not kept
+                        except OSError:
+                            pass
+                        raise
             if pg is None and p.lower().endswith(".pdf"):
                 try:
                     pg = PS.chunks_for(p, name)          # 2.57.0: sentences cut from the page, headers and footers left out
@@ -92,8 +103,9 @@ def read_files(paths, chunks_of, progress=None, stop=None, page_copy=None):
                 fc.append((name, chunks_of(p, pages)))   # 2.47.0: scanned pages too
             else:
                 fc.append((name, chunks_of(p)))
+            S.guard_lines(name, [t for _l, t in fc[-1][1]], level)      # 2.97.0: what the reader found, scanned pages too
             src.append([name, sha256(p), datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), os.path.abspath(p)])
-        except Stopped:
+        except (Stopped, S.Spill):
             raise
         except Exception as ex:
             diag.swallowed()

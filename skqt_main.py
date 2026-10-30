@@ -96,7 +96,9 @@ def main(argv=None):
         scan = _selftest_scan()                          # 2.64.0: the built program reads a Word file and finds its terms
         ok = ok and scan.startswith("ok")
         with open(os.path.join(A.SANDBOX_DIR, "qt_selftest.txt"), "w", encoding="utf-8") as f:
-            f.write("QT SELFTEST " + ("PASS" if ok else "FAIL") + f" (scan: {scan})\n")
+            import secure                                # 2.97.0: the SCIF build's check reads the mode here
+            f.write("QT SELFTEST " + ("PASS" if ok else "FAIL") + f" (scan: {scan})"
+                    + (" mode: SCIF-ready" if secure.ACTIVE else "") + "\n")
         w.close()
         files = [a for a in args[args.index("--selftest") + 1:] if os.path.isfile(a)]
         if files:                                        # 2.74.0: the release smoke test scans the sample files

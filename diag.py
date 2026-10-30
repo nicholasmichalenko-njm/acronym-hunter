@@ -27,6 +27,7 @@ _crash_fh = None
 _names = {}                # id(widget) -> internal name, for usage logging
 _last_action = [None]      # time of the previous activity line
 usage_on = True
+OFF = False          # 2.97.0: SCIF-ready: nothing is recorded, not even in memory
 MAX_BYTES = 5 * 1024 * 1024
 KEEP = 3
 
@@ -78,6 +79,23 @@ def shutdown():
         pass
 
 
+def off():
+    """2.97.0 SCIF-ready: stop recording for good in this process: no log folder, no crash capture, no clicks, and the
+    actions kept in memory are dropped."""
+    global LOG_DIR, usage_on, OFF, _crash_fh
+    OFF, usage_on = True, False
+    try:
+        if _crash_fh is not None:
+            faulthandler.disable()
+            _crash_fh.close()
+    except Exception:
+        pass
+    _crash_fh = None
+    LOG_DIR = None
+    with _lock:
+        del _recent[:]
+
+
 # ---------------------------------------------------------------- recording
 def error(area, msg, exc=None, **counts):
     _record("error", area, msg, exc, counts)
@@ -101,6 +119,8 @@ def swallowed(area=None):
 def activity(action, w=None, state=None, **counts):
     """A feature action: 'scan_started', 'apply_choice', 'fix_ocr_saved'... with counts only.
     w = internal widget name for clicks (code identifiers only), state = 'disabled' for a click on a greyed-out control."""
+    if OFF:
+        return
     if not _AREA.match(action or ""):
         action = "other"
     now = datetime.datetime.now()
@@ -234,6 +254,8 @@ def _frames(tb):
 
 
 def _record(level, area, msg, exc, counts):
+    if OFF:
+        return
     area = area if isinstance(area, str) and _AREA.match(area) else "app"
     msg = msg if isinstance(msg, str) else "?"
     entry = {"time": _now(), "version": VERSION, "level": level, "area": area, "msg": msg[:160]}

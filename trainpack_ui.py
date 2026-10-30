@@ -18,24 +18,52 @@ def _eng():
 
 class TrainPackMixin:
     # ------------------------------------------------------------ what is on this PC
+    def tp_effort_ok(self, name, list_path):
+        """2.97.0: an effort's work may go to training: its sensitivity known and at most CUI (sensitivity.effort_level),
+        never in SCIF-ready. Efforts left out are listed in tp_left_out; tp_top is the highest level taken."""
+        import secure
+        import sensitivity as S
+        cache = self.__dict__.setdefault("_tp_ok", {})
+        if name not in cache:
+            lv = -1 if secure.ACTIVE else (S.effort_level(list_path) if list_path else secure.EFFORT_LEVEL)
+            ok = not secure.ACTIVE and S.training_ok(lv)
+            cache[name] = ok
+            if ok:
+                self.tp_top = max(getattr(self, "tp_top", -1), lv)
+            elif name not in self.__dict__.setdefault("tp_left_out", []):
+                self.tp_left_out.append(name)
+        return cache[name]
+
     def tp_matrices(self):
-        """Every effort's compliance matrix on this PC (the open one as it is now)."""
+        """Every effort's compliance matrix on this PC (the open one as it is now). 2.97.0: only efforts whose
+        sensitivity is known and at most CUI (tp_effort_ok)."""
         import compliance as C, workspace as W
         out, seen = [], set()
-        cur = getattr(self, "matrix", None)
-        if cur is not None:
-            out.append(cur); seen.add(os.path.abspath(cur.path).lower())
         reg = getattr(self, "efforts", None)
+        where = {}
         for n in (reg.names() if reg is not None else []):
             inf = reg.get(n) or {}
             if not inf.get("path"):
                 continue
             st = W.read_json(os.path.join(W.data_dir_for(inf["path"]), "settings.json"), None) or {}
             p = st.get("compliance_path") or ""
-            if not p or not os.path.isfile(p) or os.path.abspath(p).lower() in seen:
+            if p:
+                where[os.path.abspath(p).lower()] = (n, inf["path"], p)
+        cur = getattr(self, "matrix", None)
+        if cur is not None:
+            key = os.path.abspath(cur.path).lower()
+            n, lp, _p = where.get(key, ("(the open effort)", "", ""))
+            seen.add(key)
+            if self.tp_effort_ok(n, lp):
+                out.append(cur)
+        for key, (n, lp, p) in where.items():
+            if key in seen or not os.path.isfile(p):
+                continue
+            seen.add(key)
+            if not self.tp_effort_ok(n, lp):
                 continue
             try:
-                out.append(C.Matrix(p).load()); seen.add(os.path.abspath(p).lower())
+                out.append(C.Matrix(p).load())
             except Exception:
                 diag.swallowed()
         return out
@@ -63,7 +91,7 @@ class TrainPackMixin:
         reg = getattr(self, "efforts", None)
         for n in (reg.names() if reg is not None else []):
             inf = reg.get(n) or {}
-            if inf.get("path"):
+            if inf.get("path") and self.tp_effort_ok(n, inf["path"]):      # 2.97.0
                 files.append(os.path.join(W.data_dir_for(inf["path"]), "choices.json"))
         for f in files:
             d = W.read_json(f, None)
@@ -74,8 +102,12 @@ class TrainPackMixin:
 
     def tp_args(self, areas=None, everything=False, text=False):
         eng = _eng()
-        return dict(matrices=self.tp_matrices(), areas=areas, everything=everything, text=text,
-                    ocr_fixes=eng.read_ocr_fix_rows(), ocr_ignore=eng.read_ocr_ignore_rows(), words=self.tp_words())
+        import sensitivity as S
+        m, w = self.tp_matrices(), self.tp_words()
+        top = getattr(self, "tp_top", -1)
+        return dict(matrices=m, areas=areas, everything=everything, text=text,
+                    ocr_fixes=eng.read_ocr_fix_rows(), ocr_ignore=eng.read_ocr_ignore_rows(), words=w,
+                    sensitivity=S.name(top) if top >= 0 else "General business")
 
     def tp_waiting(self):
         """How many items are waiting to be sent (new since the last send), for the banner and the menu."""

@@ -1,11 +1,18 @@
-"""Work modes (2.79.0). Stationkeeper works fully offline in both; the mode decides where files go, what the app warns
-about and which steps it shows.
+"""Work modes (2.79.0; three since 2.97.0). Stationkeeper works fully offline in all of them; the mode decides where
+files go, what the app keeps about itself and which steps it shows.
 
-- Secured: a SCIF or any closed network. Packages and backups go to a local folder or the site's approved transfer
-  location. A folder that OneDrive (or another sync tool) uploads is flagged. Nothing suggests SharePoint.
+- Offline: this PC on its own, for testing and everyday work on General business, Proprietary and CUI documents.
+  Content-free logs and training corrections are kept on this PC. A folder that OneDrive uploads is flagged.
 - Connected: Microsoft 365 with OneDrive. One team folder (a OneDrive-synced SharePoint library) holds the team's
   packages and backups; OneDrive does the uploading, the app never connects. A small marker file in the team folder says
   who has which effort open, so the team sees it before opening a copy.
+- SCIF-ready: a SCIF or any classified system. No logs, no training data, no bug reports or support files, and it
+  cannot be switched back (secure.py: the SCIF build, or the seal written when it was chosen). Before 2.97.0 the
+  setting "secured" meant a closed network without the lock; those PCs read as Offline until SCIF-ready is chosen,
+  because the lock cannot be undone and is never set for anyone.
+
+Documents marked above CUI are refused in Offline and Connected (sensitivity.guard); training never takes anything above
+CUI in any mode.
 
 The mode is a statement of where the PC is used, chosen by the person (or the team's settings). It changes no security
 control of the PC and certifies nothing: a site's security officer approves the software for a classified system.
@@ -13,8 +20,11 @@ Pure Python, no network.
 """
 import datetime, getpass, json, os, platform, re
 
-SECURED, CONNECTED = "secured", "connected"
-NAMES = {SECURED: "Secured", CONNECTED: "Connected"}
+OFFLINE, CONNECTED, SECURED = "offline", "connected", "secured"
+NAMES = {OFFLINE: "Offline", CONNECTED: "Connected", SECURED: "SCIF-ready"}
+LONG = {OFFLINE: "Offline (testing and everyday work, General business to CUI)",
+        CONNECTED: "Connected (Microsoft 365 with OneDrive and SharePoint)",
+        SECURED: "SCIF-ready (no logs, no training, locked)"}
 WORKING = "Working on"            # the team folder's marker files
 STALE_HOURS = 12
 
@@ -42,12 +52,22 @@ def is_synced(path):
 
 
 def suggest():
-    """Connected when OneDrive for work is set up on this PC, else Secured."""
-    return CONNECTED if os.environ.get("OneDriveCommercial") else SECURED
+    """Connected when OneDrive for work is set up on this PC, else Offline."""
+    return CONNECTED if os.environ.get("OneDriveCommercial") else OFFLINE
 
 
 def get(settings):
+    """The mode: SCIF-ready whenever this install is sealed or is the SCIF build, whatever the settings say; a setting
+    of "secured" from before 2.97.0 without the seal reads as Offline."""
+    try:
+        import secure
+        if secure.ACTIVE:
+            return SECURED
+    except Exception:
+        pass
     m = (settings or {}).get("work_mode", "")
+    if m == SECURED:
+        return OFFLINE
     return m if m in NAMES else ""
 
 
@@ -67,8 +87,11 @@ def folder_warning(settings, path):
     """A warning (never a refusal) for a folder that does not fit the mode, or ''."""
     m = get(settings)
     if m == SECURED and is_synced(path):
-        return ("This folder is uploaded by OneDrive or another sync tool, so files saved here leave this PC. In Secured "
-                "mode use a local folder or your site's approved transfer location.")
+        return ("This folder is uploaded by OneDrive or another sync tool, so files saved here leave this PC. In "
+                "SCIF-ready mode use a local folder or your site's approved transfer location.")
+    if m == OFFLINE and is_synced(path):
+        return ("This folder is uploaded by OneDrive or another sync tool, so files saved here leave this PC. In Offline "
+                "mode use a local folder, or choose Connected mode for the team's SharePoint folder.")
     if m == CONNECTED and path and not is_synced(path):
         return ("This folder is not uploaded by OneDrive, so the team will not see what is saved here. Use the team's "
                 "OneDrive-synced SharePoint folder.")
@@ -77,17 +100,29 @@ def folder_warning(settings, path):
 
 def steps(mode):
     """How work moves between people in this mode, in plain steps (Settings and Help show them)."""
-    if mode == SECURED:
+    if mode == OFFLINE:
         return ["Stationkeeper never connects to a network; nothing leaves this PC except files you save.",
-                "Save backups and effort packages to a local folder or your site's approved transfer location.",
-                "Move a package to another system only through your site's approved transfer process.",
-                "Install update packs and Knowledge Packs that arrive the same way; each one is checked before it changes anything."]
+                "For testing and everyday work on General business, Proprietary and CUI documents. A document marked above "
+                "CUI is refused: nothing is copied, and you are told to follow your site's spillage procedure.",
+                "Content-free logs (no document text, names or numbers) and the training corrections you choose to save stay "
+                "on this PC, so problems can be fixed and reading improved. Training takes nothing above CUI, and nothing "
+                "from an effort whose sensitivity is not known.",
+                "Save backups and effort packages to a local folder."]
+    if mode == SECURED:
+        return ["SCIF-ready: Stationkeeper writes no logs, keeps no training data and makes no bug reports or support files. "
+                "Nothing about the documents or the work is recorded outside the effort's own files.",
+                "This cannot be switched back. Leaving SCIF-ready takes a fresh copy of the program and a new data folder, as "
+                "your security officer directs.",
+                "Stationkeeper never connects to a network. Save backups and effort packages to a local folder or your site's "
+                "approved transfer location, and move them only through your site's approved transfer process.",
+                "Install update packs that arrive the same way; each one is checked before it changes anything."]
     if mode == CONNECTED:
         return ["Stationkeeper never connects to a network; OneDrive uploads the files it saves to the team folder.",
                 "Backups and effort packages go to the team folder automatically, so progress is never only on this PC.",
                 "Before opening an effort, check who has it open; the app shows it and warns you.",
                 "To hand an effort over, save its package to the team folder; the other person opens it and continues where you were."]
-    return ["Choose where this PC is used: Secured (a SCIF or closed network) or Connected (Microsoft 365 with OneDrive)."]
+    return ["Choose where this PC is used: Offline (testing and everyday work), Connected (Microsoft 365 with OneDrive) or "
+            "SCIF-ready (no logs, no training, locked)."]
 
 
 # ---------------------------------------------------------------- who has an effort open (Connected mode)

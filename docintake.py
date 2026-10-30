@@ -7,6 +7,9 @@ the PC.
 import datetime, os, re, shutil
 import diag
 import docversions as DV
+import sensitivity as S
+
+Spill = S.Spill                      # 2.97.0: a document marked above CUI: everything stops, nothing is copied
 
 
 def read(path):
@@ -20,7 +23,11 @@ def read(path):
             import tempfile
             import office_pdf as OP
             src = OP.make(path, tempfile.mkdtemp(prefix="sk_legacy_"))
-        chunks = app_gui.rfp_chunks(src)
+        try:
+            chunks = app_gui.rfp_chunks(src)
+        finally:
+            if src != path:                              # 2.97.0: the PDF copy of an old Office file is not kept
+                shutil.rmtree(os.path.dirname(src), ignore_errors=True)
     except Exception:
         diag.swallowed()
         chunks = []
@@ -57,7 +64,9 @@ def plan(lib, paths, reader=read, progress=None, stop=None, folders=None, catego
     ('new', 'version' or 'skip'), doc, name, label}.
     2.83.0: and its category, folder, tags and role (suggested from the folders it came from and its type).
     folders: {path: relative folder}; category: the category every file goes to (else guessed, customer when unsure);
-    progress(fraction, text) per file; stop() True raises Stopped."""
+    progress(fraction, text) per file; stop() True raises Stopped.
+    2.97.0: a file marked above CUI raises Spill (sensitivity.guard) before anything is read on or copied; each entry
+    keeps the level found ("sensitivity", -1 when none)."""
     out = []
     folders = folders or {}
     n = max(1, len(paths))
@@ -78,7 +87,9 @@ def plan(lib, paths, reader=read, progress=None, stop=None, folders=None, catego
                         "name": DV.display_name(p), "label": "", "category": got[0].get("category", "customer"),
                         "folder": rel, "tags": DV.folder_tags(rel), "role": lib.role_of(got[0])})
             continue
+        level = S.guard(p)                               # 2.97.0: marked above CUI: stop before reading or copying
         sents = reader(p)
+        level = S.guard_lines(os.path.basename(p), [x["x"] for x in sents], level)
         cands = [(d, sc, how) for d, sc, how in lib.suggest(os.path.basename(p), [s["x"] for s in sents])]
         for k, e in enumerate(out):              # earlier files in this batch that will become new documents
             if e.get("dup") or e["choice"] != "new":
@@ -97,7 +108,7 @@ def plan(lib, paths, reader=read, progress=None, stop=None, folders=None, catego
                     "doc": best[0]["id"] if best else None, "name": DV.display_name(p), "label": "",
                     "type": dtype, "initial": lib.suggest_initial(dtype, taken) if cat == "customer" else "",
                     "category": cat, "folder": rel, "tags": DV.folder_tags(rel), "role": DV.suggest_role(cat, dtype),
-                    "suggested_role": DV.suggest_role(cat, dtype)})
+                    "suggested_role": DV.suggest_role(cat, dtype), "sensitivity": level})
     if progress is not None:
         progress(1.0, "Read")
     return out
@@ -165,6 +176,8 @@ def apply(lib, entries, customer_dir="", log=None, progress=None):
                        initial=e.get("initial", ""), dtype=e.get("type", ""), category=cat, folder=e.get("folder", ""),
                        tags=[t for t in e.get("tags", []) if t not in DV.folder_tags(e.get("folder", ""))], role=e.get("role"),
                        save=False, role_confirmed=e.get("role") != e.get("suggested_role", e.get("role")))
+        if e.get("sensitivity", -1) > d.get("sensitivity", -1):     # 2.97.0: the highest level found in its versions
+            d["sensitivity"] = e["sensitivity"]
         batch_doc[k] = d["id"]
         made.append((d, v))
     if made:

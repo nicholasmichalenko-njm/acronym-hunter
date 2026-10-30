@@ -58,8 +58,18 @@ def _meta(rows):
 def _now():
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
+def _allowed():
+    """2.97.0: training data is never kept in SCIF-ready; in Stationkeeper, only from an effort at most CUI."""
+    import secure
+    if secure.ACTIVE:
+        return False
+    return eng.TRAINING_APP or secure.training_ok()
+
+
 def save_sample(pil_img, text, ocr_text, conf, source, box):
     """One text-line image for recognition training (images/ + labels.txt). Returns the image path."""
+    if not _allowed():
+        raise PermissionError("training data is not kept for this effort (SCIF-ready, or sensitivity above CUI or not set)")
     os.makedirs(IMG_DIR, exist_ok=True)
     data = _png(pil_img)
     rel = f"images/{_sample_id(data)}.png"
@@ -75,6 +85,8 @@ def save_region(pil_img, text_boxes, unsure_boxes, not_text, source, region):
     """The whole drawn box for detection training (regions/ + det_labels.txt).
     text_boxes: [(box, text)] real text. unsure_boxes: lines left on Skip (marked ### = ignore, not taught either way).
     Everything else in the image, including every 'Not text' line, is taught as background."""
+    if not _allowed():
+        raise PermissionError("training data is not kept for this effort (SCIF-ready, or sensitivity above CUI or not set)")
     os.makedirs(DET_DIR, exist_ok=True)
     data = _png(pil_img)
     rel = f"regions/{_sample_id(data)}.png"

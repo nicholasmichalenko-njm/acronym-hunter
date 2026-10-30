@@ -54,6 +54,7 @@ img.save(PIC)
 app = QApplication([]); D.apply(app)
 w = TrainingWindow(app); w.resize(1500, 900); w.show(); app.processEvents()
 tp = w.open_trainer()
+tp.declare_answer = 0                  # 2.97.0: the test picture carries no marking: declared General business
 check("the Trainer opens as a page", w.stack.currentWidget() is tp)
 check("open a picture: it shows, listed", tp.load_file(PIC) and tp.list.count() == 1 and tp.img is not None and tp.view.pix is not None)
 lines = [((10, 10, 300, 50), "Telemetry 1ink budget", 0.95), ((5, 85, 620, 100), "~~~|", 0.93)]

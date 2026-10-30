@@ -162,24 +162,40 @@ class TrainingApp(ctk.CTk):
     def rescan_project(self):         # nothing to rescan here
         pass
 
-    def import_packs(self, paths=None, ask=True):
+    def import_packs(self, paths=None, ask=True, confirm_old=None):
         """Gather > Import training data... (2.55.0): .sktrain training data packs, each area filed where it belongs;
-        older corrections packs (.zip) still import."""
+        older corrections packs (.zip) still import.
+        2.97.0: a pack marked above CUI is refused; one that does not state its sensitivity (made before 2.97, or a
+        corrections .zip) only when the person confirms it holds nothing above CUI (confirm_old (tests))."""
         import trainpack as TP
+
+        def old_ok(p):
+            if confirm_old is not None:
+                return confirm_old
+            if not ask:
+                return True
+            return messagebox.askyesno("Sensitivity not stated", f"{os.path.basename(p)} does not say its sensitivity. Import "
+                                       "it only if you know it holds nothing above CUI (no Confidential, Secret or Top "
+                                       "Secret). Import it?")
         paths = paths or filedialog.askopenfilenames(title="Training data (from the approved SharePoint folder)",
                                                      filetypes=[("Training data", "*.sktrain *.zip")])
         done, failed = [], []
         for p in paths or []:
             try:
                 if p.lower().endswith(TP.EXT):
+                    man, _d = TP.read(p)
+                    old = man.get("sensitivity") is None
                     r = TP.import_pack(p, os.path.join(getattr(eng, "DATA_DIR", eng.BASE_DIR), "training_data", "imported"),
                                        os.path.join(eng.CONFIG_DIR, "compliance_learned.json"),
-                                       merge_fixes=eng.merge_pack_fixes, merge_ignore=eng.merge_pack_ignore)
+                                       merge_fixes=eng.merge_pack_fixes, merge_ignore=eng.merge_pack_ignore,
+                                       confirmed_old=old and old_ok(p))
                     done.append(f"{os.path.basename(p)}: {r['reading']} misread lines and regions, {r['ocrfix']} OCR fixes, "
                                 f"{r['compliance']} compliance decisions ({r['learned']} learned), {r['words']} word choices"
                                 + (" (with sentence text)" if r["text"] else "")
                                 + (f" ({r['skipped']} already here)" if r["skipped"] else ""))
                     continue
+                if not old_ok(p):                          # 2.97.0: a corrections pack never states its sensitivity
+                    raise TP.PackError("Not imported: its sensitivity was not confirmed (nothing above CUI is imported).")
                 r = C.import_pack(p)
                 done.append(f"{os.path.basename(p)}: {r['lines']} lines, {r['regions']} regions"
                             + (f" ({r['skipped']} already here)" if r["skipped"] else ""))

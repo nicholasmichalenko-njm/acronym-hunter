@@ -183,9 +183,20 @@ class TrainingWindow(QMainWindow):
             f"from {cs['matrices']} matrices\n"
             f"Acronyms database rows: {db}; OCR fixes: {fx}")
 
-    def import_packs(self, paths=None, ask=True):
-        """Training data packs (.sktrain), each area filed where it belongs; older corrections packs (.zip) still import."""
+    def import_packs(self, paths=None, ask=True, confirm_old=None):
+        """Training data packs (.sktrain), each area filed where it belongs; older corrections packs (.zip) still import.
+        2.97.0: a pack marked above CUI is refused; one made before 2.97 (no sensitivity) only when the person confirms
+        it holds nothing above CUI (confirm_old (tests): True or False)."""
         import trainpack as TP
+
+        def old_ok(p):
+            if confirm_old is not None:
+                return confirm_old
+            if not ask:
+                return True
+            return QMessageBox.question(self, "Sensitivity not stated", f"{os.path.basename(p)} was made before Stationkeeper 2.97 "
+                                        "and does not say its sensitivity. Import it only if you know it holds nothing above CUI "
+                                        "(no Confidential, Secret or Top Secret). Import it?") == QMessageBox.Yes
         if paths is None:
             paths, _ = QFileDialog.getOpenFileNames(self, "Training data (from the approved SharePoint folder)", "",
                                                     "Training data (*.sktrain *.zip)")
@@ -193,13 +204,20 @@ class TrainingWindow(QMainWindow):
         for p in paths or []:
             try:
                 if p.lower().endswith(TP.EXT):
+                    man, _d = TP.read(p)
+                    why = TP.sensitivity_problem(man)
+                    old = man.get("sensitivity") is None
+                    if why and not (old and old_ok(p)):
+                        raise TP.PackError(why)
                     r = TP.import_pack(p, os.path.join(getattr(eng, "DATA_DIR", eng.BASE_DIR), "training_data", "imported"),
                                        os.path.join(eng.CONFIG_DIR, "compliance_learned.json"),
-                                       merge_fixes=eng.merge_pack_fixes, merge_ignore=eng.merge_pack_ignore)
+                                       merge_fixes=eng.merge_pack_fixes, merge_ignore=eng.merge_pack_ignore, confirmed_old=old)
                     done.append(f"{os.path.basename(p)}: {r['reading']} misread lines and regions, {r['ocrfix']} OCR fixes, "
                                 f"{r['compliance']} compliance decisions ({r['learned']} learned), {r['words']} word choices"
                                 + (f" ({r['skipped']} already here)" if r["skipped"] else ""))
                     continue
+                if not old_ok(p):                       # a corrections pack never says its sensitivity
+                    raise TP.PackError("Not imported: its sensitivity was not confirmed (nothing above CUI is imported).")
                 r = CO.import_pack(p)
                 done.append(f"{os.path.basename(p)}: {r['lines']} lines, {r['regions']} regions"
                             + (f" ({r['skipped']} already here)" if r["skipped"] else ""))
@@ -219,6 +237,13 @@ class TrainingWindow(QMainWindow):
     def gather_matrices(self, paths=None):
         if paths is None:
             paths, _ = QFileDialog.getOpenFileNames(self, "Past compliance matrices (Excel)", "", "Compliance matrix (*.xlsx)")
+        if not paths:
+            return []
+        from .sensgate import training_gate              # 2.97.0: nothing above CUI; an unmarked file is declared
+        said = []
+        paths = [p for p in paths if training_gate(self, p, getattr(self, "declare_answer", None), said.append)]
+        if said:
+            self.toast(said[-1])
         if not paths:
             return []
         res = ST.gather_matrices(list(paths), eng.COMPLIANCE_LEARNED_FILE, eng.CONFIG_DIR)

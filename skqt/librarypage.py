@@ -683,6 +683,13 @@ class LibraryPage(QWidget):
 
     def _planned(self, res):
         self.worker = None
+        if isinstance(res, DI.Spill):                   # 2.97.0: marked above CUI: stop, nothing copied
+            self.lock(False)
+            from .sensgate import spill_stop
+            self.panel.failed("Stopped: a document is marked above CUI", res.text(),
+                              "Nothing was copied or added. Leave the file where it is and tell your security officer.")
+            spill_stop(self.host, res)
+            return
         if isinstance(res, DI.Stopped):
             self.lock(False)
             self.panel.stopped("Reading stopped", "You pressed Stop. Nothing was added.", "Add them again when you are ready.")
@@ -736,6 +743,7 @@ class LibraryPage(QWidget):
             by[d.get("category", "customer")] = by.get(d.get("category", "customer"), 0) + 1
         text = ", ".join(f"{n} to {self.lib.category_name(c)}" for c, n in by.items()) or "nothing new"
         diag.activity("library_intake_done", n=len(made))
+        self.host.refresh_level()                      # 2.97.0: the effort's level follows its documents
         self.panel.done("Added", f"{len(made)} document version(s) added: {text}.")
         self.host.toast(f"{len(made)} added to the library")
         self.refresh()

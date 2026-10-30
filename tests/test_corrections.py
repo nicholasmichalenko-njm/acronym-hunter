@@ -6,6 +6,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["AH_TEST"] = "1"
 import app_gui as A
 import corrections as C
+import secure, sensitivity
+secure.EFFORT_LEVEL = sensitivity.CUI      # 2.97.0: training lines are kept for an effort at most CUI
 import tess_train
 from PIL import Image
 

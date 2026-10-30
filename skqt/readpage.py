@@ -34,7 +34,7 @@ class ReadWorker(QThread):
                                 stop=lambda: self.stop_asked or self.abandoned,
                                 page_copy=(lambda p, say: ocrpdf.page_copy(p, self.copies, say)) if self.copies else None)
         except Exception as ex:
-            if not isinstance(ex, (CR.Stopped, CR.ReadFailed)):
+            if not isinstance(ex, (CR.Stopped, CR.ReadFailed, CR.S.Spill)):
                 diag.swallowed()
             res = ex
         self.done.emit(res)
@@ -531,6 +531,13 @@ class ReadPage(QWidget):
     def _finish(self, res):
         if self.host.ws is None or self.host.ws.root != getattr(self, "_root", None):
             self.panel.stopped("Reading stopped", "The effort changed while it read. Nothing was written.", "Press Read again.")
+            return
+        if isinstance(res, CR.S.Spill):                 # 2.97.0: marked above CUI: stop, nothing written or kept
+            from .sensgate import spill_stop
+            self.panel.failed("Stopped: a document is marked above CUI", res.text(),
+                              "Nothing was written to the matrix and no page copy was kept. Leave the file where it is and "
+                              "tell your security officer.")
+            spill_stop(self.host, res)
             return
         if isinstance(res, CR.Stopped):
             self.panel.stopped("Reading stopped", "You pressed Stop. Nothing was written to the matrix.",

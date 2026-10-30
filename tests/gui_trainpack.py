@@ -9,6 +9,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE)); sys.path.insert(0, HERE)
 os.environ["AH_OCR_ENGINE"] = "tesseract"; os.environ["AH_TEST"] = "1"
 import app_gui as A, compliance as C, effort as E, trainpack as TP, rfpoutline as RO
+import secure, sensitivity
+secure.EFFORT_LEVEL = sensitivity.CUI      # 2.97.0: training lines are kept for an effort at most CUI
 import corrections as CR
 from tkinter import messagebox
 from PIL import Image

@@ -20,6 +20,12 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "2.97.0": ["Three work modes: Offline (testing and everyday work, General business to CUI), Connected (SharePoint) and "
+               "SCIF-ready (no logs, no training, no support files, locked once chosen). The chip in the top bar shows it.",
+               "A document marked above CUI (by its sensitivity label or its banners and markings) stops Add documents, the "
+               "Library and Read RFP on a regular install, with nothing copied.",
+               "Training only takes work from efforts whose sensitivity is known and at most CUI; the Trainer refuses files "
+               "marked above CUI and asks the level of an unmarked one."],
     "2.96.0": ["Every kind of customer file: pictures and scanned pages get their words laid over them so you select "
                "sentences exactly as on a typed PDF; old .doc, .xls and .ppt files are read; Excel opens in Sheet view (its "
                "cells as a grid).",

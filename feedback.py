@@ -133,6 +133,9 @@ class Guard:
 # ------------------------------------------------------------------ storage
 def feedback_dir():
     import app_gui as eng
+    import secure
+    if not secure.feedback_ok():                       # 2.97.0: never in SCIF-ready, nor for an effort above CUI
+        raise PermissionError("bug reports are not kept here (SCIF-ready, or an effort above CUI is open)")
     d = os.path.join(getattr(eng, "DATA_DIR", eng.BASE_DIR), "feedback", "reports")
     os.makedirs(d, exist_ok=True)
     return d
@@ -275,6 +278,9 @@ def check_machine_file(name, text):
 
 # ------------------------------------------------------------------ window
 def open_feedback(app):
+    import secure
+    if not secure.feedback_ok():                       # 2.97.0
+        return None
     if _win[0] is not None and _win[0].winfo_exists():
         _win[0].deiconify(); _win[0].lift(); _win[0].focus_force(); return _win[0]
     diag.activity("feedback_opened")

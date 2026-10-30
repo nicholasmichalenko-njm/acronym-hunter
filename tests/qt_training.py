@@ -62,6 +62,7 @@ def matrix(name, n):
 
 app = QApplication([]); D.apply(app)
 w = TrainingWindow(app); w.resize(1360, 880); w.show(); app.processEvents()
+w.declare_answer = 0                   # 2.97.0: the test matrices carry no marking: declared General business
 check("five steps and the Trainer on the rail", list(w.step_btns) == ["gather", "review", "train", "measure", "build", "trainer"] and w.stack.count() == 6)
 res = w.gather_matrices([matrix("Kestrel_Matrix.xlsx", 20), matrix("Osprey_Matrix.xlsx", 18)])
 g = w.lbl_gather.text()

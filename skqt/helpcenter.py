@@ -12,10 +12,10 @@ from . import design as D
 SHORTCUTS = [("Anywhere", "Ctrl+K", "Find a page, an effort, a sentence or a person"),
              ("Anywhere", "Ctrl+F", "Find a sentence by its words or number"),
              ("Anywhere", "F1", "These keyboard shortcuts"),
-             ("Assign (on the page)", "R", "Requirement: the selected sentences go to the target section"),
+             ("Assign (on the page)", "R", "SOW (Work): the selected sentences go to the target section as requirements"),
              ("Assign (on the page)", "C", "Context: support for the last requirement you clicked"),
              ("Assign (on the page)", "G", "The customer's (counted, never answered)"),
-             ("Assign (on the page)", "L / E", "Mark Section L (instructions) / Section M (evaluation)"),
+             ("Assign (on the page)", "L / E", "L (Instructions) / M (Evaluation): requirements with that designation"),
              ("Assign (on the page)", "X or Delete", "Clear the decision"),
              ("Assign (on the page)", "J / S", "Join the selected sentences / split one"),
              ("Assign (on the page)", "Ctrl+Z", "Undo the last change"),
@@ -32,12 +32,33 @@ def support_card(host):
                            "Stationkeeper. It holds no document text, terms, names, file names or folder paths. You save it "
                            "and decide who gets it.", "muted"))
     lab.setWordWrap(True)
+    import secure
+    if secure.ACTIVE:                                  # 2.97.0: SCIF-ready keeps no logs, so there is nothing to send
+        for b in card.findChildren(type(D.button("x", None, None))):
+            if b.text().startswith("Create a support file"):
+                b.setVisible(False)
+        lab.setText("SCIF-ready: Stationkeeper keeps no logs and makes no support files. Describe a problem to whoever "
+                    "maintains Stationkeeper in words, without document content.")
     return card
+
+
+def support_blocked():
+    """2.97.0: why a support file cannot be made now ('' when it can)."""
+    import secure
+    if secure.ACTIVE:
+        return "SCIF-ready: Stationkeeper makes no support files and keeps no logs."
+    if not secure.feedback_ok():
+        return "No support file while an effort marked above CUI is open. Close it first."
+    return ""
 
 
 def make_support_file(host, path=None):
     import app_gui
     import datetime
+    why = support_blocked()
+    if why:
+        host.status(why)
+        return None
     if path is None:
         name = f"Stationkeeper support {datetime.date.today().isoformat()}.zip"
         path, _ = QFileDialog.getSaveFileName(host, "Save the support file", os.path.join(os.path.expanduser("~"), name), "Zip (*.zip)")

@@ -3,7 +3,7 @@ and volumes folders), change the open effort's folders and first-use rule, load 
 where backups go (Keep safe). The same files and settings the classic window uses. Nothing leaves the PC."""
 import os, re
 from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QLineEdit,
-                               QScrollArea, QVBoxLayout, QWidget)
+                               QPushButton, QScrollArea, QVBoxLayout, QWidget)
 import diag
 import effort as E
 from . import design as D
@@ -105,6 +105,11 @@ class SettingsPage(QWidget):
                          actions=[D.button("Send training data...", None, lambda: self.send_training()),
                                   D.button("Install a Knowledge Pack...", None, lambda: self.install_pack())])
         self.tr_text = self.tr.add(D.label("", "muted"))
+        import secure                                    # 2.97.0: SCIF-ready sends no training data
+        if secure.ACTIVE:
+            for b in self.tr.findChildren(QPushButton):
+                if b.text().startswith("Send training data"):
+                    b.setVisible(False)
         v.addWidget(self.tr)
         from . import updates as UP                      # 2.76.0: update packs, and why no admin password is needed
         self.up = UP.updates_card(host, on_close=self._before_restart, install=lambda: self.install_update(),
@@ -199,8 +204,12 @@ class SettingsPage(QWidget):
         self.bk_text.setText(self.host.safety.status_text())
         self.bk_text.setWordWrap(True)
         try:
-            n = sum(self._tp_gather(None, False, False)["counts"].values())
-            self.tr_text.setText(f"{n} item(s) waiting to be sent." if n else "Nothing new to send.")
+            import secure
+            if secure.ACTIVE:                                # 2.97.0
+                self.tr_text.setText("SCIF-ready: no training data is kept or sent. Knowledge Packs still install.")
+            else:
+                n = sum(self._tp_gather(None, False, False)["counts"].values())
+                self.tr_text.setText(f"{n} item(s) waiting to be sent." if n else "Nothing new to send.")
         except Exception:
             diag.swallowed()
 
@@ -404,10 +413,19 @@ def _tp_gather(self, areas, everything, text):
 
 
 def send_training(self, out=None, areas=None, everything=False, text=False, acknowledged=None):
-    """Save the training data pack. With out and acknowledged (tests) it saves at once."""
+    """Save the training data pack. With out and acknowledged (tests) it saves at once.
+    2.97.0: never in SCIF-ready; efforts above CUI or of unknown sensitivity are left out, and the dialog says which."""
     import app_gui
+    import secure
     import trainpack as TP
     from PySide6.QtWidgets import QCheckBox
+    if secure.ACTIVE:
+        self.host.status("SCIF-ready: Stationkeeper keeps no training data and sends none.")
+        return None
+    hp = _helper(self.host)
+    hp.tp_args()
+    left = list(getattr(hp, "tp_left_out", []))
+    self.tp_left_out = left
     if out is None or acknowledged is None:
         dlg = QDialog(self); dlg.setWindowTitle("Send training data to the training team"); dlg.setMinimumWidth(640)
         v = QVBoxLayout(dlg)
@@ -418,6 +436,9 @@ def send_training(self, out=None, areas=None, everything=False, text=False, ackn
         ev = QCheckBox("Everything, not only what is new since the last send"); v.addWidget(ev)
         tv = QCheckBox("Include the sentence text (RFP sentences and section titles)"); v.addWidget(tv)
         v.addWidget(D.label("Left out always: customer information, team names, file paths, user and PC names.", "muted"))
+        if left:                                      # 2.97.0
+            v.addWidget(D.label(f"Also left out: {len(left)} effort(s) marked above CUI or with no sensitivity set "
+                                "(set it in Effort Home > Edit details): " + ", ".join(left[:6]) + (" ..." if len(left) > 6 else ""), "muted"))
         warn = D.label(TP.WARNING); t = D.tokens()
         warn.setStyleSheet(f"background:{t['warn_soft']};color:{t['warn']};border-radius:6px;padding:8px;")
         v.addWidget(warn)

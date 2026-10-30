@@ -1,5 +1,5 @@
-"""2.79.0 work modes and hand-offs exactly as you see them, offscreen: the first-start question sets Secured or
-Connected and the title shows it; each mode lists its steps; Secured flags a backup folder that OneDrive uploads;
+"""2.79.0 work modes and hand-offs exactly as you see them, offscreen: the first-start question sets Offline (2.97.0;
+Secured before) or Connected and the title shows it; each mode lists its steps; Secured flags a backup folder that OneDrive uploads;
 Connected sends backups to the team folder, marks who has an effort open and warns before opening one someone else has
 open; Save to the team folder writes a package carrying the author names and the revision; a second PC opens it where
 the sender was, with the same names in the pickers; the import says which copy is newer (newer, older, both changed)
@@ -49,15 +49,17 @@ LIST = make_effort(os.path.join(tmp, "PC1"), "Heron")
 E.Registry(os.path.join(cfgA, "efforts.json")).put("Heron", path=LIST, customer_dir=os.path.join(os.path.dirname(LIST), "Customer documents"))
 app = QApplication([]); D.apply(app)
 a = MainWindow(app, cfgA, A.APP_VERSION); a.resize(1500, 950); a.show()
-check("no mode yet: no badge; the suggestion follows OneDrive for work", MO.mode() == "" and "Secured" not in a.windowTitle()
-      and WM.suggest() == WM.CONNECTED)
-MO.ask_mode(a, answer="secured")
-check("Secured: the title says so; the steps say nothing leaves this PC", "Secured" in a.windowTitle()
+check("no mode yet: no badge; the suggestion follows OneDrive for work", MO.mode() == "" and "Offline" not in a.windowTitle()
+      and WM.suggest() == WM.CONNECTED and a.mode_chip.text() == "Mode not set")
+MO.ask_mode(a, answer="offline")
+check("Offline: the title and the chip say so; the steps say nothing leaves this PC", "Offline" in a.windowTitle()
+      and a.mode_chip.text() == "Offline"
       and "nothing leaves this PC except files you save" in a.settings_page.mode.steps.text() if (a.settings_page.mode.fill() or True) else False)
+check("2.97.0: a setting of Secured from before 2.97 reads as Offline (never locked for anyone)", WM.get({"work_mode": "secured"}) == WM.OFFLINE)
 a.safety.test_dir = None
 os.environ.pop("AH_TEST")
 MO.save(backup_dir=os.path.join(OD, "Backups"))
-check("Secured: a backup folder that OneDrive uploads is flagged", "leave this PC" in a.safety.status_text(), a.safety.status_text())
+check("Offline: a backup folder that OneDrive uploads is flagged", "leave this PC" in a.safety.status_text(), a.safety.status_text())
 MO.save(backup_dir="")
 TEAM = os.path.join(OD, "Proposal Center - Efforts")
 a.settings_page.mode.choose(WM.CONNECTED)

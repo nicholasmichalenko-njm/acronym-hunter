@@ -85,7 +85,11 @@ def log_error(context, with_traceback=True, area=None, **counts):
 def _excepthook(exc_type, exc, tb):
     diag.error("app", "Uncaught error", exc=(exc_type, exc, tb))
 
-diag.setup(LOG_DIR, "?")
+import secure                       # 2.97.0: SCIF-ready writes no logs at all, decided before anything is written
+if secure.start(BASE_DIR, DATA_DIR):
+    diag.off()
+else:
+    diag.setup(LOG_DIR, "?")
 atexit.register(diag.shutdown)
 
 import socket
@@ -2408,7 +2412,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "2.96.0"            # keep in step with version_info.txt
+APP_VERSION = "2.97.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3354,8 +3358,10 @@ def trainer_available():
     return TRAINING_APP and bool(APP_CFG["allow_training"]) and importlib.util.find_spec("trainer_gui") is not None
 
 def corrections_on():
-    """Report misreading and Not text save corrections for the training team, unless allow_training is false."""
-    return bool(APP_CFG["allow_training"])
+    """Report misreading and Not text save corrections for the training team, unless allow_training is false.
+    2.97.0: never in SCIF-ready, nor for an effort above CUI or of unknown sensitivity."""
+    import secure
+    return bool(APP_CFG["allow_training"]) and (secure.training_ok() if not TRAINING_APP else not secure.ACTIVE)
 
 def write_acronym_report(path, terms, results, known_cell):
     """The acronym report (CSV, opens in Excel): one row per term shown (2.67.0: shared with the Qt edition)."""

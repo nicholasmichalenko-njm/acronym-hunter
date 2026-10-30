@@ -19,8 +19,11 @@
 #   -Classic         US edition without docTR: Tesseract is the only reader (for reviewers who want no neural text finder).
 #                    On request only: routine releases ship Stationkeeper_US.zip and Stationkeeper_US_Training.zip (AcronymHunter_* before 2.44.0) (from 2.15.0).
 #   -App training    Stationkeeper Training instead of Stationkeeper (same code, its own program and package).
+#   -Scif            2.97.0: the SCIF build, Stationkeeper_US_SCIF.zip. SCIF-ready from its first start: no logs, no
+#                    training data, no bug reports or support files, and it seals its program and data folders so it
+#                    cannot be switched back (secure.py). Stationkeeper only (never Training); no update pack of its own.
 param([string]$KnowledgePack = "", [ValidateSet('us', 'legacy')][string]$Edition = 'us', [switch]$Classic,
-      [ValidateSet('user', 'training')][string]$App = 'user')
+      [ValidateSet('user', 'training')][string]$App = 'user', [switch]$Scif)
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 
@@ -34,6 +37,10 @@ $exeName = if ($App -eq 'training') { 'StationkeeperTraining' } else { 'Stationk
 $qtExe = $exeName
 $qtTest = if ($App -eq 'training') { 'qt_training_selftest.txt' } else { 'qt_selftest.txt' }
 if ($App -eq 'training') { $prefix = "${prefix}_Training" }
+if ($Scif) {
+    if ($App -ne 'user' -or $Edition -ne 'us' -or $Classic) { throw "The SCIF build is Stationkeeper, US edition, only." }
+    $prefix = 'Stationkeeper_US_SCIF'
+}
 
 function Test-PublicPackage([string]$dir) {
     # 1. Only these files may sit outside _internal
@@ -85,8 +92,15 @@ function Test-PublicPackage([string]$dir) {
     "Leak check passed: $dir ($($files.Count) files, data identical to base\)"
 }
 
-& .\venv\Scripts\pyinstaller.exe --noconfirm --clean Stationkeeper.spec
-if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed. See output above." }
+# 2.97.0: the SCIF build carries buildvariant.SCIF = True; the file goes back to False whatever happens
+$variant = "SCIF = False      # 2.97.0: True only in the SCIF build (build.ps1 -Scif writes it); logging and training are left out"
+if ($Scif) { Set-Content -Encoding ascii buildvariant.py ($variant -replace '^SCIF = False', 'SCIF = True ') }
+try {
+    & .\venv\Scripts\pyinstaller.exe --noconfirm --clean Stationkeeper.spec
+    if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed. See output above." }
+} finally {
+    if ($Scif) { Set-Content -Encoding ascii buildvariant.py $variant }
+}
 
 $out = "dist\$exeName"
 # 2.90.0: no data or config ships (the app makes the master database and its settings in Stationkeeper Data on first
@@ -95,10 +109,30 @@ New-Item -ItemType Directory -Force "$out\About Stationkeeper" | Out-Null
 Copy-Item README.txt, OVERVIEW.md, SECURITY.md "$out\About Stationkeeper" -Force
 # 2.59.0: the Qt edition starts (window shown and closed at once; no effort opened)
 if (Test-Path "$out\$qtExe.exe") {
-    $q = Start-Process -FilePath "$out\$qtExe.exe" -ArgumentList '--selftest' -Wait -PassThru
+    if ($Scif) {                                    # never the build PC's own data folder: the SCIF build seals it
+        $scifData = "_local_sandbox\scif_selftest_data"
+        Remove-Item -Recurse -Force $scifData -ErrorAction SilentlyContinue
+        New-Item -ItemType Directory -Force $scifData | Out-Null
+        $env:SK_DATA_DIR = (Resolve-Path $scifData).Path
+    }
+    try {
+        $q = Start-Process -FilePath "$out\$qtExe.exe" -ArgumentList '--selftest' -Wait -PassThru
+    } finally {
+        if ($Scif) { Remove-Item Env:SK_DATA_DIR -ErrorAction SilentlyContinue }
+    }
     $qt = Get-Content "$out\_local_sandbox\$qtTest" -ErrorAction SilentlyContinue
     if ($q.ExitCode -ne 0 -or -not ($qt -match 'PASS')) { throw "QT SELFTEST FAILED: $qtExe.exe did not start (exit $($q.ExitCode)): $qt" }
     "Qt selftest: $qtExe.exe starts ($qt)"
+    if ($Scif) {
+        # 2.97.0: the SCIF build started SCIF-ready, sealed both folders, and wrote no logs, training data or bug reports
+        if (-not ($qt -match 'SCIF-ready')) { throw "SCIF CHECK FAILED: the SCIF build did not start SCIF-ready: $qt" }
+        if (-not (Test-Path "$out\SCIF-READY.seal") -or -not (Test-Path "$scifData\SCIF-READY.seal")) { throw "SCIF CHECK FAILED: the seal was not written" }
+        $kept = @('logs', 'training_data', 'feedback') | ForEach-Object { "$out\$_", "$scifData\$_" } | Where-Object { Test-Path $_ }
+        if ($kept) { throw "SCIF CHECK FAILED: the SCIF build wrote $($kept -join ', ')" }
+        "SCIF check: started SCIF-ready, sealed its program and data folders, wrote no logs, training data or bug reports"
+        Remove-Item -Force "$out\SCIF-READY.seal"          # each install seals itself on its first start
+        Remove-Item -Recurse -Force $scifData -ErrorAction SilentlyContinue
+    }
 }
 Remove-Item -Recurse -Force "$out\_local_sandbox", "$out\logs" -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
@@ -134,7 +168,7 @@ $ver = (Select-String -Path app_gui.py -Pattern '^APP_VERSION = "([0-9.]+)"').Ma
 if ($LASTEXITCODE -ne 0) { throw "PROGRAM MANIFEST FAILED. See the output above." }
 Test-PublicPackage $out
 $updKey = '_local_sandbox\keys\update_signing_key.txt'
-if ($Edition -eq 'us' -and -not $Classic) {
+if ($Edition -eq 'us' -and -not $Classic -and -not $Scif) {
     if (-not (Test-Path $updKey)) { throw "UPDATE CHECK FAILED: the publisher's signing key is missing ($updKey)" }
     # 2.76.0: update packs end to end on the built program. A copy installs a signed pack (one changed document, and its
     # own exe replaced while it runs), starts, checks its files, undoes the update and starts again.
@@ -163,6 +197,7 @@ if ($Edition -eq 'us' -and -not $Classic) {
 # Software Bill of Materials (CycloneDX): what ships, with versions, licenses and SHA-256 of every program and model file
 $edLabel = if ($Classic) { 'US Classic (Tesseract only)' } elseif ($Edition -eq 'legacy') { 'Legacy' } else { 'US' }
 if ($App -eq 'training') { $edLabel = "$edLabel Training" }
+if ($Scif) { $edLabel = 'US SCIF' }
 & .\venv\Scripts\python.exe tools\make_sbom.py $out "${prefix}_SBOM.cdx.json" $edLabel
 if ($LASTEXITCODE -ne 0) { throw "SBOM generation failed. See the output above." }
 $zip = "$prefix.zip"
@@ -174,7 +209,7 @@ $lines = @("$zip  SHA256  $zipHash",
 $stage = $out
 # 2.76.0: the signed update pack for every copy from 2.76.0 on (none for the first release), and this release's manifest
 # kept in tools\manifests for the next pack
-if ($Edition -eq 'us' -and -not $Classic) {
+if ($Edition -eq 'us' -and -not $Classic -and -not $Scif) {
     $upd = "${prefix}_Update_$ver.skupdate"
     Remove-Item $upd -ErrorAction SilentlyContinue
     & .\venv\Scripts\python.exe tools\make_update.py --pack $out --key $updKey --out $upd

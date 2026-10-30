@@ -1,6 +1,26 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SENSITIVITY, TRAINING AND SCIF-READY (2.97.0)
+  - Three work modes (Settings > Where Stationkeeper is used; the chip in the top bar shows it):
+      Offline: this PC on its own, for testing and everyday work on General business, Proprietary and CUI documents.
+      Content-free logs and the training lines you save stay on this PC. (PCs set to Secured before 2.97 are Offline.)
+      Connected: Microsoft 365 with OneDrive and SharePoint, as before.
+      SCIF-ready: no logs at all, no training data, no bug reports or support files, and it cannot be switched back.
+      Choosing it asks you to type SCIF-READY, seals the program and data folders, and deletes the logs and training
+      data kept before (unless you untick it). Stationkeeper_US_SCIF.zip is SCIF-ready from its first start.
+  - One scale: General business < Proprietary < CUI < Confidential < Secret < Top Secret. A document's level is the
+    highest of its sensitivity label (Microsoft Purview, in Word, Excel, PowerPoint and PDF files) and its visible
+    markings (banners, in headers and footers too; authority blocks; portion marks; CUI). Pictures carry no label: only
+    the words read from them count. Ordinary RFP text (FAR paragraphs lettered (C), a quote headed CONFIDENTIAL) does not.
+  - A document marked above CUI on a regular install stops everything: Add documents, the Library and Read RFP copy
+    nothing and tell you to follow your site's spillage procedure.
+  - Training only ever takes work from an effort whose sensitivity is known and at most CUI (Effort Home > Edit details,
+    and its documents' markings). Send training data leaves the rest out and says which. Training packs state their
+    sensitivity; Stationkeeper Training refuses a pack above CUI or of unknown sensitivity, and asks about older packs.
+  - The Trainer refuses files marked above CUI and asks the level of an unmarked one (every picture) once.
+  - No support file while an effort above CUI is open. See SECURITY.md section 14.
+
 EVERY KIND OF CUSTOMER FILE, AND ASSIGN AS THE REVIEW PANEL (2.96.0)
   - Pictures (PNG, JPG, TIFF, BMP, GIF, WEBP) and old Office files (.doc, .xls, .ppt) are customer documents: added,
     versioned, watched and read like the others. An old Office file is read from the PDF copy Microsoft Office makes.

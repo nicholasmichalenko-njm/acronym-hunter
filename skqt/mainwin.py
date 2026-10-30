@@ -141,6 +141,8 @@ class MainWindow(QMainWindow):
         self.effort_box.activated.connect(lambda i: self.open_effort(self.effort_box.itemText(i)))
         bh.addWidget(self.effort_box)
         self.saved = D.Pill("Saved", "ok"); bh.addWidget(self.saved)
+        self.mode_chip = D.Pill("", "ok"); bh.addWidget(self.mode_chip)   # 2.97.0: Offline, Connected or SCIF-ready
+        self.mode_chip.mousePressEvent = lambda _e: self.go_mode()
         self.marking = MarkingStrip(); cv.addWidget(self.marking)            # 2.88.0: CUI or proprietary, on every page
         from .unfiledview import UnfiledStrip
         self.unfiled_strip = UnfiledStrip(self); cv.addWidget(self.unfiled_strip)   # 2.91.0: work not filed yet
@@ -368,7 +370,22 @@ class MainWindow(QMainWindow):
             except Exception:
                 diag.swallowed()
         self.marking.show_marking(sens)
+        self.refresh_level()
         return sens
+
+    def refresh_level(self):
+        """2.97.0: the open effort's sensitivity (declared, and its documents' markings), which decides whether
+        training data and bug reports may be kept. -1 when nothing is known or no effort is open."""
+        import secure
+        import sensitivity as S
+        try:
+            secure.EFFORT_LEVEL = S.effort_level(self.effort_path) if self.ws is not None else -1
+        except Exception:
+            diag.swallowed()
+            secure.EFFORT_LEVEL = -1
+        if hasattr(self, "mode_chip"):
+            self.show_mode_chip()
+        return secure.EFFORT_LEVEL
 
     def go_branding(self):
         """2.88.0: Settings, at the Branding card."""
@@ -612,6 +629,8 @@ class MainWindow(QMainWindow):
             except Exception:
                 diag.swallowed()
         self.ws, self.review = None, None
+        import secure
+        secure.EFFORT_LEVEL = -1                     # 2.97.0
         if hasattr(self, "marking"):
             self.marking.show_marking("")
         if hasattr(self, "unfiled_strip"):
@@ -742,6 +761,11 @@ class MainWindow(QMainWindow):
         dirty = self.review is not None and self.review.M.pending
         self.setWindowTitle(("* " if dirty else "") + (f"{self.effort_name}: " if self.effort_name else "")
                             + f"Stationkeeper {self.version}".strip() + self._mode_badge())
+        if hasattr(self, "mode_chip"):
+            try:
+                self.show_mode_chip()
+            except Exception:
+                diag.swallowed()
         if hasattr(self, "saved"):
             self.saved.setText("Saving..." if dirty else ("Saved" if self.review is not None else "No matrix"))
             self.saved.set_tone("warn" if dirty else ("ok" if self.review is not None else "head"))
@@ -776,6 +800,41 @@ class MainWindow(QMainWindow):
             t.join()
         self._warm_thread = t
         return t
+
+    def show_mode_chip(self):
+        """2.97.0: the mode in the top bar, with what the app keeps in it (the tooltip); click: Settings, at the mode."""
+        import secure
+        import sensitivity as S
+        import workmode as WM
+        from .modes import mode
+        m = mode()
+        tone = {WM.SECURED: "crit", WM.CONNECTED: "accent", WM.OFFLINE: "ok"}.get(m, "warn")
+        self.mode_chip.setText(WM.NAMES.get(m, "Mode not set"))
+        self.mode_chip.set_tone(tone)
+        if secure.ACTIVE:
+            tip = "SCIF-ready (locked): no logs, no training data, no bug reports or support files."
+        else:
+            lv = secure.EFFORT_LEVEL
+            if self.ws is None:
+                train = "Open an effort to see whether its training data may be kept."
+            elif secure.training_ok():
+                train = f"Training data may be kept for this effort ({S.name(lv)})."
+            elif lv < 0:
+                train = "No training data for this effort: its sensitivity is not set (Effort Home > Edit details)."
+            else:
+                train = f"No training data for this effort: it is {S.name(lv)}."
+            tip = (WM.LONG.get(m, "Choose where Stationkeeper is used in Settings.") + "\nContent-free logs are kept on this PC. "
+                   + train + "\nDocuments marked above CUI are refused.")
+        self.mode_chip.setToolTip(tip + "\nClick to change it in Settings.")
+        return m
+
+    def go_mode(self):
+        self.go("settings")
+        try:
+            self.settings_page.scroll.ensureWidgetVisible(self.settings_page.mode, 0, 0)
+        except Exception:
+            diag.swallowed()
+        return True
 
     def _mode_badge(self):
         try:

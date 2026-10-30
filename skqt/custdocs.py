@@ -292,7 +292,12 @@ class DocsPage(QWidget):
                                                     "Documents (*.docx *.pdf *.pptx *.xlsx *.txt *.doc *.xls *.ppt *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.gif *.webp)")
         if not paths:
             return None
-        plan = DI.plan(c.lib, list(paths))
+        try:
+            plan = DI.plan(c.lib, list(paths))
+        except DI.Spill as ex:                      # 2.97.0: marked above CUI: stop, nothing copied
+            from .sensgate import spill_stop
+            spill_stop(self.host, ex)
+            return None
         if choices is None:
             dlg = AddDialog(self, plan, c.lib)
             if dlg.exec() != QDialog.Accepted:
@@ -307,6 +312,7 @@ class DocsPage(QWidget):
                 return None
         made = DI.apply(c.lib, plan, c.customer_dir(), c.log)
         diag.activity("qt_documents_added", n=len(made))
+        self.host.refresh_level()                  # 2.97.0: the effort's level follows its documents
         self.host.toast(f"{len(made)} document version(s) added")
         self.refresh()
         if made:

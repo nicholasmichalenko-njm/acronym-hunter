@@ -1,6 +1,6 @@
 # Stationkeeper: Security and Data-Handling Statement
 
-**Version covered:** 2.76.0 (exe SHA-256 recorded in `Stationkeeper_US_SHA256.txt` and `CHECKSUM.txt`; every program file's SHA-256 in `_internal\program_manifest.json`). Sections 10 and 11 added in 2.76.0
+**Version covered:** 2.76.0 (exe SHA-256 recorded in `Stationkeeper_US_SHA256.txt` and `CHECKSUM.txt`; every program file's SHA-256 in `_internal\program_manifest.json`). Sections 10 and 11 added in 2.76.0; section 12 updated and section 14 added in 2.97.0
 **Verified:** 2026-10-20 (v1.0.1 live test; v1.0.2 added tiled OCR and the OCR Fixes window; v1.0.3 hardened XML parsing and capped embedded image size; no new file locations or network code) on the developer's Windows PC, from a fresh unzip of the shipped zip
 **Audience:** users, security and IT reviewers
 
@@ -355,14 +355,16 @@ Install Stationkeeper once (2.76.0 or later); each new version then comes as one
 | What can IT automate? | `Stationkeeper.exe --apply-update <pack>`, `--undo-update`, `--check-program` with no window; results in `logs\update.txt` |
 | How is it tested? | Every release build installs a signed test pack into a copy of the built program (replacing the running exe), starts it, checks every program file, undoes the update and starts it again |
 
-## 12. Work modes (2.79.0)
+## 12. Work modes (2.79.0; three since 2.97.0)
 
 | Question | Answer |
 |---|---|
-| What is a work mode? | A statement of where the PC is used, chosen by the person: **Secured** (a SCIF or any closed network) or **Connected** (Microsoft 365 with OneDrive). It decides where backups and packages go, what the app warns about and which steps it shows |
+| What is a work mode? | Where the PC is used, chosen by the person: **Offline** (this PC on its own, for testing and everyday work on General business, Proprietary and CUI documents), **Connected** (Microsoft 365 with OneDrive) or **SCIF-ready** (a SCIF or any classified system). It decides where backups and packages go, what the app keeps about itself and which steps it shows. The chip in the top bar shows it |
 | Does Connected mode add network code? | No. The app writes files into a folder that the OneDrive client already syncs; OneDrive does the upload under the company's Microsoft 365 controls. The build's network audit is unchanged |
-| What does Secured mode enforce? | It flags (does not block) any backup, package or team folder that OneDrive or another sync tool uploads, hides the team folder, and describes moving packages through the site's approved transfer process |
-| Does Secured mode make the app approved for classified use? | No. The mode changes no control of the PC and certifies nothing. A site's security officer (ISSM) authorizes software on a classified system; give them this file, the SBOM and the checksums |
+| What does Offline mode keep? | Content-free logs (section 3) and the training lines a person chooses to save, on this PC only, so problems can be fixed and reading improved. A backup or package folder that OneDrive uploads is flagged |
+| What does SCIF-ready enforce? | No logs at all (not even content-free ones; nothing is recorded, not even in memory), no training data, no bug reports, no support files. It cannot be switched back (section 14) |
+| Does SCIF-ready make the app approved for classified use? | No. It removes what the app records about itself and certifies nothing. A site's security officer (ISSM) authorizes software on a classified system; give them this file, the SBOM and the checksums |
+| What happened to Secured mode? | Before 2.97.0 "Secured" described a closed network without a lock. Those PCs read as Offline until someone chooses SCIF-ready, because the lock cannot be undone and is never set for anyone |
 | What does the team folder hold? | Effort packages (customer content: handle at the effort's sensitivity), backups, the app's settings and team lists (daily zip), and small "Working on" marker files with a Windows user name, computer name and time |
 
 ## 13. Where data lives (2.80.0)
@@ -375,3 +377,21 @@ Install Stationkeeper once (2.76.0 or later); each new version then comes as one
 - The data folder is found by `SK_DATA_DIR` (tests), else `data_location.txt` in the program folder (Settings > Move the data folder), else beside the program folder. If it cannot be created there, the data stays in the program folder as before 2.80.0.
 - The first start of 2.80.0 copies the old data across and deletes nothing; a note in the old `config\` says where it went.
 - Live efforts belong on the local disk; packages and backups go to the team folder. OneDrive keeps both copies (renaming one after the computer) when two PCs save the same file, so the app checks a matrix before overwriting it, flags sync conflict copies, and waits out a file a sync tool holds for a moment.
+
+## 14. Sensitivity, training and SCIF-ready (2.97.0)
+
+**One scale:** General business < Proprietary < CUI < Confidential < Secret < Top Secret.
+
+| Question | Answer |
+|---|---|
+| How does the app know a document's sensitivity? | The highest of: the sensitivity label stored in the file (Microsoft Purview labels in Word, Excel, PowerPoint and PDF files), and its visible markings (a banner line such as SECRET//NOFORN, including banners in Word headers and footers, PowerPoint slide masters and Excel page headers; a classification authority block; classified portion marks such as (S//NF), or (S) beside (U) marks; CUI banners and portion marks). Pictures carry no standard label, so only the words read from them count |
+| What does not count? | Ordinary RFP text: FAR paragraphs lettered (C), a vendor quote headed CONFIDENTIAL (a business marking, read as Proprietary), a blank "Classified By" box on a form, "trade secret" |
+| What happens when a document marked above CUI reaches a regular install? | Everything stops: Add documents, the Library, Watched folders and Read RFP refuse it before anything is copied (a page copy already made of a scanned page is deleted). The person is told to leave the file where it is and follow the site's spillage procedure (tell the security officer). On a SCIF-ready install documents at any marking are read, because the system is accredited for them |
+| What may training use? | Only work from an effort whose sensitivity is known and at most CUI: its declared sensitivity (Effort Home > Edit details) and its documents' markings. Unknown takes the effort's level; with none set, nothing from it is kept for training or sent. Training data packs state the highest level inside; Stationkeeper Training refuses a pack above CUI or of unknown sensitivity, and asks before importing one made before 2.97.0 |
+| What about the Trainer? | It refuses a file marked above CUI. A file with no label or marking (every picture) needs its level chosen once; above CUI is refused. Words the Trainer reads that carry a marking above CUI are not shown or kept |
+| Bug reports and support files? | Never in SCIF-ready, and not while an effort above CUI is open. They are content-free in any case (section 3) |
+| How is SCIF-ready chosen? | Settings > Where Stationkeeper is used > SCIF-ready, after typing SCIF-READY. Or the SCIF build (`Stationkeeper_US_SCIF.zip`), which is SCIF-ready from its first start |
+| What does choosing it do? | Writes `SCIF-READY.seal` into the program folder and the data folder, stops logging at once, and (unless the person unticks it) deletes the logs, training data and bug reports kept before |
+| Can it be switched back? | Not from the app. A seal in either folder keeps it SCIF-ready, so a fresh program over a sealed data folder, or a sealed program with a new data folder, both stay SCIF-ready. Leaving SCIF-ready takes a fresh copy of the program and a new data folder, as the security officer directs. Update packs never remove the seal |
+| Is this a guarantee? | It is a safety net. An unmarked or wrongly marked document cannot be detected by any software; people remain responsible for what they bring to the PC |
+
