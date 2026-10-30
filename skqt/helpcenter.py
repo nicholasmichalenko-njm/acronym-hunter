@@ -11,7 +11,7 @@ from . import design as D
 
 SHORTCUTS = [("Anywhere", "Ctrl+K", "Find a page, an effort, a sentence or a person"),
              ("Anywhere", "Ctrl+F", "Find a sentence by its words or number"),
-             ("Anywhere", "F1", "These keyboard shortcuts"),
+             ("Anywhere", "F1", "The Guide, open at the page you are on"),
              ("Review (on the page)", "R", "SOW (Work): the selected sentences go to the target section as requirements"),
              ("Review (on the page)", "C", "Context: support for the last requirement you clicked"),
              ("Review (on the page)", "G", "The customer's (counted, never answered)"),
@@ -25,9 +25,10 @@ SHORTCUTS = [("Anywhere", "Ctrl+K", "Find a page, an effort, a sentence or a per
 
 def support_card(host):
     card = D.Card("Help and support", "Get help without sending any document content.",
-                  actions=[D.button("What's new", None, lambda: show_whats_new(host, last="2.75.0")),
+                  actions=[D.button("Guide", "primary", lambda: __import__("skqt.guide", fromlist=["x"]).open_guide(host, "start")),
+                           D.button("What's new", None, lambda: show_whats_new(host, last="2.75.0")),
                            D.button("Keyboard shortcuts", None, lambda: show_shortcuts(host)),
-                           D.button("Create a support file...", "primary", lambda: make_support_file(host))])
+                           D.button("Create a support file...", None, lambda: make_support_file(host))])
     lab = card.add(D.label("The support file holds versions, the content-free logs and the checks, for whoever maintains "
                            "Stationkeeper. It holds no document text, terms, names, file names or folder paths. You save it "
                            "and decide who gets it.", "muted"))

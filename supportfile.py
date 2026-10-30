@@ -20,6 +20,8 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.0.2": ["The Guide: how to use every page, in the order of the menu, with a picture of each page. F1 opens it at the "
+              "page you are on; Go to this page jumps there; search finds a topic. Settings > Help and support opens it too."],
     "3.0.1": ["Assign is now Review: the page where you read every sentence, decide it and capture what it holds. Reviews "
               "(color team packets) is now Color Reviews.",
               "Customer Q&A in Word: one Reference column (the document, then section, page and paragraph), the customer's "

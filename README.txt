@@ -1,6 +1,13 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE GUIDE (3.0.2)
+  - How to use every page, in the order of the menu: what the page is for, when to use it, the steps with the real
+    button names, tips, and a picture of the page from a fictional effort.
+  - F1 opens the Guide at the page you are on. Go to this page jumps there; Previous and Next walk the topics; the
+    search box finds a topic by any word. Settings > Help and support > Guide opens it at the start.
+  - The keyboard shortcuts are a topic of their own.
+
 REVIEW, AND A CLEANER CUSTOMER Q&A (3.0.1)
   - Assign is now Review (Compliance > Review): the page where you read every sentence of the customer's documents,
     decide it and capture what it holds. The keys, your decisions and your saved work are unchanged.
