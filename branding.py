@@ -229,17 +229,18 @@ SECTIONS = (("stage", "Stage", "wide"), ("deliverables", "Deliverables", "wide")
             ("calendar", "Calendar", "half"), ("formatting", "Formatting requirements", "half"),     # 2.94.0
             ("submission", "Submission instructions", "half"),                                        # 2.96.0
             ("custqa", "Customer Q&A", "half"),                                                       # 2.98.0
+            ("custfocus", "Evaluation and hot buttons", "half"),                                      # 2.99.0
             ("info", "Customer information", "wide"), ("timeline", "Timeline", "wide"))
 KEYS = tuple(k for k, _t, _w in SECTIONS)
 TITLE = {k: t for k, t, _w in SECTIONS}
 WIDTH = {k: w for k, _t, w in SECTIONS}
 ROLES = {
-    "Proposal Manager": ("stage", "formatting", "submission", "custqa", "goals", "notes", "tasks", "calendar", "deliverables", "info",
+    "Proposal Manager": ("stage", "formatting", "submission", "custqa", "custfocus", "goals", "notes", "tasks", "calendar", "deliverables", "info",
                          "timeline"),
     "Production": ("deliverables", "formatting", "submission", "calendar", "tasks", "stage", "notes", "timeline"),
     "Author": ("mywork", "tasks", "notes", "calendar", "formatting", "stage"),
     "Reviewer": ("stage", "calendar", "notes", "tasks", "formatting", "deliverables"),
-    "Capture": ("stage", "info", "submission", "custqa", "notes", "calendar", "goals", "timeline"),
+    "Capture": ("stage", "info", "custfocus", "submission", "custqa", "notes", "calendar", "goals", "timeline"),
 }
 ROLE_NAMES = tuple(ROLES)
 DEFAULT_ROLE = "Proposal Manager"

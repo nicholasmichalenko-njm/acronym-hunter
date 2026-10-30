@@ -345,6 +345,18 @@ class AssignPage(QWidget):
             self.cap_keys[key] = b
             caprow.addWidget(b, k // 3, k % 3)
         dv.addLayout(caprow)
+        from PySide6.QtWidgets import QMenu                           # 2.99.0: the less frequent captures
+        more = D.button("More captures...", "ghost", None, "Evaluation factor, page limit, deliverable, effort detail, hot button")
+        menu = QMenu(more)
+        self.more_actions = {}
+        for key, text in (("factor", "Evaluation factor"), ("pagelimit", "Page limit"), ("deliverable", "Deliverable"),
+                          ("detail", "Effort detail (contract type, NAICS, set-aside...)"), ("hot", "Hot button")):
+            act = menu.addAction(text)
+            act.triggered.connect(lambda _=False, kk=key: self.do_capture(kk))
+            self.more_actions[key] = act
+        more.setMenu(menu)
+        self.cap_keys["more"] = more
+        dv.addWidget(more)
         cgrid = QGridLayout(); cgrid.setSpacing(D.SPACE["xs"])                # 2.84.0: for a library document
         self.ctx_keys = {}
         for k, (text, kind, fn, tip) in enumerate((
@@ -987,8 +999,9 @@ class AssignPage(QWidget):
                       "section": it.get("section", ""), "page": pg, "para": para, "sid": it["id"]}
 
     def do_capture(self, kind, answer=None):
-        """Contact, Submission, Formatting, Acronym, Question or Key date (2.98.0) from the picked words or the selected
-        sentence. answer (tests): the dialog's values."""
+        """Contact, Submission, Formatting, Acronym, Question or Key date (2.98.0), and the More captures (2.99.0: factor,
+        pagelimit, deliverable, detail, hot) from the picked words or the selected sentence. answer (tests): the dialog's
+        values."""
         from . import captureview as CV
         import effortrec as RR
         text, src = self.capture_source()
@@ -1035,7 +1048,85 @@ class AssignPage(QWidget):
             got = CV.file_key_date(self.host, answer, src)
             self.host.changed()
             return got
+        more = {"factor": (lambda: CV.factor_dialog(self, text, self._factors()), CV.file_factor),          # 2.99.0
+                "pagelimit": (lambda: CV.page_limit_dialog(self, text, self._limit_targets()), CV.file_page_limit),
+                "deliverable": (lambda: CV.deliverable_dialog(self, text), CV.file_deliverable),
+                "detail": (lambda: CV.detail_dialog(self, text), CV.file_detail),
+                "hot": (lambda: CV.hot_dialog(self, text), CV.file_hot)}
+        if kind in more:
+            make, file_it = more[kind]
+            if answer is None:
+                d = make()
+                if d.exec() != QDialog.Accepted:
+                    return None
+                answer = d.values()
+            got = file_it(self.host, answer, src)
+            self.host.changed()
+            return got
         return None
+
+    def add_work(self, kind, iid, answer=None):
+        """2.99.0: a task (kind 'task') or a team question ('question') on a sentence. answer (tests): the dialog's values
+        {"text", "owner", "due"}. Returns the id."""
+        it = self.R.item(iid) if self.R is not None else None
+        if it is None or self.host.ws is None:
+            return None
+        if answer is None:
+            from PySide6.QtWidgets import QLineEdit
+            d = QDialog(self); d.setWindowTitle("A task on this sentence" if kind == "task" else "A question for the team")
+            d.setMinimumWidth(520); f = QFormLayout(d)
+            f.addRow(D.label(f"{iid}: {it.get('text', '')[:200]}", "muted"))
+            t = QLineEdit(); f.addRow("Task" if kind == "task" else "Question", t)
+            who = QComboBox(); who.setEditable(True); who.addItem(""); who.addItems(self.host.people())
+            f.addRow("Owner" if kind == "task" else "For", who)
+            due = QLineEdit(); due.setPlaceholderText("YYYY-MM-DD (optional)")
+            if kind == "task":
+                f.addRow("Due", due)
+            bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
+            f.addRow(bb)
+            if d.exec() != QDialog.Accepted:
+                return None
+            answer = {"text": t.text(), "owner": who.currentText(), "due": due.text()}
+        rec = R_.Record(self.host.ws.root)
+        if kind == "task":
+            got = rec.add_task(answer.get("text", ""), owner=answer.get("owner", ""), due=answer.get("due", ""), about=f"sentence:{iid}",
+                               notes=f"{iid}: {it.get('text', '')[:400]}")
+        else:
+            got = rec.add_note(answer.get("text", ""), on="requirement", on_id=iid, label=iid, question=True)
+            if got and answer.get("owner"):
+                n = next((x for x in rec.data["notes"] if x["id"] == got), None)
+                if n is not None:
+                    n["assignee"] = " ".join(answer["owner"].split())[:80]
+                    rec.save()
+        if got:
+            if kind == "task":
+                diag.activity("sentence_task_added")
+            else:
+                diag.activity("sentence_question_added")
+            self.show_card(self.selected())
+        return got
+
+    def body_add_layout(self, lay):
+        """A row of buttons in the card (the card's add() takes widgets)."""
+        w = QWidget(); w.setLayout(lay); lay.setContentsMargins(0, 0, 0, 0)
+        return self.add(w)
+
+    def _factors(self):
+        import custfocus as F
+        return F.factors(R_.Record(self.host.ws.root))
+
+    def _limit_targets(self):
+        """Volumes of the structure and the deliverables, for a page limit."""
+        import deliverables as DL
+        out = []
+        try:
+            if self.M is not None:
+                mode, name, heads = SD.volumes_of(self.M)
+                out += heads if mode != "one" else ([name] if name else [])
+        except Exception:
+            diag.swallowed()
+        out += [d["name"] for d in DL.items(R_.Record(self.host.ws.root)) if d.get("name") not in out]
+        return out + (["Proposal"] if "Proposal" not in out else [])
 
     # ------------------------------------------------------------ 2.93.0 the split, shown on the page
     def _drop(self, item):
@@ -1299,6 +1390,26 @@ class AssignPage(QWidget):
         lead = SD.section_people(M, it.get("map", "")).get("lead", "") if it.get("map") else ""
         if on and not it.get("owner"):
             self.add(D.label(f"Empty: the section lead writes it ({lead})." if lead else "Empty: the section's lead, once one is named (People...).", "muted"))
+        if len(rows) == 1 and self.host.ws is not None:                 # 2.99.0: tasks and team questions on the sentence
+            self.head("Tasks and questions")
+            tq = sentence_work(R_.Record(self.host.ws.root), it["id"])
+            if not tq:
+                self.add(D.label("None yet. A task or a question here shows to anyone who opens this sentence, and in the "
+                                 "effort record.", "muted"))
+            self.work_labels = []
+            for kind, x in tq:
+                if kind == "task":
+                    txt = (f"TASK  {x['title']}" + (f"  \u00b7  {x['owner']}" if x.get("owner") else "") + (f"  \u00b7  due {x['due']}" if x.get("due") else "")
+                           + f"  \u00b7  {x.get('status', '')}")
+                else:
+                    txt = (f"QUESTION  {x['text']}" + (f"  \u00b7  for {x['assignee']}" if x.get("assignee") else "")
+                           + (f"  \u00b7  answered: {x.get('answer', '')}" if x.get("resolved") else "  \u00b7  open"))
+                self.work_labels.append(self.add(D.label(txt)))
+            wr = QHBoxLayout(); wr.setSpacing(D.SPACE["xs"])
+            wr.addWidget(D.button("+ Task...", None, lambda _=False, i=it["id"]: self.add_work("task", i), "A task about this sentence, with an owner and a due date"))
+            wr.addWidget(D.button("+ Ask the team...", None, lambda _=False, i=it["id"]: self.add_work("question", i), "A question for the team about this sentence"))
+            wr.addStretch(1)
+            self.body_add_layout(wr)
         self.head("Relationships")
         ids, how = self.R.related(it)
         if not ids:
@@ -1948,4 +2059,11 @@ class OldPageDialog(QDialog):
         if rects:
             area.ensureVisible(int(rects[0][0] * scale), int(rects[0][1] * scale), 50, 200)
         bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(self.reject); v.addWidget(bb)
+
+
+def sentence_work(rec, iid):
+    """2.99.0: [("task", task) or ("question", note)] about one sentence, open ones first."""
+    out = [("task", t) for t in rec.data.get("tasks", []) if t.get("about") == f"sentence:{iid}"]
+    out += [("question", n) for n in rec.data.get("notes", []) if n.get("on") == "requirement" and n.get("on_id") == iid]
+    return sorted(out, key=lambda kx: (kx[1].get("status") == "Done" or bool(kx[1].get("resolved")), kx[1].get("at", kx[1].get("created", ""))))
 

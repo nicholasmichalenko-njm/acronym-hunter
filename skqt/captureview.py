@@ -10,7 +10,11 @@ keeps it, with the document and place it came from:
 - Question (2.98.0): a question for the customer, quoting the exact wording and where it is, into the Customer Q&A list.
 - Key date (2.98.0): questions due, a site visit, industry day, orals, award..., onto the effort's calendar with its time
   zone; a proposal due date becomes the effort's due date.
+- More (2.99.0): an evaluation factor or subfactor with its relative importance; a page limit for a volume or deliverable
+  (the effort becomes page-limited); a deliverable (CDRL, plan, form) onto the deliverables board; an effort detail
+  (contract type, period of performance, NAICS, set-aside...) into Effort details; a hot button the customer stresses.
 Rules only (captures.py) for the suggestions; the person confirms every capture. Nothing leaves the PC."""
+import re
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QHeaderView, QLineEdit,
                                QPlainTextEdit, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
@@ -229,6 +233,91 @@ class KeyDateDialog(QDialog):
                 "start": self.start.text().strip(), "zone": self.zone.currentData() or ""}
 
 
+class SimpleCapture(QDialog):
+    """2.99.0: one form for the More captures: a "From:" line, then the fields given as (key, label, widget)."""
+
+    def __init__(self, parent, title, text, fields, note=""):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setMinimumWidth(600)
+        f = QFormLayout(self)
+        f.addRow(D.label("From: " + (text or "")[:300], "muted"))
+        self.w = {}
+        for key, label, widget in fields:
+            self.w[key] = widget
+            f.addRow(label, widget)
+        if note:
+            f.addRow(D.label(note, "muted"))
+        bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
+        f.addRow(bb)
+
+    def values(self):
+        out = {}
+        for k, w in self.w.items():
+            out[k] = w.currentText().strip() if isinstance(w, QComboBox) else (w.toPlainText().strip() if isinstance(w, QPlainTextEdit) else w.text().strip())
+        return out
+
+
+def _combo(items, current="", editable=False):
+    c = QComboBox(); c.setEditable(editable); c.addItems(list(items))
+    if current:
+        c.setCurrentText(current)
+    return c
+
+
+def factor_dialog(parent, text, factors=()):
+    import custfocus as F
+    g = F.factor_guess(text) or {"name": "", "sub": False, "importance": F.importance_guess(text)}
+    tops = [f for f in factors if not f.get("parent")]
+    under = _combo(["(a factor of its own)"] + [f["name"] for f in tops])
+    if g["sub"] and tops:
+        under.setCurrentIndex(len(tops))
+    return SimpleCapture(parent, "Capture an evaluation factor", text,
+                         [("name", "Factor", QLineEdit(g["name"])), ("under", "Subfactor of", under),
+                          ("importance", "Relative importance", _combo(F.IMPORTANCE, g["importance"]))],
+                         "It shows on Effort Home under Evaluation and hot buttons, with the customer's words.")
+
+
+def page_limit_dialog(parent, text, targets=()):
+    import subreq as SR
+    m = re.search(r"(\d+)\s*(?:single[- ]sided\s+)?pages?", text or "", re.I)
+    lim = f"{m.group(1)} pages" if m else ""
+    guess = next((t for t in targets if t and t.lower() in (text or "").lower()), "")
+    if not guess:
+        mv = re.search(r"\bvolume\s+([IVX]+|\d+)\b", text or "", re.I)
+        guess = next((t for t in targets if mv and re.search(r"\bvolume\s+" + re.escape(mv.group(1)) + r"\b", t, re.I)), "")
+    return SimpleCapture(parent, "Capture a page limit", text,
+                         [("target", "Applies to", _combo(list(targets) or ["Proposal"], guess or "Proposal", editable=True)),
+                          ("limit", "Limit", QLineEdit(lim)), ("counts", "What it excludes (optional)", QLineEdit(""))],
+                         "Filed as a submission rule; the volume's or deliverable's page limit follows, and the effort is "
+                         "marked page-limited.")
+
+
+def deliverable_dialog(parent, text):
+    import deliverables as DL
+    m = re.search(r"\b(CDRL\s*[A-Z]?\d{3,4}|[A-Z][A-Za-z ]{2,40}(?:Plan|Report|Schedule|Form|Matrix|Certification|Narrative))\b", text or "")
+    name = m.group(1).strip() if m else ""
+    return SimpleCapture(parent, "Capture a deliverable", text,
+                         [("name", "Deliverable", QLineEdit(name)), ("kind", "Kind", _combo(["", "Volume", "Plan", "Form", "CDRL", "Other"],
+                                                                                            DL.kind_of(name) if name else "", editable=True)),
+                          ("limit", "Page limit (optional)", QLineEdit("")), ("owner", "Owner (optional)", QLineEdit(""))],
+                         "It goes onto the deliverables board with the customer's words in its notes.")
+
+
+def detail_dialog(parent, text):
+    import custfocus as F
+    label, value = F.detail_guess(text)
+    return SimpleCapture(parent, "Capture an effort detail", text,
+                         [("label", "Detail", _combo(F.DETAIL_LABELS, label, editable=True)), ("value", "Value", QLineEdit(value))],
+                         "It goes into Effort details (Effort Home), with where it came from. One with the same name is replaced.")
+
+
+def hot_dialog(parent, text):
+    import custfocus as F
+    return SimpleCapture(parent, "Capture a hot button", text, [("text", "What the customer stresses", QLineEdit(F.hot_guess(text)))],
+                         "It shows on Effort Home under Evaluation and hot buttons, quoting the customer.")
+
+
 # ------------------------------------------------------------------ filing (used by Assign; tests call these with answers)
 def file_contact(host, values, cid, source):
     import effortrec as R
@@ -318,4 +407,76 @@ def file_key_date(host, values, source):
         diag.activity("capture_key_date")
         host.toast(f"{values.get('title') or values.get('kind')} is on the calendar")
     return eid or ""
+
+
+# ------------------------------------------------------------------ 2.99.0 filing the More captures
+def file_factor(host, values, source):
+    import custfocus as F
+    import effortrec as R
+    rec = R.Record(host.ws.root)
+    parent = next((f["id"] for f in F.factors(rec) if not f.get("parent") and f["name"] == values.get("under")), "")
+    fid = F.add_factor(rec, values.get("name", ""), parent=parent, importance=values.get("importance", "Not stated"),
+                       text=source.get("text", ""), source=source)
+    if fid:
+        diag.activity("capture_factor")
+        host.toast("Evaluation factor filed")
+    return fid
+
+
+def file_page_limit(host, values, source):
+    import docversions as DV
+    import effortrec as R
+    import subreq as SR
+    limit = values.get("limit", "")
+    if not re.search(r"\d", limit):
+        host.status("Not filed: give the limit as a number of pages.")
+        return ""
+    target = values.get("target", "") or "Proposal"
+    val = limit + (f" (excluding {values['counts']})" if values.get("counts") else "")
+    reg = SR.Register(DV.Library(host.ws.p("documents")).load())
+    key = reg.add("Page limit", target, val, source=source)
+    rec = R.Record(host.ws.root)
+    if rec.data.get("page_limited") != "yes":
+        rec.data["page_limited"] = "yes"
+        rec.log("effort", "Page-limited (from a captured page limit)", save=True)
+    diag.activity("capture_page_limit")
+    host.toast(f"Page limit filed: {target}, {limit}")
+    return key
+
+
+def file_deliverable(host, values, source):
+    import deliverables as DL
+    import effortrec as R
+    name = values.get("name", "")
+    if not name:
+        host.status("Not filed: give the deliverable a name.")
+        return ""
+    rec = R.Record(host.ws.root)
+    where = " ".join(x for x in (source.get("doc", ""), source.get("loc", "")) if x)
+    did = DL.add(rec, name, kind=values.get("kind", ""), limit=values.get("limit", ""), owner=values.get("owner", ""),
+                 notes=(f"From {where}: " if where else "") + (source.get("text") or "")[:600])
+    if did:
+        diag.activity("capture_deliverable")
+        host.toast(f"{name} is on the deliverables board")
+    return did
+
+
+def file_detail(host, values, source):
+    import custfocus as F
+    import effortrec as R
+    ok = F.set_detail(R.Record(host.ws.root), values.get("label", ""), values.get("value", ""), source=source)
+    if ok:
+        diag.activity("capture_detail")
+        host.toast(f"{values.get('label')} is in Effort details")
+    return ok
+
+
+def file_hot(host, values, source):
+    import custfocus as F
+    import effortrec as R
+    hid = F.add_hot(R.Record(host.ws.root), values.get("text", ""), quote=source.get("text", ""), source=source)
+    if hid:
+        diag.activity("capture_hot_button")
+        host.toast("Hot button filed")
+    return hid
 

@@ -36,10 +36,10 @@ from .settingspage import SettingsPage
 RAIL = [("Home", [("efforts", "All Efforts")]),
         ("Effort", [("home", "Effort Home"), ("deliverables", "Deliverables"), ("dashboard", "Dashboard"), ("record", "Effort Record"),
                     ("reviews", "Reviews")]),
+        ("Compliance", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove"),     # 2.99.0: near the
+                        ("crosswalk", "L/M Crosswalk")]),                                                              # top: the review starts here
         ("Documents", [("library", "Library"), ("compare", "Changes"), ("requirements", "Submission Rules"),
                        ("custqa", "Customer Q&A")]),
-        ("Compliance", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove"),
-                        ("crosswalk", "L/M Crosswalk")]),
         ("Deliver", [("matrix", "Matrix"), ("setup", "Response Setup"), ("postsub", "Post-Submission")]),
         ("Response Quality", [("acronyms", "Customer Terms"), ("acrlist", "Effort List"), ("qa", "Submission Check"),
                               ("lists", "Lists to Submit"), ("keywords", "Keywords")]),

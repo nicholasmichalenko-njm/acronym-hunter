@@ -340,6 +340,8 @@ MORE_FILES = [
     ("Change decisions.csv", "What each new customer version changed and the decision made on it: who, when and why."),
     ("Team.csv", "The people on the effort and their roles."),
     ("Customer contacts.csv", "The customer's points of contact captured from the documents: name, title, organization, e-mail, phone, address, where found."),
+    ("Evaluation factors.csv", "The evaluation factors and subfactors, their relative importance and the customer's words."),
+    ("Hot buttons.csv", "What the customer's documents stress, with their words and where."),
     ("Customer questions.csv", "The questions for the customer: number, status, category, document, where, their wording, our question, the answer and where it came."),
     ("Effort overview.docx", "The effort status report as of the last time the effort was closed or backed up: stages, people and how far along they are, open questions, newest customer documents, the proposal manager's summary."),
 ]
@@ -368,6 +370,13 @@ def more(rec, lib, data_dir="", info=None):
                                          [[q.get("n", ""), q.get("status", ""), q.get("category", ""), q.get("doc", ""), Q.where(q),
                                            q.get("quote", ""), q.get("question", ""), q.get("answer", ""), q.get("answer_doc", "")]
                                           for q in Q.items(rec)])
+        import custfocus as F                                                                                             # 2.99.0
+        out["Evaluation factors.csv"] = (["Factor", "Subfactor of", "Relative importance", "Their words", "Found in"],
+                                         [[f["name"], next((p["name"] for p in F.factors(rec) if p["id"] == f.get("parent")), ""),
+                                           f.get("importance", ""), f.get("text", ""), " ".join(x for x in (f.get("doc", ""), f.get("loc", "")) if x)]
+                                          for f in F.factors(rec)])
+        out["Hot buttons.csv"] = (["Hot button", "Their words", "Found in"],
+                                  [[h["text"], h.get("quote", ""), " ".join(x for x in (h.get("doc", ""), h.get("loc", "")) if x)] for h in F.hot_buttons(rec)])
         ps = rec.data.get("postsub")
         if isinstance(ps, dict) and ps.get("items"):
             import postsub as PS

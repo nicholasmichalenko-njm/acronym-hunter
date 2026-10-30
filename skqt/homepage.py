@@ -140,17 +140,20 @@ class HomePage(QWidget):
                                                                    D.button("Submission rules", "ghost", lambda: self.host.go("requirements"))])
         self.qa_card = D.Card("Customer Q&A", "The questions we submit to the customer, and their answers.",          # 2.98.0
                               actions=[D.button("Customer Q&&A", "ghost", lambda: self.host.go("custqa"))])
+        self.focus_card = D.Card("Evaluation and hot buttons", "How the customer will judge the proposal, and what their "   # 2.99.0
+                                 "documents stress. Capture them in Assign (More captures).")
         self.body = QVBoxLayout(); self.body.setSpacing(D.SPACE["m"]); v.addLayout(self.body)
         v.addStretch(1)
         self.cards = {"stage": self.track, "deliverables": self.deliv_card, "mywork": self.mywork, "goals": self.goals,
                       "notes": self.notes, "tasks": self.tasks, "calendar": self.cal_card, "info": self.info, "timeline": self.timeline,
-                      "formatting": self.fmt_card, "submission": self.sub_card, "custqa": self.qa_card}
+                      "formatting": self.fmt_card, "submission": self.sub_card, "custqa": self.qa_card,
+                      "custfocus": self.focus_card}
         self.lay = None
         self.apply_layout()
-        self.sections = {k: QVBoxLayout() for k in ("goals", "tasks", "notes", "info", "timeline", "formatting", "submission", "custqa")}
+        self.sections = {k: QVBoxLayout() for k in ("goals", "tasks", "notes", "info", "timeline", "formatting", "submission", "custqa", "custfocus")}
         for k, card in (("goals", self.goals), ("tasks", self.tasks), ("notes", self.notes), ("info", self.info),
                         ("timeline", self.timeline), ("formatting", self.fmt_card), ("submission", self.sub_card),
-                        ("custqa", self.qa_card)):
+                        ("custqa", self.qa_card), ("custfocus", self.focus_card)):
             self.sections[k].setSpacing(D.SPACE["xs"]); card.body.addLayout(self.sections[k])
 
     # ------------------------------------------------------------ the effort
@@ -209,6 +212,7 @@ class HomePage(QWidget):
         self.draw_formatting(r)
         self.draw_submission(r)
         self.draw_custqa(r)
+        self.draw_focus(r)
         self.draw_goals(r, checks)
         self.draw_tasks(r)
         self.draw_notes(r)
@@ -565,6 +569,26 @@ class HomePage(QWidget):
             lay.addLayout(row)
         if not Q.items(r):
             lay.addWidget(D.label("In Assign, select a sentence and press Capture > Question to quote it.", "muted"))
+
+    def draw_focus(self, r):
+        """2.99.0: the evaluation factors (subfactors under them) with their relative importance, then the hot buttons."""
+        import custfocus as F
+        lay = self.sections["custfocus"]; clear(lay)
+        fs, hs = F.factors(r), F.hot_buttons(r)
+        self.focus_now = {"factors": [f["name"] for f in fs], "hot": [h["text"] for h in hs]}
+        if not fs and not hs:
+            lay.addWidget(D.label("None yet. In Assign, select the sentence and press More captures > Evaluation factor or Hot button.", "muted"))
+            return
+        for f in fs:
+            imp = f.get("importance", "Not stated")
+            lab = D.label(("    \u2022 " if f.get("parent") else "") + f["name"] + (f"  \u00b7  {imp}" if imp != "Not stated" else "")
+                          + (f"  \u00b7  {f['doc']}" if f.get("doc") and not f.get("parent") else ""), None)
+            lab.setToolTip(f.get("text", ""))
+            lay.addWidget(lab)
+        if hs:
+            lay.addWidget(D.label("Hot buttons", "label"))
+            for h in hs:
+                lab = D.label("\u2022  " + h["text"], None); lab.setToolTip(h.get("quote", "")); lay.addWidget(lab)
 
     def _register(self):
         import docversions as DV
