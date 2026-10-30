@@ -14,7 +14,13 @@ A.SETTINGS_FILE = os.path.join(tmp, "settings.json")
 infos = []
 messagebox.showinfo = lambda *a, **k: infos.append(a[1] if len(a) > 1 else "")
 messagebox.showwarning = lambda *a, **k: print("WARNING BOX:", a[:2])
-messagebox.showerror = lambda *a, **k: print("ERROR BOX:", a[:2])
+def _fatal(why):
+    """2.96.0: an error box or a stuck run ends the test as a FAIL instead of waiting in the main loop forever (a locked
+    screen stops the real-mouse drags below)."""
+    print("GUI SETUP FAIL:", why, flush=True); sys.stdout.flush(); os._exit(1)
+
+
+messagebox.showerror = lambda *a, **k: _fatal(("ERROR BOX", a[:2]))
 messagebox.askyesno = lambda *a, **k: True
 RFP = os.path.join(A.BASE_DIR, "test_samples", "rfp")
 MATRIX = os.path.join(tmp, "Kestrel_Matrix.xlsx")
@@ -126,4 +132,5 @@ def go():
 
 
 app.after(1500, go)
+app.after(300000, lambda: _fatal("still running after 5 minutes (is the screen locked?)"))
 app.mainloop()

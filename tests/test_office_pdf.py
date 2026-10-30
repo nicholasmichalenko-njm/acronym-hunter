@@ -42,9 +42,9 @@ check("and ends the Word it started, by its IDs, only if it is still Word", ende
       and seen["cmds"][0] == ["taskkill", "/PID", "4242", "/FI", "IMAGENAME eq WINWORD.EXE", "/F"], seen.get("cmds"))
 check("the ID file is cleaned up", not os.path.exists(seen["pidfile"]))
 check("no ID file: nothing is ended", OP._end_started(os.path.join(tmp, "none.pid"), "word", runner=lambda c: 1 / 0) == [])
-check("2.93.0: every script closes the Office it started, even when a file fails, and ends it if it lingers",
-      all("} finally {" in sc and "if ($mine -or $was -eq 0)" in sc and "ReleaseComObject($app)" in sc and "foreach ($id in $mine)" in sc
-          and "Stop-Process -Id $id" in sc for sc in OP._SCRIPT.values()))
+check("2.93.0: every script quits the Office it started, even when a file fails, and never ends another copy's Office",
+      all("} finally {" in sc and "if ($was -eq 0 -or $was -eq $null)" in sc and "ReleaseComObject($app)" in sc and "[GC]::Collect()" in sc
+          and "Stop-Process" not in sc for sc in OP._SCRIPT.values()))
 n = sum(checks)
 print(f"OFFICE PDF PASS ({n}/{len(checks)})" if n == len(checks) else f"OFFICE PDF FAIL ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)
