@@ -9,10 +9,10 @@ sentence), Ctrl+Z undo. 2.68.0: the structure is built beside the page as you as
 import os, re
 from PySide6.QtCore import Qt, QEvent, QRectF, QThread, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QFont, QImage, QKeySequence, QPainter, QPainterPath, QPen, QPixmap, QShortcut
-from PySide6.QtWidgets import (QComboBox, QCompleter, QDialog, QDialogButtonBox, QFormLayout, QFrame, QGraphicsItem, QGridLayout,
+from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFormLayout, QFrame, QGraphicsItem, QGridLayout,
                                QGraphicsPathItem, QGraphicsPixmapItem, QGraphicsScene, QGraphicsSimpleTextItem,
                                QGraphicsView, QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QPushButton, QRadioButton,
-                               QScrollArea, QSplitter, QStyle, QLayout, QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+                               QScrollArea, QSplitter, QStyle, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
                                QCheckBox, QButtonGroup)
 import diag
 import effortrec as R_
@@ -1065,7 +1065,7 @@ class AssignPage(QWidget):
             text = it.get("text", "")
             if self.split_at is not None and getattr(self, "split_word", None) and self.split_word[0] == it["id"]:
                 box = QFrame(); box.setObjectName("splitPrev")
-                box.setStyleSheet(f"QFrame#splitPrev{{border:1px solid #DC2626;border-radius:6px;}}")
+                box.setStyleSheet("QFrame#splitPrev{border:1px solid #DC2626;border-radius:6px;}")
                 bv = QVBoxLayout(box); bv.setContentsMargins(D.SPACE["s"], D.SPACE["s"], D.SPACE["s"], D.SPACE["s"])
                 bv.addWidget(D.label("Split preview", "label"))
                 bv.addWidget(D.label("Part 1: " + text[:self.split_at].strip()))

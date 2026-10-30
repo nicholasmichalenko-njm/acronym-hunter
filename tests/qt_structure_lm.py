@@ -12,7 +12,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 os.environ["AH_TEST"] = "1"
 os.environ["SK_SANDBOX_TEMP"] = "temp_qt"
 import app_gui as A
-import compliance as C, effort as E, setupdoc as SD, workspace as W, office_pdf as OP, outline_ops as O, docversions as DV
+import effort as E, setupdoc as SD, office_pdf as OP, outline_ops as O, docversions as DV
 OP.available = lambda: False
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
