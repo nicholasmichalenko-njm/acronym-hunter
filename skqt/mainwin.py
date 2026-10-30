@@ -36,7 +36,8 @@ from .settingspage import SettingsPage
 RAIL = [("Home", [("efforts", "All Efforts")]),
         ("Effort", [("home", "Effort Home"), ("deliverables", "Deliverables"), ("dashboard", "Dashboard"), ("record", "Effort Record"),
                     ("reviews", "Reviews")]),
-        ("Documents", [("library", "Library"), ("compare", "Changes"), ("requirements", "Submission Rules")]),
+        ("Documents", [("library", "Library"), ("compare", "Changes"), ("requirements", "Submission Rules"),
+                       ("custqa", "Customer Q&A")]),
         ("Compliance", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Assign"), ("prove", "Prove"),
                         ("crosswalk", "L/M Crosswalk")]),
         ("Deliver", [("matrix", "Matrix"), ("setup", "Response Setup"), ("postsub", "Post-Submission")]),
@@ -51,6 +52,7 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "library": ("Library", "Every document of the effort: categories, folders, tags, roles and search"),
           "docs": ("Customer Versions", "The customer's documents and every version of them"),
           "requirements": ("Submission Rules", "What the customer requires of the submission now, and what changed it"),
+          "custqa": ("Customer Q&A", "The questions we submit to the customer: their exact wording, our question, status and the answer"),
           "compare": ("Changes", "What a new version changed, what it touches, and a decision on every change"),
           "impact": ("Impact Review", "What one new version touched across the effort"),
           "deliverables": ("Deliverables", "Every deliverable at a glance: where each stands and what is missing"),
@@ -107,7 +109,7 @@ class MainWindow(QMainWindow):
         for head, items in RAIL:
             h = QLabel(head); h.setObjectName("railhead"); h.setWordWrap(True); rv.addWidget(h)
             for key, text in items:
-                b = QPushButton(text); b.setObjectName("rail"); b.setCheckable(bool(key))
+                b = QPushButton(text.replace("&", "&&")); b.setObjectName("rail"); b.setCheckable(bool(key))
                 if key:
                     b.clicked.connect(lambda _=False, k=key: self.go(k))
                     self.steps.addButton(b); self.step_btns[key] = b
@@ -167,6 +169,8 @@ class MainWindow(QMainWindow):
         self.lists_page = ListsPage(self)            # 2.86.0
         self.requirements_page = RequirementsPage(self)
         self.compare_page = ComparePage(self)
+        from .custqapage import CustQAPage
+        self.custqa_page = CustQAPage(self)           # 2.98.0
         self.impact_page = ImpactPage(self)
         self.deliverables_page = DeliverablesPage(self)
         self.qa_page = QAPage(self)
@@ -182,7 +186,7 @@ class MainWindow(QMainWindow):
         self.setup_page = SetupPage(self)
         from .postsubpage import PostSubPage
         self.postsub_page = PostSubPage(self)          # 2.91.0
-        self.pages = {"efforts": self.efforts_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page,
+        self.pages = {"efforts": self.efforts_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page, "custqa": self.custqa_page,
                       "impact": self.impact_page, "deliverables": self.deliverables_page, "qa": self.qa_page, "lists": self.lists_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "postsub": self.postsub_page}

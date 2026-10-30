@@ -138,16 +138,19 @@ class HomePage(QWidget):
         self.fmt_card = D.Card("Formatting requirements", "What the customer documents require for format and files, and "     # 2.94.0
                                "what they leave unsaid.", actions=[D.button("+ Add...", None, lambda: self.format_dialog()),
                                                                    D.button("Submission rules", "ghost", lambda: self.host.go("requirements"))])
+        self.qa_card = D.Card("Customer Q&A", "The questions we submit to the customer, and their answers.",          # 2.98.0
+                              actions=[D.button("Customer Q&&A", "ghost", lambda: self.host.go("custqa"))])
         self.body = QVBoxLayout(); self.body.setSpacing(D.SPACE["m"]); v.addLayout(self.body)
         v.addStretch(1)
         self.cards = {"stage": self.track, "deliverables": self.deliv_card, "mywork": self.mywork, "goals": self.goals,
                       "notes": self.notes, "tasks": self.tasks, "calendar": self.cal_card, "info": self.info, "timeline": self.timeline,
-                      "formatting": self.fmt_card, "submission": self.sub_card}
+                      "formatting": self.fmt_card, "submission": self.sub_card, "custqa": self.qa_card}
         self.lay = None
         self.apply_layout()
-        self.sections = {k: QVBoxLayout() for k in ("goals", "tasks", "notes", "info", "timeline", "formatting", "submission")}
+        self.sections = {k: QVBoxLayout() for k in ("goals", "tasks", "notes", "info", "timeline", "formatting", "submission", "custqa")}
         for k, card in (("goals", self.goals), ("tasks", self.tasks), ("notes", self.notes), ("info", self.info),
-                        ("timeline", self.timeline), ("formatting", self.fmt_card), ("submission", self.sub_card)):
+                        ("timeline", self.timeline), ("formatting", self.fmt_card), ("submission", self.sub_card),
+                        ("custqa", self.qa_card)):
             self.sections[k].setSpacing(D.SPACE["xs"]); card.body.addLayout(self.sections[k])
 
     # ------------------------------------------------------------ the effort
@@ -205,6 +208,7 @@ class HomePage(QWidget):
         self.draw_track(r)
         self.draw_formatting(r)
         self.draw_submission(r)
+        self.draw_custqa(r)
         self.draw_goals(r, checks)
         self.draw_tasks(r)
         self.draw_notes(r)
@@ -541,6 +545,26 @@ class HomePage(QWidget):
                 col.addWidget(D.label(x["where"], "muted"))
             row.addLayout(col, 1)
             lay.addLayout(row)
+
+    def draw_custqa(self, r):
+        """2.98.0: how many questions are where, when questions are due, and the ones still open."""
+        import custqa as Q
+        from .custqapage import questions_due
+        lay = self.sections["custqa"]; clear(lay)
+        self.qa_now = Q.counts(r)
+        due = questions_due(r)
+        lay.addWidget(D.label(Q.summary(r) + (f"  \u00b7  Questions due {due}" if due else ""), None))
+        open_ = [q for q in Q.items(r) if q.get("status") != "Answered"]
+        t = D.tokens()
+        for q in open_[:5]:
+            row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
+            row.addWidget(D.Pill(q.get("status", ""), {"Draft": "head", "Approved": "accent", "Submitted": "warn"}.get(q.get("status"), "head")), 0, Qt.AlignTop)
+            v = ClickLabel(f"{q.get('n')}. {q.get('question') or q.get('quote')}"[:140], lambda: self.host.go("custqa"))
+            v.setStyleSheet(f"color:{t['text']};"); v.setWordWrap(True)
+            row.addWidget(v, 1)
+            lay.addLayout(row)
+        if not Q.items(r):
+            lay.addWidget(D.label("In Assign, select a sentence and press Capture > Question to quote it.", "muted"))
 
     def _register(self):
         import docversions as DV

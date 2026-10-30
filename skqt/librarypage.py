@@ -744,6 +744,11 @@ class LibraryPage(QWidget):
         text = ", ".join(f"{n} to {self.lib.category_name(c)}" for c, n in by.items()) or "nothing new"
         diag.activity("library_intake_done", n=len(made))
         self.host.refresh_level()                      # 2.97.0: the effort's level follows its documents
+        try:                                           # 2.98.0: what each new version changed, at once
+            from .whatview import after_added
+            after_added(self.host, made, DV.Library(self.lib.folder).load())
+        except Exception:
+            diag.swallowed()
         self.panel.done("Added", f"{len(made)} document version(s) added: {text}.")
         self.host.toast(f"{len(made)} added to the library")
         self.refresh()

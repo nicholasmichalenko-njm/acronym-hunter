@@ -340,6 +340,7 @@ MORE_FILES = [
     ("Change decisions.csv", "What each new customer version changed and the decision made on it: who, when and why."),
     ("Team.csv", "The people on the effort and their roles."),
     ("Customer contacts.csv", "The customer's points of contact captured from the documents: name, title, organization, e-mail, phone, address, where found."),
+    ("Customer questions.csv", "The questions for the customer: number, status, category, document, where, their wording, our question, the answer and where it came."),
     ("Effort overview.docx", "The effort status report as of the last time the effort was closed or backed up: stages, people and how far along they are, open questions, newest customer documents, the proposal manager's summary."),
 ]
 
@@ -362,6 +363,11 @@ def more(rec, lib, data_dir="", info=None):
                                           c.get("address", ""), "; ".join(f"{o['label']}: {o['value']}" for o in c.get("other", [])),
                                           "; ".join(", ".join(x for x in (s_.get("doc"), s_.get("loc")) if x) for s_ in c.get("sources", []))]
                                          for c in rec.data.get("contacts", [])])
+        import custqa as Q                                                                                                # 2.98.0
+        out["Customer questions.csv"] = (["No.", "Status", "Category", "Document", "Where", "Their wording", "Our question", "Answer", "Answered in"],
+                                         [[q.get("n", ""), q.get("status", ""), q.get("category", ""), q.get("doc", ""), Q.where(q),
+                                           q.get("quote", ""), q.get("question", ""), q.get("answer", ""), q.get("answer_doc", "")]
+                                          for q in Q.items(rec)])
         ps = rec.data.get("postsub")
         if isinstance(ps, dict) and ps.get("items"):
             import postsub as PS

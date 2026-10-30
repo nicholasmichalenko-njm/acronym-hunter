@@ -45,6 +45,7 @@ class Doc:
         self.body = []
         self.props = {}          # custom document properties (File > Info > Properties > Advanced > Custom)
         self.marking = None      # 2.92.0: (text, color): a marking centered in every page's header and footer (CUI)
+        self.landscape = False   # 2.98.0: wide pages (the customer Q&A table)
 
     def heading(self, text, level=1):
         level = max(1, min(int(level), 6))
@@ -101,7 +102,8 @@ class Doc:
         R = 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"'
         hf = ('<w:headerReference w:type="default" r:id="rIdH"/><w:footerReference w:type="default" r:id="rIdF"/>'
               if self.marking else "")
-        sect = (f'<w:sectPr>{hf}<w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" '
+        size = '<w:pgSz w:w="15840" w:h="12240" w:orient="landscape"/>' if self.landscape else '<w:pgSz w:w="12240" w:h="15840"/>'
+        sect = (f'<w:sectPr>{hf}{size}<w:pgMar w:top="1440" w:right="1440" w:bottom="1440" '
                 'w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>')
         doc = f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document {W} {R}><w:body>{"".join(self.body)}{sect}</w:body></w:document>'
         heads = "".join(

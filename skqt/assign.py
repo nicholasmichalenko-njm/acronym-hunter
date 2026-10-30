@@ -287,6 +287,11 @@ class AssignPage(QWidget):
                                   "view) and its PDF copy (Page view)")
         self.sheet_btn.setVisible(False)
         bar.addWidget(self.sheet_btn)
+        self.changes_on = True                      # 2.98.0: what this version changed, outlined on the page
+        self.changes_btn = D.button("Hide changes", "ghost", lambda: self.toggle_changes(), "Outline what this version changed "
+                                    "against the one before it (amber: changed, green: new)")
+        self.changes_btn.setVisible(False)
+        bar.addWidget(self.changes_btn)
         fit = QPushButton("Fit width"); fit.clicked.connect(lambda: self.view.fit()); bar.addWidget(fit)
         self.note = D.label("", "muted"); v.addWidget(self.note)
         self.view = PageView()
@@ -325,18 +330,20 @@ class AssignPage(QWidget):
             grid.addWidget(b, k // 3, k % 3)
         self.dec_grid = QWidget(); self.dec_grid.setLayout(grid)
         dv.addWidget(self.dec_grid)
-        caprow = QHBoxLayout(); caprow.setSpacing(D.SPACE["xs"])           # 2.96.0: capture what the sentence holds
-        caprow.addWidget(D.label("Capture", "label", wrap=False))
+        dv.addWidget(D.label("Capture", "label", wrap=False))             # 2.96.0: capture what the sentence holds
+        caprow = QGridLayout(); caprow.setSpacing(D.SPACE["xs"])           # 2.98.0: six, in two rows
         self.cap_keys = {}
-        for key, text, tip in (("contact", "Contact", "A point of contact: name, title, e-mail, phone, address (Customer information)"),
-                               ("submit", "Submission", "A submission instruction: due date and time, delivery, copies, file format"),
-                               ("format", "Formatting", "A formatting rule: page limit, font, margins, page size, spacing"),
-                               ("acronym", "Acronym", "The acronym and what it stands for, into the effort list")):
-            b = D.button(text, "ghost", lambda _=False, k=key: self.do_capture(k), tip + ". Uses the words you dragged across, "
+        for k, (key, text, tip) in enumerate((
+                ("contact", "Contact", "A point of contact: name, title, e-mail, phone, address (Customer information)"),
+                ("submit", "Submission", "A submission instruction: due date and time, delivery, copies, file format"),
+                ("format", "Formatting", "A formatting rule: page limit, font, margins, page size, spacing"),
+                ("acronym", "Acronym", "The acronym and what it stands for, into the effort list"),
+                ("question", "Question", "A question for the customer, quoting their exact wording (Customer Q&A)"),
+                ("keydate", "Key date", "Questions due, site visit, industry day, orals, award: onto the calendar"))):
+            b = D.button(text, "ghost", lambda _=False, kk=key: self.do_capture(kk), tip + ". Uses the words you dragged across, "
                          "else the selected sentence.")
             self.cap_keys[key] = b
-            caprow.addWidget(b)
-        caprow.addStretch(1)
+            caprow.addWidget(b, k // 3, k % 3)
         dv.addLayout(caprow)
         cgrid = QGridLayout(); cgrid.setSpacing(D.SPACE["xs"])                # 2.84.0: for a library document
         self.ctx_keys = {}
@@ -627,7 +634,95 @@ class AssignPage(QWidget):
             doc.close()
         self.build_boxes()
         self.note.setText("Click a sentence; Ctrl+click adds one (even far apart); drag a box around several. Ctrl+wheel zooms.")
+        self.mark_changes()                         # 2.98.0: what this version changed, outlined on the page
         QTimer.singleShot(0, self.view.fit)
+
+    # ------------------------------------------------------------ 2.98.0 what this version changed, on the page
+    def mark_changes(self):
+        """Outline each sentence the open version changed (amber, dashed) or added (green) against the version before
+        it, with a tag in the margin. The card then shows what it was, and Show the old page shows it there."""
+        import whatchanged as WC
+        self.changes, self.change_of = None, {}
+        self.changes_btn.setVisible(False)
+        if self.cx is not None or not self.file or self.host.ws is None:
+            return 0
+        try:
+            import docversions as DV
+            m = WC.marks(DV.Library(self.host.ws.p("documents")).load(), self.file)
+        except Exception:
+            diag.swallowed()
+            return 0
+        self.changes = m
+        self.changes_btn.setVisible(bool(m))
+        if not m or not self.changes_on:
+            return 0
+        sc = self.view.scene()
+        small = QFont(); small.setPointSizeF(6.5); small.setBold(True)
+        for it in self.R.rows_of(self.file):
+            box = self.view.boxes.get(it["id"])
+            ch = WC.mark_of(m, it.get("text", "")) if box is not None else None
+            if not ch:
+                continue
+            tone = QColor("#D97706" if ch["kind"] == "changed" else "#16A34A")
+            frame = QGraphicsPathItem(box.path())
+            pen = QPen(tone); pen.setWidthF(1.8); pen.setStyle(Qt.DashLine); pen.setCosmetic(True)
+            frame.setPen(pen); frame.setBrush(Qt.NoBrush); frame.setZValue(box.zValue() + 0.5)
+            frame.setAcceptedMouseButtons(Qt.NoButton); frame.setAcceptHoverEvents(False)
+            sc.addItem(frame)
+            tag = sc.addSimpleText("CHANGED" if ch["kind"] == "changed" else "NEW", small)
+            tag.setBrush(tone); tag.setPos(MARGIN - 52, box.boundingRect().top()); tag.setAcceptedMouseButtons(Qt.NoButton)
+            self.change_of[it["id"]] = ch
+        n = len(self.change_of)
+        if n:
+            self.note.setText(f"{m['to'].get('label', '')} of {m['doc'].get('name', '')}: {n} sentence(s) changed or new since "
+                              f"{m['from'].get('label', '')}, outlined on the page (amber: changed, green: new). Click one to see "
+                              "what it was.")
+            diag.activity("assign_changes_marked", n=n)
+        return n
+
+    def toggle_changes(self):
+        self.changes_on = not self.changes_on
+        self.changes_btn.setText("Hide changes" if self.changes_on else "Show changes")
+        diag.activity("assign_changes_toggled")
+        if self.file:
+            self.open_file(self.file)
+
+    def old_page(self, iid, run=True):
+        """The previous version's page with the old sentence highlighted. run=False (tests): the dialog, not shown."""
+        import whatchanged as WC
+        ch = self.change_of.get(iid)
+        m = self.changes
+        if not ch or not m or not ch.get("old"):
+            return None
+        import docversions as DV
+        lib = DV.Library(self.host.ws.p("documents")).load()
+        va = m["from"]
+        path = lib.path_of(va)
+        pdf = ""
+        if path and path.lower().endswith(".pdf") and os.path.isfile(path):
+            pdf = path
+        elif path and os.path.isfile(path):
+            c = OP.copy_path(path, self.copies_dir()) if self.copies_dir() else ""
+            if c and os.path.isfile(c):
+                pdf = c
+            elif OP.available():
+                try:
+                    pdf = OP.make(path, self.copies_dir())
+                except Exception:
+                    diag.swallowed()
+        if not pdf:
+            self.host.status(f"{va.get('file', 'The old version')} needs its PDF copy (Microsoft Office) or is not on this PC.")
+            return None
+        try:
+            found = WC.find_on_pages(pdf, ch["old"])
+        except Exception:
+            diag.swallowed()
+            found = None
+        d = OldPageDialog(self, pdf, found, f"{m['doc'].get('name', '')}: {va.get('label', '')}", ch["old"])
+        diag.activity("assign_old_page_shown")
+        if run:
+            d.exec()
+        return d
 
     # ------------------------------------------------------------ 2.96.0 Sheet view (an Excel workbook as its cells)
     def sheet_font(self):
@@ -881,11 +976,19 @@ class AssignPage(QWidget):
             return "", {}
         place = self.placed.get(it["id"], ("",))[0] or it.get("place", "")
         loc = (PS.where_text(self.pdf, place) if (self.pdf and place) else "") or " ".join(x for x in (it.get("section", ""), it.get("section_title", "")) if x)
-        return text, {"doc": it.get("file", "") or (self.file or ""), "loc": loc, "text": it.get("text", "")}
+        pg = para = ""
+        if self.pdf and place:                                         # 2.98.0: page and paragraph for Customer Q&A
+            try:
+                p_, q_ = PS.where(self.pdf, place)
+                pg, para = (str(p_) if p_ else ""), (str(q_) if q_ else "")
+            except Exception:
+                diag.swallowed()
+        return text, {"doc": it.get("file", "") or (self.file or ""), "loc": loc, "text": it.get("text", ""),
+                      "section": it.get("section", ""), "page": pg, "para": para, "sid": it["id"]}
 
     def do_capture(self, kind, answer=None):
-        """Contact, Submission, Formatting or Acronym from the picked words or the selected sentence. answer (tests): the
-        dialog's values."""
+        """Contact, Submission, Formatting, Acronym, Question or Key date (2.98.0) from the picked words or the selected
+        sentence. answer (tests): the dialog's values."""
         from . import captureview as CV
         import effortrec as RR
         text, src = self.capture_source()
@@ -916,6 +1019,22 @@ class AssignPage(QWidget):
                     return None
                 answer = d.values()
             return CV.file_acronym(self.host, answer[0], answer[1], src)
+        if kind == "question":                                         # 2.98.0
+            if answer is None:
+                d = CV.QuestionDialog(self, text, src, self.host.people())
+                if d.exec() != QDialog.Accepted:
+                    return None
+                answer = d.values()
+            return CV.file_question(self.host, answer, src)
+        if kind == "keydate":                                          # 2.98.0
+            if answer is None:
+                d = CV.KeyDateDialog(self, text)
+                if d.exec() != QDialog.Accepted:
+                    return None
+                answer = d.values()
+            got = CV.file_key_date(self.host, answer, src)
+            self.host.changed()
+            return got
         return None
 
     # ------------------------------------------------------------ 2.93.0 the split, shown on the page
@@ -1079,12 +1198,34 @@ class AssignPage(QWidget):
             else:
                 self.split_preview = None
                 if getattr(self, "grab", None) and self.grab["iid"] == it["id"]:          # 2.96.0
-                    pk = self.add(D.label(f"Picked words: \u201c{self.grab['text']}\u201d. Capture (Contact, Submission, "
+                    pk = self.add(D.label(f"Picked words: \u201c{self.grab['text']}\u201d. Capture (Contact, Submission, Question, "
                                           "Formatting, Acronym) uses them.", None))
                     pk.setStyleSheet("background:rgba(134,239,172,0.35);padding:4px;border-radius:4px;")
                 else:
                     self.add(D.label("To split it, click the word the second part starts with. To capture part of it, drag "
                                      "across those words.", "muted"))
+        ch = getattr(self, "change_of", {}).get(it["id"]) if len(rows) == 1 else None
+        if ch:                                                         # 2.98.0: what this version changed
+            m = self.changes
+            box = QFrame(); box.setObjectName("changeBox")
+            tone = "#D97706" if ch["kind"] == "changed" else "#16A34A"
+            box.setStyleSheet(f"QFrame#changeBox{{border:1px dashed {tone};border-radius:6px;}}")
+            bv = QVBoxLayout(box); bv.setContentsMargins(D.SPACE["s"], D.SPACE["s"], D.SPACE["s"], D.SPACE["s"])
+            if ch["kind"] == "changed":
+                bv.addWidget(D.label(f"Changed in {m['to'].get('label', '')} (was, in {m['from'].get('label', '')}):", "label"))
+                was = D.label(change_html(ch)); was.setTextFormat(Qt.RichText); was.setWordWrap(True)
+                was.setTextInteractionFlags(Qt.TextSelectableByMouse)
+                bv.addWidget(was)
+            else:
+                bv.addWidget(D.label(f"New in {m['to'].get('label', '')}: not in {m['from'].get('label', '')}.", "label"))
+            br = QHBoxLayout(); bv.addLayout(br)
+            if ch["kind"] == "changed":
+                br.addWidget(D.button("Show the old page", None, lambda: self.old_page(it["id"]),
+                                      f"{m['from'].get('label', '')} at the same spot, the old sentence highlighted"))
+            br.addWidget(D.button("Decide in Changes", "ghost", lambda: self.host.go("compare")))
+            br.addStretch(1)
+            self.change_box = box
+            self.add(box)
         self.head("Source")
         place = self.placed.get(it["id"], ("",))[0] or it.get("place", "")
         where = PS.where_text(self.pdf, place) if (self.pdf and place) else MD._where(it)
@@ -1751,3 +1892,60 @@ class AssignPage(QWidget):
             self.after("Undone.")
         else:
             self.host.status("Nothing to undo.")
+
+
+def change_html(ch):
+    """2.98.0: the old wording with what the new version took out struck through in red and what it put in, green."""
+    import html
+    out = []
+    for kind, text in ch.get("diff") or [("-", ch.get("old", ""))]:
+        t = html.escape(text)
+        if kind == "-":
+            out.append(f"<span style='color:#B91C1C;text-decoration:line-through'>{t}</span>")
+        elif kind == "+":
+            out.append(f"<span style='color:#15803D;font-weight:600'>{t}</span>")
+        else:
+            out.append(t)
+    return " ".join(out)
+
+
+class OldPageDialog(QDialog):
+    """2.98.0: the previous version's page, the old sentence highlighted (Show the old page in Assign)."""
+
+    def __init__(self, parent, pdf, found, title, old_text):
+        super().__init__(parent)
+        from PySide6.QtWidgets import QLabel, QScrollArea
+        from PySide6.QtGui import QPainter
+        import pypdfium2 as pdfium
+        self.setWindowTitle(title)
+        self.resize(900, 900)
+        v = QVBoxLayout(self)
+        self.found = found
+        if found is None:
+            v.addWidget(D.label("The old sentence was not found on the old version's pages (its words may be laid out "
+                                "differently). Its wording: " + old_text, "muted"))
+            page_i, rects = 0, []
+        else:
+            page_i, rects = found
+            v.addWidget(D.label(f"Page {page_i + 1}: the old sentence is highlighted.", "muted"))
+        scale = 1.6
+        doc = pdfium.PdfDocument(pdf)
+        try:
+            img = doc[page_i].render(scale=scale).to_pil().convert("RGB")
+        finally:
+            doc.close()
+        q = QImage(img.tobytes("raw", "RGB"), img.width, img.height, img.width * 3, QImage.Format_RGB888).copy()
+        pix = QPixmap.fromImage(q)
+        p = QPainter(pix)
+        col = QColor("#F59E0B"); col.setAlpha(90)
+        p.setBrush(col); p.setPen(QPen(QColor("#D97706"), 2))
+        for l, t, r, b in rects:
+            p.drawRect(QRectF(l * scale - 2, t * scale - 2, (r - l) * scale + 4, (b - t) * scale + 4))
+        p.end()
+        self.image = QLabel(); self.image.setPixmap(pix)
+        area = QScrollArea(); area.setWidget(self.image); area.setWidgetResizable(False)
+        v.addWidget(area, 1)
+        if rects:
+            area.ensureVisible(int(rects[0][0] * scale), int(rects[0][1] * scale), 50, 200)
+        bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(self.reject); v.addWidget(bb)
+

@@ -37,6 +37,8 @@ OUTPUTS = [
     ("effort_summary", "Effort summary (Word)", "exports", "{Effort}_Effort_Summary_{Date}", ".docx"),
     ("tasks_questions", "Tasks and questions", "exports", "{Effort}_Tasks_and_Questions_{Person}_{Date}_{Time}", ".xlsx"),
     ("calendar", "Calendar", "exports", "{Effort}_Calendar", ".xlsx"),
+    ("customer_questions", "Customer questions (Word, Excel or the customer's template)", "exports",
+     "{Effort}_Customer_Questions_{Date}", ".docx"),
     ("calendar_template", "Calendar template", "exports", "{Effort}_Calendar_Template", ".xlsx"),
     ("postsub", "Post-submission checklist", "exports", "{Effort}_Post-Submission_Checklist", ".xlsx"),
     ("deliverables", "Deliverables", "exports", "{Effort}_Deliverables_{Date}", ".xlsx"),

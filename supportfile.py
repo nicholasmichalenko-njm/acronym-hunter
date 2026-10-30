@@ -20,6 +20,11 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "2.98.0": ["Customer Q&A: the questions you submit to the customer, quoting their exact wording and where it is, with "
+               "status and answers; Capture > Question in Assign; export to Word, Excel or the customer's own template.",
+               "Capture > Key date puts questions due, site visits, orals and award on the calendar with their time zone.",
+               "Adding an amendment says at once what it changed; Assign outlines the changed and new sentences, shows what "
+               "each was, and opens the old page at the same spot."],
     "2.97.0": ["Three work modes: Offline (testing and everyday work, General business to CUI), Connected (SharePoint) and "
                "SCIF-ready (no logs, no training, no support files, locked once chosen). The chip in the top bar shows it.",
                "A document marked above CUI (by its sensitivity label or its banners and markings) stops Add documents, the "

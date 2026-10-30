@@ -1,6 +1,27 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+CUSTOMER Q&A, KEY DATES AND WHAT CHANGED (2.98.0)
+  - Customer Q&A (Documents > Customer Q&A): the formal list of questions you submit to the customer. Each quotes the
+    customer's exact wording and where it is (document, section, page, paragraph), then your question, its category,
+    owner and status: Draft, Approved, Submitted, Answered. The answer, when it comes back, is kept with the document it
+    came in (Amendment 2, Q&A Round 1).
+  - In Assign, Capture > Question quotes the selected sentence (or the words you dragged across) with its place. In
+    Changes, the decision Question for the customer drafts one too, quoting the change.
+  - Export to Word (a landscape document with a cover block: solicitation, offeror, date, point of contact; a numbered
+    table; the effort's marking in every header and footer), Export to Excel (No., Document, Section, Page, Paragraph,
+    RFP Text, Question, Government Response), or Fill the customer's template: their Excel or Word form, filled under
+    its header row, found by its column names. Exporting can mark the questions Submitted.
+  - Capture > Key date: questions due, a site visit, industry day, orals, award..., read with the date, time and time
+    zone, onto the effort's calendar. A proposal due date becomes the effort's due date.
+  - Effort Home has a Customer Q&A card: how many questions are where, and when questions are due.
+  - What changed: adding a new version (Amendment 1) says at once what it changed: sentences changed, added and removed,
+    the submission rules it touches, the compliance requirements it touches and their owners, new sentences not in the
+    matrix yet, and how many changes are left to decide. Review the changes opens Changes on that pair.
+  - In Assign, the changed sentences of a later version are outlined in amber and the new ones in green, tagged in the
+    margin. The card shows what a changed sentence was (removed words struck through, new words in green); Show the old
+    page opens the previous version's page with the old sentence highlighted. Hide changes takes the outlines off.
+
 SENSITIVITY, TRAINING AND SCIF-READY (2.97.0)
   - Three work modes (Settings > Where Stationkeeper is used; the chip in the top bar shows it):
       Offline: this PC on its own, for testing and everyday work on General business, Proprietary and CUI documents.

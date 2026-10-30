@@ -313,6 +313,8 @@ class DocsPage(QWidget):
         made = DI.apply(c.lib, plan, c.customer_dir(), c.log)
         diag.activity("qt_documents_added", n=len(made))
         self.host.refresh_level()                  # 2.97.0: the effort's level follows its documents
+        from .whatview import after_added          # 2.98.0: what each new version changed, at once
+        after_added(self.host, made, c.lib)
         self.host.toast(f"{len(made)} document version(s) added")
         self.refresh()
         if made:

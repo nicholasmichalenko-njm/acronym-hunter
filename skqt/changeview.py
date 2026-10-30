@@ -401,7 +401,16 @@ class DecidePanel(QScrollArea):
         q = self._quote(d, vb, r)
         if kind == "task":
             return rec.add_task(f"Act on a change in {d['name']} {vb['label']}", notes=q) or ""
-        return rec.add_note(q, on="version", on_id=vb["id"], label=f"{d['name']} {vb['label']}", question=kind == "question") or ""
+        nid = rec.add_note(q, on="version", on_id=vb["id"], label=f"{d['name']} {vb['label']}", question=kind == "question") or ""
+        if kind == "question":                                         # 2.98.0: a draft in Customer Q&A, quoting the change
+            import custqa as Q
+            rec = R_.Record(self.page.host.ws.root)
+            qid = Q.add(rec, "", r.get("new") or r.get("old") or "", doc=f"{d['name']} ({vb['label']})", section=r.get("section", ""),
+                        category="Other")
+            if qid:
+                Q.get(rec, qid)["change_key"] = r.get("key", "")
+                rec.save()
+        return nid
 
     def undo(self, dec_id):
         pg = self.page
@@ -419,6 +428,13 @@ class DecidePanel(QScrollArea):
         elif gone["kind"] == "context" and gone.get("ref"):
             import ctxdocs as CX
             CX.Store(pg.host.ws.root).load().remove(att_id=gone["ref"])
+        elif gone["kind"] == "question":                               # 2.98.0: its Customer Q&A draft, if still a draft
+            import custqa as Q
+            import effortrec as R_
+            rec = R_.Record(pg.host.ws.root)
+            for q in Q.items(rec):
+                if q.get("change_key") == r.get("key") and q.get("status") == "Draft" and r.get("key"):
+                    Q.remove(rec, q["id"])
         diag.activity("change_decision_undone")
         k = pg.table.currentRow()
         pg.fill()

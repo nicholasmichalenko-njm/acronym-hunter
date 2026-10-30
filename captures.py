@@ -110,3 +110,33 @@ def due_guess(text, today=None):
         elif m24:
             hm = f"{m24.group(1)}:{m24.group(2)}"
     return f"{d.isoformat()}T{hm}", TZ.guess(t)
+
+
+KEY_TITLES = ((r"\bquestions?\b.{0,40}\b(due|submitted|received|no later)", "Questions due", "Questions due"),
+              (r"\bsite (visit|survey)\b", "Site visit", "Meeting"),
+              (r"\bindustry day\b", "Industry day", "Meeting"),
+              (r"\bpre-?proposal conference\b|\bbidders'? conference\b", "Pre-proposal conference", "Meeting"),
+              (r"\boral (presentation|proposal)s?\b|\borals\b", "Orals", "Orals"),
+              (r"\b(proposals?|offers?|responses?)\b.{0,60}\b(due|submitted|received|no later)", "Proposal due", "Proposal due"),
+              (r"\baward\b", "Award", "Milestone"),
+              (r"\bdiscussions?\b|\bnegotiations?\b", "Discussions", "Meeting"),
+              (r"\bfinal proposal revisions?\b|\bfpr\b", "Final proposal revisions due", "Due"))
+
+
+def key_date_guess(text):
+    """2.98.0: a key date written in the text: {"date", "start" ('' when no time is written), "zone", "kind", "title"},
+    or None without a date. kind is one of the calendar's kinds (Proposal due sets the effort's due date)."""
+    import subreq as SR
+    t = " ".join((text or "").split())
+    g = due_guess(t)
+    if g is None:
+        return None
+    day, hm = g[0].split("T")
+    start = hm if SR.TIME.search(t) else ""
+    title, kind = "Key date", "Milestone"
+    for pat, ti, ki in KEY_TITLES:
+        if re.search(pat, t, re.I):
+            title, kind = ti, ki
+            break
+    return {"date": day, "start": start, "zone": g[1] or "", "kind": kind, "title": title}
+
