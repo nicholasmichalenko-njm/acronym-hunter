@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "2.99.0": ["More captures in Assign: evaluation factors with their importance, page limits, deliverables, effort details "
+               "(NAICS, contract type, set-aside...) and hot buttons. Effort Home shows Evaluation and hot buttons.",
+               "Tasks and team questions on a sentence, shown on its card and in the effort record.",
+               "The Compliance pages sit right under Effort in the menu."],
     "2.98.0": ["Customer Q&A: the questions you submit to the customer, quoting their exact wording and where it is, with "
                "status and answers; Capture > Question in Assign; export to Word, Excel or the customer's own template.",
                "Capture > Key date puts questions due, site visits, orals and award on the calendar with their time zone.",

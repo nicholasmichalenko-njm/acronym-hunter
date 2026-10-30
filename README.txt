@@ -1,6 +1,22 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+MORE OF THE REVIEW IN ASSIGN (2.99.0)
+  - The Compliance pages (Read RFP, Structure, Assign, Prove, L/M Crosswalk) sit right under Effort in the menu: the
+    review of the customer's documents is where an effort starts.
+  - More captures (under Capture in Assign), each from the picked words or the selected sentence, with where it came from:
+      Evaluation factor: the factor or subfactor and its relative importance (significantly more important, more
+      important, approximately equal, less important, pass/fail), read from the customer's words.
+      Page limit: which volume or deliverable and how many pages. Filed as a submission rule; the effort becomes
+      page-limited.
+      Deliverable: a CDRL, plan or form onto the deliverables board, with the customer's words in its notes.
+      Effort detail: contract type, period of performance, NAICS, set-aside, place of performance, key personnel, a
+      clause that matters (CMMC, OCI), a clearance. It goes into Effort details; one with the same name is replaced.
+      Hot button: what the customer stresses, quoting them.
+  - Effort Home has an Evaluation and hot buttons card; the readable copy has Evaluation factors.csv and Hot buttons.csv.
+  - Tasks and questions on a sentence: + Task (owner, due date) and + Ask the team on its card. They show to anyone who
+    opens the sentence, and in the effort record with the other tasks and questions.
+
 CUSTOMER Q&A, KEY DATES AND WHAT CHANGED (2.98.0)
   - Customer Q&A (Documents > Customer Q&A): the formal list of questions you submit to the customer. Each quotes the
     customer's exact wording and where it is (document, section, page, paragraph), then your question, its category,
