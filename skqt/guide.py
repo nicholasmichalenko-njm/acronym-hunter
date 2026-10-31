@@ -220,6 +220,20 @@ TOPICS = [
    "Export the wall... makes the page to post in the war room and hand to writers; Export... gives the editors the findings."],
   ["The drafts are the Word files in the effort's Volumes folder (and the deliverables' files).",
    "A date in amber in Confirmed means nobody has checked that truth for 30 days: press Confirm when it is still right."]),
+ ("checks", "Deliver", "Final Checks",
+  "The last checks before the proposal goes out: the final PDF package, cross-references and numbering in the drafts, "
+  "and what changed between two versions of a draft.",
+  "At gold team and in the last hours before upload; Compare two drafts whenever a reviewer asks what changed.",
+  ["Final PDF package: choose the folder with the PDFs you will upload, check the page size, the largest file allowed, "
+   "the words every file name must hold and the volumes and forms that must be there, then press Check the package. "
+   "Each PDF shows its pages against the limit, page size, fonts not embedded, pages with no searchable text and size.",
+   "Cross-references and numbering: tick the drafts and press Check the drafts. It finds figures and tables out of "
+   "order or repeated, mentions with no caption, captions never mentioned, pictures and tables with no caption, and "
+   "Word's \u201cError! Reference source not found.\u201d",
+   "Compare two drafts: pick the earlier and later version (Other file... for one outside the Volumes folder), press "
+   "Compare, then Export the redline... for the reviewers."],
+  ["Nothing here changes a file. Each check exports a workbook (or the redline) for the record.",
+   "Page limits often leave out the cover, contents and acronym list: a page count over the limit says to check that."]),
  ("postsub", "Deliver", "Post-Submission",
   "What the team does after the proposal goes in: owners, due dates and done.",
   "The proposal is submitted.",

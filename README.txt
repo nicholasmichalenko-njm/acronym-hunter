@@ -1,6 +1,19 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+FINAL CHECKS: THE PDF PACKAGE, CROSS-REFERENCES, COMPARE TWO DRAFTS (3.4.0)
+  - Deliver > Final Checks > Final PDF package: every PDF in the package folder (remembered for the effort) against
+    the volume's page limit, the page size (Letter, A4 or either; landscape pages noted), fonts not embedded, pages
+    with no searchable text (a scan), the largest file allowed and the words every file name must hold (the
+    solicitation number to start), plus every required volume and form present (filled from the deliverables). The
+    customer's naming rule from Submission Rules shows beside it. Export... saves the check as a workbook.
+  - Cross-references and numbering: in the Word drafts of the Volumes folder, figures, tables and exhibits out of
+    order or repeated (3-2 after 3-1 counts by chapter), mentions with no caption, captions never mentioned, pictures
+    and tables with no caption beside them, and Word's "Error! Reference source not found." left in the text.
+  - Compare two drafts: any two versions of a volume, sentence by sentence under their headings (the engine Changes
+    uses for customer documents); the changes counted by heading, and a Word redline for the reviewers.
+  - Nothing here changes a file.
+
 THE WALL OF TRUTH (3.3.0)
   - Deliver > Wall of Truth: the one approved way to state every fact the proposal repeats: cleared staff, years
     supporting the customer, square footage, contract values, team size, and the names and customer terms. Each truth

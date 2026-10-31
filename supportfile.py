@@ -20,6 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.4.0": ["Deliver > Final Checks: the final PDF package (page limits, page size, embedded fonts, searchable text, file size "
+              "and names, every volume and form there), cross-references and numbering in the drafts, and Compare two drafts "
+              "with a Word redline."],
     "3.3.0": ["Deliver > Wall of Truth: one approved value for every fact and number, names and terms; Check the drafts finds "
               "every number that disagrees, every old value still in use and every wrong form, by volume and section.",
               "The team's wall carries company facts to every effort; Export the wall makes the page to post."],
