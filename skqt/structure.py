@@ -38,6 +38,7 @@ class StructurePage(QWidget):
         bar.addStretch(1)
         bar.addWidget(D.button("Volumes...", None, lambda: self.host.assign_page.volumes_dialog()))
         bar.addWidget(D.button("People...", None, lambda: self.host.assign_page.people_dialog()))
+        bar.addWidget(D.button("Page budget...", None, lambda: self.host.assign_page.budget_dialog()))      # 3.1.0
         self.apply_btn = D.button("Apply", "primary", self.apply, "Set the structure (assignments to removed sections are cleared)")
         bar.addWidget(self.apply_btn)
         split = QSplitter(Qt.Horizontal)

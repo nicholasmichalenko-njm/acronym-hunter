@@ -54,7 +54,7 @@ rec.add_task("Draft the management volume", owner="K. Park", due=(today + dateti
 q = rec.add_note("Is the oral presentation in scope?", question=True)
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-check("the rail starts with Effort home, Deliverables and Dashboard", list(w.step_btns)[1:4] == ["home", "deliverables", "dashboard"])
+check("the rail starts with Effort home, Deliverables and Dashboard", list(w.step_btns)[2:5] == ["home", "deliverables", "dashboard"])
 w.open_effort("Kestrel")
 B = os.path.join(A.BASE_DIR, "test_samples", "rfp")
 w.read_page.read([os.path.join(B, "Kestrel_RFP_Sections_C_L_M.docx")], os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))

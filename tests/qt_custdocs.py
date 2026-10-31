@@ -42,8 +42,8 @@ W.Workspace(W.data_dir_for(LIST), "Kestrel").set("outline_text", "Volume I Techn
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel")
-check("the rail: Deliverables with the effort; Documents: Library, Changes, Submission rules", [k for k in w.step_btns][1:3] == ["home", "deliverables"]
-      and [k for k in w.step_btns][11:14] == ["library", "compare", "requirements"],          # 2.99.0: Compliance comes first
+check("the rail: Deliverables with the effort; Documents: Library, Changes, Submission rules", [k for k in w.step_btns][2:4] == ["home", "deliverables"]
+      and [k for k in w.step_btns][12:15] == ["library", "compare", "requirements"],          # 2.99.0: Compliance comes first
       list(w.step_btns))
 # a compliance matrix with the page-limit sentence as a requirement
 w.read_page.read([os.path.join(CDIR, "Kestrel_RFP_Sections_C_L_M.docx")], os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))

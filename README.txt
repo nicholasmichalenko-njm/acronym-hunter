@@ -1,6 +1,23 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+PLANNING: SCHEDULE, PAGE BUDGET, WHAT CHANGED, MY WORK (3.1.0)
+  - Effort Home > Schedule from due date...: every stage dated backward from the proposal due date, from the working
+    days each stage takes (the team's defaults by stage name; change any), or fitted between a start date and the due
+    date. Weekends and your holidays are skipped unless you say otherwise. Every date shows before Set the dates; the
+    stages keep their names, goals and gates. Save as the team's defaults keeps the days and holidays for new efforts.
+  - Since you last opened it: opening an effort says what your teammates did since your last visit (tasks, questions,
+    stages, documents, captures, and decisions in Review, with who made them), in a note and on Effort Home. Got it
+    hides it. Each person's last visit is kept in the effort, so it follows the effort to another PC.
+  - Page budget... (Review and Structure): split each volume's page limit across its sections, evenly or by how many
+    requirements each holds, in half pages. The limit comes from the customer's page limit for the volume or the
+    volume's deliverable, or is typed in. The total shows against the limit and the draft's page count. Saved with the
+    structure; each section's budget is printed in the Response Setup documents and shows in My Work.
+  - Home > My Work: one person's work in every effort on this PC, soonest first and late items on top: tasks, questions
+    for them, customer questions, deliverables and graphic needs they own, the requirements they answer (due when the
+    current stage ends), and the sections they lead or write with their page budgets. Double-click opens the item's
+    effort at the right page; Export... makes a workbook. It only reads the efforts.
+
 SEVERAL SENTENCES AT ONCE, GRAPHIC NEEDS, CUSTOM DICTIONARIES (3.0.4)
   - Review: select several sentences (Ctrl+click, drag a box, Select undecided, or Ctrl+A for the whole page) and a bar
     above the page shows how many and what they are. Decide all, Put all in section and Author for all apply to every

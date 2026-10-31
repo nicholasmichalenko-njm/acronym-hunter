@@ -101,10 +101,18 @@ class HomePage(QWidget):
                                    f"QLabel#forName{{font-size:18pt;font-weight:700;color:{t0['accent']};background:transparent;}}")
         self.for_box.setVisible(False)
         v.addWidget(self.for_box)
+        # 3.1.0: what the others did since you last opened the effort
+        self.since_card = D.Card("Since you last opened it", actions=[D.button("Got it", None, lambda: self.since_done(),
+                                                                                  "Hide this until the next time you open the effort")])
+        self.since_box = QVBoxLayout(); self.since_box.setSpacing(2); self.since_card.body.addLayout(self.since_box)
+        self.since_card.setVisible(False)
+        v.addWidget(self.since_card)
         # the stage track
         self.move_btn = D.button("Move stage...", "primary", self.move_dialog, "Move the effort to its next stage")
         self.track = D.Card("Stage", "Where the effort is. The stage moves only when you move it.",
-                            actions=[D.button("Edit stages...", None, lambda: self.edit_stages(),
+                            actions=[D.button("Schedule from due date...", None, lambda: self.schedule_dialog(),   # 3.1.0
+                                              "Date every stage backward from the proposal due date, from the working days each takes"),
+                                     D.button("Edit stages...", None, lambda: self.edit_stages(),
                                               "Rename, add, remove and reorder this effort's stages, with dates and gates"),
                                      self.move_btn])
         self.track_row = QHBoxLayout(); self.track_row.setSpacing(D.SPACE["xs"]); self.track.body.addLayout(self.track_row)
@@ -221,6 +229,7 @@ class HomePage(QWidget):
             diag.swallowed()
             self.deliv.setText("Deliverables  \u203a")
         self.draw_deliverables()
+        self.draw_since()
         self.draw_mywork()
         self.calfiles.refresh()
         checks = self.checks = self.state.checks()
@@ -362,6 +371,33 @@ class HomePage(QWidget):
             qs = []
         return me, reqs, tasks, qs
 
+    def draw_since(self):
+        """3.1.0: the others' changes since this person last opened the effort, newest first."""
+        import sincelast as SL
+        clear(self.since_box)
+        c = getattr(self.host, "since", None)
+        self.since_card.setVisible(bool(c and c["count"]))
+        if not (c and c["count"]):
+            return
+        self.since_card.title.setText("Since you last opened it: " + SL.summary(c).split(" since ")[0])
+        if c["decisions"]:
+            self.since_box.addWidget(D.label("In Review: " + ", ".join(f"{n} decision{'s' if n != 1 else ''} by {who}"
+                                                                       for who, n in sorted(c["decisions"].items(), key=lambda x: -x[1])), None))
+        for e in c["events"][:12]:
+            row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
+            when = D.label(SL.when_text(e["at"]), "muted", wrap=False); when.setFixedWidth(110); row.addWidget(when, 0, Qt.AlignTop)
+            k = D.label(KIND_WORDS.get(e["kind"], e["kind"].upper()), "label", wrap=False); k.setFixedWidth(110); row.addWidget(k, 0, Qt.AlignTop)
+            row.addWidget(D.label(f"{e['who']}: {e['text']}", None), 1)
+            self.since_box.addLayout(row)
+        more = len(c["events"]) - 12 + c.get("more", 0)
+        if more > 0:
+            self.since_box.addWidget(D.label(f"and {more} more in the Timeline below", "muted"))
+
+    def since_done(self):
+        self.host.since = None
+        diag.activity("since_last_dismissed")
+        self.since_card.setVisible(False)
+
     def draw_mywork(self):
         clear(self.mywork_box)
         if "mywork" not in getattr(self, "shown", []):
@@ -429,6 +465,23 @@ class HomePage(QWidget):
             return dlg
         dlg.exec()
         if dlg.saved:
+            self.refresh()
+        return dlg.saved
+
+    def schedule_dialog(self, run=True):
+        """3.1.0: Schedule from the due date. run=False (tests): the dialog."""
+        r = self.rec
+        if r is None:
+            return None
+        from .schedview import ScheduleDialog
+        dlg = ScheduleDialog(self.host, r)
+        if not run:
+            return dlg
+        dlg.exec()
+        if dlg.saved:
+            out = R.Record(self.host.ws.root).deadlines_outside()
+            if out:
+                self.host.toast(f"Dates set. {len(out)} goal(s) or task(s) now fall outside their stage's dates: see Edit stages...")
             self.refresh()
         return dlg.saved
 

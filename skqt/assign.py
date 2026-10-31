@@ -437,8 +437,8 @@ class AssignPage(QWidget):
                 b.setFixedWidth(34)
             row.addWidget(b)
         row.addStretch(1)
-        for text, fn in (("People...", self.people_dialog), ("Volumes...", self.volumes_dialog)):
-            b = QPushButton(text); b.clicked.connect(fn); row.addWidget(b)
+        for text, fn in (("People...", self.people_dialog), ("Volumes...", self.volumes_dialog), ("Page budget...", self.budget_dialog)):
+            b = QPushButton(text); b.clicked.connect(lambda _=False, f=fn: f()); row.addWidget(b)
         self.active_volume = ""
         right.addWidget(self.card_area); right.addWidget(sw); right.setSizes([440, 540])
         split = QSplitter(Qt.Horizontal); split.addWidget(self.view); split.addWidget(right); split.setSizes([1100, 470])
@@ -1762,6 +1762,20 @@ class AssignPage(QWidget):
         d._api = {"rows": rows, "save": save}
         d.show()
         return d
+
+    def budget_dialog(self, run=True):
+        """3.1.0: each volume's page limit split across its sections. run=False (tests): the dialog."""
+        if self.M is None or not self.M.outline:
+            self.host.status("Build the response structure first: the budget is split across its sections.")
+            return None
+        from .budgetview import BudgetDialog
+        d = BudgetDialog(self.host)
+        if not run:
+            return d
+        d.exec()
+        if d.saved:
+            self.after("Page budget saved.")
+        return d.saved
 
     def volumes_dialog(self):
         """One volume (a name, or blank) or several (the headings of the structure that start a volume)."""

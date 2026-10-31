@@ -20,6 +20,12 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.1.0": ["Schedule from due date... on Effort Home dates every stage backward from the due date, skipping weekends and "
+              "holidays; you see every date before it is set.",
+              "Opening an effort says what your teammates did since your last visit, on Effort Home too.",
+              "Page budget... (Review and Structure) splits each volume's page limit across its sections; the Response Setup "
+              "documents print each section's budget.",
+              "Home > My Work: one person's work in every effort, soonest first, late items on top."],
     "3.0.4": ["Review: select several sentences (or Select undecided, or Ctrl+A) and one bar decides them all, puts them all in "
               "a section or gives them all one author.",
               "Graphic needs: press P in Review (or Graphic on a note) to tag what needs a graphic; Effort Home lists them for the "

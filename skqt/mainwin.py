@@ -33,7 +33,7 @@ from .exportallpage import ExportAllPage
 from .settingspage import SettingsPage
 
 
-RAIL = [("Home", [("efforts", "All Efforts")]),
+RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),                                       # 3.1.0: My work
         ("Effort", [("home", "Effort Home"), ("deliverables", "Deliverables"), ("dashboard", "Dashboard"), ("record", "Effort Record"),
                     ("reviews", "Color Reviews")]),
         ("Compliance", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Review"), ("prove", "Prove"),     # 2.99.0: near the
@@ -45,6 +45,7 @@ RAIL = [("Home", [("efforts", "All Efforts")]),
                               ("lists", "Lists to Submit"), ("keywords", "Keywords")]),
         ("Effort Files", [("exportall", "Export All"), ("settings", "Settings")])]
 TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and work not filed yet"),
+          "mywork": ("My Work", "One person's work in every effort, soonest first"),
           "home": ("Effort Home", "Stage, gate goals, tasks, questions and the calendar"),
           "dashboard": ("Dashboard", "The effort on one screen"),
           "record": ("Effort Record", "Details, team, stages and gates, status, package and backup"),
@@ -186,7 +187,9 @@ class MainWindow(QMainWindow):
         self.setup_page = SetupPage(self)
         from .postsubpage import PostSubPage
         self.postsub_page = PostSubPage(self)          # 2.91.0
-        self.pages = {"efforts": self.efforts_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page, "custqa": self.custqa_page,
+        from .myworkpage import MyWorkPage
+        self.mywork_page = MyWorkPage(self)            # 3.1.0
+        self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page, "custqa": self.custqa_page,
                       "impact": self.impact_page, "deliverables": self.deliverables_page, "qa": self.qa_page, "lists": self.lists_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "postsub": self.postsub_page}
@@ -324,6 +327,12 @@ class MainWindow(QMainWindow):
         else:
             self.review = None
             self.assign_page.load()
+        self.since = None                          # 3.1.0: what the others did since this person last opened it
+        try:
+            import effortrec as _R, sincelast as SL
+            self.since = SL.on_open(ws.root, _R.Record(ws.root), self.review.M if self.review is not None else None)
+        except Exception:
+            diag.swallowed()
         say(0.7, f"{name}: setting up the pages")
         self.read_page.refresh()
         self.go("assign" if self.review is not None and self.review.M.items else "read")
@@ -333,6 +342,10 @@ class MainWindow(QMainWindow):
         self.safety.restore_view()                 # 2.78.0: back where you were in this effort
         if recovered:
             self.toast(self.safety.recovered_text)
+        elif self.since and self.since["count"]:
+            import sincelast as SL
+            self.toast(SL.summary(self.since) + "; Effort Home lists them")
+            diag.activity("since_last_shown", n=self.since["count"])
         if repaired:
             self.toast(repaired[0])
         elif any(i["severity"] == "error" for i in _issues):

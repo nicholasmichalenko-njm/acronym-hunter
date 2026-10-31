@@ -38,6 +38,16 @@ TOPICS = [
    "keeps the work."],
   ["Each effort keeps its own decisions, lists and settings. Nothing crosses between efforts.",
    "The card shows the stage, the due date and what needs attention."]),
+ ("mywork", "Getting started", "My Work",
+  "One person's work in every effort on this PC, soonest first: tasks, questions for them, customer questions, "
+  "deliverables and graphic needs they own, the requirements they answer, and the sections they lead with page budgets.",
+  "Every morning, and when you work on several efforts at once.",
+  ["Pick a name in Work for (yours shows first once Customize Home > I am is set).",
+   "Read Soonest first: late items are red and on top; requirements are due when the current stage ends.",
+   "Double-click a row to open that effort at the right page. By effort shows each effort's stage, due date and sections.",
+   "Export... makes a workbook of the list for a status meeting."],
+  ["My Work only reads the efforts; nothing changes until you open one.",
+   "Refresh reads every effort again after teammates' changes come in."]),
  ("home", "Effort", "Effort Home",
   "The effort at a glance: stage, gate goals, tasks, questions, notes, the calendar, contacts, submission and "
   "formatting rules, customer questions, evaluation factors, and the graphics the response needs.",
@@ -45,6 +55,9 @@ TOPICS = [
   ["Read the banner: due date in your time zone and the submission's, countdown, and whether the effort is page-limited.",
    "Add work with + Task, + Question, + Note or + Goal. Assign... gives a question to a person.",
    "Click a day on the calendar to add a due date, an event or a task due that day.",
+   "Schedule from due date... dates every stage backward from the due date (or fits them from a start date), skipping "
+   "weekends and your holidays. Every date shows before Set the dates.",
+   "When you open the effort, Since you last opened it lists what teammates did since your last visit. Got it hides it.",
    "When the team is ready, press Move stage... The stage's gate goals show what has to be done first."],
   ["Click the effort image, or drop a picture file on it, to set or change it.",
    "Customize Home... chooses which cards show.",
@@ -98,7 +111,8 @@ TOPICS = [
   "Before or while you place requirements, when you know how the response will be organized.",
   ["Choose how to start: What the RFP prescribes, RFP headings, RFP outline, Word outline..., or Blank.",
    "Press Apply. Edit the sections in place.",
-   "Volumes... sets each volume's page limit. People... gives a section its writers."],
+   "Volumes... sets each volume's page limit. People... gives a section its writers. Page budget... splits a volume's "
+   "page limit across its sections (evenly or by requirements) and shows the total against the limit and the draft."],
   ["You can also build the structure in Review as you read: + Volume and Copy RFP section."]),
  ("assign", "Compliance", "Review",
   "The customer's document as it looks, every sentence boxed. You decide each sentence, place it in your response, "

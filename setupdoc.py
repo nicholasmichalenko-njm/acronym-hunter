@@ -681,6 +681,10 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None):
         pp = S["owners"].get(lab) or {}
         if pp.get("lead") or pp.get("with"):                      # 2.38.0: who writes this section
             d.para("Lead: " + (pp.get("lead") or "-") + (f"   Contributors: {pp['with']}" if pp.get("with") else ""), color="1E3A8A")
+        bud = ((S.get("budget") or {}).get("pages") or {}).get(lab)   # 3.1.0: the section's page budget
+        if bud:
+            d.para(f"Page budget: {int(bud) if float(bud).is_integer() else bud} page{'s' if float(bud) != 1 else ''}"
+                   " (subsections included)", color="1E3A8A")
         if S.get("tables"):                                       # 2.38.0: the requirement table of the old Word outline
             rows = [B[i] for i in P.get(lab, []) if B.get(i) is not None and B[i].get("decision") == "Keep"]
             if rows:

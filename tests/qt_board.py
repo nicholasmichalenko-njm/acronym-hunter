@@ -38,7 +38,7 @@ VOL = shutil.copy2(os.path.join(A.BASE_DIR, "test_samples", "Kestrel_Technical_V
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel")
-check("Deliverables sits with the effort, after Effort home", list(w.step_btns)[1:3] == ["home", "deliverables"])
+check("Deliverables sits with the effort, after Effort home", list(w.step_btns)[2:4] == ["home", "deliverables"])
 B = os.path.join(A.BASE_DIR, "test_samples", "rfp")
 w.read_page.read([os.path.join(B, "Kestrel_RFP_Sections_C_L_M.docx")], os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))
 t = time.time()
