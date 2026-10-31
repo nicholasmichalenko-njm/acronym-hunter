@@ -41,13 +41,17 @@ try {
     }
     foreach ($s in $d.Sections) { foreach ($h in $s.Headers) { foreach ($f in $h.Range.Fields) { if (@(56, 67, 68) -contains $f.Type) { $f.Locked = $true; $locked++ } } }
                                   foreach ($h in $s.Footers) { foreach ($f in $h.Range.Fields) { if (@(56, 67, 68) -contains $f.Type) { $f.Locked = $true; $locked++ } } } }
-    for ($pass = 1; $pass -le 2; $pass++) {
-      foreach ($story in $d.StoryRanges) { $r = $story; while ($r -ne $null) { [void]$r.Fields.Update(); $r = $r.NextStoryRange } }
-      foreach ($s in $d.Sections) { foreach ($h in $s.Headers) { [void]$h.Range.Fields.Update() }; foreach ($h in $s.Footers) { [void]$h.Range.Fields.Update() } }
-      foreach ($t in $d.TablesOfContents) { $t.Update() }
-      foreach ($t in $d.TablesOfFigures) { $t.Update() }
-      $d.Repaginate()
-    }
+    # pass 1: every field in every story, then the TOC and the lists of tables and figures in full
+    foreach ($story in $d.StoryRanges) { $r = $story; while ($r -ne $null) { [void]$r.Fields.Update(); $r = $r.NextStoryRange } }
+    foreach ($s in $d.Sections) { foreach ($h in $s.Headers) { [void]$h.Range.Fields.Update() }; foreach ($h in $s.Footers) { [void]$h.Range.Fields.Update() } }
+    foreach ($t in $d.TablesOfContents) { $t.Update() }
+    foreach ($t in $d.TablesOfFigures) { $t.Update() }
+    $d.Repaginate()
+    # pass 2: only what depends on where pages fall now that the TOC and lists have their final length
+    foreach ($t in $d.TablesOfContents) { $t.UpdatePageNumbers() }
+    foreach ($t in $d.TablesOfFigures) { $t.UpdatePageNumbers() }
+    foreach ($story in $d.StoryRanges) { $r = $story; while ($r -ne $null) {
+      foreach ($f in $r.Fields) { if ($f.Type -eq 37) { [void]$f.Update() } }; $r = $r.NextStoryRange } }
     $errors = 0; $fields = 0
     foreach ($story in $d.StoryRanges) { $r = $story; while ($r -ne $null) {
       foreach ($f in $r.Fields) { $fields++; try { if ($f.Result.Text -like '*Error!*') { $errors++ } } catch {} }
