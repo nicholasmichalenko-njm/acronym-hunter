@@ -275,6 +275,26 @@ TOPICS = [
    "Add selected keeps them; Not a keyword drops one.",
    "Export for SharePoint... makes the list to tag the submitted proposal."],
   []),
+ ("format", "Production", "Format Check",
+  "Your Word drafts read against the production standards: fonts and sizes by kind of text, margins and page size, "
+  "caption numbering, the table of contents, typed lists and page numbers. The files are only read, never changed.",
+  "Whenever a draft comes in, and before each color review and final production.",
+  ["The drafts in the effort's Volumes folder are listed and ticked. Add a file... checks any Word file; it is only read.",
+   "Untick the areas you do not need, then press Check. Each area shows how many findings it has.",
+   "Each finding says where it is and why: a font typed over the style, or a style that breaks the rule; a caption "
+   "number typed instead of a field; a section with a narrow margin; a page number typed in a footer.",
+   "Export... makes a workbook for the production team."],
+  ["The standard shown at the top is the effort's document type with the RFP's own rules on top (Production Standards).",
+   "Fixes come in later releases, and they will only ever write a dated copy in your output folder, never the original."]),
+ ("prodstd", "Production", "Production Standards",
+  "Your team's formatting rules for each kind of document, and the open effort's own rules from the RFP.",
+  "Once to set the team's rules; at the start of each effort to bring in the RFP's.",
+  ["Pick a document type (+ Document type... adds one, starting from the one shown). Set the font and the smallest and "
+   "largest size for each kind of text, the smallest margin, page size, caption numbering and placement, the TOC switches "
+   "never used, and page numbers. Press Save.",
+   "This effort: choose its document type, then Fill from the RFP's formatting rules reads the fonts, margins and page "
+   "size the RFP requires (from Submission Rules) and lays them over the type for this effort only."],
+  ["Blank means any: a scope with no font and no sizes is not checked."]),
  ("exportall", "Effort Files", "Export All",
   "Every feature's outputs in one dated folder.",
   "At a gate, at submission, or to hand the effort's outputs to someone.",

@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+PRODUCTION: FORMAT CHECK AND PRODUCTION STANDARDS (3.5.0)
+  - Production > Format Check: the Word drafts in the Volumes folder (and any Word file you add) read against the
+    production standard: fonts and sizes by kind of text (body, tables, captions, headings, headers and footers,
+    footnotes) as Word resolves them, with the source of each finding (typed over the style, or the style itself);
+    page size and margins by section; caption numbers typed instead of fields, the numbering scheme, the separator
+    after the number and where a table's caption sits; TOC switches the team never uses and TOC lines typed by hand;
+    bullets and numbers typed instead of a list; footers with no page number field. Export... saves a workbook.
+  - Production > Production Standards: the team's document types (Proposal volume built in; + Document type... adds
+    one) and, for the open effort, its document type with the RFP's own fonts, margins and page size read from
+    Submission Rules (Fill from the RFP's formatting rules).
+  - Format Check only reads. Each file is read into memory and never opened for writing; the tests check every
+    original's bytes and date before and after. Fixes come in later releases and will only ever write a clearly named,
+    dated copy in your output folder.
+
 FINAL CHECKS: THE PDF PACKAGE, CROSS-REFERENCES, COMPARE TWO DRAFTS (3.4.0)
   - Deliver > Final Checks > Final PDF package: every PDF in the package folder (remembered for the effort) against
     the volume's page limit, the page size (Letter, A4 or either; landscape pages noted), fonts not embedded, pages

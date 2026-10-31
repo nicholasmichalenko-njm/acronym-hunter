@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.5.0": ["Production > Format Check: Word drafts read against the production standard (fonts by kind of text, margins and "
+              "page size, captions, the table of contents, typed lists, page numbers), each finding with where it is and why. "
+              "The files are only read, never changed.",
+              "Production > Production Standards: the team's document types, and each effort's own rules filled from the RFP."],
     "3.4.0": ["Deliver > Final Checks: the final PDF package (page limits, page size, embedded fonts, searchable text, file size "
               "and names, every volume and form there), cross-references and numbering in the drafts, and Compare two drafts "
               "with a Word redline."],
