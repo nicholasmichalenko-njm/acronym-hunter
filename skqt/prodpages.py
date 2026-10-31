@@ -59,13 +59,19 @@ class FormatCheckPage(QWidget):
         v.addStretch(1)
 
     def std(self):
-        return PS.for_effort(self.host.config_dir, self.host.ws)
+        """3.6.0: the Format Check view of the production standard (prodrules: team, document type, effort)."""
+        import prodrules as PRL
+        full = PRL.for_effort(self.host.config_dir, self.host.ws)
+        s = PRL.to_check(full)
+        s["name"] = full["name"]
+        s["effort_over"] = full.get("effort_over")
+        return s
 
     def refresh(self):
         h = self.host
         s = self.std()
         f = s["fonts"]
-        self.std_lbl.setText(f"{s['name']}{' + this effort' if h.ws is not None and (h.ws.get('prod_std', {}) or {}).get('over') else ''}: "
+        self.std_lbl.setText(f"{s['name']}{' + this effort' if s.get('effort_over') else ''}: "
                              f"body {f['body'].get('font') or 'any font'} {PC_size(f['body'])}, tables {f['table'].get('font') or 'any font'} "
                              f"{PC_size(f['table'])}, margins {s['margins_in']:g} in, {s['page']}")
         keep = {self.files.item(i).data(Qt.UserRole): self.files.item(i).checkState() for i in range(self.files.count())}

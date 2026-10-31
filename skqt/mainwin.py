@@ -46,11 +46,12 @@ RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),          
                      ("postsub", "Post-Submission")]),
         ("Response Quality", [("acronyms", "Customer Terms"), ("acrlist", "Effort List"), ("qa", "Submission Check"),
                               ("lists", "Lists to Submit"), ("keywords", "Keywords")]),
-        ("Production", [("format", "Format Check"), ("prodstd", "Production Standards")]),               # 3.5.0
+        ("Production", [("format", "Format Check"), ("fixcopy", "Fix a Copy"), ("prodstd", "Production Standards")]),   # 3.5.0, 3.6.0
         ("Effort Files", [("exportall", "Export All"), ("settings", "Settings")])]
 TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and work not filed yet"),
           "format": ("Format Check", "Word drafts read against the production standards; the files are only read"),
-          "prodstd": ("Production Standards", "Your team's formatting rules for each kind of document, and this effort's from the RFP"),
+          "fixcopy": ("Fix a Copy", "Fixes go into a dated copy in the output folder; the original is never changed"),
+          "prodstd": ("Production Standards", "Every formatting rule: team standard, document types, and this effort's from the RFP"),
           "checks": ("Final Checks", "The PDF package, cross-references and numbering, and what changed between two drafts"),
           "truth": ("Wall of Truth", "The one approved way to state every fact and number, and the drafts checked against it"),
           "storyboards": ("Storyboards", "One sheet per section before the first draft: message, themes, approach, features and proof"),
@@ -204,14 +205,17 @@ class MainWindow(QMainWindow):
         self.truth_page = WallPage(self)               # 3.3.0
         from .checkspage import ChecksPage
         self.checks_page = ChecksPage(self)            # 3.4.0
-        from .prodpages import FormatCheckPage, StandardsPage
+        from .prodpages import FormatCheckPage
+        from .prodstdpage import StandardsPage
+        from .prodfixpage import FixPage
         self.format_page = FormatCheckPage(self)       # 3.5.0
-        self.prodstd_page = StandardsPage(self)
+        self.fixcopy_page = FixPage(self)              # 3.6.0
+        self.prodstd_page = StandardsPage(self)        # 3.6.0: every rule, three layers
         self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page, "custqa": self.custqa_page,
                       "impact": self.impact_page, "deliverables": self.deliverables_page, "qa": self.qa_page, "lists": self.lists_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
-                      "format": self.format_page, "prodstd": self.prodstd_page}
+                      "format": self.format_page, "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)
         cv.addWidget(self.stack, 1)

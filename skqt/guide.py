@@ -285,16 +285,46 @@ TOPICS = [
    "number typed instead of a field; a section with a narrow margin; a page number typed in a footer.",
    "Export... makes a workbook for the production team."],
   ["The standard shown at the top is the effort's document type with the RFP's own rules on top (Production Standards).",
-   "Fixes come in later releases, and they will only ever write a dated copy in your output folder, never the original."]),
+   "To fix what it finds, use Fix a Copy: it writes a dated copy in your output folder, never the original."]),
+ ("fixcopy", "Production", "Fix a Copy",
+  "Fixes a draft's formatting to the production standard in a dated copy. Your file is never changed: it is read once, "
+  "and a file someone has open is not copied at all.",
+  "Before each color review and for final production, on each volume.",
+  ["Check the output folder (Change... sets it; the default is Production Copies in the Stationkeeper data folder). "
+   "Copies never go beside the original.",
+   "Pick a draft from the Volumes folder, or Add a file..., and press Check. Each area shows what it found.",
+   "What to fix: every fix is listed under its area with what it found; untick any you do not want. Expand a fix to "
+   "see each finding and where it is.",
+   "Tables: pick a table to see every row's role. Rows in bold wait for your answer; one answer covers every row "
+   "like it. Select rows and press C, H, 2, S, B, U, T, N or K to set their role; change the table type if needed.",
+   "Decisions: say whether a list restarts or continues, and point broken cross-references at a target.",
+   "Leave Update fields in Word on so page numbers, caption numbers, the TOC and the lists of tables and figures "
+   "renumber, then press Make the fixed copy.",
+   "The result shows found before and left after by area, every fix that ran (or was refused, leaving the copy as it "
+   "was before it), and that the original is unchanged. Open the copy, or the report beside it."],
+  ["The copy is named <name> - COPY - Stationkeeper <date time> and carries a Stationkeeper copy property "
+   "(File > Info > Properties).",
+   "A file in a OneDrive or SharePoint folder: people editing it online can't be seen from here, so the copy is the "
+   "version synced to this PC. Fix it when the writers are done.",
+   "Each fix is one guarded change that may touch only what it declares; anything else is refused."]),
  ("prodstd", "Production", "Production Standards",
-  "Your team's formatting rules for each kind of document, and the open effort's own rules from the RFP.",
-  "Once to set the team's rules; at the start of each effort to bring in the RFP's.",
-  ["Pick a document type (+ Document type... adds one, starting from the one shown). Set the font and the smallest and "
-   "largest size for each kind of text, the smallest margin, page size, caption numbering and placement, the TOC switches "
-   "never used, and page numbers. Press Save.",
-   "This effort: choose its document type, then Fill from the RFP's formatting rules reads the fonts, margins and page "
-   "size the RFP requires (from Submission Rules) and lays them over the type for this effort only."],
-  ["Blank means any: a scope with no font and no sizes is not checked."]),
+  "Every rule Format Check and Fix a Copy use, in three layers: the team standard, document types, and this effort.",
+  "Once to set the team's rules; for each document type; at the start of each effort to bring in the RFP's.",
+  ["Editing: choose the team standard, a document type (+ Document type... adds one, starting from the one shown), or "
+   "this effort. A value set at that layer shows in bold; Reset takes it back to the layer below.",
+   "Format variables: body, table and caption fonts and sizes, spacing, margins, paper, the volume name, solicitation "
+   "number and restriction marking. Row looks and styles use them.",
+   "Font rules: the allowed fonts and the smallest and largest size for each kind of text. Blank is not checked.",
+   "Styles and heading numbering: allowed styles, removing and hiding unused ones, a template to take styles from, and "
+   "each heading level's number format, number text and positions.",
+   "Table rows: each row's tag style, font, size, bold, italic, colors, alignment, spacing, repeat, merge, and every "
+   "border edge (on, width, color), with a preview. Applies to: all table types, or one type only.",
+   "Table types, row rules, captions and numbering, pages (the page scheme with cover and back cover), page setups, "
+   "headers and footers, the TOC and its entry styles, lists, terms and Format Check options each have their own section.",
+   "This effort: choose its document type, then Fill from the RFP's formatting rules lays the RFP's fonts, margins and "
+   "page size over it for this effort only. Press Save.",
+   "Export for review... makes a workbook of every value and where it is set."],
+  ["Blank means not set: a rule nobody sets is not checked and not written."]),
  ("exportall", "Effort Files", "Export All",
   "Every feature's outputs in one dated folder.",
   "At a gate, at submission, or to hand the effort's outputs to someone.",

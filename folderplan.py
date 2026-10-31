@@ -50,6 +50,7 @@ OUTPUTS = [
     ("xref_check", "Cross-reference check", "exports", "{Effort}_Cross_Reference_Check_{Date}_{Time}", ".xlsx"),
     ("draft_redline", "Redline between two drafts", "exports", "{Doc}_Draft_Redline_{Date}", ".docx"),
     ("format_check", "Format check", "exports", "{Effort}_Format_Check_{Date}_{Time}", ".xlsx"),
+    ("prod_standards", "Production standards for review", "exports", "{Effort}_Production_Standards_{Date}_{Time}", ".xlsx"),
     ("submission_rules", "Submission requirements", "exports", "{Effort}_Submission_Requirements", ".xlsx"),
     ("review_packet", "Review packet", "exports", "{Effort}_{Stage}_Review_Packet_{Date}", ".docx"),
     ("redline", "Redline between two versions", "exports", "{Doc}_{From}_to_{To}_Redline", ".docx"),
