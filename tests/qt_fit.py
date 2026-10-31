@@ -4,6 +4,8 @@ import os, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE)); sys.path.insert(0, HERE)
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
+if os.name == "nt":            # offscreen Qt on Windows finds no fonts by itself, and box glyphs measure far too wide
+    os.environ.setdefault("QT_QPA_FONTDIR", os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts"))
 os.environ["AH_TEST"] = "1"
 os.environ["SK_SANDBOX_TEMP"] = "temp_qt"
 tmp = tempfile.mkdtemp()
