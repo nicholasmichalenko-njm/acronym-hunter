@@ -62,6 +62,15 @@ class HomePage(QWidget):
         outer = QVBoxLayout(self); outer.setContentsMargins(0, 0, 0, 0)
         scroll = QScrollArea(); scroll.setWidgetResizable(True); scroll.setFrameShape(QFrame.NoFrame)
         outer.addWidget(scroll)
+        self.scroll = scroll
+        # 3.0.3: with no effort open, Effort Home is where you start one: the short form, right here
+        from .starteffort import StartEffort
+        self.start_wrap = QScrollArea(); self.start_wrap.setWidgetResizable(True); self.start_wrap.setFrameShape(QFrame.NoFrame)
+        sw = QWidget(); sw.setObjectName("page"); swl = QVBoxLayout(sw)
+        swl.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"])
+        self.start = StartEffort(host); swl.addWidget(self.start); swl.addStretch(1)
+        self.start_wrap.setWidget(sw); self.start_wrap.setVisible(False)
+        outer.addWidget(self.start_wrap)
         inner = QWidget(); inner.setObjectName("page"); scroll.setWidget(inner)
         v = QVBoxLayout(inner)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
@@ -167,12 +176,13 @@ class HomePage(QWidget):
 
     def refresh(self):
         h = self.host
-        self.setEnabled(h.ws is not None)
+        self.setEnabled(True)
+        self.scroll.setVisible(h.ws is not None)
+        self.start_wrap.setVisible(h.ws is None)                   # 3.0.3: no effort open: Start an effort, here
         if h.ws is None:
             self.state = None
             for lay in list(self.sections.values()) + [self.track_row, self.day_box]:
                 clear(lay)
-            self.sections["goals"].addWidget(D.EmptyState("No effort open", "Pick an effort in the top bar."))
             return
         self.state = ES.State(h.ws, h.effort_path, h.review.M if h.review is not None else None)
         r = self.rec

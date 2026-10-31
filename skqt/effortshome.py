@@ -170,11 +170,17 @@ class EffortsHome(QWidget):
         return True
 
     def add_effort(self, values=None):
-        """The main way to start an effort (Settings keeps a link to the same)."""
-        name = self.host.settings_page.new_effort(values)
-        if name:
+        """The main way to start an effort (Settings keeps a link to the same). 3.0.3: the short Start an effort form, on
+        Effort Home when no effort is open, in a window when one is. values (tests): straight to the effort."""
+        if values is not None:
+            from .starteffort import start_effort
+            return start_effort(self.host, values)
+        if self.host.ws is None:
             self.host.go("home")
-        return name
+            self.host.home_page.start.name.setFocus()
+            return None
+        from .starteffort import start_dialog
+        return start_dialog(self.host)
 
     def open_unfiled(self):
         import app_gui

@@ -48,21 +48,23 @@ from PySide6.QtWidgets import QLabel
 heads = [l.text() for l in w.findChildren(QLabel) if l.objectName() == "railhead"]
 check("menu groups are in Title Case", heads[:4] == ["Home", "Effort", "Compliance", "Documents"] and "Response Quality" in heads, heads)
 check("the Stationkeeper mark and name at the foot of the menu", w.rail_footer.word.text() == "Stationkeeper" and A.APP_VERSION in w.rail_footer.sub.text())
-# ---- logos
-check("no logo yet: a quiet prompt to add one", w.rail_brand.add.isVisibleTo(w) and not w.rail_brand.plate.isVisibleTo(w))
+# ---- logos (3.0.3: built into the program; nobody adds one by hand)
+check("no logo built in: nothing at the top of the menu, and no prompt to add one",
+      not w.rail_brand.add.isVisibleTo(w) and not w.rail_brand.plate.isVisibleTo(w))
 w.go_branding(); app.processEvents()
 bc = w.settings_page.branding_card
-check("Add your company logo opens Settings > Branding", w.stack.currentWidget() is w.settings_page)
-for p in pics[:3]:
-    bc.add_logo(p)
-check("up to three logos, kept small, shown at the top of the menu", len(BR.logos(cfg)) == 3 and w.rail_brand.plate.isVisibleTo(w)
-      and max(Image.open(BR.logos(cfg)[0]).size) <= 600 and len(w.rail_brand.paths) == 3)
-check("a fourth logo is refused", not bc.add_logo(pics[3]) and len(BR.logos(cfg)) == 3)
-first = BR.logos(cfg)[0]; c0 = Image.open(first).getpixel((5, 5))
-bc.move(first, 1)
-check("logos change order", Image.open(BR.logos(cfg)[1]).getpixel((5, 5)) == c0)
-bc.remove(BR.logos(cfg)[2])
-check("a logo can be removed", len(BR.logos(cfg)) == 2 and len(w.rail_brand.paths) == 2)
+from PySide6.QtWidgets import QPushButton
+check("Settings > Branding has no Add logo button", not any(b.text() == "Add logo..." for b in bc.findChildren(QPushButton)))
+baked = os.path.join(tmp, "baked brand"); os.makedirs(baked)
+for i, p in enumerate(pics[:2], start=1):
+    Image.open(p).resize((600, 150)).save(os.path.join(baked, f"logo_{i:02d}.png"))
+BR.baked_dir = lambda: baked
+BR.add_logo(cfg, pics[2])                       # one kept on this PC from before
+w.rail_brand.refresh(); bc.refresh(); app.processEvents()
+check("the logos built into the program show at the top of the menu, in order, and win over one kept on the PC",
+      w.rail_brand.plate.isVisibleTo(w) and len(w.rail_brand.paths) == 2 and all(p.startswith(baked) for p in BR.logos(cfg))
+      and Image.open(BR.logos(cfg)[0]).getpixel((5, 5)) == (200, 30, 40))
+check("... and Settings says they are built in", "Built into this version" in bc.note.text(), bc.note.text())
 # ---- the banner
 w.open_effort("Kestrel")
 w.go("home"); app.processEvents()

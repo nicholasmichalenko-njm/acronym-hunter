@@ -30,7 +30,8 @@ TOPICS = [
  ("efforts", "Getting started", "All Efforts",
   "Every effort on this PC, a new one, and work not filed under an effort yet.",
   "You start a new proposal, switch efforts, or pick up an effort a teammate handed you.",
-  ["Press + Add an Effort, give it a name, the customer and the due date, and choose where its folder goes.",
+  ["Press + Add an Effort (or open Effort Home with no effort open). Type a name and press Create effort. The picture, "
+   "client, solicitation, due date and proposal manager are optional; the effort's folders are made for you.",
    "Click an effort's card to open it. The menu then works on that effort.",
    "To pick up a teammate's effort, press Import effort package... and choose the .skpkg file they sent.",
    "To read documents before an effort exists, press Start without an effort: open Unfiled. Make it an effort... later "
@@ -45,7 +46,8 @@ TOPICS = [
    "Add work with + Task, + Question, + Note or + Goal. Assign... gives a question to a person.",
    "Click a day on the calendar to add a due date, an event or a task due that day.",
    "When the team is ready, press Move stage... The stage's gate goals show what has to be done first."],
-  ["Customize Home... chooses which cards show.",
+  ["Click the effort image, or drop a picture file on it, to set or change it.",
+   "Customize Home... chooses which cards show.",
    "Cards such as Submission instructions and Evaluation and hot buttons fill in from what you capture in Review.",
    "Export tasks and questions... makes a workbook for a meeting."]),
  ("deliverables", "Effort", "Deliverables",
@@ -225,6 +227,7 @@ TOPICS = [
   "types, branding, team pack, master database, backups, updates, and help.",
   "Setting up the app, joining a team, or installing an update.",
   ["Where Stationkeeper is used sets the work mode: Offline, Connected or SCIF-ready.",
+   "Branding shows the company logos. They are built into Stationkeeper; nobody changes them from here.",
    "Install a team pack... takes your team's stages, document types, folders and author list in one step.",
    "In Updates, Install update pack... installs a new version from its .skupdate file. Undo last update goes back one step.",
    "Help and support opens this Guide, the shortcuts, what's new, and the support file."],

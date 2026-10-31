@@ -49,17 +49,33 @@ class PictureBox(QToolButton):
         self.setIconSize(QSize(PIC, PIC))
         self.setCursor(Qt.PointingHandCursor)
         self.clicked.connect(self.menu)
+        self.setAcceptDrops(True)                     # 3.0.3: drop a picture file on it to set or change it
+
+    def dragEnterEvent(self, e):
+        from .starteffort import PictureDrop
+        if PictureDrop._picture_in(e):
+            e.acceptProposedAction()
+
+    def dragMoveEvent(self, e):
+        self.dragEnterEvent(e)
+
+    def dropEvent(self, e):
+        from .starteffort import PictureDrop
+        p = PictureDrop._picture_in(e)
+        if p:
+            self.banner.choose_picture(p)
+            e.acceptProposedAction()
 
     def show_path(self, path):
         t = D.tokens()
         if path and os.path.isfile(path):
             self.setIcon(rounded(path, PIC, PIC, 14)); self.setText("")
-            self.setToolTip("The effort's picture. Click to change or remove it.")
+            self.setToolTip("The effort's picture. Click to change or remove it, or drop another picture on it.")
             self.setStyleSheet("QToolButton{border:none;background:transparent;}")
         else:
             from PySide6.QtGui import QIcon
-            self.setIcon(QIcon()); self.setText("+\nEffort image")
-            self.setToolTip("Add a picture that stands for the effort: a mission patch, a logo or a cover image")
+            self.setIcon(QIcon()); self.setText("+\nEffort image\n\nclick or drop\na picture")
+            self.setToolTip("Add a picture that stands for the effort (a mission patch, a logo or a cover image): click, or drop a picture file here")
             self.setStyleSheet(f"QToolButton{{border:2px dashed {t['border_strong']};border-radius:14px;background:{t['surface2']};"
                                f"color:{t['muted']};font-weight:600;}} QToolButton:hover{{border-color:{t['accent']};color:{t['accent']};}}")
 
@@ -425,9 +441,7 @@ class RailBrand(QWidget):
         self.plate = QFrame(); self.plate.setObjectName("logoPlate")
         self.row = QHBoxLayout(self.plate); self.row.setContentsMargins(10, 8, 10, 8); self.row.setSpacing(10)
         self.v.addWidget(self.plate)
-        self.add = QToolButton(); self.add.setText("+ Add your company logo"); self.add.setObjectName("logoAdd")
-        self.add.setCursor(Qt.PointingHandCursor); self.add.clicked.connect(lambda: host.go_branding())
-        self.v.addWidget(self.add)
+        self.add = QToolButton(); self.add.setVisible(False)      # 3.0.3: no "Add your company logo": logos are built in
         self.refresh()
 
     def refresh(self):
@@ -438,9 +452,7 @@ class RailBrand(QWidget):
         paths = BR.logos(self.host.config_dir)
         self.paths = paths
         self.plate.setStyleSheet("QFrame#logoPlate{background:#FFFFFF;border-radius:10px;}")
-        self.add.setStyleSheet("QToolButton#logoAdd{color:#7F91AA;border:1px dashed #3A4B66;border-radius:8px;padding:8px;background:transparent;}"
-                               "QToolButton#logoAdd:hover{color:#FFFFFF;border-color:#7F91AA;}")
-        self.plate.setVisible(bool(paths)); self.add.setVisible(not paths)
+        self.plate.setVisible(bool(paths)); self.add.setVisible(False)
         if not paths:
             return
         w_each = max(40, (200 - 10 * (len(paths) - 1)) // len(paths))
@@ -452,7 +464,7 @@ class RailBrand(QWidget):
                 continue
             pm = pm.scaled(w_each, hgt, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             lab = QLabel(); lab.setPixmap(pm); lab.setStyleSheet("background:transparent;")
-            lab.setToolTip("Company logos: Settings > Branding")
+            lab.setToolTip("Your company")
             self.row.addWidget(lab)
         self.row.addStretch(1)
 
@@ -556,9 +568,8 @@ class BrandingCard(D.Card):
     """Settings > Branding: the company logos at the top of the menu (up to three, in order)."""
 
     def __init__(self, host):
-        super().__init__("Branding", f"Your company logos at the top of the menu: up to {BR.LOGO_MAX} (a prime and its teammates), "
-                         "in order. Kept on this PC for every effort; the team pack in a coming release shares them.",
-                         actions=[D.button("Add logo...", "primary", lambda: self.add_logo())])
+        super().__init__("Branding", "The company logos at the top of the menu. 3.0.3: they are built into Stationkeeper, so "
+                         "nobody changes them by accident; a new logo comes with a new version or the team pack.")
         self.host = host
         self.row = QHBoxLayout(); self.row.setSpacing(D.SPACE["m"]); self.body.addLayout(self.row)
         self.note = self.add(D.label("", "muted"))
@@ -576,10 +587,6 @@ class BrandingCard(D.Card):
             bv = QVBoxLayout(box); bv.setContentsMargins(8, 8, 8, 8)
             lab = QLabel(); lab.setPixmap(QPixmap(p).scaled(160, 60, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             lab.setAlignment(Qt.AlignCenter); lab.setStyleSheet("border:none;"); bv.addWidget(lab)
-            br = QHBoxLayout(); bv.addLayout(br)
-            for text, fn in (("<", lambda _=False, p=p: self.move(p, -1)), (">", lambda _=False, p=p: self.move(p, 1)),
-                             ("Remove", lambda _=False, p=p: self.remove(p))):
-                b = D.button(text, "ghost", fn); br.addWidget(b)
             self.row.addWidget(box)
         self.row.addStretch(1)
         import teampack as TP
@@ -588,8 +595,11 @@ class BrandingCard(D.Card):
         for b in self.findChildren(QPushButton):
             if b.text() in ("<", ">", "Remove", "Add logo..."):
                 b.setEnabled(not lk)
-        self.note.setText(f"Set by the team pack {lk}: the logos change when the team sends a new pack." if lk else
-                          "" if paths else "No logo yet. Add a PNG or JPG; a logo on a clear background looks best.")
+        baked = bool(BR.baked_logos())
+        self.note.setText("Built into this version of Stationkeeper." if baked else
+                          f"Set by the team pack {lk}." if lk else
+                          "Kept on this PC from an earlier version. A version with your company logo built in replaces them."
+                          if paths else "No company logo in this version. It is built in by whoever builds Stationkeeper.")
 
     def changed(self):
         self.refresh()

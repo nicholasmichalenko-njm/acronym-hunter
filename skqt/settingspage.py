@@ -45,7 +45,7 @@ class SettingsPage(QWidget):
                           actions=[D.button("Open effort folder", None, lambda: self.host.open_effort_folder(),
                                             "The open effort's folder in File Explorer"),
                                    D.button("Import effort package...", None, lambda: self.host.import_package()),
-                                   D.button("New effort...", "primary", lambda: self.new_effort())])
+                                   D.button("New effort...", "primary", lambda: __import__("skqt.starteffort", fromlist=["x"]).start_dialog(host))])
         f = QFormLayout(); self.eff.body.addLayout(f)
         self.cust = QLineEdit(); self.vols = QLineEdit()
         self.rule = QComboBox()

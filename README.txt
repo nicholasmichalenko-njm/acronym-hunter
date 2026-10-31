@@ -1,6 +1,16 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+START AN EFFORT IN ONE STEP, AND BUILT-IN COMPANY LOGOS (3.0.3)
+  - Start an effort: one short form. A name is all it needs. Effort Home shows it whenever no effort is open, and
+    + Add an Effort (All Efforts) and Settings > New effort... open it too. The picture (click, or drop a picture file
+    on it), client, solicitation, due date with its time zone, and proposal manager are optional. The effort's folders
+    are made for you in your team's layout; More options holds the rest. After Create effort, the effort is open on
+    Effort Home, ready for the customer's documents.
+  - The effort image on Effort Home takes a dropped picture file too.
+  - The company logos at the top of the menu are built into Stationkeeper (assets\brand in the build). The menu no
+    longer offers Add your company logo, and Settings > Branding only shows them.
+
 THE GUIDE (3.0.2)
   - How to use every page, in the order of the menu: what the page is for, when to use it, the steps with the real
     button names, tips, and a picture of the page from a fictional effort.

@@ -139,8 +139,29 @@ def logo_dir(config_dir):
     return os.path.join(config_dir, LOGO_DIR)
 
 
+def baked_dir():
+    """3.0.3: the company logos built into the program (assets/brand/logo_*.png, bundled by the build)."""
+    import sys
+    for base in (getattr(sys, "_MEIPASS", ""), os.path.dirname(os.path.abspath(__file__))):
+        d = os.path.join(base, "assets", "brand")
+        if base and os.path.isdir(d):
+            return d
+    return ""
+
+
+def baked_logos():
+    d = baked_dir()
+    if not d:
+        return []
+    return [os.path.join(d, f) for f in sorted(os.listdir(d)) if f.startswith("logo_") and f.lower().endswith(".png")][:LOGO_MAX]
+
+
 def logos(config_dir):
-    """The company logos in their order: [path]."""
+    """The company logos in their order: [path]. 3.0.3: the ones built into the program win; a team pack's (or older
+    ones kept on this PC) show only when the program has none. Nobody adds a logo by hand any more."""
+    baked = baked_logos()
+    if baked:
+        return baked
     d = logo_dir(config_dir)
     if not os.path.isdir(d):
         return []
