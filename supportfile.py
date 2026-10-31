@@ -20,6 +20,13 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.0.4": ["Review: select several sentences (or Select undecided, or Ctrl+A) and one bar decides them all, puts them all in "
+              "a section or gives them all one author.",
+              "Graphic needs: press P in Review (or Graphic on a note) to tag what needs a graphic; Effort Home lists them for the "
+              "graphics team, with an Excel export.",
+              "Settings > Custom dictionaries: your team's words for Word, imported from a .dic, from the effort's acronyms or typed, "
+              "and exported as a .dic for Word.",
+              "Effort Home fits a 1440-pixel screen with no sideways scroll."],
     "3.0.3": ["Start an effort in one short form: a name is all it needs. Effort Home shows it whenever no effort is open, "
               "and + Add an Effort opens it too. Add the picture (click or drop one), client, solicitation, due date and proposal "
               "manager now or later; the folders are made for you.",

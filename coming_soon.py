@@ -3,13 +3,6 @@ built and what is next. Edit PLANNED to add an idea; nothing here does anything.
 import customtkinter as ctk
 
 PLANNED = [
-    ("Custom dictionaries", [
-        "Keep several custom dictionaries in Stationkeeper and see every word in them.",
-        "Import an existing Word custom dictionary (.dic).",
-        "Add, edit and remove words; build a dictionary from an effort's approved acronyms and terms.",
-        "Export a .dic for Word, named with the date (and the effort name if you choose).",
-        "Dictionaries are kept in the backups and every export is kept, dated, like other exports.",
-    ]),
     ("Teams and owners", [
         "Editable teams (Proposal manager, Production, and any you add), each with an optional named person.",
         "An owner (team and/or person) for each part of an effort; everyone still sees everything.",

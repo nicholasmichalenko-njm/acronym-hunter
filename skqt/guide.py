@@ -40,7 +40,7 @@ TOPICS = [
    "The card shows the stage, the due date and what needs attention."]),
  ("home", "Effort", "Effort Home",
   "The effort at a glance: stage, gate goals, tasks, questions, notes, the calendar, contacts, submission and "
-  "formatting rules, customer questions, and evaluation factors.",
+  "formatting rules, customer questions, evaluation factors, and the graphics the response needs.",
   "Every day: see what is due, add tasks and questions, and move the effort to its next stage.",
   ["Read the banner: due date in your time zone and the submission's, countdown, and whether the effort is page-limited.",
    "Add work with + Task, + Question, + Note or + Goal. Assign... gives a question to a person.",
@@ -49,7 +49,9 @@ TOPICS = [
   ["Click the effort image, or drop a picture file on it, to set or change it.",
    "Customize Home... chooses which cards show.",
    "Cards such as Submission instructions and Evaluation and hot buttons fill in from what you capture in Review.",
-   "Export tasks and questions... makes a workbook for a meeting."]),
+   "Export tasks and questions... makes a workbook for a meeting.",
+   "Graphic needs lists what was tagged as needing a graphic. Open goes to the sentence; click one to mark it In work or "
+   "Done; Graphic on a note adds that note; Export... makes a workbook for the graphics team."]),
  ("deliverables", "Effort", "Deliverables",
   "Every deliverable of the effort on one board: volumes, forms, plans and CDRLs, with owner, status, pages against "
   "the limit and what is missing.",
@@ -107,6 +109,9 @@ TOPICS = [
    "Drag across words inside the sentence to pick just those words. Capture files them: a contact, submission or "
    "formatting rule, acronym, key date or customer question. More captures... adds evaluation factors, page limits, "
    "deliverables, effort details and hot buttons.",
+   "Graphic need (P) tags a concept that needs a graphic, from the sentence or the words you picked; it lists on Effort Home.",
+   "Several sentences at once: Ctrl+click, drag a box, Select undecided, or Ctrl+A. The bar above the page shows how many, "
+   "with Decide all, Put all in section and Author for all.",
    "+ Task... and + Ask the team... put work and questions on the sentence.",
    "When a document is done, press Mark reviewed, then Next document."],
   ["J joins sentences; S splits one where you clicked (Split here).",
@@ -224,9 +229,11 @@ TOPICS = [
   ["Every export is dated and kept in the effort's folder. Nothing is overwritten."]),
  ("settings", "Effort Files", "Settings",
   "This PC's settings: work mode, time zone, efforts, author list, stages and roles, folders and file names, document "
-  "types, branding, team pack, master database, backups, updates, and help.",
+  "types, custom dictionaries, branding, team pack, master database, backups, updates, and help.",
   "Setting up the app, joining a team, or installing an update.",
   ["Where Stationkeeper is used sets the work mode: Offline, Connected or SCIF-ready.",
+   "Custom dictionaries keeps your team's words for Word: + Dictionary..., type words or Import a .dic..., Add the "
+   "effort's acronyms, then Export for Word... and add the file in Word (File > Options > Proofing > Custom Dictionaries).",
    "Branding shows the company logos. They are built into Stationkeeper; nobody changes them from here.",
    "Install a team pack... takes your team's stages, document types, folders and author list in one step.",
    "In Updates, Install update pack... installs a new version from its .skupdate file. Undo last update goes back one step.",

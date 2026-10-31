@@ -132,10 +132,10 @@ class MainWindow(QMainWindow):
         bh = QHBoxLayout(bar); bh.setContentsMargins(D.SPACE["xl"], D.SPACE["m"], D.SPACE["xl"], D.SPACE["m"]); bh.setSpacing(D.SPACE["m"])
         tcol = QVBoxLayout(); tcol.setSpacing(0)
         self.page_title = D.label("", "display", wrap=False); tcol.addWidget(self.page_title)
-        self.page_sub = D.label("", "muted", wrap=False); tcol.addWidget(self.page_sub)
+        self.page_sub = D.label("", "muted"); self.page_sub.setMinimumWidth(180); tcol.addWidget(self.page_sub)   # 3.0.4: wraps
         bh.addLayout(tcol, 1)
         self.search = QLineEdit(); self.search.setPlaceholderText("Find a sentence (words or ID)...")
-        self.search.setMinimumWidth(320); self.search.setClearButtonEnabled(True)
+        self.search.setMinimumWidth(240); self.search.setClearButtonEnabled(True)
         self.search.returnPressed.connect(self.find_go)
         bh.addWidget(self.search)
         bh.addWidget(D.label("Effort", "label", wrap=False))

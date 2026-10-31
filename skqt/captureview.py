@@ -318,6 +318,18 @@ def hot_dialog(parent, text):
                          "It shows on Effort Home under Evaluation and hot buttons, quoting the customer.")
 
 
+def graphic_dialog(parent, text, sections=(), people=(), section=""):
+    """3.0.4: a graphic need: what the graphic shows (the picked words to start), its kind, section and owner."""
+    import graphics as GX
+    concept = " ".join((text or "").split())
+    sec = _combo([""] + list(sections), section, editable=True)
+    own = _combo([""] + list(people))
+    return SimpleCapture(parent, "Tag a graphic need", text,
+                         [("concept", "Graphic needed", QLineEdit(concept[:160])), ("kind", "Kind", _combo(GX.KINDS, editable=True)),
+                          ("section", "Section", sec), ("owner", "Owner (optional)", own)],
+                         "It lists under Graphic needs on Effort Home, with where it was found.")
+
+
 # ------------------------------------------------------------------ filing (used by Assign; tests call these with answers)
 def file_contact(host, values, cid, source):
     import effortrec as R
@@ -480,3 +492,14 @@ def file_hot(host, values, source):
         host.toast("Hot button filed")
     return hid
 
+
+def file_graphic(host, values, source):
+    """3.0.4: a graphic need into the effort record."""
+    import graphics as GX
+    import effortrec as R
+    gid = GX.add(R.Record(host.ws.root), values.get("concept", ""), kind=values.get("kind", ""), section=values.get("section", ""),
+                 owner=values.get("owner", ""), source=source)
+    if gid:
+        diag.activity("capture_graphic")
+        host.toast("Graphic need listed on Effort Home")
+    return gid

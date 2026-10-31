@@ -19,7 +19,8 @@ CAL_ORDER = ("due", "deadline", "questions", "meeting", "stage", "task", "done",
 CAL_WORDS = (("due", "Proposal due"), ("deadline", "Due dates"), ("questions", "Questions due"), ("meeting", "Reviews and meetings"), ("stage", "Stages"), ("task", "Tasks due"),
              ("done", "Tasks done"), ("event", "What happened"))
 KIND_WORDS = {"customer": "CUSTOMER", "ours": "OURS", "stage": "STAGE", "note": "NOTE", "task": "TASK", "assign": "PEOPLE",
-              "requirement": "REQUIREMENT", "effort": "EFFORT", "qa": "QA/QC", "compliance": "COMPLIANCE", "deliverable": "DELIVERABLE", "gate": "GATE", "review": "REVIEW"}
+              "requirement": "REQUIREMENT", "effort": "EFFORT", "qa": "QA/QC", "compliance": "COMPLIANCE", "deliverable": "DELIVERABLE", "gate": "GATE", "review": "REVIEW",
+              "graphic": "GRAPHIC"}
 
 
 def clear(layout):
@@ -132,11 +133,11 @@ class HomePage(QWidget):
         self.cal.currentPageChanged.connect(lambda _y, _m: self.paint_calendar())
         self.cal_card.add(self.cal)
         self.cal_card.body.addLayout(self.calfiles.file_row())
-        leg = QHBoxLayout(); leg.setSpacing(D.SPACE["m"])
+        from .adaptive import FlowLayout                             # 3.0.4: the key wraps, so Home fits a 1440 screen
+        leg = FlowLayout(None, D.SPACE["m"])
         t = D.tokens()
         for kind, word in CAL_WORDS:
             leg.addWidget(D.label(f"<span style='color:{t[CAL_TONE[kind]]}'>■</span> {word}", "muted", wrap=False))
-        leg.addStretch(1)
         self.cal_card.body.addLayout(leg)
         self.day_box = QVBoxLayout(); self.day_box.setSpacing(2); self.cal_card.body.addLayout(self.day_box)
         self.info = D.Card("Customer information", "Names, e-mails, phone numbers and addresses from the customer documents.",
@@ -151,18 +152,23 @@ class HomePage(QWidget):
                               actions=[D.button("Customer Q&&A", "ghost", lambda: self.host.go("custqa"))])
         self.focus_card = D.Card("Evaluation and hot buttons", "How the customer will judge the proposal, and what their "   # 2.99.0
                                  "documents stress. Capture them in Review (More captures).")
+        self.gfx_card = D.Card("Graphic needs", "Concepts and things that need a graphic, tagged in Review (Graphic need, P) "  # 3.0.4
+                               "or from a note.", actions=[D.button("+ Graphic need...", None, lambda: self.graphic_dialog()),
+                                                           D.button("Export...", "ghost", lambda: self.export_graphics(),
+                                                                    "A dated workbook of the graphic needs, for the graphics team")])
         self.body = QVBoxLayout(); self.body.setSpacing(D.SPACE["m"]); v.addLayout(self.body)
         v.addStretch(1)
         self.cards = {"stage": self.track, "deliverables": self.deliv_card, "mywork": self.mywork, "goals": self.goals,
                       "notes": self.notes, "tasks": self.tasks, "calendar": self.cal_card, "info": self.info, "timeline": self.timeline,
                       "formatting": self.fmt_card, "submission": self.sub_card, "custqa": self.qa_card,
-                      "custfocus": self.focus_card}
+                      "custfocus": self.focus_card, "graphics": self.gfx_card}
         self.lay = None
         self.apply_layout()
-        self.sections = {k: QVBoxLayout() for k in ("goals", "tasks", "notes", "info", "timeline", "formatting", "submission", "custqa", "custfocus")}
+        self.sections = {k: QVBoxLayout() for k in ("goals", "tasks", "notes", "info", "timeline", "formatting", "submission", "custqa", "custfocus",
+                                                    "graphics")}
         for k, card in (("goals", self.goals), ("tasks", self.tasks), ("notes", self.notes), ("info", self.info),
                         ("timeline", self.timeline), ("formatting", self.fmt_card), ("submission", self.sub_card),
-                        ("custqa", self.qa_card), ("custfocus", self.focus_card)):
+                        ("custqa", self.qa_card), ("custfocus", self.focus_card), ("graphics", self.gfx_card)):
             self.sections[k].setSpacing(D.SPACE["xs"]); card.body.addLayout(self.sections[k])
 
     # ------------------------------------------------------------ the effort
@@ -223,6 +229,7 @@ class HomePage(QWidget):
         self.draw_submission(r)
         self.draw_custqa(r)
         self.draw_focus(r)
+        self.draw_graphics(r)
         self.draw_goals(r, checks)
         self.draw_tasks(r)
         self.draw_notes(r)
@@ -831,8 +838,8 @@ class HomePage(QWidget):
             row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
             tone = "ok" if t["status"] == "Done" else "crit" if late else "accent" if t["status"] == "In progress" else "head"
             p = D.Pill(t["status"] + (" (late)" if late else ""), tone); p.setFixedWidth(130); row.addWidget(p)
-            b = D.button(t["title"], "ghost", lambda _=False, tid=t["id"]: self.task_dialog(tid))
-            b.setStyleSheet("text-align:left;"); row.addWidget(b, 1)
+            b = ClickLabel(t["title"], lambda tid=t["id"]: self.task_dialog(tid))     # 3.0.4: a long title wraps
+            b.setToolTip("Open the task"); b.setMinimumWidth(120); row.addWidget(b, 1)
             row.addWidget(D.label(" | ".join(x for x in (t["owner"], ("due " + R.when_text(t["due"])) if t["due"] else "") if x),
                                   "muted", wrap=False))
             lay.addLayout(row)
@@ -924,6 +931,7 @@ class HomePage(QWidget):
 
     # ------------------------------------------------------------ notes and questions
     def draw_notes(self, r):
+        import graphics as GX
         lay = self.sections["notes"]; clear(lay)
         who = self.person()
         qs = r.open_questions(assignee=who)
@@ -942,12 +950,130 @@ class HomePage(QWidget):
             if q:
                 row.addWidget(D.button("Resolve...", None, lambda _=False, nid=n["id"]: self.resolve_dialog(nid)), 0, Qt.AlignTop)
                 row.addWidget(D.button("Assign...", "ghost", lambda _=False, nid=n["id"]: self.assign_dialog(nid)), 0, Qt.AlignTop)
+            elif not GX.for_note(r, n["id"]):                          # 3.0.4: a note that needs a graphic
+                row.addWidget(D.button("Graphic", "ghost", lambda _=False, nid=n["id"]: self.graphic_from_note(nid),
+                                       "List this note under Graphic needs"), 0, Qt.AlignTop)
             row.addWidget(D.button("Remove", "ghost", lambda _=False, nid=n["id"]: self.remove_note(nid)), 0, Qt.AlignTop)
             lay.addLayout(row)
         if len(qs) + len(others) > 14:
             lay.addWidget(D.label(f"and {len(qs) + len(others) - 14} more", "muted"))
         if not qs and not others:
             lay.addWidget(D.label("No notes yet." if not who else f"No open questions for {who}.", "muted"))
+
+    # ------------------------------------------------------------ 3.0.4 graphic needs
+    def draw_graphics(self, r):
+        import graphics as GX
+        lay = self.sections["graphics"]; clear(lay)
+        who = self.person()
+        gs = [g for g in GX.items(r) if not who or g.get("owner") == who]
+        self.gfx_now = [g["id"] for g in gs]
+        n_open = sum(1 for g in gs if g.get("status") != "Done")
+        self.gfx_card.title.setText(f"Graphic needs   {n_open} open" + (f" for {who}" if who else ""))
+        if not gs:
+            lay.addWidget(D.label("None yet. In Review, select a sentence (or drag across the words) and press Graphic need "
+                                  "(P); or press Graphic on a note." if not who else f"No graphic needs for {who}.", "muted"))
+            return
+        for g in gs[:14]:
+            row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
+            tone = {"Needed": "warn", "In work": "accent", "Done": "ok"}.get(g.get("status"), "head")
+            p = D.Pill(g.get("status", "").upper(), tone); p.setFixedWidth(96); row.addWidget(p, 0, Qt.AlignTop)
+            col = QVBoxLayout(); col.setSpacing(0)
+            t = ClickLabel(g["concept"], lambda gid=g["id"]: self.graphic_dialog(gid)); t.setToolTip("Change it, or mark it in work or done")
+            t.setMinimumWidth(120); col.addWidget(t)
+            col.addWidget(D.label(" | ".join(x for x in (g.get("kind", ""), g.get("section", ""), g.get("owner", ""), GX.where_text(g)) if x), "muted"))
+            row.addLayout(col, 1)
+            if g.get("sid"):
+                row.addWidget(D.button("Open", "ghost", lambda _=False, sid=g["sid"]: self.open_sentence(sid),
+                                       "Open the sentence in Review"), 0, Qt.AlignTop)
+            lay.addLayout(row)
+        if len(gs) > 14:
+            lay.addWidget(D.label(f"and {len(gs) - 14} more (Export... lists them all)", "muted"))
+
+    def open_sentence(self, sid):
+        h = self.host
+        if h.review is None or h.review.item(sid) is None:
+            h.status("That sentence is no longer in the matrix.")
+            return False
+        h.go("assign")
+        h.assign_page.select(sid)
+        return True
+
+    def graphic_dialog(self, gid=None, answer=None):
+        """+ Graphic need... (gid None) or change one. answer (tests): {"concept", "kind", "section", "owner", "status"} or
+        {"remove": True}. Returns the id (or True when removed)."""
+        import graphics as GX
+        r = self.rec
+        if r is None:
+            return None
+        g = GX.get(r, gid) if gid else None
+        if answer is None:
+            d = QDialog(self); d.setWindowTitle("Graphic need" if g else "New graphic need"); d.setMinimumWidth(520)
+            f = QFormLayout(d)
+            if g and g.get("quote"):
+                f.addRow(D.label("From: " + g["quote"][:300], "muted"))
+            concept = QLineEdit(g["concept"] if g else ""); f.addRow("Graphic needed", concept)
+            kind = QComboBox(); kind.setEditable(True); kind.addItems(list(GX.KINDS)); kind.setCurrentText(g.get("kind", "") if g else "")
+            f.addRow("Kind", kind)
+            sec = QComboBox(); sec.setEditable(True); sec.addItems([""] + (self.host.review.labels() if self.host.review is not None else []))
+            sec.setCurrentText(g.get("section", "") if g else ""); f.addRow("Section", sec)
+            from .people import name_combo, combo_name
+            own = name_combo(self.host, g.get("owner", "") if g else ""); f.addRow("Owner", own)
+            st = QComboBox(); st.addItems(list(GX.STATUS)); st.setCurrentText(g.get("status", "Needed") if g else "Needed"); f.addRow("Status", st)
+            bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
+            gone = []
+            if g:
+                rm = bb.addButton("Remove", QDialogButtonBox.DestructiveRole)
+                rm.clicked.connect(lambda: (gone.append(True), d.accept()))
+            f.addRow(bb)
+            if d.exec() != QDialog.Accepted:
+                return None
+            answer = {"remove": True} if gone else {"concept": concept.text(), "kind": kind.currentText(), "section": sec.currentText(),
+                                                     "owner": combo_name(own), "status": st.currentText()}
+        if answer.get("remove") and g:
+            ok = GX.remove(r, g["id"])
+            diag.activity("graphic_removed")
+            self.changed()
+            return ok
+        if g:
+            GX.update(r, g["id"], **{k: v for k, v in answer.items() if k in ("concept", "kind", "section", "owner", "status")})
+            out = g["id"]
+        else:
+            out = GX.add(r, answer.get("concept", ""), kind=answer.get("kind", ""), section=answer.get("section", ""),
+                         owner=answer.get("owner", ""))
+            if out and answer.get("status") in ("In work", "Done"):
+                GX.update(r, out, status=answer["status"])
+        if out:
+            diag.activity("graphic_saved")
+            self.changed()
+        return out
+
+    def graphic_from_note(self, nid):
+        import graphics as GX
+        r = self.rec
+        n = next((x for x in r.notes() if x["id"] == nid), None) if r is not None else None
+        if n is None:
+            return ""
+        gid = GX.add(r, n["text"], note_id=nid, source={"text": n["text"]})
+        if gid:
+            diag.activity("graphic_from_note")
+            self.host.toast("Listed under Graphic needs")
+            self.changed()
+        return gid
+
+    def export_graphics(self, path=None):
+        import graphics as GX
+        r = self.rec
+        if r is None:
+            return None
+        if path is None:
+            from PySide6.QtWidgets import QFileDialog
+            path, _ = QFileDialog.getSaveFileName(self, "Export the graphic needs", self.host.out_path("graphic_needs"), "Excel (*.xlsx)")
+            if not path:
+                return None
+        GX.export_excel(path, r, self.host.effort_name)
+        diag.activity("graphics_exported", n=len(GX.items(r)))
+        self.host.toast("Graphic needs exported")
+        return path
 
     def note_dialog(self, question=False, text=None, assignee=""):
         r = self.rec

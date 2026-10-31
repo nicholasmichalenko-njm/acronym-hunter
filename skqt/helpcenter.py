@@ -20,6 +20,8 @@ SHORTCUTS = [("Anywhere", "Ctrl+K", "Find a page, an effort, a sentence or a per
              ("Review (on the page)", "J / S", "Join the selected sentences / split one"),
              ("Review (on the page)", "Ctrl+Z", "Undo the last change"),
              ("Review (on the page)", "Ctrl+click", "Select several sentences"),
+             ("Review (on the page)", "Ctrl+A", "Select every sentence on the page (Select undecided: only those with no decision)"),
+             ("Review (on the page)", "P", "Graphic need: tag what needs a graphic, from the sentence or the words you picked"),
              ("Review (on the page)", "Escape", "Clear the selection, or stop drawing a box for missed text")]
 
 

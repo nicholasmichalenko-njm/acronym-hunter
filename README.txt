@@ -1,6 +1,23 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SEVERAL SENTENCES AT ONCE, GRAPHIC NEEDS, CUSTOM DICTIONARIES (3.0.4)
+  - Review: select several sentences (Ctrl+click, drag a box, Select undecided, or Ctrl+A for the whole page) and a bar
+    above the page shows how many and what they are. Decide all, Put all in section and Author for all apply to every
+    one of them; one Ctrl+Z puts them all back, and the selection stays.
+  - Graphic needs: in Review, Graphic need (or P) tags a concept that needs a graphic, from the selected sentence or just
+    the words you drag across, with its kind, section and owner. A note on Effort Home has a Graphic button too. The
+    Graphic needs card on Effort Home lists them with where each was found: Open goes to the sentence, a click changes
+    it (Needed, In work, Done), and Export... makes a workbook for the graphics team. They are in the readable copy.
+  - Settings > Custom dictionaries: your team's words for Word's spelling check. Several named dictionaries, every word
+    shown and searchable; add, change and remove words; import a Word .dic; add the open effort's approved acronyms;
+    Export for Word... writes the .dic (named with the date, and the effort if you choose) and keeps a dated copy in
+    your data folder's Dictionary exports. The backups carry them.
+  - Effort Home fits a 1440-pixel-wide screen (and 1280) with no sideways scroll, in every role's layout. The page
+    description wraps instead of widening the window, and a long task title wraps.
+  - Check program files lists a company logo you placed in _internal\assets\brand (logo_01.png ...) as your team's,
+    not as a file that is not part of the version. Update packs never remove it.
+
 START AN EFFORT IN ONE STEP, AND BUILT-IN COMPANY LOGOS (3.0.3)
   - Start an effort: one short form. A name is all it needs. Effort Home shows it whenever no effort is open, and
     + Add an Effort (All Efforts) and Settings > New effort... open it too. The picture (click, or drop a picture file

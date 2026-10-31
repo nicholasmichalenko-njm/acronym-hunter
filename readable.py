@@ -342,6 +342,7 @@ MORE_FILES = [
     ("Customer contacts.csv", "The customer's points of contact captured from the documents: name, title, organization, e-mail, phone, address, where found."),
     ("Evaluation factors.csv", "The evaluation factors and subfactors, their relative importance and the customer's words."),
     ("Hot buttons.csv", "What the customer's documents stress, with their words and where."),
+    ("Graphic needs.csv", "The concepts and things tagged as needing a graphic: what, kind, section, owner, status and where found."),
     ("Customer questions.csv", "The questions for the customer: number, status, category, document, where, their wording, our question, the answer and where it came."),
     ("Effort overview.docx", "The effort status report as of the last time the effort was closed or backed up: stages, people and how far along they are, open questions, newest customer documents, the proposal manager's summary."),
 ]
@@ -377,6 +378,10 @@ def more(rec, lib, data_dir="", info=None):
                                           for f in F.factors(rec)])
         out["Hot buttons.csv"] = (["Hot button", "Their words", "Found in"],
                                   [[h["text"], h.get("quote", ""), " ".join(x for x in (h.get("doc", ""), h.get("loc", "")) if x)] for h in F.hot_buttons(rec)])
+        import graphics as GX                                                                                             # 3.0.4
+        out["Graphic needs.csv"] = (["Graphic needed", "Kind", "Section", "Owner", "Status", "Found in", "Their words", "Tagged by", "Tagged"],
+                                    [[g["concept"], g.get("kind", ""), g.get("section", ""), g.get("owner", ""), g.get("status", ""),
+                                      GX.where_text(g), g.get("quote", ""), g.get("who", ""), _when(g.get("at"))] for g in GX.items(rec)])
         ps = rec.data.get("postsub")
         if isinstance(ps, dict) and ps.get("items"):
             import postsub as PS

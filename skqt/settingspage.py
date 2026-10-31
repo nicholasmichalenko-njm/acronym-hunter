@@ -68,6 +68,9 @@ class SettingsPage(QWidget):
         from .doctypesview import DocTypesCard           # 2.94.0: customer document types and their initials
         self.doctypes_card = DocTypesCard(host)
         v.addWidget(self.doctypes_card)
+        from .dictview import DictionariesCard           # 3.0.4: the team's custom dictionaries for Word
+        self.dict_card = DictionariesCard(host)
+        v.addWidget(self.dict_card)
         from .brandview import BrandingCard              # 2.88.0: the company logos at the top of the menu
         self.branding_card = BrandingCard(host)
         v.addWidget(self.branding_card)
@@ -80,7 +83,7 @@ class SettingsPage(QWidget):
         jl = D.label("Go to:", "muted", wrap=False); self.jump_row.addWidget(jl)
         for text, card in (("Your time zone", self.tz_card), ("Efforts", self.eff), ("Author list", self.authors),
                            ("Stages, gates and roles", self.process_card),
-                           ("Document types", self.doctypes_card), ("Folders and file names", self.folders_card), ("Branding", self.branding_card), ("Team pack", self.team_card)):
+                           ("Document types", self.doctypes_card), ("Folders and file names", self.folders_card), ("Custom dictionaries", self.dict_card), ("Branding", self.branding_card), ("Team pack", self.team_card)):
             self.jump_row.addWidget(D.button(text, "ghost", lambda _=False, c=card: self.jump(c)))
         v.insertLayout(0, self.jump_row)
         self.db = D.Card("Master database", "The company's acronyms, abbreviations, units and symbols, shared by every effort on this PC.",

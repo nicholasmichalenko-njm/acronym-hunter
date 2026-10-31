@@ -33,6 +33,10 @@ SHEET_X = 8          # 2.96.0: Sheet view starts near the left edge (its row num
 WORD = re.compile(r"[A-Za-z0-9]+")
 
 
+
+BULK_DECISIONS = (("Decide all...", ""), ("L (Instructions)", "L"), ("M (Evaluation)", "M"), ("SOW (Work)", "SOW"),
+                  ("Support", "ctx"), ("Customer's", "cust"), ("Ignore", "ignore"))
+
 class SentenceBox(QGraphicsPathItem):
     def __init__(self, iid, rects):
         path = QPainterPath()
@@ -259,7 +263,7 @@ class AssignPage(QWidget):
         v.setContentsMargins(6, 6, 6, 6)
         bar = QHBoxLayout(); v.addLayout(bar)
         bar.addWidget(QLabel("File:"))
-        self.files = QComboBox(); self.files.setMinimumWidth(280); self.files.currentTextChanged.connect(self.open_file)
+        self.files = QComboBox(); self.files.setMinimumWidth(240); self.files.currentTextChanged.connect(self.open_file)
         bar.addWidget(self.files)
         self.queue_lbl = D.label("", "muted", wrap=False); bar.addWidget(self.queue_lbl)       # 2.96.0: the documents as a queue
         self.done_btn = D.button("Mark reviewed", None, lambda: self.mark_reviewed(), "This document's sentences are all looked at")
@@ -294,6 +298,28 @@ class AssignPage(QWidget):
         bar.addWidget(self.changes_btn)
         fit = QPushButton("Fit width"); fit.clicked.connect(lambda: self.view.fit()); bar.addWidget(fit)
         self.note = D.label("", "muted"); v.addWidget(self.note)
+        self.bulk = QFrame(); self.bulk.setObjectName("bulkBar")       # 3.0.4: several sentences selected, one action for all
+        self.bulk.setStyleSheet("QFrame#bulkBar{background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.35);border-radius:6px;}")
+        bh = QHBoxLayout(self.bulk); bh.setContentsMargins(D.SPACE["m"], D.SPACE["xs"], D.SPACE["m"], D.SPACE["xs"])
+        bh.setSpacing(D.SPACE["s"])
+        self.bulk_lbl = D.label("", "label", wrap=False); bh.addWidget(self.bulk_lbl)
+        self.bulk_info = D.label("", "muted", wrap=False); bh.addWidget(self.bulk_info)
+        bh.addStretch(1)
+        self.bulk_dec = QComboBox(); self.bulk_dec.setToolTip("One decision for every selected sentence")
+        for text, key in BULK_DECISIONS:
+            self.bulk_dec.addItem(text, key)
+        self.bulk_dec.activated.connect(lambda i: self.bulk_decide(self.bulk_dec.itemData(i)))
+        self.bulk_sec = QComboBox(); self.bulk_sec.setToolTip("Every selected sentence a requirement in this section "
+                                                              "(one already in another section is put in this one too)")
+        self.bulk_sec.activated.connect(lambda i: self.bulk_section(self.bulk_sec.itemData(i)))
+        self.bulk_own = QComboBox(); self.bulk_own.setToolTip("One author for every selected requirement and support sentence "
+                                                              "(names from the author list)")
+        self.bulk_own.activated.connect(lambda i: self.bulk_author(self.bulk_own.itemData(i)))
+        for cb in (self.bulk_dec, self.bulk_sec, self.bulk_own):
+            cb.setMinimumWidth(170); bh.addWidget(cb)
+        bh.addWidget(D.button("Clear selection", "ghost", lambda: self.view.scene().clearSelection(), "Esc"))
+        self.bulk.setVisible(False)
+        v.addWidget(self.bulk)
         self.view = PageView()
         self.view.scene().selectionChanged.connect(self.on_select)
         self.view.clicked_word.connect(self.on_word)
@@ -312,7 +338,11 @@ class AssignPage(QWidget):
         sw = QWidget(); sv = QVBoxLayout(sw); sv.setContentsMargins(0, 0, 0, 0)
         dec = QFrame(); dec.setProperty("card", True); dv = QVBoxLayout(dec)       # 2.82.0: decide, next to the structure
         dv.setContentsMargins(D.SPACE["m"], D.SPACE["s"], D.SPACE["m"], D.SPACE["s"]); dv.setSpacing(D.SPACE["xs"])
-        self.target_lbl = D.label("", None); self.target_lbl.setTextFormat(Qt.RichText); dv.addWidget(self.target_lbl)
+        self.target_lbl = D.label("", None); self.target_lbl.setTextFormat(Qt.RichText)
+        trow = QHBoxLayout(); trow.setSpacing(D.SPACE["s"]); trow.addWidget(self.target_lbl, 1)
+        self.undecided_btn = D.button("Select undecided", "ghost", lambda: self.select_undecided(),   # 3.0.4
+                                      "Select every sentence in this document with no decision yet (Ctrl+A selects them all)")
+        trow.addWidget(self.undecided_btn, 0, Qt.AlignTop); dv.addLayout(trow)
         grid = QGridLayout(); grid.setSpacing(D.SPACE["xs"]); grid.setContentsMargins(0, 0, 0, 0)
         self.dec_box = dec
         for k, (text, kind, fn, tip) in enumerate((
@@ -356,7 +386,10 @@ class AssignPage(QWidget):
             self.more_actions[key] = act
         more.setMenu(menu)
         self.cap_keys["more"] = more
-        dv.addWidget(more)
+        gfx = D.button("Graphic need  P", "ghost", lambda: self.do_capture("graphic"), "Tag a concept here that needs a graphic: "  # 3.0.4
+                       "it lists under Graphic needs on Effort Home. Uses the words you dragged across, else the selected sentence.")
+        self.cap_keys["graphic"] = gfx
+        mrow = QHBoxLayout(); mrow.setSpacing(D.SPACE["xs"]); mrow.addWidget(gfx); mrow.addWidget(more); dv.addLayout(mrow)
         cgrid = QGridLayout(); cgrid.setSpacing(D.SPACE["xs"])                # 2.84.0: for a library document
         self.ctx_keys = {}
         for k, (text, kind, fn, tip) in enumerate((
@@ -416,6 +449,7 @@ class AssignPage(QWidget):
                         ("Delete", self.do_clear), ("J", self.do_combine), ("S", self.do_split), ("Ctrl+Z", self.do_undo),
                         ("F", lambda: self.do_for_req()), ("N", lambda: self.do_record("note")),
                         ("Q", lambda: self.do_record("question")), ("T", lambda: self.do_record("task")),
+                        ("Ctrl+A", lambda: self.select_all()), ("P", lambda: self.do_capture("graphic") if self.cx is None else None),
                         ("Escape", lambda: self.toggle_capture(False) if self.view.capturing else
                          (self.clear_split() if self.split_at is not None else self.view.scene().clearSelection()))):
             QShortcut(QKeySequence(key), self.view, activated=fn)
@@ -975,6 +1009,12 @@ class AssignPage(QWidget):
         self.show_card(self.selected())
         return self.grab
 
+    def _graphic_section(self):
+        """The section a graphic need starts in: the sentence's own (a requirement), else the target section."""
+        rows = self.selected()
+        it = rows[0] if rows else None
+        return (it.get("map") if it is not None and it.get("decision") == "Keep" and it.get("map") else "") or (self.target or "")
+
     def capture_source(self):
         """(text, source) for a capture: the words dragged across, else the selected sentences."""
         rows = self.selected()
@@ -1047,6 +1087,17 @@ class AssignPage(QWidget):
                 answer = d.values()
             got = CV.file_key_date(self.host, answer, src)
             self.host.changed()
+            return got
+        if kind == "graphic":                                          # 3.0.4
+            if answer is None:
+                d = CV.graphic_dialog(self, text, self.R.labels(), self.host.people(), self._graphic_section())
+                if d.exec() != QDialog.Accepted:
+                    return None
+                answer = d.values()
+            got = CV.file_graphic(self.host, answer, dict(src, text=text))     # it quotes the words picked, else the sentence
+            if got:
+                self.show_card(self.selected())
+                self.host.changed()
             return got
         more = {"factor": (lambda: CV.factor_dialog(self, text, self._factors()), CV.file_factor),          # 2.99.0
                 "pagelimit": (lambda: CV.page_limit_dialog(self, text, self._limit_targets()), CV.file_page_limit),
@@ -1246,7 +1297,82 @@ class AssignPage(QWidget):
         l.setContentsMargins(0, D.SPACE["m"], 0, 0)
         return l
 
+    # ------------------------------------------------------------ 3.0.4 several sentences at once
+    def select_all(self, undecided=False):
+        """Every sentence of this document on the page (only those with no decision, if undecided)."""
+        if self.R is None or self.cx is not None:
+            return 0
+        self._guard = True
+        sc = self.view.scene(); sc.clearSelection()
+        n = 0
+        for iid, b in self.view.boxes.items():
+            it = self.R.item(iid)
+            if it is None or (undecided and it.get("decision")) or (undecided and it.get("type") == "Heading"):
+                continue
+            b.setSelected(True); n += 1
+        self._guard = False
+        self.on_select()
+        self.host.status(f"{n} sentence(s) selected." if n else ("Every sentence here has a decision." if undecided else "Nothing to select."))
+        return n
+
+    def select_undecided(self):
+        return self.select_all(undecided=True)
+
+    def refresh_bulk(self, rows):
+        on = self.cx is None and self.R is not None and len(rows) > 1
+        self.bulk.setVisible(on)
+        if not on:
+            return
+        tally = {}
+        for it in rows:
+            k = {"Keep": "requirement", "Context": "support", "Customer": "customer's"}.get(it.get("decision", ""), "undecided")
+            tally[k] = tally.get(k, 0) + 1
+        self.bulk_lbl.setText(f"{len(rows)} sentences selected")
+        self.bulk_info.setText("  \u00b7  ".join(f"{tally[k]} {k}" for k in ("requirement", "support", "customer's", "undecided") if tally.get(k)))
+        self.bulk_sec.blockSignals(True); self.bulk_sec.clear()
+        self.bulk_sec.addItem("Put all in section...", "")
+        for lab in self.R.labels():
+            self.bulk_sec.addItem(lab, lab)
+        self.bulk_sec.setEnabled(self.bulk_sec.count() > 1); self.bulk_sec.blockSignals(False)
+        self.bulk_own.blockSignals(True); self.bulk_own.clear()
+        self.bulk_own.addItem("Author for all...", None)
+        self.bulk_own.addItem("(the section's lead)", "")
+        for n in (self.host.people() or []):
+            self.bulk_own.addItem(n, n)
+        self.bulk_own.blockSignals(False)
+        self.bulk_dec.setCurrentIndex(0)
+
+    def bulk_decide(self, key):
+        self.bulk_dec.setCurrentIndex(0)
+        fn = {"L": lambda: self.do_lm("L"), "M": lambda: self.do_lm("M"), "SOW": self.do_sow, "ctx": self.do_ctx,
+              "cust": self.do_customer, "ignore": self.do_clear}.get(key or "")
+        if fn is not None:
+            fn()
+
+    def bulk_section(self, lab):
+        rows = self.selected()
+        if not lab or not rows:
+            return 0
+        n = self.R.req(rows, lab)
+        diag.activity("compliance_assigned", n=n)
+        self.after(f"{n} sentences: compliance requirements in {lab}")
+        return n
+
+    def bulk_author(self, name):
+        if name is None:
+            return 0
+        rows = self.selected()
+        n = self.R.set_authors(rows, name) if rows else 0
+        if n:
+            diag.activity("assign_card_authors", n=n)
+            self.after(f"{n} sentence(s): author {name or 'the section lead'}")
+        else:
+            self.refresh_bulk(rows)
+            self.host.status("Authors go on requirements and support sentences: decide them first.")
+        return n
+
     def show_card(self, rows):
+        self.refresh_bulk(rows)
         if self.cx is not None:
             return self.cx.show_card(rows)
         self.clear_card()
@@ -1391,7 +1517,7 @@ class AssignPage(QWidget):
         if on and not it.get("owner"):
             self.add(D.label(f"Empty: the section lead writes it ({lead})." if lead else "Empty: the section's lead, once one is named (People...).", "muted"))
         if len(rows) == 1 and self.host.ws is not None:                 # 2.99.0: tasks and team questions on the sentence
-            self.head("Tasks and questions")
+            self.head("Tasks, questions and graphics")
             tq = sentence_work(R_.Record(self.host.ws.root), it["id"])
             if not tq:
                 self.add(D.label("None yet. A task or a question here shows to anyone who opens this sentence, and in the "
@@ -1405,6 +1531,11 @@ class AssignPage(QWidget):
                     txt = (f"QUESTION  {x['text']}" + (f"  \u00b7  for {x['assignee']}" if x.get("assignee") else "")
                            + (f"  \u00b7  answered: {x.get('answer', '')}" if x.get("resolved") else "  \u00b7  open"))
                 self.work_labels.append(self.add(D.label(txt)))
+            import graphics as GX                                       # 3.0.4: graphic needs tagged here
+            self.gfx_labels = []
+            for g in GX.for_sentence(R_.Record(self.host.ws.root), it["id"]):
+                self.gfx_labels.append(self.add(D.label(f"GRAPHIC  {g['concept']}  \u00b7  {g.get('status', '')}"
+                                                        + (f"  \u00b7  {g['section']}" if g.get("section") else ""))))
             wr = QHBoxLayout(); wr.setSpacing(D.SPACE["xs"])
             wr.addWidget(D.button("+ Task...", None, lambda _=False, i=it["id"]: self.add_work("task", i), "A task about this sentence, with an owner and a due date"))
             wr.addWidget(D.button("+ Ask the team...", None, lambda _=False, i=it["id"]: self.add_work("question", i), "A question for the team about this sentence"))
@@ -1999,7 +2130,15 @@ class AssignPage(QWidget):
     def do_undo(self):
         if self.R and self.R.undo_last():
             diag.activity("compliance_undo")
+            keep = [it["id"] for it in self.selected()]          # 3.0.4: the selection stays after Undo
             self.build_boxes()
+            self._guard = True
+            for iid in keep:
+                b = self.view.boxes.get(iid)
+                if b is not None:
+                    b.setSelected(True)
+            self._guard = False
+            self.cur = keep[-1] if keep else self.cur
             self.after("Undone.")
         else:
             self.host.status("Nothing to undo.")

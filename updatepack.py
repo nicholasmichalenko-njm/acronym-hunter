@@ -18,7 +18,7 @@ How it installs, offline and as the user (no admin):
 
 Uses only the Python standard library and edsign (pure Python), so it can run at the very start of the program.
 """
-import datetime, hashlib, json, os, shutil, subprocess, sys, time, zipfile
+import datetime, hashlib, json, os, re, shutil, subprocess, sys, time, zipfile
 
 FORMAT = 1
 EXT = ".skupdate"
@@ -543,25 +543,38 @@ def check_files(app_dir):
             ok += 1
         else:
             changed.append(rel)
-    extra = []
+    extra, logos = [], []
     for d, _dirs, names in os.walk(os.path.join(app_dir, "_internal")):
         for nm in names:
             rel = os.path.relpath(os.path.join(d, nm), app_dir).replace("\\", "/")
             if rel != MANIFEST and rel not in m["files"]:
-                extra.append(rel)
-    return {"version": m.get("version", ""), "ok": ok, "changed": changed, "missing": missing, "extra": sorted(extra)}
+                (logos if is_company_logo(rel) else extra).append(rel)
+    return {"version": m.get("version", ""), "ok": ok, "changed": changed, "missing": missing, "extra": sorted(extra),
+            "logos": sorted(logos)}
+
+
+def is_company_logo(rel):
+    """3.0.4: a company logo placed in the program folder (_internal/assets/brand/logo_01.png ...): the team's own file, put
+    there on purpose, never part of a version's list and never taken away by an update pack."""
+    rel = rel.replace("\\", "/")
+    head, name = os.path.split(rel)
+    return head.lower() == "_internal/assets/brand" and re.fullmatch(r"logo[_\- ]?\w*\.(png|jpe?g|bmp|gif|svg)", name.lower()) is not None
 
 
 def check_text(r):
     if r is None:
         return "This copy has no list of its program files (it is older than 2.76.0)."
+    logos = r.get("logos") or []
+    lt = (f" Company logos placed by your team ({len(logos)}): " + ", ".join(os.path.basename(x) for x in logos) + ".") if logos else ""
     if not (r["changed"] or r["missing"] or r["extra"]):
-        return f"All {r['ok']} program files match version {r['version']}."
+        return f"All {r['ok']} program files match version {r['version']}." + lt
     out = [f"Version {r['version']}: {r['ok']} program files match."]
     for label, key in (("Changed", "changed"), ("Missing", "missing"), ("Not part of this version", "extra")):
         if r[key]:
             out.append(f"{label} ({len(r[key])}): " + ", ".join(r[key][:12]) + (" ..." if len(r[key]) > 12 else ""))
     out.append("Download the full copy from the approved folder to put the program files right. Your data is not affected.")
+    if logos:
+        out.append(lt.strip() + " Copy them into the new copy's _internal\\assets\\brand folder too.")
     return "\n".join(out)
 
 

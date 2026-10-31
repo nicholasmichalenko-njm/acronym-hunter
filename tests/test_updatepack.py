@@ -232,6 +232,14 @@ open(os.path.join(APP, "_internal", "planted.dll"), "w").write("x")
 r = U.check_files(APP)
 check("Check program files: changed, missing and planted files", r["changed"] == ["_internal/python311.dll"] and r["missing"] == ["README.txt"]
       and r["extra"] == ["_internal/planted.dll"] and "Not part of this version (1)" in U.check_text(r), r)
+os.makedirs(os.path.join(APP, "_internal", "assets", "brand"), exist_ok=True)              # 3.0.4: the team's logo, placed on purpose
+open(os.path.join(APP, "_internal", "assets", "brand", "logo_01.png"), "wb").write(b"png")
+open(os.path.join(APP, "_internal", "assets", "brand", "notes.exe"), "wb").write(b"x")
+r = U.check_files(APP)
+check("a company logo in assets\\brand is the team's, not a planted file; anything else there still is",
+      r["logos"] == ["_internal/assets/brand/logo_01.png"] and "_internal/assets/brand/notes.exe" in r["extra"]
+      and "_internal/assets/brand/logo_01.png" not in r["extra"] and "Company logos placed by your team (1): logo_01.png" in U.check_text(r), r)
+check("... named only logo_*: a logo elsewhere is not", not U.is_company_logo("_internal/logo_01.png") and U.is_company_logo("_internal\\assets\\brand\\Logo_02.JPG"))
 
 # ------------------------------------------------ tools/make_update.py
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "tools"))
