@@ -68,7 +68,7 @@ try {
   try { if ($links -ne $null) { $app.Options.UpdateLinksAtOpen = $links } } catch {}
   try { $app.NormalTemplate.Saved = $true } catch {}       # nothing for Word to ask about on the way out
   [GC]::Collect(); [GC]::WaitForPendingFinalizers()
-  for ($i = 0; $i -lt 40; $i++) { try { $app.Quit(0); break } catch { Start-Sleep -Milliseconds 500 } }
+  for ($i = 0; $i -lt 40; $i++) { try { $app.Quit(); break } catch { Start-Sleep -Milliseconds 500 } }
   try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($app) } catch {}
   $app = $null; [GC]::Collect(); [GC]::WaitForPendingFinalizers()
 }
