@@ -61,7 +61,7 @@ class PictureDrop(QToolButton):
         md = event.mimeData()
         if md.hasUrls():
             for u in md.urls():
-                p = u.toLocalFile()
+                p = os.path.normpath(u.toLocalFile()) if u.toLocalFile() else ""
                 if p and os.path.splitext(p)[1].lower() in PIC_EXTS:
                     return p
         return ""
