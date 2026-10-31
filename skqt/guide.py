@@ -208,6 +208,18 @@ TOPICS = [
    "Export the volume... makes one Word file, a page per section, for the review. Export this section... makes one."],
   ["Win themes come from Effort Home (+ Theme...); a theme linked to the section is ticked for you.",
    "Graphic needs tagged in Review for the section list here too."]),
+ ("truth", "Deliver", "Wall of Truth",
+  "The one approved way to state every fact the proposal repeats: cleared staff, years with the customer, square "
+  "footage, contract values, names and the customer's terms. Check the drafts finds every place a draft disagrees.",
+  "Start it at kickoff from the team's facts; check the drafts before every color review and before final.",
+  ["Press + Truth... and fill in what it is, how to write it (142), the words it appears beside in a draft (cleared "
+   "staff, cleared employees) and anything never to write. Name the owner who confirms it.",
+   "Add the team's facts brings in the company facts every effort shares; Save to the team's wall shares one.",
+   "When a fact changes, change its value: the old one is kept, and the check finds it wherever it is still written.",
+   "Press Check the drafts. Each finding shows the volume, section and sentence. Right as written leaves one out next time.",
+   "Export the wall... makes the page to post in the war room and hand to writers; Export... gives the editors the findings."],
+  ["The drafts are the Word files in the effort's Volumes folder (and the deliverables' files).",
+   "A date in amber in Confirmed means nobody has checked that truth for 30 days: press Confirm when it is still right."]),
  ("postsub", "Deliver", "Post-Submission",
   "What the team does after the proposal goes in: owners, due dates and done.",
   "The proposal is submitted.",

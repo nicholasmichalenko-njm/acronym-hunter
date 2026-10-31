@@ -50,7 +50,7 @@ steps = [b.text() for k, b in w.step_btns.items()]
 check("the rail: the steps in Qt, then the areas still in the classic app (grey)", rail[:len(steps)] == steps
       and steps[2:16] == ["Effort Home", "Deliverables", "Dashboard", "Effort Record", "Color Reviews", "Read RFP", "Structure", "Review", "Prove",
                           "L/M Crosswalk", "Library", "Changes", "Submission Rules", "Customer Q&&A"] and "Matrix" in steps   # 2.99.0: Compliance up
-      and steps[20:24] == ["Customer Terms", "Effort List", "Submission Check", "Lists to Submit"]
+      and steps[21:25] == ["Customer Terms", "Effort List", "Submission Check", "Lists to Submit"]
       and all(not b.isEnabled() for b in w.findChildren(type(w.step_btns["read"])) if b.objectName() == "rail" and b.text() not in steps), rail)
 w.go("prove"); app.processEvents()
 check("the top bar names the page", w.page_title.text() == "Prove" and w.stack.currentWidget() is w.prove_page)

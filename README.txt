@@ -1,6 +1,19 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE WALL OF TRUTH (3.3.0)
+  - Deliver > Wall of Truth: the one approved way to state every fact the proposal repeats: cleared staff, years
+    supporting the customer, square footage, contract values, team size, and the names and customer terms. Each truth
+    has the value to write, the words it appears beside in a draft, anything never to write, its owner and source,
+    and when it was last confirmed (amber after 30 days; Confirm dates it today).
+  - Changing a value keeps the old one, so the check finds it wherever it is still written.
+  - Check the drafts reads the Word files in the Volumes folder sentence by sentence: every number beside a truth's
+    words that does not match, every old value still in use, and every wrong form, with the volume, section and
+    sentence. Right as written leaves a finding out next time. Export... gives the editors a workbook.
+  - The team's wall: Save to the team's wall shares a company fact; Add the team's facts brings the ones an effort
+    lacks into it. Export the wall... makes the page to post in the war room and hand to writers. The readable copy
+    has Wall of Truth.csv.
+
 WRITING SUPPORT: WIN THEMES, STORYBOARDS, A SAMPLE EFFORT (3.2.0)
   - Effort Home > Win themes: the themes and discriminators agreed at kickoff, each with its statement (the benefit to
     the customer), the discriminator only we offer, its proof points, the hot button it answers and the sections that

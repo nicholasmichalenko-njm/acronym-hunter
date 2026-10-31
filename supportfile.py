@@ -20,6 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.3.0": ["Deliver > Wall of Truth: one approved value for every fact and number, names and terms; Check the drafts finds "
+              "every number that disagrees, every old value still in use and every wrong form, by volume and section.",
+              "The team's wall carries company facts to every effort; Export the wall makes the page to post."],
     "3.2.0": ["Win themes on Effort Home: themes and discriminators with proof and sections; Check the drafts says where each "
               "is said and where it is missing.",
               "Deliver > Storyboards: one sheet per section before the first draft, exported to Word for the review.",

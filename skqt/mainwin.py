@@ -41,11 +41,13 @@ RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),          
         ("Documents", [("library", "Library"), ("compare", "Changes"), ("requirements", "Submission Rules"),
                        ("custqa", "Customer Q&A")]),
         ("Deliver", [("matrix", "Matrix"), ("setup", "Response Setup"), ("storyboards", "Storyboards"),        # 3.2.0
+                     ("truth", "Wall of Truth"),                                                       # 3.3.0
                      ("postsub", "Post-Submission")]),
         ("Response Quality", [("acronyms", "Customer Terms"), ("acrlist", "Effort List"), ("qa", "Submission Check"),
                               ("lists", "Lists to Submit"), ("keywords", "Keywords")]),
         ("Effort Files", [("exportall", "Export All"), ("settings", "Settings")])]
 TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and work not filed yet"),
+          "truth": ("Wall of Truth", "The one approved way to state every fact and number, and the drafts checked against it"),
           "storyboards": ("Storyboards", "One sheet per section before the first draft: message, themes, approach, features and proof"),
           "mywork": ("My Work", "One person's work in every effort, soonest first"),
           "home": ("Effort Home", "Stage, gate goals, tasks, questions and the calendar"),
@@ -193,10 +195,12 @@ class MainWindow(QMainWindow):
         self.mywork_page = MyWorkPage(self)            # 3.1.0
         from .storyboardpage import StoryboardPage
         self.storyboards_page = StoryboardPage(self)   # 3.2.0
+        from .wallpage import WallPage
+        self.truth_page = WallPage(self)               # 3.3.0
         self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page, "custqa": self.custqa_page,
                       "impact": self.impact_page, "deliverables": self.deliverables_page, "qa": self.qa_page, "lists": self.lists_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
-                      "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "postsub": self.postsub_page}
+                      "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "postsub": self.postsub_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)
         cv.addWidget(self.stack, 1)

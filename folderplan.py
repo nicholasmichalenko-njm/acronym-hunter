@@ -44,6 +44,8 @@ OUTPUTS = [
     ("deliverables", "Deliverables", "exports", "{Effort}_Deliverables_{Date}", ".xlsx"),
     ("graphic_needs", "Graphic needs", "exports", "{Effort}_Graphic_Needs_{Date}", ".xlsx"),
     ("storyboards", "Storyboards", "exports", "{Effort}_{Doc}_Storyboard_{Date}", ".docx"),
+    ("wall_of_truth", "Wall of Truth", "exports", "{Effort}_Wall_of_Truth_{Date}", ".docx"),
+    ("wall_of_truth_check", "Wall of Truth check of the drafts", "exports", "{Effort}_Wall_of_Truth_Check_{Date}_{Time}", ".xlsx"),
     ("submission_rules", "Submission requirements", "exports", "{Effort}_Submission_Requirements", ".xlsx"),
     ("review_packet", "Review packet", "exports", "{Effort}_{Stage}_Review_Packet_{Date}", ".docx"),
     ("redline", "Redline between two versions", "exports", "{Doc}_{From}_to_{To}_Redline", ".docx"),
