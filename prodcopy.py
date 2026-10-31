@@ -59,11 +59,11 @@ def is_copy_name(path):
 
 def check_write(path):
     """WRITE_GUARD for the engine: only a Stationkeeper copy inside a registered output folder."""
-    real = os.path.normcase(os.path.realpath(path))
-    folder = os.path.dirname(real)
+    real = os.path.realpath(path)
+    folder = os.path.normcase(os.path.dirname(real))       # Windows: the folder is compared without case...
     if not any(folder == r or folder.startswith(r + os.sep) for r in _ROOTS):
         raise NotAllowed("Stationkeeper writes only into the production output folder.")
-    if not is_copy_name(real):
+    if not is_copy_name(real):                              # ...the name with its own case (normcase lowers it)
         raise NotAllowed("Stationkeeper writes only to its own dated copies.")
 
 

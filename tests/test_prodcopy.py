@@ -99,6 +99,15 @@ other = os.path.join(tmp, "Elsewhere"); os.makedirs(other)
 fake = os.path.join(other, os.path.basename(job.copy)); shutil.copy2(job.copy, fake)
 msg, _n = refused(lambda: sw.apply(fake, op), PC.NotAllowed)
 check("a copy-like name outside an output folder is refused too", "output folder" in msg, msg)
+real_norm = PC.os.path.normcase
+PC.os.path.normcase = lambda x: x.lower()          # Windows lowers paths: the copy's own name must still pass
+PC.allow_root(out)
+try:
+    PC.check_write(job.copy); win_ok = True
+except PC.NotAllowed:
+    win_ok = False
+PC.os.path.normcase = real_norm
+check("Windows path case: the guard still knows Stationkeeper's own copy", win_ok)
 check("THE GATE: the original is unchanged after the refusals", PC.state(orig) == before)
 # a real fix on the copy (fonts), then the properties
 fsrc = os.path.join(src_dir, "Fonts.docx"); FF.make(fsrc)
