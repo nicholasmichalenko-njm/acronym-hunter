@@ -22,7 +22,7 @@ import json, os, re, shutil, sys, tempfile, time, traceback
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 fixtures, work, out_json, harness = sys.argv[1:5]
-which = (sys.argv[5] if len(sys.argv) > 5 else "small,large,xl").split(",")
+which = [x for a in (sys.argv[5:] or ["small,large,xl"]) for x in a.split(",") if x]
 sys.path.insert(0, harness)
 from wordsession import WordSession, retry          # noqa: E402  (lab harness, pywin32)
 import prodcopy as PCY, prodfix as PF, prodrules as PRL, prodword as PW   # noqa: E402
@@ -233,8 +233,15 @@ def check_page_labels(labels, n_chapters, n_appendix):
             "problems": len(problems), "first": problems[:8]}
 
 
+def word_pids():
+    import subprocess
+    r = subprocess.run(["tasklist", "/FI", "IMAGENAME eq WINWORD.EXE", "/FO", "CSV", "/NH"], capture_output=True, text=True)
+    return {int(row.split('","')[1]) for row in r.stdout.splitlines() if row.startswith('"WINWORD')}
+
+
 def gate(name):
     res = {"fixture": name, "checks": {}}
+    words_before = word_pids()
     ok = res["checks"]
     fx = os.path.join(fixtures, f"{name}.docx")
     man = json.load(open(os.path.join(fixtures, f"manifest_{name}.json")))
@@ -305,6 +312,11 @@ def gate(name):
     res["second_run_s"] = round(time.perf_counter() - t, 1)
     res["second_run_changed"] = [s["step"] for s in job2.steps if s.get("changed")]
     ok["a second run changes nothing but the copy mark"] = res["second_run_changed"] == ["Mark the copy"]
+    time.sleep(10)
+    left = word_pids() - words_before
+    res["word_left_running"] = sorted(left)
+    res["word_ended_by_job"] = word.get("report", {}).get("word_ended") if isinstance(word.get("report"), dict) else None
+    ok["no Word left running after the job"] = not left
     return res
 
 

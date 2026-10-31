@@ -1,6 +1,32 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+PRODUCTION: FIX A COPY, EVERY RULE IN PRODUCTION STANDARDS (3.6.0)
+  - Production > Fix a Copy: checks a Word draft against the production standard and fixes it in a copy. The original
+    is never changed: it is read once, and a file someone has open (Word's ~$ owner file, another program holding it,
+    or Word, Excel or PowerPoint on this PC listing it, also from OneDrive or SharePoint) is not copied at all. The copy
+    goes only into the output folder (Change... sets it; default Stationkeeper Data\Production Copies), named
+    "<name> - COPY - Stationkeeper <date time>", marked in its properties, with a report beside it.
+  - What it fixes, each switched on or off: styles from the format variables; styles that take heading numbers they
+    should not (TOC Heading); heading numbering; fonts and sizes typed over the styles; styles that break the font
+    rules; tables by row role (caption, header, second header, subhead, body, subtotal, total, notes) with each role's
+    fill, font, spacing and every border edge; typed bullets and numbers into the team's list styles; typed caption
+    numbers into fields; caption lists, chapter parts, separators and the tab after the number; the TOC field and its
+    entry styles; lists of tables and figures by caption list; cross-reference switches and broken references pointed at
+    a target you choose; the Response and Appendices bookmarks; chapter section breaks; page number format and restarts
+    (cover, i, ii..., 1-1..., A-1...); page setup; headers and footers from the layouts, cover and back cover included;
+    misspellings and trademark marks; removing unused custom styles and hiding unused built-ins.
+  - Tables: every row's role is shown; rows that need an answer wait for it (one answer covers every row like it); keys
+    C H 2 S B U T N K set roles; the table type can be changed per table.
+  - Update fields in Word (Windows): Word itself renumbers page numbers, captions, cross-references, the TOC and the lists
+    of tables and figures in the copy (hidden, this job's Word only; fields that read other files are locked first).
+  - Each fix is one guarded change that may touch only what it declares; a fix that would touch anything else is refused
+    and the copy stays as it was before it. Proven in Word on 38-, 516- and 757-page volumes.
+  - Production > Production Standards: every rule, editable value by value in three layers: the team standard, document
+    types and this effort (the RFP's rules). Format variables, font rules, styles and heading numbering, table rows (with
+    a preview), table types, row rules, captions and numbering, the page scheme with cover and back cover, page setups,
+    headers and footers, the TOC and its entry styles, lists, terms, and Format Check options. Export for review...
+
 PRODUCTION: FORMAT CHECK AND PRODUCTION STANDARDS (3.5.0)
   - Production > Format Check: the Word drafts in the Volumes folder (and any Word file you add) read against the
     production standard: fonts and sizes by kind of text (body, tables, captions, headings, headers and footers,

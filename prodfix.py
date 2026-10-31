@@ -391,7 +391,7 @@ def run(path, folder, std, plan, word=None, progress=None, open_list=PCY._ASK, w
         if fx["key"] not in (plan.get("on") or []):
             continue
         if fx["key"] == "styles_merge" and not os.path.isfile((std.get("styles") or {}).get("template") or ""):
-            job.steps.append({"step": fx["label"], "changed": False, "refused": "The standard's template file is not there."})
+            job.steps.append({"step": fx["label"], "key": fx["key"], "changed": False, "refused": "The standard's template file is not there."})
             continue
         say(fx["label"])
         rec = PCY.run_step(job, fx["label"], fx["op"], fx["allowed"], fx["args"](std, plan))

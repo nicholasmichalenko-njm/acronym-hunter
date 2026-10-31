@@ -57,8 +57,12 @@ def exclusive_probe(path):
     """True if no other process has the file open at all (Windows share mode 0)."""
     if sys.platform != "win32":
         return True
-    import pywintypes
-    import win32file
+    try:
+        import pywintypes
+        import win32file
+    except ImportError:                       # 3.6.0: Stationkeeper ships without pywin32; ask Windows through ctypes
+        import prodcopy
+        return prodcopy.exclusive_read_free(path)
     for attempt in range(2):
         try:
             h = win32file.CreateFile(path, win32file.GENERIC_READ | win32file.GENERIC_WRITE, 0, None,
@@ -82,6 +86,9 @@ def open_in_running_word(path):
         return False
     try:
         import pythoncom
+    except ImportError:
+        return False   # 3.6.0: no pywin32 in Stationkeeper; its own checks ask Office which files are open (prodcopy.in_use)
+    try:
         pythoncom.CoInitialize()  # this thread may not have COM set up (or a caller released it)
     except Exception:
         return True

@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.6.0": ["Production > Fix a Copy: fixes a Word draft to the production standard in a dated copy in the output folder; "
+              "the original is never changed, and a file someone has open is not copied. Tables by row role, captions and "
+              "numbering, TOC, pages, headers and footers, lists, fonts and styles, then Word updates the fields.",
+              "Production > Production Standards: every rule, value by value, for the team, each document type and this effort."],
     "3.5.0": ["Production > Format Check: Word drafts read against the production standard (fonts by kind of text, margins and "
               "page size, captions, the table of contents, typed lists, page numbers), each finding with where it is and why. "
               "The files are only read, never changed.",

@@ -11,7 +11,7 @@ os.environ["SK_SANDBOX_TEMP"] = "temp_qt"
 tmp = tempfile.mkdtemp()
 os.environ["SK_DATA_DIR"] = os.path.join(tmp, "Stationkeeper Data")
 import app_gui as A
-import effortfolders as EF, prodstd as PS, prod_fixture as FX
+import effortfolders as EF, prodrules as PRL, prod_fixture as FX
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QMessageBox
 QMessageBox.information = staticmethod(lambda *a, **k: None)
@@ -38,7 +38,7 @@ f = w.home_page.start; f.name.setText("Osprey"); f.sol.setText("FA8810-26-R-0042
 groups = [g for g, _it in RAIL]
 check("Production sits before Effort Files, with Format Check and Production Standards",
       groups.index("Production") == groups.index("Effort Files") - 1
-      and [k for g, it in RAIL if g == "Production" for k, _l in it] == ["format", "prodstd"], groups)
+      and [k for g, it in RAIL if g == "Production" for k, _l in it] == ["format", "fixcopy", "prodstd"], groups)
 vol = FX.build(os.path.join(EF.folder(w.effort_path, "volumes"), "Volume I Technical.docx"))
 os.makedirs(os.path.join(tmp, "elsewhere")); other = FX.build(os.path.join(tmp, "elsewhere", "Annex.docx"))
 before = (fp(vol), fp(other))
@@ -46,7 +46,7 @@ w.go("format"); app.processEvents()
 pg = w.format_page
 names = [pg.files.item(i).text() for i in range(pg.files.count())]
 check("Format Check lists the Volumes folder's drafts", "Volume I Technical.docx" in names or "Volume I Technical" in names, names)
-check("the standard in words", pg.std_lbl.text().startswith("Proposal volume: body Times New Roman 12 pt, tables Arial 10 pt, margins 1 in, Letter"),
+check("the standard in words", pg.std_lbl.text().startswith("Proposal volume: body Times New Roman 11 pt, tables Arial 9 pt, margins 1 in, Letter"),
       pg.std_lbl.text())
 pg.add_file(other)
 res = pg.run(); app.processEvents()
@@ -62,21 +62,23 @@ pg.files.item(1).setCheckState(Qt.Unchecked); w.go("home"); w.go("format"); app.
 check("an added file and an unchecked draft are kept when the page comes back", pg.files.count() == 2 and pg.files.item(1).checkState() == Qt.Unchecked)
 x = pg.export(os.path.join(tmp, "fc.xlsx"))
 check("Export...", os.path.isfile(x))
-# the standards
+# the standards (3.6.0: the three-layer page; Format Check reads the same standard)
 w.go("prodstd"); app.processEvents()
 sp = w.prodstd_page
-check("Production Standards shows the built-in type and this effort's card", sp.type.currentText() == "Proposal volume" and sp.font_rows["body"][0].text() == "Times New Roman"
-      and not sp.eff.isHidden())
-sp.font_rows["table"][1].setValue(9); sp.margins.setValue(0.75); sp.save()
-check("Save keeps the team's type", PS.load(cfg)["types"][0]["fonts"]["table"]["min"] == 9 and PS.load(cfg)["types"][0]["margins_in"] == 0.75)
-check("a new document type, copied from the one shown", sp.add_type("Cost volume") == "Cost volume" and sp.type.currentText() == "Cost volume"
-      and [t["name"] for t in PS.load(cfg)["types"]] == ["Proposal volume", "Cost volume"])
-check("a name already used is refused", sp.add_type("Cost volume") == "")
+sp.scope_box.setCurrentIndex(sp.scope_box.findData("type:proposal")); app.processEvents()
+it = next(i for i in sp.binder.items if i["path"] == ("variables", "table_size")); it["w"].setValue(10.0)
+it = next(i for i in sp.binder.items if i["path"] == ("variables", "margin_left")); it["w"].setValue(0.75)
+sp.save()
+check("Save keeps the document type's own values", PRL.type_of(PRL.load(cfg), "proposal")["variables"] == {"table_size": 10.0, "margin_left": 0.75})
+w.go("format"); app.processEvents()
+check("Format Check reads the saved standard", "tables Arial 10 pt" in pg.std_lbl.text() and "margins 0.75 in" in pg.std_lbl.text(), pg.std_lbl.text())
+w.go("prodstd"); app.processEvents()
+sp.scope_box.setCurrentIndex(sp.scope_box.findData("effort:")); app.processEvents()
 reg = Ctx(w).reg
 reg.add("Format", "Font", "11-point Arial"); reg.add("Format", "Margins", "1-inch margins")
 over = sp.fill_from_rfp()
-check("Fill from the RFP's formatting rules", over.get("fonts", {}).get("body", {}).get("font") == "Arial" and over.get("margins_in") == 1.0
-      and "From the RFP: Font: 11-point Arial" in sp.eff_text.text(), (over, sp.eff_text.text()))
+check("Fill from the RFP's formatting rules", over["variables"].get("body_font") == "Arial" and over["variables"].get("margin_left") == 1.0
+      and "From the RFP: Font: 11-point Arial" in sp.eff_said.text(), (over, sp.eff_said.text()))
 w.go("format"); app.processEvents()
 check("Format Check now uses the effort's values", pg.std_lbl.text().startswith("Proposal volume + this effort: body Arial 11 pt") and "margins 1 in" in pg.std_lbl.text(),
       pg.std_lbl.text())

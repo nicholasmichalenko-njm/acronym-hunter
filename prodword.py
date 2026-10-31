@@ -62,7 +62,7 @@ try {
   $out.why = "$($_.Exception.HResult)"
 } finally {
   try { if ($links -ne $null) { $app.Options.UpdateLinksAtOpen = $links } } catch {}
-  try { $app.Quit(0) } catch {}
+  for ($i = 0; $i -lt 40; $i++) { try { $app.Quit(0); break } catch { Start-Sleep -Milliseconds 500 } }
   try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($app) } catch {}
   $app = $null; [GC]::Collect(); [GC]::WaitForPendingFinalizers()
 }
@@ -74,17 +74,41 @@ def available():
     return sys.platform.startswith("win")
 
 
-def _end(pidfile):
+def _pids(pidfile):
     try:
-        pids = [int(x) for x in open(pidfile).read().strip().split(",") if x.strip().isdigit()]
+        return [int(x) for x in open(pidfile).read().strip().split(",") if x.strip().isdigit()]
     except OSError:
-        return
-    for pid in pids:
-        try:
-            subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True, timeout=30,
+        return []
+
+
+_END_HIDDEN = r"""
+$ErrorActionPreference = 'SilentlyContinue'
+$left = 0
+foreach ($id in ($env:SK_PIDS -split ',')) { if (-not $id) { continue }
+  for ($i = 0; $i -lt 40; $i++) { if (-not (Get-Process -Id $id -ErrorAction SilentlyContinue)) { break }; Start-Sleep -Milliseconds 500 }
+  $p = Get-Process -Id $id -ErrorAction SilentlyContinue
+  if ($p -and $p.ProcessName -eq 'WINWORD' -and $p.MainWindowHandle -eq 0) { Stop-Process -Id $id -Force; $left++ } }
+$left
+"""
+
+
+def _end_hidden(pids, timeout=60):
+    """The Word this job started must be gone when the job ends. Wait up to 20 seconds for it to quit, then end it,
+    but only that exact process, only if it is still Word, and only while it has no window (a Word a person is using
+    is never touched)."""
+    if not pids or not available():
+        return 0
+    try:
+        r = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", _END_HIDDEN],
+                           env=dict(os.environ, SK_PIDS=",".join(str(p) for p in pids)), capture_output=True, timeout=timeout,
                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-        except (OSError, subprocess.SubprocessError):
-            pass
+        return int((r.stdout.decode("utf-8", "replace").strip().splitlines() or ["0"])[-1] or 0)
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return 0
+
+
+def _end(pidfile):
+    _end_hidden(_pids(pidfile))
 
 
 def update_fields(copy_path, timeout=1800, runner=None):
@@ -110,10 +134,12 @@ def update_fields(copy_path, timeout=1800, runner=None):
     except OSError as e:
         return {"ok": False, "why": f"Windows PowerShell could not start ({type(e).__name__})."}
     finally:
+        pids = _pids(pidfile)
         try:
             os.remove(pidfile)
         except OSError:
             pass
+    ended = _end_hidden(pids) if runner is None else 0
     try:
         res = json.loads(next(x for x in reversed(out.strip().splitlines()) if x.startswith("{")))
     except (StopIteration, ValueError):
@@ -123,4 +149,5 @@ def update_fields(copy_path, timeout=1800, runner=None):
         why = {"-2146822880": "Word could not open the copy (damaged).", "-2146824090": "Word could not open the copy."}.get(code, "Word could not update the fields.")
         return {"ok": False, "why": why + (f" (code {code})" if code else "")}
     res["seconds"] = round(time.perf_counter() - t0, 1)
+    res["word_ended"] = ended            # 1 when Word had to be ended after it did not quit by itself
     return res
