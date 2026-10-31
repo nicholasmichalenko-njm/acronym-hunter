@@ -32,6 +32,7 @@ try {
   $d = $app.Documents.Open($env:SK_COPY, $false, $false, $false, 'sk-no-password', 'sk-no-password', $false, '', '', 0, 0, $false, $false, 0, $true)
   try {
     $locked = 0
+    if ($env:SK_LOCK -eq '1') {
     foreach ($story in $d.StoryRanges) {
       $r = $story
       while ($r -ne $null) {
@@ -41,23 +42,18 @@ try {
     }
     foreach ($s in $d.Sections) { foreach ($h in $s.Headers) { foreach ($f in $h.Range.Fields) { if (@(56, 67, 68) -contains $f.Type) { $f.Locked = $true; $locked++ } } }
                                   foreach ($h in $s.Footers) { foreach ($f in $h.Range.Fields) { if (@(56, 67, 68) -contains $f.Type) { $f.Locked = $true; $locked++ } } } }
+    }
     # pass 1: every field in every story, then the TOC and the lists of tables and figures in full
     foreach ($story in $d.StoryRanges) { $r = $story; while ($r -ne $null) { [void]$r.Fields.Update(); $r = $r.NextStoryRange } }
     foreach ($s in $d.Sections) { foreach ($h in $s.Headers) { [void]$h.Range.Fields.Update() }; foreach ($h in $s.Footers) { [void]$h.Range.Fields.Update() } }
     foreach ($t in $d.TablesOfContents) { $t.Update() }
     foreach ($t in $d.TablesOfFigures) { $t.Update() }
     $d.Repaginate()
-    # pass 2: only what depends on where pages fall now that the TOC and lists have their final length
+    # pass 2: the TOC and the lists of tables and figures take their final page numbers (their own length may have moved pages)
     foreach ($t in $d.TablesOfContents) { $t.UpdatePageNumbers() }
     foreach ($t in $d.TablesOfFigures) { $t.UpdatePageNumbers() }
-    foreach ($story in $d.StoryRanges) { $r = $story; while ($r -ne $null) {
-      foreach ($f in $r.Fields) { if ($f.Type -eq 37) { [void]$f.Update() } }; $r = $r.NextStoryRange } }
-    $errors = 0; $fields = 0
-    foreach ($story in $d.StoryRanges) { $r = $story; while ($r -ne $null) {
-      foreach ($f in $r.Fields) { $fields++; try { if ($f.Result.Text -like '*Error!*') { $errors++ } } catch {} }
-      $r = $r.NextStoryRange } }
     $out.pages = $d.ComputeStatistics(2)
-    $out.fields = $fields; $out.errors = $errors; $out.locked = $locked
+    $out.fields = $d.Fields.Count; $out.locked = $locked
     $out.tocs = $d.TablesOfContents.Count; $out.lists = $d.TablesOfFigures.Count
     $d.Save()
     $out.ok = $true
@@ -117,6 +113,37 @@ def _end(pidfile):
     _end_hidden(_pids(pidfile))
 
 
+def reads_other_files(path):
+    """True when any field in the copy reads another file (LINK, INCLUDETEXT, INCLUDEPICTURE): Word locks those first."""
+    try:
+        from prodengine.engine.pkg import Package
+        from prodengine.engine.fingerprint import fields
+        pkg = Package(path)
+        return any(f.split()[0].upper() in ("LINK", "INCLUDETEXT", "INCLUDEPICTURE") for st in pkg.stories()
+                   for f in fields(pkg.tree(st)) if f.split())
+    except Exception:  # noqa: BLE001  unknown: lock to be safe
+        return True
+
+
+def error_results(path):
+    """How many field results in the copy read 'Error!' after Word's update (from the saved file, not through Word)."""
+    try:
+        from prodengine.engine.pkg import Package
+        from prodengine.engine.fingerprint import visible_text
+        from prodengine.engine.ops.word_ops import field_groups
+        pkg = Package(path)
+        n = 0
+        for st in pkg.stories():
+            root = pkg.tree(st)
+            for p in root.iter("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p"):
+                for g in field_groups(p):
+                    if any("Error!" in visible_text(r) for r in g["result"]):
+                        n += 1
+        return n
+    except Exception:  # noqa: BLE001
+        return -1
+
+
 def update_fields(copy_path, timeout=1800, runner=None):
     PCY.check_write(copy_path)
     if not available() and runner is None:
@@ -125,7 +152,7 @@ def update_fields(copy_path, timeout=1800, runner=None):
         return {"ok": False, "why": "Someone opened the copy in Word. Close it first."}
     t0 = time.perf_counter()
     pidfile = os.path.join(os.path.dirname(copy_path), f".sk_word_{os.getpid()}.pid")
-    env = dict(os.environ, SK_COPY=os.path.abspath(copy_path), SK_PIDFILE=pidfile)
+    env = dict(os.environ, SK_COPY=os.path.abspath(copy_path), SK_PIDFILE=pidfile, SK_LOCK="1" if reads_other_files(copy_path) else "0")
     cmd = ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", _SCRIPT]
     try:
         if runner is not None:
@@ -155,5 +182,6 @@ def update_fields(copy_path, timeout=1800, runner=None):
         why = {"-2146822880": "Word could not open the copy (damaged).", "-2146824090": "Word could not open the copy."}.get(code, "Word could not update the fields.")
         return {"ok": False, "why": why + (f" (code {code})" if code else "")}
     res["seconds"] = round(time.perf_counter() - t0, 1)
+    res["errors"] = error_results(copy_path)
     res["word_ended"] = ended            # 1 when Word had to be ended after it did not quit by itself
     return res
