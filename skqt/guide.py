@@ -63,6 +63,8 @@ TOPICS = [
    "Customize Home... chooses which cards show.",
    "Cards such as Submission instructions and Evaluation and hot buttons fill in from what you capture in Review.",
    "Export tasks and questions... makes a workbook for a meeting.",
+   "Win themes keeps the themes and discriminators agreed at kickoff, with their proof and sections. Check the drafts reads "
+   "the Word files in the Volumes folder and says where each theme appears and where a linked section never says it.",
    "Graphic needs lists what was tagged as needing a graphic. Open goes to the sentence; click one to mark it In work or "
    "Done; Graphic on a note adds that note; Export... makes a workbook for the graphics team."]),
  ("deliverables", "Effort", "Deliverables",
@@ -195,6 +197,17 @@ TOPICS = [
    "Press Export the setup... One Word file per volume.",
    "Export changes only... gives writers just what changed since the last setup."],
   ["The export is plain: RFP text in purple, direction in green, ready for your team's own styles."]),
+ ("storyboards", "Deliver", "Storyboards",
+  "One sheet per section before anyone drafts: the key message, the win themes it carries, the approach, features "
+  "with benefits and proof, and its graphics, beside its requirements and page budget.",
+  "After the Response Setup goes out and before the first draft; review them at a storyboard review.",
+  ["Pick a volume, then a section on the left. Its lead, writers, page budget and requirements show at the top.",
+   "Write the key message and the approach. Tick the win themes the section carries. + Feature adds a feature with its "
+   "benefit and proof.",
+   "Set the status as it moves: Drafting, Ready for review, Approved. It saves as you type.",
+   "Export the volume... makes one Word file, a page per section, for the review. Export this section... makes one."],
+  ["Win themes come from Effort Home (+ Theme...); a theme linked to the section is ticked for you.",
+   "Graphic needs tagged in Review for the section list here too."]),
  ("postsub", "Deliver", "Post-Submission",
   "What the team does after the proposal goes in: owners, due dates and done.",
   "The proposal is submitted.",

@@ -146,6 +146,9 @@ class StartEffort(QFrame):
         self.where = D.label("", "muted"); outer.addWidget(self.where)
         brow = QHBoxLayout(); brow.addStretch(1)
         if inline:
+            self.sample_btn = D.button("Try the sample effort", "ghost", lambda: self.try_sample(),       # 3.2.0
+                                       "A fictional effort, Kestrel Thermal, with its RFP read in: learn on it, then archive it")
+            brow.insertWidget(0, self.sample_btn)
             brow.addWidget(D.button("Open an effort", None, lambda: host.go("efforts"), "Every effort on this PC"))
         self.create_btn = D.button("Create effort", "primary", lambda: self.create())
         brow.addWidget(self.create_btn)
@@ -198,6 +201,11 @@ class StartEffort(QFrame):
         if p:
             self.path.setText(p); self._path_set_by_hand = True
             self.where.setText(f"Its folder: {os.path.dirname(p)}")
+
+    def try_sample(self, read=True):
+        """3.2.0: the fictional Kestrel Thermal effort, made and opened."""
+        from . import sample
+        return sample.build(self.host, read=read)
 
     def reset(self):
         for e in (self.name, self.client, self.sol, self.due, self.cust, self.vols, self.internal):

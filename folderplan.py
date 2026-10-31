@@ -43,6 +43,7 @@ OUTPUTS = [
     ("postsub", "Post-submission checklist", "exports", "{Effort}_Post-Submission_Checklist", ".xlsx"),
     ("deliverables", "Deliverables", "exports", "{Effort}_Deliverables_{Date}", ".xlsx"),
     ("graphic_needs", "Graphic needs", "exports", "{Effort}_Graphic_Needs_{Date}", ".xlsx"),
+    ("storyboards", "Storyboards", "exports", "{Effort}_{Doc}_Storyboard_{Date}", ".docx"),
     ("submission_rules", "Submission requirements", "exports", "{Effort}_Submission_Requirements", ".xlsx"),
     ("review_packet", "Review packet", "exports", "{Effort}_{Stage}_Review_Packet_{Date}", ".docx"),
     ("redline", "Redline between two versions", "exports", "{Doc}_{From}_to_{To}_Redline", ".docx"),

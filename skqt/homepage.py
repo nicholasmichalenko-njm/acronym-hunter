@@ -3,7 +3,7 @@ the gate goals of the current stage (the app ticks the ones it can check), tasks
 calendar of due dates, stages, tasks and what happened, customer information, and the latest of the timeline. One
 "Show tasks and questions for" filter picks a person. Everything is kept in the effort's record (record.json), the same
 file the classic window uses; one program holds an effort at a time. Rules only; nothing leaves the PC."""
-import datetime
+import datetime, os
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtGui import QTextCharFormat
 from PySide6.QtWidgets import (QCalendarWidget, QCheckBox, QComboBox, QDateEdit, QDialog, QDialogButtonBox, QFormLayout,
@@ -164,19 +164,27 @@ class HomePage(QWidget):
                                "or from a note.", actions=[D.button("+ Graphic need...", None, lambda: self.graphic_dialog()),
                                                            D.button("Export...", "ghost", lambda: self.export_graphics(),
                                                                     "A dated workbook of the graphic needs, for the graphics team")])
+        self.themes_card = D.Card("Win themes", "The themes and discriminators agreed at kickoff, the sections that carry them, "   # 3.2.0
+                                  "and whether the drafts say them.",
+                                  actions=[D.button("+ Theme...", None, lambda: self.theme_dialog()),
+                                           D.button("Check the drafts", "ghost", lambda: self.check_themes(),
+                                                    "Read the volume drafts: where each theme's words appear, and the linked sections where they do not")])
+        self.theme_check = {}
         self.body = QVBoxLayout(); self.body.setSpacing(D.SPACE["m"]); v.addLayout(self.body)
         v.addStretch(1)
         self.cards = {"stage": self.track, "deliverables": self.deliv_card, "mywork": self.mywork, "goals": self.goals,
                       "notes": self.notes, "tasks": self.tasks, "calendar": self.cal_card, "info": self.info, "timeline": self.timeline,
                       "formatting": self.fmt_card, "submission": self.sub_card, "custqa": self.qa_card,
-                      "custfocus": self.focus_card, "graphics": self.gfx_card}
+                      "custfocus": self.focus_card, "graphics": self.gfx_card,
+                      "themes": self.themes_card}
         self.lay = None
         self.apply_layout()
         self.sections = {k: QVBoxLayout() for k in ("goals", "tasks", "notes", "info", "timeline", "formatting", "submission", "custqa", "custfocus",
-                                                    "graphics")}
+                                                    "graphics", "themes")}
         for k, card in (("goals", self.goals), ("tasks", self.tasks), ("notes", self.notes), ("info", self.info),
                         ("timeline", self.timeline), ("formatting", self.fmt_card), ("submission", self.sub_card),
-                        ("custqa", self.qa_card), ("custfocus", self.focus_card), ("graphics", self.gfx_card)):
+                        ("custqa", self.qa_card), ("custfocus", self.focus_card), ("graphics", self.gfx_card),
+                        ("themes", self.themes_card)):
             self.sections[k].setSpacing(D.SPACE["xs"]); card.body.addLayout(self.sections[k])
 
     # ------------------------------------------------------------ the effort
@@ -239,6 +247,7 @@ class HomePage(QWidget):
         self.draw_custqa(r)
         self.draw_focus(r)
         self.draw_graphics(r)
+        self.draw_themes(r)
         self.draw_goals(r, checks)
         self.draw_tasks(r)
         self.draw_notes(r)
@@ -1012,6 +1021,144 @@ class HomePage(QWidget):
             lay.addWidget(D.label(f"and {len(qs) + len(others) - 14} more", "muted"))
         if not qs and not others:
             lay.addWidget(D.label("No notes yet." if not who else f"No open questions for {who}.", "muted"))
+
+    # ------------------------------------------------------------ 3.2.0 win themes
+    def draw_themes(self, r):
+        import themes as TH
+        lay = self.sections["themes"]; clear(lay)
+        ts = TH.items(r)
+        self.themes_now = [t["id"] for t in ts]
+        self.themes_card.title.setText(f"Win themes   {len(ts)}")
+        if not ts:
+            lay.addWidget(D.label("None yet. + Theme... adds the themes agreed at kickoff: the benefit, the discriminator only we "
+                                  "offer, its proof, and the sections that carry it.", "muted"))
+            return
+        for t in ts:
+            row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
+            p = D.Pill("THEME" if t["kind"] == "Win theme" else "DISCRIMINATOR", "accent" if t["kind"] == "Win theme" else "ctx")
+            p.setFixedWidth(120); row.addWidget(p, 0, Qt.AlignTop)
+            col = QVBoxLayout(); col.setSpacing(0)
+            tl = ClickLabel(t["title"], lambda tid=t["id"]: self.theme_dialog(tid)); tl.setToolTip("Change it"); tl.setMinimumWidth(120)
+            f = tl.font(); f.setBold(True); tl.setFont(f); col.addWidget(tl)
+            if t.get("statement"):
+                col.addWidget(D.label(t["statement"], None))
+            bits = ([f"Discriminator: {t['discriminator']}"] if t.get("discriminator") else []) + \
+                   ([f"Proof: {'; '.join(t['proof'])}"] if t.get("proof") else []) + \
+                   ([f"Sections: {', '.join(t['sections'])}"] if t.get("sections") else ["No sections linked yet"])
+            col.addWidget(D.label("  \u00b7  ".join(bits), "muted"))
+            c = self.theme_check.get(t["id"])
+            if c is not None:
+                tok = D.tokens()
+                said = ", ".join(f"{v} ({n})" for v, n in c["found"].items()) or "not in any draft"
+                miss = f"; missing in {', '.join(c['missing'])}" if c["missing"] else ""
+                lab = D.label(f"In the drafts: {said}{miss}", None)
+                lab.setStyleSheet(f"color:{tok['crit'] if (not c['found'] or c['missing']) else tok['ok']};")
+                col.addWidget(lab)
+            row.addLayout(col, 1)
+            lay.addLayout(row)
+
+    def theme_drafts(self):
+        """[(volume, .docx path)]: the Word drafts in the effort's Volumes folder, and the deliverables' files."""
+        out = []
+        try:
+            import deliverables as DL
+            import effortfolders as EF
+            h = self.host
+            vdir = (h.efforts.get(h.effort_name) or {}).get("volumes_dir") or EF.folder(h.effort_path, "volumes", make=False)
+            if vdir and os.path.isdir(vdir):
+                for f in sorted(os.listdir(vdir)):
+                    if f.lower().endswith(".docx") and not f.startswith("~$"):
+                        out.append((os.path.splitext(f)[0], os.path.join(vdir, f)))
+            for d in DL.items(self.rec):
+                p = d.get("file", "")
+                if p.lower().endswith(".docx") and os.path.isfile(p) and p not in [x[1] for x in out]:
+                    out.append((d["name"], p))
+        except Exception:
+            diag.swallowed()
+        return out
+
+    def check_themes(self, drafts=None):
+        import themes as TH
+        r = self.rec
+        if r is None:
+            return {}
+        drafts = drafts if drafts is not None else self.theme_drafts()
+        if not drafts:
+            self.host.status("No volume drafts yet: add the volumes' Word files on the Deliverables board or in Submission Check.")
+            return {}
+        labels = self.host.review.labels() if self.host.review is not None else []
+        got = TH.check(r, drafts, labels)
+        self.theme_check = {c["id"]: c for c in got}
+        miss = sum(1 for c in got if not c["found"] or c["missing"])
+        diag.activity("themes_checked", n=len(got))
+        self.host.toast(f"Themes checked in {len(drafts)} draft(s): " + (f"{miss} need attention" if miss else "every theme is there"))
+        self.draw_themes(r)
+        return self.theme_check
+
+    def theme_dialog(self, tid=None, answer=None):
+        """+ Theme... (tid None) or change one. answer (tests): {"title", "kind", "statement", "discriminator", "proof" [..],
+        "sections" [..], "hot", "words" [..]} or {"remove": True}."""
+        import themes as TH
+        import custfocus as F
+        r = self.rec
+        if r is None:
+            return None
+        t = TH.get(r, tid) if tid else None
+        labels = self.host.review.labels() if self.host.review is not None else []
+        if answer is None:
+            from PySide6.QtWidgets import QListWidget, QListWidgetItem
+            d = QDialog(self); d.setWindowTitle("Win theme" if t else "New win theme"); d.setMinimumWidth(640)
+            f = QFormLayout(d)
+            title = QLineEdit(t["title"] if t else ""); title.setPlaceholderText("Lowest risk to orbit: flight-proven thermal design")
+            f.addRow("Theme", title)
+            kind = QComboBox(); kind.addItems(list(TH.KINDS)); kind.setCurrentText(t["kind"] if t else "Win theme"); f.addRow("Kind", kind)
+            st = QPlainTextEdit(t.get("statement", "") if t else ""); st.setFixedHeight(70)
+            st.setPlaceholderText("The benefit to the customer, in their words"); f.addRow("Statement", st)
+            disc = QLineEdit(t.get("discriminator", "") if t else ""); disc.setPlaceholderText("What only we offer"); f.addRow("Discriminator", disc)
+            pr = QPlainTextEdit("\n".join(t.get("proof", [])) if t else ""); pr.setFixedHeight(70)
+            pr.setPlaceholderText("One proof point a line: past performance, test data, a metric"); f.addRow("Proof points", pr)
+            hot = QComboBox(); hot.addItem("(none)", "")
+            for h in F.hot_buttons(r):
+                hot.addItem(h["text"][:80], h.get("id", h["text"]))
+            if t and t.get("hot"):
+                hot.setCurrentIndex(max(0, hot.findData(t["hot"])))
+            f.addRow("Answers the hot button", hot)
+            secs = QListWidget(); secs.setFixedHeight(140)
+            for lab in labels:
+                it = QListWidgetItem(lab); it.setFlags(it.flags() | Qt.ItemIsUserCheckable)
+                it.setCheckState(Qt.Checked if t and lab in t.get("sections", []) else Qt.Unchecked); secs.addItem(it)
+            f.addRow("Sections that carry it", secs)
+            words = QLineEdit(", ".join(t.get("words", [])) if t else ""); words.setPlaceholderText("filled in from the theme if left empty")
+            words.setToolTip("Check the drafts looks for these words, with commas between them")
+            f.addRow("Look for these words", words)
+            bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
+            gone = []
+            if t:
+                rm = bb.addButton("Remove", QDialogButtonBox.DestructiveRole); rm.clicked.connect(lambda: (gone.append(True), d.accept()))
+            f.addRow(bb)
+            if d.exec() != QDialog.Accepted:
+                return None
+            ws = [x.strip() for x in words.text().split(",") if x.strip()]
+            answer = {"remove": True} if gone else {
+                "title": title.text(), "kind": kind.currentText(), "statement": st.toPlainText(), "discriminator": disc.text(),
+                "proof": [x for x in pr.toPlainText().splitlines() if x.strip()], "hot": hot.currentData() or "",
+                "sections": [secs.item(i).text() for i in range(secs.count()) if secs.item(i).checkState() == Qt.Checked],
+                "words": ws or TH.guess_words(title.text(), st.toPlainText())}
+        if answer.get("remove") and t:
+            ok = TH.remove(r, t["id"])
+            self.changed()
+            return ok
+        if t:
+            TH.update(r, t["id"], **answer)
+            out = t["id"]
+        else:
+            out = TH.add(r, answer.get("title", ""), answer.get("statement", ""), answer.get("kind", "Win theme"),
+                         answer.get("discriminator", ""), answer.get("proof", []), answer.get("sections", []), answer.get("hot", ""),
+                         answer.get("words"))
+        if out:
+            diag.activity("theme_saved")
+            self.changed()
+        return out
 
     # ------------------------------------------------------------ 3.0.4 graphic needs
     def draw_graphics(self, r):

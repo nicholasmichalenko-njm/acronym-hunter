@@ -111,6 +111,8 @@ class EffortsHome(QWidget):
         self.add_btn.setMinimumHeight(36)
         top.addWidget(self.add_btn)
         top.addWidget(D.button("Import effort package...", None, lambda: self.host.import_package()))
+        top.addWidget(D.button("Try the sample effort", "ghost", lambda: __import__("skqt.sample", fromlist=["x"]).build(self.host),  # 3.2.0
+                               "A fictional effort, Kestrel Thermal, with its RFP read in: learn on it, then archive it"))
         top.addStretch()
         self.count = D.label("", "muted", wrap=False); top.addWidget(self.count)
         # Unfiled work

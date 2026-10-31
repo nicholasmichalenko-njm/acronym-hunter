@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+WRITING SUPPORT: WIN THEMES, STORYBOARDS, A SAMPLE EFFORT (3.2.0)
+  - Effort Home > Win themes: the themes and discriminators agreed at kickoff, each with its statement (the benefit to
+    the customer), the discriminator only we offer, its proof points, the hot button it answers and the sections that
+    must carry it. Check the drafts reads the Word files in the effort's Volumes folder (and the deliverables' files)
+    and says, theme by theme, which drafts say it and which linked sections never do, matching the words you choose.
+  - Deliver > Storyboards: one sheet per section before the first draft. Its lead, writers, page budget and the
+    requirements it answers come from the structure; the author writes the key message, ticks the win themes it
+    carries, writes the approach and the features with their benefits and proof, and lists graphic ideas beside the
+    section's graphic needs. Status: Not started, Drafting, Ready for review, Approved. It saves as you type. Export
+    the volume... makes one Word file, a page per section, for the storyboard review.
+  - Try the sample effort (Effort Home with no effort open, and All Efforts): makes the fictional Kestrel Thermal
+    effort with its RFP read into Review, a structure, a due date, a small team that shows only in it, tasks, a
+    question, a win theme and deliverables. Everything in it is made up; archive it when you are done.
+
 PLANNING: SCHEDULE, PAGE BUDGET, WHAT CHANGED, MY WORK (3.1.0)
   - Effort Home > Schedule from due date...: every stage dated backward from the proposal due date, from the working
     days each stage takes (the team's defaults by stage name; change any), or fitted between a start date and the due
