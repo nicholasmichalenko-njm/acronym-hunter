@@ -317,6 +317,7 @@ def gate(name):
     res["word_left_running"] = sorted(left)
     res["word_ended_by_job"] = word.get("report", {}).get("word_ended") if isinstance(word.get("report"), dict) else None
     ok["no Word left running after the job"] = not left
+    ok["Word quit by itself (not ended)"] = res["word_ended_by_job"] == 0
     return res
 
 

@@ -236,6 +236,8 @@ class FixPage(QWidget):
 
     def tick(self):
         if self._work is not None and self._work.is_alive():
+            if getattr(self, "_progress", ""):
+                self.status.setText(self._progress)
             return None
         bgwork.settle()
         self.timer.stop()
@@ -529,9 +531,15 @@ class FixPage(QWidget):
         self.status.setText("Making the copy and fixing it...")
         self._result = None
 
+        self._progress = ""
+        t0 = time.monotonic()
+
+        def say(text):
+            self._progress = f"{text}... ({int(time.monotonic() - t0)} s)"
+
         def run():
             try:
-                job = PF.run(path, folder, std, plan, word=word, open_list=open_list, before=reviewed)
+                job = PF.run(path, folder, std, plan, word=word, open_list=open_list, before=reviewed, progress=say)
                 job.report = PF.write_report(job, effort)
                 self._result = ("job", job)
             except (PCY.Busy, PCY.NotAllowed) as e:
