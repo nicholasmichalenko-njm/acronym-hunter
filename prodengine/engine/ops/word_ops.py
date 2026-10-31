@@ -140,15 +140,87 @@ def sync_linked(pkg, root, para_style):
     return ch.find("w:name", NS).get(q("val"))
 
 
+def _chain(root, s):
+    by_id = {x.get(q("styleId")): x for x in root.findall("w:style", NS)}
+    seen = set()
+    while s is not None and id(s) not in seen:
+        seen.add(id(s))
+        yield s
+        b = s.find("w:basedOn", NS)
+        s = by_id.get(b.get(q("val"))) if b is not None else None
+
+
+def effective(root, s, what):
+    """3.6.0: the value a style shows for one property, through its basedOn chain and the document defaults, as
+    Word resolves it. None when it comes from a theme font (not compared; the fix then writes it)."""
+    def on(el):
+        return el is not None and el.get(q("val")) not in ("0", "false", "off")
+    defaults = root.find("w:docDefaults", NS)
+    rdef = defaults.find("w:rPrDefault/w:rPr", NS) if defaults is not None else None
+    pdef = defaults.find("w:pPrDefault/w:pPr", NS) if defaults is not None else None
+    for st in list(_chain(root, s)) + [None]:
+        rpr = st.find("w:rPr", NS) if st is not None else rdef
+        ppr = st.find("w:pPr", NS) if st is not None else pdef
+        if what == "font" and rpr is not None and rpr.find("w:rFonts", NS) is not None:
+            rf = rpr.find("w:rFonts", NS)
+            if rf.get(q("asciiTheme")):
+                return None
+            if rf.get(q("ascii")):
+                return rf.get(q("ascii"))
+        if what == "size" and rpr is not None and rpr.find("w:sz", NS) is not None:
+            return int(rpr.find("w:sz", NS).get(q("val"))) / 2
+        if what in ("bold", "italic") and rpr is not None and rpr.find("w:" + what[0], NS) is not None:
+            return on(rpr.find("w:" + what[0], NS))
+        if what == "color" and rpr is not None and rpr.find("w:color", NS) is not None:
+            return (rpr.find("w:color", NS).get(q("val")) or "").upper()
+        if what in ("before", "after", "line") and ppr is not None and ppr.find("w:spacing", NS) is not None \
+                and ppr.find("w:spacing", NS).get(q(what)) is not None:
+            v = int(ppr.find("w:spacing", NS).get(q(what)))
+            return v / 240 if what == "line" else v / 20
+        if what == "jc" and ppr is not None and ppr.find("w:jc", NS) is not None:
+            return ppr.find("w:jc", NS).get(q("val"))
+        if what == "keep_next" and ppr is not None and ppr.find("w:keepNext", NS) is not None:
+            return on(ppr.find("w:keepNext", NS))
+    return {"size": 10.0, "bold": False, "italic": False, "color": "AUTO", "before": 0.0, "after": 0.0, "line": 1.0,
+            "jc": "left", "keep_next": False}.get(what)
+
+
+def _same_value(what, have, want):
+    if have is None:
+        return False
+    if what == "font":
+        return str(have).strip().lower() == str(want).strip().lower()
+    if what in ("size", "before", "after", "line"):
+        return abs(float(have) - float(want)) < 0.01
+    if what == "color":
+        return str(have).upper() == str(want).upper()
+    return have == want
+
+
+def style_needs(root, s, props):
+    """3.6.0: the part of props a style does not already show (font, size, bold, italic, color, spacing, alignment,
+    keep with next), resolved through its base styles and the document defaults."""
+    compared = ("font", "size", "bold", "italic", "color", "before", "after", "line", "jc", "keep_next")
+    return {k: v for k, v in props.items() if v is not None and (k not in compared or not _same_value(k, effective(root, s, k), v))}
+
+
 def op_styles(pkg, spec):
-    """spec: {style name: {font,size,bold,italic,color,before,after,keep_next,line,jc,type,based_on}}"""
+    """spec: {style name: {font,size,bold,italic,color,before,after,keep_next,line,jc,type,based_on}}
+    3.6.0: a style is changed only where the value it shows (through its base styles and the document defaults)
+    differs from the spec, so a style Word has already simplified is not written again."""
     root = styles_root(pkg)
     checks, created = [], []
+    compared = ("font", "size", "bold", "italic", "color", "before", "after", "line", "jc", "keep_next")
     for name, props in spec.items():
         s = find_style(root, name)
         if s is None:
             s = new_style(root, name, props.get("type", "paragraph"), props.get("based_on", "Normal"))
             created.append(name)
+        else:
+            need = {k: v for k, v in props.items() if k in compared and not _same_value(k, effective(root, s, k), v)}
+            if not need and not ("based_on" in props):
+                continue
+            props = dict(need, **{k: v for k, v in props.items() if k not in compared})
         pkg.mark(s)
         rpr = ensure(s, "rPr")
         set_run_props(rpr, props.get("font"), props.get("size"), props.get("bold"), props.get("italic"), props.get("color"))
@@ -296,6 +368,46 @@ def _sig(el):
 def _lvl_signature(abstract):
     """Levels of an abstractNum without its identity (nsid, tmpl), for comparing designs."""
     return tuple(_sig(l) for l in abstract.findall("w:lvl", NS))
+
+
+def inheriting_heading_styles(sroot, heading_names=tuple(l[0] for l in HEADING_LEVELS)):
+    """3.6.0: paragraph styles that are not headings but are based on one and have no numbering of their own, so they
+    take the heading's number (TOC Heading based on Heading 1 shows as a numbered chapter). [(style, name)]"""
+    heading_ids = {find_style(sroot, h).get(q("styleId")) for h in heading_names if find_style(sroot, h) is not None}
+    by_id = {s.get(q("styleId")): s for s in sroot.findall("w:style", NS)}
+    out = []
+    for s in sroot.findall("w:style", NS):
+        if s.get(q("styleId")) in heading_ids or s.get(q("type")) != "paragraph" or s.find("w:pPr/w:numPr", NS) is not None:
+            continue
+        cur, seen = s, set()
+        while cur is not None:
+            b = cur.find("w:basedOn", NS)
+            if b is None or b.get(q("val")) in seen:
+                break
+            seen.add(b.get(q("val")))
+            if b.get(q("val")) in heading_ids:
+                nm = s.find("w:name", NS)
+                out.append((s, nm.get(q("val")) if nm is not None else s.get(q("styleId"))))
+                break
+            nxt = by_id.get(b.get(q("val")))
+            if nxt is not None and nxt.find("w:pPr/w:numPr", NS) is not None:
+                break                                   # an ancestor has numbering of its own: not the heading's
+            cur = nxt
+    return out
+
+
+def op_unnumber_inheriting(pkg, names=None):
+    """3.6.0: those styles stop taking heading numbers (numbering switched off in the style itself)."""
+    root = styles_root(pkg)
+    done = []
+    for s, name in inheriting_heading_styles(root):
+        if names is not None and name not in names:
+            continue
+        pkg.mark(s)
+        npr = ensure(ensure(s, "pPr"), "numPr")
+        ni = etree.SubElement(npr, q("numId")); ni.set(q("val"), "0")
+        done.append(name)
+    return {"changed": done, "checks": [{"expr": f"doc.Styles({n!r}).ListTemplate is None", "expect": True} for n in done]}
 
 
 def op_heading_numbering(pkg, levels=HEADING_LEVELS):

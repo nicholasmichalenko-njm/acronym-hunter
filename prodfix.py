@@ -50,6 +50,7 @@ RULE_TEXT = {
     "F2s": "Style breaks the size rule",
     "S1": "Style not on the allowed list", "S2": "Custom style not used", "S3": "Built-in style shown but not used",
     "S4": "Style does not match the format variables", "S5": "Heading numbering differs from the standard",
+    "S6": "Style takes heading numbers it should not",
     "R0": "Table rows to format by role", "R1": "Table rows waiting for your answer",
 }
 
@@ -72,6 +73,10 @@ FIXES = [
          "document's style of the same name (Word's Organizer); the document keeps its own text and style names."),
     _fix("styles_apply", "styles", "Set style fonts, sizes and spacing from the format variables", WO.op_styles,
          WO.OP_STYLES_ALLOWED, lambda std, plan: {"spec": PRL.variable_style_spec(std)}, rules=("S4",)),
+    _fix("unnumber_inheriting", "styles", "Stop styles based on a heading from taking heading numbers (for example TOC Heading)",
+         WO.op_unnumber_inheriting, WO.OP_STYLES_ALLOWED, lambda std, plan: {"names": plan.get("unnumber") or None}, rules=("S6",),
+         help="A style based on Heading 1 with no numbering of its own takes Heading 1's number: the Table of Contents title "
+         "then reads as chapter 1 and every chapter and caption number after it is off by one."),
     _fix("heading_numbering", "styles", "Set heading numbering from the standard", WO.op_heading_numbering, (),
          lambda std, plan: {"levels": _heading_levels(std)}, rules=("S5",)),
     _fix("font_styles", "fonts", "Fix the styles that break the font rules", Fo.op_font_styles, Fo.FONTS_ALLOWED,
@@ -185,10 +190,10 @@ def _dry(raw, fx, std, plan):
         rep = fx["op"](pkg, **fx["args"](std, plan)) or {}
     except Exception:
         return 0
-    from prodengine.engine.safewrite import _canon
+    from prodengine.engine.safewrite import same_xml
     from prodengine.engine.pkg import parse_xml
     for n in list(pkg.dirty):         # a part that serializes to what it was read from is not a change (as the engine)
-        if n in pkg.raw_at_load and n in pkg.trees and _canon(pkg.trees[n]) == _canon(parse_xml(pkg.raw_at_load[n], n)):
+        if n in pkg.raw_at_load and n in pkg.trees and same_xml(pkg.trees[n], parse_xml(pkg.raw_at_load[n], n)):
             pkg.dirty.discard(n)
     if not pkg.dirty:
         return 0
@@ -318,6 +323,11 @@ def check(path, std, data=None):
         if st.get("remove_unused_custom"):
             for n in chk.styles["unused_custom"]:
                 _add(chk, "styles", "S2", "info", f"{n} is a custom style nobody uses", -1, "styles_remove_unused")
+        used = set(chk.styles["in_use"])
+        for _s, nm in WO.inheriting_heading_styles(WO.styles_root(Package.from_bytes(raw))):
+            if nm in used:
+                _add(chk, "styles", "S6", "error", f"{nm} is based on a heading and takes its number (it shows as a numbered "
+                     "chapter, and the chapters and captions after it are numbered one too high)", -1, "unnumber_inheriting")
         if st.get("hide_unused_builtin"):
             for n in chk.styles["hide"]:
                 _add(chk, "styles", "S3", "info", f"{n} shows in the style gallery but nobody uses it", -1, "styles_hide")
@@ -357,7 +367,8 @@ def default_plan(chk):
         if n and k not in ("styles_merge",):
             on.add(k)
     return {"on": [f["key"] for f in FIXES if f["key"] in on], "word_update": any(f["fix"] == "word_update" for f in chk.findings) or
-            bool(on & {"caption_typed", "caption_fields", "toc_field", "toc_list_identifiers", "page_numbers", "chapter_breaks", "hf_build"}),
+            bool(on & {"caption_typed", "caption_fields", "toc_field", "toc_list_identifiers", "page_numbers", "chapter_breaks", "hf_build",
+                       "unnumber_inheriting", "heading_numbering"}),
             "table_answers": {}, "table_roles": {}, "table_types": {}, "list_answers": {}, "xref_mapping": {},
             "styles_unused": list(chk.styles.get("unused_custom", [])), "styles_hide": list(chk.styles.get("hide", []))}
 

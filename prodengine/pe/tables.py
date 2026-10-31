@@ -351,7 +351,10 @@ def apply(tbl, decisions, std, table_type, style_ids, skip_asked=True, mark=lamb
             remove(tcpr, "shd")
             if look.get("fill"):
                 ensure(tcpr, "shd", {"val": "clear", "color": "auto", "fill": look["fill"].upper()})
-            ensure(tcpr, "vAlign", {"val": look.get("valign") or "top"})
+            if (look.get("valign") or "top") == "top":
+                remove(tcpr, "vAlign")                         # top is Word's default; Word drops it when it saves
+            else:
+                ensure(tcpr, "vAlign", {"val": look["valign"]})
             for p in own_paras(tc):
                 ppr = p.find("w:pPr", NS)
                 if ppr is None:
@@ -382,7 +385,11 @@ def apply(tbl, decisions, std, table_type, style_ids, skip_asked=True, mark=lamb
     if m:
         cm = ensure(tblpr, "tblCellMar")
         for side in ("top", "left", "bottom", "right"):
-            ensure(cm, side, {"w": int(round(m[side] * 20)), "type": "dxa"})
+            w_ = int(round(m[side] * 20))
+            if side in ("top", "bottom") and w_ == 0:
+                remove(cm, side)                           # 0 is Word's default above and below; Word drops it on save
+            else:
+                ensure(cm, side, {"w": w_, "type": "dxa"})
     after = [row_texts(tr) for tr in rows(tbl)]
     # text proof: the same words in the same order, row by row (a merge only removes empty cells)
     rep["text_same"] = [" ".join(x for x in a if x) for a in before] == [" ".join(x for x in a if x) for a in after]
@@ -393,20 +400,28 @@ def apply(tbl, decisions, std, table_type, style_ids, skip_asked=True, mark=lamb
 # ---------------------------------------------------------------- styles for the row types
 def ensure_tag_styles(styles_root, std, table_type):
     """Create or update the tag style of every role of the table type. Returns {tag style name: styleId}."""
-    from prodengine.engine.ops.word_ops import find_style, new_style, set_run_props, set_para_props
+    from prodengine.engine.ops.word_ops import find_style, new_style, set_run_props, set_para_props, style_needs
     ids = {}
     for role in std["row_types"]:          # every role: a person may give any row any role
         look = R.row_look(std, role, table_type)
         s = find_style(styles_root, look["tag_style"])
+        want = {"font": look.get("font"), "size": look.get("size"), "bold": bool(look.get("bold")),
+                "italic": bool(look.get("italic", False)), "color": (look.get("color") or "000000").upper(),
+                "before": look.get("before"), "after": look.get("after"), "line": 1.0,
+                "jc": {"left": "left", "center": "center", "right": "right", "both": "both"}.get(look.get("align") or "left"),
+                "keep_next": role in ("caption", "header", "header2", "subhead")}
         if s is None:
             s = new_style(styles_root, look["tag_style"])
-        rpr = ensure(s, "rPr")
-        set_run_props(rpr, font=look.get("font"), size=look.get("size"), bold=look.get("bold"),
-                      italic=look.get("italic", False), color=look.get("color") or "000000")
-        ppr = ensure(s, "pPr")
-        set_para_props(ppr, before=look.get("before"), after=look.get("after"), line=1.0,
-                       jc={"left": "left", "center": "center", "right": "right"}.get(look.get("align") or "left"),
-                       keep_next=role in ("caption", "header", "header2", "subhead"))
+            need = want
+        else:
+            need = style_needs(styles_root, s, want)          # 3.6.0: only what the style does not already show
+        if need:
+            rpr = ensure(s, "rPr")
+            set_run_props(rpr, font=need.get("font"), size=need.get("size"), bold=need.get("bold"),
+                          italic=need.get("italic"), color=need.get("color"))
+            ppr = ensure(s, "pPr")
+            set_para_props(ppr, before=need.get("before"), after=need.get("after"), line=need.get("line"),
+                           jc=need.get("jc"), keep_next=need.get("keep_next"))
         ids[look["tag_style"]] = s.get(q("styleId"))
     return ids
 

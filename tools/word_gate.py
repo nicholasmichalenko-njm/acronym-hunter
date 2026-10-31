@@ -82,14 +82,14 @@ def caption_numbers(path, chapters):
     seq, total, bad, ex = {}, 0, 0, []
     for p in root.iter(f"{{{W}}}p"):
         ps = p.find("w:pPr/w:pStyle", NS)
-        st = names.get(ps.get(f"{{{W}}}val"), "") if ps is not None else "Normal"
-        if st == "Heading 1":
+        st = (names.get(ps.get(f"{{{W}}}val"), "") if ps is not None else "Normal").lower()   # Word stores built-in names in lower case
+        if st == "heading 1":
             h1 += 1
-        elif st == "Heading 7":
+        elif st == "heading 7":
             h7 += 1
         txt = visible_text(p).replace("¶", "")
         m = re.match(r"^(Table|Figure)\s+([^.\t ]+)", txt)
-        if not m or not (st in ("Caption", "PE Table Caption", "PE Figure Caption") or any("SEQ" in i for i, _r in fields_with_results(p))):
+        if not m or not (st in ("caption", "pe table caption", "pe figure caption") or any("SEQ" in i for i, _r in fields_with_results(p))):
             continue
         label, num = m.groups()
         part = (label, "app", h7) if h7 else (label, "body", h1)

@@ -150,9 +150,15 @@ def check_package_flags(pkg, allow_protected=False):
 
 
 def _canon(tree):
-    # 3.6.0: plain serialization (both sides are parsed by the same parser in this process; see guard._c14n)
     from lxml import etree
-    return etree.tostring(tree)
+    return etree.tostring(tree, method="c14n")
+
+
+def same_xml(a, b):
+    """3.6.0: the same XML (attribute order and namespace prefixes aside, as canonical XML compares). Identical bytes
+    answer at once; only parts that differ in their bytes pay for the canonical comparison."""
+    from lxml import etree
+    return etree.tostring(a) == etree.tostring(b) or _canon(a) == _canon(b)
 
 
 def check_field_changes(before, after, declared):
@@ -216,7 +222,7 @@ def apply(path, op, *, allowed=(), op_args=None, dry_run=False, allow_protected=
         raise Refused(f"The operation stopped on this file ({type(e).__name__}: {e}). Nothing was written.")
     # a part that serializes to what it was read from is not a change
     for n in list(pkg.dirty):
-        if n in pkg.raw_at_load and n in pkg.trees and _canon(pkg.trees[n]) == _canon(parse_xml(pkg.raw_at_load[n], n)):
+        if n in pkg.raw_at_load and n in pkg.trees and same_xml(pkg.trees[n], parse_xml(pkg.raw_at_load[n], n)):
             pkg.dirty.discard(n)
     violations = pkg.snap.violations(pkg)
     if violations:

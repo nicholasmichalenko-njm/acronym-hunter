@@ -163,16 +163,67 @@ def _new_rid(rels):
     return f"rIdPEhf{i}"
 
 
+def _style_tabs(sroot, sid):
+    """The tab stops a paragraph style gives (through its base styles)."""
+    if sroot is None or not sid:
+        return set()
+    by_id = {x.get(q("styleId")): x for x in sroot.findall("w:style", NS)}
+    out, chain, cur, seen = {}, [], by_id.get(sid), set()
+    while cur is not None and id(cur) not in seen:
+        seen.add(id(cur)); chain.append(cur)
+        b = cur.find("w:basedOn", NS)
+        cur = by_id.get(b.get(q("val"))) if b is not None else None
+    for st in reversed(chain):
+        for t in st.findall("w:pPr/w:tabs/w:tab", NS):
+            if t.get(q("val")) == "clear":
+                out.pop(t.get(q("pos")), None)
+            else:
+                out[t.get(q("pos"))] = t.get(q("val"))
+    return {(v, k) for k, v in out.items()}
+
+
+def _hf_semantic(root, sroot=None):
+    """What a header or footer part shows and how: per paragraph its style, alignment, rule below, tab stops, text and
+    field codes. Word's own bookkeeping (rsids, paragraph ids, attribute order) is left out (3.6.0)."""
+    from prodengine.engine.fingerprint import visible_text, fields as _fields
+    out = []
+    for p in root.iter(q("p")):
+        ppr = p.find("w:pPr", NS)
+        st = ppr.find("w:pStyle", NS) if ppr is not None else None
+        jc = ppr.find("w:jc", NS) if ppr is not None else None
+        bdr = ppr.find("w:pBdr/w:bottom", NS) if ppr is not None else None
+        eff = _style_tabs(sroot, st.get(q("val")) if st is not None else "Normal")
+        for t in (ppr.findall("w:tabs/w:tab", NS) if ppr is not None else []):
+            if t.get(q("val")) == "clear":
+                eff = {x for x in eff if x[1] != t.get(q("pos"))}
+            else:
+                eff = {x for x in eff if x[1] != t.get(q("pos"))} | {(t.get(q("val")), t.get(q("pos")))}
+        tabs = tuple(sorted(eff))
+        out.append((st.get(q("val")) if st is not None else "", jc.get(q("val")) if jc is not None else "",
+                    (bdr.get(q("val")), bdr.get(q("sz")), bdr.get(q("color"))) if bdr is not None else None, tabs,
+                    visible_text(p), tuple(_fields(p))))
+    return tuple(out)
+
+
 def _hf_signature(pkg):
-    """What every section's headers and footers read, by section and type, ignoring part names and ids (3.6.0)."""
-    from prodengine.engine.safewrite import _canon
+    """What every section's headers and footers read, by section and type, ignoring part names and ids (3.6.0).
+    Only the types that show count: a first-page header only with Different first page on, even-page headers only
+    with Different odd and even on (Word writes blank ones it never shows)."""
     rels = pkg.rels_of(pkg.main)
+    sp_ = pkg.word_part("/styles")
+    sroot = pkg.tree(sp_) if sp_ else None
+    st = pkg.word_part("/settings")
+    even_on = st is not None and pkg.tree(st).find("w:evenAndOddHeaders", NS) is not None and \
+        pkg.tree(st).find("w:evenAndOddHeaders", NS).get(q("val")) not in ("0", "false")
     out = []
     for sp in pkg.tree(pkg.main).iter(q("sectPr")):
         refs = []
+        title = sp.find("w:titlePg", NS) is not None and sp.find("w:titlePg", NS).get(q("val")) not in ("0", "false")
         for r in list(sp.findall("w:headerReference", NS)) + list(sp.findall("w:footerReference", NS)):
+            if (r.get(q("type")) == "first" and not title) or (r.get(q("type")) == "even" and not even_on):
+                continue
             tgt = rels.get(r.get(f"{{{R}}}id"), (None, None, None))[1]
-            refs.append((etree.QName(r).localname, r.get(q("type")), _canon(pkg.tree(tgt)) if tgt and pkg.has(tgt) else None))
+            refs.append((etree.QName(r).localname, r.get(q("type")), _hf_semantic(pkg.tree(tgt), sroot) if tgt and pkg.has(tgt) else None))
         out.append((tuple(sorted(refs, key=lambda x: (x[0], x[1] or ""))), sp.find("w:titlePg", NS) is not None))
     return out
 
