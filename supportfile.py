@@ -20,6 +20,11 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.10.0": ["Profiles carry Word table styles whole (borders, shading, the header row, banding) and each table type can "
+               "use one: Fix a Copy checks and sets them, Learn from a file reads them, Make a template writes them.",
+               "Profiles keep their cover and back cover pages, learned from a template or a finished volume (pictures "
+               "included). Make a template puts them in; Check reports a draft whose cover or back cover is built "
+               "differently, and never changes it."],
     "3.9.0": ["Issues and ideas: write down a bug, an improvement or an idea from any page (Issue or idea in the top bar, "
               "or Ctrl+Shift+I). Reports stay on this PC and a guard keeps document words out; Export... saves a text-only zip.",
               "Fix a Copy: Check every draft reads each draft against its own profile (Format Check is now part of Fix a Copy), "

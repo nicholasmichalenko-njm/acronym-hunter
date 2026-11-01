@@ -331,6 +331,10 @@ TOPICS = [
    "border edge (on, width, color), with a preview. Applies to: all table types, or one type only.",
    "List numbering (in Bulleted and numbered lists): what each list style shows, level by level: the bullet and its "
    "font, or the number format and text, and where the number and the text start.",
+   "Word table styles: Learn from a file takes the table styles a template uses, whole; a table type's Word table "
+   "style (Table types section) makes its tables use one.",
+   "Pages, cover and back cover: the cover and back cover pages Learn from a file took (pictures included). Make a "
+   "template puts them in; Fix a Copy reports a draft whose cover or back cover is built differently. Clear removes one.",
    "Table types, row rules, captions and numbering, pages (the page scheme with cover and back cover), page setups, "
    "headers and footers, the TOC and its entry styles, lists, terms and Format Check options each have their own section.",
    "This effort: choose its profile, then Fill from the RFP's formatting rules lays the RFP's fonts, margins and "

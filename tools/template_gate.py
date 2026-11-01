@@ -140,6 +140,15 @@ def open_and_read(path, lib_names, pdf=None):
         retry(doc.SaveAs2, os.path.abspath(resaved), 16)
         res["resave_diff"] = [k for k in diff(fingerprint(Package(path)), fingerprint(Package(resaved))) if k.split("|", 1)[1] in STRUCT][:20]
         res["styles"] = word_styles(doc, lib_names)
+        try:                                               # 3.10.0: table styles and the cover as Word reads them
+            res["table_styles_used"] = sorted({doc.Tables(i + 1).Style.NameLocal for i in range(doc.Tables.Count)
+                                               if doc.Tables(i + 1).Style is not None})
+        except Exception as e:  # noqa: BLE001
+            res["table_styles_used"] = [f"error {type(e).__name__}"]
+        try:
+            res["cover_text"] = doc.Sections(1).Range.Text[:400]
+        except Exception:  # noqa: BLE001
+            res["cover_text"] = ""
         res["lists"] = {}                                  # 3.9.0: each list style's level as Word reads it
         for name in ("List Bullet", "List Bullet 2", "List Bullet 3", "List Number", "List Number 2", "List Number 3"):
             try:
@@ -178,6 +187,19 @@ def gate():
     learned["style_defs"]["PE Callout"] = {"type": "paragraph", "based_on": "Normal", "tabs": [[72, "left", "dot"], [468, "right", "none"]],
                                            "border_top": "1 1F3864", "border_bottom": "0.5 1F3864", "shading": "D9E2F3"}   # 3.8.0
     learned["name"] = "Learned technical volume"
+    # 3.10.0: a Word table style for the standard tables, and the cover page of a finished volume
+    learned["table_styles"] = {"PE Data Table": {"based_on": "Normal Table", "xml": (
+        '<w:style xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:type="table" w:customStyle="1">'
+        '<w:name w:val="PE Data Table"/><w:uiPriority w:val="59"/><w:pPr><w:spacing w:after="0"/></w:pPr><w:tblPr><w:tblBorders>'
+        '<w:top w:val="single" w:sz="8" w:space="0" w:color="1F3864"/><w:bottom w:val="single" w:sz="8" w:space="0" w:color="1F3864"/>'
+        '</w:tblBorders></w:tblPr><w:tblStylePr w:type="firstRow"><w:rPr><w:b/></w:rPr><w:tcPr><w:shd w:val="clear" w:color="auto" '
+        'w:fill="1F3864"/></w:tcPr></w:tblStylePr></w:style>')}}
+    learned.setdefault("table_types", {}).setdefault("std", {})["word_style"] = "PE Data Table"
+    import prodparts as PP
+    pdir = os.path.join(work, "parts")
+    learned["page_parts"] = {"cover": PP.save_part(pdir, PP.extract(open(os.path.join(fixtures, "small.docx"), "rb").read(), "cover", std),
+                                                   "small-cover")}
+    learned["_parts_dir"] = pdir
     lib = PRL.style_spec(PT.standard_for_template(PRL.engine_ready(learned)))
     out = os.path.join(work, "Production Copies", "Templates")
     made = {}
@@ -208,6 +230,10 @@ def gate():
         bad = compare(lib_k, rd.get("styles") or {})
         res[key]["style_mismatch"] = bad[:30]
         ok[f"{key}: Word reads every style of the library as defined ({len(lib_k)} styles)"] = rd.get("opens") and not bad
+        if key == "learned base":
+            ok[f"{key}: Word reads the sample tables in the profile's Word table style, and the profile's cover (3.10.0)"] = \
+                rd.get("opens") and "PE Data Table" in (rd.get("table_styles_used") or []) and "Example Program Technical Volume" in (rd.get("cover_text") or "")
+            res[key]["table_styles_used"] = rd.get("table_styles_used"); res[key]["cover_text"] = (rd.get("cover_text") or "")[:120]
         if key == "team base":
             want_l = {lv["style"]: lv for l in PRL.COMPANY["list_numbering"]["lists"] for lv in l["levels"]}
             got_l = rd.get("lists") or {}

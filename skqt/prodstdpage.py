@@ -635,7 +635,8 @@ class StandardsPage(QWidget):
         cols = [("key", "Key", "text"), ("name", "Name", "text"), ("width_pct", "Width (%)", "num"),
                 ("align", "Table align", ("enum", ALIGN[:3])), ("cm_top", "Cell margin top (pt)", "num"),
                 ("cm_bottom", "Bottom", "num"), ("cm_left", "Left", "num"), ("cm_right", "Right", "num"),
-                ("roles", "Rows it has (comma)", "list"), ("caption_position", "Caption row", ("enum", [("", "First row"), ("below", "Last row (figures)")]))]
+                ("roles", "Rows it has (comma)", "list"), ("caption_position", "Caption row", ("enum", [("", "First row"), ("below", "Last row (figures)")])),
+                ("word_style", "Word table style (3.10.0)", "text")]
         c = D.Card("Table types", "What differs between table types: width, alignment, cell margins, which rows it has, and "
                    "where its caption row sits. Each type's own row looks are set in Table rows (Applies to).")
         v.addWidget(c)
@@ -957,6 +958,8 @@ class StandardsPage(QWidget):
                 d.update({kk: vv for kk, vv in r.items()})
                 if cm:
                     d["cell_margins"] = cm
+                if not d.get("word_style"):
+                    d.pop("word_style", None)
                 if d.get("caption_position") in ("", None):
                     d.pop("caption_position", None)
                 out[k] = d
