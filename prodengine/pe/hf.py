@@ -7,7 +7,7 @@ Layout of a part (std["hf_layouts"][part key]):
   footer: {"marking": bool, "left": text, "center": text, "right": text}
   Text may hold tokens: {volume_name} {solicitation} {company} {classification} (volume variables; a STYLEREF to
   the source paragraph on the cover when the document has one, else the typed value), {page} (PAGE field),
-  {pages} (SECTIONPAGES field). An empty layout (cover) gives empty header and footer parts.
+  {pages} (SECTIONPAGES field), {chapter} (3.7.0: the Heading 1 the page is in, STYLEREF). An empty layout (cover) gives empty header and footer parts.
 
 op_hf_build(pkg, std)  new header and footer parts for the first section of each part, references removed from
                        the sections after it (linked), "Different first page" off unless the layout asks for it,
@@ -83,6 +83,8 @@ def _slot_runs(text, std, sources, fields):
             runs += _field("PAGE", "1"); fields.append("PAGE")
         elif k == "pages":
             runs += _field("SECTIONPAGES", "1"); fields.append("SECTIONPAGES")
+        elif k == "chapter":                      # 3.7.0: the chapter title the page is in (Heading 1)
+            runs += _field('STYLEREF "Heading 1"', ""); fields.append('STYLEREF "Heading 1"')
         elif k in SOURCE_STYLES and SOURCE_STYLES[k] in sources:
             instr = f'STYLEREF "{SOURCE_STYLES[k]}"'
             runs += _field(instr, str(std["variables"].get(k, ""))); fields.append(instr)

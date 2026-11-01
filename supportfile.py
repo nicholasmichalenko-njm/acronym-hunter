@@ -20,6 +20,13 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.7.0": ["Production Standards: each document type is a full template. Learn from a file... reads your master "
+              "template or a finished volume and takes its styles (each one whole), table looks, page setups, headers and "
+              "footers, heading numbering and TOC into the document type. The Style library section shows and edits every "
+              "style property.",
+              "Make a template... writes a Word template with every value of the document type to the output folder; it "
+              "passes its own check. Fix a Copy checks and sets every style property of the library, uses each deliverable's "
+              "own document type, and compares Word's page count with the deliverable's page limit."],
     "3.6.1": ["Fix a Copy: headers take this effort's solicitation and the volume's name (from the Deliverables board, or typed "
               "on the page); with either one blank, headers and footers are left as they are. The team standard holds no "
               "sample names, products or numbers.",

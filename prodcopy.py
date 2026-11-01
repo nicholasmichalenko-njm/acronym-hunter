@@ -23,7 +23,7 @@ import datetime, hashlib, io, os, re, subprocess, sys, zipfile
 MARK = " - COPY - Stationkeeper "
 WORD_EXT = (".docx", ".docm", ".dotx", ".dotm")
 OFFICE_EXT = WORD_EXT + (".xlsx", ".xlsm", ".pptx", ".pptm")
-_STAMP = re.compile(r" - COPY - Stationkeeper \d{4}-\d{2}-\d{2} \d{4}(?: \(\d+\))?$")
+_STAMP = re.compile(r" - (?:COPY|TEMPLATE) - Stationkeeper \d{4}-\d{2}-\d{2} \d{4}(?: \(\d+\))?$")   # 3.7.0: templates too
 
 
 class Busy(Exception):

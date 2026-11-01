@@ -36,6 +36,7 @@ class FixPage(QWidget):
         self.job = None
         self.path = ""
         self.vol_typed = {}       # path -> volume name the person typed for that draft
+        self.type_chosen = {}     # 3.7.0: path -> document type chosen for a draft that is not a deliverable
         self._work = None
         self._result = None
         outer = QVBoxLayout(self); outer.setContentsMargins(0, 0, 0, 0)
@@ -70,6 +71,12 @@ class FixPage(QWidget):
         r3.addWidget(self.vol, 1)
         self.vol_src = D.label("", "muted"); r3.addWidget(self.vol_src)
         self.card.body.addLayout(r3)
+        r4 = QHBoxLayout()
+        r4.addWidget(D.label("Document type", "label", wrap=False))
+        self.dtype = QComboBox(); self.dtype.setMinimumWidth(260); r4.addWidget(self.dtype)
+        self.dtype.activated.connect(lambda _i: self.dtype_chosen())
+        self.dtype_src = D.label("", "muted"); r4.addWidget(self.dtype_src, 1)
+        self.card.body.addLayout(r4)
         self.ctx_lbl = self.card.add(D.label("", "muted"))
         self.status = self.card.add(D.label("Pick a draft and press Check.", "muted"))
         v.addWidget(self.card)
@@ -173,10 +180,37 @@ class FixPage(QWidget):
                 diag.swallowed()
         return PRL.context(h.config_dir, h.effort_name or "", info, lst, self.record(), self.path if path is None else path)
 
+    def draft_type(self, ctx):
+        """The draft's document type: the deliverable's, else the one chosen here for this draft, else the effort's."""
+        d = (ctx or {}).get("deliverable") or {}
+        return d.get("doc_type") or self.type_chosen.get(self.path) or None
+
+    def dtype_chosen(self):
+        tid = self.dtype.currentData() or ""
+        ctx = self.context()
+        d = ctx.get("deliverable")
+        rec = self.record()
+        if d and rec is not None:
+            import deliverables as DL
+            DL.update(rec, d["id"], doc_type=tid)
+        elif self.path:
+            self.type_chosen[self.path] = tid
+        self.show_context(self.context())
+        self.refresh_std()
+
+    def refresh_std(self):
+        s = self.std()
+        v = s["variables"]
+        self.std_lbl.setText(f"{s['name']}{' + this effort' if s.get('effort_over') else ''}: body {v.get('body_font')} "
+                             f"{float(v.get('body_size') or 0):g} pt, tables {v.get('table_font')} {float(v.get('table_size') or 0):g} pt, "
+                             f"{len(s.get('style_defs') or {})} styles in the library, "
+                             f"captions {'2-1' if any(c.get('chapter_level') for c in s['captions']) else '1, 2, 3'}, "
+                             f"pages {s['pagination']['name']}")
+
     def std(self, ctx=None):
         """The standard for the picked draft: team, document type, effort, then the effort's and the draft's own values."""
-        base = PRL.for_effort(self.host.config_dir, self.host.ws)
         ctx = ctx if ctx is not None else self.context()
+        base = PRL.for_effort(self.host.config_dir, self.host.ws, type_id=self.draft_type(ctx))
         std = PRL.apply_context(base, ctx, volume_name=self.vol.text() if self.vol.text().strip() else None)
         std["name"], std["effort_over"] = base["name"], base.get("effort_over")
         return std
@@ -188,6 +222,20 @@ class FixPage(QWidget):
             self.vol.setText(v.get("volume_name", "") if d else "")
         self.vol_src.setText(f"from the Deliverables board ({d['name']})" if d and self.path not in self.vol_typed else
                              ("typed" if self.path in self.vol_typed else "not on the Deliverables board: type it to build headers"))
+        try:
+            data = PRL.load(self.host.config_dir)
+            eff = (self.host.ws.get("prod_std", {}) if self.host.ws is not None else {}) or {}
+            eff_t = PRL.type_of(data, eff.get("type") or data["default"])
+            self.dtype.blockSignals(True); self.dtype.clear()
+            self.dtype.addItem(f"The effort's ({eff_t['name']})", "")
+            for t in data["types"]:
+                self.dtype.addItem(t["name"], t["id"])
+            cur = self.draft_type(ctx) or ""
+            self.dtype.setCurrentIndex(max(0, self.dtype.findData(cur)))
+            self.dtype.blockSignals(False)
+            self.dtype_src.setText("kept on the Deliverables board" if d else "for this draft")
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
         lists = ctx.get("lists", {})
         self.ctx_lbl.setText(f"Solicitation: {v.get('solicitation') or 'not set (effort basics)'}"
                              + (f"; company: {v['company']}" if v.get("company") else "")
@@ -197,12 +245,7 @@ class FixPage(QWidget):
 
     def refresh(self):
         self.out_lbl.setText(self.effort_folder())
-        s = self.std()
-        v = s["variables"]
-        self.std_lbl.setText(f"{s['name']}{' + this effort' if s.get('effort_over') else ''}: body {v.get('body_font')} "
-                             f"{v.get('body_size'):g} pt, tables {v.get('table_font')} {v.get('table_size'):g} pt, "
-                             f"captions {'2-1' if any(c.get('chapter_level') for c in s['captions']) else '1, 2, 3'}, "
-                             f"pages {s['pagination']['name']}")
+        self.refresh_std()
         keep = [self.files.item(i).data(Qt.UserRole) for i in range(self.files.count())]
         cur = self.path
         self.files.blockSignals(True)
@@ -243,6 +286,7 @@ class FixPage(QWidget):
         self.path = it.data(Qt.UserRole) if it else ""
         try:
             self.show_context(self.context())
+            self.refresh_std()
         except Exception:  # noqa: BLE001
             diag.swallowed()
         kind = PCY.cloud_kind(self.path) if self.path else ""
@@ -585,6 +629,7 @@ class FixPage(QWidget):
             word = prodword.update_fields
         effort = self.host.effort_name or ""
         reviewed = self.chk
+        deliv = self.context().get("deliverable")
         self.status.setText("Making the copy and fixing it...")
         self._result = None
 
@@ -597,6 +642,8 @@ class FixPage(QWidget):
         def run():
             try:
                 job = PF.run(path, folder, std, plan, word=word, open_list=open_list, before=reviewed, progress=say)
+                wr = next((x.get("report") or {} for x in job.steps if x.get("key") == "word_update"), {})
+                job.page_note = PRL.limit_note((deliv or {}).get("limit", ""), wr.get("pages"))
                 job.report = PF.write_report(job, effort)
                 self._result = ("job", job)
             except (PCY.Busy, PCY.NotAllowed) as e:
@@ -619,7 +666,8 @@ class FixPage(QWidget):
             "Warning: the original changed while Stationkeeper worked. Stationkeeper never opened it for writing: someone else saved it."
         self.res_text.setText(f"{os.path.basename(job.copy)}\n{len(changed)} fix(es) changed the copy"
                               + (f", {len(refused)} refused (the copy kept as it was before each)" if refused else "")
-                              + f". {job.before_check.count()} found before, {job.after_check.count()} left. {ok}")
+                              + f". {job.before_check.count()} found before, {job.after_check.count()} left. {ok}"
+                              + (f"\n{job.page_note}" if getattr(job, "page_note", "") else ""))
         self.res_table.setRowCount(0)
         for r in PF.summary(job):
             k = self.res_table.rowCount(); self.res_table.insertRow(k)
@@ -636,7 +684,8 @@ class FixPage(QWidget):
             try:
                 rec.log("production", f"Fix a Copy: {os.path.basename(job.copy)} made from {os.path.basename(job.original)}; "
                         f"{len(changed)} fix(es), {job.before_check.count()} found, {job.after_check.count()} left; original "
-                        + ("unchanged" if job.original_ok else "changed by someone else while it was copied"),
+                        + ("unchanged" if job.original_ok else "changed by someone else while it was copied")
+                        + (f". {job.page_note}" if getattr(job, "page_note", "") else ""),
                         ref={"copy": job.copy, "original": job.original}, save=True)
             except Exception:  # noqa: BLE001
                 diag.swallowed()

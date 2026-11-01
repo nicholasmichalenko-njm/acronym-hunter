@@ -6,7 +6,7 @@ Sections: format variables, font rules, styles and heading numbering, table rows
 edge), table types, row rules, captions and numbering, pages and sections (the page scheme, cover and back cover),
 page setups, headers and footers, the table of contents and the lists of tables and figures, bulleted and numbered
 lists, terms, Format Check options. Saved to the config folder (team, types) and the effort's settings (effort)."""
-import copy, os
+import copy, os, sys
 from PySide6.QtCore import Qt, QRectF, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QColorDialog, QComboBox, QDoubleSpinBox, QFileDialog, QFontComboBox,
@@ -20,6 +20,7 @@ from . import design as D
 
 SECTIONS = [
     ("variables", "Format variables"), ("fonts", "Font rules"), ("styles", "Styles and heading numbering"),
+    ("styledefs", "Style library"),
     ("rows", "Table rows"), ("ttypes", "Table types"), ("rules", "Row rules"), ("captions", "Captions and numbering"),
     ("pages", "Pages, cover and back cover"), ("setups", "Page setups"), ("hf", "Headers and footers"),
     ("toc", "Table of contents and lists"), ("lists", "Bulleted and numbered lists"), ("terms", "Terms"),
@@ -39,7 +40,20 @@ AFTER = [("period_tab", "Period, then a tab"), ("period_space", "Period, then a 
 RULE_KINDS = [("fill_in", "Cell fill is one of"), ("first_cell_starts", "First cell starts with"),
               ("first_cell_contains_word", "First cell contains the word"), ("last_row_merged", "Last row is one merged cell"),
               ("single_merged_cell", "One merged cell across"), ("bold_row", "Only bold text"), ("other", "Any other row")]
-TOKENS = "{volume_name} {solicitation} {company} {page} {pages}"
+TOKENS = "{volume_name} {solicitation} {company} {page} {pages} {chapter}"
+TRI = [("", "Not set"), ("on", "On"), ("off", "Off")]
+STYLE_COLS = [("key", "Style", "text"), ("type", "Type", ("enum", [("paragraph", "Paragraph"), ("character", "Character")])),
+              ("based_on", "Based on", "text"), ("next", "Next style", "text"), ("font", "Font", "text"), ("size", "Size (pt)", "num0"),
+              ("bold", "Bold", ("enum", TRI)), ("italic", "Italic", ("enum", TRI)), ("underline", "Underline", ("enum", TRI)),
+              ("caps", "All caps", ("enum", TRI)), ("color", "Color (hex)", "text"),
+              ("jc", "Alignment", ("enum", [("", "Not set")] + ALIGN)), ("before", "Space before (pt)", "num0"),
+              ("after", "Space after (pt)", "num0"), ("line", "Line spacing (lines, or pt if exact)", "num0"),
+              ("line_rule", "Line rule", ("enum", [("", "Not set"), ("auto", "Multiple"), ("exact", "Exactly"), ("atLeast", "At least")])),
+              ("left", "Left indent (pt)", "num0"), ("right", "Right indent (pt)", "num0"), ("first", "First line (pt)", "num0"),
+              ("hanging", "Hanging (pt)", "num0"), ("keep_next", "Keep with next", ("enum", TRI)),
+              ("keep_lines", "Keep lines together", ("enum", TRI)), ("page_break_before", "Page break before", ("enum", TRI)),
+              ("widow", "Widow control", ("enum", TRI))]
+TRI_KEYS = ("bold", "italic", "underline", "caps", "small_caps", "keep_next", "keep_lines", "page_break_before", "widow")
 
 
 def _get(d, path, default=None):
@@ -318,6 +332,10 @@ class StandardsPage(QWidget):
         top = D.Card("Production Standards", "Every rule Format Check and Fix a Copy use. Edit the team standard, a document type, "
                      "or this effort; a value set at the layer you edit shows in bold, and Reset takes it back to the layer below.",
                      actions=[D.button("+ Document type...", None, lambda: self.add_type()),
+                              D.button("Learn from a file...", None, lambda: self.learn(), "Read a template or a finished volume and "
+                                       "take its styles, table looks, pages, headers and numbering into what you are editing"),
+                              D.button("Make a template...", None, lambda: self.make_template(), "A Word template (.dotx) with every "
+                                       "value in force here, written to the output folder"),
                               D.button("Export for review...", None, lambda: self.export()),
                               D.button("Save", "primary", lambda: self.save())])
         bar = QHBoxLayout()
@@ -388,7 +406,8 @@ class StandardsPage(QWidget):
                  "caption_font": "Caption font", "caption_size": "Caption size (pt)", "space_after_body": "Space after body text (pt)",
                  "line_spacing": "Line spacing", "heading1_size": "Heading 1 size (pt)", "margin_top": "Top margin (in)",
                  "margin_bottom": "Bottom margin (in)", "margin_left": "Left margin (in)", "margin_right": "Right margin (in)",
-                 "paper": "Paper", "volume_name": "Volume name (headers)", "solicitation": "Solicitation number (headers)",
+                 "paper": "Paper", "volume_name": "Volume name (blank: from the effort's deliverable)",
+                 "solicitation": "Solicitation number (blank: from the effort's basics)",
                  "marking": "Restriction marking (footers)"}
         for k, t in names.items():
             if k.endswith("_font"):
@@ -443,6 +462,20 @@ class StandardsPage(QWidget):
                 ("text", "Number reads", "text"), ("number_at", "Number at (in)", "num"), ("text_at", "Text at (in)", "num"),
                 ("restart", "Restart after level", "int")]
         self.table_editor(v, "heading_levels", ("heading_numbering", "levels"), cols, fixed=True)
+
+    def build_styledefs(self, v):
+        c = D.Card("Style library", "Every style this standard defines, whole: font, size, bold, italic, underline, caps, color, "
+                   "alignment, spacing, line spacing, indents, keeps, page break before, widow control, based on and next style. "
+                   "Fix a Copy checks each style in a draft against these values and sets the ones that differ; Make a template "
+                   "writes them. Blank or Not set leaves that property as the draft has it. Format variables win where they "
+                   "drive a style (body, table and caption fonts and sizes). Learn from a file... fills this from a template.")
+        bar = QHBoxLayout()
+        bar.addWidget(D.button("Learn from a file...", None, lambda: self.learn()))
+        bar.addStretch(1)
+        c.body.addLayout(bar)
+        v.addWidget(c)
+        self.table_editor(v, "styledefs", ("style_defs",), STYLE_COLS, dict_rows=True, adapter="styledefs")
+        self.tables["styledefs"]["w"].setMinimumHeight(420)
 
     def pick_template(self, edit):
         p, _ = QFileDialog.getOpenFileName(self, "Template whose styles the copies take", os.path.expanduser("~"),
@@ -722,6 +755,15 @@ class StandardsPage(QWidget):
                             "rule_below": bool(h.get("rule_below")), "f_left": f.get("left", ""), "f_center": f.get("center", ""),
                             "f_right": f.get("right", ""), "marking": bool(f.get("marking"))})
             return out
+        if ad == "styledefs":
+            out = []
+            for k, d in sorted((data or {}).items(), key=lambda x: x[0].casefold()):
+                row = {"key": k}
+                for f, _h, _kind in STYLE_COLS[1:]:
+                    val = (d or {}).get(f)
+                    row[f] = ("on" if val else "off") if (f in TRI_KEYS and val is not None) else val
+                out.append(row)
+            return out
         if ad == "pairs":
             return [{"0": a, "1": b} for a, b in (data or [])]
         if ad == "tocstyles":
@@ -783,6 +825,22 @@ class StandardsPage(QWidget):
                 out[r["key"] or "part"] = {"header": h, "footer": f}
             _set(self.work, spec["path"], out)
             return
+        if ad == "styledefs":
+            out = {}
+            for r in rows:
+                name = (r.get("key") or "").strip()
+                if not name:
+                    continue
+                d = {}
+                for f, _h, _kind in STYLE_COLS[1:]:
+                    val = r.get(f)
+                    if val in (None, ""):
+                        continue
+                    d[f] = (val == "on") if f in TRI_KEYS else val
+                d.setdefault("type", "paragraph")
+                out[name] = d
+            _set(self.work, spec["path"], out)
+            return
         if ad == "pairs":
             _set(self.work, spec["path"], [[r["0"], r["1"]] for r in rows if r.get("0")])
             return
@@ -837,6 +895,10 @@ class StandardsPage(QWidget):
             elif kind == "num":
                 w = num(0, 400, 0.05, "", 2); w.setValue(float(val) if val not in (None, "") else w.minimum())
                 w.valueChanged.connect(lambda _x, k=key: self.table_changed(k))
+            elif kind == "num0":                       # 3.7.0: zero is a value; the lowest step is "not set"
+                w = QDoubleSpinBox(); w.setRange(-1, 400); w.setSingleStep(0.5); w.setDecimals(2); w.setSpecialValueText("not set")
+                w.setValue(float(val) if val not in (None, "") else -1); w.setMinimumWidth(90)
+                w.valueChanged.connect(lambda _x, k=key: self.table_changed(k))
             elif kind == "int":
                 w = QSpinBox(); w.setRange(-1, 99); w.setSpecialValueText("none"); w.setValue(int(val) if val not in (None, "") else -1)
                 w.valueChanged.connect(lambda _x, k=key: self.table_changed(k))
@@ -861,6 +923,8 @@ class StandardsPage(QWidget):
                     r[field] = w.isChecked()
                 elif kind == "num":
                     r[field] = None if w.value() == w.minimum() else round(w.value(), 3)
+                elif kind == "num0":
+                    r[field] = None if w.value() < 0 else round(w.value(), 3)
                 elif kind == "int":
                     r[field] = None if w.value() < 0 else int(w.value())
                 elif kind == "list":
@@ -1077,6 +1141,127 @@ class StandardsPage(QWidget):
             eff.pop("over", None); eff.pop("said", None)
             self.host.ws.set("prod_std", eff)
             self.switch(force=True)
+
+    # ------------------------------------------------------------------ 3.7.0: learn from a file, make a template
+    def learn(self, path=None, keys=None):
+        """Read a template or document (once; it is never written) and take the areas chosen into what is being edited.
+        keys (tests): the areas to take without asking. Returns the areas taken."""
+        import prodlearn as PL
+        if path is None:
+            path, _ = QFileDialog.getOpenFileName(self, "A template or finished volume to learn from (it is only read)",
+                                                  os.path.expanduser("~"), "Word (*.dotx *.docx *.dotm *.docm)")
+            if not path:
+                return []
+        got = PL.learn(path, PRL.engine_ready(copy.deepcopy(self.work)))
+        if got.error or not got.areas:
+            self.host.status(got.error or "Nothing to learn in that file.")
+            return []
+        if keys is None:
+            keys = self._pick_areas(got, os.path.basename(path))
+            if not keys:
+                return []
+        keys = [k for k in keys if k in got.areas]
+        layer = got.layer(keys)
+        self.work = PRL.merge(self.work, layer)
+        if "styles" in keys:                       # the file's style library replaces this layer's, style by style
+            self.work.setdefault("style_defs", {}).update(layer.get("style_defs", {}))
+        self.binder.load()
+        self.fill_row_scope()
+        self.load_tables()
+        self.changed()
+        self.show_problems()
+        diag.activity("prod_learned", n=len(keys))
+        self.host.status(f"Learned {len(keys)} area(s) from {os.path.basename(path)}. Review them, then Save.")
+        return keys
+
+    def _pick_areas(self, got, name):
+        from PySide6.QtWidgets import QDialog, QDialogButtonBox, QListWidgetItem
+        dlg = QDialog(self); dlg.setWindowTitle(f"Learn from {name}")
+        v = QVBoxLayout(dlg)
+        v.addWidget(D.label(f"What {name} carries. Untick anything you do not want; nothing is saved until you press Save.", None))
+        lst = QListWidget(); lst.setMinimumSize(720, 360)
+        for k, a in got.areas.items():
+            it = QListWidgetItem(f"{a['label']}\n    " + "\n    ".join(a["summary"][:6]))
+            it.setData(Qt.UserRole, k); it.setFlags(it.flags() | Qt.ItemIsUserCheckable); it.setCheckState(Qt.Checked)
+            lst.addItem(it)
+        v.addWidget(lst)
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.accepted.connect(dlg.accept); bb.rejected.connect(dlg.reject)
+        v.addWidget(bb)
+        if dlg.exec() != QDialog.Accepted:
+            return []
+        return [lst.item(i).data(Qt.UserRole) for i in range(lst.count()) if lst.item(i).checkState() == Qt.Checked]
+
+    def template_folder(self):
+        import app_gui
+        import prodcopy as PCY
+        return os.path.join(PCY.output_folder(app_gui.load_settings() or {}, app_gui.DATA_DIR), "Templates")
+
+    def make_template(self, start_from=None, word=None, wait=True):
+        """A Word template with every value in force at this layer, in the output folder's Templates folder.
+        start_from: "" for the Stationkeeper base, a path to start from a template (read once), None to ask."""
+        import prodtemplate as PT
+        probs = self.show_problems()
+        if probs:
+            self.host.status("Fix these first: " + probs[0])
+            return None
+        if start_from is None:
+            from PySide6.QtWidgets import QMessageBox
+            mb = QMessageBox(self); mb.setWindowTitle("Make a template")
+            mb.setText("Start from the Stationkeeper base (cover, front matter, a chapter with a sample table, an appendix), or "
+                       "from a template of yours (it is only read; its pages, logos and text are kept)?")
+            base_b = mb.addButton("Stationkeeper base", QMessageBox.AcceptRole)
+            mine_b = mb.addButton("A template of mine...", QMessageBox.ActionRole)
+            mb.addButton(QMessageBox.Cancel)
+            mb.exec()
+            if mb.clickedButton() is base_b:
+                start_from = ""
+            elif mb.clickedButton() is mine_b:
+                start_from, _ = QFileDialog.getOpenFileName(self, "Start from (only read)", os.path.expanduser("~"), "Word (*.dotx *.docx)")
+                if not start_from:
+                    return None
+            else:
+                return None
+        std = PRL.engine_ready(copy.deepcopy(self.work))
+        std["name"] = self.scope_box.currentText().split(": ", 1)[-1]
+        if word is None and sys.platform.startswith("win"):
+            import prodword
+            word = prodword.update_fields
+        self.host.status("Making the template...")
+        folder = self.template_folder()
+        self._tres = None
+
+        def run():
+            try:
+                self._tres = ("job", PT.make(std, folder, start_from, word=word))
+            except Exception as e:  # noqa: BLE001
+                diag.swallowed()
+                self._tres = ("error", f"The template was not made ({type(e).__name__}).")
+        import bgwork
+        self._twork = bgwork.start(run, "stationkeeper-template")
+        if wait:
+            bgwork.wait(self._twork)
+            return self.template_done()
+        from PySide6.QtCore import QTimer
+        self._ttimer = QTimer(self, interval=500, timeout=lambda: self.template_done() if not self._twork.is_alive() else None)
+        self._ttimer.start()
+        return None
+
+    def template_done(self):
+        if getattr(self, "_ttimer", None) is not None:
+            self._ttimer.stop()
+        res, self._tres = getattr(self, "_tres", None), None
+        if res is None:
+            return None
+        kind, job = res
+        if kind != "job":
+            self.host.status(job)
+            return None
+        refused = [x for x in job.steps if x.get("refused")]
+        self.last_template = job
+        self.host.status(f"Template made: {os.path.basename(job.copy)} in {os.path.dirname(job.copy)}. Checked against this "
+                         f"standard: {job.check.count()} finding(s)" + (f"; {len(refused)} step(s) refused" if refused else "") + ".")
+        diag.activity("prod_template_made", n=job.check.count())
+        return job
 
     def export(self, path=None):
         """Every value in force at this layer, with where it comes from, as a workbook for review."""

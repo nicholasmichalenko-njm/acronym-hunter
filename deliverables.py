@@ -97,7 +97,8 @@ def update(rec, did, who=None, **fields):
         return False
     changed = []
     for k, v in fields.items():
-        if k not in ("name", "kind", "format", "limit", "owner", "status", "doc_id", "form_version", "file", "notes", "progress", "volume"):
+        if k not in ("name", "kind", "format", "limit", "owner", "status", "doc_id", "form_version", "file", "notes", "progress", "volume",
+                     "doc_type"):                      # 3.7.0: the production document type this deliverable is made to
             continue
         if k == "progress":                           # 2.48.0: percent done, 0 to 100
             try:

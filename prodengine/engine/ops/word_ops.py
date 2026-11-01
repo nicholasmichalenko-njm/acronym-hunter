@@ -87,7 +87,7 @@ def set_run_props(rpr, font=None, size=None, bold=None, italic=None, color=None)
     if color is not None:
         c = ensure(rpr, "color")
         c.attrib.clear()
-        c.set(q("val"), color)
+        c.set(q("val"), "auto" if str(color).lower() == "auto" else color)
 
 
 def local_attr(a):
@@ -150,7 +150,23 @@ def _chain(root, s):
         s = by_id.get(b.get(q("val"))) if b is not None else None
 
 
-def effective(root, s, what):
+def theme_fonts(pkg):
+    """3.7.0: {"major": font, "minor": font} from the theme, so a style set to +Body or +Headings compares as the
+    font it shows."""
+    out = {}
+    for name in sorted(pkg.raw):
+        if re.match(r"word/theme/theme\d*\.xml$", name):
+            a = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+            root = pkg.tree(name)
+            for kind in ("major", "minor"):
+                el = root.find(f".//{a}{kind}Font/{a}latin")
+                if el is not None and el.get("typeface"):
+                    out[kind] = el.get("typeface")
+            break
+    return out
+
+
+def effective(root, s, what, theme=None):
     """3.6.0: the value a style shows for one property, through its basedOn chain and the document defaults, as
     Word resolves it. None when it comes from a theme font (not compared; the fix then writes it)."""
     def on(el):
@@ -164,7 +180,8 @@ def effective(root, s, what):
         if what == "font" and rpr is not None and rpr.find("w:rFonts", NS) is not None:
             rf = rpr.find("w:rFonts", NS)
             if rf.get(q("asciiTheme")):
-                return None
+                th = rf.get(q("asciiTheme"))
+                return (theme or {}).get("major" if th.startswith("major") else "minor")
             if rf.get(q("ascii")):
                 return rf.get(q("ascii"))
         if what == "size" and rpr is not None and rpr.find("w:sz", NS) is not None:
@@ -176,32 +193,120 @@ def effective(root, s, what):
         if what in ("before", "after", "line") and ppr is not None and ppr.find("w:spacing", NS) is not None \
                 and ppr.find("w:spacing", NS).get(q(what)) is not None:
             v = int(ppr.find("w:spacing", NS).get(q(what)))
-            return v / 240 if what == "line" else v / 20
+            exact = ppr.find("w:spacing", NS).get(q("lineRule")) in ("exact", "atLeast")
+            return v / 240 if (what == "line" and not exact) else v / 20
         if what == "jc" and ppr is not None and ppr.find("w:jc", NS) is not None:
             return ppr.find("w:jc", NS).get(q("val"))
         if what == "keep_next" and ppr is not None and ppr.find("w:keepNext", NS) is not None:
             return on(ppr.find("w:keepNext", NS))
+        # 3.7.0: the rest of a style's definition
+        for key, tag in (("keep_lines", "keepLines"), ("page_break_before", "pageBreakBefore"), ("widow", "widowControl")):
+            if what == key and ppr is not None and ppr.find("w:" + tag, NS) is not None:
+                return on(ppr.find("w:" + tag, NS))
+        for key, tag in (("caps", "caps"), ("small_caps", "smallCaps")):
+            if what == key and rpr is not None and rpr.find("w:" + tag, NS) is not None:
+                return on(rpr.find("w:" + tag, NS))
+        if what == "underline" and rpr is not None and rpr.find("w:u", NS) is not None:
+            return (rpr.find("w:u", NS).get(q("val")) or "single") not in ("none", "0", "false")
+        if what in ("left", "right", "first", "hanging") and ppr is not None and ppr.find("w:ind", NS) is not None:
+            ind = ppr.find("w:ind", NS)
+            names = {"left": ("left", "start"), "right": ("right", "end"), "first": ("firstLine",), "hanging": ("hanging",)}[what]
+            for a in names:
+                if ind.get(q(a)) is not None:
+                    return int(ind.get(q(a))) / 20
+            if what in ("first", "hanging") and (ind.get(q("firstLine")) is not None or ind.get(q("hanging")) is not None):
+                return 0.0                   # one of the pair is set: the other is zero
+        if what == "line_rule" and ppr is not None and ppr.find("w:spacing", NS) is not None \
+                and ppr.find("w:spacing", NS).get(q("line")) is not None:
+            return ppr.find("w:spacing", NS).get(q("lineRule")) or "auto"
+    if what in ("next", "based_on"):
+        el = s.find("w:" + ("next" if what == "next" else "basedOn"), NS)
+        if el is None:
+            return None if what == "based_on" else _name_of(root, s.get(q("styleId")))
+        return _name_of(root, el.get(q("val")))
     return {"size": 10.0, "bold": False, "italic": False, "color": "AUTO", "before": 0.0, "after": 0.0, "line": 1.0,
-            "jc": "left", "keep_next": False}.get(what)
+            "jc": "left", "keep_next": False, "keep_lines": False, "page_break_before": False, "widow": True, "caps": False,
+            "small_caps": False, "underline": False, "left": 0.0, "right": 0.0, "first": 0.0, "hanging": 0.0,
+            "line_rule": "auto"}.get(what)
+
+
+def _name_of(root, sid):
+    for x in root.findall("w:style", NS):
+        if x.get(q("styleId")) == sid:
+            n = x.find("w:name", NS)
+            return n.get(q("val")) if n is not None else sid
+    return sid
+
+
+# 3.7.0: every property a style definition can carry (the standard's style library), in one place
+STYLE_PROPS = ("font", "size", "bold", "italic", "underline", "caps", "small_caps", "color", "jc", "before", "after", "line",
+               "line_rule", "left", "right", "first", "hanging", "keep_next", "keep_lines", "page_break_before", "widow",
+               "based_on", "next")
+RUN_PROPS = ("font", "size", "bold", "italic", "underline", "caps", "small_caps", "color")
 
 
 def _same_value(what, have, want):
+    if what == "based_on" and have is None:
+        return want in (None, "")
     if have is None:
         return False
-    if what == "font":
-        return str(have).strip().lower() == str(want).strip().lower()
-    if what in ("size", "before", "after", "line"):
+    if what in ("font", "based_on", "next"):
+        return norm(str(have)) == norm(str(want))
+    if what in ("size", "before", "after", "line", "left", "right", "first", "hanging"):
         return abs(float(have) - float(want)) < 0.01
     if what == "color":
         return str(have).upper() == str(want).upper()
     return have == want
 
 
-def style_needs(root, s, props):
-    """3.6.0: the part of props a style does not already show (font, size, bold, italic, color, spacing, alignment,
-    keep with next), resolved through its base styles and the document defaults."""
-    compared = ("font", "size", "bold", "italic", "color", "before", "after", "line", "jc", "keep_next")
-    return {k: v for k, v in props.items() if v is not None and (k not in compared or not _same_value(k, effective(root, s, k), v))}
+def style_needs(root, s, props, theme=None):
+    """3.6.0: the part of props a style does not already show, resolved through its base styles and the document
+    defaults (3.7.0: every property of STYLE_PROPS, theme fonts resolved)."""
+    return {k: v for k, v in props.items() if v is not None and (k not in STYLE_PROPS or not _same_value(k, effective(root, s, k, theme), v))}
+
+
+def set_more_props(root, s, props):
+    """3.7.0: the properties set_run_props and set_para_props do not cover."""
+    rpr = ensure(s, "rPr")
+    for key, tag in (("caps", "caps"), ("small_caps", "smallCaps")):
+        if props.get(key) is not None:
+            el = ensure(rpr, tag); el.attrib.clear()
+            if not props[key]:
+                el.set(q("val"), "0")
+    if props.get("underline") is not None:
+        ensure(rpr, "u").attrib.clear()
+        rpr.find("w:u", NS).set(q("val"), "single" if props["underline"] else "none")
+    if s.get(q("type")) == "paragraph":
+        ppr = ensure(s, "pPr")
+        for key, tag in (("keep_lines", "keepLines"), ("page_break_before", "pageBreakBefore"), ("widow", "widowControl")):
+            if props.get(key) is not None:
+                el = ensure(ppr, tag); el.attrib.clear()
+                if not props[key]:
+                    el.set(q("val"), "0")
+        if any(props.get(k) is not None for k in ("left", "right", "first", "hanging")):
+            ind = ensure(ppr, "ind")
+            for k, a in (("left", "left"), ("right", "right")):
+                if props.get(k) is not None:
+                    ind.attrib.pop(q("start" if a == "left" else "end"), None)
+                    ind.set(q(a), str(int(round(float(props[k]) * 20))))
+            if props.get("hanging"):
+                ind.attrib.pop(q("firstLine"), None); ind.set(q("hanging"), str(int(round(float(props["hanging"]) * 20))))
+            elif props.get("first") is not None:
+                ind.attrib.pop(q("hanging"), None); ind.set(q("firstLine"), str(int(round(float(props["first"]) * 20))))
+            elif props.get("hanging") is not None:
+                ind.attrib.pop(q("hanging"), None)
+        if props.get("line_rule") in ("auto", "exact", "atLeast") and (ppr.find("w:spacing", NS) is not None or props.get("line") is not None):
+            sp = ensure(ppr, "spacing")
+            sp.set(q("lineRule"), props["line_rule"])
+            if props["line_rule"] != "auto" and props.get("line") is not None:      # exact/at least: line is points
+                sp.set(q("line"), str(int(round(float(props["line"]) * 20))))
+    if props.get("next"):
+        n = find_style(root, props["next"])
+        ensure(s, "next", {"val": n.get(q("styleId")) if n is not None else props["next"]})
+    if props.get("based_on"):
+        b = find_style(root, props["based_on"])
+        if b is not None and b.get(q("styleId")) != s.get(q("styleId")):
+            ensure(s, "basedOn", {"val": b.get(q("styleId"))})
 
 
 def op_styles(pkg, spec):
@@ -209,24 +314,35 @@ def op_styles(pkg, spec):
     3.6.0: a style is changed only where the value it shows (through its base styles and the document defaults)
     differs from the spec, so a style Word has already simplified is not written again."""
     root = styles_root(pkg)
+    theme = theme_fonts(pkg)
     checks, created = [], []
-    compared = ("font", "size", "bold", "italic", "color", "before", "after", "line", "jc", "keep_next")
-    for name, props in spec.items():
+
+    def depth(n, seen=()):                  # 3.7.0: base styles first, so a style based on another compares after it
+        b = (spec.get(n) or {}).get("based_on")
+        if not b or b in seen or b not in spec:
+            return 0 if not b else 1
+        return 1 + depth(b, seen + (n,))
+    for name, props in sorted(spec.items(), key=lambda kv: depth(kv[0])):
+        props = {k: v for k, v in props.items() if v is not None and v != ""}
         s = find_style(root, name)
         if s is None:
             s = new_style(root, name, props.get("type", "paragraph"), props.get("based_on", "Normal"))
             created.append(name)
         else:
-            need = {k: v for k, v in props.items() if k in compared and not _same_value(k, effective(root, s, k), v)}
-            if not need and not ("based_on" in props):
+            need = {k: v for k, v in props.items() if k in STYLE_PROPS and not _same_value(k, effective(root, s, k, theme), v)}
+            if not need:
                 continue
-            props = dict(need, **{k: v for k, v in props.items() if k not in compared})
+            props = dict(need, **{k: v for k, v in props.items() if k not in STYLE_PROPS})
         pkg.mark(s)
         rpr = ensure(s, "rPr")
         set_run_props(rpr, props.get("font"), props.get("size"), props.get("bold"), props.get("italic"), props.get("color"))
         if s.get(q("type")) == "paragraph":
             ppr = ensure(s, "pPr")
-            set_para_props(ppr, props.get("before"), props.get("after"), props.get("keep_next"), props.get("line"), props.get("jc"))
+            line = props.get("line") if props.get("line_rule", "auto") == "auto" else None
+            set_para_props(ppr, props.get("before"), props.get("after"), props.get("keep_next"), line, props.get("jc"))
+        set_more_props(root, s, props)
+        if rpr is not None and len(rpr) == 0:
+            s.remove(rpr)
         linked = sync_linked(pkg, root, s)
         e = f"doc.Styles({name!r})"
         if linked and "font" in props:
@@ -235,11 +351,14 @@ def op_styles(pkg, spec):
         if "size" in props: checks.append({"expr": e + ".Font.Size", "expect": float(props["size"])})
         if "bold" in props: checks.append({"expr": e + ".Font.Bold", "expect": -1 if props["bold"] else 0})
         if "italic" in props: checks.append({"expr": e + ".Font.Italic", "expect": -1 if props["italic"] else 0})
-        if "color" in props: checks.append({"expr": e + ".Font.Color", "expect": bgr(props["color"])})
+        if "color" in props and str(props["color"]).lower() != "auto": checks.append({"expr": e + ".Font.Color", "expect": bgr(props["color"])})
         if "before" in props: checks.append({"expr": e + ".ParagraphFormat.SpaceBefore", "expect": float(props["before"])})
         if "after" in props: checks.append({"expr": e + ".ParagraphFormat.SpaceAfter", "expect": float(props["after"])})
         if "keep_next" in props: checks.append({"expr": e + ".ParagraphFormat.KeepWithNext", "expect": -1 if props["keep_next"] else 0})
         if "based_on" in props: checks.append({"expr": e + ".BaseStyle.NameLocal", "expect": props["based_on"]})
+        if "left" in props: checks.append({"expr": e + ".ParagraphFormat.LeftIndent", "expect": float(props["left"])})
+        if "keep_lines" in props: checks.append({"expr": e + ".ParagraphFormat.KeepTogether", "expect": -1 if props["keep_lines"] else 0})
+        if "page_break_before" in props: checks.append({"expr": e + ".ParagraphFormat.PageBreakBefore", "expect": -1 if props["page_break_before"] else 0})
     return {"created": created, "checks": checks}
 
 

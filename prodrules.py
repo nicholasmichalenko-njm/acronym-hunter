@@ -33,6 +33,7 @@ def _company_default():
     c["fonts"] = {k: {"min_size": None, "max_size": None, "fonts": None, "rfp_ref": ""} for k in SCOPES}
     c["styles"] = {"allowed": [], "hide_unused_builtin": False, "remove_unused_custom": False, "template": "",
                    "apply_variables": True}
+    c["style_defs"] = {}               # 3.7.0: the style library, {style: {prop: value}}; blank = not checked
     c["heading_numbering"] = {"on": False, "levels": [
         {"style": s, "fmt": f, "text": t, "number_at": a, "text_at": b, "restart": r} for (s, f, t, a, b, r) in WO.HEADING_LEVELS]}
     c["checks"] = {"toc_forbid": ["\\o", "\\u"], "page_numbers": True, "caption_fields": True,
@@ -130,11 +131,13 @@ def resolved_type(data, tid):
     return std
 
 
-def for_effort(config_dir, ws=None, data=None):
-    """The standard in force for the open effort: team -> its document type -> the effort's own values."""
+def for_effort(config_dir, ws=None, data=None, type_id=None):
+    """The standard in force for the open effort: team -> its document type -> the effort's own values.
+    type_id (3.7.0): a deliverable's own document type instead of the effort's."""
     data = data or load(config_dir)
     eff = (ws.get("prod_std", {}) if ws is not None else {}) or {}
-    tid = eff.get("type") if eff.get("type") in [t["id"] for t in data["types"]] else data["default"]
+    ids = [t["id"] for t in data["types"]]
+    tid = type_id if type_id in ids else (eff.get("type") if eff.get("type") in ids else data["default"])
     std = merge(resolved_type(data, tid), eff.get("over") or {})
     std["name"] = type_of(data, tid)["name"]
     std["effort_over"] = bool(eff.get("over"))
@@ -299,7 +302,7 @@ def context(config_dir, effort_name="", info=None, effort_list=None, rec=None, p
         pass
     d = volume_for(path, rec)
     if d:
-        out["deliverable"] = {k: d.get(k, "") for k in ("id", "name", "kind", "limit", "format")}
+        out["deliverable"] = {k: d.get(k, "") for k in ("id", "name", "kind", "limit", "format", "doc_type")}
         out["variables"]["volume_name"] = d.get("name", "")
     try:
         import banned as BN
@@ -374,6 +377,23 @@ def missing_values(std, sources=()):
     return [k for k in hf_tokens(std) if not str(v.get(k) or "").strip() and SOURCE_STYLES.get(k) not in set(sources)]
 
 
+def page_limit(text):
+    """3.7.0: the number of pages in a deliverable's limit ("25 pages", "25-page limit", "30"), or None."""
+    m = re.search(r"(\d+)\s*-?\s*(?:pages?|pp\b|page limit)", text or "", re.I) or re.fullmatch(r"\s*(\d+)\s*", text or "")
+    return int(m.group(1)) if m else None
+
+
+def limit_note(limit_text, pages):
+    """What Word's page count says against the deliverable's limit, in words, or ""."""
+    n = page_limit(limit_text)
+    if not n or not pages:
+        return ""
+    if pages > n:
+        return (f"Word counts {pages} pages; the limit is {n} ({limit_text}). Check what the RFP counts (covers, the TOC "
+                "and appendices are often excluded).")
+    return f"Word counts {pages} pages; the limit is {n} ({limit_text})."
+
+
 # ------------------------------------------------------------------ Format Check (3.5) reads a flat view
 def to_check(std):
     """The 3.5 Format Check view of a standard: one font and a size range per kind of text, smallest margin, page."""
@@ -424,8 +444,32 @@ def variable_style_spec(std):
     return spec
 
 
+def style_spec(std):
+    """3.7.0: every style the standard defines, whole: the style library with the format variables on top (the
+    variables win, so changing body size in one place changes every style it drives)."""
+    spec = {}
+    for name, d in (std.get("style_defs") or {}).items():
+        props = {k: v for k, v in (d or {}).items() if v not in (None, "")}
+        if props:
+            spec[name] = props
+    if (std.get("styles") or {}).get("apply_variables", True):
+        for name, d in variable_style_spec(std).items():
+            spec.setdefault(name, {}).update(d)
+    return spec
+
+
 def validate(std):
     out = list(PR.validate(std))
+    for name, d in (std.get("style_defs") or {}).items():
+        for k in ("size", "before", "after", "line", "left", "right", "first", "hanging"):
+            v = (d or {}).get(k)
+            if v not in (None, ""):
+                try:
+                    float(v)
+                except (TypeError, ValueError):
+                    out.append(f"style {name}: {k} is not a number")
+        if (d or {}).get("type", "paragraph") not in ("paragraph", "character"):
+            out.append(f"style {name}: unknown type")
     for k, r in (std.get("fonts") or {}).items():
         lo, hi = r.get("min_size"), r.get("max_size")
         if lo and hi and float(lo) > float(hi):

@@ -49,7 +49,7 @@ RULE_TEXT = {
     "F1": "Font or size typed over the style", "F2": "Font or size typed over the style", "F1s": "Style breaks the font rule",
     "F2s": "Style breaks the size rule",
     "S1": "Style not on the allowed list", "S2": "Custom style not used", "S3": "Built-in style shown but not used",
-    "S4": "Style does not match the format variables", "S5": "Heading numbering differs from the standard",
+    "S4": "Style differs from the standard", "S7": "Style the standard defines is not in the file", "S5": "Heading numbering differs from the standard",
     "S6": "Style takes heading numbers it should not",
     "R0": "Table rows to format by role", "R1": "Table rows waiting for your answer",
 }
@@ -65,14 +65,36 @@ def _heading_levels(std):
             for l in std["heading_numbering"]["levels"]]
 
 
+PROP_TEXT = {"font": "font", "size": "size", "bold": "bold", "italic": "italic", "underline": "underline", "caps": "all caps",
+             "small_caps": "small caps", "color": "color", "jc": "alignment", "before": "space before", "after": "space after",
+             "line": "line spacing", "line_rule": "line spacing rule", "left": "left indent", "right": "right indent",
+             "first": "first line indent", "hanging": "hanging indent", "keep_next": "keep with next",
+             "keep_lines": "keep lines together", "page_break_before": "page break before", "widow": "widow control",
+             "based_on": "based on", "next": "next style"}
+
+
+def _show(v):
+    if v is True:
+        return "on"
+    if v is False:
+        return "off"
+    if v is None:
+        return "not set"
+    if isinstance(v, float):
+        return f"{v:g}"
+    return str(v)
+
+
 # The fixes, in the order they run. The order matters: styles before the things that use them, tables before
 # captions (a caption row's style), sections before headers and footers, fields last.
 FIXES = [
     _fix("styles_merge", "styles", "Bring in the styles of the standard's template", MG.op_merge_styles, (),
          lambda std, plan: {"template_path": std["styles"]["template"]}, help="Every style in the template replaces the "
          "document's style of the same name (Word's Organizer); the document keeps its own text and style names."),
-    _fix("styles_apply", "styles", "Set style fonts, sizes and spacing from the format variables", WO.op_styles,
-         WO.OP_STYLES_ALLOWED, lambda std, plan: {"spec": PRL.variable_style_spec(std)}, rules=("S4",)),
+    _fix("styles_apply", "styles", "Set every style the standard defines (fonts, sizes, spacing, indents, keeps, based on)",
+         WO.op_styles, WO.OP_STYLES_ALLOWED,
+         lambda std, plan: {"spec": {k: v for k, v in PRL.style_spec(std).items() if k not in set(plan.get("style_skip") or ())}},
+         rules=("S4", "S7")),
     _fix("unnumber_inheriting", "styles", "Stop styles based on a heading from taking heading numbers (for example TOC Heading)",
          WO.op_unnumber_inheriting, WO.OP_STYLES_ALLOWED, lambda std, plan: {"names": plan.get("unnumber") or None}, rules=("S6",),
          help="A style based on Heading 1 with no numbering of its own takes Heading 1's number: the Table of Contents title "
@@ -144,6 +166,7 @@ class Check:
         self.would = {}           # fix key -> count of changes the fix would make (dry run)
         self.hf_sources = []      # cover paragraph styles the headers can read through STYLEREF (PE Volume Name...)
         self.missing = []         # volume tokens the layouts use that have no value and no cover paragraph
+        self.style_diffs = {}     # 3.7.0: style -> {prop: {"have", "want"}} or {"missing": True}
         self.stats = {}
         self.error = ""
         self.seconds = 0.0
@@ -347,11 +370,27 @@ def check(path, std, data=None):
     # fixes with no audit of their own: count what they would change on a copy in memory
     plan0 = {"styles_unused": chk.styles.get("unused_custom", []), "styles_hide": chk.styles.get("hide", [])}
     st = std.get("styles") or {}
-    if st.get("apply_variables"):
-        n = _dry(raw, FIX["styles_apply"], std, plan0)
-        if n:
-            chk.would["styles_apply"] = n
-            _add(chk, "styles", "S4", "warning", f"{n} style(s) differ from the format variables (fonts, sizes, spacing)", -1, "styles_apply")
+    try:
+        spkg = Package.from_bytes(raw)
+        sroot, theme = WO.styles_root(spkg), WO.theme_fonts(spkg)
+        absent = []
+        for name, props in PRL.style_spec(std).items():
+            s_ = WO.find_style(sroot, name)
+            if s_ is None:
+                absent.append(name)
+                chk.style_diffs[name] = {"missing": True}
+                continue
+            need = {k: v for k, v in WO.style_needs(sroot, s_, props, theme).items() if k in WO.STYLE_PROPS}
+            if need:
+                chk.style_diffs[name] = {k: {"have": WO.effective(sroot, s_, k, theme), "want": v} for k, v in need.items()}
+                _add(chk, "styles", "S4", "warning", f"{name}: " + "; ".join(
+                    f"{PROP_TEXT.get(k, k)} {_show(chk.style_diffs[name][k]['have'])} (standard {_show(v)})" for k, v in need.items()),
+                    -1, "styles_apply")
+        if absent:
+            _add(chk, "styles", "S7", "info", f"{len(absent)} style(s) the standard defines are not in the file (the fix adds "
+                 "them): " + ", ".join(absent), -1, "styles_apply")
+    except Exception as e:  # noqa: BLE001
+        chk.error += f" Style definitions could not be compared ({type(e).__name__})."
     if (std.get("heading_numbering") or {}).get("on"):
         n = _dry(raw, FIX["heading_numbering"], std, plan0)
         if n:
@@ -451,7 +490,8 @@ def write_report(job, effort=""):
                 ("Made", job.started.strftime("%Y-%m-%d %H:%M") if hasattr(job, "started") else ""),
                 ("Original unchanged (SHA-256, size and date compared)", "Yes" if job.original_ok else "NO: it changed while Stationkeeper "
                  "worked. Stationkeeper never opened it for writing; someone else saved it."),
-                ("Original SHA-256", job.before["sha256"]), ("Found before", job.before_check.count()), ("Left after", job.after_check.count())):
+                ("Original SHA-256", job.before["sha256"]), ("Found before", job.before_check.count()), ("Left after", job.after_check.count()),
+                ("Pages (Word) and the page limit", getattr(job, "page_note", "") or "No page limit on the Deliverables board, or Word did not count pages")):
         ws.append(list(row))
     head(ws)
     ws2 = wb.create_sheet("Fixes")

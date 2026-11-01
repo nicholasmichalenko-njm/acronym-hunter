@@ -294,7 +294,9 @@ TOPICS = [
    "Each effort's copies go in a folder with the effort's name inside it. Copies never go beside the original.",
    "Pick a draft from the Volumes folder, or Add a file.... Its volume name comes from the Deliverables board when the "
    "draft is a deliverable's file; otherwise type it. The solicitation comes from the effort's basics. Headers and "
-   "footers are built only when both are set. Press Check; each area shows what it found.",
+   "footers are built only when both are set. Document type: the draft's own (kept on the Deliverables board for a "
+   "deliverable), or the effort's. Press Check; each area shows what it found, each style that differs from the style "
+   "library property by property.",
    "What to fix: every fix is listed under its area with what it found; untick any you do not want. Expand a fix to "
    "see each finding and where it is.",
    "Tables: pick a table to see every row's role. Rows in bold wait for your answer; one answer covers every row "
@@ -314,17 +316,26 @@ TOPICS = [
   "Once to set the team's rules; for each document type; at the start of each effort to bring in the RFP's.",
   ["Editing: choose the team standard, a document type (+ Document type... adds one, starting from the one shown), or "
    "this effort. A value set at that layer shows in bold; Reset takes it back to the layer below.",
-   "Format variables: body, table and caption fonts and sizes, spacing, margins, paper, the volume name, solicitation "
-   "number and restriction marking. Row looks and styles use them.",
+   "Learn from a file...: pick your master template or a finished volume. Stationkeeper reads it (it is never changed) "
+   "and lists what it carries: every style's whole definition, the format variables, table looks by row role, page "
+   "setups, headers and footers, heading numbering and the TOC. Untick what you do not want; review; Save.",
+   "Format variables: body, table and caption fonts and sizes, spacing, margins, paper and the restriction marking. "
+   "Row looks and styles use them. Leave the volume name and solicitation blank: they come from the effort and the file.",
    "Font rules: the allowed fonts and the smallest and largest size for each kind of text. Blank is not checked.",
    "Styles and heading numbering: allowed styles, removing and hiding unused ones, a template to take styles from, and "
    "each heading level's number format, number text and positions.",
+   "Style library: every style the document type defines, whole: font, size, bold, italic, underline, caps, color, "
+   "alignment, spacing, line spacing, indents, keeps, page break before, widow control, based on and next style. Fix a "
+   "Copy checks each draft's styles against it property by property and sets the ones that differ.",
    "Table rows: each row's tag style, font, size, bold, italic, colors, alignment, spacing, repeat, merge, and every "
    "border edge (on, width, color), with a preview. Applies to: all table types, or one type only.",
    "Table types, row rules, captions and numbering, pages (the page scheme with cover and back cover), page setups, "
    "headers and footers, the TOC and its entry styles, lists, terms and Format Check options each have their own section.",
    "This effort: choose its document type, then Fill from the RFP's formatting rules lays the RFP's fonts, margins and "
    "page size over it for this effort only. Press Save.",
+   "Make a template...: a Word template (.dotx) with every value in force, from the Stationkeeper base (cover, front "
+   "matter, a chapter with a sample table, an appendix) or starting from a template of yours (only read). It goes to "
+   "the Templates folder in the output folder, dated, and is checked against the standard; Word updates its fields.",
    "Export for review... makes a workbook of every value and where it is set."],
   ["Blank means not set: a rule nobody sets is not checked and not written."]),
  ("exportall", "Effort Files", "Export All",

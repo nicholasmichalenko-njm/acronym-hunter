@@ -102,7 +102,7 @@ os.remove(own)
 # ------------------------------------------------------------------ Production Standards
 w.go("prodstd"); app.processEvents()
 sp = w.prodstd_page
-check("Standards opens on this effort, with every section", sp.scope == "effort" and sp.nav.count() == 14)
+check("Standards opens on this effort, with every section", sp.scope == "effort" and sp.nav.count() == 15)
 sp.scope_box.setCurrentIndex(0); app.processEvents()
 check("the team standard is editable", sp.scope == "team" and sp.work["variables"]["body_font"] == "Times New Roman")
 tid = sp.add_type("Cost volume")
@@ -147,6 +147,43 @@ check("Format Check reads the same standard", w.format_page.std_lbl.text().start
       w.format_page.std_lbl.text())
 x = sp.export(os.path.join(tmp, "std.xlsx"))
 check("Export for review", os.path.isfile(x))
+# ------------------------------------------------------------------ 3.7.0: document types as templates
+w.go("prodstd"); app.processEvents()
+sp.scope_box.setCurrentIndex(sp.scope_box.findData("type:cost_volume")); app.processEvents()
+tpl = os.path.join(HERE, "pefix", "data", "PE_Master_Effort_Template.dotx")
+tpl_before = sha(tpl)
+got = sp.learn(tpl, keys=["styles", "variables", "heading_numbering"])
+check("3.7: Learn from a file takes the chosen areas into the document type", got == ["styles", "variables", "heading_numbering"]
+      and "Heading 1" in sp.work["style_defs"] and sp.work["heading_numbering"]["on"] and sp.dirty and sha(tpl) == tpl_before)
+tbl = sp.tables["styledefs"]["w"]
+names = [tbl.cellWidget(i, 0).text() for i in range(tbl.rowCount())]
+check("3.7: the style library lists every learned style with its whole definition", "Heading 1" in names and "Normal" in names
+      and tbl.columnCount() == 24, (len(names), tbl.columnCount()))
+r = names.index("Heading 2")
+size_w = tbl.cellWidget(r, [c[0] for c in __import__("skqt.prodstdpage", fromlist=["STYLE_COLS"]).STYLE_COLS].index("size"))
+size_w.setValue(15.0)
+bold_w = tbl.cellWidget(r, 6); bold_w.setCurrentIndex(bold_w.findData("off"))
+check("3.7: a style's property edited in the library", sp.work["style_defs"]["Heading 2"]["size"] == 15.0
+      and sp.work["style_defs"]["Heading 2"]["bold"] is False)
+sp.save()
+t = PRL.type_of(PRL.load(cfg), "cost_volume")
+check("3.7: the document type saves its style library", t["style_defs"]["Heading 2"]["size"] == 15.0 and "Normal" in t["style_defs"])
+job = sp.make_template("", wait=True)
+check("3.7: Make a template writes a dated .dotx in the output folder's Templates folder, and it passes its own check",
+      job is not None and job.copy.endswith(".dotx") and " - TEMPLATE - Stationkeeper " in job.copy
+      and os.path.dirname(job.copy) == os.path.join(out, "Templates") and job.check.count() == 0,
+      (getattr(job, "copy", ""), [f["what"][:80] for f in getattr(getattr(job, "check", None), "findings", [])][:5]))
+import zipfile as _z
+st = _z.ZipFile(job.copy).read("word/styles.xml").decode("utf-8")
+check("3.7: the template carries the edited style", 'w:sz w:val="30"' in st)
+w.go("fixcopy"); app.processEvents()
+pg.files.setCurrentRow(next(i for i in range(pg.files.count()) if "Volume I Technical" in pg.files.item(i).text())); app.processEvents()
+pg.dtype.setCurrentIndex(pg.dtype.findData("cost_volume")); pg.dtype_chosen()
+check("3.7: a draft takes its own document type on Fix a Copy", pg.std()["name"] == "Cost volume"
+      and pg.std()["style_defs"]["Heading 2"]["size"] == 15.0 and "Cost volume" in pg.std_lbl.text(), pg.std_lbl.text())
+chk = pg.check(wait=True)
+check("3.7: Check lists each style that differs from the library, property by property",
+      any(f["rule"] == "S4" and f["what"].startswith("Heading 2:") and "size" in f["what"] for f in chk.findings))
 check("THE GATE, at the end", sha(vol) == before)
 n = sum(checks)
 print(f"QT PRODFIX {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
