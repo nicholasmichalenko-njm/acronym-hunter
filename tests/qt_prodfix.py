@@ -102,7 +102,7 @@ os.remove(own)
 # ------------------------------------------------------------------ Production Standards
 w.go("prodstd"); app.processEvents()
 sp = w.prodstd_page
-check("Standards opens on this effort, with every section", sp.scope == "effort" and sp.nav.count() == 15)
+check("Standards opens on this effort, with every section", sp.scope == "effort" and sp.nav.count() == 16)
 sp.scope_box.setCurrentIndex(0); app.processEvents()
 check("the team standard is editable", sp.scope == "team" and sp.work["variables"]["body_font"] == "Times New Roman")
 tid = sp.add_type("Cost volume")
@@ -305,6 +305,36 @@ check("3.10: Make a template puts the profile's cover and back cover in", PP.sig
       and PP.signature(traw, "backer", PRL.engine_ready(sp.work)) is not None)
 sp.clear_part("backer"); sp.save()
 check("3.10: a page can be cleared from the profile", set(PRL.type_of(PRL.load(cfg), "cost_volume")["page_parts"]) == {"cover"})
+# ------------------------------------------------------------------ 3.11.0: Excel and PowerPoint, check only
+from openpyxl import Workbook
+from openpyxl.styles import Font as _XFont
+xp = os.path.join(EF.folder(w.effort_path, "volumes"), "Cost Workbook.xlsx")
+xwb = Workbook(); xws = xwb.active; xws.append(["Role", "Hours"]); xws.append(["Engineer", 10])
+xws["A2"].font = _XFont(name="Calibri", size=11); xwb.save(xp)
+xbefore = sha(xp)
+w.go("fixcopy"); app.processEvents(); pg.refresh(); app.processEvents()
+names = [pg.files.item(i).text() for i in range(pg.files.count())]
+check("3.11: the Volumes folder's workbooks are listed with the drafts", "Cost Workbook.xlsx" in names, names)
+pg.files.setCurrentRow(names.index("Cost Workbook.xlsx")); app.processEvents()
+xchk = pg.check(wait=True)
+tops = [pg.tree.topLevelItem(i).child(j).text(0) for i in range(pg.tree.topLevelItemCount())
+        for j in range(pg.tree.topLevelItem(i).childCount())]
+check("3.11: Check reads a workbook against the profile, in its own area", xchk.office == "excel" and not xchk.error
+      and {f["rule"] for f in xchk.findings} >= {"X1", "X3"}, ([f["rule"] for f in xchk.findings], xchk.error))
+check("3.11: its findings are listed to fix by hand in Excel", any("Fix by hand in Excel" in t for t in tops), tops)
+check("3.11: Make the copy refuses a workbook (check only) and writes nothing",
+      pg.make(wait=True, open_list=[]) is None and "checked only" in pg.status.text() and sha(xp) == xbefore, pg.status.text())
+from pptx import Presentation as _Prs
+dp = os.path.join(tmp, "Orals.pptx"); _d = _Prs(); _d.slides.add_slide(_d.slide_layouts[6]); _d.save(dp)
+dbefore = sha(dp)
+pg.add_file(dp); app.processEvents()
+dchk = pg.check(wait=True)
+check("3.11: a deck added by hand is checked as PowerPoint", dchk.office == "powerpoint" and "D7" in {f["rule"] for f in dchk.findings}
+      and pg.make(wait=True, open_list=[]) is None and sha(dp) == dbefore)
+w.go("prodstd"); app.processEvents()
+sp.nav.setCurrentRow([k for k, _t in __import__("skqt.prodstdpage", fromlist=["SECTIONS"]).SECTIONS].index("office")); app.processEvents()
+mp = next(i for i in sp.binder.items if i["path"] == ("powerpoint", "min_size"))
+check("3.11: Production Standards shows the Excel and PowerPoint values", mp["w"].value() == 12)
 check("THE GATE, at the end", sha(vol) == before)
 n = sum(checks)
 print(f"QT PRODFIX {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

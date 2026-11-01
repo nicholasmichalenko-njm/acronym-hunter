@@ -5,7 +5,7 @@ edited shows in bold with a Reset button that takes it back to the layer below; 
 Sections: format variables, font rules, styles and heading numbering, table rows (each role's look with every border
 edge), table types, row rules, captions and numbering, pages and sections (the page scheme, cover and back cover),
 page setups, headers and footers, the table of contents and the lists of tables and figures, bulleted and numbered
-lists, terms, Format Check options. Saved to the config folder (team, types) and the effort's settings (effort)."""
+lists, terms, Excel and PowerPoint, check options. Saved to the config folder (team, types) and the effort's settings (effort)."""
 import copy, os, sys
 from PySide6.QtCore import Qt, QRectF, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
@@ -24,7 +24,7 @@ SECTIONS = [
     ("rows", "Table rows"), ("ttypes", "Table types"), ("rules", "Row rules"), ("captions", "Captions and numbering"),
     ("pages", "Pages, cover and back cover"), ("setups", "Page setups"), ("hf", "Headers and footers"),
     ("toc", "Table of contents and lists"), ("lists", "Bulleted and numbered lists"), ("terms", "Terms"),
-    ("checks", "Format Check options"),
+    ("office", "Excel and PowerPoint"), ("checks", "Check options"),
 ]
 ROLE_NAMES = {"caption": "Caption row", "header": "Header row", "header2": "Second header row", "subhead": "Subhead row",
               "body": "Body rows", "subtotal": "Subtotal row", "total": "Total row", "note": "Notes row"}
@@ -349,7 +349,7 @@ class StandardsPage(QWidget):
         self.dirty = False
         self.binder = Binder(self)
         outer = QVBoxLayout(self); outer.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); outer.setSpacing(D.SPACE["m"])
-        top = D.Card("Production Standards", "Every rule Format Check and Fix a Copy use, in layers: the team standard, then a "
+        top = D.Card("Production Standards", "Every rule Fix a Copy uses, in layers: the team standard, then a "
                      "document profile (one kind of document you deliver), then an effort type (the rules of a kind of effort, "
                      "for every profile in it, and its changes for one profile), then this effort. A value set at the layer you "
                      "edit shows in bold, and Reset takes it back to the layer below.",
@@ -469,8 +469,8 @@ class StandardsPage(QWidget):
             self.row(f, t, w, ("variables", k), kind, ("Drives: " + drives) if drives else "")
 
     def build_fonts(self, v):
-        c = D.Card("Font rules", "What the RFP allows for each kind of text. Blank means not checked. Format Check and Fix a "
-                   "Copy report text that breaks these, and say whether the style or typed formatting is the cause.")
+        c = D.Card("Font rules", "What the RFP allows for each kind of text. Blank means not checked. Fix a Copy reports "
+                   "text that breaks these, and says whether the style or typed formatting is the cause.")
         g = QGridLayout(); g.setHorizontalSpacing(D.SPACE["m"])
         for i, h in enumerate(("Text", "Allowed fonts (comma between)", "Smallest (pt)", "Largest (pt)", "RFP reference")):
             g.addWidget(D.label(h, "label"), 0, i)
@@ -787,8 +787,34 @@ class StandardsPage(QWidget):
         self.row(f, "Acronyms (comma)", QLineEdit(), ("terms", "lists", "acronyms"), "list")
         self.row(f, "Flag names one letter off", QCheckBox(), ("terms", "name_check"), "bool")
 
+    def build_office(self, v):
+        """3.11.0: what Check reads in workbooks and decks (prodoffice). Check only: these files are never changed."""
+        f, _c = self.form(v, "Excel workbooks", "Fix a Copy checks a workbook against these and lists what differs; you fix it "
+                          "in Excel. Blank font or size: the profile's table font and size.")
+        w = QFontComboBox(); w.setEditable(True)
+        self.row(f, "Font", w, ("excel", "font"), "font")
+        self.row(f, "Size (pt)", num(0, 72, 0.5), ("excel", "size"), "num")
+        self.row(f, "Header row bold", QCheckBox(), ("excel", "header", "bold"), "bool")
+        self.row(f, "Header row fill (hex, blank: any)", QLineEdit(), ("excel", "header", "fill"), "text")
+        self.row(f, "Header row text color (hex, blank: any)", QLineEdit(), ("excel", "header", "color"), "text")
+        self.row(f, "Header row frozen", QCheckBox(), ("excel", "freeze_header"), "bool")
+        self.row(f, "Print orientation", enum([("", "Either"), ("portrait", "Portrait"), ("landscape", "Landscape")]),
+                 ("excel", "print", "orientation"), "enum")
+        self.row(f, "Print fits one page wide", QCheckBox(), ("excel", "print", "fit_width"), "bool")
+        self.row(f, "Header row repeats on each printed page", QCheckBox(), ("excel", "print", "repeat_header"), "bool")
+        self.row(f, "Page number in the printed footer", QCheckBox(), ("excel", "print", "footer_page"), "bool")
+        self.row(f, "Restriction marking in the printed header or footer", QCheckBox(), ("excel", "print", "marking"), "bool")
+        f2, _c2 = self.form(v, "PowerPoint decks", "Fix a Copy checks a deck against these and lists what differs; you fix it "
+                            "in PowerPoint. Blank fonts: the profile's body and table fonts.")
+        self.row(f2, "Fonts allowed (comma)", QLineEdit(), ("powerpoint", "fonts"), "text")
+        self.row(f2, "Smallest text (pt)", num(0, 72, 0.5), ("powerpoint", "min_size"), "num")
+        self.row(f2, "Smallest title (pt)", num(0, 96, 0.5), ("powerpoint", "title_min_size"), "num")
+        self.row(f2, "Slide size", enum([("", "Either"), ("16:9", "16:9"), ("4:3", "4:3")]), ("powerpoint", "slide_size"), "enum")
+        self.row(f2, "Restriction marking on every slide", QCheckBox(), ("powerpoint", "marking"), "bool")
+        self.row(f2, "Every slide has a title", QCheckBox(), ("powerpoint", "titles"), "bool")
+
     def build_checks(self, v):
-        f, _c = self.form(v, "Format Check options", "Read-only checks Format Check adds on top of the rules above.")
+        f, _c = self.form(v, "Check options", "Read-only checks Fix a Copy's Check adds on top of the rules above.")
         self.row(f, "TOC switches never used (comma)", QLineEdit(), ("checks", "toc_forbid"), "list")
         self.row(f, "Every section's footer has a page number field", QCheckBox(), ("checks", "page_numbers"), "bool")
         self.row(f, "Caption numbers must be fields", QCheckBox(), ("checks", "caption_fields"), "bool")

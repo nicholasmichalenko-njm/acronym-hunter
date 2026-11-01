@@ -283,7 +283,7 @@ TOPICS = [
    "Check the output folder (Change... sets it; the default is Production Copies in the Stationkeeper data folder). "
    "Each effort's copies go in a folder with the effort's name inside it. Copies never go beside the original.",
    "Check every draft reads every listed draft against its own profile and lists what each breaks, by area (what "
-   "Format Check did); double-click one to see its fixes. Export findings... makes a workbook of every finding.",
+   "Format Check used to do); double-click one to see its fixes. Export findings... makes a workbook of every finding.",
    "Pick a draft from the Volumes folder, or Add a file.... Its volume name comes from the Deliverables board when the "
    "draft is a deliverable's file; otherwise type it. The solicitation comes from the effort's basics. Headers and "
    "footers are built only when both are set. Profile: the draft's own (kept on the Deliverables board for a "
@@ -295,6 +295,9 @@ TOPICS = [
    "like it. Select rows and press C, H, 2, S, B, U, T, N or K to set their role; change the table type if needed.",
    "A table question: choose the role; Make it a rule saves it (for the draft's profile, or this effort only) so rows "
    "like these never ask again.",
+   "Excel and PowerPoint: a workbook or a deck in the Volumes folder is listed too (Add a file... takes one from "
+   "anywhere). Check reads it against the profile's Excel and PowerPoint values and lists what differs, sheet by sheet "
+   "or slide by slide. These files are read only: fix what Check finds in Excel or PowerPoint, then Check again.",
    "Decisions: say whether a list restarts or continues, and point broken cross-references at a target.",
    "Leave Update fields in Word on so page numbers, caption numbers, the TOC and the lists of tables and figures "
    "renumber, then press Make the fixed copy.",
@@ -306,7 +309,7 @@ TOPICS = [
    "version synced to this PC. Fix it when the writers are done.",
    "Each fix is one guarded change that may touch only what it declares; anything else is refused."]),
  ("prodstd", "Production", "Production Standards",
-  "Every rule Format Check and Fix a Copy use, in three layers: the team standard, document profiles, and this effort.",
+  "Every rule Fix a Copy uses, in three layers: the team standard, document profiles, and this effort.",
   "Once to set the team's rules; for each profile; at the start of each effort to bring in the RFP's.",
   ["Editing: choose the team standard, a document profile (+ Profile... adds one, starting from the one shown), or "
    "this effort. A value set at that layer shows in bold; Reset takes it back to the layer below.",
@@ -333,10 +336,12 @@ TOPICS = [
    "font, or the number format and text, and where the number and the text start.",
    "Word table styles: Learn from a file takes the table styles a template uses, whole; a table type's Word table "
    "style (Table types section) makes its tables use one.",
+   "Excel and PowerPoint: the font and size, header row, frozen header, and print setup Check expects in a workbook; "
+   "the fonts allowed, smallest text and titles, slide size, marking on every slide and slide titles in a deck.",
    "Pages, cover and back cover: the cover and back cover pages Learn from a file took (pictures included). Make a "
    "template puts them in; Fix a Copy reports a draft whose cover or back cover is built differently. Clear removes one.",
    "Table types, row rules, captions and numbering, pages (the page scheme with cover and back cover), page setups, "
-   "headers and footers, the TOC and its entry styles, lists, terms and Format Check options each have their own section.",
+   "headers and footers, the TOC and its entry styles, lists, terms, Excel and PowerPoint, and check options each have their own section.",
    "This effort: choose its profile, then Fill from the RFP's formatting rules lays the RFP's fonts, margins and "
    "page size over it for this effort only. Press Save.",
    "Make a template...: a Word template (.dotx) with every value in force, from the Stationkeeper base (cover, front "

@@ -304,6 +304,16 @@ class FixPage(QWidget):
                 drafts = self.host.home_page.theme_drafts()
             except Exception:
                 diag.swallowed()
+            try:                                     # 3.11.0: the Volumes folder's workbooks and decks too (check only)
+                import effortfolders as EF
+                h = self.host
+                vdir = (h.efforts.get(h.effort_name) or {}).get("volumes_dir") or EF.folder(h.effort_path, "volumes", make=False)
+                if vdir and os.path.isdir(vdir):
+                    for f in sorted(os.listdir(vdir)):
+                        if f.lower().endswith((".xlsx", ".xlsm", ".pptx", ".pptm")) and not f.startswith("~$"):
+                            drafts.append((f, os.path.join(vdir, f)))
+            except Exception:
+                diag.swallowed()
         seen = set()
         for name, p in drafts + [(os.path.basename(x), x) for x in keep]:
             if p in seen:
@@ -321,7 +331,7 @@ class FixPage(QWidget):
     def add_file(self, path=None):
         if path is None:
             path, _ = QFileDialog.getOpenFileName(self, "A Word file to fix (it is only read; the fixes go into a copy)",
-                                                  os.path.expanduser("~"), "Word (*.docx *.docm *.dotx *.dotm)")
+                                                  os.path.expanduser("~"), "Word, Excel, PowerPoint (*.docx *.docm *.dotx *.dotm *.xlsx *.xlsm *.pptx *.pptm)")
             if not path:
                 return ""
         it = QListWidgetItem(os.path.basename(path)); it.setData(Qt.UserRole, path); it.setToolTip(path)
@@ -484,7 +494,8 @@ class FixPage(QWidget):
                         c.setToolTip(0, "Untick to leave this style as the draft has it")
                     it.addChild(c)
             if manual:
-                it = QTreeWidgetItem(["Updated by Word, or reviewed by hand", f"{len(manual)} found", ""])
+                it = QTreeWidgetItem(["Fix by hand in " + ("Excel" if chk.office == "excel" else "PowerPoint") if getattr(chk, "office", "")
+                                      else "Updated by Word, or reviewed by hand", f"{len(manual)} found", ""])
                 top.addChild(it)
                 for f in manual[:400]:
                     c = QTreeWidgetItem([f"{f['rule']}  {f['what']}", "Word updates it" if f["fix"] == "word_update" else "review",
@@ -846,6 +857,10 @@ class FixPage(QWidget):
     def make(self, wait=False, open_list=PCY._ASK, word=None):
         if self.chk is None or self.plan is None:
             self.status.setText("Check the draft first.")
+            return None
+        if getattr(self.chk, "office", ""):          # 3.11.0
+            self.status.setText("Excel and PowerPoint files are checked only in this release: fix what Check found in "
+                                + ("Excel." if self.chk.office == "excel" else "PowerPoint."))
             return None
         if self._work is not None and self._work.is_alive():
             return None

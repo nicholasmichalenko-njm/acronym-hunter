@@ -45,6 +45,9 @@ def _company_default():
             {"style": "List Number", "fmt": "decimal", "text": "%1.", "font": "", "left": 0.25, "hanging": 0.25},
             {"style": "List Number 2", "fmt": "lowerLetter", "text": "%2.", "font": "", "left": 0.5, "hanging": 0.25},
             {"style": "List Number 3", "fmt": "lowerRoman", "text": "%3.", "font": "", "left": 0.75, "hanging": 0.25}]}]}
+    c["excel"] = {"font": "", "size": None, "header": {"bold": True, "fill": "", "color": ""}, "freeze_header": True,   # 3.11.0
+                  "print": {"orientation": "", "fit_width": True, "repeat_header": True, "footer_page": True, "marking": False}}
+    c["powerpoint"] = {"fonts": "", "min_size": 12, "title_min_size": None, "slide_size": "", "marking": False, "titles": True}
     c["heading_numbering"] = {"on": False, "levels": [
         {"style": s, "fmt": f, "text": t, "number_at": a, "text_at": b, "restart": r} for (s, f, t, a, b, r) in WO.HEADING_LEVELS]}
     c["checks"] = {"toc_forbid": ["\\o", "\\u"], "page_numbers": True, "caption_fields": True,

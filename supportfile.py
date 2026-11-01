@@ -20,6 +20,11 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.11.0": ["Fix a Copy checks Excel workbooks and PowerPoint decks against the profile: fonts and sizes, the header row, "
+               "frozen panes, print setup, number formats, hidden sheets and formula errors; slide size, fonts, small text, "
+               "things off the slide, the marking, empty placeholders and missing titles. These files are read only: "
+               "you fix what Check finds in Excel or PowerPoint.",
+               "Production Standards > Excel and PowerPoint holds the values each profile checks."],
     "3.10.0": ["Profiles carry Word table styles whole (borders, shading, the header row, banding) and each table type can "
                "use one: Fix a Copy checks and sets them, Learn from a file reads them, Make a template writes them.",
                "Profiles keep their cover and back cover pages, learned from a template or a finished volume (pictures "

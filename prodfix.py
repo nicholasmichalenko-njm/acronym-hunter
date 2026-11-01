@@ -25,8 +25,10 @@ AREAS = OrderedDict([
     ("styles", "Styles"), ("fonts", "Fonts"), ("tables", "Tables"), ("captions", "Captions and numbering"),
     ("toc", "Table of contents and lists of tables and figures"), ("xrefs", "Cross-references and bookmarks"),
     ("pages", "Pages, sections, headers and footers"), ("lists", "Bulleted and numbered lists"), ("terms", "Terms"),
+    ("sheets", "Excel sheets"), ("slides", "PowerPoint slides"),                     # 3.11.0: check only
 ])
 AREA_OF = {"bookmarks": "xrefs", "headings": "captions"}
+OFFICE_AREAS = ("sheets", "slides")
 
 RULE_TEXT = {
     "C1": "Caption number typed, not a field", "C2": "Caption in the wrong numbering list", "C3": "Caption chapter part wrong",
@@ -89,6 +91,10 @@ def _show(v):
 
 # The fixes, in the order they run. The order matters: styles before the things that use them, tables before
 # captions (a caption row's style), sections before headers and footers, fields last.
+import prodoffice as _PO
+RULE_TEXT.update(_PO.RULES)                                                       # 3.11.0: Excel and PowerPoint
+
+
 FIXES = [
     _fix("styles_merge", "styles", "Bring in the styles of the standard's template", MG.op_merge_styles, (),
          lambda std, plan: {"template_path": std["styles"]["template"]}, help="Every style in the template replaces the "
@@ -173,6 +179,7 @@ class Check:
         self.hf_sources = []      # cover paragraph styles the headers can read through STYLEREF (PE Volume Name...)
         self.missing = []         # volume tokens the layouts use that have no value and no cover paragraph
         self.style_diffs = {}     # 3.7.0: style -> {prop: {"have", "want"}} or {"missing": True}
+        self.office = ""          # 3.11.0: "excel" or "powerpoint" for a workbook or a deck (check only)
         self.stats = {}
         self.error = ""
         self.seconds = 0.0
@@ -268,9 +275,13 @@ def check(path, std, data=None):
     t0 = time.perf_counter()
     try:
         raw = data if data is not None else open(path, "rb").read()
+        ext = os.path.splitext(path)[1].lower()
+        import prodoffice as PO
+        if ext in PO.EXCEL_EXT + PO.PPT_EXT:          # 3.11.0: Excel and PowerPoint, read only
+            return _check_office(chk, raw, ext, std, t0)
         pkg = Package.from_bytes(raw, os.path.basename(path))
         if not pkg.is_word:
-            raise Refused("Fix a Copy reads Word files in this release; Excel and PowerPoint come next.")
+            raise Refused("Fix a Copy reads Word, Excel and PowerPoint files.")
     except Refused as e:
         chk.error = str(e)
         return chk
@@ -446,6 +457,23 @@ def check(path, std, data=None):
     return chk
 
 
+def _check_office(chk, raw, ext, std, t0):
+    """3.11.0: an Excel workbook or a PowerPoint deck against the profile (prodoffice); findings only, no fixes."""
+    import prodoffice as PO
+    std = PRL.engine_ready(copy.deepcopy(std))
+    chk.office = "excel" if ext in PO.EXCEL_EXT else "powerpoint"
+
+    def add(area, rule, severity, what, where):
+        _add(chk, area, rule, severity, what, -1, "", near=where if isinstance(where, str) else "")
+    try:
+        chk.stats = (PO.check_excel if chk.office == "excel" else PO.check_powerpoint)(raw, std, add)
+    except Exception as e:  # noqa: BLE001
+        chk.error = f"The file could not be read ({type(e).__name__}). It may be damaged or protected with a password."
+    chk.raw_sha = PCY.sha256_bytes(raw)
+    chk.seconds = time.perf_counter() - t0
+    return chk
+
+
 def default_plan(chk):
     """Every fix that has findings (or would change something) switched on, except those that need a decision
     (relinking references). Tables: sure rows only; asked rows stay as they are."""
@@ -513,7 +541,7 @@ def summary(job):
     """Counts by area before and after, for the page and the report."""
     b, a = job.before_check.by_area(), job.after_check.by_area()
     return [{"area": AREAS.get(k, k), "before": sum(b.get(k, Counter()).values()), "after": sum(a.get(k, Counter()).values())}
-            for k in AREAS]
+            for k in AREAS if k not in OFFICE_AREAS]     # 3.11.0: a copy is only ever made of a Word file
 
 
 def write_report(job, effort=""):
