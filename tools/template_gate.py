@@ -140,6 +140,19 @@ def open_and_read(path, lib_names, pdf=None):
         retry(doc.SaveAs2, os.path.abspath(resaved), 16)
         res["resave_diff"] = [k for k in diff(fingerprint(Package(path)), fingerprint(Package(resaved))) if k.split("|", 1)[1] in STRUCT][:20]
         res["styles"] = word_styles(doc, lib_names)
+        res["lists"] = {}                                  # 3.9.0: each list style's level as Word reads it
+        for name in ("List Bullet", "List Bullet 2", "List Bullet 3", "List Number", "List Number 2", "List Number 3"):
+            try:
+                st = doc.Styles(name)
+                lt = st.ListTemplate
+                if lt is None:
+                    res["lists"][name] = None
+                    continue
+                lv = lt.ListLevels(st.ListLevelNumber)
+                res["lists"][name] = {"text": lv.NumberFormat, "text_at": round(float(lv.TextPosition) / 72, 2),
+                                      "number_at": round(float(lv.NumberPosition) / 72, 2)}
+            except Exception as e:  # noqa: BLE001
+                res["lists"][name] = f"error {type(e).__name__}"
         if pdf:
             retry(doc.ExportAsFixedFormat, os.path.abspath(pdf), 17)
         res["pages"] = doc.ComputeStatistics(2)
@@ -195,6 +208,14 @@ def gate():
         bad = compare(lib_k, rd.get("styles") or {})
         res[key]["style_mismatch"] = bad[:30]
         ok[f"{key}: Word reads every style of the library as defined ({len(lib_k)} styles)"] = rd.get("opens") and not bad
+        if key == "team base":
+            want_l = {lv["style"]: lv for l in PRL.COMPANY["list_numbering"]["lists"] for lv in l["levels"]}
+            got_l = rd.get("lists") or {}
+            badl = [(n, got_l.get(n)) for n, lv in want_l.items() if not isinstance(got_l.get(n), dict)
+                    or got_l[n]["text"] != lv["text"] or abs(got_l[n]["text_at"] - lv["left"]) > 0.02
+                    or abs(got_l[n]["number_at"] - (lv["left"] - lv["hanging"])) > 0.02]
+            res[key]["list_mismatch"] = badl
+            ok[f"{key}: Word reads every list style's bullet or number and positions as the profile defines (3.9.0)"] = rd.get("opens") and not badl
         if pdf and os.path.isfile(pdf):
             import pymupdf as fitz
             d = fitz.open(pdf)

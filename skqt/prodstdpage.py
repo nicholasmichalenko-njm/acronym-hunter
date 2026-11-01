@@ -731,6 +731,18 @@ class StandardsPage(QWidget):
         self.row(f, "Typed bullets to convert (comma)", QLineEdit(), ("lists", "typed_bullets"), "list")
         self.row(f, "A list after a heading starts at 1", QCheckBox(), ("lists", "restart_after_heading"), "bool")
         self.row(f, "Styles never treated as lists (comma)", QLineEdit(), ("lists", "skip_styles"), "list")
+        f2, _c2 = self.form(v, "List numbering", "What each list style shows, level by level: a bullet (its character and "
+                            "font) or a number (format and text, %1 is the level's number), and where the number and the "
+                            "text start. Fix a Copy checks each list style against these and sets the ones that differ; "
+                            "Make a template writes them.")
+        self.row(f2, "Set list numbering when fixing", QCheckBox(), ("list_numbering", "on"), "bool")
+        cols = [("list", "List", "text"), ("style", "Style", "text"),
+                ("fmt", "Format", ("enum", [("bullet", "Bullet"), ("decimal", "1, 2, 3"), ("lowerLetter", "a, b, c"),
+                                            ("upperLetter", "A, B, C"), ("lowerRoman", "i, ii, iii"), ("upperRoman", "I, II, III"),
+                                            ("decimalZero", "01, 02, 03")])),
+                ("text", "Shows (bullet, or %1.)", "text"), ("font", "Bullet font (blank: the text's)", "text"),
+                ("left", "Text at (in)", "num0"), ("hanging", "Number before the text (in)", "num0")]
+        self.table_editor(v, "listnum", ("list_numbering", "lists"), cols, adapter="listnum")
 
     def build_terms(self, v):
         c = D.Card("Banned words and phrases", "Reported in every copy; a suggestion is offered for review, never applied without you.")
@@ -798,6 +810,8 @@ class StandardsPage(QWidget):
                             "rule_below": bool(h.get("rule_below")), "f_left": f.get("left", ""), "f_center": f.get("center", ""),
                             "f_right": f.get("right", ""), "marking": bool(f.get("marking"))})
             return out
+        if ad == "listnum":
+            return [dict(lv, list=l.get("name", "")) for l in (data or []) for lv in (l.get("levels") or [])]
         if ad == "styledefs":
             out = []
             for k, d in sorted((data or {}).items(), key=lambda x: x[0].casefold()):
@@ -867,6 +881,19 @@ class StandardsPage(QWidget):
                     f["marking"] = True
                 out[r["key"] or "part"] = {"header": h, "footer": f}
             _set(self.work, spec["path"], out)
+            return
+        if ad == "listnum":
+            lists = []
+            for r in rows:
+                if not (r.get("style") or "").strip():
+                    continue
+                name = (r.get("list") or "List").strip()
+                cur = next((l for l in lists if l["name"] == name), None)
+                if cur is None:
+                    cur = {"name": name, "levels": []}; lists.append(cur)
+                cur["levels"].append({"style": r["style"].strip(), "fmt": r.get("fmt") or "decimal", "text": r.get("text") or "",
+                                      "font": (r.get("font") or "").strip(), "left": r.get("left") or 0, "hanging": r.get("hanging") or 0})
+            _set(self.work, spec["path"], lists)
             return
         if ad == "styledefs":
             out = {}

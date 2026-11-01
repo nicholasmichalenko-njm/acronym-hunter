@@ -34,6 +34,15 @@ def _company_default():
     c["styles"] = {"allowed": [], "hide_unused_builtin": False, "remove_unused_custom": False, "template": "",
                    "apply_variables": True}
     c["style_defs"] = {}               # 3.7.0: the style library, {style: {prop: value}}; blank = not checked
+    c["list_numbering"] = {"on": False, "lists": [   # 3.9.0: what each list style shows, level by level (inches)
+        {"name": "Bullets", "levels": [
+            {"style": "List Bullet", "fmt": "bullet", "text": "\u2022", "font": "", "left": 0.25, "hanging": 0.25},
+            {"style": "List Bullet 2", "fmt": "bullet", "text": "\u2013", "font": "", "left": 0.5, "hanging": 0.25},
+            {"style": "List Bullet 3", "fmt": "bullet", "text": "\u25aa", "font": "", "left": 0.75, "hanging": 0.25}]},
+        {"name": "Numbers", "levels": [
+            {"style": "List Number", "fmt": "decimal", "text": "%1.", "font": "", "left": 0.25, "hanging": 0.25},
+            {"style": "List Number 2", "fmt": "lowerLetter", "text": "%2.", "font": "", "left": 0.5, "hanging": 0.25},
+            {"style": "List Number 3", "fmt": "lowerRoman", "text": "%3.", "font": "", "left": 0.75, "hanging": 0.25}]}]}
     c["heading_numbering"] = {"on": False, "levels": [
         {"style": s, "fmt": f, "text": t, "number_at": a, "text_at": b, "restart": r} for (s, f, t, a, b, r) in WO.HEADING_LEVELS]}
     c["checks"] = {"toc_forbid": ["\\o", "\\u"], "page_numbers": True, "caption_fields": True,

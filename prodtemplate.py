@@ -27,7 +27,7 @@ COVER_STYLES = {"PE Volume Name": {"type": "paragraph", "based_on": "Normal", "s
                 "PE Solicitation": {"type": "paragraph", "based_on": "Normal", "size": 12, "jc": "center", "after": 6},
                 "PE Company": {"type": "paragraph", "based_on": "Normal", "size": 12, "jc": "center", "after": 6}}
 # the fixes that put the standard into the template, in Fix a Copy's order
-TEMPLATE_FIXES = ("styles_apply", "unnumber_inheriting", "heading_numbering", "tables", "lists", "caption_typed", "caption_fields",
+TEMPLATE_FIXES = ("styles_apply", "unnumber_inheriting", "heading_numbering", "list_numbering", "tables", "lists", "caption_typed", "caption_fields",
                   "caption_after", "toc_field", "toc_styles", "toc_list_identifiers", "chapter_breaks", "page_numbers",
                   "page_setup", "page_field_clean", "hf_build")
 
@@ -265,6 +265,9 @@ def make(std, folder, start_from="", word=None, when=None, progress=None):
         any((p.get("numbers") or {}).get("chapter_level") for p in (std.get("pagination") or {}).get("parts", []))
     if uses_chapters and not hn.get("on") and hn.get("levels"):
         hn["on"] = True          # chapter numbers in captions and page numbers (2-1, A-1) need numbered headings
+    ln = std.setdefault("list_numbering", {})
+    if not ln.get("on") and ln.get("lists"):
+        ln["on"] = True          # 3.9.0: a template's list styles show their bullets and numbers
     if start_from:
         if os.path.splitext(start_from)[1].lower() not in (".dotx", ".docx"):
             raise PCY.NotAllowed("Start from a Word template or document (.dotx or .docx); macro files are not used.")

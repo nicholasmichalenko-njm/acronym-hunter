@@ -268,6 +268,18 @@ chk9b = pg.check(wait=True)
 check("3.9: checked again, rows like these no longer ask", grp not in [g for t_ in chk9b.tables for g in t_["questions"]])
 rule2 = pg.make_rule("R21:", "caption", "effort", recheck=False)
 check("3.9: rows decided table by table (a missing caption) never become a rule", rule2 is None)
+w.go("prodstd"); app.processEvents()
+sp.scope_box.setCurrentIndex(sp.scope_box.findData("type:cost_volume")); app.processEvents()
+ltab = sp.tables["listnum"]["w"]
+check("3.9: the list numbering table shows every level of the bullets and numbers", ltab.rowCount() == 6
+      and ltab.cellWidget(0, 1).text() == "List Bullet")
+txt = ltab.cellWidget(1, 3); txt.setText("o"); txt.textEdited.emit("o")
+fnt = ltab.cellWidget(1, 4); fnt.setText("Courier New"); fnt.textEdited.emit("Courier New")
+on = next(i for i in sp.binder.items if i["path"] == ("list_numbering", "on")); on["w"].setChecked(True)
+sp.save()
+lnp = PRL.type_of(PRL.load(cfg), "cost_volume")["list_numbering"]
+check("3.9: list numbering edited and saved in the profile", lnp["on"] and lnp["lists"][0]["levels"][1]["text"] == "o"
+      and lnp["lists"][0]["levels"][1]["font"] == "Courier New" and len(lnp["lists"][1]["levels"]) == 3, lnp)
 check("THE GATE, at the end", sha(vol) == before)
 n = sum(checks)
 print(f"QT PRODFIX {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

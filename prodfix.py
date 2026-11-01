@@ -19,7 +19,7 @@ from prodengine.engine.ops import word_ops as WO
 from prodengine.engine.ops import merge as MG
 from prodengine.engine.ordered import q
 from prodengine.pe import docmap as D, fixes as X, fixes2 as X2, fonts as Fo, hf as H, lists as L, sections as S
-from prodengine.pe import tables as T, terms as TM
+from prodengine.pe import tables as T, terms as TM, listnum as LN
 
 AREAS = OrderedDict([
     ("styles", "Styles"), ("fonts", "Fonts"), ("tables", "Tables"), ("captions", "Captions and numbering"),
@@ -44,7 +44,7 @@ RULE_TEXT = {
     "P10": "Restriction marking missing", "P11": "Header value not set (volume name, solicitation)",
     "L1": "Typed bullets", "L2": "Typed numbers or letters", "L3": "Numbering pasted from another document",
     "L4": "Hand indents on list paragraphs", "L5": "List continues the numbering before it", "L5?": "List restart to decide",
-    "L6": "Typed number inside a numbered heading", "L7": "Typed list in a table cell", "L8": "Unused list definitions",
+    "L6": "Typed number inside a numbered heading", "L9": "List numbering differs from the profile", "L7": "Typed list in a table cell", "L8": "Unused list definitions",
     "W1": "Banned word or phrase", "W2": "Known misspelling", "W3": "Trademark or registered mark missing", "W4": "Name one letter off",
     "F1": "Font or size typed over the style", "F2": "Font or size typed over the style", "F1s": "Style breaks the font rule",
     "F2s": "Style breaks the size rule",
@@ -110,6 +110,8 @@ FIXES = [
          lambda std, plan: {"std": std, "table_types": plan.get("table_types") or None, "answers": plan.get("table_answers") or None,
                             "roles": plan.get("table_roles") or None, "only": plan.get("table_only") or None, "skip_asked": True},
          rules=("R0",), kind="tables"),
+    _fix("list_numbering", "lists", "Set list numbering from the profile (bullets and numbers by level)", LN.op_list_numbering,
+         LN.LIST_ALLOWED, lambda std, plan: {"std": std}, rules=("L9",)),
     _fix("lists", "lists", "Turn typed bullets and numbers into the team's list styles", L.op_lists, L.LISTS_ALLOWED,
          lambda std, plan: {"std": std, "answers": plan.get("list_answers") or None}, rules=("L1", "L2", "L3", "L4", "L5", "L6")),
     _fix("caption_typed", "captions", "Turn typed caption numbers into fields", X2.op_caption_typed, X2.CAPTION_TYPED_ALLOWED,
@@ -391,6 +393,11 @@ def check(path, std, data=None):
                  "them): " + ", ".join(absent), -1, "styles_apply")
     except Exception as e:  # noqa: BLE001
         chk.error += f" Style definitions could not be compared ({type(e).__name__})."
+    try:
+        for style, what in LN.differences(Package.from_bytes(raw), std):
+            _add(chk, "lists", "L9", "warning", f"{style}: {what}", -1, "list_numbering")
+    except Exception as e:  # noqa: BLE001
+        chk.error += f" List numbering could not be read ({type(e).__name__})."
     if (std.get("heading_numbering") or {}).get("on"):
         n = _dry(raw, FIX["heading_numbering"], std, plan0)
         if n:
@@ -420,7 +427,7 @@ def default_plan(chk):
         on.discard("hf_build")            # never type a blank volume name or solicitation into headers
     return {"on": [f["key"] for f in FIXES if f["key"] in on], "word_update": any(f["fix"] == "word_update" for f in chk.findings) or
             bool(on & {"caption_typed", "caption_fields", "toc_field", "toc_list_identifiers", "page_numbers", "chapter_breaks", "hf_build",
-                       "unnumber_inheriting", "heading_numbering"}),
+                       "unnumber_inheriting", "heading_numbering", "list_numbering"}),
             "table_answers": {}, "table_roles": {}, "table_types": {}, "list_answers": {}, "xref_mapping": {},
             "styles_unused": list(chk.styles.get("unused_custom", [])), "styles_hide": list(chk.styles.get("hide", []))}
 

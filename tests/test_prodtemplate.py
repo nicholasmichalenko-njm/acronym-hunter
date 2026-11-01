@@ -157,6 +157,32 @@ check("heading numbering compares the same after Word drops the default tab afte
 check("a template whose captions and pages use chapter numbers gets numbered headings (2-1, A-1 need them)",
       WO.find_style(WO.styles_root(pk), "Heading 1").find("w:pPr/w:numPr", WO.NS) is not None)
 
+# ---------------------------------------------------------------- 3.9.0: list numbering by level
+from prodengine.pe import listnum as LN
+ln_std = PRL.merge(std, {"list_numbering": {"on": True}})
+want_ln = ln_std["list_numbering"]["lists"]
+chk9 = PF.check(orig, ln_std)
+l9 = [f for f in chk9.findings if f["rule"] == "L9"]
+check("3.9: Check lists each list style whose bullets or numbers differ from the profile", len(l9) == 6
+      and any(f["what"].startswith("List Number 2") for f in l9), [f["what"][:60] for f in l9])
+j9 = PF.run(orig, os.path.join(tmp, "out9"), ln_std, {"on": ["list_numbering"], "word_update": False}, open_list=[], before=chk9)
+st9 = next(x for x in j9.steps if x.get("key") == "list_numbering")
+got9 = LN.read_levels(Package(j9.copy), [lv["style"] for l in want_ln for lv in l["levels"]], strict=True)
+check("3.9: the fix gives each list style its level (bullet or number, text, positions), through the guard",
+      st9["changed"] and "refused" not in st9 and got9["List Bullet 2"]["text"] == "\u2013" and got9["List Number 3"]["fmt"] == "lowerRoman"
+      and got9["List Number"]["left"] == 0.25 and not [f for f in j9.after_check.findings if f["rule"] == "L9"], (st9.get("refused"), got9))
+j9b = PF.run(j9.copy, os.path.join(tmp, "out9b"), ln_std, {"on": ["list_numbering"], "word_update": False}, open_list=[])
+check("3.9: a second run changes no list numbering", not next(x for x in j9b.steps if x.get("key") == "list_numbering")["changed"])
+lt = PL.learn(j9.copy, std).layer(["list_numbering"]).get("list_numbering")
+check("3.9: learning takes the list numbering back", lt and [[{k: v for k, v in lv.items()} for lv in l["levels"]] for l in lt["lists"]]
+      == [[dict(lv) for lv in l["levels"]] for l in want_ln], lt)
+check("3.9: a list style borrowing another list's level is not learned as its own (the master's List Bullet uses the heading list)",
+      PL.learn(MASTER, std).layer().get("list_numbering") is None)
+tj9 = PT.make(std, out)
+got_t = LN.read_levels(Package(tj9.copy), ["List Bullet", "List Number"], strict=True)
+check("3.9: a template's list styles show their bullets and numbers", got_t.get("List Bullet", {}).get("text") == "\u2022"
+      and got_t.get("List Number", {}).get("text") == "%1." and tj9.check.count() == 0, (got_t, [f["what"] for f in tj9.check.findings]))
+
 # ---------------------------------------------------------------- per-deliverable types, page limits
 check("page limits read from the Deliverables board's wording", PRL.page_limit("25 pages") == 25 and PRL.page_limit("15-page limit") == 15
       and PRL.page_limit("30") == 30 and PRL.page_limit("no limit") is None)

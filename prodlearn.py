@@ -27,7 +27,8 @@ from prodengine.pe import sections as S, tables as T, hf as H
 TW = 1440.0
 AREAS = OrderedDict([("styles", "Styles (every style's full definition)"), ("variables", "Format variables (fonts, sizes, spacing, margins)"),
                      ("tables", "Table looks by row role and table type"), ("pages", "Page setups"),
-                     ("headers", "Headers and footers"), ("heading_numbering", "Heading numbering"), ("toc", "Table of contents")])
+                     ("headers", "Headers and footers"), ("heading_numbering", "Heading numbering"),
+                     ("list_numbering", "List numbering (bullets and numbers by level)"), ("toc", "Table of contents")])
 LINE_NAMES = {1.0: "single", 1.15: "1.15", 1.5: "1.5", 2.0: "double"}
 ALWAYS = ("Normal", "Heading 1", "Heading 2", "Heading 3", "Heading 4", "Heading 5", "Heading 6", "Heading 7", "Heading 8",
           "Heading 9", "Caption", "TOC Heading", "TOC 1", "TOC 2", "TOC 3", "Table of Figures", "Header", "Footer", "Title")
@@ -418,6 +419,14 @@ def learn(path, std, data=None):
     hn = learn_heading_numbering(pkg)
     if hn:
         out.add("heading_numbering", {"heading_numbering": hn}, [f"{l['style']}: {l['text']} ({l['fmt']})" for l in hn["levels"]])
+    try:
+        from prodengine.pe import listnum as LN
+        ln = LN.learn(pkg, std)
+    except Exception:  # noqa: BLE001
+        ln = None
+    if ln:
+        out.add("list_numbering", {"list_numbering": ln}, [f"{l['name']}: " + ", ".join(f"{v['style']} {v['text']!r}" for v in l["levels"])
+                                                           for l in ln["lists"]])
     toc = learn_toc(pkg)
     if toc:
         out.add("toc", {"toc": toc}, [f"switches {' '.join(toc['switches'])}" + (f", headings 1-{len(toc['levels'])}" if toc.get("levels") else "")])
