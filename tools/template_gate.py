@@ -79,6 +79,18 @@ def word_styles(doc, names):
                       "page_break_before": pf.PageBreakBefore == -1, "jc": JC.get(pf.Alignment, str(pf.Alignment))})
             fi = float(pf.FirstLineIndent)
             d["first"], d["hanging"] = (fi, 0.0) if fi >= 0 else (0.0, -fi)
+            try:                                   # 3.8.0: tab stops, borders, shading as Word reads them
+                al = {0: "left", 1: "center", 2: "right", 3: "decimal", 4: "bar"}
+                ld = {0: "none", 1: "dot", 2: "hyphen", 3: "underscore", 4: "heavy", 5: "middleDot"}
+                d["tabs"] = [[round(float(t.Position), 1), al.get(t.Alignment, str(t.Alignment)), ld.get(t.Leader, str(t.Leader))]
+                             for t in [pf.TabStops(i + 1) for i in range(pf.TabStops.Count)]]
+                for side, idx in (("top", -1), ("left", -2), ("bottom", -3), ("right", -4)):
+                    b = pf.Borders(idx)
+                    d["border_" + side] = "none" if b.LineStyle == 0 else f"{b.LineWidth / 8:g} {bgr_hex(b.Color).upper()}"
+                sh = pf.Shading.BackgroundPatternColor
+                d["shading"] = "none" if sh in (-16777216,) or sh < 0 else bgr_hex(sh).upper()
+            except Exception:  # noqa: BLE001
+                pass
         out[n] = d
     return out
 
@@ -98,6 +110,10 @@ def compare(lib, word):
                 ok = have == "theme" or str(have).lower() == str(v).lower()
             elif k == "font":
                 ok = str(have).lower() == str(v).lower()
+            elif k == "tabs":
+                ok = sorted([round(float(a), 1), b, c] for a, b, c in v) == sorted(have)
+            elif k.startswith("border_") or k == "shading":
+                ok = str(have).upper() == str(v).upper()
             elif isinstance(v, (int, float)) and not isinstance(v, bool):
                 ok = abs(float(have) - float(v)) < 0.06
             else:
@@ -144,6 +160,8 @@ def gate():
         {"styles", "variables", "pages", "heading_numbering"} <= set(lm.areas)
     ok["learned from a finished volume: headers and footers, the TOC"] = {"headers", "toc"} <= set(lv.areas)
     learned = PRL.merge(std, lm.layer(["styles", "variables", "pages", "heading_numbering"]))
+    learned["style_defs"]["PE Callout"] = {"type": "paragraph", "based_on": "Normal", "tabs": [[72, "left", "dot"], [468, "right", "none"]],
+                                           "border_top": "1 1F3864", "border_bottom": "0.5 1F3864", "shading": "D9E2F3"}   # 3.8.0
     learned["name"] = "Learned technical volume"
     lib = PRL.style_spec(PT.standard_for_template(PRL.engine_ready(learned)))
     out = os.path.join(work, "Production Copies", "Templates")
