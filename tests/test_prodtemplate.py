@@ -37,9 +37,10 @@ check("learn reads the master template: styles, variables, page setups, heading 
       and {"styles", "variables", "pages", "heading_numbering"} <= set(lm.areas), list(lm.areas))
 check("learn reads a finished volume: also headers and footers, the TOC", {"styles", "headers", "toc", "pages"} <= set(ls.areas), list(ls.areas))
 h1 = lm.layer(["styles"])["style_defs"]["Heading 1"]
-check("a style is learned whole (font through theme, size, bold, color, spacing, keeps, based on, next)",
+check("a style is learned whole (font through theme, size, bold, color, spacing, keeps, based on, next; a numbered "
+      "style's indents belong to its numbering)",
       h1["font"] and h1["size"] == 14.0 and h1["bold"] is True and h1["keep_next"] is True and h1["based_on"] == "Normal"
-      and h1["next"] == "Normal" and "left" in h1 and "page_break_before" in h1, h1)
+      and h1["next"] == "Normal" and "left" not in h1 and "page_break_before" in h1, h1)
 check("Word's default character style and linked Char styles are not learned",
       "Default Paragraph Font" not in lm.layer()["style_defs"] and not any(n.endswith(" Char") for n in lm.layer()["style_defs"]))
 hn = lm.layer(["heading_numbering"])["heading_numbering"]
@@ -124,6 +125,25 @@ try:
     check("only Word files are started from", False)
 except PCY.NotAllowed:
     check("only Word files are started from", True)
+
+# ---------------------------------------------------------------- what Word keeps when it saves (from the template gate)
+from lxml import etree as _et
+from prodengine.engine.ordered import q as _q
+sr = WO.styles_root(Package(tj2.copy))
+sub = WO.find_style(sr, "Subtitle")
+check("a built-in style is written the way Word writes it (not as a custom style, which Word drops on save)",
+      sub is not None and sub.get(_q("customStyle")) is None and sub.find("w:name", WO.NS).get(_q("val")) == "Subtitle"
+      and WO.builtin_name(sr, "Caption") == "caption" and WO.builtin_name(sr, "PE Callout") is None)
+pk = Package(tj.copy)
+nb = pk.tree(pk.word_part("/numbering"))
+a = nb.find("w:abstractNum", WO.NS)
+a2 = _et.fromstring(_et.tostring(a))
+for el in a2.iter(_q("suff")):
+    el.getparent().remove(el)
+check("heading numbering compares the same after Word drops the default tab after the number",
+      a is not None and WO._lvl_signature(a) == WO._lvl_signature(a2))
+check("a template whose captions and pages use chapter numbers gets numbered headings (2-1, A-1 need them)",
+      WO.find_style(WO.styles_root(pk), "Heading 1").find("w:pPr/w:numPr", WO.NS) is not None)
 
 # ---------------------------------------------------------------- per-deliverable types, page limits
 check("page limits read from the Deliverables board's wording", PRL.page_limit("25 pages") == 25 and PRL.page_limit("15-page limit") == 15

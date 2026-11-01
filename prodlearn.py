@@ -74,12 +74,20 @@ def _font(root, s, theme):
     return theme.get("minor", "")
 
 
+def _numbered(root, s):
+    return any(st.find("w:pPr/w:numPr", NS) is not None for st in WO._chain(root, s))
+
+
 def style_definition(root, s, theme=None):
-    """{prop: value} for every property of a style as Word shows it (through its base styles and the defaults)."""
+    """{prop: value} for every property of a style as Word shows it (through its base styles and the defaults).
+    A numbered style's indents belong to its numbering (heading numbering), so they are not part of the style."""
     theme = theme or {}
     d = {"type": s.get(q("type"))}
+    numbered = _numbered(root, s)
     for k in WO.STYLE_PROPS:
         if d["type"] == "character" and k not in WO.RUN_PROPS + ("based_on",):
+            continue
+        if numbered and k in ("left", "first", "hanging"):
             continue
         v = _font(root, s, theme) if k == "font" else WO.effective(root, s, k)
         if v is None or v == "":
@@ -110,7 +118,8 @@ def learn_styles(pkg):
         name = {"caption": "Caption", "header": "Header", "footer": "Footer", "table of figures": "Table of Figures",
                 "toc heading": "TOC Heading", "title": "Title"}.get(name, name)
         custom = s.get(q("customStyle")) in ("1", "true")
-        if not (custom or s.get(q("styleId")) in used or name in ALWAYS):
+        defined = s.find("w:rPr", NS) is not None or s.find("w:pPr", NS) is not None
+        if not (custom or s.get(q("styleId")) in used or name in ALWAYS or defined):
             continue
         if s.get(q("default")) in ("1", "true") and s.get(q("type")) == "character":
             continue                                      # Default Paragraph Font: Word's own, not a style to set

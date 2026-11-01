@@ -260,6 +260,11 @@ def make(std, folder, start_from="", word=None, when=None, progress=None):
     from (read once, never written), or "" for the Stationkeeper base. Returns a TemplateJob."""
     say = progress or (lambda *a: None)
     std = PRL.engine_ready(standard_for_template(std))
+    hn = std.setdefault("heading_numbering", {})
+    uses_chapters = any(c.get("chapter_level") for c in std.get("captions") or []) or \
+        any((p.get("numbers") or {}).get("chapter_level") for p in (std.get("pagination") or {}).get("parts", []))
+    if uses_chapters and not hn.get("on") and hn.get("levels"):
+        hn["on"] = True          # chapter numbers in captions and page numbers (2-1, A-1) need numbered headings
     if start_from:
         if os.path.splitext(start_from)[1].lower() not in (".dotx", ".docx"):
             raise PCY.NotAllowed("Start from a Word template or document (.dotx or .docx); macro files are not used.")

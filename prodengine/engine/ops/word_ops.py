@@ -40,8 +40,37 @@ def find_style(root, name):
     return None
 
 
+# 3.7.0: Word's built-in style names as Word stores them. A built-in style written as a custom style is dropped by
+# Word when it saves (it keeps its own built-in instead), so a built-in name is written the way Word writes it.
+BUILTIN_NAMES = (["Normal", "Title", "Subtitle", "Body Text", "Body Text 2", "Body Text 3", "Body Text Indent", "Body Text Indent 2",
+                  "Body Text Indent 3", "Body Text First Indent", "Body Text First Indent 2", "List Paragraph", "List", "List 2",
+                  "List 3", "Quote", "Intense Quote", "macro", "caption", "TOC Heading", "table of figures", "header", "footer",
+                  "footnote text", "endnote text", "footnote reference", "endnote reference", "annotation text", "No Spacing",
+                  "Strong", "Emphasis", "Hyperlink", "FollowedHyperlink", "Block Text", "Plain Text", "Normal (Web)",
+                  "Balloon Text", "Default Paragraph Font", "Table Grid", "Normal Table", "page number", "line number",
+                  "Signature", "Salutation", "Date", "Closing", "Note Heading", "Subtle Emphasis", "Intense Emphasis",
+                  "Subtle Reference", "Intense Reference", "Book Title", "Bibliography", "Placeholder Text", "toa heading",
+                  "table of authorities", "Message Header", "E-mail Signature", "List Continue", "Revision"]
+                 + [f"heading {k}" for k in range(1, 10)] + [f"toc {k}" for k in range(1, 10)]
+                 + [f"List Bullet{'' if k == 1 else ' ' + str(k)}" for k in range(1, 6)]
+                 + [f"List Number{'' if k == 1 else ' ' + str(k)}" for k in range(1, 6)])
+_BUILTIN = {norm(n): n for n in BUILTIN_NAMES}
+
+
+def builtin_name(root, name):
+    """The name Word stores for a built-in style ("heading 1", "caption"), or None for a custom style."""
+    for ex in root.findall("w:latentStyles/w:lsdException", NS):
+        n = ex.get(q("name")) or ""
+        if norm(n) == norm(name):
+            return n
+    return _BUILTIN.get(norm(name))
+
+
 def new_style(root, name, stype="paragraph", based_on="Normal", next_style=None):
-    sid = re.sub(r"[^A-Za-z0-9]", "", name) or "S"
+    builtin = builtin_name(root, name)
+    if builtin:
+        name = builtin
+    sid = re.sub(r"[^A-Za-z0-9]", "", name.title() if builtin and name.islower() else name) or "S"
     existing = {s.get(q("styleId")) for s in root.findall("w:style", NS)}
     base, i = sid, 1
     while sid in existing:
@@ -49,7 +78,8 @@ def new_style(root, name, stype="paragraph", based_on="Normal", next_style=None)
         sid = f"{base}{i}"
     s = etree.SubElement(root, q("style"))
     s.set(q("type"), stype)
-    s.set(q("customStyle"), "1")
+    if not builtin:
+        s.set(q("customStyle"), "1")
     s.set(q("styleId"), sid)
     ensure(s, "name", {"val": name})
     if based_on:
@@ -485,8 +515,16 @@ def _sig(el):
 
 
 def _lvl_signature(abstract):
-    """Levels of an abstractNum without its identity (nsid, tmpl), for comparing designs."""
-    return tuple(_sig(l) for l in abstract.findall("w:lvl", NS))
+    """Levels of an abstractNum without its identity (nsid, tmpl), for comparing designs. 3.7.0: a tab after the
+    number is Word's default and Word drops it when it saves, so it is not part of the design."""
+    out = []
+    for l in abstract.findall("w:lvl", NS):
+        l2 = deepcopy(l)
+        for el in l2.findall("w:suff", NS):
+            if el.get(q("val")) == "tab":
+                l2.remove(el)
+        out.append(_sig(l2))
+    return tuple(out)
 
 
 def inheriting_heading_styles(sroot, heading_names=tuple(l[0] for l in HEADING_LEVELS)):

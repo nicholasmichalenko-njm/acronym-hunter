@@ -56,16 +56,20 @@ def word_styles(doc, names):
     out = {}
     for n in names:
         try:
-            st = doc.Styles(n)
+            st = doc.Styles({"macro": "Macro Text"}.get(n, n))
         except Exception:  # noqa: BLE001
             out[n] = None
             continue
         f, pf = st.Font, None
         try:
+            rgb = f.TextColor.RGB            # theme colors resolve here (Font.Color reads them as a theme code)
+        except Exception:  # noqa: BLE001
+            rgb = f.Color
+        try:
             pf = st.ParagraphFormat
         except Exception:  # noqa: BLE001
             pf = None
-        d = {"font": f.Name, "size": float(f.Size), "bold": f.Bold == -1, "italic": f.Italic == -1, "color": bgr_hex(f.Color),
+        d = {"font": f.Name, "size": float(f.Size), "bold": f.Bold == -1, "italic": f.Italic == -1, "color": bgr_hex(rgb),
              "caps": f.AllCaps == -1}
         if pf is not None and st.Type == 1:
             d.update({"before": float(pf.SpaceBefore), "after": float(pf.SpaceAfter), "left": float(pf.LeftIndent),
