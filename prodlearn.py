@@ -89,7 +89,10 @@ def style_definition(root, s, theme=None):
             continue
         if numbered and k in ("left", "first", "hanging"):
             continue
-        v = _font(root, s, theme) if k == "font" else WO.effective(root, s, k)
+        if d["type"] == "character":       # a character style shows only what it sets; the rest is the paragraph's
+            v = WO.effective(root, s, k, theme, no_defaults=True) if k != "based_on" else WO.effective(root, s, k)
+        else:
+            v = _font(root, s, theme) if k == "font" else WO.effective(root, s, k)
         if v is None or v == "":
             continue
         if isinstance(v, float):
@@ -118,9 +121,7 @@ def learn_styles(pkg):
         name = {"caption": "Caption", "header": "Header", "footer": "Footer", "table of figures": "Table of Figures",
                 "toc heading": "TOC Heading", "title": "Title"}.get(name, name)
         custom = s.get(q("customStyle")) in ("1", "true")
-        defined = s.find("w:rPr", NS) is not None or s.find("w:pPr", NS) is not None
-        if not (custom or s.get(q("styleId")) in used or name in ALWAYS or defined):
-            continue
+        # every style the file holds is part of its design (Word keeps only styles a document uses or defines)
         if s.get(q("default")) in ("1", "true") and s.get(q("type")) == "character":
             continue                                      # Default Paragraph Font: Word's own, not a style to set
         if name.endswith(" Char") and s.get(q("type")) == "character" and s.find("w:link", NS) is not None:

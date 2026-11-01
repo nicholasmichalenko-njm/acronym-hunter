@@ -61,15 +61,17 @@ def word_styles(doc, names):
             out[n] = None
             continue
         f, pf = st.Font, None
+        theme = False
         try:
-            rgb = f.TextColor.RGB            # theme colors resolve here (Font.Color reads them as a theme code)
+            theme = f.TextColor.ObjectThemeColor > 0     # a theme color: the file's hex is its value in this theme
+            rgb = f.TextColor.RGB
         except Exception:  # noqa: BLE001
             rgb = f.Color
         try:
             pf = st.ParagraphFormat
         except Exception:  # noqa: BLE001
             pf = None
-        d = {"font": f.Name, "size": float(f.Size), "bold": f.Bold == -1, "italic": f.Italic == -1, "color": bgr_hex(rgb),
+        d = {"font": f.Name, "size": float(f.Size), "bold": f.Bold == -1, "italic": f.Italic == -1, "color": "theme" if theme else bgr_hex(rgb),
              "caps": f.AllCaps == -1}
         if pf is not None and st.Type == 1:
             d.update({"before": float(pf.SpaceBefore), "after": float(pf.SpaceAfter), "left": float(pf.LeftIndent),
@@ -93,7 +95,7 @@ def compare(lib, word):
                 continue
             have = w[k]
             if k == "color":
-                ok = str(have).lower() == str(v).lower()
+                ok = have == "theme" or str(have).lower() == str(v).lower()
             elif k == "font":
                 ok = str(have).lower() == str(v).lower()
             elif isinstance(v, (int, float)) and not isinstance(v, bool):
