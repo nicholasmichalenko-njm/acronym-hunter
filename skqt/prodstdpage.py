@@ -329,9 +329,13 @@ class StandardsPage(QWidget):
         self.dirty = False
         self.binder = Binder(self)
         outer = QVBoxLayout(self); outer.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); outer.setSpacing(D.SPACE["m"])
-        top = D.Card("Production Standards", "Every rule Format Check and Fix a Copy use. Edit the team standard, a document profile, "
-                     "or this effort; a value set at the layer you edit shows in bold, and Reset takes it back to the layer below.",
-                     actions=[D.button("+ Profile...", None, lambda: self.add_type(), "A document profile: the full set of formatting values for one kind of document you deliver"),
+        top = D.Card("Production Standards", "Every rule Format Check and Fix a Copy use, in layers: the team standard, then a "
+                     "document profile (one kind of document you deliver), then an effort type (the rules of a kind of effort, "
+                     "for every profile in it, and its changes for one profile), then this effort. A value set at the layer you "
+                     "edit shows in bold, and Reset takes it back to the layer below.",
+                     actions=[D.button("+ Effort type...", None, lambda: self.add_effort_type(), "A kind of effort (RFP, page-limited RFP, "
+                                       "white paper, program): the profiles its deliverables use and the rules every one of them follows"),
+                              D.button("+ Profile...", None, lambda: self.add_type(), "A document profile: the full set of formatting values for one kind of document you deliver"),
                               D.button("Learn from a file...", None, lambda: self.learn(), "Read a template or a finished volume and "
                                        "take its styles, table looks, pages, headers and numbering into what you are editing"),
                               D.button("Make a template...", None, lambda: self.make_template(), "A Word template (.dotx) with every "
@@ -348,8 +352,27 @@ class StandardsPage(QWidget):
         bar.addStretch(1)
         self.state = D.label("", "muted", wrap=False); bar.addWidget(self.state)
         top.body.addLayout(bar)
+        # 3.8.0: a profile's match words; an effort type's profiles and default
+        self.match_row = QHBoxLayout()
+        self.match_row.addWidget(D.label("Deliverables this profile fits (words in their names)", "label", wrap=False))
+        self.match_edit = QLineEdit(); self.match_edit.setPlaceholderText("technical, management (comma between)")
+        self.match_edit.textEdited.connect(lambda _t: self.changed()); self.match_row.addWidget(self.match_edit, 1)
+        top.body.addLayout(self.match_row)
+        self.et_row = QHBoxLayout()
+        self.et_row.addWidget(D.label("Profiles in this effort type", "label", wrap=False))
+        self.et_profiles = QListWidget(); self.et_profiles.setFixedHeight(96); self.et_profiles.setMinimumWidth(320)
+        self.et_profiles.itemChanged.connect(lambda _it: self.changed()); self.et_row.addWidget(self.et_profiles)
+        self.et_row.addWidget(D.label("Default profile", "label", wrap=False))
+        self.et_default = QComboBox(); self.et_default.setMinimumWidth(200); self.et_row.addWidget(self.et_default)
+        self.et_default.activated.connect(lambda _i: self.changed())
+        self.et_row.addWidget(D.button("Make templates for every profile...", None, lambda: self.make_templates_all()))
+        self.et_row.addStretch(1)
+        top.body.addLayout(self.et_row)
         self.eff_row = QHBoxLayout()
-        self.eff_row.addWidget(D.label("This effort's profile", "label", wrap=False))
+        self.eff_row.addWidget(D.label("This effort's type", "label", wrap=False))
+        self.eff_etype = QComboBox(); self.eff_etype.setMinimumWidth(220); self.eff_row.addWidget(self.eff_etype)
+        self.eff_etype.activated.connect(lambda _i: self.effort_etype_changed())
+        self.eff_row.addWidget(D.label("default profile", "label", wrap=False))
         self.eff_type = QComboBox(); self.eff_type.setMinimumWidth(240); self.eff_row.addWidget(self.eff_type)
         self.eff_type.currentIndexChanged.connect(lambda _i: self.effort_type_changed())
         self.eff_row.addWidget(D.button("Fill from the RFP's formatting rules", None, lambda: self.fill_from_rfp()))
@@ -975,25 +998,43 @@ class StandardsPage(QWidget):
         self.scope_box.addItem("Team standard (every profile starts here)", "team:")
         for t in self.data["types"]:
             self.scope_box.addItem(f"Profile: {t['name']}", "type:" + t["id"])
+        for e in self.data.get("effort_types", []):
+            self.scope_box.addItem(f"Effort type: {e['name']} (every profile in it)", "etype:" + e["id"])
+            for pid in e["profiles"]:
+                self.scope_box.addItem(f"Effort type: {e['name']} > {PRL.type_of(self.data, pid)['name']}", f"etp:{e['id']}:{pid}")
         if self.host.ws is not None:
             self.scope_box.addItem(f"This effort: {self.host.effort_name}", "effort:")
         i = self.scope_box.findData(cur) if cur else -1
         self.scope_box.setCurrentIndex(i if i >= 0 else (self.scope_box.count() - 1 if self.host.ws is not None else 0))
         self.scope_box.blockSignals(False)
-        self.eff_type.blockSignals(True); self.eff_type.clear()
-        for t in self.data["types"]:
-            self.eff_type.addItem(t["name"], t["id"])
-        if self.host.ws is not None:
-            eff = self.host.ws.get("prod_std", {}) or {}
-            self.eff_type.setCurrentIndex(max(0, self.eff_type.findData(eff.get("type") or self.data["default"])))
-        self.eff_type.blockSignals(False)
+        eff = (self.host.ws.get("prod_std", {}) or {}) if self.host.ws is not None else {}
+        self.eff_etype.blockSignals(True); self.eff_etype.clear()
+        self.eff_etype.addItem("None (profiles only)", "")
+        for e in self.data.get("effort_types", []):
+            self.eff_etype.addItem(e["name"], e["id"])
+        self.eff_etype.setCurrentIndex(max(0, self.eff_etype.findData(eff.get("effort_type") or "")))
+        self.eff_etype.blockSignals(False)
+        self.fill_effort_profiles(eff)
         self.switch(force=True)
+
+    def fill_effort_profiles(self, eff=None):
+        """This effort's default profile: one of its effort type's profiles (every profile without an effort type)."""
+        eff = eff if eff is not None else ((self.host.ws.get("prod_std", {}) or {}) if self.host.ws is not None else {})
+        et = PRL.effort_type_of(self.data, eff.get("effort_type"))
+        ids = et["profiles"] if et else [t["id"] for t in self.data["types"]]
+        self.eff_type.blockSignals(True); self.eff_type.clear()
+        for pid in ids:
+            self.eff_type.addItem(PRL.type_of(self.data, pid)["name"], pid)
+        want = eff.get("type") if eff.get("type") in ids else ((et or {}).get("default_profile") or self.data["default"])
+        self.eff_type.setCurrentIndex(max(0, self.eff_type.findData(want)))
+        self.eff_type.blockSignals(False)
 
     def switch(self, force=False):
         if self.dirty and not force:
             self.save(quiet=True)
-        scope, tid = (self.scope_box.currentData() or "team:").split(":", 1)
-        self.scope, self.type_id = scope, tid
+        scope, rest = (self.scope_box.currentData() or "team:").split(":", 1)
+        eid, tid = (rest.split(":", 1) if scope == "etp" else ((rest, "") if scope == "etype" else ("", rest)))
+        self.scope, self.type_id, self.etype_id = scope, tid, eid
         d = self.data
         if scope == "team":
             self.base = copy.deepcopy(PRL.COMPANY)
@@ -1001,19 +1042,51 @@ class StandardsPage(QWidget):
         elif scope == "type":
             self.base = copy.deepcopy(d["company"])
             self.work = PRL.resolved_type(d, tid)
+        elif scope == "etype":
+            e = PRL.effort_type_of(d, eid)
+            self.base = copy.deepcopy(d["company"])
+            self.work = PRL.merge(d["company"], PRL.effort_layer_of(e))
+            self.work["name"] = e["name"]
+        elif scope == "etp":
+            e = PRL.effort_type_of(d, eid)
+            self.base = PRL.merge(PRL.merge(d["company"], PRL.layer_of(PRL.type_of(d, tid))), PRL.effort_layer_of(e))
+            self.work = PRL.merge(self.base, (e.get("profile_over") or {}).get(tid) or {})
+            self.work["name"] = PRL.type_of(d, tid)["name"]
         else:
             eff = self.host.ws.get("prod_std", {}) or {}
-            et = eff.get("type") or d["default"]
-            self.base = PRL.resolved_type(d, et)
+            eid = eff.get("effort_type") if PRL.effort_type_of(d, eff.get("effort_type")) else None
+            et = PRL.effort_type_of(d, eid)
+            pt = eff.get("type") or (et or {}).get("default_profile") or d["default"]
+            self.base = PRL.resolved_type(d, pt, eid)
             self.work = PRL.merge(self.base, eff.get("over") or {})
         self.work.setdefault("variables", {})
-        for w in (self.default_cb,):
-            w.setVisible(scope == "type")
-        self.default_cb.blockSignals(True); self.default_cb.setChecked(scope == "type" and d["default"] == tid); self.default_cb.blockSignals(False)
-        for i in range(self.eff_row.count()):
-            x = self.eff_row.itemAt(i).widget()
-            if x is not None:
-                x.setVisible(scope == "effort")
+        self.default_cb.setVisible(scope in ("type", "etype"))
+        self.default_cb.setText("New efforts use this effort type" if scope == "etype" else "New efforts use this profile")
+        self.default_cb.blockSignals(True)
+        self.default_cb.setChecked((scope == "type" and d["default"] == tid) or (scope == "etype" and d.get("default_effort_type") == eid))
+        self.default_cb.blockSignals(False)
+        for row, show in ((self.eff_row, scope == "effort"), (self.match_row, scope == "type"), (self.et_row, scope == "etype")):
+            for i in range(row.count()):
+                x = row.itemAt(i).widget()
+                if x is not None:
+                    x.setVisible(show)
+        if scope == "type":
+            self.match_edit.setText(", ".join(PRL.type_of(d, tid).get("match") or []))
+        if scope == "etype":
+            e = PRL.effort_type_of(d, eid)
+            self.et_profiles.blockSignals(True); self.et_profiles.clear()
+            from PySide6.QtWidgets import QListWidgetItem
+            for t in d["types"]:
+                it = QListWidgetItem(t["name"]); it.setData(Qt.UserRole, t["id"])
+                it.setFlags(it.flags() | Qt.ItemIsUserCheckable)
+                it.setCheckState(Qt.Checked if t["id"] in e["profiles"] else Qt.Unchecked)
+                self.et_profiles.addItem(it)
+            self.et_profiles.blockSignals(False)
+            self.et_default.blockSignals(True); self.et_default.clear()
+            for pid in e["profiles"]:
+                self.et_default.addItem(PRL.type_of(d, pid)["name"], pid)
+            self.et_default.setCurrentIndex(max(0, self.et_default.findData(e.get("default_profile"))))
+            self.et_default.blockSignals(False)
         self.eff_said.setVisible(scope == "effort")
         if scope == "effort":
             said = (self.host.ws.get("prod_std", {}) or {}).get("said") or []
@@ -1023,7 +1096,8 @@ class StandardsPage(QWidget):
         self.fill_row_scope()
         self.load_tables()
         self.dirty = False
-        self.state.setText({"team": "Team standard", "type": "Profile", "effort": "This effort only"}[scope])
+        self.state.setText({"team": "Team standard", "type": "Profile", "etype": "Effort type, every profile",
+                            "etp": "Effort type, this profile", "effort": "This effort only"}[scope])
         self.show_problems()
 
     def fill_row_scope(self):
@@ -1063,22 +1137,47 @@ class StandardsPage(QWidget):
             layer = PRL.diff(self.work, d["company"])
             layer.pop("name", None); layer.pop("variable_source", None)
             keep = {"id": t["id"], "name": t["name"]}
+            match = [w.strip() for w in self.match_edit.text().split(",") if w.strip()]
+            if match:
+                keep["match"] = match
             t.clear(); t.update(keep); t.update(layer)
             if self.default_cb.isChecked():
                 d["default"] = t["id"]
+        elif self.scope == "etype":
+            e = PRL.effort_type_of(d, self.etype_id)
+            layer = PRL.diff(self.work, d["company"])
+            layer.pop("name", None); layer.pop("variable_source", None)
+            keep = {k: e[k] for k in PRL.EFFORT_TYPE_KEYS if k in e}
+            chosen = [self.et_profiles.item(i).data(Qt.UserRole) for i in range(self.et_profiles.count())
+                      if self.et_profiles.item(i).checkState() == Qt.Checked]
+            if chosen:
+                keep["profiles"] = chosen
+            dp = self.et_default.currentData()
+            keep["default_profile"] = dp if dp in keep["profiles"] else keep["profiles"][0]
+            e.clear(); e.update(keep); e.update(layer)
+            if self.default_cb.isChecked():
+                d["default_effort_type"] = e["id"]
+        elif self.scope == "etp":
+            e = PRL.effort_type_of(d, self.etype_id)
+            over = PRL.diff(self.work, self.base)
+            over.pop("name", None); over.pop("variable_source", None)
+            e.setdefault("profile_over", {})[self.type_id] = over
+            if not over:
+                e["profile_over"].pop(self.type_id, None)
         else:
             eff = dict(self.host.ws.get("prod_std", {}) or {})
             over = PRL.diff(self.work, self.base)
             over.pop("name", None); over.pop("variable_source", None)
             eff["over"] = over
             eff["type"] = self.eff_type.currentData() or d["default"]
+            eff["effort_type"] = self.eff_etype.currentData() or ""
             self.host.ws.set("prod_std", eff)
         PRL.save(self.host.config_dir, d)
         self.dirty = False
         self.state.setText("Saved")
         if self.scope == "team":
             diag.activity("prod_standards_saved_team")
-        elif self.scope == "type":
+        elif self.scope in ("type", "etype", "etp"):
             diag.activity("prod_standards_saved_type")
         else:
             diag.activity("prod_standards_saved_effort")
@@ -1101,10 +1200,72 @@ class StandardsPage(QWidget):
         t = {"id": PRL.slug(name, {x["id"] for x in self.data["types"]}), "name": name}
         t.update(copy.deepcopy(base_layer))
         self.data["types"].append(t)
+        for e in self.data.get("effort_types", []):      # 3.8.0: a new profile is offered in every effort type (untick to drop)
+            e.setdefault("profiles", []).append(t["id"])
         PRL.save(self.host.config_dir, self.data)
         self.refresh()
         self.scope_box.setCurrentIndex(self.scope_box.findData("type:" + t["id"]))
         return t["id"]
+
+    def add_effort_type(self, name=None):
+        """3.8.0: a new effort type holding every profile (choose which it keeps, and its default)."""
+        if name is None:
+            name, ok = QInputDialog.getText(self, "New effort type", "Its name (for example: RFP response, Page-limited RFP "
+                                            "response, White paper, Program deliverables):")
+            if not ok:
+                return ""
+        name = " ".join((name or "").split())
+        if not name or name in [e["name"] for e in self.data.get("effort_types", [])]:
+            self.host.status("Give it a name not already used.")
+            return ""
+        if self.dirty:
+            self.save(quiet=True)
+        e = {"id": PRL.slug(name, {x["id"] for x in self.data.get("effort_types", [])}), "name": name,
+             "profiles": [t["id"] for t in self.data["types"]], "default_profile": self.data["default"]}
+        self.data.setdefault("effort_types", []).append(e)
+        PRL.save(self.host.config_dir, self.data)
+        self.refresh()
+        self.scope_box.setCurrentIndex(self.scope_box.findData("etype:" + e["id"]))
+        diag.activity("prod_effort_type_added")
+        return e["id"]
+
+    def effort_etype_changed(self):
+        """This effort's type: its profiles become the choices; the effort keeps its own values."""
+        if self.host.ws is None:
+            return
+        eff = dict(self.host.ws.get("prod_std", {}) or {})
+        eff["effort_type"] = self.eff_etype.currentData() or ""
+        et = PRL.effort_type_of(self.data, eff["effort_type"])
+        if et and eff.get("type") not in et["profiles"]:
+            eff["type"] = et["default_profile"]
+        self.host.ws.set("prod_std", eff)
+        self.fill_effort_profiles(eff)
+        self.switch(force=True)
+
+    def make_templates_all(self, word=None):
+        """3.8.0: one template for each profile of the effort type being edited, each with the effort type's rules."""
+        if self.scope != "etype":
+            return []
+        if self.dirty:
+            self.save(quiet=True)
+        import prodtemplate as PT
+        e = PRL.effort_type_of(self.data, self.etype_id)
+        if word is None and sys.platform.startswith("win"):
+            import prodword
+            word = prodword.update_fields
+        out = []
+        folder = os.path.join(self.template_folder(), e["name"])
+        for pid in e["profiles"]:
+            std = PRL.engine_ready(PRL.resolved_type(self.data, pid, e["id"]))
+            std["name"] = f"{e['name']} - {PRL.type_of(self.data, pid)['name']}"
+            try:
+                out.append(PT.make(std, folder, "", word=word or None))
+            except Exception:  # noqa: BLE001
+                diag.swallowed()
+        clean = sum(1 for j in out if j.check.count() == 0)
+        self.host.status(f"{len(out)} template(s) made in {folder}; {clean} pass their own check.")
+        diag.activity("prod_templates_made", n=len(out))
+        return out
 
     def effort_type_changed(self):
         if self.host.ws is None or self.scope != "effort":

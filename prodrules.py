@@ -88,28 +88,50 @@ def merge(base, over):
     return PR.deep_merge(base, over or {})
 
 
+STARTER_EFFORT_TYPES = [("rfp", "RFP response"), ("rfp_limited", "Page-limited RFP response"), ("white_paper", "White paper"),
+                        ("program", "Program deliverables")]
+PROFILE_KEYS = ("id", "name", "match")            # a profile's own fields; everything else is its layer
+EFFORT_TYPE_KEYS = ("id", "name", "profiles", "default_profile", "profile_over")
+
+
 def load(config_dir):
-    """{"company": full team standard, "types": [{"id", "name", ...layer}], "default": id}. A 3.5 file becomes
-    document types with the same values."""
+    """3.8.0: {"company": the team standard, "types": [document profiles {"id", "name", "match": [words], ...layer}],
+    "default": profile id, "effort_types": [{"id", "name", "profiles": [ids], "default_profile": id,
+    "profile_over": {profile id: layer}, ...shared layer}], "default_effort_type": id}.
+    A 3.5 file becomes profiles with the same values; a 3.6 or 3.7 file keeps its profiles and gains the starter
+    effort types (RFP response, page-limited RFP response, white paper, program deliverables), each holding every
+    profile and changing nothing until edited."""
     try:
         with open(os.path.join(config_dir, FILE), encoding="utf-8") as f:
             d = json.load(f) or {}
     except (OSError, ValueError):
         d = {}
-    if d and d.get("version") != 2:
+    if d and d.get("version") not in (2, 3):
         d = migrate_35(d)
     company = merge(COMPANY, d.get("company") or {})
     types = [t for t in d.get("types", []) if isinstance(t, dict) and t.get("id")]
     if not types:
         types = [{"id": "proposal", "name": "Proposal volume"}]
     ids = [t["id"] for t in types]
-    return {"version": 2, "company": company, "types": types, "default": d.get("default") if d.get("default") in ids else ids[0]}
+    default = d.get("default") if d.get("default") in ids else ids[0]
+    ets = [e for e in d.get("effort_types", []) if isinstance(e, dict) and e.get("id")] if d.get("version") == 3 else []
+    if d.get("version") != 3 and not ets:
+        ets = [{"id": i, "name": n, "profiles": list(ids), "default_profile": default} for i, n in STARTER_EFFORT_TYPES]
+    for e in ets:
+        e["profiles"] = [p for p in (e.get("profiles") or []) if p in ids] or [default]
+        if e.get("default_profile") not in e["profiles"]:
+            e["default_profile"] = e["profiles"][0]
+        e["profile_over"] = {k: v for k, v in (e.get("profile_over") or {}).items() if k in ids}
+    eids = [e["id"] for e in ets]
+    return {"version": 3, "company": company, "types": types, "default": default, "effort_types": ets,
+            "default_effort_type": d.get("default_effort_type") if d.get("default_effort_type") in eids else ""}
 
 
 def save(config_dir, data):
     os.makedirs(config_dir, exist_ok=True)
     p = os.path.join(config_dir, FILE)
-    body = {"version": 2, "company": diff(data["company"], COMPANY), "types": data["types"], "default": data.get("default", "")}
+    body = {"version": 3, "company": diff(data["company"], COMPANY), "types": data["types"], "default": data.get("default", ""),
+            "effort_types": data.get("effort_types", []), "default_effort_type": data.get("default_effort_type", "")}
     with open(p + ".tmp", "w", encoding="utf-8") as f:
         json.dump(body, f, indent=1, ensure_ascii=False)
     os.replace(p + ".tmp", p)
@@ -120,26 +142,60 @@ def type_of(data, tid):
 
 
 def layer_of(t):
-    return {k: v for k, v in t.items() if k not in ("id", "name")}
+    return {k: v for k, v in t.items() if k not in PROFILE_KEYS}
 
 
-def resolved_type(data, tid):
-    """The team standard with the document type's changes on top."""
+def effort_type_of(data, eid):
+    """The effort type, or None (no effort types, or an unknown id)."""
+    return next((e for e in data.get("effort_types", []) if e["id"] == eid), None)
+
+
+def effort_layer_of(e):
+    return {k: v for k, v in (e or {}).items() if k not in EFFORT_TYPE_KEYS}
+
+
+def resolved_type(data, tid, eid=None):
+    """The standard for one profile: the team standard, the profile's changes, then (3.8.0) the effort type's shared
+    values and its changes for this profile. An effort type's values win over the profile's: they are the rules of
+    that kind of effort (a page-limited RFP's fonts and margins hold for every volume in it)."""
     t = type_of(data, tid)
     std = merge(data["company"], layer_of(t))
+    e = effort_type_of(data, eid) if eid else None
+    if e is not None:
+        std = merge(std, effort_layer_of(e))
+        std = merge(std, (e.get("profile_over") or {}).get(t["id"]) or {})
     std["name"] = t["name"]
     return std
 
 
+def profile_for(data, eid, deliverable_name="", fallback=True):
+    """3.8.0: the profile a deliverable takes in an effort type: the first of the effort type's profiles whose match
+    words are in the deliverable's name, else the effort type's default profile."""
+    e = effort_type_of(data, eid)
+    ids = e["profiles"] if e else [t["id"] for t in data["types"]]
+    low = (deliverable_name or "").lower()
+    for pid in ids:
+        words = [w.strip().lower() for w in (type_of(data, pid).get("match") or []) if w.strip()]
+        if any(re.search(r"\b" + re.escape(w) + r"\b", low) for w in words):
+            return pid
+    if not fallback:
+        return None
+    return (e or {}).get("default_profile") or data["default"]
+
+
 def for_effort(config_dir, ws=None, data=None, type_id=None):
-    """The standard in force for the open effort: team -> its document type -> the effort's own values.
-    type_id (3.7.0): a deliverable's own document type instead of the effort's."""
+    """The standard in force for the open effort: team -> its profile -> its effort type -> the effort's own values.
+    type_id (3.7.0): a deliverable's own profile instead of the effort's."""
     data = data or load(config_dir)
     eff = (ws.get("prod_std", {}) if ws is not None else {}) or {}
     ids = [t["id"] for t in data["types"]]
-    tid = type_id if type_id in ids else (eff.get("type") if eff.get("type") in ids else data["default"])
-    std = merge(resolved_type(data, tid), eff.get("over") or {})
+    eid = eff.get("effort_type") if effort_type_of(data, eff.get("effort_type")) else None
+    et = effort_type_of(data, eid)
+    eff_default = eff.get("type") if eff.get("type") in ids else ((et or {}).get("default_profile") or data["default"])
+    tid = type_id if type_id in ids else eff_default
+    std = merge(resolved_type(data, tid, eid), eff.get("over") or {})
     std["name"] = type_of(data, tid)["name"]
+    std["effort_type"] = (et or {}).get("name", "")
     std["effort_over"] = bool(eff.get("over"))
     return engine_ready(std)
 

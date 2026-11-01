@@ -181,9 +181,26 @@ class FixPage(QWidget):
         return PRL.context(h.config_dir, h.effort_name or "", info, lst, self.record(), self.path if path is None else path)
 
     def draft_type(self, ctx):
-        """The draft's document type: the deliverable's, else the one chosen here for this draft, else the effort's."""
+        """The draft's profile: the deliverable's, else the one chosen here for this draft, else (3.8.0) the effort
+        type's profile whose words are in the deliverable's (or file's) name, else the effort's."""
         d = (ctx or {}).get("deliverable") or {}
-        return d.get("doc_type") or self.type_chosen.get(self.path) or None
+        chosen = d.get("doc_type") or self.type_chosen.get(self.path)
+        if chosen:
+            return chosen
+        return self.matched_type(ctx)
+
+    def matched_type(self, ctx):
+        d = (ctx or {}).get("deliverable") or {}
+        try:
+            data = PRL.load(self.host.config_dir)
+            eff = (self.host.ws.get("prod_std", {}) if self.host.ws is not None else {}) or {}
+            if not PRL.effort_type_of(data, eff.get("effort_type")):
+                return None
+            name = d.get("name") or os.path.splitext(os.path.basename(self.path or ""))[0]
+            return PRL.profile_for(data, eff.get("effort_type"), name, fallback=False)
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            return None
 
     def dtype_chosen(self):
         tid = self.dtype.currentData() or ""
@@ -225,15 +242,18 @@ class FixPage(QWidget):
         try:
             data = PRL.load(self.host.config_dir)
             eff = (self.host.ws.get("prod_std", {}) if self.host.ws is not None else {}) or {}
-            eff_t = PRL.type_of(data, eff.get("type") or data["default"])
+            et = PRL.effort_type_of(data, eff.get("effort_type"))
+            eff_t = PRL.type_of(data, eff.get("type") or (et or {}).get("default_profile") or data["default"])
             self.dtype.blockSignals(True); self.dtype.clear()
             self.dtype.addItem(f"The effort's ({eff_t['name']})", "")
-            for t in data["types"]:
-                self.dtype.addItem(t["name"], t["id"])
-            cur = self.draft_type(ctx) or ""
+            for pid in (et["profiles"] if et else [t["id"] for t in data["types"]]):
+                self.dtype.addItem(PRL.type_of(data, pid)["name"], pid)
+            chosen = (d or {}).get("doc_type") or self.type_chosen.get(self.path)
+            cur = chosen or self.matched_type(ctx) or ""
             self.dtype.setCurrentIndex(max(0, self.dtype.findData(cur)))
             self.dtype.blockSignals(False)
-            self.dtype_src.setText("kept on the Deliverables board" if d else "for this draft")
+            self.dtype_src.setText(("kept on the Deliverables board" if d else "for this draft") if chosen else
+                                   (f"matched by name in {et['name']}" if et and cur else "the effort's"))
         except Exception:  # noqa: BLE001
             diag.swallowed()
         lists = ctx.get("lists", {})

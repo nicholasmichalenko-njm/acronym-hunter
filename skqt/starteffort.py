@@ -122,6 +122,17 @@ class StartEffort(QFrame):
         form.addRow("Solicitation number", self.sol)
         form.addRow("Proposals due", drow)
         form.addRow("Proposal manager", self.pm)
+        self.etype = QComboBox()                      # 3.8.0: the effort type its deliverables' formatting follows
+        try:
+            import prodrules as PRL
+            data = PRL.load(host.config_dir)
+            self.etype.addItem("None", "")
+            for e in data.get("effort_types", []):
+                self.etype.addItem(e["name"], e["id"])
+            self.etype.setCurrentIndex(max(0, self.etype.findData(data.get("default_effort_type", ""))))
+        except Exception:
+            diag.swallowed()
+        form.addRow("Effort type (formatting)", self.etype)
         # More options
         self.more_btn = D.button("More options", "ghost", self.toggle_more)
         outer.addWidget(self.more_btn, 0, Qt.AlignLeft)
@@ -219,7 +230,8 @@ class StartEffort(QFrame):
                 "customer_dir": self.cust.text().strip(), "volumes_dir": self.vols.text().strip(),
                 "client": self.client.text().strip(), "solicitation": self.sol.text().strip(),
                 "internal_no": self.internal.text().strip(), "picture": self.pic.path,
-                "pm": self.pm.currentText().strip(), "due": self.due.text().strip(), "zone_key": self.zone.currentData() or ""}
+                "pm": self.pm.currentText().strip(), "due": self.due.text().strip(), "zone_key": self.zone.currentData() or "",
+                "effort_type": self.etype.currentData() or ""}
 
     def create(self, values=None):
         v = values or self.values()
@@ -263,6 +275,11 @@ def start_effort(host, v):
                 rec.set_due(iso, zone, zone_key=v.get("zone_key") or None)
             else:
                 host.status("The due date was not understood; set it on Effort Home.")
+        if v.get("effort_type"):
+            import prodrules as PRL
+            et = PRL.effort_type_of(PRL.load(host.config_dir), v["effort_type"])
+            if et:
+                host.ws.set("prod_std", {"effort_type": et["id"], "type": et["default_profile"]})
         diag.activity("qt_effort_started", n=sum(1 for k in ("picture", "pm", "due", "client", "solicitation") if v.get(k)))
     except Exception:
         diag.swallowed()

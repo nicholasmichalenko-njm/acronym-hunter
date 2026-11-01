@@ -186,6 +186,53 @@ check("3.7: Check lists each style that differs from the library, property by pr
       any(f["rule"] == "S4" and f["what"].startswith("Heading 2:") and "size" in f["what"] for f in chk.findings))
 check("3.7: one style can be left out of the style fix from its finding", pg.set_style("Heading 2", False)
       and pg.plan["style_skip"] == ["Heading 2"] and pg.set_style("Heading 2", True) and pg.plan["style_skip"] == [])
+# ------------------------------------------------------------------ 3.8.0: effort types holding document profiles
+w.go("prodstd"); app.processEvents()
+sp.refresh()
+datas = [sp.scope_box.itemData(i) for i in range(sp.scope_box.count())]
+check("3.8: Editing lists the starter effort types, each for every profile and for each profile in it",
+      "etype:rfp_limited" in datas and "etp:rfp_limited:cost_volume" in datas and "etype:white_paper" in datas, datas)
+sp.scope_box.setCurrentIndex(sp.scope_box.findData("etype:rfp_limited")); app.processEvents()
+check("3.8: an effort type shows its profiles and default profile", sp.et_profiles.isVisibleTo(sp) and sp.et_profiles.count() == len(PRL.load(cfg)["types"]))
+it = next(i for i in sp.binder.items if i["path"] == ("variables", "body_size"))
+it["w"].setValue(12.0)
+sp.save()
+e = PRL.effort_type_of(PRL.load(cfg), "rfp_limited")
+check("3.8: an effort type saves only its own rules", e.get("variables") == {"body_size": 12.0} and e["profiles"], e)
+sp.scope_box.setCurrentIndex(sp.scope_box.findData("etp:rfp_limited:cost_volume")); app.processEvents()
+check("3.8: the effort type's rule shows under each of its profiles", sp.work["variables"]["body_size"] == 12.0)
+it = next(i for i in sp.binder.items if i["path"] == ("variables", "table_size"))
+it["w"].setValue(9.0)
+sp.save()
+e = PRL.effort_type_of(PRL.load(cfg), "rfp_limited")
+check("3.8: a change for one profile in one effort type", e["profile_over"]["cost_volume"] == {"variables": {"table_size": 9.0}}, e.get("profile_over"))
+sp.scope_box.setCurrentIndex(sp.scope_box.findData("type:cost_volume")); app.processEvents()
+sp.match_edit.setText("cost, price"); sp.changed(); sp.save()
+check("3.8: a profile says which deliverables it fits", PRL.type_of(PRL.load(cfg), "cost_volume")["match"] == ["cost", "price"])
+sp.scope_box.setCurrentIndex(sp.scope_box.findData("effort:")); app.processEvents()
+sp.eff_etype.setCurrentIndex(sp.eff_etype.findData("rfp_limited")); sp.effort_etype_changed()
+check("3.8: this effort takes an effort type", (w.ws.get("prod_std", {}) or {}).get("effort_type") == "rfp_limited"
+      and PRL.for_effort(cfg, w.ws)["effort_type"] == "Page-limited RFP response")
+costdoc = os.path.join(EF.folder(w.effort_path, "volumes"), "Volume III Cost and Price.docx")
+shutil.copy2(os.path.join(HERE, "pefix", "data", "small.docx"), costdoc)
+w.go("fixcopy"); app.processEvents()
+pg.refresh(); app.processEvents()
+pg.files.setCurrentRow(next(i for i in range(pg.files.count()) if "Cost and Price" in pg.files.item(i).text())); app.processEvents()
+st8 = pg.std()
+check("3.8: Fix a Copy matches the draft to its profile by name, with the effort type's rules (the RFP's own 11 pt still wins)",
+      st8["name"] == "Cost volume" and st8["variables"]["table_size"] == 9.0 and st8["variables"]["body_size"] == 11.0
+      and "matched by name" in pg.dtype_src.text(), (st8["name"], st8["variables"].get("table_size"), st8["variables"].get("body_size"), pg.dtype_src.text()))
+w.go("prodstd"); app.processEvents()
+sp.scope_box.setCurrentIndex(sp.scope_box.findData("etype:rfp_limited")); app.processEvents()
+made = sp.make_templates_all()
+check("3.8: Make templates for every profile in an effort type, each passing its own check",
+      len(made) == len(PRL.effort_type_of(PRL.load(cfg), "rfp_limited")["profiles"]) and all(j.check.count() == 0 for j in made)
+      and all(os.path.dirname(j.copy).endswith("Page-limited RFP response") for j in made), [(j.copy, j.check.count()) for j in made])
+w.go("home"); app.processEvents()
+f = w.home_page.start
+f.name.setText("Falcon"); f.etype.setCurrentIndex(f.etype.findData("white_paper")); f.create(); app.processEvents()
+check("3.8: Start an effort sets its effort type and that type's default profile",
+      (w.ws.get("prod_std", {}) or {}).get("effort_type") == "white_paper" and (w.ws.get("prod_std", {}) or {}).get("type"))
 check("THE GATE, at the end", sha(vol) == before)
 n = sum(checks)
 print(f"QT PRODFIX {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

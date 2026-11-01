@@ -146,6 +146,46 @@ import prodcopy as PCY
 check("3.6.1: each effort's copies go in its own folder, named safely", PCY.effort_folder("C:/Out", "Osprey: Phase 2?") == os.path.join("C:/Out", "Osprey Phase 2")
       and PCY.effort_folder("C:/Out", "") == "C:/Out" and PCY.effort_folder("C:/Out", "CON") == os.path.join("C:/Out", "_CON")
       and PCY.effort_folder("C:/Out", "Draft. ") == os.path.join("C:/Out", "Draft"))
+# ---------------------------------------------------------------- 3.8.0: effort types holding document profiles
+cfg8 = tempfile.mkdtemp()
+json.dump({"version": 2, "company": {}, "types": [{"id": "tech", "name": "Technical volume", "variables": {"body_size": 12}},
+                                                  {"id": "cost", "name": "Cost volume", "variables": {"table_size": 8}}],
+           "default": "tech"}, open(os.path.join(cfg8, P.FILE), "w"))
+d8 = P.load(cfg8)
+check("3.8: a 3.7 file keeps its profiles and gains the starter effort types, each holding every profile",
+      [e["name"] for e in d8["effort_types"]] == ["RFP response", "Page-limited RFP response", "White paper", "Program deliverables"]
+      and all(e["profiles"] == ["tech", "cost"] and e["default_profile"] == "tech" for e in d8["effort_types"]) and d8["version"] == 3)
+lim = P.effort_type_of(d8, "rfp_limited")
+lim.update({"fonts": {"body": {"min_size": 12}}, "variables": {"body_size": 12.5, "margin_left": 1.0},
+            "profile_over": {"cost": {"variables": {"table_size": 9}}}})
+P.type_of(d8, "cost")["match"] = ["cost", "price"]
+P.save(cfg8, d8)
+d8 = P.load(cfg8)
+s_tech = P.resolved_type(d8, "tech", "rfp_limited")
+s_cost = P.resolved_type(d8, "cost", "rfp_limited")
+check("3.8: team, then the profile, then the effort type's rules (they win), then its change for one profile",
+      s_tech["variables"]["body_size"] == 12.5 and s_tech["fonts"]["body"]["min_size"] == 12 and s_cost["variables"]["table_size"] == 9
+      and P.resolved_type(d8, "cost")["variables"]["table_size"] == 8 and P.resolved_type(d8, "cost", "white_paper")["variables"]["table_size"] == 8)
+check("3.8: a deliverable takes the effort type's profile whose words are in its name, else the default",
+      P.profile_for(d8, "rfp_limited", "Volume III Cost and Price") == "cost" and P.profile_for(d8, "rfp_limited", "Volume I Technical") == "tech"
+      and P.profile_for(d8, "rfp_limited", "Volume I Technical", fallback=False) is None)
+
+
+class WS:
+    def __init__(self, v):
+        self.v = v
+
+    def get(self, k, default=None):
+        return self.v.get(k, default)
+
+
+eff8 = P.for_effort(cfg8, WS({"prod_std": {"effort_type": "rfp_limited", "over": {"variables": {"margin_left": 1.25}}}}), type_id="cost")
+check("3.8: the effort's standard: its effort type, the deliverable's profile, then the effort's own values",
+      eff8["name"] == "Cost volume" and eff8["effort_type"] == "Page-limited RFP response" and eff8["variables"]["table_size"] == 9
+      and eff8["variables"]["margin_left"] == 1.25 and eff8["fonts"]["body"]["min_size"] == 12)
+d8["effort_types"] = [e for e in d8["effort_types"] if e["id"] != "program"]
+P.save(cfg8, d8)
+check("3.8: removed effort types stay removed (the starters are added once)", [e["id"] for e in P.load(cfg8)["effort_types"]] == ["rfp", "rfp_limited", "white_paper"])
 n = sum(checks)
 print(f"PROD RULES {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)
