@@ -100,34 +100,50 @@ class EffortBanner(QFrame):
         self.setObjectName("banner")
         self.ident = {"pm": "", "sensitivity": "", "fields": []}
         self.due_iso = ""
-        h = QHBoxLayout(self); h.setContentsMargins(D.SPACE["l"], D.SPACE["l"], D.SPACE["l"], D.SPACE["l"]); h.setSpacing(D.SPACE["l"])
+        self.stage_hex = ""
+        self.gate_info = {}
+        outer = QVBoxLayout(self); outer.setContentsMargins(0, 0, 0, 0); outer.setSpacing(0)
+        # 3.12.0: the full banner, and the condensed line that keeps only the essentials on screen
+        self.full = QWidget(); self.full.setObjectName("bannerFull"); outer.addWidget(self.full)
+        h = QHBoxLayout(self.full); h.setContentsMargins(D.SPACE["l"], D.SPACE["l"], D.SPACE["l"], D.SPACE["m"]); h.setSpacing(D.SPACE["l"])
         self.pic = PictureBox(self); h.addWidget(self.pic, 0, Qt.AlignTop)
         mid = QVBoxLayout(); mid.setSpacing(6); h.addLayout(mid, 1)
         top = QHBoxLayout(); top.setSpacing(D.SPACE["s"]); mid.addLayout(top)
         self.name = QLabel(""); self.name.setObjectName("bannerName"); self.name.setWordWrap(True)
         top.addWidget(self.name, 1)
         self.sens = D.Pill("", "head"); top.addWidget(self.sens, 0, Qt.AlignTop)
-        self.pagelim = D.Pill("", "head"); top.addWidget(self.pagelim, 0, Qt.AlignTop)    # 2.94.0: page-limited, front and center
-        self.stage = D.Pill("", "accent"); top.addWidget(self.stage, 0, Qt.AlignTop)
+        self.pagelim = D.Pill("", "head"); self.pagelim.setVisible(False)   # 3.12.0: page limits live in Submission requirements
+        self.stage = QPushButton(""); self.stage.setObjectName("stagePill"); self.stage.setCursor(Qt.PointingHandCursor)
+        self.stage.clicked.connect(lambda: self.page.show_gate_goals())
+        top.addWidget(self.stage, 0, Qt.AlignTop)
         self.sub = D.label("", "muted"); mid.addWidget(self.sub)
         self.grid = QGridLayout(); self.grid.setHorizontalSpacing(D.SPACE["xl"]); self.grid.setVerticalSpacing(4)
         mid.addLayout(self.grid)
         acts = FlowLayout(None, D.SPACE["s"]); mid.addLayout(acts)
-        self.edit_btn = D.button("Edit details...", None, lambda: self.edit_dialog(), "Proposal manager, client, sensitivity and "
-                                 "the effort's own spots. They travel with the effort.")
+        self.edit_btn = D.button("Edit details...", None, lambda: self.edit_dialog(), "Proposal manager, client, sensitivity, the "
+                                 "customer's due date and the effort's own spots. They travel with the effort.")
         acts.addWidget(self.edit_btn)
         acts.addWidget(D.button("People and roles...", None, lambda: self.people_roles(),     # 2.93.0
                                 "Who works on this effort and in what role; a role saves when picked"))
         acts.addWidget(D.button("Open effort folder", None, lambda: self.host.open_effort_folder(),
                                 "The effort's folder in File Explorer: customer documents, volumes, Response Setup, exports"))
         acts.addWidget(D.button("Export overview...", None, lambda: self.host.record_page.status_export(),
-                                "The effort as it stands now, in Word: your summary, stages, people and how far along they are, "
-                                "open questions, the newest customer documents, what is coming up"))
-        acts.addWidget(D.button("Readable copy", None, lambda: self.host.open_readable(),
-                                "Everything in the effort as plain files that open without Stationkeeper"))
+                                "Where the effort stands, in one Word file: the due dates and your summary first, then stages, "
+                                "people, open questions and what is coming up. Each one is kept in All overviews."))
+        acts.addWidget(D.button("All overviews...", "ghost", lambda: self.host.record_page.overviews_dialog(),   # 3.12.0
+                                "Every overview exported for this effort, newest first, with the summary you wrote for it"))
         self.page_deliv = D.button("", "ghost", lambda: self.host.go("deliverables"), "The deliverables board")
         acts.addWidget(self.page_deliv)
         acts.addStretch(1)
+        self.toggles = {}                                                       # 3.12.0: pinned strips and the condensed view
+        tg = acts
+        for key, text, tip in (("themes", "Win themes", "Show or hide the win themes under the header, on every stage"),
+                               ("truth", "Wall of Truth", "Show or hide the approved facts, numbers and names under the header")):
+            b = D.button(text, None, None, tip); b.setCheckable(True)
+            b.toggled.connect(lambda on, k=key: self.page.set_strip(k, on))
+            tg.addWidget(b); self.toggles[key] = b
+        self.cond_btn = D.button("Condense", "ghost", lambda: self.set_condensed(True), "Keep only the essentials at the top")
+        tg.addWidget(self.cond_btn)
         # the countdown
         right = QFrame(); right.setObjectName("countdown"); h.addWidget(right, 0, Qt.AlignTop)
         rv = QVBoxLayout(right); rv.setContentsMargins(D.SPACE["l"], D.SPACE["m"], D.SPACE["l"], D.SPACE["m"]); rv.setSpacing(0)
@@ -137,16 +153,61 @@ class EffortBanner(QFrame):
         self.due = QLabel(""); self.due.setObjectName("cdDue"); self.due.setWordWrap(True); self.due.setMaximumWidth(240)
         self.due.setAlignment(Qt.AlignRight); rv.addWidget(self.due, 0, Qt.AlignRight)
         self.right = right
+        # 3.12.0: the condensed line: name, due in days, client, sensitivity, stage
+        self.compact = QWidget(); self.compact.setObjectName("bannerCompact"); outer.addWidget(self.compact)
+        ch = QHBoxLayout(self.compact); ch.setContentsMargins(D.SPACE["l"], D.SPACE["s"], D.SPACE["l"], D.SPACE["s"]); ch.setSpacing(D.SPACE["s"])
+        self.c_name = QLabel(""); self.c_name.setObjectName("compactName"); ch.addWidget(self.c_name)
+        self.c_stage = QPushButton(""); self.c_stage.setObjectName("stagePill"); self.c_stage.setCursor(Qt.PointingHandCursor)
+        self.c_stage.clicked.connect(lambda: self.page.show_gate_goals())
+        ch.addWidget(self.c_stage)
+        self.c_sens = D.Pill("", "head"); ch.addWidget(self.c_sens)
+        self.c_due = QLabel(""); self.c_due.setObjectName("compactDue"); ch.addWidget(self.c_due)
+        self.c_client = D.label("", "muted", wrap=False); ch.addWidget(self.c_client, 1)
+        self.c_toggles = {}
+        for key, text in (("themes", "Win themes"), ("truth", "Wall of Truth")):
+            b = D.button(text, "ghost", None); b.setCheckable(True)
+            b.toggled.connect(lambda on, k=key: self.page.set_strip(k, on))
+            ch.addWidget(b); self.c_toggles[key] = b
+        ch.addWidget(D.button("Expand", "ghost", lambda: self.set_condensed(False), "Show the full header"))
+        self.condensed = False
+        self.compact.setVisible(False)
         self.timer = QTimer(self, interval=1000, timeout=self.tick)
         self.restyle()
+
+    def set_condensed(self, on, save=True):
+        """3.12.0: the condensed header keeps the effort's name, days to the due date, client, sensitivity and stage."""
+        self.condensed = bool(on)
+        self.full.setVisible(not self.condensed); self.compact.setVisible(self.condensed)
+        if save:
+            try:
+                from .modes import save as _save
+                _save(banner_condensed=self.condensed)
+            except Exception:
+                diag.swallowed()
+            diag.activity("qt_banner_condensed" if self.condensed else "qt_banner_expanded")
+        return self.condensed
+
+    def show_toggle(self, key, on):
+        for b in (self.toggles.get(key), self.c_toggles.get(key)):
+            if b is not None and b.isChecked() != bool(on):
+                b.blockSignals(True); b.setChecked(bool(on)); b.blockSignals(False)
 
     # ------------------------------------------------------------ look
     def restyle(self, tone_name="accent"):
         t = D.tokens()
         col = t.get(tone_name, t["accent"])
+        stage = self.stage_hex or t["accent"]                                   # 3.12.0: the stage's color, gently
         self.setStyleSheet(
-            f"QFrame#banner{{background:{t['surface']};border:1px solid {t['border']};border-radius:{D.RADIUS['card'] + 4}px;}}"
+            f"QFrame#banner{{background:{t['surface']};border:1px solid {t['border']};border-top:4px solid {stage};"
+            f"border-radius:{D.RADIUS['card'] + 4}px;}}"
             f"QFrame#banner QLabel{{background:transparent;}}"
+            f"QWidget#bannerFull, QWidget#bannerCompact{{background:transparent;}}"
+            f"QPushButton#stagePill{{background:{stage};color:#FFFFFF;border:none;border-radius:{D.RADIUS['chip']}px;"
+            f"padding:3px 12px;font-weight:600;font-size:{D.TYPE['small']}pt;}}"
+            f"QPushButton#stagePill:hover{{border:1px solid {t['text']};}}"
+            f"QFrame#banner QPushButton:checked{{background:{t['accent_soft']};color:{t['accent']};border:1px solid {t['accent']};}}"
+            f"QLabel#compactName{{font-size:14pt;font-weight:700;color:{t['text']};}}"
+            f"QLabel#compactDue{{font-weight:700;color:{col};}}"
             f"QLabel#bannerName{{font-size:22pt;font-weight:700;color:{t['text']};}}"
             f"QFrame#countdown{{background:{t.get(tone_name + '_soft', t['accent_soft'])};border-radius:{D.RADIUS['card']}px;border:none;}}"
             f"QLabel#cdHead{{color:{col};font-size:{D.TYPE['label']}pt;font-weight:700;letter-spacing:1.2px;}}"
@@ -168,7 +229,21 @@ class EffortBanner(QFrame):
         sens = self.ident["sensitivity"]
         self.sens.setText(sens or "Sensitivity not set"); self.sens.set_tone(BR.tone(sens))
         self.sens.setToolTip("How the effort is marked. CUI and Proprietary mark every page with a strip across the top.")
-        self.stage.setText(stage); self.stage.setVisible(bool(stage))
+        import stagecolors as SC
+        try:
+            i = rec.index()
+            cur = rec.stages[i]
+            self.stage_hex = SC.color_of(cur, i)
+        except Exception:
+            diag.swallowed()
+            self.stage_hex = ""
+        gi = self.gate_info or {}
+        label = stage + (f"  ·  {gi['gate']}" if gi.get("gate") else "") + \
+            (f"  ·  {gi['open']} of {gi['total']} goals open" if gi.get("total") else "")
+        for b in (self.stage, self.c_stage):
+            b.setText(label); b.setVisible(bool(stage))
+            b.setToolTip((gi.get("about") or "") + ("\n" if gi.get("about") else "") + "Click to see this stage's gate goals")
+        self.restyle("accent" if getattr(self, "_tone", "head") == "head" else self._tone)
         try:                                                                    # 2.94.0
             import docversions as DV
             import formatreq as FR
@@ -189,7 +264,6 @@ class EffortBanner(QFrame):
         self.sub.setText("  ·  ".join(x for x in (self.client, self.solicitation) if x) or "Client and solicitation not set yet")
         spots = [("PROPOSAL MANAGER", BR.proposal_manager(rec, self.ident) or "Not set")]
         spots += [("CLIENT", self.client or "Not set"), ("SOLICITATION", self.solicitation or "Not set")]
-        spots += [("PAGE-LIMITED", FR.spot_text(self.fmt))]                    # 2.94.0
         spots += [(f["label"].upper(), f["value"] or "-") for f in self.ident["fields"]]
         self.spots = spots
         while self.grid.count():
@@ -201,6 +275,9 @@ class EffortBanner(QFrame):
             r, c = divmod(i, per_row)
             a = D.label(lab, "spotlab", wrap=False); b = D.label(val, "spotval")
             self.grid.addWidget(a, r * 2, c); self.grid.addWidget(b, r * 2 + 1, c)
+        self.c_name.setText(h.effort_name)
+        self.c_sens.setText(sens or "Sensitivity not set"); self.c_sens.set_tone(BR.tone(sens))
+        self.c_client.setText(self.client or "")
         self.due_iso = rec.data.get("due", "")
         import effortrec as R
         import tzones as TZ
@@ -232,6 +309,8 @@ class EffortBanner(QFrame):
         else:
             d, hh, mm, ss = c
             self.due_head.setText("DUE IN"); self.days.setText(f"{d} day{'s' if d != 1 else ''}"); self.clock.setText(f"{hh:02d}:{mm:02d}:{ss:02d}")
+        self.c_due.setText("No due date" if c is None else ("Due date passed" if c[0] == "passed" else
+                                                              f"Due in {c[0]} day{'s' if c[0] != 1 else ''}"))
         tn = BR.countdown_tone(c)
         if getattr(self, "_tone", None) != tn:
             self._tone = tn
@@ -358,16 +437,23 @@ class DetailsDialog(QDialog):
         from PySide6.QtWidgets import QCheckBox, QDateEdit, QTimeEdit
         due = rec.data.get("due", "")
         dd = _R.parse_date(due[:10]) if due else None
-        self.has_due = QCheckBox("Due date set"); self.has_due.setChecked(dd is not None)
+        # 3.12.0: the customer's official due date, or "Not set yet"; no switch to find
+        self.has_due = QCheckBox(); self.has_due.setChecked(dd is not None); self.has_due.setVisible(False)
         self.due_date = QDateEdit(); self.due_date.setCalendarPopup(True); self.due_date.setDisplayFormat("MMM d, yyyy")
-        self.due_date.setDate(QDate(dd.year, dd.month, dd.day) if dd else QDate.currentDate().addDays(30))
+        self.due_date.setMinimumDate(QDate(2000, 1, 1)); self.due_date.setSpecialValueText("Not set yet")
+        self.due_date.setDate(QDate(dd.year, dd.month, dd.day) if dd else self.due_date.minimumDate())
         self.due_time = QTimeEdit(); self.due_time.setDisplayFormat("h:mm AP")
         hm = due[11:16] if len(due) > 15 else "14:00"
         self.due_time.setTime(QTime(int(hm[:2]), int(hm[3:5])))
-        self.due_date.dateChanged.connect(lambda *_a: self.has_due.setChecked(True))
-        self.due_time.timeChanged.connect(lambda *_a: self.has_due.setChecked(True))
-        drow = QHBoxLayout(); drow.addWidget(self.due_date); drow.addWidget(self.due_time); drow.addWidget(self.has_due); drow.addStretch(1)
-        f.addRow("Proposal due", drow)
+        self.due_date.dateChanged.connect(lambda d: self.has_due.setChecked(d != self.due_date.minimumDate()))
+        self.due_time.timeChanged.connect(lambda *_a: self.has_due.setChecked(True) if self.due_date.date() != self.due_date.minimumDate() else None)
+        self.has_due.toggled.connect(lambda on: None if on or self.due_date.date() == self.due_date.minimumDate()
+                                     else self.due_date.setDate(self.due_date.minimumDate()))
+        clear_due = D.button("Clear", "ghost", lambda: self.due_date.setDate(self.due_date.minimumDate()), "No due date yet")
+        drow = QHBoxLayout(); drow.addWidget(self.due_date); drow.addWidget(self.due_time); drow.addWidget(clear_due); drow.addStretch(1)
+        f.addRow("Customer's due date", drow)
+        f.addRow("", D.label("The official deadline the customer gave, in the submission's time zone. The countdown and "
+                             "Schedule from due date use it.", "muted"))
         f.addRow("Submission time zone", self.zone)
         f.addRow("Sensitivity", self.sens)
         import formatreq as FR                                                  # 2.94.0
@@ -494,10 +580,10 @@ class CustomizeDialog(QDialog):
     def __init__(self, parent, lay, names, me, team=None, config_dir=""):
         super().__init__(parent)
         self.team, self.config_dir = team or {}, config_dir
-        self.setWindowTitle("Customize Home")
+        self.setWindowTitle("Customize the Effort Dashboard")
         self.setMinimumWidth(460)
         v = QVBoxLayout(self)
-        v.addWidget(D.label("Your Effort Home on this PC. It is yours alone: it changes no one else's, and it is not saved in "
+        v.addWidget(D.label("Your Effort Dashboard on this PC. It is yours alone: it changes no one else's, and it is not saved in "
                             "the effort.", "muted"))
         f = QFormLayout(); v.addLayout(f)
         self.role = QComboBox(); self.role.addItems(list(BR.ROLE_NAMES)); self.role.setCurrentText(lay["role"])
@@ -506,12 +592,15 @@ class CustomizeDialog(QDialog):
         self.me = QComboBox(); self.me.setEditable(True); self.me.addItems([""] + list(names)); self.me.setCurrentText(me)
         self.me.setToolTip("My work and the tasks filter use this name")
         f.addRow("My role", self.role); f.addRow("", self.role_says); f.addRow("I am", self.me)
-        v.addWidget(D.label("Tick what shows; Up and Down set the order. Half-width sections sit side by side.", "muted"))
+        v.addWidget(D.label("Tick what shows; drag, or Up and Down, to set the order. Half-width cards sit side by side; "
+                            "Full or half width changes the card picked.", "muted"))
         self.list = QListWidget(); self.list.setDragDropMode(QAbstractItemView.InternalMove); self.list.setMinimumHeight(280)
         v.addWidget(self.list)
         self.fill(lay)
         row = QHBoxLayout(); v.addLayout(row)
         row.addWidget(D.button("Up", None, lambda: self.move(-1))); row.addWidget(D.button("Down", None, lambda: self.move(1)))
+        row.addWidget(D.button("Full or half width", None, lambda: self.toggle_width(), "The card picked: full width, or half width "
+                               "beside another"))                                       # 3.12.0
         row.addStretch(1)
         row.addWidget(D.button("Reset to the role", "ghost", lambda: self.use_role()))
         import teampack as TP
@@ -526,9 +615,11 @@ class CustomizeDialog(QDialog):
 
     def fill(self, lay):
         self.list.clear()
+        widths = lay.get("widths") or {}
         for k in lay["order"]:
-            it = QListWidgetItem(BR.TITLE[k] + ("" if BR.WIDTH[k] == "wide" else "  (half width)"))
-            it.setData(Qt.UserRole, k)
+            w = BR.width(k, widths)
+            it = QListWidgetItem(BR.TITLE[k] + ("" if w == "wide" else "  (half width)"))
+            it.setData(Qt.UserRole, k); it.setData(Qt.UserRole + 1, w)
             it.setFlags(it.flags() | Qt.ItemIsUserCheckable)
             it.setCheckState(Qt.Unchecked if k in lay["hidden"] else Qt.Checked)
             self.list.addItem(it)
@@ -549,6 +640,16 @@ class CustomizeDialog(QDialog):
         diag.activity("qt_team_role_layout_saved")
         return cur
 
+    def toggle_width(self, row=None):
+        it = self.list.item(self.list.currentRow() if row is None else row)
+        if it is None:
+            return None
+        k = it.data(Qt.UserRole)
+        w = "half" if it.data(Qt.UserRole + 1) == "wide" else "wide"
+        it.setData(Qt.UserRole + 1, w)
+        it.setText(BR.TITLE[k] + ("" if w == "wide" else "  (half width)"))
+        return w
+
     def move(self, step):
         i = self.list.currentRow(); j = i + step
         if i < 0 or not 0 <= j < self.list.count():
@@ -556,12 +657,14 @@ class CustomizeDialog(QDialog):
         it = self.list.takeItem(i); self.list.insertItem(j, it); self.list.setCurrentRow(j)
 
     def values(self):
-        order, hidden = [], []
+        order, hidden, widths = [], [], {}
         for i in range(self.list.count()):
             it = self.list.item(i); k = it.data(Qt.UserRole); order.append(k)
+            if it.data(Qt.UserRole + 1) and it.data(Qt.UserRole + 1) != BR.WIDTH[k]:
+                widths[k] = it.data(Qt.UserRole + 1)
             if it.checkState() != Qt.Checked:
                 hidden.append(k)
-        return {"role": self.role.currentText(), "order": order, "hidden": hidden, "me": self.me.currentText().strip()}
+        return {"role": self.role.currentText(), "order": order, "hidden": hidden, "me": self.me.currentText().strip(), "widths": widths}
 
 
 class BrandingCard(D.Card):

@@ -44,6 +44,9 @@ class SettingsPage(QWidget):
         self.eff = D.Card("Efforts", "One effort per proposal: its acronym list workbook, records and compliance files.",
                           actions=[D.button("Open effort folder", None, lambda: self.host.open_effort_folder(),
                                             "The open effort's folder in File Explorer"),
+                                   D.button("Export the full effort...", None, lambda: self.export_full(),     # 3.12.0
+                                            "Everything in the open effort as plain files that open without Stationkeeper, in a "
+                                            "dated folder named for the effort and its stage"),
                                    D.button("Import effort package...", None, lambda: self.host.import_package()),
                                    D.button("New effort...", "primary", lambda: __import__("skqt.starteffort", fromlist=["x"]).start_dialog(host))])
         f = QFormLayout(); self.eff.body.addLayout(f)
@@ -320,6 +323,19 @@ class SettingsPage(QWidget):
         h.open_effort(name)
         h.effort_box.setCurrentText(name)
         return name
+
+    def export_full(self, folder=None):
+        """3.12.0: the full effort as plain files; asks where (the effort's Exports folder first)."""
+        if self.host.ws is None:
+            self.host.status("Open an effort first.")
+            return ""
+        if folder is None:
+            import effortfolders as EF
+            from PySide6.QtWidgets import QFileDialog
+            folder = QFileDialog.getExistingDirectory(self, "Where the full export goes", EF.folder(self.host.effort_path, "exports"))
+            if not folder:
+                return ""
+        return self.host.export_full_effort(folder)
 
     def save_effort(self):
         h = self.host

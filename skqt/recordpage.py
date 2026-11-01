@@ -49,17 +49,21 @@ class RecordPage(StageTableMixin, QWidget):
         self.due_date = QDateEdit(); self.due_date.setCalendarPopup(True); self.due_date.setDisplayFormat("MMM d, yyyy")
         self.due_time = QTimeEdit(); self.due_time.setDisplayFormat("h:mm AP")
         self.zone = QLineEdit(); self.zone.setPlaceholderText("MT"); self.zone.setMaximumWidth(140)
-        self.has_due.setText("Due date set")                    # 2.92.0: the boxes always work; changing one sets the due date
-        self.has_due.setToolTip("Untick to clear the due date")
-        for w_ in (self.due_date, self.due_time):
-            sig = w_.dateChanged if w_ is self.due_date else w_.timeChanged
-            sig.connect(lambda *_a: None if getattr(self, "_filling_due", False) else self.has_due.setChecked(True))
+        self.has_due.setVisible(False)                          # 3.12.0: the date is the customer's deadline, or "Not set yet"
+        self.due_date.setMinimumDate(QDate(2000, 1, 1)); self.due_date.setSpecialValueText("Not set yet")
+        self.due_date.dateChanged.connect(lambda d: None if getattr(self, "_filling_due", False) else
+                                          self.has_due.setChecked(d != self.due_date.minimumDate()))
+        self.due_time.timeChanged.connect(lambda *_a: None if getattr(self, "_filling_due", False) or
+                                          self.due_date.date() == self.due_date.minimumDate() else self.has_due.setChecked(True))
+        self.has_due.toggled.connect(lambda on: None if on or self.due_date.date() == self.due_date.minimumDate()
+                                     else self.due_date.setDate(self.due_date.minimumDate()))
         self.zone.setPlaceholderText("ET, CT, MT, PT, UTC...")
-        for w in (self.has_due, self.due_date, self.due_time, self.zone):
+        self.clear_due = D.button("Clear", "ghost", lambda: self.due_date.setDate(self.due_date.minimumDate()), "No due date yet")
+        for w in (self.due_date, self.due_time, self.zone, self.clear_due):
             due.addWidget(w)
         due.addStretch(1)
         form.addRow("Effort", self.name); form.addRow("Client", self.client); form.addRow("Solicitation or opportunity number", self.sol)
-        form.addRow("Internal number", self.internal); form.addRow("Due date and time", due)
+        form.addRow("Internal number", self.internal); form.addRow("Customer's due date and time", due)
         self.found_row = QHBoxLayout()
         self.found = D.label("", "muted"); self.found_row.addWidget(self.found, 1)
         self.use_found = D.button("Use it", None, lambda: self.use_customer_due()); self.found_row.addWidget(self.use_found)
@@ -148,7 +152,7 @@ class RecordPage(StageTableMixin, QWidget):
         d = R.parse_date(due[:10]) if due else None
         self._filling_due = True
         self.has_due.setChecked(d is not None)
-        self.due_date.setDate(QDate(d) if d else QDate.currentDate().addDays(30))
+        self.due_date.setDate(QDate(d) if d else self.due_date.minimumDate())
         hm = due[11:16] if len(due) > 15 else ""
         self.due_time.setTime(QTime(int(hm[:2]), int(hm[3:5])) if hm[:2].isdigit() and hm[3:5].isdigit() else QTime(14, 0))
         self.zone.setText(r.data.get("zone", ""))
@@ -308,10 +312,70 @@ class RecordPage(StageTableMixin, QWidget):
             h.status("That file is open in Word. Close it, then save again.")
             return None
         st.rec.data["overview_last"] = datetime.datetime.now().isoformat(timespec="minutes")   # NEW marks count from here
+        try:                                                     # 3.12.0: every overview kept, with the summary written for it
+            stage = (st.rec.stage() or {}).get("name", "")
+        except Exception:
+            stage = ""
+        st.rec.data.setdefault("overviews", []).insert(0, {"at": st.rec.data["overview_last"], "stage": stage,
+                                                           "summary": st.rec.data.get("pm_summary", ""), "file": os.path.abspath(path),
+                                                           "final": bool(final)})
+        del st.rec.data["overviews"][200:]
         st.rec.log("effort", ("Effort summary" if final else "Effort status") + f" exported: {os.path.basename(path)}", save=True)
         diag.activity("qt_status_exported")
         h.toast(("Effort summary" if final else "Effort status") + " written")
         return path
+
+    def overviews(self):
+        """3.12.0: the overviews exported for this effort, newest first: [{at, stage, summary, file, final}]."""
+        r = self.rec
+        return list((r.data.get("overviews") if r is not None else None) or [])
+
+    def overviews_dialog(self, run=True):
+        """3.12.0: All overviews: each exported overview with its date, stage and the summary written for it; Open opens
+        its Word file. run=False (tests): the dialog."""
+        from PySide6.QtWidgets import QAbstractItemView, QDialog, QDialogButtonBox, QPlainTextEdit, QTableWidget, QTableWidgetItem
+        if self.host.ws is None:
+            return None
+        rows = self.overviews()
+        dlg = QDialog(self); dlg.setWindowTitle("All overviews"); dlg.resize(860, 520)
+        v = QVBoxLayout(dlg)
+        v.addWidget(D.label("Every overview exported for this effort, newest first. The summary is what the proposal manager wrote "
+                            "for it: where the effort stood.", "muted"))
+        t = QTableWidget(len(rows), 3); t.setHorizontalHeaderLabels(["Exported", "Stage", "Summary"])
+        t.verticalHeader().setVisible(False); t.setSelectionBehavior(QAbstractItemView.SelectRows); t.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        t.setColumnWidth(0, 150); t.setColumnWidth(1, 150); t.horizontalHeader().setStretchLastSection(True)
+        for i, o in enumerate(rows):
+            for c, val in enumerate((o.get("at", "").replace("T", " ") + ("  (final)" if o.get("final") else ""), o.get("stage", ""),
+                                     (o.get("summary") or "No summary written").split("\n")[0][:160])):
+                t.setItem(i, c, QTableWidgetItem(val))
+        v.addWidget(t, 1)
+        full = QPlainTextEdit(); full.setReadOnly(True); full.setMaximumHeight(140); v.addWidget(full)
+        t.currentCellChanged.connect(lambda r_, *_a: full.setPlainText(rows[r_].get("summary") or "No summary written") if 0 <= r_ < len(rows) else None)
+        if not rows:
+            full.setPlainText("No overviews yet. Export overview... on the Effort Dashboard writes the first.")
+        bb = QDialogButtonBox(QDialogButtonBox.Close)
+        open_btn = bb.addButton("Open", QDialogButtonBox.ActionRole)
+
+        def open_it():
+            r_ = t.currentRow()
+            f = rows[r_].get("file", "") if 0 <= r_ < len(rows) else ""
+            if not f or not os.path.isfile(f):
+                self.host.status("That overview's file is no longer where it was saved.")
+                return
+            if not os.environ.get("AH_TEST"):
+                from PySide6.QtCore import QUrl
+                from PySide6.QtGui import QDesktopServices
+                QDesktopServices.openUrl(QUrl.fromLocalFile(f))
+        open_btn.clicked.connect(open_it)
+        t.cellDoubleClicked.connect(lambda *_a: open_it())
+        bb.rejected.connect(dlg.reject); bb.accepted.connect(dlg.accept); v.addWidget(bb)
+        if rows:
+            t.selectRow(0)
+        dlg.api = {"table": t, "summary": full, "open": open_it, "rows": rows}
+        if not run:
+            return dlg
+        dlg.exec()
+        return dlg
 
     def _package_args(self):
         h = self.host

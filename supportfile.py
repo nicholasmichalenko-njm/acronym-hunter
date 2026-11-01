@@ -20,6 +20,13 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.12.0": ["Effort Home and Dashboard are one page, the Effort Dashboard: the numbers on top, then your cards. The header "
+               "stays put while you scroll, shows the stage with its gate and open goals, and condenses to one line. Each stage "
+               "has a color that tints the header and the stage track.",
+               "Move stage says what is not done before it moves. Open goals carry into the next stage, marked, and count at its "
+               "gate; only the proposal manager overrides a hard gate. All Efforts shows each effort's gate.",
+               "Win themes and Wall of Truth show under the header on any stage, and hide. Submission requirements is one card "
+               "(how and when, formatting, page limits) with Edit on each. Every overview is kept in All overviews."],
     "3.11.0": ["Fix a Copy checks Excel workbooks and PowerPoint decks against the profile: fonts and sizes, the header row, "
                "frozen panes, print setup, number formats, hidden sheets and formula errors; slide size, fonts, small text, "
                "things off the slide, the marking, empty placeholders and missing titles. These files are read only: "

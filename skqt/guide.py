@@ -30,7 +30,7 @@ TOPICS = [
  ("efforts", "Getting started", "All Efforts",
   "Every effort on this PC, a new one, and work not filed under an effort yet.",
   "You start a new proposal, switch efforts, or pick up an effort a teammate handed you.",
-  ["Press + Add an Effort (or open Effort Home with no effort open). Type a name and press Create effort. The picture, "
+  ["Press + Add an Effort (or open the Effort Dashboard with no effort open). Type a name and press Create effort. The picture, "
    "client, solicitation, due date and proposal manager are optional; the effort's folders are made for you.",
    "Click an effort's card to open it. The menu then works on that effort.",
    "To pick up a teammate's effort, press Import effort package... and choose the .skpkg file they sent.",
@@ -42,31 +42,37 @@ TOPICS = [
   "One person's work in every effort on this PC, soonest first: tasks, questions for them, customer questions, "
   "deliverables and graphic needs they own, the requirements they answer, and the sections they lead with page budgets.",
   "Every morning, and when you work on several efforts at once.",
-  ["Pick a name in Work for (yours shows first once Customize Home > I am is set).",
+  ["Pick a name in Work for (yours shows first once Customize... > I am is set on the Effort Dashboard).",
    "Read Soonest first: late items are red and on top; requirements are due when the current stage ends.",
    "Double-click a row to open that effort at the right page. By effort shows each effort's stage, due date and sections.",
    "Export... makes a workbook of the list for a status meeting."],
   ["My Work only reads the efforts; nothing changes until you open one.",
    "Refresh reads every effort again after teammates' changes come in."]),
- ("home", "Effort", "Effort Home",
-  "The effort at a glance: stage, gate goals, tasks, questions, notes, the calendar, contacts, submission and "
-  "formatting rules, customer questions, evaluation factors, and the graphics the response needs.",
-  "Every day: see what is due, add tasks and questions, and move the effort to its next stage.",
-  ["Read the banner: due date in your time zone and the submission's, countdown, and whether the effort is page-limited.",
-   "Add work with + Task, + Question, + Note or + Goal. Assign... gives a question to a person.",
-   "Click a day on the calendar to add a due date, an event or a task due that day.",
-   "Schedule from due date... dates every stage backward from the due date (or fits them from a start date), skipping "
-   "weekends and your holidays. Every date shows before Set the dates.",
-   "When you open the effort, Since you last opened it lists what teammates did since your last visit. Got it hides it.",
-   "When the team is ready, press Move stage... The stage's gate goals show what has to be done first."],
+ ("home", "Effort", "Effort Dashboard",
+  "Where the effort stands, on one page: the numbers on top, the stage and its gate, submission requirements, gate "
+  "goals, tasks, questions, the calendar, deliverables, compliance coverage, who has what, and the timeline. The header "
+  "stays at the top while the cards scroll.",
+  "Every day: see what is due and what is behind, add tasks and questions, and move the effort to its next stage.",
+  ["Read the header: the stage with its gate and how many goals are open (click it for the goals), sensitivity, the "
+   "countdown to the customer's due date in your time zone and the submission's. Condense keeps only the essentials.",
+   "Win themes and Wall of Truth in the header show them under it on every stage; Hide or the button again folds them "
+   "away. Your choice is kept for this effort.",
+   "Read the numbers on top. Click one to go where the work is.",
+   "Submission requirements: How and when, Formatting and Page limits, each with where it came from. Click one to open "
+   "it in Submission Rules; Edit changes what it says.",
+   "Add work with + Task, + Question, + Note or + Goal. Each card's Export... is on the card.",
+   "Schedule from due date... dates every stage backward from the due date, skipping weekends and your holidays.",
+   "When the team is ready, press Move stage... It lists what is not done, with owners. Ticked goals carry into the next "
+   "stage, marked as carried, and count at its gate. A hard gate holds the move; only the proposal manager can override "
+   "it, with a reason. Every move is in the timeline."],
   ["Click the effort image, or drop a picture file on it, to set or change it.",
-   "Customize Home... chooses which cards show.",
-   "Cards such as Submission instructions and Evaluation and hot buttons fill in from what you capture in Review.",
-   "Export tasks and questions... makes a workbook for a meeting.",
-   "Win themes keeps the themes and discriminators agreed at kickoff, with their proof and sections. Check the drafts reads "
-   "the Word files in the Volumes folder and says where each theme appears and where a linked section never says it.",
-   "Graphic needs lists what was tagged as needing a graphic. Open goes to the sentence; click one to mark it In work or "
-   "Done; Graphic on a note adds that note; Export... makes a workbook for the graphics team."]),
+   "Customize... picks which cards show, their order (drag them) and full or half width.",
+   "Each stage has a color: the header's top line, the stage pill and the current stage on the track show it.",
+   "Export overview... writes one Word file each time: due dates and your summary first. All overviews... lists every "
+   "one with its stage and summary, and opens its file.",
+   "New files in the watched folders show in a strip under the top bar: Review opens them in the Library; Ignore stops "
+   "offering them until they change.",
+   "Graphic needs lists what was tagged as needing a graphic; Export... makes a workbook for the graphics team."]),
  ("deliverables", "Effort", "Deliverables",
   "Every deliverable of the effort on one board: volumes, forms, plans and CDRLs, with owner, status, pages against "
   "the limit and what is missing.",
@@ -76,12 +82,6 @@ TOPICS = [
    "Double-click a requirement to open it in Review."],
   ["A Volume deliverable links to its volume by name.",
    "View: List shows the same deliverables as a table."]),
- ("dashboard", "Effort", "Dashboard",
-  "The whole effort on one screen: compliance progress, owners, changes to decide, and quality checks.",
-  "You report status, or want to see what is behind.",
-  ["Read the tiles. Each one says what it counts.",
-   "Click a tile, or its button (Review, Prove, Response Setup), to go where the work is."],
-  ["Requirements with no section or no owner show here first."]),
  ("record", "Effort", "Effort Record",
   "The effort's details, team and roles, stages and gates, status reports, the effort package and backups.",
   "You set up the effort, change its team or stages, hand it to someone, or report status.",
@@ -90,7 +90,8 @@ TOPICS = [
    "Effort status (Word)... and Effort summary (Word)... make reports for a meeting.",
    "Save effort package... makes one .skpkg file with everything, for a teammate or a backup."],
   ["Back up now makes a backup at once. Restore... brings one back.",
-   "Open the readable copy shows every captured item as plain files you can open without the app."]),
+   "Open the readable copy shows every captured item as plain files you can open without the app. Settings > Efforts > "
+   "Export the full effort... copies it into a dated folder named for the effort and its stage."]),
  ("reviews", "Effort", "Color Reviews",
   "Color team review packets: a Word file with every requirement under its section, for reviewers to give a verdict "
   "and comments, read back onto each requirement.",
@@ -125,7 +126,7 @@ TOPICS = [
    "Drag across words inside the sentence to pick just those words. Capture files them: a contact, submission or "
    "formatting rule, acronym, key date or customer question. More captures... adds evaluation factors, page limits, "
    "deliverables, effort details and hot buttons.",
-   "Graphic need (P) tags a concept that needs a graphic, from the sentence or the words you picked; it lists on Effort Home.",
+   "Graphic need (P) tags a concept that needs a graphic, from the sentence or the words you picked; it lists on the Effort Dashboard.",
    "Several sentences at once: Ctrl+click, drag a box, Select undecided, or Ctrl+A. The bar above the page shows how many, "
    "with Decide all, Put all in section and Author for all.",
    "+ Task... and + Ask the team... put work and questions on the sentence.",
@@ -206,7 +207,7 @@ TOPICS = [
    "benefit and proof.",
    "Set the status as it moves: Drafting, Ready for review, Approved. It saves as you type.",
    "Export the volume... makes one Word file, a page per section, for the review. Export this section... makes one."],
-  ["Win themes come from Effort Home (+ Theme...); a theme linked to the section is ticked for you.",
+  ["Win themes come from the Effort Dashboard (+ Theme... under Win themes); a theme linked to the section is ticked for you.",
    "Graphic needs tagged in Review for the section list here too."]),
  ("truth", "Deliver", "Wall of Truth",
   "The one approved way to state every fact the proposal repeats: cleared staff, years with the customer, square "

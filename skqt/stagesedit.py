@@ -133,11 +133,25 @@ def gate_box(gate=""):
     return cb
 
 
+def color_box(color=""):
+    """3.12.0: a stage's color: Automatic (from its name and place) or one of the palette's."""
+    import stagecolors as SC
+    from PySide6.QtGui import QColor, QIcon, QPixmap
+    cb = QComboBox()
+    cb.addItem("Automatic", "")
+    for name, hx in SC.PALETTE:
+        pm = QPixmap(14, 14); pm.fill(QColor(hx))
+        cb.addItem(QIcon(pm), name, name)
+    cb.setCurrentIndex(max(0, cb.findData(color if color in SC.NAMED else "")))
+    cb.setToolTip("The stage's color tints the header's top line, the stage pill and the current stage on the track")
+    return cb
+
+
 def stage_table():
-    t = QTableWidget(0, 4); t.setHorizontalHeaderLabels(["Stage", "Starts", "Ends", "Gate"])
+    t = QTableWidget(0, 5); t.setHorizontalHeaderLabels(["Stage", "Starts", "Ends", "Gate", "Color"])
     t.verticalHeader().setVisible(False); t.setSelectionBehavior(QAbstractItemView.SelectRows)
     hh = t.horizontalHeader()
-    for i, w in enumerate((190, 250, 250, 240)):
+    for i, w in enumerate((190, 250, 250, 240, 130)):
         t.setColumnWidth(i, w)
         hh.setSectionResizeMode(i, QHeaderView.Interactive)
     hh.setSectionResizeMode(3, QHeaderView.Stretch)            # the gate takes what is left; the name stays readable
@@ -154,9 +168,10 @@ class StageTableMixin:
         clear_table(t)
         for s in r.stages:
             self._stage_row(s["id"], s["name"], (s.get("planned", ""), s.get("planned_time", "")),
-                            (s.get("planned_end", ""), s.get("planned_end_time", "")), r.gate_id(s), s["id"] == r.data["stage"])
+                            (s.get("planned_end", ""), s.get("planned_end_time", "")), r.gate_id(s), s["id"] == r.data["stage"],
+                            color=s.get("color", ""))
 
-    def _stage_row(self, sid, name, start, end, gate, current=False, at=None):
+    def _stage_row(self, sid, name, start, end, gate, current=False, at=None, color=""):
         """start and end: (YYYY-MM-DD or '', HH:MM or '')."""
         t = self.stage_table
         i = t.rowCount() if at is None else at
@@ -171,6 +186,7 @@ class StageTableMixin:
         for c, (d, hm) in ((1, start), (2, end)):
             t.setCellWidget(i, c, WhenCell(d, hm, end=(c == 2)))
         t.setCellWidget(i, 3, gate_box(gate))
+        t.setCellWidget(i, 4, color_box(color))
         return i
 
     def _is_current(self, i):
@@ -183,6 +199,10 @@ class StageTableMixin:
         return (it.data(Qt.UserRole) if it else None, it.text() if it else "", t.cellWidget(i, 1).value(),
                 t.cellWidget(i, 2).value(), t.cellWidget(i, 3).currentData())
 
+    def _stage_color(self, i):
+        w = self.stage_table.cellWidget(i, 4)
+        return (w.currentData() or "") if w is not None else ""
+
     def move_row(self, d):
         t = self.stage_table
         i = t.currentRow()
@@ -191,10 +211,11 @@ class StageTableMixin:
             return False
         vals = self._stage_values(i)
         cur = self._is_current(i)
-        for c in (1, 2, 3):
+        col = self._stage_color(i)
+        for c in (1, 2, 3, 4):
             t.cellWidget(i, c).hide()
         t.removeRow(i)
-        self._stage_row(vals[0], vals[1], tuple(x or "" for x in vals[2]), tuple(x or "" for x in vals[3]), vals[4], cur, at=j)
+        self._stage_row(vals[0], vals[1], tuple(x or "" for x in vals[2]), tuple(x or "" for x in vals[3]), vals[4], cur, at=j, color=col)
         t.setCurrentCell(j, 0)
         return True
 
@@ -211,7 +232,7 @@ class StageTableMixin:
         if self._is_current(i):
             self.host.status("The current stage cannot be removed.")
             return False
-        for c in (1, 2, 3):
+        for c in (1, 2, 3, 4):
             t.cellWidget(i, c).hide()
         t.removeRow(i)
         return True
@@ -237,18 +258,19 @@ class StageTableMixin:
         if bad:
             self.host.status("Not saved: " + "; ".join(bad) + ".")
             return False
-        rows, gates = [], []
+        rows, gates, colors = [], [], []
         for i in range(self.stage_table.rowCount()):
             sid, name, (ds, ts), (de, te), gate = self._stage_values(i)
             rows.append((sid, name, ds, de, ts if ds else "", te if de else ""))
-            gates.append(gate)
+            gates.append(gate); colors.append(self._stage_color(i))
         try:
             new = r.edit_stages(rows)
         except ValueError as e:
             self.host.status(str(e))
             return False
-        for s, g in zip(new, gates):
+        for s, g, c in zip(new, gates, colors):
             r.set_gate(s["id"], g)
+            r.set_stage_color(s["id"], c)                          # 3.12.0
         outside = R.Record(r.root).deadlines_outside() if hasattr(r, "root") else []
         diag.activity("qt_stages_saved")
         self.host.toast("Stages saved")

@@ -56,7 +56,13 @@ class EffortCard(QFrame):
                 bar.setMaximumHeight(6)
                 bar.setStyleSheet(f"QProgressBar{{background:{t['surface2']};border:none;border-radius:3px}} QProgressBar::chunk{{background:{t['accent']};border-radius:3px}}")
                 v.addWidget(bar)
-                v.addWidget(D.label(f"Stage: <b>{s['stage']}</b>" + (f"  ·  PM {s['pm']}" if s["pm"] else ""), None))
+                srow = QHBoxLayout(); srow.setSpacing(6); v.addLayout(srow)
+                srow.addWidget(D.label(f"Stage: <b>{s['stage']}</b>" + (f"  ·  PM {s['pm']}" if s["pm"] else ""), None), 1)
+                if s.get("gate"):                                    # 3.12.0: the gate, where it matters
+                    gp = D.Pill(s["gate"] + (f": {s['goals_open']} open" if s.get("goals_open") else ""),
+                                "crit" if s.get("gate_mode") == "hard" and s.get("goals_open") else ("warn" if s.get("goals_open") else "ok"))
+                    gp.setToolTip("The stage's gate, and its goals not ticked yet (goals the app checks count when the effort is open)")
+                    srow.addWidget(gp)
             bits = [f"{s['tasks']} open task(s)" + (f", {s['late']} late" if s["late"] else ""), f"{s['questions']} open question(s)"]
             if s["deliverables"]:
                 bits.append(f"{s['deliverables']} deliverable(s)" + (f", {s['no_owner']} with no owner" if s["no_owner"] else ""))

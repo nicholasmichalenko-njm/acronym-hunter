@@ -245,29 +245,34 @@ def countdown_tone(c):
 
 
 # ------------------------------------------------------------------ the personal Effort home layout
-SECTIONS = (("stage", "Stage", "wide"), ("deliverables", "Deliverables", "wide"), ("mywork", "My work", "half"),
+SECTIONS = (("health", "Effort health (the numbers on top)", "wide"),                              # 3.12.0: from the Dashboard
+            ("stage", "Stage", "wide"), ("deliverables", "Deliverables", "wide"), ("mywork", "My work", "half"),
             ("goals", "Gate goals", "half"), ("notes", "Notes and open questions", "half"), ("tasks", "Tasks", "half"),
-            ("calendar", "Calendar", "half"), ("formatting", "Formatting requirements", "half"),     # 2.94.0
-            ("submission", "Submission instructions", "half"),                                        # 2.96.0
+            ("calendar", "Calendar", "half"),
+            ("submission", "Submission requirements", "wide"),          # 3.12.0: instructions, formatting and page limits
             ("custqa", "Customer Q&A", "half"),                                                       # 2.98.0
             ("custfocus", "Evaluation and hot buttons", "half"),                                      # 2.99.0
             ("graphics", "Graphic needs", "half"),                                                    # 3.0.4
-            ("themes", "Win themes", "half"),                                                         # 3.2.0
+            ("themes", "Win themes (to edit; they show under the header)", "half"),                   # 3.2.0
+            ("compliance", "Compliance review", "half"), ("coverage", "Coverage by volume", "half"),  # 3.12.0: from the Dashboard
+            ("pastdue", "Past due", "half"), ("acronyms", "Acronyms and QA/QC", "half"),
+            ("people", "Who has what", "wide"),
             ("info", "Customer information", "wide"), ("timeline", "Timeline", "wide"))
+RETIRED = {"formatting": "submission"}                           # 3.12.0: a key a saved layout may still hold -> its card now
 KEYS = tuple(k for k, _t, _w in SECTIONS)
 TITLE = {k: t for k, t, _w in SECTIONS}
 WIDTH = {k: w for k, _t, w in SECTIONS}
 ROLES = {
-    "Proposal Manager": ("stage", "themes", "formatting", "submission", "custqa", "custfocus", "goals", "notes", "tasks", "calendar", "deliverables", "graphics",
-                         "info", "timeline"),
-    "Production": ("deliverables", "graphics", "formatting", "submission", "calendar", "tasks", "stage", "notes", "timeline"),
-    "Author": ("mywork", "themes", "tasks", "notes", "graphics", "calendar", "formatting", "stage"),
-    "Reviewer": ("stage", "calendar", "notes", "tasks", "formatting", "deliverables"),
-    "Capture": ("stage", "themes", "info", "custfocus", "submission", "custqa", "notes", "calendar", "goals", "timeline"),
+    "Proposal Manager": ("health", "stage", "submission", "goals", "notes", "tasks", "calendar", "deliverables", "compliance",
+                         "coverage", "pastdue", "custqa", "custfocus", "graphics", "acronyms", "people", "info", "timeline"),
+    "Production": ("health", "deliverables", "submission", "graphics", "calendar", "tasks", "stage", "notes", "acronyms", "timeline"),
+    "Author": ("mywork", "tasks", "notes", "graphics", "calendar", "submission", "stage"),
+    "Reviewer": ("stage", "health", "calendar", "notes", "tasks", "submission", "compliance", "deliverables"),
+    "Capture": ("stage", "info", "custfocus", "submission", "custqa", "notes", "calendar", "goals", "timeline"),
 }
 ROLE_NAMES = tuple(ROLES)
 DEFAULT_ROLE = "Proposal Manager"
-ROLE_SAYS = {"Proposal Manager": "Stage, gate goals, questions, tasks and the calendar first.",
+ROLE_SAYS = {"Proposal Manager": "The numbers on top, the stage, submission requirements, gate goals, questions and tasks first.",
              "Production": "Deliverables, page limits and dates first.",
              "Author": "What is assigned to you, your tasks and the questions first.",
              "Reviewer": "Where the effort is, the review dates and open questions first.",
@@ -277,31 +282,47 @@ ROLE_SAYS = {"Proposal Manager": "Stage, gate goals, questions, tasks and the ca
 def preset(role, team=None):
     """A role's starting layout: the team's (a team pack, 2.89.0) where it has one, else the built-in one."""
     team = team or {}
-    shown = [k for k in (team.get(role) or ROLES.get(role, ROLES[DEFAULT_ROLE])) if k in KEYS] or list(ROLES[DEFAULT_ROLE])
+    shown = _keys(team.get(role) or ROLES.get(role, ROLES[DEFAULT_ROLE])) or list(ROLES[DEFAULT_ROLE])
     return {"role": role if role in ROLES else DEFAULT_ROLE, "order": shown + [k for k in KEYS if k not in shown], "hidden":
             [k for k in KEYS if k not in shown], "custom": False}
 
 
+def _keys(ks):
+    out = []
+    for k in ks:
+        k = RETIRED.get(k, k)
+        if k in KEYS and k not in out:
+            out.append(k)
+    return out
+
+
 def layout(settings, team=None):
-    """The person's layout: {role, order (every key), hidden, custom}. team: the team's role layouts."""
+    """The person's layout: {role, order (every key), hidden, custom, widths}. team: the team's role layouts. 3.12.0:
+    widths {key: "half" | "wide"} where the person set a card's width; a card new since the layout was saved shows."""
     lay = (settings or {}).get("home_layout") or {}
     base = preset(lay.get("role", DEFAULT_ROLE), team)
+    widths = {k: w for k, w in (lay.get("widths") or {}).items() if k in KEYS and w in ("half", "wide")}
     if not lay.get("custom"):
-        return base
-    order = [k for k in lay.get("order", []) if k in KEYS]
+        return dict(base, widths=widths)
+    order = _keys(lay.get("order", []))
     order += [k for k in base["order"] if k not in order]
-    return {"role": base["role"], "order": order, "hidden": [k for k in lay.get("hidden", []) if k in KEYS], "custom": True}
+    hidden = [k for k in _keys(lay.get("hidden", [])) if k not in _keys([x for x in lay.get("order", []) if x not in lay.get("hidden", [])])]
+    return {"role": base["role"], "order": order, "hidden": hidden, "custom": True, "widths": widths}
 
 
 def shown(lay):
     return [k for k in lay["order"] if k not in lay["hidden"]]
 
 
-def rows(keys):
-    """Pairs half-width sections side by side: [[key] or [key, key]] in order."""
+def width(k, widths=None):
+    return (widths or {}).get(k) or WIDTH[k]
+
+
+def rows(keys, widths=None):
+    """Pairs half-width sections side by side: [[key] or [key, key]] in order. 3.12.0: widths as the person set them."""
     out, held = [], None
     for k in keys:
-        if WIDTH[k] == "wide":
+        if width(k, widths) == "wide":
             if held:
                 out.append([held]); held = None
             out.append([k])
@@ -314,9 +335,10 @@ def rows(keys):
     return out
 
 
-def custom_layout(role, order, hidden, team=None):
-    order = [k for k in order if k in KEYS] + [k for k in KEYS if k not in order]
-    lay = {"role": role if role in ROLES else DEFAULT_ROLE, "order": order, "hidden": [k for k in hidden if k in KEYS], "custom": True}
+def custom_layout(role, order, hidden, team=None, widths=None):
+    order = _keys(order) + [k for k in KEYS if k not in _keys(order)]
+    lay = {"role": role if role in ROLES else DEFAULT_ROLE, "order": order, "hidden": _keys(hidden), "custom": True,
+           "widths": {k: w for k, w in (widths or {}).items() if k in KEYS and w in ("half", "wide") and w != WIDTH[k]}}
     base = preset(lay["role"], team)
     if lay["order"] == base["order"] and sorted(lay["hidden"]) == sorted(base["hidden"]):
         lay["custom"] = False

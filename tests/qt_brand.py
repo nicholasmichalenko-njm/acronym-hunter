@@ -42,7 +42,7 @@ app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 # ---- the menu
 texts = [b.text() for b in w.step_btns.values()]
-check("the menu is in Title Case", texts[:2] == ["All Efforts", "My Work"] and texts[2:7] == ["Effort Home", "Deliverables", "Dashboard", "Effort Record", "Color Reviews"]
+check("the menu is in Title Case", texts[:2] == ["All Efforts", "My Work"] and texts[2:6] == ["Effort Dashboard", "Deliverables", "Effort Record", "Color Reviews"]
       and "Response Setup" in texts and "Lists to Submit" in texts and "L/M Crosswalk" in texts, texts)
 from PySide6.QtWidgets import QLabel
 heads = [l.text() for l in w.findChildren(QLabel) if l.objectName() == "railhead"]
@@ -69,7 +69,7 @@ check("... and Settings says they are built in", "Built into this version" in bc
 w.open_effort("Kestrel")
 w.go("home"); app.processEvents()
 hp = w.home_page; bn = hp.banner
-check("the page title is Effort Home", w.page_title.text() == "Effort Home")
+check("the page title is Effort Dashboard (3.12.0: Home and Dashboard, one page)", w.page_title.text() == "Effort Dashboard")
 check("the banner: the effort's name, client and solicitation", bn.name.text() == "Kestrel" and "USSF SSC" in bn.sub.text()
       and "FA8810-26-R-0042" in bn.sub.text())
 check("no picture yet: a spot to add one", "Effort image" in bn.pic.text())
@@ -108,7 +108,7 @@ check("closing the effort takes its strip away", not w.marking.isVisibleTo(w))
 w.open_effort("Kestrel"); w.go("home"); app.processEvents()
 check("opening it again brings the strip back", w.marking.text() == "Proprietary" and w.marking.isVisibleTo(w))
 # ---- Customize Home
-check("the default home is the proposal manager's", hp.lay["role"] == "Proposal Manager" and hp.shown[0] == "stage" and "mywork" not in hp.shown)
+check("the default home is the proposal manager's", hp.lay["role"] == "Proposal Manager" and hp.shown[:2] == ["health", "stage"] and "mywork" not in hp.shown)
 import setupdoc as SD
 hp.customize({"role": "Author", "order": BR.preset("Author")["order"], "hidden": BR.preset("Author")["hidden"], "me": "A. Lee"})
 st = json.load(open(A.SETTINGS_FILE))
@@ -122,7 +122,7 @@ check("show, hide and order the sections", hp.shown[0] == "calendar" and "goals"
 me, reqs, tasks, qs = hp.my_items()
 check("My work is for the named person", me == "A. Lee")
 hp.customize({"role": "Proposal Manager", "order": BR.preset("Proposal Manager")["order"], "hidden": BR.preset("Proposal Manager")["hidden"]})
-check("back to a role's layout", not hp.lay["custom"] and hp.shown[0] == "stage")
+check("back to a role's layout", not hp.lay["custom"] and hp.shown[:2] == ["health", "stage"])
 # ---- the calendar file
 tpl = hp.calfiles.template(os.path.join(tmp, "tpl.xlsx"))
 check("the calendar template: the columns and a guide", EC.read_rows(tpl) == [] and len(EC.COLUMNS) == 10)

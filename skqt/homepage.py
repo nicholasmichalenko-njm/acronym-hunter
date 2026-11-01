@@ -60,9 +60,13 @@ class HomePage(QWidget):
         self.host = host
         self.state = None
         self.day = None
-        outer = QVBoxLayout(self); outer.setContentsMargins(0, 0, 0, 0)
+        outer = QVBoxLayout(self); outer.setContentsMargins(0, 0, 0, 0); outer.setSpacing(0)
+        # 3.12.0: the effort's header stays put while the cards scroll: the banner, then the pinned strips
+        self.head = QWidget(); self.head.setObjectName("page")
+        hv = QVBoxLayout(self.head); hv.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["s"]); hv.setSpacing(D.SPACE["s"])
+        outer.addWidget(self.head)
         scroll = QScrollArea(); scroll.setWidgetResizable(True); scroll.setFrameShape(QFrame.NoFrame)
-        outer.addWidget(scroll)
+        outer.addWidget(scroll, 1)
         self.scroll = scroll
         # 3.0.3: with no effort open, Effort Home is where you start one: the short form, right here
         from .starteffort import StartEffort
@@ -74,23 +78,40 @@ class HomePage(QWidget):
         outer.addWidget(self.start_wrap)
         inner = QWidget(); inner.setObjectName("page"); scroll.setWidget(inner)
         v = QVBoxLayout(inner)
-        v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
-        # 2.88.0: the effort banner, then this person's layout
+        v.setContentsMargins(D.SPACE["xl"], D.SPACE["s"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
+        # 2.88.0: the effort banner, then this person's layout (3.12.0: the banner and the strips are pinned above the scroll)
         from .brandview import EffortBanner
-        self.banner = EffortBanner(self); v.addWidget(self.banner)
+        self.banner = EffortBanner(self); hv.addWidget(self.banner)
         self.due = self.banner.due
         self.deliv = self.banner.page_deliv
+        self.strips = {}
+        for key, title in (("themes", "Win themes"), ("truth", "Wall of Truth")):
+            st = QFrame(); st.setObjectName("pinStrip")                 # one compact row: title, the items, its buttons
+            sh = QHBoxLayout(st); sh.setContentsMargins(D.SPACE["m"], 6, D.SPACE["s"], 6); sh.setSpacing(D.SPACE["s"])
+            lab = D.label(title, "label", wrap=False); lab.setFixedWidth(130); sh.addWidget(lab, 0, Qt.AlignTop)
+            body = QLabel(""); body.setWordWrap(True); body.setTextFormat(Qt.RichText); body.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            box = QScrollArea(); box.setWidgetResizable(True); box.setFrameShape(QFrame.NoFrame); box.setFixedHeight(44)
+            box.setWidget(body); sh.addWidget(box, 1)
+            if key == "themes":
+                sh.addWidget(D.button("+ Theme...", "ghost", lambda: self.theme_dialog()), 0, Qt.AlignTop)
+                sh.addWidget(D.button("Check the drafts", "ghost", lambda: self.check_themes(),
+                                      "Read the volume drafts: where each theme's words appear"), 0, Qt.AlignTop)
+            else:
+                sh.addWidget(D.button("Open Wall of Truth", "ghost", lambda: self.host.go("truth")), 0, Qt.AlignTop)
+            sh.addWidget(D.button("Hide", "ghost", lambda _=False, k=key: self.set_strip(k, False)))
+            st.body = body; st.title_label = lab
+            st.setVisible(False)
+            hv.addWidget(st); self.strips[key] = st
+        self.strip_state = {}
         top = QHBoxLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)
         self.role_pill = D.Pill("", "head"); top.addWidget(self.role_pill)
-        top.addWidget(D.button("Customize Home...", "ghost", lambda: self.customize(), "Your role's layout; show, hide and order the "
-                                                                                       "sections. Yours alone, on this PC."))
+        top.addWidget(D.button("Customize...", "ghost", lambda: self.customize(), "Your role's layout; show, hide, order and size "
+                                                                                  "the cards. Yours alone, on this PC."))
         top.addStretch(1)
         top.addWidget(D.label("Show tasks and questions for", "muted", wrap=False))
         self.who = QComboBox(); self.who.setMinimumWidth(180); self.who.addItem("Everyone")
         self.who.activated.connect(lambda _i: self.refresh())
-        top.addWidget(self.who)
-        top.addWidget(D.button("Export tasks and questions...", None, lambda: self.export_tq(),
-                               "A workbook of the tasks and questions for the person shown (or the full team), dated and named for them"))
+        top.addWidget(self.who)                                       # 3.12.0: each card's export lives in its card
         # 2.92.0: when one person is picked, their name, large, says the page is theirs
         self.for_box = QFrame(); self.for_box.setObjectName("forBox")
         fb = QHBoxLayout(self.for_box); fb.setContentsMargins(D.SPACE["l"], D.SPACE["s"], D.SPACE["l"], D.SPACE["s"])
@@ -123,9 +144,12 @@ class HomePage(QWidget):
         self.goals = D.Card("Gate goals", actions=[D.button("+ Goal", None, lambda: self.goal_dialog()),
                                                    D.button("Defaults...", "ghost", lambda: self.save_defaults(),
                                                             "Save this stage's goals as the default for new efforts")])
-        self.tasks = D.Card("Tasks", actions=[D.button("+ Task", None, lambda: self.task_dialog())])
+        tq_tip = "A workbook of the tasks and questions for the person shown (or the full team), dated and named for them"
+        self.tasks = D.Card("Tasks", actions=[D.button("+ Task", None, lambda: self.task_dialog()),
+                                              D.button("Export...", "ghost", lambda: self.export_tq(), tq_tip)])
         self.notes = D.Card("Notes and open questions", actions=[D.button("+ Note", None, lambda: self.note_dialog()),
-                                                                 D.button("+ Question", None, lambda: self.note_dialog(question=True))])
+                                                                 D.button("+ Question", None, lambda: self.note_dialog(question=True)),
+                                                                 D.button("Export...", "ghost", lambda: self.export_tq(), tq_tip)])
         from .calview import CalendarFiles                           # 2.88.0: the calendar as a file
         self.calfiles = CalendarFiles(self)
         self.cal_card = D.Card("Calendar", "Due dates, stages, tasks, reviews and meetings, and what happened. Pick a day to see it.",
@@ -151,11 +175,19 @@ class HomePage(QWidget):
         self.info = D.Card("Customer information", "Names, e-mails, phone numbers and addresses from the customer documents.",
                            actions=[D.button("+ Add...", None, lambda: self.info_dialog())])
         self.timeline = D.Card("Timeline", "The effort's paper trail, newest first.")
-        self.sub_card = D.Card("Submission instructions", "How and when the proposal goes in, as the customer documents say "  # 2.96.0
-                               "it.", actions=[D.button("Submission rules", "ghost", lambda: self.host.go("requirements"))])
-        self.fmt_card = D.Card("Formatting requirements", "What the customer documents require for format and files, and "     # 2.94.0
-                               "what they leave unsaid.", actions=[D.button("+ Add...", None, lambda: self.format_dialog()),
-                                                                   D.button("Submission rules", "ghost", lambda: self.host.go("requirements"))])
+        # 3.12.0: one card for how the proposal goes in, its formatting and its page limits (2.94.0, 2.96.0)
+        self.sub_card = D.Card("Submission requirements", "What the customer documents require, with where each came from. "
+                               "Click a requirement to open it in Submission Rules; Edit changes what it says here.",
+                               actions=[D.button("+ Add...", None, lambda: self.format_dialog()),
+                                        D.button("Open Submission Rules", "ghost", lambda: self.host.go("requirements"))])
+        from PySide6.QtWidgets import QTabWidget
+        self.sub_tabs = QTabWidget(); self.sub_tabs.setDocumentMode(True)
+        self.sub_tab_pages = {}
+        for key, title in (("submission", "How and when"), ("formatting", "Formatting"), ("pagelimits", "Page limits")):
+            pg = QWidget(); pl = QVBoxLayout(pg); pl.setContentsMargins(0, D.SPACE["s"], 0, 0); pl.setSpacing(D.SPACE["xs"])
+            self.sub_tabs.addTab(pg, title); self.sub_tab_pages[key] = pl
+        self.sub_card.add(self.sub_tabs)
+        self.fmt_card = self.sub_card
         self.qa_card = D.Card("Customer Q&A", "The questions we submit to the customer, and their answers.",          # 2.98.0
                               actions=[D.button("Customer Q&&A", "ghost", lambda: self.host.go("custqa"))])
         self.focus_card = D.Card("Evaluation and hot buttons", "How the customer will judge the proposal, and what their "   # 2.99.0
@@ -170,22 +202,34 @@ class HomePage(QWidget):
                                            D.button("Check the drafts", "ghost", lambda: self.check_themes(),
                                                     "Read the volume drafts: where each theme's words appear, and the linked sections where they do not")])
         self.theme_check = {}
+        # 3.12.0: the Dashboard's numbers and cards live here now (Effort Dashboard)
+        dp = self.dash = host.dash_page
+        from .adaptive import FlowLayout
+        self.health = QWidget(); self.health.setObjectName("page")
+        hf = FlowLayout(self.health, D.SPACE["m"])
+        for tile in dp.tiles.values():
+            tile.setFixedWidth(176); hf.addWidget(tile)
         self.body = QVBoxLayout(); self.body.setSpacing(D.SPACE["m"]); v.addLayout(self.body)
         v.addStretch(1)
-        self.cards = {"stage": self.track, "deliverables": self.deliv_card, "mywork": self.mywork, "goals": self.goals,
+        self.cards = {"health": self.health, "stage": self.track, "deliverables": self.deliv_card, "mywork": self.mywork, "goals": self.goals,
                       "notes": self.notes, "tasks": self.tasks, "calendar": self.cal_card, "info": self.info, "timeline": self.timeline,
-                      "formatting": self.fmt_card, "submission": self.sub_card, "custqa": self.qa_card,
+                      "submission": self.sub_card, "custqa": self.qa_card,
                       "custfocus": self.focus_card, "graphics": self.gfx_card,
-                      "themes": self.themes_card}
+                      "themes": self.themes_card,
+                      "compliance": dp.comp, "coverage": dp.vol, "pastdue": dp.late, "acronyms": dp.acr, "people": dp.people}
         self.lay = None
         self.apply_layout()
-        self.sections = {k: QVBoxLayout() for k in ("goals", "tasks", "notes", "info", "timeline", "formatting", "submission", "custqa", "custfocus",
+        self.sections = {k: QVBoxLayout() for k in ("goals", "tasks", "notes", "info", "timeline", "custqa", "custfocus",
                                                     "graphics", "themes")}
         for k, card in (("goals", self.goals), ("tasks", self.tasks), ("notes", self.notes), ("info", self.info),
-                        ("timeline", self.timeline), ("formatting", self.fmt_card), ("submission", self.sub_card),
-                        ("custqa", self.qa_card), ("custfocus", self.focus_card), ("graphics", self.gfx_card),
+                        ("timeline", self.timeline), ("custqa", self.qa_card), ("custfocus", self.focus_card), ("graphics", self.gfx_card),
                         ("themes", self.themes_card)):
             self.sections[k].setSpacing(D.SPACE["xs"]); card.body.addLayout(self.sections[k])
+        self.sections.update(self.sub_tab_pages)
+        t0 = D.tokens()
+        for st in self.strips.values():
+            st.setStyleSheet(f"QFrame#pinStrip{{background:{t0['surface']};border:1px solid {t0['border']};border-radius:{D.RADIUS['card']}px;}}"
+                             f"QFrame#pinStrip QLabel{{background:transparent;}}")
 
     # ------------------------------------------------------------ the effort
     @property
@@ -200,11 +244,16 @@ class HomePage(QWidget):
         h = self.host
         self.setEnabled(True)
         self.scroll.setVisible(h.ws is not None)
+        self.head.setVisible(h.ws is not None)
         self.start_wrap.setVisible(h.ws is None)                   # 3.0.3: no effort open: Start an effort, here
         if h.ws is None:
             self.state = None
             for lay in list(self.sections.values()) + [self.track_row, self.day_box]:
                 clear(lay)
+            try:
+                self.dash.refresh()
+            except Exception:
+                diag.swallowed()
             return
         self.state = ES.State(h.ws, h.effort_path, h.review.M if h.review is not None else None)
         r = self.rec
@@ -224,7 +273,11 @@ class HomePage(QWidget):
             stage = (r.stage() or {}).get("name", "")
         except Exception:
             stage = ""
+        checks = self.checks = self.state.checks()
+        self.banner.gate_info = self.gate_info(r, checks)           # 3.12.0: the gate on the stage pill
+        self.banner.set_condensed(self.saved_condensed(), save=False)
         self.banner.fill(r, L, stage)                               # 2.88.0: the effort banner
+        self.fill_strips(r)
         self.cards_now = []
         try:                                                        # 2.87.0: the deliverables in one line
             import delivboard as DB
@@ -240,10 +293,15 @@ class HomePage(QWidget):
         self.draw_since()
         self.draw_mywork()
         self.calfiles.refresh()
-        checks = self.checks = self.state.checks()
+        if any(k in getattr(self, "shown", []) for k in ("health", "compliance", "coverage", "pastdue", "acronyms", "people")):
+            try:                                                    # 3.12.0: the Dashboard's numbers, here
+                self.dash.refresh()
+            except Exception:
+                diag.swallowed()
         self.draw_track(r)
         self.draw_formatting(r)
         self.draw_submission(r)
+        self.draw_pagelimits(r)
         self.draw_custqa(r)
         self.draw_focus(r)
         self.draw_graphics(r)
@@ -258,6 +316,87 @@ class HomePage(QWidget):
 
     def changed(self):
         self.refresh()
+
+    # ------------------------------------------------------------ 3.12.0: the gate, the pinned strips, the condensed header
+    def gate_info(self, r, checks=None):
+        """{"gate": the gate's name or "", "mode", "open", "total", "about"} for the stage the effort is in."""
+        try:
+            s = r.stage()
+            gid = r.gate_id(s)
+            met, total = r.goal_progress(checks=checks)
+            mode = r.gate_of(s)
+            name = "" if not gid else (("Hard gate" if mode == "hard" else "Soft gate") if gid in ("soft", "hard")
+                                         else R.GATES.get(gid, "Gate").split(":")[0])
+            about = {"hard": "Moving on is held until the goals are met; the proposal manager can override it with a reason.",
+                     "soft": "Moving on with open goals is allowed and logged."}.get(mode, "No gate: the stage moves when you move it.")
+            return {"gate": name or "No gate", "mode": mode, "open": total - met, "total": total,
+                    "about": (R.GATE_ABOUT.get(gid) or "") + (" " if R.GATE_ABOUT.get(gid) else "") + about}
+        except Exception:
+            diag.swallowed()
+            return {}
+
+    def show_gate_goals(self):
+        """The stage pill: show the gate goals card (shown first if it was hidden)."""
+        if "goals" not in getattr(self, "shown", []):
+            self.host.status("Gate goals are hidden on your dashboard: Customize... shows them.")
+            return False
+        self.scroll.ensureWidgetVisible(self.goals)
+        return True
+
+    def saved_condensed(self):
+        from .modes import settings
+        return bool((settings() or {}).get("banner_condensed"))
+
+    def strip_default(self, key, r):
+        """Win themes show on every stage; the Wall of Truth shows until the first draft is written, then folds away."""
+        if key == "themes":
+            return True
+        try:
+            names = [s["name"].lower() for s in r.stages]
+            draft = next((i for i, n in enumerate(names) if "draft" in n or "author" in n or "writ" in n), len(names) // 2)
+            return r.index() <= draft
+        except Exception:
+            return True
+
+    def strip_saved(self):
+        from .modes import settings
+        return ((settings() or {}).get("pinned_strips") or {}).get(self.host.effort_name or "", {})
+
+    def set_strip(self, key, on, save=True):
+        """Show or hide a pinned strip; remembered for this person and this effort on this PC."""
+        on = bool(on)
+        self.strip_state[key] = on
+        self.strips[key].setVisible(on and self.host.ws is not None)
+        self.banner.show_toggle(key, on)
+        if save and self.host.ws is not None:
+            from .modes import settings, save as _save
+            allp = dict((settings() or {}).get("pinned_strips") or {})
+            mine = dict(allp.get(self.host.effort_name or "", {})); mine[key] = on
+            allp[self.host.effort_name or ""] = mine
+            _save(pinned_strips=allp)
+            diag.activity("qt_strip_shown" if on else "qt_strip_hidden")
+        return on
+
+    def fill_strips(self, r):
+        import html as _h
+        import themes as TH
+        import walloftruth as WT
+        t = D.tokens()
+        ts = TH.items(r)
+        self.strips["themes"].title_label.setText(f"Win themes   {len(ts)}")
+        self.strips["themes"].body.setText(
+            " &nbsp;\u00b7&nbsp; ".join(f"<b style='color:{t['accent']}'>{'Theme' if x['kind'] == 'Win theme' else 'Discriminator'}</b>&nbsp; "
+                        f"<b>{_h.escape(x['title'])}</b>" + (f"&nbsp; <span style='color:{t['muted']}'>{_h.escape(x['statement'])}</span>"
+                                                            if x.get("statement") else "") for x in ts)
+            or f"<span style='color:{t['muted']}'>None yet. + Theme... adds the themes agreed at kickoff.</span>")
+        tr = WT.items(r)
+        self.strips["truth"].title_label.setText(f"Wall of Truth   {len(tr)}")
+        self.strips["truth"].body.setText(
+            " &nbsp;·&nbsp; ".join(f"<b>{_h.escape(x.get('label', ''))}</b>: {_h.escape(str(x.get('value', '')))}" for x in tr)
+            or f"<span style='color:{t['muted']}'>No facts on the wall yet. Open Wall of Truth to add the approved numbers, names and terms.</span>")
+        saved = self.strip_saved()
+        for key in ("themes", "truth"):
+            self.set_strip(key, saved.get(key, self.strip_default(key, r)), save=False)
 
     # ------------------------------------------------------------ 2.88.0: this person's layout
     def my_name(self):
@@ -290,8 +429,9 @@ class HomePage(QWidget):
         for c in self.cards.values():
             c.setParent(None)
         self.shown = BR.shown(self.lay)
-        for row in BR.rows(self.shown):
-            if len(row) == 1 and BR.WIDTH[row[0]] == "wide":
+        widths = self.lay.get("widths") or {}
+        for row in BR.rows(self.shown, widths):
+            if len(row) == 1 and BR.width(row[0], widths) == "wide":
                 self.body.addWidget(self.cards[row[0]])
             else:
                 hl = QHBoxLayout(); hl.setSpacing(D.SPACE["m"])
@@ -304,11 +444,11 @@ class HomePage(QWidget):
                 self.body.addLayout(hl)
         for k, c in self.cards.items():
             c.setVisible(k in self.shown)
-        self.role_pill.setText(f"Home for: {self.lay['role']}" + ("  (customized)" if self.lay["custom"] else ""))
+        self.role_pill.setText(f"Dashboard for: {self.lay['role']}" + ("  (customized)" if self.lay["custom"] or widths else ""))
         return self.shown
 
     def customize(self, answer=None):
-        """Customize Home. answer (tests): {role, order, hidden, me}."""
+        """Customize the Effort Dashboard. answer (tests): {role, order, hidden, me, widths}."""
         import branding as BR
         from .modes import save
         if answer is None:
@@ -324,7 +464,7 @@ class HomePage(QWidget):
                 return False
             answer = dlg.values()
         lay = BR.custom_layout(answer.get("role", self.lay["role"]), answer.get("order", self.lay["order"]), answer.get("hidden", []),
-                               self.team_roles)
+                               self.team_roles, answer.get("widths", self.lay.get("widths")))
         kv = {"home_layout": BR.to_json(lay)}
         if "me" in answer:
             kv["my_name"] = answer["me"]
@@ -442,7 +582,8 @@ class HomePage(QWidget):
             if st == "current" and tm["end"]:
                 when = (when + "\n" if when else "") + (f"{plural(tm['left'], 'day')} left" if tm["left"] is not None
                                                          else f"{plural(tm['over'], 'day')} past plan")
-            bg, fg = {"done": (t["ok_soft"], t["ok"]), "current": (t["accent"], t["accent_fg"]),
+            import stagecolors as SC
+            bg, fg = {"done": (t["ok_soft"], t["ok"]), "current": (SC.color_of(s, r.stages.index(s)), "#FFFFFF"),   # 3.12.0
                       "ahead": (t["surface2"], t["muted"])}[st]
             if st == "current" and tm["over"]:
                 bg, fg = t["warn_soft"], t["warn"]
@@ -494,11 +635,27 @@ class HomePage(QWidget):
             self.refresh()
         return dlg.saved
 
+    def can_override(self, r=None):
+        """3.12.0: (True, "") when this person may override a hard gate: the effort's proposal manager (Edit details), or
+        anyone when none is named; else (False, why)."""
+        import branding as BR
+        r = r or self.rec
+        pm = (BR.proposal_manager(r, BR.identity(r)) or "").strip()
+        me = (self.my_name() or "").strip()
+        if not pm:
+            return True, ""
+        if me and (me.casefold() == pm.casefold() or "proposal manager" in (r.role_of(me) or "").casefold()):
+            return True, ""
+        return False, (f"Only the proposal manager, {pm}, can override a hard gate. Ask {pm} to move it." +
+                       (f" You are set as {me} on this PC." if me else " Customize... > I am sets who you are on this PC."))
+
     def move_dialog(self, run=True):
+        """3.12.0: Move stage always says what is not done before it moves: the open goals with their owners, what the
+        gate allows, and who may override a hard gate. Ticked goals carry into the next stage and count at its gate."""
         r = self.rec
         if r is None:
             return None
-        dlg = QDialog(self); dlg.setWindowTitle("Move stage")
+        dlg = QDialog(self); dlg.setWindowTitle("Move stage"); dlg.setMinimumWidth(560)
         v = QVBoxLayout(dlg)
         v.addWidget(D.label(f"The effort is in {r.stage()['name']}. Move it to:", "title"))
         to = QComboBox()
@@ -512,55 +669,98 @@ class HomePage(QWidget):
         checks = self.checks
         open_goals = [g for g in r.stage()["goals"] if not r.goal_done(g, checks)]
         boxes = []
+        goal_box = QFrame(); gv = QVBoxLayout(goal_box); gv.setContentsMargins(0, 0, 0, 0); gv.setSpacing(4)
         if open_goals:
-            v.addWidget(D.label("Open goals to carry over to the new stage:", "muted"))
+            gv.addWidget(D.label(f"Here is what is not done in {r.stage()['name']}:", "label"))
             for g in open_goals:
-                cb = QCheckBox(g["text"]); cb.setChecked(True); v.addWidget(cb); boxes.append((cb, g["id"]))
+                meta = [x for x in (g.get("owner", ""), ("due " + R.when_text(g["due"])) if g.get("due") else "",
+                                    "checked by the app" if g.get("auto") else "") if x]
+                cb = QCheckBox(g["text"] + (f"   ({', '.join(meta)})" if meta else "")); cb.setChecked(True)
+                cb.setToolTip("Ticked: it carries into the next stage, marked as carried, and counts at that stage's gate. "
+                              "Unticked: it is dropped. Both are logged.")
+                gv.addWidget(cb); boxes.append((cb, g["id"]))
+            carry_note = D.label("", "muted"); gv.addWidget(carry_note)
+        else:
+            carry_note = None
+            gv.addWidget(D.label(f"Every goal of {r.stage()['name']} is met.", "muted"))
+        v.addWidget(goal_box)
         gate = QLabel(); gate.setWordWrap(True); v.addWidget(gate)          # 2.63.0: the stage's gate
         reason = QLineEdit(); reason.setPlaceholderText("Reason (kept in the timeline)"); v.addWidget(reason)
+        bb = QDialogButtonBox(QDialogButtonBox.Cancel); v.addWidget(bb)
+        action = bb.addButton("Move", QDialogButtonBox.AcceptRole)
+        ok_pm, why = self.can_override(r)
 
         def show_gate():
             gc = r.gate_check(to.currentData(), checks)
             n = len(gc["open"])
-            if not (gc["forward"] and gc["mode"] and n):
-                gate.setText(""); gate.hide(); reason.hide()
-                return gc
+            dest = to.currentText()
+            goal_box.setVisible(bool(gc["forward"]))
+            if carry_note is not None:
+                carry_note.setText(f"Ticked goals carry into {dest}, marked as carried, and count at its gate. Unticked ones are dropped.")
             t = D.tokens()
-            hard = gc["mode"] == "hard"
-            gate.setStyleSheet(f"background:{t['crit_soft' if hard else 'warn_soft']};color:{t['crit' if hard else 'warn']};"
-                               f"border-radius:{D.RADIUS['control']}px;padding:8px;font-weight:600;")
             gid = r.gate_id()                                          # 2.93.0: a team gate says its own name
+            hard = gc["mode"] == "hard"
             head = ("Hard gate" if hard else "Soft gate") if gid in ("soft", "hard") else \
                 f"{R.GATES.get(gid, 'Gate').split(':')[0]} ({'held' if hard else 'logged'})"
-            gate.setText((f"{head}: {r.stage()['name']} has {plural(n, 'open goal')}. Moving on is held until they are met; "
-                          "the proposal manager can override it with a reason.") if hard else
-                         (f"{head}: {plural(n, 'open goal')}. Moving on is allowed and logged with the open goals."))
-            gate.show(); reason.setVisible(True)
+            action.setVisible(True); action.setEnabled(True)
+            if not gc["forward"]:
+                gate.setText("Moving back to an earlier stage is never held."); reason.hide(); action.setText("Move back")
+                tone = "ok"
+            elif not n:
+                gate.setText(f"{head}: every goal is met." if gc["mode"] else "No gate on this stage."); reason.hide(); action.setText("Move")
+                tone = "ok"
+            elif not gc["mode"]:
+                gate.setText(f"No gate on this stage: moving on with {plural(n, 'open goal')} is allowed and logged.")
+                reason.hide(); action.setText("Move anyway"); tone = "warn"
+            elif not hard:
+                gate.setText(f"{head}: {plural(n, 'goal')} not met. Moving on is allowed and logged with the open goals.")
+                reason.show(); action.setText("Move anyway"); tone = "warn"
+            elif ok_pm:
+                gate.setText(f"{head}: {plural(n, 'goal')} not met, so the gate holds. As proposal manager you can override it: "
+                             "write why, then Override and move.")
+                reason.show(); action.setText("Override and move"); action.setEnabled(bool(reason.text().strip())); tone = "crit"
+            else:
+                gate.setText(f"{head}: {plural(n, 'goal')} not met, so the gate holds. {why}")
+                reason.hide(); action.setVisible(False); tone = "crit"
+            gate.setStyleSheet(f"background:{t[tone + '_soft']};color:{t[tone]};border-radius:{D.RADIUS['control']}px;"
+                               f"padding:8px;font-weight:600;")
+            gate.show()
             return gc
         to.currentIndexChanged.connect(lambda _i: show_gate())
+        reason.textChanged.connect(lambda _t: show_gate())
         show_gate()
-        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); v.addWidget(bb)
         bb.accepted.connect(dlg.accept); bb.rejected.connect(dlg.reject)
-        dlg.api = {"to": to, "carry": boxes, "gate": gate, "reason": reason, "show_gate": show_gate}
+        dlg.api = {"to": to, "carry": boxes, "gate": gate, "reason": reason, "show_gate": show_gate, "action": action}
         if not run:
             return dlg
         while dlg.exec() == QDialog.Accepted:
             ok = self.move_stage(to.currentData(), [gid for cb, gid in boxes if cb.isChecked()], reason.text())
             if ok is not None:
                 return ok
-            reason.setFocus()                                   # held by a hard gate: a reason is needed
+            reason.setFocus()
         return None
 
     def move_stage(self, sid, carry=(), reason=""):
-        """Move the effort; None when a hard gate holds the move and no reason was given."""
+        """Move the effort; None when a hard gate holds the move (no reason given, or this person is not the proposal
+        manager: 3.12.0)."""
+        r = self.rec
+        gc = r.gate_check(sid, self.checks)
+        if gc["blocked"]:
+            ok_pm, why = self.can_override(r)
+            if not ok_pm:
+                self.host.status(why)
+                diag.activity("qt_gate_held")
+                return None
         try:
-            ok = self.rec.move_to(sid, carry=carry, reason=reason, checks=self.checks)
+            ok = r.move_to(sid, carry=carry, reason=reason, checks=self.checks, who=self.my_name() or None)
         except R.GateClosed as e:
             self.host.status(str(e))
             diag.activity("qt_gate_held")
             return None
         if ok:
-            self.host.toast(f"Moved to {self.rec.stage()['name']}")
+            dropped = len([g for g in gc["open"]]) - len(carry) if gc["forward"] else 0
+            self.host.toast(f"Moved to {self.rec.stage()['name']}" + (f"; {plural(len(carry), 'open goal')} carried" if carry else "")
+                            + (f", {dropped} dropped" if dropped > 0 else ""))
             diag.activity("qt_stage_moved")
             self.changed()
         return ok
@@ -573,13 +773,6 @@ class HomePage(QWidget):
         c = getattr(self.banner, "fmt", None) or FR.card([], r.data.get("page_limited", ""))
         self.fmt_now = c
         t = D.tokens()
-        pl = c["page_limited"]
-        head = D.label(FR.flag_text(c), "title" if pl is not None else None)
-        head.setStyleSheet(f"font-weight:700;color:{t['warn' if pl else ('ok' if pl is False else 'muted')]};")
-        lay.addWidget(head)
-        for x in c["limits"][:6]:
-            lay.addWidget(D.label((f"{x['subject']}: " if len(c["limits"]) > 1 or x["subject"] != "Proposal" else "") + x["value"]
-                                  + (f"  ·  {x['where']}" if x["where"] else ""), "muted"))
         req = sum(1 for x in c["lines"] if x["required"])
         lay.addWidget(D.label(f"{req} of {len(c['lines'])} formatting rules required by the documents", "label"))
         for x in c["lines"]:
@@ -587,14 +780,17 @@ class HomePage(QWidget):
             lab = D.label(x["label"], None, wrap=False); lab.setMinimumWidth(170); row.addWidget(lab, 0, Qt.AlignTop)
             if x["required"]:
                 col = QVBoxLayout(); col.setSpacing(0)
-                val = ClickLabel(f"Required: {x['value']}", lambda: self.host.go("requirements"))
-                val.setToolTip("Open Submission rules: the sentence, its history, edit or confirm")
+                val = ClickLabel(f"Required: {x['value']}", lambda rr=x["row"]: self.open_rule(rr))
+                val.setToolTip("Open it in Submission Rules: the sentence, its history, edit or confirm")
                 val.setStyleSheet(f"color:{t['text']};font-weight:600;")
                 col.addWidget(val)
                 if x["where"]:
                     col.addWidget(D.label(x["where"], "muted"))
                 row.addLayout(col, 1)
                 rr = x["row"]
+                if rr is not None:
+                    row.addWidget(D.button("Edit", "ghost", lambda _=False, row_=rr: self.edit_rule(row_),
+                                           "Change what this requirement says (the document's words stay in its history)"), 0, Qt.AlignTop)
                 if rr is not None and rr.get("manual"):
                     row.addWidget(D.button("Remove", "ghost", lambda _=False, k=rr["key"]: self.format_remove(k)), 0, Qt.AlignTop)
                 elif rr is not None:
@@ -622,12 +818,67 @@ class HomePage(QWidget):
             row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
             lab = D.label(x["label"], None, wrap=False); lab.setMinimumWidth(130); row.addWidget(lab, 0, Qt.AlignTop)
             col = QVBoxLayout(); col.setSpacing(0)
-            v = ClickLabel(x["value"], lambda: self.host.go("requirements")); v.setStyleSheet(f"color:{t['text']};font-weight:600;")
+            v = ClickLabel(x["value"], lambda rr=x.get("row"): self.open_rule(rr)); v.setStyleSheet(f"color:{t['text']};font-weight:600;")
+            v.setToolTip("Open it in Submission Rules")
             col.addWidget(v)
             if x["where"]:
                 col.addWidget(D.label(x["where"], "muted"))
             row.addLayout(col, 1)
+            if x.get("row") is not None:
+                row.addWidget(D.button("Edit", "ghost", lambda _=False, row_=x["row"]: self.edit_rule(row_),
+                                       "Change what this requirement says (the document's words stay in its history)"), 0, Qt.AlignTop)
             lay.addLayout(row)
+
+    def draw_pagelimits(self, r):
+        """3.12.0: page limits, in the Submission requirements card (they left the header): what the documents set, or
+        what the proposal manager said, for each volume."""
+        import formatreq as FR
+        lay = self.sections["pagelimits"]; clear(lay)
+        c = getattr(self, "fmt_now", None) or FR.card([], r.data.get("page_limited", ""))
+        t = D.tokens()
+        pl = c["page_limited"]
+        head = D.label(FR.flag_text(c), "title" if pl is not None else None)
+        head.setStyleSheet(f"font-weight:700;color:{t['warn' if pl else ('ok' if pl is False else 'muted')]};")
+        lay.addWidget(head)
+        lay.addWidget(D.label({"set": "Set by the proposal manager (Edit details).", "found": "Found in the customer documents. "
+                               "Edit details can set it."}.get(c["how"], "No page limit found in the customer documents yet. "
+                               "Edit details can say the effort is page-limited or not."), "muted"))
+        for x in c["limits"]:
+            row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
+            lab = D.label(x["subject"] or "Proposal", None, wrap=False); lab.setMinimumWidth(130); row.addWidget(lab, 0, Qt.AlignTop)
+            col = QVBoxLayout(); col.setSpacing(0)
+            v = ClickLabel(x["value"], lambda rr=x.get("row"): self.open_rule(rr)); v.setStyleSheet(f"color:{t['text']};font-weight:600;")
+            col.addWidget(v)
+            if x["where"]:
+                col.addWidget(D.label(x["where"], "muted"))
+            row.addLayout(col, 1)
+            if x.get("row") is not None:
+                row.addWidget(D.button("Edit", "ghost", lambda _=False, row_=x["row"]: self.edit_rule(row_)), 0, Qt.AlignTop)
+            lay.addLayout(row)
+        self.sub_tabs.setTabText(2, "Page limits" + (f" ({len(c['limits'])})" if c["limits"] else ""))
+
+    def open_rule(self, row):
+        """3.12.0: a requirement on the card opens in Submission Rules, selected."""
+        self.host.go("requirements")
+        if row is not None and row.get("key"):
+            try:
+                self.host.requirements_page.select(row["key"])
+            except Exception:
+                diag.swallowed()
+
+    def edit_rule(self, row, value=None):
+        """3.12.0: change what a requirement says, here. value (tests): the new wording."""
+        if row is None or self.host.ws is None:
+            return False
+        if value is None:
+            value, ok = QInputDialog.getText(self, "Edit requirement", f"{row.get('subject') or row.get('kind')}: what it requires",
+                                             text=row.get("value", ""))
+            if not ok:
+                return False
+        self._register().edit(row["key"], value)
+        diag.activity("qt_rule_edited")
+        self.changed()
+        return True
 
     def draw_custqa(self, r):
         """2.98.0: how many questions are where, when questions are due, and the ones still open."""
@@ -731,8 +982,11 @@ class HomePage(QWidget):
                 cb = QCheckBox(); cb.setChecked(done); cb.setToolTip("Tick when it is done")
                 cb.toggled.connect(lambda on, gid=g["id"]: self.set_goal(gid, on))
             row.addWidget(cb, 0, Qt.AlignTop)
-            txt = ClickLabel(g["text"] + (f"   (from {g['from']})" if g.get("from") else ""),   # 2.86.0: click to change it
-                             lambda gid=g["id"]: self.goal_dialog(gid))
+            if g.get("from"):                                         # 3.12.0: carried over, and counted at this gate
+                cp = D.Pill(f"Carried from {g['from']}", "warn"); cp.setToolTip("Not done when the effort left that stage; it "
+                                                                                 "counts toward this stage's gate")
+                row.addWidget(cp, 0, Qt.AlignTop)
+            txt = ClickLabel(g["text"], lambda gid=g["id"]: self.goal_dialog(gid))      # 2.86.0: click to change it
             txt.setToolTip("Click to change the wording, remove it, or tick it by hand")
             row.addWidget(txt, 1)
             meta = [x for x in (g.get("owner", ""), ("due " + R.when_text(g["due"])) if g.get("due") else "") if x]   # 2.93.0

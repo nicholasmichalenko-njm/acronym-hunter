@@ -439,6 +439,19 @@ class Record:
         """What the stage's gate does: '' (no hold), 'soft' or 'hard'."""
         return GATE_BEHAVIOR.get(self.gate_id(s), "")
 
+    def set_stage_color(self, sid, color, who=None):
+        """3.12.0: a stage's own color (a palette name from stagecolors), or '' for automatic."""
+        s = self.stage(sid)
+        color = _clean(color)
+        if s is None or s.get("color", "") == color:
+            return False
+        if color:
+            s["color"] = color
+        else:
+            s.pop("color", None)
+        self.save()
+        return True
+
     def set_gate(self, sid, mode, who=None):
         s = self.stage(sid)
         mode = mode if mode in GATES else ""
@@ -551,8 +564,9 @@ class Record:
                                     "from": frm["name"]})
         self.data["stage"] = to["id"]
         n = len([g for g in frm["goals"] if g["id"] in carry])
-        self.log("stage", f"Moved to {to['name']} from {frm['name']}" + (f"; {n} open goal{'s' if n != 1 else ''} carried over" if n else ""),
-                 who=who)
+        dropped = [g["text"] for g in frm["goals"] if g["id"] not in carry and not self.goal_done(g, checks)] if gc["forward"] else []
+        self.log("stage", f"Moved to {to['name']} from {frm['name']}" + (f"; {n} open goal{'s' if n != 1 else ''} carried over" if n else "")
+                 + (f"; {len(dropped)} dropped: " + "; ".join(dropped)[:200] if dropped else ""), who=who)   # 3.12.0
         self.save()
         return True
 

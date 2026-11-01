@@ -311,8 +311,14 @@ class Register:
         return True
 
     def edit(self, key, value, who=None):
-        st = self._st(key)
         value = _clean(value)
+        m = next((m for m in self.state["manual"] if m["key"] == key), None)
+        if m is not None:                                      # 3.12.0: one the person added changes in place
+            if value:
+                m["value"], m["who"] = value, self.stamp(who)
+                self.save()
+            return bool(value)
+        st = self._st(key)
         if value:
             st["edit"] = value
             st["confirmed"] = self.stamp(who)

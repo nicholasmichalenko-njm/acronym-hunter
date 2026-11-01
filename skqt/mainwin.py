@@ -34,8 +34,8 @@ from .settingspage import SettingsPage
 
 
 RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),                                       # 3.1.0: My work
-        ("Effort", [("home", "Effort Home"), ("deliverables", "Deliverables"), ("dashboard", "Dashboard"), ("record", "Effort Record"),
-                    ("reviews", "Color Reviews")]),
+        ("Effort", [("home", "Effort Dashboard"), ("deliverables", "Deliverables"), ("record", "Effort Record"),   # 3.12.0: Home and
+                    ("reviews", "Color Reviews")]),                                                                     # Dashboard, one page
         ("Compliance", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Review"), ("prove", "Prove"),     # 2.99.0: near the
                         ("crosswalk", "L/M Crosswalk")]),                                                              # top: the review starts here
         ("Documents", [("library", "Library"), ("compare", "Changes"), ("requirements", "Submission Rules"),
@@ -55,8 +55,8 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "truth": ("Wall of Truth", "The one approved way to state every fact and number, and the drafts checked against it"),
           "storyboards": ("Storyboards", "One sheet per section before the first draft: message, themes, approach, features and proof"),
           "mywork": ("My Work", "One person's work in every effort, soonest first"),
-          "home": ("Effort Home", "Stage, gate goals, tasks, questions and the calendar"),
-          "dashboard": ("Dashboard", "The effort on one screen"),
+          "home": ("Effort Dashboard", "Where the effort stands: the numbers, the stage and its gate, requirements, tasks and the calendar"),
+          "dashboard": ("Effort Dashboard", "Where the effort stands: the numbers, the stage and its gate, requirements, tasks and the calendar"),
           "record": ("Effort Record", "Details, team, stages and gates, status, package and backup"),
           "reviews": ("Color Reviews", "Color team review packets, read back onto each requirement"),
           "library": ("Library", "Every document of the effort: categories, folders, tags, roles and search"),
@@ -153,11 +153,11 @@ class MainWindow(QMainWindow):
         except Exception:
             diag.swallowed()
         self.search = QLineEdit(); self.search.setPlaceholderText("Find a sentence (words or ID)...")
-        self.search.setMinimumWidth(240); self.search.setClearButtonEnabled(True)
+        self.search.setMinimumWidth(190); self.search.setClearButtonEnabled(True)   # 3.12.0: room for "Effort Dashboard" at 1280
         self.search.returnPressed.connect(self.find_go)
         bh.addWidget(self.search)
         bh.addWidget(D.label("Effort", "label", wrap=False))
-        self.effort_box = QComboBox(); self.effort_box.setMinimumWidth(220)
+        self.effort_box = QComboBox(); self.effort_box.setMinimumWidth(200)
         self.effort_box.activated.connect(lambda i: self.open_effort(self.effort_box.itemText(i)))
         bh.addWidget(self.effort_box)
         self.saved = D.Pill("Saved", "ok"); bh.addWidget(self.saved)
@@ -174,8 +174,8 @@ class MainWindow(QMainWindow):
         self.stack = PageStack()                   # 2.86.0: a page scrolls only when the window is smaller than it needs
         from .effortshome import EffortsHome
         self.efforts_page = EffortsHome(self)        # 2.91.0: Home: every effort, + Add an Effort, Unfiled work
+        self.dash_page = DashPage(self)              # 3.12.0: its numbers and cards show on the Effort Dashboard
         self.home_page = HomePage(self)
-        self.dash_page = DashPage(self)
         self.record_page = RecordPage(self)
         self.review_page = ReviewPage(self)
         self.acronym_page = AcronymPage(self)
@@ -528,7 +528,7 @@ class MainWindow(QMainWindow):
         return False
 
     def watch_add(self, choices=None):
-        """Add them...: the new and changed files go to the Library's reading table (a changed file comes up as a new
+        """Review (3.12.0; was Add them...): the new and changed files go to the Library's reading table (a changed file comes up as a new
         version of its document), one category at a time."""
         import watch as WA
         f = self.watch_found or {}
@@ -543,7 +543,7 @@ class MainWindow(QMainWindow):
         self.go("library")
         if len(cats) > 1:
             self.status(f"Adding the {self.library_page.lib.category_name(cat) if self.library_page.lib else cat} files first; "
-                        "Add them... again for the rest.")
+                        "Review again for the rest.")
         diag.activity("qt_watch_add", n=len(paths))
         return self.library_page.add(paths, folders=rel, category=cat, choices=choices)
 
@@ -643,6 +643,46 @@ class MainWindow(QMainWindow):
         else:
             self.readable_start(job)
         return job["folder"]
+
+    def export_full_effort(self, folder=None, open_it=True):
+        """3.12.0: a full copy of the effort and everything in it, as plain files, in a dated folder named for the effort
+        and the stage it was exported from (in the effort's Exports folder unless a folder is given)."""
+        import datetime as _dt
+        import shutil
+        import effortfolders as EF
+        import readable as RD
+        if self.ws is None:
+            self.status("Open an effort first.")
+            return ""
+        src = self.readable_now(overview=True)
+        if not src or not os.path.isdir(src):
+            self.status("The effort could not be written out just now. Try again after the next save.")
+            return ""
+        try:
+            import effortrec as _R
+            stage = (_R.Record(self.ws.root).stage() or {}).get("name", "")
+        except Exception:
+            stage = ""
+        base = folder or EF.folder(self.effort_path, "exports") or os.path.dirname(src)
+        name = RD._safe(" - ".join(x for x in (self.effort_name, stage, "full export " + _dt.datetime.now().strftime("%Y-%m-%d %H%M")) if x))
+        dest = os.path.join(base, name)
+        n = 2
+        while os.path.exists(dest):
+            dest = os.path.join(base, f"{name} ({n})"); n += 1
+        try:
+            os.makedirs(base, exist_ok=True)
+            shutil.copytree(src, dest)
+        except OSError:
+            diag.swallowed()
+            self.status("The full export could not be written there. Pick another folder.")
+            return ""
+        diag.activity("qt_full_effort_exported")
+        self.toast("Full effort exported: " + os.path.basename(dest))
+        if open_it and not os.environ.get("AH_TEST"):
+            from PySide6.QtCore import QUrl
+            from PySide6.QtGui import QDesktopServices
+            QDesktopServices.openUrl(QUrl.fromLocalFile(dest))
+        return dest
 
     def open_readable(self, open_it=True):
         """The readable copy's folder in File Explorer (written first)."""
@@ -769,7 +809,7 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------ the rest
     def go(self, step):
-        step = {"format": "fixcopy"}.get(step, step)       # 3.9.0: Format Check is part of Fix a Copy
+        step = {"format": "fixcopy", "dashboard": "home"}.get(step, step)   # 3.9.0: Format Check is in Fix a Copy; 3.12.0: one dashboard
         pg = self.pages[step]
         if hasattr(pg, "refresh"):
             pg.refresh()

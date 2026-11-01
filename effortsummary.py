@@ -26,7 +26,8 @@ def summary(name, info, now=None):
     out = {"name": name, "path": path, "data": data, "missing": not (path and os.path.isfile(path)),
            "client": info.get("client", ""), "solicitation": info.get("solicitation", ""), "picture": "",
            "sensitivity": "", "pm": "", "stage": "", "stage_i": 0, "stages": 0, "due": "", "zone": "", "days": None,
-           "tasks": 0, "late": 0, "questions": 0, "deliverables": 0, "no_owner": 0, "last": "", "open_by": ""}
+           "tasks": 0, "late": 0, "questions": 0, "deliverables": 0, "no_owner": 0, "last": "", "open_by": "",
+           "gate": "", "gate_mode": "", "goals_open": 0, "goals": 0}
     if out["missing"]:
         return out
     rec = _read(os.path.join(data, "record.json")) or {}
@@ -40,6 +41,13 @@ def summary(name, info, now=None):
     cur = next((i for i, s in enumerate(stages) if s.get("id") == rec.get("stage")), 0)
     out["stages"], out["stage_i"] = len(stages), cur
     out["stage"] = stages[cur]["name"] if stages else ""
+    if stages:                                                   # 3.12.0: the stage's gate, where every effort shows
+        gid = stages[cur].get("gate", "")
+        if gid in R.GATES and gid:
+            out["gate_mode"] = R.GATE_BEHAVIOR.get(gid, "")
+            out["gate"] = ("Hard gate" if out["gate_mode"] == "hard" else "Soft gate") if gid in ("soft", "hard") else R.GATES[gid].split(":")[0]
+        goals = stages[cur].get("goals") or []
+        out["goals"], out["goals_open"] = len(goals), sum(1 for g in goals if not g.get("done"))
     out["due"], out["zone"] = rec.get("due", ""), rec.get("zone", "")
     if out["due"]:
         import tzones as TZ
