@@ -142,7 +142,7 @@ class MainWindow(QMainWindow):
         bh = QHBoxLayout(bar); bh.setContentsMargins(D.SPACE["xl"], D.SPACE["m"], D.SPACE["xl"], D.SPACE["m"]); bh.setSpacing(D.SPACE["m"])
         tcol = QVBoxLayout(); tcol.setSpacing(0)
         self.page_title = D.label("", "display", wrap=False); tcol.addWidget(self.page_title)
-        self.page_sub = D.label("", "muted"); self.page_sub.setMinimumWidth(180); tcol.addWidget(self.page_sub)   # 3.0.4: wraps
+        self.page_sub = D.label("", "muted"); self.page_sub.setMinimumWidth(120); tcol.addWidget(self.page_sub)   # 3.0.4: wraps; 3.9.0: 120 so the bar fits 1280 with Issue or idea
         bh.addLayout(tcol, 1)
         self.issue_btn = D.button("Issue or idea", "ghost", lambda: self.open_issues(),
                                   "Write down a bug, an improvement or an idea about this page (Ctrl+Shift+I). It stays on this PC.")
