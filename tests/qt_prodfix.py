@@ -158,7 +158,7 @@ check("3.7: Learn from a file takes the chosen areas into the document type", go
 tbl = sp.tables["styledefs"]["w"]
 names = [tbl.cellWidget(i, 0).text() for i in range(tbl.rowCount())]
 check("3.7: the style library lists every learned style with its whole definition", "Heading 1" in names and "Normal" in names
-      and tbl.columnCount() == 24, (len(names), tbl.columnCount()))
+      and tbl.columnCount() == 30, (len(names), tbl.columnCount()))
 r = names.index("Heading 2")
 size_w = tbl.cellWidget(r, [c[0] for c in __import__("skqt.prodstdpage", fromlist=["STYLE_COLS"]).STYLE_COLS].index("size"))
 size_w.setValue(15.0)

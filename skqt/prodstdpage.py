@@ -52,7 +52,27 @@ STYLE_COLS = [("key", "Style", "text"), ("type", "Type", ("enum", [("paragraph",
               ("left", "Left indent (pt)", "num0"), ("right", "Right indent (pt)", "num0"), ("first", "First line (pt)", "num0"),
               ("hanging", "Hanging (pt)", "num0"), ("keep_next", "Keep with next", ("enum", TRI)),
               ("keep_lines", "Keep lines together", ("enum", TRI)), ("page_break_before", "Page break before", ("enum", TRI)),
-              ("widow", "Widow control", ("enum", TRI))]
+              ("widow", "Widow control", ("enum", TRI)),
+              ("tabs", "Tab stops (pt align leader; ...)", "text"), ("border_top", "Border above (pt color, or none)", "text"),
+              ("border_bottom", "Border below", "text"), ("border_left", "Border left", "text"), ("border_right", "Border right", "text"),
+              ("shading", "Shading (hex, or none)", "text")]
+
+
+def tabs_text(tabs):
+    return "; ".join(f"{float(p):g} {a}" + (f" {l}" if l and l != "none" else "") for p, a, l in (tabs or []))
+
+
+def tabs_parse(text):
+    out = []
+    for part in (text or "").split(";"):
+        w = part.split()
+        if not w:
+            continue
+        try:
+            out.append([float(w[0]), w[1] if len(w) > 1 else "left", w[2] if len(w) > 2 else "none"])
+        except ValueError:
+            continue
+    return out
 TRI_KEYS = ("bold", "italic", "underline", "caps", "small_caps", "keep_next", "keep_lines", "page_break_before", "widow")
 
 
@@ -784,7 +804,7 @@ class StandardsPage(QWidget):
                 row = {"key": k}
                 for f, _h, _kind in STYLE_COLS[1:]:
                     val = (d or {}).get(f)
-                    row[f] = ("on" if val else "off") if (f in TRI_KEYS and val is not None) else val
+                    row[f] = ("on" if val else "off") if (f in TRI_KEYS and val is not None) else (tabs_text(val) if f == "tabs" else val)
                 out.append(row)
             return out
         if ad == "pairs":
@@ -859,7 +879,7 @@ class StandardsPage(QWidget):
                     val = r.get(f)
                     if val in (None, ""):
                         continue
-                    d[f] = (val == "on") if f in TRI_KEYS else val
+                    d[f] = (val == "on") if f in TRI_KEYS else (tabs_parse(val) if f == "tabs" else val)
                 d.setdefault("type", "paragraph")
                 out[name] = d
             _set(self.work, spec["path"], out)

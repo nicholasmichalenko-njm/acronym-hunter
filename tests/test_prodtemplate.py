@@ -93,6 +93,18 @@ check("a second run changes no style", not next(s for s in job2.steps if s.get("
 skip = PF.FIX["styles_apply"]["args"](lib, {"style_skip": ["Heading 2"]})["spec"]
 check("a style can be left out of the fix", "Heading 2" not in skip and "PE Callout" in skip)
 
+# ---------------------------------------------------------------- 3.8.0: tab stops, borders and shading in a style
+lib8 = PRL.merge(std, {"style_defs": {"PE Callout": {"type": "paragraph", "based_on": "Normal", "tabs": [[72, "left", "dot"], [468, "right", "none"]],
+                                                       "border_top": "1 1F3864", "border_bottom": "0.5 1F3864", "shading": "D9E2F3"}}})
+j8 = PF.run(orig, os.path.join(tmp, "out8"), lib8, {"on": ["styles_apply"], "word_update": False}, open_list=[])
+r8 = WO.styles_root(Package(j8.copy)); c8 = WO.find_style(r8, "PE Callout")
+check("3.8: a style's tab stops, borders and shading are set and read back", WO.effective(r8, c8, "tabs") == [[72.0, "left", "dot"], [468.0, "right", "none"]]
+      and WO.effective(r8, c8, "border_top") == "1 1F3864" and WO.effective(r8, c8, "shading") == "D9E2F3"
+      and not [f for f in j8.after_check.findings if f["rule"] in ("S4", "S7")])
+back8 = PL.learn(j8.copy, std).layer(["styles"])["style_defs"]["PE Callout"]
+check("3.8: learning takes them back", back8.get("tabs") == [[72.0, "left", "dot"], [468.0, "right", "none"]] and back8.get("border_bottom") == "0.5 1F3864"
+      and back8.get("shading") == "D9E2F3" and "border_left" not in back8)
+
 # ---------------------------------------------------------------- make a template
 out = os.path.join(tmp, "Production Copies", "Templates")
 tj = PT.make(std, out)

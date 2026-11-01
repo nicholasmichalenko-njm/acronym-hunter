@@ -249,6 +249,18 @@ def effective(root, s, what, theme=None):
         if what == "line_rule" and ppr is not None and ppr.find("w:spacing", NS) is not None \
                 and ppr.find("w:spacing", NS).get(q("line")) is not None:
             return ppr.find("w:spacing", NS).get(q("lineRule")) or "auto"
+        # 3.8.0: tab stops, paragraph borders and shading
+        if what == "tabs" and ppr is not None and ppr.find("w:tabs", NS) is not None:
+            return [[round(int(t.get(q("pos"), "0")) / 20, 2), t.get(q("val")) or "left", t.get(q("leader")) or "none"]
+                    for t in ppr.find("w:tabs", NS).findall("w:tab", NS) if t.get(q("val")) != "clear"]
+        if what.startswith("border_") and ppr is not None and ppr.find("w:pBdr/w:" + what[7:], NS) is not None:
+            b = ppr.find("w:pBdr/w:" + what[7:], NS)
+            if b.get(q("val")) in ("nil", "none"):
+                return "none"
+            return f"{int(b.get(q('sz'), '4')) / 8:g} {(b.get(q('color')) or 'auto').upper()}"
+        if what == "shading" and ppr is not None and ppr.find("w:shd", NS) is not None:
+            f = (ppr.find("w:shd", NS).get(q("fill")) or "auto").upper()
+            return "none" if f == "AUTO" else f
     if what in ("next", "based_on"):
         el = s.find("w:" + ("next" if what == "next" else "basedOn"), NS)
         if el is None:
@@ -257,7 +269,8 @@ def effective(root, s, what, theme=None):
     return {"size": 10.0, "bold": False, "italic": False, "color": "AUTO", "before": 0.0, "after": 0.0, "line": 1.0,
             "jc": "left", "keep_next": False, "keep_lines": False, "page_break_before": False, "widow": True, "caps": False,
             "small_caps": False, "underline": False, "left": 0.0, "right": 0.0, "first": 0.0, "hanging": 0.0,
-            "line_rule": "auto"}.get(what)
+            "line_rule": "auto", "tabs": [], "border_top": "none", "border_bottom": "none", "border_left": "none",
+            "border_right": "none", "shading": "none"}.get(what)
 
 
 def _name_of(root, sid):
@@ -271,11 +284,16 @@ def _name_of(root, sid):
 # 3.7.0: every property a style definition can carry (the standard's style library), in one place
 STYLE_PROPS = ("font", "size", "bold", "italic", "underline", "caps", "small_caps", "color", "jc", "before", "after", "line",
                "line_rule", "left", "right", "first", "hanging", "keep_next", "keep_lines", "page_break_before", "widow",
-               "based_on", "next")
+               "based_on", "next", "tabs", "border_top", "border_bottom", "border_left", "border_right", "shading")
 RUN_PROPS = ("font", "size", "bold", "italic", "underline", "caps", "small_caps", "color")
 
 
 def _same_value(what, have, want):
+    if what == "tabs":
+        norm_t = lambda ts: sorted([round(float(a), 1), b or "left", c or "none"] for a, b, c in (ts or []))  # noqa: E731
+        return norm_t(have) == norm_t(want)
+    if what.startswith("border_") or what == "shading":
+        return str(have or "none").upper() == str(want or "none").upper()
     if what == "based_on" and have is None:
         return want in (None, "")
     if have is None:
@@ -330,6 +348,37 @@ def set_more_props(root, s, props):
             sp.set(q("lineRule"), props["line_rule"])
             if props["line_rule"] != "auto" and props.get("line") is not None:      # exact/at least: line is points
                 sp.set(q("line"), str(int(round(float(props["line"]) * 20))))
+        if props.get("tabs") is not None:
+            remove(ppr, "tabs")
+            if props["tabs"]:
+                tabs = ensure(ppr, "tabs")
+                for pos, val, leader in sorted(props["tabs"], key=lambda t: float(t[0])):
+                    t = etree.SubElement(tabs, q("tab")); t.set(q("val"), val or "left")
+                    if leader and leader != "none":
+                        t.set(q("leader"), leader)
+                    t.set(q("pos"), str(int(round(float(pos) * 20))))
+        sides = [k[7:] for k in ("border_top", "border_bottom", "border_left", "border_right") if props.get(k) is not None]
+        if sides:
+            bdr = ensure(ppr, "pBdr")
+            for side in sides:
+                remove(bdr, side)
+                v = str(props["border_" + side]).split()
+                el = ensure(bdr, side)
+                if not v or v[0].lower() == "none":
+                    el.set(q("val"), "nil")
+                else:
+                    el.set(q("val"), "single"); el.set(q("sz"), str(int(round(float(v[0]) * 8))))
+                    el.set(q("space"), "1"); el.set(q("color"), (v[1] if len(v) > 1 else "auto"))
+            order = ["top", "left", "bottom", "right", "between", "bar"]    # the schema's order
+            kids = sorted(list(bdr), key=lambda c: order.index(local(c)) if local(c) in order else 99)
+            for c in kids:
+                bdr.remove(c)
+            for c in kids:
+                bdr.append(c)
+        if props.get("shading") is not None:
+            remove(ppr, "shd")
+            if str(props["shading"]).lower() not in ("none", ""):
+                ensure(ppr, "shd", {"val": "clear", "color": "auto", "fill": str(props["shading"]).upper()})
     if props.get("next"):
         n = find_style(root, props["next"])
         ensure(s, "next", {"val": n.get(q("styleId")) if n is not None else props["next"]})

@@ -90,7 +90,8 @@ def style_definition(root, s, theme=None):
         if numbered and k in ("left", "first", "hanging"):
             continue
         v = _font(root, s, theme) if k == "font" else WO.effective(root, s, k)
-        if v is None or v == "":
+        if v is None or v == "" or (k in ("tabs", "border_top", "border_bottom", "border_left", "border_right", "shading")
+                                    and v in ([], "none")):
             continue
         if isinstance(v, float):
             v = round(v, 2)
