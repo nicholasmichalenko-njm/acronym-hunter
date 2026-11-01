@@ -20,6 +20,11 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.9.0": ["Issues and ideas: write down a bug, an improvement or an idea from any page (Issue or idea in the top bar, "
+              "or Ctrl+Shift+I). Reports stay on this PC and a guard keeps document words out; Export... saves a text-only zip.",
+              "Fix a Copy: Check every draft reads each draft against its own profile (Format Check is now part of Fix a Copy), "
+              "Export findings... makes a workbook, Make it a rule turns a table answer into a rule, and list numbering "
+              "(bullets and numbers by level) is checked and set from the profile."],
     "3.8.0": ["Production Standards: effort types (RFP response, page-limited RFP response, white paper, program "
               "deliverables to start) hold the document profiles their deliverables use, rules every profile in them follows, "
               "and changes for one profile. Start an effort asks for its effort type; a draft takes the profile whose words "

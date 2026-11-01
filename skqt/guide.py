@@ -293,6 +293,8 @@ TOPICS = [
    "see each finding and where it is.",
    "Tables: pick a table to see every row's role. Rows in bold wait for your answer; one answer covers every row "
    "like it. Select rows and press C, H, 2, S, B, U, T, N or K to set their role; change the table type if needed.",
+   "A table question: choose the role; Make it a rule saves it (for the draft's profile, or this effort only) so rows "
+   "like these never ask again.",
    "Decisions: say whether a list restarts or continues, and point broken cross-references at a target.",
    "Leave Update fields in Word on so page numbers, caption numbers, the TOC and the lists of tables and figures "
    "renumber, then press Make the fixed copy.",
@@ -327,6 +329,8 @@ TOPICS = [
    "Copy checks each draft's styles against it property by property and sets the ones that differ.",
    "Table rows: each row's tag style, font, size, bold, italic, colors, alignment, spacing, repeat, merge, and every "
    "border edge (on, width, color), with a preview. Applies to: all table types, or one type only.",
+   "List numbering (in Bulleted and numbered lists): what each list style shows, level by level: the bullet and its "
+   "font, or the number format and text, and where the number and the text start.",
    "Table types, row rules, captions and numbering, pages (the page scheme with cover and back cover), page setups, "
    "headers and footers, the TOC and its entry styles, lists, terms and Format Check options each have their own section.",
    "This effort: choose its profile, then Fill from the RFP's formatting rules lays the RFP's fonts, margins and "
@@ -351,7 +355,12 @@ TOPICS = [
    "Branding shows the company logos. They are built into Stationkeeper; nobody changes them from here.",
    "Install a team pack... takes your team's stages, document types, folders and author list in one step.",
    "In Updates, Install update pack... installs a new version from its .skupdate file. Undo last update goes back one step.",
-   "Help and support opens this Guide, the shortcuts, what's new, and the support file."],
+   "Help and support opens this Guide, the shortcuts, what's new, Issues and ideas, and the support file.",
+   "Issues and ideas (Issue or idea in the top bar, or Ctrl+Shift+I, on any page): choose Bug, Improvement or Idea, "
+   "the feature (the page you are on is filled in), the importance, a title and the details, then Save. Describe the "
+   "feature, never document content: a report with a word from the effort or your lists is not saved, and the words "
+   "to take out are shown. Mark a report Done when it is fixed. Export... saves every report (or the ones selected) as "
+   "a text-only zip to give whoever maintains Stationkeeper."],
   ["SCIF-ready keeps no logs, no training data and no bug reports, and cannot be switched back.",
    "Your data folder can move: Move the data folder..."]),
  ("safe", "Keeping work safe", "Backups, packages and the readable copy",
