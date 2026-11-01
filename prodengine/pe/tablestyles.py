@@ -44,8 +44,59 @@ def _clean(el):
     return e
 
 
-def _sig(el):
-    return etree.tostring(_clean(el), method="c14n")
+CONTAINERS = {"pPr", "rPr", "tblPr", "trPr", "tcPr", "tblStylePr", "tblBorders", "tcBorders", "tblCellMar", "tcMar"}
+
+
+def _local(x):
+    return etree.QName(x).localname
+
+
+def _attrs(x):
+    return tuple(sorted((etree.QName(a).localname, v) for a, v in x.attrib.items()))
+
+
+def _defaults(root):
+    """{("pPr" | "rPr", tag): attrs} from the document defaults, for leaving out what only repeats them."""
+    out = {}
+    if root is None:
+        return out
+    for part, path in (("pPr", "w:docDefaults/w:pPrDefault/w:pPr"), ("rPr", "w:docDefaults/w:rPrDefault/w:rPr")):
+        el = root.find(path, NS)
+        for x in (el if el is not None else []):
+            if isinstance(x.tag, str):
+                out[(part, _local(x))] = dict(_attrs(x))
+    return out
+
+
+def _sig(el, root=None):
+    """3.10.0: what a table style holds, as Word reads it: every property with its path (a conditional part by its
+    type), without revision ids, empty containers Word adds or drops (an empty tblPr), or a paragraph or run property
+    that only repeats the document defaults (Word leaves those out when it saves)."""
+    e = _clean(el)
+    dflt = _defaults(root)
+    leaves = set()
+
+    def walk(x, path):
+        if not isinstance(x.tag, str):
+            return
+        name = _local(x)
+        if name == "tblStylePr":
+            name += ":" + (x.get(q("type")) or "")
+        kids = [c for c in x if isinstance(c.tag, str)]
+        if not kids:
+            if _local(x) in CONTAINERS and not x.attrib:
+                return
+            if len(path) == 1 and path[0] in ("pPr", "rPr"):
+                d = dflt.get((path[0], name))
+                if d is not None and all(d.get(k) == v for k, v in _attrs(x)):
+                    return
+            leaves.add((tuple(path) + (name,), _attrs(x)))
+            return
+        for c in kids:
+            walk(c, path + [name])
+    for c in e:
+        walk(c, [])
+    return frozenset(leaves)
 
 
 def capture(pkg):
@@ -85,7 +136,7 @@ def differences(pkg, std):
             new = etree.fromstring(entry["xml"])
         except (etree.XMLSyntaxError, KeyError, TypeError):
             continue
-        if _sig(s) != _sig(new):
+        if _sig(s, root) != _sig(new, root):
             out.append((name, "differs"))
     return out
 
@@ -103,7 +154,7 @@ def op_table_styles(pkg, std):
         if new.get(q("type")) != "table":
             raise ValueError(f"{name} in the standard is not a table style")
         cur = find_style(root, name)
-        if cur is not None and _sig(cur) == _sig(new):
+        if cur is not None and _sig(cur, root) == _sig(new, root):
             continue
         if cur is not None:
             sid = cur.get(q("styleId"))
