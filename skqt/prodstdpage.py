@@ -329,9 +329,9 @@ class StandardsPage(QWidget):
         self.dirty = False
         self.binder = Binder(self)
         outer = QVBoxLayout(self); outer.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); outer.setSpacing(D.SPACE["m"])
-        top = D.Card("Production Standards", "Every rule Format Check and Fix a Copy use. Edit the team standard, a document type, "
+        top = D.Card("Production Standards", "Every rule Format Check and Fix a Copy use. Edit the team standard, a document profile, "
                      "or this effort; a value set at the layer you edit shows in bold, and Reset takes it back to the layer below.",
-                     actions=[D.button("+ Document type...", None, lambda: self.add_type()),
+                     actions=[D.button("+ Profile...", None, lambda: self.add_type(), "A document profile: the full set of formatting values for one kind of document you deliver"),
                               D.button("Learn from a file...", None, lambda: self.learn(), "Read a template or a finished volume and "
                                        "take its styles, table looks, pages, headers and numbering into what you are editing"),
                               D.button("Make a template...", None, lambda: self.make_template(), "A Word template (.dotx) with every "
@@ -343,13 +343,13 @@ class StandardsPage(QWidget):
         self.scope_box = QComboBox(); self.scope_box.setMinimumWidth(300)
         self.scope_box.currentIndexChanged.connect(lambda _i: self.switch())
         bar.addWidget(self.scope_box)
-        self.default_cb = QCheckBox("New efforts use this document type"); bar.addWidget(self.default_cb)
+        self.default_cb = QCheckBox("New efforts use this profile"); bar.addWidget(self.default_cb)
         self.default_cb.toggled.connect(lambda _v: self.changed())
         bar.addStretch(1)
         self.state = D.label("", "muted", wrap=False); bar.addWidget(self.state)
         top.body.addLayout(bar)
         self.eff_row = QHBoxLayout()
-        self.eff_row.addWidget(D.label("This effort's document type", "label", wrap=False))
+        self.eff_row.addWidget(D.label("This effort's profile", "label", wrap=False))
         self.eff_type = QComboBox(); self.eff_type.setMinimumWidth(240); self.eff_row.addWidget(self.eff_type)
         self.eff_type.currentIndexChanged.connect(lambda _i: self.effort_type_changed())
         self.eff_row.addWidget(D.button("Fill from the RFP's formatting rules", None, lambda: self.fill_from_rfp()))
@@ -464,7 +464,7 @@ class StandardsPage(QWidget):
         self.table_editor(v, "heading_levels", ("heading_numbering", "levels"), cols, fixed=True)
 
     def build_styledefs(self, v):
-        c = D.Card("Style library", "Every style this standard defines, whole: font, size, bold, italic, underline, caps, color, "
+        c = D.Card("Style library", "Every style this profile defines, whole: font, size, bold, italic, underline, caps, color, "
                    "alignment, spacing, line spacing, indents, keeps, page break before, widow control, based on and next style. "
                    "Fix a Copy checks each style in a draft against these values and sets the ones that differ; Make a template "
                    "writes them. Blank or Not set leaves that property as the draft has it. Format variables win where they "
@@ -972,9 +972,9 @@ class StandardsPage(QWidget):
         cur = self.scope_box.currentData()
         self.scope_box.blockSignals(True)
         self.scope_box.clear()
-        self.scope_box.addItem("Team standard (every document type starts here)", "team:")
+        self.scope_box.addItem("Team standard (every profile starts here)", "team:")
         for t in self.data["types"]:
-            self.scope_box.addItem(f"Document type: {t['name']}", "type:" + t["id"])
+            self.scope_box.addItem(f"Profile: {t['name']}", "type:" + t["id"])
         if self.host.ws is not None:
             self.scope_box.addItem(f"This effort: {self.host.effort_name}", "effort:")
         i = self.scope_box.findData(cur) if cur else -1
@@ -1023,7 +1023,7 @@ class StandardsPage(QWidget):
         self.fill_row_scope()
         self.load_tables()
         self.dirty = False
-        self.state.setText({"team": "Team standard", "type": "Document type", "effort": "This effort only"}[scope])
+        self.state.setText({"team": "Team standard", "type": "Profile", "effort": "This effort only"}[scope])
         self.show_problems()
 
     def fill_row_scope(self):
@@ -1088,7 +1088,7 @@ class StandardsPage(QWidget):
 
     def add_type(self, name=None):
         if name is None:
-            name, ok = QInputDialog.getText(self, "New document type", "Its name (for example: Cost volume, Customer deliverable):")
+            name, ok = QInputDialog.getText(self, "New document profile", "Its name (for example: Technical volume, Cost volume, White paper):")
             if not ok:
                 return ""
         name = " ".join((name or "").split())

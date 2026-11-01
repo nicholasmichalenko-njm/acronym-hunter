@@ -284,7 +284,7 @@ TOPICS = [
    "Each finding says where it is and why: a font typed over the style, or a style that breaks the rule; a caption "
    "number typed instead of a field; a section with a narrow margin; a page number typed in a footer.",
    "Export... makes a workbook for the production team."],
-  ["The standard shown at the top is the effort's document type with the RFP's own rules on top (Production Standards).",
+  ["The standard shown at the top is the effort's profile with the RFP's own rules on top (Production Standards).",
    "To fix what it finds, use Fix a Copy: it writes a dated copy in your output folder, never the original."]),
  ("fixcopy", "Production", "Fix a Copy",
   "Fixes a draft's formatting to the production standard in a dated copy. Your file is never changed: it is read once, "
@@ -294,7 +294,7 @@ TOPICS = [
    "Each effort's copies go in a folder with the effort's name inside it. Copies never go beside the original.",
    "Pick a draft from the Volumes folder, or Add a file.... Its volume name comes from the Deliverables board when the "
    "draft is a deliverable's file; otherwise type it. The solicitation comes from the effort's basics. Headers and "
-   "footers are built only when both are set. Document type: the draft's own (kept on the Deliverables board for a "
+   "footers are built only when both are set. Profile: the draft's own (kept on the Deliverables board for a "
    "deliverable), or the effort's. Press Check; each area shows what it found, each style that differs from the style "
    "library property by property.",
    "What to fix: every fix is listed under its area with what it found; untick any you do not want. Expand a fix to "
@@ -312,9 +312,9 @@ TOPICS = [
    "version synced to this PC. Fix it when the writers are done.",
    "Each fix is one guarded change that may touch only what it declares; anything else is refused."]),
  ("prodstd", "Production", "Production Standards",
-  "Every rule Format Check and Fix a Copy use, in three layers: the team standard, document types, and this effort.",
-  "Once to set the team's rules; for each document type; at the start of each effort to bring in the RFP's.",
-  ["Editing: choose the team standard, a document type (+ Document type... adds one, starting from the one shown), or "
+  "Every rule Format Check and Fix a Copy use, in three layers: the team standard, document profiles, and this effort.",
+  "Once to set the team's rules; for each profile; at the start of each effort to bring in the RFP's.",
+  ["Editing: choose the team standard, a document profile (+ Profile... adds one, starting from the one shown), or "
    "this effort. A value set at that layer shows in bold; Reset takes it back to the layer below.",
    "Learn from a file...: pick your master template or a finished volume. Stationkeeper reads it (it is never changed) "
    "and lists what it carries: every style's whole definition, the format variables, table looks by row role, page "
@@ -324,14 +324,14 @@ TOPICS = [
    "Font rules: the allowed fonts and the smallest and largest size for each kind of text. Blank is not checked.",
    "Styles and heading numbering: allowed styles, removing and hiding unused ones, a template to take styles from, and "
    "each heading level's number format, number text and positions.",
-   "Style library: every style the document type defines, whole: font, size, bold, italic, underline, caps, color, "
+   "Style library: every style the profile defines, whole: font, size, bold, italic, underline, caps, color, "
    "alignment, spacing, line spacing, indents, keeps, page break before, widow control, based on and next style. Fix a "
    "Copy checks each draft's styles against it property by property and sets the ones that differ.",
    "Table rows: each row's tag style, font, size, bold, italic, colors, alignment, spacing, repeat, merge, and every "
    "border edge (on, width, color), with a preview. Applies to: all table types, or one type only.",
    "Table types, row rules, captions and numbering, pages (the page scheme with cover and back cover), page setups, "
    "headers and footers, the TOC and its entry styles, lists, terms and Format Check options each have their own section.",
-   "This effort: choose its document type, then Fill from the RFP's formatting rules lays the RFP's fonts, margins and "
+   "This effort: choose its profile, then Fill from the RFP's formatting rules lays the RFP's fonts, margins and "
    "page size over it for this effort only. Press Save.",
    "Make a template...: a Word template (.dotx) with every value in force, from the Stationkeeper base (cover, front "
    "matter, a chapter with a sample table, an appendix) or starting from a template of yours (only read). It goes to "

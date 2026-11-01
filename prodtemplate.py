@@ -121,7 +121,7 @@ def _document(std):
     # body chapter
     out.append(_p("Heading1", "Chapter title"))
     out.append(_p("Heading2", "Section title"))
-    out.append(_p("Normal", "Body text in the body style. Every value in this template comes from the document type."))
+    out.append(_p("Normal", "Body text in the body style. Every value in this template comes from the document profile."))
     out.append(_p("ListBullet", "A bulleted item"))
     out.append(_p("ListBullet", "Another bulleted item"))
     out.append(_sample_table(std, "body"))

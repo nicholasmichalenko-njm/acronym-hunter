@@ -166,10 +166,10 @@ class StandardsPage(QWidget):
         self.data = None
         v = _scroll(self)
         self.card = D.Card("Production Standards", "Your team's formatting rules for each kind of document. Format Check reads drafts "
-                           "against them.", actions=[D.button("+ Document type...", None, lambda: self.add_type()),
+                           "against them.", actions=[D.button("+ Profile...", None, lambda: self.add_type()),
                                                      D.button("Save", "primary", lambda: self.save())])
         top = QHBoxLayout()
-        top.addWidget(D.label("Document type", "label", wrap=False))
+        top.addWidget(D.label("Profile", "label", wrap=False))
         self.type = QComboBox(); self.type.setMinimumWidth(240); self.type.currentIndexChanged.connect(lambda _i: self.fill())
         top.addWidget(self.type)
         self.is_default = QCheckBox("New efforts use this type"); top.addWidget(self.is_default); top.addStretch(1)
@@ -204,10 +204,10 @@ class StandardsPage(QWidget):
         self.toc = QLineEdit(); self.toc.setPlaceholderText("\\o, \\u"); form.addRow("TOC switches never used", self.toc)
         self.pnum = QCheckBox("Every section's footer has a page number field"); form.addRow("", self.pnum)
         v.addWidget(self.card)
-        self.eff = D.Card("This effort", "The RFP's own formatting rules, laid over the document type for this effort only.",
+        self.eff = D.Card("This effort", "The RFP's own formatting rules, laid over the profile for this effort only.",
                           actions=[D.button("Fill from the RFP's formatting rules", "primary", lambda: self.fill_from_rfp()),
                                    D.button("Clear", "ghost", lambda: self.clear_effort())])
-        er = QHBoxLayout(); er.addWidget(D.label("Document type for this effort", "label", wrap=False))
+        er = QHBoxLayout(); er.addWidget(D.label("Profile for this effort", "label", wrap=False))
         self.eff_type = QComboBox(); self.eff_type.setMinimumWidth(240); er.addWidget(self.eff_type); er.addStretch(1)
         self.eff.body.addLayout(er)
         self.eff_text = self.eff.add(D.label("", "muted")); self.eff_text.setWordWrap(True)
@@ -270,7 +270,7 @@ class StandardsPage(QWidget):
 
     def add_type(self, name=None):
         if name is None:
-            name, ok = QInputDialog.getText(self, "New document type", "Its name (for example: Cost volume, Customer deliverable):")
+            name, ok = QInputDialog.getText(self, "New document profile", "Its name (for example: Technical volume, Cost volume, White paper):")
             if not ok:
                 return ""
         name = " ".join((name or "").split())
@@ -289,7 +289,7 @@ class StandardsPage(QWidget):
     def show_effort(self):
         eff = self.host.ws.get("prod_std", {}) or {}
         said = eff.get("said") or []
-        self.eff_text.setText(("From the RFP: " + "; ".join(said) + ". These replace the document type's values for this effort.")
+        self.eff_text.setText(("From the RFP: " + "; ".join(said) + ". These replace the profile's values for this effort.")
                               if said else "Nothing from the RFP yet. Fill from the RFP's formatting rules reads them from Submission Rules.")
 
     def fill_from_rfp(self):

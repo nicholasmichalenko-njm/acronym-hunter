@@ -72,7 +72,7 @@ class FixPage(QWidget):
         self.vol_src = D.label("", "muted"); r3.addWidget(self.vol_src)
         self.card.body.addLayout(r3)
         r4 = QHBoxLayout()
-        r4.addWidget(D.label("Document type", "label", wrap=False))
+        r4.addWidget(D.label("Profile", "label", wrap=False))
         self.dtype = QComboBox(); self.dtype.setMinimumWidth(260); r4.addWidget(self.dtype)
         self.dtype.activated.connect(lambda _i: self.dtype_chosen())
         self.dtype_src = D.label("", "muted"); r4.addWidget(self.dtype_src, 1)
