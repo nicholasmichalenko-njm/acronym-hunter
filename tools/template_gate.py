@@ -114,6 +114,8 @@ def compare(lib, word):
                 ok = sorted([round(float(a), 1), b, c] for a, b, c in v) == sorted(have)
             elif k.startswith("border_") or k == "shading":
                 ok = str(have).upper() == str(v).upper()
+                if not ok and k.startswith("border_") and str(have).upper().endswith(" AUTO"):
+                    ok = str(have).split()[0] == str(v).split()[0]    # a theme-colored border reads as automatic in Word's API
             elif isinstance(v, (int, float)) and not isinstance(v, bool):
                 ok = abs(float(have) - float(v)) < 0.06
             else:
