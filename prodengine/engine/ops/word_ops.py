@@ -53,7 +53,12 @@ BUILTIN_NAMES = (["Normal", "Title", "Subtitle", "Body Text", "Body Text 2", "Bo
                   "table of authorities", "Message Header", "E-mail Signature", "List Continue", "Revision"]
                  + [f"heading {k}" for k in range(1, 10)] + [f"toc {k}" for k in range(1, 10)]
                  + [f"List Bullet{'' if k == 1 else ' ' + str(k)}" for k in range(1, 6)]
-                 + [f"List Number{'' if k == 1 else ' ' + str(k)}" for k in range(1, 6)])
+                 + [f"List Number{'' if k == 1 else ' ' + str(k)}" for k in range(1, 6)]
+                 + [f"List Continue {k}" for k in range(2, 6)] + ["List 4", "List 5"] + [f"index {k}" for k in range(1, 10)]
+                 + ["index heading", "annotation reference", "annotation subject", "envelope address", "envelope return",
+                    "Normal Indent", "Document Map", "HTML Preformatted", "HTML Address", "HTML Cite", "HTML Code", "HTML Acronym",
+                    "HTML Definition", "HTML Keyboard", "HTML Sample", "HTML Typewriter", "HTML Variable", "Hashtag", "Mention",
+                    "Smart Hyperlink", "Unresolved Mention", "Smart Link", "Light Shading", "Light List", "Light Grid"])
 _BUILTIN = {norm(n): n for n in BUILTIN_NAMES}
 
 
@@ -196,7 +201,7 @@ def theme_fonts(pkg):
     return out
 
 
-def effective(root, s, what, theme=None):
+def effective(root, s, what, theme=None, no_defaults=False):
     """3.6.0: the value a style shows for one property, through its basedOn chain and the document defaults, as
     Word resolves it. None when it comes from a theme font (not compared; the fix then writes it)."""
     def on(el):
@@ -204,7 +209,7 @@ def effective(root, s, what, theme=None):
     defaults = root.find("w:docDefaults", NS)
     rdef = defaults.find("w:rPrDefault/w:rPr", NS) if defaults is not None else None
     pdef = defaults.find("w:pPrDefault/w:pPr", NS) if defaults is not None else None
-    for st in list(_chain(root, s)) + [None]:
+    for st in list(_chain(root, s)) + ([] if no_defaults else [None]):
         rpr = st.find("w:rPr", NS) if st is not None else rdef
         ppr = st.find("w:pPr", NS) if st is not None else pdef
         if what == "font" and rpr is not None and rpr.find("w:rFonts", NS) is not None:
@@ -266,6 +271,8 @@ def effective(root, s, what, theme=None):
         if el is None:
             return None if what == "based_on" else _name_of(root, s.get(q("styleId")))
         return _name_of(root, el.get(q("val")))
+    if no_defaults:
+        return None
     return {"size": 10.0, "bold": False, "italic": False, "color": "AUTO", "before": 0.0, "after": 0.0, "line": 1.0,
             "jc": "left", "keep_next": False, "keep_lines": False, "page_break_before": False, "widow": True, "caps": False,
             "small_caps": False, "underline": False, "left": 0.0, "right": 0.0, "first": 0.0, "hanging": 0.0,
