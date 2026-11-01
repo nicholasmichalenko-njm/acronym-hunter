@@ -44,6 +44,16 @@ def output_folder(settings, data_dir):
     return p if p else default_folder(data_dir)
 
 
+def effort_folder(base, effort=""):
+    """The open effort's own folder inside the output folder (copies of one effort together); the output folder itself
+    with no effort open. The name keeps only characters Windows allows in a folder name."""
+    name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', " ", effort or "")
+    name = " ".join(name.split()).rstrip(". ")[:80]
+    if name.upper() in ("CON", "PRN", "AUX", "NUL") or re.fullmatch(r"(?i)(COM|LPT)\d", name):
+        name = "_" + name
+    return os.path.join(base, name) if name else base
+
+
 _ROOTS = set()
 
 

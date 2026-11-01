@@ -291,8 +291,10 @@ TOPICS = [
   "and a file someone has open is not copied at all.",
   "Before each color review and for final production, on each volume.",
   ["Check the output folder (Change... sets it; the default is Production Copies in the Stationkeeper data folder). "
-   "Copies never go beside the original.",
-   "Pick a draft from the Volumes folder, or Add a file..., and press Check. Each area shows what it found.",
+   "Each effort's copies go in a folder with the effort's name inside it. Copies never go beside the original.",
+   "Pick a draft from the Volumes folder, or Add a file.... Its volume name comes from the Deliverables board when the "
+   "draft is a deliverable's file; otherwise type it. The solicitation comes from the effort's basics. Headers and "
+   "footers are built only when both are set. Press Check; each area shows what it found.",
    "What to fix: every fix is listed under its area with what it found; untick any you do not want. Expand a fix to "
    "see each finding and where it is.",
    "Tables: pick a table to see every row's role. Rows in bold wait for your answer; one answer covers every row "

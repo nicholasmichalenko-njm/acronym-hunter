@@ -11,7 +11,7 @@ unchanged."""
 import copy, os, sys, time
 from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QDesktopServices, QKeySequence, QShortcut
-from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QHeaderView, QLabel, QListWidget,
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QHeaderView, QLabel, QLineEdit, QListWidget,
                                QListWidgetItem, QScrollArea, QSplitter, QTableWidget, QTableWidgetItem, QTreeWidget, QTreeWidgetItem,
                                QVBoxLayout, QWidget, QFrame)
 import bgwork, diag
@@ -35,6 +35,7 @@ class FixPage(QWidget):
         self.plan = None
         self.job = None
         self.path = ""
+        self.vol_typed = {}       # path -> volume name the person typed for that draft
         self._work = None
         self._result = None
         outer = QVBoxLayout(self); outer.setContentsMargins(0, 0, 0, 0)
@@ -62,6 +63,14 @@ class FixPage(QWidget):
         fr.addStretch(1)
         self.cloud = D.label("", "muted"); fr.addWidget(self.cloud)
         self.card.body.addLayout(fr)
+        r3 = QHBoxLayout()
+        r3.addWidget(D.label("Volume name", "label", wrap=False))
+        self.vol = QLineEdit(); self.vol.setPlaceholderText("The name this volume's headers show, for example Volume I Technical")
+        self.vol.textEdited.connect(lambda t: self.vol_typed.__setitem__(self.path, t) if self.path else None)
+        r3.addWidget(self.vol, 1)
+        self.vol_src = D.label("", "muted"); r3.addWidget(self.vol_src)
+        self.card.body.addLayout(r3)
+        self.ctx_lbl = self.card.add(D.label("", "muted"))
         self.status = self.card.add(D.label("Pick a draft and press Check.", "muted"))
         v.addWidget(self.card)
         # the fixes
@@ -139,11 +148,55 @@ class FixPage(QWidget):
         st, data_dir = self.settings()
         return PCY.output_folder(st, data_dir)
 
-    def std(self):
-        return PRL.for_effort(self.host.config_dir, self.host.ws)
+    def effort_folder(self):
+        return PCY.effort_folder(self.folder(), self.host.effort_name or "")
+
+    def record(self):
+        if self.host.ws is None:
+            return None
+        try:
+            import effortrec as R
+            return R.Record(self.host.ws.root)
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            return None
+
+    def context(self, path=None):
+        """The effort's own values for this draft: solicitation, company, the deliverable it belongs to, the team's lists."""
+        h = self.host
+        info = (h.efforts.get(h.effort_name) or {}) if h.effort_name else {}
+        lst = None
+        if h.ws is not None:
+            try:
+                lst = h.record_page.effort_list()
+            except Exception:  # noqa: BLE001
+                diag.swallowed()
+        return PRL.context(h.config_dir, h.effort_name or "", info, lst, self.record(), self.path if path is None else path)
+
+    def std(self, ctx=None):
+        """The standard for the picked draft: team, document type, effort, then the effort's and the draft's own values."""
+        base = PRL.for_effort(self.host.config_dir, self.host.ws)
+        ctx = ctx if ctx is not None else self.context()
+        std = PRL.apply_context(base, ctx, volume_name=self.vol.text() if self.vol.text().strip() else None)
+        std["name"], std["effort_over"] = base["name"], base.get("effort_over")
+        return std
+
+    def show_context(self, ctx):
+        v = ctx.get("variables", {})
+        d = ctx.get("deliverable")
+        if self.path and self.path not in self.vol_typed:
+            self.vol.setText(v.get("volume_name", "") if d else "")
+        self.vol_src.setText(f"from the Deliverables board ({d['name']})" if d and self.path not in self.vol_typed else
+                             ("typed" if self.path in self.vol_typed else "not on the Deliverables board: type it to build headers"))
+        lists = ctx.get("lists", {})
+        self.ctx_lbl.setText(f"Solicitation: {v.get('solicitation') or 'not set (effort basics)'}"
+                             + (f"; company: {v['company']}" if v.get("company") else "")
+                             + f". Terms from the team: {len(ctx.get('banned', []))} banned phrases, "
+                             f"{len(lists.get('team_terms', []))} dictionary words, {len(lists.get('employee_names', []))} names, "
+                             f"{len(lists.get('acronyms', []))} approved acronyms.")
 
     def refresh(self):
-        self.out_lbl.setText(self.folder())
+        self.out_lbl.setText(self.effort_folder())
         s = self.std()
         v = s["variables"]
         self.std_lbl.setText(f"{s['name']}{' + this effort' if s.get('effort_over') else ''}: body {v.get('body_font')} "
@@ -188,6 +241,10 @@ class FixPage(QWidget):
     def file_changed(self):
         it = self.files.currentItem()
         self.path = it.data(Qt.UserRole) if it else ""
+        try:
+            self.show_context(self.context())
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
         kind = PCY.cloud_kind(self.path) if self.path else ""
         self.cloud.setText(f"In a {kind} folder: people editing it online can't be seen from here; the copy is the version "
                            "synced to this PC." if kind else "")
@@ -201,12 +258,12 @@ class FixPage(QWidget):
         st = app_gui.load_settings() or {}
         st["prod_output_dir"] = path
         app_gui.save_settings(st)
-        self.out_lbl.setText(path)
+        self.out_lbl.setText(self.effort_folder())
         diag.activity("prod_output_folder_set")
         return path
 
     def open_folder(self):
-        f = self.folder()
+        f = self.effort_folder()
         os.makedirs(f, exist_ok=True)
         QDesktopServices.openUrl(QUrl.fromLocalFile(f))
 
@@ -522,7 +579,7 @@ class FixPage(QWidget):
         plan["word_update"] = self.word_cb.isChecked()
         if "xref_relink" in plan["on"] and not plan["xref_mapping"]:
             plan["on"].remove("xref_relink")
-        std, path, folder = self.std(), self.path, self.folder()
+        std, path, folder = self.std(), self.path, self.effort_folder()
         if word is None and plan["word_update"] and sys.platform.startswith("win"):
             import prodword
             word = prodword.update_fields
@@ -574,6 +631,15 @@ class FixPage(QWidget):
                                    + s["step"] + (f"  ({s['refused'][:160]})" if "refused" in s else ""))
         self.res_card.setVisible(True)
         self.status.setText(f"Done. The copy and its report are in {os.path.dirname(job.copy)}.")
+        rec = self.record()
+        if rec is not None:
+            try:
+                rec.log("production", f"Fix a Copy: {os.path.basename(job.copy)} made from {os.path.basename(job.original)}; "
+                        f"{len(changed)} fix(es), {job.before_check.count()} found, {job.after_check.count()} left; original "
+                        + ("unchanged" if job.original_ok else "changed by someone else while it was copied"),
+                        ref={"copy": job.copy, "original": job.original}, save=True)
+            except Exception:  # noqa: BLE001
+                diag.swallowed()
         diag.activity("prod_fixed", n=len(job.steps), rows=len(refused))
 
     def open_copy(self):

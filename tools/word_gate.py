@@ -17,7 +17,7 @@ manifest):
 Also the engine's puncture suite with Stationkeeper's engine. Usage:
   python tools\\word_gate.py <fixtures dir> <work dir> <results.json> <lab harness dir> [small,large,xl]
 """
-import json, os, re, shutil, sys, tempfile, time, traceback
+import json, os, re, shutil, sys, tempfile, time, traceback, zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -250,7 +250,8 @@ def gate(name):
     orig = os.path.join(src_dir, f"{name} volume.docx")
     shutil.copy2(fx, orig)
     before = PCY.state(orig)
-    std = PRL.for_effort(tempfile.mkdtemp())
+    vol_name, sol = f"Volume {name.upper()} Technical", "GATE-26-R-0361"       # 3.6.1: the effort's and the file's own values
+    std = PRL.apply_context(PRL.for_effort(tempfile.mkdtemp()), {"variables": {"solicitation": sol}}, volume_name=vol_name)
     t = time.perf_counter()
     chk = PF.check(orig, std)
     res["check_s"] = round(time.perf_counter() - t, 1)
@@ -297,6 +298,9 @@ def gate(name):
     res["error_refs"] = errs
     ok["broken references: only the planted ones"] = errs == sorted(man["broken_refs"])
     ok["header and footer fields clean"] = hf_codes(job.copy) == []
+    with zipfile.ZipFile(job.copy) as z:
+        htxt = " ".join(z.read(n).decode("utf-8", "replace") for n in z.namelist() if n.startswith("word/header"))
+    ok["headers name this volume and this solicitation, no sample value"] = vol_name in htxt and sol in htxt and "EX-26-R-0001" not in htxt
     tr = table_roles(fx, job.copy, PRL.engine_ready(std))
     res["table_roles"] = tr
     ok["every table row carries its role's style"] = tr["wrong"] == 0 and tr["tables"] == man["tables"] + man["figures"]

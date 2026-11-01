@@ -20,6 +20,12 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.6.1": ["Fix a Copy: headers take this effort's solicitation and the volume's name (from the Deliverables board, or typed "
+              "on the page); with either one blank, headers and footers are left as they are. The team standard holds no "
+              "sample names, products or numbers.",
+              "Fix a Copy: terms come from the team's Banned Phrases, the custom dictionaries, the author list and the "
+              "effort's approved acronyms. Copies go in the effort's own folder in the output folder, and the effort's "
+              "record notes each one. Fill from the RFP also reads line spacing."],
     "3.6.0": ["Production > Fix a Copy: fixes a Word draft to the production standard in a dated copy in the output folder; "
               "the original is never changed, and a file someone has open is not copied. Tables by row role, captions and "
               "numbering, TOC, pages, headers and footers, lists, fonts and styles, then Word updates the fields.",

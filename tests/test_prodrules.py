@@ -94,6 +94,58 @@ class Sec:
 
 check("the last section starting with a back cover style is the back cover", S._starts(part, Sec(), 10, 11)
       and not S._starts(part, Sec(), 9, 11) and not S._starts(part, type("X", (), {"first_style": "Heading 7"})(), 10, 11))
+# ---------------------------------------------------------------- 3.6.1: the effort's own values, never a sample
+os.environ["AH_TEST"] = "1"
+import app_gui as A
+A.CONFIG_DIR = os.path.join(tempfile.mkdtemp(), "config"); os.makedirs(A.CONFIG_DIR)
+over, said = P.from_rfp([{"kind": "Format", "subject": "Line spacing", "value": "double-spaced"}])
+o2, _ = P.from_rfp([{"kind": "Format", "subject": "Line spacing", "value": "single-spaced"}])
+o3, _ = P.from_rfp([{"kind": "Format", "subject": "Line spacing", "value": "1.5 line spacing"}])
+check("3.6.1: the RFP's line spacing fills the effort", over["variables"]["line_spacing"] == "double" and o2["variables"]["line_spacing"] == "single"
+      and o3["variables"]["line_spacing"] == "1.5" and said == ["Line spacing: double-spaced"], (over, o2, o3))
+import banned as BN, customdict as CD, authorlist as AL, effortrec as ER, deliverables as DL
+BN.save([{"Phrase": "world-class", "Level": "Banned", "Use instead": "", "Why": "Unsupported"},
+         {"Phrase": "utilize", "Level": "Avoid", "Use instead": "use", "Why": ""}])
+st = CD.Store(A.CONFIG_DIR); st.add("Team words", ["cislunar", "MBSE"]); st.save()
+al = AL.load(A.CONFIG_DIR); al.add("Dana Whitfield"); al.add("Lee Osei", efforts=["Other effort"]); al.save()
+
+
+class Lst:
+    rows = {"CDRL": {"Status": "Approved"}, "XYZ": {"Status": "Proposed"}}
+
+
+efdir = tempfile.mkdtemp()
+rec = ER.Record(efdir)
+draft = os.path.join(efdir, "Tech v3.docx"); open(draft, "wb").close()
+DL.add(rec, "Volume II Management", file=draft, limit="25 pages")
+ctx = P.context(A.CONFIG_DIR, "Osprey", {"solicitation": " FA8810-26-R-0042 "}, Lst(), rec, draft)
+check("3.6.1: the solicitation comes from the effort's basics", ctx["variables"]["solicitation"] == "FA8810-26-R-0042", ctx["variables"])
+check("3.6.1: a draft on the Deliverables board takes the deliverable's name as its volume name",
+      ctx["variables"]["volume_name"] == "Volume II Management" and ctx["deliverable"]["limit"] == "25 pages", ctx["deliverable"])
+check("3.6.1: banned phrases from the team's list, with their suggestion", [b["find"] for b in ctx["banned"]] == ["utilize", "world-class"]
+      and ctx["banned"][0]["suggest"] == "use")
+check("3.6.1: dictionary words, this effort's authors and its approved acronyms",
+      ctx["lists"]["team_terms"] == CD.sort_words(["cislunar", "MBSE"]) and ctx["lists"]["employee_names"] == ["Dana Whitfield"]
+      and ctx["lists"]["acronyms"] == ["CDRL"], ctx["lists"])
+none = P.context(A.CONFIG_DIR, "", {}, None, rec, os.path.join(efdir, "elsewhere.docx"))
+check("3.6.1: a draft not on the board has no volume name; no effort, no solicitation", "volume_name" not in none["variables"]
+      and "solicitation" not in none["variables"] and none["deliverable"] is None)
+std = P.for_effort(cfg)
+lay = P.merge(std, {"variables": {"solicitation": "SET-BY-LAYER"}})
+got = P.apply_context(lay, ctx)
+check("3.6.1: a value a layer sets wins over the effort's; blank values are filled", got["variables"]["solicitation"] == "SET-BY-LAYER"
+      and got["variables"]["volume_name"] == "Volume II Management")
+got2 = P.apply_context(std, ctx, volume_name="Volume II  Management Approach")
+check("3.6.1: the volume name typed on Fix a Copy wins", got2["variables"]["volume_name"] == "Volume II Management Approach")
+check("3.6.1: team lists are added to the standard, which is not changed", "MBSE" in got2["terms"]["lists"]["team_terms"]
+      and not std["terms"]["lists"]["team_terms"] and any(b["find"] == "utilize" for b in got2["terms"]["banned"]))
+check("3.6.1: the layouts' tokens are known, and blank ones without a cover paragraph are missing",
+      set(P.hf_tokens(std)) == {"volume_name", "solicitation"} and P.missing_values(std) == ["volume_name", "solicitation"]
+      and P.missing_values(std, ["PE Volume Name", "PE Solicitation"]) == [] and P.missing_values(got2) == [])
+import prodcopy as PCY
+check("3.6.1: each effort's copies go in its own folder, named safely", PCY.effort_folder("C:/Out", "Osprey: Phase 2?") == os.path.join("C:/Out", "Osprey Phase 2")
+      and PCY.effort_folder("C:/Out", "") == "C:/Out" and PCY.effort_folder("C:/Out", "CON") == os.path.join("C:/Out", "_CON")
+      and PCY.effort_folder("C:/Out", "Draft. ") == os.path.join("C:/Out", "Draft"))
 n = sum(checks)
 print(f"PROD RULES {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

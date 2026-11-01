@@ -41,7 +41,7 @@ RULE_TEXT = {
     "P1": "Page number format", "P2": "Page number restart", "P3": "Chapter heading inside a section", "P4": "Header names another volume",
     "P5": "PAGE field with a format switch", "P6": "No page number field", "P7": "Page number where the scheme has none",
     "P8": "Placed landscape page with its own header or footer", "P9": "Margins or page size off the page setup",
-    "P10": "Restriction marking missing",
+    "P10": "Restriction marking missing", "P11": "Header value not set (volume name, solicitation)",
     "L1": "Typed bullets", "L2": "Typed numbers or letters", "L3": "Numbering pasted from another document",
     "L4": "Hand indents on list paragraphs", "L5": "List continues the numbering before it", "L5?": "List restart to decide",
     "L6": "Typed number inside a numbered heading", "L7": "Typed list in a table cell", "L8": "Unused list definitions",
@@ -142,6 +142,8 @@ class Check:
         self.bookmarks = []       # targets a broken reference can point to
         self.styles = {}          # {"in_use": [...], "unused_custom": [...], "hide": [...], "not_allowed": [...]}
         self.would = {}           # fix key -> count of changes the fix would make (dry run)
+        self.hf_sources = []      # cover paragraph styles the headers can read through STYLEREF (PE Volume Name...)
+        self.missing = []         # volume tokens the layouts use that have no value and no cover paragraph
         self.stats = {}
         self.error = ""
         self.seconds = 0.0
@@ -260,6 +262,15 @@ def check(path, std, data=None):
     except Exception as e:  # noqa: BLE001  one area failing must not hide the others
         chk.error += f" Captions and references could not be read ({type(e).__name__})."
     try:
+        chk.hf_sources = sorted(H._sources(pkg))
+    except Exception:  # noqa: BLE001
+        chk.hf_sources = []
+    chk.missing = PRL.missing_values(std, chk.hf_sources)
+    if chk.missing:
+        _add(chk, "pages", "P11", "warning", "Headers and footers are not built until these are set: "
+             + ", ".join(PRL.HF_TOKENS[k] for k in chk.missing) + " (the volume name on this page; the solicitation in the "
+             "effort's basics)", -1, "")
+    try:
         sm = S.map_sections(pkg, std)
         chk.stats["sections"] = len(sm.sections)
         chk.sections = [{"i": s.i, "part": s.part, "first": s.first_style, "orient": s.orient, "shows": s.shows} for s in sm.sections]
@@ -366,6 +377,8 @@ def default_plan(chk):
     for k, n in chk.would.items():
         if n and k not in ("styles_merge",):
             on.add(k)
+    if getattr(chk, "missing", None):
+        on.discard("hf_build")            # never type a blank volume name or solicitation into headers
     return {"on": [f["key"] for f in FIXES if f["key"] in on], "word_update": any(f["fix"] == "word_update" for f in chk.findings) or
             bool(on & {"caption_typed", "caption_fields", "toc_field", "toc_list_identifiers", "page_numbers", "chapter_breaks", "hf_build",
                        "unnumber_inheriting", "heading_numbering"}),
@@ -393,6 +406,12 @@ def run(path, folder, std, plan, word=None, progress=None, open_list=PCY._ASK, w
         if fx["key"] == "styles_merge" and not os.path.isfile((std.get("styles") or {}).get("template") or ""):
             job.steps.append({"step": fx["label"], "key": fx["key"], "changed": False, "refused": "The standard's template file is not there."})
             continue
+        if fx["key"] == "hf_build":
+            gone = PRL.missing_values(std, getattr(job.before_check, "hf_sources", []))
+            if gone:
+                job.steps.append({"step": fx["label"], "key": fx["key"], "changed": False, "refused": "Not set: " +
+                                  ", ".join(PRL.HF_TOKENS[k] for k in gone) + ". Headers and footers were left as they were."})
+                continue
         say(fx["label"])
         rec = PCY.run_step(job, fx["label"], fx["op"], fx["allowed"], fx["args"](std, plan))
         rec["key"] = fx["key"]

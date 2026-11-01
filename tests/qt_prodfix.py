@@ -49,7 +49,13 @@ pg.choose_folder(out)
 check("the output folder setting is kept", pg.folder() == out and (A.load_settings() or {}).get("prod_output_dir") == out)
 names = [pg.files.item(i).text() for i in range(pg.files.count())]
 check("the Volumes folder's drafts are listed", any("Volume I Technical" in n for n in names), names)
-pg.files.setCurrentRow(next(i for i, n in enumerate(names) if "Volume I Technical" in n))
+pg.files.setCurrentRow(next(i for i, n in enumerate(names) if "Volume I Technical" in n)); app.processEvents()
+check("3.6.1: the effort's solicitation shows; a draft not on the Deliverables board has no volume name yet",
+      "FA8810-26-R-0042" in pg.ctx_lbl.text() and pg.vol.text() == "" and "type it" in pg.vol_src.text(), (pg.ctx_lbl.text(), pg.vol_src.text()))
+chk = pg.check(wait=True)
+check("3.6.1: with no volume name, headers stay off and the page says what to set", "hf_build" not in pg.plan["on"]
+      and any(f["rule"] == "P11" for f in chk.findings))
+pg.vol.setText("Volume I Technical"); pg.vol.textEdited.emit("Volume I Technical")
 chk = pg.check(wait=True)
 check("Check reads the draft: findings, tables, captions, sections", chk is not None and chk.count() > 50 and len(chk.tables) == 35
       and "35 table(s)" in pg.status.text(), pg.status.text())
@@ -72,9 +78,16 @@ check("a key sets the selected rows' role, kept for the fix", n == 1 and pg.plan
 check("broken cross-references wait for a target", pg.more_card.isVisibleTo(pg) and pg.decide.count() >= 1)
 pg.word_cb.setChecked(False)
 job = pg.make(wait=True, open_list=[])
-check("Make the fixed copy: a dated copy in the output folder", job is not None and os.path.dirname(job.copy) == out
+check("Make the fixed copy: a dated copy in the effort's folder in the output folder", job is not None and os.path.dirname(job.copy) == os.path.join(out, "Osprey")
       and PCY.is_copy_name(job.copy) and os.path.isfile(job.copy), getattr(job, "copy", pg.status.text()))
 check("its report beside it", job is not None and os.path.isfile(job.report))
+import effortrec as _ER
+ev = _ER.Record(w.ws.root).events(kinds=("production",))
+check("3.6.1: the effort's record notes the copy", ev and os.path.basename(job.copy) in ev[0]["text"] and ev[0]["ref"]["copy"] == job.copy, ev[:1])
+hdr = PCY.__name__ and __import__("zipfile").ZipFile(job.copy)
+txt = " ".join(hdr.read(n).decode("utf-8", "replace") for n in hdr.namelist() if n.startswith("word/header"))
+check("3.6.1: the headers name this volume and this solicitation, never a sample", "FA8810-26-R-0042" in txt and "Volume I Technical" in txt
+      and "EX-26-R-0001" not in txt)
 check("THE GATE: the original is byte for byte unchanged", sha(vol) == before and job.original_ok)
 check("nothing was written beside the original", sorted(os.listdir(os.path.dirname(vol))) == ["Volume I Technical.docx"],
       os.listdir(os.path.dirname(vol)))

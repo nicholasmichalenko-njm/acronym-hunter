@@ -23,7 +23,25 @@ out = os.path.join(tmp, "Production Copies")
 orig = os.path.join(src, "Volume I.docx")
 shutil.copy2(os.path.join(HERE, "pefix", "data", "small.docx"), orig)
 before = PCY.state(orig)
-std = PRL.for_effort(tempfile.mkdtemp())
+std0 = PRL.for_effort(tempfile.mkdtemp())
+check("3.6.1: no sample volume name, solicitation or company in the team standard", all(PRL.COMPANY["variables"][k] == ""
+      for k in ("volume_name", "solicitation", "company")) and std0["variables"]["volume_name"] == "")
+t = PRL.COMPANY["terms"]
+check("3.6.1: no sample names, products or marks in the team standard's terms", not t["banned"] and not any(t["lists"].values())
+      and all(r["why"] == "Common misspelling" for r in t["replace"]), t)
+chk0 = PF.check(orig, std0)
+plan0 = PF.default_plan(chk0)
+check("3.6.1: blank volume name and solicitation: P11 says so, no P4, headers stay off the plan",
+      chk0.by_area()["pages"]["P11"] == 1 and not chk0.by_area()["pages"]["P4"] and "hf_build" not in plan0["on"]
+      and set(chk0.missing) == {"volume_name", "solicitation"}, (dict(chk0.by_area()["pages"]), chk0.missing))
+plan0["on"] = ["hf_build"]; plan0["word_update"] = False
+job0 = PF.run(orig, os.path.join(tmp, "Blank copies"), std0, plan0, open_list=[], before=chk0)
+st0 = next(s for s in job0.steps if s.get("key") == "hf_build")
+check("3.6.1: headers forced on with blank values are refused; the copy keeps its headers", "refused" in st0 and "Volume name" in st0["refused"]
+      and not st0["changed"], st0)
+std = PRL.apply_context(std0, {"variables": {"solicitation": "FA8810-26-R-0042", "company": "Northwind"}}, volume_name="Volume I Technical")
+check("3.6.1: the effort's solicitation and the typed volume name fill the standard for this file",
+      std["variables"]["solicitation"] == "FA8810-26-R-0042" and std["variables"]["volume_name"] == "Volume I Technical")
 chk = PF.check(orig, std)
 by = chk.by_area()
 check("the check reads every area", not chk.error and chk.stats.get("captions") == 35 and chk.stats.get("sections") == 11, chk.error)

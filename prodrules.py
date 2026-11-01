@@ -22,6 +22,9 @@ SCOPE_NAMES = {"body": "Body text", "heading": "Headings", "table": "Text in tab
                "header_footer": "Headers and footers", "footnote": "Footnotes", "graphic": "Text in graphics"}
 VAR_FOR_SCOPE = {"body": ("body_font", "body_size"), "table": ("table_font", "table_size"),
                  "caption": ("caption_font", "caption_size")}
+# header and footer tokens that name one volume or one effort (filled from the effort and the file, never stored)
+HF_TOKENS = {"volume_name": "Volume name", "solicitation": "Solicitation", "company": "Company",
+             "classification": "Classification", "project": "Project"}
 PAGE_SIZES = {"Letter": (8.5, 11), "A4": (8.27, 11.69), "Legal": (8.5, 14), "Tabloid": (11, 17)}
 
 
@@ -36,6 +39,13 @@ def _company_default():
                    "table_caption_position": "first row", "landscape_ok": True}
     c["pagination"] = presets()["team"]
     c["hf_layouts"]["backer"] = {"header": {}, "footer": {}}
+    # values that belong to one volume or one effort are never part of a standard: they come from the effort and the
+    # file each time (context below), so no sample value can ever be typed into a real copy
+    c["variables"].update({k: "" for k in HF_TOKENS})
+    t = c["terms"]
+    t["banned"] = []                    # the team's Banned Phrases list is added for each run
+    t["replace"] = [r for r in t["replace"] if r.get("why") == "Common misspelling"]
+    t["lists"] = {k: [] for k in t["lists"]}   # dictionaries, author list and the effort's acronyms are added for each run
     c["name"] = "Team standard"
     return c
 
@@ -240,7 +250,128 @@ def from_rfp(rows):
         elif subj == "Page size":
             over.setdefault("variables", {})["paper"] = "A4" if "a4" in val.lower() else "Letter"
             said.append(f"Page size: {val}")
+        elif subj == "Line spacing":
+            low = val.lower()
+            sp = ("double" if "double" in low or re.search(r"\b2(?:\.0)?\b", low) else
+                  "1.5" if re.search(r"1\.5|one and a half|one-and-a-half", low) else
+                  "1.15" if "1.15" in low else "single" if "single" in low or re.search(r"\b1(?:\.0)?\b", low) else "")
+            if sp:
+                over.setdefault("variables", {})["line_spacing"] = sp
+                said.append(f"Line spacing: {val}")
     return over, said
+
+
+# ------------------------------------------------------------------ the effort's and the file's own values
+def volume_for(path, rec):
+    """The deliverable a draft belongs to (by its file), or None."""
+    if not path or rec is None:
+        return None
+    try:
+        import deliverables as DL
+        want = os.path.normcase(os.path.realpath(path))
+        for d in DL.items(rec):
+            f = d.get("file") or ""
+            if f and os.path.normcase(os.path.realpath(f)) == want:
+                return d
+    except Exception:  # noqa: BLE001  no record, or an older one
+        return None
+    return None
+
+
+def context(config_dir, effort_name="", info=None, effort_list=None, rec=None, path=""):
+    """What a run takes from the effort and the team's lists, never from a stored standard:
+      variables  solicitation (the effort's basics), company (Folder plan), volume_name (the deliverable the draft
+                 belongs to; blank when the draft is not on the Deliverables board)
+      banned     the team's Banned Phrases
+      lists      team_terms (the custom dictionaries), employee_names (the author list for this effort), acronyms
+                 (the effort's approved acronyms)
+    Every source is optional; a source that cannot be read adds nothing."""
+    out = {"variables": {}, "banned": [], "lists": {}, "deliverable": None}
+    info = info or {}
+    if str(info.get("solicitation") or "").strip():
+        out["variables"]["solicitation"] = " ".join(str(info["solicitation"]).split())
+    try:
+        import folderplan as FPL
+        comp = FPL.load(config_dir).get("company") or ""
+        if comp:
+            out["variables"]["company"] = comp
+    except Exception:  # noqa: BLE001
+        pass
+    d = volume_for(path, rec)
+    if d:
+        out["deliverable"] = {k: d.get(k, "") for k in ("id", "name", "kind", "limit", "format")}
+        out["variables"]["volume_name"] = d.get("name", "")
+    try:
+        import banned as BN
+        for r in BN.load():
+            if r.get("Phrase"):
+                out["banned"].append({"find": r["Phrase"], "suggest": r.get("Use instead", ""),
+                                      "why": r.get("Why") or r.get("Level") or "Banned phrase"})
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        import customdict as CD
+        words = set()
+        for dct in CD.Store(config_dir).dicts:
+            words.update(dct.get("words", []))
+        out["lists"]["team_terms"] = CD.sort_words(words)
+        if effort_list is not None:
+            out["lists"]["acronyms"] = CD.from_effort(effort_list)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        import authorlist as AL
+        al = AL.load(config_dir)
+        out["lists"]["employee_names"] = al.for_effort(effort_name) if effort_name else al.names()
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
+def apply_context(std, ctx, volume_name=None):
+    """The standard for one file: blank volume values filled from the context (a value a layer sets wins; the volume
+    name typed on Fix a Copy wins over both), the team's banned phrases and lists added to the standard's own."""
+    std = copy.deepcopy(std)
+    v = std.setdefault("variables", {})
+    for k, val in (ctx or {}).get("variables", {}).items():
+        if val and not str(v.get(k) or "").strip():
+            v[k] = val
+    if volume_name is not None:
+        v["volume_name"] = " ".join(str(volume_name).split())
+    t = std.setdefault("terms", copy.deepcopy(COMPANY["terms"]))
+    have = {str(b.get("find", "")).casefold() for b in t.get("banned", [])}
+    for b in (ctx or {}).get("banned", []):
+        if b["find"].casefold() not in have:
+            t.setdefault("banned", []).append(b); have.add(b["find"].casefold())
+    lists = t.setdefault("lists", {})
+    for k, words in (ctx or {}).get("lists", {}).items():
+        lists[k] = sorted(set(lists.get(k) or []) | set(words or []), key=str.casefold)
+    return std
+
+
+def hf_tokens(std):
+    """The volume tokens the header and footer layouts and the page scheme use: {token: where}."""
+    out = {}
+    for part, lay in (std.get("hf_layouts") or {}).items():
+        for side in ("header", "footer"):
+            for slot, text in (lay.get(side) or {}).items():
+                for k in re.findall(r"\{(\w+)\}", text if isinstance(text, str) else ""):
+                    if k in HF_TOKENS:
+                        out.setdefault(k, f"{part} {side}")
+    for p in (std.get("pagination") or {}).get("parts", []):
+        for k in re.findall(r"\{(\w+)\}", p.get("header") or ""):
+            if k in HF_TOKENS:
+                out.setdefault(k, f"{p.get('name', p.get('key'))} header")
+    return out
+
+
+def missing_values(std, sources=()):
+    """Tokens the layouts use whose value is blank and that the document cannot supply itself (a cover paragraph in
+    the token's style, which headers then read through STYLEREF): [token]. Headers and footers are built only when
+    this is empty, so a blank or wrong value is never typed into a copy."""
+    from prodengine.pe.hf import SOURCE_STYLES
+    v = std.get("variables") or {}
+    return [k for k in hf_tokens(std) if not str(v.get(k) or "").strip() and SOURCE_STYLES.get(k) not in set(sources)]
 
 
 # ------------------------------------------------------------------ Format Check (3.5) reads a flat view
