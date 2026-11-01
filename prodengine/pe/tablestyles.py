@@ -55,16 +55,21 @@ def _attrs(x):
     return tuple(sorted((etree.QName(a).localname, v) for a, v in x.attrib.items()))
 
 
+# Word's own defaults when docDefaults say nothing (Word leaves an empty pPrDefault when they match these)
+BUILTIN = {("pPr", "spacing"): {"before": "0", "after": "0", "line": "240", "lineRule": "auto"},
+           ("pPr", "ind"): {"left": "0", "right": "0", "start": "0", "end": "0", "firstLine": "0", "hanging": "0"}}
+
+
 def _defaults(root):
     """{("pPr" | "rPr", tag): attrs} from the document defaults, for leaving out what only repeats them."""
-    out = {}
+    out = {k: dict(v) for k, v in BUILTIN.items()}
     if root is None:
         return out
     for part, path in (("pPr", "w:docDefaults/w:pPrDefault/w:pPr"), ("rPr", "w:docDefaults/w:rPrDefault/w:rPr")):
         el = root.find(path, NS)
         for x in (el if el is not None else []):
             if isinstance(x.tag, str):
-                out[(part, _local(x))] = dict(_attrs(x))
+                out.setdefault((part, _local(x)), {}).update(dict(_attrs(x)))
     return out
 
 

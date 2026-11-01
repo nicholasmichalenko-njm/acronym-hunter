@@ -279,7 +279,8 @@ _ts_word = _et.fromstring(f'<w:style {_W} w:type="table" w:styleId="T"><w:name w
 _ts_root = _et.fromstring(f'<w:styles {_W}><w:docDefaults><w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="240"/></w:pPr></w:pPrDefault></w:docDefaults></w:styles>')
 _ts_root2 = _et.fromstring(f'<w:styles {_W}><w:docDefaults><w:pPrDefault><w:pPr><w:spacing w:after="160"/></w:pPr></w:pPrDefault></w:docDefaults></w:styles>')
 check("3.10: a table style Word re-saved reads the same; a real difference still shows", _TS._sig(_ts_want, _ts_root) == _TS._sig(_ts_word, _ts_root)
-      and _TS._sig(_ts_want, _ts_root2) != _TS._sig(_ts_word, _ts_root2))
+      and _TS._sig(_ts_want, _ts_root2) != _TS._sig(_ts_word, _ts_root2)
+      and _TS._sig(_ts_want, _et.fromstring(f'<w:styles {_W}><w:docDefaults><w:pPrDefault/></w:docDefaults></w:styles>')) == _TS._sig(_ts_word, _ts_root))
 
 # ---------------------------------------------------------------- per-deliverable types, page limits
 check("page limits read from the Deliverables board's wording", PRL.page_limit("25 pages") == 25 and PRL.page_limit("15-page limit") == 15
