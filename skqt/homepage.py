@@ -374,7 +374,10 @@ class HomePage(QWidget):
             mine = dict(allp.get(self.host.effort_name or "", {})); mine[key] = on
             allp[self.host.effort_name or ""] = mine
             _save(pinned_strips=allp)
-            diag.activity("qt_strip_shown" if on else "qt_strip_hidden")
+            if on:
+                diag.activity("qt_strip_shown")
+            else:
+                diag.activity("qt_strip_hidden")
         return on
 
     def fill_strips(self, r):

@@ -191,7 +191,7 @@ if os.environ.get("SHOT_DIR"):
     sa = hp.findChild(QScrollArea)
     if sa: sa.ensureWidgetVisible(hp.fmt_card, 0, 0)
     app.processEvents(); w.grab().save(os.path.join(os.environ["SHOT_DIR"], "home_fmt2.png"))
-check("the Formatting requirements card is on the proposal manager's Effort Home", "formatting" in hp.shown and hp.fmt_card.isVisibleTo(hp))
+check("formatting is in Submission requirements on the proposal manager's Effort Dashboard (3.12.0)", "submission" in hp.shown and hp.fmt_card.isVisibleTo(hp))
 lines = {x["label"]: x for x in hp.fmt_now["lines"]}
 check("each rule: required with what and where, or not specified", set(lines) >= {"Font", "Margins", "Page size", "Line spacing", "File format", "File naming"}
       and all((x["value"] and x["where"]) if x["required"] else not x["value"] for x in lines.values()), {k: (v["required"], v["value"]) for k, v in lines.items()})

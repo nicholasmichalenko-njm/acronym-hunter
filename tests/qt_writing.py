@@ -51,7 +51,8 @@ labels = w.review.labels()
 # themes card
 w.go("home"); app.processEvents()
 hp = w.home_page
-check("Effort Home shows the Win themes card", hp.themes_card.isVisibleTo(w) and len(hp.themes_now) == 1)
+check("the Effort Dashboard shows the win themes under the header (3.12.0)", hp.strips["themes"].isVisibleTo(w) and len(hp.themes_now) == 1
+      and "Win themes   1" in hp.strips["themes"].title_label.text())
 tid = hp.theme_dialog(None, {"title": "Program office close to the customer", "kind": "Discriminator", "statement": "",
                              "discriminator": "", "proof": [], "sections": [labels[-1]], "hot": "", "words": ["Colorado"]})
 check("+ Theme... adds one", tid in hp.themes_now and TH.get(RR.Record(w.ws.root), tid)["kind"] == "Discriminator")

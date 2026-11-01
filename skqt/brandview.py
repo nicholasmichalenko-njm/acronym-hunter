@@ -184,7 +184,10 @@ class EffortBanner(QFrame):
                 _save(banner_condensed=self.condensed)
             except Exception:
                 diag.swallowed()
-            diag.activity("qt_banner_condensed" if self.condensed else "qt_banner_expanded")
+            if self.condensed:
+                diag.activity("qt_banner_condensed")
+            else:
+                diag.activity("qt_banner_expanded")
         return self.condensed
 
     def show_toggle(self, key, on):
