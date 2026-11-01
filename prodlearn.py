@@ -95,7 +95,9 @@ def style_definition(root, s, theme=None):
         if d["type"] == "character":       # a character style shows only what it sets; the rest is the paragraph's
             v = WO.effective(root, s, k, theme, no_defaults=True) if k != "based_on" else WO.effective(root, s, k)
         else:
-            v = _font(root, s, theme) if k == "font" else WO.effective(root, s, k)
+            v = _font(root, s, theme) if k == "font" else WO.effective(root, s, k, theme)
+        if isinstance(v, str) and "THEME" in v:    # 3.10.0: theme-linked with no theme in the file: keep the stored color
+            v = WO.effective(root, s, k, None, no_defaults=d["type"] == "character")
         if v is None or v == "" or (k in ("tabs", "border_top", "border_bottom", "border_left", "border_right", "shading")
                                     and v in ([], "none")):
             continue

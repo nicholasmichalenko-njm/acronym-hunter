@@ -197,8 +197,43 @@ def theme_fonts(pkg):
                 el = root.find(f".//{a}{kind}Font/{a}latin")
                 if el is not None and el.get("typeface"):
                     out[kind] = el.get("typeface")
+            cols = {}                                # 3.10.0: the theme's colors, for theme-linked colors
+            scheme = root.find(f".//{a}clrScheme")
+            for c in (scheme if scheme is not None else []):
+                if not isinstance(c.tag, str):
+                    continue
+                v = c.find(f"{a}srgbClr")
+                v = v.get("val") if v is not None else (c.find(f"{a}sysClr").get("lastClr") if c.find(f"{a}sysClr") is not None else None)
+                if v:
+                    cols[c.tag.split("}")[-1]] = v.upper()
+            out["_colors"] = cols
             break
     return out
+
+
+THEME_SLOTS = {"text1": "dk1", "dark1": "dk1", "background1": "lt1", "light1": "lt1", "text2": "dk2", "dark2": "dk2",
+               "background2": "lt2", "light2": "lt2", "hyperlink": "hlink", "followedHyperlink": "folHlink"}
+
+
+def theme_hex(el, theme):
+    """3.10.0: the color a theme-linked color shows (Word recomputes w:val from the file's theme when it saves).
+    None: not theme-linked, tinted, or no theme map given (the stored value stands). "THEME": linked, but the file has no
+    theme to resolve it against, so Word would use its own; never equal to a color the profile wants."""
+    tc = el.get(q("themeColor")) if el is not None else None
+    if not tc or theme is None:
+        return None
+    cols = theme.get("_colors") or {}
+    base = cols.get(THEME_SLOTS.get(tc, tc))
+    if not base:
+        return "THEME"
+    rgb = [int(base[i:i + 2], 16) for i in (0, 2, 4)]
+    shade, tint = el.get(q("themeShade")), el.get(q("themeTint"))
+    if shade:
+        f = int(shade, 16)
+        rgb = [c * f // 255 for c in rgb]
+    if tint:                                 # Word tints in its own color space: its stored value stands
+        return None
+    return "".join(f"{c:02X}" for c in rgb)
 
 
 def effective(root, s, what, theme=None, no_defaults=False):
@@ -224,7 +259,8 @@ def effective(root, s, what, theme=None, no_defaults=False):
         if what in ("bold", "italic") and rpr is not None and rpr.find("w:" + what[0], NS) is not None:
             return on(rpr.find("w:" + what[0], NS))
         if what == "color" and rpr is not None and rpr.find("w:color", NS) is not None:
-            return (rpr.find("w:color", NS).get(q("val")) or "").upper()
+            c = rpr.find("w:color", NS)
+            return theme_hex(c, theme) or (c.get(q("val")) or "").upper()
         if what in ("before", "after", "line") and ppr is not None and ppr.find("w:spacing", NS) is not None \
                 and ppr.find("w:spacing", NS).get(q(what)) is not None:
             v = int(ppr.find("w:spacing", NS).get(q(what)))
@@ -262,7 +298,7 @@ def effective(root, s, what, theme=None, no_defaults=False):
             b = ppr.find("w:pBdr/w:" + what[7:], NS)
             if b.get(q("val")) in ("nil", "none"):
                 return "none"
-            return f"{int(b.get(q('sz'), '4')) / 8:g} {(b.get(q('color')) or 'auto').upper()}"
+            return f"{int(b.get(q('sz'), '4')) / 8:g} {theme_hex(b, theme) or (b.get(q('color')) or 'auto').upper()}"
         if what == "shading" and ppr is not None and ppr.find("w:shd", NS) is not None:
             f = (ppr.find("w:shd", NS).get(q("fill")) or "auto").upper()
             return "none" if f == "AUTO" else f

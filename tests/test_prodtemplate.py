@@ -262,6 +262,26 @@ check("3.10: Check reports a cover built differently and a missing back cover (r
       len(p12) == 1 and "differently" in p12[0]["what"] and len(p13) == 1 and "no back cover" in p13[0]["what"]
       and not p12[0]["fix"] and not p13[0]["fix"], ([f["what"][:80] for f in p12 + p13]))
 
+# 3.10.0, from the template gate: Word recomputes theme-linked colors from the file's theme when it saves, and
+# writes a table style without an empty tblPr or a property that only repeats the defaults
+from lxml import etree as _et
+from prodengine.engine.ops import word_ops as _WO
+from prodengine.pe import tablestyles as _TS
+_W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+_c = _et.fromstring(f'<w:color {_W} w:val="17365D" w:themeColor="text2" w:themeShade="BF"/>')
+check("3.10: a theme-linked color reads as the file's theme shows it", _WO.theme_hex(_c, {"_colors": {"dk2": "0E2841"}}) == "0A1D30"
+      and _WO.theme_hex(_c, {"_colors": {"dk2": "1F497D"}}) == "17365D", _WO.theme_hex(_c, {"_colors": {"dk2": "0E2841"}}))
+check("3.10: with no theme in the file it never matches a color, so the fix writes the color itself",
+      _WO.theme_hex(_c, {}) == "THEME" and _WO.theme_hex(_c, None) is None
+      and _WO.theme_hex(_et.fromstring(f'<w:color {_W} w:val="FFFFFF" w:themeColor="background1" w:themeTint="99"/>'), {"_colors": {"lt1": "000000"}}) is None)
+_ts_want = _et.fromstring(f'<w:style {_W} w:type="table"><w:name w:val="T"/><w:pPr><w:spacing w:after="0"/></w:pPr><w:tblStylePr w:type="firstRow"><w:rPr><w:b/></w:rPr></w:tblStylePr></w:style>')
+_ts_word = _et.fromstring(f'<w:style {_W} w:type="table" w:styleId="T"><w:name w:val="T"/><w:basedOn w:val="TableNormal"/><w:tblStylePr w:type="firstRow"><w:rPr><w:b/></w:rPr><w:tblPr/></w:tblStylePr></w:style>')
+_ts_root = _et.fromstring(f'<w:styles {_W}><w:docDefaults><w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="240"/></w:pPr></w:pPrDefault></w:docDefaults></w:styles>')
+_ts_root2 = _et.fromstring(f'<w:styles {_W}><w:docDefaults><w:pPrDefault><w:pPr><w:spacing w:after="160"/></w:pPr></w:pPrDefault></w:docDefaults></w:styles>')
+check("3.10: a table style Word re-saved reads the same; a real difference still shows", _TS._sig(_ts_want, _ts_root) == _TS._sig(_ts_word, _ts_root)
+      and _TS._sig(_ts_want, _ts_root2) != _TS._sig(_ts_word, _ts_root2)
+      and _TS._sig(_ts_want, _et.fromstring(f'<w:styles {_W}><w:docDefaults><w:pPrDefault/></w:docDefaults></w:styles>')) == _TS._sig(_ts_word, _ts_root))
+
 # ---------------------------------------------------------------- per-deliverable types, page limits
 check("page limits read from the Deliverables board's wording", PRL.page_limit("25 pages") == 25 and PRL.page_limit("15-page limit") == 15
       and PRL.page_limit("30") == 30 and PRL.page_limit("no limit") is None)
