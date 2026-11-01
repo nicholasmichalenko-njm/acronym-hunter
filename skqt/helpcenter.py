@@ -10,6 +10,7 @@ import supportfile as SF
 from . import design as D
 
 SHORTCUTS = [("Anywhere", "Ctrl+K", "Find a page, an effort, a sentence or a person"),
+             ("Anywhere", "Ctrl+Shift+I", "Issues and ideas: write down a bug, an improvement or an idea (stays on this PC)"),
              ("Anywhere", "Ctrl+F", "Find a sentence by its words or number"),
              ("Anywhere", "F1", "The Guide, open at the page you are on"),
              ("Review (on the page)", "R", "SOW (Work): the selected sentences go to the target section as requirements"),
@@ -30,6 +31,7 @@ def support_card(host):
                   actions=[D.button("Guide", "primary", lambda: __import__("skqt.guide", fromlist=["x"]).open_guide(host, "start")),
                            D.button("What's new", None, lambda: show_whats_new(host, last="2.75.0")),
                            D.button("Keyboard shortcuts", None, lambda: show_shortcuts(host)),
+                           D.button("Issues and ideas...", None, lambda: host.open_issues()),
                            D.button("Create a support file...", None, lambda: make_support_file(host))])
     lab = card.add(D.label("The support file holds versions, the content-free logs and the checks, for whoever maintains "
                            "Stationkeeper. It holds no document text, terms, names, file names or folder paths. You save it "
@@ -38,7 +40,7 @@ def support_card(host):
     import secure
     if secure.ACTIVE:                                  # 2.97.0: SCIF-ready keeps no logs, so there is nothing to send
         for b in card.findChildren(type(D.button("x", None, None))):
-            if b.text().startswith("Create a support file"):
+            if b.text().startswith("Create a support file") or b.text().startswith("Issues and ideas"):
                 b.setVisible(False)
         lab.setText("SCIF-ready: Stationkeeper keeps no logs and makes no support files. Describe a problem to whoever "
                     "maintains Stationkeeper in words, without document content.")

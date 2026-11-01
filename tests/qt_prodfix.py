@@ -36,8 +36,8 @@ app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.go("home"); app.processEvents()
 f = w.home_page.start; f.name.setText("Osprey"); f.sol.setText("FA8810-26-R-0042"); f.create(); app.processEvents()
-check("Production holds Format Check, Fix a Copy and Production Standards",
-      [k for g, it in RAIL if g == "Production" for k, _l in it] == ["format", "fixcopy", "prodstd"])
+check("3.9: Production holds Fix a Copy and Production Standards (Format Check is part of Fix a Copy)",
+      [k for g, it in RAIL if g == "Production" for k, _l in it] == ["fixcopy", "prodstd"])
 vol = os.path.join(EF.folder(w.effort_path, "volumes"), "Volume I Technical.docx")
 shutil.copy2(os.path.join(HERE, "pefix", "data", "small.docx"), vol)
 before = sha(vol)
@@ -143,8 +143,8 @@ eff = PRL.for_effort(cfg, w.ws)
 check("the effort's standard: team, then Cost volume, then the RFP", eff["variables"]["body_font"] == "Arial" and eff["variables"]["table_size"] == 8.0
       and eff["name"] == "Cost volume" and eff.get("effort_over"))
 w.go("format"); app.processEvents()
-check("Format Check reads the same standard", w.format_page.std_lbl.text().startswith("Cost volume + this effort: body Arial 11 pt"),
-      w.format_page.std_lbl.text())
+check("3.9: a link to Format Check opens Fix a Copy, reading the same standard", w.stack.currentWidget() is w.fixcopy_page
+      and w.fixcopy_page.std_lbl.text().startswith("Cost volume + this effort: body Arial 11 pt"), w.fixcopy_page.std_lbl.text())
 x = sp.export(os.path.join(tmp, "std.xlsx"))
 check("Export for review", os.path.isfile(x))
 # ------------------------------------------------------------------ 3.7.0: document types as templates
@@ -233,6 +233,41 @@ f = w.home_page.start
 f.name.setText("Falcon"); f.etype.setCurrentIndex(f.etype.findData("white_paper")); f.create(); app.processEvents()
 check("3.8: Start an effort sets its effort type and that type's default profile",
       (w.ws.get("prod_std", {}) or {}).get("effort_type") == "white_paper" and (w.ws.get("prod_std", {}) or {}).get("type"))
+# ------------------------------------------------------------------ 3.9.0: every draft at once, findings workbook
+w.go("fixcopy"); app.processEvents()
+pg.refresh(); app.processEvents()
+before_all = {pg.files.item(i).data(Qt.UserRole): sha(pg.files.item(i).data(Qt.UserRole)) for i in range(pg.files.count())}
+pg.check_all(wait=True)
+t9 = pg.all_table
+profs = {t9.item(r, 0).text(): t9.item(r, 1).text() for r in range(t9.rowCount())}
+check("3.9: Check every draft reads each listed draft against its own profile", t9.rowCount() == pg.files.count() >= 2
+      and profs.get("Volume III Cost and Price.docx") == "Cost volume" and all(int(t9.item(r, t9.columnCount() - 1).text()) > 0
+                                                                               for r in range(t9.rowCount())), profs)
+check("3.9: checking every draft writes nothing", all(sha(p) == h for p, h in before_all.items()))
+pg.open_checked(0); app.processEvents()
+check("3.9: double-click a draft to see its fixes", pg.chk is not None and pg.fix_card.isVisibleTo(pg))
+xp = pg.export_findings(os.path.join(tmp, "findings.xlsx"))
+from openpyxl import load_workbook
+wbx = load_workbook(xp)
+check("3.9: Export findings makes a workbook by draft and every finding", wbx.sheetnames == ["By draft", "Findings"]
+      and wbx["By draft"].max_row - 1 >= 2 and wbx["Findings"].max_row > 20)
+from tests.pefix import fixtures_tables as FT
+tdoc = os.path.join(EF.folder(w.effort_path, "volumes"), "Volume IV Tables.docx")
+FT.make(tdoc)
+pg.refresh(); app.processEvents()
+pg.files.setCurrentRow(next(i for i in range(pg.files.count()) if "Volume IV Tables" in pg.files.item(i).text())); app.processEvents()
+chk9 = pg.check(wait=True)
+grp = next((g for t_ in chk9.tables for g in t_["questions"] if g.startswith("R45")), None)
+check("3.9: a table question to answer (a row with Total in it)", grp is not None, [g for t_ in chk9.tables for g in t_["questions"]])
+rule = pg.make_rule(grp, "subtotal", "profile", recheck=False)
+prof_id = pg.draft_type(pg.context()) or (w.ws.get("prod_std", {}) or {}).get("type") or PRL.load(cfg)["default"]
+saved = PRL.type_of(PRL.load(cfg), prof_id).get("row_rules") or []
+check("3.9: Make it a rule saves a sure rule in the draft's profile", rule is not None and rule["sure"] and rule["role"] == "subtotal"
+      and any(r["key"] == rule["key"] for r in saved), (rule, [r["key"] for r in saved][:6]))
+chk9b = pg.check(wait=True)
+check("3.9: checked again, rows like these no longer ask", grp not in [g for t_ in chk9b.tables for g in t_["questions"]])
+rule2 = pg.make_rule("R21:", "caption", "effort", recheck=False)
+check("3.9: rows decided table by table (a missing caption) never become a rule", rule2 is None)
 check("THE GATE, at the end", sha(vol) == before)
 n = sum(checks)
 print(f"QT PRODFIX {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

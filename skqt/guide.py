@@ -275,17 +275,6 @@ TOPICS = [
    "Add selected keeps them; Not a keyword drops one.",
    "Export for SharePoint... makes the list to tag the submitted proposal."],
   []),
- ("format", "Production", "Format Check",
-  "Your Word drafts read against the production standards: fonts and sizes by kind of text, margins and page size, "
-  "caption numbering, the table of contents, typed lists and page numbers. The files are only read, never changed.",
-  "Whenever a draft comes in, and before each color review and final production.",
-  ["The drafts in the effort's Volumes folder are listed and ticked. Add a file... checks any Word file; it is only read.",
-   "Untick the areas you do not need, then press Check. Each area shows how many findings it has.",
-   "Each finding says where it is and why: a font typed over the style, or a style that breaks the rule; a caption "
-   "number typed instead of a field; a section with a narrow margin; a page number typed in a footer.",
-   "Export... makes a workbook for the production team."],
-  ["The standard shown at the top is the effort's profile with the RFP's own rules on top (Production Standards).",
-   "To fix what it finds, use Fix a Copy: it writes a dated copy in your output folder, never the original."]),
  ("fixcopy", "Production", "Fix a Copy",
   "Fixes a draft's formatting to the production standard in a dated copy. Your file is never changed: it is read once, "
   "and a file someone has open is not copied at all.",
@@ -293,6 +282,8 @@ TOPICS = [
   ["The effort's type (set when you start it, or in Production Standards) decides which profiles its drafts use.",
    "Check the output folder (Change... sets it; the default is Production Copies in the Stationkeeper data folder). "
    "Each effort's copies go in a folder with the effort's name inside it. Copies never go beside the original.",
+   "Check every draft reads every listed draft against its own profile and lists what each breaks, by area (what "
+   "Format Check did); double-click one to see its fixes. Export findings... makes a workbook of every finding.",
    "Pick a draft from the Volumes folder, or Add a file.... Its volume name comes from the Deliverables board when the "
    "draft is a deliverable's file; otherwise type it. The solicitation comes from the effort's basics. Headers and "
    "footers are built only when both are set. Profile: the draft's own (kept on the Deliverables board for a "

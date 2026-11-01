@@ -45,7 +45,11 @@ class FixPage(QWidget):
         v = QVBoxLayout(inner); v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         self.card = D.Card("Fix a Copy", "Stationkeeper never changes your file. It makes a dated copy in the output folder and "
                            "fixes only the copy. A file someone has open is not copied.",
-                           actions=[D.button("Check", "primary", lambda: self.check())])
+                           actions=[D.button("Check", "primary", lambda: self.check()),
+                                    D.button("Check every draft", None, lambda: self.check_all(), "Read every listed draft against "
+                                             "its own profile and list what each one breaks, by area (only read; nothing is written)"),
+                                    D.button("Export findings...", None, lambda: self.export_findings(), "A workbook of every finding "
+                                             "of the drafts checked, with where it is and the fix for it")])
         r1 = QHBoxLayout()
         r1.addWidget(D.label("Output folder", "label", wrap=False))
         self.out_lbl = D.label("", None); r1.addWidget(self.out_lbl, 1)
@@ -80,6 +84,19 @@ class FixPage(QWidget):
         self.ctx_lbl = self.card.add(D.label("", "muted"))
         self.status = self.card.add(D.label("Pick a draft and press Check.", "muted"))
         v.addWidget(self.card)
+        # 3.9.0: every draft at once (what Format Check did), each against its own profile
+        self.all_card = D.Card("Every draft", "Each listed draft read against its own profile. Double-click a draft to see "
+                               "its fixes; nothing is written.")
+        self.all_table = QTableWidget(0, 3 + len(PF.AREAS))
+        self.all_table.setHorizontalHeaderLabels(["Draft", "Profile"] + [PF.AREAS[a].split(",")[0].split(" and ")[0] for a in PF.AREAS] + ["Total"])
+        self.all_table.verticalHeader().setVisible(False); self.all_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.all_table.setSelectionBehavior(QAbstractItemView.SelectRows); self.all_table.setMinimumHeight(180)
+        self.all_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.all_table.doubleClicked.connect(lambda ix: self.open_checked(ix.row()))
+        self.all_card.add(self.all_table)
+        self.all_card.setVisible(False)
+        v.addWidget(self.all_card)
+        self.checked = {}                 # path -> (profile name, Check) from Check every draft or Check
         # the fixes
         self.fix_card = D.Card("What to fix", "Each fix runs on the copy as one guarded change; a fix that would touch anything it "
                                "did not declare is refused and the copy stays as it was before it.",
@@ -180,23 +197,25 @@ class FixPage(QWidget):
                 diag.swallowed()
         return PRL.context(h.config_dir, h.effort_name or "", info, lst, self.record(), self.path if path is None else path)
 
-    def draft_type(self, ctx):
+    def draft_type(self, ctx, path=None):
         """The draft's profile: the deliverable's, else the one chosen here for this draft, else (3.8.0) the effort
         type's profile whose words are in the deliverable's (or file's) name, else the effort's."""
+        path = self.path if path is None else path
         d = (ctx or {}).get("deliverable") or {}
-        chosen = d.get("doc_type") or self.type_chosen.get(self.path)
+        chosen = d.get("doc_type") or self.type_chosen.get(path)
         if chosen:
             return chosen
-        return self.matched_type(ctx)
+        return self.matched_type(ctx, path)
 
-    def matched_type(self, ctx):
+    def matched_type(self, ctx, path=None):
+        path = self.path if path is None else path
         d = (ctx or {}).get("deliverable") or {}
         try:
             data = PRL.load(self.host.config_dir)
             eff = (self.host.ws.get("prod_std", {}) if self.host.ws is not None else {}) or {}
             if not PRL.effort_type_of(data, eff.get("effort_type")):
                 return None
-            name = d.get("name") or os.path.splitext(os.path.basename(self.path or ""))[0]
+            name = d.get("name") or os.path.splitext(os.path.basename(path or ""))[0]
             return PRL.profile_for(data, eff.get("effort_type"), name, fallback=False)
         except Exception:  # noqa: BLE001
             diag.swallowed()
@@ -229,6 +248,15 @@ class FixPage(QWidget):
         ctx = ctx if ctx is not None else self.context()
         base = PRL.for_effort(self.host.config_dir, self.host.ws, type_id=self.draft_type(ctx))
         std = PRL.apply_context(base, ctx, volume_name=self.vol.text() if self.vol.text().strip() else None)
+        std["name"], std["effort_over"] = base["name"], base.get("effort_over")
+        return std
+
+    def std_for(self, path):
+        """3.9.0: the standard for any listed draft (its profile, its volume name), for Check every draft."""
+        ctx = self.context(path)
+        base = PRL.for_effort(self.host.config_dir, self.host.ws, type_id=self.draft_type(ctx, path))
+        typed = (self.vol_typed.get(path) or "").strip()
+        std = PRL.apply_context(base, ctx, volume_name=typed or None)
         std["name"], std["effort_over"] = base["name"], base.get("effort_over")
         return std
 
@@ -368,6 +396,8 @@ class FixPage(QWidget):
         kind, val = res
         if kind == "check":
             self.show_check(val)
+        elif kind == "all":
+            self.show_all(val)
         elif kind == "job":
             self.show_job(val)
         else:
@@ -376,6 +406,10 @@ class FixPage(QWidget):
 
     def show_check(self, chk):
         self.chk = chk
+        try:
+            self.checked[chk.path] = (self.std()["name"], chk)
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
         if chk.error and not chk.findings and not chk.tables:
             self.status.setText(chk.error.strip())
             for c in (self.fix_card, self.tab_card, self.more_card):
@@ -570,7 +604,62 @@ class FixPage(QWidget):
             cb.setCurrentIndex(max(0, cb.findData(self.plan["table_answers"].get(g, ""))))
             cb.currentIndexChanged.connect(lambda _i, g=g, cb=cb: self.answer(g, cb.currentData()))
             h.addWidget(cb)
+            mb = D.button("Make it a rule", "ghost", None, "Rows like these get this role in every table from now on, without asking "
+                          "(saved in the draft's profile, or for this effort only)")
+            mb.clicked.connect(lambda _c=False, g=g, cb=cb, b=mb: self.rule_menu(g, cb.currentData(), b))
+            h.addWidget(mb)
             self.q_box.addLayout(h)
+
+    def rule_menu(self, group, role, button):
+        if not role:
+            self.status.setText("Choose the role first, then Make it a rule.")
+            return
+        from PySide6.QtWidgets import QMenu
+        m = QMenu(self)
+        prof = self.std()["name"]
+        m.addAction(f"For the profile {prof} (every effort)", lambda: self.make_rule(group, role, "profile"))
+        if self.host.ws is not None:
+            m.addAction("For this effort only", lambda: self.make_rule(group, role, "effort"))
+        m.exec(button.mapToGlobal(button.rect().bottomLeft()))
+
+    def make_rule(self, group, role, where="profile", recheck=True):
+        """3.9.0: an answered question becomes a sure row rule (the engine's learn_rule), in the draft's profile or this
+        effort's own values; the draft is then checked again, so rows like these no longer ask."""
+        from prodengine.pe import tables as T
+        cur = self.std()
+        rules = copy.deepcopy(cur.get("row_rules") or [])
+        work = {"row_rules": rules}
+        rule = T.learn_rule(work, group, role)
+        if rule is None:
+            self.status.setText("Rows like these are decided table by table (empty rows, a missing caption); no rule was made.")
+            return None
+        if where == "effort" and self.host.ws is not None:
+            eff = dict(self.host.ws.get("prod_std", {}) or {})
+            over = dict(eff.get("over") or {})
+            over["row_rules"] = work["row_rules"]
+            eff["over"] = over
+            self.host.ws.set("prod_std", eff)
+            said = "this effort"
+        else:
+            data = PRL.load(self.host.config_dir)
+            ctx = self.context()
+            eff = (self.host.ws.get("prod_std", {}) if self.host.ws is not None else {}) or {}
+            et = PRL.effort_type_of(data, eff.get("effort_type"))
+            pid = self.draft_type(ctx) or eff.get("type") or (et or {}).get("default_profile") or data["default"]
+            t = PRL.type_of(data, pid)
+            base = PRL.resolved_type(data, pid)            # the profile's own rules (team, then profile)
+            prules = copy.deepcopy(base.get("row_rules") or [])
+            pw = {"row_rules": prules}
+            T.learn_rule(pw, group, role)
+            t["row_rules"] = pw["row_rules"]
+            PRL.save(self.host.config_dir, data)
+            said = f"the profile {t['name']}"
+        self.plan["table_answers"].pop(group, None)
+        diag.activity("prod_rule_made")
+        self.status.setText(f"Rule saved for {said}: {rule['why']} -> {ROLE_TEXT.get(role, role)}. Checking the draft again...")
+        if recheck:
+            self.check()
+        return rule
 
     def answer(self, group, role):
         if role:
@@ -655,6 +744,103 @@ class FixPage(QWidget):
             self.set_fix("xref_relink", True)
         else:
             self.plan["xref_mapping"].pop(target, None)
+
+    # ------------------------------------------------------------------ 3.9.0: every draft, findings workbook
+    def draft_paths(self):
+        return [self.files.item(i).data(Qt.UserRole) for i in range(self.files.count())]
+
+    def check_all(self, wait=False):
+        paths = self.draft_paths()
+        if not paths:
+            self.status.setText("No drafts: put the volumes' Word files in the effort's Volumes folder, or Add a file...")
+            return None
+        if self._work is not None and self._work.is_alive():
+            return None
+        stds = {p: self.std_for(p) for p in paths}
+        self.status.setText(f"Reading {len(paths)} draft(s)...")
+        self._result = None
+        self._progress = ""
+
+        def run():
+            out = {}
+            for k, p in enumerate(paths, 1):
+                self._progress = f"Reading draft {k} of {len(paths)}..."
+                try:
+                    out[p] = (stds[p]["name"], PF.check(p, stds[p]))
+                except Exception:  # noqa: BLE001
+                    diag.swallowed()
+            self._result = ("all", out)
+        self._work = bgwork.start(run, "stationkeeper-prodcheckall")
+        if wait:
+            bgwork.wait(self._work)
+            return self.tick()
+        self.timer.start()
+        return None
+
+    def show_all(self, out):
+        self.checked.update(out)
+        t = self.all_table
+        t.setRowCount(0)
+        self._all_paths = []
+        for p, (prof, chk) in out.items():
+            k = t.rowCount(); t.insertRow(k)
+            self._all_paths.append(p)
+            by = chk.by_area()
+            vals = [os.path.basename(p), prof] + [str(sum(by.get(a, {}).values())) if not chk.error or chk.findings else "-" for a in PF.AREAS] + \
+                   [str(chk.count()) if not (chk.error and not chk.findings) else "not read"]
+            for c, text in enumerate(vals):
+                it = QTableWidgetItem(text); it.setToolTip(chk.error.strip() if chk.error else p); t.setItem(k, c, it)
+        self.all_card.setVisible(True)
+        total = sum(c.count() for _n, c in out.values())
+        self.status.setText(f"{len(out)} draft(s) read: {total} finding(s). Double-click a draft to see its fixes.")
+        diag.activity("prod_checked_all", n=len(out), rows=total)
+
+    def open_checked(self, row):
+        p = (getattr(self, "_all_paths", []) or [None] * (row + 1))[row]
+        if not p or p not in self.checked:
+            return
+        for i in range(self.files.count()):
+            if self.files.item(i).data(Qt.UserRole) == p:
+                self.files.setCurrentRow(i)
+        self.show_check(self.checked[p][1])
+
+    def export_findings(self, path=None):
+        """Every finding of the drafts checked (Check or Check every draft), in one workbook."""
+        if not self.checked:
+            self.status.setText("Check a draft first, or Check every draft.")
+            return ""
+        if path is None:
+            path, _ = QFileDialog.getSaveFileName(self, "Export the findings", self.host.out_path("format_check"), "Excel (*.xlsx)")
+            if not path:
+                return ""
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Font, PatternFill
+        wb = Workbook()
+        ws = wb.active; ws.title = "By draft"
+        ws.append(["Draft", "Profile"] + [PF.AREAS[a] for a in PF.AREAS] + ["Total", "Read in (s)"])
+        for p, (prof, chk) in self.checked.items():
+            by = chk.by_area()
+            ws.append([os.path.basename(p), prof] + [sum(by.get(a, {}).values()) for a in PF.AREAS] + [chk.count(), round(chk.seconds, 1)])
+        ws2 = wb.create_sheet("Findings")
+        ws2.append(["Draft", "Profile", "Area", "Rule", "What", "Where", "Fix"])
+        for p, (prof, chk) in self.checked.items():
+            for f in chk.findings:
+                ws2.append([os.path.basename(p), prof, PF.AREAS.get(f["area"], f["area"]), f"{f['rule']} {PF.RULE_TEXT.get(f['rule'], '')}",
+                            f["what"], f["near"], PF.FIX[f["fix"]]["label"] if f["fix"] in PF.FIX else
+                            ("Update fields in Word" if f["fix"] == "word_update" else "Review by hand")])
+        for w_ in (ws, ws2):
+            for c in w_[1]:
+                c.font = Font(bold=True, color="FFFFFF"); c.fill = PatternFill("solid", fgColor="1E3A8A")
+            for col in "ABCDEFGHIJKLM":
+                w_.column_dimensions[col].width = 22
+            for row in w_.iter_rows(min_row=2):
+                for c in row:
+                    c.alignment = Alignment(wrap_text=True, vertical="top")
+        ws2.column_dimensions["E"].width = 90; ws2.column_dimensions["F"].width = 40; ws2.column_dimensions["G"].width = 50
+        wb.save(path)
+        diag.activity("prod_findings_exported", n=sum(c.count() for _n, c in self.checked.values()))
+        self.host.toast("Findings exported")
+        return path
 
     # ------------------------------------------------------------------ make the copy
     def make(self, wait=False, open_list=PCY._ASK, word=None):

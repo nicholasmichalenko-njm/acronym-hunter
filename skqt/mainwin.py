@@ -46,12 +46,11 @@ RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),          
                      ("postsub", "Post-Submission")]),
         ("Response Quality", [("acronyms", "Customer Terms"), ("acrlist", "Effort List"), ("qa", "Submission Check"),
                               ("lists", "Lists to Submit"), ("keywords", "Keywords")]),
-        ("Production", [("format", "Format Check"), ("fixcopy", "Fix a Copy"), ("prodstd", "Production Standards")]),   # 3.5.0, 3.6.0
+        ("Production", [("fixcopy", "Fix a Copy"), ("prodstd", "Production Standards")]),   # 3.6.0; 3.9.0: Format Check folded into Fix a Copy
         ("Effort Files", [("exportall", "Export All"), ("settings", "Settings")])]
 TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and work not filed yet"),
-          "format": ("Format Check", "Word drafts read against the production standards; the files are only read"),
-          "fixcopy": ("Fix a Copy", "Fixes go into a dated copy in the output folder; the original is never changed"),
-          "prodstd": ("Production Standards", "Every formatting rule: team standard, document types, and this effort's from the RFP"),
+          "fixcopy": ("Fix a Copy", "Check drafts against their profile; fixes go into a dated copy, never the original"),
+          "prodstd": ("Production Standards", "Every formatting rule: team standard, profiles, effort types, and this effort's from the RFP"),
           "checks": ("Final Checks", "The PDF package, cross-references and numbering, and what changed between two drafts"),
           "truth": ("Wall of Truth", "The one approved way to state every fact and number, and the drafts checked against it"),
           "storyboards": ("Storyboards", "One sheet per section before the first draft: message, themes, approach, features and proof"),
@@ -145,6 +144,14 @@ class MainWindow(QMainWindow):
         self.page_title = D.label("", "display", wrap=False); tcol.addWidget(self.page_title)
         self.page_sub = D.label("", "muted"); self.page_sub.setMinimumWidth(180); tcol.addWidget(self.page_sub)   # 3.0.4: wraps
         bh.addLayout(tcol, 1)
+        self.issue_btn = D.button("Issue or idea", "ghost", lambda: self.open_issues(),
+                                  "Write down a bug, an improvement or an idea about this page (Ctrl+Shift+I). It stays on this PC.")
+        bh.addWidget(self.issue_btn)                 # 3.9.0
+        try:
+            import secure as _sec
+            self.issue_btn.setVisible(not _sec.ACTIVE)   # SCIF-ready keeps no reports
+        except Exception:
+            diag.swallowed()
         self.search = QLineEdit(); self.search.setPlaceholderText("Find a sentence (words or ID)...")
         self.search.setMinimumWidth(240); self.search.setClearButtonEnabled(True)
         self.search.returnPressed.connect(self.find_go)
@@ -205,17 +212,15 @@ class MainWindow(QMainWindow):
         self.truth_page = WallPage(self)               # 3.3.0
         from .checkspage import ChecksPage
         self.checks_page = ChecksPage(self)            # 3.4.0
-        from .prodpages import FormatCheckPage
         from .prodstdpage import StandardsPage
         from .prodfixpage import FixPage
-        self.format_page = FormatCheckPage(self)       # 3.5.0
         self.fixcopy_page = FixPage(self)              # 3.6.0
         self.prodstd_page = StandardsPage(self)        # 3.6.0: every rule, three layers
         self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page, "custqa": self.custqa_page,
                       "impact": self.impact_page, "deliverables": self.deliverables_page, "qa": self.qa_page, "lists": self.lists_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
-                      "format": self.format_page, "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page}
+                      "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)
         cv.addWidget(self.stack, 1)
@@ -229,6 +234,7 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("Ctrl+K"), self, activated=lambda: HC.open_finder(self))
         from . import guide as GD                    # 3.0.2: F1 opens the Guide at the page you are on
         QShortcut(QKeySequence("F1"), self, activated=lambda: GD.open_guide(self))
+        QShortcut(QKeySequence("Ctrl+Shift+I"), self, activated=lambda: self.open_issues())   # 3.9.0: issues and ideas
         self.save_timer = QTimer(self, singleShot=True, interval=2000, timeout=self.save_now)
         self.lock_timer = QTimer(self, interval=60000, timeout=lambda: self.ws.refresh_lock() if self.ws else None)
         self.lock_timer.start()
@@ -763,6 +769,7 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------ the rest
     def go(self, step):
+        step = {"format": "fixcopy"}.get(step, step)       # 3.9.0: Format Check is part of Fix a Copy
         pg = self.pages[step]
         if hasattr(pg, "refresh"):
             pg.refresh()
@@ -775,6 +782,12 @@ class MainWindow(QMainWindow):
         t, sub = TITLES[step]
         self.page_title.setText(t)
         self.page_sub.setText(sub + (f"  \u00b7  {self.effort_name}" if self.effort_name else ""))
+
+    def open_issues(self, feature=None, run=True):
+        """3.9.0: Issues and ideas, opened on the page you are on."""
+        from .issueview import open_issues
+        diag.activity("issues_opened")
+        return open_issues(self, feature, run)
 
     def import_package(self, path=None, dest=None, mode=None):
         """2.74.0: an effort package (.skpkg) someone handed over."""
