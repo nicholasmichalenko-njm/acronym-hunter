@@ -280,6 +280,31 @@ sp.save()
 lnp = PRL.type_of(PRL.load(cfg), "cost_volume")["list_numbering"]
 check("3.9: list numbering edited and saved in the profile", lnp["on"] and lnp["lists"][0]["levels"][1]["text"] == "o"
       and lnp["lists"][0]["levels"][1]["font"] == "Courier New" and len(lnp["lists"][1]["levels"]) == 3, lnp)
+# ------------------------------------------------------------------ 3.10.0: cover and back cover pages
+import docx as _docx
+from docx.enum.section import WD_SECTION
+from docx.enum.style import WD_STYLE_TYPE
+from docx.shared import Inches
+cvd = _docx.Document()
+cvd.add_picture(os.path.join(HERE, "pefix", "data", "Logo.png"), width=Inches(2)); cvd.add_paragraph("Program Volume", style="Title")
+cvd.add_section(WD_SECTION.NEW_PAGE); cvd.add_paragraph("Introduction", style="Heading 1")
+cvd.styles.add_style("Back Cover", WD_STYLE_TYPE.PARAGRAPH); cvd.add_section(WD_SECTION.NEW_PAGE)
+cvd.add_paragraph("Contact", style="Back Cover")
+cvp = os.path.join(tmp, "cover source.docx"); cvd.save(cvp)
+w.go("prodstd"); app.processEvents()
+sp.scope_box.setCurrentIndex(sp.scope_box.findData("type:cost_volume")); app.processEvents()
+got10 = sp.learn(cvp, keys=["page_parts"])
+check("3.10: Learn from a file takes the cover and back cover pages into the profile", got10 == ["page_parts"]
+      and set(sp.work["page_parts"]) == {"cover", "backer"} and "Make a template puts it in" in sp.part_rows["cover"].text())
+sp.save()
+check("3.10: the profile saves its pages", set(PRL.type_of(PRL.load(cfg), "cost_volume")["page_parts"]) == {"cover", "backer"})
+import prodparts as PP
+tjob = sp.make_template("", wait=True)
+traw = open(tjob.copy, "rb").read()
+check("3.10: Make a template puts the profile's cover and back cover in", PP.signature(traw, "cover", PRL.engine_ready(sp.work))[2] == 1
+      and PP.signature(traw, "backer", PRL.engine_ready(sp.work)) is not None)
+sp.clear_part("backer"); sp.save()
+check("3.10: a page can be cleared from the profile", set(PRL.type_of(PRL.load(cfg), "cost_volume")["page_parts"]) == {"cover"})
 check("THE GATE, at the end", sha(vol) == before)
 n = sum(checks)
 print(f"QT PRODFIX {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

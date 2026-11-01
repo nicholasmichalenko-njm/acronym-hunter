@@ -183,6 +183,85 @@ got_t = LN.read_levels(Package(tj9.copy), ["List Bullet", "List Number"], strict
 check("3.9: a template's list styles show their bullets and numbers", got_t.get("List Bullet", {}).get("text") == "\u2022"
       and got_t.get("List Number", {}).get("text") == "%1." and tj9.check.count() == 0, (got_t, [f["what"] for f in tj9.check.findings]))
 
+# ---------------------------------------------------------------- 3.10.0: Word table styles
+from prodengine.pe import tablestyles as TSS
+TS_XML = ('<w:style xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:type="table" w:customStyle="1">'
+          '<w:name w:val="PE Data Table"/><w:uiPriority w:val="59"/><w:pPr><w:spacing w:after="0"/></w:pPr>'
+          '<w:tblPr><w:tblBorders><w:top w:val="single" w:sz="8" w:space="0" w:color="1F3864"/>'
+          '<w:bottom w:val="single" w:sz="8" w:space="0" w:color="1F3864"/><w:insideH w:val="single" w:sz="4" w:space="0" w:color="8EA9DB"/>'
+          '</w:tblBorders></w:tblPr><w:tblStylePr w:type="firstRow"><w:rPr><w:b/><w:color w:val="FFFFFF"/></w:rPr>'
+          '<w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="1F3864"/></w:tcPr></w:tblStylePr></w:style>')
+ts_std = PRL.merge(std, {"table_styles": {"PE Data Table": {"xml": TS_XML, "based_on": "Normal Table"}},
+                         "table_types": {"std": {"word_style": "PE Data Table"}}})
+c10 = PF.check(orig, ts_std)
+r5 = [f for f in c10.findings if f["rule"] == "R5"]; r6 = [f for f in c10.findings if f["rule"] == "R6"]
+check("3.10: Check lists a Word table style the profile has and the file lacks, and tables not using their type's style",
+      len(r5) == 1 and "not in the file" in r5[0]["what"] and len(r6) >= 10, (len(r5), len(r6)))
+pl10 = PF.default_plan(c10)
+check("3.10: the table style and table fixes are on by default", {"table_styles", "tables"} <= set(pl10["on"]))
+j10 = PF.run(orig, os.path.join(tmp, "out10"), ts_std, {"on": ["table_styles", "tables"], "word_update": False,
+                                                       "table_answers": {}, "table_roles": {}, "table_types": {}}, open_list=[], before=c10)
+st10 = {x.get("key"): x for x in j10.steps}
+p10 = Package(j10.copy)
+sid = TSS.style_id(p10, "PE Data Table")
+from prodengine.pe import tables as _T
+std_tables = [t for t in p10.tree(p10.main).iter(_q("tbl")) if not list(t.iterancestors(_q("tbl"))) and not _T.is_figure_table(t)]
+check("3.10: the style is added through the guard and every standard table uses it", st10["table_styles"]["changed"]
+      and "refused" not in st10["table_styles"] and sid and all(t.find("w:tblPr/w:tblStyle", WO.NS) is not None
+                                                                 and t.find("w:tblPr/w:tblStyle", WO.NS).get(_q("val")) == sid for t in std_tables)
+      and not [f for f in j10.after_check.findings if f["rule"] in ("R5", "R6")], (st10["table_styles"].get("refused"), sid))
+j10b = PF.run(j10.copy, os.path.join(tmp, "out10b"), ts_std, {"on": ["table_styles"], "word_update": False}, open_list=[])
+check("3.10: a second run changes no table style", not next(x for x in j10b.steps if x.get("key") == "table_styles")["changed"])
+back10 = PL.learn(j10.copy, ts_std).layer(["table_styles", "tables"])
+check("3.10: learning takes the table style back whole, and the table type's style", "PE Data Table" in back10.get("table_styles", {})
+      and TSS._sig(_et.fromstring(back10["table_styles"]["PE Data Table"]["xml"])) == TSS._sig(_et.fromstring(TS_XML))
+      and back10.get("table_types", {}).get("std", {}).get("word_style") == "PE Data Table", back10.get("table_types"))
+changed_xml = TS_XML.replace('w:fill="1F3864"', 'w:fill="C00000"')
+diff_std = PRL.merge(ts_std, {"table_styles": {"PE Data Table": {"xml": changed_xml, "based_on": "Normal Table"}}})
+check("3.10: a table style that differs is reported as differing", any(f["rule"] == "R5" and "differs" in f["what"]
+                                                                        for f in PF.check(j10.copy, diff_std).findings))
+tj10 = PT.make(ts_std, out)
+check("3.10: a template carries the table style, its sample table uses it, and it passes its own check",
+      TSS.style_id(Package(tj10.copy), "PE Data Table") and tj10.check.count() == 0, [f["what"] for f in tj10.check.findings])
+
+# ---------------------------------------------------------------- 3.10.0: covers and back covers
+import docx as _docx
+from docx.enum.section import WD_SECTION
+from docx.enum.style import WD_STYLE_TYPE
+from docx.shared import Inches
+import prodparts as PP
+vdoc = _docx.Document()
+vdoc.add_picture(os.path.join(DATA, "Logo.png"), width=Inches(2))
+vdoc.add_paragraph("Program Technical Volume", style="Title")
+vdoc.add_section(WD_SECTION.NEW_PAGE)
+vdoc.add_paragraph("Introduction", style="Heading 1"); vdoc.add_paragraph("Body text.")
+bc = vdoc.styles.add_style("Back Cover", WD_STYLE_TYPE.PARAGRAPH)
+vdoc.add_section(WD_SECTION.NEW_PAGE)
+vdoc.add_paragraph("Company address and contact", style="Back Cover")
+vdoc.add_picture(os.path.join(DATA, "Logo.png"), width=Inches(1))
+vpath = os.path.join(tmp, "Volumes", "Cover volume.docx"); vdoc.save(vpath)
+v0 = sha(vpath)
+pdir = os.path.join(tmp, "config", "production_parts")
+lp = PL.learn(vpath, std, parts_dir=pdir)
+pp = lp.layer(["page_parts"]).get("page_parts") or {}
+check("3.10: Learn from a file keeps the cover and the back cover, each as a Word file of its own",
+      set(pp) == {"cover", "backer"} and all(os.path.isfile(os.path.join(pdir, f)) for f in pp.values()) and sha(vpath) == v0, pp)
+cov = open(os.path.join(pdir, pp["cover"]), "rb").read()
+check("3.10: the cover keeps its picture", PP.part_signature(cov) == (("Title",), 0, 1), PP.part_signature(cov))
+pstd = PRL.merge(std, {"page_parts": pp}); pstd["_parts_dir"] = pdir; pstd["name"] = "With pages"
+tjp = PT.make(pstd, out)
+traw = open(tjp.copy, "rb").read()
+check("3.10: a template made from the profile has its cover (picture included) and back cover", PP.signature(traw, "cover", pstd) == (("Title",), 0, 1)
+      and PP.signature(traw, "backer", pstd) == (("Back Cover",), 0, 1) and any(n.startswith("word/media/sk_part") for n in zipfile.ZipFile(tjp.copy).namelist()),
+      (PP.signature(traw, "cover", pstd), PP.signature(traw, "backer", pstd)))
+check("3.10: and it passes its own check, headers built, every step run", tjp.check.count() == 0 and not [x for x in tjp.steps if x.get("refused")],
+      ([f["what"][:80] for f in tjp.check.findings], [x.get("refused") for x in tjp.steps if x.get("refused")]))
+cp = PF.check(SMALL, pstd)
+p12 = [f for f in cp.findings if f["rule"] == "P12"]; p13 = [f for f in cp.findings if f["rule"] == "P13"]
+check("3.10: Check reports a cover built differently and a missing back cover (reported, never changed)",
+      len(p12) == 1 and "differently" in p12[0]["what"] and len(p13) == 1 and "no back cover" in p13[0]["what"]
+      and not p12[0]["fix"] and not p13[0]["fix"], ([f["what"][:80] for f in p12 + p13]))
+
 # ---------------------------------------------------------------- per-deliverable types, page limits
 check("page limits read from the Deliverables board's wording", PRL.page_limit("25 pages") == 25 and PRL.page_limit("15-page limit") == 15
       and PRL.page_limit("30") == 30 and PRL.page_limit("no limit") is None)

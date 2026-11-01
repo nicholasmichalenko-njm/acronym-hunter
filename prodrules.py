@@ -34,6 +34,8 @@ def _company_default():
     c["styles"] = {"allowed": [], "hide_unused_builtin": False, "remove_unused_custom": False, "template": "",
                    "apply_variables": True}
     c["style_defs"] = {}               # 3.7.0: the style library, {style: {prop: value}}; blank = not checked
+    c["table_styles"] = {}             # 3.10.0: Word table styles, {name: {"xml", "based_on"}}
+    c["page_parts"] = {}               # 3.10.0: {"cover": file, "backer": file} in production_parts
     c["list_numbering"] = {"on": False, "lists": [   # 3.9.0: what each list style shows, level by level (inches)
         {"name": "Bullets", "levels": [
             {"style": "List Bullet", "fmt": "bullet", "text": "\u2022", "font": "", "left": 0.25, "hanging": 0.25},
@@ -206,6 +208,7 @@ def for_effort(config_dir, ws=None, data=None, type_id=None):
     std["name"] = type_of(data, tid)["name"]
     std["effort_type"] = (et or {}).get("name", "")
     std["effort_over"] = bool(eff.get("over"))
+    std["_parts_dir"] = os.path.join(config_dir, "production_parts")     # 3.10.0: where covers and back covers are kept
     return engine_ready(std)
 
 

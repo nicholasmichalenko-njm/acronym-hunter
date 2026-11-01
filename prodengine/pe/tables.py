@@ -374,6 +374,8 @@ def apply(tbl, decisions, std, table_type, style_ids, skip_asked=True, mark=lamb
     tblpr = tbl.find("w:tblPr", NS)
     if tblpr is None:
         tblpr = etree.Element(q("tblPr")); tbl.insert(0, tblpr)
+    if tt.get("word_style") and style_ids.get("__table_style__"):          # 3.10.0: the type's Word table style
+        ensure(tblpr, "tblStyle", {"val": style_ids["__table_style__"]})
     if tt.get("width_pct"):
         ensure(tblpr, "tblW", {"w": int(tt["width_pct"] * 50), "type": "pct"})
     if tt.get("align"):
@@ -459,6 +461,12 @@ def op_fix_tables(pkg, std, table_types=None, answers=None, skip_asked=True, onl
         if tkey not in ids_by_type:
             ids_by_type[tkey] = ensure_tag_styles(sroot, std, tkey)
             names = style_name_map(sroot)
+            ws_name = (std["table_types"].get(tkey) or {}).get("word_style")
+            if ws_name:                                    # 3.10.0: only when the file has that table style
+                from prodengine.engine.ops.word_ops import find_style as _fs
+                st_ = _fs(sroot, ws_name)
+                if st_ is not None and st_.get(q("type")) == "table":
+                    ids_by_type[tkey] = dict(ids_by_type[tkey], __table_style__=st_.get(q("styleId")))
         decs = classify(tbl, std, tkey, names)
         for g, role in (answers or {}).items():
             answer(decs, g, role)

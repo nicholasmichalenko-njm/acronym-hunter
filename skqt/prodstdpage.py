@@ -675,6 +675,14 @@ class StandardsPage(QWidget):
         pr.addWidget(self.preset_box)
         pr.addWidget(D.button("Use this preset", None, lambda: self.use_preset())); pr.addStretch(1)
         c.body.addLayout(pr)
+        # 3.10.0: the profile's own cover and back cover pages (from Learn from a file)
+        self.part_rows = {}
+        for where, label in (("cover", "Cover page"), ("backer", "Back cover page")):
+            row = QHBoxLayout(); row.addWidget(D.label(label, "label", wrap=False))
+            lab = D.label("", "muted"); row.addWidget(lab, 1)
+            row.addWidget(D.button("Clear", "ghost", lambda _=False, w_=where: self.clear_part(w_)))
+            c.body.addLayout(row)
+            self.part_rows[where] = lab
         v.addWidget(c)
         cols = [("key", "Key", "text"), ("name", "Name", "text"), ("start", "Starts at style", "text"),
                 ("first", "First section", "bool"), ("last", "Last section only", "bool"),
@@ -682,6 +690,23 @@ class StandardsPage(QWidget):
                 ("chapter_level", "Chapter level", "int"), ("separator", "Separator", ("enum", SEPS)),
                 ("chapter_style", "Chapter heading", "text"), ("linked", "Same header and footer as before", "bool")]
         self.table_editor(v, "pages", ("pagination", "parts"), cols, adapter="pages")
+
+    def parts_dir(self):
+        import prodparts as PP
+        return PP.parts_dir(self.host.config_dir)
+
+    def show_parts(self):
+        for where, lab in getattr(self, "part_rows", {}).items():
+            f = (self.work.get("page_parts") or {}).get(where)
+            lab.setText(f"{f} (Make a template puts it in; Fix a Copy reports a draft whose page is built differently)" if f else
+                        "none: Learn from a file... takes it from a template or finished volume")
+
+    def clear_part(self, where):
+        pp = dict(self.work.get("page_parts") or {})
+        pp.pop(where, None)
+        self.work["page_parts"] = pp
+        self.show_parts()
+        self.changed()
 
     def use_preset(self):
         self.work["pagination"] = copy.deepcopy(PRL.presets()[self.preset_box.currentData()])
@@ -1142,6 +1167,7 @@ class StandardsPage(QWidget):
         self.binder.load()
         self.fill_row_scope()
         self.load_tables()
+        self.show_parts()
         self.dirty = False
         self.state.setText({"team": "Team standard", "type": "Profile", "etype": "Effort type, every profile",
                             "etp": "Effort type, this profile", "effort": "This effort only"}[scope])
@@ -1306,7 +1332,7 @@ class StandardsPage(QWidget):
             std = PRL.engine_ready(PRL.resolved_type(self.data, pid, e["id"]))
             std["name"] = f"{e['name']} - {PRL.type_of(self.data, pid)['name']}"
             try:
-                out.append(PT.make(std, folder, "", word=word or None))
+                out.append(PT.make(std, folder, "", word=word or None, parts_dir=self.parts_dir()))
             except Exception:  # noqa: BLE001
                 diag.swallowed()
         clean = sum(1 for j in out if j.check.count() == 0)
@@ -1360,7 +1386,7 @@ class StandardsPage(QWidget):
                                                   os.path.expanduser("~"), "Word (*.dotx *.docx *.dotm *.docm)")
             if not path:
                 return []
-        got = PL.learn(path, PRL.engine_ready(copy.deepcopy(self.work)))
+        got = PL.learn(path, PRL.engine_ready(copy.deepcopy(self.work)), parts_dir=self.parts_dir())
         if got.error or not got.areas:
             self.host.status(got.error or "Nothing to learn in that file.")
             return []
@@ -1376,6 +1402,7 @@ class StandardsPage(QWidget):
         self.binder.load()
         self.fill_row_scope()
         self.load_tables()
+        self.show_parts()
         self.changed()
         self.show_problems()
         diag.activity("prod_learned", n=len(keys))
@@ -1440,7 +1467,7 @@ class StandardsPage(QWidget):
 
         def run():
             try:
-                self._tres = ("job", PT.make(std, folder, start_from, word=word))
+                self._tres = ("job", PT.make(std, folder, start_from, word=word, parts_dir=self.parts_dir()))
             except Exception as e:  # noqa: BLE001
                 diag.swallowed()
                 self._tres = ("error", f"The template was not made ({type(e).__name__}).")

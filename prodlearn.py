@@ -28,7 +28,9 @@ TW = 1440.0
 AREAS = OrderedDict([("styles", "Styles (every style's full definition)"), ("variables", "Format variables (fonts, sizes, spacing, margins)"),
                      ("tables", "Table looks by row role and table type"), ("pages", "Page setups"),
                      ("headers", "Headers and footers"), ("heading_numbering", "Heading numbering"),
-                     ("list_numbering", "List numbering (bullets and numbers by level)"), ("toc", "Table of contents")])
+                     ("list_numbering", "List numbering (bullets and numbers by level)"),
+                     ("table_styles", "Word table styles (whole)"), ("page_parts", "Cover and back cover pages"),
+                     ("toc", "Table of contents")])
 LINE_NAMES = {1.0: "single", 1.15: "1.15", 1.5: "1.5", 2.0: "double"}
 ALWAYS = ("Normal", "Heading 1", "Heading 2", "Heading 3", "Heading 4", "Heading 5", "Heading 6", "Heading 7", "Heading 8",
           "Heading 9", "Caption", "TOC Heading", "TOC 1", "TOC 2", "TOC 3", "Table of Figures", "Header", "Footer", "Title")
@@ -218,6 +220,9 @@ def learn_tables(pkg, std, styles=None):
         if ttype not in types:
             tp = tbl.find("w:tblPr", NS)
             t = {}
+            ts = tp.find("w:tblStyle", NS) if tp is not None else None
+            if ts is not None and names.get(ts.get(q("val"))) and names.get(ts.get(q("val"))).lower() not in ("normal table", "table normal"):
+                t["word_style"] = names[ts.get(q("val"))]          # 3.10.0
             tw = tp.find("w:tblW", NS) if tp is not None else None
             if tw is not None and tw.get(q("type")) == "pct":
                 t["width_pct"] = round(int(tw.get(q("w"), "5000")) / 50)
@@ -371,8 +376,9 @@ def learn_toc(pkg):
 
 
 # ------------------------------------------------------------------ the whole file
-def learn(path, std, data=None):
-    """Read the file once and return what it carries, area by area (Learned)."""
+def learn(path, std, data=None, parts_dir=None):
+    """Read the file once and return what it carries, area by area (Learned). parts_dir (3.10.0): where to keep the
+    file's cover and back cover pages, each as a Word file of its own."""
     out = Learned(path)
     try:
         raw = data if data is not None else open(path, "rb").read()
@@ -427,6 +433,29 @@ def learn(path, std, data=None):
     if ln:
         out.add("list_numbering", {"list_numbering": ln}, [f"{l['name']}: " + ", ".join(f"{v['style']} {v['text']!r}" for v in l["levels"])
                                                            for l in ln["lists"]])
+    try:
+        from prodengine.pe import tablestyles as TSt
+        tst = TSt.capture(pkg)
+    except Exception:  # noqa: BLE001
+        tst = {}
+    if tst:
+        out.add("table_styles", {"table_styles": tst}, [f"{len(tst)} table style(s): " + ", ".join(sorted(tst))])
+    if parts_dir:
+        import prodparts as PP
+        got, said = {}, []
+        for where, label in (("cover", "cover"), ("backer", "back cover")):
+            try:
+                b = PP.extract(raw, where, std)
+            except PP.PartError as e:
+                said.append(str(e)); b = None
+            except Exception:  # noqa: BLE001
+                b = None
+            if b:
+                got[where] = PP.save_part(parts_dir, b, f"{os.path.splitext(os.path.basename(path))[0]}-{where}")
+                sig = PP.part_signature(b)
+                said.append(f"{label}: {len(sig[0]) if sig else 0} paragraph(s), {sig[2] if sig else 0} picture(s)")
+        if got:
+            out.add("page_parts", {"page_parts": got}, said)
     toc = learn_toc(pkg)
     if toc:
         out.add("toc", {"toc": toc}, [f"switches {' '.join(toc['switches'])}" + (f", headings 1-{len(toc['levels'])}" if toc.get("levels") else "")])

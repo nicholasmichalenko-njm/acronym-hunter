@@ -19,7 +19,7 @@ from prodengine.engine.ops import word_ops as WO
 from prodengine.engine.ops import merge as MG
 from prodengine.engine.ordered import q
 from prodengine.pe import docmap as D, fixes as X, fixes2 as X2, fonts as Fo, hf as H, lists as L, sections as S
-from prodengine.pe import tables as T, terms as TM, listnum as LN
+from prodengine.pe import tables as T, terms as TM, listnum as LN, tablestyles as TS
 
 AREAS = OrderedDict([
     ("styles", "Styles"), ("fonts", "Fonts"), ("tables", "Tables"), ("captions", "Captions and numbering"),
@@ -44,7 +44,9 @@ RULE_TEXT = {
     "P10": "Restriction marking missing", "P11": "Header value not set (volume name, solicitation)",
     "L1": "Typed bullets", "L2": "Typed numbers or letters", "L3": "Numbering pasted from another document",
     "L4": "Hand indents on list paragraphs", "L5": "List continues the numbering before it", "L5?": "List restart to decide",
-    "L6": "Typed number inside a numbered heading", "L9": "List numbering differs from the profile", "L7": "Typed list in a table cell", "L8": "Unused list definitions",
+    "L6": "Typed number inside a numbered heading", "L9": "List numbering differs from the profile",
+    "R5": "Word table style differs from the profile", "P12": "Cover built differently from the profile's",
+    "P13": "Back cover built differently from the profile's", "R6": "Table does not use its type's Word table style", "L7": "Typed list in a table cell", "L8": "Unused list definitions",
     "W1": "Banned word or phrase", "W2": "Known misspelling", "W3": "Trademark or registered mark missing", "W4": "Name one letter off",
     "F1": "Font or size typed over the style", "F2": "Font or size typed over the style", "F1s": "Style breaks the font rule",
     "F2s": "Style breaks the size rule",
@@ -105,11 +107,13 @@ FIXES = [
          lambda std, plan: {"std": std}, rules=("F1s", "F2s")),
     _fix("fonts", "fonts", "Remove fonts and sizes typed over the styles", Fo.op_fonts, Fo.FONTS_ALLOWED,
          lambda std, plan: {"std": std}, rules=("F1", "F2")),
+    _fix("table_styles", "tables", "Set the Word table styles from the profile", TS.op_table_styles, TS.TABLE_STYLES_ALLOWED,
+         lambda std, plan: {"std": std}, rules=("R5",)),
     _fix("tables", "tables", "Format tables by row role", T.op_fix_tables,
          ("pstyles", "para_format", "table_format", "direct_run_format", "tables"),
          lambda std, plan: {"std": std, "table_types": plan.get("table_types") or None, "answers": plan.get("table_answers") or None,
                             "roles": plan.get("table_roles") or None, "only": plan.get("table_only") or None, "skip_asked": True},
-         rules=("R0",), kind="tables"),
+         rules=("R0", "R6"), kind="tables"),
     _fix("list_numbering", "lists", "Set list numbering from the profile (bullets and numbers by level)", LN.op_list_numbering,
          LN.LIST_ALLOWED, lambda std, plan: {"std": std}, rules=("L9",)),
     _fix("lists", "lists", "Turn typed bullets and numbers into the team's list styles", L.op_lists, L.LISTS_ALLOWED,
@@ -342,6 +346,13 @@ def check(path, std, data=None):
             chk.tables.append({"index": idx, "type": ttype, "caption": cap, "rows": [
                 {"i": d.index, "role": d.role, "status": d.status, "why": d.why, "text": d.first_text, "group": d.group,
                  "options": list(getattr(d, "options", []) or [])} for d in decs], "questions": qs, "counts": dict(counts)})
+            ws_name = (std["table_types"].get(ttype) or {}).get("word_style")
+            if ws_name:                              # 3.10.0: the type's Word table style
+                ts = tbl.find("w:tblPr/w:tblStyle", T.NS)
+                cur_name = names.get(ts.get(q("val")), ts.get(q("val"))) if ts is not None else ""
+                if WO.norm(cur_name) != WO.norm(ws_name):
+                    _add(chk, "tables", "R6", "warning", f"Table {idx}: uses {'the style ' + cur_name if cur_name else 'no table style'}; "
+                         f"its type uses {ws_name}", idx, "tables")
             todo = sum(1 for d in decs if d.status in ("sure", "manual"))
             if todo:
                 _add(chk, "tables", "R0", "warning", f"Table {idx} {('(' + cap + ')') if cap else ''}: {todo} row(s) to format by role",
@@ -393,6 +404,28 @@ def check(path, std, data=None):
                  "them): " + ", ".join(absent), -1, "styles_apply")
     except Exception as e:  # noqa: BLE001
         chk.error += f" Style definitions could not be compared ({type(e).__name__})."
+    try:                                             # 3.10.0: the profile's cover and back cover, by design (never changed)
+        import prodparts as PP
+        for where, rule, label in (("cover", "P12", "cover"), ("backer", "P13", "back cover")):
+            fname = (std.get("page_parts") or {}).get(where)
+            pdir = std.get("_parts_dir") or ""
+            if not fname or not os.path.isfile(os.path.join(pdir, fname)):
+                continue
+            want = PP.part_signature(open(os.path.join(pdir, fname), "rb").read())
+            have = PP.signature(raw, where, std)
+            if have is None:
+                _add(chk, "pages", rule, "warning", f"The draft has no {label}; the profile has one (Make a template has it)", -1, "")
+            elif want is not None and have != want:
+                _add(chk, "pages", rule, "info", f"The {label} is built differently from the profile's: paragraph styles "
+                     f"{', '.join(have[0][:6]) or 'none'} (profile: {', '.join(want[0][:6]) or 'none'}); {have[1]} table(s), "
+                     f"{have[2]} picture(s) (profile: {want[1]}, {want[2]}). Review it by hand.", -1, "")
+    except Exception as e:  # noqa: BLE001
+        chk.error += f" The cover could not be compared ({type(e).__name__})."
+    try:
+        for name, what in TS.differences(Package.from_bytes(raw), std):
+            _add(chk, "tables", "R5", "warning", f"Table style {name}: {what}", -1, "table_styles")
+    except Exception as e:  # noqa: BLE001
+        chk.error += f" Table styles could not be read ({type(e).__name__})."
     try:
         for style, what in LN.differences(Package.from_bytes(raw), std):
             _add(chk, "lists", "L9", "warning", f"{style}: {what}", -1, "list_numbering")

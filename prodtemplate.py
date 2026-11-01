@@ -27,7 +27,7 @@ COVER_STYLES = {"PE Volume Name": {"type": "paragraph", "based_on": "Normal", "s
                 "PE Solicitation": {"type": "paragraph", "based_on": "Normal", "size": 12, "jc": "center", "after": 6},
                 "PE Company": {"type": "paragraph", "based_on": "Normal", "size": 12, "jc": "center", "after": 6}}
 # the fixes that put the standard into the template, in Fix a Copy's order
-TEMPLATE_FIXES = ("styles_apply", "unnumber_inheriting", "heading_numbering", "list_numbering", "tables", "lists", "caption_typed", "caption_fields",
+TEMPLATE_FIXES = ("styles_apply", "unnumber_inheriting", "heading_numbering", "list_numbering", "table_styles", "tables", "lists", "caption_typed", "caption_fields",
                   "caption_after", "toc_field", "toc_styles", "toc_list_identifiers", "chapter_breaks", "page_numbers",
                   "page_setup", "page_field_clean", "hf_build")
 
@@ -255,7 +255,7 @@ def standard_for_template(std):
     return std
 
 
-def make(std, folder, start_from="", word=None, when=None, progress=None):
+def make(std, folder, start_from="", word=None, when=None, progress=None, parts_dir=None):
     """Write the template into folder and put the standard into it. start_from: a template or document to start
     from (read once, never written), or "" for the Stationkeeper base. Returns a TemplateJob."""
     say = progress or (lambda *a: None)
@@ -277,6 +277,13 @@ def make(std, folder, start_from="", word=None, when=None, progress=None):
     else:
         data = base_package(std)
         start = "Stationkeeper base"
+        pdir = parts_dir or std.get("_parts_dir") or ""
+        for where in ("cover", "backer"):              # 3.10.0: the profile's own cover and back cover pages
+            fname = (std.get("page_parts") or {}).get(where)
+            if fname and pdir and os.path.isfile(os.path.join(pdir, fname)):
+                import prodparts as PP
+                with open(os.path.join(pdir, fname), "rb") as f:
+                    data = PP.place(data, f.read(), where)
     folder = os.path.abspath(folder)
     os.makedirs(folder, exist_ok=True)
     PCY.allow_root(folder)
