@@ -20,6 +20,11 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.8.0": ["Production Standards: effort types (RFP response, page-limited RFP response, white paper, program "
+              "deliverables to start) hold the document profiles their deliverables use, rules every profile in them follows, "
+              "and changes for one profile. Start an effort asks for its effort type; a draft takes the profile whose words "
+              "are in its name. Make templates for every profile of an effort type in one step.",
+              "Styles also carry tab stops, paragraph borders and shading: checked, set, learned and edited like the rest."],
     "3.7.0": ["Production Standards: each document profile is a full template. Learn from a file... reads your master "
               "template or a finished volume and takes its styles (each one whole), table looks, page setups, headers and "
               "footers, heading numbering and TOC into the profile. The Style library section shows and edits every "

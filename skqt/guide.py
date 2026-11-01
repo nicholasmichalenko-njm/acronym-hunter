@@ -290,7 +290,8 @@ TOPICS = [
   "Fixes a draft's formatting to the production standard in a dated copy. Your file is never changed: it is read once, "
   "and a file someone has open is not copied at all.",
   "Before each color review and for final production, on each volume.",
-  ["Check the output folder (Change... sets it; the default is Production Copies in the Stationkeeper data folder). "
+  ["The effort's type (set when you start it, or in Production Standards) decides which profiles its drafts use.",
+   "Check the output folder (Change... sets it; the default is Production Copies in the Stationkeeper data folder). "
    "Each effort's copies go in a folder with the effort's name inside it. Copies never go beside the original.",
    "Pick a draft from the Volumes folder, or Add a file.... Its volume name comes from the Deliverables board when the "
    "draft is a deliverable's file; otherwise type it. The solicitation comes from the effort's basics. Headers and "
@@ -316,6 +317,12 @@ TOPICS = [
   "Once to set the team's rules; for each profile; at the start of each effort to bring in the RFP's.",
   ["Editing: choose the team standard, a document profile (+ Profile... adds one, starting from the one shown), or "
    "this effort. A value set at that layer shows in bold; Reset takes it back to the layer below.",
+   "Effort types: + Effort type... adds one (RFP response, page-limited RFP response, white paper and program "
+   "deliverables are there to start). Editing an effort type sets the profiles it holds, its default profile, and the "
+   "rules every profile in it follows; Effort type > profile sets its changes for one profile. Make templates for every "
+   "profile... writes one template per profile. Order: team, profile, effort type, effort type for the profile, the effort.",
+   "A profile's Deliverables this profile fits: words in a deliverable's name (cost, price) that pick this profile for it "
+   "in an effort type.",
    "Learn from a file...: pick your master template or a finished volume. Stationkeeper reads it (it is never changed) "
    "and lists what it carries: every style's whole definition, the format variables, table looks by row role, page "
    "setups, headers and footers, heading numbering and the TOC. Untick what you do not want; review; Save.",
