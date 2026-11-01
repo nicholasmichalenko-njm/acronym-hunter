@@ -184,6 +184,8 @@ check("3.7: a draft takes its own document type on Fix a Copy", pg.std()["name"]
 chk = pg.check(wait=True)
 check("3.7: Check lists each style that differs from the library, property by property",
       any(f["rule"] == "S4" and f["what"].startswith("Heading 2:") and "size" in f["what"] for f in chk.findings))
+check("3.7: one style can be left out of the style fix from its finding", pg.set_style("Heading 2", False)
+      and pg.plan["style_skip"] == ["Heading 2"] and pg.set_style("Heading 2", True) and pg.plan["style_skip"] == [])
 check("THE GATE, at the end", sha(vol) == before)
 n = sum(checks)
 print(f"QT PRODFIX {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

@@ -423,6 +423,11 @@ class FixPage(QWidget):
                 for f in items[:400]:
                     c = QTreeWidgetItem([f"{f['rule']}  {f['what']}", f["severity"], f["near"]])
                     c.setToolTip(0, PF.RULE_TEXT.get(f["rule"], ""))
+                    if f["rule"] == "S4" and ": " in f["what"]:      # 3.7.0: each style can be left out of the fix
+                        c.setData(0, Qt.UserRole + 1, f["what"].split(": ", 1)[0])
+                        c.setFlags(c.flags() | Qt.ItemIsUserCheckable)
+                        c.setCheckState(0, Qt.Unchecked if c.data(0, Qt.UserRole + 1) in (self.plan.get("style_skip") or []) else Qt.Checked)
+                        c.setToolTip(0, "Untick to leave this style as the draft has it")
                     it.addChild(c)
             if manual:
                 it = QTreeWidgetItem(["Updated by Word, or reviewed by hand", f"{len(manual)} found", ""])
@@ -436,6 +441,12 @@ class FixPage(QWidget):
 
     def tree_changed(self, it, col):
         key = it.data(0, Qt.UserRole)
+        style = it.data(0, Qt.UserRole + 1)
+        if style and self.plan is not None:
+            skip = set(self.plan.get("style_skip") or [])
+            (skip.discard if it.checkState(0) == Qt.Checked else skip.add)(style)
+            self.plan["style_skip"] = sorted(skip)
+            return
         if not key or self.plan is None:
             return
         on = set(self.plan["on"])
@@ -444,6 +455,19 @@ class FixPage(QWidget):
         else:
             on.discard(key)
         self.plan["on"] = [f["key"] for f in PF.FIXES if f["key"] in on]
+
+    def set_style(self, name, on):
+        """For tests and keyboard users: include or leave out one style of the style fix."""
+        for i in range(self.tree.topLevelItemCount()):
+            top = self.tree.topLevelItem(i)
+            for j in range(top.childCount()):
+                fx = top.child(j)
+                for k in range(fx.childCount()):
+                    c = fx.child(k)
+                    if c.data(0, Qt.UserRole + 1) == name:
+                        c.setCheckState(0, Qt.Checked if on else Qt.Unchecked)
+                        return True
+        return False
 
     def set_fix(self, key, on):
         """For tests and keyboard users: switch a fix on or off."""
