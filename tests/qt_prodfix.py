@@ -39,8 +39,8 @@ for _k in _RA.PREVIEW:
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.go("home"); app.processEvents()
 f = w.home_page.start; f.name.setText("Osprey"); f.sol.setText("FA8810-26-R-0042"); f.create(); app.processEvents()
-check("3.9: Production holds Fix a Copy and Production Standards (Format Check is part of Fix a Copy)",
-      [k for g, it in RAIL if g == "Production" for k, _l in it] == ["fixcopy", "prodstd"])
+check("3.9: Production holds Production Standards and Fix a Copy (3.16.0: Fix a Copy last, Beta)",
+      [k for g, it in RAIL if g == "Production" for k, _l in it] == ["prodstd", "fixcopy"])
 vol = os.path.join(EF.folder(w.effort_path, "volumes"), "Volume I Technical.docx")
 shutil.copy2(os.path.join(HERE, "pefix", "data", "small.docx"), vol)
 before = sha(vol)
