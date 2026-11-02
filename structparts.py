@@ -69,14 +69,46 @@ def set_counts(M, part, on):
         M.pending = True
 
 
+def item_count(M, label):
+    """3.20.1: a section's own choice (True or False) that overrides its part's, or None (it follows its part)."""
+    import setupdoc as SD
+    v = (SD.setup_of(M).get("item_counts") or {}).get(label)
+    return None if v is None else bool(v)
+
+
+def set_item_count(M, label, on):
+    """on: True or False for this section only; None to follow its part again."""
+    import setupdoc as SD
+    S = SD.setup_of(M)
+    ic = S.get("item_counts")
+    if not isinstance(ic, dict):
+        ic = S["item_counts"] = {}
+    if on is None:
+        ic.pop(label, None)
+    else:
+        ic[label] = bool(on)
+    if hasattr(M, "pending"):
+        M.pending = True
+
+
+def decided(M, part):
+    """Has the person said whether this part counts (else it follows the default)?"""
+    import setupdoc as SD
+    return (SD.setup_of(M).get("part_counts") or {}).get(part) is not None
+
+
 def label_part(M):
     """{section label: its part}, children taking their part from the item that starts their block."""
     import compliance as C
     return {C.outline_label(o): part_of(o) for o in M.outline}
 
 
-def counted(M, label):
-    return counts(M, label_part(M).get(label, "body"))
+def counted(M, label, lp=None):
+    """Does this section count toward the page limit: its own choice (3.20.1), else its part's."""
+    own = item_count(M, label)
+    if own is not None:
+        return own
+    return counts(M, (lp if lp is not None else label_part(M)).get(label, "body"))
 
 
 # ------------------------------------------------------------------ rules from Production Standards

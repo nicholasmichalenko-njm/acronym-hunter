@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.20.1": ["Appendices and the page limit: the first appendix asks whether the RFP counts the appendices; Part rules and "
+               "page limits changes it for all of them, and a section's Pages... sets one on its own (counts, does not "
+               "count, or as its part). The Page budget follows.",
+               "A section's page length now follows it when its number or name changes."],
     "3.20.0": ["Meetings (Effort Record > Meetings): the meeting, its date and time, participants and notes, and the topics "
                "to follow up. A topic points at a section or a requirement and can name an owner; it stays open until "
                "someone marks it Considered or Not needed, with who and when.",

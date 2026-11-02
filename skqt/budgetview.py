@@ -94,7 +94,8 @@ class BudgetDialog(QDialog):
             r = t.rowCount(); t.insertRow(r)
             import structparts as SP
             part = SP.label_part(self.M).get(l, "body")
-            note = "" if SP.counts(self.M, part) else f"   ({SP.PART_NAME[part].lower()}: not counted)"
+            note = "" if SP.counted(self.M, l) else (f"   ({SP.PART_NAME[part].lower()}: not counted)" if SP.item_count(self.M, l) is None
+                                                     else "   (not counted)")
             it = QTableWidgetItem(("    " * (lv.get(l, 1) - base)) + l + note); it.setFlags(Qt.ItemIsEnabled); t.setItem(r, 0, it)
             if note:
                 it.setForeground(D.color("muted"))
@@ -116,7 +117,7 @@ class BudgetDialog(QDialog):
         import structparts as SP
         labs = self.labels()
         lp = SP.label_part(self.M)                     # 3.19.0: only the parts that count toward the limit
-        have = {l for l in labs if self.edit.get(l) and SP.counts(self.M, lp.get(l, "body"))}
+        have = {l for l in labs if self.edit.get(l) and SP.counted(self.M, l, lp)}
         return sum(self.edit[l] for l in have if not any(p in have for p in SD._parents(self.M, l)[1:]))
 
     def show_totals(self):

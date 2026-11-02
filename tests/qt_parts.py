@@ -93,6 +93,23 @@ check("Part rules and page limits lists every part with its rules", d._api["tabl
 d._api["boxes"]["appendix"].setChecked(True); d._api["save"]()
 check("ticking the appendices counts them", SP.counts(M, "appendix") and PB.total(M, labs) == 15)
 check("the Page budget splits only across the parts that count", PB.parts(M, labs) == ["1 Technical Approach", "Appendix A Resumes"], PB.parts(M, labs))
+# 3.20.1: one appendix can count (or not) apart from its part; the first appendix can say whether appendices count
+pg.section_pages("Appendix A Resumes", answer=(5, "rfp", False)); app.processEvents()
+check("3.20.1: one appendix taken out of the limit while appendices count", not SP.counted(M, "Appendix A Resumes")
+      and SP.counts(M, "appendix") and PB.total(M, O.in_volume(M, v1)) == 10, PB.total(M, O.in_volume(M, v1)))
+node = pg.tree.findItems("Appendix A Resumes", Qt.MatchRecursive | Qt.MatchExactly, 0)
+check("... the structure list says so", node and node[0].text(3).endswith("not counted"), node[0].text(3) if node else None)
+pg.section_pages("Appendix A Resumes", answer=(5, "rfp", None)); app.processEvents()
+check("... and As its part follows the appendices again", SP.counted(M, "Appendix A Resumes") and PB.total(M, O.in_volume(M, v1)) == 15)
+pb = PB.pages(M, "1 Technical Approach")
+pg.set_target("Executive summary"); pg.move_to_part("body"); app.processEvents()
+check("3.20.1: a section's pages follow it when its number changes", PB.pages(M, "2 Technical Approach") == 10 and pb == 10
+      and PB.pages(M, "1 Executive summary") == 2, (PB.pages(M, "1 Executive summary"), PB.pages(M, "2 Technical Approach")))
+w.undo_here(); app.processEvents()
+SD.setup_of(M).get("part_counts", {}).pop("appendix", None)
+pg.add_part("appendix", title="Org charts", counts=False); app.processEvents()
+check("3.20.1: the first appendix records whether appendices count", SP.decided(M, "appendix") and not SP.counts(M, "appendix"))
+SP.set_counts(M, "appendix", True)
 # the Structure tab's text and Response Setup carry the parts
 w.go("structure"); app.processEvents()
 txt = w.structure_page.text.toPlainText()

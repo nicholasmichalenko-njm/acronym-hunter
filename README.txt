@@ -1,6 +1,15 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+APPENDICES AND THE PAGE LIMIT (3.20.1)
+  - Adding the first appendix asks whether the RFP counts the appendices toward the page limit (They count, They do
+    not count, Decide later). Parts > Part rules and page limits... changes it for every appendix.
+  - One section on its own: its Pages... has Page limit: As its part, Counts, or Does not count (an appendix of
+    resumes the RFP leaves out while the others count, say). The structure list's Pages column says "counts" or "not
+    counted" for a section set on its own; the Page budget totals and splits follow.
+  - Fixed: a section's page length (and who set it) was left behind when its number or name changed (a section added
+    or moved above it). It now follows the section.
+
 MEETINGS AND THEIR TOPICS (3.20.0)
   - Effort Record > Meetings: + Meeting, then its date and time, participants (from the author list) and notes. The
     meeting goes on the effort calendar too.

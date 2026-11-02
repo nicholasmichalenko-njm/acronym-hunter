@@ -1982,7 +1982,9 @@ class AssignPage(QWidget):
                     part_node.setExpanded(True)
                     self.part_nodes.append(part_node)
                     last_part = part
-            node = QTreeWidgetItem([lab, str(counts.get(lab, "") or ""), str(ctxn.get(lab, "") or ""), PB.tag(self.M, lab)])
+            node = QTreeWidgetItem([lab, str(counts.get(lab, "") or ""), str(ctxn.get(lab, "") or ""), PB.tag(self.M, lab)
+                                    + ("" if SP.item_count(self.M, lab) is None else
+                                       (" counts" if SP.item_count(self.M, lab) else " not counted"))])
             if PB.pages(self.M, lab):                                     # 3.18.2: the RFP's limit in red, a guideline in blue
                 node.setForeground(3, QColor("#B91C1C" if PB.source(self.M, lab) == "rfp" else "#1D4ED8"))
                 node.setToolTip(3, f"{PB.SOURCE_NAME[PB.source(self.M, lab)]}: {PB.fmt(PB.pages(self.M, lab))} page(s), subsections included")
@@ -2658,10 +2660,21 @@ class AssignPage(QWidget):
                     return labs[j]
         return next(l for l in O.labels(self.M) if l in heads)
 
-    def add_part(self, part, title=None):
-        """Add a cover, title page, front matter item, appendix or back cover to the volume (title: tests)."""
+    def add_part(self, part, title=None, counts=None):
+        """Add a cover, title page, front matter item, appendix or back cover to the volume (title, counts: tests).
+        3.20.1: the first appendix asks whether the RFP counts the appendices toward the page limit."""
         if self.M is None:
             return None
+        if part == "appendix" and not SP.decided(self.M, "appendix") and counts is None and title is None:
+            from PySide6.QtWidgets import QMessageBox
+            mb = QMessageBox(self); mb.setWindowTitle("Appendices and the page limit")
+            mb.setText("Does the RFP count the appendices toward the page limit?")
+            mb.setInformativeText("You can change it later, for all appendices (Parts > Part rules and page limits) or for "
+                                  "one (its Pages...).")
+            yes = mb.addButton("They count", QMessageBox.YesRole); no = mb.addButton("They do not count", QMessageBox.NoRole)
+            mb.addButton("Decide later", QMessageBox.RejectRole)
+            mb.exec()
+            counts = True if mb.clickedButton() is yes else False if mb.clickedButton() is no else None
         if title is None:
             if part in ("cover", "title", "back"):
                 title = SP.ITEM_NAME[part]
@@ -2682,6 +2695,8 @@ class AssignPage(QWidget):
                 title = cb.currentText()
         vol = self._part_volume()
         self.R.snap(f"add {SP.ITEM_NAME[part].lower()}: {title}")
+        if counts is not None:
+            SP.set_counts(self.M, part, counts)
         lab = O.add_part_item(self.M, part, title, vol)
         if lab is None:
             self.R.undo.pop() if self.R.undo else None
@@ -2759,7 +2774,8 @@ class AssignPage(QWidget):
 
     def section_pages(self, label, answer=None):
         """3.18.2: a section's page length and who set it (the RFP's limit or the team's guideline). answer (tests):
-        (pages, 'rfp' or 'team'); 0 pages takes it off. Returns the tag shown, or None."""
+        (pages, 'rfp' or 'team'[, counts: None to follow its part, True or False]); 0 pages takes it off. 3.20.1: whether
+        this section counts toward the page limit (an appendix the RFP counts, say). Returns the tag shown, or None."""
         if not label or self.M is None or label not in set(O.labels(self.M)):
             self.host.status("Click a section in your structure first.")
             return None
@@ -2776,15 +2792,23 @@ class AssignPage(QWidget):
             for key, name in PB.SOURCES:
                 rb[key] = QRadioButton(name + (": the customer sets it" if key == "rfp" else ": what our authors aim for"))
                 rb[key].setChecked(key == cur); f.addRow("" if key != "team" else "Set by", rb[key])
+            part = SP.label_part(self.M).get(label, "body")
+            cnt = QComboBox()
+            cnt.addItem(f"As its part ({SP.PART_NAME[part]}: {'counts' if SP.counts(self.M, part) else 'not counted'})", None)
+            cnt.addItem("Counts toward the page limit", True); cnt.addItem("Does not count toward the page limit", False)
+            cnt.setCurrentIndex({None: 0, True: 1, False: 2}[SP.item_count(self.M, label)])
+            f.addRow("Page limit", cnt)
             f.addRow(D.label("Subsections are included. The Page budget splits a volume's limit across its sections.", "muted"))
             bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
             f.addRow(bb)
             if d.exec() != QDialog.Accepted:
                 return None
-            answer = (sp.value(), "rfp" if rb["rfp"].isChecked() else "team")
-        n, src = answer
+            answer = (sp.value(), "rfp" if rb["rfp"].isChecked() else "team", cnt.currentData())
+        n, src = answer[0], answer[1]
         self.R.snap(f"pages for {label}")
         PB.set_pages(self.M, label, n, src)
+        if len(answer) > 2:
+            SP.set_item_count(self.M, label, answer[2])
         diag.activity("section_pages_set")
         tag = PB.tag(self.M, label)
         self.after(f"{label}: " + (f"{PB.fmt(PB.pages(self.M, label))} page(s), {PB.SOURCE_NAME[PB.source(self.M, label)].lower()}"

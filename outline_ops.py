@@ -61,12 +61,12 @@ def relabel(M, mapping):
     for it in M.items:
         if it.get("map") in mapping:
             it["map"] = mapping[it["map"]]
-    for key in ("copies", "order", "owners", "mgmt"):
-        d = S.get(key)
-        if isinstance(d, dict):
-            for a, b in mapping.items():
-                if a in d:
-                    d[b] = d.pop(a)
+    bud = S.get("budget") if isinstance(S.get("budget"), dict) else {}
+    for d in [S.get(k) for k in ("copies", "order", "owners", "mgmt", "item_counts")] + [bud.get("pages"), bud.get("source")]:
+        if isinstance(d, dict):                    # 3.20.1: page lengths and what counts follow their section too
+            moved = {a: d.pop(a) for a in list(mapping) if a in d}   # all at once: 3 -> 2 while 2 -> 1
+            for a, v in moved.items():
+                d[mapping[a]] = v
     V = S.get("volumes") or {}
     if V.get("heads"):
         V["heads"] = [mapping.get(h, h) for h in V["heads"]]

@@ -118,7 +118,7 @@ def total(M, labels, counted_only=True):
     are left out."""
     import structparts as SP
     lp = SP.label_part(M) if counted_only else {}
-    have = {l for l in labels if pages(M, l) and (not counted_only or SP.counts(M, lp.get(l, "body")))}
+    have = {l for l in labels if pages(M, l) and (not counted_only or SP.counted(M, l, lp))}
     out = 0.0
     for l in have:
         if not any(p in have for p in SD._parents(M, l)[1:]):
@@ -154,8 +154,8 @@ def parts(M, volume_labels):
     lp = SP.label_part(M)
     if len(tops) == 1 and len(labs) > 1:                    # a volume heading: split across what is under it
         nxt = min((lv[l] for l in labs if lv[l] > top), default=top)
-        return [l for l in labs if lv[l] == nxt and SP.counts(M, lp.get(l, "body"))]   # 3.19.0: the parts that count
-    return [l for l in tops if SP.counts(M, lp.get(l, "body"))]
+        return [l for l in labs if lv[l] == nxt and SP.counted(M, l, lp)]   # 3.19.0: the parts that count
+    return [l for l in tops if SP.counted(M, l, lp)]
 
 
 def req_counts(M, labels):
