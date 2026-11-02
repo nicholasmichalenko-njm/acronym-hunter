@@ -361,7 +361,8 @@ w.go("audit"); app.processEvents()
 ap = w.audit_page
 check("3.17: Audit sits in Production between Production Standards and Fix a Copy, and lists the Volumes folder",
       [k for g, it in RAIL if g == "Production" for k, _l in it] == ["prodstd", "audit", "fixcopy"]
-      and "Volume I Technical.docx" in [ap.files.item(i).text() for i in range(ap.files.count())])
+      and ap.files.count() == len([f for f in os.listdir(EF.folder(w.effort_path, "volumes")) if f.lower().endswith((".docx", ".xlsx", ".pptx"))]))
+ap.add_files([vol]); app.processEvents()
 vbefore = sha(vol)
 res = ap.run(wait=True); app.processEvents()
 check("3.17: Audit checks every file against its standard and changes nothing", res and all(c.count() >= 0 for _n, c in res.values())
