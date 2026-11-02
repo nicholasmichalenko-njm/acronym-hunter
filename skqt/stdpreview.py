@@ -509,8 +509,12 @@ class Preview(QWidget):
         self.title = D.label("Preview", "label", wrap=False); v.addWidget(self.title)
         self.changes = QLabel(""); self.changes.setWordWrap(True); self.changes.setTextFormat(Qt.RichText)
         self.changes.setObjectName("stdchanges"); v.addWidget(self.changes)
-        self.canvas = Canvas(page); v.addWidget(self.canvas, 1)
-        self.setMinimumWidth(360); self.setMaximumWidth(460)
+        self.canvas = Canvas(page)
+        from PySide6.QtWidgets import QFrame, QScrollArea
+        sc = QScrollArea(); sc.setWidgetResizable(True); sc.setFrameShape(QFrame.NoFrame); sc.setWidget(self.canvas)
+        sc.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        v.addWidget(sc, 1)
+        self.setMinimumWidth(320); self.setMaximumWidth(420)
 
     def show_section(self, key, title):
         self.canvas.section = key

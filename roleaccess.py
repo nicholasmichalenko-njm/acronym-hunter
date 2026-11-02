@@ -18,11 +18,11 @@ PM = "Proposal Manager"
 PROFILES = ("Proposal Manager", "Production", "Author", "Reviewer", "Capture")
 ALWAYS = {"efforts", "mywork", "home", "deliverables", "settings"}
 TOOLS = {
-    "Production": {"library", "requirements", "matrix", "setup", "acronyms", "acrlist", "qa", "lists", "checks", "fixcopy",
+    "Production": {"library", "requirements", "matrix", "setup", "acronyms", "acrlist", "qa", "lists", "checks", "fixcopy", "audit",
                    "prodstd", "postsub", "keywords", "exportall"},
     "Author": {"library", "compare", "requirements", "custqa", "assign", "setup", "storyboards", "truth", "acronyms", "acrlist",
                "keywords"},
-    "Reviewer": {"reviews", "library", "compare", "assign", "prove", "matrix", "truth", "checks"},
+    "Reviewer": {"reviews", "library", "compare", "assign", "prove", "matrix", "truth", "checks", "audit"},
     "Capture": {"library", "read", "compare", "requirements", "custqa", "structure", "assign", "crosswalk", "storyboards", "truth"},
 }
 # a role written in People and roles (the team's own words) -> the profile it means; first match wins
@@ -49,7 +49,7 @@ def profile_of(role_text):
 
 MENU = ("efforts", "mywork", "home", "deliverables", "record", "reviews", "postsub", "library", "read", "compare", "requirements",
         "custqa", "structure", "assign", "prove", "crosswalk", "matrix", "setup", "storyboards", "truth", "acronyms", "acrlist",
-        "keywords", "qa", "lists", "checks", "fixcopy", "prodstd", "exportall", "settings")
+        "keywords", "qa", "lists", "checks", "fixcopy", "audit", "prodstd", "exportall", "settings")
 
 
 def allowed(profile, step):
@@ -119,7 +119,7 @@ STAGE_TOOLS = ((("intake", "kickoff", "kick-off", "capture", "start", "rfp relea
                (("draft", "author", "writ"), ("setup", "assign", "truth", "acronyms", "compare")),
                (("pink",), ("reviews", "matrix", "compare")),
                (("red",), ("reviews", "prove", "qa", "truth")),
-               (("gold", "white", "final", "production", "pubs", "publish"), ("checks", "qa", "lists", "fixcopy")),
+               (("gold", "white", "final", "production", "pubs", "publish"), ("checks", "qa", "lists", "audit", "fixcopy")),
                (("submit", "submitted", "post", "debrief", "lessons"), ("postsub", "keywords", "exportall")))
 
 

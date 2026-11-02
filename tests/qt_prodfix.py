@@ -39,8 +39,8 @@ for _k in _RA.PREVIEW:
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.go("home"); app.processEvents()
 f = w.home_page.start; f.name.setText("Osprey"); f.sol.setText("FA8810-26-R-0042"); f.create(); app.processEvents()
-check("3.9: Production holds Production Standards and Fix a Copy (3.16.0: Fix a Copy last, Beta)",
-      [k for g, it in RAIL if g == "Production" for k, _l in it] == ["prodstd", "fixcopy"])
+check("3.9: Production holds Production Standards, Audit and Fix a Copy (3.16.0: Fix a Copy last, Beta; 3.17.0: Audit)",
+      [k for g, it in RAIL if g == "Production" for k, _l in it] == ["prodstd", "audit", "fixcopy"])
 vol = os.path.join(EF.folder(w.effort_path, "volumes"), "Volume I Technical.docx")
 shutil.copy2(os.path.join(HERE, "pefix", "data", "small.docx"), vol)
 before = sha(vol)
@@ -94,7 +94,7 @@ check("3.6.1: the headers name this volume and this solicitation, never a sample
 check("THE GATE: the original is byte for byte unchanged", sha(vol) == before and job.original_ok)
 check("nothing was written beside the original", sorted(os.listdir(os.path.dirname(vol))) == ["Volume I Technical.docx"],
       os.listdir(os.path.dirname(vol)))
-check("the result shows found before and left after, and every fix", pg.res_card.isVisibleTo(pg) and pg.res_table.rowCount() == 9
+check("the result shows found before and left after, and every fix", pg.res_card.isVisibleTo(pg) and pg.res_table.rowCount() == 10      # 3.17.0: Graphics
       and pg.res_steps.count() >= 8 and "original is unchanged" in pg.res_text.text(), pg.res_text.text())
 tables_row = next(r for r in range(pg.res_table.rowCount()) if pg.res_table.item(r, 0).text() == "Tables")
 check("tables fixed in the copy", pg.res_table.item(tables_row, 2).text() == "0", pg.res_table.item(tables_row, 2).text())
@@ -105,7 +105,7 @@ os.remove(own)
 # ------------------------------------------------------------------ Production Standards
 w.go("prodstd"); app.processEvents()
 sp = w.prodstd_page
-check("Standards opens on this effort, with every section", sp.scope == "effort" and sp.nav.count() == 16)
+check("Standards opens on this effort, with every section", sp.scope == "effort" and sp.nav.count() == 17)      # 3.17.0: Graphics
 sp.scope_box.setCurrentIndex(0); app.processEvents()
 check("the team standard is editable", sp.scope == "team" and sp.work["variables"]["body_font"] == "Times New Roman")
 tid = sp.add_type("Cost volume")
@@ -338,6 +338,37 @@ w.go("prodstd"); app.processEvents()
 sp.nav.setCurrentRow([k for k, _t in __import__("skqt.prodstdpage", fromlist=["SECTIONS"]).SECTIONS].index("office")); app.processEvents()
 mp = next(i for i in sp.binder.items if i["path"] == ("powerpoint", "min_size"))
 check("3.11: Production Standards shows the Excel and PowerPoint values", mp["w"].value() == 12)
+# 3.17.0: graphics standards, previews with what changed, and Audit
+SEC = [k for k, _t in __import__("skqt.prodstdpage", fromlist=["SECTIONS"]).SECTIONS]
+sp.nav.setCurrentRow(SEC.index("graphics")); app.processEvents()
+gp = next(i for i in sp.binder.items if i["path"] == ("graphics", "min_ppi"))
+check("3.17: Production Standards has a Graphics section, with its preview", "graphics" in SEC and gp["w"] is not None
+      and sp.std_preview.canvas.section == "graphics" and sp.std_preview.title.text() == "Preview: Graphics")
+sp.scope_box.setCurrentIndex(sp.scope_box.count() - 1); app.processEvents()
+gp = next(i for i in sp.binder.items if i["path"] == ("graphics", "min_ppi"))
+gp["w"].setValue(300); app.processEvents()
+rows = sp.changed_here("graphics")
+check("3.17: a value set at this layer: what it was and what it is now, beside it and in the preview",
+      any(w_ == 150 and n_ == 300 for _l, w_, n_ in rows) and gp["was"].isVisibleTo(sp) and gp["was"].text() == "was 150"
+      and "now <b>300" in sp.std_preview.changes.text(), (rows, gp["was"].text()))
+for k in SEC:                                              # every section draws without an error
+    sp.nav.setCurrentRow(SEC.index(k)); app.processEvents(); sp.std_preview.canvas.grab()
+check("3.17: every section has a preview", sp.std_preview.canvas.section == SEC[-1])
+gp["reset"].click(); app.processEvents()
+check("3.17: Reset takes it back and the was line goes", not sp.changed_here("graphics") and not gp["was"].isVisibleTo(sp))
+sp.dirty = False
+w.go("audit"); app.processEvents()
+ap = w.audit_page
+check("3.17: Audit sits in Production between Production Standards and Fix a Copy, and lists the Volumes folder",
+      [k for g, it in RAIL if g == "Production" for k, _l in it] == ["prodstd", "audit", "fixcopy"]
+      and "Volume I Technical.docx" in [ap.files.item(i).text() for i in range(ap.files.count())])
+vbefore = sha(vol)
+res = ap.run(wait=True); app.processEvents()
+check("3.17: Audit checks every file against its standard and changes nothing", res and all(c.count() >= 0 for _n, c in res.values())
+      and ap.table.rowCount() == len(res) and sha(vol) == vbefore and "Nothing was changed" in ap.status.text(), ap.status.text())
+xp2 = ap.export(os.path.join(tmp, "audit.xlsx"))
+from openpyxl import load_workbook as _lw
+check("3.17: the audit exports every finding", xp2 and _lw(xp2)["Findings"].max_row >= 2)
 check("THE GATE, at the end", sha(vol) == before)
 n = sum(checks)
 print(f"QT PRODFIX {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

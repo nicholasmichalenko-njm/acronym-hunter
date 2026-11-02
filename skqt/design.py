@@ -135,6 +135,8 @@ QPushButton#railgroup:hover {{ color: {t['rail_active_text']}; }}
 QLabel#railcount {{ background: transparent; font-size: {TYPE['label']}pt; font-weight: 600; }}
 QLabel#railbeta {{ background: transparent; color: #F2B65A; border: 1px solid #F2B65A; border-radius: 3px; padding: 0 3px;
                   font-size: {TYPE['label'] - 1}pt; font-weight: 700; letter-spacing: 0.5px; }}
+QLabel#stdwas {{ color: {t['warn']}; font-size: {TYPE['small']}pt; }}
+QLabel#stdchanges {{ background: {t['surface']}; border: 1px solid {t['border_soft']}; border-radius: 6px; padding: 6px 8px; }}
 QFrame#pagetabsbox {{ background: {t['surface']}; border: none; border-bottom: 1px solid {t['border_soft']}; }}
 QTabBar#pagetabs::tab {{ background: transparent; color: {t['muted']}; border: none; border-bottom: 3px solid transparent;
                         padding: 6px 14px 5px 14px; margin-right: 4px; font-weight: 600; }}

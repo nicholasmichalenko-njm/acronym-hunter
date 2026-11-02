@@ -20,6 +20,14 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.17.0": ["Production Standards shows what you set: a preview beside every section draws what its values make, and "
+               "every value set at the layer you edit says what it was. A list above the preview names every change in "
+               "the section.",
+               "Graphics standards: picture types, resolution where placed, the widest a figure may be, fonts and the "
+               "smallest text in drawings, charts and text boxes, captions, alt text, RGB only and file size. Fix a Copy "
+               "and Audit check every figure; a picture is never changed.",
+               "Production > Audit: check Word, Excel and PowerPoint files against every standard that applies to them, "
+               "read only, and export every finding."],
     "3.16.0": ["One place per job. The Library is where reading starts: a Review column says where each document stands (Not "
                "read yet, Needs reviewing, Reviewed) in color, the first button moves it on, and new files in the watched "
                "folders show at the top with Add and Ignore.",

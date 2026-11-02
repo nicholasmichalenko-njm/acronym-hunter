@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+PRODUCTION: SEE WHAT YOU SET, GRAPHICS, AUDIT (3.17.0)
+  - Production Standards: a Preview beside every section draws what its values make (the page with its fonts, spacing
+    and margins, numbered headings, captions, the page scheme, headers and footers, the TOC, lists, terms, a workbook
+    and a slide, a figure). A value set at the layer you edit shows in bold with "was ..." beside it; the list above the
+    preview names every value this layer changes in the section, what it was and what it is now.
+  - Graphics (a new section): picture types allowed, the smallest resolution where placed (ppi), the widest a figure may
+    be (the text width or a set width), fonts and the smallest text in drawings, charts and text boxes, a caption and
+    alt text on every figure, RGB only, the largest picture file, and an optional OCR estimate of the text size inside
+    pictures (shown as an estimate). Blank fonts take the Graphic row of the font rules. Check only: a picture is never
+    re-encoded, resized or moved.
+  - Production > Audit: Word, Excel and PowerPoint files checked against every standard that applies to them (styles,
+    fonts, tables, captions, TOC, cross-references, pages, headers and footers, lists, terms, sheets, slides, graphics),
+    read only, with every finding and an Excel export. Fix a Copy makes the dated copy with fixes.
+
 ONE PLACE PER JOB (3.16.0)
   - Library is where documents come in and where reading starts. Its Review column says where each document stands
     (Not read yet, Needs reviewing with how many sentences are decided, Reviewed) in color; the side panel's first

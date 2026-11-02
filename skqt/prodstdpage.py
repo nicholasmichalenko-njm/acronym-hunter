@@ -223,7 +223,8 @@ class Binder:
             it["reset"].setVisible(own and self.page.scope != "team")
         if it.get("was") is not None:                  # 3.17.0: was, and where it came from
             b = _get(self.page.base, it["path"])
-            it["was"].setText(f"was {_shown(b)} ({self.page.base_name()})" if own else "")
+            it["was"].setText(f"was {_shown(b)}" if own else "")
+            it["was"].setToolTip(f"What {self.page.base_name()} says" if own else "")
             it["was"].setVisible(own)
 
 
@@ -418,7 +419,7 @@ class StandardsPage(QWidget):
         self.eff_said = top.add(D.label("", "muted"))
         outer.addWidget(top)
         body = QHBoxLayout(); body.setSpacing(D.SPACE["m"])
-        self.nav = QListWidget(); self.nav.setFixedWidth(250)
+        self.nav = QListWidget(); self.nav.setFixedWidth(200)          # 3.17.0: room for the preview
         for _k, t in SECTIONS:
             self.nav.addItem(t)
         self.nav.currentRowChanged.connect(lambda i: self.show_section(i))
@@ -490,6 +491,7 @@ class StandardsPage(QWidget):
         lab = QLabel(text); lab.setToolTip(help)
         rb = QPushButton("Reset"); rb.setFlat(True); rb.setVisible(False); rb.setToolTip("Back to the layer below")
         was = QLabel(""); was.setObjectName("stdwas"); was.setVisible(False)        # 3.17.0: what the layer below says
+        was.setMaximumWidth(200)
         box = QHBoxLayout(); box.setContentsMargins(0, 0, 0, 0); box.addWidget(w); box.addWidget(rb); box.addWidget(was); box.addStretch(1)
         holder = QWidget(); holder.setLayout(box)
         form.addRow(lab, holder)
@@ -883,14 +885,15 @@ class StandardsPage(QWidget):
                           "fonts and smallest text in drawings, charts and text boxes, captions and alt text. Check only: a "
                           "picture is never re-encoded, resized or moved. Blank fonts: the Graphic row of the font rules, else "
                           "the profile's body, table and caption fonts.")
-        self.row(f, "Picture types allowed (comma)", QLineEdit(), ("graphics", "types"), "list",
+        wide = lambda: (lambda e: (e.setMinimumWidth(320), e)[1])(QLineEdit())
+        self.row(f, "Picture types allowed (comma)", wide(), ("graphics", "types"), "list",
                  "png, jpeg, emf, wmf, svg, gif, tiff, bmp")
         self.row(f, "Smallest resolution where placed (ppi)", num(0, 1200, 25, "any", 0), ("graphics", "min_ppi"), "num",
                  "Pixels divided by the size the picture is placed at. 150 for screen, 300 for print")
         self.row(f, "Widest a figure may be", enum([("", "Any width"), ("margins", "The text width (inside the margins)"),
                                                     ("set", "A set width (below)")]), ("graphics", "max_width"), "enum")
         self.row(f, "Set width (in)", num(0, 20, 0.25, "not set"), ("graphics", "max_width_in"), "num")
-        self.row(f, "Fonts allowed in drawings and charts (comma)", QLineEdit(), ("graphics", "fonts"), "list")
+        self.row(f, "Fonts allowed in drawings and charts (comma)", wide(), ("graphics", "fonts"), "list")
         self.row(f, "Smallest text in drawings and charts (pt)", num(0, 72, 0.5, "any"), ("graphics", "min_text_pt"), "num")
         self.row(f, "Estimate the text size inside pictures (OCR, AI and ML)", QCheckBox(), ("graphics", "ocr_text"), "bool",
                  "Reads the words in each picture on this PC and estimates their size where placed. Shown as an estimate")

@@ -272,7 +272,14 @@ TOPICS = [
   "Every rule Fix a Copy uses, in three layers: the team standard, document profiles, and this effort.",
   "Once to set the team's rules; for each profile; at the start of each effort to bring in the RFP's.",
   ["Editing: choose the team standard, a document profile (+ Profile... adds one, starting from the one shown), or "
-   "this effort. A value set at that layer shows in bold; Reset takes it back to the layer below.",
+   "this effort. A value set at that layer shows in bold with what it was and the layer it came from; Reset takes it "
+   "back to the layer below.",
+   "The Preview beside each section draws what its values make (a page with its fonts, spacing and margins; headings "
+   "with their numbers; captions; the page scheme; headers and footers; the TOC; lists; a figure) and lists every value "
+   "this layer changes in the section: what it was and what it is now.",
+   "Graphics: the picture types allowed, the smallest resolution where a picture is placed (ppi), the widest a figure "
+   "may be, the fonts and smallest text in drawings, charts and text boxes, captions, alt text, RGB only and the largest "
+   "picture file. Fix a Copy and Audit check every figure against them; a picture is never changed.",
    "Effort types: + Effort type... adds one (RFP response, page-limited RFP response, white paper and program "
    "deliverables are there to start). Editing an effort type sets the profiles it holds, its default profile, and the "
    "rules every profile in it follows; Effort type > profile sets its changes for one profile. Make templates for every "
@@ -309,6 +316,16 @@ TOPICS = [
    "the Templates folder in the output folder, dated, and is checked against the standard; Word updates its fields.",
    "Export for review... makes a workbook of every value and where it is set."],
   ["Blank means not set: a rule nobody sets is not checked and not written."]),
+ ("audit", "Production", "Audit",
+  "Checks Word, Excel and PowerPoint files against every standard that applies to them and lists every finding: styles, "
+  "fonts, tables, captions, the TOC, cross-references, pages, headers and footers, lists, terms, sheets, slides and "
+  "graphics. Read only: nothing is changed and no copy is made, so it is safe on a file others have open on SharePoint.",
+  "Before each color review and before production, on every volume; and any time someone asks whether a file meets the standard.",
+  ["Add the Volumes folder (or Add files...). Each file uses its profile in Production Standards, as Fix a Copy would.",
+   "Press Audit. The results show what each area found, per file.",
+   "Click a file to see its findings; pick an area to narrow them.",
+   "Export findings... makes a workbook of every finding, for the editors."],
+  ["Fix a Copy makes a dated copy with the fixes; Audit only reports."]),
  ("fixcopy", "Production", "Fix a Copy (Beta)",
   "Beta: still being proven on real documents, so check every copy it makes. Fixes a draft's formatting to the production standard in a dated copy. Your file is never changed: it is read once, "
   "and a file someone has open is not copied at all.",
