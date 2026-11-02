@@ -18,25 +18,29 @@ from PySide6.QtWidgets import (QFrame, QGraphicsOpacityEffect, QHBoxLayout, QLab
 SPACE = {"xs": 4, "s": 8, "m": 12, "l": 16, "xl": 24, "xxl": 32}
 RADIUS = {"control": 6, "card": 10, "chip": 12}
 UI_FONT, MONO_FONT = "Segoe UI", "Cascadia Mono"
-TYPE = {"display": 18, "title": 13, "body": 10, "small": 9, "label": 8}   # points
+TYPE = {"display": 20, "title": 12, "body": 10, "small": 9, "label": 8}   # points; 3.15.0: page 20, card 12, body 10
 
 LIGHT = {
     "bg": "#EEF2F7", "surface": "#FFFFFF", "surface2": "#F6F8FB", "border": "#D3DBE6", "border_strong": "#AEB9C9",
     "text": "#0E1A2B", "muted": "#4E5D71", "faint": "#66748A",
     "accent": "#1F5FAD", "accent_hover": "#184E90", "accent_fg": "#FFFFFF", "accent_soft": "#E2ECF8",
     "rail": "#0F1E33", "rail_text": "#C7D3E3", "rail_active": "#1F5FAD", "rail_active_text": "#FFFFFF",
+    "rail_group": "#9FB1C9", "rail_rule": "#22344F", "rail_sel_bg": "#1C3A63", "rail_sel_bar": "#5B9BEB", "rail_card": "#13253F",
     "ok": "#146C36", "ok_soft": "#DCF3E4", "warn": "#9A4508", "warn_soft": "#FCEFD9", "crit": "#B91C1C", "crit_soft": "#FBE2E2",
     "req": "#146C36", "req_soft": "#DCF3E4", "ctx": "#1D4ED8", "ctx_soft": "#DFE8FB", "cust": "#7E22CE", "cust_soft": "#EFE1FA", "cui": "#502B85", "cui_soft": "#EDE6F6",
     "head": "#334155", "head_soft": "#E5E9EF", "focus": "#2E7BE0", "page": "#DCE3EC",
+    "border_soft": "#DCE2EA", "accent_line": "#9DB6D9", "accent_tint": "#F2F7FD",
 }
 DARK = {
     "bg": "#0B1220", "surface": "#121B2C", "surface2": "#172235", "border": "#26344B", "border_strong": "#3A4B66",
     "text": "#E6ECF5", "muted": "#A3B1C4", "faint": "#8796AB",
     "accent": "#5B9BEB", "accent_hover": "#76ADF0", "accent_fg": "#06101F", "accent_soft": "#1A2C47",
     "rail": "#070D18", "rail_text": "#AFC0D6", "rail_active": "#2A5FA3", "rail_active_text": "#FFFFFF",
+    "rail_group": "#8EA2BD", "rail_rule": "#1B2A40", "rail_sel_bg": "#16304F", "rail_sel_bar": "#5B9BEB", "rail_card": "#0E1A2D",
     "ok": "#4ADE80", "ok_soft": "#123323", "warn": "#FBBF24", "warn_soft": "#3A2A0B", "crit": "#F87171", "crit_soft": "#3B1414",
     "req": "#4ADE80", "req_soft": "#133524", "ctx": "#7FA8F5", "ctx_soft": "#172A4D", "cust": "#C59AF5", "cust_soft": "#2C1A44", "cui": "#C4B0EC", "cui_soft": "#2A1D42",
     "head": "#B3C0D2", "head_soft": "#1E293B", "focus": "#76ADF0", "page": "#1A2436",
+    "border_soft": "#243248", "accent_line": "#2E4F7C", "accent_tint": "#15233A",
 }
 # what each decision is called and how it is tagged in the page margin (colors come from the tokens)
 DECISIONS = {"Keep": ("req", "Compliance requirement", "REQ"), "Context": ("ctx", "Supporting context", "SUPPORTS"),
@@ -98,6 +102,11 @@ QLabel[role="mono"] {{ font-family: "{MONO_FONT}", Consolas, monospace; font-siz
 QLabel[role="reading"] {{ font-family: Georgia, "Times New Roman", serif; font-size: 12pt; }}
 QFrame[card="true"] {{ background: {t['surface']}; border: 1px solid {t['border']}; border-radius: {r['card']}px; }}
 QFrame[card="true"] QLabel {{ background: transparent; }}
+QFrame#cardhead {{ background: transparent; border: none; border-bottom: 1px solid {t['border_soft']}; }}
+QFrame[card="true"][key="true"] {{ border: 1px solid {t['accent_line']}; }}
+QFrame[card="true"][key="true"] QFrame#cardhead {{ background: {t['accent_tint']}; border-top-left-radius: {r['card']}px;
+    border-top-right-radius: {r['card']}px; border-bottom: 1px solid {t['accent_line']}; }}
+QLabel[role="crumb"] {{ font-size: {TYPE['label']}pt; font-weight: 700; color: {t['muted']}; letter-spacing: 1px; }}
 QFrame[bar="true"] {{ background: {t['surface']}; border-bottom: 1px solid {t['border']}; }}
 QPushButton {{ background: {t['surface']}; color: {t['text']}; border: 1px solid {t['border_strong']}; border-radius: {r['control']}px;
               padding: 5px 12px; min-height: 18px; }}
@@ -113,17 +122,21 @@ QPushButton[kind="req"] {{ background: {t['req_soft']}; color: {t['req']}; borde
 QPushButton[kind="ctx"] {{ background: {t['ctx_soft']}; color: {t['ctx']}; border: 1px solid {t['ctx']}; font-weight: 600; }}
 QPushButton[kind="cust"] {{ background: {t['cust_soft']}; color: {t['cust']}; border: 1px solid {t['cust']}; font-weight: 600; }}
 QPushButton#rail {{ background: transparent; color: {t['rail_text']}; border: none; border-radius: {r['control']}px; text-align: left;
-                    padding: 8px 12px; font-weight: 600; }}
-QPushButton#rail:hover {{ background: rgba(255,255,255,0.07); }}
-QPushButton#rail:checked {{ background: {t['rail_active']}; color: {t['rail_active_text']}; }}
+                    padding: 7px 12px 7px 20px; font-weight: 400; }}
+QPushButton#rail:hover {{ background: rgba(255,255,255,0.06); color: {t['rail_active_text']}; }}
+QPushButton#rail:checked {{ background: {t['rail_sel_bg']}; color: {t['rail_active_text']}; font-weight: 600;
+                            border-left: 3px solid {t['rail_sel_bar']}; padding-left: 17px; }}
 QPushButton#rail:disabled {{ color: #5E6E84; }}
-QPushButton#rail[offrole="true"], QPushButton#railstage[offrole="true"] {{ color: #66768C; }}
-QPushButton#railstage {{ background: transparent; color: {t['rail_text']}; border: none; border-radius: {r['control']}px; text-align: left;
-    padding: 8px 12px; font-weight: 600; }}
-QPushButton#railstage:hover {{ background: rgba(255,255,255,0.07); }}
-QPushButton#railgroup {{ background: transparent; color: #8FA1BA; border: none; text-align: left; font-size: {TYPE['small']}pt;
-    font-weight: 600; letter-spacing: 0.3px; padding: 12px 12px 2px 12px; }}
-QPushButton#railgroup:hover {{ color: {t['rail_text']}; }}
+QPushButton#rail[offrole="true"] {{ color: #66768C; }}
+QPushButton#railgroup {{ background: transparent; color: {t['rail_group']}; border: none; border-top: 1px solid {t['rail_rule']};
+    text-align: left; font-size: {TYPE['label']}pt; font-weight: 700; padding: 14px 12px 6px 12px; margin-top: 8px; }}
+QPushButton#railgroup[first="true"] {{ border-top: none; margin-top: 4px; }}
+QPushButton#railgroup:hover {{ color: {t['rail_active_text']}; }}
+QLabel#railcount {{ background: transparent; font-size: {TYPE['label']}pt; font-weight: 600; }}
+QFrame#railEffort {{ background: {t['rail_card']}; border: 1px solid {t['rail_rule']}; border-radius: 8px; margin: 8px 0 2px 0; }}
+QFrame#railEffort:hover {{ border-color: {t['rail_sel_bar']}; }}
+QLabel#railEffortCap {{ background: transparent; color: {t['rail_group']}; font-size: {TYPE['label']}pt; font-weight: 600; }}
+QLabel#railEffortName {{ background: transparent; color: {t['rail_active_text']}; font-size: {TYPE['body'] + 1}pt; font-weight: 600; }}
 QWidget#railbox {{ background: {t['rail']}; }}
 QLabel#railhead {{ color: #8FA1BA; font-size: {TYPE['small']}pt; font-weight: 600; letter-spacing: 0.3px; padding: 12px 12px 2px 12px; }}
 QLabel#brand {{ color: #FFFFFF; font-size: {TYPE['title']}pt; font-weight: 600; padding: 14px 12px 8px 12px; }}
@@ -186,6 +199,21 @@ def apply(app):
 
 
 # ------------------------------------------------------------------ components
+_DOTS = {}
+
+
+def dot_icon(color, size=10):
+    """3.15.0: a filled dot in a meaning color, for list and tree rows: the color marks the kind, the text stays plain."""
+    from PySide6.QtGui import QIcon, QPixmap
+    key = (QColor(color).name(), size)
+    if key not in _DOTS:
+        pm = QPixmap(size, size); pm.fill(Qt.transparent)
+        p = QPainter(pm); p.setRenderHint(QPainter.Antialiasing); p.setPen(Qt.NoPen); p.setBrush(QColor(color))
+        p.drawEllipse(1, 1, size - 2, size - 2); p.end()
+        _DOTS[key] = QIcon(pm)
+    return _DOTS[key]
+
+
 def label(text, role=None, wrap=True):
     l = QLabel(text)
     if role:
@@ -206,16 +234,23 @@ def button(text, kind=None, on_click=None, tip=""):
 
 
 class Card(QFrame):
-    """A surface with a title (and an optional subtitle and actions on the right); add content to .body."""
+    """A surface with a title (and an optional subtitle and actions on the right); add content to .body.
+    3.15.0: the title sits in its own header row with a rule beneath, so the card's name reads apart from its content;
+    key=True marks the one card that matters most on a page (a tinted header and a blue edge)."""
 
-    def __init__(self, title="", subtitle="", actions=()):
+    def __init__(self, title="", subtitle="", actions=(), key=False):
         super().__init__()
         self.setProperty("card", True)
+        if key:
+            self.setProperty("key", True)
         v = QVBoxLayout(self)
-        v.setContentsMargins(SPACE["l"], SPACE["m"], SPACE["l"], SPACE["l"])
-        v.setSpacing(SPACE["s"])
+        v.setContentsMargins(0, 0, 0, 0)
+        v.setSpacing(0)
+        self.head = None
         if title or actions:
-            h = QHBoxLayout(); h.setSpacing(SPACE["s"])
+            self.head = QFrame(); self.head.setObjectName("cardhead")
+            h = QHBoxLayout(self.head); h.setSpacing(SPACE["s"])
+            h.setContentsMargins(SPACE["l"], SPACE["m"] - 2, SPACE["l"], SPACE["s"])
             col = QVBoxLayout(); col.setSpacing(0)
             if title:
                 self.title = label(title, "title", wrap=False); col.addWidget(self.title)
@@ -224,9 +259,10 @@ class Card(QFrame):
             h.addLayout(col, 1)
             for a in actions:
                 h.addWidget(a)
-            v.addLayout(h)
+            v.addWidget(self.head)
         self.body = QVBoxLayout()
         self.body.setSpacing(SPACE["s"])
+        self.body.setContentsMargins(SPACE["l"], SPACE["m"] if self.head is not None else SPACE["m"], SPACE["l"], SPACE["l"])
         v.addLayout(self.body)
 
     def add(self, w):
@@ -235,18 +271,42 @@ class Card(QFrame):
 
 
 class Pill(QLabel):
-    """A short state in its meaning color: tone is a token pair (req, ctx, cust, head, ok, warn, crit, accent)."""
+    """A short state in its meaning color: tone is a token pair (req, ctx, cust, head, ok, warn, crit, accent).
+    3.15.0: a pill is as tall as its text (never stretched into a button shape); dot=True leads it with a dot in its
+    color, for a status ("Saved", "No matrix")."""
 
-    def __init__(self, text, tone="accent"):
-        super().__init__(text)
+    def __init__(self, text, tone="accent", dot=False):
+        super().__init__()
+        from PySide6.QtWidgets import QSizePolicy
+        self.dot = dot
+        self.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
         self.set_tone(tone)
+        self.setText(text)
+
+    def setText(self, text):
+        self._plain = text or ""
+        if self.dot and text:
+            fg = tokens().get(getattr(self, "_tone", "accent"), tokens()["accent"])
+            super().setText(f"<span style='color:{fg};font-size:7pt'>\u25cf</span> {_esc(text)}")
+        else:
+            super().setText(text)
+
+    def text(self):
+        return self._plain if self.dot else super().text()
 
     def set_tone(self, tone):
         t = tokens()
+        self._tone = tone
         fg = t.get(tone, t["accent"])
         bg = t.get(tone + "_soft", t["accent_soft"])
         self.setStyleSheet(f"background:{bg};color:{fg};border-radius:{RADIUS['chip']}px;padding:2px 10px;"
                            f"font-weight:600;font-size:{TYPE['small']}pt;")
+        if self.dot and getattr(self, "_plain", ""):
+            self.setText(self._plain)
+
+
+def _esc(s):
+    return (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 class Chip(QFrame):

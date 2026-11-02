@@ -41,10 +41,24 @@ heads = [g for g, _i in RAIL]
 check("the menu is grouped by job", heads == ["Home", "Effort", "Customer documents", "Compliance", "Writing", "Quality", "Production",
                                               "Effort files"], heads)
 r = RR.Record(w.ws.root)
-stage_titles = [b.text() for b in w.stage_btns]
-check("For this stage lists the stage's tools, in its color", w.stage_head.isVisibleTo(w) and r.stages[r.index()]["name"] in w.stage_head.text()
-      and stage_titles and "color:" in w.stage_head.styleSheet(), (w.stage_head.text(), stage_titles))
-w.stage_btns[0].click(); app.processEvents()
+# 3.15.0: no separate stage group: each tool is in the menu once, the stage's tools marked with a dot in its color
+cur_stage = r.stages[r.index()]["name"]
+marked = [k for k, b in w.step_btns.items() if b.stage_dot.isVisibleTo(w)]
+names = [b.text() for b in w.findChildren(QPushButton) if b.objectName() in ("rail", "railstage") and b.isVisibleTo(w)]
+check("3.15.0: every tool is in the menu once (no stage group repeating them)", len(names) == len(set(names)) and not hasattr(w, "stage_btns"),
+      [n for n in names if names.count(n) > 1])
+check("... the stage's tools carry a dot in the stage's color", marked and set(marked) == set(w.stage_tools_now)
+      and all("background:" in w.step_btns[k].stage_dot.styleSheet() for k in marked), (marked, w.stage_tools_now))
+grp = {g: w.group_counts[g].text() for g, _i in RAIL if w.group_counts[g].isVisibleTo(w)}
+check("... and each group shows how many it holds", sum(int(v) for v in grp.values()) == len(marked), grp)
+check("the open effort and its stage are at the top of the menu", w.rail_effort.isVisibleTo(w) and w.rail_effort.name.text() == "Kestrel"
+      and w.rail_effort.stage.text() == cur_stage, (w.rail_effort.name.text(), w.rail_effort.stage.text()))
+from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
+w.go("efforts"); app.processEvents()
+QTest.mouseClick(w.rail_effort, Qt.LeftButton); app.processEvents()
+check("... and it opens the Effort Dashboard", w.stack.currentWidget() is w.home_page)
+w.step_btns[marked[0]].click(); app.processEvents()
 check("a stage tool opens its page", w.stack.currentWidget() is not w.notice_page or w.notice_page.why is not None)
 w.toggle_group("Writing"); app.processEvents()
 check("a group folds away, and stays folded", not w.step_btns["truth"].isVisibleTo(w)
@@ -52,7 +66,8 @@ check("a group folds away, and stays folded", not w.step_btns["truth"].isVisible
 w.toggle_group("Writing"); app.processEvents()
 check("... and opens again", w.step_btns["truth"].isVisibleTo(w))
 MO.save(stage_tools=False); w.refresh_access(); app.processEvents()
-check("For this stage can be turned off", not w.stage_head.isVisibleTo(w) and not w.stage_btns)
+check("the stage marks can be turned off", not any(b.stage_dot.isVisibleTo(w) for b in w.step_btns.values())
+      and not any(c.isVisibleTo(w) for c in w.group_counts.values()))
 MO.save(stage_tools=True); w.refresh_access()
 
 # ---------------------------------------------------------------- Preview tools

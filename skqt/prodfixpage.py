@@ -49,7 +49,7 @@ class FixPage(QWidget):
                                     D.button("Check every draft", None, lambda: self.check_all(), "Read every listed draft against "
                                              "its own profile and list what each one breaks, by area (only read; nothing is written)"),
                                     D.button("Export findings...", None, lambda: self.export_findings(), "A workbook of every finding "
-                                             "of the drafts checked, with where it is and the fix for it")])
+                                             "of the drafts checked, with where it is and the fix for it")], key=True)
         r1 = QHBoxLayout()
         r1.addWidget(D.label("Output folder", "label", wrap=False))
         self.out_lbl = D.label("", None); r1.addWidget(self.out_lbl, 1)

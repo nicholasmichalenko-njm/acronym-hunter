@@ -46,7 +46,7 @@ check("the menu is in Title Case", texts[:2] == ["All Efforts", "My Work"] and t
       and "Response Setup" in texts and "Lists to Submit" in texts and "L/M Crosswalk" in texts, texts)
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QPushButton as _QPB
-heads = [b.text() for b in w.findChildren(_QPB) if b.objectName() == "railgroup" and b is not w.stage_head]
+heads = [b.text() for b in w.findChildren(_QPB) if b.objectName() == "railgroup"]
 check("menu groups by job (3.13.0)", heads[:4] == ["Home", "Effort", "Customer documents", "Compliance"] and "Production" in heads, heads)
 check("the Stationkeeper mark and name at the foot of the menu", w.rail_footer.word.text() == "Stationkeeper" and A.APP_VERSION in w.rail_footer.sub.text())
 # ---- logos (3.0.3: built into the program; nobody adds one by hand)

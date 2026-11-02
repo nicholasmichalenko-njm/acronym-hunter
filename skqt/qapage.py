@@ -52,7 +52,7 @@ class QAPage(QWidget):
                              "and page limits. The acronym lists to submit are built from this check (Lists to submit).", "muted")
         self.where.setTextFormat(Qt.RichText); v.addWidget(self.where)                  # 2.86.0
         vc = D.Card("Submission volumes", "Marked once: the Word files you will submit, in submission order. Volumes in "
-                    "Deliverables with a Word file are included.")
+                    "Deliverables with a Word file are included.", key=True)
         self.vol_list = QListWidget(); self.vol_list.setMaximumHeight(110); vc.add(self.vol_list)
         vrow = QHBoxLayout(); vc.body.addLayout(vrow)
         self.b_run = D.button("Check the submission volumes", "primary", lambda: self.check_volumes(), "Checks every volume listed here")

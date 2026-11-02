@@ -11,6 +11,7 @@ copied into the effort's library folder, so the effort stays whole wherever it g
 the PC."""
 import os
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFrame, QHBoxLayout,
                                QHeaderView, QInputDialog, QLabel, QLineEdit, QListWidget, QMessageBox, QListWidgetItem, QScrollArea,
                                QSplitter, QTableWidget, QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
@@ -372,8 +373,8 @@ class LibraryPage(QWidget):
         self.tree.addTopLevelItem(allit)
         for k, n in lib.categories():
             top = QTreeWidgetItem([n, str(counts.get(k, 0))]); top.setData(0, Qt.UserRole, (k, ""))
-            top.setForeground(0, D.color(CAT_TONE.get(k, "text")))
-            f = top.font(0); f.setBold(True); top.setFont(0, f)
+            top.setIcon(0, D.dot_icon(D.color(CAT_TONE.get(k, "text"))))      # 3.15.0: a dot marks the category
+            f = top.font(0); f.setWeight(QFont.DemiBold); top.setFont(0, f)
             self.tree.addTopLevelItem(top)
             nodes = {}
             for path in lib.folders(k):
@@ -436,14 +437,14 @@ class LibraryPage(QWidget):
             elif vs and not self.lib.has_original(vs[-1]):
                 it.setForeground(D.color("warn")); it.setToolTip("The original file is not here (left out of a package or moved). Its text and record are.")
             self.table.setItem(r, 0, it)
-            ci = _item(self.lib.category_name(d.get("category", "customer"))); ci.setForeground(D.color(CAT_TONE.get(d.get("category"), "text")))
+            ci = _item(self.lib.category_name(d.get("category", "customer"))); ci.setIcon(D.dot_icon(D.color(CAT_TONE.get(d.get("category"), "text"))))
             self.table.setItem(r, 1, ci)
             self.table.setItem(r, 2, _item(str(len(vs))))
             self.table.setItem(r, 3, _item(", ".join(d.get("tags", []))))
             role = self.lib.role_of(d)
             sugg = (d.get("role_by") or {}).get("suggested", True)
             ri = _item(DV.ROLE_NAMES[role] + (" (suggested)" if sugg else ""))
-            ri.setForeground(D.color(ROLE_TONE.get(role, "text")))
+            ri.setIcon(D.dot_icon(D.color(ROLE_TONE.get(role, "text"))))
             self.table.setItem(r, 4, ri)
             hits = self.found.get(d["id"]) or []
             self.table.setItem(r, 5, _item(hits[0][1][:160] if hits else ("name or tags" if self.search.text().strip() else "")))

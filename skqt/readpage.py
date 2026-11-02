@@ -87,7 +87,7 @@ class ReadPage(QWidget):
         self.info = D.label("", "muted"); v.addWidget(self.info)
         self.panel = TaskPanel(self.stop, host); v.addWidget(self.panel)   # 2.82.0: running, how far, how it ended
         card = D.Card("Customer documents", "The latest version of each, from Customer Documents. Click, Shift+click or "
-                      "Ctrl+click to select several; Space or a tick on a selected row ticks them all.")
+                      "Ctrl+click to select several; Space or a tick on a selected row ticks them all.", key=True)
         trow = QHBoxLayout(); trow.setSpacing(D.SPACE["s"]); card.body.addLayout(trow)     # 2.82.0: tick many at once
         self.tick_all = D.button("Tick all", None, lambda: self.tick(True), "Tick every document"); trow.addWidget(self.tick_all)
         self.tick_none = D.button("Untick all", None, lambda: self.tick(False), "Untick every document"); trow.addWidget(self.tick_none)

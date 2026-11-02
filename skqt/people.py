@@ -208,7 +208,7 @@ class AuthorListCard(D.Card):
         self.table.doubleClicked.connect(lambda _i: self.choose_efforts())
         self.add(self.table)
         row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
-        self.edit_btn = D.button("Edit which efforts...", "primary", lambda: self.choose_efforts(),
+        self.edit_btn = D.button("Edit which efforts...", None, lambda: self.choose_efforts(),
                                  "Choose the efforts the selected name(s) show in: all efforts, or only the ones you tick")
         row.addWidget(self.edit_btn)
         for text, fn in (("Show in this effort", lambda: self.this_effort(True)),

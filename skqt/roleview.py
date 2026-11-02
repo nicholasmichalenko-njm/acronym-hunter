@@ -83,7 +83,7 @@ class NoticePage(QWidget):
 
 class RolesCard(D.Card):
     """Settings > Roles and Preview tools: your role and where it comes from, hiding other roles' tools, the stage's tools
-    in the menu, and (for the proposal manager) which Preview tools are on for the team."""
+    marked in the menu, and (for the proposal manager) which Preview tools are on for the team."""
 
     def __init__(self, host):
         super().__init__("Roles and Preview tools", "Your role decides which tools open; the others stay in the menu, greyed, "
@@ -94,7 +94,7 @@ class RolesCard(D.Card):
         self.role_text = self.add(D.label("", None))
         self.hide = QCheckBox("Hide the tools that are not for my role"); self.add(self.hide)
         self.hide.toggled.connect(lambda on: self.set_opt("hide_other_roles", on))
-        self.stage = QCheckBox("Show the stage's tools at the top of the menu"); self.add(self.stage)
+        self.stage = QCheckBox("Mark the stage's tools in the menu (a dot in the stage's color)"); self.add(self.stage)
         self.stage.toggled.connect(lambda on: self.set_opt("stage_tools", on))
         self.add(D.label("Preview tools for this team", "label"))
         self.prev = {}

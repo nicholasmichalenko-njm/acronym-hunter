@@ -23,7 +23,9 @@ def check(name, ok, info=""):
 PAIRS = [("text", "bg"), ("text", "surface"), ("text", "surface2"), ("muted", "surface"), ("muted", "bg"), ("muted", "surface2"),
          ("faint", "surface"), ("accent", "surface"), ("accent_fg", "accent"), ("rail_text", "rail"), ("rail_active_text", "rail_active"),
          ("req", "req_soft"), ("ctx", "ctx_soft"), ("cust", "cust_soft"), ("ok", "ok_soft"), ("warn", "warn_soft"), ("crit", "crit_soft"),
-         ("head", "head_soft"), ("crit", "surface"), ("text", "accent_soft"), ("req", "surface"), ("ctx", "surface")]
+         ("head", "head_soft"), ("crit", "surface"), ("text", "accent_soft"), ("req", "surface"), ("ctx", "surface"),
+         ("rail_group", "rail"), ("rail_text", "rail_card"), ("rail_active_text", "rail_sel_bg"), ("rail_group", "rail_card"),
+         ("text", "accent_tint"), ("muted", "accent_tint")]      # 3.15.0: menu groups, the selected item, key card headers
 for name, t in (("light", D.LIGHT), ("dark", D.DARK)):
     low = [(a, b, round(D.contrast(t[a], t[b]), 2)) for a, b in PAIRS if D.contrast(t[a], t[b]) < 4.5]
     check(f"{name}: every text color meets 4.5:1 on its surface", not low, low)
@@ -55,6 +57,17 @@ check("the rail: the steps in Qt, then the areas still in the classic app (grey)
 w.go("prove"); app.processEvents()
 check("the top bar names the page", w.page_title.text() == "Prove" and w.stack.currentWidget() is w.prove_page)
 check("no effort: the saved state says so", w.saved.text() == "No matrix")
+# 3.15.0: visual hierarchy: three type sizes, card headers, status pills that never stretch, the page's group above it
+check("3.15.0: three sizes: page title > card title > body", D.TYPE["display"] > D.TYPE["title"] > D.TYPE["body"] and D.TYPE["display"] - D.TYPE["title"] >= 6)
+c = D.Card("A card", "what it holds"); c.add(D.label("x")); k = D.Card("Key", key=True)
+check("... a card's title sits in its own header row; a key card is marked", c.head is not None and c.head.objectName() == "cardhead"
+      and k.property("key") is True and D.Card().head is None)
+check("... status pills are as tall as their text", w.saved.sizePolicy().verticalPolicy() == w.saved.sizePolicy().Policy.Fixed
+      and w.saved.height() < 30, w.saved.height())
+check("... the page's menu group shows above its title", w.page_crumb.text() == "Compliance")
+heads = [b for b in w.findChildren(type(w.step_btns["read"])) if b.objectName() == "railgroup"]
+check("... menu groups in capitals, bold, above regular-weight items", heads and all(h.font().capitalization() == h.font().Capitalization.AllUppercase
+      for h in heads) and "font-weight: 400" in D.qss(D.LIGHT).split("QPushButton#rail {")[1].split("}")[0])
 w.toast("Saved"); app.processEvents()
 check("a toast shows and names what happened", w.toaster.isVisible() and w.toaster.text() == "Saved")
 w.close()

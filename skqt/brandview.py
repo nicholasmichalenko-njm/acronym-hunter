@@ -125,11 +125,12 @@ class EffortBanner(QFrame):
         acts.addWidget(self.edit_btn)
         acts.addWidget(D.button("People and roles...", None, lambda: self.people_roles(),     # 2.93.0
                                 "Who works on this effort and in what role; a role saves when picked"))
-        acts.addWidget(D.button("Open effort folder", None, lambda: self.host.open_effort_folder(),
-                                "The effort's folder in File Explorer: customer documents, volumes, Response Setup, exports"))
         acts.addWidget(D.button("Export overview...", None, lambda: self.host.record_page.status_export(),
                                 "Where the effort stands, in one Word file: the due dates and your summary first, then stages, "
                                 "people, open questions and what is coming up. Each one is kept in All overviews."))
+        # 3.15.0: actions are buttons; what only opens a place is a link, after them
+        acts.addWidget(D.button("Open effort folder", "ghost", lambda: self.host.open_effort_folder(),
+                                "The effort's folder in File Explorer: customer documents, volumes, Response Setup, exports"))
         acts.addWidget(D.button("All overviews...", "ghost", lambda: self.host.record_page.overviews_dialog(),   # 3.12.0
                                 "Every overview exported for this effort, newest first, with the summary you wrote for it"))
         self.page_deliv = D.button("", "ghost", lambda: self.host.go("deliverables"), "The deliverables board")
@@ -227,6 +228,10 @@ class EffortBanner(QFrame):
     def fill(self, rec, effort_list=None, stage=""):
         h = self.host
         self.ident = BR.identity(rec)
+        # 3.15.0: Edit details is the one filled button while the proposal manager or the due date is still missing
+        want = "primary" if not (self.ident.get("pm") and (rec.data.get("due") if hasattr(rec, "data") else True)) else None
+        if self.edit_btn.property("kind") != want:
+            self.edit_btn.setProperty("kind", want); self.edit_btn.style().unpolish(self.edit_btn); self.edit_btn.style().polish(self.edit_btn)
         self.pic.show_path(BR.picture_path(self.data_dir()))
         self.name.setText(h.effort_name)
         sens = self.ident["sensitivity"]
@@ -556,6 +561,37 @@ class RailBrand(QWidget):
             lab.setToolTip("Your company")
             self.row.addWidget(lab)
         self.row.addStretch(1)
+
+
+class RailEffort(QFrame):
+    """3.15.0: the open effort and its stage at the top of the menu, so you always know which effort the menu acts on.
+    Click it for the Effort Dashboard. Hidden when no effort is open."""
+
+    def __init__(self, host):
+        super().__init__()
+        self.host = host
+        self.setObjectName("railEffort"); self.setCursor(Qt.PointingHandCursor)
+        v = QVBoxLayout(self); v.setContentsMargins(D.SPACE["m"], D.SPACE["s"], D.SPACE["m"], D.SPACE["s"]); v.setSpacing(2)
+        self.cap = QLabel("Effort"); self.cap.setObjectName("railEffortCap")
+        self.name = QLabel(""); self.name.setObjectName("railEffortName"); self.name.setWordWrap(True)
+        self.stage = QLabel(""); self.stage.setObjectName("railEffortStage")
+        v.addWidget(self.cap); v.addWidget(self.name); v.addWidget(self.stage, 0, Qt.AlignLeft)
+        self.setToolTip("The open effort and its stage. Click for the Effort Dashboard.")
+        self.setVisible(False)
+
+    def set(self, name, stage="", color=""):
+        self.name.setText(name or "")
+        self.stage.setText(stage or "")
+        self.stage.setVisible(bool(stage))
+        c = color or "#5B9BEB"
+        self.stage.setStyleSheet(f"QLabel#railEffortStage{{color:#FFFFFF;border:1px solid {c};background:{c}33;"
+                                 f"border-radius:9px;padding:1px 8px;font-size:{D.TYPE['small']}pt;font-weight:600;}}")
+        self.setVisible(bool(name))
+
+    def mousePressEvent(self, e):
+        if e.button() == Qt.LeftButton and self.name.text():
+            self.host.go("home")
+        super().mousePressEvent(e)
 
 
 class RailFooter(QWidget):

@@ -3,7 +3,7 @@ the tkinter edition), the steps of Compliance that are in Qt so far (Read RFP, R
 of the compliance matrix two seconds after each change."""
 import os
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtGui import QFont, QKeySequence, QShortcut
 from PySide6.QtWidgets import (QButtonGroup, QComboBox, QCompleter, QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
                                QMessageBox, QPushButton, QScrollArea, QStackedWidget, QVBoxLayout, QWidget)
 import diag
@@ -45,6 +45,8 @@ RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),          
         ("Quality", [("qa", "Submission Check"), ("lists", "Lists to Submit"), ("checks", "Final Checks")]),
         ("Production", [("fixcopy", "Fix a Copy"), ("prodstd", "Production Standards")]),
         ("Effort files", [("exportall", "Export All"), ("settings", "Settings")])]
+GROUP_OF = {k: g for g, items in RAIL for k, _t in items}     # 3.15.0: the page's menu group, shown above its title
+GROUP_OF.update({"docs": "Customer documents", "impact": "Customer documents", "dashboard": "Effort"})
 TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and work not filed yet"),
           "fixcopy": ("Fix a Copy", "Check drafts against their profile; fixes go into a dated copy, never the original"),
           "prodstd": ("Production Standards", "Every formatting rule: team standard, profiles, effort types, and this effort's from the RFP"),
@@ -113,19 +115,26 @@ class MainWindow(QMainWindow):
         self.rail_brand = RailBrand(self)                                   # 2.88.0: the company logos, always in view
         self.steps = QButtonGroup(self)
         self.step_btns = {}
-        # 3.13.0: For this stage (the stage's tools, in its color), then the groups by job; a group folds away
-        self.stage_head = QPushButton("For this stage"); self.stage_head.setObjectName("railgroup")
-        self.stage_head.clicked.connect(lambda: self.toggle_group("stage"))
-        rv.addWidget(self.stage_head)
-        self.stage_box = QWidget(); self.stage_lay = QVBoxLayout(self.stage_box); self.stage_lay.setContentsMargins(0, 0, 0, 0)
-        self.stage_lay.setSpacing(2); rv.addWidget(self.stage_box)
-        self.stage_btns = []
-        self.group_heads, self.group_items = {}, {}
-        for head, items in RAIL:
+        # 3.15.0: the open effort and its stage at the top; then the groups by job, each tool in one place only, the
+        # stage's tools marked with a dot in the stage's color (no separate stage group); a group folds away
+        from .brandview import RailEffort
+        self.rail_effort = RailEffort(self); rv.addWidget(self.rail_effort)
+        self.stage_tools_now = []
+        self.group_heads, self.group_items, self.group_counts = {}, {}, {}
+        for gi, (head, items) in enumerate(RAIL):
             h = QPushButton(head); h.setObjectName("railgroup"); h.clicked.connect(lambda _=False, g=head: self.toggle_group(g))
+            h.setProperty("first", gi == 0)
+            hf = h.font(); hf.setCapitalization(QFont.AllUppercase); hf.setLetterSpacing(QFont.AbsoluteSpacing, 1.0); h.setFont(hf)
+            hl = QHBoxLayout(h); hl.setContentsMargins(0, 0, D.SPACE["m"], 5); hl.addStretch(1)
+            cnt = QLabel(""); cnt.setObjectName("railcount"); cnt.setVisible(False)
+            hl.addWidget(cnt, 0, Qt.AlignBottom | Qt.AlignRight)
+            self.group_counts[head] = cnt
             rv.addWidget(h); self.group_heads[head] = h; self.group_items[head] = []
             for key, text in items:
                 b = QPushButton(text.replace("&", "&&")); b.setObjectName("rail"); b.setCheckable(bool(key))
+                bl = QHBoxLayout(b); bl.setContentsMargins(0, 0, D.SPACE["m"], 0); bl.addStretch(1)
+                b.stage_dot = QLabel(); b.stage_dot.setFixedSize(8, 8); b.stage_dot.setVisible(False)
+                bl.addWidget(b.stage_dot, 0, Qt.AlignVCenter)
                 if key:
                     b.clicked.connect(lambda _=False, k=key: self.go(k))
                     self.steps.addButton(b); self.step_btns[key] = b
@@ -147,6 +156,12 @@ class MainWindow(QMainWindow):
         bar = QFrame(); bar.setProperty("bar", True)
         bh = QHBoxLayout(bar); bh.setContentsMargins(D.SPACE["xl"], D.SPACE["m"], D.SPACE["xl"], D.SPACE["m"]); bh.setSpacing(D.SPACE["m"])
         tcol = QVBoxLayout(); tcol.setSpacing(0)
+        self.page_crumb = D.label("", "crumb", wrap=False)              # 3.15.0: the menu group the page is in
+        cf = self.page_crumb.font(); cf.setCapitalization(QFont.AllUppercase); self.page_crumb.setFont(cf)
+        self.page_crumb.setMinimumWidth(1)                              # it never widens the window
+        from PySide6.QtWidgets import QSizePolicy
+        self.page_crumb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        tcol.addWidget(self.page_crumb)
         self.page_title = D.label("", "display", wrap=False); tcol.addWidget(self.page_title)
         self.page_sub = D.label("", "muted"); self.page_sub.setMinimumWidth(120); tcol.addWidget(self.page_sub)   # 3.0.4: wraps; 3.9.0: 120 so the bar fits 1280 with Issue or idea
         bh.addLayout(tcol, 1)
@@ -162,12 +177,12 @@ class MainWindow(QMainWindow):
         self.search.setMinimumWidth(190); self.search.setClearButtonEnabled(True)   # 3.12.0: room for "Effort Dashboard" at 1280
         self.search.returnPressed.connect(self.find_go)
         bh.addWidget(self.search)
-        bh.addWidget(D.label("Effort", "label", wrap=False))
-        self.effort_box = QComboBox(); self.effort_box.setMinimumWidth(200)
+        self.effort_box = QComboBox(); self.effort_box.setMinimumWidth(200)   # 3.15.0: the menu names the open effort
+        self.effort_box.setToolTip("The open effort: pick another to switch")
         self.effort_box.activated.connect(lambda i: self.open_effort(self.effort_box.itemText(i)))
         bh.addWidget(self.effort_box)
-        self.saved = D.Pill("Saved", "ok"); bh.addWidget(self.saved)
-        self.mode_chip = D.Pill("", "ok"); bh.addWidget(self.mode_chip)   # 2.97.0: Offline, Connected or SCIF-ready
+        self.saved = D.Pill("Saved", "ok", dot=True); bh.addWidget(self.saved, 0, Qt.AlignVCenter)
+        self.mode_chip = D.Pill("", "ok", dot=True); bh.addWidget(self.mode_chip, 0, Qt.AlignVCenter)   # 2.97.0: Offline, Connected or SCIF-ready
         self.mode_chip.mousePressEvent = lambda _e: self.go_mode()
         self.marking = MarkingStrip(); cv.addWidget(self.marking)            # 2.88.0: CUI or proprietary, on every page
         from .unfiledview import UnfiledStrip
@@ -873,41 +888,37 @@ class MainWindow(QMainWindow):
         return prof
 
     def refresh_stage_tools(self, prof=None, collapsed=None):
+        """3.15.0: the tools the effort's stage needs keep their one place in the menu and get a dot in the stage's
+        color; each group says how many it holds; the effort and its stage show at the top of the menu."""
         import roleaccess as RA
         import stagecolors as SC
         from .modes import settings
         st = settings() or {}
-        collapsed = set(st.get("rail_collapsed") or []) if collapsed is None else collapsed
         tools, color, name = [], "", ""
-        if self.ws is not None and st.get("stage_tools", True):
+        if self.ws is not None:
             try:
                 import effortrec as _R
                 r = _R.Record(self.ws.root)
                 cur = r.stages[r.index()]
-                tools, color, name = RA.stage_tools(cur), SC.color_of(cur, r.index()), cur["name"]
+                color, name = SC.color_of(cur, r.index()), cur["name"]
+                if st.get("stage_tools", True):
+                    tools = [k for k in RA.stage_tools(cur) if k in self.step_btns]
             except Exception:
                 diag.swallowed()
-        if prof is None:
-            prof, _src = self.profile()
-        key = (tuple(tools), color, name, prof, "stage" in collapsed)
-        if key == getattr(self, "_stage_key", None):          # nothing changed: keep the buttons (and the focus)
-            return tools
-        self._stage_key = key
-        for b in self.stage_btns:
-            self.stage_lay.removeWidget(b); b.hide(); b.setParent(None); b.deleteLater()
-        self.stage_btns = []
-        titles = {k: t for _h, items in RAIL for k, t in items}
-        for k in tools:
-            if k not in titles:
-                continue
-            b = QPushButton(titles[k].replace("&", "&&")); b.setObjectName("railstage")
-            b.setProperty("offrole", not RA.allowed(prof, k))
-            b.clicked.connect(lambda _=False, key=k: self.go(key))
-            self.stage_lay.addWidget(b); self.stage_btns.append(b)     # in the layout first: never a window of its own
-            b.setVisible("stage" not in collapsed)
-        self.stage_head.setVisible(bool(self.stage_btns))
-        self.stage_head.setText(f"For {name}" + ("  ▸" if "stage" in collapsed else "") if name else "For this stage")
-        self.stage_head.setStyleSheet(f"QPushButton#railgroup{{color:{color};}}" if color else "")
+        self.rail_effort.set(self.effort_name if self.ws is not None else "", name, color)
+        self.stage_tools_now = tools
+        for k, b in self.step_btns.items():               # refresh_access set each tooltip just before this
+            on = k in tools
+            b.stage_dot.setVisible(on)
+            b.stage_dot.setStyleSheet(f"background:{color};border-radius:4px;" if on else "")
+            if on:
+                b.setToolTip(" ".join(x for x in (b.toolTip(), f"A tool for {name}.") if x))
+        for head, items in RAIL:                              # a small badge: how many of the group's tools this stage needs
+            n = sum(1 for k, _t in items if k in tools)
+            c = self.group_counts[head]
+            c.setText(str(n) if n else ""); c.setVisible(bool(n))
+            c.setToolTip(f"{n} tool{'s' if n != 1 else ''} here for {name}" if n else "")
+            c.setStyleSheet(f"QLabel#railcount{{color:#FFFFFF;background:{color};border-radius:7px;padding:0 5px;}}" if n else "")
         return tools
 
     def toggle_group(self, head):
@@ -927,6 +938,7 @@ class MainWindow(QMainWindow):
             if step in self.step_btns:
                 self.step_btns[step].setChecked(True)
             t, _sub = TITLES[step]
+            self.page_crumb.setText(GROUP_OF.get(step, ""))
             self.page_title.setText(t)
             self.page_sub.setText(("In Preview: not turned on for this team" if why["kind"] == "preview" else
                                    f"For {', '.join(why['roles'])}") + (f"  ·  {self.effort_name}" if self.effort_name else ""))
@@ -942,6 +954,7 @@ class MainWindow(QMainWindow):
             for b in self.step_btns.values():
                 b.setChecked(False)
         t, sub = TITLES[step]
+        self.page_crumb.setText(GROUP_OF.get(step, ""))
         self.page_title.setText(t)
         self.page_sub.setText(sub + (f"  \u00b7  {self.effort_name}" if self.effort_name else ""))
         try:

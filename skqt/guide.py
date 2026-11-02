@@ -17,8 +17,9 @@ TOPICS = [
   "acronym lists and the submission checks. Everything stays on this PC.",
   "You are new to Stationkeeper, or want the big picture.",
   ["Open the menu on the left. Its groups are by job: Effort, Customer documents, Compliance, Writing, Quality, "
-   "Production and Effort files. Click a group's name to fold it away. For this stage, at the top, lists the tools the "
-   "effort's stage needs.",
+   "Production and Effort files. Each tool is in one place. Click a group's name to fold it away. The open effort and "
+   "its stage are at the top; a dot in the stage's color marks the tools this stage needs, and each group says how many "
+   "it holds.",
    "Your role decides which tools open. A greyed tool is for another role: open it to see who it is for and how to get "
    "it. Settings > Roles and Preview tools can hide them.",
    "Start an effort on All Efforts, or open one you already have.",

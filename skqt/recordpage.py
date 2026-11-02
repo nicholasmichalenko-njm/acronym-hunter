@@ -38,7 +38,7 @@ class RecordPage(StageTableMixin, QWidget):
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         # details
         self.details = D.Card("Effort details", "Who it is for, its numbers, and when it is due. The countdown uses this PC's clock.",
-                              actions=[D.button("Save details", "primary", lambda: self.save_details())])
+                              actions=[D.button("Save details", "primary", lambda: self.save_details())], key=True)
         form = QFormLayout(); form.setSpacing(D.SPACE["s"]); self.details.body.addLayout(form)
         self.name = D.label("", "title")
         self.client = QLineEdit(); self.client.setPlaceholderText("Customer")
