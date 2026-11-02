@@ -66,6 +66,7 @@ AUTO = {
     "tasks_done": "Every task for this stage done",
     "deliverables_set": "Deliverables confirmed, each with an owner",           # 2.41.0
     "deliverables_ok": "No deliverable over its limit or changed without review",
+    "topics_considered": "Every meeting topic considered",                          # 3.20.0
 }
 DEFAULT_GOALS = {
     "Intake": ["docs_added", "reqs_reviewed", "structure_set", "sections_led"],

@@ -10,7 +10,7 @@ import diag
 import mywork as MW
 from . import design as D
 
-GO = {"task": "home", "question": "home", "graphic": "home", "custqa": "custqa", "deliverable": "deliverables", "requirements": "assign"}
+GO = {"topic": "meetings", "task": "home", "question": "home", "graphic": "home", "custqa": "custqa", "deliverable": "deliverables", "requirements": "assign"}
 
 
 class Loader(QThread):

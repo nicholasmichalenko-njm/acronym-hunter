@@ -73,6 +73,11 @@ def checks_of(rec, M=None, lib=None, rows=(), L=None, report=None, volumes=(), p
                 c["pages_ok"] = not any(p["level"] == "bad" for p in report["pages"])
         if rec is not None:
             c["tasks_done"] = not rec.tasks(stage=rec.data["stage"], open_only=True)
+            try:                                         # 3.20.0: None when there are no meeting topics yet
+                import meetings as MT
+                c["topics_considered"] = MT.all_considered(rec)
+            except Exception:
+                diag.swallowed()
             import deliverables as DL
             if DL.items(rec):
                 sm = DL.summary(rec, rows, lib, volumes)

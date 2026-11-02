@@ -1745,6 +1745,20 @@ class AssignPage(QWidget):
         lead = SD.section_people(M, it.get("map", "")).get("lead", "") if it.get("map") else ""
         if on and not it.get("owner"):
             self.add(D.label(f"Empty: the section lead writes it ({lead})." if lead else "Empty: the section's lead, once one is named (People...).", "muted"))
+        if len(rows) == 1 and self.host.ws is not None:                 # 3.20.0: open meeting topics that point here
+            try:
+                import meetings as MT
+                where = [it["id"]] + SD.item_sections(M, it)
+                mt = MT.topics(R_.Record(self.host.ws.root), open_only=True, target=where)
+            except Exception:
+                diag.swallowed()
+                mt = []
+            self.topic_labels = []
+            if mt:
+                self.head("Meeting topics")
+                for m_, t_ in mt:
+                    self.topic_labels.append(self.add(D.label(f"{t_['text']}  \u00b7  {m_['title']} ({m_['date']})"
+                                                              + (f"  \u00b7  {t_['owner']}" if t_.get("owner") else ""), None)))
         if len(rows) == 1 and self.host.ws is not None:                 # 2.99.0: tasks and team questions on the sentence
             self.head("Tasks, questions and graphics")
             tq = sentence_work(R_.Record(self.host.ws.root), it["id"])

@@ -45,6 +45,7 @@ RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),          
         ("Effort files", [("exportall", "Export All"), ("settings", "Settings")])]
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
 TABS = {"home": [("home", "Dashboard"), ("requirements", "Submission Rules")],
+        "record": [("record", "Effort Record"), ("meetings", "Meetings")],                 # 3.20.0
         "library": [("library", "Documents"), ("read", "Read into Review")],
         "assign": [("assign", "Review"), ("structure", "Structure"), ("prove", "Coverage")],
         "matrix": [("matrix", "Matrix"), ("crosswalk", "L/M Crosswalk")],
@@ -74,6 +75,7 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "home": ("Effort Dashboard", "Where the effort stands: the numbers, the stage and its gate, requirements, tasks and the calendar"),
           "dashboard": ("Effort Dashboard", "Where the effort stands: the numbers, the stage and its gate, requirements, tasks and the calendar"),
           "record": ("Effort Record", "Details, team, stages and gates, status, package and backup"),
+          "meetings": ("Meetings", "Who met, what was said, and the topics to follow up until each is considered"),
           "reviews": ("Color Reviews", "Color team review packets, read back onto each requirement"),
           "library": ("Library", "Every document of the effort: categories, folders, tags, roles and search"),
           "docs": ("Customer Versions", "The customer's documents and every version of them"),
@@ -234,6 +236,8 @@ class MainWindow(QMainWindow):
         self.dash_page = DashPage(self)              # 3.12.0: its numbers and cards show on the Effort Dashboard
         self.home_page = HomePage(self)
         self.record_page = RecordPage(self)
+        from .meetingspage import MeetingsPage
+        self.meetings_page = MeetingsPage(self)                 # 3.20.0
         self.review_page = ReviewPage(self)
         self.acronym_page = AcronymPage(self)
         self.acrlist_page = EffortListPage(self)
@@ -275,7 +279,7 @@ class MainWindow(QMainWindow):
         from .auditpage import AuditPage
         self.audit_page = AuditPage(self)              # 3.17.0
         self.prodstd_page = StandardsPage(self)        # 3.6.0: every rule, three layers
-        self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page, "custqa": self.custqa_page,
+        self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page, "custqa": self.custqa_page,
                       "impact": self.impact_page, "deliverables": self.deliverables_page, "qa": self.qa_page, "lists": self.lists_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,

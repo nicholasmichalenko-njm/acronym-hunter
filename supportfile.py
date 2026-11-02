@@ -20,6 +20,12 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.20.0": ["Meetings (Effort Record > Meetings): the meeting, its date and time, participants and notes, and the topics "
+               "to follow up. A topic points at a section or a requirement and can name an owner; it stays open until "
+               "someone marks it Considered or Not needed, with who and when.",
+               "Topics from notes offers the notes' bullet lines (and Topic:, Action:, Decision: lines) to keep as topics. "
+               "Open topics show on the Effort Dashboard, in My Work for their owner, and on the Review card of what they "
+               "point at; the gate goal Every meeting topic considered can hold a stage. Export to Word saves a meeting."],
     "3.19.0": ["The response structure has parts: cover, title page, front matter, the response, appendices and back cover, "
                "in order in each volume. Review's Parts button adds them (front matter from a list: cover letter, table of "
                "contents, lists of figures and tables, acronyms, compliance matrix, executive summary, or your own) and "

@@ -6,7 +6,8 @@ import datetime, os
 import setupdoc as SD
 
 KIND_WORDS = {"task": "Task", "question": "Question for you", "custqa": "Customer question", "deliverable": "Deliverable",
-              "graphic": "Graphic need", "section": "Section", "requirements": "Requirements", "stage": "Stage"}
+              "graphic": "Graphic need", "section": "Section", "requirements": "Requirements", "stage": "Stage",
+              "topic": "Meeting topic"}
 
 
 def _is(person, names):
@@ -44,6 +45,14 @@ def for_effort(name, info, person, load_matrix=True):
     for n in rec.data.get("notes", []):
         if n.get("question") and not n.get("resolved") and _is(person, n.get("assignee")):
             items.append({"kind": "question", "text": n.get("text", ""), "due": "", "id": n["id"], "where": n.get("who", "")})
+    try:                                                  # 3.20.0: meeting topics they own, still open
+        import meetings as MT
+        for m, t in MT.topics(rec, open_only=True):
+            if _is(person, t.get("owner")):
+                items.append({"kind": "topic", "text": t["text"], "due": "", "id": t["id"],
+                              "where": f"{m['title']} ({m['date']})" + (f", {t['target']}" if t.get("target") else "")})
+    except Exception:
+        pass
     try:
         import custqa as Q
         for q in Q.items(rec):

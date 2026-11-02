@@ -1,6 +1,18 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+MEETINGS AND THEIR TOPICS (3.20.0)
+  - Effort Record > Meetings: + Meeting, then its date and time, participants (from the author list) and notes. The
+    meeting goes on the effort calendar too.
+  - Topics to follow up: + Topic (what it is, what it points at: a section of the structure or a requirement, and an
+    owner), or Topics from notes, which offers the notes' lines starting with -, *, a number, or Topic:, Action:,
+    Decision:, Follow-up:, To do: for you to tick. Nothing is made up.
+  - Each topic is Open until someone marks it Considered or Not needed (with why); who and when are kept. Reopen puts it
+    back. Open topics show on the Effort Dashboard (Meeting topics), in My Work for their owner, and on the Review card
+    of the sentence or section they point at.
+  - Gate goal: Every meeting topic considered (add it to a stage in Effort Record).
+  - Export to Word... saves the meeting, its participants, notes and topics with their status.
+
 PARTS OF THE RESPONSE STRUCTURE (3.19.0)
   - Each volume of the structure is in parts, in order: Cover, Title page, Front matter, Response, Appendices, Back
     cover. Review > Parts adds a cover, a title page, a front matter item (cover letter, table of contents, list of

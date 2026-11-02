@@ -122,6 +122,10 @@ class DashPage(QWidget):
         grid.addWidget(self.vol, 1, 0, Qt.AlignTop)
         grid.addWidget(self.acr, 2, 0, Qt.AlignTop); grid.addWidget(self.late, 2, 1, Qt.AlignTop)
         grid.addWidget(self.people, 3, 0, 1, 2)
+        self.topics = D.Card("Meeting topics", "Topics meetings raised, open until someone marks them considered.",   # 3.20.0
+                             actions=[D.button("Meetings", None, lambda: self.host.go("meetings"))])
+        self.topics_box = QVBoxLayout(); self.topics_box.setSpacing(D.SPACE["xs"]); self.topics.body.addLayout(self.topics_box)
+        grid.addWidget(self.topics, 4, 0, 1, 2)
         v.addWidget(self.body)
         v.addStretch(1)
 
@@ -141,8 +145,32 @@ class DashPage(QWidget):
         self.fill_late(d)
         self.fill_acronyms(d)
         self.fill_people(d)
+        self.fill_topics()
         diag.activity("qt_dashboard_shown")
         return d
+
+    def fill_topics(self):
+        """3.20.0: the open meeting topics, newest meeting first (up to eight)."""
+        while self.topics_box.count():
+            w = self.topics_box.takeAt(0).widget()
+            if w is not None:
+                w.deleteLater()
+        import effortrec as R_
+        import meetings as MT
+        ts = MT.topics(R_.Record(self.host.ws.root), open_only=True)
+        self.topic_labels = []
+        if not ts:
+            self.topic_labels.append(D.label("None open." if MT.meetings(R_.Record(self.host.ws.root)) else
+                                             "No meetings yet: Effort Record > Meetings.", "muted"))
+        for m, t in ts[:8]:
+            self.topic_labels.append(D.label(f"{t['text']}  \u00b7  {m['title']} ({m['date']})"
+                                             + (f"  \u00b7  {t['target']}" if t.get("target") else "")
+                                             + (f"  \u00b7  {t['owner']}" if t.get("owner") else ""), None))
+        if len(ts) > 8:
+            self.topic_labels.append(D.label(f"and {len(ts) - 8} more", "muted"))
+        for lab in self.topic_labels:
+            self.topics_box.addWidget(lab)
+        return len(ts)
 
     # ------------------------------------------------------------ the numbers on top
     def fill_tiles(self, d):

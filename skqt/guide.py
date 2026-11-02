@@ -102,6 +102,18 @@ TOPICS = [
   ["Back up now makes a backup at once. Restore... brings one back.",
    "Open the readable copy shows every captured item as plain files you can open without the app. Settings > Efforts > "
    "Export the full effort... copies it into a dated folder named for the effort and its stage."]),
+ ("meetings", "Effort", "Meetings",
+  "Meetings for this effort: who was there, the notes, and the topics to follow up, each open until someone marks it "
+  "considered.",
+  "After a kickoff, a color team debrief, a customer call or a working session: anything said that must reach the response.",
+  ["+ Meeting: give it a name, then set the date and time, the participants (Choose...) and the notes.",
+   "+ Topic adds a topic: what it is, what it points at (a section of the structure or a requirement) and its owner. Topics "
+   "from notes offers the notes' lines that start with -, * or Topic:, Action:, Decision: for you to tick.",
+   "When a topic has been taken into account, select it and press Considered (who and when are kept). Not needed asks why.",
+   "Export to Word... saves the meeting, its notes and topics."],
+  ["Open topics show on the Effort Dashboard, in My Work for their owner, and on the card of the sentence or section they "
+   "point at in Review.",
+   "A stage gate can hold until every topic is considered: add the goal Every meeting topic considered in Effort Record."]),
  ("reviews", "Effort", "Color Reviews",
   "Color team review packets: a Word file with every requirement under its section, for reviewers to give a verdict "
   "and comments, read back onto each requirement.",
