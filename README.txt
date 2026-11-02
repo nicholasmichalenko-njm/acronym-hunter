@@ -1,6 +1,15 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+DOWNLOADS NAME THEIR VERSION (3.20.2)
+  - Every file a release offers carries its version, and so does the folder inside each zip: Stationkeeper_US_3.20.2.zip
+    opens to a Stationkeeper_US_3.20.2 folder; Stationkeeper_US_Training_3.20.2.zip and Stationkeeper_US_SCIF_3.20.2.zip
+    the same; the SBOM files are Stationkeeper_US_3.20.2_SBOM.cdx.json and so on. Update packs already carried it.
+  - Unzip a new download beside the old folder: your data lives in Stationkeeper Data beside them and is picked up as
+    before. Delete the old folder when the new one runs.
+  - An update pack (.skupdate) installs into the folder you run, so that folder keeps the name it was unzipped with;
+    Settings > Updates and the window's title say the version running.
+
 APPENDICES AND THE PAGE LIMIT (3.20.1)
   - Adding the first appendix asks whether the RFP counts the appendices toward the page limit (They count, They do
     not count, Decide later). Parts > Part rules and page limits... changes it for every appendix.
@@ -1001,7 +1010,7 @@ RUN
   0. If you received the zip by email, Teams, or download: right-click the zip > Properties >
      check "Unblock" > OK, BEFORE unzipping. This clears the internet-download flag Windows adds.
   1. Unzip anywhere (Desktop, USB drive, network share).
-  2. Open the Stationkeeper folder and double-click Stationkeeper.exe.
+  2. Open the folder it made (Stationkeeper_US_<version>, Stationkeeper before 3.20.2) and double-click Stationkeeper.exe.
   3. Click "Select Files" or "Scan Folder".
   Supported: PDF, DOCX, XLSX, PPTX, PNG, JPG, TIF, BMP, WEBP, GIF, and vector graphics
   (SVG, EMF, WMF, including Visio and draw.io diagrams pasted into Office files).

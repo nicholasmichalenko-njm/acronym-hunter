@@ -20,6 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.20.2": ["Every download names its version: Stationkeeper_US_3.20.2.zip opens to a Stationkeeper_US_3.20.2 folder (the "
+               "Training and SCIF downloads and the SBOM files too), so there is no doubt which version you have. Unzip a "
+               "new one beside the old: your data in Stationkeeper Data is picked up as before."],
     "3.20.1": ["Appendices and the page limit: the first appendix asks whether the RFP counts the appendices; Part rules and "
                "page limits changes it for all of them, and a section's Pages... sets one on its own (counts, does not "
                "count, or as its part). The Page budget follows.",

@@ -1,6 +1,6 @@
 # Builds the app ONCE and makes the package:
-#   Stationkeeper_US.zip           Stationkeeper: scans, saves corrections -> GitHub Release (generic data only)
-#   Stationkeeper_US_Training.zip  Stationkeeper Training (-App training): imports corrections, trains the reader,
+#   Stationkeeper_US_<version>.zip Stationkeeper: scans, saves corrections -> GitHub Release (generic data only)
+#   Stationkeeper_US_Training_<version>.zip  Stationkeeper Training (-App training): imports corrections, trains the reader,
 #                                  exports Knowledge Packs -> GitHub Release (generic data only) (2.15.0)
 #   internal_builds\Stationkeeper_Internal_<pack>.zip     -> approved SharePoint ONLY (when -KnowledgePack is given)
 # Training features can be switched off for a distribution in base\config\app_settings.json (allow_training).
@@ -215,9 +215,17 @@ if ($Edition -eq 'us' -and -not $Classic -and -not $Scif) {
 $edLabel = if ($Classic) { 'US Classic (Tesseract only)' } elseif ($Edition -eq 'legacy') { 'Legacy' } else { 'US' }
 if ($App -eq 'training') { $edLabel = "$edLabel Training" }
 if ($Scif) { $edLabel = 'US SCIF' }
-& .\venv\Scripts\python.exe tools\make_sbom.py $out "${prefix}_SBOM.cdx.json" $edLabel
+# 3.20.2: every file a release offers, and the folder inside the zip, carry the version: Stationkeeper_US_3.20.2.zip
+# opens to a Stationkeeper_US_3.20.2 folder, so a download never leaves doubt about which version it is
+Get-ChildItem -Path . -Filter "${prefix}_*.zip" -File | Where-Object { $_.Name -match "^$([regex]::Escape($prefix))_\d+\.\d+\.\d+\.zip$" } | Remove-Item
+Get-ChildItem -Path . -Filter "${prefix}_*_SBOM.cdx.json" -File | Where-Object { $_.Name -match "^$([regex]::Escape($prefix))_\d+\.\d+\.\d+_SBOM" } | Remove-Item
+& .\venv\Scripts\python.exe tools\make_sbom.py $out "${prefix}_${ver}_SBOM.cdx.json" $edLabel
 if ($LASTEXITCODE -ne 0) { throw "SBOM generation failed. See the output above." }
-$zip = "$prefix.zip"
+$named = "dist\${prefix}_$ver"
+Remove-Item -Recurse -Force $named -ErrorAction SilentlyContinue
+Rename-Item $out (Split-Path $named -Leaf)
+$out = $named
+$zip = "${prefix}_$ver.zip"
 Remove-Item $zip -ErrorAction SilentlyContinue
 Compress-Archive -Path $out -DestinationPath $zip -CompressionLevel Optimal
 $zipHash = (Get-FileHash $zip -Algorithm SHA256).Hash

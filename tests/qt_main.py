@@ -75,6 +75,8 @@ spec = open(os.path.join(A.BASE_DIR, "Stationkeeper.spec"), encoding="utf-8").re
 bps = open(os.path.join(A.BASE_DIR, "build.ps1"), encoding="utf-8").read()
 check("2.75.0: only the Qt programs are built and allowed in the package", "skqt_main.py" in spec and "skqt_training.py" in spec
       and "Classic' if" not in spec and "classicExe" not in bps)
+check("3.20.2: every download and the folder in it carry the version", '$zip = "${prefix}_$ver.zip"' in bps
+      and '$named = "dist\\${prefix}_$ver"' in bps and '"${prefix}_${ver}_SBOM.cdx.json"' in bps)
 src = open(os.path.join(A.BASE_DIR, "app_gui.py"), encoding="utf-8").read()
 check("3.14.0: no classic window: the engine imports no tkinter and the build leaves it out", "import tkinter" not in src
       and "customtkinter" not in src and "'tkinter', '_tkinter', 'customtkinter'" in spec
