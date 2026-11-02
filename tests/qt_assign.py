@@ -78,7 +78,7 @@ def click(iid, ctrl=False):
 
 
 click(a["id"])
-check("a click selects the sentence and the card shows it", [x["id"] for x in pg.selected()] == [a["id"]] and "Ignored" in pg.kind_label.text())
+check("a click selects the sentence and the card shows it", [x["id"] for x in pg.selected()] == [a["id"]] and "Not decided" in pg.kind_label.text())
 src = pg.source_label.text()
 check("the card: file, page and paragraph, RFP section", "File: Section_L_print.pdf" in src and "Where: p.1, para" in src
       and "RFP: L.3.1 Technical Approach" in src, src)

@@ -73,7 +73,7 @@ check("... one author on all four", all(w.review.item(it["id"])["owner"] == "K. 
 pg.bulk_decide("M")
 check("Decide all: M on all four", all(w.review.item(it["id"]).get("lm") == "M" for it in first))
 pg.bulk_decide("ignore")
-check("Decide all: Ignore takes all four out", all(not w.review.item(it["id"]).get("decision") for it in first))
+check("Decide all: Ignore takes all four out (3.18.1: ignored, a decision of its own)", all(w.review.item(it["id"]).get("decision") == "Drop" and not w.review.item(it["id"]).get("map") for it in first))
 pg.do_undo(); app.processEvents()
 check("one Ctrl+Z puts all four back", all(w.review.item(it["id"])["decision"] == "Keep" for it in first))
 pg.bulk_author("")
