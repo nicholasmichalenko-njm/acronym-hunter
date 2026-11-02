@@ -106,8 +106,9 @@ def available():
 
 def make_many(paths, folder, timeout=600, runner=None, stop=None):
     """PDF copies of several files, one Office session per program (Office starting is the slow part). Returns
-    {path: copy path or RuntimeError}. 3.14.3: stop() True (Stationkeeper is closing) ends the copy at once: the
-    PowerShell script and the Office it started are ended, and no half-made copy is kept (it is made again next time)."""
+    {path: copy path or RuntimeError}. 3.14.3: stop() True (Stationkeeper is closing) asks the script to stop: it
+    finishes the document it is on, keeps the copies it finished, and quits the Office it started. A script that does
+    not stop in time is ended with its Office, and none of its copies is kept (they are made again next time)."""
     out, todo = {}, {}
     for p in paths:
         k = kind(p)
@@ -139,9 +140,10 @@ def make_many(paths, folder, timeout=600, runner=None, stop=None):
                 err = b"Microsoft Office is needed"
             else:
                 err = _run(cmd, env, timeout, stop)
-                if err is _STOPPED or err is _KILLED:
-                    if err is _KILLED:                  # it ignored the stop: end the Office it started, by its IDs
-                        _end_started(pidfile, k)
+                if err is _STOPPED:                     # it stopped between documents: what it finished is whole
+                    err = b"stopped before the PDF copy was made"
+                elif err is _KILLED:                    # it ignored the stop: end the Office it started, by its IDs
+                    _end_started(pidfile, k)
                     err, cut = b"stopped before the PDF copy was made", True
         except subprocess.TimeoutExpired:
             err, cut = b"Office took too long to save the PDF copies", True

@@ -86,8 +86,8 @@ os.makedirs(folder2, exist_ok=True)
 for how, expect_end in ((OP._STOPPED, []), (OP._KILLED, ["word"])):
     ended2 = []
     def half_made(cmd, env, timeout, stop, how=how):
-        for line in env["SK_LIST"].splitlines():                # Word got part way through
-            open(line.split("\t")[1], "wb").write(b"%PDF-1.7 half")
+        for line in env["SK_LIST"].splitlines():                # Word wrote this copy (whole, or cut off when ended)
+            open(line.split("\t")[1], "wb").write(b"%PDF-1.7")
         with open(env["SK_PIDFILE"], "w", encoding="utf-8") as f:
             f.write("5151")
         return how
@@ -95,10 +95,15 @@ for how, expect_end in ((OP._STOPPED, []), (OP._KILLED, ["word"])):
     OP._end_started = lambda pidfile, k, runner=None: ended2.append(k)
     res2 = OP.make_many([src2], folder2, stop=lambda: False)
     OP.available, OP._run, OP._end_started = real_av, real_run, real_end
-    check(("stopped itself" if how is OP._STOPPED else "ended after the grace time") + ": no copy, no half-made part kept"
-          + ("" if how is OP._STOPPED else ", the Word it started is ended by its ID"),
-          isinstance(res2[src2], RuntimeError) and "stopped" in str(res2[src2])
-          and not os.listdir(folder2) and ended2 == expect_end, (res2, os.listdir(folder2), ended2))
+    if how is OP._STOPPED:
+        check("stopped itself between documents: the copy it finished is kept, nothing is ended by force",
+              not isinstance(res2[src2], Exception) and os.path.isfile(res2[src2]) and ended2 == [], (res2, ended2))
+        for f in os.listdir(folder2):
+            os.remove(os.path.join(folder2, f))
+    else:
+        check("ended after the grace time: no copy and no part kept, the Word it started is ended by its ID",
+              isinstance(res2[src2], RuntimeError) and "stopped" in str(res2[src2])
+              and not os.listdir(folder2) and ended2 == expect_end, (res2, os.listdir(folder2), ended2))
 res3 = OP.make_many([src2], folder2, stop=lambda: True, runner=lambda *a: 1 / 0)
 check("asked to stop before it starts: Office is never started", "stopped" in str(res3[src2]), res3)
 n = sum(checks)
