@@ -53,6 +53,8 @@ import folderplan as FP
 FP.save(cfgA, dict(FP.default(), company="Acme Space"))
 import roleaccess as _RA
 _RA.set_preview(cfgA, "fixcopy", True)                      # 3.13.0: the Preview choice travels too
+import suggestrules as _SR
+_SR.add_rule(cfgA, None, "are limited to", "L", "team")      # 3.18.0: the team's suggestion rules travel too
 have = TP.available(cfgA)
 check("the maker's PC lists what it can share", set(have) == set(TP.PARTS), have)
 pack = os.path.join(tmp, f"Team{TP.EXT}")
@@ -75,6 +77,8 @@ check("the preview: locked parts replace, the rest add", "Replaces" in said["log
       and "2 banned" in said["banned"] and "added" in said["goals"], said)
 check("nothing changes before Install", AL.load(cfgB).names() == ["Zed Quinn"] and not TP.installed(cfgB))
 tc.install(pack, confirm=True)
+check("3.18.0: the team's suggestion rules install (added by phrase)", "1 suggestion rule(s) added" in said.get("suggest", "")
+      and [r["phrase"] for r in _SR.team_rules(cfgB)] == ["are limited to"], (said.get("suggest"), _SR.team_rules(cfgB)))
 names = AL.load(cfgB).names()
 check("names the PC lacked are added; its own stay", names == ["A. Lee", "Dana Ruiz", "Sam Ortiz", "Zed Quinn"], names)
 check("the window's pickers see the new names", "Dana Ruiz" in w.authors.names())

@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SUGGESTIONS IN REVIEW (3.18.0)
+  - Suggest (Review's toolbar) shows what each undecided sentence most likely is: L, M or SOW requirement, support,
+    the customer's, or ignore. Rules you can read, not AI: who acts (the Offeror, the Contractor, the Government), the
+    verb (shall, must, will: mandatory; should: desired; may: never suggested), evaluation wording, and the RFP section
+    (L, M, C numbering or its title); then the team's and this effort's own rules, which come first.
+  - Suggestions show dashed on the page in their category's color, with "L?" in the margin and the reason on the card.
+    Nothing is decided until a person accepts: Enter (or Accept) for the selected ones, Accept the clear ones (mandatory,
+    a clear actor, a known section), or Accept all shown. Not right drops one; any key decides otherwise.
+  - Accepted suggestions stay marked "not checked yet" until someone presses Checked (Select unchecked finds them).
+  - The score (the green strip): kept, changed, not right, missed (a requirement nobody suggested), and the share right.
+  - Make a rule... on a changed, rejected or missed sentence: a phrase from it and what such sentences are, for the team
+    (every effort on this PC; a team pack shares it) or this effort only. It applies at once. Settings > Suggestion rules
+    lists and removes them.
+
 PRODUCTION: SEE WHAT YOU SET, GRAPHICS, AUDIT (3.17.0)
   - Production Standards: a Preview beside every section draws what its values make (the page with its fonts, spacing
     and margins, numbered headings, captions, the page scheme, headers and footers, the TOC, lists, terms, a workbook

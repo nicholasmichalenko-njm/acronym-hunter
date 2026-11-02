@@ -37,6 +37,10 @@ WORD = re.compile(r"[A-Za-z0-9]+")
 BULK_DECISIONS = (("Decide all...", ""), ("L (Instructions)", "L"), ("M (Evaluation)", "M"), ("SOW (Work)", "SOW"),
                   ("Support", "ctx"), ("Customer's", "cust"), ("Ignore", "ignore"))
 
+SG_DEC = {"L": "Keep", "M": "Keep", "SOW": "Keep", "ctx": "Context", "cust": "Customer", "ignore": ""}   # 3.18.0
+SG_KEYS = {"L": "L", "M": "E", "SOW": "R", "ctx": "C", "cust": "G", "ignore": "X"}
+
+
 class SentenceBox(QGraphicsPathItem):
     def __init__(self, iid, rects):
         path = QPainterPath()
@@ -50,6 +54,7 @@ class SentenceBox(QGraphicsPathItem):
         self.dec = ""
         self.hover = False
         self.current = False
+        self.sg = ""                                # 3.18.0: the suggestion shown (a category), "" for none
 
     def style(self, dec=None, current=None):
         self.dec = self.dec if dec is None else dec
@@ -61,6 +66,11 @@ class SentenceBox(QGraphicsPathItem):
         self.setBrush(QBrush(fill))
         pen = QPen(QColor("#F59E0B") if self.current else (col if self.dec else QColor("#CBD5E1")))
         pen.setWidthF(2.6 if self.current else (1.4 if (self.dec or sel or self.hover) else 0.7))
+        if self.sg and not self.dec and not self.current:          # 3.18.0: a suggestion: dashed, in its category's color
+            sc = QColor(D.PAGE_DEC.get(SG_DEC.get(self.sg, ""), "#94A3B8"))
+            pen = QPen(sc); pen.setWidthF(1.8); pen.setStyle(Qt.DashLine)
+            if not sel:
+                f2 = QColor(sc); f2.setAlpha(28); self.setBrush(QBrush(f2))
         pen.setCosmetic(True)
         self.setPen(pen)
 
@@ -346,6 +356,11 @@ class AssignPage(QWidget):
                                 "or drag with the middle button). Ctrl+wheel zooms")
         self.pan_btn.setCheckable(True)
         bar.addWidget(self.pan_btn)
+        self.sg_btn = D.button("Suggest", None, lambda: self.toggle_suggest(), "Show what each sentence most likely is, "
+                               "from rules you can read (not AI). Nothing is decided until you accept it")      # 3.18.0
+        self.sg_btn.setCheckable(True)
+        bar.addWidget(self.sg_btn)
+        self.sg_on, self.sg = False, {}
         self.sheet_on, self.sheet = True, None          # 2.96.0: Excel files open in Sheet view
         self.sheet_btn = D.button("Page view", None, lambda: self.toggle_sheet(), "Switch an Excel file between its cells (Sheet "
                                   "view) and its PDF copy (Page view)")
@@ -358,6 +373,21 @@ class AssignPage(QWidget):
         bar.addWidget(self.changes_btn)
         fit = QPushButton("Fit width"); fit.clicked.connect(lambda: self.view.fit()); bar.addWidget(fit)
         self.note = D.label("", "muted"); v.addWidget(self.note)
+        self.sg_strip = QFrame(); self.sg_strip.setObjectName("sgBar")         # 3.18.0: the suggestions shown, and the score
+        self.sg_strip.setStyleSheet("QFrame#sgBar{background:rgba(22,163,74,0.07);border:1px dashed rgba(22,163,74,0.55);border-radius:6px;}")
+        sh = QHBoxLayout(self.sg_strip); sh.setContentsMargins(D.SPACE["m"], D.SPACE["xs"], D.SPACE["m"], D.SPACE["xs"])
+        sh.setSpacing(D.SPACE["s"])
+        self.sg_text = D.label("", "body"); self.sg_text.setTextFormat(Qt.RichText); sh.addWidget(self.sg_text, 1)
+        self.sg_clear_btn = D.button("Accept the clear ones", "primary", lambda: self.accept_suggestions(clear_only=True),
+                                     "Accept the suggestions the rules are sure of, in this document; the rest stay for you")
+        self.sg_all_btn = D.button("Accept all shown", None, lambda: self.accept_suggestions(clear_only=False),
+                                   "Accept every suggestion shown in this document")
+        self.sg_check_btn = D.button("Select unchecked", "ghost", lambda: self.select_unchecked(),
+                                     "The sentences decided from a suggestion that nobody has checked yet")
+        self.sg_rules_btn = D.button("Rules...", "ghost", lambda: self.rules_dialog(), "The team's and this effort's suggestion rules")
+        for b in (self.sg_clear_btn, self.sg_all_btn, self.sg_check_btn, self.sg_rules_btn):
+            sh.addWidget(b)
+        self.sg_strip.setVisible(False); v.addWidget(self.sg_strip)
         self.bulk = QFrame(); self.bulk.setObjectName("bulkBar")       # 3.0.4: several sentences selected, one action for all
         self.bulk.setStyleSheet("QFrame#bulkBar{background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.35);border-radius:6px;}")
         bh = QHBoxLayout(self.bulk); bh.setContentsMargins(D.SPACE["m"], D.SPACE["xs"], D.SPACE["m"], D.SPACE["xs"])
@@ -511,7 +541,8 @@ class AssignPage(QWidget):
                         ("Delete", self.do_clear), ("J", self.do_combine), ("S", self.do_split), ("Ctrl+Z", self.do_undo),
                         ("F", lambda: self.do_for_req()), ("N", lambda: self.do_record("note")),
                         ("Q", lambda: self.do_record("question")), ("T", lambda: self.do_record("task")),
-                        ("Ctrl+A", lambda: self.select_all()), ("H", lambda: self.toggle_pan()), ("P", lambda: self.do_capture("graphic") if self.cx is None else None),
+                        ("Ctrl+A", lambda: self.select_all()), ("H", lambda: self.toggle_pan()),
+                        ("Return", lambda: self.accept_suggestions(rows=self.selected())), ("P", lambda: self.do_capture("graphic") if self.cx is None else None),
                         ("Escape", lambda: self.toggle_capture(False) if self.view.capturing else
                          (self.clear_split() if self.split_at is not None else self.view.scene().clearSelection()))):
             QShortcut(QKeySequence(key), self.view, activated=fn)
@@ -528,6 +559,12 @@ class AssignPage(QWidget):
 
     def load(self):
         """The review changed (opened, read): fill the file list and the structure."""
+        import suggestrules as SR
+        self.sg = SR.store(self.host.ws) if self.R is not None else {}          # 3.18.0: this effort's suggestions
+        if self.sg_on and self.R is not None:
+            self.run_suggest()
+        elif self.sg_on:
+            self.sg_on = False; self.sg_btn.setChecked(False); self.sg_strip.setVisible(False)
         self.fill_file_list()
         self.cx = None
         self.fill_tree()
@@ -958,8 +995,20 @@ class AssignPage(QWidget):
             if it is None:
                 continue
             dec = it.get("decision", "")
+            rec = self.sg.get(iid) if self.sg_on else None          # 3.18.0: a suggestion still waiting shows on the page
+            box.sg = rec["cat"] if rec and rec.get("cat") and rec.get("state") == "shown" and not dec else ""
             box.style(dec if dec in D.PAGE_DEC else "", iid == self.cur)
             tag = D.decision(dec)[2]
+            if not tag and box.sg:
+                y = max(box.boundingRect().top(), last_y + 11)
+                last_y = y
+                lab = QGraphicsSimpleTextItem(f"{box.sg}?")
+                f = QFont("Segoe UI", 7); f.setItalic(True); lab.setFont(f)
+                lab.setBrush(QColor(D.PAGE_DEC.get(SG_DEC.get(box.sg, ""), "#94A3B8")))
+                lab.setPos(MARGIN - 8 - lab.boundingRect().width(), y)
+                sc.addItem(lab)
+                self.labels.append(lab)
+                continue
             if not tag:
                 continue
             y = max(box.boundingRect().top(), last_y + 11)
@@ -1459,6 +1508,11 @@ class AssignPage(QWidget):
         self.kind_label = k
         t = self.add(D.label(it.get("text", ""), "reading"))
         t.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.sg_box = None
+        try:
+            self.suggestion_card(it, rows)                  # 3.18.0
+        except Exception:
+            diag.swallowed()
         if len(rows) == 1 and self.R is not None:            # 2.93.0: splitting, said where you are looking
             text = it.get("text", "")
             if self.split_at is not None and getattr(self, "split_word", None) and self.split_word[0] == it["id"]:
@@ -1901,12 +1955,18 @@ class AssignPage(QWidget):
 
     # ------------------------------------------------------------ actions
     def after(self, msg=""):
+        try:
+            self.note_decided(self.selected())          # 3.18.0: a person's decision on a suggested sentence
+        except Exception:
+            diag.swallowed()
         self.restyle()
         self.fill_tree()
         self.show_card(self.selected())
         self.host.changed()
         if msg:
             self.host.status(msg)
+        if self.sg_on:
+            self.show_score()
 
     def do_req(self):
         if self.cx is not None:
@@ -2004,6 +2064,288 @@ class AssignPage(QWidget):
         return lab
 
     # ------------------------------------------------------------ text the reader missed (2.70.0)
+    # ------------------------------------------------------------ 3.18.0: suggestions you ask for
+    def toggle_suggest(self, on=None):
+        """Suggest: what each sentence most likely is, from rules, shown dashed on the page. Off hides them; nothing
+        decided changes either way."""
+        on = (not self.sg_on) if on is None else bool(on)
+        if on and (self.R is None or self.cx is not None):
+            self.host.status("Suggest works on the documents read into the compliance matrix.")
+            on = False
+        self.sg_on = on
+        self.sg_btn.setChecked(on)
+        if on:
+            n = self.run_suggest()
+            diag.activity("suggest_on", n=n)
+        self.sg_strip.setVisible(on)
+        self.restyle(); self.show_card(self.selected()); self.show_score()
+        return on
+
+    def run_suggest(self):
+        """Suggestions for every undecided sentence of the matrix that has none yet (or is still only shown). Decided
+        sentences keep theirs, so the score stays true."""
+        import suggestrules as SR
+        ws = self.host.ws
+        self.sg = SR.store(ws)
+        rules = SR.all_rules(self.host.config_dir, ws)
+        inh = None
+        n = 0
+        for it in self.M.items:
+            rec = self.sg.get(it["id"])
+            if it.get("decision") or (rec and rec.get("state") != "shown"):
+                continue                                    # decided (by you, or from a suggestion): kept as it is
+            got = SR.suggest(self.M, it, rules, inh)
+            self.sg[it["id"]] = dict(got, state="shown")
+            n += 1 if got.get("cat") else 0
+        SR.save_store(ws, self.sg)
+        return n
+
+    def shown_here(self, clear_only=False):
+        """The sentences of this document whose suggestion is still waiting (the clear ones only, when asked)."""
+        if self.R is None or not self.file or not self.sg_on:
+            return []
+        out = []
+        for it in self.R.rows_of(self.file):
+            rec = self.sg.get(it["id"])
+            if rec and rec.get("cat") and rec.get("state") == "shown" and not it.get("decision") and (rec.get("clear") or not clear_only):
+                out.append(it)
+        return out
+
+    def accept_suggestions(self, clear_only=True, rows=None):
+        """Accept: each sentence takes its suggestion (as if you pressed its key) and is marked as decided from a
+        suggestion until someone checks it. rows: these sentences only (Enter on a selection)."""
+        import suggestrules as SR
+        if not self.sg_on or self.R is None or self.cx is not None:
+            return 0
+        rows = [it for it in (rows if rows is not None else self.shown_here(clear_only))
+                if (self.sg.get(it["id"]) or {}).get("cat") and (self.sg[it["id"]].get("state") == "shown")]
+        if not rows:
+            self.host.status("No suggestion waiting here." if rows is not None else "No suggestion to accept.")
+            return 0
+        by = {}
+        for it in rows:
+            by.setdefault(self.sg[it["id"]]["cat"], []).append(it)
+        self._accepting = True
+        try:
+            for cat, its in by.items():
+                if cat in ("L", "M", "SOW"):
+                    self.R.req(its, self.target or "")
+                    self.R.set_lm(its, {"L": "L", "M": "M", "SOW": "C"}[cat])
+                elif cat == "ctx":
+                    self.R.ctx(its)
+                elif cat == "cust":
+                    self.R.customer(its)
+                for it in its:
+                    self.sg[it["id"]].update(state="accepted", unchecked=True)
+                    self.M.log(it["id"], f"accepted the suggestion: {SR.CAT_NAME.get(cat, cat)} ({self.sg[it['id']].get('why', '')})")
+            SR.save_store(self.host.ws, self.sg)
+            self.after(f"{len(rows)} suggestion(s) accepted. They stay marked until someone checks them (Select unchecked).")
+        finally:
+            self._accepting = False
+        diag.activity("suggest_accepted", n=len(rows))
+        self.show_score()
+        return len(rows)
+
+    def reject_suggestion(self, rows=None):
+        """Not right: the suggestion goes; the sentence stays as it was, for you to decide."""
+        import suggestrules as SR
+        rows = rows if rows is not None else self.selected()
+        n = 0
+        for it in rows:
+            rec = self.sg.get(it["id"])
+            if rec and rec.get("cat") and rec.get("state") in ("shown", "accepted"):
+                rec.update(state="rejected", unchecked=False)
+                n += 1
+        if n:
+            SR.save_store(self.host.ws, self.sg)
+            diag.activity("suggest_rejected", n=n)
+            self.restyle(); self.show_card(self.selected()); self.show_score()
+        return n
+
+    def check_suggestion(self, rows=None):
+        """Checked: a person looked at a sentence decided from a suggestion and it is right."""
+        import suggestrules as SR
+        rows = rows if rows is not None else self.selected()
+        n = 0
+        for it in rows:
+            rec = self.sg.get(it["id"])
+            if rec and rec.get("unchecked"):
+                rec["unchecked"] = False; n += 1
+        if n:
+            SR.save_store(self.host.ws, self.sg)
+            self.show_card(self.selected()); self.show_score()
+        return n
+
+    def select_unchecked(self):
+        ids = [iid for iid, rec in self.sg.items() if rec.get("unchecked") and iid in self.view.boxes]
+        sc = self.view.scene(); sc.clearSelection()
+        for iid in ids:
+            self.view.boxes[iid].setSelected(True)
+        self.show_card(self.selected())
+        self.host.status(f"{len(ids)} sentence(s) here were decided from a suggestion and not checked yet." if ids else
+                         "Every suggestion accepted here has been checked.")
+        return len(ids)
+
+    def note_decided(self, rows):
+        """A person decided these sentences: a suggestion they changed is marked changed, and a sentence decided from a
+        suggestion counts as checked."""
+        import suggestrules as SR
+        if getattr(self, "_accepting", False) or not self.sg:
+            return
+        dirty = False
+        for it in rows or []:
+            rec = self.sg.get(it["id"])
+            if rec is None:
+                continue
+            cat = SR.category(it, rec)
+            if rec.get("cat") and cat and not SR.agrees(rec["cat"], cat) and rec.get("state") in ("shown", "accepted"):
+                rec["state"] = "changed"; dirty = True
+            if rec.get("unchecked"):
+                rec["unchecked"] = False; dirty = True
+        if dirty:
+            SR.save_store(self.host.ws, self.sg)
+
+    def show_score(self):
+        import suggestrules as SR
+        if not self.sg_on or self.R is None:
+            return None
+        c = SR.score(self.M.items, self.sg)
+        here, clear = len(self.shown_here()), len(self.shown_here(True))
+        pct = f"{c['right_pct']}% right" if c["right_pct"] is not None else "no score yet"
+        self.sg_text.setText(f"<b>{here} suggestion(s) waiting here</b> ({clear} clear). Whole matrix: {c['agreed']} kept, "
+                             f"{c['changed']} changed, {c['rejected']} not right, {c['missed']} missed: <b>{pct}</b>"
+                             + (f". {c['unchecked']} accepted, not checked yet." if c["unchecked"] else "."))
+        self.sg_clear_btn.setText(f"Accept the clear ones ({clear})"); self.sg_clear_btn.setEnabled(bool(clear))
+        self.sg_all_btn.setText(f"Accept all shown ({here})"); self.sg_all_btn.setEnabled(bool(here))
+        self.sg_check_btn.setEnabled(bool(c["unchecked"]))
+        return c
+
+    def make_rule(self, it=None, answer=None):
+        """Teach it: a rule from this sentence (a phrase in it and what such sentences are). answer (tests):
+        (phrase, cat, scope)."""
+        import suggestrules as SR
+        it = it or (self.selected() or [None])[-1]
+        if it is None:
+            return None
+        rec = self.sg.get(it["id"]) or {}
+        cur = SR.category(it, rec)
+        if answer is None:
+            from PySide6.QtWidgets import QDialog, QDialogButtonBox, QFormLayout, QLineEdit
+            d = QDialog(self); d.setWindowTitle("Make a suggestion rule"); d.setMinimumWidth(560)
+            f = QFormLayout(d)
+            f.addRow(D.label("Every sentence holding this phrase gets this suggestion. Keep the phrase short and true for "
+                             "every RFP: a few words around the verb usually work.", "muted"))
+            ph = QLineEdit(SR.phrase_from(it.get("text", ""))); f.addRow("Phrase", ph)
+            cb = QComboBox()
+            for k, t in SR.CATS:
+                cb.addItem(t, k)
+            cb.setCurrentIndex(max(0, cb.findData(cur if cur in SR.CAT_NAME else "L"))); f.addRow("Such sentences are", cb)
+            sc = QComboBox(); sc.addItem("The team (every effort on this PC; a team pack shares it)", "team")
+            sc.addItem("This effort only", "effort"); f.addRow("For", sc)
+            bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.button(QDialogButtonBox.Ok).setText("Make the rule")
+            bb.accepted.connect(d.accept); bb.rejected.connect(d.reject); f.addRow(bb)
+            if d.exec() != QDialog.Accepted:
+                return None
+            answer = (ph.text(), cb.currentData(), sc.currentData())
+        r = SR.add_rule(self.host.config_dir, self.host.ws, *answer)
+        if r is None:
+            self.host.status("A rule needs a phrase of at least three letters.")
+            return None
+        diag.activity("suggest_rule_made")
+        if self.sg_on:                                       # the rule applies at once to what is still waiting
+            for x in self.M.items:
+                rx = self.sg.get(x["id"])
+                if rx and rx.get("state") == "shown":
+                    self.sg.pop(x["id"], None)
+            self.run_suggest()
+            self.restyle(); self.show_score()
+        self.show_card(self.selected())
+        self.host.toast(f"Rule made: \"{r['phrase']}\" is {SR.CAT_NAME[r['cat']]}")
+        return r
+
+    def rules_dialog(self, run=True):
+        """The suggestion rules: the team's and this effort's, each with its phrase, what it makes, who and when;
+        Take out removes one."""
+        import suggestrules as SR
+        from PySide6.QtWidgets import QDialog, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView
+        d = QDialog(self); d.setWindowTitle("Suggestion rules"); d.resize(820, 460)
+        lay = QVBoxLayout(d)
+        lay.addWidget(D.label("Rules come first, before the built-in ones (who acts, the verb, the RFP section). This effort's "
+                              "rules win over the team's. Make one from a sentence in Review: Make a rule... on its card.", "muted"))
+        t = QTableWidget(0, 5); t.setHorizontalHeaderLabels(["Phrase", "Makes", "For", "By", "Added"])
+        t.setSelectionBehavior(QAbstractItemView.SelectRows); t.verticalHeader().setVisible(False)
+        t.setEditTriggers(QAbstractItemView.NoEditTriggers); t.setColumnWidth(0, 330)
+        lay.addWidget(t, 1)
+
+        def fill():
+            rs = SR.all_rules(self.host.config_dir, self.host.ws)
+            t.setRowCount(0)
+            for r in rs:
+                k = t.rowCount(); t.insertRow(k)
+                for c, v in enumerate((r["phrase"], SR.CAT_NAME.get(r["cat"], r["cat"]), "This effort" if r["scope"] == "effort" else "Team",
+                                       r.get("who", ""), r.get("added", ""))):
+                    t.setItem(k, c, QTableWidgetItem(v))
+                t.item(k, 0).setData(Qt.UserRole, (r["phrase"], r["scope"]))
+            return len(rs)
+
+        def take_out():
+            for i in sorted({x.row() for x in t.selectedIndexes()}, reverse=True):
+                ph, scope = t.item(i, 0).data(Qt.UserRole)
+                SR.remove_rule(self.host.config_dir, self.host.ws, ph, scope)
+            fill()
+        row = QHBoxLayout(); lay.addLayout(row)
+        row.addWidget(D.button("Take out", "danger", take_out)); row.addStretch(1)
+        bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(d.reject); bb.accepted.connect(d.accept); row.addWidget(bb)
+        d._api = {"table": t, "fill": fill, "take_out": take_out}
+        fill()
+        if run:
+            d.exec()
+            if self.sg_on:
+                self.run_suggest(); self.restyle(); self.show_score()
+        return d
+
+    def suggestion_card(self, it, rows):
+        """3.18.0: on the card: what was suggested and why; Accept, Not right, Checked, and Make a rule... to teach it."""
+        import suggestrules as SR
+        rec = self.sg.get(it["id"]) if (self.sg_on or (self.sg.get(it["id"]) or {}).get("unchecked")) else None
+        if not rec or not (rec.get("cat") or SR.category(it, rec)):
+            return None
+        cat, state = rec.get("cat"), rec.get("state")
+        now = SR.category(it, rec)
+        box = QFrame(); box.setObjectName("sgCard")
+        box.setStyleSheet("QFrame#sgCard{border:1px dashed rgba(22,163,74,0.6);border-radius:6px;background:rgba(22,163,74,0.05);}")
+        bl = QVBoxLayout(box); bl.setContentsMargins(D.SPACE["s"], D.SPACE["xs"], D.SPACE["s"], D.SPACE["s"]); bl.setSpacing(D.SPACE["xs"])
+        name = SR.CAT_NAME.get(cat, "nothing") if cat else "nothing"
+        if state == "shown" and cat and not now:
+            head = f"Suggested: <b>{name}</b> ({SG_KEYS.get(cat, '')})"
+        elif state == "rejected":
+            head = f"Suggested {name}: you said not right"
+        elif state == "changed" or (cat and now and not SR.agrees(cat, now)):
+            head = f"Suggested {name}; decided {SR.CAT_NAME.get(now, now) if now != 'req' else 'a requirement'}"
+        elif state == "accepted":
+            head = f"Decided from a suggestion: <b>{name}</b>" + (" &middot; not checked yet" if rec.get("unchecked") else " &middot; checked")
+        elif not cat and now in ("L", "M", "SOW", "req"):
+            head = "No suggestion was made; you decided a requirement (a miss)"
+        else:
+            head = f"Suggested {name}"
+        hl = QLabel(head); hl.setTextFormat(Qt.RichText); hl.setWordWrap(True); bl.addWidget(hl)
+        if rec.get("why"):
+            bl.addWidget(D.label("Why: " + rec["why"], "muted"))
+        row = QHBoxLayout(); row.setSpacing(4); bl.addLayout(row)
+        if state == "shown" and cat and not now:
+            row.addWidget(D.button("Accept  Enter", "primary", lambda: self.accept_suggestions(rows=self.selected()),
+                                   "Take the suggestion (or press its key, or another key to decide otherwise)"))
+            row.addWidget(D.button("Not right", None, lambda: self.reject_suggestion(), "Leave it undecided, for you"))
+        if rec.get("unchecked"):
+            row.addWidget(D.button("Checked", "primary", lambda: self.check_suggestion(), "A person looked and it is right"))
+        if state in ("rejected", "changed") or (cat and now and not SR.agrees(cat, now)) or (not cat and now in ("L", "M", "SOW", "req")):
+            row.addWidget(D.button("Make a rule...", None, lambda: self.make_rule(it),
+                                   "Teach it: sentences holding a phrase from this one get the right suggestion from now on"))
+        row.addStretch(1)
+        self.add(box)
+        self.sg_box = box
+        return box
+
     def toggle_pan(self, on=None):
         """3.15.1: the Pan tool. Off when Add missed text is on (that drag draws a box)."""
         on = (not self.view.pan_tool) if on is None else bool(on)

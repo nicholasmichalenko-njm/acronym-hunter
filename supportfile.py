@@ -20,6 +20,13 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.18.0": ["Review: Suggest shows what each sentence most likely is, from rules you can read (who acts, the verb, the RFP "
+               "section), not AI. Suggestions show dashed on the page with their reason; nothing is decided until you accept "
+               "one (Enter), the clear ones, or all shown.",
+               "Accepted suggestions stay marked until someone checks them (Select unchecked). The score counts kept, "
+               "changed, not right and missed.",
+               "Teach it: Make a rule... on a sentence's card turns a correction into a rule for the team or this effort; "
+               "Settings > Suggestion rules lists them, and a team pack shares the team's."],
     "3.17.0": ["Production Standards shows what you set: a preview beside every section draws what its values make, and "
                "every value set at the layer you edit says what it was. A list above the preview names every change in "
                "the section.",

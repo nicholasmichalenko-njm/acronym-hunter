@@ -25,15 +25,16 @@ EXT = ".skteam"
 INFO = "team_pack.json"
 MAX_BYTES = 8 * 1024 * 1024
 PARTS = ("authors", "design", "banned", "goals", "process", "doctypes", "folders", "logos", "roles", "markings", "topics", "postsub",
-         "access")
+         "access", "suggest")
 PART_NAMES = {"authors": "Author list", "design": "Matrix design", "banned": "Banned words and phrases", "goals": "Default gate goals",
               "logos": "Company logos", "roles": "Effort Home layouts by role", "markings": "Sensitivity markings",
               "topics": "Team topics", "postsub": "Post-submission checklist", "process": "Stages, gates and roles",
-              "doctypes": "Document types", "folders": "Folders and file names", "access": "Preview tools turned on"}
+              "doctypes": "Document types", "folders": "Folders and file names", "access": "Preview tools turned on", "suggest": "Suggestion rules"}
 LOCKABLE = ("design", "logos", "roles", "goals", "markings", "postsub", "process", "doctypes", "folders", "access")
 FILES = {"authors": "author_list.json", "design": "matrix design.json", "banned": "banned_words.csv", "goals": "stage_goals.json",
          "roles": "team_roles.json", "markings": "team_markings.json", "topics": "team_topics.json", "postsub": "postsub_default.json",
-         "process": "process.json", "doctypes": "doc_types.json", "folders": "folder_plan.json", "access": "team_access.json"}
+         "process": "process.json", "doctypes": "doc_types.json", "folders": "folder_plan.json", "access": "team_access.json",
+         "suggest": "suggestion_rules.json"}
 LOCKS = "team_locks.json"
 INSTALLED = "team_installed.json"
 BACKUPS = "team_backups"
@@ -156,6 +157,9 @@ def available(config_dir):
     if os.path.isfile(os.path.join(config_dir, FILES["access"])):          # 3.13.0
         on = (_read(os.path.join(config_dir, FILES["access"]), {}) or {}).get("preview_on") or []
         out["access"] = ", ".join(on) + " on" if on else "every Preview tool off"
+    import suggestrules as SR                                           # 3.18.0
+    if SR.team_rules(config_dir):
+        out["suggest"] = f"{len(SR.team_rules(config_dir))} rule(s)"
     return out
 
 
@@ -170,7 +174,7 @@ def make(config_dir, out_path, parts, lock=(), name="", notes="", role_layouts=N
         lst = AL.load(config_dir)
         members[FILES["authors"]] = json.dumps({"format": AL.FORMAT, "people": [{"name": x["name"], "efforts": x["efforts"]} for x in lst.people]},
                                                ensure_ascii=False, indent=1).encode("utf-8")
-    for part in ("design", "banned", "goals", "postsub", "process", "doctypes", "folders", "access"):
+    for part in ("design", "banned", "goals", "postsub", "process", "doctypes", "folders", "access", "suggest"):
         if part in parts:
             p = os.path.join(config_dir, FILES[part])
             if os.path.isfile(p):
@@ -300,6 +304,11 @@ def preview(config_dir, info, data):
         mine = os.path.isfile(os.path.join(config_dir, FILES["postsub"]))
         out.append(("postsub", "Replaces the default post-submission checklist (locked)" if "postsub" in lk else
                     "Kept: this PC has its own default checklist" if mine else "Becomes the default post-submission checklist"))
+    if FILES["suggest"] in data:                                       # 3.18.0: add-only, by phrase
+        import suggestrules as SR
+        have = {SR.norm(r["phrase"]) for r in SR.team_rules(config_dir)}
+        theirs = (json.loads(data[FILES["suggest"]]) or {}).get("rules") or []
+        out.append(("suggest", f"{sum(1 for r in theirs if SR.norm(r.get('phrase', '')) not in have)} suggestion rule(s) added"))
     if FILES["access"] in data:                                        # 3.13.0
         mine = os.path.isfile(os.path.join(config_dir, FILES["access"]))
         out.append(("access", "Sets which Preview tools are on (locked)" if "access" in lk else
@@ -419,6 +428,14 @@ def install(config_dir, info, data, who=None):
         if "postsub" in lk or not os.path.isfile(p):
             with open(p, "wb") as f:
                 f.write(data[FILES["postsub"]])
+    if FILES["suggest"] in data:                                       # 3.18.0: the team's suggestion rules, added
+        import suggestrules as SR
+        have = SR.team_rules(config_dir)
+        keys = {SR.norm(r["phrase"]) for r in have}
+        theirs = [r for r in ((json.loads(data[FILES["suggest"]]) or {}).get("rules") or [])
+                  if isinstance(r, dict) and r.get("phrase") and SR.norm(r["phrase"]) not in keys]
+        if theirs:
+            SR._save(SR.team_path(config_dir), have + theirs)
     if FILES["access"] in data:                                        # 3.13.0: Preview tools
         p = os.path.join(config_dir, FILES["access"])
         if "access" in lk or not os.path.isfile(p):

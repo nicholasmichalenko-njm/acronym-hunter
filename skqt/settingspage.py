@@ -96,6 +96,12 @@ class SettingsPage(QWidget):
                          actions=[D.button("Load a new version...", None, lambda: self.load_master())])
         self.db_text = self.db.add(D.label("", "muted"))
         v.addWidget(self.db)
+        self.sg_card = D.Card("Suggestion rules", "Review's Suggest uses rules you can read, not AI: who acts, the verb and the RFP "
+                              "section, then the team's and each effort's own rules, made from corrections (Make a rule... on a "
+                              "sentence's card). A team pack shares the team's.",                        # 3.18.0
+                              actions=[D.button("Suggestion rules...", None, lambda: self.host.assign_page.rules_dialog())])
+        self.sg_text = self.sg_card.add(D.label("", "muted"))
+        v.addWidget(self.sg_card)
         self.bk = D.Card("Backups (Keep safe)", "The open effort is copied to this folder automatically a few minutes after "
                          "changes and when it closes: the latest copy, and one a day for 30 days. Use the approved SharePoint "
                          "folder so progress is never only on this PC.",
@@ -192,6 +198,12 @@ class SettingsPage(QWidget):
     def refresh(self):
         h = self.host
         info = (h.efforts.get(h.effort_name) or {}) if h.ws is not None else {}
+        try:                                                # 3.18.0
+            import suggestrules as SR
+            nt, ne = len(SR.team_rules(h.config_dir)), len(SR.effort_rules(h.ws))
+            self.sg_text.setText(f"{nt} team rule(s)" + (f", {ne} for this effort" if h.ws is not None else "") + ".")
+        except Exception:
+            diag.swallowed()
         for w in (self.cust, self.vols, self.rule):
             w.setEnabled(h.ws is not None)
         self.cust.setText(info.get("customer_dir", "")); self.vols.setText(info.get("volumes_dir", ""))

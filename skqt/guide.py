@@ -162,7 +162,11 @@ TOPICS = [
    "Several sentences at once: Ctrl+click, drag a box, Select undecided, or Ctrl+A. The bar above the page shows how many, "
    "with Decide all, Put all in section and Author for all.",
    "+ Task... and + Ask the team... put work and questions on the sentence.",
-   "When a document is done, press Mark reviewed, then Next document."],
+   "When a document is done, press Mark reviewed, then Next document.",
+   "Suggest (3.18.0) shows what each sentence most likely is, dashed on the page, from rules you can read (who acts, the "
+   "verb, the RFP section; then the team's rules), not AI. Enter accepts the selected ones; Accept the clear ones takes "
+   "only the sure ones; Not right drops one; any key decides otherwise. Accepted ones stay marked until someone presses "
+   "Checked. Make a rule... on a card teaches it: a phrase and what such sentences are, for the team or this effort."],
   ["J joins sentences; S splits one where you clicked (Split here).",
    "Ctrl+Z undoes. Ctrl+F finds a sentence by its words or number.",
    "On a later version, changed sentences are outlined in amber and new ones in green. Show the old page shows what it "
