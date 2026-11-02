@@ -122,17 +122,17 @@ class WallPage(QWidget):
         if answer is None:
             d = QDialog(self); d.setWindowTitle("Truth" if t else "New truth"); d.setMinimumWidth(600)
             f = QFormLayout(d)
-            label = QLineEdit(t["label"] if t else ""); label.setPlaceholderText("Cleared staff"); f.addRow("What", label)
+            label = QLineEdit(t["label"] if t else ""); label.setPlaceholderText("What the truth is about"); f.addRow("What", label)
             kind = QComboBox(); kind.addItems(list(WT.KINDS)); kind.setCurrentText(t["kind"] if t else "Number"); f.addRow("Kind", kind)
-            value = QLineEdit(t["value"] if t else ""); value.setPlaceholderText("142"); f.addRow("Write it as", value)
-            ctx = QLineEdit(", ".join(t.get("context", [])) if t else ""); ctx.setPlaceholderText("cleared staff, cleared employees, clearances")
+            value = QLineEdit(t["value"] if t else ""); value.setPlaceholderText("The value, written the way the team writes it"); f.addRow("Write it as", value)
+            ctx = QLineEdit(", ".join(t.get("context", [])) if t else ""); ctx.setPlaceholderText("Words that appear near it, with commas between them")
             ctx.setToolTip("The check looks for numbers within a few words of these")
             f.addRow("Beside these words", ctx)
-            wrong = QLineEdit(", ".join(t.get("wrong", [])) if t else ""); wrong.setPlaceholderText("the client, the customer agency")
+            wrong = QLineEdit(", ".join(t.get("wrong", [])) if t else ""); wrong.setPlaceholderText("Forms the team must not use, with commas between them")
             f.addRow("Never write", wrong)
             from .people import name_combo, combo_name
             own = name_combo(self.host, t.get("owner", "") if t else ""); f.addRow("Owner (who confirms it)", own)
-            src = QLineEdit(t.get("source", "") if t else ""); src.setPlaceholderText("HR report, Oct 2026"); f.addRow("Source", src)
+            src = QLineEdit(t.get("source", "") if t else ""); src.setPlaceholderText("Where the value comes from"); f.addRow("Source", src)
             notes = QLineEdit(t.get("notes", "") if t else ""); f.addRow("Notes", notes)
             if t and t.get("old"):
                 f.addRow(D.label("Before: " + "; ".join(f"{o['value']} (until {o['until'][:10]})" for o in t["old"]), "muted"))

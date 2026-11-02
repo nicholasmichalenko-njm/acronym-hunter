@@ -101,7 +101,7 @@ _SEC = re.compile(r"\s*((?:[A-Z]\.)?\d+(?:\.\d+)*)\.?\s+(.*)")
 
 
 def _split_heading(h):
-    """'3.2 Thermal Control' -> ('3.2', 'thermal control'); no number -> ('', 'thermal control')."""
+    """'3.2 Technical Approach' -> ('3.2', 'technical approach'); no number -> ('', 'technical approach')."""
     h = " ".join((h or "").split())
     m = _SEC.match(h)
     num, title = (m.group(1), m.group(2)) if m else ("", h)

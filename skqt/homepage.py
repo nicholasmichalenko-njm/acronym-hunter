@@ -1366,7 +1366,7 @@ class HomePage(QWidget):
             from PySide6.QtWidgets import QListWidget, QListWidgetItem
             d = QDialog(self); d.setWindowTitle("Win theme" if t else "New win theme"); d.setMinimumWidth(640)
             f = QFormLayout(d)
-            title = QLineEdit(t["title"] if t else ""); title.setPlaceholderText("Lowest risk to orbit: flight-proven thermal design")
+            title = QLineEdit(t["title"] if t else ""); title.setPlaceholderText("The theme, in one line")
             f.addRow("Theme", title)
             kind = QComboBox(); kind.addItems(list(TH.KINDS)); kind.setCurrentText(t["kind"] if t else "Win theme"); f.addRow("Kind", kind)
             st = QPlainTextEdit(t.get("statement", "") if t else ""); st.setFixedHeight(70)

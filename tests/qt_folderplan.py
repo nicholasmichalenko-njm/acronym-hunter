@@ -32,7 +32,7 @@ w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 fc = w.settings_page.folders_card
 check("Settings: Folders and file names with the built-in tree", [fc._path(i) for i in fc._items()] == ["Customer Documents", "Volumes", "Response Setup", "Exports"])
 check("every output listed with a sample", fc.places.rowCount() == len(FP.OUTPUTS)
-      and any(fc.places.item(i, 3).text() == "Exports/Kestrel_Compliance_Matrix_2026-11-03.xlsx" for i in range(fc.places.rowCount())),
+      and any(fc.places.item(i, 3).text() == "Exports/Effort_Compliance_Matrix_2026-11-03.xlsx" for i in range(fc.places.rowCount())),
       [fc.places.item(i, 3).text() for i in range(4)])
 # build the team's tree
 items = fc._items()
@@ -55,7 +55,7 @@ fc.places.item(row, 2).setText("{Client} {Effort} Status {Date}")
 fc.company.setText("Acme Space"); fc.space.setCurrentIndex(fc.space.findData("-"))
 fc.home.setCurrentIndex(fc.home.findData("99 Stationkeeper"))
 fc.refresh_samples()
-check("the sample follows the folder and the name", fc.places.item(row, 3).text() == "07 Deliverables/Reports/USSF-SSC-Kestrel-Status-2026-11-03.docx",
+check("the sample follows the folder and the name", fc.places.item(row, 3).text() == "07 Deliverables/Reports/Customer-Effort-Status-2026-11-03.docx",
       fc.places.item(row, 3).text())
 check("Save", fc.save())
 if os.environ.get("SHOT_DIR"):

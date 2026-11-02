@@ -67,7 +67,7 @@ THE WALL OF TRUTH (3.3.0)
     lacks into it. Export the wall... makes the page to post in the war room and hand to writers. The readable copy
     has Wall of Truth.csv.
 
-WRITING SUPPORT: WIN THEMES, STORYBOARDS, A SAMPLE EFFORT (3.2.0)
+WRITING SUPPORT: WIN THEMES, STORYBOARDS (3.2.0)
   - Effort Home > Win themes: the themes and discriminators agreed at kickoff, each with its statement (the benefit to
     the customer), the discriminator only we offer, its proof points, the hot button it answers and the sections that
     must carry it. Check the drafts reads the Word files in the effort's Volumes folder (and the deliverables' files)
@@ -77,9 +77,6 @@ WRITING SUPPORT: WIN THEMES, STORYBOARDS, A SAMPLE EFFORT (3.2.0)
     carries, writes the approach and the features with their benefits and proof, and lists graphic ideas beside the
     section's graphic needs. Status: Not started, Drafting, Ready for review, Approved. It saves as you type. Export
     the volume... makes one Word file, a page per section, for the storyboard review.
-  - Try the sample effort (Effort Home with no effort open, and All Efforts): makes the fictional Kestrel Thermal
-    effort with its RFP read into Review, a structure, a due date, a small team that shows only in it, tasks, a
-    question, a win theme and deliverables. Everything in it is made up; archive it when you are done.
 
 PLANNING: SCHEDULE, PAGE BUDGET, WHAT CHANGED, MY WORK (3.1.0)
   - Effort Home > Schedule from due date...: every stage dated backward from the proposal due date, from the working
@@ -416,14 +413,14 @@ A TIDY PROGRAM FOLDER AND AN EFFORT FOLDER YOU CAN FIND YOUR WAY AROUND (2.90.0)
   - Your work sits beside the program folder:
         Stationkeeper Data\
           Efforts\
-            Kestrel\
+            <Effort>\
               Customer Documents\      the RFP and attachments as the customer sent them
               Volumes\                 your Word volumes
               Response Setup\          the documents writers start from
               Exports\                 acronym lists, status reports, the calendar, reviews, Export all
-              Kestrel_Compliance_Matrix.xlsx
-              Kestrel_Effort_List.xlsx
-              Kestrel_Effort_List - app data\   the app's working files for the effort (a note inside says not to
+              <Effort>_Compliance_Matrix.xlsx
+              <Effort>_Effort_List.xlsx
+              <Effort>_Effort_List - app data\   the app's working files for the effort (a note inside says not to
                                                  edit them; packages and backups carry it)
           acronym_database.csv          your master acronym database
           READ ME.txt                   one line on each item
@@ -1266,7 +1263,7 @@ EFFORT PROFILES, SAVING AND RECOVERY (2.11.0)
 - Each effort keeps its own work: scan results, Apply Choice decisions, compliance matrix, volume check and where you
   left off (filters, selected row, open compliance window). Nothing from one effort shows up in another.
 - The Effort box at the top of the window switches efforts; the window title shows the open effort. The app resumes
-  the last effort at start and says so ("Resumed Kestrel, last worked yesterday 4:12 PM").
+  the last effort at start and says so ("Resumed <effort>, last worked yesterday 4:12 PM").
 - Each effort's saved work lives in a folder named "<list name> - app data" next to its effort list: settings,
   choices, session, resume, recovery and backups. New efforts get their own folder (Desktop\<Name>\). It holds
   customer content: keep it on this PC or SharePoint, like the effort list.
@@ -1413,7 +1410,7 @@ KEYWORD HARVEST (2.16.0)
 
 OFFERINGS CATALOG (2.17.0)
 - SharePoint keywords are free text, with no fixed count; BD and Production pick them. The offerings catalog keeps
-  Sierra Space's offerings once on this PC for every effort: Offering, Other names (separated by ; or ,), Group,
+  the company's offerings once on this PC for every effort: Offering, Other names (separated by ; or ,), Group,
   Description. Stored in config\offerings.csv (company offering names, not proposal content).
 - Keywords > Offerings catalog (or Effort > Offerings catalog): add or update, remove, Import list (our catalog CSV
   keeps every column; any other list in CSV, Excel, Word, PDF or text is read as offering and description pairs; names

@@ -99,10 +99,10 @@ class StartEffort(QFrame):
         row = QHBoxLayout(); row.setSpacing(D.SPACE["xl"]); outer.addLayout(row)
         self.pic = PictureDrop(); row.addWidget(self.pic, 0, Qt.AlignTop)
         form = QFormLayout(); form.setSpacing(D.SPACE["s"]); row.addLayout(form, 1)
-        self.name = QLineEdit(); self.name.setPlaceholderText("Kestrel Thermal")
-        self.client = QLineEdit(); self.client.setPlaceholderText("U.S. Space Force, Space Systems Command")
-        self.sol = QLineEdit(); self.sol.setPlaceholderText("FA8810-26-R-0042")
-        self.due = QLineEdit(); self.due.setPlaceholderText("December 15, 2026, 2:00 PM")
+        self.name = QLineEdit(); self.name.setPlaceholderText("Effort name")
+        self.client = QLineEdit(); self.client.setPlaceholderText("Customer")
+        self.sol = QLineEdit(); self.sol.setPlaceholderText("Solicitation number")
+        self.due = QLineEdit(); self.due.setPlaceholderText("Date and time, for example YYYY-MM-DD HH:MM")
         self.zone = QComboBox()
         import tzones as TZ
         self.zone.addItem("Time zone as written, or mine", "")
@@ -157,9 +157,6 @@ class StartEffort(QFrame):
         self.where = D.label("", "muted"); outer.addWidget(self.where)
         brow = QHBoxLayout(); brow.addStretch(1)
         if inline:
-            self.sample_btn = D.button("Try the sample effort", "ghost", lambda: self.try_sample(),       # 3.2.0
-                                       "A fictional effort, Kestrel Thermal, with its RFP read in: learn on it, then archive it")
-            brow.insertWidget(0, self.sample_btn)
             brow.addWidget(D.button("Open an effort", None, lambda: host.go("efforts"), "Every effort on this PC"))
         self.create_btn = D.button("Create effort", "primary", lambda: self.create())
         brow.addWidget(self.create_btn)
@@ -212,11 +209,6 @@ class StartEffort(QFrame):
         if p:
             self.path.setText(p); self._path_set_by_hand = True
             self.where.setText(f"Its folder: {os.path.dirname(p)}")
-
-    def try_sample(self, read=True):
-        """3.2.0: the fictional Kestrel Thermal effort, made and opened."""
-        from . import sample
-        return sample.build(self.host, read=read)
 
     def reset(self):
         for e in (self.name, self.client, self.sol, self.due, self.cust, self.vols, self.internal):

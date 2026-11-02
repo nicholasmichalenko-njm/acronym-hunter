@@ -48,7 +48,7 @@ class ChecksPage(QWidget):
         self.size = QComboBox(); self.size.addItems(["Letter", "A4", "Letter or A4"]); f.addRow("Page size", self.size)
         self.mb = QDoubleSpinBox(); self.mb.setRange(0, 2000); self.mb.setSuffix(" MB"); self.mb.setSpecialValueText("no limit")
         f.addRow("Largest file allowed", self.mb)
-        self.contain = QLineEdit(); self.contain.setPlaceholderText("words every file name must hold, with commas: FA8810-26-R-0042")
+        self.contain = QLineEdit(); self.contain.setPlaceholderText("Words every file name must hold, with commas between them")
         f.addRow("File names must contain", self.contain)
         self.naming = D.label("", "muted"); f.addRow("", self.naming)
         self.required = QPlainTextEdit(); self.required.setFixedHeight(80)

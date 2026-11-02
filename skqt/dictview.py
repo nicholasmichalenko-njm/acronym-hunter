@@ -99,7 +99,7 @@ class DictionariesCard(D.Card):
     # ------------------------------------------------------------ dictionaries
     def new_dict(self, name=None):
         if name is None:
-            name, ok = QInputDialog.getText(self, "New dictionary", "Its name (for example: Sierra Space Custom):")
+            name, ok = QInputDialog.getText(self, "New dictionary", "Its name (for example: Team Custom):")
             if not ok:
                 return ""
         did = self.store.add(name)

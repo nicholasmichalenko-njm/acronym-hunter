@@ -216,10 +216,6 @@ TERMS = {
         {"find": "recieve", "replace": "receive", "case": "match", "why": "Common misspelling"},
         {"find": "seperate", "replace": "separate", "case": "match", "why": "Common misspelling"},
         {"find": "acheive", "replace": "achieve", "case": "match", "why": "Common misspelling"},
-        {"find": "Kestrel Mission Suite", "replace": "Kestrel Mission Suite\u2122", "case": "exact", "when": "first",
-         "superscript": False, "why": "Trademark on first use"},
-        {"find": "OrbitLink", "replace": "OrbitLink\u00ae", "case": "exact", "when": "every",
-         "superscript": False, "why": "Registered mark on every use"},
     ],
     "dictionaries": {   # exported for Word: .dic files are words Word accepts; the .lex file is words Word flags
         "PE_Team.dic": {"kind": "accept", "lists": ["team_terms"]},
@@ -228,8 +224,8 @@ TERMS = {
         "ExcludeDictionaryEN0409.lex": {"kind": "exclude", "lists": ["banned_words"]},
     },
     "lists": {
-        "team_terms": ["Kestrel", "OrbitLink", "geospatial", "cislunar", "MBSE", "DevSecOps"],
-        "employee_names": ["Jordan Reyes", "Avery Chen", "Sam Patel", "Priya Natarajan", "Mateo Okafor"],
+        "team_terms": [],          # the team's custom dictionaries are added for each run
+        "employee_names": [],      # the author list is added for each run
         "acronyms": ["CDRL", "IMS", "WBS", "SOW", "PWS", "CONOPS"],
         "banned_words": [],    # filled from single-word banned entries at export
     },

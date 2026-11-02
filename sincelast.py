@@ -79,7 +79,7 @@ def when_text(iso):
 
 
 def summary(c):
-    """One line: '14 changes by A. Lee and J. Garcia since Oct 29, 4:12 p.m.' ('' when nothing changed)."""
+    """One line: '14 changes by two people since Oct 29, 4:12 p.m.' ('' when nothing changed)."""
     if not c or not c["count"]:
         return ""
     ppl = c["people"]

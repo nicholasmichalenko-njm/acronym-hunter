@@ -127,7 +127,7 @@ def _norm(s, n=300):
 # ------------------------------------------------------------------ reading a file
 def read_rows(path, effort=""):
     """Rows as dicts in the template's columns, each with its row number ("row"). effort: the effort's name, taken off
-    the front of an event title our own .ics export wrote ("Kestrel: Red team review")."""
+    the front of an event title our own .ics export wrote ("Effort: Red team review")."""
     ext = os.path.splitext(path)[1].lower()
     if ext == ".ics":
         return read_ics(path, effort)

@@ -55,7 +55,7 @@ def short_sha(h):
 
 
 def stem(name):
-    """'Kestrel_RFP_CLM_Amd2 (1).docx' -> 'kestrel rfp clm'."""
+    """'Effort_RFP_CLM_Amd2 (1).docx' -> 'effort rfp clm'."""
     s = os.path.splitext(os.path.basename(name or ""))[0]
     s = VERSION_WORDS.sub(" ", s)
     s = re.sub(r"[_\-.]+", " ", s)
@@ -63,7 +63,7 @@ def stem(name):
 
 
 def display_name(name):
-    """'Kestrel_RFP_CLM_Amd2 (1).docx' -> 'Kestrel RFP CLM' (the file's own capitals kept)."""
+    """'Effort_RFP_CLM_Amd2 (1).docx' -> 'Effort RFP CLM' (the file's own capitals kept)."""
     s = os.path.splitext(os.path.basename(name or ""))[0]
     s = VERSION_WORDS.sub(" ", s)
     s = re.sub(r"[_]+", " ", s)

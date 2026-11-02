@@ -1,13 +1,10 @@
-"""The Guide (3.0.2): how to use every page, in the order of the menu, with a picture of the real page.
+"""The Guide (3.0.2): how to use every page, in the order of the menu.
 
 F1 opens it at the page you are on; Help and support in Settings opens it at the start. Each topic says what the page
-is for, when to use it, the steps with the real button names, and a few tips. Go to this page jumps there. The pictures
-are made by tools/make_guide_shots_qt.py from a fictional effort (Kestrel Thermal), with a neutral user and no personal
-paths, and live in assets/help as guide_<topic>.png. A topic without its picture still reads well."""
+is for, when to use it, the steps with the real button names, and a few tips. Go to this page jumps there. 3.14.2: text
+only; no pictures and no sample content."""
 import html
-import os
-import sys
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog, QHBoxLayout, QLineEdit, QListWidget, QListWidgetItem, QPushButton, QTextBrowser,
                                QVBoxLayout, QWidget)
 from . import design as D
@@ -397,16 +394,6 @@ TOPICS = [
 TOPIC = {t[0]: t for t in TOPICS}
 
 
-def shot_path(key):
-    """assets/help/guide_<key>.png, in the program or beside the source."""
-    name = f"guide_{key}.png"
-    for base in (getattr(sys, "_MEIPASS", ""), os.path.dirname(os.path.dirname(os.path.abspath(__file__)))):
-        p = os.path.join(base, "assets", "help", name)
-        if base and os.path.isfile(p):
-            return p
-    return ""
-
-
 def topic_html(key):
     t = TOPIC.get(key) or TOPIC["start"]
     k, group, title, what, when, steps, tips = t
@@ -425,10 +412,6 @@ def topic_html(key):
         out.append("<h3 style='margin:14px 0 6px 0'>Steps</h3><ol style='margin-top:0'>")
         out += [f"<li style='margin-bottom:6px'>{e(s)}</li>" for s in steps]
         out.append("</ol>")
-    p = shot_path(k)
-    if p:
-        out.append(f"<p><a href='shot:{k}'><img src='{QUrl.fromLocalFile(p).toString()}' width='780'></a><br>"
-                   "<span style='color:#6b7686;font-size:12px'>Click the picture to see it full size.</span></p>")
     if tips:
         out.append("<h3 style='margin:14px 0 6px 0'>Tips</h3><ul style='margin-top:0'>")
         out += [f"<li style='margin-bottom:6px'>{e(s)}</li>" for s in tips]
@@ -452,7 +435,6 @@ class GuideWindow(QDialog):
         lv.addWidget(self.search); lv.addWidget(self.list, 1)
         right = QWidget(); rv = QVBoxLayout(right); rv.setContentsMargins(0, 0, 0, 0)
         self.view = QTextBrowser(); self.view.setOpenExternalLinks(False); self.view.setOpenLinks(False)
-        self.view.anchorClicked.connect(self._link)
         row = QHBoxLayout()
         self.prev = D.button("< Previous", None, lambda: self._step(-1))
         self.next = D.button("Next >", None, lambda: self._step(1))
@@ -507,14 +489,6 @@ class GuideWindow(QDialog):
         i = order.index(key)
         self.prev.setEnabled(i > 0); self.next.setEnabled(i < len(order) - 1)
 
-    def _link(self, url):
-        """A picture clicked: the same picture full size, in its own window."""
-        s = url.toString()
-        if s.startswith("shot:"):
-            p = shot_path(s[5:])
-            if p:
-                self.big = picture_window(self, p)
-
     def _step(self, d):
         order = [t[0] for t in TOPICS]
         self.show_topic(order[max(0, min(len(order) - 1, order.index(self.key) + d))])
@@ -522,15 +496,6 @@ class GuideWindow(QDialog):
     def _go(self):
         if self.key in getattr(self.host, "pages", {}):
             self.host.go(self.key)
-
-
-def picture_window(parent, path):
-    from PySide6.QtGui import QPixmap
-    from PySide6.QtWidgets import QLabel, QScrollArea
-    dlg = QDialog(parent); dlg.setWindowTitle("Stationkeeper Guide: picture")
-    lay = QVBoxLayout(dlg); sa = QScrollArea(); lab = QLabel(); lab.setPixmap(QPixmap(path)); sa.setWidget(lab)
-    lay.addWidget(sa); dlg.resize(1400, 900); dlg.show()
-    return dlg
 
 
 def current_key(host):

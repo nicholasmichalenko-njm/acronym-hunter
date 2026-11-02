@@ -41,7 +41,7 @@ FILES = ["app_gui.py", "doctr_engine.py", "equations.py", "sandbox.py", "tess_tr
          "whatchanged.py", "skqt/whatview.py", "custfocus.py", "amendinst.py", "skqt/guide.py", "skqt/starteffort.py",
          "graphics.py", "customdict.py", "skqt/dictview.py", "effortsched.py", "sincelast.py", "pagebudget.py",
          "mywork.py", "skqt/schedview.py", "skqt/budgetview.py", "skqt/myworkpage.py", "themes.py", "storyboard.py",
-         "skqt/storyboardpage.py", "skqt/sample.py", "walloftruth.py", "skqt/wallpage.py", "pkgcheck.py",
+         "skqt/storyboardpage.py", "walloftruth.py", "skqt/wallpage.py", "pkgcheck.py",
          "xrefcheck.py", "draftcompare.py", "skqt/checkspage.py", "prodrules.py", "prodfix.py", "prodcopy.py",
          "prodword.py", "prodlearn.py", "prodtemplate.py", "issuelog.py", "skqt/issueview.py", "prodparts.py",
          "prodoffice.py", "stagecolors.py", "roleaccess.py", "skqt/roleview.py", "skqt/prodstdpage.py",

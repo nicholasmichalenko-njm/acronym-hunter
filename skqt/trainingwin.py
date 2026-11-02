@@ -596,7 +596,7 @@ class TrainingWindow(QMainWindow):
                       "card that says what improves, and install it. Their own corrections, decisions and rows stay; Undo "
                       "puts everything back.")
         card.add(D.label("Notes for the install card (optional)", "label"))
-        self.build_notes = QLineEdit(); self.build_notes.setPlaceholderText("For example: trained on the Kestrel and Osprey corrections")
+        self.build_notes = QLineEdit(); self.build_notes.setPlaceholderText("What this build was trained on")
         card.add(self.build_notes)
         row = QHBoxLayout(); row.addWidget(D.button("Build the pack...", "primary", lambda: self.build_pack())); row.addStretch(1)
         card.body.addLayout(row)

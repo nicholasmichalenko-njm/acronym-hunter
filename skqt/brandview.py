@@ -414,8 +414,8 @@ class DetailsDialog(QDialog):
         self.pm = QComboBox(); self.pm.setEditable(True)
         names = host.authors.for_effort(host.effort_name) if getattr(host, "authors", None) else []
         self.pm.addItems([""] + names); self.pm.setCurrentText(ident["pm"])
-        self.client = QLineEdit(client); self.client.setPlaceholderText("USSF SSC")
-        self.sol = QLineEdit(solicitation); self.sol.setPlaceholderText("FA8810-26-R-0042")
+        self.client = QLineEdit(client); self.client.setPlaceholderText("Customer")
+        self.sol = QLineEdit(solicitation); self.sol.setPlaceholderText("Solicitation number")
         import teampack as TP
         team_marks = TP.markings(host.config_dir)                    # 2.89.0: the team's markings
         marks = list(dict.fromkeys([*BR.MARKINGS, *team_marks])) if not TP.locked(host.config_dir, "markings") else ([BR.NOT_CUI] + team_marks)

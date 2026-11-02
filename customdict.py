@@ -134,7 +134,7 @@ class Store:
 
     # ------------------------------------------------------------ files
     def export_name(self, did, effort="", when=None):
-        """'Sierra Space Custom 2026-10-30.dic', with the effort's name after the dictionary's when one is given."""
+        """'Team Custom 2026-10-30.dic', with the effort's name after the dictionary's when one is given."""
         d = self.get(did)
         when = when or datetime.date.today()
         base = " ".join(x for x in ((d or {}).get("name", "Custom"), effort or "", when.isoformat()) if x)

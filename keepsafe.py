@@ -1,7 +1,7 @@
 """Exports kept and backups (2.46.0). Rules only (No AI); nothing leaves the PC except to folders the person picks.
 
 1. Every export is also kept, dated, in the effort's folder: "<effort> - exports (Stationkeeper)" beside the effort
-   list, with the date and time in each file name ("Kestrel_Response_Setup 2026-10-27 0840.docx"). Nothing there is ever
+   list, with the date and time in each file name ("Effort_Response_Setup 2026-10-27 0840.docx"). Nothing there is ever
    overwritten. The app notices exports at its save windows (any save window, and folder windows for exports), so
    every export is covered, including future ones.
 2. A backup location outside the app's folder (File > Backup location), one folder per effort:
@@ -31,7 +31,7 @@ def exports_folder(list_path, effort_name=""):
 
 
 def dated_name(path, when=None):
-    """'Kestrel_Setup.docx' -> 'Kestrel_Setup 2026-10-27 0840.docx'."""
+    """'Effort_Setup.docx' -> 'Effort_Setup 2026-10-27 0840.docx'."""
     stem, ext = os.path.splitext(os.path.basename(path))
     return f"{stem} {(when or datetime.datetime.now()):%Y-%m-%d %H%M}{ext}"
 

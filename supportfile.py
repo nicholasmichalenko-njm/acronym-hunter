@@ -20,6 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.14.2": ["No demo content: the button that made a practice effort is gone, the Guide is text only, and every example "
+               "in an empty box is generic (Effort name, Customer, Solicitation number). A practice effort you already "
+               "made stays until you archive it."],
     "3.14.1": ["A leaner program: parts it never used are gone (the OpenSSL library, Qt's software OpenGL, Qt's translations, "
                "SVG and spare Qt plugins, AVIF pictures, a second copy of Tesseract's libraries, and old help pictures). "
                "Nothing you use changes, and every build now refuses to finish if any of them come back."],
@@ -89,8 +92,7 @@ WHATS_NEW = {
               "The team's wall carries company facts to every effort; Export the wall makes the page to post."],
     "3.2.0": ["Win themes on Effort Home: themes and discriminators with proof and sections; Check the drafts says where each "
               "is said and where it is missing.",
-              "Deliver > Storyboards: one sheet per section before the first draft, exported to Word for the review.",
-              "Try the sample effort: a fictional effort with its RFP read in, to learn on."],
+              "Deliver > Storyboards: one sheet per section before the first draft, exported to Word for the review."],
     "3.1.0": ["Schedule from due date... on Effort Home dates every stage backward from the due date, skipping weekends and "
               "holidays; you see every date before it is set.",
               "Opening an effort says what your teammates did since your last visit, on Effort Home too.",

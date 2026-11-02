@@ -1,6 +1,6 @@
 """3.2.0 writing support, offscreen: Effort Home's Win themes card (+ Theme..., change, Check the drafts against the Word
 files in the Volumes folder); Deliver > Storyboards (pick a section, write it, it saves, the status shows in the list,
-Export the volume makes a Word file); Try the sample effort makes the fictional Kestrel Thermal effort and reads its RFP."""
+Export the volume makes a Word file). 3.14.2: there is no sample effort."""
 import os, sys, tempfile, time, zipfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
@@ -36,17 +36,23 @@ cfg = os.path.join(tmp, "config"); os.makedirs(cfg)
 app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.go("home"); app.processEvents()
-check("Try the sample effort is on the start form", w.home_page.start.sample_btn.isVisibleTo(w))
-name = w.home_page.start.try_sample()
-check("it makes the fictional Kestrel Thermal effort and opens it", name == "Kestrel Thermal (sample)" and w.effort_name == name
-      and (w.efforts.get(name) or {}).get("sample"))
-check("... and reads its RFP into Review", wait(lambda: w.review is not None and len(w.review.M.items) > 10), len(w.review.M.items) if w.review else 0)
+# 3.14.2: no sample effort in the program; the test makes its own effort (fictional test data)
+check("there is no sample effort button", not hasattr(w.home_page.start, "sample_btn") and not hasattr(w.home_page.start, "try_sample"))
+import datahome, shutil as _sh
+name = "Writing Test"
+made = w.settings_page.new_effort({"name": name, "path": EF.new_list_path(datahome.efforts_dir(A.DATA_DIR), name, {})[0]})
+check("an effort to write in", made == name and w.effort_name == name)
+w.ws.set("outline_text", "Volume I Technical\n1.1 Thermal Design\n1.2 Risk Management\nVolume II Management\n2.1 Schedule\n2.2 Staffing")
 rec = RR.Record(w.ws.root)
-check("... with a structure, a due date, a proposal manager, tasks, a theme and deliverables", [o.get("title") for o in w.review.M.outline][:2]
-      and rec.data["due"] and BR.identity(rec)["pm"] == "A. Rivera" and len(rec.tasks()) == 3 and len(TH.items(rec)) == 1
-      and len(rec.data.get("deliverables", [])) == 2, [o for o in w.review.M.outline][:2])
-check("... its people show only in the sample", "J. Garcia" in w.authors.for_effort(name) and "J. Garcia" not in w.authors.for_effort("Other"))
-check("a second sample gets its own name", __import__("skqt.sample", fromlist=["x"]).free_name(w.efforts) == "Kestrel Thermal (sample 2)")
+TH.add(rec, "Flight-proven thermal design lowers risk to orbit",
+       "Our design has flown on four missions with margin to spare, so the Government carries less schedule risk.",
+       discriminator="The only design with on-orbit thermal data at this power class",
+       proof=["Four missions, zero thermal anomalies"], sections=["1.1 Thermal Design", "1.2 Risk Management"], who="test")
+cust = EF.folder(w.effort_path, "customer"); os.makedirs(cust, exist_ok=True)
+rfp = os.path.join(cust, "Section_L_print.pdf")
+_sh.copy2(os.path.join(A.BASE_DIR, "test_samples", "rfp_walk", "Section_L_print.pdf"), rfp)
+w.read_page.read([rfp], w.out_path("compliance_matrix"), identities="suggested", start="typed")
+check("... its RFP read into Review", wait(lambda: w.review is not None and len(w.review.M.items) > 10), len(w.review.M.items) if w.review else 0)
 labels = w.review.labels()
 # themes card
 w.go("home"); app.processEvents()

@@ -223,8 +223,8 @@ def next_version(folder, key, fields, plan=None, when=None, ext=None):
 
 
 def preview(plan, key, fields=None):
-    sample = {"Effort": "Kestrel", "Client": "USSF SSC", "Solicitation": "FA8810-26-R-0042", "Internal": "P-1123", "Person": "A. Lee",
-              "Stage": "Red team", "Doc": "RFP", "DocVersion": "Amendment 2", "From": "Original", "To": "Amendment 2", "Matrix": "Kestrel_Compliance_Matrix"}
+    sample = {"Effort": "Effort", "Client": "Customer", "Solicitation": "Solicitation", "Internal": "Internal", "Person": "Person",
+              "Stage": "Stage", "Doc": "Document", "DocVersion": "Version", "From": "Original", "To": "Version", "Matrix": "Effort_Compliance_Matrix"}
     sample.update({k: v for k, v in (fields or {}).items() if v})
     nm = name_of(key, dict(sample, Version="v1"), plan, datetime.datetime(2026, 11, 3, 14, 30))
     rel = folder_of(key, plan=plan)

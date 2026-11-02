@@ -1899,7 +1899,7 @@ _SEC_KEY = re.compile(r"\s*(?:(?:section|part|volume|chapter)\s+)?(\d+|[A-Z](?=\
 
 def section_of(label):
     """The major section a location belongs to, for the per-section first-use rule (2.22.0).
-    Word headings set sections: numbered headings group by their first number or letter ("2.", "2.1 Thermal", "2.3" are
+    Word headings set sections: numbered headings group by their first number or letter ("2.", "2.1 Approach", "2.3" are
     all section 2; "C.3 Work" and "Section C" are section C), other headings are their own section. Text before the first
     heading is "(start)". None for parts outside the body text (pictures, headers, footnotes); "" for files with no
     headings (PDF pages, slides, sheets)."""
@@ -2375,7 +2375,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "3.14.1"            # keep in step with version_info.txt
+APP_VERSION = "3.14.2"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"

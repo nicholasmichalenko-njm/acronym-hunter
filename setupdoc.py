@@ -391,7 +391,7 @@ def set_people(M, label, lead="", with_=""):
 
 
 def owner_of(M, it):
-    """Who writes this sentence: its own author(s) ("A. Lee, K. Park"), else the lead of its section (or a parent)."""
+    """Who writes this sentence: its own author(s) ("Name One, Name Two"), else the lead of its section (or a parent)."""
     return (it.get("owner") or "").strip() or section_people(M, it.get("map", "")).get("lead", "")
 
 

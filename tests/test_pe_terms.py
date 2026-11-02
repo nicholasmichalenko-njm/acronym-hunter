@@ -16,7 +16,7 @@ ok = []
 def check(name, cond, detail=""):
     ok.append(bool(cond)); print(("PASS " if cond else "FAIL ") + name + (f"  [{detail}]" if detail and not cond else ""))
 
-std = R.resolve(R.COMPANY)
+std = R.resolve(F.company_with_samples(R))
 path = os.path.join(tempfile.mkdtemp(prefix="pe_terms_"), "terms.docx")
 expected = F.make(path)
 hits = T.scan(Package(path), std)

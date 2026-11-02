@@ -32,7 +32,7 @@ def _today():
 
 
 def parse_efforts(text):
-    """'All', 'All efforts' or '' (when blank means all) -> ALL; 'Heron; Osprey' -> ['Heron', 'Osprey']; None when blank."""
+    """'All', 'All efforts' or '' (when blank means all) -> ALL; 'Effort A; Effort B' -> ['Effort A', 'Effort B']; None when blank."""
     t = " ".join(str(text or "").split())
     if not t:
         return None

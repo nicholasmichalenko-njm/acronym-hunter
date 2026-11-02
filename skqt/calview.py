@@ -193,7 +193,7 @@ class EntryDialog(QDialog):
         self.zone.setCurrentIndex(max(0, self.zone.findData(zk)))
         self.owner = QComboBox(); self.owner.setEditable(True); self.owner.addItems([""] + (host.people() if hasattr(host, "people") else []))
         self.owner.setCurrentText(e.get("owner", ""))
-        self.location = QLineEdit(e.get("location", "")); self.location.setPlaceholderText("Room 2B, a Teams meeting, a site")
+        self.location = QLineEdit(e.get("location", "")); self.location.setPlaceholderText("Where it happens")
         self.details = QPlainTextEdit(e.get("details", "")); self.details.setMaximumHeight(90)
         times = QHBoxLayout(); times.addWidget(self.timed); times.addWidget(self.start); times.addWidget(self.has_end); times.addWidget(self.end); times.addStretch(1)
         f.addRow("Kind", self.kind); f.addRow("What", self.title); f.addRow("Date", self.date); f.addRow("Time", times)

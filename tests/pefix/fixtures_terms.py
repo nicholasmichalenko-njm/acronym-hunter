@@ -4,6 +4,22 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
 EXPECTED = {"W1": 3, "W2": 3, "W3": 2, "W4": 1}       # hits, not groups
+# 3.14.2: the engine's built-in terms are generic; the test brings its own marks and names
+SAMPLE_REPLACE = [
+    {"find": "Kestrel Mission Suite", "replace": "Kestrel Mission Suite\u2122", "case": "exact", "when": "first",
+     "superscript": False, "why": "Trademark on first use"},
+    {"find": "OrbitLink", "replace": "OrbitLink\u00ae", "case": "exact", "when": "every",
+     "superscript": False, "why": "Registered mark on every use"}]
+SAMPLE_LISTS = {"team_terms": ["Kestrel", "OrbitLink", "MBSE", "DevSecOps"],
+                "employee_names": ["Jordan Reyes", "Avery Chen", "Sam Patel"]}
+
+
+def company_with_samples(R):
+    import copy
+    c = copy.deepcopy(R.COMPANY)
+    c["terms"]["replace"] += copy.deepcopy(SAMPLE_REPLACE)
+    c["terms"]["lists"].update(copy.deepcopy(SAMPLE_LISTS))
+    return c
 
 
 def _field(par, instr, result):

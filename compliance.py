@@ -51,7 +51,7 @@ _XREF = re.compile(r"\b(?:Section|Sec\.|Paragraph|Para\.?|¶)\s+[A-Z]?(?:\.?\d+)
 _ABBR = ("e.g.", "i.e.", "etc.", "U.S.", "No.", "Inc.", "vs.", "para.", "Para.", "Fig.", "fig.", "approx.", "Sec.", "sec.",
          "Corp.", "Co.", "Ltd.", "a.m.", "p.m.", "A.M.", "P.M.", "St.", "Mr.", "Ms.", "Dr.", "Jr.", "Sr.", "ea.", "Vol.", "vol.", "Rev.", "rev.", "al.", "Ref.")
 
-# Section headings: "L.4.2.1 Technical Volume", "SECTION L - INSTRUCTIONS", "3.2.1 Thermal", "C.3 SCOPE"
+# Section headings: "L.4.2.1 Technical Volume", "SECTION L - INSTRUCTIONS", "3.2.1 Approach", "C.3 SCOPE"
 _SEC_LETTER = re.compile(r"^\s*(?:SECTION\s+)?([A-M])\.((?:\d+\.)*\d+)\.?(?:\s+|$)(.*)$")
 _SEC_WORD = re.compile(r"^\s*SECTION\s+([A-M])\b\s*[-–—:.]?\s*(.*)$", re.I)
 _SEC_NUM = re.compile(r"^\s*((?:\d+\.)+\d+|\d+\.)\s+(.*)$")
@@ -479,7 +479,7 @@ def extract(files_chunks, headings=None, every=True):
 
 def parse_header(text):
     """'L.4.2 Technical Approach' -> ('L.4.2', 'Technical Approach'); 'SECTION L - INSTRUCTIONS' -> ('L', 'Instructions');
-    '3.1 Thermal' -> ('3.1', 'Thermal'); otherwise ('', the text)."""
+    '3.1 Approach' -> ('3.1', 'Approach'); otherwise ('', the text)."""
     t = " ".join((text or "").split())
     m = _SEC_LETTER.match(t)
     if m:

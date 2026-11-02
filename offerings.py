@@ -1,4 +1,4 @@
-"""Offerings catalog (2.17.0): Sierra Space's own offerings, kept once on this PC and attached to any effort's keywords.
+"""Offerings catalog (2.17.0): the company's own offerings, kept once on this PC and attached to any effort's keywords.
 
 BD and Production add offerings here (name, other names, group, description), import a list they already keep
 (CSV, Excel, Word, PDF, text), and export it to share through the approved SharePoint folder. The catalog holds

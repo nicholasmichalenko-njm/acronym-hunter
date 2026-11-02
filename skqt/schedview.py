@@ -44,7 +44,7 @@ class ScheduleDialog(QDialog):
         hol = QHBoxLayout(); v.addLayout(hol)
         hol.addWidget(D.label("Holidays (not working days)", "muted", wrap=False))
         self.holidays = QLineEdit(", ".join(self.defaults["holidays"]))
-        self.holidays.setPlaceholderText("2026-11-26, 2026-12-25")
+        self.holidays.setPlaceholderText("YYYY-MM-DD, with commas between dates")
         hol.addWidget(self.holidays, 1)
         t = QTableWidget(0, 4); t.setHorizontalHeaderLabels(["Stage", "Working days", "Starts", "Ends"])
         t.verticalHeader().setVisible(False); t.setSelectionMode(QAbstractItemView.NoSelection)

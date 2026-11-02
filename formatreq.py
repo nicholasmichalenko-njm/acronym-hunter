@@ -12,7 +12,7 @@ SETTINGS = {"": "Decide from the documents", "yes": "Page-limited", "no": "Not p
 
 
 def _where(r):
-    """'Kestrel RFP Sections C L M, L.1 General Instructions, p. 3': the document's name, the section and page, short."""
+    """'RFP Sections C L M, L.1 General Instructions, p. 3': the document's name, the section and page, short."""
     import re
     if r.get("manual") and not r.get("captured"):
         return "typed in"
