@@ -266,3 +266,32 @@ def effort_docs(ws):
             if p and os.path.isfile(p) and p.lower().endswith((".docx", ".pdf", ".xlsx", ".pptx")):
                 out.append((d["name"], v["label"], p))
     return out
+
+
+def drop_repeats(M):
+    """2.56.1 (moved here from the classic window in 3.14.0): 2.55.0 and 2.56.0 could add a header or footer that
+    repeats on every page once per page (marked Added by the text check). Such a line, not decided, whose text another
+    sentence of the same file already holds, is taken out once. Returns how many."""
+    import setupdoc as SD
+    if M is None or not M.items:
+        return 0
+    St = SD.setup_of(M)
+    if St.get("repeats_v") == 1:
+        return 0
+    St["repeats_v"] = 1
+    M.pending = True
+    seen, drop = set(), []
+    for it in M.items:
+        k = (it.get("file"), C.text_key(it.get("text", "")))
+        running = len(it.get("text", "").split()) <= 10 and not C._RUNNING_NO.search(it.get("text", ""))
+        if k in seen and (it.get("new") == "Added by the text check" or running) and not it.get("decision") \
+                and not it.get("notes"):
+            drop.append(it)
+        seen.add(k)
+    if drop:
+        ids = {id(x) for x in drop}
+        M.items[:] = [x for x in M.items if id(x) not in ids]
+        for x in drop:
+            M.log(x["id"], "removed: a repeat of a line already in the review")
+        diag.activity("compliance_repeats_removed", n=len(drop))
+    return len(drop)

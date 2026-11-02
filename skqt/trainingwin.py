@@ -512,8 +512,8 @@ class TrainingWindow(QMainWindow):
         return what
 
     def prepare_package(self, show=True):
-        import trainer_gui
-        rep = trainer_gui.build_training_package()
+        import trainerkit
+        rep = trainerkit.build_training_package()
         diag.activity("training_package_prepared")
         if show:
             QMessageBox.information(self, "Training package", rep)

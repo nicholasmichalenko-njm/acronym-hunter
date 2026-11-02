@@ -47,17 +47,19 @@ training_kit_src\
 tools\make_dryrun_samples.py
   Writes fictional samples in Trainer format for a Training Kit dry run. Never ship models trained on them.
 
-trainer_gui.py
-  Source for AcronymHunterTrainer.exe: region rescans and training-sample capture. Imports app_gui.py
-  as its engine, so it shares the network block, sandbox, OCR settings, and corrections.
-  Kept because: it is the only copy of the Trainer's logic.
+trainerkit.py
+  The Trainer's rules (3.14.0, from the retired classic Trainer window): training package, model characters, help
+  text. Used by Stationkeeper Training's Trainer page. Imports app_gui.py as its engine.
+
+acrrules.py, qacheck.py
+  The acronym list rules and the QA/QC rules (3.14.0, from the retired classic window), used by the Qt pages.
 
 version_info_trainer.txt
   Windows file properties for AcronymHunterTrainer.exe. Bump its version with version_info.txt.
 
 app_gui.py
-  The entire application source code: file reading, OCR, the 3-gate matching engine,
-  the window, and the offline lockdown.
+  The engine: file reading, OCR, the 3-gate matching engine, settings, and the offline lockdown (3.14.0: no window of
+  its own; the Qt window in skqt\ is the program).
   Kept because: it is the only copy of the program logic. Edit this file to change
   how the app behaves. Losing it means rewriting the app.
 

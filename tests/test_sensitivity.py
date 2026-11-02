@@ -140,7 +140,7 @@ except PermissionError:
 secure.ACTIVE = False
 check("SCIF-ready never builds a training pack", refused)
 # which efforts go to training
-from trainpack_ui import TrainPackMixin
+from trainpack import TrainingGather as TrainPackMixin
 reg = E.Registry(os.path.join(tmp, "efforts.json"))
 def effort(name, sens):
     p = os.path.join(tmp, name, f"{name}_Effort_List.xlsx"); os.makedirs(os.path.dirname(p), exist_ok=True)

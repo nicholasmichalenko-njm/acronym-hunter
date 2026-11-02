@@ -11,7 +11,7 @@ import diag
 import effortfolders as EF
 import app_gui as A
 import volcheck as V
-import volcheck_ui as VU
+import qacheck as VU                 # 3.14.0: was the classic window's volcheck_ui
 from . import design as D
 from .adaptive import FlowLayout
 

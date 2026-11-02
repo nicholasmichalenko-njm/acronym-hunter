@@ -433,7 +433,7 @@ class TrainerPage(QWidget):
         QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     def show_help(self, run=True):
-        import trainer_gui as TG
+        import trainerkit as TG
         text = (TG.HELP_TEXT.split("HOW YOUR SAMPLES MAKE THE SCANNER BETTER")[0] + TG.HELP_TEXT_TESSERACT
                 if eng.OCR_BACKEND == "tesseract" else TG.HELP_TEXT)
         d = QDialog(self); d.setWindowTitle("How training works"); d.resize(720, 620)

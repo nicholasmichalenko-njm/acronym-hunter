@@ -1463,7 +1463,7 @@ LAST KNOWN FALSE ALARMS, SHARPER TRAINING TABLE, GUIDE PICTURES (2.21.0)
 - Stationkeeper Training: the corrections table rows and text scale with the display, so lines are no longer clipped
   at 150% and 200% scaling.
 - Help > User Guide shows pictures of the effort list, Scan review, the Keywords view, Suggest keywords, the Effort box
-  and Stationkeeper Training. tools\make_guide_shots.py makes them again from the fictional samples.
+  and Stationkeeper Training. tools\make_guide_shots_qt.py makes them again from the fictional samples.
 
 FIRST USE PER SECTION, MATH READS KEPT, LINE-REMOVAL PASS, OSV CHECK (2.22.0)
 - First use rule "Restarts in each section of each volume" (Effort settings, and step 5 of Start an effort). Sections

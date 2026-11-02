@@ -2,12 +2,24 @@
 deliverables, submission requirements, customer document versions, the compliance matrix, coverage and Response Setup,
 the acronym lists, the QA/QC report and the keyword list. Tick what to include (everything available starts ticked).
 Nothing leaves the PC."""
-import datetime, os
+import datetime, os, re
 from PySide6.QtWidgets import QCheckBox, QFileDialog, QHBoxLayout, QVBoxLayout, QWidget
 import diag
 import effortfolders as EF
-import exportall_ui as XA
 from . import design as D
+
+
+
+class XA:                                                    # 3.14.0: was the classic window's exportall_ui
+    PARTS = (("status", "Effort status (Word)"), ("deliverables", "Deliverables checklist (Excel)"), ("requirements", "Submission requirements and their history (Excel)"),
+             ("versions", "Customer document version history (Excel)"), ("matrix", "Compliance matrix (Excel)"), ("coverage", "Compliance coverage report (Word)"),
+             ("setup", "Response Setup (Word)"),
+             ("acronyms", "Acronym lists (Word and Excel)"), ("qaqc", "QA/QC report (Excel) and its acronym lists"),
+             ("keywords", "Keyword list (Excel)"))
+
+    @staticmethod
+    def _safe(s):
+        return re.sub(r"[^A-Za-z0-9 _.-]+", "_", s or "").strip().replace(" ", "_") or "Effort"
 
 
 class ExportAllPage(QWidget):

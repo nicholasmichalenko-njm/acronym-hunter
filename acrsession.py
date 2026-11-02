@@ -1,5 +1,5 @@
 """Acronym hunting without a window (2.64.0): the scan of the classic window and everything that happens to its results
-afterwards, for the Qt edition. The rules are the classic window's own methods (shared, not copied): instances you
+afterwards, for the Qt edition. The rules are in acrrules (3.14.0: moved out of the retired classic window): instances you
 excluded, the customer's definitions, saved choices, definitions picked from the documents, the effort list (approved
 definitions win, rejected terms are hidden), known names, where each term is known (customer documents, customer list,
 master database), and the effort list's Found in. Rules only (No AI); nothing leaves the PC.
@@ -8,18 +8,7 @@ import os
 import app_gui as A
 import diag
 import effort as E
-from effort_ui import EffortMixin
-from effort_home import HomeMixin
-from master_db import MasterMixin
-from effort_wizard import WizardMixin
-from keywords_ui import KeywordsMixin
-
-G = A.AcronymAppGUI
-
-# the classic window's own rules, used as they are
-_SHARED = ("apply_instance_excludes", "_drop_instance", "exclude_instance", "restore_instances", "apply_saved_decisions",
-           "load_choices", "save_choice", "status_matches", "found_in", "doc_kinds", "excludable", "sort_key", "path_for",
-           "row_values", "wrap_locations")
+from acrrules import AcronymRules                             # 3.14.0: the rules the classic window kept, on their own
 
 
 class _Tree:
@@ -72,7 +61,7 @@ class _Status:
         self.text = text
 
 
-class AcronymSession(EffortMixin, HomeMixin, MasterMixin, WizardMixin, KeywordsMixin):
+class AcronymSession(AcronymRules):
     """One effort's acronym results. ws: the effort's Workspace; effort_path: its acronym list; efforts: the registry."""
 
     def __init__(self, ws, effort_path, efforts, settings=None):
@@ -257,7 +246,7 @@ class AcronymSession(EffortMixin, HomeMixin, MasterMixin, WizardMixin, KeywordsM
         the effort's session, where the classic window reads it)."""
         import banned
         import volcheck as V
-        import volcheck_ui as VU
+        import qacheck as VU
         cb = status_callback or (lambda _m: None)
         paths = sorted({os.path.abspath(p) for p in paths if p.lower().endswith(".docx")}, key=lambda p: V.natural_key(os.path.basename(p)))
         names = [os.path.basename(p) for p in paths]
@@ -284,7 +273,7 @@ class AcronymSession(EffortMixin, HomeMixin, MasterMixin, WizardMixin, KeywordsM
         return report
 
     def qa_add_missing(self):
-        import volcheck_ui as VU
+        import qacheck as VU
         if not self.volume_report or self.effort is None:
             return 0
         n = VU.qa_add_missing(self.effort, self.volume_report)
@@ -295,7 +284,7 @@ class AcronymSession(EffortMixin, HomeMixin, MasterMixin, WizardMixin, KeywordsM
         return n
 
     def qa_record_use(self):
-        import volcheck_ui as VU
+        import qacheck as VU
         if not self.volume_report or self.effort is None:
             return 0
         n = VU.qa_record_use(self.effort, self.volume_report)
@@ -381,7 +370,3 @@ class AcronymSession(EffortMixin, HomeMixin, MasterMixin, WizardMixin, KeywordsM
             if k in ("choice", "candidate"):
                 out[k] += 1
         return out
-
-
-for _n in _SHARED + ("_set_choice",):
-    setattr(AcronymSession, _n, G.__dict__[_n])               # staticmethods stay static

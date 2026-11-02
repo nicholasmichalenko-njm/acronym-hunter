@@ -1,7 +1,7 @@
 """2.74.0 Stationkeeper.exe is the Qt window: the program's start handles what the classic one did. An effort package
 saved in Qt imports in Qt (keep both: a second effort with its own name; use the package: this PC's copy backed up
 first); --install-knowledge installs a pack with no window and writes INSTALL OK to the logs; --selftest with sample
-files writes the scan report the release smoke test reads; the classic window says it is the classic one."""
+files writes the scan report the release smoke test reads; 3.14.0: no classic window is left, and the build leaves tkinter out."""
 import os, sys, tempfile, glob
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE)); sys.path.insert(0, HERE)
@@ -75,7 +75,10 @@ spec = open(os.path.join(A.BASE_DIR, "Stationkeeper.spec"), encoding="utf-8").re
 bps = open(os.path.join(A.BASE_DIR, "build.ps1"), encoding="utf-8").read()
 check("2.75.0: only the Qt programs are built and allowed in the package", "skqt_main.py" in spec and "skqt_training.py" in spec
       and "Classic' if" not in spec and "classicExe" not in bps)
-check("the classic window says it is the classic one", "Stationkeeper (classic)" in open(os.path.join(A.BASE_DIR, "app_gui.py"), encoding="utf-8").read())
+src = open(os.path.join(A.BASE_DIR, "app_gui.py"), encoding="utf-8").read()
+check("3.14.0: no classic window: the engine imports no tkinter and the build leaves it out", "import tkinter" not in src
+      and "customtkinter" not in src and "'tkinter', '_tkinter', 'customtkinter'" in spec
+      and not os.path.exists(os.path.join(A.BASE_DIR, "shell_ui.py")))
 n = sum(checks)
 print(f"QT MAIN PASS ({n}/{len(checks)})" if n == len(checks) else f"QT MAIN FAIL ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

@@ -15,7 +15,7 @@ TRAINING = os.environ.get('AH_APP', 'user') == 'training'
 datas = []
 binaries = []
 hiddenimports = []
-for _pkg in ['pypdfium2', 'pypdfium2_raw', 'customtkinter', 'rapidfuzz', 'openpyxl', 'onnxruntime', 'pptx'] + ([] if US else ['rapidocr_onnxruntime']):
+for _pkg in ['pypdfium2', 'pypdfium2_raw', 'rapidfuzz', 'openpyxl', 'onnxruntime', 'pptx'] + ([] if US else ['rapidocr_onnxruntime']):
     tmp_ret = collect_all(_pkg)
     datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 # ONNX Runtime ships model-conversion scripts (onnxruntime\transformers: GPT-2, Llama, Whisper...). The app never uses
@@ -57,10 +57,12 @@ _edition_excludes = (['rapidocr_onnxruntime', 'pyclipper', 'shapely', 'yaml',
 _skip = ('onnxruntime.transformers', 'onnxruntime.quantization', 'onnxruntime.tools', 'pymupdf.layout')
 hiddenimports = [h for h in hiddenimports if not h.startswith(_skip)]
 hiddenimports += ['defusedxml', 'defusedxml.ElementTree']  # openpyxl uses it only if importable
-hiddenimports += ['preview_pane', 'PIL.ImageTk', 'pictures', 'corrections']   # picture preview; corrections (2.15.0)
+hiddenimports += ['pictures', 'corrections']   # pictures; corrections (2.15.0)
+# 3.14.0: the classic tkinter window is gone; the engine modules it shared are named here so the Qt build finds them.
+hiddenimports += ['equations', 'diag', 'effort', 'custdefs', 'volcheck', 'compliance', 'docxw', 'complearn', 'placelearn', 'cwords',
+                  'workspace', 'setupdoc', 'master_db', 'keywords', 'offerings', 'acrrules', 'qacheck', 'trainpack']
 if TRAINING:
-    hiddenimports += ['trainer_gui', 'training_app']   # the Trainer and Improve Reading: Stationkeeper Training only
-hiddenimports += ['equations', 'symbol_picker', 'help_guide', 'diag', 'feedback', 'effort', 'effort_ui', 'custdefs', 'volcheck', 'volcheck_ui', 'compliance', 'compliance_ui', 'docxw', 'complearn', 'placelearn', 'cwords', 'exportall_ui', 'shell_ui', 'compliance_page', 'workspace', 'workspace_ui', 'ai_stack', 'ai_ui', 'setupdoc', 'setup_ui', 'context', 'effort_wizard', 'effort_home', 'master_db', 'keywords', 'keywords_ui', 'offerings']   # equation and symbol recognition (2.0.0), symbol picker (2.3.0)
+    hiddenimports += ['trainerkit']   # the Trainer's rules and Improve Reading: Stationkeeper Training only
 hiddenimports += ['skia']   # Google Skia (BSD-3): draws SVG pictures for OCR
 datas += [('assets/scanner.ico', 'assets'), ('assets/trainer.ico', 'assets'), ('assets/scanner_256.png', 'assets')]   # window/taskbar icons; the menu's Stationkeeper mark (2.88.0)
 datas += [('assets/help', 'assets/help')]   # "?" guide screenshots
@@ -70,7 +72,7 @@ datas += [('assets/sample', 'assets/sample')]   # 3.2.0: the fictional Kestrel T
 datas += [('assets/common_words.txt', 'assets')]   # SCOWL common words: sentence-end words are not abbreviations
 datas += [('README.txt', 'docs'), ('OVERVIEW.md', 'docs'), ('SECURITY.md', 'docs')]   # 2.90.0: the read-me files live in the program; the app keeps About Stationkeeper filled from them
 
-def make_analysis(script, qt=False):
+def make_analysis(script, qt=True):
   return Analysis(
     [script],
     pathex=[],
@@ -89,14 +91,14 @@ def make_analysis(script, qt=False):
               'IPython', 'jupyter', 'notebook', 'pytest',
               'onnxruntime.quantization', 'onnxruntime.transformers', 'onnxruntime.tools',
               ] + (['PySide6.QtNetwork'] if qt else ['PySide6', 'shiboken6']) + _edition_excludes   # Qt only in Stationkeeper (Qt), 2.59.0
-             + ([] if TRAINING else ['trainer_gui', 'tess_train', 'training_app']),
+             + ['tkinter', '_tkinter', 'customtkinter', 'darkdetect', 'PIL.ImageTk', 'PIL._tkinter_finder']   # 3.14.0: no classic window
+             + ([] if TRAINING else ['tess_train', 'trainerkit']),
     noarchive=False,
     optimize=0,
   )
 
-# 2.75.0: only the Qt window ships. Stationkeeper.exe (skqt_main.py) and StationkeeperTraining.exe (skqt_training.py);
-# the classic tkinter programs are no longer built (AH_QT=0 builds the classic program alone, for a one-off comparison).
-QT_APP = os.environ.get('AH_QT', '1') == '1'
+# Only the Qt window ships: Stationkeeper.exe (skqt_main.py) and StationkeeperTraining.exe (skqt_training.py). 3.14.0: the
+# classic tkinter window is retired and no longer in the source.
 # Strip payload the app never uses: PyMuPDF layout models + C headers/libs, OpenCV video (FFmpeg) DLL.
 def _keep(entry):
     dest = entry[0].replace('/', '\\').lower()
@@ -110,14 +112,9 @@ def _keep_qt(entry):
     return _keep(entry) and not ('qt6network' in dest or 'qtnetwork' in dest or '\\plugins\\tls' in dest
                                  or '\\plugins\\networkinformation' in dest)
 
-if QT_APP:
-    a = make_analysis('skqt_training.py' if TRAINING else 'skqt_main.py', qt=True)
-    a.datas = [e for e in a.datas if _keep_qt(e)]
-    a.binaries = [e for e in a.binaries if _keep_qt(e)]
-else:
-    a = make_analysis('training_app.py' if TRAINING else 'app_gui.py')
-    a.datas = [e for e in a.datas if _keep(e)]
-    a.binaries = [e for e in a.binaries if _keep(e)]
+a = make_analysis('skqt_training.py' if TRAINING else 'skqt_main.py', qt=True)
+a.datas = [e for e in a.datas if _keep_qt(e)]
+a.binaries = [e for e in a.binaries if _keep_qt(e)]
 
 pyz = PYZ(a.pure)
 exe = EXE(

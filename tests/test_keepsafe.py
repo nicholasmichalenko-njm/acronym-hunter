@@ -108,8 +108,6 @@ def run():
         z.writestr("../outside.txt", "x"); z.writestr("banned_words.json", "{}"); z.writestr("app settings/settings.json", "{}")
     cfg2, st2 = os.path.join(d, "cfg2"), os.path.join(d, "s2", "settings.json")
     assert K.restore_settings(bad, cfg2, st2) == 3 and not os.path.exists(os.path.join(d, "outside.txt")) and os.path.isfile(st2)
-    import coming_soon as CS
-    assert "TEAMS AND OWNERS" in CS.text() and "CUSTOM DICTIONARIES" not in CS.text()     # 3.0.4: built
     print("keepsafe ok")
 
 

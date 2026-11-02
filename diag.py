@@ -24,7 +24,6 @@ _where = {}                # same key -> full code locations of the first occurr
 _scan = None               # per-scan counters while a scan runs
 _recent = []               # last activity actions (for feedback context)
 _crash_fh = None
-_names = {}                # id(widget) -> internal name, for usage logging
 _last_action = [None]      # time of the previous activity line
 usage_on = True
 OFF = False          # 2.97.0: SCIF-ready: nothing is recorded, not even in memory
@@ -145,57 +144,6 @@ def recent_activity(n=20):
         return list(_recent[-n:])
 
 
-# ---------------------------------------------------------------- usage: which controls get clicked
-def register(widget, name):
-    """Give a widget an internal name for usage logging (a code identifier such as 'btn_again')."""
-    if isinstance(name, str) and _W.match(name):
-        _names[id(widget)] = name
-
-
-def menu(name):
-    """A menu bar command was chosen: its internal name only (e.g. 'file_select_files'), never any text or content."""
-    if usage_on and isinstance(name, str) and _W.match(name):
-        activity("menu", w=name)
-
-
-def register_attrs(obj, prefix=""):
-    """Name every widget attribute of an object after its attribute (self.btn_again -> 'btn_again')."""
-    import tkinter as _tk
-    for attr, val in list(vars(obj).items()):
-        if isinstance(val, _tk.Misc) and re.match(r"^[a-z][a-z0-9_]{0,40}$", attr):
-            register(val, prefix + attr)
-
-
-def install_click_logger(root):
-    """One line per click: the nearest named control (or 'dialog.<kind>'), and whether it was greyed out.
-    Never the control's text, the row clicked, or anything typed."""
-    def on_click(e):
-        if not usage_on:
-            return
-        try:
-            w, name, state, kind = e.widget, None, None, None
-            hops = 0
-            while w is not None and hops < 12:
-                if type(w).__module__.startswith("customtkinter"):
-                    if kind is None or kind == "ctkcanvas":
-                        kind = type(w).__name__.lower()
-                    try:
-                        if str(w.cget("state")) == "disabled":
-                            state = "disabled"
-                    except Exception:
-                        pass
-                if id(w) in _names:
-                    name = _names[id(w)]; break
-                w = getattr(w, "master", None); hops += 1
-            if name is None:
-                name = "dialog." + (kind or type(e.widget).__name__.lower())
-            activity("click", w=name[:60], state=state)
-        except Exception:
-            pass
-    root.bind_all("<ButtonRelease-1>", on_click, add="+")
-
-
-# ---------------------------------------------------------------- per-scan health
 def scan_started(files, exts):
     global _scan
     with _lock:

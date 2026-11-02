@@ -16,6 +16,7 @@ titles) is in only when the box is ticked. New since the last send by default; e
 Rules only; nothing leaves the PC except the file the user saves.
 """
 import csv, datetime, getpass, hashlib, io, json, os, platform, tempfile, zipfile
+import diag
 
 EXT = ".sktrain"
 FORMAT = "StationkeeperTrainingData"
@@ -372,3 +373,114 @@ def import_pack(path, store_dir, learned_path, merge_fixes=None, merge_ignore=No
         got["words"] = sum(len(v) for k, v in w.items() if k != "keywords") + sum(len(v) for v in (w.get("keywords") or {}).values())
     got.update({"from": man.get("from", ""), "created": man.get("created", ""), "text": bool(man.get("text"))})
     return got
+
+
+# ------------------------------------------------------------------ 3.14.0: gathering, from the retired classic window
+def _tp_eng():
+    import app_gui
+    return app_gui
+
+
+class TrainingGather:
+    """3.14.0: what this PC taught, gathered for a training data pack (every allowed effort's matrix, compliance words,
+    choices, keywords, banned words). Needs self.efforts (the registry) and self.matrix (the open matrix or None)."""
+
+    # ------------------------------------------------------------ what is on this PC
+    def tp_effort_ok(self, name, list_path):
+        """2.97.0: an effort's work may go to training: its sensitivity known and at most CUI (sensitivity.effort_level),
+        never in SCIF-ready. Efforts left out are listed in tp_left_out; tp_top is the highest level taken."""
+        import secure
+        import sensitivity as S
+        cache = self.__dict__.setdefault("_tp_ok", {})
+        if name not in cache:
+            lv = -1 if secure.ACTIVE else (S.effort_level(list_path) if list_path else secure.EFFORT_LEVEL)
+            ok = not secure.ACTIVE and S.training_ok(lv)
+            cache[name] = ok
+            if ok:
+                self.tp_top = max(getattr(self, "tp_top", -1), lv)
+            elif name not in self.__dict__.setdefault("tp_left_out", []):
+                self.tp_left_out.append(name)
+        return cache[name]
+
+    def tp_matrices(self):
+        """Every effort's compliance matrix on this PC (the open one as it is now). 2.97.0: only efforts whose
+        sensitivity is known and at most CUI (tp_effort_ok)."""
+        import compliance as C, workspace as W
+        out, seen = [], set()
+        reg = getattr(self, "efforts", None)
+        where = {}
+        for n in (reg.names() if reg is not None else []):
+            inf = reg.get(n) or {}
+            if not inf.get("path"):
+                continue
+            st = W.read_json(os.path.join(W.data_dir_for(inf["path"]), "settings.json"), None) or {}
+            p = st.get("compliance_path") or ""
+            if p:
+                where[os.path.abspath(p).lower()] = (n, inf["path"], p)
+        cur = getattr(self, "matrix", None)
+        if cur is not None:
+            key = os.path.abspath(cur.path).lower()
+            n, lp, _p = where.get(key, ("(the open effort)", "", ""))
+            seen.add(key)
+            if self.tp_effort_ok(n, lp):
+                out.append(cur)
+        for key, (n, lp, p) in where.items():
+            if key in seen or not os.path.isfile(p):
+                continue
+            seen.add(key)
+            if not self.tp_effort_ok(n, lp):
+                continue
+            try:
+                out.append(C.Matrix(p).load())
+            except Exception:
+                diag.swallowed()
+        return out
+
+    def tp_words(self):
+        eng = _tp_eng()
+        import cwords, keywords, workspace as W
+        w = {"cwords_added": [], "cwords_removed": [], "choices": {}, "keywords": {}, "banned": []}
+        try:
+            cfg = cwords.load(eng.CONFIG_DIR)
+            w["cwords_added"] = cwords.added(cfg)
+            w["cwords_removed"] = [x for x in cwords.DEFAULT_WORDS if x not in cfg["words"]]
+        except Exception:
+            diag.swallowed()
+        try:
+            w["keywords"] = keywords.learning()
+        except Exception:
+            diag.swallowed()
+        try:
+            rows = eng.read_csv_rows(os.path.join(eng.CONFIG_DIR, "banned_words.csv"))
+            w["banned"] = [next(iter(r.values()), "").strip() for r in rows if r and next(iter(r.values()), "").strip()]
+        except Exception:
+            diag.swallowed()
+        files = [eng.CHOICES_FILE]
+        reg = getattr(self, "efforts", None)
+        for n in (reg.names() if reg is not None else []):
+            inf = reg.get(n) or {}
+            if inf.get("path") and self.tp_effort_ok(n, inf["path"]):      # 2.97.0
+                files.append(os.path.join(W.data_dir_for(inf["path"]), "choices.json"))
+        for f in files:
+            d = W.read_json(f, None)
+            if isinstance(d, dict):
+                for t, c in d.items():
+                    w["choices"].setdefault(t, c)
+        return w
+
+    def tp_args(self, areas=None, everything=False, text=False):
+        eng = _tp_eng()
+        import sensitivity as S
+        m, w = self.tp_matrices(), self.tp_words()
+        top = getattr(self, "tp_top", -1)
+        return dict(matrices=m, areas=areas, everything=everything, text=text,
+                    ocr_fixes=eng.read_ocr_fix_rows(), ocr_ignore=eng.read_ocr_ignore_rows(), words=w,
+                    sensitivity=S.name(top) if top >= 0 else "General business")
+
+    def tp_waiting(self):
+        """How many items are waiting to be sent (new since the last send), for the banner and the menu."""
+        try:
+            return sum(gather(config_dir=_tp_eng().CONFIG_DIR, **self.tp_args())["counts"].values())
+        except Exception:
+            diag.swallowed()
+            return 0

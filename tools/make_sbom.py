@@ -94,12 +94,9 @@ def native_components(root, internal):
     v = sys.version_info
     comps.append({"type": "platform", "name": "CPython", "version": f"{v.major}.{v.minor}.{v.micro}", "bom-ref": "cpython",
                   "licenses": [{"expression": "PSF-2.0"}], "supplier": {"name": "Python Software Foundation"}})
-    try:
-        import tkinter
-        comps.append({"type": "library", "name": "Tcl/Tk", "version": str(tkinter.TkVersion), "bom-ref": "tcltk",
+    if any(os.path.exists(os.path.join(internal, x)) for x in ("_tcl_data", "_tk_data", "tcl86t.dll", "_tkinter.pyd")):
+        comps.append({"type": "library", "name": "Tcl/Tk", "version": "8.6", "bom-ref": "tcltk",   # 3.14.0: listed only if it ships
                       "licenses": [{"expression": "TCL"}]})
-    except Exception:
-        pass
     tdir = os.path.join(internal, "tesseract")
     if os.path.isdir(tdir):
         src = ""

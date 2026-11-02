@@ -424,8 +424,8 @@ class _TrainingHelper:
 
 
 def _helper(host):
-    from trainpack_ui import TrainPackMixin
-    cls = type("TrainingHelper", (_TrainingHelper, TrainPackMixin), {})
+    from trainpack import TrainingGather                      # 3.14.0: was the classic window's TrainPackMixin
+    cls = type("TrainingHelper", (_TrainingHelper, TrainingGather), {})
     return cls(host.efforts, host.review.M if host.review is not None else None)
 
 

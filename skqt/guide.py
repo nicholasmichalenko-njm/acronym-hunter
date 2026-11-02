@@ -2,7 +2,7 @@
 
 F1 opens it at the page you are on; Help and support in Settings opens it at the start. Each topic says what the page
 is for, when to use it, the steps with the real button names, and a few tips. Go to this page jumps there. The pictures
-are made by tools/make_guide_shots.py from a fictional effort (Kestrel Thermal), with a neutral user and no personal
+are made by tools/make_guide_shots_qt.py from a fictional effort (Kestrel Thermal), with a neutral user and no personal
 paths, and live in assets/help as guide_<topic>.png. A topic without its picture still reads well."""
 import html
 import os
