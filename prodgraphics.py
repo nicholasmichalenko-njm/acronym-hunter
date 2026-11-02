@@ -190,17 +190,18 @@ def check_word(raw, std, add, ocr=None):
         sec_of[id(p)] = s
         if p.find(W + "pPr/" + W + "sectPr") is not None:
             s += 1
+    nsec = s + 1                                  # the body's own sectPr ends the last section
     seen, n = [], 0
     for p in paras:
         for dr in list(p.iter("{%s}inline" % NS["wp"])) + list(p.iter("{%s}anchor" % NS["wp"])):
             n += 1
-            seen += _drawing(z, dr, p, paras, pos, rels, g, add, widths, sec_of, ocr, n)
+            seen += _drawing(z, dr, p, paras, pos, rels, g, add, widths, sec_of, ocr, n, nsec)
     for tb in root.iter(W + "txbxContent"):                 # text boxes (also inside shapes)
         _font_findings(_run_fonts(tb, True), g, "Text box", add)
     return seen
 
 
-def _drawing(z, dr, p, paras, pos, rels, g, add, widths, sec_of, ocr, n):
+def _drawing(z, dr, p, paras, pos, rels, g, add, widths, sec_of, ocr, n, nsec=1):
     ext = dr.find("wp:extent", NS)
     cx, cy = (int(ext.get("cx", 0)), int(ext.get("cy", 0))) if ext is not None else (0, 0)
     dp = dr.find("wp:docPr", NS)
@@ -211,6 +212,11 @@ def _drawing(z, dr, p, paras, pos, rels, g, add, widths, sec_of, ocr, n):
     i = pos[id(p)]
     sec = sec_of.get(id(p), 0)
     width_in = widths[min(sec, len(widths) - 1)] if widths else None
+    # a cover or back cover picture is artwork, not a figure; Word's Mark as decorative needs no alt text
+    art = (sec == 0 and nsec > 1) or (sec == nsec - 1 and nsec > 2)
+    deco = dp is not None and any(e.tag.endswith("}decorative") and e.get("val") in ("1", "true") for e in dp.iter())
+    if art or deco:
+        g = dict(g, caption=False, alt_text=False if (art or deco) else g.get("alt_text"))
     out = []
     blip = dr.find(".//a:blip", NS)
     chart = dr.find(".//c:chart", NS)

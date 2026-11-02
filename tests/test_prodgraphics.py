@@ -86,6 +86,13 @@ chk2 = PF.check(deck, std)
 gd = [f for f in chk2.findings if f["area"] == "graphics"]
 check("a deck: its pictures by slide, resolution and alt text", any(f["rule"] == "G2" and f["near"].startswith("Slide 1") for f in gd)
       and any(f["rule"] == "G7" for f in gd), [(f["rule"], f["near"]) for f in gd])
+from docx.enum.section import WD_SECTION
+dc = docx.Document(); dc.add_picture(png(1500, 900), width=Inches(5))      # cover art: no caption, no alt text
+dc.add_section(WD_SECTION.NEW_PAGE); dc.add_paragraph("Body text.")
+cv = os.path.join(tmp, "Covered.docx"); dc.save(cv)
+fc = []
+PG.check_word(open(cv, "rb").read(), std, lambda r, w, where: fc.append(r))
+check("cover art (the first of several sections) needs no caption and no alt text", not {"G6", "G7"} & set(fc), fc)
 check("the profile carries graphics rules from the team standard", PRL.COMPANY["graphics"]["min_ppi"] == 150
       and PRL.COMPANY["graphics"]["max_width"] == "margins")
 n = sum(checks)
