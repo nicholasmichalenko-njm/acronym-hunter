@@ -158,7 +158,21 @@ app.processEvents()
 check("the thrown-away read writes nothing", w.effort_name == "Osprey" and w.review is None and len(C.Matrix(out).load().items) == n_before)
 src = open(os.path.join(A.BASE_DIR, "skqt", "mainwin.py"), encoding="utf-8").read()
 check("closing the window during a read asks, then waits for it", "self.read_page.confirm_stop()" in src and "wk.wait(" in src)
+# 3.14.3: closing ends every background job first (an Office PDF copy stops at once; nothing runs on after the window)
+from PySide6.QtCore import QThread
+class StandIn(QThread):
+    def __init__(self):
+        super().__init__(); self.stop_asked = False; self.ended_by_stop = False
+    def run(self):
+        t0 = time.time()
+        while not self.stop_asked and time.time() - t0 < 60:
+            time.sleep(0.05)
+        self.ended_by_stop = self.stop_asked
+job = StandIn(); w.assign_page.workers.append(job); job.start()
+wait(lambda: job.isRunning(), 5)
 w.close()
+check("3.14.3: closing asks a running job to stop and waits for it: nothing runs on after the window",
+      job.ended_by_stop and not job.isRunning())
 n = sum(checks)
 print(f"QT READ PROGRESS PASS ({n}/{len(checks)})" if n == len(checks) else f"QT READ PROGRESS FAIL ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.14.3": ["Closing Stationkeeper ends its background work cleanly. A PDF page copy that Word, Excel or PowerPoint is "
+               "making stops at once, the Office it started is closed, and no half-made copy is kept (it is made again "
+               "next time). Any other job still running is asked to stop and finished first, so nothing is cut off "
+               "mid-file and Stationkeeper no longer ends with an error when closed during that work."],
     "3.14.2": ["No demo content: the button that made a practice effort is gone, the Guide is text only, and every example "
                "in an empty box is generic (Effort name, Customer, Solicitation number). A practice effort you already "
                "made stays until you archive it."],

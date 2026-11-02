@@ -216,6 +216,7 @@ class CopyWorker(QThread):
     def __init__(self, paths, folder):
         super().__init__()
         self.paths, self.folder = paths, folder
+        self.stop_asked = False                    # 3.14.3: Stationkeeper is closing: end now, keep no half-made copy
 
     def run(self):
         import ocrpdf
@@ -223,11 +224,14 @@ class CopyWorker(QThread):
         office = [p for p in self.paths if p not in ocr]
         res = {}
         try:
-            res.update(OP.make_many(office, self.folder) if office else {})
+            res.update(OP.make_many(office, self.folder, stop=lambda: self.stop_asked) if office else {})
         except Exception:
             diag.swallowed()
             res.update({p: RuntimeError("Office could not save a PDF copy") for p in office})
         for p in ocr:
+            if self.stop_asked:
+                res[p] = RuntimeError("stopped before the PDF copy was made")
+                continue
             try:
                 ocrpdf.make(p, self.folder)
                 res[p] = ""

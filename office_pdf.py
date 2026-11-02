@@ -101,9 +101,10 @@ def available():
     return sys.platform.startswith("win")
 
 
-def make_many(paths, folder, timeout=600, runner=None):
+def make_many(paths, folder, timeout=600, runner=None, stop=None):
     """PDF copies of several files, one Office session per program (Office starting is the slow part). Returns
-    {path: copy path or RuntimeError}."""
+    {path: copy path or RuntimeError}. 3.14.3: stop() True (Stationkeeper is closing) ends the copy at once: the
+    PowerShell script and the Office it started are ended, and no half-made copy is kept (it is made again next time)."""
     out, todo = {}, {}
     for p in paths:
         k = kind(p)
@@ -117,22 +118,28 @@ def make_many(paths, folder, timeout=600, runner=None):
         else:
             todo.setdefault(k, []).append((p, c))
     for k, pairs in todo.items():
+        if stop is not None and stop():
+            for p, _c in pairs:
+                out[p] = RuntimeError("stopped before the PDF copy was made")
+            continue
         listing = "\n".join(f"{os.path.abspath(p)}\t{os.path.abspath(c)}.part.pdf" for p, c in pairs)
         pidfile = os.path.join(folder, f".office_{k}_{os.getpid()}.pid")
         env = dict(os.environ, SK_LIST=listing, SK_PIDFILE=pidfile)
         cmd = ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", _SCRIPT[k]]
         err = b""
+        cut = False                             # 3.14.3: ended early (too long, or closing): keep no part copies
         try:
             if runner is not None:
                 _code, _o, err = runner(cmd, env, timeout)
             elif not available():
                 err = b"Microsoft Office is needed"
             else:
-                r = subprocess.run(cmd, env=env, capture_output=True, timeout=timeout,
-                                   creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-                err = r.stderr
+                err = _run(cmd, env, timeout, stop)
+                if err is _STOPPED:
+                    err, cut = b"stopped before the PDF copy was made", True
+                    _end_started(pidfile, k)
         except subprocess.TimeoutExpired:
-            err = b"Office took too long to save the PDF copies"
+            err, cut = b"Office took too long to save the PDF copies", True
             _end_started(pidfile, k)            # 2.71.0: the hidden Office it started does not stay behind
         except OSError as e:
             err = f"Windows PowerShell could not start ({type(e).__name__})".encode()
@@ -143,15 +150,46 @@ def make_many(paths, folder, timeout=600, runner=None):
         msg = (err or b"").decode("utf-8", "replace") if isinstance(err, (bytes, bytearray)) else str(err or "")
         for p, c in pairs:
             part = c + ".part.pdf"
-            if os.path.isfile(part) and os.path.getsize(part) > 0:
+            if cut and os.path.isfile(part):
+                try:
+                    os.remove(part)
+                except OSError:
+                    pass
+            if not cut and os.path.isfile(part) and os.path.getsize(part) > 0:
                 os.replace(part, c)
                 out[p] = c
+            elif msg == "stopped before the PDF copy was made":
+                out[p] = RuntimeError(msg)
             else:
                 low = msg.lower()
                 why = (f"Microsoft {k.capitalize()} is not installed on this PC" if "80040154" in low or "class not registered" in low
                        else f"{k.capitalize()} could not save a PDF copy" + (f": {msg.strip().splitlines()[-1][:160]}" if msg.strip() else ""))
                 out[p] = RuntimeError(why)
     return out
+
+
+_STOPPED = object()
+
+
+def _run(cmd, env, timeout, stop=None, popen=None):
+    """3.14.3: the copy script, checked every half second: stop() True ends it at once (returns _STOPPED); past the
+    timeout it is ended and TimeoutExpired raised. Returns its error output."""
+    import time
+    p = (popen or subprocess.Popen)(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    t0 = time.monotonic()
+    while True:
+        try:
+            _o, e = p.communicate(timeout=0.5)
+            return e
+        except subprocess.TimeoutExpired:
+            pass
+        if stop is not None and stop():
+            p.kill(); p.communicate()
+            return _STOPPED
+        if time.monotonic() - t0 > timeout:
+            p.kill(); p.communicate()
+            raise subprocess.TimeoutExpired(cmd, timeout)
 
 
 _IMAGE = {"word": "WINWORD.EXE", "excel": "EXCEL.EXE", "powerpoint": "POWERPNT.EXE"}

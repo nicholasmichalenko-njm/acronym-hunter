@@ -1077,4 +1077,30 @@ class MainWindow(QMainWindow):
             self.hide()
             for wk in list(_ORPHANS):
                 wk.wait(600000)
+        self.finish_background()
         e.accept()
+
+    def finish_background(self, wait_ms=600000):
+        """3.14.3: before the window closes, every background job ends: Office PDF copies stop at once (the Office they
+        started is ended and no half-made copy is kept); other jobs are asked to stop and waited for, so none is cut off
+        mid-file and Stationkeeper never ends with a job still running. Returns how many were running."""
+        import gc
+        from PySide6.QtCore import QThread
+        running = []
+        for o in gc.get_objects():
+            try:
+                if isinstance(o, QThread) and o.isRunning():
+                    running.append(o)
+            except Exception:
+                pass
+        if not running:
+            return 0
+        self.hide()
+        for t in running:
+            if hasattr(t, "stop_asked"):
+                t.stop_asked = True
+            t.requestInterruption()
+        for t in running:
+            t.wait(wait_ms)
+        diag.activity("background_jobs_finished_at_close", n=len(running))
+        return len(running)
