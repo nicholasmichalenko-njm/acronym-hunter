@@ -83,6 +83,22 @@ w.close_effort(); app.processEvents()
 w.go("home"); app.processEvents()
 check("closing the effort brings the form back on Effort Home", hp.start_wrap.isVisibleTo(w))
 check("All Efforts' + Add an Effort, with none open, goes to the form", w.efforts_page.add_effort() is None and w.stack.currentWidget() is hp)
+# 3.18.2: effort types: RFI response is there; add, rename, take out, default, from Start an effort
+sd = SE.StartDialog(w); fm = sd.form
+names = [fm.etype.itemText(i) for i in range(fm.etype.count())]
+check("3.18.2: RFI response is an effort type when starting an effort", "RFI response" in names, names)
+td = fm.manage_types(run=False)
+td.add("Sources sought")
+td.list.setCurrentRow(next(i for i in range(td.list.count()) if td.list.item(i).data(Qt.UserRole) == "white_paper"))
+td.rename("White paper (unsolicited)")
+td.make_default()
+td.list.setCurrentRow(next(i for i in range(td.list.count()) if td.list.item(i).data(Qt.UserRole) == "program"))
+td.remove()
+fm.fill_types()
+names = [fm.etype.itemText(i) for i in range(fm.etype.count())]
+check("3.18.2: Effort types... adds, renames and takes out; the form lists them", "Sources sought" in names
+      and "White paper (unsolicited)" in names and "Program deliverables" not in names, names)
+check("... and the default is chosen for a new effort", fm.etype.currentData() == "white_paper", fm.etype.currentData())
 n = sum(checks)
 print(f"QT START {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

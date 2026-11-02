@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFormLayout
 import diag
 import effortrec as R_
 import pagemarks as PM
+import pagebudget as PB
 import compliance as C
 import setupdoc as SD
 import pagesent as PS
@@ -325,6 +326,7 @@ class AssignPage(QWidget):
         self.tops = []
         self.labels = []
         self.marks = {}                            # 3.18.1: sentence id -> what was captured from it
+        self.cx_hist = []                          # 3.18.2: undo for library documents (ctxassign)
         self.target = None
         self.cur = None
         self.split_at, self.split_word, self.split_bar = None, None, None
@@ -410,8 +412,9 @@ class AssignPage(QWidget):
         for text, key in BULK_DECISIONS:
             self.bulk_dec.addItem(text, key)
         self.bulk_dec.activated.connect(lambda i: self.bulk_decide(self.bulk_dec.itemData(i)))
-        self.bulk_sec = QComboBox(); self.bulk_sec.setToolTip("Every selected sentence a requirement in this section "
-                                                              "(one already in another section is put in this one too)")
+        self.bulk_sec = QComboBox(); self.bulk_sec.setToolTip("Every selected sentence in this section: decided ones keep "
+                                                              "their decision (requirement, support, the customer's); "
+                                                              "undecided ones become requirements; ignored ones stay out")
         self.bulk_sec.activated.connect(lambda i: self.bulk_section(self.bulk_sec.itemData(i)))
         self.bulk_own = QComboBox(); self.bulk_own.setToolTip("One author for every selected requirement and support sentence "
                                                               "(names from the author list)")
@@ -521,10 +524,12 @@ class AssignPage(QWidget):
         self.volume.activated.connect(lambda _i: self.pick_volume(self.volume.currentData()))
         vrow.addWidget(self.volume, 1)
         vrow.addWidget(D.button("+ Volume", None, lambda: self.new_volume(), "A new volume at the end of the structure"))
-        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Your response structure (click a section: the target)", "Req.", "Ctx"])
-        self.tree.setColumnWidth(0, 380)
+        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Your response structure (click a section: the target)", "Req.", "Ctx", "Pages"])
+        self.tree.setColumnWidth(0, 330); self.tree.setColumnWidth(1, 44); self.tree.setColumnWidth(2, 40)
+        self.tree.headerItem().setToolTip(3, "Pages for the section: the RFP's limit or the team's guideline. Double-click to set.")
         self.tree.itemClicked.connect(lambda i, _c: self.set_target(i.data(0, Qt.UserRole)))
-        self.tree.itemDoubleClicked.connect(lambda i, _c: self.rename_section(i.data(0, Qt.UserRole)))
+        self.tree.itemDoubleClicked.connect(lambda i, c: self.section_pages(i.data(0, Qt.UserRole)) if c == 3
+                                            else self.rename_section(i.data(0, Qt.UserRole)))
         sv.addWidget(self.tree)
         srow = QHBoxLayout(); srow.setSpacing(4); sv.addLayout(srow)
         for text, fn, tip in (("+ Heading", lambda: self.new_section(sub=False), "A section at the level of the target (after it), or a first section"),
@@ -537,6 +542,8 @@ class AssignPage(QWidget):
         srow.addStretch(1)
         row = QHBoxLayout(); row.setSpacing(4); sv.addLayout(row)
         for text, fn, tip in (("Rename", lambda: self.rename_section(self.target), "Rename the target (or double-click it)"),
+                              ("Pages...", lambda: self.section_pages(self.target),                       # 3.18.2
+                               "The target's page length: the RFP's limit or the team's guideline (or double-click Pages)"),
                               ("\u2191", lambda: self.outline_op(O.move, -1), "Up"), ("\u2193", lambda: self.outline_op(O.move, 1), "Down"),
                               ("\u2192", lambda: self.outline_op(O.indent), "One level down (under the section above)"),
                               ("\u2190", lambda: self.outline_op(O.outdent), "One level up"),
@@ -551,13 +558,17 @@ class AssignPage(QWidget):
                                   "Word outline (the Structure tab). Volumes, people and page budget are on the Effort Dashboard.")
         row.addWidget(self.start_btn)
         self.active_volume = ""
-        right.addWidget(self.card_area); right.addWidget(sw); right.setSizes([440, 540])
+        self.tree.setMinimumHeight(220)
+        self.side_area = QScrollArea(); self.side_area.setWidgetResizable(True)      # 3.18.2: the decide panel and the
+        self.side_area.setFrameShape(QFrame.NoFrame); self.side_area.setWidget(sw)    # structure scroll on their own
+        self.side_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        right.addWidget(self.card_area); right.addWidget(self.side_area); right.setSizes([400, 580])
         split = QSplitter(Qt.Horizontal); split.addWidget(self.view); split.addWidget(right); split.setSizes([1100, 470])
         v.addWidget(split, 1)
         self.notes_timer = QTimer(self, singleShot=True, interval=700, timeout=self.save_notes)
         for key, fn in (("R", lambda: self.do_sow()), ("C", self.do_ctx), ("G", self.do_customer), ("X", self.do_clear),
                         ("L", lambda: self.do_lm("L")), ("E", lambda: self.do_lm("M")), ("Shift+M", lambda: self.do_lm("M")),
-                        ("Delete", self.do_undecide), ("J", self.do_combine), ("S", self.do_split), ("Ctrl+Z", self.do_undo),
+                        ("Delete", self.do_undecide), ("J", self.do_combine), ("S", self.do_split),
                         ("F", lambda: self.do_for_req()), ("N", lambda: self.do_record("note")),
                         ("Q", lambda: self.do_record("question")), ("T", lambda: self.do_record("task")),
                         ("Ctrl+A", lambda: self.select_all()), ("H", lambda: self.toggle_pan()),
@@ -1530,9 +1541,10 @@ class AssignPage(QWidget):
         rows = self.selected()
         if not lab or not rows:
             return 0
-        n = self.R.req(rows, lab)
+        n = self.R.put_in(rows, lab)                     # 3.18.2: decided sentences keep their decision
+        out = sum(1 for it in rows if it.get("decision") == "Drop")
         diag.activity("compliance_assigned", n=n)
-        self.after(f"{n} sentences: compliance requirements in {lab}")
+        self.after(f"{n} sentence(s) in {lab}" + (f"; {out} ignored left out of the response" if out else ""))
         return n
 
     def bulk_author(self, name):
@@ -1662,16 +1674,25 @@ class AssignPage(QWidget):
                 self.vol_badges = self.add(vw)
         self.head("Decision")
         self.chips = []
-        if d == "Keep":
+        if d in ("Keep", "Context", "Customer"):                       # 3.18.2: every decided sentence can go in the structure
             secs = SD.item_sections(M, it)
+            tone = {"Keep": "req", "Context": "ctx", "Customer": "cust"}[d]
+            if d != "Keep" and (secs or self.R.labels()):
+                self.add(D.label("In the response structure:" if secs else "Not in a section (optional): + Section puts it in one "
+                                 "for the writers" + ("; the customer's stays unanswered." if d == "Customer" else "."), "muted"))
+            self.sec_chips = []
             for lab in secs:
-                self.chips.append(self.add(Chip(lab, "req", on_remove=lambda _=False, l=lab: self.act(self.R.remove_section, it, l))))
-            if not secs:
+                ch = self.add(Chip(lab, tone, on_remove=lambda _=False, l=lab: self.act(self.R.remove_section, it, l)))
+                (self.chips if d == "Keep" else self.sec_chips).append(ch)
+            if not secs and d == "Keep":
                 self.add(QLabel("No section yet: click one in your structure (or build one: + Heading), then R."))
             cb = QComboBox(); cb.addItem("+ Section")
             cb.addItems([lab for lab in self.R.labels() if lab not in secs])
             cb.activated.connect(lambda i, cb=cb: self.act(self.R.add_section, it, cb.itemText(i)) if i > 0 else None)
             self.add(cb)
+            self.section_box = cb
+        if d == "Keep":
+            pass
         elif d == "Context":
             for i in C.cf_ids(it.get("context_for", "")):
                 x = self.R.item(i)
@@ -1685,7 +1706,9 @@ class AssignPage(QWidget):
             cb.activated.connect(lambda i, cb=cb: self.act(self.R.link, it, cb.itemData(i)) if i > 0 else None)
             self.add(cb)
         elif d == "Customer":
-            self.add(QLabel("Counted, never answered and never put in the response."))
+            self.add(QLabel("Counted and never answered."))
+        elif d == "Drop":
+            self.add(QLabel("Ignored: not in the response. Delete takes the decision off; L, E, R, C or G decides it otherwise."))
         else:
             self.add(QLabel("L, M or SOW (keys L, E, R): a requirement in the target section.  C: support for the last requirement you clicked.  G: the customer's."))
         self.head("Author(s)")
@@ -1845,7 +1868,8 @@ class AssignPage(QWidget):
 
     def act(self, fn, *a):
         fn(*a)
-        self.after()
+        self.after(" ".join(getattr(fn, "__name__", "change").split("_")).capitalize()
+                   + (f": {a[1]}" if len(a) > 1 and isinstance(a[1], str) else ""))
 
     # ------------------------------------------------------------ the structure
     def fill_volumes(self):
@@ -1883,7 +1907,10 @@ class AssignPage(QWidget):
             if lab not in show:
                 continue
             lvl = o.get("level", 1)
-            node = QTreeWidgetItem([lab, str(counts.get(lab, "") or ""), str(ctxn.get(lab, "") or "")])
+            node = QTreeWidgetItem([lab, str(counts.get(lab, "") or ""), str(ctxn.get(lab, "") or ""), PB.tag(self.M, lab)])
+            if PB.pages(self.M, lab):                                     # 3.18.2: the RFP's limit in red, a guideline in blue
+                node.setForeground(3, QColor("#B91C1C" if PB.source(self.M, lab) == "rfp" else "#1D4ED8"))
+                node.setToolTip(3, f"{PB.SOURCE_NAME[PB.source(self.M, lab)]}: {PB.fmt(PB.pages(self.M, lab))} page(s), subsections included")
             if ctxn.get(lab):
                 node.setToolTip(2, f"{ctxn[lab]} sentence(s) from library documents attached as context")
             node.setData(0, Qt.UserRole, lab)
@@ -2025,6 +2052,8 @@ class AssignPage(QWidget):
             self.note_decided(self.selected())          # 3.18.0: a person's decision on a suggested sentence
         except Exception:
             diag.swallowed()
+        if self.R is not None and not getattr(self, "_undoing", False):
+            self.R.label_last(msg or "a structure change")             # 3.18.2: Undo says what it puts back
         self.restyle()
         self.fill_tree()
         self.show_card(self.selected())
@@ -2052,8 +2081,9 @@ class AssignPage(QWidget):
         rows = self.selected()
         if not rows:
             return
-        n = self.R.req(rows, self.target or "")
-        self.R.set_lm(rows, "C")
+        with self.R.group():
+            n = self.R.req(rows, self.target or "")
+            self.R.set_lm(rows, "C")
         diag.activity("compliance_assigned", n=n)
         self.after(f"{rows[0]['id'] if n == 1 else str(n) + ' sentences'}: SOW (Work) requirement "
                    + (f"in {self.target}" if self.target else "(no section yet: click one, or build one with + Heading)"))
@@ -2066,11 +2096,12 @@ class AssignPage(QWidget):
         if not rows:
             return
         new = [it for it in rows if it.get("decision") != "Keep"]
-        if new:
-            self.R.req(new, self.target or "")
-        self.R.set_lm(rows, lm)
+        with self.R.group():
+            if new:
+                self.R.req(new, self.target or "")
+            self.R.set_lm(rows, lm)
         diag.activity("compliance_lm_set", n=len(rows))
-        self.after(f"{len(rows)} sentence(s): {SD.LM_SHORT.get(lm, lm)} ({SD.LM[lm]})")
+        self.after(f"{rows[0]['id'] if len(rows) == 1 else str(len(rows)) + ' sentences'}: {SD.LM_SHORT.get(lm, lm)} ({SD.LM[lm]})")
 
     # ------------------------------------------------------------ building the structure as you go (2.68.0)
     def _ask(self, title, label, text=""):
@@ -2193,19 +2224,20 @@ class AssignPage(QWidget):
             by.setdefault(self.sg[it["id"]]["cat"], []).append(it)
         self._accepting = True
         try:
-            for cat, its in by.items():
-                if cat in ("L", "M", "SOW"):
-                    self.R.req(its, self.target or "")
-                    self.R.set_lm(its, {"L": "L", "M": "M", "SOW": "C"}[cat])
-                elif cat == "ctx":
-                    self.R.ctx(its)
-                elif cat == "cust":
-                    self.R.customer(its)
-                elif cat == "ignore":                            # 3.18.1: Ignore is a decision of its own
-                    self.R.ignore(its)
-                for it in its:
-                    self.sg[it["id"]].update(state="accepted", unchecked=True)
-                    self.M.log(it["id"], f"accepted the suggestion: {SR.CAT_NAME.get(cat, cat)} ({self.sg[it['id']].get('why', '')})")
+            with self.R.group():
+                for cat, its in by.items():
+                    if cat in ("L", "M", "SOW"):
+                        self.R.req(its, self.target or "")
+                        self.R.set_lm(its, {"L": "L", "M": "M", "SOW": "C"}[cat])
+                    elif cat == "ctx":
+                        self.R.ctx(its)
+                    elif cat == "cust":
+                        self.R.customer(its)
+                    elif cat == "ignore":                            # 3.18.1: Ignore is a decision of its own
+                        self.R.ignore(its)
+                    for it in its:
+                        self.sg[it["id"]].update(state="accepted", unchecked=True)
+                        self.M.log(it["id"], f"accepted the suggestion: {SR.CAT_NAME.get(cat, cat)} ({self.sg[it['id']].get('why', '')})")
             SR.save_store(self.host.ws, self.sg)
             self.after(f"{len(rows)} suggestion(s) accepted. They stay marked until someone checks them (Select unchecked).")
         finally:
@@ -2532,6 +2564,40 @@ class AssignPage(QWidget):
                    + (f" with {len(made) - 1} subsection(s)" if len(made) > 1 else "") + ". Rename or move it to say it your way.")
         return made
 
+    def section_pages(self, label, answer=None):
+        """3.18.2: a section's page length and who set it (the RFP's limit or the team's guideline). answer (tests):
+        (pages, 'rfp' or 'team'); 0 pages takes it off. Returns the tag shown, or None."""
+        if not label or self.M is None or label not in set(O.labels(self.M)):
+            self.host.status("Click a section in your structure first.")
+            return None
+        if answer is None:
+            from PySide6.QtWidgets import QDoubleSpinBox, QRadioButton
+            d = QDialog(self); d.setWindowTitle("Pages for the section"); d.setMinimumWidth(460)
+            f = QFormLayout(d)
+            f.addRow(D.label(label, "label"))
+            sp = QDoubleSpinBox(); sp.setRange(0, 2000); sp.setSingleStep(PB.STEP); sp.setDecimals(1); sp.setSpecialValueText("not set")
+            sp.setValue(PB.pages(self.M, label) or 0); sp.setSuffix(" pages")
+            f.addRow("Pages", sp)
+            cur = PB.source(self.M, label) or "team"
+            rb = {}
+            for key, name in PB.SOURCES:
+                rb[key] = QRadioButton(name + (": the customer sets it" if key == "rfp" else ": what our authors aim for"))
+                rb[key].setChecked(key == cur); f.addRow("" if key != "team" else "Set by", rb[key])
+            f.addRow(D.label("Subsections are included. The Page budget splits a volume's limit across its sections.", "muted"))
+            bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
+            f.addRow(bb)
+            if d.exec() != QDialog.Accepted:
+                return None
+            answer = (sp.value(), "rfp" if rb["rfp"].isChecked() else "team")
+        n, src = answer
+        self.R.snap(f"pages for {label}")
+        PB.set_pages(self.M, label, n, src)
+        diag.activity("section_pages_set")
+        tag = PB.tag(self.M, label)
+        self.after(f"{label}: " + (f"{PB.fmt(PB.pages(self.M, label))} page(s), {PB.SOURCE_NAME[PB.source(self.M, label)].lower()}"
+                                   if tag else "no page length"))
+        return tag
+
     def rename_section(self, label, title=None):
         if not label or self.M is None:
             return None
@@ -2561,10 +2627,11 @@ class AssignPage(QWidget):
         self.R.snap()
         new = fn(self.M, self.target, *args)
         if new is None:
+            self.R.undo_last()                        # nothing changed: no step to undo
             self.host.status("It cannot go there.")
             return None
         self.target = new
-        self.after()
+        self.after(f"Moved: {new}")
         return new
 
     def delete_section(self, label=None):
@@ -2662,7 +2729,20 @@ class AssignPage(QWidget):
         self.select(parts[0]["id"])
         self.after(f"Split into {', '.join(p['id'] for p in parts)}")
 
+    def undo_text(self):
+        """3.18.2: what Undo would put back on this page ('' for nothing): the top bar's Undo says it."""
+        if self.cx is not None and self.cx_hist:
+            return self.cx_hist[-1]["label"]
+        return self.R.undo_label() if self.R is not None else ""
+
+    def undo_here(self):
+        return self.do_undo()
+
     def do_undo(self):
+        """Ctrl+Z (the window's) or Undo: the last change on this page, decisions and the structure alike (3.18.2)."""
+        if self.cx is not None and self.cx_hist:
+            return self.cx.undo()
+        label = self.R.undo_label() if self.R else ""
         if self.R and self.R.undo_last():
             diag.activity("compliance_undo")
             keep = [it["id"] for it in self.selected()]          # 3.0.4: the selection stays after Undo
@@ -2674,9 +2754,19 @@ class AssignPage(QWidget):
                     b.setSelected(True)
             self._guard = False
             self.cur = keep[-1] if keep else self.cur
-            self.after("Undone.")
-        else:
-            self.host.status("Nothing to undo.")
+            labs = set(O.labels(self.M))
+            if self.target and self.target not in labs:          # the section it targeted was the one undone
+                self.target = None
+            if self.active_volume and self.active_volume not in labs:
+                self.active_volume = ""
+            self._undoing = True
+            try:
+                self.after(f"Undone: {label}")
+            finally:
+                self._undoing = False
+            return label
+        self.host.status("Nothing to undo.")
+        return None
 
 
 def change_html(ch):

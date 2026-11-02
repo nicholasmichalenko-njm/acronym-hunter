@@ -22,6 +22,7 @@ class BudgetDialog(QDialog):
         self.rows, self.delivs = self._sources()
         self.vols = PB.volumes(self.M)
         self.edit = {l: PB.pages(self.M, l) or 0 for l in SD.labels(self.M)}
+        self.src = {l: PB.source(self.M, l) or "team" for l in SD.labels(self.M)}      # 3.18.2: the RFP's limit or a guideline
         self.limits = {}
         self.saved = False
         v = QVBoxLayout(self)
@@ -39,10 +40,10 @@ class BudgetDialog(QDialog):
         top.addWidget(self.limit)
         self.limit_from = D.label("", "muted", wrap=False); top.addWidget(self.limit_from)
         top.addStretch(1)
-        t = QTableWidget(0, 4); t.setHorizontalHeaderLabels(["Section", "Pages", "Requirements", "Lead"])
+        t = QTableWidget(0, 5); t.setHorizontalHeaderLabels(["Section", "Pages", "Set by", "Requirements", "Lead"])
         t.verticalHeader().setVisible(False); t.setSelectionMode(QAbstractItemView.NoSelection)
         t.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        for i, w in ((1, 120), (2, 110), (3, 160)):
+        for i, w in ((1, 110), (2, 150), (3, 100), (4, 150)):
             t.setColumnWidth(i, w)
         t.verticalHeader().setDefaultSectionSize(32)
         self.table = t; v.addWidget(t, 1)
@@ -88,7 +89,7 @@ class BudgetDialog(QDialog):
         base = min((lv.get(l, 1) for l in labs), default=1)
         counts = PB.req_counts(self.M, labs)
         t = self.table
-        t.setRowCount(0); self.spins = {}
+        t.setRowCount(0); self.spins = {}; self.bys = {}
         for l in labs:
             r = t.rowCount(); t.insertRow(r)
             it = QTableWidgetItem(("    " * (lv.get(l, 1) - base)) + l); it.setFlags(Qt.ItemIsEnabled); t.setItem(r, 0, it)
@@ -96,7 +97,13 @@ class BudgetDialog(QDialog):
             sp.setValue(self.edit.get(l) or 0)
             sp.valueChanged.connect(lambda val, l=l: (self.edit.__setitem__(l, val), self.show_totals()))
             t.setCellWidget(r, 1, sp); self.spins[l] = sp
-            for c, text in ((2, str(counts.get(l, 0))), (3, SD.section_people(self.M, l).get("lead", ""))):
+            by = QComboBox()
+            for key, name in PB.SOURCES:
+                by.addItem(name, key)
+            by.setCurrentIndex(by.findData(self.src.get(l, "team")))
+            by.currentIndexChanged.connect(lambda _i, l=l, by=by: self.src.__setitem__(l, by.currentData()))
+            t.setCellWidget(r, 2, by); self.bys[l] = by
+            for c, text in ((3, str(counts.get(l, 0))), (4, SD.section_people(self.M, l).get("lead", ""))):
                 x = QTableWidgetItem(text); x.setFlags(Qt.ItemIsEnabled); t.setItem(r, c, x)
         self.show_totals()
 
@@ -150,10 +157,10 @@ class BudgetDialog(QDialog):
 
     def save(self):
         R = self.host.review
-        R.snap()
+        R.snap("the page budget")
         for l, n in self.edit.items():
-            if (PB.pages(self.M, l) or 0) != (n or 0):
-                PB.set_pages(self.M, l, n)
+            if (PB.pages(self.M, l) or 0) != (n or 0) or (n and PB.source(self.M, l) != self.src.get(l, "team")):
+                PB.set_pages(self.M, l, n, self.src.get(l, "team"))
         for vol, n in self.limits.items():                     # typed only when it differs from the documents' limit
             PB.set_limit(self.M, vol, 0)
             found, _src = PB.limit_for(self.M, vol, self.rows, self.delivs)

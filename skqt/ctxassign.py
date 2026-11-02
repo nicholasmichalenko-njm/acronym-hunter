@@ -202,6 +202,31 @@ class CtxMode:
         self.show_card(self.selected())
         return True
 
+    # ------------------------------------------------------------ 3.18.2: undo
+    def _keep(self, label):
+        """Before a change: what is attached and ignored, and how far the matrix's own undo reaches, so Undo puts
+        both back."""
+        import copy
+        R = self.page.R
+        self.page.cx_hist.append({"att": copy.deepcopy(self.store.att), "ign": copy.deepcopy(self.store.ign), "label": label,
+                                  "matrix": len(R.undo) if R is not None else 0, "doc": self.doc["id"]})
+        del self.page.cx_hist[:-40]
+
+    def undo(self):
+        """Put back the last change made on a library document. Returns its label, or None."""
+        h = self.page.cx_hist
+        if not h:
+            return None
+        e = h.pop()
+        self.store.att, self.store.ign = e["att"], e["ign"]
+        self.store.save()
+        R = self.page.R
+        while R is not None and len(R.undo) > e["matrix"] and R.undo_last():   # a sentence made a requirement goes too
+            self.host.changed()
+            self.page.load_files_keep()
+        self._done(f"Undone: {e['label']}")
+        return e["label"]
+
     # ------------------------------------------------------------ decisions
     def _done(self, msg, n=0):
         self.restyle()
@@ -220,6 +245,7 @@ class CtxMode:
         if kind == "section" and not target:
             self.host.status("Click a section in your structure first: C puts the sentence there as context.")
             return 0
+        self._keep(f"{CX.KIND_NAMES[kind].lower()} {target or ''}".strip())
         for r in rows:
             self.store.attach(r, kind, target or "", save=False)
         self.store.save()
@@ -244,6 +270,7 @@ class CtxMode:
             req_id = pick_requirement(self.page, cands)
             if not req_id:
                 return 0
+        self._keep(f"context for {req_id}")
         for r in rows:
             self.store.attach(r, "requirement", req_id, save=False)
         self.store.save()
@@ -256,6 +283,7 @@ class CtxMode:
         if not rows:
             self.host.status("Select a sentence on the page first.")
             return 0
+        self._keep(f"{CX.KIND_NAMES[kind].lower()} (it stays in the effort record)")
         rec = R_.Record(self.host.ws.root)
         tgt = self.page.target or ""
         for r in rows:
@@ -284,7 +312,8 @@ class CtxMode:
         if not any(s and s[0] == f for s in M.sources):
             import datetime
             M.sources.append([f, self.ver.get("sha256", ""), datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), self.path()])
-        pg.R.snap()
+        self._keep("make it a requirement")
+        pg.R.snap("make it a requirement")
         made = []
         for r in rows:
             it = CAP.add_sentence(M, f, r["text"], how="typed")
@@ -307,6 +336,8 @@ class CtxMode:
     def clear(self, rows=None):
         """X: its attachments come off and it is marked ignored (3.18.1: grey on the page: looked at, nothing taken)."""
         rows = rows if rows is not None else self.selected()
+        if rows:
+            self._keep("ignore")
         n = sum(self.store.remove(doc=self.doc["id"], iid=r["id"], save=False) for r in rows)
         for r in rows:
             self.store.ignore(self.doc["id"], r["id"])
@@ -317,6 +348,8 @@ class CtxMode:
     def undecide(self, rows=None):
         """3.18.1 Delete: attachments and the ignored mark come off: not looked at."""
         rows = rows if rows is not None else self.selected()
+        if rows:
+            self._keep("take everything off")
         n = sum(self.store.remove(doc=self.doc["id"], iid=r["id"], save=False) + self.store.unignore(self.doc["id"], r["id"])
                 for r in rows)
         self.store.save()
@@ -324,6 +357,7 @@ class CtxMode:
         return n
 
     def remove(self, att_id):
+        self._keep("take an attachment off")
         self.store.remove(att_id=att_id)
         self._done("Attachment taken off")
 

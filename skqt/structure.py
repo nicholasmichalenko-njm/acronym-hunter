@@ -12,6 +12,16 @@ import structstart as SS
 from . import design as D
 
 
+
+
+def _pages_tag(R, lab):
+    """3.18.2: a section's pages ('4 RFP', '3 guide'), kept by name across a structure edit."""
+    try:
+        import pagebudget as PB
+        return PB.tag(R.M, lab) if R is not None else ""
+    except Exception:
+        return ""
+
 class StructurePage(QWidget):
     def __init__(self, host):
         super().__init__()
@@ -47,7 +57,7 @@ class StructurePage(QWidget):
         self.text.textChanged.connect(lambda: self.preview_timer.start())
         left.add(self.text)
         right = D.Card("As it will be", "Requirements and context in each section now.")
-        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Section", "Req.", "Context"])
+        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Section", "Req.", "Context", "Pages"])   # 3.18.2: Pages
         self.tree.setColumnWidth(0, 360); self.tree.setAlternatingRowColors(True)
         right.add(self.tree)
         self.state = D.label("", "muted")
@@ -144,7 +154,7 @@ class StructurePage(QWidget):
         R = self.host.review
         if R is None:
             return None
-        R.snap()
+        R.snap("set the structure (Apply)")
         n, lost = STR.apply(R.M, self.text.toPlainText())
         diag.activity("compliance_outline_applied", items=n, removed=lost)
         self.host.changed()
@@ -164,7 +174,7 @@ class StructurePage(QWidget):
         for o in ol:
             lab = C.outline_label(o)
             k, c = counts.get(lab, (0, 0))
-            node = QTreeWidgetItem([lab, str(k or ""), str(c or "")])
+            node = QTreeWidgetItem([lab, str(k or ""), str(c or ""), _pages_tag(R, lab)])
             lvl = o.get("level", 1)
             while stack and stack[-1][0] >= lvl:
                 stack.pop()

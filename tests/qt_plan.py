@@ -105,7 +105,7 @@ for root, _d, fs in os.walk(out):
         if f.endswith(".docx"):
             import zipfile
             txt += zipfile.ZipFile(os.path.join(root, f)).read("word/document.xml").decode("utf-8", "replace")
-check("the Response Setup documents print each section's page budget", "Page budget: 15 pages" in txt, len(txt))
+check("the Response Setup documents print each section's page budget", "Page guideline (the team): 15 pages" in txt, len(txt))
 w.save_now()
 # my work
 w.people = lambda: ["A. Lee"]

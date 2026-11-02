@@ -13,8 +13,29 @@ def _b(M):
     b = S.get("budget")
     if not isinstance(b, dict):
         b = S["budget"] = {}
-    b.setdefault("pages", {}); b.setdefault("limits", {})
+    b.setdefault("pages", {}); b.setdefault("limits", {}); b.setdefault("source", {})
     return b
+
+
+# 3.18.2: who set a section's pages: the customer (a page limit the RFP sets for that section) or the team (a guideline
+# for the authors). A number with no source is the team's guideline.
+SOURCES = (("team", "Team guideline"), ("rfp", "RFP limit"))
+SOURCE_NAME = dict(SOURCES)
+SHORT = {"team": "guide", "rfp": "RFP"}
+
+
+def source(M, label):
+    """'rfp' or 'team' for a section with pages, '' for one without."""
+    if pages(M, label) is None:
+        return ""
+    s = _b(M)["source"].get(label)
+    return s if s in SOURCE_NAME else "team"
+
+
+def tag(M, label):
+    """The pages as the structure lists them: '4 RFP', '3 guide', or ''."""
+    n = pages(M, label)
+    return f"{fmt(n)} {SHORT[source(M, label)]}" if n else ""
 
 
 def pages(M, label):
@@ -22,13 +43,18 @@ def pages(M, label):
     return float(v) if v not in (None, "") else None
 
 
-def set_pages(M, label, n):
-    b = _b(M)["pages"]
+def set_pages(M, label, n, src=None):
+    """A section's pages (half pages); src 'rfp' or 'team' says who set them (None keeps what it was)."""
+    bb = _b(M)
+    b = bb["pages"]
     n = _round(n)
     if not n:
         b.pop(label, None)
+        bb["source"].pop(label, None)
     else:
         b[label] = n
+        if src in SOURCE_NAME:
+            bb["source"][label] = src
     if hasattr(M, "pending"):
         M.pending = True
 

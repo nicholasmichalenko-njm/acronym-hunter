@@ -137,6 +137,20 @@ ap.select(x5); app.processEvents()
 ap.do_undecide(); ap.cx.undecide([ap.cx.rows[7]]); ap.select(ap.cx.rows[0]["id"]); app.processEvents()
 check("3.18.1: Delete takes the ignored mark off: plain again", not CX.Store(ws.root).load().ignored(d["id"], x5)
       and ap.view.boxes[x5].brush().color().alpha() == 0)
+# 3.18.2: Undo on a library document (the window's Undo, Ctrl+Z)
+r9 = ap.cx.rows[9]
+ap.set_target("1.1 Technical Approach"); ap.select(r9["id"]); ap.do_ctx(); app.processEvents()
+check("3.18.2: the window's Undo names the library change", "context for section" in w.undo_text().lower() and w.undo_btn.isEnabled(),
+      w.undo_text())
+w.undo_here(); app.processEvents()
+check("3.18.2: Undo on a library document takes the attachment back off", not CX.Store(ws.root).load().of_row(d["id"], r9["id"])
+      and not ap.view.boxes[r9["id"]].mark and ap.view.boxes[r9["id"]].dec in ("",))
+n0 = len(w.review.M.items)
+ap.select(r9["id"]); made9 = ap.do_req(); app.processEvents()
+check("3.18.2: made a requirement ...", made9 and len(w.review.M.items) == n0 + 1)
+w.undo_here(); app.processEvents()
+check("... Undo takes the requirement out of the matrix and the attachment off", len(w.review.M.items) == n0
+      and not CX.Store(ws.root).load().of_row(d["id"], r9["id"]), (len(w.review.M.items), n0))
 # a renamed section keeps its context
 ap.rename_section("1.1 Technical Approach", "Technical Approach and Design")
 st = CX.Store(ws.root).load()

@@ -123,16 +123,13 @@ class StartEffort(QFrame):
         form.addRow("Proposals due", drow)
         form.addRow("Proposal manager", self.pm)
         self.etype = QComboBox()                      # 3.8.0: the effort type its deliverables' formatting follows
-        try:
-            import prodrules as PRL
-            data = PRL.load(host.config_dir)
-            self.etype.addItem("None", "")
-            for e in data.get("effort_types", []):
-                self.etype.addItem(e["name"], e["id"])
-            self.etype.setCurrentIndex(max(0, self.etype.findData(data.get("default_effort_type", ""))))
-        except Exception:
-            diag.swallowed()
-        form.addRow("Effort type (formatting)", self.etype)
+        self.fill_types()
+        trow = QWidget(); th = QHBoxLayout(trow); th.setContentsMargins(0, 0, 0, 0)
+        th.addWidget(self.etype, 1)
+        self.types_btn = D.button("Effort types...", "ghost", lambda: self.manage_types(),      # 3.18.2
+                                  "Add, rename, order or take out effort types, and choose the default")
+        th.addWidget(self.types_btn)
+        form.addRow("Effort type", trow)
         # More options
         self.more_btn = D.button("More options", "ghost", self.toggle_more)
         outer.addWidget(self.more_btn, 0, Qt.AlignLeft)
@@ -175,6 +172,30 @@ class StartEffort(QFrame):
         h.addWidget(D.button("Browse...", None, lambda: (lambda p: edit.setText(p) if p else None)(
             QFileDialog.getExistingDirectory(self, title, edit.text()))))
         return w
+
+    def fill_types(self, keep=None):
+        """3.18.2: the team's effort types (RFI response among the starters), the default chosen."""
+        try:
+            import prodrules as PRL
+            data = PRL.load(self.host.config_dir)
+            self.etype.blockSignals(True)
+            self.etype.clear()
+            self.etype.addItem("None", "")
+            for e in data.get("effort_types", []):
+                self.etype.addItem(e["name"], e["id"])
+            want = keep if keep is not None else data.get("default_effort_type", "")
+            self.etype.setCurrentIndex(max(0, self.etype.findData(want)))
+            self.etype.blockSignals(False)
+        except Exception:
+            diag.swallowed()
+
+    def manage_types(self, run=True):
+        from .efforttypes import manage
+        keep = self.etype.currentData()
+        d = manage(self, self.host.config_dir, run=run)
+        if run:
+            self.fill_types(keep)
+        return d
 
     def toggle_more(self):
         self.more.setVisible(not self.more.isVisible())

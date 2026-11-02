@@ -51,6 +51,8 @@ TABS = {"home": [("home", "Dashboard"), ("requirements", "Submission Rules")],
         "acronyms": [("acronyms", "Scan"), ("acrlist", "Acronym List"), ("lists", "Lists to Submit")]}
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
 HEAD_OF.update({"docs": "library", "impact": "compare", "dashboard": "home"})   # pages opened from inside another
+MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup"}   # 3.18.2:
+# pages that change the matrix (decisions, the structure, placements, setup) share its Undo steps; Review has its own
 BETA = {"fixcopy"}                                  # 3.16.0: tools still being proven, marked Beta in the menu and on the page
 GROUP_OF = {k: g for g, items in RAIL for k, _t in items}     # 3.15.0: the page's menu group, shown above its title
 GROUP_OF.update({k: GROUP_OF[h] for k, h in HEAD_OF.items() if h in GROUP_OF})
@@ -187,6 +189,9 @@ class MainWindow(QMainWindow):
         trow.addWidget(self.beta_pill, 0, Qt.AlignVCenter); trow.addStretch(1)
         self.page_sub = D.label("", "muted"); self.page_sub.setMinimumWidth(120); tcol.addWidget(self.page_sub)   # 3.0.4: wraps; 3.9.0: 120 so the bar fits 1280 with Issue or idea
         bh.addLayout(tcol, 1)
+        self.undo_btn = D.button("Undo", "ghost", lambda: self.undo_here(), "Undo the last change on this page (Ctrl+Z)")   # 3.18.2
+        self.undo_btn.setEnabled(False)
+        bh.addWidget(self.undo_btn)
         self.issue_btn = D.button("Issue or idea", "ghost", lambda: self.open_issues(),
                                   "Write down a bug, an improvement or an idea about this page (Ctrl+Shift+I). It stays on this PC.")
         bh.addWidget(self.issue_btn)                 # 3.9.0
@@ -290,6 +295,7 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("Ctrl+K"), self, activated=lambda: HC.open_finder(self))
         from . import guide as GD                    # 3.0.2: F1 opens the Guide at the page you are on
         QShortcut(QKeySequence("F1"), self, activated=lambda: GD.open_guide(self))
+        QShortcut(QKeySequence("Ctrl+Z"), self, activated=lambda: self.undo_here())    # 3.18.2: one Undo for the window
         QShortcut(QKeySequence("Ctrl+Shift+I"), self, activated=lambda: self.open_issues())   # 3.9.0: issues and ideas
         self.save_timer = QTimer(self, singleShot=True, interval=2000, timeout=self.save_now)
         self.lock_timer = QTimer(self, interval=60000, timeout=lambda: self.ws.refresh_lock() if self.ws else None)
@@ -848,12 +854,66 @@ class MainWindow(QMainWindow):
             diag.swallowed()
 
     # ------------------------------------------------------------ saving
+    # ------------------------------------------------------------ 3.18.2: undo, on the page you are on
+    def undo_text(self):
+        """What Undo would put back on the current page ('' for nothing)."""
+        pg = self.stack.currentWidget()
+        fn = getattr(pg, "undo_text", None)
+        if callable(fn):
+            try:
+                return fn() or ""
+            except Exception:
+                diag.swallowed()
+                return ""
+        key = next((k for k, p in self.pages.items() if p is pg), "")
+        if key in MATRIX_UNDO and self.review is not None:
+            return self.review.undo_label()
+        return ""
+
+    def undo_here(self):
+        """Ctrl+Z or the top bar's Undo: the last change on the page you are on. Pages that change the matrix share its
+        steps (decisions, the structure, placements, setup); a page with its own steps undoes those."""
+        pg = self.stack.currentWidget()
+        fn = getattr(pg, "undo_here", None)
+        if callable(fn):
+            got = fn()
+        else:
+            key = next((k for k, p in self.pages.items() if p is pg), "")
+            got = None
+            if key in MATRIX_UNDO and self.review is not None:
+                got = self.review.undo_label()
+                if got and self.review.undo_last():
+                    if hasattr(pg, "refresh"):
+                        pg.refresh()
+                    self.changed()
+                    self.status(f"Undone: {got}")
+                else:
+                    got = None
+            if not got:
+                self.status("Nothing to undo on this page.")
+        if got:
+            diag.activity("undo_done")
+        self.refresh_undo()
+        return got
+
+    def refresh_undo(self):
+        t = self.undo_text()
+        self.undo_btn.setEnabled(bool(t))
+        self.undo_btn.setToolTip(f"Undo: {t} (Ctrl+Z)" if t else "Nothing to undo on this page")
+        return t
+
     def changed(self):
+        if self.review is not None:
+            self.review.label_last(f"the last change on {self.page_title.text() or 'this page'}")
         if self.review is not None:
             self.review.M.pending = True
             self.save_timer.start()
             self.safety.changed()                  # 2.78.0: the recovery copy, written as you work
         self.title()
+        try:
+            self.refresh_undo()
+        except Exception:
+            diag.swallowed()
 
     def save_now(self):
         self.save_timer.stop()
@@ -1005,6 +1065,10 @@ class MainWindow(QMainWindow):
         self.beta_pill.setVisible(step in BETA)
         self.page_sub.setText(sub + (f"  \u00b7  {self.effort_name}" if self.effort_name else ""))
         self.show_tabs(step)
+        try:
+            self.refresh_undo()                    # 3.18.2: Undo says what it would put back on this page
+        except Exception:
+            diag.swallowed()
         try:
             self.refresh_access()                  # 3.13.0: a stage moved or a role changed shows in the menu
         except Exception:

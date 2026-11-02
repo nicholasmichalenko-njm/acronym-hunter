@@ -20,6 +20,16 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.18.2": ["Undo everywhere: an Undo button in the top bar and Ctrl+Z undo the last change on the page you are on, and "
+               "say what they put back. In Review that includes the structure: a section added, renamed, moved or taken out "
+               "comes back as it was. Structure, Coverage, Matrix and Response Setup share the matrix's steps; library "
+               "documents undo their own.",
+               "Pages for each section: set a section's page length in the structure list (Pages column, or Pages...) and "
+               "say who set it, the RFP's limit or the team's guideline. Response Setup prints it under the section.",
+               "Every decided sentence can go in the response structure: the customer's too (printed for the writers, not "
+               "answered). Put all in section keeps each sentence's decision. The decide panel scrolls on its own.",
+               "Effort types: RFI response is one of the starters. Effort types... (Start an effort, Production Standards) "
+               "adds, renames, orders and takes out effort types and chooses the default."],
     "3.18.1": ["Review: every choice has its own color on the page. L green, M orange, SOW teal, support blue, the "
                "customer's purple, ignored grey; only sentences nobody has decided stay plain. A legend sits above the "
                "decide buttons, and the buttons carry the same colors.",

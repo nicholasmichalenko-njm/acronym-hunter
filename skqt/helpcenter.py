@@ -19,7 +19,7 @@ SHORTCUTS = [("Anywhere", "Ctrl+K", "Find a page, an effort, a sentence or a per
              ("Review (on the page)", "L / E", "L (Instructions) / M (Evaluation): requirements with that designation"),
              ("Review (on the page)", "X or Delete", "Clear the decision"),
              ("Review (on the page)", "J / S", "Join the selected sentences / split one"),
-             ("Review (on the page)", "Ctrl+Z", "Undo the last change"),
+             ("Any page", "Ctrl+Z", "Undo the last change on the page (the top bar's Undo says what)"),
              ("Review (on the page)", "Ctrl+click", "Select several sentences"),
              ("Review (on the page)", "Ctrl+A", "Select every sentence on the page (Select undecided: only those with no decision)"),
              ("Review (on the page)", "P", "Graphic need: tag what needs a graphic, from the sentence or the words you picked"),

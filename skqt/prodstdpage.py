@@ -372,6 +372,8 @@ class StandardsPage(QWidget):
                      "edit shows in bold, and Reset takes it back to the layer below.",
                      actions=[D.button("+ Effort type...", None, lambda: self.add_effort_type(), "A kind of effort (RFP, page-limited RFP, "
                                        "white paper, program): the profiles its deliverables use and the rules every one of them follows"),
+                              D.button("Effort types...", "ghost", lambda: self.manage_effort_types(), "Rename, order or take "
+                                       "out effort types, and choose the one new efforts start with (3.18.2)"),
                               D.button("+ Profile...", None, lambda: self.add_type(), "A document profile: the full set of formatting values for one kind of document you deliver"),
                               D.button("Learn from a file...", None, lambda: self.learn(), "Read a template or a finished volume and "
                                        "take its styles, table looks, pages, headers and numbering into what you are editing"),
@@ -1424,6 +1426,17 @@ class StandardsPage(QWidget):
         self.scope_box.setCurrentIndex(self.scope_box.findData("etype:" + e["id"]))
         diag.activity("prod_effort_type_added")
         return e["id"]
+
+    def manage_effort_types(self, run=True):
+        """3.18.2: add, rename, order and take out effort types (Start an effort opens the same)."""
+        from .efforttypes import manage
+        if self.dirty:
+            self.save(quiet=True)
+        d = manage(self, self.host.config_dir, run=run)
+        if run and d.changed:
+            self.data = PRL.load(self.host.config_dir)
+            self.refresh()
+        return d
 
     def effort_etype_changed(self):
         """This effort's type: its profiles become the choices; the effort keeps its own values."""

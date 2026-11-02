@@ -163,6 +163,8 @@ TOPICS = [
    "with Decide all, Put all in section and Author for all.",
    "+ Task... and + Ask the team... put work and questions on the sentence.",
    "When a document is done, press Mark reviewed, then Next document.",
+   "Undo (top bar) or Ctrl+Z undoes the last change on the page, the structure too: a section added by mistake comes "
+   "back out. The Pages column of the structure (double-click) sets a section's pages: the RFP's limit or the team's guideline.",
    "Every choice has its own color on the page (3.18.1): L green, M orange, SOW teal, support blue, the customer's purple, "
    "ignored grey; only undecided sentences stay plain. X ignores (a decision); Delete takes a decision off. A sentence "
    "something was captured from has a pink outline, and the margin says what.",
@@ -292,7 +294,7 @@ TOPICS = [
    "rules every profile in it follows; Effort type > profile sets its changes for one profile. Make templates for every "
    "profile... writes one template per profile. Order: team, profile, effort type, effort type for the profile, the effort.",
    "A profile's Deliverables this profile fits: words in a deliverable's name (cost, price) that pick this profile for it "
-   "in an effort type.",
+   "in an effort type. Effort types... (3.18.2) adds, renames, orders and takes out effort types (RFI response is a starter) and sets the default.",
    "Learn from a file...: pick your master template or a finished volume. Stationkeeper reads it (it is never changed) "
    "and lists what it carries: every style's whole definition, the format variables, table looks by row role, page "
    "setups, headers and footers, heading numbering and the TOC. Untick what you do not want; review; Save.",

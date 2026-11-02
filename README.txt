@@ -1,6 +1,25 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+UNDO EVERYWHERE, PAGES PER SECTION (3.18.2)
+  - Undo in the top bar and Ctrl+Z undo the last change on the page you are on; the button's tip says what it puts
+    back. Review: decisions and the structure (a section added, renamed, moved or deleted comes back as it was), several
+    keys pressed as one change undo as one. Structure, Coverage, Matrix, Response Setup and the Effort Dashboard share
+    the matrix's steps. A library document undoes its own attachments (a note or task made stays in the effort record).
+    A page with nothing to undo says so.
+  - Pages for each section: the Pages column of the structure list (double-click it) or Pages... sets a section's page
+    length and who set it: RFP limit (the customer's) or Team guideline (what the authors aim for). The list shows "4 RFP"
+    or "3 guide"; the Page budget keeps it and has a Set by column; Response Setup prints "Page limit (the RFP)" or
+    "Page guideline (the team)" under the section.
+  - Every decided sentence can go in the response structure: support and the customer's get + Section on the card. The
+    customer's is printed for the writers, marked not answered. Put all in section keeps each sentence's decision
+    (undecided ones become requirements there; ignored ones stay out).
+  - The decide panel and the structure list scroll on their own, apart from the page.
+  - Effort types: RFI response joins the starters (RFP response, page-limited RFP response, white paper, program
+    deliverables). Effort types... beside the Effort type on Start an effort, and in Production Standards, adds,
+    renames, orders and takes out types and chooses the one new efforts start with. An effort that used a type taken out
+    keeps its own values.
+
 EVERY CHOICE HAS A COLOR IN REVIEW (3.18.1)
   - The page shows what has been decided and what has not. L (Instructions) green, M (Evaluation) orange, SOW (Work)
     teal, a requirement with no designation olive, Support blue, Customer's purple, Ignored grey. Only sentences

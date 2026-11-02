@@ -153,7 +153,7 @@ json.dump({"version": 2, "company": {}, "types": [{"id": "tech", "name": "Techni
            "default": "tech"}, open(os.path.join(cfg8, P.FILE), "w"))
 d8 = P.load(cfg8)
 check("3.8: a 3.7 file keeps its profiles and gains the starter effort types, each holding every profile",
-      [e["name"] for e in d8["effort_types"]] == ["RFP response", "Page-limited RFP response", "White paper", "Program deliverables"]
+      [e["name"] for e in d8["effort_types"]] == ["RFP response", "Page-limited RFP response", "RFI response", "White paper", "Program deliverables"]
       and all(e["profiles"] == ["tech", "cost"] and e["default_profile"] == "tech" for e in d8["effort_types"]) and d8["version"] == 3)
 lim = P.effort_type_of(d8, "rfp_limited")
 lim.update({"fonts": {"body": {"min_size": 12}}, "variables": {"body_size": 12.5, "margin_left": 1.0},
@@ -185,7 +185,16 @@ check("3.8: the effort's standard: its effort type, the deliverable's profile, t
       and eff8["variables"]["margin_left"] == 1.25 and eff8["fonts"]["body"]["min_size"] == 12)
 d8["effort_types"] = [e for e in d8["effort_types"] if e["id"] != "program"]
 P.save(cfg8, d8)
-check("3.8: removed effort types stay removed (the starters are added once)", [e["id"] for e in P.load(cfg8)["effort_types"]] == ["rfp", "rfp_limited", "white_paper"])
+check("3.8: removed effort types stay removed (the starters are added once)", [e["id"] for e in P.load(cfg8)["effort_types"]] == ["rfp", "rfp_limited", "rfi", "white_paper"])
+import json as _json, os as _os
+_f = _os.path.join(cfg8, P.FILE); _d = _json.load(open(_f)); _d["effort_types"] = [e for e in _d["effort_types"] if e["id"] != "rfi"]
+_d.pop("starters", None); _json.dump(_d, open(_f, "w"))
+check("3.18.2: an older file gains RFI response once", "rfi" in [e["id"] for e in P.load(cfg8)["effort_types"]])
+_d = P.load(cfg8); P.add_effort_type(_d, "Sources sought"); P.rename_effort_type(_d, "white_paper", "White paper (unsolicited)")
+P.remove_effort_type(_d, "rfi"); P.save(cfg8, _d); _e = P.load(cfg8)
+check("3.18.2: effort types are added, renamed and taken out, and stay that way", [e["name"] for e in _e["effort_types"]]
+      == ["RFP response", "Page-limited RFP response", "White paper (unsolicited)", "Sources sought"]
+      and P.effort_type_of(_e, "white_paper") is not None, [e["name"] for e in _e["effort_types"]])
 n = sum(checks)
 print(f"PROD RULES {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

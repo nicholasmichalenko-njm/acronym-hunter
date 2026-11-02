@@ -166,8 +166,11 @@ def labels(M):
 
 
 def all_items(M):
-    """Kept requirements (and evaluation rows), Context sentences (2.29.0) and context paragraphs, in matrix order."""
-    return [it for it in M.items if it.get("decision") in ("Keep", "Context")] + list(setup_of(M)["context"])
+    """Kept requirements (and evaluation rows), Context sentences (2.29.0), the customer's sentences put in a section
+    (3.18.2) and context paragraphs, in matrix order."""
+    copies = {i for ids in setup_of(M)["copies"].values() for i in ids}
+    return [it for it in M.items if it.get("decision") in ("Keep", "Context")
+            or (it.get("decision") == "Customer" and (it.get("map") or it["id"] in copies))] + list(setup_of(M)["context"])
 
 
 def by_id(M):
@@ -177,6 +180,8 @@ def by_id(M):
 def kind_of(it):
     if it.get("kind") == "context" or it.get("decision") == "Context":
         return "Context"
+    if it.get("decision") == "Customer":                 # 3.18.2: the customer's, put in a section for the writers
+        return "Customer"
     return "Evaluation" if it.get("type") == "Evaluation" else "Requirement"
 
 
@@ -683,8 +688,10 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None):
             d.para("Lead: " + (pp.get("lead") or "-") + (f"   Contributors: {pp['with']}" if pp.get("with") else ""), color="1E3A8A")
         bud = ((S.get("budget") or {}).get("pages") or {}).get(lab)   # 3.1.0: the section's page budget
         if bud:
-            d.para(f"Page budget: {int(bud) if float(bud).is_integer() else bud} page{'s' if float(bud) != 1 else ''}"
-                   " (subsections included)", color="1E3A8A")
+            src = ((S.get("budget") or {}).get("source") or {}).get(lab, "team")    # 3.18.2: the RFP's limit or the team's guideline
+            d.para(("Page limit (the RFP): " if src == "rfp" else "Page guideline (the team): ")
+                   + f"{int(bud) if float(bud).is_integer() else bud} page{'s' if float(bud) != 1 else ''}"
+                   " (subsections included)", color="B91C1C" if src == "rfp" else "1E3A8A")
         if S.get("tables"):                                       # 2.38.0: the requirement table of the old Word outline
             rows = [B[i] for i in P.get(lab, []) if B.get(i) is not None and B[i].get("decision") == "Keep"]
             if rows:
@@ -697,7 +704,10 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None):
             if it is None:
                 continue
             where = where_of(it)
-            if kind_of(it) == "Context":
+            if kind_of(it) == "Customer":                 # 3.18.2: the customer's own sentence, for the writers, not answered
+                d.rich([("Customer's (not answered)" + (f" ({where})" if where else "") + ": ", {"color": "6B21A8", "bold": True})]
+                       + cwords.docx_parts(it["text"], {"color": "6B21A8"}, cw), indent=720, border="6B21A8")
+            elif kind_of(it) == "Context":
                 # 2.52.0: support language from the RFP: indented under the requirement it supports, a line down its left
                 # edge, and where it is in the customer document
                 links = C.cf_ids(it.get("context_for", ""))

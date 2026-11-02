@@ -56,9 +56,45 @@ class Review:
         return out
 
     # ------------------------------------------------------------ history
-    def snap(self):
-        self.undo.append((copy.deepcopy(self.M.items), copy.deepcopy(SD.setup_of(self.M))))
+    def group(self):
+        """3.18.2: one Undo step for a change made of several (L on an undecided sentence: a requirement, then L)."""
+        import contextlib
+
+        @contextlib.contextmanager
+        def _g():
+            outer = getattr(self, "_group", False)
+            if not outer:
+                self._group, self._group_taken = True, False
+            try:
+                yield self
+            finally:
+                if not outer:
+                    self._group = False
+        return _g()
+
+    def snap(self, label=""):
+        """Before a change: the sentences, the setup and (3.18.2) the response structure, with what the change is
+        ("add section 1.3"), so Undo puts all of it back and can say what it undoes. Inside a group only the first
+        snapshot is kept."""
+        if getattr(self, "_group", False):
+            if self._group_taken:
+                return
+            self._group_taken = True
+        self.undo.append((copy.deepcopy(self.M.items), copy.deepcopy(SD.setup_of(self.M)),
+                          copy.deepcopy(getattr(self.M, "outline", None)), label or ""))
         del self.undo[:-UNDO_STEPS]
+        self._fresh = True
+
+    def label_last(self, label):
+        """Name the change the last snapshot is for, once, right after the change (when its name is known); a snapshot
+        that has a name keeps it."""
+        if self.undo and label and getattr(self, "_fresh", False) and not self.undo[-1][3]:
+            self.undo[-1] = self.undo[-1][:3] + (" ".join(str(label).split())[:90],)
+        self._fresh = False
+
+    def undo_label(self):
+        """What Undo would put back ('' when there is nothing)."""
+        return (self.undo[-1][3] or "the last change") if self.undo else ""
 
     def changed(self):
         C.link_contexts(self.M.items)
@@ -67,9 +103,11 @@ class Review:
     def undo_last(self):
         if not self.undo:
             return False
-        items, setup = self.undo.pop()
+        items, setup, outline, _label = self.undo.pop()
         self.M.items[:] = items
         self.M.setup = setup
+        if outline is not None:                       # 3.18.2: a section added, moved, renamed or taken out comes back
+            self.M.outline[:] = outline
         self.M.pending = True
         return True
 
@@ -106,6 +144,28 @@ class Review:
             self.last_req = rows[0]["id"]
         self.changed()
         return len(rows)
+
+    def put_in(self, rows, label):
+        """3.18.2 Put in section: a decided sentence keeps its decision and goes in label too (a requirement, support,
+        the customer's); an undecided one becomes a requirement there (as R). Ignored sentences stay out of the
+        response. One Undo step. Returns how many are in label now."""
+        if not rows or label not in set(self.labels()):
+            return 0
+        self.snap(f"put {len(rows)} sentence(s) in {label}")
+        new = [it for it in rows if not it.get("decision")]
+        if new:
+            C.assign_requirement(self.M.items, new, label)
+            for it in new:
+                self.M.log(it["id"], f"compliance requirement in {label}")
+        n = len(new)
+        for it in rows:
+            if it in new or it.get("decision") not in ("Keep", "Context", "Customer"):
+                continue
+            if SD.add_section(self.M, it, label):
+                self.M.log(it["id"], f"also in {label}")
+            n += 1
+        self.changed()
+        return n
 
     def ctx(self, rows, req_ids=None):
         """C: support for req_ids, else the last requirement clicked, else the nearest requirement."""

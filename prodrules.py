@@ -104,8 +104,9 @@ def merge(base, over):
     return PR.deep_merge(base, over or {})
 
 
-STARTER_EFFORT_TYPES = [("rfp", "RFP response"), ("rfp_limited", "Page-limited RFP response"), ("white_paper", "White paper"),
-                        ("program", "Program deliverables")]
+STARTER_EFFORT_TYPES = [("rfp", "RFP response"), ("rfp_limited", "Page-limited RFP response"), ("rfi", "RFI response"),
+                        ("white_paper", "White paper"), ("program", "Program deliverables")]     # 3.18.2: RFI response
+NEW_STARTERS = ("rfi",)                          # 3.18.2: starters an older file gains once
 PROFILE_KEYS = ("id", "name", "match")            # a profile's own fields; everything else is its layer
 EFFORT_TYPE_KEYS = ("id", "name", "profiles", "default_profile", "profile_over")
 
@@ -138,16 +139,25 @@ def load(config_dir):
         if e.get("default_profile") not in e["profiles"]:
             e["default_profile"] = e["profiles"][0]
         e["profile_over"] = {k: v for k, v in (e.get("profile_over") or {}).items() if k in ids}
+    removed = [str(x) for x in d.get("removed_effort_types", []) if x]
+    if d.get("version") == 3 and int(d.get("starters", 1) or 1) < 2:    # 3.18.2: RFI response joins an older file once
+        have = {e["id"] for e in ets}
+        for k, (i, n) in enumerate(STARTER_EFFORT_TYPES):
+            if i in NEW_STARTERS and i not in have and i not in removed and not any(e["name"].casefold() == n.casefold() for e in ets):
+                ets.insert(min(k, len(ets)), {"id": i, "name": n, "profiles": list(ids), "default_profile": default,
+                                              "profile_over": {}})
     eids = [e["id"] for e in ets]
     return {"version": 3, "company": company, "types": types, "default": default, "effort_types": ets,
-            "default_effort_type": d.get("default_effort_type") if d.get("default_effort_type") in eids else ""}
+            "default_effort_type": d.get("default_effort_type") if d.get("default_effort_type") in eids else "",
+            "removed_effort_types": removed}
 
 
 def save(config_dir, data):
     os.makedirs(config_dir, exist_ok=True)
     p = os.path.join(config_dir, FILE)
     body = {"version": 3, "company": diff(data["company"], COMPANY), "types": data["types"], "default": data.get("default", ""),
-            "effort_types": data.get("effort_types", []), "default_effort_type": data.get("default_effort_type", "")}
+            "effort_types": data.get("effort_types", []), "default_effort_type": data.get("default_effort_type", ""),
+            "removed_effort_types": data.get("removed_effort_types", []), "starters": 2}
     with open(p + ".tmp", "w", encoding="utf-8") as f:
         json.dump(body, f, indent=1, ensure_ascii=False)
     os.replace(p + ".tmp", p)
@@ -164,6 +174,54 @@ def layer_of(t):
 def effort_type_of(data, eid):
     """The effort type, or None (no effort types, or an unknown id)."""
     return next((e for e in data.get("effort_types", []) if e["id"] == eid), None)
+
+
+# ------------------------------------------------------------------ 3.18.2: effort types you add, rename and take out
+def add_effort_type(data, name):
+    """A new effort type holding every profile. Returns it, or None (no name, or the name is taken)."""
+    name = " ".join((name or "").split())
+    ets = data.setdefault("effort_types", [])
+    if not name or any(e["name"].casefold() == name.casefold() for e in ets):
+        return None
+    e = {"id": slug(name, {x["id"] for x in ets}), "name": name, "profiles": [t["id"] for t in data["types"]],
+         "default_profile": data.get("default") or data["types"][0]["id"], "profile_over": {}}
+    ets.append(e)
+    data["removed_effort_types"] = [x for x in data.get("removed_effort_types", []) if x != e["id"]]
+    return e
+
+
+def rename_effort_type(data, eid, name):
+    """A new name; its id (what efforts point at) stays. Returns True when renamed."""
+    name = " ".join((name or "").split())
+    e = effort_type_of(data, eid)
+    if e is None or not name or any(x["name"].casefold() == name.casefold() and x["id"] != eid for x in data.get("effort_types", [])):
+        return False
+    e["name"] = name
+    return True
+
+
+def remove_effort_type(data, eid):
+    """Take an effort type out (a starter one stays out). Efforts that used it keep their own values. Returns True."""
+    ets = data.get("effort_types", [])
+    if effort_type_of(data, eid) is None:
+        return False
+    data["effort_types"] = [e for e in ets if e["id"] != eid]
+    data.setdefault("removed_effort_types", [])
+    if eid not in data["removed_effort_types"]:
+        data["removed_effort_types"].append(eid)
+    if data.get("default_effort_type") == eid:
+        data["default_effort_type"] = ""
+    return True
+
+
+def move_effort_type(data, eid, step):
+    ets = data.get("effort_types", [])
+    i = next((k for k, e in enumerate(ets) if e["id"] == eid), -1)
+    j = i + step
+    if i < 0 or not (0 <= j < len(ets)):
+        return False
+    ets[i], ets[j] = ets[j], ets[i]
+    return True
 
 
 def effort_layer_of(e):
