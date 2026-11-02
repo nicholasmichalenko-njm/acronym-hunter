@@ -966,7 +966,7 @@ def write_changes_excel(changes, path, name=""):
 
 
 # ------------------------------------------------------------------ outline (C2)
-_OUTLINE_LINE = re.compile(r"^(\s*)((?:Volume|Vol\.?)\s+[IVX\d]+|[A-M](?:\.\d+)+|\d+(?:\.\d+)*|[A-M]|[IVX]+)?[.)]?\s*[-–—:]?\s*(.*)$", re.I)
+_OUTLINE_LINE = re.compile(r"^(\s*)((?:(?:Volume|Vol\.?)\s+[IVX\d]+|[A-M](?:\.\d+)+|\d+(?:\.\d+)*|[A-M]|[IVX]+)(?![A-Za-z]))?[.)]?\s*[-–—:]?\s*(.*)$", re.I)   # 3.19.0: a word is not a number ("Executive")
 
 
 def parse_outline(text):
@@ -989,12 +989,42 @@ def parse_outline(text):
             level = num.count(".") + 1 if num[0].isdigit() else num.count(".") + 1
         else:
             level = indent // 4 + 1
-        out.append({"num": num, "title": title or num, "level": max(1, min(level, 12))})     # 2.68.0: deeper than 6
+        o = {"num": num, "title": title or num, "level": max(1, min(level, 12))}     # 2.68.0: deeper than 6
+        if not num:                                   # 3.19.0: "[Front matter] Table of contents": a part's item
+            import structparts as SP
+            part, rest = SP.tag_part(o["title"])
+            if part:
+                o["title"] = rest or SP.ITEM_NAME[part]
+                if part != "body":
+                    o["part"] = part
+        out.append(o)
+    if out:                                           # an item under a part's item is in that part
+        import structparts as SP
+        stack = []
+        for o in out:
+            while stack and stack[-1]["level"] >= o["level"]:
+                stack.pop()
+            if stack and "part" in stack[-1] and "part" not in o:
+                o["part"] = stack[-1]["part"]
+            stack.append(o)
     return out
 
 
 def outline_text(outline):
-    return "\n".join(("    " * (o["level"] - 1)) + (f"{o['num']} " if o["num"] else "") + o["title"] for o in outline)
+    """3.19.0: a part's first item carries its tag ("[Front matter] Table of contents"); the items under it follow it."""
+    import structparts as SP
+    out, stack = [], []
+    for o in outline:
+        while stack and stack[-1]["level"] >= o["level"]:
+            stack.pop()
+        p = SP.part_of(o)
+        inherited = bool(stack) and SP.part_of(stack[-1]) == p
+        tag = f"[{SP.TAG[p]}] " if p != "body" and not inherited else ""
+        if p == "body" and stack and SP.part_of(stack[-1]) != "body":
+            tag = "[Response] "
+        out.append(("    " * (o["level"] - 1)) + tag + (f"{o['num']} " if o["num"] else "") + o["title"])
+        stack.append(o)
+    return "\n".join(out)
 
 
 def outline_label(o):
@@ -1171,6 +1201,11 @@ class Matrix:
                             o["auto"] = True           # 2.69.0: numbered by its place (made in Assign)
                         if len(r) >= 6 and r[5]:
                             o["from"] = str(r[5]).strip()   # 2.69.0: the RFP section it was copied from
+                        if len(r) >= 7 and r[6]:         # 3.19.0: its part (cover, title, front, appendix, back)
+                            import structparts as SP
+                            pk = {v.lower(): k for k, v in SP.PARTS}.get(str(r[6]).strip().lower(), str(r[6]).strip().lower())
+                            if pk in SP.PART_NAME and pk != "body":
+                                o["part"] = pk
                         self.outline.append(o)
             if "Sources" in wb.sheetnames:
                 self.sources = [[("" if v is None else str(v)) for v in (list(r) + ["", "", "", ""])[:4]]
@@ -1319,14 +1354,15 @@ class Matrix:
         for col in ("Context", "Key"):
             ws.column_dimensions[ws.cell(row=1, column=COLUMNS.index(col) + 1).column_letter].hidden = col in ("Key", "As read", "Place", "Lead place")
         ol = wb.create_sheet("Outline")
-        ol.append(["Number", "Title", "Level", "Keep and Context rows placed", "Numbering", "From RFP section"])
+        ol.append(["Number", "Title", "Level", "Keep and Context rows placed", "Numbering", "From RFP section", "Part"])
+        import structparts as SP
         for c in ol[1]:
             c.font = Font(bold=True)
         for o in self.outline:
             lab = outline_label(o)
             ol.append([o["num"], o["title"], o["level"], sum(1 for it in self.items if it["decision"] in ("Keep", "Context") and it["map"] == lab),
-                       "auto" if o.get("auto") else "", o.get("from", "")])
-        for col, w in zip("ABCDEF", (12, 60, 8, 18, 12, 16)):
+                       "auto" if o.get("auto") else "", o.get("from", ""), SP.PART_NAME[SP.part_of(o)]])
+        for col, w in zip("ABCDEFG", (12, 60, 8, 18, 12, 16, 14)):
             ol.column_dimensions[col].width = w
         so = wb.create_sheet("Sources")
         so.append(["File", "SHA-256", "Read on", "Path on this PC"])

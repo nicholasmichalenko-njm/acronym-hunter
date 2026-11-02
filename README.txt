@@ -1,6 +1,26 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+PARTS OF THE RESPONSE STRUCTURE (3.19.0)
+  - Each volume of the structure is in parts, in order: Cover, Title page, Front matter, Response, Appendices, Back
+    cover. Review > Parts adds a cover, a title page, a front matter item (cover letter, table of contents, list of
+    figures, list of tables, acronyms and abbreviations, compliance matrix, executive summary, or your own title), an
+    appendix or a back cover to the volume you are working in, and moves the target to another part.
+  - Numbering by part: the response is numbered as before; appendices are lettered (Appendix A, then A.1 under it);
+    cover, title page, front matter and back cover items carry no number (the same title in another volume gets
+    "(Vol II)").
+  - The structure list shows each part as a heading with its rules from Production Standards for the volume's profile
+    and effort type: page numbering (none, i/ii, 1-1 by chapter, A-1 by appendix), the header, the marking in the
+    footer and the heading style that starts it. A title page follows the cover's rules unless the page scheme has a
+    title part. Response Setup prints each part's rules where it starts.
+  - Parts > Part rules and page limits... lists the rules and which parts count toward the page limit: the response
+    only by default. The Page budget counts and splits only the parts that count, and lists the others as not counted.
+  - Requirements, support, authors and pages work on part items like any section. The Structure tab writes a part's
+    item as "[Front matter] Table of contents"; type it that way to set the part. The matrix's Outline sheet has a Part
+    column.
+  - Typing a title such as "Executive summary" in the Structure tab no longer reads its first letter as a section
+    number.
+
 UNDO EVERYWHERE, PAGES PER SECTION (3.18.2)
   - Undo in the top bar and Ctrl+Z undo the last change on the page you are on; the button's tip says what it puts
     back. Review: decisions and the structure (a section added, renamed, moved or deleted comes back as it was), several

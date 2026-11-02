@@ -18,6 +18,7 @@ import diag
 import effortrec as R_
 import pagemarks as PM
 import pagebudget as PB
+import structparts as SP
 import compliance as C
 import setupdoc as SD
 import pagesent as PS
@@ -527,7 +528,7 @@ class AssignPage(QWidget):
         self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Your response structure (click a section: the target)", "Req.", "Ctx", "Pages"])
         self.tree.setColumnWidth(0, 330); self.tree.setColumnWidth(1, 44); self.tree.setColumnWidth(2, 40)
         self.tree.headerItem().setToolTip(3, "Pages for the section: the RFP's limit or the team's guideline. Double-click to set.")
-        self.tree.itemClicked.connect(lambda i, _c: self.set_target(i.data(0, Qt.UserRole)))
+        self.tree.itemClicked.connect(lambda i, _c: self.set_target(i.data(0, Qt.UserRole)) if i.data(0, Qt.UserRole) else None)
         self.tree.itemDoubleClicked.connect(lambda i, c: self.section_pages(i.data(0, Qt.UserRole)) if c == 3
                                             else self.rename_section(i.data(0, Qt.UserRole)))
         sv.addWidget(self.tree)
@@ -539,6 +540,22 @@ class AssignPage(QWidget):
                                "The RFP section the selected sentence is in (and its subsections, if you want) under the "
                                "target, titled as the RFP titles it; its requirements with no section yet go into it")):
             srow.addWidget(D.button(text, None, fn, tip))
+        from PySide6.QtWidgets import QMenu                           # 3.19.0: cover, title page, front matter, appendices
+        self.parts_btn = D.button("Parts", None, None, "Cover, title page, front matter, appendices and back cover: add "
+                                  "one, move the target to another part, and each part's rules and page limit")
+        pm = QMenu(self.parts_btn)
+        self.parts_actions = {}
+        for key, text in (("cover", "Add a cover"), ("title", "Add a title page"), ("front", "Add a front matter item..."),
+                          ("appendix", "Add an appendix..."), ("back", "Add a back cover")):
+            a = pm.addAction(text); a.triggered.connect(lambda _=False, k=key: self.add_part(k))
+            self.parts_actions[key] = a
+        pm.addSeparator()
+        a = pm.addAction("Move the target to a part..."); a.triggered.connect(lambda: self.move_to_part())
+        self.parts_actions["move"] = a
+        a = pm.addAction("Part rules and page limits..."); a.triggered.connect(lambda: self.parts_dialog())
+        self.parts_actions["rules"] = a
+        self.parts_btn.setMenu(pm)
+        srow.addWidget(self.parts_btn)
         srow.addStretch(1)
         row = QHBoxLayout(); row.setSpacing(4); sv.addLayout(row)
         for text, fn, tip in (("Rename", lambda: self.rename_section(self.target), "Rename the target (or double-click it)"),
@@ -1902,11 +1919,33 @@ class AssignPage(QWidget):
         ctxn = self._ctx_counts()
         show = set(O.in_volume(self.M, self.active_volume))
         stack = []
+        parts_on = SP.has_parts(self.M)               # 3.19.0: the volume's parts, each with the rules it follows
+        heads = O.volume_heads(self.M)
+        cur_vol, last_part, part_node, sums = "", None, None, {}
+        self.part_nodes = []
         for o in self.M.outline:
             lab = C.outline_label(o)
             if lab not in show:
                 continue
             lvl = o.get("level", 1)
+            if parts_on and lab in heads:
+                cur_vol, last_part, part_node = lab, None, None
+            par = next((x for x in reversed(stack) if x[0] < lvl), None)
+            top = parts_on and lab not in heads and (par is None or par[1].data(0, Qt.UserRole) in heads)
+            if top:
+                part = SP.part_of(o)
+                if part != last_part:
+                    if cur_vol not in sums:
+                        sums[cur_vol] = SP.summaries(self.host.config_dir, self.host.ws, self.M, cur_vol)
+                    part_node = QTreeWidgetItem([SP.PART_NAME[part].upper(), "", "", "" if SP.counts(self.M, part) else "not counted"])
+                    part_node.setData(0, Qt.UserRole, None); part_node.setData(0, Qt.UserRole + 1, part)
+                    f = part_node.font(0); f.setBold(True); f.setPointSizeF(max(7.0, f.pointSizeF() - 1)); part_node.setFont(0, f)
+                    part_node.setForeground(0, D.color("muted")); part_node.setForeground(3, D.color("muted"))
+                    part_node.setToolTip(0, f"{SP.PART_NAME[part]}: {sums[cur_vol][part]}")
+                    (par[1].addChild(part_node) if par else self.tree.addTopLevelItem(part_node))
+                    part_node.setExpanded(True)
+                    self.part_nodes.append(part_node)
+                    last_part = part
             node = QTreeWidgetItem([lab, str(counts.get(lab, "") or ""), str(ctxn.get(lab, "") or ""), PB.tag(self.M, lab)])
             if PB.pages(self.M, lab):                                     # 3.18.2: the RFP's limit in red, a guideline in blue
                 node.setForeground(3, QColor("#B91C1C" if PB.source(self.M, lab) == "rfp" else "#1D4ED8"))
@@ -1919,7 +1958,10 @@ class AssignPage(QWidget):
                 node.setBackground(0, D.color("warn_soft")); node.setForeground(0, D.color("text"))
             while stack and stack[-1][0] >= lvl:
                 stack.pop()
-            (stack[-1][1].addChild(node) if stack else self.tree.addTopLevelItem(node))
+            if top and part_node is not None:
+                part_node.addChild(node)
+            else:
+                (stack[-1][1].addChild(node) if stack else self.tree.addTopLevelItem(node))
             stack.append((lvl, node))
         self.tree.expandAll()
         self.show_target()
@@ -2563,6 +2605,121 @@ class AssignPage(QWidget):
         self.after(f"{num or 'RFP section'} copied into the structure as {made[0]}"
                    + (f" with {len(made) - 1} subsection(s)" if len(made) > 1 else "") + ". Rename or move it to say it your way.")
         return made
+
+    # ------------------------------------------------------------ 3.19.0: parts of the structure
+    def _part_volume(self):
+        """The volume new part items go in: the one you are working in, else the target's, else the first."""
+        heads = O.volume_heads(self.M)
+        if not heads:
+            return ""
+        if self.active_volume in heads:
+            return self.active_volume
+        if self.target:
+            labs = O.labels(self.M)
+            i = labs.index(self.target) if self.target in labs else -1
+            for j in range(i, -1, -1):
+                if labs[j] in heads:
+                    return labs[j]
+        return next(l for l in O.labels(self.M) if l in heads)
+
+    def add_part(self, part, title=None):
+        """Add a cover, title page, front matter item, appendix or back cover to the volume (title: tests)."""
+        if self.M is None:
+            return None
+        if title is None:
+            if part in ("cover", "title", "back"):
+                title = SP.ITEM_NAME[part]
+            else:
+                d = QDialog(self); d.setWindowTitle("Add a front matter item" if part == "front" else "Add an appendix")
+                d.setMinimumWidth(460); f = QFormLayout(d)
+                cb = QComboBox(); cb.setEditable(True)
+                if part == "front":
+                    cb.addItems(SP.FRONT_PRESETS)
+                cb.setCurrentText("" if part != "front" else SP.FRONT_PRESETS[1])
+                f.addRow("Title", cb)
+                f.addRow(D.label("Unnumbered; it follows the front matter rules of Production Standards." if part == "front"
+                                 else "Lettered by its place: Appendix A, B ...", "muted"))
+                bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
+                f.addRow(bb)
+                if d.exec() != QDialog.Accepted:
+                    return None
+                title = cb.currentText()
+        vol = self._part_volume()
+        self.R.snap(f"add {SP.ITEM_NAME[part].lower()}: {title}")
+        lab = O.add_part_item(self.M, part, title, vol)
+        if lab is None:
+            self.R.undo.pop() if self.R.undo else None
+            self.host.status("Add a volume first, or pick the volume you are working in.")
+            return None
+        diag.activity("structure_part_added")
+        self.target = lab
+        self.after(f"{SP.ITEM_NAME[part]} added: {lab}" + (f" in {vol}" if vol else ""))
+        return lab
+
+    def move_to_part(self, part=None):
+        """Move the target (with what is under it) to another part of its volume."""
+        if not self.target or self.M is None:
+            self.host.status("Click a section in your structure first.")
+            return None
+        if part is None:
+            from PySide6.QtWidgets import QInputDialog
+            names = [n for _k, n in SP.PARTS]
+            cur = SP.PART_NAME[SP.part_of(self.M.outline[O.index_of(self.M, self.target)])]
+            name, ok = QInputDialog.getItem(self, "Move to a part", f"{self.target} goes to:", names, names.index(cur), False)
+            if not ok:
+                return None
+            part = dict((n, k) for k, n in SP.PARTS)[name]
+        self.R.snap(f"move {self.target} to {SP.PART_NAME[part]}")
+        new = O.set_part(self.M, self.target, part)
+        if new is None:
+            if self.R.undo:
+                self.R.undo.pop()
+            self.host.status("Only a volume's top sections move between parts; move this one up a level first.")
+            return None
+        self.target = new
+        diag.activity("structure_part_moved")
+        self.after(f"{new}: {SP.PART_NAME[part]}")
+        return new
+
+    def parts_dialog(self, run=True):
+        """Each part's rules from Production Standards for the volume, and whether it counts toward the page limit."""
+        if self.M is None:
+            return None
+        from PySide6.QtWidgets import QCheckBox, QTableWidget, QTableWidgetItem, QHeaderView
+        vol = self._part_volume()
+        sums = {k: SP.summary(SP.standard_for(self.host.config_dir, self.host.ws, vol), k) for k, _n in SP.PARTS}
+        d = QDialog(self); d.setWindowTitle("Parts of the structure"); d.resize(900, 420)
+        v = QVBoxLayout(d)
+        v.addWidget(D.label(f"The rules each part follows{' in ' + vol if vol else ''}, from the page scheme in Production "
+                            "Standards (the volume's profile and the effort type). Tick the parts the RFP counts toward "
+                            "the page limit.", "muted"))
+        t = QTableWidget(len(SP.PARTS), 3); t.setHorizontalHeaderLabels(["Part", "Rules (Production Standards)", "Counts toward the limit"])
+        t.verticalHeader().setVisible(False); t.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        t.setColumnWidth(0, 130); t.setColumnWidth(2, 170)
+        boxes = {}
+        for r, (k, name) in enumerate(SP.PARTS):
+            it = QTableWidgetItem(name); it.setFlags(Qt.ItemIsEnabled); t.setItem(r, 0, it)
+            x = QTableWidgetItem(sums[k]); x.setFlags(Qt.ItemIsEnabled); x.setToolTip(sums[k]); t.setItem(r, 1, x)
+            cb = QCheckBox(); cb.setChecked(SP.counts(self.M, k)); t.setCellWidget(r, 2, cb); boxes[k] = cb
+        t.resizeRowsToContents()
+        v.addWidget(t, 1)
+        row = QHBoxLayout(); v.addLayout(row)
+        row.addWidget(D.button("Edit the rules in Production Standards", "ghost", lambda: (d.reject(), self.host.go("prodstd"))))
+        row.addStretch(1)
+        bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); row.addWidget(bb)
+
+        def save():
+            self.R.snap("which parts count toward the page limit")
+            for k, cb in boxes.items():
+                SP.set_counts(self.M, k, cb.isChecked())
+            diag.activity("structure_parts_counted")
+            d.accept()
+            self.after("Parts saved: " + ", ".join(SP.PART_NAME[k] for k, cb in boxes.items() if cb.isChecked()) + " count toward the page limit")
+        bb.accepted.connect(save); bb.rejected.connect(d.reject)
+        d._api = {"table": t, "boxes": boxes, "save": save, "sums": sums}
+        if run:
+            d.exec()
+        return d
 
     def section_pages(self, label, answer=None):
         """3.18.2: a section's page length and who set it (the RFP's limit or the team's guideline). answer (tests):

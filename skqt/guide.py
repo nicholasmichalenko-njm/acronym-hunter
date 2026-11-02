@@ -163,6 +163,9 @@ TOPICS = [
    "with Decide all, Put all in section and Author for all.",
    "+ Task... and + Ask the team... put work and questions on the sentence.",
    "When a document is done, press Mark reviewed, then Next document.",
+   "Parts (3.19.0) adds a cover, a title page, front matter items, appendices and a back cover to the volume, each in its "
+   "place, and moves a section to another part. Each part shows the rules it follows from Production Standards; Part rules "
+   "and page limits... sets which parts count toward the page limit.",
    "Undo (top bar) or Ctrl+Z undoes the last change on the page, the structure too: a section added by mistake comes "
    "back out. The Pages column of the structure (double-click) sets a section's pages: the RFP's limit or the team's guideline.",
    "Every choice has its own color on the page (3.18.1): L green, M orange, SOW teal, support blue, the customer's purple, "

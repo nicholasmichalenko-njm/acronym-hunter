@@ -7,6 +7,7 @@ sentence, owner and setup entry follows its section. Rules only (No AI); nothing
 import re
 import compliance as C
 import setupdoc as SD
+import structparts as SP
 
 ROMAN = ((10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"))
 
@@ -81,23 +82,47 @@ def relabel(M, mapping):
     return len(mapping)
 
 
-def renumber(M):
+def _letter(n):
+    out = ""
+    while n:
+        n, r = divmod(n - 1, 26)
+        out = chr(65 + r) + out
+    return out
+
+
+def renumber(M, before=None):
     """Number every section made here by where it sits: within a volume heading, 1, 2, 3 at its first level, 1.1 under
-    1, and so on, as deep as it goes. Returns {old label: new label}."""
+    1, and so on, as deep as it goes. 3.19.0: by part: the response is numbered as before; appendices are lettered
+    (Appendix A, then A.1 under it); cover, title page, front matter and back cover items carry no number. Returns
+    {old label: new label}. before: {id(section): its label before a change made ahead of this call."""
     heads = volume_heads(M)
-    old = labels(M)
-    counters = {}                                  # (parent index) -> sections seen under it so far
+    old = [before.get(id(o), C.outline_label(o)) for o in M.outline] if before else labels(M)
+    counters = {}                                  # (parent index, numbered kind) -> sections seen under it so far
     nums = {}
     for i, o in enumerate(M.outline):
         p = parent_of(M, i)
-        counters[p] = counters.get(p, 0) + 1       # 2.69.0: every sibling counts, typed or made here
+        part = SP.part_of(o)
+        kind = part if part in SP.NUMBERED else ""
+        if kind:
+            counters[(p, kind)] = counters.get((p, kind), 0) + 1   # 2.69.0: every sibling counts, typed or made here
         if not o.get("auto"):
             nums[i] = o.get("num", "")
             continue
-        n = counters[p]
+        if not kind:
+            o["num"] = ""
+            nums[i] = ""
+            continue
+        n = counters[(p, kind)]
+        top = p is None or C.outline_label(M.outline[p]) in heads
+        if kind == "appendix" and top:
+            o["num"] = f"Appendix {_letter(n)}"
+            nums[i] = o["num"]
+            continue
         base = ""
-        if p is not None and C.outline_label(M.outline[p]) not in heads:
+        if not top:
             base = nums.get(p, M.outline[p].get("num", ""))
+            if base.lower().startswith("appendix "):
+                base = base.split(" ", 1)[1]
             base = base if re.match(r"^[0-9A-Za-z]+(\.[0-9A-Za-z]+)*$", base or "") else ""
         o["num"] = f"{base}.{n}" if base else str(n)
         nums[i] = o["num"]
@@ -140,9 +165,116 @@ def add(M, title, parent=None, after=None):
     else:
         at, lvl = len(M.outline), 1
     o = {"num": "", "title": title, "level": lvl, "auto": True}
+    near = M.outline[pi] if parent else (M.outline[ai] if after else None)
+    if near is not None and SP.part_of(near) != "body" and near.get("level", 1) <= lvl and C.outline_label(near) not in volume_heads(M):
+        o["part"] = SP.part_of(near)               # 3.19.0: a section under (or after) a part's item is in that part
+        o["title"] = unique_title(M, o["title"])
     M.outline.insert(at, o)
     renumber(M)
     M.log("outline", f"section added: {C.outline_label(o)}")
+    M.pending = True
+    return C.outline_label(o)
+
+
+# ------------------------------------------------------------------ 3.19.0: parts (cover, title page, front matter ...)
+def unique_title(M, title, volume=""):
+    """An unnumbered item's label is its title: one already used gets the volume's number or a count after it."""
+    have = set(labels(M))
+    if title not in have:
+        return title
+    short = (volume.split(" ")[1] if volume.lower().startswith("volume ") and len(volume.split(" ")) > 1 else "")
+    cand = f"{title} (Vol {short})" if short else f"{title} (2)"
+    n = 2
+    while cand in have:
+        n += 1
+        cand = f"{title} ({n})" if not short else f"{title} (Vol {short}, {n})"
+    return cand
+
+
+def _scope(M, volume=""):
+    """(first index, end index, level) of the top-level items of a volume (or of the whole structure)."""
+    heads = volume_heads(M)
+    if volume and volume in heads:
+        vi = index_of(M, volume)
+        sub = subtree(M, vi)
+        return vi + 1, sub[-1] + 1, M.outline[vi]["level"] + 1
+    if heads:
+        return None
+    return 0, len(M.outline), min((o.get("level", 1) for o in M.outline), default=1)
+
+
+def _blocks(M, a, b, lvl):
+    """[(start, end)] of the top-level blocks between a and b."""
+    out, i = [], a
+    while i < b:
+        if M.outline[i]["level"] == lvl:
+            j = subtree(M, i)[-1] + 1
+            out.append((i, j)); i = j
+        else:
+            i += 1
+    return out
+
+
+def add_part_item(M, part, title, volume=""):
+    """A cover, title page, front matter item, response section, appendix or back cover at its place in a volume (or the
+    response): after the items of its part and of the parts before it. Returns its label, or None."""
+    if part not in SP.PART_NAME:
+        return None
+    heads = volume_heads(M)
+    if heads and volume not in heads:
+        volume = next(iter(l for l in labels(M) if l in heads), "")
+    sc = _scope(M, volume)
+    if sc is None:
+        return None
+    a, b, lvl = sc
+    title = " ".join((title or "").split())[:160] or SP.ITEM_NAME[part]
+    at = a
+    for s, e in _blocks(M, a, b, lvl):
+        if SP.ORDER[SP.part_of(M.outline[s])] <= SP.ORDER[part]:
+            at = e
+    o = {"num": "", "title": title if part in SP.NUMBERED else unique_title(M, title, volume), "level": lvl, "auto": True}
+    if part != "body":
+        o["part"] = part
+    M.outline.insert(at, o)
+    renumber(M)
+    M.log("outline", f"{SP.ITEM_NAME[part].lower()} added: {C.outline_label(o)}")
+    M.pending = True
+    return C.outline_label(o)
+
+
+def set_part(M, label, part):
+    """Move an item (with everything under it) to another part of its volume: it takes the part's numbering and its
+    place in the order. Only a volume's top-level items move between parts. Returns the new label, or None."""
+    i = index_of(M, label)
+    if i < 0 or part not in SP.PART_NAME or label in volume_heads(M):
+        return None
+    p = parent_of(M, i)
+    heads = volume_heads(M)
+    if p is not None and C.outline_label(M.outline[p]) not in heads:
+        return None
+    o = M.outline[i]
+    before = {id(x): C.outline_label(x) for x in M.outline}
+    if not o.get("auto") and (part not in SP.NUMBERED or SP.part_of(o) not in SP.NUMBERED):
+        o["auto"] = True                           # the part numbers it (or takes its number off), in renumber
+    for k in subtree(M, i):
+        if part == "body":
+            M.outline[k].pop("part", None)
+        else:
+            M.outline[k]["part"] = part
+    volume = C.outline_label(M.outline[p]) if p is not None else ""
+    sc = _scope(M, volume) if (not heads or volume in heads) else None
+    if sc is not None:                             # the volume's blocks in part order (a stable sort)
+        a, b, lvl = sc
+        bl = _blocks(M, a, b, lvl)
+        keep = [M.outline[x] for x in range(a, b)]
+        order = sorted(bl, key=lambda se: SP.ORDER[SP.part_of(M.outline[se[0]])])
+        new = [M.outline[x] for s, e in order for x in range(s, e)]
+        loose = [x for x in keep if not any(x is y for y in new)]
+        M.outline[a:b] = new + loose
+    if part not in SP.NUMBERED and o["title"] in [C.outline_label(x) for x in M.outline if x is not o]:
+        o["title"] = unique_title(M, o["title"], volume)     # an unnumbered title already used: say which one
+    renumber(M, before)
+    M.log("outline", f"moved to {SP.PART_NAME[part]}: {C.outline_label(o)}")
     M.pending = True
     return C.outline_label(o)
 

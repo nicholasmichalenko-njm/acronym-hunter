@@ -175,16 +175,21 @@ class StructurePage(QWidget):
             lab = C.outline_label(o)
             k, c = counts.get(lab, (0, 0))
             node = QTreeWidgetItem([lab, str(k or ""), str(c or ""), _pages_tag(R, lab)])
+            import structparts as SP
+            if SP.part_of(o) != "body":                    # 3.19.0: cover, title page, front matter, appendix, back cover
+                node.setText(0, f"{lab}   [{SP.TAG[SP.part_of(o)]}]")
+                node.setForeground(0, D.color("muted"))
             lvl = o.get("level", 1)
             while stack and stack[-1][0] >= lvl:
                 stack.pop()
             (stack[-1][1].addChild(node) if stack else self.tree.addTopLevelItem(node))
             stack.append((lvl, node))
         self.tree.expandAll()
+        import structparts as SP
         now = {C.outline_label(o) for o in R.M.outline}
         new = {C.outline_label(o) for o in ol}
         gone = [lab for lab in counts if lab not in new]
-        changed = now != new
+        changed = now != new or [SP.part_of(o) for o in R.M.outline] != [SP.part_of(o) for o in ol]   # 3.19.0: a part changed
         self.state.setText(("Not applied yet. " if changed else "Applied. ")
                            + (f"Apply clears the assignments in {len(gone)} section(s) that are no longer in it." if gone else ""))
         self.apply_btn.setEnabled(changed)

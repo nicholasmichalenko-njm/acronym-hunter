@@ -672,7 +672,7 @@ def _safe(s):
 LIBRARY_TEAL = "0F766E"
 
 
-def _doc_for(M, name, entries, P, inh, stamp, context=None):
+def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None):
     import docxw, compliance as C
     S = setup_of(M)
     B = by_id(M)
@@ -680,8 +680,18 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None):
     cw = cwords.load()
     d.props = {"StationkeeperMatrix": M.name or "", "StationkeeperSetupExported": stamp, "StationkeeperSetupPart": name}
     base = min((o.get("level", 1) for o in entries), default=1)
+    import structparts as SP
+    show_parts = SP.has_parts(M)
+    vheads = set(volumes_of(M)[2])
+    last_part = None
     for o in entries:
         lab = C.outline_label(o)
+        part = SP.part_of(o)
+        if show_parts and lab not in vheads and part != last_part and (o.get("level", 1) - base) <= 1:   # 3.19.0: a part starts: its rules
+            d.para(SP.PART_NAME[part].upper() + (f": {rules[part]}" if rules and rules.get(part) else "")
+                   + ("" if SP.counts(M, part) else ("" if rules else "; not counted toward the page limit")),
+                   color="7C2D12", bold=True)
+            last_part = part
         d.heading(lab, o.get("level", 1) - base + 1)
         pp = S["owners"].get(lab) or {}
         if pp.get("lead") or pp.get("with"):                      # 2.38.0: who writes this section
@@ -742,9 +752,10 @@ def snapshot(M):
             "mgmt": {lab: _sig(S["mgmt"].get(lab, "")) for lab in P}}
 
 
-def export(M, folder, when=None, context=None):
+def export(M, folder, when=None, context=None, part_rules=None):
     """Write one .docx per volume into folder. Returns the paths. Records a snapshot for Export changes only.
-    context (2.84.0): {section label: [(text, document, where)]}, sentences from library documents attached to sections."""
+    context (2.84.0): {section label: [(text, document, where)]}, sentences from library documents attached to sections.
+    part_rules (3.19.0): a function (volume name) -> {part: its rules in words}, from Production Standards."""
     when = when or datetime.datetime.now()
     stamp = when.strftime("%Y-%m-%d %H:%M")
     tag = when.strftime("%Y-%m-%d_%H%M")
@@ -756,7 +767,14 @@ def export(M, folder, when=None, context=None):
     for name, entries in groups:
         part = "" if len(groups) == 1 else "_" + _safe(name)
         p = os.path.join(folder, f"{stem}_Response_Setup{part}_{tag}.docx")
-        _doc_for(M, name, entries, P, inh, stamp, context).save(p)
+        rules = None
+        if part_rules is not None:
+            try:
+                rules = part_rules(name)
+            except Exception:
+                import diag
+                diag.swallowed()
+        _doc_for(M, name, entries, P, inh, stamp, context, rules).save(p)
         paths.append(p)
     S = setup_of(M)
     snap = snapshot(M)

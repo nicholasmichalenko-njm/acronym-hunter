@@ -112,9 +112,13 @@ def limit_for(M, volume, rows=(), delivs=()):
     return None, ""
 
 
-def total(M, labels):
-    """Pages budgeted across labels: each budgeted section counted once, at its highest budgeted level."""
-    have = {l for l in labels if pages(M, l)}
+def total(M, labels, counted_only=True):
+    """Pages budgeted across labels: each budgeted section counted once, at its highest budgeted level. 3.19.0: the
+    parts that do not count toward the page limit (cover, title page, front matter, appendices, back cover unless set)
+    are left out."""
+    import structparts as SP
+    lp = SP.label_part(M) if counted_only else {}
+    have = {l for l in labels if pages(M, l) and (not counted_only or SP.counts(M, lp.get(l, "body")))}
     out = 0.0
     for l in have:
         if not any(p in have for p in SD._parents(M, l)[1:]):
@@ -146,10 +150,12 @@ def parts(M, volume_labels):
         return []
     top = min(lv[l] for l in labs)
     tops = [l for l in labs if lv[l] == top]
+    import structparts as SP
+    lp = SP.label_part(M)
     if len(tops) == 1 and len(labs) > 1:                    # a volume heading: split across what is under it
         nxt = min((lv[l] for l in labs if lv[l] > top), default=top)
-        return [l for l in labs if lv[l] == nxt]
-    return tops
+        return [l for l in labs if lv[l] == nxt and SP.counts(M, lp.get(l, "body"))]   # 3.19.0: the parts that count
+    return [l for l in tops if SP.counts(M, lp.get(l, "body"))]
 
 
 def req_counts(M, labels):

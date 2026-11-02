@@ -20,6 +20,15 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.19.0": ["The response structure has parts: cover, title page, front matter, the response, appendices and back cover, "
+               "in order in each volume. Review's Parts button adds them (front matter from a list: cover letter, table of "
+               "contents, lists of figures and tables, acronyms, compliance matrix, executive summary, or your own) and "
+               "moves a section to another part.",
+               "Cover, title page and front matter carry no section numbers; appendices are lettered (Appendix A, A.1). "
+               "Each part shows the rules it follows from Production Standards: page numbering, header, footer marking "
+               "and the heading style that starts it. Response Setup prints them where each part starts.",
+               "Part rules and page limits... says which parts count toward the page limit (the response by default); "
+               "the Page budget counts and splits only those."],
     "3.18.2": ["Undo everywhere: an Undo button in the top bar and Ctrl+Z undo the last change on the page you are on, and "
                "say what they put back. In Review that includes the structure: a section added, renamed, moved or taken out "
                "comes back as it was. Structure, Coverage, Matrix and Response Setup share the matrix's steps; library "
