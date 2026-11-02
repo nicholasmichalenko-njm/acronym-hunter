@@ -28,7 +28,10 @@ WHATS_NEW = {
                "Each part shows the rules it follows from Production Standards: page numbering, header, footer marking "
                "and the heading style that starts it. Response Setup prints them where each part starts.",
                "Part rules and page limits... says which parts count toward the page limit (the response by default); "
-               "the Page budget counts and splits only those."],
+               "the Page budget counts and splits only those.",
+               "Add missed text: text whose words are not in the PDF's own text (a scanned page read by OCR, wording you "
+               "fixed, a header or footer band) now gets a box from the area you dragged, and it selects. The area is "
+               "kept in the matrix."],
     "3.18.2": ["Undo everywhere: an Undo button in the top bar and Ctrl+Z undo the last change on the page you are on, and "
                "say what they put back. In Review that includes the structure: a section added, renamed, moved or taken out "
                "comes back as it was. Structure, Coverage, Matrix and Response Setup share the matrix's steps; library "

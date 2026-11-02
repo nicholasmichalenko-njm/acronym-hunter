@@ -45,6 +45,16 @@ SG_LM = {"L": "L", "M": "M", "SOW": "C"}
 SG_KEYS = {"L": "L", "M": "E", "SOW": "R", "ctx": "C", "cust": "G", "ignore": "X"}
 
 
+def parse_area(text):
+    """3.19.0: '2:72.0,140.0,540.0,168.0' -> (2, 72.0, 140.0, 540.0, 168.0), or None."""
+    try:
+        pg, rest = str(text or "").split(":", 1)
+        l, t, r, b = (float(x) for x in rest.split(","))
+        return int(pg), min(l, r), min(t, b), max(l, r), max(t, b)
+    except (ValueError, TypeError):
+        return None
+
+
 class SentenceBox(QGraphicsPathItem):
     def __init__(self, iid, rects):
         path = QPainterPath()
@@ -1002,6 +1012,7 @@ class AssignPage(QWidget):
             sc.removeItem(b)
         self._guard = False
         rows = self.cx.rows if self.cx is not None else self.R.rows_of(self.file)
+        self._area_ids = set()
         try:
             self.placed = PS.place_all(self.pdf, rows)
         except Exception:
@@ -1023,8 +1034,19 @@ class AssignPage(QWidget):
             for l, t, r, b in m["headings"]:
                 pen = QPen(QColor("#475569")); pen.setWidthF(0.6); pen.setCosmetic(True)
                 sc.addRect(QRectF(l + MARGIN - 1, t + y0 - 1, r - l + 2, b - t + 2), pen)
+        for it in ([] if self.cx is not None else rows):    # 3.19.0: text added from an area its words could not be found
+            if it["id"] in rects or not it.get("area"):      # in (a scanned page, wording fixed, header or footer band):
+                continue                                    # its box is the area it was read from, on top
+            ar = parse_area(it["area"])
+            if ar and 1 <= ar[0] <= len(self.tops):
+                y0 = self.tops[ar[0] - 1]
+                l, t, r, b = ar[1:]
+                rects[it["id"]] = [(l + MARGIN, t + y0, r + MARGIN, b + y0)]
+                self._area_ids.add(it["id"])
         for iid, rs in rects.items():
             box = SentenceBox(iid, rs)
+            if iid in self._area_ids:
+                box.setZValue(2)                            # above a heading's outline or a wider box, so it always selects
             sc.addItem(box)
             self.view.boxes[iid] = box
         self.restyle()
@@ -2545,7 +2567,7 @@ class AssignPage(QWidget):
                  if b.path().boundingRect().top() <= rect.top() + 2]
         after = max(above)[1] if above else None    # nothing above it: before this file's first sentence
         self.R.snap()
-        it = CAP.add_sentence(self.M, self.file, text, after_id=after, page=n + 1, how=how, at_start=after is None)
+        it = CAP.add_sentence(self.M, self.file, text, after_id=after, page=n + 1, how=how, at_start=after is None, area=area)
         if it is None:
             return None
         diag.activity("compliance_text_added_from_page", n=1)
