@@ -141,6 +141,15 @@ if (Test-Path "$out\$qtExe.exe") {
     }
 }
 Remove-Item -Recurse -Force "$out\_local_sandbox", "$out\logs" -ErrorAction SilentlyContinue
+# 3.14.1: lean check: nothing ships that the program does not use (Stationkeeper.spec leaves these out).
+$unused = @('_internal\libcrypto-3.dll', '_internal\_hashlib.pyd', '_internal\_tkinter.pyd', '_internal\tcl86t.dll', '_internal\_tcl_data',
+            '_internal\customtkinter', '_internal\libleptonica-6.dll', '_internal\PySide6\opengl32sw.dll', '_internal\PySide6\translations',
+            '_internal\PySide6\Qt6Svg.dll', '_internal\PySide6\plugins\generic', '_internal\PySide6\plugins\styles',
+            '_internal\PySide6\plugins\iconengines', '_internal\PySide6\plugins\platforms\qdirect2d.dll') |
+          Where-Object { Test-Path (Join-Path $out $_) }
+$unused += Get-ChildItem "$out\_internal\PIL" -Filter '_avif*' -ErrorAction SilentlyContinue | ForEach-Object { $_.Name }
+if ($unused) { throw "LEAN CHECK FAILED: unused parts would ship: $($unused -join ', ')" }
+"Lean check: no OpenSSL, Tcl/Tk, OpenGL fallback, Qt translations or SVG, extra Qt plugins, AVIF or duplicate Tesseract DLLs"
 Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
 
 # Microsoft Defender scan of the finished app (report only, nothing is deleted)

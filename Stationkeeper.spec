@@ -78,7 +78,7 @@ def make_analysis(script, qt=True):
     pathex=[],
     binaries=binaries,
     datas=datas,
-    hiddenimports=hiddenimports + (['skqt', 'skqt.mainwin', 'skqt.readpage', 'skqt.assign', 'skqt.theme', 'skqt.design', 'skqt.structure', 'skqt.prove', 'structure_ops', 'skqt.matrixpage', 'skqt.setuppage', 'skqt.crosswalkpage', 'crosswalk', 'effortstate', 'skqt.homepage', 'skqt.dashpage', 'reviewpkt', 'skqt.recordpage', 'skqt.reviewpage', 'acrsession', 'skqt.acronympage', 'skqt.effortlistpage', 'docintake', 'skqt.custdocs', 'skqt.qapage', 'skqt.keywordspage', 'skqt.exportallpage', 'skqt.settingspage', 'outline_ops', 'structstart', 'capture', 'skqt.trainingwin', 'skqt.trainerpage', 'skqt.pkgimport', 'skqt.updates', 'updatepack', 'edsign', 'skqt.people', 'authorlist', 'skqt.safety', 'skqt.modes', 'lineage', 'workmode', 'datahome', 'effortcheck', 'supportfile', 'skqt.helpcenter', 'skqt.progress', 'skqt.librarypage', 'ctxdocs', 'skqt.ctxassign', 'changereview', 'skqt.changeview', 'skqt.nowheel', 'skqt.listspage', 'skqt.adaptive', 'skqt.whereview', 'delivboard', 'skqt.delivboardview', 'branding', 'effortcal', 'skqt.brandview', 'skqt.calview', 'teampack', 'skqt.teamview', 'effortfolders', 'unfiled', 'effortsummary', 'postsub', 'skqt.effortshome', 'skqt.unfiledview', 'skqt.postsubpage', 'tzones', 'readablejob', 'tqexport', 'skqt.stagesedit', 'process', 'skqt.processview', 'skqt.rolesview', 'doctypes', 'skqt.doctypeui', 'skqt.doctypesview', 'watch', 'skqt.watchview', 'folderplan', 'skqt.folderplanview', 'ocrpdf', 'sheetview', 'captures', 'skqt.captureview', 'sensitivity', 'secure', 'buildvariant', 'skqt.sensgate', 'custqa', 'skqt.custqapage', 'whatchanged', 'skqt.whatview', 'custfocus', 'amendinst', 'skqt.guide', 'skqt.starteffort', 'graphics', 'customdict', 'skqt.dictview', 'effortsched', 'sincelast', 'pagebudget', 'mywork', 'skqt.schedview', 'skqt.budgetview', 'skqt.myworkpage', 'themes', 'storyboard', 'skqt.storyboardpage', 'skqt.sample', 'walloftruth', 'skqt.wallpage', 'pkgcheck', 'xrefcheck', 'draftcompare', 'skqt.checkspage', 'prodrules', 'prodcopy', 'prodfix', 'prodword', 'prodlearn', 'prodtemplate', 'issuelog', 'skqt.issueview', 'prodparts', 'prodoffice', 'stagecolors', 'roleaccess', 'skqt.roleview', 'prodengine.pe.listnum', 'prodengine.pe.tablestyles', 'skqt.prodstdpage', 'skqt.prodfixpage', 'prodengine', 'prodengine.engine', 'prodengine.engine.pkg', 'prodengine.engine.guard', 'prodengine.engine.fingerprint', 'prodengine.engine.ordered', 'prodengine.engine.safewrite', 'prodengine.engine.ops', 'prodengine.engine.ops.word_ops', 'prodengine.engine.ops.merge', 'prodengine.engine.ops.glossary', 'prodengine.pe', 'prodengine.pe.rules', 'prodengine.pe.tables', 'prodengine.pe.docmap', 'prodengine.pe.fixes', 'prodengine.pe.fixes2', 'prodengine.pe.sections', 'prodengine.pe.hf', 'prodengine.pe.lists', 'prodengine.pe.terms', 'prodengine.pe.fonts', 'compliance_read',
+    hiddenimports=hiddenimports + (['skqt', 'skqt.mainwin', 'skqt.readpage', 'skqt.assign', 'skqt.design', 'skqt.structure', 'skqt.prove', 'structure_ops', 'skqt.matrixpage', 'skqt.setuppage', 'skqt.crosswalkpage', 'crosswalk', 'effortstate', 'skqt.homepage', 'skqt.dashpage', 'reviewpkt', 'skqt.recordpage', 'skqt.reviewpage', 'acrsession', 'skqt.acronympage', 'skqt.effortlistpage', 'docintake', 'skqt.custdocs', 'skqt.qapage', 'skqt.keywordspage', 'skqt.exportallpage', 'skqt.settingspage', 'outline_ops', 'structstart', 'capture', 'skqt.trainingwin', 'skqt.trainerpage', 'skqt.pkgimport', 'skqt.updates', 'updatepack', 'edsign', 'skqt.people', 'authorlist', 'skqt.safety', 'skqt.modes', 'lineage', 'workmode', 'datahome', 'effortcheck', 'supportfile', 'skqt.helpcenter', 'skqt.progress', 'skqt.librarypage', 'ctxdocs', 'skqt.ctxassign', 'changereview', 'skqt.changeview', 'skqt.nowheel', 'skqt.listspage', 'skqt.adaptive', 'skqt.whereview', 'delivboard', 'skqt.delivboardview', 'branding', 'effortcal', 'skqt.brandview', 'skqt.calview', 'teampack', 'skqt.teamview', 'effortfolders', 'unfiled', 'effortsummary', 'postsub', 'skqt.effortshome', 'skqt.unfiledview', 'skqt.postsubpage', 'tzones', 'readablejob', 'tqexport', 'skqt.stagesedit', 'process', 'skqt.processview', 'skqt.rolesview', 'doctypes', 'skqt.doctypeui', 'skqt.doctypesview', 'watch', 'skqt.watchview', 'folderplan', 'skqt.folderplanview', 'ocrpdf', 'sheetview', 'captures', 'skqt.captureview', 'sensitivity', 'secure', 'buildvariant', 'skqt.sensgate', 'custqa', 'skqt.custqapage', 'whatchanged', 'skqt.whatview', 'custfocus', 'amendinst', 'skqt.guide', 'skqt.starteffort', 'graphics', 'customdict', 'skqt.dictview', 'effortsched', 'sincelast', 'pagebudget', 'mywork', 'skqt.schedview', 'skqt.budgetview', 'skqt.myworkpage', 'themes', 'storyboard', 'skqt.storyboardpage', 'skqt.sample', 'walloftruth', 'skqt.wallpage', 'pkgcheck', 'xrefcheck', 'draftcompare', 'skqt.checkspage', 'prodrules', 'prodcopy', 'prodfix', 'prodword', 'prodlearn', 'prodtemplate', 'issuelog', 'skqt.issueview', 'prodparts', 'prodoffice', 'stagecolors', 'roleaccess', 'skqt.roleview', 'prodengine.pe.listnum', 'prodengine.pe.tablestyles', 'skqt.prodstdpage', 'skqt.prodfixpage', 'prodengine', 'prodengine.engine', 'prodengine.engine.pkg', 'prodengine.engine.guard', 'prodengine.engine.fingerprint', 'prodengine.engine.ordered', 'prodengine.engine.safewrite', 'prodengine.engine.ops', 'prodengine.engine.ops.word_ops', 'prodengine.engine.ops.merge', 'prodengine.pe', 'prodengine.pe.rules', 'prodengine.pe.tables', 'prodengine.pe.docmap', 'prodengine.pe.fixes', 'prodengine.pe.fixes2', 'prodengine.pe.sections', 'prodengine.pe.hf', 'prodengine.pe.lists', 'prodengine.pe.terms', 'prodengine.pe.fonts', 'compliance_read',
                                     'assign_ops'] if qt else []),
     hookspath=[],
     hooksconfig={},
@@ -92,6 +92,8 @@ def make_analysis(script, qt=True):
               'onnxruntime.quantization', 'onnxruntime.transformers', 'onnxruntime.tools',
               ] + (['PySide6.QtNetwork'] if qt else ['PySide6', 'shiboken6']) + _edition_excludes   # Qt only in Stationkeeper (Qt), 2.59.0
              + ['tkinter', '_tkinter', 'customtkinter', 'darkdetect', 'PIL.ImageTk', 'PIL._tkinter_finder']   # 3.14.0: no classic window
+             + ['_hashlib', 'PIL._avif', 'PIL.AvifImagePlugin', 'PIL._imagingft']   # 3.14.1: OpenSSL (Python's own SHA and BLAKE2 serve
+                                                                                    # every hash), AVIF pictures, FreeType text drawing
              + ([] if TRAINING else ['tess_train', 'trainerkit']),
     noarchive=False,
     optimize=0,
@@ -109,8 +111,30 @@ def _keep(entry):
 # The app imports none of them; tools\network_audit.py would fail the build on Qt6Network.dll.
 def _keep_qt(entry):
     dest = entry[0].replace('/', '\\').lower()
-    return _keep(entry) and not ('qt6network' in dest or 'qtnetwork' in dest or '\\plugins\\tls' in dest
+    return _keep(entry) and _lean(dest) and not ('qt6network' in dest or 'qtnetwork' in dest or '\\plugins\\tls' in dest
                                  or '\\plugins\\networkinformation' in dest)
+
+# 3.14.1: nothing ships that the program does not use.
+# Tesseract runs as its own program from tesseract\ with its DLLs beside it; PyInstaller also copies those DLLs to the
+# top of _internal (it follows tesseract.exe's dependencies), where nothing loads them.
+_TESS_DLLS = {f.lower() for f in os.listdir('vendor/tesseract') if f.lower().endswith('.dll')} if os.path.isdir('vendor/tesseract') else set()
+# Qt: the window draws with the Windows platform plugin and the Fusion style, in English, with no OpenGL and no SVG.
+# Pictures it opens: PNG and BMP (built in), JPEG, GIF, and the window's ICO icon.
+_QT_IMAGE_KEEP = {'qjpeg.dll', 'qgif.dll', 'qico.dll'}
+def _lean(dest):
+    if '\\' not in dest and dest in _TESS_DLLS | {'libcrypto-3.dll'}:
+        return False
+    if dest.startswith('pyside6\\'):
+        rest = dest[len('pyside6\\'):]
+        if rest in ('opengl32sw.dll', 'qt6svg.dll') or rest.startswith('translations\\'):
+            return False
+        if rest.startswith(('plugins\\generic\\', 'plugins\\styles\\', 'plugins\\iconengines\\')):
+            return False
+        if rest.startswith('plugins\\platforms\\') and rest != 'plugins\\platforms\\qwindows.dll':
+            return False
+        if rest.startswith('plugins\\imageformats\\') and rest.split('\\')[-1] not in _QT_IMAGE_KEEP:
+            return False
+    return True
 
 a = make_analysis('skqt_training.py' if TRAINING else 'skqt_main.py', qt=True)
 a.datas = [e for e in a.datas if _keep_qt(e)]

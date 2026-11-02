@@ -20,6 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.14.1": ["A leaner program: parts it never used are gone (the OpenSSL library, Qt's software OpenGL, Qt's translations, "
+               "SVG and spare Qt plugins, AVIF pictures, a second copy of Tesseract's libraries, and old help pictures). "
+               "Nothing you use changes, and every build now refuses to finish if any of them come back."],
     "3.14.0": ["The classic window is retired: Stationkeeper is the Qt window only. Nothing you use changes; the program is "
                "smaller, starts with fewer parts, and no longer ships the old tkinter and customtkinter libraries.",
                "The rules the classic window held (acronym lists, QA/QC, the Trainer's package) now live in their own engine "

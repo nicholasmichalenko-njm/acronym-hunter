@@ -11,7 +11,7 @@ import app_gui as A
 import effort as E
 from PySide6.QtWidgets import QApplication, QMessageBox
 QMessageBox.information = staticmethod(lambda *a, **k: None)
-from skqt import theme, guide as GD
+from skqt import design as theme, guide as GD
 from skqt.mainwin import MainWindow, RAIL
 
 checks = []

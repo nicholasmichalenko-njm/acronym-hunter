@@ -5,7 +5,7 @@ from lines that are not next to each other keep each part's place; Word headers 
 import os, sys, copy, zipfile
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["AH_TEST"] = "1"
-import compliance as C, pagesent as PS, textcheck as T, docview as DV
+import compliance as C, pagesent as PS, textcheck as T
 
 B = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "test_samples")
 fails = []
@@ -88,7 +88,6 @@ raw = T.raw_text(D)
 ct = T.content_text(D)
 check("Word text for the check has no header or footer parts", not any(w.startswith(("header", "footer")) for w, _l in ct)
       and (not has_header or len(ct) < len(raw)), (has_header, len(raw), len(ct)))
-check("the page view text is the same", not any("FA8811-26-R-0099" in l for _w, l in DV.doc_lines(L)))
 check("the compliance reader leaves out Word header and footer passages",
       [it["text"] for it in C.extract([("a.docx", [("a.docx (Header 1)", "The offeror shall do X."), ("a.docx (Footer 2)", "Page 1 of 3"),
                                                    ("a.docx (Body)", "The offeror shall do Y.")])])] == ["The offeror shall do Y."])

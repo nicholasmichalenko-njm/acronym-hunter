@@ -13,7 +13,7 @@ import app_gui as A
 import customdict as CD, effort as E
 from PySide6.QtWidgets import QApplication, QMessageBox
 QMessageBox.information = staticmethod(lambda *a, **k: None)
-from skqt import theme
+from skqt import design as theme
 from skqt.mainwin import MainWindow
 
 checks = []

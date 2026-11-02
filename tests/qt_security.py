@@ -20,7 +20,7 @@ OP.available = lambda: False
 CO.set_dir(os.path.join(tmp, "td"))
 from PySide6.QtWidgets import QApplication, QMessageBox, QWidget
 QMessageBox.information = staticmethod(lambda *a, **k: None)
-from skqt import theme
+from skqt import design as theme
 from skqt.mainwin import MainWindow
 from skqt import sensgate as SG, helpcenter as HC
 from sensfiles import docx

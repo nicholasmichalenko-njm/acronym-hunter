@@ -36,7 +36,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 from PySide6.QtTest import QTest
 QMessageBox.information = staticmethod(lambda *a, **k: None)
 QMessageBox.question = staticmethod(lambda *a, **k: QMessageBox.Yes)
-from skqt import theme
+from skqt import design as theme
 from skqt.mainwin import MainWindow
 from skqt import guide as GD
 

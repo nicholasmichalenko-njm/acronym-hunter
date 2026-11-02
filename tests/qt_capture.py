@@ -14,7 +14,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QMessageBox
 QMessageBox.information = staticmethod(lambda *a, **k: None)
-from skqt import theme
+from skqt import design as theme
 from skqt.mainwin import MainWindow
 
 checks = []

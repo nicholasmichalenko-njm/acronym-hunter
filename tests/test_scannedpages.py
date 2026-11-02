@@ -35,7 +35,7 @@ def make(d):
 
 
 def run():
-    import app_gui as A, layout as LY
+    import app_gui as A
     d = tempfile.mkdtemp()
     path = make(d)
     try:                                              # the container has no bundled OCR engine: stand in for it
@@ -49,8 +49,6 @@ def run():
     t2 = dict(got)["RFP_with_scan.pdf (p.2)"]
     assert "staffing plan" in t2.lower(), t2
     assert "staffing" not in dict(typed).get("RFP_with_scan.pdf (p.2)", "").lower(), "the typed-only read leaves the scan empty"
-    assert LY.page_count(path) == 3
-    assert LY.page_map(path, 2, [])["chars"] == 0 and LY.page_map(path, 1, [])["chars"] > 0
     print("scanned pages ok")
 
 
