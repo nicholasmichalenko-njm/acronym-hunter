@@ -20,6 +20,14 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.18.1": ["Review: every choice has its own color on the page. L green, M orange, SOW teal, support blue, the "
+               "customer's purple, ignored grey; only sentences nobody has decided stay plain. A legend sits above the "
+               "decide buttons, and the buttons carry the same colors.",
+               "Ignore (X) is now a decision of its own: grey with IGNORED in the margin, counted as decided, skipped by "
+               "Select undecided, and Not used in the matrix. Delete takes a decision off.",
+               "A sentence something was captured from (a contact, a rule, an acronym, a question, a key date, a graphic "
+               "need, the More captures) or had a task or team question made on it gets a pink outline, and the margin says "
+               "what. Library documents too: made a requirement, support, a question, a note or a task, and ignored."],
     "3.18.0": ["Review: Suggest shows what each sentence most likely is, from rules you can read (who acts, the verb, the RFP "
                "section), not AI. Suggestions show dashed on the page with their reason; nothing is decided until you accept "
                "one (Enter), the clear ones, or all shown.",

@@ -857,6 +857,14 @@ def clear_assignment(items, rows):
     return len(rows)
 
 
+def ignore_assignment(items, rows):
+    """3.18.1 Ignore (X): decided as not used (it shows grey on the page and counts as decided); no section, no links."""
+    clear_assignment(items, rows)
+    for it in rows:
+        it["decision"] = "Drop"
+    return len(rows)
+
+
 def remap_context_for(items, old_id, new_id):
     """A requirement was split or merged: its Context sentences (committed and drafted) follow the new ID."""
     for it in items:

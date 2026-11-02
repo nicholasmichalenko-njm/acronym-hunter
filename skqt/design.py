@@ -45,9 +45,25 @@ DARK = {
 # what each decision is called and how it is tagged in the page margin (colors come from the tokens)
 DECISIONS = {"Keep": ("req", "Compliance requirement", "REQ"), "Context": ("ctx", "Supporting context", "SUPPORTS"),
              "Customer": ("cust", "The customer's (identified, not answered)", "CUSTOMER'S"),
-             "Heading": ("head", "RFP heading", ""), "": ("faint", "Ignored (not assigned)", "")}
+             "Drop": ("head", "Ignored (not in the response)", "IGNORED"),
+             "Heading": ("head", "RFP heading", ""), "": ("faint", "Not decided yet", "")}
 # box colors on the white page: the same meaning colors, chosen to read on paper in both themes
-PAGE_DEC = {"Keep": "#16A34A", "Context": "#2563EB", "Customer": "#7E22CE", "Heading": "#334155", "": "#94A3B8"}
+PAGE_DEC = {"Keep": "#16A34A", "Context": "#2563EB", "Customer": "#7E22CE", "Drop": "#64748B", "Heading": "#334155",
+            "": "#94A3B8"}
+# 3.18.1: every choice in Review has its own color on the page. A requirement takes its designation's color (L, M, SOW);
+# a sentence something was captured from (or a note, question or task made on it) gets the capture color outline.
+PAGE_LM = {"L": "#16A34A", "M": "#EA580C", "C": "#0D9488", "SOW": "#0D9488"}
+CAPTURE_COLOR = "#DB2777"
+LEGEND = (("L (Instructions)", "#16A34A"), ("M (Evaluation)", "#EA580C"), ("SOW (Work)", "#0D9488"),
+          ("Requirement", "#4D7C0F"), ("Support", "#2563EB"), ("Customer's", "#7E22CE"), ("Ignored", "#64748B"),
+          ("Captured", CAPTURE_COLOR))
+
+
+def page_color(dec, lm=""):
+    """3.18.1: the page color of a decision (a requirement by its designation: L, M or SOW)."""
+    if dec == "Keep":
+        return PAGE_LM.get(lm or "", "#4D7C0F")
+    return PAGE_DEC.get(dec, PAGE_DEC[""])
 
 _current = {"t": LIGHT, "dark": False}
 
@@ -121,6 +137,11 @@ QPushButton[kind="danger"] {{ color: {t['crit']}; border-color: {t['crit']}; }}
 QPushButton[kind="req"] {{ background: {t['req_soft']}; color: {t['req']}; border: 1px solid {t['req']}; font-weight: 600; }}
 QPushButton[kind="ctx"] {{ background: {t['ctx_soft']}; color: {t['ctx']}; border: 1px solid {t['ctx']}; font-weight: 600; }}
 QPushButton[kind="cust"] {{ background: {t['cust_soft']}; color: {t['cust']}; border: 1px solid {t['cust']}; font-weight: 600; }}
+QPushButton[kind="lmM"] {{ background: rgba(234, 88, 12, 0.13); color: #C2410C; border: 1px solid #EA580C; font-weight: 600; }}
+QPushButton[kind="lmS"] {{ background: rgba(13, 148, 136, 0.13); color: #0F766E; border: 1px solid #0D9488; font-weight: 600; }}
+QPushButton[kind="drop"] {{ background: rgba(100, 116, 139, 0.16); color: {t['text']}; border: 1px solid #64748B; font-weight: 600; }}
+QPushButton[kind="cap"] {{ background: transparent; color: {t['text']}; border: 1px solid #DB2777; }}
+QPushButton[kind="cap"]:hover {{ background: rgba(219, 39, 119, 0.10); }}
 QPushButton#rail {{ background: transparent; color: {t['rail_text']}; border: none; border-radius: {r['control']}px; text-align: left;
                     padding: 7px 12px 7px 20px; font-weight: 400; }}
 QPushButton#rail:hover {{ background: rgba(255,255,255,0.06); color: {t['rail_active_text']}; }}

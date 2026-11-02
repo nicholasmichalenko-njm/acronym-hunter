@@ -163,6 +163,9 @@ TOPICS = [
    "with Decide all, Put all in section and Author for all.",
    "+ Task... and + Ask the team... put work and questions on the sentence.",
    "When a document is done, press Mark reviewed, then Next document.",
+   "Every choice has its own color on the page (3.18.1): L green, M orange, SOW teal, support blue, the customer's purple, "
+   "ignored grey; only undecided sentences stay plain. X ignores (a decision); Delete takes a decision off. A sentence "
+   "something was captured from has a pink outline, and the margin says what.",
    "Suggest (3.18.0) shows what each sentence most likely is, dashed on the page, from rules you can read (who acts, the "
    "verb, the RFP section; then the team's rules), not AI. Enter accepts the selected ones; Accept the clear ones takes "
    "only the sure ones; Not right drops one; any key decides otherwise. Accepted ones stay marked until someone presses "

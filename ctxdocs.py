@@ -66,22 +66,25 @@ class Store:
     def __init__(self, data_dir):
         self.path = os.path.join(data_dir, "context", "attach.json")
         self.att = []
+        self.ign = []                         # 3.18.1: sentences ignored (X): [{"doc", "iid"}]
 
     def load(self):
         import workspace as W
         d = W.read_json(self.path, None) or {}
         self.att = [a for a in d.get("att", []) if isinstance(a, dict)]
+        self.ign = [x for x in d.get("ign", []) if isinstance(x, dict) and x.get("doc") and x.get("iid")]
         return self
 
     def save(self):
         import workspace as W
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
-        W.write_json(self.path, {"v": 1, "att": self.att})
+        W.write_json(self.path, {"v": 1, "att": self.att, "ign": self.ign})
 
     def attach(self, row, kind, target="", note="", topics=(), who=None, save=True):
         """Attach a sentence (a row from items_of). The same sentence and target twice is kept once. Returns it."""
         if kind not in KIND_NAMES:
             return None
+        self.unignore(row["doc"], row["id"])
         for a in self.att:
             if a["doc"] == row["doc"] and a["iid"] == row["id"] and a["kind"] == kind and a.get("target", "") == (target or ""):
                 return a
@@ -113,6 +116,19 @@ class Store:
 
     def get(self, att_id):
         return next((a for a in self.att if a["id"] == att_id), None)
+
+    def ignored(self, doc, iid):
+        """3.18.1: X on a library sentence: looked at, nothing taken from it."""
+        return any(x["doc"] == doc and x["iid"] == iid for x in self.ign)
+
+    def ignore(self, doc, iid):
+        if not self.ignored(doc, iid):
+            self.ign.append({"doc": doc, "iid": iid})
+
+    def unignore(self, doc, iid):
+        n = len(self.ign)
+        self.ign = [x for x in self.ign if not (x["doc"] == doc and x["iid"] == iid)]
+        return n - len(self.ign)
 
     def of_row(self, doc, iid):
         return [a for a in self.att if a["doc"] == doc and a["iid"] == iid]

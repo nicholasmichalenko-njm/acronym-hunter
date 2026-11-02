@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFormLayout
                                QCheckBox, QButtonGroup)
 import diag
 import effortrec as R_
+import pagemarks as PM
 import compliance as C
 import setupdoc as SD
 import pagesent as PS
@@ -37,7 +38,8 @@ WORD = re.compile(r"[A-Za-z0-9]+")
 BULK_DECISIONS = (("Decide all...", ""), ("L (Instructions)", "L"), ("M (Evaluation)", "M"), ("SOW (Work)", "SOW"),
                   ("Support", "ctx"), ("Customer's", "cust"), ("Ignore", "ignore"))
 
-SG_DEC = {"L": "Keep", "M": "Keep", "SOW": "Keep", "ctx": "Context", "cust": "Customer", "ignore": ""}   # 3.18.0
+SG_DEC = {"L": "Keep", "M": "Keep", "SOW": "Keep", "ctx": "Context", "cust": "Customer", "ignore": "Drop"}   # 3.18.0
+SG_LM = {"L": "L", "M": "M", "SOW": "C"}
 SG_KEYS = {"L": "L", "M": "E", "SOW": "R", "ctx": "C", "cust": "G", "ignore": "X"}
 
 
@@ -55,19 +57,27 @@ class SentenceBox(QGraphicsPathItem):
         self.hover = False
         self.current = False
         self.sg = ""                                # 3.18.0: the suggestion shown (a category), "" for none
+        self.lm = ""                                # 3.18.1: a requirement's designation (L, M, C): its own color
+        self.mark = False                           # 3.18.1: something was captured from it: the capture color outline
+
+    def color(self):
+        return QColor(D.page_color(self.dec, self.lm))
 
     def style(self, dec=None, current=None):
         self.dec = self.dec if dec is None else dec
         self.current = self.current if current is None else current
-        col = QColor(D.PAGE_DEC.get(self.dec, D.PAGE_DEC[""]))
+        col = self.color()
         sel = self.isSelected()
         fill = QColor("#FDE68A") if (sel and not self.dec) else QColor(col)
-        fill.setAlpha((140 if sel else 0) if not self.dec else (115 if sel else 70))
+        fill.setAlpha((140 if sel else 0) if not self.dec else (115 if sel else (34 if self.dec == "Heading" else 70)))
+        if self.mark and not self.dec and not sel:                 # 3.18.1: captured from, not decided yet: a light fill
+            fill = QColor(D.CAPTURE_COLOR); fill.setAlpha(36)
         self.setBrush(QBrush(fill))
-        pen = QPen(QColor("#F59E0B") if self.current else (col if self.dec else QColor("#CBD5E1")))
-        pen.setWidthF(2.6 if self.current else (1.4 if (self.dec or sel or self.hover) else 0.7))
+        pen = QPen(QColor("#F59E0B") if self.current else QColor(D.CAPTURE_COLOR) if self.mark
+                   else (col if self.dec else QColor("#CBD5E1")))
+        pen.setWidthF(2.6 if self.current else 1.8 if self.mark else (1.4 if (self.dec or sel or self.hover) else 0.7))
         if self.sg and not self.dec and not self.current:          # 3.18.0: a suggestion: dashed, in its category's color
-            sc = QColor(D.PAGE_DEC.get(SG_DEC.get(self.sg, ""), "#94A3B8"))
+            sc = QColor(D.page_color(SG_DEC.get(self.sg, ""), SG_LM.get(self.sg, "")))
             pen = QPen(sc); pen.setWidthF(1.8); pen.setStyle(Qt.DashLine)
             if not sel:
                 f2 = QColor(sc); f2.setAlpha(28); self.setBrush(QBrush(f2))
@@ -314,6 +324,7 @@ class AssignPage(QWidget):
         self.placed = {}
         self.tops = []
         self.labels = []
+        self.marks = {}                            # 3.18.1: sentence id -> what was captured from it
         self.target = None
         self.cur = None
         self.split_at, self.split_word, self.split_bar = None, None, None
@@ -433,18 +444,25 @@ class AssignPage(QWidget):
         self.undecided_btn = D.button("Select undecided", "ghost", lambda: self.select_undecided(),   # 3.0.4
                                       "Select every sentence in this document with no decision yet (Ctrl+A selects them all)")
         trow.addWidget(self.undecided_btn, 0, Qt.AlignTop); dv.addLayout(trow)
+        self.legend = D.label("&nbsp;&nbsp;".join(f"<span style='color:{c}'>\u25A0</span> {n}" for n, c in D.LEGEND)
+                              + "&nbsp;&nbsp;<span style='color:#94A3B8'>\u25A1</span> Not decided", "muted")   # 3.18.1
+        self.legend.setTextFormat(Qt.RichText); self.legend.setWordWrap(True)
+        self.legend.setToolTip("The colors on the page. Every decision has its own; a sentence something was captured from "
+                               "has the pink outline and what was captured in the margin.")
+        dv.addWidget(self.legend)
         grid = QGridLayout(); grid.setSpacing(D.SPACE["xs"]); grid.setContentsMargins(0, 0, 0, 0)
         self.dec_box = dec
         for k, (text, kind, fn, tip) in enumerate((
                 ("L (Instructions)  L", "req", lambda: self.do_lm("L"), "L: Instructions, Conditions and Notices to Offerors. A compliance "
                  "requirement in the target section. Key: L"),
-                ("M (Evaluation)  E", "req", lambda: self.do_lm("M"), "M: Evaluation Factors for Award. A compliance requirement in the "
+                ("M (Evaluation)  E", "lmM", lambda: self.do_lm("M"), "M: Evaluation Factors for Award. A compliance requirement in the "
                  "target section. Key: E"),
-                ("SOW (Work)  R", "req", lambda: self.do_sow(), "What the contractor shall do (Section C, SOW, PWS). A compliance "
+                ("SOW (Work)  R", "lmS", lambda: self.do_sow(), "What the contractor shall do (Section C, SOW, PWS). A compliance "
                  "requirement in the target section. Key: R"),
                 ("Support  C", "ctx", self.do_ctx, "Supporting context for the last requirement you clicked"),
                 ("Customer's  G", "cust", self.do_customer, "The customer's to act on: identified, never answered"),
-                ("Ignore  X", None, self.do_clear, "Ignore it: no decision, not in the response"))):
+                ("Ignore  X", "drop", self.do_clear, "Ignore it: decided, not in the response (grey on the page). "
+                 "Delete takes a decision off."))):
             b = D.button(text, kind, fn, tip)
             self.keys[{"L": "L", "M": "M", "SOW": "Requirement"}.get(text.split()[0], text.split()[0])] = b
             grid.addWidget(b, k // 3, k % 3)
@@ -460,13 +478,13 @@ class AssignPage(QWidget):
                 ("acronym", "Acronym", "The acronym and what it stands for, into the effort list"),
                 ("question", "Question", "A question for the customer, quoting their exact wording (Customer Q&A)"),
                 ("keydate", "Key date", "Questions due, site visit, industry day, orals, award: onto the calendar"))):
-            b = D.button(text, "ghost", lambda _=False, kk=key: self.do_capture(kk), tip + ". Uses the words you dragged across, "
+            b = D.button(text, "cap", lambda _=False, kk=key: self.do_capture(kk), tip + ". Uses the words you dragged across, "
                          "else the selected sentence.")
             self.cap_keys[key] = b
             caprow.addWidget(b, k // 3, k % 3)
         dv.addLayout(caprow)
         from PySide6.QtWidgets import QMenu                           # 2.99.0: the less frequent captures
-        more = D.button("More captures...", "ghost", None, "Evaluation factor, page limit, deliverable, effort detail, hot button")
+        more = D.button("More captures...", "cap", None, "Evaluation factor, page limit, deliverable, effort detail, hot button")
         menu = QMenu(more)
         self.more_actions = {}
         for key, text in (("factor", "Evaluation factor"), ("pagelimit", "Page limit"), ("deliverable", "Deliverable"),
@@ -476,7 +494,7 @@ class AssignPage(QWidget):
             self.more_actions[key] = act
         more.setMenu(menu)
         self.cap_keys["more"] = more
-        gfx = D.button("Graphic need  P", "ghost", lambda: self.do_capture("graphic"), "Tag a concept here that needs a graphic: "  # 3.0.4
+        gfx = D.button("Graphic need  P", "cap", lambda: self.do_capture("graphic"), "Tag a concept here that needs a graphic: "  # 3.0.4
                        "it lists under Graphic needs on Effort Home. Uses the words you dragged across, else the selected sentence.")
         self.cap_keys["graphic"] = gfx
         mrow = QHBoxLayout(); mrow.setSpacing(D.SPACE["xs"]); mrow.addWidget(gfx); mrow.addWidget(more); dv.addLayout(mrow)
@@ -486,10 +504,11 @@ class AssignPage(QWidget):
                 ("Context for section  C", "ctx", lambda: self.do_ctx(), "Context for the target section: shows in the section and in Response Setup"),
                 ("For a requirement  F", "ctx", lambda: self.do_for_req(), "Context for a compliance requirement of the target section"),
                 ("Make it a requirement  R", "req", lambda: self.do_req(), "Into the matrix as a compliance requirement in the target section"),
-                ("Note  N", None, lambda: self.do_record("note"), "A note in the effort record, quoting it"),
+                ("Note  N", "cap", lambda: self.do_record("note"), "A note in the effort record, quoting it"),
                 ("Question  Q", "cust", lambda: self.do_record("question"), "A question for the customer, quoting it"),
-                ("Task  T", None, lambda: self.do_record("task"), "A task in the effort record, quoting it"),
-                ("Ignore  X", None, lambda: self.do_clear(), "Ignore it: take its attachments off"))):
+                ("Task  T", "cap", lambda: self.do_record("task"), "A task in the effort record, quoting it"),
+                ("Ignore  X", "drop", lambda: self.do_clear(), "Ignore it: its attachments come off; grey on the page. "
+                 "Delete takes everything off."))):
             b = D.button(text, kind, fn, tip)
             self.ctx_keys[text.split("  ")[0]] = b
             cgrid.addWidget(b, k // 3, k % 3)
@@ -538,7 +557,7 @@ class AssignPage(QWidget):
         self.notes_timer = QTimer(self, singleShot=True, interval=700, timeout=self.save_notes)
         for key, fn in (("R", lambda: self.do_sow()), ("C", self.do_ctx), ("G", self.do_customer), ("X", self.do_clear),
                         ("L", lambda: self.do_lm("L")), ("E", lambda: self.do_lm("M")), ("Shift+M", lambda: self.do_lm("M")),
-                        ("Delete", self.do_clear), ("J", self.do_combine), ("S", self.do_split), ("Ctrl+Z", self.do_undo),
+                        ("Delete", self.do_undecide), ("J", self.do_combine), ("S", self.do_split), ("Ctrl+Z", self.do_undo),
                         ("F", lambda: self.do_for_req()), ("N", lambda: self.do_record("note")),
                         ("Q", lambda: self.do_record("question")), ("T", lambda: self.do_record("task")),
                         ("Ctrl+A", lambda: self.select_all()), ("H", lambda: self.toggle_pan()),
@@ -561,6 +580,7 @@ class AssignPage(QWidget):
         """The review changed (opened, read): fill the file list and the structure."""
         import suggestrules as SR
         self.sg = SR.store(self.host.ws) if self.R is not None else {}          # 3.18.0: this effort's suggestions
+        self.load_marks()
         if self.sg_on and self.R is not None:
             self.run_suggest()
         elif self.sg_on:
@@ -995,23 +1015,37 @@ class AssignPage(QWidget):
             if it is None:
                 continue
             dec = it.get("decision", "")
+            if dec == "Drop" and it.get("type") == "Heading":      # an RFP heading: not a sentence to answer
+                dec = "Heading"
             rec = self.sg.get(iid) if self.sg_on else None          # 3.18.0: a suggestion still waiting shows on the page
             box.sg = rec["cat"] if rec and rec.get("cat") and rec.get("state") == "shown" and not dec else ""
+            box.lm = it.get("lm") or "" if dec == "Keep" else ""
+            kinds = self.marks.get(iid) or []
+            box.mark = bool(kinds)
             box.style(dec if dec in D.PAGE_DEC else "", iid == self.cur)
             tag = D.decision(dec)[2]
+            if kinds:                                               # 3.18.1: what was captured from it, in the margin
+                y = max(box.boundingRect().top(), last_y + 11)
+                last_y = y
+                lab = QGraphicsSimpleTextItem(PM.text(kinds))
+                lab.setFont(QFont("Segoe UI", 7, QFont.Bold))
+                lab.setBrush(QColor(D.CAPTURE_COLOR))
+                lab.setPos(MARGIN - 8 - lab.boundingRect().width(), y)
+                sc.addItem(lab)
+                self.labels.append(lab)
             if not tag and box.sg:
                 y = max(box.boundingRect().top(), last_y + 11)
                 last_y = y
                 lab = QGraphicsSimpleTextItem(f"{box.sg}?")
                 f = QFont("Segoe UI", 7); f.setItalic(True); lab.setFont(f)
-                lab.setBrush(QColor(D.PAGE_DEC.get(SG_DEC.get(box.sg, ""), "#94A3B8")))
+                lab.setBrush(QColor(D.page_color(SG_DEC.get(box.sg, ""), SG_LM.get(box.sg, ""))))
                 lab.setPos(MARGIN - 8 - lab.boundingRect().width(), y)
                 sc.addItem(lab)
                 self.labels.append(lab)
                 continue
             if not tag:
                 continue
-            y = max(box.boundingRect().top(), last_y + 11)
+            y = max(box.boundingRect().top(), last_y + (9 if kinds else 11))
             last_y = y
             hosts = C.cf_ids(it.get("context_for", "")) if dec == "Context" else []
             txt = f"{tag} {', '.join(hosts[:2])}" if hosts else f"{tag} {iid}"
@@ -1021,7 +1055,7 @@ class AssignPage(QWidget):
                 txt = " ".join(x for x in (tag, lmv, iid, ("V " + "+".join(vols)) if vols else "") if x)
             lab = QGraphicsSimpleTextItem(txt)
             lab.setFont(QFont("Segoe UI", 7, QFont.Bold))
-            lab.setBrush(QColor(D.PAGE_DEC[dec]))
+            lab.setBrush(QColor(D.page_color(dec, it.get("lm") or "")))
             lab.setPos(MARGIN - 8 - lab.boundingRect().width(), y)
             sc.addItem(lab)
             self.labels.append(lab)
@@ -1149,7 +1183,38 @@ class AssignPage(QWidget):
         return text, {"doc": it.get("file", "") or (self.file or ""), "loc": loc, "text": it.get("text", ""),
                       "section": it.get("section", ""), "page": pg, "para": para, "sid": it["id"]}
 
+    def load_marks(self):
+        """3.18.1: the sentences something was captured from (or a task or team question made on)."""
+        try:
+            ws = self.host.ws
+            self.marks = PM.load(ws, R_.Record(ws.root)) if ws is not None else {}
+        except Exception:
+            diag.swallowed()
+            self.marks = {}
+        return self.marks
+
+    def mark_rows(self, kind, sids=None):
+        """3.18.1: mark the sentences a capture came from (the one dragged across, else the selected ones)."""
+        if sids is None:
+            rows = self.selected()
+            sids = [self.grab["iid"]] if (self.grab and any(it["id"] == self.grab["iid"] for it in rows)) else [it["id"] for it in rows]
+        n = PM.add(self.host.ws, self.marks, sids, kind)
+        if n:
+            self.restyle()
+        return n
+
     def do_capture(self, kind, answer=None):
+        """3.18.1: a capture that was filed marks its sentence on the page."""
+        sids = None
+        if self.cx is None and self.R is not None:
+            rows = self.selected()
+            sids = [self.grab["iid"]] if (self.grab and any(it["id"] == self.grab["iid"] for it in rows)) else [it["id"] for it in rows]
+        got = self._do_capture(kind, answer)
+        if got and sids:
+            self.mark_rows(kind, sids)
+        return got
+
+    def _do_capture(self, kind, answer=None):
         """Contact, Submission, Formatting, Acronym, Question or Key date (2.98.0), and the More captures (2.99.0: factor,
         pagelimit, deliverable, detail, hot) from the picked words or the selected sentence. answer (tests): the dialog's
         values."""
@@ -1265,6 +1330,7 @@ class AssignPage(QWidget):
                 diag.activity("sentence_task_added")
             else:
                 diag.activity("sentence_question_added")
+            self.mark_rows("task" if kind == "task" else "tquestion", [iid])
             self.show_card(self.selected())
         return got
 
@@ -1495,7 +1561,7 @@ class AssignPage(QWidget):
         M = self.M
         it = rows[-1]
         d = it.get("decision", "")
-        kind = "Heading" if it.get("type") == "Heading" and not d else d
+        kind = "Heading" if it.get("type") == "Heading" and d in ("", "Drop") else d
         tone, label, _tag = D.decision(kind)
         top = QWidget(); th = QHBoxLayout(top); th.setContentsMargins(0, 0, 0, 0); th.setSpacing(D.SPACE["s"])
         k = D.Pill(label, tone if tone != "faint" else "head")
@@ -2135,6 +2201,8 @@ class AssignPage(QWidget):
                     self.R.ctx(its)
                 elif cat == "cust":
                     self.R.customer(its)
+                elif cat == "ignore":                            # 3.18.1: Ignore is a decision of its own
+                    self.R.ignore(its)
                 for it in its:
                     self.sg[it["id"]].update(state="accepted", unchecked=True)
                     self.M.log(it["id"], f"accepted the suggestion: {SR.CAT_NAME.get(cat, cat)} ({self.sg[it['id']].get('why', '')})")
@@ -2542,12 +2610,27 @@ class AssignPage(QWidget):
             self.after(f"{len(rows)} sentence(s): the customer's")
 
     def do_clear(self):
+        """X: ignored, a decision of its own (3.18.1: grey on the page, counted as decided)."""
         if self.cx is not None:
             return self.cx.clear()
         rows = self.selected()
         if rows:
-            self.R.clear(rows)
+            self.R.ignore(rows)
+            diag.activity("compliance_ignored", n=len(rows))
             self.after(f"{len(rows)} sentence(s): ignored")
+            return len(rows)
+        return 0
+
+    def do_undecide(self):
+        """3.18.1 Delete: the decision comes off; the sentence is undecided again."""
+        if self.cx is not None:
+            return self.cx.undecide()
+        rows = self.selected()
+        if rows:
+            self.R.clear(rows)
+            self.after(f"{len(rows)} sentence(s): not decided")
+            return len(rows)
+        return 0
 
     def do_combine(self):
         if self.cx is not None:

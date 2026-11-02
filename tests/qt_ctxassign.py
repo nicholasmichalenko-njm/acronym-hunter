@@ -123,6 +123,20 @@ check("and it stays a library document in the list", ap.files.currentText() == l
 # X
 ap.select(ap.cx.rows[5]["id"])
 check("X: its attachments come off", ap.do_clear() == 3 and not CX.Store(ws.root).load().of_row(d["id"], ap.cx.rows[5]["id"]))
+x5 = ap.cx.rows[5]["id"]
+b5 = ap.view.boxes[x5]
+check("3.18.1: X marks it ignored: grey on the page, IGNORED in the margin", CX.Store(ws.root).load().ignored(d["id"], x5)
+      and b5.brush().color().name() == D.PAGE_DEC["Drop"].lower() and any(l.text() == "IGNORED" for l in ap.labels))
+ap.select(ap.cx.rows[6]["id"]); app.processEvents()
+check("3.18.1: made a requirement shows as one (L green), not as support", ap.view.boxes[ap.cx.rows[6]["id"]].brush().color().name()
+      == D.PAGE_LM["L"].lower(), ap.view.boxes[ap.cx.rows[6]["id"]].brush().color().name())
+ap.select(ap.cx.rows[7]["id"]); ap.do_record("task"); ap.select(ap.cx.rows[0]["id"]); app.processEvents()
+check("3.18.1: a task on a library sentence: the capture outline", ap.view.boxes[ap.cx.rows[7]["id"]].pen().color().name()
+      == D.CAPTURE_COLOR.lower())
+ap.select(x5); app.processEvents()
+ap.do_undecide(); ap.cx.undecide([ap.cx.rows[7]]); ap.select(ap.cx.rows[0]["id"]); app.processEvents()
+check("3.18.1: Delete takes the ignored mark off: plain again", not CX.Store(ws.root).load().ignored(d["id"], x5)
+      and ap.view.boxes[x5].brush().color().alpha() == 0)
 # a renamed section keeps its context
 ap.rename_section("1.1 Technical Approach", "Technical Approach and Design")
 st = CX.Store(ws.root).load()

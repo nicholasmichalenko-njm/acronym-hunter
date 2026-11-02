@@ -23,6 +23,8 @@ from . import design as D
 
 PREFIX = "Library: "
 CTX_COLOR = "#0F766E"                     # teal on the page: taken from a library document
+# 3.18.1: each kind of attachment has its own color on the page (notes and tasks: the capture color outline)
+KIND_DEC = {"section": "Context", "requirement": "Context", "promoted": "Keep", "question": "Customer"}
 
 
 def library_entries(page):
@@ -101,7 +103,7 @@ class CtxMode:
     def tag_of(self, iid):
         att = self.store.of_row(self.doc["id"], iid)
         if not att:
-            return ""
+            return "IGNORED" if self.store.ignored(self.doc["id"], iid) else ""
         a = att[-1]
         t = CX.TAG[a["kind"]]
         tgt = a.get("target", "")
@@ -116,14 +118,18 @@ class CtxMode:
         last_y = -100.0
         for iid, box in sorted(pg.view.boxes.items(), key=lambda kv: kv[1].boundingRect().top()):
             tag = self.tag_of(iid)
-            box.style("Context" if tag else "", iid == pg.cur)
+            att = self.store.of_row(self.doc["id"], iid)
+            dec = KIND_DEC.get(att[-1]["kind"], "Context") if att else ("Drop" if tag else "")
+            box.lm = "L" if dec == "Keep" else ""
+            box.mark = bool(att) and att[-1]["kind"] in ("note", "task")       # 3.18.1: a note or a task: the capture color
+            box.style("" if box.mark else dec, iid == pg.cur)
             if not tag:
                 continue
             y = max(box.boundingRect().top(), last_y + 11)
             last_y = y
             lab = QGraphicsSimpleTextItem(tag[:28])
             lab.setFont(QFont("Segoe UI", 7, QFont.Bold))
-            lab.setBrush(QColor(CTX_COLOR))
+            lab.setBrush(QColor(D.CAPTURE_COLOR if box.mark else D.page_color(dec, box.lm)))
             from .assign import MARGIN
             lab.setPos(MARGIN - 8 - lab.boundingRect().width(), y)
             sc.addItem(lab)
@@ -147,7 +153,8 @@ class CtxMode:
         it = rows[-1]
         top = QWidget(); th = QHBoxLayout(top); th.setContentsMargins(0, 0, 0, 0); th.setSpacing(D.SPACE["s"])
         att = self.store.of_row(self.doc["id"], it["id"])
-        th.addWidget(D.Pill(f"{len(att)} attached" if att else "Not attached", "ctx" if att else "head"))
+        ign = not att and self.store.ignored(self.doc["id"], it["id"])
+        th.addWidget(D.Pill(f"{len(att)} attached" if att else "Ignored" if ign else "Not attached", "ctx" if att else "head"))
         if len(rows) > 1:
             th.addWidget(D.label(f"and {len(rows) - 1} more selected", "muted", wrap=False))
         th.addStretch(1)
@@ -298,10 +305,22 @@ class CtxMode:
         return made
 
     def clear(self, rows=None):
+        """X: its attachments come off and it is marked ignored (3.18.1: grey on the page: looked at, nothing taken)."""
         rows = rows if rows is not None else self.selected()
         n = sum(self.store.remove(doc=self.doc["id"], iid=r["id"], save=False) for r in rows)
+        for r in rows:
+            self.store.ignore(self.doc["id"], r["id"])
         self.store.save()
-        self._done(f"{n} attachment(s) taken off")
+        self._done(f"{len(rows)} sentence(s) ignored" + (f"; {n} attachment(s) taken off" if n else ""))
+        return n if n else len(rows)
+
+    def undecide(self, rows=None):
+        """3.18.1 Delete: attachments and the ignored mark come off: not looked at."""
+        rows = rows if rows is not None else self.selected()
+        n = sum(self.store.remove(doc=self.doc["id"], iid=r["id"], save=False) + self.store.unignore(self.doc["id"], r["id"])
+                for r in rows)
+        self.store.save()
+        self._done(f"{len(rows)} sentence(s): nothing attached, not ignored")
         return n
 
     def remove(self, att_id):

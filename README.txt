@@ -1,6 +1,18 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+EVERY CHOICE HAS A COLOR IN REVIEW (3.18.1)
+  - The page shows what has been decided and what has not. L (Instructions) green, M (Evaluation) orange, SOW (Work)
+    teal, a requirement with no designation olive, Support blue, Customer's purple, Ignored grey. Only sentences
+    nobody has decided stay plain. The legend above the decide buttons names the colors; the buttons carry them.
+  - Ignore (X) is a decision: grey, IGNORED in the margin, counted as decided, skipped by Select undecided, and Not used
+    in the matrix workbook. Delete takes a decision off (the sentence is undecided again). RFP headings stay slate.
+  - Captures mark their sentence: a pink outline (and a light pink fill while undecided), with what was captured in the
+    margin (POC, SUBMIT, FORMAT, ACRONYM, CUST Q, DATE, GRAPHIC, FACTOR, PAGES, DELIV, DETAIL, HOT, TASK, TEAM Q). The
+    marks are kept with the effort; tasks and team questions made before 3.18.1 show too.
+  - Library documents: made a requirement green, support blue, a customer question purple, a note or a task pink, and
+    X marks a sentence ignored (grey). Delete takes everything off it.
+
 SUGGESTIONS IN REVIEW (3.18.0)
   - Suggest (Review's toolbar) shows what each undecided sentence most likely is: L, M or SOW requirement, support,
     the customer's, or ignore. Rules you can read, not AI: who acts (the Offeror, the Contractor, the Government), the

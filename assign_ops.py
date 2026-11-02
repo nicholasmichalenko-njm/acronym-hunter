@@ -146,6 +146,18 @@ class Review:
         self.changed()
         return len(rows)
 
+    def ignore(self, rows):
+        """3.18.1 X: ignored, a decision of its own (not used in the response), shown grey on the page."""
+        if not rows:
+            return 0
+        self.snap()
+        C.ignore_assignment(self.M.items, rows)
+        for it in rows:
+            SD.clear_sections(self.M, it)
+            self.M.log(it["id"], "ignored (not used)")
+        self.changed()
+        return len(rows)
+
     def combine(self, rows, places=None):
         """M: one sentence from several (they need not be next to each other); each part keeps its place."""
         if len(rows) < 2:

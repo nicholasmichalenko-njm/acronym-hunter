@@ -156,6 +156,8 @@ def category(it, rec=None):
         return "ctx"
     if d == "Customer":
         return "cust"
+    if d == "Drop" and it.get("type") != "Heading":            # 3.18.1: Ignore is a decision of its own
+        return "ignore"
     if rec and rec.get("cat") == "ignore" and rec.get("state") == "accepted":
         return "ignore"
     return ""
