@@ -48,8 +48,18 @@ def wait(cond, secs=60):
     return cond()
 
 
-w.read_page.read([os.path.join(B, "Section_L_print.pdf")], os.path.join(ED, "Kestrel_Compliance_Matrix.xlsx"))
-wait(lambda: w.review is not None and w.stack.currentWidget() is w.assign_page)
+# 3.15.1: Library's Read it in Review with no matrix yet reads the documents that build it, then opens this one
+lib0 = DV.Library(ws.p("documents")).load()
+pL = os.path.join(B, "Section_L_print.pdf")
+dL, _vL = lib0.add(pL, DI.read(pL), doc_name="Section L", role="matrix", initial="L", dtype="Section L")
+w.go("library"); w.library_page.refresh(); w.library_page.select(dL["id"])
+check("3.15.1: Read it in Review with no matrix asks first; No reads nothing",
+      w.library_page.read_in_assign(answer=False) is False and w.review is None and not w.read_page.running())
+got = w.library_page.read_in_assign(answer=True, out=os.path.join(ED, "Kestrel_Compliance_Matrix.xlsx"))
+wait(lambda: w.review is not None and w.stack.currentWidget() is w.assign_page and not w.read_page.running())
+check("... Yes reads it into the matrix and opens it in Review", got is not None and w.review is not None
+      and w.stack.currentWidget() is w.assign_page and w.assign_page.files.currentText() == "Section_L_print.pdf",
+      w.assign_page.files.currentText())
 # the SOW as a context document in the library (a copy kept with the effort)
 lib = DV.Library(ws.p("documents")).load()
 sow = os.path.join(B, "SOW.pdf")
@@ -131,7 +141,15 @@ import openpyxl
 check("and exports it for writers", xp and openpyxl.load_workbook(xp).active.max_row == 4)
 dlg.table.selectRow(0)
 check("and opens one in Assign", dlg.open_selected() and w.stack.currentWidget() is w.assign_page and ap.cx is not None and ap.cur)
-w.go("library"); w.library_page.select(d["id"]); w.library_page.show_doc()
+w.go("library"); w.library_page.refresh(); w.library_page.select(d["id"])
+check("3.15.1: Read it in Review opens a context document beside the structure", w.library_page.read_in_assign() is True
+      and w.stack.currentWidget() is w.assign_page and ap.cx is not None)
+DV.Library(ws.p("documents")).load().set_role(d["id"], "not_needed")
+w.go("library"); w.library_page.refresh(); w.library_page.select(d["id"])
+check("... a Not needed document says how to read it", w.library_page.read_in_assign(answer=False) is False
+      and "Not needed" in w.statusBar().currentMessage(), w.statusBar().currentMessage())
+DV.Library(ws.p("documents")).load().set_role(d["id"], "context")
+w.go("library"); w.library_page.refresh(); w.library_page.select(d["id"]); w.library_page.show_doc()
 check("the document's panel counts what was taken", "3 sentence(s) taken" in w.library_page.d_taken.text(), w.library_page.d_taken.text())
 w.close()
 n = sum(checks)

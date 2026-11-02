@@ -522,6 +522,7 @@ class ReadPage(QWidget):
                               "Press Read to try again. If it happens again, Help > Create a support file and send it in.")
             self.host.status("The read did not finish. See the message on Read RFP.")
         finally:
+            self._then = None
             self.lock_controls()
             try:
                 self.refresh()
@@ -582,3 +583,6 @@ class ReadPage(QWidget):
             self.host.structure_page.offer_start()
             return
         self.host.go("assign")
+        then, self._then = getattr(self, "_then", None), None     # 3.15.1: Library's Read it in Review opens its document
+        if then is not None:
+            then()

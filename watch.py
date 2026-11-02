@@ -101,12 +101,15 @@ def check(lib, data_dir, customer_dir="", sha=None):
     roots = [_key(p) for p, _c, _b in watched if os.path.isdir(p)]
     shas = {v.get("sha256") for d in lib.all for v in d["versions"]}
     latest = {}                                   # file path -> (doc, version) of each document's latest version
+    sources = {}                                  # 3.15.1: where a latest version came from, outside the effort
     for d in lib.all:
         if d["versions"]:
             v = d["versions"][-1]
             p = lib.path_of(v)
             if p:
                 latest[_key(p)] = (d, v)
+            if v.get("source") and not v.get("source_gone"):
+                sources[_key(v["source"])] = (d, v)
     out = {"new": [], "changed": [], "missing": []}
     found = set()
     for folder, cat, _b in watched:
@@ -130,8 +133,8 @@ def check(lib, data_dir, customer_dir="", sha=None):
                 except OSError:
                     continue
             seen[k] = {"size": s.st_size, "mtime": int(s.st_mtime), "sha": h, "state": c.get("state", "") if c.get("sha") == h else ""}
-            if k in latest:
-                d, v = latest[k]
+            if k in latest or k in sources:
+                d, v = latest.get(k) or sources[k]
                 if h != v.get("sha256") and h not in shas and seen[k]["state"] != "ignored":
                     out["changed"].append((p, d, v))
                 continue
@@ -144,6 +147,11 @@ def check(lib, data_dir, customer_dir="", sha=None):
             continue
         if k not in found and _inside(k, roots) and not os.path.isfile(k):
             out["missing"].append((d, v, lib.path_of(v)))
+    for k, (d, v) in sources.items():             # 3.15.1: the file it came from left its watched folder
+        if d.get("withdrawn") or v.get("missing_kept") or k in latest:
+            continue
+        if k not in found and _inside(k, roots) and not os.path.isfile(v["source"]):
+            out["missing"].append((d, v, v["source"]))
     for k in [k for k in seen if k not in found]:            # forget files that are gone (missing documents are in the library)
         seen.pop(k, None)
     st["last"] = _now()
@@ -161,12 +169,25 @@ def set_aside(data_dir, paths):
     return len(paths)
 
 
-def keep_without_original(lib, rec, doc_id, who=None):
-    """The document stays, read text and all, with its original file gone; the check stops asking."""
+def _source_only(lib, v, path):
+    """3.15.1: the file gone is the one it was added from, and the effort's own copy is still here."""
+    import docversions as DV
+    return bool(path) and DV.same_path(path, v.get("source", "")) and lib.has_original(v)
+
+
+def keep_without_original(lib, rec, doc_id, who=None, path=None):
+    """The document stays, read text and all, with its original file gone; the check stops asking. 3.15.1: when only
+    the file it came from is gone (the effort's copy is here), the check stops asking about that file."""
     d = lib.doc(doc_id)
     if d is None or not d["versions"]:
         return False
     v = d["versions"][-1]
+    if _source_only(lib, v, path):
+        v["source_gone"] = {"when": _now(), "who": who or getpass.getuser()}
+        lib.save()
+        if rec is not None:
+            rec.log("document", f"{d['name']}: its file left the watched folder; the effort's copy is kept", who=who, save=True)
+        return True
     v["missing_kept"] = {"when": _now(), "who": who or getpass.getuser()}
     lib.save()
     if rec is not None:
@@ -188,7 +209,7 @@ def mark_withdrawn(lib, rec, doc_id, who=None):
     return True
 
 
-def found_at(lib, rec, doc_id, path, who=None):
+def found_at(lib, rec, doc_id, path, who=None, was=None):
     """'Find it': the document's latest version is the file at path now. True when its contents match (the file only
     moved); False when they differ (then it is a new version, added the usual way)."""
     import docversions as DV
@@ -198,6 +219,13 @@ def found_at(lib, rec, doc_id, path, who=None):
     v = d["versions"][-1]
     if DV.sha256(path) != v.get("sha256"):
         return False
+    if _source_only(lib, v, was):                 # 3.15.1: it came from a watched folder: follow the file there
+        v["source"] = os.path.abspath(path)
+        v.pop("source_gone", None)
+        lib.save()
+        if rec is not None:
+            rec.log("document", f"{d['name']}: the file it came from was found at a new place", who=who, save=True)
+        return True
     v["path"] = os.path.abspath(path)
     v.pop("rel", None)
     rel = lib._rel(path)

@@ -88,6 +88,17 @@ def _shingles(sents, n=5):
     return out
 
 
+def text_print(sents):
+    """3.15.1: a fingerprint of a file's words (case and spacing ignored), so a file whose bytes changed but whose text
+    did not (SharePoint and OneDrive re-save Office files) is known as the same document. "" when it has no text."""
+    words = " ".join(" ".join(str(s.get("x", "")).split()) for s in sents or []).casefold().strip()
+    return hashlib.sha256(words.encode("utf-8")).hexdigest() if words else ""
+
+
+def same_path(a, b):
+    return bool(a and b) and os.path.normcase(os.path.abspath(a)) == os.path.normcase(os.path.abspath(b))
+
+
 def text_similarity(a_sents, b_sents):
     """Share of word runs in common (0 to 1)."""
     A, B = _shingles(a_sents), _shingles(b_sents)
@@ -304,6 +315,27 @@ class Library:
                     return d, v
         return None
 
+    def find_text(self, tp):
+        """3.15.1: (doc, version) whose words are the same as tp (a text_print), or None. Versions added before 3.15.1
+        get their fingerprint worked out once, from their kept text."""
+        if not tp:
+            return None
+        for d in self.all:
+            for v in d["versions"]:
+                if "text_sha" not in v:
+                    v["text_sha"] = text_print(self.text(v))
+                if v["text_sha"] == tp:
+                    return d, v
+        return None
+
+    def find_source(self, path):
+        """3.15.1: the newest (doc, version) that came from this file (its source, or the file itself), or None."""
+        for d in self.all:
+            for v in reversed(d["versions"]):
+                if same_path(v.get("source", ""), path) or same_path(self.path_of(v), path):
+                    return d, v
+        return None
+
     def files(self):
         return {v.get("file", "").lower() for d in self.all for v in d["versions"]}
 
@@ -334,7 +366,7 @@ class Library:
         return f"Amendment {n}" if n else "Original"
 
     def add(self, path, sents, doc_id=None, doc_name="", label="", sha=None, when=None, who=None, initial="", dtype="",
-            category="customer", folder="", tags=None, role=None, save=True, role_confirmed=True):
+            category="customer", folder="", tags=None, role=None, save=True, role_confirmed=True, source=""):
         """Add a file as a new version of doc_id, or as a new document (2.68.0: with its initial and type; 2.83.0: its
         category, folder, tags and role). Returns (doc, version)."""
         h = sha or sha256(path)
@@ -354,6 +386,11 @@ class Library:
         v = {"id": uuid.uuid4().hex[:12], "label": label or self.next_label(d), "file": os.path.basename(path),
              "added": when or datetime.datetime.now().isoformat(timespec="minutes"), "who": who or getpass.getuser(),
              "sha256": h, "sentences": len(sents), "reviewed": "", "path": os.path.abspath(path)}
+        tp = text_print(sents)
+        if tp:
+            v["text_sha"] = tp                     # 3.15.1: the same words, whatever the bytes
+        if source and not same_path(source, path):
+            v["source"] = os.path.abspath(source)  # 3.15.1: where it came from (a watched folder outside the effort)
         rel = self._rel(path)
         if rel:
             v["rel"] = rel                         # 2.83.0: a copy inside the effort: found again wherever the effort goes

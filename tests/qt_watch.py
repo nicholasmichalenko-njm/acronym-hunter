@@ -122,7 +122,15 @@ check("Add them...: read and added from where it is, its folder as a tag", any(v
       and any("Amendments" in d.get("tags", []) for d in lib.all), [(d["name"], d.get("tags")) for d in lib.all])
 check("... and it is no longer new", not w.watch_now()["new"])
 # a changed file: a new version
-d0 = lib.doc(d_ids[0]); src = lib.path_of(d0["versions"][-1])
+# 3.15.1: bytes that change with the words the same (a PDF saved again) are not a new version
+pdfd = next(lib.doc(i) for i in d_ids if lib.doc(i)["versions"][-1]["file"].lower().endswith(".pdf"))
+psrc = lib.path_of(pdfd["versions"][-1]); open(psrc, "ab").write(b"\n% saved again\n")
+pl = DI.plan(DV.Library(w.ws.p("documents")).load(), [psrc])
+check("3.15.1: a file saved again with the same words: skipped as the same text", pl[0].get("dup_how") == "same text"
+      and pl[0]["choice"] == "skip", (pl[0]["choice"], pl[0].get("dup_how")))
+w.watch_now(); w.watch_set_aside()
+DOCX = next(i for i in d_ids if lib.doc(i)["versions"][-1]["file"].lower().endswith(".docx"))
+d0 = lib.doc(DOCX); src = lib.path_of(d0["versions"][-1])
 time.sleep(1.1)
 if src.lower().endswith(".docx"):
     from test_docversions import amend
@@ -130,14 +138,14 @@ if src.lower().endswith(".docx"):
 else:
     open(src, "a").write("\nOne more sentence was added by the customer.")
 f = w.watch_now()
-check("the file a document was read from changed: shown as changed", [d["id"] for _p, d, _v in f["changed"]] == [d_ids[0]]
+check("the file a document was read from changed: shown as changed", [d["id"] for _p, d, _v in f["changed"]] == [DOCX]
       and "1 changed file(s)" in w.watch_strip.text.text(), w.watch_strip.text.text())
 pl = DI.plan(DV.Library(w.ws.p("documents")).load(), [src])
-check("... offered as a new version of its document", pl[0]["choice"] == "version" and pl[0]["doc"] == d_ids[0], (pl[0]["choice"], pl[0].get("doc")))
+check("... offered as a new version of its document", pl[0]["choice"] == "version" and pl[0]["doc"] == DOCX, (pl[0]["choice"], pl[0].get("doc")))
 w.watch_add(choices={})
 wait(lambda: not w.library_page.running())
 lib = DV.Library(w.ws.p("documents")).load()
-check("Add them... adds it as the next version", len(lib.doc(d_ids[0])["versions"]) == 2 and not w.watch_now()["changed"])
+check("Add them... adds it as the next version", len(lib.doc(DOCX)["versions"]) == 2 and not w.watch_now()["changed"])
 # a missing file
 gone = lib.path_of(lib.doc(d_ids[1])["versions"][-1])
 os.remove(gone)
@@ -184,7 +192,7 @@ check("the background check shows what it found", w.watch_found is not None)
 w.go("home"); app.processEvents()
 hp = w.home_page; bn = hp.banner
 check("Effort Home: PAGE-LIMITED front and center when the documents set a limit", bn.pagelim.text().startswith("PAGE-LIMITED")
-      and "50" in bn.pagelim.text() and "found" in bn.pagelim.toolTip(), bn.pagelim.text())
+      and "30" in bn.pagelim.text() and "found" in bn.pagelim.toolTip(), bn.pagelim.text())    # 3.15.1: the amended version's 30
 if os.environ.get("SHOT_DIR"):
     w.grab().save(os.path.join(os.environ["SHOT_DIR"], "home_fmt.png"))
     from PySide6.QtWidgets import QScrollArea

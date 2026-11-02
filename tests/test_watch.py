@@ -88,6 +88,46 @@ check("... its files and subfolders too", [(os.path.basename(p), c) for p, c in 
 check("the folders listed: Customer Documents first", [b for _p, _c, b in WA.folders(data, cust)][0] is True and len(WA.folders(data, cust)) == 3)
 check("a folder can stop being watched", WA.remove_folder(data, extra) and len(WA.folders(data, cust)) == 2)
 check("the summary reads plainly", WA.summary({"new": [1, 2], "changed": [], "missing": [1]}) == "2 new file(s), 1 document file(s) missing")
+# 3.15.1: an outside watched folder: where each file came from, the same words not added twice, a file leaving it
+out = os.path.join(tmp, "SharePoint sync"); os.makedirs(out)
+src1 = os.path.join(out, "Section L.txt"); open(src1, "w").write("one")
+check("an outside folder is watched", WA.add_folder(data, out, "customer"))
+rd = lambda p: S("The Offeror shall submit three volumes.", "Each volume has a page limit.") if "Section L" in p else S("other words")
+pl = DI.plan(lib, [src1], rd)
+made = DI.apply(lib, pl, cust, None)
+v1 = made[0][1]
+check("the effort keeps a copy and remembers where the file came from", DV.same_path(v1.get("source"), src1)
+      and lib.has_original(v1) and not DV.same_path(lib.path_of(v1), src1), v1)
+check("its words are fingerprinted", bool(v1.get("text_sha")) and v1["text_sha"] == DV.text_print(rd(src1)))
+open(src1, "w").write("one, saved again by sync")                      # other bytes, the same words
+f = WA.check(lib, data, cust)
+check("a re-saved file comes up as changed, not new", [os.path.basename(p) for p, _d, _v in f["changed"]] == ["Section L.txt"]
+      and not f["new"], f)
+pl = DI.plan(lib, [src1], rd)
+check("... and the intake knows it: the same text, skipped", pl[0].get("dup") and pl[0].get("dup_how") == "same text"
+      and pl[0]["choice"] == "skip", pl[0].get("dup_how"))
+n0 = len(lib.all)
+DI.apply(lib, pl, cust, None)
+check("... nothing is added twice", len(lib.all) == n0 and len(lib.doc(made[0][0]["id"])["versions"]) == 1)
+WA.set_aside(data, [src1])
+check("... and once set aside the watch stops offering it", not WA.check(lib, data, cust)["changed"])
+rd2 = lambda p: S("The Offeror shall submit four volumes.", "Each volume has a page limit.")
+open(src1, "w").write("two")
+pl = DI.plan(lib, [src1], rd2)
+check("new words from the same file: a new version of its document", pl[0]["choice"] == "version"
+      and pl[0]["doc"] == made[0][0]["id"] and "added before from this file" in pl[0]["cands"][0][2], pl[0]["cands"][:1])
+twin = os.path.join(out, "Section L copy.txt"); open(twin, "w").write("three")
+pl = DI.plan(lib, [src1, twin], lambda p: S("Brand new words here.", "And more."))
+check("two files in one batch with the same words: the second is skipped", not pl[0].get("dup") and pl[1].get("dup_how") == "same text"
+      and pl[1]["choice"] == "skip")
+os.remove(twin)
+os.remove(src1)
+f = WA.check(lib, data, cust)
+check("a file that leaves the outside watched folder is missing", [p for _d, _v, p in f["missing"]] == [src1], f["missing"])
+check("Keep without it: the effort's copy stays and the check stops asking",
+      WA.keep_without_original(lib, rec, made[0][0]["id"], path=src1) and not WA.check(lib, data, cust)["missing"]
+      and lib.has_original(lib.doc(made[0][0]["id"])["versions"][-1])
+      and not lib.doc(made[0][0]["id"])["versions"][-1].get("missing_kept"))
 n = sum(checks)
 print(f"WATCH {'PASS' if all(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

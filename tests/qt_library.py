@@ -105,6 +105,8 @@ wait(lambda: pg.worker is None and pg.panel.state == "done")
 lib = DV.Library(ws.p("documents")).load()
 by = {d["name"]: d for d in lib.all}
 check("five documents in four categories", len(lib.all) == 5 and lib.counts_by_category()["customer"] == 2 and lib.counts_by_category()["bidders"] == 1, list(by))
+check("3.15.1: after adding, All documents shows with every new document selected", pg.cat == "all"
+      and len(pg.table.selectionModel().selectedRows()) == 5 and pg.table.rowCount() == 5)
 check("customer documents went to the customer documents folder", sorted(os.listdir(CD)) == ["Attachment J-1 ICD.pdf", "Section L Instructions.docx"])
 std = by["MIL-STD-1540E"]
 p_std = lib.path_of(std["versions"][0])

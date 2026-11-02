@@ -103,6 +103,46 @@ class PageView(QGraphicsView):
         self._hovered = ("", -1)
         self._drag = None                         # 2.96.0: (sentence id, first word, last word) while dragging inside it
         self.viewport().setMouseTracking(True)
+        self.pan_tool = False                     # 3.15.1: the Pan tool (H): a left drag moves the page
+        self._space = False                       # Space held: a left drag moves the page
+        self._pan = None                          # where a pan drag started (view position)
+
+    # ------------------------------------------------------------ 3.15.1: pan
+    def set_pan(self, on):
+        self.pan_tool = bool(on)
+        self.viewport().setCursor(Qt.OpenHandCursor if on else Qt.ArrowCursor)
+
+    def panning(self):
+        return self._pan is not None
+
+    def _pan_start(self, pos):
+        self._pan = pos
+        self.viewport().setCursor(Qt.ClosedHandCursor)
+
+    def _pan_move(self, pos):
+        d = pos - self._pan
+        self._pan = pos
+        self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - d.x())
+        self.verticalScrollBar().setValue(self.verticalScrollBar().value() - d.y())
+
+    def _pan_end(self):
+        self._pan = None
+        self.viewport().setCursor(Qt.OpenHandCursor if (self.pan_tool or self._space) else Qt.ArrowCursor)
+
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key_Space and not e.isAutoRepeat() and not self.capturing:
+            self._space = True
+            self.viewport().setCursor(Qt.OpenHandCursor)
+            return
+        super().keyPressEvent(e)
+
+    def keyReleaseEvent(self, e):
+        if e.key() == Qt.Key_Space and not e.isAutoRepeat():
+            self._space = False
+            if self._pan is None:
+                self.viewport().setCursor(Qt.OpenHandCursor if self.pan_tool else Qt.ArrowCursor)
+            return
+        super().keyReleaseEvent(e)
 
     def set_capture(self, on):
         self.capturing = on
@@ -126,6 +166,11 @@ class PageView(QGraphicsView):
         return it.iid, -1
 
     def mouseMoveEvent(self, e):
+        if self._pan is not None:
+            self._pan_move(e.position().toPoint())
+            return
+        if (self.pan_tool or self._space) and not e.buttons():
+            return                                          # the hand stays; no split marks while panning
         if self._drag is not None and e.buttons() & Qt.LeftButton:     # 2.96.0: dragging across words
             iid, k, k2 = self.word_at(e.position().toPoint())[0], self._drag[1], self.word_at(e.position().toPoint())[1]
             if iid == self._drag[0] and k2 >= 0 and k2 != self._drag[2]:
@@ -153,6 +198,9 @@ class PageView(QGraphicsView):
         super().mouseMoveEvent(e)
 
     def mouseReleaseEvent(self, e):
+        if self._pan is not None:
+            self._pan_end()
+            return
         if self._drag is not None:                          # 2.96.0: a click splits; a drag picks words
             iid, a, b = self._drag
             self._drag = None
@@ -182,6 +230,9 @@ class PageView(QGraphicsView):
         super().wheelEvent(e)
 
     def mousePressEvent(self, e):
+        if e.button() == Qt.MiddleButton or (e.button() == Qt.LeftButton and (self.pan_tool or self._space) and not self.capturing):
+            self._pan_start(e.position().toPoint())        # 3.15.1: middle drag, Space and drag, or the Pan tool
+            return
         if self.capturing and e.button() == Qt.LeftButton:
             self._cap0 = self.mapToScene(e.position().toPoint())
             return
@@ -290,6 +341,10 @@ class AssignPage(QWidget):
                                 "and adds it as a sentence in its place, ready to assign")
         self.cap_btn.setCheckable(True)
         bar.addWidget(self.cap_btn)
+        self.pan_btn = D.button("Pan  H", None, lambda: self.toggle_pan(), "Drag to move the page (or hold Space and drag, "
+                                "or drag with the middle button). Ctrl+wheel zooms")
+        self.pan_btn.setCheckable(True)
+        bar.addWidget(self.pan_btn)
         self.sheet_on, self.sheet = True, None          # 2.96.0: Excel files open in Sheet view
         self.sheet_btn = D.button("Page view", None, lambda: self.toggle_sheet(), "Switch an Excel file between its cells (Sheet "
                                   "view) and its PDF copy (Page view)")
@@ -453,7 +508,7 @@ class AssignPage(QWidget):
                         ("Delete", self.do_clear), ("J", self.do_combine), ("S", self.do_split), ("Ctrl+Z", self.do_undo),
                         ("F", lambda: self.do_for_req()), ("N", lambda: self.do_record("note")),
                         ("Q", lambda: self.do_record("question")), ("T", lambda: self.do_record("task")),
-                        ("Ctrl+A", lambda: self.select_all()), ("P", lambda: self.do_capture("graphic") if self.cx is None else None),
+                        ("Ctrl+A", lambda: self.select_all()), ("H", lambda: self.toggle_pan()), ("P", lambda: self.do_capture("graphic") if self.cx is None else None),
                         ("Escape", lambda: self.toggle_capture(False) if self.view.capturing else
                          (self.clear_split() if self.split_at is not None else self.view.scene().clearSelection()))):
             QShortcut(QKeySequence(key), self.view, activated=fn)
@@ -683,7 +738,7 @@ class AssignPage(QWidget):
         finally:
             doc.close()
         self.build_boxes()
-        self.note.setText("Click a sentence; Ctrl+click adds one (even far apart); drag a box around several. Ctrl+wheel zooms.")
+        self.note.setText("Click a sentence; Ctrl+click adds one (even far apart); drag a box around several. Space and drag, or a middle-button drag, moves the page. Ctrl+wheel zooms.")
         self.mark_changes()                         # 2.98.0: what this version changed, outlined on the page
         QTimer.singleShot(0, self.view.fit)
 
@@ -1512,11 +1567,18 @@ class AssignPage(QWidget):
             self.add(QLabel("L, M or SOW (keys L, E, R): a requirement in the target section.  C: support for the last requirement you clicked.  G: the customer's."))
         self.head("Author(s)")
         on = d in ("Keep", "Context")
+        can = [r for r in rows if r.get("decision") in ("Keep", "Context")]     # 3.15.1: the selection's own count
         from .people import NamesField                  # 2.77.0: authors come from the author list only
-        ed = self.add(NamesField(self.host, SD.split_names(it.get("owner", "")), empty="(the section's lead)", title="Authors",
+        ed = self.add(NamesField(self.host, SD.split_names((can[0] if can else it).get("owner", "")), empty="(the section's lead)",
+                                 title="Authors" if len(rows) == 1 else f"Authors for {len(can)} sentences",
                                  on_change=lambda names, rows=rows: self.set_authors(rows, ", ".join(names))))
-        ed.setEnabled(on)
+        ed.setEnabled(bool(can))
         self.authors = ed
+        if not can:                                     # 3.15.1: say why, instead of a grey button
+            self.add(D.label("Authors go on requirements and context. Decide the sentence first (L, E or R makes it a "
+                             "requirement; C makes it context), then choose one or more authors.", "muted"))
+        elif len(can) < len(rows):
+            self.add(D.label(f"Authors go on the {len(can)} requirement and context sentence(s) of the {len(rows)} selected.", "muted"))
         lead = SD.section_people(M, it.get("map", "")).get("lead", "") if it.get("map") else ""
         if on and not it.get("owner"):
             self.add(D.label(f"Empty: the section lead writes it ({lead})." if lead else "Empty: the section's lead, once one is named (People...).", "muted"))
@@ -1652,9 +1714,11 @@ class AssignPage(QWidget):
         self.after(f"{len(rows)} sentence(s): {SD.LM_SHORT.get(lm, lm) if lm else 'a requirement, neither L, M nor SOW'}")
 
     def set_authors(self, rows, text):
-        if self.R.set_authors(rows, text):
+        n = self.R.set_authors(rows, text)
+        if n:
             diag.activity("assign_card_authors", n=len(rows))
             self.host.changed()
+            self.host.status(f"Author(s) set on {n} sentence(s).")
 
     def act(self, fn, *a):
         fn(*a)
@@ -1927,15 +1991,30 @@ class AssignPage(QWidget):
         return lab
 
     # ------------------------------------------------------------ text the reader missed (2.70.0)
+    def toggle_pan(self, on=None):
+        """3.15.1: the Pan tool. Off when Add missed text is on (that drag draws a box)."""
+        on = (not self.view.pan_tool) if on is None else bool(on)
+        if on and self.view.capturing:
+            self.toggle_capture(False)
+        self.view.set_pan(on)
+        self.pan_btn.setChecked(on)
+        self.note.setText("Drag to move the page. H or the Pan button turns it off." if on else
+                          "Click a sentence; Ctrl+click adds one (even far apart); drag a box around several. Space and drag, "
+                          "or a middle-button drag, moves the page. Ctrl+wheel zooms.")
+        return on
+
     def toggle_capture(self, on=None):
         on = (not self.view.capturing) if on is None else on
         if on and not self.pdf:
             self.host.status("Add missed text works on the page view of a document.")
             on = False
+        if on and self.view.pan_tool:
+            self.view.set_pan(False); self.pan_btn.setChecked(False)
         self.view.set_capture(on)
         self.cap_btn.setChecked(on)
         self.note.setText("Drag a box around the text the reader missed (Esc cancels)." if on else
-                          "Click a sentence; Ctrl+click adds one (even far apart); drag a box around several. Ctrl+wheel zooms.")
+                          "Click a sentence; Ctrl+click adds one (even far apart); drag a box around several. Space and drag, "
+                          "or a middle-button drag, moves the page. Ctrl+wheel zooms.")
         return on
 
     def _page_of(self, y):

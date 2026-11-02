@@ -86,6 +86,58 @@ check("area mode ends after one area", not pg.view.capturing and not pg.cap_btn.
 pg.toggle_capture(True)
 QTest.keyClick(pg.view, Qt.Key_Escape); app.processEvents()
 check("Esc leaves area mode", not pg.view.capturing)
+# 3.15.1: pan the page: the Pan tool (H), Space and drag, a middle-button drag
+pg.view.zoom = 1.0; pg.view.resetTransform(); pg.view.scale(2.5, 2.5); app.processEvents()
+vs, hs = pg.view.verticalScrollBar(), pg.view.horizontalScrollBar()
+vs.setValue(vs.maximum() // 2); hs.setValue(hs.maximum() // 2); app.processEvents()
+sel0 = len(pg.view.scene().selectedItems())
+
+
+def drag(button, a, b, mod=Qt.NoModifier):
+    QTest.mousePress(pg.view.viewport(), button, mod, a)
+    ev_pos = b
+    from PySide6.QtGui import QMouseEvent
+    from PySide6.QtCore import QPointF, QEvent
+    me = QMouseEvent(QEvent.MouseMove, QPointF(ev_pos), QPointF(pg.view.viewport().mapToGlobal(ev_pos)), Qt.NoButton, button, mod)
+    app.sendEvent(pg.view.viewport(), me)
+    QTest.mouseRelease(pg.view.viewport(), button, mod, b)
+    app.processEvents()
+
+
+from PySide6.QtCore import QPoint
+v0, h0 = vs.value(), hs.value()
+drag(Qt.MiddleButton, QPoint(400, 400), QPoint(340, 300))
+check("a middle-button drag moves the page", vs.value() == v0 + 100 and hs.value() == h0 + 60, (v0, vs.value(), h0, hs.value()))
+QTest.keyClick(pg.view, Qt.Key_H); app.processEvents()
+check("H turns on the Pan tool", pg.view.pan_tool and pg.pan_btn.isChecked())
+v0 = vs.value()
+drag(Qt.LeftButton, QPoint(400, 300), QPoint(400, 380))
+check("with the Pan tool a left drag moves the page and selects nothing", vs.value() == v0 - 80
+      and len(pg.view.scene().selectedItems()) == sel0, (v0, vs.value()))
+pg.toggle_capture(True)
+check("Add missed text turns the Pan tool off", pg.view.capturing and not pg.view.pan_tool and not pg.pan_btn.isChecked())
+pg.toggle_capture(False)
+QTest.keyPress(pg.view, Qt.Key_Space); app.processEvents()
+v0 = vs.value()
+drag(Qt.LeftButton, QPoint(400, 380), QPoint(400, 330))
+QTest.keyRelease(pg.view, Qt.Key_Space); app.processEvents()
+check("Space and drag moves the page; letting go of Space ends it", vs.value() == v0 + 50 and not pg.view._space, (v0, vs.value()))
+# 3.15.1: authors on a selection: on requirements and context, with the reason shown for the rest
+from PySide6.QtWidgets import QLabel
+und = [it for it in M.items if not it.get("decision")][:2]
+pg.show_card(und); app.processEvents()
+txt = " ".join(x.text() for x in pg.card.findChildren(QLabel))
+check("undecided sentences: the author field says to decide them first", not pg.authors.btn.isEnabled()
+      and "Decide the sentence first" in txt)
+keep = [it for it in M.items if it.get("decision") == "Keep"][:2]
+pg.show_card(keep + und[:1]); app.processEvents()
+txt = " ".join(x.text() for x in pg.card.findChildren(QLabel))
+check("a mixed selection: Choose is on, for the requirement and context sentences", pg.authors.btn.isEnabled()
+      and f"Authors go on the {len(keep)} requirement" in txt, txt[-200:])
+w.authors.add("Ann Writer", efforts=["Heron"]); w.authors.add("Bo Author", efforts=["Heron"])
+got = pg.authors.choose(answer=["Ann Writer", "Bo Author"])
+check("many authors on many sentences at once", got == ["Ann Writer", "Bo Author"]
+      and all(it.get("owner") == "Ann Writer, Bo Author" for it in keep) and not und[0].get("owner"), [it.get("owner") for it in keep])
 w.close()
 n = sum(checks)
 print(f"QT CAPTURE PASS ({n}/{len(checks)})" if n == len(checks) else f"QT CAPTURE FAIL ({n}/{len(checks)})")

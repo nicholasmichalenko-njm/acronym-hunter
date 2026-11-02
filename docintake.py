@@ -90,7 +90,24 @@ def plan(lib, paths, reader=read, progress=None, stop=None, folders=None, catego
         level = S.guard(p)                               # 2.97.0: marked above CUI: stop before reading or copying
         sents = reader(p)
         level = S.guard_lines(os.path.basename(p), [x["x"] for x in sents], level)
+        tp = DV.text_print(sents)                       # 3.15.1: the same words as a document here: not added twice
+        same = lib.find_text(tp)
+        twin = None if same else next((e for e in out if tp and e.get("text_print") == tp), None)
+        if same or twin:
+            d0 = same[0] if same else {"id": "", "name": twin["name"]}
+            out.append({"path": p, "sha": h, "dup": same or (d0, None), "dup_how": "same text", "text_print": tp,
+                        "sents": sents, "choice": "skip", "cands": [], "best": None, "doc": d0["id"] or None,
+                        "name": DV.display_name(p), "label": "", "category": d0.get("category", cat), "folder": rel,
+                        "tags": DV.folder_tags(rel), "role": lib.role_of(d0) if same else DV.suggest_role(cat, ""),
+                        "sensitivity": level})
+            continue
         cands = [(d, sc, how) for d, sc, how in lib.suggest(os.path.basename(p), [s["x"] for s in sents])]
+        came = lib.find_source(p)                       # 3.15.1: a file added before from this very place: a new version
+        if came and not any(c[0]["id"] == came[0]["id"] for c in cands):
+            cands.append((came[0], 1.0, "added before from this file"))
+        elif came:
+            cands = [(d, 1.0, how + "; added before from this file") if d["id"] == came[0]["id"] else (d, sc, how)
+                     for d, sc, how in cands]
         for k, e in enumerate(out):              # earlier files in this batch that will become new documents
             if e.get("dup") or e["choice"] != "new":
                 continue
@@ -103,7 +120,7 @@ def plan(lib, paths, reader=read, progress=None, stop=None, folders=None, catego
         best = cands[0] if cands and DV.Library.band(cands[0][1]) else None
         dtype = DV.guess_type(os.path.basename(p))                  # 2.68.0: the person confirms the type and initial
         taken = [e.get("initial", "") for e in out]
-        out.append({"path": p, "sha": h, "sents": sents, "cands": cands, "best": best,
+        out.append({"path": p, "sha": h, "sents": sents, "cands": cands, "best": best, "text_print": tp,
                     "choice": "version" if best and DV.Library.band(best[1]) == "strong" else "new",
                     "doc": best[0]["id"] if best else None, "name": DV.display_name(p), "label": "",
                     "type": dtype, "initial": lib.suggest_initial(dtype, taken) if cat == "customer" else "",
@@ -176,7 +193,7 @@ def apply(lib, entries, customer_dir="", log=None, progress=None):
         d, v = lib.add(dest, e["sents"], doc_id=doc_id, doc_name=e.get("name", ""), label=e.get("label", ""), sha=e["sha"],
                        initial=e.get("initial", ""), dtype=e.get("type", ""), category=cat, folder=e.get("folder", ""),
                        tags=[t for t in e.get("tags", []) if t not in DV.folder_tags(e.get("folder", ""))], role=e.get("role"),
-                       save=False, role_confirmed=e.get("role") != e.get("suggested_role", e.get("role")))
+                       save=False, role_confirmed=e.get("role") != e.get("suggested_role", e.get("role")), source=src)
         if e.get("under") and not d.get("under") and e["choice"] == "new":   # an order, under its contract or RFP
             lib.set_under(d["id"], e["under"], save=False)
         if e.get("sensitivity", -1) > d.get("sensitivity", -1):     # 2.97.0: the highest level found in its versions

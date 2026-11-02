@@ -4,7 +4,7 @@ picker offers only the names set to show in the open effort; with no effort open
 """
 import os
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QHBoxLayout,
+from PySide6.QtWidgets import (QPlainTextEdit, QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QHBoxLayout,
                                QInputDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMessageBox, QPushButton,
                                QRadioButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 import authorlist as AL
@@ -30,6 +30,43 @@ def empty_text(host):
 
 
 # ---------------------------------------------------------------- pickers
+def add_names(host, title="Add names", parent=None, answer=None):
+    """3.15.1: type names (one per line, or commas between them) into the author list, shown in the open effort.
+    Returns the names added (a name already on the list is shown in this effort too). answer (tests): the text typed."""
+    eff = _eff(host)
+    if not eff:
+        return []
+    if answer is None:
+        d = QDialog(parent or host); d.setWindowTitle(title); d.setMinimumWidth(420)
+        v = QVBoxLayout(d)
+        v.addWidget(D.label(f"No names show in {eff} yet. Type the people who write for this effort: one per line, or "
+                            "commas between them. They go on the author list (Settings > Author list) for this effort.", "muted"))
+        ed = QPlainTextEdit(); ed.setPlaceholderText("Name One\nName Two"); v.addWidget(ed, 1)
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        bb.button(QDialogButtonBox.Ok).setText("Add")
+        bb.accepted.connect(d.accept); bb.rejected.connect(d.reject); v.addWidget(bb)
+        if d.exec() != QDialog.Accepted:
+            return []
+        answer = ed.toPlainText()
+    if isinstance(answer, (list, tuple)):
+        answer = "\n".join(answer)
+    out = []
+    for raw in str(answer or "").replace(";", "\n").replace(",", "\n").splitlines():
+        n = AL.clean(raw)
+        if not n or n.casefold() in {x.casefold() for x in out}:
+            continue
+        if host.authors.find(n):
+            host.authors.show_in(host.authors.find(n)["name"], eff, True)
+            out.append(host.authors.find(n)["name"])
+        elif host.authors.add(n, efforts=[eff], source="typed"):
+            out.append(n)
+    if out:
+        host.authors.save()
+        diag.activity("people_names_added", n=len(out))
+        host.status(f"{len(out)} name(s) added to the author list for {eff}.")
+    return out
+
+
 def pick_names(host, current=(), title="Choose authors", multi=True, answer=None, parent=None):
     """The names to use, or None (cancelled, or nothing to pick from). current: names already set; one that is not on
     the list shows ticked and marked, so it can be kept or taken off. answer (tests): the names to return."""
@@ -40,15 +77,11 @@ def pick_names(host, current=(), title="Choose authors", multi=True, answer=None
         return None
     names = host.authors.for_effort(_eff(host))
     cur = [AL.clean(n) for n in current if AL.clean(n)]
-    if not names and not cur:
-        host.status(empty_text(host))
-        if answer is None:
-            box = QMessageBox(parent or host); box.setWindowTitle(title); box.setText(empty_text(host))
-            go = box.addButton("Open the author list", QMessageBox.AcceptRole); box.addButton(QMessageBox.Close)
-            box.exec()
-            if box.clickedButton() is go:
-                host.go("settings"); host.settings_page.focus_authors()
-        return None
+    if not names and not cur:                       # 3.15.1: add names right here, then pick from them
+        added = add_names(host, title, parent=parent, answer=answer)
+        if not added:
+            return None
+        names = host.authors.for_effort(_eff(host))
     if answer is not None:
         ok = [n for n in answer if host.authors.find(n) and n in names or n in cur]
         return ok if multi else ok[:1]
@@ -72,6 +105,13 @@ def pick_names(host, current=(), title="Choose authors", multi=True, answer=None
                         lw.item(i).setCheckState(Qt.Unchecked)
         lw.itemChanged.connect(one)
     row = QHBoxLayout()
+    def more():                                     # 3.15.1: a name not on the list yet, added without leaving
+        got = add_names(host, title, parent=d)
+        for n in got or []:
+            it = QListWidgetItem(n); it.setData(Qt.UserRole, n)
+            it.setFlags(it.flags() | Qt.ItemIsUserCheckable); it.setCheckState(Qt.Checked)
+            lw.addItem(it)
+    plus = QPushButton("Add names..."); plus.clicked.connect(more); row.addWidget(plus)
     edit = QPushButton("Edit the author list..."); edit.setFlat(True)
     edit.clicked.connect(lambda: (d.reject(), host.go("settings"), host.settings_page.focus_authors()))
     row.addWidget(edit); row.addStretch(1)

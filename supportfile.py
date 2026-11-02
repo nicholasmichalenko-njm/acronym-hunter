@@ -20,6 +20,14 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.15.1": ["Watched folders: a file that leaves a watched folder outside the effort is reported missing; each document "
+               "remembers where its file came from; a file saved again with the same words (SharePoint and OneDrive do this) "
+               "is recognized and never added twice. After adding, the Library shows every new document, selected.",
+               "Read it in Review always works: with no compliance matrix yet, it offers to read the documents that build it, "
+               "then opens yours. A document whose role is Not needed says how to read it.",
+               "Review: pan the page with the Pan tool (H), by holding Space and dragging, or with a middle-button drag.",
+               "Authors: add names right from Review when the effort has none; choose one or more authors for many sentences "
+               "at once; the field says why when a sentence needs a decision first."],
     "3.15.0": ["The menu is easier to scan: each tool is in one place (the separate stage group is gone), group names are in "
                "capitals with a line above, and the page you are on is marked by a bar at its left. A dot in the stage's color "
                "marks the tools the effort's stage needs, and each group shows how many it holds.",

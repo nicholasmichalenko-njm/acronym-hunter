@@ -84,7 +84,10 @@ class IntakeDialog(QDialog):
             self.table.setItem(i, 1, _item(e.get("folder", "") or "(the files picked)"))
             what = QComboBox()
             if e.get("dup"):
-                what.addItem(f"Already here: {e['dup'][0]['name']}", ("skip", None))
+                how = "  (the same text)" if e.get("dup_how") else ""
+                what.addItem(f"Already here: {e['dup'][0]['name']}{how}", ("skip", None))
+                if e.get("dup_how") and e["dup"][0].get("id"):            # 3.15.1: same words, other bytes: add only if asked
+                    what.addItem(f"Add it anyway as a new version of {e['dup'][0]['name']}", ("version", e["dup"][0]["id"]))
             else:
                 what.addItem("A new document", ("new", None))
                 for d, _sc, how in e.get("cands", [])[:6]:
@@ -196,6 +199,8 @@ class IntakeDialog(QDialog):
         for e, w in zip(self.plan, self.rows):
             choice, doc = w["what"].currentData()
             e["choice"], e["doc"] = choice, doc
+            if e.get("dup_how") and choice == "version":                 # 3.15.1: the person chose to add it anyway
+                e["dup"] = None
             if w["cat"].currentData() != e.get("category"):       # a new category suggests its own role
                 e["suggested_role"] = DV.suggest_role(w["cat"].currentData(), w["ty"].currentText() if w["cat"].currentData() == "customer" else "")
             e["category"] = w["cat"].currentData()
@@ -666,28 +671,76 @@ class LibraryPage(QWidget):
             self.refresh(); self.select(did)
         return ok
 
-    def read_in_assign(self, doc_id=None):
-        """2.84.0: open the document in Review, beside the response structure."""
+    def read_in_assign(self, doc_id=None, answer=None, out=None):
+        """2.84.0: open the document in Review, beside the response structure. 3.15.1: never a dead button: with no
+        compliance matrix yet it offers to read the documents that build it (this one first), then opens this one;
+        a document whose role is Not needed says how to read it. answer (tests): True/False for the question."""
         doc_id = doc_id or self.current_id()
         h = self.host
-        if not doc_id or h.ws is None:
+        if not doc_id or h.ws is None or self.lib is None:
             return False
+        d = self.lib.doc(doc_id)
+        if d is None or not d["versions"]:
+            return False
+        if self.lib.role_of(d) == "not_needed":
+            return self._say("Read it in Review", f"{d['name']} has the role Not needed, so Review leaves it out. Set its role "
+                             "to Context, Reference only or Builds the matrix (above), then Read it in Review.", answer)
         if h.review is None:
-            h.status("Read RFP first: Review reads library documents beside the response structure of the matrix.")
-            return False
+            return self._start_matrix(d, answer, out)
+        return self._open_in_review(d)
+
+    def _say(self, title, text, answer=None):
+        self.host.status(text)
+        if answer is None:
+            QMessageBox.information(self, title, text)
+        return False
+
+    def _open_in_review(self, d):
+        h = self.host
         h.go("assign")
         ap = h.assign_page
         ap.load_files_keep()
-        lab = next((k for k, did in ap.lib_entries.items() if did == doc_id), None)
-        if lab is None:
-            d = self.lib.doc(doc_id) if self.lib else None
-            if d is not None and d["versions"] and d["versions"][-1].get("file") in h.review.files():
-                ap.files.setCurrentText(d["versions"][-1]["file"])
-                return True
-            h.status("That document builds the matrix: it is read in Read RFP.")
+        lab = next((k for k, did in ap.lib_entries.items() if did == d["id"]), None)
+        if lab is not None:
+            ap.files.setCurrentText(lab)
+            return True
+        f = d["versions"][-1].get("file")
+        if h.review is not None and f in h.review.files():
+            ap.files.setCurrentText(f)
+            return True
+        h.status(f"{d['name']} is not offered in Review.")
+        return False
+
+    def _start_matrix(self, d, answer=None, out=None):
+        """3.15.1: Review works on the compliance matrix, read from the documents whose role is Builds the matrix."""
+        import compliance_read as CR
+        h = self.host
+        docs = CR.effort_docs(h.ws)
+        build = [p for _n, _l, p in docs if self.lib.role_of(self.lib.doc_of_file(p) or {}) == "matrix"]
+        mine = next((p for _n, _l, p in docs if (self.lib.doc_of_file(p) or {}).get("id") == d["id"]), "")
+        if mine and self.lib.role_of(d) == "matrix" and mine in build:
+            build.remove(mine); build.insert(0, mine)
+        if not build:
+            return self._say("Read it in Review", "Review starts from the compliance matrix, read from the customer documents "
+                             "whose role is Builds the matrix. None has that role yet: select the RFP files here and set "
+                             "their role to Builds the matrix, then Read it in Review.", answer)
+        text = (f"Review starts from the compliance matrix. It is read from the {len(build)} customer document(s) whose role "
+                "is Builds the matrix" + (", this one first" if build[0] == mine else "") + f". Read them now, then open "
+                f"{d['name']} in Review?")
+        if answer is None:
+            answer = QMessageBox.question(self, "Read it in Review", text) == QMessageBox.Yes
+        if not answer:
             return False
-        ap.files.setCurrentText(lab)
-        return True
+        rp = h.read_page
+        rp.refresh()
+        start = rp.start.currentData() if rp.start.isVisible() or rp.start.count() else None
+        rp._then = lambda: self._open_in_review(self.lib.doc(d["id"]) or d)
+        w = rp.read(paths=build, out=out, start=("auto" if start in (None, "choose") else start))
+        if w is None:
+            rp._then = None
+            return False
+        h.go("read")
+        return w
 
     def show_taken(self, run=True):
         if self.host.ws is None:
@@ -744,6 +797,7 @@ class LibraryPage(QWidget):
             paths, _ = QFileDialog.getOpenFileNames(self, "Add documents to the library", "", "Documents (*.docx *.pdf *.pptx *.xlsx *.txt *.doc *.xls *.ppt *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.gif *.webp)")
         if not paths:
             return None
+        self.lib = DV.Library(self.lib.folder).load()     # 3.15.1: plan against the library as saved now, never a stale copy
         lib, rd = self.lib, reader or DI.read
         self._choices = choices
         self.worker = JobWorker(lambda prog, stop: DI.plan(lib, list(paths), rd, prog, stop, folders, category))
@@ -791,6 +845,13 @@ class LibraryPage(QWidget):
                 self.lock(False)
                 self.panel.failed("Not added", " ".join(problems[:4]), "Fix them in the table and Add again.")
                 return
+        dups = [e["path"] for e in plan if e.get("dup")]
+        if dups and self.host.ws is not None:          # 3.15.1: already here: the watched folders stop offering them
+            try:
+                import watch as WA
+                WA.set_aside(self.host.ws.root, dups)
+            except Exception:
+                diag.swallowed()
         folder, cd = self.lib.folder, self._customer_dir()
         lines = []
 
@@ -827,7 +888,32 @@ class LibraryPage(QWidget):
         self.host.toast(f"{len(made)} added to the library")
         self.refresh()
         if made:
-            self.select(made[-1][0]["id"])
+            self.show_added([d["id"] for d, _v in made])
+
+    def show_added(self, ids):
+        """3.15.1: what was just added, in view: every filter off, All documents, the new documents selected."""
+        for w in (self.search, self.role_f):
+            w.blockSignals(True)
+        self.search.clear(); self.role_f.setCurrentIndex(0)
+        for w in (self.search, self.role_f):
+            w.blockSignals(False)
+        self.cat, self.folder = "all", ""
+        if self.tree.topLevelItemCount():
+            self.tree.setCurrentItem(self.tree.topLevelItem(0))
+        self.fill()
+        self.table.clearSelection()
+        mode = self.table.selectionMode()
+        self.table.setSelectionMode(QAbstractItemView.MultiSelection)
+        first = None
+        for r in range(self.table.rowCount()):
+            it = self.table.item(r, 0)
+            if it is not None and it.data(Qt.UserRole) in set(ids):
+                self.table.selectRow(r)
+                first = it if first is None else first
+        self.table.setSelectionMode(mode)
+        if first is not None:
+            self.table.scrollToItem(first)
+        return sum(1 for r in range(self.table.rowCount()) if self.table.item(r, 0) and self.table.item(r, 0).isSelected())
 
     def _customer_dir(self):
         return (self.host.efforts.get(self.host.effort_name) or {}).get("customer_dir", "") or ""

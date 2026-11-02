@@ -56,8 +56,8 @@ class MissingDialog(QDialog):
         self.setWindowTitle("Document files missing")
         self.resize(900, 420)
         v = QVBoxLayout(self)
-        v.addWidget(D.label("These documents were read from files that are no longer in the watched folders. The documents and "
-                            "their text stay in the effort. Say what happened to each.", "muted"))
+        v.addWidget(D.label("These documents were read from files that are no longer in the watched folders. The documents, "
+                            "their text and the effort's own copies stay in the effort. Say what happened to each.", "muted"))
         self.t = QTableWidget(0, 3); self.t.setHorizontalHeaderLabels(["Document", "Its file was", "What happened"])
         self.t.verticalHeader().setVisible(False); self.t.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.t.setColumnWidth(0, 220); self.t.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch); self.t.setColumnWidth(2, 380)
@@ -68,8 +68,8 @@ class MissingDialog(QDialog):
             i = self.t.rowCount(); self.t.insertRow(i)
             self.t.setItem(i, 0, QTableWidgetItem(d["name"])); self.t.setItem(i, 1, QTableWidgetItem(p))
             w = QWidget(); h = QHBoxLayout(w); h.setContentsMargins(2, 1, 2, 1); h.setSpacing(4)
-            h.addWidget(D.button("Find it...", None, lambda _=False, di=d["id"]: self.find(di), "Point at where the file went"))
-            h.addWidget(D.button("Keep without it", None, lambda _=False, di=d["id"]: self.keep(di), "The document stays; its file is gone"))
+            h.addWidget(D.button("Find it...", None, lambda _=False, di=d["id"], pp=p: self.find(di, was=pp), "Point at where the file went"))
+            h.addWidget(D.button("Keep without it", None, lambda _=False, di=d["id"], pp=p: self.keep(di, was=pp), "The document stays; its file is gone"))
             h.addWidget(D.button("Withdrawn", "ghost", lambda _=False, di=d["id"]: self.withdrawn(di), "The customer withdrew it"))
             self.t.setCellWidget(i, 2, w)
             self.rows.append(d["id"])
@@ -84,21 +84,21 @@ class MissingDialog(QDialog):
         self.t.setCellWidget(i, 2, lab)
         self.done_ids.add(doc_id)
 
-    def find(self, doc_id, path=None):
+    def find(self, doc_id, path=None, was=None):
         lib, rec = self.host.watch_lib_rec()
         if path is None:
             path, _ = QFileDialog.getOpenFileName(self, "Where is the file now?", self.host.watch_customer_dir())
             if not path:
                 return None
-        if WA.found_at(lib, rec, doc_id, path):
+        if WA.found_at(lib, rec, doc_id, path, was=was):
             self._row_done(doc_id, "Found: the same file at a new place")
             return True
         self.host.status("That file holds other contents. Add it as a new version from the Library (Add files...).")
         return False
 
-    def keep(self, doc_id):
+    def keep(self, doc_id, was=None):
         lib, rec = self.host.watch_lib_rec()
-        ok = WA.keep_without_original(lib, rec, doc_id)
+        ok = WA.keep_without_original(lib, rec, doc_id, path=was)
         if ok:
             self._row_done(doc_id, "Kept without its original file")
         return ok

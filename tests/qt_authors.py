@@ -141,8 +141,12 @@ check("a task's owner: the list's names for this effort, not typed", owner is no
       and [owner.itemText(i) for i in range(1, owner.count())] == names_a)
 cb = PP.name_combo(w, "Gone Person")
 check("a single pick keeps a current name that is not on the list, marked", cb.currentData() == "Gone Person" and cb.currentText().endswith(PP.OFF_LIST))
-check("an empty effort's picker points to the author list", (w.authors.set_efforts(w.authors.names(), ["Effort B"]) or True)
-      and PP.pick_names(w, [], answer=[]) is None and "No names show in Effort A yet" in w.statusBar().currentMessage())
+check("an empty effort's picker: nothing typed, nothing picked", (w.authors.set_efforts(w.authors.names(), ["Effort B"]) or True)
+      and PP.pick_names(w, [], answer=[]) is None)
+got = PP.pick_names(w, [], answer=["New Writer", "K. Park"])
+check("3.15.1: an empty effort's picker adds names right there (new, and one already listed elsewhere)",
+      got == ["New Writer", "K. Park"] and set(w.authors.for_effort("Effort A")) == {"New Writer", "K. Park"}
+      and "Effort B" in w.authors.find("K. Park")["efforts"], (got, w.authors.for_effort("Effort A")))
 w.close()
 n = sum(checks)
 print(f"QT AUTHORS PASS ({n}/{len(checks)})" if n == len(checks) else f"QT AUTHORS FAIL ({n}/{len(checks)})")
