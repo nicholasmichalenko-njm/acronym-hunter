@@ -48,6 +48,8 @@ def _company_default():
     c["excel"] = {"font": "", "size": None, "header": {"bold": True, "fill": "", "color": ""}, "freeze_header": True,   # 3.11.0
                   "print": {"orientation": "", "fit_width": True, "repeat_header": True, "footer_page": True, "marking": False}}
     c["powerpoint"] = {"fonts": "", "min_size": 12, "title_min_size": None, "slide_size": "", "marking": False, "titles": True}
+    import prodgraphics as _PG                        # 3.17.0: graphics standards
+    c["graphics"] = dict(_PG.DEFAULT)
     c["heading_numbering"] = {"on": False, "levels": [
         {"style": s, "fmt": f, "text": t, "number_at": a, "text_at": b, "restart": r} for (s, f, t, a, b, r) in WO.HEADING_LEVELS]}
     c["checks"] = {"toc_forbid": ["\\o", "\\u"], "page_numbers": True, "caption_fields": True,

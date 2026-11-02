@@ -24,7 +24,7 @@ SECTIONS = [
     ("rows", "Table rows"), ("ttypes", "Table types"), ("rules", "Row rules"), ("captions", "Captions and numbering"),
     ("pages", "Pages, cover and back cover"), ("setups", "Page setups"), ("hf", "Headers and footers"),
     ("toc", "Table of contents and lists"), ("lists", "Bulleted and numbered lists"), ("terms", "Terms"),
-    ("office", "Excel and PowerPoint"), ("checks", "Check options"),
+    ("office", "Excel and PowerPoint"), ("graphics", "Graphics"), ("checks", "Check options"),
 ]
 ROLE_NAMES = {"caption": "Caption row", "header": "Header row", "header2": "Second header row", "subhead": "Subhead row",
               "body": "Body rows", "subtotal": "Subtotal row", "total": "Total row", "note": "Notes row"}
@@ -221,6 +221,10 @@ class Binder:
             it["label"].setToolTip("Set at this layer" if own else "Inherited from the layer below")
         if it["reset"] is not None:
             it["reset"].setVisible(own and self.page.scope != "team")
+        if it.get("was") is not None:                  # 3.17.0: was, and where it came from
+            b = _get(self.page.base, it["path"])
+            it["was"].setText(f"was {_shown(b)} ({self.page.base_name()})" if own else "")
+            it["was"].setVisible(own)
 
 
 class ColorButton(QPushButton):
@@ -254,6 +258,18 @@ class ColorButton(QPushButton):
 def _light(hexv):
     c = QColor("#" + hexv)
     return (0.299 * c.red() + 0.587 * c.green() + 0.114 * c.blue()) > 150
+
+
+def _shown(v):
+    if v in (None, "", [], {}):
+        return "not set"
+    if isinstance(v, bool):
+        return "on" if v else "off"
+    if isinstance(v, list):
+        return ", ".join(map(str, v))
+    if isinstance(v, float):
+        return f"{v:g}"
+    return str(v)
 
 
 def num(lo=0.0, hi=72.0, step=0.5, blank="Not set", dec=2, suffix=""):
@@ -405,10 +421,13 @@ class StandardsPage(QWidget):
         self.nav = QListWidget(); self.nav.setFixedWidth(250)
         for _k, t in SECTIONS:
             self.nav.addItem(t)
-        self.nav.currentRowChanged.connect(lambda i: self.stack.setCurrentIndex(i))
+        self.nav.currentRowChanged.connect(lambda i: self.show_section(i))
         body.addWidget(self.nav)
         self.stack = QStackedWidget()
         body.addWidget(self.stack, 1)
+        from .stdpreview import Preview                 # 3.17.0: what the values make, and what this layer changes
+        self.std_preview = Preview(self)
+        body.addWidget(self.std_preview)
         outer.addLayout(body, 1)
         self.problems = D.label("", "muted"); outer.addWidget(self.problems)
         self.tables = {}
@@ -423,15 +442,59 @@ class StandardsPage(QWidget):
             self.stack.addWidget(page)
             self.pages[k] = inner
         self.nav.setCurrentRow(0)
+        self.show_section(0)
+
+    SECTION_KEYS = {"variables": ("variables",), "fonts": ("fonts",), "styles": ("styles", "heading_numbering"),
+                    "styledefs": ("style_defs",), "rows": ("row_types",), "ttypes": ("table_types", "table_styles"),
+                    "rules": ("row_rules",), "captions": ("captions",), "pages": ("pagination", "page_parts"),
+                    "setups": ("page_setups",), "hf": ("hf_layouts",), "toc": ("toc",), "lists": ("lists", "list_numbering"),
+                    "terms": ("terms",), "office": ("excel", "powerpoint"), "graphics": ("graphics",), "checks": ("checks",)}
+    LAYER_BELOW = {"team": "the built-in defaults", "type": "the team standard", "etype": "the team standard",
+                   "etp": "the profile in this effort type", "effort": "the effort's profile"}
+
+    def show_section(self, i):
+        """3.17.0: the section's form, and its preview beside it."""
+        if not (0 <= i < len(SECTIONS)):
+            return
+        self.stack.setCurrentIndex(i)
+        if hasattr(self, "std_preview"):
+            self.std_preview.show_section(*SECTIONS[i])
+
+    def base_name(self):
+        return self.LAYER_BELOW.get(self.scope, "the layer below")
+
+    def changed_here(self, section):
+        """[(what, was, now)] for every value this layer sets differently from the layer below, in one section."""
+        out = []
+        names = {tuple(it["path"]): (it["label"].text() if it.get("label") is not None else "") for it in self.binder.items}
+
+        def walk(a, b, path):
+            if isinstance(a, dict) and isinstance(b, dict):
+                for k in list(dict.fromkeys(list(b.keys()) + list(a.keys()))):
+                    walk(a.get(k), b.get(k), path + (k,))
+                return
+            if (a if a not in ("", [], {}) else None) == (b if b not in ("", [], {}) else None):
+                return
+            label = names.get(path) or " > ".join(str(x).replace("_", " ") for x in path[1:] or path)
+            if isinstance(a, list) and a and isinstance(a[0], dict) or isinstance(b, list) and b and isinstance(b[0], dict):
+                a_n, b_n = len(a or []), len(b or [])
+                out.append((label, f"{b_n} row(s)", f"{a_n} row(s), changed"))
+                return
+            out.append((label, b, a))
+        for key in self.SECTION_KEYS.get(section, ()):
+            walk((self.work or {}).get(key), (self.base or {}).get(key), (key,))
+        return out
 
     # ------------------------------------------------------------------ helpers to build forms
     def row(self, form, text, w, path, kind, help=""):
         lab = QLabel(text); lab.setToolTip(help)
         rb = QPushButton("Reset"); rb.setFlat(True); rb.setVisible(False); rb.setToolTip("Back to the layer below")
-        box = QHBoxLayout(); box.setContentsMargins(0, 0, 0, 0); box.addWidget(w); box.addWidget(rb); box.addStretch(1)
+        was = QLabel(""); was.setObjectName("stdwas"); was.setVisible(False)        # 3.17.0: what the layer below says
+        box = QHBoxLayout(); box.setContentsMargins(0, 0, 0, 0); box.addWidget(w); box.addWidget(rb); box.addWidget(was); box.addStretch(1)
         holder = QWidget(); holder.setLayout(box)
         form.addRow(lab, holder)
         self.binder.bind(w, path, kind, lab, rb)
+        self.binder.items[-1]["was"] = was
         return w
 
     def form(self, v, title, subtitle=""):
@@ -812,6 +875,30 @@ class StandardsPage(QWidget):
         self.row(f2, "Slide size", enum([("", "Either"), ("16:9", "16:9"), ("4:3", "4:3")]), ("powerpoint", "slide_size"), "enum")
         self.row(f2, "Restriction marking on every slide", QCheckBox(), ("powerpoint", "marking"), "bool")
         self.row(f2, "Every slide has a title", QCheckBox(), ("powerpoint", "titles"), "bool")
+
+    def build_graphics(self, v):
+        """3.17.0: graphics standards; Fix a Copy and Audit check every picture, chart and text box against them."""
+        import prodgraphics as PG
+        f, _c = self.form(v, "Graphics", "What every figure must meet: picture types, resolution where placed, width, the "
+                          "fonts and smallest text in drawings, charts and text boxes, captions and alt text. Check only: a "
+                          "picture is never re-encoded, resized or moved. Blank fonts: the Graphic row of the font rules, else "
+                          "the profile's body, table and caption fonts.")
+        self.row(f, "Picture types allowed (comma)", QLineEdit(), ("graphics", "types"), "list",
+                 "png, jpeg, emf, wmf, svg, gif, tiff, bmp")
+        self.row(f, "Smallest resolution where placed (ppi)", num(0, 1200, 25, "any", 0), ("graphics", "min_ppi"), "num",
+                 "Pixels divided by the size the picture is placed at. 150 for screen, 300 for print")
+        self.row(f, "Widest a figure may be", enum([("", "Any width"), ("margins", "The text width (inside the margins)"),
+                                                    ("set", "A set width (below)")]), ("graphics", "max_width"), "enum")
+        self.row(f, "Set width (in)", num(0, 20, 0.25, "not set"), ("graphics", "max_width_in"), "num")
+        self.row(f, "Fonts allowed in drawings and charts (comma)", QLineEdit(), ("graphics", "fonts"), "list")
+        self.row(f, "Smallest text in drawings and charts (pt)", num(0, 72, 0.5, "any"), ("graphics", "min_text_pt"), "num")
+        self.row(f, "Estimate the text size inside pictures (OCR, AI and ML)", QCheckBox(), ("graphics", "ocr_text"), "bool",
+                 "Reads the words in each picture on this PC and estimates their size where placed. Shown as an estimate")
+        self.row(f, "Every figure has a caption", QCheckBox(), ("graphics", "caption"), "bool")
+        self.row(f, "Every picture has alt text", QCheckBox(), ("graphics", "alt_text"), "bool")
+        self.row(f, "RGB only (no CMYK pictures)", QCheckBox(), ("graphics", "rgb_only"), "bool")
+        self.row(f, "Largest picture file (MB)", num(0, 200, 1, "any", 0), ("graphics", "max_file_mb"), "num")
+        del PG
 
     def build_checks(self, v):
         f, _c = self.form(v, "Check options", "Read-only checks Fix a Copy's Check adds on top of the rules above.")
@@ -1201,6 +1288,8 @@ class StandardsPage(QWidget):
         self.state.setText({"team": "Team standard", "type": "Profile", "etype": "Effort type, every profile",
                             "etp": "Effort type, this profile", "effort": "This effort only"}[scope])
         self.show_problems()
+        if hasattr(self, "std_preview"):
+            self.std_preview.refresh()
 
     def fill_row_scope(self):
         cur = self.row_scope.currentData()
@@ -1217,6 +1306,8 @@ class StandardsPage(QWidget):
         self.state.setText("Not saved")
         if hasattr(self, "preview"):
             self.preview.update()
+        if hasattr(self, "std_preview"):
+            self.std_preview.refresh()
 
     def show_problems(self):
         probs = PRL.validate(PRL.engine_ready(copy.deepcopy(self.work))) if self.work.get("row_types") else []

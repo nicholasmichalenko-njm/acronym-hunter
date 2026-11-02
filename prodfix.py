@@ -26,6 +26,7 @@ AREAS = OrderedDict([
     ("toc", "Table of contents and lists of tables and figures"), ("xrefs", "Cross-references and bookmarks"),
     ("pages", "Pages, sections, headers and footers"), ("lists", "Bulleted and numbered lists"), ("terms", "Terms"),
     ("sheets", "Excel sheets"), ("slides", "PowerPoint slides"),                     # 3.11.0: check only
+    ("graphics", "Graphics"),                                                        # 3.17.0: check only
 ])
 AREA_OF = {"bookmarks": "xrefs", "headings": "captions"}
 OFFICE_AREAS = ("sheets", "slides")
@@ -93,6 +94,8 @@ def _show(v):
 # captions (a caption row's style), sections before headers and footers, fields last.
 import prodoffice as _PO
 RULE_TEXT.update(_PO.RULES)                                                       # 3.11.0: Excel and PowerPoint
+import prodgraphics as _PG                                                           # noqa: E402
+RULE_TEXT.update(_PG.RULES)                                                       # 3.17.0: graphics, check only
 
 
 FIXES = [
@@ -334,6 +337,11 @@ def check(path, std, data=None):
             _add(chk, f.area, f.rule, f.severity, f.what, f.where, _fix_for(f.rule, f.fix), _near(dm, f.where))
     except Exception as e:  # noqa: BLE001
         chk.error += f" Fonts could not be read ({type(e).__name__})."
+    try:                                             # 3.17.0: pictures, charts, drawings and text boxes; check only
+        _PG.check_word(raw, std, lambda rule, what, where: _add(chk, "graphics", rule, "warning", what, -1, "", near=where),
+                       ocr=_PG.ocr_estimate if (std.get("graphics") or {}).get("ocr_text") else None)
+    except Exception as e:  # noqa: BLE001
+        chk.error += f" Graphics could not be read ({type(e).__name__})."
     try:
         hits = TM.scan(pkg, std)
         chk.term_hits = [{"id": h.id, "rule": h.rule, "found": h.found, "suggest": h.suggest, "context": h.context} for h in hits]
@@ -467,6 +475,9 @@ def _check_office(chk, raw, ext, std, t0):
         _add(chk, area, rule, severity, what, -1, "", near=where if isinstance(where, str) else "")
     try:
         chk.stats = (PO.check_excel if chk.office == "excel" else PO.check_powerpoint)(raw, std, add)
+        if chk.office == "powerpoint":                # 3.17.0: the deck's pictures and charts
+            _PG.check_powerpoint(raw, std, lambda rule, what, where: _add(chk, "graphics", rule, "warning", what, -1, "", near=where),
+                                 ocr=_PG.ocr_estimate if (std.get("graphics") or {}).get("ocr_text") else None)
     except Exception as e:  # noqa: BLE001
         chk.error = f"The file could not be read ({type(e).__name__}). It may be damaged or protected with a password."
     chk.raw_sha = PCY.sha256_bytes(raw)
