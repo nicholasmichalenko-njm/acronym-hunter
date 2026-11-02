@@ -2627,7 +2627,8 @@ class AssignPage(QWidget):
         self.R.snap()
         new = fn(self.M, self.target, *args)
         if new is None:
-            self.R.undo_last()                        # nothing changed: no step to undo
+            if self.R.undo:                           # nothing changed: no step to undo
+                self.R.undo.pop()
             self.host.status("It cannot go there.")
             return None
         self.target = new
