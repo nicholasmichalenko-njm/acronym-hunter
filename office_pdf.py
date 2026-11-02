@@ -29,6 +29,7 @@ $was = $app.Documents.Count
 $app.Visible = $false; $app.DisplayAlerts = 0
 try { $app.AutomationSecurity = 3 } catch {}
 foreach ($pair in ($env:SK_LIST -split "`n")) { if (-not $pair) { continue }
+  if ($env:SK_STOPFILE -and (Test-Path -LiteralPath $env:SK_STOPFILE)) { break }
   $src, $out = $pair -split "`t"
   try { $d = $app.Documents.Open($src, $false, $true, $false, 'sk-no-password', 'sk-no-password')
         try { $d.ExportAsFixedFormat($out, 17) } finally { $d.Close(0) } } catch { Write-Error "$($_.Exception.Message)" -ErrorAction Continue } }
@@ -49,6 +50,7 @@ $was = $app.Workbooks.Count
 $app.Visible = $false; $app.DisplayAlerts = $false
 try { $app.AutomationSecurity = 3 } catch {}
 foreach ($pair in ($env:SK_LIST -split "`n")) { if (-not $pair) { continue }
+  if ($env:SK_STOPFILE -and (Test-Path -LiteralPath $env:SK_STOPFILE)) { break }
   $src, $out = $pair -split "`t"
   try { $wb = $app.Workbooks.Open($src, 0, $true, [Type]::Missing, 'sk-no-password', 'sk-no-password')
         try { $wb.ExportAsFixedFormat(0, $out) } finally { $wb.Close($false) } } catch { Write-Error "$($_.Exception.Message)" -ErrorAction Continue } }
@@ -68,6 +70,7 @@ try {
 $was = $app.Presentations.Count
 try { $app.AutomationSecurity = 3 } catch {}
 foreach ($pair in ($env:SK_LIST -split "`n")) { if (-not $pair) { continue }
+  if ($env:SK_STOPFILE -and (Test-Path -LiteralPath $env:SK_STOPFILE)) { break }
   $src, $out = $pair -split "`t"
   try { $p = $app.Presentations.Open($src, -1, 0, 0)
         try { $p.SaveAs($out, 32) } finally { $p.Close() } } catch { Write-Error "$($_.Exception.Message)" -ErrorAction Continue } }
@@ -124,7 +127,8 @@ def make_many(paths, folder, timeout=600, runner=None, stop=None):
             continue
         listing = "\n".join(f"{os.path.abspath(p)}\t{os.path.abspath(c)}.part.pdf" for p, c in pairs)
         pidfile = os.path.join(folder, f".office_{k}_{os.getpid()}.pid")
-        env = dict(os.environ, SK_LIST=listing, SK_PIDFILE=pidfile)
+        stopfile = os.path.join(folder, f".office_{k}_{os.getpid()}.stop")   # 3.14.3: asks the script to stop
+        env = dict(os.environ, SK_LIST=listing, SK_PIDFILE=pidfile, SK_STOPFILE=stopfile)
         cmd = ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", _SCRIPT[k]]
         err = b""
         cut = False                             # 3.14.3: ended early (too long, or closing): keep no part copies
@@ -135,18 +139,20 @@ def make_many(paths, folder, timeout=600, runner=None, stop=None):
                 err = b"Microsoft Office is needed"
             else:
                 err = _run(cmd, env, timeout, stop)
-                if err is _STOPPED:
+                if err is _STOPPED or err is _KILLED:
+                    if err is _KILLED:                  # it ignored the stop: end the Office it started, by its IDs
+                        _end_started(pidfile, k)
                     err, cut = b"stopped before the PDF copy was made", True
-                    _end_started(pidfile, k)
         except subprocess.TimeoutExpired:
             err, cut = b"Office took too long to save the PDF copies", True
             _end_started(pidfile, k)            # 2.71.0: the hidden Office it started does not stay behind
         except OSError as e:
             err = f"Windows PowerShell could not start ({type(e).__name__})".encode()
-        try:
-            os.remove(pidfile)
-        except OSError:
-            pass
+        for f in (pidfile, stopfile):
+            try:
+                os.remove(f)
+            except OSError:
+                pass
         msg = (err or b"").decode("utf-8", "replace") if isinstance(err, (bytes, bytearray)) else str(err or "")
         for p, c in pairs:
             part = c + ".part.pdf"
@@ -168,26 +174,39 @@ def make_many(paths, folder, timeout=600, runner=None, stop=None):
     return out
 
 
-_STOPPED = object()
+_STOPPED = object()       # the script stopped itself and quit the Office it started
+_KILLED = object()        # it did not stop in time and was ended
 
 
-def _run(cmd, env, timeout, stop=None, popen=None):
-    """3.14.3: the copy script, checked every half second: stop() True ends it at once (returns _STOPPED); past the
-    timeout it is ended and TimeoutExpired raised. Returns its error output."""
+def _run(cmd, env, timeout, stop=None, popen=None, grace=90):
+    """3.14.3: the copy script, checked every half second. stop() True writes the stop file: the script finishes the
+    step it is on, skips the rest and quits only the Office it started (Office may still be starting; killing the
+    script then would leave it behind). Only a script that has not ended after grace seconds is ended; its Office is
+    then ended by its process IDs. Returns _STOPPED, _KILLED, or the script's error output; past the timeout,
+    TimeoutExpired."""
     import time
     p = (popen or subprocess.Popen)(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                     creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     t0 = time.monotonic()
+    asked = None
     while True:
         try:
             _o, e = p.communicate(timeout=0.5)
-            return e
+            return _STOPPED if asked is not None else e
         except subprocess.TimeoutExpired:
             pass
-        if stop is not None and stop():
+        now = time.monotonic()
+        if asked is None and stop is not None and stop():
+            asked = now
+            try:
+                with open(env["SK_STOPFILE"], "w", encoding="utf-8") as f:
+                    f.write("stop")
+            except (OSError, KeyError):
+                pass
+        if asked is not None and now - asked > grace:
             p.kill(); p.communicate()
-            return _STOPPED
-        if time.monotonic() - t0 > timeout:
+            return _KILLED
+        if asked is None and now - t0 > timeout:
             p.kill(); p.communicate()
             raise subprocess.TimeoutExpired(cmd, timeout)
 
