@@ -20,6 +20,12 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.13.0": ["Roles: each person's role decides which tools open. Tools for another role stay in the menu, greyed, and say "
+               "who they are for; Settings can hide them. The proposal manager sets roles in People and roles; with none set, "
+               "your own choice in Customize... counts.",
+               "Preview tools: Fix a Copy and Make a template are off for the team until the proposal manager turns them on "
+               "(Settings > Roles and Preview tools, carried by a team pack).",
+               "The menu is grouped by job, groups fold away, and For this stage lists the tools the effort's stage needs."],
     "3.12.0": ["Effort Home and Dashboard are one page, the Effort Dashboard: the numbers on top, then your cards. The header "
                "stays put while you scroll, shows the stage with its gate and open goals, and condenses to one line. Each stage "
                "has a color that tints the header and the stage track.",

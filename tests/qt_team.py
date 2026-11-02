@@ -51,6 +51,8 @@ import doctypes as DT
 DT.save(cfgA, DT.load(cfgA)["types"] + [{"name": "Pricing Instructions", "initial": "PI"}])
 import folderplan as FP
 FP.save(cfgA, dict(FP.default(), company="Acme Space"))
+import roleaccess as _RA
+_RA.set_preview(cfgA, "fixcopy", True)                      # 3.13.0: the Preview choice travels too
 have = TP.available(cfgA)
 check("the maker's PC lists what it can share", set(have) == set(TP.PARTS), have)
 pack = os.path.join(tmp, f"Team{TP.EXT}")

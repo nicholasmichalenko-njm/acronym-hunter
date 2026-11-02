@@ -77,6 +77,9 @@ class SettingsPage(QWidget):
         from .brandview import BrandingCard              # 2.88.0: the company logos at the top of the menu
         self.branding_card = BrandingCard(host)
         v.addWidget(self.branding_card)
+        from .roleview import RolesCard                  # 3.13.0: roles and Preview tools
+        self.roles_card = RolesCard(host)
+        v.addWidget(self.roles_card)
         from .teamview import TeamCard                   # 2.89.0: one file sets up every PC the same way
         self.team_card = TeamCard(host)
         v.addWidget(self.team_card)
@@ -200,6 +203,7 @@ class SettingsPage(QWidget):
             diag.swallowed()
         self.authors.fill()
         self.mode.fill()
+        self.roles_card.fill()
         self.data_text.setText(self.data_where())
         try:
             from . import updates as UP

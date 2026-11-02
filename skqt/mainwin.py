@@ -33,21 +33,18 @@ from .exportallpage import ExportAllPage
 from .settingspage import SettingsPage
 
 
-RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),                                       # 3.1.0: My work
-        ("Effort", [("home", "Effort Dashboard"), ("deliverables", "Deliverables"), ("record", "Effort Record"),   # 3.12.0: Home and
-                    ("reviews", "Color Reviews")]),                                                                     # Dashboard, one page
-        ("Compliance", [("read", "Read RFP"), ("structure", "Structure"), ("assign", "Review"), ("prove", "Prove"),     # 2.99.0: near the
-                        ("crosswalk", "L/M Crosswalk")]),                                                              # top: the review starts here
-        ("Documents", [("library", "Library"), ("compare", "Changes"), ("requirements", "Submission Rules"),
-                       ("custqa", "Customer Q&A")]),
-        ("Deliver", [("matrix", "Matrix"), ("setup", "Response Setup"), ("storyboards", "Storyboards"),        # 3.2.0
-                     ("truth", "Wall of Truth"),                                                       # 3.3.0
-                     ("checks", "Final Checks"),                                                       # 3.4.0
-                     ("postsub", "Post-Submission")]),
-        ("Response Quality", [("acronyms", "Customer Terms"), ("acrlist", "Effort List"), ("qa", "Submission Check"),
-                              ("lists", "Lists to Submit"), ("keywords", "Keywords")]),
-        ("Production", [("fixcopy", "Fix a Copy"), ("prodstd", "Production Standards")]),   # 3.6.0; 3.9.0: Format Check folded into Fix a Copy
-        ("Effort Files", [("exportall", "Export All"), ("settings", "Settings")])]
+RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),                                       # 3.13.0: grouped by job
+        ("Effort", [("home", "Effort Dashboard"), ("deliverables", "Deliverables"), ("record", "Effort Record"),
+                    ("reviews", "Color Reviews"), ("postsub", "Post-Submission")]),
+        ("Customer documents", [("library", "Library"), ("read", "Read RFP"), ("compare", "Changes"), ("requirements", "Submission Rules"),
+                                ("custqa", "Customer Q&A")]),
+        ("Compliance", [("structure", "Structure"), ("assign", "Review"), ("prove", "Prove"), ("crosswalk", "L/M Crosswalk"),
+                        ("matrix", "Matrix"), ("setup", "Response Setup")]),
+        ("Writing", [("storyboards", "Storyboards"), ("truth", "Wall of Truth"), ("acronyms", "Customer Terms"),
+                     ("acrlist", "Effort List"), ("keywords", "Keywords")]),
+        ("Quality", [("qa", "Submission Check"), ("lists", "Lists to Submit"), ("checks", "Final Checks")]),
+        ("Production", [("fixcopy", "Fix a Copy"), ("prodstd", "Production Standards")]),
+        ("Effort files", [("exportall", "Export All"), ("settings", "Settings")])]
 TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and work not filed yet"),
           "fixcopy": ("Fix a Copy", "Check drafts against their profile; fixes go into a dated copy, never the original"),
           "prodstd": ("Production Standards", "Every formatting rule: team standard, profiles, effort types, and this effort's from the RFP"),
@@ -116,8 +113,17 @@ class MainWindow(QMainWindow):
         self.rail_brand = RailBrand(self)                                   # 2.88.0: the company logos, always in view
         self.steps = QButtonGroup(self)
         self.step_btns = {}
+        # 3.13.0: For this stage (the stage's tools, in its color), then the groups by job; a group folds away
+        self.stage_head = QPushButton("For this stage"); self.stage_head.setObjectName("railgroup")
+        self.stage_head.clicked.connect(lambda: self.toggle_group("stage"))
+        rv.addWidget(self.stage_head)
+        self.stage_box = QWidget(); self.stage_lay = QVBoxLayout(self.stage_box); self.stage_lay.setContentsMargins(0, 0, 0, 0)
+        self.stage_lay.setSpacing(2); rv.addWidget(self.stage_box)
+        self.stage_btns = []
+        self.group_heads, self.group_items = {}, {}
         for head, items in RAIL:
-            h = QLabel(head); h.setObjectName("railhead"); h.setWordWrap(True); rv.addWidget(h)
+            h = QPushButton(head); h.setObjectName("railgroup"); h.clicked.connect(lambda _=False, g=head: self.toggle_group(g))
+            rv.addWidget(h); self.group_heads[head] = h; self.group_items[head] = []
             for key, text in items:
                 b = QPushButton(text.replace("&", "&&")); b.setObjectName("rail"); b.setCheckable(bool(key))
                 if key:
@@ -126,7 +132,7 @@ class MainWindow(QMainWindow):
                 else:
                     b.setEnabled(False)
                     b.setToolTip("Still in Stationkeeper (classic): it moves to Qt in a coming release.")
-                rv.addWidget(b)
+                rv.addWidget(b); self.group_items[head].append(b)
         rv.addStretch(1)
         self.rail_footer = RailFooter(version)                              # 2.88.0: the Stationkeeper mark, always in view
         rail_scroll = QScrollArea(); rail_scroll.setObjectName("railbox"); rail_scroll.setWidgetResizable(True)    # 2.65.0: a long rail scrolls
@@ -223,6 +229,8 @@ class MainWindow(QMainWindow):
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)
+        from .roleview import NoticePage                 # 3.13.0: a tool for another role, or a Preview tool not turned on
+        self.notice_page = NoticePage(self); self.stack.addWidget(self.notice_page)
         cv.addWidget(self.stack, 1)
         rh.addWidget(col, 1)
         self.setCentralWidget(root)
@@ -246,6 +254,7 @@ class MainWindow(QMainWindow):
         from .safety import Safety                 # 2.78.0: backups, recovery, where you were, the crash screen
         self.safety = Safety(self)
         self.fill_efforts()
+        self.refresh_access()                      # 3.13.0
         self.go("read")
         self.title()
 
@@ -385,6 +394,7 @@ class MainWindow(QMainWindow):
         self.watch_found = None; self.watch_strip.setVisible(False)
         self.watch_start()                         # 2.94.0: what changed in the watched folders since last time
         self.title()
+        self.refresh_access()                      # 3.13.0: the role in this effort, and this stage's tools
         return True
 
     def make_unfiled_effort(self, name=None):
@@ -722,6 +732,11 @@ class MainWindow(QMainWindow):
             self.marking.show_marking("")
         if hasattr(self, "unfiled_strip"):
             self.unfiled_strip.setVisible(False)
+        if hasattr(self, "group_items"):
+            try:
+                self.refresh_access()                # 3.13.0: no effort: the person's own role, no stage tools
+            except Exception:
+                diag.swallowed()
 
     def set_matrix(self, M, new=False):
         self.review = AO.Review(M)
@@ -808,8 +823,115 @@ class MainWindow(QMainWindow):
         self.title()
 
     # ------------------------------------------------------------ the rest
+    # ------------------------------------------------------------ 3.13.0 roles, Preview tools, the stage's tools, groups
+    def profile(self):
+        """(profile, where it came from) for the person at this PC in the open effort."""
+        import branding as BR
+        import roleaccess as RA
+        from .modes import settings
+        st = settings() or {}
+        rec = None
+        if self.ws is not None:
+            try:
+                import effortrec as _R
+                rec = _R.Record(self.ws.root)
+            except Exception:
+                diag.swallowed()
+        return RA.current(rec, st.get("my_name", ""), BR.layout(st).get("role", RA.PM))
+
+    def blocked(self, step):
+        """Why a page does not open for this person now: None, or {"kind": "role" | "preview", ...}."""
+        import roleaccess as RA
+        prof, src = self.profile()
+        if not RA.allowed(prof, step):
+            return {"kind": "role", "step": step, "profile": prof, "source": src, "roles": RA.roles_for(step)}
+        if step in RA.PREVIEW and not RA.preview_on(self.config_dir, step):
+            return {"kind": "preview", "step": step, "profile": prof}
+        return None
+
+    def refresh_access(self):
+        """Grey (or hide, when the person asked) the menu's tools that are not for this person's role."""
+        import roleaccess as RA
+        from .modes import settings
+        prof, _src = self.profile()
+        hide = bool((settings() or {}).get("hide_other_roles"))
+        collapsed = set((settings() or {}).get("rail_collapsed") or [])
+        for head, items in self.group_items.items():
+            shown = 0
+            for key, b in ((k, self.step_btns.get(k)) for k, _t in dict(RAIL)[head]):
+                if b is None:
+                    continue
+                ok = RA.allowed(prof, key)
+                b.setProperty("offrole", not ok)
+                b.style().unpolish(b); b.style().polish(b)
+                b.setToolTip("" if ok else f"For {', '.join(RA.roles_for(key))}. Your role here: {prof}.")
+                vis = (ok or not hide) and head not in collapsed
+                b.setVisible(vis); shown += (ok or not hide)
+            self.group_heads[head].setVisible(shown > 0)
+            self.group_heads[head].setText(head + ("  ▸" if head in collapsed else ""))
+        self.refresh_stage_tools(prof, collapsed)
+        return prof
+
+    def refresh_stage_tools(self, prof=None, collapsed=None):
+        import roleaccess as RA
+        import stagecolors as SC
+        from .modes import settings
+        st = settings() or {}
+        collapsed = set(st.get("rail_collapsed") or []) if collapsed is None else collapsed
+        tools, color, name = [], "", ""
+        if self.ws is not None and st.get("stage_tools", True):
+            try:
+                import effortrec as _R
+                r = _R.Record(self.ws.root)
+                cur = r.stages[r.index()]
+                tools, color, name = RA.stage_tools(cur), SC.color_of(cur, r.index()), cur["name"]
+            except Exception:
+                diag.swallowed()
+        if prof is None:
+            prof, _src = self.profile()
+        key = (tuple(tools), color, name, prof, "stage" in collapsed)
+        if key == getattr(self, "_stage_key", None):          # nothing changed: keep the buttons (and the focus)
+            return tools
+        self._stage_key = key
+        for b in self.stage_btns:
+            self.stage_lay.removeWidget(b); b.hide(); b.setParent(None); b.deleteLater()
+        self.stage_btns = []
+        titles = {k: t for _h, items in RAIL for k, t in items}
+        for k in tools:
+            if k not in titles:
+                continue
+            b = QPushButton(titles[k].replace("&", "&&")); b.setObjectName("railstage")
+            b.setProperty("offrole", not RA.allowed(prof, k))
+            b.clicked.connect(lambda _=False, key=k: self.go(key))
+            self.stage_lay.addWidget(b); self.stage_btns.append(b)     # in the layout first: never a window of its own
+            b.setVisible("stage" not in collapsed)
+        self.stage_head.setVisible(bool(self.stage_btns))
+        self.stage_head.setText(f"For {name}" + ("  ▸" if "stage" in collapsed else "") if name else "For this stage")
+        self.stage_head.setStyleSheet(f"QPushButton#railgroup{{color:{color};}}" if color else "")
+        return tools
+
+    def toggle_group(self, head):
+        from .modes import settings, save
+        cur = list((settings() or {}).get("rail_collapsed") or [])
+        cur = [x for x in cur if x != head] if head in cur else cur + [head]
+        save(rail_collapsed=cur)
+        self.refresh_access()
+        return head in cur
+
     def go(self, step):
         step = {"format": "fixcopy", "dashboard": "home"}.get(step, step)   # 3.9.0: Format Check is in Fix a Copy; 3.12.0: one dashboard
+        why = self.blocked(step)                     # 3.13.0: another role's tool, or a Preview tool not turned on
+        if why is not None:
+            self.notice_page.show_for(why)
+            self.stack.setCurrentWidget(self.notice_page)
+            if step in self.step_btns:
+                self.step_btns[step].setChecked(True)
+            t, _sub = TITLES[step]
+            self.page_title.setText(t)
+            self.page_sub.setText(("In Preview: not turned on for this team" if why["kind"] == "preview" else
+                                   f"For {', '.join(why['roles'])}") + (f"  ·  {self.effort_name}" if self.effort_name else ""))
+            diag.activity("qt_page_blocked")
+            return False
         pg = self.pages[step]
         if hasattr(pg, "refresh"):
             pg.refresh()
@@ -822,6 +944,11 @@ class MainWindow(QMainWindow):
         t, sub = TITLES[step]
         self.page_title.setText(t)
         self.page_sub.setText(sub + (f"  \u00b7  {self.effort_name}" if self.effort_name else ""))
+        try:
+            self.refresh_access()                  # 3.13.0: a stage moved or a role changed shows in the menu
+        except Exception:
+            diag.swallowed()
+        return True
 
     def open_issues(self, feature=None, run=True):
         """3.9.0: Issues and ideas, opened on the page you are on."""

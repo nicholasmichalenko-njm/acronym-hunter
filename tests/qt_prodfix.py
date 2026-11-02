@@ -33,6 +33,9 @@ def sha(p):
 
 cfg = os.path.join(tmp, "config"); os.makedirs(cfg)
 app = QApplication([]); theme.apply(app)
+import roleaccess as _RA                                   # 3.13.0: Preview tools on for this team
+for _k in _RA.PREVIEW:
+    _RA.set_preview(cfg, _k, True)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.go("home"); app.processEvents()
 f = w.home_page.start; f.name.setText("Osprey"); f.sol.setText("FA8810-26-R-0042"); f.create(); app.processEvents()

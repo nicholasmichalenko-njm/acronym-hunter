@@ -52,7 +52,7 @@ def wait(cond, secs=60):
     return cond()
 
 
-check("the Compliance pages come right after Effort in the menu", [g for g, _i in RAIL][:3] == ["Home", "Effort", "Compliance"])
+check("the menu by job: Effort, then Customer documents and Compliance (3.13.0)", [g for g, _i in RAIL][:4] == ["Home", "Effort", "Customer documents", "Compliance"])
 w.open_effort("Osprey")
 w.read_page.read([PDF], os.path.join(EDIR, "Osprey_Compliance_Matrix.xlsx"))
 check("read", wait(lambda: w.review is not None))

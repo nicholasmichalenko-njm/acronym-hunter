@@ -28,7 +28,7 @@ def clear(layout):
         it = layout.takeAt(0)
         w = it.widget()
         if w is not None:
-            w.setParent(None)
+            w.hide()                                   # 3.13.0: hidden and deleted, without a costly reparent first
             w.deleteLater()
         elif it.layout() is not None:
             clear(it.layout())

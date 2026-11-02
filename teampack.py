@@ -24,15 +24,16 @@ FORMAT = "sk-team-1"
 EXT = ".skteam"
 INFO = "team_pack.json"
 MAX_BYTES = 8 * 1024 * 1024
-PARTS = ("authors", "design", "banned", "goals", "process", "doctypes", "folders", "logos", "roles", "markings", "topics", "postsub")
+PARTS = ("authors", "design", "banned", "goals", "process", "doctypes", "folders", "logos", "roles", "markings", "topics", "postsub",
+         "access")
 PART_NAMES = {"authors": "Author list", "design": "Matrix design", "banned": "Banned words and phrases", "goals": "Default gate goals",
               "logos": "Company logos", "roles": "Effort Home layouts by role", "markings": "Sensitivity markings",
               "topics": "Team topics", "postsub": "Post-submission checklist", "process": "Stages, gates and roles",
-              "doctypes": "Document types", "folders": "Folders and file names"}
-LOCKABLE = ("design", "logos", "roles", "goals", "markings", "postsub", "process", "doctypes", "folders")
+              "doctypes": "Document types", "folders": "Folders and file names", "access": "Preview tools turned on"}
+LOCKABLE = ("design", "logos", "roles", "goals", "markings", "postsub", "process", "doctypes", "folders", "access")
 FILES = {"authors": "author_list.json", "design": "matrix design.json", "banned": "banned_words.csv", "goals": "stage_goals.json",
          "roles": "team_roles.json", "markings": "team_markings.json", "topics": "team_topics.json", "postsub": "postsub_default.json",
-         "process": "process.json", "doctypes": "doc_types.json", "folders": "folder_plan.json"}
+         "process": "process.json", "doctypes": "doc_types.json", "folders": "folder_plan.json", "access": "team_access.json"}
 LOCKS = "team_locks.json"
 INSTALLED = "team_installed.json"
 BACKUPS = "team_backups"
@@ -152,6 +153,9 @@ def available(config_dir):
     ps = (_read(os.path.join(config_dir, FILES["postsub"]), {}) or {}).get("items") or []
     if ps:
         out["postsub"] = f"{len(ps)} item(s)"
+    if os.path.isfile(os.path.join(config_dir, FILES["access"])):          # 3.13.0
+        on = (_read(os.path.join(config_dir, FILES["access"]), {}) or {}).get("preview_on") or []
+        out["access"] = ", ".join(on) + " on" if on else "every Preview tool off"
     return out
 
 
@@ -166,7 +170,7 @@ def make(config_dir, out_path, parts, lock=(), name="", notes="", role_layouts=N
         lst = AL.load(config_dir)
         members[FILES["authors"]] = json.dumps({"format": AL.FORMAT, "people": [{"name": x["name"], "efforts": x["efforts"]} for x in lst.people]},
                                                ensure_ascii=False, indent=1).encode("utf-8")
-    for part in ("design", "banned", "goals", "postsub", "process", "doctypes", "folders"):
+    for part in ("design", "banned", "goals", "postsub", "process", "doctypes", "folders", "access"):
         if part in parts:
             p = os.path.join(config_dir, FILES[part])
             if os.path.isfile(p):
@@ -296,6 +300,10 @@ def preview(config_dir, info, data):
         mine = os.path.isfile(os.path.join(config_dir, FILES["postsub"]))
         out.append(("postsub", "Replaces the default post-submission checklist (locked)" if "postsub" in lk else
                     "Kept: this PC has its own default checklist" if mine else "Becomes the default post-submission checklist"))
+    if FILES["access"] in data:                                        # 3.13.0
+        mine = os.path.isfile(os.path.join(config_dir, FILES["access"]))
+        out.append(("access", "Sets which Preview tools are on (locked)" if "access" in lk else
+                    "Kept: this PC has its own Preview choice" if mine else "Sets which Preview tools are on"))
     if FILES["process"] in data:
         mine = os.path.isfile(os.path.join(config_dir, FILES["process"]))
         out.append(("process", "Replaces the stages, gates and roles here (locked by the team)" if "process" in lk else
@@ -411,6 +419,11 @@ def install(config_dir, info, data, who=None):
         if "postsub" in lk or not os.path.isfile(p):
             with open(p, "wb") as f:
                 f.write(data[FILES["postsub"]])
+    if FILES["access"] in data:                                        # 3.13.0: Preview tools
+        p = os.path.join(config_dir, FILES["access"])
+        if "access" in lk or not os.path.isfile(p):
+            with open(p, "wb") as f:
+                f.write(data[FILES["access"]])
     if FILES["process"] in data:                                       # 2.93.0
         import process as PR
         p = os.path.join(config_dir, FILES["process"])

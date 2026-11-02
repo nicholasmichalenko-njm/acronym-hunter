@@ -1344,9 +1344,21 @@ class StandardsPage(QWidget):
         self.fill_effort_profiles(eff)
         self.switch(force=True)
 
+    def template_ready(self):
+        """3.13.0: Make a template is a Preview tool: it works once the team turns it on."""
+        import roleaccess as RA
+        if RA.preview_on(self.host.config_dir, "template"):
+            return True
+        self.host.notice_page.show_for({"kind": "preview", "step": "template", "profile": self.host.profile()[0]})
+        self.host.stack.setCurrentWidget(self.host.notice_page)
+        self.host.page_title.setText("Make a template")
+        return False
+
     def make_templates_all(self, word=None):
         """3.8.0: one template for each profile of the effort type being edited, each with the effort type's rules."""
         if self.scope != "etype":
+            return []
+        if not self.template_ready():
             return []
         if self.dirty:
             self.save(quiet=True)
@@ -1464,6 +1476,8 @@ class StandardsPage(QWidget):
         """A Word template with every value in force at this layer, in the output folder's Templates folder.
         start_from: "" for the Stationkeeper base, a path to start from a template (read once), None to ask."""
         import prodtemplate as PT
+        if not self.template_ready():
+            return None
         probs = self.show_problems()
         if probs:
             self.host.status("Fix these first: " + probs[0])

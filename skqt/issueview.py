@@ -24,6 +24,10 @@ def current_page(host):
         from .mainwin import TITLES
         cur = host.stack.currentWidget()
         key = next((k for k, pg in host.pages.items() if pg is cur), "")
+        if not key and cur is getattr(host, "notice_page", None) and cur.why:     # 3.13.0: the tool asked for
+            key = cur.why.get("step", "")
+            if key not in TITLES:
+                return key, cur.card.title.text()
         return key, TITLES.get(key, ("", ""))[0]
     except Exception:  # noqa: BLE001
         return "", ""

@@ -117,6 +117,13 @@ QPushButton#rail {{ background: transparent; color: {t['rail_text']}; border: no
 QPushButton#rail:hover {{ background: rgba(255,255,255,0.07); }}
 QPushButton#rail:checked {{ background: {t['rail_active']}; color: {t['rail_active_text']}; }}
 QPushButton#rail:disabled {{ color: #5E6E84; }}
+QPushButton#rail[offrole="true"], QPushButton#railstage[offrole="true"] {{ color: #66768C; }}
+QPushButton#railstage {{ background: transparent; color: {t['rail_text']}; border: none; border-radius: {r['control']}px; text-align: left;
+    padding: 8px 12px; font-weight: 600; }}
+QPushButton#railstage:hover {{ background: rgba(255,255,255,0.07); }}
+QPushButton#railgroup {{ background: transparent; color: #8FA1BA; border: none; text-align: left; font-size: {TYPE['small']}pt;
+    font-weight: 600; letter-spacing: 0.3px; padding: 12px 12px 2px 12px; }}
+QPushButton#railgroup:hover {{ color: {t['rail_text']}; }}
 QWidget#railbox {{ background: {t['rail']}; }}
 QLabel#railhead {{ color: #8FA1BA; font-size: {TYPE['small']}pt; font-weight: 600; letter-spacing: 0.3px; padding: 12px 12px 2px 12px; }}
 QLabel#brand {{ color: #FFFFFF; font-size: {TYPE['title']}pt; font-weight: 600; padding: 14px 12px 8px 12px; }}

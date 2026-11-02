@@ -66,7 +66,7 @@ first = TH.items(RR.Record(w.ws.root))[0]["id"]
 check("Check the drafts: where each theme is said, and where a linked section never says it", res[first]["found"].get("Volume I Technical")
       and res[tid]["missing"] == [labels[-1]], {k: (v["found"], v["missing"]) for k, v in res.items()})
 # storyboards
-check("Storyboards sits in Deliver, after Response Setup", [k for g, items in RAIL if g == "Deliver" for k, _l in items] == ["matrix", "setup", "storyboards", "truth", "checks", "postsub"])
+check("Storyboards starts the Writing group (3.13.0: grouped by job)", [k for g, items in RAIL if g == "Writing" for k, _l in items][0] == "storyboards")
 w.go("storyboards"); app.processEvents()
 sp = w.storyboards_page
 check("the sections of the volume, each with its status", sp.tree.topLevelItemCount() >= 1 and sp.label in labels, sp.label)
