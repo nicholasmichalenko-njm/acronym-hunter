@@ -39,7 +39,7 @@ w.open_effort("Kestrel"); app.processEvents()
 # ---------------------------------------------------------------- the menu
 heads = [g for g, _i in RAIL]
 check("the menu is grouped by job", heads == ["Home", "Effort", "Solicitation", "Compliance", "Writing", "Quality", "Production",
-                                              "Effort files"], heads)
+                                              "Post-Submission", "Effort files"], heads)
 r = RR.Record(w.ws.root)
 # 3.15.0: no separate stage group: each tool is in the menu once, the stage's tools marked with a dot in its color
 cur_stage = r.stages[r.index()]["name"]
@@ -95,6 +95,17 @@ check("opening one explains instead of opening it", w.stack.currentWidget() is n
       and "Your role here is Author" in np.text.text() and np.act.text() == "Change my role..." and np.act.isVisibleTo(w), np.card.title.text())
 np.do_action(answer="Production"); app.processEvents()
 check("changing my own role opens it", w.profile()[0] == "Production" and w.stack.currentWidget() is w.fixcopy_page)
+from PySide6.QtWidgets import QLabel as _QL
+check("3.16.0: Fix a Copy is last in Production and marked Beta, in the menu and on the page",
+      [k for g, items in RAIL if g == "Production" for k, _t in items] == ["prodstd", "fixcopy"]
+      and w.step_btns["fixcopy"].findChild(_QL, "railbeta") is not None and w.beta_pill.isVisibleTo(w))
+w.go("acrlist"); app.processEvents()
+check("3.16.0: a tab's page marks its menu item: the Acronym List is a tab of Acronyms, and Production opens it",
+      w.stack.currentWidget() is w.acrlist_page and w.step_btns["acronyms"].isChecked() and w.page_title.text() == "Acronyms"
+      and [w.page_tabs.tabText(i) for i in range(w.page_tabs.count())] == ["Scan", "Acronym List", "Lists to Submit"]
+      and not w.step_btns["acronyms"].property("offrole") and not w.beta_pill.isVisibleTo(w))
+w.page_tabs.setCurrentIndex(2); app.processEvents()
+check("... clicking a tab opens its page", w.stack.currentWidget() is w.lists_page and w.step_btns["acronyms"].isChecked())
 r = RR.Record(w.ws.root); r.set_team([("A. Lee", "Volume lead"), ("J. Smith", "Proposal manager")]); r.save()
 MO.save(my_name="A. Lee"); w.refresh_access(); app.processEvents()
 check("the effort's People and roles decides the role", w.profile() == ("Author", "effort") and w.step_btns["fixcopy"].property("offrole"))

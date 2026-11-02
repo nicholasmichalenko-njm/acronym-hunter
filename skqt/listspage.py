@@ -53,7 +53,7 @@ class ListsPage(QWidget):
         v = QVBoxLayout(self)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         self.where = D.label("<b>END</b> &nbsp;The acronym lists that go in your submission: only the terms each volume uses, "
-                             "with the effort list's approved definitions. Built from the latest Submission check.", "muted")
+                             "with the acronym list's approved definitions. Built from the latest Submission Check.", "muted")
         self.where.setTextFormat(Qt.RichText); v.addWidget(self.where)
         mrow = QHBoxLayout(); v.addLayout(mrow)
         mrow.addWidget(D.label("Lists", "label", wrap=False))

@@ -67,6 +67,12 @@ check("the person's links are kept with the matrix", {x["num"]: x for x in X.bui
 res = cp.export(os.path.join(tmp, "x.xlsx"))
 ws = load_workbook(res["path"]).active
 check("the crosswalk exports to Excel", ws["A4"].value == "Section L" and any(c.value == "L.4.2" for c in ws["A"]))
+import matrixdesign as MDZ, setupdoc as SDZ
+itL = next(it for it in M.items if (it.get("section") or "").startswith("L.4.2"))
+check("3.16.0: the matrix column Evaluated by (Section M) comes from the crosswalk", "evaluated_by" in MDZ.COLUMNS
+      and MDZ._value(M, itL, "evaluated_by", SDZ.inherited_lm(M) if hasattr(SDZ, "inherited_lm") else {}, {}).startswith("M.1"),
+      MDZ._value(M, itL, "evaluated_by", {}, {}))
+check("... and the crosswalk is a tab of the Matrix", w.step_btns["matrix"].isChecked() and w.page_tabs.tabText(w.page_tabs.currentIndex()) == "L/M Crosswalk")
 # assign a few so the matrix and the setup have content
 by = lambda s: next(it for it in M.items if s in it["text"])
 R = w.review                                                     # (the Word file has no page copy here: no Office)

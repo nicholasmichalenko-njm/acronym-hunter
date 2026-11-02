@@ -279,7 +279,7 @@ class LibraryPage(QWidget):
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.Stretch)
-        for c, wdt in enumerate((220, 170, 125, 64, 130, 150)):
+        for c, wdt in enumerate((220, 200, 125, 64, 130, 150)):
             self.table.setColumnWidth(c, wdt)
         self.table.itemSelectionChanged.connect(self.show_doc)
         mv.addWidget(self.table, 1)
@@ -703,12 +703,13 @@ class LibraryPage(QWidget):
         if h.ws is not None:
             st["done"] = dict(h.ws.get("assign_reviewed") or {})
         if h.review is not None:
+            read = {x[0] for x in h.review.M.sources if x} or set(h.review.files())   # read into the matrix, not taken from others
+            st["files"] = {f: (0, 0) for f in read}
             for it in h.review.M.items:
                 f = it.get("file", "")
-                tot, dec = st["files"].get(f, (0, 0))
-                st["files"][f] = (tot + 1, dec + (1 if it.get("decision") else 0))
-            for f in h.review.files():
-                st["files"].setdefault(f, (0, 0))
+                if f in read:
+                    tot, dec = st["files"][f]
+                    st["files"][f] = (tot + 1, dec + (1 if it.get("decision") else 0))
         return st
 
     def review_state(self, d, st=None):
@@ -722,7 +723,7 @@ class LibraryPage(QWidget):
             if f in st["done"]:
                 return "Reviewed", "ok", "reviewed"
             tot, dec = st["files"][f]
-            return (f"Needs reviewing: {dec} of {tot} decided" if tot else "Needs reviewing"), "warn", "needs"
+            return (f"Needs reviewing: {dec}/{tot} decided" if tot else "Needs reviewing"), "warn", "needs"
         if not st["matrix"] or self.lib.role_of(d) == "matrix":
             return "Not read yet", "accent", "unread"
         try:

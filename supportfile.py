@@ -20,6 +20,16 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.16.0": ["One place per job. The Library is where reading starts: a Review column says where each document stands (Not "
+               "read yet, Needs reviewing, Reviewed) in color, the first button moves it on, and new files in the watched "
+               "folders show at the top with Add and Ignore.",
+               "A menu item with several pages shows them as tabs under its title: Review (Review, Structure, Coverage), "
+               "Matrix (Matrix, L/M Crosswalk), Library (Documents, Read into Review), Effort Dashboard (Dashboard, "
+               "Submission Rules) and Acronyms (Scan, Acronym List, Lists to Submit).",
+               "Reading never stops for the structure: build it beside the page in Review, or Start from... Volumes, people "
+               "and the page budget are on the Effort Dashboard.",
+               "Changes is Compare; Prove is Coverage. The matrix can show Evaluated by (Section M) from the crosswalk.",
+               "Fix a Copy is last in Production, marked Beta. Post-Submission is its own group: Checklist and Keywords."],
     "3.15.1": ["Watched folders: a file that leaves a watched folder outside the effort is reported missing; each document "
                "remembers where its file came from; a file saved again with the same words (SharePoint and OneDrive do this) "
                "is recognized and never added twice. After adding, the Library shows every new document, selected.",

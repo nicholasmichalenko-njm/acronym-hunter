@@ -274,7 +274,7 @@ class QAPage(QWidget):
             n = vals[k]
             t.set(n, None, ("ok" if n == 0 or n == "-" else t.tone) if k != "ok" else "ok")
         rule = V.RULE_SHORT.get(s["rule"], s["rule"])
-        self.order.setText(f"First use {rule}.  Order: " + "  >  ".join(r["volumes"]) + ".  Double-click a row to open the term in Scan and review.")
+        self.order.setText(f"First use {rule}.  Order: " + "  >  ".join(r["volumes"]) + ".  Double-click a row to open the term in Acronyms > Scan.")
         self.b_missing.setText(f"Add {s['missing']} missing to the effort list"); self.b_missing.setEnabled(bool(s["missing"]))
         if s["rule"] == "section":
             self._table("First use", ["Check", "Volume", "Section", "Acronym", "Result", "First use in text", "In figures or tables", "Written as",

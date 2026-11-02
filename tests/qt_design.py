@@ -47,15 +47,16 @@ D.apply(app)
 from skqt.mainwin import MainWindow
 tmp = tempfile.mkdtemp()
 w = MainWindow(app, os.path.join(tmp, "config"), A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
-rail = [b.text() for b in w.findChildren(type(w.step_btns["read"])) if b.objectName() == "rail"]
+rail = [b.text() for b in w.findChildren(type(w.step_btns["home"])) if b.objectName() == "rail"]
 steps = [b.text() for k, b in w.step_btns.items()]
 check("the rail: the steps in Qt, then the areas still in the classic app (grey)", rail[:len(steps)] == steps
-      and steps[2:12] == ["Effort Dashboard", "Deliverables", "Effort Record", "Color Reviews", "Post-Submission", "Library", "Read RFP",
-                          "Changes", "Submission Rules", "Customer Q&&A"] and "Matrix" in steps   # 3.13.0: grouped by job
-      and steps[18:23] == ["Storyboards", "Wall of Truth", "Customer Terms", "Effort List", "Keywords"]
-      and all(not b.isEnabled() for b in w.findChildren(type(w.step_btns["read"])) if b.objectName() == "rail" and b.text() not in steps), rail)
+      and steps[2:9] == ["Effort Dashboard", "Deliverables", "Effort Record", "Color Reviews", "Library", "Compare",
+                         "Customer Q&&A"] and "Matrix" in steps   # 3.16.0: one place per job
+      and steps[12:15] == ["Storyboards", "Wall of Truth", "Acronyms"] and steps[-4:] == ["Checklist", "Keywords", "Export All", "Settings"]
+      and all(not b.isEnabled() for b in w.findChildren(type(w.step_btns["home"])) if b.objectName() == "rail" and b.text() not in steps), rail)
 w.go("prove"); app.processEvents()
-check("the top bar names the page", w.page_title.text() == "Prove" and w.stack.currentWidget() is w.prove_page)
+check("the top bar names the page: Coverage is a tab of Review", w.page_title.text() == "Review" and w.stack.currentWidget() is w.prove_page
+      and w.page_tabs.tabText(w.page_tabs.currentIndex()) == "Coverage" and w.step_btns["assign"].isChecked())
 check("no effort: the saved state says so", w.saved.text() == "No matrix")
 # 3.15.0: visual hierarchy: three type sizes, card headers, status pills that never stretch, the page's group above it
 check("3.15.0: three sizes: page title > card title > body", D.TYPE["display"] > D.TYPE["title"] > D.TYPE["body"] and D.TYPE["display"] - D.TYPE["title"] >= 6)
@@ -65,7 +66,7 @@ check("... a card's title sits in its own header row; a key card is marked", c.h
 check("... status pills are as tall as their text", w.saved.sizePolicy().verticalPolicy() == w.saved.sizePolicy().Policy.Fixed
       and w.saved.height() < 30, w.saved.height())
 check("... the page's menu group shows above its title", w.page_crumb.text() == "Compliance")
-heads = [b for b in w.findChildren(type(w.step_btns["read"])) if b.objectName() == "railgroup"]
+heads = [b for b in w.findChildren(type(w.step_btns["home"])) if b.objectName() == "railgroup"]
 check("... menu groups in capitals, bold, above regular-weight items", heads and all(h.font().capitalization() == h.font().Capitalization.AllUppercase
       for h in heads) and "font-weight: 400" in D.qss(D.LIGHT).split("QPushButton#rail {")[1].split("}")[0])
 w.toast("Saved"); app.processEvents()

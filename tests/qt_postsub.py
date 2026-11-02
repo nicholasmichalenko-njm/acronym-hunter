@@ -30,7 +30,8 @@ app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 L = os.path.join(tmp, "Efforts", "Heron", "Heron_Effort_List.xlsx")
 w.settings_page.new_effort({"name": "Heron", "path": L})
-check("Post-Submission sits in Deliver", "postsub" in w.step_btns and w.step_btns["postsub"].text() == "Post-Submission")
+check("3.16.0: Post-Submission is its own group: Checklist and Keywords", "postsub" in w.step_btns and w.step_btns["postsub"].text() == "Checklist"
+      and [k for g, items in __import__("skqt.mainwin", fromlist=["RAIL"]).RAIL if g == "Post-Submission" for k, _t in items] == ["postsub", "keywords"])
 due = (datetime.date.today() - datetime.timedelta(days=10)).isoformat() + "T14:00"
 RR.Record(w.ws.root).set_due(due)
 w.go("postsub"); app.processEvents()

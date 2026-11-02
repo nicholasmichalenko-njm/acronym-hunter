@@ -51,10 +51,14 @@ opts = [rp.start.itemData(i) for i in range(rp.start.count())]
 check("Read RFP asks how the structure starts (no typed outline: choose after reading)", rp.start.isVisibleTo(rp)
       and opts == ["choose", "prescribed", "headings", "blank"] and rp.start.currentData() == "choose", opts)
 rp.read(PDFS, os.path.join(EDIR, "Osprey_Compliance_Matrix.xlsx"), start="choose")
-check("after reading: Structure, with nothing set yet", wait(lambda: w.review is not None and w.stack.currentWidget() is w.structure_page)
-      and w.review.M.outline == [])
+check("3.16.0: after reading: Review, never a stop at Structure; nothing set yet; Start from... says where",
+      wait(lambda: w.review is not None and w.stack.currentWidget() is w.assign_page) and w.review.M.outline == []
+      and "Start from" in w.statusBar().currentMessage(), w.statusBar().currentMessage())
 M = w.review.M
+w.assign_page.start_btn.click(); app.processEvents()
 sp = w.structure_page
+check("... Start from... opens the Structure tab under Review", w.stack.currentWidget() is sp and w.page_tabs_box.isVisibleTo(w)
+      and w.page_tabs.tabText(w.page_tabs.currentIndex()) == "Structure" and w.page_title.text() == "Review")
 txt = sp.text.toPlainText()
 check("it shows what the RFP prescribes: three volumes and the sections under them", "Volume I Technical" in txt
       and "Volume III Cost" in txt and "    1 Technical Approach" in txt, txt)

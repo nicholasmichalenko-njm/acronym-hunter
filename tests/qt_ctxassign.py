@@ -17,6 +17,7 @@ A.SETTINGS_FILE = os.path.join(tmp, "settings.json"); A.CHOICES_FILE = os.path.j
 import compliance as C, effort as E, workspace as W, docversions as DV, docintake as DI, effortrec as R, ctxdocs as CX
 import office_pdf as OP
 OP.available = lambda: False
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QMessageBox
 QMessageBox.information = staticmethod(lambda *a, **k: None)
 from skqt import design as D
@@ -151,6 +152,37 @@ check("... a Not needed document says how to read it", w.library_page.read_in_as
 DV.Library(ws.p("documents")).load().set_role(d["id"], "context")
 w.go("library"); w.library_page.refresh(); w.library_page.select(d["id"]); w.library_page.show_doc()
 check("the document's panel counts what was taken", "3 sentence(s) taken" in w.library_page.d_taken.text(), w.library_page.d_taken.text())
+# 3.16.0: the Library is where reading starts: a Review column, the review box's button, new files with Add and Ignore
+lp = w.library_page
+w.go("library"); lp.refresh(); app.processEvents()
+col = {lp.table.item(r, 0).data(Qt.UserRole): lp.table.item(r, 1).text() for r in range(lp.table.rowCount())}
+check("3.16.0: the Review column: the matrix's document says how many sentences are decided", col[dL["id"]].startswith("Needs reviewing:")
+      and "/" in col[dL["id"]], col)
+check("... a context document needs reviewing too", col[d["id"]].startswith("Needs reviewing"), col[d["id"]])
+check("... the Library has two tabs: Documents and Read into Review", w.page_tabs_box.isVisibleTo(w)
+      and [w.page_tabs.tabText(i) for i in range(w.page_tabs.count())] == ["Documents", "Read into Review"])
+lp.select(dL["id"]); lp.show_doc()
+check("... the review box leads the side panel: Continue reviewing", lp.rv_box.isVisibleTo(w) and lp.b_read.text() == "Continue reviewing"
+      and lp.rv_state.text().startswith("Needs reviewing"))
+ws.set("assign_reviewed", {"Section_L_print.pdf": "2026-11-02 10:00"}); lp.refresh(); lp.select(dL["id"]); lp.show_doc()
+check("... Mark reviewed makes it Reviewed (green), and the button Open in Review", lp.rv_state.text() == "Reviewed"
+      and lp.b_read.text() == "Open in Review")
+pD = os.path.join(B, "Section_L.docx")
+libx = DV.Library(ws.p("documents")).load()
+dD, _vD = libx.add(pD, DI.read(pD), doc_name="Section L Word", role="matrix", initial="LW", dtype="Section L")
+lp.refresh(); lp.select(dD["id"]); lp.show_doc()
+check("... a document not in the matrix yet: Not read yet, Read it into Review", lp.rv_state.text() == "Not read yet"
+      and lp.b_read.text() == "Read it into Review")
+n0 = len(w.review.files())
+got = lp.read_many([dD["id"]], answer=True)
+wait(lambda: not w.read_page.running() and w.stack.currentWidget() is w.assign_page)
+check("... Read into Review adds it to the matrix and opens it", got is not None and len(w.review.files()) == n0 + 1
+      and w.assign_page.files.currentText() == "Section_L.docx", (n0, w.review.files(), w.assign_page.files.currentText()))
+w.go("library"); app.processEvents()
+n = lp.show_new({"new": [(os.path.join(tmp, "Amendment 2.pdf"), "customer")], "changed": [], "missing": []})
+check("... new files in the watched folders show in the Library with Add and Ignore", n == 1 and lp.new_box.isVisibleTo(w)
+      and "Amendment 2.pdf" in lp.new_lbl.text() and lp.b_new_add.text() == "Add to the Library...")
+check("... and go away when there are none", lp.show_new({"new": [], "changed": []}) == 0 and not lp.new_box.isVisibleTo(w))
 w.close()
 n = sum(checks)
 print(f"QT CTXASSIGN PASS ({n}/{len(checks)})" if n == len(checks) else f"QT CTXASSIGN FAIL ({n}/{len(checks)})")

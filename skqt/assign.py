@@ -497,7 +497,7 @@ class AssignPage(QWidget):
                 b.setFixedWidth(34)
             row.addWidget(b)
         row.addStretch(1)
-        self.start_btn = D.button("Start from...", None, lambda: self.host.go("structure"),     # 3.16.0
+        self.start_btn = D.button("Start from...", None, lambda: self.start_from(),     # 3.16.0
                                   "Start or replace the structure: what the RFP prescribes, its headings, its outline, or a "
                                   "Word outline (the Structure tab). Volumes, people and page budget are on the Effort Dashboard.")
         row.addWidget(self.start_btn)
@@ -1795,6 +1795,14 @@ class AssignPage(QWidget):
         self.target = lab
         self.host.status(f"Target: {lab}. R puts the selected sentences there.")
         self.fill_tree()
+
+    def start_from(self):
+        """3.16.0: the Structure tab; with no sections yet it shows what the RFP prescribes (else its headings)."""
+        if not self.host.go("structure"):
+            return None
+        if self.M is not None and not self.M.outline:
+            return self.host.structure_page.offer_start()
+        return "open"
 
     def people_dialog(self):
         if self.M is None or not self.M.outline:

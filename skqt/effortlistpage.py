@@ -24,8 +24,9 @@ class EffortListPage(QWidget):
         v = QVBoxLayout(self)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         from PySide6.QtCore import Qt
-        self.where = D.label("<b>THROUGHOUT</b> &nbsp;The effort's glossary: approved definitions writers work from. It is not the "
-                             "list you submit: Lists to submit holds only the terms your volumes use.", "muted")
+        self.where = D.label("<b>THROUGHOUT</b> &nbsp;The effort's acronym list: acronyms, abbreviations, units and symbols with "
+                             "the approved definitions writers work from. It is not the list you submit: Lists to Submit holds only "
+                             "the terms your volumes use.", "muted")
         self.where.setTextFormat(Qt.RichText); v.addWidget(self.where)                  # 2.86.0
         top = FlowLayout(); top.setSpacing(D.SPACE["m"]); v.addLayout(top)
         self.pills = {k: D.Pill(f"0 {k.lower()}", TONE[k]) for k in E.STATUSES}
@@ -73,7 +74,7 @@ class EffortListPage(QWidget):
                 self.table.setColumnWidth(i, wd)
         self.table.cellDoubleClicked.connect(lambda r, c: self.edit_definition() if c == 1 else None)
         v.addWidget(self.table, 1)
-        self.empty = D.EmptyState("The effort list is empty", "Add terms from Scan and review: each one keeps its definition, "
+        self.empty = D.EmptyState("The acronym list is empty", "Add terms from the Scan tab: each one keeps its definition, "
                                                               "status and approver here and in the effort's workbook.")
         v.addWidget(self.empty)
 
