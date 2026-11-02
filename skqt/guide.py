@@ -17,13 +17,14 @@ TOPICS = [
   "acronym lists and the submission checks. Everything stays on this PC.",
   "You are new to Stationkeeper, or want the big picture.",
   ["Open the menu on the left. Its groups are by job: Effort, Solicitation (the RFP, its changes and our questions about it), Compliance, Writing, Quality, "
-   "Production and Effort files. Each tool is in one place. Click a group's name to fold it away. The open effort and "
+   "Production, Post-Submission and Effort files. A tool with several pages shows them as tabs under its title (Review: "
+   "Review, Structure, Coverage). Each tool is in one place. Click a group's name to fold it away. The open effort and "
    "its stage are at the top; a dot in the stage's color marks the tools this stage needs, and each group says how many "
    "it holds.",
    "Your role decides which tools open. A greyed tool is for another role: open it to see who it is for and how to get "
    "it. Settings > Roles and Preview tools can hide them.",
    "Start an effort on All Efforts, or open one you already have.",
-   "Add the customer's documents in Library, read them in Read RFP, and decide every sentence in Review.",
+   "Add the customer's documents in Library, then Read it into Review: decide every sentence and build the structure beside the page.",
    "Make the matrix and the Response Setup documents from your decisions, then check the volumes in Response Quality."],
   ["Press F1 on any page to open this Guide at that page.",
    "Press Ctrl+K to find a page, an effort, a sentence or a person from anywhere.",
@@ -74,6 +75,14 @@ TOPICS = [
    "New files in the watched folders show in a strip under the top bar: Review opens them in the Library; Ignore stops "
    "offering them until they change.",
    "Graphic needs lists what was tagged as needing a graphic; Export... makes a workbook for the graphics team."]),
+ ("requirements", "Effort", "Submission Rules",
+  "The Effort Dashboard's second tab. What the customer requires of the submission: due date, delivery, copies, formats, file names, page limits and "
+  "formatting, with the document that set each rule and what changed it.",
+  "You plan the submission, or a new version changes a rule.",
+  ["Read the rules. Each shows its source document and section.",
+   "Press Add a requirement... for a rule you found yourself.",
+   "Use the new due date takes a changed due date into the effort."],
+  ["Capture > Submission and Capture > Formatting in Review fill this page from the customer's words."]),
  ("deliverables", "Effort", "Deliverables",
   "Every deliverable of the effort on one board: volumes, forms, plans and CDRLs, with owner, status, pages against "
   "the limit and what is missing.",
@@ -101,47 +110,35 @@ TOPICS = [
    "When it comes back, press Read back a packet... Verdicts and Word comments land on each requirement.",
    "See the score by section, and open a requirement to read its comments."],
   ["Reviewers only need Word. The packet holds no app data beyond the requirements and sections."]),
- ("postsub", "Effort", "Post-Submission",
-  "What the team does after the proposal goes in: owners, due dates and done.",
-  "The proposal is submitted.",
-  ["Press Mark submitted... The checklist appears.",
-   "Give each item an owner and a due date. + Item adds one.",
-   "Save as default... keeps this checklist for new efforts."],
-  ["Export to Excel... shares the checklist."]),
  ("library", "Solicitation", "Library",
   "Every document of the effort: customer files and every version of them, categories, folders, tags and roles.",
   "Documents arrive: the RFP, amendments, Q&A rounds, forms, task orders.",
   ["Press Add files... or Add a folder... Stationkeeper suggests the type, its initial (R, A1, TO1) and whether it is "
    "a new version of a document you have.",
-   "Watched folders... checks the customer folder for new, changed and missing files.",
-   "Select a document and press Read it in Review, or Open in Review.",
+   "Watched folders... checks the customer folder and any folder you add for new, changed and missing files. New files "
+   "show at the top of the Library: Add to the Library... or Ignore. The same words are never added twice.",
+   "The Review column says where each document stands: Not read yet, Needs reviewing (how many sentences are decided), "
+   "or Reviewed. Select one and press its button: Read it into Review, Continue reviewing or Open in Review. Select "
+   "several unread ones to read them together.",
    "For an amendment that says what to change, press Apply its instructions... to make the Conformed version."],
   ["Initial and type... and Rename... fix a document's details. The customer's files are never changed.",
    "A document marked above CUI is refused on a regular install. Follow your site's spill procedure."]),
- ("read", "Solicitation", "Read RFP",
-  "Brings the customer's documents into the review: every sentence is cut out of the page, scans and pictures are "
-  "read with OCR, and nothing is dropped.",
-  "A new solicitation arrives, or you add more documents to the review.",
-  ["Press Add files..., or tick documents already in Library.",
-   "Press Read. The progress panel shows each file and page.",
-   "Press Go to Review to decide the sentences."],
+ ("read", "Solicitation", "Read into Review",
+  "The Library's second tab: several customer documents read into the compliance matrix at once. Every sentence is cut "
+  "out of the page, scans and pictures are read with OCR, and nothing is dropped.",
+  "A new solicitation arrives with many files, or you add files that are not in the Library yet.",
+  ["Tick the documents (or press Add files...).",
+   "Press Read. The progress panel shows each file and page; Review opens when it is done.",
+   "One document at a time is simpler from the Documents tab: Read it into Review."],
   ["Scanned pages and pictures are read by the OCR reader (AI and ML), on this PC.",
-   "Prove checks later that every word reached the review."]),
- ("compare", "Solicitation", "Changes",
+   "Every read runs the text check: Coverage (in Review) shows it file by file."]),
+ ("compare", "Solicitation", "Compare",
   "What a new version changed, what it touches in your review, and a decision on every change.",
   "An amendment or new version arrives.",
   ["Pick the old and new versions. The changed, added and removed sentences are listed.",
    "Decide each change: update the requirement, Not ours, or a question for the customer.",
    "Export (Word)..., Redline (Word)... or Change list (Excel)... share the changes."],
   ["Adding a new version says at once what it changed. Review the changes opens this page on that pair."]),
- ("requirements", "Solicitation", "Submission Rules",
-  "What the customer requires of the submission: due date, delivery, copies, formats, file names, page limits and "
-  "formatting, with the document that set each rule and what changed it.",
-  "You plan the submission, or a new version changes a rule.",
-  ["Read the rules. Each shows its source document and section.",
-   "Press Add a requirement... for a rule you found yourself.",
-   "Use the new due date takes a changed due date into the effort."],
-  ["Capture > Submission and Capture > Formatting in Review fill this page from the customer's words."]),
  ("custqa", "Solicitation", "Customer Q&A",
   "The formal questions you submit to the customer: their exact words and where they are, your question, its status "
   "and the answer.",
@@ -152,14 +149,6 @@ TOPICS = [
    "Export to Word or Excel, or fill the customer's own Q&A form. Exporting can mark the questions Submitted.",
    "When answers arrive, add each answer and the document it came in."],
   ["Every exported question names the customer file it is about. Owner, status and notes never go out."]),
- ("structure", "Compliance", "Structure",
-  "The sections of your response: volumes, headings and page limits, from the RFP, a Word outline, or built as you go.",
-  "Before or while you place requirements, when you know how the response will be organized.",
-  ["Choose how to start: What the RFP prescribes, RFP headings, RFP outline, Word outline..., or Blank.",
-   "Press Apply. Edit the sections in place.",
-   "Volumes... sets each volume's page limit. People... gives a section its writers. Page budget... splits a volume's "
-   "page limit across its sections (evenly or by requirements) and shows the total against the limit and the draft."],
-  ["You can also build the structure in Review as you read: + Volume and Copy RFP section."]),
  ("assign", "Compliance", "Review",
   "The customer's document as it looks, every sentence boxed. You decide each sentence, place it in your response, "
   "and capture what it holds. This is where an effort's review happens.",
@@ -178,16 +167,27 @@ TOPICS = [
    "Ctrl+Z undoes. Ctrl+F finds a sentence by its words or number.",
    "On a later version, changed sentences are outlined in amber and new ones in green. Show the old page shows what it "
    "was."]),
- ("prove", "Compliance", "Prove",
-  "Proof that every line of every customer document was read and decided.",
-  "Before you call the review finished, and before a gate.",
-  ["Press Run the text check. It compares every word of the documents with the review.",
-   "If anything is missing, press Add the missing lines. They go in their place in the document.",
-   "Search finds a sentence by its words or number and opens it in Review."],
-  ["Nothing counts as done while a line is undecided."]),
+ ("structure", "Compliance", "Structure",
+  "Review's second tab: start or replace the sections of your response from the RFP or a Word outline. Most teams "
+  "build the structure beside the page in Review as they read; this tab is for starting it in one step.",
+  "When the RFP spells out the response's organization, or you have an outline in Word.",
+  ["Choose how to start: What the RFP prescribes, RFP headings, RFP outline, Word outline..., or Blank.",
+   "Press Apply. Back in Review, the structure is beside the page: + Heading, + Subheading, From sentence and Copy RFP "
+   "section add to it as you read."],
+  ["Volumes, people and the page budget are set on the Effort Dashboard (Volumes, people and page budget)."]),
+ ("prove", "Compliance", "Coverage",
+  "Review's third tab: every sentence of every customer file, by decision, and the text check, which reads each file "
+  "word for word and finds text the reader missed (in tables, text boxes, headers and footers).",
+  "Before you call the review finished, before a gate, and when someone asks whether every line was read.",
+  ["Read the table: requirements, context, the customer's, ignored, and requirements with no section yet, per file.",
+   "Press Run the text check. If anything is missing, press Add the missing lines: they go in their place in the document.",
+   "The Library's Review column shows the same thing a document at a time."],
+  ["Every read runs the text check too, and says the result in the status bar."]),
  ("crosswalk", "Compliance", "L/M Crosswalk",
-  "Each instruction (L), the evaluation factor (M) that scores it, and the work (SOW) it describes, side by side.",
-  "You check that every evaluated factor has an instruction and a place in the response.",
+  "The Matrix's second tab. Section L says how to write the proposal, Section M says how the customer scores it, and "
+  "Section C, the SOW or the PWS says the work. Each row is one instruction beside the factor that scores it and the work "
+  "it describes; the gaps show instructions nobody scores and factors with no instruction.",
+  "Right after the first read, while you build the structure: it shows which sections carry the score.",
   ["Read the rows. Gaps show where an instruction has no factor or a factor has no instruction.",
    "Press Export the crosswalk... for a review or the proposal manager."],
   ["The crosswalk fills in from your L, M and SOW decisions in Review."]),
@@ -229,25 +229,23 @@ TOPICS = [
    "Export the wall... makes the page to post in the war room and hand to writers; Export... gives the editors the findings."],
   ["The drafts are the Word files in the effort's Volumes folder (and the deliverables' files).",
    "A date in amber in Confirmed means nobody has checked that truth for 30 days: press Confirm when it is still right."]),
- ("acronyms", "Writing", "Customer Terms",
-  "The acronyms and terms the customer's documents use, offered to the effort list.",
-  "At the start, so writers use the customer's own terms and definitions.",
-  ["Press Scan the customer documents (or Scan files... or Scan a folder...).",
-   "For each term: Use this (a definition), Add to effort list, Not a term, or Needs author.",
-   "Export the report... shares the findings."],
-  ["The customer's own definitions win over the master database."]),
- ("acrlist", "Writing", "Effort List",
-  "The effort's glossary with approved definitions and who approved them.",
-  "Throughout the effort, as terms are added and approved.",
-  ["Edit a definition, or press Approve... to record the approver.",
-   "Press Export the effort list... for the team or the proposal."],
-  ["The effort list is an ordinary Excel workbook in the effort's folder."]),
- ("keywords", "Writing", "Keywords",
-  "The effort's keywords for SharePoint: what the customer asked for and what you proposed, with reasons.",
-  "Along the way, and after submission when the proposal is filed.",
-  ["Press Suggest keywords. Each suggestion says why.",
-   "Add selected keeps them; Not a keyword drops one.",
-   "Export for SharePoint... makes the list to tag the submitted proposal."],
+ ("acronyms", "Writing", "Acronyms",
+  "One place for acronyms, abbreviations, units and symbols, in three tabs: Scan finds them in the customer's "
+  "documents or your own drafts; Acronym List is the effort's list with approved definitions; Lists to Submit builds "
+  "each volume's list from what it uses.",
+  "At the start (scan the customer's documents), throughout (approve definitions), and at the end (the lists you submit).",
+  ["Scan: press Scan the customer documents, or Scan files... or Scan a folder... for your drafts.",
+   "For each term: Use this (a definition), Add to the acronym list, Not a term, or Needs author.",
+   "Acronym List: edit a definition, or press Approve... to record the approver. Export the list... for the team.",
+   "First use in your volumes is checked in Quality > Submission Check (Check first use... on the Acronym List opens it)."],
+  ["The customer's own definitions win over the master database.",
+   "The list is kept in the effort's Excel workbook, in the effort's folder."]),
+ ("lists", "Writing", "Lists to Submit",
+  "The Acronyms tab that builds the acronym list for each volume from what that volume actually uses.",
+  "At the end, when the volumes are final.",
+  ["Review each volume's list.",
+   "Press Export the lists (Word)... or Export (Excel)...",
+   "Record in the effort list notes which volume uses each term."],
   []),
  ("qa", "Quality", "Submission Check",
   "The volumes you will submit, checked against the effort list, first use, banned words and page limits.",
@@ -256,13 +254,6 @@ TOPICS = [
    "Fix what it finds in Word. Add missing to the effort list adds terms the list does not have.",
    "Export report (Excel)... records the check."],
   ["First use of an acronym belongs in running text, not in a figure or table."]),
- ("lists", "Quality", "Lists to Submit",
-  "The acronym list for each volume, built from what that volume actually uses.",
-  "At the end, when the volumes are final.",
-  ["Review each volume's list.",
-   "Press Export the lists (Word)... or Export (Excel)...",
-   "Record in the effort list notes which volume uses each term."],
-  []),
  ("checks", "Quality", "Final Checks",
   "The last checks before the proposal goes out: the final PDF package, cross-references and numbering in the drafts, "
   "and what changed between two versions of a draft.",
@@ -277,41 +268,6 @@ TOPICS = [
    "Compare, then Export the redline... for the reviewers."],
   ["Nothing here changes a file. Each check exports a workbook (or the redline) for the record.",
    "Page limits often leave out the cover, contents and acronym list: a page count over the limit says to check that."]),
- ("fixcopy", "Production", "Fix a Copy",
-  "Fixes a draft's formatting to the production standard in a dated copy. Your file is never changed: it is read once, "
-  "and a file someone has open is not copied at all.",
-  "Before each color review and for final production, on each volume.",
-  ["The effort's type (set when you start it, or in Production Standards) decides which profiles its drafts use.",
-   "Check the output folder (Change... sets it; the default is Production Copies in the Stationkeeper data folder). "
-   "Each effort's copies go in a folder with the effort's name inside it. Copies never go beside the original.",
-   "Check every draft reads every listed draft against its own profile and lists what each breaks, by area (what "
-   "Format Check used to do); double-click one to see its fixes. Export findings... makes a workbook of every finding.",
-   "Pick a draft from the Volumes folder, or Add a file.... Its volume name comes from the Deliverables board when the "
-   "draft is a deliverable's file; otherwise type it. The solicitation comes from the effort's basics. Headers and "
-   "footers are built only when both are set. Profile: the draft's own (kept on the Deliverables board for a "
-   "deliverable), or the effort's. Press Check; each area shows what it found, each style that differs from the style "
-   "library property by property.",
-   "What to fix: every fix is listed under its area with what it found; untick any you do not want. Expand a fix to "
-   "see each finding and where it is.",
-   "Tables: pick a table to see every row's role. Rows in bold wait for your answer; one answer covers every row "
-   "like it. Select rows and press C, H, 2, S, B, U, T, N or K to set their role; change the table type if needed.",
-   "A table question: choose the role; Make it a rule saves it (for the draft's profile, or this effort only) so rows "
-   "like these never ask again.",
-   "Excel and PowerPoint: a workbook or a deck in the Volumes folder is listed too (Add a file... takes one from "
-   "anywhere). Check reads it against the profile's Excel and PowerPoint values and lists what differs, sheet by sheet "
-   "or slide by slide. These files are read only: fix what Check finds in Excel or PowerPoint, then Check again.",
-   "Decisions: say whether a list restarts or continues, and point broken cross-references at a target.",
-   "Leave Update fields in Word on so page numbers, caption numbers, the TOC and the lists of tables and figures "
-   "renumber, then press Make the fixed copy.",
-   "The result shows found before and left after by area, every fix that ran (or was refused, leaving the copy as it "
-   "was before it), and that the original is unchanged. Open the copy, or the report beside it."],
-  ["The copy is named <name> - COPY - Stationkeeper <date time> and carries a Stationkeeper copy property "
-   "(File > Info > Properties).",
-   "A file in a OneDrive or SharePoint folder: people editing it online can't be seen from here, so the copy is the "
-   "version synced to this PC. Fix it when the writers are done.",
-   "Each fix is one guarded change that may touch only what it declares; anything else is refused.",
-   "Fix a Copy and Make a template are Preview tools: off for the team until the proposal manager turns them on in "
-   "Settings > Roles and Preview tools."]),
  ("prodstd", "Production", "Production Standards",
   "Every rule Fix a Copy uses, in three layers: the team standard, document profiles, and this effort.",
   "Once to set the team's rules; for each profile; at the start of each effort to bring in the RFP's.",
@@ -353,6 +309,56 @@ TOPICS = [
    "the Templates folder in the output folder, dated, and is checked against the standard; Word updates its fields.",
    "Export for review... makes a workbook of every value and where it is set."],
   ["Blank means not set: a rule nobody sets is not checked and not written."]),
+ ("fixcopy", "Production", "Fix a Copy (Beta)",
+  "Beta: still being proven on real documents, so check every copy it makes. Fixes a draft's formatting to the production standard in a dated copy. Your file is never changed: it is read once, "
+  "and a file someone has open is not copied at all.",
+  "Before each color review and for final production, on each volume.",
+  ["The effort's type (set when you start it, or in Production Standards) decides which profiles its drafts use.",
+   "Check the output folder (Change... sets it; the default is Production Copies in the Stationkeeper data folder). "
+   "Each effort's copies go in a folder with the effort's name inside it. Copies never go beside the original.",
+   "Check every draft reads every listed draft against its own profile and lists what each breaks, by area (what "
+   "Format Check used to do); double-click one to see its fixes. Export findings... makes a workbook of every finding.",
+   "Pick a draft from the Volumes folder, or Add a file.... Its volume name comes from the Deliverables board when the "
+   "draft is a deliverable's file; otherwise type it. The solicitation comes from the effort's basics. Headers and "
+   "footers are built only when both are set. Profile: the draft's own (kept on the Deliverables board for a "
+   "deliverable), or the effort's. Press Check; each area shows what it found, each style that differs from the style "
+   "library property by property.",
+   "What to fix: every fix is listed under its area with what it found; untick any you do not want. Expand a fix to "
+   "see each finding and where it is.",
+   "Tables: pick a table to see every row's role. Rows in bold wait for your answer; one answer covers every row "
+   "like it. Select rows and press C, H, 2, S, B, U, T, N or K to set their role; change the table type if needed.",
+   "A table question: choose the role; Make it a rule saves it (for the draft's profile, or this effort only) so rows "
+   "like these never ask again.",
+   "Excel and PowerPoint: a workbook or a deck in the Volumes folder is listed too (Add a file... takes one from "
+   "anywhere). Check reads it against the profile's Excel and PowerPoint values and lists what differs, sheet by sheet "
+   "or slide by slide. These files are read only: fix what Check finds in Excel or PowerPoint, then Check again.",
+   "Decisions: say whether a list restarts or continues, and point broken cross-references at a target.",
+   "Leave Update fields in Word on so page numbers, caption numbers, the TOC and the lists of tables and figures "
+   "renumber, then press Make the fixed copy.",
+   "The result shows found before and left after by area, every fix that ran (or was refused, leaving the copy as it "
+   "was before it), and that the original is unchanged. Open the copy, or the report beside it."],
+  ["The copy is named <name> - COPY - Stationkeeper <date time> and carries a Stationkeeper copy property "
+   "(File > Info > Properties).",
+   "A file in a OneDrive or SharePoint folder: people editing it online can't be seen from here, so the copy is the "
+   "version synced to this PC. Fix it when the writers are done.",
+   "Each fix is one guarded change that may touch only what it declares; anything else is refused.",
+   "Fix a Copy and Make a template are Preview tools: off for the team until the proposal manager turns them on in "
+   "Settings > Roles and Preview tools."]),
+ ("postsub", "Post-Submission", "Checklist",
+  "What the team does after the proposal goes in: owners, due dates and done.",
+  "The proposal is submitted.",
+  ["Press Mark submitted... The checklist appears.",
+   "Give each item an owner and a due date. + Item adds one.",
+   "Save as default... keeps this checklist for new efforts."],
+  ["Export to Excel... shares the checklist."]),
+ ("keywords", "Post-Submission", "Keywords",
+  "The effort's keywords for SharePoint: what the customer asked for and what you proposed, with reasons, to file the "
+  "submitted proposal.",
+  "After submission, when the proposal is filed.",
+  ["Press Suggest keywords. Each suggestion says why.",
+   "Add selected keeps them; Not a keyword drops one.",
+   "Export for SharePoint... makes the list to tag the submitted proposal."],
+  []),
  ("exportall", "Effort files", "Export All",
   "Every feature's outputs in one dated folder.",
   "At a gate, at submission, or to hand the effort's outputs to someone.",
@@ -505,6 +511,9 @@ def current_key(host):
         cur = host.stack.currentWidget()
         for k, pg in host.pages.items():
             if pg is cur:
+                if k not in TOPIC:                     # 3.16.0: a tab's page opens its menu item's topic
+                    from .mainwin import HEAD_OF
+                    k = HEAD_OF.get(k, k)
                 return k if k in TOPIC else "start"
     except Exception:
         pass

@@ -72,8 +72,8 @@ class WhatChangedDialog(QDialog):
             v.addWidget(D.label("Compliance requirements it touches" + (f" (owners: {', '.join(s['owners'][:6])})" if s["owners"] else ""), "label"))
             v.addWidget(D.label(", ".join(h["id"] for h in s["requirements"][:20]) + (" ..." if len(s["requirements"]) > 20 else ""), "mono"))
         if s["not_in_matrix"]:
-            v.addWidget(D.label(f"{s['not_in_matrix']} new sentence(s) are not in the matrix yet: Read RFP > Add the new version, "
-                                "or decide them in Changes.", "muted"))
+            v.addWidget(D.label(f"{s['not_in_matrix']} new sentence(s) are not in the matrix yet: Library > Read it into Review adds the new version, "
+                                "or decide them in Compare.", "muted"))
         bb = QDialogButtonBox(QDialogButtonBox.Close)
         rev = bb.addButton("Review the changes", QDialogButtonBox.ActionRole)
         rev.clicked.connect(lambda: self.review())

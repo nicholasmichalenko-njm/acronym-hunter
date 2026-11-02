@@ -179,7 +179,7 @@ class HomePage(QWidget):
         self.sub_card = D.Card("Submission requirements", "What the customer documents require, with where each came from. "
                                "Click a requirement to open it in Submission Rules; Edit changes what it says here.",
                                actions=[D.button("+ Add...", None, lambda: self.format_dialog()),
-                                        D.button("Open Submission Rules", "ghost", lambda: self.host.go("requirements"))])
+                                        D.button("All rules and their history", "ghost", lambda: self.host.go("requirements"))])
         from PySide6.QtWidgets import QTabWidget
         self.sub_tabs = QTabWidget(); self.sub_tabs.setDocumentMode(True)
         self.sub_tab_pages = {}

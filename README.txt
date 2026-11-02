@@ -1,9 +1,25 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+ONE PLACE PER JOB (3.16.0)
+  - Library is where documents come in and where reading starts. Its Review column says where each document stands
+    (Not read yet, Needs reviewing with how many sentences are decided, Reviewed) in color; the side panel's first
+    button moves it on (Read it into Review, Continue reviewing, Open in Review); several unread documents read together.
+    New files in the watched folders show at the top of the Library (Add to the Library... or Ignore).
+  - A menu item with several pages shows them as tabs under its title: Effort Dashboard (Dashboard, Submission Rules),
+    Library (Documents, Read into Review), Review (Review, Structure, Coverage), Matrix (Matrix, L/M Crosswalk),
+    Acronyms (Scan, Acronym List, Lists to Submit). Read RFP, Structure, Prove, the crosswalk, Submission Rules and the
+    acronym pages left the menu as items of their own; nothing was taken away.
+  - Reading never stops for the structure: build it beside the page in Review, or Start from... (the Structure tab).
+    Volumes, people and the page budget are set on the Effort Dashboard (Volumes, people and page budget).
+  - Prove is Coverage. Changes is Compare. Customer Terms and Effort List are Acronyms (Scan, Acronym List).
+  - The matrix can show "Evaluated by (Section M)" from the crosswalk.
+  - Production: Production Standards, then Fix a Copy, marked Beta. Post-Submission is its own group (Checklist,
+    Keywords), just before Effort files.
+
 THE MENU AND EVERY PAGE (3.15.0)
-  - The menu's groups by job: Home, Effort, Solicitation (Library, Read RFP, Changes, Submission Rules, Customer Q&A),
-    Compliance, Writing, Quality, Production and Effort files. Each tool is in one place.
+  - The menu's groups by job: Home, Effort, Solicitation, Compliance, Writing, Quality, Production and Effort files.
+    Each tool is in one place.
   - The open effort and its stage are at the top of the menu (click for the Effort Dashboard). A dot in the stage's
     color marks the tools the stage needs; each group shows how many it holds. Settings > Roles and Preview tools can
     turn the marks off.

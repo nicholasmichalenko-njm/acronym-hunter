@@ -20,8 +20,9 @@ class StructurePage(QWidget):
         v = QVBoxLayout(self)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"])
         v.setSpacing(D.SPACE["m"])
-        v.addWidget(D.label("The sections of your response. Sentences you assign go into these sections; the matrix and the "
-                            "Response Setup follow this order.", "muted"))
+        v.addWidget(D.label("The sections of your response. Build them beside the page in Review as you read; start or replace "
+                            "them here from the RFP or a Word outline. The matrix and the Response Setup follow this order. "
+                            "Volumes, people and the page budget are on the Effort Dashboard.", "muted"))
         bar = QHBoxLayout(); bar.setSpacing(D.SPACE["s"]); v.addLayout(bar)
         bar.addWidget(D.label("Start from:", wrap=False))
         bar.addWidget(D.button("What the RFP prescribes", None, self.from_prescribed,
@@ -36,9 +37,6 @@ class StructurePage(QWidget):
         bar.addWidget(D.button("Word outline...", None, self.from_word, "Heading 1-6 paragraphs of a Word document"))
         bar.addWidget(D.button("Blank", None, self.blank, "Start with no sections: build them in Review as you read"))
         bar.addStretch(1)
-        bar.addWidget(D.button("Volumes...", None, lambda: self.host.assign_page.volumes_dialog()))
-        bar.addWidget(D.button("People...", None, lambda: self.host.assign_page.people_dialog()))
-        bar.addWidget(D.button("Page budget...", None, lambda: self.host.assign_page.budget_dialog()))      # 3.1.0
         self.apply_btn = D.button("Apply", "primary", self.apply, "Set the structure (assignments to removed sections are cleared)")
         bar.addWidget(self.apply_btn)
         split = QSplitter(Qt.Horizontal)

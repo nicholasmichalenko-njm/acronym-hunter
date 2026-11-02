@@ -14,8 +14,12 @@ STATUSES = ["Open", "Done"]
 
 
 def features():
-    from .mainwin import RAIL
-    out = [t for _g, items in RAIL for _k, t in items]
+    from .mainwin import RAIL, TABS, TITLES
+    out = []
+    for _g, items in RAIL:                          # 3.16.0: each menu item, then the tabs it holds
+        for k, t in items:
+            out.append(t)
+            out += [TITLES[m][0] for m, _l in TABS.get(k, [])[1:] if TITLES.get(m, ("",))[0] not in out]
     return out + ["Make a template", "Learn from a file", "Effort types and profiles", "Updates", "Speed", "Other"]
 
 

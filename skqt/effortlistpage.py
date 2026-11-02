@@ -32,14 +32,19 @@ class EffortListPage(QWidget):
         for p in self.pills.values():
             top.addWidget(p)
         top.addStretch(1)
+        top.addWidget(D.button("Scan...", None, lambda: self.host.go("acronyms"),       # 3.16.0: the flow starts here too
+                               "Scan the customer's documents or your drafts for acronyms, abbreviations, units and symbols"))
+        top.addWidget(D.button("Check first use...", None, lambda: self.host.go("qa"),
+                               "Submission Check: first use in the running text of your volumes, and terms not in the list"))
+        top.addStretch(1)
         top.addWidget(D.label("Export", "label", wrap=False))
         self.scope = QComboBox()
         for k, text in (("whole", "The whole effort"), ("volume", "One list per volume"), ("both", "Both")):
             self.scope.addItem(text, k)
         top.addWidget(self.scope)
         self.approved_only = QCheckBox("Approved only"); top.addWidget(self.approved_only)
-        top.addWidget(D.button("Export the effort list...", None, lambda: self.export(),
-                               "The glossary in Word and Excel. The lists for your volumes are in Lists to submit."))
+        top.addWidget(D.button("Export the acronym list...", None, lambda: self.export(),
+                               "The list in Word and Excel. The lists for your volumes are in Lists to Submit."))
         f = FlowLayout(); f.setSpacing(D.SPACE["s"]); v.addLayout(f)
         self.f_status = QComboBox(); self.f_status.addItems(["All statuses"] + E.STATUSES)
         self.f_status.currentIndexChanged.connect(lambda _i: self.fill())

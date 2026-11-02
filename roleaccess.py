@@ -18,8 +18,8 @@ PM = "Proposal Manager"
 PROFILES = ("Proposal Manager", "Production", "Author", "Reviewer", "Capture")
 ALWAYS = {"efforts", "mywork", "home", "deliverables", "settings"}
 TOOLS = {
-    "Production": {"library", "requirements", "matrix", "setup", "acrlist", "qa", "lists", "checks", "fixcopy", "prodstd",
-                   "postsub", "exportall"},
+    "Production": {"library", "requirements", "matrix", "setup", "acronyms", "acrlist", "qa", "lists", "checks", "fixcopy",
+                   "prodstd", "postsub", "keywords", "exportall"},
     "Author": {"library", "compare", "requirements", "custqa", "assign", "setup", "storyboards", "truth", "acronyms", "acrlist",
                "keywords"},
     "Reviewer": {"reviews", "library", "compare", "assign", "prove", "matrix", "truth", "checks"},
@@ -120,7 +120,7 @@ STAGE_TOOLS = ((("intake", "kickoff", "kick-off", "capture", "start", "rfp relea
                (("pink",), ("reviews", "matrix", "compare")),
                (("red",), ("reviews", "prove", "qa", "truth")),
                (("gold", "white", "final", "production", "pubs", "publish"), ("checks", "qa", "lists", "fixcopy")),
-               (("submit", "submitted", "post", "debrief", "lessons"), ("postsub", "exportall")))
+               (("submit", "submitted", "post", "debrief", "lessons"), ("postsub", "keywords", "exportall")))
 
 
 def stage_tools(stage):

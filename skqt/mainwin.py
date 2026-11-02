@@ -35,20 +35,34 @@ from .settingspage import SettingsPage
 
 RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),                                       # 3.13.0: grouped by job
         ("Effort", [("home", "Effort Dashboard"), ("deliverables", "Deliverables"), ("record", "Effort Record"),
-                    ("reviews", "Color Reviews"), ("postsub", "Post-Submission")]),
-        ("Solicitation", [("library", "Library"), ("read", "Read RFP"), ("compare", "Changes"), ("requirements", "Submission Rules"),
-                                ("custqa", "Customer Q&A")]),
-        ("Compliance", [("structure", "Structure"), ("assign", "Review"), ("prove", "Prove"), ("crosswalk", "L/M Crosswalk"),
-                        ("matrix", "Matrix"), ("setup", "Response Setup")]),
-        ("Writing", [("storyboards", "Storyboards"), ("truth", "Wall of Truth"), ("acronyms", "Customer Terms"),
-                     ("acrlist", "Effort List"), ("keywords", "Keywords")]),
-        ("Quality", [("qa", "Submission Check"), ("lists", "Lists to Submit"), ("checks", "Final Checks")]),
-        ("Production", [("fixcopy", "Fix a Copy"), ("prodstd", "Production Standards")]),
+                    ("reviews", "Color Reviews")]),
+        ("Solicitation", [("library", "Library"), ("compare", "Compare"), ("custqa", "Customer Q&A")]),
+        ("Compliance", [("assign", "Review"), ("matrix", "Matrix"), ("setup", "Response Setup")]),
+        ("Writing", [("storyboards", "Storyboards"), ("truth", "Wall of Truth"), ("acronyms", "Acronyms")]),
+        ("Quality", [("qa", "Submission Check"), ("checks", "Final Checks")]),
+        ("Production", [("prodstd", "Production Standards"), ("fixcopy", "Fix a Copy")]),
+        ("Post-Submission", [("postsub", "Checklist"), ("keywords", "Keywords")]),
         ("Effort files", [("exportall", "Export All"), ("settings", "Settings")])]
+# 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
+TABS = {"home": [("home", "Dashboard"), ("requirements", "Submission Rules")],
+        "library": [("library", "Documents"), ("read", "Read into Review")],
+        "assign": [("assign", "Review"), ("structure", "Structure"), ("prove", "Coverage")],
+        "matrix": [("matrix", "Matrix"), ("crosswalk", "L/M Crosswalk")],
+        "acronyms": [("acronyms", "Scan"), ("acrlist", "Acronym List"), ("lists", "Lists to Submit")]}
+HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
+HEAD_OF.update({"docs": "library", "impact": "compare", "dashboard": "home"})   # pages opened from inside another
+BETA = {"fixcopy"}                                  # 3.16.0: tools still being proven, marked Beta in the menu and on the page
 GROUP_OF = {k: g for g, items in RAIL for k, _t in items}     # 3.15.0: the page's menu group, shown above its title
-GROUP_OF.update({"docs": "Solicitation", "impact": "Solicitation", "dashboard": "Effort"})
+GROUP_OF.update({k: GROUP_OF[h] for k, h in HEAD_OF.items() if h in GROUP_OF})
+
+
+def members(key):
+    """The page keys a menu item holds: itself, or its tabs."""
+    return [k for k, _t in TABS.get(key, [(key, "")])]
+
+
 TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and work not filed yet"),
-          "fixcopy": ("Fix a Copy", "Check drafts against their profile; fixes go into a dated copy, never the original"),
+          "fixcopy": ("Fix a Copy", "Beta: check drafts against their profile; fixes go into a dated copy, never the original"),
           "prodstd": ("Production Standards", "Every formatting rule: team standard, profiles, effort types, and this effort's from the RFP"),
           "checks": ("Final Checks", "The PDF package, cross-references and numbering, and what changed between two drafts"),
           "truth": ("Wall of Truth", "The one approved way to state every fact and number, and the drafts checked against it"),
@@ -60,26 +74,26 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "reviews": ("Color Reviews", "Color team review packets, read back onto each requirement"),
           "library": ("Library", "Every document of the effort: categories, folders, tags, roles and search"),
           "docs": ("Customer Versions", "The customer's documents and every version of them"),
-          "requirements": ("Submission Rules", "What the customer requires of the submission now, and what changed it"),
+          "requirements": ("Submission Rules", "Every rule the customer's documents set, which version changed it, and what you confirmed"),
           "custqa": ("Customer Q&A", "The questions we submit to the customer: their exact wording, our question, status and the answer"),
-          "compare": ("Changes", "What a new version changed, what it touches, and a decision on every change"),
+          "compare": ("Compare", "Compare two versions: what changed, what it touches, and a decision on every change"),
           "impact": ("Impact Review", "What one new version touched across the effort"),
           "deliverables": ("Deliverables", "Every deliverable at a glance: where each stands and what is missing"),
-          "acronyms": ("Customer Terms", "Start: the acronyms the customer's documents use, offered to the effort list"),
-          "acrlist": ("Effort List", "Throughout: the effort's glossary, with approved definitions"),
+          "acronyms": ("Acronyms", "Scan the customer's documents or your own drafts for acronyms, abbreviations, units and symbols"),
+          "acrlist": ("Acronym List", "The effort's acronym list: every term with its approved definition"),
           "qa": ("Submission Check", "End: the volumes you will submit, against the effort list, banned words and page limits"),
-          "lists": ("Lists to Submit", "End: the acronym lists for your volumes, built from what each one uses"),
-          "keywords": ("Keywords", "The effort's keywords, suggestions with reasons, and the SharePoint export"),
+          "lists": ("Lists to Submit", "The acronym lists for your volumes, built from what each one uses"),
+          "keywords": ("Keywords", "After submission: the effort's keywords, suggestions with reasons, and the SharePoint export"),
           "exportall": ("Export All", "Every feature's outputs in one dated folder"),
           "settings": ("Settings", "New effort, the effort's folders, the master database, backups"),
-          "read": ("Read RFP", "Bring the customer's documents into the review"),
-          "structure": ("Structure", "The sections of your response"),
+          "read": ("Read into Review", "Read several customer documents into the compliance matrix at once"),
+          "structure": ("Structure", "Start the response structure from the RFP or a Word outline; build it beside the page in Review"),
           "assign": ("Review", "Read every sentence on the page: decide it and capture what it holds"),
-          "prove": ("Prove", "Every line read and decided"),
+          "prove": ("Coverage", "Every sentence of every file read and decided, and the word-for-word text check"),
           "crosswalk": ("L/M Crosswalk", "Each instruction, the factor that scores it, and the work it describes"),
           "matrix": ("Matrix", "The compliance matrix as the customer will see it"),
           "setup": ("Response Setup", "The Word documents your writers start from"),
-          "postsub": ("Post-Submission", "What the team does after the proposal goes in: owners, due dates, done")}
+          "postsub": ("Post-Submission Checklist", "What the team does after the proposal goes in: owners, due dates, done")}
 
 
 class MainWindow(QMainWindow):
@@ -133,6 +147,9 @@ class MainWindow(QMainWindow):
             for key, text in items:
                 b = QPushButton(text.replace("&", "&&")); b.setObjectName("rail"); b.setCheckable(bool(key))
                 bl = QHBoxLayout(b); bl.setContentsMargins(0, 0, D.SPACE["m"], 0); bl.addStretch(1)
+                if key in BETA:                                         # 3.16.0: a tool still being proven
+                    bt = QLabel("BETA"); bt.setObjectName("railbeta"); bt.setToolTip("Beta: still being proven on real documents")
+                    bl.addWidget(bt, 0, Qt.AlignVCenter)
                 b.stage_dot = QLabel(); b.stage_dot.setFixedSize(8, 8); b.stage_dot.setVisible(False)
                 bl.addWidget(b.stage_dot, 0, Qt.AlignVCenter)
                 if key:
@@ -162,7 +179,11 @@ class MainWindow(QMainWindow):
         from PySide6.QtWidgets import QSizePolicy
         self.page_crumb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         tcol.addWidget(self.page_crumb)
-        self.page_title = D.label("", "display", wrap=False); tcol.addWidget(self.page_title)
+        trow = QHBoxLayout(); trow.setSpacing(D.SPACE["s"]); tcol.addLayout(trow)
+        self.page_title = D.label("", "display", wrap=False); trow.addWidget(self.page_title)
+        self.beta_pill = D.Pill("Beta", "warn"); self.beta_pill.setVisible(False)          # 3.16.0
+        self.beta_pill.setToolTip("Still being proven on real documents: check what it makes before you rely on it")
+        trow.addWidget(self.beta_pill, 0, Qt.AlignVCenter); trow.addStretch(1)
         self.page_sub = D.label("", "muted"); self.page_sub.setMinimumWidth(120); tcol.addWidget(self.page_sub)   # 3.0.4: wraps; 3.9.0: 120 so the bar fits 1280 with Issue or idea
         bh.addLayout(tcol, 1)
         self.issue_btn = D.button("Issue or idea", "ghost", lambda: self.open_issues(),
@@ -191,6 +212,15 @@ class MainWindow(QMainWindow):
         self.watch_strip = WatchStrip(self); cv.addWidget(self.watch_strip)         # 2.94.0: new, changed, missing files
         self.watch_found, self._wa_thread, self._wa_result, self._wa_last = None, None, None, 0.0
         cv.addWidget(bar)
+        from PySide6.QtWidgets import QTabBar
+        self.page_tabs = QTabBar(); self.page_tabs.setObjectName("pagetabs")        # 3.16.0: a menu item's own pages
+        self.page_tabs.setDocumentMode(True); self.page_tabs.setExpanding(False); self.page_tabs.setDrawBase(False)
+        self.page_tabs.currentChanged.connect(self._tab_picked)
+        self._tab_keys, self._tab_sync = [], False
+        tw = QFrame(); tw.setObjectName("pagetabsbox"); tl = QHBoxLayout(tw)
+        tl.setContentsMargins(D.SPACE["xl"], 0, D.SPACE["xl"], 0); tl.addWidget(self.page_tabs); tl.addStretch(1)
+        self.page_tabs_box = tw; tw.setVisible(False)
+        cv.addWidget(tw)
         from .adaptive import PageStack
         self.stack = PageStack()                   # 2.86.0: a page scrolls only when the window is smaller than it needs
         from .effortshome import EffortsHome
@@ -517,6 +547,10 @@ class MainWindow(QMainWindow):
     def watch_show(self, found):
         self.watch_found = found
         self.watch_strip.show_found(found)
+        try:                                        # 3.16.0: the Library shows the new files too, with Add and Ignore
+            self.library_page.show_new(found)
+        except Exception:
+            diag.swallowed()
         if found and found.get("missing"):
             diag.activity("qt_watch_missing", n=len(found["missing"]))
         return found
@@ -876,7 +910,7 @@ class MainWindow(QMainWindow):
             for key, b in ((k, self.step_btns.get(k)) for k, _t in dict(RAIL)[head]):
                 if b is None:
                     continue
-                ok = RA.allowed(prof, key)
+                ok = any(RA.allowed(prof, k) for k in members(key))       # 3.16.0: open when any of its tabs is
                 b.setProperty("offrole", not ok)
                 b.style().unpolish(b); b.style().polish(b)
                 b.setToolTip("" if ok else f"For {', '.join(RA.roles_for(key))}. Your role here: {prof}.")
@@ -902,7 +936,8 @@ class MainWindow(QMainWindow):
                 cur = r.stages[r.index()]
                 color, name = SC.color_of(cur, r.index()), cur["name"]
                 if st.get("stage_tools", True):
-                    tools = [k for k in RA.stage_tools(cur) if k in self.step_btns]
+                    tools = list(dict.fromkeys(HEAD_OF.get(k, k) for k in RA.stage_tools(cur)))   # 3.16.0: a tab marks its item
+                    tools = [k for k in tools if k in self.step_btns]
             except Exception:
                 diag.swallowed()
         self.rail_effort.set(self.effort_name if self.ws is not None else "", name, color)
@@ -931,12 +966,17 @@ class MainWindow(QMainWindow):
 
     def go(self, step):
         step = {"format": "fixcopy", "dashboard": "home"}.get(step, step)   # 3.9.0: Format Check is in Fix a Copy; 3.12.0: one dashboard
+        if step in TABS and self.blocked(step) is not None:     # 3.16.0: a menu item opens on a tab the role has
+            step = next((k for k in members(step)[1:] if self.blocked(k) is None), step)
         why = self.blocked(step)                     # 3.13.0: another role's tool, or a Preview tool not turned on
         if why is not None:
             self.notice_page.show_for(why)
             self.stack.setCurrentWidget(self.notice_page)
-            if step in self.step_btns:
-                self.step_btns[step].setChecked(True)
+            b0 = self.step_btns.get(step) or self.step_btns.get(HEAD_OF.get(step, step))
+            if b0 is not None:
+                b0.setChecked(True)
+            self.show_tabs(step)
+            self.beta_pill.setVisible(False)
             t, _sub = TITLES[step]
             self.page_crumb.setText(GROUP_OF.get(step, ""))
             self.page_title.setText(t)
@@ -948,20 +988,48 @@ class MainWindow(QMainWindow):
         if hasattr(pg, "refresh"):
             pg.refresh()
         self.stack.setCurrentWidget(pg)
-        if step in self.step_btns:                  # 2.85.0: Customer versions and Impact review live inside other pages
-            self.step_btns[step].setChecked(True)
+        head = HEAD_OF.get(step, step)               # 3.16.0: a tab's page marks its menu item
+        btn = self.step_btns.get(step) or self.step_btns.get(head)
+        if btn is not None:                          # 2.85.0: Customer versions and Impact review live inside other pages
+            btn.setChecked(True)
         else:
             for b in self.step_btns.values():
                 b.setChecked(False)
-        t, sub = TITLES[step]
+        _t, sub = TITLES[step]
+        t = TITLES[head][0] if step in HEAD_OF and head in TITLES and step in dict(TABS.get(head, [])) else TITLES[step][0]
         self.page_crumb.setText(GROUP_OF.get(step, ""))
         self.page_title.setText(t)
+        self.beta_pill.setVisible(step in BETA)
         self.page_sub.setText(sub + (f"  \u00b7  {self.effort_name}" if self.effort_name else ""))
+        self.show_tabs(step)
         try:
             self.refresh_access()                  # 3.13.0: a stage moved or a role changed shows in the menu
         except Exception:
             diag.swallowed()
         return True
+
+    def show_tabs(self, step):
+        """3.16.0: the tabs of the menu item the page belongs to (none for a page that is its own item)."""
+        head = HEAD_OF.get(step, step)
+        tabs = TABS.get(head) if step in dict(TABS.get(head, [])) else None
+        self._tab_sync = True
+        try:
+            while self.page_tabs.count():
+                self.page_tabs.removeTab(0)
+            self._tab_keys = []
+            for k, label in tabs or []:
+                self.page_tabs.addTab(label); self._tab_keys.append(k)
+            if tabs:
+                self.page_tabs.setCurrentIndex(self._tab_keys.index(step))
+        finally:
+            self._tab_sync = False
+        self.page_tabs_box.setVisible(bool(tabs))
+        return self._tab_keys
+
+    def _tab_picked(self, i):
+        if self._tab_sync or not (0 <= i < len(self._tab_keys)):
+            return
+        self.go(self._tab_keys[i])
 
     def open_issues(self, feature=None, run=True):
         """3.9.0: Issues and ideas, opened on the page you are on."""

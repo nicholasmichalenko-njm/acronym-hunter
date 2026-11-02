@@ -14,7 +14,7 @@ import acrsession as S
 from . import design as D
 from .adaptive import FlowLayout
 
-COLS = ["Term", "Type", "Count", "Found in", "Status", "Definition", "Known in", "Effort list"]
+COLS = ["Term", "Type", "Count", "Found in", "Status", "Definition", "Known in", "Acronym list"]
 KIND_TONE = {"choice": "warn", "candidate": "cust", "resolved": "ok", "error": "crit", "excluded": "head", "other": "accent"}
 
 
@@ -246,7 +246,7 @@ class AcronymPage(QWidget):
         row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
         row.addWidget(D.Pill(A.status_text(d.get("status", "")), KIND_TONE.get(kind, "accent")))
         if d.get("effort"):
-            row.addWidget(D.Pill(f"Effort list: {d['effort']}", "ok" if d["effort"] == "Approved" else "accent"))
+            row.addWidget(D.Pill(f"Acronym list: {d['effort']}", "ok" if d["effort"] == "Approved" else "accent"))
         if d.get("plural_of"):
             row.addWidget(D.Pill(f"Plural of {d['plural_of']}", "ctx"))
         row.addStretch(1)
@@ -267,7 +267,7 @@ class AcronymPage(QWidget):
             if len(defs) > 1:
                 self.body.addWidget(D.button("Keep all possibilities", "ghost", lambda: self.choose(t, "Keep All Possibilities")), 0, Qt.AlignLeft)
         self.typed = QLineEdit(); self.typed.setPlaceholderText("Type a definition to add with it")
-        self.body.addWidget(D.SectionTitle("Effort list"))
+        self.body.addWidget(D.SectionTitle("Acronym list"))
         self.body.addWidget(self.typed)
         self._actions([t])
         locs = d.get("locations", [])
@@ -364,7 +364,7 @@ class AcronymPage(QWidget):
 
     def set_status(self, terms, status, approver=""):
         n = self.session.set_status(terms, status, approver)
-        self.host.toast(f"Effort list: {n} {status.lower()}" + ("" if not self.session.effort.pending else ". NOT SAVED yet: close the list in Excel."))
+        self.host.toast(f"Acronym list: {n} {status.lower()}" + ("" if not self.session.effort.pending else ". NOT SAVED yet: close the list in Excel."))
         self.fill()
         return n
 
@@ -457,7 +457,7 @@ class AcronymPage(QWidget):
         n = self.session.counts()
         msg = f"Scan done: {n['active']} terms, {n['choice']} need a choice, {n['candidate']} new candidates"
         if rec:
-            msg += f". Effort list: {rec['found']} found again, {rec['new']} new, {rec['gone']} no longer found"
+            msg += f". Acronym list: {rec['found']} found again, {rec['new']} new, {rec['gone']} no longer found"
         self.host.toast(msg)
         return rec
 

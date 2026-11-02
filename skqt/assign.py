@@ -316,7 +316,8 @@ class AssignPage(QWidget):
         self.lib_entries = {}
         v = QVBoxLayout(self)
         v.setContentsMargins(6, 6, 6, 6)
-        bar = QHBoxLayout(); v.addLayout(bar)
+        from .adaptive import FlowLayout
+        bar = FlowLayout(spacing=6); v.addLayout(bar)         # 3.15.1: the tools wrap onto a second row when narrow
         bar.addWidget(QLabel("File:"))
         self.files = QComboBox(); self.files.setMinimumWidth(240); self.files.currentTextChanged.connect(self.open_file)
         bar.addWidget(self.files)
@@ -496,8 +497,10 @@ class AssignPage(QWidget):
                 b.setFixedWidth(34)
             row.addWidget(b)
         row.addStretch(1)
-        for text, fn in (("People...", self.people_dialog), ("Volumes...", self.volumes_dialog), ("Page budget...", self.budget_dialog)):
-            b = QPushButton(text); b.clicked.connect(lambda _=False, f=fn: f()); row.addWidget(b)
+        self.start_btn = D.button("Start from...", None, lambda: self.host.go("structure"),     # 3.16.0
+                                  "Start or replace the structure: what the RFP prescribes, its headings, its outline, or a "
+                                  "Word outline (the Structure tab). Volumes, people and page budget are on the Effort Dashboard.")
+        row.addWidget(self.start_btn)
         self.active_volume = ""
         right.addWidget(self.card_area); right.addWidget(sw); right.setSizes([440, 540])
         split = QSplitter(Qt.Horizontal); split.addWidget(self.view); split.addWidget(right); split.setSizes([1100, 470])
@@ -1498,7 +1501,7 @@ class AssignPage(QWidget):
             if ch["kind"] == "changed":
                 br.addWidget(D.button("Show the old page", None, lambda: self.old_page(it["id"]),
                                       f"{m['from'].get('label', '')} at the same spot, the old sentence highlighted"))
-            br.addWidget(D.button("Decide in Changes", "ghost", lambda: self.host.go("compare")))
+            br.addWidget(D.button("Decide in Compare", "ghost", lambda: self.host.go("compare")))
             br.addStretch(1)
             self.change_box = box
             self.add(box)
@@ -1795,6 +1798,7 @@ class AssignPage(QWidget):
 
     def people_dialog(self):
         if self.M is None or not self.M.outline:
+            self.host.status("Build the response structure first (Review): people lead and write its sections.")
             return None
         d = QDialog(self); d.setWindowTitle("People for each section"); d.resize(720, 520)
         lay = QVBoxLayout(d)
@@ -1848,6 +1852,7 @@ class AssignPage(QWidget):
     def volumes_dialog(self):
         """One volume (a name, or blank) or several (the headings of the structure that start a volume)."""
         if self.M is None:
+            self.host.status("Read the customer documents into Review first: the volumes are part of the compliance matrix.")
             return None
         mode, name, heads = SD.volumes_of(self.M)
         d = QDialog(self); d.setWindowTitle("Volumes"); d.resize(560, 520)

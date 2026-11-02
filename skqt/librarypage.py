@@ -243,6 +243,14 @@ class LibraryPage(QWidget):
         self.b_files = D.button("Add files...", "primary", lambda: self.add(), "Pick documents")
         top.addWidget(self.b_files)
         self.panel = TaskPanel(self.stop, host); v.addWidget(self.panel)
+        self.new_box = QFrame(); self.new_box.setObjectName("newfiles"); self.new_box.setProperty("card", True)   # 3.16.0
+        nb = QHBoxLayout(self.new_box); nb.setContentsMargins(D.SPACE["m"], D.SPACE["s"], D.SPACE["m"], D.SPACE["s"]); nb.setSpacing(D.SPACE["m"])
+        self.new_lbl = D.label("", "body"); nb.addWidget(self.new_lbl, 1)
+        self.b_new_add = D.button("Add to the Library...", "primary", lambda: self.host.watch_add(),
+                                  "Look at the new and changed files in a table, then add them (a changed file is a new version)")
+        self.b_new_skip = D.button("Ignore", None, lambda: self.host.watch_set_aside(), "Do not offer these files again unless they change")
+        nb.addWidget(self.b_new_add); nb.addWidget(self.b_new_skip)
+        self.new_box.setVisible(False); v.addWidget(self.new_box)
         split = QSplitter(Qt.Horizontal); v.addWidget(split, 1)
         # categories and folders
         self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Categories and folders", ""]); self.tree.setColumnWidth(0, 196)
@@ -264,14 +272,14 @@ class LibraryPage(QWidget):
         self.role_f.addItem("Role not confirmed", "undecided")
         self.role_f.currentIndexChanged.connect(lambda _i: self.fill())
         bar.addWidget(self.role_f)
-        self.table = QTableWidget(0, 6)
-        self.table.setHorizontalHeaderLabels(["Document", "Category", "Versions", "Tags", "Role", "Found"])
+        self.table = QTableWidget(0, 7)
+        self.table.setHorizontalHeaderLabels(["Document", "Review", "Category", "Versions", "Tags", "Role", "Found"])
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.Stretch)
-        for c, wdt in enumerate((220, 135, 64, 150, 165)):
+        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.Stretch)
+        for c, wdt in enumerate((220, 170, 125, 64, 130, 150)):
             self.table.setColumnWidth(c, wdt)
         self.table.itemSelectionChanged.connect(self.show_doc)
         mv.addWidget(self.table, 1)
@@ -285,6 +293,16 @@ class LibraryPage(QWidget):
         self.side_area.setWidget(side)
         self.d_name = D.label("Click a document", "title"); self.side.addWidget(self.d_name)
         self.d_info = D.label("", "muted"); self.side.addWidget(self.d_info)
+        # 3.16.0: reviewing it comes first: where its review stands and the one button that moves it on
+        self.rv_box = QFrame(); self.rv_box.setObjectName("reviewbox"); self.rv_box.setProperty("card", True)
+        rvl = QVBoxLayout(self.rv_box); rvl.setContentsMargins(D.SPACE["m"], D.SPACE["s"], D.SPACE["m"], D.SPACE["m"]); rvl.setSpacing(D.SPACE["s"])
+        rvl.addWidget(D.label("Review", "label", wrap=False))
+        self.rv_state = D.label("", "title"); rvl.addWidget(self.rv_state)
+        self.b_read = D.button("Read it in Review", "primary", lambda: self.review_selected(),
+                               "Open it beside your response structure: select text, then choose where it goes (2.84.0)")
+        rvl.addWidget(self.b_read)
+        self.d_taken = D.label("", "muted"); rvl.addWidget(self.d_taken)
+        self.side.addWidget(self.rv_box)
         self.side.addWidget(D.label("Role", "label", wrap=False))
         rrow = QHBoxLayout(); rrow.setSpacing(4); self.side.addLayout(rrow)
         rrow2 = QHBoxLayout(); rrow2.setSpacing(4); self.side.addLayout(rrow2)
@@ -319,10 +337,6 @@ class LibraryPage(QWidget):
                                   "An amendment that says what to change (delete and insert, replace a paragraph): apply it to "
                                   "the base document to get the conformed version")
         self.side.addWidget(self.b_conform)
-        self.b_read = D.button("Read it in Review", "primary", lambda: self.read_in_assign(),
-                               "Open it beside your response structure: select text, then choose where it goes (2.84.0)")
-        self.side.addWidget(self.b_read)
-        self.d_taken = D.label("", "muted"); self.side.addWidget(self.d_taken)
         self.side.addWidget(D.label("Versions", "label", wrap=False))
         self.d_versions = QListWidget(); self.d_versions.setMaximumHeight(130); self.side.addWidget(self.d_versions)
         self.hits_lbl = D.label("Found in the text", "label", wrap=False); self.side.addWidget(self.hits_lbl)
@@ -427,6 +441,7 @@ class LibraryPage(QWidget):
             return
         docs = under_parents(self.shown())
         keep = self.current_id()
+        st = self.review_states()
         self.table.setRowCount(len(docs))
         for r, d in enumerate(docs):
             vs = d["versions"]
@@ -442,17 +457,22 @@ class LibraryPage(QWidget):
             elif vs and not self.lib.has_original(vs[-1]):
                 it.setForeground(D.color("warn")); it.setToolTip("The original file is not here (left out of a package or moved). Its text and record are.")
             self.table.setItem(r, 0, it)
+            rtext, rtone, _rk = self.review_state(d, st)                 # 3.16.0: where its review stands, in color
+            rv = _item(rtext); rv.setForeground(D.color(rtone)); rv.setIcon(D.dot_icon(D.color(rtone)))
+            if rtone in ("warn", "ok"):
+                f0 = rv.font(); f0.setWeight(QFont.DemiBold); rv.setFont(f0)
+            self.table.setItem(r, 1, rv)
             ci = _item(self.lib.category_name(d.get("category", "customer"))); ci.setIcon(D.dot_icon(D.color(CAT_TONE.get(d.get("category"), "text"))))
-            self.table.setItem(r, 1, ci)
-            self.table.setItem(r, 2, _item(str(len(vs))))
-            self.table.setItem(r, 3, _item(", ".join(d.get("tags", []))))
+            self.table.setItem(r, 2, ci)
+            self.table.setItem(r, 3, _item(str(len(vs))))
+            self.table.setItem(r, 4, _item(", ".join(d.get("tags", []))))
             role = self.lib.role_of(d)
             sugg = (d.get("role_by") or {}).get("suggested", True)
             ri = _item(DV.ROLE_NAMES[role] + (" (suggested)" if sugg else ""))
             ri.setIcon(D.dot_icon(D.color(ROLE_TONE.get(role, "text"))))
-            self.table.setItem(r, 4, ri)
+            self.table.setItem(r, 5, ri)
             hits = self.found.get(d["id"]) or []
-            self.table.setItem(r, 5, _item(hits[0][1][:160] if hits else ("name or tags" if self.search.text().strip() else "")))
+            self.table.setItem(r, 6, _item(hits[0][1][:160] if hits else ("name or tags" if self.search.text().strip() else "")))
         self.empty.setVisible(not self.lib.all); self.table.setVisible(bool(self.lib.all))
         if keep:
             self.select(keep)
@@ -533,8 +553,10 @@ class LibraryPage(QWidget):
         for w in list(self.role_btns.values()) + [self.why, self.d_cat, self.d_folder, self.d_tags, self.d_under]:
             w.setEnabled(d is not None)
         self.b_conform.setVisible(bool(d) and d.get("type") == "Amendment")
+        self.rv_box.setVisible(d is not None)
         if d is None:
-            self.d_name.setText("Click a document"); self.d_info.setText("Its role, category, folder, tags and versions show here.")
+            self.d_name.setText("Click a document"); self.d_info.setText("Where its review stands, its role, category, folder, "
+                                                                          "tags and versions show here.")
             self.role_by.setText(""); self.d_versions.clear(); self.d_hits.clear()
             for b in self.role_btns.values():
                 b.setChecked(False)
@@ -576,8 +598,9 @@ class LibraryPage(QWidget):
             nt = len(CX.Store(self.host.ws.root).load().of_doc(d["id"]))
         except Exception:
             nt = 0
-        self.d_taken.setText(f"{nt} sentence(s) taken from it" if nt else "Nothing taken from it yet.")
-        self.b_read.setEnabled(self.lib.role_of(d) != "not_needed")
+        self.d_taken.setText(f"{nt} sentence(s) taken from it" if nt else "")
+        self.d_taken.setVisible(bool(nt))
+        self.show_review(d)
         self.b_ident.setVisible(d.get("category", "customer") == "customer")
         self.d_versions.clear()
         for i, ver in enumerate(reversed(d["versions"])):
@@ -670,6 +693,108 @@ class LibraryPage(QWidget):
         if ok:
             self.refresh(); self.select(did)
         return ok
+
+    # ------------------------------------------------------------ 3.16.0: the review, from the Library
+    def review_states(self):
+        """What the review holds now, worked out once per fill: the matrix's files with their sentence counts, the
+        files marked reviewed, and the library entries Review offers."""
+        h = self.host
+        st = {"matrix": h.review is not None, "files": {}, "done": {}}
+        if h.ws is not None:
+            st["done"] = dict(h.ws.get("assign_reviewed") or {})
+        if h.review is not None:
+            for it in h.review.M.items:
+                f = it.get("file", "")
+                tot, dec = st["files"].get(f, (0, 0))
+                st["files"][f] = (tot + 1, dec + (1 if it.get("decision") else 0))
+            for f in h.review.files():
+                st["files"].setdefault(f, (0, 0))
+        return st
+
+    def review_state(self, d, st=None):
+        """(text, tone, key) for one document: not_needed, unread, needs, reviewed."""
+        st = st if st is not None else self.review_states()
+        if self.lib.role_of(d) == "not_needed":
+            return "Not needed", "faint", "not_needed"
+        v = d["versions"][-1] if d.get("versions") else {}
+        f = v.get("file", "")
+        if f in st["files"]:
+            if f in st["done"]:
+                return "Reviewed", "ok", "reviewed"
+            tot, dec = st["files"][f]
+            return (f"Needs reviewing: {dec} of {tot} decided" if tot else "Needs reviewing"), "warn", "needs"
+        if not st["matrix"] or self.lib.role_of(d) == "matrix":
+            return "Not read yet", "accent", "unread"
+        try:
+            import ctxdocs as CX
+            from .ctxassign import PREFIX
+            if f"{PREFIX}{d['name']} ({CX.doc_tag(d, self.lib)})" in st["done"]:
+                return "Reviewed", "ok", "reviewed"
+        except Exception:
+            diag.swallowed()
+        return "Needs reviewing", "warn", "needs"
+
+    def show_review(self, d):
+        ids = self.selected_ids()
+        text, tone, key = self.review_state(d)
+        self.rv_state.setText(text)
+        self.rv_state.setStyleSheet(f"color:{D.tokens()[tone]};")
+        unread = [i for i in ids if self.lib.doc(i) and self.review_state(self.lib.doc(i))[2] == "unread"]
+        if len(ids) > 1 and len(unread) > 1:
+            self.b_read.setText(f"Read {len(unread)} into Review")
+            self.b_read.setToolTip("Read the selected documents into the compliance matrix, then open the first in Review")
+        else:
+            self.b_read.setText({"unread": "Read it into Review", "needs": "Continue reviewing", "reviewed": "Open in Review",
+                                 "not_needed": "Read it in Review"}[key])
+            self.b_read.setToolTip("Open it beside your response structure: select text, then choose where it goes")
+        self.b_read.setEnabled(key != "not_needed" or len(ids) > 1)
+        return key
+
+    def review_selected(self, answer=None, out=None):
+        """The review box's button: one document opens (read first when it needs to be); several unread ones are read
+        together, then the first opens."""
+        ids = self.selected_ids()
+        unread = [i for i in ids if self.lib.doc(i) and self.review_state(self.lib.doc(i))[2] == "unread"]
+        if len(ids) > 1 and len(unread) > 1:
+            return self.read_many(unread, answer, out)
+        return self.read_in_assign(answer=answer, out=out)
+
+    def read_many(self, ids, answer=None, out=None):
+        import compliance_read as CR
+        h = self.host
+        docs = {(self.lib.doc_of_file(p) or {}).get("id"): p for _n, _l, p in CR.effort_docs(h.ws)}
+        paths = [docs[i] for i in ids if i in docs]
+        if not paths:
+            return self._say("Read into Review", "Only customer documents are read into the compliance matrix. Open the others "
+                             "one at a time: they read beside the structure.", answer)
+        if h.review is None:
+            text = (f"Start the compliance matrix from these {len(paths)} document(s), then open the first in Review?")
+            if answer is None:
+                answer = QMessageBox.question(self, "Read into Review", text) == QMessageBox.Yes
+            if not answer:
+                return False
+        rp = h.read_page
+        rp.refresh()
+        first = self.lib.doc(ids[0])
+        rp._then = lambda: self._open_in_review(self.lib.doc(first["id"]) or first)
+        w = rp.read(paths=paths, out=out, start="auto")
+        if w is None:
+            rp._then = None
+            return False
+        diag.activity("library_read_many", n=len(paths))
+        return w
+
+    def show_new(self, found):
+        """3.16.0: new and changed files in the watched folders, shown in the Library with Add and Ignore."""
+        found = found or {}
+        n = len(found.get("new", [])) + len(found.get("changed", []))
+        if n:
+            names = [os.path.basename(p) for p, _c in found.get("new", [])[:3]] + \
+                    [os.path.basename(p) for p, _d, _v in found.get("changed", [])[:2]]
+            self.new_lbl.setText(f"<b>{n} new or changed file(s)</b> in the watched folders: {', '.join(names)}"
+                                 + ("..." if n > len(names) else "") + ". Add them to read and review them.")
+        self.new_box.setVisible(bool(n))
+        return n
 
     def read_in_assign(self, doc_id=None, answer=None, out=None):
         """2.84.0: open the document in Review, beside the response structure. 3.15.1: never a dead button: with no

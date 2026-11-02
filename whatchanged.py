@@ -90,7 +90,7 @@ def summary(lib, d, vb, va=None, M=None, data_dir=""):
         parts.append(f"{len(reqs)} compliance requirement(s) affected" + (f" (owners: {', '.join(sorted(owners)[:4])})" if owners else ""))
         if not_in:
             parts.append(f"{not_in} new sentence(s) not in the matrix yet")
-    parts.append(f"{to_decide} change(s) to decide in Changes")
+    parts.append(f"{to_decide} change(s) to decide in Compare")
     return {"title": title, "doc": d, "from": va, "to": vb, "changed": c["changed"], "added": c["added"], "removed": c["removed"],
             "rules": rules, "requirements": reqs, "owners": sorted(owners), "not_in_matrix": not_in, "to_decide": to_decide,
             "text": "; ".join(parts) + "."}

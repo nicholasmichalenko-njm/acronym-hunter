@@ -29,6 +29,7 @@ COLUMNS = {
     "page_limit": ("Page limit", 10),               # 2.51.0
     "format": ("Format", 30),                       # 2.51.0: font, margins, page size, spacing, file format
     "far": ("FAR reference", 18),                   # 2.51.0: FAR, DFARS and NFS clauses named in the sentence
+    "evaluated_by": ("Evaluated by (Section M)", 30),    # 3.16.0: from the L/M crosswalk: the factor that scores it
     "lead": ("Section lead", 18),
     "owner": ("Owner", 18),
     "page": ("Proposal page", 12),
@@ -189,6 +190,24 @@ def _deliv(ctx, vol):
     return None
 
 
+_XW = {}
+
+
+def _crosswalk(M):
+    """{Section L number: [(M number, title)]} from the crosswalk, worked out once per state of the matrix."""
+    import json as _j
+    import crosswalk as X
+    import setupdoc as SD
+    k = (id(M), len(M.items), _j.dumps(SD.setup_of(M).get("crosswalk") or {}, sort_keys=True))
+    if k not in _XW:
+        _XW.clear()
+        try:
+            _XW[k] = {r["num"]: [(m, t) for m, t, _h in r["m"]] for r in X.build(M) if r.get("kind") == "L"}
+        except Exception:
+            _XW[k] = {}
+    return _XW[k]
+
+
 def _value(M, it, key, inh, people, ctx=None, vols=None):
     import setupdoc as SD, compliance as C
     if it.get("_kind") == "empty":
@@ -222,6 +241,14 @@ def _value(M, it, key, inh, people, ctx=None, vols=None):
             return vol
         d = _deliv(ctx, vol)
         return (d.get({"deliverable": "name", "page_limit": "limit", "format": "format"}[key], "") if d else "")
+    if key == "evaluated_by":                   # 3.16.0: the Section M factors the crosswalk ties its instruction to
+        num = it.get("section", "") or SD.ref_of(M, it, inh)[0]
+        xw = _crosswalk(M)
+        while num:
+            if num in xw:
+                return "; ".join(f"{r} {t}".strip() for r, t in xw[num])
+            num = num.rsplit(".", 1)[0] if "." in num else ""
+        return ""
     if key == "far":
         return "; ".join(dict.fromkeys(" ".join(m.group(0).split()) for m in _FAR.finditer(it.get("text", ""))))
     if key.startswith(CUSTOM):

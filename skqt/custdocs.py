@@ -499,13 +499,13 @@ class RequirementsPage(QWidget):
         for _gk, label, kinds in REQ_GROUPS:
             mine = [r for r in shown if r["kind"] in kinds]
             nr = sum(1 for r in mine if r["to_review"])
-            g = QTreeWidgetItem([f"{label} ({len(mine)})", "none found yet" if not mine else "", f"{nr} to decide in Changes" if nr else "", ""])
+            g = QTreeWidgetItem([f"{label} ({len(mine)})", "none found yet" if not mine else "", f"{nr} to decide in Compare" if nr else "", ""])
             f = g.font(0); f.setBold(True); g.setFont(0, f)
             self.tree.addTopLevelItem(g)
             for r in mine:
                 st, tone = self.state(r)
                 lc = None if r["manual"] else self.last_change(r)
-                by = ("Typed in" if r["manual"] else (f"{lc[2]}" + (" (decide in Changes)" if r["to_review"] else "")) if lc
+                by = ("Typed in" if r["manual"] else (f"{lc[2]}" + (" (decide in Compare)" if r["to_review"] else "")) if lc
                       else ("Not a requirement" if r["hidden"] else r.get("version") or "Original"))
                 it = QTreeWidgetItem([r["subject"], "" if lc else r["value"], by, "" if r["manual"] else f"{r['doc']}, {r['version']}"])
                 it.setForeground(2, D.color("warn" if r["to_review"] else tone)); it.setData(0, Qt.UserRole, r["key"])
@@ -567,7 +567,7 @@ class RequirementsPage(QWidget):
         k = r["key"]
         lc = None if r["manual"] else self.last_change(r)
         if lc:
-            row.addWidget(D.button("Open the change in Changes", "primary" if r["to_review"] else None,
+            row.addWidget(D.button("Open the change in Compare", "primary" if r["to_review"] else None,
                                    lambda: self.open_change(k), "The change on both versions, with its decision"))
         if not r["manual"]:
             row.addWidget(D.button("Confirm", None, lambda: self.act("confirm", k)))
@@ -579,7 +579,7 @@ class RequirementsPage(QWidget):
         self.body.addWidget(w)
 
     def open_change(self, key):
-        """2.85.0: the change that set this rule, in Changes (both versions, its decision)."""
+        """2.85.0: the change that set this rule, in Compare (both versions, its decision)."""
         r = self.rows.get(key)
         lc = self.last_change(r) if r else None
         if not lc:
@@ -814,7 +814,7 @@ class ComparePage(QWidget):
         n_m = sum(1 for x in self.links if x)
         self.sum.setText(f"{va['label']} to {vb['label']}: {DV.summary_text(c)} in {len(self.rows)} sentences. "
                          + (f"{n_m} change(s) touch the compliance matrix; double-click one to open it in Review." if M is not None
-                            else "Open the compliance matrix (Read RFP) to see which changes touch it."))
+                            else "Read the documents into Review (Library) to see which changes touch it."))
         diag.activity("qt_compared", n=c["changed"] + c["added"] + c["removed"])
         self.fill()
         return self.rows

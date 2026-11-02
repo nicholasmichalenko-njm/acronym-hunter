@@ -83,13 +83,18 @@ class DashPage(QWidget):
         grid.setColumnStretch(0, 3); grid.setColumnStretch(1, 2)
         # compliance review
         self.comp = D.Card("Compliance review", actions=[D.button("Review", None, lambda: go("assign")),
-                                                          D.button("Prove", None, lambda: go("prove"))])
+                                                          D.button("Coverage", None, lambda: go("prove"))])
         self.comp_bar = D.StackBar(16); self.comp.add(self.comp_bar)
         self.comp_legend = QVBoxLayout(); self.comp.body.addLayout(self.comp_legend)
         self.comp_text = self.comp.add(D.label("", "muted"))
         # coverage by volume
-        self.vol = D.Card("Coverage by volume", "Compliance requirements and context placed in each volume's sections.",
-                          actions=[D.button("Response Setup", None, lambda: go("setup"))])
+        ap = lambda: self.host.assign_page                # 3.16.0: the response plan is set here, not in Structure or Review
+        self.vol = D.Card("Volumes, people and page budget", "The volumes, who leads and writes each section, its pages, and "
+                          "the requirements and context placed in each.",
+                          actions=[D.button("Volumes...", None, lambda: ap().volumes_dialog(), "The response's volumes"),
+                                   D.button("People...", None, lambda: ap().people_dialog(), "Who leads and who writes each section"),
+                                   D.button("Page budget...", None, lambda: ap().budget_dialog(), "Pages for each section, within each volume's limit"),
+                                   D.button("Response Setup", "ghost", lambda: go("setup"))])
         self.vol_table = _table(["Volume", "Sections", "Requirements", "With an owner", "", "Context"], (0, 80, 100, 110, 140, 80))
         self.vol.add(self.vol_table)
         # stages
@@ -194,7 +199,7 @@ class DashPage(QWidget):
         q = d["reqs"]
         if not q:
             self.comp_bar.set([])
-            self.comp_text.setText("No compliance matrix yet. Read RFP brings the customer's documents in.")
+            self.comp_text.setText("No compliance matrix yet. Library > Read it into Review brings the customer's documents in.")
             return
         segs = [(q["placed"], "req", "Requirements placed"), (q["reqs"] - q["placed"], "warn", "Requirements not placed"),
                 (q["context"], "ctx", "Supporting context"), (q["customer"], "cust", "The customer's"),

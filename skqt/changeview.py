@@ -266,7 +266,7 @@ class DecidePanel(QScrollArea):
         M = pg.host.review.M if pg.host.review is not None else None
         self.req.clear(); self.sec.clear()
         if M is None:
-            self.req.addItem("(no compliance matrix yet: Read RFP)", "")
+            self.req.addItem("(no compliance matrix yet: Library > Read it into Review)", "")
             self.sec.addItem("(no compliance matrix yet)", "")
             return
         linked = [h["id"] for h in (pg.links[i] if i < len(pg.links) else [])]
@@ -301,7 +301,7 @@ class DecidePanel(QScrollArea):
             target = self.req.currentData() if kind in ("updates", "context", "removes") else self.sec.currentData() if kind == "new" else ""
         M = pg.host.review.M if pg.host.review is not None else None
         if kind in CR.NEEDS_TARGET and (M is None or not target):
-            pg.host.status("Pick the requirement (or the section) first." if M is not None else "Read RFP first: decisions on requirements need the matrix.")
+            pg.host.status("Pick the requirement (or the section) first." if M is not None else "Read the documents into Review first (Library): decisions on requirements need the matrix.")
             return None
         rv = pg.review
         ref = ""

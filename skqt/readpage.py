@@ -520,7 +520,7 @@ class ReadPage(QWidget):
             self.panel.failed("The read did not finish", f"Building the matrix stopped with an error ({type(ex).__name__}). "
                               + ("No compliance matrix was made." if self._new else "Your matrix is as it was before Read."),
                               "Press Read to try again. If it happens again, Help > Create a support file and send it in.")
-            self.host.status("The read did not finish. See the message on Read RFP.")
+            self.host.status("The read did not finish. See the message on Read into Review.")
         finally:
             self._then = None
             self.lock_controls()
@@ -578,11 +578,9 @@ class ReadPage(QWidget):
         self.host.status(msg + " " + CR.text_check_line(CR.text_check(self.host.review.M)))
         self.panel.done("Read", msg)
         self.refresh()
+        self.host.go("assign")                  # 3.16.0: reading never stops for the structure: build it beside the page
         if getattr(self, "_start", "") == "choose" and not self.host.review.M.outline:
-            self.host.go("structure")
-            self.host.structure_page.offer_start()
-            return
-        self.host.go("assign")
+            self.host.status(msg + " Build the structure beside the page, or Start from... what the RFP prescribes.")
         then, self._then = getattr(self, "_then", None), None     # 3.15.1: Library's Read it in Review opens its document
         if then is not None:
             then()

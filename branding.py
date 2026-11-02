@@ -254,7 +254,7 @@ SECTIONS = (("health", "Effort health (the numbers on top)", "wide"),           
             ("custfocus", "Evaluation and hot buttons", "half"),                                      # 2.99.0
             ("graphics", "Graphic needs", "half"),                                                    # 3.0.4
             ("themes", "Win themes (to edit; they show under the header)", "half"),                   # 3.2.0
-            ("compliance", "Compliance review", "half"), ("coverage", "Coverage by volume", "half"),  # 3.12.0: from the Dashboard
+            ("compliance", "Compliance review", "half"), ("coverage", "Volumes, people and page budget", "half"),  # 3.12.0; 3.16.0: set them here
             ("pastdue", "Past due", "half"), ("acronyms", "Acronyms and QA/QC", "half"),
             ("people", "Who has what", "wide"),
             ("info", "Customer information", "wide"), ("timeline", "Timeline", "wide"))
@@ -265,7 +265,8 @@ WIDTH = {k: w for k, _t, w in SECTIONS}
 ROLES = {
     "Proposal Manager": ("health", "stage", "submission", "goals", "notes", "tasks", "calendar", "deliverables", "compliance",
                          "coverage", "pastdue", "custqa", "custfocus", "graphics", "acronyms", "people", "info", "timeline"),
-    "Production": ("health", "deliverables", "submission", "graphics", "calendar", "tasks", "stage", "notes", "acronyms", "timeline"),
+    "Production": ("health", "deliverables", "submission", "coverage", "graphics", "calendar", "tasks", "stage", "notes", "acronyms",
+                   "timeline"),
     "Author": ("mywork", "tasks", "notes", "graphics", "calendar", "submission", "stage"),
     "Reviewer": ("stage", "health", "calendar", "notes", "tasks", "submission", "compliance", "deliverables"),
     "Capture": ("stage", "info", "custfocus", "submission", "custqa", "notes", "calendar", "goals", "timeline"),

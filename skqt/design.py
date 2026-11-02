@@ -133,6 +133,13 @@ QPushButton#railgroup {{ background: transparent; color: {t['rail_group']}; bord
 QPushButton#railgroup[first="true"] {{ border-top: none; margin-top: 4px; }}
 QPushButton#railgroup:hover {{ color: {t['rail_active_text']}; }}
 QLabel#railcount {{ background: transparent; font-size: {TYPE['label']}pt; font-weight: 600; }}
+QLabel#railbeta {{ background: transparent; color: #F2B65A; border: 1px solid #F2B65A; border-radius: 3px; padding: 0 3px;
+                  font-size: {TYPE['label'] - 1}pt; font-weight: 700; letter-spacing: 0.5px; }}
+QFrame#pagetabsbox {{ background: {t['surface']}; border: none; border-bottom: 1px solid {t['border_soft']}; }}
+QTabBar#pagetabs::tab {{ background: transparent; color: {t['muted']}; border: none; border-bottom: 3px solid transparent;
+                        padding: 6px 14px 5px 14px; margin-right: 4px; font-weight: 600; }}
+QTabBar#pagetabs::tab:selected {{ color: {t['text']}; border-bottom: 3px solid {t['accent']}; }}
+QTabBar#pagetabs::tab:hover {{ color: {t['text']}; }}
 QFrame#railEffort {{ background: {t['rail_card']}; border: 1px solid {t['rail_rule']}; border-radius: 8px; margin: 8px 0 2px 0; }}
 QFrame#railEffort:hover {{ border-color: {t['rail_sel_bar']}; }}
 QLabel#railEffortCap {{ background: transparent; color: {t['rail_group']}; font-size: {TYPE['label']}pt; font-weight: 600; }}
