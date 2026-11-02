@@ -316,7 +316,8 @@ class AssignPage(QWidget):
         self.lib_entries = {}
         v = QVBoxLayout(self)
         v.setContentsMargins(6, 6, 6, 6)
-        bar = QHBoxLayout(); v.addLayout(bar)
+        from .adaptive import FlowLayout
+        bar = FlowLayout(spacing=6); v.addLayout(bar)         # 3.15.1: the tools wrap onto a second row when narrow
         bar.addWidget(QLabel("File:"))
         self.files = QComboBox(); self.files.setMinimumWidth(240); self.files.currentTextChanged.connect(self.open_file)
         bar.addWidget(self.files)
