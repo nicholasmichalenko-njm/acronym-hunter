@@ -83,6 +83,19 @@ check("it is added as a sentence with a box, a requirement in the target", new i
 nxt = M.items[M.items.index(new) + 1]
 check("in its place: just before the list it leads", nxt.get("lead") == LEAD, nxt["text"][:40])
 check("area mode ends after one area", not pg.view.capturing and not pg.cap_btn.isChecked())
+# 3.19.0: text whose words are not in the PDF's text (OCR, a fixed wording, a header band) is boxed by its area
+pg.ask_text = lambda got, how: ("The Offeror shall describe the approach (wording fixed by hand)", False)
+far_area = area.translated(0, 60)
+fixed = pg.capture_area(far_area)
+app.processEvents()
+check("3.19.0: added text its words cannot be found for still gets a box, from its area", fixed is not None and fixed["id"] in pg.view.boxes
+      and fixed.get("area", "").startswith(f"{fixed['page']}:") and pg.view.boxes[fixed["id"]].zValue() > 0, fixed and fixed.get("area"))
+pg.view.scene().clearSelection(); pg.select(fixed["id"]); app.processEvents()
+check("... and it selects", [x["id"] for x in pg.selected()] == [fixed["id"]])
+import tempfile as _tf, compliance as _C
+_p = os.path.join(_tf.mkdtemp(), "m.xlsx"); _old = M.path; M.path = _p; M.save(); M.path = _old
+_Y = _C.Matrix(_p); _Y.load()
+check("... the area is kept in the matrix workbook", next(x for x in _Y.items if x["id"] == fixed["id"]).get("area") == fixed["area"])
 pg.toggle_capture(True)
 QTest.keyClick(pg.view, Qt.Key_Escape); app.processEvents()
 check("Esc leaves area mode", not pg.view.capturing)

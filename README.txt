@@ -32,6 +32,10 @@ PARTS OF THE RESPONSE STRUCTURE (3.19.0)
     column.
   - Typing a title such as "Executive summary" in the Structure tab no longer reads its first letter as a section
     number.
+  - Add missed text: a sentence whose words are not in the PDF's own text (a scanned page read by OCR, wording fixed in
+    the dialog, a header or footer band) used to be added with no box, so it could not be clicked. Its box is now the
+    area you dragged, drawn on top so it always selects; the area is kept in the matrix (a hidden Area column). Text
+    added before 3.19.0 has no area: add it again once.
 
 UNDO EVERYWHERE, PAGES PER SECTION (3.18.2)
   - Undo in the top bar and Ctrl+Z undo the last change on the page you are on; the button's tip says what it puts

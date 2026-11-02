@@ -54,9 +54,10 @@ def _ocr_lines(img):
     return app_gui._ocr_lines(np.array(img))
 
 
-def add_sentence(M, file_name, text, after_id=None, page=None, how="", at_start=False):
+def add_sentence(M, file_name, text, after_id=None, page=None, how="", at_start=False, area=None):
     """Add text to the review as a sentence of file_name, right after the sentence after_id (else at the end of that
-    file's sentences), in the same RFP section. Returns the new row."""
+    file's sentences), in the same RFP section. area (3.19.0): (left, top, right, bottom) in page points of the area it
+    was read from, kept so the page can box it even when its words are not in the PDF's text. Returns the new row."""
     text = " ".join((text or "").split())
     if not text:
         return None
@@ -68,7 +69,8 @@ def add_sentence(M, file_name, text, after_id=None, page=None, how="", at_start=
     it.update({"file": file_name, "loc": f"{file_name} (p.{page}, added from {src})" if page else f"{file_name} (added from {src})",
                "page": page, "context": text[:700], "key": C.text_key(text), "decision": "", "map": "", "owner": "",
                "status": "", "notes": "", "response_page": "", "links": "", "learned": "", "context_for": "",
-               "new": "Added from the page", "id": ""})
+               "new": "Added from the page", "id": "",
+               "area": (f"{page}:" + ",".join(f"{v:.1f}" for v in area)) if (area and page) else ""})
     idx = [i for i, x in enumerate(M.items) if x.get("file") == file_name]
     at = next((i + 1 for i, x in enumerate(M.items) if x.get("id") == after_id), None) if after_id else None
     if at is None:
