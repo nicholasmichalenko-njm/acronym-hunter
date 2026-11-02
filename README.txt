@@ -1,6 +1,15 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE MENU AND EVERY PAGE (3.15.0)
+  - The menu's groups by job: Home, Effort, Solicitation (Library, Read RFP, Changes, Submission Rules, Customer Q&A),
+    Compliance, Writing, Quality, Production and Effort files. Each tool is in one place.
+  - The open effort and its stage are at the top of the menu (click for the Effort Dashboard). A dot in the stage's
+    color marks the tools the stage needs; each group shows how many it holds. Settings > Roles and Preview tools can
+    turn the marks off.
+  - Each page names its menu group above its title. Cards have a header row; a page's main card has a tinted header.
+    Status shows as small pills, and each card has at most one filled button; what only opens a place is a link.
+
 PRODUCTION: FIX A COPY, EVERY RULE IN PRODUCTION STANDARDS (3.6.0)
   - Production > Fix a Copy: checks a Word draft against the production standard and fixes it in a copy. The original
     is never changed: it is read once, and a file someone has open (Word's ~$ owner file, another program holding it,
@@ -124,7 +133,7 @@ START AN EFFORT IN ONE STEP, AND BUILT-IN COMPANY LOGOS (3.0.3)
 
 THE GUIDE (3.0.2)
   - How to use every page, in the order of the menu: what the page is for, when to use it, the steps with the real
-    button names, tips, and a picture of the page from a fictional effort.
+    button names, and tips (text only since 3.14.2).
   - F1 opens the Guide at the page you are on. Go to this page jumps there; Previous and Next walk the topics; the
     search box finds a topic by any word. Settings > Help and support > Guide opens it at the start.
   - The keyboard shortcuts are a topic of their own.

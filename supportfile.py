@@ -20,6 +20,15 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.15.0": ["The menu is easier to scan: each tool is in one place (the separate stage group is gone), group names are in "
+               "capitals with a line above, and the page you are on is marked by a bar at its left. A dot in the stage's color "
+               "marks the tools the effort's stage needs, and each group shows how many it holds.",
+               "The open effort and its stage sit at the top of the menu; click it for the Effort Dashboard.",
+               "Customer documents is now Solicitation: the RFP, its changes, the submission rules and our questions to the "
+               "customer, together.",
+               "Every page names its group above its title. Cards have a header row, and the main card on a page is tinted. "
+               "Status (Saved, No matrix, the mode) shows as small pills, not button shapes, and each card has at most one "
+               "filled button."],
     "3.14.3": ["Closing Stationkeeper ends its background work cleanly. A PDF page copy that Word, Excel or PowerPoint is "
                "making stops at once, the Office it started is closed, and no half-made copy is kept (it is made again "
                "next time). Any other job still running is asked to stop and finished first, so nothing is cut off "

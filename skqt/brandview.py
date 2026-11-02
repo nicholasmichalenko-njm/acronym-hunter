@@ -583,8 +583,10 @@ class RailEffort(QFrame):
         self.name.setText(name or "")
         self.stage.setText(stage or "")
         self.stage.setVisible(bool(stage))
-        c = color or "#5B9BEB"
-        self.stage.setStyleSheet(f"QLabel#railEffortStage{{color:#FFFFFF;border:1px solid {c};background:{c}33;"
+        c = QColor(color or "#5B9BEB")                      # rgba(): Qt reads an 8-digit hex as #AARRGGBB
+        soft = f"rgba({c.red()},{c.green()},{c.blue()},0.30)"
+        c = c.name()
+        self.stage.setStyleSheet(f"QLabel#railEffortStage{{color:#FFFFFF;border:1px solid {c};background:{soft};"
                                  f"border-radius:9px;padding:1px 8px;font-size:{D.TYPE['small']}pt;font-weight:600;}}")
         self.setVisible(bool(name))
 

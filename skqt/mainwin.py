@@ -36,7 +36,7 @@ from .settingspage import SettingsPage
 RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),                                       # 3.13.0: grouped by job
         ("Effort", [("home", "Effort Dashboard"), ("deliverables", "Deliverables"), ("record", "Effort Record"),
                     ("reviews", "Color Reviews"), ("postsub", "Post-Submission")]),
-        ("Customer documents", [("library", "Library"), ("read", "Read RFP"), ("compare", "Changes"), ("requirements", "Submission Rules"),
+        ("Solicitation", [("library", "Library"), ("read", "Read RFP"), ("compare", "Changes"), ("requirements", "Submission Rules"),
                                 ("custqa", "Customer Q&A")]),
         ("Compliance", [("structure", "Structure"), ("assign", "Review"), ("prove", "Prove"), ("crosswalk", "L/M Crosswalk"),
                         ("matrix", "Matrix"), ("setup", "Response Setup")]),
@@ -46,7 +46,7 @@ RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),          
         ("Production", [("fixcopy", "Fix a Copy"), ("prodstd", "Production Standards")]),
         ("Effort files", [("exportall", "Export All"), ("settings", "Settings")])]
 GROUP_OF = {k: g for g, items in RAIL for k, _t in items}     # 3.15.0: the page's menu group, shown above its title
-GROUP_OF.update({"docs": "Customer documents", "impact": "Customer documents", "dashboard": "Effort"})
+GROUP_OF.update({"docs": "Solicitation", "impact": "Solicitation", "dashboard": "Effort"})
 TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and work not filed yet"),
           "fixcopy": ("Fix a Copy", "Check drafts against their profile; fixes go into a dated copy, never the original"),
           "prodstd": ("Production Standards", "Every formatting rule: team standard, profiles, effort types, and this effort's from the RFP"),

@@ -16,7 +16,7 @@ TOPICS = [
   "customer's documents, helps the team decide every requirement, and makes the matrix, the setup documents, the "
   "acronym lists and the submission checks. Everything stays on this PC.",
   "You are new to Stationkeeper, or want the big picture.",
-  ["Open the menu on the left. Its groups are by job: Effort, Customer documents, Compliance, Writing, Quality, "
+  ["Open the menu on the left. Its groups are by job: Effort, Solicitation (the RFP, its changes and our questions about it), Compliance, Writing, Quality, "
    "Production and Effort files. Each tool is in one place. Click a group's name to fold it away. The open effort and "
    "its stage are at the top; a dot in the stage's color marks the tools this stage needs, and each group says how many "
    "it holds.",
@@ -108,7 +108,7 @@ TOPICS = [
    "Give each item an owner and a due date. + Item adds one.",
    "Save as default... keeps this checklist for new efforts."],
   ["Export to Excel... shares the checklist."]),
- ("library", "Customer documents", "Library",
+ ("library", "Solicitation", "Library",
   "Every document of the effort: customer files and every version of them, categories, folders, tags and roles.",
   "Documents arrive: the RFP, amendments, Q&A rounds, forms, task orders.",
   ["Press Add files... or Add a folder... Stationkeeper suggests the type, its initial (R, A1, TO1) and whether it is "
@@ -118,7 +118,7 @@ TOPICS = [
    "For an amendment that says what to change, press Apply its instructions... to make the Conformed version."],
   ["Initial and type... and Rename... fix a document's details. The customer's files are never changed.",
    "A document marked above CUI is refused on a regular install. Follow your site's spill procedure."]),
- ("read", "Customer documents", "Read RFP",
+ ("read", "Solicitation", "Read RFP",
   "Brings the customer's documents into the review: every sentence is cut out of the page, scans and pictures are "
   "read with OCR, and nothing is dropped.",
   "A new solicitation arrives, or you add more documents to the review.",
@@ -127,14 +127,14 @@ TOPICS = [
    "Press Go to Review to decide the sentences."],
   ["Scanned pages and pictures are read by the OCR reader (AI and ML), on this PC.",
    "Prove checks later that every word reached the review."]),
- ("compare", "Customer documents", "Changes",
+ ("compare", "Solicitation", "Changes",
   "What a new version changed, what it touches in your review, and a decision on every change.",
   "An amendment or new version arrives.",
   ["Pick the old and new versions. The changed, added and removed sentences are listed.",
    "Decide each change: update the requirement, Not ours, or a question for the customer.",
    "Export (Word)..., Redline (Word)... or Change list (Excel)... share the changes."],
   ["Adding a new version says at once what it changed. Review the changes opens this page on that pair."]),
- ("requirements", "Customer documents", "Submission Rules",
+ ("requirements", "Solicitation", "Submission Rules",
   "What the customer requires of the submission: due date, delivery, copies, formats, file names, page limits and "
   "formatting, with the document that set each rule and what changed it.",
   "You plan the submission, or a new version changes a rule.",
@@ -142,7 +142,7 @@ TOPICS = [
    "Press Add a requirement... for a rule you found yourself.",
    "Use the new due date takes a changed due date into the effort."],
   ["Capture > Submission and Capture > Formatting in Review fill this page from the customer's words."]),
- ("custqa", "Customer documents", "Customer Q&A",
+ ("custqa", "Solicitation", "Customer Q&A",
   "The formal questions you submit to the customer: their exact words and where they are, your question, its status "
   "and the answer.",
   "Before the questions-due date, and when the answers come back.",
