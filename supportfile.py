@@ -31,7 +31,8 @@ WHATS_NEW = {
                "Production Standards > Quick Parts: the Quick Parts every template carries, all in Word's Quick Parts gallery "
                "in your numbered categories. Their styles follow the template's, and landscape and tabloid pages keep their "
                "section and headers.",
-               "Styles can be hidden text (Show/Hide), with their color."],
+               "Styles can be hidden text (Show/Hide), with their color. Table types set their width in percent or in "
+               "inches, with column widths in inches; learning a file keeps inches as inches."],
     "3.21.0": ["Excerpts and bins: every capture keeps the customer's exact words and where they sit (document, page, "
                "paragraph, numbering, heading). In Review, Objective (O) and Key point (K) put the picked words in a bin; "
                "Bins (B) holds Other submission detail, Written formatting rule, your own bins (Alt+1 to Alt+9) and Every "

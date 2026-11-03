@@ -105,7 +105,7 @@ os.remove(own)
 # ------------------------------------------------------------------ Production Standards
 w.go("prodstd"); app.processEvents()
 sp = w.prodstd_page
-check("Standards opens on this effort, with every section", sp.scope == "effort" and sp.nav.count() == 17)      # 3.17.0: Graphics
+check("Standards opens on this effort, with every section", sp.scope == "effort" and sp.nav.count() == 18)      # 3.17.0: Graphics; 3.22.0: Quick Parts
 sp.scope_box.setCurrentIndex(0); app.processEvents()
 check("the team standard is editable", sp.scope == "team" and sp.work["variables"]["body_font"] == "Times New Roman")
 tid = sp.add_type("Cost volume")
@@ -161,7 +161,7 @@ check("3.7: Learn from a file takes the chosen areas into the document type", go
 tbl = sp.tables["styledefs"]["w"]
 names = [tbl.cellWidget(i, 0).text() for i in range(tbl.rowCount())]
 check("3.7: the style library lists every learned style with its whole definition", "Heading 1" in names and "Normal" in names
-      and tbl.columnCount() == 30, (len(names), tbl.columnCount()))
+      and tbl.columnCount() == 31, (len(names), tbl.columnCount()))      # 3.22.0: Hidden text
 r = names.index("Heading 2")
 size_w = tbl.cellWidget(r, [c[0] for c in __import__("skqt.prodstdpage", fromlist=["STYLE_COLS"]).STYLE_COLS].index("size"))
 size_w.setValue(15.0)

@@ -11,8 +11,10 @@ Rules (decided 2026-10-29):
   after the caption) and a second header row (also marked to repeat).
 - Every other role comes from an explicit rule in std["row_rules"]; a rule with sure=False becomes a question,
   grouped by pattern so one answer covers every row of that pattern. Nothing is guessed silently.
-- apply() never changes cell text, never deletes a row or cell, never changes column widths. It merges a
-  caption or note row into one cell only when the other cells are empty, so no text can be lost.
+- apply() never changes cell text, never deletes a row or cell. It changes column widths only when the table
+  type sets them in inches (col_widths_in) and the table has that many columns. It merges a caption or note row
+  into one cell only when the other cells are empty, so no text can be lost.
+- 3.22.0: a table type's width is in percent (width_pct) or in inches (width_unit "in", width_in), as the team sets it.
 """
 import re
 from dataclasses import dataclass, field
@@ -305,6 +307,41 @@ def _merge_if_empty(tr, ncols, mark=lambda el: None):
     return True
 
 
+def column_widths_in(tbl):
+    """The table's column widths in inches, from its grid (None when the grid has none)."""
+    g = tbl.find("w:tblGrid", NS)
+    cols = [int(c.get(q("w"), "0") or 0) for c in g.findall("w:gridCol", NS)] if g is not None else []
+    return [round(w / 1440.0, 2) for w in cols] if cols and all(cols) else None
+
+
+def set_column_widths(tbl, widths_in, mark=lambda el: None):
+    """3.22.0: set the grid and every cell to these column widths (inches); a merged cell takes the sum of its columns."""
+    tw = [int(round(w * 1440)) for w in widths_in]
+    g = tbl.find("w:tblGrid", NS)
+    if g is None:
+        g = etree.Element(q("tblGrid")); tbl.insert(1, g)
+    for c in list(g):
+        g.remove(c)
+    for w in tw:
+        etree.SubElement(g, q("gridCol")).set(q("w"), str(w))
+    mark(g)
+    for tr in rows(tbl):
+        col = 0
+        for tc in cells(tr):
+            tcpr = tc.find("w:tcPr", NS)
+            if tcpr is None:
+                tcpr = etree.Element(q("tcPr")); tc.insert(0, tcpr)
+            span = tcpr.find("w:gridSpan", NS)
+            n = int(span.get(q("val"), "1")) if span is not None else 1
+            ensure(tcpr, "tcW", {"w": sum(tw[col:col + n]), "type": "dxa"})
+            col += n
+        mark(tr)
+    tblpr = tbl.find("w:tblPr", NS)
+    if tblpr is not None:
+        ensure(tblpr, "tblLayout", {"type": "fixed"})
+    return len(tw)
+
+
 def apply(tbl, decisions, std, table_type, style_ids, skip_asked=True, mark=lambda el: None, merge=False):
     """Apply the look of each decided row. style_ids: tag style name -> styleId (styles must exist).
     Returns a report with counts and what was left alone."""
@@ -361,9 +398,9 @@ def apply(tbl, decisions, std, table_type, style_ids, skip_asked=True, mark=lamb
                     ppr = etree.Element(q("pPr")); p.insert(0, ppr)
                 ensure(ppr, "pStyle", {"val": style_ids[look["tag_style"]]})
                 remove(ppr, "spacing", "ind", "jc")           # the style holds these values
-                mark = ppr.find("w:rPr", NS)
-                if mark is not None:
-                    remove(mark, *DIRECT_RUN)
+                para_mark = ppr.find("w:rPr", NS)
+                if para_mark is not None:
+                    remove(para_mark, *DIRECT_RUN)
                 for r in p.findall("w:r", NS) + [r for h in p.findall("w:hyperlink", NS) for r in h.findall("w:r", NS)]:
                     rpr = r.find("w:rPr", NS)
                     if rpr is not None:
@@ -376,8 +413,13 @@ def apply(tbl, decisions, std, table_type, style_ids, skip_asked=True, mark=lamb
         tblpr = etree.Element(q("tblPr")); tbl.insert(0, tblpr)
     if tt.get("word_style") and style_ids.get("__table_style__"):          # 3.10.0: the type's Word table style
         ensure(tblpr, "tblStyle", {"val": style_ids["__table_style__"]})
-    if tt.get("width_pct"):
+    if tt.get("width_unit") == "in" and tt.get("width_in"):                 # 3.22.0: a fixed width in inches
+        ensure(tblpr, "tblW", {"w": int(round(float(tt["width_in"]) * 1440)), "type": "dxa"})
+    elif tt.get("width_pct"):
         ensure(tblpr, "tblW", {"w": int(tt["width_pct"] * 50), "type": "pct"})
+    cw = [float(x) for x in (tt.get("col_widths_in") or []) if str(x).strip()]
+    if cw and len(cw) == ncols:                                             # 3.22.0: column widths in inches
+        rep["columns_set"] = set_column_widths(tbl, cw, mark)
     if tt.get("align"):
         ensure(tblpr, "jc", {"val": tt["align"]})
     b = ensure(tblpr, "tblBorders")                           # cell borders carry the look; no table grid

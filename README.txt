@@ -24,6 +24,7 @@ OUR DATA, THE TEMPLATE LIBRARY AND QUICK PARTS (3.22.0)
     (01 Covers, 02 Title pages...). Each part's styles take the template's definitions; a style the template lacks is
     added and named. Landscape and tabloid pages keep their own section and headers.
   - Style library: Hidden text, so reference styles (RFP text, PM commentary) disappear with Show/Hide off.
+  - Table types: width set in percent of the page or in inches, with column widths in inches; learning keeps inches.
 
 EXCERPTS AND BINS (3.21.0)
   - Every capture keeps the customer's exact words and where they sit: document, version, page, paragraph, the RFP's

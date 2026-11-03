@@ -703,7 +703,9 @@ class StandardsPage(QWidget):
         self.preview.update()
 
     def build_ttypes(self, v):
-        cols = [("key", "Key", "text"), ("name", "Name", "text"), ("width_pct", "Width (%)", "num"),
+        cols = [("key", "Key", "text"), ("name", "Name", "text"),
+                ("width_unit", "Width set in", ("enum", [("", "Not set"), ("pct", "Percent of the page"), ("in", "Inches")])),
+                ("width_pct", "Width (%)", "num"), ("width_in", "Width (in)", "num"), ("col_widths_in", "Column widths (in, comma)", "list"),
                 ("align", "Table align", ("enum", ALIGN[:3])), ("cm_top", "Cell margin top (pt)", "num"),
                 ("cm_bottom", "Bottom", "num"), ("cm_left", "Left", "num"), ("cm_right", "Right", "num"),
                 ("roles", "Rows it has (comma)", "list"), ("caption_position", "Caption row", ("enum", [("", "First row"), ("below", "Last row (figures)")])),

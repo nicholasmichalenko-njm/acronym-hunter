@@ -227,7 +227,12 @@ def learn_tables(pkg, std, styles=None):
                 t["word_style"] = names[ts.get(q("val"))]          # 3.10.0
             tw = tp.find("w:tblW", NS) if tp is not None else None
             if tw is not None and tw.get(q("type")) == "pct":
-                t["width_pct"] = round(int(tw.get(q("w"), "5000")) / 50)
+                t["width_pct"] = round(int(tw.get(q("w"), "5000")) / 50); t["width_unit"] = "pct"
+            elif tw is not None and tw.get(q("type")) == "dxa" and int(tw.get(q("w"), "0") or 0):    # 3.22.0: inches
+                t["width_unit"] = "in"; t["width_in"] = round(int(tw.get(q("w"))) / 1440.0, 2)
+            cwi = T.column_widths_in(tbl)
+            if cwi and t.get("width_unit") == "in":
+                t["col_widths_in"] = cwi
             jc = tp.find("w:jc", NS) if tp is not None else None
             if jc is not None:
                 t["align"] = jc.get(q("val"))
