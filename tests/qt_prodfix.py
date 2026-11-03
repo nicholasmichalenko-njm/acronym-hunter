@@ -298,7 +298,7 @@ w.go("prodstd"); app.processEvents()
 sp.scope_box.setCurrentIndex(sp.scope_box.findData("type:cost_volume")); app.processEvents()
 got10 = sp.learn(cvp, keys=["page_parts"])
 check("3.10: Learn from a file takes the cover and back cover pages into the profile", got10 == ["page_parts"]
-      and set(sp.work["page_parts"]) == {"cover", "backer"} and "Make a template puts it in" in sp.part_rows["cover"].text())
+      and set(sp.work["page_parts"]) == {"cover", "backer"} and "Make a .dotx template puts it in" in sp.part_rows["cover"].text())
 sp.save()
 check("3.10: the profile saves its pages", set(PRL.type_of(PRL.load(cfg), "cost_volume")["page_parts"]) == {"cover", "backer"})
 import prodparts as PP

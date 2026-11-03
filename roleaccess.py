@@ -32,7 +32,7 @@ WORDS = (("proposal manager", PM), ("capture manager", "Capture"), ("production"
          ("business development", "Capture"), ("author", "Author"), ("writer", "Author"), ("lead", "Author"),
          ("sme", "Author"), ("subject matter", "Author"), ("contributor", "Author"))
 PREVIEW = {"fixcopy": ("Fix a Copy", "fixes drafts into dated copies"),
-           "template": ("Make a template", "writes templates from a profile")}
+           "template": ("Make a .dotx template", "writes templates from a profile")}
 ACCESS_FILE = "team_access.json"
 
 

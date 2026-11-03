@@ -9,12 +9,13 @@ lists, terms, Excel and PowerPoint, check options. Saved to the config folder (t
 import copy, os, sys
 from PySide6.QtCore import Qt, QRectF, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
-from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QColorDialog, QComboBox, QDoubleSpinBox, QFileDialog, QFontComboBox,
+from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QColorDialog, QComboBox, QDoubleSpinBox, QFileDialog, QFontComboBox,
                                QFormLayout, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit,
                                QListWidget, QPlainTextEdit, QPushButton, QScrollArea, QSizePolicy, QSpinBox, QStackedWidget,
                                QTableWidget, QVBoxLayout, QWidget)
 import diag
 import prodrules as PRL
+import numtext as NT
 from prodengine.pe import rules as PR
 from . import design as D
 
@@ -384,13 +385,13 @@ class StandardsPage(QWidget):
                               D.button("Effort types...", "ghost", lambda: self.manage_effort_types(), "Rename, order or take "
                                        "out effort types, and choose the one new efforts start with (3.18.2)"),
                               D.button("+ Profile...", None, lambda: self.add_type(), "A document profile: the full set of formatting values for one kind of document you deliver"),
-                              D.button("Learn from a file...", None, lambda: self.learn(), "Read a template or a finished volume and "
+                              D.button("Import from a file...", None, lambda: self.learn(), "Read a template or a finished volume and "
                                        "take its styles, table looks, pages, headers and numbering into what you are editing"),
                               D.button("Collect into the library...", None, lambda: self.collect(), "Read a template or Word "  # 3.22.0
                                        "document and keep what it carries in the template library, item by item, confirmed by you"),
                               D.button("Template library...", None, lambda: self.library(), "Everything collected: styles, pages, "
                                        "headers and footers, numbering, tables, covers, Quick Parts and fonts"),
-                              D.button("Make a template...", None, lambda: self.make_template(), "A Word template (.dotx) with every "
+                              D.button("Make a .dotx template...", None, lambda: self.make_template(), "A Word template (.dotx) with every "
                                        "value in force here, written to the output folder"),
                               D.button("Export for review...", None, lambda: self.export()),
                               D.button("Save", "primary", lambda: self.save())])
@@ -578,22 +579,23 @@ class StandardsPage(QWidget):
         b = D.button("Choose a template...", None, lambda: self.pick_template(t)); f.addRow("", b)
         al = QPlainTextEdit(); al.setFixedHeight(130); al.setPlaceholderText("One style name per line. Blank: any style is allowed.")
         self.row(f, "Allowed styles", al, ("styles", "allowed"), "lines")
-        f2, _c2 = self.form(v, "Heading numbering", "The nine heading levels: number format, what the number reads as (%1 is "
-                            "the level 1 number), where the number and the text start, and which level restarts it.")
+        f2, _c2 = self.form(v, "Heading numbering", "The nine heading levels: number format, what the number reads as (type it "
+                            "as it shows, such as 1.1.1 or Section A: the last number is this level's, the ones before it the "
+                            "levels above), where the number and the text start, and which level restarts it.")
         self.row(f2, "Set heading numbering when fixing", QCheckBox(), ("heading_numbering", "on"), "bool")
         cols = [("style", "Style", "text"), ("fmt", "Format", ("enum", [(k, t) for k, t in PAGE_FMT if k])),
-                ("text", "Number reads", "text"), ("number_at", "Number at (in)", "num"), ("text_at", "Text at (in)", "num"),
+                ("text", "Number reads", "lvltext"), ("number_at", "Number at (in)", "num"), ("text_at", "Text at (in)", "num"),
                 ("restart", "Restart after level", "int")]
         self.table_editor(v, "heading_levels", ("heading_numbering", "levels"), cols, fixed=True)
 
     def build_styledefs(self, v):
         c = D.Card("Style library", "Every style this profile defines, whole: font, size, bold, italic, underline, caps, color, "
                    "alignment, spacing, line spacing, indents, keeps, page break before, widow control, based on and next style. "
-                   "Fix a Copy checks each style in a draft against these values and sets the ones that differ; Make a template "
+                   "Fix a Copy checks each style in a draft against these values and sets the ones that differ; Make a .dotx template "
                    "writes them. Blank or Not set leaves that property as the draft has it. Format variables win where they "
-                   "drive a style (body, table and caption fonts and sizes). Learn from a file... fills this from a template.")
+                   "drive a style (body, table and caption fonts and sizes). Import from a file... fills this from a template.")
         bar = QHBoxLayout()
-        bar.addWidget(D.button("Learn from a file...", None, lambda: self.learn()))
+        bar.addWidget(D.button("Import from a file...", None, lambda: self.learn()))
         bar.addStretch(1)
         c.body.addLayout(bar)
         v.addWidget(c)
@@ -761,7 +763,7 @@ class StandardsPage(QWidget):
         pr.addWidget(self.preset_box)
         pr.addWidget(D.button("Use this preset", None, lambda: self.use_preset())); pr.addStretch(1)
         c.body.addLayout(pr)
-        # 3.10.0: the profile's own cover and back cover pages (from Learn from a file)
+        # 3.10.0: the profile's own cover and back cover pages (from Import from a file)
         self.part_rows = {}
         for where, label in (("cover", "Cover page"), ("backer", "Back cover page")):
             row = QHBoxLayout(); row.addWidget(D.label(label, "label", wrap=False))
@@ -825,7 +827,7 @@ class StandardsPage(QWidget):
             self.qp_note.setText(f"That file could not be read ({type(e).__name__}).")
             return 0
         if not found:
-            self.qp_note.setText("That file has no Quick Parts. Learn from a file... takes its styles, tables and pages.")
+            self.qp_note.setText("That file has no Quick Parts. Import from a file... takes its styles, tables and pages.")
             return 0
         if picks is None:
             from PySide6.QtWidgets import QDialog, QDialogButtonBox, QListWidgetItem
@@ -856,7 +858,7 @@ class StandardsPage(QWidget):
         qp["entries"] = entries
         self.work["quick_parts"] = qp
         self.changed(); self.load_tables()
-        self.qp_note.setText(f"{n} Quick Part(s) added from {os.path.basename(path)}. Make a template puts them in.")
+        self.qp_note.setText(f"{n} Quick Part(s) added from {os.path.basename(path)}. Make a .dotx template puts them in.")
         diag.activity("std_quick_parts_added", n=n)
         return n
 
@@ -877,8 +879,8 @@ class StandardsPage(QWidget):
     def show_parts(self):
         for where, lab in getattr(self, "part_rows", {}).items():
             f = (self.work.get("page_parts") or {}).get(where)
-            lab.setText(f"{f} (Make a template puts it in; Fix a Copy reports a draft whose page is built differently)" if f else
-                        "none: Learn from a file... takes it from a template or finished volume")
+            lab.setText(f"{f} (Make a .dotx template puts it in; Fix a Copy reports a draft whose page is built differently)" if f else
+                        "none: Import from a file... takes it from a template or finished volume")
 
     def clear_part(self, where):
         pp = dict(self.work.get("page_parts") or {})
@@ -941,15 +943,15 @@ class StandardsPage(QWidget):
         self.row(f, "A list after a heading starts at 1", QCheckBox(), ("lists", "restart_after_heading"), "bool")
         self.row(f, "Styles never treated as lists (comma)", QLineEdit(), ("lists", "skip_styles"), "list")
         f2, _c2 = self.form(v, "List numbering", "What each list style shows, level by level: a bullet (its character and "
-                            "font) or a number (format and text, %1 is the level's number), and where the number and the "
+                            "font) or a number (its format and what it shows, typed as it looks, such as 1. or a)), and where the number and the "
                             "text start. Fix a Copy checks each list style against these and sets the ones that differ; "
-                            "Make a template writes them.")
+                            "Make a .dotx template writes them.")
         self.row(f2, "Set list numbering when fixing", QCheckBox(), ("list_numbering", "on"), "bool")
         cols = [("list", "List", "text"), ("style", "Style", "text"),
                 ("fmt", "Format", ("enum", [("bullet", "Bullet"), ("decimal", "1, 2, 3"), ("lowerLetter", "a, b, c"),
                                             ("upperLetter", "A, B, C"), ("lowerRoman", "i, ii, iii"), ("upperRoman", "I, II, III"),
                                             ("decimalZero", "01, 02, 03")])),
-                ("text", "Shows (bullet, or %1.)", "text"), ("font", "Bullet font (blank: the text's)", "text"),
+                ("text", "Shows (bullet, or 1.)", "lvltext"), ("font", "Bullet font (blank: the text's)", "text"),
                 ("left", "Text at (in)", "num0"), ("hanging", "Number before the text (in)", "num0")]
         self.table_editor(v, "listnum", ("list_numbering", "lists"), cols, adapter="listnum")
 
@@ -1211,6 +1213,7 @@ class StandardsPage(QWidget):
             t.setRowCount(0)
             for r in rows:
                 self._add_table_row(key, r)
+            self._show_lvltext(key)
             t.blockSignals(False)
             t.resizeColumnsToContents()
 
@@ -1238,6 +1241,10 @@ class StandardsPage(QWidget):
             elif kind == "list":
                 w = QLineEdit(", ".join(val if isinstance(val, list) else ([] if val in (None, "") else [str(val)])))
                 w.textEdited.connect(lambda _x, k=key: self.table_changed(k))
+            elif kind == "lvltext":                    # 3.24.1: shown as it looks (1.1), kept as Word's codes (%1.%2)
+                w = QLineEdit(); w.setProperty("raw", "" if val is None else str(val))
+                w.textEdited.connect(lambda _x, k=key: self.table_changed(k))
+                w.editingFinished.connect(lambda k=key: self._show_lvltext(k))
             else:
                 w = QLineEdit("" if val is None else str(val)); w.textEdited.connect(lambda _x, k=key: self.table_changed(k))
             t.setCellWidget(i, c, w)
@@ -1262,13 +1269,54 @@ class StandardsPage(QWidget):
                     r[field] = None if w.value() < 0 else int(w.value())
                 elif kind == "list":
                     r[field] = [x.strip() for x in w.text().split(",") if x.strip()]
+                elif kind == "lvltext":
+                    r[field] = w
                 else:
                     r[field] = w.text().strip()
             rows.append(r)
+        for i, (lvl, fmts) in enumerate(self._lvl_of(rows)):
+            for field, _h, kind in spec["cols"]:
+                if kind == "lvltext":
+                    w = rows[i][field]
+                    rows[i][field] = NT.keep_or_parse(w.text(), w.property("raw"), fmts, lvl)
+                    w.setProperty("raw", rows[i][field])
         return rows
+
+    @staticmethod
+    def _lvl_of(rows):
+        """3.24.1: each row's level and the formats of its levels: rows in order, a new list (List column) starting at 1."""
+        out, seen = [], {}
+        for r in rows:
+            g = r.get("list") or ""
+            seen.setdefault(g, []).append(r.get("fmt") or "decimal")
+            out.append((len(seen[g]), seen[g]))
+        return out
+
+    def _show_lvltext(self, key, skip=None):
+        """3.24.1: every Number reads cell shown as it will look, from the codes kept."""
+        spec = self.tables[key]
+        cols = [c for c, (_f, _h, kind) in enumerate(spec["cols"]) if kind == "lvltext"]
+        if not cols:
+            return
+        t = spec["w"]
+        rows = []
+        for i in range(t.rowCount()):
+            r = {}
+            for c, (field, _h, kind) in enumerate(spec["cols"]):
+                if field in ("list", "fmt"):
+                    w = t.cellWidget(i, c)
+                    r[field] = (w.currentData() if isinstance(kind, tuple) else w.text().strip()) if w is not None else ""
+            rows.append(r)
+        for i, (_lvl, fmts) in enumerate(self._lvl_of(rows)):
+            for c in cols:
+                w = t.cellWidget(i, c)
+                if w is None or w is skip:
+                    continue
+                w.blockSignals(True); w.setText(NT.show(w.property("raw") or "", fmts)); w.blockSignals(False)
 
     def table_changed(self, key):
         self._store(self.tables[key], self._read_table(key))
+        self._show_lvltext(key, skip=QApplication.focusWidget())
         self.changed()
         if key in ("ttypes",):
             self.fill_row_scope()
@@ -1569,13 +1617,13 @@ class StandardsPage(QWidget):
         self.switch(force=True)
 
     def template_ready(self):
-        """3.13.0: Make a template is a Preview tool: it works once the team turns it on."""
+        """3.13.0: Make a .dotx template is a Preview tool: it works once the team turns it on."""
         import roleaccess as RA
         if RA.preview_on(self.host.config_dir, "template"):
             return True
         self.host.notice_page.show_for({"kind": "preview", "step": "template", "profile": self.host.profile()[0]})
         self.host.stack.setCurrentWidget(self.host.notice_page)
-        self.host.page_title.setText("Make a template")
+        self.host.page_title.setText("Make a .dotx template")
         return False
 
     def make_templates_all(self, word=None):
@@ -1706,7 +1754,7 @@ class StandardsPage(QWidget):
 
     def _pick_areas(self, got, name):
         from PySide6.QtWidgets import QDialog, QDialogButtonBox, QListWidgetItem
-        dlg = QDialog(self); dlg.setWindowTitle(f"Learn from {name}")
+        dlg = QDialog(self); dlg.setWindowTitle(f"Import from {name}")
         v = QVBoxLayout(dlg)
         v.addWidget(D.label(f"What {name} carries. Untick anything you do not want; nothing is saved until you press Save.", None))
         lst = QListWidget(); lst.setMinimumSize(720, 360)
@@ -1741,7 +1789,7 @@ class StandardsPage(QWidget):
             return None
         if start_from is None:
             from PySide6.QtWidgets import QMessageBox
-            mb = QMessageBox(self); mb.setWindowTitle("Make a template")
+            mb = QMessageBox(self); mb.setWindowTitle("Make a .dotx template")
             mb.setText("Start from the Stationkeeper base (cover, front matter, a chapter with a sample table, an appendix), or "
                        "from a template of yours (it is only read; its pages, logos and text are kept)?")
             base_b = mb.addButton("Stationkeeper base", QMessageBox.AcceptRole)

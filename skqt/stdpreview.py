@@ -238,7 +238,7 @@ class Canvas(QWidget):
         y, x = 14.0, 14.0
         sd = std.get("style_defs") or {}
         if not sd:
-            self._text(p, QRectF(x, y, self.width() - 28, 60), "No styles defined here. Learn from a file... fills this from a "
+            self._text(p, QRectF(x, y, self.width() - 28, 60), "No styles defined here. Import from a file... fills this from a "
                        "template.", _font("Segoe UI", 9), MUTED)
             return
         for name, d in list(sd.items())[:24]:

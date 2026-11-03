@@ -26,7 +26,7 @@ FILL-INS, CAPTION SCHEMES, VALIDATION AND THE WORD CHECK (3.23.0)
     of your own. Use one in a header or footer as {key}. Fields are written without MERGEFORMAT.
   - Captions and numbering: Number shows as 1, I, i, A or a; chapter level 0 numbers by sequence only (Table 1), a
     level numbers chapter then sequence (Table 2-1). Fix a Copy rewrites a caption field whose format differs.
-  - Make a template asks for its name (where or how it is used); making it again under that name makes the next
+  - Make a .dotx template asks for its name (where or how it is used); making it again under that name makes the next
     version. The file carries SK Template and SK Template Version; an effort records the template and version it used.
   - Beside every template: "<name> - validation report.txt": problems (a style used but not defined, a STYLEREF or
     DOCPROPERTY that points nowhere, a list number with no definition), warnings (MERGEFORMAT, direct formatting inside
@@ -54,7 +54,7 @@ OUR DATA, THE TEMPLATE LIBRARY AND QUICK PARTS (3.22.0)
   - Production Standards > Template library...: shelves for every kind of item, filtered by use case. New style...
     (hidden text ones too), Edit..., Rename..., Use cases..., Take out, and Use in this standard.
   - Production Standards > Quick Parts: Add from a template or document... lists the Quick Parts every template from
-    the standard carries. Make a template puts them all in Word's Quick Parts gallery under your numbered categories
+    the standard carries. Make a .dotx template puts them all in Word's Quick Parts gallery under your numbered categories
     (01 Covers, 02 Title pages...). Each part's styles take the template's definitions; a style the template lacks is
     added and named. Landscape and tabloid pages keep their own section and headers.
   - Style library: Hidden text, so reference styles (RFP text, PM commentary) disappear with Show/Hide off.

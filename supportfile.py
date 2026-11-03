@@ -172,7 +172,7 @@ WHATS_NEW = {
     "3.13.0": ["Roles: each person's role decides which tools open. Tools for another role stay in the menu, greyed, and say "
                "who they are for; Settings can hide them. The proposal manager sets roles in People and roles; with none set, "
                "your own choice in Customize... counts.",
-               "Preview tools: Fix a Copy and Make a template are off for the team until the proposal manager turns them on "
+               "Preview tools: Fix a Copy and Make a .dotx template are off for the team until the proposal manager turns them on "
                "(Settings > Roles and Preview tools, carried by a team pack).",
                "The menu is grouped by job, groups fold away, and For this stage lists the tools the effort's stage needs."],
     "3.12.0": ["Effort Home and Dashboard are one page, the Effort Dashboard: the numbers on top, then your cards. The header "
@@ -188,9 +188,9 @@ WHATS_NEW = {
                "you fix what Check finds in Excel or PowerPoint.",
                "Production Standards > Excel and PowerPoint holds the values each profile checks."],
     "3.10.0": ["Profiles carry Word table styles whole (borders, shading, the header row, banding) and each table type can "
-               "use one: Fix a Copy checks and sets them, Learn from a file reads them, Make a template writes them.",
+               "use one: Fix a Copy checks and sets them, Import from a file reads them, Make a .dotx template writes them.",
                "Profiles keep their cover and back cover pages, learned from a template or a finished volume (pictures "
-               "included). Make a template puts them in; Check reports a draft whose cover or back cover is built "
+               "included). Make a .dotx template puts them in; Check reports a draft whose cover or back cover is built "
                "differently, and never changes it."],
     "3.9.0": ["Issues and ideas: write down a bug, an improvement or an idea from any page (Issue or idea in the top bar, "
               "or Ctrl+Shift+I). Reports stay on this PC and a guard keeps document words out; Export... saves a text-only zip.",

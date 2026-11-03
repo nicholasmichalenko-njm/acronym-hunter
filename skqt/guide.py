@@ -326,7 +326,7 @@ TOPICS = [
    "profile... writes one template per profile. Order: team, profile, effort type, effort type for the profile, the effort.",
    "A profile's Deliverables this profile fits: words in a deliverable's name (cost, price) that pick this profile for it "
    "in an effort type. Effort types... (3.18.2) adds, renames, orders and takes out effort types (RFI response is a starter) and sets the default.",
-   "Learn from a file...: pick your master template or a finished volume. Stationkeeper reads it (it is never changed) "
+   "Import from a file...: pick your master template or a finished volume. Stationkeeper reads it (it is never changed) "
    "and lists what it carries: every style's whole definition, the format variables, table looks by row role, page "
    "setups, headers and footers, heading numbering and the TOC. Untick what you do not want; review; Save.",
    "Format variables: body, table and caption fonts and sizes, spacing, margins, paper and the restriction marking. "
@@ -341,17 +341,17 @@ TOPICS = [
    "border edge (on, width, color), with a preview. Applies to: all table types, or one type only.",
    "List numbering (in Bulleted and numbered lists): what each list style shows, level by level: the bullet and its "
    "font, or the number format and text, and where the number and the text start.",
-   "Word table styles: Learn from a file takes the table styles a template uses, whole; a table type's Word table "
+   "Word table styles: Import from a file takes the table styles a template uses, whole; a table type's Word table "
    "style (Table types section) makes its tables use one.",
    "Excel and PowerPoint: the font and size, header row, frozen header, and print setup Check expects in a workbook; "
    "the fonts allowed, smallest text and titles, slide size, marking on every slide and slide titles in a deck.",
-   "Pages, cover and back cover: the cover and back cover pages Learn from a file took (pictures included). Make a "
+   "Pages, cover and back cover: the cover and back cover pages Import from a file took (pictures included). Make a "
    "template puts them in; Fix a Copy reports a draft whose cover or back cover is built differently. Clear removes one.",
    "Table types, row rules, captions and numbering, pages (the page scheme with cover and back cover), page setups, "
    "headers and footers, the TOC and its entry styles, lists, terms, Excel and PowerPoint, and check options each have their own section.",
    "This effort: choose its profile, then Fill from the RFP's formatting rules lays the RFP's fonts, margins and "
    "page size over it for this effort only. Press Save.",
-   "Make a template...: a Word template (.dotx) with every value in force, from the Stationkeeper base (cover, front "
+   "Make a .dotx template...: a Word template (.dotx) with every value in force, from the Stationkeeper base (cover, front "
    "matter, a chapter with a sample table, an appendix) or starting from a template of yours (only read). It goes to "
    "the Templates folder in the output folder, dated, and is checked against the standard; Word updates its fields.",
    "Export for review... makes a workbook of every value and where it is set."],
@@ -399,7 +399,7 @@ TOPICS = [
    "A file in a OneDrive or SharePoint folder: people editing it online can't be seen from here, so the copy is the "
    "version synced to this PC. Fix it when the writers are done.",
    "Each fix is one guarded change that may touch only what it declares; anything else is refused.",
-   "Fix a Copy and Make a template are Preview tools: off for the team until the proposal manager turns them on in "
+   "Fix a Copy and Make a .dotx template are Preview tools: off for the team until the proposal manager turns them on in "
    "Settings > Roles and Preview tools."]),
  ("postsub", "Post-Submission", "Checklist",
   "What the team does after the proposal goes in: owners, due dates and done.",
@@ -434,7 +434,7 @@ TOPICS = [
    "Branding shows the company logos. They are built into Stationkeeper; nobody changes them from here.",
    "Roles and Preview tools: your role and where it comes from (People and roles in the effort, or your own choice in "
    "Customize...), hide other roles' tools, and show the stage's tools at the top of the menu. The proposal manager turns "
-   "Preview tools (Fix a Copy, Make a template) on or off for the team; a team pack carries the choice.",
+   "Preview tools (Fix a Copy, Make a .dotx template) on or off for the team; a team pack carries the choice.",
    "Install a team pack... takes your team's stages, document types, folders and author list in one step.",
    "In Updates, Install update pack... installs a new version from its .skupdate file. Undo last update goes back one step.",
    "Help and support opens this Guide, the shortcuts, what's new, Issues and ideas, and the support file.",

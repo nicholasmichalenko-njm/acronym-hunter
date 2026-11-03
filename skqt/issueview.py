@@ -20,7 +20,7 @@ def features():
         for k, t in items:
             out.append(t)
             out += [TITLES[m][0] for m, _l in TABS.get(k, [])[1:] if TITLES.get(m, ("",))[0] not in out]
-    return out + ["Make a template", "Learn from a file", "Effort types and profiles", "Updates", "Speed", "Other"]
+    return out + ["Make a .dotx template", "Import from a file", "Effort types and profiles", "Updates", "Speed", "Other"]
 
 
 def current_page(host):
