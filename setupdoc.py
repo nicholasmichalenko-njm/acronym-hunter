@@ -29,7 +29,8 @@ def new_setup():
             "refmode": {},     # 2.38.0: {file: {"mode": "numbering"|"para"|"page"|"prefix", "name", "prefix"}}
             "owners": {},      # 2.38.0: {section label: {"lead": "", "with": ""}}
             "tables": False,   # 2.38.0: Response Setup includes each section's requirement table
-            "docs": {}}        # 2.68.0: {file: {"initial", "type", "doc"}} from Customer Documents
+            "docs": {},        # 2.68.0: {file: {"initial", "type", "doc"}} from Customer Documents
+            "progress": {}}    # 3.35.0: {section label: % complete, 0 to 100}, typed by the team
 
 
 LM = {"L": "Instructions, Conditions and Notices to Offerors", "M": "Evaluation Factors for Award",     # 2.68.0 (Shipley)
@@ -394,6 +395,27 @@ def set_people(M, label, lead="", with_=""):
     else:
         S["owners"].pop(label, None)
     _log(M, "(setup)", f"people for {label}: {lead or '-'}" + (f"; with {with_}" if with_ else ""))
+
+
+def progress_of(M, label):
+    """3.35.0: the section's % complete as the team typed it (0 to 100), or None when not set."""
+    v = setup_of(M)["progress"].get(label)
+    return int(v) if isinstance(v, (int, float)) else None
+
+
+def set_progress(M, label, pct):
+    """3.35.0: the section's % complete (0 to 100); None takes it off. Returns the value kept."""
+    S = setup_of(M)
+    if pct is None or pct == "":
+        S["progress"].pop(label, None)
+        v = None
+    else:
+        v = max(0, min(100, int(round(float(pct)))))
+        S["progress"][label] = v
+    _log(M, "(setup)", f"% complete for {label}: {'-' if v is None else v}")
+    if hasattr(M, "pending"):
+        M.pending = True
+    return v
 
 
 def owner_of(M, it):

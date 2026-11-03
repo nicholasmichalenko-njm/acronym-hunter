@@ -45,21 +45,38 @@ COLUMNS = {
     "objective": ("Customer objective", 36),        # 3.29.0: the objectives mapped to its section, verbatim
     "keypoints": ("Key points", 36),                # 3.29.0: key points taken from the sentence
     "excerpt": ("Source excerpt and location", 40), # 3.29.0: the customer's words with where they sit
+    # 3.35.0: the outline matrix (the user's default): one row per outline item, Section L and M side by side
+    "item": ("Response Section No. Item", 34),      # the item's number and title, indented by its level
+    "assigned_to": ("Assigned To", 20),             # the item's lead and contributors
+    "page_alloc": ("Initial Page Allocation", 12),  # the item's page budget
+    "pct_complete": ("% Complete", 10),             # typed by the team on the item
+    "l_refs": ("RFP Solicitation Requirements (Section L)", 22),
+    "l_content": ("Section L Content", 60),         # requirements (L, SOW, an RFI's interest, or not designated)
+    "m_refs": ("Evaluation Section (Section M)", 22),
+    "m_content": ("Evaluation Content", 60),        # sentences designated M
 }
+OUTLINE_KEYS = ("item", "assigned_to", "page_alloc", "pct_complete", "l_refs", "l_content", "m_refs", "m_content")
+LAYOUTS = (("outline", "One row per outline item (Section L and M side by side)"), ("sentences", "One row per RFP sentence"))
 CUSTOM = "custom:"                                   # 2.51.0: a column of the team's own, filled in Excel
 ROLES = (("Keep", "Compliance requirements"), ("Context", "Context"))
 # 2.56.0 (the user's default): Volume, Response section no., Response section name, RFP section, RFP content (compliance
 # requirements and their support, told apart by the row style), Author(s), Notes; every other column stays available.
 # 2.68.0: Reference (R-L-4.2.1), Doc, L/M and Section (the customer document's own number and title)
-DEFAULT = {"columns": [{"key": k, "heading": h} for k, h in
-                       (("volume", "Volume"), ("section_no", "Response section no."), ("section_name", "Response section name"),
-                        ("reference", "Reference"), ("doc", "Doc"), ("lm", "L/M"), ("rfp_ref", "Section"),
-                        ("text", "RFP content"), ("authors", "Author(s)"), ("notes", "Notes"))],
-           "v": 2,
-           "roles": ["Keep", "Context"], "customer_sheet": True, "title": "", "empty_sections": True,
-           "order": "rfp",                          # 2.54.0: rows in the RFP's order (or "structure": our sections' order)
-           "context": "cell"}                       # 2.58.0: support in its requirement's cell, each piece with its RFP place
+SENTENCES = {"columns": [{"key": k, "heading": h} for k, h in
+                         (("volume", "Volume"), ("section_no", "Response section no."), ("section_name", "Response section name"),
+                          ("reference", "Reference"), ("doc", "Doc"), ("lm", "L/M"), ("rfp_ref", "Section"),
+                          ("text", "RFP content"), ("authors", "Author(s)"), ("notes", "Notes"))],
+             "v": 3, "layout": "sentences",
+             "roles": ["Keep", "Context"], "customer_sheet": True, "title": "", "empty_sections": True,
+             "order": "rfp",                        # 2.54.0: rows in the RFP's order (or "structure": our sections' order)
+             "context": "cell"}                     # 2.58.0: support in its requirement's cell, each piece with its RFP place
                                                     # ("rows": a row of its own under the requirement)
+# 3.35.0 (the user's default): one row per item of the response outline (section, headers, subheaders) with who it is
+# assigned to, its initial page allocation, its % complete, and its Section L and Section M content side by side. A
+# sentence assigned to several items is in each of their rows.
+DEFAULT = dict(SENTENCES, columns=[{"key": k, "heading": COLUMNS[k][0]} for k in OUTLINE_KEYS], layout="outline",
+               order="structure")
+BUILTIN_VIEWS = (("Outline with L and M", "outline"), ("RFP sentences", "sentences"))
 _FAR = __import__("re").compile(r"\b(?:FAR|DFARS|NFS|AFFARS|DFARS PGI)\s+(?:clause\s+)?\d{1,3}\.\d{2,4}(?:-\d+)?(?:\([a-z0-9]+\))*", __import__("re").I)
 
 
@@ -71,8 +88,8 @@ def heading_of(key):
     return COLUMNS[key][0] if key in COLUMNS else key[len(CUSTOM):] if key.startswith(CUSTOM) else key
 
 
-def default():
-    return copy.deepcopy(DEFAULT)
+def default(layout="outline"):
+    return copy.deepcopy(SENTENCES if layout == "sentences" else DEFAULT)
 
 
 _OLD_DEFAULT_KEYS = ["order", "ref", "text", "role", "volume", "section", "page_limit", "owner", "page", "status", "notes"]
@@ -84,6 +101,9 @@ def clean(d):
     out = default()
     if not isinstance(d, dict):
         return out
+    # 3.35.0: a design kept before the outline matrix keeps its sentence rows
+    layout = d.get("layout") if d.get("layout") in dict(LAYOUTS) else ("sentences" if d.get("columns") else "outline")
+    out = default(layout)
     if not d.get("v") and [str(c.get("key")) for c in (d.get("columns") or []) if isinstance(c, dict)] == _OLD_DEFAULT_KEYS:
         d = dict(d, columns=out["columns"])
     cols = []
@@ -108,9 +128,13 @@ def clean(d):
     out["customer_sheet"] = bool(d.get("customer_sheet", True))
     out["title"] = " ".join(str(d.get("title") or "").split())[:120]
     out["empty_sections"] = bool(d.get("empty_sections", True))
-    out["order"] = d.get("order") if d.get("order") in ("rfp", "structure") else "rfp"
+    out["order"] = d.get("order") if d.get("order") in ("rfp", "structure") else out["order"]
     out["context"] = d.get("context") if d.get("context") in ("cell", "rows") else "cell"
-    out["v"] = 2
+    out["layout"] = layout
+    v = d.get("view")
+    if isinstance(v, dict) and v.get("id"):                 # 3.35.0: the saved view it came from
+        out["view"] = {"id": str(v["id"])[:40], "name": " ".join(str(v.get("name") or "").split())[:80]}
+    out["v"] = 3
     return out
 
 

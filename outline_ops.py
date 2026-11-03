@@ -77,7 +77,7 @@ def relabel(M, mapping):
         if it.get("map") in mapping:
             it["map"] = mapping[it["map"]]
     bud = S.get("budget") if isinstance(S.get("budget"), dict) else {}
-    for d in [S.get(k) for k in ("copies", "order", "owners", "mgmt", "item_counts")] + [bud.get("pages"), bud.get("source")]:
+    for d in [S.get(k) for k in ("copies", "order", "owners", "mgmt", "item_counts", "progress")] + [bud.get("pages"), bud.get("source")]:
         if isinstance(d, dict):                    # 3.20.1: page lengths and what counts follow their section too
             moved = {a: d.pop(a) for a in list(mapping) if a in d}   # all at once: 3 -> 2 while 2 -> 1
             for a, v in moved.items():
@@ -380,6 +380,7 @@ def delete(M, label):
             S["copies"].setdefault(to, []).extend(x for x in ids if x not in S["copies"].get(to, []))
     S["order"].pop(label, None)
     S["owners"].pop(label, None)
+    S["progress"].pop(label, None)                 # 3.35.0
     rm = S.get("rfp_map")
     if isinstance(rm, dict):
         for k in [k for k, v in rm.items() if v == label]:
