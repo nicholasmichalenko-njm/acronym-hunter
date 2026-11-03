@@ -1,6 +1,23 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+COVERS, TITLE PAGES AND BACK COVERS BUILT HERE (3.34.0)
+  - Document parts > Cover (and Back cover): New from a blank page... (the standard's paper and margins) and From a
+    saved cover layout... open the layout editor on a new page.
+  - The layout editor: Background picture... puts a PNG, JPG or EMF behind the text, full bleed (to the page edge) or
+    inside the margins, locked; a new picture takes the old one's place and the text stays put. + Text block... adds a
+    line that shows a field (Volume name, Solicitation, Company, your Fields) or its own words, at a place and width,
+    with its own size, bold, color, font and alignment. Remove the selected block takes one off.
+  - The page is drawn as it will look: the pictures and each block's words in their look, in the editor and in the
+    part's preview.
+  - Save as a cover layout... keeps the page's structure apart from its look (paper, where the background goes, the
+    blocks) in the template library (Cover layouts), versioned; an imported cover's text boxes and floating tables
+    are taken too. Keep in the library... keeps the page itself, picture and all.
+  - The title page: Document parts > Cover > The title page builds one the same way. Make templates puts it in a
+    section of its own after the cover, in place of the structure's Title page element. Title pages have a shelf in
+    the library and a row in Template profile > Parts and versions.
+  - Fix a Copy and the table rules leave a cover's text blocks alone (they are page layout, not data tables).
+
 TEMPLATE PROFILES, VERSIONS AND THE CONTENT MAP (3.33.0)
   - Production Standards > Template profile > Parts and versions: the profile as the parts a template is built from
     (cover, each part's header and footer, the table of contents, back cover, base fonts and sizes, theme, heading and

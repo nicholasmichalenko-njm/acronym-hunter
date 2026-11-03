@@ -143,7 +143,17 @@ class PartPreview(QWidget):
         what = {"cover": "Cover", "front": "TABLE OF CONTENTS", "body": "", "appendix": "", "backer": "Back cover"}[self.key]
         if self.key in ("cover", "backer"):
             f = (work.get("page_parts") or {}).get(self.key)
-            p.drawText(inner, Qt.AlignCenter | Qt.TextWordWrap, f"{what}\n{'kept as built: ' + f if f else 'the Stationkeeper base page'}")
+            path = os.path.join(self.page.parts_dir(), f) if f else ""
+            drawn = False
+            if path and os.path.isfile(path):                # 3.34.0: the kept page as it will look
+                from .coverdraw import draw_page
+                try:
+                    with open(path, "rb") as fh:
+                        drawn = draw_page(p, page, fh.read(), work)
+                except OSError:
+                    drawn = False
+            if not drawn:
+                p.drawText(inner, Qt.AlignCenter | Qt.TextWordWrap, f"{what}\n{'kept as built: ' + f if f else 'the Stationkeeper base page'}")
         elif self.key == "front":
             p.drawText(inner, Qt.AlignTop | Qt.AlignHCenter, what)
             p.setFont(small)
@@ -259,6 +269,23 @@ def build(page, v, section):
                               "Move or resize the pictures, text boxes and tables; set which field each line of text shows"))
         ph.addWidget(D.button("Clear", "ghost", lambda: clear_page(page, key)))
         ph.addStretch(1); c3.body.addLayout(ph)
+        nh = QHBoxLayout()                                 # 3.34.0: built here, from a blank page or a saved layout
+        nh.addWidget(D.button("New from a blank page...", None, lambda: new_page(page, key),
+                              "A blank page in the standard's paper and margins: add a background picture and text blocks"))
+        nh.addWidget(D.button("From a saved cover layout...", None, lambda: new_page(page, key, from_layout=True),
+                              "A page built from a cover layout kept in the template library"))
+        nh.addStretch(1); c3.body.addLayout(nh)
+    if key == "cover":                                     # 3.34.0: the title page, the cover's companion
+        c5 = D.Card("The title page", "A page of its own after the cover, built like a cover: a background picture and text "
+                    "blocks that show the volume's fields. The structure's Title page element is replaced by it in Make templates.")
+        left.addWidget(c5)
+        st["title_lab"] = D.label("", None); c5.body.addWidget(st["title_lab"])
+        th = QHBoxLayout()
+        th.addWidget(D.button("New from a blank page...", None, lambda: new_page(page, "title")))
+        th.addWidget(D.button("From a saved cover layout...", None, lambda: new_page(page, "title", from_layout=True)))
+        th.addWidget(D.button("Edit the layout...", "primary", lambda: edit_layout(page, "title")))
+        th.addWidget(D.button("Clear", "ghost", lambda: clear_page(page, "title")))
+        th.addStretch(1); c5.body.addLayout(th)
     if key == "front":
         c3 = D.Card("Table of contents and lists", "The TOC's levels and switches and the lists of tables and figures this part "
                     "carries. Change them in Pages > Table of contents.")
@@ -340,6 +367,9 @@ def fill(page, key):
     if "page_lab" in st:
         f = (work.get("page_parts") or {}).get(key)
         st["page_lab"].setText(f"{f} (kept as built)" if f else "The Stationkeeper base page.")
+    if "title_lab" in st:
+        f = (work.get("page_parts") or {}).get("title")
+        st["title_lab"].setText(f"{f} (kept as built)" if f else "No title page: the structure's Title page element is a placeholder.")
     if "toc_lab" in st:
         toc = work.get("toc") or {}
         st["toc_lab"].setText("Levels: " + ", ".join(f"{a} ({b})" for a, b in toc.get("levels") or []) + ". Lists: "
@@ -426,7 +456,36 @@ def clear_design(page, key):
 
 def clear_page(page, key):
     (page.work.get("page_parts") or {}).pop(key, None)
-    page.show_parts(); page.changed(); fill(page, key)
+    page.show_parts(); page.changed(); fill(page, "cover" if key == "title" else key)
+
+
+def new_page(page, key, from_layout=False, layout_id=None, run=True):
+    """3.34.0: a cover, title page or back cover built here: a blank page in the standard's paper and margins, or one
+    built from a cover layout in the template library. Opens the layout editor on it; Save keeps it. Returns the dialog."""
+    import coverbuild as CB
+    import templatelib as TL
+    from .coverview import CoverLayoutDialog
+    if from_layout:
+        lib = TL.Library(page.host.config_dir)
+        if layout_id is None:
+            items = sorted(lib.shelf("cover_design"), key=lambda i: lib.shown_name(i).casefold())
+            if not items:
+                page.host.status("No cover layout kept yet: Save as a cover layout... in the layout editor keeps one.")
+                return None
+            from PySide6.QtWidgets import QInputDialog
+            names = [lib.shown_name(i) for i in items]
+            nm, ok = QInputDialog.getItem(page, "From a saved cover layout", "Cover layout:", names, 0, False)
+            if not ok:
+                return None
+            layout_id = items[names.index(nm)]["id"]
+        design = lib.values(lib.get(layout_id)) or {}
+        data = CB.from_design(design, page.work)
+    else:
+        data = CB.blank(page.work)
+    d = CoverLayoutDialog(page, key, data=data)
+    if run:
+        d.exec()
+    return d
 
 
 # ------------------------------------------------------------------ part designs in the template library
@@ -498,7 +557,7 @@ def edit_layout(page, key, run=True):
     """3.27.0: Edit the cover (or back cover) layout. Returns the dialog."""
     from .coverview import CoverLayoutDialog
     if not (page.work.get("page_parts") or {}).get(key):
-        page.host.status("No kept page yet: Import from a file... keeps one first.")
+        page.host.status("No kept page yet: Import from a file... or New from a blank page... makes one first.")
         return None
     d = CoverLayoutDialog(page, key)
     if run:

@@ -480,6 +480,14 @@ def style_name_map(styles_root):
 
 
 # ---------------------------------------------------------------- file mode op (engine + unit guard)
+def is_layout_table(tbl):
+    """3.34.0: a text block placed on a cover, title page or back cover (a floating table Stationkeeper made to hold one
+    line in place): page layout, not a data table, so the table rules leave it alone. It still counts in the numbering,
+    so table numbers stay the ones Word uses."""
+    cap = tbl.find("w:tblPr/w:tblCaption", NS)
+    return cap is not None and cap.get(q("val")) == "SK Text block"
+
+
 def op_fix_tables(pkg, std, table_types=None, answers=None, skip_asked=True, only=None, roles=None):
     """Fix every top-level table of the main story (or the 1-based indexes in only). table_types: {index: key},
     default std. answers: {group: role}. roles (3.6.0): {table index: {row index: role}} set by hand, applied last.
@@ -497,7 +505,7 @@ def op_fix_tables(pkg, std, table_types=None, answers=None, skip_asked=True, onl
         if any(True for _ in tbl.iterancestors(q("tbl"))):
             continue
         idx += 1
-        if only and idx not in only:
+        if (only and idx not in only) or is_layout_table(tbl):
             continue
         tkey = (table_types or {}).get(idx) or ("fig" if is_figure_table(tbl) else "std")
         if tkey not in ids_by_type:
@@ -538,7 +546,7 @@ def op_merge_rows(pkg, targets):
         if any(True for _ in tbl.iterancestors(q("tbl"))):
             continue
         idx += 1
-        if idx not in targets:
+        if idx not in targets or is_layout_table(tbl):
             continue
         trs = rows(tbl)
         for r in targets[idx]:

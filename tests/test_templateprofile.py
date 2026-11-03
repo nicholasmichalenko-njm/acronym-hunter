@@ -45,7 +45,7 @@ check("compare: every value that differs", lib.compare("a1", v4["id"]) == [("siz
 # ---------------------------------------------------------------- a profile's parts
 std = copy.deepcopy(PRL.COMPANY)
 names = [s[0] for s in TP.slots(std)]
-check("the parts in the order a response runs, then the whole document's", names[:6] == ["cover", "hf:front", "toc", "hf:body", "hf:appendix", "backer"]
+check("the parts in the order a response runs, then the whole document's", names[:7] == ["cover", "title", "hf:front", "toc", "hf:body", "hf:appendix", "backer"]
       and "variables" in names and "pagination" in names)
 check("nothing pinned: the profile's own values", TP.state(std, lib, "variables")["item"] is None and TP.current_values(std, "variables"))
 said = TP.pick(std, lib, "variables", "b1", cfg)

@@ -180,7 +180,7 @@ def learn_tables(pkg, std, styles=None):
     root = pkg.tree(pkg.main)
     roles, types, counts = {}, {}, {}
     for tbl in root.iter(q("tbl")):
-        if any(True for _ in tbl.iterancestors(q("tbl"))):
+        if any(True for _ in tbl.iterancestors(q("tbl"))) or T.is_layout_table(tbl):   # 3.34.0: not a cover's text block
             continue
         ttype = "fig" if T.is_figure_table(tbl) else "std"
         decs = T.classify(tbl, std, ttype, names)

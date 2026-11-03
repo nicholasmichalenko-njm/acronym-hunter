@@ -1031,6 +1031,9 @@ def op_fix_tables(pkg, grid_color="808080", grid_sz=4):
         if any(True for _ in tbl.iterancestors(q("tbl"))):
             continue
         tindex += 1
+        cap = tbl.find("w:tblPr/w:tblCaption", NS)
+        if cap is not None and cap.get(q("val")) == "SK Text block":     # 3.34.0: a cover's text block is page layout
+            continue
         if is_figure_table(tbl):
             report["figures_skipped"] += 1
             continue

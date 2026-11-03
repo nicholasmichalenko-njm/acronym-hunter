@@ -1,7 +1,7 @@
 """Covers and back covers (3.10.0): a profile keeps its cover and back cover pages as small Word files of their own,
 learned from a template or a finished volume, and Make a template puts them in.
 
-  std["page_parts"] = {"cover": "<file name>", "backer": "<file name>"}   files in <config>\\production_parts
+  std["page_parts"] = {"cover": "<file name>", "title": "<file name>" (3.34.0), "backer": "<file name>"}   files in <config>\\production_parts
 
 extract(raw, part, std)          the cover (first section) or back cover (last section, recognised by the page
                                  scheme) of a Word file as a Word file of its own (bytes), or None
@@ -291,6 +291,27 @@ def place(base, part_bytes, where):
             for c in list(ppr):
                 if local(c) not in ("sectPr",):
                     ppr.remove(c)
+    elif where == "title":                                   # 3.34.0: the title page, a section of its own after the cover
+        sp, old = blocks[0]
+        holder = next((o for o in old if local(o) == "p" and o.find("w:pPr/w:sectPr", NS) is not None), None)
+        if holder is None or len(blocks) < 2:
+            raise PartError("The template has no cover section to put the title page after.")
+        anchor = holder
+        for e in els:
+            anchor.addnext(e); anchor = e
+        brk = etree.Element(q("p")); ppr = etree.SubElement(brk, q("pPr"))
+        sect = etree.fromstring(etree.tostring(holder.find("w:pPr/w:sectPr", NS)))
+        for x in list(sect):
+            if local(x) in ("headerReference", "footerReference", "pgNumType"):
+                sect.remove(x)
+        if part_sect is not None:
+            for tag in ("pgSz", "pgMar"):
+                src = part_sect.find(f"w:{tag}", NS)
+                dst = sect.find(f"w:{tag}", NS)
+                if src is not None and dst is not None:
+                    dst.getparent().replace(dst, etree.fromstring(etree.tostring(src)))
+        ppr.append(sect)
+        anchor.addnext(brk)
     else:
         final = body.find("w:sectPr", NS)
         brk = etree.SubElement(body, q("p"))

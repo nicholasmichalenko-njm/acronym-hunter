@@ -97,8 +97,10 @@ class ProfileParts(QWidget):
         self.slots = []
 
     def refresh(self):
+        import prodparts as PP
         work = self.page.work or {}
         lib = _lib(self.page)
+        pdir = PP.parts_dir(self.page.host.config_dir)
         self.slots = TP.slots(work)
         self.t.setRowCount(0)
         pinned = 0
@@ -106,7 +108,7 @@ class ProfileParts(QWidget):
             stt = TP.state(work, lib, slot)
             r = self.t.rowCount(); self.t.insertRow(r)
             use = lib.shown_name(stt["item"]) if stt["item"] is not None else (
-                "a version no longer in the library" if stt["pin"] else ("the profile's own values" if TP.current_values(work, slot) else "not set"))
+                "a version no longer in the library" if stt["pin"] else ("the profile's own values" if TP.current_values(work, slot, pdir) else "not set"))
             pinned += stt["item"] is not None
             for c, text in enumerate((part, what, use, (f"v{stt['newer']['version']} saved" if stt["newer"] else ""))):
                 it = QTableWidgetItem(text); it.setData(Qt.UserRole, slot)

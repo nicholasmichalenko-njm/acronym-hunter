@@ -35,15 +35,20 @@ class Piece(QGraphicsRectItem):
                 pm = QPixmap(); pm.loadFromData(b)
                 if not pm.isNull():
                     self.pix = pm
-        self.label = QGraphicsSimpleTextItem(f"{KIND[d['kind']]}: {d.get('text', '')[:40]}", self)
+        self.block = d.get("block")                    # 3.34.0: a text block, text box or floating table drawn with its words
+        self.label = QGraphicsSimpleTextItem("" if self.block is not None else f"{KIND[d['kind']]}: {d.get('text', '')[:40]}", self)
         f = QFont(); f.setPointSizeF(7); self.label.setFont(f); self.label.setBrush(QBrush(QColor(tone)))
         self.label.setPos(2, 1)
+        if d["kind"] == "picture":
+            self.setPen(QPen(QColor(tone), 0.6, Qt.DotLine))
 
     def paint(self, painter, option, widget=None):
-        if self.pix is not None:
-            painter.setOpacity(0.55)
+        if self.pix is not None:                         # 3.34.0: the picture as it will look
             painter.drawPixmap(self.rect().toRect(), self.pix)
-            painter.setOpacity(1.0)
+        if self.block is not None:                       # 3.34.0: the block's words in their size, weight, color and font
+            from .coverdraw import draw_text
+            r = self.rect()
+            draw_text(painter, QRectF(r.left(), r.top(), r.width(), max(r.height(), 0.3 * DPI) * 1.5), self.dlg.page.work, self.block, DPI)
         super().paint(painter, option, widget)
 
     def itemChange(self, change, value):
@@ -53,15 +58,15 @@ class Piece(QGraphicsRectItem):
 
 
 class CoverLayoutDialog(QDialog):
-    def __init__(self, page, key, path=None):
+    def __init__(self, page, key, path=None, data=None):
         super().__init__(page)
         self.page, self.key = page, key
         self.loading = True
         fname = (page.work.get("page_parts") or {}).get(key)
         self.path = path or (os.path.join(page.parts_dir(), fname) if fname else "")
-        self.data = open(self.path, "rb").read() if self.path and os.path.isfile(self.path) else b""
+        self.data = data if data is not None else (open(self.path, "rb").read() if self.path and os.path.isfile(self.path) else b"")
         self.changes = {}
-        self.setWindowTitle("Edit the cover layout" if key == "cover" else "Edit the back cover layout")
+        self.setWindowTitle({"cover": "Edit the cover layout", "title": "Edit the title page layout"}.get(key, "Edit the back cover layout"))
         self.resize(1180, 820)
         v = QVBoxLayout(self)
         v.addWidget(D.label("Drag a floating piece (picture, text box, table) or type its place and size in inches from the "
@@ -80,6 +85,28 @@ class CoverLayoutDialog(QDialog):
             s = QDoubleSpinBox(); s.setRange(0, 40); s.setDecimals(2); s.setSingleStep(0.05)
             s.valueChanged.connect(lambda _v, kk=k: self.typed(kk)); f.addRow(lab, s); self.sp[k] = s
         self.keep_ratio = QCheckBox("Keep the picture's proportions"); self.keep_ratio.setChecked(True); f.addRow("", self.keep_ratio)
+        rv.addWidget(D.label("The page", "title"))                 # 3.34.0: a background picture and text blocks
+        bg = QHBoxLayout()
+        self.bg_mode = QComboBox()
+        import coverbuild as CB
+        for k, label in CB.MODES:
+            self.bg_mode.addItem(label, k)
+        bg.addWidget(D.button("Background picture...", None, lambda: self.background(),
+                              "A PNG, JPG or EMF behind the text, locked; a page that has one gets this one in its place"))
+        bg.addWidget(self.bg_mode)
+        bg.addWidget(D.button("Take it off", "ghost", lambda: self.take_background()))
+        rv.addLayout(bg)
+        bb2 = QHBoxLayout()
+        bb2.addWidget(D.button("+ Text block...", None, lambda: self.add_block(),
+                               "A line that shows a field (Volume name, Solicitation...) or its own words, at a place you set"))
+        bb2.addWidget(D.button("Remove the selected block", "ghost", lambda: self.remove_block()))
+        rv.addLayout(bb2)
+        bb3 = QHBoxLayout()
+        bb3.addWidget(D.button("Save as a cover layout...", None, lambda: self.save_layout(),
+                               "The page's structure apart from its look (paper, background place, text blocks) in the template library"))
+        bb3.addWidget(D.button("Keep in the library...", None, lambda: self.keep_in_library(),
+                               "This page, picture and all, as a version in the template library"))
+        rv.addLayout(bb3)
         rv.addWidget(D.label("Text and the fields it shows", "title"))
         self.texts = QTableWidget(0, 3); self.texts.setHorizontalHeaderLabels(["Text", "Where", "Shows"])
         self.texts.verticalHeader().setVisible(False); self.texts.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
@@ -110,6 +137,17 @@ class CoverLayoutDialog(QDialog):
         self.scene.addRect(QRectF(m["left"] * DPI, m["top"] * DPI, (pg["w"] - m["left"] - m["right"]) * DPI,
                                   (pg["h"] - m["top"] - m["bottom"]) * DPI), QPen(QColor("#d6dae2"), 0.8, Qt.DotLine)).setZValue(-1)
         self.pieces = lay["pieces"]
+        try:                                              # 3.34.0: each floating table's and text box's words and look
+            import coverbuild as CB
+            blocks = CB.design_of(CL.apply(self.data, self.changes, self.page.work), self.page.work)["blocks"]
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            blocks = []
+        for d in self.pieces:
+            if d["kind"] in ("table", "textbox") and d.get("floating"):
+                hit = next((b for b in blocks if abs(b["x"] - (d.get("x") or 0)) < 0.02 and abs(b["y"] - (d.get("y") or 0)) < 0.02), None)
+                if hit is not None:
+                    d["block"] = hit
         y_flow = m["top"]
         for d in self.pieces:
             if d["kind"] == "paragraph":
@@ -198,22 +236,158 @@ class CoverLayoutDialog(QDialog):
     def result_bytes(self):
         return CL.apply(self.data, self.changes, self.page.work)
 
+    # ------------------------------------------------------------------ 3.34.0 background and text blocks
+    def _fold(self):
+        """The moves and fields so far written into the page, so a picture or block goes on top of them."""
+        self.data = self.result_bytes()
+        self.changes = {}
+
+    def background(self, path=None, mode=None):
+        import coverbuild as CB
+        from PySide6.QtWidgets import QFileDialog
+        if not self.data:
+            return False
+        if path is None:
+            path, _ = QFileDialog.getOpenFileName(self, "Background picture", os.path.expanduser("~"),
+                                                  "Pictures (*.png *.jpg *.jpeg *.emf *.gif *.bmp *.tif *.tiff)")
+            if not path:
+                return False
+        if mode is not None:
+            self.bg_mode.setCurrentIndex(max(0, self.bg_mode.findData(mode)))
+        self._fold()
+        try:
+            with open(path, "rb") as f:
+                self.data = CB.set_background(self.data, f.read(), os.path.splitext(path)[1], self.bg_mode.currentData())
+        except (OSError, ValueError) as e:
+            self.status.setText(str(e) if isinstance(e, ValueError) else "That picture could not be read.")
+            return False
+        self.load()
+        self.status.setText("Background picture set. Not saved yet.")
+        diag.activity("cover_background_set")
+        return True
+
+    def take_background(self):
+        import coverbuild as CB
+        if not self.data:
+            return False
+        self._fold()
+        self.data = CB.take_background(self.data)
+        self.load()
+        self.status.setText("Background picture taken off. Not saved yet.")
+        return True
+
+    def add_block(self, block=None):
+        import coverbuild as CB
+        if not self.data:
+            return False
+        if block is None:
+            d = BlockDialog(self, self.page.work, CL.read(self.data, self.page.work)["page"])
+            if d.exec() != QDialog.Accepted:
+                return False
+            block = d.block()
+        self._fold()
+        self.data = CB.add_block(self.data, block, self.page.work)
+        self.load()
+        self.status.setText("Text block added. Not saved yet.")
+        diag.activity("cover_block_added")
+        return True
+
+    def _block_index(self, pid):
+        """The text block (0 first) a table piece is, or -1 for a table not made here."""
+        import coverbuild as CB
+        if not pid or not pid.startswith("table"):
+            return -1
+        root = CB._open(self.result_bytes())[2]
+        tables = [t for t in root.find(CB.w("body")).iter(CB.w("tbl"))
+                  if t.getparent() is not None and t.getparent().tag == CB.w("body")]
+        n = int(pid[5:]) - 1
+        bs = CB.blocks(root)
+        return bs.index(tables[n]) if 0 <= n < len(tables) and tables[n] in bs else -1
+
+    def remove_block(self, pid=None):
+        import coverbuild as CB
+        pid = pid or (self.cur.d["id"] if self.cur is not None else None)
+        n = self._block_index(pid)
+        if n < 0:
+            self.status.setText("Pick a text block made here (a table on the page) first.")
+            return False
+        self._fold()
+        self.data = CB.remove_block(self.data, n)
+        self.load()
+        self.status.setText("Text block taken off. Not saved yet.")
+        return True
+
+    def save_layout(self, name=None, label=""):
+        """The page's structure (paper, where the background goes, its text blocks) as a cover layout in the template
+        library: the next version when the name is kept already. Returns the library item."""
+        import coverbuild as CB
+        import templatelib as TL
+        from PySide6.QtWidgets import QInputDialog
+        if not self.data:
+            return None
+        if name is None:
+            name, ok = QInputDialog.getText(self, "Save as a cover layout", "Layout name (an existing name gets a new version):")
+            if not ok or not name.strip():
+                return None
+            label, _ok = QInputDialog.getText(self, "Save as a cover layout", "Label (optional):")
+        design = CB.design_of(self.result_bytes(), self.page.work)
+        lib = TL.Library(self.page.host.config_dir)
+        have = next((i for i in lib.shelf("cover_design") if lib.base_of(i).casefold() == name.strip().casefold()), None)
+        if have is not None:
+            item, _st = lib.save_version(have["id"], design, label=label or "")
+        else:
+            item, _st = lib.add("cover_design", name.strip(), design, summary=f"{len(design['blocks'])} text block(s)"
+                                + (f", background {design['background']}" if design["background"] else ""))
+            if label:
+                lib.set_label(item["id"], label)
+        self.status.setText(f"Kept as the cover layout {lib.shown_name(item)}"
+                            + (f"; {design['left_out']} line(s) in the page's flow are not in it" if design["left_out"] else "") + ".")
+        diag.activity("cover_layout_kept")
+        return item
+
+    def keep_in_library(self, name=None, label=""):
+        """This page as it is (picture and all) on its shelf in the template library (covers, title pages, back covers),
+        as the next version when the name is kept already."""
+        import hashlib, tempfile
+        import templatelib as TL
+        from PySide6.QtWidgets import QInputDialog
+        if not self.data:
+            return None
+        if name is None:
+            name, ok = QInputDialog.getText(self, "Keep in the library", "Name (an existing name gets a new version):")
+            if not ok or not name.strip():
+                return None
+        data = self.result_bytes()
+        lib = TL.Library(self.page.host.config_dir)
+        fn = lib.keep_file(data, f"{name.strip()}.docx")
+        values = {"file": fn, "sha": hashlib.sha256(data).hexdigest()[:16]}
+        have = next((i for i in lib.shelf(self.key) if lib.base_of(i).casefold() == name.strip().casefold()), None)
+        if have is not None:
+            item, _st = lib.save_version(have["id"], values, label=label or "")
+        else:
+            item, _st = lib.add(self.key, name.strip(), values, summary="built in the layout editor")
+            if label:
+                lib.set_label(item["id"], label)
+        self.status.setText(f"Kept in the template library as {lib.shown_name(item)}.")
+        return item
+
     # ------------------------------------------------------------------ keeping it
     def save(self):
         """A new kept copy with the changes, made this part's page; the one before stays in the parts folder."""
         if not self.data:
             return None
         import prodparts as PP
-        name = PP.save_part(self.page.parts_dir(), self.result_bytes(), f"{self.key} layout")
+        name = PP.save_part(self.page.parts_dir(), self.result_bytes(), f"{ {'title': 'title page'}.get(self.key, self.key) } layout")
         self.page.work.setdefault("page_parts", {})[self.key] = name
         self.page.show_parts(); self.page.changed()
         try:
             from . import docparts as DP
-            DP.fill(self.page, self.key)
+            DP.fill(self.page, "cover" if self.key == "title" else self.key)
         except Exception:  # noqa: BLE001
             diag.swallowed()
         diag.activity("cover_layout_saved")
-        self.page.host.status(f"The {'cover' if self.key == 'cover' else 'back cover'} layout is saved as a new copy. Save keeps it in this standard.")
+        what = {"cover": "cover", "title": "title page"}.get(self.key, "back cover")
+        self.page.host.status(f"The {what} layout is saved as a new copy. Save keeps it in this standard.")
         self.accept()
         return name
 
@@ -249,3 +423,38 @@ class CoverLayoutDialog(QDialog):
                 diag.swallowed()
         self.status.setText(f"Sample: {job.copy}")
         return job.copy
+
+
+class BlockDialog(QDialog):
+    """3.34.0: a text block: what it shows (a field, or its own words), where it sits and how wide, and its look."""
+
+    def __init__(self, parent, std, page):
+        super().__init__(parent)
+        from PySide6.QtWidgets import QDialogButtonBox, QLineEdit, QSpinBox
+        self.setWindowTitle("Text block"); self.setMinimumWidth(460)
+        f = QFormLayout(self)
+        self.field = QComboBox(); self.field.addItem("Its own words", "")
+        for k, label, style in CL.fields(std):
+            self.field.addItem(f"{label} ({style})", k)
+        f.addRow("Shows", self.field)
+        self.text = QLineEdit(); self.text.setPlaceholderText("The words, when it shows its own"); f.addRow("Words", self.text)
+        self.sp = {}
+        m = page["margins"]
+        for k, lab, val in (("x", "From the left (in)", m["left"]), ("y", "From the top (in)", 3.0), ("w", "Width (in)", page["w"] - m["left"] - m["right"]),
+                            ("h", "Height (in)", 0.6)):
+            s = QDoubleSpinBox(); s.setRange(0, 40); s.setDecimals(2); s.setSingleStep(0.1); s.setValue(round(val, 2)); f.addRow(lab, s); self.sp[k] = s
+        self.size = QSpinBox(); self.size.setRange(0, 200); self.size.setSpecialValueText("its style's"); self.size.setValue(0); f.addRow("Size (pt)", self.size)
+        self.bold = QCheckBox("Bold"); f.addRow("", self.bold)
+        self.color = QLineEdit(); self.color.setPlaceholderText("Hex, such as 1F3864 (blank: its style's)"); f.addRow("Color", self.color)
+        self.font = QLineEdit(); self.font.setPlaceholderText("Blank: its style's"); f.addRow("Font", self.font)
+        self.align = QComboBox()
+        for k, label in (("left", "Left"), ("center", "Centered"), ("right", "Right")):
+            self.align.addItem(label, k)
+        f.addRow("Alignment", self.align)
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
+        f.addRow(bb)
+
+    def block(self):
+        return {"field": self.field.currentData() or "", "text": self.text.text().strip(), "x": self.sp["x"].value(), "y": self.sp["y"].value(),
+                "w": self.sp["w"].value(), "h": self.sp["h"].value(), "size": self.size.value() or None, "bold": self.bold.isChecked(),
+                "color": self.color.text().strip() or None, "font": self.font.text().strip() or None, "align": self.align.currentData()}

@@ -46,7 +46,7 @@ check("Template profile is the first menu: Parts and versions, Content map; it s
       sp.group_bar.tabText(0) == "Template profile" and sp.section_key() == "part_cover")
 sp.nav.setCurrentRow(sp.section_index("profile_parts")); app.processEvents()
 pp = sp.profile_parts
-check("every part listed, with what it holds", pp.t.rowCount() >= 11 and pp.t.item(0, 1).text() == "Cover page"
+check("every part listed, with what it holds", pp.t.rowCount() >= 12 and pp.t.item(0, 1).text() == "Cover page"
       and any(pp.t.item(r, 2).text() == "the profile's own values" for r in range(pp.t.rowCount())))
 r_var = next(r for r in range(pp.t.rowCount()) if pp.t.item(r, 1).text() == "Base fonts and sizes")
 item = pp.save_version("variables", name="Team base", label="11 pt body")

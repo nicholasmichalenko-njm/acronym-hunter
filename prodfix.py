@@ -357,6 +357,8 @@ def check(path, std, data=None):
             if any(True for _ in tbl.iterancestors(q("tbl"))):
                 continue
             idx += 1
+            if T.is_layout_table(tbl):                       # 3.34.0: a cover's text block is page layout
+                continue
             ttype = "fig" if T.is_figure_table(tbl) else "std"
             decs = T.classify(tbl, std, ttype, names)
             qs = T.questions(decs)

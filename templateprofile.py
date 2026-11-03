@@ -11,6 +11,7 @@ import copy, hashlib, os
 
 # (slot key, the profile part it belongs to, what it is, library kind)
 SLOTS = (("cover", "Cover", "Cover page", "cover"),
+         ("title", "Title page", "Title page", "title"),                    # 3.34.0
          ("hf:front", "Front matter", "Header and footer", "hf_design"),
          ("toc", "Front matter", "Table of contents", "toc"),
          ("hf:body", "Response", "Header and footer", "hf_design"),
@@ -65,7 +66,7 @@ def current_values(std, slot, parts_dir=""):
     """What the profile holds now for a slot, as the library keeps that kind (None when it holds nothing)."""
     std = std or {}
     k = kind_of(slot)
-    if k in ("cover", "backer"):
+    if k in ("cover", "backer", "title"):
         fn = (std.get("page_parts") or {}).get(slot)
         p = os.path.join(parts_dir or "", fn or "")
         if not fn or not os.path.isfile(p):
@@ -110,7 +111,7 @@ def save_version(std, lib, slot, name="", label="", note="", parts_dir=""):
     if v is None:
         return None, "empty"
     k = kind_of(slot)
-    if k in ("cover", "backer"):
+    if k in ("cover", "backer", "title"):
         v["file"] = lib.keep_file(v.pop("_tmp"), v["file"])
     p = pins(std).get(slot)
     fam = lib.get(p["id"]) if p and p.get("id") else None

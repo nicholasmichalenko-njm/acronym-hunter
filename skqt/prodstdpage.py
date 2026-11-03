@@ -529,6 +529,8 @@ class StandardsPage(QWidget):
             return
         self.stack.setCurrentIndex(i)
         self.fill_shown_tables()
+        if SECTIONS[i][0] in ("profile_parts", "content_map"):     # 3.34.0: what other menus changed shows here
+            self.fill_profile()
         if hasattr(self, "std_preview"):
             self.std_preview.show_section(*SECTIONS[i])
         if hasattr(self, "group_bar"):

@@ -20,6 +20,11 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.34.0": ["Covers, title pages and back covers built here: New from a blank page, a background picture (full bleed or "
+               "inside the margins) and text blocks that show the volume's fields in their own size, color and font. The "
+               "page is drawn as it will look.",
+               "Save as a cover layout keeps a page's structure apart from its look; From a saved cover layout builds a new "
+               "page from it. The title page is a page of its own after the cover, with its own shelf in the library."],
     "3.33.0": ["Production Standards > Template profile: each part of a profile (cover, headers and footers, fonts, numbering, "
                "pagination, table looks) from a version in the template library, pinned; a newer version waits until you choose "
                "Use it. Save as a new version keeps what a part holds now.",

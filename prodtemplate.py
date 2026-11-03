@@ -364,7 +364,7 @@ def make(std, folder, start_from="", word=None, when=None, progress=None, parts_
         data = base_package(std)
         start = "Stationkeeper base"
         pdir = parts_dir or std.get("_parts_dir") or ""
-        for where in ("cover", "backer"):              # 3.10.0: the profile's own cover and back cover pages
+        for where in ("cover", "title", "backer"):     # 3.10.0: the profile's own cover and back cover pages; 3.34.0: title page
             fname = (std.get("page_parts") or {}).get(where)
             if fname and pdir and os.path.isfile(os.path.join(pdir, fname)):
                 import prodparts as PP

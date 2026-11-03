@@ -448,6 +448,8 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
         extras["matrix_rows"] = SD.matrix_rows(M, entries, P, inh)       # the whole volume, for the front matter's matrix
         extras["prepaginate"] = prepaginate(M)                          # 3.32.0: each section's planned pages kept
         extras["skip_kinds"] = skip_kinds(opts)                          # 3.33.0: kinds the content map leaves out
+        if (std.get("page_parts") or {}).get("title") and os.path.isfile(os.path.join(std["_parts_dir"], std["page_parts"]["title"])):
+            main_e = [o for o in main_e if o.get("element") != "title"]      # 3.34.0: the profile's title page is in the template
         front_e = [o for o in main_e if SP.part_of(o) in ("cover", "title", "front")]   # 3.30.1: the structure's front matter
         df = None
         if any(o.get("kind") for o in front_e):          # elements in front matter take the template's fixed TOC block's place
