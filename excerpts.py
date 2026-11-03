@@ -196,8 +196,39 @@ def get(rec, xid):
 
 
 def text_of(x):
-    """The customer's words, verbatim; parts that are not next to each other are joined with an ellipsis."""
-    return " ... ".join(p.get("text", "") for p in x.get("parts", []) if p.get("text"))
+    """The customer's words, verbatim; parts that are not next to each other are joined with an ellipsis. 3.29.0: a
+    list's lead-in carried with an item reads straight into it ("The objectives are to: reduce cost.")."""
+    out, prev_intro = "", False
+    for p in x.get("parts", []):
+        t = p.get("text", "")
+        if not t:
+            continue
+        out += (t if not out else ((" " if prev_intro else " ... ") + t))
+        prev_intro = bool(p.get("intro"))
+    return out
+
+
+def lead_groups(parts, lead_of):
+    """3.29.0: the objectives a selection makes when it holds a list. Each list item is its own objective and carries
+    the list's lead-in ("The Government's objectives are to:"), either a selected sentence ending in a colon (it leads
+    the parts after it) or the lead-in the reader kept on the item (lead_of(sid) -> a part, or None). [[parts], ...]:
+    one group per item, the lead-in first and marked intro; one group with every part when nothing leads a list."""
+    groups, intro, any_lead = [], None, False
+    for p in parts:
+        t = (p.get("text") or "").strip()
+        if t.endswith(":") and p is not parts[-1]:
+            intro = dict(p, intro=True)
+            any_lead = True
+            continue
+        lead = intro or lead_of(p.get("sid", ""))
+        if lead:
+            any_lead = True
+            groups.append([dict(lead, intro=True), p])
+        else:
+            groups.append([p])
+    if not any_lead:
+        return [list(parts)] if parts else []
+    return groups
 
 
 def where_of(x):

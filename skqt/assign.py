@@ -7,7 +7,7 @@ M before), S split (where you clicked in the selected
 sentence), Ctrl+Z undo. 2.68.0: the structure is built beside the page as you assign, volume by volume. Every decision goes through assign_ops, the same rules as the tkinter edition.
 """
 import os, re
-from PySide6.QtCore import Qt, QEvent, QRectF, QThread, QTimer, Signal
+from PySide6.QtCore import Qt, QEvent, QPoint, QRectF, QThread, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QFont, QImage, QKeySequence, QPainter, QPainterPath, QPen, QPixmap, QShortcut
 from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFormLayout, QFrame, QGraphicsItem, QGridLayout,
                                QGraphicsPathItem, QGraphicsPixmapItem, QGraphicsScene, QGraphicsSimpleTextItem,
@@ -128,6 +128,7 @@ class PageView(QGraphicsView):
     span_drag = Signal(list)                      # 3.28.1: words dragged across several sentences: [(id, first, last)]
     span_grabbed = Signal(list)                   # 3.28.1: ... when the mouse is let go
     captured = Signal(QRectF)                     # 2.70.0: an area dragged in Add missed text mode (scene coordinates)
+    menu_at = Signal(str, QPoint)                 # 3.29.0: a right-click on a sentence (its id, where on the screen)
 
     def __init__(self):
         super().__init__()
@@ -196,16 +197,38 @@ class PageView(QGraphicsView):
         """The sentence box under a view position, looking past marks drawn over it (tints, the cut line)."""
         return next((i for i in self.items(pos) if isinstance(i, SentenceBox)), None)
 
-    def word_any(self, pos):
-        """3.28.1: (sentence id, word index) under a view position in any sentence; ("", -1) off the words."""
+    def _snap(self, iid, p, reach):
+        """3.29.0: (distance, word index) of the word of sentence iid on the line under scene point p, nearest within
+        reach points (on a word: 0), or None."""
+        best = None
+        for k, r in enumerate(self.words.get(iid, [])):
+            if r.top() - 3 <= p.y() <= r.bottom() + 3:
+                dx = 0.0 if r.left() <= p.x() <= r.right() else min(abs(p.x() - r.left()), abs(p.x() - r.right()))
+                if dx <= reach and (best is None or dx < best[0]):
+                    best = (dx, k)
+        return best
+
+    def word_any(self, pos, reach=0):
+        """3.28.1: (sentence id, word index) under a view position in any sentence; ("", -1) off the words. 3.29.0: inside
+        a sentence, off its words (an opening bracket, the full stop), the nearest word on that line; with reach, a
+        position just past a sentence (dragging beyond its end) takes the nearest word within reach points."""
         it = self.box_at(pos)
-        if not isinstance(it, SentenceBox):
-            return "", -1
         p = self.mapToScene(pos)
-        for k, r in enumerate(self.words.get(it.iid, [])):
-            if r.adjusted(-1, -1, 1, 1).contains(p):
-                return it.iid, k
-        return it.iid, -1
+        if isinstance(it, SentenceBox):
+            for k, r in enumerate(self.words.get(it.iid, [])):
+                if r.adjusted(-1, -1, 1, 1).contains(p):
+                    return it.iid, k
+            got = self._snap(it.iid, p, 1e9)
+            return it.iid, (got[1] if got else -1)
+        if reach:
+            best = None
+            for iid in self.boxes:
+                got = self._snap(iid, p, reach)
+                if got and (best is None or got[0] < best[0]):
+                    best = (got[0], iid, got[1])
+            if best:
+                return best[1], best[2]
+        return "", -1
 
     def span(self, a, b):
         """3.28.1: the words from a to b (each (sentence id, word index)) in reading order: [(id, first, last)]."""
@@ -226,17 +249,25 @@ class PageView(QGraphicsView):
                 out.append((iid, f, l))
         return out
 
-    def word_at(self, pos):
-        """(sentence id, word index) under a view position, inside the one selected sentence; ("", -1) otherwise."""
+    def word_at(self, pos, reach=0):
+        """(sentence id, word index) under a view position, inside the one selected sentence; ("", -1) otherwise. 3.29.0:
+        off its words, the nearest word on that line (with reach, also just past the sentence)."""
         it = self.box_at(pos)
         sel = [b for b in self.scene().selectedItems() if isinstance(b, SentenceBox)]
-        if not (isinstance(it, SentenceBox) and len(sel) == 1 and sel[0] is it):
+        if len(sel) != 1:
             return "", -1
         p = self.mapToScene(pos)
-        for k, r in enumerate(self.words.get(it.iid, [])):
-            if r.adjusted(-1, -1, 1, 1).contains(p):
-                return it.iid, k
-        return it.iid, -1
+        if it is sel[0]:
+            for k, r in enumerate(self.words.get(it.iid, [])):
+                if r.adjusted(-1, -1, 1, 1).contains(p):
+                    return it.iid, k
+            got = self._snap(it.iid, p, 1e9)
+            return it.iid, (got[1] if got else -1)
+        if reach and (it is None or not isinstance(it, SentenceBox)):
+            got = self._snap(sel[0].iid, p, reach)
+            if got:
+                return sel[0].iid, got[1]
+        return "", -1
 
     def mouseMoveEvent(self, e):
         if self._pan is not None:
@@ -245,7 +276,8 @@ class PageView(QGraphicsView):
         if (self.pan_tool or self._space) and not e.buttons():
             return                                          # the hand stays; no split marks while panning
         if self._drag is not None and e.buttons() & Qt.LeftButton:     # 2.96.0: dragging across words
-            iid, k, k2 = self.word_at(e.position().toPoint())[0], self._drag[1], self.word_at(e.position().toPoint())[1]
+            iid, k2 = self.word_at(e.position().toPoint(), reach=60)       # 3.29.0: past the end still reaches it
+            k = self._drag[1]
             if iid == self._drag[0] and k2 >= 0 and k2 != self._drag[2]:
                 self._drag = (iid, k, k2)
                 self.word_drag.emit(iid, min(k, k2), max(k, k2))
@@ -257,7 +289,7 @@ class PageView(QGraphicsView):
                     self.span_drag.emit(self.span(*self._span))
             return
         if getattr(self, "_span", None) is not None and e.buttons() & Qt.LeftButton:   # 3.28.1: words across sentences
-            oi, ok = self.word_any(e.position().toPoint())
+            oi, ok = self.word_any(e.position().toPoint(), reach=60)
             if oi and ok >= 0 and (oi, ok) != self._span[1]:
                 self._span = (self._span[0], (oi, ok))
                 self.span_drag.emit(self.span(*self._span))
@@ -371,17 +403,23 @@ class PageView(QGraphicsView):
         it = self.box_at(e.position().toPoint())
         sel = [b for b in self.scene().selectedItems() if isinstance(b, SentenceBox)]
         if isinstance(it, SentenceBox) and len(sel) == 1 and sel[0] is it and not (e.modifiers() & (Qt.ControlModifier | Qt.ShiftModifier)):
-            p = self.mapToScene(e.position().toPoint())
-            for k, r in enumerate(self.words.get(it.iid, [])):
-                if r.adjusted(-1, -1, 1, 1).contains(p):
-                    self._drag = (it.iid, k, k)       # 2.96.0: decided on release: a click (split) or a drag (words)
-                    break
+            wi, k = self.word_at(e.position().toPoint())     # 3.29.0: off a word (a bracket, the full stop): the nearest
+            if wi == it.iid and k >= 0:
+                self._drag = (it.iid, k, k)       # 2.96.0: decided on release: a click (split) or a drag (words)
             return                                  # a click inside the selected sentence keeps it selected
         if isinstance(it, SentenceBox) and e.button() == Qt.LeftButton and not (e.modifiers() & (Qt.ControlModifier | Qt.ShiftModifier)):
             oi, ok = self.word_any(e.position().toPoint())          # 3.28.1: a press on a word of any sentence may start
             if oi and ok >= 0:                                       # a drag over words (across sentences, whatever is
                 self._span = ((oi, ok), (oi, ok))                    # selected); let go without moving: a plain click
         super().mousePressEvent(e)
+
+    def contextMenuEvent(self, e):
+        """3.29.0: right-click a sentence for what can come off it."""
+        b = None if self.capturing else self.box_at(e.pos())
+        if b is None:
+            return super().contextMenuEvent(e)
+        self.menu_at.emit(b.iid, e.globalPos())
+        e.accept()
 
     def fit(self):
         r = self.scene().itemsBoundingRect().united(QRectF(0, 0, 1, 1))
@@ -548,7 +586,8 @@ class AssignPage(QWidget):
         self.bulk_own.activated.connect(lambda i: self.bulk_author(self.bulk_own.itemData(i)))
         for cb in (self.bulk_dec, self.bulk_sec, self.bulk_own):
             cb.setMinimumWidth(170); bh.addWidget(cb)
-        bh.addWidget(D.button("Clear selection", "ghost", lambda: self.view.scene().clearSelection(), "Esc"))
+        self.bulk_clear = D.button("Clear selection", "ghost", lambda: self.view.scene().clearSelection(), "Esc")
+        bh.addWidget(self.bulk_clear)
         self.bulk.setVisible(False)
         v.addWidget(self.bulk)
         self.view = PageView()
@@ -558,6 +597,7 @@ class AssignPage(QWidget):
         self.view.word_drag.connect(lambda i, a, b: self.show_grab(i, a, b, final=False))
         self.view.grabbed.connect(lambda i, a, b: self.show_grab(i, a, b, final=True))
         self.view.span_drag.connect(lambda sp: self.show_span(sp, final=False))       # 3.28.1
+        self.view.menu_at.connect(lambda iid, gp: self.sentence_menu(iid).exec(gp))   # 3.29.0
         self.view.span_grabbed.connect(lambda sp: self.show_span(sp, final=True))
         self.grab, self._grab_items, self.grab_multi = None, [], None
         self._split_items, self._hover_item = [], None
@@ -1180,9 +1220,17 @@ class AssignPage(QWidget):
                 pen = QPen(QColor("#475569")); pen.setWidthF(0.6); pen.setCosmetic(True)
                 sc.addRect(QRectF(l + MARGIN - 1, t + y0 - 1, r - l + 2, b - t + 2), pen)
         for it in ([] if self.cx is not None else rows):    # 3.19.0: text added from an area its words could not be found
-            if it["id"] in rects or not it.get("area"):      # in (a scanned page, wording fixed, header or footer band):
+            if not it.get("area"):                           # in (a scanned page, wording fixed, header or footer band):
                 continue                                    # its box is the area it was read from, on top
             ar = parse_area(it["area"])
+            if it["id"] in rects:                           # 3.29.0: found by its words, but somewhere else: the area wins
+                if not ar or not (1 <= ar[0] <= len(self.tops)):
+                    continue
+                y0 = self.tops[ar[0] - 1]
+                zone = QRectF(ar[1] + MARGIN - 2, ar[2] + y0 - 2, ar[3] - ar[1] + 4, ar[4] - ar[2] + 4)
+                if any(zone.intersects(QRectF(l, t, r - l, b - t)) for l, t, r, b in rects[it["id"]]):
+                    continue
+                rects.pop(it["id"], None); self.view.words.pop(it["id"], None)
             if ar and 1 <= ar[0] <= len(self.tops):
                 y0 = self.tops[ar[0] - 1]
                 l, t, r, b = ar[1:]
@@ -1196,6 +1244,8 @@ class AssignPage(QWidget):
             self.view.boxes[iid] = box
         self.view.order = [it["id"] for it in rows if it["id"] in self.view.boxes]     # 3.28.1: reading order for spans
         self.restyle()
+        if self.cx is None:
+            self.refresh_bulk(self.selected())                     # 3.29.0: the selection bar is there from the start
 
     # ------------------------------------------------------------ drawing decisions
     def restyle(self):
@@ -1481,6 +1531,53 @@ class AssignPage(QWidget):
         if code and code in dd:
             return dd[code]["name"], dd[code]["color"]
         return "Not decided yet", ""
+
+    def sentence_menu(self, iid):
+        """3.29.0: the right-click menu of a sentence on the page: take its decision off, take off what was captured
+        from it, deselect it, or clear the selection. A sentence outside the selection becomes the selection first."""
+        from PySide6.QtWidgets import QMenu
+        import excerpts as EX
+        m = QMenu(self)
+        if self.R is None or self.cx is not None:
+            m.addAction("Clear selection", lambda: self.view.scene().clearSelection())
+            return m
+        sel = [it["id"] for it in self.selected()]
+        if iid not in sel:
+            self.select(iid)
+            sel = [iid]
+        rows = [x for x in (self.R.item(i) for i in sel) if x]
+        decided = [it for it in rows if it.get("decision")]
+        if len(rows) == 1:
+            name = self.decision_of(rows[0])[0]
+            a = m.addAction(f"Take the decision off: {name}" if decided else "Not decided yet", self.do_undecide)
+        else:
+            a = m.addAction(f"Take the decision off {len(decided)} of {len(rows)} sentences" if decided
+                            else f"None of the {len(rows)} sentences is decided", self.do_undecide)
+        a.setEnabled(bool(decided)); a.setShortcut("Delete")
+        try:
+            rec = R_.Record(self.host.ws.root)
+            caps = [x for i in sel for x in EX.of_sentence(rec, i)]
+            names = {b["id"]: b["name"] for b in EX.bins(rec, self.host.config_dir)}
+            names.update({k: c["name"] for k, c in ((getattr(self, "items_cfg", None) or {}).get("captures") or {}).items()})
+            seen = set()
+            caps = [x for x in caps if not (x["id"] in seen or seen.add(x["id"]))]
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            caps = []
+        for x in caps[:12]:
+            txt = EX.text_of(x)
+            m.addAction(f"Take off the capture {names.get(x.get('bin'), x.get('bin', ''))}: "
+                        f"{txt[:50] + ('...' if len(txt) > 50 else '')}", lambda _=False, i=x["id"]: self.remove_excerpt(i))
+        m.addSeparator()
+        if len(rows) > 1:
+            m.addAction("Deselect this sentence", lambda: self.deselect(iid))
+        m.addAction("Clear selection", lambda: self.view.scene().clearSelection()).setShortcut("Esc")
+        return m
+
+    def deselect(self, iid):
+        b = self.view.boxes.get(iid)
+        if b is not None:
+            b.setSelected(False)
 
     def decided_box(self, it):
         """3.29.0: what was decided and captured on this sentence, at a glance, then each capture to edit."""
@@ -1881,15 +1978,39 @@ class AssignPage(QWidget):
             answer = d.values()
         b = answer.get("bin") or bin_id
         sub = ("measured" if (answer.get("value") or "").strip() else "written") if b == "format" else ""
-        xid = EX.add(rec, b, parts, value=answer.get("value", ""), note=answer.get("note", ""), sub=sub,
-                     sections=answer.get("sections", ()) if b == "objective" else ())
-        if xid and sub == "written" and answer.get("check"):
-            EX.update(rec, xid, check=answer["check"])
-        if xid:
-            diag.activity("excerpt_binned")
-            self.host.status(f"In {EX.bin_name(rec, b, self.host.config_dir)}: \"{EX.text_of(EX.get(rec, xid))[:70]}\"")
+        groups = EX.lead_groups(parts, self.lead_part) if b == "objective" else [parts]   # 3.29.0: a list's items
+        xids = []
+        for g in groups:
+            xid = EX.add(rec, b, g, value=answer.get("value", ""), note=answer.get("note", ""), sub=sub,
+                         sections=answer.get("sections", ()) if b == "objective" else ())
+            if xid and sub == "written" and answer.get("check"):
+                EX.update(rec, xid, check=answer["check"])
+            if xid:
+                xids.append(xid)
+        if xids:
+            diag.activity("excerpt_binned", n=len(xids))
+            if len(xids) > 1:
+                self.host.status(f"{len(xids)} objectives, one for each item, each with its lead-in")
+            else:
+                self.host.status(f"In {EX.bin_name(rec, b, self.host.config_dir)}: \"{EX.text_of(EX.get(rec, xids[0]))[:70]}\"")
             self.after_bins()
-        return xid
+        return xids[0] if len(xids) == 1 else (xids or None)
+
+    def lead_part(self, sid):
+        """3.29.0: the lead-in of a list item (the sentence the reader found before its list), as an excerpt part."""
+        import excerpts as EX
+        it = self.R.item(sid) if (self.R is not None and sid) else None
+        lead = (it or {}).get("lead") or ""
+        if not lead:
+            return None
+        items = self.M.items
+        k = next((n for n, x in enumerate(items) if x.get("id") == sid), None)
+        src = None
+        if k is not None:
+            src = next((x for x in reversed(items[:k]) if x.get("file") == it.get("file") and (x.get("text") or "").strip()
+                        == lead.strip()), None)
+        return EX.part_of(src or dict(it, id=(src or {}).get("id", ""), text=lead), doc=it.get("file", ""),
+                          version=it.get("version", ""))
 
     def edit_excerpt(self, xid, answer=None):
         import excerpts as EX
@@ -2249,9 +2370,15 @@ class AssignPage(QWidget):
         return self.select_all(undecided=True)
 
     def refresh_bulk(self, rows):
+        """3.29.0: the bar stays in its place whenever a document is open, so the page never jumps: two or more sentences
+        fill it in (how many, the tally, one action for all); fewer leave it waiting."""
         on = self.cx is None and self.R is not None and len(rows) > 1
-        self.bulk.setVisible(on)
+        self.bulk.setVisible(self.R is not None)
+        for wdg in (self.bulk_dec, self.bulk_sec, self.bulk_own, self.bulk_clear):
+            wdg.setEnabled(on)
         if not on:
+            self.bulk_lbl.setText("1 sentence selected" if len(rows) == 1 else "No sentences selected")
+            self.bulk_info.setText("Select two or more for one decision, section or author on all")
             return
         tally = {}
         for it in rows:
@@ -3487,8 +3614,15 @@ class AssignPage(QWidget):
         above = [(b.path().boundingRect().top(), iid) for iid, b in self.view.boxes.items()
                  if b.path().boundingRect().top() <= rect.top() + 2]
         after = max(above)[1] if above else None    # nothing above it: before this file's first sentence
+        place = ""
+        if how == "pdf":                                # 3.29.0: boxed where it was read, not on the same words elsewhere
+            try:
+                place = CAP.area_place(self.pdf, n + 1, area, text)
+            except Exception:
+                diag.swallowed()
         self.R.snap()
-        it = CAP.add_sentence(self.M, self.file, text, after_id=after, page=n + 1, how=how, at_start=after is None, area=area)
+        it = CAP.add_sentence(self.M, self.file, text, after_id=after, page=n + 1, how=how, at_start=after is None, area=area,
+                              place=place)
         if it is None:
             return None
         diag.activity("compliance_text_added_from_page", n=1)

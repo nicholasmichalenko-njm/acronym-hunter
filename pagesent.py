@@ -17,6 +17,8 @@ Nothing is matched across two different readings of the file. Rules only (No AI)
 import re, statistics
 
 WORD = re.compile(r"[A-Za-z0-9]+")
+_OPEN = "([{\"'\u201c\u2018"
+_CLOSE = ")]}\"'\u201d\u2019.,;:!?"
 _NUM = re.compile(r"^\s*(?:(?:SECTION|Section|PART|Part|ARTICLE|Article)\s+[A-Z0-9]+|[A-Z]?\d+(?:\.\d+)*\.?|[A-Z]\.\d+(?:\.\d+)*|[A-Z]\.)\s+\S")
 _REQ_WORD = re.compile(r"\b(?:shall|must|will|should|may)\b", re.I)      # a numbered line that says one is a sentence
 _SECNO = re.compile(r"^\s*(?:[A-Z]\.)?\d+(?:\.\d+)*\.?(?=\s)|^\s*[A-Z]\.\d+(?:\.\d+)*\.?(?=\s)|^\s*\(?[A-Z]\.?\d*\)(?=\s)")
@@ -359,7 +361,12 @@ def place_map(pdf, page_no, items, headings=()):
                 continue
             rs, ws = [], []
             for a, b in mine:
-                rs += rects(a, b)
+                a0, b0 = a, b                              # 3.29.0: the box takes in an opening bracket or quote before
+                while a0 > 0 and a - a0 < 3 and t[a0 - 1] in _OPEN:      # its first word and the closing punctuation
+                    a0 -= 1                                              # after its last, so a press there lands on it
+                while b0 < len(t) and b0 - b < 3 and t[b0] in _CLOSE:
+                    b0 += 1
+                rs += rects(a0, b0)
                 for m in WORD.finditer(t[a:b]):
                     r = rects(a + m.start(), a + m.end())
                     if r:

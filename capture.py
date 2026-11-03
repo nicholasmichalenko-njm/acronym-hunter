@@ -29,10 +29,12 @@ def text_in(pdf_path, page_index, rect, ocr=None):
             return "", ""
         tp = page.get_textpage()
         try:
-            got = _clean(tp.get_text_bounded(left=l, bottom=h - b, right=r, top=h - t))
+            got = _clean(_chars_text(tp, h, (l, t, r, b))[0])          # 3.29.0: every glyph the area takes in, "2)" too
+            if not got:
+                got = _clean(tp.get_text_bounded(left=l, bottom=h - b, right=r, top=h - t))
         finally:
             tp.close()
-        if len(re.sub(r"\W", "", got)) >= 2:
+        if re.sub(r"\s", "", got):
             return got, "pdf"
         scale = 3.0                                          # the picture of the area, sharp enough for OCR
         img = page.render(scale=scale, crop=(l, h - b - 0, w - r, t)).to_pil().convert("RGB")
@@ -48,16 +50,98 @@ def text_in(pdf_path, page_index, rect, ocr=None):
     return (got, "ocr") if got else ("", "")
 
 
+def _chars_in(tp, h, rect):
+    """3.29.0: the characters an area takes in (left, top, right, bottom, top-left origin): a glyph counts when its middle
+    is inside (with a point to spare) or half of it is, so a bracket or a full stop at the edge comes along.
+    [(index, (l, t, r, b))] in the page's text order."""
+    l, t, r, b = rect
+    out = []
+    for i in range(tp.count_chars()):
+        try:
+            cl, cb, cr, ct = tp.get_charbox(i)
+        except Exception:  # noqa: BLE001
+            continue
+        if cr - cl <= 0 or ct - cb <= 0:
+            continue
+        top, bot = h - ct, h - cb
+        mx, my = (cl + cr) / 2, (top + bot) / 2
+        inside = l - 1 <= mx <= r + 1 and t - 1 <= my <= b + 1
+        if not inside:
+            ow = max(0.0, min(cr, r) - max(cl, l)); oh = max(0.0, min(bot, b) - max(top, t))
+            inside = ow * oh >= 0.5 * (cr - cl) * (ct - cb)
+        if inside:
+            out.append((i, (cl, top, cr, bot)))
+    return out
+
+
+def _chars_text(tp, h, rect):
+    """3.29.0: (the text of the characters an area takes in, [the page's character index for each character of that
+    text, or None for a space put in between]). Characters apart in the text (a space the PDF only implies, a line end)
+    get one space."""
+    chars = _chars_in(tp, h, rect)
+    if not chars:
+        return "", []
+    text, idx = "", []
+    prev = None
+    for i, _box in chars:
+        if prev is not None and i != prev + 1:
+            text += " "; idx.append(None)
+        ch = tp.get_text_range(i, 1)
+        text += ch; idx += [i] * len(ch)
+        prev = i
+    return text.replace("\ufffe", "-").replace("\r", " ").replace("\n", " "), idx
+
+
+def area_place(pdf_path, page_no, rect, text):
+    """3.29.0: the place (as Review keeps it, "page:a-b;...") of the words an area takes in, when they are exactly the
+    words of text; "" otherwise (OCR, typed or changed wording, a header or footer). A sentence added from an area then
+    sits where it was read, never on the same words somewhere else."""
+    import pypdfium2 as pdfium
+    import pagesent as PS
+    doc = pdfium.PdfDocument(pdf_path)
+    try:
+        page = doc[page_no - 1]
+        _w, h = page.get_size()
+        tp = page.get_textpage()
+        try:
+            got, idx = _chars_text(tp, h, rect)
+        finally:
+            tp.close()
+    finally:
+        doc.close()
+    spans = []
+    for m in PS.WORD.finditer(got):
+        ii = [x for x in idx[m.start():m.end()] if x is not None]
+        if ii:
+            spans.append((min(ii), max(ii) + 1, m.group(0).lower()))
+    want = [w.lower() for w in PS.WORD.findall(text or "")]
+    if not spans or [w for _a, _b, w in spans] != want:
+        return ""
+    stream = PS.word_stream(pdf_path)
+    at = {(pg, a): k for k, (_w, pg, a, _b) in enumerate(stream)}
+    runs = []
+    for a, b, _w in spans:
+        k = at.get((page_no, a))
+        if k is None:
+            return ""
+        if runs and runs[-1][3] == k - 1:
+            runs[-1][2], runs[-1][3] = b, k
+        else:
+            runs.append([page_no, a, b, k])
+    return PS.place_text([r[:3] for r in runs])
+
+
 def _ocr_lines(img):
     import numpy as np
     import app_gui
     return app_gui._ocr_lines(np.array(img))
 
 
-def add_sentence(M, file_name, text, after_id=None, page=None, how="", at_start=False, area=None):
+def add_sentence(M, file_name, text, after_id=None, page=None, how="", at_start=False, area=None, place=""):
     """Add text to the review as a sentence of file_name, right after the sentence after_id (else at the end of that
     file's sentences), in the same RFP section. area (3.19.0): (left, top, right, bottom) in page points of the area it
-    was read from, kept so the page can box it even when its words are not in the PDF's text. Returns the new row."""
+    was read from, kept so the page can box it even when its words are not in the PDF's text. place (3.29.0): where its
+    words are on the page (area_place), so it is boxed there and not on the same words elsewhere. Returns the new row."""
     text = " ".join((text or "").split())
     if not text:
         return None
@@ -71,6 +155,8 @@ def add_sentence(M, file_name, text, after_id=None, page=None, how="", at_start=
                "status": "", "notes": "", "response_page": "", "links": "", "learned": "", "context_for": "",
                "new": "Added from the page", "id": "",
                "area": (f"{page}:" + ",".join(f"{v:.1f}" for v in area)) if (area and page) else ""})
+    if place:
+        it["place"] = place
     idx = [i for i, x in enumerate(M.items) if x.get("file") == file_name]
     at = next((i + 1 for i, x in enumerate(M.items) if x.get("id") == after_id), None) if after_id else None
     if at is None:

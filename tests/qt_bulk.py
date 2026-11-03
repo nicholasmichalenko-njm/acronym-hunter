@@ -47,13 +47,16 @@ w.read_page.read(PDFS, os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))
 check("the matrix starts", wait(lambda: w.review is not None and w.stack.currentWidget() is w.assign_page))
 pg = w.assign_page; app.processEvents()
 pg.files.setCurrentText("Section_L_print.pdf"); app.processEvents()
-check("one sentence selected: no bar", not pg.bulk.isVisibleTo(w))
+check("3.29.0: the bar stays in place with nothing to do yet (the page does not jump)", pg.bulk.isVisibleTo(w)
+      and not pg.bulk_dec.isEnabled() and "two or more" in pg.bulk_info.text(), pg.bulk_info.text())
+h0 = pg.bulk.height()
 n = pg.select_undecided()
 rows = pg.selected()
 check("Select undecided selects every undecided sentence on the page", n == len(rows) and n >= 10
       and all(not it.get("decision") for it in rows), n)
-check("... and the bar shows how many", pg.bulk.isVisibleTo(w) and pg.bulk_lbl.text() == f"{n} sentences selected"
-      and "undecided" in pg.bulk_info.text(), pg.bulk_info.text())
+app.processEvents()
+check("... and the bar fills in how many, at the same height", pg.bulk.isVisibleTo(w) and pg.bulk_lbl.text() == f"{n} sentences selected"
+      and "undecided" in pg.bulk_info.text() and pg.bulk_dec.isEnabled() and pg.bulk.height() == h0, (pg.bulk_info.text(), h0, pg.bulk.height()))
 first = rows[:4]
 pg._guard = True; pg.view.scene().clearSelection()
 for it in first:
@@ -81,7 +84,8 @@ check("... and (the section's lead) clears the author", all(not w.review.item(it
 k = pg.select_all()
 check("Ctrl+A selects every sentence on the page", k == len(pg.selected()) and k >= n, k)
 pg.view.scene().clearSelection(); app.processEvents()
-check("Clear selection takes the bar away", not pg.bulk.isVisibleTo(w))
+check("Clear selection leaves the bar in place, waiting", pg.bulk.isVisibleTo(w) and not pg.bulk_dec.isEnabled()
+      and pg.bulk_lbl.text() == "No sentences selected", pg.bulk_lbl.text())
 w.close()
 t = sum(checks)
 print(f"QT BULK {'PASS' if t == len(checks) else 'FAIL'} ({t}/{len(checks)})")
