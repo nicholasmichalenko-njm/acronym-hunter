@@ -131,6 +131,20 @@ except RuntimeError:
     hook(*sys.exc_info())
 check("the crash screen: the work is saved first, then you keep working", not w2.review.M.pending
       and C.Matrix(M.path).load().items[1].get("decision") == "Keep")
+# 3.30.0: Save a report keeps exactly what happened
+import zipfile, json as _json
+w2.safety.crash_answer = "report"; w2.safety._last_crash = 0
+w2.safety.report_path = os.path.join(tmp, "problem_report.zip")
+try:
+    {}["Kestrel secret words"]
+except KeyError:
+    hook(*sys.exc_info())
+zp = w2.safety.report_path
+pj = _json.loads(zipfile.ZipFile(zp).read("problem.json")) if os.path.isfile(zp) else {}
+check("Save a report: the support file holds the problem, where it happened and the page, and you keep working",
+      pj.get("type") == "KeyError" and any(x.startswith("qt_safety.py:") for x in pj.get("where", [])) and pj.get("version") == A.APP_VERSION
+      and "about.json" in zipfile.ZipFile(zp).namelist(), pj)
+check("... and no message text (it can hold document words)", "Kestrel secret words" not in zipfile.ZipFile(zp).read("problem.json").decode())
 src = open(os.path.join(A.BASE_DIR, "skqt_main.py"), encoding="utf-8").read()
 check("the program installs the crash screen", "install_crash_screen()" in src)
 w2.close()

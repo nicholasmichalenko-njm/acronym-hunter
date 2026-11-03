@@ -57,7 +57,7 @@ def support_blocked():
     return ""
 
 
-def make_support_file(host, path=None):
+def make_support_file(host, path=None, extra=None):
     import app_gui
     import datetime
     why = support_blocked()
@@ -82,7 +82,7 @@ def make_support_file(host, path=None):
         qtv = ""
     res = SF.make(path, app_gui.APP_VERSION, app_gui.LOG_DIR, settings=app_gui.load_settings() or {}, program_check=pc,
                   health=getattr(host.safety, "issues", []) if hasattr(host, "safety") else [], data_why=getattr(app_gui, "DATA_WHY", ""),
-                  qt_version=qtv)
+                  qt_version=qtv, extra=extra)
     diag.activity("support_file_made", files=len(res["files"]))
     host.toast(f"Support file saved: {os.path.basename(path)}")
     return res

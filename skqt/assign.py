@@ -1914,10 +1914,12 @@ class AssignPage(QWidget):
         except Exception:  # noqa: BLE001
             return ""
 
-    def _clear_lay(self, lay):
+    def _clear_lay(self, lay, keep=()):
+        """Take every widget out of a layout and delete it, except the ones in keep (kept for the next build: 3.30.0, a
+        capture made a second time hit More... after it was deleted)."""
         while lay.count():
             w = lay.takeAt(0).widget()
-            if w is not None:
+            if w is not None and w not in keep:
                 w.setParent(None); w.deleteLater()
 
     def build_decide(self):
@@ -1953,7 +1955,7 @@ class AssignPage(QWidget):
     def build_captures(self):
         import reviewitems as RI
         cfg = getattr(self, "items_cfg", None) or RI.load(self.host.config_dir)
-        self._clear_lay(self.cap_lay)
+        self._clear_lay(self.cap_lay, keep=(self.more_btn,))
         self.cap_keys, self.more_actions = {}, {}
         for key in cfg["order"]:
             c = cfg["captures"][key]

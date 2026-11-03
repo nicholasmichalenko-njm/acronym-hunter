@@ -26,7 +26,8 @@ WHATS_NEW = {
                "section in order (Response Setup lives here now); what is not placed yet.",
                "Settings > Response elements: Table of Contents, the lists of figures, tables and appendices, Acronyms and "
                "Abbreviations, Units of Measurement, the Appendices section and your own, with kits by effort type; Add "
-               "elements puts them into a volume in one tick list."],
+               "elements puts them into a volume in one tick list.",
+               "Fixed: a capture made after another one opened the problem window. The problem window has Save a report..."],
     "3.29.1": ["Review: every capture can sit in a section of the structure: Into the target section, and one click to move it "
                "(the card, a right-click, the Captured list). Captures follow their section when it is renamed or renumbered.",
                "The menus across the top stand out: a blue band, the page you are on solid blue."],
@@ -517,8 +518,9 @@ def _scrub_line(line):
     return json.dumps(out, ensure_ascii=True)
 
 
-def make(out_path, app_version, log_dir, settings=None, program_check=None, health=None, data_why="", qt_version=""):
-    """Write the support file. Returns {"path", "files"} (the names inside)."""
+def make(out_path, app_version, log_dir, settings=None, program_check=None, health=None, data_why="", qt_version="", extra=None):
+    """Write the support file. Returns {"path", "files"} (the names inside). extra (3.30.0): {name: dict} more files of
+    content-free values (problem.json: the error at the moment it happened)."""
     info = {"app_version": app_version, "python": platform.python_version(), "qt": qt_version or "",
             "windows": platform.release() + " " + platform.version() if sys.platform == "win32" else platform.platform(terse=True),
             "made": datetime.datetime.now().isoformat(timespec="minutes"), "data_location": data_why or "",
@@ -541,6 +543,11 @@ def make(out_path, app_version, log_dir, settings=None, program_check=None, heal
                     lines = [x for x in (_scrub_line(l) for l in f.readlines()[-5000:]) if x]
                 z.writestr("logs/" + name, "\n".join(lines) + "\n")
                 files.append("logs/" + name)
+        for name, val in (extra or {}).items():       # 3.30.0: every value cleaned the same way as the logs
+            clean = {k: (_clean(v) if not isinstance(v, list) else [x for x in (_clean(i) for i in v) if x is not None])
+                     for k, v in (val or {}).items()}
+            z.writestr(name, json.dumps(clean, indent=1))
+            files.append(name)
         z.writestr("READ ME.txt", "Stationkeeper support file\r\n\r\nVersions, content-free logs and checks, for whoever maintains "
                                   "Stationkeeper. It holds no document text, terms, names, file names or folder paths.\r\n")
         files.append("READ ME.txt")

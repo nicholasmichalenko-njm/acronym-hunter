@@ -134,6 +134,22 @@ check("... and nothing that is not about the sentence (no general help)", "To sp
 y = M.items[6]
 pg.select(y["id"]); app.processEvents()
 check("an undecided sentence says so", "Not decided yet" in " ".join(pg.decided_lines))
+# 3.30.0: a capture made twice in a row (More... was deleted after the first one rebuilt the bar)
+import shiboken6
+from PySide6.QtCore import QCoreApplication, QEvent
+sel = pg.selected()
+x1 = pg.do_bin("keypoint", answer={"bin": "keypoint", "value": "", "note": "one", "sections": []})
+app.processEvents(); QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete); app.processEvents()
+ok_more = shiboken6.isValid(pg.more_btn)
+err = None
+try:
+    x2 = pg.do_bin("keypoint", answer={"bin": "keypoint", "value": "", "note": "two", "sections": []})
+    app.processEvents(); QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete); app.processEvents()
+    x3 = pg.do_bin("keypoint", answer={"bin": "keypoint", "value": "", "note": "three", "sections": []})
+except RuntimeError as e:
+    err = str(e)
+check("3.30.0: captures made one after another: More... stays, no problem window", ok_more and err is None
+      and shiboken6.isValid(pg.more_btn) and pg.cap_keys.get("more") is pg.more_btn, err)
 w.close()
 n = sum(checks)
 print(f"QT REVIEW ITEMS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

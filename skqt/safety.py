@@ -567,12 +567,40 @@ class Safety:
                 prev(t, e, tb)                    # the content-free log entry (diag) comes first
             except Exception:
                 pass
-            self.crashed(t)
+            self.crashed(t, tb)
         sys.excepthook = hook
         return hook
 
-    def crashed(self, exc_type=None):
-        """Save first, then say the work is safe. Returns what the person chose ('keep' or 'restart')."""
+    def moment(self, exc_type=None, tb=None):
+        """3.30.0: exactly what happened, content-free: when, the version, the kind of error, where in the program (file,
+        line and function, no values), the page that was open and whether an effort was. No message text: it can hold
+        document words."""
+        import traceback
+        h = self.host
+        where = []
+        try:
+            where = [f"{os.path.basename(f.filename)}:{f.lineno}:{f.name}" for f in traceback.extract_tb(tb)][-12:] if tb else []
+        except Exception:  # noqa: BLE001
+            where = []
+        page = ""
+        try:
+            cur = h.stack.currentWidget()
+            page = next((k for k, pg in h.pages.items() if pg is cur), "")
+        except Exception:  # noqa: BLE001
+            pass
+        import app_gui
+        return {"time": time.strftime("%Y-%m-%dT%H:%M:%S"), "version": app_gui.APP_VERSION,
+                "type": getattr(exc_type, "__name__", str(exc_type or "")), "where": where, "page": page,
+                "effort_open": getattr(h, "ws", None) is not None}
+
+    def save_report(self, moment, path=None):
+        """3.30.0: the support file with the problem in it (problem.json), saved where the person says."""
+        from .helpcenter import make_support_file
+        return make_support_file(self.host, path, extra={"problem.json": moment})
+
+    def crashed(self, exc_type=None, tb=None):
+        """Save first, then say the work is safe. Returns what the person chose ('keep', 'report' or 'restart'); a
+        report saves the support file with exactly what happened, then work goes on."""
         now = time.time()
         if now - self._last_crash < 5:            # one message for a burst of errors
             return "keep"
@@ -588,6 +616,7 @@ class Safety:
             diag.activity("qt_crash_screen")
         except Exception:
             pass
+        self.last_moment = self.moment(exc_type, tb)
         ans = self.crash_answer
         if ans is None:
             box = QMessageBox(h); box.setWindowTitle("Stationkeeper hit a problem")
@@ -596,9 +625,20 @@ class Safety:
                         + "Something unexpected went wrong in Stationkeeper (it is recorded in the logs, without any "
                           "document content). You can keep working. If it happens again, restart Stationkeeper: it "
                           "opens where you were.")
-            keep = box.addButton("Keep working", QMessageBox.AcceptRole); box.addButton("Restart Stationkeeper", QMessageBox.DestructiveRole)
+            box.setInformativeText("Save a report keeps exactly what happened (where in the program, the page, the "
+                                   "version and the logs, no document content) in a file to send to whoever maintains "
+                                   "Stationkeeper.")
+            keep = box.addButton("Keep working", QMessageBox.AcceptRole)
+            rep = box.addButton("Save a report...", QMessageBox.ActionRole)          # 3.30.0
+            box.addButton("Restart Stationkeeper", QMessageBox.DestructiveRole)
             box.exec()
-            ans = "keep" if box.clickedButton() is keep else "restart"
+            ans = "keep" if box.clickedButton() is keep else "report" if box.clickedButton() is rep else "restart"
+        if ans == "report":
+            try:
+                self.save_report(self.last_moment, getattr(self, "report_path", None))
+            except Exception:
+                diag.swallowed()
+            ans = "keep"
         if ans == "restart":
             try:
                 h.close()

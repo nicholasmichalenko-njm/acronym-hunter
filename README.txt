@@ -21,6 +21,9 @@ THE STRUCTURE BUILDER (3.30.0)
     starts with.
   - Edit as text / Start from keeps the structure's text and starting from the RFP or a Word outline. Make templates,
     Export the setup and Export changes only are at the top. Review's structure panel has Open in Structure Builder.
+  - Fixed: a capture made after another one opened the problem window (3.29.0, 3.29.1).
+  - The problem window has Save a report...: the support file with exactly what happened (where in the program, the
+    page, the version), no document content.
   - The Response Setup documents carry all nine heading levels (deeper ones as bold run-in paragraphs), elements, Word
     sections and the library items placed in each section.
 
