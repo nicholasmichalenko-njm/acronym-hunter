@@ -15,6 +15,13 @@ REVIEW'S DECISIONS AND CAPTURES, THE TEAM'S WAY (3.29.0)
   - Review's sentence card shows, first, what was decided and captured on the sentence (the decision as the team names
     and colors it, its sections or the requirement it supports, its topics, every capture, and whether it came from a
     suggestion), then each capture to edit. General help is gone from the card: it is about the sentence only.
+  - Add missed text takes in every glyph of the box ("2)" keeps its bracket), adds it on the first try, and boxes it
+    where it was read, not on the same words elsewhere. A sentence's box takes in an opening bracket and its closing
+    punctuation; a press off a word, or a drag past a sentence's end, reaches its first or last word, and the picked
+    words keep "(" and the full stop.
+  - The selection bar stays above the page (the page no longer jumps); two or more selected fill it in.
+  - Right-click a sentence: take its decision off, take off a capture made from it, deselect it, or clear the selection.
+  - A list's items captured as Objective are one objective each, each starting with the list's lead-in.
 
 REVIEW: GRAB WORDS ACROSS SENTENCES, VOLUME NAMES AND NUMBERING (3.28.1)
   - Review: press on a word and drag over words, across as many sentences as you like, whatever was selected before.
