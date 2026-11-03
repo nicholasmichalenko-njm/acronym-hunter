@@ -22,7 +22,7 @@ SECTIONS = [
     ("variables", "Format variables"), ("fonts", "Font rules"), ("styles", "Styles and heading numbering"),
     ("styledefs", "Style library"),
     ("rows", "Table rows"), ("ttypes", "Table types"), ("rules", "Row rules"), ("captions", "Captions and numbering"),
-    ("pages", "Pages, cover and back cover"), ("setups", "Page setups"), ("hf", "Headers and footers"),
+    ("pages", "Pages, cover and back cover"), ("quickparts", "Quick Parts"), ("setups", "Page setups"), ("hf", "Headers and footers"),
     ("toc", "Table of contents and lists"), ("lists", "Bulleted and numbered lists"), ("terms", "Terms"),
     ("office", "Excel and PowerPoint"), ("graphics", "Graphics"), ("checks", "Check options"),
 ]
@@ -449,7 +449,7 @@ class StandardsPage(QWidget):
 
     SECTION_KEYS = {"variables": ("variables",), "fonts": ("fonts",), "styles": ("styles", "heading_numbering"),
                     "styledefs": ("style_defs",), "rows": ("row_types",), "ttypes": ("table_types", "table_styles"),
-                    "rules": ("row_rules",), "captions": ("captions",), "pages": ("pagination", "page_parts"),
+                    "rules": ("row_rules",), "captions": ("captions",), "pages": ("pagination", "page_parts"), "quickparts": ("quick_parts",),
                     "setups": ("page_setups",), "hf": ("hf_layouts",), "toc": ("toc",), "lists": ("lists", "list_numbering"),
                     "terms": ("terms",), "office": ("excel", "powerpoint"), "graphics": ("graphics",), "checks": ("checks",)}
     LAYER_BELOW = {"team": "the built-in defaults", "type": "the team standard", "etype": "the team standard",
@@ -758,6 +758,75 @@ class StandardsPage(QWidget):
                 ("chapter_level", "Chapter level", "int"), ("separator", "Separator", ("enum", SEPS)),
                 ("chapter_style", "Chapter heading", "text"), ("linked", "Same header and footer as before", "bool")]
         self.table_editor(v, "pages", ("pagination", "parts"), cols, adapter="pages")
+
+    def build_quickparts(self, v):
+        """3.22.0: the Quick Parts the template carries: picked from a template or document, kept with this PC's standards
+        (never in the program folder), put into the one Quick Parts gallery in your categories by Make a template."""
+        f, _c = self.form(v, "Quick Parts", "The building blocks every template made from this standard carries: covers, title "
+                          "pages, headers, footers, page numbers, tables, captions, callouts. Add them from any template or "
+                          "Word document (.dotx, .dotm, .docx; macros never run). Word lists Quick Parts by category, then name, "
+                          "so numbered categories set the order: 01 Covers, 02 Title pages, 03 Headers.")
+        self.row(f, "Put every Quick Part in the Quick Parts gallery (not Word's Covers, Headers or Footers menus)", QCheckBox(),
+                 ("quick_parts", "one_gallery"), "bool")
+        row = QHBoxLayout()
+        row.addWidget(D.button("Add from a template or document...", "primary", lambda: self.add_quick_parts(),
+                               "Pick Quick Parts from a .dotx, .dotm or .docx: a copy of the file is kept with this PC's standards"))
+        row.addStretch(1)
+        v.addLayout(row)
+        self.table_editor(v, "quickparts", ("quick_parts", "entries"),
+                          [("name", "Name", "text"), ("category", "Category", "text"), ("gallery", "Gallery in the file", "text"),
+                           ("description", "Description", "text"), ("source", "From (kept copy)", "text")])
+        self.qp_note = D.label("", "muted"); v.addWidget(self.qp_note)
+
+    def add_quick_parts(self, path=None, picks=None):
+        """Read a file's Quick Parts (read-only), tick the ones to carry, keep a copy of the file with this PC's standards,
+        and list them here. picks (tests): the names to take. Returns how many were added."""
+        import prodquickparts as QP
+        if path is None:
+            path, _ = QFileDialog.getOpenFileName(self, "Quick Parts from", "", "Word templates and documents (*.dotx *.dotm *.docx)")
+            if not path:
+                return 0
+        try:
+            found = QP.read(path)
+        except Exception as e:                       # noqa: BLE001  a file Word could not open either
+            diag.swallowed()
+            self.qp_note.setText(f"That file could not be read ({type(e).__name__}).")
+            return 0
+        if not found:
+            self.qp_note.setText("That file has no Quick Parts. Learn from a file... takes its styles, tables and pages.")
+            return 0
+        if picks is None:
+            from PySide6.QtWidgets import QDialog, QDialogButtonBox, QListWidgetItem
+            d = QDialog(self); d.setWindowTitle("Quick Parts to carry"); d.resize(720, 520); dv = QVBoxLayout(d)
+            dv.addWidget(D.label(f"{len(found)} Quick Part(s) in {os.path.basename(path)}. Tick the ones every template from this "
+                                 "standard should carry.", "muted"))
+            lst = QListWidget(); dv.addWidget(lst, 1)
+            for e in found:
+                it = QListWidgetItem(f"{e['category'] or '(no category)'}  /  {e['name']}   [{QP.gallery_name(e['gallery'])}]"
+                                     + (f"   {e['pictures']} picture(s)" if e["pictures"] else ""))
+                it.setToolTip((e.get("text") or "")[:600]); it.setData(Qt.UserRole, e["name"])
+                it.setFlags(it.flags() | Qt.ItemIsUserCheckable); it.setCheckState(Qt.Checked); lst.addItem(it)
+            bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
+            dv.addWidget(bb)
+            if d.exec() != QDialog.Accepted:
+                return 0
+            picks = [lst.item(i).data(Qt.UserRole) for i in range(lst.count()) if lst.item(i).checkState() == Qt.Checked]
+        kept = QP.keep_source(self.host.config_dir, path)
+        qp = dict(self.work.get("quick_parts") or {"one_gallery": True, "entries": []})
+        entries = list(qp.get("entries") or [])
+        have = {(x.get("name"), x.get("category")) for x in entries}
+        n = 0
+        for e in found:
+            if e["name"] in picks and (e["name"], e["category"]) not in have:
+                entries.append({"name": e["name"], "category": e["category"] or "", "gallery": e["gallery"] or "",
+                                "description": e.get("description") or "", "source": kept})
+                n += 1
+        qp["entries"] = entries
+        self.work["quick_parts"] = qp
+        self.changed(); self.load_tables()
+        self.qp_note.setText(f"{n} Quick Part(s) added from {os.path.basename(path)}. Make a template puts them in.")
+        diag.activity("std_quick_parts_added", n=n)
+        return n
 
     def parts_dir(self):
         import prodparts as PP

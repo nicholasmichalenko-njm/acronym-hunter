@@ -316,6 +316,14 @@ def make(std, folder, start_from="", word=None, when=None, progress=None, parts_
         say(fx["label"])
         rec = PCY.run_step(job, fx["label"], fx["op"], fx["allowed"], fx["args"](std, plan))
         rec["key"] = fx["key"]
+    qp = std.get("quick_parts") or {}
+    if qp.get("entries"):                            # 3.22.0: the standard's Quick Parts, in one gallery under its categories
+        import prodquickparts as QP
+        say("Putting in the Quick Parts")
+        rec = PCY.run_step(job, "Put in the standard's Quick Parts", QP.op_quick_parts, QP.QP_ALLOWED,
+                           {"entries": qp["entries"], "parts_dir": parts_dir or std.get("_parts_dir") or "",
+                            "one_gallery": qp.get("one_gallery", True)})
+        rec["key"] = "quick_parts"
     if word is not None:
         say("Updating fields in Word")
         try:

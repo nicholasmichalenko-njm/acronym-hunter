@@ -36,6 +36,7 @@ def _company_default():
     c["style_defs"] = {}               # 3.7.0: the style library, {style: {prop: value}}; blank = not checked
     c["table_styles"] = {}             # 3.10.0: Word table styles, {name: {"xml", "based_on"}}
     c["page_parts"] = {}               # 3.10.0: {"cover": file, "backer": file} in production_parts
+    c["quick_parts"] = {"one_gallery": True, "entries": []}    # 3.22.0: the Quick Parts a template carries, from files in production_parts
     c["list_numbering"] = {"on": False, "lists": [   # 3.9.0: what each list style shows, level by level (inches)
         {"name": "Bullets", "levels": [
             {"style": "List Bullet", "fmt": "bullet", "text": "\u2022", "font": "", "left": 0.25, "hanging": 0.25},
