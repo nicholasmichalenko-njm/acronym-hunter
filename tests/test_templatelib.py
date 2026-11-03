@@ -96,5 +96,25 @@ man = TD.export(cfg, os.path.join(tmp, "share", "d" + TD.EXT), ["library"])
 check("the Our data file carries the library (and leaves a collection in progress out)", "library" in man["parts"]
       and "config/template_library/index.json" in man["files"] and not any("_collecting" in f for f in man["files"]))
 
+# ---------------------------------------------------------------- themes (.thmx and from templates)
+import zipfile
+xml = zipfile.ZipFile(MASTER).read("word/theme/theme1.xml").decode().replace('val="4F81BD"', 'val="1F5FAD"').replace(
+    '<a:majorFont>\n        <a:latin typeface="Calibri"/>', '<a:majorFont>\n        <a:latin typeface="Arial"/>').replace('name="Office"', 'name="Sierra"', 1)
+thmx = os.path.join(tmp, "Sierra.thmx")
+with zipfile.ZipFile(thmx, "w") as z:
+    z.writestr("theme/theme/theme1.xml", xml)
+libt = TL.Library(os.path.join(tmp, "cfgt"))
+ct, et = TL.collect(thmx, std, libt)
+th = ct[0].items[0] if ct else {}
+check("a .thmx gives its 12 theme colors and its heading and body fonts", not et and th.get("kind") == "theme"
+      and len(th["values"]["colors"]) == 12 and th["values"]["colors"]["accent1"] == "1F5FAD" and th["values"]["major"] == "Arial", th.get("summary"))
+check("a template's theme is collected too", any(c.key == "theme" for c in cards))
+TL.save_collected(libt, thmx, ct)
+wk = {}
+TL.use_in_standard(libt, libt.shelf("theme")[0]["id"], wk)
+tjt = PT.make(PRL.merge(std, wk), os.path.join(tmp, "outt"))
+got_t = TL.theme_of_file(tjt.copy)
+check("the template carries the theme", got_t and got_t["colors"]["accent1"] == "1F5FAD" and got_t["major"] == "Arial" and tjt.check.count() == 0, got_t and got_t["colors"])
+
 print(f"TEMPLATE LIBRARY {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

@@ -1,6 +1,30 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+OUR DATA, THE TEMPLATE LIBRARY AND QUICK PARTS (3.22.0)
+  - Settings > Our data: Export our data... writes one Stationkeeper Data file (.skdata) with the team's foundational
+    data, used the same way in every effort: the master acronym list, custom dictionaries, banned and avoided phrases,
+    Production Standards with their covers, back covers and Quick Parts, the template library, and the team's lists
+    (authors, bins, topics, markings, stages, document types, folders, logos and the rest). Import our data... shows
+    what each part adds, brings in the parts you tick (add-only: your own entries and edits stay), and keeps a copy of
+    what it touches; Undo the last import puts it back. A newer Stationkeeper always reads an older file.
+  - It holds nothing about one effort (no Wall of Truth, matrix or captures): an effort travels as an effort package.
+    It is the team's data, never for GitHub: Stationkeeper refuses to write it into a folder git tracks.
+  - Production Standards > Collect into the library...: pick any template (.dotx, .dotm read as XML only), Word
+    document (.docx) or theme (.thmx). Each card shows what it carries: styles (hidden text styles on their own card),
+    page setups, headers and footers, heading and list numbering, Word table styles, table looks, the TOC, covers and
+    back covers, Quick Parts, fonts (with whether this PC has them) and the theme's colors and fonts. Keep, rename or
+    skip each item and tag the lot by use case; each card is saved as you go. Open a sample in Word shows the items in
+    a small template first. The same values already in the library match; the same name with other values becomes a
+    variant, tagged.
+  - Production Standards > Template library...: shelves for every kind of item, filtered by use case. New style...
+    (hidden text ones too), Edit..., Rename..., Use cases..., Take out, and Use in this standard.
+  - Production Standards > Quick Parts: Add from a template or document... lists the Quick Parts every template from
+    the standard carries. Make a template puts them all in Word's Quick Parts gallery under your numbered categories
+    (01 Covers, 02 Title pages...). Each part's styles take the template's definitions; a style the template lacks is
+    added and named. Landscape and tabloid pages keep their own section and headers.
+  - Style library: Hidden text, so reference styles (RFP text, PM commentary) disappear with Show/Hide off.
+
 EXCERPTS AND BINS (3.21.0)
   - Every capture keeps the customer's exact words and where they sit: document, version, page, paragraph, the RFP's
     numbering and the heading. Several sentences that are not next to each other make one excerpt, each part keeping

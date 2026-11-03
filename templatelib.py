@@ -19,7 +19,12 @@ import copy, datetime, getpass, hashlib, json, os, re, shutil, uuid
 FOLDER = "template_library"
 SHELVES = (("style", "Styles"), ("page_setup", "Page setups"), ("hf", "Headers and footers"), ("heading_numbering", "Heading numbering"),
            ("list_numbering", "List numbering"), ("table_style", "Word table styles"), ("table_look", "Table looks"),
-           ("toc", "Table of contents"), ("cover", "Covers"), ("backer", "Back covers"), ("quickpart", "Quick Parts"), ("font", "Fonts"))
+           ("toc", "Table of contents"), ("cover", "Covers"), ("backer", "Back covers"), ("quickpart", "Quick Parts"), ("font", "Fonts"),
+           ("theme", "Themes (colors and fonts)"))
+THEME_SLOTS = ("dk1", "lt1", "dk2", "lt2", "accent1", "accent2", "accent3", "accent4", "accent5", "accent6", "hlink", "folHlink")
+THEME_NAMES = {"dk1": "Text dark 1", "lt1": "Background light 1", "dk2": "Text dark 2", "lt2": "Background light 2",
+               "accent1": "Accent 1", "accent2": "Accent 2", "accent3": "Accent 3", "accent4": "Accent 4", "accent5": "Accent 5",
+               "accent6": "Accent 6", "hlink": "Hyperlink", "folHlink": "Followed hyperlink"}
 SHELF = dict(SHELVES)
 USES = ("RFP", "Page-limited RFP", "RFI", "Program document", "Customer document")
 
@@ -117,6 +122,22 @@ class Library:
         self.save()
         return item, state
 
+    def update(self, iid, values):
+        """New values for an item (its edit); the item keeps its name, tags and id."""
+        i = self.get(iid)
+        if i is None or not isinstance(values, dict):
+            return False
+        p = os.path.join(self.root, "items", iid + ".json")
+        with open(p + ".tmp", "w", encoding="utf-8") as f:
+            json.dump(values, f, indent=1, ensure_ascii=False)
+        os.replace(p + ".tmp", p)
+        i["hash"] = _hash(values)
+        i["edited"] = _now()
+        if i["kind"] == "style":
+            i["summary"] = _summary_style(values)
+        self.save()
+        return True
+
     def rename(self, iid, name):
         i = self.get(iid)
         if i is None or not " ".join(str(name).split()):
@@ -195,6 +216,40 @@ def fonts_of(style_defs, path=None, data=None):
     return sorted(f for f in out if f and len(f) < 64)
 
 
+def read_theme(xml):
+    """{"name", "colors": {slot: hex}, "major", "minor", "xml"} from a theme part (theme1.xml), or None."""
+    if not xml or "clrScheme" not in xml:
+        return None
+    colors = {}
+    for slot in THEME_SLOTS:
+        m = re.search(rf"<a:{slot}>\s*<a:(?:srgbClr val|sysClr val=\"[^\"]*\" lastClr)=\"([0-9A-Fa-f]{{6}})\"", xml)
+        if m:
+            colors[slot] = m.group(1).upper()
+    nm = re.search(r'<a:theme [^>]*name="([^"]*)"', xml)
+    maj = re.search(r"<a:majorFont>\s*<a:latin typeface=\"([^\"]*)\"", xml)
+    mnr = re.search(r"<a:minorFont>\s*<a:latin typeface=\"([^\"]*)\"", xml)
+    return {"name": nm.group(1) if nm else "Theme", "colors": colors, "major": maj.group(1) if maj else "",
+            "minor": mnr.group(1) if mnr else "", "xml": xml}
+
+
+def theme_of_file(path=None, data=None):
+    """The theme a .thmx, template or document carries (read once), or None."""
+    import io, zipfile
+    try:
+        z = zipfile.ZipFile(io.BytesIO(data) if data is not None else path)
+        names = z.namelist()
+        part = next((n for n in ("theme/theme/theme1.xml", "word/theme/theme1.xml") if n in names), None)
+        part = part or next((n for n in names if re.match(r"(word/)?theme/(theme/)?theme\d*\.xml$", n)), None)
+        return read_theme(z.read(part).decode("utf-8", "replace")) if part else None
+    except Exception:                                   # noqa: BLE001  not a package
+        return None
+
+
+def theme_summary(t):
+    return (f"headings {t['major'] or '(none)'}, body {t['minor'] or '(none)'}; "
+            + ", ".join(f"{THEME_NAMES[k]} #{v}" for k, v in t["colors"].items() if k.startswith("accent")))
+
+
 class Card:
     """One group of found items to confirm: [{"kind", "name", "values", "summary", "state", "match", "keep"}]."""
 
@@ -207,6 +262,14 @@ def collect(path, std, lib, installed_fonts=None):
     already (same), has the name with other values (variant) or not (new); 'keep' starts ticked for new and variant."""
     import prodlearn as PL
     import prodquickparts as QP
+    if path.lower().endswith(".thmx"):                  # a theme file: its colors and fonts only
+        t = theme_of_file(path)
+        if not t:
+            return [], "That file holds no theme."
+        st, hit = lib.match("theme", t["name"], t)
+        return [Card("theme", "Theme: colors and fonts", [{"kind": "theme", "name": t["name"], "values": t, "summary": theme_summary(t),
+                                                           "state": st, "match": hit["name"] if hit else "", "keep": st != "same"}],
+                     "Word's 12 theme colors (the palette in every color picker) and the heading and body theme fonts.")], ""
     tmp_parts = os.path.join(lib.root, "_collecting")
     shutil.rmtree(tmp_parts, ignore_errors=True)
     os.makedirs(tmp_parts, exist_ok=True)
@@ -287,6 +350,10 @@ def collect(path, std, lib, installed_fonts=None):
                                 + (f", {e['pictures']} picture(s)" if e["pictures"] else "") + (f": {e['text'][:80]}" if e.get("text") else ""))
                            for e in qps],
                           "Copied whole when used: field codes, content controls, pictures and the styles they use."))
+    th = theme_of_file(data=raw)
+    if th:
+        cards.append(Card("theme", "Theme: colors and fonts", [item("theme", th["name"], th, theme_summary(th))],
+                          "Word's 12 theme colors (the palette in every color picker) and the heading and body theme fonts."))
     fonts = fonts_of(sd, data=raw)
     if fonts:
         inst = {f.casefold() for f in (installed_fonts or [])}
@@ -361,6 +428,9 @@ def use_in_standard(lib, iid, work, category=""):
             shutil.copyfile(lib.source_path(v["file"]), os.path.join(pdir, v["file"]))
         work.setdefault("page_parts", {})[k] = v["file"]
         return f"{'cover' if k == 'cover' else 'back cover'} {it['name']}"
+    if k == "theme":
+        work["theme"] = {"name": v.get("name", ""), "xml": v.get("xml", "")}
+        return f"theme {v.get('name', '')}"
     if k == "quickpart":
         import prodparts as PP
         pdir = PP.parts_dir(lib.config_dir)

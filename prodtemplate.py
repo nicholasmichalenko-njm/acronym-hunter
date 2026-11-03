@@ -245,6 +245,29 @@ class TemplateJob:
         return os.path.splitext(self.copy)[0] + " - report.xlsx"
 
 
+def with_theme(data, theme_xml):
+    """The package with its theme part replaced (added when it has none)."""
+    zin = zipfile.ZipFile(io.BytesIO(data))
+    names = zin.namelist()
+    part = next((n for n in names if n.startswith("word/theme/") and n.endswith(".xml") and "/_rels/" not in n), None)
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+        for i in zin.infolist():
+            b = zin.read(i.filename)
+            if i.filename == part:
+                b = theme_xml.encode("utf-8")
+            elif part is None and i.filename == "[Content_Types].xml":
+                b = b.replace(b"</Types>", b'<Override PartName="/word/theme/theme1.xml" ContentType="application/vnd.openxmlformats-'
+                              b'officedocument.theme+xml"/></Types>')
+            elif part is None and i.filename == "word/_rels/document.xml.rels":
+                b = b.replace(b"</Relationships>", b'<Relationship Id="rIdSKth1" Type="http://schemas.openxmlformats.org/officeDocument/'
+                              b'2006/relationships/theme" Target="theme/theme1.xml"/></Relationships>')
+            z.writestr(i, b)
+        if part is None:
+            z.writestr("word/theme/theme1.xml", theme_xml.encode("utf-8"))
+    return out.getvalue()
+
+
 def standard_for_template(std):
     """The standard with the cover styles the template's headers read (when the standard does not define them)."""
     import copy as _c
@@ -284,6 +307,9 @@ def make(std, folder, start_from="", word=None, when=None, progress=None, parts_
                 import prodparts as PP
                 with open(os.path.join(pdir, fname), "rb") as f:
                     data = PP.place(data, f.read(), where)
+    th = (std.get("theme") or {}).get("xml")
+    if th:                                            # 3.22.0: the standard's theme (colors and fonts) replaces the base's
+        data = with_theme(data, th)
     folder = os.path.abspath(folder)
     os.makedirs(folder, exist_ok=True)
     PCY.allow_root(folder)

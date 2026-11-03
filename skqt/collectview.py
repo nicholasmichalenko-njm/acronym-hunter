@@ -163,6 +163,101 @@ class CollectDialog(QDialog):
         return job.copy
 
 
+class StyleDialog(QDialog):
+    """A style's definition, every property of the style library (blank: not set)."""
+
+    def __init__(self, parent, name, values, fixed_name=False):
+        super().__init__(parent)
+        from .prodstdpage import STYLE_COLS, TRI_KEYS
+        self.cols, self.tri = [c for c in STYLE_COLS if c[0] != "key"], TRI_KEYS
+        self.setWindowTitle("Style"); self.resize(560, 680)
+        v = QVBoxLayout(self)
+        f = QFormLayout()
+        from PySide6.QtWidgets import QScrollArea
+        sc = QScrollArea(); sc.setWidgetResizable(True); inner = QWidget(); inner.setLayout(f); sc.setWidget(inner); v.addWidget(sc, 1)
+        self.name = QLineEdit(name); self.name.setReadOnly(fixed_name); f.addRow("Name", self.name)
+        self.ed = {}
+        for key, label, kind in self.cols:
+            if isinstance(kind, tuple):
+                cb = QComboBox()
+                for val, txt in kind[1]:
+                    cb.addItem(txt, val)
+                cur = values.get(key)
+                cur = ("on" if cur else "off") if key in self.tri and cur is not None else (cur or "")
+                cb.setCurrentIndex(max(0, cb.findData(cur)))
+                self.ed[key] = cb
+            else:
+                le = QLineEdit("" if values.get(key) is None else str(values.get(key)))
+                self.ed[key] = le
+            f.addRow(label, self.ed[key])
+        bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
+        v.addWidget(bb)
+
+    def values(self):
+        from .prodstdpage import tabs_parse
+        out = {}
+        for key, _label, kind in self.cols:
+            w = self.ed[key]
+            if isinstance(w, QComboBox):
+                val = w.currentData()
+                if val in ("", None):
+                    continue
+                out[key] = (val == "on") if key in self.tri else val
+            else:
+                t = w.text().strip()
+                if not t:
+                    continue
+                if kind == "num0":
+                    try:
+                        out[key] = float(t)
+                    except ValueError:
+                        continue
+                elif key == "tabs":
+                    out[key] = tabs_parse(t)
+                else:
+                    out[key] = t
+        return " ".join(self.name.text().split()), out
+
+
+class ValuesDialog(QDialog):
+    """An item's values, one by one (lists and groups shown as they are, to edit with care)."""
+
+    def __init__(self, parent, name, values):
+        super().__init__(parent)
+        import json
+        self.json = json
+        self.setWindowTitle(f"Edit: {name}"); self.resize(620, 520)
+        v = QVBoxLayout(self)
+        v.addWidget(D.label("Each value as it is kept. Numbers in points or inches as shown; a group stays in brackets.", "muted"))
+        self.t = QTableWidget(0, 2); self.t.setHorizontalHeaderLabels(["Value", "Setting"])
+        self.t.verticalHeader().setVisible(False); self.t.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.keys = []
+        for k, val in values.items():
+            if str(k).startswith("_") or k in ("xml",):
+                continue
+            r = self.t.rowCount(); self.t.insertRow(r)
+            a = QTableWidgetItem(str(k)); a.setFlags(Qt.ItemIsEnabled); self.t.setItem(r, 0, a)
+            self.t.setItem(r, 1, QTableWidgetItem(val if isinstance(val, str) else json.dumps(val)))
+            self.keys.append(k)
+        self.base = dict(values)
+        v.addWidget(self.t, 1)
+        bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
+        v.addWidget(bb)
+
+    def values(self):
+        out = dict(self.base)
+        for r, k in enumerate(self.keys):
+            t = self.t.item(r, 1).text()
+            if isinstance(self.base[k], str):
+                out[k] = t
+            else:
+                try:
+                    out[k] = self.json.loads(t)
+                except ValueError:
+                    pass
+        return out
+
+
 class LibraryDialog(QDialog):
     """The shelves: browse by kind and use case; rename, tag, take out, or use an item in the standard being edited."""
 
@@ -194,6 +289,9 @@ class LibraryDialog(QDialog):
         body.addWidget(self.t, 1)
         row = QHBoxLayout(); v.addLayout(row)
         row.addWidget(D.button("Use in this standard", "primary", lambda: self.use_it()))
+        row.addWidget(D.button("New style...", None, lambda: self.new_style(), "A style of your own (hidden text ones too), "
+                               "kept here to pull into any standard"))
+        row.addWidget(D.button("Edit...", None, lambda: self.edit()))
         row.addWidget(D.button("Rename...", None, lambda: self.rename()))
         row.addWidget(D.button("Use cases...", None, lambda: self.retag()))
         row.addWidget(D.button("Take out", "ghost", lambda: self.remove()))
@@ -254,6 +352,39 @@ class LibraryDialog(QDialog):
         if said:
             self.page.after_library(said)
         return said
+
+    def new_style(self, name=None, values=None, uses=()):
+        """A style made here (values, tests: its definition). Returns the item."""
+        if values is None:
+            d = StyleDialog(self, name or "", {})
+            if d.exec() != QDialog.Accepted:
+                return None
+            name, values = d.values()
+        if not name:
+            return None
+        values = dict({"type": "paragraph"}, **values)
+        item, _st = self.lib.add("style", name, values, tags={"use": list(uses)}, source="made in Stationkeeper",
+                                 summary=TL._summary_style(values))
+        k = [k for k, _t in TL.SHELVES].index("style")
+        self.fill_shelves(); self.shelves.setCurrentRow(k); self.fill()
+        diag.activity("template_library_style_made")
+        return item
+
+    def edit(self, values=None):
+        """Change an item's values: a style in the style form, anything else value by value."""
+        iid = self.selected()
+        it = self.lib.get(iid) if iid else None
+        if it is None:
+            return False
+        cur = self.lib.values(it) or {}
+        if values is None:
+            d = StyleDialog(self, it["name"], cur, fixed_name=True) if it["kind"] == "style" else ValuesDialog(self, it["name"], cur)
+            if d.exec() != QDialog.Accepted:
+                return False
+            values = d.values()[1] if it["kind"] == "style" else d.values()
+        ok = self.lib.update(iid, values)
+        self.fill()
+        return ok
 
     def rename(self, name=None):
         iid = self.selected()

@@ -1603,7 +1603,7 @@ class StandardsPage(QWidget):
         from .collectview import CollectDialog
         if path is None:
             path, _ = QFileDialog.getOpenFileName(self, "Collect from a template or Word document (it is only read)",
-                                                  os.path.expanduser("~"), "Word (*.dotx *.dotm *.docx *.docm)")
+                                                  os.path.expanduser("~"), "Word and themes (*.dotx *.dotm *.docx *.docm *.thmx)")
             if not path:
                 return None
         d = CollectDialog(self, path)

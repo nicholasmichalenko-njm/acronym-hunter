@@ -20,6 +20,18 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.22.0": ["Our data (Settings): one Stationkeeper Data file (.skdata) carries the team's foundational data: the master "
+               "acronym list, custom dictionaries, banned phrases, Production Standards with covers and Quick Parts, the "
+               "template library and the team lists. Import shows what each part adds, merges add-only, and Undo puts it "
+               "back. Nothing about one effort goes in it, and it never goes on GitHub.",
+               "Template library (Production Standards > Collect into the library): read any template, Word document or "
+               ".thmx theme, confirm what it carries card by card (styles, hidden text styles, pages, headers and footers, "
+               "numbering, tables, covers, Quick Parts, fonts, theme colors), open a sample in Word, and keep it on shelves. "
+               "New style, Edit, Rename, Use cases, and Use in this standard.",
+               "Production Standards > Quick Parts: the Quick Parts every template carries, all in Word's Quick Parts gallery "
+               "in your numbered categories. Their styles follow the template's, and landscape and tabloid pages keep their "
+               "section and headers.",
+               "Styles can be hidden text (Show/Hide), with their color."],
     "3.21.0": ["Excerpts and bins: every capture keeps the customer's exact words and where they sit (document, page, "
                "paragraph, numbering, heading). In Review, Objective (O) and Key point (K) put the picked words in a bin; "
                "Bins (B) holds Other submission detail, Written formatting rule, your own bins (Alt+1 to Alt+9) and Every "

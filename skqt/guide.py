@@ -303,6 +303,11 @@ TOPICS = [
   ["Editing: choose the team standard, a document profile (+ Profile... adds one, starting from the one shown), or "
    "this effort. A value set at that layer shows in bold with what it was and the layer it came from; Reset takes it "
    "back to the layer below.",
+   "Collect into the library... (3.22.0) reads a template, Word document or .thmx theme and lists what it carries, card "
+   "by card: keep, rename or skip, tag by use case, Open a sample in Word. Template library... shows the shelves; Use in "
+   "this standard puts an item into what you are editing, and New style... adds your own (hidden text ones too).",
+   "Quick Parts: Add from a template or document... lists the Quick Parts every template from this standard carries, "
+   "all in Word's Quick Parts gallery under your numbered categories.",
    "The Preview beside each section draws what its values make (a page with its fonts, spacing and margins; headings "
    "with their numbers; captions; the page scheme; headers and footers; the TOC; lists; a figure) and lists every value "
    "this layer changes in the section: what it was and what it is now.",
@@ -415,6 +420,9 @@ TOPICS = [
   "types, custom dictionaries, branding, team pack, master database, backups, updates, and help.",
   "Setting up the app, joining a team, or installing an update.",
   ["Where Stationkeeper is used sets the work mode: Offline, Connected or SCIF-ready.",
+   "Our data (3.22.0): Export our data... writes the team's foundational data (acronyms, dictionaries, phrases, "
+   "standards, the template library, team lists) to one file; Import our data... brings it in on another PC, add-only, "
+   "with Undo. Nothing about one effort goes in it, and it never goes on GitHub.",
    "Custom dictionaries keeps your team's words for Word: + Dictionary..., type words or Import a .dic..., Add the "
    "effort's acronyms, then Export for Word... and add the file in Word (File > Options > Proofing > Custom Dictionaries).",
    "Branding shows the company logos. They are built into Stationkeeper; nobody changes them from here.",

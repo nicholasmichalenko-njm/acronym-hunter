@@ -90,6 +90,19 @@ check("Use in this standard puts the item into what is being edited", said.start
 ld.use.setCurrentIndex(ld.use.findData("RFI"))
 check("the shelves filter by use case", ld.t.rowCount() == 0)
 
+it = ld.new_style("SK PM Commentary", {"color": "C00000", "hidden": True, "italic": True}, uses=["RFP"])
+check("New style: a style of your own (hidden text) kept on the Styles shelf", it and it["name"] == "SK PM Commentary"
+      and TL.Library(cfg).values(it)["hidden"] is True and "hidden text" in it["summary"])
+from skqt.collectview import StyleDialog
+sd_ = StyleDialog(ld, "X", {"hidden": True, "size": 11.0, "color": "7030A0"})
+nm_, vals_ = sd_.values()
+check("the style form reads and gives back every property", vals_ == {"type": "paragraph", "hidden": True, "size": 11.0, "color": "7030A0"}, vals_)
+ld.use.setCurrentIndex(0)
+ld.shelves.setCurrentRow([k for k, _t in TL.SHELVES].index("style")); app.processEvents()
+row = next(r for r in range(ld.t.rowCount()) if ld.t.item(r, 0).text() == "SK PM Commentary")
+ld.t.setCurrentCell(row, 0)
+check("Edit changes an item's values", ld.edit({"color": "C00000", "hidden": True, "size": 9.0}) and TL.Library(cfg).values(it)["size"] == 9.0)
+
 # ---------------------------------------------------------------- Settings: Our data
 st = CD.Store(cfg); st.add("Space terms", ["apogee"]); st.save()
 TP.save_topics(cfg, ["Thermal"])

@@ -70,6 +70,23 @@ std["quick_parts"]["one_gallery"] = False
 tj2 = PT.make(std, out)
 check("off: each keeps its own gallery", sorted((e["name"], e["gallery"]) for e in QP.read(tj2.copy)) == [("CUI header", "hdrs"), ("Volume cover", "coverPg")])
 
+# ---------------------------------------------------------------- a landscape tabloid page as a Quick Part
+src2 = os.path.join(tmp, "Foldouts.dotx")
+with_glossary(MASTER, src2, foldout=True)
+k2 = QP.keep_source(cfg, src2)
+std2 = PRL.for_effort(tempfile.mkdtemp()); std2["_parts_dir"] = PP.parts_dir(cfg)
+std2["quick_parts"] = {"one_gallery": True, "entries": [{"name": "Tabloid foldout", "category": "06 Pages", "source": k2}]}
+tjf = PT.make(std2, out)
+pkf = Package(tjf.copy)
+gl = pkf.tree("word/glossary/document.xml")
+from lxml import etree as _et
+xmlf = _et.tostring(gl).decode()
+hdr = [t for (ty, t, m) in pkf.rels_of("word/glossary/document.xml").values() if ty.endswith("/header")]
+check("a landscape tabloid page keeps its section (paper, orientation, margins) and its own header",
+      'w:w="24480"' in xmlf and 'w:orient="landscape"' in xmlf and hdr and b"FOLDOUT HEADER" in pkf.raw[hdr[0]] if hdr else False,
+      [s_.get("report") for s_ in tjf.steps if s_.get("key") == "quick_parts"])
+check("... and the template still passes its own check", tjf.check.count() == 0, [f["what"][:80] for f in tjf.check.findings])
+
 # ---------------------------------------------------------------- hidden text styles
 std3 = PRL.for_effort(tempfile.mkdtemp())
 std3["style_defs"]["SK RFP Reference"] = {"type": "paragraph", "based_on": "Normal", "color": "7030A0", "hidden": True}

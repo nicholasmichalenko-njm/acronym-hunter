@@ -178,6 +178,33 @@ def _ensure_glossary(dst, src):
     return name
 
 
+def _copy_story(src, dst, tgt, kind, media):
+    """Copy a header or footer part (and the pictures it uses) from src into dst's glossary folder. Returns its name."""
+    k = 1
+    while dst.has(f"word/glossary/pe_{kind}{k}.xml"):
+        k += 1
+    name = f"word/glossary/pe_{kind}{k}.xml"
+    dst.add_part(name, copy.deepcopy(src.tree(tgt)), src.content_type("/" + tgt))
+    srels = src.rels_of(tgt)
+    if srels:
+        hrels = _rels_tree(dst, name)
+        for rid0, (typ, t, mode) in srels.items():
+            rr = etree.SubElement(hrels, f"{{{PR}}}Relationship")
+            rr.set("Id", rid0); rr.set("Type", typ)
+            if mode == "External":
+                rr.set("Target", t); rr.set("TargetMode", "External")
+                continue
+            ext = t.rsplit(".", 1)[-1]
+            j = 1
+            while dst.has(f"word/media/pe_qp{j}.{ext}"):
+                j += 1
+            mname = f"word/media/pe_qp{j}.{ext}"
+            dst.add_part(mname, src.raw[t], src.content_type("/" + t) or f"image/{ext}")
+            rr.set("Target", posixpath.relpath(mname, posixpath.dirname(name)))
+            media.append(mname)
+    return name
+
+
 def op_provision(dst, src_path, names):
     """Copy Quick Parts from a source template into dst, with their pictures and styles.
     Never replaces: an entry with the same name+category+gallery stops the copy of that entry."""
@@ -232,6 +259,11 @@ def op_provision(dst, src_path, names):
                         dst.add_part(mname, src.raw[tgt], src.content_type("/" + tgt) or f"image/{ext}")
                         rr.set("Target", posixpath.relpath(mname, posixpath.dirname(dg)))
                         media.append(mname)
+                    elif typ.endswith(("/header", "/footer")):
+                        # 3.22.0: a part that carries its own section (a landscape or tabloid page) keeps its headers and
+                        # footers: each is copied with the pictures it uses
+                        rr.set("Target", posixpath.relpath(_copy_story(src, dst, tgt, typ.rsplit("/", 1)[-1], media),
+                                                           posixpath.dirname(dg)))
                     else:
                         grels.remove(rr)
                         unsupported = f"embedded {typ.rsplit('/', 1)[-1]} part; not supported by provision yet"; break
