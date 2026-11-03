@@ -20,6 +20,8 @@ from prodengine.pe import rules as PR
 from . import design as D
 
 GROUPS = [                                               # 3.25.0: a menu across the top, in the order a document is built
+    ("Document parts", [("part_cover", "Cover"), ("part_front", "Front matter"), ("part_body", "Response"),    # 3.26.0
+                        ("part_appendix", "Appendices"), ("part_backer", "Back cover")]),
     ("Pages", [("setups", "Page sizes and margins"), ("pages", "Pagination and covers"), ("hf", "Headers and footers"),
                ("toc", "Table of contents")]),
     ("Styles", [("variables", "Base fonts and sizes"), ("styledefs", "Styles"), ("fonts", "Font rules"), ("styles", "Allowed styles")]),
@@ -487,7 +489,10 @@ class StandardsPage(QWidget):
         self.nav.setCurrentRow(0)
         self.show_section(0)
 
-    SECTION_KEYS = {"variables": ("variables",), "fonts": ("fonts",), "styles": ("styles",), "headnum": ("heading_numbering",),
+    SECTION_KEYS = {**{s_: ("pagination", ("hf_layouts", k_), ("hf_designs", k_), ("page_parts", k_))
+                       for s_, k_ in (("part_cover", "cover"), ("part_front", "front"), ("part_body", "body"),
+                                      ("part_appendix", "appendix"), ("part_backer", "backer"))},
+                    "variables": ("variables",), "fonts": ("fonts",), "styles": ("styles",), "headnum": ("heading_numbering",),
                     "styledefs": ("style_defs",), "rows": ("row_types",), "ttypes": ("table_types", "table_styles"),
                     "rules": ("row_rules",), "captions": ("captions", ("checks", "caption_fields"), ("checks", "table_caption_position")),
                     "pages": ("pagination", "page_parts"), "quickparts": ("quick_parts",), "fillins": ("fill_ins",),
@@ -585,6 +590,30 @@ class StandardsPage(QWidget):
         return f, c
 
     # ------------------------------------------------------------------ sections
+    # 3.26.0: Document parts: each part over the same settings (docparts.py)
+    def build_part_cover(self, v):
+        from . import docparts as DP
+        DP.build(self, v, "part_cover")
+
+    def build_part_front(self, v):
+        from . import docparts as DP
+        DP.build(self, v, "part_front")
+
+    def build_part_body(self, v):
+        from . import docparts as DP
+        DP.build(self, v, "part_body")
+
+    def build_part_appendix(self, v):
+        from . import docparts as DP
+        DP.build(self, v, "part_appendix")
+
+    def build_part_backer(self, v):
+        from . import docparts as DP
+        DP.build(self, v, "part_backer")
+
+    def section_index(self, key):
+        return [k for k, _t in SECTIONS].index(key)
+
     def build_variables(self, v):
         f, _c = self.form(v, "Base fonts and sizes", "The values the styles and checks are built from. A table font or size "
                           "names a variable (=table_font) so changing it here changes every row type that uses it.")
@@ -1310,6 +1339,8 @@ class StandardsPage(QWidget):
     def load_tables(self):
         self.show_hf_designs()
         self.fill_allowed()
+        from . import docparts as DP                # 3.26.0
+        DP.fill_all(self)
         for key, spec in self.tables.items():
             t = spec["w"]
             rows = self._rows_of(spec)

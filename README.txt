@@ -1,6 +1,15 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+DOCUMENT PARTS (3.26.0)
+  - Production Standards > Document parts, the first menu: Cover, Front matter, Response, Appendices, Back cover.
+  - Each part shows and edits what applies to it, the same values the other menus hold (nothing is copied): where it
+    starts and how its pages are numbered, its header and footer (tab stops, a table at inch widths, or a Quick Part
+    kept as built), its cover or back cover page, its TOC and lists (front matter) or caption rules (response and
+    appendices), and what every part shares (page size, margins, base fonts, styles) with a jump to change it.
+  - A drawn preview of the part's page: margins, header and footer, the page number as it reads (ii, 2-1, A-1).
+  - Save this part as a design keeps it in the template library (Part designs); Use a saved design puts one on any part.
+
 PRODUCTION STANDARDS, ONE PLACE PER JOB (3.25.0)
   - A menu across the top in the order a document is built: Pages, Styles, Numbering, Tables, Content, Check. Plain
     names: Base fonts and sizes (was Format variables), Styles (was Style library), Allowed styles, Heading numbering

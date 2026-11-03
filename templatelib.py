@@ -21,7 +21,7 @@ SHELVES = (("style", "Styles"), ("page_setup", "Page setups"), ("hf", "Headers a
            ("list_numbering", "List numbering"), ("table_style", "Word table styles"), ("table_look", "Table looks"),
            ("toc", "Table of contents"), ("cover", "Covers"), ("backer", "Back covers"), ("quickpart", "Quick Parts"), ("font", "Fonts"),
            ("theme", "Themes (colors and fonts)"), ("hf_design", "Header and footer designs (whole)"),
-           ("variables", "Base fonts and sizes"))
+           ("variables", "Base fonts and sizes"), ("part", "Part designs"))
 THEME_SLOTS = ("dk1", "lt1", "dk2", "lt2", "accent1", "accent2", "accent3", "accent4", "accent5", "accent6", "hlink", "folHlink")
 THEME_NAMES = {"dk1": "Text dark 1", "lt1": "Background light 1", "dk2": "Text dark 2", "lt2": "Background light 2",
                "accent1": "Accent 1", "accent2": "Accent 2", "accent3": "Accent 3", "accent4": "Accent 4", "accent5": "Accent 5",
@@ -467,6 +467,18 @@ def use_values(config_dir, k, name, v, work, category="", file_path=None, src=""
     if k == "style":
         work.setdefault("style_defs", {})[name] = {x: y for x, y in v.items()}
         return f"style {name}"
+    if k == "part":                                     # 3.26.0: a part design onto the part named by category
+        import partdesigns as PD
+        key = category or v.get("part", "body")
+        pf = ""
+        if v.get("page_file") and key in ("cover", "backer"):
+            import prodparts as PP
+            pdir = PP.parts_dir(config_dir)
+            os.makedirs(pdir, exist_ok=True)
+            if not os.path.isfile(os.path.join(pdir, v["page_file"])):
+                shutil.copyfile(file_path(v["page_file"]), os.path.join(pdir, v["page_file"]))
+            pf = v["page_file"]
+        return PD.apply_design(work, v, key, pf)
     if k == "variables":
         work.setdefault("variables", {}).update({x: y for x, y in v.items() if y not in (None, "")})
         return "base fonts and sizes"

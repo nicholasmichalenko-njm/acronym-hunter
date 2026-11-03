@@ -20,6 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.26.0": ["Production Standards > Document parts: Cover, Front matter, Response, Appendices and Back cover, each with "
+               "what applies to it (numbering, header and footer, its page, TOC or captions, what it shares) over the same "
+               "values as the other menus, a drawn preview, and Save this part as a design to use on any part."],
     "3.25.0": ["Production Standards: a menu across the top in the order a document is built (Pages, Styles, Numbering, "
                "Tables, Content, Check), plain names, and the checks inside the sections they check.",
                "Editing is two boxes, Effort type and Volume (a profile is now a volume), and This effort only.",

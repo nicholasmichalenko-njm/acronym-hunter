@@ -305,6 +305,10 @@ TOPICS = [
   ["Editing (3.25.0): two boxes, Effort type and Volume. Any and Any is the team standard; a volume alone is that volume "
    "everywhere; an effort type alone is every volume in it; both is that volume in that effort type. This effort only "
    "edits the open effort's values. A value set at that layer shows in bold with what it was; Reset takes it back.",
+   "Document parts (3.26.0), the first menu: Cover, Front matter, Response, Appendices and Back cover. Each part shows what "
+   "applies to it: where it starts and how its pages are numbered, its header and footer, its page, TOC or captions, and what "
+   "every part shares. A change there is the same value the other menus hold. Each part has a drawn preview, Open a sample "
+   "in Word, Save this part as a design (Template library > Part designs) and Use a saved design.",
    "The menu across the top follows the order a document is built: Pages (page sizes and margins, pagination and "
    "covers, headers and footers, table of contents), Styles (base fonts and sizes, styles, font rules, allowed styles), "
    "Numbering (heading numbering, lists, captions), Tables (table types, row looks, how rows are recognized), Content "
