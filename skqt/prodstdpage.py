@@ -377,6 +377,10 @@ class StandardsPage(QWidget):
                               D.button("+ Profile...", None, lambda: self.add_type(), "A document profile: the full set of formatting values for one kind of document you deliver"),
                               D.button("Learn from a file...", None, lambda: self.learn(), "Read a template or a finished volume and "
                                        "take its styles, table looks, pages, headers and numbering into what you are editing"),
+                              D.button("Collect into the library...", None, lambda: self.collect(), "Read a template or Word "  # 3.22.0
+                                       "document and keep what it carries in the template library, item by item, confirmed by you"),
+                              D.button("Template library...", None, lambda: self.library(), "Everything collected: styles, pages, "
+                                       "headers and footers, numbering, tables, covers, Quick Parts and fonts"),
                               D.button("Make a template...", None, lambda: self.make_template(), "A Word template (.dotx) with every "
                                        "value in force here, written to the output folder"),
                               D.button("Export for review...", None, lambda: self.export()),
@@ -1594,6 +1598,35 @@ class StandardsPage(QWidget):
             self.switch(force=True)
 
     # ------------------------------------------------------------------ 3.7.0: learn from a file, make a template
+    def collect(self, path=None, run=True):
+        """3.22.0: Collect from a template or Word document into the library, card by card. Returns the dialog."""
+        from .collectview import CollectDialog
+        if path is None:
+            path, _ = QFileDialog.getOpenFileName(self, "Collect from a template or Word document (it is only read)",
+                                                  os.path.expanduser("~"), "Word (*.dotx *.dotm *.docx *.docm)")
+            if not path:
+                return None
+        d = CollectDialog(self, path)
+        if run:
+            d.exec()
+        return d
+
+    def library(self, run=True):
+        from .collectview import LibraryDialog
+        d = LibraryDialog(self)
+        if run:
+            d.exec()
+        return d
+
+    def after_library(self, said):
+        """An item from the library went into what is being edited."""
+        self.binder.load()
+        self.fill_row_scope()
+        self.load_tables()
+        self.show_parts()
+        self.changed()
+        self.host.status(f"From the library: {said}. Save keeps it in this standard.")
+
     def learn(self, path=None, keys=None):
         """Read a template or document (once; it is never written) and take the areas chosen into what is being edited.
         keys (tests): the areas to take without asking. Returns the areas taken."""

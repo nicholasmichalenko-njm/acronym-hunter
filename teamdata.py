@@ -97,7 +97,8 @@ def _members(config_dir, key, spec):
     for fo in folders:
         base = os.path.join(config_dir, fo)
         if os.path.isdir(base):
-            for root, _dirs, names in os.walk(base):
+            for root, dirs, names in os.walk(base):
+                dirs[:] = [x for x in dirs if not x.startswith("_")]      # work folders (a collection in progress) stay
                 for n in names:
                     if n.endswith(".tmp"):
                         continue
