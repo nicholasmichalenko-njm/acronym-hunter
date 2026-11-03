@@ -20,6 +20,12 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.35.0": ["Matrix starts as the outline matrix: one row per outline item with Assigned To, Initial Page Allocation, "
+               "% Complete, and Section L beside Section M. Review's bottom bar sets an item's values.",
+               "Matrix views: save the columns and rows as a named, versioned view; each effort picks one; an effort type "
+               "can start with one.",
+               "Styles: Based on and Next style from a list. Previews fit their space, hold still, widen with a drag and open "
+               "larger with a click."],
     "3.34.1": ["A new effort opens with no error and shows in the effort box and All Efforts at once. Switching efforts no "
                "longer errors, and every page shows only the open effort's work.",
                "Review: the deciding and capturing tools sit along the bottom, so the right side has room for the selected "

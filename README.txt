@@ -1,6 +1,27 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE OUTLINE MATRIX, MATRIX VIEWS, CLEARER STYLES (3.35.0)
+  - Matrix starts as the outline matrix: one row per item of your response outline (section, header, subheader),
+    with Response Section No. Item, Assigned To, Initial Page Allocation, % Complete, RFP Solicitation Requirements
+    (Section L), Section L Content, Evaluation Section (Section M) and Evaluation Content. Rows > One row per RFP
+    sentence brings back the sentence rows.
+  - A sentence's L, M or SOW decision picks its column: M goes under Evaluation; L, SOW, an RFI's interest and
+    undesignated requirements go under Section L. With no M sentence in an item, the Evaluation section shows the
+    Section M factors the L/M crosswalk ties its instructions to. A sentence put in several items is in each of their
+    rows. Requirements in no item yet keep a row at the end (Not in the outline yet).
+  - Review's bottom bar shows the target item's Assigned To, Initial Page Allocation and % Complete; change them
+    there (one Undo step each). % Complete follows a renamed item.
+  - Matrix > View: Save as a view... keeps the columns, headings and rows in the template library (Matrix views);
+    Save as a new version keeps the old one; pick a view for each effort; Start this effort type with it makes new
+    efforts of the effort type start with it. Built in: Outline with L and M, RFP sentences. A matrix set up before
+    3.35.0 keeps its design.
+  - Production Standards > Styles: Based on and Next style are picked from a list (the standard's styles, then
+    Word's own); a name that is neither is marked (not in this standard) and kept.
+  - The preview beside every section fits its space and holds still; a line says what it shows; what this layer
+    changes is folded under one line; drag the preview's edge to widen it for every section (remembered); click the
+    preview to see it larger. The Styles preview shows each style as a sample line with what it is set to.
+
 REVIEW HAS ROOM, ACRONYMS STAY DECIDED (3.34.1)
   - A new effort with only its name opens with no error, and shows in the effort box and All Efforts at once.
   - Switching efforts (the effort box at the top right, or All Efforts) no longer errors, and Review, Structure
