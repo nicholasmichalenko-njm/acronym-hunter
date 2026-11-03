@@ -309,6 +309,8 @@ TOPICS = [
    "applies to it: where it starts and how its pages are numbered, its header and footer, its page, TOC or captions, and what "
    "every part shares. A change there is the same value the other menus hold. Each part has a drawn preview, Open a sample "
    "in Word, Save this part as a design (Template library > Part designs) and Use a saved design.",
+   "Cover and Back cover > Edit the layout... (3.27.0): drag a picture, text box or table, or type its place and size "
+   "in inches; set which field each line of text shows (its style becomes the field's cover style). Save keeps a new copy.",
    "The menu across the top follows the order a document is built: Pages (page sizes and margins, pagination and "
    "covers, headers and footers, table of contents), Styles (base fonts and sizes, styles, font rules, allowed styles), "
    "Numbering (heading numbering, lists, captions), Tables (table types, row looks, how rows are recognized), Content "
@@ -332,7 +334,8 @@ TOPICS = [
    "Heading numbering and lists: the number shows as it will look (1.1.1, Section A); type it the same way.",
    "The Preview beside each section draws what its values make and lists every value this layer changes in the section.",
    "Make templates... (3.25.0): choose what you are editing, every volume of an effort type, or this effort's volumes with "
-   "the setup written on each. Each template is listed and shown in full (styles, pages and margins, pagination by part, "
+   "the setup written on each (each volume can continue the page and chapter numbers of the one before, suggested from "
+   "its draft). Each template is listed and shown in full (styles, pages and margins, pagination by part, "
    "headers and footers, numbering, tables, captions, TOC, covers, Quick Parts, fields, theme and fonts, and what to fix "
    "first) before Make writes any file. Each one is named and versioned, with a validation report beside it and, with "
    "Word on the PC, Word's own check.",

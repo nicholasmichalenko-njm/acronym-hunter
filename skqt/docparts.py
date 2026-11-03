@@ -255,6 +255,8 @@ def build(page, v, section):
         ph = QHBoxLayout()
         ph.addWidget(D.button("Import from a file...", None, lambda: page.import_file(section="pages")))
         ph.addWidget(D.button("Template library...", None, lambda: page.library()))
+        ph.addWidget(D.button("Edit the layout...", "primary", lambda: edit_layout(page, key),
+                              "Move or resize the pictures, text boxes and tables; set which field each line of text shows"))
         ph.addWidget(D.button("Clear", "ghost", lambda: clear_page(page, key)))
         ph.addStretch(1); c3.body.addLayout(ph)
     if key == "front":
@@ -490,3 +492,15 @@ def open_sample(page, key, open_it=True):
             diag.swallowed()
     page.host.status(f"Sample: {job.copy}")
     return job.copy
+
+
+def edit_layout(page, key, run=True):
+    """3.27.0: Edit the cover (or back cover) layout. Returns the dialog."""
+    from .coverview import CoverLayoutDialog
+    if not (page.work.get("page_parts") or {}).get(key):
+        page.host.status("No kept page yet: Import from a file... keeps one first.")
+        return None
+    d = CoverLayoutDialog(page, key)
+    if run:
+        d.exec()
+    return d

@@ -139,7 +139,7 @@ class SetupPage(QWidget):
         self.host.toast(f"Setup exported: {len(paths)} document(s). RFP text is purple, direction green.")
         return paths
 
-    def make_on_templates(self, folder=None, opts=None, go=None):
+    def make_on_templates(self, folder=None, opts=None, go=None, starts=None):
         """3.24.0: Ready to make, the reference styles, then a template per volume and the setup written on each.
         opts and go (tests): the styles to use and whether to make with items still open. Returns the results."""
         import setuptemplate as ST
@@ -170,7 +170,7 @@ class SetupPage(QWidget):
                 import prodword
                 word = prodword.update_fields
             out = ST.make_all(R.M, folder, self.host.config_dir, self.host.ws, self.host.effort_name or "", info,
-                              context=CX.section_context(self.host.ws.root), word=word)
+                              context=CX.section_context(self.host.ws.root), word=word, starts=starts)
         except PermissionError:
             self.host.status("A file with that name is open in Word: close it, then make again.")
             return None

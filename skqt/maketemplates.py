@@ -66,6 +66,14 @@ class MakeTemplatesDialog(QDialog):
         stb.addWidget(D.label("Reference text in the setup", "title"))
         stb.addWidget(D.label("Each kind goes in its own style; hidden text shows only with Show/Hide on.", "muted"))
         self.ref_grid = QGridLayout(); stb.addLayout(self.ref_grid)
+        # 3.27.0: Volume II continues Volume I
+        self.cont = QCheckBox("Each volume continues the page and chapter numbers of the volume before")
+        self.cont.toggled.connect(lambda on: self.fill_starts(suggest=on)); stb.addWidget(self.cont)
+        from PySide6.QtWidgets import QTableWidget
+        self.starts_t = QTableWidget(0, 4); self.starts_t.setHorizontalHeaderLabels(["Volume", "Pages start at", "Chapters start at", "From"])
+        self.starts_t.verticalHeader().setVisible(False); self.starts_t.setMaximumHeight(150); self.starts_t.setEnabled(False)
+        self.starts_t.horizontalHeader().setStretchLastSection(True)
+        stb.addWidget(self.starts_t)
         self.ref_rows = {}
         lv.addWidget(self.setup_box)
         lv.addWidget(D.label("Templates to make", "title"))
@@ -155,9 +163,14 @@ class MakeTemplatesDialog(QDialog):
                     cb = QCheckBox("Hidden"); cb.setChecked(opts[kk]["hidden"]); self.ref_grid.addWidget(cb, r, 2)
                     self.ref_rows[kk] = (e, cb)
             info = self.host.efforts.get(self.host.effort_name) or {}
-            for p in ST.plan(R.M, self.host.config_dir, self.host.ws, self.host.effort_name or "", info):
-                self.plans.append({"title": f"{p['template_name']} v{p['version']}", "std": p["std"],
-                                   "problems": PRL.validate(p["std"]) if p["std"].get("row_types") else []})
+            self._effort_plans = ST.plan(R.M, self.host.config_dir, self.host.ws, self.host.effort_name or "", info)
+            st = self.starts()
+            for p in self._effort_plans:
+                std = ST.with_starts(p["std"], *((st.get(p["volume"]) or {}).get(k) for k in ("page", "chapter")))
+                self.plans.append({"title": f"{p['template_name']} v{p['version']}", "std": std,
+                                   "problems": PRL.validate(std) if std.get("row_types") else []})
+            if self.starts_t.rowCount() != len(self._effort_plans):
+                self.fill_starts(suggest=self.cont.isChecked())
         self.make_btn.setText("Make anyway" if k == "effort" and not getattr(self, "_ready_ok", True) else "Make")
         self.make_btn.setEnabled(bool(self.plans) and not (k in ("this", "etype") and any(p["problems"] for p in self.plans)))
         self.list.blockSignals(True); self.list.clear()
@@ -180,6 +193,42 @@ class MakeTemplatesDialog(QDialog):
         self.view.setHtml(h)
         return h
 
+    def fill_starts(self, suggest=False):
+        """3.27.0: where each volume's pages and chapters start; suggested from the drafts when it continues."""
+        from PySide6.QtWidgets import QSpinBox, QTableWidgetItem
+        import setuptemplate as ST
+        plans = getattr(self, "_effort_plans", [])
+        vdir = ""
+        if suggest and self.host.effort_path:
+            try:
+                import effortfolders as EF
+                vdir = EF.folder(self.host.effort_path, "volumes")
+            except Exception:  # noqa: BLE001
+                diag.swallowed()
+        sug = ST.suggest_starts(plans, vdir) if suggest else [{"volume": p["volume"], "page": 1, "chapter": 1, "why": "starts at 1"} for p in plans]
+        t = self.starts_t
+        t.setRowCount(0)
+        for r, s_ in enumerate(sug):
+            t.insertRow(r)
+            it = QTableWidgetItem(s_["volume"] or "(one volume)"); it.setFlags(Qt.ItemIsEnabled); t.setItem(r, 0, it)
+            for c, k in ((1, "page"), (2, "chapter")):
+                sb = QSpinBox(); sb.setRange(1, 9999); sb.setValue(int(s_[k])); t.setCellWidget(r, c, sb)
+                sb.valueChanged.connect(lambda _v: self.refresh())
+            it = QTableWidgetItem(s_["why"]); it.setFlags(Qt.ItemIsEnabled); t.setItem(r, 3, it)
+        t.setEnabled(bool(suggest))
+        return sug
+
+    def starts(self):
+        """{volume: {"page", "chapter"}} when volumes continue; {} otherwise."""
+        if not getattr(self, "cont", None) or not self.cont.isChecked():
+            return {}
+        plans = getattr(self, "_effort_plans", [])
+        out = {}
+        for r in range(self.starts_t.rowCount()):
+            if r < len(plans):
+                out[plans[r]["volume"]] = {"page": self.starts_t.cellWidget(r, 1).value(), "chapter": self.starts_t.cellWidget(r, 2).value()}
+        return out
+
     def ref_options(self):
         return {k: {"style": e.text().strip() or k, "hidden": cb.isChecked()} for k, (e, cb) in self.ref_rows.items()}
 
@@ -190,7 +239,7 @@ class MakeTemplatesDialog(QDialog):
             return self.page.make_template(start_from=self.start_from(), word=word, name=self.name.currentText().strip() or None)
         if k == "etype":
             return self.page.make_templates_all(word=word, eid=self.etype.currentData(), start_from=self.start_from())
-        return self.host.setup_page.make_on_templates(opts=self.ref_options(), go=True)
+        return self.host.setup_page.make_on_templates(opts=self.ref_options(), go=True, starts=self.starts() or None)
 
 
 def run(page, start=None):

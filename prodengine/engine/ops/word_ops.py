@@ -579,13 +579,15 @@ def _build_heading_abstract(sroot, levels, nsid, aid):
     a.set(q("abstractNumId"), str(aid))
     ensure(a, "nsid", {"val": nsid})
     ensure(a, "multiLevelType", {"val": "multilevel"})
-    for ilvl, (sname, fmt, text, num_at, text_at, restart) in enumerate(levels):
+    for ilvl, lv in enumerate(levels):
+        sname, fmt, text, num_at, text_at, restart = lv[:6]
+        start = int(lv[6]) if len(lv) > 6 and lv[6] else 1     # 3.27.0: a volume's chapters can start after the last volume's
         st = find_style(sroot, sname)
         if st is None:
             raise ValueError(f"style {sname} missing")
         lvl = etree.SubElement(a, q("lvl"))
         lvl.set(q("ilvl"), str(ilvl))
-        ensure(lvl, "start", {"val": 1})
+        ensure(lvl, "start", {"val": start})
         ensure(lvl, "numFmt", {"val": fmt})
         if restart is not None:
             ensure(lvl, "lvlRestart", {"val": restart})
@@ -690,7 +692,8 @@ def op_heading_numbering(pkg, levels=HEADING_LEVELS):
         nsid = "%08X" % rnd.getrandbits(32)
     a = _build_heading_abstract(sroot, levels, nsid, aid)
     checks = []
-    for ilvl, (sname, fmt, text, num_at, text_at, restart) in enumerate(levels):
+    for ilvl, lv in enumerate(levels):
+        sname, fmt, text, num_at, text_at, restart = lv[:6]
         st = find_style(sroot, sname)
         pkg.mark(st)
         sppr = ensure(st, "pPr")

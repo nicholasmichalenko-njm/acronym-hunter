@@ -66,7 +66,7 @@ def _fix(key, area, label, op, allowed, args, rules=(), kind="all", help=""):
 
 
 def _heading_levels(std):
-    return [(l["style"], l["fmt"], l["text"], float(l["number_at"]), float(l["text_at"]), l.get("restart"))
+    return [(l["style"], l["fmt"], l["text"], float(l["number_at"]), float(l["text_at"]), l.get("restart"), l.get("start") or 1)
             for l in std["heading_numbering"]["levels"]]
 
 

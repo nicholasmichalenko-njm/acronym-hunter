@@ -229,7 +229,62 @@ def plan(M, config_dir, ws=None, effort_name="", info=None):
     return out
 
 
-def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=None, context=None, word=None, progress=None):
+def draft_counts(path):
+    """3.27.0: (pages Word counted when the draft was last saved, Heading 1 paragraphs) of a volume's draft; None for a
+    value the file does not say. The draft is only read."""
+    import re
+    import zipfile
+    try:
+        z = zipfile.ZipFile(path)
+        app = z.read("docProps/app.xml").decode("utf-8", "replace") if "docProps/app.xml" in z.namelist() else ""
+        doc = z.read("word/document.xml").decode("utf-8", "replace")
+    except (OSError, KeyError, zipfile.BadZipFile):
+        return None, None
+    m = re.search(r"<Pages>(\d+)</Pages>", app)
+    return (int(m.group(1)) if m else None), len(re.findall(r'<w:pStyle w:val="Heading1"/>', doc))
+
+
+def suggest_starts(plans, volumes_dir):
+    """3.27.0: where each volume's pages and chapters start when it continues the one before, from the latest draft of
+    the volume before in the Volumes folder: [{"volume", "page", "chapter", "why"}]. Pages count the whole draft as Word
+    saved it, so check the last page number before making."""
+    out, page, chapter = [], 1, 1
+    files = []
+    if volumes_dir and os.path.isdir(volumes_dir):
+        files = [os.path.join(volumes_dir, f) for f in os.listdir(volumes_dir) if f.lower().endswith(".docx") and not f.startswith("~$")]
+    for i, p in enumerate(plans):
+        why = "starts at 1"
+        if i:
+            prev = plans[i - 1]["volume"]
+            hits = sorted((f for f in files if prev and prev.casefold() in os.path.basename(f).casefold()), key=os.path.getmtime)
+            if hits:
+                n, ch = draft_counts(hits[-1])
+                if n:
+                    page += n
+                if ch:
+                    chapter += ch
+                why = f"after {os.path.basename(hits[-1])}: {n or '?'} page(s), {ch} chapter(s)"
+            else:
+                why = f"no draft of {prev} in the Volumes folder yet: type where it starts"
+        out.append({"volume": p["volume"], "page": page, "chapter": chapter, "why": why})
+    return out
+
+
+def with_starts(std, page=None, chapter=None):
+    """3.27.0: the standard with the response's pages starting at page (when its pages are not numbered by chapter)
+    and its chapters at chapter (when the headings are numbered)."""
+    for part in ((std.get("pagination") or {}).get("parts") or []):
+        if part.get("key") == "body" and part.get("numbers") and not part["numbers"].get("chapter_level") and page and int(page) > 1:
+            part["numbers"]["start_at"] = int(page)
+            part["numbers"]["restart"] = "part"
+    hn = std.get("heading_numbering") or {}
+    if chapter and int(chapter) > 1 and hn.get("levels"):
+        hn["levels"][0]["start"] = int(chapter)
+    return std
+
+
+def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=None, context=None, word=None, progress=None,
+             starts=None):
     """For each planned volume: its template (named "<effort> <volume>", next version) and the setup written on it.
     Returns [{"volume", "template", "setup", "version", "validation"}]."""
     import compliance as C
@@ -255,6 +310,9 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
         say(f"Template for {vname}")
         p = planned[vname]
         std, tname, ver = p["std"], p["template_name"], p["version"]
+        st = (starts or {}).get(vname) or {}
+        if st:                                         # 3.27.0: this volume continues the one before
+            std = with_starts(std, st.get("page"), st.get("chapter"))
         std["_template_name"], std["_template_version"] = tname, ver
         std["name"] = f"{tname} v{ver}"
         std.setdefault("_parts_dir", os.path.join(config_dir, "production_parts"))

@@ -1,6 +1,16 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+COVER LAYOUT AND VOLUMES THAT CONTINUE (3.27.0)
+  - Document parts > Cover (or Back cover) > Edit the layout...: the kept page drawn with each floating piece (picture,
+    text box, table) where Word puts it. Drag a piece, or type its place and size in inches from the page's top left
+    corner (a picture keeps its proportions). Set which field each line of text shows (Volume name, Solicitation,
+    Company, Classification, Project, your Fields): its style becomes the field's cover style, so headers, footers and
+    Quick Parts read it. Save keeps a new copy as the page; the copy before stays. Open a sample in Word first.
+  - Make templates > This effort's volumes: Each volume continues the page and chapter numbers of the volume before.
+    The starts are suggested from the latest draft of the volume before in the Volumes folder (its pages and Heading 1
+    chapters) and can be typed. Pages numbered by chapter (1-1) carry on by chapter instead.
+
 DOCUMENT PARTS (3.26.0)
   - Production Standards > Document parts, the first menu: Cover, Front matter, Response, Appendices, Back cover.
   - Each part shows and edits what applies to it, the same values the other menus hold (nothing is copied): where it

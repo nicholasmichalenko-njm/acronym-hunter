@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.27.0": ["Document parts > Cover and Back cover > Edit the layout: move and resize the pictures, text boxes and tables "
+               "of a kept page in inches, and set which field each line of text shows; saved as a new copy.",
+               "Make templates: each volume can continue the page and chapter numbers of the volume before, suggested "
+               "from its draft."],
     "3.26.0": ["Production Standards > Document parts: Cover, Front matter, Response, Appendices and Back cover, each with "
                "what applies to it (numbering, header and footer, its page, TOC or captions, what it shares) over the same "
                "values as the other menus, a drawn preview, and Save this part as a design to use on any part."],
