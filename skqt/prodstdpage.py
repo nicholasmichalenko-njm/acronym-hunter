@@ -107,6 +107,19 @@ def _set(d, path, v):
     d[path[-1]] = v
 
 
+
+class _LazyTables(dict):
+    """3.28.1: the page's tables by key; a table not filled since the values last changed is filled when it is used."""
+    def __init__(self, page):
+        super().__init__()
+        self.page = page
+
+    def __getitem__(self, key):
+        spec = dict.__getitem__(self, key)
+        if spec.get("stale"):
+            self.page._fill_table(key, spec)
+        return spec
+
 class Binder:
     """Ties a widget to a path in the page's working standard; shows inherited or set-here."""
 
@@ -470,7 +483,7 @@ class StandardsPage(QWidget):
         body.addWidget(self.std_preview)
         outer.addLayout(body, 1)
         self.problems = D.label("", "muted"); outer.addWidget(self.problems)
-        self.tables = {}
+        self.tables = _LazyTables(self)               # 3.28.1: a table is filled when it is shown or used
         self.pages = {}
         for k, _t in SECTIONS:
             page = QWidget(); v = QVBoxLayout(page); v.setContentsMargins(0, 0, 0, 0)
@@ -507,6 +520,7 @@ class StandardsPage(QWidget):
         if not (0 <= i < len(SECTIONS)):
             return
         self.stack.setCurrentIndex(i)
+        self.fill_shown_tables()
         if hasattr(self, "std_preview"):
             self.std_preview.show_section(*SECTIONS[i])
         if hasattr(self, "group_bar"):
@@ -1341,17 +1355,27 @@ class StandardsPage(QWidget):
         self.fill_allowed()
         from . import docparts as DP                # 3.26.0
         DP.fill_all(self)
+        for key, spec in self.tables.items():      # 3.28.1: only the tables on show are filled now; the rest when
+            spec["stale"] = True                       # their section opens or anything reads them
+        self.fill_shown_tables()
+
+    def fill_shown_tables(self):
         for key, spec in self.tables.items():
-            t = spec["w"]
-            rows = self._rows_of(spec)
-            spec["rows"] = rows
-            t.blockSignals(True)
-            t.setRowCount(0)
-            for r in rows:
-                self._add_table_row(key, r)
-            self._show_lvltext(key)
-            t.blockSignals(False)
-            t.resizeColumnsToContents()
+            if spec.get("stale") and spec["w"].isVisibleTo(self):
+                self.tables[key]
+
+    def _fill_table(self, key, spec):
+        spec["stale"] = False
+        t = spec["w"]
+        rows = self._rows_of(spec)
+        spec["rows"] = rows
+        t.blockSignals(True)
+        t.setRowCount(0)
+        for r in rows:
+            self._add_table_row(key, r)
+        self._show_lvltext(key)
+        t.blockSignals(False)
+        t.resizeColumnsToContents()
 
     def _add_table_row(self, key, r):
         spec = self.tables[key]
