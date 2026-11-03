@@ -1,6 +1,24 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE SETUP WRITTEN ON THE TEMPLATE (3.24.0)
+  - Response Setup > Make templates and setup...: Ready to make lists what is still open (sentences not decided,
+    requirements not in a section, objectives not mapped, submission excerpts without a value, written formatting
+    rules without a check). Below it, the style each kind of reference text takes, and whether it is hidden.
+  - Make writes, for each planned volume: its template (Production Standards for that volume's profile, named
+    "<effort> <volume>", the next version, the volume, solicitation and company on the cover, the fill-ins) into the
+    setup folder's Templates folder, and the setup written into a document made from it. The template's styles, cover,
+    page scheme, headers, footers and TOC stay; its sample pages are replaced by the structure with every placed sentence.
+  - Reference text styles (hidden by default; type one of your own style names to use it): SK RFP Requirement, SK RFP
+    Support, SK Customer Text, SK Library Context, SK PM Direction, SK Setup Note. With Show/Hide off, authors see the
+    response alone.
+  - The effort records each template and version it used; the setup file carries SK Template and SK Template Version.
+  - Template library: Header and footer designs (whole): collected per part from any template or document, kept
+    exactly as built (tables at their inch widths, tab stops, pictures, fields); Use in this standard puts one on a part
+    and it replaces that part's layout (Production Standards > Headers and footers shows which).
+  - Quick Parts that use list numbering come into templates with their list definitions, renumbered.
+  - Export the setup... still writes the plain setup documents.
+
 FILL-INS, CAPTION SCHEMES, VALIDATION AND THE WORD CHECK (3.23.0)
   - Production Standards > Fill-ins: a value typed once that shows everywhere it is referenced. Style on the cover
     (STYLEREF): the value sits once on the cover or title page in its own style; every STYLEREF to that style in

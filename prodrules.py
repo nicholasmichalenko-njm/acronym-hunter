@@ -37,7 +37,8 @@ def _company_default():
     c["table_styles"] = {}             # 3.10.0: Word table styles, {name: {"xml", "based_on"}}
     c["page_parts"] = {}               # 3.10.0: {"cover": file, "backer": file} in production_parts
     c["quick_parts"] = {"one_gallery": True, "entries": []}
-    c["fill_ins"] = []                 # 3.23.0: tokens typed once: a cover style (STYLEREF) or a document property    # 3.22.0: the Quick Parts a template carries, from files in production_parts
+    c["fill_ins"] = []
+    c["hf_designs"] = {}               # 3.24.0: {part: header and footer kept whole} from the template library                 # 3.23.0: tokens typed once: a cover style (STYLEREF) or a document property    # 3.22.0: the Quick Parts a template carries, from files in production_parts
     c["list_numbering"] = {"on": False, "lists": [   # 3.9.0: what each list style shows, level by level (inches)
         {"name": "Bullets", "levels": [
             {"style": "List Bullet", "fmt": "bullet", "text": "\u2022", "font": "", "left": 0.25, "hanging": 0.25},

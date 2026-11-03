@@ -116,5 +116,29 @@ tjt = PT.make(PRL.merge(std, wk), os.path.join(tmp, "outt"))
 got_t = TL.theme_of_file(tjt.copy)
 check("the template carries the theme", got_t and got_t["colors"]["accent1"] == "1F5FAD" and got_t["major"] == "Arial" and tjt.check.count() == 0, got_t and got_t["colors"])
 
+# ---------------------------------------------------------------- 3.24.0 header and footer designs kept whole
+SMALLD = os.path.join(HERE, "pefix", "data", "small.docx")
+lib5 = TL.Library(os.path.join(tmp, "cfg5"))
+c5, _e = TL.collect(SMALLD, std, lib5)
+hd = next((c for c in c5 if c.key == "hf_designs"), None)
+check("a document's headers and footers are collected whole, per part", hd is not None and hd.items and hd.items[0]["values"].get("header", "").startswith("<w:hdr"),
+      [c.key for c in c5])
+TL.save_collected(lib5, SMALLD, [hd])
+it5 = lib5.shelf("hf_design")[0]
+v5 = lib5.values(it5)
+import re as _re
+mark = "SK DESIGN TEST"
+v5["header"] = v5["header"].replace("</w:hdr>", f'<w:p><w:r><w:t>{mark}</w:t></w:r></w:p></w:hdr>')
+v5["header"] = _re.sub(r"<w:p>", "<w:p>", v5["header"])
+lib5.update(it5["id"], v5)
+w5 = {}
+TL.use_in_standard(lib5, it5["id"], w5, category="body")
+s5 = PRL.merge(std, w5); s5["variables"].update(volume_name="Volume I", solicitation="FA8810", company="Acme")
+tj5 = PT.make(s5, os.path.join(tmp, "out5"))
+z5 = zipfile.ZipFile(tj5.copy)
+hdr_txt = " ".join(z5.read(n).decode() for n in z5.namelist() if _re.match(r"word/header\d+\.xml", n))
+check("a kept design becomes the template's header for that part, exactly as built", mark in hdr_txt and not [s_ for s_ in tj5.steps if s_.get("refused")],
+      [s_.get("refused") for s_ in tj5.steps if s_.get("refused")])
+
 print(f"TEMPLATE LIBRARY {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

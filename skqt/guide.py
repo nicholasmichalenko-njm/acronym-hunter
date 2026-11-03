@@ -232,7 +232,9 @@ TOPICS = [
   "references on the same line, and management direction.",
   "Before writing starts, and after the review changes.",
   ["Check each section's requirements. Up and Down reorder; Take out of this section removes one.",
-   "Press Export the setup... One Word file per volume.",
+   "Press Make templates and setup... (3.24.0): Ready to make shows what is still open; then a template per volume from "
+   "Production Standards and the setup written on it, with the RFP's words and your notes in hidden reference styles.",
+   "Export the setup... writes the plain setup instead: one Word file per volume.",
    "Export changes only... gives writers just what changed since the last setup."],
   ["The export is plain: RFP text in purple, direction in green, ready for your team's own styles."]),
  ("storyboards", "Writing", "Storyboards",
@@ -308,6 +310,7 @@ TOPICS = [
    "this standard puts an item into what you are editing, and New style... adds your own (hidden text ones too).",
    "Quick Parts: Add from a template or document... lists the Quick Parts every template from this standard carries, "
    "all in Word's Quick Parts gallery under your numbered categories.",
+   "Header and footer designs (3.24.0) kept whole in the Template library replace a part's layout when you use one.",
    "Fill-ins (3.23.0): a value typed once shows everywhere: a cover style read by STYLEREF, or a document property. Make a "
    "template asks for the template's name; each time makes the next version, with a validation report beside it and, with "
    "Word on the PC, Word's own check of every Quick Part.",

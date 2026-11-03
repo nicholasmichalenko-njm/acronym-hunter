@@ -165,13 +165,21 @@ def validate(path=None, data=None, installed_fonts=None):
     # numbering
     nroot = _xml(z, "word/numbering.xml")
     nums = {n.get(_w("numId")) for n in nroot.findall("w:num", NS)} if nroot is not None else set()
+    gnums = set()
+    if gl and "word/glossary/_rels/document.xml.rels" in names:      # Quick Parts number from the glossary's own list
+        grel = z.read("word/glossary/_rels/document.xml.rels").decode("utf-8", "replace")
+        m = re.search(r'Type="[^"]*/numbering"[^>]*Target="([^"]+)"|Target="([^"]+)"[^>]*Type="[^"]*/numbering"', grel)
+        if m:
+            gn = _xml(z, "word/glossary/" + (m.group(1) or m.group(2)))
+            gnums = {n.get(_w("numId")) for n in gn.findall("w:num", NS)} if gn is not None else set()
     for n in stories + ([gl] if gl else []):
         root = _xml(z, n)
         if root is None:
             continue
+        have = gnums if n == gl else nums
         for el in root.iter(_w("numId")):
             v = el.get(_w("val"))
-            if v not in (None, "0") and v not in nums:
+            if v not in (None, "0") and v not in have:
                 rep.add("numbering", "problem", f"list number {v} has no definition", n.split("/")[-1])
                 break
     # fonts

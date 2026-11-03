@@ -171,6 +171,54 @@ def _sources(pkg, std=None):
     return out
 
 
+def _design_media(pkg, part, media):
+    """The pictures a kept header or footer design uses, back under the relationship ids its XML names."""
+    import base64
+    if not media:
+        return
+    rn = pkg.rels_name(part)
+    root = etree.Element(f"{{{PR}}}Relationships", nsmap={None: PR})
+    pkg.add_part(rn, root, "application/vnd.openxmlformats-package.relationships+xml")
+    for m in media:
+        ext = (m.get("name") or "x.png").rsplit(".", 1)[-1]
+        k = 1
+        while pkg.has(f"word/media/pe_hf{k}.{ext}"):
+            k += 1
+        mname = f"word/media/pe_hf{k}.{ext}"
+        pkg.add_part(mname, base64.b64decode(m["b64"]), m.get("ct") or f"image/{ext}")
+        r = etree.SubElement(root, f"{{{PR}}}Relationship")
+        r.set("Id", m["rid"]); r.set("Type", m.get("type") or "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image")
+        r.set("Target", posixpath.relpath(mname, posixpath.dirname(part)))
+
+
+def designs_of(pkg, std):
+    """3.24.0: each part's header and footer as kept whole: {part: {"header", "footer", "header_media", "footer_media"}}
+    from the first section of each part (its default header and footer), with the pictures they use."""
+    import base64
+    sm = S.map_sections(pkg, std)
+    rels = pkg.rels_of(pkg.main)
+    out = {}
+    for s in sm.sections:
+        if s.part in out:
+            continue
+        d = {}
+        for kind in ("header", "footer"):
+            ref = next((r for r in s.el.findall(f"w:{kind}Reference", NS) if r.get(q("type")) in (None, "default")), None)
+            if ref is None or ref.get(f"{{{R}}}id") not in rels:
+                continue
+            tgt = rels[ref.get(f"{{{R}}}id")][1]
+            d[kind] = etree.tostring(pkg.tree(tgt), encoding="unicode")
+            media = []
+            for rid, (typ, t, mode) in pkg.rels_of(tgt).items():
+                if mode != "External" and typ.endswith("/image") and t in pkg.raw:
+                    media.append({"rid": rid, "name": posixpath.basename(t), "type": typ, "ct": pkg.content_type("/" + t),
+                                  "b64": base64.b64encode(pkg.raw[t]).decode("ascii")})
+            d[kind + "_media"] = media
+        if d.get("header") or d.get("footer"):
+            out[s.part] = d
+    return out
+
+
 def _new_name(pkg, kind):
     i = 1
     while pkg.has(f"word/{kind}{i}.xml"):
@@ -305,6 +353,22 @@ def _hf_build(pkg, std):
                 root = etree.Element(q(root_tag), nsmap={"w": W, "r": R})
                 fl = []
                 spec = lay.get(kind) or {}
+                design = ((std.get("hf_designs") or {}).get(s.part) or {}).get(kind)
+                if design:                                   # 3.24.0: a design kept whole (its tables, tabs, pictures, fields)
+                    root = etree.fromstring(design.encode("utf-8") if isinstance(design, str) else design)
+                    fl = [" ".join(i.split()) for i in re.findall(r"<w:instrText[^>]*>([^<]*)</w:instrText>", design)
+                          if i.strip()] + re.findall(r'w:instr="([^"]+)"', design)
+                    pkg.add_part(name, root, ct)
+                    _design_media(pkg, name, ((std.get("hf_designs") or {}).get(s.part) or {}).get(kind + "_media") or [])
+                    rid = _new_rid(rels)
+                    rr = etree.SubElement(rels, f"{{{PR}}}Relationship")
+                    rr.set("Id", rid); rr.set("Type", rel); rr.set("Target", posixpath.relpath(name, "word"))
+                    ref = etree.Element(q(f"{kind}Reference"))
+                    ref.set(q("type"), typ); ref.set(f"{{{R}}}id", rid)
+                    insert_ordered(sp, ref)
+                    fields_declared += [(name, None, f) for f in fl]
+                    made.append(name)
+                    continue
                 if kind == "header":
                     root.append(_para(hid, spec if spec else None, std, sources, fl, width, spec.get("rule_below")))
                 else:

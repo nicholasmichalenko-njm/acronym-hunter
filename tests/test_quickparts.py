@@ -2,7 +2,7 @@
 XML, documents); a copy of the source is kept with the standards once; Make a template copies the chosen entries in with
 their text, puts every one in the Quick Parts gallery under the standard's category, leaves out the ones not chosen,
 reports a source that is gone, and the template still passes its own check."""
-import hashlib, io, os, shutil, sys, tempfile, zipfile
+import hashlib, io, os, re, shutil, sys, tempfile, zipfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE)); sys.path.insert(0, HERE)
 import prodparts as PP
@@ -86,6 +86,24 @@ check("a landscape tabloid page keeps its section (paper, orientation, margins) 
       'w:w="24480"' in xmlf and 'w:orient="landscape"' in xmlf and hdr and b"FOLDOUT HEADER" in pkf.raw[hdr[0]] if hdr else False,
       [s_.get("report") for s_ in tjf.steps if s_.get("key") == "quick_parts"])
 check("... and the template still passes its own check", tjf.check.count() == 0, [f["what"][:80] for f in tjf.check.findings])
+
+# ---------------------------------------------------------------- a Quick Part with list numbering (3.24.0)
+src3 = os.path.join(tmp, "Lists.dotx")
+with_glossary(MASTER, src3, numbered=True)
+k3 = QP.keep_source(cfg, src3)
+std4 = PRL.for_effort(tempfile.mkdtemp()); std4["_parts_dir"] = PP.parts_dir(cfg)
+std4["quick_parts"] = {"one_gallery": True, "entries": [{"name": "Numbered steps", "category": "05 Lists", "source": k3}]}
+tjn = PT.make(std4, out)
+stepn = next((s_ for s_ in tjn.steps if s_.get("key") == "quick_parts"), {})
+pkn = Package(tjn.copy)
+nump = [t for (ty, t, m) in pkn.rels_of("word/glossary/document.xml").values() if ty.endswith("/numbering")]
+xn = _et.tostring(pkn.tree(nump[0])).decode() if nump else ""
+xg = _et.tostring(pkn.tree("word/glossary/document.xml")).decode()
+nid = re.search(r'w:numId w:val="(\d+)"', xg)
+check("a Quick Part with list numbering comes in with its list definition, renumbered", "Numbered steps" in [e["name"] for e in QP.read(tjn.copy)]
+      and nid and f'w:numId="{nid.group(1)}"' in xn and "Step %1." in xn, (stepn.get("report"), xn[:300]))
+import templatecheck as TC
+check("... and its numbering checks out", not TC.validate(tjn.copy).problems(), TC.validate(tjn.copy).text())
 
 # ---------------------------------------------------------------- hidden text styles
 std3 = PRL.for_effort(tempfile.mkdtemp())

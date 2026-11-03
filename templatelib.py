@@ -20,7 +20,7 @@ FOLDER = "template_library"
 SHELVES = (("style", "Styles"), ("page_setup", "Page setups"), ("hf", "Headers and footers"), ("heading_numbering", "Heading numbering"),
            ("list_numbering", "List numbering"), ("table_style", "Word table styles"), ("table_look", "Table looks"),
            ("toc", "Table of contents"), ("cover", "Covers"), ("backer", "Back covers"), ("quickpart", "Quick Parts"), ("font", "Fonts"),
-           ("theme", "Themes (colors and fonts)"))
+           ("theme", "Themes (colors and fonts)"), ("hf_design", "Header and footer designs (whole)"))
 THEME_SLOTS = ("dk1", "lt1", "dk2", "lt2", "accent1", "accent2", "accent3", "accent4", "accent5", "accent6", "hlink", "folHlink")
 THEME_NAMES = {"dk1": "Text dark 1", "lt1": "Background light 1", "dk2": "Text dark 2", "lt2": "Background light 2",
                "accent1": "Accent 1", "accent2": "Accent 2", "accent3": "Accent 3", "accent4": "Accent 4", "accent5": "Accent 5",
@@ -381,6 +381,19 @@ def collect(path, std, lib, installed_fonts=None):
                                 + (f", {e['pictures']} picture(s)" if e["pictures"] else "") + (f": {e['text'][:80]}" if e.get("text") else ""))
                            for e in qps],
                           "Copied whole when used: field codes, content controls, pictures and the styles they use."))
+    try:                                                # 3.24.0: each part's header and footer, kept whole
+        from prodengine.engine.pkg import Package
+        from prodengine.pe import hf as H
+        des = H.designs_of(Package.from_bytes(raw, os.path.basename(path)), std)
+    except Exception:                                   # noqa: BLE001
+        des = {}
+    if des:
+        stem = os.path.splitext(os.path.basename(path))[0]
+        cards.append(Card("hf_designs", f"Header and footer designs, whole ({len(des)} parts)",
+                          [item("hf_design", f"{stem} {k}", dict(v, part=k),
+                                f"{k}: header and footer as built (tables at their inch widths, tab stops, pictures, fields)")
+                           for k, v in des.items()],
+                          "Kept exactly as built. The page numbers' style comes from the pagination structure, so a design serves any part."))
     th = theme_of_file(data=raw)
     if th:
         cards.append(Card("theme", "Theme: colors and fonts", [item("theme", th["name"], th, theme_summary(th))],
@@ -472,6 +485,10 @@ def use_in_standard(lib, iid, work, category=""):
             shutil.copyfile(lib.source_path(v["file"]), os.path.join(pdir, v["file"]))
         work.setdefault("page_parts", {})[k] = v["file"]
         return f"{'cover' if k == 'cover' else 'back cover'} {it['name']}"
+    if k == "hf_design":
+        part = category or v.get("part", "body")
+        work.setdefault("hf_designs", {})[part] = {x: v[x] for x in ("header", "footer", "header_media", "footer_media") if x in v}
+        return f"header and footer design for {part}"
     if k == "theme":
         work["theme"] = {"name": v.get("name", ""), "xml": v.get("xml", "")}
         return f"theme {v.get('name', '')}"

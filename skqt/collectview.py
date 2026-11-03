@@ -430,6 +430,13 @@ class LibraryDialog(QDialog):
                 self.page.after_library(f"kit with {len(said)} item(s)")
             return "; ".join(said)
         it = self.lib.get(iid)
+        if it["kind"] == "hf_design" and category is None:          # 3.24.0: which part it heads
+            v = self.lib.values(it) or {}
+            parts = [p.get("key") for p in (self.page.work.get("pagination") or {}).get("parts", []) if p.get("key")] or ["cover", "front", "body", "appendix"]
+            cur = parts.index(v.get("part")) if v.get("part") in parts else 0
+            category, ok = QInputDialog.getItem(self, "Header and footer design", "The part of the page scheme it heads:", parts, cur, False)
+            if not ok:
+                return ""
         if it["kind"] == "quickpart" and category is None:
             v = self.lib.values(it) or {}
             category, ok = QInputDialog.getText(self, "Quick Parts category", "Category in the Quick Parts menu (01 Covers, 02 Title pages...):",

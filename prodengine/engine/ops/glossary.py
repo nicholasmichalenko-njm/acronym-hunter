@@ -205,6 +205,67 @@ def _copy_story(src, dst, tgt, kind, media):
     return name
 
 
+NUM_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering"
+NUM_CT = "application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"
+
+
+def _numbering_part(pkg, part):
+    return next((t for (typ, t, mode) in pkg.rels_of(part).values() if typ.endswith("/numbering") and mode != "External"), None)
+
+
+def _copy_numbering(src, sg, dst, dg, dp):
+    """3.24.0: the list definitions an entry uses (w:num and its w:abstractNum) copied into the destination glossary's
+    numbering part under new ids, and the entry's numId values changed to them. Returns '' or why it could not."""
+    sn = _numbering_part(src, sg) or src.word_part("/numbering")
+    if not sn:
+        return "uses list numbering the source does not define"
+    sroot = src.tree(sn)
+    dn = _numbering_part(dst, dg)
+    if not dn:
+        k = 1
+        while dst.has(f"word/glossary/numbering{k}.xml"):
+            k += 1
+        dn = f"word/glossary/numbering{k}.xml"
+        root = etree.Element(q("numbering"), nsmap={"w": NS["w"]})
+        dst.add_part(dn, root, NUM_CT)
+        rels = _rels_tree(dst, dg)
+        rr = etree.SubElement(rels, f"{{{PR}}}Relationship")
+        rr.set("Id", _new_rid(rels)); rr.set("Type", NUM_REL); rr.set("Target", posixpath.basename(dn))
+    dst.touch(dn)
+    droot = dst.tree(dn)
+    used_num = {int(x.get(q("numId"))) for x in droot.findall("w:num", NS)}
+    used_abs = {int(x.get(q("abstractNumId"))) for x in droot.findall("w:abstractNum", NS)}
+    snums = {x.get(q("numId")): x for x in sroot.findall("w:num", NS)}
+    sabs = {x.get(q("abstractNumId")): x for x in sroot.findall("w:abstractNum", NS)}
+    remap = {}
+    for el in dp.iter(q("numId")):
+        old = el.get(q("val"))
+        if old in (None, "0"):
+            continue
+        if old not in remap:
+            num = snums.get(old)
+            if num is None:
+                return f"list number {old} has no definition in the source"
+            aid = num.find("w:abstractNumId", NS).get(q("val"))
+            ab = sabs.get(aid)
+            if ab is None:
+                return f"list definition {aid} is missing in the source"
+            na = max(used_abs | {-1}) + 1; used_abs.add(na)
+            nn = max(used_num | {0}) + 1; used_num.add(nn)
+            ab2 = copy.deepcopy(ab); ab2.set(q("abstractNumId"), str(na))
+            for x in ab2.findall("w:nsid", NS) + ab2.findall("w:tmpl", NS):
+                ab2.remove(x)
+            first_num = droot.find("w:num", NS)
+            (first_num.addprevious(ab2) if first_num is not None else droot.append(ab2))   # abstractNums come before nums
+            dst.mark(ab2)
+            num2 = copy.deepcopy(num); num2.set(q("numId"), str(nn))
+            num2.find("w:abstractNumId", NS).set(q("val"), str(na))
+            droot.append(num2); dst.mark(num2)
+            remap[old] = str(nn)
+        el.set(q("val"), remap[old])
+    return ""
+
+
 def op_provision(dst, src_path, names):
     """Copy Quick Parts from a source template into dst, with their pictures and styles.
     Never replaces: an entry with the same name+category+gallery stops the copy of that entry."""
@@ -230,10 +291,12 @@ def op_provision(dst, src_path, names):
         if key in have:
             skipped.append((n, "name conflict"))
             continue
-        if e["el"].find(".//w:numPr", NS) is not None:
-            skipped.append((n, "uses list numbering; not supported by provision yet"))
-            continue
         dp = copy.deepcopy(e["el"])
+        if dp.find(".//w:numPr", NS) is not None:      # 3.24.0: its list numbering comes along, renumbered
+            why = _copy_numbering(src, sg, dst, dg, dp)
+            if why:
+                skipped.append((n, why))
+                continue
         # every relationship the entry uses (r:id, r:embed, r:link ...) is copied and renumbered
         unsupported = None
         remap = {}

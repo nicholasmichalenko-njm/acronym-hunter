@@ -4,7 +4,8 @@ order (move a block up or down, take one out of a section), what is not placed y
 writes just what changed since the last export."""
 import datetime, os
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (QCheckBox, QDialog, QDialogButtonBox, QFileDialog, QGridLayout, QHBoxLayout, QLineEdit, QTreeWidget,
+                               QTreeWidgetItem, QVBoxLayout, QWidget)
 import diag
 import effortfolders as EF
 import compliance as C
@@ -45,7 +46,10 @@ class SetupPage(QWidget):
         bar = QHBoxLayout(); bar.setSpacing(D.SPACE["s"]); v.addLayout(bar)
         bar.addStretch(1)
         bar.addWidget(D.button("Export changes only...", None, self.export_changes, "Just what changed since the last export"))
-        bar.addWidget(D.button("Export the setup...", "primary", self.export, "One Word document per volume"))
+        bar.addWidget(D.button("Export the setup...", None, self.export, "One plain Word document per volume"))
+        bar.addWidget(D.button("Make templates and setup...", "primary", lambda: self.make_on_templates(),       # 3.24.0
+                               "For each planned volume: its template from Production Standards, and the setup written on it, "
+                               "with the RFP's words and your notes in hidden reference styles"))
 
     def refresh(self):
         R = self.host.review
@@ -135,6 +139,48 @@ class SetupPage(QWidget):
         self.host.toast(f"Setup exported: {len(paths)} document(s). RFP text is purple, direction green.")
         return paths
 
+    def make_on_templates(self, folder=None, opts=None, go=None):
+        """3.24.0: Ready to make, the reference styles, then a template per volume and the setup written on each.
+        opts and go (tests): the styles to use and whether to make with items still open. Returns the results."""
+        import setuptemplate as ST
+        import effortrec as RR
+        R = self.host.review
+        if R is None or not R.M.outline or self.host.ws is None:
+            return None
+        rec = RR.Record(self.host.ws.root)
+        rd = ST.ready(R.M, rec)
+        if opts is None or go is None:
+            d = MakeDialog(self, rd, ST.options(R.M))
+            if d.exec() != d.Accepted:
+                return None
+            opts = d.values()
+            go = True
+        if not go and not all(ok for ok, _w, _n in rd):
+            return None
+        ST.set_options(R.M, opts)
+        if folder is None:
+            folder = self.host.out_path("setup_documents") if self.host.effort_path else os.path.dirname(R.M.path)
+            folder = folder if os.path.isdir(folder) else os.path.dirname(folder)
+        info = self.host.efforts.get(self.host.effort_name) or {}
+        try:
+            import ctxdocs as CX
+            word = None
+            import prodwordgate as WG
+            if WG.available():
+                import prodword
+                word = prodword.update_fields
+            out = ST.make_all(R.M, folder, self.host.config_dir, self.host.ws, self.host.effort_name or "", info,
+                              context=CX.section_context(self.host.ws.root), word=word)
+        except PermissionError:
+            self.host.status("A file with that name is open in Word: close it, then make again.")
+            return None
+        diag.activity("setup_on_templates", files=len(out))
+        R.M.pending = True
+        self.host.changed()
+        self.host.toast(f"{len(out)} template(s) and setup(s) made in {folder}. Show/Hide shows the RFP's words and your notes.")
+        self.last_made = out
+        return out
+
     def export_changes(self, path=None):
         R = self.host.review
         if R is None:
@@ -158,3 +204,33 @@ class SetupPage(QWidget):
         self.host.changed()
         self.host.toast(f"{len(ch)} change(s) exported")
         return ch
+
+
+class MakeDialog(QDialog):
+    """3.24.0: Ready to make (what is still open), and the style each kind of reference text takes, hidden or shown."""
+
+    def __init__(self, parent, ready, opts):
+        super().__init__(parent)
+        import setuptemplate as ST
+        self.setWindowTitle("Make templates and setup"); self.setMinimumWidth(680)
+        v = QVBoxLayout(self)
+        v.addWidget(D.label("Ready to make", "title"))
+        for ok, what, n in ready:
+            v.addWidget(D.label(("\u2713 " if ok else "\u2022 ") + what + ("" if ok else f" ({n} still open)"), None if ok else "muted"))
+        v.addWidget(D.label("Reference text in the setup", "title"))
+        v.addWidget(D.label("Each kind goes in its own style. Hidden text shows only with Show/Hide on, so authors see the "
+                            "response alone with it off. Type the name of one of your own styles to use it.", "muted"))
+        g = QGridLayout(); v.addLayout(g)
+        self.rows = {}
+        for r, (k, label, _s, _c, _i) in enumerate(ST.KINDS):
+            g.addWidget(D.label(label, None), r, 0)
+            e = QLineEdit(opts[k]["style"]); g.addWidget(e, r, 1)
+            cb = QCheckBox("Hidden"); cb.setChecked(opts[k]["hidden"]); g.addWidget(cb, r, 2)
+            self.rows[k] = (e, cb)
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        bb.button(QDialogButtonBox.Ok).setText("Make" if all(ok for ok, _w, _n in ready) else "Make anyway")
+        bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
+        v.addWidget(bb)
+
+    def values(self):
+        return {k: {"style": e.text().strip() or k, "hidden": cb.isChecked()} for k, (e, cb) in self.rows.items()}

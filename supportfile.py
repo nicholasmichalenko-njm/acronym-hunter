@@ -20,6 +20,14 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.24.0": ["Response Setup > Make templates and setup: for each planned volume, its template from Production Standards "
+               "(named for the effort and the volume, the next version, the volume on its cover) and the setup written on "
+               "it: the template's styles, cover, pagination and TOC stay, its sample pages go, and the RFP's words, support, "
+               "the customer's sentences, library context, your direction and notes each go in their own style, hidden text "
+               "unless you say otherwise. Ready to make lists what is still open first.",
+               "Header and footer designs kept whole: collect them from any template or document and put one on a part; its "
+               "tables, tab stops, pictures and fields come in exactly as built.",
+               "Quick Parts with list numbering now come in, their list definitions renumbered."],
     "3.23.0": ["Fill-ins (Production Standards): type a value once and it shows everywhere: a cover style that headers, "
                "footers and Quick Parts read through STYLEREF (as the team works today), or a document property (DOCPROPERTY). "
                "Fields carry no MERGEFORMAT, so each takes the formatting where it sits.",

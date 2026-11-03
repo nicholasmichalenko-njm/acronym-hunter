@@ -860,6 +860,16 @@ class StandardsPage(QWidget):
         diag.activity("std_quick_parts_added", n=n)
         return n
 
+    def show_hf_designs(self):
+        d = self.work.get("hf_designs") or {}
+        if hasattr(self, "hf_designs_lab"):
+            self.hf_designs_lab.setText(("Kept whole from the Template library (they replace the layout above): " + ", ".join(sorted(d)))
+                                        if d else "Template library > Header and footer designs puts a design kept whole on a part.")
+
+    def clear_hf_designs(self):
+        self.work["hf_designs"] = {}
+        self.show_hf_designs(); self.changed()
+
     def parts_dir(self):
         import prodparts as PP
         return PP.parts_dir(self.host.config_dir)
@@ -899,6 +909,11 @@ class StandardsPage(QWidget):
                 ("h_right", "Header right", "text"), ("rule_below", "Rule under header", "bool"), ("f_left", "Footer left", "text"),
                 ("f_center", "Footer center", "text"), ("f_right", "Footer right", "text"), ("marking", "Marking", "bool")]
         self.table_editor(v, "hf", ("hf_layouts",), cols, adapter="hf")
+        row = QHBoxLayout()                                       # 3.24.0: designs kept whole replace a part's layout
+        self.hf_designs_lab = D.label("", "muted"); row.addWidget(self.hf_designs_lab, 1)
+        row.addWidget(D.button("Clear the kept designs", "ghost", lambda: self.clear_hf_designs(),
+                               "Back to the layouts above for every part"))
+        v.addLayout(row)
 
     def build_toc(self, v):
         f, _c = self.form(v, "Table of contents", "The levels the TOC pulls by style name (Heading 7 and 8 as appendix "
@@ -1187,6 +1202,7 @@ class StandardsPage(QWidget):
         _set(self.work, spec["path"], rows)
 
     def load_tables(self):
+        self.show_hf_designs()
         for key, spec in self.tables.items():
             t = spec["w"]
             rows = self._rows_of(spec)
@@ -1648,6 +1664,7 @@ class StandardsPage(QWidget):
 
     def after_library(self, said):
         """An item from the library went into what is being edited."""
+        self.show_hf_designs()
         self.binder.load()
         self.fill_row_scope()
         self.load_tables()
