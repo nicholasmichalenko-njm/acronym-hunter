@@ -797,7 +797,7 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
         kind = o.get("kind") or ""
         bud0 = ((S.get("budget") or {}).get("pages") or {}).get(lab)
         if kind == "element":
-            d.body.append(EB.element_xml(o, {"std": std, "acronyms": ex.get("acronyms"), "data": ex.get("data"),
+            d.body.append(EB.element_xml(o, {"std": std, "acronyms": ex.get("acronyms"), "data": ex.get("data"), "units": ex.get("units"),
                                              "matrix_rows": ex.get("matrix_rows") or mrows, "pages": int(float(bud0)) if bud0 else None}))
         elif kind == "divider":
             d.body.append(EB.divider_xml(lab))

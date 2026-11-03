@@ -31,7 +31,8 @@ BUILTIN = (("submit", "Submission", "Submission Rules and the dashboard dates"),
            ("deliverable", "Deliverable", "the deliverables board"),
            ("detail", "Effort detail", "the Effort Record"),
            ("hot", "Hot button", "Evaluation and hot buttons"),
-           ("graphic", "Graphic need", "Graphic needs"))
+           ("graphic", "Graphic need", "Graphic needs"),
+           ("unit", "Unit of measurement", "the Units of Measurement table"))          # 3.31.0
 NAME = {k: n for k, n, _f in BUILTIN}
 FEEDS_TEXT = {k: f for k, _n, f in BUILTIN}
 BIN_KEYS = {"objective": "O", "keypoint": "K"}            # the two new bins most used while reading get their own key

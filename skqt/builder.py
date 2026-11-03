@@ -214,6 +214,22 @@ class BuilderPage(QWidget):
         mid = QScrollArea(); mid.setWidgetResizable(True); mid.setFrameShape(QFrame.NoFrame)
         self.mid = QWidget(); self.mv = QVBoxLayout(self.mid); self.mv.setAlignment(Qt.AlignTop)
         mid.setWidget(self.mid)
+        from PySide6.QtWidgets import QTabWidget
+        from .pagepreview import PagesPreview              # 3.31.0: the volume's pages as they will run
+        self.mid_tabs = QTabWidget()
+        self.mid_tabs.addTab(mid, "Section")
+        pv = QWidget(); pvl = QVBoxLayout(pv); pvl.setContentsMargins(0, 0, 0, 0)
+        self.preview_sum = D.label("", "muted"); pvl.addWidget(self.preview_sum)
+        self.preview = PagesPreview()
+        self.preview.page_clicked.connect(lambda lab: self.select(lab))
+        psc = QScrollArea(); psc.setWidgetResizable(True); psc.setFrameShape(QFrame.NoFrame); psc.setWidget(self.preview)
+        psc.setStyleSheet("QScrollArea{background:#D9D6CD;}")
+        pvl.addWidget(psc, 1)
+        pvl.addWidget(D.label("Drawn by Stationkeeper from the structure, the page budget and Production Standards: close to "
+                              "Word's layout. Make templates gives Word's own pages.", "muted"))
+        self.mid_tabs.addTab(pv, "Preview")
+        self.mid_tabs.currentChanged.connect(lambda _i: self.fill_preview())
+        mid = self.mid_tabs
         split.addWidget(mid)
         right = QWidget(); rv = QVBoxLayout(right); rv.setContentsMargins(0, 0, 0, 0)
         rv.addWidget(D.label("Production library", "title"))
@@ -388,6 +404,7 @@ class BuilderPage(QWidget):
         self.sum.setText(f"{n} item(s) in {self.volume or 'the structure'}. Drag a section onto another to move it; "
                          "Enter adds one below, Tab and Shift+Tab change its level.")
         self.sync_tools()
+        self.fill_preview()
 
     CON_TAG = {"lib": "LIB", "cap": "CAP"}
 
@@ -407,6 +424,45 @@ class BuilderPage(QWidget):
             row.setForeground(1, QColor({"lib": "#2F5D8A", "cap": "#0E7490"}.get(kind, "#7030A0")))
             row.setToolTip(0, text)
             node.insertChild(node.childCount(), row)
+
+    def _preview_volume(self):
+        heads = [l for l in O.labels(self.M) if l in O.volume_heads(self.M)]
+        if self.volume in heads:
+            return self.volume
+        if self.sel:
+            v = self.sel if self.sel in heads else SD.volume_of_sections(self.M).get(self.sel, "")
+            if v:
+                return v
+        return heads[0] if heads else ""
+
+    def preview_pages(self, volume=None):
+        """3.31.0: the pages of a volume as pageplan works them out, with the volume's standard and the effort's values."""
+        import pageplan as PP
+        import setuptemplate as ST
+        M = self.M
+        vol = self._preview_volume() if volume is None else volume
+        std, extras = {}, {}
+        try:
+            info = self.host.efforts.get(self.host.effort_name) or {}
+            extras = ST.element_extras(self.host.config_dir, info, self.host.ws.root if self.host.ws is not None else None)
+            for p in ST.plan(M, self.host.config_dir, self.host.ws, self.host.effort_name or "", info):
+                if p["volume"] == vol or not vol:
+                    std = p["std"]
+                    break
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+        return PP.plan(M, vol, std, extras)
+
+    def fill_preview(self):
+        """The Preview tab, drawn again when it is showing (the structure changed, or the tab was opened)."""
+        if not hasattr(self, "mid_tabs") or self.mid_tabs.currentIndex() != 1 or self.M is None:
+            return
+        import pageplan as PP
+        pages = self.preview_pages()
+        self.preview.set_pages(pages, self.sel or "")
+        by, n = PP.summary(pages)
+        self.preview_sum.setText(f"{self._preview_volume() or 'The response'}: {n} page(s) planned  ·  "
+                                 + "  ·  ".join(f"{SP.PART_NAME.get(k, k)} {v}" for k, v in by.items()))
 
     def _tag_tip(self, o, hl, is_vol):
         if is_vol:
@@ -428,11 +484,15 @@ class BuilderPage(QWidget):
             self.sel = lab
         self.sync_tools()
         self.show_section()
+        if hasattr(self, "preview") and self.preview.pages:
+            self.preview.set_pages(self.preview.pages, self.sel or "")
 
     def select(self, lab):
         self.sel = lab
         self.fill_tree()
         self.show_section()
+        if hasattr(self, "preview"):
+            self.preview.set_pages(self.preview.pages, lab)
 
     def sync_tools(self):
         M, lab = self.M, self.sel

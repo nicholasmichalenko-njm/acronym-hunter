@@ -120,6 +120,10 @@ class SettingsPage(QWidget):
                               "the library item it uses; and the elements each effort type starts with.",
                               actions=[D.button("Response elements...", "primary", lambda: self.response_elements())])
         v.addWidget(self.re_card)
+        self.un_card = D.Card("Units of measurement", "The team's units, what each means and its system; those ticked go in "   # 3.31.0
+                              "every Units of Measurement table, with the units each effort captures in Review.",
+                              actions=[D.button("Units...", "primary", lambda: self.units())])
+        v.addWidget(self.un_card)
         self.sg_card = D.Card("Suggestion rules", "Review's Suggest uses rules you can read, not AI: who acts, the verb and the RFP "
                               "section, then the team's and each effort's own rules, made from corrections (Make a rule... on a "
                               "sentence's card). A team pack shares the team's.",                        # 3.18.0
@@ -557,6 +561,14 @@ class SettingsPage(QWidget):
         """3.29.0: Settings > Review: decisions and captures."""
         from .reviewitemsview import ReviewItemsDialog
         d = ReviewItemsDialog(self, self.host)
+        if run:
+            d.exec()
+        return d
+
+    def units(self, run=True):
+        """3.31.0: Settings > Units of measurement."""
+        from .unitsview import UnitsDialog
+        d = UnitsDialog(self, self.host)
         if run:
             d.exec()
         return d

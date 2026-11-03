@@ -13,7 +13,8 @@ HINT = {"submit": "The value, if it sets one: a date and time, an address, a por
         "other": "A value, if any (optional): this detail needs no rule",
         "format": "The value, if it is measured: 12 pt, 1 inch margins, 25 pages (leave empty for a written rule)",
         "objective": "Optional: how the customer will measure it",
-        "keypoint": "Optional: a short label (a theme, a discriminator, a risk)"}
+        "keypoint": "Optional: a short label (a theme, a discriminator, a risk)",
+        "unit": "What it means: meters per second (the note can say the system: SI, US customary)"}
 
 
 class BinDialog(QDialog):

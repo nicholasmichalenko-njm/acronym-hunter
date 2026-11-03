@@ -20,6 +20,11 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.31.0": ["The Structure Builder's Preview tab: the volume's pages as they will run, each part numbered its way, with "
+               "headers, footers and the marking, element pages with their entries, landscape pages turned. Click a page to "
+               "select its section.",
+               "Elements take their pages into the page budget and keep them when a limit is spread. Settings > Units of "
+               "measurement and a Unit capture fill the Units of Measurement table."],
     "3.30.1": ["Make templates builds what you set in the Structure Builder: the TOC, List of Figures, Tables and Appendices "
                "as fields, Acronyms and Abbreviations filled from the effort's approved acronyms, the compliance matrix, "
                "divider and placeholder pages, unnumbered headings, landscape Word sections and placed Quick Parts.",

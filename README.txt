@@ -1,6 +1,18 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE LIVE PREVIEW, UNITS AND PAGES (3.31.0)
+  - Structure Builder > Preview: the volume's pages as they will run, from the structure, the page budget and
+    Production Standards: the template's cover, front matter numbered i, ii, iii, the response from 1, appendices
+    A-1; each part's header, footer and marking; element pages with their entries (the TOC's headings, the approved
+    acronyms, the matrix rows); divider and placeholder pages; landscape pages turned. A click on a page selects its
+    section; the selected section's pages are outlined; it follows every change.
+  - Elements take their pages into the page budget (and whether they count), and keep them when a limit is spread.
+    A response element such as the Executive Summary leads the response.
+  - Settings > Units of measurement: the team's units, what each means, its system, and In every table. Review has a
+    Unit of measurement capture (under More...). The Units of Measurement table takes both.
+  - The Our data file carries Review's decisions and captures, the response elements and kits, and the units.
+
 MAKE TEMPLATES BUILDS THE STRUCTURE (3.30.1)
   - The structure's front matter takes the place of the template's fixed TOC block, in the front matter section: the
     Table of Contents as a field from the TOC design (the appendix headings in it), the List of Figures and List of

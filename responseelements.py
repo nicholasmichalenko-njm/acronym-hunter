@@ -194,6 +194,11 @@ def add_to_volume(M, e, volume="", data=None):
         return None
     o = M.outline[O.index_of(M, lab)]
     o["element"], o["kind"], o["auto"] = e["id"], "element", True
+    import pagebudget as PB                         # 3.31.0: its pages in the page budget, and whether they count
+    if e.get("pages"):
+        PB.set_pages(M, lab, e["pages"], "team")
+    if bool(e.get("counts")) != SP.counts(M, e["part"]):
+        SP.set_item_count(M, lab, bool(e.get("counts")))
     rank = {x["id"]: x["order"] for x in (data or {}).get("elements", [])}
     rank.setdefault(e["id"], e["order"])
     sc = O._scope(M, volume if volume in O.volume_heads(M) else "")
@@ -203,6 +208,9 @@ def add_to_volume(M, e, volume="", data=None):
         me = next(((s_, t_) for s_, t_ in blocks if M.outline[s_] is o), None)
         later = next(((s_, t_) for s_, t_ in blocks if M.outline[s_] is not o and SP.part_of(M.outline[s_]) == e["part"]
                       and M.outline[s_].get("element") and rank.get(M.outline[s_]["element"], 10 ** 6) > rank[e["id"]]), None)
+        if later is None and e["part"] == "body":         # 3.31.0: a response element (Executive Summary) leads the response
+            later = next(((s_, t_) for s_, t_ in blocks if M.outline[s_] is not o and SP.part_of(M.outline[s_]) == "body"
+                          and not M.outline[s_].get("element")), None)
         if me is not None and later is not None and later[0] < me[0]:
             block = M.outline[me[0]:me[1]]
             del M.outline[me[0]:me[1]]

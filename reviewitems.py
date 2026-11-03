@@ -33,7 +33,8 @@ CAPTURES = (("contact", "Contact", "", "#DB2777", "bar", "A point of contact, in
             ("detail", "Effort detail", "", "#DB2777", "more", "Contract type, NAICS, set-aside..., into the Effort Record"),
             ("hot", "Hot button", "", "#DB2777", "more", "A hot button, into Evaluation and hot buttons"),
             ("other", "Other submission detail", "", "#BE185D", "more", "Submission detail that fits no rule, listed in Submission Rules"),
-            ("written", "Written formatting rule", "", "#BE185D", "more", "A rule in words (a marking, a label), on Final Checks"))
+            ("written", "Written formatting rule", "", "#BE185D", "more", "A rule in words (a marking, a label), on Final Checks"),
+            ("unit", "Unit of measurement", "", "#7C3AED", "more", "A unit and what it means, into the Units of Measurement table"))
 # the effort types' own showing (the team can change these in Settings)
 EFFORT_TYPE_HIDE = {"rfi": ["L", "M", "C"]}
 EFFORT_TYPE_SHOW = {"rfi": ["I"]}

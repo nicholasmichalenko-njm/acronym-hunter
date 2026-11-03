@@ -161,11 +161,21 @@ def place_body(droot, names, main_xml, appendix_xml):
     return removed
 
 
-def element_extras(config_dir, info=None):
+def element_extras(config_dir, info=None, root=None):
     """3.30.1: what the elements are filled with: the effort's approved acronyms and abbreviations (term, definition), in
     order, and the team's response elements."""
     import responseelements as RE
-    out = {"data": RE.load(config_dir) if config_dir else RE.builtins(), "acronyms": []}
+    out = {"data": RE.load(config_dir) if config_dir else RE.builtins(), "acronyms": [], "units": []}
+    try:                                               # 3.31.0: the team's units and the effort's captured ones
+        import units as UN
+        rec = None
+        if root:
+            import effortrec as RR
+            rec = RR.Record(root)
+        out["units"] = UN.for_effort(config_dir, rec)
+    except Exception:  # noqa: BLE001
+        import diag
+        diag.swallowed()
     path = (info or {}).get("path") or ""
     if path and os.path.isfile(path):
         try:
@@ -374,7 +384,7 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
         app_e = [o for o in entries if SP.part_of(o) == "appendix"]
         sids = style_ids(opts)
         rb = SD.review_bins(ws.root) if ws is not None else None          # 3.29.0: topics, objectives, key points
-        extras = element_extras(config_dir, info)
+        extras = element_extras(config_dir, info, ws.root if ws is not None else None)
         extras["matrix_rows"] = SD.matrix_rows(M, entries, P, inh)       # the whole volume, for the front matter's matrix
         front_e = [o for o in main_e if SP.part_of(o) in ("cover", "title", "front")]   # 3.30.1: the structure's front matter
         df = None

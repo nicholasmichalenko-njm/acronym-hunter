@@ -132,7 +132,7 @@ class SetupPage(QWidget):
             info = self.host.efforts.get(self.host.effort_name) or {}
             paths = SD.export(R.M, folder, bins=SD.review_bins(self.host.ws.root), context=CX.section_context(self.host.ws.root),
                               part_rules=lambda vol: SP.summaries(self.host.config_dir, self.host.ws, R.M, vol),   # 3.19.0
-                              extras=ST.element_extras(self.host.config_dir, info))                               # 3.30.1
+                              extras=ST.element_extras(self.host.config_dir, info, self.host.ws.root))           # 3.30.1
         except PermissionError:
             self.host.status("A file with that name is open in Word: close it, then export again.")
             return None

@@ -60,7 +60,7 @@ M = w.review.M
 pg = w.assign_page
 w.go("assign"); app.processEvents()
 by = lambda s: next(it for it in M.items if s in it["text"])
-check("More...: the five captures, Other submission detail and Written formatting rule (3.29.0)", list(pg.more_actions) == ["factor", "pagelimit", "deliverable", "detail", "hot", "other", "written"])
+check("More...: the five captures, Other submission detail, Written formatting rule and (3.31.0) Unit of measurement", list(pg.more_actions) == ["factor", "pagelimit", "deliverable", "detail", "hot", "other", "written", "unit"])
 rec = lambda: RR.Record(w.ws.root)
 # evaluation factor, then a subfactor under it
 pg.select(by("Factor 1")["id"]); app.processEvents()

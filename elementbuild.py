@@ -125,7 +125,7 @@ def element_xml(o, ctx):
         out.append(_p(""))
     elif src == "units":
         out.append(_p(title, "TOCHeading"))
-        rows = ctx.get("units") or [("", "", "")] * 3
+        rows = ctx.get("units") or [("", "", "")] * 3       # 3.31.0: the team's and the effort's units
         out.append(table(["Unit", "Meaning", "System"], rows, [1800, 5560, 2000]))
         out.append(_p(""))
     elif src == "matrix":

@@ -179,11 +179,26 @@ def req_counts(M, labels):
     return out
 
 
+def fixed(M, labels):
+    """3.31.0: the sections whose pages are set by what they are (an element, a placeholder, a divider page) and keep
+    them when the limit is spread: {label: pages}."""
+    import compliance as C
+    kinds = {C.outline_label(o): o.get("kind") or "" for o in M.outline}
+    return {l: pages(M, l) for l in labels if kinds.get(l) in ("element", "placeholder", "divider") and pages(M, l)}
+
+
 def split(M, labels, limit, by="even"):
     """Spread limit pages across labels (evenly, or by how many requirements each holds), in half pages, every page
-    used. Returns {label: pages}; sets them."""
+    used. Returns {label: pages}; sets them. 3.31.0: elements, placeholders and divider pages keep their own pages, which
+    come off the limit first."""
     if not labels or not limit:
         return {}
+    keep = fixed(M, labels)
+    if keep:
+        rest = [l for l in labels if l not in keep]
+        limit = max(0.0, float(limit) - sum(keep.values()))
+        out = split(M, rest, limit, by) if rest and limit else {}
+        return dict(keep, **out)
     w = req_counts(M, labels) if by == "reqs" else {l: 1 for l in labels}
     if not sum(w.values()):
         w = {l: 1 for l in labels}
