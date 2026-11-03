@@ -1,0 +1,326 @@
+"""Excerpts and bins (3.21.0): every capture keeps the customer's exact words and exactly where they sit.
+
+An excerpt is the words picked in Review (part of a sentence, a sentence, or several sentences, next to each other or
+not), each part with its document, version, page, paragraph, the RFP's numbering and the heading it sits under. It sits
+in a bin: a built-in one (Submission, Other submission detail, Formatting, Customer objectives, Key points, and the
+captures Review always had: contact, acronym, customer question, key date, evaluation factor, page limit, deliverable,
+effort detail, hot button, graphic need) or one the team made (a custom bin, with a color, a key, and where it feeds).
+
+A sentence keeps one decision (L, M, SOW, support, the customer's, ignore), which drives the matrix; it can sit in any
+number of bins, which drive everything else. An excerpt carries a value only when one exists (a date, an e-mail, a
+font size); Formatting excerpts are measured (a value) or written (text kept verbatim: a phrase check where one fits,
+else a Final Checks item). A customer objective maps to the sections that answer it.
+
+Kept in the effort record (record.json: "excerpts", and "bins" for the effort's own bins); a bin shared with the team
+travels in a team pack (team_bins.json). Rules only (No AI); nothing leaves the PC."""
+import datetime, getpass, re, uuid
+
+# key, name, what it feeds (shown to people), page-mark tag
+BUILTIN = (("submit", "Submission", "Submission Rules and the dashboard dates"),
+           ("other", "Other submission detail", "Submission Rules (listed, no rule needed)"),
+           ("format", "Formatting", "Production Standards (measured) or a check (written)"),
+           ("objective", "Customer objectives", "a matrix column, the setup, the Wall of Truth and the dashboard"),
+           ("keypoint", "Key points", "the setup, win themes, the Wall of Truth and author briefs"),
+           ("contact", "Contact", "Customer information"),
+           ("acronym", "Acronym", "the effort's acronym list"),
+           ("question", "Customer question", "Customer Q&A"),
+           ("keydate", "Key date", "the effort calendar"),
+           ("factor", "Evaluation factor", "Evaluation and hot buttons"),
+           ("pagelimit", "Page limit", "the page budget"),
+           ("deliverable", "Deliverable", "the deliverables board"),
+           ("detail", "Effort detail", "the Effort Record"),
+           ("hot", "Hot button", "Evaluation and hot buttons"),
+           ("graphic", "Graphic need", "Graphic needs"))
+NAME = {k: n for k, n, _f in BUILTIN}
+FEEDS_TEXT = {k: f for k, _n, f in BUILTIN}
+BIN_KEYS = {"objective": "O", "keypoint": "K"}            # the two new bins most used while reading get their own key
+FEEDS = (("setup", "Response Setup"), ("matrix", "a matrix column"), ("truth", "Wall of Truth"), ("dashboard", "Effort Dashboard"))
+COLORS = ("#7C3AED", "#0E7490", "#B45309", "#BE185D", "#15803D", "#1D4ED8", "#9F1239", "#4D7C0F", "#6D28D9")
+FORMAT_KINDS = (("measured", "Measured (a value: font, margins, page limit)"), ("written", "Written (text: a marking, a label, a phrase)"))
+WRITTEN_CHECKS = (("phrase", "A phrase check (Audit looks for these words)"), ("final", "A Final Checks item (someone ticks it)"))
+TEAM_FILE = "team_bins.json"
+
+
+def _now():
+    return datetime.datetime.now().isoformat(timespec="minutes")
+
+
+def _who(who=None):
+    return who or getpass.getuser()
+
+
+def _clean(t, n=400):
+    return " ".join(str(t or "").split())[:n]
+
+
+# ------------------------------------------------------------------ bins
+def custom_bins(rec):
+    return [b for b in rec.data.get("bins", []) if isinstance(b, dict) and b.get("id")]
+
+
+def team_bins(config_dir):
+    """The bins shared with the team on this PC (installed from a team pack, or shared from an effort)."""
+    import json, os
+    try:
+        with open(os.path.join(config_dir, TEAM_FILE), encoding="utf-8") as f:
+            d = json.load(f)
+    except (OSError, ValueError, TypeError):
+        return []
+    return [_bin_clean(b) for b in d if isinstance(b, dict) and b.get("name")] if isinstance(d, list) else []
+
+
+def save_team_bins(config_dir, lst):
+    import json, os
+    out, seen = [], set()
+    for b in lst:
+        b = _bin_clean(b)
+        if b["name"] and b["name"].casefold() not in seen:
+            seen.add(b["name"].casefold()); out.append(b)
+    os.makedirs(config_dir, exist_ok=True)
+    tmp = os.path.join(config_dir, TEAM_FILE + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(out, f, indent=1, ensure_ascii=False)
+    os.replace(tmp, os.path.join(config_dir, TEAM_FILE))
+    return out
+
+
+def _bin_clean(b):
+    name = _clean(b.get("name"), 40)
+    color = b.get("color") if re.match(r"^#[0-9A-Fa-f]{6}$", str(b.get("color") or "")) else COLORS[0]
+    feeds = [f for f in (b.get("feeds") or []) if f in dict(FEEDS)]
+    bid = str(b.get("id") or "") or "c_" + re.sub(r"[^a-z0-9]+", "_", name.casefold()).strip("_")[:24]
+    return {"id": bid, "name": name, "color": color, "feeds": feeds, "about": _clean(b.get("about"), 200),
+            "shared": bool(b.get("shared"))}
+
+
+def bins(rec, config_dir=None):
+    """Every bin: [{"id", "name", "builtin", "color", "feeds", "key"}]; the effort's own bins, then the team's (a team
+    bin the effort already has by name shows once). Custom bins get the keys Alt+1 to Alt+9 in order."""
+    out = [{"id": k, "name": n, "builtin": True, "color": "", "feeds": [], "about": FEEDS_TEXT[k], "key": BIN_KEYS.get(k, "")}
+           for k, n, _f in BUILTIN]
+    have = set()
+    custom = []
+    for b in custom_bins(rec):
+        custom.append(dict(_bin_clean(b), builtin=False)); have.add(custom[-1]["name"].casefold())
+    for b in (team_bins(config_dir) if config_dir else []):
+        if b["name"].casefold() not in have:
+            custom.append(dict(b, builtin=False, team=True)); have.add(b["name"].casefold())
+    for i, b in enumerate(custom):
+        b["key"] = f"Alt+{i + 1}" if i < 9 else ""
+    return out + custom
+
+
+def bin_name(rec, bid, config_dir=None):
+    if bid in NAME:
+        return NAME[bid]
+    b = next((x for x in bins(rec, config_dir) if x["id"] == bid), None)
+    return b["name"] if b else bid
+
+
+def add_bin(rec, name, color="", feeds=(), about="", who=None):
+    """A bin of this effort's own. Returns its id (None without a name, or when the name is taken)."""
+    name = _clean(name, 40)
+    if not name or name.casefold() in {n.casefold() for n in NAME.values()} or \
+            name.casefold() in {b["name"].casefold() for b in custom_bins(rec)}:
+        return None
+    used = {b.get("color") for b in custom_bins(rec)}
+    color = color or next((c for c in COLORS if c not in used), COLORS[len(used) % len(COLORS)])
+    b = _bin_clean({"name": name, "color": color, "feeds": list(feeds), "about": about})
+    base, n = b["id"], 2
+    while any(x["id"] == b["id"] for x in custom_bins(rec)) or b["id"] in NAME:
+        b["id"] = f"{base}_{n}"; n += 1
+    b.update(created=_now(), by=_who(who))
+    rec.data.setdefault("bins", []).append(b)
+    rec.log("effort", f"Bin added: {name}", who=who)
+    rec.save()
+    return b["id"]
+
+
+def update_bin(rec, bid, **f):
+    b = next((x for x in custom_bins(rec) if x["id"] == bid), None)
+    if b is None:
+        return False
+    if "name" in f and _clean(f["name"], 40):
+        b["name"] = _clean(f["name"], 40)
+    if "color" in f and re.match(r"^#[0-9A-Fa-f]{6}$", str(f["color"] or "")):
+        b["color"] = f["color"]
+    if "feeds" in f:
+        b["feeds"] = [x for x in f["feeds"] if x in dict(FEEDS)]
+    if "about" in f:
+        b["about"] = _clean(f["about"], 200)
+    rec.save()
+    return True
+
+
+def remove_bin(rec, bid):
+    """Takes the effort's bin out; its excerpts stay, under Other until put in another bin. Returns how many moved."""
+    before = len(rec.data.get("bins", []))
+    rec.data["bins"] = [b for b in rec.data.get("bins", []) if b.get("id") != bid]
+    if len(rec.data["bins"]) == before:
+        return None
+    n = 0
+    for x in rec.data.get("excerpts", []):
+        if x.get("bin") == bid:
+            x["bin"] = "other"; n += 1
+    rec.save()
+    return n
+
+
+def share_bin(rec, bid, config_dir):
+    """Share the effort's bin with the team on this PC (it travels in the next team pack)."""
+    b = next((x for x in custom_bins(rec) if x["id"] == bid), None)
+    if b is None:
+        return False
+    b["shared"] = True
+    rec.save()
+    save_team_bins(config_dir, [x for x in team_bins(config_dir) if x["name"].casefold() != b["name"].casefold()] + [b])
+    return True
+
+
+# ------------------------------------------------------------------ excerpts
+def part_of(it, doc="", page="", para="", loc="", version="", words=""):
+    """One part of an excerpt from a matrix sentence (and where it sits on the page, when known)."""
+    return {"sid": str(it.get("id", "")), "doc": _clean(doc or it.get("file", ""), 200), "version": _clean(version, 60),
+            "page": _clean(page or it.get("page", ""), 10), "para": _clean(para, 10), "loc": _clean(loc or it.get("loc", ""), 200),
+            "num": _clean(it.get("section", ""), 40), "heading": _clean(it.get("section_title", ""), 160),
+            "text": str(words or it.get("text", "")).strip()[:4000]}
+
+
+def excerpts(rec, bin_id=None):
+    xs = [x for x in rec.data.get("excerpts", []) if isinstance(x, dict) and x.get("id")]
+    return [x for x in xs if bin_id is None or x.get("bin") == bin_id]
+
+
+def get(rec, xid):
+    return next((x for x in excerpts(rec) if x["id"] == xid), None)
+
+
+def text_of(x):
+    """The customer's words, verbatim; parts that are not next to each other are joined with an ellipsis."""
+    return " ... ".join(p.get("text", "") for p in x.get("parts", []) if p.get("text"))
+
+
+def where_of(x):
+    """Where the words sit, part by part: 'Section_L.pdf p.14 para 3, L.5.2 Submission Instructions'."""
+    out = []
+    for p in x.get("parts", []):
+        bits = [p.get("doc", "")]
+        if p.get("version"):
+            bits.append(f"({p['version']})")
+        if p.get("page"):
+            bits.append(f"p.{p['page']}")
+        if p.get("para"):
+            bits.append(f"para {p['para']}")
+        head = " ".join(b for b in (p.get("num", ""), p.get("heading", "")) if b)
+        s = " ".join(b for b in bits if b) + (f", {head}" if head else "")
+        if not p.get("page") and p.get("loc") and p["loc"] not in s:
+            s += f" ({p['loc']})"
+        if s and s not in out:
+            out.append(s)
+    return "; ".join(out)
+
+
+def add(rec, bin_id, parts, value="", note="", sub="", sections=(), ref="", who=None):
+    """An excerpt in a bin. parts: [part_of(...)]; value: only when one exists; sub: for Formatting, measured or written
+    (written: check phrase or final in 'check'); sections: for an objective, the sections that answer it; ref: what the
+    capture filed (a rule key, or a list of them). Returns its id (None with no words)."""
+    parts = [p for p in (parts or []) if (p.get("text") or "").strip()]
+    if not parts or not bin_id:
+        return None
+    x = {"id": uuid.uuid4().hex[:10], "bin": str(bin_id), "parts": parts, "value": _clean(value, 400), "note": _clean(note, 1000),
+         "sub": sub if sub in dict(FORMAT_KINDS) else "", "check": "", "sections": [_clean(s, 200) for s in sections if _clean(s, 200)],
+         "refs": [_clean(r, 200) for r in ([ref] if isinstance(ref, str) else (ref or [])) if _clean(r, 200)], "text_only": False, "at": _now(), "by": _who(who)}
+    if x["bin"] == "format" and not x["sub"]:
+        x["sub"] = "measured" if x["value"] else "written"
+    if x["sub"] == "written":
+        x["check"] = written_check(text_of(x))
+    rec.data.setdefault("excerpts", []).append(x)
+    rec.save()
+    return x["id"]
+
+
+def update(rec, xid, who=None, **f):
+    """Change an excerpt: value, note, bin, sub, check, sections, text_only, or the words of a part ({'part': i, 'text'})."""
+    x = get(rec, xid)
+    if x is None:
+        return False
+    if "value" in f:
+        x["value"] = _clean(f["value"], 400)
+    if "note" in f:
+        x["note"] = _clean(f["note"], 1000)
+    if f.get("bin"):
+        x["bin"] = str(f["bin"])
+    if "sub" in f and f["sub"] in ("", "measured", "written"):
+        x["sub"] = f["sub"]
+        if x["sub"] == "written" and not x.get("check"):
+            x["check"] = written_check(text_of(x))
+    if "check" in f and f["check"] in ("", "phrase", "final"):
+        x["check"] = f["check"]
+    if "sections" in f:
+        x["sections"] = [_clean(s, 200) for s in f["sections"] if _clean(s, 200)]
+    if "text_only" in f:
+        x["text_only"] = bool(f["text_only"])
+    if "part" in f and 0 <= int(f["part"]) < len(x.get("parts", [])) and str(f.get("text") or "").strip():
+        x["parts"][int(f["part"])]["text"] = str(f["text"]).strip()[:4000]
+    x["edited"], x["edited_by"] = _now(), _who(who)
+    rec.save()
+    return True
+
+
+def remove(rec, xid):
+    n = len(rec.data.get("excerpts", []))
+    rec.data["excerpts"] = [x for x in rec.data.get("excerpts", []) if x.get("id") != xid]
+    if len(rec.data["excerpts"]) < n:
+        rec.save()
+        return True
+    return False
+
+
+def of_sentence(rec, sid):
+    """The excerpts that hold words of this sentence."""
+    return [x for x in excerpts(rec) if any(p.get("sid") == sid for p in x.get("parts", []))]
+
+
+def bins_of(rec):
+    """{sentence id: [bin ids]} for the page marks."""
+    out = {}
+    for x in excerpts(rec):
+        for p in x.get("parts", []):
+            got = out.setdefault(p.get("sid", ""), [])
+            if x["bin"] not in got:
+                got.append(x["bin"])
+    out.pop("", None)
+    return out
+
+
+def counts(rec):
+    out = {}
+    for x in excerpts(rec):
+        out[x["bin"]] = out.get(x["bin"], 0) + 1
+    return out
+
+
+def objectives_unmapped(rec):
+    return [x for x in excerpts(rec, "objective") if not x.get("sections")]
+
+
+def for_rule(rec, key):
+    """The excerpts filed with a submission or formatting rule (by the rule's key)."""
+    return [x for x in excerpts(rec) if key in (x.get("refs") or [])]
+
+
+# ------------------------------------------------------------------ written formatting rules
+_PHRASE = re.compile(r"[\"“]([^\"”]{3,120})[\"”]")
+_MARK = re.compile(r"\b(?:mark(?:ed|ing)?|banner|label(?:ed)?|legend|header|footer|portion mark)", re.I)
+
+
+def written_check(text):
+    """How a written formatting rule is checked: 'phrase' when it quotes the words to carry (a marking, a legend), so
+    Audit can look for them; else 'final', an item on Final Checks for someone to tick."""
+    return "phrase" if (_PHRASE.search(text or "") and _MARK.search(text or "")) else "final"
+
+
+def phrase_of(text):
+    """The quoted words a written rule says to carry ('' when it quotes none)."""
+    m = _PHRASE.search(text or "")
+    return m.group(1).strip() if m else ""

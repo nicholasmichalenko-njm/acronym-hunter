@@ -25,16 +25,17 @@ EXT = ".skteam"
 INFO = "team_pack.json"
 MAX_BYTES = 8 * 1024 * 1024
 PARTS = ("authors", "design", "banned", "goals", "process", "doctypes", "folders", "logos", "roles", "markings", "topics", "postsub",
-         "access", "suggest")
+         "access", "suggest", "bins")
 PART_NAMES = {"authors": "Author list", "design": "Matrix design", "banned": "Banned words and phrases", "goals": "Default gate goals",
               "logos": "Company logos", "roles": "Effort Home layouts by role", "markings": "Sensitivity markings",
               "topics": "Team topics", "postsub": "Post-submission checklist", "process": "Stages, gates and roles",
-              "doctypes": "Document types", "folders": "Folders and file names", "access": "Preview tools turned on", "suggest": "Suggestion rules"}
+              "doctypes": "Document types", "folders": "Folders and file names", "access": "Preview tools turned on", "suggest": "Suggestion rules",
+              "bins": "Review bins"}
 LOCKABLE = ("design", "logos", "roles", "goals", "markings", "postsub", "process", "doctypes", "folders", "access")
 FILES = {"authors": "author_list.json", "design": "matrix design.json", "banned": "banned_words.csv", "goals": "stage_goals.json",
          "roles": "team_roles.json", "markings": "team_markings.json", "topics": "team_topics.json", "postsub": "postsub_default.json",
          "process": "process.json", "doctypes": "doc_types.json", "folders": "folder_plan.json", "access": "team_access.json",
-         "suggest": "suggestion_rules.json"}
+         "suggest": "suggestion_rules.json", "bins": "team_bins.json"}
 LOCKS = "team_locks.json"
 INSTALLED = "team_installed.json"
 BACKUPS = "team_backups"
@@ -160,6 +161,9 @@ def available(config_dir):
     import suggestrules as SR                                           # 3.18.0
     if SR.team_rules(config_dir):
         out["suggest"] = f"{len(SR.team_rules(config_dir))} rule(s)"
+    import excerpts as EX                                               # 3.21.0
+    if EX.team_bins(config_dir):
+        out["bins"] = ", ".join(b["name"] for b in EX.team_bins(config_dir))
     return out
 
 
@@ -190,6 +194,9 @@ def make(config_dir, out_path, parts, lock=(), name="", notes="", role_layouts=N
         members[FILES["markings"]] = json.dumps(markings(config_dir), indent=1).encode("utf-8")
     if "topics" in parts:
         members[FILES["topics"]] = json.dumps(topics(config_dir), indent=1, ensure_ascii=False).encode("utf-8")
+    if "bins" in parts:                                                  # 3.21.0
+        import excerpts as EX
+        members[FILES["bins"]] = json.dumps(EX.team_bins(config_dir), indent=1, ensure_ascii=False).encode("utf-8")
     import app_gui
     now = datetime.datetime.now()
     info = {"format": FORMAT, "name": " ".join((name or "Team defaults").split())[:80], "version": now.strftime("%Y.%m.%d-%H%M"),
@@ -300,6 +307,11 @@ def preview(config_dir, info, data):
     if FILES["topics"] in data:
         new = [t for t in json.loads(data[FILES["topics"]]) if t.casefold() not in {x.casefold() for x in topics(config_dir)}]
         out.append(("topics", f"{len(new)} team topic(s) added"))
+    if FILES["bins"] in data:
+        import excerpts as EX
+        mine = {b["name"].casefold() for b in EX.team_bins(config_dir)}
+        new = [b for b in json.loads(data[FILES["bins"]]) if isinstance(b, dict) and str(b.get("name", "")).casefold() not in mine]
+        out.append(("bins", f"{len(new)} Review bin(s) added"))
     if FILES["postsub"] in data:
         mine = os.path.isfile(os.path.join(config_dir, FILES["postsub"]))
         out.append(("postsub", "Replaces the default post-submission checklist (locked)" if "postsub" in lk else
@@ -423,6 +435,9 @@ def install(config_dir, info, data, who=None):
         save_markings(config_dir, theirs if "markings" in lk else markings(config_dir) + theirs)
     if FILES["topics"] in data:
         save_topics(config_dir, topics(config_dir) + json.loads(data[FILES["topics"]]))
+    if FILES["bins"] in data:
+        import excerpts as EX
+        EX.save_team_bins(config_dir, EX.team_bins(config_dir) + [b for b in json.loads(data[FILES["bins"]]) if isinstance(b, dict)])
     if FILES["postsub"] in data:
         p = os.path.join(config_dir, FILES["postsub"])
         if "postsub" in lk or not os.path.isfile(p):

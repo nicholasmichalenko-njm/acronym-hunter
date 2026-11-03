@@ -6,7 +6,8 @@ questions made before 3.18.1 are found in the effort record."""
 
 TAG = {"contact": "POC", "submit": "SUBMIT", "format": "FORMAT", "acronym": "ACRONYM", "question": "CUST Q", "keydate": "DATE",
        "factor": "FACTOR", "pagelimit": "PAGES", "deliverable": "DELIV", "detail": "DETAIL", "hot": "HOT", "graphic": "GRAPHIC",
-       "task": "TASK", "tquestion": "TEAM Q", "note": "NOTE"}
+       "task": "TASK", "tquestion": "TEAM Q", "note": "NOTE",
+       "objective": "OBJECTIVE", "keypoint": "KEY POINT", "other": "OTHER SUBMIT"}          # 3.21.0: the new bins
 KEY = "page_marks"
 
 
@@ -57,6 +58,27 @@ def add(ws, marks, sids, kind):
     return n
 
 
-def text(kinds):
-    """The margin text: what was captured, in the order it was."""
-    return ", ".join(TAG[k] for k in kinds if k in TAG)
+def with_bins(marks, record):
+    """3.21.0: the bins each sentence's excerpts sit in, added to the marks (a custom bin as 'bin:<id>')."""
+    try:
+        import excerpts as EX
+        for sid, bins in EX.bins_of(record).items():
+            for b in bins:
+                k = b if b in TAG else "bin:" + b
+                got = marks.setdefault(sid, [])
+                if k not in got:
+                    got.append(k)
+    except (AttributeError, TypeError):
+        pass
+    return marks
+
+
+def text(kinds, names=None):
+    """The margin text: what was captured, in the order it was; a custom bin by its name (names: {bin id: name})."""
+    out = []
+    for k in kinds:
+        if k in TAG:
+            out.append(TAG[k])
+        elif str(k).startswith("bin:"):
+            out.append((names or {}).get(k[4:], "BIN").upper()[:16])
+    return ", ".join(out)

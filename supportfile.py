@@ -20,6 +20,14 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.21.0": ["Excerpts and bins: every capture keeps the customer's exact words and where they sit (document, page, "
+               "paragraph, numbering, heading). In Review, Objective (O) and Key point (K) put the picked words in a bin; "
+               "Bins (B) holds Other submission detail, Written formatting rule, your own bins (Alt+1 to Alt+9) and Every "
+               "excerpt. Sentences that are not next to each other make one excerpt.",
+               "A sentence keeps one decision and can sit in any number of bins. Its card lists them to edit or take out.",
+               "Submission Rules show the customer's words under each rule, and list Other submission detail and written "
+               "formatting rules (a phrase check when they quote the words, else a Final Checks item).",
+               "Make a bin for the effort (a color, where it feeds) and Share with team: it travels in the team pack."],
     "3.20.3": ["Review fits the window: the document scrolls, the right panel scrolls on its own with the decisions on top, "
                "and the wheel glides. Drag across words and press Extract (Shift+S) to make them a sentence of their own; "
                "Split with no word clicked asks exactly where.",

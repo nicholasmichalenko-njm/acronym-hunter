@@ -172,6 +172,9 @@ TOPICS = [
    "Split (S) splits at a clicked word, or asks exactly where. Capture files them: a contact, submission or "
    "formatting rule, acronym, key date or customer question. More captures... adds evaluation factors, page limits, "
    "deliverables, effort details and hot buttons.",
+   "Bins (3.21.0): Objective (O), Key point (K) and Bins (B) put the picked words in a bin, verbatim with where they sit; "
+   "Ctrl+click sentences far apart for one excerpt. A sentence keeps one decision and sits in any number of bins; its "
+   "card lists them. Every capture keeps an excerpt too. Bins (B) > New bin... makes the effort's own (Alt+1 to Alt+9).",
    "Graphic need (P) tags a concept that needs a graphic, from the sentence or the words you picked; it lists on the Effort Dashboard.",
    "Several sentences at once: Ctrl+click, drag a box, Select undecided, or Ctrl+A. The bar above the page shows how many, "
    "with Decide all, Put all in section and Author for all.",

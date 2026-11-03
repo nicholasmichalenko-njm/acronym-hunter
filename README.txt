@@ -1,6 +1,23 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+EXCERPTS AND BINS (3.21.0)
+  - Every capture keeps the customer's exact words and where they sit: document, version, page, paragraph, the RFP's
+    numbering and the heading. Several sentences that are not next to each other make one excerpt, each part keeping
+    its place.
+  - Review: Objective (O) puts the picked words in Customer objectives and maps them to the sections that answer them.
+    Key point (K) keeps your train of thought, with a note. Bins (B): Other submission detail (no rule needed), Written
+    formatting rule, the effort's own bins on Alt+1 to Alt+9, New bin..., Bins of this effort... and Every excerpt...
+  - A sentence keeps one decision (L, M, SOW, support, the customer's, ignore) and can sit in any number of bins. The
+    margin names its bins; its card lists the excerpts with Edit... and Take out.
+  - A value only when one exists: a date, an e-mail, a font size. A formatting excerpt with a value is measured; one
+    without is written, checked by phrase when it quotes the words to carry, else on Final Checks.
+  - Submission Rules show the customer's words under each rule, and list Other submission detail and written
+    formatting rules, with Edit... and Take out.
+  - New bin: a name, a color and where it feeds (Response Setup, a matrix column, Wall of Truth, Effort Dashboard).
+    Share with team keeps it for every effort on this PC and puts it in the next team pack (Review bins).
+  - Coming next: topics, Sort mode and RFI review (3.22.0); the matrix and setup made from it all (3.23.0).
+
 REVIEW FITS THE WINDOW, AND THE 2026-11-02 FIXES (3.20.3)
   - Review: the page stays put and the document scrolls; the right panel scrolls on its own, decisions on top, then the
     sentence's card. The mouse wheel glides. Space and drag pans as soon as the mouse is over the page.

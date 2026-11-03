@@ -560,6 +560,20 @@ class AssignPage(QWidget):
                        "it lists under Graphic needs on Effort Home. Uses the words you dragged across, else the selected sentence.")
         self.cap_keys["graphic"] = gfx
         caprow.addWidget(gfx); caprow.addWidget(more)
+        # 3.21.0: bins: the picked words, verbatim with where they sit, in a bin (a sentence can sit in several)
+        for key, text, tip in (("objective", "Objective  O", "A goal the customer states: map it to the sections that answer it"),
+                               ("keypoint", "Key point  K", "Your train of thought while reading: a theme, a discriminator, a risk")):
+            b = D.button(text, "cap", lambda _=False, kk=key: self.do_bin(kk), tip + ". Uses the words you dragged across, "
+                         "else the selected sentences.")
+            self.cap_keys[key] = b
+            caprow.addWidget(b)
+        self.bins_btn = D.button("Bins  B", "cap", None, "Other submission detail, a written formatting rule, the effort's own "
+                                 "bins (Alt+1 to Alt+9), New bin..., and Every excerpt...")
+        self.bins_menu = QMenu(self.bins_btn)
+        self.bins_menu.aboutToShow.connect(lambda: self.fill_bins_menu())
+        self.bins_btn.setMenu(self.bins_menu)
+        self.cap_keys["bins"] = self.bins_btn
+        caprow.addWidget(self.bins_btn)
         cgrid = FlowLayout(spacing=D.SPACE["xs"])                             # 2.84.0: for a library document
         self.ctx_keys = {}
         for k, (text, kind, fn, tip) in enumerate((
@@ -649,6 +663,9 @@ class AssignPage(QWidget):
                         ("L", lambda: self.do_lm("L")), ("E", lambda: self.do_lm("M")), ("Shift+M", lambda: self.do_lm("M")),
                         ("Delete", self.do_undecide), ("J", self.do_combine), ("S", self.do_split),
                         ("Shift+S", lambda: self.do_extract()),
+                        ("O", lambda: self.do_bin("objective") if self.cx is None else None),       # 3.21.0: bins
+                        ("K", lambda: self.do_bin("keypoint") if self.cx is None else None),
+                        ("B", lambda: self.bins_btn.showMenu() if self.cx is None else None),
                         ("F", lambda: self.do_for_req()), ("N", lambda: self.do_record("note")),
                         ("Q", lambda: self.do_record("question")), ("T", lambda: self.do_record("task")),
                         ("Ctrl+A", lambda: self.select_all()), ("H", lambda: self.toggle_pan()),
@@ -656,6 +673,8 @@ class AssignPage(QWidget):
                         ("Escape", lambda: self.toggle_capture(False) if self.view.capturing else
                          (self.clear_split() if self.split_at is not None else self.view.scene().clearSelection()))):
             QShortcut(QKeySequence(key), self.view, activated=fn)
+        for i in range(9):                                       # 3.21.0: the effort's own bins, in order
+            QShortcut(QKeySequence(f"Alt+{i + 1}"), self.view, activated=lambda n=i: self.do_custom_bin(n))
         self.show_card([])
 
     # ------------------------------------------------------------ the review
@@ -1130,7 +1149,7 @@ class AssignPage(QWidget):
             if kinds:                                               # 3.18.1: what was captured from it, in the margin
                 y = max(box.boundingRect().top(), last_y + 11)
                 last_y = y
-                lab = QGraphicsSimpleTextItem(PM.text(kinds))
+                lab = QGraphicsSimpleTextItem(PM.text(kinds, getattr(self, "bin_names", {})))
                 lab.setFont(QFont("Segoe UI", 7, QFont.Bold))
                 lab.setBrush(QColor(D.CAPTURE_COLOR))
                 lab.setPos(MARGIN - 8 - lab.boundingRect().width(), y)
@@ -1306,9 +1325,15 @@ class AssignPage(QWidget):
         reg, rules = self.captured_rules(it)
         import custqa as Q
         qs = [q for q in Q.items(R_.Record(self.host.ws.root)) if q.get("sid") == it["id"]]
-        others = [k for k in (self.marks.get(it["id"]) or []) if k not in ("submit", "format", "question", "task", "tquestion")]
+        import excerpts as EX
+        rec = R_.Record(self.host.ws.root)
+        xs = EX.of_sentence(rec, it["id"])                                # 3.21.0: the excerpts that hold its words
+        inbins = {x["bin"] for x in xs}
+        others = [k for k in (self.marks.get(it["id"]) or []) if k not in ("submit", "format", "question", "task", "tquestion")
+                  and k not in inbins and not str(k).startswith("bin:")]
         self.capture_edits = {}
-        if not (rules or qs or others):
+        self.excerpt_rows = {}
+        if not (rules or qs or others or xs):
             return 0
         self.head("Captured from this sentence")
         from PySide6.QtWidgets import QLineEdit
@@ -1327,10 +1352,29 @@ class AssignPage(QWidget):
             self.add(D.label(f"Customer question ({q.get('status', '')}): {q.get('question', '')[:160]}", None))
         if qs:
             self.add(D.button("Open Customer Q&A", "ghost", lambda: self.host.go("custqa"), "Edit the question there"))
+        names = getattr(self, "bin_names", {}) or {b["id"]: b["name"] for b in EX.bins(rec, self.host.config_dir)}
+        for x in xs:
+            w = QWidget(); h = QHBoxLayout(w); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(D.SPACE["xs"])
+            words = EX.text_of(x)
+            bits = [x.get("value", "")] if x.get("value") else []
+            if x["bin"] == "objective":
+                bits.append("answers: " + (", ".join(x.get("sections", [])) or "no section yet"))
+            if x.get("sub") == "written":
+                bits.append("phrase check" if x.get("check") == "phrase" else "Final Checks item")
+            if x.get("note"):
+                bits.append(x["note"])
+            lab = D.label(f"<b>{names.get(x['bin'], x['bin'])}</b>: \u201c{words[:120]}{'...' if len(words) > 120 else ''}\u201d"
+                          + (f"  ({'; '.join(bits)})" if bits else ""), None)
+            lab.setToolTip(words[:1500] + "\n" + EX.where_of(x))
+            h.addWidget(lab, 1)
+            h.addWidget(D.button("Edit...", None, lambda _=False, i=x["id"]: self.edit_excerpt(i), "Bin, value, note, sections"))
+            h.addWidget(D.button("Take out", "ghost", lambda _=False, i=x["id"]: self.remove_excerpt(i), "Take the excerpt out"))
+            self.excerpt_rows[x["id"]] = lab
+            self.add(w)
         if others:
             self.add(D.label("Also captured: " + PM.text(others) + ". Edit them where they are filed (Effort Dashboard, "
                              "acronym list, Effort Record).", "muted"))
-        return len(rules) + len(qs) + len(others)
+        return len(rules) + len(qs) + len(others) + len(xs)
 
     def edit_capture(self, key, value):
         """3.20.3: a captured rule's value fixed from the sentence's card (a mistyped e-mail, say)."""
@@ -1357,7 +1401,10 @@ class AssignPage(QWidget):
         """3.18.1: the sentences something was captured from (or a task or team question made on)."""
         try:
             ws = self.host.ws
-            self.marks = PM.load(ws, R_.Record(ws.root)) if ws is not None else {}
+            rec = R_.Record(ws.root) if ws is not None else None
+            self.marks = PM.with_bins(PM.load(ws, rec), rec) if ws is not None else {}
+            import excerpts as EX
+            self.bin_names = {b["id"]: b["name"] for b in EX.bins(rec, self.host.config_dir)} if rec is not None else {}
         except Exception:
             diag.swallowed()
             self.marks = {}
@@ -1375,14 +1422,186 @@ class AssignPage(QWidget):
 
     def do_capture(self, kind, answer=None):
         """3.18.1: a capture that was filed marks its sentence on the page."""
-        sids = None
+        sids, parts = None, []
         if self.cx is None and self.R is not None:
             rows = self.selected()
             sids = [self.grab["iid"]] if (self.grab and any(it["id"] == self.grab["iid"] for it in rows)) else [it["id"] for it in rows]
+            parts = self.excerpt_parts()
         got = self._do_capture(kind, answer)
         if got and sids:
             self.mark_rows(kind, sids)
+        if got and parts:                                    # 3.21.0: every capture keeps the words and where they sit
+            self.file_excerpt(kind, got, parts)
         return got
+
+    # ------------------------------------------------------------ 3.21.0 excerpts and bins
+    def excerpt_parts(self):
+        """The words a capture or a bin uses, part by part: the words dragged across, else each selected sentence (in the
+        document's order, next to each other or not), with document, version, page, paragraph, numbering and heading."""
+        import excerpts as EX
+        rows = self.selected() if self.R is not None else []
+        if not rows:
+            return []
+        g = self.grab if (self.grab and any(it["id"] == self.grab["iid"] for it in rows)) else None
+        use = [it for it in rows if it["id"] == g["iid"]] if g else rows
+        order = {it["id"]: i for i, it in enumerate(self.R.M.items)}
+        out = []
+        for it in sorted(use, key=lambda it: order.get(it["id"], 0)):
+            place = self.placed.get(it["id"], ("",))[0] or it.get("place", "")
+            pg = para = ""
+            if self.pdf and place and it.get("file") == self.file:
+                try:
+                    p_, q_ = PS.where(self.pdf, place)
+                    pg, para = (str(p_) if p_ else ""), (str(q_) if q_ else "")
+                except Exception:
+                    diag.swallowed()
+            out.append(EX.part_of(it, doc=it.get("file", "") or (self.file or ""), page=pg, para=para,
+                                  version=it.get("version", ""), words=g["text"] if g else ""))
+        return out
+
+    def file_excerpt(self, kind, got, parts):
+        """A capture's excerpt: the bin is the capture; a submission or formatting rule keeps its value and key."""
+        import excerpts as EX
+        try:
+            rec = R_.Record(self.host.ws.root)
+            value, refs = "", []
+            if kind in ("submit", "format") and isinstance(got, list):
+                import docversions as DV
+                import subreq as SR
+                rows = {r["key"]: r for r in SR.Register(DV.Library(self.host.ws.p("documents")).load()).rows()}
+                refs = [k for k in got if k]
+                value = "; ".join(f"{rows[k]['subject']}: {rows[k]['value']}" for k in refs if k in rows)
+            xid = EX.add(rec, kind, parts, value=value, ref=refs)
+            if xid:
+                self.load_marks(); self.restyle()
+            return xid
+        except Exception:
+            diag.swallowed()
+            return None
+
+    def fill_bins_menu(self):
+        import excerpts as EX
+        m = self.bins_menu
+        m.clear()
+        m.addAction("Other submission detail", lambda: self.do_bin("other"))
+        m.addAction("Written formatting rule", lambda: self.do_bin("format", written=True))
+        rec = R_.Record(self.host.ws.root) if self.host.ws is not None else None
+        custom = [b for b in EX.bins(rec, self.host.config_dir) if not b["builtin"]] if rec is not None else []
+        if custom:
+            m.addSeparator()
+            for b in custom:
+                a = m.addAction(D.dot_icon(b["color"]), b["name"] + (f"   {b['key']}" if b.get("key") else ""),
+                                lambda bid=b["id"]: self.do_bin(bid))
+                a.setToolTip(b.get("about", ""))
+        m.addSeparator()
+        m.addAction("New bin...", lambda: self.new_bin())
+        m.addAction("Bins of this effort...", lambda: self.manage_bins())
+        m.addAction("Every excerpt...", lambda: self.all_excerpts())
+        return m
+
+    def do_custom_bin(self, n):
+        import excerpts as EX
+        if self.cx is not None or self.host.ws is None:
+            return None
+        custom = [b for b in EX.bins(R_.Record(self.host.ws.root), self.host.config_dir) if not b["builtin"]]
+        if n >= len(custom):
+            return self.host.status(f"No bin on Alt+{n + 1} yet: Bins (B) > New bin...")
+        return self.do_bin(custom[n]["id"])
+
+    def do_bin(self, bin_id, answer=None, written=False):
+        """3.21.0: the words dragged across (else the selected sentences, next to each other or not) into a bin, verbatim
+        with where they sit; a value only when one exists. answer (tests): BinDialog.values(). Returns the excerpt's id."""
+        import excerpts as EX
+        from . import binsview as BV
+        if self.cx is not None or self.R is None:
+            return self.host.status("Bins are for the matrix's documents.")
+        parts = self.excerpt_parts()
+        if not parts:
+            return self.host.status("Select a sentence first (drag across words inside it to pick just those; Ctrl+click for more).")
+        rec = R_.Record(self.host.ws.root)
+        if answer is None:
+            d = BV.BinDialog(self, rec, self.host.config_dir, bin_id, parts, sections=self.R.labels())
+            if written:
+                d.value.clear()
+            if d.exec() != QDialog.Accepted:
+                return None
+            answer = d.values()
+        b = answer.get("bin") or bin_id
+        sub = ("measured" if (answer.get("value") or "").strip() else "written") if b == "format" else ""
+        xid = EX.add(rec, b, parts, value=answer.get("value", ""), note=answer.get("note", ""), sub=sub,
+                     sections=answer.get("sections", ()) if b == "objective" else ())
+        if xid and sub == "written" and answer.get("check"):
+            EX.update(rec, xid, check=answer["check"])
+        if xid:
+            diag.activity("excerpt_binned")
+            self.host.status(f"In {EX.bin_name(rec, b, self.host.config_dir)}: \"{EX.text_of(EX.get(rec, xid))[:70]}\"")
+            self.after_bins()
+        return xid
+
+    def edit_excerpt(self, xid, answer=None):
+        import excerpts as EX
+        from . import binsview as BV
+        rec = R_.Record(self.host.ws.root)
+        x = EX.get(rec, xid)
+        if x is None:
+            return False
+        if answer is None:
+            d = BV.BinDialog(self, rec, self.host.config_dir, x["bin"], x["parts"], sections=self.R.labels() if self.R else [], x=x)
+            if d.exec() != QDialog.Accepted:
+                return False
+            answer = d.values()
+        b = answer.get("bin") or x["bin"]
+        f = {"bin": b, "value": answer.get("value", x.get("value", "")), "note": answer.get("note", x.get("note", ""))}
+        if b == "objective":
+            f["sections"] = answer.get("sections", x.get("sections", []))
+        if b == "format":
+            f["sub"] = "measured" if (f["value"] or "").strip() else "written"
+            if f["sub"] == "written":
+                f["check"] = answer.get("check") or x.get("check") or "final"
+        ok = EX.update(rec, xid, **f)
+        if ok:
+            diag.activity("excerpt_edited")
+            self.after_bins()
+        return ok
+
+    def remove_excerpt(self, xid):
+        import excerpts as EX
+        ok = EX.remove(R_.Record(self.host.ws.root), xid)
+        if ok:
+            self.after_bins()
+        return ok
+
+    def after_bins(self):
+        self.load_marks(); self.restyle()
+        self.show_card(self.selected())
+        self.host.changed()
+
+    def new_bin(self, answer=None):
+        from . import binsview as BV
+        bid = BV.make_bin(self, R_.Record(self.host.ws.root), self.host.config_dir, answer)
+        if bid:
+            self.after_bins()
+        return bid
+
+    def manage_bins(self, run=True):
+        from . import binsview as BV
+        d = BV.BinsDialog(self, self, R_.Record(self.host.ws.root))
+        if run:
+            d.exec()
+        return d
+
+    def all_excerpts(self, run=True):
+        from . import binsview as BV
+        d = BV.ExcerptsDialog(self, self, R_.Record(self.host.ws.root))
+        if run:
+            d.exec()
+        return d
+
+    def show_sentence(self, sid):
+        if self.R is not None and self.R.item(sid) is not None:
+            self.select(sid)
+            return True
+        return False
 
     def _do_capture(self, kind, answer=None):
         """Contact, Submission, Formatting, Acronym, Question or Key date (2.98.0), and the More captures (2.99.0: factor,

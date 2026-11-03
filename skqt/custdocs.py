@@ -517,6 +517,25 @@ class RequirementsPage(QWidget):
                 self.rows[r["key"]] = r
                 if r["key"] == keep:
                     sel = it
+        import excerpts as EX                      # 3.21.0: excerpts that need no rule, and written formatting rules
+        rec = c.rec
+        self.excerpts = {}
+        for label, xs, tip in (("Other submission detail", EX.excerpts(rec, "other"), "Put here from Review (Bins > Other submission detail)"),
+                               ("Written formatting rules", [x for x in EX.excerpts(rec, "format") if x.get("sub") == "written"],
+                                "Formatting the customer states in words: a phrase check or a Final Checks item")):
+            g = QTreeWidgetItem([f"{label} ({len(xs)})", "none yet" if not xs else "", "", ""])
+            f = g.font(0); f.setBold(True); g.setFont(0, f); g.setToolTip(0, tip)
+            self.tree.addTopLevelItem(g)
+            for x in xs:
+                words = EX.text_of(x)
+                how = ("phrase check" if x.get("check") == "phrase" else "Final Checks item") if x.get("sub") == "written" else "Excerpt"
+                it = QTreeWidgetItem([words[:60] + ("..." if len(words) > 60 else ""), x.get("value") or words[:200], how,
+                                      EX.where_of(x)[:120]])
+                it.setData(0, Qt.UserRole, "x:" + x["id"]); it.setToolTip(1, words[:1500])
+                g.addChild(it)
+                self.excerpts["x:" + x["id"]] = x
+                if "x:" + x["id"] == keep:
+                    sel = it
         self.tree.expandAll()
         if sel is not None:
             self.tree.setCurrentItem(sel)
@@ -540,6 +559,27 @@ class RequirementsPage(QWidget):
             w = self.body.takeAt(0).widget()
             if w is not None:
                 w.setParent(None); w.deleteLater()
+        import excerpts as EX
+        x = getattr(self, "excerpts", {}).get(self.current() or "")
+        if x is not None:                                  # 3.21.0: an excerpt with no rule
+            self.card.title.setText("Other submission detail" if x["bin"] == "other" else "Written formatting rule")
+            self.body.addWidget(D.label("\u201c" + EX.text_of(x) + "\u201d"))
+            self.body.addWidget(D.label(EX.where_of(x), "muted"))
+            if x.get("sub") == "written":
+                self.body.addWidget(D.label(("Checked by phrase: Audit looks for \u201c" + EX.phrase_of(EX.text_of(x)) + "\u201d")
+                                            if x.get("check") == "phrase" and EX.phrase_of(EX.text_of(x)) else
+                                            "Checked on Final Checks: someone ticks it before submission.", None))
+            if x.get("value"):
+                self.body.addWidget(D.label("Value: " + x["value"], "title"))
+            if x.get("note"):
+                self.body.addWidget(D.label("Note: " + x["note"], "muted"))
+            row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
+            row.addWidget(D.button("Edit...", None, lambda: self.edit_excerpt(x["id"])))
+            row.addWidget(D.button("Take out", "ghost", lambda: self.remove_excerpt(x["id"])))
+            row.addStretch(1)
+            w = QWidget(); w.setLayout(row); self.body.addWidget(w)
+            self.body.addStretch(1)
+            return
         r = self.rows.get(self.current())
         if r is None:
             self.card.title.setText("Submission rule")
@@ -554,7 +594,13 @@ class RequirementsPage(QWidget):
             lab = QLabel(html); lab.setTextFormat(Qt.RichText); lab.setWordWrap(True); self.body.addWidget(lab)
         if r.get("found") and r["found"] != r["value"]:
             self.body.addWidget(D.label(f"The documents say: {r['found']}", "muted"))
-        if r.get("sentence"):
+        xs = EX.for_rule(self.ctx.rec, r["key"]) if self.ctx is not None else []
+        if xs:                                             # 3.21.0: the customer's words, verbatim, with where they sit
+            self.body.addWidget(D.SectionTitle("The customer's words"))
+            for x in xs:
+                self.body.addWidget(D.label("\u201c" + EX.text_of(x) + "\u201d"))
+                self.body.addWidget(D.label(EX.where_of(x), "muted"))
+        elif r.get("sentence"):
             self.body.addWidget(D.SectionTitle("The sentence"))
             self.body.addWidget(D.label(r["sentence"]))
         if r["history"]:
@@ -577,6 +623,34 @@ class RequirementsPage(QWidget):
             row.addWidget(D.button("Remove", "danger", lambda: self.act("remove", k)))
         w = QWidget(); w.setLayout(row)
         self.body.addWidget(w)
+
+    def edit_excerpt(self, xid, answer=None):
+        """3.21.0: an excerpt's bin, value and note (the words stay the customer's)."""
+        import excerpts as EX
+        from .binsview import BinDialog
+        rec = self.ctx.rec if self.ctx is not None else None
+        x = EX.get(rec, xid) if rec is not None else None
+        if x is None:
+            return False
+        if answer is None:
+            d = BinDialog(self, rec, self.host.config_dir, x["bin"], x["parts"], x=x)
+            if d.exec() != QDialog.Accepted:
+                return False
+            answer = d.values()
+        f = {"bin": answer.get("bin") or x["bin"], "value": answer.get("value", ""), "note": answer.get("note", "")}
+        if f["bin"] == "format":
+            f["sub"] = "measured" if f["value"].strip() else "written"
+            if f["sub"] == "written":
+                f["check"] = answer.get("check") or x.get("check") or "final"
+        ok = EX.update(rec, xid, **f)
+        self.refresh("x:" + xid)
+        return ok
+
+    def remove_excerpt(self, xid):
+        import excerpts as EX
+        ok = self.ctx is not None and EX.remove(self.ctx.rec, xid)
+        self.refresh()
+        return ok
 
     def open_change(self, key):
         """2.85.0: the change that set this rule, in Compare (both versions, its decision)."""

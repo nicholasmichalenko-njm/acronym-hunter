@@ -55,6 +55,8 @@ import roleaccess as _RA
 _RA.set_preview(cfgA, "fixcopy", True)                      # 3.13.0: the Preview choice travels too
 import suggestrules as _SR
 _SR.add_rule(cfgA, None, "are limited to", "L", "team")      # 3.18.0: the team's suggestion rules travel too
+import excerpts as _EX
+_EX.save_team_bins(cfgA, [{"name": "Transition risk", "color": "#B45309", "feeds": ["setup", "truth"]}])   # 3.21.0: bins too
 have = TP.available(cfgA)
 check("the maker's PC lists what it can share", set(have) == set(TP.PARTS), have)
 pack = os.path.join(tmp, f"Team{TP.EXT}")
