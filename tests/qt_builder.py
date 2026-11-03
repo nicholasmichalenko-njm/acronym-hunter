@@ -204,8 +204,8 @@ O.set_break(M, "2 Technical Approach", "landscape")
 out = os.path.join(tmp, "setup"); os.makedirs(out)
 paths = w.setup_page.export(out)
 xml = " ".join(zipfile.ZipFile(p_).read("word/document.xml").decode("utf-8") for p_ in paths)
-check("the setup carries elements, Word sections and library items", "Element: TOC" in xml and "Starts a new Word section (landscape)" in xml
-      and "Library: Org chart block (quickpart) goes here." in xml)
+check("the setup builds elements, Word sections and library items (3.30.1)", "TOC \\t" in xml and 'w:orient="landscape"' in xml
+      and 'AUTOTEXT "Org chart block"' in xml, (xml.count("TOC"), 'orient' in xml))
 check("... and Heading 9, with deeper levels as bold run-in paragraphs", "Heading9" in xml and "Level 10" in xml)
 w.go("setup"); app.processEvents()
 check("Response Setup opens the Builder", w.stack.currentWidget() is b)

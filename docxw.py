@@ -1,6 +1,6 @@
 """Minimal Word (.docx) writer: headings 1-6, paragraphs and tables, written as Office XML directly.
 No add-in, no macros, no third-party library. Used for the compliance outline (2.8.0)."""
-import zipfile
+import re, zipfile
 
 W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
 
@@ -118,7 +118,13 @@ class Doc:
         size = '<w:pgSz w:w="15840" w:h="12240" w:orient="landscape"/>' if self.landscape else '<w:pgSz w:w="12240" w:h="15840"/>'
         sect = (f'<w:sectPr>{hf}{size}<w:pgMar w:top="1440" w:right="1440" w:bottom="1440" '
                 'w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>')
-        doc = f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document {W} {R}><w:body>{"".join(self.body)}{sect}</w:body></w:document>'
+        body = "".join(self.body)
+        if "SKSectionMark" in body:                    # 3.30.1: Word sections of their own: each mark becomes a break
+            land = sect.replace('<w:pgSz w:w="12240" w:h="15840"/>', '<w:pgSz w:w="15840" w:h="12240" w:orient="landscape"/>')
+            port = sect.replace('<w:pgSz w:w="15840" w:h="12240" w:orient="landscape"/>', '<w:pgSz w:w="12240" w:h="15840"/>')
+            body = re.sub(r'<w:p><w:pPr><w:pStyle w:val="SKSectionMark"/></w:pPr><w:r><w:t xml:space="preserve">(start|end):(\w+)</w:t></w:r></w:p>',
+                          lambda m: f'<w:p><w:pPr>{land if (m.group(1) == "end" and m.group(2) == "landscape") else port}</w:pPr></w:p>', body)
+        doc = f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document {W} {R}><w:body>{body}{sect}</w:body></w:document>'
         heads = "".join(
             f'<w:style w:type="paragraph" w:styleId="Heading{i}"><w:name w:val="heading {i}"/><w:basedOn w:val="Normal"/>'
             f'<w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="{240 - 20 * i}" w:after="80"/>'
@@ -128,7 +134,14 @@ class Doc:
                   '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/>'
                   '<w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults>'
                   '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>'
-                  + heads + "</w:styles>")
+                  + heads
+                  + "".join(f'<w:style w:type="paragraph" w:customStyle="1" w:styleId="AppendixHeading{i}"><w:name w:val="Appendix Heading {i}"/>'
+                            f'<w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="{240 - 20 * i}" '
+                            f'w:after="80"/><w:outlineLvl w:val="{i - 1}"/></w:pPr><w:rPr><w:b/><w:sz w:val="{max(22, 34 - 2 * i)}"/></w:rPr></w:style>'
+                            for i in range(1, 10))                  # 3.30.1: the appendices' own heading styles
+                  + '<w:style w:type="paragraph" w:styleId="TOCHeading"><w:name w:val="TOC Heading"/><w:basedOn w:val="Normal"/>'
+                    '<w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="120"/></w:pPr>'
+                    '<w:rPr><w:b/><w:sz w:val="28"/></w:rPr></w:style>' + "</w:styles>")
         ct = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
               '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
               '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'

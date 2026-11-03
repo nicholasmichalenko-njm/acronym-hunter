@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.30.1": ["Make templates builds what you set in the Structure Builder: the TOC, List of Figures, Tables and Appendices "
+               "as fields, Acronyms and Abbreviations filled from the effort's approved acronyms, the compliance matrix, "
+               "divider and placeholder pages, unnumbered headings, landscape Word sections and placed Quick Parts.",
+               "Appendices go on their own heading styles (Appendix Heading 1 to 9), so the response keeps all nine levels."],
     "3.30.0": ["The Structure Builder: its own place under Compliance. Volume tabs; the structure with a tag on each section (H1 "
                "to H9 and deeper, unnumbered, divider, placeholder, element, Word section); a toolbar like Word's style buttons; "
                "Enter, Tab and Shift+Tab; drag a section to move it; library items placed in a section; everything in each "

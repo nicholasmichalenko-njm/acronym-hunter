@@ -727,22 +727,20 @@ def _safe(s):
 LIBRARY_TEAL = "0F766E"
 
 
-def builder_notes(d, o):
-    """3.30.0: the Structure Builder's settings under a section's heading: an element, a placeholder or divider page, a
-    Word section of its own, and the library items placed in it."""
-    k = o.get("kind") or ""
-    if o.get("brk"):
-        d.para(f"Starts a new Word section ({o['brk'].get('orient', 'portrait')}).", color="7C2D12", kind="note")
-    if k == "element":
-        import responseelements as RE
-        d.para(f"Element: {(o.get('element') or '').upper()}. Make templates builds it in the template.", color="7C2D12", kind="note")
-    elif k == "placeholder":
-        d.para("Placeholder: pages for authors to fill.", color="7C2D12", kind="note")
-    elif k == "divider":
-        d.para("Divider page: its title only.", color="7C2D12", kind="note")
-    for x in o.get("lib") or []:
-        if x.get("where") != "after":
-            d.para(f"Library: {x.get('name', '')} ({x.get('kind', '')}) goes here.", color="0F766E", kind="library")
+def matrix_rows(M, entries, P=None, inh=None):
+    """3.30.1: [(requirement id, RFP reference, our section)] for the compliance matrix element of a volume."""
+    import compliance as C
+    P = P if P is not None else placed_in(M)
+    inh = inh if inh is not None else inherited_sections(M)
+    B = by_id(M)
+    out = []
+    for x in entries:
+        xl = C.outline_label(x)
+        for i in P.get(xl, []):
+            it = B.get(i)
+            if it is not None and it.get("decision") == "Keep":
+                out.append((i, ref_of(M, it, inh)[0] or "", xl))
+    return out
 
 
 def review_bins(root):
@@ -755,9 +753,15 @@ def review_bins(root):
         return None
 
 
-def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=None, bins=None):
+def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=None, bins=None, std=None, extras=None,
+             appendix=False):
+    """One setup document for the entries of a volume. 3.30.1: elements built (TOC, lists, Acronyms...), divider and
+    placeholder pages, unnumbered headings, Word sections of their own, library items placed in sections, and (appendix)
+    the appendix headings on their own styles. std: the volume's standard (its TOC design and caption lists); extras:
+    {"acronyms": [(term, definition)], "data": the response elements}."""
     import docxw, compliance as C
     import excerpts as EX
+    import elementbuild as EB
     xs = [x for x in ((bins or {}).get("excerpts") or []) if isinstance(x, dict)]
     setup_bins = {b.get("id"): b.get("name", "") for b in ((bins or {}).get("bins") or []) if "setup" in (b.get("feeds") or [])}
     cap_names = dict(EX.NAME, **{b.get("id"): b.get("name", "") for b in ((bins or {}).get("bins") or []) if b.get("id")})
@@ -772,16 +776,42 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
     show_parts = SP.has_parts(M)
     vheads = set(volumes_of(M)[2])
     last_part = None
+    ex = extras or {}
+    open_brk = []                                  # (level, orient) of the Word sections still open
+    app_base = min([x.get("level", 1) for x in entries if SP.part_of(x) == "appendix"] or [base])
+    mrows = matrix_rows(M, entries, P, inh)        # the compliance matrix element: each requirement and where we answer it
     for o in entries:
         lab = C.outline_label(o)
         part = SP.part_of(o)
+        lvl = o.get("level", 1) - base + 1
+        while open_brk and open_brk[-1][0] >= o.get("level", 1):        # a Word section ends where its subtree ends
+            d.body.append(EB.section_mark("end", open_brk.pop()[1]))
+        if o.get("brk"):
+            d.body.append(EB.section_mark("start", o["brk"].get("orient", "portrait")))
+            open_brk.append((o.get("level", 1), o["brk"].get("orient", "portrait")))
         if show_parts and lab not in vheads and part != last_part and (o.get("level", 1) - base) <= 1:   # 3.19.0: a part starts: its rules
             d.para(SP.PART_NAME[part].upper() + (f": {rules[part]}" if rules and rules.get(part) else "")
                    + ("" if SP.counts(M, part) else ("" if rules else "; not counted toward the page limit")),
                    color="7C2D12", bold=True, kind="note")
             last_part = part
-        d.heading(lab, o.get("level", 1) - base + 1)
-        builder_notes(d, o)                                      # 3.30.0: what the Structure Builder set on it
+        kind = o.get("kind") or ""
+        bud0 = ((S.get("budget") or {}).get("pages") or {}).get(lab)
+        if kind == "element":
+            d.body.append(EB.element_xml(o, {"std": std, "acronyms": ex.get("acronyms"), "data": ex.get("data"),
+                                             "matrix_rows": ex.get("matrix_rows") or mrows, "pages": int(float(bud0)) if bud0 else None}))
+        elif kind == "divider":
+            d.body.append(EB.divider_xml(lab))
+        elif kind == "placeholder":
+            d.body.append(EB.placeholder_xml(lab, lvl, int(float(bud0)) if bud0 else 1))
+        elif kind == "unnumbered":
+            d.body.append(EB.unnumbered_heading(lab, lvl))
+        elif (appendix or part == "appendix") and lab not in vheads:
+            d.body.append(EB.appendix_heading(lab, o.get("level", 1) - app_base + 1))   # 3.30.1: appendices' own styles
+        else:
+            d.heading(lab, lvl)
+        for x in o.get("lib") or []:                             # 3.30.0: library items placed before the requirements
+            if x.get("where") != "after":
+                d.body.append(EB.lib_xml(x))
         pp = S["owners"].get(lab) or {}
         if pp.get("lead") or pp.get("with"):                      # 2.38.0: who writes this section
             d.para("Lead: " + (pp.get("lead") or "-") + (f"   Contributors: {pp['with']}" if pp.get("with") else ""), color="1E3A8A", kind="note")
@@ -850,6 +880,11 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
         for text, docname, where in (context or {}).get(lab, []):    # 2.84.0: context taken from library documents
             d.rich([("From " + docname + (f" ({where})" if where else "") + ": ", {"color": LIBRARY_TEAL, "bold": True}),
                     (text, {"color": LIBRARY_TEAL})], indent=720, border=LIBRARY_TEAL, kind="library")
+        for x in o.get("lib") or []:                             # library items placed after the requirements
+            if x.get("where") == "after":
+                d.body.append(EB.lib_xml(x))
+    while open_brk:
+        d.body.append(EB.section_mark("end", open_brk.pop()[1]))
     return d
 
 
@@ -862,7 +897,7 @@ def snapshot(M):
             "mgmt": {lab: _sig(S["mgmt"].get(lab, "")) for lab in P}}
 
 
-def export(M, folder, when=None, context=None, part_rules=None, bins=None):
+def export(M, folder, when=None, context=None, part_rules=None, bins=None, extras=None):
     """Write one .docx per volume into folder. Returns the paths. Records a snapshot for Export changes only.
     context (2.84.0): {section label: [(text, document, where)]}, sentences from library documents attached to sections.
     part_rules (3.19.0): a function (volume name) -> {part: its rules in words}, from Production Standards."""
@@ -884,7 +919,7 @@ def export(M, folder, when=None, context=None, part_rules=None, bins=None):
             except Exception:
                 import diag
                 diag.swallowed()
-        _doc_for(M, name, entries, P, inh, stamp, context, rules, bins=bins).save(p)
+        _doc_for(M, name, entries, P, inh, stamp, context, rules, bins=bins, extras=extras).save(p)
         paths.append(p)
     S = setup_of(M)
     snap = snapshot(M)

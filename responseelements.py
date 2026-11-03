@@ -69,9 +69,14 @@ def _clean(e):
     return out
 
 
+def builtins():
+    """3.30.1: the built-in elements and kit, with nothing of the team's (for a document made without the Settings)."""
+    return load(None)
+
+
 def load(config_dir):
     """{"elements": [element, in part and order], "kits": {effort type id ("" for any): [element ids]}}."""
-    saved = _read(config_dir)
+    saved = _read(config_dir) if config_dir else {}
     changed = saved.get("changed") or {}
     out = []
     for eid, name, part, source, pages, counts, order in BUILTIN:

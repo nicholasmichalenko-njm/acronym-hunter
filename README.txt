@@ -1,6 +1,21 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+MAKE TEMPLATES BUILDS THE STRUCTURE (3.30.1)
+  - The structure's front matter takes the place of the template's fixed TOC block, in the front matter section: the
+    Table of Contents as a field from the TOC design (the appendix headings in it), the List of Figures and List of
+    Tables as caption lists, the List of Appendices, Acronyms and Abbreviations filled from the effort's approved
+    acronyms with their definitions, the compliance matrix (each requirement and where it is answered), a cover letter
+    from its Quick Part.
+  - Divider pages (page breaks around a centered title), placeholders (an unnumbered heading and its planned pages),
+    unnumbered headings (numbering off), and Word sections of their own: a section break with the template's page
+    setup, turned for landscape.
+  - Quick Parts placed in a section go in as AUTOTEXT fields (Word fills them when fields update); table styles as a
+    sample table in the style.
+  - Appendices go on their own heading styles, Appendix Heading 1 to 9 (added to the template when it has none), so
+    the response keeps all nine heading levels.
+  - Export the setup builds the same in the plain documents.
+
 THE STRUCTURE BUILDER (3.30.0)
   - Compliance > Structure Builder: one page to build the response. Volume tabs; the structure with a tag on each
     section (H1 to H9 and deeper, UN unnumbered, DIV divider page, PH placeholder, EL element, SEC a Word section).

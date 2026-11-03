@@ -161,7 +161,46 @@ def place_body(droot, names, main_xml, appendix_xml):
     return removed
 
 
-def write(template_path, out_path, main_doc, appendix_doc, opts, fills=None, props=None):
+def element_extras(config_dir, info=None):
+    """3.30.1: what the elements are filled with: the effort's approved acronyms and abbreviations (term, definition), in
+    order, and the team's response elements."""
+    import responseelements as RE
+    out = {"data": RE.load(config_dir) if config_dir else RE.builtins(), "acronyms": []}
+    path = (info or {}).get("path") or ""
+    if path and os.path.isfile(path):
+        try:
+            import effort as E
+            L = E.EffortList(path, "").load()
+            rows = getattr(L, "rows", {}) or {}
+            out["acronyms"] = sorted(((t, str((r or {}).get("Definition", "") or "")) for t, r in rows.items()
+                                      if (r or {}).get("Status", "") == "Approved"), key=lambda x: x[0].casefold())
+        except Exception:  # noqa: BLE001
+            import diag
+            diag.swallowed()
+    return out
+
+
+def place_front(droot, names, front_xml):
+    """3.30.1: the structure's front matter (its elements: TOC, lists, Acronyms...) in place of the template's fixed
+    front matter: between the cover's section break and the next one (else just before the first Heading 1)."""
+    body = droot.find("w:body", NS)
+    kids = list(body)
+    start = next((i for i, el in enumerate(kids) if _pstyle(el, names) == "heading 1"), len(kids) - 1)
+    brk = [i for i, el in enumerate(kids[:start]) if el.tag == _w("p") and el.find("w:pPr/w:sectPr", NS) is not None]
+    els = list(etree.fromstring(f'<w:body xmlns:w="{W}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+                                f'{front_xml}</w:body>'))
+    if len(brk) >= 2:                                  # cover | front matter | the response
+        for el in kids[brk[0] + 1:brk[1]]:
+            body.remove(el)
+        anchor = kids[brk[1]]
+    else:
+        anchor = kids[start]
+    for el in els:
+        anchor.addprevious(el)
+    return len(els)
+
+
+def write(template_path, out_path, main_doc, appendix_doc, opts, fills=None, props=None, front_doc=None):
     """A new document made from the template with the setup in it (see the module text). main_doc, appendix_doc:
     docxw.Doc objects made with styles=style_ids(...). fills: {cover style name: value}. Returns out_path."""
     zin = zipfile.ZipFile(template_path)
@@ -182,6 +221,12 @@ def write(template_path, out_path, main_doc, appendix_doc, opts, fills=None, pro
             if val and nm == style.casefold():
                 _set_text(p, val)
     place_body(droot, names, fix("".join(main_doc.body)), fix("".join(appendix_doc.body)) if appendix_doc else "")
+    if front_doc is not None:                          # after the body: the template's own sample pages are gone by then
+        place_front(droot, names, fix("".join(front_doc.body)))
+    import elementbuild as EB                          # 3.30.1: the appendix styles, and Word sections of their own
+    EB.ensure_appendix_styles(sroot)
+    body = droot.find("w:body", NS)
+    EB.apply_section_marks(body, body.find("w:sectPr", NS))
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         for i in zin.infolist():
@@ -329,13 +374,22 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
         app_e = [o for o in entries if SP.part_of(o) == "appendix"]
         sids = style_ids(opts)
         rb = SD.review_bins(ws.root) if ws is not None else None          # 3.29.0: topics, objectives, key points
-        dm = SD._doc_for(M, vname, main_e, P, inh, stamp, context, rules, styles=sids, bins=rb)
-        da = SD._doc_for(M, vname, app_e, P, inh, stamp, context, rules, styles=sids, bins=rb) if app_e else None
+        extras = element_extras(config_dir, info)
+        extras["matrix_rows"] = SD.matrix_rows(M, entries, P, inh)       # the whole volume, for the front matter's matrix
+        front_e = [o for o in main_e if SP.part_of(o) in ("cover", "title", "front")]   # 3.30.1: the structure's front matter
+        df = None
+        if any(o.get("kind") for o in front_e):          # elements in front matter take the template's fixed TOC block's place
+            df = SD._doc_for(M, vname, front_e, P, inh, stamp, context, None, styles=sids, bins=rb, std=std, extras=extras)
+            main_e = [o for o in main_e if o not in front_e]
+        dm = SD._doc_for(M, vname, main_e, P, inh, stamp, context, rules, styles=sids, bins=rb, std=std, extras=extras)
+        da = SD._doc_for(M, vname, app_e, P, inh, stamp, context, rules, styles=sids, bins=rb, std=std, extras=extras,
+                         appendix=True) if app_e else None
         fills = {FI.styles(std)[k]: FI.value(std, k) for k in FI.styles(std) if FI.value(std, k)}
         part = "" if len(groups) == 1 else "_" + SD._safe(vname)
         path = os.path.join(folder, f"{stem}_Response_Setup{part}_{tag}.docx")
         write(job.copy, path, dm, da, opts, fills, {"StationkeeperMatrix": M.name or "", "StationkeeperSetupExported": stamp,
-                                                    "StationkeeperSetupPart": vname, "SK Template": tname, "SK Template Version": str(ver)})
+                                                    "StationkeeperSetupPart": vname, "SK Template": tname, "SK Template Version": str(ver)},
+              front_doc=df)
         out.append({"volume": vname, "template": job.copy, "setup": path, "version": ver, "validation": getattr(job, "validation", None),
                     "template_name": tname})
     S = SD.setup_of(M)
