@@ -2,6 +2,10 @@ STATIONKEEPER (Portable, Offline)
 =================================
 
 REVIEW HAS ROOM, ACRONYMS STAY DECIDED (3.34.1)
+  - A new effort with only its name opens with no error, and shows in the effort box and All Efforts at once.
+  - Switching efforts (the effort box at the top right, or All Efforts) no longer errors, and Review, Structure
+    Builder, Matrix and L/M Crosswalk show only the open effort's work: an effort with no matrix yet shows none of
+    the last effort's pages, progress or rows.
   - Review: the deciding and capturing tools sit in a bar along the bottom, side by side, so the selected text's
     details and the response structure get the whole right side. Drag the bar's edge to give it more or less room.
   - Acronyms: the place a term was found shows again for file names with brackets of their own ("Section L (1).pdf")

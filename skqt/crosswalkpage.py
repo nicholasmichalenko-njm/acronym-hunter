@@ -58,6 +58,8 @@ class CrosswalkPage(QWidget):
         R = self.host.review
         self.setEnabled(R is not None)
         if R is None:
+            self.rows = []                           # 3.34.1: nothing of the effort open before
+            self.table.setRowCount(0)
             return
         keep = self.current()
         self.rows = X.build(R.M)

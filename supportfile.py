@@ -20,7 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
-    "3.34.1": ["Review: the deciding and capturing tools sit along the bottom, so the right side has room for the selected "
+    "3.34.1": ["A new effort opens with no error and shows in the effort box and All Efforts at once. Switching efforts no "
+               "longer errors, and every page shows only the open effort's work.",
+               "Review: the deciding and capturing tools sit along the bottom, so the right side has room for the selected "
                "text and the response structure.",
                "Acronyms: the place found shows again; Found in tells Customer from Ours; Use FY (a form of it) ties FY27 to FY "
                "so it stops coming up; plurals and forms leave the list once decided; a short status filter."],

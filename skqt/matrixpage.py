@@ -80,7 +80,9 @@ class MatrixPage(QWidget):
     def refresh(self):
         R = self.host.review
         self.setEnabled(R is not None)
-        if R is None:
+        if R is None:                                # 3.34.1: nothing of the effort open before
+            self.model.clear()
+            self.info.setText("No matrix yet: read the customer's documents first.")
             return
         self.d = MD.design_for(R.M, self.host.config_dir)
         self.show_design()
