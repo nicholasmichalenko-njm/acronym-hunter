@@ -383,7 +383,7 @@ class StandardsPage(QWidget):
                      actions=[D.button("+ Effort type...", None, lambda: self.add_effort_type(), "A kind of effort (RFP, page-limited RFP, "
                                        "white paper, program): the profiles its deliverables use and the rules every one of them follows"),
                               D.button("Effort types...", "ghost", lambda: self.manage_effort_types(), "Rename, order or take "
-                                       "out effort types, and choose the one new efforts start with (3.18.2)"),
+                                       "out effort types (3.18.2)"),
                               D.button("+ Profile...", None, lambda: self.add_type(), "A document profile: the full set of formatting values for one kind of document you deliver"),
                               D.button("Import from a file...", None, lambda: self.learn(), "Read a template or a finished volume and "
                                        "take its styles, table looks, pages, headers and numbering into what you are editing"),
@@ -393,15 +393,12 @@ class StandardsPage(QWidget):
                                        "headers and footers, numbering, tables, covers, Quick Parts and fonts"),
                               D.button("Make a .dotx template...", None, lambda: self.make_template(), "A Word template (.dotx) with every "
                                        "value in force here, written to the output folder"),
-                              D.button("Export for review...", None, lambda: self.export()),
                               D.button("Save", "primary", lambda: self.save())])
         bar = QHBoxLayout()
         bar.addWidget(D.label("Editing", "label", wrap=False))
         self.scope_box = QComboBox(); self.scope_box.setMinimumWidth(300)
         self.scope_box.currentIndexChanged.connect(lambda _i: self.switch())
         bar.addWidget(self.scope_box)
-        self.default_cb = QCheckBox("New efforts use this profile"); bar.addWidget(self.default_cb)
-        self.default_cb.toggled.connect(lambda _v: self.changed())
         bar.addStretch(1)
         self.state = D.label("", "muted", wrap=False); bar.addWidget(self.state)
         top.body.addLayout(bar)
@@ -1418,11 +1415,6 @@ class StandardsPage(QWidget):
             self.base = PRL.resolved_type(d, pt, eid)
             self.work = PRL.merge(self.base, eff.get("over") or {})
         self.work.setdefault("variables", {})
-        self.default_cb.setVisible(scope in ("type", "etype"))
-        self.default_cb.setText("New efforts use this effort type" if scope == "etype" else "New efforts use this profile")
-        self.default_cb.blockSignals(True)
-        self.default_cb.setChecked((scope == "type" and d["default"] == tid) or (scope == "etype" and d.get("default_effort_type") == eid))
-        self.default_cb.blockSignals(False)
         for row, show in ((self.eff_row, scope == "effort"), (self.match_row, scope == "type"), (self.et_row, scope == "etype")):
             for i in range(row.count()):
                 x = row.itemAt(i).widget()
@@ -1504,8 +1496,6 @@ class StandardsPage(QWidget):
             if match:
                 keep["match"] = match
             t.clear(); t.update(keep); t.update(layer)
-            if self.default_cb.isChecked():
-                d["default"] = t["id"]
         elif self.scope == "etype":
             e = PRL.effort_type_of(d, self.etype_id)
             layer = PRL.diff(self.work, d["company"])
@@ -1518,8 +1508,6 @@ class StandardsPage(QWidget):
             dp = self.et_default.currentData()
             keep["default_profile"] = dp if dp in keep["profiles"] else keep["profiles"][0]
             e.clear(); e.update(keep); e.update(layer)
-            if self.default_cb.isChecked():
-                d["default_effort_type"] = e["id"]
         elif self.scope == "etp":
             e = PRL.effort_type_of(d, self.etype_id)
             over = PRL.diff(self.work, self.base)
@@ -1888,30 +1876,3 @@ class StandardsPage(QWidget):
                          + (". " + WG_line(job.word_gate) if getattr(job, "word_gate", None) else "") + ".")
         diag.activity("prod_template_made", n=job.check.count())
         return job
-
-    def export(self, path=None):
-        """Every value in force at this layer, with where it comes from, as a workbook for review."""
-        if path is None:
-            path, _ = QFileDialog.getSaveFileName(self, "Export the standards", self.host.out_path("prod_standards"), "Excel (*.xlsx)")
-            if not path:
-                return ""
-        from openpyxl import Workbook
-        from openpyxl.styles import Font
-        wb = Workbook(); ws = wb.active; ws.title = "Standards"
-        ws.append(["Setting", "Value", "Set at this layer"])
-        for c in ws[1]:
-            c.font = Font(bold=True)
-
-        def walk(d, b, prefix):
-            if isinstance(d, dict):
-                for k, val in d.items():
-                    if k in ("variable_source", "effort_over"):
-                        continue
-                    walk(val, b.get(k) if isinstance(b, dict) else None, prefix + [str(k)])
-            else:
-                ws.append([" > ".join(prefix), str(d) if d is not None else "", "Yes" if d != b else ""])
-        walk(self.work, self.base, [])
-        ws.column_dimensions["A"].width = 60; ws.column_dimensions["B"].width = 60
-        wb.save(path)
-        self.host.toast("Standards exported")
-        return path

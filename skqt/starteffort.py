@@ -174,7 +174,7 @@ class StartEffort(QFrame):
         return w
 
     def fill_types(self, keep=None):
-        """3.18.2: the team's effort types (RFI response among the starters), the default chosen."""
+        """3.18.2: the team's effort types (RFI response among the starters). 3.24.0: no default; you pick each time."""
         try:
             import prodrules as PRL
             data = PRL.load(self.host.config_dir)
@@ -183,7 +183,7 @@ class StartEffort(QFrame):
             self.etype.addItem("None", "")
             for e in data.get("effort_types", []):
                 self.etype.addItem(e["name"], e["id"])
-            want = keep if keep is not None else data.get("default_effort_type", "")
+            want = keep if keep is not None else ""
             self.etype.setCurrentIndex(max(0, self.etype.findData(want)))
             self.etype.blockSignals(False)
         except Exception:

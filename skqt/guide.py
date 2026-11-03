@@ -353,8 +353,7 @@ TOPICS = [
    "page size over it for this effort only. Press Save.",
    "Make a .dotx template...: a Word template (.dotx) with every value in force, from the Stationkeeper base (cover, front "
    "matter, a chapter with a sample table, an appendix) or starting from a template of yours (only read). It goes to "
-   "the Templates folder in the output folder, dated, and is checked against the standard; Word updates its fields.",
-   "Export for review... makes a workbook of every value and where it is set."],
+   "the Templates folder in the output folder, dated, and is checked against the standard; Word updates its fields."],
   ["Blank means not set: a rule nobody sets is not checked and not written."]),
  ("audit", "Production", "Audit",
   "Checks Word, Excel and PowerPoint files against every standard that applies to them and lists every finding: styles, "

@@ -148,8 +148,7 @@ check("the effort's standard: team, then Cost volume, then the RFP", eff["variab
 w.go("format"); app.processEvents()
 check("3.9: a link to Format Check opens Fix a Copy, reading the same standard", w.stack.currentWidget() is w.fixcopy_page
       and w.fixcopy_page.std_lbl.text().startswith("Cost volume + this effort: body Arial 11 pt"), w.fixcopy_page.std_lbl.text())
-x = sp.export(os.path.join(tmp, "std.xlsx"))
-check("Export for review", os.path.isfile(x))
+check("3.24.0: Export for review is gone", not hasattr(sp, "export"))
 # ------------------------------------------------------------------ 3.7.0: document types as templates
 w.go("prodstd"); app.processEvents()
 sp.scope_box.setCurrentIndex(sp.scope_box.findData("type:cost_volume")); app.processEvents()

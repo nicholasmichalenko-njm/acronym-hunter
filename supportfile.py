@@ -27,7 +27,10 @@ WHATS_NEW = {
                "unless you say otherwise. Ready to make lists what is still open first.",
                "Header and footer designs kept whole: collect them from any template or document and put one on a part; its "
                "tables, tab stops, pictures and fields come in exactly as built.",
-               "Quick Parts with list numbering now come in, their list definitions renumbered."],
+               "Quick Parts with list numbering now come in, their list definitions renumbered.",
+               "Production Standards: heading and list numbering show the number as it will look (1.1.1, Section A), typed "
+               "the same way; Learn from a file is Import from a file; the .dotx button is Make a .dotx template; no default "
+               "profile or effort type (you pick each time you start an effort); Export for review is gone."],
     "3.23.0": ["Fill-ins (Production Standards): type a value once and it shows everywhere: a cover style that headers, "
                "footers and Quick Parts read through STYLEREF (as the team works today), or a document property (DOCPROPERTY). "
                "Fields carry no MERGEFORMAT, so each takes the formatting where it sits.",

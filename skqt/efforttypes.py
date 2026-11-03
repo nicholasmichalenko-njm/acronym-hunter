@@ -1,5 +1,5 @@
 """Effort types (3.18.2): add, rename, order and take out the team's effort types (RFP response, RFI response, white
-paper, ...), and choose the one new efforts start with. Opened from Start an effort and from Production Standards.
+paper, ...), Opened from Start an effort and from Production Standards.
 Kept on this PC with the production standards (production_standards.json); a team pack carries them with the standards.
 An effort that used a type taken out keeps its own values."""
 from PySide6.QtCore import Qt
@@ -20,7 +20,7 @@ class EffortTypesDialog(QDialog):
         self.resize(560, 460)
         v = QVBoxLayout(self)
         v.addWidget(D.label("The kinds of effort your team works on. Each one can carry its own formatting in Production "
-                            "Standards. New efforts start with the default.", "muted"))
+                            "Standards. You pick one each time you start an effort.", "muted"))
         row = QHBoxLayout(); v.addLayout(row, 1)
         self.list = QListWidget(); row.addWidget(self.list, 1)
         self.list.itemDoubleClicked.connect(lambda _i: self.rename())
@@ -30,7 +30,6 @@ class EffortTypesDialog(QDialog):
                                    ("rename", "Rename...", lambda: self.rename(), "A new name; efforts using it keep it"),
                                    ("up", "Move up", lambda: self.move(-1), "Earlier in the lists"),
                                    ("down", "Move down", lambda: self.move(1), "Later in the lists"),
-                                   ("default", "Make default", lambda: self.make_default(), "New efforts start with it"),
                                    ("remove", "Take out", lambda: self.remove(), "Efforts that used it keep their own values")):
             b = D.button(text, "danger" if key == "remove" else None, fn, tip)
             self.btns[key] = b; col.addWidget(b)
@@ -43,7 +42,7 @@ class EffortTypesDialog(QDialog):
         keep = keep or self.current()
         self.list.clear()
         for e in self.data.get("effort_types", []):
-            it = QListWidgetItem(e["name"] + ("  (default)" if e["id"] == self.data.get("default_effort_type") else ""))
+            it = QListWidgetItem(e["name"])
             it.setData(Qt.UserRole, e["id"])
             self.list.addItem(it)
             if e["id"] == keep:

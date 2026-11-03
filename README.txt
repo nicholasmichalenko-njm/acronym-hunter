@@ -257,7 +257,7 @@ PRODUCTION: FIX A COPY, EVERY RULE IN PRODUCTION STANDARDS (3.6.0)
   - Production > Production Standards: every rule, editable value by value in three layers: the team standard, document
     types and this effort (the RFP's rules). Format variables, font rules, styles and heading numbering, table rows (with
     a preview), table types, row rules, captions and numbering, the page scheme with cover and back cover, page setups,
-    headers and footers, the TOC and its entry styles, lists, terms, and Format Check options. Export for review...
+    headers and footers, the TOC and its entry styles, lists, terms, and Format Check options.
 
 PRODUCTION: FORMAT CHECK AND PRODUCTION STANDARDS (3.5.0)
   - Production > Format Check: the Word drafts in the Volumes folder (and any Word file you add) read against the
