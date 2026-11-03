@@ -49,8 +49,9 @@ check("the scan finished: terms in the table", ap.worker is None and ap.table.ro
 check("the effort list records what was found", (s.ws.get("seen_terms") or []) and ap.p_active.text().endswith("terms"))
 ap.f_search.setText("SOW"); app.processEvents()
 check("search narrows the table", ap.terms == ["SOW"] or "SOW" in ap.terms and len(ap.terms) < 5, ap.terms)
-ap.f_search.setText(""); ap.f_status.setCurrentText("New candidates"); app.processEvents()
-check("the status filter (the classic window's own)", ap.terms and all(A.status_kind(s.results[x]["status"]) == "candidate" for x in ap.terms))
+ap.f_search.setText(""); ap.f_status.setCurrentText("Needs approval"); app.processEvents()
+check("the status filter: Needs approval holds the new candidates",
+      ap.terms and any(A.status_kind(s.results[x]["status"]) == "candidate" for x in ap.terms))
 ap.f_status.setCurrentIndex(0); app.processEvents()
 ap.select("SOW"); app.processEvents()
 check("the card shows the term", ap.card.title.text() == "SOW")
@@ -109,6 +110,43 @@ s3 = S.AcronymSession(s.ws, LIST, w.efforts); s3.restore()
 check("kept for every scan from now on", s3.plurals.get("SOWs") == "SOW" and s3.results["SOWs"]["plural_of"] == "SOW")
 check("Not a plural makes it a term of its own again", ap.not_plural("SOWs") and "plural_of" not in s.results["SOWs"])
 ap.plural("SOWs", "SOW")
+# 3.34.1: a plural is decided: out of the list, greyed when shown, listed with its term
+ap.fill(); app.processEvents()
+row_sow = ap.terms.index("SOW") if "SOW" in ap.terms else -1
+check("a plural leaves the list; its term lists it", "SOWs" not in ap.terms and row_sow >= 0 and ap.table.item(row_sow, 0).text().startswith("SOW  (+SOWs"))
+ap.f_forms.setChecked(True); app.processEvents()
+r = ap.terms.index("SOWs") if "SOWs" in ap.terms else -1
+check("Show plurals and forms: back, greyed and italic", r >= 0 and ap.table.item(r, 0).font().italic())
+ap.f_forms.setChecked(False); app.processEvents()
+# 3.34.1: FY27 is FY plus a number
+check("a form's term is guessed", s.form_guess("FY27") == "FY" and s.form_guess("FY2027") == "FY" and s.form_guess("CDRL-A001") == "CDRL"
+      and s.form_guess("SOW") == "" and s.form_guess("Rev2") == "")
+s.results["FY27"] = {"category": "Acronym", "count": 2, "locations": ["Kestrel_Technical_Volume.docx (para 3)"], "definitions": [],
+                     "status": "New candidate", "in_db": False}
+s.results.pop("FY", None)
+ap.fill(); ap.select("FY27"); app.processEvents()
+btn = next((b for b in ap.card.findChildren(QPushButton) if b.text() == "Use FY (a form of it)"), None)
+check("the card offers Use FY (a form of it)", btn is not None)
+ap.form("FY27", "FY")
+check("FY becomes a term (found only inside FY27), FY27 tied to it and out of the list, FY shown",
+      s.results["FY"].get("from_forms") and s.results["FY"]["locations"] == ["Kestrel_Technical_Volume.docx (para 3)"]
+      and s.results["FY27"]["form_of"] == "FY" and "FY27" not in ap.terms and ap.current() == "FY")
+check("a form is decided: it never comes up as needing a decision", A.status_kind(s.results["FY27"]["status"]) == "resolved")
+s4 = S.AcronymSession(s.ws, LIST, w.efforts); s4.restore()
+check("kept for every scan", s4.forms.get("FY27") == "FY" and "FY" in s4.results)
+check("Not a form of FY: FY27 its own again, FY gone with it", ap.not_form("FY27") and "FY" not in s.results and "form_of" not in s.results["FY27"])
+# 3.34.1: where a term was found
+from skqt.whereview import parse_loc
+check("a file name with brackets of its own keeps them", parse_loc("Section L (1).pdf (p.3)") == ("Section L (1).pdf", 3, None)
+      and parse_loc("Vol I.docx (section 'A (b)', para 12)") == ("Vol I.docx", None, 12))
+check("the scanned file is found without regard to case", ap.path_of("kestrel_technical_volume.docx") == files[0])
+check("Found in: a customer file scanned is the customer's, not ours", s.found_in(s.results["SOW"]) == "Customer", s.found_in(s.results["SOW"]))
+ap.f_status.setCurrentText("Needs approval"); app.processEvents()
+check("the status filter (3.34.1: the few that matter): Needs approval holds the new candidates",
+      [ap.f_status.itemText(i) for i in range(ap.f_status.count())] == ["All statuses", "Needs approval", "Approved", "Needs a choice",
+                                                                        "No longer found", "Excluded"]
+      and ap.terms and not any(s.results[x].get("effort") == "Approved" for x in ap.terms))
+ap.f_status.setCurrentIndex(0); app.processEvents()
 # the effort list itself
 w.go("acrlist"); app.processEvents()
 lp = w.acrlist_page

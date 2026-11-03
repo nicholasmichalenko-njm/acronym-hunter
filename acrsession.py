@@ -70,6 +70,7 @@ class AcronymSession(AcronymRules):
         self.project = None
         self.results, self.manual_items, self.session_decisions = {}, {}, {}
         self.scanned_paths, self.queued_files = {}, []
+        self.forms = {}
         self.last_scan = None
         self.volume_report = None
         self.plurals = {}
@@ -143,16 +144,18 @@ class AcronymSession(AcronymRules):
             self.scanned_paths.update({os.path.basename(f): f for f in ls["paths"]})
         self.volume_report = s.get("volume_report") or None
         self.plurals = dict(s.get("plurals") or {})                   # 2.86.0: {plural: singular}
+        self.forms = dict(s.get("forms") or {})                       # 3.34.1: {FY27: FY}
         if self.results:
             self.apply_effort()
             self.apply_plurals()
+            self.apply_forms()
         return len(self.results)
 
     def save(self):
         """Write the results back where the classic window keeps them, so either program resumes them."""
         s = self.ws.load_session() or {}
         s.update({"results": self.results, "manual_items": self.manual_items, "session_decisions": self.session_decisions,
-                  "plurals": getattr(self, "plurals", {}),
+                  "plurals": getattr(self, "plurals", {}), "forms": getattr(self, "forms", {}),
                   "last_scan": {"paths": (self.last_scan or {}).get("paths", []), "folder": (self.last_scan or {}).get("folder")}
                   if self.last_scan else s.get("last_scan")})
         self.ws.save_session(s)
@@ -186,6 +189,7 @@ class AcronymSession(AcronymRules):
                 d["status"] = A.KNOWN_STATUS + (f": {d['omit_reason']}" if d.get("omit_reason") else "")
         self.mark_known_in()
         self.apply_plurals()
+        self.apply_forms()                                      # 3.34.1
         rec = self.effort_after_scan(self.queued_files) if self.effort is not None else None
         self.save()
         return rec
@@ -208,6 +212,82 @@ class AcronymSession(AcronymRules):
                     d["selected_definition"] = sd["selected_definition"]
             elif d.get("plural_of"):
                 d.pop("plural_of", None)
+
+    # ------------------------------------------------------------ 3.34.1 forms: FY27 is written as FY plus a number
+    FORM = "Form of"
+
+    @staticmethod
+    def form_guess(term):
+        """FY27 -> FY, FY2027 -> FY, CDRL-A001 -> CDRL, Rev2 -> ''; '' when no letters lead a number or code."""
+        import re
+        m = re.match(r"^([A-Z][A-Za-z&]{1,9})[-/ ]?(?:\d|[A-Z]\d)[\w./-]*$", term or "")
+        return m.group(1) if m and m.group(1).isupper() and m.group(1) != term else ""
+
+    def apply_forms(self):
+        """A form (FY27) stays found and tied to its term (FY): never a row of its own in the lists you submit, its uses
+        count for the term, and it takes the term's definition. A term found only inside its forms is kept as a term of
+        its own, with their places, so you define it once."""
+        fm = getattr(self, "forms", None) or {}
+        by_base = {}
+        for term, base in fm.items():
+            d = self.results.get(term)
+            if d is None:
+                continue
+            by_base.setdefault(base, []).append(d)
+            d["form_of"] = base
+            d["alt_of"] = base
+            d["status"] = f"{self.FORM} {base}"
+        for base, ds in by_base.items():
+            bd = self.results.get(base)
+            if bd is None or bd.get("from_forms"):
+                locs = list(dict.fromkeys(l for d in ds for l in d.get("locations", [])))
+                tmpl = dict(ds[0])
+                for k in ("form_of", "alt_of", "plural_of", "selected_definition", "excluded", "status", "effort", "known"):
+                    tmpl.pop(k, None)
+                bd = dict(tmpl, locations=locs, count=sum(int(d.get("count") or 0) for d in ds), from_forms=True,
+                          status=(bd or {}).get("status", "Needs Review"), definitions=(bd or {}).get("definitions", []),
+                          **({"selected_definition": bd["selected_definition"]} if bd and bd.get("selected_definition") else {}))
+                self.results[base] = bd
+                self.manual_items[base] = dict(bd)
+            for d in ds:
+                if bd.get("selected_definition") and not d.get("selected_definition"):
+                    d["selected_definition"] = bd["selected_definition"]
+        for term, d in self.results.items():
+            if d.get("form_of") and term not in fm:
+                d.pop("form_of", None)
+
+    def set_form(self, term, base):
+        """term is written as base plus a number or code (FY27 as FY): base becomes a term (found or not) and term is
+        tied to it. Returns True when set."""
+        base = " ".join((base or "").split())
+        if not term or not base or term == base:
+            return False
+        self.forms = dict(getattr(self, "forms", {}) or {})
+        self.forms[term] = base
+        self.apply_forms()
+        self.apply_effort()
+        self.apply_forms()
+        self.save()
+        return True
+
+    def clear_form(self, term):
+        fm = dict(getattr(self, "forms", {}) or {})
+        base = fm.pop(term, None)
+        if base is None:
+            return False
+        self.forms = fm
+        d = self.results.get(term)
+        if d is not None:
+            d.pop("form_of", None); d.pop("alt_of", None)
+            d["status"] = "Needs Review"
+        if base not in fm.values():
+            bd = self.results.get(base)
+            if bd is not None and bd.get("from_forms"):
+                self.results.pop(base, None)
+                self.manual_items.pop(base, None)
+        self.apply_effort()
+        self.save()
+        return True
 
     @staticmethod
     def singular_guess(term):

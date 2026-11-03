@@ -618,8 +618,11 @@ class AssignPage(QWidget):
         self.card_area.viewport().installEventFilter(self)              # wrapped text keeps its height; the card scrolls
         self.card_area.setWidget(self.card)
         sw = QWidget(); sv = QVBoxLayout(sw); sv.setContentsMargins(0, 0, 0, 0)
-        dec = QFrame(); dec.setProperty("card", True); dv = QVBoxLayout(dec)       # 2.82.0: decide, next to the structure
-        dv.setContentsMargins(D.SPACE["m"], D.SPACE["s"], D.SPACE["m"], D.SPACE["s"]); dv.setSpacing(D.SPACE["xs"])
+        dec = QFrame(); dec.setProperty("card", True)                      # 2.82.0: decide; 3.34.1: at the bottom,
+        dh = QHBoxLayout(dec); dh.setContentsMargins(D.SPACE["m"], D.SPACE["s"], D.SPACE["m"], D.SPACE["s"])   # decide and
+        dh.setSpacing(D.SPACE["l"])                                                                          # capture side by side
+        dv = QVBoxLayout(); dv.setSpacing(D.SPACE["xs"]); dh.addLayout(dv, 1)
+        cv = QVBoxLayout(); cv.setSpacing(D.SPACE["xs"]); dh.addLayout(cv, 1)
         self.target_lbl = D.label("", None); self.target_lbl.setTextFormat(Qt.RichText)
         trow = QHBoxLayout(); trow.setSpacing(D.SPACE["s"]); trow.addWidget(self.target_lbl, 1)
         self.undecided_btn = D.button("Select undecided", "ghost", lambda: self.select_undecided(),   # 3.0.4
@@ -650,9 +653,9 @@ class AssignPage(QWidget):
                                      "Everything captured in this effort, in one list: by capture, with the words and where "
                                      "they sit; edit, take out, export")
         ch.addWidget(self.captured_btn)
-        dv.addLayout(ch)
+        cv.addLayout(ch)
         self.cap_lay = FlowLayout(spacing=D.SPACE["xs"])                   # 3.29.0: one bar: built-in and your own captures
-        capw = QWidget(); capw.setLayout(self.cap_lay); dv.addWidget(capw)
+        capw = QWidget(); capw.setLayout(self.cap_lay); cv.addWidget(capw); cv.addStretch(1)
         from PySide6.QtWidgets import QMenu
         self.more_btn = D.button("More...", "cap", None, "The other captures, your own, + Capture... and Captures of this effort")
         self.more_menu = QMenu(self.more_btn)
@@ -675,7 +678,7 @@ class AssignPage(QWidget):
             self.ctx_keys[text.split("  ")[0]] = b
             cgrid.addWidget(b)
         self.ctx_grid = QWidget(); self.ctx_grid.setLayout(cgrid); self.ctx_grid.hide()
-        dv.addWidget(self.ctx_grid)
+        dv.addWidget(self.ctx_grid); dv.addStretch(1)
         self.decide_area = QScrollArea(); self.decide_area.setWidgetResizable(True)    # 3.20.3: decide, at the top, on its own
         self.decide_area.setFrameShape(QFrame.NoFrame); self.decide_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.decide_area.setWidget(dec)
@@ -754,8 +757,8 @@ class AssignPage(QWidget):
         self.side_area = QScrollArea(); self.side_area.setWidgetResizable(True)      # 3.18.2: the decide panel and the
         self.side_area.setFrameShape(QFrame.NoFrame); self.side_area.setWidget(sw)    # structure scroll on their own
         self.side_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        right.addWidget(self.decide_area); right.addWidget(self.card_area); right.addWidget(self.side_area)   # 3.20.3: decide first
-        right.setSizes([300, 330, 380]); right.setChildrenCollapsible(False)
+        right.addWidget(self.card_area); right.addWidget(self.side_area)   # 3.34.1: the decide tools are at the bottom
+        right.setSizes([380, 520]); right.setChildrenCollapsible(False)
         self.right = right
         # 3.28.0: topics: Sort mode (keys 1 to 9), the topics, show one, and how far each has come
         pagew = QWidget(); pv = QVBoxLayout(pagew); pv.setContentsMargins(0, 0, 0, 0); pv.setSpacing(D.SPACE["xs"])
@@ -787,7 +790,15 @@ class AssignPage(QWidget):
         self.rfi = False
         self.topic_labels = []
         split = QSplitter(Qt.Horizontal); split.addWidget(pagew); split.addWidget(right); split.setSizes([1100, 470])
-        v.addWidget(split, 1)
+        # 3.34.1: the decisions and captures, permanently at the bottom across the page, so the sentence's details and
+        # the structure on the right have the room; drag the line above them to give them more or less
+        self.bottom_split = QSplitter(Qt.Vertical)
+        self.bottom_split.addWidget(split); self.bottom_split.addWidget(self.decide_area)
+        self.bottom_split.setChildrenCollapsible(False)
+        self.bottom_split.setStretchFactor(0, 1); self.bottom_split.setStretchFactor(1, 0)
+        self.decide_area.setMinimumHeight(96)
+        self.bottom_split.setSizes([760, 170])
+        v.addWidget(self.bottom_split, 1)
         self.notes_timer = QTimer(self, singleShot=True, interval=700, timeout=self.save_notes)
         for key, fn in (("Delete", self.do_undecide), ("J", self.do_combine), ("S", self.do_split),
                         ("Shift+S", lambda: self.do_extract()),

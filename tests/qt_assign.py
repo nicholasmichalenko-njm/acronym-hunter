@@ -164,9 +164,9 @@ w.close()
 # 2.82.0: the decision buttons sit beside the response structure (where they land); sentence edits stay by the page
 pgA = w.assign_page
 col = pgA.tree.parentWidget()
-check("decisions at the top of the right panel (3.20.3), the target named above them",
+check("decisions at the bottom across the page (3.34.1), the target named above them",
       all(pgA.dec_box.isAncestorOf(pgA.keys[k]) for k in ("Requirement", "L", "M", "Support", "Customer's", "Ignore"))
-      and pgA.right.indexOf(pgA.decide_area) == 0 and pgA.right.indexOf(pgA.card_area) == 1 and pgA.side_area.isAncestorOf(pgA.tree)
+      and pgA.bottom_split.indexOf(pgA.decide_area) == 1 and pgA.right.indexOf(pgA.card_area) == 0 and pgA.side_area.isAncestorOf(pgA.tree)
       and not pgA.dec_box.isAncestorOf(pgA.keys["Combine"])
       and (pgA.target or "Click a section") and ("into" in pgA.target_lbl.text() or "Click a section" in pgA.target_lbl.text()), pgA.target_lbl.text())
 

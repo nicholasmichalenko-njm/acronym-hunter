@@ -67,8 +67,8 @@ w.resize(1280, 800); app.processEvents(); app.processEvents()
 sa = next(x for x in w.stack.findChildren(QScrollArea) if getattr(x, "page", None) is pg)
 check("Review lays itself out in the window: the page never scrolls as a whole", sa.verticalScrollBar().maximum() == 0
       and sa.verticalScrollBarPolicy() == Qt.ScrollBarAlwaysOff, sa.verticalScrollBar().maximum())
-check("the right panel: decisions on top, then the card, then the rest, each scrolling on its own",
-      pg.right.indexOf(pg.decide_area) == 0 and pg.right.indexOf(pg.card_area) == 1 and pg.right.indexOf(pg.side_area) == 2)
+check("decisions at the bottom; the right panel: the card, then the structure, each scrolling on its own",
+      pg.bottom_split.indexOf(pg.decide_area) == 1 and pg.right.indexOf(pg.card_area) == 0 and pg.right.indexOf(pg.side_area) == 1)   # 3.34.1: decide tools at the bottom
 
 # ---------------------------------------------------------------- Extract
 a = by("The Offeror shall describe its technical approach")

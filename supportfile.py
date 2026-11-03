@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.34.1": ["Review: the deciding and capturing tools sit along the bottom, so the right side has room for the selected "
+               "text and the response structure.",
+               "Acronyms: the place found shows again; Found in tells Customer from Ours; Use FY (a form of it) ties FY27 to FY "
+               "so it stops coming up; plurals and forms leave the list once decided; a short status filter."],
     "3.34.0": ["Covers, title pages and back covers built here: New from a blank page, a background picture (full bleed or "
                "inside the margins) and text blocks that show the volume's fields in their own size, color and font. The "
                "page is drawn as it will look.",

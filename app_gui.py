@@ -2375,7 +2375,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "3.34.0"            # keep in step with version_info.txt
+APP_VERSION = "3.34.1"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"
@@ -3238,7 +3238,7 @@ _KIND_WORDS = (("error", ("COULD NOT READ FILE", "NOT SCANNED")),
                ("manual", ("ADDED MANUALLY",)),
                ("known", ("FOUND IN OMIT LIST", "KNOWN NAME")),
                ("resolved", ("RESOLVED", "DEFINED IN DOCUMENT", "USER SELECTED", "ADDED TO DB", "CLIENT LIST",
-                             "CUSTOMER DOCUMENT", "EFFORT LIST:", "ALT FORM OF")),
+                             "CUSTOMER DOCUMENT", "EFFORT LIST:", "ALT FORM OF", "FORM OF")),   # 3.34.1: FORM OF (FY27)
                ("gone", ("NO LONGER FOUND",)),
                ("excluded", ("EXCLUDED", "NOT A TERM IN THIS EFFORT")))
 RESOLVED_WORDS = ("Resolved", "Defined in document", "User Selected", "Added to DB", "Client list")   # the Resolved filter

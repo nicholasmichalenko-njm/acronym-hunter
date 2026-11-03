@@ -9,12 +9,17 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from . import design as D
 
 PAGE = re.compile(r"\(p\.(\d+)")
-PARA = re.compile(r"\((?:[^()]*?)para (\d+)")
+PARA = re.compile(r"\bpara (\d+)")                       # 3.34.1: a section title with brackets of its own
+
+
+NAME = re.compile(r"^(.+?\.[A-Za-z0-9]{2,5})(?=\s+\(|$)")
 
 
 def parse_loc(loc):
-    """'Section L.pdf (p.3)' -> ('Section L.pdf', 3, None); 'Vol I.docx (para 12)' -> ('Vol I.docx', None, 12)."""
-    name = (loc or "").split(" (")[0].strip()
+    """'Section L.pdf (p.3)' -> ('Section L.pdf', 3, None); 'Vol I.docx (para 12)' -> ('Vol I.docx', None, 12).
+    3.34.1: a file name with brackets of its own ('Section L (1).pdf (p.3)') keeps them: the name runs to its extension."""
+    m0 = NAME.match((loc or "").strip())
+    name = m0.group(1).strip() if m0 else (loc or "").split(" (")[0].strip()
     m, n = PAGE.search(loc or ""), PARA.search(loc or "")
     return name, (int(m.group(1)) if m else None), (int(n.group(1)) if n else None)
 

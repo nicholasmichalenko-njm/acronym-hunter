@@ -15,6 +15,25 @@ from . import design as D
 from .adaptive import FlowLayout
 
 COLS = ["Term", "Type", "Count", "Found in", "Status", "Definition", "Known in", "Acronym list"]
+# 3.34.1: the few status filters a reviewer uses (Type, Found in and the search do the rest)
+STATUS = ("All statuses", "Needs approval", "Approved", "Needs a choice", "No longer found", "Excluded")
+
+
+def status_ok(d, wanted, kind):
+    """Whether a term passes a status filter. Needs approval: every term to decide (new candidates, one with several
+    meanings, one proposed or waiting for an author), not approved, excluded or in the omit list."""
+    if wanted == "Needs approval":
+        return (not d.get("excluded") and not d.get("known") and d.get("effort") != "Approved" and kind != "error"
+                and not d.get("gone"))
+    if wanted == "Approved":
+        return d.get("effort") == "Approved"
+    if wanted == "Needs a choice":
+        return kind == "choice"
+    if wanted == "No longer found":
+        return bool(d.get("gone"))
+    if wanted == "Excluded":
+        return bool(d.get("excluded"))
+    return True
 KIND_TONE = {"choice": "warn", "candidate": "cust", "resolved": "ok", "error": "crit", "excluded": "head", "other": "accent"}
 
 
@@ -70,18 +89,22 @@ class AcronymPage(QWidget):
             top.addWidget(p)
         f = FlowLayout(); f.setSpacing(D.SPACE["s"]); v.addLayout(f)
         self.f_type = QComboBox(); self.f_type.addItem(A.ALL_TYPES)
-        self.f_status = QComboBox(); self.f_status.addItems(A.STATUS_FILTERS)
+        self.f_status = QComboBox(); self.f_status.addItems(list(STATUS))   # 3.34.1: the few that matter
         self.f_found = QComboBox(); self.f_found.addItems(list(A.FOUND_FILTERS))
         self.f_search = QLineEdit(); self.f_search.setPlaceholderText("Search terms and definitions"); self.f_search.setClearButtonEnabled(True)
         self.f_search.setMinimumWidth(280)
         self.f_excl = QCheckBox("Show excluded")
+        self.f_forms = QCheckBox("Show plurals and forms")           # 3.34.1: decided ones stay out of the way
+        self.f_forms.setToolTip("A term you set as a plural (CDRLs) or a form (FY27) is tied to its term and hidden from the "
+                                "list; tick this to see them (greyed, with what they belong to). A search finds them too.")
         for w in (self.f_type, self.f_status, self.f_found):
             w.currentIndexChanged.connect(lambda _i: self.fill())
         self.f_search.textChanged.connect(lambda _t: self.fill())
         self.f_excl.toggled.connect(lambda _on: self.fill())
+        self.f_forms.toggled.connect(lambda _on: self.fill())
         for w in (self.f_type, self.f_status, self.f_found):
             f.addWidget(w)
-        f.addWidget(self.f_search, 1); f.addWidget(self.f_excl)
+        f.addWidget(self.f_search, 1); f.addWidget(self.f_excl); f.addWidget(self.f_forms)
         self.showing = D.label("", "muted", wrap=False); f.addWidget(self.showing)
         f.addWidget(D.button("Export the report...", None, lambda: self.export(), "Exactly the rows shown, as a CSV that opens in Excel"))
         split = QSplitter(Qt.Horizontal)
@@ -156,9 +179,11 @@ class AcronymPage(QWidget):
         for term, d in s.results.items():
             if d.get("excluded") and not (self.f_excl.isChecked() or fstat == "Excluded"):
                 continue
+            if (d.get("plural_of") or d.get("form_of")) and not (self.f_forms.isChecked() or (q and q == term.casefold())):
+                continue                                     # 3.34.1: a plural or form is decided: tied to its term, out of the list
             if ftype != A.ALL_TYPES and A.base_type(d["category"]) != ftype:
                 continue
-            if fstat != A.STATUS_FILTERS[0] and not s.status_matches(d, fstat):
+            if fstat != STATUS[0] and not status_ok(d, fstat, A.status_kind(d.get("status", ""))):
                 continue
             if ffound != A.FOUND_FILTERS[0] and s.found_in(d) != ffound.split()[0]:
                 continue
@@ -176,6 +201,11 @@ class AcronymPage(QWidget):
         self.table.setVisible(has or self.worker is not None)
         self.card_area.setVisible(has)
         self.table.setRowCount(len(self.terms))
+        fmap = {}                                              # 3.34.1: {term: its plurals and forms}
+        for t_, d_ in (s.results.items() if s else []):
+            b_ = d_.get("plural_of") or d_.get("form_of")
+            if b_:
+                fmap.setdefault(b_, []).append(t_)
         for i, t in enumerate(self.terms):
             d = s.results[t]
             kind = "excluded" if d.get("excluded") else A.status_kind(d.get("status", ""))
@@ -187,6 +217,14 @@ class AcronymPage(QWidget):
                     it.setForeground(D.color(KIND_TONE.get(kind, "accent")))
                 if c == 0 and d.get("excluded"):
                     it.setForeground(D.color("faint"))
+                if d.get("plural_of") or d.get("form_of"):       # 3.34.1: greyed and italic, tied to its term
+                    it.setForeground(D.color("faint"))
+                    fi = it.font(); fi.setItalic(True); it.setFont(fi)
+                    if c == 0:
+                        it.setToolTip(f"{'Plural' if d.get('plural_of') else 'A form'} of {d.get('plural_of') or d.get('form_of')}")
+                if c == 0 and (forms := sorted(fmap.get(t, []))):
+                    it.setText(f"{t}  (+{', '.join(forms[:3])}{'...' if len(forms) > 3 else ''})")
+                    it.setToolTip("Its plurals and forms: " + ", ".join(forms))
                 self.table.setItem(i, c, it)
         n = s.counts() if s else {"active": 0, "choice": 0, "candidate": 0, "excluded": 0}
         self.p_active.setText(f"{n['active']} terms"); self.p_choice.setText(f"{n['choice']} need a choice")
@@ -198,6 +236,11 @@ class AcronymPage(QWidget):
             self.select(keep)
         else:
             self.show_detail()
+
+    def _forms_of(self, term):
+        """3.34.1: the plurals and forms tied to a term."""
+        s = self.session
+        return sorted(t for t, d in (s.results.items() if s else []) if (d.get("plural_of") or d.get("form_of")) == term)
 
     def current(self):
         i = self.table.currentRow()
@@ -250,6 +293,10 @@ class AcronymPage(QWidget):
             row.addWidget(D.Pill(f"Acronym list: {d['effort']}", "ok" if d["effort"] == "Approved" else "accent"))
         if d.get("plural_of"):
             row.addWidget(D.Pill(f"Plural of {d['plural_of']}", "ctx"))
+        if d.get("form_of"):                                       # 3.34.1
+            row.addWidget(D.Pill(f"Written as {d['form_of']} plus a number", "ctx"))
+        if d.get("from_forms"):
+            row.addWidget(D.Pill("Found inside its forms", "ctx"))
         row.addStretch(1)
         self.body.addLayout(row)
         self.body.addWidget(D.label(f"{d.get('category', '')}  |  found {d.get('count', 0)} time(s)"
@@ -300,22 +347,35 @@ class AcronymPage(QWidget):
             r3 = QHBoxLayout(); r3.setSpacing(D.SPACE["s"])
             if d.get("plural_of"):
                 r3.addWidget(D.button("Not a plural", "ghost", lambda: self.not_plural(t), "Make it a term of its own again"))
+            elif d.get("form_of"):
+                r3.addWidget(D.button(f"Not a form of {d['form_of']}", "ghost", lambda: self.not_form(t), "Make it a term of its own again"))
             else:
                 g = self.session.singular_guess(t)
                 r3.addWidget(D.button(f"Plural of {g}" if g else "Plural of...", None, lambda: self.plural(t, g or None),
                                       "Still found in every scan; counted with its singular; never its own row in the lists you submit"))
+                fg = self.session.form_guess(t)                      # 3.34.1: FY27 is FY plus a number
+                r3.addWidget(D.button(f"Use {fg} (a form of it)" if fg else "A form of...", None, lambda: self.form(t, fg or None),
+                                      "The term is written as another term plus a number or code (FY27 as FY): define that term "
+                                      "once; this one stays found, tied to it, and never comes up as its own row again"))
             r3.addStretch(1)
             self.body.addLayout(r3)
 
     def path_of(self, name):
-        """Where a scanned file is (the last scan, else the Library's customer documents)."""
+        """Where a scanned file is (the last scan, else the Library's customer documents). 3.34.1: matched without
+        regard to case, and a place written before its file name was read whole ('Section L (1).pdf') still finds it."""
         s = self.session
-        p = (getattr(s, "scanned_paths", {}) or {}).get(name, "") if s is not None else ""
+        known = dict((getattr(s, "scanned_paths", {}) or {}) if s is not None else {})
+        p = known.get(name, "")
         if p and os.path.isfile(p):
             return p
-        for q in self.customer_paths():
-            if os.path.basename(q) == name:
+        cands = [q for q in known.values() if q and os.path.isfile(q)] + self.customer_paths()
+        low = (name or "").casefold()
+        for q in cands:
+            if os.path.basename(q).casefold() == low:
                 return q
+        hits = [q for q in cands if low.startswith(os.path.basename(q).casefold())]   # the longest name that starts it
+        if hits:
+            return max(hits, key=lambda q: len(os.path.basename(q)))
         return p
 
     def plural(self, term, singular=None):
@@ -329,6 +389,29 @@ class AcronymPage(QWidget):
         if ok:
             diag.activity("acronym_plural_set")
             self.host.toast(f"{term}: plural of {singular.strip()}. Still found; never its own row in the lists you submit.")
+            self.fill()
+            self.select(singular.strip())                      # 3.34.1: the plural leaves the list; its term is shown
+        return ok
+
+    def form(self, term, base=None):
+        """3.34.1: the term is written as another term plus a number or code (FY27 as FY)."""
+        if base is None:
+            from PySide6.QtWidgets import QInputDialog
+            base, ok = QInputDialog.getText(self, "A form of...", f"{term} is written as this term plus a number or code:",
+                                            text=self.session.form_guess(term))
+            if not ok:
+                return False
+        ok = self.session.set_form(term, base)
+        if ok:
+            diag.activity("acronym_form_set")
+            self.host.toast(f"{term}: a form of {base.strip()}. Define {base.strip()} once; {term} stays found and tied to it.")
+            self.fill()
+            self.select(base.strip())
+        return ok
+
+    def not_form(self, term):
+        ok = self.session.clear_form(term)
+        if ok:
             self.fill()
         return ok
 
@@ -474,8 +557,7 @@ class AcronymPage(QWidget):
         if s is None:
             return None
         terms = list(self.terms)
-        if self.f_status.currentText() != "Found in omit list":
-            terms = [t for t in terms if not s.results[t].get("known")]
+        terms = [t for t in terms if not s.results[t].get("known")]
         if not terms:
             self.host.status("No rows are showing. Change the filters, then export.")
             return None

@@ -683,14 +683,51 @@ class AcronymRules:
                 p = os.path.join(cd, f)
                 if os.path.isfile(p) and f.lower().endswith((".docx", ".pdf", ".pptx", ".xlsx")):
                     out.append((p, "customer")); seen.add(os.path.normcase(os.path.abspath(p)))
+        # 3.34.1: the customer documents are also the effort's Customer Documents folder and its Library documents
+        epath = info.get("path") or ""
+        extra = []
+        try:
+            import effortfolders as EF
+            cf = EF.folder(epath, "customer", make=False) if epath else ""
+            if cf and os.path.isdir(cf):
+                extra += [os.path.join(cf, f) for f in sorted(os.listdir(cf))]
+        except Exception:
+            diag.swallowed()
+        try:
+            ws = getattr(self, "ws", None)
+            if ws is not None:
+                import docversions as DV
+                lib = DV.Library(ws.p("documents")).load()
+                for d in lib.docs:
+                    for v in lib.versions(d) if hasattr(lib, "versions") else [lib.latest(d)]:
+                        if v:
+                            extra.append(lib.path_of(v))
+        except Exception:
+            diag.swallowed()
+        for p in extra:
+            if p and os.path.isfile(p) and p.lower().endswith((".docx", ".pdf", ".pptx", ".xlsx")) and \
+                    os.path.normcase(os.path.abspath(p)) not in seen:
+                out.append((p, "customer")); seen.add(os.path.normcase(os.path.abspath(p)))
         cust_names = {os.path.basename(p) for p, _k in out}
         ours = []
         for v in (self.volumes() if hasattr(self, "volumes") else []):
             ours += [self.path_for(f) for f in v.get("files", [])]
-        ours += list((getattr(self, "last_scan", None) or {}).get("paths", []))
+        vdir = ""
+        try:
+            import effortfolders as EF
+            vdir = os.path.normcase(os.path.abspath(EF.folder(epath, "volumes", make=False))) if epath else ""
+        except Exception:
+            diag.swallowed()
         for p in ours:
             if p and os.path.isfile(p) and os.path.normcase(os.path.abspath(p)) not in seen and os.path.basename(p) not in cust_names:
                 out.append((p, "ours")); seen.add(os.path.normcase(os.path.abspath(p)))
+        # 3.34.1: a scanned file is ours only when it is one of our volumes or sits in the effort's Volumes folder;
+        # anything else scanned (an RFP from Downloads, an attachment) is the customer's
+        for p in list((getattr(self, "last_scan", None) or {}).get("paths", [])):
+            if not p or not os.path.isfile(p) or os.path.normcase(os.path.abspath(p)) in seen or os.path.basename(p) in cust_names:
+                continue
+            mine = bool(vdir) and os.path.normcase(os.path.abspath(p)).startswith(vdir + os.sep)
+            out.append((p, "ours" if mine else "customer")); seen.add(os.path.normcase(os.path.abspath(p)))
         return out
 
     def kw_compute(self, sources=None, progress=None):

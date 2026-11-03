@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+REVIEW HAS ROOM, ACRONYMS STAY DECIDED (3.34.1)
+  - Review: the deciding and capturing tools sit in a bar along the bottom, side by side, so the selected text's
+    details and the response structure get the whole right side. Drag the bar's edge to give it more or less room.
+  - Acronyms: the place a term was found shows again for file names with brackets of their own ("Section L (1).pdf")
+    and names that differ only in capitals.
+  - Found in says Customer for terms only in the customer's documents (the customer folder and the Library), and Ours
+    only for terms in your volumes.
+  - A form of a term: for FY27, choose Use FY (a form of it). FY is added when the scan did not find it on its own,
+    you define FY once, and FY27 (and FY26, FY28...) stops coming up as a term of its own. Not a form of FY undoes it.
+  - Plurals and forms leave the list once decided. Show plurals and forms brings them back greyed, with the term they
+    belong to; the term's row shows (+forms). A search for one finds it.
+  - Status filter: All statuses, Needs approval (new candidates land here), Approved, Needs a choice, No longer found,
+    Excluded. Type filters unit, acronym and abbreviation.
+
 COVERS, TITLE PAGES AND BACK COVERS BUILT HERE (3.34.0)
   - Document parts > Cover (and Back cover): New from a blank page... (the standard's paper and margins) and From a
     saved cover layout... open the layout editor on a new page.
