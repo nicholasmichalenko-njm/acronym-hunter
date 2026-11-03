@@ -255,7 +255,40 @@ class DashPage(QWidget):
         self.comp_text.setText(f"{q['decided']} of {q['sentences']} sentences decided ({q['pct']}%). "
                                + (f"{plural(q['undecided'], 'sentence')} still to decide in Review." if q["undecided"] else "Every sentence is decided.")
                                + (f"\n{rv[0]} review: {rv[1]['Compliant']} compliant, {rv[1]['Partly']} partly, {rv[1]['Not compliant']} not "
-                                  f"compliant, {rv[1]['Not addressed']} not addressed, {rv[1]['not_reviewed']} not reviewed." if rv else ""))
+                                  f"compliant, {rv[1]['Not addressed']} not addressed, {rv[1]['not_reviewed']} not reviewed." if rv else "")
+                               + self.review_feed_text())
+
+    def review_feed_text(self):
+        """3.29.0: what review still owes: objectives not mapped to a section, sentences in topics not decided, and how
+        much of each customer document is decided."""
+        try:
+            import effortrec as R_
+            import excerpts as EX
+            import topics as TP
+            rec = R_.Record(self.host.ws.root)
+            M = self.host.review.M if self.host.review is not None else None
+            bits = []
+            um = len(EX.objectives_unmapped(rec))
+            if EX.excerpts(rec, "objective"):
+                bits.append(f"{um} customer objective(s) not mapped to a section" if um else "every customer objective is mapped")
+            if M is not None and TP.topics(rec):
+                cov = TP.coverage(rec, M.items)
+                op = sum(c["open"] for c in cov.values())
+                bits.append(f"{op} sentence(s) in topics still to decide" if op else "every topic's sentences are decided")
+            if M is not None:
+                per = {}
+                for it in M.items:
+                    if it.get("type") == "Heading":
+                        continue
+                    f = it.get("file", "")
+                    t, dd = per.get(f, (0, 0))
+                    per[f] = (t + 1, dd + (1 if it.get("decision") else 0))
+                if len(per) > 1:
+                    bits.append("reviewed: " + ", ".join(f"{f} {round(100 * dd / t) if t else 0}%" for f, (t, dd) in sorted(per.items())))
+            return ("\n" + "; ".join(bits) + ".") if bits else ""
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            return ""
 
     def fill_volumes(self, d):
         t = self.vol_table

@@ -41,6 +41,10 @@ COLUMNS = {
     "strength": ("Strength", 12),
     "type": ("Type", 14),
     "id": ("Stationkeeper ID", 14),
+    "topic": ("Topic", 22),                         # 3.29.0: what review feeds: the sentence's topics
+    "objective": ("Customer objective", 36),        # 3.29.0: the objectives mapped to its section, verbatim
+    "keypoints": ("Key points", 36),                # 3.29.0: key points taken from the sentence
+    "excerpt": ("Source excerpt and location", 40), # 3.29.0: the customer's words with where they sit
 }
 CUSTOM = "custom:"                                   # 2.51.0: a column of the team's own, filled in Excel
 ROLES = (("Keep", "Compliance requirements"), ("Context", "Context"))
@@ -251,6 +255,22 @@ def _value(M, it, key, inh, people, ctx=None, vols=None):
         return ""
     if key == "far":
         return "; ".join(dict.fromkeys(" ".join(m.group(0).split()) for m in _FAR.finditer(it.get("text", ""))))
+    if key in ("topic", "objective", "keypoints", "excerpt"):      # 3.29.0: what review feeds the matrix
+        rec = (ctx or {}).get("record") or {}
+        if key == "topic":
+            names = {t.get("id"): t.get("name", "") for t in rec.get("topics", []) if isinstance(t, dict)}
+            return "; ".join(names[x] for x in (rec.get("topic_tags", {}).get(it["id"]) or []) if x in names)
+        xs = [x for x in rec.get("excerpts", []) if isinstance(x, dict)]
+        mine = [x for x in xs if any(p.get("sid") == it["id"] for p in x.get("parts", []))]
+        import excerpts as EX
+        if key == "objective":
+            sec = it.get("map", "")
+            objs = [x for x in xs if x.get("bin") == "objective" and (x in mine or (sec and sec in (x.get("sections") or [])))]
+            return "\n".join(f"\u201c{EX.text_of(x)}\u201d ({EX.where_of(x)})" for x in objs)
+        if key == "keypoints":
+            return "\n".join(EX.text_of(x) + (f" ({x['note']})" if x.get("note") else "") for x in mine if x.get("bin") == "keypoint")
+        src = "; ".join(dict.fromkeys(EX.where_of(x) for x in mine if EX.where_of(x)))
+        return src or " ".join(b for b in (it.get("file", ""), _where(it, M)) if b)
     if key.startswith(CUSTOM):
         return (it.get("cols") or {}).get(key[len(CUSTOM):], "")
     if key == "rfp_section":
@@ -604,6 +624,8 @@ def effort_ctx(ws):
             fmt = "; ".join(f"{f}: {sp[f]}" for f in ("Font", "Margins", "Page size", "Line spacing", "File format") if sp.get(f))
             out["deliverables"].append({"name": d["name"], "limit": sp.get("Page limit") or d.get("limit", ""),
                                         "format": fmt or d.get("format", "")})
+        out["record"] = {k: r.data.get(k) or ([] if k != "topic_tags" else {})        # 3.29.0: topics, objectives,
+                         for k in ("topics", "topic_tags", "excerpts")}               # key points, excerpts
     except Exception:
         import diag
         diag.swallowed()

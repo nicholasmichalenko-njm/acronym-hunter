@@ -143,7 +143,7 @@ class ExportAllPage(QWidget):
                 if "setup" in picks:
                     import ctxdocs as CX
                     import structparts as SP
-                    out += SD.export(M, sub, context=CX.section_context(self.host.ws.root),
+                    out += SD.export(M, sub, bins=SD.review_bins(self.host.ws.root), context=CX.section_context(self.host.ws.root),
                                      part_rules=lambda vol, M=M: SP.summaries(self.host.config_dir, self.host.ws, M, vol))
                 return out
             part("The compliance files", compliance)

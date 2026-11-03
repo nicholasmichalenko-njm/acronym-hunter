@@ -33,8 +33,9 @@ def new_setup():
 
 
 LM = {"L": "Instructions, Conditions and Notices to Offerors", "M": "Evaluation Factors for Award",     # 2.68.0 (Shipley)
-      "C": "Statement of Work: what the contractor shall do (Section C, SOW, PWS)"}                       # 2.96.0
-LM_SHORT = {"L": "L (Instructions)", "M": "M (Evaluation)", "C": "SOW (Work)"}                             # 2.96.0: the buttons
+      "C": "Statement of Work: what the contractor shall do (Section C, SOW, PWS)",                       # 2.96.0
+      "I": "Customer interest: what the Government wants to learn from the response (an RFI)"}           # 3.28.0
+LM_SHORT = {"L": "L (Instructions)", "M": "M (Evaluation)", "C": "SOW (Work)", "I": "Interest (RFI)"}                             # 2.96.0: the buttons
 
 
 def docs_of(M):
@@ -672,8 +673,21 @@ def _safe(s):
 LIBRARY_TEAL = "0F766E"
 
 
-def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=None):
+def review_bins(root):
+    """3.29.0: what review keeps in the effort record for the setup (topics, objectives, key points, custom bins)."""
+    try:
+        import effortrec as R
+        r = R.Record(root)
+        return {k: r.data.get(k) or ([] if k != "topic_tags" else {}) for k in ("topics", "topic_tags", "excerpts", "bins")}
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=None, bins=None):
     import docxw, compliance as C
+    import excerpts as EX
+    xs = [x for x in ((bins or {}).get("excerpts") or []) if isinstance(x, dict)]
+    setup_bins = {b.get("id"): b.get("name", "") for b in ((bins or {}).get("bins") or []) if "setup" in (b.get("feeds") or [])}
     S = setup_of(M)
     B = by_id(M)
     d = docxw.Doc()
@@ -703,6 +717,13 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
             d.para(("Page limit (the RFP): " if src == "rfp" else "Page guideline (the team): ")
                    + f"{int(bud) if float(bud).is_integer() else bud} page{'s' if float(bud) != 1 else ''}"
                    " (subsections included)", color="B91C1C" if src == "rfp" else "1E3A8A", kind="note")
+        tps = [t["name"] for t in ((bins or {}).get("topics") or []) if lab in (t.get("sections") or [])]
+        if tps:                                                   # 3.29.0: the topics this section answers
+            d.para("Topics: " + ", ".join(tps), color="4338CA", kind="note")
+        for x in xs:                                              # 3.29.0: the customer's objectives mapped here
+            if x.get("bin") == "objective" and lab in (x.get("sections") or []):
+                d.rich([("Customer objective" + (f" ({EX.where_of(x)})" if EX.where_of(x) else "") + ": ", {"color": "B45309", "bold": True}),
+                        (EX.text_of(x), {"color": "B45309"})], indent=720, border="B45309", kind="customer")
         if S.get("tables"):                                       # 2.38.0: the requirement table of the old Word outline
             rows = [B[i] for i in P.get(lab, []) if B.get(i) is not None and B[i].get("decision") == "Keep"]
             if rows:
@@ -736,6 +757,13 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
             note = S["notes"].get(iid, "").strip()
             if note:
                 d.para(note, color=GREEN, kind="pm")
+            for x in xs:                                          # 3.29.0: key points and the effort's own bins taken here
+                if not any(pt.get("sid") == iid for pt in x.get("parts", [])):
+                    continue
+                if x.get("bin") == "keypoint":
+                    d.para("Key point: " + EX.text_of(x) + (f" ({x['note']})" if x.get("note") else ""), color=GREEN, kind="pm")
+                elif x.get("bin") in setup_bins:
+                    d.para(f"{setup_bins[x['bin']]}: " + EX.text_of(x) + (f" ({x['note']})" if x.get("note") else ""), color=GREEN, kind="pm")
         mg = S["mgmt"].get(lab, "").strip()
         if mg:
             d.para(mg, color=GREEN, kind="pm")
@@ -754,7 +782,7 @@ def snapshot(M):
             "mgmt": {lab: _sig(S["mgmt"].get(lab, "")) for lab in P}}
 
 
-def export(M, folder, when=None, context=None, part_rules=None):
+def export(M, folder, when=None, context=None, part_rules=None, bins=None):
     """Write one .docx per volume into folder. Returns the paths. Records a snapshot for Export changes only.
     context (2.84.0): {section label: [(text, document, where)]}, sentences from library documents attached to sections.
     part_rules (3.19.0): a function (volume name) -> {part: its rules in words}, from Production Standards."""
@@ -776,7 +804,7 @@ def export(M, folder, when=None, context=None, part_rules=None):
             except Exception:
                 import diag
                 diag.swallowed()
-        _doc_for(M, name, entries, P, inh, stamp, context, rules).save(p)
+        _doc_for(M, name, entries, P, inh, stamp, context, rules, bins=bins).save(p)
         paths.append(p)
     S = setup_of(M)
     snap = snapshot(M)

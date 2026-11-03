@@ -40,9 +40,9 @@ WORD = re.compile(r"[A-Za-z0-9]+")
 BULK_DECISIONS = (("Decide all...", ""), ("L (Instructions)", "L"), ("M (Evaluation)", "M"), ("SOW (Work)", "SOW"),
                   ("Support", "ctx"), ("Customer's", "cust"), ("Ignore", "ignore"))
 
-SG_DEC = {"L": "Keep", "M": "Keep", "SOW": "Keep", "ctx": "Context", "cust": "Customer", "ignore": "Drop"}   # 3.18.0
-SG_LM = {"L": "L", "M": "M", "SOW": "C"}
-SG_KEYS = {"L": "L", "M": "E", "SOW": "R", "ctx": "C", "cust": "G", "ignore": "X"}
+SG_DEC = {"L": "Keep", "M": "Keep", "SOW": "Keep", "ctx": "Context", "cust": "Customer", "ignore": "Drop", "I": "Keep"}   # 3.18.0
+SG_LM = {"L": "L", "M": "M", "SOW": "C", "I": "I"}
+SG_KEYS = {"L": "L", "M": "E", "SOW": "R", "ctx": "C", "cust": "G", "ignore": "X", "I": "I"}
 
 
 def parse_area(text):
@@ -656,7 +656,36 @@ class AssignPage(QWidget):
         right.addWidget(self.decide_area); right.addWidget(self.card_area); right.addWidget(self.side_area)   # 3.20.3: decide first
         right.setSizes([300, 330, 380]); right.setChildrenCollapsible(False)
         self.right = right
-        split = QSplitter(Qt.Horizontal); split.addWidget(self.view); split.addWidget(right); split.setSizes([1100, 470])
+        # 3.28.0: topics: Sort mode (keys 1 to 9), the topics, show one, and how far each has come
+        pagew = QWidget(); pv = QVBoxLayout(pagew); pv.setContentsMargins(0, 0, 0, 0); pv.setSpacing(D.SPACE["xs"])
+        self.topic_bar = QWidget(); tb = FlowLayout(spacing=4); self.topic_bar.setLayout(tb)
+        self.sort_btn = D.button("Sort mode", None, lambda: self.toggle_sort(), "Sort by topic: keys 1 to 9 put the selected "
+                                 "sentences in the first nine topics (again takes it off). Decisions stay on their keys.")
+        self.sort_btn.setCheckable(True)
+        tb.addWidget(self.sort_btn)
+        self.topic_chips = QWidget(); self.topic_chips_lay = FlowLayout(spacing=4); self.topic_chips.setLayout(self.topic_chips_lay)
+        tb.addWidget(self.topic_chips)
+        tb.addWidget(D.button("+ Topic", None, lambda: self.new_topic(), "A topic of this effort (a theme, an area, an RFI question)"))
+        self.topics_btn = D.button("Topics", None, None, "Topics from the RFP's headings or the library's tags; rename, color, "
+                                   "map to response sections, order and take out")
+        from PySide6.QtWidgets import QMenu
+        tm = QMenu(self.topics_btn)
+        tm.addAction("Topics from the RFP's headings", lambda: self.topics_from_headings())
+        tm.addAction("Topics from the library's tags", lambda: self.topics_from_tags())
+        tm.addAction("Topics of this effort...", lambda: self.manage_topics())
+        tm.addAction("Make a section for each topic", lambda: self.sections_from_topics())
+        self.topics_btn.setMenu(tm)
+        tb.addWidget(self.topics_btn)
+        tb.addWidget(D.label("Show", "label", wrap=False))
+        self.topic_show = QComboBox(); self.topic_show.setMinimumWidth(180)
+        self.topic_show.currentIndexChanged.connect(lambda _i: (self.restyle(), self.show_coverage()))
+        tb.addWidget(self.topic_show)
+        self.topic_cov = D.label("", "muted", wrap=False); tb.addWidget(self.topic_cov)
+        pv.addWidget(self.topic_bar); pv.addWidget(self.view, 1)
+        self.sort_on = False
+        self.rfi = False
+        self.topic_labels = []
+        split = QSplitter(Qt.Horizontal); split.addWidget(pagew); split.addWidget(right); split.setSizes([1100, 470])
         v.addWidget(split, 1)
         self.notes_timer = QTimer(self, singleShot=True, interval=700, timeout=self.save_notes)
         for key, fn in (("R", lambda: self.do_sow()), ("C", self.do_ctx), ("G", self.do_customer), ("X", self.do_clear),
@@ -675,6 +704,9 @@ class AssignPage(QWidget):
             QShortcut(QKeySequence(key), self.view, activated=fn)
         for i in range(9):                                       # 3.21.0: the effort's own bins, in order
             QShortcut(QKeySequence(f"Alt+{i + 1}"), self.view, activated=lambda n=i: self.do_custom_bin(n))
+            QShortcut(QKeySequence(str(i + 1)), self.view, activated=lambda n=i: self.tag_topic(n) if self.sort_on else None)
+        QShortcut(QKeySequence("I"), self.view, activated=lambda: self.do_lm("I") if self.rfi and self.cx is None else None)   # 3.28.0
+        QShortcut(QKeySequence("Ctrl+T"), self.view, activated=lambda: self.toggle_sort())
         self.show_card([])
 
     # ------------------------------------------------------------ the review
@@ -689,6 +721,12 @@ class AssignPage(QWidget):
     def load(self):
         """The review changed (opened, read): fill the file list and the structure."""
         import suggestrules as SR
+        import topics as TP                                                    # 3.28.0
+        rfi = TP.is_rfi(self.host.ws)
+        if rfi and not self.rfi and self.R is not None:                       # an RFI effort opens in Sort mode
+            self.sort_on = True; self.sort_btn.setChecked(True)
+        self.rfi = rfi
+        self.fill_topics()
         self.sg = SR.store(self.host.ws) if self.R is not None else {}          # 3.18.0: this effort's suggestions
         self.load_marks()
         if self.sg_on and self.R is not None:
@@ -1131,6 +1169,25 @@ class AssignPage(QWidget):
         for lab in self.labels:
             sc.removeItem(lab)
         self.labels = []
+        import topics as TP                                          # 3.28.0: topics on the right, Show one topic
+        trec = self._trec() if hasattr(self, "topic_show") else None
+        tlist = TP.topics(trec) if trec is not None else []
+        tnum = {t["id"]: n for n, t in enumerate(tlist)}
+        tags = trec.data.get("topic_tags", {}) if trec is not None else {}
+        want = self.topic_show.currentData() if hasattr(self, "topic_show") else ""
+        for iid, box in self.view.boxes.items():
+            ids = tags.get(iid) or []
+            box.setOpacity(1.0 if (not want or (want == "-" and not ids) or (want not in ("", "-") and want in ids)) else 0.18)
+            if ids and tlist:
+                r = box.boundingRect()
+                lab = QGraphicsSimpleTextItem(" ".join(f"{tnum[x] + 1}" if tnum.get(x, 99) < 9 else "+" for x in ids if x in tnum))
+                lab.setFont(QFont("Segoe UI", 7, QFont.Bold))
+                first = next((t for t in tlist if t["id"] in ids), None)
+                lab.setBrush(QColor(first["color"] if first else "#4338CA"))
+                lab.setPos(r.right() + 4, r.top())
+                lab.setToolTip(", ".join(t["name"] for t in tlist if t["id"] in ids))
+                sc.addItem(lab)
+                self.labels.append(lab)
         last_y = -100.0
         for iid, box in sorted(self.view.boxes.items(), key=lambda kv: kv[1].boundingRect().top()):
             it = self.R.item(iid)
@@ -1368,6 +1425,10 @@ class AssignPage(QWidget):
             lab.setToolTip(words[:1500] + "\n" + EX.where_of(x))
             h.addWidget(lab, 1)
             h.addWidget(D.button("Edit...", None, lambda _=False, i=x["id"]: self.edit_excerpt(i), "Bin, value, note, sections"))
+            if x["bin"] in ("objective", "keypoint"):                # 3.29.0: seeds for the Wall of Truth
+                h.addWidget(D.button("On the wall" if x.get("truth") else "To the Wall of Truth", "ghost",
+                                     lambda _=False, i=x["id"]: self.promote_excerpt(i), "A Fact on the effort's Wall of Truth, "
+                                     "its words verbatim with where they sit"))
             h.addWidget(D.button("Take out", "ghost", lambda _=False, i=x["id"]: self.remove_excerpt(i), "Take the excerpt out"))
             self.excerpt_rows[x["id"]] = lab
             self.add(w)
@@ -1563,6 +1624,16 @@ class AssignPage(QWidget):
             diag.activity("excerpt_edited")
             self.after_bins()
         return ok
+
+    def promote_excerpt(self, xid):
+        """3.29.0: an objective or key point on the Wall of Truth."""
+        import excerpts as EX
+        tid = EX.promote(R_.Record(self.host.ws.root), xid)
+        if tid:
+            diag.activity("excerpt_promoted")
+            self.host.status("On the Wall of Truth (Effort > Wall of Truth): confirm or change its words there.")
+            self.after_bins()
+        return tid
 
     def remove_excerpt(self, xid):
         import excerpts as EX
@@ -2031,7 +2102,7 @@ class AssignPage(QWidget):
             lmw = QWidget(); lh = QHBoxLayout(lmw); lh.setContentsMargins(0, 0, 0, 0); lh.setSpacing(D.SPACE["s"])
             cur_lm = it.get("lm", "")
             sug, why = SD.lm_why(M, it)
-            for code in ("L", "M", "C"):
+            for code in (("L", "M", "C", "I") if self.rfi else ("L", "M", "C")):
                 b = D.button(SD.LM_SHORT[code], "req" if cur_lm == code else None,
                              lambda _=False, c=code: self.set_lm(rows, c), SD.LM[code] + (" (click again to take it off)" if cur_lm == code else ""))
                 lh.addWidget(b)
@@ -2493,7 +2564,7 @@ class AssignPage(QWidget):
         rows = self.selected()
         if not rows:
             return
-        n = self.R.req(rows, self.target or "")
+        n = self.place_reqs(rows)
         diag.activity("compliance_assigned", n=n)
         self.after(f"{rows[0]['id'] if n == 1 else str(n) + ' sentences'}: compliance requirement "
                    + (f"in {self.target}" if self.target else "(no section yet: click one, or build one with + Heading)"))
@@ -2506,7 +2577,7 @@ class AssignPage(QWidget):
         if not rows:
             return
         with self.R.group():
-            n = self.R.req(rows, self.target or "")
+            n = self.place_reqs(rows)
             self.R.set_lm(rows, "C")
         diag.activity("compliance_assigned", n=n)
         self.after(f"{rows[0]['id'] if n == 1 else str(n) + ' sentences'}: SOW (Work) requirement "
@@ -2522,10 +2593,173 @@ class AssignPage(QWidget):
         new = [it for it in rows if it.get("decision") != "Keep"]
         with self.R.group():
             if new:
-                self.R.req(new, self.target or "")
+                self.place_reqs(new)
             self.R.set_lm(rows, lm)
         diag.activity("compliance_lm_set", n=len(rows))
         self.after(f"{rows[0]['id'] if len(rows) == 1 else str(len(rows)) + ' sentences'}: {SD.LM_SHORT.get(lm, lm)} ({SD.LM[lm]})")
+
+    # ------------------------------------------------------------ topics and Sort mode (3.28.0)
+    def _trec(self):
+        return R_.Record(self.host.ws.root) if self.host.ws is not None else None
+
+    def toggle_sort(self, on=None):
+        self.sort_on = (not self.sort_on) if on is None else bool(on)
+        self.sort_btn.setChecked(self.sort_on)
+        self.fill_topics()
+        self.host.status("Sort mode: select sentences and press 1 to 9 for a topic (again takes it off)." if self.sort_on
+                         else "Sort mode off: 1 to 9 do nothing.")
+        return self.sort_on
+
+    def fill_topics(self):
+        """The topic chips (numbered in Sort mode), the Show list and the coverage."""
+        import topics as TP
+        rec = self._trec()
+        lst = TP.topics(rec) if rec is not None else []
+        lay = self.topic_chips_lay
+        while lay.count():
+            w = lay.takeAt(0).widget()
+            if w is not None:
+                w.deleteLater()
+        self.topic_btns = []
+        for n, t in enumerate(lst):
+            b = D.button((f"{n + 1}  " if self.sort_on and n < 9 else "") + t["name"], None, lambda _=False, i=n: self.tag_topic(i),
+                         f"Put the selected sentences in {t['name']} (again takes it off)" + (f"; key {n + 1} in Sort mode" if n < 9 else ""))
+            b.setIcon(D.dot_icon(t["color"]))
+            lay.addWidget(b); self.topic_btns.append(b)
+        cur = self.topic_show.currentData()
+        self.topic_show.blockSignals(True); self.topic_show.clear()
+        self.topic_show.addItem("Every sentence", "")
+        self.topic_show.addItem("No topic yet", "-")
+        for t in lst:
+            self.topic_show.addItem(t["name"], t["id"])
+        self.topic_show.setCurrentIndex(max(0, self.topic_show.findData(cur)))
+        self.topic_show.blockSignals(False)
+        self.topic_bar.setVisible(self.R is not None)
+        self.show_coverage()
+
+    def show_coverage(self):
+        import topics as TP
+        rec = self._trec()
+        tid = self.topic_show.currentData()
+        if rec is None or self.M is None or not TP.topics(rec):
+            self.topic_cov.setText("" if rec is None else "No topics yet: + Topic, or Topics > from the RFP's headings.")
+            return {}
+        cov = TP.coverage(rec, self.M.items)
+        if tid and tid != "-":
+            c = cov.get(tid) or {}
+            self.topic_cov.setText(f"{c.get('sentences', 0)} sentence(s): {c.get('decided', 0)} decided, {c.get('open', 0)} open, "
+                                   f"{c.get('in_section', 0)} in a section")
+        else:
+            tagged = set(rec.data.get("topic_tags", {}))
+            n = sum(1 for it in self.M.items if it.get("type") != "Heading" and it["id"] not in tagged)
+            self.topic_cov.setText(f"{len(TP.topics(rec))} topic(s); {n} sentence(s) with no topic yet")
+        return cov
+
+    def tag_topic(self, n):
+        """The selected sentences in topic n (the first nine on keys 1 to 9); again takes it off."""
+        import topics as TP
+        rec = self._trec()
+        lst = TP.topics(rec) if rec is not None else []
+        if n >= len(lst):
+            return self.host.status(f"No topic {n + 1} yet: + Topic adds one.")
+        rows = self.selected()
+        if not rows:
+            return self.host.status("Select sentences first (Ctrl+click for more).")
+        on = TP.tag(rec, [it["id"] for it in rows], lst[n]["id"])
+        diag.activity("topic_tagged", n=len(rows))
+        self.restyle(); self.show_coverage()
+        self.host.status(f"{len(rows)} sentence(s) {'in' if on else 'out of'} {lst[n]['name']}.")
+        return on
+
+    def new_topic(self, name=None):
+        import topics as TP
+        rec = self._trec()
+        if rec is None:
+            return None
+        if name is None:
+            name = self._ask("New topic", "Topic name (for example Cybersecurity, Transition, Past performance):")
+        if not name:
+            return None
+        tid = TP.add(rec, name)
+        diag.activity("topic_added")
+        self.fill_topics()
+        return tid
+
+    def topics_from_headings(self):
+        import topics as TP
+        rec = self._trec()
+        if rec is None or self.M is None:
+            return []
+        made = TP.from_headings(rec, self.M.items)
+        diag.activity("topics_from_headings", n=len(made))
+        self.fill_topics(); self.restyle()
+        self.host.status(f"{len(made)} topic(s) from the RFP's headings; the sentences under each carry it." if made
+                         else "No headings found (sentences marked as RFP headings make topics).")
+        return made
+
+    def topics_from_tags(self):
+        import topics as TP
+        import docversions as DV
+        rec = self._trec()
+        if rec is None:
+            return []
+        try:
+            lib = DV.Library(self.host.ws.p("documents")).load()
+            names = lib.all_tags()
+        except Exception:  # noqa: BLE001
+            diag.swallowed(); names = []
+        made = TP.from_tags(rec, names)
+        self.fill_topics()
+        self.host.status(f"{len(made)} topic(s) from the library's tags." if made else "The library's documents have no tags yet.")
+        return made
+
+    def manage_topics(self, run=True):
+        from .topicsview import TopicsDialog
+        d = TopicsDialog(self, self._trec(), self.R.labels() if self.R is not None else [])
+        if run:
+            d.exec()
+            self.fill_topics(); self.restyle()
+        return d
+
+    def sections_from_topics(self, volume=None):
+        """A section for each topic (in the volume you are working in), each topic mapped to its section: an RFI
+        response is laid out one section per topic."""
+        import topics as TP
+        rec = self._trec()
+        if rec is None or self.M is None:
+            return []
+        lst = TP.topics(rec)
+        if not lst:
+            return self.host.status("No topics yet.") or []
+        self.R.snap()
+        vol = volume if volume is not None else self.active_volume
+        made = []
+        for t in lst:
+            if t.get("sections"):
+                continue
+            lab = O.add(self.M, t["name"], parent=vol) if vol else O.add(self.M, t["name"])
+            TP.update(rec, t["id"], sections=[lab])
+            made.append(lab)
+        diag.activity("sections_from_topics", n=len(made))
+        self.after(f"{len(made)} section(s) made, one per topic; a topic's requirements go to its section.")
+        return made
+
+    def place_reqs(self, rows):
+        """3.28.0: requirements go to the section their topic maps to; the rest to the target section (or none yet)."""
+        import topics as TP
+        rec = R_.Record(self.host.ws.root) if self.host.ws is not None else None
+        labels = set(self.R.labels())
+        by, rest = {}, []
+        for it in rows:
+            sec = TP.section_for(rec, it["id"]) if rec is not None else ""
+            (by.setdefault(sec, []) if sec in labels else rest).append(it)
+        n = 0
+        with self.R.group():
+            for sec, its in by.items():
+                n += self.R.req(its, sec) or 0
+            if rest:
+                n += self.R.req(rest, self.target or "") or 0
+        return n
 
     # ------------------------------------------------------------ building the structure as you go (2.68.0)
     def _ask(self, title, label, text=""):
@@ -2615,7 +2849,7 @@ class AssignPage(QWidget):
             rec = self.sg.get(it["id"])
             if it.get("decision") or (rec and rec.get("state") != "shown"):
                 continue                                    # decided (by you, or from a suggestion): kept as it is
-            got = SR.suggest(self.M, it, rules, inh)
+            got = SR.suggest(self.M, it, rules, inh, rfi=self.rfi)
             self.sg[it["id"]] = dict(got, state="shown")
             n += 1 if got.get("cat") else 0
         SR.save_store(ws, self.sg)
@@ -2650,9 +2884,9 @@ class AssignPage(QWidget):
         try:
             with self.R.group():
                 for cat, its in by.items():
-                    if cat in ("L", "M", "SOW"):
-                        self.R.req(its, self.target or "")
-                        self.R.set_lm(its, {"L": "L", "M": "M", "SOW": "C"}[cat])
+                    if cat in ("L", "M", "SOW", "I"):
+                        self.place_reqs(its)
+                        self.R.set_lm(its, {"L": "L", "M": "M", "SOW": "C", "I": "I"}[cat])
                     elif cat == "ctx":
                         self.R.ctx(its)
                     elif cat == "cust":
@@ -2848,7 +3082,7 @@ class AssignPage(QWidget):
             head = f"Suggested {name}; decided {SR.CAT_NAME.get(now, now) if now != 'req' else 'a requirement'}"
         elif state == "accepted":
             head = f"Decided from a suggestion: <b>{name}</b>" + (" &middot; not checked yet" if rec.get("unchecked") else " &middot; checked")
-        elif not cat and now in ("L", "M", "SOW", "req"):
+        elif not cat and now in ("L", "M", "SOW", "I", "req"):
             head = "No suggestion was made; you decided a requirement (a miss)"
         else:
             head = f"Suggested {name}"
@@ -2862,7 +3096,7 @@ class AssignPage(QWidget):
             row.addWidget(D.button("Not right", None, lambda: self.reject_suggestion(), "Leave it undecided, for you"))
         if rec.get("unchecked"):
             row.addWidget(D.button("Checked", "primary", lambda: self.check_suggestion(), "A person looked and it is right"))
-        if state in ("rejected", "changed") or (cat and now and not SR.agrees(cat, now)) or (not cat and now in ("L", "M", "SOW", "req")):
+        if state in ("rejected", "changed") or (cat and now and not SR.agrees(cat, now)) or (not cat and now in ("L", "M", "SOW", "I", "req")):
             row.addWidget(D.button("Make a rule...", None, lambda: self.make_rule(it),
                                    "Teach it: sentences holding a phrase from this one get the right suggestion from now on"))
         row.addStretch(1)

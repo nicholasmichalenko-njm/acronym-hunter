@@ -15,7 +15,7 @@ sentence), ignore (not used), none (a rule that says: never suggest anything for
 import datetime, getpass, json, os, re
 
 CATS = (("L", "L (Instructions)"), ("M", "M (Evaluation)"), ("SOW", "SOW (Work)"), ("ctx", "Support"),
-        ("cust", "Customer's"), ("ignore", "Ignore"), ("none", "No suggestion"))
+        ("cust", "Customer's"), ("ignore", "Ignore"), ("none", "No suggestion"), ("I", "Customer interest (RFI)"))
 CAT_NAME = dict(CATS)
 FILE = "suggestion_rules.json"
 _WS = re.compile(r"\s+")
@@ -95,13 +95,19 @@ def rule_for(text, rules):
 
 
 # ------------------------------------------------------------------ the suggestion for one sentence
-def suggest(M, it, rules=(), inherited=None):
-    """{"cat": L|M|SOW|ctx|cust|ignore or None, "why": text, "clear": bool, "rule": phrase or ""}."""
+def suggest(M, it, rules=(), inherited=None, rfi=False):
+    """{"cat": L|M|SOW|ctx|cust|ignore|I or None, "why": text, "clear": bool, "rule": phrase or ""}. rfi (3.28.0): an RFI
+    effort, where a sentence naming what the Government wants to learn is a Customer interest."""
     r = rule_for(it.get("text", ""), rules)
     if r is not None:
         cat = None if r["cat"] == "none" else r["cat"]
         return {"cat": cat, "why": f"{'this effort' if r.get('scope') == 'effort' else 'team'} rule: \"{r['phrase']}\""
                 + (f" ({r['why']})" if r.get("why") else ""), "clear": cat is not None, "rule": r["phrase"]}
+    if rfi:                                                    # 3.28.0: RFI efforts: the Government's interests
+        import topics as TP
+        ph = TP.interest(it.get("text", ""))
+        if ph:
+            return {"cat": "I", "why": f"an RFI asks: \"{ph}\"", "clear": True, "rule": ""}
     actor, typ, strength = it.get("actor", ""), it.get("type", ""), it.get("strength", "")
     sug, modal = it.get("suggest", ""), it.get("modal", "")
     sec = it.get("section", "")
@@ -151,7 +157,7 @@ def category(it, rec=None):
     """The sentence's own decision as a suggestion category ('' undecided)."""
     d = it.get("decision", "")
     if d == "Keep":
-        return {"L": "L", "M": "M", "C": "SOW", "SOW": "SOW"}.get(it.get("lm") or "", "req")
+        return {"L": "L", "M": "M", "C": "SOW", "SOW": "SOW", "I": "I"}.get(it.get("lm") or "", "req")
     if d == "Context":
         return "ctx"
     if d == "Customer":
@@ -164,7 +170,7 @@ def category(it, rec=None):
 
 
 def agrees(sg_cat, cat):
-    return bool(sg_cat) and (cat == sg_cat or (cat == "req" and sg_cat in ("L", "M", "SOW")))
+    return bool(sg_cat) and (cat == sg_cat or (cat == "req" and sg_cat in ("L", "M", "SOW", "I")))
 
 
 def score(items, recs):

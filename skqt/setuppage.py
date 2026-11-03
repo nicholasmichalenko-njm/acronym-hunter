@@ -128,7 +128,7 @@ class SetupPage(QWidget):
             os.makedirs(folder, exist_ok=True)
             import ctxdocs as CX
             import structparts as SP
-            paths = SD.export(R.M, folder, context=CX.section_context(self.host.ws.root),
+            paths = SD.export(R.M, folder, bins=SD.review_bins(self.host.ws.root), context=CX.section_context(self.host.ws.root),
                               part_rules=lambda vol: SP.summaries(self.host.config_dir, self.host.ws, R.M, vol))   # 3.19.0
         except PermissionError:
             self.host.status("A file with that name is open in Word: close it, then export again.")

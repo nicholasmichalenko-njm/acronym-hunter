@@ -175,6 +175,14 @@ TOPICS = [
    "Bins (3.21.0): Objective (O), Key point (K) and Bins (B) put the picked words in a bin, verbatim with where they sit; "
    "Ctrl+click sentences far apart for one excerpt. A sentence keeps one decision and sits in any number of bins; its "
    "card lists them. Every capture keeps an excerpt too. Bins (B) > New bin... makes the effort's own (Alt+1 to Alt+9).",
+   "Topics (3.28.0): the bar over the page. + Topic, or Topics > from the RFP's headings. Sort mode (Ctrl+T): keys 1 to 9 "
+   "put the selected sentences in the first nine topics (again takes it off); a sentence keeps its one decision. Show one "
+   "topic dims the rest and says how many of its sentences are decided, open and in a section. Map a topic to sections "
+   "(Topics of this effort...) and its requirements go there when you decide them; Make a section for each topic lays "
+   "out an RFI response.",
+   "RFI efforts open in Sort mode: I marks a Customer interest (in place of L and M), and Suggest marks the sentences that "
+   "say what the Government wants to learn.",
+   "On a sentence's card, To the Wall of Truth puts an objective or key point on the effort's Wall of Truth.",
    "Graphic need (P) tags a concept that needs a graphic, from the sentence or the words you picked; it lists on the Effort Dashboard.",
    "Several sentences at once: Ctrl+click, drag a box, Select undecided, or Ctrl+A. The bar above the page shows how many, "
    "with Decide all, Put all in section and Author for all.",

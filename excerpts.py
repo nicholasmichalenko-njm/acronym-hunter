@@ -324,3 +324,67 @@ def phrase_of(text):
     """The quoted words a written rule says to carry ('' when it quotes none)."""
     m = _PHRASE.search(text or "")
     return m.group(1).strip() if m else ""
+
+
+# ------------------------------------------------------------------ 3.29.0: what review feeds
+def promote(rec, xid, who=None):
+    """An objective or key point on the effort's Wall of Truth (a Fact: its words, with where they sit as the source).
+    Returns the truth's id; one already promoted returns its truth."""
+    import walloftruth as WT
+    x = get(rec, xid)
+    if x is None:
+        return ""
+    if x.get("truth") and WT.get(rec, x["truth"]):
+        return x["truth"]
+    words = text_of(x)
+    label = (x.get("note") or " ".join(words.split()[:8])).strip()
+    tid = WT.add(rec, label, words, kind="Fact", source=where_of(x), notes=f"From Review: {NAME.get(x['bin'], x['bin'])}", who=who)
+    if tid:
+        x["truth"] = tid
+        rec.save()
+    return tid
+
+
+def written_rules(rec):
+    """Written formatting excerpts: [{"id", "text", "where", "check": phrase|final, "phrase", "done", "by", "at"}]."""
+    out = []
+    for x in excerpts(rec, "format"):
+        if x.get("sub") != "written":
+            continue
+        t = text_of(x)
+        out.append({"id": x["id"], "text": t, "where": where_of(x), "check": x.get("check") or written_check(t),
+                    "phrase": phrase_of(t), "done": bool(x.get("done")), "by": x.get("done_by", ""), "at": x.get("done_at", "")})
+    return out
+
+
+def tick(rec, xid, on=True, who=None):
+    """A Final Checks item ticked (or unticked) by someone."""
+    x = get(rec, xid)
+    if x is None:
+        return False
+    x["done"] = bool(on)
+    x["done_by"], x["done_at"] = (_who(who), _now()) if on else ("", "")
+    rec.save()
+    return True
+
+
+def phrase_in(path, phrase):
+    """3.29.0: where a Word draft carries the phrase: {"body": n, "headers": n, "footers": n} (read only)."""
+    import zipfile
+    out = {"body": 0, "headers": 0, "footers": 0}
+    if not phrase:
+        return out
+    want = " ".join(phrase.split()).casefold()
+    try:
+        z = zipfile.ZipFile(path)
+    except (OSError, zipfile.BadZipFile):
+        return out
+    for n in z.namelist():
+        if not n.startswith("word/") or not n.endswith(".xml"):
+            continue
+        k = "headers" if n.startswith("word/header") else "footers" if n.startswith("word/footer") else "body" if n == "word/document.xml" else None
+        if k is None:
+            continue
+        txt = " ".join("".join(re.findall(r"<w:t[^>]*>([^<]*)</w:t>", m)) for m in re.findall(r"<w:p[ >].*?</w:p>", z.read(n).decode("utf-8", "replace"), re.S))
+        out[k] += " ".join(txt.split()).casefold().count(want)
+    return out

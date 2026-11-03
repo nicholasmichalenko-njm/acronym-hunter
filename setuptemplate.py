@@ -328,8 +328,9 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
         main_e = [o for o in entries if SP.part_of(o) != "appendix"]
         app_e = [o for o in entries if SP.part_of(o) == "appendix"]
         sids = style_ids(opts)
-        dm = SD._doc_for(M, vname, main_e, P, inh, stamp, context, rules, styles=sids)
-        da = SD._doc_for(M, vname, app_e, P, inh, stamp, context, rules, styles=sids) if app_e else None
+        rb = SD.review_bins(ws.root) if ws is not None else None          # 3.29.0: topics, objectives, key points
+        dm = SD._doc_for(M, vname, main_e, P, inh, stamp, context, rules, styles=sids, bins=rb)
+        da = SD._doc_for(M, vname, app_e, P, inh, stamp, context, rules, styles=sids, bins=rb) if app_e else None
         fills = {FI.styles(std)[k]: FI.value(std, k) for k in FI.styles(std) if FI.value(std, k)}
         part = "" if len(groups) == 1 else "_" + SD._safe(vname)
         path = os.path.join(folder, f"{stem}_Response_Setup{part}_{tag}.docx")

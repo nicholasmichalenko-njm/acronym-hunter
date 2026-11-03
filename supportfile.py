@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.28.0": ["Review: topics and Sort mode (keys 1 to 9), topics from the RFP's headings, a topic mapped to a section takes "
+               "its requirements there; RFI efforts open in Sort mode with Customer interest (I) and RFI suggestions.",
+               "Everything Review takes flows out: matrix columns (Topic, Customer objective, Key points, Source excerpt), the "
+               "setup per section, the Wall of Truth, Final Checks' written rules and the dashboard."],
     "3.27.0": ["Document parts > Cover and Back cover > Edit the layout: move and resize the pictures, text boxes and tables "
                "of a kept page in inches, and set which field each line of text shows; saved as a new copy.",
                "Make templates: each volume can continue the page and chapter numbers of the volume before, suggested "

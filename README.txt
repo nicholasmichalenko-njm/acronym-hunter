@@ -1,6 +1,24 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+TOPICS, SORT MODE, RFIS, AND EVERYTHING REVIEW TAKES FLOWS OUT (3.28.0)
+  - Review: a topic bar over the page. + Topic, Topics > from the RFP's headings or the library's tags, Topics of this
+    effort... (rename, color, map to response sections, order, take out), Make a section for each topic.
+  - Sort mode (Ctrl+T): keys 1 to 9 put the selected sentences in the first nine topics (again takes it off); a sentence
+    can carry several topics and keeps its one decision. The page marks them on the right; Show one topic dims the
+    rest; the coverage says how many of a topic's sentences are decided, open and in a section.
+  - A topic mapped to a section takes its requirements there when you decide them (R, L, M, SOW, Accept).
+  - RFI efforts (effort type RFI response) open in Sort mode. I is Customer interest (in place of L and M), and Suggest
+    marks the sentences that say what the Government wants to learn (is interested in, respondents should describe).
+  - The matrix can show Topic, Customer objective (verbatim, with where it sits), Key points and Source excerpt and
+    location (Compliance Matrix > columns).
+  - Response Setup (and the setup written on the template) lists each section's topics, the customer objectives mapped
+    to it, and the key points and the effort's own bins (those that feed the setup) taken from its sentences.
+  - Review's card: To the Wall of Truth puts an objective or key point on the effort's Wall of Truth, verbatim.
+  - Final Checks > The RFP's written rules: a rule that quotes the words to carry is looked for in the drafts (ticked
+    when every draft has it); the rest are ticked by a person, with who and when.
+  - Effort Dashboard: objectives not mapped, sentences in topics still to decide, and how much of each document is decided.
+
 COVER LAYOUT AND VOLUMES THAT CONTINUE (3.27.0)
   - Document parts > Cover (or Back cover) > Edit the layout...: the kept page drawn with each floating piece (picture,
     text box, table) where Word puts it. Drag a piece, or type its place and size in inches from the page's top left

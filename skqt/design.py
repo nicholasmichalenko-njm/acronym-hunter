@@ -52,7 +52,7 @@ PAGE_DEC = {"Keep": "#16A34A", "Context": "#2563EB", "Customer": "#7E22CE", "Dro
             "": "#94A3B8"}
 # 3.18.1: every choice in Review has its own color on the page. A requirement takes its designation's color (L, M, SOW);
 # a sentence something was captured from (or a note, question or task made on it) gets the capture color outline.
-PAGE_LM = {"L": "#16A34A", "M": "#EA580C", "C": "#0D9488", "SOW": "#0D9488"}
+PAGE_LM = {"L": "#16A34A", "M": "#EA580C", "C": "#0D9488", "SOW": "#0D9488", "I": "#4338CA"}
 CAPTURE_COLOR = "#DB2777"
 LEGEND = (("L (Instructions)", "#16A34A"), ("M (Evaluation)", "#EA580C"), ("SOW (Work)", "#0D9488"),
           ("Requirement", "#4D7C0F"), ("Support", "#2563EB"), ("Customer's", "#7E22CE"), ("Ignored", "#64748B"),

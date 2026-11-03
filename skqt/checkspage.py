@@ -58,6 +58,15 @@ class ChecksPage(QWidget):
         self.pkg_table = _table(["File", "Pages", "Limit", "MB", "Problems", "Notes"], [230, 60, 60, 60, 0, 220], 4)
         self.pkg_card.add(self.pkg_table)
         v.addWidget(self.pkg_card)
+        # ---- 3.29.0: the RFP's written formatting rules (from Review): a phrase looked for, or an item someone ticks
+        self.w_card = D.Card("The RFP's written rules", "Formatting rules the RFP states in words (a marking, a legend, a "
+                             "label), taken in Review. One that quotes the words to carry is looked for in the drafts below; "
+                             "the rest are ticked by a person.", actions=[D.button("Look for the phrases", "primary", lambda: self.check_written())])
+        self.w_sum = self.w_card.add(D.label("", "muted"))
+        self.w_table = _table(["Done", "Rule (the RFP's words)", "Where", "Checked by", "Result"], [50, 0, 200, 150, 220], 1, 180)
+        self.w_table.itemChanged.connect(lambda it: self.tick_written(it))
+        self.w_card.add(self.w_table)
+        v.addWidget(self.w_card)
         # ---- cross-references
         self.x_card = D.Card("Cross-references and numbering", "Figure, table and exhibit numbers in order; every one the text "
                              "mentions has a caption, every caption is mentioned; pictures and tables with no caption; Word's "
@@ -123,6 +132,67 @@ class ChecksPage(QWidget):
                 cb.setCurrentIndex(cb.findData(keep))
         if self.newer.count() > 1 and self.newer.currentIndex() == self.older.currentIndex():
             self.newer.setCurrentIndex(1)
+        self.fill_written()
+
+    # ------------------------------------------------------------ 3.29.0: written rules
+    def fill_written(self, results=None):
+        import excerpts as EX
+        rules = EX.written_rules(R.Record(self.host.ws.root)) if self.host.ws is not None else []
+        t = self.w_table
+        t.blockSignals(True); t.setRowCount(0)
+        for r in rules:
+            i = t.rowCount(); t.insertRow(i)
+            tick = QTableWidgetItem(); tick.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+            tick.setCheckState(Qt.Checked if r["done"] else Qt.Unchecked); tick.setData(Qt.UserRole, r["id"])
+            t.setItem(i, 0, tick)
+            for c, val in ((1, r["text"]), (2, r["where"]),
+                           (3, f"the phrase \u201c{r['phrase']}\u201d" if r["check"] == "phrase" and r["phrase"] else "a person (tick it)"),
+                           (4, (results or {}).get(r["id"], (f"ticked by {r['by']}" if r["done"] and r["by"] else "")))):
+                t.setItem(i, c, QTableWidgetItem(val))
+        t.blockSignals(False)
+        open_n = sum(1 for r in rules if not r["done"])
+        self.w_sum.setText(f"{len(rules)} written rule(s); {open_n} not done yet." if rules else
+                           "None yet: in Review, Bins > Written formatting rule takes one.")
+        self.w_card.setVisible(True)
+        return rules
+
+    def tick_written(self, it):
+        import excerpts as EX
+        if it.column() != 0 or self.host.ws is None:
+            return
+        EX.tick(R.Record(self.host.ws.root), it.data(Qt.UserRole), it.checkState() == Qt.Checked)
+        diag.activity("written_rule_ticked")
+        self.fill_written()
+
+    def check_written(self, paths=None):
+        """Each phrase rule looked for in the checked drafts: in every draft's headers or footers, or not. A rule found
+        everywhere it should be is ticked."""
+        import excerpts as EX
+        if self.host.ws is None:
+            return {}
+        rec = R.Record(self.host.ws.root)
+        if paths is None:
+            paths = [self.drafts.item(i).data(Qt.UserRole) for i in range(self.drafts.count())
+                     if self.drafts.item(i).checkState() == Qt.Checked]
+        res = {}
+        for r in EX.written_rules(rec):
+            if r["check"] != "phrase" or not r["phrase"]:
+                continue
+            missing = []
+            for p in paths:
+                got = EX.phrase_in(p, r["phrase"])
+                if not (got["headers"] or got["footers"] or got["body"]):
+                    missing.append(os.path.basename(p))
+            if not paths:
+                res[r["id"]] = "no drafts to look in"
+            elif missing:
+                res[r["id"]] = "missing in " + ", ".join(missing)
+            else:
+                res[r["id"]] = f"found in every draft ({len(paths)})"
+                EX.tick(rec, r["id"], True, who="Final Checks")
+        diag.activity("written_rules_checked", n=len(res))
+        self.fill_written(res)
+        return res
 
     def _rows(self):
         try:
