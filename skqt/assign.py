@@ -830,6 +830,8 @@ class AssignPage(QWidget):
         """The review changed (opened, read): fill the file list and the structure."""
         import suggestrules as SR
         import topics as TP                                                    # 3.28.0
+        if self.R is None:                    # 3.34.1: an effort with no matrix yet shows nothing of the last effort's
+            self.forget()
         rfi = TP.is_rfi(self.host.ws)
         if rfi and not self.rfi and self.R is not None:                       # an RFI effort opens in Sort mode
             self.sort_on = True; self.sort_btn.setChecked(True)
@@ -850,6 +852,16 @@ class AssignPage(QWidget):
         else:
             self.view.scene().clear()
             self.view.boxes = {}
+
+    def forget(self):
+        """3.34.1: nothing of the effort open before: its page, its sentences' boxes, the card, the queue."""
+        self.cx = None
+        self.labels = []
+        self.view.scene().clear()
+        self.view.boxes = {}
+        self.file, self.pdf = None, ""
+        self.show_card([])
+        self.show_queue()
 
     # ------------------------------------------------------------ 2.96.0 the customer documents as a queue
     def reviewed(self):
@@ -1285,6 +1297,8 @@ class AssignPage(QWidget):
     def restyle(self):
         if self.cx is not None:
             return self.cx.restyle()
+        if self.R is None:                                       # 3.34.1: no matrix (a new effort): nothing to color
+            return None
         sc = self.view.scene()
         for lab in self.labels:
             sc.removeItem(lab)

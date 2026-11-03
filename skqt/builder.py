@@ -319,6 +319,13 @@ class BuilderPage(QWidget):
         self.text_panel.refresh()                    # the text stays the structure's, shown or not
         if R is None:
             self.btree.clear()
+            self.sel = None                          # 3.34.1: nothing of the effort open before
+            self.vol_tabs.blockSignals(True)
+            while self.vol_tabs.count():
+                self.vol_tabs.removeTab(0)
+            self.vol_tabs.blockSignals(False)
+            self.fill_unplaced()
+            self.show_section()
             return
         self.fill_volumes()
         self.fill_tree()

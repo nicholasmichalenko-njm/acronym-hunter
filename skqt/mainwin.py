@@ -363,6 +363,8 @@ class MainWindow(QMainWindow):
         cur = self.efforts.current
         if cur in names:
             self.effort_box.setCurrentText(cur)
+        if getattr(self, "efforts_page", None) is not None and self.stack.currentWidget() is self.efforts_page:
+            self.efforts_page.refresh()            # 3.34.1: a new effort shows in the list at once
 
     def open_with_progress(self, name, title=""):
         """2.82.0: open an effort under a cover that says what is happening (after an update, at start), so the pause
