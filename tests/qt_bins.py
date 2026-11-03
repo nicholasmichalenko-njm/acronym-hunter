@@ -124,7 +124,7 @@ check("Take out", pg.remove_excerpt(xk) and EX.get(rec(), xk) is None)
 d = pg.all_excerpts(run=False)
 check("Every excerpt lists them all, by bin", d.fill() == len(EX.excerpts(rec())) and d.filter.findData(bid) >= 0)
 d.filter.setCurrentIndex(d.filter.findData("objective"))
-check("... filtered to one bin", d.t.rowCount() == 1 and "OBJECTIVE" not in d.t.item(0, 0).text() and d.t.item(0, 2).text() == labels[1])
+check("... filtered to one bin", d.t.rowCount() == 1 and "OBJECTIVE" not in d.t.item(0, 0).text() and d.t.item(0, 3).text() == labels[1])   # 3.29.1: the Section column
 d.t.setCurrentCell(0, 0)
 check("Show in Review selects its sentence", d.show_it() and pg.selected() and pg.selected()[0]["id"] == a["id"])
 bd = pg.manage_bins(run=False)
