@@ -51,3 +51,15 @@ feedback/reports/
 *.skupdate
 *.skupdate.part
 *signing_key*
+# 3.22.0: the team's data (Stationkeeper Data files, team packs, the template library, standards and their parts) is
+# the team's own and never goes to GitHub. tests/test_data_guard.py fails the build if any of it is ever tracked.
+*.skdata
+*.skdata.part
+*.skteam
+*.sklib
+data_backups/
+template_library/
+production_parts/
+custom_dictionaries.json
+production_standards.json
+team_bins.json

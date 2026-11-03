@@ -274,7 +274,7 @@ def effective(root, s, what, theme=None, no_defaults=False):
         for key, tag in (("keep_lines", "keepLines"), ("page_break_before", "pageBreakBefore"), ("widow", "widowControl")):
             if what == key and ppr is not None and ppr.find("w:" + tag, NS) is not None:
                 return on(ppr.find("w:" + tag, NS))
-        for key, tag in (("caps", "caps"), ("small_caps", "smallCaps")):
+        for key, tag in (("caps", "caps"), ("small_caps", "smallCaps"), ("hidden", "vanish")):     # 3.22.0: hidden text
             if what == key and rpr is not None and rpr.find("w:" + tag, NS) is not None:
                 return on(rpr.find("w:" + tag, NS))
         if what == "underline" and rpr is not None and rpr.find("w:u", NS) is not None:
@@ -311,7 +311,7 @@ def effective(root, s, what, theme=None, no_defaults=False):
         return None
     return {"size": 10.0, "bold": False, "italic": False, "color": "AUTO", "before": 0.0, "after": 0.0, "line": 1.0,
             "jc": "left", "keep_next": False, "keep_lines": False, "page_break_before": False, "widow": True, "caps": False,
-            "small_caps": False, "underline": False, "left": 0.0, "right": 0.0, "first": 0.0, "hanging": 0.0,
+            "small_caps": False, "hidden": False, "underline": False, "left": 0.0, "right": 0.0, "first": 0.0, "hanging": 0.0,
             "line_rule": "auto", "tabs": [], "border_top": "none", "border_bottom": "none", "border_left": "none",
             "border_right": "none", "shading": "none"}.get(what)
 
@@ -327,7 +327,7 @@ def _name_of(root, sid):
 # 3.7.0: every property a style definition can carry (the standard's style library), in one place
 STYLE_PROPS = ("font", "size", "bold", "italic", "underline", "caps", "small_caps", "color", "jc", "before", "after", "line",
                "line_rule", "left", "right", "first", "hanging", "keep_next", "keep_lines", "page_break_before", "widow",
-               "based_on", "next", "tabs", "border_top", "border_bottom", "border_left", "border_right", "shading")
+               "based_on", "next", "tabs", "border_top", "border_bottom", "border_left", "border_right", "shading", "hidden")
 RUN_PROPS = ("font", "size", "bold", "italic", "underline", "caps", "small_caps", "color")
 
 
@@ -359,7 +359,7 @@ def style_needs(root, s, props, theme=None):
 def set_more_props(root, s, props):
     """3.7.0: the properties set_run_props and set_para_props do not cover."""
     rpr = ensure(s, "rPr")
-    for key, tag in (("caps", "caps"), ("small_caps", "smallCaps")):
+    for key, tag in (("caps", "caps"), ("small_caps", "smallCaps"), ("hidden", "vanish")):
         if props.get(key) is not None:
             el = ensure(rpr, tag); el.attrib.clear()
             if not props[key]:

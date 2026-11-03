@@ -92,6 +92,19 @@ class SettingsPage(QWidget):
                            ("Document types", self.doctypes_card), ("Folders and file names", self.folders_card), ("Custom dictionaries", self.dict_card), ("Branding", self.branding_card), ("Team pack", self.team_card)):
             self.jump_row.addWidget(D.button(text, "ghost", lambda _=False, c=card: self.jump(c)))
         v.insertLayout(0, self.jump_row)
+        self.ourdata = D.Card("Our data (the team's data file)", "One file with the team's foundational data, used the same way in "  # 3.22.0
+                              "every effort: the master acronym list, custom dictionaries, banned and avoided phrases, Production "
+                              "Standards with their covers and Quick Parts, the template library, and the team's lists. Nothing "
+                              "about one effort goes in it (an effort travels as an effort package). It is the team's data, not "
+                              "part of the program: never put it on GitHub; share it through the approved SharePoint folder.",
+                              actions=[D.button("Export our data...", None, lambda: self.export_data(), "Write the team's data to one "
+                                                "Stationkeeper Data file (.skdata)"),
+                                       D.button("Import our data...", "primary", lambda: self.import_data(), "Read a Stationkeeper Data "
+                                                "file: see what each part adds, then bring it in (add-only; your own entries stay)"),
+                                       D.button("Undo the last import", "ghost", lambda: self.undo_data())])
+        self.ourdata_text = self.ourdata.add(D.label("", "muted")); self.ourdata_text.setWordWrap(True)
+        v.addWidget(self.ourdata)
+        self.jump_row.addWidget(D.button("Our data", "ghost", lambda: self.jump(self.ourdata)))
         self.db = D.Card("Master database", "The company's acronyms, abbreviations, units and symbols, shared by every effort on this PC.",
                          actions=[D.button("Load a new version...", None, lambda: self.load_master())])
         self.db_text = self.db.add(D.label("", "muted"))
@@ -198,6 +211,10 @@ class SettingsPage(QWidget):
     def refresh(self):
         h = self.host
         info = (h.efforts.get(h.effort_name) or {}) if h.ws is not None else {}
+        try:                                                # 3.22.0
+            self.show_ourdata()
+        except Exception:
+            diag.swallowed()
         try:                                                # 3.18.0
             import suggestrules as SR
             nt, ne = len(SR.team_rules(h.config_dir)), len(SR.effort_rules(h.ws))
@@ -374,6 +391,103 @@ class SettingsPage(QWidget):
         return True
 
     # ------------------------------------------------------------ master database
+    # ------------------------------------------------------------ 3.22.0 our data
+    def show_ourdata(self):
+        import teamdata as TD
+        have = TD.available(self.host.config_dir)
+        b = TD.backups(self.host.config_dir)
+        self.ourdata_text.setText(("On this PC: " + "; ".join(have.values()) if have else "Nothing on this PC to carry yet.")
+                                  + (f"  Last import kept a copy to undo ({b[0][:8]})." if b else ""))
+
+    def export_data(self, path=None, parts=None):
+        """Write the team's data to one file (parts, tests: which ones; every one by default). Returns the path."""
+        import teamdata as TD
+        cfg = self.host.config_dir
+        have = TD.available(cfg)
+        if not have:
+            self.host.status("Nothing on this PC to carry yet.")
+            return None
+        if parts is None:
+            from PySide6.QtWidgets import QCheckBox
+            d = QDialog(self); d.setWindowTitle("Export our data"); d.setMinimumWidth(560); dv = QVBoxLayout(d)
+            dv.addWidget(D.label("The team's foundational data. Untick a part to leave it out. Nothing about one effort goes in.", "muted"))
+            boxes = {}
+            for k, t in have.items():
+                cb = QCheckBox(t); cb.setChecked(True); dv.addWidget(cb); boxes[k] = cb
+            bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
+            dv.addWidget(bb)
+            if d.exec() != QDialog.Accepted:
+                return None
+            parts = [k for k, cb in boxes.items() if cb.isChecked()]
+        if path is None:
+            start = os.path.join(os.path.expanduser("~"), "Documents", TD.file_name())
+            path, _ = QFileDialog.getSaveFileName(self, "Export our data", start, "Stationkeeper Data (*.skdata)")
+            if not path:
+                return None
+        if not path.lower().endswith(TD.EXT):
+            path += TD.EXT
+        try:
+            man = TD.export(cfg, path, parts)
+        except ValueError as e:
+            self.host.status(str(e))
+            return None
+        diag.activity("our_data_exported", n=len(man["parts"]))
+        self.host.toast(f"Our data saved: {len(man['parts'])} part(s). Share it through the approved SharePoint folder, never GitHub.")
+        self.show_ourdata()
+        return path
+
+    def import_data(self, path=None, picks=None):
+        """Read a data file, show what each part adds, and bring in the ticked parts (picks, tests: their keys). Returns
+        [(part, what it did)]."""
+        import teamdata as TD
+        if path is None:
+            path, _ = QFileDialog.getOpenFileName(self, "Import our data", "", "Stationkeeper Data (*.skdata)")
+            if not path:
+                return None
+        try:
+            man, data = TD.read(path)
+        except (ValueError, OSError, KeyError) as e:
+            self.host.status(f"That file could not be imported: {e}")
+            return None
+        rows = TD.preview(self.host.config_dir, man, data)
+        if picks is None:
+            from PySide6.QtWidgets import QCheckBox
+            d = QDialog(self); d.setWindowTitle("Import our data"); d.setMinimumWidth(640); dv = QVBoxLayout(d)
+            dv.addWidget(D.label(f"Made {man.get('created', '')} by {man.get('created_by', '')} with Stationkeeper "
+                                 f"{man.get('app_version', '')}. Each part merges add-only: your own entries and edits stay. "
+                                 "A copy of everything it touches is kept, so Undo the last import puts it back.", "muted"))
+            boxes = {}
+            for r in rows:
+                cb = QCheckBox(f"{r['name']}: {r['said']}"); cb.setChecked(r["known"] and r["state"] != "same")
+                cb.setEnabled(r["known"]); dv.addWidget(cb); boxes[r["key"]] = cb
+            bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.button(QDialogButtonBox.Ok).setText("Import")
+            bb.accepted.connect(d.accept); bb.rejected.connect(d.reject); dv.addWidget(bb)
+            if d.exec() != QDialog.Accepted:
+                return None
+            picks = [k for k, cb in boxes.items() if cb.isChecked()]
+        said = TD.install(self.host.config_dir, man, data, parts=picks)
+        diag.activity("our_data_imported", n=len(said))
+        self.after_data_change()
+        self.host.toast(f"Our data imported: {len(picks)} part(s). Undo the last import puts it back.")
+        return said
+
+    def undo_data(self):
+        import teamdata as TD
+        n = TD.undo(self.host.config_dir)
+        self.after_data_change()
+        self.host.status(f"The last import was undone ({n} file(s) put back)." if n else "No import to undo.")
+        return n
+
+    def after_data_change(self):
+        """Lists that are read once when the program starts are read again."""
+        try:
+            import effortrec as RR
+            RR.load_default_goals(self.host.config_dir)
+        except Exception:
+            diag.swallowed()
+        self.refresh()
+        self.show_ourdata()
+
     def load_master(self, path=None):
         import master_db as MD
         if path is None:

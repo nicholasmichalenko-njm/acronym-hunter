@@ -75,7 +75,7 @@ PROP_TEXT = {"font": "font", "size": "size", "bold": "bold", "italic": "italic",
              "line": "line spacing", "line_rule": "line spacing rule", "left": "left indent", "right": "right indent",
              "first": "first line indent", "hanging": "hanging indent", "keep_next": "keep with next",
              "keep_lines": "keep lines together", "page_break_before": "page break before", "widow": "widow control",
-             "based_on": "based on", "next": "next style"}
+             "based_on": "based on", "next": "next style", "hidden": "hidden text"}
 
 
 def _show(v):

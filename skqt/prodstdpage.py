@@ -45,7 +45,7 @@ TRI = [("", "Not set"), ("on", "On"), ("off", "Off")]
 STYLE_COLS = [("key", "Style", "text"), ("type", "Type", ("enum", [("paragraph", "Paragraph"), ("character", "Character")])),
               ("based_on", "Based on", "text"), ("next", "Next style", "text"), ("font", "Font", "text"), ("size", "Size (pt)", "num0"),
               ("bold", "Bold", ("enum", TRI)), ("italic", "Italic", ("enum", TRI)), ("underline", "Underline", ("enum", TRI)),
-              ("caps", "All caps", ("enum", TRI)), ("color", "Color (hex)", "text"),
+              ("caps", "All caps", ("enum", TRI)), ("hidden", "Hidden text", ("enum", TRI)), ("color", "Color (hex)", "text"),
               ("jc", "Alignment", ("enum", [("", "Not set")] + ALIGN)), ("before", "Space before (pt)", "num0"),
               ("after", "Space after (pt)", "num0"), ("line", "Line spacing (lines, or pt if exact)", "num0"),
               ("line_rule", "Line rule", ("enum", [("", "Not set"), ("auto", "Multiple"), ("exact", "Exactly"), ("atLeast", "At least")])),
@@ -73,7 +73,7 @@ def tabs_parse(text):
         except ValueError:
             continue
     return out
-TRI_KEYS = ("bold", "italic", "underline", "caps", "small_caps", "keep_next", "keep_lines", "page_break_before", "widow")
+TRI_KEYS = ("bold", "italic", "underline", "caps", "small_caps", "keep_next", "keep_lines", "page_break_before", "widow", "hidden")
 
 
 def _get(d, path, default=None):

@@ -5,10 +5,11 @@ only the XML is read. A copy of the source file is kept with this PC's standards
 folder as covers and back covers, never the program folder), so the standard can put the entries into every template it
 makes. Make a template copies them in with their pictures and styles and, when the standard says so, puts every one in
 the Quick Parts gallery under its category (Word lists them by category, then name)."""
-import hashlib, os, re, shutil
+import copy, hashlib, os, re, shutil
 
 import prodparts as PP
-from prodengine.engine.pkg import Package, NS
+from lxml import etree
+from prodengine.engine.pkg import Package, NS, PR
 from prodengine.engine.ops import glossary as G
 
 QUICK_GALLERY = "docParts"            # Word's Quick Parts gallery
@@ -74,4 +75,63 @@ def op_quick_parts(pkg, entries, parts_dir, one_gallery=True):
             if one_gallery:
                 G._set(pr, ["category", "gallery"], QUICK_GALLERY)
         G.check_unique(pkg)
-    return {"copied": copied, "skipped": skipped, "missing": missing}
+    styles = sync_styles(pkg) if copied else {}
+    return {"copied": copied, "skipped": skipped, "missing": missing, "styles_added": styles.get("added", []),
+            "styles_matched": styles.get("matched", 0)}
+
+
+STYLES_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles"
+STYLES_CT = "application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"
+
+
+def _w(tag):
+    return f"{{{NS['w']}}}{tag}"
+
+
+def sync_styles(pkg):
+    """3.22.0: the template's styles drive its Quick Parts. Every style a Quick Part uses (and the styles it is based on)
+    takes the template's own definition in the Quick Parts' styles part too, so a part looks the same in the gallery and
+    where it is put, whenever it was added. A style the template does not have is added to the template from the part
+    and reported. Returns {"added": [style names], "matched": n}."""
+    g = G.gloss_part(pkg)
+    main_s = pkg.word_part("/styles")
+    if not g or not main_s:
+        return {"added": [], "matched": 0}
+    gs = next((t for (typ, t, mode) in pkg.rels_of(g).values() if typ.endswith("/styles") and mode != "External"), None)
+    if gs is None:                                    # the Quick Parts had no styles of their own: they take the template's
+        gs = "word/glossary/styles.xml"
+        pkg.add_part(gs, copy.deepcopy(pkg.tree(main_s)), STYLES_CT)
+        rels = G._rels_tree(pkg, g)
+        r = etree.SubElement(rels, f"{{{PR}}}Relationship")
+        r.set("Id", G._new_rid(rels)); r.set("Type", STYLES_REL); r.set("Target", "styles.xml")
+    pkg.touch(gs); pkg.touch(main_s)
+    groot, mroot = pkg.tree(gs), pkg.tree(main_s)
+    sid = _w("styleId")
+    mby = {x.get(sid): x for x in mroot.findall("w:style", NS)}
+    gby = {x.get(sid): x for x in groot.findall("w:style", NS)}
+    todo = {el.get(_w("val")) for el in pkg.tree(g).iter(_w("pStyle"), _w("rStyle"), _w("tblStyle"))}
+    seen, added, matched = set(), [], 0
+    while todo:
+        k = todo.pop()
+        if not k or k in seen:
+            continue
+        seen.add(k)
+        src = mby.get(k)
+        if src is None and k in gby:                  # a style the template lacks: the template takes the part's
+            src = copy.deepcopy(gby[k])
+            mroot.append(src); pkg.mark(src); mby[k] = src
+            nm = src.find("w:name", NS)
+            added.append(nm.get(_w("val")) if nm is not None else k)
+        if src is None:
+            continue
+        new = copy.deepcopy(src)
+        if k in gby:
+            gby[k].addprevious(new); groot.remove(gby[k])
+        else:
+            groot.append(new)
+        pkg.mark(new); gby[k] = new; matched += 1
+        for tag in ("basedOn", "next", "link"):
+            x = src.find(f"w:{tag}", NS)
+            if x is not None:
+                todo.add(x.get(_w("val")))
+    return {"added": added, "matched": matched}
