@@ -2,7 +2,8 @@
 the added sentence is boxed where it was read, never on the same words elsewhere; a press on the opening bracket of
 "(CUI)" or past the full stop reaches the sentence's first and last words, and the picked words carry the bracket and
 the full stop; the selection bar stays in place; a right-click on a decided sentence takes the decision off, takes a
-capture off, or clears the selection; a list's items captured as objectives are one objective each, each with the
+capture off, or clears the selection; in the structure only a left double-click renames and a right-click opens a
+menu with Rename; a list's items captured as objectives are one objective each, each with the
 list's lead-in."""
 import os, sys, tempfile, time
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -178,6 +179,23 @@ m = pg.sentence_menu(other["id"])
 check("right-click a sentence outside the selection: it becomes the selection", [x["id"] for x in pg.selected()] == [other["id"]])
 next(a for a in m.actions() if a.text() == "Clear selection").trigger(); app.processEvents()
 check("Clear selection", not pg.selected())
+# ---------------------------------------------------------------- the structure: left double-click renames, right-click menu
+from PySide6.QtCore import QPoint
+tr = pg.tree
+it0 = next(tr.topLevelItem(i) for i in range(tr.topLevelItemCount()) if tr.topLevelItem(i).data(0, Qt.UserRole))
+lab0 = it0.data(0, Qt.UserRole)
+asked = []
+pg._ask = lambda *a, **k: (asked.append(a), "Technical and Management")[1]
+pt = QPointF(tr.visualItemRect(it0).center())
+dbl = lambda btn: QMouseEvent(QEvent.MouseButtonDblClick, pt, tr.viewport().mapToGlobal(pt.toPoint()), btn, btn, Qt.NoModifier)
+tr.mouseDoubleClickEvent(dbl(Qt.RightButton)); app.processEvents()
+check("a right double-click on a section does not rename it", not asked)
+m = pg.structure_menu(lab0)
+acts = [a.text() for a in m.actions() if a.text()]
+check("right-click a section: its menu, starting with Rename...", acts[:2] == ["Rename...", "Pages..."] and "Delete" in acts
+      and "Move to a part..." in acts and pg.target == lab0, acts)
+next(a for a in m.actions() if a.text() == "Rename...").trigger(); app.processEvents()
+check("Rename... from the menu renames it", asked and pg.target and pg.target.endswith("Technical and Management"), pg.target)
 w.close()
 n = sum(checks)
 print(f"QT REVIEW GRAB {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

@@ -21,6 +21,8 @@ REVIEW'S DECISIONS AND CAPTURES, THE TEAM'S WAY (3.29.0)
     words keep "(" and the full stop.
   - The selection bar stays above the page (the page no longer jumps); two or more selected fill it in.
   - Right-click a sentence: take its decision off, take off a capture made from it, deselect it, or clear the selection.
+  - The response structure: a left double-click renames a section; a right-click opens its menu (Rename, Pages, add,
+    move, Delete). A right double-click no longer renames.
   - A list's items captured as Objective are one objective each, each starting with the list's lead-in.
 
 REVIEW: GRAB WORDS ACROSS SENTENCES, VOLUME NAMES AND NUMBERING (3.28.1)

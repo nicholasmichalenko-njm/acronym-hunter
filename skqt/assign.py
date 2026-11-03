@@ -64,6 +64,15 @@ def parse_area(text):
         return None
 
 
+class StructTree(QTreeWidget):
+    """3.29.0: the response structure; only a left double-click renames (or sets Pages), a right-click opens the menu."""
+    def mouseDoubleClickEvent(self, e):
+        if e.button() != Qt.LeftButton:
+            e.accept()
+            return
+        super().mouseDoubleClickEvent(e)
+
+
 class SentenceBox(QGraphicsPathItem):
     def __init__(self, iid, rects):
         path = QPainterPath()
@@ -677,7 +686,11 @@ class AssignPage(QWidget):
             self.vol_style.addItem(t, k)
         self.vol_style.activated.connect(lambda _i: self.set_volume_style(self.vol_style.currentData()))
         vrow.addWidget(self.vol_style)
-        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Your response structure (click a section: the target)", "Req.", "Ctx", "Pages"])
+        self.tree = StructTree(); self.tree.setHeaderLabels(["Your response structure (click a section: the target)", "Req.", "Ctx", "Pages"])
+        self.tree.setContextMenuPolicy(Qt.CustomContextMenu)                  # 3.29.0: right-click a section for its menu
+        self.tree.customContextMenuRequested.connect(
+            lambda pos: (lambda i: self.structure_menu(i.data(0, Qt.UserRole)).exec(self.tree.viewport().mapToGlobal(pos))
+                         if i is not None and i.data(0, Qt.UserRole) else None)(self.tree.itemAt(pos)))
         self.tree.setColumnWidth(0, 330); self.tree.setColumnWidth(1, 44); self.tree.setColumnWidth(2, 40)
         self.tree.headerItem().setToolTip(3, "Pages for the section: the RFP's limit or the team's guideline. Double-click to set.")
         self.tree.itemClicked.connect(lambda i, _c: self.set_target(i.data(0, Qt.UserRole)) if i.data(0, Qt.UserRole) else None)
@@ -710,7 +723,7 @@ class AssignPage(QWidget):
         srow.addWidget(self.parts_btn)
         srow.addStretch(1)
         row = FlowLayout(spacing=4); rww = QWidget(); rww.setLayout(row); sv.addWidget(rww)
-        for text, fn, tip in (("Rename", lambda: self.rename_section(self.target), "Rename the target (or double-click it)"),
+        for text, fn, tip in (("Rename", lambda: self.rename_section(self.target), "Rename the target (or double-click it, or right-click it)"),
                               ("Pages...", lambda: self.section_pages(self.target),                       # 3.18.2
                                "The target's page length: the RFP's limit or the team's guideline (or double-click Pages)"),
                               ("\u2191", lambda: self.outline_op(O.move, -1), "Up"), ("\u2193", lambda: self.outline_op(O.move, 1), "Down"),
@@ -3853,6 +3866,28 @@ class AssignPage(QWidget):
         self.after(f"{label}: " + (f"{PB.fmt(PB.pages(self.M, label))} page(s), {PB.SOURCE_NAME[PB.source(self.M, label)].lower()}"
                                    if tag else "no page length"))
         return tag
+
+    def structure_menu(self, label):
+        """3.29.0: the right-click menu of a section in the structure; the section becomes the target first."""
+        from PySide6.QtWidgets import QMenu
+        m = QMenu(self)
+        if not label or self.M is None:
+            return m
+        self.set_target(label)
+        m.addAction("Rename...", lambda: self.rename_section(label))
+        m.addAction("Pages...", lambda: self.section_pages(label))
+        m.addSeparator()
+        m.addAction("+ Heading after it", lambda: self.new_section(sub=False))
+        m.addAction("+ Subheading under it", lambda: self.new_section(sub=True))
+        m.addSeparator()
+        m.addAction("Up", lambda: self.outline_op(O.move, -1))
+        m.addAction("Down", lambda: self.outline_op(O.move, 1))
+        m.addAction("One level down", lambda: self.outline_op(O.indent))
+        m.addAction("One level up", lambda: self.outline_op(O.outdent))
+        m.addAction("Move to a part...", lambda: self.move_to_part())
+        m.addSeparator()
+        m.addAction("Delete", lambda: self.delete_section())
+        return m
 
     def rename_section(self, label, title=None):
         if not label or self.M is None:
