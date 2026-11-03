@@ -25,6 +25,7 @@ dbA, dbB = os.path.join(tmp, "A", "acronym_database.csv"), os.path.join(tmp, "B"
 # ---------------------------------------------------------------- PC A builds the team's data
 A.DB_FILE = dbA
 A.write_db_rows([["CDRL", "Acronym", "Contract Data Requirements List", "Include"], ["TBD", "Acronym", "To Be Determined", "Exclude"]])
+open(os.path.join(cfgA, "ocr_corrections.csv"), "w").write("Misread,Correct,Note\nC0RL,CDRL,\n")     # as Windows installs seed it
 st = CD.Store(cfgA); st.add("Space terms", ["apogee", "perigee"]); st.save()
 open(os.path.join(cfgA, "banned_words.csv"), "w").write("Phrase,Level,Use instead,Why\nworld-class,bad,,Unsupported\n")
 data = PRL.load(cfgA); data["types"].append({"id": "rfi", "name": "RFI response", "match": ["rfi"]})
@@ -78,6 +79,7 @@ check("standards come in: profiles, the team standard, and their cover files", a
 check("team lists, bins, phrases and authors come in", set(TP.topics(cfgB)) == {"Key personnel", "Thermal", "Schedule"}
       and [b["name"] for b in EX.team_bins(cfgB)] == ["Transition risk"] and not WT.team_load(cfgB)
       and "world-class" in open(os.path.join(cfgB, "banned_words.csv")).read() and "Dana Ruiz" in AL.load(cfgB).names(), rep)
+check("OCR fixes come into this PC's own list", "C0RL" in open(os.path.join(cfgB, "ocr_corrections.csv")).read())
 check("importing again changes nothing", all(p["state"] == "same" for p in TD.preview(cfgB, m2, d2) if p["key"] not in ("acronyms", "dictionaries", "topics", "authors", "banned"))
       and dict(TD.install(cfgB, m2, d2)).get("standards", "").startswith("0 profile(s)"))
 check("Undo puts back what the last import touched", TD.undo(cfgB) > 0)

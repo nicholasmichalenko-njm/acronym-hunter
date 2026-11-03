@@ -265,6 +265,30 @@ def _merge_files(config_dir, files, data):
     return n
 
 
+def _merge_csv_rows(path, b):
+    """Add-only by the first column (casefolded): rows this file does not have are added; this PC's rows stay. A file
+    this PC does not have is written as it is. Returns how many rows were added."""
+    import csv
+    if not os.path.isfile(path):
+        _write(path, b)
+        return max(0, len(b.decode("utf-8-sig", "replace").splitlines()) - 1)
+    with open(path, encoding="utf-8-sig", newline="") as f:
+        mine = list(csv.reader(f))
+    theirs = list(csv.reader(io.StringIO(b.decode("utf-8-sig", "replace"))))
+    if not theirs:
+        return 0
+    if not mine:
+        _write(path, b)
+        return len(theirs) - 1
+    have = {r[0].strip().casefold() for r in mine[1:] if r}
+    add = [r for r in theirs[1:] if r and r[0].strip() and r[0].strip().casefold() not in have]
+    if add:
+        out = io.StringIO()
+        csv.writer(out, lineterminator="\n").writerows(mine + add)
+        _write(path, out.getvalue().encode("utf-8"))
+    return len(add)
+
+
 def _merge_dictionaries(config_dir, b):
     import customdict as CD
     st = CD.Store(config_dir)
@@ -358,10 +382,7 @@ def install(config_dir, man, data, parts=None, who=None):
                     said.insert(0, _merge_standards(config_dir, data[js[0]]))
                 out.append((k, "; ".join(said)))
             elif k == "ocr":
-                import app_gui
-                n = 0
-                for f in files:
-                    n += app_gui.merge_pack_fixes(data[f]) if f.endswith("ocr_corrections.csv") else app_gui.merge_pack_ignore(data[f])
+                n = sum(_merge_csv_rows(_local_path(config_dir, f), data[f]) for f in files)
                 out.append((k, f"{n} OCR fix(es) and ignore row(s) added"))
             elif k == "synonyms":
                 import placelearn as PL
