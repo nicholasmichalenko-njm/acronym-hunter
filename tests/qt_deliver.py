@@ -106,6 +106,7 @@ check("save as the team default", MD.load_team(cfg)["columns"][0]["heading"] == 
 # response setup
 w.go("setup"); app.processEvents()
 sp = w.setup_page
+sp.refresh()                                       # 3.30.0: Response Setup's tree is in the Structure Builder; the page still works
 check("Response Setup: each section with what is placed in it", sp.tree.topLevelItemCount() == len(M.outline)
       and "blocks placed" in sp.p_blocks.text())
 sec = next(sp.tree.topLevelItem(i) for i in range(sp.tree.topLevelItemCount()) if sp.tree.topLevelItem(i).data(0, Qt.UserRole)[1] == "1.1 Technical Approach")

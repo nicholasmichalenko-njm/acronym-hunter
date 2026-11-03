@@ -20,6 +20,16 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.30.0": ["The Structure Builder: its own place under Compliance. Volume tabs; the structure with a tag on each section (H1 "
+               "to H9 and deeper, unnumbered, divider, placeholder, element, Word section); a toolbar like Word's style buttons; "
+               "Enter, Tab and Shift+Tab; drag a section to move it; library items placed in a section; everything in each "
+               "section in order (Response Setup lives here now); what is not placed yet.",
+               "Settings > Response elements: Table of Contents, the lists of figures, tables and appendices, Acronyms and "
+               "Abbreviations, Units of Measurement, the Appendices section and your own, with kits by effort type; Add "
+               "elements puts them into a volume in one tick list."],
+    "3.29.1": ["Review: every capture can sit in a section of the structure: Into the target section, and one click to move it "
+               "(the card, a right-click, the Captured list). Captures follow their section when it is renamed or renumbered.",
+               "The menus across the top stand out: a blue band, the page you are on solid blue."],
     "3.29.0": ["Settings > Review: decisions and captures: name, key, color and showing of every decision and capture, the "
                "bar or More..., the order, what each effort type hides (an RFI shows Interest), and the team's own captures.",
                "Review: one capture bar (bins are captures now), More... for the rest, and the Captured list as its own button."],

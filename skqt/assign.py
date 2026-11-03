@@ -743,6 +743,8 @@ class AssignPage(QWidget):
                 b.setFixedWidth(34)
             row.addWidget(b)
         row.addStretch(1)
+        row.addWidget(D.button("Open in Structure Builder", None, lambda: self.open_builder(),   # 3.30.0
+                               "The full page for the structure: the toolbar, elements, library items and what is in each section"))
         self.start_btn = D.button("Start from...", None, lambda: self.start_from(),     # 3.16.0
                                   "Start or replace the structure: what the RFP prescribes, its headings, its outline, or a "
                                   "Word outline (the Structure tab). Volumes, people and page budget are on the Effort Dashboard.")
@@ -2973,6 +2975,14 @@ class AssignPage(QWidget):
         self.target = lab
         self.host.status(f"Target: {lab}. R puts the selected sentences there.")
         self.fill_tree()
+
+    def open_builder(self):
+        """3.30.0: the Structure Builder, on the target section."""
+        if not self.host.go("structure"):
+            return None
+        if self.target:
+            self.host.structure_page.select(self.target)
+        return "open"
 
     def start_from(self):
         """3.16.0: the Structure tab; with no sections yet it shows what the RFP prescribes (else its headings)."""

@@ -1,6 +1,26 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE STRUCTURE BUILDER (3.30.0)
+  - Compliance > Structure Builder: one page to build the response. Volume tabs; the structure with a tag on each
+    section (H1 to H9 and deeper, UN unnumbered, DIV divider page, PH placeholder, EL element, SEC a Word section).
+  - A toolbar like Word's style buttons: Heading 1, 2, 3 and 4 to 9 (and deeper), Unnumbered, Divider page,
+    Placeholder, Word section (portrait or landscape); + Below, + Under, Level down, Level up, Up, Down, Rename, Delete.
+    Enter, Tab, Shift+Tab, F2 and Delete do the same; drag a section before, after or into another; right-click for
+    the menu. The button for the selected section's kind lights up.
+  - The selected section: what it is, its pages and whether it counts, and everything in it in order (library items,
+    its requirements and support, its captures) to reorder or take out. Response Setup lives here now.
+  - The production library on the right: place Quick Parts, covers, table looks and the rest in a section. Not placed
+    yet: requirements and captures with no section, into the selected section in one click.
+  - Add elements: Table of Contents, the lists of figures, tables and appendices, Acronyms and Abbreviations, Units of
+    Measurement, the Appendices section and the rest, into a volume in one tick list. Settings > Response elements
+    keeps the team's elements (part, what fills it, pages, counts, library item, order) and the kit each effort type
+    starts with.
+  - Edit as text / Start from keeps the structure's text and starting from the RFP or a Word outline. Make templates,
+    Export the setup and Export changes only are at the top. Review's structure panel has Open in Structure Builder.
+  - The Response Setup documents carry all nine heading levels (deeper ones as bold run-in paragraphs), elements, Word
+    sections and the library items placed in each section.
+
 EVERY CAPTURE IN A SECTION, AND A MENU YOU CAN SEE (3.29.1)
   - Review: Into the target section (on to start): a capture goes into the section selected in your structure, as a
     requirement does. Move it in one click: Into the target or Section... on the sentence's card, Put its captures in
