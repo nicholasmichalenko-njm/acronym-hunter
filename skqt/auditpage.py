@@ -1,5 +1,5 @@
 """Production > Audit (3.17.0): Word, Excel and PowerPoint files checked against every standard that applies to them
-(their profile in Production Standards: styles, fonts, tables, captions, the TOC, cross-references, pages, headers and
+(their volume in Production Standards: styles, fonts, tables, captions, the TOC, cross-references, pages, headers and
 footers, lists, terms, sheets, slides and graphics), with every finding listed and exported. Read only: each file is
 read once into memory; nothing is changed, no copy is made, and a file open on SharePoint is never touched. Fix a Copy
 makes the dated copy with fixes. Rules only (No AI; the optional text-size estimate inside pictures uses the OCR reader
@@ -26,7 +26,7 @@ class AuditPage(QWidget):
         self._work, self._result, self._progress = None, None, ""
         v = QVBoxLayout(self)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
-        top = D.Card("Files to audit", "Each file is checked against its profile in Production Standards: every rule that "
+        top = D.Card("Files to audit", "Each file is checked against its volume in Production Standards: every rule that "
                      "applies to it. Read only: nothing is changed and no copy is made. Fix a Copy makes a dated copy with "
                      "fixes.", key=True,
                      actions=[D.button("Add the Volumes folder", None, lambda: self.add_volumes(), "Every Word, Excel and PowerPoint file in the effort's Volumes folder"),
@@ -45,7 +45,7 @@ class AuditPage(QWidget):
         res = D.Card("Results", "One row per file: what each area found. Click a file to see its findings.")
         self.areas = list(PF.AREAS.keys())
         self.table = QTableWidget(0, 3 + len(self.areas))
-        self.table.setHorizontalHeaderLabels(["File", "Profile", "Total"] + [PF.AREAS[a] for a in self.areas])
+        self.table.setHorizontalHeaderLabels(["File", "Volume", "Total"] + [PF.AREAS[a] for a in self.areas])
         self.table.verticalHeader().setVisible(False); self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows); self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
@@ -126,7 +126,7 @@ class AuditPage(QWidget):
         return self._work is not None and self._work.is_alive()
 
     def std_for(self, path):
-        """The file's standard: the same profile Fix a Copy would use (its deliverable's, the effort type's match, the effort's)."""
+        """The file's standard: the same volume Fix a Copy would use (its deliverable's, the effort type's match, the effort's)."""
         return self.host.fixcopy_page.std_for(path)
 
     def run(self, wait=False):
@@ -232,12 +232,12 @@ class AuditPage(QWidget):
         from openpyxl.styles import Alignment, Font, PatternFill
         wb = Workbook()
         ws = wb.active; ws.title = "By file"
-        ws.append(["File", "Profile", "Total"] + [PF.AREAS[a] for a in self.areas])
+        ws.append(["File", "Volume", "Total"] + [PF.AREAS[a] for a in self.areas])
         for p, (prof, chk) in self.results.items():
             by = chk.by_area()
             ws.append([os.path.basename(p), prof, chk.count()] + [sum(by.get(a, {}).values()) for a in self.areas])
         ws2 = wb.create_sheet("Findings")
-        ws2.append(["File", "Profile", "Area", "Rule", "What", "Where", "Fix a Copy"])
+        ws2.append(["File", "Volume", "Area", "Rule", "What", "Where", "Fix a Copy"])
         for p, (prof, chk) in self.results.items():
             for f in chk.findings:
                 ws2.append([os.path.basename(p), prof, PF.AREAS.get(f["area"], f["area"]), f"{f['rule']} {PF.RULE_TEXT.get(f['rule'], '')}",

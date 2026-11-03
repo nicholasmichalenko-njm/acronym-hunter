@@ -12,22 +12,27 @@ from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QColorDialog, QComboBox, QDoubleSpinBox, QFileDialog, QFontComboBox,
                                QFormLayout, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit,
                                QListWidget, QPlainTextEdit, QPushButton, QScrollArea, QSizePolicy, QSpinBox, QStackedWidget,
-                               QTableWidget, QVBoxLayout, QWidget)
+                               QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 import diag
 import prodrules as PRL
 import numtext as NT
 from prodengine.pe import rules as PR
 from . import design as D
 
-SECTIONS = [
-    ("variables", "Format variables"), ("fonts", "Font rules"), ("styles", "Styles and heading numbering"),
-    ("styledefs", "Style library"),
-    ("rows", "Table rows"), ("ttypes", "Table types"), ("rules", "Row rules"), ("captions", "Captions and numbering"),
-    ("pages", "Pages, cover and back cover"), ("quickparts", "Quick Parts"), ("setups", "Page setups"), ("hf", "Headers and footers"),
-    ("fillins", "Fill-ins (type once)"),
-    ("toc", "Table of contents and lists"), ("lists", "Bulleted and numbered lists"), ("terms", "Terms"),
-    ("office", "Excel and PowerPoint"), ("graphics", "Graphics"), ("checks", "Check options"),
+GROUPS = [                                               # 3.25.0: a menu across the top, in the order a document is built
+    ("Pages", [("setups", "Page sizes and margins"), ("pages", "Pagination and covers"), ("hf", "Headers and footers"),
+               ("toc", "Table of contents")]),
+    ("Styles", [("variables", "Base fonts and sizes"), ("styledefs", "Styles"), ("fonts", "Font rules"), ("styles", "Allowed styles")]),
+    ("Numbering", [("headnum", "Heading numbering"), ("lists", "Lists"), ("captions", "Captions")]),
+    ("Tables", [("ttypes", "Table types"), ("rows", "Row looks"), ("rules", "How rows are recognized")]),
+    ("Content", [("quickparts", "Quick Parts"), ("fillins", "Fields")]),
+    ("Check", [("terms", "Words to avoid and fix"), ("graphics", "Graphics"), ("office", "Excel and PowerPoint")]),
 ]
+SECTIONS = [x for _g, items in GROUPS for x in items]
+# 3.25.0: what each section's own Import from a file brings in (template library item kinds)
+IMPORT_KINDS = {"styledefs": ("style", "theme", "font"), "variables": ("variables",), "headnum": ("heading_numbering",),
+                "lists": ("list_numbering",), "ttypes": ("table_style",), "rows": ("table_look",), "setups": ("page_setup",),
+                "pages": ("cover", "backer"), "hf": ("hf", "hf_design"), "toc": ("toc",), "quickparts": ("quickpart",)}
 ROLE_NAMES = {"caption": "Caption row", "header": "Header row", "header2": "Second header row", "subhead": "Subhead row",
               "body": "Body rows", "subtotal": "Subtotal row", "total": "Total row", "note": "Notes row"}
 EDGE_NAMES = {"top": "Top", "bottom": "Bottom", "left": "Left", "right": "Right", "inside_v": "Between columns"}
@@ -42,7 +47,7 @@ AFTER = [("period_tab", "Period, then a tab"), ("period_space", "Period, then a 
 RULE_KINDS = [("fill_in", "Cell fill is one of"), ("first_cell_starts", "First cell starts with"),
               ("first_cell_contains_word", "First cell contains the word"), ("last_row_merged", "Last row is one merged cell"),
               ("single_merged_cell", "One merged cell across"), ("bold_row", "Only bold text"), ("other", "Any other row")]
-TOKENS = "{volume_name} {solicitation} {company} {page} {pages} {chapter}, and your fill-ins as {key}"
+TOKENS = "{volume_name} {solicitation} {company} {page} {pages} {chapter}, and your fields as {key}"
 TRI = [("", "Not set"), ("on", "On"), ("off", "Off")]
 STYLE_COLS = [("key", "Style", "text"), ("type", "Type", ("enum", [("paragraph", "Paragraph"), ("character", "Character")])),
               ("based_on", "Based on", "text"), ("next", "Next style", "text"), ("font", "Font", "text"), ("size", "Size (pt)", "num0"),
@@ -377,52 +382,62 @@ class StandardsPage(QWidget):
         self.binder = Binder(self)
         outer = QVBoxLayout(self); outer.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); outer.setSpacing(D.SPACE["m"])
         top = D.Card("Production Standards", "Every rule Fix a Copy uses, in layers: the team standard, then a "
-                     "document profile (one kind of document you deliver), then an effort type (the rules of a kind of effort, "
-                     "for every profile in it, and its changes for one profile), then this effort. A value set at the layer you "
+                     "volume (one kind of document you deliver), then an effort type (the rules of a kind of effort, "
+                     "for every volume in it, and its changes for one volume), then this effort. A value set at the layer you "
                      "edit shows in bold, and Reset takes it back to the layer below.",
                      actions=[D.button("+ Effort type...", None, lambda: self.add_effort_type(), "A kind of effort (RFP, page-limited RFP, "
-                                       "white paper, program): the profiles its deliverables use and the rules every one of them follows"),
+                                       "white paper, program): the volumes its deliverables use and the rules every one of them follows"),
                               D.button("Effort types...", "ghost", lambda: self.manage_effort_types(), "Rename, order or take "
                                        "out effort types (3.18.2)"),
-                              D.button("+ Profile...", None, lambda: self.add_type(), "A document profile: the full set of formatting values for one kind of document you deliver"),
-                              D.button("Import from a file...", None, lambda: self.learn(), "Read a template or a finished volume and "
-                                       "take its styles, table looks, pages, headers and numbering into what you are editing"),
-                              D.button("Collect into the library...", None, lambda: self.collect(), "Read a template or Word "  # 3.22.0
-                                       "document and keep what it carries in the template library, item by item, confirmed by you"),
+                              D.button("+ Volume...", None, lambda: self.add_type(), "A volume: the full set of formatting values for one kind of document you deliver"),
+                              D.button("Import from a file...", None, lambda: self.import_file(), "Read a template or Word "  # 3.25.0
+                                       "document and take what it carries, item by item: into what you are editing, into the "
+                                       "library, or both. Each section has its own Import for just its items"),
                               D.button("Template library...", None, lambda: self.library(), "Everything collected: styles, pages, "
                                        "headers and footers, numbering, tables, covers, Quick Parts and fonts"),
-                              D.button("Make a .dotx template...", None, lambda: self.make_template(), "A Word template (.dotx) with every "
+                              D.button("Make templates...", None, lambda: self.make_templates(), "Read each template in full, then make the "
+                                       ".dotx: what you are editing, every volume of an effort type, or this effort's volumes and setup. "
+                                       "A Word template (.dotx) with every "
                                        "value in force here, written to the output folder"),
                               D.button("Save", "primary", lambda: self.save())])
         bar = QHBoxLayout()
         bar.addWidget(D.label("Editing", "label", wrap=False))
-        self.scope_box = QComboBox(); self.scope_box.setMinimumWidth(300)
-        self.scope_box.currentIndexChanged.connect(lambda _i: self.switch())
+        self.scope_box = QComboBox(); self.scope_box.setMinimumWidth(300)     # every layer in one list (kept for keys)
+        self.scope_box.currentIndexChanged.connect(lambda _i: (self.switch(), self._sync_pickers()))
+        self.scope_box.setVisible(False)
         bar.addWidget(self.scope_box)
+        # 3.25.0: two short boxes in place of one long list: the effort type, then the volume
+        bar.addWidget(D.label("Effort type", "label", wrap=False))
+        self.etype_pick = QComboBox(); self.etype_pick.setMinimumWidth(200); bar.addWidget(self.etype_pick)
+        bar.addWidget(D.label("Volume", "label", wrap=False))
+        self.vol_pick = QComboBox(); self.vol_pick.setMinimumWidth(200); bar.addWidget(self.vol_pick)
+        self.this_effort = QCheckBox("This effort only"); bar.addWidget(self.this_effort)
+        self.etype_pick.activated.connect(lambda _i: self.picked(fill_volumes=True))
+        self.vol_pick.activated.connect(lambda _i: self.picked())
+        self.this_effort.toggled.connect(lambda _on: self.picked())
         bar.addStretch(1)
         self.state = D.label("", "muted", wrap=False); bar.addWidget(self.state)
         top.body.addLayout(bar)
         # 3.8.0: a profile's match words; an effort type's profiles and default
         self.match_row = QHBoxLayout()
-        self.match_row.addWidget(D.label("Deliverables this profile fits (words in their names)", "label", wrap=False))
+        self.match_row.addWidget(D.label("Deliverables this volume fits (words in their names)", "label", wrap=False))
         self.match_edit = QLineEdit(); self.match_edit.setPlaceholderText("technical, management (comma between)")
         self.match_edit.textEdited.connect(lambda _t: self.changed()); self.match_row.addWidget(self.match_edit, 1)
         top.body.addLayout(self.match_row)
         self.et_row = QHBoxLayout()
-        self.et_row.addWidget(D.label("Profiles in this effort type", "label", wrap=False))
+        self.et_row.addWidget(D.label("Volumes in this effort type", "label", wrap=False))
         self.et_profiles = QListWidget(); self.et_profiles.setFixedHeight(96); self.et_profiles.setMinimumWidth(320)
         self.et_profiles.itemChanged.connect(lambda _it: self.changed()); self.et_row.addWidget(self.et_profiles)
-        self.et_row.addWidget(D.label("Default profile", "label", wrap=False))
+        self.et_row.addWidget(D.label("Default volume", "label", wrap=False))
         self.et_default = QComboBox(); self.et_default.setMinimumWidth(200); self.et_row.addWidget(self.et_default)
         self.et_default.activated.connect(lambda _i: self.changed())
-        self.et_row.addWidget(D.button("Make templates for every profile...", None, lambda: self.make_templates_all()))
         self.et_row.addStretch(1)
         top.body.addLayout(self.et_row)
         self.eff_row = QHBoxLayout()
         self.eff_row.addWidget(D.label("This effort's type", "label", wrap=False))
         self.eff_etype = QComboBox(); self.eff_etype.setMinimumWidth(220); self.eff_row.addWidget(self.eff_etype)
         self.eff_etype.activated.connect(lambda _i: self.effort_etype_changed())
-        self.eff_row.addWidget(D.label("default profile", "label", wrap=False))
+        self.eff_row.addWidget(D.label("default volume", "label", wrap=False))
         self.eff_type = QComboBox(); self.eff_type.setMinimumWidth(240); self.eff_row.addWidget(self.eff_type)
         self.eff_type.currentIndexChanged.connect(lambda _i: self.effort_type_changed())
         self.eff_row.addWidget(D.button("Fill from the RFP's formatting rules", None, lambda: self.fill_from_rfp()))
@@ -431,11 +446,20 @@ class StandardsPage(QWidget):
         top.body.addLayout(self.eff_row)
         self.eff_said = top.add(D.label("", "muted"))
         outer.addWidget(top)
-        body = QHBoxLayout(); body.setSpacing(D.SPACE["m"])
-        self.nav = QListWidget(); self.nav.setFixedWidth(200)          # 3.17.0: room for the preview
+        from PySide6.QtWidgets import QTabBar          # 3.25.0: the sections as a menu across the top
+        self.group_bar = QTabBar(); self.group_bar.setExpanding(False); self.group_bar.setDrawBase(False)
+        for g, _items in GROUPS:
+            self.group_bar.addTab(g)
+        self.section_bar = QTabBar(); self.section_bar.setExpanding(False); self.section_bar.setDrawBase(False)
+        self.section_bar.setObjectName("sectionbar")
+        self.group_bar.currentChanged.connect(lambda i: self.pick_group(i))
+        self.section_bar.currentChanged.connect(lambda i: self.pick_section(i))
+        outer.addWidget(self.group_bar); outer.addWidget(self.section_bar)
+        self.nav = QListWidget(); self.nav.setVisible(False)  # the sections in order (kept for keys and tests)
         for _k, t in SECTIONS:
             self.nav.addItem(t)
         self.nav.currentRowChanged.connect(lambda i: self.show_section(i))
+        body = QHBoxLayout(); body.setSpacing(D.SPACE["m"])
         body.addWidget(self.nav)
         self.stack = QStackedWidget()
         body.addWidget(self.stack, 1)
@@ -451,6 +475,11 @@ class StandardsPage(QWidget):
             sc = QScrollArea(); sc.setWidgetResizable(True); sc.setFrameShape(QFrame.NoFrame)
             inner = QWidget(); inner.setObjectName("page"); iv = QVBoxLayout(inner); iv.setContentsMargins(D.SPACE["s"], 0, D.SPACE["s"], 0)
             sc.setWidget(inner); v.addWidget(sc)
+            if k in IMPORT_KINDS:                       # 3.25.0: each section imports its own items
+                ib = QHBoxLayout(); ib.addStretch(1)
+                ib.addWidget(D.button("Import from a file...", None, lambda _=False, kk=k: self.import_file(section=kk),
+                                      "Only this section's items from a template or Word document: take one, some or all"))
+                iv.addLayout(ib)
             getattr(self, "build_" + k)(iv)
             iv.addStretch(1)
             self.stack.addWidget(page)
@@ -458,21 +487,56 @@ class StandardsPage(QWidget):
         self.nav.setCurrentRow(0)
         self.show_section(0)
 
-    SECTION_KEYS = {"variables": ("variables",), "fonts": ("fonts",), "styles": ("styles", "heading_numbering"),
+    SECTION_KEYS = {"variables": ("variables",), "fonts": ("fonts",), "styles": ("styles",), "headnum": ("heading_numbering",),
                     "styledefs": ("style_defs",), "rows": ("row_types",), "ttypes": ("table_types", "table_styles"),
-                    "rules": ("row_rules",), "captions": ("captions",), "pages": ("pagination", "page_parts"), "quickparts": ("quick_parts",), "fillins": ("fill_ins",),
-                    "setups": ("page_setups",), "hf": ("hf_layouts",), "toc": ("toc",), "lists": ("lists", "list_numbering"),
-                    "terms": ("terms",), "office": ("excel", "powerpoint"), "graphics": ("graphics",), "checks": ("checks",)}
+                    "rules": ("row_rules",), "captions": ("captions", ("checks", "caption_fields"), ("checks", "table_caption_position")),
+                    "pages": ("pagination", "page_parts"), "quickparts": ("quick_parts",), "fillins": ("fill_ins",),
+                    "setups": ("page_setups", ("checks", "landscape_ok")), "hf": ("hf_layouts", "hf_designs", ("checks", "page_numbers")),
+                    "toc": ("toc", ("checks", "toc_forbid")), "lists": ("lists", "list_numbering"),
+                    "terms": ("terms",), "office": ("excel", "powerpoint"), "graphics": ("graphics",)}
     LAYER_BELOW = {"team": "the built-in defaults", "type": "the team standard", "etype": "the team standard",
-                   "etp": "the profile in this effort type", "effort": "the effort's profile"}
+                   "etp": "the volume in this effort type", "effort": "the effort's volume"}
 
     def show_section(self, i):
-        """3.17.0: the section's form, and its preview beside it."""
+        """3.17.0: the section's form, and its preview beside it. 3.25.0: the menu across the top follows."""
         if not (0 <= i < len(SECTIONS)):
             return
         self.stack.setCurrentIndex(i)
         if hasattr(self, "std_preview"):
             self.std_preview.show_section(*SECTIONS[i])
+        if hasattr(self, "group_bar"):
+            key = SECTIONS[i][0]
+            gi = next(n for n, (_g, items) in enumerate(GROUPS) if key in [k for k, _t in items])
+            self._syncing = True
+            if self.group_bar.currentIndex() != gi or self.section_bar.count() != len(GROUPS[gi][1]):
+                self.group_bar.setCurrentIndex(gi)
+                self._fill_section_bar(gi)
+            self.section_bar.setCurrentIndex([k for k, _t in GROUPS[gi][1]].index(key))
+            self._syncing = False
+
+    def _fill_section_bar(self, gi):
+        self.section_bar.blockSignals(True)
+        while self.section_bar.count():
+            self.section_bar.removeTab(0)
+        for _k, t in GROUPS[gi][1]:
+            self.section_bar.addTab(t)
+        self.section_bar.blockSignals(False)
+
+    def pick_group(self, gi):
+        if getattr(self, "_syncing", False) or not (0 <= gi < len(GROUPS)):
+            return
+        self.nav.setCurrentRow([k for k, _t in SECTIONS].index(GROUPS[gi][1][0][0]))
+
+    def pick_section(self, si):
+        if getattr(self, "_syncing", False):
+            return
+        gi = self.group_bar.currentIndex()
+        if 0 <= gi < len(GROUPS) and 0 <= si < len(GROUPS[gi][1]):
+            self.nav.setCurrentRow([k for k, _t in SECTIONS].index(GROUPS[gi][1][si][0]))
+
+    def section_key(self):
+        i = self.nav.currentRow()
+        return SECTIONS[i][0] if 0 <= i < len(SECTIONS) else ""
 
     def base_name(self):
         return self.LAYER_BELOW.get(self.scope, "the layer below")
@@ -496,7 +560,8 @@ class StandardsPage(QWidget):
                 return
             out.append((label, b, a))
         for key in self.SECTION_KEYS.get(section, ()):
-            walk((self.work or {}).get(key), (self.base or {}).get(key), (key,))
+            path = key if isinstance(key, tuple) else (key,)
+            walk(_get(self.work or {}, path), _get(self.base or {}, path), path)
         return out
 
     # ------------------------------------------------------------------ helpers to build forms
@@ -521,7 +586,7 @@ class StandardsPage(QWidget):
 
     # ------------------------------------------------------------------ sections
     def build_variables(self, v):
-        f, _c = self.form(v, "Format variables", "The values the styles and checks are built from. A table font or size "
+        f, _c = self.form(v, "Base fonts and sizes", "The values the styles and checks are built from. A table font or size "
                           "names a variable (=table_font) so changing it here changes every row type that uses it.")
         names = {"body_font": "Body font", "body_size": "Body size (pt)", "table_font": "Table font", "table_size": "Table size (pt)",
                  "caption_font": "Caption font", "caption_size": "Caption size (pt)", "space_after_body": "Space after body text (pt)",
@@ -567,15 +632,37 @@ class StandardsPage(QWidget):
         v.addWidget(c)
 
     def build_styles(self, v):
-        f, c = self.form(v, "Styles", "Which styles a finished document may use, and what Fix a Copy does to the rest.")
+        f, c = self.form(v, "Allowed styles", "Which styles a finished document may use, and what Fix a Copy does to the rest.")
         self.row(f, "Set style fonts and sizes from the format variables", QCheckBox(), ("styles", "apply_variables"), "bool")
         self.row(f, "Remove custom styles nobody uses", QCheckBox(), ("styles", "remove_unused_custom"), "bool")
         self.row(f, "Hide built-in styles nobody uses from the gallery", QCheckBox(), ("styles", "hide_unused_builtin"), "bool")
         t = QLineEdit(); t.setMinimumWidth(420); t.setPlaceholderText("A .dotx or .dotm whose styles every fixed copy takes")
         self.row(f, "Bring in the styles of this template", t, ("styles", "template"), "text")
         b = D.button("Choose a template...", None, lambda: self.pick_template(t)); f.addRow("", b)
-        al = QPlainTextEdit(); al.setFixedHeight(130); al.setPlaceholderText("One style name per line. Blank: any style is allowed.")
-        self.row(f, "Allowed styles", al, ("styles", "allowed"), "lines")
+        # 3.25.0: tick the allowed styles from this standard's styles and the library's, sorted and filtered
+        c2 = D.Card("The styles a document may use", "Tick each style a finished document may use; Fix a Copy reports any "
+                    "other. Off: any style is allowed. The list holds this standard's styles and every style in the template "
+                    "library; click a column heading to sort, or show one kind.")
+        v.addWidget(c2)
+        oh = QHBoxLayout()
+        self.allow_only = QCheckBox("Only the ticked styles are allowed"); self.allow_only.toggled.connect(lambda on: self.allow_on(on))
+        oh.addWidget(self.allow_only); oh.addStretch(1)
+        oh.addWidget(D.label("Show", "label", wrap=False))
+        self.allow_show = QComboBox(); self.allow_show.setMinimumWidth(200)
+        self.allow_show.currentIndexChanged.connect(lambda _i: self.filter_allowed()); oh.addWidget(self.allow_show)
+        self.allow_find = QLineEdit(); self.allow_find.setPlaceholderText("Find a style"); self.allow_find.setMaximumWidth(200)
+        self.allow_find.textEdited.connect(lambda _t: self.filter_allowed()); oh.addWidget(self.allow_find)
+        oh.addWidget(D.button("Tick all shown", "ghost", lambda: self.tick_allowed(True)))
+        oh.addWidget(D.button("Clear all shown", "ghost", lambda: self.tick_allowed(False)))
+        c2.body.addLayout(oh)
+        self.allow_t = QTableWidget(0, 5); self.allow_t.setHorizontalHeaderLabels(["Style", "Type", "Group", "Use case", "From"])
+        self.allow_t.verticalHeader().setVisible(False); self.allow_t.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.allow_t.horizontalHeader().setStretchLastSection(True); self.allow_t.setMinimumHeight(320)
+        self.allow_t.setSortingEnabled(True)
+        self.allow_t.itemChanged.connect(lambda _it: self.allowed_changed())
+        c2.body.addWidget(self.allow_t)
+
+    def build_headnum(self, v):
         f2, _c2 = self.form(v, "Heading numbering", "The nine heading levels: number format, what the number reads as (type it "
                             "as it shows, such as 1.1.1 or Section A: the last number is this level's, the ones before it the "
                             "levels above), where the number and the text start, and which level restarts it.")
@@ -586,15 +673,11 @@ class StandardsPage(QWidget):
         self.table_editor(v, "heading_levels", ("heading_numbering", "levels"), cols, fixed=True)
 
     def build_styledefs(self, v):
-        c = D.Card("Style library", "Every style this profile defines, whole: font, size, bold, italic, underline, caps, color, "
+        c = D.Card("Styles", "Every style this volume defines, whole (hidden text styles included): font, size, bold, italic, underline, caps, color, "
                    "alignment, spacing, line spacing, indents, keeps, page break before, widow control, based on and next style. "
                    "Fix a Copy checks each style in a draft against these values and sets the ones that differ; Make a .dotx template "
                    "writes them. Blank or Not set leaves that property as the draft has it. Format variables win where they "
                    "drive a style (body, table and caption fonts and sizes). Import from a file... fills this from a template.")
-        bar = QHBoxLayout()
-        bar.addWidget(D.button("Import from a file...", None, lambda: self.learn()))
-        bar.addStretch(1)
-        c.body.addLayout(bar)
         v.addWidget(c)
         self.table_editor(v, "styledefs", ("style_defs",), STYLE_COLS, dict_rows=True, adapter="styledefs")
         self.tables["styledefs"]["w"].setMinimumHeight(420)
@@ -606,7 +689,7 @@ class StandardsPage(QWidget):
             edit.setText(p); edit.textEdited.emit(p)
 
     def build_rows(self, v):
-        c = D.Card("Table rows", "How each kind of row looks. Every table type shares these looks; choose a table type to "
+        c = D.Card("Row looks", "How each kind of row looks. Every table type shares these looks; choose a table type to "
                    "change a look for that type only.")
         top = QHBoxLayout()
         top.addWidget(D.label("Row", "label", wrap=False))
@@ -724,7 +807,7 @@ class StandardsPage(QWidget):
         self.table_editor(v, "ttypes", ("table_types",), cols, dict_rows=True)
 
     def build_rules(self, v):
-        c = D.Card("Row rules", "How a row's role is found, in order; the first rule that matches decides. Sure rules apply; "
+        c = D.Card("How rows are recognized", "How a row's role is found, in order; the first rule that matches decides. Sure rules apply; "
                    "the others ask, grouped so one answer covers every row like it. The caption row, header row and second "
                    "header row are found by position first. The last rule must be Any other row.")
         v.addWidget(c)
@@ -734,7 +817,7 @@ class StandardsPage(QWidget):
         self.table_editor(v, "rules", ("row_rules",), cols)
 
     def build_captions(self, v):
-        c = D.Card("Captions and numbering", "Each caption rule: its label, body or appendix, above or below, the chapter "
+        c = D.Card("Captions", "Each caption rule: its label, body or appendix, above or below, the chapter "
                    "level the number takes (1 for Heading 1 gives 2-1; 7 for the appendix heading gives A-1), the separator, "
                    "the caption list (SEQ identifier) and what follows the number. Lists of tables and figures collect by "
                    "these identifiers.")
@@ -747,9 +830,13 @@ class StandardsPage(QWidget):
                                                                ("ALPHABETIC", "A, B, C"), ("alphabetic", "a, b, c")])),
                 ("after_number", "After the number", ("enum", AFTER)), ("style", "Style", "text")]
         self.table_editor(v, "captions", ("captions",), cols)
+        f, _c = self.form(v, "What Check reports", "Read only: Check reports these in a draft; nothing is changed.")   # 3.25.0
+        self.row(f, "Caption numbers must be fields", QCheckBox(), ("checks", "caption_fields"), "bool")
+        self.row(f, "Table captions", enum([("first row", "In the table's first row"), ("above", "Above the table"),
+                                            ("below", "Below the table"), ("either", "Any of these")]), ("checks", "table_caption_position"), "enum")
 
     def build_pages(self, v):
-        c = D.Card("Pages, cover and back cover", "The page scheme: an ordered list of parts. Each part starts at a style "
+        c = D.Card("Pagination and covers", "The page scheme: an ordered list of parts. Each part starts at a style "
                    "(or the first or last section), numbers its pages its own way, and restarts where you say. The cover and "
                    "back cover carry no page number. A back cover is found only as the last section starting with one of its "
                    "styles, so a volume without one keeps its page numbers.")
@@ -778,10 +865,10 @@ class StandardsPage(QWidget):
 
     def build_fillins(self, v):
         """3.23.0: tokens typed once and shown everywhere they are referenced."""
-        c = D.Card("Fill-ins", "A value you type once that shows everywhere it is referenced. Style on the cover (STYLEREF, as the "
+        c = D.Card("Fields", "Field codes for a value you type once that shows everywhere it is referenced. Style on the cover (STYLEREF, as the "
                    "team works today): the value sits once on the cover or title page in its own style, and every STYLEREF to "
                    "that style in headers, footers and Quick Parts shows it. Document property (DOCPROPERTY): a property of the "
-                   "file (Title, Subject, Company, or one of your own). Use a fill-in in a header or footer as {key}. Fields "
+                   "file (Title, Subject, Company, or one of your own). Use a field in a header or footer as {key}. Fields "
                    "are written without MERGEFORMAT, so each one takes the formatting where it sits. Volume name, solicitation "
                    "and company are built in.")
         v.addWidget(c)
@@ -891,7 +978,7 @@ class StandardsPage(QWidget):
         self.changed(); self.load_tables()
 
     def build_setups(self, v):
-        c = D.Card("Page setups", "Paper, orientation and margins for each kind of page. Portrait takes the margin variables; "
+        c = D.Card("Page sizes and margins", "Paper, orientation and margins for each kind of page. Portrait takes the margin variables; "
                    "landscape and tabloid foldouts continue the page numbers and keep the headers and footers.")
         v.addWidget(c)
         cols = [("key", "Key", "text"), ("name", "Name", "text"), ("w", "Width (in)", "num"), ("h", "Height (in)", "num"),
@@ -899,20 +986,35 @@ class StandardsPage(QWidget):
                 ("top", "Top", "text"), ("bottom", "Bottom", "text"), ("left", "Left", "text"), ("right", "Right", "text"),
                 ("header", "Header (in)", "num"), ("footer", "Footer (in)", "num")]
         self.table_editor(v, "setups", ("page_setups",), cols, dict_rows=True)
+        f, _c = self.form(v, "What Check reports", "Read only: Check reports these in a draft; nothing is changed.")   # 3.25.0
+        self.row(f, "Landscape sections allowed", QCheckBox(), ("checks", "landscape_ok"), "bool")
 
     def build_hf(self, v):
         c = D.Card("Headers and footers", "For each part of the page scheme: what the left, center and right of the header and "
-                   "footer carry, a rule under the header, and the restriction marking. Tokens: " + TOKENS + ".")
+                   "footer carry, a rule under the header, and the restriction marking. Word's way puts them on tab stops; "
+                   "type column widths in inches (2, 2.5, 2) to build it as a table instead, the way the team's Quick Parts "
+                   "do (one width: the center text; two: left and right; three: all three). Or use one of your Quick Parts "
+                   "as a part's header or footer, kept exactly as built. Tokens: " + TOKENS + ".")
         v.addWidget(c)
         cols = [("key", "Part", "text"), ("h_left", "Header left", "text"), ("h_center", "Header center", "text"),
-                ("h_right", "Header right", "text"), ("rule_below", "Rule under header", "bool"), ("f_left", "Footer left", "text"),
-                ("f_center", "Footer center", "text"), ("f_right", "Footer right", "text"), ("marking", "Marking", "bool")]
+                ("h_right", "Header right", "text"), ("rule_below", "Rule under header", "bool"),
+                ("h_table", "Header as a table: column widths (in)", "list"), ("f_left", "Footer left", "text"),
+                ("f_center", "Footer center", "text"), ("f_right", "Footer right", "text"), ("marking", "Marking", "bool"),
+                ("f_table", "Footer as a table: column widths (in)", "list"),
+                ("borders", "Table borders", ("enum", [("none", "None"), ("bottom", "A line under"), ("grid", "Grid")]))]
         self.table_editor(v, "hf", ("hf_layouts",), cols, adapter="hf")
+        qr = QHBoxLayout()
+        qr.addWidget(D.button("Use a Quick Part as a header or footer...", None, lambda: self.hf_from_quick_part(),
+                              "One of this standard's Quick Parts, kept exactly as built (its table, widths, pictures and "
+                              "fields), as a part's header or footer"))
+        qr.addStretch(1); v.addLayout(qr)
         row = QHBoxLayout()                                       # 3.24.0: designs kept whole replace a part's layout
         self.hf_designs_lab = D.label("", "muted"); row.addWidget(self.hf_designs_lab, 1)
         row.addWidget(D.button("Clear the kept designs", "ghost", lambda: self.clear_hf_designs(),
                                "Back to the layouts above for every part"))
         v.addLayout(row)
+        f, _c = self.form(v, "What Check reports", "Read only: Check reports these in a draft; nothing is changed.")   # 3.25.0
+        self.row(f, "Every section's footer has a page number field", QCheckBox(), ("checks", "page_numbers"), "bool")
 
     def build_toc(self, v):
         f, _c = self.form(v, "Table of contents", "The levels the TOC pulls by style name (Heading 7 and 8 as appendix "
@@ -930,9 +1032,11 @@ class StandardsPage(QWidget):
         c2 = D.Card("Lists of tables and figures", "Each list's title and the caption lists (SEQ identifiers) it collects.")
         v.addWidget(c2)
         self.table_editor(v, "toc_lists", ("toc", "lists"), [("title", "Title", "text"), ("identifiers", "Collects (comma)", "list")])
+        f, _c = self.form(v, "What Check reports", "Read only: Check reports these in a draft; nothing is changed.")   # 3.25.0
+        self.row(f, "TOC switches never used (comma)", QLineEdit(), ("checks", "toc_forbid"), "list")
 
     def build_lists(self, v):
-        f, _c = self.form(v, "Bulleted and numbered lists", "The team's list styles, the typed bullets and numbers that become "
+        f, _c = self.form(v, "Lists", "The team's bulleted and numbered list styles, the typed bullets and numbers that become "
                           "them, and how numbering restarts.")
         self.row(f, "Bullet styles by level (comma)", QLineEdit(), ("lists", "bullet_styles"), "list")
         self.row(f, "Number styles by level (comma)", QLineEdit(), ("lists", "number_styles"), "list")
@@ -972,7 +1076,7 @@ class StandardsPage(QWidget):
     def build_office(self, v):
         """3.11.0: what Check reads in workbooks and decks (prodoffice). Check only: these files are never changed."""
         f, _c = self.form(v, "Excel workbooks", "Fix a Copy checks a workbook against these and lists what differs; you fix it "
-                          "in Excel. Blank font or size: the profile's table font and size.")
+                          "in Excel. Blank font or size: the volume's table font and size.")
         w = QFontComboBox(); w.setEditable(True)
         self.row(f, "Font", w, ("excel", "font"), "font")
         self.row(f, "Size (pt)", num(0, 72, 0.5), ("excel", "size"), "num")
@@ -987,7 +1091,7 @@ class StandardsPage(QWidget):
         self.row(f, "Page number in the printed footer", QCheckBox(), ("excel", "print", "footer_page"), "bool")
         self.row(f, "Restriction marking in the printed header or footer", QCheckBox(), ("excel", "print", "marking"), "bool")
         f2, _c2 = self.form(v, "PowerPoint decks", "Fix a Copy checks a deck against these and lists what differs; you fix it "
-                            "in PowerPoint. Blank fonts: the profile's body and table fonts.")
+                            "in PowerPoint. Blank fonts: the volume's body and table fonts.")
         self.row(f2, "Fonts allowed (comma)", QLineEdit(), ("powerpoint", "fonts"), "text")
         self.row(f2, "Smallest text (pt)", num(0, 72, 0.5), ("powerpoint", "min_size"), "num")
         self.row(f2, "Smallest title (pt)", num(0, 96, 0.5), ("powerpoint", "title_min_size"), "num")
@@ -1001,7 +1105,7 @@ class StandardsPage(QWidget):
         f, _c = self.form(v, "Graphics", "What every figure must meet: picture types, resolution where placed, width, the "
                           "fonts and smallest text in drawings, charts and text boxes, captions and alt text. Check only: a "
                           "picture is never re-encoded, resized or moved. Blank fonts: the Graphic row of the font rules, else "
-                          "the profile's body, table and caption fonts.")
+                          "the volume's body, table and caption fonts.")
         wide = lambda: (lambda e: (e.setMinimumWidth(320), e)[1])(QLineEdit())
         self.row(f, "Picture types allowed (comma)", wide(), ("graphics", "types"), "list",
                  "png, jpeg, emf, wmf, svg, gif, tiff, bmp")
@@ -1019,15 +1123,6 @@ class StandardsPage(QWidget):
         self.row(f, "RGB only (no CMYK pictures)", QCheckBox(), ("graphics", "rgb_only"), "bool")
         self.row(f, "Largest picture file (MB)", num(0, 200, 1, "any", 0), ("graphics", "max_file_mb"), "num")
         del PG
-
-    def build_checks(self, v):
-        f, _c = self.form(v, "Check options", "Read-only checks Fix a Copy's Check adds on top of the rules above.")
-        self.row(f, "TOC switches never used (comma)", QLineEdit(), ("checks", "toc_forbid"), "list")
-        self.row(f, "Every section's footer has a page number field", QCheckBox(), ("checks", "page_numbers"), "bool")
-        self.row(f, "Caption numbers must be fields", QCheckBox(), ("checks", "caption_fields"), "bool")
-        self.row(f, "Table captions", enum([("first row", "In the table's first row"), ("above", "Above the table"),
-                                            ("below", "Below the table"), ("either", "Any of these")]), ("checks", "table_caption_position"), "enum")
-        self.row(f, "Landscape sections allowed", QCheckBox(), ("checks", "landscape_ok"), "bool")
 
     # ------------------------------------------------------------------ list editors
     def table_editor(self, v, key, path, cols, dict_rows=False, fixed=False, adapter=None):
@@ -1067,7 +1162,10 @@ class StandardsPage(QWidget):
                 h, f = lay.get("header") or {}, lay.get("footer") or {}
                 out.append({"key": k, "h_left": h.get("left", ""), "h_center": h.get("center", ""), "h_right": h.get("right", ""),
                             "rule_below": bool(h.get("rule_below")), "f_left": f.get("left", ""), "f_center": f.get("center", ""),
-                            "f_right": f.get("right", ""), "marking": bool(f.get("marking"))})
+                            "f_right": f.get("right", ""), "marking": bool(f.get("marking")),
+                            "h_table": [f"{x:g}" for x in (h.get("table") or {}).get("widths_in") or []],
+                            "f_table": [f"{x:g}" for x in (f.get("table") or {}).get("widths_in") or []],
+                            "borders": (h.get("table") or f.get("table") or {}).get("borders", "none")})
             return out
         if ad == "listnum":
             return [dict(lv, list=l.get("name", "")) for l in (data or []) for lv in (l.get("levels") or [])]
@@ -1138,6 +1236,15 @@ class StandardsPage(QWidget):
                 f = {k: r["f_" + k] for k in ("left", "center", "right") if r.get("f_" + k)}
                 if r.get("marking"):
                     f["marking"] = True
+                for d, key in ((h, "h_table"), (f, "f_table")):       # 3.25.0: built as a table
+                    ws = []
+                    for x in r.get(key) or []:
+                        try:
+                            ws.append(round(float(x), 3))
+                        except (TypeError, ValueError):
+                            pass
+                    if ws:
+                        d["table"] = {"widths_in": ws, "borders": r.get("borders") or "none"}
                 out[r["key"] or "part"] = {"header": h, "footer": f}
             _set(self.work, spec["path"], out)
             return
@@ -1202,6 +1309,7 @@ class StandardsPage(QWidget):
 
     def load_tables(self):
         self.show_hf_designs()
+        self.fill_allowed()
         for key, spec in self.tables.items():
             t = spec["w"]
             rows = self._rows_of(spec)
@@ -1274,8 +1382,9 @@ class StandardsPage(QWidget):
         for i, (lvl, fmts) in enumerate(self._lvl_of(rows)):
             for field, _h, kind in spec["cols"]:
                 if kind == "lvltext":
-                    w = rows[i][field]
-                    rows[i][field] = NT.keep_or_parse(w.text(), w.property("raw"), fmts, lvl)
+                    w = rows[i][field]                 # a bullet is its character, kept as typed
+                    rows[i][field] = (w.text().strip() if rows[i].get("fmt") == "bullet"
+                                      else NT.keep_or_parse(w.text(), w.property("raw"), fmts, lvl))
                     w.setProperty("raw", rows[i][field])
         return rows
 
@@ -1350,11 +1459,11 @@ class StandardsPage(QWidget):
         cur = self.scope_box.currentData()
         self.scope_box.blockSignals(True)
         self.scope_box.clear()
-        self.scope_box.addItem("Team standard (every profile starts here)", "team:")
+        self.scope_box.addItem("Team standard (every volume starts here)", "team:")
         for t in self.data["types"]:
-            self.scope_box.addItem(f"Profile: {t['name']}", "type:" + t["id"])
+            self.scope_box.addItem(f"Volume: {t['name']}", "type:" + t["id"])
         for e in self.data.get("effort_types", []):
-            self.scope_box.addItem(f"Effort type: {e['name']} (every profile in it)", "etype:" + e["id"])
+            self.scope_box.addItem(f"Effort type: {e['name']} (every volume in it)", "etype:" + e["id"])
             for pid in e["profiles"]:
                 self.scope_box.addItem(f"Effort type: {e['name']} > {PRL.type_of(self.data, pid)['name']}", f"etp:{e['id']}:{pid}")
         if self.host.ws is not None:
@@ -1362,9 +1471,10 @@ class StandardsPage(QWidget):
         i = self.scope_box.findData(cur) if cur else -1
         self.scope_box.setCurrentIndex(i if i >= 0 else (self.scope_box.count() - 1 if self.host.ws is not None else 0))
         self.scope_box.blockSignals(False)
+        self._sync_pickers()
         eff = (self.host.ws.get("prod_std", {}) or {}) if self.host.ws is not None else {}
         self.eff_etype.blockSignals(True); self.eff_etype.clear()
-        self.eff_etype.addItem("None (profiles only)", "")
+        self.eff_etype.addItem("None (volumes only)", "")
         for e in self.data.get("effort_types", []):
             self.eff_etype.addItem(e["name"], e["id"])
         self.eff_etype.setCurrentIndex(max(0, self.eff_etype.findData(eff.get("effort_type") or "")))
@@ -1373,7 +1483,7 @@ class StandardsPage(QWidget):
         self.switch(force=True)
 
     def fill_effort_profiles(self, eff=None):
-        """This effort's default profile: one of its effort type's profiles (every profile without an effort type)."""
+        """This effort's default volume: one of its effort type's volumes (every volume without an effort type)."""
         eff = eff if eff is not None else ((self.host.ws.get("prod_std", {}) or {}) if self.host.ws is not None else {})
         et = PRL.effort_type_of(self.data, eff.get("effort_type"))
         ids = et["profiles"] if et else [t["id"] for t in self.data["types"]]
@@ -1383,6 +1493,56 @@ class StandardsPage(QWidget):
         want = eff.get("type") if eff.get("type") in ids else ((et or {}).get("default_profile") or self.data["default"])
         self.eff_type.setCurrentIndex(max(0, self.eff_type.findData(want)))
         self.eff_type.blockSignals(False)
+
+    # ------------------------------------------------------------------ 3.25.0: the two Editing boxes
+    def _fill_volumes(self, eid):
+        cur = self.vol_pick.currentData()
+        self.vol_pick.blockSignals(True); self.vol_pick.clear()
+        self.vol_pick.addItem("Any volume", "")
+        et = PRL.effort_type_of(self.data, eid) if eid else None
+        for tid in (et["profiles"] if et else [t["id"] for t in self.data.get("types", [])]):
+            self.vol_pick.addItem(PRL.type_of(self.data, tid)["name"], tid)
+        self.vol_pick.setCurrentIndex(max(0, self.vol_pick.findData(cur)))
+        self.vol_pick.blockSignals(False)
+
+    def _sync_pickers(self):
+        """The two boxes and This effort only follow the layer being edited."""
+        if not hasattr(self, "etype_pick"):
+            return
+        scope, rest = (self.scope_box.currentData() or "team:").split(":", 1)
+        eid, tid = (rest.split(":", 1) if scope == "etp" else ((rest, "") if scope == "etype" else ("", rest if scope == "type" else "")))
+        for w in (self.etype_pick, self.vol_pick, self.this_effort):
+            w.blockSignals(True)
+        self.etype_pick.clear(); self.etype_pick.addItem("Any effort type", "")
+        for e in self.data.get("effort_types", []):
+            self.etype_pick.addItem(e["name"], e["id"])
+        self.etype_pick.setCurrentIndex(max(0, self.etype_pick.findData(eid)))
+        self.vol_pick.blockSignals(False)
+        self._fill_volumes(eid)
+        self.vol_pick.blockSignals(True)
+        self.vol_pick.setCurrentIndex(max(0, self.vol_pick.findData(tid)))
+        self.this_effort.setVisible(self.host.ws is not None)
+        self.this_effort.setText(f"This effort only: {self.host.effort_name}" if self.host.ws is not None else "This effort only")
+        self.this_effort.setChecked(scope == "effort")
+        self.etype_pick.setEnabled(scope != "effort"); self.vol_pick.setEnabled(scope != "effort")
+        for w in (self.etype_pick, self.vol_pick, self.this_effort):
+            w.blockSignals(False)
+
+    def picked(self, fill_volumes=False):
+        """A choice in the two boxes (or This effort only) picks the layer to edit."""
+        if fill_volumes:
+            self._fill_volumes(self.etype_pick.currentData())
+        if self.this_effort.isChecked() and self.host.ws is not None:
+            key = "effort:"
+        else:
+            eid, tid = self.etype_pick.currentData() or "", self.vol_pick.currentData() or ""
+            key = (f"etp:{eid}:{tid}" if eid and tid else f"etype:{eid}" if eid else f"type:{tid}" if tid else "team:")
+        i = self.scope_box.findData(key)
+        if i >= 0 and i != self.scope_box.currentIndex():
+            self.scope_box.setCurrentIndex(i)
+        else:
+            self._sync_pickers()
+        return key
 
     def switch(self, force=False):
         if self.dirty and not force:
@@ -1447,8 +1607,8 @@ class StandardsPage(QWidget):
         self.load_tables()
         self.show_parts()
         self.dirty = False
-        self.state.setText({"team": "Team standard", "type": "Profile", "etype": "Effort type, every profile",
-                            "etp": "Effort type, this profile", "effort": "This effort only"}[scope])
+        self.state.setText({"team": "Team standard", "type": "Volume", "etype": "Effort type, every volume",
+                            "etp": "Effort type, this volume", "effort": "This effort only"}[scope])
         self.show_problems()
         if hasattr(self, "std_preview"):
             self.std_preview.refresh()
@@ -1538,7 +1698,7 @@ class StandardsPage(QWidget):
 
     def add_type(self, name=None):
         if name is None:
-            name, ok = QInputDialog.getText(self, "New document profile", "Its name (for example: Technical volume, Cost volume, White paper):")
+            name, ok = QInputDialog.getText(self, "New volume", "Its name (for example: Technical volume, Cost volume, White paper):")
             if not ok:
                 return ""
         name = " ".join((name or "").split())
@@ -1559,7 +1719,7 @@ class StandardsPage(QWidget):
         return t["id"]
 
     def add_effort_type(self, name=None):
-        """3.8.0: a new effort type holding every profile (choose which it keeps, and its default)."""
+        """3.8.0: a new effort type holding every volume (choose which it keeps, and its default)."""
         if name is None:
             name, ok = QInputDialog.getText(self, "New effort type", "Its name (for example: RFP response, Page-limited RFP "
                                             "response, White paper, Program deliverables):")
@@ -1592,7 +1752,7 @@ class StandardsPage(QWidget):
         return d
 
     def effort_etype_changed(self):
-        """This effort's type: its profiles become the choices; the effort keeps its own values."""
+        """This effort's type: its volumes become the choices; the effort keeps its own values."""
         if self.host.ws is None:
             return
         eff = dict(self.host.ws.get("prod_std", {}) or {})
@@ -1614,16 +1774,18 @@ class StandardsPage(QWidget):
         self.host.page_title.setText("Make a .dotx template")
         return False
 
-    def make_templates_all(self, word=None):
-        """3.8.0: one template for each profile of the effort type being edited, each with the effort type's rules."""
-        if self.scope != "etype":
+    def make_templates_all(self, word=None, eid=None, start_from=""):
+        """3.8.0: one template for each volume of an effort type (the one being edited unless eid names another), each
+        with the effort type's rules. 3.25.0: Make templates calls this for the effort type chosen there."""
+        eid = eid or (self.etype_id if self.scope == "etype" else None)
+        if not eid or not PRL.effort_type_of(self.data, eid):
             return []
         if not self.template_ready():
             return []
         if self.dirty:
             self.save(quiet=True)
         import prodtemplate as PT
-        e = PRL.effort_type_of(self.data, self.etype_id)
+        e = PRL.effort_type_of(self.data, eid)
         if word is None and sys.platform.startswith("win"):
             import prodword
             word = prodword.update_fields
@@ -1633,7 +1795,7 @@ class StandardsPage(QWidget):
             std = PRL.engine_ready(PRL.resolved_type(self.data, pid, e["id"]))
             std["name"] = f"{e['name']} - {PRL.type_of(self.data, pid)['name']}"
             try:
-                out.append(PT.make(std, folder, "", word=word or None, parts_dir=self.parts_dir()))
+                out.append(PT.make(std, folder, start_from or "", word=word or None, parts_dir=self.parts_dir()))
             except Exception:  # noqa: BLE001
                 diag.swallowed()
         clean = sum(1 for j in out if j.check.count() == 0)
@@ -1677,19 +1839,179 @@ class StandardsPage(QWidget):
             self.host.ws.set("prod_std", eff)
             self.switch(force=True)
 
-    # ------------------------------------------------------------------ 3.7.0: learn from a file, make a template
-    def collect(self, path=None, run=True):
-        """3.22.0: Collect from a template or Word document into the library, card by card. Returns the dialog."""
+    # ------------------------------------------------------------------ 3.25.0: allowed styles, ticked from a list
+    def _allowed_rows(self):
+        """[(name, type, group, uses, from)]: this standard's styles, then the library's (one row per name)."""
+        import templatelib as TL
+        rows, seen = [], set()
+
+        def group(n, d):
+            low = n.lower()
+            if low.startswith("heading") or low == "title":
+                return "Headings"
+            if low.startswith(("caption", "toc", "table of figures")):
+                return "Captions and TOC"
+            if d.get("hidden"):
+                return "Hidden text"
+            if "list" in low:
+                return "Lists"
+            if low in ("header", "footer"):
+                return "Headers and footers"
+            return "Body and the rest"
+        spec = PRL.style_spec(PRL.engine_ready(copy.deepcopy(self.work))) if self.work else {}
+        for n in sorted(set(spec) | set((self.work or {}).get("style_defs") or {}), key=str.casefold):
+            d = dict(spec.get(n) or {}, **((self.work.get("style_defs") or {}).get(n) or {}))
+            rows.append((n, (d.get("type") or "paragraph").title(), group(n, d), "", "This standard")); seen.add(n.casefold())
+        try:
+            lib = TL.Library(self.host.config_dir)
+            for it in lib.items:
+                if it.get("kind") != "style":
+                    continue
+                n = it.get("base_name") or it["name"]
+                if n.casefold() in seen:
+                    continue
+                d = lib.values(it) or {}
+                rows.append((n, (d.get("type") or "paragraph").title(), group(n, d), ", ".join((it.get("tags") or {}).get("use") or []),
+                             it.get("source") or "Template library"))
+                seen.add(n.casefold())
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+        return rows
+
+    def fill_allowed(self):
+        if not hasattr(self, "allow_t"):
+            return
+        allowed = list(((self.work or {}).get("styles") or {}).get("allowed") or [])
+        rows = self._allowed_rows()
+        have = {r[0].casefold() for r in rows}
+        rows += [(n, "", "Not defined here", "", "Allowed list") for n in allowed if n.casefold() not in have]
+        on = {n.casefold() for n in allowed}
+        t = self.allow_t
+        t.blockSignals(True); t.setSortingEnabled(False); t.setRowCount(0)
+        for r in rows:
+            i = t.rowCount(); t.insertRow(i)
+            for c, val in enumerate(r):
+                it = QTableWidgetItem(val)
+                if c == 0:
+                    it.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+                    it.setCheckState(Qt.Checked if r[0].casefold() in on else Qt.Unchecked)
+                t.setItem(i, c, it)
+        t.setSortingEnabled(True); t.blockSignals(False)
+        t.resizeColumnsToContents()
+        cur = self.allow_show.currentData()
+        self.allow_show.blockSignals(True); self.allow_show.clear()
+        self.allow_show.addItem("Every style", None)
+        for label, col in (("Type", 1), ("Group", 2), ("Use case", 3), ("From", 4)):
+            vals = sorted({x.strip() for r in rows for x in r[col].split(",") if x.strip()}, key=str.casefold)
+            for val in vals:
+                self.allow_show.addItem(f"{label}: {val}", (col, val))
+        self.allow_show.setCurrentIndex(max(0, self.allow_show.findData(cur)))
+        self.allow_show.blockSignals(False)
+        self.allow_only.blockSignals(True); self.allow_only.setChecked(bool(allowed)); self.allow_only.blockSignals(False)
+        t.setEnabled(bool(allowed))
+        self.filter_allowed()
+
+    def filter_allowed(self):
+        want, text = self.allow_show.currentData(), self.allow_find.text().strip().casefold()
+        t = self.allow_t
+        for i in range(t.rowCount()):
+            name = t.item(i, 0).text()
+            ok = (not text or text in name.casefold())
+            if ok and want:
+                col, val = want
+                ok = val in [x.strip() for x in t.item(i, col).text().split(",")]
+            t.setRowHidden(i, not ok)
+
+    def tick_allowed(self, on):
+        if not self.allow_only.isChecked():
+            self.allow_only.setChecked(True)
+        t = self.allow_t
+        t.blockSignals(True)
+        for i in range(t.rowCount()):
+            if not t.isRowHidden(i):
+                t.item(i, 0).setCheckState(Qt.Checked if on else Qt.Unchecked)
+        t.blockSignals(False)
+        self.allowed_changed()
+
+    def allow_on(self, on):
+        """Only the ticked styles: turned on, this standard's own styles start ticked; off, any style is allowed."""
+        t = self.allow_t
+        t.setEnabled(on)
+        t.blockSignals(True)
+        for i in range(t.rowCount()):
+            t.item(i, 0).setCheckState(Qt.Checked if (on and t.item(i, 4).text() == "This standard") else Qt.Unchecked)
+        t.blockSignals(False)
+        self.allowed_changed()
+
+    def allowed_changed(self):
+        t = self.allow_t
+        names = [t.item(i, 0).text() for i in range(t.rowCount()) if t.item(i, 0).checkState() == Qt.Checked]
+        _set(self.work, ("styles", "allowed"), sorted(names, key=str.casefold) if self.allow_only.isChecked() else [])
+        self.changed()
+        return names
+
+    # ------------------------------------------------------------------ 3.25.0: import from a file, make templates
+    def import_file(self, path=None, section="", run=True, use_here=True, keep=True):
+        """One Import: read a template or Word document once and take its items, one, some or all, into what is being
+        edited (Use here) and the library (Keep in the library). section: only that section's items. Returns the dialog."""
         from .collectview import CollectDialog
+        title = dict(SECTIONS).get(section, "")
         if path is None:
-            path, _ = QFileDialog.getOpenFileName(self, "Collect from a template or Word document (it is only read)",
+            path, _ = QFileDialog.getOpenFileName(self, "Import from a template or Word document (it is only read)" + (f": {title}" if title else ""),
                                                   os.path.expanduser("~"), "Word and themes (*.dotx *.dotm *.docx *.docm *.thmx)")
             if not path:
                 return None
-        d = CollectDialog(self, path)
+        d = CollectDialog(self, path, only=IMPORT_KINDS.get(section), section=title)
+        d.use_here.setChecked(use_here); d.keep_lib.setChecked(keep)
         if run:
             d.exec()
         return d
+
+    def collect(self, path=None, run=True):
+        """3.22.0: from the Template library: Import into the library only (Use here off). Returns the dialog."""
+        return self.import_file(path, run=run, use_here=False)
+
+    def hf_from_quick_part(self, part=None, kind=None, entry=None):
+        """3.25.0: one of this standard's Quick Parts as a part's header or footer, kept exactly as built."""
+        import prodquickparts as QP
+        entries = [e for e in ((self.work.get("quick_parts") or {}).get("entries") or [])
+                   if os.path.isfile(os.path.join(self.parts_dir(), e.get("source") or ""))]
+        if not entries:
+            self.host.status("Add Quick Parts first (Content > Quick Parts), then use one here.")
+            return None
+        parts = [p.get("key") for p in ((self.work.get("pagination") or {}).get("parts") or [])] or ["body"]
+        if part is None:
+            from PySide6.QtWidgets import QDialog, QDialogButtonBox
+            dlg = QDialog(self); dlg.setWindowTitle("Use a Quick Part as a header or footer")
+            fl = QFormLayout(dlg)
+            pc = QComboBox(); pc.addItems(parts); fl.addRow("Part", pc)
+            kc = QComboBox(); kc.addItem("Header", "header"); kc.addItem("Footer", "footer"); fl.addRow("Header or footer", kc)
+            ec = QComboBox()
+            for e in entries:
+                ec.addItem(f"{e.get('category') or 'no category'} / {e['name']}", e["name"])
+            fl.addRow("Quick Part", ec)
+            bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.accepted.connect(dlg.accept); bb.rejected.connect(dlg.reject)
+            fl.addRow(bb)
+            if dlg.exec() != QDialog.Accepted:
+                return None
+            part, kind, entry = pc.currentText(), kc.currentData(), ec.currentData()
+        e = next((x for x in entries if x["name"] == entry), None)
+        if e is None:
+            return None
+        d = QP.as_design(os.path.join(self.parts_dir(), e["source"]), e["name"], kind)
+        if not d:
+            self.host.status(f"{entry} is not in its kept file any more.")
+            return None
+        self.work.setdefault("hf_designs", {}).setdefault(part, {}).update(d)
+        self.show_hf_designs()
+        self.changed()
+        self.host.status(f"{entry} is the {part} {kind}, kept as built. Save keeps it in this standard.")
+        return d
+
+    def make_templates(self, start=None):
+        """3.25.0: Make templates: read each template in full, then make it."""
+        from . import maketemplates as MT
+        return MT.run(self, start)
 
     def library(self, run=True):
         from .collectview import LibraryDialog

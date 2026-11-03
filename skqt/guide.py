@@ -300,67 +300,50 @@ TOPICS = [
   ["Nothing here changes a file. Each check exports a workbook (or the redline) for the record.",
    "Page limits often leave out the cover, contents and acronym list: a page count over the limit says to check that."]),
  ("prodstd", "Production", "Production Standards",
-  "Every rule Fix a Copy uses, in three layers: the team standard, document profiles, and this effort.",
-  "Once to set the team's rules; for each profile; at the start of each effort to bring in the RFP's.",
-  ["Editing: choose the team standard, a document profile (+ Profile... adds one, starting from the one shown), or "
-   "this effort. A value set at that layer shows in bold with what it was and the layer it came from; Reset takes it "
-   "back to the layer below.",
-   "Collect into the library... (3.22.0) reads a template, Word document or .thmx theme and lists what it carries, card "
-   "by card: keep, rename or skip, tag by use case, Open a sample in Word. Template library... shows the shelves; Use in "
-   "this standard puts an item into what you are editing, and New style... adds your own (hidden text ones too).",
+  "Every rule Fix a Copy uses and every template is made from, in layers: the team standard, effort types, volumes, and this effort.",
+  "Once to set the team's rules; for each volume; at the start of each effort to bring in the RFP's.",
+  ["Editing (3.25.0): two boxes, Effort type and Volume. Any and Any is the team standard; a volume alone is that volume "
+   "everywhere; an effort type alone is every volume in it; both is that volume in that effort type. This effort only "
+   "edits the open effort's values. A value set at that layer shows in bold with what it was; Reset takes it back.",
+   "The menu across the top follows the order a document is built: Pages (page sizes and margins, pagination and "
+   "covers, headers and footers, table of contents), Styles (base fonts and sizes, styles, font rules, allowed styles), "
+   "Numbering (heading numbering, lists, captions), Tables (table types, row looks, how rows are recognized), Content "
+   "(Quick Parts, fields) and Check (words to avoid and fix, graphics, Excel and PowerPoint).",
+   "Import from a file... at the top reads a template, Word document or .thmx theme once and lists what it carries, card by "
+   "card: take one item, some or all, rename any, and choose Use here (into what you are editing), Keep in the library, or "
+   "both. Each section has its own Import from a file... that lists only that section's items.",
+   "Template library... shows the shelves; Use in this standard puts an item into what you are editing, and New style... "
+   "adds your own (hidden text ones too).",
+   "Allowed styles: tick Only the ticked styles are allowed, then tick the styles from this standard's and the library's; "
+   "sort by any column (type, group, use case, where it came from) or show one kind. Off: any style is allowed.",
+   "Headers and footers: Word's way puts the left, center and right text on tab stops. Type column widths in inches "
+   "(2, 2.5, 2) to build a header or footer as a one-row table instead, with no borders, a line under or a grid. Use a "
+   "Quick Part as a header or footer... takes one of this standard's Quick Parts as a part's header or footer, kept as built.",
+   "What Check reports: each section that has checks (Captions, Table of contents, Headers and footers, Page sizes and "
+   "margins) lists them at the bottom. Check reads them; nothing is changed.",
    "Quick Parts: Add from a template or document... lists the Quick Parts every template from this standard carries, "
    "all in Word's Quick Parts gallery under your numbered categories.",
-   "Header and footer designs (3.24.0) kept whole in the Template library replace a part's layout when you use one.",
-   "Fill-ins (3.23.0): a value typed once shows everywhere: a cover style read by STYLEREF, or a document property. Make a "
-   "template asks for the template's name; each time makes the next version, with a validation report beside it and, with "
-   "Word on the PC, Word's own check of every Quick Part.",
-   "The Preview beside each section draws what its values make (a page with its fonts, spacing and margins; headings "
-   "with their numbers; captions; the page scheme; headers and footers; the TOC; lists; a figure) and lists every value "
-   "this layer changes in the section: what it was and what it is now.",
-   "Graphics: the picture types allowed, the smallest resolution where a picture is placed (ppi), the widest a figure "
-   "may be, the fonts and smallest text in drawings, charts and text boxes, captions, alt text, RGB only and the largest "
-   "picture file. Fix a Copy and Audit check every figure against them; a picture is never changed.",
-   "Effort types: + Effort type... adds one (RFP response, page-limited RFP response, white paper and program "
-   "deliverables are there to start). Editing an effort type sets the profiles it holds, its default profile, and the "
-   "rules every profile in it follows; Effort type > profile sets its changes for one profile. Make templates for every "
-   "profile... writes one template per profile. Order: team, profile, effort type, effort type for the profile, the effort.",
-   "A profile's Deliverables this profile fits: words in a deliverable's name (cost, price) that pick this profile for it "
-   "in an effort type. Effort types... (3.18.2) adds, renames, orders and takes out effort types (RFI response is a starter) and sets the default.",
-   "Import from a file...: pick your master template or a finished volume. Stationkeeper reads it (it is never changed) "
-   "and lists what it carries: every style's whole definition, the format variables, table looks by row role, page "
-   "setups, headers and footers, heading numbering and the TOC. Untick what you do not want; review; Save.",
-   "Format variables: body, table and caption fonts and sizes, spacing, margins, paper and the restriction marking. "
-   "Row looks and styles use them. Leave the volume name and solicitation blank: they come from the effort and the file.",
-   "Font rules: the allowed fonts and the smallest and largest size for each kind of text. Blank is not checked.",
-   "Styles and heading numbering: allowed styles, removing and hiding unused ones, a template to take styles from, and "
-   "each heading level's number format, number text and positions.",
-   "Style library: every style the profile defines, whole: font, size, bold, italic, underline, caps, color, "
-   "alignment, spacing, line spacing, indents, keeps, page break before, widow control, based on and next style. Fix a "
-   "Copy checks each draft's styles against it property by property and sets the ones that differ.",
-   "Table rows: each row's tag style, font, size, bold, italic, colors, alignment, spacing, repeat, merge, and every "
-   "border edge (on, width, color), with a preview. Applies to: all table types, or one type only.",
-   "List numbering (in Bulleted and numbered lists): what each list style shows, level by level: the bullet and its "
-   "font, or the number format and text, and where the number and the text start.",
-   "Word table styles: Import from a file takes the table styles a template uses, whole; a table type's Word table "
-   "style (Table types section) makes its tables use one.",
-   "Excel and PowerPoint: the font and size, header row, frozen header, and print setup Check expects in a workbook; "
-   "the fonts allowed, smallest text and titles, slide size, marking on every slide and slide titles in a deck.",
-   "Pages, cover and back cover: the cover and back cover pages Import from a file took (pictures included). Make a "
-   "template puts them in; Fix a Copy reports a draft whose cover or back cover is built differently. Clear removes one.",
-   "Table types, row rules, captions and numbering, pages (the page scheme with cover and back cover), page setups, "
-   "headers and footers, the TOC and its entry styles, lists, terms, Excel and PowerPoint, and check options each have their own section.",
-   "This effort: choose its profile, then Fill from the RFP's formatting rules lays the RFP's fonts, margins and "
-   "page size over it for this effort only. Press Save.",
-   "Make a .dotx template...: a Word template (.dotx) with every value in force, from the Stationkeeper base (cover, front "
-   "matter, a chapter with a sample table, an appendix) or starting from a template of yours (only read). It goes to "
-   "the Templates folder in the output folder, dated, and is checked against the standard; Word updates its fields."],
+   "Fields (called Fill-ins before 3.25.0): field codes for a value typed once that shows everywhere: a cover style read "
+   "by STYLEREF, or a document property (DOCPROPERTY). Use one in a header or footer as {key}.",
+   "Heading numbering and lists: the number shows as it will look (1.1.1, Section A); type it the same way.",
+   "The Preview beside each section draws what its values make and lists every value this layer changes in the section.",
+   "Make templates... (3.25.0): choose what you are editing, every volume of an effort type, or this effort's volumes with "
+   "the setup written on each. Each template is listed and shown in full (styles, pages and margins, pagination by part, "
+   "headers and footers, numbering, tables, captions, TOC, covers, Quick Parts, fields, theme and fonts, and what to fix "
+   "first) before Make writes any file. Each one is named and versioned, with a validation report beside it and, with "
+   "Word on the PC, Word's own check.",
+   "Effort types: + Effort type... adds one (RFP response, page-limited RFP response, RFI response, white paper and "
+   "program deliverables are there to start); Effort types... renames, orders and takes them out. You pick one each time "
+   "you start an effort. A volume's Deliverables this volume fits: words in a deliverable's name (cost, price) that pick it.",
+   "This effort: choose its volume, then Fill from the RFP's formatting rules lays the RFP's fonts, margins and page size "
+   "over it for this effort only. Press Save."],
   ["Blank means not set: a rule nobody sets is not checked and not written."]),
  ("audit", "Production", "Audit",
   "Checks Word, Excel and PowerPoint files against every standard that applies to them and lists every finding: styles, "
   "fonts, tables, captions, the TOC, cross-references, pages, headers and footers, lists, terms, sheets, slides and "
   "graphics. Read only: nothing is changed and no copy is made, so it is safe on a file others have open on SharePoint.",
   "Before each color review and before production, on every volume; and any time someone asks whether a file meets the standard.",
-  ["Add the Volumes folder (or Add files...). Each file uses its profile in Production Standards, as Fix a Copy would.",
+  ["Add the Volumes folder (or Add files...). Each file uses its volume in Production Standards, as Fix a Copy would.",
    "Press Audit. The results show what each area found, per file.",
    "Click a file to see its findings; pick an area to narrow them.",
    "Export findings... makes a workbook of every finding, for the editors."],
@@ -369,24 +352,24 @@ TOPICS = [
   "Beta: still being proven on real documents, so check every copy it makes. Fixes a draft's formatting to the production standard in a dated copy. Your file is never changed: it is read once, "
   "and a file someone has open is not copied at all.",
   "Before each color review and for final production, on each volume.",
-  ["The effort's type (set when you start it, or in Production Standards) decides which profiles its drafts use.",
+  ["The effort's type (set when you start it, or in Production Standards) decides which volumes its drafts use.",
    "Check the output folder (Change... sets it; the default is Production Copies in the Stationkeeper data folder). "
    "Each effort's copies go in a folder with the effort's name inside it. Copies never go beside the original.",
-   "Check every draft reads every listed draft against its own profile and lists what each breaks, by area (what "
+   "Check every draft reads every listed draft against its own volume and lists what each breaks, by area (what "
    "Format Check used to do); double-click one to see its fixes. Export findings... makes a workbook of every finding.",
    "Pick a draft from the Volumes folder, or Add a file.... Its volume name comes from the Deliverables board when the "
    "draft is a deliverable's file; otherwise type it. The solicitation comes from the effort's basics. Headers and "
-   "footers are built only when both are set. Profile: the draft's own (kept on the Deliverables board for a "
+   "footers are built only when both are set. Volume: the draft's own (kept on the Deliverables board for a "
    "deliverable), or the effort's. Press Check; each area shows what it found, each style that differs from the style "
    "library property by property.",
    "What to fix: every fix is listed under its area with what it found; untick any you do not want. Expand a fix to "
    "see each finding and where it is.",
    "Tables: pick a table to see every row's role. Rows in bold wait for your answer; one answer covers every row "
    "like it. Select rows and press C, H, 2, S, B, U, T, N or K to set their role; change the table type if needed.",
-   "A table question: choose the role; Make it a rule saves it (for the draft's profile, or this effort only) so rows "
+   "A table question: choose the role; Make it a rule saves it (for the draft's volume, or this effort only) so rows "
    "like these never ask again.",
    "Excel and PowerPoint: a workbook or a deck in the Volumes folder is listed too (Add a file... takes one from "
-   "anywhere). Check reads it against the profile's Excel and PowerPoint values and lists what differs, sheet by sheet "
+   "anywhere). Check reads it against the volume's Excel and PowerPoint values and lists what differs, sheet by sheet "
    "or slide by slide. These files are read only: fix what Check finds in Excel or PowerPoint, then Check again.",
    "Decisions: say whether a list restarts or continues, and point broken cross-references at a target.",
    "Leave Update fields in Word on so page numbers, caption numbers, the TOC and the lists of tables and figures "

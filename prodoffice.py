@@ -1,19 +1,19 @@
-"""Excel and PowerPoint against the profile (3.11.0): read only. Each file is read once into memory and never written;
+"""Excel and PowerPoint against the volume standard (3.11.0): read only. Each file is read once into memory and never written;
 findings use the same Check as Word drafts, in two areas of their own (sheets, slides). There is no fix for these
 files in this release: what Check finds is fixed in Excel or PowerPoint by hand.
 
-The profile's values (std["excel"], std["powerpoint"]); blank or None means not checked:
+The volume's values (std["excel"], std["powerpoint"]); blank or None means not checked:
   excel:       font, size (the table font and size by default), header {bold, fill, color}, freeze_header,
                print {orientation, fit_width, repeat_header, footer_page, marking}
-  powerpoint:  fonts (allowed, comma list; blank: the profile's body and table fonts), min_size, title_min_size,
+  powerpoint:  fonts (allowed, comma list; blank: the volume standard's body and table fonts), min_size, title_min_size,
                slide_size ("16:9", "4:3" or ""), marking (the restriction marking on every slide), titles (every
                slide has a title)
 Rules:
-  X1 font or size off the profile   X2 header row look            X3 header row not frozen
+  X1 font or size off the volume standard   X2 header row look            X3 header row not frozen
   X4 print setup (orientation, fit to one page wide, header row repeated, page number, marking)
   X5 one column holds numbers in more than one format                X6 hidden sheets, rows or columns
   X7 a formula shows an error (#REF!, #DIV/0!...)
-  D1 slide size                     D2 font not allowed           D3 text smaller than the profile allows
+  D1 slide size                     D2 font not allowed           D3 text smaller than the volume standard allows
   D4 something off the slide        D5 marking missing            D6 placeholder left empty      D7 slide without a title
 """
 import io, re
@@ -22,7 +22,7 @@ from collections import Counter, defaultdict
 EXCEL_EXT = (".xlsx", ".xlsm")
 PPT_EXT = (".pptx", ".pptm")
 ERRORS = ("#REF!", "#DIV/0!", "#VALUE!", "#NAME?", "#N/A", "#NUM!", "#NULL!")
-RULES = {"X1": "Font or size off the profile", "X2": "Header row look", "X3": "Header row not frozen", "X4": "Print setup",
+RULES = {"X1": "Font or size off the volume standard", "X2": "Header row look", "X3": "Header row not frozen", "X4": "Print setup",
          "X5": "Numbers in more than one format in a column", "X6": "Hidden sheets, rows or columns", "X7": "Formula error",
          "D1": "Slide size", "D2": "Font not allowed", "D3": "Text too small", "D4": "Off the slide", "D5": "Marking missing",
          "D6": "Placeholder left empty", "D7": "Slide without a title"}
@@ -180,12 +180,12 @@ def check_powerpoint(raw, std, add):
     if pp.get("slide_size") in SIZES:
         want = SIZES[pp["slide_size"]]
         if abs(W_ / H_ - want[0] / want[1]) > 0.01:
-            add("slides", "D1", "warning", f"Slides are {W_ / 914400:.2f} x {H_ / 914400:.2f} in; the profile uses {pp['slide_size']}", "Deck")
+            add("slides", "D1", "warning", f"Slides are {W_ / 914400:.2f} x {H_ / 914400:.2f} in; the volume standard uses {pp['slide_size']}", "Deck")
     allowed = {x.strip().lower() for x in str(pp.get("fonts") or "").split(",") if x.strip()}
     theme = _theme_fonts(prs)
     for k, t in theme.items():
         if allowed and t and t.lower() not in allowed:
-            add("slides", "D2", "warning", f"The theme's {('heading' if k == 'major' else 'body')} font is {t}; the profile allows "
+            add("slides", "D2", "warning", f"The theme's {('heading' if k == 'major' else 'body')} font is {t}; the volume standard allows "
                 f"{pp['fonts']}", "Theme")
     marking = ((std.get("variables") or {}).get("marking") or "")[:40]
     for n, slide in enumerate(prs.slides, 1):
@@ -223,9 +223,9 @@ def check_powerpoint(raw, std, add):
                             small.append(f"{r.font.size.pt:g} pt")
         bad = [f for f in fonts if allowed and f.lower() not in allowed]
         if bad:
-            add("slides", "D2", "warning", f"{tag}: text in {', '.join(bad)} (the profile allows {pp['fonts']})", tag)
+            add("slides", "D2", "warning", f"{tag}: text in {', '.join(bad)} (the volume standard allows {pp['fonts']})", tag)
         if small:
-            add("slides", "D3", "warning", f"{tag}: {len(small)} run(s) smaller than the profile allows ({', '.join(sorted(set(small)))})", tag)
+            add("slides", "D3", "warning", f"{tag}: {len(small)} run(s) smaller than the volume standard allows ({', '.join(sorted(set(small)))})", tag)
         if pp.get("titles") and (title is None or not title.text_frame.text.strip()):
             add("slides", "D7", "info", f"{tag} has no title (screen readers and the slide list use it)", tag)
         if pp.get("marking") and marking and not any(marking in t for t in texts):

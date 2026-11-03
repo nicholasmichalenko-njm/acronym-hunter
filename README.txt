@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+PRODUCTION STANDARDS, ONE PLACE PER JOB (3.25.0)
+  - A menu across the top in the order a document is built: Pages, Styles, Numbering, Tables, Content, Check. Plain
+    names: Base fonts and sizes (was Format variables), Styles (was Style library), Allowed styles, Heading numbering
+    (its own section), Row looks, How rows are recognized, Page sizes and margins, Pagination and covers, Fields (was
+    Fill-ins), Words to avoid and fix (was Terms). Check options are gone: each check sits in the section it checks.
+  - Editing: two boxes, Effort type and Volume ("profile" is now "volume"), and This effort only.
+  - One Import from a file: read once, take one item, some or all, Use here and Keep in the library. Each section has
+    its own Import from a file for only its items. Collect into the library is part of it.
+  - Allowed styles: a tick list of this standard's and the library's styles, sorted by type, group, use case or source.
+  - Headers and footers: built as a one-row table at inch widths (no borders, a line under, or a grid), or from one of
+    your Quick Parts kept as built, besides Word's tab stops.
+  - Make templates: one dialog for what you are editing, every volume of an effort type, or this effort's volumes with
+    the setup; each template is shown in full before any file is written.
+
 THE SETUP WRITTEN ON THE TEMPLATE (3.24.0)
   - Response Setup > Make templates and setup...: Ready to make lists what is still open (sentences not decided,
     requirements not in a section, objectives not mapped, submission excerpts without a value, written formatting

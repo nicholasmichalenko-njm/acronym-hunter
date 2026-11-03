@@ -142,6 +142,45 @@ def _para(style_id, slots, std, sources, fields, width_tw, rule_below=False, ali
     return p
 
 
+def _hf_table(style_id, spec, std, sources, fields, width_tw):
+    """3.25.0: a header or footer built as a one-row table, the way the team builds them: columns at their inch widths
+    (blank: the text width shared out), the left, center and right text in its cells, borders none, a line under, or a
+    grid. One width: the center text; two: the left and the right; three: all three."""
+    t = spec.get("table") or {}
+    widths = [float(x) for x in (t.get("widths_in") or []) if x not in (None, "")]
+    n = len(widths) or 3
+    slots = {1: ["center"], 2: ["left", "right"]}.get(n, ["left", "center", "right"] + [""] * max(0, n - 3))
+    tws = [int(round(w * 1440)) for w in widths] or [width_tw // 3] * 3
+    tbl = etree.Element(q("tbl"))
+    pr = etree.SubElement(tbl, q("tblPr"))
+    w = etree.SubElement(pr, q("tblW")); w.set(q("w"), str(sum(tws))); w.set(q("type"), "dxa")
+    b = etree.SubElement(pr, q("tblBorders"))          # schema order: tblW, tblBorders, tblLayout, tblCellMar
+    kind = t.get("borders") or "none"
+    for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        e = etree.SubElement(b, q(edge))
+        on = kind == "grid" or (kind == "bottom" and edge == "bottom")
+        e.set(q("val"), "single" if on else "nil")
+        if on:
+            e.set(q("sz"), "6"); e.set(q("space"), "0"); e.set(q("color"), "auto")
+    etree.SubElement(pr, q("tblLayout")).set(q("type"), "fixed")
+    mar = etree.SubElement(pr, q("tblCellMar"))
+    for side in ("left", "right"):
+        m = etree.SubElement(mar, q(side)); m.set(q("w"), "0"); m.set(q("type"), "dxa")
+    grid = etree.SubElement(tbl, q("tblGrid"))
+    for tw in tws:
+        etree.SubElement(grid, q("gridCol")).set(q("w"), str(tw))
+    tr = etree.SubElement(tbl, q("tr"))
+    for k, tw in enumerate(tws):
+        tc = etree.SubElement(tr, q("tc"))
+        tcw = etree.SubElement(etree.SubElement(tc, q("tcPr")), q("tcW")); tcw.set(q("w"), str(tw)); tcw.set(q("type"), "dxa")
+        name = slots[k] if k < len(slots) else ""
+        p = _para(style_id, None, std, sources, fields, width_tw, align={"left": "left", "center": "center", "right": "right"}.get(name))
+        for r in _slot_runs(spec.get(name, "") if name else "", std, sources, fields):
+            p.append(r)
+        tc.append(p)
+    return tbl
+
+
 def _style_id(pkg, name, size=None, center=False):
     sp = pkg.word_part("/styles")
     root = pkg.tree(sp)
@@ -369,14 +408,24 @@ def _hf_build(pkg, std):
                     fields_declared += [(name, None, f) for f in fl]
                     made.append(name)
                     continue
+                as_table = bool((spec.get("table") or {}).get("widths_in")) or (spec.get("table") or {}).get("on")
                 if kind == "header":
-                    root.append(_para(hid, spec if spec else None, std, sources, fl, width, spec.get("rule_below")))
+                    if as_table:                             # 3.25.0: built as a table, the team's way
+                        root.append(_hf_table(hid, spec, std, sources, fl, width))
+                        root.append(_para(hid, None, std, sources, fl, width, spec.get("rule_below")))
+                    else:
+                        root.append(_para(hid, spec if spec else None, std, sources, fl, width, spec.get("rule_below")))
                 else:
+                    if as_table:
+                        root.append(_hf_table(fid, spec, std, sources, fl, width))
                     if spec.get("marking") and std["variables"].get("marking"):
                         mp = _para(mid, None, std, sources, fl, width)
                         mp.append(_r(std["variables"]["marking"]))
                         root.append(mp)
-                    root.append(_para(fid, spec if spec else None, std, sources, fl, width))
+                    if not as_table:
+                        root.append(_para(fid, spec if spec else None, std, sources, fl, width))
+                    elif not (spec.get("marking") and std["variables"].get("marking")):
+                        root.append(_para(fid, None, std, sources, fl, width))
                 pkg.add_part(name, root, ct)
                 rid = _new_rid(rels)
                 rr = etree.SubElement(rels, f"{{{PR}}}Relationship")

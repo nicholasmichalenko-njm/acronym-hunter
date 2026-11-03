@@ -20,6 +20,13 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.25.0": ["Production Standards: a menu across the top in the order a document is built (Pages, Styles, Numbering, "
+               "Tables, Content, Check), plain names, and the checks inside the sections they check.",
+               "Editing is two boxes, Effort type and Volume (a profile is now a volume), and This effort only.",
+               "One Import from a file: take one item, some or all, into what you are editing and the library; each section "
+               "has its own Import for its items. Allowed styles are ticked from a list, sorted by type, group or use case.",
+               "Headers and footers as a one-row table at inch widths, or from one of your Quick Parts kept as built.",
+               "Fill-ins are Fields. Make templates shows each template in full before any file is written."],
     "3.24.0": ["Response Setup > Make templates and setup: for each planned volume, its template from Production Standards "
                "(named for the effort and the volume, the next version, the volume on its cover) and the setup written on "
                "it: the template's styles, cover, pagination and TOC stay, its sample pages go, and the RFP's words, support, "

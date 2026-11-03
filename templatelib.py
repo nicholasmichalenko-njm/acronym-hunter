@@ -20,7 +20,8 @@ FOLDER = "template_library"
 SHELVES = (("style", "Styles"), ("page_setup", "Page setups"), ("hf", "Headers and footers"), ("heading_numbering", "Heading numbering"),
            ("list_numbering", "List numbering"), ("table_style", "Word table styles"), ("table_look", "Table looks"),
            ("toc", "Table of contents"), ("cover", "Covers"), ("backer", "Back covers"), ("quickpart", "Quick Parts"), ("font", "Fonts"),
-           ("theme", "Themes (colors and fonts)"), ("hf_design", "Header and footer designs (whole)"))
+           ("theme", "Themes (colors and fonts)"), ("hf_design", "Header and footer designs (whole)"),
+           ("variables", "Base fonts and sizes"))
 THEME_SLOTS = ("dk1", "lt1", "dk2", "lt2", "accent1", "accent2", "accent3", "accent4", "accent5", "accent6", "hlink", "folHlink")
 THEME_NAMES = {"dk1": "Text dark 1", "lt1": "Background light 1", "dk2": "Text dark 2", "lt2": "Background light 2",
                "accent1": "Accent 1", "accent2": "Accent 2", "accent3": "Accent 3", "accent4": "Accent 4", "accent5": "Accent 5",
@@ -330,6 +331,11 @@ def collect(path, std, lib, installed_fonts=None):
         if names:
             cards.append(Card("styles:" + title, f"Styles: {title.lower()} ({len(names)})",
                               [item("style", n, sd[n], _summary_style(sd[n])) for n in names]))
+    va = {k: v for k, v in ((layer.get("variables") or {}).get("variables") or {}).items() if v not in (None, "")}
+    if va:
+        cards.append(Card("variables", "Base fonts and sizes", [item("variables", f"{os.path.splitext(os.path.basename(path))[0]} fonts and sizes", va,
+                          ", ".join(f"{k.replace('_', ' ')} {v}" for k, v in list(va.items())[:8]))],
+                          "The body, table and caption fonts and sizes, spacing and margins that drive the styles."))
     ps = (layer.get("pages") or {}).get("page_setups") or {}
     if ps:
         cards.append(Card("pages", f"Page setups ({len(ps)})", [item("page_setup", k, v, ", ".join(f"{a} {b}" for a, b in v.items()))
@@ -450,16 +456,26 @@ def use_in_standard(lib, iid, work, category=""):
     v = lib.values(it) if it else None
     if v is None:
         return ""
-    k = it["kind"]
+    return use_values(lib.config_dir, it["kind"], it.get("base_name") or it["name"], v, work, category,
+                      file_path=lib.source_path)
+
+
+def use_values(config_dir, k, name, v, work, category="", file_path=None, src=""):
+    """3.25.0: puts one item's values into a standard being edited, from the library or straight from a file being
+    imported (file_path finds a kept cover's file; src is the file a Quick Part comes from). Returns what it changed."""
+    v = dict(v) if isinstance(v, dict) else v
     if k == "style":
-        work.setdefault("style_defs", {})[it.get("base_name") or it["name"]] = {x: y for x, y in v.items()}
-        return f"style {it.get('base_name') or it['name']}"
+        work.setdefault("style_defs", {})[name] = {x: y for x, y in v.items()}
+        return f"style {name}"
+    if k == "variables":
+        work.setdefault("variables", {}).update({x: y for x, y in v.items() if y not in (None, "")})
+        return "base fonts and sizes"
     if k == "page_setup":
-        work.setdefault("page_setups", {})[it.get("base_name") or it["name"]] = v
-        return f"page setup {it['name']}"
+        work.setdefault("page_setups", {})[name] = v
+        return f"page setup {name}"
     if k == "hf":
-        work.setdefault("hf_layouts", {})[it.get("base_name") or it["name"]] = v
-        return f"headers and footers for {it['name']}"
+        work.setdefault("hf_layouts", {})[name] = v
+        return f"headers and footers for {name}"
     if k == "heading_numbering":
         work["heading_numbering"] = v
         return "heading numbering"
@@ -468,8 +484,8 @@ def use_in_standard(lib, iid, work, category=""):
         ln["lists"] = [l for l in ln.get("lists", []) if l.get("name") != v.get("name")] + [v]
         return f"list {v.get('name')}"
     if k == "table_style":
-        work.setdefault("table_styles", {})[it.get("base_name") or it["name"]] = v
-        return f"table style {it['name']}"
+        work.setdefault("table_styles", {})[name] = v
+        return f"table style {name}"
     if k == "table_look":
         for top, val in v.items():
             work[top] = val
@@ -479,12 +495,12 @@ def use_in_standard(lib, iid, work, category=""):
         return "table of contents"
     if k in ("cover", "backer"):
         import prodparts as PP
-        pdir = PP.parts_dir(lib.config_dir)
+        pdir = PP.parts_dir(config_dir)
         os.makedirs(pdir, exist_ok=True)
         if not os.path.isfile(os.path.join(pdir, v["file"])):
-            shutil.copyfile(lib.source_path(v["file"]), os.path.join(pdir, v["file"]))
+            shutil.copyfile(v.get("_tmp") or file_path(v["file"]), os.path.join(pdir, v["file"]))
         work.setdefault("page_parts", {})[k] = v["file"]
-        return f"{'cover' if k == 'cover' else 'back cover'} {it['name']}"
+        return f"{'cover' if k == 'cover' else 'back cover'} {name}"
     if k == "hf_design":
         part = category or v.get("part", "body")
         work.setdefault("hf_designs", {})[part] = {x: v[x] for x in ("header", "footer", "header_media", "footer_media") if x in v}
@@ -494,10 +510,13 @@ def use_in_standard(lib, iid, work, category=""):
         return f"theme {v.get('name', '')}"
     if k == "quickpart":
         import prodparts as PP
-        pdir = PP.parts_dir(lib.config_dir)
+        pdir = PP.parts_dir(config_dir)
         os.makedirs(pdir, exist_ok=True)
+        if not v.get("source") and src:
+            import prodquickparts as QP
+            v["source"] = QP.keep_source(config_dir, src)
         if not os.path.isfile(os.path.join(pdir, v["source"])):
-            shutil.copyfile(lib.source_path(v["source"]), os.path.join(pdir, v["source"]))
+            shutil.copyfile(file_path(v["source"]), os.path.join(pdir, v["source"]))
         qp = work.setdefault("quick_parts", {"one_gallery": True, "entries": []})
         e = {"name": v["entry"], "category": category or v.get("category", ""), "gallery": v.get("gallery", ""),
              "description": v.get("description", ""), "source": v["source"]}

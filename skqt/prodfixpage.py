@@ -47,7 +47,7 @@ class FixPage(QWidget):
                            "fixes only the copy. A file someone has open is not copied.",
                            actions=[D.button("Check", "primary", lambda: self.check()),
                                     D.button("Check every draft", None, lambda: self.check_all(), "Read every listed draft against "
-                                             "its own profile and list what each one breaks, by area (only read; nothing is written)"),
+                                             "its own volume and list what each one breaks, by area (only read; nothing is written)"),
                                     D.button("Export findings...", None, lambda: self.export_findings(), "A workbook of every finding "
                                              "of the drafts checked, with where it is and the fix for it")], key=True)
         r1 = QHBoxLayout()
@@ -76,7 +76,7 @@ class FixPage(QWidget):
         self.vol_src = D.label("", "muted"); r3.addWidget(self.vol_src)
         self.card.body.addLayout(r3)
         r4 = QHBoxLayout()
-        r4.addWidget(D.label("Profile", "label", wrap=False))
+        r4.addWidget(D.label("Volume", "label", wrap=False))
         self.dtype = QComboBox(); self.dtype.setMinimumWidth(260); r4.addWidget(self.dtype)
         self.dtype.activated.connect(lambda _i: self.dtype_chosen())
         self.dtype_src = D.label("", "muted"); r4.addWidget(self.dtype_src, 1)
@@ -85,10 +85,10 @@ class FixPage(QWidget):
         self.status = self.card.add(D.label("Pick a draft and press Check.", "muted"))
         v.addWidget(self.card)
         # 3.9.0: every draft at once (what Format Check did), each against its own profile
-        self.all_card = D.Card("Every draft", "Each listed draft read against its own profile. Double-click a draft to see "
+        self.all_card = D.Card("Every draft", "Each listed draft read against its own volume. Double-click a draft to see "
                                "its fixes; nothing is written.")
         self.all_table = QTableWidget(0, 3 + len(PF.AREAS))
-        self.all_table.setHorizontalHeaderLabels(["Draft", "Profile"] + [PF.AREAS[a].split(",")[0].split(" and ")[0] for a in PF.AREAS] + ["Total"])
+        self.all_table.setHorizontalHeaderLabels(["Draft", "Volume"] + [PF.AREAS[a].split(",")[0].split(" and ")[0] for a in PF.AREAS] + ["Total"])
         self.all_table.verticalHeader().setVisible(False); self.all_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.all_table.setSelectionBehavior(QAbstractItemView.SelectRows); self.all_table.setMinimumHeight(180)
         self.all_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
@@ -198,8 +198,8 @@ class FixPage(QWidget):
         return PRL.context(h.config_dir, h.effort_name or "", info, lst, self.record(), self.path if path is None else path)
 
     def draft_type(self, ctx, path=None):
-        """The draft's profile: the deliverable's, else the one chosen here for this draft, else (3.8.0) the effort
-        type's profile whose words are in the deliverable's (or file's) name, else the effort's."""
+        """The draft's volume: the deliverable's, else the one chosen here for this draft, else (3.8.0) the effort
+        type's volume whose words are in the deliverable's (or file's) name, else the effort's."""
         path = self.path if path is None else path
         d = (ctx or {}).get("deliverable") or {}
         chosen = d.get("doc_type") or self.type_chosen.get(path)
@@ -252,7 +252,7 @@ class FixPage(QWidget):
         return std
 
     def std_for(self, path):
-        """3.9.0: the standard for any listed draft (its profile, its volume name), for Check every draft."""
+        """3.9.0: the standard for any listed draft (its volume, its volume name), for Check every draft."""
         ctx = self.context(path)
         base = PRL.for_effort(self.host.config_dir, self.host.ws, type_id=self.draft_type(ctx, path))
         typed = (self.vol_typed.get(path) or "").strip()
@@ -616,7 +616,7 @@ class FixPage(QWidget):
             cb.currentIndexChanged.connect(lambda _i, g=g, cb=cb: self.answer(g, cb.currentData()))
             h.addWidget(cb)
             mb = D.button("Make it a rule", "ghost", None, "Rows like these get this role in every table from now on, without asking "
-                          "(saved in the draft's profile, or for this effort only)")
+                          "(saved in the draft's volume, or for this effort only)")
             mb.clicked.connect(lambda _c=False, g=g, cb=cb, b=mb: self.rule_menu(g, cb.currentData(), b))
             h.addWidget(mb)
             self.q_box.addLayout(h)
@@ -628,13 +628,13 @@ class FixPage(QWidget):
         from PySide6.QtWidgets import QMenu
         m = QMenu(self)
         prof = self.std()["name"]
-        m.addAction(f"For the profile {prof} (every effort)", lambda: self.make_rule(group, role, "profile"))
+        m.addAction(f"For the volume {prof} (every effort)", lambda: self.make_rule(group, role, "profile"))
         if self.host.ws is not None:
             m.addAction("For this effort only", lambda: self.make_rule(group, role, "effort"))
         m.exec(button.mapToGlobal(button.rect().bottomLeft()))
 
     def make_rule(self, group, role, where="profile", recheck=True):
-        """3.9.0: an answered question becomes a sure row rule (the engine's learn_rule), in the draft's profile or this
+        """3.9.0: an answered question becomes a sure row rule (the engine's learn_rule), in the draft's volume or this
         effort's own values; the draft is then checked again, so rows like these no longer ask."""
         from prodengine.pe import tables as T
         cur = self.std()
@@ -664,7 +664,7 @@ class FixPage(QWidget):
             T.learn_rule(pw, group, role)
             t["row_rules"] = pw["row_rules"]
             PRL.save(self.host.config_dir, data)
-            said = f"the profile {t['name']}"
+            said = f"the volume {t['name']}"
         self.plan["table_answers"].pop(group, None)
         diag.activity("prod_rule_made")
         self.status.setText(f"Rule saved for {said}: {rule['why']} -> {ROLE_TEXT.get(role, role)}. Checking the draft again...")
@@ -828,12 +828,12 @@ class FixPage(QWidget):
         from openpyxl.styles import Alignment, Font, PatternFill
         wb = Workbook()
         ws = wb.active; ws.title = "By draft"
-        ws.append(["Draft", "Profile"] + [PF.AREAS[a] for a in PF.AREAS] + ["Total", "Read in (s)"])
+        ws.append(["Draft", "Volume"] + [PF.AREAS[a] for a in PF.AREAS] + ["Total", "Read in (s)"])
         for p, (prof, chk) in self.checked.items():
             by = chk.by_area()
             ws.append([os.path.basename(p), prof] + [sum(by.get(a, {}).values()) for a in PF.AREAS] + [chk.count(), round(chk.seconds, 1)])
         ws2 = wb.create_sheet("Findings")
-        ws2.append(["Draft", "Profile", "Area", "Rule", "What", "Where", "Fix"])
+        ws2.append(["Draft", "Volume", "Area", "Rule", "What", "Where", "Fix"])
         for p, (prof, chk) in self.checked.items():
             for f in chk.findings:
                 ws2.append([os.path.basename(p), prof, PF.AREAS.get(f["area"], f["area"]), f"{f['rule']} {PF.RULE_TEXT.get(f['rule'], '')}",

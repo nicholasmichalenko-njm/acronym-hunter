@@ -47,9 +47,9 @@ RULE_TEXT = {
     "P10": "Restriction marking missing", "P11": "Header value not set (volume name, solicitation)",
     "L1": "Typed bullets", "L2": "Typed numbers or letters", "L3": "Numbering pasted from another document",
     "L4": "Hand indents on list paragraphs", "L5": "List continues the numbering before it", "L5?": "List restart to decide",
-    "L6": "Typed number inside a numbered heading", "L9": "List numbering differs from the profile",
-    "R5": "Word table style differs from the profile", "P12": "Cover built differently from the profile's",
-    "P13": "Back cover built differently from the profile's", "R6": "Table does not use its type's Word table style", "L7": "Typed list in a table cell", "L8": "Unused list definitions",
+    "L6": "Typed number inside a numbered heading", "L9": "List numbering differs from the volume standard",
+    "R5": "Word table style differs from the volume standard", "P12": "Cover built differently from the volume standard's",
+    "P13": "Back cover built differently from the volume standard's", "R6": "Table does not use its type's Word table style", "L7": "Typed list in a table cell", "L8": "Unused list definitions",
     "W1": "Banned word or phrase", "W2": "Known misspelling", "W3": "Trademark or registered mark missing", "W4": "Name one letter off",
     "F1": "Font or size typed over the style", "F2": "Font or size typed over the style", "F1s": "Style breaks the font rule",
     "F2s": "Style breaks the size rule",
@@ -116,14 +116,14 @@ FIXES = [
          lambda std, plan: {"std": std}, rules=("F1s", "F2s")),
     _fix("fonts", "fonts", "Remove fonts and sizes typed over the styles", Fo.op_fonts, Fo.FONTS_ALLOWED,
          lambda std, plan: {"std": std}, rules=("F1", "F2")),
-    _fix("table_styles", "tables", "Set the Word table styles from the profile", TS.op_table_styles, TS.TABLE_STYLES_ALLOWED,
+    _fix("table_styles", "tables", "Set the Word table styles from the volume standard", TS.op_table_styles, TS.TABLE_STYLES_ALLOWED,
          lambda std, plan: {"std": std}, rules=("R5",)),
     _fix("tables", "tables", "Format tables by row role", T.op_fix_tables,
          ("pstyles", "para_format", "table_format", "direct_run_format", "tables"),
          lambda std, plan: {"std": std, "table_types": plan.get("table_types") or None, "answers": plan.get("table_answers") or None,
                             "roles": plan.get("table_roles") or None, "only": plan.get("table_only") or None, "skip_asked": True},
          rules=("R0", "R6"), kind="tables"),
-    _fix("list_numbering", "lists", "Set list numbering from the profile (bullets and numbers by level)", LN.op_list_numbering,
+    _fix("list_numbering", "lists", "Set list numbering from the volume standard (bullets and numbers by level)", LN.op_list_numbering,
          LN.LIST_ALLOWED, lambda std, plan: {"std": std}, rules=("L9",)),
     _fix("lists", "lists", "Turn typed bullets and numbers into the team's list styles", L.op_lists, L.LISTS_ALLOWED,
          lambda std, plan: {"std": std, "answers": plan.get("list_answers") or None}, rules=("L1", "L2", "L3", "L4", "L5", "L6")),
@@ -433,11 +433,11 @@ def check(path, std, data=None):
             want = PP.part_signature(open(os.path.join(pdir, fname), "rb").read())
             have = PP.signature(raw, where, std)
             if have is None:
-                _add(chk, "pages", rule, "warning", f"The draft has no {label}; the profile has one (Make a template has it)", -1, "")
+                _add(chk, "pages", rule, "warning", f"The draft has no {label}; the volume standard has one (Make a template has it)", -1, "")
             elif want is not None and have != want:
-                _add(chk, "pages", rule, "info", f"The {label} is built differently from the profile's: paragraph styles "
-                     f"{', '.join(have[0][:6]) or 'none'} (profile: {', '.join(want[0][:6]) or 'none'}); {have[1]} table(s), "
-                     f"{have[2]} picture(s) (profile: {want[1]}, {want[2]}). Review it by hand.", -1, "")
+                _add(chk, "pages", rule, "info", f"The {label} is built differently from the volume standard's: paragraph styles "
+                     f"{', '.join(have[0][:6]) or 'none'} (standard: {', '.join(want[0][:6]) or 'none'}); {have[1]} table(s), "
+                     f"{have[2]} picture(s) (standard: {want[1]}, {want[2]}). Review it by hand.", -1, "")
     except Exception as e:  # noqa: BLE001
         chk.error += f" The cover could not be compared ({type(e).__name__})."
     try:
@@ -466,7 +466,7 @@ def check(path, std, data=None):
 
 
 def _check_office(chk, raw, ext, std, t0):
-    """3.11.0: an Excel workbook or a PowerPoint deck against the profile (prodoffice); findings only, no fixes."""
+    """3.11.0: an Excel workbook or a PowerPoint deck against the volume standard (prodoffice); findings only, no fixes."""
     import prodoffice as PO
     std = PRL.engine_ready(copy.deepcopy(std))
     chk.office = "excel" if ext in PO.EXCEL_EXT else "powerpoint"

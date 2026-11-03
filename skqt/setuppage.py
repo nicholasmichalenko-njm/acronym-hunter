@@ -47,7 +47,7 @@ class SetupPage(QWidget):
         bar.addStretch(1)
         bar.addWidget(D.button("Export changes only...", None, self.export_changes, "Just what changed since the last export"))
         bar.addWidget(D.button("Export the setup...", None, self.export, "One plain Word document per volume"))
-        bar.addWidget(D.button("Make templates and setup...", "primary", lambda: self.make_on_templates(),       # 3.24.0
+        bar.addWidget(D.button("Make templates and setup...", "primary", lambda: self.host.prodstd_page.make_templates("effort"),  # 3.25.0
                                "For each planned volume: its template from Production Standards, and the setup written on it, "
                                "with the RFP's words and your notes in hidden reference styles"))
 

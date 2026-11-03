@@ -23,18 +23,26 @@ def installed_fonts():
 
 
 class CollectDialog(QDialog):
-    """The file and its tags, then one card per group: keep, rename or skip each item. Next saves the card's items at
-    once, so stopping keeps what was confirmed."""
+    """Import from a file (3.25.0; Collect in 3.22.0): the file and its tags, then one card per group: take, rename or
+    skip each item. Each card's ticked items go into what is being edited (Use here) and onto the library's shelves
+    (Keep in the library), as chosen at the top, when you press Next, so stopping keeps what was confirmed.
+    only: the item kinds to show (a section's own Import shows only its items)."""
 
-    def __init__(self, page, path):
+    def __init__(self, page, path, only=None, section=""):
         super().__init__(page)
         self.page, self.path = page, path
+        self.only = set(only) if only else None
         self.lib = TL.Library(page.host.config_dir)
-        self.setWindowTitle(f"Collect from {os.path.basename(path)}")
-        self.resize(1000, 640)
+        self.setWindowTitle(f"Import from {os.path.basename(path)}" + (f": {section}" if section else ""))
+        self.resize(1000, 660)
         v = QVBoxLayout(self)
-        v.addWidget(D.label("The file is read once and never written; macros never run. Tick what to keep, rename anything, "
-                            "and press Next: each card is saved as you go.", "muted"))
+        v.addWidget(D.label("The file is read once and never written; macros never run. Tick one item, some or all, rename "
+                            "anything, and press Next: each card is taken as you go.", "muted"))
+        wh = QHBoxLayout(); v.addLayout(wh)
+        self.use_here = QCheckBox("Use here (in what you are editing: " + page.scope_box.currentText() + ")"); self.use_here.setChecked(True)
+        self.keep_lib = QCheckBox("Keep in the library (to use in any standard later)"); self.keep_lib.setChecked(True)
+        wh.addWidget(self.use_here); wh.addWidget(self.keep_lib); wh.addStretch(1)
+        self.used = []
         tf = QFormLayout(); v.addLayout(tf)
         uw = QWidget(); uh = QHBoxLayout(uw); uh.setContentsMargins(0, 0, 0, 0)
         self.uses = {}
@@ -48,17 +56,26 @@ class CollectDialog(QDialog):
         import prodrules as PRL
         import copy
         self.cards, err = TL.collect(path, PRL.engine_ready(copy.deepcopy(page.work)), self.lib, installed_fonts())
+        if self.only is not None:
+            for c in self.cards:
+                c.items = [it for it in c.items if it["kind"] in self.only]
+            self.cards = [c for c in self.cards if c.items]
+            if not self.cards and not err:
+                err = f"That file carries nothing for {section or 'this section'}."
+        for c in self.cards:                              # 3.25.0: taking it for use here starts every item ticked
+            for it in c.items:
+                it["keep"] = True
         self.error = err
         self.step = 0
         self.saved = {"new": 0, "same": 0, "variant": 0}
         self.head = D.label("", "title"); v.addWidget(self.head)
         self.note = D.label("", "muted"); v.addWidget(self.note)
-        self.t = QTableWidget(0, 4); self.t.setHorizontalHeaderLabels(["Keep", "Name", "In the library", "What it is"])
+        self.t = QTableWidget(0, 4); self.t.setHorizontalHeaderLabels(["Take", "Name", "In the library", "What it is"])
         self.t.verticalHeader().setVisible(False); self.t.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
         self.t.setColumnWidth(0, 50); self.t.setColumnWidth(1, 220); self.t.setColumnWidth(2, 200)
         v.addWidget(self.t, 1)
         row = QHBoxLayout(); v.addLayout(row)
-        row.addWidget(D.button("Keep all", "ghost", lambda: self.tick_all(True)))
+        row.addWidget(D.button("Take all", "ghost", lambda: self.tick_all(True)))
         row.addWidget(D.button("Skip all", "ghost", lambda: self.tick_all(False)))
         self.sample_btn = D.button("Open a sample in Word", None, lambda: self.sample(), "A small template made with this card's items, "
                                    "so you see them in use before keeping them")
@@ -96,7 +113,7 @@ class CollectDialog(QDialog):
             si.setForeground(D.color(tone)); self.t.setItem(r, 2, si)
             w = QTableWidgetItem(it["summary"]); w.setFlags(Qt.ItemIsEnabled); w.setToolTip(it["summary"]); self.t.setItem(r, 3, w)
         self.back_btn.setEnabled(self.step > 0)
-        self.next_btn.setText("Keep and finish" if self.step == len(self.cards) - 1 else "Keep and next")
+        self.next_btn.setText("Take and finish" if self.step == len(self.cards) - 1 else "Take and next")
 
     def read_card(self):
         c = self.cards[self.step]
@@ -114,13 +131,26 @@ class CollectDialog(QDialog):
             return None
         if step > 0:
             c = self.read_card()
-            got = TL.save_collected(self.lib, self.path, [c], tags=self.tags())
-            for k in got:
-                self.saved[k] += got[k]
-            for it in c.items:                           # saved: met again, they are the library's now
+            if self.use_here.isChecked():                 # 3.25.0: into what is being edited
+                for it in c.items:
+                    if it.get("keep") and it["kind"] != "font":
+                        try:
+                            said = TL.use_values(self.lib.config_dir, it["kind"], it["name"], it["values"], self.page.work,
+                                                 src=self.path)
+                            if said:
+                                self.used.append(said)
+                        except Exception:                 # noqa: BLE001
+                            diag.swallowed()
+            if self.keep_lib.isChecked():
+                got = TL.save_collected(self.lib, self.path, [c], tags=self.tags())
+                for k in got:
+                    self.saved[k] += got[k]
+            for it in c.items:                           # taken: met again, they are done
                 it["keep"] = False
             if self.step == len(self.cards) - 1:
                 diag.activity("template_library_collected", n=self.saved["new"] + self.saved["variant"])
+                if self.used:
+                    self.page.after_library(f"{len(self.used)} item(s) from {os.path.basename(self.path)}")
                 self.accept()
                 return self.saved
         self.step = max(0, min(len(self.cards) - 1, self.step + step))
@@ -316,7 +346,7 @@ class LibraryDialog(QDialog):
             self.use.addItem(u, u)
         self.use.currentIndexChanged.connect(lambda _i: self.fill())
         top.addWidget(self.use); top.addStretch(1)
-        top.addWidget(D.button("Collect from a file...", "primary", lambda: self.collect()))
+        top.addWidget(D.button("Import from a file...", "primary", lambda: self.collect()))
         body = QHBoxLayout(); v.addLayout(body, 1)
         self.shelves = QListWidget(); self.shelves.setFixedWidth(210)
         self.shelves.currentRowChanged.connect(lambda _r: self.fill())

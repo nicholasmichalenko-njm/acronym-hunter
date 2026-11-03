@@ -1,0 +1,202 @@
+"""Make templates (3.25.0): one dialog for every way a .dotx is made, opening on everything each template will carry.
+
+What to make: what you are editing in Production Standards, every volume of an effort type, or this effort's volumes
+with the setup written on each. The list shows each template to be made; the view beside it shows that template in
+full (styles, pages and margins, pagination by part, headers and footers, numbering, tables, captions, the table of
+contents, covers, Quick Parts, fields, theme and fonts) before any file is written. Make writes the files.
+"""
+import copy
+import os
+
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QDialog, QFileDialog, QGridLayout, QHBoxLayout, QLineEdit,
+                               QListWidget, QListWidgetItem, QRadioButton, QSplitter, QTextBrowser, QVBoxLayout, QWidget)
+
+import diag
+import prodrules as PRL
+import templatedetails as TD
+from . import design as D
+
+WHAT = (("this", "What you are editing in Production Standards"), ("etype", "Every volume of an effort type"),
+        ("effort", "This effort's volumes, with the setup written on each"))
+
+
+class MakeTemplatesDialog(QDialog):
+    def __init__(self, page, start=None):
+        super().__init__(page)
+        self.page, self.host = page, page.host
+        self.data = PRL.load(self.host.config_dir)
+        self.setWindowTitle("Make templates")
+        self.resize(1200, 760)
+        v = QVBoxLayout(self)
+        v.addWidget(D.label("Choose what to make, then read each template in full on the right. Nothing is written until "
+                            "you press Make. Templates go to the Templates folder in the output folder.", "muted"))
+        sp = QSplitter(Qt.Horizontal); v.addWidget(sp, 1)
+        left = QWidget(); lv = QVBoxLayout(left); lv.setContentsMargins(0, 0, 0, 0)
+        lv.addWidget(D.label("What to make", "title"))
+        self.what = QButtonGroup(self); self.radios = {}
+        for k, label in WHAT:
+            r = QRadioButton(label); self.what.addButton(r); self.radios[k] = r; lv.addWidget(r)
+            r.toggled.connect(lambda on, _k=k: self.refresh() if on else None)
+            if k == "this":
+                self.this_lbl = D.label("", "muted"); lv.addWidget(self.this_lbl)
+            if k == "etype":
+                self.etype = QComboBox()
+                for e in self.data.get("effort_types", []):
+                    self.etype.addItem(e["name"], e["id"])
+                self.etype.currentIndexChanged.connect(lambda _i: self.refresh()); lv.addWidget(self.etype)
+            if k == "effort":
+                self.effort_lbl = D.label("", "muted"); lv.addWidget(self.effort_lbl)
+        self.start_box = QWidget(); sb = QVBoxLayout(self.start_box); sb.setContentsMargins(0, 0, 0, 0)
+        sb.addWidget(D.label("Start from", "title"))
+        self.base_r = QRadioButton("The Stationkeeper base (cover, front matter, a chapter with a sample table, an appendix)")
+        self.mine_r = QRadioButton("A template of mine (only read; its pages, logos and text are kept)")
+        self.base_r.setChecked(True)
+        sb.addWidget(self.base_r); sb.addWidget(self.mine_r)
+        mh = QHBoxLayout(); self.mine = QLineEdit(); self.mine.setPlaceholderText("A .dotx or .docx"); mh.addWidget(self.mine, 1)
+        mh.addWidget(D.button("Choose...", None, lambda: self.pick_mine())); sb.addLayout(mh)
+        lv.addWidget(self.start_box)
+        self.name_box = QWidget(); nb = QVBoxLayout(self.name_box); nb.setContentsMargins(0, 0, 0, 0)
+        nb.addWidget(D.label("Name", "title"))
+        nb.addWidget(D.label("Where or how it is used. Making it again under the same name makes the next version.", "muted"))
+        self.name = QComboBox(); self.name.setEditable(True); nb.addWidget(self.name)
+        lv.addWidget(self.name_box)
+        self.setup_box = QWidget(); stb = QVBoxLayout(self.setup_box); stb.setContentsMargins(0, 0, 0, 0)
+        self.ready_lbl = D.label("", None); stb.addWidget(D.label("Ready to make", "title")); stb.addWidget(self.ready_lbl)
+        stb.addWidget(D.label("Reference text in the setup", "title"))
+        stb.addWidget(D.label("Each kind goes in its own style; hidden text shows only with Show/Hide on.", "muted"))
+        self.ref_grid = QGridLayout(); stb.addLayout(self.ref_grid)
+        self.ref_rows = {}
+        lv.addWidget(self.setup_box)
+        lv.addWidget(D.label("Templates to make", "title"))
+        self.list = QListWidget(); self.list.currentRowChanged.connect(lambda _r: self.show_details()); lv.addWidget(self.list, 1)
+        sp.addWidget(left)
+        right = QWidget(); rv = QVBoxLayout(right); rv.setContentsMargins(0, 0, 0, 0)
+        jh = QHBoxLayout(); jh.addWidget(D.label("Go to", "label", wrap=False))
+        self.jump = QComboBox(); self.jump.addItems(TD.SECTIONS); self.jump.activated.connect(lambda _i: self.view.scrollToAnchor(self.jump.currentText()))
+        jh.addWidget(self.jump); jh.addStretch(1); rv.addLayout(jh)
+        self.view = QTextBrowser(); self.view.setOpenLinks(False); rv.addWidget(self.view, 1)
+        sp.addWidget(right); sp.setSizes([420, 780])
+        bh = QHBoxLayout(); bh.addStretch(1)
+        self.make_btn = D.button("Make", "primary", lambda: self.accept()); bh.addWidget(self.make_btn)
+        bh.addWidget(D.button("Cancel", "ghost", lambda: self.reject())); v.addLayout(bh)
+        self.plans = []
+        self._setup_plan = None
+        effort_ok = self._effort_ready()
+        self.radios["effort"].setEnabled(effort_ok)
+        self.radios["etype"].setEnabled(self.etype.count() > 0)
+        want = start or ("effort" if (effort_ok and page.scope == "effort") else "this")
+        if not self.radios[want].isEnabled():
+            want = "this"
+        self.radios[want].setChecked(True)
+        self.refresh()
+
+    # ------------------------------------------------------------------ choices
+    def _effort_ready(self):
+        R = getattr(self.host, "review", None)
+        return bool(R is not None and getattr(R.M, "outline", None) and self.host.ws is not None)
+
+    def choice(self):
+        return next((k for k, r in self.radios.items() if r.isChecked()), "this")
+
+    def pick_mine(self, path=None):
+        if path is None:
+            path, _ = QFileDialog.getOpenFileName(self, "Start from (only read)", os.path.expanduser("~"), "Word (*.dotx *.docx)")
+        if path:
+            self.mine.setText(path); self.mine_r.setChecked(True)
+
+    def start_from(self):
+        return self.mine.text().strip() if self.mine_r.isChecked() and self.mine.text().strip() else ""
+
+    def _fonts(self):
+        try:
+            from .collectview import installed_fonts
+            return installed_fonts()
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            return None
+
+    def refresh(self):
+        k = self.choice()
+        self.this_lbl.setText("  " + self.page.scope_box.currentText())
+        self.effort_lbl.setText("  " + (self.host.effort_name or "No effort open") if self._effort_ready() else
+                                "  Open an effort with a response structure (Matrix) first.")
+        self.etype.setEnabled(k == "etype")
+        self.start_box.setVisible(k in ("this", "etype"))
+        self.name_box.setVisible(k == "this")
+        self.setup_box.setVisible(k == "effort")
+        fonts = self._fonts()
+        self.plans = []
+        if k == "this":
+            std = PRL.engine_ready(copy.deepcopy(self.page.work))
+            title = self.page.scope_box.currentText().split(": ", 1)[-1]
+            if not self.name.count():
+                import templatereg as TR
+                self.name.addItems([title] + [n for n in TR.names(self.host.config_dir) if n != title])
+            self.plans.append({"title": title, "std": std, "problems": self.page.show_problems()})
+        elif k == "etype":
+            e = PRL.effort_type_of(self.data, self.etype.currentData())
+            for pid in (e or {}).get("profiles", []):
+                std = PRL.engine_ready(PRL.resolved_type(self.data, pid, e["id"]))
+                self.plans.append({"title": f"{e['name']} - {PRL.type_of(self.data, pid)['name']}", "std": std,
+                                   "problems": PRL.validate(std) if std.get("row_types") else []})
+        else:
+            import setuptemplate as ST
+            import effortrec as RR
+            R = self.host.review
+            rd = ST.ready(R.M, RR.Record(self.host.ws.root))
+            self.ready_lbl.setText("\n".join(("✓ " if ok else "• ") + what + ("" if ok else f" ({n} still open)") for ok, what, n in rd))
+            self._ready_ok = all(ok for ok, _w, _n in rd)
+            if not self.ref_rows:
+                opts = ST.options(R.M)
+                for r, (kk, label, _s, _c, _i) in enumerate(ST.KINDS):
+                    self.ref_grid.addWidget(D.label(label, None), r, 0)
+                    e = QLineEdit(opts[kk]["style"]); self.ref_grid.addWidget(e, r, 1)
+                    cb = QCheckBox("Hidden"); cb.setChecked(opts[kk]["hidden"]); self.ref_grid.addWidget(cb, r, 2)
+                    self.ref_rows[kk] = (e, cb)
+            info = self.host.efforts.get(self.host.effort_name) or {}
+            for p in ST.plan(R.M, self.host.config_dir, self.host.ws, self.host.effort_name or "", info):
+                self.plans.append({"title": f"{p['template_name']} v{p['version']}", "std": p["std"],
+                                   "problems": PRL.validate(p["std"]) if p["std"].get("row_types") else []})
+        self.make_btn.setText("Make anyway" if k == "effort" and not getattr(self, "_ready_ok", True) else "Make")
+        self.make_btn.setEnabled(bool(self.plans) and not (k in ("this", "etype") and any(p["problems"] for p in self.plans)))
+        self.list.blockSignals(True); self.list.clear()
+        for p in self.plans:
+            it = QListWidgetItem(p["title"] + (f"  ({len(p['problems'])} to fix first)" if p["problems"] else ""))
+            self.list.addItem(it)
+        self.list.blockSignals(False)
+        self._fonts_cache = fonts
+        if self.plans:
+            self.list.setCurrentRow(0)
+        self.show_details()
+
+    def show_details(self):
+        r = self.list.currentRow()
+        if r < 0 or r >= len(self.plans):
+            self.view.setHtml("<p>Nothing to make.</p>")
+            return ""
+        p = self.plans[r]
+        h = TD.html_of(p["std"], p["title"], p["problems"], getattr(self, "_fonts_cache", None))
+        self.view.setHtml(h)
+        return h
+
+    def ref_options(self):
+        return {k: {"style": e.text().strip() or k, "hidden": cb.isChecked()} for k, (e, cb) in self.ref_rows.items()}
+
+    def make(self, word=None):
+        """Makes what was chosen. Returns what the page or Response Setup returned."""
+        k = self.choice()
+        if k == "this":
+            return self.page.make_template(start_from=self.start_from(), word=word, name=self.name.currentText().strip() or None)
+        if k == "etype":
+            return self.page.make_templates_all(word=word, eid=self.etype.currentData(), start_from=self.start_from())
+        return self.host.setup_page.make_on_templates(opts=self.ref_options(), go=True)
+
+
+def run(page, start=None):
+    """Opens Make templates; makes on Make. Returns the result, or None when cancelled. (Making from Production Standards
+    is a Preview tool; the page's own make steps say so when it is off.)"""
+    d = MakeTemplatesDialog(page, start)
+    if d.exec() != QDialog.Accepted:
+        return None
+    return d.make()

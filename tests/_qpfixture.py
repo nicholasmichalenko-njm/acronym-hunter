@@ -24,13 +24,24 @@ NUMBERED = ('<w:docPart><w:docPartPr><w:name w:val="Numbered steps"/><w:category
             '<w:r><w:t>First step</w:t></w:r></w:p></w:docPartBody></w:docPart>')
 
 
+TABLE_HDR = ('<w:docPart><w:docPartPr><w:name w:val="Table header"/><w:category><w:name w:val="Headers"/><w:gallery w:val="hdrs"/>'
+             '</w:category><w:behaviors><w:behavior w:val="content"/></w:behaviors><w:guid w:val="{66666666-6666-6666-6666-666666666666}"/>'
+             '</w:docPartPr><w:docPartBody><w:tbl><w:tblPr><w:tblW w:w="9360" w:type="dxa"/><w:tblLayout w:type="fixed"/></w:tblPr>'
+             '<w:tblGrid><w:gridCol w:w="5760"/><w:gridCol w:w="3600"/></w:tblGrid><w:tr>'
+             '<w:tc><w:tcPr><w:tcW w:w="5760" w:type="dxa"/></w:tcPr><w:p><w:r><w:fldChar w:fldCharType="begin"/></w:r>'
+             '<w:r><w:instrText xml:space="preserve"> STYLEREF "SK Volume Name" </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r>'
+             '<w:r><w:t>Volume</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r></w:p></w:tc>'
+             '<w:tc><w:tcPr><w:tcW w:w="3600" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:jc w:val="right"/></w:pPr><w:r><w:t>RFP 123</w:t></w:r></w:p></w:tc>'
+             '</w:tr></w:tbl><w:p/></w:docPartBody></w:docPart>')
+
+
 GSTYLES = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="{W}">'
            '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:rPr><w:sz w:val="56"/></w:rPr></w:style>'
            '<w:style w:type="paragraph" w:customStyle="1" w:styleId="QPCallout"><w:name w:val="QP Callout"/><w:basedOn w:val="Normal"/>'
            '<w:rPr><w:color w:val="1F5FAD"/></w:rPr></w:style></w:styles>')
 
 
-def with_glossary(src, dst, foldout=False, numbered=False):
+def with_glossary(src, dst, foldout=False, numbered=False, table_hdr=False):
     """A template with three Quick Parts in three galleries (what a team template holds)."""
     zin = zipfile.ZipFile(src)
     out = io.BytesIO()
@@ -40,7 +51,7 @@ def with_glossary(src, dst, foldout=False, numbered=False):
              + part("Volume cover", "Covers", "coverPg", "VOLUME TITLE", "11111111-1111-1111-1111-111111111111", "Heading1")
              + part("CUI header", "Headers", "hdrs", "CUI//SP-PROPIN", "22222222-2222-2222-2222-222222222222", "QPCallout")
              + part("Table caption", "Captions", "docParts", "Table 1. Caption", "33333333-3333-3333-3333-333333333333")
-             + (FOLDOUT if foldout else "") + (NUMBERED if numbered else "") + "</w:docParts></w:glossaryDocument>")
+             + (FOLDOUT if foldout else "") + (NUMBERED if numbered else "") + (TABLE_HDR if table_hdr else "") + "</w:docParts></w:glossaryDocument>")
     for i in zin.infolist():
         b = zin.read(i.filename)
         if i.filename == "[Content_Types].xml":

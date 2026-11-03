@@ -210,6 +210,25 @@ def style_ids(opts):
     return {k: sid_of(v["style"]) for k, v in opts.items()}
 
 
+def plan(M, config_dir, ws=None, effort_name="", info=None):
+    """3.25.0: what make_all will make, before anything is written: [{"volume", "template_name", "version", "std"}],
+    std being the standard in force for that volume with the effort's values on it (for the details view)."""
+    import prodrules as PRL
+    import setupdoc as SD
+    import structparts as SP
+    import templatereg as TR
+    ctx = PRL.context(config_dir, effort_name, info or {}, rec=None)
+    stem = SD._safe(os.path.splitext(os.path.basename(M.path))[0] if getattr(M, "path", "") else M.name)
+    groups = SD.volume_groups(M)
+    out = []
+    for vname, _entries in groups:
+        std = SP.standard_for(config_dir, ws, vname) or PRL.for_effort(config_dir, ws)
+        std = PRL.apply_context(PRL.engine_ready(std), ctx, volume_name=vname if len(groups) > 1 or vname else None)
+        tname = TR.clean_name(f"{effort_name or stem} {vname}".strip()) or "Effort template"
+        out.append({"volume": vname, "template_name": tname, "version": TR.next_version(config_dir, tname), "std": std})
+    return out
+
+
 def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=None, context=None, word=None, progress=None):
     """For each planned volume: its template (named "<effort> <volume>", next version) and the setup written on it.
     Returns [{"volume", "template", "setup", "version", "validation"}]."""
@@ -231,12 +250,11 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
     tfolder = os.path.join(folder, "Templates")
     out = []
     groups = SD.volume_groups(M)
+    planned = {p["volume"]: p for p in plan(M, config_dir, ws, effort_name, info)}
     for vname, entries in groups:
         say(f"Template for {vname}")
-        std = SP.standard_for(config_dir, ws, vname) or PRL.for_effort(config_dir, ws)
-        std = PRL.apply_context(PRL.engine_ready(std), ctx, volume_name=vname if len(groups) > 1 or vname else None)
-        tname = TR.clean_name(f"{effort_name or stem} {vname}".strip()) or "Effort template"
-        ver = TR.next_version(config_dir, tname)
+        p = planned[vname]
+        std, tname, ver = p["std"], p["template_name"], p["version"]
         std["_template_name"], std["_template_version"] = tname, ver
         std["name"] = f"{tname} v{ver}"
         std.setdefault("_parts_dir", os.path.join(config_dir, "production_parts"))

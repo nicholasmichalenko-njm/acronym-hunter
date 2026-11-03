@@ -60,6 +60,11 @@ ls = sp.tables["listnum"]; lt = ls["w"]
 lcol = next(c for c, (f, _h, _k) in enumerate(ls["cols"]) if f == "text")
 check("List numbering shows no % code either", not any("%" in lt.cellWidget(i, lcol).text() for i in range(lt.rowCount())),
       [lt.cellWidget(i, lcol).text() for i in range(lt.rowCount())])
+fcl = next(c for c, (f, _h, _k) in enumerate(ls["cols"]) if f == "fmt")
+bi = next(i for i in range(lt.rowCount()) if lt.cellWidget(i, fcl).currentData() == "bullet" and i > 0)
+cb = lt.cellWidget(bi, lcol); cb.setText("o"); cb.textEdited.emit("o"); cb.editingFinished.emit(); app.processEvents()
+lv2 = [l for lst in sp.work["list_numbering"]["lists"] for l in lst["levels"]]
+check("a bullet stays its character as typed (o is a bullet, not a number)", lv2[bi]["text"] == "o" and cb.text() == "o", lv2[bi])
 w.close()
 n = sum(checks)
 print(f"NUMBER READS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

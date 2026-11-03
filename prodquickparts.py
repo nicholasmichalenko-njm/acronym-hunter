@@ -135,3 +135,34 @@ def sync_styles(pkg):
             if x is not None:
                 todo.add(x.get(_w("val")))
     return {"added": added, "matched": matched}
+
+
+def as_design(path, name, kind="header"):
+    """3.25.0: a Quick Part made into a part's header or footer, kept whole (its tables at their inch widths, tab stops,
+    pictures and fields): {kind: xml, kind + "_media": [pictures]}, the shape the standard's hf_designs keep. The
+    source file is only read. None when the Quick Part is not in it."""
+    import base64
+    import posixpath
+    pkg = Package(path)
+    hit = next((e for e in G.entries(pkg) if e["name"] == name), None)
+    if hit is None:
+        return None
+    W = NS["w"]
+    R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+    root = etree.Element(f"{{{W}}}{'hdr' if kind == 'header' else 'ftr'}", nsmap={"w": W, "r": R})
+    body = hit["el"].find("w:docPartBody", NS)
+    for ch in body:
+        if etree.QName(ch).localname == "sectPr":
+            continue
+        root.append(copy.deepcopy(ch))
+    if not len(root) or etree.QName(root[-1]).localname != "p":
+        etree.SubElement(root, f"{{{W}}}p")              # Word needs a header or footer to end with a paragraph
+    xml = etree.tostring(root, encoding="unicode")
+    used = set(re.findall(r'r:(?:embed|id|link)="([^"]+)"', xml))
+    g = G.gloss_part(pkg)
+    media = []
+    for rid, (typ, t, mode) in pkg.rels_of(g).items():
+        if rid in used and mode != "External" and typ.endswith("/image") and t in pkg.raw:
+            media.append({"rid": rid, "name": posixpath.basename(t), "type": typ, "ct": pkg.content_type("/" + t),
+                          "b64": base64.b64encode(pkg.raw[t]).decode("ascii")})
+    return {kind: xml, kind + "_media": media}
