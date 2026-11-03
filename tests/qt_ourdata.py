@@ -103,6 +103,36 @@ row = next(r for r in range(ld.t.rowCount()) if ld.t.item(r, 0).text() == "SK PM
 ld.t.setCurrentCell(row, 0)
 check("Edit changes an item's values", ld.edit({"color": "C00000", "hidden": True, "size": 9.0}) and TL.Library(cfg).values(it)["size"] == 9.0)
 
+# ---------------------------------------------------------------- 3.23.0 kits, previews, fill-ins, names and versions
+ld.use.setCurrentIndex(0)
+ld.shelves.setCurrentRow([k for k, _t in TL.SHELVES].index("style")); app.processEvents()
+row = next(r for r in range(ld.t.rowCount()) if ld.t.item(r, 0).text() == "SK PM Commentary")
+ld.t.setCurrentCell(row, 0); app.processEvents()
+check("a style's preview shows it in its color, marked hidden", "color:#C00000" in ld.preview.text() and "Hidden text" in ld.preview.text(), ld.preview.text())
+ld.t.selectRow(row)
+k = ld.save_kit("USSF page-limited RFP")
+check("Save as a kit keeps the selected items under a name", k and k["items"] and "Kits (1)" in ld.shelves.item(ld.shelves.count() - 1).text())
+ld.shelves.setCurrentRow(ld.shelves.count() - 1); app.processEvents(); ld.t.setCurrentCell(0, 0)
+said = ld.use_it()
+check("Use in this standard on a kit puts every item in", "style" in said and "SK PM Commentary" in sp.work["style_defs"], said)
+sp.nav.setCurrentRow([k_ for k_, _t in SECTIONS].index("fillins")); app.processEvents()
+check("Production Standards has Fill-ins", "fillins" in [k_ for k_, _t in SECTIONS] and "fillins" in sp.tables)
+sp.work["fill_ins"] = [{"key": "contract_type", "name": "Contract type", "kind": "styleref", "value": "CPFF"}]
+sp.work["hf_layouts"]["body"]["header"] = {"left": "{contract_type}"}
+sp.load_tables()
+check("the fill-ins list shows them", sp.tables["fillins"]["w"].rowCount() == 1)
+import templatereg as TR
+for c_ in sp.work.get("captions", []):
+    c_["number_format"] = c_.get("number_format") or "ARABIC"
+j1 = sp.make_template(start_from="", word=False, name="USSF RFP Volume I")
+j2 = sp.make_template(start_from="", word=False, name="USSF RFP Volume I")
+check("a template made twice under one name: version 1, then 2, in the file name", j1 and j2 and "USSF RFP Volume I v1" in os.path.basename(j1.copy)
+      and "USSF RFP Volume I v2" in os.path.basename(j2.copy) and TR.latest(cfg, "USSF RFP Volume I")["v"] == 2, (j1 and j1.copy, j2 and j2.copy))
+rp_ = os.path.splitext(j2.copy)[0] + " - validation report.txt"
+check("the validation report is saved beside the template", os.path.isfile(rp_) and "Validation report" in open(rp_, encoding="utf-8").read())
+import zipfile as _z
+check("the file carries its name and version", "SK Template Version" in _z.ZipFile(j2.copy).read("docProps/custom.xml").decode())
+
 # ---------------------------------------------------------------- Settings: Our data
 st = CD.Store(cfg); st.add("Space terms", ["apogee"]); st.save()
 TP.save_topics(cfg, ["Thermal"])

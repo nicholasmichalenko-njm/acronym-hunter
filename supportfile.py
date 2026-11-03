@@ -20,6 +20,18 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.23.0": ["Fill-ins (Production Standards): type a value once and it shows everywhere: a cover style that headers, "
+               "footers and Quick Parts read through STYLEREF (as the team works today), or a document property (DOCPROPERTY). "
+               "Fields carry no MERGEFORMAT, so each takes the formatting where it sits.",
+               "Caption schemes: each caption rule numbers by sequence only or chapter then sequence, and shows its number "
+               "as 1, I, i, A or a.",
+               "Every template gets a validation report beside it (styles used but not defined, broken STYLEREF and "
+               "DOCPROPERTY fields, MERGEFORMAT, list numbers with no definition, direct formatting inside Quick Parts, "
+               "fonts not installed, hidden text styles) and, when Word is on the PC, Word's own check: each Quick Part put "
+               "in, its fields and styles confirmed.",
+               "Templates have a name and a version (counting up), carried in the file; the effort records the one it used.",
+               "Template library: kits (a named set of items to start a standard from) and previews (a style in its font, "
+               "size and color; a font; a theme's colors)."],
     "3.22.0": ["Our data (Settings): one Stationkeeper Data file (.skdata) carries the team's foundational data: the master "
                "acronym list, custom dictionaries, banned phrases, Production Standards with covers and Quick Parts, the "
                "template library and the team lists. Import shows what each part adds, merges add-only, and Undo puts it "

@@ -308,6 +308,9 @@ TOPICS = [
    "this standard puts an item into what you are editing, and New style... adds your own (hidden text ones too).",
    "Quick Parts: Add from a template or document... lists the Quick Parts every template from this standard carries, "
    "all in Word's Quick Parts gallery under your numbered categories.",
+   "Fill-ins (3.23.0): a value typed once shows everywhere: a cover style read by STYLEREF, or a document property. Make a "
+   "template asks for the template's name; each time makes the next version, with a validation report beside it and, with "
+   "Word on the PC, Word's own check of every Quick Part.",
    "The Preview beside each section draws what its values make (a page with its fonts, spacing and margins; headings "
    "with their numbers; captions; the page scheme; headers and footers; the TOC; lists; a figure) and lists every value "
    "this layer changes in the section: what it was and what it is now.",

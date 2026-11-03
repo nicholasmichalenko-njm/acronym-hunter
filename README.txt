@@ -1,6 +1,22 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+FILL-INS, CAPTION SCHEMES, VALIDATION AND THE WORD CHECK (3.23.0)
+  - Production Standards > Fill-ins: a value typed once that shows everywhere it is referenced. Style on the cover
+    (STYLEREF): the value sits once on the cover or title page in its own style; every STYLEREF to that style in
+    headers, footers and Quick Parts shows it. Document property (DOCPROPERTY): Title, Subject, Company, or a property
+    of your own. Use one in a header or footer as {key}. Fields are written without MERGEFORMAT.
+  - Captions and numbering: Number shows as 1, I, i, A or a; chapter level 0 numbers by sequence only (Table 1), a
+    level numbers chapter then sequence (Table 2-1). Fix a Copy rewrites a caption field whose format differs.
+  - Make a template asks for its name (where or how it is used); making it again under that name makes the next
+    version. The file carries SK Template and SK Template Version; an effort records the template and version it used.
+  - Beside every template: "<name> - validation report.txt": problems (a style used but not defined, a STYLEREF or
+    DOCPROPERTY that points nowhere, a list number with no definition), warnings (MERGEFORMAT, direct formatting inside
+    a Quick Part, a font not installed) and notes (hidden text styles). With Word on the PC, Word's own check is added:
+    a new document from the template, every field updated, each Quick Part put in with its fields and styles confirmed.
+  - Template library: Save as a kit... (a named set of items, Ctrl+click for several) and Use in this standard on a kit;
+    a preview under the list (a style in its font, size, color and caps; a font; a theme's colors).
+
 OUR DATA, THE TEMPLATE LIBRARY AND QUICK PARTS (3.22.0)
   - Settings > Our data: Export our data... writes one Stationkeeper Data file (.skdata) with the team's foundational
     data, used the same way in every effort: the master acronym list, custom dictionaries, banned and avoided phrases,
