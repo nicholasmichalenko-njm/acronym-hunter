@@ -31,7 +31,10 @@ L = E.EffortList(LIST, "Kestrel"); L.pending = True; L.save()
 reg = E.Registry(os.path.join(cfg, "efforts.json")); reg.put("Kestrel", path=LIST)
 ws0 = W.Workspace(W.data_dir_for(LIST), "Kestrel")
 ws0.set("outline_text", "Volume I Technical\n1.1 Technical Approach\n1.2 Risk\nVolume II Management\n2.1 Program Management")
-r0 = RR.Record(ws0.root); r0.data["due"] = (datetime.date.today() + datetime.timedelta(days=60)).isoformat() + "T14:00"; r0.save()
+_due = datetime.date.today() + datetime.timedelta(days=60)          # 3.28.0: a working day (a weekend due date ends the
+while _due.weekday() >= 5:                                            # plan on the working day before, by design)
+    _due += datetime.timedelta(days=1)
+r0 = RR.Record(ws0.root); r0.data["due"] = _due.isoformat() + "T14:00"; r0.save()
 SL.mark_opened(ws0.root, SL.me(), "2026-01-01T08:00")                      # an earlier visit by this person
 r0 = RR.Record(ws0.root); r0.log("task", "Task added: Draft the risk section", who="alee"); r0.save()
 PDFS = [os.path.join(A.BASE_DIR, "test_samples", "rfp_walk", n) for n in ("Section_L_print.pdf",)]
