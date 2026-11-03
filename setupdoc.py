@@ -676,6 +676,24 @@ def _safe(s):
 LIBRARY_TEAL = "0F766E"
 
 
+def builder_notes(d, o):
+    """3.30.0: the Structure Builder's settings under a section's heading: an element, a placeholder or divider page, a
+    Word section of its own, and the library items placed in it."""
+    k = o.get("kind") or ""
+    if o.get("brk"):
+        d.para(f"Starts a new Word section ({o['brk'].get('orient', 'portrait')}).", color="7C2D12", kind="note")
+    if k == "element":
+        import responseelements as RE
+        d.para(f"Element: {(o.get('element') or '').upper()}. Make templates builds it in the template.", color="7C2D12", kind="note")
+    elif k == "placeholder":
+        d.para("Placeholder: pages for authors to fill.", color="7C2D12", kind="note")
+    elif k == "divider":
+        d.para("Divider page: its title only.", color="7C2D12", kind="note")
+    for x in o.get("lib") or []:
+        if x.get("where") != "after":
+            d.para(f"Library: {x.get('name', '')} ({x.get('kind', '')}) goes here.", color="0F766E", kind="library")
+
+
 def review_bins(root):
     """3.29.0: what review keeps in the effort record for the setup (topics, objectives, key points, custom bins)."""
     try:
@@ -712,6 +730,7 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
                    color="7C2D12", bold=True, kind="note")
             last_part = part
         d.heading(lab, o.get("level", 1) - base + 1)
+        builder_notes(d, o)                                      # 3.30.0: what the Structure Builder set on it
         pp = S["owners"].get(lab) or {}
         if pp.get("lead") or pp.get("with"):                      # 2.38.0: who writes this section
             d.para("Lead: " + (pp.get("lead") or "-") + (f"   Contributors: {pp['with']}" if pp.get("with") else ""), color="1E3A8A", kind="note")

@@ -93,7 +93,7 @@ class DashPage(QWidget):
         ap = lambda: self.host.assign_page                # 3.16.0: the response plan is set here, not in Structure or Review
         self.vol = D.Card("Volumes, people and page budget", "The volumes, who leads and writes each section, its pages, and "
                           "the requirements and context placed in each.",
-                          actions=[D.button("Response Setup", "ghost", lambda: go("setup"))])
+                          actions=[D.button("Structure Builder", "ghost", lambda: go("structure"))])
         from .adaptive import FlowLayout
         vrow = QWidget(); vf = FlowLayout(vrow, D.SPACE["s"])
         for text, fn, tip in (("Volumes...", lambda: ap().volumes_dialog(), "The response's volumes"),

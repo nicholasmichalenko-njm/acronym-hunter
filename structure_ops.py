@@ -31,6 +31,9 @@ def apply(M, text):
     """Set the structure from its text (one section per line). Sentences in sections no longer there lose that
     section (a sentence that lost its first section keeps its next one). Returns (sections, mappings cleared)."""
     ol = C.parse_outline(text)
+    keep = {C.outline_label(o): {k: o[k] for k in C.OUTLINE_EXTRA if o.get(k)} for o in (M.outline or [])}
+    for o in ol:                                   # 3.30.0: a section kept by name keeps its kind, element and library items
+        o.update(keep.get(C.outline_label(o), {}))
     M.outline = ol
     labels = {C.outline_label(o) for o in ol}
     lost = 0

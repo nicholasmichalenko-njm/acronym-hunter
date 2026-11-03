@@ -51,6 +51,7 @@ def volume_heads(M):
 
 
 # ------------------------------------------------------------------ labels follow their sections
+UNNUMBERED = ("unnumbered", "divider", "placeholder", "element")    # 3.30.0: kinds of section that carry no number
 HOOKS = []          # 3.29.1: fn(mapping) for what lives outside the matrix (captures and topics in the effort record)
 
 
@@ -116,7 +117,7 @@ def renumber(M, before=None):
     for i, o in enumerate(M.outline):
         p = parent_of(M, i)
         part = SP.part_of(o)
-        kind = part if part in SP.NUMBERED else ""
+        kind = part if (part in SP.NUMBERED and o.get("kind") not in UNNUMBERED) else ""   # 3.30.0: kinds with no number
         if kind:
             counters[(p, kind)] = counters.get((p, kind), 0) + 1   # 2.69.0: every sibling counts, typed or made here
         if not o.get("auto"):
@@ -468,3 +469,162 @@ def volumes_of_item(M, it):
     """The volumes a sentence is in, by the sections it is in."""
     vos = SD.volume_of_sections(M)
     return list(dict.fromkeys(vos.get(s) for s in SD.item_sections(M, it) if vos.get(s)))
+
+
+# ------------------------------------------------------------------ 3.30.0: the Structure Builder
+KINDS = (("", "Numbered heading"), ("unnumbered", "Unnumbered heading"), ("divider", "Divider page"),
+         ("placeholder", "Placeholder"), ("element", "Element"))
+ORIENTS = (("portrait", "Portrait"), ("landscape", "Landscape"))
+
+
+def base_level(M, label):
+    """The outline level that is Heading 1 for a section: the first level under its volume (1 with no volumes)."""
+    heads = volume_heads(M)
+    i = index_of(M, label)
+    j = i
+    while j is not None and j >= 0:
+        if C.outline_label(M.outline[j]) in heads:
+            return M.outline[j]["level"] + 1
+        j = parent_of(M, j)
+    return 1
+
+
+def heading_level(M, label):
+    """1 for Heading 1 ... as Word will number it (0 for a volume's own heading)."""
+    i = index_of(M, label)
+    if i < 0:
+        return 0
+    if label in volume_heads(M):
+        return 0
+    return M.outline[i]["level"] - base_level(M, label) + 1
+
+
+def set_level(M, label, n):
+    """Make a section Heading n (with everything under it moving the same way). A heading can go at most one level
+    below the section before it. Returns its label, or None."""
+    i = index_of(M, label)
+    if i < 0 or label in volume_heads(M) or n < 1:
+        return None
+    base = base_level(M, label)
+    want = base + n - 1
+    prev = M.outline[i - 1]["level"] if i > 0 else base
+    want = max(base, min(want, max(prev, base - 1) + 1))
+    d = want - M.outline[i]["level"]
+    if d == 0:
+        return label
+    before = {id(x): C.outline_label(x) for x in M.outline}
+    for k in subtree(M, i):
+        M.outline[k]["level"] = max(1, M.outline[k]["level"] + d)
+    renumber(M, before)
+    M.pending = True
+    return C.outline_label(M.outline[i])
+
+
+def set_kind(M, label, kind):
+    """A numbered heading, an unnumbered heading, a divider page or a placeholder. Returns the new label."""
+    i = index_of(M, label)
+    if i < 0 or kind not in dict(KINDS) or label in volume_heads(M):
+        return None
+    o = M.outline[i]
+    if (o.get("kind") or "") == kind:
+        return label
+    before = {id(x): C.outline_label(x) for x in M.outline}
+    if kind:
+        o["kind"] = kind
+    else:
+        o.pop("kind", None)
+        o.pop("element", None)
+    o["auto"] = True
+    if kind in UNNUMBERED:
+        o["num"] = ""
+        o["title"] = unique_title(M, o["title"]) if o["title"] in [C.outline_label(x) for x in M.outline if x is not o] else o["title"]
+    renumber(M, before)
+    M.pending = True
+    return C.outline_label(o)
+
+
+def set_break(M, label, orient=None):
+    """3.30.0: the section starts a Word section of its own (a new page, its own page setup: portrait or landscape), or
+    not (orient None)."""
+    i = index_of(M, label)
+    if i < 0:
+        return None
+    o = M.outline[i]
+    if orient:
+        o["brk"] = {"orient": orient if orient in dict(ORIENTS) else "portrait"}
+    else:
+        o.pop("brk", None)
+    M.pending = True
+    return label
+
+
+def move_to(M, label, target, where="after"):
+    """Drag and drop: a section (with everything under it) before, after or into (as the last child of) target.
+    Returns its new label, or None."""
+    i, t = index_of(M, label), index_of(M, target)
+    if i < 0 or t < 0 or label == target:
+        return None
+    me = subtree(M, i)
+    if t in me:
+        return None                                 # not into itself
+    before = {id(x): C.outline_label(x) for x in M.outline}
+    block = [M.outline[k] for k in me]
+    tgt = M.outline[t]
+    rest = [o for k, o in enumerate(M.outline) if k not in me]
+    ti = next(n for n, o in enumerate(rest) if o is tgt)
+    tsub = [ti]
+    while tsub[-1] + 1 < len(rest) and rest[tsub[-1] + 1]["level"] > tgt["level"]:
+        tsub.append(tsub[-1] + 1)
+    if where == "into":
+        lvl, at = tgt["level"] + 1, tsub[-1] + 1
+    elif where == "before":
+        lvl, at = tgt["level"], ti
+    else:
+        lvl, at = tgt["level"], tsub[-1] + 1
+    d = lvl - block[0]["level"]
+    for o in block:
+        o["level"] = max(1, o["level"] + d)
+    M.outline[:] = rest[:at] + block + rest[at:]
+    renumber(M, before)
+    M.pending = True
+    return C.outline_label(block[0])
+
+
+def lib_items(M, label):
+    """3.30.0: the library items placed in a section, in order: [{"id", "kind", "name", "where"}] (where: before or
+    after the section's requirements)."""
+    i = index_of(M, label)
+    return list(M.outline[i].get("lib") or []) if i >= 0 else []
+
+
+def place_lib(M, label, item, where="before"):
+    """Place a library item (a Quick Part, a table look, a cover...) in a section. Returns its place in the list."""
+    i = index_of(M, label)
+    if i < 0 or not item or not item.get("id"):
+        return None
+    lst = M.outline[i].setdefault("lib", [])
+    lst.append({"id": str(item["id"]), "kind": str(item.get("kind", "")), "name": str(item.get("name", ""))[:160],
+                "where": "after" if where == "after" else "before"})
+    M.pending = True
+    return len(lst) - 1
+
+
+def unplace_lib(M, label, n):
+    i = index_of(M, label)
+    lst = M.outline[i].get("lib") or [] if i >= 0 else []
+    if not 0 <= n < len(lst):
+        return False
+    lst.pop(n)
+    M.pending = True
+    return True
+
+
+def move_lib(M, label, n, delta):
+    i = index_of(M, label)
+    lst = M.outline[i].get("lib") or [] if i >= 0 else []
+    j = n + delta
+    if not (0 <= n < len(lst) and 0 <= j < len(lst)):
+        return False
+    lst[n], lst[j] = lst[j], lst[n]
+    M.pending = True
+    return True

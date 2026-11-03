@@ -15,7 +15,7 @@ import assign_ops as AO
 from . import design as D
 from .readpage import ReadPage
 from .assign import AssignPage
-from .structure import StructurePage
+from .builder import BuilderPage          # 3.30.0: the Structure Builder (with the structure text inside)
 from .prove import ProvePage
 from .crosswalkpage import CrosswalkPage
 from .matrixpage import MatrixPage
@@ -37,7 +37,7 @@ RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),          
         ("Effort", [("home", "Effort Dashboard"), ("deliverables", "Deliverables"), ("record", "Effort Record"),
                     ("reviews", "Color Reviews")]),
         ("Solicitation", [("library", "Library"), ("compare", "Compare"), ("custqa", "Customer Q&A")]),
-        ("Compliance", [("assign", "Review"), ("matrix", "Matrix"), ("setup", "Response Setup")]),
+        ("Compliance", [("assign", "Review"), ("structure", "Structure Builder"), ("matrix", "Matrix")]),   # 3.30.0
         ("Writing", [("storyboards", "Storyboards"), ("truth", "Wall of Truth"), ("acronyms", "Acronyms")]),
         ("Quality", [("qa", "Submission Check"), ("checks", "Final Checks")]),
         ("Production", [("prodstd", "Production Standards"), ("audit", "Audit"), ("fixcopy", "Fix a Copy")]),
@@ -47,7 +47,7 @@ RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),          
 TABS = {"home": [("home", "Dashboard"), ("requirements", "Submission Rules")],
         "record": [("record", "Effort Record"), ("meetings", "Meetings")],                 # 3.20.0
         "library": [("library", "Documents"), ("read", "Read into Review")],
-        "assign": [("assign", "Review"), ("structure", "Structure"), ("prove", "Coverage")],
+        "assign": [("assign", "Review"), ("prove", "Coverage")],
         "matrix": [("matrix", "Matrix"), ("crosswalk", "L/M Crosswalk")],
         "acronyms": [("acronyms", "Scan"), ("acrlist", "Acronym List"), ("lists", "Lists to Submit")]}
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
@@ -92,7 +92,8 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "exportall": ("Export All", "Every feature's outputs in one dated folder"),
           "settings": ("Settings", "New effort, the effort's folders, the master database, backups"),
           "read": ("Read into Review", "Read several customer documents into the compliance matrix at once"),
-          "structure": ("Structure", "Start the response structure from the RFP or a Word outline; build it beside the page in Review"),
+          "structure": ("Structure Builder", "Build the response: sections and headings, elements, library items, and "
+                        "everything placed in each section; Make templates from it"),
           "assign": ("Review", "Read every sentence on the page: decide it and capture what it holds"),
           "prove": ("Coverage", "Every sentence of every file read and decided, and the word-for-word text check"),
           "crosswalk": ("L/M Crosswalk", "Each instruction, the factor that scores it, and the work it describes"),
@@ -264,7 +265,7 @@ class MainWindow(QMainWindow):
         self.exportall_page = ExportAllPage(self)
         self.settings_page = SettingsPage(self)
         self.read_page = ReadPage(self)
-        self.structure_page = StructurePage(self)
+        self.structure_page = BuilderPage(self)
         self.assign_page = AssignPage(self)
         self.prove_page = ProvePage(self)
         self.crosswalk_page = CrosswalkPage(self)
@@ -1049,7 +1050,7 @@ class MainWindow(QMainWindow):
         return head in cur
 
     def go(self, step):
-        step = {"format": "fixcopy", "dashboard": "home"}.get(step, step)   # 3.9.0: Format Check is in Fix a Copy; 3.12.0: one dashboard
+        step = {"format": "fixcopy", "dashboard": "home", "setup": "structure"}.get(step, step)   # 3.30.0: Response Setup is in the Builder   # 3.9.0: Format Check is in Fix a Copy; 3.12.0: one dashboard
         if step in TABS and self.blocked(step) is not None:     # 3.16.0: a menu item opens on a tab the role has
             step = next((k for k in members(step)[1:] if self.blocked(k) is None), step)
         why = self.blocked(step)                     # 3.13.0: another role's tool, or a Preview tool not turned on

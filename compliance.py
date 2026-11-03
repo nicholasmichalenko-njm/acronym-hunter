@@ -1149,6 +1149,8 @@ class Locked(Exception):
     """The workbook is open in Excel."""
 
 
+OUTLINE_EXTRA = ("kind", "element", "brk", "lib")      # 3.30.0: kept on the Outline sheet as JSON (column H)
+
 class Matrix:
     def __init__(self, path, name=""):
         self.path = path
@@ -1208,6 +1210,12 @@ class Matrix:
                             pk = {v.lower(): k for k, v in SP.PARTS}.get(str(r[6]).strip().lower(), str(r[6]).strip().lower())
                             if pk in SP.PART_NAME and pk != "body":
                                 o["part"] = pk
+                        if len(r) >= 8 and r[7]:         # 3.30.0: the Structure Builder's kind, element, Word section, library items
+                            try:
+                                ex = json.loads(str(r[7]))
+                                o.update({k: ex[k] for k in OUTLINE_EXTRA if isinstance(ex, dict) and ex.get(k)})
+                            except ValueError:
+                                pass
                         self.outline.append(o)
             if "Sources" in wb.sheetnames:
                 self.sources = [[("" if v is None else str(v)) for v in (list(r) + ["", "", "", ""])[:4]]
@@ -1356,15 +1364,16 @@ class Matrix:
         for col in ("Context", "Key"):
             ws.column_dimensions[ws.cell(row=1, column=COLUMNS.index(col) + 1).column_letter].hidden = col in ("Key", "As read", "Place", "Lead place", "Area")
         ol = wb.create_sheet("Outline")
-        ol.append(["Number", "Title", "Level", "Keep and Context rows placed", "Numbering", "From RFP section", "Part"])
+        ol.append(["Number", "Title", "Level", "Keep and Context rows placed", "Numbering", "From RFP section", "Part", "Builder"])
         import structparts as SP
         for c in ol[1]:
             c.font = Font(bold=True)
         for o in self.outline:
             lab = outline_label(o)
             ol.append([o["num"], o["title"], o["level"], sum(1 for it in self.items if it["decision"] in ("Keep", "Context") and it["map"] == lab),
-                       "auto" if o.get("auto") else "", o.get("from", ""), SP.PART_NAME[SP.part_of(o)]])
-        for col, w in zip("ABCDEFG", (12, 60, 8, 18, 12, 16, 14)):
+                       "auto" if o.get("auto") else "", o.get("from", ""), SP.PART_NAME[SP.part_of(o)],
+                       json.dumps({k: o[k] for k in OUTLINE_EXTRA if o.get(k)}) if any(o.get(k) for k in OUTLINE_EXTRA) else ""])
+        for col, w in zip("ABCDEFGH", (12, 60, 8, 18, 12, 16, 14, 30)):
             ol.column_dimensions[col].width = w
         so = wb.create_sheet("Sources")
         so.append(["File", "SHA-256", "Read on", "Path on this PC"])

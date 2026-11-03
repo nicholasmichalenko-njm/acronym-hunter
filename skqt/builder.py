@@ -1,0 +1,799 @@
+"""The Structure Builder (3.30.0): one page to build the response.
+
+Left, the structure: volume tabs, parts, every section with its tag (H1 to H9 and deeper, UN unnumbered, DIV divider
+page, PH placeholder, EL element, SEC when it starts a Word section), its requirements, captures and pages. A toolbar like
+Word's style buttons makes the selected item Heading 1, 2, 3 or deeper, unnumbered, a divider or a placeholder, starts a
+Word section, adds a section below or under it, moves it and takes it out; Enter, Tab, Shift+Tab, F2 and Delete do the
+same from the keyboard, and a drag moves a section before, after or into another.
+
+Middle, the selected section: what it is, its pages, and everything in it in order (its requirements and support, its
+captures, the library items placed in it), to reorder or take out. Response Setup lives here now.
+
+Right, the production library (Quick Parts, covers, table looks...) to place in the section, and what is not placed yet.
+
+Add elements puts the Table of Contents, the lists, Acronyms and Abbreviations, the Appendices section and the rest
+into a volume in one tick list (Settings > Response elements). Edit as text keeps the structure's text and Start from.
+Make templates, Export the setup and Export changes only are on the toolbar. Rules only; nothing leaves the PC."""
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor, QKeySequence, QShortcut
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFrame, QHBoxLayout,
+                               QLabel, QListWidget, QListWidgetItem, QMenu, QPushButton, QScrollArea, QSplitter, QTabBar,
+                               QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QLineEdit, QInputDialog)
+import diag
+import compliance as C
+import outline_ops as O
+import responseelements as RE
+import setupdoc as SD
+import structparts as SP
+from . import design as D
+from .structure import StructurePage
+
+PART_COLOR = {"cover": "#64748B", "title": "#64748B", "front": "#6B4E9B", "body": "#2E7D5B", "appendix": "#A35A1E",
+              "back": "#64748B"}
+
+
+class BuilderTree(QTreeWidget):
+    """The structure: a left double-click renames, a drag moves a section before, after or into another, and Enter,
+    Tab, Shift+Tab, F2 and Delete work like an outline."""
+
+    def __init__(self, page):
+        super().__init__()
+        self.page = page
+        self.setHeaderLabels(["Section", "Kind", "Req.", "Cap.", "Pages"])
+        self.setColumnWidth(0, 330); self.setColumnWidth(1, 64); self.setColumnWidth(2, 44); self.setColumnWidth(3, 44)
+        self.setDragDropMode(QAbstractItemView.InternalMove)
+        self.setDragEnabled(True); self.setAcceptDrops(True); self.setDropIndicatorShown(True)
+        self.setSelectionMode(QAbstractItemView.SingleSelection)
+
+    def mouseDoubleClickEvent(self, e):
+        if e.button() != Qt.LeftButton:
+            e.accept()
+            return
+        it = self.itemAt(e.position().toPoint())
+        if it is not None and it.data(0, Qt.UserRole):
+            self.page.rename(it.data(0, Qt.UserRole))
+            return
+        super().mouseDoubleClickEvent(e)
+
+    def dropEvent(self, e):
+        src = self.currentItem()
+        tgt = self.itemAt(e.position().toPoint())
+        e.ignore()                                   # the structure moves, then the tree is drawn again
+        if src is None or tgt is None or not src.data(0, Qt.UserRole) or not tgt.data(0, Qt.UserRole):
+            return
+        pos = self.dropIndicatorPosition()
+        where = {QAbstractItemView.AboveItem: "before", QAbstractItemView.BelowItem: "after"}.get(pos, "into")
+        self.page.drop(src.data(0, Qt.UserRole), tgt.data(0, Qt.UserRole), where)
+
+    def keyPressEvent(self, e):
+        k = e.key()
+        if k in (Qt.Key_Return, Qt.Key_Enter) and not e.modifiers():
+            return self.page.add_below()
+        if k == Qt.Key_Tab:
+            return self.page.level_down()
+        if k == Qt.Key_Backtab:
+            return self.page.level_up()
+        if k == Qt.Key_F2:
+            return self.page.rename()
+        if k == Qt.Key_Delete:
+            return self.page.delete()
+        super().keyPressEvent(e)
+
+    def focusNextPrevChild(self, nxt):
+        return False                                 # Tab and Shift+Tab move levels here, not the focus
+
+
+class BuilderPage(QWidget):
+    def __init__(self, host):
+        super().__init__()
+        self.setObjectName("page")
+        self.host = host
+        self.sel = None
+        self.volume = ""
+        v = QVBoxLayout(self)
+        v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"])
+        v.setSpacing(D.SPACE["s"])
+        from .adaptive import FlowLayout
+        top = FlowLayout(spacing=D.SPACE["s"]); v.addLayout(top)        # wraps when the window is narrow
+        self.vol_tabs = QTabBar(); self.vol_tabs.setObjectName("groupbar"); self.vol_tabs.setExpanding(False)
+        self.vol_tabs.setDrawBase(False)
+        self.vol_tabs.currentChanged.connect(lambda i: self.pick_volume(i))
+        top.addWidget(self.vol_tabs)
+        top.addWidget(D.button("+ Volume", "ghost", lambda: self.add_volume(), "A new volume at the end, numbered the volumes' way"))
+        self.text_btn = D.button("Edit as text / Start from", None, lambda: self.show_text(not self.text_panel.isVisible()),
+                                 "The structure as text, one section per line, and Start from the RFP or a Word outline")
+        top.addWidget(self.text_btn)
+        top.addWidget(D.button("Add elements...", None, lambda: self.add_elements(),
+                               "Table of Contents, the lists, Acronyms and Abbreviations, the Appendices section and the rest, "
+                               "in one tick list (Settings > Response elements)"))
+        top.addWidget(D.button("Export the setup...", None, lambda: self.host.setup_page.export(), "One plain Word document per volume"))
+        top.addWidget(D.button("Export changes only...", "ghost", lambda: self.host.setup_page.export_changes(),
+                               "Just what changed since the last export"))
+        top.addWidget(D.button("Make templates", "primary", lambda: self.host.prodstd_page.make_templates("effort"),
+                               "For each volume: its template from Production Standards, and the setup written on it"))
+        # the toolbar: what the selected item is, like Word's style buttons
+        bar = QFrame(); bar.setObjectName("navband"); bl = FlowLayout(spacing=D.SPACE["xs"]); bar.setLayout(bl)
+        bl.setContentsMargins(D.SPACE["s"], D.SPACE["xs"], D.SPACE["s"], D.SPACE["xs"])
+        bl.addWidget(D.label("Make the selected item", "label", wrap=False))
+        self.tools = {}
+
+        def tb(key, text, tip, fn, shortcut=None):
+            b = D.button(text, None, fn, tip + (f" ({shortcut})" if shortcut else ""))
+            b.setCheckable(key.startswith(("H", "kind:", "brk")))
+            self.tools[key] = b
+            bl.addWidget(b)
+            return b
+        for n in (1, 2, 3):
+            tb(f"H{n}", f"Heading {n}", f"Make it Heading {n}: numbered, level {n}", lambda _=False, n=n: self.make_level(n), f"Ctrl+{n}")
+        deep = tb("H4+", "Heading 4-9...", "Make it Heading 4 to 9, or deeper", None)
+        deep.setCheckable(True)
+        dm = QMenu(deep)
+        for n in range(4, 13):
+            dm.addAction(f"Heading {n}" + ("  (Stationkeeper numbers it; not in Word's TOC)" if n > 9 else ""),
+                         lambda n=n: self.make_level(n))
+        deep.setMenu(dm)
+        bl.addWidget(self._sep())
+        tb("kind:unnumbered", "Unnumbered", "A heading with no number (in the TOC)", lambda: self.make_kind("unnumbered"))
+        tb("kind:divider", "Divider page", "A page with its title only (a tab, the Appendices divider)", lambda: self.make_kind("divider"))
+        tb("kind:placeholder", "Placeholder", "Pages for authors to fill (a resume, a past performance card)", lambda: self.make_kind("placeholder"))
+        ws = tb("brk", "Word section", "Starts a new page with its own page setup: portrait or landscape", None)
+        wm = QMenu(ws)
+        wm.addAction("Starts a Word section, portrait", lambda: self.make_break("portrait"))
+        wm.addAction("Starts a Word section, landscape", lambda: self.make_break("landscape"))
+        wm.addAction("No Word section of its own", lambda: self.make_break(None))
+        ws.setMenu(wm)
+        bl.addWidget(self._sep())
+        tb("add", "+ Below", "A new section after it, at its level", lambda: self.add_below(), "Enter")
+        tb("sub", "+ Under", "A new section under it, one level down", lambda: self.add_under())
+        tb("in", "Level down", "One level down, under the section above", lambda: self.level_down(), "Tab")
+        tb("out", "Level up", "One level up", lambda: self.level_up(), "Shift+Tab")
+        tb("up", "Up", "Earlier, past the section before it", lambda: self.move(-1))
+        tb("down", "Down", "Later, past the section after it", lambda: self.move(1))
+        bl.addWidget(self._sep())
+        tb("rename", "Rename", "Rename it", lambda: self.rename(), "F2")
+        tb("delete", "Delete", "Take it out; its sentences go to the section above", lambda: self.delete(), "Delete")
+        v.addWidget(bar)
+        for n in (1, 2, 3):
+            sc = QShortcut(QKeySequence(f"Ctrl+{n}"), self); sc.setContext(Qt.WidgetWithChildrenShortcut)
+            sc.activated.connect(lambda n=n: self.make_level(n))
+        # the text and Start from (the Structure tab before 3.30.0), hidden until asked for
+        self.text_panel = StructurePage(host)
+        self.text_panel.setVisible(False)
+        v.addWidget(self.text_panel, 1)
+        split = QSplitter(Qt.Horizontal)
+        left = QWidget(); lv = QVBoxLayout(left); lv.setContentsMargins(0, 0, 0, 0)
+        self.btree = BuilderTree(self)
+        self.btree.itemSelectionChanged.connect(self.on_pick)
+        self.btree.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.btree.customContextMenuRequested.connect(
+            lambda pos: (lambda i: self.menu(i.data(0, Qt.UserRole)).exec(self.btree.viewport().mapToGlobal(pos))
+                         if i is not None and i.data(0, Qt.UserRole) else None)(self.btree.itemAt(pos)))
+        lv.addWidget(self.btree, 1)
+        self.sum = D.label("", "muted"); lv.addWidget(self.sum)
+        split.addWidget(left)
+        mid = QScrollArea(); mid.setWidgetResizable(True); mid.setFrameShape(QFrame.NoFrame)
+        self.mid = QWidget(); self.mv = QVBoxLayout(self.mid); self.mv.setAlignment(Qt.AlignTop)
+        mid.setWidget(self.mid)
+        split.addWidget(mid)
+        right = QWidget(); rv = QVBoxLayout(right); rv.setContentsMargins(0, 0, 0, 0)
+        rv.addWidget(D.label("Production library", "title"))
+        self.lib_find = QLineEdit(); self.lib_find.setPlaceholderText("Find a library item")
+        self.lib_find.textChanged.connect(lambda _t: self.fill_library())
+        rv.addWidget(self.lib_find)
+        self.lib_list = QListWidget(); rv.addWidget(self.lib_list, 2)
+        self.lib_list.itemDoubleClicked.connect(lambda _i: self.place_selected())
+        self.place_btn = D.button("Place in the section", "primary", lambda: self.place_selected(),
+                                  "Put the library item in the selected section, before its requirements")
+        rv.addWidget(self.place_btn)
+        rv.addWidget(D.label("Not placed yet", "title"))
+        self.unp_list = QListWidget(); self.unp_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        rv.addWidget(self.unp_list, 1)
+        self.unp_btn = D.button("Into the selected section", None, lambda: self.place_unplaced(),
+                                "Requirements and captures with no section yet go into the selected section")
+        rv.addWidget(self.unp_btn)
+        split.addWidget(right)
+        for wdg, mn in ((left, 300), (mid, 260), (right, 220)):
+            wdg.setMinimumWidth(mn)
+        split.setSizes([480, 380, 280])
+        self.split = split
+        v.addWidget(split, 1)
+
+    @staticmethod
+    def _sep():
+        f = QFrame(); f.setFrameShape(QFrame.VLine); f.setFixedHeight(22)
+        return f
+
+    # ------------------------------------------------------------ the text panel (tests and Start from use these)
+    def __getattr__(self, name):
+        if name in ("text", "apply", "apply_btn", "state", "preview", "letter", "doc", "from_rfp_outline", "from_word",
+                    "set_text", "why", "tree") and "text_panel" in self.__dict__:
+            return getattr(self.__dict__["text_panel"], name)
+        raise AttributeError(name)
+
+    def show_text(self, on=True):
+        self.text_panel.setVisible(on)
+        self.split.setVisible(not on)
+        self.text_btn.setText("Back to the builder" if on else "Edit as text / Start from")
+        if on:
+            self.text_panel.refresh()
+        else:
+            self.refresh()
+
+    def offer_start(self):
+        self.show_text(True)
+        return self.text_panel.offer_start()
+
+    def from_prescribed(self):
+        self.show_text(True)
+        return self.text_panel.from_prescribed()
+
+    def from_headings(self):
+        self.show_text(True)
+        return self.text_panel.from_headings()
+
+    def blank(self):
+        self.show_text(True)
+        return self.text_panel.blank()
+
+    # ------------------------------------------------------------ the structure
+    @property
+    def M(self):
+        R = self.host.review
+        return R.M if R is not None else None
+
+    def refresh(self):
+        R = self.host.review
+        self.setEnabled(R is not None)
+        self.text_panel.refresh()                    # the text stays the structure's, shown or not
+        if R is None:
+            self.btree.clear()
+            return
+        self.fill_volumes()
+        self.fill_tree()
+        self.fill_library()
+        self.fill_unplaced()
+        self.show_section()
+
+    def fill_volumes(self):
+        hs = O.volume_heads(self.M)
+        heads = [l for l in O.labels(self.M) if l in hs]          # in the structure's order
+        self.vol_tabs.blockSignals(True)
+        while self.vol_tabs.count():
+            self.vol_tabs.removeTab(0)
+        self._vols = ([""] if len(heads) != 1 else []) + list(heads)
+        for h in self._vols:
+            self.vol_tabs.addTab(h or ("Every volume" if heads else "The response"))
+        if self.volume not in self._vols:
+            self.volume = self._vols[0] if self._vols else ""
+        self.vol_tabs.setCurrentIndex(self._vols.index(self.volume) if self.volume in self._vols else 0)
+        self.vol_tabs.blockSignals(False)
+
+    def pick_volume(self, i):
+        if 0 <= i < len(getattr(self, "_vols", [])):
+            self.volume = self._vols[i]
+            self.fill_tree()
+
+    def _counts(self):
+        R = self.host.review
+        caps = {}
+        try:
+            import effortrec as RR
+            import excerpts as EX
+            caps = EX.section_counts(RR.Record(self.host.ws.root)) if self.host.ws is not None else {}
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+        return R.counts(), caps
+
+    def fill_tree(self):
+        M = self.M
+        self.btree.blockSignals(True)                # clearing must not pick the old item again
+        self.btree.clear()
+        self.btree.blockSignals(False)
+        if M is None:
+            return
+        import pagebudget as PB
+        reqs, caps = self._counts()
+        show = set(O.in_volume(M, self.volume))
+        heads = O.volume_heads(M)
+        stack, last_part, part_node, keep = [], {}, None, None
+        vos = SD.volume_of_sections(M)
+        parted = {vos.get(C.outline_label(o), "") for o in M.outline if SP.part_of(o) != "body"}   # volumes with parts
+        for o in M.outline:
+            lab = C.outline_label(o)
+            if lab not in show:
+                continue
+            lvl = o.get("level", 1)
+            par = next((x for x in reversed(stack) if x[0] < lvl), None)
+            top = lab not in heads and (par is None or par[1].data(0, Qt.UserRole) in heads)
+            hl = O.heading_level(M, lab)
+            node = QTreeWidgetItem([lab, "VOL" if lab in heads else RE.tag(o, hl), str(reqs.get(lab, "") or ""),
+                                    str(caps.get(lab, "") or ""), PB.tag(M, lab)])
+            node.setData(0, Qt.UserRole, lab)
+            part = SP.part_of(o)
+            node.setForeground(1, QColor(PART_COLOR.get(part, "#2E7D5B")))
+            f = node.font(1); f.setBold(True); node.setFont(1, f)
+            node.setToolTip(1, self._tag_tip(o, hl, lab in heads))
+            if o.get("lib"):
+                node.setToolTip(0, "Library items: " + ", ".join(x["name"] for x in o["lib"]))
+            if lab in heads:
+                f0 = node.font(0); f0.setBold(True); node.setFont(0, f0)
+            while stack and stack[-1][0] >= lvl:
+                stack.pop()
+            if top and (par[1].data(0, Qt.UserRole) if par else "") in parted:
+                vol_node = par[1] if par else None
+                key = (id(vol_node), part)
+                if last_part.get(id(vol_node)) != part:
+                    part_node = QTreeWidgetItem([SP.PART_NAME[part].upper(), "", "", "", ""])
+                    part_node.setData(0, Qt.UserRole, None)
+                    part_node.setForeground(0, QColor(PART_COLOR.get(part, "#2E7D5B")))
+                    fp = part_node.font(0); fp.setBold(True); part_node.setFont(0, fp)
+                    part_node.setFlags(part_node.flags() & ~Qt.ItemIsDragEnabled & ~Qt.ItemIsDropEnabled)
+                    (vol_node.addChild(part_node) if vol_node else self.btree.addTopLevelItem(part_node))
+                    part_node.setExpanded(True)
+                    last_part[id(vol_node)] = part
+                part_node.addChild(node)
+            else:
+                (stack[-1][1].addChild(node) if stack else self.btree.addTopLevelItem(node))
+            stack.append((lvl, node))
+            if lab == self.sel:
+                keep = node
+        self.btree.expandAll()
+        if keep is not None:
+            self.btree.blockSignals(True); self.btree.setCurrentItem(keep); self.btree.blockSignals(False)
+        n = len([o for o in M.outline if C.outline_label(o) in show])
+        self.sum.setText(f"{n} item(s) in {self.volume or 'the structure'}. Drag a section onto another to move it; "
+                         "Enter adds one below, Tab and Shift+Tab change its level.")
+        self.sync_tools()
+
+    def _tag_tip(self, o, hl, is_vol):
+        if is_vol:
+            return "A volume"
+        k = o.get("kind") or ""
+        what = {"unnumbered": "An unnumbered heading", "divider": "A divider page", "placeholder": "A placeholder",
+                "element": "An element: " + (o.get("element") or "")}.get(k, f"Heading {hl}" + (" (Word numbers and lists "
+                                                                                                   "Heading 1 to 9; deeper levels are numbered by Stationkeeper)" if hl > 9 else ""))
+        brk = o.get("brk")
+        return what + (f"; starts a Word section, {brk.get('orient', 'portrait')}" if brk else "")
+
+    def on_pick(self):
+        it = self.btree.currentItem()
+        lab = it.data(0, Qt.UserRole) if it is not None else None
+        if lab:
+            self.sel = lab
+        self.sync_tools()
+        self.show_section()
+
+    def select(self, lab):
+        self.sel = lab
+        self.fill_tree()
+        self.show_section()
+
+    def sync_tools(self):
+        M, lab = self.M, self.sel
+        o = M.outline[O.index_of(M, lab)] if (M is not None and lab and O.index_of(M, lab) >= 0) else None
+        hl = O.heading_level(M, lab) if o is not None else 0
+        k = (o or {}).get("kind") or ""
+        for key, b in self.tools.items():
+            b.setEnabled(o is not None or key in ("add",))
+            if b.isCheckable():
+                on = (key == f"H{hl}" and not k) or (key == "H4+" and hl >= 4 and not k) or key == f"kind:{k}" \
+                    or (key == "brk" and bool((o or {}).get("brk")))
+                b.blockSignals(True); b.setChecked(bool(on)); b.blockSignals(False)
+
+    # ------------------------------------------------------------ changes
+    def _change(self, what, fn):
+        """One Undo step for a change to the structure; Review's structure follows."""
+        R = self.host.review
+        if R is None:
+            return None
+        R.snap(what)
+        new = fn()
+        if new is None:
+            if R.undo:
+                R.undo.pop()
+            return None
+        if isinstance(new, str):
+            self.sel = new
+        self.host.changed()
+        try:
+            self.host.assign_page.fill_tree()
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+        self.fill_tree()
+        self.fill_unplaced()
+        self.show_section()
+        return new
+
+    def _need(self):
+        if not self.sel or self.M is None or O.index_of(self.M, self.sel) < 0:
+            self.host.status("Click a section in the structure first.")
+            return False
+        return True
+
+    def make_level(self, n):
+        if not self._need():
+            return None
+        lab = self.sel
+        o = self.M.outline[O.index_of(self.M, lab)]
+
+        def go():
+            new = lab
+            if o.get("kind"):
+                new = O.set_kind(self.M, new, "")
+            return O.set_level(self.M, new, n)
+        return self._change(f"Heading {n}: {lab}", go)
+
+    def make_kind(self, kind):
+        if not self._need():
+            return None
+        o = self.M.outline[O.index_of(self.M, self.sel)]
+        kind = "" if (o.get("kind") or "") == kind else kind          # a second click takes it off, like Bold
+        return self._change(f"{dict(O.KINDS)[kind].lower()}: {self.sel}", lambda: O.set_kind(self.M, self.sel, kind))
+
+    def make_break(self, orient):
+        if not self._need():
+            return None
+        return self._change(f"Word section: {self.sel}", lambda: O.set_break(self.M, self.sel, orient))
+
+    def _ask(self, title, label, text=""):
+        if hasattr(self, "answer"):                    # tests
+            a = self.answer
+            return a.pop(0) if isinstance(a, list) else a
+        t, ok = QInputDialog.getText(self, title, label, text=text)
+        return t.strip() if ok and t.strip() else None
+
+    def add_below(self, title=None):
+        M = self.M
+        if M is None:
+            return None
+        title = title if title is not None else self._ask("New section", "Title:")
+        if not title:
+            return None
+        if self.sel and O.index_of(M, self.sel) >= 0 and self.sel not in O.volume_heads(M):
+            return self._change(f"add section {title}", lambda: O.add(M, title, after=self.sel))
+        parent = self.sel if self.sel in O.volume_heads(M) else (self.volume or None)
+        return self._change(f"add section {title}", lambda: O.add(M, title, parent=parent))
+
+    def add_under(self, title=None):
+        if not self._need():
+            return None
+        title = title if title is not None else self._ask("New subsection", f"Title (under {self.sel}):")
+        if not title:
+            return None
+        return self._change(f"add section {title}", lambda: O.add(self.M, title, parent=self.sel))
+
+    def level_down(self):
+        if not self._need():
+            return None
+        return self._change(f"level down: {self.sel}", lambda: O.indent(self.M, self.sel))
+
+    def level_up(self):
+        if not self._need():
+            return None
+        return self._change(f"level up: {self.sel}", lambda: O.outdent(self.M, self.sel))
+
+    def move(self, delta):
+        if not self._need():
+            return None
+        return self._change(f"move: {self.sel}", lambda: O.move(self.M, self.sel, delta))
+
+    def drop(self, label, target, where):
+        return self._change(f"move {label}", lambda: O.move_to(self.M, label, target, where))
+
+    def rename(self, label=None, title=None):
+        label = label or self.sel
+        if not label or self.M is None:
+            return None
+        self.sel = label
+        o = self.M.outline[O.index_of(self.M, label)]
+        title = title if title is not None else self._ask("Rename", f"New title for {label}:", o.get("title", ""))
+        if not title:
+            return None
+        return self.host.assign_page.rename_section(label, title) and self._after_assign(label)
+
+    def _after_assign(self, label):
+        self.sel = self.host.assign_page.target or label
+        self.refresh()
+        return self.sel
+
+    def delete(self, label=None):
+        label = label or self.sel
+        if not label or self.M is None:
+            return None
+        to = self.host.assign_page.delete_section(label)
+        self.sel = to or None
+        self.refresh()
+        return to
+
+    def add_volume(self, title=None):
+        title = title if title is not None else self._ask("New volume", "Volume title (the number is added):")
+        if not title:
+            return None
+        lab = self._change(f"add volume {title}", lambda: O.add_volume(self.M, title))
+        if lab:
+            self.volume = lab
+            self.refresh()
+        return lab
+
+    def menu(self, label):
+        m = QMenu(self)
+        if not label or self.M is None:
+            return m
+        self.select(label)
+        m.addAction("Rename... (F2)", lambda: self.rename(label))
+        lv = m.addMenu("Make it")
+        for n in range(1, 10):
+            lv.addAction(f"Heading {n}", lambda n=n: self.make_level(n))
+        lv.addSeparator()
+        for k, t in O.KINDS[1:4]:
+            lv.addAction(t, lambda k=k: self.make_kind(k))
+        m.addAction("Pages...", lambda: self.host.assign_page.section_pages(label) and self.refresh())
+        m.addSeparator()
+        m.addAction("+ Below (Enter)", lambda: self.add_below())
+        m.addAction("+ Under", lambda: self.add_under())
+        m.addAction("Level down (Tab)", lambda: self.level_down())
+        m.addAction("Level up (Shift+Tab)", lambda: self.level_up())
+        m.addAction("Up", lambda: self.move(-1))
+        m.addAction("Down", lambda: self.move(1))
+        pm = m.addMenu("Move to a part")
+        for k, t in SP.PARTS:
+            pm.addAction(t, lambda k=k: self._change(f"to {k}: {label}", lambda: O.set_part(self.M, label, k)))
+        m.addSeparator()
+        m.addAction("Delete (Del)", lambda: self.delete(label))
+        return m
+
+    # ------------------------------------------------------------ the section: what it is and what is in it
+    def _clear_mid(self):
+        while self.mv.count():
+            w = self.mv.takeAt(0).widget()
+            if w is not None:
+                w.setParent(None); w.deleteLater()
+
+    def contents(self, label=None):
+        """[(kind, id, text)] in the order the setup prints them: library items before, the requirements and support,
+        library items after, then the captures placed here."""
+        label = label or self.sel
+        M = self.M
+        if M is None or not label:
+            return []
+        out = []
+        lib = O.lib_items(M, label)
+        out += [("lib", n, f"{x['name']} ({x.get('kind', '')})") for n, x in enumerate(lib) if x.get("where") != "after"]
+        P = SD.placed_in(M)
+        B = SD.by_id(M)
+        inh = SD.inherited_sections(M)
+        for i in P.get(label, []):
+            it = B.get(i)
+            if it is not None:
+                ref = SD.ref_of(M, it, inh)[0] or i
+                out.append(("item", i, f"{SD.kind_of(it)}  {ref}: {it.get('text', '')[:140]}"))
+        out += [("lib", n, f"{x['name']} ({x.get('kind', '')})") for n, x in enumerate(lib) if x.get("where") == "after"]
+        try:
+            import effortrec as RR
+            import excerpts as EX
+            rec = RR.Record(self.host.ws.root)
+            names = {b["id"]: b["name"] for b in EX.bins(rec, self.host.config_dir)}
+            out += [("cap", x["id"], f"{names.get(x['bin'], x['bin'])}: {EX.text_of(x)[:140]}") for x in EX.in_section(rec, label)]
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+        return out
+
+    def show_section(self):
+        self._clear_mid()
+        M, lab = self.M, self.sel
+        if M is None or not lab or O.index_of(M, lab) < 0:
+            self.mv.addWidget(D.EmptyState("Pick a section", "Click a section in the structure to see what it is and "
+                                           "everything in it. Add elements puts the TOC, the lists and the rest in."))
+            return
+        import pagebudget as PB
+        o = M.outline[O.index_of(M, lab)]
+        hl = O.heading_level(M, lab)
+        self.mv.addWidget(D.label(lab, "title"))
+        self.mv.addWidget(D.label(self._tag_tip(o, hl, lab in O.volume_heads(M)) + f"  ·  {SP.PART_NAME[SP.part_of(o)]}", "muted"))
+        pages = PB.tag(M, lab)
+        row = QHBoxLayout()
+        row.addWidget(D.label(f"Pages: {pages or 'not set'}", None))
+        row.addWidget(D.button("Pages...", "ghost", lambda: self.host.assign_page.section_pages(lab) and self.refresh()))
+        cnt = SP.counted(M, lab)
+        cb = QCheckBox("Counts toward the page limit"); cb.setChecked(cnt)
+        cb.toggled.connect(lambda on: self._change(f"counts: {lab}", lambda: (SP.set_item_count(M, lab, on), lab)[1]))
+        row.addWidget(cb); row.addStretch(1)
+        w = QWidget(); w.setLayout(row); self.mv.addWidget(w)
+        self.mv.addWidget(D.label("In this section, in order", "label"))
+        self.cont = QListWidget(); self.cont.setMinimumHeight(220)
+        for kind, key, text in self.contents(lab):
+            it = QListWidgetItem({"lib": "Library   ", "item": "", "cap": "Capture   "}[kind] + text)
+            it.setData(Qt.UserRole, (kind, key))
+            if kind == "lib":
+                it.setForeground(QColor("#2F5D8A"))
+            elif kind == "cap":
+                it.setForeground(QColor("#0E7490"))
+            self.cont.addItem(it)
+        self.mv.addWidget(self.cont)
+        r2 = QHBoxLayout()
+        r2.addWidget(D.button("Up", None, lambda: self.move_content(-1), "Earlier in the section"))
+        r2.addWidget(D.button("Down", None, lambda: self.move_content(1), "Later in the section"))
+        r2.addWidget(D.button("Take out of this section", "danger", lambda: self.take_out()))
+        r2.addStretch(1)
+        w2 = QWidget(); w2.setLayout(r2); self.mv.addWidget(w2)
+        if not self.cont.count():
+            self.mv.addWidget(D.label("Nothing in it yet: decide sentences into it in Review, or place library items and "
+                                      "what is not placed yet from the right.", "muted"))
+
+    def _content_sel(self):
+        it = self.cont.currentItem() if hasattr(self, "cont") else None
+        return it.data(Qt.UserRole) if it is not None else None
+
+    def move_content(self, delta, sel=None):
+        s = sel or self._content_sel()
+        if not s or not self.sel:
+            return False
+        kind, key = s
+        lab = self.sel
+        if kind == "item":
+            r = self._change("move in the setup", lambda: (SD.move(self.M, key, lab, delta), lab)[1])
+        elif kind == "lib":
+            r = self._change("move a library item", lambda: lab if O.move_lib(self.M, lab, key, delta) else None)
+        else:
+            return False
+        rows = [self.cont.item(i).data(Qt.UserRole) for i in range(self.cont.count())]
+        want = (kind, key + delta) if kind == "lib" else s
+        if want in rows:
+            self.cont.setCurrentRow(rows.index(want))
+        return bool(r)
+
+    def take_out(self, sel=None):
+        s = sel or self._content_sel()
+        if not s or not self.sel:
+            return False
+        kind, key = s
+        lab = self.sel
+        if kind == "item":
+            r = self._change("take out of the section", lambda: (SD.unplace(self.M, key, lab), lab)[1])
+        elif kind == "lib":
+            r = self._change("take a library item out", lambda: lab if O.unplace_lib(self.M, lab, key) else None)
+        else:
+            r = self.host.assign_page.place_captures([key], lab, on=False)
+            self.refresh()
+        return bool(r)
+
+    # ------------------------------------------------------------ the library and what is not placed
+    SHELVES = ("quickpart", "table_look", "table_style", "cover", "backer", "hf_design", "part")
+
+    def fill_library(self):
+        import templatelib as TL
+        self.lib_list.clear()
+        try:
+            lib = TL.Library(self.host.config_dir)
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            return
+        q = self.lib_find.text().strip().casefold()
+        for kind in self.SHELVES:
+            items = [i for i in lib.items if i["kind"] == kind and (not q or q in i["name"].casefold())]
+            if not items:
+                continue
+            h = QListWidgetItem(TL.SHELF.get(kind, kind).upper()); h.setFlags(Qt.NoItemFlags)
+            h.setForeground(D.color("muted")); self.lib_list.addItem(h)
+            for i in sorted(items, key=lambda x: x["name"].casefold()):
+                it = QListWidgetItem("  " + i["name"]); it.setData(Qt.UserRole, {"id": i["id"], "kind": kind, "name": i["name"]})
+                it.setToolTip(i.get("summary", "") or i["name"])
+                self.lib_list.addItem(it)
+        if not self.lib_list.count():
+            self.lib_list.addItem(QListWidgetItem("The library is empty: collect Quick Parts, covers and table looks in "
+                                                  "Production Standards > Import from a file."))
+
+    def place_selected(self, item=None, where="before"):
+        it = self.lib_list.currentItem()
+        item = item or (it.data(Qt.UserRole) if it is not None else None)
+        if not item or not self._need():
+            return None
+        lab = self.sel
+        return self._change(f"place {item['name']}", lambda: lab if O.place_lib(self.M, lab, item, where) is not None else None)
+
+    def fill_unplaced(self):
+        self.unp_list.clear()
+        M = self.M
+        if M is None:
+            return
+        B = SD.by_id(M)
+        for i in SD.export_check(M)["unplaced"]:
+            it = B.get(i)
+            if it is not None and it.get("decision") == "Keep":
+                w = QListWidgetItem(f"Requirement  {i}: {it.get('text', '')[:90]}"); w.setData(Qt.UserRole, ("item", i))
+                self.unp_list.addItem(w)
+        try:
+            import effortrec as RR
+            import excerpts as EX
+            rec = RR.Record(self.host.ws.root)
+            names = {b["id"]: b["name"] for b in EX.bins(rec, self.host.config_dir)}
+            for x in EX.excerpts(rec):
+                if not x.get("sections"):
+                    w = QListWidgetItem(f"{names.get(x['bin'], x['bin'])}: {EX.text_of(x)[:90]}"); w.setData(Qt.UserRole, ("cap", x["id"]))
+                    self.unp_list.addItem(w)
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+        if not self.unp_list.count():
+            self.unp_list.addItem(QListWidgetItem("Everything is placed."))
+
+    def place_unplaced(self, picks=None):
+        if not self._need():
+            return 0
+        picks = picks if picks is not None else [i.data(Qt.UserRole) for i in self.unp_list.selectedItems() if i.data(Qt.UserRole)]
+        lab = self.sel
+        reqs = [k for t, k in picks if t == "item"]
+        caps = [k for t, k in picks if t == "cap"]
+        n = 0
+        R = self.host.review
+        if reqs:
+            rows = [R.item(i) for i in reqs if R.item(i) is not None]
+            n += R.req(rows, lab) or 0
+            self.host.changed()
+            self.host.assign_page.fill_tree()
+        if caps:
+            n += self.host.assign_page.place_captures(caps, lab) or 0
+        self.refresh()
+        return n
+
+    # ------------------------------------------------------------ elements
+    def add_elements(self, ids=None):
+        """The tick list: the volume's elements ticked (its kit when it has none yet); OK puts in the ticked ones and
+        takes out the unticked."""
+        M = self.M
+        if M is None:
+            return None
+        data = RE.load(self.host.config_dir)
+        heads = O.volume_heads(M)
+        vol = self.volume if self.volume in heads else ""
+        if heads and not vol and self.sel:                 # every volume shown: the selected section's volume
+            vol = self.sel if self.sel in heads else SD.volume_of_sections(M).get(self.sel, "")
+        if heads and not vol:
+            vol = next(iter(heads)) if len(heads) == 1 else ""
+        if heads and not vol:
+            self.host.status("Pick a volume tab (or a section in the volume) first: elements go into one volume.")
+            return None
+        have = RE.in_volume(M, vol)
+        if ids is None:
+            d = ElementsPick(self, data, list(have) or RE.kit(data, self.host.assign_page.effort_type()), vol)
+            if d.exec() != QDialog.Accepted:
+                return None
+            ids = d.ticked()
+        res = self._change(f"elements in {vol or 'the response'}", lambda: (RE.apply_kit(M, data, ids, vol), vol or "-")[1])
+        diag.activity("builder_elements", n=len(ids))
+        self.refresh()
+        return res
+
+
+class ElementsPick(QDialog):
+    """Add elements: every element by part, ticked for the volume."""
+
+    def __init__(self, parent, data, ticked, volume):
+        super().__init__(parent)
+        self.setWindowTitle(f"Add elements: {volume or 'the response'}")
+        self.setMinimumSize(520, 560)
+        v = QVBoxLayout(self)
+        v.addWidget(D.label("Tick what this volume needs; untick to take an element out. Each goes in its part, in the "
+                            "team's order (Settings > Response elements).", "muted"))
+        self.list = QListWidget(); v.addWidget(self.list, 1)
+        last = None
+        for e in data["elements"]:
+            if not e.get("shown", True):
+                continue
+            if e["part"] != last:
+                h = QListWidgetItem(RE.PART_NAME[e["part"]].upper()); h.setFlags(Qt.NoItemFlags)
+                h.setForeground(QColor(PART_COLOR.get(e["part"], "#2E7D5B"))); self.list.addItem(h)
+                last = e["part"]
+            it = QListWidgetItem(f"  {e['name']}   ({RE.SOURCE_NAME[e['source']].split(' (')[0]}, {e['pages']} page"
+                                 f"{'s' if e['pages'] != 1 else ''}{', counts' if e['counts'] else ''})")
+            it.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+            it.setCheckState(Qt.Checked if e["id"] in ticked else Qt.Unchecked)
+            it.setData(Qt.UserRole, e["id"])
+            self.list.addItem(it)
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        bb.button(QDialogButtonBox.Ok).setText("Put them in")
+        bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
+        v.addWidget(bb)
+
+    def ticked(self):
+        return [self.list.item(i).data(Qt.UserRole) for i in range(self.list.count())
+                if self.list.item(i).data(Qt.UserRole) and self.list.item(i).checkState() == Qt.Checked]

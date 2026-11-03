@@ -49,7 +49,10 @@ class Doc:
         self.styles = {}         # 3.24.0: {kind: style id}: written on a template, a kind takes its style, not colors
 
     def heading(self, text, level=1):
-        level = max(1, min(int(level), 6))
+        level = max(1, int(level))
+        if level > 9:                                  # 3.30.0: Word has nine heading levels; deeper ones are bold run-in
+            self.body.append(f'<w:p><w:pPr><w:keepNext/></w:pPr>{_run(text, True)}</w:p>')   # paragraphs, numbered by us
+            return
         self.body.append(f'<w:p><w:pPr><w:pStyle w:val="Heading{level}"/></w:pPr>{_run(text)}</w:p>')
 
     def para(self, text, bold=False, color=None, kind=None):
@@ -120,7 +123,7 @@ class Doc:
             f'<w:style w:type="paragraph" w:styleId="Heading{i}"><w:name w:val="heading {i}"/><w:basedOn w:val="Normal"/>'
             f'<w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="{240 - 20 * i}" w:after="80"/>'
             f'<w:outlineLvl w:val="{i - 1}"/></w:pPr><w:rPr><w:b/><w:sz w:val="{max(22, 34 - 2 * i)}"/></w:rPr></w:style>'
-            for i in range(1, 7))
+            for i in range(1, 10))                          # 3.30.0: all nine heading levels
         styles = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles {W}>'
                   '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/>'
                   '<w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults>'

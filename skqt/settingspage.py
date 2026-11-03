@@ -114,6 +114,12 @@ class SettingsPage(QWidget):
                               "decisions an effort type hides (an RFI hides L, M and SOW and shows Interest); the team's own captures.",
                               actions=[D.button("Decisions and captures...", "primary", lambda: self.review_items())])
         v.addWidget(self.ri_card)
+        self.re_card = D.Card("Response elements", "The pieces of a response the team adds again and again: Table of Contents, "   # 3.30.0
+                              "the lists of figures, tables and appendices, Acronyms and Abbreviations, Units of Measurement, "
+                              "the Appendices section, covers and your own. Each with its part, what fills it, its pages and "
+                              "the library item it uses; and the elements each effort type starts with.",
+                              actions=[D.button("Response elements...", "primary", lambda: self.response_elements())])
+        v.addWidget(self.re_card)
         self.sg_card = D.Card("Suggestion rules", "Review's Suggest uses rules you can read, not AI: who acts, the verb and the RFP "
                               "section, then the team's and each effort's own rules, made from corrections (Make a rule... on a "
                               "sentence's card). A team pack shares the team's.",                        # 3.18.0
@@ -554,6 +560,15 @@ class SettingsPage(QWidget):
         if run:
             d.exec()
         return d
+
+    def response_elements(self, run=True):
+        """3.30.0: Settings > Response elements."""
+        from .elementsview import ElementsDialog
+        d = ElementsDialog(self, self.host)
+        if run:
+            d.exec()
+        return d
+
 
 class _TrainingHelper:
     """The classic window's gathering of what this PC taught (every effort's matrix, compliance words, choices,
