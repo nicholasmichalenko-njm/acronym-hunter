@@ -468,3 +468,25 @@ def use_design(page, key, iid=None):
     page.after_library(said)
     fill(page, key)
     return said
+
+
+def open_sample(page, key, open_it=True):
+    """A sample template with every part (this one included) in the Samples folder, opened in Word on Windows."""
+    import sys
+    import prodtemplate as PT
+    std = PRL.engine_ready(copy.deepcopy(page.work))
+    std["name"] = f"Sample {dict((k, t) for _s, k, t in PARTS)[key]}"
+    std["variables"].setdefault("volume_name", std["variables"].get("volume_name") or "Volume I Technical")
+    try:
+        job = PT.make(std, os.path.join(page.template_folder(), "Samples"), "", parts_dir=page.parts_dir())
+    except Exception as e:  # noqa: BLE001
+        diag.swallowed()
+        page.host.status(f"The sample could not be made ({type(e).__name__}).")
+        return None
+    if open_it and sys.platform.startswith("win"):
+        try:
+            os.startfile(job.copy)                   # noqa: S606  the sample copy only
+        except OSError:
+            diag.swallowed()
+    page.host.status(f"Sample: {job.copy}")
+    return job.copy

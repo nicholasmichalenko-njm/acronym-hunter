@@ -85,6 +85,8 @@ check("Use a saved design on another part: its header design and numbering come 
       and "<w:tbl>" in sp.work["hf_designs"]["body"]["header"]
       and PD.part_of(sp.work, "body")["numbers"] == PD.part_of(sp.work, "appendix")["numbers"]
       and PD.part_of(sp.work, "body")["key"] == "body", PD.part_of(sp.work, "body"))
+smp = DP.open_sample(sp, "body", open_it=False)
+check("Open a sample in Word: a sample template in the Samples folder", smp and smp.endswith(".dotx") and os.path.basename(os.path.dirname(smp)) == "Samples", smp)
 check("saved: Save keeps it", sp.save(quiet=True) is not False)
 w.close()
 n = sum(checks)
