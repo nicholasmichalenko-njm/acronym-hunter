@@ -45,6 +45,11 @@ PAGE_FMT = [("", "No page numbers"), ("decimal", "1, 2, 3"), ("lowerRoman", "i, 
             ("lowerLetter", "a, b, c"), ("upperLetter", "A, B, C")]
 RESTART = [("part", "At the start of this part"), ("each", "At each chapter"), ("never", "Continue from before")]
 SEPS = [(k, f"{v}  ({k})") for k, v in PR.SEPARATORS.items()]
+# 3.35.0: Word's own styles a style can be based on or followed by, besides the ones the standard defines
+WORD_STYLES = ("Normal", "Body Text", "Body Text 2", "Body Text 3", "Body Text Indent", "List Paragraph", "List Bullet",
+               "List Bullet 2", "List Number", "List Number 2", "No Spacing", "Title", "Subtitle", "Quote", "Intense Quote",
+               "Caption", "Header", "Footer", "Footnote Text", "Table Grid", "TOC Heading", "TOC 1", "TOC 2", "TOC 3",
+               "Default Paragraph Font", "Strong", "Emphasis", "Hyperlink") + tuple(f"Heading {i}" for i in range(1, 10))
 AFTER = [("period_tab", "Period, then a tab"), ("period_space", "Period, then a space"), ("tab", "A tab"),
          ("colon_space", "Colon, then a space")]
 RULE_KINDS = [("fill_in", "Cell fill is one of"), ("first_cell_starts", "First cell starts with"),
@@ -53,7 +58,7 @@ RULE_KINDS = [("fill_in", "Cell fill is one of"), ("first_cell_starts", "First c
 TOKENS = "{volume_name} {solicitation} {company} {page} {pages} {chapter}, and your fields as {key}"
 TRI = [("", "Not set"), ("on", "On"), ("off", "Off")]
 STYLE_COLS = [("key", "Style", "text"), ("type", "Type", ("enum", [("paragraph", "Paragraph"), ("character", "Character")])),
-              ("based_on", "Based on", "text"), ("next", "Next style", "text"), ("font", "Font", "text"), ("size", "Size (pt)", "num0"),
+              ("based_on", "Based on", "stylename"), ("next", "Next style", "stylename"), ("font", "Font", "text"), ("size", "Size (pt)", "num0"),
               ("bold", "Bold", ("enum", TRI)), ("italic", "Italic", ("enum", TRI)), ("underline", "Underline", ("enum", TRI)),
               ("caps", "All caps", ("enum", TRI)), ("hidden", "Hidden text", ("enum", TRI)), ("color", "Color (hex)", "text"),
               ("jc", "Alignment", ("enum", [("", "Not set")] + ALIGN)), ("before", "Space before (pt)", "num0"),
@@ -483,10 +488,23 @@ class StandardsPage(QWidget):
         body = QHBoxLayout(); body.setSpacing(D.SPACE["m"])
         body.addWidget(self.nav)
         self.stack = QStackedWidget()
-        body.addWidget(self.stack, 1)
         from .stdpreview import Preview                 # 3.17.0: what the values make, and what this layer changes
         self.std_preview = Preview(self)
-        body.addWidget(self.std_preview)
+        # 3.35.0: the preview's column is as wide as you drag it, for every section, and stays that way
+        from PySide6.QtWidgets import QSplitter
+        self.body_split = QSplitter(Qt.Horizontal); self.body_split.setChildrenCollapsible(False)
+        self.body_split.addWidget(self.stack); self.body_split.addWidget(self.std_preview)
+        self.body_split.setStretchFactor(0, 1); self.body_split.setStretchFactor(1, 0)
+        try:
+            from . import modes as _MO
+            pw = int(_MO.settings().get("std_preview_w") or 360)
+        except Exception:  # noqa: BLE001
+            pw = 360
+        self.body_split.setSizes([1000, max(280, pw)])
+        from PySide6.QtCore import QTimer as _QT
+        self._pw_timer = _QT(self, singleShot=True, interval=600, timeout=self._keep_preview_w)
+        self.body_split.splitterMoved.connect(lambda *_a: self._pw_timer.start())
+        body.addWidget(self.body_split, 1)
         outer.addLayout(body, 1)
         self.problems = D.label("", "muted"); outer.addWidget(self.problems)
         self.tables = _LazyTables(self)               # 3.28.1: a table is filled when it is shown or used
@@ -1198,6 +1216,14 @@ class StandardsPage(QWidget):
         del PG
 
     # ------------------------------------------------------------------ list editors
+    def _keep_preview_w(self):
+        """3.35.0: the preview's width, kept for next time."""
+        try:
+            from . import modes as _MO
+            _MO.save(std_preview_w=int(self.body_split.sizes()[1]))
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+
     def table_editor(self, v, key, path, cols, dict_rows=False, fixed=False, adapter=None):
         t = QTableWidget(0, len(cols)); t.setHorizontalHeaderLabels([c[1] for c in cols])
         t.verticalHeader().setVisible(False); t.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -1411,6 +1437,7 @@ class StandardsPage(QWidget):
         t.setRowCount(0)
         for r in rows:
             self._add_table_row(key, r)
+        self._refresh_style_choices(key)                # 3.35.0: every row lists every style
         self._show_lvltext(key)
         t.blockSignals(False)
         t.resizeColumnsToContents()
@@ -1439,6 +1466,11 @@ class StandardsPage(QWidget):
             elif kind == "list":
                 w = QLineEdit(", ".join(val if isinstance(val, list) else ([] if val in (None, "") else [str(val)])))
                 w.textEdited.connect(lambda _x, k=key: self.table_changed(k))
+            elif kind == "stylename":                  # 3.35.0: Based on and Next style from a list: no misspelled names
+                w = QComboBox(); w.setProperty("cur", "" if val is None else str(val))
+                self._style_choices(w, key)
+                w.currentIndexChanged.connect(lambda _x, k=key, cb=w: (cb.setProperty("cur", cb.currentData() or ""),
+                                                                       self.table_changed(k)))
             elif kind == "lvltext":                    # 3.24.1: shown as it looks (1.1), kept as Word's codes (%1.%2)
                 w = QLineEdit(); w.setProperty("raw", "" if val is None else str(val))
                 w.textEdited.connect(lambda _x, k=key: self.table_changed(k))
@@ -1469,6 +1501,8 @@ class StandardsPage(QWidget):
                     r[field] = [x.strip() for x in w.text().split(",") if x.strip()]
                 elif kind == "lvltext":
                     r[field] = w
+                elif kind == "stylename":
+                    r[field] = w.currentData() or None
                 else:
                     r[field] = w.text().strip()
             rows.append(r)
@@ -1513,7 +1547,55 @@ class StandardsPage(QWidget):
                     continue
                 w.blockSignals(True); w.setText(NT.show(w.property("raw") or "", fmts)); w.blockSignals(False)
 
+    def _style_names(self, key):
+        """3.35.0: the style names of a table's Style column, as they stand."""
+        spec = self.tables[key]
+        t = spec["w"]
+        c = next((i for i, col in enumerate(spec["cols"]) if col[0] == "key"), None)
+        if c is None:
+            return []
+        out = []
+        for i in range(t.rowCount()):
+            w = t.cellWidget(i, c)
+            n = w.text().strip() if isinstance(w, QLineEdit) else ""
+            if n:
+                out.append(n)
+        return out
+
+    def _style_choices(self, w, key):
+        """Fill a Based on or Next style list: Not set, the standard's styles, then Word's own; a name kept from an import
+        that is neither stays, marked, so nothing is lost."""
+        cur = w.property("cur") or ""
+        mine = self._style_names(key) if key in self.tables else []
+        w.blockSignals(True)
+        w.clear()
+        w.addItem("Not set", "")
+        for n in sorted(dict.fromkeys(mine), key=str.casefold):
+            w.addItem(n, n)
+        if mine:
+            w.insertSeparator(w.count())
+        for n in WORD_STYLES:
+            if n not in mine:
+                w.addItem(f"{n}  (Word)", n)
+        if cur and w.findData(cur) < 0:
+            w.addItem(f"{cur}  (not in this standard)", cur)
+        w.setCurrentIndex(max(0, w.findData(cur)))
+        w.blockSignals(False)
+
+    def _refresh_style_choices(self, key):
+        spec = self.tables.get(key)
+        if not spec or not any(k == "stylename" for _f, _h, k in spec["cols"]):
+            return
+        t = spec["w"]
+        for c, (_f, _h, kind) in enumerate(spec["cols"]):
+            if kind == "stylename":
+                for i in range(t.rowCount()):
+                    w = t.cellWidget(i, c)
+                    if isinstance(w, QComboBox):
+                        self._style_choices(w, key)
+
     def table_changed(self, key):
+        self._refresh_style_choices(key)                # 3.35.0: a new or renamed style joins the lists
         self._store(self.tables[key], self._read_table(key))
         self._show_lvltext(key, skip=QApplication.focusWidget())
         self.changed()

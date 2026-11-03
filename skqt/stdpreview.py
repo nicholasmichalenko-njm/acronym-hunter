@@ -58,8 +58,30 @@ class Canvas(QWidget):
         super().__init__()
         self.page = page
         self.section = "variables"
-        self.setMinimumHeight(420)
+        self.fit_h = 0                  # 3.35.0: the height the sketch fits into (the visible area), set by its panel
+        self.setMinimumHeight(240)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setToolTip("Click to see the preview larger")
+        self._wanted = 0
+
+    def _want(self, h):
+        """3.35.0: the height a long sketch needs, set after the paint (never during it), so the panel cannot keep
+        resizing itself."""
+        h = max(240, int(h))
+        if abs(h - self._wanted) > 2:
+            self._wanted = h
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(0, lambda: self.setMinimumHeight(self._wanted))
+
+    def reset_height(self):
+        self._wanted = 0
+        self.setMinimumHeight(240)
+
+    def mouseReleaseEvent(self, e):
+        if e.button() == Qt.LeftButton and getattr(self, "on_click", None):
+            self.on_click()
+        super().mouseReleaseEvent(e)
 
     @property
     def std(self):
@@ -69,7 +91,9 @@ class Canvas(QWidget):
     def _page(self, p, w_in=8.5, h_in=11.0, top=None, bottom=None, left=None, right=None, box=None):
         """Draw a page to scale inside box (or the widget); returns (page rect, text rect, inches to pixels)."""
         std = self.std
-        box = box or QRectF(10, 10, self.width() - 20, self.height() - 20)
+        if box is None:                 # 3.35.0: a page fits the visible area, with room for the lines under it
+            h = (self.fit_h or self.height()) - 20 - 70
+            box = QRectF(10, 10, self.width() - 20, max(120, h))
         s = min(box.width() / w_in, box.height() / h_in)
         pg = QRectF(box.x() + (box.width() - w_in * s) / 2, box.y(), w_in * s, h_in * s)
         p.fillRect(pg.adjusted(3, 3, 3, 3), QColor("#D5DCE6"))
@@ -169,7 +193,7 @@ class Canvas(QWidget):
         y = pg.bottom() + 10
         for t in lines:
             y += self._text(p, QRectF(pg.x(), y, self.width() - pg.x() - 10, 40), t, _font("Segoe UI", 8.5), MUTED) + 1
-        self.setMinimumHeight(int(y + 10))
+        self._want(int(y + 10))
 
     def draw_fonts(self, p):
         import prodrules as PRL
@@ -193,7 +217,7 @@ class Canvas(QWidget):
                 self._text(p, QRectF(x + 10, y, self.width() - 40, 60), f"{sample}  ({size} pt)", _font(fam, size, scale=0.9), wrap=False)
                 y += QFontMetricsF(_font(fam, size, scale=0.9)).height() + 2
             y += 8
-        self.setMinimumHeight(int(y + 10))
+        self._want(int(y + 10))
 
     def draw_styles(self, p):
         std = self.std
@@ -231,22 +255,40 @@ class Canvas(QWidget):
         if allowed:
             y += 6 + self._text(p, QRectF(x, y + 6, self.width() - 28, 200), "Allowed styles: " + ", ".join(allowed),
                                 _font("Segoe UI", 8.5), MUTED)
-        self.setMinimumHeight(int(y + 20))
+        self._want(int(y + 20))
 
     def draw_styledefs(self, p):
+        """3.35.0: each style as a sample line in its own look, with a short line of what it is set to (and what it is
+        based on), so the sketch says what it shows."""
         std = self.std
-        y, x = 14.0, 14.0
+        y, x = 12.0, 14.0
         sd = std.get("style_defs") or {}
         if not sd:
             self._text(p, QRectF(x, y, self.width() - 28, 60), "No styles defined here. Import from a file... fills this from a "
                        "template.", _font("Segoe UI", 9), MUTED)
             return
-        for name, d in list(sd.items())[:24]:
-            f = _font(_resolve(std, d.get("font"), _v(std, "body_font", "Arial")), _resolve(std, d.get("size"), 11), bold=d.get("bold"),
-                      italic=d.get("italic"), scale=0.9)
-            col = "#" + d["color"] if d.get("color") else INK
-            y += self._text(p, QRectF(x, y, self.width() - 28, 60), name, f, col, wrap=False) + float(d.get("after") or 2) * 0.5 + 2
-        self.setMinimumHeight(int(y + 20))
+        w = self.width() - 28
+        small = _font("Segoe UI", 8)
+        for name, d in sd.items():
+            fam = _resolve(std, d.get("font"), _v(std, "body_font", "Arial"))
+            size = _resolve(std, d.get("size"), _v(std, "body_size", 11))
+            f = _font(fam, size, bold=d.get("bold"), italic=d.get("italic"), scale=0.9)
+            if d.get("caps"):
+                f.setCapitalization(QFont.AllUppercase)
+            f.setUnderline(bool(d.get("underline")))
+            col = "#" + str(d["color"]).lstrip("#") if d.get("color") else INK
+            al = {"center": Qt.AlignHCenter, "right": Qt.AlignRight}.get(d.get("jc"), Qt.AlignLeft)
+            facts = [f"{fam} {size:g} pt" if isinstance(size, (int, float)) else f"{fam} {size} pt"]
+            facts += [t for k, t in (("bold", "bold"), ("italic", "italic"), ("caps", "all caps"), ("hidden", "hidden")) if d.get(k)]
+            if d.get("based_on"):
+                facts.append(f"based on {d['based_on']}")
+            if d.get("next"):
+                facts.append(f"then {d['next']}")
+            y += self._text(p, QRectF(x, y, w, 30), f"{name}:  " + ", ".join(facts), small, MUTED, wrap=True)
+            y += self._text(p, QRectF(x + 8, y, w - 8, 80), f"{name} sample text", f, col, al | Qt.AlignTop, wrap=True)
+            p.setPen(QPen(QColor(MARGIN), 1)); p.drawLine(int(x), int(y + 5), int(x + w), int(y + 5))
+            y += 10
+        self._want(int(y + 20))
 
     def draw_rows(self, p):
         self._text(p, QRectF(14, 14, self.width() - 28, 60), "The table under Table rows shows each row's look as you change it.",
@@ -302,7 +344,7 @@ class Canvas(QWidget):
                 self._text(p, QRectF(tx.x(), pg.y() + 3, tx.width(), 12), _fill(part["header"]), _font("Segoe UI", 6), MUTED, wrap=False)
             self._text(p, QRectF(box.x(), pg.bottom() + 3, box.width(), 30), part.get("name") or part.get("key", ""), _font("Segoe UI", 8, bold=True),
                        INK, Qt.AlignHCenter | Qt.AlignTop)
-        self.setMinimumHeight(int(y0 + ((n - 1) // 4 + 1) * 190 + 10))
+        self._want(int(y0 + ((n - 1) // 4 + 1) * 190 + 10))
 
     def draw_setups(self, p):
         std = self.std
@@ -315,7 +357,7 @@ class Canvas(QWidget):
                                    *[float(_resolve(std, su.get(e), 1)) for e in ("top", "bottom", "left", "right")], box=box)
             self._text(p, QRectF(box.x(), pg.bottom() + 3, box.width(), 30), su.get("name") or k_, _font("Segoe UI", 8, bold=True), INK,
                        Qt.AlignHCenter | Qt.AlignTop)
-        self.setMinimumHeight(int(10 + ((len(sets) - 1) // 3 + 1) * 200 + 10))
+        self._want(int(10 + ((len(sets) - 1) // 3 + 1) * 200 + 10))
 
     def draw_hf(self, p):
         std = self.std
@@ -389,7 +431,7 @@ class Canvas(QWidget):
                 txt, col = f"{label}  ({o.get('style')}{', hidden' if o.get('hidden') else ''})", QColor("#" + color)
             f = _font("Segoe UI", 8.5, italic=bool(o.get("hidden")))
             y += self._text(p, QRectF(x + (18 if ind else 0), y, self.width() - 40, 40), txt, f, col) + 4
-        self.setMinimumHeight(int(y + 20))
+        self._want(int(y + 20))
 
     def draw_lists(self, p):
         std = self.std
@@ -418,7 +460,7 @@ class Canvas(QWidget):
         from prodengine.pe import bullets as BU
         y += self._text(p, QRectF(x, y, self.width() - 28, 60), "Typed bullets that become list styles: " +
                         " ".join(dict.fromkeys(BU.shown(b) for b in (lists.get("typed_bullets") or []))), _font("Segoe UI", 8.5), MUTED)
-        self.setMinimumHeight(int(y + 20))
+        self._want(int(y + 20))
 
     def draw_terms(self, p):
         std = self.std
@@ -439,7 +481,7 @@ class Canvas(QWidget):
                             f, "#9A4508") + 2
         if not t.get("banned"):
             y += self._text(p, QRectF(x, y, self.width() - 28, 40), "The team's banned words are added for each run.", f, MUTED)
-        self.setMinimumHeight(int(y + 20))
+        self._want(int(y + 20))
 
     def draw_office(self, p):
         std = self.std
@@ -473,7 +515,7 @@ class Canvas(QWidget):
                    _font(fonts[0], pp.get("min_size") or 12, scale=0.45))
         if pp.get("marking"):
             self._text(p, QRectF(slide.x(), slide.bottom() - 14, slide.width(), 12), TOK["marking"], _font("Segoe UI", 6), MUTED, Qt.AlignHCenter | Qt.AlignTop, False)
-        self.setMinimumHeight(int(slide.bottom() + 20))
+        self._want(int(slide.bottom() + 20))
 
     def draw_graphics(self, p):
         import prodgraphics as PG
@@ -522,40 +564,122 @@ class Canvas(QWidget):
                             INK if on else MUTED) + 6
 
 
+CAPTIONS = {   # 3.35.0: what each sketch shows, in one line above it
+    "variables": "A page in your base fonts and sizes: a heading, body text and a table with its caption, inside your margins.",
+    "styledefs": "Each style this standard defines, drawn in its own font, size, weight and color, with what it is set to.",
+    "fonts": "Each kind of text in its first allowed font, at its smallest and largest allowed size.",
+    "styles": "Your heading styles with their numbers as Fix a Copy sets them, then body text.",
+    "headnum": "A page in your base fonts and sizes; the heading numbers show under Allowed styles.",
+    "captions": "A page with a table caption and a figure caption, numbered and placed as set.",
+    "pages": "Each part of the document as a page, with the number its first page carries.",
+    "setups": "Each page size and its margins, to scale.",
+    "hf": "A page of one part with its header and footer: what sits left, center and right, and the marking.",
+    "toc": "The table of contents: its levels, indents and leaders, as set.",
+    "lists": "Each list level: its bullet or number and its indent.",
+    "content_map": "Where Review's content goes in the template: each kind of content and the style it takes.",
+    "terms": "Words to avoid and fix, as the check flags them.",
+    "office": "A worksheet and a slide in the fonts set for Excel and PowerPoint.",
+    "graphics": "The graphics rules: sizes, resolution and placement.",
+    "checks": "What Final Checks looks for.",
+}
+
+
 class Preview(QWidget):
-    """The panel beside the sections: what changed at this layer, then the sketch."""
+    """The panel beside the sections: what the sketch shows, what changed at this layer (folded), then the sketch.
+    3.35.0: the sketch fits the space; drag the panel's edge to widen every preview; click the sketch to see it larger."""
 
     def __init__(self, page):
         super().__init__()
         self.page = page
-        v = QVBoxLayout(self); v.setContentsMargins(0, 0, 0, 0); v.setSpacing(D.SPACE["s"])
+        from PySide6.QtWidgets import QFrame, QScrollArea, QToolButton
+        v = QVBoxLayout(self); v.setContentsMargins(0, 0, 0, 0); v.setSpacing(D.SPACE["xs"])
         self.title = D.label("Preview", "label", wrap=False); v.addWidget(self.title)
+        self.caption = D.label("", "muted"); v.addWidget(self.caption)
+        self.changes_btn = QToolButton(); self.changes_btn.setCheckable(True); self.changes_btn.setAutoRaise(True)
+        self.changes_btn.setToolButtonStyle(Qt.ToolButtonTextBesideIcon); self.changes_btn.setArrowType(Qt.RightArrow)
+        self.changes_btn.toggled.connect(self._fold)
+        v.addWidget(self.changes_btn)
         self.changes = QLabel(""); self.changes.setWordWrap(True); self.changes.setTextFormat(Qt.RichText)
-        self.changes.setObjectName("stdchanges"); v.addWidget(self.changes)
+        self.changes.setObjectName("stdchanges"); self.changes.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.changes_box = QScrollArea(); self.changes_box.setWidgetResizable(True); self.changes_box.setFrameShape(QFrame.NoFrame)
+        self.changes_box.setWidget(self.changes); self.changes_box.setMaximumHeight(150); self.changes_box.setVisible(False)
+        v.addWidget(self.changes_box)
         self.canvas = Canvas(page)
-        from PySide6.QtWidgets import QFrame, QScrollArea
-        sc = QScrollArea(); sc.setWidgetResizable(True); sc.setFrameShape(QFrame.NoFrame); sc.setWidget(self.canvas)
-        sc.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        v.addWidget(sc, 1)
-        self.setMinimumWidth(320); self.setMaximumWidth(420)
+        self.canvas.on_click = self.enlarge
+        self.scroll = QScrollArea(); self.scroll.setWidgetResizable(True); self.scroll.setFrameShape(QFrame.NoFrame)
+        self.scroll.setWidget(self.canvas)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)      # a steady width: the sketch never jumps
+        self.scroll.viewport().installEventFilter(self)
+        v.addWidget(self.scroll, 1)
+        self.setMinimumWidth(280)
+
+    def eventFilter(self, obj, e):
+        from PySide6.QtCore import QEvent
+        if obj is self.scroll.viewport() and e.type() == QEvent.Resize:
+            self.canvas.fit_h = e.size().height()
+            self.canvas.update()
+        return False
+
+    def _fold(self, on):
+        self.changes_box.setVisible(on)
+        self.changes_btn.setArrowType(Qt.DownArrow if on else Qt.RightArrow)
 
     def show_section(self, key, title):
         self.canvas.section = key
+        self.canvas.reset_height()
         self.title.setText(f"Preview: {title}")
+        self.caption.setText(CAPTIONS.get(key, "What these values produce, drawn at a reduced size.")
+                             + " Click it to see it larger.")
         self.refresh()
 
     def refresh(self):
         rows = self.page.changed_here(self.canvas.section)
         if rows:
             body = "".join(f"<div style='margin:2px 0'><b>{_esc(name)}</b>: was {_esc(was)}, now <b>{_esc(now)}</b></div>"
-                           for name, was, now in rows[:12])
-            more = f"<div>and {len(rows) - 12} more</div>" if len(rows) > 12 else ""
-            self.changes.setText(f"<div style='color:{D.tokens()['warn']}'><b>{len(rows)} value(s) set at this layer</b> "
-                                 f"(the layer below: {_esc(self.page.base_name())})</div>{body}{more}")
+                           for name, was, now in rows[:40])
+            more = f"<div>and {len(rows) - 40} more</div>" if len(rows) > 40 else ""
+            self.changes.setText(f"<div style='color:{D.tokens()['muted']}'>The layer below: {_esc(self.page.base_name())}</div>{body}{more}")
+            self.changes_btn.setText(f"{len(rows)} value(s) set at this layer: show them")
+            self.changes_btn.setToolTip("What this layer changes: what each value was, and what it is now")
+            self.changes_btn.setEnabled(True)
         else:
-            self.changes.setText(f"<span style='color:{D.tokens()['muted']}'>Nothing set at this layer in this section: every "
-                                 f"value comes from {_esc(self.page.base_name())}.</span>")
+            self.changes.setText("")
+            self.changes_btn.setText("Nothing set at this layer")
+            self.changes_btn.setToolTip(f"Every value here comes from {self.page.base_name()}")
+            self.changes_btn.setChecked(False); self.changes_btn.setEnabled(False)
         self.canvas.update()
+        big = getattr(self, "big", None)
+        if big is not None and big.isVisible():
+            big.canvas.section = self.canvas.section
+            big.canvas.update()
+
+    def enlarge(self):
+        """The same sketch in a window of its own, as large as you make it."""
+        from PySide6.QtWidgets import QDialog, QFrame, QScrollArea
+        big = getattr(self, "big", None)
+        if big is None:
+            big = QDialog(self.window()); big.setWindowTitle("Preview"); big.resize(900, 1000)
+            lay = QVBoxLayout(big)
+            big.canvas = Canvas(self.page); big.canvas.on_click = None; big.canvas.setCursor(Qt.ArrowCursor); big.canvas.setToolTip("")
+            sc = QScrollArea(); sc.setWidgetResizable(True); sc.setFrameShape(QFrame.NoFrame); sc.setWidget(big.canvas)
+            sc.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff); sc.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+            big.sc = sc
+            lay.addWidget(sc)
+            from PySide6.QtCore import QObject, QEvent
+
+            class _F(QObject):
+                def eventFilter(self_, o, e):
+                    if e.type() == QEvent.Resize:
+                        big.canvas.fit_h = e.size().height(); big.canvas.update()
+                    return False
+            big._f = _F(big); sc.viewport().installEventFilter(big._f)
+            self.big = big
+        big.canvas.section = self.canvas.section
+        big.canvas.reset_height()
+        big.setWindowTitle(self.title.text())
+        big.show(); big.raise_()
+        return big
 
 
 def _esc(x):
