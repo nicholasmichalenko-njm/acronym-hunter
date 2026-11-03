@@ -141,6 +141,27 @@ class Library:
         self.save()
         return True
 
+    def set_pages(self, iid, pages, how="typed"):
+        """3.32.0: a Quick Part's pages, measured by Word on this PC or typed. Kept on the item (not its values, so the
+        same Quick Part met again still matches). pages None takes them off."""
+        i = self.get(iid)
+        if i is None:
+            return False
+        if pages is None:
+            for k in ("pages", "pages_how", "pages_at"):
+                i.pop(k, None)
+        else:
+            i["pages"] = max(1, int(pages))
+            i["pages_how"] = "measured" if how == "measured" else "typed"
+            i["pages_at"] = _now()
+        self.save()
+        return True
+
+    def pages_of(self, iid=None, name=None, kind="quickpart"):
+        """The pages of a library item by id, or by name on its shelf; None when not measured or typed."""
+        i = self.get(iid) if iid else next((x for x in self.items if x["kind"] == kind and x["name"].casefold() == str(name or "").casefold()), None)
+        return int(i["pages"]) if i is not None and i.get("pages") else None
+
     def rename(self, iid, name):
         i = self.get(iid)
         if i is None or not " ".join(str(name).split()):
@@ -412,8 +433,9 @@ def collect(path, std, lib, installed_fonts=None):
     return cards, ""
 
 
-def save_collected(lib, path, cards, tags=None, who=None):
-    """Keeps the ticked items of the cards (names as the person left them). Returns {"new", "same", "variant"}."""
+def save_collected(lib, path, cards, tags=None, who=None, quickparts=None):
+    """Keeps the ticked items of the cards (names as the person left them). Returns {"new", "same", "variant"}.
+    quickparts (3.32.0): a list that gets the ids of the Quick Parts kept, to measure their pages."""
     counts = {"new": 0, "same": 0, "variant": 0}
     kept_source = None
     for c in cards:
@@ -428,6 +450,8 @@ def save_collected(lib, path, cards, tags=None, who=None):
                 values["source"] = kept_source
             _item, st = lib.add(it["kind"], it["name"], values, tags=tags, source=path, summary=it.get("summary", ""), who=who)
             counts[st] += 1
+            if quickparts is not None and it["kind"] == "quickpart" and not _item.get("pages"):
+                quickparts.append(_item["id"])
     return counts
 
 

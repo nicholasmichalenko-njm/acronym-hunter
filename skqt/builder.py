@@ -19,6 +19,8 @@ from PySide6.QtGui import QColor, QKeySequence, QShortcut
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFrame, QHBoxLayout,
                                QLabel, QListWidget, QListWidgetItem, QMenu, QPushButton, QScrollArea, QSplitter, QTabBar,
                                QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QLineEdit, QInputDialog)
+import os
+
 import diag
 import compliance as C
 import outline_ops as O
@@ -220,13 +222,25 @@ class BuilderPage(QWidget):
         self.mid_tabs.addTab(mid, "Section")
         pv = QWidget(); pvl = QVBoxLayout(pv); pvl.setContentsMargins(0, 0, 0, 0)
         self.preview_sum = D.label("", "muted"); pvl.addWidget(self.preview_sum)
+        eh = QHBoxLayout(); eh.setContentsMargins(0, 0, 0, 0)            # 3.32.0: Word's own pages, on request
+        import exactpreview as EP
+        self.exact_btn = D.button("Exact preview in Word", "primary", lambda: self.exact_preview(),
+                                  "Word lays out the volume's template and setup (a dated copy) and shows its own pages "
+                                  "and the true page count. Nothing is recorded and the effort's files are not touched.")
+        self.exact_btn.setEnabled(EP.available())
+        if not EP.available():
+            self.exact_btn.setToolTip("Word on this PC is needed for the exact preview.")
+        eh.addWidget(self.exact_btn)
+        self.plan_btn = D.button("Back to the plan", None, lambda: self.drop_exact())
+        self.plan_btn.setVisible(False); eh.addWidget(self.plan_btn)
+        eh.addStretch(1); pvl.addLayout(eh)
+        self.exact = None
         self.preview = PagesPreview()
         self.preview.page_clicked.connect(lambda lab: self.select(lab))
         psc = QScrollArea(); psc.setWidgetResizable(True); psc.setFrameShape(QFrame.NoFrame); psc.setWidget(self.preview)
         psc.setStyleSheet("QScrollArea{background:#D9D6CD;}")
         pvl.addWidget(psc, 1)
-        pvl.addWidget(D.label("Drawn by Stationkeeper from the structure, the page budget and Production Standards: close to "
-                              "Word's layout. Make templates gives Word's own pages.", "muted"))
+        self.preview_note = D.label("", "muted"); pvl.addWidget(self.preview_note)
         self.mid_tabs.addTab(pv, "Preview")
         self.mid_tabs.currentChanged.connect(lambda _i: self.fill_preview())
         mid = self.mid_tabs
@@ -459,10 +473,105 @@ class BuilderPage(QWidget):
             return
         import pageplan as PP
         pages = self.preview_pages()
-        self.preview.set_pages(pages, self.sel or "")
         by, n = PP.summary(pages)
+        stale = ""
+        ex = getattr(self, "exact", None)
+        if ex is not None and (ex["sig"] != self._sig() or ex["volume"] != (self._preview_volume() or "")):
+            self.exact = ex = None                       # the structure changed since: Word's pages are out of date
+            stale = "  ·  The exact preview was from before a change: run it again."
+        self.plan_btn.setVisible(ex is not None)
+        self.preview_note.setText("Word's own pages, laid out from a dated copy of the volume's template and setup. A change to "
+                                  "the structure goes back to the plan." if ex is not None else
+                                  "Drawn by Stationkeeper from the structure, the page budget and Production Standards: close to "
+                                  "Word's layout. Exact preview in Word gives Word's own pages.")
+        if ex is not None:
+            self.preview.set_pages(ex["pages"], self.sel or "")
+            self.preview_sum.setText(f"{self._preview_volume() or 'The response'}: {ex['count']} page(s) in Word (the plan: {n})  ·  "
+                                     f"laid out by Word {ex['when']}")
+            return
+        self.preview.set_pages(pages, self.sel or "")
         self.preview_sum.setText(f"{self._preview_volume() or 'The response'}: {n} page(s) planned  ·  "
-                                 + "  ·  ".join(f"{SP.PART_NAME.get(k, k)} {v}" for k, v in by.items()))
+                                 + "  ·  ".join(f"{SP.PART_NAME.get(k, k)} {v}" for k, v in by.items()) + stale)
+
+    def _sig(self):
+        """What the exact preview depends on: the structure and the page budget."""
+        import hashlib, json
+        try:
+            return hashlib.sha1(json.dumps([self.M.outline, SD.setup_of(self.M).get("budget"), SD.setup_of(self.M).get("prepaginate")],
+                                           sort_keys=True, default=str).encode("utf-8")).hexdigest()
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            return ""
+
+    def drop_exact(self):
+        self.exact = None
+        self.fill_preview()
+
+    def exact_preview(self, runner=None, wait=False):
+        """3.32.0: Word lays out the volume (a dated copy of its template and setup); its pages show here with the true
+        page count. Runs off the window's thread; runner and wait (tests) run it at once."""
+        import exactpreview as EP
+        M = self.M
+        if M is None or self.host.ws is None or not M.outline:
+            self.host.status("Open an effort with a response structure first.")
+            return None
+        if runner is None and not EP.available():
+            self.host.status("Word on this PC is needed for the exact preview.")
+            return None
+        vol = self._preview_volume() or ""
+        base = self.host.out_path("setup_documents") if self.host.effort_path else os.path.dirname(M.path)
+        base = base if os.path.isdir(base) else os.path.dirname(base)
+        folder = os.path.join(base, "Exact preview")
+        info = self.host.efforts.get(self.host.effort_name) or {}
+        try:
+            import ctxdocs as CX
+            ctx = CX.section_context(self.host.ws.root)
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            ctx = None
+        sig = self._sig()
+        cfg, ws, name = self.host.config_dir, self.host.ws, self.host.effort_name or ""
+
+        def job(progress=lambda *a: None, stop=lambda: False):
+            return EP.run(M, vol, folder, cfg, ws, name, info, context=ctx, runner=runner, progress=progress)
+
+        def done(res):
+            self.exact_btn.setEnabled(EP.available() or runner is not None)
+            if isinstance(res, Exception) or not (res or {}).get("ok"):
+                why = str(res) if isinstance(res, Exception) else (res or {}).get("why", "")
+                self.host.status("No exact preview: " + (why or "Word could not lay it out."))
+                return None
+            labels = O.labels(M)
+            try:
+                from .pagepreview import exact_pages
+                pages = exact_pages(res["pdf"], EP.section_of_pages(res["heads"], labels, max(res["pages"], 1)))
+            except Exception:  # noqa: BLE001
+                diag.swallowed()
+                self.host.status("No exact preview: the PDF Word saved could not be read.")
+                return None
+            self.exact = {"pages": pages, "count": res["pages"] or len(pages), "when": res["when"], "sig": sig,
+                          "volume": vol, "pdf": res["pdf"], "docx": res["docx"]}
+            diag.activity("exact_preview", pages=len(pages))
+            if self.mid_tabs.currentIndex() != 1:
+                self.mid_tabs.setCurrentIndex(1)
+            self.fill_preview()
+            self.host.toast(f"Exact preview: {self.exact['count']} page(s) in Word. The copy is in {folder}.")
+            return self.exact
+
+        self.exact_btn.setEnabled(False)
+        self.host.status("Word is laying out the volume for the exact preview...")
+        if wait:
+            try:
+                res = job()
+            except Exception as ex:  # noqa: BLE001
+                diag.swallowed()
+                res = ex
+            return done(res)
+        from .progress import JobWorker
+        self._exact_worker = JobWorker(job)
+        self._exact_worker.done.connect(done)
+        self._exact_worker.start()
+        return True
 
     def _tag_tip(self, o, hl, is_vol):
         if is_vol:
@@ -944,6 +1053,12 @@ class BuilderPage(QWidget):
         if M is None:
             return None
         data = RE.load(self.host.config_dir)
+        try:                                               # 3.32.0: a Quick Part element takes its measured pages
+            import templatelib as TL
+            data["lib_pages_by_name"] = {i["name"].casefold(): int(i["pages"]) for i in TL.Library(self.host.config_dir).items
+                                         if i.get("pages") and i["kind"] == "quickpart"}
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
         heads = O.volume_heads(M)
         vol = self.volume if self.volume in heads else ""
         if heads and not vol and self.sel:                 # every volume shown: the selected section's volume

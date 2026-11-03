@@ -29,6 +29,10 @@ class PagesPreview(QWidget):
         self.update()
 
     def _size(self, p):
+        img = p.get("image")
+        if img is not None and not img.isNull() and img.height():          # 3.32.0: Word's page, at its own shape
+            r = img.width() / img.height()
+            return (self.PW, self.PW / r) if r <= 1 else (self.PW * r, self.PW)
         h = self.PW * 11 / 8.5
         return (h, self.PW) if p.get("orient") == "landscape" else (self.PW, h)
 
@@ -75,6 +79,15 @@ class PagesPreview(QWidget):
         bold = QFont(small); bold.setBold(True)
         h1 = QFont(self.font()); h1.setPointSizeF(8); h1.setBold(True)
         for r, p in zip(self.rects, self.pages):
+            if p.get("image") is not None:                # 3.32.0: the exact preview: Word's page as it is
+                qp.fillRect(r.translated(1.5, 2), QColor(0, 0, 0, 40))
+                qp.drawImage(r, p["image"])
+                qp.setPen(QPen(QColor("#B8B3A7"), 1)); qp.drawRect(r)
+                if p.get("label") and p["label"] == self.sel:
+                    qp.setPen(QPen(QColor("#2F5D8A"), 2.5)); qp.drawRect(r.adjusted(-2, -2, 2, 2))
+                qp.setFont(small); qp.setPen(QColor("#5D6672"))
+                qp.drawText(QRectF(r.left(), r.bottom() + 1, r.width(), 13), Qt.AlignHCenter | Qt.AlignVCenter, p.get("num") or "")
+                continue
             qp.setPen(QPen(QColor("#B8B3A7"), 1))
             qp.fillRect(r.translated(1.5, 2), QColor(0, 0, 0, 40))
             qp.fillRect(r, QColor(PART_FILL.get(p["part"], "#FFFFFF")))
@@ -152,3 +165,25 @@ class PagesPreview(QWidget):
             qp.drawText(QRectF(r.left(), r.bottom() + 1, r.width(), 13), Qt.AlignHCenter | Qt.AlignVCenter,
                         (p.get("num") or "-") + ("  landscape" if p.get("orient") == "landscape" else ""))
         qp.end()
+
+
+def exact_pages(pdf, sections, width=340):
+    """3.32.0: Word's pages from the exact preview's PDF, as images at width pixels, each with the section it is in
+    (sections: [label] per page) and its page in the file."""
+    import pypdfium2 as pdfium
+    from PySide6.QtGui import QImage
+    out = []
+    doc = pdfium.PdfDocument(pdf)
+    try:
+        for k in range(len(doc)):
+            page = doc[k]
+            w, h = page.get_size()
+            z = (width if w <= h else width * 11 / 8.5) / max(1.0, w)
+            img = page.render(scale=z).to_pil().convert("RGB")
+            q = QImage(img.tobytes("raw", "RGB"), img.width, img.height, img.width * 3, QImage.Format_RGB888).copy()
+            out.append({"part": "body", "key": "body", "label": sections[k] if k < len(sections) else "", "kind": "word",
+                        "orient": "landscape" if w > h else "portrait", "num": f"page {k + 1}",
+                        "header": {}, "footer": {}, "marking": "", "title": "", "lines": [], "image": q})
+    finally:
+        doc.close()
+    return out

@@ -43,6 +43,24 @@ def page_break():
     return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
 
 
+def reserved_page():
+    """3.32.0: a planned page kept for authors (a prepaginated setup): an empty paragraph that starts a new page."""
+    return '<w:p><w:pPr><w:pageBreakBefore/></w:pPr></w:p>'
+
+
+def break_before(xml):
+    """3.32.0: the first paragraph of xml starts a new page (Page break before), in schema order (after its style and
+    keep settings). A table, a page break or a section mark is left as it is: each starts its own way."""
+    import re
+    if not xml.startswith("<w:p") or xml.startswith("<w:p/>") or 'w:type="page"' in xml[:300] or MARK_STYLE in xml[:300]:
+        return xml
+    m = re.match(r'(<w:p(?: [^>]*)?>)<w:pPr>((?:<w:pStyle [^>]*/>)?(?:<w:keepNext/>)?(?:<w:keepLines/>)?)', xml)
+    if m:
+        return xml[:m.end()] + "<w:pageBreakBefore/>" + xml[m.end():] if "<w:pageBreakBefore/>" not in xml[:m.end() + 40] else xml
+    m = re.match(r'(<w:p(?: [^>]*)?>)', xml)
+    return xml[:m.end()] + "<w:pPr><w:pageBreakBefore/></w:pPr>" + xml[m.end():] if m else xml
+
+
 def section_mark(kind, orient):
     """kind: "start" (the section before ends here) or "end" (this section ends here, turned as orient)."""
     return f'<w:p><w:pPr><w:pStyle w:val="{MARK_STYLE}"/></w:pPr>{_t(f"{kind}:{orient}")}</w:p>'

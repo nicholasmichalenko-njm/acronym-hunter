@@ -20,6 +20,11 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.32.0": ["Structure Builder > Preview > Exact preview in Word: Word lays out a dated copy of the volume's template and "
+               "setup and shows its own pages with the true page count. Click a page to select its section.",
+               "Quick Parts measure their pages (Word on this PC) or take pages you type; the page plan, the page budget and "
+               "a prepaginated setup use them. Final Checks > Response elements: what the RFP names that a volume lacks, "
+               "and the RFP's order."],
     "3.31.0": ["The Structure Builder's Preview tab: the volume's pages as they will run, each part numbered its way, with "
                "headers, footers and the marking, element pages with their entries, landscape pages turned. Click a page to "
                "select its section.",

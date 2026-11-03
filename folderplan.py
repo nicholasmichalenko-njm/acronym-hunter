@@ -48,6 +48,7 @@ OUTPUTS = [
     ("wall_of_truth_check", "Wall of Truth check of the drafts", "exports", "{Effort}_Wall_of_Truth_Check_{Date}_{Time}", ".xlsx"),
     ("package_check", "Final package check", "exports", "{Effort}_Final_Package_Check_{Date}_{Time}", ".xlsx"),
     ("xref_check", "Cross-reference check", "exports", "{Effort}_Cross_Reference_Check_{Date}_{Time}", ".xlsx"),
+    ("element_check", "Response elements check", "exports", "{Effort}_Elements_Check_{Date}_{Time}", ".xlsx"),   # 3.32.0
     ("draft_redline", "Redline between two drafts", "exports", "{Doc}_Draft_Redline_{Date}", ".docx"),
     ("format_check", "Format check", "exports", "{Effort}_Format_Check_{Date}_{Time}", ".xlsx"),
     ("audit", "Production audit", "exports", "{Effort}_Production_Audit_{Date}_{Time}", ".xlsx"),          # 3.17.0

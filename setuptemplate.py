@@ -176,6 +176,16 @@ def element_extras(config_dir, info=None, root=None):
     except Exception:  # noqa: BLE001
         import diag
         diag.swallowed()
+    if config_dir:                                     # 3.32.0: the library's Quick Parts with their pages (measured or typed)
+        try:
+            import templatelib as TL
+            lib = TL.Library(config_dir)
+            out["lib_pages"] = {i["id"]: int(i["pages"]) for i in lib.items if i.get("pages")}
+            out["lib_pages_by_name"] = {i["name"].casefold(): int(i["pages"]) for i in lib.items
+                                        if i.get("pages") and i["kind"] == "quickpart"}
+        except Exception:  # noqa: BLE001
+            import diag
+            diag.swallowed()
     path = (info or {}).get("path") or ""
     if path and os.path.isfile(path):
         try:
@@ -338,10 +348,23 @@ def with_starts(std, page=None, chapter=None):
     return std
 
 
+def prepaginate(M):
+    """3.32.0: whether Make templates keeps each section's planned pages (a prepaginated setup)."""
+    import setupdoc as SD
+    return bool(SD.setup_of(M).get("prepaginate"))
+
+
+def set_prepaginate(M, on):
+    import setupdoc as SD
+    SD.setup_of(M)["prepaginate"] = bool(on)
+    M.pending = True
+
+
 def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=None, context=None, word=None, progress=None,
-             starts=None):
+             starts=None, volumes=None, record=True):
     """For each planned volume: its template (named "<effort> <volume>", next version) and the setup written on it.
-    Returns [{"volume", "template", "setup", "version", "validation"}]."""
+    Returns [{"volume", "template", "setup", "version", "validation"}]. 3.32.0: volumes: only these; record False (the
+    exact preview) makes the files without recording a template version or an export."""
     import compliance as C
     import prodrules as PRL
     import prodtemplate as PT
@@ -362,6 +385,8 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
     groups = SD.volume_groups(M)
     planned = {p["volume"]: p for p in plan(M, config_dir, ws, effort_name, info)}
     for vname, entries in groups:
+        if volumes is not None and vname not in volumes:
+            continue
         say(f"Template for {vname}")
         p = planned[vname]
         std, tname, ver = p["std"], p["template_name"], p["version"]
@@ -372,8 +397,9 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
         std["name"] = f"{tname} v{ver}"
         std.setdefault("_parts_dir", os.path.join(config_dir, "production_parts"))
         job = PT.make(std, tfolder, "", word=word, parts_dir=std["_parts_dir"])
-        e = TR.record(config_dir, tname, ver, job.copy, "", getattr(job, "validation", None), effort_name)
-        TR.note_on_effort(ws, tname, e)
+        if record:
+            e = TR.record(config_dir, tname, ver, job.copy, "", getattr(job, "validation", None), effort_name)
+            TR.note_on_effort(ws, tname, e)
         say(f"Setup for {vname}")
         rules = None
         try:
@@ -386,6 +412,7 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
         rb = SD.review_bins(ws.root) if ws is not None else None          # 3.29.0: topics, objectives, key points
         extras = element_extras(config_dir, info, ws.root if ws is not None else None)
         extras["matrix_rows"] = SD.matrix_rows(M, entries, P, inh)       # the whole volume, for the front matter's matrix
+        extras["prepaginate"] = prepaginate(M)                          # 3.32.0: each section's planned pages kept
         front_e = [o for o in main_e if SP.part_of(o) in ("cover", "title", "front")]   # 3.30.1: the structure's front matter
         df = None
         if any(o.get("kind") for o in front_e):          # elements in front matter take the template's fixed TOC block's place
@@ -402,6 +429,8 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
               front_doc=df)
         out.append({"volume": vname, "template": job.copy, "setup": path, "version": ver, "validation": getattr(job, "validation", None),
                     "template_name": tname})
+    if not record:
+        return out
     S = SD.setup_of(M)
     snap = SD.snapshot(M)
     snap.update(time=stamp, files=[os.path.basename(x["setup"]) for x in out])

@@ -5,7 +5,9 @@ many requirements sit under each), portrait or landscape.
 
 Pages come from the page budget: a section with pages set takes them; one without takes one page for its first-level
 section and runs on for the rest. Every first-level section of the response and every appendix starts a new page. It is a
-plan, not Word's layout: Exact pages in Word come from Make templates. Rules only; nothing leaves the PC."""
+plan, not Word's layout: Exact preview in Word (exactpreview) gives Word's own pages. 3.32.0: a library Quick Part placed in
+a section adds the pages it fills (measured by Word or typed), and an element made of one takes them. Rules only;
+nothing leaves the PC."""
 import math
 
 PART_KEY = {"cover": "cover", "title": "cover", "front": "front", "body": "body", "appendix": "appendix", "back": "backer"}
@@ -85,6 +87,18 @@ def _hf(std, key, page):
     return out["header"], out["footer"], mark
 
 
+def item_pages(ex, x):
+    """3.32.0: the pages of a library item placed in a section (a Quick Part measured or typed); None when unknown."""
+    if (x or {}).get("kind") != "quickpart":
+        return None
+    return ((ex or {}).get("lib_pages") or {}).get(x.get("id")) or qp_pages(ex, x.get("name"))
+
+
+def qp_pages(ex, name):
+    """The pages of a library Quick Part by its name; None when it has none."""
+    return ((ex or {}).get("lib_pages_by_name") or {}).get(str(name or "").casefold()) if name else None
+
+
 def plan(M, volume, std=None, extras=None):
     """[{"part", "key", "label", "kind", "orient", "num", "header", "footer", "marking", "title", "lines"}] for the volume's
     pages, in order. lines: [(text, how)] where how is "h1".."h9", "toc", "row", "text", "note", "lib"."""
@@ -143,6 +157,9 @@ def plan(M, volume, std=None, extras=None):
         if k == "element":
             e = RE.get(data, o.get("element") or "") or {}
             src = e.get("source", "placeholder")
+            qp = qp_pages(ex, e.get("lib")) if src == "quickpart" else None
+            if qp and (not budget or (PB.source(M, lab) == "team" and budget == float(e.get("pages") or 0))):
+                budget = qp                              # 3.32.0: a Quick Part's measured (or typed) pages
             n = int(math.ceil(budget or e.get("pages") or 1))
             if src == "divider":
                 new_page(o, "divider", lab, orient)
@@ -164,7 +181,8 @@ def plan(M, volume, std=None, extras=None):
             elif src == "matrix":
                 pg["lines"] += [(f"{i}  {s}", "row") for i, _r, s in SD.matrix_rows(M, entries, P)[:30]]
             elif src == "quickpart":
-                pg["lines"].append((f"Quick Part: {e.get('lib') or lab}", "lib"))
+                pg["lines"].append((f"Quick Part: {e.get('lib') or lab}" + (f" ({qp} page{'s' if qp != 1 else ''}, measured)"
+                                                                            if qp else ""), "lib"))
             elif src == "units":
                 pg["lines"].append(("Unit, meaning, system", "row"))
             else:
@@ -186,25 +204,33 @@ def plan(M, volume, std=None, extras=None):
             cur = None
             continue
         starts = cur is None or hl <= 1 or (o.get("brk") is not None) or (cur["orient"] != orient) or cur["part"] != part
+        lp = sum(item_pages(ex, x) or 0 for x in o.get("lib") or [])     # 3.32.0: pages the placed Quick Parts fill
         if starts:
             if hl <= 1 and part in chapter:
                 chapter[part] += 1
-            n = int(math.ceil(budget or 1)) if hl <= 1 or o.get("brk") else 1
+            if budget and (hl <= 1 or o.get("brk")):
+                n, budgeted = int(math.ceil(budget)), True
+            else:
+                n, budgeted = max(1, int(math.ceil(lp))), False
             cur = new_page(o, "chapter" if hl <= 1 else "section", lab, orient)
             cur["_left"] = n
+            cur["_budgeted"] = budgeted
             extra = n - 1
         else:
-            extra = 0
+            extra = max(0, int(math.ceil(lp)) - 1) if lp and not cur.get("_budgeted") else 0   # a 1-page Quick Part fits on the page
         cur["lines"].append((lab, f"h{min(max(hl, 1), 9)}"))
         for x in o.get("lib") or []:
-            cur["lines"].append((f"{x.get('name', '')} ({x.get('kind', '')})", "lib"))
+            xp = item_pages(ex, x)
+            cur["lines"].append((f"{x.get('name', '')} ({x.get('kind', '')}" + (f", {xp} page{'s' if xp != 1 else ''}" if xp else "") + ")", "lib"))
         nreq = sum(1 for i in P.get(lab, []) if (B.get(i) or {}).get("decision") == "Keep")
         if nreq:
             cur["lines"].append((f"{nreq} requirement{'s' if nreq != 1 else ''}", "text"))
-        for _ in range(extra if starts else 0):
+        budgeted = cur.get("_budgeted")
+        for _ in range(extra):
             new_page(o, "more", lab, orient)
-        if starts and extra:
+        if extra:
             cur = pages[-1]
+            cur["_budgeted"] = budgeted
             cur["lines"].append((f"(continued: {lab})", "note"))
     return pages
 

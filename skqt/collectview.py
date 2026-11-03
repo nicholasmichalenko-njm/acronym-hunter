@@ -43,6 +43,7 @@ class CollectDialog(QDialog):
         self.keep_lib = QCheckBox("Keep in the library (to use in any standard later)"); self.keep_lib.setChecked(True)
         wh.addWidget(self.use_here); wh.addWidget(self.keep_lib); wh.addStretch(1)
         self.used = []
+        self.qp_ids = []                                 # 3.32.0: Quick Parts kept, measured when the import ends
         tf = QFormLayout(); v.addLayout(tf)
         uw = QWidget(); uh = QHBoxLayout(uw); uh.setContentsMargins(0, 0, 0, 0)
         self.uses = {}
@@ -142,7 +143,7 @@ class CollectDialog(QDialog):
                         except Exception:                 # noqa: BLE001
                             diag.swallowed()
             if self.keep_lib.isChecked():
-                got = TL.save_collected(self.lib, self.path, [c], tags=self.tags())
+                got = TL.save_collected(self.lib, self.path, [c], tags=self.tags(), quickparts=self.qp_ids)
                 for k in got:
                     self.saved[k] += got[k]
             for it in c.items:                           # taken: met again, they are done
@@ -151,11 +152,26 @@ class CollectDialog(QDialog):
                 diag.activity("template_library_collected", n=self.saved["new"] + self.saved["variant"])
                 if self.used:
                     self.page.after_library(f"{len(self.used)} item(s) from {os.path.basename(self.path)}")
+                self.measure_kept()
                 self.accept()
                 return self.saved
         self.step = max(0, min(len(self.cards) - 1, self.step + step))
         self.show_card()
         return self.saved
+
+    def measure_kept(self):
+        """3.32.0: the Quick Parts just kept measure their pages once, by Word on this PC, off the window's thread."""
+        import qpmeasure as QM
+        if not self.qp_ids or not QM.available():
+            return False
+        from .progress import JobWorker
+        ids, cfg, host = list(self.qp_ids), self.lib.config_dir, self.page.host
+        w = JobWorker(lambda _p, _s: QM.measure(TL.Library(cfg), ids))
+        w.done.connect(lambda r: host.toast(f"{sum(1 for v in (r or {}).values() if isinstance(v, int))} Quick Part(s) measured by Word."
+                                            if isinstance(r, dict) else "Word could not measure the Quick Parts' pages."))
+        self.page._qp_measure = w                       # the page keeps it running after this dialog closes
+        w.start()
+        return True
 
     def sample(self, open_it=True):
         """A small template with this card's items in use, in the Samples folder; opened in Word when it is there."""
@@ -351,10 +367,10 @@ class LibraryDialog(QDialog):
         self.shelves = QListWidget(); self.shelves.setFixedWidth(210)
         self.shelves.currentRowChanged.connect(lambda _r: self.fill())
         body.addWidget(self.shelves)
-        self.t = QTableWidget(0, 4); self.t.setHorizontalHeaderLabels(["Name", "Tags", "From", "What it is"])
+        self.t = QTableWidget(0, 5); self.t.setHorizontalHeaderLabels(["Name", "Tags", "From", "What it is", "Pages"])
         self.t.verticalHeader().setVisible(False); self.t.setSelectionBehavior(QTableWidget.SelectRows)
         self.t.setEditTriggers(QTableWidget.NoEditTriggers); self.t.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
-        self.t.setColumnWidth(0, 220); self.t.setColumnWidth(1, 200); self.t.setColumnWidth(2, 180)
+        self.t.setColumnWidth(0, 220); self.t.setColumnWidth(1, 200); self.t.setColumnWidth(2, 180); self.t.setColumnWidth(4, 120)
         body.addWidget(self.t, 1)
         self.preview = QLabel(); self.preview.setWordWrap(True); self.preview.setMinimumHeight(70)    # 3.23.0
         self.preview.setTextFormat(Qt.RichText)
@@ -369,6 +385,13 @@ class LibraryDialog(QDialog):
         row.addWidget(D.button("Rename...", None, lambda: self.rename()))
         row.addWidget(D.button("Use cases...", None, lambda: self.retag()))
         row.addWidget(D.button("Take out", "ghost", lambda: self.remove()))
+        import qpmeasure as QM                    # 3.32.0: a Quick Part's pages, measured by Word or typed
+        self.measure_btn = D.button("Measure pages", None, lambda: self.measure(), "Word on this PC counts the pages each "
+                                    "selected Quick Part fills (all on the shelf when none is selected). The page plan, "
+                                    "the page budget and a prepaginated setup use them.")
+        self.measure_btn.setEnabled(QM.available())
+        row.addWidget(self.measure_btn)
+        row.addWidget(D.button("Pages...", None, lambda: self.type_pages(), "Type the pages a Quick Part fills"))
         row.addWidget(D.button("Save as a kit...", None, lambda: self.save_kit(), "The selected items (Ctrl+click for several, on "
                                "any shelf) as a named kit: start a standard from it and change only what the effort needs"))
         row.addStretch(1)
@@ -410,7 +433,9 @@ class LibraryDialog(QDialog):
             r = self.t.rowCount(); self.t.insertRow(r)
             tg = i.get("tags") or {}
             tags = ", ".join(tg.get("use", []) + [x for x in (tg.get("proposal_type"), tg.get("program_type"), tg.get("customer")) if x])
-            for c, s in enumerate((i["name"] + (" (variant)" if i.get("variant_of") else ""), tags, i.get("source", ""), i.get("summary", ""))):
+            pg = (f"{i['pages']} ({i.get('pages_how', 'typed')})" if i.get("pages") else
+                  ("not measured" if i["kind"] == "quickpart" else ""))
+            for c, s in enumerate((i["name"] + (" (variant)" if i.get("variant_of") else ""), tags, i.get("source", ""), i.get("summary", ""), pg)):
                 cell = QTableWidgetItem(s); cell.setToolTip(s)
                 if c == 0:
                     cell.setData(Qt.UserRole, i["id"])
@@ -538,6 +563,41 @@ class LibraryDialog(QDialog):
                 return False
             uses = [u for u, cb in boxes.items() if cb.isChecked()]
         ok = self.lib.tag(iid, use=list(uses))
+        self.fill()
+        return ok
+
+    def _picked_quickparts(self):
+        ids = [self.t.item(i.row(), 0).data(Qt.UserRole) for i in self.t.selectionModel().selectedRows()] if self.t.selectionModel() else []
+        ids = [i for i in ids if i and (self.lib.get(i) or {}).get("kind") == "quickpart"]
+        return ids or ([i["id"] for i in self.lib.shelf("quickpart")] if self.kind() == "quickpart" else [])
+
+    def measure(self, ids=None, runner=None):
+        """3.32.0: Word measures the selected Quick Parts' pages (every one on the shelf when none is selected)."""
+        import qpmeasure as QM
+        ids = ids if ids is not None else self._picked_quickparts()
+        if not ids:
+            self.page.host.status("Pick a Quick Part on the Quick Parts shelf first.")
+            return {}
+        res = QM.measure(self.lib, ids, runner=runner)
+        self.lib.load(); self.fill()
+        n = sum(1 for v in res.values() if isinstance(v, int))
+        bad = [v for v in res.values() if not isinstance(v, int)]
+        self.page.host.toast(f"{n} Quick Part(s) measured." + (f" {len(bad)} not: {bad[0]}" if bad else ""))
+        diag.activity("quickparts_measured", n=n)
+        return res
+
+    def type_pages(self, pages=None):
+        """The pages a Quick Part fills, typed (0 takes them off)."""
+        iid = self.selected()
+        it = self.lib.get(iid) if iid else None
+        if it is None or it["kind"] != "quickpart":
+            self.page.host.status("Pick a Quick Part on the Quick Parts shelf first.")
+            return False
+        if pages is None:
+            pages, ok = QInputDialog.getInt(self, "Pages", f"Pages {it['name']} fills (0 takes them off):", int(it.get("pages") or 1), 0, 500)
+            if not ok:
+                return False
+        ok = self.lib.set_pages(iid, pages or None, "typed")
         self.fill()
         return ok
 

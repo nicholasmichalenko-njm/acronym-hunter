@@ -74,6 +74,12 @@ class MakeTemplatesDialog(QDialog):
         self.starts_t.verticalHeader().setVisible(False); self.starts_t.setMaximumHeight(150); self.starts_t.setEnabled(False)
         self.starts_t.horizontalHeader().setStretchLastSection(True)
         stb.addWidget(self.starts_t)
+        # 3.32.0: a prepaginated setup
+        self.prepag = QCheckBox("Keep each section's planned pages (a prepaginated setup)")
+        self.prepag.setToolTip("A section with pages set in the page budget (a first-level section, or one that starts a Word "
+                               "section) gets its pages in the setup: empty pages after its content, and the next section "
+                               "starts on a new page. Placed Quick Parts count with their measured pages.")
+        stb.addWidget(self.prepag)
         self.ref_rows = {}
         lv.addWidget(self.setup_box)
         lv.addWidget(D.label("Templates to make", "title"))
@@ -156,6 +162,7 @@ class MakeTemplatesDialog(QDialog):
             self.ready_lbl.setText("\n".join(("✓ " if ok else "• ") + what + ("" if ok else f" ({n} still open)") for ok, what, n in rd))
             self._ready_ok = all(ok for ok, _w, _n in rd)
             if not self.ref_rows:
+                self.prepag.setChecked(ST.prepaginate(R.M))
                 opts = ST.options(R.M)
                 for r, (kk, label, _s, _c, _i) in enumerate(ST.KINDS):
                     self.ref_grid.addWidget(D.label(label, None), r, 0)
@@ -239,6 +246,9 @@ class MakeTemplatesDialog(QDialog):
             return self.page.make_template(start_from=self.start_from(), word=word, name=self.name.currentText().strip() or None)
         if k == "etype":
             return self.page.make_templates_all(word=word, eid=self.etype.currentData(), start_from=self.start_from())
+        import setuptemplate as ST
+        if self.host.review is not None:
+            ST.set_prepaginate(self.host.review.M, self.prepag.isChecked())
         return self.host.setup_page.make_on_templates(opts=self.ref_options(), go=True, starts=self.starts() or None)
 
 

@@ -195,8 +195,9 @@ def add_to_volume(M, e, volume="", data=None):
     o = M.outline[O.index_of(M, lab)]
     o["element"], o["kind"], o["auto"] = e["id"], "element", True
     import pagebudget as PB                         # 3.31.0: its pages in the page budget, and whether they count
-    if e.get("pages"):
-        PB.set_pages(M, lab, e["pages"], "team")
+    qp = ((data or {}).get("lib_pages_by_name") or {}).get(str(e.get("lib") or "").casefold()) if e.get("source") == "quickpart" else None
+    if qp or e.get("pages"):                        # 3.32.0: a Quick Part element takes the Quick Part's measured pages
+        PB.set_pages(M, lab, qp or e["pages"], "team")
     if bool(e.get("counts")) != SP.counts(M, e["part"]):
         SP.set_item_count(M, lab, bool(e.get("counts")))
     rank = {x["id"]: x["order"] for x in (data or {}).get("elements", [])}

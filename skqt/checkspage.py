@@ -67,6 +67,16 @@ class ChecksPage(QWidget):
         self.w_table.itemChanged.connect(lambda it: self.tick_written(it))
         self.w_card.add(self.w_table)
         v.addWidget(self.w_card)
+        # ---- 3.32.0: the response elements (the TOC, the lists, Acronyms...) the RFP names, and their order
+        self.e_card = D.Card("Response elements", "Each volume against the RFP: an element the RFP names that the volume does "
+                             "not have, elements out of the order the RFP lists them in, and an element outside its part.",
+                             actions=[D.button("Check the elements", "primary", lambda: self.check_elements()),
+                                      D.button("Export...", None, lambda: self.export_elements())])
+        self.e_sum = self.e_card.add(D.label("Not checked yet.", "muted"))
+        self.e_table = _table(["Volume", "Check", "Element", "What", "Where"], [170, 70, 170, 0, 200], 3, 160)
+        self.e_card.add(self.e_table)
+        self.elements = None
+        v.addWidget(self.e_card)
         # ---- cross-references
         self.x_card = D.Card("Cross-references and numbering", "Figure, table and exhibit numbers in order; every one the text "
                              "mentions has a caption, every caption is mentioned; pictures and tables with no caption; Word's "
@@ -261,6 +271,43 @@ class ChecksPage(QWidget):
         return path
 
     # ------------------------------------------------------------ cross-references
+    def check_elements(self):
+        """3.32.0: the volumes' elements against the RFP (elementcheck)."""
+        import elementcheck as EC
+        import responseelements as RE
+        R_ = self.host.review
+        if R_ is None or not getattr(R_.M, "outline", None):
+            self.e_sum.setText("Open an effort with a response structure (Matrix) first.")
+            self.elements = []
+            return []
+        rows = EC.check(R_.M, RE.load(self.host.config_dir))
+        self.elements = rows
+        t = self.e_table
+        t.setRowCount(0)
+        for r in rows:
+            k = t.rowCount(); t.insertRow(k)
+            for c, text in enumerate((r["volume"], r["check"], r["element"], r["detail"], r["where"])):
+                t.setItem(k, c, QTableWidgetItem(text))
+        t.resizeRowsToContents()
+        n = len(rows)
+        self.e_sum.setText(f"{n} thing{'s' if n != 1 else ''} to look at." if n else
+                           "Every element the RFP names is in its volume, in the RFP's order and in its part.")
+        diag.activity("elements_checked", n=n)
+        return rows
+
+    def export_elements(self, path=None):
+        import elementcheck as EC
+        if self.elements is None:
+            self.host.status("Check the elements first.")
+            return ""
+        if path is None:
+            path, _ = QFileDialog.getSaveFileName(self, "Export the elements check", self.host.out_path("element_check"), "Excel (*.xlsx)")
+            if not path:
+                return ""
+        EC.export(path, self.elements, self.host.effort_name)
+        self.host.toast("Elements check exported")
+        return path
+
     def check_xref(self):
         import xrefcheck as X
         out = []

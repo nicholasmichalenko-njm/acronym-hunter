@@ -1,6 +1,18 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+EXACT PREVIEW AND PREPAGINATION (3.32.0)
+  - Structure Builder > Preview > Exact preview in Word: Word lays out the volume's template and setup (a dated copy
+    beside the setup documents; nothing recorded) and the preview shows Word's own pages and the true page count
+    beside the plan's. A click on a page selects its section; a change to the structure goes back to the plan.
+  - Quick Parts measure their pages: Word on this PC counts the pages each one fills when it is collected into the
+    template library, or with Measure pages; Pages... types them. The page plan shows them, a section's pages grow
+    with them, and an element made of a Quick Part (a cover letter) takes them.
+  - Make templates: Keep each section's planned pages (a prepaginated setup). A section with pages set gets them as
+    empty pages after its content, less what its placed Quick Parts fill, and the next section starts a new page.
+  - Final Checks > Response elements: for each volume, an element the RFP names that it does not have, elements out
+    of the order the RFP lists them in, and an element outside its part. Export... writes it to Excel.
+
 THE LIVE PREVIEW, UNITS AND PAGES (3.31.0)
   - Structure Builder > Preview: the volume's pages as they will run, from the structure, the page budget and
     Production Standards: the template's cover, front matter numbered i, ii, iii, the response from 1, appendices

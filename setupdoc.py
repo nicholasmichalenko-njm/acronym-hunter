@@ -780,15 +780,36 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
     open_brk = []                                  # (level, orient) of the Word sections still open
     app_base = min([x.get("level", 1) for x in entries if SP.part_of(x) == "appendix"] or [base])
     mrows = matrix_rows(M, entries, P, inh)        # the compliance matrix element: each requirement and where we answer it
+    reserve = []                                   # 3.32.0: (level, pages, Quick Part pages) of a section whose pages are kept
+    state = {"brk_next": False}
+    prepag = bool(ex.get("prepaginate"))
+
+    def close_to(level):
+        """Close what ends before a section at level: the deepest first; a section's kept pages before its Word section ends."""
+        while (open_brk and open_brk[-1][0] >= level) or (reserve and reserve[-1][0] >= level):
+            bl = open_brk[-1][0] if open_brk else -10 ** 6
+            rl = reserve[-1][0] if reserve else -10 ** 6
+            if rl >= bl:
+                _lv, n, used = reserve.pop()
+                for _ in range(max(0, n - max(1, int(math.ceil(used))))):
+                    d.body.append(EB.reserved_page())
+                state["brk_next"] = True                 # the next section starts on a new page
+            else:
+                d.body.append(EB.section_mark("end", open_brk.pop()[1]))   # a Word section ends where its subtree ends
+                state["brk_next"] = False
+    import math
+    import outline_ops as O
+    import pageplan as PPL
     for o in entries:
         lab = C.outline_label(o)
         part = SP.part_of(o)
         lvl = o.get("level", 1) - base + 1
-        while open_brk and open_brk[-1][0] >= o.get("level", 1):        # a Word section ends where its subtree ends
-            d.body.append(EB.section_mark("end", open_brk.pop()[1]))
+        close_to(o.get("level", 1))
         if o.get("brk"):
+            state["brk_next"] = False
             d.body.append(EB.section_mark("start", o["brk"].get("orient", "portrait")))
             open_brk.append((o.get("level", 1), o["brk"].get("orient", "portrait")))
+        first = len(d.body)                        # 3.32.0: where this section's own content starts
         if show_parts and lab not in vheads and part != last_part and (o.get("level", 1) - base) <= 1:   # 3.19.0: a part starts: its rules
             d.para(SP.PART_NAME[part].upper() + (f": {rules[part]}" if rules and rules.get(part) else "")
                    + ("" if SP.counts(M, part) else ("" if rules else "; not counted toward the page limit")),
@@ -796,6 +817,10 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
             last_part = part
         kind = o.get("kind") or ""
         bud0 = ((S.get("budget") or {}).get("pages") or {}).get(lab)
+        if reserve:
+            reserve[-1] = (reserve[-1][0], reserve[-1][1], reserve[-1][2] + sum(PPL.item_pages(ex, x) or 0 for x in o.get("lib") or []))
+        elif prepag and bud0 and kind not in ("element", "divider", "placeholder") and (O.heading_level(M, lab) <= 1 or o.get("brk")):
+            reserve.append((o.get("level", 1), int(math.ceil(float(bud0))), sum(PPL.item_pages(ex, x) or 0 for x in o.get("lib") or [])))
         if kind == "element":
             d.body.append(EB.element_xml(o, {"std": std, "acronyms": ex.get("acronyms"), "data": ex.get("data"), "units": ex.get("units"),
                                              "matrix_rows": ex.get("matrix_rows") or mrows, "pages": int(float(bud0)) if bud0 else None}))
@@ -883,8 +908,10 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
         for x in o.get("lib") or []:                             # library items placed after the requirements
             if x.get("where") == "after":
                 d.body.append(EB.lib_xml(x))
-    while open_brk:
-        d.body.append(EB.section_mark("end", open_brk.pop()[1]))
+        if state["brk_next"] and first < len(d.body):           # 3.32.0: after a section's kept pages, the next starts a page
+            d.body[first] = EB.break_before(d.body[first])
+        state["brk_next"] = False
+    close_to(-10 ** 6)
     return d
 
 
