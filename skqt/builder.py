@@ -277,7 +277,7 @@ class BuilderPage(QWidget):
 
     # ------------------------------------------------------------ the text panel (tests and Start from use these)
     def __getattr__(self, name):
-        if name in ("text", "apply", "apply_btn", "state", "preview", "letter", "doc", "from_rfp_outline", "from_word",
+        if name in ("text", "apply", "apply_btn", "state", "letter", "doc", "from_rfp_outline", "from_word",
                     "set_text", "why", "tree") and "text_panel" in self.__dict__:
             return getattr(self.__dict__["text_panel"], name)
         raise AttributeError(name)

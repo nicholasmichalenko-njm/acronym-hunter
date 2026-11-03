@@ -43,7 +43,7 @@ w.go("structure"); app.processEvents()
 check("Structure shows the matrix's structure", sp.text.toPlainText().strip() == C.outline_text(M.outline).strip() and sp.tree.topLevelItemCount() > 0)
 sp.letter.setCurrentText("Section L")
 check("start from the RFP headings", sp.from_headings() and "L.3.1" in sp.text.toPlainText())
-sp.text.setPlainText(sp.text.toPlainText().rstrip() + "\nL.9 Added Section\n"); sp.preview()
+sp.text.setPlainText(sp.text.toPlainText().rstrip() + "\nL.9 Added Section\n"); sp.text_panel.preview()   # 3.31.0: the Builder's preview is the pages
 check("an edit not applied yet: Apply is on", sp.apply_btn.isEnabled() and "Not applied" in sp.state.text())
 n, lost = sp.apply(); app.processEvents()
 check("Apply sets it", n == len(M.outline) and any(C.outline_label(o).startswith("L.3.1") for o in M.outline))
