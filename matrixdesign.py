@@ -171,9 +171,99 @@ def save_team(config_dir, design):
     return p
 
 
-def design_for(M, config_dir=""):
-    """The matrix's own design, else the team default, else the built-in one."""
-    return of_matrix(M) or (load_team(config_dir) if config_dir else None) or default()
+def design_for(M, config_dir="", effort_type=""):
+    """The matrix's own design, else its effort type's starting view (3.35.0), else the team default, else the built-in
+    one (the outline matrix)."""
+    own = of_matrix(M)
+    if own:
+        return own
+    if config_dir and effort_type:
+        v = type_view(config_dir, effort_type)
+        if v:
+            d = view_design(config_dir, v)
+            if d:
+                return d
+    return (load_team(config_dir) if config_dir else None) or default()
+
+
+# ------------------------------------------------------------------ 3.35.0: named matrix views in the template library
+VIEW_KIND = "matrix_view"
+
+
+def _lib(config_dir):
+    import templatelib as TL
+    return TL.Library(config_dir)
+
+
+def _plain(design):
+    d = clean(design)
+    d.pop("view", None)
+    return d
+
+
+def view_summary(design):
+    d = clean(design)
+    lay = "one row per outline item" if d["layout"] == "outline" else "one row per RFP sentence"
+    return f"{lay}; " + ", ".join(c["heading"] for c in d["columns"])
+
+
+def views(config_dir):
+    """[(item id, shown name)] of the matrix views kept in the template library, newest version of a family first."""
+    lib = _lib(config_dir)
+    its = sorted(lib.shelf(VIEW_KIND), key=lambda i: (lib.base_of(i).casefold(), -int(i.get("version") or 1)))
+    return [(i["id"], lib.shown_name(i)) for i in its]
+
+
+def save_view(config_dir, name, design, who=None):
+    """Keeps a design as a named matrix view (a new family, or a new version of the family with that name). Returns
+    (item id, shown name, state)."""
+    lib = _lib(config_dir)
+    name = " ".join((name or "").split())[:80]
+    if not name:
+        return None, "", "no name"
+    item, state = lib.add(VIEW_KIND, name, _plain(design), summary=view_summary(design), who=who)
+    return item["id"], lib.shown_name(item), state
+
+
+def save_view_version(config_dir, iid, design, label="", who=None):
+    """A new version of a view's family with this design (the same values return the version that holds them)."""
+    lib = _lib(config_dir)
+    item, state = lib.save_version(iid, _plain(design), label=label, who=who)
+    if item is None:
+        return None, "", state
+    return item["id"], lib.shown_name(item), state
+
+
+def view_design(config_dir, iid):
+    """The design a view holds, marked with where it came from; None when the library no longer has it."""
+    lib = _lib(config_dir)
+    it = lib.get(iid)
+    v = lib.values(it) if it else None
+    if not isinstance(v, dict):
+        return None
+    return clean(dict(v, view={"id": iid, "name": lib.shown_name(it)}))
+
+
+def type_view(config_dir, effort_type):
+    """The matrix view an effort type starts its efforts with ('' for none)."""
+    import prodrules as PRL
+    e = PRL.effort_type_of(PRL.load(config_dir), effort_type)
+    return (e or {}).get("matrix_view", "")
+
+
+def set_type_view(config_dir, effort_type, iid):
+    """Efforts of this type start with this view ('' takes it off). Returns True when kept."""
+    import prodrules as PRL
+    data = PRL.load(config_dir)
+    e = PRL.effort_type_of(data, effort_type)
+    if e is None:
+        return False
+    if iid:
+        e["matrix_view"] = iid
+    else:
+        e.pop("matrix_view", None)
+    PRL.save(config_dir, data)
+    return True
 
 
 def _where(it, M=None):
@@ -236,8 +326,106 @@ def _crosswalk(M):
     return _XW[k]
 
 
+def _side(M, it, inh):
+    """3.35.0: the column a sentence lands in on the outline matrix: "M" for a sentence designated M (Evaluation),
+    "L" for every other requirement (L, SOW, an RFI's interest, or not designated). Support takes its requirement's."""
+    import setupdoc as SD, compliance as C
+    lm = SD.lm_of(M, it, inh)
+    if not lm and it.get("decision") == "Context":
+        byid = {x["id"]: x for x in M.items}
+        hosts = [byid[h] for h in C.cf_ids(it.get("context_for", "")) if h in byid]
+        lm = next((SD.lm_of(M, h, inh) for h in hosts if SD.lm_of(M, h, inh)), "")
+    return "M" if lm == "M" else "L"
+
+
+def _sref(M, it, inh):
+    """The RFP place of a sentence for the outline matrix: its RFP section number (L.4.2.1), else page and paragraph."""
+    import setupdoc as SD
+    return SD.ref_of(M, it, inh)[0] or it.get("section", "") or _where(it, M) or it.get("id", "")
+
+
+def _stext(it):
+    t = ((it.get("lead") + " ") if it.get("lead") else "") + it.get("text", "")
+    return ("(Supporting context) " + t) if it.get("decision") == "Context" else t
+
+
+def _refs_cell(M, its, inh):
+    return "\n".join(dict.fromkeys(_sref(M, x, inh) for x in its))
+
+
+def _content_cell(M, its, inh):
+    """Each sentence's words; with more than one place, each starts with its place so the two columns read together."""
+    if len({_sref(M, x, inh) for x in its}) <= 1:
+        return "\n\n".join(_stext(x) for x in its)
+    return "\n\n".join(f"{_sref(M, x, inh)}: {_stext(x)}" for x in its)
+
+
+def _factors(M, its, inh):
+    """The Section M factors the L/M crosswalk ties these sentences' instructions to."""
+    import setupdoc as SD
+    xw = _crosswalk(M)
+    out = []
+    for it in its:
+        num = it.get("section", "") or SD.ref_of(M, it, inh)[0]
+        while num:
+            if num in xw:
+                out += [f"{r} {t}".strip() for r, t in xw[num]]
+                break
+            num = num.rsplit(".", 1)[0] if "." in num else ""
+    return "\n".join(dict.fromkeys(out))
+
+
+def _item_value(M, lab, key, inh, Ls=(), Ms=()):
+    """3.35.0: an outline item's own columns, and its Section L and M content."""
+    import setupdoc as SD, compliance as C, pagebudget as PB
+    if key == "item":
+        o = next((o for o in M.outline if C.outline_label(o) == lab), None)
+        return " ".join(x for x in ((o or {}).get("num", ""), (o or {}).get("title", "") or (lab if o is None else "")) if x) or lab
+    if key == "assigned_to":
+        p = SD.section_people(M, lab) if lab else {}
+        return ", ".join(dict.fromkeys(n for n in [p.get("lead", "")] + [x.strip() for x in (p.get("with", "") or "").split(",")] if n))
+    if key == "page_alloc":
+        return PB.fmt(PB.pages(M, lab)) if lab else ""
+    if key == "pct_complete":
+        v = SD.progress_of(M, lab) if lab else None
+        return "" if v is None else f"{v}%"
+    if key == "l_refs":
+        return _refs_cell(M, Ls, inh)
+    if key == "l_content":
+        return _content_cell(M, Ls, inh)
+    if key == "m_refs":
+        return _refs_cell(M, Ms, inh) if Ms else _factors(M, [x for x in Ls if x.get("decision") == "Keep"], inh)
+    if key == "m_content":
+        return _content_cell(M, Ms, inh)
+    return ""
+
+
 def _value(M, it, key, inh, people, ctx=None, vols=None):
     import setupdoc as SD, compliance as C
+    if it.get("_kind") == "item":                                   # 3.35.0: a row of the outline matrix
+        if key == "item" and it.get("_unplaced"):
+            return UNPLACED
+        if key in OUTLINE_KEYS:
+            return _item_value(M, it["map"], key, inh, it.get("_L", ()), it.get("_M", ()))
+        if key in ("volume", "deliverable", "page_limit", "format", "section", "section_no", "section_name", "lead", "order"):
+            return _value(M, dict(it, _kind="empty"), key, inh, people, ctx, vols) if key != "lead" else \
+                SD.section_people(M, it["map"]).get("lead", "")
+        if key == "text":
+            return _content_cell(M, list(it.get("_L", ())) + list(it.get("_M", ())), inh)
+        return ""
+    if key in OUTLINE_KEYS:                                          # 3.35.0: the same columns on a sentence's row
+        lab = it.get("map", "")
+        if it.get("_kind") == "empty" or key in ("item", "assigned_to", "page_alloc", "pct_complete"):
+            if key == "assigned_to" and it.get("_kind") != "empty":
+                return _value(M, it, "authors", inh, people, ctx, vols)
+            return _item_value(M, lab, key, inh)
+        side = _side(M, it, inh)
+        one = [it] + list(it.get("_ctx") or [])
+        if key in ("l_refs", "l_content"):
+            return _item_value(M, lab, key, inh, Ls=one) if side == "L" else ""
+        if side == "M":
+            return _item_value(M, lab, key, inh, Ms=one)
+        return _factors(M, [it], inh) if key == "m_refs" else ""
     if it.get("_kind") == "empty":
         vol = (vols or {}).get(it["map"], "")
         d = _deliv(ctx, vol)
@@ -391,6 +579,8 @@ def rows(M, design, ctx=None):
     lost. Every row gets an Order number (sort on it to get this layout back). Returns (items, [[value, ...]]); an
     item's "_kind" is "req", "ctx" (supports the row above) or "empty"."""
     import setupdoc as SD, compliance as C
+    if design.get("layout") == "outline":
+        return outline_rows(M, design, ctx)
     labels = [C.outline_label(o) for o in M.outline]
     pos0 = {it.get("id"): i for i, it in enumerate(M.items)}
     roles = design["roles"]
@@ -458,6 +648,48 @@ def rows(M, design, ctx=None):
     vols = volume_map(M)
     people = {}
     return out, [[_value(M, it, c["key"], inh, people, ctx, vols) for c in design["columns"]] for it in out]
+
+
+def outline_rows(M, design, ctx=None):
+    """3.35.0 the outline matrix: one row per item of the response outline (section, header, subheader), in outline
+    order. A row holds the item's own values (assigned to, initial page allocation, % complete) and the sentences in it,
+    Section L (every requirement not designated M) beside Section M, each in the RFP's order. A sentence in several
+    items is in each of their rows. Items with nothing in them keep their row unless the design leaves them out.
+    Returns (items, [[value, ...]]); an item's "_kind" is "item"."""
+    import setupdoc as SD, compliance as C
+    inh = SD.inherited_sections(M)
+    roles = design["roles"]
+    pos = {it.get("id"): i for i, it in enumerate(M.items)}
+    secmap = {}
+    for it in M.items:
+        if it.get("decision") in ("Keep", "Context") and it.get("decision") in roles:
+            for lab in SD.item_sections(M, it):
+                secmap.setdefault(lab, []).append(it)
+    labels = [C.outline_label(o) for o in M.outline]
+    parents = {labels[i] for i, o in enumerate(M.outline) if i + 1 < len(M.outline)
+               and M.outline[i + 1].get("level", 1) > o.get("level", 1)}
+    out = []
+    for o, lab in zip(M.outline, labels):
+        its = sorted(secmap.get(lab, []), key=lambda x: (x.get("decision") != "Keep", pos.get(x.get("id"), 0)))
+        if not its and not design.get("empty_sections", True) and lab not in parents:
+            continue
+        Ls = [x for x in its if _side(M, x, inh) == "L"]
+        Ms = [x for x in its if _side(M, x, inh) == "M"]
+        out.append({"_kind": "item", "map": lab, "id": "", "decision": "", "_level": int(o.get("level", 1) or 1),
+                    "_L": Ls, "_M": Ms, "_parent": lab in parents})
+    loose = [it for it in M.items if it.get("decision") == "Keep" and "Keep" in roles and not SD.item_sections(M, it)]
+    if loose:                                     # requirements in no item yet are never left out of the matrix
+        loose.sort(key=lambda x: pos.get(x.get("id"), 0))
+        out.append({"_kind": "item", "map": "", "id": "", "decision": "", "_level": 1, "_unplaced": True,
+                    "_L": [x for x in loose if _side(M, x, inh) == "L"], "_M": [x for x in loose if _side(M, x, inh) == "M"]})
+    for n, it in enumerate(out, 1):
+        it["_order"] = n
+    vols = volume_map(M)
+    people = {}
+    return out, [[_value(M, it, c["key"], inh, people, ctx, vols) for c in design["columns"]] for it in out]
+
+
+UNPLACED = "Not in the outline yet"
 
 
 def customer_rows(M):
@@ -578,6 +810,20 @@ def _table(ws, design, items, data):
         kind = it.get("_kind")
         nxt = items[i + 1].get("_kind") if i + 1 < len(items) else None
         attached_below = nxt == "ctx" and items[i + 1].get("_host") in (it.get("id"), it.get("_host"))
+        if kind == "item":                                   # 3.35.0: the outline matrix: the item indented by level
+            lvl = max(1, it.get("_level", 1))
+            for k, cell in enumerate(ws[ws.max_row]):
+                key = design["columns"][k]["key"]
+                if key in ("l_content", "m_content") and r[k]:      # compliance words in the team's style
+                    cell.value = _CW.xlsx_value(_C.clean_chars(r[k]), cw)
+                cell.alignment = Alignment(vertical="top", wrap_text=True, indent=(lvl - 1) * 2 if key == "item" else 0)
+                cell.border = Border(top=thin, bottom=thin, left=thin, right=thin)
+                if lvl == 1:
+                    cell.font = Font(bold=True)
+                    cell.fill = PatternFill("solid", fgColor="EEF2FF")
+                elif it.get("_parent"):
+                    cell.font = Font(bold=True)
+            continue
         for k, cell in enumerate(ws[ws.max_row]):
             cell.alignment = Alignment(vertical="top", wrap_text=True, indent=2 if (kind == "ctx" and k == text_col) else 0)
             cell.border = Border(top=none if (kind == "ctx" and it.get("_host")) else thin,

@@ -75,7 +75,7 @@ check("a sentence with several authors lists each", SD.owners_list(M2, M2.items[
 check("... names split on commas and semicolons, spaces tidied", SD.split_names(" A. Lee ;K.  Park, ") == ["A. Lee", "K. Park"])
 
 # ------------------------------------------------------------------ matrix design preview
-d = MD.default()
+d = MD.default("sentences")
 heads, rows, n = MD.preview(M2, d)
 check("the design preview: one heading per column, every row unless a count is given",
       len(heads) == len(d["columns"]) and n == len(rows) and n >= 1, (heads, n))

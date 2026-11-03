@@ -160,6 +160,7 @@ check("a taken one is refused there too", dp.identity("K1", "SOW", doc_id=d2["id
 # the matrix: Doc, L/M, Section, Reference; a tab per volume
 w.go("matrix"); app.processEvents()
 mp = w.matrix_page
+mp.use_view("builtin:sentences"); app.processEvents()      # 3.35.0: the sentence rows these checks read
 res = mp.export(os.path.join(tmp, "m.xlsx"))
 from openpyxl import load_workbook
 wb = load_workbook(res["path"])

@@ -94,7 +94,7 @@ def run():
     assert c["map"] == ren
 
     # the matrix: Doc, L/M, Section, Reference, and a tab per volume
-    d = MD.default()
+    d = MD.default("sentences")
     keys = [x["key"] for x in d["columns"]]
     assert keys[3:7] == ["reference", "doc", "lm", "rfp_ref"], keys
     its, dat = MD.rows(M, dict(d, context="rows"))

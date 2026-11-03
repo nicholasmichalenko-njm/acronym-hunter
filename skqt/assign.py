@@ -628,6 +628,29 @@ class AssignPage(QWidget):
         self.undecided_btn = D.button("Select undecided", "ghost", lambda: self.select_undecided(),   # 3.0.4
                                       "Select every sentence in this document with no decision yet (Ctrl+A selects them all)")
         trow.addWidget(self.undecided_btn, 0, Qt.AlignTop); dv.addLayout(trow)
+        # 3.35.0: the target item's own values, the ones the outline matrix shows beside its Section L and M content
+        from PySide6.QtWidgets import QDoubleSpinBox, QSpinBox
+        self.item_row = QWidget(); ir = QHBoxLayout(self.item_row); ir.setContentsMargins(0, 0, 0, 0); ir.setSpacing(D.SPACE["s"])
+        ir.addWidget(D.label("Item", "label", wrap=False))
+        ir.addWidget(D.label("Assigned To", "muted", wrap=False))
+        self.item_who = QComboBox(); self.item_who.setEditable(True); self.item_who.setMinimumWidth(150)
+        self.item_who.setToolTip("Who writes this item (its lead); its contributors stay as they are")
+        self.item_who.lineEdit().editingFinished.connect(lambda: self.set_item_value("who"))
+        self.item_who.activated.connect(lambda _i: self.set_item_value("who"))
+        ir.addWidget(self.item_who, 1)
+        ir.addWidget(D.label("Initial Page Allocation", "muted", wrap=False))
+        self.item_pages = QDoubleSpinBox(); self.item_pages.setRange(0, 2000); self.item_pages.setSingleStep(PB.STEP)
+        self.item_pages.setDecimals(1); self.item_pages.setSpecialValueText("not set")
+        self.item_pages.setToolTip("The item's pages, as the team plans them (Pages... sets who set them and whether they count)")
+        self.item_pages.editingFinished.connect(lambda: self.set_item_value("pages"))
+        ir.addWidget(self.item_pages)
+        ir.addWidget(D.label("% Complete", "muted", wrap=False))
+        self.item_pct = QSpinBox(); self.item_pct.setRange(-1, 100); self.item_pct.setSuffix("%"); self.item_pct.setSpecialValueText("not set")
+        self.item_pct.setSingleStep(5)
+        self.item_pct.setToolTip("How far along the item's writing is, as the team judges it")
+        self.item_pct.editingFinished.connect(lambda: self.set_item_value("pct"))
+        ir.addWidget(self.item_pct)
+        dv.addWidget(self.item_row)
         self.legend = D.label("&nbsp;&nbsp;".join(f"<span style='color:{c}'>\u25A0</span> {n}" for n, c in D.LEGEND)
                               + "&nbsp;&nbsp;<span style='color:#94A3B8'>\u25A1</span> Not decided", "muted")   # 3.18.1
         self.legend.setTextFormat(Qt.RichText); self.legend.setWordWrap(True)
@@ -2997,6 +3020,66 @@ class AssignPage(QWidget):
                                     f"<b>{html.escape(self.target)}</b>")
         else:
             self.target_lbl.setText("<b>Decide</b> &nbsp;Click a section below: L, M and SOW put the selected sentences there.")
+        self.show_item_values()
+
+    def show_item_values(self):
+        """3.35.0: the target item's Assigned To, Initial Page Allocation and % Complete, in the bottom bar."""
+        lab = self.target if (self.R is not None and self.cx is None and self.target
+                              and self.target in set(O.labels(self.M))) else None
+        self.item_row.setVisible(lab is not None)
+        if lab is None:
+            return
+        own = (SD.setup_of(self.M)["owners"].get(lab) or {})
+        p = SD.section_people(self.M, lab)
+        names = set()
+        for v in SD.setup_of(self.M)["owners"].values():
+            names.update(n.strip() for n in [v.get("lead", "")] + (v.get("with", "") or "").split(",") if n.strip())
+        names.update(n for it in self.M.items for n in SD.split_names(it.get("owner", "")) if n)
+        for w in (self.item_who, self.item_pages, self.item_pct):
+            w.blockSignals(True)
+        self.item_who.clear(); self.item_who.addItems(sorted(names, key=str.casefold))
+        self.item_who.setEditText(own.get("lead", ""))
+        self.item_who.lineEdit().setPlaceholderText(f"{p['lead']} (from {p['from']})" if p.get("lead") and p.get("from") != lab else "Nobody yet")
+        self.item_pages.setValue(PB.pages(self.M, lab) or 0)
+        v = SD.progress_of(self.M, lab)
+        self.item_pct.setValue(-1 if v is None else v)
+        for w in (self.item_who, self.item_pages, self.item_pct):
+            w.blockSignals(False)
+        self._item_shown = lab
+
+    def set_item_value(self, what, value=None):
+        """3.35.0: keep one of the target item's values (value: tests). One Undo step. Returns True when it changed."""
+        lab = getattr(self, "_item_shown", None)
+        if self.R is None or not lab or lab not in set(O.labels(self.M)):
+            return False
+        S = SD.setup_of(self.M)
+        if what == "who":
+            v = " ".join((self.item_who.currentText() if value is None else value).split())
+            own = S["owners"].get(lab) or {}
+            if v == own.get("lead", ""):
+                return False
+            self.R.snap(f"assigned to for {lab}")
+            SD.set_people(self.M, lab, v, own.get("with", ""))
+            msg = f"{lab}: assigned to {v or 'nobody'}"
+        elif what == "pages":
+            v = float(self.item_pages.value() if value is None else value)
+            if (PB.pages(self.M, lab) or 0) == PB._round(v):
+                return False
+            self.R.snap(f"pages for {lab}")
+            PB.set_pages(self.M, lab, v)
+            msg = f"{lab}: {PB.fmt(PB.pages(self.M, lab)) or 'no'} page(s)"
+        else:
+            v = int(self.item_pct.value() if value is None else value)
+            v = None if v < 0 else v
+            if SD.progress_of(self.M, lab) == v:
+                return False
+            self.R.snap(f"% complete for {lab}")
+            SD.set_progress(self.M, lab, v)
+            msg = f"{lab}: " + ("% complete not set" if v is None else f"{v}% complete")
+        self.R.changed()
+        diag.activity("item_value_set")
+        self.after(msg)
+        return True
 
     def set_target(self, lab):
         self.target = lab

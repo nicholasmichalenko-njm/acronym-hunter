@@ -83,6 +83,7 @@ R.ctx([ctx], [a["id"]]); w.changed()
 # the matrix page
 w.go("matrix"); app.processEvents()
 mp = w.matrix_page
+mp.use_view("builtin:sentences"); app.processEvents()      # 3.35.0: the sentence rows these checks read
 check("the matrix page shows the design and a preview", mp.cols.count() >= len(MD.COLUMNS) and mp.model.rowCount() >= 2
       and "Context in its requirement's cell" in mp.info.text(), mp.info.text())
 notes = next(i for i in range(mp.cols.count()) if mp.cols.item(i).data(Qt.UserRole) == "notes")

@@ -35,7 +35,7 @@ def run():
     assert [c["key"] for c in d["columns"]] == ["text", "ref", "owner"] and d["columns"][0]["heading"] == "Requirement text"
     assert d["roles"] == ["Keep"] and d["customer_sheet"] is True
     old_cols = [{"key": k, "heading": MD.COLUMNS[k][0]} for k in ("ref", "text", "section", "owner", "page", "status", "notes")]
-    keep_only = dict(MD.default(), columns=old_cols, roles=["Keep"], order="structure", context="rows")
+    keep_only = dict(MD.default("sentences"), columns=old_cols, roles=["Keep"], order="structure", context="rows")
     items, data = MD.rows(M, keep_only)
     assert [it["id"] for it in items] == ["L.4-02", "L.5-01"], "in the structure's order: 1.1 Thermal before 1.2 Schedule"
     assert data[0][3] == "J. Smith" and data[1][4] == "12" and data[1][5] == "Compliant", data
@@ -46,10 +46,10 @@ def run():
     assert [it["id"] for it in cell_items] == ["L.4-02", "L.5-01"] and [c["id"] for c in cell_items[0]["_ctx"]] == ["L.4-03"]
     tcol = [c["key"] for c in both["columns"]].index("text")
     assert "\n\nSupporting context:\n(" in cell_data[0][tcol] and "Thermal margins" in cell_data[0][tcol], cell_data[0][tcol]
-    assert MD.default()["context"] == "cell" and MD.clean({"context": "rows"})["context"] == "rows" and MD.clean({})["context"] == "cell"
+    assert MD.default("sentences")["context"] == "cell" and MD.clean({"context": "rows"})["context"] == "rows" and MD.clean({})["context"] == "cell"
     # 2.51.0: Order, Context under its requirement, Volume, deliverable facts, empty sections, own columns
     olddef = [{"key": k} for k in MD._OLD_DEFAULT_KEYS]
-    full = MD.clean(dict(MD.default(), v=2, columns=olddef + [{"key": "deliverable"}, {"key": "format"}, {"key": "far"},
+    full = MD.clean(dict(MD.default("sentences"), v=2, columns=olddef + [{"key": "deliverable"}, {"key": "format"}, {"key": "far"},
                                                                        {"key": "custom:Reviewer"}], order="structure", context="rows"))
     ctx = {"deliverables": [{"name": "Volume I", "limit": "25 pages", "format": "Font: 12 point Times"}]}
     M.outline = C.parse_outline("Volume I\n1.1 Thermal\n1.2 Schedule\n1.3 Risk")
@@ -67,13 +67,13 @@ def run():
     rfp = MD.rows(M, dict(full, order="rfp"), ctx)[0]                 # 2.54.0: the RFP's order, support under its requirement
     assert [(x.get("id"), x["_kind"]) for x in rfp] == [("L.5-01", "req"), ("L.4-02", "req"), ("L.4-03", "ctx"), ("", "empty")], \
         [(x.get("id"), x["_kind"]) for x in rfp]
-    assert MD.clean({})["order"] == "rfp" and MD.clean({"order": "nonsense"})["order"] == "rfp"
+    assert MD.clean({"columns": [{"key": "text"}]})["order"] == "rfp" and MD.clean({"columns": [{"key": "text"}], "order": "nonsense"})["order"] == "rfp" and MD.clean({})["order"] == "structure"
     # 2.56.0: the default columns; an old default never changed takes the new one; a changed one is kept
-    assert [c["heading"] for c in MD.default()["columns"]] == ["Volume", "Response section no.", "Response section name", "Reference",
+    assert [c["heading"] for c in MD.default("sentences")["columns"]] == ["Volume", "Response section no.", "Response section name", "Reference",
                                                                "Doc", "L/M", "Section", "RFP content", "Author(s)", "Notes"]
-    assert [c["key"] for c in MD.clean({"columns": olddef})["columns"]] == [c["key"] for c in MD.default()["columns"]]
+    assert [c["key"] for c in MD.clean({"columns": olddef})["columns"]] == [c["key"] for c in MD.default("sentences")["columns"]]
     assert [c["key"] for c in MD.clean({"columns": olddef[:3]})["columns"]] == MD._OLD_DEFAULT_KEYS[:3]
-    nd = MD.default()
+    nd = MD.default("sentences")
     ncol = {c["key"]: k for k, c in enumerate(nd["columns"])}
     its2, dat2 = MD.rows(M, dict(nd, order="structure"), ctx)
     r0 = dat2[0]

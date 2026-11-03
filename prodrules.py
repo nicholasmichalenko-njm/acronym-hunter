@@ -111,7 +111,7 @@ STARTER_EFFORT_TYPES = [("rfp", "RFP response"), ("rfp_limited", "Page-limited R
                         ("white_paper", "White paper"), ("program", "Program deliverables")]     # 3.18.2: RFI response
 NEW_STARTERS = ("rfi",)                          # 3.18.2: starters an older file gains once
 PROFILE_KEYS = ("id", "name", "match")            # a profile's own fields; everything else is its layer
-EFFORT_TYPE_KEYS = ("id", "name", "profiles", "default_profile", "profile_over")
+EFFORT_TYPE_KEYS = ("id", "name", "profiles", "default_profile", "profile_over", "matrix_view")   # 3.35.0: its starting matrix view
 
 
 def load(config_dir):

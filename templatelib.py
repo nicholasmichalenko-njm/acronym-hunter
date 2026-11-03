@@ -22,7 +22,8 @@ SHELVES = (("style", "Styles"), ("page_setup", "Page setups"), ("hf", "Headers a
            ("toc", "Table of contents"), ("cover", "Covers"), ("backer", "Back covers"), ("quickpart", "Quick Parts"), ("font", "Fonts"),
            ("theme", "Themes (colors and fonts)"), ("hf_design", "Header and footer designs (whole)"),
            ("variables", "Base fonts and sizes"), ("part", "Part designs"), ("pagination", "Pagination schemes"),   # 3.33.0
-           ("title", "Title pages"), ("cover_design", "Cover layouts"))                                         # 3.34.0
+           ("title", "Title pages"), ("cover_design", "Cover layouts"),                                         # 3.34.0
+           ("matrix_view", "Matrix views"))                                                                     # 3.35.0
 THEME_SLOTS = ("dk1", "lt1", "dk2", "lt2", "accent1", "accent2", "accent3", "accent4", "accent5", "accent6", "hlink", "folHlink")
 THEME_NAMES = {"dk1": "Text dark 1", "lt1": "Background light 1", "dk2": "Text dark 2", "lt2": "Background light 2",
                "accent1": "Accent 1", "accent2": "Accent 2", "accent3": "Accent 3", "accent4": "Accent 4", "accent5": "Accent 5",

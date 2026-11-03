@@ -71,7 +71,7 @@ TP.update(rec(), t1, sections=[labels[1]])
 pg.select(a["id"]); pg.do_lm("L"); app.processEvents()
 xo = pg.do_bin("objective", answer={"bin": "objective", "value": "", "note": "", "sections": [labels[1]]})
 xk = pg.do_bin("keypoint", answer={"bin": "keypoint", "value": "", "note": "lead with our digital twin", "sections": []})
-d = MD.default()
+d = MD.default("sentences")
 d["columns"] += [{"key": k, "heading": MD.heading_of(k)} for k in ("topic", "objective", "keypoints", "excerpt")]
 path = os.path.join(tmp, "matrix.xlsx")
 res = MD.export(M, path, d, "Kestrel", ctx=MD.effort_ctx(w.ws))

@@ -28,6 +28,23 @@ class MatrixPage(QWidget):
         v.setSpacing(D.SPACE["m"])
         split = QSplitter(Qt.Horizontal)
         left = QWidget(); lv = QVBoxLayout(left); lv.setContentsMargins(0, 0, 0, 0); lv.setSpacing(D.SPACE["m"])
+        # 3.35.0: named matrix views, kept in the template library with versions; each effort picks one
+        vc = D.Card("View", "A saved set of columns, headings and rows. Pick one for this effort; change it here and "
+                            "save it as a view, or as a new version of the one in use.")
+        self.view_box = QComboBox()
+        self.view_box.activated.connect(lambda _i: self.use_view(self.view_box.currentData()))
+        vc.add(self.view_box)
+        self.view_note = D.label("", "muted"); vc.add(self.view_note)
+        vrow = QHBoxLayout(); vrow.setSpacing(D.SPACE["s"])
+        vrow.addWidget(D.button("Save as a view...", None, lambda: self.save_view(), "Keep this design in the template library under a name"))
+        self.ver_btn = D.button("Save as a new version", "ghost", lambda: self.save_version(),
+                                "A new version of the view in use, with this design; the old version stays")
+        vrow.addWidget(self.ver_btn)
+        vc.body.addLayout(vrow)
+        self.type_btn = D.button("Start this effort type with it", "ghost", lambda: self.type_start(),
+                                 "New efforts of this effort type start with the view in use")
+        vc.add(self.type_btn)
+        lv.addWidget(vc)
         cols = D.Card("Columns", "Tick the columns, drag them in order; click one to rename it.")
         self.cols = QListWidget()
         self.cols.setDragDropMode(QAbstractItemView.InternalMove)
@@ -43,6 +60,11 @@ class MatrixPage(QWidget):
         cols.body.addLayout(row)
         lv.addWidget(cols, 1)
         rows = D.Card("Rows")
+        self.layout_box = QComboBox()                                     # 3.35.0: the outline matrix or sentence rows
+        for k, lab in MD.LAYOUTS:
+            self.layout_box.addItem(lab, k)
+        self.layout_box.currentIndexChanged.connect(lambda _i: self.changed())
+        rows.add(self.layout_box)
         self.role_keep = QCheckBox("Compliance requirements"); self.role_ctx = QCheckBox("Context")
         self.order = QComboBox(); self.order.addItems(["In the RFP's order", "In your structure's order"])
         self.context = QComboBox(); self.context.addItems(["Supporting context in its requirement's cell", "Supporting context on its own rows"])
@@ -84,7 +106,7 @@ class MatrixPage(QWidget):
             self.model.clear()
             self.info.setText("No matrix yet: read the customer's documents first.")
             return
-        self.d = MD.design_for(R.M, self.host.config_dir)
+        self.d = MD.design_for(R.M, self.host.config_dir, self.effort_type())
         self.show_design()
         self.preview()
 
@@ -105,6 +127,11 @@ class MatrixPage(QWidget):
         self.context.setCurrentIndex(0 if self.d.get("context", "cell") == "cell" else 1)
         self.empty.setChecked(bool(self.d.get("empty_sections", True)))
         self.cust.setChecked(bool(self.d.get("customer_sheet", True)))
+        self.layout_box.setCurrentIndex(max(0, self.layout_box.findData(self.d.get("layout", "outline"))))
+        outline = self.d.get("layout") == "outline"
+        self.order.setEnabled(not outline); self.context.setEnabled(not outline)   # the outline sets both
+        self.empty.setText("Outline items with nothing in them yet" if outline else "Sections with nothing assigned yet")
+        self.fill_views()
         self._loading = False
 
     def read_design(self):
@@ -117,14 +144,22 @@ class MatrixPage(QWidget):
         return MD.clean(dict(self.d, columns=cols or MD.default()["columns"], roles=roles,
                              order="rfp" if self.order.currentIndex() == 0 else "structure",
                              context="cell" if self.context.currentIndex() == 0 else "rows",
-                             empty_sections=self.empty.isChecked(), customer_sheet=self.cust.isChecked()))
+                             empty_sections=self.empty.isChecked(), customer_sheet=self.cust.isChecked(),
+                             layout=self.layout_box.currentData() or "outline"))
 
     def changed(self):
         if self._loading or self.host.review is None:
             return
+        was = self.d.get("layout")
         self.d = self.read_design()
         MD.set_matrix(self.host.review.M, self.d)
         self.host.changed()
+        if self.d.get("layout") != was:                    # 3.35.0: the other layout starts from its own columns
+            self.d = MD.clean(dict(MD.default(self.d["layout"]), view=self.d.get("view")))
+            MD.set_matrix(self.host.review.M, self.d)
+            self.show_design()
+        else:
+            self.show_view_note()
         self.timer.start()
 
     def pick_col(self, cur, _prev=None):
@@ -173,8 +208,16 @@ class MatrixPage(QWidget):
         self.model.clear()
         self.model.setHorizontalHeaderLabels(heads)
         t = D.tokens()
+        keys = [c["key"] for c in self.d["columns"]]
         for it, r in list(zip(items, rows))[:PREVIEW_ROWS]:
             cells = [QStandardItem(str(v)) for v in r]
+            if it.get("_kind") == "item":                     # 3.35.0: the outline matrix: indented by level
+                lvl = max(1, it.get("_level", 1))
+                for k, c in enumerate(cells):
+                    if keys[k] == "item":
+                        c.setText("    " * (lvl - 1) + c.text())
+                    if lvl == 1 or it.get("_parent"):
+                        f = c.font(); f.setBold(True); c.setFont(f)
             if it.get("_kind") == "ctx":
                 for c in cells:
                     c.setForeground(QColor(t["muted"]))
@@ -189,9 +232,118 @@ class MatrixPage(QWidget):
             want = int(MD.width_of(self.d["columns"][i]["key"]) * 6.5)
             self.table.setColumnWidth(i, min(420, max(90, want, fm.horizontalAdvance(h) + 28)))
         self.table.resizeRowsToContents()
+        if self.d.get("layout") == "outline":
+            how = "One row per outline item; a sentence in several items is in each of their rows."
+        else:
+            how = "Context in its requirement's cell." if self.d.get("context") == "cell" else "Context on its own rows."
         self.info.setText(f"{n} rows" + (f" (the first {PREVIEW_ROWS} shown)" if n > PREVIEW_ROWS else "")
-                          + f", {len(heads)} columns. " + ("Context in its requirement's cell." if self.d.get("context") == "cell"
-                                                           else "Context on its own rows."))
+                          + f", {len(heads)} columns. " + how)
+
+    # ------------------------------------------------------------ 3.35.0 matrix views
+    def effort_type(self):
+        try:
+            return ((self.host.ws.get("prod_std", {}) or {}).get("effort_type") or "") if self.host.ws is not None else ""
+        except Exception:  # noqa: BLE001
+            return ""
+
+    def fill_views(self):
+        self.view_box.blockSignals(True)
+        self.view_box.clear()
+        for name, lay in MD.BUILTIN_VIEWS:
+            self.view_box.addItem(f"{name} (built in)", "builtin:" + lay)
+        try:
+            for iid, name in MD.views(self.host.config_dir):
+                self.view_box.addItem(name, iid)
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+        v = (self.d.get("view") or {}).get("id")
+        i = self.view_box.findData(v) if v else -1
+        self.view_box.setCurrentIndex(i if i >= 0 else -1)
+        self.view_box.blockSignals(False)
+        self.show_view_note()
+
+    def show_view_note(self):
+        v = self.d.get("view") or {}
+        if not v.get("id"):
+            self.view_note.setText("This effort's own design (not saved as a view).")
+            self.ver_btn.setEnabled(False); self.type_btn.setEnabled(False)
+            return
+        base = MD.view_design(self.host.config_dir, v["id"])
+        same = base is not None and MD._plain(base) == MD._plain(self.d)
+        self.view_note.setText(f"From {v.get('name') or 'a saved view'}" + ("." if same else ", changed for this effort."))
+        self.ver_btn.setEnabled(not same and base is not None)
+        et = self.effort_type()
+        self.type_btn.setEnabled(bool(et))
+        on = bool(et) and MD.type_view(self.host.config_dir, et) == v["id"]
+        self.type_btn.setText("This effort type starts with it" if on else "Start this effort type with it")
+
+    def use_view(self, key):
+        R = self.host.review
+        if R is None or not key:
+            return None
+        if str(key).startswith("builtin:"):
+            d = MD.default(str(key).split(":", 1)[1])
+        else:
+            d = MD.view_design(self.host.config_dir, key)
+            if d is None:
+                self.host.status("That view is no longer in the template library.")
+                return None
+        self.d = d
+        MD.set_matrix(R.M, d)
+        self.host.changed()
+        self.show_design()
+        self.preview()
+        diag.activity("matrix_view_used")
+        return d
+
+    def save_view(self, name=None):
+        if self.host.review is None:
+            return None
+        if name is None:
+            name, ok = QInputDialog.getText(self, "Save as a view", "The view's name:", text=(self.d.get("view") or {}).get("name", ""))
+            if not ok:
+                return None
+        iid, shown, state = MD.save_view(self.host.config_dir, name, self.d)
+        if not iid:
+            self.host.status("Give the view a name.")
+            return None
+        self.d = MD.clean(dict(self.d, view={"id": iid, "name": shown}))
+        MD.set_matrix(self.host.review.M, self.d)
+        self.host.changed()
+        self.fill_views()
+        diag.activity("matrix_view_saved")
+        self.host.toast(f"Saved as the view {shown}" if state != "same" else f"The library already holds this design: {shown}")
+        return iid
+
+    def save_version(self, label=None):
+        v = self.d.get("view") or {}
+        if self.host.review is None or not v.get("id"):
+            return None
+        if label is None:
+            label, ok = QInputDialog.getText(self, "Save as a new version", "A few words on what changed (optional):")
+            if not ok:
+                return None
+        iid, shown, state = MD.save_view_version(self.host.config_dir, v["id"], self.d, label)
+        if not iid:
+            return None
+        self.d = MD.clean(dict(self.d, view={"id": iid, "name": shown}))
+        MD.set_matrix(self.host.review.M, self.d)
+        self.host.changed()
+        self.fill_views()
+        diag.activity("matrix_view_version_saved")
+        self.host.toast(f"Saved as {shown}")
+        return iid
+
+    def type_start(self):
+        v = (self.d.get("view") or {}).get("id")
+        et = self.effort_type()
+        if not v or not et:
+            return None
+        on = MD.type_view(self.host.config_dir, et) == v
+        MD.set_type_view(self.host.config_dir, et, "" if on else v)
+        self.show_view_note()
+        self.host.toast("New efforts of this type start with the team default" if on else "New efforts of this type start with this view")
+        return not on
 
     # ------------------------------------------------------------ team default and export
     def team_save(self):
