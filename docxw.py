@@ -46,23 +46,33 @@ class Doc:
         self.props = {}          # custom document properties (File > Info > Properties > Advanced > Custom)
         self.marking = None      # 2.92.0: (text, color): a marking centered in every page's header and footer (CUI)
         self.landscape = False   # 2.98.0: wide pages (the customer Q&A table)
+        self.styles = {}         # 3.24.0: {kind: style id}: written on a template, a kind takes its style, not colors
 
     def heading(self, text, level=1):
         level = max(1, min(int(level), 6))
         self.body.append(f'<w:p><w:pPr><w:pStyle w:val="Heading{level}"/></w:pPr>{_run(text)}</w:p>')
 
-    def para(self, text, bold=False, color=None):
+    def para(self, text, bold=False, color=None, kind=None):
+        sid = self.styles.get(kind) if kind else None
+        if sid:                                    # 3.24.0: the kind's style carries the look (and hides it when it is hidden)
+            self.body.append(f'<w:p><w:pPr><w:pStyle w:val="{_x(sid)}"/></w:pPr>{_run(text, bold, None)}</w:p>')
+            return
         self.body.append(f"<w:p>{_run(text, bold, color)}</w:p>")
 
     def page_break(self):
         """Start a new page (2.43.0: one author brief per page)."""
         self.body.append('<w:p><w:r><w:br w:type="page"/></w:r></w:p>')
 
-    def rich(self, parts, indent=None, border=None):
+    def rich(self, parts, indent=None, border=None, kind=None):
         """One paragraph of several runs: parts = [(text, {"bold", "italic", "underline", "color", "fill", "size"})]
         (2.29.0; underline 2.31.0). fill shades the run's background (a highlighter in any color); size is in half-points.
         2.52.0: indent (twentieths of a point) moves the paragraph in from the left; border draws a line down its left
         edge in that color (a support paragraph tied to the requirement above it)."""
+        sid = self.styles.get(kind) if kind else None
+        if sid:                                    # 3.24.0: the style holds color, indent and border
+            parts = [(t, {k: v for k, v in (f or {}).items() if k != "color"}) for t, f in parts]
+            self.body.append(f'<w:p><w:pPr><w:pStyle w:val="{_x(sid)}"/></w:pPr>' + _runs(parts) + "</w:p>")
+            return
         ppr = ""
         if indent or border:
             bd = (f'<w:pBdr><w:left w:val="single" w:sz="18" w:space="8" w:color="{border}"/></w:pBdr>' if border else "")

@@ -136,3 +136,57 @@ def text(res):
         why = "; ".join([f"field error {x}" for x in e["errors"]] + [f"style {x} not in the template" for x in e["styles_missing"]])
         lines.append(f"  {e.get('category', '')} / {e.get('name', '')}: {why}")
     return "\n".join(lines)
+
+
+_OPEN = r"""
+$ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$before = @(Get-Process WINWORD -ErrorAction SilentlyContinue | ForEach-Object { $_.Id })
+$app = New-Object -ComObject Word.Application
+$mine = @(Get-Process WINWORD -ErrorAction SilentlyContinue | Where-Object { $before -notcontains $_.Id } | ForEach-Object { $_.Id })
+if ($env:SK_PIDFILE -and $mine) { Set-Content -Path $env:SK_PIDFILE -Value ($mine -join ',') }
+$out = @{ ok = $false }
+try {
+  $app.Visible = $false; $app.DisplayAlerts = 0
+  try { $app.AutomationSecurity = 3 } catch {}
+  $d = $app.Documents.Open($env:SK_TPL, $false, $true, $false, 'sk-no-password', 'sk-no-password', $false, '', '', 0, 0, $false, $false, 0, $true)
+  try {
+    $d.Repaginate(); $out.pages = $d.ComputeStatistics(2); $out.paragraphs = $d.Paragraphs.Count; $out.sections = $d.Sections.Count
+    $hid = 0; foreach ($p in $d.Paragraphs) { if ($p.Range.Font.Hidden -eq -1) { $hid++ } }; $out.hidden_paragraphs = $hid
+    $out.ok = $true
+  } finally { $d.Close(0) }
+} catch { $out.why = "$($_.Exception.HResult)" }
+finally {
+  try { $app.NormalTemplate.Saved = $true } catch {}
+  for ($i = 0; $i -lt 40; $i++) { try { $app.Quit(0); break } catch { Start-Sleep -Milliseconds 500 } }
+  try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($app) } catch {}
+}
+$out | ConvertTo-Json -Compress
+"""
+
+
+def open_check(path, timeout=300):
+    """3.24.0: Word opens a document read-only and paginates it (a setup written on a template): {"ok", "pages",
+    "paragraphs", "sections", "hidden_paragraphs"} or {"ok": False, "why"}."""
+    if not available():
+        return {"ok": False, "why": "Word on Windows is needed."}
+    pidfile = os.path.join(os.path.dirname(os.path.abspath(path)), f".sk_open_{os.getpid()}.pid")
+    env = dict(os.environ, SK_TPL=os.path.abspath(path), SK_PIDFILE=pidfile)
+    try:
+        r = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", _OPEN], env=env, capture_output=True,
+                           timeout=timeout, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        out = r.stdout.decode("utf-8", "replace")
+    except subprocess.TimeoutExpired:
+        PW._end(pidfile)
+        return {"ok": False, "why": "Word took too long."}
+    finally:
+        pids = PW._pids(pidfile)
+        try:
+            os.remove(pidfile)
+        except OSError:
+            pass
+    PW._end_hidden(pids)
+    try:
+        return json.loads(next(x for x in reversed(out.strip().splitlines()) if x.startswith("{")))
+    except (StopIteration, ValueError):
+        return {"ok": False, "why": "Word did not answer."}

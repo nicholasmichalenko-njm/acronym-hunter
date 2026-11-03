@@ -672,11 +672,12 @@ def _safe(s):
 LIBRARY_TEAL = "0F766E"
 
 
-def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None):
+def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=None):
     import docxw, compliance as C
     S = setup_of(M)
     B = by_id(M)
     d = docxw.Doc()
+    d.styles = dict(styles or {})                 # 3.24.0: written on a template, each kind in its style
     cw = cwords.load()
     d.props = {"StationkeeperMatrix": M.name or "", "StationkeeperSetupExported": stamp, "StationkeeperSetupPart": name}
     base = min((o.get("level", 1) for o in entries), default=1)
@@ -690,18 +691,18 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None):
         if show_parts and lab not in vheads and part != last_part and (o.get("level", 1) - base) <= 1:   # 3.19.0: a part starts: its rules
             d.para(SP.PART_NAME[part].upper() + (f": {rules[part]}" if rules and rules.get(part) else "")
                    + ("" if SP.counts(M, part) else ("" if rules else "; not counted toward the page limit")),
-                   color="7C2D12", bold=True)
+                   color="7C2D12", bold=True, kind="note")
             last_part = part
         d.heading(lab, o.get("level", 1) - base + 1)
         pp = S["owners"].get(lab) or {}
         if pp.get("lead") or pp.get("with"):                      # 2.38.0: who writes this section
-            d.para("Lead: " + (pp.get("lead") or "-") + (f"   Contributors: {pp['with']}" if pp.get("with") else ""), color="1E3A8A")
+            d.para("Lead: " + (pp.get("lead") or "-") + (f"   Contributors: {pp['with']}" if pp.get("with") else ""), color="1E3A8A", kind="note")
         bud = ((S.get("budget") or {}).get("pages") or {}).get(lab)   # 3.1.0: the section's page budget
         if bud:
             src = ((S.get("budget") or {}).get("source") or {}).get(lab, "team")    # 3.18.2: the RFP's limit or the team's guideline
             d.para(("Page limit (the RFP): " if src == "rfp" else "Page guideline (the team): ")
                    + f"{int(bud) if float(bud).is_integer() else bud} page{'s' if float(bud) != 1 else ''}"
-                   " (subsections included)", color="B91C1C" if src == "rfp" else "1E3A8A")
+                   " (subsections included)", color="B91C1C" if src == "rfp" else "1E3A8A", kind="note")
         if S.get("tables"):                                       # 2.38.0: the requirement table of the old Word outline
             rows = [B[i] for i in P.get(lab, []) if B.get(i) is not None and B[i].get("decision") == "Keep"]
             if rows:
@@ -716,30 +717,31 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None):
             where = where_of(it)
             if kind_of(it) == "Customer":                 # 3.18.2: the customer's own sentence, for the writers, not answered
                 d.rich([("Customer's (not answered)" + (f" ({where})" if where else "") + ": ", {"color": "6B21A8", "bold": True})]
-                       + cwords.docx_parts(it["text"], {"color": "6B21A8"}, cw), indent=720, border="6B21A8")
+                       + cwords.docx_parts(it["text"], {"color": "6B21A8"}, cw), indent=720, border="6B21A8", kind="customer")
             elif kind_of(it) == "Context":
                 # 2.52.0: support language from the RFP: indented under the requirement it supports, a line down its left
                 # edge, and where it is in the customer document
                 links = C.cf_ids(it.get("context_for", ""))
                 lead_in = [("Support" + (f" for {links[0]}" if links else "") + (f" ({where})" if where else "") + ": ",
                             {"color": CONTEXT_BLUE, "bold": True})]
-                d.rich(lead_in + cwords.docx_parts(block_text(M, it, inh), {"color": CONTEXT_BLUE}, cw), indent=720, border=CONTEXT_BLUE)
+                d.rich(lead_in + cwords.docx_parts(block_text(M, it, inh), {"color": CONTEXT_BLUE}, cw), indent=720, border=CONTEXT_BLUE,
+                       kind="support")
                 others = [r for r in links if r != last_req]
                 if len(links) > 1 and others:          # 2.35.0: shared Context names the other requirements it explains
-                    d.rich([("Also support for " + ", ".join(others), {"color": "6B7280"})], indent=720)
+                    d.rich([("Also support for " + ", ".join(others), {"color": "6B7280"})], indent=720, kind="support")
             else:
                 d.rich(cwords.docx_parts(block_text(M, it, inh), {"color": PURPLE}, cw)
-                       + ([(f"  ({where})", {"color": "6B7280"})] if where else []))
+                       + ([(f"  ({where})", {"color": "6B7280"})] if where else []), kind="rfp")
                 last_req = iid
             note = S["notes"].get(iid, "").strip()
             if note:
-                d.para(note, color=GREEN)
+                d.para(note, color=GREEN, kind="pm")
         mg = S["mgmt"].get(lab, "").strip()
         if mg:
-            d.para(mg, color=GREEN)
+            d.para(mg, color=GREEN, kind="pm")
         for text, docname, where in (context or {}).get(lab, []):    # 2.84.0: context taken from library documents
             d.rich([("From " + docname + (f" ({where})" if where else "") + ": ", {"color": LIBRARY_TEAL, "bold": True}),
-                    (text, {"color": LIBRARY_TEAL})], indent=720, border=LIBRARY_TEAL)
+                    (text, {"color": LIBRARY_TEAL})], indent=720, border=LIBRARY_TEAL, kind="library")
     return d
 
 
