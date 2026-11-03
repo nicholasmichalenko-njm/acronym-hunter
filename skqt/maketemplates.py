@@ -163,12 +163,15 @@ class MakeTemplatesDialog(QDialog):
             self._ready_ok = all(ok for ok, _w, _n in rd)
             if not self.ref_rows:
                 self.prepag.setChecked(ST.prepaginate(R.M))
-                opts = ST.options(R.M)
+                info0 = self.host.efforts.get(self.host.effort_name) or {}
+                pl0 = ST.plan(R.M, self.host.config_dir, self.host.ws, self.host.effort_name or "", info0)
+                opts = ST.options(R.M, pl0[0]["std"] if pl0 else None)      # 3.33.0: the profile's content map, this effort's changes
                 for r, (kk, label, _s, _c, _i) in enumerate(ST.KINDS):
                     self.ref_grid.addWidget(D.label(label, None), r, 0)
                     e = QLineEdit(opts[kk]["style"]); self.ref_grid.addWidget(e, r, 1)
                     cb = QCheckBox("Hidden"); cb.setChecked(opts[kk]["hidden"]); self.ref_grid.addWidget(cb, r, 2)
-                    self.ref_rows[kk] = (e, cb)
+                    inc = QCheckBox("In the file"); inc.setChecked(opts[kk].get("include", True)); self.ref_grid.addWidget(inc, r, 3)
+                    self.ref_rows[kk] = (e, cb, inc)
             info = self.host.efforts.get(self.host.effort_name) or {}
             self._effort_plans = ST.plan(R.M, self.host.config_dir, self.host.ws, self.host.effort_name or "", info)
             st = self.starts()
@@ -237,7 +240,8 @@ class MakeTemplatesDialog(QDialog):
         return out
 
     def ref_options(self):
-        return {k: {"style": e.text().strip() or k, "hidden": cb.isChecked()} for k, (e, cb) in self.ref_rows.items()}
+        return {k: {"style": e.text().strip() or k, "hidden": cb.isChecked(), "include": inc.isChecked()}
+                for k, (e, cb, inc) in self.ref_rows.items()}
 
     def make(self, word=None):
         """Makes what was chosen. Returns what the page or Response Setup returned."""

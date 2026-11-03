@@ -37,7 +37,7 @@ sp = w.prodstd_page
 from skqt import docparts as DP
 from skqt.prodstdpage import SECTIONS
 
-check("Document parts is the first menu, with every part", sp.group_bar.tabText(0) == "Document parts"
+check("Document parts is the menu after Template profile (3.33.0), with every part", sp.group_bar.tabText(1) == "Document parts"
       and [sp.section_bar.tabText(i) for i in range(sp.section_bar.count())] == ["Cover", "Front matter", "Response", "Appendices", "Back cover"])
 check("Production Standards opens on the cover", sp.section_key() == "part_cover")
 sp.nav.setCurrentRow(sp.section_index("part_body")); app.processEvents()

@@ -153,14 +153,16 @@ class SetupPage(QWidget):
         rec = RR.Record(self.host.ws.root)
         rd = ST.ready(R.M, rec)
         if opts is None or go is None:
-            d = MakeDialog(self, rd, ST.options(R.M))
+            info0 = self.host.efforts.get(self.host.effort_name) or {}
+            pl0 = ST.plan(R.M, self.host.config_dir, self.host.ws, self.host.effort_name or "", info0)
+            d = MakeDialog(self, rd, ST.options(R.M, pl0[0]["std"] if pl0 else None))
             if d.exec() != d.Accepted:
                 return None
             opts = d.values()
             go = True
         if not go and not all(ok for ok, _w, _n in rd):
             return None
-        ST.set_options(R.M, opts)
+        ST.set_options(R.M, opts, self.host.ws)            # 3.33.0: this effort's change to the profile's content map
         if folder is None:
             folder = self.host.out_path("setup_documents") if self.host.effort_path else os.path.dirname(R.M.path)
             folder = folder if os.path.isdir(folder) else os.path.dirname(folder)
@@ -229,11 +231,12 @@ class MakeDialog(QDialog):
             g.addWidget(D.label(label, None), r, 0)
             e = QLineEdit(opts[k]["style"]); g.addWidget(e, r, 1)
             cb = QCheckBox("Hidden"); cb.setChecked(opts[k]["hidden"]); g.addWidget(cb, r, 2)
-            self.rows[k] = (e, cb)
+            inc = QCheckBox("In the file"); inc.setChecked(opts[k].get("include", True)); g.addWidget(inc, r, 3)
+            self.rows[k] = (e, cb, inc)
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.button(QDialogButtonBox.Ok).setText("Make" if all(ok for ok, _w, _n in ready) else "Make anyway")
         bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
         v.addWidget(bb)
 
     def values(self):
-        return {k: {"style": e.text().strip() or k, "hidden": cb.isChecked()} for k, (e, cb) in self.rows.items()}
+        return {k: {"style": e.text().strip() or k, "hidden": cb.isChecked(), "include": inc.isChecked()} for k, (e, cb, inc) in self.rows.items()}

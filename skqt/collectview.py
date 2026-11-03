@@ -392,6 +392,8 @@ class LibraryDialog(QDialog):
         self.measure_btn.setEnabled(QM.available())
         row.addWidget(self.measure_btn)
         row.addWidget(D.button("Pages...", None, lambda: self.type_pages(), "Type the pages a Quick Part fills"))
+        row.addWidget(D.button("Versions...", None, lambda: self.versions(), "The selected item's versions: label them, "
+                               "compare two side by side"))                                   # 3.33.0
         row.addWidget(D.button("Save as a kit...", None, lambda: self.save_kit(), "The selected items (Ctrl+click for several, on "
                                "any shelf) as a named kit: start a standard from it and change only what the effort needs"))
         row.addStretch(1)
@@ -435,7 +437,7 @@ class LibraryDialog(QDialog):
             tags = ", ".join(tg.get("use", []) + [x for x in (tg.get("proposal_type"), tg.get("program_type"), tg.get("customer")) if x])
             pg = (f"{i['pages']} ({i.get('pages_how', 'typed')})" if i.get("pages") else
                   ("not measured" if i["kind"] == "quickpart" else ""))
-            for c, s in enumerate((i["name"] + (" (variant)" if i.get("variant_of") else ""), tags, i.get("source", ""), i.get("summary", ""), pg)):
+            for c, s in enumerate((self.lib.shown_name(i), tags, i.get("source", ""), i.get("summary", ""), pg)):   # 3.33.0: its version
                 cell = QTableWidgetItem(s); cell.setToolTip(s)
                 if c == 0:
                     cell.setData(Qt.UserRole, i["id"])
@@ -566,6 +568,17 @@ class LibraryDialog(QDialog):
         self.fill()
         return ok
 
+    def versions(self, run=True):
+        """3.33.0: the selected item's family, newest first: label a version, compare two."""
+        iid = self.selected()
+        if not iid or str(iid).startswith("kit:"):
+            return None
+        d = VersionsDialog(self, self.lib, iid)
+        if run:
+            d.exec()
+            self.lib.load(); self.fill()
+        return d
+
     def _picked_quickparts(self):
         ids = [self.t.item(i.row(), 0).data(Qt.UserRole) for i in self.t.selectionModel().selectedRows()] if self.t.selectionModel() else []
         ids = [i for i in ids if i and (self.lib.get(i) or {}).get("kind") == "quickpart"]
@@ -610,3 +623,80 @@ class LibraryDialog(QDialog):
         ok = bool(iid) and self.lib.remove(iid)
         self.fill_shelves()
         return ok
+
+
+class VersionsDialog(QDialog):
+    """3.33.0: a library item's versions, newest first: who kept each and when, its label and note; Label... names the
+    selected one; Compare lists every value that differs between the two selected."""
+
+    def __init__(self, parent, lib, iid):
+        super().__init__(parent)
+        self.lib = lib
+        it = lib.get(iid)
+        self.setWindowTitle(f"Versions of {lib.base_of(it)}"); self.resize(820, 560)
+        v = QVBoxLayout(self)
+        v.addWidget(D.label("Every version is kept whole; nothing is overwritten. A template profile uses the version it is "
+                            "pinned to until you choose a newer one.", "muted"))
+        self.t = QTableWidget(0, 4); self.t.setHorizontalHeaderLabels(["Version", "Label", "Kept", "Note"])
+        self.t.verticalHeader().setVisible(False); self.t.setSelectionBehavior(QTableWidget.SelectRows)
+        self.t.setSelectionMode(QAbstractItemView.ExtendedSelection); self.t.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.t.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
+        v.addWidget(self.t, 1)
+        row = QHBoxLayout(); v.addLayout(row)
+        row.addWidget(D.button("Label...", None, lambda: self.label()))
+        row.addWidget(D.button("Compare the two selected", "primary", lambda: self.compare()))
+        row.addStretch(1)
+        bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(self.reject); row.addWidget(bb)
+        self.diff = QTableWidget(0, 3); self.diff.setHorizontalHeaderLabels(["Value", "", ""])
+        self.diff.verticalHeader().setVisible(False); self.diff.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.diff.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        v.addWidget(self.diff, 1)
+        self.iid = iid
+        self.fill()
+
+    def fill(self):
+        self.fam = self.lib.family(self.iid)
+        self.t.setRowCount(0)
+        for i in self.fam:
+            r = self.t.rowCount(); self.t.insertRow(r)
+            for c, s in enumerate((f"v{i.get('version', 1)}", i.get("label", ""), f"{str(i.get('at', ''))[:16]} {i.get('by', '')}".strip(),
+                                   i.get("note", ""))):
+                cell = QTableWidgetItem(s)
+                if c == 0:
+                    cell.setData(Qt.UserRole, i["id"])
+                self.t.setItem(r, c, cell)
+        return len(self.fam)
+
+    def picked(self):
+        return [self.t.item(x.row(), 0).data(Qt.UserRole) for x in self.t.selectionModel().selectedRows()]
+
+    def label(self, text=None, note=None):
+        ids = self.picked()
+        if not ids:
+            return False
+        it = self.lib.get(ids[0])
+        if text is None:
+            text, ok = QInputDialog.getText(self, "Label", "Label for this version:", text=it.get("label", ""))
+            if not ok:
+                return False
+        ok = self.lib.set_label(ids[0], text, note)
+        self.fill()
+        return ok
+
+    def compare(self, a=None, b=None):
+        if a is None or b is None:
+            ids = self.picked()
+            if len(ids) != 2:
+                return []
+            a, b = ids
+        A, B = self.lib.get(a), self.lib.get(b)
+        rows = self.lib.compare(a, b)
+        self.diff.setHorizontalHeaderLabels(["Value", f"v{A.get('version')}", f"v{B.get('version')}"])
+        self.diff.setRowCount(0)
+        for k, x, y in rows:
+            r = self.diff.rowCount(); self.diff.insertRow(r)
+            for c, s in enumerate((k, "" if x is None else str(x), "" if y is None else str(y))):
+                self.diff.setItem(r, c, QTableWidgetItem(s[:200]))
+        if not rows:
+            self.diff.insertRow(0); self.diff.setItem(0, 0, QTableWidgetItem("The two versions hold the same values."))
+        return rows

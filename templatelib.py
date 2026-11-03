@@ -21,7 +21,7 @@ SHELVES = (("style", "Styles"), ("page_setup", "Page setups"), ("hf", "Headers a
            ("list_numbering", "List numbering"), ("table_style", "Word table styles"), ("table_look", "Table looks"),
            ("toc", "Table of contents"), ("cover", "Covers"), ("backer", "Back covers"), ("quickpart", "Quick Parts"), ("font", "Fonts"),
            ("theme", "Themes (colors and fonts)"), ("hf_design", "Header and footer designs (whole)"),
-           ("variables", "Base fonts and sizes"), ("part", "Part designs"))
+           ("variables", "Base fonts and sizes"), ("part", "Part designs"), ("pagination", "Pagination schemes"))   # 3.33.0
 THEME_SLOTS = ("dk1", "lt1", "dk2", "lt2", "accent1", "accent2", "accent3", "accent4", "accent5", "accent6", "hlink", "folHlink")
 THEME_NAMES = {"dk1": "Text dark 1", "lt1": "Background light 1", "dk2": "Text dark 2", "lt2": "Background light 2",
                "accent1": "Accent 1", "accent2": "Accent 2", "accent3": "Accent 3", "accent4": "Accent 4", "accent5": "Accent 5",
@@ -61,7 +61,103 @@ class Library:
             self.kits = [k for k in d.get("kits", []) if isinstance(k, dict) and k.get("id") and k.get("name")]
         except (OSError, ValueError):
             self.items, self.kits = [], []
+        self._families()
         return self
+
+    # ------------------------------------------------------------ 3.33.0 versions
+    def _families(self):
+        """Every item belongs to a family of versions (3.33.0). Items kept before then are folded in: a variant ('Heading 1
+        (2)') joins the family of the item it varies, numbered in the order they were kept. Names stay as they were."""
+        by = {i["id"]: i for i in self.items}
+        changed = False
+        for i in self.items:
+            if i.get("family"):
+                continue
+            root, seen = i, set()
+            while root.get("variant_of") and root["variant_of"] in by and root["id"] not in seen:
+                seen.add(root["id"])
+                root = by[root["variant_of"]]
+            i["family"] = root["id"]
+            i.setdefault("base_name", re.sub(r" \(\d+\)$", "", root.get("base_name") or root["name"]))
+            changed = True
+        fams = {}
+        for i in self.items:
+            fams.setdefault(i["family"], []).append(i)
+        for its in fams.values():
+            if all(x.get("version") for x in its):
+                continue
+            for n, x in enumerate(sorted(its, key=lambda x: (x.get("at") or "", x["id"] != x["family"])), 1):
+                x["version"] = n
+            changed = True
+        if changed and self.items:
+            try:
+                self.save()
+            except OSError:
+                pass
+
+    def family(self, iid):
+        """The versions of an item's family, newest first."""
+        i = self.get(iid)
+        if i is None:
+            return []
+        return sorted((x for x in self.items if x.get("family") == i.get("family")), key=lambda x: -int(x.get("version") or 0))
+
+    def latest(self, iid):
+        f = self.family(iid)
+        return f[0] if f else None
+
+    def base_of(self, item):
+        return item.get("base_name") or re.sub(r" \(\d+\)$", "", item["name"])
+
+    def shown_name(self, item):
+        """'Heading 1 v2: 11 pt body' as the library lists it."""
+        ver = int(item.get("version") or 1)
+        if ver == 1 and not item.get("label") and sum(1 for x in self.items if x.get("family") == item.get("family")) == 1:
+            return item["name"]                         # a family of one, unlabelled: just its name
+        return f"{self.base_of(item)} v{ver}" + (f": {item['label']}" if item.get("label") else "")
+
+    def save_version(self, iid, values, label="", note="", who=None):
+        """A new version of an item's family with these values (never over another). The same values as a version
+        already kept return that version. Returns (item, state)."""
+        i = self.get(iid)
+        if i is None:
+            return None, "missing"
+        same = next((x for x in self.family(iid) if x.get("hash") == _hash(values)), None)
+        if same is not None:
+            return same, "same"
+        item, _st = self._new(i["kind"], self.base_of(i), values, i.get("tags"), i.get("source", ""), i.get("summary", ""), who,
+                              family=i["family"], label=label, note=note)
+        return item, "version"
+
+    def set_label(self, iid, label="", note=None):
+        i = self.get(iid)
+        if i is None:
+            return False
+        i["label"] = " ".join(str(label or "").split())[:80]
+        if note is not None:
+            i["note"] = str(note)[:400]
+        self.save()
+        return True
+
+    def compare(self, a_id, b_id):
+        """[(what, value in a, value in b)] for every value that differs between two items, flattened ('size',
+        'levels 2 text')."""
+        def flat(v, pre=""):
+            out = {}
+            if isinstance(v, dict):
+                for k, x in v.items():
+                    if str(k).startswith("_"):
+                        continue
+                    out.update(flat(x, f"{pre} {k}".strip()))
+            elif isinstance(v, list):
+                for n, x in enumerate(v, 1):
+                    out.update(flat(x, f"{pre} {n}".strip()))
+            else:
+                out[pre or "value"] = v
+            return out
+        a = flat(self.values(self.get(a_id)) or {}) if self.get(a_id) else {}
+        b = flat(self.values(self.get(b_id)) or {}) if self.get(b_id) else {}
+        return [(k, a.get(k), b.get(k)) for k in sorted(set(a) | set(b)) if a.get(k) != b.get(k)]
 
     def save(self):
         os.makedirs(os.path.join(self.root, "items"), exist_ok=True)
@@ -91,7 +187,9 @@ class Library:
         same = next((i for i in self.items if i["kind"] == kind and i.get("hash") == h), None)
         if same:
             return "same", same
-        var = next((i for i in self.items if i["kind"] == kind and i["name"].casefold() == (name or "").casefold()), None)
+        fam = [i for i in self.items if i["kind"] == kind and (i["name"].casefold() == (name or "").casefold()
+                                                                 or (i.get("base_name") or "").casefold() == (name or "").casefold())]
+        var = max(fam, key=lambda i: int(i.get("version") or 0)) if fam else None      # 3.33.0: the family's newest version
         return ("variant", var) if var else ("new", None)
 
     def add(self, kind, name, values, tags=None, source="", summary="", who=None):
@@ -107,15 +205,23 @@ class Library:
                     t[k] = v
             self.save()
             return hit, "same"
-        shown = name
-        if state == "variant":
-            n = 2
-            while any(i["kind"] == kind and i["name"].casefold() == f"{name} ({n})".casefold() for i in self.items):
-                n += 1
-            shown = f"{name} ({n})"
-        item = {"id": uuid.uuid4().hex[:12], "kind": kind, "name": shown, "base_name": name, "hash": _hash(values),
+        if state == "variant":                                  # 3.33.0: another version of that family
+            item, _st = self._new(kind, self.base_of(hit), values, tags, source, summary, who, family=hit["family"])
+            item["variant_of"] = hit["id"]
+            self.save()
+            return item, "variant"
+        return self._new(kind, name, values, tags, source, summary, who)
+
+    def _new(self, kind, name, values, tags=None, source="", summary="", who=None, family=None, label="", note=""):
+        ver = 1 + max([int(i.get("version") or 0) for i in self.items if family and i.get("family") == family] or [0])
+        shown = name if ver == 1 else f"{name} v{ver}"
+        while ver > 1 and any(i["kind"] == kind and i["name"].casefold() == shown.casefold() for i in self.items):
+            shown += "+"
+        iid = uuid.uuid4().hex[:12]
+        item = {"id": iid, "kind": kind, "name": shown, "base_name": name, "hash": _hash(values),
                 "tags": copy.deepcopy(tags or {}), "source": os.path.basename(source or ""), "summary": (summary or "")[:300],
-                "variant_of": hit["id"] if state == "variant" else "", "at": _now(), "by": who or getpass.getuser()}
+                "variant_of": "", "at": _now(), "by": who or getpass.getuser(),
+                "family": family or iid, "version": ver, "label": " ".join(str(label or "").split())[:80], "note": str(note or "")[:400]}
         os.makedirs(os.path.join(self.root, "items"), exist_ok=True)
         p = os.path.join(self.root, "items", item["id"] + ".json")
         with open(p + ".tmp", "w", encoding="utf-8") as f:
@@ -123,7 +229,7 @@ class Library:
         os.replace(p + ".tmp", p)
         self.items.append(item)
         self.save()
-        return item, state
+        return item, "new"
 
     def update(self, iid, values):
         """New values for an item (its edit); the item keeps its name, tags and id."""
@@ -515,6 +621,9 @@ def use_values(config_dir, k, name, v, work, category="", file_path=None, src=""
     if k == "heading_numbering":
         work["heading_numbering"] = v
         return "heading numbering"
+    if k == "pagination":                               # 3.33.0: a pagination scheme: the parts, their numbers and restarts
+        work["pagination"] = copy.deepcopy(v)
+        return f"pagination scheme {name}"
     if k == "list_numbering":
         ln = work.setdefault("list_numbering", {"on": False, "lists": []})
         ln["lists"] = [l for l in ln.get("lists", []) if l.get("name") != v.get("name")] + [v]

@@ -71,7 +71,9 @@ check("a template per volume and the setup written on each", out and len(out) ==
 check("into the effort's folders, templates in their own folder", out and all(os.path.basename(os.path.dirname(x["template"])) == "Templates" for x in out)
       and os.path.dirname(os.path.dirname(out[0]["template"])) == os.path.dirname(out[0]["setup"]), out and out[0])
 check("the effort records the templates it used", [u["name"] for u in w.ws.get("templates_used", [])][-2:] == [x["template_name"] for x in out])
-check("the chosen styles stay with the matrix", ST.options(M)["pm"]["hidden"] is False)
+pl_ = ST.plan(M, cfg, w.ws, w.effort_name or "", w.efforts.get(w.effort_name) or {})
+check("the chosen styles are kept as this effort's content map (3.33.0)", ST.options(M, pl_[0]["std"])["pm"]["hidden"] is False
+      and ((w.ws.get("prod_std", {}) or {}).get("over") or {}).get("content_map", {}).get("pm", {}).get("hidden") is False)
 doc = zipfile.ZipFile(out[0]["setup"]).read("word/document.xml").decode()
 check("the placed sentence is in the setup, in its hidden style", 'w:val="SKRFPRequirement"' in doc and M.items[0]["text"][:25] in doc.replace("&amp;", "&"))
 print(f"QT SETUP ON TEMPLATE {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")

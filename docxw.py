@@ -47,6 +47,16 @@ class Doc:
         self.marking = None      # 2.92.0: (text, color): a marking centered in every page's header and footer (CUI)
         self.landscape = False   # 2.98.0: wide pages (the customer Q&A table)
         self.styles = {}         # 3.24.0: {kind: style id}: written on a template, a kind takes its style, not colors
+        self.skip = set()        # 3.33.0: kinds the content map leaves out of the file
+
+    def _kind(self, kind):
+        """3.33.0: the content map row a kind follows: a capture ("cap:win_theme") takes the capture row unless it has its own."""
+        if kind and kind.startswith("cap:") and kind not in self.styles and kind not in self.skip:
+            return "capture"
+        return kind
+
+    def left_out(self, kind):
+        return bool(kind) and self._kind(kind) in self.skip
 
     def heading(self, text, level=1):
         level = max(1, int(level))
@@ -56,7 +66,9 @@ class Doc:
         self.body.append(f'<w:p><w:pPr><w:pStyle w:val="Heading{level}"/></w:pPr>{_run(text)}</w:p>')
 
     def para(self, text, bold=False, color=None, kind=None):
-        sid = self.styles.get(kind) if kind else None
+        if self.left_out(kind):
+            return
+        sid = self.styles.get(self._kind(kind)) if kind else None
         if sid:                                    # 3.24.0: the kind's style carries the look (and hides it when it is hidden)
             self.body.append(f'<w:p><w:pPr><w:pStyle w:val="{_x(sid)}"/></w:pPr>{_run(text, bold, None)}</w:p>')
             return
@@ -71,7 +83,9 @@ class Doc:
         (2.29.0; underline 2.31.0). fill shades the run's background (a highlighter in any color); size is in half-points.
         2.52.0: indent (twentieths of a point) moves the paragraph in from the left; border draws a line down its left
         edge in that color (a support paragraph tied to the requirement above it)."""
-        sid = self.styles.get(kind) if kind else None
+        if self.left_out(kind):
+            return
+        sid = self.styles.get(self._kind(kind)) if kind else None
         if sid:                                    # 3.24.0: the style holds color, indent and border
             parts = [(t, {k: v for k, v in (f or {}).items() if k != "color"}) for t, f in parts]
             self.body.append(f'<w:p><w:pPr><w:pStyle w:val="{_x(sid)}"/></w:pPr>' + _runs(parts) + "</w:p>")

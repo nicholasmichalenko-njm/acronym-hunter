@@ -20,6 +20,11 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.33.0": ["Production Standards > Template profile: each part of a profile (cover, headers and footers, fonts, numbering, "
+               "pagination, table looks) from a version in the template library, pinned; a newer version waits until you choose "
+               "Use it. Save as a new version keeps what a part holds now.",
+               "The Content map: the style each kind of placed item takes, hidden or shown, in the file or not; captures go in "
+               "hidden by default. The template library keeps versions of everything, labelled, with Compare."],
     "3.32.1": ["Bullets show as bullets in Production Standards (not empty squares), and templates write them the way Word "
                "does, so they show on every PC.",
                "Import from a file no longer breaks the table rules when it takes Table looks: the file's look goes over the "

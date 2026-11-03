@@ -42,13 +42,13 @@ from skqt.prodstdpage import GROUPS, SECTIONS, IMPORT_KINDS
 
 # ---------------------------------------------------------------- the menu across the top
 check("the menus across the top, in the order a document is built (3.26.0: Document parts first)",
-      [sp.group_bar.tabText(i) for i in range(sp.group_bar.count())] == ["Document parts", "Pages", "Styles", "Numbering", "Tables", "Content", "Check"])
+      [sp.group_bar.tabText(i) for i in range(sp.group_bar.count())] == ["Template profile", "Document parts", "Pages", "Styles", "Numbering", "Tables", "Content", "Check"])
 check("no column of sections down the side", not sp.nav.isVisible() and sp.section_bar.isVisible())
 names = [t for _k, t in SECTIONS]
 check("the sections have their plain names", {"Base fonts and sizes", "Styles", "Allowed styles", "Heading numbering", "Row looks",
       "How rows are recognized", "Page sizes and margins", "Pagination and covers", "Fields", "Words to avoid and fix"} <= set(names)
       and "Check options" not in names and "Style library" not in names and "Format variables" not in names, names)
-sp.group_bar.setCurrentIndex(3); app.processEvents()
+sp.group_bar.setCurrentIndex(4); app.processEvents()     # 3.33.0: Template profile comes first
 check("a menu shows its sections and opens the first", [sp.section_bar.tabText(i) for i in range(sp.section_bar.count())]
       == ["Heading numbering", "Lists", "Captions"] and sp.section_key() == "headnum")
 sp.section_bar.setCurrentIndex(2); app.processEvents()

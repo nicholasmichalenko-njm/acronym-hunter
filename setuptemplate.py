@@ -27,9 +27,13 @@ DOCUMENT_CT = "application/vnd.openxmlformats-officedocument.wordprocessingml.do
 KINDS = (("rfp", "RFP requirement text", "SK RFP Requirement", "7030A0", False),
          ("support", "RFP support text", "SK RFP Support", "2E74B5", True),
          ("customer", "The customer's own sentences", "SK Customer Text", "6B21A8", True),
+         ("objective", "Customer objectives mapped to a section", "SK Customer Objective", "B45309", True),    # 3.33.0
+         ("topic", "Topics a section answers", "SK Topic", "4338CA", False),                                  # 3.33.0
+         ("capture", "Captures placed in a section (every capture, unless set below)", "SK Capture", "00B050", True),   # 3.33.0
          ("library", "Context from library documents", "SK Library Context", "0F766E", True),
          ("pm", "Proposal manager direction and notes", "SK PM Direction", "00B050", False),
          ("note", "Leads, page limits and part rules", "SK Setup Note", "1E3A8A", False))
+KIND_OF = {k: (label, style, color, ind) for k, label, style, color, ind in KINDS}
 
 
 def _w(t):
@@ -40,23 +44,50 @@ def sid_of(name):
     return re.sub(r"[^A-Za-z0-9]", "", name) or "SKSetup"
 
 
-def options(M):
-    """{kind: {"style": style name, "hidden": bool}} kept with the matrix's setup; every kind hidden by default."""
+def _clean(o, style):
+    return {"style": " ".join(str(o.get("style") or style).split())[:60] or style, "hidden": bool(o.get("hidden", True)),
+            "include": bool(o.get("include", True))}
+
+
+def options(M, std=None):
+    """{kind: {"style", "hidden", "include"}}: the content map (3.33.0). Every kind hidden and included by default; the
+    profile's content map (std["content_map"], with this effort's changes on it) over that; a choice an older release kept
+    with the matrix over that. A capture kind ("cap:<bin>") is listed only when the map sets it: otherwise a capture takes
+    the "capture" row."""
     import setupdoc as SD
-    S = SD.setup_of(M)
+    S = SD.setup_of(M) if M is not None else {}
     have = S.get("on_template") or {}
+    cmap = (std or {}).get("content_map") or {}
     out = {}
     for k, _label, style, _c, _ind in KINDS:
-        o = have.get(k) or {}
-        out[k] = {"style": " ".join(str(o.get("style") or style).split())[:60] or style, "hidden": bool(o.get("hidden", True))}
+        o = dict(cmap.get(k) or {}); o.update(have.get(k) or {})
+        out[k] = _clean(o, style)
+    for k, o in cmap.items():
+        if str(k).startswith("cap:") and isinstance(o, dict):
+            out[k] = _clean(dict(out["capture"], **o), out["capture"]["style"])
     return out
 
 
-def set_options(M, opts):
+def set_options(M, opts, ws=None):
+    """The content map chosen in Make templates. With the effort's workspace (3.33.0) it is this effort's change to the
+    profile's map (Production Standards > This effort shows it); without it, kept with the matrix as before."""
     import setupdoc as SD
-    SD.setup_of(M)["on_template"] = {k: {"style": v["style"], "hidden": bool(v["hidden"])} for k, v in opts.items()
-                                     if k in dict((x[0], 1) for x in KINDS)}
+    clean = {k: {"style": v["style"], "hidden": bool(v["hidden"]), "include": bool(v.get("include", True))} for k, v in opts.items()
+             if k in KIND_OF or str(k).startswith("cap:")}
+    if ws is None:
+        SD.setup_of(M)["on_template"] = clean
+        return
+    eff = dict(ws.get("prod_std", {}) or {})
+    over = dict(eff.get("over") or {})
+    over["content_map"] = dict(over.get("content_map") or {}, **clean)
+    eff["over"] = over
+    ws.set("prod_std", eff)
+    SD.setup_of(M).pop("on_template", None)
 
+
+def skip_kinds(opts):
+    """The kinds left out of the response file."""
+    return {k for k, v in opts.items() if not v.get("include", True)}
 
 def _style_xml(sid, name, color, indent, hidden):
     ppr = (f'<w:pPr><w:pBdr><w:left w:val="single" w:sz="18" w:space="8" w:color="{color}"/></w:pBdr><w:ind w:left="720"/></w:pPr>'
@@ -75,7 +106,9 @@ def ensure_styles(sroot, opts):
             by_name[nm.get(_w("val")).casefold()] = s
     ids = {s.get(_w("styleId")) for s in sroot.findall("w:style", NS)}
     out = {}
-    for k, _label, default_name, color, indent in KINDS:
+    rows = [(k, KIND_OF[k][1], KIND_OF[k][2], KIND_OF[k][3]) for k in KIND_OF] + \
+           [(k, v["style"], KIND_OF["capture"][2], True) for k, v in opts.items() if str(k).startswith("cap:")]
+    for k, default_name, color, indent in rows:
         o = opts.get(k) or {"style": default_name, "hidden": True}
         s = by_name.get(o["style"].casefold())
         if s is None:
@@ -376,7 +409,7 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
     when = when or datetime.datetime.now()
     tag = when.strftime("%Y-%m-%d_%H%M")
     stamp = when.strftime("%Y-%m-%d %H:%M")
-    opts = options(M)
+    opts = options(M)                              # 3.33.0: each volume takes its profile's content map below
     P, inh = SD.placed_in(M), SD.inherited_sections(M)
     ctx = PRL.context(config_dir, effort_name, info or {}, rec=None)
     stem = SD._safe(os.path.splitext(os.path.basename(M.path))[0] if getattr(M, "path", "") else M.name)
@@ -408,11 +441,13 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
             pass
         main_e = [o for o in entries if SP.part_of(o) != "appendix"]
         app_e = [o for o in entries if SP.part_of(o) == "appendix"]
+        opts = options(M, std)
         sids = style_ids(opts)
         rb = SD.review_bins(ws.root) if ws is not None else None          # 3.29.0: topics, objectives, key points
         extras = element_extras(config_dir, info, ws.root if ws is not None else None)
         extras["matrix_rows"] = SD.matrix_rows(M, entries, P, inh)       # the whole volume, for the front matter's matrix
         extras["prepaginate"] = prepaginate(M)                          # 3.32.0: each section's planned pages kept
+        extras["skip_kinds"] = skip_kinds(opts)                          # 3.33.0: kinds the content map leaves out
         front_e = [o for o in main_e if SP.part_of(o) in ("cover", "title", "front")]   # 3.30.1: the structure's front matter
         df = None
         if any(o.get("kind") for o in front_e):          # elements in front matter take the template's fixed TOC block's place

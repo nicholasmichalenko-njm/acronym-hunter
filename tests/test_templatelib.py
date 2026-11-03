@@ -63,8 +63,8 @@ check("collecting the same file again: everything already in the library, nothin
 h1 = next(i for i in lib2.shelf("style") if i["name"] == "Heading 1")
 v = dict(lib2.values(h1)); v["size"] = 22
 it, st = lib2.add("style", "Heading 1", v, tags={"use": ["RFI"]})
-check("the same name with other values is kept as a variant, tagged, never overwritten", st == "variant" and it["name"] == "Heading 1 (2)"
-      and it["variant_of"] == h1["id"] and lib2.values(h1)["size"] != 22 and lib2.shelf("style", "RFI") == [it])
+check("the same name with other values is kept as the family's next version (3.33.0), tagged, never overwritten", st == "variant"
+      and it["name"] == "Heading 1 v2" and it["family"] == h1["family"] and it["version"] == 2 and it["variant_of"] == h1["id"] and lib2.values(h1)["size"] != 22 and lib2.shelf("style", "RFI") == [it])
 
 # ---------------------------------------------------------------- into a standard, and into its template
 work = {}

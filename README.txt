@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+TEMPLATE PROFILES, VERSIONS AND THE CONTENT MAP (3.33.0)
+  - Production Standards > Template profile > Parts and versions: the profile as the parts a template is built from
+    (cover, each part's header and footer, the table of contents, back cover, base fonts and sizes, theme, heading and
+    list numbering, pagination scheme, table looks), each holding the profile's own values or a library version,
+    pinned. Pick... fills a part from a version; a newer one waits with Use v2; Own values takes the pin off; Save as
+    a new version... keeps what the part holds now, with a label and a note.
+  - Template profile > Content map: for each kind of item Review and the Structure Builder place (the RFP's words,
+    support, the customer's sentences, objectives, topics, captures, library context, PM direction, notes), its style,
+    whether it is hidden and whether it goes in the file. Captures go in hidden by default, each capture can have a row
+    of its own. On This effort, a change is the effort's only; Make templates shows the map with In the file.
+  - The template library keeps versions of everything: the same name with other values is the family's next version
+    (older "(2)" copies are folded in). Versions... lists a family newest first, labels a version and compares two.
+    Pagination schemes have a shelf of their own.
+
 REAL BULLETS, AND AN IMPORT FIX (3.32.1)
   - Bullets show as the character they are (•, ▪, ➢, ✓) in List numbering, the lists preview, Typed bullets and the
     template's full view, not as empty squares. Templates write each one as Word does (Symbol's round bullet,

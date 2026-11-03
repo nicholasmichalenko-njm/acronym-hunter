@@ -769,6 +769,7 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
     B = by_id(M)
     d = docxw.Doc()
     d.styles = dict(styles or {})                 # 3.24.0: written on a template, each kind in its style
+    d.skip = set((extras or {}).get("skip_kinds") or ())   # 3.33.0: kinds the content map leaves out
     cw = cwords.load()
     d.props = {"StationkeeperMatrix": M.name or "", "StationkeeperSetupExported": stamp, "StationkeeperSetupPart": name}
     base = min((o.get("level", 1) for o in entries), default=1)
@@ -848,17 +849,17 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
                    " (subsections included)", color="B91C1C" if src == "rfp" else "1E3A8A", kind="note")
         tps = [t["name"] for t in ((bins or {}).get("topics") or []) if lab in (t.get("sections") or [])]
         if tps:                                                   # 3.29.0: the topics this section answers
-            d.para("Topics: " + ", ".join(tps), color="4338CA", kind="note")
+            d.para("Topics: " + ", ".join(tps), color="4338CA", kind="topic")
         for x in xs:                                              # 3.29.0: the customer's objectives mapped here
             if x.get("bin") == "objective" and lab in (x.get("sections") or []):
                 d.rich([("Customer objective" + (f" ({EX.where_of(x)})" if EX.where_of(x) else "") + ": ", {"color": "B45309", "bold": True}),
-                        (EX.text_of(x), {"color": "B45309"})], indent=720, border="B45309", kind="customer")
+                        (EX.text_of(x), {"color": "B45309"})], indent=720, border="B45309", kind="objective")
         for x in xs:                                              # 3.29.1: every other capture placed in this section
             if x.get("bin") != "objective" and lab in (x.get("sections") or []):
                 nm = cap_names.get(x.get("bin"), x.get("bin", "Capture"))
                 d.rich([(nm + (f" ({EX.where_of(x)})" if EX.where_of(x) else "") + ": ", {"color": GREEN, "bold": True}),
                         (EX.text_of(x) + (f" [{x['value']}]" if x.get("value") else "") + (f" ({x['note']})" if x.get("note") else ""),
-                         {"color": GREEN})], indent=720, border=GREEN, kind="pm")
+                         {"color": GREEN})], indent=720, border=GREEN, kind=f"cap:{x.get('bin', '')}")
         if S.get("tables"):                                       # 2.38.0: the requirement table of the old Word outline
             rows = [B[i] for i in P.get(lab, []) if B.get(i) is not None and B[i].get("decision") == "Keep"]
             if rows:
@@ -896,9 +897,10 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
                 if x.get("sections") or not any(pt.get("sid") == iid for pt in x.get("parts", [])):
                     continue                                       # 3.29.1: one placed in a section shows there
                 if x.get("bin") == "keypoint":
-                    d.para("Key point: " + EX.text_of(x) + (f" ({x['note']})" if x.get("note") else ""), color=GREEN, kind="pm")
+                    d.para("Key point: " + EX.text_of(x) + (f" ({x['note']})" if x.get("note") else ""), color=GREEN, kind="cap:keypoint")
                 elif x.get("bin") in setup_bins:
-                    d.para(f"{setup_bins[x['bin']]}: " + EX.text_of(x) + (f" ({x['note']})" if x.get("note") else ""), color=GREEN, kind="pm")
+                    d.para(f"{setup_bins[x['bin']]}: " + EX.text_of(x) + (f" ({x['note']})" if x.get("note") else ""), color=GREEN,
+                           kind=f"cap:{x['bin']}")
         mg = S["mgmt"].get(lab, "").strip()
         if mg:
             d.para(mg, color=GREEN, kind="pm")

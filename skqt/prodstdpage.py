@@ -20,6 +20,7 @@ from prodengine.pe import rules as PR
 from . import design as D
 
 GROUPS = [                                               # 3.25.0: a menu across the top, in the order a document is built
+    ("Template profile", [("profile_parts", "Parts and versions"), ("content_map", "Content map")]),     # 3.33.0
     ("Document parts", [("part_cover", "Cover"), ("part_front", "Front matter"), ("part_body", "Response"),    # 3.26.0
                         ("part_appendix", "Appendices"), ("part_backer", "Back cover")]),
     ("Pages", [("setups", "Page sizes and margins"), ("pages", "Pagination and covers"), ("hf", "Headers and footers"),
@@ -504,12 +505,14 @@ class StandardsPage(QWidget):
             iv.addStretch(1)
             self.stack.addWidget(page)
             self.pages[k] = inner
-        self.nav.setCurrentRow(0)
-        self.show_section(0)
+        first = [k for k, _t in SECTIONS].index("part_cover")       # 3.33.0: it still opens on the cover
+        self.nav.setCurrentRow(first)
+        self.show_section(first)
 
     SECTION_KEYS = {**{s_: ("pagination", ("hf_layouts", k_), ("hf_designs", k_), ("page_parts", k_))
                        for s_, k_ in (("part_cover", "cover"), ("part_front", "front"), ("part_body", "body"),
                                       ("part_appendix", "appendix"), ("part_backer", "backer"))},
+                    "profile_parts": ("library_pins",), "content_map": ("content_map",),           # 3.33.0
                     "variables": ("variables",), "fonts": ("fonts",), "styles": ("styles",), "headnum": ("heading_numbering",),
                     "styledefs": ("style_defs",), "rows": ("row_types",), "ttypes": ("table_types", "table_styles"),
                     "rules": ("row_rules",), "captions": ("captions", ("checks", "caption_fields"), ("checks", "table_caption_position")),
@@ -610,6 +613,26 @@ class StandardsPage(QWidget):
 
     # ------------------------------------------------------------------ sections
     # 3.26.0: Document parts: each part over the same settings (docparts.py)
+    def build_profile_parts(self, v):
+        """3.33.0: the profile as its parts, each from a pinned library version."""
+        from .profileview import ProfileParts
+        self.profile_parts = ProfileParts(self)
+        v.addWidget(self.profile_parts)
+
+    def build_content_map(self, v):
+        """3.33.0: which style each kind of placed item takes, hidden or shown, in the file or not."""
+        from .profileview import ContentMap
+        self.content_map = ContentMap(self)
+        v.addWidget(self.content_map)
+
+    def fill_profile(self):
+        for w in (getattr(self, "profile_parts", None), getattr(self, "content_map", None)):
+            if w is not None:
+                try:
+                    w.refresh()
+                except Exception:  # noqa: BLE001
+                    diag.swallowed()
+
     def build_part_cover(self, v):
         from . import docparts as DP
         DP.build(self, v, "part_cover")
@@ -1676,6 +1699,7 @@ class StandardsPage(QWidget):
         self.fill_row_scope()
         self.load_tables()
         self.show_parts()
+        self.fill_profile()                            # 3.33.0
         self.dirty = False
         self.state.setText({"team": "Team standard", "type": "Volume", "etype": "Effort type, every volume",
                             "etp": "Effort type, this volume", "effort": "This effort only"}[scope])

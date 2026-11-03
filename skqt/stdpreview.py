@@ -373,6 +373,24 @@ class Canvas(QWidget):
         self._legend(p, pg, ["Levels: " + ", ".join(f"{a} = {b}" for a, b in (toc.get("levels") or [])),
                              "Switches: " + " ".join(toc.get("switches") or [])])
 
+    def draw_content_map(self, p):
+        """3.33.0: each kind of placed item as it will look: its style name, hidden or shown, or left out."""
+        import setuptemplate as ST
+        opts = ST.options(None, self.std)
+        x, y = 14.0, 14.0
+        y += self._text(p, QRectF(x, y, self.width() - 28, 20), "A section as the setup writes it", _font("Segoe UI", 9, bold=True)) + 6
+        y += self._text(p, QRectF(x, y, self.width() - 28, 22), "1  Technical Approach   (Heading 1)",
+                        _font(_v(self.std, "body_font", "Arial"), 12, bold=True)) + 6
+        for k, label, _s, color, ind in ST.KINDS:
+            o = opts.get(k) or {}
+            if not o.get("include", True):
+                txt, col = f"{label}: left out of the file", MUTED
+            else:
+                txt, col = f"{label}  ({o.get('style')}{', hidden' if o.get('hidden') else ''})", QColor("#" + color)
+            f = _font("Segoe UI", 8.5, italic=bool(o.get("hidden")))
+            y += self._text(p, QRectF(x + (18 if ind else 0), y, self.width() - 40, 40), txt, f, col) + 4
+        self.setMinimumHeight(int(y + 20))
+
     def draw_lists(self, p):
         std = self.std
         x, y = 14.0, 14.0
