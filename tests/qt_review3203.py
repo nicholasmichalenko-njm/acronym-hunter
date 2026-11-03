@@ -174,4 +174,4 @@ bn.set_condensed(False, save=False)
 
 print(f"QT REVIEW 3.20.3 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 w.close()
-os._exit(0 if all(checks) else 1)
+sys.stdout.flush(); os._exit(0 if all(checks) else 1)

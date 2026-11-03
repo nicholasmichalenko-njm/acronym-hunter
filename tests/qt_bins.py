@@ -148,4 +148,4 @@ check("... with a value added later", EX.get(rec(), xo2)["value"] == "Cover lett
 
 print(f"QT BINS {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 w.close()
-os._exit(0 if all(checks) else 1)
+sys.stdout.flush(); os._exit(0 if all(checks) else 1)
