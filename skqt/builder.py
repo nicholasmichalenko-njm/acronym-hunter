@@ -41,7 +41,8 @@ class BuilderTree(QTreeWidget):
         self.page = page
         self.setHeaderLabels(["Section", "Kind", "Req.", "Cap.", "Pages"])
         self.setColumnWidth(0, 330); self.setColumnWidth(1, 64); self.setColumnWidth(2, 44); self.setColumnWidth(3, 44)
-        self.setDragDropMode(QAbstractItemView.InternalMove)
+        self.setDragDropMode(QAbstractItemView.DragDrop)       # from itself, Not placed yet and the library
+        self.setDefaultDropAction(Qt.MoveAction)
         self.setDragEnabled(True); self.setAcceptDrops(True); self.setDropIndicatorShown(True)
         self.setSelectionMode(QAbstractItemView.SingleSelection)
 
@@ -55,15 +56,46 @@ class BuilderTree(QTreeWidget):
             return
         super().mouseDoubleClickEvent(e)
 
+    def _ok_source(self, e):
+        return e.source() in (self, self.page.unp_list, self.page.lib_list)
+
+    def dragEnterEvent(self, e):
+        if self._ok_source(e):
+            e.setDropAction(Qt.MoveAction); e.accept()
+        else:
+            e.ignore()
+
+    def dragMoveEvent(self, e):
+        if self._ok_source(e):
+            super().dragMoveEvent(e)
+            e.setDropAction(Qt.MoveAction); e.accept()
+        else:
+            e.ignore()
+
     def dropEvent(self, e):
-        src = self.currentItem()
+        """A section onto a section moves it; a placed item, a Not placed yet item or a library item onto a section (or
+        onto an item in it) goes into that section (before that item)."""
         tgt = self.itemAt(e.position().toPoint())
-        e.ignore()                                   # the structure moves, then the tree is drawn again
-        if src is None or tgt is None or not src.data(0, Qt.UserRole) or not tgt.data(0, Qt.UserRole):
-            return
         pos = self.dropIndicatorPosition()
+        src_w = e.source()
+        e.setDropAction(Qt.IgnoreAction); e.accept()  # the structure changes, then the tree is drawn again
+        if tgt is None:
+            return
+        tlab, tcon = tgt.data(0, Qt.UserRole), tgt.data(0, Qt.UserRole + 1)
         where = {QAbstractItemView.AboveItem: "before", QAbstractItemView.BelowItem: "after"}.get(pos, "into")
-        self.page.drop(src.data(0, Qt.UserRole), tgt.data(0, Qt.UserRole), where)
+        if src_w is self.page.unp_list:
+            return self.page.drop_unplaced([i.data(Qt.UserRole) for i in src_w.selectedItems() if i.data(Qt.UserRole)], tlab, tcon)
+        if src_w is self.page.lib_list:
+            it = src_w.currentItem()
+            return self.page.drop_library(it.data(Qt.UserRole) if it is not None else None, tlab, tcon)
+        src = self.currentItem()
+        if src is None:
+            return
+        slab, scon = src.data(0, Qt.UserRole), src.data(0, Qt.UserRole + 1)
+        if scon:
+            return self.page.drop_content(scon, tlab, tcon, where)
+        if slab and tlab:
+            self.page.drop(slab, tlab, where)
 
     def keyPressEvent(self, e):
         k = e.key()
@@ -103,6 +135,14 @@ class BuilderPage(QWidget):
         self.text_btn = D.button("Edit as text / Start from", None, lambda: self.show_text(not self.text_panel.isVisible()),
                                  "The structure as text, one section per line, and Start from the RFP or a Word outline")
         top.addWidget(self.text_btn)
+        self.show_items = QCheckBox("Show what is placed")
+        self.show_items.setToolTip("Each section's requirements, support, captures and library items under it, in order. "
+                                   "Drag them to another section, or to another place in the section.")
+        self.show_items.setChecked(True); self.show_items.toggled.connect(lambda _on: self.fill_tree())
+        top.addWidget(self.show_items)
+        top.addWidget(D.button("Sort in document order", None, lambda: self.sort_order(),
+                               "The items in every section in the order they appear in the customer documents. Each "
+                               "section is sorted on its own: nothing moves to another section."))
         top.addWidget(D.button("Add elements...", None, lambda: self.add_elements(),
                                "Table of Contents, the lists, Acronyms and Abbreviations, the Appendices section and the rest, "
                                "in one tick list (Settings > Response elements)"))
@@ -181,12 +221,14 @@ class BuilderPage(QWidget):
         self.lib_find.textChanged.connect(lambda _t: self.fill_library())
         rv.addWidget(self.lib_find)
         self.lib_list = QListWidget(); rv.addWidget(self.lib_list, 2)
+        self.lib_list.setDragEnabled(True); self.lib_list.setDragDropMode(QAbstractItemView.DragOnly)
         self.lib_list.itemDoubleClicked.connect(lambda _i: self.place_selected())
         self.place_btn = D.button("Place in the section", "primary", lambda: self.place_selected(),
                                   "Put the library item in the selected section, before its requirements")
         rv.addWidget(self.place_btn)
         rv.addWidget(D.label("Not placed yet", "title"))
         self.unp_list = QListWidget(); self.unp_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.unp_list.setDragEnabled(True); self.unp_list.setDragDropMode(QAbstractItemView.DragOnly)   # drag onto a section
         rv.addWidget(self.unp_list, 1)
         self.unp_btn = D.button("Into the selected section", None, lambda: self.place_unplaced(),
                                 "Requirements and captures with no section yet go into the selected section")
@@ -337,6 +379,8 @@ class BuilderPage(QWidget):
             stack.append((lvl, node))
             if lab == self.sel:
                 keep = node
+            if self.show_items.isChecked():
+                self._add_contents(node, lab)
         self.btree.expandAll()
         if keep is not None:
             self.btree.blockSignals(True); self.btree.setCurrentItem(keep); self.btree.blockSignals(False)
@@ -344,6 +388,25 @@ class BuilderPage(QWidget):
         self.sum.setText(f"{n} item(s) in {self.volume or 'the structure'}. Drag a section onto another to move it; "
                          "Enter adds one below, Tab and Shift+Tab change its level.")
         self.sync_tools()
+
+    CON_TAG = {"lib": "LIB", "cap": "CAP"}
+
+    def _add_contents(self, node, lab):
+        """The section's items as rows under it, before its subsections: drag them to move them."""
+        for kind, key, text in self.contents(lab):
+            sub = ""
+            if kind == "item":
+                it = SD.by_id(self.M).get(key) or {}
+                sub = {"Context": "SUP", "Customer": "CUST"}.get(it.get("decision"), it.get("lm") or "REQ")
+            shown = text.split("  ", 1)[-1] if kind == "item" else text      # the Kind column says what it is
+            row = QTreeWidgetItem([shown, sub or self.CON_TAG.get(kind, ""), "", "", ""])
+            row.setData(0, Qt.UserRole, None)
+            row.setData(0, Qt.UserRole + 1, (kind, key, lab))
+            f = row.font(0); f.setItalic(True); row.setFont(0, f)
+            row.setForeground(0, QColor({"lib": "#2F5D8A", "cap": "#0E7490"}.get(kind, "#5D6672")))
+            row.setForeground(1, QColor({"lib": "#2F5D8A", "cap": "#0E7490"}.get(kind, "#7030A0")))
+            row.setToolTip(0, text)
+            node.insertChild(node.childCount(), row)
 
     def _tag_tip(self, o, hl, is_vol):
         if is_vol:
@@ -358,6 +421,9 @@ class BuilderPage(QWidget):
     def on_pick(self):
         it = self.btree.currentItem()
         lab = it.data(0, Qt.UserRole) if it is not None else None
+        con = it.data(0, Qt.UserRole + 1) if it is not None else None
+        if con and not lab:
+            lab = con[2]                                # an item row: its section
         if lab:
             self.sel = lab
         self.sync_tools()
@@ -528,6 +594,7 @@ class BuilderPage(QWidget):
         for k, t in O.KINDS[1:4]:
             lv.addAction(t, lambda k=k: self.make_kind(k))
         m.addAction("Pages...", lambda: self.host.assign_page.section_pages(label) and self.refresh())
+        m.addAction("Sort this section in document order", lambda: self.sort_order([label]))
         m.addSeparator()
         m.addAction("+ Below (Enter)", lambda: self.add_below())
         m.addAction("+ Under", lambda: self.add_under())
@@ -573,7 +640,10 @@ class BuilderPage(QWidget):
             import excerpts as EX
             rec = RR.Record(self.host.ws.root)
             names = {b["id"]: b["name"] for b in EX.bins(rec, self.host.config_dir)}
-            out += [("cap", x["id"], f"{names.get(x['bin'], x['bin'])}: {EX.text_of(x)[:140]}") for x in EX.in_section(rec, label)]
+            di = SD.doc_index(M)
+            xs = sorted(EX.in_section(rec, label), key=lambda x: min([di.get(p.get("sid"), (99, 10 ** 9)) for p in x.get("parts", [])]
+                                                                        or [(99, 10 ** 9)]))
+            out += [("cap", x["id"], f"{names.get(x['bin'], x['bin'])}: {EX.text_of(x)[:140]}") for x in xs]
         except Exception:  # noqa: BLE001
             diag.swallowed()
         return out
@@ -735,6 +805,77 @@ class BuilderPage(QWidget):
         self.refresh()
         return n
 
+    # ------------------------------------------------------------ drag and drop of items, and sorting
+    def drop_content(self, con, tlab, tcon, where="into"):
+        """A placed item dragged onto a section (to its end) or onto an item (before it, or after it when dropped below)."""
+        kind, key, frm = con
+        to = tlab or (tcon[2] if tcon else None)
+        if not to:
+            return None
+        before = None
+        if tcon and tcon[0] == "item" and kind == "item":
+            ids = SD.placed_in(self.M).get(to, [])
+            if where == "after" and tcon[1] in ids:
+                k = ids.index(tcon[1]) + 1
+                before = ids[k] if k < len(ids) else None
+            else:
+                before = tcon[1]
+            if before == key:
+                return None
+        if kind == "item":
+            return self._change(f"move {key} to {to}", lambda: to if SD.move_to_section(self.M, key, to, frm, before) else None)
+        if kind == "cap":
+            if to == frm:
+                return None
+            n = self.host.assign_page.place_captures([key], to)
+            if n and frm:
+                self.host.assign_page.place_captures([key], frm, on=False)
+            self.refresh()
+            return n
+        if kind == "lib" and to != frm:
+            x = O.lib_items(self.M, frm)[key] if 0 <= key < len(O.lib_items(self.M, frm)) else None
+            if x is None:
+                return None
+            return self._change(f"move {x['name']} to {to}", lambda: to if (O.unplace_lib(self.M, frm, key)
+                                                                         and O.place_lib(self.M, to, x, x.get("where", "before")) is not None) else None)
+        return None
+
+    def drop_unplaced(self, picks, tlab, tcon):
+        to = tlab or (tcon[2] if tcon else None)
+        if not to or not picks:
+            return 0
+        before = tcon[1] if (tcon and tcon[0] == "item") else None
+        reqs = [k for t, k in picks if t == "item"]
+        caps = [k for t, k in picks if t == "cap"]
+        n = 0
+        if reqs:
+            def go():
+                for i in reqs:
+                    SD.move_to_section(self.M, i, to, None, before)
+                return to
+            n += len(reqs) if self._change(f"{len(reqs)} item(s) into {to}", go) else 0
+        if caps:
+            n += self.host.assign_page.place_captures(caps, to) or 0
+            self.refresh()
+        diag.activity("builder_dropped", n=n)
+        return n
+
+    def drop_library(self, item, tlab, tcon):
+        to = tlab or (tcon[2] if tcon else None)
+        if not item or not to:
+            return None
+        return self._change(f"place {item['name']}", lambda: to if O.place_lib(self.M, to, item) is not None else None)
+
+    def sort_order(self, labels=None):
+        """Sort in document order: every section (or the ones given) on its own."""
+        M = self.M
+        if M is None:
+            return 0
+        res = self._change("sort in document order", lambda: True if SD.sort_doc_order(M, labels) else None)
+        self.host.status("Each section's items are in the order they appear in the customer documents." if res
+                         else "Every section is in document order already.")
+        return bool(res)
+
     # ------------------------------------------------------------ elements
     def add_elements(self, ids=None):
         """The tick list: the volume's elements ticked (its kit when it has none yet); OK puts in the ticked ones and
@@ -758,7 +899,7 @@ class BuilderPage(QWidget):
             if d.exec() != QDialog.Accepted:
                 return None
             ids = d.ticked()
-        res = self._change(f"elements in {vol or 'the response'}", lambda: (RE.apply_kit(M, data, ids, vol), vol or "-")[1])
+        res = self._change(f"elements in {vol or 'the response'}", lambda: (RE.apply_kit(M, data, ids, vol), True)[1])
         diag.activity("builder_elements", n=len(ids))
         self.refresh()
         return res

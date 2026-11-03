@@ -554,6 +554,57 @@ def move(M, iid, label, delta):
     setup_of(M)["order"][label] = order
 
 
+def move_to_section(M, iid, to, frm=None, before=None):
+    """3.30.0: a placed item (or one not placed yet, frm None) dragged into section to, before the item before (else
+    at the end). From its own section it moves; from a second section (a copy) the copy moves."""
+    S = setup_of(M)
+    it = by_id(M).get(iid)
+    if it is None or to not in set(labels(M)):
+        return False
+    if frm and frm != to and frm in S["copies"] and iid in S["copies"][frm]:
+        unplace(M, iid, frm)
+        place(M, iid, to, before=before, copy=True)
+    else:
+        place(M, iid, to, before=before)
+    return True
+
+
+def doc_index(M):
+    """3.30.0: {item id: where it is in the customer documents}: the files in the order they were read, then reading
+    order in each (the matrix keeps it); context paragraphs after the sentence they follow."""
+    files = [s[0] for s in (getattr(M, "sources", None) or []) if s and s[0]]
+    rank = {f: n for n, f in enumerate(files)}
+    out = {}
+    for n, it in enumerate(all_items(M)):
+        out[it["id"]] = (rank.get(it.get("file", ""), len(rank)), n)
+    return out
+
+
+def sort_doc_order(M, labels_=None):
+    """3.30.0: the items in each section (or only the sections in labels_) in the order they appear in the customer
+    documents. Each section is sorted on its own: nothing moves to another section. Support sentences keep following
+    the requirement they support. Returns how many sections changed."""
+    S = setup_of(M)
+    P = placed_in(M)
+    di = doc_index(M)
+    B = by_id(M)
+    n = 0
+    for lab in (labels_ or list(P)):
+        ids = P.get(lab, [])
+        if len(ids) < 2:
+            continue
+        keep = [i for i in ids if (B.get(i) or {}).get("decision") != "Context" or not (B.get(i) or {}).get("context_for")]
+        new = sorted(keep, key=lambda i: di.get(i, (99, 10 ** 9)))
+        if new != [i for i in ids if i in set(keep)] or S["order"].get(lab):
+            S["order"][lab] = new                  # support sentences are not in the order: they follow their requirement
+            n += 1
+    if n:
+        _log(M, "(setup)", f"sorted in document order: {n} section(s)")
+        if hasattr(M, "pending"):
+            M.pending = True
+    return n
+
+
 # ------------------------------------------------------------------ context paragraphs
 def context_from_chunks(M, file_name, chunks, min_len=40):
     """Paragraphs of an RFP file that are not compliance rows (SOW text, evaluation criteria, background): placeable

@@ -10,6 +10,9 @@ THE STRUCTURE BUILDER (3.30.0)
     the menu. The button for the selected section's kind lights up.
   - The selected section: what it is, its pages and whether it counts, and everything in it in order (library items,
     its requirements and support, its captures) to reorder or take out. Response Setup lives here now.
+  - Show what is placed: each section's items under it. Drag an item to another section or before another item (order
+    by hand); drag from Not placed yet or the library onto a section. Sort in document order sorts each section on its
+    own by where its items appear in the customer documents.
   - The production library on the right: place Quick Parts, covers, table looks and the rest in a section. Not placed
     yet: requirements and captures with no section, into the selected section in one click.
   - Add elements: Table of Contents, the lists of figures, tables and appendices, Acronyms and Abbreviations, Units of

@@ -147,6 +147,47 @@ check("Not placed yet lists a requirement with no section", any((b.unp_list.item
 b.select("1 Program Management")
 n = b.place_unplaced([("item", c["id"])])
 check("... Into the selected section", n and M.items[M.items.index(c)]["map"] == "1 Program Management")
+# ---------------------------------------------------------------- placed items in the structure: drag, drop, sort
+ks = [it for it in M.items if it.get("file") == "Section_L_print.pdf" and len(it.get("text", "")) > 40][3:9]
+for it in reversed(ks[:3]):
+    it["decision"] = "Keep"; SD.place(M, it["id"], "2 Technical Approach")
+for it in reversed(ks[3:6]):
+    it["decision"] = "Keep"; SD.place(M, it["id"], "1 Program Management")
+b.refresh()
+sec = node("2 Technical Approach")
+rows = [sec.child(i).data(0, Qt.UserRole + 1) for i in range(sec.childCount()) if sec.child(i).data(0, Qt.UserRole + 1)]
+check("Show what is placed: each section's items under it, in its order", [r[1] for r in rows if r[0] == "item"][:3] == [x["id"] for x in reversed(ks[:3])],
+      rows)
+check("... tagged by what they are", sec.child(0).text(1) in ("REQ", "L", "M", "C"), sec.child(0).text(1))
+n = b.sort_order()
+order_t = SD.placed_in(M)["2 Technical Approach"]
+order_p = SD.placed_in(M)["1 Program Management"]
+check("Sort in document order: each section in the order found in the customer document",
+      [i for i in order_t if i in {x["id"] for x in ks[:3]}] == [x["id"] for x in ks[:3]]
+      and [i for i in order_p if i in {x["id"] for x in ks[3:6]}] == [x["id"] for x in ks[3:6]], (order_t, order_p))
+check("... and nothing moved to another section", set(x["id"] for x in ks[:3]) <= set(order_t) and not set(x["id"] for x in ks[:3]) & set(order_p))
+b.drop_content(("item", ks[2]["id"], "2 Technical Approach"), None, ("item", ks[0]["id"], "2 Technical Approach"), "before")
+check("drag an item before another in its section: ordered by hand", SD.placed_in(M)["2 Technical Approach"][:2] == [ks[2]["id"], ks[0]["id"]],
+      SD.placed_in(M)["2 Technical Approach"])
+b.drop_content(("item", ks[1]["id"], "2 Technical Approach"), "1 Program Management", None, "into")
+check("drag an item onto another section: it moves there, at the end", R.item(ks[1]["id"])["map"] == "1 Program Management"
+      and SD.placed_in(M)["1 Program Management"][-1] == ks[1]["id"] and ks[1]["id"] not in SD.placed_in(M)["2 Technical Approach"])
+w.undo_here(); app.processEvents()
+check("... one Undo puts it back", R.item(ks[1]["id"])["map"] == "2 Technical Approach")
+b.sort_order(["2 Technical Approach"])
+check("Sort this section only (right-click)", [i for i in SD.placed_in(M)["2 Technical Approach"] if i in {x["id"] for x in ks[:3]}] == [x["id"] for x in ks[:3]])
+c2 = R.item(by("Information provided in one volume")["id"])
+c2["decision"] = "Keep"; c2["map"] = ""
+b.refresh()
+n = b.drop_unplaced([("item", c2["id"])], None, ("item", ks[1]["id"], "2 Technical Approach"))
+check("drag from Not placed yet onto an item: placed before it", n == 1 and SD.placed_in(M)["2 Technical Approach"].index(c2["id"])
+      == SD.placed_in(M)["2 Technical Approach"].index(ks[1]["id"]) - 1, SD.placed_in(M)["2 Technical Approach"])
+b.drop_library({"id": qp["id"], "kind": "quickpart", "name": "Org chart block"}, "1 Program Management", None)
+check("drag from the library onto a section: placed in it", [x["name"] for x in O.lib_items(M, "1 Program Management")] == ["Org chart block"])
+b.drop_content(("lib", 0, "1 Program Management"), "2 Technical Approach", None)
+check("drag a library item to another section", not O.lib_items(M, "1 Program Management") and O.lib_items(M, "2 Technical Approach"))
+O.unplace_lib(M, "2 Technical Approach", 0)
+if os.environ.get("SK_SHOT"): b.select("2 Technical Approach"); app.processEvents(); w.grab().save(os.environ["SK_SHOT"])
 # ---------------------------------------------------------------- Settings > Response elements
 d = w.settings_page.response_elements(run=False)
 e = d.add("Small business plan")
