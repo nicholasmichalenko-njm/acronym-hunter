@@ -49,6 +49,7 @@ class Library:
         self.config_dir = config_dir
         self.root = folder(config_dir)
         self.items = []
+        self.kits = []
         self.load()
 
     def load(self):
@@ -56,15 +57,16 @@ class Library:
             with open(os.path.join(self.root, "index.json"), encoding="utf-8") as f:
                 d = json.load(f) or {}
             self.items = [i for i in d.get("items", []) if isinstance(i, dict) and i.get("id") and i.get("kind")]
+            self.kits = [k for k in d.get("kits", []) if isinstance(k, dict) and k.get("id") and k.get("name")]
         except (OSError, ValueError):
-            self.items = []
+            self.items, self.kits = [], []
         return self
 
     def save(self):
         os.makedirs(os.path.join(self.root, "items"), exist_ok=True)
         p = os.path.join(self.root, "index.json")
         with open(p + ".tmp", "w", encoding="utf-8") as f:
-            json.dump({"format": 1, "items": self.items}, f, indent=1, ensure_ascii=False)
+            json.dump({"format": 1, "items": self.items, "kits": self.kits}, f, indent=1, ensure_ascii=False)
         os.replace(p + ".tmp", p)
 
     # ------------------------------------------------------------ items
@@ -159,12 +161,41 @@ class Library:
         if i is None:
             return False
         self.items.remove(i)
+        for k in self.kits:
+            k["items"] = [x for x in k["items"] if x != iid]
         try:
             os.remove(os.path.join(self.root, "items", iid + ".json"))
         except OSError:
             pass
         self.save()
         return True
+
+    # ------------------------------------------------------------ 3.23.0 kits
+    def add_kit(self, name, item_ids, tags=None, categories=None):
+        """A named set of items ("Space Force page-limited RFP"): start a standard from it and change only what the
+        effort needs. categories: {Quick Part item id: category}. Returns the kit."""
+        name = " ".join(str(name or "").split())[:80]
+        ids = [i for i in item_ids if self.get(i)]
+        if not name or not ids:
+            return None
+        k = next((x for x in self.kits if x["name"].casefold() == name.casefold()), None)
+        if k is None:
+            k = {"id": uuid.uuid4().hex[:12], "name": name, "items": [], "tags": {}, "categories": {}, "at": _now()}
+            self.kits.append(k)
+        k["items"] = list(dict.fromkeys(k["items"] + ids))
+        k["tags"].update(tags or {})
+        k["categories"].update({a: b for a, b in (categories or {}).items() if a in k["items"]})
+        self.save()
+        return k
+
+    def kit(self, kid):
+        return next((k for k in self.kits if k["id"] == kid), None)
+
+    def remove_kit(self, kid):
+        n = len(self.kits)
+        self.kits = [k for k in self.kits if k["id"] != kid]
+        self.save()
+        return len(self.kits) < n
 
     def keep_file(self, path_or_bytes, name):
         """A kept copy of a source file or a page design (content-named, once). Returns its file name in sources."""
@@ -387,6 +418,19 @@ def cleanup(lib):
 
 
 # ------------------------------------------------------------------ into a standard
+def use_kit(lib, kid, work):
+    """Every item of a kit into the standard being edited, in the order kept. Returns what it changed, in words."""
+    k = lib.kit(kid)
+    if k is None:
+        return []
+    out = []
+    for iid in k["items"]:
+        s = use_in_standard(lib, iid, work, (k.get("categories") or {}).get(iid, ""))
+        if s:
+            out.append(s)
+    return out
+
+
 def use_in_standard(lib, iid, work, category=""):
     """Puts a library item into a standard being edited (a layer dict). Returns what it changed, in words."""
     it = lib.get(iid)

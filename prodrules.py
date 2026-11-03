@@ -36,7 +36,8 @@ def _company_default():
     c["style_defs"] = {}               # 3.7.0: the style library, {style: {prop: value}}; blank = not checked
     c["table_styles"] = {}             # 3.10.0: Word table styles, {name: {"xml", "based_on"}}
     c["page_parts"] = {}               # 3.10.0: {"cover": file, "backer": file} in production_parts
-    c["quick_parts"] = {"one_gallery": True, "entries": []}    # 3.22.0: the Quick Parts a template carries, from files in production_parts
+    c["quick_parts"] = {"one_gallery": True, "entries": []}
+    c["fill_ins"] = []                 # 3.23.0: tokens typed once: a cover style (STYLEREF) or a document property    # 3.22.0: the Quick Parts a template carries, from files in production_parts
     c["list_numbering"] = {"on": False, "lists": [   # 3.9.0: what each list style shows, level by level (inches)
         {"name": "Bullets", "levels": [
             {"style": "List Bullet", "fmt": "bullet", "text": "\u2022", "font": "", "left": 0.25, "hanging": 0.25},
@@ -484,6 +485,14 @@ def apply_context(std, ctx, volume_name=None):
     return std
 
 
+def _fill_keys(std):
+    try:
+        import fillins as FI
+        return {f["key"] for f in FI.custom(std)}
+    except ImportError:
+        return set()
+
+
 def hf_tokens(std):
     """The volume tokens the header and footer layouts and the page scheme use: {token: where}."""
     out = {}
@@ -491,7 +500,7 @@ def hf_tokens(std):
         for side in ("header", "footer"):
             for slot, text in (lay.get(side) or {}).items():
                 for k in re.findall(r"\{(\w+)\}", text if isinstance(text, str) else ""):
-                    if k in HF_TOKENS:
+                    if k in HF_TOKENS or k in _fill_keys(std):
                         out.setdefault(k, f"{part} {side}")
     for p in (std.get("pagination") or {}).get("parts", []):
         for k in re.findall(r"\{(\w+)\}", p.get("header") or ""):
@@ -504,9 +513,9 @@ def missing_values(std, sources=()):
     """Tokens the layouts use whose value is blank and that the document cannot supply itself (a cover paragraph in
     the token's style, which headers then read through STYLEREF): [token]. Headers and footers are built only when
     this is empty, so a blank or wrong value is never typed into a copy."""
-    from prodengine.pe.hf import SOURCE_STYLES
-    v = std.get("variables") or {}
-    return [k for k in hf_tokens(std) if not str(v.get(k) or "").strip() and SOURCE_STYLES.get(k) not in set(sources)]
+    import fillins as FI
+    st, pr = FI.styles(std), FI.props(std)
+    return [k for k in hf_tokens(std) if not str(FI.value(std, k) or "").strip() and st.get(k) not in set(sources) and k not in pr]
 
 
 def page_limit(text):

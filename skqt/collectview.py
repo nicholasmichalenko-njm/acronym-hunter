@@ -5,7 +5,7 @@ import os, sys
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFontDatabase
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout,
-                               QHBoxLayout, QHeaderView, QInputDialog, QLineEdit, QListWidget, QListWidgetItem, QStackedWidget,
+                               QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem, QStackedWidget,
                                QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 import diag
 import templatelib as TL
@@ -258,6 +258,45 @@ class ValuesDialog(QDialog):
         return out
 
 
+def _esc(s):
+    return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def preview_html(lib, iid):
+    if not iid or str(iid).startswith("kit:"):
+        k = lib.kit(str(iid)[4:]) if iid else None
+        return f"<b>{_esc(k['name'])}</b>: {len(k['items'])} item(s)" if k else ""
+    it = lib.get(iid)
+    v = lib.values(it) if it else None
+    if it is None or v is None:
+        return ""
+    if it["kind"] == "style":
+        css = []
+        if v.get("font") and not str(v["font"]).startswith("+"):
+            css.append(f"font-family:'{_esc(v['font'])}'")
+        if isinstance(v.get("size"), (int, float)):
+            css.append(f"font-size:{v['size']}pt")
+        if v.get("bold"):
+            css.append("font-weight:bold")
+        if v.get("italic"):
+            css.append("font-style:italic")
+        if v.get("color") and str(v["color"]).upper() != "AUTO":
+            css.append(f"color:#{_esc(v['color'])}")
+        if v.get("caps"):
+            css.append("text-transform:uppercase")
+        if v.get("hidden"):
+            css.append("text-decoration:underline dotted")
+        sample = _esc(it["name"]) + ": The Offeror shall describe its technical approach."
+        return (f"<div style=\"{';'.join(css)}\">{sample}</div>"
+                + (f"<div style='color:{D.tokens()['muted']}'>Hidden text: shows only with Show/Hide on.</div>" if v.get("hidden") else ""))
+    if it["kind"] == "font":
+        return f"<div style=\"font-family:'{_esc(v.get('font', ''))}';font-size:14pt\">{_esc(v.get('font', ''))}: Aa Bb Cc 0123456789</div>"
+    if it["kind"] == "theme":
+        sw = "".join(f"<span style='background:#{c};color:#{c}'>&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;" for c in v.get("colors", {}).values())
+        return f"<div>{sw}</div><div>Headings: {_esc(v.get('major') or '-')}; body: {_esc(v.get('minor') or '-')}</div>"
+    return f"<b>{_esc(it['name'])}</b>: {_esc(it.get('summary', ''))}"
+
+
 class LibraryDialog(QDialog):
     """The shelves: browse by kind and use case; rename, tag, take out, or use an item in the standard being edited."""
 
@@ -287,6 +326,11 @@ class LibraryDialog(QDialog):
         self.t.setEditTriggers(QTableWidget.NoEditTriggers); self.t.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
         self.t.setColumnWidth(0, 220); self.t.setColumnWidth(1, 200); self.t.setColumnWidth(2, 180)
         body.addWidget(self.t, 1)
+        self.preview = QLabel(); self.preview.setWordWrap(True); self.preview.setMinimumHeight(70)    # 3.23.0
+        self.preview.setTextFormat(Qt.RichText)
+        self.preview.setStyleSheet(f"background:{D.tokens()['surface2']};border:1px solid {D.tokens()['border']};padding:8px;")
+        v.addWidget(self.preview)
+        self.t.currentCellChanged.connect(lambda *_a: self.show_preview())
         row = QHBoxLayout(); v.addLayout(row)
         row.addWidget(D.button("Use in this standard", "primary", lambda: self.use_it()))
         row.addWidget(D.button("New style...", None, lambda: self.new_style(), "A style of your own (hidden text ones too), "
@@ -295,8 +339,12 @@ class LibraryDialog(QDialog):
         row.addWidget(D.button("Rename...", None, lambda: self.rename()))
         row.addWidget(D.button("Use cases...", None, lambda: self.retag()))
         row.addWidget(D.button("Take out", "ghost", lambda: self.remove()))
+        row.addWidget(D.button("Save as a kit...", None, lambda: self.save_kit(), "The selected items (Ctrl+click for several, on "
+                               "any shelf) as a named kit: start a standard from it and change only what the effort needs"))
         row.addStretch(1)
         bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(self.reject); row.addWidget(bb)
+        self.t.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.kit_pick = []                         # items picked for a kit, across shelves
         self.fill_shelves()
 
     def fill_shelves(self):
@@ -305,6 +353,7 @@ class LibraryDialog(QDialog):
         self.shelves.clear()
         for k, t in TL.SHELVES:
             it = QListWidgetItem(f"{t} ({len(self.lib.shelf(k))})"); it.setData(Qt.UserRole, k); self.shelves.addItem(it)
+        it = QListWidgetItem(f"Kits ({len(self.lib.kits)})"); it.setData(Qt.UserRole, "kit"); self.shelves.addItem(it)
         self.shelves.blockSignals(False)
         self.shelves.setCurrentRow(max(0, cur))
         self.fill()
@@ -314,6 +363,17 @@ class LibraryDialog(QDialog):
         return it.data(Qt.UserRole) if it else TL.SHELVES[0][0]
 
     def fill(self):
+        if self.kind() == "kit":
+            self.t.setRowCount(0)
+            for k in self.lib.kits:
+                r = self.t.rowCount(); self.t.insertRow(r)
+                names = [self.lib.get(i)["name"] for i in k["items"] if self.lib.get(i)]
+                for c, s in enumerate((k["name"], ", ".join(k.get("tags", {}).get("use", [])), f"{len(names)} item(s)", ", ".join(names))):
+                    cell = QTableWidgetItem(s); cell.setToolTip(s)
+                    if c == 0:
+                        cell.setData(Qt.UserRole, "kit:" + k["id"])
+                    self.t.setItem(r, c, cell)
+            return len(self.lib.kits)
         items = self.lib.shelf(self.kind(), self.use.currentData())
         self.t.setRowCount(0)
         for i in items:
@@ -327,6 +387,13 @@ class LibraryDialog(QDialog):
                 self.t.setItem(r, c, cell)
         return len(items)
 
+    def show_preview(self):
+        """3.23.0: what the item looks like: a style as text in its font, size, weight, color and caps (hidden text
+        marked); a font in itself; a theme's colors; anything else its summary."""
+        html = preview_html(self.lib, self.selected())
+        self.preview.setText(html)
+        return html
+
     def selected(self):
         r = self.t.currentRow()
         it = self.t.item(r, 0) if r >= 0 else None
@@ -337,10 +404,31 @@ class LibraryDialog(QDialog):
         self.lib.load(); self.fill_shelves()
         return r
 
+    def save_kit(self, name=None):
+        """The selected rows (on this shelf, plus those picked on other shelves) as a kit."""
+        ids = [self.t.item(i.row(), 0).data(Qt.UserRole) for i in self.t.selectionModel().selectedRows()] if self.t.selectionModel() else []
+        ids = [i for i in ids if i and not str(i).startswith("kit:")]
+        if not ids:
+            return None
+        if name is None:
+            name, ok = QInputDialog.getText(self, "Save as a kit", "Kit name (for example: Space Force page-limited RFP). "
+                                            "An existing name adds these items to it:")
+            if not ok:
+                return None
+        use = [self.use.currentData()] if self.use.currentData() else []
+        k = self.lib.add_kit(name, ids, tags={"use": use} if use else None)
+        self.fill_shelves()
+        return k
+
     def use_it(self, category=None):
         iid = self.selected()
         if not iid:
             return ""
+        if str(iid).startswith("kit:"):            # a kit: every item in it
+            said = TL.use_kit(self.lib, iid[4:], self.page.work)
+            if said:
+                self.page.after_library(f"kit with {len(said)} item(s)")
+            return "; ".join(said)
         it = self.lib.get(iid)
         if it["kind"] == "quickpart" and category is None:
             v = self.lib.values(it) or {}
@@ -418,6 +506,10 @@ class LibraryDialog(QDialog):
 
     def remove(self):
         iid = self.selected()
+        if iid and str(iid).startswith("kit:"):
+            ok = self.lib.remove_kit(iid[4:])
+            self.fill_shelves()
+            return ok
         ok = bool(iid) and self.lib.remove(iid)
         self.fill_shelves()
         return ok

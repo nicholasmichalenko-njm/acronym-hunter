@@ -57,8 +57,17 @@ def _field_runs(src, instr, result):
 def caption_instrs(rule):
     lvl = rule["chapter_level"]
     chap = ("STYLEREF 7 \\n \\t" if lvl == 7 else f"STYLEREF {lvl} \\s") if lvl else None
-    seq = f"SEQ {rule['identifier']} \\* ARABIC" + (f" \\s {lvl}" if lvl else "")
+    seq = f"SEQ {rule['identifier']} \\* {seq_format(rule)}" + (f" \\s {lvl}" if lvl else "")
     return chap, seq
+
+
+SEQ_FORMATS = ("ARABIC", "ROMAN", "roman", "ALPHABETIC", "alphabetic")
+
+
+def seq_format(rule):
+    """3.22.1: how the caption's own number shows: 1, I, i, A or a (Word's SEQ switch)."""
+    f = str(rule.get("number_format") or "ARABIC")
+    return f if f in SEQ_FORMATS else "ARABIC"
 
 
 def op_caption_typed(pkg, std):

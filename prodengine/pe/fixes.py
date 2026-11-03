@@ -161,8 +161,11 @@ def op_caption_fields(pkg, std):
         lvl = r["chapter_level"]
         if n.upper().startswith("SEQ "):
             parts = n.split()
-            want = f"SEQ {r['identifier']} \\* ARABIC" + (f" \\s {lvl}" if lvl else "")
-            if parts[1] != r["identifier"] or (lvl and f"\\s {lvl}" not in n):
+            from prodengine.pe.fixes2 import seq_format
+            fmt = seq_format(r)
+            want = f"SEQ {r['identifier']} \\* {fmt}" + (f" \\s {lvl}" if lvl else "")
+            have_fmt = next((parts[i + 1] for i, x in enumerate(parts[:-1]) if x == "\\*"), "ARABIC")
+            if parts[1] != r["identifier"] or (lvl and f"\\s {lvl}" not in n) or have_fmt != fmt:
                 _rewrite(pkg, its, want)
                 changes.append((pkg.main, n, _norm(want)))
         elif n.upper().startswith("STYLEREF ") and lvl:

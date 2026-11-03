@@ -72,7 +72,8 @@ def _caption_runs(rule, chap_shown, title):
     runs = _t(rule["label"] + " ")
     if chap_i:
         runs += _fld(chap_i, chap_shown) + _t(rule.get("separator", "-"))
-    runs += _fld(seq_i, "1") + _t(after)
+    first = {"ROMAN": "I", "roman": "i", "ALPHABETIC": "A", "alphabetic": "a"}.get(X2.seq_format(rule), "1")   # 3.22.1
+    runs += _fld(seq_i, first) + _t(after)
     if rule.get("after_number", "period_tab").endswith("tab") or rule.get("after_number") == "tab":
         runs += "<w:r><w:tab/></w:r>"
     return runs + _t(title)
@@ -108,7 +109,11 @@ def _document(std):
     # cover
     out.append(_p("PEVolumeName", v.get("volume_name") or "[Volume name]"))
     out.append(_p("PESolicitation", v.get("solicitation") or "[Solicitation number]"))
-    out.append(_p("PECompany", v.get("company") or "[Company]", sect=sect))
+    import fillins as FI
+    extra = [f for f in FI.custom(std) if f["kind"] == "styleref"]
+    out.append(_p("PECompany", v.get("company") or "[Company]", sect=None if extra else sect))
+    for i, f in enumerate(extra):                    # 3.23.0: each fill-in once on the cover, in its own style
+        out.append(_p(fill_style_id(f["style"]), FI.value(std, f["key"]) or f"[{f['name']}]", sect=sect if i == len(extra) - 1 else None))
     # front matter: the TOC and the lists of tables and figures
     out.append(_p("TOCHeading", "Table of Contents"))
     out.append(_p("", runs=_fld(toc, "Update the table of contents in Word (F9).")))
@@ -268,14 +273,72 @@ def with_theme(data, theme_xml):
     return out.getvalue()
 
 
+def fill_style_id(name):
+    import re as _re
+    return _re.sub(r"[^A-Za-z0-9]", "", name) or "SKFill"
+
+
 def standard_for_template(std):
-    """The standard with the cover styles the template's headers read (when the standard does not define them)."""
+    """The standard with the cover styles the template's headers read (when the standard does not define them), the
+    fill-ins' cover styles among them (3.23.0)."""
     import copy as _c
+    import fillins as FI
     std = _c.deepcopy(std)
     defs = std.setdefault("style_defs", {})
     for name, d in COVER_STYLES.items():
         defs.setdefault(name, dict(d))
+    for f in FI.custom(std):
+        if f["kind"] == "styleref":
+            defs.setdefault(f["style"], {"type": "paragraph", "based_on": "Normal", "jc": "center", "after": 6})
     return std
+
+
+def with_properties(data, props):
+    """3.23.0: the template's document properties: Title and Subject (core), Company and Manager (app), the rest as
+    custom properties. props: {name: value}."""
+    import re as _re
+    from xml.sax.saxutils import escape as _e
+    if not props:
+        return data
+    zin = zipfile.ZipFile(io.BytesIO(data))
+    names = zin.namelist()
+    custom = {k: v for k, v in props.items() if k not in ("Title", "Subject", "Company", "Manager")}
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+        for i in zin.infolist():
+            b = zin.read(i.filename).decode("utf-8") if i.filename.endswith((".xml", ".rels")) else zin.read(i.filename)
+            if i.filename == "docProps/core.xml":
+                for k, tag in (("Title", "dc:title"), ("Subject", "dc:subject")):
+                    if k in props:
+                        b = _re.sub(rf"<{tag}>.*?</{tag}>|<{tag}/>", "", b, flags=_re.S)
+                        b = b.replace("</cp:coreProperties>", f"<{tag}>{_e(props[k])}</{tag}></cp:coreProperties>")
+            if i.filename == "docProps/app.xml":
+                for k in ("Company", "Manager"):
+                    if k in props:
+                        b = _re.sub(rf"<{k}>.*?</{k}>|<{k}/>", "", b, flags=_re.S)
+                        b = b.replace("</Properties>", f"<{k}>{_e(props[k])}</{k}></Properties>")
+            if custom and i.filename == "[Content_Types].xml" and "docProps/custom.xml" not in names:
+                b = b.replace("</Types>", '<Override PartName="/docProps/custom.xml" ContentType="application/vnd.openxmlformats-'
+                              'officedocument.custom-properties+xml"/></Types>')
+            if custom and i.filename == "_rels/.rels" and "docProps/custom.xml" not in names:
+                b = b.replace("</Relationships>", '<Relationship Id="rIdSKcp1" Type="http://schemas.openxmlformats.org/officeDocument/'
+                              '2006/relationships/custom-properties" Target="docProps/custom.xml"/></Relationships>')
+            if custom and i.filename == "docProps/custom.xml":
+                continue
+            z.writestr(i, b.encode("utf-8") if isinstance(b, str) else b)
+        if custom:
+            CP = "http://schemas.openxmlformats.org/officeDocument/2006/custom-properties"
+            VT = "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"
+            have = ""
+            if "docProps/custom.xml" in names:
+                old = zin.read("docProps/custom.xml").decode("utf-8")
+                have = "".join(p for p in _re.findall(r"<property .*?</property>", old, _re.S)
+                               if not any(f'name="{_e(k)}"' in p for k in custom))
+            items = "".join(f'<property fmtid="{{D5CDD505-2E9C-101B-9397-08002B2CF9AE}}" pid="{n}" name="{_e(k)}"><vt:lpwstr>{_e(v)}</vt:lpwstr></property>'
+                            for n, (k, v) in enumerate(custom.items(), start=100))
+            z.writestr("docProps/custom.xml", (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Properties xmlns="{CP}" '
+                                               f'xmlns:vt="{VT}">{have}{items}</Properties>').encode("utf-8"))
+    return out.getvalue()
 
 
 def make(std, folder, start_from="", word=None, when=None, progress=None, parts_dir=None):
@@ -307,6 +370,12 @@ def make(std, folder, start_from="", word=None, when=None, progress=None, parts_
                 import prodparts as PP
                 with open(os.path.join(pdir, fname), "rb") as f:
                     data = PP.place(data, f.read(), where)
+    import fillins as FI
+    pr = {f["property"]: (FI.value(std, f["key"]) or f"[{f['name']}]") for f in FI.custom(std) if f["kind"] == "docprop"}
+    if std.get("_template_name"):                     # 3.23.0: the template's name and version travel in the file
+        pr.update({"SK Template": std["_template_name"], "SK Template Version": str(std.get("_template_version", 1))})
+    if pr:                                            # 3.23.0: the document properties the DOCPROPERTY fill-ins read
+        data = with_properties(data, pr)
     th = (std.get("theme") or {}).get("xml")
     if th:                                            # 3.22.0: the standard's theme (colors and fonts) replaces the base's
         data = with_theme(data, th)
@@ -334,7 +403,7 @@ def make(std, folder, start_from="", word=None, when=None, progress=None, parts_
         if fx["key"] == "hf_build":
             from prodengine.engine.pkg import Package
             from prodengine.pe import hf as H
-            gone = PRL.missing_values(std, H._sources(Package(job.copy)))
+            gone = PRL.missing_values(std, H._sources(Package(job.copy), std))
             if gone:
                 job.steps.append({"step": fx["label"], "key": "hf_build", "changed": False, "refused": "Not set and not on the "
                                   "cover: " + ", ".join(PRL.HF_TOKENS[k] for k in gone) + ". Headers and footers were left as they were."})
@@ -360,4 +429,11 @@ def make(std, folder, start_from="", word=None, when=None, progress=None, parts_
                           **({} if r.get("ok") else {"refused": r.get("why", "Word could not update the fields.")})})
     say("Checking the template against the standard")
     job.check = PF.check(job.copy, std)
+    try:                                              # 3.23.0: the validation report
+        import templatecheck as TC
+        job.validation = TC.validate(job.copy, installed_fonts=std.get("_installed_fonts"))
+    except Exception:                                 # noqa: BLE001  the report never stops a template
+        import diag
+        diag.swallowed()
+        job.validation = None
     return job

@@ -23,6 +23,7 @@ SECTIONS = [
     ("styledefs", "Style library"),
     ("rows", "Table rows"), ("ttypes", "Table types"), ("rules", "Row rules"), ("captions", "Captions and numbering"),
     ("pages", "Pages, cover and back cover"), ("quickparts", "Quick Parts"), ("setups", "Page setups"), ("hf", "Headers and footers"),
+    ("fillins", "Fill-ins (type once)"),
     ("toc", "Table of contents and lists"), ("lists", "Bulleted and numbered lists"), ("terms", "Terms"),
     ("office", "Excel and PowerPoint"), ("graphics", "Graphics"), ("checks", "Check options"),
 ]
@@ -40,7 +41,7 @@ AFTER = [("period_tab", "Period, then a tab"), ("period_space", "Period, then a 
 RULE_KINDS = [("fill_in", "Cell fill is one of"), ("first_cell_starts", "First cell starts with"),
               ("first_cell_contains_word", "First cell contains the word"), ("last_row_merged", "Last row is one merged cell"),
               ("single_merged_cell", "One merged cell across"), ("bold_row", "Only bold text"), ("other", "Any other row")]
-TOKENS = "{volume_name} {solicitation} {company} {page} {pages} {chapter}"
+TOKENS = "{volume_name} {solicitation} {company} {page} {pages} {chapter}, and your fill-ins as {key}"
 TRI = [("", "Not set"), ("on", "On"), ("off", "Off")]
 STYLE_COLS = [("key", "Style", "text"), ("type", "Type", ("enum", [("paragraph", "Paragraph"), ("character", "Character")])),
               ("based_on", "Based on", "text"), ("next", "Next style", "text"), ("font", "Font", "text"), ("size", "Size (pt)", "num0"),
@@ -354,6 +355,14 @@ class TablePreview(QWidget):
         p.end()
 
 
+def WG_line(res):
+    """The Word check in one line."""
+    if not res.get("ok"):
+        return "Word check not run: " + res.get("why", "")
+    bad = sum(1 for e in res["entries"] if not e.get("ok"))
+    return f"Word check: {len(res['entries'])} Quick Part(s), {bad} with a problem; {len(res['field_errors'])} field error(s)"
+
+
 class StandardsPage(QWidget):
     def __init__(self, host):
         super().__init__()
@@ -453,7 +462,7 @@ class StandardsPage(QWidget):
 
     SECTION_KEYS = {"variables": ("variables",), "fonts": ("fonts",), "styles": ("styles", "heading_numbering"),
                     "styledefs": ("style_defs",), "rows": ("row_types",), "ttypes": ("table_types", "table_styles"),
-                    "rules": ("row_rules",), "captions": ("captions",), "pages": ("pagination", "page_parts"), "quickparts": ("quick_parts",),
+                    "rules": ("row_rules",), "captions": ("captions",), "pages": ("pagination", "page_parts"), "quickparts": ("quick_parts",), "fillins": ("fill_ins",),
                     "setups": ("page_setups",), "hf": ("hf_layouts",), "toc": ("toc",), "lists": ("lists", "list_numbering"),
                     "terms": ("terms",), "office": ("excel", "powerpoint"), "graphics": ("graphics",), "checks": ("checks",)}
     LAYER_BELOW = {"team": "the built-in defaults", "type": "the team standard", "etype": "the team standard",
@@ -734,7 +743,10 @@ class StandardsPage(QWidget):
         cols = [("label", "Label", "text"), ("part", "Part", ("enum", [("body", "Body"), ("appendix", "Appendix")])),
                 ("position", "Caption", ("enum", [("above", "Above"), ("below", "Below")])),
                 ("chapter_level", "Chapter level", "int"), ("separator", "Separator", ("enum", [(v_, v_) for v_ in ("-", ".", ":", "–", "—")])),
-                ("identifier", "Caption list (SEQ)", "text"), ("after_number", "After the number", ("enum", AFTER)), ("style", "Style", "text")]
+                ("identifier", "Caption list (SEQ)", "text"),
+                ("number_format", "Number shows as", ("enum", [("", "1, 2, 3"), ("ARABIC", "1, 2, 3"), ("ROMAN", "I, II, III"), ("roman", "i, ii, iii"),
+                                                               ("ALPHABETIC", "A, B, C"), ("alphabetic", "a, b, c")])),
+                ("after_number", "After the number", ("enum", AFTER)), ("style", "Style", "text")]
         self.table_editor(v, "captions", ("captions",), cols)
 
     def build_pages(self, v):
@@ -764,6 +776,20 @@ class StandardsPage(QWidget):
                 ("chapter_level", "Chapter level", "int"), ("separator", "Separator", ("enum", SEPS)),
                 ("chapter_style", "Chapter heading", "text"), ("linked", "Same header and footer as before", "bool")]
         self.table_editor(v, "pages", ("pagination", "parts"), cols, adapter="pages")
+
+    def build_fillins(self, v):
+        """3.23.0: tokens typed once and shown everywhere they are referenced."""
+        c = D.Card("Fill-ins", "A value you type once that shows everywhere it is referenced. Style on the cover (STYLEREF, as the "
+                   "team works today): the value sits once on the cover or title page in its own style, and every STYLEREF to "
+                   "that style in headers, footers and Quick Parts shows it. Document property (DOCPROPERTY): a property of the "
+                   "file (Title, Subject, Company, or one of your own). Use a fill-in in a header or footer as {key}. Fields "
+                   "are written without MERGEFORMAT, so each one takes the formatting where it sits. Volume name, solicitation "
+                   "and company are built in.")
+        v.addWidget(c)
+        import fillins as FI
+        cols = [("key", "Key (use as {key})", "text"), ("name", "Name", "text"), ("kind", "Works by", ("enum", list(FI.KINDS))),
+                ("style", "Cover style (STYLEREF)", "text"), ("property", "Document property", "text"), ("value", "Value", "text")]
+        self.table_editor(v, "fillins", ("fill_ins",), cols)
 
     def build_quickparts(self, v):
         """3.22.0: the Quick Parts the template carries: picked from a template or document, kept with this PC's standards
@@ -1683,10 +1709,13 @@ class StandardsPage(QWidget):
         import prodcopy as PCY
         return os.path.join(PCY.output_folder(app_gui.load_settings() or {}, app_gui.DATA_DIR), "Templates")
 
-    def make_template(self, start_from=None, word=None, wait=True):
+    def make_template(self, start_from=None, word=None, wait=True, name=None):
         """A Word template with every value in force at this layer, in the output folder's Templates folder.
-        start_from: "" for the Stationkeeper base, a path to start from a template (read once), None to ask."""
+        start_from: "" for the Stationkeeper base, a path to start from a template (read once), None to ask.
+        name (3.23.0): what the template is called (asked when start_from is asked); its version counts up."""
         import prodtemplate as PT
+        import templatereg as TR
+        ask_name = start_from is None and name is None
         if not self.template_ready():
             return None
         probs = self.show_problems()
@@ -1712,16 +1741,36 @@ class StandardsPage(QWidget):
                 return None
         std = PRL.engine_ready(copy.deepcopy(self.work))
         std["name"] = self.scope_box.currentText().split(": ", 1)[-1]
+        if ask_name:
+            known = TR.names(self.host.config_dir)
+            name, ok = QInputDialog.getItem(self, "Name the template", "What the template is called (where or how it is used). "
+                                            "Making it again under the same name makes the next version:",
+                                            [std["name"]] + [k for k in known if k != std["name"]], 0, True)
+            if not ok:
+                return None
+        name = TR.clean_name(name or std["name"]) or "Template"
+        ver = TR.next_version(self.host.config_dir, name)
+        std["_template_name"], std["_template_version"], std["_standard"] = name, ver, std["name"]
+        std["name"] = f"{name} v{ver}"
+        try:
+            from .collectview import installed_fonts
+            std["_installed_fonts"] = installed_fonts()
+        except Exception:
+            diag.swallowed()
         if word is None and sys.platform.startswith("win"):
             import prodword
             word = prodword.update_fields
         self.host.status("Making the template...")
         folder = self.template_folder()
         self._tres = None
+        self._tmeta, self._tmeta_std = (name, ver), std.get("_standard", "")
 
         def run():
             try:
-                self._tres = ("job", PT.make(std, folder, start_from, word=word, parts_dir=self.parts_dir()))
+                job = PT.make(std, folder, start_from, word=word, parts_dir=self.parts_dir())
+                import prodwordgate as WG                  # 3.23.0: Word's own check, when Word is on this PC
+                job.word_gate = WG.gate(job.copy) if (word and WG.available()) else None
+                self._tres = ("job", job)
             except Exception as e:  # noqa: BLE001
                 diag.swallowed()
                 self._tres = ("error", f"The template was not made ({type(e).__name__}).")
@@ -1747,8 +1796,31 @@ class StandardsPage(QWidget):
             return None
         refused = [x for x in job.steps if x.get("refused")]
         self.last_template = job
+        val = getattr(job, "validation", None)
+        rep_path = ""
+        if val is not None:                            # 3.23.0: the validation report beside the template
+            rep_path = os.path.splitext(job.copy)[0] + " - validation report.txt"
+            try:
+                import prodwordgate as WG
+                with open(rep_path, "w", encoding="utf-8") as f:
+                    f.write(val.text() + ("\n\n" + WG.text(job.word_gate) if getattr(job, "word_gate", None) else ""))
+            except OSError:
+                diag.swallowed(); rep_path = ""
+        try:                                           # 3.23.0: its name and version, and the effort that made it
+            import templatereg as TR
+            name, ver = self._tmeta if getattr(self, "_tmeta", None) else (None, None)
+            if name:
+                e = TR.record(self.host.config_dir, name, ver, job.copy, self._tmeta_std, val, self.host.effort_name or "")
+                if self.scope == "effort":
+                    TR.note_on_effort(self.host.ws, name, e)
+                job.template_name, job.template_version = name, ver
+        except Exception:
+            diag.swallowed()
         self.host.status(f"Template made: {os.path.basename(job.copy)} in {os.path.dirname(job.copy)}. Checked against this "
-                         f"standard: {job.check.count()} finding(s)" + (f"; {len(refused)} step(s) refused" if refused else "") + ".")
+                         f"standard: {job.check.count()} finding(s)" + (f"; {len(refused)} step(s) refused" if refused else "")
+                         + (f". Validation: {len(val.problems())} problem(s), {len(val.warnings())} warning(s) (report saved beside it)"
+                            if val is not None else "")
+                         + (". " + WG_line(job.word_gate) if getattr(job, "word_gate", None) else "") + ".")
         diag.activity("prod_template_made", n=job.check.count())
         return job
 

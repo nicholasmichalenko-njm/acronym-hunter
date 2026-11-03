@@ -222,6 +222,25 @@ def classify_after(text_after_number):
 
 
 # ---------------------------------------------------------------- build
+def _seq_text(n, fmt):
+    """A caption's own number as Word shows it for the SEQ switch."""
+    if fmt in ("ROMAN", "roman"):
+        vals = ((1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"), (40, "XL"), (10, "X"), (9, "IX"),
+                (5, "V"), (4, "IV"), (1, "I"))
+        out, k = "", n
+        for v, r in vals:
+            while k >= v:
+                out += r; k -= v
+        return out if fmt == "ROMAN" else out.lower()
+    if fmt in ("ALPHABETIC", "alphabetic"):
+        out, k = "", n
+        while k > 0:
+            k, rem = divmod(k - 1, 26)
+            out = chr(65 + rem) + out
+        return out if fmt == "ALPHABETIC" else out.lower()
+    return str(n)
+
+
 def build(pkg, std):
     names = style_names(pkg)
     root = pkg.tree(pkg.main)
@@ -280,8 +299,9 @@ def build(pkg, std):
         key = (label, part, chap_at.get(p.i, ""))
         seq_count[key] = seq_count.get(key, 0) + 1
         chapter = chap_at.get(p.i, "") if rule["chapter_level"] else ""
-        expected = (f"{chapter}{rule['separator']}{seq_count[key]}" if chapter else str(seq_count[key]))
-        num_m = re.match(r"^([0-9A-Z]+(?:[\-.:\u2013][0-9]+)?)(.*)$", m.group(2), re.S)
+        seqn = _seq_text(seq_count[key], rule.get("number_format"))          # 3.22.1: 1, I, i, A or a
+        expected = (f"{chapter}{rule['separator']}{seqn}" if chapter else seqn)
+        num_m = re.match(r"^([0-9A-Za-z]+(?:[\-.:\u2013][0-9A-Za-z]+)?)(.*)$", m.group(2), re.S)
         shown = num_m.group(1) if num_m else ""
         rest = num_m.group(2) if num_m else m.group(2)
         sep = next((c for c in "-.:\u2013" if c in shown), "")

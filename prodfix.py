@@ -305,7 +305,7 @@ def check(path, std, data=None):
     except Exception as e:  # noqa: BLE001  one area failing must not hide the others
         chk.error += f" Captions and references could not be read ({type(e).__name__})."
     try:
-        chk.hf_sources = sorted(H._sources(pkg))
+        chk.hf_sources = sorted(H._sources(pkg, std))
     except Exception:  # noqa: BLE001
         chk.hf_sources = []
     chk.missing = PRL.missing_values(std, chk.hf_sources)

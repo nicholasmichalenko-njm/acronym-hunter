@@ -85,12 +85,39 @@ def _slot_runs(text, std, sources, fields):
             runs += _field("SECTIONPAGES", "1"); fields.append("SECTIONPAGES")
         elif k == "chapter":                      # 3.7.0: the chapter title the page is in (Heading 1)
             runs += _field('STYLEREF "Heading 1"', ""); fields.append('STYLEREF "Heading 1"')
-        elif k in SOURCE_STYLES and SOURCE_STYLES[k] in sources:
-            instr = f'STYLEREF "{SOURCE_STYLES[k]}"'
-            runs += _field(instr, str(std["variables"].get(k, ""))); fields.append(instr)
+        elif k in _styles_of(std) and _styles_of(std)[k] in sources:    # 3.23.0: the standard's fill-ins too
+            instr = f'STYLEREF "{_styles_of(std)[k]}"'
+            runs += _field(instr, _value_of(std, k)); fields.append(instr)
+        elif k in _props_of(std):                                    # 3.23.0: a document property
+            instr = f'DOCPROPERTY "{_props_of(std)[k]}"'
+            runs += _field(instr, _value_of(std, k)); fields.append(instr)
         else:
-            runs.append(_r(str(std["variables"].get(k, piece))))
+            runs.append(_r(str(std["variables"].get(k) or _value_of(std, k) or piece)))
     return runs
+
+
+def _styles_of(std):
+    try:
+        import fillins as FI
+        return FI.styles(std)
+    except ImportError:                                # the engine used on its own
+        return dict(SOURCE_STYLES)
+
+
+def _props_of(std):
+    try:
+        import fillins as FI
+        return FI.props(std)
+    except ImportError:
+        return {}
+
+
+def _value_of(std, k):
+    try:
+        import fillins as FI
+        return FI.value(std, k)
+    except ImportError:
+        return str((std.get("variables") or {}).get(k, ""))
 
 
 def _para(style_id, slots, std, sources, fields, width_tw, rule_below=False, align=None):
@@ -132,13 +159,14 @@ def _style_id(pkg, name, size=None, center=False):
     return st.get(q("styleId"))
 
 
-def _sources(pkg):
+def _sources(pkg, std=None):
     """Cover paragraph styles present in the body (a STYLEREF to a style that has no text shows an error)."""
     names = S._style_names(pkg)
+    want = set(_styles_of(std).values()) if std else set(SOURCE_STYLES.values())
     out = set()
     for p in pkg.tree(pkg.main).iter(q("p")):
         ps = p.find("w:pPr/w:pStyle", NS)
-        if ps is not None and names.get(ps.get(q("val"))) in SOURCE_STYLES.values():
+        if ps is not None and names.get(ps.get(q("val"))) in want:
             out.add(names[ps.get(q("val"))])
     return out
 
@@ -246,7 +274,7 @@ def _hf_build(pkg, std):
     sm = S.map_sections(pkg, std)
     pkg.touch(pkg.main)
     rels = _rels_tree(pkg)
-    sources = _sources(pkg)
+    sources = _sources(pkg, std)
     hid = _style_id(pkg, "Header")
     fid = _style_id(pkg, "Footer")
     mid = _style_id(pkg, "PE Marking", size=7, center=True)
