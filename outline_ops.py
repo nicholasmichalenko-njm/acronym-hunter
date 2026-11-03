@@ -132,12 +132,54 @@ def renumber(M, before=None):
 
 
 # ------------------------------------------------------------------ edits
+VOLUME_STYLES = (("roman", "Volume I, II, III"), ("number", "Volume 1, 2, 3"), ("alpha", "Volume A, B, C"))   # 3.28.1
+_VOLNUM = re.compile(r"^(\S+)\s+([IVXLCDM]+|\d+|[A-Z]{1,2})$")
+
+
+def volume_style(M):
+    return (SD.setup_of(M).get("volumes") or {}).get("style") or "roman"
+
+
+def volume_number(style, n):
+    return {"number": str(n), "alpha": _letter(n)}.get(style, roman(n))
+
+
+def set_volume_style(M, style):
+    """3.28.1: every volume numbered one way: Volume I, II, III; 1, 2, 3; or A, B, C (the word before the number stays).
+    Everything kept under a volume's label follows it. Returns {old label: new label}."""
+    if style not in dict(VOLUME_STYLES):
+        return {}
+    mode, _name, heads = SD.volumes_of(M)
+    if mode != "several":
+        V = SD.setup_of(M).setdefault("volumes", {})
+        V["style"] = style
+        return {}
+    mapping, new_heads = {}, []
+    for n, lab in enumerate(heads, 1):
+        i = index_of(M, lab)
+        o = M.outline[i]
+        m = _VOLNUM.match((o.get("num") or "").strip())
+        if m:
+            o["num"] = f"{m.group(1)} {volume_number(style, n)}"
+        elif not o.get("num"):
+            o["num"] = f"Volume {volume_number(style, n)}"
+        new = C.outline_label(o)
+        mapping[lab] = new
+        new_heads.append(new)
+    SD.set_volumes(M, "several", "", new_heads)
+    SD.setup_of(M)["volumes"]["style"] = style
+    relabel(M, mapping)
+    M.log("outline", f"volumes numbered {dict(VOLUME_STYLES)[style]}")
+    M.pending = True
+    return {a: b for a, b in mapping.items() if a != b}
+
+
 def add_volume(M, title):
-    """A new volume at the end of the structure ("Volume III Cost"). Returns its label."""
+    """A new volume at the end of the structure ("Volume III Cost"), numbered the volumes' way. Returns its label."""
     title = " ".join((title or "").split()) or "New volume"
     mode, _name, heads = SD.volumes_of(M)                       # before the new heading joins the structure
     heads = list(heads) if mode == "several" else []
-    o = {"num": f"Volume {roman(len(heads) + 1)}", "title": title, "level": 1}
+    o = {"num": f"Volume {volume_number(volume_style(M), len(heads) + 1)}", "title": title, "level": 1}
     M.outline.append(o)
     lab = C.outline_label(o)
     SD.set_volumes(M, "several", "", heads + [lab])
@@ -294,6 +336,9 @@ def rename(M, label, title):
     old = C.outline_label(M.outline[i])
     M.outline[i]["title"] = title
     new = C.outline_label(M.outline[i])
+    V = SD.setup_of(M).get("volumes") or {}
+    if old in (V.get("heads") or []):                             # 3.28.1: a renamed volume stays a volume
+        V["heads"] = [new if h == old else h for h in V["heads"]]
     relabel(M, {old: new})
     M.log("outline", f"section renamed: {old} to {new}")
     return new

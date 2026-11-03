@@ -30,8 +30,7 @@ class ProcessCard(D.Card):
                          "How your team runs an effort. New efforts start with these stages; efforts already started keep "
                          "their own (Effort Home > Edit stages...). The gate choices show in every effort's stage table; the "
                          "roles in the role drop-downs for the people on an effort.",
-                         actions=[D.button("Put back the built-in ones", "ghost", lambda: self.reset()),
-                                  D.button("Save", "primary", lambda: self.save())])
+                         actions=[D.button("Save", "primary", lambda: self.save())])        # 3.28.1: no Put back the built-in ones
         self.host = host
         self.lock_note = self.add(D.label("", "muted"))
         self.tabs = QTabWidget(); self.add(self.tabs)
@@ -218,12 +217,3 @@ class ProcessCard(D.Card):
         self.fill(P)
         return True
 
-    def reset(self, answer=None):
-        if answer is None:
-            from PySide6.QtWidgets import QMessageBox
-            answer = QMessageBox.question(self, "Stages, gates and roles", "Put back the built-in stages, gates and roles? Your own "
-                                          "gates and roles are removed. Efforts already started keep their own stages.") == QMessageBox.Yes
-        if not answer:
-            return False
-        self.fill({"stages": list(PR.DEFAULT_STAGES), "gates": [dict(g) for g in PR.BUILT_IN_GATES], "roles": list(PR.DEFAULT_ROLES)})
-        return True

@@ -116,6 +116,8 @@ class PageView(QGraphicsView):
     hover_word = Signal(str, int)                 # 2.93.0: the word under the mouse in the selected sentence ("", -1: none)
     word_drag = Signal(str, int, int)             # 2.96.0: words being dragged across inside the selected sentence (first, last)
     grabbed = Signal(str, int, int)               # 2.96.0: the words dragged across, when the mouse is let go
+    span_drag = Signal(list)                      # 3.28.1: words dragged across several sentences: [(id, first, last)]
+    span_grabbed = Signal(list)                   # 3.28.1: ... when the mouse is let go
     captured = Signal(QRectF)                     # 2.70.0: an area dragged in Add missed text mode (scene coordinates)
 
     def __init__(self):
@@ -185,6 +187,36 @@ class PageView(QGraphicsView):
         """The sentence box under a view position, looking past marks drawn over it (tints, the cut line)."""
         return next((i for i in self.items(pos) if isinstance(i, SentenceBox)), None)
 
+    def word_any(self, pos):
+        """3.28.1: (sentence id, word index) under a view position in any sentence; ("", -1) off the words."""
+        it = self.box_at(pos)
+        if not isinstance(it, SentenceBox):
+            return "", -1
+        p = self.mapToScene(pos)
+        for k, r in enumerate(self.words.get(it.iid, [])):
+            if r.adjusted(-1, -1, 1, 1).contains(p):
+                return it.iid, k
+        return it.iid, -1
+
+    def span(self, a, b):
+        """3.28.1: the words from a to b (each (sentence id, word index)) in reading order: [(id, first, last)]."""
+        order = getattr(self, "order", None) or sorted(self.boxes, key=lambda i: self.boxes[i].boundingRect().top())
+        pos = {iid: n for n, iid in enumerate(order)}
+        if a[0] not in pos or b[0] not in pos:
+            return []
+        if (pos[a[0]], a[1]) > (pos[b[0]], b[1]):
+            a, b = b, a
+        out = []
+        for iid in order[pos[a[0]]:pos[b[0]] + 1]:
+            n = len(self.words.get(iid, []))
+            if not n:
+                continue
+            f = a[1] if iid == a[0] else 0
+            l = b[1] if iid == b[0] else n - 1
+            if f <= l:
+                out.append((iid, f, l))
+        return out
+
     def word_at(self, pos):
         """(sentence id, word index) under a view position, inside the one selected sentence; ("", -1) otherwise."""
         it = self.box_at(pos)
@@ -208,6 +240,18 @@ class PageView(QGraphicsView):
             if iid == self._drag[0] and k2 >= 0 and k2 != self._drag[2]:
                 self._drag = (iid, k, k2)
                 self.word_drag.emit(iid, min(k, k2), max(k, k2))
+            elif iid != self._drag[0]:                                  # 3.28.1: on into another sentence: a span
+                oi, ok = self.word_any(e.position().toPoint())
+                if oi and ok >= 0:
+                    self._span = ((self._drag[0], self._drag[1]), (oi, ok))
+                    self._drag = None
+                    self.span_drag.emit(self.span(*self._span))
+            return
+        if getattr(self, "_span", None) is not None and e.buttons() & Qt.LeftButton:   # 3.28.1: words across sentences
+            oi, ok = self.word_any(e.position().toPoint())
+            if oi and ok >= 0 and (oi, ok) != self._span[1]:
+                self._span = (self._span[0], (oi, ok))
+                self.span_drag.emit(self.span(*self._span))
             return
         if not self.capturing and not e.buttons():          # 2.93.0: show where a click would split
             h = self.word_at(e.position().toPoint())
@@ -232,6 +276,17 @@ class PageView(QGraphicsView):
     def mouseReleaseEvent(self, e):
         if self._pan is not None:
             self._pan_end()
+            return
+        if getattr(self, "_span", None) is not None:       # 3.28.1: let go after dragging over words
+            a, b = self._span
+            self._span = None
+            sp = self.span(a, b)
+            if a == b or not sp:
+                return super().mouseReleaseEvent(e)
+            if len(sp) == 1:
+                self.grabbed.emit(*sp[0])
+            else:
+                self.span_grabbed.emit(sp)
             return
         if self._drag is not None:                          # 2.96.0: a click splits; a drag picks words
             iid, a, b = self._drag
@@ -313,6 +368,10 @@ class PageView(QGraphicsView):
                     self._drag = (it.iid, k, k)       # 2.96.0: decided on release: a click (split) or a drag (words)
                     break
             return                                  # a click inside the selected sentence keeps it selected
+        if isinstance(it, SentenceBox) and e.button() == Qt.LeftButton and not (e.modifiers() & (Qt.ControlModifier | Qt.ShiftModifier)):
+            oi, ok = self.word_any(e.position().toPoint())          # 3.28.1: a press on a word of any sentence may start
+            if oi and ok >= 0:                                       # a drag over words (across sentences, whatever is
+                self._span = ((oi, ok), (oi, ok))                    # selected); let go without moving: a plain click
         super().mousePressEvent(e)
 
     def fit(self):
@@ -489,7 +548,9 @@ class AssignPage(QWidget):
         self.view.hover_word.connect(self.on_hover_word)
         self.view.word_drag.connect(lambda i, a, b: self.show_grab(i, a, b, final=False))
         self.view.grabbed.connect(lambda i, a, b: self.show_grab(i, a, b, final=True))
-        self.grab, self._grab_items = None, []
+        self.view.span_drag.connect(lambda sp: self.show_span(sp, final=False))       # 3.28.1
+        self.view.span_grabbed.connect(lambda sp: self.show_span(sp, final=True))
+        self.grab, self._grab_items, self.grab_multi = None, [], None
         self._split_items, self._hover_item = [], None
         self.view.captured.connect(lambda r: self.capture_area(r))
         right = QSplitter(Qt.Vertical)
@@ -599,6 +660,13 @@ class AssignPage(QWidget):
         self.volume.activated.connect(lambda _i: self.pick_volume(self.volume.currentData()))
         vrow.addWidget(self.volume, 1)
         vrow.addWidget(D.button("+ Volume", None, lambda: self.new_volume(), "A new volume at the end of the structure"))
+        vrow.addWidget(D.button("Rename", None, lambda: self.rename_volume(), "Rename the volume you are working in (its "  # 3.28.1
+                                "number stays; everything in it follows)"))
+        self.vol_style = QComboBox(); self.vol_style.setToolTip("How the volumes are numbered: I, II, III; 1, 2, 3; or A, B, C")
+        for k, t in O.VOLUME_STYLES:
+            self.vol_style.addItem(t, k)
+        self.vol_style.activated.connect(lambda _i: self.set_volume_style(self.vol_style.currentData()))
+        vrow.addWidget(self.vol_style)
         self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Your response structure (click a section: the target)", "Req.", "Ctx", "Pages"])
         self.tree.setColumnWidth(0, 330); self.tree.setColumnWidth(1, 44); self.tree.setColumnWidth(2, 40)
         self.tree.headerItem().setToolTip(3, "Pages for the section: the RFP's limit or the team's guideline. Double-click to set.")
@@ -1159,6 +1227,7 @@ class AssignPage(QWidget):
                 box.setZValue(2)                            # above a heading's outline or a wider box, so it always selects
             sc.addItem(box)
             self.view.boxes[iid] = box
+        self.view.order = [it["id"] for it in rows if it["id"] in self.view.boxes]     # 3.28.1: reading order for spans
         self.restyle()
 
     # ------------------------------------------------------------ drawing decisions
@@ -1308,6 +1377,55 @@ class AssignPage(QWidget):
         for x in self._grab_items:
             self._drop(x)
         self._grab_items, self.grab = [], None
+        self.grab_multi = None
+
+    def _piece(self, iid, a, b):
+        """The characters of words a..b of a sentence (end punctuation and an opening bracket come along)."""
+        row = self.R.item(iid) if self.cx is None else next((x for x in self.cx.rows if x["id"] == iid), None)
+        text = (row or {}).get("text", "")
+        ms = list(WORD.finditer(text))
+        if not (0 <= a <= b < len(ms)):
+            return None
+        tail = re.match(r"[^\s]*", text[ms[b].end():]).group(0)
+        lead = re.search(r"[(\[\"'\u201c\u2018]*$", text[:ms[a].start()]).group(0)
+        s0, e0 = ms[a].start() - len(lead), ms[b].end() + len(tail)
+        return {"iid": iid, "a": a, "b": b, "s": s0, "e": e0, "text": text[s0:e0].strip()}
+
+    def show_span(self, spans, final=True):
+        """3.28.1: words dragged across several sentences, tinted; let go, they are picked (whatever was selected before):
+        their sentences are selected, a capture or bin takes just these words, and Extract (Shift+S) combines them into
+        one sentence, split from the sentences they came from."""
+        for x in self._grab_items:
+            self._drop(x)
+        self._grab_items = []
+        tint = QColor("#86EFAC"); tint.setAlpha(140)
+        for iid, a, b in spans:
+            for r in self.view.words.get(iid, [])[a:b + 1]:
+                it = self.view.scene().addRect(r.adjusted(-1, -1, 1, 1), QPen(Qt.NoPen), QBrush(tint)); it.setZValue(13)
+                self._grab_items.append(it)
+        if not final:
+            return None
+        pieces = [p for p in (self._piece(*x) for x in spans) if p and p["text"]]
+        if not pieces:
+            return None
+        self.grab = None
+        sc = self.view.scene()
+        sc.blockSignals(True)
+        sc.clearSelection()
+        for p in pieces:
+            if p["iid"] in self.view.boxes:
+                self.view.boxes[p["iid"]].setSelected(True)
+        sc.blockSignals(False)
+        self.clear_split(card=False)
+        self.cur = pieces[-1]["iid"]
+        self.restyle()
+        self.grab_multi = pieces
+        if "Extract" in self.keys:
+            self.keys["Extract"].setEnabled(self.cx is None)
+        self.show_card(self.selected())
+        self.host.status(f"Picked words in {len(pieces)} sentences. Extract (Shift+S) makes them one sentence, split from "
+                         "where they were; a capture or bin uses just these words; click elsewhere to drop them.")
+        return pieces
 
     def show_grab(self, iid, a, b, final=True):
         """The words a..b of the sentence, tinted; when the mouse is let go they are what a capture uses."""
@@ -1347,9 +1465,13 @@ class AssignPage(QWidget):
     def capture_source(self):
         """(text, source) for a capture: the words dragged across, else the selected sentences."""
         rows = self.selected()
+        gm = getattr(self, "grab_multi", None)
         if self.grab and any(it["id"] == self.grab["iid"] for it in rows):
             it = next(it for it in rows if it["id"] == self.grab["iid"])
             text = self.grab["text"]
+        elif gm and rows:                                              # 3.28.1: words across sentences
+            it = next((x for x in rows if x["id"] == gm[0]["iid"]), rows[0])
+            text = " ".join(p["text"] for p in gm)
         elif rows:
             it = rows[0]
             text = " ".join(x.get("text", "") for x in rows)
@@ -1505,6 +1627,9 @@ class AssignPage(QWidget):
             return []
         g = self.grab if (self.grab and any(it["id"] == self.grab["iid"] for it in rows)) else None
         use = [it for it in rows if it["id"] == g["iid"]] if g else rows
+        gm = {p["iid"]: p["text"] for p in (getattr(self, "grab_multi", None) or [])}    # 3.28.1: words across sentences
+        if gm and not g:
+            use = [it for it in rows if it["id"] in gm]
         order = {it["id"]: i for i, it in enumerate(self.R.M.items)}
         out = []
         for it in sorted(use, key=lambda it: order.get(it["id"], 0)):
@@ -1517,7 +1642,7 @@ class AssignPage(QWidget):
                 except Exception:
                     diag.swallowed()
             out.append(EX.part_of(it, doc=it.get("file", "") or (self.file or ""), page=pg, para=para,
-                                  version=it.get("version", ""), words=g["text"] if g else ""))
+                                  version=it.get("version", ""), words=g["text"] if g else gm.get(it["id"], "")))
         return out
 
     def file_excerpt(self, kind, got, parts):
@@ -2351,6 +2476,48 @@ class AssignPage(QWidget):
             self.active_volume = ""
         self.volume.setCurrentIndex(max(0, self.volume.findData(self.active_volume)))
         self.volume.blockSignals(False)
+        if hasattr(self, "vol_style") and self.M is not None:          # 3.28.1
+            self.vol_style.blockSignals(True)
+            self.vol_style.setCurrentIndex(max(0, self.vol_style.findData(O.volume_style(self.M))))
+            self.vol_style.blockSignals(False)
+
+    def rename_volume(self, title=None, label=None):
+        """3.28.1: rename a volume (the one you are working in, else the one you pick); its number stays."""
+        if self.M is None:
+            return None
+        mode, _n, heads = SD.volumes_of(self.M)
+        heads = list(heads) if mode == "several" else []
+        lab = label or self.active_volume
+        if not lab:
+            if not heads:
+                return self.host.status("No volumes yet: + Volume adds one.")
+            if len(heads) == 1:
+                lab = heads[0]
+            else:
+                from PySide6.QtWidgets import QInputDialog
+                lab, ok = QInputDialog.getItem(self, "Rename a volume", "The volume to rename:", heads, 0, False)
+                if not ok:
+                    return None
+        new = self.rename_section(lab, title)
+        if new and self.active_volume == lab:
+            self.active_volume = new
+        self.fill_volumes()
+        return new
+
+    def set_volume_style(self, style):
+        """3.28.1: number every volume one way (Volume I, II, III; 1, 2, 3; A, B, C); everything in them follows."""
+        if self.M is None:
+            return {}
+        self.R.snap()
+        mp = O.set_volume_style(self.M, style)
+        if self.active_volume in mp:
+            self.active_volume = mp[self.active_volume]
+        if self.target in mp:
+            self.target = mp[self.target]
+        diag.activity("volumes_numbered", n=len(mp))
+        self.after(f"Volumes numbered {dict(O.VOLUME_STYLES)[style].replace('Volume ', '')}.")
+        self.fill_volumes()
+        return mp
 
     def pick_volume(self, vol):
         """Work in one volume: the structure shows its sections, and new sections go into it."""
@@ -3553,6 +3720,8 @@ class AssignPage(QWidget):
         after), selected and ready to assign. Returns the new sentence."""
         if self.cx is not None:
             return self.host.status("Extract is for the matrix's documents.")
+        if grab is None and getattr(self, "grab_multi", None):     # 3.28.1: words from several sentences: one sentence
+            return self.extract_multi(self.grab_multi)
         g = grab or self.grab
         it = self.R.item(g["iid"]) if g else None
         if it is None or "s" not in g:
@@ -3570,6 +3739,36 @@ class AssignPage(QWidget):
         self.select(mid["id"])
         self.after(f"{mid['id']}: extracted, ready to assign")
         return mid
+
+    def extract_multi(self, pieces):
+        """3.28.1: the words picked in several sentences become one sentence: each piece is split from its sentence (the
+        words before and after stay where they were), then the pieces are combined, in the document's order. One Undo
+        step. Returns the new sentence."""
+        mids = []
+        with self.R.group():
+            for p in pieces:
+                it = self.R.item(p["iid"])
+                if it is None:
+                    continue
+                text = it.get("text", "")
+                if not text[:p["s"]].strip() and not text[p["e"]:].strip():
+                    mids.append(it)                                 # the whole sentence: it comes as it is
+                    continue
+                mid = self.R.extract(it, p["s"], p["e"])
+                if mid is not None:
+                    mids.append(mid)
+            first = self.R.combine(mids, self.placed) if len(mids) > 1 else (mids[0] if mids else None)
+        if first is None:
+            self.host.status("Nothing to extract there.")
+            return None
+        diag.activity("compliance_extracted", n=len(mids))
+        self.clear_grab()
+        self.keys["Extract"].setEnabled(False)
+        self.clear_split(card=False)
+        self.build_boxes()
+        self.select(first["id"])
+        self.after(f"{first['id']}: the picked words from {len(mids)} sentences, one sentence now, ready to assign")
+        return first
 
     def undo_text(self):
         """3.18.2: what Undo would put back on this page ('' for nothing): the top bar's Undo says it."""

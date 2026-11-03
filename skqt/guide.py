@@ -168,7 +168,10 @@ TOPICS = [
   "From the first read until every sentence is decided, and again when a new version arrives.",
   ["Click a sentence. Press L (Instructions), E (M, Evaluation) or R (SOW, Work) to make it a requirement in the "
    "target section; C for context that supports the last requirement; G for the customer's own sentence; X to clear.",
-   "Drag across words inside the sentence to pick just those words. Extract (Shift+S) makes them a sentence of their own. "
+   "Drag across words to pick just those words, inside one sentence or across several (3.28.1: whatever was selected "
+   "before). Extract (Shift+S) makes them a sentence of their own; picked across sentences, they become one sentence, "
+   "split from where they were. Rename (by the Volume box) renames the volume you work in; the box beside it numbers "
+   "the volumes I, II, III; 1, 2, 3; or A, B, C. "
    "Split (S) splits at a clicked word, or asks exactly where. Capture files them: a contact, submission or "
    "formatting rule, acronym, key date or customer question. More captures... adds evaluation factors, page limits, "
    "deliverables, effort details and hot buttons.",

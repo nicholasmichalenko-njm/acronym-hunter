@@ -168,8 +168,9 @@ check("... installed on another PC", any(g["name"] == "Color team sign-off" for 
       and TP.locked(cfgB, "process"))
 PR.apply(cfg)
 sp.process_card.fill()
-check("Put back the built-in ones resets the card (not saved until Save)", sp.process_card.reset(answer=True) and sp.process_card.gt.rowCount() == 3
-      and len(PR.load(cfg)["gates"]) == 4)
+from PySide6.QtWidgets import QPushButton
+check("3.28.1: no Put back the built-in ones", "Put back the built-in ones" not in [b.text() for b in sp.process_card.findChildren(QPushButton)]
+      and not hasattr(sp.process_card, "reset"))
 n = sum(checks)
 print(f"QT PROCESS {'PASS' if all(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

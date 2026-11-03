@@ -20,6 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.28.1": ["Review: drag over words across sentences to pick them; Extract (Shift+S) makes them one sentence, split from "
+               "where they were. Rename a volume and number the volumes I, II, III; 1, 2, 3; or A, B, C.",
+               "Settings > Stages, gates and roles: Put back the built-in ones is gone."],
     "3.28.0": ["Review: topics and Sort mode (keys 1 to 9), topics from the RFP's headings, a topic mapped to a section takes "
                "its requirements there; RFI efforts open in Sort mode with Customer interest (I) and RFI suggestions.",
                "Everything Review takes flows out: matrix columns (Topic, Customer objective, Key points, Source excerpt), the "

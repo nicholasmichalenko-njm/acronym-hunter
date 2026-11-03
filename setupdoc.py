@@ -603,8 +603,11 @@ def volumes_of(M):
 
 
 def set_volumes(M, mode, name="", heads=()):
+    style = (setup_of(M).get("volumes") or {}).get("style")                   # 3.28.1: the volumes' numbering stays
     setup_of(M)["volumes"] = {"mode": mode if mode in ("one", "several") else "", "name": " ".join(str(name or "").split())[:80],
                               "heads": list(heads)}
+    if style:
+        setup_of(M)["volumes"]["style"] = style
     if hasattr(M, "pending"):
         M.pending = True
 

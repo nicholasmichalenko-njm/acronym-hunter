@@ -1,6 +1,15 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+REVIEW: GRAB WORDS ACROSS SENTENCES, VOLUME NAMES AND NUMBERING (3.28.1)
+  - Review: press on a word and drag over words, across as many sentences as you like, whatever was selected before.
+    Let go: those words are picked and their sentences selected. Extract (Shift+S) makes the picked words one sentence,
+    split from the sentences they came from (the words before and after stay there), in one Undo step. A capture or
+    bin takes just those words. A drag inside one sentence still picks words in it; a click still selects.
+  - Review, by the Volume box: Rename renames the volume you are working in (its number stays; everything in it
+    follows), and the numbering box numbers every volume Volume I, II, III; 1, 2, 3; or A, B, C. New volumes follow it.
+  - Settings > Stages, gates and roles: Put back the built-in ones is gone.
+
 TOPICS, SORT MODE, RFIS, AND EVERYTHING REVIEW TAKES FLOWS OUT (3.28.0)
   - Review: a topic bar over the page. + Topic, Topics > from the RFP's headings or the library's tags, Topics of this
     effort... (rename, color, map to response sections, order, take out), Make a section for each topic.
