@@ -278,8 +278,26 @@ def for_effort(config_dir, ws=None, data=None, type_id=None):
     return engine_ready(std)
 
 
+def repair_rows(std):
+    """3.32.1: every table row look carries the settings the engine reads (its tag style, font, size, spacing...). A
+    look taken whole from a file holds only what the file showed; the rest comes from the same role's team default
+    (else the body row's). Returns the roles repaired."""
+    base = COMPANY.get("row_types") or {}
+    fixed = []
+    for role, look in list((std.get("row_types") or {}).items()):
+        if not isinstance(look, dict):
+            continue
+        ref = base.get(role) or base.get("body") or {}
+        miss = {k: copy.deepcopy(v) for k, v in ref.items() if k not in look}
+        if miss:
+            look.update(miss)
+            fixed.append(role)
+    return fixed
+
+
 def engine_ready(std):
     """The engine's rules read fonts as {min_size, fonts}; blank strings and zeros mean not set."""
+    repair_rows(std)
     for k, r in (std.get("fonts") or {}).items():
         for f in ("min_size", "max_size"):
             if r.get(f) in ("", 0, 0.0):

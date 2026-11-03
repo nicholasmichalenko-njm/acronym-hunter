@@ -1,6 +1,14 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+REAL BULLETS, AND AN IMPORT FIX (3.32.1)
+  - Bullets show as the character they are (•, ▪, ➢, ✓) in List numbering, the lists preview, Typed bullets and the
+    template's full view, not as empty squares. Templates write each one as Word does (Symbol's round bullet,
+    Wingdings' square, arrowhead and check), so it shows on every PC. A file whose bullet already shows the same is
+    left alone.
+  - Import from a file with Use here: Table looks by row role go over the standard's row looks (their tag style,
+    font and size stay). A standard an earlier import broke is repaired when it opens.
+
 EXACT PREVIEW AND PREPAGINATION (3.32.0)
   - Structure Builder > Preview > Exact preview in Word: Word lays out the volume's template and setup (a dated copy
     beside the setup documents; nothing recorded) and the preview shows Word's own pages and the true page count

@@ -522,9 +522,16 @@ def use_values(config_dir, k, name, v, work, category="", file_path=None, src=""
     if k == "table_style":
         work.setdefault("table_styles", {})[name] = v
         return f"table style {name}"
-    if k == "table_look":
+    if k == "table_look":                       # 3.32.1: each role's look goes over what the standard has, not in its place
+        import prodrules as PRL
         for top, val in v.items():
-            work[top] = val
+            if isinstance(val, dict) and isinstance(work.get(top), dict):
+                for role, look in val.items():
+                    have = work[top].get(role)
+                    work[top][role] = dict(copy.deepcopy(have), **look) if isinstance(have, dict) and isinstance(look, dict) else copy.deepcopy(look)
+            else:
+                work[top] = copy.deepcopy(val)
+        PRL.repair_rows(work)
         return "table looks"
     if k == "toc":
         work["toc"] = v

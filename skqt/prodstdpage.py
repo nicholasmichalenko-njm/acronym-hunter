@@ -211,8 +211,9 @@ class Binder:
                 w.setEditText("" if v is None else str(v))
             elif k == "color":
                 w.set(v)
-            elif k == "list":
-                w.setText(", ".join(v or []))
+            elif k == "list":                            # 3.32.1: a Symbol-font bullet shows as the bullet it is
+                from prodengine.pe import bullets as BU
+                w.setText(", ".join(dict.fromkeys(BU.shown(x) for x in (v or []))))
         finally:
             w.blockSignals(False)
 
@@ -1214,8 +1215,16 @@ class StandardsPage(QWidget):
                             "f_table": [f"{x:g}" for x in (f.get("table") or {}).get("widths_in") or []],
                             "borders": (h.get("table") or f.get("table") or {}).get("borders", "none")})
             return out
-        if ad == "listnum":
-            return [dict(lv, list=l.get("name", "")) for l in (data or []) for lv in (l.get("levels") or [])]
+        if ad == "listnum":                              # 3.32.1: bullets as the character they show, not Word's symbol form
+            from prodengine.pe import bullets as BU
+            out = []
+            for l in (data or []):
+                for lv in (l.get("levels") or []):
+                    r = dict(lv, list=l.get("name", ""))
+                    if lv.get("fmt") == "bullet":
+                        r["text"], r["font"] = BU.for_display(lv.get("text", ""), lv.get("font", ""))
+                    out.append(r)
+            return out
         if ad == "styledefs":
             out = []
             for k, d in sorted((data or {}).items(), key=lambda x: x[0].casefold()):
@@ -1634,6 +1643,8 @@ class StandardsPage(QWidget):
             self.base = PRL.resolved_type(d, pt, eid)
             self.work = PRL.merge(self.base, eff.get("over") or {})
         self.work.setdefault("variables", {})
+        if PRL.repair_rows(self.work):                 # 3.32.1: row looks an import left without their settings
+            diag.activity("prodstd_rows_repaired")
         for row, show in ((self.eff_row, scope == "effort"), (self.match_row, scope == "type"), (self.et_row, scope == "etype")):
             for i in range(row.count()):
                 x = row.itemAt(i).widget()

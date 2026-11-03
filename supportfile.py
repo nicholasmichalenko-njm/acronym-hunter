@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.32.1": ["Bullets show as bullets in Production Standards (not empty squares), and templates write them the way Word "
+               "does, so they show on every PC.",
+               "Import from a file no longer breaks the table rules when it takes Table looks: the file's look goes over the "
+               "standard's, and a standard an earlier import broke is repaired when it opens."],
     "3.32.0": ["Structure Builder > Preview > Exact preview in Word: Word lays out a dated copy of the volume's template and "
                "setup and shows its own pages with the true page count. Click a page to select its section.",
                "Quick Parts measure their pages (Word on this PC) or take pages you type; the page plan, the page budget and "

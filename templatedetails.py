@@ -108,8 +108,10 @@ def sections(std, problems=(), installed_fonts=None):
     for l in ln.get("lists") or []:
         lf = [x.get("fmt") or "decimal" for x in l.get("levels") or []]
         for x in l.get("levels") or []:
+            from prodengine.pe import bullets as BU             # 3.32.1: a bullet as the character it shows
+            bt, bf = BU.for_display(x.get("text") or "", x.get("font") or "") if x.get("fmt") == "bullet" else ("", x.get("font") or "")
             rows.append([l.get("name"), x.get("style"), FMT.get(x.get("fmt"), x.get("fmt", "")),
-                         x.get("text") if x.get("fmt") == "bullet" else NT.show(x.get("text") or "", lf), x.get("font") or "",
+                         bt if x.get("fmt") == "bullet" else NT.show(x.get("text") or "", lf), bf,
                          _num(x.get("left"), " in"), _num(x.get("hanging"), " in")])
     out.append(("List numbering", _table(["List", "Style", "Format", "Shows", "Bullet font", "Text at", "Number before the text"], rows)))
     rows = []

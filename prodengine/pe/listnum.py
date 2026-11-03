@@ -19,6 +19,7 @@ from lxml import etree
 from prodengine.engine.pkg import NS
 from prodengine.engine.ordered import q, ensure, remove
 from prodengine.engine.ops.word_ops import find_style, new_style, styles_root
+from prodengine.pe import bullets as B
 
 TW = 1440.0
 FORMATS = ("bullet", "decimal", "lowerLetter", "upperLetter", "lowerRoman", "upperRoman", "decimalZero")
@@ -99,9 +100,16 @@ def read_levels(pkg, styles, strict=False):
 def _same(have, want):
     if have is None:
         return False
-    for k in ("fmt", "text"):
-        if str(have.get(k, "")) != str(want.get(k, "")):
+    if str(have.get("fmt", "")) != str(want.get("fmt", "")):
+        return False
+    if want.get("fmt") == "bullet":                 # 3.32.1: a bullet is the character it shows, in the form Word writes
+        ht, hf = B.word_form(have.get("text", ""), have.get("font", ""))
+        wt, wf = B.word_form(want.get("text", ""), want.get("font", ""))
+        if not B.same(ht, hf, wt, wf) or ((wf or "") and str(hf or "").lower() != str(wf).lower()):
             return False
+        return all(abs(float(have.get(k, 0)) - float(want.get(k) or 0)) < 0.01 for k in ("left", "hanging"))
+    if str(have.get("text", "")) != str(want.get("text", "")):
+        return False
     if (want.get("font") or "") and str(have.get("font", "")).lower() != str(want["font"]).lower():
         return False
     return all(abs(float(have.get(k, 0)) - float(want.get(k) or 0)) < 0.01 for k in ("left", "hanging"))
@@ -117,9 +125,13 @@ def differences(pkg, std):
         for lv in lst.get("levels") or []:
             have = cur.get(lv["style"])
             if not _same(have, lv):
+                def say(d, k):                       # 3.32.1: a bullet as the character it shows
+                    return B.shown(d.get(k), d.get("font")) if k == "text" and d.get("fmt") == "bullet" else d.get(k)
+                bul = have is not None and lv.get("fmt") == "bullet" == have.get("fmt")
                 what = "no list numbering" if have is None else ", ".join(
-                    f"{k} {have.get(k)!r} (standard {lv.get(k)!r})" for k in ("fmt", "text", "font", "left", "hanging")
-                    if (k != "font" or lv.get("font")) and str(have.get(k)) != str(lv.get(k)) and
+                    f"{k} {say(have, k)!r} (standard {say(lv, k)!r})" for k in ("fmt", "text", "font", "left", "hanging")
+                    if (k != "font" or lv.get("font")) and str(say(have, k)) != str(say(lv, k)) and
+                    not (bul and k == "font" and B.is_symbol_font(have.get("font")) and B.is_symbol_font(B.word_form(lv.get("text"), lv.get("font"))[1])) and
                     not (k in ("left", "hanging") and abs(float(have.get(k, 0)) - float(lv.get(k) or 0)) < 0.01))
                 out.append((lv["style"], what))
     return out
@@ -134,18 +146,21 @@ def _abstract(sroot, levels, nsid, aid):
         ensure(l, "start", {"val": 1})
         ensure(l, "numFmt", {"val": lv.get("fmt") or "decimal"})
         ensure(l, "pStyle", {"val": st.get(q("styleId"))})
-        ensure(l, "lvlText", {"val": lv.get("text") or ""})
+        text, font = lv.get("text") or "", lv.get("font") or ""
+        if (lv.get("fmt") or "decimal") == "bullet":    # 3.32.1: the bullet as Word writes it (Symbol or Wingdings), so it shows
+            text, font = B.word_form(text or "\u2022", font)
+        ensure(l, "lvlText", {"val": text})
         ensure(l, "lvlJc", {"val": "left"})
         ppr = ensure(l, "pPr")
         left, hang = float(lv.get("left") or 0), float(lv.get("hanging") or 0)
         tabs = ensure(ppr, "tabs")
         t = etree.SubElement(tabs, q("tab")); t.set(q("val"), "num"); t.set(q("pos"), str(int(round(left * TW))))
         ensure(ppr, "ind", {"left": int(round(left * TW)), "hanging": int(round(hang * TW))})
-        if lv.get("font"):
+        if font:
             rpr = ensure(l, "rPr")
             rf = ensure(rpr, "rFonts")
             for k in ("ascii", "hAnsi"):
-                rf.set(q(k), lv["font"])
+                rf.set(q(k), font)
             rf.set(q("hint"), "default")
     return a
 
@@ -200,7 +215,8 @@ def op_list_numbering(pkg, std):
             ni = etree.SubElement(numpr, q("numId")); ni.set(q("val"), str(nid))
             remove(sppr, "ind")                       # the list level owns the positions
             checks.append({"expr": f"doc.Styles({lv['style']!r}).ListTemplate.ListLevels({ilvl + 1}).NumberFormat",
-                           "expect": lv.get("text", "")})
+                           "expect": B.word_form(lv.get("text") or "\u2022", lv.get("font") or "")[0]
+                           if lv.get("fmt") == "bullet" else lv.get("text", "")})
         lists_built += 1
     return {"lists": lists_built, "styles_made": made, "checks": checks}
 
@@ -212,6 +228,9 @@ def learn(pkg, std):
     for name, styles in (("Bullets", lists_std.get("bullet_styles") or []), ("Numbers", lists_std.get("number_styles") or [])):
         cur = read_levels(pkg, styles, strict=True)
         levels = [dict(cur[s], style=s) for s in styles if s in cur]
+        for lv in levels:                            # 3.32.1: kept as the bullet people see (written back as Word's form)
+            if lv.get("fmt") == "bullet":
+                lv["text"], lv["font"] = B.for_display(lv.get("text", ""), lv.get("font", ""))
         if levels:
             out.append({"name": name, "levels": levels})
     return {"on": True, "lists": out} if out else None

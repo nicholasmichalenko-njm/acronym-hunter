@@ -147,7 +147,7 @@ def _lead(p):
 
 
 def _bullet_prefix(s):
-    m = re.match(r"^\s*([•·▪◦‣➢*\-–])([\t ]+)", s)
+    m = re.match(r"^\s*([•·▪◦‣➢*\-–\uf0b7\uf0a7\uf0d8\uf0fc\uf076\uf075\uf06c\uf06e])([\t ]+)", s)   # 3.32.1: Symbol and Wingdings bullets too
     if m:
         return m.group(0), m.group(1)
     m = re.match(r"^\s*(o)(\t)", s)                       # a Word "o" bullet pasted as text, only with a tab

@@ -180,7 +180,8 @@ check("3.9: a list style borrowing another list's level is not learned as its ow
       PL.learn(MASTER, std).layer().get("list_numbering") is None)
 tj9 = PT.make(std, out)
 got_t = LN.read_levels(Package(tj9.copy), ["List Bullet", "List Number"], strict=True)
-check("3.9: a template's list styles show their bullets and numbers", got_t.get("List Bullet", {}).get("text") == "\u2022"
+check("3.9: a template's list styles show their bullets and numbers (3.32.1: the bullet as Word writes it, Symbol's)",
+      got_t.get("List Bullet", {}).get("text") == "\uf0b7" and got_t["List Bullet"].get("font") == "Symbol"
       and got_t.get("List Number", {}).get("text") == "%1." and tj9.check.count() == 0, (got_t, [f["what"] for f in tj9.check.findings]))
 
 # ---------------------------------------------------------------- 3.10.0: Word table styles

@@ -65,6 +65,13 @@ bi = next(i for i in range(lt.rowCount()) if lt.cellWidget(i, fcl).currentData()
 cb = lt.cellWidget(bi, lcol); cb.setText("o"); cb.textEdited.emit("o"); cb.editingFinished.emit(); app.processEvents()
 lv2 = [l for lst in sp.work["list_numbering"]["lists"] for l in lst["levels"]]
 check("a bullet stays its character as typed (o is a bullet, not a number)", lv2[bi]["text"] == "o" and cb.text() == "o", lv2[bi])
+# 3.32.1: a Symbol-font bullet (as Word stores it) shows as the bullet it is, not a box
+sp.work["list_numbering"]["lists"][0]["levels"][0].update(text="\uf0b7", font="Symbol", fmt="bullet")
+sp.load_tables(); app.processEvents()
+lt = sp.tables["listnum"]["w"]
+fcol2 = next(c for c, (f, _h, _k) in enumerate(ls["cols"]) if f == "font")
+check("Word's Symbol bullet shows as a bullet, with no symbol font named", lt.cellWidget(0, lcol).text() == "\u2022"
+      and lt.cellWidget(0, fcol2).text() == "", (lt.cellWidget(0, lcol).text(), lt.cellWidget(0, fcol2).text()))
 w.close()
 n = sum(checks)
 print(f"NUMBER READS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

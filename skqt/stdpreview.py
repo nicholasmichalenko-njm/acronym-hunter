@@ -384,17 +384,22 @@ class Canvas(QWidget):
                 left = float(lev.get("left") or 0.25 * (i + 1)) * 72
                 hang = float(lev.get("hanging") or 0.25) * 72
                 mark = lev.get("text") or "•"
+                bfont = lev.get("font")
                 if lev.get("fmt") and lev["fmt"] != "bullet":
                     mark = mark.replace("%" + str(i + 1), num_text(lev["fmt"], 1))
-                mf = _font(lev.get("font") or _v(std, "body_font", "Arial"), _v(std, "body_size", 11), scale=0.95)
+                else:                                     # 3.32.1: Word's Symbol and Wingdings bullets drawn as real bullets
+                    from prodengine.pe import bullets as BU
+                    mark, bfont = BU.for_display(mark, bfont)
+                mf = _font(bfont or _v(std, "body_font", "Arial"), _v(std, "body_size", 11), scale=0.95)
                 self._text(p, QRectF(x + left - hang, y, hang, fm.height()), mark, mf, wrap=False)
                 self._text(p, QRectF(x + left, y, self.width() - x - left - 10, fm.height()), f"{lev.get('style', '')}: a list item",
                            f, wrap=False)
                 y += fm.height() + 4
             y += 10
         lists = std.get("lists") or {}
+        from prodengine.pe import bullets as BU
         y += self._text(p, QRectF(x, y, self.width() - 28, 60), "Typed bullets that become list styles: " +
-                        " ".join(lists.get("typed_bullets") or []), _font("Segoe UI", 8.5), MUTED)
+                        " ".join(dict.fromkeys(BU.shown(b) for b in (lists.get("typed_bullets") or []))), _font("Segoe UI", 8.5), MUTED)
         self.setMinimumHeight(int(y + 20))
 
     def draw_terms(self, p):
