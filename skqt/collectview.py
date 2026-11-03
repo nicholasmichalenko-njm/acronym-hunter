@@ -162,8 +162,8 @@ class CollectDialog(QDialog):
     def measure_kept(self):
         """3.32.0: the Quick Parts just kept measure their pages once, by Word on this PC, off the window's thread."""
         import qpmeasure as QM
-        if not self.qp_ids or not QM.available():
-            return False
+        if not self.qp_ids or not QM.available() or (os.environ.get("AH_TEST") and not os.environ.get("SK_MEASURE_TEST")):
+            return False                                # tests never start a real Word
         from .progress import JobWorker
         ids, cfg, host = list(self.qp_ids), self.lib.config_dir, self.page.host
         w = JobWorker(lambda _p, _s: QM.measure(TL.Library(cfg), ids))
