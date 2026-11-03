@@ -28,14 +28,15 @@ class MeetingsPage(QWidget):
         self.summary = D.label("", "muted"); top.addWidget(self.summary, 1)
         top.addWidget(D.button("+ Meeting", "primary", lambda: self.new_meeting(), "A meeting: title, date, participants, notes"))
         split = QSplitter(Qt.Horizontal); v.addWidget(split, 1)
-        left = QWidget(); lv = QVBoxLayout(left); lv.setContentsMargins(0, 0, 0, 0)
+        split.setHandleWidth(D.SPACE["l"])            # 3.20.3: room between the list and the meeting
+        left = QWidget(); lv = QVBoxLayout(left); lv.setContentsMargins(0, 0, D.SPACE["s"], 0)
         lv.addWidget(D.label("Meetings", "label"))
         self.list = QListWidget(); self.list.currentItemChanged.connect(lambda c, _p: self.show(c.data(Qt.UserRole) if c else None))
         lv.addWidget(self.list, 1)
         self.open_only = QCheckBox("Show only meetings with open topics"); self.open_only.toggled.connect(lambda _b: self.refresh())
         lv.addWidget(self.open_only)
         split.addWidget(left)
-        right = QWidget(); rv = QVBoxLayout(right); rv.setContentsMargins(0, 0, 0, 0)
+        right = QWidget(); rv = QVBoxLayout(right); rv.setContentsMargins(D.SPACE["l"], 0, 0, 0)
         self.empty = D.EmptyState("No meeting open", "Press + Meeting to capture one: who was there, what was said, and the "
                                   "topics to follow up.")
         rv.addWidget(self.empty)
@@ -55,13 +56,27 @@ class MeetingsPage(QWidget):
         self.people = NamesField(host, [], empty="(nobody yet)", title="Participants",
                                  on_change=lambda names: self.save_fields())
         f.addRow("Participants", self.people)
+        # 3.20.3: the notes and the topics share the rest of the page (drag the bar between them); the notes start large
+        body = QSplitter(Qt.Vertical); body.setChildrenCollapsible(False); body.setHandleWidth(D.SPACE["m"]); fv.addWidget(body, 1)
+        nbox = QWidget(); nv = QVBoxLayout(nbox); nv.setContentsMargins(0, D.SPACE["s"], 0, 0); nv.setSpacing(D.SPACE["xs"])
+        nh = QHBoxLayout(); nv.addLayout(nh)
+        nh.addWidget(D.label("Notes", "label")); nh.addStretch(1)
+        self.sel_btn = D.button("Make a topic of the selection", None, lambda: self.topic_from_selection(),
+                                "Select words in the notes, then make them a topic to follow up (also on the right-click menu)")
+        self.sel_btn.setEnabled(False); nh.addWidget(self.sel_btn)
         self.notes = QPlainTextEdit(); self.notes.setPlaceholderText(
-            "What was said. Start a line with - or * (or Topic:, Action:, Decision:) for a topic to follow up.")
-        self.notes.setMinimumHeight(140)
+            "What was said. Select any words and press Make a topic of the selection, or start a line with - or * "
+            "(or Topic:, Action:, Decision:) and use Topics from notes.")
+        self.notes.setMinimumHeight(220)
         self.notes.textChanged.connect(lambda: None if self._loading else self.host.status("Notes are saved when you leave the box."))
+        self.notes.selectionChanged.connect(lambda: self.sel_btn.setEnabled(self.notes.textCursor().hasSelection()))
         self.notes.focusOutEvent = self._notes_out
-        f.addRow("Notes", self.notes)
-        th = QHBoxLayout(); fv.addLayout(th)
+        self.notes.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.notes.customContextMenuRequested.connect(self._notes_menu)
+        nv.addWidget(self.notes, 1)
+        body.addWidget(nbox)
+        tbox = QWidget(); fv2 = QVBoxLayout(tbox); fv2.setContentsMargins(0, 0, 0, 0)
+        th = QHBoxLayout(); fv2.addLayout(th)
         th.addWidget(D.label("Topics to follow up", "label")); th.addStretch(1)
         for text, fn, tip in (("+ Topic", lambda: self.add_topic(), "A topic this meeting raised"),
                               ("Topics from notes", lambda: self.from_notes(), "The notes' bullet lines as topics (you choose)"),
@@ -76,7 +91,9 @@ class MeetingsPage(QWidget):
         for i, wdt in ((1, 200), (2, 140), (3, 190)):
             self.topics.setColumnWidth(i, wdt)
         self.topics.itemDoubleClicked.connect(lambda _i: self.edit_topic())
-        fv.addWidget(self.topics, 1)
+        fv2.addWidget(self.topics, 1)
+        body.addWidget(tbox); body.setStretchFactor(0, 3); body.setStretchFactor(1, 2); body.setSizes([360, 240])
+        self.body_split = body
         bot = QHBoxLayout(); fv.addLayout(bot)
         bot.addWidget(D.button("Export to Word...", None, lambda: self.export(), "The meeting, its notes and topics in Word"))
         bot.addStretch(1)
@@ -199,12 +216,12 @@ class MeetingsPage(QWidget):
             out += [it["id"] for it in R.M.items if it.get("decision") == "Keep"]
         return out
 
-    def add_topic(self, text=None, target="", owner=""):
+    def add_topic(self, text=None, target="", owner="", prefill=""):
         if not self.mid:
             return None
         if text is None:
             d = QDialog(self); d.setWindowTitle("A topic to follow up"); d.setMinimumWidth(560); f = QFormLayout(d)
-            te = QLineEdit(); f.addRow("Topic", te)
+            te = QLineEdit(prefill); f.addRow("Topic", te)
             tg = QComboBox(); tg.setEditable(True); tg.addItems(self._targets()); f.addRow("Points at", tg)
             ow = QComboBox(); ow.setEditable(True); ow.addItem(""); ow.addItems(self.host.people()); f.addRow("Owner", ow)
             bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
@@ -217,6 +234,33 @@ class MeetingsPage(QWidget):
             diag.activity("meeting_topic_added")
             self.refresh()
         return tid
+
+    def selection_text(self):
+        """The words selected in the notes, as one line (a bullet or Topic: in front taken off)."""
+        import re
+        t = self.notes.textCursor().selectedText().replace("\u2029", " ").replace("\u2028", " ")
+        t = re.sub(r"\s+", " ", t).strip()
+        return re.sub(r"^(?:[-*\u2022]\s*|(?:topic|action|decision)\s*:\s*)", "", t, flags=re.I).strip()
+
+    def topic_from_selection(self, ask=True):
+        """3.20.3: the selected words in the notes become a topic: the topic box opens with them, to add what it points at
+        and an owner (ask=False: tests)."""
+        text = self.selection_text()
+        if not self.mid or not text:
+            self.host.status("Select words in the notes first.")
+            return None
+        self.save_fields()
+        tid = self.add_topic(prefill=text) if ask else self.add_topic(text)
+        if tid:
+            diag.activity("meeting_topic_from_selection")
+        return tid
+
+    def _notes_menu(self, at):
+        m = self.notes.createStandardContextMenu()
+        m.addSeparator()
+        a = m.addAction("Make a topic of the selection", lambda: self.topic_from_selection())
+        a.setEnabled(self.notes.textCursor().hasSelection())
+        m.exec(self.notes.mapToGlobal(at))
 
     def from_notes(self, picked=None):
         """The notes' bullet lines as topics: each one you keep (picked: tests) becomes a topic."""

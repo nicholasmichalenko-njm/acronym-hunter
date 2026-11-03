@@ -283,7 +283,7 @@ class Register:
         for m in self.state["manual"]:
             src = m.get("source") or {}
             out.append({"key": m["key"], "kind": m["kind"], "subject": m["subject"], "value": m["value"], "found": "",
-                        "sentence": src.get("text", ""), "doc": src.get("doc") or "Typed in", "version": "", "version_id": "",
+                        "sentence": src.get("text", ""), "sid": src.get("sid", ""), "doc": src.get("doc") or "Typed in", "version": "", "version_id": "",
                         "loc": src.get("loc", ""), "history": [], "captured": bool(src),
                         "changed": False, "removed": False, "confirmed": m.get("who", ""), "hidden": False,
                         "to_review": False, "reviewed": "", "manual": True})
@@ -345,7 +345,8 @@ class Register:
         self.state["manual"] = [m for m in self.state["manual"] if m["key"] != k]
         m = {"key": k, "kind": kind, "subject": subject or kind, "value": value, "who": self.stamp(who)}
         if source and source.get("text"):
-            m["source"] = {"doc": _clean(source.get("doc")), "loc": _clean(source.get("loc")), "text": _clean(source.get("text"))[:400]}
+            m["source"] = {"doc": _clean(source.get("doc")), "loc": _clean(source.get("loc")), "text": _clean(source.get("text"))[:400],
+                           "sid": _clean(source.get("sid"))}           # 3.20.3: the sentence it came from, to edit it there
         self.state["manual"].append(m)
         self.save()
         return k

@@ -227,15 +227,18 @@ class LibraryPage(QWidget):
         top = FlowLayout(); top.setSpacing(D.SPACE["m"]); v.addLayout(top)
         self.p_docs = D.Pill("0 documents", "accent"); self.p_und = D.Pill("every role confirmed", "ok")
         self.p_miss = D.Pill("every original here", "ok")
-        for p in (self.p_docs, self.p_und, self.p_miss):
-            top.addWidget(p)
+        top.addWidget(self.p_docs)
+        for p in (self.p_und, self.p_miss):            # 3.20.3: shown only when something needs you (roles to confirm,
+            top.addWidget(p); p.setVisible(False)       # originals missing), never as green chatter
         top.addStretch(1)
-        self.b_taken = D.button("Taken from documents...", None, lambda: self.show_taken(),
-                                "Every sentence taken from a library document in Review, and what it is attached to (2.84.0)")
-        top.addWidget(self.b_taken)
-        self.b_cat = D.button("New category...", None, lambda: self.new_category(), "A category of your own (Competitor intel, Pricing...)")
-        top.addWidget(self.b_cat)
-        self.b_folder = D.button("Add a folder...", None, lambda: self.add_folder(), "Every document in a folder and its subfolders; the folder names become tags")
+        self.b_taken = D.button("Library text used in Review...", None, lambda: self.show_taken(),
+                                "Every sentence you took from a library document in Review (as context for a section, a "
+                                "requirement's context, a note, a task) and where it went: a list to check and export for writers")
+        self.b_taken.setVisible(False)                  # 3.20.3: in the document's panel and its right-click menu instead
+        self.b_cat = D.button("+ Category...", "ghost", lambda: self.new_category(), "A category of your own (Competitor intel, Pricing...)")
+        self.b_folder = D.button("Add a folder...", None, lambda: self.add_folder(), "Bring in every document in a folder on this "
+                                 "PC and its subfolders (the folder names become tags). Watched folders... is for folders checked "
+                                 "for new files.")
         top.addWidget(self.b_folder)
         self.b_watch = D.button("Watched folders...", None, lambda: self.host.watch_folders(),     # 2.94.0
                                 "The folders checked for new, changed and missing files (Customer Documents always)")
@@ -257,7 +260,9 @@ class LibraryPage(QWidget):
         self.tree.setColumnWidth(1, 30)
         self.tree.setRootIsDecorated(True)
         self.tree.itemClicked.connect(lambda it, _c: self.pick_place(*it.data(0, Qt.UserRole)))
-        split.addWidget(self.tree)
+        lcol = QWidget(); lv = QVBoxLayout(lcol); lv.setContentsMargins(0, 0, 0, 0); lv.setSpacing(D.SPACE["xs"])   # 3.20.3
+        lv.addWidget(self.tree, 1); lv.addWidget(self.b_cat)
+        split.addWidget(lcol)
         # the documents
         mid = QWidget(); mv = QVBoxLayout(mid); mv.setContentsMargins(0, 0, 0, 0); mv.setSpacing(D.SPACE["s"])
         bar = QHBoxLayout(); mv.addLayout(bar)
@@ -282,6 +287,8 @@ class LibraryPage(QWidget):
         for c, wdt in enumerate((220, 200, 125, 64, 130, 150)):
             self.table.setColumnWidth(c, wdt)
         self.table.itemSelectionChanged.connect(self.show_doc)
+        self.table.setContextMenuPolicy(Qt.CustomContextMenu)          # 3.20.3: a document's menu on right-click
+        self.table.customContextMenuRequested.connect(lambda pos: self.doc_menu(self.table.viewport().mapToGlobal(pos)))
         mv.addWidget(self.table, 1)
         self.empty = D.EmptyState("No documents in the library yet", "Add a folder: every document in it and its subfolders "
                                   "comes in, sorted by category, with its folders as tags.", "Add a folder...", lambda: self.add_folder())
@@ -302,8 +309,12 @@ class LibraryPage(QWidget):
                                "Open it beside your response structure: select text, then choose where it goes (2.84.0)")
         rvl.addWidget(self.b_read)
         self.d_taken = D.label("", "muted"); rvl.addWidget(self.d_taken)
+        self.b_taken2 = D.button("See where its text went...", "ghost", lambda: self.show_taken(),
+                                 "The sentences taken from library documents in Review, and what each is attached to")
+        rvl.addWidget(self.b_taken2)
         self.side.addWidget(self.rv_box)
-        self.side.addWidget(D.label("Role", "label", wrap=False))
+        self._side_labels = []
+        lab = D.label("Role", "label", wrap=False); self._side_labels.append(lab); self.side.addWidget(lab)
         rrow = QHBoxLayout(); rrow.setSpacing(4); self.side.addLayout(rrow)
         rrow2 = QHBoxLayout(); rrow2.setSpacing(4); self.side.addLayout(rrow2)
         self.role_btns = {}
@@ -315,14 +326,14 @@ class LibraryPage(QWidget):
         self.why = QLineEdit(); self.why.setPlaceholderText("Why (optional): kept with who and when")
         self.side.addWidget(self.why)
         self.role_by = D.label("", "muted"); self.side.addWidget(self.role_by)
-        self.side.addWidget(D.label("Category and folder", "label", wrap=False))
+        lab = D.label("Category and folder", "label", wrap=False); self._side_labels.append(lab); self.side.addWidget(lab)
         crow = QHBoxLayout(); self.side.addLayout(crow)
         self.d_cat = QComboBox(); crow.addWidget(self.d_cat, 1)
         self.d_cat.activated.connect(lambda _i: self.set_category())
         self.d_folder = QLineEdit(); self.d_folder.setPlaceholderText("Folder (Standards/Test)")
         self.d_folder.editingFinished.connect(self.set_category)
         crow.addWidget(self.d_folder, 1)
-        self.side.addWidget(D.label("Tags", "label", wrap=False))
+        lab = D.label("Tags", "label", wrap=False); self._side_labels.append(lab); self.side.addWidget(lab)
         self.d_tags = QLineEdit(); self.d_tags.setPlaceholderText("Comma between tags")
         self.d_tags.editingFinished.connect(self.set_tags)
         self.side.addWidget(self.d_tags)
@@ -331,7 +342,7 @@ class LibraryPage(QWidget):
         self.b_rename = D.button("Rename...", None, lambda: self.rename())
         idrow.addWidget(self.b_ident); idrow.addWidget(self.b_rename); idrow.addStretch(1)
         urow = QHBoxLayout(); self.side.addLayout(urow)                    # task and delivery orders under their base
-        urow.addWidget(D.label("Filed under", "label", wrap=False))
+        lab = D.label("Filed under", "label", wrap=False); self._side_labels.append(lab); urow.addWidget(lab)
         self.d_under = QComboBox(); self.d_under.activated.connect(lambda _i: self.set_under()); urow.addWidget(self.d_under, 1)
         self.b_conform = D.button("Apply its instructions...", None, lambda: self.conform(),
                                   "An amendment that says what to change (delete and insert, replace a paragraph): apply it to "
@@ -341,6 +352,11 @@ class LibraryPage(QWidget):
         self.d_versions = QListWidget(); self.d_versions.setMaximumHeight(130); self.side.addWidget(self.d_versions)
         self.hits_lbl = D.label("Found in the text", "label", wrap=False); self.side.addWidget(self.hits_lbl)
         self.d_hits = QListWidget(); self.d_hits.setWordWrap(True); self.d_hits.setMaximumHeight(200); self.side.addWidget(self.d_hits)
+        self.side.addWidget(D.label("Right-click a document for its role, category, folder, tags, initial and type, name, and "
+                                    "where it is filed. Tags only help you find and filter documents here.", "muted"))
+        for wdg in [self.why, self.role_by, self.d_cat, self.d_folder, self.d_tags, self.b_ident, self.b_rename, self.d_under,
+                    *self.role_btns.values()] + self._side_labels:     # 3.20.3: the same choices, in the menu instead
+            wdg.setVisible(False)
         split.addWidget(self.side_area)
         split.setSizes([250, 820, 340])
         self.found = {}
@@ -408,6 +424,7 @@ class LibraryPage(QWidget):
         self.p_docs.setText(f"{len(lib.all)} documents")
         self.p_und.setText(f"{len(und)} role(s) to confirm" if und else "every role confirmed"); self.p_und.set_tone("warn" if und else "ok")
         self.p_miss.setText(f"{len(miss)} original(s) not here" if miss else "every original here"); self.p_miss.set_tone("warn" if miss else "ok")
+        self.p_und.setVisible(bool(und)); self.p_miss.setVisible(bool(miss))
 
     def missing(self):
         return [d for d in self.lib.all if d["versions"] and not self.lib.has_original(d["versions"][-1])] if self.lib else []
@@ -846,6 +863,10 @@ class LibraryPage(QWidget):
         mine = next((p for _n, _l, p in docs if (self.lib.doc_of_file(p) or {}).get("id") == d["id"]), "")
         if mine and self.lib.role_of(d) == "matrix" and mine in build:
             build.remove(mine); build.insert(0, mine)
+        if not build and mine:                         # 3.20.3: never a dead end: no document builds the matrix yet, so this
+            self.lib.set_role(d["id"], "matrix", why="read into Review")     # one does (change its role any time)
+            build = [mine]
+            h.status(f"{d['name']} now builds the matrix (right-click it to change its role).")
         if not build:
             return self._say("Read it in Review", "Review starts from the compliance matrix, read from the customer documents "
                              "whose role is Builds the matrix. None has that role yet: select the RFP files here and set "
@@ -867,6 +888,51 @@ class LibraryPage(QWidget):
             return False
         h.go("read")
         return w
+
+    def doc_menu(self, at=None, run=True):
+        """3.20.3: a document's right-click menu: read it, its role, category, folder, tags, initial and type, name, where it
+        is filed, its instructions, and where its text went. Returns the menu (run=False: not shown, for tests)."""
+        from PySide6.QtWidgets import QMenu
+        ids = self.selected_ids()
+        m = QMenu(self)
+        if not ids:
+            return m
+        d = self.lib.doc(ids[0]) if self.lib else None
+        m.addAction("Read it in Review", lambda: self.review_selected())
+        rm = m.addMenu("Role")
+        cur = self.lib.role_of(d) if d else ""
+        for k, n in DV.ROLES:
+            a = rm.addAction(n, lambda k=k: self.set_role(k)); a.setCheckable(True); a.setChecked(k == cur)
+        cm = m.addMenu("Category")
+        for k, n in self.lib.categories() if hasattr(self.lib, "categories") else []:
+            a = cm.addAction(n, lambda k=k: self.set_category(k)); a.setCheckable(True); a.setChecked(bool(d) and d.get("category") == k)
+        cm.addSeparator(); cm.addAction("New category...", lambda: self.new_category())
+        m.addAction("Folder...", lambda: self._ask_and(lambda t: self.set_category(folder=t), "Folder", "Folder (Standards/Test):",
+                                                       (d or {}).get("folder", "")))
+        m.addAction("Tags...", lambda: self._ask_and(lambda t: self.set_tags(t), "Tags", "Tags, with a comma between:",
+                                                     ", ".join((d or {}).get("tags", []))))
+        m.addSeparator()
+        m.addAction("Initial and type...", lambda: self.identity())
+        m.addAction("Rename...", lambda: self.rename())
+        if self.d_under.count() > 1:
+            um = m.addMenu("Filed under")
+            for i in range(self.d_under.count()):
+                um.addAction(self.d_under.itemText(i), lambda i=i: (self.d_under.setCurrentIndex(i), self.set_under()))
+        if self.b_conform.isVisible():
+            m.addAction("Apply its instructions...", lambda: self.conform())
+        m.addSeparator()
+        m.addAction("Where its text went in Review...", lambda: self.show_taken())
+        self._menu = m
+        if run and at is not None:
+            m.exec(at)
+        return m
+
+    def _ask_and(self, fn, title, label, text=""):
+        from PySide6.QtWidgets import QInputDialog
+        t, ok = QInputDialog.getText(self, title, label, text=text)
+        if ok:
+            fn(t)
+        return ok
 
     def show_taken(self, run=True):
         if self.host.ws is None:

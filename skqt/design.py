@@ -11,7 +11,7 @@ Components: Card, Pill, Chip, SectionTitle, EmptyState, Toast, Tile, StackBar (2
 plus decision buttons) set with the "kind" property. Rules only (No AI); nothing leaves the PC.
 """
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve
-from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPalette
+from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPainterPath, QPalette
 from PySide6.QtWidgets import (QFrame, QGraphicsOpacityEffect, QHBoxLayout, QLabel, QPushButton, QToolButton,
                                QVBoxLayout, QWidget)
 
@@ -279,16 +279,20 @@ class Card(QFrame):
         self.head = None
         if title or actions:
             self.head = QFrame(); self.head.setObjectName("cardhead")
-            h = QHBoxLayout(self.head); h.setSpacing(SPACE["s"])
-            h.setContentsMargins(SPACE["l"], SPACE["m"] - 2, SPACE["l"], SPACE["s"])
-            col = QVBoxLayout(); col.setSpacing(0)
+            hv = QVBoxLayout(self.head); hv.setSpacing(2)
+            hv.setContentsMargins(SPACE["l"], SPACE["m"] - 2, SPACE["l"], SPACE["s"])
+            h = QHBoxLayout(); h.setSpacing(SPACE["s"]); hv.addLayout(h)
             if title:
-                self.title = label(title, "title", wrap=False); col.addWidget(self.title)
+                self.title = label(title, "title", wrap=False); h.addWidget(self.title, 0, Qt.AlignTop)
+            h.addStretch(1)
+            if actions:                               # 3.20.3: the buttons wrap under each other, so a card fits half width,
+                from .adaptive import FlowLayout      # and the subtitle takes the card's full width under them
+                self.acts = QWidget(); fl = FlowLayout(self.acts, SPACE["s"])
+                for a in actions:
+                    fl.addWidget(a)
+                h.addWidget(self.acts, 0, Qt.AlignTop)
             if subtitle:
-                self.subtitle = label(subtitle, "muted"); col.addWidget(self.subtitle)
-            h.addLayout(col, 1)
-            for a in actions:
-                h.addWidget(a)
+                self.subtitle = label(subtitle, "muted"); hv.addWidget(self.subtitle)
             v.addWidget(self.head)
         self.body = QVBoxLayout()
         self.body.setSpacing(SPACE["s"])
@@ -443,8 +447,31 @@ class Tile(QFrame):
             self.caption.setText(caption)
         self.setStyleSheet(f"QFrame#tile{{background:{t['surface']};border:1px solid {t['border']};border-left:4px solid {fg};"
                            f"border-radius:{RADIUS['card']}px;}} QLabel{{background:transparent;}}")
-        self.value.setStyleSheet(f"color:{fg};font-size:{TYPE['display'] + 4}pt;font-weight:600;")
         self.caption.setStyleSheet(f"color:{t['muted']};font-size:{TYPE['small']}pt;font-weight:600;")
+        self._fit()
+
+    def value_pt(self, width=None):
+        """3.20.3: the number's size, as large as fits the tile: "1240 of 1500" steps down so it never runs into the edge."""
+        w = (width if width is not None else self.width()) - SPACE["l"] * 2 - 6
+        txt = self.value.text()
+        pt = TYPE["display"] + 4
+        while pt > TYPE["title"]:
+            f = QFont(self.value.font()); f.setPointSizeF(pt); f.setWeight(QFont.DemiBold)
+            if QFontMetrics(f).horizontalAdvance(txt) <= w:
+                break
+            pt -= 1
+        return pt
+
+    def _fit(self):
+        fg = tokens().get(self.tone, tokens()["accent"])
+        pt = self.value_pt() if self.width() > 60 else TYPE["display"] + 4
+        if getattr(self, "_pt", None) != (pt, fg):
+            self._pt = (pt, fg)
+            self.value.setStyleSheet(f"color:{fg};font-size:{pt}pt;font-weight:600;")
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self._fit()
 
     def mouseReleaseEvent(self, e):
         if self.on_click and e.button() == Qt.LeftButton:

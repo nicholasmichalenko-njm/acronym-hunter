@@ -1,6 +1,24 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+REVIEW FITS THE WINDOW, AND THE 2026-11-02 FIXES (3.20.3)
+  - Review: the page stays put and the document scrolls; the right panel scrolls on its own, decisions on top, then the
+    sentence's card. The mouse wheel glides. Space and drag pans as soon as the mouse is over the page.
+  - Extract (Shift+S): drag across words inside a sentence, then Extract: they become a sentence of their own between the
+    parts before and after, ready to assign. One Undo step. The pick now runs to the next space, so an e-mail, a number
+    with its end punctuation, and brackets come along.
+  - Split with no word clicked opens the sentence's text: click exactly where the second part starts, at any character.
+  - A sentence's card lists the rules, questions and other items captured from it; fix a rule's value there and Save.
+  - Effort Dashboard: every card fits half width (Customize... > Full or half width); card buttons wrap under each other.
+    A tile's number shrinks to fit. Questions due shows the days until questions go to the customer and how many are not
+    submitted yet, from the calendar or the customer documents.
+  - Meetings: space between the meeting list and the meeting, a larger notes box (drag the bar above the topics), and
+    Make a topic of the selection (also on the notes' right-click menu).
+  - Library: right-click a document for its role, category, folder, tags, initial and type, name and more; the side
+    panel no longer repeats them. Read it in Review on a document when nothing builds the matrix yet makes it the one.
+  - Opportunity Number (Client Issued) and Internal A Number replace the old labels. The banner's extra details sit
+    behind "Extra details on the banner (optional)". Condense and Expand are arrows, and the header glides.
+
 DOWNLOADS NAME THEIR VERSION (3.20.2)
   - Every file a release offers carries its version, and so does the folder inside each zip: Stationkeeper_US_3.20.2.zip
     opens to a Stationkeeper_US_3.20.2 folder; Stationkeeper_US_Training_3.20.2.zip and Stationkeeper_US_SCIF_3.20.2.zip

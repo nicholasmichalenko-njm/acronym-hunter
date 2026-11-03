@@ -257,6 +257,31 @@ class Review:
         self.changed()
         return new
 
+    def extract(self, it, s, e):
+        """3.20.3: the characters s..e of a sentence become a sentence of their own, between what comes before and after
+        (each a sentence too, when it holds words). One Undo step. Returns the middle part, or None."""
+        text = it.get("text", "")
+        s, e = max(0, s), min(len(text), e)
+        before, mid, after = text[:s].strip(), text[s:e].strip(), text[e:].strip()
+        if not mid or (not before and not after):
+            return None
+        with self.group():
+            self.snap("extract words into their own sentence")
+            parts = [p for p in (before, mid, after) if p]
+            i = self.M.items.index(it)
+            new = []
+            for n, p in enumerate(parts):
+                x = dict(it)
+                x.update(text=p, id=f"{it['id']}{chr(97 + n)}", key=C.text_key(p), compound=False, decision="", context_for="",
+                         draft="", draft_cf="", place="", area="")
+                new.append(x)
+            self.M.items[i:i + 1] = new
+            C.remap_context_for(self.M.items, it["id"], new[0]["id"])
+            SD.clear_sections(self.M, it)
+            self.M.log(it["id"], f"words extracted into {new[parts.index(mid)]['id']}")
+            self.changed()
+        return new[parts.index(mid)]
+
     def add_section(self, it, label):
         if label not in set(self.labels()):
             return False

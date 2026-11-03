@@ -102,8 +102,8 @@ mouse(QEvent.MouseMove, words[a + 2])
 check("dragging tints the words as you go", len(pg._grab_items) == 3)
 mouse(QEvent.MouseMove, words[b])
 mouse(QEvent.MouseButtonRelease, words[b], Qt.NoButton)
-check("letting go picks them, the card says so, and no split point is set", pg.grab is not None and pg.grab["text"].startswith("Jane Doe")
-      and pg.grab["text"].endswith("1234") and pg.split_at is None
+check("letting go picks them, the card says so, and no split point is set (3.20.3: with the end punctuation)", pg.grab is not None and pg.grab["text"].startswith("Jane Doe")
+      and pg.grab["text"].endswith("1234.") and pg.split_at is None
       and any("Picked words" in l.text() for l in pg.card.findChildren(QLabel)), pg.grab)
 if os.environ.get("SHOT_DIR"):
     w.grab().save(os.path.join(os.environ["SHOT_DIR"], "review_grab.png"))

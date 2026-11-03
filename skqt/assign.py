@@ -259,7 +259,40 @@ class PageView(QGraphicsView):
                 self.zoom *= f
                 self.scale(f, f)
             return
-        super().wheelEvent(e)
+        dy = e.angleDelta().y()
+        if not dy or e.pixelDelta().y():                  # a touchpad already scrolls smoothly; sideways goes as it was
+            return super().wheelEvent(e)
+        self.smooth_scroll(-dy)                            # 3.20.3: a wheel notch glides instead of jumping
+        e.accept()
+
+    def smooth_scroll(self, delta):
+        """Glide the page by delta (wheel units: 120 a notch): about three lines a notch, eased over 200 ms; notches that
+        come quickly add up."""
+        from PySide6.QtCore import QPropertyAnimation, QEasingCurve
+        sb = self.verticalScrollBar()
+        step = delta / 120.0 * max(40, sb.singleStep() * 3)
+        anim = getattr(self, "_glide", None)
+        start = sb.value()
+        target = (self._glide_to if (anim is not None and anim.state() == QPropertyAnimation.Running) else start) + step
+        target = int(max(sb.minimum(), min(sb.maximum(), target)))
+        if anim is None:
+            anim = self._glide = QPropertyAnimation(sb, b"value", self)
+            anim.setEasingCurve(QEasingCurve.OutCubic)
+        anim.stop()
+        anim.setDuration(200)
+        anim.setStartValue(start); anim.setEndValue(target)
+        self._glide_to = target
+        anim.start()
+        return target
+
+    def enterEvent(self, e):
+        """3.20.3: the page takes the keyboard when the mouse is over it (so Space and drag pans at once), unless you
+        are typing in a box."""
+        from PySide6.QtWidgets import QApplication, QLineEdit, QPlainTextEdit, QTextEdit, QAbstractSpinBox
+        fw = QApplication.focusWidget()
+        if not isinstance(fw, (QLineEdit, QPlainTextEdit, QTextEdit, QAbstractSpinBox)):
+            self.setFocus(Qt.MouseFocusReason)
+        super().enterEvent(e)
 
     def mousePressEvent(self, e):
         if e.button() == Qt.MiddleButton or (e.button() == Qt.LeftButton and (self.pan_tool or self._space) and not self.capturing):
@@ -327,6 +360,14 @@ class CopyWorker(QThread):
 Chip = D.Chip
 
 
+class _FitBody(QWidget):
+    """3.20.3: Review's body: it takes the window's height (its parts scroll inside), never the height its wrapped rows
+    would like, so the page as a whole never scrolls and the toolbar stays on top."""
+
+    def hasHeightForWidth(self):
+        return False
+
+
 class AssignPage(QWidget):
     def __init__(self, host):
         super().__init__()
@@ -348,7 +389,11 @@ class AssignPage(QWidget):
         self.workers = []
         self.cx = None                             # 2.84.0: the library document open (ctxassign.CtxMode), else None
         self.lib_entries = {}
-        v = QVBoxLayout(self)
+        self.fixed_page = True                     # 3.20.3: the page never scrolls as a whole: the toolbar stays on top,
+        self.setMinimumSize(320, 320)              # the document, the decide panel, the card and the structure scroll apart
+        outer = QVBoxLayout(self); outer.setContentsMargins(0, 0, 0, 0)       # 3.20.3: the body never asks for the height its
+        body = _FitBody(); outer.addWidget(body)                                # wrapped rows would like: the page fits the window
+        v = QVBoxLayout(body)
         v.setContentsMargins(6, 6, 6, 6)
         from .adaptive import FlowLayout
         bar = FlowLayout(spacing=6); v.addLayout(bar)         # 3.15.1: the tools wrap onto a second row when narrow
@@ -359,15 +404,22 @@ class AssignPage(QWidget):
         self.done_btn = D.button("Mark reviewed", None, lambda: self.mark_reviewed(), "This document's sentences are all looked at")
         self.next_btn = D.button("Next document \u203a", None, lambda: self.next_file(), "The next document not reviewed yet")
         bar.addWidget(self.done_btn); bar.addWidget(self.next_btn)
+        self.sg_btn = D.button("Suggest", "ctx", lambda: self.toggle_suggest(), "Show what each sentence most likely is, "
+                               "from rules you can read (not AI). Nothing is decided until you accept it")      # 3.18.0
+        self.sg_btn.setCheckable(True)                     # 3.20.3: up front, where it is seen
+        bar.addWidget(self.sg_btn)
         self.keys = {}
         # 2.82.0: sentence edits stay by the page; the decisions sit beside the response structure, where they land
         for text, kind, fn, tip in (("Combine  J", None, self.do_combine, "One sentence from the selected ones (they need not be next to each other)"),
                                     ("Split  S", None, self.do_split, "Split the selected sentence before the word you clicked"),
+                                    ("Extract  Shift+S", None, lambda: self.do_extract(), "Drag across words inside a sentence, "
+                                     "then this: those words become a sentence of their own, ready to assign (3.20.3)"),
                                     ("Undo  Ctrl+Z", "ghost", self.do_undo, "Put back the last change")):
             b = D.button(text, kind, fn, tip)
             self.keys[text.split()[0]] = b
             bar.addWidget(b)
         self.keys["Split"].setEnabled(False)
+        self.keys["Extract"].setEnabled(False)
         self.keys["Split"].setToolTip("Select a sentence, then click the word the second part starts with: a red line "
                                       "shows the split, and this button (or S) makes it")
         bar.addStretch(1)
@@ -380,10 +432,6 @@ class AssignPage(QWidget):
                                 "or drag with the middle button). Ctrl+wheel zooms")
         self.pan_btn.setCheckable(True)
         bar.addWidget(self.pan_btn)
-        self.sg_btn = D.button("Suggest", None, lambda: self.toggle_suggest(), "Show what each sentence most likely is, "
-                               "from rules you can read (not AI). Nothing is decided until you accept it")      # 3.18.0
-        self.sg_btn.setCheckable(True)
-        bar.addWidget(self.sg_btn)
         self.sg_on, self.sg = False, {}
         self.sheet_on, self.sheet = True, None          # 2.96.0: Excel files open in Sheet view
         self.sheet_btn = D.button("Page view", None, lambda: self.toggle_sheet(), "Switch an Excel file between its cells (Sheet "
@@ -464,7 +512,7 @@ class AssignPage(QWidget):
         self.legend.setToolTip("The colors on the page. Every decision has its own; a sentence something was captured from "
                                "has the pink outline and what was captured in the margin.")
         dv.addWidget(self.legend)
-        grid = QGridLayout(); grid.setSpacing(D.SPACE["xs"]); grid.setContentsMargins(0, 0, 0, 0)
+        grid = FlowLayout(spacing=D.SPACE["xs"])             # 3.20.3: the buttons wrap when the panel is narrow
         self.dec_box = dec
         for k, (text, kind, fn, tip) in enumerate((
                 ("L (Instructions)  L", "req", lambda: self.do_lm("L"), "L: Instructions, Conditions and Notices to Offerors. A compliance "
@@ -479,11 +527,11 @@ class AssignPage(QWidget):
                  "Delete takes a decision off."))):
             b = D.button(text, kind, fn, tip)
             self.keys[{"L": "L", "M": "M", "SOW": "Requirement"}.get(text.split()[0], text.split()[0])] = b
-            grid.addWidget(b, k // 3, k % 3)
+            grid.addWidget(b)
         self.dec_grid = QWidget(); self.dec_grid.setLayout(grid)
         dv.addWidget(self.dec_grid)
         dv.addWidget(D.label("Capture", "label", wrap=False))             # 2.96.0: capture what the sentence holds
-        caprow = QGridLayout(); caprow.setSpacing(D.SPACE["xs"])           # 2.98.0: six, in two rows
+        caprow = FlowLayout(spacing=D.SPACE["xs"])                         # 2.98.0: six; 3.20.3: they wrap
         self.cap_keys = {}
         for k, (key, text, tip) in enumerate((
                 ("contact", "Contact", "A point of contact: name, title, e-mail, phone, address (Customer information)"),
@@ -495,8 +543,8 @@ class AssignPage(QWidget):
             b = D.button(text, "cap", lambda _=False, kk=key: self.do_capture(kk), tip + ". Uses the words you dragged across, "
                          "else the selected sentence.")
             self.cap_keys[key] = b
-            caprow.addWidget(b, k // 3, k % 3)
-        dv.addLayout(caprow)
+            caprow.addWidget(b)
+        capw = QWidget(); capw.setLayout(caprow); dv.addWidget(capw)
         from PySide6.QtWidgets import QMenu                           # 2.99.0: the less frequent captures
         more = D.button("More captures...", "cap", None, "Evaluation factor, page limit, deliverable, effort detail, hot button")
         menu = QMenu(more)
@@ -511,8 +559,8 @@ class AssignPage(QWidget):
         gfx = D.button("Graphic need  P", "cap", lambda: self.do_capture("graphic"), "Tag a concept here that needs a graphic: "  # 3.0.4
                        "it lists under Graphic needs on Effort Home. Uses the words you dragged across, else the selected sentence.")
         self.cap_keys["graphic"] = gfx
-        mrow = QHBoxLayout(); mrow.setSpacing(D.SPACE["xs"]); mrow.addWidget(gfx); mrow.addWidget(more); dv.addLayout(mrow)
-        cgrid = QGridLayout(); cgrid.setSpacing(D.SPACE["xs"])                # 2.84.0: for a library document
+        caprow.addWidget(gfx); caprow.addWidget(more)
+        cgrid = FlowLayout(spacing=D.SPACE["xs"])                             # 2.84.0: for a library document
         self.ctx_keys = {}
         for k, (text, kind, fn, tip) in enumerate((
                 ("Context for section  C", "ctx", lambda: self.do_ctx(), "Context for the target section: shows in the section and in Response Setup"),
@@ -525,13 +573,15 @@ class AssignPage(QWidget):
                  "Delete takes everything off."))):
             b = D.button(text, kind, fn, tip)
             self.ctx_keys[text.split("  ")[0]] = b
-            cgrid.addWidget(b, k // 3, k % 3)
+            cgrid.addWidget(b)
         self.ctx_grid = QWidget(); self.ctx_grid.setLayout(cgrid); self.ctx_grid.hide()
         dv.addWidget(self.ctx_grid)
-        sv.addWidget(dec)
+        self.decide_area = QScrollArea(); self.decide_area.setWidgetResizable(True)    # 3.20.3: decide, at the top, on its own
+        self.decide_area.setFrameShape(QFrame.NoFrame); self.decide_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.decide_area.setWidget(dec)
         vrow = QHBoxLayout(); sv.addLayout(vrow)                       # 2.68.0: the volume you are working on
         vrow.addWidget(D.label("Volume", "label", wrap=False))
-        self.volume = QComboBox(); self.volume.setMinimumWidth(200)
+        self.volume = QComboBox(); self.volume.setMinimumWidth(120)
         self.volume.activated.connect(lambda _i: self.pick_volume(self.volume.currentData()))
         vrow.addWidget(self.volume, 1)
         vrow.addWidget(D.button("+ Volume", None, lambda: self.new_volume(), "A new volume at the end of the structure"))
@@ -542,7 +592,7 @@ class AssignPage(QWidget):
         self.tree.itemDoubleClicked.connect(lambda i, c: self.section_pages(i.data(0, Qt.UserRole)) if c == 3
                                             else self.rename_section(i.data(0, Qt.UserRole)))
         sv.addWidget(self.tree)
-        srow = QHBoxLayout(); srow.setSpacing(4); sv.addLayout(srow)
+        srow = FlowLayout(spacing=4); srw = QWidget(); srw.setLayout(srow); sv.addWidget(srw)   # 3.20.3: wraps
         for text, fn, tip in (("+ Heading", lambda: self.new_section(sub=False), "A section at the level of the target (after it), or a first section"),
                               ("+ Subheading", lambda: self.new_section(sub=True), "A section under the target, one level down"),
                               ("From sentence", lambda: self.section_from_sentence(), "A section under the target, named with the selected sentence"),
@@ -567,7 +617,7 @@ class AssignPage(QWidget):
         self.parts_btn.setMenu(pm)
         srow.addWidget(self.parts_btn)
         srow.addStretch(1)
-        row = QHBoxLayout(); row.setSpacing(4); sv.addLayout(row)
+        row = FlowLayout(spacing=4); rww = QWidget(); rww.setLayout(row); sv.addWidget(rww)
         for text, fn, tip in (("Rename", lambda: self.rename_section(self.target), "Rename the target (or double-click it)"),
                               ("Pages...", lambda: self.section_pages(self.target),                       # 3.18.2
                                "The target's page length: the RFP's limit or the team's guideline (or double-click Pages)"),
@@ -589,13 +639,16 @@ class AssignPage(QWidget):
         self.side_area = QScrollArea(); self.side_area.setWidgetResizable(True)      # 3.18.2: the decide panel and the
         self.side_area.setFrameShape(QFrame.NoFrame); self.side_area.setWidget(sw)    # structure scroll on their own
         self.side_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        right.addWidget(self.card_area); right.addWidget(self.side_area); right.setSizes([400, 580])
+        right.addWidget(self.decide_area); right.addWidget(self.card_area); right.addWidget(self.side_area)   # 3.20.3: decide first
+        right.setSizes([300, 330, 380]); right.setChildrenCollapsible(False)
+        self.right = right
         split = QSplitter(Qt.Horizontal); split.addWidget(self.view); split.addWidget(right); split.setSizes([1100, 470])
         v.addWidget(split, 1)
         self.notes_timer = QTimer(self, singleShot=True, interval=700, timeout=self.save_notes)
         for key, fn in (("R", lambda: self.do_sow()), ("C", self.do_ctx), ("G", self.do_customer), ("X", self.do_clear),
                         ("L", lambda: self.do_lm("L")), ("E", lambda: self.do_lm("M")), ("Shift+M", lambda: self.do_lm("M")),
                         ("Delete", self.do_undecide), ("J", self.do_combine), ("S", self.do_split),
+                        ("Shift+S", lambda: self.do_extract()),
                         ("F", lambda: self.do_for_req()), ("N", lambda: self.do_record("note")),
                         ("Q", lambda: self.do_record("question")), ("T", lambda: self.do_record("task")),
                         ("Ctrl+A", lambda: self.select_all()), ("H", lambda: self.toggle_pan()),
@@ -1197,10 +1250,15 @@ class AssignPage(QWidget):
         ms = list(WORD.finditer(text))
         if not (0 <= a <= b < len(ms)):
             return None
-        tail = re.match(r"[\w@.\-]*", text[ms[b].end():]).group(0)        # an e-mail or a number runs on past the word
-        self.grab = {"iid": iid, "a": a, "b": b, "text": text[ms[a].start():ms[b].end() + len(tail)].strip(" ,;:").rstrip(".")}
+        tail = re.match(r"[^\s]*", text[ms[b].end():]).group(0)          # 3.20.3: up to the next space: an e-mail, a number,
+        lead = re.search(r"[(\[\"'\u201c\u2018]*$", text[:ms[a].start()]).group(0)   # the end punctuation, a closing bracket
+        s0, e0 = ms[a].start() - len(lead), ms[b].end() + len(tail)            # and an opening bracket before it come along
+        self.grab = {"iid": iid, "a": a, "b": b, "s": s0, "e": e0, "text": text[s0:e0].strip()}
         self.clear_split(card=False)
-        self.host.status(f"Picked: \"{self.grab['text'][:80]}\". Capture uses these words; click elsewhere to drop them.")
+        self.host.status(f"Picked: \"{self.grab['text'][:80]}\". Capture uses these words; Extract (Shift+S) makes them a "
+                         "sentence of their own; click elsewhere to drop them.")
+        if "Extract" in self.keys:
+            self.keys["Extract"].setEnabled(self.cx is None)
         self.show_card(self.selected())
         return self.grab
 
@@ -1232,6 +1290,68 @@ class AssignPage(QWidget):
                 diag.swallowed()
         return text, {"doc": it.get("file", "") or (self.file or ""), "loc": loc, "text": it.get("text", ""),
                       "section": it.get("section", ""), "page": pg, "para": para, "sid": it["id"]}
+
+    def captured_rules(self, it):
+        """3.20.3: the submission and formatting rules captured from this sentence (by its id, or its words for older
+        captures): [(register, row)]."""
+        import docversions as DV
+        import subreq as SR
+        reg = SR.Register(DV.Library(self.host.ws.p("documents")).load())
+        words = " ".join((it.get("text") or "").split())[:400]
+        return reg, [r for r in reg.rows() if r.get("manual") and r.get("captured")
+                     and ((r.get("sid") and r["sid"] == it["id"]) or (not r.get("sid") and words and r.get("sentence") == words))]
+
+    def show_captures(self, it):
+        """The rules, questions and other captures that came from this sentence, with their values to fix in place."""
+        reg, rules = self.captured_rules(it)
+        import custqa as Q
+        qs = [q for q in Q.items(R_.Record(self.host.ws.root)) if q.get("sid") == it["id"]]
+        others = [k for k in (self.marks.get(it["id"]) or []) if k not in ("submit", "format", "question", "task", "tquestion")]
+        self.capture_edits = {}
+        if not (rules or qs or others):
+            return 0
+        self.head("Captured from this sentence")
+        from PySide6.QtWidgets import QLineEdit
+        for r in rules:
+            w = QWidget(); h = QHBoxLayout(w); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(D.SPACE["xs"])
+            h.addWidget(D.label(f"{r['kind']}: {r['subject']}", "muted", wrap=False))
+            ed = QLineEdit(r["value"]); ed.setToolTip("Fix the value and press Save (Enter)")
+            h.addWidget(ed, 1)
+            sv = D.button("Save", None, lambda _=False, k=r["key"], e=ed: self.edit_capture(k, e.text()), "Keep this value")
+            ed.returnPressed.connect(lambda k=r["key"], e=ed: self.edit_capture(k, e.text()))
+            rm = D.button("Take out", "ghost", lambda _=False, k=r["key"]: self.remove_capture(k), "Take this rule out")
+            h.addWidget(sv); h.addWidget(rm)
+            self.capture_edits[r["key"]] = ed
+            self.add(w)
+        for q in qs:
+            self.add(D.label(f"Customer question ({q.get('status', '')}): {q.get('question', '')[:160]}", None))
+        if qs:
+            self.add(D.button("Open Customer Q&A", "ghost", lambda: self.host.go("custqa"), "Edit the question there"))
+        if others:
+            self.add(D.label("Also captured: " + PM.text(others) + ". Edit them where they are filed (Effort Dashboard, "
+                             "acronym list, Effort Record).", "muted"))
+        return len(rules) + len(qs) + len(others)
+
+    def edit_capture(self, key, value):
+        """3.20.3: a captured rule's value fixed from the sentence's card (a mistyped e-mail, say)."""
+        import docversions as DV
+        import subreq as SR
+        reg = SR.Register(DV.Library(self.host.ws.p("documents")).load())
+        ok = reg.edit(key, value)
+        if ok:
+            diag.activity("capture_edited")
+            self.host.status("Saved: " + " ".join(value.split())[:80])
+            self.host.changed()
+        return ok
+
+    def remove_capture(self, key):
+        import docversions as DV
+        import subreq as SR
+        ok = SR.Register(DV.Library(self.host.ws.p("documents")).load()).remove_manual(key)
+        if ok:
+            diag.activity("capture_removed")
+            self.show_card(self.selected())
+        return ok
 
     def load_marks(self):
         """3.18.1: the sentences something was captured from (or a task or team question made on)."""
@@ -1450,8 +1570,8 @@ class AssignPage(QWidget):
         self.split_bar = px.widget()
         b = self.keys.get("Split")
         if b is not None:
-            b.setEnabled(True); b.setText("Split here  S")
-        self.view.ensureVisible(px, 40, 60)
+            b.setEnabled(True)                                # 3.20.3: same text, so the toolbar never reflows (no jump)
+        self.view.ensureVisible(px, 4, 4)                     # and the page moves only when the bar would be off screen
 
     def _split_bar_item(self, sc):
         """The Split here / Cancel bar on the page: made once per drawing of the page, then moved and shown or hidden
@@ -1767,6 +1887,11 @@ class AssignPage(QWidget):
         lead = SD.section_people(M, it.get("map", "")).get("lead", "") if it.get("map") else ""
         if on and not it.get("owner"):
             self.add(D.label(f"Empty: the section lead writes it ({lead})." if lead else "Empty: the section's lead, once one is named (People...).", "muted"))
+        if len(rows) == 1 and self.host.ws is not None:                 # 3.20.3: what was captured from it, editable here
+            try:
+                self.show_captures(it)
+            except Exception:
+                diag.swallowed()
         if len(rows) == 1 and self.host.ws is not None:                 # 3.20.0: open meeting topics that point here
             try:
                 import meetings as MT
@@ -2937,7 +3062,12 @@ class AssignPage(QWidget):
         if len(rows) != 1:
             self.host.status("Select one sentence, click the word to split before, then S.")
             return
-        parts = self.R.split(rows[0], self.split_at)
+        at = self.split_at
+        if at is None:                                     # 3.20.3: no word clicked: split exactly where you click in the text
+            at = self.ask_split_at(rows[0])
+            if at is None:
+                return
+        parts = self.R.split(rows[0], at)
         if not parts:
             self.host.status("Click the word to split before (in the selected sentence), then S.")
             return
@@ -2946,6 +3076,47 @@ class AssignPage(QWidget):
         self.build_boxes()
         self.select(parts[0]["id"])
         self.after(f"Split into {', '.join(p['id'] for p in parts)}")
+
+    def ask_split_at(self, it, answer=None):
+        """3.20.3: the sentence's text with a cursor: click where the second part starts (inside a word, at its very start
+        or end, between glued sentences) and Split there. answer (tests): the character position. Returns it or None."""
+        if answer is not None:
+            return answer
+        from PySide6.QtWidgets import QPlainTextEdit
+        d = QDialog(self); d.setWindowTitle("Split exactly here"); d.setMinimumWidth(620)
+        lay = QVBoxLayout(d)
+        lay.addWidget(D.label("Click where the second part starts, then Split. Any character works: inside a word, at its very "
+                              "start or end, or between two sentences the reader joined.", "muted"))
+        ed = QPlainTextEdit(it.get("text", "")); ed.setReadOnly(True); ed.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard)
+        ed.setMinimumHeight(140); lay.addWidget(ed)
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.button(QDialogButtonBox.Ok).setText("Split")
+        bb.accepted.connect(d.accept); bb.rejected.connect(d.reject); lay.addWidget(bb)
+        if d.exec() != QDialog.Accepted:
+            return None
+        return ed.textCursor().position()
+
+    def do_extract(self, grab=None):
+        """3.20.3 Shift+S: the words dragged across become a sentence of their own (the rest stays as the parts before and
+        after), selected and ready to assign. Returns the new sentence."""
+        if self.cx is not None:
+            return self.host.status("Extract is for the matrix's documents.")
+        g = grab or self.grab
+        it = self.R.item(g["iid"]) if g else None
+        if it is None or "s" not in g:
+            self.host.status("Drag across the words inside a sentence first, then Extract (Shift+S).")
+            return None
+        mid = self.R.extract(it, g["s"], g["e"])
+        if mid is None:
+            self.host.status("Those words are the whole sentence already.")
+            return None
+        diag.activity("compliance_extracted")
+        self.clear_grab()
+        self.keys["Extract"].setEnabled(False)
+        self.clear_split(card=False)
+        self.build_boxes()
+        self.select(mid["id"])
+        self.after(f"{mid['id']}: extracted, ready to assign")
+        return mid
 
     def undo_text(self):
         """3.18.2: what Undo would put back on this page ('' for nothing): the top bar's Undo says it."""

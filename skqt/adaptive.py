@@ -80,6 +80,8 @@ class FlowLayout(QLayout):
             if it.isEmpty():
                 continue
             hint = it.sizeHint()
+            if it.hasHeightForWidth():                # 3.20.3: wrapped text (a tile's caption) gets the height it needs
+                hint = QSize(hint.width(), max(hint.height(), it.heightForWidth(hint.width())))
             nx = x + hint.width()
             if nx > rect.right() + 1 and line > 0:
                 x, y, line = rect.x(), y + line + sp, 0
@@ -101,6 +103,9 @@ class PageStack(QStackedWidget):
         sa.setFrameShape(QFrame.NoFrame)
         sa.setWidget(page)
         sa.page = page
+        if getattr(page, "fixed_page", False):    # 3.20.3: a page that lays itself out in the window (Review): its toolbar
+            sa.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)       # and panels stay put; its parts scroll inside
+            sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         return super().addWidget(sa)
 
     def _wrap(self, page):

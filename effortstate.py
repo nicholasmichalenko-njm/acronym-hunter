@@ -228,6 +228,27 @@ class State:
     def cal_extra(self):
         return cal_extra_of(self.rec, self.rows)
 
+    def questions_due(self, today=None):
+        """3.20.3: when questions to the customer are due, if the customer said: the next date on the calendar (a
+        Questions due entry, or the date read from the customer documents), else the last one gone by; with the
+        questions in Customer Q&A not yet submitted. None when no date is known."""
+        today = today or datetime.date.today()
+        dates = [R.parse_date(e.get("date", "")) for e in self.rec.data.get("events", []) if e.get("kind") == "Questions due"]
+        dates += [d for d, k, _t in self.cal_extra() if k == "questions"]
+        dates = sorted(d for d in dates if d)
+        if not dates:
+            return None
+        nxt = next((d for d in dates if d >= today), None)
+        d = nxt or dates[-1]
+        try:
+            import custqa as CQ
+            c = CQ.counts(self.rec)
+            pending = c.get("Draft", 0) + c.get("Approved", 0)
+        except Exception:
+            diag.swallowed()
+            pending = 0
+        return {"date": d, "days": (d - today).days, "pending": pending}
+
     def calendar(self, first=None, last=None, mine=""):
         return self.rec.calendar(first=first, last=last, extra=self.cal_extra(), mine=mine)
 
@@ -291,6 +312,7 @@ class State:
                "tasks_open": len(r.tasks(open_only=True)),
                "tasks_late": sum(1 for t in r.tasks(open_only=True) if r.task_overdue(t, today)),
                "past_due": self.past_due(today), "acronyms": self.acronyms(), "qa": self.qa(),
+               "questions_due": self.questions_due(today),
                "to_review": (self.lib.counts()["unreviewed"] if self.lib is not None and self.lib.docs else 0)
                + sum(1 for x in self.rows if x.get("to_review"))}
         if M is not None and M.items:

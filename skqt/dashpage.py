@@ -66,6 +66,8 @@ class DashPage(QWidget):
             "placed": D.Tile("-", "requirements placed in a section", "accent", lambda: go("assign"), "Review"),
             "owned": D.Tile("-", "requirements with an owner", "accent", lambda: go("assign"), "Review: People..."),
             "questions": D.Tile("-", "open questions", "accent", lambda: go("home"), "Effort home: notes and open questions"),
+            "qdue": D.Tile("-", "days until questions are due", "accent", lambda: go("custqa"),     # 3.20.3
+                           "Customer Q&A: the questions to send the customer, and when they are due"),
             "late": D.Tile("-", "tasks late", "accent", lambda: go("home"), "Effort home: tasks"),
             "review": D.Tile("-", "customer changes to review", "accent", lambda: go("compare"),
                              "Customer Documents: versions and requirements to review"),
@@ -192,6 +194,17 @@ class DashPage(QWidget):
             T["owned"].set("-", "requirements with an owner (no matrix yet)", "head")
         T["questions"].set(d["questions"], "open questions" + (f" ({d['questions_unassigned']} not assigned)" if d["questions_unassigned"] else ""),
                            "warn" if d["questions"] else "ok")
+        qd = d.get("questions_due")
+        if qd is None:
+            T["qdue"].set("-", "questions to the customer (no due date given)", "head")
+        else:
+            when = qd["date"].strftime("%b %d").replace(" 0", " ")
+            left = f"; {qd['pending']} not submitted" if qd["pending"] else ""
+            if qd["days"] >= 0:
+                T["qdue"].set(qd["days"], f"days until questions are due ({when}){left}",
+                              "crit" if qd["days"] <= 2 and qd["pending"] else "warn" if qd["days"] <= 7 else "accent")
+            else:
+                T["qdue"].set("Closed", f"questions were due {when}{left}", "warn" if qd["pending"] else "ok")
         T["late"].set(d["tasks_late"], f"tasks late of {d['tasks_open']} open", "crit" if d["tasks_late"] else "ok")
         try:                                       # 2.85.0: changes still to decide in Compare, and owners to confirm
             import changereview as CHR

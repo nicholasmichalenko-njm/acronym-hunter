@@ -143,7 +143,9 @@ class EffortBanner(QFrame):
             b = D.button(text, None, None, tip); b.setCheckable(True)
             b.toggled.connect(lambda on, k=key: self.page.set_strip(k, on))
             tg.addWidget(b); self.toggles[key] = b
-        self.cond_btn = D.button("Condense", "ghost", lambda: self.set_condensed(True), "Keep only the essentials at the top")
+        self.cond_btn = D.button("\u25B2", "ghost", lambda: self.set_condensed(True, animate=True), "Condense: keep only the "
+                                 "essentials at the top")                 # 3.20.3: an arrow, and a smooth, slower fold
+        self.cond_btn.setFixedWidth(36)
         tg.addWidget(self.cond_btn)
         # the countdown
         right = QFrame(); right.setObjectName("countdown"); h.addWidget(right, 0, Qt.AlignTop)
@@ -169,16 +171,23 @@ class EffortBanner(QFrame):
             b = D.button(text, "ghost", None); b.setCheckable(True)
             b.toggled.connect(lambda on, k=key: self.page.set_strip(k, on))
             ch.addWidget(b); self.c_toggles[key] = b
-        ch.addWidget(D.button("Expand", "ghost", lambda: self.set_condensed(False), "Show the full header"))
+        self.exp_btn = D.button("\u25BC", "ghost", lambda: self.set_condensed(False, animate=True), "Expand: show the full header")
+        self.exp_btn.setFixedWidth(36)
+        ch.addWidget(self.exp_btn)
         self.condensed = False
         self.compact.setVisible(False)
         self.timer = QTimer(self, interval=1000, timeout=self.tick)
         self.restyle()
 
-    def set_condensed(self, on, save=True):
-        """3.12.0: the condensed header keeps the effort's name, days to the due date, client, sensitivity and stage."""
+    def set_condensed(self, on, save=True, animate=False):
+        """3.12.0: the condensed header keeps the effort's name, days to the due date, client, sensitivity and stage.
+        3.20.3: from the arrows it folds and unfolds smoothly (450 ms, eased) instead of jumping."""
         self.condensed = bool(on)
-        self.full.setVisible(not self.condensed); self.compact.setVisible(self.condensed)
+        if animate and self.isVisible():
+            self._fold(self.condensed)
+        else:
+            self.full.setMaximumHeight(16777215)
+            self.full.setVisible(not self.condensed); self.compact.setVisible(self.condensed)
         if save:
             try:
                 from .modes import save as _save
@@ -190,6 +199,32 @@ class EffortBanner(QFrame):
             else:
                 diag.activity("qt_banner_expanded")
         return self.condensed
+
+    def _fold(self, condense):
+        from PySide6.QtCore import QPropertyAnimation, QEasingCurve
+        old = getattr(self, "_fold_anim", None)
+        if old is not None:
+            old.stop()
+        full_h = max(self.full.sizeHint().height(), self.full.height())
+        if condense:
+            a = QPropertyAnimation(self.full, b"maximumHeight", self)
+            a.setStartValue(self.full.height()); a.setEndValue(0)
+
+            def done():
+                self.full.setVisible(False); self.full.setMaximumHeight(16777215); self.compact.setVisible(True)
+        else:
+            self.compact.setVisible(False)
+            self.full.setMaximumHeight(0); self.full.setVisible(True)
+            a = QPropertyAnimation(self.full, b"maximumHeight", self)
+            a.setStartValue(0); a.setEndValue(full_h)
+
+            def done():
+                self.full.setMaximumHeight(16777215)
+        a.setDuration(450); a.setEasingCurve(QEasingCurve.InOutCubic)
+        a.finished.connect(done)
+        self._fold_anim = a
+        a.start()
+        return a
 
     def show_toggle(self, key, on):
         for b in (self.toggles.get(key), self.c_toggles.get(key)):
@@ -420,7 +455,7 @@ class DetailsDialog(QDialog):
         names = host.authors.for_effort(host.effort_name) if getattr(host, "authors", None) else []
         self.pm.addItems([""] + names); self.pm.setCurrentText(ident["pm"])
         self.client = QLineEdit(client); self.client.setPlaceholderText("Customer")
-        self.sol = QLineEdit(solicitation); self.sol.setPlaceholderText("Solicitation number")
+        self.sol = QLineEdit(solicitation); self.sol.setPlaceholderText("Opportunity Number (Client Issued)")
         import teampack as TP
         team_marks = TP.markings(host.config_dir)                    # 2.89.0: the team's markings
         marks = list(dict.fromkeys([*BR.MARKINGS, *team_marks])) if not TP.locked(host.config_dir, "markings") else ([BR.NOT_CUI] + team_marks)
@@ -440,7 +475,7 @@ class DetailsDialog(QDialog):
             self.zone.addItem(zk, zk)
         self.zone.setCurrentIndex(max(0, self.zone.findData(zk)))
         self.zone.setToolTip("The time zone the customer's deadline is written in. Your own is in Settings.")
-        f.addRow("Proposal manager", self.pm); f.addRow("Client", self.client); f.addRow("Solicitation", self.sol)
+        f.addRow("Proposal manager", self.pm); f.addRow("Client", self.client); f.addRow("Opportunity Number (Client Issued)", self.sol)
         from PySide6.QtCore import QDate, QTime
         from PySide6.QtWidgets import QCheckBox, QDateEdit, QTimeEdit
         due = rec.data.get("due", "")
@@ -471,18 +506,23 @@ class DetailsDialog(QDialog):
         self.pagelim.setCurrentIndex(max(0, self.pagelim.findData(rec.data.get("page_limited", ""))))
         self.pagelim.setToolTip("Decide from the documents: page-limited when a page limit is found. Or say so yourself.")
         f.addRow("Page-limited", self.pagelim)
-        v.addWidget(D.label("The effort's own spots: anything the team wants on the banner (capture manager, contract vehicle, "
-                            "value, place of performance).", "muted"))
-        self.table = QTableWidget(0, 2); self.table.setHorizontalHeaderLabels(["Spot", "Value"])
+        extra = QWidget(); ev = QVBoxLayout(extra); ev.setContentsMargins(0, 0, 0, 0)       # 3.20.3: optional, folded away
+        self.extra_btn = D.button("Extra details on the banner (optional)...", "ghost", lambda: extra.setVisible(not extra.isVisible()),
+                                  "Lines of your own under the effort's name on the dashboard: capture manager, contract vehicle, "
+                                  "value, place of performance")
+        v.addWidget(self.extra_btn)
+        ev.addWidget(D.label("Each line shows under the effort's name on the dashboard banner.", "muted"))
+        self.table = QTableWidget(0, 2); self.table.setHorizontalHeaderLabels(["Detail", "Shows as"])
         self.table.verticalHeader().setVisible(False); self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setColumnWidth(0, 180); self.table.setMinimumHeight(160)
         for fl in ident["fields"]:
             self.add_row(fl["label"], fl["value"])
-        v.addWidget(self.table)
-        row = QHBoxLayout(); v.addLayout(row)
-        row.addWidget(D.button("+ Spot", None, lambda: self.add_row("", "")))
+        ev.addWidget(self.table)
+        row = QHBoxLayout(); ev.addLayout(row)
+        row.addWidget(D.button("+ Detail", None, lambda: self.add_row("", "")))
         row.addWidget(D.button("Remove", "ghost", lambda: self.table.removeRow(self.table.currentRow()) if self.table.currentRow() >= 0 else None))
         row.addStretch(1)
+        v.addWidget(extra); extra.setVisible(bool(ident["fields"]))
         bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
         v.addWidget(bb)
 

@@ -101,7 +101,7 @@ class StartEffort(QFrame):
         form = QFormLayout(); form.setSpacing(D.SPACE["s"]); row.addLayout(form, 1)
         self.name = QLineEdit(); self.name.setPlaceholderText("Effort name")
         self.client = QLineEdit(); self.client.setPlaceholderText("Customer")
-        self.sol = QLineEdit(); self.sol.setPlaceholderText("Solicitation number")
+        self.sol = QLineEdit(); self.sol.setPlaceholderText("Opportunity Number (Client Issued)")
         self.due = QLineEdit(); self.due.setPlaceholderText("Date and time, for example YYYY-MM-DD HH:MM")
         self.zone = QComboBox()
         import tzones as TZ
@@ -119,7 +119,7 @@ class StartEffort(QFrame):
         self.pm.setCurrentText("")
         form.addRow("Effort name", self.name)
         form.addRow("Client", self.client)
-        form.addRow("Solicitation number", self.sol)
+        form.addRow("Opportunity Number (Client Issued)", self.sol)
         form.addRow("Proposals due", drow)
         form.addRow("Proposal manager", self.pm)
         self.etype = QComboBox()                      # 3.8.0: the effort type its deliverables' formatting follows
@@ -148,7 +148,7 @@ class StartEffort(QFrame):
         mf.addRow("Customer documents folder", self._folder(self.cust, "Customer documents folder"))
         mf.addRow("Volumes folder", self._folder(self.vols, "Volumes folder"))
         mf.addRow("First use of an acronym", self.rule)
-        mf.addRow("Internal number", self.internal)
+        mf.addRow("Internal A Number", self.internal)
         self.more.setVisible(False)
         outer.addWidget(self.more)
         self.where = D.label("", "muted"); outer.addWidget(self.where)

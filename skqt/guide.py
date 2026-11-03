@@ -110,6 +110,7 @@ TOPICS = [
    "+ Topic adds a topic: what it is, what it points at (a section of the structure or a requirement) and its owner. Topics "
    "from notes offers the notes' lines that start with -, * or Topic:, Action:, Decision: for you to tick.",
    "When a topic has been taken into account, select it and press Considered (who and when are kept). Not needed asks why.",
+   "Select words in the notes and press Make a topic of the selection (or right-click): the topic box opens with them.",
    "Export to Word... saves the meeting, its notes and topics."],
   ["Open topics show on the Effort Dashboard, in My Work for their owner, and on the card of the sentence or section they "
    "point at in Review.",
@@ -167,7 +168,8 @@ TOPICS = [
   "From the first read until every sentence is decided, and again when a new version arrives.",
   ["Click a sentence. Press L (Instructions), E (M, Evaluation) or R (SOW, Work) to make it a requirement in the "
    "target section; C for context that supports the last requirement; G for the customer's own sentence; X to clear.",
-   "Drag across words inside the sentence to pick just those words. Capture files them: a contact, submission or "
+   "Drag across words inside the sentence to pick just those words. Extract (Shift+S) makes them a sentence of their own. "
+   "Split (S) splits at a clicked word, or asks exactly where. Capture files them: a contact, submission or "
    "formatting rule, acronym, key date or customer question. More captures... adds evaluation factors, page limits, "
    "deliverables, effort details and hot buttons.",
    "Graphic need (P) tags a concept that needs a graphic, from the sentence or the words you picked; it lists on the Effort Dashboard.",

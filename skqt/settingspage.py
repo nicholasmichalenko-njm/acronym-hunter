@@ -294,7 +294,7 @@ class SettingsPage(QWidget):
             vols.setPlaceholderText("Blank: the effort's own Volumes folder")
             form.addRow("Customer documents folder", _folder_row(cust, dlg, "Customer documents folder"))
             form.addRow("Volumes folder", _folder_row(vols, dlg, "Volumes folder"))
-            form.addRow("Client (short name)", client); form.addRow("Solicitation number", sol); form.addRow("Internal number", internal)
+            form.addRow("Client (short name)", client); form.addRow("Opportunity Number (Client Issued)", sol); form.addRow("Internal A Number", internal)
             bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.button(QDialogButtonBox.Ok).setText("Create effort")
             bb.accepted.connect(dlg.accept); bb.rejected.connect(dlg.reject); form.addRow(bb)
             if dlg.exec() != QDialog.Accepted:

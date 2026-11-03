@@ -20,6 +20,15 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.20.3": ["Review fits the window: the document scrolls, the right panel scrolls on its own with the decisions on top, "
+               "and the wheel glides. Drag across words and press Extract (Shift+S) to make them a sentence of their own; "
+               "Split with no word clicked asks exactly where.",
+               "A sentence's card lists what was captured from it, with its value to fix in place (a mistyped e-mail).",
+               "Effort Dashboard: every card fits half width (its buttons wrap), a tile's number shrinks rather than cut "
+               "off its words, and a Questions due tile shows the days left and the questions not yet submitted.",
+               "Meetings: room between the list and the meeting, a larger notes box, and Make a topic of the selection.",
+               "Library: right-click a document for everything you can do with it; Read it in Review never stops at the role.",
+               "Opportunity Number (Client Issued) and Internal A Number; Condense is an arrow and glides."],
     "3.20.2": ["Every download names its version: Stationkeeper_US_3.20.2.zip opens to a Stationkeeper_US_3.20.2 folder (the "
                "Training and SCIF downloads and the SBOM files too), so there is no doubt which version you have. Unzip a "
                "new one beside the old: your data in Stationkeeper Data is picked up as before."],

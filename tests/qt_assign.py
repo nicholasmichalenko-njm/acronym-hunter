@@ -127,7 +127,7 @@ QTest.mouseClick(pg.view.viewport(), Qt.LeftButton, Qt.NoModifier, pg.view.mapFr
 app.processEvents()
 check("2.93.0: a clicked word shows the cut line, the second part tinted, and Split here at the cut",
       len(pg._split_items) >= 3 and pg.split_bar is not None and pg.split_bar.graphicsProxyWidget().isVisible()
-      and pg.keys["Split"].isEnabled() and pg.keys["Split"].text().startswith("Split here"))
+      and pg.keys["Split"].isEnabled() and pg.keys["Split"].text() == "Split  S")   # 3.20.3: same text, no reflow
 if os.environ.get("SHOT_DIR"):
     pg.view.ensureVisible(pg.split_bar.graphicsProxyWidget(), 40, 60); app.processEvents(); w.grab().save(os.path.join(os.environ["SHOT_DIR"], "split.png"))
 check("2.93.0: the card previews both parts", pg.split_preview is not None and any(l.text().startswith("Part 2: Each page")
@@ -164,9 +164,10 @@ w.close()
 # 2.82.0: the decision buttons sit beside the response structure (where they land); sentence edits stay by the page
 pgA = w.assign_page
 col = pgA.tree.parentWidget()
-check("decisions beside the response structure, the target named above them",
+check("decisions at the top of the right panel (3.20.3), the target named above them",
       all(pgA.dec_box.isAncestorOf(pgA.keys[k]) for k in ("Requirement", "L", "M", "Support", "Customer's", "Ignore"))
-      and pgA.dec_box.parentWidget() is col and not pgA.dec_box.isAncestorOf(pgA.keys["Combine"])
+      and pgA.right.indexOf(pgA.decide_area) == 0 and pgA.right.indexOf(pgA.card_area) == 1 and pgA.side_area.isAncestorOf(pgA.tree)
+      and not pgA.dec_box.isAncestorOf(pgA.keys["Combine"])
       and (pgA.target or "Click a section") and ("into" in pgA.target_lbl.text() or "Click a section" in pgA.target_lbl.text()), pgA.target_lbl.text())
 
 n = sum(checks)
