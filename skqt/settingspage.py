@@ -109,6 +109,11 @@ class SettingsPage(QWidget):
                          actions=[D.button("Load a new version...", None, lambda: self.load_master())])
         self.db_text = self.db.add(D.label("", "muted"))
         v.addWidget(self.db)
+        self.ri_card = D.Card("Review: decisions and captures", "Every decision (L, M, SOW, Interest, Support, Customer's, "   # 3.29.0
+                              "Ignore) and every capture in Review: its name, key, color, whether it shows and where; which "
+                              "decisions an effort type hides (an RFI hides L, M and SOW and shows Interest); the team's own captures.",
+                              actions=[D.button("Decisions and captures...", "primary", lambda: self.review_items())])
+        v.addWidget(self.ri_card)
         self.sg_card = D.Card("Suggestion rules", "Review's Suggest uses rules you can read, not AI: who acts, the verb and the RFP "
                               "section, then the team's and each effort's own rules, made from corrections (Make a rule... on a "
                               "sentence's card). A team pack shares the team's.",                        # 3.18.0
@@ -540,6 +545,15 @@ class SettingsPage(QWidget):
         self.refresh()
         return st["backup_dir"]
 
+
+
+    def review_items(self, run=True):
+        """3.29.0: Settings > Review: decisions and captures."""
+        from .reviewitemsview import ReviewItemsDialog
+        d = ReviewItemsDialog(self, self.host)
+        if run:
+            d.exec()
+        return d
 
 class _TrainingHelper:
     """The classic window's gathering of what this PC taught (every effort's matrix, compliance words, choices,

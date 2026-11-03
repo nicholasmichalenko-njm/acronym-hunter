@@ -62,7 +62,7 @@ import effortrec as RR, excerpts as EX, pagemarks as PM
 from PySide6.QtGui import QShortcut
 rec = lambda: RR.Record(w.ws.root)
 
-check("the bins sit with the captures, with their keys", all(k in pg.cap_keys for k in ("objective", "keypoint", "bins"))
+check("3.29.0: Objective and Key point sit on the capture bar, More... beside them, with their keys", all(k in pg.cap_keys for k in ("objective", "keypoint", "more"))
       and {"O", "K", "B", "Alt+1", "Alt+9"} <= {s.key().toString() for s in pg.findChildren(QShortcut)})
 
 # ---------------------------------------------------------------- an objective, mapped to sections

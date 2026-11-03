@@ -114,7 +114,7 @@ check("RFI suggestions: what the Government wants to learn is a Customer interes
       and SR.suggest(M, it)["cat"] != "I")
 b = by("The Offeror shall describe its technical approach")
 pg.select(b["id"]); pg.do_lm("I"); app.processEvents()
-check("I: a Customer interest", b.get("lm") == "I" and SD.LM_SHORT["I"] == "Interest (RFI)")
+check("I: a Customer interest", b.get("lm") == "I" and SD.LM_SHORT["I"] == "Customer interest (RFI)")
 w.close()
 n = sum(checks)
 print(f"QT TOPICS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

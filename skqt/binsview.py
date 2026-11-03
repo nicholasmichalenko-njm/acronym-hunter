@@ -23,7 +23,7 @@ class BinDialog(QDialog):
     def __init__(self, parent, rec, config_dir, bin_id, parts, sections=(), x=None):
         super().__init__(parent)
         self.rec, self.x = rec, x
-        self.setWindowTitle("Edit the excerpt" if x else f"Put in a bin: {EX.bin_name(rec, bin_id, config_dir)}")
+        self.setWindowTitle("Edit the capture" if x else f"Capture: {EX.bin_name(rec, bin_id, config_dir)}")
         self.setMinimumWidth(640)
         v = QVBoxLayout(self)
         f = QFormLayout(); v.addLayout(f)
@@ -31,7 +31,7 @@ class BinDialog(QDialog):
         for b in EX.bins(rec, config_dir):
             self.bin.addItem(b["name"], b["id"])
         self.bin.setCurrentIndex(max(0, self.bin.findData(bin_id)))
-        f.addRow("Bin", self.bin)
+        f.addRow("Capture", self.bin)
         probe = {"parts": parts}
         self.words = QPlainTextEdit(EX.text_of(probe)); self.words.setReadOnly(True); self.words.setMaximumHeight(110)
         self.words.setToolTip("The customer's words, verbatim (fix a part from the sentence's card if the reader got it wrong)")
@@ -78,7 +78,7 @@ class NewBinDialog(QDialog):
 
     def __init__(self, parent, rec, b=None):
         super().__init__(parent)
-        self.setWindowTitle("Bin" if b else "New bin")
+        self.setWindowTitle("Capture" if b else "New capture")
         self.setMinimumWidth(480)
         f = QFormLayout(self)
         self.name = QLineEdit((b or {}).get("name", "")); self.name.setPlaceholderText("For example: Transition risk, Small business")
@@ -129,19 +129,19 @@ class ExcerptsDialog(QDialog):
     def __init__(self, parent, page, rec):
         super().__init__(parent)
         self.page, self.rec = page, rec
-        self.setWindowTitle("Every excerpt")
+        self.setWindowTitle("Captured list: everything captured in this effort")
         self.resize(1100, 620)
         v = QVBoxLayout(self)
         top = QHBoxLayout(); v.addLayout(top)
-        top.addWidget(D.label("Bin", "label"))
-        self.filter = QComboBox(); self.filter.addItem("Every bin", None)
+        top.addWidget(D.label("Capture", "label"))
+        self.filter = QComboBox(); self.filter.addItem("Every capture", None)
         for b in EX.bins(rec, page.host.config_dir):
             n = EX.counts(rec).get(b["id"], 0)
             if n or not b["builtin"]:
                 self.filter.addItem(f"{b['name']} ({n})", b["id"])
         self.filter.currentIndexChanged.connect(lambda _i: self.fill())
         top.addWidget(self.filter); top.addStretch(1)
-        self.t = QTableWidget(0, 5); self.t.setHorizontalHeaderLabels(["Bin", "The customer's words", "Value", "Where", "Note"])
+        self.t = QTableWidget(0, 5); self.t.setHorizontalHeaderLabels(["Capture", "The customer's words", "Value", "Where", "Note"])
         self.t.verticalHeader().setVisible(False); self.t.setSelectionBehavior(QTableWidget.SelectRows)
         self.t.setEditTriggers(QTableWidget.NoEditTriggers); self.t.setWordWrap(True)
         hh = self.t.horizontalHeader(); hh.setSectionResizeMode(1, QHeaderView.Stretch)
@@ -212,14 +212,14 @@ class BinsDialog(QDialog):
     def __init__(self, parent, page, rec):
         super().__init__(parent)
         self.page, self.rec = page, rec
-        self.setWindowTitle("Bins")
+        self.setWindowTitle("Captures of this effort")
         self.resize(640, 420)
         v = QVBoxLayout(self)
-        v.addWidget(D.label("Built-in bins are always there. Bins of this effort get the keys Alt+1 to Alt+9; a bin shared with the "
+        v.addWidget(D.label("Your own captures. The built-in ones are named, colored and shown in Settings > Review: decisions and captures. Captures of this effort get the keys Alt+1 to Alt+9; one shared with the "
                             "team shows in every effort on this PC and travels in the next team pack.", "muted"))
         self.list = QListWidget(); v.addWidget(self.list, 1)
         row = QHBoxLayout(); v.addLayout(row)
-        row.addWidget(D.button("+ Bin...", None, lambda: self.add()))
+        row.addWidget(D.button("+ Capture...", None, lambda: self.add()))
         row.addWidget(D.button("Change...", "ghost", lambda: self.change()))
         row.addWidget(D.button("Share with team", "ghost", lambda: self.share()))
         row.addWidget(D.button("Take out", "ghost", lambda: self.remove()))

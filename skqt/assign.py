@@ -40,6 +40,15 @@ WORD = re.compile(r"[A-Za-z0-9]+")
 BULK_DECISIONS = (("Decide all...", ""), ("L (Instructions)", "L"), ("M (Evaluation)", "M"), ("SOW (Work)", "SOW"),
                   ("Support", "ctx"), ("Customer's", "cust"), ("Ignore", "ignore"))
 
+EX_BUILTIN_CAPTURES = ("contact", "submit", "format", "acronym", "question", "keydate", "factor", "pagelimit", "deliverable",
+                       "detail", "hot", "graphic")          # 3.29.0: captures filed by _do_capture
+
+
+def RI_decisions(cfg, et, show_all=False):
+    import reviewitems as RI
+    return RI.decisions_for(cfg, et, show_all)
+
+
 SG_DEC = {"L": "Keep", "M": "Keep", "SOW": "Keep", "ctx": "Context", "cust": "Customer", "ignore": "Drop", "I": "Keep"}   # 3.18.0
 SG_LM = {"L": "L", "M": "M", "SOW": "C", "I": "I"}
 SG_KEYS = {"L": "L", "M": "E", "SOW": "R", "ctx": "C", "cust": "G", "ignore": "X", "I": "I"}
@@ -573,68 +582,29 @@ class AssignPage(QWidget):
         self.legend.setToolTip("The colors on the page. Every decision has its own; a sentence something was captured from "
                                "has the pink outline and what was captured in the margin.")
         dv.addWidget(self.legend)
-        grid = FlowLayout(spacing=D.SPACE["xs"])             # 3.20.3: the buttons wrap when the panel is narrow
         self.dec_box = dec
-        for k, (text, kind, fn, tip) in enumerate((
-                ("L (Instructions)  L", "req", lambda: self.do_lm("L"), "L: Instructions, Conditions and Notices to Offerors. A compliance "
-                 "requirement in the target section. Key: L"),
-                ("M (Evaluation)  E", "lmM", lambda: self.do_lm("M"), "M: Evaluation Factors for Award. A compliance requirement in the "
-                 "target section. Key: E"),
-                ("SOW (Work)  R", "lmS", lambda: self.do_sow(), "What the contractor shall do (Section C, SOW, PWS). A compliance "
-                 "requirement in the target section. Key: R"),
-                ("Support  C", "ctx", self.do_ctx, "Supporting context for the last requirement you clicked"),
-                ("Customer's  G", "cust", self.do_customer, "The customer's to act on: identified, never answered"),
-                ("Ignore  X", "drop", self.do_clear, "Ignore it: decided, not in the response (grey on the page). "
-                 "Delete takes a decision off."))):
-            b = D.button(text, kind, fn, tip)
-            self.keys[{"L": "L", "M": "M", "SOW": "Requirement"}.get(text.split()[0], text.split()[0])] = b
-            grid.addWidget(b)
-        self.dec_grid = QWidget(); self.dec_grid.setLayout(grid)
+        self.dec_lay = FlowLayout(spacing=D.SPACE["xs"])                   # 3.29.0: the decisions, the team's way (Settings)
+        self.dec_grid = QWidget(); self.dec_grid.setLayout(self.dec_lay)
         dv.addWidget(self.dec_grid)
-        dv.addWidget(D.label("Capture", "label", wrap=False))             # 2.96.0: capture what the sentence holds
-        caprow = FlowLayout(spacing=D.SPACE["xs"])                         # 2.98.0: six; 3.20.3: they wrap
-        self.cap_keys = {}
-        for k, (key, text, tip) in enumerate((
-                ("contact", "Contact", "A point of contact: name, title, e-mail, phone, address (Customer information)"),
-                ("submit", "Submission", "A submission instruction: due date and time, delivery, copies, file format"),
-                ("format", "Formatting", "A formatting rule: page limit, font, margins, page size, spacing"),
-                ("acronym", "Acronym", "The acronym and what it stands for, into the effort list"),
-                ("question", "Question", "A question for the customer, quoting their exact wording (Customer Q&A)"),
-                ("keydate", "Key date", "Questions due, site visit, industry day, orals, award: onto the calendar"))):
-            b = D.button(text, "cap", lambda _=False, kk=key: self.do_capture(kk), tip + ". Uses the words you dragged across, "
-                         "else the selected sentence.")
-            self.cap_keys[key] = b
-            caprow.addWidget(b)
-        capw = QWidget(); capw.setLayout(caprow); dv.addWidget(capw)
-        from PySide6.QtWidgets import QMenu                           # 2.99.0: the less frequent captures
-        more = D.button("More captures...", "cap", None, "Evaluation factor, page limit, deliverable, effort detail, hot button")
-        menu = QMenu(more)
-        self.more_actions = {}
-        for key, text in (("factor", "Evaluation factor"), ("pagelimit", "Page limit"), ("deliverable", "Deliverable"),
-                          ("detail", "Effort detail (contract type, NAICS, set-aside...)"), ("hot", "Hot button")):
-            act = menu.addAction(text)
-            act.triggered.connect(lambda _=False, kk=key: self.do_capture(kk))
-            self.more_actions[key] = act
-        more.setMenu(menu)
-        self.cap_keys["more"] = more
-        gfx = D.button("Graphic need  P", "cap", lambda: self.do_capture("graphic"), "Tag a concept here that needs a graphic: "  # 3.0.4
-                       "it lists under Graphic needs on Effort Home. Uses the words you dragged across, else the selected sentence.")
-        self.cap_keys["graphic"] = gfx
-        caprow.addWidget(gfx); caprow.addWidget(more)
-        # 3.21.0: bins: the picked words, verbatim with where they sit, in a bin (a sentence can sit in several)
-        for key, text, tip in (("objective", "Objective  O", "A goal the customer states: map it to the sections that answer it"),
-                               ("keypoint", "Key point  K", "Your train of thought while reading: a theme, a discriminator, a risk")):
-            b = D.button(text, "cap", lambda _=False, kk=key: self.do_bin(kk), tip + ". Uses the words you dragged across, "
-                         "else the selected sentences.")
-            self.cap_keys[key] = b
-            caprow.addWidget(b)
-        self.bins_btn = D.button("Bins  B", "cap", None, "Other submission detail, a written formatting rule, the effort's own "
-                                 "bins (Alt+1 to Alt+9), New bin..., and Every excerpt...")
-        self.bins_menu = QMenu(self.bins_btn)
-        self.bins_menu.aboutToShow.connect(lambda: self.fill_bins_menu())
-        self.bins_btn.setMenu(self.bins_menu)
-        self.cap_keys["bins"] = self.bins_btn
-        caprow.addWidget(self.bins_btn)
+        self.dec_all = QCheckBox("Show every decision")                    # 3.29.0: an effort type can hide some (an RFI)
+        self.dec_all.toggled.connect(lambda _on: self.build_decide())
+        dv.addWidget(self.dec_all)
+        ch = QHBoxLayout(); ch.setSpacing(D.SPACE["s"])
+        ch.addWidget(D.label("Capture", "label", wrap=False)); ch.addStretch(1)
+        self.captured_btn = D.button("\u2630  Captured list", "primary", lambda: self.all_excerpts(),     # 3.29.0
+                                     "Everything captured in this effort, in one list: by capture, with the words and where "
+                                     "they sit; edit, take out, export")
+        ch.addWidget(self.captured_btn)
+        dv.addLayout(ch)
+        self.cap_lay = FlowLayout(spacing=D.SPACE["xs"])                   # 3.29.0: one bar: built-in and your own captures
+        capw = QWidget(); capw.setLayout(self.cap_lay); dv.addWidget(capw)
+        from PySide6.QtWidgets import QMenu
+        self.more_btn = D.button("More...", "cap", None, "The other captures, your own, + Capture... and Captures of this effort")
+        self.more_menu = QMenu(self.more_btn)
+        self.more_menu.aboutToShow.connect(lambda: self.fill_more_menu())
+        self.more_btn.setMenu(self.more_menu)
+        self.cap_keys, self.more_actions, self._dyn_keys = {}, {}, []
+        self.bins_btn, self.bins_menu = self.more_btn, self.more_menu       # older names
         cgrid = FlowLayout(spacing=D.SPACE["xs"])                             # 2.84.0: for a library document
         self.ctx_keys = {}
         for k, (text, kind, fn, tip) in enumerate((
@@ -756,25 +726,21 @@ class AssignPage(QWidget):
         split = QSplitter(Qt.Horizontal); split.addWidget(pagew); split.addWidget(right); split.setSizes([1100, 470])
         v.addWidget(split, 1)
         self.notes_timer = QTimer(self, singleShot=True, interval=700, timeout=self.save_notes)
-        for key, fn in (("R", lambda: self.do_sow()), ("C", self.do_ctx), ("G", self.do_customer), ("X", self.do_clear),
-                        ("L", lambda: self.do_lm("L")), ("E", lambda: self.do_lm("M")), ("Shift+M", lambda: self.do_lm("M")),
-                        ("Delete", self.do_undecide), ("J", self.do_combine), ("S", self.do_split),
+        for key, fn in (("Delete", self.do_undecide), ("J", self.do_combine), ("S", self.do_split),
                         ("Shift+S", lambda: self.do_extract()),
-                        ("O", lambda: self.do_bin("objective") if self.cx is None else None),       # 3.21.0: bins
-                        ("K", lambda: self.do_bin("keypoint") if self.cx is None else None),
-                        ("B", lambda: self.bins_btn.showMenu() if self.cx is None else None),
+                        ("B", lambda: self.more_btn.showMenu() if self.cx is None else None),
                         ("F", lambda: self.do_for_req()), ("N", lambda: self.do_record("note")),
                         ("Q", lambda: self.do_record("question")), ("T", lambda: self.do_record("task")),
                         ("Ctrl+A", lambda: self.select_all()), ("H", lambda: self.toggle_pan()),
-                        ("Return", lambda: self.accept_suggestions(rows=self.selected())), ("P", lambda: self.do_capture("graphic") if self.cx is None else None),
+                        ("Return", lambda: self.accept_suggestions(rows=self.selected())),
                         ("Escape", lambda: self.toggle_capture(False) if self.view.capturing else
                          (self.clear_split() if self.split_at is not None else self.view.scene().clearSelection()))):
             QShortcut(QKeySequence(key), self.view, activated=fn)
         for i in range(9):                                       # 3.21.0: the effort's own bins, in order
             QShortcut(QKeySequence(f"Alt+{i + 1}"), self.view, activated=lambda n=i: self.do_custom_bin(n))
             QShortcut(QKeySequence(str(i + 1)), self.view, activated=lambda n=i: self.tag_topic(n) if self.sort_on else None)
-        QShortcut(QKeySequence("I"), self.view, activated=lambda: self.do_lm("I") if self.rfi and self.cx is None else None)   # 3.28.0
         QShortcut(QKeySequence("Ctrl+T"), self.view, activated=lambda: self.toggle_sort())
+        self.apply_items()                                       # 3.29.0: decisions and captures from Settings
         self.show_card([])
 
     # ------------------------------------------------------------ the review
@@ -794,6 +760,7 @@ class AssignPage(QWidget):
         if rfi and not self.rfi and self.R is not None:                       # an RFI effort opens in Sort mode
             self.sort_on = True; self.sort_btn.setChecked(True)
         self.rfi = rfi
+        self.apply_items()                                                     # 3.29.0: this effort type's decisions
         self.fill_topics()
         self.sg = SR.store(self.host.ws) if self.R is not None else {}          # 3.18.0: this effort's suggestions
         self.load_marks()
@@ -1424,7 +1391,7 @@ class AssignPage(QWidget):
             self.keys["Extract"].setEnabled(self.cx is None)
         self.show_card(self.selected())
         self.host.status(f"Picked words in {len(pieces)} sentences. Extract (Shift+S) makes them one sentence, split from "
-                         "where they were; a capture or bin uses just these words; click elsewhere to drop them.")
+                         "where they were; a capture uses just these words; click elsewhere to drop them.")
         return pieces
 
     def show_grab(self, iid, a, b, final=True):
@@ -1665,6 +1632,140 @@ class AssignPage(QWidget):
             diag.swallowed()
             return None
 
+    # ------------------------------------------------------------ 3.29.0: decisions and captures, the team's way
+    DEC_KEY = {"L": "L", "M": "M", "C": "Requirement", "I": "Interest", "ctx": "Support", "cust": "Customer's", "ignore": "Ignore"}
+    DEC_KIND = {"L": "req", "M": "lmM", "C": "lmS", "I": "req", "ctx": "ctx", "cust": "cust", "ignore": "drop"}
+
+    def _dec_fn(self, code):
+        return {"L": lambda: self.do_lm("L"), "M": lambda: self.do_lm("M"), "C": lambda: self.do_sow(), "I": lambda: self.do_lm("I"),
+                "ctx": self.do_ctx, "cust": self.do_customer, "ignore": self.do_clear}[code]
+
+    def _cap_fn(self, key):
+        if key in ("objective", "keypoint", "other"):
+            return lambda: self.do_bin(key) if self.cx is None else None
+        if key == "written":
+            return lambda: self.do_bin("format", written=True) if self.cx is None else None
+        if key in EX_BUILTIN_CAPTURES:
+            return lambda: self.do_capture(key) if (self.cx is None or key != "graphic") else None
+        return lambda: self.do_bin(key) if self.cx is None else None
+
+    def apply_items(self):
+        """Names, keys, colors and showing of the decisions and captures (Settings > Review: decisions and captures)."""
+        import reviewitems as RI
+        self.items_cfg = RI.load(self.host.config_dir)
+        d = self.items_cfg["decisions"]
+        for code, lm in (("L", "L"), ("M", "M"), ("C", "C"), ("I", "I")):     # the page and the legend take the colors
+            D.PAGE_LM[lm] = d[code]["color"]
+            SD.LM_SHORT[lm] = d[code]["name"]
+        D.PAGE_LM["SOW"] = d["C"]["color"]
+        D.PAGE_DEC["Context"], D.PAGE_DEC["Customer"], D.PAGE_DEC["Drop"] = d["ctx"]["color"], d["cust"]["color"], d["ignore"]["color"]
+        legend = [(x["name"], x["color"]) for x in RI.decisions_for(self.items_cfg, self.effort_type()) if x["code"] != "ignore"]
+        legend += [("Requirement", "#4D7C0F"), ("Ignored", d["ignore"]["color"]), ("Captured", D.CAPTURE_COLOR)]
+        self.legend.setText("&nbsp;&nbsp;".join(f"<span style='color:{c}'>\u25A0</span> {n}" for n, c in legend)
+                            + "&nbsp;&nbsp;<span style='color:#94A3B8'>\u25A1</span> Not decided")
+        self.build_decide()
+        self.build_captures()
+        if self.view.boxes:
+            self.restyle()
+
+    def effort_type(self):
+        try:
+            return ((self.host.ws.get("prod_std", {}) or {}).get("effort_type") or "") if self.host.ws is not None else ""
+        except Exception:  # noqa: BLE001
+            return ""
+
+    def _clear_lay(self, lay):
+        while lay.count():
+            w = lay.takeAt(0).widget()
+            if w is not None:
+                w.setParent(None); w.deleteLater()
+
+    def build_decide(self):
+        import reviewitems as RI
+        cfg = getattr(self, "items_cfg", None) or RI.load(self.host.config_dir)
+        self._clear_lay(self.dec_lay)
+        for k in list(self.DEC_KEY.values()):
+            self.keys.pop(k, None)
+        et = self.effort_type()
+        shown = RI.decisions_for(cfg, et, show_all=self.dec_all.isChecked())
+        hidden = len(RI.decisions_for(cfg, et, show_all=True)) - len(RI.decisions_for(cfg, et))
+        self.dec_all.setVisible(bool(hidden) or self.dec_all.isChecked())
+        self.dec_all.setText(f"Show every decision ({hidden} hidden for this effort)" if hidden else "Show every decision")
+        for d in shown:
+            b = D.button(f"{d['name']}  {d['key']}".strip(), self.DEC_KIND[d["code"]], self._dec_fn(d["code"]),
+                         f"{d['name']}. Key: {d['key'] or 'none'}. Change its name, key and color in Settings > Review: "
+                         "decisions and captures.")
+            b.setIcon(D.dot_icon(d["color"]))
+            self.keys[self.DEC_KEY[d["code"]]] = b
+            self.dec_lay.addWidget(b)
+        self._bind_keys(cfg)
+
+    def custom_captures(self):
+        import excerpts as EX
+        if self.host.ws is None:
+            return []
+        try:
+            return [b for b in EX.bins(R_.Record(self.host.ws.root), self.host.config_dir) if not b["builtin"]]
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            return []
+
+    def build_captures(self):
+        import reviewitems as RI
+        cfg = getattr(self, "items_cfg", None) or RI.load(self.host.config_dir)
+        self._clear_lay(self.cap_lay)
+        self.cap_keys, self.more_actions = {}, {}
+        for key in cfg["order"]:
+            c = cfg["captures"][key]
+            if not c["shown"]:
+                continue
+            if c["place"] == "bar":
+                b = D.button(f"{c['name']}  {c['keyseq']}".strip(), "cap", self._cap_fn(key),
+                             c["does"] + ". Uses the words you dragged across, else the selected sentences.")
+                b.setIcon(D.dot_icon(c["color"]))
+                self.cap_keys[key] = b
+                self.cap_lay.addWidget(b)
+            else:
+                self.more_actions[key] = c
+        for c in self.custom_captures():                       # your own captures, on the bar
+            b = D.button(f"{c['name']}  {c.get('key', '')}".strip(), "cap", self._cap_fn(c["id"]),
+                         (c.get("about") or "Your own capture") + (" (the team's)" if c.get("team") else " (this effort's)"))
+            b.setIcon(D.dot_icon(c["color"]))
+            self.cap_keys[c["id"]] = b
+            self.cap_lay.addWidget(b)
+        self.cap_keys["more"] = self.more_btn
+        self.cap_lay.addWidget(self.more_btn)
+        self._bind_keys(cfg)
+
+    def fill_more_menu(self):
+        import reviewitems as RI
+        cfg = getattr(self, "items_cfg", None) or RI.load(self.host.config_dir)
+        m = self.more_menu
+        m.clear()
+        for key, c in self.more_actions.items():
+            a = m.addAction(D.dot_icon(c["color"]), c["name"] + (f"   {c['keyseq']}" if c.get("keyseq") else ""), self._cap_fn(key))
+            a.setToolTip(c["does"])
+        m.addSeparator()
+        m.addAction("+ Capture...", lambda: self.new_bin())
+        m.addAction("Captures of this effort...", lambda: self.manage_bins())
+        m.addAction("Decisions and captures (Settings)...", lambda: self.host.go("settings"))
+        return m
+
+    def _bind_keys(self, cfg):
+        """Every decision and capture key, as set in Settings."""
+        for sc in getattr(self, "_dyn_keys", []):
+            sc.setEnabled(False); sc.setParent(None); sc.deleteLater()
+        self._dyn_keys = []
+        et = self.effort_type()
+        for d in RI_decisions(cfg, et, self.dec_all.isChecked()):
+            if d.get("key"):
+                self._dyn_keys.append(QShortcut(QKeySequence(d["key"]), self.view, activated=self._dec_fn(d["code"])))
+        if "M" in [d["code"] for d in RI_decisions(cfg, et, self.dec_all.isChecked())]:
+            self._dyn_keys.append(QShortcut(QKeySequence("Shift+M"), self.view, activated=lambda: self.do_lm("M")))
+        for key, c in cfg["captures"].items():
+            if c["shown"] and c.get("keyseq"):
+                self._dyn_keys.append(QShortcut(QKeySequence(c["keyseq"]), self.view, activated=self._cap_fn(key)))
+
     def fill_bins_menu(self):
         import excerpts as EX
         m = self.bins_menu
@@ -1691,7 +1792,7 @@ class AssignPage(QWidget):
             return None
         custom = [b for b in EX.bins(R_.Record(self.host.ws.root), self.host.config_dir) if not b["builtin"]]
         if n >= len(custom):
-            return self.host.status(f"No bin on Alt+{n + 1} yet: Bins (B) > New bin...")
+            return self.host.status(f"No capture of your own on Alt+{n + 1} yet: More... > + Capture...")
         return self.do_bin(custom[n]["id"])
 
     def do_bin(self, bin_id, answer=None, written=False):
@@ -1700,7 +1801,7 @@ class AssignPage(QWidget):
         import excerpts as EX
         from . import binsview as BV
         if self.cx is not None or self.R is None:
-            return self.host.status("Bins are for the matrix's documents.")
+            return self.host.status("Captures of this kind are for the matrix's documents.")
         parts = self.excerpt_parts()
         if not parts:
             return self.host.status("Select a sentence first (drag across words inside it to pick just those; Ctrl+click for more).")
@@ -1768,6 +1869,7 @@ class AssignPage(QWidget):
         return ok
 
     def after_bins(self):
+        self.build_captures()                                  # 3.29.0: your own captures sit on the bar
         self.load_marks(); self.restyle()
         self.show_card(self.selected())
         self.host.changed()

@@ -20,6 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.29.0": ["Settings > Review: decisions and captures: name, key, color and showing of every decision and capture, the "
+               "bar or More..., the order, what each effort type hides (an RFI shows Interest), and the team's own captures.",
+               "Review: one capture bar (bins are captures now), More... for the rest, and the Captured list as its own button."],
     "3.28.1": ["Review: drag over words across sentences to pick them; Extract (Shift+S) makes them one sentence, split from "
                "where they were. Rename a volume and number the volumes I, II, III; 1, 2, 3; or A, B, C.",
                "Settings > Stages, gates and roles: Put back the built-in ones is gone."],

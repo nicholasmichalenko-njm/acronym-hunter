@@ -175,9 +175,12 @@ TOPICS = [
    "Split (S) splits at a clicked word, or asks exactly where. Capture files them: a contact, submission or "
    "formatting rule, acronym, key date or customer question. More captures... adds evaluation factors, page limits, "
    "deliverables, effort details and hot buttons.",
-   "Bins (3.21.0): Objective (O), Key point (K) and Bins (B) put the picked words in a bin, verbatim with where they sit; "
-   "Ctrl+click sentences far apart for one excerpt. A sentence keeps one decision and sits in any number of bins; its "
-   "card lists them. Every capture keeps an excerpt too. Bins (B) > New bin... makes the effort's own (Alt+1 to Alt+9).",
+   "Captures (3.29.0: bins are captures now): one bar. Objective (O), Key point (K) and every capture put the picked words "
+   "in it, verbatim with where they sit; Ctrl+click sentences far apart for one excerpt. A sentence keeps one decision "
+   "and can be captured any number of times; its card lists them. More... (B) holds the rest, + Capture... (your own, "
+   "Alt+1 to Alt+9) and Captures of this effort. Captured list (its own button) shows everything captured.",
+   "Settings > Review: decisions and captures sets every decision's and capture's name, key, color and showing, which "
+   "decisions each effort type hides (an RFI shows Interest instead of L, M and SOW), and the team's own captures.",
    "Topics (3.28.0): the bar over the page. + Topic, or Topics > from the RFP's headings. Sort mode (Ctrl+T): keys 1 to 9 "
    "put the selected sentences in the first nine topics (again takes it off); a sentence keeps its one decision. Show one "
    "topic dims the rest and says how many of its sentences are decided, open and in a section. Map a topic to sections "

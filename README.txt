@@ -1,6 +1,18 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+REVIEW'S DECISIONS AND CAPTURES, THE TEAM'S WAY (3.29.0)
+  - Settings > Review: decisions and captures: every decision (L, M, SOW, Interest, Support, Customer's, Ignore) and
+    every capture (Contact, Submission, Formatting, Acronym, Question, Key date, Objective, Key point, Graphic need,
+    Evaluation factor, Page limit, Deliverable, Effort detail, Hot button, Other submission detail, Written formatting
+    rule): name, key, color, shown or hidden; a capture on the bar or in More..., in your order. Which decisions each
+    effort type hides or shows (an RFI hides L, M and SOW and shows Interest). The team's own captures: add, rename,
+    color, take out. Keys used twice, or kept by Review, are named. Back to the built-in values.
+  - Review: one capture bar. Bins are now captures: Objective and Key point sit with Contact and the rest; your own
+    captures (the team's and this effort's) sit on the bar too; More... holds the rest, + Capture... and Captures of
+    this effort. The Captured list is a button of its own: everything captured, by capture, to edit or take out.
+  - An RFI effort's decide row shows Interest (I) in place of L, M and SOW; Show every decision brings them back.
+
 REVIEW: GRAB WORDS ACROSS SENTENCES, VOLUME NAMES AND NUMBERING (3.28.1)
   - Review: press on a word and drag over words, across as many sentences as you like, whatever was selected before.
     Let go: those words are picked and their sentences selected. Extract (Shift+S) makes the picked words one sentence,
