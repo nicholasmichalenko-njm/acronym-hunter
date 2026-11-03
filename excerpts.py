@@ -9,7 +9,8 @@ effort detail, hot button, graphic need) or one the team made (a custom bin, wit
 A sentence keeps one decision (L, M, SOW, support, the customer's, ignore), which drives the matrix; it can sit in any
 number of bins, which drive everything else. An excerpt carries a value only when one exists (a date, an e-mail, a
 font size); Formatting excerpts are measured (a value) or written (text kept verbatim: a phrase check where one fits,
-else a Final Checks item). A customer objective maps to the sections that answer it.
+else a Final Checks item). A customer objective maps to the sections that answer it; 3.29.1: every capture can be placed in sections of the
+structure, and follows them when the structure changes.
 
 Kept in the effort record (record.json: "excerpts", and "bins" for the effort's own bins); a bin shared with the team
 travels in a team pack (team_bins.json). Rules only (No AI); nothing leaves the PC."""
@@ -329,6 +330,76 @@ def counts(rec):
     for x in excerpts(rec):
         out[x["bin"]] = out.get(x["bin"], 0) + 1
     return out
+
+
+def place(rec, xids, label, on=True, only=False, who=None):
+    """3.29.1: put captures in a section of the structure (on), take them out of it (on=False), or make it their only
+    section (only). Returns how many changed."""
+    n = 0
+    lab = _clean(label, 200)
+    for x in excerpts(rec):
+        if x["id"] not in xids or not lab:
+            continue
+        cur = list(x.get("sections") or [])
+        new = [lab] if only else ((cur + [lab]) if on and lab not in cur else ([s for s in cur if s != lab] if not on else cur))
+        if new != cur:
+            x["sections"] = new
+            x["edited"] = _now(); x["edited_by"] = _who(who)
+            n += 1
+    if n:
+        rec.save()
+    return n
+
+
+def in_section(rec, label):
+    """3.29.1: the captures placed in a section."""
+    return [x for x in excerpts(rec) if label in (x.get("sections") or [])]
+
+
+def section_counts(rec):
+    """3.29.1: {section label: captures placed in it}."""
+    out = {}
+    for x in excerpts(rec):
+        for s in x.get("sections") or []:
+            out[s] = out.get(s, 0) + 1
+    return out
+
+
+def relabel(rec, mapping):
+    """3.29.1: captures and topics follow their sections when the structure renames, renumbers, moves or takes one out
+    (a section taken out: to the section its sentences went to, or out of the structure). Returns how many changed."""
+    n = 0
+    for lst in (excerpts(rec), [t for t in rec.data.get("topics", []) if isinstance(t, dict)]):
+        for x in lst:
+            cur = list(x.get("sections") or [])
+            if not any(s in mapping for s in cur):
+                continue
+            new = []
+            for s in cur:
+                t = mapping.get(s, s)
+                if t and t not in new:
+                    new.append(t)
+            x["sections"] = new
+            n += 1
+    if n:
+        rec.save()
+    return n
+
+
+def sections_state(rec):
+    """3.29.1: {capture or topic id: its sections}, for Review's Undo."""
+    return {x["id"]: list(x.get("sections") or []) for x in excerpts(rec) + [t for t in rec.data.get("topics", [])
+                                                                              if isinstance(t, dict) and t.get("id")]}
+
+
+def restore_sections(rec, state):
+    n = 0
+    for x in excerpts(rec) + [t for t in rec.data.get("topics", []) if isinstance(t, dict) and t.get("id")]:
+        if x["id"] in state and list(x.get("sections") or []) != state[x["id"]]:
+            x["sections"] = list(state[x["id"]]); n += 1
+    if n:
+        rec.save()
+    return n
 
 
 def objectives_unmapped(rec):

@@ -55,7 +55,7 @@ def load(config_dir):
     except (OSError, ValueError):
         saved = {}
     out = {"decisions": {}, "captures": {}, "order": [], "hide": copy.deepcopy(EFFORT_TYPE_HIDE),
-           "show": copy.deepcopy(EFFORT_TYPE_SHOW)}
+           "show": copy.deepcopy(EFFORT_TYPE_SHOW), "into_target": saved.get("into_target", True) is not False}
     sd = saved.get("decisions") or {}
     for code, name, short, key, color in DECISIONS:
         d = {"code": code, "name": name, "short": short, "key": key, "color": color, "shown": code not in DEFAULT_HIDDEN}
@@ -92,6 +92,8 @@ def save(config_dir, data):
             cap[key] = diff
     out = {"format": 1, "decisions": dec, "captures": cap, "order": list(data.get("order") or []),
            "hide": data.get("hide") or {}, "show": data.get("show") or {}}
+    if data.get("into_target") is False:                 # 3.29.1: captures go into the target section unless turned off
+        out["into_target"] = False
     os.makedirs(config_dir, exist_ok=True)
     tmp = _path(config_dir) + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:

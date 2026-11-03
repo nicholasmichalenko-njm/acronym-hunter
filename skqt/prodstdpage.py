@@ -469,7 +469,11 @@ class StandardsPage(QWidget):
         self.section_bar.setObjectName("sectionbar")
         self.group_bar.currentChanged.connect(lambda i: self.pick_group(i))
         self.section_bar.currentChanged.connect(lambda i: self.pick_section(i))
-        outer.addWidget(self.group_bar); outer.addWidget(self.section_bar)
+        self.group_bar.setObjectName("groupbar")         # 3.29.1: the menu stands out: a tinted band, the group as a pill
+        band = QFrame(); band.setObjectName("navband"); bl = QVBoxLayout(band)
+        bl.setContentsMargins(D.SPACE["m"], 0, D.SPACE["m"], 0); bl.setSpacing(0)
+        bl.addWidget(self.group_bar); bl.addWidget(self.section_bar)
+        outer.addWidget(band)
         self.nav = QListWidget(); self.nav.setVisible(False)  # the sections in order (kept for keys and tests)
         for _k, t in SECTIONS:
             self.nav.addItem(t)

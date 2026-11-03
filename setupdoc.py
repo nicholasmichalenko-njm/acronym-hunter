@@ -691,6 +691,7 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
     import excerpts as EX
     xs = [x for x in ((bins or {}).get("excerpts") or []) if isinstance(x, dict)]
     setup_bins = {b.get("id"): b.get("name", "") for b in ((bins or {}).get("bins") or []) if "setup" in (b.get("feeds") or [])}
+    cap_names = dict(EX.NAME, **{b.get("id"): b.get("name", "") for b in ((bins or {}).get("bins") or []) if b.get("id")})
     S = setup_of(M)
     B = by_id(M)
     d = docxw.Doc()
@@ -727,6 +728,12 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
             if x.get("bin") == "objective" and lab in (x.get("sections") or []):
                 d.rich([("Customer objective" + (f" ({EX.where_of(x)})" if EX.where_of(x) else "") + ": ", {"color": "B45309", "bold": True}),
                         (EX.text_of(x), {"color": "B45309"})], indent=720, border="B45309", kind="customer")
+        for x in xs:                                              # 3.29.1: every other capture placed in this section
+            if x.get("bin") != "objective" and lab in (x.get("sections") or []):
+                nm = cap_names.get(x.get("bin"), x.get("bin", "Capture"))
+                d.rich([(nm + (f" ({EX.where_of(x)})" if EX.where_of(x) else "") + ": ", {"color": GREEN, "bold": True}),
+                        (EX.text_of(x) + (f" [{x['value']}]" if x.get("value") else "") + (f" ({x['note']})" if x.get("note") else ""),
+                         {"color": GREEN})], indent=720, border=GREEN, kind="pm")
         if S.get("tables"):                                       # 2.38.0: the requirement table of the old Word outline
             rows = [B[i] for i in P.get(lab, []) if B.get(i) is not None and B[i].get("decision") == "Keep"]
             if rows:
@@ -761,8 +768,8 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
             if note:
                 d.para(note, color=GREEN, kind="pm")
             for x in xs:                                          # 3.29.0: key points and the effort's own bins taken here
-                if not any(pt.get("sid") == iid for pt in x.get("parts", [])):
-                    continue
+                if x.get("sections") or not any(pt.get("sid") == iid for pt in x.get("parts", [])):
+                    continue                                       # 3.29.1: one placed in a section shows there
                 if x.get("bin") == "keypoint":
                     d.para("Key point: " + EX.text_of(x) + (f" ({x['note']})" if x.get("note") else ""), color=GREEN, kind="pm")
                 elif x.get("bin") in setup_bins:

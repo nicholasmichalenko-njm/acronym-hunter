@@ -20,7 +20,7 @@ class BinDialog(QDialog):
     """The words picked, verbatim, with where they sit; the bin; a value only when one exists; a note; for an objective,
     the sections that answer it; for a written formatting rule, how it is checked."""
 
-    def __init__(self, parent, rec, config_dir, bin_id, parts, sections=(), x=None):
+    def __init__(self, parent, rec, config_dir, bin_id, parts, sections=(), x=None, chosen=()):
         super().__init__(parent)
         self.rec, self.x = rec, x
         self.setWindowTitle("Edit the capture" if x else f"Capture: {EX.bin_name(rec, bin_id, config_dir)}")
@@ -41,9 +41,9 @@ class BinDialog(QDialog):
         f.addRow("Value", self.value)
         self.note = QLineEdit((x or {}).get("note", "")); self.note.setPlaceholderText("Your note (optional)")
         f.addRow("Note", self.note)
-        self.sec_label = D.label("Sections that answer it", "label")
+        self.sec_label = D.label("Sections of the structure it goes in", "label")
         self.sections = QListWidget(); self.sections.setSelectionMode(QAbstractItemView.MultiSelection); self.sections.setMaximumHeight(140)
-        have = set((x or {}).get("sections", []))
+        have = set((x or {}).get("sections", [])) if x is not None else set(chosen or ())   # 3.29.1: new: the target
         for s in sections:
             it = QListWidgetItem(s); self.sections.addItem(it); it.setSelected(s in have)
         v.addWidget(self.sec_label); v.addWidget(self.sections)
@@ -64,7 +64,8 @@ class BinDialog(QDialog):
     def _kind(self):
         b = self.bin.currentData()
         self.value.setPlaceholderText(HINT.get(b, "A value, if one exists (optional)"))
-        self.sec_label.setVisible(b == "objective"); self.sections.setVisible(b == "objective")
+        self.sec_label.setText("Sections that answer it" if b == "objective" else "Sections of the structure it goes in")
+        self.sec_label.setVisible(self.sections.count() > 0); self.sections.setVisible(self.sections.count() > 0)   # 3.29.1
         self.fmt.setVisible(b == "format" and not self.value.text().strip())
 
     def values(self):
@@ -141,11 +142,12 @@ class ExcerptsDialog(QDialog):
                 self.filter.addItem(f"{b['name']} ({n})", b["id"])
         self.filter.currentIndexChanged.connect(lambda _i: self.fill())
         top.addWidget(self.filter); top.addStretch(1)
-        self.t = QTableWidget(0, 5); self.t.setHorizontalHeaderLabels(["Capture", "The customer's words", "Value", "Where", "Note"])
+        self.t = QTableWidget(0, 6); self.t.setHorizontalHeaderLabels(["Capture", "The customer's words", "Value", "Section", "Where", "Note"])
         self.t.verticalHeader().setVisible(False); self.t.setSelectionBehavior(QTableWidget.SelectRows)
         self.t.setEditTriggers(QTableWidget.NoEditTriggers); self.t.setWordWrap(True)
         hh = self.t.horizontalHeader(); hh.setSectionResizeMode(1, QHeaderView.Stretch)
-        for i, w in ((0, 150), (2, 170), (3, 230), (4, 170)):
+        self.t.setSelectionMode(QTableWidget.ExtendedSelection)
+        for i, w in ((0, 150), (2, 150), (3, 170), (4, 210), (5, 150)):
             self.t.setColumnWidth(i, w)
         self.t.itemDoubleClicked.connect(lambda _i: self.edit())
         v.addWidget(self.t, 1)
@@ -153,6 +155,14 @@ class ExcerptsDialog(QDialog):
         row.addWidget(D.button("Edit...", None, lambda: self.edit()))
         row.addWidget(D.button("Show in Review", "ghost", lambda: self.show_it()))
         row.addWidget(D.button("Take out", "ghost", lambda: self.take_out()))
+        tgt = getattr(page, "target", None)                                   # 3.29.1: the selected rows into a section
+        self.into_btn = D.button(f"Into the target ({tgt})" if tgt else "Into the target", None, lambda: self.into_target(),
+                                 "Put the selected captures in the section selected in your structure")
+        self.into_btn.setEnabled(bool(tgt)); row.addWidget(self.into_btn)
+        self.sec_btn = D.button("Section...", "ghost", None, "Put the selected captures in a section, or take them out of one")
+        from PySide6.QtWidgets import QMenu
+        self.sec_menu = QMenu(self.sec_btn); self.sec_menu.aboutToShow.connect(self._fill_sec_menu); self.sec_btn.setMenu(self.sec_menu)
+        row.addWidget(self.sec_btn)
         row.addStretch(1)
         bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(self.reject); bb.accepted.connect(self.accept)
         row.addWidget(bb)
@@ -168,8 +178,9 @@ class ExcerptsDialog(QDialog):
         for x in xs:
             r = self.t.rowCount(); self.t.insertRow(r)
             sub = {"measured": " (measured)", "written": " (written: " + ("phrase check" if x.get("check") == "phrase" else "Final Checks") + ")"}.get(x.get("sub"), "")
-            val = x.get("value", "") or (", ".join(x.get("sections", [])) if x["bin"] == "objective" else "")
-            for c, s in enumerate((names.get(x["bin"], x["bin"]) + sub, EX.text_of(x), val, EX.where_of(x), x.get("note", ""))):
+            val = x.get("value", "")
+            for c, s in enumerate((names.get(x["bin"], x["bin"]) + sub, EX.text_of(x), val, ", ".join(x.get("sections", [])),
+                                   EX.where_of(x), x.get("note", ""))):
                 it = QTableWidgetItem(s); it.setToolTip(s[:1000])
                 if c == 0:
                     it.setData(Qt.UserRole, x["id"])
@@ -181,6 +192,25 @@ class ExcerptsDialog(QDialog):
         r = self.t.currentRow()
         it = self.t.item(r, 0) if r >= 0 else None
         return it.data(Qt.UserRole) if it is not None else None
+
+    def selected_all(self):
+        """3.29.1: the ids of every selected row."""
+        rows = sorted({i.row() for i in self.t.selectedIndexes()})
+        return [self.t.item(r, 0).data(Qt.UserRole) for r in rows if self.t.item(r, 0) is not None]
+
+    def into_target(self, label=None, on=True):
+        n = self.page.place_captures(self.selected_all(), label, on=on)
+        if n:
+            self.fill()
+        return n
+
+    def _fill_sec_menu(self):
+        self.sec_menu.clear()
+        xs = [EX.get(self.rec, i) or {} for i in self.selected_all()]
+        for lab in (self.page.R.labels() if self.page.R is not None else []):
+            inall = bool(xs) and all(lab in (x.get("sections") or []) for x in xs)
+            a = self.sec_menu.addAction(lab, lambda _=False, l=lab, o=not inall: self.into_target(l, on=o))
+            a.setCheckable(True); a.setChecked(inall)
 
     def edit(self, answer=None):
         xid = self.selected()

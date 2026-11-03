@@ -101,6 +101,13 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "postsub": ("Post-Submission Checklist", "What the team does after the proposal goes in: owners, due dates, done")}
 
 
+
+def _relabel_record(root, mapping):
+    """3.29.1: the effort record's captures and topics follow a section renamed, renumbered, moved or taken out."""
+    import effortrec as RR
+    import excerpts as EX
+    return EX.relabel(RR.Record(root), mapping)
+
 class MainWindow(QMainWindow):
     def __init__(self, app, config_dir, version=""):
         super().__init__()
@@ -394,6 +401,8 @@ class MainWindow(QMainWindow):
             self.fill_efforts()
             return False
         self.ws, self.effort_name, self.effort_path = ws, name, info["path"]
+        import outline_ops as _O                   # 3.29.1: captures and topics follow their sections
+        _O.HOOKS[:] = [lambda m, root=ws.root: _relabel_record(root, m)]
         try:                                       # 2.90.0: a note in the effort's app data folder: the app's files
             import effortfolders as EF
             EF.note_app_data(ws.root)
@@ -788,6 +797,8 @@ class MainWindow(QMainWindow):
             except Exception:
                 diag.swallowed()
         self.ws, self.review = None, None
+        import outline_ops as _O
+        _O.HOOKS[:] = []
         import secure
         secure.EFFORT_LEVEL = -1                     # 2.97.0
         if hasattr(self, "marking"):
@@ -802,6 +813,12 @@ class MainWindow(QMainWindow):
 
     def set_matrix(self, M, new=False):
         self.review = AO.Review(M)
+        if self.ws is not None:                     # 3.29.1: Undo puts the captures' sections back too
+            import effortrec as _RR
+            import excerpts as _EX
+            root = self.ws.root
+            self.review.extra_get = lambda: _EX.sections_state(_RR.Record(root))
+            self.review.extra_set = lambda st: _EX.restore_sections(_RR.Record(root), st)
         self.safety.loaded(M.path)                 # 2.80.0: what is on disk now, to notice another copy's save
         SD.setup_of(M)
         if self.ws is not None:                     # 2.68.0: each file's document initial and type

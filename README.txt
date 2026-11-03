@@ -1,6 +1,15 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+EVERY CAPTURE IN A SECTION, AND A MENU YOU CAN SEE (3.29.1)
+  - Review: Into the target section (on to start): a capture goes into the section selected in your structure, as a
+    requirement does. Move it in one click: Into the target or Section... on the sentence's card, Put its captures in
+    the target on a right-click, Into the target or Section... in the Captured list (a new Section column). The
+    structure counts each section's captures (Cap.). Captures and topics follow a section renamed, renumbered or taken
+    out, and Undo puts them back. The Response Setup lists every capture under its section.
+  - The menus across the top (each group's pages, and Production Standards' menu and sections) sit in a blue band as
+    pills, the one you are on solid blue.
+
 REVIEW'S DECISIONS AND CAPTURES, THE TEAM'S WAY (3.29.0)
   - Settings > Review: decisions and captures: every decision (L, M, SOW, Interest, Support, Customer's, Ignore) and
     every capture (Contact, Submission, Formatting, Acronym, Question, Key date, Objective, Key point, Graphic need,

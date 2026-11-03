@@ -51,12 +51,26 @@ def volume_heads(M):
 
 
 # ------------------------------------------------------------------ labels follow their sections
+HOOKS = []          # 3.29.1: fn(mapping) for what lives outside the matrix (captures and topics in the effort record)
+
+
+def _hooks(mapping):
+    for h in list(HOOKS):
+        try:
+            h(dict(mapping))
+        except Exception:  # noqa: BLE001
+            import diag
+            diag.swallowed()
+
+
 def relabel(M, mapping):
     """Move everything kept under an old section label to its new label: the sentences' sections, their copies and
-    order in the setup, section people, notes, volume headings."""
+    order in the setup, section people, notes, volume headings; 3.29.1: and (through HOOKS) the captures and topics
+    placed in it."""
     mapping = {a: b for a, b in mapping.items() if a != b}
     if not mapping:
         return 0
+    _hooks(mapping)
     S = SD.setup_of(M)
     for it in M.items:
         if it.get("map") in mapping:
@@ -372,6 +386,7 @@ def delete(M, label):
     V = S.get("volumes") or {}
     if label in (V.get("heads") or []):
         V["heads"] = [h for h in V["heads"] if h != label]
+    _hooks({label: to})                            # 3.29.1: its captures go where its sentences go
     renumber(M)
     M.log("outline", f"section removed: {label}")
     M.pending = True

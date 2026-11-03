@@ -158,11 +158,16 @@ QLabel#railbeta {{ background: transparent; color: #F2B65A; border: 1px solid #F
                   font-size: {TYPE['label'] - 1}pt; font-weight: 700; letter-spacing: 0.5px; }}
 QLabel#stdwas {{ color: {t['warn']}; font-size: {TYPE['small']}pt; }}
 QLabel#stdchanges {{ background: {t['surface']}; border: 1px solid {t['border_soft']}; border-radius: 6px; padding: 6px 8px; }}
-QFrame#pagetabsbox {{ background: {t['surface']}; border: none; border-bottom: 1px solid {t['border_soft']}; }}
-QTabBar#pagetabs::tab {{ background: transparent; color: {t['muted']}; border: none; border-bottom: 3px solid transparent;
-                        padding: 6px 14px 5px 14px; margin-right: 4px; font-weight: 600; }}
-QTabBar#pagetabs::tab:selected {{ color: {t['text']}; border-bottom: 3px solid {t['accent']}; }}
-QTabBar#pagetabs::tab:hover {{ color: {t['text']}; }}
+QFrame#pagetabsbox, QFrame#navband {{ background: {t['accent_soft']}; border: none; border-bottom: 1px solid {t['accent_line']}; }}
+QTabBar#pagetabs::tab, QTabBar#groupbar::tab {{ background: {t['surface']}; color: {t['accent']}; border: 1px solid {t['accent_line']};
+                        border-radius: 13px; padding: 4px 16px; margin: 6px 6px 6px 0; font-weight: 600; }}
+QTabBar#pagetabs::tab:selected, QTabBar#groupbar::tab:selected {{ background: {t['accent']}; color: {t['accent_fg']};
+                        border: 1px solid {t['accent']}; }}
+QTabBar#pagetabs::tab:hover:!selected, QTabBar#groupbar::tab:hover:!selected {{ border: 1px solid {t['accent']}; color: {t['text']}; }}
+QTabBar#sectionbar::tab {{ background: transparent; color: {t['text']}; border: none; border-bottom: 3px solid transparent;
+                        padding: 5px 14px 4px 14px; margin-right: 2px; font-weight: 600; }}
+QTabBar#sectionbar::tab:selected {{ color: {t['accent']}; border-bottom: 3px solid {t['accent']}; background: {t['surface']}; }}
+QTabBar#sectionbar::tab:hover:!selected {{ color: {t['accent']}; }}
 QFrame#railEffort {{ background: {t['rail_card']}; border: 1px solid {t['rail_rule']}; border-radius: 8px; margin: 8px 0 2px 0; }}
 QFrame#railEffort:hover {{ border-color: {t['rail_sel_bar']}; }}
 QLabel#railEffortCap {{ background: transparent; color: {t['rail_group']}; font-size: {TYPE['label']}pt; font-weight: 600; }}

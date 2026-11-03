@@ -80,8 +80,14 @@ class Review:
             if self._group_taken:
                 return
             self._group_taken = True
+        extra = None
+        if getattr(self, "extra_get", None):              # 3.29.1: what lives outside the matrix (captures' sections)
+            try:
+                extra = self.extra_get()
+            except Exception:  # noqa: BLE001
+                extra = None
         self.undo.append((copy.deepcopy(self.M.items), copy.deepcopy(SD.setup_of(self.M)),
-                          copy.deepcopy(getattr(self.M, "outline", None)), label or ""))
+                          copy.deepcopy(getattr(self.M, "outline", None)), label or "", extra))
         del self.undo[:-UNDO_STEPS]
         self._fresh = True
 
@@ -89,7 +95,7 @@ class Review:
         """Name the change the last snapshot is for, once, right after the change (when its name is known); a snapshot
         that has a name keeps it."""
         if self.undo and label and getattr(self, "_fresh", False) and not self.undo[-1][3]:
-            self.undo[-1] = self.undo[-1][:3] + (" ".join(str(label).split())[:90],)
+            self.undo[-1] = self.undo[-1][:3] + (" ".join(str(label).split())[:90],) + tuple(self.undo[-1][4:])
         self._fresh = False
 
     def undo_label(self):
@@ -103,7 +109,12 @@ class Review:
     def undo_last(self):
         if not self.undo:
             return False
-        items, setup, outline, _label = self.undo.pop()
+        items, setup, outline, _label, *rest = self.undo.pop()
+        if rest and rest[0] is not None and getattr(self, "extra_set", None):
+            try:
+                self.extra_set(rest[0])
+            except Exception:  # noqa: BLE001
+                pass
         self.M.items[:] = items
         self.M.setup = setup
         if outline is not None:                       # 3.18.2: a section added, moved, renamed or taken out comes back

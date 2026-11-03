@@ -639,7 +639,13 @@ class AssignPage(QWidget):
         self.dec_all.toggled.connect(lambda _on: self.build_decide())
         dv.addWidget(self.dec_all)
         ch = QHBoxLayout(); ch.setSpacing(D.SPACE["s"])
-        ch.addWidget(D.label("Capture", "label", wrap=False)); ch.addStretch(1)
+        ch.addWidget(D.label("Capture", "label", wrap=False))
+        self.into_target = QCheckBox("Into the target section")                  # 3.29.1: captures go where requirements go
+        self.into_target.setToolTip("Each capture goes into the section selected in your structure (the target), as a "
+                                    "requirement does. Move it later from the sentence's card, a right-click or the Captured list.")
+        self.into_target.setChecked(True)
+        self.into_target.toggled.connect(lambda on: self._save_into_target(on))
+        ch.addWidget(self.into_target); ch.addStretch(1)
         self.captured_btn = D.button("\u2630  Captured list", "primary", lambda: self.all_excerpts(),     # 3.29.0
                                      "Everything captured in this effort, in one list: by capture, with the words and where "
                                      "they sit; edit, take out, export")
@@ -686,13 +692,15 @@ class AssignPage(QWidget):
             self.vol_style.addItem(t, k)
         self.vol_style.activated.connect(lambda _i: self.set_volume_style(self.vol_style.currentData()))
         vrow.addWidget(self.vol_style)
-        self.tree = StructTree(); self.tree.setHeaderLabels(["Your response structure (click a section: the target)", "Req.", "Ctx", "Pages"])
+        self.tree = StructTree(); self.tree.setHeaderLabels(["Your response structure (click a section: the target)", "Req.", "Ctx", "Pages", "Cap."])
         self.tree.setContextMenuPolicy(Qt.CustomContextMenu)                  # 3.29.0: right-click a section for its menu
         self.tree.customContextMenuRequested.connect(
             lambda pos: (lambda i: self.structure_menu(i.data(0, Qt.UserRole)).exec(self.tree.viewport().mapToGlobal(pos))
                          if i is not None and i.data(0, Qt.UserRole) else None)(self.tree.itemAt(pos)))
         self.tree.setColumnWidth(0, 330); self.tree.setColumnWidth(1, 44); self.tree.setColumnWidth(2, 40)
         self.tree.headerItem().setToolTip(3, "Pages for the section: the RFP's limit or the team's guideline. Double-click to set.")
+        self.tree.headerItem().setToolTip(4, "Captures placed in the section (3.29.1)")
+        self.tree.setColumnWidth(3, 70)
         self.tree.itemClicked.connect(lambda i, _c: self.set_target(i.data(0, Qt.UserRole)) if i.data(0, Qt.UserRole) else None)
         self.tree.itemDoubleClicked.connect(lambda i, c: self.section_pages(i.data(0, Qt.UserRole)) if c == 3
                                             else self.rename_section(i.data(0, Qt.UserRole)))
@@ -1577,6 +1585,8 @@ class AssignPage(QWidget):
         except Exception:  # noqa: BLE001
             diag.swallowed()
             caps = []
+        if caps and self.target:                                       # 3.29.1
+            m.addAction(f"Put its captures in the target: {self.target}", lambda: self.place_captures([x["id"] for x in caps]))
         for x in caps[:12]:
             txt = EX.text_of(x)
             m.addAction(f"Take off the capture {names.get(x.get('bin'), x.get('bin', ''))}: "
@@ -1679,8 +1689,7 @@ class AssignPage(QWidget):
             w = QWidget(); h = QHBoxLayout(w); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(D.SPACE["xs"])
             words = EX.text_of(x)
             bits = [x.get("value", "")] if x.get("value") else []
-            if x["bin"] == "objective":
-                bits.append("answers: " + (", ".join(x.get("sections", [])) or "no section yet"))
+            bits.append(("answers: " if x["bin"] == "objective" else "in: ") + (", ".join(x.get("sections", [])) or "no section yet"))
             if x.get("sub") == "written":
                 bits.append("phrase check" if x.get("check") == "phrase" else "Final Checks item")
             if x.get("note"):
@@ -1690,6 +1699,11 @@ class AssignPage(QWidget):
             lab.setToolTip(words[:1500] + "\n" + EX.where_of(x))
             h.addWidget(lab, 1)
             h.addWidget(D.button("Edit...", None, lambda _=False, i=x["id"]: self.edit_excerpt(i), "Bin, value, note, sections"))
+            if self.target and self.target not in (x.get("sections") or []):        # 3.29.1: one click into a section
+                h.addWidget(D.button("Into the target", "ghost", lambda _=False, i=x["id"]: self.place_captures([i]),
+                                     f"Put it in {self.target}"))
+            sb = D.button("Section...", "ghost", None, "Put it in a section of the structure, or take it out of one")
+            sb.setMenu(self.section_menu_for(x["id"])); h.addWidget(sb)
             if x["bin"] in ("objective", "keypoint"):                # 3.29.0: seeds for the Wall of Truth
                 h.addWidget(D.button("On the wall" if x.get("truth") else "To the Wall of Truth", "ghost",
                                      lambda _=False, i=x["id"]: self.promote_excerpt(i), "A Fact on the effort's Wall of Truth, "
@@ -1788,6 +1802,52 @@ class AssignPage(QWidget):
                                   version=it.get("version", ""), words=g["text"] if g else gm.get(it["id"], "")))
         return out
 
+    def cap_sections(self):
+        """3.29.1: where a new capture goes: the target section, when Into the target section is on."""
+        if self.R is None or not getattr(self, "into_target", None) or not self.into_target.isChecked():
+            return []
+        return [self.target] if self.target and self.target in set(self.R.labels()) else []
+
+    def _save_into_target(self, on):
+        import reviewitems as RI
+        try:
+            data = RI.load(self.host.config_dir)
+            data["into_target"] = bool(on)
+            RI.save(self.host.config_dir, data)
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+
+    def place_captures(self, xids, label=None, only=False, on=True):
+        """3.29.1: captures into a section of the structure (the target unless label), in one Undo step."""
+        import excerpts as EX
+        label = label or self.target
+        if not xids or not label or self.R is None:
+            if not label:
+                self.host.status("Click a section in your structure first: captures go into the target.")
+            return 0
+        self.R.snap(f"captures into {label}")
+        n = EX.place(R_.Record(self.host.ws.root), set(xids), label, on=on, only=only)
+        if not n and self.R.undo:
+            self.R.undo.pop()
+        if n:
+            diag.activity("captures_placed", n=n)
+            self.host.status(f"{n} capture(s) {'in' if on else 'out of'} {label}")
+            self.after_bins(); self.fill_tree()
+        return n
+
+    def section_menu_for(self, xid):
+        """3.29.1: a menu of the structure's sections; a tick for each one the capture is in; a click puts it in or takes
+        it out."""
+        from PySide6.QtWidgets import QMenu
+        import excerpts as EX
+        x = EX.get(R_.Record(self.host.ws.root), xid) or {}
+        have = set(x.get("sections") or [])
+        m = QMenu(self)
+        for lab in (self.R.labels() if self.R is not None else []):
+            a = m.addAction(lab, lambda _=False, l=lab: self.place_captures([xid], l, on=l not in have))
+            a.setCheckable(True); a.setChecked(lab in have)
+        return m
+
     def file_excerpt(self, kind, got, parts):
         """A capture's excerpt: the bin is the capture; a submission or formatting rule keeps its value and key."""
         import excerpts as EX
@@ -1800,7 +1860,7 @@ class AssignPage(QWidget):
                 rows = {r["key"]: r for r in SR.Register(DV.Library(self.host.ws.p("documents")).load()).rows()}
                 refs = [k for k in got if k]
                 value = "; ".join(f"{rows[k]['subject']}: {rows[k]['value']}" for k in refs if k in rows)
-            xid = EX.add(rec, kind, parts, value=value, ref=refs)
+            xid = EX.add(rec, kind, parts, value=value, ref=refs, sections=self.cap_sections())
             if xid:
                 self.load_marks(); self.restyle()
             return xid
@@ -1829,6 +1889,8 @@ class AssignPage(QWidget):
         """Names, keys, colors and showing of the decisions and captures (Settings > Review: decisions and captures)."""
         import reviewitems as RI
         self.items_cfg = RI.load(self.host.config_dir)
+        self.into_target.blockSignals(True); self.into_target.setChecked(self.items_cfg.get("into_target", True))
+        self.into_target.blockSignals(False)
         d = self.items_cfg["decisions"]
         for code, lm in (("L", "L"), ("M", "M"), ("C", "C"), ("I", "I")):     # the page and the legend take the colors
             D.PAGE_LM[lm] = d[code]["color"]
@@ -1983,7 +2045,7 @@ class AssignPage(QWidget):
             return self.host.status("Select a sentence first (drag across words inside it to pick just those; Ctrl+click for more).")
         rec = R_.Record(self.host.ws.root)
         if answer is None:
-            d = BV.BinDialog(self, rec, self.host.config_dir, bin_id, parts, sections=self.R.labels())
+            d = BV.BinDialog(self, rec, self.host.config_dir, bin_id, parts, sections=self.R.labels(), chosen=self.cap_sections())
             if written:
                 d.value.clear()
             if d.exec() != QDialog.Accepted:
@@ -1995,7 +2057,7 @@ class AssignPage(QWidget):
         xids = []
         for g in groups:
             xid = EX.add(rec, b, g, value=answer.get("value", ""), note=answer.get("note", ""), sub=sub,
-                         sections=answer.get("sections", ()) if b == "objective" else ())
+                         sections=answer["sections"] if "sections" in answer else self.cap_sections())
             if xid and sub == "written" and answer.get("check"):
                 EX.update(rec, xid, check=answer["check"])
             if xid:
@@ -2005,7 +2067,9 @@ class AssignPage(QWidget):
             if len(xids) > 1:
                 self.host.status(f"{len(xids)} objectives, one for each item, each with its lead-in")
             else:
-                self.host.status(f"In {EX.bin_name(rec, b, self.host.config_dir)}: \"{EX.text_of(EX.get(rec, xids[0]))[:70]}\"")
+                secs = (EX.get(rec, xids[0]) or {}).get("sections") or []
+                self.host.status(f"In {EX.bin_name(rec, b, self.host.config_dir)}" + (f", in {secs[0]}" if secs else "")
+                                 + f": \"{EX.text_of(EX.get(rec, xids[0]))[:70]}\"")
             self.after_bins()
         return xids[0] if len(xids) == 1 else (xids or None)
 
@@ -2039,8 +2103,7 @@ class AssignPage(QWidget):
             answer = d.values()
         b = answer.get("bin") or x["bin"]
         f = {"bin": b, "value": answer.get("value", x.get("value", "")), "note": answer.get("note", x.get("note", ""))}
-        if b == "objective":
-            f["sections"] = answer.get("sections", x.get("sections", []))
+        f["sections"] = answer.get("sections", x.get("sections", []))       # 3.29.1: every capture has its sections
         if b == "format":
             f["sub"] = "measured" if (f["value"] or "").strip() else "written"
             if f["sub"] == "written":
@@ -2835,6 +2898,12 @@ class AssignPage(QWidget):
         self.fill_volumes()
         counts = self.R.counts()
         ctxn = self._ctx_counts()
+        try:                                                    # 3.29.1: captures placed in each section
+            import excerpts as EX
+            capn = EX.section_counts(R_.Record(self.host.ws.root)) if self.host.ws is not None else {}
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            capn = {}
         show = set(O.in_volume(self.M, self.active_volume))
         stack = []
         parts_on = SP.has_parts(self.M)               # 3.19.0: the volume's parts, each with the rules it follows
@@ -2866,7 +2935,7 @@ class AssignPage(QWidget):
                     last_part = part
             node = QTreeWidgetItem([lab, str(counts.get(lab, "") or ""), str(ctxn.get(lab, "") or ""), PB.tag(self.M, lab)
                                     + ("" if SP.item_count(self.M, lab) is None else
-                                       (" counts" if SP.item_count(self.M, lab) else " not counted"))])
+                                       (" counts" if SP.item_count(self.M, lab) else " not counted")), str(capn.get(lab, "") or "")])
             if PB.pages(self.M, lab):                                     # 3.18.2: the RFP's limit in red, a guideline in blue
                 node.setForeground(3, QColor("#B91C1C" if PB.source(self.M, lab) == "rfp" else "#1D4ED8"))
                 node.setToolTip(3, f"{PB.SOURCE_NAME[PB.source(self.M, lab)]}: {PB.fmt(PB.pages(self.M, lab))} page(s), subsections included")
