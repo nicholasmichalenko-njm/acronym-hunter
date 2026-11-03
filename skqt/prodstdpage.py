@@ -1274,8 +1274,9 @@ class StandardsPage(QWidget):
         for i, (lvl, fmts) in enumerate(self._lvl_of(rows)):
             for field, _h, kind in spec["cols"]:
                 if kind == "lvltext":
-                    w = rows[i][field]
-                    rows[i][field] = NT.keep_or_parse(w.text(), w.property("raw"), fmts, lvl)
+                    w = rows[i][field]                 # a bullet is its character, kept as typed
+                    rows[i][field] = (w.text().strip() if rows[i].get("fmt") == "bullet"
+                                      else NT.keep_or_parse(w.text(), w.property("raw"), fmts, lvl))
                     w.setProperty("raw", rows[i][field])
         return rows
 
