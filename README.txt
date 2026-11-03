@@ -12,6 +12,9 @@ REVIEW'S DECISIONS AND CAPTURES, THE TEAM'S WAY (3.29.0)
     captures (the team's and this effort's) sit on the bar too; More... holds the rest, + Capture... and Captures of
     this effort. The Captured list is a button of its own: everything captured, by capture, to edit or take out.
   - An RFI effort's decide row shows Interest (I) in place of L, M and SOW; Show every decision brings them back.
+  - Review's sentence card shows, first, what was decided and captured on the sentence (the decision as the team names
+    and colors it, its sections or the requirement it supports, its topics, every capture, and whether it came from a
+    suggestion), then each capture to edit. General help is gone from the card: it is about the sentence only.
 
 REVIEW: GRAB WORDS ACROSS SENTENCES, VOLUME NAMES AND NUMBERING (3.28.1)
   - Review: press on a word and drag over words, across as many sentences as you like, whatever was selected before.

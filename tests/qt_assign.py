@@ -114,8 +114,8 @@ check("J combines them (2.68.0: M is the M designation); both parts boxed", x2 n
 click(x1["id"])
 k = [m.group(0) for m in __import__("re").finditer(r"[A-Za-z0-9]+", x1["text"])].index("Each")
 r = pg.view.words[x1["id"]][k]
-check("2.93.0: Split waits for a split point", not pg.keys["Split"].isEnabled()
-      and pg.card.findChildren(QLabel) and any("click the word the second part starts with" in l.text() for l in pg.card.findChildren(QLabel)))
+check("2.93.0: Split waits for a split point (3.29.0: its button says how; the card is about the sentence only)", not pg.keys["Split"].isEnabled()
+      and "click the word the second part starts with" in pg.keys["Split"].toolTip())
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtCore import QEvent, QPointF
 _hp = QPointF(pg.view.mapFromScene(r.center()))

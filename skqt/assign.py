@@ -1466,6 +1466,72 @@ class AssignPage(QWidget):
         return reg, [r for r in reg.rows() if r.get("manual") and r.get("captured")
                      and ((r.get("sid") and r["sid"] == it["id"]) or (not r.get("sid") and words and r.get("sentence") == words))]
 
+    def decision_of(self, it):
+        """3.29.0: (the decision's name, its color) as Settings names them: L (Instructions), Support, Ignore..."""
+        cfg = getattr(self, "items_cfg", None)
+        dd = (cfg or {}).get("decisions") or {}
+        d = it.get("decision", "")
+        if it.get("type") == "Heading" and d in ("", "Drop"):
+            return "RFP heading", ""
+        if d == "Keep":
+            lm = it.get("lm") or ""
+            x = dd.get(lm)
+            return (x["name"] + " requirement", x["color"]) if x else ("Requirement", "#4D7C0F")
+        code = {"Context": "ctx", "Customer": "cust", "Drop": "ignore"}.get(d)
+        if code and code in dd:
+            return dd[code]["name"], dd[code]["color"]
+        return "Not decided yet", ""
+
+    def decided_box(self, it):
+        """3.29.0: what was decided and captured on this sentence, at a glance, then each capture to edit."""
+        import excerpts as EX
+        import topics as TP
+        M = self.M
+        d = it.get("decision", "")
+        name, color = self.decision_of(it)
+        box = QFrame(); box.setObjectName("decidedBox")
+        c = color or "#94A3B8"
+        box.setStyleSheet(f"QFrame#decidedBox{{border:1px solid {c};border-left:5px solid {c};border-radius:6px;}}")
+        bv = QVBoxLayout(box); bv.setContentsMargins(D.SPACE["s"], D.SPACE["xs"], D.SPACE["s"], D.SPACE["xs"]); bv.setSpacing(2)
+        lines = []
+        if d == "Keep":
+            secs = SD.item_sections(M, it)
+            lines.append(f"<b>Decision:</b> {name}" + (f", in {', '.join(secs)}" if secs else ", no section yet"))
+        elif d == "Context":
+            hosts = C.cf_ids(it.get("context_for", ""))
+            lines.append(f"<b>Decision:</b> {name}" + (f" for {', '.join(hosts)}" if hosts else ", for no requirement yet"))
+        elif d == "Customer":
+            lines.append(f"<b>Decision:</b> {name}: counted, never answered")
+        elif d == "Drop" and it.get("type") != "Heading":
+            lines.append(f"<b>Decision:</b> {name}: not in the response")
+        else:
+            lines.append(f"<b>Decision:</b> {name}")
+        rec = R_.Record(self.host.ws.root) if self.host.ws is not None else None
+        if rec is not None:
+            tps = [t["name"] for t in TP.of(rec, it["id"])]
+            if tps:
+                lines.append("<b>Topics:</b> " + ", ".join(tps))
+            names = {b["id"]: b["name"] for b in EX.bins(rec, self.host.config_dir)}
+            cfg = (getattr(self, "items_cfg", None) or {}).get("captures") or {}
+            for k_, c_ in cfg.items():
+                names[k_] = c_["name"]
+            caps = [names.get(x["bin"], x["bin"]) for x in EX.of_sentence(rec, it["id"])]
+            caps += [cfg.get(k_, {}).get("name", PM.text([k_])) for k_ in (self.marks.get(it["id"]) or [])
+                     if not str(k_).startswith("bin:") and k_ not in ("task", "tquestion") and cfg.get(k_, {}).get("name", "") not in caps]
+            if caps:
+                lines.append("<b>Captured:</b> " + ", ".join(dict.fromkeys(x for x in caps if x)))
+            sg = (getattr(self, "sg", {}) or {}).get(it["id"]) or {}
+            if sg.get("state") == "accepted":
+                lines.append("Decided from a suggestion" + (", not checked yet" if sg.get("unchecked") else ", checked"))
+        for ln in lines:
+            lb = QLabel(ln); lb.setTextFormat(Qt.RichText); lb.setWordWrap(True); bv.addWidget(lb)
+        self.decided = box
+        self.decided_lines = lines
+        self.add(box)
+        if self.host.ws is not None:
+            self.show_captures(it)
+        return lines
+
     def show_captures(self, it):
         """The rules, questions and other captures that came from this sentence, with their values to fix in place."""
         reg, rules = self.captured_rules(it)
@@ -2251,8 +2317,11 @@ class AssignPage(QWidget):
         d = it.get("decision", "")
         kind = "Heading" if it.get("type") == "Heading" and d in ("", "Drop") else d
         tone, label, _tag = D.decision(kind)
+        dname, dcolor = self.decision_of(it)                            # 3.29.0: the decision, as the team names and colors it
         top = QWidget(); th = QHBoxLayout(top); th.setContentsMargins(0, 0, 0, 0); th.setSpacing(D.SPACE["s"])
-        k = D.Pill(label, tone if tone != "faint" else "head")
+        k = D.Pill(dname, tone if tone != "faint" else "head")
+        if dcolor:
+            k.setStyleSheet(f"color:#FFFFFF;background:{dcolor};border-radius:8px;padding:2px 8px;font-weight:600;")
         th.addWidget(k)
         if len(rows) > 1:
             th.addWidget(D.label(f"and {len(rows) - 1} more selected", "muted", wrap=False))
@@ -2262,6 +2331,11 @@ class AssignPage(QWidget):
         self.kind_label = k
         t = self.add(D.label(it.get("text", ""), "reading"))
         t.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        if len(rows) == 1:                                              # 3.29.0: what was decided and captured, first
+            try:
+                self.decided_box(it)
+            except Exception:
+                diag.swallowed()
         self.sg_box = None
         try:
             self.suggestion_card(it, rows)                  # 3.18.0
@@ -2288,9 +2362,6 @@ class AssignPage(QWidget):
                     pk = self.add(D.label(f"Picked words: \u201c{self.grab['text']}\u201d. Capture (Contact, Submission, Question, "
                                           "Formatting, Acronym) uses them.", None))
                     pk.setStyleSheet("background:rgba(134,239,172,0.35);padding:4px;border-radius:4px;")
-                else:
-                    self.add(D.label("To split it, click the word the second part starts with. To capture part of it, drag "
-                                     "across those words.", "muted"))
         ch = getattr(self, "change_of", {}).get(it["id"]) if len(rows) == 1 else None
         if ch:                                                         # 2.98.0: what this version changed
             m = self.changes
@@ -2322,9 +2393,9 @@ class AssignPage(QWidget):
             + ([f"Referenced as: {ref}"] if ref and ref != it.get("section") else []) + [f"ID: {it['id']}    Type: {it.get('type', '')}"]
         self.source_label = self.add(D.label("\n".join(src)))
         ident = SD.docs_of(M).get(it.get("file", "")) or {}
-        idl2 = (f"Document {ident.get('initial')} ({ident.get('type', '')})" if ident.get("initial") else
-                "This document has no initial and type yet: set them in Customer Documents.")
-        self.ident_label = self.add(D.label(idl2, "muted" if ident.get("initial") else None))
+        idl2 = (f"Document {ident.get('initial')} ({ident.get('type', '')})" if ident.get("initial") else "")
+        self.ident_label = self.add(D.label(idl2, "muted"))
+        self.ident_label.setVisible(bool(idl2))
         if d == "Keep":                                                 # 2.68.0: L or M, and the reference it makes
             lmw = QWidget(); lh = QHBoxLayout(lmw); lh.setContentsMargins(0, 0, 0, 0); lh.setSpacing(D.SPACE["s"])
             cur_lm = it.get("lm", "")
@@ -2381,12 +2452,6 @@ class AssignPage(QWidget):
                     cb.addItem(f"{x['id']}  {x.get('map', '')}: {x['text'][:50]}", x["id"])
             cb.activated.connect(lambda i, cb=cb: self.act(self.R.link, it, cb.itemData(i)) if i > 0 else None)
             self.add(cb)
-        elif d == "Customer":
-            self.add(QLabel("Counted and never answered."))
-        elif d == "Drop":
-            self.add(QLabel("Ignored: not in the response. Delete takes the decision off; L, E, R, C or G decides it otherwise."))
-        else:
-            self.add(QLabel("L, M or SOW (keys L, E, R): a requirement in the target section.  C: support for the last requirement you clicked.  G: the customer's."))
         self.head("Author(s)")
         on = d in ("Keep", "Context")
         can = [r for r in rows if r.get("decision") in ("Keep", "Context")]     # 3.15.1: the selection's own count
@@ -2404,11 +2469,6 @@ class AssignPage(QWidget):
         lead = SD.section_people(M, it.get("map", "")).get("lead", "") if it.get("map") else ""
         if on and not it.get("owner"):
             self.add(D.label(f"Empty: the section lead writes it ({lead})." if lead else "Empty: the section's lead, once one is named (People...).", "muted"))
-        if len(rows) == 1 and self.host.ws is not None:                 # 3.20.3: what was captured from it, editable here
-            try:
-                self.show_captures(it)
-            except Exception:
-                diag.swallowed()
         if len(rows) == 1 and self.host.ws is not None:                 # 3.20.0: open meeting topics that point here
             try:
                 import meetings as MT
@@ -2424,11 +2484,10 @@ class AssignPage(QWidget):
                     self.topic_labels.append(self.add(D.label(f"{t_['text']}  \u00b7  {m_['title']} ({m_['date']})"
                                                               + (f"  \u00b7  {t_['owner']}" if t_.get("owner") else ""), None)))
         if len(rows) == 1 and self.host.ws is not None:                 # 2.99.0: tasks and team questions on the sentence
-            self.head("Tasks, questions and graphics")
             tq = sentence_work(R_.Record(self.host.ws.root), it["id"])
-            if not tq:
-                self.add(D.label("None yet. A task or a question here shows to anyone who opens this sentence, and in the "
-                                 "effort record.", "muted"))
+            import graphics as GX
+            if tq or GX.for_sentence(R_.Record(self.host.ws.root), it["id"]):
+                self.head("Tasks, questions and graphics")
             self.work_labels = []
             for kind, x in tq:
                 if kind == "task":
@@ -2448,10 +2507,9 @@ class AssignPage(QWidget):
             wr.addWidget(D.button("+ Ask the team...", None, lambda _=False, i=it["id"]: self.add_work("question", i), "A question for the team about this sentence"))
             wr.addStretch(1)
             self.body_add_layout(wr)
-        self.head("Relationships")
         ids, how = self.R.related(it)
-        if not ids:
-            self.add(D.label("None yet.", "muted"))
+        if ids:
+            self.head("Relationships")
         self.rel_labels = []
         for i in ids:
             x = self.R.item(i)

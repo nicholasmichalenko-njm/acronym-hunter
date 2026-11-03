@@ -118,6 +118,22 @@ d3 = sp.review_items(run=False)
 d3.reset()
 check("Back to the built-in values", pg.keys["L"].text().startswith("L (Instructions)") and "Ignore" in pg.keys and "E" in keys_now()
       and "acronym" in pg.cap_keys and not os.path.isfile(os.path.join(cfg, RI.FILE)))
+# the card: what was decided and captured, first, and only about the sentence
+pg.dec_all.setChecked(False); pg.apply_items()
+x = M.items[5]
+pg.select(x["id"]); pg.do_lm("L"); app.processEvents()
+pg.select(x["id"]); pg.do_bin("keypoint", answer={"bin": "keypoint", "value": "", "note": "theme", "sections": []}); app.processEvents()
+pg.select(x["id"]); app.processEvents()
+txt = " ".join(pg.decided_lines)
+check("the card says the decision first, as the team names it", pg.kind_label.text().startswith("L (Instructions) requirement")
+      and "Decision:</b> L (Instructions) requirement" in txt, txt)
+check("... and what was captured from it", "Captured:</b> " in txt and "Key point" in txt, txt)
+labels = " ".join(l.text() for l in pg.card.findChildren(QLabel) if l.isVisibleTo(pg.card))
+check("... and nothing that is not about the sentence (no general help)", "To split it" not in labels and "None yet" not in labels
+      and "keys L, E, R" not in labels and "no initial and type yet" not in labels)
+y = M.items[6]
+pg.select(y["id"]); app.processEvents()
+check("an undecided sentence says so", "Not decided yet" in " ".join(pg.decided_lines))
 w.close()
 n = sum(checks)
 print(f"QT REVIEW ITEMS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
