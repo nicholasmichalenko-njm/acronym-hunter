@@ -160,13 +160,23 @@ check("3.7: Learn from a file takes the chosen areas into the document type", go
 tbl = sp.tables["styledefs"]["w"]
 names = [tbl.cellWidget(i, 0).text() for i in range(tbl.rowCount())]
 check("3.7: the style library lists every learned style with its whole definition", "Heading 1" in names and "Normal" in names
-      and tbl.columnCount() == 31, (len(names), tbl.columnCount()))      # 3.22.0: Hidden text
+      and tbl.columnCount() == 32, (len(names), tbl.columnCount()))      # 3.22.0: Hidden text; 3.38.0: Used on
 r = names.index("Heading 2")
 size_w = tbl.cellWidget(r, [c[0] for c in __import__("skqt.prodstdpage", fromlist=["STYLE_COLS"]).STYLE_COLS].index("size"))
 size_w.setValue(15.0)
-bold_w = tbl.cellWidget(r, 6); bold_w.setCurrentIndex(bold_w.findData("off"))
+_cols = [c[0] for c in __import__("skqt.prodstdpage", fromlist=["STYLE_COLS"]).STYLE_COLS]
+bold_w = tbl.cellWidget(r, _cols.index("bold")); bold_w.setCurrentIndex(bold_w.findData("off"))
 check("3.7: a style's property edited in the library", sp.work["style_defs"]["Heading 2"]["size"] == 15.0
       and sp.work["style_defs"]["Heading 2"]["bold"] is False)
+used_w = tbl.cellWidget(names.index("Normal"), _cols.index("used_on")); used_w.setCurrentIndex(used_w.findData("Body"))
+check("3.38.0: a style's Used on is set in the library (Rule 5 reads it; the name decides nothing)",
+      sp.work["style_defs"]["Normal"].get("used_on") == "Body", sp.work["style_defs"]["Normal"])
+ab = sp.role_boxes[0]
+check("3.38.0: the A number's style offers this standard's styles", ab.findData("Heading 2") >= 0, ab.count())
+ab.setCurrentIndex(ab.findData("Heading 2"))
+check("3.38.0: the A number's style is kept in the standard's style roles", (sp.work.get("style_roles") or {}).get("a_number") == "Heading 2",
+      sp.work.get("style_roles"))
+ab.setCurrentIndex(0)
 sp.save()
 t = PRL.type_of(PRL.load(cfg), "cost_volume")
 check("3.7: the document type saves its style library", t["style_defs"]["Heading 2"]["size"] == 15.0 and "Normal" in t["style_defs"])

@@ -57,7 +57,12 @@ RULE_KINDS = [("fill_in", "Cell fill is one of"), ("first_cell_starts", "First c
               ("single_merged_cell", "One merged cell across"), ("bold_row", "Only bold text"), ("other", "Any other row")]
 TOKENS = "{volume_name} {solicitation} {company} {page} {pages} {chapter}, and your fields as {key}"
 TRI = [("", "Not set"), ("on", "On"), ("off", "Off")]
+# 3.38.0: where a style is used, set by the user (Rule 5 reads it; a style's name decides nothing)
+USED_ON = [("", "Not set"), ("Cover", "Cover"), ("Title page", "Title page"), ("Front matter", "Front matter"), ("Body", "Body"),
+           ("Tables and figures", "Tables and figures"), ("Headers and footers", "Headers and footers"), ("Appendices", "Appendices"),
+           ("Back cover", "Back cover")]
 STYLE_COLS = [("key", "Style", "text"), ("type", "Type", ("enum", [("paragraph", "Paragraph"), ("character", "Character")])),
+              ("used_on", "Used on", ("enum", USED_ON)),
               ("based_on", "Based on", "stylename"), ("next", "Next style", "stylename"), ("font", "Font", "text"), ("size", "Size (pt)", "num0"),
               ("bold", "Bold", ("enum", TRI)), ("italic", "Italic", ("enum", TRI)), ("underline", "Underline", ("enum", TRI)),
               ("caps", "All caps", ("enum", TRI)), ("hidden", "Hidden text", ("enum", TRI)), ("color", "Color (hex)", "text"),
@@ -780,6 +785,19 @@ class StandardsPage(QWidget):
         v.addWidget(c)
         self.table_editor(v, "styledefs", ("style_defs",), STYLE_COLS, dict_rows=True, adapter="styledefs")
         self.tables["styledefs"]["w"].setMinimumHeight(420)
+        # 3.38.0: the styles the rules read. Rule 2 and Rule 7 find the A number by its style; Rule 2 finds the restriction
+        # and Warning block by its style first (by its words when none is named). Used on (above) tells Rule 5 which
+        # styles belong to the title page.
+        f, _c = self.form(v, "Styles the rules read", "Name the style each one is typed in on the cover or title page. "
+                          "Rule 2 checks the A number sits right under the restriction and Warning block, right-justified; Rule 7 "
+                          "checks the footer's left cell reads the A number. Set Used on in the table above for each style: "
+                          "Rule 5 leaves out the title page styles when a response has no title page.")
+        self.role_boxes = []
+        for key, text in (("a_number", "The A number's style"), ("restriction", "The restriction and Warning block's style")):
+            w = QComboBox(); w.setEditable(True); w.setMinimumWidth(320)
+            w.lineEdit().setPlaceholderText("Not set")
+            self.role_boxes.append(w)
+            self.row(f, text, w, ("style_roles", key), "enum")
 
     def pick_template(self, edit):
         p, _ = QFileDialog.getOpenFileName(self, "Template whose styles the copies take", os.path.expanduser("~"),
@@ -1590,7 +1608,25 @@ class StandardsPage(QWidget):
         w.setCurrentIndex(max(0, w.findData(cur)))
         w.blockSignals(False)
 
+    def _refresh_role_choices(self):
+        """3.38.0: the style role lists offer this standard's styles; a name typed or kept that is not one stays."""
+        names = sorted(dict.fromkeys(self._style_names("styledefs")), key=str.casefold) if "styledefs" in self.tables else []
+        for w in getattr(self, "role_boxes", []):
+            cur = w.currentText()
+            w.blockSignals(True); w.lineEdit().blockSignals(True)
+            w.clear(); w.addItem("", "")
+            for n in names:
+                w.addItem(n, n)
+            i = w.findData(cur) if cur else 0
+            if i >= 0:
+                w.setCurrentIndex(i)
+            else:
+                w.setEditText(cur)
+            w.blockSignals(False); w.lineEdit().blockSignals(False)
+
     def _refresh_style_choices(self, key):
+        if key == "styledefs":
+            self._refresh_role_choices()
         spec = self.tables.get(key)
         if not spec or not any(k == "stylename" for _f, _h, k in spec["cols"]):
             return

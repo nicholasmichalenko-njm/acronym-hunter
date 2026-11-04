@@ -640,7 +640,7 @@ def style_spec(std):
     variables win, so changing body size in one place changes every style it drives)."""
     spec = {}
     for name, d in (std.get("style_defs") or {}).items():
-        props = {k: v for k, v in (d or {}).items() if v not in (None, "")}
+        props = {k: v for k, v in (d or {}).items() if v not in (None, "") and k != "used_on"}   # 3.38.0: Used on is ours, not Word's
         if props:
             spec[name] = props
     if (std.get("styles") or {}).get("apply_variables", True):
