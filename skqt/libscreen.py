@@ -24,11 +24,6 @@ from . import design as D
 from .importbrowser import ItemPicture, effort_type_names
 from .libedit import Editor
 
-ABOUT = {"formatting": ("Formatting Standards", "The fundamentals every template is built from: theme and colors, font sets, page "
-                        "setups, pagination, heading numbering, lists, and paragraph, character and table styles. Name each, "
-                        "tag it with the effort types it is for, and see and edit every value it holds."),
-         "quickparts": ("Quick Parts", "Every Quick Part, by your numbered categories."),
-         "layout": ("Layout", "Covers, title pages, back covers, headers and footers, sections, table looks, captions and the TOC.")}
 STATUS_FILTERS = (("active", "Draft and approved"), ("draft", "Draft"), ("approved", "Approved"), ("retired", "Retired"), ("all", "Every status"))
 STATUS_WORDS = dict(TL.STATUSES)
 
@@ -42,13 +37,13 @@ class LibraryScreen(QWidget):
         self.pending = None                              # values edited and not saved yet
         self.converted = None
         outer = QVBoxLayout(self); outer.setContentsMargins(0, 0, 0, 0); outer.setSpacing(D.SPACE["m"])
-        title, about = ABOUT[library]
         self.import_btn = D.button("Import from a Word file...", "primary", lambda: self.import_file(),
                                    "Read a template or Word document (only read, never written); its items land in their categories")
         more = QToolButton(); more.setText("More"); more.setPopupMode(QToolButton.InstantPopup)
         self.more_menu = QMenu(more); more.setMenu(self.more_menu)
         self.more_menu.aboutToShow.connect(self.fill_more)
-        top = D.Card(title, about, actions=(self.import_btn, more), key=True)
+        top = D.Card("Library", "Import a template or Word document and each item lands in its category. Select an item to see "
+                     "and edit every value it holds.", actions=(self.import_btn, more), key=True)
         fr = QHBoxLayout(); fr.setSpacing(D.SPACE["s"])
         fr.addWidget(D.label("Effort type", "label", wrap=False))
         self.et_box = QComboBox(); self.et_box.currentIndexChanged.connect(lambda _i: self.fill())

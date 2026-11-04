@@ -17,9 +17,10 @@ class StyleEditor(QWidget):
         self.values = {}
         v = QVBoxLayout(self); v.setContentsMargins(0, 0, 0, 0)
         self.chain_lab = D.label("", "muted"); v.addWidget(self.chain_lab)
-        self.t = QTableWidget(0, 4); self.t.setHorizontalHeaderLabels(["Property", "Value", "Where it comes from", ""])
+        self.t = QTableWidget(0, 4); self.t.setHorizontalHeaderLabels(["Property", "Value", "Comes from", ""])
         self.t.verticalHeader().setVisible(False); self.t.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.t.setColumnWidth(0, 170); self.t.setColumnWidth(2, 170); self.t.setColumnWidth(3, 70)
+        self.t.horizontalHeader().setMinimumSectionSize(40)
+        self.t.setColumnWidth(0, 140); self.t.setColumnWidth(2, 130); self.t.setColumnWidth(3, 60)
         self.t.setEditTriggers(QTableWidget.NoEditTriggers)
         v.addWidget(self.t, 1)
         self.widgets = {}
