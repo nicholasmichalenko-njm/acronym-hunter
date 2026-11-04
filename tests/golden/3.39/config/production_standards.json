@@ -1,0 +1,85 @@
+{
+ "version": 3,
+ "company": {
+  "variables": {
+   "body_font": "Georgia"
+  },
+  "style_defs": {
+   "AA Title Page Name": {
+    "type": "paragraph",
+    "used_on": "Title page",
+    "size": 20
+   }
+  },
+  "style_roles": {
+   "a_number": "AA A Number",
+   "restriction": "AA Restriction"
+  }
+ },
+ "types": [
+  {
+   "id": "proposal",
+   "name": "Proposal volume"
+  }
+ ],
+ "default": "proposal",
+ "effort_types": [
+  {
+   "id": "rfp",
+   "name": "RFP response",
+   "profiles": [
+    "proposal"
+   ],
+   "default_profile": "proposal",
+   "profile_over": {}
+  },
+  {
+   "id": "rfp_limited",
+   "name": "Page-limited RFP response",
+   "profiles": [
+    "proposal"
+   ],
+   "default_profile": "proposal",
+   "profile_over": {}
+  },
+  {
+   "id": "rfi",
+   "name": "RFI response",
+   "profiles": [
+    "proposal"
+   ],
+   "default_profile": "proposal",
+   "profile_over": {}
+  },
+  {
+   "id": "white_paper",
+   "name": "White paper",
+   "profiles": [
+    "proposal"
+   ],
+   "default_profile": "proposal",
+   "profile_over": {}
+  },
+  {
+   "id": "program",
+   "name": "Program deliverables",
+   "profiles": [
+    "proposal"
+   ],
+   "default_profile": "proposal",
+   "profile_over": {}
+  },
+  {
+   "id": "kestrel_rfi",
+   "name": "Kestrel RFI",
+   "profiles": [
+    "proposal"
+   ],
+   "default_profile": "proposal",
+   "response_type": "RFI"
+  }
+ ],
+ "default_effort_type": "",
+ "removed_effort_types": [],
+ "starters": 2
+}

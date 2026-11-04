@@ -50,6 +50,19 @@ def make(version, out_root=None):
     rec = R.Record(dd); rec.data["due"] = "2026-12-15 14:00"; rec.data["notes"].append({"text": "Kickoff held", "who": "pm"})
     rec.data["tasks"].append({"id": "t1", "text": "Draft the cover", "owner": "Dana Ruiz", "done": False}); rec.save()
     open(os.path.join(eff, "Customer documents", "Kestrel RFI.txt"), "w").write("The Offeror shall describe its approach.")
+    extra = {}
+    try:                                                  # 3.39.0: a data call and a reviewer comment with its disposition
+        import datacalls as DC, dispositions as DP
+        rec = R.Record(dd)
+        cid = DC.add(rec, "Give the TVAC test history of the bus.", section="1.1 Technical Approach", req="L.4.2",
+                     words="150 to 250 words", owner="Dana Ruiz", due="2026-12-01")
+        DC.update(rec, cid, answer="Three campaigns, eight cycles each.")
+        kid = DP.add(rec, "Red team", "Add the test schedule.", author="G. Park", where="L.4.2 (1.1 Technical Approach)")
+        DP.set_disposition(rec, kid, "Reject", reason="It is in Volume III", owner="Dana Ruiz", due="2026-12-02")
+        extra = {"data_call": {"code": "DC-1", "answer": "Three campaigns, eight cycles each.", "status": "Answered"},
+                 "comment": {"text": "Add the test schedule.", "disposition": "Reject", "reason": "It is in Volume III"}}
+    except ImportError:
+        pass
     os.makedirs(out)
     man = P.save(os.path.join(out, "Kestrel"), "Kestrel", lst, dd, info={"client": "Fictional Space Office"},
                  customer_dir=os.path.join(eff, "Customer documents"), stage="Author drafts", app_version=version,
@@ -64,7 +77,7 @@ def make(version, out_root=None):
               "standards": {"effort_type": "Kestrel RFI", "a_number": "AA A Number", "used_on": ["AA Title Page Name", "Title page"],
                             "body_font": "Georgia"},
               "rules": {"own": "Every graphic has a callout in the text before it appears.", "off": "12"},
-              "phrase": "proposals are limited to", "matrix_view": "Kestrel outline view", "data_file": "Team" + TD.EXT}
+              "phrase": "proposals are limited to", "matrix_view": "Kestrel outline view", "data_file": "Team" + TD.EXT, **extra}
     with open(os.path.join(out, "expect.json"), "w", encoding="utf-8") as f:
         json.dump(expect, f, indent=1)
     return out, vid

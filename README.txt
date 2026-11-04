@@ -1,6 +1,18 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+DATA CALLS AND COMMENT DISPOSITION (3.39.0)
+  - Solicitation > Customer Q&A > Data calls: what the team needs from its own experts. + Data call: what is needed,
+    the section and requirement it serves, how much (word-count guidance), an example of a good answer, owner and due.
+    Send Word files... writes one Word file per person with their open calls (each call has a code: DC-1, DC-2...).
+    Read answers... puts each typed answer back on its call. Place in the section puts an answer into the response
+    structure as context for the section's author. Show: Overdue lists calls past due with no answer.
+  - Effort > Color Reviews > Comment dispositions: every reviewer comment, from a packet read back and from Word comments
+    in the drafts in the Volumes folder (each placed under its heading), gets Accept, Reject (with a reason) or Done,
+    an owner and a due date. Export the disposition log... saves one row per comment.
+  - Gate goals: Author drafts can hold until every data call is answered; Red team and Gold team recovery until every
+    reviewer comment is dispositioned (for new efforts; existing efforts can add the goal on their stages).
+
 GUARDRAILS FOR THE PROGRAM ITSELF (3.38.1)
   - Every release is now checked, before it is built, to open what earlier versions saved (an effort package, the
     global standards, the rules, the template library and a Stationkeeper Data file) with nothing lost.

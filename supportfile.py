@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.39.0": ["Data calls (beside Customer Q&A): ask experts for what a section needs, with how much and an example; one Word "
+               "file per person; answers read back and placed in the section for its author.",
+               "Color Reviews: every reviewer comment, from the packet or Word comments in the drafts, gets Accept, Reject with a "
+               "reason, or Done, with an owner and a due date; the recovery gates hold until every comment has one."],
     "3.38.1": ["Guardrails for the program itself: every release is checked to open what earlier versions saved, to use only "
                "approved packages, to stay offline, and to read the test documents as well as before."],
     "3.38.0": ["Production > Rules: every production rule in one list (Rule 1 to 13 and your own), how each is kept, on or off "

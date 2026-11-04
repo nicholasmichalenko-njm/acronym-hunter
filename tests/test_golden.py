@@ -46,6 +46,15 @@ for ver in sets:
           and any(t.get("text") == ex["record"]["task"] for t in rec.get("tasks", [])), {k: rec.get(k) for k in ("due", "notes", "tasks")})
     check(f"{ver}: the customer's file came with it", os.path.isfile(os.path.join(got.get("customer_dir") or "", ex["customer_file"])),
           got.get("customer_dir"))
+    if ex.get("data_call"):                               # 3.39 on: a data call and a reviewer comment
+        import datacalls as DC, dispositions as DP
+        r2 = R.Record(got["data"])
+        dc = DC.by_code(r2, ex["data_call"]["code"])
+        check(f"{ver}: the data call is all there", dc is not None and dc.get("answer") == ex["data_call"]["answer"]
+              and dc.get("status") == ex["data_call"]["status"], dc)
+        k = next((x for x in DP.items(r2) if x.get("text") == ex["comment"]["text"]), None)
+        check(f"{ver}: the reviewer comment and its disposition are all there", k is not None and k.get("disposition")
+              == ex["comment"]["disposition"] and k.get("reason") == ex["comment"]["reason"], k)
     # the global standards, rules, phrase rules and library
     d = PRL.load(cfg)
     st = ex["standards"]
