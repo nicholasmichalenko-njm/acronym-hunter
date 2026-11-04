@@ -75,7 +75,7 @@ d2.cols.setCurrentRow(0); d2.add_line("Draft")
 d2.use_r7()
 mid = d2.cells()[1]["lines"]
 check("Use Rule 7's footer: the A number, the marking and the team's line (blank until typed), the page",
-      HB.is_r7(d2.result_spec()) and mid[0]["text"] == "{marking}" and mid[1]["text"] == "" and "blank until" in d2.msg.text())
+      HB.is_r7(d2.result_spec()) and mid[0]["text"] == "{marking}" and mid[1]["text"] == "{team_line}" and "blank until" in d2.msg.text())
 d2.cols.setCurrentRow(1); d2.lines.item(1, 0).setText("Kestrel standard line")
 check("the team's line is typed in the builder", d2.cells()[1]["lines"][1]["text"] == "Kestrel standard line")
 DP.finish_table(sp, "appendix", "footer", d2)
@@ -92,6 +92,20 @@ d3.plain()
 DP.finish_table(sp, "body", "header", d3)
 check("Back to plain text removes the table and frees the boxes", not (sp.work["hf_layouts"]["body"]["header"].get("table") or {}).get("cells")
       and wd["header_left"].isEnabled())
+
+# 3.48.0: fields by name
+d4 = sp.hf_build_table("front", "header", run=False)
+d4.cols.setCurrentRow(0)
+d4.insert_field("solicitation")
+check("Insert a field with no line chosen adds a line holding the field", d4.cells()[0]["lines"][-1]["text"] == "{solicitation}")
+d4.lines.setCurrentCell(len(d4.cells()[0]["lines"]) - 1, 0)
+d4.insert_field("page")
+check("... and with a line chosen puts the field at its end", d4.cells()[0]["lines"][-1]["text"] == "{solicitation} {page}")
+check("the builder's field menu is beside the line buttons", d4.field_btn.isEnabled() and d4.field_btn.text() == "Insert a field")
+wd["fields"].last = wd["footer_center"]
+wd["fields"].pick("team_line")
+check("Document sections' header and footer boxes take a field where the cursor is", "{team_line}" in wd["footer_center"].text())
+d4.reject()
 
 w.close()
 n = sum(checks)

@@ -49,6 +49,11 @@ def make(version, out_root=None):
         extra["sections"] = {"part": "body", "title": "Executive Summary", "setup_part": "cover", "setup": "portrait"}
     except (ImportError, StopIteration, KeyError):
         pass
+    if "team_line" in (data["company"].get("variables") or {}):   # 3.48.0: Rule 7's team line from the variables; a Quick Part kept as built
+        data["company"]["variables"]["team_line"] = "Kestrel Systems proprietary"
+        data["company"].setdefault("quick_parts", {"one_gallery": True, "entries": []})["entries"].append(
+            {"name": "Kestrel Callout", "category": "05 Callouts", "source": "qp_kestrel.dotx", "as_built": True})
+        extra["team_line"] = {"words": "Kestrel Systems proprietary", "qp": "Kestrel Callout"}
     PRL.save(cfg, data)
     RB.add(cfg, "Every graphic has a callout in the text before it appears.", group="Writing")
     RB.set_on(cfg, 12, False)

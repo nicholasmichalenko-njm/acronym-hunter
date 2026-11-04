@@ -15,18 +15,24 @@ make_quick_part(...) a header or footer built here as a Quick Part: written into
 Rules only; nothing leaves the PC."""
 import base64, copy, os
 
-R7_LINE2 = ""            # the team's second standard line (Rule 7): blank until the team gives the words
+R7_LINE2 = "{team_line}"   # the team's second standard line (Rule 7); 3.48.0: a token filled from variables["team_line"]
 
 
 def cells_of(spec):
     return list(((spec or {}).get("table") or {}).get("cells") or [])
 
 
+def team_line(std):
+    """3.48.0: the words of Rule 7's second middle footer line: variables["team_line"], else the 3.42.0 hf_r7 line."""
+    v = str(((std or {}).get("variables") or {}).get("team_line") or "").strip()
+    return v or str(((std or {}).get("hf_r7") or {}).get("line2") or "").strip()
+
+
 def r7_footer(std=None, line2=None, width_in=6.5):
-    """Rule 7's footer as a cells table: left the A number, middle the marking and the team's standard line, right the page."""
+    """Rule 7's footer as a cells table: left the A number, middle the marking and the team's standard line ({team_line},
+    filled from the standard when the footer is written), right the page."""
     std = std or {}
-    r7 = std.get("hf_r7") or {}
-    second = r7.get("line2", R7_LINE2) if line2 is None else line2
+    second = R7_LINE2 if line2 is None else line2
     third = round(width_in / 3, 2)
     return {"marking": False, "table": {"borders": "none", "cells": [
         {"width_in": third, "lines": [{"text": "{a_number}", "align": "left", "size": None, "bold": False}], "logo": None},

@@ -39,8 +39,10 @@ check("the standard footers are Rule 7's (front, body, appendix); the cover foot
 check("Make templates checks every rule now (nothing left for later)", PT.RULES_LATER == {})
 r7 = HB.r7_footer({"hf_r7": {"line2": "Kestrel standard line"}})
 mid = r7["table"]["cells"][1]["lines"]
-check("Rule 7's footer: the marking bold, then the team's line", mid[0]["text"] == "{marking}" and mid[0]["bold"]
-      and mid[1]["text"] == "Kestrel standard line" and HB.r7_footer()["table"]["cells"][1]["lines"][1]["text"] == "")
+check("Rule 7's footer: the marking bold, then the team's line (3.48.0: the {team_line} token, filled from the standard)",
+      mid[0]["text"] == "{marking}" and mid[0]["bold"] and mid[1]["text"] == "{team_line}"
+      and HB.team_line({"hf_r7": {"line2": "Kestrel standard line"}}) == "Kestrel standard line"
+      and HB.team_line({"variables": {"team_line": "Kestrel line"}, "hf_r7": {"line2": "old"}}) == "Kestrel line")
 
 s = std_()
 job = PT.make(s, tempfile.mkdtemp(), "")

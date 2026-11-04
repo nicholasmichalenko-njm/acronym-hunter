@@ -76,6 +76,11 @@ for ver in sets:
         cells = (ft.get("table") or {}).get("cells") or []
         check(f"{ver}: the footer built as a table reads back, the team's line in it", len(cells) == 3
               and any(ln.get("text") == ex["hf_cells"]["line2"] for c in cells for ln in c.get("lines") or []), ft)
+    if ex.get("team_line"):                               # 3.48 on: Rule 7's team line from the variables; a Quick Part kept as built
+        import hfbuild as HB
+        qp = next((e for e in (d["company"].get("quick_parts") or {}).get("entries") or [] if e.get("name") == ex["team_line"]["qp"]), {})
+        check(f"{ver}: the team's line and a Quick Part kept as built read back", HB.team_line(d["company"]) == ex["team_line"]["words"]
+              and qp.get("as_built") is True, qp)
     if ex.get("sections"):                                # 3.45 on: a section's contents and its page setup
         sx = ex["sections"]
         items = ((d["company"].get("section_contents") or {}).get(sx["part"])) or []

@@ -114,6 +114,17 @@ RB.set_on(cfg, 9, False); pg.refresh(); app.processEvents()
 r9 = next(pg.rules_list.item(i) for i in range(pg.rules_list.count()) if pg.rules_list.item(i).data(Qt.UserRole) == "9")
 check("3.38.0: a rule off for every effort shows greyed, and says so", not (r9.flags() & Qt.ItemIsEnabled) and "Off for every effort" in r9.text())
 RB.set_on(cfg, 9, True); RB.set_effort_on(w.ws, 2, True)
+# 3.48.0: the footer box is Rule 7's team line, with the field menu
+pg.scope.setCurrentIndex(0); app.processEvents()
+pg.edited("team_line", "Kestrel Systems proprietary")
+std = EFM.effort_std(cfg, w.ws)
+check("Effort Formatting's footer box sets Rule 7's team line for this effort", std["variables"].get("team_line") == "Kestrel Systems proprietary"
+      and "team_line" in pg.rows and "team's line" in EFM.FIELD["team_line"][2])
+import hfbuild as HB
+check("... which every Rule 7 footer of the effort then reads", HB.team_line(std) == "Kestrel Systems proprietary")
+from skqt.fieldpicker import FieldButton
+fbs = [b for b in pg.findChildren(FieldButton)]
+check("the header and footer boxes each have a field menu (the marking aside)", len(fbs) == 4, len(fbs))
 w.close()
 n = sum(checks)
 print(f"QT EFFORT FORMAT PASS ({n}/{len(checks)})" if n == len(checks) else f"QT EFFORT FORMAT FAIL ({n}/{len(checks)})")

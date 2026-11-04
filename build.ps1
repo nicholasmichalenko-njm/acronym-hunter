@@ -102,7 +102,7 @@ $gcc = @("$env:USERPROFILE\ah_toolchain\msys64\ucrt64\bin\gcc.exe") + @((Get-Com
 if (-not $gcc) { throw "BUILD CHECK FAILED: GCC not found to compile native\imgcore.c (run tools\build_tesseract.ps1 once for the toolchain)" }
 New-Item -ItemType Directory -Force vendor\imgcore | Out-Null
 $env:PATH = (Split-Path $gcc) + ';' + $env:PATH
-& $gcc -O3 -ffp-contract=off -fno-fast-math -static-libgcc -s -shared -o vendor\imgcore\imgcore.dll native\imgcore.c
+& $gcc -O3 -ffp-contract=off -fno-fast-math -static-libgcc -s -shared "-Wl,--no-insert-timestamp" -o vendor\imgcore\imgcore.dll native\imgcore.c
 if ($LASTEXITCODE -ne 0) { throw "BUILD CHECK FAILED: native\imgcore.c did not compile" }
 "imgcore built: $((Get-FileHash vendor\imgcore\imgcore.dll).Hash)"
 try {

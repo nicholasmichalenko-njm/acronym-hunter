@@ -1,6 +1,19 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+QUICK PARTS, FIELDS AND THE TEAM'S LINE (3.48.0)
+  - Quick Parts take the template's fonts and sizes: typed fonts and sizes inside a Quick Part from a file come off
+    when a template is made, so this standard's styles decide (symbol fonts stay). Production Standards > Quick Parts:
+    tick Keep its own fonts for one that must stay exactly as built.
+  - Insert a field: the header and footer builder, Document sections' header and footer boxes and Effort Formatting's
+    header and footer boxes list the fields by name (page number, A number, marking, the team's line, volume values,
+    your own fields) and put one where the cursor is.
+  - Drag onto a section: beside a section's contents, a Library list of response elements, this standard's Quick Parts
+    and the template library's Quick Parts. Drag one where it should sit; contents reorder by dragging too.
+  - Rule 7's team line: the line under the marking in Rule 7's footer is filled from the standard (Base fonts and sizes:
+    The team's line in the footer). Effort Formatting's footer box sets it for one effort. Footers saved before 3.48.0
+    take it too.
+
 PICTURES READ WITHOUT OPENCV (3.47.0)
   - US editions no longer carry OpenCV. The picture steps before reading (enlarging, grey, contrast, table lines,
     docTR's text-box finder) are this project's own code: imgops (NumPy and Pillow) and imgcore, a small compiled

@@ -4,7 +4,8 @@ Picked from any template or Word document (.dotx, .dotm, .docx), which is read o
 only the XML is read. A copy of the source file is kept with this PC's standards (<config>\\production_parts, the same
 folder as covers and back covers, never the program folder), so the standard can put the entries into every template it
 makes. Make a template copies them in with their pictures and styles and, when the standard says so, puts every one in
-the Quick Parts gallery under its category (Word lists them by category, then name)."""
+the Quick Parts gallery under its category (Word lists them by category, then name). 3.48.0: their fonts and sizes follow
+the template (the profile's), unless a Quick Part is marked Keep its own fonts."""
 import copy, hashlib, os, re, shutil
 
 import prodparts as PP
@@ -78,8 +79,48 @@ def op_quick_parts(pkg, entries, parts_dir, one_gallery=True):
                 G._set(pr, ["category", "gallery"], QUICK_GALLERY)
         G.check_unique(pkg)
     styles = sync_styles(pkg) if copied else {}
+    follow = [n for n in copied if not (want.get(n) or {}).get("as_built") and not (want.get(n) or {}).get("made_here")]
+    # (one built here already takes the standard's styles; its line sizes were chosen in the builder)
+    fonts = follow_fonts(pkg, follow) if follow else 0
     return {"copied": copied, "skipped": skipped, "missing": missing, "styles_added": styles.get("added", []),
-            "styles_matched": styles.get("matched", 0)}
+            "styles_matched": styles.get("matched", 0), "fonts_followed": fonts}
+
+
+SYMBOL_FONTS = ("symbol", "wingdings", "wingdings 2", "wingdings 3", "webdings", "zapfdingbats", "marlett", "segoe ui symbol",
+                "ms gothic")       # check boxes, arrows and bullets keep their font: the character means something only in it
+
+
+def follow_fonts(pkg, names):
+    """3.48.0: the named Quick Parts take the template's fonts and sizes. Typed fonts and sizes inside them (w:rFonts,
+    w:sz, w:szCs on runs and paragraph marks) come off, so the styles, which already match the template (sync_styles),
+    decide; a run in a symbol font keeps its font. A Quick Part marked Keep its own fonts is not touched. Returns how
+    many typed settings came off."""
+    g = G.gloss_part(pkg)
+    if not g or not names:
+        return 0
+    want, n = set(names), 0
+    pkg.touch(g)
+    for dp in pkg.tree(g).iter(_w("docPart")):
+        nm = dp.find("w:docPartPr/w:name", NS)
+        if nm is None or nm.get(_w("val")) not in want:
+            continue
+        body = dp.find("w:docPartBody", NS)
+        if body is None:
+            continue
+        for rpr in body.iter(_w("rPr")):
+            f = rpr.find("w:rFonts", NS)
+            if f is not None and any(str(v).strip().lower() in SYMBOL_FONTS for v in f.attrib.values()):
+                continue
+            if rpr.getparent() is not None and etree.QName(rpr.getparent()).localname == "r" and \
+                    rpr.getparent().find("w:sym", NS) is not None:
+                continue
+            for tag in ("rFonts", "sz", "szCs"):
+                for x in rpr.findall(f"w:{tag}", NS):
+                    rpr.remove(x)
+                    n += 1
+        if n:
+            pkg.mark(dp)
+    return n
 
 
 STYLES_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles"

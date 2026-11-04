@@ -703,7 +703,8 @@ class StandardsPage(QWidget):
                  "margin_bottom": "Bottom margin (in)", "margin_left": "Left margin (in)", "margin_right": "Right margin (in)",
                  "paper": "Paper", "volume_name": "Volume name (blank: from the effort's deliverable)",
                  "solicitation": "Solicitation number (blank: from the effort's basics)",
-                 "marking": "Restriction marking (footers)"}
+                 "marking": "Restriction marking (footers)",
+                 "team_line": "The team's line in the footer (Rule 7, under the marking)"}
         for k, t in names.items():
             if k.endswith("_font"):
                 w = QFontComboBox(); w.setEditable(True); kind = "font"
@@ -1012,7 +1013,8 @@ class StandardsPage(QWidget):
         f, _c = self.form(v, "Quick Parts", "The building blocks every template made from this standard carries: covers, title "
                           "pages, headers, footers, page numbers, tables, captions, callouts. Add them from any template or "
                           "Word document (.dotx, .dotm, .docx; macros never run). Word lists Quick Parts by category, then name, "
-                          "so numbered categories set the order: 01 Covers, 02 Title pages, 03 Headers.")
+                          "so numbered categories set the order: 01 Covers, 02 Title pages, 03 Headers. Their fonts and sizes follow "
+                          "this standard's styles; tick Keep its own fonts for one that must stay exactly as built.")
         self.row(f, "Put every Quick Part in the Quick Parts gallery (not Word's Covers, Headers or Footers menus)", QCheckBox(),
                  ("quick_parts", "one_gallery"), "bool")
         row = QHBoxLayout()
@@ -1022,7 +1024,8 @@ class StandardsPage(QWidget):
         v.addLayout(row)
         self.table_editor(v, "quickparts", ("quick_parts", "entries"),
                           [("name", "Name", "text"), ("category", "Category", "text"), ("gallery", "Gallery in the file", "text"),
-                           ("description", "Description", "text"), ("source", "From (kept copy)", "text")])
+                           ("description", "Description", "text"), ("as_built", "Keep its own fonts", "bool"),
+                           ("source", "From (kept copy)", "text")])
         self.qp_note = D.label("", "muted"); v.addWidget(self.qp_note)
 
     def add_quick_parts(self, path=None, picks=None):

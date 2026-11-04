@@ -37,7 +37,7 @@ FIELDS = (
     ("hf_left", "Header and footer", "Header, left", ("hf_layouts", "body", "header", "left"), "text"),
     ("hf_center", "Header and footer", "Header, center", ("hf_layouts", "body", "header", "center"), "text"),
     ("hf_right", "Header and footer", "Header, right", ("hf_layouts", "body", "header", "right"), "text"),
-    ("ft_center", "Header and footer", "Footer, center", ("hf_layouts", "body", "footer", "center"), "text"),
+    ("team_line", "Header and footer", "Footer, the team's line (Rule 7)", ("variables", "team_line"), "text"),   # 3.48.0
     ("marking", "Header and footer", "Restriction marking", ("variables", "marking"), "text"),
 )
 FIELD = {f[0]: f for f in FIELDS}

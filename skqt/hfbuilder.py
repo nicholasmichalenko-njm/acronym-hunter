@@ -86,6 +86,8 @@ def shown(text, var):
     out = text
     for k, v in (("{page}", "1"), ("{pages}", "12"), ("{a_number}", "A-number"), ("{chapter}", "Chapter title")):
         out = out.replace(k, v)
+    tl = str((var or {}).get("team_line") or "")
+    out = out.replace("{team_line}", tl or "[the team's line]")
     mk = str((var or {}).get("marking") or "")
     out = out.replace("{marking}", (mk[:40] + "...") if len(mk) > 40 else (mk or "[the marking]"))
     for k in ("volume_name", "solicitation", "company", "classification", "project"):
@@ -137,6 +139,9 @@ class HFBuilder(QDialog):
         lb = QHBoxLayout()
         self.add_line_btn = D.button("Add a line", None, self.add_line); lb.addWidget(self.add_line_btn)
         self.del_line_btn = D.button("Remove the line", "ghost", self.del_line); lb.addWidget(self.del_line_btn)
+        from .fieldpicker import FieldButton                 # 3.48.0: fields by name, not typed tokens
+        self.field_btn = FieldButton(lambda: self.work, on_pick=self.insert_field)
+        lb.addWidget(self.field_btn)
         lb.addStretch(1); right.addLayout(lb)
         gl = QHBoxLayout()
         self.logo_lab = D.label("No logo", "muted"); gl.addWidget(self.logo_lab, 1)
@@ -206,7 +211,8 @@ class HFBuilder(QDialog):
     def show_cell(self):
         c = self.cell()
         on = c is not None
-        for wd in (self.width, self.lines, self.add_line_btn, self.del_line_btn, self.logo_btn, self.logo_w, self.logo_al, self.logo_clear):
+        for wd in (self.width, self.lines, self.add_line_btn, self.del_line_btn, self.logo_btn, self.logo_w, self.logo_al, self.logo_clear,
+                   self.field_btn):
             wd.setEnabled(on)
         if not on:
             self.preview.update()
@@ -277,6 +283,23 @@ class HFBuilder(QDialog):
         c.setdefault("lines", []).append({"text": text, "align": al, "size": None, "bold": False})
         self.show_cell(); self._relabel()
 
+    def insert_field(self, token):
+        """3.48.0: a field into the line chosen (at its end), or as a new line when none is chosen."""
+        c = self.cell()
+        if c is None:
+            return None
+        text = "{" + token + "}"
+        r = self.lines.currentRow()
+        lines = c.setdefault("lines", [])
+        if 0 <= r < len(lines):
+            lines[r]["text"] = (str(lines[r].get("text") or "").rstrip() + " " + text).strip()
+        else:
+            self.add_line(text)
+            return text
+        self.show_cell(); self._relabel()
+        self.lines.setCurrentCell(r, 0)
+        return text
+
     def del_line(self):
         c = self.cell()
         r = self.lines.currentRow()
@@ -327,8 +350,9 @@ class HFBuilder(QDialog):
         self.spec = HB.r7_footer(self.work)
         self.borders.blockSignals(True); self.borders.setCurrentIndex(self.borders.findData("none")); self.borders.blockSignals(False)
         self.fill_cols(0)
-        self.msg.setText("Rule 7's footer. The second middle line is the team's standard line"
-                         + ("." if (self.work.get("hf_r7") or {}).get("line2") else ": blank until you type it."))
+        self.msg.setText("Rule 7's footer. The second middle line is the team's line"
+                         + (f": {HB.team_line(self.work)}." if HB.team_line(self.work)
+                            else ": blank until it is typed (Base fonts and sizes, or Effort Formatting's footer box)."))
 
     def plain(self):
         self.spec = None

@@ -132,9 +132,17 @@ class EffortFormatPage(QWidget):
             ed.activated.connect(lambda _i, k=key: self.edited(k))
         else:
             ed = QLineEdit(); ed.setMinimumWidth(240); ed.editingFinished.connect(lambda k=key: self.edited(k))
-            ed.setToolTip("Fields: {volume_name} {solicitation} {company} {page} {pages} {chapter}, and your own as {key}")
+            ed.setToolTip("Words and fields; Insert a field puts one where the cursor is")
         ed.setFixedWidth(240)
-        self.grid.addWidget(ed, r, 2)
+        if kind == "text" and key != "marking":         # 3.48.0: header and footer boxes get the field menu
+            from .fieldpicker import FieldButton
+            holder = QWidget(); hb = QHBoxLayout(holder); hb.setContentsMargins(0, 0, 0, 0); hb.setSpacing(D.SPACE["xs"])
+            hb.addWidget(ed)
+            fb = FieldButton(lambda: self.std_now(), [ed], text="Field")
+            hb.addWidget(fb)
+            self.grid.addWidget(holder, r, 2)
+        else:
+            self.grid.addWidget(ed, r, 2)
         rfp = D.label("", "muted"); rfp.setWordWrap(True); rfp.setMinimumWidth(160); self.grid.addWidget(rfp, r, 3)
         use = D.button("Use it", "ghost", lambda _=False, k=key: self.use_rfp(k), "This effort takes the RFP's value")
         reset = D.button("Reset", "ghost", lambda _=False, k=key: self.reset(k), "Back to the global value")
@@ -149,6 +157,13 @@ class EffortFormatPage(QWidget):
 
     def tid(self):
         return self.scope.currentData() or None
+
+    def std_now(self):
+        """This effort's standard for the volume shown (the field menu lists its fill-ins)."""
+        try:
+            return EFM.effort_std(self.host.config_dir, self.host.ws, self.tid())
+        except Exception:  # noqa: BLE001  the menu still lists the built-in fields
+            return {}
 
     def read(self, key):
         row = self.rows[key]

@@ -292,6 +292,9 @@ def build(page, v, section):
         f2.addRow(kind.title(), holder)
         tw = QLineEdit(); tw.setPlaceholderText("Blank: tab stops. Column widths in inches for a table: 4.5, 2"); w[f"{kind}_table"] = tw
         f2.addRow(f"{kind.title()} as a table", tw)
+    from .fieldpicker import FieldButton                    # 3.48.0: a field into the box last used
+    w["fields"] = FieldButton(lambda: page.work, [w[f"{k}_{s}"] for k in ("header", "footer") for s in ("left", "center", "right")])
+    f2.addRow("", w["fields"])
     w["rule_below"] = QCheckBox("A rule under the header"); f2.addRow("", w["rule_below"])
     w["marking"] = QCheckBox("The restriction marking in the footer"); f2.addRow("", w["marking"])
     w["borders"] = QComboBox()

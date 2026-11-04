@@ -92,6 +92,10 @@ def _slot_runs(text, std, sources, fields):
         elif k == "marking":                      # 3.42.0: the marking's words; blank when the standard has none
             if (std.get("variables") or {}).get("marking"):
                 runs.append(_r(str(std["variables"]["marking"])))
+        elif k == "team_line":                    # 3.48.0: Rule 7's team line; blank until the team gives the words
+            words = _team_line(std)
+            if words:
+                runs.append(_r(words))
         elif k in _styles_of(std) and _styles_of(std)[k] in sources:    # 3.23.0: the standard's fill-ins too
             instr = f'STYLEREF "{_styles_of(std)[k]}"'
             runs += _field(instr, _value_of(std, k)); fields.append(instr)
@@ -101,6 +105,28 @@ def _slot_runs(text, std, sources, fields):
         else:
             runs.append(_r(str(std["variables"].get(k) or _value_of(std, k) or piece)))
     return runs
+
+
+def _team_line(std):
+    v = str((std.get("variables") or {}).get("team_line") or "").strip()
+    return v or str((std.get("hf_r7") or {}).get("line2") or "").strip()
+
+
+def _r7_filled(spec):
+    """3.48.0: a Rule 7 footer saved before the team line was a token (its second middle line blank) takes {team_line}."""
+    cells = ((spec or {}).get("table") or {}).get("cells") or []
+    if len(cells) != 3:
+        return spec
+    left = " ".join(str(l.get("text") or "") for l in cells[0].get("lines") or [])
+    right = " ".join(str(l.get("text") or "") for l in cells[2].get("lines") or [])
+    mid = cells[1].get("lines") or []
+    if "{a_number}" not in left or "{page}" not in right or len(mid) < 2 or "{marking}" not in str(mid[0].get("text") or "") \
+            or str(mid[1].get("text") or "").strip():
+        return spec
+    import copy as _copy
+    spec = _copy.deepcopy(spec)
+    spec["table"]["cells"][1]["lines"][1]["text"] = "{team_line}"
+    return spec
 
 
 def _styles_of(std):
@@ -486,6 +512,8 @@ def _hf_build(pkg, std):
                 root = etree.Element(q(root_tag), nsmap={"w": W, "r": R})
                 fl = []
                 spec = lay.get(kind) or {}
+                if kind == "footer":
+                    spec = _r7_filled(spec)
                 design = ((std.get("hf_designs") or {}).get(s.part) or {}).get(kind)
                 if design:                                   # 3.24.0: a design kept whole (its tables, tabs, pictures, fields)
                     root = etree.fromstring(design.encode("utf-8") if isinstance(design, str) else design)

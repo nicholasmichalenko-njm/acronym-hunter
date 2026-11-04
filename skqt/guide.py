@@ -102,7 +102,9 @@ TOPICS = [
    "Set a value, or press Use it beside what the RFP says. A value that breaks the RFP's rule shows in red.",
    "Make it global writes this effort's value into the global standard, a volume profile or the effort type; Undo the "
    "last Make it global puts it back.",
-   "Every setting... opens Production Standards on this effort (an amber band says so); Back to Effort Formatting returns."],
+   "Every setting... opens Production Standards on this effort (an amber band says so); Back to Effort Formatting returns.",
+   "Footer, the team's line (Rule 7) sets the line under the marking in every Rule 7 footer of this effort. Field, beside "
+   "each header and footer box, puts a field (page number, A number, volume values, your fields) where the cursor is."],
   ["Library parts this effort uses lists each part's source: the global version, a version this effort chose, or its own copy.",
    "Production Standards itself edits only the global standards."]),
  ("record", "Effort", "Effort Record",
@@ -365,6 +367,9 @@ TOPICS = [
    "preview, Open a sample in Word, Save this section as a design (Template library > Section designs) and Use a saved design.",
    "Sections in order: the page scheme, your own sections among them (add a row: a key, a name, the style it starts at). Its "
    "card A section's page setup and contents does the same for any section, and builds its header or footer as a table.",
+   "Library beside a section's contents (3.48.0): response elements, this standard's Quick Parts and the template library's "
+   "Quick Parts. Drag one onto the section where it should sit (or double-click to add it at the end); a template library "
+   "Quick Part comes into this standard as it lands. Drag the contents to reorder them.",
    "Cover, title page and Back cover (3.40.0): each page says its kind: a flow page (paragraphs), a table page, or a placed page "
    "(a background with text placed on it). Edit in Word opens a dated copy; what you save is kept as a new version and the page "
    "before it stays. On a PC with Word the preview is Word's own picture of the page; otherwise it is the app's sketch.",
@@ -386,11 +391,15 @@ TOPICS = [
    "Library > Template library: the shelves as a page, with a Layer filter, a search, Pictures, and where each item is used.",
    "Build a header or footer as a table... (here or on a Document sections section): columns at inch widths, lines of words and "
    "fields with their alignment, size and bold, and a logo. Use Rule 7's footer puts the A number, the marking and the "
-   "team's line, and the page number. Save as a Quick Part... keeps it in the standard's Quick Parts for every template.",
+   "team's line, and the page number. Save as a Quick Part... keeps it in the standard's Quick Parts for every template. "
+   "Insert a field lists the fields by name and puts one in the line chosen. The team's line comes from Base fonts and "
+   "sizes (The team's line in the footer), or per effort from Effort Formatting.",
    "What Check reports: each section that has checks (Captions, Table of contents, Headers and footers, Page sizes and "
    "margins) lists them at the bottom. Check reads them; nothing is changed.",
    "Quick Parts: Add from a template or document... lists the Quick Parts every template from this standard carries, "
-   "all in Word's Quick Parts gallery under your numbered categories.",
+   "all in Word's Quick Parts gallery under your numbered categories. Their fonts and sizes follow this standard's styles "
+   "(3.48.0): typed fonts and sizes inside them come off when a template is made, symbol fonts aside. Tick Keep its own "
+   "fonts for a Quick Part that must stay exactly as built.",
    "Fields (called Fill-ins before 3.25.0): field codes for a value typed once that shows everywhere: a cover style read "
    "by STYLEREF, or a document property (DOCPROPERTY). Use one in a header or footer as {key}.",
    "Heading numbering and lists: the number shows as it will look (1.1.1, Section A); type it the same way.",

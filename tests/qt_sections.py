@@ -78,6 +78,38 @@ d.cols.setCurrentRow(1); d.add_line("Past performance")
 from skqt import docparts as DP
 DP.finish_table(sp, "pastperf", "header", d)
 check("its header is built as a table", (((sp.work.get("hf_layouts") or {}).get("pastperf") or {}).get("header") or {}).get("table", {}).get("cells"))
+# 3.48.0: drag from the library onto a section
+import json
+from PySide6.QtCore import Qt
+ed.fill_library()
+libtexts = [ed.library.item(i).text() for i in range(ed.library.count())]
+check("the library lists response elements and this standard's Quick Parts", any("(element)" in t for t in libtexts)
+      and "Kestrel Mission Overview (Quick Part)" in libtexts, libtexts)
+toc = next(ed.library.item(i) for i in range(ed.library.count()) if ed.library.item(i).data(Qt.UserRole).get("id") == "toc")
+toc_title = toc.data(Qt.UserRole)["title"]
+md = ed.library.mimeData([toc])
+ed.list.editor.drop(json.loads(bytes(md.data("application/x-stationkeeper-section-item")).decode("utf-8")), 0)
+check("a library row dropped at the top of the section goes in there", SC.items(sp.work, "body")[0] == {"kind": "element", "id": "toc",
+      "title": toc_title}, SC.items(sp.work, "body"))
+md2 = ed.list.mimeData([ed.list.item(0)])
+ed.drop(json.loads(bytes(md2.data("application/x-stationkeeper-section-item")).decode("utf-8")), ed.list.count())
+check("a content row dragged to the end moves there", SC.items(sp.work, "body")[-1]["id"] == "toc"
+      and len(SC.items(sp.work, "body")) == 3)
+import qpmake as QM, templatelib as TL
+W_ = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+srcf = QM.make_source(tempfile.mkdtemp(), [{"name": "Kestrel Library Callout", "category": "05 Callouts", "gallery": "docParts",
+                                            "xml": f'<w:p xmlns:w="{W_}"><w:r><w:t>Kestrel callout</w:t></w:r></w:p>'}])
+lib = TL.Library(cfg)
+TL.save_collected(lib, srcf, TL.collect(srcf, sp.work, lib)[0])
+ed.fill_library()
+row = next((ed.library.item(i) for i in range(ed.library.count()) if "template library" in ed.library.item(i).text()), None)
+check("the template library's Quick Parts are listed to drag", row is not None and "Kestrel Library Callout" in row.text())
+ed.drop([dict(row.data(Qt.UserRole))], 1)
+names = [e.get("name") for e in sp.work["quick_parts"]["entries"]]
+check("a template library Quick Part dropped on a section comes into the standard and the section",
+      "Kestrel Library Callout" in names and SC.items(sp.work, "body")[1] == {"kind": "quickpart", "name": "Kestrel Library Callout"},
+      (names, SC.items(sp.work, "body")))
+check("the kept pages take no drops", not cov.library.isEnabled() and not cov.list.isEnabled())
 sp.save()
 import prodrules as PRL
 saved = PRL.load(cfg)["company"]

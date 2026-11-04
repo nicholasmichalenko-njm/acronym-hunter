@@ -235,9 +235,10 @@ TERMS = {
 COMPANY["pagination"] = PAGINATION_PRESETS["team"]
 
 
-def r7_footer(line2=""):
+def r7_footer(line2="{team_line}"):
     """3.42.0 Rule 7's footer: a one-row table, the A number on the left (a STYLEREF to its style), the marking and the
-    team's standard line in the middle, the page number on the right."""
+    team's standard line in the middle, the page number on the right. 3.48.0: the team's line is the {team_line} token,
+    filled from the standard's variables (Effort Formatting's footer box sets it per effort)."""
     return {"marking": False, "table": {"borders": "none", "cells": [
         {"width_in": 2.17, "lines": [{"text": "{a_number}", "align": "left", "size": None, "bold": False}], "logo": None},
         {"width_in": 2.16, "lines": [{"text": "{marking}", "align": "center", "size": None, "bold": True},
@@ -255,7 +256,8 @@ COMPANY["page_setups"] = PAGE_SETUPS
 COMPANY["lists"] = LISTS
 COMPANY["terms"] = TERMS
 COMPANY["variables"].update({"volume_name": "Volume I Technical", "solicitation": "EX-26-R-0001",
-    "marking": "Use or disclosure of data contained on this page is subject to the restriction on the title page of this proposal."})
+    "marking": "Use or disclosure of data contained on this page is subject to the restriction on the title page of this proposal.",
+    "team_line": ""})                     # 3.48.0: Rule 7's second middle footer line; blank until the team gives the words
 
 TEMPLATE_TYPES = {
     "dod_tech": {"id": "dod_tech", "name": "DoD technical volume",
