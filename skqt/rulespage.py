@@ -125,7 +125,10 @@ class RulesPage(QWidget):
         if self._loading:
             return
         RB.set_on(self.host.config_dir, rid, on)
-        diag.activity("rule_turned_" + ("on" if on else "off"))
+        if on:
+            diag.activity("rule_turned_on")
+        else:
+            diag.activity("rule_turned_off")
         self.fill_summary()
 
     def add_own(self):

@@ -1,6 +1,21 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE RULES PAGE: EVERY PRODUCTION RULE IN ONE LIST (3.38.0)
+  - Production > Rules: Rule 1 to 13 and your own, each one sentence, grouped (pages and markings, formatting, acronyms,
+    writing, approach), with how it is kept: checked by the app, checked with Word, or a checklist item for people.
+    Untick On for every effort to turn a rule off everywhere; Change it opens where the rule's values live; Add the rule
+    adds your own. Show: Reading the customer's documents lists how Review's Suggest reads and your phrase rules.
+  - Effort > Effort Formatting > Rules this effort follows: the one place an effort departs from a rule. The effort's
+    response type is set there too (from its effort type unless you choose), and style names follow it (Rule 4).
+  - Audit and Fix a Copy name each finding's rule; Audit's Group by: Rule lists each rule with its findings.
+  - Rule 6: Fix a Copy puts every heading level's number at 0 and its text at one position (positions only); every
+    effort's standard and Make templates follow it. Rule 8: the table fix puts caption and notes rows at 0.0.
+  - Rule 5: a response with no title page carries no title page styles. Production Standards > Styles has a Used on
+    column (a style's name decides nothing), and names the A number's style and the restriction block's style.
+  - Rule 7 (the footer table) is checked in your documents; Make templates builds it with the header and footer builder.
+  - The formatting for every effort is called the global standards throughout.
+
 AUTHOR KICKOFF PACKETS, EVERYTHING FOR A SECTION, ONE ACRONYM PAGE (3.37.0)
   - Structure Builder (or Storyboards) > Kickoff packets...: one Word file per author, for everyone who leads or writes
     a section (tick who). For each of their sections: their role, the page budget and storyboard status, the customer's

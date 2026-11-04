@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.38.0": ["Production > Rules: every production rule in one list (Rule 1 to 13 and your own), how each is kept, on or off "
+               "for every effort, and where its values live. Audit and Fix a Copy report each finding under its rule.",
+               "Rule 6: Fix a Copy puts every heading level's number at 0 and its text at one position; templates follow it. "
+               "Styles get a Used on column; an effort's response type renames styles (Rule 4)."],
     "3.37.0": ["Kickoff packets: one Word file per author with everything for the sections they lead or write: the customer's "
                "words with their source, how each is scored, objectives, hot buttons, themes, topics, answers, pages and dates.",
                "Structure Builder shows Everything for this section. Lists to Submit is now part of the Acronym List."],
