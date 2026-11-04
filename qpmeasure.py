@@ -97,9 +97,10 @@ def jobs(lib, ids):
     return out
 
 
-def measure(lib, ids, runner=None, timeout=900):
+def measure(lib, ids, runner=None, timeout=900, keep=True):
     """Word measures each Quick Part among ids and the library keeps its pages (measured). Returns {item id: pages, or
-    the reason in words}. runner (tests): runner(cmd, env, timeout) -> the script's output text."""
+    the reason in words}. runner (tests): runner(cmd, env, timeout) -> the script's output text. keep False (3.49.0, a
+    background job): the pages are only returned; the window keeps them (qpjobs), so a job never saves the library."""
     todo = jobs(lib, ids)
     out = {iid: "Its source file is not in the library." for iid in ids
            if (lib.get(iid) or {}).get("kind") == "quickpart" and iid not in {j[0] for j in todo}}
@@ -144,7 +145,8 @@ def measure(lib, ids, runner=None, timeout=900):
             r = res[k] if k < len(res) and isinstance(res[k], dict) else {}
             n = int(r.get("pages") or 0)
             if n > 0:
-                lib.set_pages(iid, n, "measured")
+                if keep:
+                    lib.set_pages(iid, n, "measured")
                 out[iid] = n
             else:
                 out[iid] = ("Word did not find the Quick Part in its source file." if r.get("why") == "missing"

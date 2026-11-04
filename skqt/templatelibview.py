@@ -157,6 +157,7 @@ class LibraryView(QWidget):
         self.fill_shelves()
 
     def fill_shelves(self):
+        self.lib.fresh()                                # 3.49.0: what another window or an import kept since
         cur = self.shelves.currentRow()
         self.shelves.blockSignals(True)
         self.shelves.clear()
@@ -379,19 +380,25 @@ class LibraryView(QWidget):
         return ids or ([i["id"] for i in self.lib.shelf("quickpart")] if self.kind() == "quickpart" else [])
 
     def measure(self, ids=None, runner=None):
-        """3.32.0: Word measures the selected Quick Parts' pages (every one on the shelf when none is selected)."""
-        import qpmeasure as QM
+        """3.32.0: Word measures the selected Quick Parts' pages (every one on the shelf when none is selected). 3.49.0: in
+        the background (qpjobs), one measuring at a time, the pages kept by this window when Word is done."""
         ids = ids if ids is not None else self._picked_quickparts()
         if not ids:
             self.page.host.status("Pick a Quick Part on the Quick Parts shelf first.")
             return {}
-        res = QM.measure(self.lib, ids, runner=runner)
+        from . import qpjobs
+        if runner is not None:                          # tests: Word's answers given, measured here and now
+            return qpjobs.measure_now(self.lib.config_dir, ids, runner, after=self._measured)
+        ok = qpjobs.start(self.lib.config_dir, ids, after=self._measured)
+        self.page.host.status("Word is measuring the Quick Parts' pages in the background." if ok else qpjobs.why_not())
+        return {}
+
+    def _measured(self, res):
         self.lib.load(); self.fill()
         n = sum(1 for v in res.values() if isinstance(v, int))
         bad = [v for v in res.values() if not isinstance(v, int)]
         self.page.host.toast(f"{n} Quick Part(s) measured." + (f" {len(bad)} not: {bad[0]}" if bad else ""))
         diag.activity("quickparts_measured", n=n)
-        return res
 
     def type_pages(self, pages=None):
         """The pages a Quick Part fills, typed (0 takes them off)."""

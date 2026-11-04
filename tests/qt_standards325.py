@@ -76,25 +76,25 @@ check("sections with nothing to import have none", "Import from a file..." not i
 lib = TL.Library(cfg)
 before = len(lib.items)
 d = sp.import_file(SRC, section="quickparts", run=False)
-kinds = {it["kind"] for c in d.cards for it in c.items}
-check("a section's Import shows only that section's items", kinds == {"quickpart"} and len(d.cards) == 1, kinds)
+kinds = {it["kind"] for it in d.items}
+check("a section's Import shows only that section's items", kinds == {"quickpart"} and d.tree.topLevelItemCount() == 1, kinds)
 check("Use here and Keep in the library both start on", d.use_here.isChecked() and d.keep_lib.isChecked())
 d.keep_lib.setChecked(False)
-for r in range(d.t.rowCount()):                          # take one item only
-    d.t.item(r, 0).setCheckState(Qt.Checked if d.t.item(r, 1).text() == "Table header" else Qt.Unchecked)
+for it in d.items:                                       # take one item only (3.49.0: groups are the Quick Parts' categories)
+    it["take"] = it["name"] == "Table header"
 d.take()
 lib.load()
 qp = [e["name"] for e in sp.work["quick_parts"]["entries"]]
 check("one item taken: it goes into what is being edited, and the library is left alone", qp == ["Table header"] and len(lib.items) == before, qp)
 d2 = sp.import_file(SRC, section="styledefs", run=False)
-check("the Styles section's Import shows styles (and the theme and fonts)", {it["kind"] for c in d2.cards for it in c.items} <= {"style", "theme", "font"}
-      and any(it["kind"] == "style" for c in d2.cards for it in c.items))
+check("the Styles section's Import shows styles (and the theme and fonts)", {it["kind"] for it in d2.items} <= {"style", "theme", "font"}
+      and any(it["kind"] == "style" for it in d2.items))
 d2.use_here.setChecked(False)
 d2.take()
 lib.load()
 check("Keep in the library only: the styles go to the library", len(lib.shelf("style")) > 0)
 dall = sp.import_file(SRC, run=False)
-check("Import from a file at the top reads everything", len({it["kind"] for c in dall.cards for it in c.items}) > 3)
+check("Import from a file at the top reads everything", len({it["kind"] for it in dall.items}) > 3)
 dall.reject()
 check("the Template library's Import keeps in the library only", not sp.collect(SRC, run=False).use_here.isChecked())
 

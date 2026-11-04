@@ -2362,6 +2362,12 @@ class StandardsPage(QWidget):
         self.libview = LibraryView(self)
         v.addWidget(self.libview, 1)
 
+    def library_changed(self):
+        """3.49.0: an import kept items (or was taken back): the library page reads the library again."""
+        lv = getattr(self, "libview", None)
+        if lv is not None:
+            lv.lib.load(); lv.fill_shelves()
+
     def after_library(self, said):
         """An item from the library went into what is being edited."""
         self.show_hf_designs()

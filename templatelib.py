@@ -603,6 +603,12 @@ def save_collected(lib, path, cards, tags=None, who=None, quickparts=None):
     """Keeps the ticked items of the cards (names as the person left them). Returns {"new", "same", "variant"}.
     quickparts (3.32.0): a list that gets the ids of the Quick Parts kept, to measure their pages."""
     counts = {"new": 0, "same": 0, "variant": 0}
+    with lib.transaction():                             # 3.49.0: all or nothing
+        _save_cards(lib, path, cards, tags, who, quickparts, counts)
+    return counts
+
+
+def _save_cards(lib, path, cards, tags, who, quickparts, counts):
     kept_source = None
     for c in cards:
         for it in c.items:
@@ -618,7 +624,6 @@ def save_collected(lib, path, cards, tags=None, who=None, quickparts=None):
             counts[st] += 1
             if quickparts is not None and it["kind"] == "quickpart" and not _item.get("pages"):
                 quickparts.append(_item["id"])
-    return counts
 
 
 def cleanup(lib):

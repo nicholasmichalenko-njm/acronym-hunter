@@ -12,7 +12,7 @@ os.environ["SK_SANDBOX_TEMP"] = "temp_qt"
 tmp = tempfile.mkdtemp()
 os.environ["SK_DATA_DIR"] = os.path.join(tmp, "Stationkeeper Data")
 import app_gui as A
-import templatelib as TL, importbrowse as IB
+import templatelib as TL
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QMessageBox
 QMessageBox.information = staticmethod(lambda *a, **k: None)
@@ -42,57 +42,59 @@ sp = w.prodstd_page
 
 d = sp.import_file(SRC, run=False)
 tops = [d.tree.topLevelItem(i).text(0) for i in range(d.tree.topLevelItemCount())]
-check("one browser of the file, by layer", [t.split(" (")[0] for t in tops] == ["Building blocks", "Components", "Sections"], tops)
-secs = next(c for c in d.cards if c.key == "sections")
-check("each Word section of the file is offered as a section, with its page setup", secs.items and all(it["kind"] == "section"
-      and it["values"]["page"]["w"] for it in secs.items) and "in" in secs.items[0]["summary"], [it["summary"] for it in secs.items][:2])
-check("everything starts New against an empty library, ticked", all(it["state"] == "new" and it["keep"] for c in d.cards for it in c.items))
-d.select("layer:blocks"); app.processEvents()
-check("a layer shows every item of its groups", d.t.rowCount() == sum(len(c.items) for c in d.cards if IB.layer_of(c) == "blocks"))
-style_key = next(c.key for c in d.cards if c.key.startswith("styles:"))
-d.select(style_key); app.processEvents()
-check("a group shows its items with their badge", d.t.rowCount() > 0 and d.t.item(0, 2).text().startswith("New"))
+check("3.49.0: one browser of the file, by the library each item lands in", [t.split(" (")[0] for t in tops] == ["Formatting Standards", "Layout"]
+      or [t.split(" (")[0] for t in tops] == ["Formatting Standards", "Quick Parts", "Layout"], tops)
+secs = [it for it in d.items if it["kind"] == "section"]
+check("each Word section of the file is offered as a section, with its page setup", secs and all(it["values"]["page"]["w"] for it in secs)
+      and all(it["library"] == "layout" and it["category"] == "sections" for it in secs) and "in" in secs[0]["summary"],
+      [it["summary"] for it in secs][:2])
+check("everything starts New against an empty library, ticked, to add", all(it["state"] == "new" and it["take"] and it["action"] == "add" for it in d.items))
+d.select("lib:formatting"); app.processEvents()
+check("a library shows every item of its categories", d.t.rowCount() == sum(1 for it in d.items if it["library"] == "formatting"))
+d.select("cat:formatting:para_styles"); app.processEvents()
+check("a category shows its items with their badge and what to do", d.t.rowCount() > 0 and d.t.item(0, 2).text().startswith("New")
+      and d.t.cellWidget(0, 3).currentData() == "add")
 d.t.setCurrentCell(0, 1); app.processEvents()
 check("the picture shows the selected style", d.picture.it is d.shown[0] and not d.picture.grab().isNull())
-d.select("sections"); app.processEvents(); d.t.setCurrentCell(0, 1); app.processEvents()
+d.select("cat:layout:sections"); app.processEvents(); d.t.setCurrentCell(0, 1); app.processEvents()
 check("a section is drawn as a page", d.picture.it["kind"] == "section" and not d.picture.grab().isNull())
-# take only the styles of one group and a section with a footer, use here off
-sec1 = next((it for it in secs.items if it["values"].get("footer")), secs.items[-1])
+sec1 = next((it for it in secs if it["values"].get("footer")), secs[-1])
 check("a section carries its header and footer kept whole", bool(sec1["values"].get("footer")))
-for c in d.cards:
-    for it in c.items:
-        it["keep"] = c.key == style_key or (c.key == "sections" and it is sec1)
+paras = [it for it in d.items if it["category"] == "para_styles"]
+for it in d.items:
+    it["take"] = it in paras or it is sec1
 d.use_here.setChecked(False)
 d.count()
-check("the count says how many are ticked across every group", f"{len(next(c for c in d.cards if c.key == style_key).items) + 1} item(s)" in d.count_lab.text(),
-      d.count_lab.text())
+check("the count says how many are ticked across every group", f"{len(paras) + 1} item(s)" in d.count_lab.text(), d.count_lab.text())
 got = d.take()
 lib = TL.Library(cfg)
-check("Take the ticked keeps them in the library in one go", got["new"] + got["same"] == len(next(c for c in d.cards if c.key == style_key).items) + 1
-      and len(lib.shelf("section")) == 1 and lib.shelf("style"), got)
+check("Take the ticked keeps them in the library in one go, as Draft", got["new"] == len(paras) + 1 and len(lib.shelf("section")) == 1
+      and lib.shelf("style") and all(i.get("status") == "draft" for i in lib.items), got)
+check("Undo this import is offered", d.undo_btn.isVisibleTo(d) and d.report and len(d.report["added"]) == len(paras) + 1)
 d.reject()
 
 d2 = sp.import_file(SRC, run=False)
-st2 = next(c for c in d2.cards if c.key == style_key)
-check("imported again: what the library holds is Same and starts unticked", all(it["state"] == "same" and not it["keep"] for it in st2.items))
-d2.filter.setCurrentIndex(d2.filter.findData("same")); d2.select(style_key); app.processEvents()
-check("the filter shows only the Same ones", d2.t.rowCount() == len(st2.items))
+st2 = [it for it in d2.items if it["category"] == "para_styles"]
+check("imported again: what the library holds is Same and starts unticked", all(it["state"] == "same" and not it["take"] for it in st2))
+d2.filter.setCurrentIndex(d2.filter.findData("same")); d2.select("cat:formatting:para_styles"); app.processEvents()
+check("the filter shows only the Same ones", d2.t.rowCount() == len(st2))
+d2.t.setCurrentCell(0, 1)
+check("Show me: the library item it is the same as", "holds these values already" in (d2.show_match(run=False) or ""))
 d2.reject()
-# a style that differs: change one in the library's newest version, then import again
 hit = lib.shelf("style")[0]
 vals = dict(lib.values(hit)); vals["size"] = 31.0
 lib.update(hit["id"], vals)
 d3 = sp.import_file(SRC, run=False)
-var = [it for c in d3.cards for it in c.items if it["state"] == "variant"]
-check("Differs says what differs", var and "size" in var[0]["differs"] and "31" in var[0]["differs"], [it.get("differs") for it in var][:2])
+var = [it for it in d3.items if it["state"] == "variant"]
+check("Differs says what differs, and starts as a new version", var and "size" in var[0]["differs"] and "31" in var[0]["differs"]
+      and var[0]["action"] == "version", [it.get("differs") for it in var][:2])
 d3.reject()
 
-# Use here for a section adds its page setup
 d4 = sp.import_file(SRC, section="setups", run=False)
-check("the page setup section's Import offers the file's sections", any(c.key == "sections" for c in d4.cards))
-for c in d4.cards:
-    for it in c.items:
-        it["keep"] = c.key == "sections" and it is c.items[0]
+check("the page setup section's Import offers the file's sections", any(it["kind"] == "section" for it in d4.items))
+first_sec = next(it for it in d4.items if it["kind"] == "section")
+for it in d4.items:
+    it["take"] = it is first_sec
 d4.keep_lib.setChecked(False)
 d4.take()
 check("Use here: the section's page setup goes into the standard", any(k.startswith("section") or "section 1" in str(v.get("name", "")).lower()

@@ -58,22 +58,21 @@ check("the style library has Hidden text", any(c[0] == "hidden" for c in STYLE_C
 
 # ---------------------------------------------------------------- Collect into the library
 d = sp.collect(SRC, run=False)
-check("Import shows what the file carries, the first group open (3.44.0: one browser)", d.cards and d.t.rowCount() > 0 and d.head.text(),
-      [c.key for c in d.cards])
+check("Import shows what the file carries, the first group open (3.44.0: one browser)", d.items and d.t.rowCount() > 0 and d.head.text(),
+      [it["category"] for it in d.items][:5])
 d.uses["RFP"].setChecked(True)
-first = d.cards[0]
+d.select("cat:formatting:para_styles")
+first = list(d.group())
 d.t.item(0, 1).setText("Renamed style")
-for c in d.cards:
-    for it in c.items:
-        it["keep"] = c is first
+for it in d.items:
+    it["take"] = it in first
 d.take()
 lib = TL.Library(cfg)
 check("Take the ticked saves at once, renamed and tagged", lib.shelf("style") and any(i["name"] == "Renamed style" for i in lib.shelf("style"))
       and all("RFP" in i["tags"]["use"] for i in lib.shelf("style")), [i["name"] for i in lib.shelf("style")][:5])
-for c in d.cards:
-    for it in c.items:
-        it["keep"] = c is not first
-d.select("quickparts")
+for it in d.items:
+    it["take"] = it not in first
+d.select("lib:quickparts")
 smp = d.sample(open_it=False)
 check("Open a sample in Word: a small template with the card's items, in the Samples folder", smp and smp.endswith(".dotx")
       and os.path.basename(os.path.dirname(smp)) == "Samples" and len(__import__("prodquickparts").read(smp)) == 3, smp)
