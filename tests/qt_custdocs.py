@@ -43,7 +43,7 @@ app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel")
 check("the rail: Deliverables with the effort; Solicitation: Library, Compare, Customer Q&A", [k for k in w.step_btns][2:4] == ["home", "deliverables"]
-      and [k for k in w.step_btns][6:9] == ["library", "compare", "custqa"],      # 3.16.0: one place per job
+      and [k for k in w.step_btns][7:10] == ["library", "compare", "custqa"],      # 3.16.0: one place per job; 3.36.0: Effort Formatting
       list(w.step_btns))
 # a compliance matrix with the page-limit sentence as a requirement
 w.read_page.read([os.path.join(CDIR, "Kestrel_RFP_Sections_C_L_M.docx")], os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))
