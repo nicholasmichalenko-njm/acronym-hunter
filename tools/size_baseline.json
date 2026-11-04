@@ -1,0 +1,23 @@
+{
+ "limit_new": 800,
+ "growth": 0.05,
+ "why": "3.38.1: files over 800 lines may grow 5% past this before a split; split them when a feature touches them. Raise a number only with a reason here.",
+ "files": {
+  "app_gui.py": 3393,
+  "compliance.py": 1559,
+  "docversions.py": 818,
+  "effortrec.py": 969,
+  "matrixdesign.py": 902,
+  "prodengine/engine/ops/word_ops.py": 1294,
+  "setupdoc.py": 1120,
+  "skqt/assign.py": 4392,
+  "skqt/brandview.py": 822,
+  "skqt/builder.py": 1163,
+  "skqt/custdocs.py": 1509,
+  "skqt/homepage.py": 1748,
+  "skqt/librarypage.py": 1290,
+  "skqt/mainwin.py": 1290,
+  "skqt/prodfixpage.py": 947,
+  "skqt/prodstdpage.py": 2501
+ }
+}

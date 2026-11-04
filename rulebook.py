@@ -13,6 +13,7 @@ rules it turns off). Kept on this PC beside the global standards (rules.json); a
 import copy, json, os, uuid
 
 FILE = "rules.json"
+FORMAT = 1                     # 3.38.1: formats.py lists every saved file's format
 KEPT = (("app", "Checked by the app"), ("word", "Checked with Word on this PC"), ("people", "Checklist for people"))
 KEPT_NAME = dict(KEPT)
 GROUPS = ("Pages and markings", "Formatting", "Acronyms", "Writing", "Approach")
@@ -66,7 +67,7 @@ def save(config_dir, data):
     os.makedirs(config_dir, exist_ok=True)
     p = _path(config_dir)
     with open(p + ".tmp", "w", encoding="utf-8") as f:
-        json.dump({"off": data.get("off", []), "own": data.get("own", [])}, f, indent=1, ensure_ascii=False)
+        json.dump({"format": FORMAT, "off": data.get("off", []), "own": data.get("own", [])}, f, indent=1, ensure_ascii=False)
     os.replace(p + ".tmp", p)
 
 

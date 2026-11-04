@@ -1,6 +1,12 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+GUARDRAILS FOR THE PROGRAM ITSELF (3.38.1)
+  - Every release is now checked, before it is built, to open what earlier versions saved (an effort package, the
+    global standards, the rules, the template library and a Stationkeeper Data file) with nothing lost.
+  - Every release is checked to stay offline, to use only approved packages (with their license and origin), to show
+    no emoji, and to read the test documents at least as well as before. Nothing in the program changes.
+
 THE RULES PAGE: EVERY PRODUCTION RULE IN ONE LIST (3.38.0)
   - Production > Rules: Rule 1 to 13 and your own, each one sentence, grouped (pages and markings, formatting, acronyms,
     writing, approach), with how it is kept: checked by the app, checked with Word, or a checklist item for people.

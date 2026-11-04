@@ -1,0 +1,6 @@
+{
+ "recall": 100.0,
+ "false_alarms": 0,
+ "set": "3.38.1, from the 3.33 to 3.37 runs (100% recall, 0 false alarms on test_samples)",
+ "change": "Raise it when reading gets better; lower it only on purpose, with a line in DECISIONS.md"
+}

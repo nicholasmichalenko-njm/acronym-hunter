@@ -4,6 +4,7 @@ Run from the project folder:
     .\\venv\\Scripts\\python.exe tools\\evaluate.py                         (scan test_samples)
     .\\venv\\Scripts\\python.exe tools\\evaluate.py --note "dpi 300 test"   (label this run in the history)
     .\\venv\\Scripts\\python.exe tools\\evaluate.py D:\\mydocs              (another folder with its own ground_truth.csv)
+    .\\venv\\Scripts\\python.exe tools\\evaluate.py --floor               (3.38.1: exit 1 below tools\\eval_floor.json; buildrel)
 
 ground_truth.csv columns:
     File    file name, or * for any file in the folder
@@ -22,6 +23,9 @@ if "--note" in args:
     i = args.index("--note")
     note = args[i + 1] if i + 1 < len(args) else ""
     del args[i:i + 2]
+floor = "--floor" in args                 # 3.38.1: the build stops when reading gets worse than the floor
+if floor:
+    args.remove("--floor")
 folder = os.path.abspath(args[0]) if args else os.path.join(ROOT, "test_samples")
 sys.argv = [sys.argv[0]]
 truth_path = os.path.join(folder, "ground_truth.csv")
@@ -83,3 +87,15 @@ with open(hist, "a", newline="", encoding="utf-8") as f:
     w.writerow([datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), version, os.path.basename(folder),
                 app_gui.OCR_MODEL_INFO, f"{recall:.1f}", len(missed), len(alarms), candidates, len(res), f"{seconds:.0f}", note])
 print(f"\nLogged to tools\\eval_history.csv")
+if floor:
+    import json
+    fl = json.load(open(os.path.join(ROOT, "tools", "eval_floor.json"), encoding="utf-8"))
+    worse = []
+    if recall < float(fl.get("recall", 0)):
+        worse.append(f"recall {recall:.1f}% is below the floor of {float(fl['recall']):.1f}%")
+    if len(alarms) > int(fl.get("false_alarms", 10 ** 6)):
+        worse.append(f"{len(alarms)} false alarms, more than the floor's {int(fl['false_alarms'])}")
+    if worse:
+        print("EVAL_BELOW_FLOOR: " + "; ".join(worse))
+        sys.exit(1)
+    print(f"EVAL_FLOOR_OK (recall at least {float(fl['recall']):.1f}%, at most {int(fl['false_alarms'])} false alarms)")

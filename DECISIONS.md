@@ -21,3 +21,5 @@ a path says otherwise). Add a line when a decision is made; change a line only w
 | 2026-11-03 | Rule 7: the footer's left cell holds the A number (STYLEREF), middle two standard lines, right the page number | The team's footer | stationkeeper-production-rules.md |
 | 3.37.0 | Every test runs before every build, found by folder; any failure stops the build | A release must not depend on someone reading the log | stationkeeper-scale-hygiene-review.html |
 | 3.37.0 | House rules live in CLAUDE.md; decisions here; what's in flight in the project's stationkeeper-now.md (kept out of git so parallel release branches don't conflict) | Consistency across summary breaks and new sessions | stationkeeper-scale-hygiene-review.html |
+| 3.38.1 | Guardrails: house rules test, golden sets per minor version, a format registry, a file size ratchet, a reading floor | Consistency as the code grows; no lost work across versions | stationkeeper-scale-hygiene-review.html |
+| 3.38.1 | No upgrade code until a format really changes; the registry and golden sets make the first change safe | Upgrade steps for changes that never happen are dead weight | formats.py |

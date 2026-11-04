@@ -16,6 +16,10 @@ templates, and checks. One person builds it, with Claude. Keep this file under t
    (`test_data_guard`). Only README.txt, OVERVIEW.md and SECURITY.md ship as documents.
 6. **Plain words in the UI.** Say what a thing does in the user's words. No emoji.
 7. **A failing test stops the release.** `tools/run_tests.py` runs every `tests/test_*.py` and `tests/qt_*.py`.
+   `test_house_rules` checks rules 1, 3 and 6 (network imports, approved packages in `tools/approved_packages.csv`, emoji);
+   `test_golden` opens every saved set in `tests/golden/`; `test_formats` holds every saved file to `formats.py`;
+   `test_file_sizes` keeps files under 800 lines (or 5% past `tools/size_baseline.json`); the build stops when reading
+   drops below `tools/eval_floor.json`.
 
 ## Words we use
 - **global standards**: the formatting for every effort (never "team standard"). **Effort Formatting**: one effort's own.
@@ -38,7 +42,9 @@ templates, and checks. One person builds it, with Claude. Keep this file under t
 3. Merge `origin/main` before the PC build. On the PC: notes in `_local_sandbox\notes_X.Y.Z.md`,
    `mkscripts.ps1 -N NNNN -D X.Y.Z`, then `buildNNNN.cmd` (stops on any failure), `verifyNNNN.cmd`, `pubNNNN.cmd`.
 4. After publishing: check the release's SHA-256 values against the committed checksum files, write the project's
-   release notes (`claude/release-notes-X.Y.Z-<slug>.md`), revise the architecture map.
+   release notes (`claude/release-notes-X.Y.Z-<slug>.md`), revise the architecture map, update `claude/stationkeeper-now.md`.
+5. Once per minor version: `python tools/make_golden.py X.Y` saves that version's golden set. A saved file's format
+   changes only with a new number in `formats.py`, the step that reads the old one, and a golden set.
 
 ## Read next
 - `DECISIONS.md`: settled decisions, one line each. Don't reopen one without a new reason.

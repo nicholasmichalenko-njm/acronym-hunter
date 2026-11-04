@@ -1,0 +1,35 @@
+package,use,editions,license,origin_note
+altgraph,build,build only,MIT,PyInstaller dependency (Ronald Oussoren)
+colorama,app,all,BSD-3-Clause,Jonathan Hartley
+defusedxml,app,all,PSF-2.0,Christian Heimes; safe XML parsing for openpyxl
+et_xmlfile,app,all,MIT,openpyxl project
+flatbuffers,app,all,Apache-2.0,Google; ONNX Runtime dependency
+lxml,app,all,BSD-3-Clause,lxml project (libxml2 and libxslt); the Word engine
+networkx,app,all,BSD-3-Clause,NetworkX developers (NumFOCUS)
+numpy,app,all,BSD-3-Clause,NumPy developers (NumFOCUS)
+onnxruntime,app,all,MIT,Microsoft; runs the docTR reading models
+opencv-python-headless,app,all,Apache-2.0,OpenCV.org; picture handling for reading
+openpyxl,app,all,MIT,openpyxl project; Excel files
+packaging,app,all,Apache-2.0 OR BSD-2-Clause,Python Packaging Authority
+pefile,build,build only,MIT,Ero Carrera; tools\network_audit.py reads import tables
+pillow,app,all,MIT-CMU,Pillow project; pictures
+pybind11,build,build only,BSD-3-Clause,pybind11 project; build of native parts
+pypdfium2,app,all,Apache-2.0 OR BSD-3-Clause,pypdfium2 team; PDFium (Google); PDF reading
+protobuf,app,all,BSD-3-Clause,Google; ONNX Runtime dependency
+psutil,app,legacy only,BSD-3-Clause,Giampaolo Rodola; left out of US editions (links Windows networking)
+pyclipper,app,legacy only,MIT,Clipper wrapper; RapidOCR dependency; left out of US editions
+pyinstaller,build,build only,GPL-2.0 with bootloader exception,PyInstaller team; makes the program folder
+pyinstaller-hooks-contrib,build,build only,GPL-2.0 OR Apache-2.0,PyInstaller team
+python-docx,app,all,MIT,python-docx project; Word files
+python-pptx,app,all,MIT,python-pptx project; PowerPoint files
+pywin32-ctypes,build,build only,BSD-3-Clause,PyInstaller dependency
+PyYAML,app,legacy only,MIT,YAML project; RapidOCR configuration; left out of US editions
+RapidFuzz,app,all,MIT,Max Bachmann; fuzzy matching
+rapidocr-onnxruntime,app,legacy only,Apache-2.0,RapidAI (Chinese-origin project built on PaddleOCR); legacy edition only; refused in US builds
+shapely,app,legacy only,BSD-3-Clause,Shapely project; RapidOCR dependency; left out of US editions
+six,app,all,MIT,Benjamin Peterson
+skia-python,app,all,BSD-3-Clause,skia-python project; Skia (Google); drawing previews
+tabulate,app,all,MIT,Sergey Astanin
+tqdm,app,all,MPL-2.0 AND MIT,tqdm developers
+typing_extensions,app,all,PSF-2.0,Python core developers
+xlsxwriter,app,all,BSD-2-Clause,John McNamara; Excel writing

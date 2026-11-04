@@ -7,7 +7,8 @@ BAD_EXT = (".skdata", ".skteam", ".sklib", ".skknow", ".sktrain")
 BAD_NAMES = ("custom_dictionaries.json", "production_standards.json", "team_bins.json", "banned_words.csv", "author_list.json",
              "wall_of_truth.json", "suggestion_rules.json", "acronym_database.csv")
 BAD_DIRS = ("production_parts/", "template_library/", "data_backups/", "team_backups/", "knowledge_backups/")
-ALLOWED = ("base/",)                      # the generic starter data shipped with the program
+ALLOWED = ("base/",                       # the generic starter data shipped with the program
+           "tests/golden/")                 # 3.38.1: fictional golden files (tools/make_golden.py), never real data
 
 checks = []
 

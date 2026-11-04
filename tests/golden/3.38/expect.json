@@ -1,0 +1,36 @@
+{
+ "version": "3.38",
+ "package": "Kestrel.skpkg",
+ "effort": "Kestrel",
+ "stage": "Author drafts",
+ "prod_std": {
+  "effort_type": "kestrel_rfi",
+  "response_type": "RFI",
+  "rules_off": [
+   "2"
+  ],
+  "body_size": 11.5
+ },
+ "record": {
+  "due": "2026-12-15 14:00",
+  "note": "Kickoff held",
+  "task": "Draft the cover"
+ },
+ "customer_file": "Kestrel RFI.txt",
+ "standards": {
+  "effort_type": "Kestrel RFI",
+  "a_number": "AA A Number",
+  "used_on": [
+   "AA Title Page Name",
+   "Title page"
+  ],
+  "body_font": "Georgia"
+ },
+ "rules": {
+  "own": "Every graphic has a callout in the text before it appears.",
+  "off": "12"
+ },
+ "phrase": "proposals are limited to",
+ "matrix_view": "Kestrel outline view",
+ "data_file": "Team.skdata"
+}

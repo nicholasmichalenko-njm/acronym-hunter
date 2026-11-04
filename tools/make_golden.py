@@ -1,0 +1,76 @@
+"""Save the golden files for this version (3.38.1): what a user of this version saves, so every later version can be
+tested to open it with no lost work (tests/test_golden.py). Fictional content only (the Kestrel effort).
+
+    python tools/make_golden.py 3.38           writes tests/golden/3.38/ (refuses to overwrite one that exists)
+
+Writes:
+  Kestrel.skpkg                 an effort package: the Effort List, the effort's saved work (settings with its formatting,
+                                response type and rules it departs from; its record with a due date, a note and a task)
+  config/production_standards.json, config/rules.json, config/suggestion_rules.json, config/template_library/...
+                                the global standards with an effort type, style roles and Used on; an own rule and a rule
+                                turned off; a phrase rule; a saved matrix view
+  Team.skdata                   a Stationkeeper Data file carrying the standards
+  expect.json                   what the test must find in each, written from the values above
+Keep one set per minor version. Never put real data here."""
+import json, os, shutil, sys, tempfile
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+
+def make(version, out_root=None):
+    out = os.path.join(out_root or os.path.join(ROOT, "tests", "golden"), version)
+    if os.path.exists(out):
+        raise SystemExit(f"{out} already exists: golden files are never rewritten")
+    tmp = tempfile.mkdtemp()
+    os.environ["SK_DATA_DIR"] = os.path.join(tmp, "data")
+    import app_gui as A  # noqa: F401  (the engine first, as the program does)
+    import effort as E, effortpkg as P, effortrec as R, matrixdesign as MD, prodrules as PRL, rulebook as RB
+    import suggestrules as SR, teamdata as TD, workspace as W
+    cfg = os.path.join(tmp, "config"); os.makedirs(cfg)
+    # the global standards
+    data = PRL.load(cfg)
+    data.setdefault("effort_types", []).append({"id": "kestrel_rfi", "name": "Kestrel RFI", "profiles": [data["types"][0]["id"]],
+                                                "default_profile": data["types"][0]["id"], "response_type": "RFI"})
+    data["company"]["style_roles"] = {"a_number": "AA A Number", "restriction": "AA Restriction"}
+    data["company"].setdefault("style_defs", {})["AA Title Page Name"] = {"type": "paragraph", "used_on": "Title page", "size": 20}
+    data["company"]["variables"]["body_font"] = "Georgia"
+    PRL.save(cfg, data)
+    RB.add(cfg, "Every graphic has a callout in the text before it appears.", group="Writing")
+    RB.set_on(cfg, 12, False)
+    SR.add_rule(cfg, None, "proposals are limited to", "L", scope="team", why="page limits are instructions")
+    vid = MD.save_view(cfg, "Kestrel outline view", MD.default("outline"))
+    # an effort
+    eff = os.path.join(tmp, "Kestrel"); os.makedirs(os.path.join(eff, "Customer documents"))
+    lst = os.path.join(eff, "Kestrel_Effort_List.xlsx")
+    L = E.EffortList(lst, "Kestrel"); L.pending = True; L.save()
+    dd = W.data_dir_for(lst)
+    ws = W.Workspace(dd, "Kestrel")
+    ws.set("prod_std", {"effort_type": "kestrel_rfi", "over": {"variables": {"body_size": 11.5}}, "response_type": "RFI",
+                        "rules_off": ["2"]})
+    rec = R.Record(dd); rec.data["due"] = "2026-12-15 14:00"; rec.data["notes"].append({"text": "Kickoff held", "who": "pm"})
+    rec.data["tasks"].append({"id": "t1", "text": "Draft the cover", "owner": "Dana Ruiz", "done": False}); rec.save()
+    open(os.path.join(eff, "Customer documents", "Kestrel RFI.txt"), "w").write("The Offeror shall describe its approach.")
+    os.makedirs(out)
+    man = P.save(os.path.join(out, "Kestrel"), "Kestrel", lst, dd, info={"client": "Fictional Space Office"},
+                 customer_dir=os.path.join(eff, "Customer documents"), stage="Author drafts", app_version=version,
+                 who="golden", when="2026-11-03T22:00")
+    TD.export(cfg, os.path.join(tmp, "Team" + TD.EXT), parts=["standards"])   # never written into a git folder directly
+    shutil.copy2(os.path.join(tmp, "Team" + TD.EXT), os.path.join(out, "Team" + TD.EXT))
+    shutil.copytree(cfg, os.path.join(out, "config"), ignore=shutil.ignore_patterns("*.lock", "*.tmp"))
+    expect = {"version": version, "package": os.path.basename(man["path"]), "effort": "Kestrel", "stage": "Author drafts",
+              "prod_std": {"effort_type": "kestrel_rfi", "response_type": "RFI", "rules_off": ["2"], "body_size": 11.5},
+              "record": {"due": "2026-12-15 14:00", "note": "Kickoff held", "task": "Draft the cover"},
+              "customer_file": "Kestrel RFI.txt",
+              "standards": {"effort_type": "Kestrel RFI", "a_number": "AA A Number", "used_on": ["AA Title Page Name", "Title page"],
+                            "body_font": "Georgia"},
+              "rules": {"own": "Every graphic has a callout in the text before it appears.", "off": "12"},
+              "phrase": "proposals are limited to", "matrix_view": "Kestrel outline view", "data_file": "Team" + TD.EXT}
+    with open(os.path.join(out, "expect.json"), "w", encoding="utf-8") as f:
+        json.dump(expect, f, indent=1)
+    return out, vid
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        raise SystemExit(__doc__)
+    print(make(sys.argv[1])[0])
