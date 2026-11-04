@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.44.0": ["Import from a file is one browser of the file: by layer (building blocks, components, sections), each item "
+               "New, Same as the library or Differs (saying what differs), with a picture; take items from every group at "
+               "once. Each Word section of a file can be kept. The template library is a page of Production Standards with "
+               "pictures, a search, layers and where each item is used."],
     "3.43.0": ["Writing > Draft Status reads a volume's draft back by the response structure's headings: each section's "
                "status (Not started, Under way, Near budget, Over budget), its words and pages against its page budget, the "
                "requirements whose text was removed or moved, and the styles pasted text brought in. Nothing is changed."],

@@ -42,7 +42,7 @@ from skqt.prodstdpage import GROUPS, SECTIONS, IMPORT_KINDS
 
 # ---------------------------------------------------------------- the menu across the top
 check("the menus across the top, in the order a document is built (3.26.0: Document parts first)",
-      [sp.group_bar.tabText(i) for i in range(sp.group_bar.count())] == ["Template profile", "Document parts", "Pages", "Styles", "Numbering", "Tables", "Content", "Check"])
+      [sp.group_bar.tabText(i) for i in range(sp.group_bar.count())] == ["Template profile", "Document parts", "Pages", "Styles", "Numbering", "Tables", "Content", "Check", "Library"])
 check("no column of sections down the side", not sp.nav.isVisible() and sp.section_bar.isVisible())
 names = [t for _k, t in SECTIONS]
 check("the sections have their plain names", {"Base fonts and sizes", "Styles", "Allowed styles", "Heading numbering", "Row looks",
@@ -81,7 +81,7 @@ check("Use here and Keep in the library both start on", d.use_here.isChecked() a
 d.keep_lib.setChecked(False)
 for r in range(d.t.rowCount()):                          # take one item only
     d.t.item(r, 0).setCheckState(Qt.Checked if d.t.item(r, 1).text() == "Table header" else Qt.Unchecked)
-d.go(1)
+d.take()
 lib.load()
 qp = [e["name"] for e in sp.work["quick_parts"]["entries"]]
 check("one item taken: it goes into what is being edited, and the library is left alone", qp == ["Table header"] and len(lib.items) == before, qp)
@@ -89,11 +89,7 @@ d2 = sp.import_file(SRC, section="styledefs", run=False)
 check("the Styles section's Import shows styles (and the theme and fonts)", {it["kind"] for c in d2.cards for it in c.items} <= {"style", "theme", "font"}
       and any(it["kind"] == "style" for c in d2.cards for it in c.items))
 d2.use_here.setChecked(False)
-while True:
-    last = d2.step == len(d2.cards) - 1
-    d2.go(1)
-    if last:
-        break
+d2.take()
 lib.load()
 check("Keep in the library only: the styles go to the library", len(lib.shelf("style")) > 0)
 dall = sp.import_file(SRC, run=False)

@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+IMPORT YOU CAN SEE, THE LIBRARY AS A PAGE (3.44.0)
+  - Production Standards > Import from a file... (and each section's own Import) opens one browser of the file instead of
+    a card at a time. Left: what the file holds, by layer: Building blocks (styles, base fonts, page setups, numbering,
+    Word table styles, the theme, fonts), Components (headers and footers, table looks, the TOC, covers, Quick Parts) and
+    Sections (each Word section of the file). Middle: the group's items, each New, Same as the library, or Differs, with
+    what differs ("size: 12 here, 11 in the library"). Right: a picture of the selected item. A filter shows only the new,
+    the differing or the same ones.
+  - Tick items in any group and press Take the ticked: they go into what you are editing (Use here) and the library (Keep
+    in the library) in one go. What the library already holds starts unticked.
+  - Word sections: each one's page setup, page numbers and its header and footer kept whole. Use here adds its page
+    setup; from the library, Use in this standard puts its header and footer on the part you choose too.
+  - Production Standards > Library > Template library is now a page: the shelves with a Layer filter and a search; tick
+    Pictures to see each item as a card with its picture; the line under the preview says which standards use the item.
+
 READ THE SETUP BACK: DRAFT STATUS (3.43.0)
   - Writing > Draft Status: pick a volume's draft (the Word files in the Volumes folder, or Other file...) and press Read
     the draft. The draft is read by the response structure's headings and the setup's styles; nothing in it changes.

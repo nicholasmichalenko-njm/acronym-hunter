@@ -377,6 +377,9 @@ TOPICS = [
    "Headers and footers: Word's way puts the left, center and right text on tab stops. Type column widths in inches "
    "(2, 2.5, 2) to build a header or footer as a one-row table instead, with no borders, a line under or a grid. Use a "
    "Quick Part as a header or footer... takes one of this standard's Quick Parts as a part's header or footer, kept as built.",
+   "Import from a file... opens a browser of the file by layer: tick items in any group (New, Same as the library, Differs, "
+   "with what differs) and press Take the ticked. Each Word section of the file can be kept as a section.",
+   "Library > Template library: the shelves as a page, with a Layer filter, a search, Pictures, and where each item is used.",
    "Build a header or footer as a table... (here or on a Document parts part): columns at inch widths, lines of words and "
    "fields with their alignment, size and bold, and a logo. Use Rule 7's footer puts the A number, the marking and the "
    "team's line, and the page number. Save as a Quick Part... keeps it in the standard's Quick Parts for every template.",

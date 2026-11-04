@@ -58,25 +58,26 @@ check("the style library has Hidden text", any(c[0] == "hidden" for c in STYLE_C
 
 # ---------------------------------------------------------------- Collect into the library
 d = sp.collect(SRC, run=False)
-check("Collect shows the first card of what the file carries", d.cards and d.t.rowCount() > 0 and "1 of" in d.head.text(), [c.key for c in d.cards])
+check("Import shows what the file carries, the first group open (3.44.0: one browser)", d.cards and d.t.rowCount() > 0 and d.head.text(),
+      [c.key for c in d.cards])
 d.uses["RFP"].setChecked(True)
 first = d.cards[0]
 d.t.item(0, 1).setText("Renamed style")
-d.go(1)
+for c in d.cards:
+    for it in c.items:
+        it["keep"] = c is first
+d.take()
 lib = TL.Library(cfg)
-check("Keep and next saves the card at once, renamed and tagged", lib.shelf("style") and any(i["name"] == "Renamed style" for i in lib.shelf("style"))
+check("Take the ticked saves at once, renamed and tagged", lib.shelf("style") and any(i["name"] == "Renamed style" for i in lib.shelf("style"))
       and all("RFP" in i["tags"]["use"] for i in lib.shelf("style")), [i["name"] for i in lib.shelf("style")][:5])
-qi = next(i for i, c in enumerate(d.cards) if c.key == "quickparts")
-while d.step < qi:
-    d.go(1)
+for c in d.cards:
+    for it in c.items:
+        it["keep"] = c is not first
+d.select("quickparts")
 smp = d.sample(open_it=False)
 check("Open a sample in Word: a small template with the card's items, in the Samples folder", smp and smp.endswith(".dotx")
       and os.path.basename(os.path.dirname(smp)) == "Samples" and len(__import__("prodquickparts").read(smp)) == 3, smp)
-while True:
-    last = d.step == len(d.cards) - 1
-    d.go(1)
-    if last:
-        break
+d.take()
 lib.load()
 check("finishing keeps every card's items: Quick Parts, fonts, pages", lib.shelf("quickpart") and lib.shelf("font") and lib.shelf("page_setup"), {k: len(lib.shelf(k)) for k, _t in TL.SHELVES})
 ld = sp.library(run=False)

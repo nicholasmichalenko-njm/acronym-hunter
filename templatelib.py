@@ -23,7 +23,8 @@ SHELVES = (("style", "Styles"), ("page_setup", "Page setups"), ("hf", "Headers a
            ("theme", "Themes (colors and fonts)"), ("hf_design", "Header and footer designs (whole)"),
            ("variables", "Base fonts and sizes"), ("part", "Part designs"), ("pagination", "Pagination schemes"),   # 3.33.0
            ("title", "Title pages"), ("cover_design", "Cover layouts"),                                         # 3.34.0
-           ("matrix_view", "Matrix views"))                                                                     # 3.35.0
+           ("matrix_view", "Matrix views"),                                                                     # 3.35.0
+           ("section", "Sections"))                                                                             # 3.44.0
 THEME_SLOTS = ("dk1", "lt1", "dk2", "lt2", "accent1", "accent2", "accent3", "accent4", "accent5", "accent6", "hlink", "folHlink")
 THEME_NAMES = {"dk1": "Text dark 1", "lt1": "Background light 1", "dk2": "Text dark 2", "lt2": "Background light 2",
                "accent1": "Accent 1", "accent2": "Accent 2", "accent3": "Accent 3", "accent4": "Accent 4", "accent5": "Accent 5",
@@ -655,6 +656,15 @@ def use_values(config_dir, k, name, v, work, category="", file_path=None, src=""
             shutil.copyfile(v.get("_tmp") or file_path(v["file"]), os.path.join(pdir, v["file"]))
         work.setdefault("page_parts", {})[k] = v["file"]
         return f"{ {'cover': 'cover', 'backer': 'back cover', 'title': 'title page'}[k] } {name}"
+    if k == "section":                                   # 3.44.0: a Word section: its page setup; its header and footer on a part
+        pg = dict(v.get("page") or {})
+        key = "section_" + re.sub(r"[^a-z0-9]+", "_", (name or "section").lower()).strip("_")
+        work.setdefault("page_setups", {})[key] = dict(pg, name=name or pg.get("name", "Section"))
+        said = f"page setup {name}"
+        if category and (v.get("header") or v.get("footer")):
+            work.setdefault("hf_designs", {})[category] = {x: v[x] for x in ("header", "footer", "header_media", "footer_media") if x in v}
+            said += f", with its header and footer on the {category} part"
+        return said
     if k == "hf_design":
         part = category or v.get("part", "body")
         work.setdefault("hf_designs", {})[part] = {x: v[x] for x in ("header", "footer", "header_media", "footer_media") if x in v}

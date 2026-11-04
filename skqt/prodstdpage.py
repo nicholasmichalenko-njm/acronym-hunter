@@ -30,12 +30,13 @@ GROUPS = [                                               # 3.25.0: a menu across
     ("Tables", [("ttypes", "Table types"), ("rows", "Row looks"), ("rules", "How rows are recognized")]),
     ("Content", [("quickparts", "Quick Parts"), ("fillins", "Fields")]),
     ("Check", [("terms", "Words to avoid and fix"), ("graphics", "Graphics"), ("office", "Excel and PowerPoint")]),
+    ("Library", [("tlibrary", "Template library")]),                                                     # 3.44.0: a page
 ]
 SECTIONS = [x for _g, items in GROUPS for x in items]
 # 3.25.0: what each section's own Import from a file brings in (template library item kinds)
 IMPORT_KINDS = {"styledefs": ("style", "theme", "font"), "variables": ("variables",), "headnum": ("heading_numbering",),
-                "lists": ("list_numbering",), "ttypes": ("table_style",), "rows": ("table_look",), "setups": ("page_setup",),
-                "pages": ("cover", "backer"), "hf": ("hf", "hf_design"), "toc": ("toc",), "quickparts": ("quickpart",)}
+                "lists": ("list_numbering",), "ttypes": ("table_style",), "rows": ("table_look",), "setups": ("page_setup", "section"),
+                "pages": ("cover", "backer"), "hf": ("hf", "hf_design", "section"), "toc": ("toc",), "quickparts": ("quickpart",)}
 ROLE_NAMES = {"caption": "Caption row", "header": "Header row", "header2": "Second header row", "subhead": "Subhead row",
               "body": "Body rows", "subtotal": "Subtotal row", "total": "Total row", "note": "Notes row"}
 EDGE_NAMES = {"top": "Top", "bottom": "Bottom", "left": "Left", "right": "Right", "inside_v": "Between columns"}
@@ -2262,16 +2263,17 @@ class StandardsPage(QWidget):
     # ------------------------------------------------------------------ 3.25.0: import from a file, make templates
     def import_file(self, path=None, section="", run=True, use_here=True, keep=True):
         """One Import: read a template or Word document once and take its items, one, some or all, into what is being
-        edited (Use here) and the library (Keep in the library). section: only that section's items. Returns the dialog."""
-        from .collectview import CollectDialog
+        edited (Use here) and the library (Keep in the library). section: only that section's items. 3.44.0: one browser
+        of the file by layer, with pictures and New / Same / Differs. Returns the browser."""
+        from .importbrowser import ImportBrowser
         title = dict(SECTIONS).get(section, "")
         if path is None:
             path, _ = QFileDialog.getOpenFileName(self, "Import from a template or Word document (it is only read)" + (f": {title}" if title else ""),
                                                   os.path.expanduser("~"), "Word and themes (*.dotx *.dotm *.docx *.docm *.thmx)")
             if not path:
                 return None
-        d = CollectDialog(self, path, only=IMPORT_KINDS.get(section), section=title)
-        d.use_here.setChecked(use_here); d.keep_lib.setChecked(keep)
+        d = ImportBrowser(self, path, only=IMPORT_KINDS.get(section), section=title)
+        d.use_here.setChecked(use_here); d.keep_lib.setChecked(keep); d.count()
         if run:
             d.exec()
         return d
@@ -2337,11 +2339,16 @@ class StandardsPage(QWidget):
         return MT.run(self, start)
 
     def library(self, run=True):
-        from .collectview import LibraryDialog
-        d = LibraryDialog(self)
-        if run:
-            d.exec()
-        return d
+        """3.44.0: the template library is a section of its own: go there. Returns the library view."""
+        self.libview.lib.load(); self.libview.fill_shelves()
+        self.nav.setCurrentRow([k for k, _t in SECTIONS].index("tlibrary"))
+        return self.libview
+
+    def build_tlibrary(self, v):
+        """3.44.0: the template library as a page: shelves by layer, pictures, search, versions, kits, where used."""
+        from .templatelibview import LibraryView
+        self.libview = LibraryView(self)
+        v.addWidget(self.libview, 1)
 
     def after_library(self, said):
         """An item from the library went into what is being edited."""

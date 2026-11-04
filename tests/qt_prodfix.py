@@ -105,7 +105,7 @@ os.remove(own)
 # ------------------------------------------------------------------ Production Standards
 w.go("prodstd"); app.processEvents()
 sp = w.prodstd_page
-check("Standards opens on the team's standards, with every section (3.36.0)", sp.scope == "team" and sp.mode == "team" and sp.nav.count() == 26)   # 3.33.0: Template profile      # 3.26.0: Document parts      # 3.17.0: Graphics; 3.22.0: Quick Parts; 3.23.0: Fill-ins
+check("Standards opens on the team's standards, with every section (3.36.0)", sp.scope == "team" and sp.mode == "team" and sp.nav.count() == 27)   # 3.44.0: Template library   # 3.33.0: Template profile      # 3.26.0: Document parts      # 3.17.0: Graphics; 3.22.0: Quick Parts; 3.23.0: Fill-ins
 sp.scope_box.setCurrentIndex(0); app.processEvents()
 check("the team standard is editable", sp.scope == "team" and sp.work["variables"]["body_font"] == "Times New Roman")
 tid = sp.add_type("Cost volume")
