@@ -7,7 +7,6 @@ PICTURES READ WITHOUT OPENCV (3.47.0)
     part built from native\imgcore.c with every build.
   - Each step gives OpenCV's exact answer; tests hold it to OpenCV's saved results. Every test picture reads the
     same words, the test scan scores the same, and the program is about 86 MB smaller.
-  - NumPy is built without OpenBLAS (the program calls no matrix routine), about 20 MB less.
   - The legacy edition keeps OpenCV for RapidOCR.
 
 A COMPLETE RECORD OF WHAT THE PROGRAM IS BUILT FROM (3.46.1)

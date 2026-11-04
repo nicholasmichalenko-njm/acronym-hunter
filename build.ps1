@@ -63,7 +63,7 @@ function Test-PublicPackage([string]$dir) {
     if ($Edition -eq 'us') {
         # US edition: no Chinese-origin OCR code or models; Google's public English model; and only the two docTR
         # models this project exported from Mindee's weights, byte for byte as recorded in vendor\doctr\doctr_models.json
-        $foreign = $files | Where-Object { $_ -match 'rapidocr|paddle|pyclipper|shapely|\\cv2\\|opencv|openblas' }   # 3.47.0: no OpenCV, no OpenBLAS
+        $foreign = $files | Where-Object { $_ -match 'rapidocr|paddle|pyclipper|shapely|\\cv2\\|opencv' }   # 3.47.0: no OpenCV
         if ($foreign) { throw "ORIGIN CHECK FAILED: legacy OCR files in the US edition: $($foreign -join ', ')" }
         $onnx = @($files | Where-Object { $_ -like '*.onnx' } | Sort-Object)
         $want = if ($Classic) { @() } else { @('_internal\doctr\doctr_det.onnx', '_internal\doctr\doctr_reco.onnx') }

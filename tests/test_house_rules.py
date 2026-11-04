@@ -82,10 +82,6 @@ IMPORT_NAME = {"rapidocr-onnxruntime": "rapidocr_onnxruntime", "pyyaml": "yaml",
 legacy = [norm(r["package"]) for r in rows if r["editions"] == "legacy only"]
 not_out = [p for p in legacy if IMPORT_NAME.get(p, p.replace("-", "_")) not in excl]
 check("3. a legacy-only package is left out of US editions", m and not not_out, not_out)
-if os.name == "nt":                     # 3.47.0: the build venv's NumPy carries no OpenBLAS (tools/build_numpy_noblas.ps1)
-    import numpy
-    _bd = numpy.show_config("dicts")["Build Dependencies"]
-    check("3. NumPy is built without OpenBLAS", not _bd["blas"].get("found") and not _bd["lapack"].get("found"), _bd["blas"])
 stale = [r["package"] for r in rows if norm(r["package"]) not in {norm(p) for p in req}]
 check("4. no stale approvals: every approved package is still asked for", not stale, stale)
 
