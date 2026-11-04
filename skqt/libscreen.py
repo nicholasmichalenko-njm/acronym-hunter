@@ -23,6 +23,7 @@ import libpreview as LP
 import templatelib as TL
 from . import design as D
 from .importbrowser import effort_type_names
+from .adaptive import FlowLayout
 from .itempicture import ItemPicture
 from .libedit import Editor
 
@@ -75,7 +76,7 @@ class LibraryScreen(QWidget):
         self.t.setColumnWidth(1, 170); self.t.setColumnWidth(2, 80); self.t.setColumnWidth(3, 64); self.t.setColumnWidth(4, 150)
         self.t.currentCellChanged.connect(lambda *_a: self.show_item())
         mv.addWidget(self.t, 1)
-        ar = QHBoxLayout(); mv.addLayout(ar)
+        arw = QWidget(); ar = FlowLayout(arw, D.SPACE["s"]); mv.addWidget(arw)      # wraps on a narrow window
         ar.addWidget(D.button("Rename...", None, lambda: self.rename()))
         ar.addWidget(D.button("Effort types...", None, lambda: self.tag_effort_types(), "The effort types the selected items are for"))
         st = QToolButton(); st.setText("Status"); st.setPopupMode(QToolButton.InstantPopup)
@@ -105,7 +106,7 @@ class LibraryScreen(QWidget):
         ew = QWidget(); ev = QVBoxLayout(ew); ev.setContentsMargins(0, 0, 0, 0)
         self.ed_head = D.label("", "title"); ev.addWidget(self.ed_head)
         self.editor = Editor(self.edited, self.host.status); ev.addWidget(self.editor, 1)
-        eb = QHBoxLayout(); ev.addLayout(eb)
+        ebw = QWidget(); eb = FlowLayout(ebw, D.SPACE["s"]); ev.addWidget(ebw)
         self.save_btn = D.button("Save changes", "primary", lambda: self.save_changes(), "Keep the edits in this version")
         self.ver_btn = D.button("Save as a new version", None, lambda: self.save_version(), "Keep the edits as the next version; "
                                 "this one stays as it is")
