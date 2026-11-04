@@ -184,7 +184,9 @@ def check(pkg, std, marking="", response_type=""):
                 parts = _hf_parts(pkg, sect, kind, "default")
                 found = False
                 for n in parts:
-                    r_ = hf_roots.get(n) or _part(pkg, n)
+                    r_ = hf_roots.get(n)
+                    if r_ is None:
+                        r_ = _part(pkg, n)
                     if r_ is None:
                         continue
                     for p in r_.iter(q("p")):
@@ -213,7 +215,9 @@ def check(pkg, std, marking="", response_type=""):
     # RU7: the footer table
     for k, (sect, _els) in enumerate(sections):
         for n in _hf_parts(pkg, sect, "footer", "default"):
-            r_ = hf_roots.get(n) or _part(pkg, n)
+            r_ = hf_roots.get(n)
+            if r_ is None:
+                r_ = _part(pkg, n)
             if r_ is None:
                 continue
             tbl = next(iter(r_.findall("w:tbl", NS)), None)

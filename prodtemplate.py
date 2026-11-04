@@ -27,6 +27,9 @@ COVER_STYLES = {"PE Volume Name": {"type": "paragraph", "based_on": "Normal", "s
                 "PE Solicitation": {"type": "paragraph", "based_on": "Normal", "size": 12, "jc": "center", "after": 6},
                 "PE Company": {"type": "paragraph", "based_on": "Normal", "size": 12, "jc": "center", "after": 6}}
 # the fixes that put the standard into the template, in Fix a Copy's order
+# 3.38.0: rules Make templates cannot meet yet, left out of a template's own check (Audit and Fix a Copy still check them)
+RULES_LATER = {"7": "Make templates builds the footer table (A number, two standard lines, page number) from 3.42.0, "
+                    "with the header and footer builder."}
 TEMPLATE_FIXES = ("styles_apply", "unnumber_inheriting", "heading_numbering", "list_numbering", "table_styles", "tables", "lists", "caption_typed", "caption_fields",
                   "caption_after", "toc_field", "toc_styles", "toc_list_identifiers", "chapter_breaks", "page_numbers",
                   "page_setup", "page_field_clean", "hf_build")
@@ -244,6 +247,7 @@ class TemplateJob:
         self.start = start          # "Stationkeeper base" or the template file read
         self.steps = []
         self.check = None
+        self.rules_later = {}       # 3.38.0: {rule id: why the template's own check leaves it out}
 
     @property
     def report_path(self):
@@ -324,8 +328,8 @@ def _rename_values(x, ren):
 
 
 def apply_rules(std):
-    """3.38.0: Rule 4 (style names follow the response type) and Rule 5 (no title page, no title page styles), unless the
-    global standards or the effort turned them off."""
+    """3.38.0: Rule 4 (style names follow the response type), Rule 5 (no title page, no title page styles) and Rule 6 (every
+    heading level's number at 0, one text position), unless the global standards or the effort turned them off."""
     off = set(str(x) for x in (std.get("_rules_off") or []))
     if "5" not in off and not (std.get("page_parts") or {}).get("title"):
         defs = std.get("style_defs") or {}
@@ -335,6 +339,8 @@ def apply_rules(std):
         st = std.get("styles") or {}
         if fam and st.get("allowed"):
             st["allowed"] = [a for a in st["allowed"] if a not in fam]
+    if "6" not in off:
+        PRL.rule6(std)
     if "4" not in off:
         ren = response_renames(std)
         if ren:
@@ -479,7 +485,9 @@ def make(std, folder, start_from="", word=None, when=None, progress=None, parts_
         job.steps.append({"step": PF.WORD_STEP["label"], "key": "word_update", "changed": bool(r.get("ok")), "report": r,
                           **({} if r.get("ok") else {"refused": r.get("why", "Word could not update the fields.")})})
     say("Checking the template against the standard")
-    job.check = PF.check(job.copy, std)
+    later = {k: v for k, v in RULES_LATER.items() if k not in set(str(x) for x in (std.get("_rules_off") or []))}
+    job.rules_later = later                           # 3.38.0: rules a template cannot meet yet, said in the report
+    job.check = PF.check(job.copy, dict(std, _rules_off=sorted(set(map(str, std.get("_rules_off") or [])) | set(later))))
     try:                                              # 3.23.0: the validation report
         import templatecheck as TC
         job.validation = TC.validate(job.copy, installed_fonts=std.get("_installed_fonts"))

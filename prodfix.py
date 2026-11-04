@@ -72,6 +72,15 @@ def _fix(key, area, label, op, allowed, args, rules=(), kind="all", help=""):
             "rules": set(rules), "kind": kind, "help": help}
 
 
+def _rule6_text_at(std):
+    """Rule 6's one text position: the standard's level 1 text position, else half an inch."""
+    lv = ((std.get("heading_numbering") or {}).get("levels") or [{}])[0]
+    try:
+        return float(lv.get("text_at")) or 0.5
+    except (TypeError, ValueError):
+        return 0.5
+
+
 def _heading_levels(std):
     return [(l["style"], l["fmt"], l["text"], float(l["number_at"]), float(l["text_at"]), l.get("restart"), l.get("start") or 1)
             for l in std["heading_numbering"]["levels"]]
@@ -119,6 +128,9 @@ FIXES = [
          "then reads as chapter 1 and every chapter and caption number after it is off by one."),
     _fix("heading_numbering", "styles", "Set heading numbering from the standard", WO.op_heading_numbering, (),
          lambda std, plan: {"levels": _heading_levels(std)}, rules=("S5",)),
+    _fix("heading_positions", "styles", "Put every heading level's number at 0 and its text at one position (Rule 6)",
+         WO.op_heading_positions, (), lambda std, plan: {"text_at": _rule6_text_at(std)}, rules=("RU6",),
+         help="Only the positions change: number formats and restarts stay as the document has them."),
     _fix("font_styles", "fonts", "Fix the styles that break the font rules", Fo.op_font_styles, Fo.FONTS_ALLOWED,
          lambda std, plan: {"std": std}, rules=("F1s", "F2s")),
     _fix("fonts", "fonts", "Remove fonts and sizes typed over the styles", Fo.op_fonts, Fo.FONTS_ALLOWED,
@@ -129,7 +141,7 @@ FIXES = [
          ("pstyles", "para_format", "table_format", "direct_run_format", "tables"),
          lambda std, plan: {"std": std, "table_types": plan.get("table_types") or None, "answers": plan.get("table_answers") or None,
                             "roles": plan.get("table_roles") or None, "only": plan.get("table_only") or None, "skip_asked": True},
-         rules=("R0", "R6"), kind="tables"),
+         rules=("R0", "R6", "RU8"), kind="tables"),
     _fix("list_numbering", "lists", "Set list numbering from the volume standard (bullets and numbers by level)", LN.op_list_numbering,
          LN.LIST_ALLOWED, lambda std, plan: {"std": std}, rules=("L9",)),
     _fix("lists", "lists", "Turn typed bullets and numbers into the team's list styles", L.op_lists, L.LISTS_ALLOWED,
@@ -309,7 +321,7 @@ def check(path, std, data=None):
             import rulecheck as RC
             for code, what in RC.check(pkg, std, marking=(std.get("variables") or {}).get("classification", ""),
                                        response_type=std.get("response_type", "")):
-                _add(chk, RU_AREA.get(code, "pages"), code, "warning", what, -1, "")
+                _add(chk, RU_AREA.get(code, "pages"), code, "warning", what, -1, _fix_for(code, ""))
         except Exception:  # noqa: BLE001
             import diag
             diag.swallowed()

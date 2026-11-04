@@ -266,6 +266,21 @@ def profile_for(data, eid, deliverable_name="", fallback=True):
     return (e or {}).get("default_profile") or data["default"]
 
 
+def rule6(std):
+    """3.38.0 Rule 6: every heading level's number at 0 inches and one text position for all levels (level 1's, else half
+    an inch). A learned document type or an old standard may hold stepped positions; the rule wins unless it is off."""
+    levels = (std.get("heading_numbering") or {}).get("levels") or []
+    if not levels:
+        return std
+    try:
+        at = float(levels[0].get("text_at") or 0) or 0.5
+    except (TypeError, ValueError):
+        at = 0.5
+    for lv in levels:
+        lv["number_at"], lv["text_at"] = 0.0, at
+    return std
+
+
 def for_effort(config_dir, ws=None, data=None, type_id=None):
     """The standard in force for the open effort: team -> its profile -> its effort type -> the effort's own values.
     type_id (3.7.0): a deliverable's own profile instead of the effort's."""
@@ -288,6 +303,8 @@ def for_effort(config_dir, ws=None, data=None, type_id=None):
     except Exception:  # noqa: BLE001
         std["_rules_off"] = []
     std["response_type"] = eff.get("response_type") or (et or {}).get("response_type") or STARTER_RESPONSE.get((et or {}).get("id"), "")
+    if "6" not in std["_rules_off"]:
+        rule6(std)
     std["_parts_dir"] = os.path.join(config_dir, "production_parts")     # 3.10.0: where covers and back covers are kept
     return engine_ready(std)
 

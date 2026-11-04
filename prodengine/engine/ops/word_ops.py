@@ -661,6 +661,55 @@ def op_unnumber_inheriting(pkg, names=None):
     return {"changed": done, "checks": [{"expr": f"doc.Styles({n!r}).ListTemplate is None", "expect": True} for n in done]}
 
 
+def op_heading_positions(pkg, text_at=0.5, style="Heading 1"):
+    """3.38.0 Rule 6: every level of the list Heading 1 uses puts its number at 0 and its text at one position, with a tab
+    after the number. Only positions change: number formats, number text and restarts stay as the document has them."""
+    nb_part = pkg.word_part("/numbering")
+    if not nb_part:
+        return {"unchanged": "no numbering in this document"}
+    sroot = styles_root(pkg)
+    h1 = find_style(sroot, style)
+    cur = h1.find("w:pPr/w:numPr/w:numId", NS) if h1 is not None else None
+    if cur is None:
+        return {"unchanged": "Heading 1 takes no number"}
+    nb = pkg.tree(nb_part)
+    num = next((n for n in nb.findall("w:num", NS) if n.get(q("numId")) == cur.get(q("val"))), None)
+    if num is None:
+        return {"unchanged": "Heading 1's list is not in the numbering part"}
+    aidv = num.find("w:abstractNumId", NS).get(q("val"))
+    absn = next((a for a in nb.findall("w:abstractNum", NS) if a.get(q("abstractNumId")) == aidv), None)
+    if absn is None:
+        return {"unchanged": "Heading 1's list is not in the numbering part"}
+    tw = int(round(float(text_at) * 1440))
+    changed = 0
+    for lvl in absn.findall("w:lvl", NS)[:9]:
+        ppr = lvl.find("w:pPr", NS)
+        if ppr is None:
+            pkg.mark(absn)
+            ppr = ensure(lvl, "pPr")
+        ind = ppr.find("w:ind", NS)
+        tabs = ppr.find("w:tabs", NS)
+        tab = tabs.find("w:tab", NS) if tabs is not None else None
+        ok = (ind is not None and int(ind.get(q("left")) or ind.get(q("start")) or 0) == tw and int(ind.get(q("hanging")) or 0) == tw
+              and ind.get(q("firstLine")) is None and tab is not None and int(tab.get(q("pos")) or 0) == tw and len(tabs) == 1)
+        if ok:
+            continue
+        pkg.mark(absn)                                  # the guard: Heading 1's list (its levels) may change
+        if tabs is not None:
+            ppr.remove(tabs)
+        tabs = ensure(ppr, "tabs")
+        t = etree.SubElement(tabs, q("tab")); t.set(q("val"), "num"); t.set(q("pos"), str(tw))
+        if ind is not None:
+            ppr.remove(ind)
+        ensure(ppr, "ind", {"left": tw, "hanging": tw})
+        ensure(lvl, "suff", {"val": "tab"})
+        changed += 1
+    if not changed:
+        return {"unchanged": "every heading level already has its number at 0 and its text at one position"}
+    pkg.touch(nb_part)
+    return {"changed": changed, "checks": [{"expr": "heading_list_strings(doc)", "expect": "computed"}]}
+
+
 def op_heading_numbering(pkg, levels=HEADING_LEVELS):
     nb_part = pkg.word_part("/numbering")
     pkg.touch(nb_part)
