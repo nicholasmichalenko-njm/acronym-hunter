@@ -150,4 +150,4 @@ check("Undo the last import puts it back", sg.undo_data() > 0 and CD.Store(cfg).
 print(f"QT OUR DATA {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.stdout.flush()
 w.close()
-os._exit(0 if all(checks) else 1)
+__import__("hangguard").end(0 if all(checks) else 1)

@@ -79,4 +79,4 @@ check("the placed sentence is in the setup, in its hidden style", 'w:val="SKRFPR
 print(f"QT SETUP ON TEMPLATE {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.stdout.flush()
 w.close()
-os._exit(0 if all(checks) else 1)
+__import__("hangguard").end(0 if all(checks) else 1)
