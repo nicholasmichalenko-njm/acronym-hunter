@@ -28,7 +28,7 @@ static inline int rint_even(float v) { return (int)lrintf(v); }
 static inline uint8_t sat_u8(int v) { return (uint8_t)(v < 0 ? 0 : (v > 255 ? 255 : v)); }
 static inline uint8_t sat_f(float v) { return sat_u8(rint_even(v)); }
 
-API int imgcore_version(void) { return 1; }
+API int imgcore_version(void) { return 2; }   /* 2: row ranges, so callers can split work across threads */
 
 /* ---------------------------------------------------------------- grey: (B*3735 + G*19235 + R*9798 + 16384) >> 15 */
 API void gray_bgr(const uint8_t *src, int64_t n, uint8_t *dst)
@@ -146,10 +146,25 @@ API void clahe_blend(const uint8_t *src, int H, int W, int tx, const float *luts
     }
 }
 
+/* CLAHE's tile histograms over the picture extended to Hp x Wp by mirroring (OpenCV's BORDER_REFLECT_101), for tile
+ * rows ty0..ty1. hist: (tile rows, tx, 256) counts. */
+static inline int refl101(int i, int n) { return n == 1 ? 0 : (i < n ? i : 2 * (n - 1) - i); }
+
+API void clahe_hist(const uint8_t *src, int H, int W, int Hp, int Wp, int th, int tw, int tx, int32_t *hist, int ty0, int ty1)
+{
+    (void)Hp;
+    memset(hist + (int64_t)ty0 * tx * 256, 0, sizeof(int32_t) * (size_t)(ty1 - ty0) * tx * 256);
+    for (int y = ty0 * th; y < ty1 * th; y++) {
+        const uint8_t *s = src + (int64_t)refl101(y, H) * W;
+        int32_t *hrow = hist + (int64_t)(y / th) * tx * 256;
+        for (int x = 0; x < Wp; x++) hrow[(x / tw) * 256 + s[refl101(x, W)]]++;
+    }
+}
+
 /* ---------------------------------------------------------------- local threshold (mean of a block x block window)
  * dst = 255 where round(window sum / area) >= pixel + c (OpenCV's ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY_INV),
  * border copied from the edge. thr[g] = area * (g + c) - (area - 1) / 2 is worked out by the caller. */
-API int adaptive_mean_inv(const uint8_t *src, int H, int W, int block, const int64_t *thr, uint8_t *dst)
+API int adaptive_mean_inv(const uint8_t *src, int H, int W, int block, const int64_t *thr, uint8_t *dst, int y0, int y1)
 {
     int r = block / 2;
     int64_t *col = (int64_t *)calloc((size_t)W, sizeof(int64_t));   /* column sums over the current window rows */
@@ -157,11 +172,11 @@ API int adaptive_mean_inv(const uint8_t *src, int H, int W, int block, const int
     #define PX(yy, xx) src[(int64_t)((yy) < 0 ? 0 : ((yy) >= H ? H - 1 : (yy))) * W + ((xx) < 0 ? 0 : ((xx) >= W ? W - 1 : (xx)))]
     for (int x = 0; x < W; x++) {
         int64_t s = 0;
-        for (int yy = -r; yy <= r; yy++) s += PX(yy, x);
+        for (int yy = y0 - r; yy <= y0 + r; yy++) s += PX(yy, x);
         col[x] = s;
     }
-    for (int y = 0; y < H; y++) {
-        if (y > 0) {
+    for (int y = y0; y < y1; y++) {
+        if (y > y0) {
             for (int x = 0; x < W; x++) col[x] += (int64_t)PX(y + r, x) - PX(y - 1 - r, x);
         }
         int64_t s = 0;
@@ -182,15 +197,16 @@ API int adaptive_mean_inv(const uint8_t *src, int H, int W, int block, const int
 /* ---------------------------------------------------------------- opening by a straight line, by whole runs
  * axis 1: along rows; axis 0: down columns. Keeps runs at least k long (k - k/2 touching the start edge,
  * k/2 + 1 touching the end edge, any length touching both); an even k moves the kept run one cell on. */
-API void open_line(const uint8_t *src, int H, int W, int k, int axis, uint8_t on, uint8_t *dst)
+API void open_line(const uint8_t *src, int H, int W, int k, int axis, uint8_t on, uint8_t *dst, int l0, int l1)
 {
     int a = k / 2, sh = 2 * a - k + 1;
     int lines = axis == 1 ? H : W, len = axis == 1 ? W : H;
     int64_t step = axis == 1 ? 1 : W;
-    memset(dst, 0, (size_t)H * W);
-    for (int l = 0; l < lines; l++) {
+    (void)lines;
+    for (int l = l0; l < l1; l++) {
         const uint8_t *s = src + (axis == 1 ? (int64_t)l * W : l);
         uint8_t *d = dst + (axis == 1 ? (int64_t)l * W : l);
+        for (int j = 0; j < len; j++) d[j * step] = 0;
         int i = 0;
         while (i < len) {
             if (!s[i * step]) { i++; continue; }
@@ -208,19 +224,20 @@ API void open_line(const uint8_t *src, int H, int W, int k, int axis, uint8_t on
 }
 
 /* ---------------------------------------------------------------- 3 x 3 dilation of a 0 / non-zero picture */
-API void dilate3(const uint8_t *src, int H, int W, uint8_t on, uint8_t *dst)
+API void dilate3(const uint8_t *src, int H, int W, uint8_t on, uint8_t *dst, int y0, int y1)
 {
-    uint8_t *tmp = (uint8_t *)malloc((size_t)H * W);
+    int r0 = y0 > 0 ? y0 - 1 : 0, r1 = y1 < H ? y1 + 1 : H;      /* rows the band needs: one above, one below */
+    uint8_t *tmp = (uint8_t *)malloc((size_t)(r1 - r0) * W);
     if (!tmp) return;
-    for (int y = 0; y < H; y++) {
+    for (int y = r0; y < r1; y++) {
         const uint8_t *s = src + (int64_t)y * W;
-        uint8_t *t = tmp + (int64_t)y * W;
+        uint8_t *t = tmp + (int64_t)(y - r0) * W;
         for (int x = 0; x < W; x++)
             t[x] = (s[x] || (x > 0 && s[x - 1]) || (x + 1 < W && s[x + 1])) ? 1 : 0;
     }
-    for (int y = 0; y < H; y++) {
-        const uint8_t *u = tmp + (int64_t)(y > 0 ? y - 1 : y) * W, *m = tmp + (int64_t)y * W,
-                      *b = tmp + (int64_t)(y + 1 < H ? y + 1 : y) * W;
+    for (int y = y0; y < y1; y++) {
+        const uint8_t *u = tmp + (int64_t)((y > 0 ? y - 1 : y) - r0) * W, *m = tmp + (int64_t)(y - r0) * W,
+                      *b = tmp + (int64_t)((y + 1 < H ? y + 1 : y) - r0) * W;
         uint8_t *d = dst + (int64_t)y * W;
         for (int x = 0; x < W; x++) d[x] = (u[x] || m[x] || b[x]) ? on : 0;
     }
@@ -228,19 +245,20 @@ API void dilate3(const uint8_t *src, int H, int W, uint8_t on, uint8_t *dst)
 }
 
 /* ---------------------------------------------------------------- 3 x 3 erosion (outside counts as on) */
-API void erode3(const uint8_t *src, int H, int W, uint8_t on, uint8_t *dst)
+API void erode3(const uint8_t *src, int H, int W, uint8_t on, uint8_t *dst, int y0, int y1)
 {
-    uint8_t *tmp = (uint8_t *)malloc((size_t)H * W);
+    int r0 = y0 > 0 ? y0 - 1 : 0, r1 = y1 < H ? y1 + 1 : H;      /* rows the band needs: one above, one below */
+    uint8_t *tmp = (uint8_t *)malloc((size_t)(r1 - r0) * W);
     if (!tmp) return;
-    for (int y = 0; y < H; y++) {
+    for (int y = r0; y < r1; y++) {
         const uint8_t *s = src + (int64_t)y * W;
-        uint8_t *t = tmp + (int64_t)y * W;
+        uint8_t *t = tmp + (int64_t)(y - r0) * W;
         for (int x = 0; x < W; x++)
             t[x] = (s[x] && (x == 0 || s[x - 1]) && (x + 1 == W || s[x + 1])) ? 1 : 0;
     }
-    for (int y = 0; y < H; y++) {
-        const uint8_t *u = tmp + (int64_t)(y > 0 ? y - 1 : y) * W, *m = tmp + (int64_t)y * W,
-                      *b = tmp + (int64_t)(y + 1 < H ? y + 1 : y) * W;
+    for (int y = y0; y < y1; y++) {
+        const uint8_t *u = tmp + (int64_t)((y > 0 ? y - 1 : y) - r0) * W, *m = tmp + (int64_t)(y - r0) * W,
+                      *b = tmp + (int64_t)((y + 1 < H ? y + 1 : y) - r0) * W;
         uint8_t *d = dst + (int64_t)y * W;
         for (int x = 0; x < W; x++) d[x] = (u[x] && m[x] && b[x]) ? on : 0;
     }

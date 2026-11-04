@@ -7,6 +7,7 @@ import numpy as np
 from PIL import Image
 
 _POOL = []
+_CPOOL = []
 
 
 def _load_core():
@@ -23,15 +24,16 @@ def _load_core():
         if f and os.path.isfile(f):
             try:
                 lib = ctypes.CDLL(f)
-                if lib.imgcore_version() == 1:
+                if lib.imgcore_version() == 2:
                     V, I, L = ctypes.c_void_p, ctypes.c_int, ctypes.c_int64
                     lib.gray_bgr.argtypes = [V, L, V]
                     lib.resize_fixed.argtypes = [V, I, I, I, V, I, I, I, V, V, V, V, I, I]
                     lib.clahe_blend.argtypes = [V, I, I, I, V, V, V, V, V, V, V, V, V, V]
-                    lib.adaptive_mean_inv.argtypes = [V, I, I, I, V, V]
-                    lib.open_line.argtypes = [V, I, I, I, I, ctypes.c_uint8, V]
-                    lib.dilate3.argtypes = [V, I, I, ctypes.c_uint8, V]
-                    lib.erode3.argtypes = [V, I, I, ctypes.c_uint8, V]
+                    lib.adaptive_mean_inv.argtypes = [V, I, I, I, V, V, I, I]
+                    lib.open_line.argtypes = [V, I, I, I, I, ctypes.c_uint8, V, I, I]
+                    lib.dilate3.argtypes = [V, I, I, ctypes.c_uint8, V, I, I]
+                    lib.clahe_hist.argtypes = [V, I, I, I, I, I, I, I, V, I, I]
+                    lib.erode3.argtypes = [V, I, I, ctypes.c_uint8, V, I, I]
                     lib.outer_boxes.argtypes = [V, I, I, V, I]
                     return lib
             except OSError:
@@ -44,6 +46,25 @@ _C = _load_core()
 
 def _p(a):
     return a.ctypes.data
+
+
+CPAR_MIN = 1_000_000                # values below which one thread does the job (thread start-up costs more)
+
+
+def _cpar(fn, n, per_row):
+    """fn(r0, r1) over row ranges covering 0..n. imgcore's calls let go of the interpreter lock (ctypes does), so on a
+    big picture the bands run on several cores at once, as OpenCV's own steps do. Each band writes its own rows."""
+    workers = max(1, min(16, os.cpu_count() or 1))
+    if n * per_row < CPAR_MIN or workers == 1 or n < 2:
+        if n > 0:
+            fn(0, n)
+        return
+    if not _CPOOL:
+        from concurrent.futures import ThreadPoolExecutor
+        _CPOOL.append(ThreadPoolExecutor(max_workers=workers))
+    step = max(1, -(-n // (workers * 2)))
+    for f in [_CPOOL[0].submit(fn, r, min(n, r + step)) for r in range(0, n, step)]:
+        f.result()
 
 
 _THREADS = int(os.environ.get("AH_IMGOPS_THREADS", "0") or 0) or max(1, min(8, (os.cpu_count() or 1) // 2))
@@ -165,7 +186,8 @@ def bgr2gray(bgr):
     out = np.empty(bgr.shape[:2], np.uint8)
     if _C is not None:
         src = np.ascontiguousarray(bgr)
-        _C.gray_bgr(_p(src), src.shape[0] * src.shape[1], _p(out))
+        W = src.shape[1]
+        _cpar(lambda r0, r1: _C.gray_bgr(_p(src) + r0 * W * 3, (r1 - r0) * W, _p(out) + r0 * W), H, W)
         return out
 
     def band(r0, r1):
@@ -381,7 +403,15 @@ def resize(img, size=None, fx=None, fy=None, cubic=False):
         src = np.ascontiguousarray(a)
         out = np.empty((nh, nw, cn), np.uint8)
         t = [np.ascontiguousarray(v, dtype=np.int32) for v in (xi, xw, yi, yw)]
-        if _C.resize_fixed(_p(src), h, w, cn, _p(out), nh, nw, xi.shape[1], *[_p(v) for v in t], int(cubic), SIMD_LANES):
+        k = xi.shape[1]
+        bad = []
+
+        def band(r0, r1):
+            if _C.resize_fixed(_p(src), h, w, cn, _p(out) + r0 * nw * cn, r1 - r0, nw, k, _p(t[0]), _p(t[1]),
+                               _p(t[2]) + r0 * k * 4, _p(t[3]) + r0 * k * 4, int(cubic), SIMD_LANES):
+                bad.append(r0)
+        _cpar(band, nh, nw * cn)
+        if bad:
             raise MemoryError("resize")
         return out[:, :, 0] if img.ndim == 2 else out
     if nh < h:                                  # shrinking: only the source rows the output uses go through the row pass
@@ -409,17 +439,24 @@ def clahe(gray, clip=2.0, tiles=(8, 8)):
     tx, ty = tiles
     H, W = gray.shape
     if W % tx == 0 and H % ty == 0:
-        ext = gray
+        Hp, Wp = H, W
     else:
-        ext = np.pad(gray, ((0, ty - H % ty), (0, tx - W % tx)), mode="reflect")
-    th, tw = ext.shape[0] // ty, ext.shape[1] // tx
+        Hp, Wp = H + ty - H % ty, W + tx - W % tx            # OpenCV mirrors the picture out to whole tiles
+    th, tw = Hp // ty, Wp // tx
     area = th * tw
     lut_scale = np.float32(255) / np.float32(area)
     limit = max(int(clip * area / 256), 1) if clip > 0 else 0
-    # every tile's histogram in one count: tile number * 256 + grey level
-    tyi = (np.arange(ext.shape[0]) // th)[:, None] * tx
-    txi = (np.arange(ext.shape[1]) // tw)[None, :]
-    hist = np.bincount(((tyi + txi) * 256 + ext).ravel(), minlength=tx * ty * 256).reshape(ty * tx, 256).astype(np.int64)
+    if _C is not None:
+        src = np.ascontiguousarray(gray)
+        hist32 = np.empty((ty, tx, 256), np.int32)
+        _cpar(lambda a, b: _C.clahe_hist(_p(src), H, W, Hp, Wp, th, tw, tx, _p(hist32), a, b), ty, th * Wp)
+        hist = hist32.reshape(ty * tx, 256).astype(np.int64)
+    else:
+        ext = gray if (Hp, Wp) == (H, W) else np.pad(gray, ((0, Hp - H), (0, Wp - W)), mode="reflect")
+        # every tile's histogram in one count: tile number * 256 + grey level
+        tyi = (np.arange(Hp) // th)[:, None] * tx
+        txi = (np.arange(Wp) // tw)[None, :]
+        hist = np.bincount(((tyi + txi) * 256 + ext).ravel(), minlength=tx * ty * 256).reshape(ty * tx, 256).astype(np.int64)
     if limit > 0:
         clipped = np.maximum(hist - limit, 0).sum(axis=1)
         hist = np.minimum(hist, limit)
@@ -450,7 +487,11 @@ def clahe(gray, clip=2.0, tiles=(8, 8)):
         i32 = lambda v: np.ascontiguousarray(v, dtype=np.int32)
         f32 = lambda v: np.ascontiguousarray(v, dtype=np.float32)
         args = [i32(x1), i32(x2), f32(xa), f32(xa1), i32(y1), i32(y2), f32(ya), f32(ya1)]
-        _C.clahe_blend(_p(src), H, W, tx, _p(lt), *[_p(v) for v in args], _p(out))
+        def band(r0, r1):
+            _C.clahe_blend(_p(src) + r0 * W, r1 - r0, W, tx, _p(lt), _p(args[0]), _p(args[1]), _p(args[2]), _p(args[3]),
+                           _p(args[4]) + r0 * 4, _p(args[5]) + r0 * 4, _p(args[6]) + r0 * 4, _p(args[7]) + r0 * 4,
+                           _p(out) + r0 * W)
+        _cpar(band, H, W)
         return out
 
     def groups(a1, a2):                    # runs of rows (or columns) that blend the same two tiles
@@ -530,7 +571,9 @@ def adaptive_mean_inv(gray, block=15, c=10):
         src = np.ascontiguousarray(gray)
         out = np.empty((H, W), np.uint8)
         thr = np.ascontiguousarray(area * (np.arange(256, dtype=np.int64) + d) - (area - 1) // 2)
-        if _C.adaptive_mean_inv(_p(src), H, W, k, _p(thr), _p(out)):
+        bad = []
+        _cpar(lambda r0, r1: _C.adaptive_mean_inv(_p(src), H, W, k, _p(thr), _p(out), r0, r1) and bad.append(r0), H, W)
+        if bad:
             raise MemoryError("adaptive threshold")
         return out
     small = 255 * area < 65536          # window sums fit 16 bits: running sums may wrap, differences stay right
@@ -578,7 +621,9 @@ def erode(img, kw, kh):
     if kw == 3 and kh == 3 and _C is not None and img.dtype == np.uint8 and img.ndim == 2:
         src = np.ascontiguousarray(img)
         out = np.empty_like(src)
-        _C.erode3(_p(src), src.shape[0], src.shape[1], int(src.max()) if src.size else 0, _p(out))
+        H, W = src.shape
+        on = int(src.max()) if src.size else 0
+        _cpar(lambda r0, r1: _C.erode3(_p(src), H, W, on, _p(out), r0, r1), H, W)
         return out
     on = img > 0
     off = ~on
@@ -593,7 +638,9 @@ def dilate(img, kw, kh):
     if kw == 3 and kh == 3 and _C is not None and img.dtype == np.uint8 and img.ndim == 2:
         src = np.ascontiguousarray(img)
         out = np.empty_like(src)
-        _C.dilate3(_p(src), src.shape[0], src.shape[1], int(src.max()) if src.size else 0, _p(out))
+        H, W = src.shape
+        on = int(src.max()) if src.size else 0
+        _cpar(lambda r0, r1: _C.dilate3(_p(src), H, W, on, _p(out), r0, r1), H, W)
         return out
     on = img > 0
     if kw > 1:
@@ -633,8 +680,10 @@ def open_(img, kw, kh):
     if (kh == 1 and kw > 5 or kw == 1 and kh > 5) and _C is not None:
         src = np.ascontiguousarray(img, dtype=np.uint8)
         out = np.empty_like(src)
-        _C.open_line(_p(src), src.shape[0], src.shape[1], kw if kh == 1 else kh, 1 if kh == 1 else 0,
-                     int(src.max()) if src.size else 0, _p(out))
+        H, W = src.shape
+        axis, on = (1 if kh == 1 else 0), (int(src.max()) if src.size else 0)
+        _cpar(lambda l0, l1: _C.open_line(_p(src), H, W, kw if kh == 1 else kh, axis, on, _p(out), l0, l1),
+              H if axis == 1 else W, W if axis == 1 else H)
         return out.astype(img.dtype, copy=False)
     if kh == 1 and kw > 5 or kw == 1 and kh > 5:          # a straight line: whole runs, no sliding window
         on = _open_line(img > 0, kw if kh == 1 else kh, 1 if kh == 1 else 0)
