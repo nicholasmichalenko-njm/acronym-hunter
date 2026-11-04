@@ -41,7 +41,7 @@ RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),          
         ("Compliance", [("assign", "Review"), ("structure", "Structure Builder"), ("matrix", "Matrix")]),   # 3.30.0
         ("Writing", [("storyboards", "Storyboards"), ("truth", "Wall of Truth"), ("acronyms", "Acronyms")]),
         ("Quality", [("qa", "Submission Check"), ("checks", "Final Checks")]),
-        ("Production", [("prodstd", "Production Standards"), ("audit", "Audit"), ("fixcopy", "Fix a Copy")]),
+        ("Production", [("prodstd", "Production Standards"), ("rules", "Rules"), ("audit", "Audit"), ("fixcopy", "Fix a Copy")]),   # 3.38.0
         ("Post-Submission", [("postsub", "Checklist"), ("keywords", "Keywords")]),
         ("Effort files", [("exportall", "Export All"), ("settings", "Settings")])]
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
@@ -69,6 +69,7 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "fixcopy": ("Fix a Copy", "Beta: check drafts against their profile; fixes go into a dated copy, never the original"),
           "audit": ("Audit", "Check files against every standard that applies to them: read only, nothing changed"),
           "prodstd": ("Production Standards", "The global formatting standards for every effort: the global standard, volume profiles, effort types and the template library"),
+          "rules": ("Rules", "Every production rule in one list: how each is kept, on or off for every effort, and where its values live; and the rules Review's Suggest reads by"),
           "effortfmt": ("Effort Formatting", "This effort's formatting on top of the global standards: its own fonts, sizes, margins and parts, and the RFP's rules"),
           "checks": ("Final Checks", "The PDF package, cross-references and numbering, and what changed between two drafts"),
           "truth": ("Wall of Truth", "The one approved way to state every fact and number, and the drafts checked against it"),
@@ -290,12 +291,14 @@ class MainWindow(QMainWindow):
         self.prodstd_page = StandardsPage(self)        # 3.6.0: every rule, three layers
         from .effortformatpage import EffortFormatPage
         self.effortfmt_page = EffortFormatPage(self)   # 3.36.0: one effort's formatting, apart from the team's
+        from .rulespage import RulesPage
+        self.rules_page = RulesPage(self)              # 3.38.0: every production rule in one list
         self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page, "custqa": self.custqa_page,
                       "impact": self.impact_page, "deliverables": self.deliverables_page, "qa": self.qa_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page, "audit": self.audit_page,
-                      "effortfmt": self.effortfmt_page}
+                      "effortfmt": self.effortfmt_page, "rules": self.rules_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)
         from .roleview import NoticePage                 # 3.13.0: a tool for another role, or a Preview tool not turned on

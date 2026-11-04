@@ -373,6 +373,17 @@ TOPICS = [
    "This effort: choose its volume, then Fill from the RFP's formatting rules lays the RFP's fonts, margins and page size "
    "over it for this effort only. Press Save."],
   ["Blank means not set: a rule nobody sets is not checked and not written."]),
+ ("rules", "Production", "Rules",
+  "Every rule the app follows and checks, in one list: the production rules for our documents (Rule 1 to 13 and the "
+  "team's own) and the rules Review's Suggest reads the customer's documents by.",
+  "To see which rules are on, how each is kept, and where to change a rule's values; to add a rule of your own.",
+  ["Show: Our documents, or Reading the customer's documents.",
+   "Each rule says how it is kept: checked by the app, checked with Word on this PC, or a checklist item for people.",
+   "Untick On for every effort to turn a rule off everywhere. An effort departs from a rule on Effort Formatting only.",
+   "Change it opens the page that holds the rule's values (Production Standards, Effort Formatting, the Acronym List).",
+   "Add the rule adds one of your own (a checklist item). Phrase rules: a sentence holding the phrase gets that suggestion."],
+  ["Audit and Fix a Copy report each finding under its rule.",
+   "Make templates follows Rules 4, 5 and 6; Rule 7's footer table comes with the header and footer builder."]),
  ("audit", "Production", "Audit",
   "Checks Word, Excel and PowerPoint files against every standard that applies to them and lists every finding: styles, "
   "fonts, tables, captions, the TOC, cross-references, pages, headers and footers, lists, terms, sheets, slides and "
