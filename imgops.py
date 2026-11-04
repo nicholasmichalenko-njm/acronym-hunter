@@ -9,19 +9,24 @@ from PIL import Image
 _POOL = []
 
 
-def _par(fn, n, rows_per_chunk):
-    """fn(r0, r1) over row ranges covering 0..n, on a few threads (NumPy lets go of the interpreter lock inside its
-    loops, so row bands run side by side). Each band writes its own rows; nothing is shared."""
+_THREADS = int(os.environ.get("AH_IMGOPS_THREADS", "0") or 0) or max(1, min(8, (os.cpu_count() or 1) // 2))
+PAR_MIN = 3_000_000                 # values below which threads cost more than they give
+
+
+def _par(fn, n, rows_per_chunk, work=0):
+    """fn(r0, r1) over row ranges covering 0..n. Big jobs run on a few threads (NumPy lets go of the interpreter
+    lock inside its loops, so row bands run side by side); each band writes its own rows, nothing is shared."""
     chunks = [(r, min(n, r + rows_per_chunk)) for r in range(0, n, max(1, rows_per_chunk))]
-    if len(chunks) <= 1:
+    if len(chunks) <= 1 or _THREADS <= 1 or work < PAR_MIN:
         for r0, r1 in chunks:
             fn(r0, r1)
         return
     if not _POOL:
         from concurrent.futures import ThreadPoolExecutor
-        _POOL.append(ThreadPoolExecutor(max_workers=max(1, min(8, os.cpu_count() or 1))))
+        _POOL.append(ThreadPoolExecutor(max_workers=_THREADS))
     for f in [_POOL[0].submit(fn, r0, r1) for r0, r1 in chunks]:
         f.result()
+
 
 # ---------------------------------------------------------------- opening and saving pictures
 def _pil_to_cv(im, mode):
@@ -134,7 +139,7 @@ def bgr2gray(bgr):
         acc += 16384
         acc >>= 15
         out[r0:r1] = acc.reshape(r1 - r0, -1)
-    _par(band, H, max(8, 1_000_000 // max(1, bgr.shape[1])))
+    _par(band, H, max(8, 1_000_000 // max(1, bgr.shape[1])), bgr.size)
     return out
 
 
@@ -225,7 +230,7 @@ def _hpass(a, xi, xw, w, nw, fx, dt=np.int32):
                         np.multiply(src[:, o:o + w, :], dt(xw[ph, t]), out=tmp)
                         acc += tmp
                 out[r0:r1, ph::p, :] = acc
-        _par(band, a.shape[0], max(8, 1_000_000 // max(1, w * a.shape[2])))
+        _par(band, a.shape[0], max(8, 1_000_000 // max(1, w * a.shape[2])), out.size)
         return out
     hz = np.empty((a.shape[0], nw, a.shape[2]), dt)
 
@@ -234,7 +239,7 @@ def _hpass(a, xi, xw, w, nw, fx, dt=np.int32):
         for t in range(1, k):
             acc += np.take(a[r0:r1], xi[:, t], axis=1).astype(dt) * xw[None, :, t, None].astype(dt)
         hz[r0:r1] = acc
-    _par(band, a.shape[0], max(8, 1_000_000 // max(1, nw * a.shape[2])))
+    _par(band, a.shape[0], max(8, 1_000_000 // max(1, nw * a.shape[2])), hz.size)
     return hz
 
 
@@ -296,14 +301,14 @@ def _vcubic(hz, yi, yw, h, nh, nw, cn, fy):
                     np.rint(acc, out=acc)
                     np.clip(acc, 0, 255, out=acc)
                     out[p * r0 + ph:p * r1:p, :n] = acc
-            _par(band, h, max(8, 1_000_000 // max(1, n)))
+            _par(band, h, max(8, 1_000_000 // max(1, n)), out.size)
         else:
             def band(r0, r1):
                 acc = np.take(hf, yi[r0:r1, 3], axis=0) * bf[r0:r1, 3, None]
                 for t in (2, 1, 0):
                     acc = np.take(hf, yi[r0:r1, t], axis=0) * bf[r0:r1, t, None] + acc
                 out[r0:r1, :n] = np.clip(np.rint(acc), 0, 255)
-            _par(band, nh, max(8, 1_000_000 // max(1, n)))
+            _par(band, nh, max(8, 1_000_000 // max(1, n)), out.size)
     if n < width:
         tail = flat[:, n:].astype(np.int32)
         acc = sum(np.take(tail, yi[:, t], axis=0) * yw[:, t, None].astype(np.int32) for t in range(4))
@@ -348,7 +353,7 @@ def resize(img, size=None, fx=None, fy=None, cubic=False):
             s0 = np.take(hz, yi[r0:r1, 0], axis=0) >> 4
             s1 = np.take(hz, yi[r0:r1, 1], axis=0) >> 4
             out[r0:r1] = np.clip((((s0 * b0) >> 16) + ((s1 * b1) >> 16) + 2) >> 2, 0, 255)
-        _par(band, nh, max(8, 1_000_000 // max(1, nw * cn)))
+        _par(band, nh, max(8, 1_000_000 // max(1, nw * cn)), out.size)
     return out[:, :, 0] if img.ndim == 2 else out
 
 # ---------------------------------------------------------------- contrast (CLAHE, as OpenCV computes it)
@@ -363,22 +368,20 @@ def clahe(gray, clip=2.0, tiles=(8, 8)):
     area = th * tw
     lut_scale = np.float32(255) / np.float32(area)
     limit = max(int(clip * area / 256), 1) if clip > 0 else 0
-    luts = np.zeros((ty, tx, 256), np.uint8)
-    for j in range(ty):
-        for i in range(tx):
-            hist = np.bincount(ext[j * th:(j + 1) * th, i * tw:(i + 1) * tw].ravel(), minlength=256).astype(np.int64)
-            if limit > 0:
-                over = hist > limit
-                clipped = int((hist[over] - limit).sum())
-                hist[over] = limit
-                batch, residual = clipped // 256, clipped % 256
-                hist += batch
-                if residual:
-                    step = max(256 // residual, 1)
-                    pos = np.arange(0, 256, step)[:residual]
-                    hist[pos] += 1
-            cs = np.cumsum(hist).astype(np.float32)
-            luts[j, i] = np.clip(np.rint(cs * lut_scale), 0, 255).astype(np.uint8)
+    # every tile's histogram in one count: tile number * 256 + grey level
+    tyi = (np.arange(ext.shape[0]) // th)[:, None] * tx
+    txi = (np.arange(ext.shape[1]) // tw)[None, :]
+    hist = np.bincount(((tyi + txi) * 256 + ext).ravel(), minlength=tx * ty * 256).reshape(ty * tx, 256).astype(np.int64)
+    if limit > 0:
+        clipped = np.maximum(hist - limit, 0).sum(axis=1)
+        hist = np.minimum(hist, limit)
+        batch, residual = clipped // 256, clipped % 256
+        hist += batch[:, None]
+        step = np.maximum(256 // np.maximum(residual, 1), 1)
+        i = np.arange(256)[None, :]
+        hist += ((i % step[:, None] == 0) & (i // step[:, None] < residual[:, None])).astype(np.int64)
+    cs = np.cumsum(hist, axis=1).astype(np.float32)
+    luts = np.clip(np.rint(cs * lut_scale), 0, 255).astype(np.float32).reshape(ty, tx, 256)
     inv_tw, inv_th = np.float32(1) / np.float32(tw), np.float32(1) / np.float32(th)
     xs = np.arange(W, dtype=np.float32) * inv_tw - np.float32(0.5)
     x1 = np.floor(xs).astype(np.int64)
@@ -393,19 +396,32 @@ def clahe(gray, clip=2.0, tiles=(8, 8)):
     y2 = np.minimum(y1 + 1, ty - 1)
     y1 = np.maximum(y1, 0)
     out = np.empty((H, W), np.uint8)
-    flat = luts.reshape(-1).astype(np.float32)
-    X1, X2 = (x1 * 256).astype(np.int32)[None, :], (x2 * 256).astype(np.int32)[None, :]
-    XA, XA1 = xa[None, :], xa1[None, :]
-    def band(r0, r1):
-        v = gray[r0:r1].astype(np.int32)
-        b1 = (y1[r0:r1] * (tx * 256)).astype(np.int32)[:, None] + v
-        b2 = (y2[r0:r1] * (tx * 256)).astype(np.int32)[:, None] + v
-        top = flat.take(b1 + X1) * XA1 + flat.take(b1 + X2) * XA
-        bot = flat.take(b2 + X1) * XA1 + flat.take(b2 + X2) * XA
-        res = top * ya1[r0:r1, None] + bot * ya[r0:r1, None]
-        out[r0:r1] = np.clip(np.rint(res), 0, 255)
-    _par(band, H, max(8, 500_000 // max(1, W)))
+
+    def groups(a1, a2):                    # runs of rows (or columns) that blend the same two tiles
+        key = a1 * 1000 + a2
+        cut = np.nonzero(np.diff(key))[0] + 1
+        b = np.concatenate([[0], cut, [len(key)]])
+        return [(int(b[i]), int(b[i + 1])) for i in range(len(b) - 1)]
+    cols = groups(x1, x2)
+
+    def band(g0, g1):
+        for r0, r1 in rgroups[g0:g1]:
+            Y1, Y2 = int(y1[r0]), int(y2[r0])
+            wa1, wa = ya1[r0:r1, None], ya[r0:r1, None]
+            for c0, c1 in cols:
+                X1, X2 = int(x1[c0]), int(x2[c0])
+                v = gray[r0:r1, c0:c1]
+                xa1_, xa_ = xa1[None, c0:c1], xa[None, c0:c1]
+                top = luts[Y1, X1].take(v) * xa1_ + luts[Y1, X2].take(v) * xa_
+                bot = luts[Y2, X1].take(v) * xa1_ + luts[Y2, X2].take(v) * xa_
+                res = top * wa1 + bot * wa
+                np.rint(res, out=res)
+                np.clip(res, 0, 255, out=res)
+                out[r0:r1, c0:c1] = res
+    rgroups = groups(y1, y2)
+    _par(band, len(rgroups), 1, out.size)
     return out
+
 
 # ---------------------------------------------------------------- thresholds
 def otsu_inv(gray):
@@ -453,25 +469,19 @@ def adaptive_mean_inv(gray, block=15, c=10):
     k = block
     r = k // 2
     H, W = gray.shape
-    p = np.pad(gray, r, mode="edge")
-    rows = np.empty((H + 2 * r, W), np.int32)
-
-    def row_band(r0, r1):
-        c1 = np.zeros((r1 - r0, p.shape[1] + 1), np.int32)
-        np.cumsum(p[r0:r1], axis=1, dtype=np.int32, out=c1[:, 1:])
-        rows[r0:r1] = c1[:, k:k + W] - c1[:, 0:W]
-    _par(row_band, H + 2 * r, max(16, 1_000_000 // max(1, W)))
-    out = np.empty((H, W), np.uint8)
     area = k * k
-
-    def col_band(c0, c1_):
-        cs = np.zeros((H + 2 * r + 1, c1_ - c0), np.int32)
-        np.cumsum(rows[:, c0:c1_], axis=0, dtype=np.int32, out=cs[1:])
-        s2 = (cs[k:k + H] - cs[0:H]) * 2
-        n = gray[:, c0:c1_].astype(np.int32) + d
-        out[:, c0:c1_] = np.where(s2 >= area * (2 * n - 1), 255, 0)
-    _par(col_band, W, max(64, 1_000_000 // max(1, H)))
-    return out
+    small = 255 * area < 65536          # window sums fit 16 bits: running sums may wrap, differences stay right
+    dt = np.uint16 if small else np.int64
+    p = np.pad(gray, r, mode="edge")
+    c1 = np.zeros((p.shape[0], p.shape[1] + 1), dt)
+    np.cumsum(p, axis=1, dtype=dt, out=c1[:, 1:])
+    rows = c1[:, k:k + W] - c1[:, 0:W]
+    cs = np.zeros((H + 2 * r + 1, W), dt)
+    np.cumsum(rows, axis=0, dtype=dt, out=cs[1:])
+    win = cs[k:k + H] - cs[0:H]
+    # marked when round(win / area) >= g + c, that is win >= area * (g + c) - (area - 1) / 2 (area is odd: no ties)
+    thr = np.clip(area * (np.arange(256) + d) - (area - 1) // 2, 0, 65535 if small else None).astype(dt)
+    return (win >= thr.take(gray)).view(np.uint8) * np.uint8(255)
 
 
 # ---------------------------------------------------------------- shapes (morphology on 0/non-zero pictures)
