@@ -20,7 +20,7 @@ psutil,app,legacy only,BSD-3-Clause,Giampaolo Rodola; left out of US editions (l
 pyclipper,app,legacy only,MIT,Clipper wrapper; RapidOCR dependency; left out of US editions
 pyinstaller,build,build only,GPL-2.0 with bootloader exception,PyInstaller team; makes the program folder
 pyinstaller-hooks-contrib,build,build only,GPL-2.0 OR Apache-2.0,PyInstaller team
-python-docx,app,all,MIT,python-docx project; Word files
+python-docx,test,tests only,MIT,python-docx project; builds Word files in the tests only (3.42.0: not in the program)
 python-pptx,app,all,MIT,python-pptx project; PowerPoint files
 pywin32-ctypes,build,build only,BSD-3-Clause,PyInstaller dependency
 PyYAML,app,legacy only,MIT,YAML project; RapidOCR configuration; left out of US editions
