@@ -16,7 +16,8 @@ def design_of(work, key):
             "hf_layout": copy.deepcopy((work.get("hf_layouts") or {}).get(key) or {}),
             "hf_design": copy.deepcopy((work.get("hf_designs") or {}).get(key) or {}),
             "captions": [copy.deepcopy(c) for c in work.get("captions") or [] if c.get("part") == key],
-            "page_file": (work.get("page_parts") or {}).get(key, "")}
+            "page_file": (work.get("page_parts") or {}).get(key, ""),
+            "contents": copy.deepcopy(((work.get("section_contents") or {}).get(key)) or [])}        # 3.45.0
 
 
 def apply_design(work, v, key, page_file=None):
@@ -34,8 +35,11 @@ def apply_design(work, v, key, page_file=None):
     if key in ("body", "appendix") and v.get("captions"):
         work["captions"] = [c for c in work.get("captions") or [] if c.get("part") != key] + \
                            [dict(c, part=key) for c in v["captions"]]
+    if "contents" in v:                                  # 3.45.0: the section's components come with it
+        import sectioncontents as SC
+        SC.set_items(work, key, copy.deepcopy(v.get("contents") or []))
     if key in ("cover", "backer") and page_file:
         work.setdefault("page_parts", {})[key] = page_file
-    return f"the {key} part design"
+    return f"the {key} section design"
 
 

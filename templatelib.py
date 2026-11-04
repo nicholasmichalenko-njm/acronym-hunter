@@ -21,7 +21,7 @@ SHELVES = (("style", "Styles"), ("page_setup", "Page setups"), ("hf", "Headers a
            ("list_numbering", "List numbering"), ("table_style", "Word table styles"), ("table_look", "Table looks"),
            ("toc", "Table of contents"), ("cover", "Covers"), ("backer", "Back covers"), ("quickpart", "Quick Parts"), ("font", "Fonts"),
            ("theme", "Themes (colors and fonts)"), ("hf_design", "Header and footer designs (whole)"),
-           ("variables", "Base fonts and sizes"), ("part", "Part designs"), ("pagination", "Pagination schemes"),   # 3.33.0
+           ("variables", "Base fonts and sizes"), ("part", "Section designs"), ("pagination", "Pagination schemes"),   # 3.33.0
            ("title", "Title pages"), ("cover_design", "Cover layouts"),                                         # 3.34.0
            ("matrix_view", "Matrix views"),                                                                     # 3.35.0
            ("section", "Sections"))                                                                             # 3.44.0

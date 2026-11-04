@@ -42,19 +42,20 @@ from skqt.prodstdpage import GROUPS, SECTIONS, IMPORT_KINDS
 
 # ---------------------------------------------------------------- the menu across the top
 check("the menus across the top, in the order a document is built (3.26.0: Document parts first)",
-      [sp.group_bar.tabText(i) for i in range(sp.group_bar.count())] == ["Template profile", "Document parts", "Pages", "Styles", "Numbering", "Tables", "Content", "Check", "Library"])
+      [sp.group_bar.tabText(i) for i in range(sp.group_bar.count())] == ["Template profile", "Building blocks", "Components", "Document sections", "Checks", "Library"])   # 3.45.0: by layer
 check("no column of sections down the side", not sp.nav.isVisible() and sp.section_bar.isVisible())
 names = [t for _k, t in SECTIONS]
 check("the sections have their plain names", {"Base fonts and sizes", "Styles", "Allowed styles", "Heading numbering", "Row looks",
-      "How rows are recognized", "Page sizes and margins", "Pagination and covers", "Fields", "Words to avoid and fix"} <= set(names)
+      "How rows are recognized", "Page setups", "Sections in order", "Fields", "Words to avoid and fix"} <= set(names)
       and "Check options" not in names and "Style library" not in names and "Format variables" not in names, names)
-sp.group_bar.setCurrentIndex(4); app.processEvents()     # 3.33.0: Template profile comes first
+sp.group_bar.setCurrentIndex(2); app.processEvents()     # 3.45.0: Components
 check("a menu shows its sections and opens the first", [sp.section_bar.tabText(i) for i in range(sp.section_bar.count())]
-      == ["Heading numbering", "Lists", "Captions"] and sp.section_key() == "headnum")
-sp.section_bar.setCurrentIndex(2); app.processEvents()
+      == ["Quick Parts", "Table types", "Row looks", "How rows are recognized", "Captions", "Headers and footers",
+          "Table of contents", "Fields"] and sp.section_key() == "quickparts")
+sp.section_bar.setCurrentIndex(4); app.processEvents()
 check("a section opens its page", sp.section_key() == "captions" and sp.stack.currentIndex() == [k for k, _t in SECTIONS].index("captions"))
 sp.nav.setCurrentRow([k for k, _t in SECTIONS].index("hf")); app.processEvents()
-check("going to a section moves the menu with it", sp.group_bar.tabText(sp.group_bar.currentIndex()) == "Pages"
+check("going to a section moves the menu with it", sp.group_bar.tabText(sp.group_bar.currentIndex()) == "Components"
       and sp.section_bar.tabText(sp.section_bar.currentIndex()) == "Headers and footers")
 check("Heading numbering is its own section", "heading_levels" in sp.tables and sp.stack.widget([k for k, _t in SECTIONS].index("headnum"))
       .findChild(type(sp.tables["heading_levels"]["w"])) is sp.tables["heading_levels"]["w"])

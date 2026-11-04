@@ -41,6 +41,14 @@ def make(version, out_root=None):
         extra["hf_cells"] = {"part": "body", "line2": "Kestrel standard line"}
     except ImportError:
         pass
+    try:                                                  # 3.45.0: a section's contents and its own page setup
+        import sectioncontents as SC
+        SC.set_items(data["company"], "body", [{"kind": "placeholder", "title": "Executive Summary", "pages": 2}])
+        cover = next(p for p in data["company"]["pagination"]["parts"] if p.get("key") == "cover")
+        cover["setup"] = "portrait"
+        extra["sections"] = {"part": "body", "title": "Executive Summary", "setup_part": "cover", "setup": "portrait"}
+    except (ImportError, StopIteration, KeyError):
+        pass
     PRL.save(cfg, data)
     RB.add(cfg, "Every graphic has a callout in the text before it appears.", group="Writing")
     RB.set_on(cfg, 12, False)

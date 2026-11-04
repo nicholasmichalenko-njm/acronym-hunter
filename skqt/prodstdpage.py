@@ -19,17 +19,17 @@ import numtext as NT
 from prodengine.pe import rules as PR
 from . import design as D
 
-GROUPS = [                                               # 3.25.0: a menu across the top, in the order a document is built
+GROUPS = [                                               # 3.45.0: the menu across the top, by layer
     ("Template profile", [("profile_parts", "Parts and versions"), ("content_map", "Content map")]),     # 3.33.0
-    ("Document parts", [("part_cover", "Cover"), ("part_front", "Front matter"), ("part_body", "Response"),    # 3.26.0
-                        ("part_appendix", "Appendices"), ("part_backer", "Back cover")]),
-    ("Pages", [("setups", "Page sizes and margins"), ("pages", "Pagination and covers"), ("hf", "Headers and footers"),
-               ("toc", "Table of contents")]),
-    ("Styles", [("variables", "Base fonts and sizes"), ("styledefs", "Styles"), ("fonts", "Font rules"), ("styles", "Allowed styles")]),
-    ("Numbering", [("headnum", "Heading numbering"), ("lists", "Lists"), ("captions", "Captions")]),
-    ("Tables", [("ttypes", "Table types"), ("rows", "Row looks"), ("rules", "How rows are recognized")]),
-    ("Content", [("quickparts", "Quick Parts"), ("fillins", "Fields")]),
-    ("Check", [("terms", "Words to avoid and fix"), ("graphics", "Graphics"), ("office", "Excel and PowerPoint")]),
+    ("Building blocks", [("variables", "Base fonts and sizes"), ("styledefs", "Styles"), ("fonts", "Font rules"),
+                         ("styles", "Allowed styles"), ("headnum", "Heading numbering"), ("lists", "Lists"),
+                         ("setups", "Page setups")]),
+    ("Components", [("quickparts", "Quick Parts"), ("ttypes", "Table types"), ("rows", "Row looks"),
+                    ("rules", "How rows are recognized"), ("captions", "Captions"), ("hf", "Headers and footers"),
+                    ("toc", "Table of contents"), ("fillins", "Fields")]),
+    ("Document sections", [("part_cover", "Cover"), ("part_front", "Front matter"), ("part_body", "Response"),   # 3.26.0
+                           ("part_appendix", "Appendices"), ("part_backer", "Back cover"), ("pages", "Sections in order")]),
+    ("Checks", [("terms", "Words to avoid and fix"), ("graphics", "Graphics"), ("office", "Excel and PowerPoint")]),
     ("Library", [("tlibrary", "Template library")]),                                                     # 3.44.0: a page
 ]
 SECTIONS = [x for _g, items in GROUPS for x in items]
@@ -650,7 +650,7 @@ class StandardsPage(QWidget):
         return f, c
 
     # ------------------------------------------------------------------ sections
-    # 3.26.0: Document parts: each part over the same settings (docparts.py)
+    # 3.26.0: Document parts, 3.45.0 Document sections: each section over the same settings (docparts.py)
     def build_profile_parts(self, v):
         """3.33.0: the profile as its parts, each from a pinned library version."""
         from .profileview import ProfileParts
@@ -958,7 +958,8 @@ class StandardsPage(QWidget):
                                             ("below", "Below the table"), ("either", "Any of these")]), ("checks", "table_caption_position"), "enum")
 
     def build_pages(self, v):
-        c = D.Card("Pagination and covers", "The page scheme: an ordered list of parts. Each part starts at a style "
+        c = D.Card("Sections in order", "The page scheme: the document's sections in order, your own among them (add a row). "
+                   "Each section starts at a style "
                    "(or the first or last section), numbers its pages its own way, and restarts where you say. The cover and "
                    "back cover carry no page number. A back cover is found only as the last section starting with one of its "
                    "styles, so a volume without one keeps its page numbers.")
@@ -984,6 +985,12 @@ class StandardsPage(QWidget):
                 ("chapter_level", "Chapter level", "int"), ("separator", "Separator", ("enum", SEPS)),
                 ("chapter_style", "Chapter heading", "text"), ("linked", "Same header and footer as before", "bool")]
         self.table_editor(v, "pages", ("pagination", "parts"), cols, adapter="pages")
+        c2 = D.Card("A section's page setup and contents", "Any section here, your own included: the page setup it follows, what "
+                    "it starts with (response elements, Quick Parts, placeholders for authors), and its header or footer built as a table.")
+        from .sectioneditor import SectionEditor                 # 3.45.0
+        self.section_editor = SectionEditor(self)
+        c2.body.addWidget(self.section_editor)
+        v.addWidget(c2)
 
     def build_fillins(self, v):
         """3.23.0: tokens typed once and shown everywhere they are referenced."""
@@ -1458,6 +1465,8 @@ class StandardsPage(QWidget):
         self.fill_allowed()
         from . import docparts as DP                # 3.26.0
         DP.fill_all(self)
+        if getattr(self, "section_editor", None) is not None:      # 3.45.0
+            self.section_editor.fill()
         for key, spec in self.tables.items():      # 3.28.1: only the tables on show are filled now; the rest when
             spec["stale"] = True                       # their section opens or anything reads them
         self.fill_shown_tables()
@@ -2283,7 +2292,7 @@ class StandardsPage(QWidget):
         return self.import_file(path, run=run, use_here=False)
 
     def hf_build_table(self, part=None, kind=None, run=True):
-        """3.42.0: build a part's header or footer as a table (the same builder as Document parts)."""
+        """3.42.0: build a section's header or footer as a table (the same builder as Document sections)."""
         from . import docparts as DP
         keys = list((self.work.get("hf_layouts") or {}).keys()) or ["body"]
         if part is None:
@@ -2302,7 +2311,7 @@ class StandardsPage(QWidget):
         entries = [e for e in ((self.work.get("quick_parts") or {}).get("entries") or [])
                    if os.path.isfile(os.path.join(self.parts_dir(), e.get("source") or ""))]
         if not entries:
-            self.host.status("Add Quick Parts first (Content > Quick Parts), then use one here.")
+            self.host.status("Add Quick Parts first (Components > Quick Parts), then use one here.")
             return None
         parts = [p.get("key") for p in ((self.work.get("pagination") or {}).get("parts") or [])] or ["body"]
         if part is None:

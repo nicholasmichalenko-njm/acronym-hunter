@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+PRODUCTION STANDARDS BY LAYER, DOCUMENT SECTIONS (3.45.0)
+  - The menu across the top goes by layer: Template profile; Building blocks (base fonts and sizes, styles, font rules,
+    allowed styles, heading numbering, lists, page setups); Components (Quick Parts, table types, row looks, how rows are
+    recognized, captions, headers and footers, table of contents, fields); Document sections; Checks; Library.
+  - Document sections (called Document parts before): Cover, Front matter, Response, Appendices, Back cover and Sections
+    in order. Each section's Page setup and contents card: the page setup it follows (a cover with its own margins, say;
+    used while the section has that setup's orientation), and what it starts with, in order: + Element... (table of
+    contents, lists, acronyms...), + Quick Part..., + Placeholder... (a heading and the pages authors fill); Up, Down and
+    Take out. Make templates puts them at the start of the section, once; the setup written on the template keeps them.
+    Cover, title page and back cover are kept pages and hold no components.
+  - Sections in order: the page scheme, your own sections among them (add a row). Its card edits any section's page
+    setup and contents and builds its header or footer as a table.
+  - Save this section as a design keeps its contents too (Template library > Section designs).
+
 IMPORT YOU CAN SEE, THE LIBRARY AS A PAGE (3.44.0)
   - Production Standards > Import from a file... (and each section's own Import) opens one browser of the file instead of
     a card at a time. Left: what the file holds, by layer: Building blocks (styles, base fonts, page setups, numbering,

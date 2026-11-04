@@ -475,6 +475,11 @@ def make(std, folder, start_from="", word=None, when=None, progress=None, parts_
                            {"entries": qp["entries"], "parts_dir": parts_dir or std.get("_parts_dir") or "",
                             "one_gallery": qp.get("one_gallery", True)})
         rec["key"] = "quick_parts"
+    if (std.get("section_contents") or {}):            # 3.45.0: each document section's components at its start
+        import sectioncontents as SC
+        say("Putting in each section's contents")
+        rec = PCY.run_step(job, "Put in each section's contents", SC.op_section_contents, SC.ALLOWED, {"std": std})
+        rec["key"] = "section_contents"
     if word is not None:
         say("Updating fields in Word")
         try:

@@ -434,7 +434,7 @@ def audit(sm, std):
                         what = f"{tag}: a placed landscape page restarts its numbers; it must continue"
                 out.append(Finding("pages", "error", "P2", what, where, "op_page_numbers", "numbers"))
         # page setup
-        key = "landscape" if s.orient == "landscape" and s.paper == "Letter" else ("tabloid" if s.paper == "Tabloid" else "portrait")
+        key = setup_key(s, std)
         ps = setups.get(key)
         if ps:
             want = {k: float(R.value(std, ps[k])) for k in ("top", "bottom", "left", "right", "header", "footer")}
@@ -563,12 +563,22 @@ def op_page_numbers(pkg, std):
     return {"sections_changed": changed, "checks": []}
 
 
+def setup_key(s, std):
+    """The page setup a section follows: its section's own (3.45.0: a document section may name one, used while the
+    Word section has that setup's orientation), else the setup for its orientation and paper."""
+    part = next((p for p in ((std.get("pagination") or {}).get("parts") or []) if p.get("key") == s.part), {}) or {}
+    own = (std.get("page_setups") or {}).get(part.get("setup") or "")
+    if own and (own.get("orient") or "portrait") == s.orient:
+        return part["setup"]
+    return "landscape" if s.orient == "landscape" and s.paper == "Letter" else ("tabloid" if s.paper == "Tabloid" else "portrait")
+
+
 def op_page_setup(pkg, std):
     pkg.touch(pkg.main)
     sm = map_sections(pkg, std)
     changed = 0
     for s in sm.sections:
-        key = "landscape" if s.orient == "landscape" and s.paper == "Letter" else ("tabloid" if s.paper == "Tabloid" else "portrait")
+        key = setup_key(s, std)
         ps = std["page_setups"].get(key)
         if not ps:
             continue

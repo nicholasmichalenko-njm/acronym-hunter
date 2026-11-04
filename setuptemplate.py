@@ -159,6 +159,20 @@ def _set_text(p, text):
     t = etree.SubElement(r, _w("t")); t.text = text; t.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
 
 
+def _section_contents(kids):
+    """3.45.0: the body indices inside a section's own contents (between an SK_Section bookmark's start and end)."""
+    out, open_ids, cur = set(), set(), None
+    for i, el in enumerate(kids):
+        for b in el.iter(_w("bookmarkStart")):
+            if (b.get(_w("name")) or "").startswith("SK_Section_"):
+                open_ids.add(b.get(_w("id")))
+        if open_ids:
+            out.add(i)
+        for b in el.iter(_w("bookmarkEnd")):
+            open_ids.discard(b.get(_w("id")))
+    return out
+
+
 def place_body(droot, names, main_xml, appendix_xml):
     """The template's sample pages (from the first Heading 1 on) replaced by the setup: the main parts before the end of
     the first section that holds them, the appendices before the next one (when the template has one). Paragraphs that
@@ -166,7 +180,8 @@ def place_body(droot, names, main_xml, appendix_xml):
     body = droot.find("w:body", NS)
     kids = list(body)
     final = kids[-1] if kids and kids[-1].tag == _w("sectPr") else None
-    start = next((i for i, el in enumerate(kids) if _pstyle(el, names) == "heading 1"), None)
+    inside = _section_contents(kids)                   # 3.45.0: a section's own contents stay (their headings too)
+    start = next((i for i, el in enumerate(kids) if _pstyle(el, names) == "heading 1" and i not in inside), None)
     frag = lambda xml: list(etree.fromstring(f'<w:body xmlns:w="{W}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">{xml}</w:body>'))
     main, app = frag(main_xml), frag(appendix_xml)
     if start is None:                                  # no sample pages: the setup goes at the end
@@ -458,6 +473,12 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
         dm = SD._doc_for(M, vname, main_e, P, inh, stamp, context, rules, styles=sids, bins=rb, std=std, extras=extras)
         da = SD._doc_for(M, vname, app_e, P, inh, stamp, context, rules, styles=sids, bins=rb, std=std, extras=extras,
                          appendix=True) if app_e else None
+        import sectioncontents as SCN                    # 3.45.0: the sections' own contents, written again where the setup
+        sx = SCN.for_setup(std, extras)                    # replaces the template's pages (front matter, appendices)
+        if df is not None and sx.get("front"):
+            df.body.insert(0, sx["front"])
+        if da is not None and sx.get("appendix"):
+            da.body.insert(0, sx["appendix"])
         fills = {FI.styles(std)[k]: FI.value(std, k) for k in FI.styles(std) if FI.value(std, k)}
         part = "" if len(groups) == 1 else "_" + SD._safe(vname)
         path = os.path.join(folder, f"{stem}_Response_Setup{part}_{tag}.docx")

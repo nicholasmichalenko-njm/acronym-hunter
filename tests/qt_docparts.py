@@ -37,8 +37,9 @@ sp = w.prodstd_page
 from skqt import docparts as DP
 from skqt.prodstdpage import SECTIONS
 
-check("Document parts is the menu after Template profile (3.33.0), with every part", sp.group_bar.tabText(1) == "Document parts"
-      and [sp.section_bar.tabText(i) for i in range(sp.section_bar.count())] == ["Cover", "Front matter", "Response", "Appendices", "Back cover"])
+check("Document sections (3.45.0: by layer), with every section and Sections in order", sp.group_bar.tabText(3) == "Document sections"
+      and [sp.section_bar.tabText(i) for i in range(sp.section_bar.count())] == ["Cover", "Front matter", "Response", "Appendices", "Back cover",
+                                                                                  "Sections in order"])
 check("Production Standards opens on the cover", sp.section_key() == "part_cover")
 sp.nav.setCurrentRow(sp.section_index("part_body")); app.processEvents()
 ui = sp.part_ui["body"]; wd = ui["w"]
@@ -79,7 +80,7 @@ check("what every part shares is shown, not copied", "Margins" in ui["shared_lab
 item = DP.save_design(sp, "appendix", name="Space Force appendix")
 lib = TL.Library(cfg)
 check("Save this part as a design: in the template library's Part designs", item and any(i["kind"] == "part" for i in lib.items)
-      and dict(TL.SHELVES)["part"] == "Part designs")
+      and dict(TL.SHELVES)["part"] == "Section designs")
 said = DP.use_design(sp, "body", iid=item["id"])
 check("Use a saved design on another part: its header design and numbering come over", said
       and "<w:tbl>" in sp.work["hf_designs"]["body"]["header"]

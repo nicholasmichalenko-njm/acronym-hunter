@@ -1,10 +1,11 @@
-"""Document parts (3.26.0): each part of the document in one place, over the same settings as the other menus.
+"""Document sections (3.26.0 as Document parts; 3.45.0): each section of the document in one place, over the same settings as the other menus.
 
 Cover, Front matter, Response, Appendices and Back cover each show what applies to that part: where it starts and how
 its pages are numbered, its header and footer (tab stops, a table, or a Quick Part kept as built), its cover page, its
 caption scheme and table of contents, and what it shares with every part (page size and margins, base fonts, styles).
 Nothing is copied: a change here is the same value the Pages and Numbering menus show. Each part has a drawn preview,
-Open a sample in Word, and Save this part as a design (the template library's Part designs) to use on any volume.
+Open a sample in Word, and Save this section as a design (the template library's Section designs) to use on any volume.
+3.45.0: each section's page setup and its contents (components at its start) in the Page setup and contents card.
 """
 import copy
 import os
@@ -245,17 +246,17 @@ def build(page, v, section):
     pv = QVBoxLayout(); pv.addWidget(prev)
     bb = QHBoxLayout()
     bb.addWidget(D.button("Open a sample in Word", None, lambda: open_sample(page, key),
-                          "A sample template with every part (this one included) in the Samples folder, opened in Word"))
+                          "A sample template with every section (this one included) in the Samples folder, opened in Word"))
     pv.addLayout(bb)
     bb2 = QHBoxLayout()
-    bb2.addWidget(D.button("Save this part as a design...", None, lambda: save_design(page, key),
+    bb2.addWidget(D.button("Save this section as a design...", None, lambda: save_design(page, key),
                            "Its numbering, header and footer, kept designs, cover page and captions, kept in the template library"))
-    bb2.addWidget(D.button("Use a saved design...", None, lambda: use_design(page, key), "A part design from the template library"))
+    bb2.addWidget(D.button("Use a saved design...", None, lambda: use_design(page, key), "A section design from the template library"))
     pv.addLayout(bb2)
     top.addLayout(pv, 2)
     w = st["w"]
     # where it starts and how it is numbered
-    c = D.Card("Where it starts and how it is numbered", "This part only. The same values as Pages > Pagination and covers.")
+    c = D.Card("Where it starts and how it is numbered", "This section only. The same values as Document sections > Sections in order.")
     f = QFormLayout(); c.body.addLayout(f); left.addWidget(c)
     w["start"] = QLineEdit(); w["start"].setPlaceholderText("The style its first paragraph has (for example Heading 1)")
     if key in ("cover", "backer"):
@@ -277,9 +278,9 @@ def build(page, v, section):
     for k, val in PR.SEPARATORS.items():
         w["separator"].addItem(f"{val}  ({k})", k)
     f.addRow("Between chapter and page", w["separator"])
-    w["linked"] = QCheckBox("Same header and footer as the part before"); f.addRow("", w["linked"])
+    w["linked"] = QCheckBox("Same header and footer as the section before"); f.addRow("", w["linked"])
     # header and footer
-    c2 = D.Card("Header and footer", "This part only. Word's tab stops, a table at inch widths (one width: center; two: left "
+    c2 = D.Card("Header and footer", "This section only. Word's tab stops, a table at inch widths (one width: center; two: left "
                 "and right; three: all three), or a Quick Part kept as built. Tokens: {volume_name} {solicitation} {company} "
                 "{page} {pages} {chapter} and your fields as {key}.")
     f2 = QFormLayout(); c2.body.addLayout(f2); left.addWidget(c2)
@@ -345,8 +346,8 @@ def build(page, v, section):
         th.addWidget(D.button("Clear", "ghost", lambda: clear_page(page, "title")))
         th.addStretch(1); c5.body.addLayout(th)
     if key == "front":
-        c3 = D.Card("Table of contents and lists", "The TOC's levels and switches and the lists of tables and figures this part "
-                    "carries. Change them in Pages > Table of contents.")
+        c3 = D.Card("Table of contents and lists", "The TOC's levels and switches and the lists of tables and figures this section "
+                    "carries. Change them in Components > Table of contents.")
         left.addWidget(c3)
         st["toc_lab"] = D.label("", None); c3.body.addWidget(st["toc_lab"])
         c3.body.addWidget(D.button("Go to Table of contents", "ghost", lambda: page.nav.setCurrentRow(page.section_index("toc"))))
@@ -354,11 +355,17 @@ def build(page, v, section):
                     "cover. The acronym list is made from the effort's acronyms (Acronyms) when the volume is exported.")
         left.addWidget(c4)
     if key in ("body", "appendix"):
-        c3 = D.Card("Captions in this part", "The caption rules for this part. Change them in Numbering > Captions.")
+        c3 = D.Card("Captions in this section", "The caption rules for this section. Change them in Components > Captions.")
         left.addWidget(c3)
         st["cap_lab"] = D.label("", None); c3.body.addWidget(st["cap_lab"])
         c3.body.addWidget(D.button("Go to Captions", "ghost", lambda: page.nav.setCurrentRow(page.section_index("captions"))))
-    c5 = D.Card("Shared with every part", "Word applies these to the whole document; change them in their own menus.")
+    c6 = D.Card("Page setup and contents", "The page setup this section follows, and what it starts with, in order: response "
+                "elements, Quick Parts and placeholders for authors. Make templates puts them at the section's start.")   # 3.45.0
+    from .sectioneditor import SectionEditor
+    st["section_editor"] = SectionEditor(page, key)
+    c6.body.addWidget(st["section_editor"])
+    left.addWidget(c6)
+    c5 = D.Card("Shared with every section", "Word applies these to the whole document; change them in their own menus.")
     left.addWidget(c5)
     st["shared_lab"] = D.label("", None); c5.body.addWidget(st["shared_lab"])
     sh = QHBoxLayout()
@@ -442,13 +449,15 @@ def fill(page, key):
         caps = [c for c in work.get("captions") or [] if c.get("part") == key]
         st["cap_lab"].setText("; ".join(f"{c.get('label')} ({c.get('position', 'above')}, "
                                         f"{'chapter level ' + str(c['chapter_level']) if c.get('chapter_level') else 'sequence only'})"
-                                        for c in caps) or "No caption rule for this part.")
+                                        for c in caps) or "No caption rule for this section.")
     var = work.get("variables") or {}
     styles = [x for x in [s.get("style")] + list(s.get("styles") or []) if x]
     st["shared_lab"].setText(f"Margins {var.get('margin_top', '')} / {var.get('margin_bottom', '')} / {var.get('margin_left', '')} / "
                              f"{var.get('margin_right', '')} in (top / bottom / left / right), paper {var.get('paper', 'letter')}. "
                              f"Body {var.get('body_font', '')} {var.get('body_size', '')} pt; tables {var.get('table_font', '')} "
-                             f"{var.get('table_size', '')} pt." + (f" This part starts with {', '.join(styles)}." if styles else ""))
+                             f"{var.get('table_size', '')} pt." + (f" This section starts with {', '.join(styles)}." if styles else ""))
+    if "section_editor" in st:                             # 3.45.0
+        st["section_editor"].show_key(key)
     st["preview"].update()
 
 
@@ -541,10 +550,10 @@ def _qp(page, key, kind):
     entries = [e for e in ((page.work.get("quick_parts") or {}).get("entries") or [])
                if os.path.isfile(os.path.join(page.parts_dir(), e.get("source") or ""))]
     if not entries:
-        page.host.status("Add Quick Parts first (Content > Quick Parts), then use one here.")
+        page.host.status("Add Quick Parts first (Components > Quick Parts), then use one here.")
         return None
     names = [f"{e.get('category') or 'no category'} / {e['name']}" for e in entries]
-    pick, ok = QInputDialog.getItem(page, f"Use a Quick Part as the {kind}", f"The Quick Part for this part's {kind}:", names, 0, False)
+    pick, ok = QInputDialog.getItem(page, f"Use a Quick Part as the {kind}", f"The Quick Part for this section's {kind}:", names, 0, False)
     if not ok:
         return None
     r = page.hf_from_quick_part(key, kind, entries[names.index(pick)]["name"])
@@ -596,7 +605,7 @@ def save_design(page, key, name=None):
     import templatelib as TL
     if name is None:
         title = dict((k, t) for _s, k, t in PARTS)[key]
-        name, ok = QInputDialog.getText(page, "Save this part as a design", f"A name for this {title.lower()} design (for example: "
+        name, ok = QInputDialog.getText(page, "Save this section as a design", f"A name for this {title.lower()} design (for example: "
                                         f"Space Force {title.lower()}):")
         if not ok or not name.strip():
             return None
@@ -620,11 +629,11 @@ def use_design(page, key, iid=None):
     lib = TL.Library(page.host.config_dir)
     items = [i for i in lib.items if i.get("kind") == "part"]
     if not items:
-        page.host.status("No part designs yet: Save this part as a design... keeps one.")
+        page.host.status("No section designs yet: Save this section as a design... keeps one.")
         return None
     if iid is None:
         names = [f"{i['name']} (from {lib.values(i).get('part', '?')})" for i in items]
-        pick, ok = QInputDialog.getItem(page, "Use a saved design", "The part design to use on this part:", names, 0, False)
+        pick, ok = QInputDialog.getItem(page, "Use a saved design", "The section design to use on this section:", names, 0, False)
         if not ok:
             return None
         iid = items[names.index(pick)]["id"]

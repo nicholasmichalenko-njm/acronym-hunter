@@ -71,6 +71,12 @@ for ver in sets:
         cells = (ft.get("table") or {}).get("cells") or []
         check(f"{ver}: the footer built as a table reads back, the team's line in it", len(cells) == 3
               and any(ln.get("text") == ex["hf_cells"]["line2"] for c in cells for ln in c.get("lines") or []), ft)
+    if ex.get("sections"):                                # 3.45 on: a section's contents and its page setup
+        sx = ex["sections"]
+        items = ((d["company"].get("section_contents") or {}).get(sx["part"])) or []
+        part = next((p for p in d["company"]["pagination"]["parts"] if p.get("key") == sx["setup_part"]), {})
+        check(f"{ver}: a section's contents and its page setup read back", any(r.get("title") == sx["title"] for r in items)
+              and part.get("setup") == sx["setup"], (items, part.get("setup")))
     rs = RB.rules(cfg)
     check(f"{ver}: the rules read back (an own rule, a rule off)", any(r["text"] == ex["rules"]["own"] and r["own"] for r in rs)
           and not RB.get(cfg, ex["rules"]["off"])["on"])

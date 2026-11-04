@@ -354,33 +354,33 @@ TOPICS = [
    "edits the open effort's values. A value set at that layer shows in bold with what it was; Reset takes it back. "
    "3.36.0: Production Standards edits the global standards only (a blue band says so); one effort's formatting is in "
    "Effort > Effort Formatting, and its Every setting opens this editor on that effort (an amber band).",
-   "Document parts (3.26.0), the first menu: Cover, Front matter, Response, Appendices and Back cover. Each part shows what "
-   "applies to it: where it starts and how its pages are numbered, its header and footer, its page, TOC or captions, and what "
-   "every part shares. A change there is the same value the other menus hold. Each part has a drawn preview, Open a sample "
-   "in Word, Save this part as a design (Template library > Part designs) and Use a saved design.",
+   "Document sections (Document parts before 3.45.0): Cover, Front matter, Response, Appendices and Back cover. Each section "
+   "shows what applies to it: where it starts and how its pages are numbered, its header and footer, its page, TOC or captions, "
+   "and what every section shares. Page setup and contents: the page setup the section follows, and what it starts with, in "
+   "order (+ Element..., + Quick Part..., + Placeholder...); Make templates puts them at its start. Each section has a drawn "
+   "preview, Open a sample in Word, Save this section as a design (Template library > Section designs) and Use a saved design.",
+   "Sections in order: the page scheme, your own sections among them (add a row: a key, a name, the style it starts at). Its "
+   "card A section's page setup and contents does the same for any section, and builds its header or footer as a table.",
    "Cover, title page and Back cover (3.40.0): each page says its kind: a flow page (paragraphs), a table page, or a placed page "
    "(a background with text placed on it). Edit in Word opens a dated copy; what you save is kept as a new version and the page "
    "before it stays. On a PC with Word the preview is Word's own picture of the page; otherwise it is the app's sketch.",
    "Cover and Back cover > Edit the layout... (3.27.0; placed pages, 3.40.0): drag a picture, text box or table, or type its place and size "
    "in inches; set which field each line of text shows (its style becomes the field's cover style). Save keeps a new copy.",
-   "The menu across the top follows the order a document is built: Pages (page sizes and margins, pagination and "
-   "covers, headers and footers, table of contents), Styles (base fonts and sizes, styles, font rules, allowed styles), "
-   "Numbering (heading numbering, lists, captions), Tables (table types, row looks, how rows are recognized), Content "
-   "(Quick Parts, fields) and Check (words to avoid and fix, graphics, Excel and PowerPoint).",
-   "Import from a file... at the top reads a template, Word document or .thmx theme once and lists what it carries, card by "
-   "card: take one item, some or all, rename any, and choose Use here (into what you are editing), Keep in the library, or "
-   "both. Each section has its own Import from a file... that lists only that section's items.",
+   "The menu across the top goes by layer (3.45.0): Template profile; Building blocks (base fonts and sizes, styles, font "
+   "rules, allowed styles, heading numbering, lists, page setups); Components (Quick Parts, table types, row looks, how rows "
+   "are recognized, captions, headers and footers, table of contents, fields); Document sections (each section, and Sections "
+   "in order); Checks (words to avoid and fix, graphics, Excel and PowerPoint); Library (the template library).",
    "Template library... shows the shelves; Use in this standard puts an item into what you are editing, and New style... "
    "adds your own (hidden text ones too).",
    "Allowed styles: tick Only the ticked styles are allowed, then tick the styles from this standard's and the library's; "
    "sort by any column (type, group, use case, where it came from) or show one kind. Off: any style is allowed.",
    "Headers and footers: Word's way puts the left, center and right text on tab stops. Type column widths in inches "
    "(2, 2.5, 2) to build a header or footer as a one-row table instead, with no borders, a line under or a grid. Use a "
-   "Quick Part as a header or footer... takes one of this standard's Quick Parts as a part's header or footer, kept as built.",
+   "Quick Part as a header or footer... takes one of this standard's Quick Parts as a section's header or footer, kept as built.",
    "Import from a file... opens a browser of the file by layer: tick items in any group (New, Same as the library, Differs, "
    "with what differs) and press Take the ticked. Each Word section of the file can be kept as a section.",
    "Library > Template library: the shelves as a page, with a Layer filter, a search, Pictures, and where each item is used.",
-   "Build a header or footer as a table... (here or on a Document parts part): columns at inch widths, lines of words and "
+   "Build a header or footer as a table... (here or on a Document sections section): columns at inch widths, lines of words and "
    "fields with their alignment, size and bold, and a logo. Use Rule 7's footer puts the A number, the marking and the "
    "team's line, and the page number. Save as a Quick Part... keeps it in the standard's Quick Parts for every template.",
    "What Check reports: each section that has checks (Captions, Table of contents, Headers and footers, Page sizes and "
