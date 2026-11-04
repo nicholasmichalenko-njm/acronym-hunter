@@ -1,6 +1,19 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+READ THE SETUP BACK: DRAFT STATUS (3.43.0)
+  - Writing > Draft Status: pick a volume's draft (the Word files in the Volumes folder, or Other file...) and press Read
+    the draft. The draft is read by the response structure's headings and the setup's styles; nothing in it changes.
+  - Each section: its status (Not started: none of the author's own words yet; Under way; Near budget: half the page
+    budget or more; Over budget: past it), its words, the pages they make (450 words a page unless you set another) and
+    its page budget. Word's own page count, from the last save, is in the summary line.
+  - Requirements removed or moved: requirements placed in a section whose text is no longer in the draft (an author
+    deleted the hidden RFP text), or now sits under another heading.
+  - Styles brought in: styles the draft uses that the setup's template did not have, with how often and where they first
+    show. Pasted text usually brings them; Fix a Copy maps them onto the standard's styles.
+  - Export... writes the report to Excel (Sections, Requirements, Styles brought in). The effort record keeps a line of
+    each read.
+
 HEADERS AND FOOTERS BUILT HERE, RULE 7'S FOOTER, QUICK PARTS MADE HERE (3.42.0)
   - Production Standards > Document parts (any part) > Build the header as a table... or Build the footer as a table...:
     columns at inch widths (0 shares the rest), each with lines of words and fields ({volume_name} {page} {a_number}

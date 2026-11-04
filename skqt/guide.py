@@ -283,6 +283,17 @@ TOPICS = [
    "Export the volume... makes one Word file, a page per section, for the review. Export this section... makes one."],
   ["Win themes come from the Effort Dashboard (+ Theme... under Win themes); a theme linked to the section is ticked for you.",
    "Graphic needs tagged in Review for the section list here too."]),
+ ("drafts", "Writing", "Draft Status",
+  "Read a volume's draft back by the response structure's headings and the setup's styles: where each section stands "
+  "against its page budget, requirements an author removed, and styles pasted text brought in.",
+  "While authors draft: before each color review, and whenever you want to know where the volume stands.",
+  ["Pick the draft (the Volumes folder's Word files, or Other file...) and press Read the draft. Nothing in it changes.",
+   "Sections: Not started (none of the author's own words), Under way, Near budget (half the page budget or more), Over "
+   "budget. Pages are counted from words: set Pages from words to your team's figure.",
+   "Requirements removed or moved: placed requirements whose text is gone from the draft, or under another heading.",
+   "Styles brought in: styles the setup's template did not have. Fix a Copy maps them onto the standard's styles.",
+   "Export... writes the report to Excel."],
+  ["The page budget comes from Structure > Page budget. Word's own page count from the last save is in the summary line."]),
  ("truth", "Writing", "Wall of Truth",
   "The one approved way to state every fact the proposal repeats: cleared staff, years with the customer, square "
   "footage, contract values, names and the customer's terms. Check the drafts finds every place a draft disagrees.",

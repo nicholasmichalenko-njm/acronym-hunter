@@ -39,7 +39,7 @@ RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),          
                     ("reviews", "Color Reviews")]),
         ("Solicitation", [("library", "Library"), ("compare", "Compare"), ("custqa", "Customer Q&A")]),
         ("Compliance", [("assign", "Review"), ("structure", "Structure Builder"), ("matrix", "Matrix")]),   # 3.30.0
-        ("Writing", [("storyboards", "Storyboards"), ("truth", "Wall of Truth"), ("acronyms", "Acronyms")]),
+        ("Writing", [("storyboards", "Storyboards"), ("drafts", "Draft Status"), ("truth", "Wall of Truth"), ("acronyms", "Acronyms")]),   # 3.43.0
         ("Quality", [("qa", "Submission Check"), ("checks", "Final Checks")]),
         ("Production", [("prodstd", "Production Standards"), ("rules", "Rules"), ("audit", "Audit"), ("fixcopy", "Fix a Copy")]),   # 3.38.0
         ("Post-Submission", [("postsub", "Checklist"), ("keywords", "Keywords")]),
@@ -74,6 +74,7 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "effortfmt": ("Effort Formatting", "This effort's formatting on top of the global standards: its own fonts, sizes, margins and parts, and the RFP's rules"),
           "checks": ("Final Checks", "The PDF package, cross-references and numbering, and what changed between two drafts"),
           "truth": ("Wall of Truth", "The one approved way to state every fact and number, and the drafts checked against it"),
+          "drafts": ("Draft Status", "Read a volume's draft back: each section against its page budget, requirements removed, styles brought in"),
           "storyboards": ("Storyboards", "One sheet per section before the first draft: message, themes, approach, features and proof"),
           "mywork": ("My Work", "One person's work in every effort, soonest first"),
           "home": ("Effort Dashboard", "Where the effort stands: the numbers, the stage and its gate, requirements, tasks and the calendar"),
@@ -297,12 +298,15 @@ class MainWindow(QMainWindow):
         self.datacalls_page = DataCallsPage(self)      # 3.39.0: internal data calls
         from .rulespage import RulesPage
         self.rules_page = RulesPage(self)              # 3.38.0: every production rule in one list
+        from .draftstatuspage import DraftStatusPage
+        self.drafts_page = DraftStatusPage(self)       # 3.43.0: read the setup back
         self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page, "custqa": self.custqa_page,
                       "impact": self.impact_page, "deliverables": self.deliverables_page, "qa": self.qa_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page, "audit": self.audit_page,
-                      "effortfmt": self.effortfmt_page, "rules": self.rules_page, "datacalls": self.datacalls_page}
+                      "effortfmt": self.effortfmt_page, "rules": self.rules_page, "datacalls": self.datacalls_page,
+                      "drafts": self.drafts_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)
         from .roleview import NoticePage                 # 3.13.0: a tool for another role, or a Preview tool not turned on

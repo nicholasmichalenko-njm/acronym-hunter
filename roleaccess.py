@@ -19,9 +19,9 @@ PROFILES = ("Proposal Manager", "Production", "Author", "Reviewer", "Capture")
 ALWAYS = {"efforts", "mywork", "home", "deliverables", "settings"}
 TOOLS = {
     "Production": {"library", "requirements", "matrix", "setup", "acronyms", "acrlist", "qa", "lists", "checks", "fixcopy", "audit",
-                   "prodstd", "rules", "effortfmt", "postsub", "keywords", "exportall"},
+                   "prodstd", "rules", "effortfmt", "postsub", "keywords", "exportall", "drafts"},
     "Author": {"library", "compare", "requirements", "custqa", "assign", "setup", "storyboards", "truth", "acronyms", "acrlist",
-               "keywords"},
+               "keywords", "drafts"},
     "Reviewer": {"reviews", "library", "compare", "assign", "prove", "matrix", "truth", "checks", "audit"},
     "Capture": {"library", "read", "compare", "requirements", "custqa", "structure", "assign", "crosswalk", "storyboards", "truth"},
 }
@@ -48,7 +48,7 @@ def profile_of(role_text):
 
 
 MENU = ("efforts", "mywork", "home", "deliverables", "effortfmt", "record", "reviews", "postsub", "library", "read", "compare", "requirements",
-        "custqa", "structure", "assign", "prove", "crosswalk", "matrix", "setup", "storyboards", "truth", "acronyms", "acrlist",
+        "custqa", "structure", "assign", "prove", "crosswalk", "matrix", "setup", "storyboards", "drafts", "truth", "acronyms", "acrlist",
         "keywords", "qa", "lists", "checks", "fixcopy", "audit", "prodstd", "rules", "exportall", "settings")
 
 

@@ -20,6 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.43.0": ["Writing > Draft Status reads a volume's draft back by the response structure's headings: each section's "
+               "status (Not started, Under way, Near budget, Over budget), its words and pages against its page budget, the "
+               "requirements whose text was removed or moved, and the styles pasted text brought in. Nothing is changed."],
     "3.42.0": ["Headers and footers built here as tables: columns at inch widths, lines of words and fields (each with its "
                "alignment, size and bold) and logos. Rule 7's footer (the A number, the marking and the team's line, the page "
                "number) is the default, and templates now check Rule 7. Save a built header or footer as a Quick Part."],
