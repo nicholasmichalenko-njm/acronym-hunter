@@ -8,14 +8,14 @@ EXTS = (".docx", ".pdf", ".txt", ".md")
 
 
 def _docx(path):
-    import docx
+    """3.42.0: read with the program's own Word reader (no python-docx in the program)."""
+    import setupdoc as SD
     out, heading = [], ""
-    for k, p in enumerate(docx.Document(path).paragraphs, 1):
-        t = " ".join((p.text or "").split())
+    for k, (text, sid, lvl) in enumerate(SD.docx_paragraphs(path), 1):
+        t = " ".join((text or "").split())
         if not t:
             continue
-        sname = (p.style.name if p.style is not None else "") or ""
-        if sname.lower().startswith("heading") or sname.lower() == "title":
+        if (sid or "").lower().startswith("heading") or (sid or "").lower() == "title" or lvl is not None:
             heading = t
         out.append({"page": "", "para": str(k), "heading": heading, "text": t})
     return out

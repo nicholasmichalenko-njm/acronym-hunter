@@ -69,9 +69,12 @@ rows = list(csv.DictReader(open(os.path.join(ROOT, "tools", "approved_packages.c
 approved = {norm(r["package"]): r for r in rows}
 missing = [p for p in req if norm(p) not in approved]
 check("3. every package in requirements.txt is approved", req and not missing, missing)
-check("3. every approval says its use, editions, license and origin", all(r["use"] in ("app", "build") and r["editions"] in
-      ("all", "build only", "legacy only") and r["license"].strip() and r["origin_note"].strip() for r in rows),
+check("3. every approval says its use, editions, license and origin", all(r["use"] in ("app", "build", "test") and r["editions"] in
+      ("all", "build only", "legacy only", "tests only") and r["license"].strip() and r["origin_note"].strip() for r in rows),
       [r["package"] for r in rows if not (r["license"].strip() and r["origin_note"].strip())])
+check("3. a package for the tests only is left out of the program (3.42.0)", all(f"'{norm(r['package']).replace('python-', '')}'" in
+      open(os.path.join(ROOT, "Stationkeeper.spec"), encoding="utf-8").read() for r in rows if r["use"] == "test"),
+      [r["package"] for r in rows if r["use"] == "test"])
 spec = open(os.path.join(ROOT, "Stationkeeper.spec"), encoding="utf-8").read()
 m = re.search(r"_edition_excludes = \((\[[^\]]*\])", spec, re.S)
 excl = set(ast.literal_eval(m.group(1))) if m else set()
