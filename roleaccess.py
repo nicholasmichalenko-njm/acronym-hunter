@@ -19,7 +19,7 @@ PROFILES = ("Proposal Manager", "Production", "Author", "Reviewer", "Capture")
 ALWAYS = {"efforts", "mywork", "home", "deliverables", "settings"}
 TOOLS = {
     "Production": {"library", "requirements", "matrix", "setup", "acronyms", "acrlist", "qa", "lists", "checks", "fixcopy", "audit",
-                   "prodstd", "postsub", "keywords", "exportall"},
+                   "prodstd", "effortfmt", "postsub", "keywords", "exportall"},
     "Author": {"library", "compare", "requirements", "custqa", "assign", "setup", "storyboards", "truth", "acronyms", "acrlist",
                "keywords"},
     "Reviewer": {"reviews", "library", "compare", "assign", "prove", "matrix", "truth", "checks", "audit"},
@@ -47,7 +47,7 @@ def profile_of(role_text):
     return ""
 
 
-MENU = ("efforts", "mywork", "home", "deliverables", "record", "reviews", "postsub", "library", "read", "compare", "requirements",
+MENU = ("efforts", "mywork", "home", "deliverables", "effortfmt", "record", "reviews", "postsub", "library", "read", "compare", "requirements",
         "custqa", "structure", "assign", "prove", "crosswalk", "matrix", "setup", "storyboards", "truth", "acronyms", "acrlist",
         "keywords", "qa", "lists", "checks", "fixcopy", "audit", "prodstd", "exportall", "settings")
 

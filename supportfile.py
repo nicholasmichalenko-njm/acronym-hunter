@@ -20,6 +20,10 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.36.0": ["Effort > Effort Formatting: this effort's fonts, sizes, margins, headings and header and footer on top of the "
+               "team's standards, for every volume or one, with the RFP's rules beside each value.",
+               "Keep for the team sends an effort's value to the team's standards (with Undo). Production Standards now edits "
+               "the team's standards only; Every setting opens it on the effort."],
     "3.35.0": ["Matrix starts as the outline matrix: one row per outline item with Assigned To, Initial Page Allocation, "
                "% Complete, and Section L beside Section M. Review's bottom bar sets an item's values.",
                "Matrix views: save the columns and rows as a named, versioned view; each effort picks one; an effort type "

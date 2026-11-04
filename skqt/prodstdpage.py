@@ -422,6 +422,13 @@ class StandardsPage(QWidget):
                                        "A Word template (.dotx) with every "
                                        "value in force here, written to the output folder"),
                               D.button("Save", "primary", lambda: self.save())])
+        # 3.36.0: which layer is being edited, in plain words: the team's (every effort) or one effort's
+        self.mode, self._effort_next = "team", None
+        self.band = QLabel(""); self.band.setTextFormat(Qt.RichText); self.band.setWordWrap(True)
+        self.band.setObjectName("layerband")
+        self.band_back = D.button("Back to Effort Formatting", "ghost", lambda: self.host.go("effortfmt"))
+        brow = QHBoxLayout(); brow.addWidget(self.band, 1); brow.addWidget(self.band_back)
+        top.body.addLayout(brow)
         bar = QHBoxLayout()
         bar.addWidget(D.label("Editing", "label", wrap=False))
         self.scope_box = QComboBox(); self.scope_box.setMinimumWidth(300)     # every layer in one list (kept for keys)
@@ -539,7 +546,8 @@ class StandardsPage(QWidget):
                     "toc": ("toc", ("checks", "toc_forbid")), "lists": ("lists", "list_numbering"),
                     "terms": ("terms",), "office": ("excel", "powerpoint"), "graphics": ("graphics",)}
     LAYER_BELOW = {"team": "the built-in defaults", "type": "the team standard", "etype": "the team standard",
-                   "etp": "the volume in this effort type", "effort": "the effort's volume"}
+                   "etp": "the volume in this effort type", "effort": "the team's standards for this effort",
+                   "effortvol": "this effort's values for every volume"}
 
     def show_section(self, i):
         """3.17.0: the section's form, and its preview beside it. 3.25.0: the menu across the top follows."""
@@ -1629,23 +1637,46 @@ class StandardsPage(QWidget):
         self.changed()
 
     # ------------------------------------------------------------------ layers
+    def edit_effort(self, tid=None):
+        """3.36.0: the full editor on this effort's layer (every volume, or one volume), from Effort Formatting."""
+        if self.host.ws is None:
+            return False
+        self._effort_next = tid or ""
+        self.host.go("prodstd")
+        return True
+
     def refresh(self):
         self.data = PRL.load(self.host.config_dir)
         cur = self.scope_box.currentData()
+        want = self._effort_next
+        self._effort_next = None
+        if want is not None and self.host.ws is not None:             # 3.36.0: one effort's layer, from Effort Formatting
+            self.mode = "effort"
+            cur = f"effortvol:{want}" if want else "effort:"
+        else:                                                       # the menu opens the team's standards
+            self.mode = "team"
+            if (cur or "").startswith("effort"):
+                cur = "team:"
         self.scope_box.blockSignals(True)
         self.scope_box.clear()
-        self.scope_box.addItem("Team standard (every volume starts here)", "team:")
-        for t in self.data["types"]:
-            self.scope_box.addItem(f"Volume: {t['name']}", "type:" + t["id"])
-        for e in self.data.get("effort_types", []):
-            self.scope_box.addItem(f"Effort type: {e['name']} (every volume in it)", "etype:" + e["id"])
-            for pid in e["profiles"]:
-                self.scope_box.addItem(f"Effort type: {e['name']} > {PRL.type_of(self.data, pid)['name']}", f"etp:{e['id']}:{pid}")
-        if self.host.ws is not None:
-            self.scope_box.addItem(f"This effort: {self.host.effort_name}", "effort:")
+        if self.mode == "team":
+            self.scope_box.addItem("Team standard (every volume starts here)", "team:")
+            for t in self.data["types"]:
+                self.scope_box.addItem(f"Volume: {t['name']}", "type:" + t["id"])
+            for e in self.data.get("effort_types", []):
+                self.scope_box.addItem(f"Effort type: {e['name']} (every volume in it)", "etype:" + e["id"])
+                for pid in e["profiles"]:
+                    self.scope_box.addItem(f"Effort type: {e['name']} > {PRL.type_of(self.data, pid)['name']}", f"etp:{e['id']}:{pid}")
+        else:
+            import effortformat as EFM
+            _d, _eid, _dflt, vols = EFM.ids(self.host.config_dir, self.host.ws, self.data)
+            self.scope_box.addItem(f"This effort: {self.host.effort_name}, every volume", "effort:")
+            for pid in vols:
+                self.scope_box.addItem(f"This effort: {PRL.type_of(self.data, pid)['name']}", "effortvol:" + pid)
         i = self.scope_box.findData(cur) if cur else -1
-        self.scope_box.setCurrentIndex(i if i >= 0 else (self.scope_box.count() - 1 if self.host.ws is not None else 0))
+        self.scope_box.setCurrentIndex(max(0, i))
         self.scope_box.blockSignals(False)
+        self.show_band()
         self._sync_pickers()
         eff = (self.host.ws.get("prod_std", {}) or {}) if self.host.ws is not None else {}
         self.eff_etype.blockSignals(True); self.eff_etype.clear()
@@ -1680,9 +1711,36 @@ class StandardsPage(QWidget):
         self.vol_pick.setCurrentIndex(max(0, self.vol_pick.findData(cur)))
         self.vol_pick.blockSignals(False)
 
+    def show_band(self):
+        """3.36.0: a blue band for the team's standards, an amber one for one effort's formatting."""
+        t = D.tokens()
+        if self.mode == "effort":
+            self.band.setText(f"<div style='background:{t['warn_soft']};color:{t['text']};padding:6px 10px;border-radius:6px'>"
+                              f"<b>Formatting for {self.host.effort_name} only.</b> Every change here is this effort's; the "
+                              f"team's standards and the template library stay as they are.</div>")
+        else:
+            self.band.setText(f"<div style='background:{t['accent_soft']};color:{t['text']};padding:6px 10px;border-radius:6px'>"
+                              f"<b>Editing the team's standards: every effort that uses them.</b> One effort's formatting is in "
+                              f"Effort &gt; Effort Formatting.</div>")
+        self.band_back.setVisible(self.mode == "effort")
+
     def _sync_pickers(self):
         """The two boxes and This effort only follow the layer being edited."""
         if not hasattr(self, "etype_pick"):
+            return
+        if getattr(self, "mode", "team") == "effort":           # 3.36.0: one effort's layer: every volume or one
+            for w in (self.etype_pick, self.vol_pick, self.this_effort):
+                w.blockSignals(True)
+            self.etype_pick.clear(); self.etype_pick.addItem(f"This effort: {self.host.effort_name}", "")
+            self.etype_pick.setEnabled(False)
+            self.vol_pick.clear(); self.vol_pick.setEnabled(True)
+            for i in range(self.scope_box.count()):
+                d = self.scope_box.itemData(i)
+                self.vol_pick.addItem("Every volume" if d == "effort:" else self.scope_box.itemText(i).split(": ", 1)[1], d)
+            self.vol_pick.setCurrentIndex(max(0, self.vol_pick.findData(self.scope_box.currentData())))
+            self.this_effort.setVisible(False)
+            for w in (self.etype_pick, self.vol_pick, self.this_effort):
+                w.blockSignals(False)
             return
         scope, rest = (self.scope_box.currentData() or "team:").split(":", 1)
         eid, tid = (rest.split(":", 1) if scope == "etp" else ((rest, "") if scope == "etype" else ("", rest if scope == "type" else "")))
@@ -1696,7 +1754,7 @@ class StandardsPage(QWidget):
         self._fill_volumes(eid)
         self.vol_pick.blockSignals(True)
         self.vol_pick.setCurrentIndex(max(0, self.vol_pick.findData(tid)))
-        self.this_effort.setVisible(self.host.ws is not None)
+        self.this_effort.setVisible(False)                      # 3.36.0: one effort's formatting is in Effort Formatting
         self.this_effort.setText(f"This effort only: {self.host.effort_name}" if self.host.ws is not None else "This effort only")
         self.this_effort.setChecked(scope == "effort")
         self.etype_pick.setEnabled(scope != "effort"); self.vol_pick.setEnabled(scope != "effort")
@@ -1705,6 +1763,12 @@ class StandardsPage(QWidget):
 
     def picked(self, fill_volumes=False):
         """A choice in the two boxes (or This effort only) picks the layer to edit."""
+        if getattr(self, "mode", "team") == "effort":
+            key = self.vol_pick.currentData() or "effort:"
+            i = self.scope_box.findData(key)
+            if i >= 0 and i != self.scope_box.currentIndex():
+                self.scope_box.setCurrentIndex(i)
+            return key
         if fill_volumes:
             self._fill_volumes(self.etype_pick.currentData())
         if self.this_effort.isChecked() and self.host.ws is not None:
@@ -1742,6 +1806,11 @@ class StandardsPage(QWidget):
             self.base = PRL.merge(PRL.merge(d["company"], PRL.layer_of(PRL.type_of(d, tid))), PRL.effort_layer_of(e))
             self.work = PRL.merge(self.base, (e.get("profile_over") or {}).get(tid) or {})
             self.work["name"] = PRL.type_of(d, tid)["name"]
+        elif scope == "effortvol":                          # 3.36.0: this effort's changes for one volume
+            import effortformat as EFM
+            self.type_id = rest
+            self.base = EFM.team_std(self.host.config_dir, self.host.ws, rest, d)
+            self.work = PRL.merge(self.base, EFM.layer(self.host.ws, rest))
         else:
             eff = self.host.ws.get("prod_std", {}) or {}
             eid = eff.get("effort_type") if PRL.effort_type_of(d, eff.get("effort_type")) else None
@@ -1752,7 +1821,7 @@ class StandardsPage(QWidget):
         self.work.setdefault("variables", {})
         if PRL.repair_rows(self.work):                 # 3.32.1: row looks an import left without their settings
             diag.activity("prodstd_rows_repaired")
-        for row, show in ((self.eff_row, scope == "effort"), (self.match_row, scope == "type"), (self.et_row, scope == "etype")):
+        for row, show in ((self.eff_row, scope in ("effort", "effortvol")), (self.match_row, scope == "type"), (self.et_row, scope == "etype")):
             for i in range(row.count()):
                 x = row.itemAt(i).widget()
                 if x is not None:
@@ -1774,8 +1843,8 @@ class StandardsPage(QWidget):
                 self.et_default.addItem(PRL.type_of(d, pid)["name"], pid)
             self.et_default.setCurrentIndex(max(0, self.et_default.findData(e.get("default_profile"))))
             self.et_default.blockSignals(False)
-        self.eff_said.setVisible(scope == "effort")
-        if scope == "effort":
+        self.eff_said.setVisible(scope in ("effort", "effortvol"))
+        if scope in ("effort", "effortvol"):
             said = (self.host.ws.get("prod_std", {}) or {}).get("said") or []
             self.eff_said.setText(("From the RFP: " + "; ".join(said)) if said else
                                   "Nothing read from the RFP yet. Fill from the RFP's formatting rules reads Submission Rules.")
@@ -1786,7 +1855,8 @@ class StandardsPage(QWidget):
         self.fill_profile()                            # 3.33.0
         self.dirty = False
         self.state.setText({"team": "Team standard", "type": "Volume", "etype": "Effort type, every volume",
-                            "etp": "Effort type, this volume", "effort": "This effort only"}[scope])
+                            "etp": "Effort type, this volume", "effort": "This effort, every volume",
+                            "effortvol": "This effort, this volume"}[scope])
         self.show_problems()
         if hasattr(self, "std_preview"):
             self.std_preview.refresh()
@@ -1853,6 +1923,11 @@ class StandardsPage(QWidget):
             e.setdefault("profile_over", {})[self.type_id] = over
             if not over:
                 e["profile_over"].pop(self.type_id, None)
+        elif self.scope == "effortvol":
+            import effortformat as EFM
+            over = PRL.diff(self.work, self.base)
+            over.pop("name", None); over.pop("variable_source", None)
+            EFM.set_layer(self.host.ws, over, self.type_id)
         else:
             eff = dict(self.host.ws.get("prod_std", {}) or {})
             over = PRL.diff(self.work, self.base)
@@ -1982,7 +2057,7 @@ class StandardsPage(QWidget):
         return out
 
     def effort_type_changed(self):
-        if self.host.ws is None or self.scope != "effort":
+        if self.host.ws is None or self.scope not in ("effort", "effortvol"):
             return
         eff = dict(self.host.ws.get("prod_std", {}) or {})
         eff["type"] = self.eff_type.currentData()
@@ -2364,7 +2439,7 @@ class StandardsPage(QWidget):
             name, ver = self._tmeta if getattr(self, "_tmeta", None) else (None, None)
             if name:
                 e = TR.record(self.host.config_dir, name, ver, job.copy, self._tmeta_std, val, self.host.effort_name or "")
-                if self.scope == "effort":
+                if self.scope in ("effort", "effortvol"):
                     TR.note_on_effort(self.host.ws, name, e)
                 job.template_name, job.template_version = name, ver
         except Exception:

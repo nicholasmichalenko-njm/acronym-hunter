@@ -271,9 +271,11 @@ def for_effort(config_dir, ws=None, data=None, type_id=None):
     eff_default = eff.get("type") if eff.get("type") in ids else ((et or {}).get("default_profile") or data["default"])
     tid = type_id if type_id in ids else eff_default
     std = merge(resolved_type(data, tid, eid), eff.get("over") or {})
+    vol = (eff.get("over_vol") or {}).get(tid) or {}                  # 3.36.0: this effort's changes for one volume
+    std = merge(std, vol)
     std["name"] = type_of(data, tid)["name"]
     std["effort_type"] = (et or {}).get("name", "")
-    std["effort_over"] = bool(eff.get("over"))
+    std["effort_over"] = bool(eff.get("over") or vol)
     std["_parts_dir"] = os.path.join(config_dir, "production_parts")     # 3.10.0: where covers and back covers are kept
     return engine_ready(std)
 

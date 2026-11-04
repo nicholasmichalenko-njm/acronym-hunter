@@ -105,7 +105,7 @@ os.remove(own)
 # ------------------------------------------------------------------ Production Standards
 w.go("prodstd"); app.processEvents()
 sp = w.prodstd_page
-check("Standards opens on this effort, with every section", sp.scope == "effort" and sp.nav.count() == 26)   # 3.33.0: Template profile      # 3.26.0: Document parts      # 3.17.0: Graphics; 3.22.0: Quick Parts; 3.23.0: Fill-ins
+check("Standards opens on the team's standards, with every section (3.36.0)", sp.scope == "team" and sp.mode == "team" and sp.nav.count() == 26)   # 3.33.0: Template profile      # 3.26.0: Document parts      # 3.17.0: Graphics; 3.22.0: Quick Parts; 3.23.0: Fill-ins
 sp.scope_box.setCurrentIndex(0); app.processEvents()
 check("the team standard is editable", sp.scope == "team" and sp.work["variables"]["body_font"] == "Times New Roman")
 tid = sp.add_type("Cost volume")
@@ -133,7 +133,7 @@ sp.preset_box.setCurrentIndex(sp.preset_box.findData("straight"))
 sp.use_preset()
 check("the page scheme from a preset keeps a back cover part", [p["key"] for p in sp.work["pagination"]["parts"]] == ["all", "backer"])
 sp.save()
-sp.scope_box.setCurrentIndex(sp.scope_box.findData("effort:")); app.processEvents()
+sp.edit_effort(); app.processEvents()                    # 3.36.0: one effort's layer comes from Effort Formatting
 sp.eff_type.setCurrentIndex(sp.eff_type.findData("cost_volume")); app.processEvents()
 check("this effort sits on its document type", sp.base["variables"]["table_size"] == 8.0 and sp.base["pagination"]["name"].startswith("Straight"))
 from skqt.custdocs import Ctx
@@ -208,10 +208,11 @@ it["w"].setValue(9.0)
 sp.save()
 e = PRL.effort_type_of(PRL.load(cfg), "rfp_limited")
 check("3.8: a change for one profile in one effort type", e["profile_over"]["cost_volume"] == {"variables": {"table_size": 9.0}}, e.get("profile_over"))
+w.go("prodstd"); app.processEvents()                     # the menu: the team's standards again
 sp.scope_box.setCurrentIndex(sp.scope_box.findData("type:cost_volume")); app.processEvents()
 sp.match_edit.setText("cost, price"); sp.changed(); sp.save()
 check("3.8: a profile says which deliverables it fits", PRL.type_of(PRL.load(cfg), "cost_volume")["match"] == ["cost", "price"])
-sp.scope_box.setCurrentIndex(sp.scope_box.findData("effort:")); app.processEvents()
+sp.edit_effort(); app.processEvents()
 sp.eff_etype.setCurrentIndex(sp.eff_etype.findData("rfp_limited")); sp.effort_etype_changed()
 check("3.8: this effort takes an effort type", (w.ws.get("prod_std", {}) or {}).get("effort_type") == "rfp_limited"
       and PRL.for_effort(cfg, w.ws)["effort_type"] == "Page-limited RFP response")
