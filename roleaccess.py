@@ -19,7 +19,7 @@ PROFILES = ("Proposal Manager", "Production", "Author", "Reviewer", "Capture")
 ALWAYS = {"efforts", "mywork", "home", "deliverables", "settings"}
 TOOLS = {
     "Production": {"library", "requirements", "matrix", "setup", "acronyms", "acrlist", "qa", "lists", "checks", "fixcopy", "audit",
-                   "formatstd", "prodstd", "rules", "effortfmt", "postsub", "keywords", "exportall", "drafts"},
+                   "formatstd", "qpstd", "layoutstd", "prodstd", "rules", "effortfmt", "postsub", "keywords", "exportall", "drafts"},
     "Author": {"library", "compare", "requirements", "custqa", "assign", "setup", "storyboards", "truth", "acronyms", "acrlist",
                "keywords", "drafts"},
     "Reviewer": {"reviews", "library", "compare", "assign", "prove", "matrix", "truth", "checks", "audit"},
@@ -49,7 +49,7 @@ def profile_of(role_text):
 
 MENU = ("efforts", "mywork", "home", "deliverables", "effortfmt", "record", "reviews", "postsub", "library", "read", "compare", "requirements",
         "custqa", "structure", "assign", "prove", "crosswalk", "matrix", "setup", "storyboards", "drafts", "truth", "acronyms", "acrlist",
-        "keywords", "qa", "lists", "checks", "fixcopy", "audit", "formatstd", "prodstd", "rules", "exportall", "settings")
+        "keywords", "qa", "lists", "checks", "fixcopy", "audit", "formatstd", "qpstd", "layoutstd", "prodstd", "rules", "exportall", "settings")
 
 
 def allowed(profile, step):

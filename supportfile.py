@@ -20,6 +20,7 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.50.0": ["Production > Quick Parts and Layout: every Quick Part by its category with the pages it fills, and covers, headers and footers, sections, table looks, captions and the TOC, each with its picture and every value. Draw with Word shows items as they will print."],
     "3.49.0": ["Production > Formatting Standards: the fundamentals as a library, each item named, tagged by effort type and fully editable. Import from a Word file keeps everything at once or nothing, and can be taken back. Your standards are brought in as library items."],
     "3.48.0": ["Quick Parts take the template's fonts unless you keep their own. Insert a field lists header and footer fields by name. Drag a library item onto a section. Effort Formatting's footer box sets Rule 7's team line."],
     "3.47.0": ["Pictures are prepared for reading by this program's own code instead of OpenCV. It reads the same words, and the program is about 86 MB smaller."],

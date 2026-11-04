@@ -19,9 +19,11 @@ import diag
 import libcats as LC
 import libconvert as CV
 import libimport as LI
+import libpreview as LP
 import templatelib as TL
 from . import design as D
-from .importbrowser import ItemPicture, effort_type_names
+from .importbrowser import effort_type_names
+from .itempicture import ItemPicture
 from .libedit import Editor
 
 STATUS_FILTERS = (("active", "Draft and approved"), ("draft", "Draft"), ("approved", "Approved"), ("retired", "Retired"), ("all", "Every status"))
@@ -65,7 +67,8 @@ class LibraryScreen(QWidget):
         self.cats.currentRowChanged.connect(lambda _r: self.fill())
         sp.addWidget(self.cats)
         mid = QWidget(); mv = QVBoxLayout(mid); mv.setContentsMargins(0, 0, 0, 0)
-        self.t = QTableWidget(0, 5); self.t.setHorizontalHeaderLabels(["Name", "Effort types", "Status", "Version", "From"])
+        self.cols = ["Name", "Effort types", "Status", "Version", "From"] + (["Pages"] if library == "quickparts" else [])
+        self.t = QTableWidget(0, len(self.cols)); self.t.setHorizontalHeaderLabels(self.cols)
         self.t.verticalHeader().setVisible(False); self.t.setSelectionBehavior(QTableWidget.SelectRows)
         self.t.setSelectionMode(QAbstractItemView.ExtendedSelection); self.t.setEditTriggers(QTableWidget.NoEditTriggers)
         self.t.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
@@ -85,6 +88,15 @@ class LibraryScreen(QWidget):
         ar.addWidget(D.button("Put in a standard...", None, lambda: self.put_in(), "Until Effort Profiles arrive: carry the selected "
                               "items into the global standard, a profile or an effort type"))
         ar.addWidget(D.button("Take out", "ghost", lambda: self.take_out()))
+        self.draw_btn = QToolButton(); self.draw_btn.setText("Draw with Word"); self.draw_btn.setPopupMode(QToolButton.InstantPopup)
+        self.draw_btn.setToolTip("Word on this PC draws items as they will print (Quick Parts' pages are counted in the same "
+                                 "pass). Each picture is kept until the item changes.")
+        dm = QMenu(self.draw_btn)
+        dm.addAction("Draw the selected items").triggered.connect(lambda: self.draw_word())
+        dm.addAction("Draw every item in this category").triggered.connect(lambda: self.draw_word(every=True))
+        self.draw_btn.setMenu(dm)
+        ar.addWidget(self.draw_btn)
+        self.extra_actions(ar)
         ar.addStretch(1)
         sp.addWidget(mid)
         right = QSplitter(Qt.Vertical)
@@ -176,7 +188,7 @@ class LibraryScreen(QWidget):
         for i in self.shown:
             r = self.t.rowCount(); self.t.insertRow(r)
             vals = (self.lib.shown_name(i), LC.effort_type_words(i, self.names), STATUS_WORDS[LC.status(i)], f"v{int(i.get('version') or 1)}",
-                    i.get("source") or "")
+                    i.get("source") or "") + ((self.pages_words(i),) if self.library == "quickparts" else ())
             for c, txt in enumerate(vals):
                 cell = QTableWidgetItem(txt); cell.setData(Qt.UserRole, i["id"]); cell.setToolTip(i.get("summary") or txt)
                 if c == 2 and LC.status(i) != "approved":
@@ -222,7 +234,7 @@ class LibraryScreen(QWidget):
             return
         vals = self.lib.values(it) or {}
         self.ed_head.setText(f"{self.lib.shown_name(it)}: every value")
-        self.picture.show_item({"kind": it["kind"], "name": self.lib.base_of(it), "values": vals, "summary": it.get("summary") or ""})
+        self.picture.show_item(self.picture_of(it, vals))
         self.editor.set_item(self.lib, it, vals)
 
     def edited(self, values):
@@ -232,7 +244,45 @@ class LibraryScreen(QWidget):
         self.pending = values
         for b in (self.save_btn, self.ver_btn, self.revert_btn):
             b.setEnabled(True)
-        self.picture.show_item({"kind": it["kind"], "name": self.lib.base_of(it), "values": values, "summary": it.get("summary") or ""})
+        self.picture.show_item(dict(self.picture_of(it, values), png=""))      # edits not saved: the sketch shows them
+
+    def picture_of(self, it, vals):
+        """What the picture pane draws: Word's picture when it drew this item as it is now, else the sketch."""
+        d = {"kind": it["kind"], "name": self.lib.base_of(it), "values": vals, "summary": it.get("summary") or "",
+             "png": LP.cached(self.lib, it), "word_can": LP.word_can(it)}
+        if it["kind"] in ("cover", "backer", "title") and vals.get("file"):
+            try:
+                with open(self.lib.source_path(vals["file"]), "rb") as f:
+                    d["page_bytes"] = f.read()
+            except OSError:
+                pass
+        return d
+
+    def pages_words(self, i):
+        return (f"{i['pages']} ({'measured' if i.get('pages_how') == 'measured' else 'typed'})") if i.get("pages") else ""
+
+    def extra_actions(self, row):
+        """Buttons a library adds to the row under its list."""
+
+    def draw_word(self, ids=None, every=False, fn=None):
+        """Word draws the selected items (every: the category's) in the background, one Word job at a time. Returns the
+        job, or None (and says why)."""
+        from . import qpjobs
+        ids = ids if ids is not None else ([i["id"] for i in self.shown] if every else self.selected_ids())
+        ids = [i for i in ids if LP.word_can(self.lib.get(i)) and not (LP.cached(self.lib, self.lib.get(i)) and self.lib.get(i)["kind"] != "quickpart")]
+        if not ids:
+            self.host.status("Word has drawn these already, or the app draws this kind of item.")
+            return None
+        job = qpjobs.draw(self.host.config_dir, ids, after=self.drawn, fn=fn)
+        self.host.status(f"Word is drawing {len(ids)} item(s) in the background." if job else qpjobs.why_not())
+        return job
+
+    def drawn(self, pics):
+        self.lib.load()
+        self.fill()
+        n = sum(1 for v in (pics or {}).values() if isinstance(v, str) and v.endswith(".png"))
+        bad = [v for v in (pics or {}).values() if not (isinstance(v, str) and v.endswith(".png"))]
+        self.host.toast(f"Word drew {n} item(s)." + (f" {len(bad)} not: {bad[0]}" if bad else ""))
 
     def save_changes(self):
         it = self.current()
@@ -434,3 +484,54 @@ class LibraryScreen(QWidget):
 class FormattingStandardsPage(LibraryScreen):
     def __init__(self, host):
         super().__init__(host, "formatting")
+
+
+class QuickPartsPage(LibraryScreen):
+    """3.50.0: every Quick Part by its numbered category; its gallery, behavior and the pages it fills."""
+    def __init__(self, host):
+        super().__init__(host, "quickparts")
+
+    def extra_actions(self, row):
+        row.addWidget(D.button("Category...", None, lambda: self.set_category(), "Move the selected Quick Parts to another "
+                               "category (01 Front matter, 05 Callouts, ...)"))
+        row.addWidget(D.button("Pages...", None, lambda: self.type_pages(), "Type the pages a Quick Part fills (Draw with Word "
+                               "counts them)"))
+
+    def set_category(self, cat=None):
+        ids = self.selected_ids()
+        if not ids:
+            return 0
+        if cat is None:
+            cats = [c for c, _t in LC.categories(self.lib, "quickparts") if c != LC.NO_CATEGORY]
+            cat, ok = QInputDialog.getItem(self, "Category", "Category (type a new one, for example 07 Graphics):", cats, 0, True)
+            if not ok:
+                return 0
+        cat = " ".join(str(cat).split())
+        n = 0
+        with self.lib.transaction():
+            for iid in ids:
+                v = dict(self.lib.values(self.lib.get(iid)) or {})
+                if v.get("category") != cat:
+                    v["category"] = cat
+                    self.lib.update(iid, v)
+                    n += 1
+        self.fill_cats(); self.select_category(cat or LC.NO_CATEGORY)
+        return n
+
+    def type_pages(self, pages=None):
+        it = self.current()
+        if it is None:
+            return False
+        if pages is None:
+            pages, ok = QInputDialog.getInt(self, "Pages", f"Pages {it['name']} fills (0 takes them off):", int(it.get("pages") or 1), 0, 500)
+            if not ok:
+                return False
+        ok = self.lib.set_pages(it["id"], pages or None, "typed")
+        self.fill()
+        return ok
+
+
+class LayoutPage(LibraryScreen):
+    """3.50.0: covers, title pages, back covers, headers and footers, sections, table looks, captions and the TOC."""
+    def __init__(self, host):
+        super().__init__(host, "layout")

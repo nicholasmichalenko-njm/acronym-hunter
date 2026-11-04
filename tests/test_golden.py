@@ -88,6 +88,11 @@ for ver in sets:
         check(f"{ver}: a Draft library item for one effort type reads back, and the standards were converted", it is not None
               and LC.status(it) == "draft" and LC.effort_types(it) == [ex["library"]["effort_type"]] and CV.done(cfg)
               and LC.place(lib, it) == ("formatting", "para_styles"), it)
+        if ex["library"].get("quickpart"):              # 3.50 on: a Quick Part in its category with its pages
+            qx = ex["library"]["quickpart"]
+            q = next((i for i in lib.items if i["name"] == qx["name"]), None)
+            check(f"{ver}: a library Quick Part reads back in its category with its pages", q is not None
+                  and LC.place(lib, q) == ("quickparts", qx["category"]) and lib.pages_of(q["id"]) == qx["pages"], q)
     if ex.get("sections"):                                # 3.45 on: a section's contents and its page setup
         sx = ex["sections"]
         items = ((d["company"].get("section_contents") or {}).get(sx["part"])) or []

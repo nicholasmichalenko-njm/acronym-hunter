@@ -23,7 +23,9 @@ $res = @()
 try {
   $app.Visible = $false; $app.DisplayAlerts = 0
   try { $app.AutomationSecurity = 3 } catch {}
+  $k = 0
   foreach ($line in ($env:SK_LIST -split "`n")) { if (-not $line) { continue }
+    $k++
     $src, $name, $cat = $line -split "`t"
     $r = @{ pages = 0; why = '' }
     try {
@@ -38,7 +40,8 @@ try {
           [void]$d.Content.Delete()
           [void]$bb.Insert($d.Range(0, 0), $true)
           $d.Repaginate()
-          $r.pages = $d.ComputeStatistics(2) }
+          $r.pages = $d.ComputeStatistics(2)
+          if ($env:SK_PDFDIR) { try { $d.ExportAsFixedFormat((Join-Path $env:SK_PDFDIR ("qp_" + $k + ".pdf")), 17) } catch {} } }
       } finally { $d.Close(0); try { [void][System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($d) } catch {}; $d = $null }
     } catch { $r.why = "$($_.Exception.HResult)" }
     $res += $r }
@@ -97,10 +100,11 @@ def jobs(lib, ids):
     return out
 
 
-def measure(lib, ids, runner=None, timeout=900, keep=True):
+def measure(lib, ids, runner=None, timeout=900, keep=True, pictures=None):
     """Word measures each Quick Part among ids and the library keeps its pages (measured). Returns {item id: pages, or
     the reason in words}. runner (tests): runner(cmd, env, timeout) -> the script's output text. keep False (3.49.0, a
-    background job): the pages are only returned; the window keeps them (qpjobs), so a job never saves the library."""
+    background job): the pages are only returned; the window keeps them (qpjobs), so a job never saves the library.
+    pictures (3.50.0): a dict that gets {item id: PNG of the Quick Part as Word laid it out}, in a folder of its own."""
     todo = jobs(lib, ids)
     out = {iid: "Its source file is not in the library." for iid in ids
            if (lib.get(iid) or {}).get("kind") == "quickpart" and iid not in {j[0] for j in todo}}
@@ -120,6 +124,10 @@ def measure(lib, ids, runner=None, timeout=900, keep=True):
             lines.append(f"{os.path.abspath(srcs[src])}\t{name}\t{cat}")
         pidfile = os.path.join(work, f".sk_word_{os.getpid()}.pid")
         env = dict(os.environ, SK_LIST="\n".join(lines), SK_PIDFILE=pidfile)
+        if pictures is not None:
+            pdfdir = os.path.join(work, "pdf")
+            os.makedirs(pdfdir, exist_ok=True)
+            env["SK_PDFDIR"] = os.path.abspath(pdfdir)
         cmd = ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", _SCRIPT]
         try:
             if runner is not None:
@@ -141,6 +149,14 @@ def measure(lib, ids, runner=None, timeout=900, keep=True):
             res = [res] if isinstance(res, dict) else list(res)
         except (StopIteration, ValueError):
             res = []
+        if pictures is not None:
+            import tempfile
+            import wordpreview as WP
+            pics = tempfile.mkdtemp(prefix="sk_qp_pics_")
+            for k, (iid, _src, _name, _cat) in enumerate(todo):
+                pdf = os.path.join(work, "pdf", f"qp_{k + 1}.pdf")
+                if os.path.isfile(pdf) and WP.pdf_to_png(pdf, os.path.join(pics, f"{iid}.png")):
+                    pictures[iid] = os.path.join(pics, f"{iid}.png")
         for k, (iid, _src, _name, _cat) in enumerate(todo):
             r = res[k] if k < len(res) and isinstance(res[k], dict) else {}
             n = int(r.get("pages") or 0)

@@ -1,6 +1,17 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+QUICK PARTS AND LAYOUT (3.50.0)
+  - Production > Quick Parts: every Quick Part in the library by your numbered categories, with the pages it fills.
+    Category... moves Quick Parts to another category; Pages... types the pages one fills.
+  - Production > Layout: covers, title pages, back covers, headers and footers, sections and section designs, table
+    looks, captions and the TOC.
+  - Every item has a picture. Draw with Word (on any library screen) has Word on this PC draw the selected items, or
+    every item in the category, as they will print: covers from their kept page, Quick Parts inserted from their file
+    (their pages counted in the same pass), styles, table styles, headers and footers, numbering, lists and the TOC on
+    a sample page. It runs in the background, one Word job at a time, and each picture is kept until the item
+    changes. Without Word, or before drawing, the app's sketch shows, marked as a sketch.
+
 FORMATTING STANDARDS, A LIBRARY (3.49.0)
   - Production > Formatting Standards: theme and colors, font sets, page setups, pagination schemes, heading numbering,
     lists, and paragraph, character and table styles, each a library item with a name, effort-type tags, a status

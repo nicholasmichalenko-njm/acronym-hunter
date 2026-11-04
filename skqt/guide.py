@@ -373,6 +373,27 @@ TOPICS = [
    "Put in a standard... carries the selected items into the global standard, a profile or an effort type."],
   ["Measuring a Quick Part's pages in Word is a button (Template library > Quick Parts > Measure pages), never automatic.",
    "Quick Parts and Layout get screens of their own in 3.50.0; Effort Profiles and Templates in 3.51.0."]),
+ ("qpstd", "Production", "Quick Parts",
+  "Every Quick Part in the library, by your numbered categories, with its gallery, whether it follows the template's fonts, the "
+  "pages it fills and Word's picture of it.",
+  "When Quick Parts come in from a template; before page planning; when a Quick Part changes.",
+  ["The same three panes as Formatting Standards: categories (your Quick Parts' own, 01 Front matter and so on), the items with "
+   "their effort types, status, version, where each came from and the pages each fills, and the picture with every value.",
+   "Category... moves the selected Quick Parts to another category; Pages... types the pages one fills.",
+   "Draw with Word: Word on this PC inserts each Quick Part from its kept file, counts its pages and keeps a picture of it, in the "
+   "background, one Word job at a time. The picture stays until the Quick Part changes. Without Word the app shows its card.",
+   "Keep its own fonts (the value as_built): yes keeps the Quick Part exactly as built; otherwise it follows the template's fonts "
+   "and sizes when a template is made."],
+  ["Word is never started by itself: only Draw with Word starts it."]),
+ ("layoutstd", "Production", "Layout",
+  "The pieces a template is assembled from: covers, title pages, back covers, headers and footers, sections and section designs, "
+  "table looks, captions and the TOC.",
+  "When a new cover or footer comes in; when a part's header or footer changes.",
+  ["The same three panes as Formatting Standards. A cover, title page or back cover is drawn from its kept page; a header and "
+   "footer on a page; a table look as a sample table; captions as sample captions; the TOC as entries.",
+   "Draw with Word: Word draws covers, title pages, back covers, headers and footers and the TOC as they will print, and the "
+   "picture is kept until the item changes."],
+  ["Table looks (fills and borders by row role) are here; Word table styles are in Formatting Standards."]),
  ("prodstd", "Production", "Production Standards",
   "Every rule Fix a Copy uses and every template is made from, in layers: the global standard, effort types, volumes, and this effort.",
   "Once to set the team's rules; for each volume; at the start of each effort to bring in the RFP's.",

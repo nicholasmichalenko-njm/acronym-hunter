@@ -9,8 +9,7 @@ import copy
 import os
 import sys
 
-from PySide6.QtCore import QRectF, Qt
-from PySide6.QtGui import QColor, QFont, QPainter, QPen
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QFormLayout, QHBoxLayout, QHeaderView, QLineEdit, QMenu, QSplitter,
                                QTableWidget, QTableWidgetItem, QTextBrowser, QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout,
                                QWidget)
@@ -81,99 +80,7 @@ class EffortTypesButton(QToolButton):
         self.setText("Effort types: " + ("every effort type" if LC.ALL in ch else ", ".join(dict(self.names).get(e, e) for e in ch)))
 
 
-class ItemPicture(QWidget):
-    """A picture of one item: a style as a sample paragraph in it; a page setup or section as a page with its margins,
-    header and footer; a table look as a sample table; anything else its summary."""
-    def __init__(self):
-        super().__init__()
-        self.it = None
-        self.setMinimumSize(260, 300)
-
-    def show_item(self, it):
-        self.it = it
-        self.update()
-
-    def paintEvent(self, _e):
-        p = QPainter(self)
-        p.setRenderHint(QPainter.Antialiasing)
-        p.fillRect(self.rect(), QColor(D.tokens()["surface2"]))
-        it = self.it
-        r = QRectF(self.rect()).adjusted(10, 10, -10, -10)
-        p.setPen(QColor(D.tokens()["text"]))
-        if not it:
-            p.drawText(r, Qt.AlignCenter | Qt.TextWordWrap, "Select an item to see it.")
-            p.end(); return
-        k, v = it["kind"], it.get("values") or {}
-        if k == "style":
-            draw_style(p, r, it["name"], v)
-        elif k in ("page_setup", "section"):
-            draw_page(p, r, v.get("page") if k == "section" else v, it)
-        elif k == "table_look":
-            draw_table(p, r, v)
-        else:
-            p.drawText(r, Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, f"{it['name']}\n\n{it.get('summary') or ''}")
-        p.end()
-
-
-def draw_style(p, r, name, v):
-    f = QFont(str(v.get("font") or "Calibri"))
-    f.setPointSizeF(max(6.0, min(28.0, float(v.get("size") or 11))))
-    f.setBold(bool(v.get("bold"))); f.setItalic(bool(v.get("italic")))
-    f.setCapitalization(QFont.AllUppercase if v.get("caps") else QFont.MixedCase)
-    p.setFont(f)
-    col = v.get("color")
-    p.setPen(QColor("#" + col) if isinstance(col, str) and len(col) == 6 else QColor(D.tokens()["text"]))
-    sample = "Section heading" if name.lower().startswith(("heading", "title")) else \
-        "Body text in this style: how a paragraph of the volume reads, line after line, at this size and spacing."
-    al = {"center": Qt.AlignHCenter, "right": Qt.AlignRight, "both": Qt.AlignJustify}.get(v.get("jc"), Qt.AlignLeft)
-    p.drawText(r.adjusted(0, 0, 0, -40), al | Qt.AlignTop | Qt.TextWordWrap, sample)
-    small = QFont(); small.setPointSizeF(8); p.setFont(small); p.setPen(QColor(D.tokens()["muted"]))
-    bits = [str(v.get("font") or ""), f"{v.get('size')} pt" if v.get("size") else "", "bold" if v.get("bold") else "",
-            "hidden text" if v.get("hidden") else "", f"based on {v['based_on']}" if v.get("based_on") else ""]
-    p.drawText(QRectF(r.left(), r.bottom() - 34, r.width(), 34), Qt.AlignLeft | Qt.TextWordWrap, f"{name}: " + ", ".join(b for b in bits if b))
-
-
-def _num(x, d):
-    try:
-        return float(x)
-    except (TypeError, ValueError):
-        return d
-
-
-def draw_page(p, r, pg, it):
-    pg = pg or {}
-    w, h = _num(pg.get("w"), 8.5), _num(pg.get("h"), 11)
-    s = min(r.width() / w, (r.height() - 40) / h)
-    page = QRectF(r.left() + (r.width() - w * s) / 2, r.top(), w * s, h * s)
-    p.setPen(QPen(QColor("#9aa3b2"), 1)); p.setBrush(QColor("#ffffff")); p.drawRect(page); p.setBrush(Qt.NoBrush)
-    m = [_num(pg.get(k), 1) for k in ("top", "bottom", "left", "right")]
-    body = QRectF(page.left() + m[2] * s, page.top() + m[0] * s, page.width() - (m[2] + m[3]) * s, page.height() - (m[0] + m[1]) * s)
-    p.setPen(QPen(QColor("#c7cdd8"), 1, Qt.DashLine)); p.drawRect(body)
-    small = QFont(); small.setPointSizeF(7); p.setFont(small); p.setPen(QColor("#1f2937"))
-    v = it.get("values") or {}
-    for kind, y in (("header", page.top() + 4), ("footer", page.bottom() - 16)):
-        txt = IB.hf_text(v.get(kind)) if it["kind"] == "section" else ""
-        if txt:
-            p.drawText(QRectF(body.left(), y, body.width(), 12), Qt.AlignHCenter, p.fontMetrics().elidedText(txt, Qt.ElideRight, int(body.width())))
-    p.setPen(QColor(D.tokens()["muted"]))
-    p.drawText(QRectF(r.left(), page.bottom() + 6, r.width(), 30), Qt.AlignHCenter | Qt.TextWordWrap, it.get("summary") or "")
-
-
-def draw_table(p, r, v):
-    rows = (v.get("row_types") or {}) if isinstance(v, dict) else {}
-    order = [x for x in ("caption", "header", "body", "subtotal", "total", "note") if x in rows] or list(rows)[:5]
-    y = r.top()
-    small = QFont(); small.setPointSizeF(8); p.setFont(small)
-    for role in order:
-        look = rows.get(role) or {}
-        fill = look.get("fill")
-        rr = QRectF(r.left(), y, r.width(), 22)
-        if isinstance(fill, str) and len(fill) == 6:
-            p.fillRect(rr, QColor("#" + fill))
-        p.setPen(QPen(QColor("#64748b"), 0.8)); p.drawRect(rr)
-        p.setPen(QColor("#" + look["color"]) if isinstance(look.get("color"), str) and len(look["color"]) == 6 else QColor("#1f2937"))
-        p.drawText(rr.adjusted(6, 0, -6, 0), Qt.AlignVCenter | Qt.AlignLeft, role.title())
-        y += 24
+from .itempicture import ItemPicture, draw_page, draw_style, draw_table  # noqa: E402,F401  (3.50.0: their own module)
 
 
 class ImportBrowser(QDialog):

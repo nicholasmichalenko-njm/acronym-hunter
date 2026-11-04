@@ -63,6 +63,11 @@ def make(version, out_root=None):
         it["status"] = "draft"; lib.save()
         LC.set_effort_types(lib, [it["id"]], ["kestrel_rfi"])
         extra["library"] = {"draft": "AA Kestrel Draft Style", "effort_type": "kestrel_rfi", "converted": True}
+        if hasattr(LC, "categories"):                     # 3.50.0: a Quick Part in its own category, its pages typed
+            q, _s = lib.add("quickpart", "AA Kestrel Callout", {"entry": "AA Kestrel Callout", "category": "05 Callouts",
+                                                                 "gallery": "docParts", "source": "qp_kestrel.dotx"})
+            lib.set_pages(q["id"], 2, "typed")
+            extra["library"]["quickpart"] = {"name": "AA Kestrel Callout", "category": "05 Callouts", "pages": 2}
     except ImportError:
         pass
     RB.add(cfg, "Every graphic has a callout in the text before it appears.", group="Writing")

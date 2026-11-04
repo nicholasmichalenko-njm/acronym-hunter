@@ -23,7 +23,7 @@ def shelf_layer(kind):
 
 def item_icon(lib, i):
     """A small picture of a library item, drawn the way the import browser draws it."""
-    from .importbrowser import draw_page, draw_style, draw_table
+    from .itempicture import draw_page, draw_style, draw_table
     pm = QPixmap(150, 110); pm.fill(QColor("#ffffff"))
     p = QPainter(pm); p.setRenderHint(QPainter.Antialiasing)
     v = lib.values(i) or {}

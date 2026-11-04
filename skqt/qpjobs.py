@@ -1,5 +1,5 @@
-"""Measuring Quick Parts' pages in Word, safely (3.49.0): only when a person presses the button, one measuring at a
-time, in the background. Every job is kept in RUNNING until it finishes, so nothing can drop a job while Word still
+"""Word jobs, safely (3.49.0 measuring Quick Parts' pages; 3.50.0 drawing items' pictures): only when a person presses
+the button, one Word job at a time, in the background. Every job is kept in RUNNING until it finishes, so nothing can drop a job while Word still
 works (before 3.49.0 a second import replaced the first job while it ran, and the app closed). The job only reads; the
 pages are kept by the window's thread, in one save, into the library as it is then (never a copy read minutes before)."""
 import diag
@@ -15,7 +15,7 @@ def busy():
 def why_not():
     import qpmeasure as QM
     if busy():
-        return "Word is measuring already. Wait for it to finish, then measure again."
+        return "Word is busy with a job already. Wait for it to finish, then try again."
     if not QM.available():
         return "Word on this PC is needed to measure pages."
     return ""
@@ -71,5 +71,39 @@ def start(config_dir, ids, after=None, fn=None):
     w.finished.connect(gone)
     RUNNING.append(w)
     diag.activity("quickparts_measure_started", n=len(ids))
+    w.start()
+    return w
+
+
+def draw(config_dir, ids, after=None, fn=None):
+    """3.50.0: Word draws the pictures of the items among ids (Quick Parts' pages counted in the same pass), in the
+    background. The pictures go to the previews folder; the pages are kept by the window. after(pictures) on the
+    window's thread. Returns the job, or None (busy, Word not here, nothing to draw)."""
+    import qpmeasure as QM
+    import libpreview as LP
+    if not ids or busy() or (fn is None and not QM.available()):
+        return None
+    from .progress import JobWorker
+    job = fn or (lambda _p, _s: LP.draw(TL.Library(config_dir), list(ids)))
+    w = JobWorker(job)
+
+    def finished(res):
+        try:
+            pics, pages = res if isinstance(res, tuple) else ({}, {})
+            keep(config_dir, pages)
+            if after:
+                after(pics)
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+
+    def gone():
+        w.wait(2000)
+        if w in RUNNING:
+            RUNNING.remove(w)
+
+    w.done.connect(finished)
+    w.finished.connect(gone)
+    RUNNING.append(w)
+    diag.activity("library_draw_started", n=len(ids))
     w.start()
     return w
