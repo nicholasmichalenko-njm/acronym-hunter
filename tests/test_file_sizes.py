@@ -15,12 +15,10 @@ def check(name, ok, info=""):
 cfg = json.load(open(os.path.join(ROOT, "tools", "size_baseline.json"), encoding="utf-8"))
 base, limit, growth = cfg["files"], int(cfg["limit_new"]), float(cfg["growth"])
 sizes = {}
-for d, ds, fs in os.walk(ROOT):
-    ds[:] = [x for x in ds if x not in SKIP_DIRS and not x.startswith(".")]
-    for f in fs:
-        if f.endswith(".py"):
-            p = os.path.join(d, f)
-            sizes[os.path.relpath(p, ROOT).replace(os.sep, "/")] = sum(1 for _ in open(p, encoding="utf-8"))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import repofiles
+for rel, p in repofiles.py_files(ROOT, SKIP_DIRS):     # git's list: build output on the PC is never measured
+    sizes[rel] = sum(1 for _ in open(p, encoding="utf-8"))
 check(f"the program's own code was measured ({len(sizes)} files)", len(sizes) > 150)
 new_big = {p: n for p, n in sizes.items() if p not in base and n > limit}
 check(f"a file not in the baseline stays under {limit} lines", not new_big, new_big)

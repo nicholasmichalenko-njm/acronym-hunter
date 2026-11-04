@@ -26,12 +26,9 @@ def check(name, ok, info=""):
 
 
 def app_files():
-    for d, ds, fs in os.walk(ROOT):
-        ds[:] = [x for x in ds if x not in SKIP_DIRS and not x.startswith(".")]
-        for f in fs:
-            if f.endswith(".py"):
-                p = os.path.join(d, f)
-                yield os.path.relpath(p, ROOT).replace(os.sep, "/"), p
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import repofiles
+    yield from repofiles.py_files(ROOT, SKIP_DIRS)     # git's list: build output on the PC is never read
 
 
 net_bad, emoji_bad, n_files = [], [], 0
