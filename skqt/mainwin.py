@@ -202,6 +202,7 @@ class MainWindow(QMainWindow):
         self.tools_menu = QMenu(self.tools_btn)
         self.tools_menu.addAction("Acronym Finder (its own window)").triggered.connect(lambda: self.open_tool("acronyms"))
         self.tools_menu.addAction("First Use Check (its own window)").triggered.connect(lambda: self.open_tool("firstuse"))
+        self.tools_menu.addAction("Full Text (its own window)").triggered.connect(lambda: self.open_tool("fulltext"))
         self.tools_btn.setMenu(self.tools_menu)
         rcv.addWidget(self.rail_brand); rcv.addWidget(rail_scroll, 1); rcv.addWidget(self.tools_btn); rcv.addWidget(self.rail_footer)
         rh.addWidget(rail_col)
@@ -1181,6 +1182,9 @@ class MainWindow(QMainWindow):
         if which == "acronyms":
             from .acrtool import open_tool
             return open_tool(self.config_dir)
+        if which == "fulltext":
+            from .fulltexttool import open_tool as open_ft
+            return open_ft()
         if which == "firstuse":
             from .firstusetool import open_tool as open_fu
             return open_fu(self.config_dir)

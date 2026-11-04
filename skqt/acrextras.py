@@ -392,3 +392,25 @@ def ocr_fixes_window(page, run=True):
     if run:
         dlg.exec()
     return dlg
+
+
+def make_alt(page, alt, primary=None):
+    """3.51.0: alt is another way of writing a term (C&C for C2). Returns True when done."""
+    s = page.session
+    if primary is None:
+        from PySide6.QtWidgets import QInputDialog
+        opts = AM.alt_candidates(s, alt)[:300]
+        primary, ok = QInputDialog.getItem(page, "Another way of writing", f"{alt} is another way of writing:", opts, 0, True)
+        if not ok:
+            return False
+    ok = AM.make_alt(s, alt, primary.strip())
+    page.fill(); page.select(alt)
+    if ok:
+        page.host.toast(f"{alt} is another way of writing {primary}: lists show \"{primary} ({alt})\".")
+    return ok
+
+
+def unmake_alt(page, alt):
+    ok = AM.unmake_alt(page.session, alt)
+    page.fill(); page.select(alt)
+    return ok

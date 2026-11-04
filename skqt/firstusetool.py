@@ -309,3 +309,45 @@ def open_tool(config_dir, paths=None):
         w.set_files(paths)
     w.show()
     return w
+
+
+class PlaceDialog:
+    """3.51.0 Submission Check: a row's exact place in its volume (the passage highlighted or the picture boxed), with
+    This place is the first use and Open the term in Acronyms. Built as a QDialog on demand."""
+    def __init__(self, parent, session, row, paths, on_set=None, on_open=None):
+        from PySide6.QtWidgets import QDialog
+        from .foundview import FoundView
+        self.session, self.row, self.on_set = session, row, on_set
+        d = (session.results.get(row.get("term")) or {}) if session else {}
+        vol = row.get("volume") or ""
+        locs = [x for x in d.get("locations", []) if not vol or x.startswith(vol)]
+        loc = row.get("loc")
+        if loc:
+            locs = [loc] + [x for x in locs if x != loc]
+        self.dlg = QDialog(parent); self.dlg.setWindowTitle(f"{row.get('term')}: {row.get('state') or 'where it is'}"); self.dlg.resize(980, 760)
+        v = QVBoxLayout(self.dlg)
+        v.addWidget(D.label(f"{row.get('term')} in {vol or 'the volumes'}. {row.get('state') or ''}", "muted"))
+        self.fv = FoundView(row.get("term", ""), locs, lambda n: paths.get(n) or paths.get(n.split(' (')[0]))
+        v.addWidget(self.fv, 1)
+        br = QHBoxLayout(); v.addLayout(br)
+        if "state" in row and vol:
+            br.addWidget(D.button("This place is the first use", "primary", lambda: self.set_here(),
+                                  "Count the place shown as the first use in this volume"))
+        if on_open:
+            br.addWidget(D.button("Open the term in Acronyms", None, lambda: (self.dlg.accept(), on_open(row.get("term")))))
+        br.addStretch(1)
+        br.addWidget(D.button("Close", "ghost", self.dlg.accept))
+
+    def set_here(self, loc=None):
+        loc = loc or (self.fv.locs[self.fv.k] if self.fv.locs else None)
+        if not loc or self.session is None:
+            return None
+        self.session.set_first_use(self.row["term"], loc)
+        rep = self.session.qa_rebuild()
+        if self.on_set:
+            self.on_set(rep)
+        self.dlg.accept()
+        return rep
+
+    def exec(self):
+        return self.dlg.exec()

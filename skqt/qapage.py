@@ -307,7 +307,20 @@ class QAPage(QWidget):
             self._table(f"List {i}: {vol[:24]}", ["Term", "Definition", "Status"], r["lists"].get(vol, []), ["term", "definition", "status"])
         return r
 
-    def jump(self, row):
+    def jump(self, row, run=True):
+        """3.51.0: the row's exact place in its volume, with This place is the first use; without a place, the term in
+        Acronyms as before."""
+        r = self.session.volume_report if self.session else None
+        if row and row.get("term") and (row.get("loc") or row.get("volume")) and r:
+            from .firstusetool import PlaceDialog
+            pd = PlaceDialog(self, self.session, row, r.get("paths") or {}, on_set=lambda rep: rep and self.show_report(rep),
+                             on_open=lambda t: self.open_term({"term": t}))
+            if run:
+                pd.exec()
+            return pd
+        return self.open_term(row)
+
+    def open_term(self, row):
         term = (row or {}).get("term")
         ap = self.host.acronym_page
         if not term or ap.session is None or term not in ap.session.results:

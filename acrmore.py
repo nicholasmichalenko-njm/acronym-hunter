@@ -183,3 +183,51 @@ def equation_symbols(s, term):
         if "symbol" in str(x.get("category", "")).lower() or "equation" in str(x.get("category", "")).lower():
             out.append((t, "" if (x.get("selected_definition") or "").startswith("[") else x.get("selected_definition", "")))
     return sorted(out, key=lambda r: (bool(r[1]), r[0]))
+
+
+# ------------------------------------------------------------------ alternate forms (C2 and C&C), kept in the acronym list
+def _squash(t):
+    import re
+    return re.sub(r"[^A-Z0-9]", "", (t or "").upper())
+
+
+def alt_candidates(s, alt):
+    """Likely terms an alternate form belongs to: the same letters without &, /, - or case first."""
+    pool = list(s.effort.order) if s.effort is not None else []
+    pool += [t for t in s.results if t not in pool and not s.results[t].get("file_error") and not t.startswith("[")]
+    pool = [t for t in pool if t != alt]
+    sq = _squash(alt)
+    close = [t for t in pool if _squash(t) == sq or (len(_squash(t)) >= 2 and (_squash(t).startswith(sq) or sq.startswith(_squash(t))))]
+    return close + [t for t in pool if t not in close]
+
+
+def make_alt(s, alt, primary):
+    """alt is another way of writing primary: kept in the primary's Alt forms in the acronym list; alt keeps its own
+    row in the results, labelled with the primary and its meaning. Returns True when done."""
+    if s.effort is None or not primary or primary == alt:
+        return False
+    if primary not in s.effort.rows:
+        s.add([primary])
+    s.effort.add_alt(primary, alt)
+    s._save_effort_list()
+    s.apply_effort()
+    s.save()
+    diag.activity("acronym_alt_made")
+    return True
+
+
+def unmake_alt(s, alt):
+    """alt is a term of its own again."""
+    if s.effort is None:
+        return False
+    primary = s.effort.alt_map().get(alt)
+    if not primary:
+        return False
+    s.effort.set_alts(primary, [a for a in s.effort.alts(primary) if a != alt])
+    s._save_effort_list()
+    d = s.results.get(alt)
+    if d is not None:
+        d.pop("alt_of", None)
+    s.apply_effort()
+    s.save()
+    return True

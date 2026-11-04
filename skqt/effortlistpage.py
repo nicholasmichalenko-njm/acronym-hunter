@@ -88,6 +88,10 @@ class EffortListPage(QWidget):
                                ("Proposed", None, lambda: self.set_status("Proposed")), ("Not a term", "danger", lambda: self.set_status("Rejected")),
                                ("Edit definition...", None, lambda: self.edit_definition()), ("Take out", "ghost", lambda: self.remove())):
             f.addWidget(D.button(text, kind, fn))
+        xr = FlowLayout(); xr.setSpacing(D.SPACE["s"]); v.addLayout(xr)                 # 3.51.0: the classic window's list tools
+        from . import effortlistextras as LX
+        for b in LX.buttons(self):
+            xr.addWidget(b)
         self.table = QTableWidget(0, len(COLS))
         self.table.setHorizontalHeaderLabels(COLS)
         self.table.verticalHeader().setVisible(False)

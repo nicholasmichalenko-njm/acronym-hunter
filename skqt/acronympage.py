@@ -407,11 +407,16 @@ class AcronymPage(QWidget):
                 r3.addWidget(D.button("Not a plural", "ghost", lambda: self.not_plural(t), "Make it a term of its own again"))
             elif d.get("form_of"):
                 r3.addWidget(D.button(f"Not a form of {d['form_of']}", "ghost", lambda: self.not_form(t), "Make it a term of its own again"))
+            elif d.get("alt_of"):                                            # 3.51.0: alternate forms (C2 and C&C)
+                r3.addWidget(D.button(f"Not another way of writing {d['alt_of']}", "ghost", lambda: AX.unmake_alt(self, t)))
             else:
                 g = self.session.singular_guess(t)
                 r3.addWidget(D.button(f"Plural of {g}" if g else "Plural of...", None, lambda: self.plural(t, g or None),
                                       "Still found in every scan; counted with its singular; never its own row in the lists you submit"))
                 fg = self.session.form_guess(t)                      # 3.34.1: FY27 is FY plus a number
+                if self.session.effort is not None:
+                    r3.addWidget(D.button("Another way of writing...", None, lambda: AX.make_alt(self, t), "C&C for C2, KWH for kWh: "
+                                          "it keeps its own row, shows the other term's meaning, and lists show both as one"))
                 r3.addWidget(D.button(f"Use {fg} (a form of it)" if fg else "A form of...", None, lambda: self.form(t, fg or None),
                                       "The term is written as another term plus a number or code (FY27 as FY): define that term "
                                       "once; this one stays found, tied to it, and never comes up as its own row again"))
