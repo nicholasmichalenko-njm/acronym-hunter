@@ -67,14 +67,16 @@ AUTO = {
     "deliverables_set": "Deliverables confirmed, each with an owner",           # 2.41.0
     "deliverables_ok": "No deliverable over its limit or changed without review",
     "topics_considered": "Every meeting topic considered",                          # 3.20.0
+    "comments_dispositioned": "Every reviewer comment dispositioned",               # 3.39.0
+    "datacalls_answered": "Every data call answered",                               # 3.39.0
 }
 DEFAULT_GOALS = {
     "Intake": ["docs_added", "reqs_reviewed", "structure_set", "sections_led"],
-    "Author drafts": ["reqs_placed", "reqs_owned", "deliverables_set", "Author briefs sent to every section lead"],
+    "Author drafts": ["reqs_placed", "reqs_owned", "deliverables_set", "Author briefs sent to every section lead", "datacalls_answered"],
     "Red team": ["qa_run", "Red team reviewers confirmed", "tasks_done"],
-    "Red team recovery": ["Every red team comment has an owner", "docs_reviewed", "reqs_reviewed", "acr_approved", "pages_ok"],
+    "Red team recovery": ["comments_dispositioned", "docs_reviewed", "reqs_reviewed", "acr_approved", "pages_ok"],
     "Gold team": ["pages_ok", "first_use_clean", "banned_clean", "acr_approved", "prove_clear", "deliverables_ok"],
-    "Gold team recovery": ["Every gold team comment has an owner", "docs_reviewed", "reqs_reviewed", "pages_ok", "first_use_clean"],
+    "Gold team recovery": ["comments_dispositioned", "docs_reviewed", "reqs_reviewed", "pages_ok", "first_use_clean"],
     "Final to pubs": ["pages_ok", "first_use_clean", "banned_clean", "deliverables_ok", "Files named as the customer requires", "Forms signed", "tasks_done"],
 }
 CUSTOM_GOALS = {}                    # 2.86.0: {stage name: [goal key or text]}: this PC's (or team's) defaults for new efforts

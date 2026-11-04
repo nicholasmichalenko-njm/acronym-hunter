@@ -59,6 +59,8 @@ OUTPUTS = [
     ("change_list", "Change list between two versions", "exports", "{Doc}_{From}_to_{To}_Changes", ".xlsx"),
     ("author_briefs", "Author briefs for a new version", "exports", "{Doc}_{DocVersion}_Author_Briefs", ".docx"),
     ("kickoff_packets", "Author kickoff packets (one Word file per author, a folder)", "exports", "", ""),   # 3.37.0
+    ("data_calls", "Data calls (one Word file per person, a folder)", "exports", "", ""),                   # 3.39.0
+    ("comment_log", "Review comment dispositions", "exports", "{Effort}_{Stage}_Comment_Dispositions_{Date}", ".xlsx"),
     ("impact_review", "Impact review of a new version", "exports", "{Doc}_{DocVersion}_Impact", ".docx"),
     ("acronym_report", "Acronym report", "exports", "{Effort}_Acronym_Report_{Date}", ".csv"),
     ("acronym_lists", "Acronym lists (one Word file per volume, a folder)", "exports", "", ""),

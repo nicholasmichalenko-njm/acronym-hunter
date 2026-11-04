@@ -173,6 +173,16 @@ TOPICS = [
    "Export to Word or Excel, or fill the customer's own Q&A form. Exporting can mark the questions Submitted.",
    "When answers arrive, add each answer and the document it came in."],
   ["Every exported question names the customer file it is about. Owner, status and notes never go out."]),
+ ("datacalls", "Solicitation", "Data calls",
+  "What the team needs from its own experts, asked so it gets answered: what is needed, the section or requirement it "
+  "serves, how much (word-count guidance), an example of a good answer, the owner and the due date.",
+  "When a section needs facts, numbers or a story only an expert has: past performance, staffing, technical detail.",
+  ["+ Data call: say what you need, choose the section, add the requirement, how much and an example, then the owner and due date.",
+   "Send Word files... writes one Word file per person with their open calls (they become Sent). Each call has a code (DC-1...).",
+   "The person types in each Your answer box and sends the file back. Read answers... puts each answer back on its call.",
+   "Place in the section puts an answer into the response structure as context: the section's author sees it in the setup, "
+   "the kickoff packet and Everything for this section."],
+  ["Show: Overdue lists calls past their due date with no answer. The Author drafts gate can hold until every call is answered."]),
  ("assign", "Compliance", "Review",
   "The customer's document as it looks, every sentence boxed. You decide each sentence, place it in your response, "
   "and capture what it holds. This is where an effort's review happens.",

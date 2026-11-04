@@ -50,7 +50,8 @@ TABS = {"home": [("home", "Dashboard"), ("requirements", "Submission Rules")],
         "library": [("library", "Documents"), ("read", "Read into Review")],
         "assign": [("assign", "Review"), ("prove", "Coverage")],
         "matrix": [("matrix", "Matrix"), ("crosswalk", "L/M Crosswalk")],
-        "acronyms": [("acronyms", "Scan"), ("acrlist", "Acronym List")]}      # 3.37.0: Lists to Submit is in the Acronym List
+        "acronyms": [("acronyms", "Scan"), ("acrlist", "Acronym List")],      # 3.37.0: Lists to Submit is in the Acronym List
+        "custqa": [("custqa", "Customer Q&A"), ("datacalls", "Data calls")]}  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
 HEAD_OF.update({"docs": "library", "impact": "compare", "dashboard": "home"})   # pages opened from inside another
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup"}   # 3.18.2:
@@ -78,6 +79,7 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "home": ("Effort Dashboard", "Where the effort stands: the numbers, the stage and its gate, requirements, tasks and the calendar"),
           "dashboard": ("Effort Dashboard", "Where the effort stands: the numbers, the stage and its gate, requirements, tasks and the calendar"),
           "record": ("Effort Record", "Details, team, stages and gates, status, package and backup"),
+          "datacalls": ("Data calls", "What the team needs from its own experts: what, for which section, how much, an example, owner and due date"),
           "meetings": ("Meetings", "Who met, what was said, and the topics to follow up until each is considered"),
           "reviews": ("Color Reviews", "Color team review packets, read back onto each requirement"),
           "library": ("Library", "Every document of the effort: categories, folders, tags, roles and search"),
@@ -291,6 +293,8 @@ class MainWindow(QMainWindow):
         self.prodstd_page = StandardsPage(self)        # 3.6.0: every rule, three layers
         from .effortformatpage import EffortFormatPage
         self.effortfmt_page = EffortFormatPage(self)   # 3.36.0: one effort's formatting, apart from the team's
+        from .datacallspage import DataCallsPage
+        self.datacalls_page = DataCallsPage(self)      # 3.39.0: internal data calls
         from .rulespage import RulesPage
         self.rules_page = RulesPage(self)              # 3.38.0: every production rule in one list
         self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page, "custqa": self.custqa_page,
@@ -298,7 +302,7 @@ class MainWindow(QMainWindow):
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page, "audit": self.audit_page,
-                      "effortfmt": self.effortfmt_page, "rules": self.rules_page}
+                      "effortfmt": self.effortfmt_page, "rules": self.rules_page, "datacalls": self.datacalls_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)
         from .roleview import NoticePage                 # 3.13.0: a tool for another role, or a Preview tool not turned on

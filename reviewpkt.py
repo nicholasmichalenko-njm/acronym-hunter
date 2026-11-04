@@ -165,9 +165,12 @@ def apply(M, rec, result, stage="", who=None):
             notes += bool(nid)
     if hasattr(M, "pending"):
         M.pending = True
+    comments = 0
     if rec is not None:
+        import dispositions as DP                         # 3.39.0: each comment gets a disposition, an owner and a due date
+        comments = DP.from_packet(rec, M, result, stage)
         rec.log("review", f"{stage} review packet read back: {verdicts} verdicts, {notes} comments on requirements", who=who, save=True)
-    return {"notes": notes, "verdicts": verdicts}
+    return {"notes": notes, "verdicts": verdicts, "comments": comments}
 
 
 def score(M, stage):

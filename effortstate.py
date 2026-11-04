@@ -78,6 +78,13 @@ def checks_of(rec, M=None, lib=None, rows=(), L=None, report=None, volumes=(), p
                 c["topics_considered"] = MT.all_considered(rec)
             except Exception:
                 diag.swallowed()
+            try:                                         # 3.39.0: None when there are no comments or calls yet
+                import datacalls as DC, dispositions as DP
+                c["comments_dispositioned"] = DP.all_dispositioned(rec)
+                calls = DC.items(rec)
+                c["datacalls_answered"] = (all(x.get("status") in ("Answered", "Placed") for x in calls)) if calls else None
+            except Exception:
+                diag.swallowed()
             import deliverables as DL
             if DL.items(rec):
                 sm = DL.summary(rec, rows, lib, volumes)
