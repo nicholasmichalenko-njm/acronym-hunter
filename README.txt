@@ -1,6 +1,15 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+PICTURES READ WITHOUT OPENCV (3.47.0)
+  - US editions no longer carry OpenCV. The picture steps before reading (enlarging, grey, contrast, table lines,
+    docTR's text-box finder) are this project's own code: imgops (NumPy and Pillow) and imgcore, a small compiled
+    part built from native\imgcore.c with every build.
+  - Each step gives OpenCV's exact answer; tests hold it to OpenCV's saved results. Every test picture reads the
+    same words, the test scan scores the same, and the program is about 86 MB smaller.
+  - NumPy is built without OpenBLAS (the program calls no matrix routine), about 20 MB less.
+  - The legacy edition keeps OpenCV for RapidOCR.
+
 A COMPLETE RECORD OF WHAT THE PROGRAM IS BUILT FROM (3.46.1)
   - tools\approved_packages.csv lists every Python package with its use, editions, license, maintainer, country,
     steward, any tie to China, and the sources that show it. tools\bundled_components.csv does the same for what
@@ -2089,7 +2098,7 @@ FIRST USE PER SECTION, MATH READS KEPT, LINE-REMOVAL PASS, OSV CHECK (2.22.0)
 - Math reader results are kept: in the .ahproj file for a project, otherwise in the effort's folder (settings.json).
   After a rescan or reopening, pictures in unchanged files show what the math reader read without running it again.
   A changed file drops its saved reads. With AI and ML off nothing is put back.
-- Pictures with table rules or box edges are read a second time with the lines painted out (OpenCV rules, no model);
+- Pictures with table rules or box edges are read a second time with the lines painted out (rules, no model);
   only readings the first pass lacked are added. Hard diagram set: 142 to 143 of 146 labels (lines touching text 13 to
   14 of 14), about 15% more picture time. Turn off with "line_removal_pass": 0 in config\ocr_settings.json.
 - Build PC: tools\osv_check.py checks every Python package in the release SBOMs against the OSV database (package names

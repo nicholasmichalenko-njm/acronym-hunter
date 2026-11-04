@@ -23,6 +23,11 @@ for _pkg in ['pypdfium2', 'pypdfium2_raw', 'rapidfuzz', 'openpyxl', 'onnxruntime
 _ort_tools = ('onnxruntime/transformers', 'onnxruntime/quantization', 'onnxruntime/tools')
 datas = [d for d in datas if not d[1].replace('\\', '/').startswith(_ort_tools)]
 hiddenimports = [h for h in hiddenimports if not h.startswith(('onnxruntime.transformers', 'onnxruntime.quantization', 'onnxruntime.tools'))]
+# 3.47.0: imgcore, this project's own compiled picture steps (native\imgcore.c), built by build.ps1 into vendor\imgcore.
+# It replaces OpenCV in US editions; the legacy edition keeps OpenCV for RapidOCR.
+if not os.path.isfile('vendor/imgcore/imgcore.dll'):
+    raise SystemExit('vendor\\imgcore\\imgcore.dll missing: build.ps1 compiles native\\imgcore.c first')
+binaries += [('vendor/imgcore/imgcore.dll', '.')]
 if US:
     # Tesseract engine + 3 training tools + their DLLs + Google's eng.traineddata, fetched by tools\fetch_tesseract.ps1
     if not os.path.isfile('vendor/tesseract/tesseract.exe'):
@@ -49,7 +54,7 @@ if US:
         hiddenimports += ['doctr_engine']
 # US edition also leaves out standard-library and helper modules the app never uses that link Windows networking:
 # ssl (TLS), asyncio (_overlapped), multiprocessing, psutil. Checked by tools\network_audit.py at build time.
-_edition_excludes = (['rapidocr_onnxruntime', 'pyclipper', 'shapely', 'yaml', 'six', 'tqdm', 'colorama',
+_edition_excludes = (['rapidocr_onnxruntime', 'pyclipper', 'shapely', 'yaml', 'six', 'tqdm', 'colorama', 'cv2',
                       'ssl', '_ssl', 'asyncio', 'multiprocessing', 'psutil'] if US else [])
 
 

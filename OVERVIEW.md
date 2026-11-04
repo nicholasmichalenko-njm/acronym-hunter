@@ -95,7 +95,7 @@ Unzip it, run it, delete it.
 | pypdfium2 (Google PDFium) | Opens PDFs and reads their text and pictures (v1.8.0+; replaced PyMuPDF) | Google PDFium, pypdfium2 team |
 | lxml | Reads the text inside Word, PowerPoint, and Excel files | lxml project |
 | openpyxl | Reads Excel cell values | openpyxl project |
-| OpenCV | Cleans up pictures before reading (contrast, sharpening, enlarging) | OpenCV.org |
+| imgops and imgcore | Clean up pictures before reading (enlarging, contrast, table lines); this project's own code in NumPy, Pillow and C (3.47.0; replaced OpenCV in US editions) | This project |
 | ONNX Runtime | Runs the reading models on your computer's processor | Microsoft |
 | RapidOCR + PP-OCRv4 models | The "reading glasses": find and read text in pictures | RapidAI community; models from Baidu PaddleOCR |
 | RapidFuzz | Spots near-misses like a misread letter | RapidFuzz project |
@@ -277,7 +277,7 @@ contents. Part 2, section 12 lists them and how IT normally controls them.
  User-selected files --> |  AcronymHunter.exe  (single process, standard user)         |
  (read-only)             |                                                             |
                          |  Extraction: PDFium, zipfile + hardened lxml, openpyxl      |
-                         |  Image cleanup: OpenCV (in memory)                          |
+                         |  Image cleanup: imgops + imgcore, own code (in memory)      |
                          |  OCR: ONNX Runtime + bundled RapidOCR PP-OCRv4 models       |
                          |  Matching: regex + RapidFuzz vs acronym_database.csv        |
                          |  UI: CustomTkinter / Tk                                     |
@@ -370,7 +370,8 @@ or if the network audit finds an unreviewed link. (v1.6.0 shipped the official W
 | lxml / libxml2 | 6.1.3 | BSD-3-Clause / MIT | Office XML parsing (hardened) | lxml project |
 | defusedxml | 0.7.1 | PSF-2.0 | Safe XML parsing for openpyxl | Christian Heimes |
 | openpyxl / et_xmlfile | 3.1.5 / 2.0.0 | MIT | Excel cell reading | openpyxl project |
-| OpenCV (headless) | 5.0.0.93 | Apache-2.0 | Image preprocessing | OpenCV.org |
+| OpenCV (headless) | 5.0.0.93 | Apache-2.0 | Image preprocessing, legacy edition only (3.47.0) | OpenCV.org |
+| imgops / imgcore | 3.47.0 | This project's own code | Image preprocessing in US editions, held to OpenCV's exact results by tests | This project |
 | NumPy (+ OpenBLAS) | 2.4.6 | BSD-3-Clause and others | Array math | NumPy project |
 | ONNX Runtime | 1.31.0 | MIT | Model inference | Microsoft (US) |
 | rapidocr-onnxruntime | 1.4.4 | Apache-2.0 | OCR pipeline wrapper | RapidAI open-source community (China) |
@@ -437,12 +438,12 @@ The app's real attack surface is the documents it opens. Controls:
 | Macros, scripts, embedded programs | Never executed. Office files are read as zip + XML; macros, OLE objects, and PDF JavaScript are ignored | By design (no execution path) |
 | XML entity expansion ("billion laughs") | lxml parser with `resolve_entities=False`, `load_dtd=False`, `no_network=True`, `huge_tree=False`; openpyxl uses defusedxml | Bomb file expanded to 3 characters instead of 10,000 |
 | XML external entities (XXE) | Same hardened parser; no DTD or network loading | Attempt to read `C:\Windows\win.ini` returned nothing |
-| Decompression bombs | Embedded images over 100 MB uncompressed are skipped; OpenCV pixel limits apply; tiny images skipped | Code review |
+| Decompression bombs | Embedded images over 100 MB uncompressed are skipped; Pillow's pixel limit applies; tiny images skipped | Code review |
 | Path traversal from archives | Archive members are read into memory only; nothing is extracted to disk | Code review |
 | Malformed or corrupt files | Each file, page, slide, and part is isolated; failures become "Could not read" / "Not scanned" rows and a log entry; the batch continues | Corrupt PDF test file in `test_samples` |
 | Vector graphics (SVG, EMF, WMF) | SVG parsed with the same hardened lxml parser; EMF/WMF read with a bounds-checked record reader; rendering for OCR happens in memory (Skia for SVG, Pillow/GDI for EMF/WMF). External references inside SVG are never fetched | Vector test files in `test_samples` |
 | Linked content (remote images) | Never fetched. Linked pictures are reported as "Not scanned" | 40-slide test deck with a linked picture |
-| Native parser bugs (PDFium, Skia, libxml2, OpenCV, Leptonica) | Mitigated by keeping libraries current (section 8), standard-user privileges, and endpoint protection | Ongoing |
+| Native parser bugs (PDFium, Skia, libxml2, Pillow, Leptonica, imgcore) | Mitigated by keeping libraries current (section 8), standard-user privileges, and endpoint protection | Ongoing |
 
 ## 10. AI and machine-learning specifics
 

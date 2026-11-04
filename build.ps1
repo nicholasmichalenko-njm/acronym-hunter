@@ -63,7 +63,7 @@ function Test-PublicPackage([string]$dir) {
     if ($Edition -eq 'us') {
         # US edition: no Chinese-origin OCR code or models; Google's public English model; and only the two docTR
         # models this project exported from Mindee's weights, byte for byte as recorded in vendor\doctr\doctr_models.json
-        $foreign = $files | Where-Object { $_ -match 'rapidocr|paddle|pyclipper|shapely' }
+        $foreign = $files | Where-Object { $_ -match 'rapidocr|paddle|pyclipper|shapely|\\cv2\\|opencv|openblas' }   # 3.47.0: no OpenCV, no OpenBLAS
         if ($foreign) { throw "ORIGIN CHECK FAILED: legacy OCR files in the US edition: $($foreign -join ', ')" }
         $onnx = @($files | Where-Object { $_ -like '*.onnx' } | Sort-Object)
         $want = if ($Classic) { @() } else { @('_internal\doctr\doctr_det.onnx', '_internal\doctr\doctr_reco.onnx') }
@@ -95,6 +95,16 @@ function Test-PublicPackage([string]$dir) {
 # 2.97.0: the SCIF build carries buildvariant.SCIF = True; the file goes back to False whatever happens
 $variant = "SCIF = False      # 2.97.0: True only in the SCIF build (build.ps1 -Scif writes it); logging and training are left out"
 if ($Scif) { Set-Content -Encoding ascii buildvariant.py ($variant -replace '^SCIF = False', 'SCIF = True ') }
+# 3.47.0: compile this project's picture steps (native\imgcore.c) with the MSYS2 UCRT64 GCC that builds Tesseract.
+# Plain C, no network or file code; linked only against Windows' C runtime. The DLL is rebuilt every build from source.
+$gcc = @("$env:USERPROFILE\ah_toolchain\msys64\ucrt64\bin\gcc.exe") + @((Get-Command gcc.exe -ErrorAction SilentlyContinue).Source) |
+       Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+if (-not $gcc) { throw "BUILD CHECK FAILED: GCC not found to compile native\imgcore.c (run tools\build_tesseract.ps1 once for the toolchain)" }
+New-Item -ItemType Directory -Force vendor\imgcore | Out-Null
+$env:PATH = (Split-Path $gcc) + ';' + $env:PATH
+& $gcc -O3 -ffp-contract=off -fno-fast-math -static-libgcc -s -shared -o vendor\imgcore\imgcore.dll native\imgcore.c
+if ($LASTEXITCODE -ne 0) { throw "BUILD CHECK FAILED: native\imgcore.c did not compile" }
+"imgcore built: $((Get-FileHash vendor\imgcore\imgcore.dll).Hash)"
 try {
     & .\venv\Scripts\pyinstaller.exe --noconfirm --clean Stationkeeper.spec
     if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed. See output above." }

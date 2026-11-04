@@ -67,3 +67,7 @@ team_bins.json
 # 3.38.1: the golden sets are fictional test files (tools/make_golden.py) and are always tracked
 !tests/golden/**
 !tests/golden/**/template_library/
+
+# 3.47.0: imgcore built for the tests on Linux
+native/*.so
+native/*.dll

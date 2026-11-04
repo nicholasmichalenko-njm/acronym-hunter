@@ -6,7 +6,7 @@ one, and region OCR that shows every reading, including ones below the scanner's
 import app_gui as eng          # engine: sandbox, network guard, OCR, readers (must be first)
 import os, io, re, zipfile, posixpath
 import numpy as np
-import cv2
+import imgops as IO
 from PIL import Image
 
 PAD = 16                                                # white border added around a region before reading
@@ -99,10 +99,9 @@ def list_sources(path):
 # Region OCR: shows EVERY reading, including ones below the scanner's confidence cutoff
 # --------------------------------------------------------------------------------------
 def _prepare(pil_crop):
-    bgr = cv2.cvtColor(np.array(pil_crop), cv2.COLOR_RGB2BGR)
-    bgr = cv2.copyMakeBorder(bgr, PAD, PAD, PAD, PAD, cv2.BORDER_CONSTANT, value=(255, 255, 255))
-    ok, buf = cv2.imencode(".png", bgr)
-    clean = eng.enhance_image_for_ocr(buf.tobytes())
+    bgr = IO.swap_rb(np.array(pil_crop.convert("RGB")))
+    bgr = IO.border(bgr, PAD, 255)
+    clean = eng.enhance_image_for_ocr(IO.imencode_png(bgr))
     return clean, (clean.shape[1] / bgr.shape[1] if clean is not None else 1.0)
 
 def read_region_lines(pil_crop):
@@ -125,7 +124,7 @@ def read_region_lines(pil_crop):
 def tighten(pil_crop):
     """Trim empty margins so the text fills the box (the recognizer scales every line to 48 px tall)."""
     g = np.array(pil_crop.convert("L"))
-    _t, ink = cv2.threshold(g, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    _t, ink = IO.otsu_inv(g)
     ys, xs = np.nonzero(ink)
     if len(xs) == 0 or ink.mean() > 127:       # blank, or light text on a dark background: leave as is
         return pil_crop
@@ -136,10 +135,10 @@ def tighten(pil_crop):
 def read_region_as_one_line(pil_crop):
     """Skip text detection and read the whole region as one line (recovers words the detector missed)."""
     tight = tighten(pil_crop)
-    bgr = cv2.cvtColor(np.array(tight), cv2.COLOR_RGB2BGR)
+    bgr = IO.swap_rb(np.array(tight.convert("RGB")))
     if bgr.shape[0] < 32:                      # enlarge small text so strokes survive the 48 px resize
         f = 48.0 / bgr.shape[0]
-        bgr = cv2.resize(bgr, None, fx=f, fy=f, interpolation=cv2.INTER_CUBIC)
+        bgr = IO.resize(bgr, fx=f, fy=f, cubic=True)
     res, _ = eng.get_ocr()(bgr, use_det=False, use_cls=False)
     if not res:
         return "", 0.0

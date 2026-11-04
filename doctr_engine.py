@@ -2,7 +2,7 @@
 
 Models: Mindee's docTR db_mobilenet_v3_large (finds text) and crnn_vgg16_bn (reads it), Apache 2.0, exported to
 ONNX by this project from Mindee's official weights (see doctr_models.json for weight and file SHA-256).
-Dependencies: onnxruntime, numpy, opencv. No downloads, no network code: models load from a local folder only.
+Dependencies: onnxruntime, numpy, imgops (3.47.0: no OpenCV). No downloads, no network code: models load from a local folder only.
 
 Called like the app's other engines:
     eng(img_bgr) -> ([[box, text, confidence 0-1], ...], None)     one entry per text line
@@ -12,7 +12,7 @@ for vertical labels."""
 import json, math, os
 import diag
 import numpy as np
-import cv2
+import imgops as IO
 
 DET_SIZE = 1024
 BIN_THRESH, BOX_THRESH, UNCLIP = 0.3, 0.1, 1.5
@@ -49,17 +49,15 @@ class DocTREngine:
         nh, nw = max(1, round(h * s)), max(1, round(w * s))
         canvas = np.zeros((DET_SIZE, DET_SIZE, 3), np.uint8)
         top, left = (DET_SIZE - nh) // 2, (DET_SIZE - nw) // 2
-        canvas[top:top + nh, left:left + nw] = cv2.resize(rgb, (nw, nh), interpolation=cv2.INTER_LINEAR)
+        canvas[top:top + nh, left:left + nw] = IO.resize(rgb, size=(nw, nh))
         x = ((canvas.astype(np.float32) / 255.0 - self.det_mean) / self.det_std).transpose(2, 0, 1)[None]
         logits = self.det.run(None, {self.det_in: x})[0]
         prob = 1.0 / (1.0 + np.exp(-np.squeeze(logits).astype(np.float32)))
         if prob.ndim == 3:   # (C, H, W) or (H, W, C): take the text channel
             prob = prob[0] if prob.shape[0] < prob.shape[-1] else prob[..., 0]
-        bitmap = cv2.morphologyEx((prob >= BIN_THRESH).astype(np.uint8), cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
-        contours, _ = cv2.findContours(bitmap, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        bitmap = IO.open_((prob >= BIN_THRESH).astype(np.uint8), 3, 3)
         boxes = []
-        for c in contours:
-            x0, y0, bw, bh = cv2.boundingRect(c)
+        for x0, y0, bw, bh in IO.outer_boxes(bitmap):
             if bw < 2 or bh < 2:
                 continue
             score = float(prob[y0:y0 + bh + 1, x0:x0 + bw + 1].mean())
@@ -83,7 +81,7 @@ class DocTREngine:
         else:
             nh, nw = RECO_H, max(1, round(RECO_H * w / h))
         out = np.zeros((RECO_H, RECO_W, 3), np.uint8)
-        out[:nh, :nw] = cv2.resize(crop, (nw, nh), interpolation=cv2.INTER_LINEAR)
+        out[:nh, :nw] = IO.resize(crop, size=(nw, nh))
         return ((out.astype(np.float32) / 255.0 - self.reco_mean) / self.reco_std).transpose(2, 0, 1)
 
     def _read_batch(self, crops):
@@ -157,7 +155,7 @@ class DocTREngine:
             vertical = len(lone) >= 3
             lines += [ln for ln in got if not (vertical and len(ln[1].replace(" ", "")) <= 1)]
         if extra_passes:
-            if cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY).mean() < 110:   # light text on a dark background
+            if IO.rgb2gray(rgb).mean() < 110:   # light text on a dark background
                 lines += self._pass(255 - rgb)
             if vertical:
                 wide = lambda b: (b[2] - b[0]) > 1.5 * (b[3] - b[1])   # horizontal in the turned page = vertical originally
@@ -169,7 +167,7 @@ class DocTREngine:
         return lines
 
     def __call__(self, img, use_det=True, text_score=None, **_ignored):
-        rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) if img.ndim == 3 else cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+        rgb = IO.swap_rb(img) if img.ndim == 3 else IO.gray2bgr(img)
         if not use_det:
             got = self._read_batch([rgb])
             return ([[got[0][0], got[0][1]]] if got and got[0][0] else []), None

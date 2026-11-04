@@ -38,7 +38,7 @@ these are governed by the same IT controls as every other application.
   +-----------------------  AcronymHunter.exe  (one Windows process)  ------------------------+
   |                                                                                           |
   |  1. Extraction      PDFium (PDF), zipfile + lxml (Word/PowerPoint/Excel XML), openpyxl    |
-  |  2. Image cleanup   OpenCV in memory: enlarge, contrast, denoise                          |
+  |  2. Image cleanup   own code (imgops, imgcore) in memory: enlarge, contrast, table lines  |
   |  3. OCR             ONNX Runtime + RapidOCR models bundled in _internal\ (no download)    |
   |  4. Matching        regex + RapidFuzz against acronym_database.csv                        |
   |  5. Window          CustomTkinter / Tk                                                    |
@@ -166,7 +166,7 @@ Audit 2026-10-20: no document data, user paths, or trained knowledge in the pack
 
 | Check | Result |
 |---|---|
-| Libraries with network features used by the app | None. PDFium, Skia, lxml, openpyxl, OpenCV, Tesseract, RapidFuzz, CustomTkinter have no network calls in the code paths used. `tools\network_audit.py` lists every shipped file that links a networking API |
+| Libraries with network features used by the app | None. PDFium, Skia, lxml, openpyxl, Pillow, imgcore, Tesseract, RapidFuzz, CustomTkinter have no network calls in the code paths used. `tools\network_audit.py` lists every shipped file that links a networking API |
 | Vector graphics (SVG, EMF, WMF) | Parsed with the hardened lxml parser (no entities, no DTD, no network) or a built-in record reader. SVG references to external images or fonts are never fetched; Skia draws the SVG from the bytes in memory |
 | OCR models | Tesseract: Google's eng.traineddata (SHA-256 checked at build). docTR (v2.1.0+): `_internal\doctr\doctr_det.onnx` and `doctr_reco.onnx`, exported by this project from Mindee's official weights; SHA-256 checked at build against `vendor\doctr\doctr_models.json`. Never downloaded |
 | ONNX Runtime usage telemetry | Disabled in code (`disable_telemetry_events()`) |
@@ -202,7 +202,7 @@ PC is never used; delete them.
   hash prefixes in Mindee's file names. No third-party conversion is used. `vendor\doctr\SOURCE.txt` records
   every hash.
 - **Runtime:** ONNX Runtime 1.31.0 (Microsoft, MIT) in the app's own process, CPU only. The runner,
-  `doctr_engine.py`, is this project's own code: about 250 lines of NumPy and OpenCV, with no OnnxTR or docTR
+  `doctr_engine.py`, is this project's own code: about 250 lines of NumPy and this project's imgops, with no OnnxTR or docTR
   package. OnnxTR was rejected because it imports Hugging Face's download client and HTTP libraries.
 - **No network path:**
   - Models load from `_internal\doctr` by file path only.

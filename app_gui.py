@@ -131,7 +131,7 @@ import unicodedata
 import zipfile
 import threading
 import subprocess
-import cv2
+import imgops as IO   # 3.47.0: picture steps in NumPy, Pillow and our own imgcore (OpenCV only in the legacy edition)
 import pypdfium2 as pdfium        # Google PDFium (BSD-3 / Apache-2.0): PDF text, pictures, page images
 import pypdfium2.raw as _pdfium_raw
 import openpyxl
@@ -463,13 +463,11 @@ class TesseractEngine:
             OCR_MODEL_INFO = "Tesseract 5 with Google's English model (tessdata_best)"
 
     def _run(self, img, psm):
-        img = cv2.copyMakeBorder(img, 12, 12, 12, 12, cv2.BORDER_CONSTANT, value=255 if img.ndim == 2 else (255, 255, 255))
-        ok, buf = cv2.imencode(".png", img)
-        if not ok:
-            return []
+        img = IO.border(img, 12, 255)
+        buf = IO.imencode_png(img)
         cmd = [self.exe, "stdin", "stdout", "--tessdata-dir", self.tessdata, "-l", self.lang, "--psm", str(psm),
                "--dpi", "300", "-c", "tessedit_create_tsv=1", "-c", "tessedit_create_txt=0"]
-        code, out, err = run_tesseract_tool(cmd, buf.tobytes(), timeout=180,
+        code, out, err = run_tesseract_tool(cmd, buf, timeout=180,
                                             read_dirs=[self.tessdata] if self.tessdata != os.path.join(TESS_DIR, "tessdata") else [])
         if code != 0:
             raise RuntimeError("Tesseract failed: " + err.decode("utf-8", "replace").strip()[-300:])
@@ -494,7 +492,7 @@ class TesseractEngine:
             flat.append((x0, y0, x1, y1, EL.join_words(words), conf))
         if len(flat) > 1:
             try:
-                gray = img if img.ndim == 2 else cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                gray = img if img.ndim == 2 else IO.bgr2gray(img)
                 flat = EL.fractions(flat, gray[12:-12, 12:-12])   # word boxes are in unpadded coordinates
             except Exception:
                 diag.swallowed()
@@ -646,11 +644,10 @@ def load_database():
     return include_db, exclude_db, exclude_upper
 
 # ==============================================================================
-# 4. LAYER 2 & 3: OPENCV IMAGE PRE-PROCESSING & ONNX OCR READER
+# 4. LAYER 2 & 3: IMAGE PRE-PROCESSING (imgops, imgcore) & OCR READER
 # ==============================================================================
 def enhance_image_for_ocr(image_bytes):
-    np_arr = np.frombuffer(image_bytes, np.uint8)
-    img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+    img = IO.imdecode(image_bytes, "color")
     if img is None:
         return None
     height, width = img.shape[:2]
@@ -659,11 +656,12 @@ def enhance_image_for_ocr(image_bytes):
         return None
     if width < OCR_CFG["upscale_below_px"] and OCR_CFG["upscale_factor"] > 1:
         f = float(OCR_CFG["upscale_factor"])
-        img = cv2.resize(img, None, fx=f, fy=f, interpolation=cv2.INTER_CUBIC)
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img = IO.resize(img, fx=f, fy=f, cubic=True)
+    gray = IO.bgr2gray(img)
     if OCR_CFG["contrast_clip"] > 0:
-        gray = cv2.createCLAHE(clipLimit=float(OCR_CFG["contrast_clip"]), tileGridSize=(8, 8)).apply(gray)
+        gray = IO.clahe(gray, float(OCR_CFG["contrast_clip"]), (8, 8))
     if OCR_CFG["denoise_strength"] > 0 and OCR_BACKEND != "tesseract":   # Tesseract binarizes on its own; denoise only cost time
+        import cv2                      # legacy edition only (RapidOCR reads there); US editions read with Tesseract
         gray = cv2.fastNlMeansDenoising(gray, None, h=float(OCR_CFG["denoise_strength"]),
                                         templateWindowSize=7, searchWindowSize=21)
     return gray
@@ -716,17 +714,15 @@ def _ocr_lines(img, x_off=0, y_off=0):
 
 def remove_lines(gray):
     """The picture with long straight lines (table rules, box edges, connectors) painted white, or None when it has
-    few lines. Text touching a line reads better once the line is gone (2.22.0). Rules only (OpenCV), no model."""
+    few lines. Text touching a line reads better once the line is gone (2.22.0). Rules only (imgops), no model."""
     h, w = gray.shape[:2]
     if h < 40 or w < 40:
         return None
-    bw = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 15, 10)
-    hk = cv2.getStructuringElement(cv2.MORPH_RECT, (max(30, w // 25), 1))
-    vk = cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(30, h // 25)))
-    mask = cv2.bitwise_or(cv2.morphologyEx(bw, cv2.MORPH_OPEN, hk), cv2.morphologyEx(bw, cv2.MORPH_OPEN, vk))
-    if cv2.countNonZero(mask) < 0.002 * h * w:
+    bw = IO.adaptive_mean_inv(gray, 15, 10)
+    mask = np.bitwise_or(IO.open_(bw, max(30, w // 25), 1), IO.open_(bw, 1, max(30, h // 25)))
+    if np.count_nonzero(mask) < 0.002 * h * w:
         return None
-    mask = cv2.dilate(mask, np.ones((3, 3), np.uint8))
+    mask = IO.dilate(mask, 3, 3)
     out = gray.copy()
     out[mask > 0] = 255
     return out
@@ -793,17 +789,17 @@ def doctr_info():
         return f"unavailable ({type(e).__name__})"
 
 def _decode_rgb(image_bytes):
-    arr = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_UNCHANGED)
+    arr = IO.imdecode(image_bytes, "unchanged")
     if arr is None:
         return None
     if arr.ndim == 2:
-        arr = cv2.cvtColor(arr, cv2.COLOR_GRAY2BGR)
+        arr = IO.gray2bgr(arr)
     elif arr.shape[2] == 4:                       # transparent picture: flatten onto white
         a = arr[:, :, 3:4].astype(np.float32) / 255.0
         arr = (arr[:, :, :3].astype(np.float32) * a + 255.0 * (1 - a)).astype(np.uint8)
     if arr.dtype != np.uint8:
-        arr = cv2.convertScaleAbs(arr, alpha=255.0 / max(1, int(arr.max())))
-    return cv2.cvtColor(arr, cv2.COLOR_BGR2RGB)
+        arr = IO.scale_abs(arr, 255.0 / max(1, int(arr.max())))
+    return IO.swap_rb(arr)
 
 def _norm_tok(t):
     return re.sub(r"[^0-9a-z&]", "", t.lower())
@@ -2375,7 +2371,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "3.46.1"            # keep in step with version_info.txt
+APP_VERSION = "3.47.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"

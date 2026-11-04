@@ -9,7 +9,7 @@ lstmeval.exe from the app's _internal\\tesseract folder). No GPU, no Python ML l
 """
 import os, re, csv, json, time, shutil, hashlib, datetime, subprocess
 import numpy as np
-import cv2
+import imgops as IO
 
 _NOWIN = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 MIN_SAMPLES = 20          # below this, training is refused (it would only memorize a handful of lines)
@@ -103,14 +103,14 @@ def read_samples(train_dir):
 
 def _prepare_line(src, dst, min_h=40):
     """Grayscale, white border, small lines enlarged so Tesseract sees strokes at a normal size."""
-    img = cv2.imdecode(np.fromfile(src, np.uint8), cv2.IMREAD_GRAYSCALE)
+    img = IO.imread(src, "gray")
     if img is None:
         return None
     if img.shape[0] < min_h:
         f = min_h / img.shape[0]
-        img = cv2.resize(img, None, fx=f, fy=f, interpolation=cv2.INTER_CUBIC)
-    img = cv2.copyMakeBorder(img, 8, 8, 8, 8, cv2.BORDER_CONSTANT, value=255)
-    cv2.imwrite(dst, img)
+        img = IO.resize(img, fx=f, fy=f, cubic=True)
+    img = IO.border(img, 8, 255)
+    IO.imwrite_png(dst, img)
     return img.shape[1], img.shape[0]
 
 def _box_text(text, w, h):
