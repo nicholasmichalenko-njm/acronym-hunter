@@ -2,7 +2,7 @@
 
 The card shows the place: a PDF page drawn whole with the typed find boxed (and stepping through finds and places),
 typed text in Word or PowerPoint with the find highlighted, and a picture inside a file drawn with the reader's lines
-boxed (the reader is stood in for: no OCR engine in the test container). Acronym Finder opens from the Tools menu and
+boxed (the reader is stood in for: no OCR engine in the test container). Acronym Finder opens from its button at the foot of the menu and
 alone (--acronyms), keeps its own list apart from every effort, scans, exports the list (Word, Excel, CSV) and checks
 first use in Word files. Fictional content."""
 import csv, io, os, sys, tempfile, time, zipfile
@@ -54,7 +54,9 @@ check("a Word paragraph shows the passage with the find highlighted", fv2.wait()
 # ---- a picture inside a file: drawn whole, the reader's lines boxed (reader stood in for)
 import pictures as PIC
 real = PIC.read_region_lines
-PIC.read_region_lines = lambda img: [((20, 20, 220, 50), "EPS power budget", 0.95), ((20, 70, 200, 100), "ADCS trade", 0.30)]
+LOW = max(0.0, A.ocr_cutoff() - 0.2)                   # below the reader's cutoff, whichever reader this PC has
+PIC.read_region_lines = lambda img: [((20, 20, 220, 50), "EPS power budget", 0.99), ((20, 70, 200, 100), "ADCS trade", LOW),
+                                     ((20, 120, 200, 150), "thermal margin", 0.99)]
 fv3 = FoundView("EPS", ["Kestrel_System_Diagram.png (Image)"], lambda n: paths.get(n)); fv3.resize(700, 600); fv3.show(); app.processEvents()
 fv3.wait()
 kinds = sorted(k for _b, k in fv3.view.boxes)
@@ -72,7 +74,7 @@ check("a file no longer on this PC says so", fv5.state == "missing" and "not on 
 # ---- Acronym Finder
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 acts = [a.text() for a in w.tools_menu.actions()]
-check("Tools at the top of the window opens Acronym Finder", "Acronym Finder (its own window)" in acts)
+check("the Acronym Finder button at the foot of the menu opens it; its arrow lists the tools", "Acronym Finder (its own window)" in acts and w.tools_btn.text() == "Acronym Finder")
 tw = w.open_tool("acronyms"); app.processEvents()
 check("it is a window of its own, with its own list apart from every effort", tw.isVisible() and tw is not w
       and tw.page.session is not None and tw.host.ws.root.startswith(cfg) and not tw.page.b_cust.isVisibleTo(tw))
@@ -138,6 +140,48 @@ check("the first use report shows and exports", d.table.rowCount() == len(rep["f
 check("Start a new list clears it", tw.new_list() and not tw.page.session.results)
 from skqt.acronympage import AcronymPage
 check("Acronyms (in an effort) has Open in its own window", w.acronym_page.b_window.text() == "Open in its own window")
+# ---- First Use Check: one document on its own
+def make_docx(path, paras):
+    ct = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+          '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>'
+          '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>')
+    rels = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>')
+    body = "".join(f'<w:p><w:r><w:t xml:space="preserve">{t}</w:t></w:r></w:p>' for t in paras)
+    doc = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+           f'<w:body>{body}<w:sectPr/></w:body></w:document>')
+    with zipfile.ZipFile(path, "w") as z:
+        z.writestr("[Content_Types].xml", ct); z.writestr("_rels/.rels", rels); z.writestr("word/document.xml", doc)
+    return path
+
+
+fu_doc = make_docx(os.path.join(tmp, "Kestrel Volume I.docx"), [
+    "The PDR schedule is set and the team is ready for the PDR.",
+    "The Preliminary Design Review (PDR) was held in March with the full team present.",
+    "The Critical Design Review (CDR) follows the PDR by six months.",
+    "After the Critical Design Review (CDR) the build starts, and the CDR closes the design.",
+    "The EPS margin is positive and the EPS mass is within the allocation.",
+    "The Attitude Determination and Control System (ADCS) points the payload; the ADCS meets every pointing requirement."])
+acts = [a.text() for a in w.tools_menu.actions()]
+check("First Use Check is in the tools list, and on Submission Check", "First Use Check (its own window)" in acts
+      and w.qa_page.b_firstuse.text().startswith("First Use Check"))
+fw = w.open_tool("firstuse"); app.processEvents()
+check("First Use Check is a window of its own", fw.isVisible() and fw is not w)
+fw.set_files([fu_doc])
+rep2 = fw.check(wait=True)
+by = {r["term"]: r for r in (rep2 or {}).get("first_use", [])}
+check("used before it is defined: a fix, with where it is spelled out", by.get("PDR", {}).get("level") == "bad"
+      and "spelled out later" in by["PDR"]["state"], by.get("PDR"))
+check("defined more than once: listed with where it is spelled out again", by.get("CDR") and by["CDR"]["also_defined"], by.get("CDR"))
+check("never defined: a fix", by.get("EPS", {}).get("level") == "bad" and "Never defined" in by["EPS"]["state"], by.get("EPS"))
+check("defined at first use: fine", by.get("ADCS", {}).get("state", "").startswith("Defined at first use"), by.get("ADCS"))
+check("Problems shows the fixes and checks only", fw.t.rowCount() == len([r for r in rep2["first_use"] if r["level"] in ("bad", "warn")])
+      and fw.t.rowCount() >= 2)
+fw.t.setCurrentCell(0, 0); app.processEvents()
+check("selecting a row shows its first use in the document", fw.fv is not None and fw.fv.wait() == "text"
+      and fw.fv.where.text().startswith("Place 1 of"), fw.fv and (fw.fv.state, fw.fv.where.text()))
+check("the report exports", fw.export(os.path.join(tmp, "first_use_check.xlsx")))
+fw.close()
 tw.close(); w.close()
 n = sum(checks)
 print(f"QT ACRONYM FINDER {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

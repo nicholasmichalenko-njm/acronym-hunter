@@ -190,7 +190,20 @@ class MainWindow(QMainWindow):
         rail.setFixedWidth(232 - 2); rail_scroll.setWidget(rail)
         rail_col = QWidget(); rail_col.setObjectName("railbox"); rail_col.setFixedWidth(232)
         rcv = QVBoxLayout(rail_col); rcv.setContentsMargins(0, 0, 0, D.SPACE["m"]); rcv.setSpacing(0)
-        rcv.addWidget(self.rail_brand); rcv.addWidget(rail_scroll, 1); rcv.addWidget(self.rail_footer)
+        from PySide6.QtWidgets import QMenu, QToolButton           # 3.50.0: tools in their own windows, one click away
+        self.tools_btn = QToolButton(); self.tools_btn.setText("Acronym Finder")
+        self.tools_btn.setPopupMode(QToolButton.MenuButtonPopup); self.tools_btn.setCursor(Qt.PointingHandCursor)
+        self.tools_btn.setToolTip("Opens Acronym Finder in its own window (no effort needed); the arrow lists every tool that "
+                                  "opens in its own window")
+        self.tools_btn.clicked.connect(lambda: self.open_tool("acronyms"))
+        self.tools_btn.setStyleSheet("QToolButton { color: #E5E7EB; background: transparent; border: 1px solid rgba(255,255,255,0.28);"
+                                     " border-radius: 6px; padding: 5px 8px; margin: 4px 10px; text-align: left; }"
+                                     " QToolButton:hover { background: rgba(255,255,255,0.10); }")
+        self.tools_menu = QMenu(self.tools_btn)
+        self.tools_menu.addAction("Acronym Finder (its own window)").triggered.connect(lambda: self.open_tool("acronyms"))
+        self.tools_menu.addAction("First Use Check (its own window)").triggered.connect(lambda: self.open_tool("firstuse"))
+        self.tools_btn.setMenu(self.tools_menu)
+        rcv.addWidget(self.rail_brand); rcv.addWidget(rail_scroll, 1); rcv.addWidget(self.tools_btn); rcv.addWidget(self.rail_footer)
         rh.addWidget(rail_col)
         col = QWidget(); cv = QVBoxLayout(col); cv.setContentsMargins(0, 0, 0, 0); cv.setSpacing(0)
         # the top bar: where you are, the effort, search, and whether everything is saved
@@ -213,13 +226,6 @@ class MainWindow(QMainWindow):
         self.undo_btn = D.button("Undo", "ghost", lambda: self.undo_here(), "Undo the last change on this page (Ctrl+Z)")   # 3.18.2
         self.undo_btn.setEnabled(False)
         bh.addWidget(self.undo_btn)
-        from PySide6.QtWidgets import QMenu, QToolButton           # 3.50.0: tools in their own windows, one click away
-        self.tools_btn = QToolButton(); self.tools_btn.setText("Tools"); self.tools_btn.setPopupMode(QToolButton.InstantPopup)
-        self.tools_btn.setToolTip("Tools that open in their own window, for quick jobs with no effort")
-        self.tools_menu = QMenu(self.tools_btn)
-        self.tools_menu.addAction("Acronym Finder (its own window)").triggered.connect(lambda: self.open_tool("acronyms"))
-        self.tools_btn.setMenu(self.tools_menu)
-        bh.addWidget(self.tools_btn)
         self.issue_btn = D.button("Issue or idea", "ghost", lambda: self.open_issues(),
                                   "Write down a bug, an improvement or an idea about this page (Ctrl+Shift+I). It stays on this PC.")
         bh.addWidget(self.issue_btn)                 # 3.9.0
@@ -1175,6 +1181,9 @@ class MainWindow(QMainWindow):
         if which == "acronyms":
             from .acrtool import open_tool
             return open_tool(self.config_dir)
+        if which == "firstuse":
+            from .firstusetool import open_tool as open_fu
+            return open_fu(self.config_dir)
         return None
 
     def status(self, text):

@@ -86,6 +86,10 @@ def main(argv=None):
     diag.activity("qt_started")
     import supportfile as SF                         # 2.81.0: two starts in a row that never finished: a safe start
     safe = SF.begin(A.SANDBOX_DIR) if "--selftest" not in args else False
+    if "--firstuse" in args or "/firstuse" in args:          # 3.50.0: First Use Check alone
+        from skqt.firstusetool import open_tool as _open_fu
+        _fu = _open_fu(A.CONFIG_DIR, [a for a in args[1:] if a.lower().endswith(".docx") and os.path.isfile(a)])
+        return app.exec()
     if "--acronyms" in args or "/acronyms" in args:                         # 3.50.0: Acronym Finder alone, for a quick scan and list
         from skqt.acrtool import open_tool
         _tool = open_tool(A.CONFIG_DIR)

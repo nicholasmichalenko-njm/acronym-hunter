@@ -7,10 +7,13 @@ WHERE AN ACRONYM WAS FOUND, AND ACRONYM FINDER (3.50.0)
     low-confidence readings in red, typed text on a PDF page in orange. Zoom with the wheel or + and -, drag to move,
     Fit, Enlarge. Typed text shows the passage with the term highlighted. Find < and > step through every find; click
     a place in the list to jump to it.
-  - Acronym Finder, in its own window (Tools at the top of the main window, Acronyms > Open in its own window, or start
+  - Acronym Finder, in its own window (its button at the foot of the menu, Acronyms > Open in its own window, or start
     Stationkeeper.exe --acronyms): scan any files or a folder with no effort open, check meanings and where each term
     was found, export the list (Word table, Excel or CSV), and check first use in your own Word files. Its list is its
     own, on this PC.
+  - First Use Check, in its own window (the arrow beside Acronym Finder, Submission Check, or Stationkeeper.exe
+    --firstuse): add Word files and see where each acronym is first used, and every one used before it is defined,
+    never defined, or spelled out more than once, with the place shown. No effort needed. Export to Excel.
   - Symbols are back: beside every definition box (Acronyms card, Acronym list > Edit definition...) a Symbols button
     opens Greek letters, subscripts, superscripts, math, accents, units and arrows; right-click a box (or select text
     and press Ctrl+Shift+Space) to make the selection subscript, superscript or normal text (H2O becomes H₂O, m2

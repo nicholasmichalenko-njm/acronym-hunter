@@ -7,7 +7,7 @@ each term and its meaning, ready to paste into a volume. Check first use in your
 first appears, and whether it is spelled out there.
 
 The window keeps its own list on this PC (<config>\\acronym_tool), apart from every effort; it reopens with the last
-scan. Open it from the Tools menu at the top of the main window, from Acronyms > Open in its own window, or start the
+scan. Open it from its button at the foot of the main window's menu (the arrow lists every tool), from Acronyms > Open in its own window, or start the
 program with --acronyms for this window alone. Rules and the trained readers only (No AI); nothing leaves the PC."""
 import csv
 import os

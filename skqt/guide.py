@@ -316,7 +316,7 @@ TOPICS = [
   "The acronym scan as a tool in its own window, for quick jobs with no effort: scan any files, check each term's meaning "
   "and where it was found, export the list, check first use in your own Word files.",
   "When you need a list of a document's acronyms and their meanings, or to check a submittal's first uses, fast.",
-  ["Open it from Tools at the top of the main window, from Acronyms > Open in its own window, or start the program with "
+  ["Open it from its button at the foot of the menu (the arrow beside it lists every tool that opens in its own window), from Acronyms > Open in its own window, or start the program with "
    "the acronyms switch (a shortcut to Stationkeeper.exe with /acronyms or the double-hyphen form opens only this window).",
    "Scan files... or Scan a folder...: every acronym, abbreviation, unit and symbol, in typed text and in pictures, with its "
    "meaning. Select a term: its card shows where it was found, the picture or page with every reading boxed (yellow is "
@@ -329,6 +329,20 @@ TOPICS = [
    "Symbols: beside the definition box, Greek letters, subscripts, superscripts, math, accents, units and arrows. Right-click "
    "a box, or press Ctrl+Shift+Space, to make the selection subscript, superscript or normal text (H₂O, m²)."],
   ["Its list is its own, on this PC, apart from every effort; it reopens with the last scan."]),
+ ("firstuse", "Writing", "First Use Check (its own window)",
+  "One or more Word files checked on their own: where each acronym is first used, and every acronym used before it is "
+  "defined, never defined, or spelled out more than once.",
+  "Before a document goes out, or whenever you need to know a draft's first uses fast, with no effort open.",
+  ["Open it from the arrow beside Acronym Finder at the foot of the menu, from Submission Check, or start the program with "
+   "the firstuse switch and the Word files after it.",
+   "Add Word files (or drop them on the window) in the order they are read. First use restarts in each file, in each section "
+   "of each file, or runs across all the files. Press Check.",
+   "Problems lists every fix and check: used before it is defined (with where it is spelled out later), never defined, "
+   "spelled out again (with where), defined but never used again, written as (ACR) without its words. Every acronym "
+   "shows them all.",
+   "Select a row: the place shows on the right, the passage with the acronym highlighted or the picture with it boxed.",
+   "Export the report to Excel."],
+  ["Submission Check does the same for an effort's volumes and also compares each spell-out with the effort's acronym list."]),
  ("acronyms", "Writing", "Acronyms",
   "One place for acronyms, abbreviations, units and symbols, in three tabs: Scan finds them in the customer's "
   "documents or your own drafts; Acronym List is the effort's list with approved definitions, and (3.37.0) Show > "
