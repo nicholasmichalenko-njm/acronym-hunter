@@ -14,7 +14,7 @@ overwritten. Items go into a standard being edited (Use in this standard), and a
 
 Kept in <config>\\template_library (index.json, items\\<id>.json and sources\\ for kept files): the team's data, never
 in the program folder or the code, and carried by the Our data file. Nothing leaves the PC."""
-import copy, datetime, getpass, hashlib, json, os, re, shutil, uuid
+import contextlib, copy, datetime, getpass, hashlib, json, os, re, shutil, uuid
 
 FOLDER = "template_library"
 SHELVES = (("style", "Styles"), ("page_setup", "Page setups"), ("hf", "Headers and footers"), ("heading_numbering", "Heading numbering"),
@@ -24,13 +24,16 @@ SHELVES = (("style", "Styles"), ("page_setup", "Page setups"), ("hf", "Headers a
            ("variables", "Base fonts and sizes"), ("part", "Section designs"), ("pagination", "Pagination schemes"),   # 3.33.0
            ("title", "Title pages"), ("cover_design", "Cover layouts"),                                         # 3.34.0
            ("matrix_view", "Matrix views"),                                                                     # 3.35.0
-           ("section", "Sections"))                                                                             # 3.44.0
+           ("section", "Sections"),                                                                             # 3.44.0
+           ("captions", "Captions"))                                                                            # 3.49.0
 THEME_SLOTS = ("dk1", "lt1", "dk2", "lt2", "accent1", "accent2", "accent3", "accent4", "accent5", "accent6", "hlink", "folHlink")
 THEME_NAMES = {"dk1": "Text dark 1", "lt1": "Background light 1", "dk2": "Text dark 2", "lt2": "Background light 2",
                "accent1": "Accent 1", "accent2": "Accent 2", "accent3": "Accent 3", "accent4": "Accent 4", "accent5": "Accent 5",
                "accent6": "Accent 6", "hlink": "Hyperlink", "folHlink": "Followed hyperlink"}
 SHELF = dict(SHELVES)
 USES = ("RFP", "Page-limited RFP", "RFI", "Program document", "Customer document")
+NAMED_KINDS = ("style", "page_setup", "hf", "table_style")     # 3.49.0: kinds whose name is what they are for
+STATUSES = (("draft", "Draft"), ("approved", "Approved"), ("retired", "Retired"))     # 3.49.0: an item's status
 
 
 def folder(config_dir):
@@ -54,11 +57,15 @@ class Library:
         self.root = folder(config_dir)
         self.items = []
         self.kits = []
+        self._tx = None                                 # 3.49.0: a transaction in progress (see transaction())
+        self._mtime = None
         self.load()
 
     def load(self):
         try:
-            with open(os.path.join(self.root, "index.json"), encoding="utf-8") as f:
+            p = os.path.join(self.root, "index.json")
+            self._mtime = os.path.getmtime(p) if os.path.isfile(p) else None
+            with open(p, encoding="utf-8") as f:
                 d = json.load(f) or {}
             self.items = [i for i in d.get("items", []) if isinstance(i, dict) and i.get("id") and i.get("kind")]
             self.kits = [k for k in d.get("kits", []) if isinstance(k, dict) and k.get("id") and k.get("name")]
@@ -163,11 +170,66 @@ class Library:
         return [(k, a.get(k), b.get(k)) for k in sorted(set(a) | set(b)) if a.get(k) != b.get(k)]
 
     def save(self):
+        if self._tx is not None:                        # 3.49.0: inside a transaction the index is written once, at its end
+            return
         os.makedirs(os.path.join(self.root, "items"), exist_ok=True)
         p = os.path.join(self.root, "index.json")
         with open(p + ".tmp", "w", encoding="utf-8") as f:
             json.dump({"format": 1, "items": self.items, "kits": self.kits}, f, indent=1, ensure_ascii=False)
         os.replace(p + ".tmp", p)
+        self._mtime = os.path.getmtime(p)
+
+    # ------------------------------------------------------------ 3.49.0 all or nothing; another window's changes
+    @contextlib.contextmanager
+    def transaction(self):
+        """Every change inside is kept together or not at all: the index is written once at the end; when anything
+        raises, the items, kits and every value file and kept file written inside go back to how they were, and the
+        error goes on to the caller. Nested use joins the outer one."""
+        if self._tx is not None:
+            yield self
+            return
+        self._tx = {"items": copy.deepcopy(self.items), "kits": copy.deepcopy(self.kits), "files": []}
+        try:
+            yield self
+        except BaseException:
+            tx, self._tx = self._tx, None
+            self.items, self.kits = tx["items"], tx["kits"]
+            for path, old in reversed(tx["files"]):
+                try:
+                    if old is None:
+                        os.remove(path)
+                    else:
+                        with open(path, "wb") as f:
+                            f.write(old)
+                except OSError:
+                    pass
+            raise
+        self._tx = None
+        self.save()
+
+    def _wrote(self, path):
+        """Called before a file is written inside a transaction: what to put back if it fails."""
+        if self._tx is not None and path not in {p for p, _o in self._tx["files"]}:
+            old = open(path, "rb").read() if os.path.isfile(path) else None
+            self._tx["files"].append((path, old))
+
+    def _write_values(self, iid, values):
+        os.makedirs(os.path.join(self.root, "items"), exist_ok=True)
+        p = os.path.join(self.root, "items", iid + ".json")
+        self._wrote(p)
+        with open(p + ".tmp", "w", encoding="utf-8") as f:
+            json.dump(values, f, indent=1, ensure_ascii=False)
+        os.replace(p + ".tmp", p)
+
+    def fresh(self):
+        """Reads the library again when another window (or a background job) saved it since this one read it.
+        Returns True when it did."""
+        p = os.path.join(self.root, "index.json")
+        m = os.path.getmtime(p) if os.path.isfile(p) else None
+        if m != self._mtime and self._tx is None:
+            self.load()
+            return True
+        return False
 
     # ------------------------------------------------------------ items
     def values(self, item):
@@ -187,11 +249,11 @@ class Library:
         """('same', item) when the library holds these values already; ('variant', item) for the same name with other
         values; ('new', None) otherwise."""
         h = _hash(values)
-        same = next((i for i in self.items if i["kind"] == kind and i.get("hash") == h), None)
-        if same:
+        named = lambda i: (i["name"].casefold() == (name or "").casefold() or (i.get("base_name") or "").casefold() == (name or "").casefold())
+        same = next((i for i in self.items if i["kind"] == kind and i.get("hash") == h and (kind not in NAMED_KINDS or named(i))), None)
+        if same:                                        # 3.49.0: a style, page setup or header is the same only under its own name
             return "same", same
-        fam = [i for i in self.items if i["kind"] == kind and (i["name"].casefold() == (name or "").casefold()
-                                                                 or (i.get("base_name") or "").casefold() == (name or "").casefold())]
+        fam = [i for i in self.items if i["kind"] == kind and named(i)]
         var = max(fam, key=lambda i: int(i.get("version") or 0)) if fam else None      # 3.33.0: the family's newest version
         return ("variant", var) if var else ("new", None)
 
@@ -225,11 +287,7 @@ class Library:
                 "tags": copy.deepcopy(tags or {}), "source": os.path.basename(source or ""), "summary": (summary or "")[:300],
                 "variant_of": "", "at": _now(), "by": who or getpass.getuser(),
                 "family": family or iid, "version": ver, "label": " ".join(str(label or "").split())[:80], "note": str(note or "")[:400]}
-        os.makedirs(os.path.join(self.root, "items"), exist_ok=True)
-        p = os.path.join(self.root, "items", item["id"] + ".json")
-        with open(p + ".tmp", "w", encoding="utf-8") as f:
-            json.dump(values, f, indent=1, ensure_ascii=False)
-        os.replace(p + ".tmp", p)
+        self._write_values(item["id"], values)
         self.items.append(item)
         self.save()
         return item, "new"
@@ -239,10 +297,7 @@ class Library:
         i = self.get(iid)
         if i is None or not isinstance(values, dict):
             return False
-        p = os.path.join(self.root, "items", iid + ".json")
-        with open(p + ".tmp", "w", encoding="utf-8") as f:
-            json.dump(values, f, indent=1, ensure_ascii=False)
-        os.replace(p + ".tmp", p)
+        self._write_values(iid, values)
         i["hash"] = _hash(values)
         i["edited"] = _now()
         if i["kind"] == "style":
@@ -294,10 +349,11 @@ class Library:
         self.items.remove(i)
         for k in self.kits:
             k["items"] = [x for x in k["items"] if x != iid]
-        try:
-            os.remove(os.path.join(self.root, "items", iid + ".json"))
-        except OSError:
-            pass
+        if self._tx is None:                            # 3.49.0: inside a transaction the file stays until it is kept
+            try:
+                os.remove(os.path.join(self.root, "items", iid + ".json"))
+            except OSError:
+                pass
         self.save()
         return True
 
@@ -337,6 +393,7 @@ class Library:
         d = os.path.join(self.root, "sources")
         os.makedirs(d, exist_ok=True)
         if not os.path.isfile(os.path.join(d, fn)):
+            self._wrote(os.path.join(d, fn))
             with open(os.path.join(d, fn), "wb") as f:
                 f.write(b)
         return fn
@@ -669,6 +726,9 @@ def use_values(config_dir, k, name, v, work, category="", file_path=None, src=""
         part = category or v.get("part", "body")
         work.setdefault("hf_designs", {})[part] = {x: v[x] for x in ("header", "footer", "header_media", "footer_media") if x in v}
         return f"header and footer design for {part}"
+    if k == "captions":                                 # 3.49.0: the caption rules (label, place, numbering)
+        work["captions"] = copy.deepcopy(v.get("captions") or [])
+        return "captions"
     if k == "theme":
         work["theme"] = {"name": v.get("name", ""), "xml": v.get("xml", "")}
         return f"theme {v.get('name', '')}"
