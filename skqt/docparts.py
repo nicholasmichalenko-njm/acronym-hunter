@@ -76,6 +76,9 @@ def token_text(text, work, numbers=None):
 
 
 # ------------------------------------------------------------------ the drawn page
+_WORD_JOBS = {}                                       # 3.40.0: {page fingerprint: the thread Word draws it in}
+
+
 class PartPreview(QWidget):
     """One page of the part: its margins, header and footer (as tab stops, a table, or a kept design), the page number
     as it reads, and what the page holds."""
@@ -84,6 +87,39 @@ class PartPreview(QWidget):
         super().__init__()
         self.page, self.key = page, key
         self.setMinimumSize(300, 380)
+
+    # ------------------------------------------------------------ 3.40.0 Word draws the page
+    def draw_word(self, p, rect, data):
+        """Draw Word's picture of the page when one is kept; on a PC with Word, start drawing one (once) and repaint
+        when it is ready. Returns True when Word's picture was drawn."""
+        import wordpreview as WP
+        if not data:
+            return False
+        png = WP.cached(self.page.parts_dir(), data)
+        if png:
+            from PySide6.QtGui import QImage
+            img = QImage(png)
+            if not img.isNull():
+                p.drawImage(rect, img)
+                p.setPen(QColor("#64748b")); f = QFont(self.font()); f.setPointSizeF(7); p.setFont(f)
+                p.drawText(QRectF(rect.left(), rect.bottom() + 1, rect.width(), 10), Qt.AlignRight, "Drawn by Word")
+                return True
+        if WP.available():
+            fp = WP.fingerprint(data)
+            if fp not in _WORD_JOBS:
+                import threading
+                _WORD_JOBS[fp] = threading.Thread(target=WP.draw, args=(self.page.parts_dir(), data), daemon=True)
+                _WORD_JOBS[fp].start()
+            if _WORD_JOBS[fp].is_alive():
+                from PySide6.QtCore import QTimer
+                QTimer.singleShot(1500, self.update)
+        return False
+
+    def sketch_note(self, p, rect):
+        import wordpreview as WP
+        p.setPen(QColor("#64748b")); f = QFont(self.font()); f.setPointSizeF(7); p.setFont(f)
+        note = "Sketch: Word is drawing the exact page" if WP.available() else "Sketch: Word draws the exact page on a PC with Word"
+        p.drawText(QRectF(rect.left(), rect.bottom() + 1, rect.width(), 10), Qt.AlignRight, note)
 
     def paintEvent(self, _e):
         work = self.page.work or {}
@@ -149,9 +185,14 @@ class PartPreview(QWidget):
                 from .coverdraw import draw_page
                 try:
                     with open(path, "rb") as fh:
-                        drawn = draw_page(p, page, fh.read(), work)
+                        data = fh.read()
                 except OSError:
-                    drawn = False
+                    data = b""
+                drawn = self.draw_word(p, page, data)        # 3.40.0: Word's own picture of the page, when there is one
+                if not drawn and data:
+                    drawn = draw_page(p, page, data, work)
+                    if drawn:
+                        self.sketch_note(p, page)
             if not drawn:
                 p.drawText(inner, Qt.AlignCenter | Qt.TextWordWrap, f"{what}\n{'kept as built: ' + f if f else 'the Stationkeeper base page'}")
         elif self.key == "front":
@@ -266,7 +307,9 @@ def build(page, v, section):
         ph.addWidget(D.button("Import from a file...", None, lambda: page.import_file(section="pages")))
         ph.addWidget(D.button("Template library...", None, lambda: page.library()))
         ph.addWidget(D.button("Edit the layout...", "primary", lambda: edit_layout(page, key),
-                              "Move or resize the pictures, text boxes and tables; set which field each line of text shows"))
+                              "A placed page: move or resize its pieces and set the text on the page"))
+        ph.addWidget(D.button("Edit in Word", None, lambda: edit_in_word(page, key),
+                              "A dated copy opens in Word; what you save is kept as a new version (the page before it stays)"))
         ph.addWidget(D.button("Clear", "ghost", lambda: clear_page(page, key)))
         ph.addStretch(1); c3.body.addLayout(ph)
         nh = QHBoxLayout()                                 # 3.34.0: built here, from a blank page or a saved layout
@@ -284,6 +327,8 @@ def build(page, v, section):
         th.addWidget(D.button("New from a blank page...", None, lambda: new_page(page, "title")))
         th.addWidget(D.button("From a saved cover layout...", None, lambda: new_page(page, "title", from_layout=True)))
         th.addWidget(D.button("Edit the layout...", "primary", lambda: edit_layout(page, "title")))
+        th.addWidget(D.button("Edit in Word", None, lambda: edit_in_word(page, "title"),
+                              "A dated copy opens in Word; what you save is kept as a new version (the page before it stays)"))
         th.addWidget(D.button("Clear", "ghost", lambda: clear_page(page, "title")))
         th.addStretch(1); c5.body.addLayout(th)
     if key == "front":
@@ -366,10 +411,10 @@ def fill(page, key):
                              if des else "No kept design: the layout above is used.")
     if "page_lab" in st:
         f = (work.get("page_parts") or {}).get(key)
-        st["page_lab"].setText(f"{f} (kept as built)" if f else "The Stationkeeper base page.")
+        st["page_lab"].setText(f"{f}. {page_kind_text(page, f)}" if f else "The Stationkeeper base page.")
     if "title_lab" in st:
         f = (work.get("page_parts") or {}).get("title")
-        st["title_lab"].setText(f"{f} (kept as built)" if f else "No title page: the structure's Title page element is a placeholder.")
+        st["title_lab"].setText(f"{f}. {page_kind_text(page, f)}" if f else "No title page: the structure's Title page element is a placeholder.")
     if "toc_lab" in st:
         toc = work.get("toc") or {}
         st["toc_lab"].setText("Levels: " + ", ".join(f"{a} ({b})" for a, b in toc.get("levels") or []) + ". Lists: "
@@ -553,13 +598,109 @@ def open_sample(page, key, open_it=True):
     return job.copy
 
 
+def page_kind(page, fname):
+    """3.40.0: 'flow', 'table' or 'placed' for a kept page file ('' when it cannot be read)."""
+    import pagekinds as PK
+    p = os.path.join(page.parts_dir(), fname) if fname else ""
+    if not (p and os.path.isfile(p)):
+        return ""
+    try:
+        with open(p, "rb") as f:
+            return PK.kind_of(f.read(), page.work)
+    except OSError:
+        return ""
+
+
+def page_kind_text(page, fname):
+    import pagekinds as PK
+    k = page_kind(page, fname)
+    if not k:
+        return "Kept as built."
+    return PK.describe(k) + (". Kept as built: change it with Edit in Word." if PK.editor_for(k) == "word" else ". Kept as built.")
+
+
 def edit_layout(page, key, run=True):
-    """3.27.0: Edit the cover (or back cover) layout. Returns the dialog."""
+    """3.27.0: Edit the cover (or back cover) layout. 3.40.0: a placed page only; a flow or table page is changed in
+    Word, so its paragraphs and tables stay as they are. Returns the dialog."""
+    import pagekinds as PK
     from .coverview import CoverLayoutDialog
-    if not (page.work.get("page_parts") or {}).get(key):
+    fname = (page.work.get("page_parts") or {}).get(key)
+    if not fname:
         page.host.status("No kept page yet: Import from a file... or New from a blank page... makes one first.")
+        return None
+    k = page_kind(page, fname)
+    if k and PK.editor_for(k) == "word":
+        page.host.status(f"{PK.describe(k)}. Change it with Edit in Word, so it stays as it was built.")
         return None
     d = CoverLayoutDialog(page, key)
     if run:
         d.exec()
     return d
+
+
+# ------------------------------------------------------------------ 3.40.0 Edit in Word
+def edit_in_word(page, key, opener=None):
+    """Open a dated working copy of the kept page in Word; when Word lets go of it after a save, it is kept as a new
+    version. Returns the working copy's path, or ''."""
+    import wordedit as WE
+    fname = (page.work.get("page_parts") or {}).get(key)
+    if not fname:
+        page.host.status("No kept page yet: Import from a file... or New from a blank page... makes one first.")
+        return ""
+    try:
+        path, since = WE.start(page.parts_dir(), fname)
+    except OSError:
+        page.host.status("The kept page file is missing; import it again.")
+        return ""
+    page._word_edit = {"key": key, "path": path, "since": since, "label": {"cover": "cover", "title": "title page"}.get(key, "back cover")}
+    if not WE.open_in_word(path, opener):
+        page.host.status(f"Open this copy in Word, change it, save and close: {path}. The app keeps what you save as a new version.")
+    else:
+        page.host.status("Editing in Word: save and close Word when you are done; the app keeps what you saved as a new version.")
+    from PySide6.QtCore import QTimer
+    if getattr(page, "_word_timer", None) is None:
+        page._word_timer = QTimer(page); page._word_timer.setInterval(2000)
+        page._word_timer.timeout.connect(lambda: check_word_edit(page))
+    page._word_timer.start()
+    diag.activity("page_edit_in_word")
+    return path
+
+
+def check_word_edit(page, force=False):
+    """While a page is open in Word: once it is saved and Word lets go of it, keep it. Returns the new file name, or ''."""
+    import wordedit as WE
+    ed = getattr(page, "_word_edit", None)
+    if not ed:
+        return ""
+    st = WE.state(ed["path"], ed["since"])
+    if st == "editing" and not force:
+        return ""
+    if st == "unchanged" and not force:
+        if not os.path.exists(ed["path"]):
+            _stop_word_edit(page)
+        return ""
+    new = WE.keep(page.parts_dir(), ed["path"], ed["label"])
+    _stop_word_edit(page)
+    if not new:
+        page.host.status("What Word saved could not be read as a Word file; the page before it stays.")
+        return ""
+    old = (page.work.get("page_parts") or {}).get(ed["key"])
+    if new != old:
+        page.work.setdefault("page_parts", {})[ed["key"]] = new
+        page.changed()
+        try:
+            page.show_parts()
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+        page.host.status(f"Kept as a new version: {new}. The page before it ({old}) stays.")
+    else:
+        page.host.status("Nothing changed in Word; the page stays as it was.")
+    diag.activity("page_kept_from_word")
+    return new
+
+
+def _stop_word_edit(page):
+    t = getattr(page, "_word_timer", None)
+    if t is not None:
+        t.stop()
+    page._word_edit = None

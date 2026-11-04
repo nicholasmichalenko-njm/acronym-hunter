@@ -1,6 +1,16 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+PAGES COME OUT RIGHT (3.40.0)
+  - Production Standards > Document parts > Cover (and Title page, Back cover): the preview is Word's own picture of the
+    page on a PC with Word (drawn once per page and kept); without Word it is the app's sketch, labelled as a sketch.
+  - Each kept page says its kind: a flow page (paragraphs with their spacing), a table page (a table holds the text and
+    logos) or a placed page (a background picture with text placed on it). A page is never turned into another kind.
+  - Edit in Word: a dated working copy opens in Word; change anything and save; when Word lets go of it, it is kept as a
+    new version and the page before it stays. Flow and table pages are changed this way.
+  - Edit the layout... (placed pages): Text on the page lists each line as it prints, with what it is (your words or a
+    field); Add text and Add a field put a line under the last one. Save as a cover layout keeps placed pages only.
+
 DATA CALLS AND COMMENT DISPOSITION (3.39.0)
   - Solicitation > Customer Q&A > Data calls: what the team needs from its own experts. + Data call: what is needed,
     the section and requirement it serves, how much (word-count guidance), an example of a good answer, owner and due.

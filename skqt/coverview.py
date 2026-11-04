@@ -107,8 +107,19 @@ class CoverLayoutDialog(QDialog):
         bb3.addWidget(D.button("Keep in the library...", None, lambda: self.keep_in_library(),
                                "This page, picture and all, as a version in the template library"))
         rv.addLayout(bb3)
-        rv.addWidget(D.label("Text and the fields it shows", "title"))
-        self.texts = QTableWidget(0, 3); self.texts.setHorizontalHeaderLabels(["Text", "Where", "Shows"])
+        th = QHBoxLayout()                                 # 3.40.0: Text on the page, each line as it prints
+        th.addWidget(D.label("Text on the page", "title")); th.addStretch(1)
+        th.addWidget(D.button("Add text", None, lambda: self.quick_add(field=""),
+                              "A line of your own words under the last line; place and size it on the left or in the boxes above"))
+        self.add_field_box = QComboBox()
+        for k, label, _style in CL.fields(self.page.work):
+            self.add_field_box.addItem(label, k)
+        th.addWidget(self.add_field_box)
+        th.addWidget(D.button("Add a field", None, lambda: self.quick_add(field=self.add_field_box.currentData() or ""),
+                              "A line that prints the chosen field (the volume's value) under the last line"))
+        rv.addLayout(th)
+        self.kind_lab = D.label("", "muted"); rv.addWidget(self.kind_lab)
+        self.texts = QTableWidget(0, 3); self.texts.setHorizontalHeaderLabels(["Prints", "Where", "What it is"])
         self.texts.verticalHeader().setVisible(False); self.texts.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.texts.setMinimumHeight(220); rv.addWidget(self.texts)
         sp.addWidget(right); sp.setSizes([700, 480])
@@ -157,7 +168,12 @@ class CoverLayoutDialog(QDialog):
             it = Piece(self, d); self.scene.addItem(it); self.items[d["id"]] = it
             li = QListWidgetItem(f"{KIND[d['kind']]}{' (floating)' if d.get('floating') else ' (in the text)'}: {d.get('text', '')[:40]}")
             li.setData(Qt.UserRole, d["id"]); self.list.addItem(li)
-        fields = [("", "Its own text")] + [(k, f"{label} ({style})") for k, label, style in CL.fields(self.page.work)]
+        fields = [("", "Your words")] + [(k, f"The {label} field ({style})") for k, label, style in CL.fields(self.page.work)]
+        try:                                              # 3.40.0: which kind of page this is
+            import pagekinds as PK
+            self.kind_lab.setText(PK.describe(PK.kind_of(self.data, self.page.work)) + ".")
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
         for d in self.pieces:
             if d["kind"] != "paragraph":
                 continue
@@ -292,6 +308,25 @@ class CoverLayoutDialog(QDialog):
         diag.activity("cover_block_added")
         return True
 
+    def quick_add(self, field="", text=""):
+        """3.40.0: a line added under the last text block: the field's line, or your own words (asked for, or given here).
+        Place and size it by dragging or in the boxes above."""
+        if not self.data:
+            return False
+        pg = CL.read(self.data, self.page.work)["page"]
+        m = pg["margins"]
+        ys = [(d.get("y") or 0) + (d.get("h") or 0) for d in CL.read(self.result_bytes(), self.page.work)["pieces"]
+              if d.get("floating") and d["kind"] in ("table", "textbox")]
+        y = round(min(max(ys + [2.5]) + 0.15, pg["h"] - m["bottom"] - 0.6), 2)
+        if not field and not text:
+            from PySide6.QtWidgets import QInputDialog
+            text, ok = QInputDialog.getText(self, "Add text", "The words this line prints:")
+            if not ok or not text.strip():
+                return False
+            text = text.strip()
+        return self.add_block({"field": field, "text": text, "x": m["left"], "y": y, "w": round(pg["w"] - m["left"] - m["right"], 2),
+                               "h": 0.45, "size": None, "bold": False, "color": None, "font": None, "align": "left"})
+
     def _block_index(self, pid):
         """The text block (0 first) a table piece is, or -1 for a table not made here."""
         import coverbuild as CB
@@ -321,9 +356,15 @@ class CoverLayoutDialog(QDialog):
         """The page's structure (paper, where the background goes, its text blocks) as a cover layout in the template
         library: the next version when the name is kept already. Returns the library item."""
         import coverbuild as CB
+        import pagekinds as PK
         import templatelib as TL
         from PySide6.QtWidgets import QInputDialog
         if not self.data:
+            return None
+        k = PK.kind_of(self.data, self.page.work)
+        if k and k != "placed":                           # 3.40.0: a cover layout is a placed page; never convert one
+            self.status.setText(f"{PK.describe(k)}: a cover layout would turn it into a placed page. Keep in the library... "
+                                "keeps it as it is.")
             return None
         if name is None:
             name, ok = QInputDialog.getText(self, "Save as a cover layout", "Layout name (an existing name gets a new version):")
