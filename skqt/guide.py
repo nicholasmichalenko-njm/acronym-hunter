@@ -47,7 +47,9 @@ TOPICS = [
   ["Pick a name in Work for (yours shows first once Customize... > I am is set on the Effort Dashboard).",
    "Read Soonest first: late items are red and on top; requirements are due when the current stage ends.",
    "Double-click a row to open that effort at the right page. By effort shows each effort's stage, due date and sections.",
-   "Export... makes a workbook of the list for a status meeting."],
+   "Export... makes a workbook of the list for a status meeting.",
+   "3.46.0: the data calls you owe (with their code), and your sections whose newest Draft Status read says Not started or "
+   "Over budget, or that requirements were removed. By effort shows each section's draft status."],
   ["My Work only reads the efforts; nothing changes until you open one.",
    "Refresh reads every effort again after teammates' changes come in."]),
  ("home", "Effort", "Effort Dashboard",
@@ -292,7 +294,9 @@ TOPICS = [
    "budget. Pages are counted from words: set Pages from words to your team's figure.",
    "Requirements removed or moved: placed requirements whose text is gone from the draft, or under another heading.",
    "Styles brought in: styles the setup's template did not have. Fix a Copy maps them onto the standard's styles.",
-   "Export... writes the report to Excel."],
+   "Export... writes the report to Excel.",
+   "My Work and the Effort Dashboard's Drafts and data calls card show the newest reads; the gate goal Every section drafted "
+   "holds until every section read has words of its author's own."],
   ["The page budget comes from Structure > Page budget. Word's own page count from the last save is in the summary line."]),
  ("truth", "Writing", "Wall of Truth",
   "The one approved way to state every fact the proposal repeats: cleared staff, years with the customer, square "

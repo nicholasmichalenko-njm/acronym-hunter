@@ -202,7 +202,9 @@ def keep(rec, rep):
     """A line of the report in the effort record (the newest per file first; ten kept)."""
     rows = [r for r in (rec.data.get(KEY) or []) if r.get("file") != rep["file"]]
     line = {"file": rep["file"], "when": rep["when"], "counts": rep["counts"], "removed": rep["removed"], "moved": rep["moved"],
-            "styles": len(rep["styles"]), "words": rep["words"]}
+            "styles": len(rep["styles"]), "words": rep["words"],
+            "sections": {r["section"]: {"status": r["status"], "pages": r["pages"], "budget": r["budget"], "removed": len(r["removed"])}
+                         for r in rep["sections"]}}                    # 3.46.0: each section, for My Work and the dashboard
     rec.data[KEY] = ([line] + rows)[:10]
     rec.save()
     return line
@@ -210,6 +212,37 @@ def keep(rec, rep):
 
 def latest(rec):
     return list(rec.data.get(KEY) or [])
+
+
+def section_status(rec):
+    """3.46.0: {section: {"status", "pages", "budget", "removed", "when", "file"}} from the newest read of each draft (a
+    section in two drafts takes the newer read)."""
+    out = {}
+    for line in sorted(latest(rec), key=lambda x: x.get("when") or ""):
+        for lab, s in (line.get("sections") or {}).items():
+            out[lab] = dict(s, when=line.get("when", ""), file=line.get("file", ""))
+    return out
+
+
+NOT_DRAFTED = ("Not started", "Heading not found")
+
+
+def all_drafted(rec):
+    """3.46.0 gate goal: True when every section read in the drafts has words of its author's own; None before any read."""
+    st = section_status(rec)
+    if not st:
+        return None
+    return not any(s.get("status") in NOT_DRAFTED for s in st.values())
+
+
+def dashboard(rec):
+    """3.46.0: {"read": bool, "counts": {status: n}, "removed": n, "over": [section], "not_started": [section], "when"}."""
+    st = section_status(rec)
+    counts = {s: sum(1 for x in st.values() if x.get("status") == s) for s in STATUSES}
+    return {"read": bool(st), "counts": counts, "removed": sum(int(x.get("removed") or 0) for x in st.values()),
+            "over": sorted(k for k, x in st.items() if x.get("status") == "Over budget"),
+            "not_started": sorted(k for k, x in st.items() if x.get("status") in NOT_DRAFTED),
+            "when": max((x.get("when") or "" for x in st.values()), default="")}
 
 
 def file_template(path, folder=None):

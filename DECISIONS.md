@@ -26,4 +26,5 @@ a path says otherwise). Add a line when a decision is made; change a line only w
 | 2026-11-04 | Every overnight decision for 3.38.0 to 3.44.0 confirmed as made (Rule 7's second footer line and the package origin notes still open) | Nicholas: "Proceed" | stationkeeper-overnight-decisions-2026-11-03.md |
 | 3.42.0 | Rule 7's footer is the default footer; no A number style means its cell stays blank and unchecked; Quick Parts built here keep their gallery | The team's footer by default | release-notes-3.42.0 |
 | 3.44.0 | Import is one browser of the file by layer; the template library is a page of Production Standards | See everything a file holds at once | release-notes-3.44.0 |
+| 3.46.0 | Data calls and draft status show in My Work and on the Effort Dashboard; Every section drafted is an Author drafts gate goal for new efforts | Features people use only if they see them where they look each day | release-notes-3.46.0 |
 | 3.45.0 | Production Standards menus by layer; Document parts becomes Document sections, each with a page setup and ordered contents put in by Make templates | The template hierarchy plan | stationkeeper-template-hierarchy-plan.html |

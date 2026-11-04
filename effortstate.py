@@ -85,6 +85,11 @@ def checks_of(rec, M=None, lib=None, rows=(), L=None, report=None, volumes=(), p
                 c["datacalls_answered"] = (all(x.get("status") in ("Answered", "Placed") for x in calls)) if calls else None
             except Exception:
                 diag.swallowed()
+            try:                                         # 3.46.0: from the newest Draft Status reads; None before any
+                import setupread as SRD
+                c["sections_drafted"] = SRD.all_drafted(rec)
+            except Exception:
+                diag.swallowed()
             import deliverables as DL
             if DL.items(rec):
                 sm = DL.summary(rec, rows, lib, volumes)

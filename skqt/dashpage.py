@@ -128,6 +128,12 @@ class DashPage(QWidget):
                              actions=[D.button("Meetings", None, lambda: self.host.go("meetings"))])
         self.topics_box = QVBoxLayout(); self.topics_box.setSpacing(D.SPACE["xs"]); self.topics.body.addLayout(self.topics_box)
         grid.addWidget(self.topics, 4, 0, 1, 2)
+        self.drafts = D.Card("Drafts and data calls", "Where each section's draft stands (Writing > Draft Status) and what the "   # 3.46.0
+                             "team still owes from its experts.",
+                             actions=[D.button("Draft Status", None, lambda: self.host.go("drafts")),
+                                      D.button("Data calls", None, lambda: self.host.go("datacalls"))])
+        self.drafts_box = QVBoxLayout(); self.drafts_box.setSpacing(D.SPACE["xs"]); self.drafts.body.addLayout(self.drafts_box)
+        grid.addWidget(self.drafts, 5, 0, 1, 2)
         v.addWidget(self.body)
         v.addStretch(1)
 
@@ -148,6 +154,7 @@ class DashPage(QWidget):
         self.fill_acronyms(d)
         self.fill_people(d)
         self.fill_topics()
+        self.fill_drafts()
         diag.activity("qt_dashboard_shown")
         return d
 
@@ -173,6 +180,37 @@ class DashPage(QWidget):
         for lab in self.topic_labels:
             self.topics_box.addWidget(lab)
         return len(ts)
+
+    def fill_drafts(self, today=None):
+        """3.46.0: the newest Draft Status reads and the open data calls, in a few lines."""
+        while self.drafts_box.count():
+            w = self.drafts_box.takeAt(0).widget()
+            if w is not None:
+                w.deleteLater()
+        import effortrec as R_
+        import datacalls as DC
+        import setupread as SRD
+        rec = R_.Record(self.host.ws.root)
+        ds = SRD.dashboard(rec)
+        lines = []
+        if ds["read"]:
+            c = ds["counts"]
+            lines.append((f"Drafts read {ds['when'][:10]}: " + ", ".join(f"{n} {s.lower()}" for s, n in c.items() if n)
+                          + (f"; {ds['removed']} requirement(s) removed" if ds["removed"] else ""), None))
+            if ds["not_started"]:
+                lines.append(("Not started: " + ", ".join(ds["not_started"][:6]) + (f" and {len(ds['not_started']) - 6} more"
+                                                                                  if len(ds["not_started"]) > 6 else ""), "muted"))
+            if ds["over"]:
+                lines.append(("Over budget: " + ", ".join(ds["over"][:6]) + (f" and {len(ds['over']) - 6} more" if len(ds["over"]) > 6 else ""), "muted"))
+        else:
+            lines.append(("No draft read yet: Writing > Draft Status reads a volume's draft by its headings.", "muted"))
+        lines.append((DC.summary(rec, today), None))
+        for cl in DC.overdue(rec, today)[:5]:
+            lines.append((f"Overdue: {DC.code_of(cl)} {cl.get('question', '')[:90]}  \u00b7  {cl.get('owner') or 'no owner'}, due {cl.get('due', '')}", "muted"))
+        self.draft_labels = []
+        for text, role in lines:
+            lab = D.label(text, role); self.draft_labels.append(lab); self.drafts_box.addWidget(lab)
+        return ds
 
     # ------------------------------------------------------------ the numbers on top
     def fill_tiles(self, d):

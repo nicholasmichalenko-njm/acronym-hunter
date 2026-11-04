@@ -59,6 +59,11 @@ for ver in sets:
         import excerpts as EX
         k = next((x for x in EX.excerpts(R.Record(got["data"])) if EX.text_of(x) == ex["capture"]["text"]), None)
         check(f"{ver}: the capture and its source are all there", k is not None and EX.source_of(k) == ex["capture"]["source"], k)
+    if ex.get("draft"):                                   # 3.46 on: a Draft Status read with each section's status
+        import setupread as SRD
+        st = SRD.section_status(R.Record(got["data"]))
+        check(f"{ver}: the Draft Status read and its sections are all there", (st.get(ex["draft"]["section"]) or {}).get("status")
+              == ex["draft"]["status"], st)
     # the global standards, rules, phrase rules and library
     d = PRL.load(cfg)
     st = ex["standards"]

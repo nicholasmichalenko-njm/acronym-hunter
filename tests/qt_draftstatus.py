@@ -89,6 +89,27 @@ check("the words a page setting is kept with the effort", w.ws.get("readback_wpp
 check("the effort record keeps a line of the read", SR.latest(RR.Record(w.ws.root))[0]["file"] == path)
 xl = pg.export(os.path.join(tmp, "status.xlsx"))
 check("Export writes the workbook", xl and os.path.isfile(xl))
+# 3.46.0: My Work, the dashboard and the gate goal
+import mywork as MW, datacalls as DCS, effortstate as ESS
+SD.set_people(M, TA, lead="Dana Ruiz"); SD.set_people(M, RK, lead="Dana Ruiz"); M.save()
+rec = RR.Record(w.ws.root)
+DCS.add(rec, "Give the TVAC test history of the bus.", section=TA, owner="Dana Ruiz", due="2026-01-02")
+st = SR.section_status(RR.Record(w.ws.root))
+check("each section's status is kept from the newest read", st.get(TA, {}).get("status") == "Near budget" and st.get(RK, {}).get("status") == "Not started", st)
+check("the gate goal Every section drafted holds while a section is not started", SR.all_drafted(RR.Record(w.ws.root)) is False
+      and ESS.checks_of(RR.Record(w.ws.root))["sections_drafted"] is False and "sections_drafted" in RR.DEFAULT_GOALS["Author drafts"])
+info = w.efforts.get(w.effort_name) or {}
+mw = MW.for_effort(w.effort_name, info, "Dana Ruiz")
+kinds = {i["kind"]: i for i in mw["items"]}
+check("My Work lists the data call Dana owes, with its code", "datacall" in kinds and kinds["datacall"]["text"].startswith("DC-1:"), mw["items"])
+check("... and the section not started, with its removed requirement", "draft" in kinds and RK in kinds["draft"]["text"]
+      and "removed" in kinds["draft"]["text"], kinds.get("draft"))
+check("... and each section Dana leads says its draft status", any(x["label"] == TA and x["draft"] == "Near budget" for x in mw["sections"]), mw["sections"])
+w.go("dashboard"); app.processEvents()
+dp = w.dash_page
+txt = " ".join(l.text() for l in dp.draft_labels)
+check("the Effort Dashboard shows the drafts and the data calls", "1 near budget" in txt and "Not started: " + RK in txt
+      and "1 data call(s)" in txt and "Overdue: DC-1" in txt, txt)
 memo = docxw.Doc(); memo.rich([("A Kestrel memo with no structure in it.", None)]); mp = os.path.join(tmp, "memo.docx"); memo.save(mp)
 pg.pick(mp); pg.read()
 check("a draft with none of the headings says so", "No heading" in pg.sum.text(), pg.sum.text())

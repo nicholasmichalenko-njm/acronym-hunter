@@ -7,7 +7,7 @@ import setupdoc as SD
 
 KIND_WORDS = {"task": "Task", "question": "Question for you", "custqa": "Customer question", "deliverable": "Deliverable",
               "graphic": "Graphic need", "section": "Section", "requirements": "Requirements", "stage": "Stage",
-              "topic": "Meeting topic"}
+              "topic": "Meeting topic", "datacall": "Data call", "draft": "Draft status"}
 
 
 def _is(person, names):
@@ -53,6 +53,14 @@ def for_effort(name, info, person, load_matrix=True):
                               "where": f"{m['title']} ({m['date']})" + (f", {t['target']}" if t.get("target") else "")})
     except Exception:
         pass
+    try:                                                  # 3.46.0: data calls they owe, still open
+        import datacalls as DC
+        for c in DC.items(rec):
+            if _is(person, c.get("owner")) and c.get("status") in ("Draft", "Sent"):
+                items.append({"kind": "datacall", "text": f"{DC.code_of(c)}: {c.get('question', '')}", "due": c.get("due", ""),
+                              "id": c.get("id", ""), "where": " ".join(x for x in (c.get("status", ""), c.get("section", "")) if x)})
+    except Exception:
+        pass
     try:
         import custqa as Q
         for q in Q.items(rec):
@@ -84,10 +92,20 @@ def for_effort(name, info, person, load_matrix=True):
                 import compliance as C
                 import pagebudget as PB
                 M = C.Matrix(mp).load()
+                try:                                      # 3.46.0: each section's status from the newest Draft Status read
+                    import setupread as SRD
+                    drafts = SRD.section_status(rec)
+                except Exception:
+                    drafts = {}
                 for lab in SD.sections_of(M, person):
                     p = SD.section_people(M, lab)
+                    dr = drafts.get(lab) or {}
                     out["sections"].append({"label": lab, "role": "lead" if p.get("lead") == person else "writer",
-                                            "pages": PB.pages(M, lab)})
+                                            "pages": PB.pages(M, lab), "draft": dr.get("status", "")})
+                    if dr.get("status") in ("Not started", "Over budget", "Heading not found") or dr.get("removed"):
+                        bits = [dr["status"]] + ([f"{dr['removed']} requirement(s) removed"] if dr.get("removed") else [])
+                        items.append({"kind": "draft", "text": f"{lab}: " + ", ".join(bits), "due": "", "id": lab,
+                                      "where": f"read {str(dr.get('when', ''))[:10]}"})
                 mine = [it for it in M.items if it.get("decision") == "Keep" and _is(person, SD.owner_of(M, it))]
                 out["reqs"] = len(mine)
                 try:

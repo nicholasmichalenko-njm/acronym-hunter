@@ -1,0 +1,229 @@
+{
+ "version": 3,
+ "company": {
+  "variables": {
+   "body_font": "Georgia"
+  },
+  "pagination": {
+   "parts": [
+    {
+     "key": "cover",
+     "name": "Cover",
+     "starts": {
+      "first_section": true
+     },
+     "numbers": null,
+     "header": "",
+     "footer_marking": false,
+     "linked": false,
+     "setup": "portrait"
+    },
+    {
+     "key": "front",
+     "name": "Front matter",
+     "starts": {
+      "style": "TOC Heading"
+     },
+     "numbers": {
+      "fmt": "lowerRoman",
+      "restart": "part",
+      "start_at": 1,
+      "chapter_level": null
+     },
+     "header": "{volume_name}",
+     "footer_marking": true,
+     "linked": false
+    },
+    {
+     "key": "body",
+     "name": "Response",
+     "starts": {
+      "style": "Heading 1"
+     },
+     "chapter_style": "Heading 1",
+     "numbers": {
+      "fmt": "decimal",
+      "restart": "each",
+      "start_at": 1,
+      "chapter_level": 1,
+      "separator": "hyphen"
+     },
+     "header": "{volume_name}",
+     "footer_marking": true,
+     "linked": false
+    },
+    {
+     "key": "appendix",
+     "name": "Appendices",
+     "starts": {
+      "style": "Heading 7"
+     },
+     "chapter_style": "Heading 7",
+     "numbers": {
+      "fmt": "decimal",
+      "restart": "each",
+      "start_at": 1,
+      "chapter_level": 7,
+      "separator": "hyphen"
+     },
+     "header": "{volume_name}",
+     "footer_marking": true,
+     "linked": true
+    },
+    {
+     "key": "backer",
+     "name": "Back cover",
+     "starts": {
+      "last_section": true,
+      "styles": [
+       "Back Cover",
+       "Backer"
+      ]
+     },
+     "numbers": null,
+     "header": "",
+     "footer_marking": false,
+     "linked": false
+    }
+   ]
+  },
+  "hf_layouts": {
+   "body": {
+    "footer": {
+     "table": {
+      "cells": [
+       {
+        "width_in": 2.17,
+        "lines": [
+         {
+          "text": "{a_number}",
+          "align": "left",
+          "size": null,
+          "bold": false
+         }
+        ],
+        "logo": null
+       },
+       {
+        "width_in": 2.16,
+        "lines": [
+         {
+          "text": "{marking}",
+          "align": "center",
+          "size": null,
+          "bold": true
+         },
+         {
+          "text": "Kestrel standard line",
+          "align": "center",
+          "size": 8,
+          "bold": false
+         }
+        ],
+        "logo": null
+       },
+       {
+        "width_in": 2.17,
+        "lines": [
+         {
+          "text": "{page}",
+          "align": "right",
+          "size": null,
+          "bold": false
+         }
+        ],
+        "logo": null
+       }
+      ]
+     }
+    }
+   }
+  },
+  "style_defs": {
+   "AA Title Page Name": {
+    "type": "paragraph",
+    "used_on": "Title page",
+    "size": 20
+   }
+  },
+  "style_roles": {
+   "a_number": "AA A Number",
+   "restriction": "AA Restriction"
+  },
+  "section_contents": {
+   "body": [
+    {
+     "kind": "placeholder",
+     "title": "Executive Summary",
+     "pages": 2
+    }
+   ]
+  }
+ },
+ "types": [
+  {
+   "id": "proposal",
+   "name": "Proposal volume"
+  }
+ ],
+ "default": "proposal",
+ "effort_types": [
+  {
+   "id": "rfp",
+   "name": "RFP response",
+   "profiles": [
+    "proposal"
+   ],
+   "default_profile": "proposal",
+   "profile_over": {}
+  },
+  {
+   "id": "rfp_limited",
+   "name": "Page-limited RFP response",
+   "profiles": [
+    "proposal"
+   ],
+   "default_profile": "proposal",
+   "profile_over": {}
+  },
+  {
+   "id": "rfi",
+   "name": "RFI response",
+   "profiles": [
+    "proposal"
+   ],
+   "default_profile": "proposal",
+   "profile_over": {}
+  },
+  {
+   "id": "white_paper",
+   "name": "White paper",
+   "profiles": [
+    "proposal"
+   ],
+   "default_profile": "proposal",
+   "profile_over": {}
+  },
+  {
+   "id": "program",
+   "name": "Program deliverables",
+   "profiles": [
+    "proposal"
+   ],
+   "default_profile": "proposal",
+   "profile_over": {}
+  },
+  {
+   "id": "kestrel_rfi",
+   "name": "Kestrel RFI",
+   "profiles": [
+    "proposal"
+   ],
+   "default_profile": "proposal",
+   "response_type": "RFI"
+  }
+ ],
+ "default_effort_type": "",
+ "removed_effort_types": [],
+ "starters": 2
+}

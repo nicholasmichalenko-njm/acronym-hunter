@@ -20,6 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.46.0": ["My Work lists the data calls you owe and your sections' draft status (not started, over budget, requirements "
+               "removed). The Effort Dashboard has a Drafts and data calls card. New efforts' Author drafts stage has the gate "
+               "goal Every section drafted, from Draft Status."],
     "3.45.0": ["Production Standards goes by layer: Building blocks, Components, Document sections, Checks, Library. Document "
                "sections (Document parts before): each section's page setup and what it starts with (response elements, Quick "
                "Parts, placeholders), put in by Make templates and kept in the setup. Sections in order edits your own sections too."],

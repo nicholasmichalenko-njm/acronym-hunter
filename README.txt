@@ -1,6 +1,15 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+DRAFTS AND DATA CALLS WHERE YOU LOOK EACH DAY (3.46.0)
+  - Home > My Work: the data calls you owe (Draft or Sent, with their code and due date), and your sections whose
+    newest Draft Status read says Not started or Over budget, or that requirements were removed. Each section you lead
+    or write shows its draft status. Double-click a row to open Data calls or Draft Status.
+  - Effort Dashboard > Drafts and data calls: the newest reads (how many sections in each status, requirements removed),
+    the sections not started and over budget, the data calls in each status and the overdue ones.
+  - Gate goal Every section drafted (from Draft Status): new efforts have it in Author drafts; add it to an existing
+    effort's stage under its gate goals. It holds until every section read has words of its author's own.
+
 PRODUCTION STANDARDS BY LAYER, DOCUMENT SECTIONS (3.45.0)
   - The menu across the top goes by layer: Template profile; Building blocks (base fonts and sizes, styles, font rules,
     allowed styles, heading numbering, lists, page setups); Components (Quick Parts, table types, row looks, how rows are

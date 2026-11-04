@@ -77,6 +77,17 @@ def make(version, out_root=None):
                       "comment": {"text": "Add the test schedule.", "disposition": "Reject", "reason": "It is in Volume III"}})
     except ImportError:
         pass
+    try:                                                  # 3.46.0: a Draft Status read with each section's status
+        import setupread as SRD
+        if hasattr(SRD, "section_status"):
+            rec = R.Record(dd)
+            SRD.keep(rec, {"file": "Volume I Technical.docx", "when": "2026-11-04T06:00", "counts": {"Not started": 1},
+                           "removed": 0, "moved": 0, "styles": [], "words": 0,
+                           "sections": [{"section": "1.1 Technical Approach", "status": "Not started", "pages": 0, "budget": 2.0,
+                                         "removed": [], "moved": []}]})
+            extra["draft"] = {"section": "1.1 Technical Approach", "status": "Not started"}
+    except ImportError:
+        pass
     try:                                                  # 3.41.0: a capture whose source is a meeting
         import excerpts as EX, meetings as MT
         if hasattr(EX, "SOURCES"):

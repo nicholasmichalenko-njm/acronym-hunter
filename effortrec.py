@@ -69,10 +69,12 @@ AUTO = {
     "topics_considered": "Every meeting topic considered",                          # 3.20.0
     "comments_dispositioned": "Every reviewer comment dispositioned",               # 3.39.0
     "datacalls_answered": "Every data call answered",                               # 3.39.0
+    "sections_drafted": "Every section drafted (Draft Status)",                      # 3.46.0
 }
 DEFAULT_GOALS = {
     "Intake": ["docs_added", "reqs_reviewed", "structure_set", "sections_led"],
-    "Author drafts": ["reqs_placed", "reqs_owned", "deliverables_set", "Author briefs sent to every section lead", "datacalls_answered"],
+    "Author drafts": ["reqs_placed", "reqs_owned", "deliverables_set", "Author briefs sent to every section lead", "datacalls_answered",
+                      "sections_drafted"],
     "Red team": ["qa_run", "Red team reviewers confirmed", "tasks_done"],
     "Red team recovery": ["comments_dispositioned", "docs_reviewed", "reqs_reviewed", "acr_approved", "pages_ok"],
     "Gold team": ["pages_ok", "first_use_clean", "banned_clean", "acr_approved", "prove_clear", "deliverables_ok"],

@@ -10,7 +10,8 @@ import diag
 import mywork as MW
 from . import design as D
 
-GO = {"topic": "meetings", "task": "home", "question": "home", "graphic": "home", "custqa": "custqa", "deliverable": "deliverables", "requirements": "assign"}
+GO = {"topic": "meetings", "task": "home", "question": "home", "graphic": "home", "custqa": "custqa", "deliverable": "deliverables", "requirements": "assign",
+      "datacall": "datacalls", "draft": "drafts"}                    # 3.46.0
 
 
 class Loader(QThread):
@@ -131,7 +132,8 @@ class MyWorkPage(QWidget):
             lab = D.label(head, None); lab.setTextFormat(Qt.RichText); self.eff_box.addWidget(lab)
             parts = []
             if w["sections"]:
-                parts.append("Sections: " + "; ".join(f"{x['label']} ({x['role']}" + (f", {_pages(x['pages'])}" if x["pages"] else "") + ")"
+                parts.append("Sections: " + "; ".join(f"{x['label']} ({x['role']}" + (f", {_pages(x['pages'])}" if x["pages"] else "")
+                                                      + (f", {x['draft'].lower()}" if x.get("draft") else "") + ")"
                                                       for x in w["sections"]))
             if w["reqs"]:
                 parts.append(f"{w['reqs']} requirement(s)" + (f", {w['awaiting']} changed by a customer version" if w["awaiting"] else ""))
