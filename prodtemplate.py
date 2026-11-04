@@ -290,6 +290,57 @@ def standard_for_template(std):
     for f in FI.custom(std):
         if f["kind"] == "styleref":
             defs.setdefault(f["style"], {"type": "paragraph", "based_on": "Normal", "jc": "center", "after": 6})
+    return apply_rules(std)
+
+
+RESPONSE_TOKENS = ("RFP", "RFI", "BAA", "RFQ", "CSO")
+
+
+def response_renames(std):
+    """3.38.0 Rule 4: {old style name: new} for styles named with another response type than the effort's."""
+    import re as _re
+    rt = (std.get("response_type") or "").upper()
+    if rt not in RESPONSE_TOKENS:
+        return {}
+    out = {}
+    for name in (std.get("style_defs") or {}):
+        new = name
+        for t in RESPONSE_TOKENS:
+            if t != rt:
+                new = _re.sub(rf"\b{t}\b", rt, new)
+        if new != name:
+            out[name] = new
+    return out
+
+
+def _rename_values(x, ren):
+    if isinstance(x, dict):
+        return {(ren.get(k, k) if isinstance(k, str) else k): _rename_values(v, ren) for k, v in x.items()}
+    if isinstance(x, list):
+        return [_rename_values(v, ren) for v in x]
+    if isinstance(x, str) and x in ren:
+        return ren[x]
+    return x
+
+
+def apply_rules(std):
+    """3.38.0: Rule 4 (style names follow the response type) and Rule 5 (no title page, no title page styles), unless the
+    global standards or the effort turned them off."""
+    off = set(str(x) for x in (std.get("_rules_off") or []))
+    if "5" not in off and not (std.get("page_parts") or {}).get("title"):
+        defs = std.get("style_defs") or {}
+        fam = [n for n, d in defs.items() if (d or {}).get("used_on") == "Title page"]
+        for n in fam:
+            defs.pop(n, None)
+        st = std.get("styles") or {}
+        if fam and st.get("allowed"):
+            st["allowed"] = [a for a in st["allowed"] if a not in fam]
+    if "4" not in off:
+        ren = response_renames(std)
+        if ren:
+            keep = {k: std.get(k) for k in ("variables", "_parts_dir", "_rules_off", "response_type", "name")}
+            std = _rename_values(std, ren)
+            std.update({k: v for k, v in keep.items() if v is not None})
     return std
 
 

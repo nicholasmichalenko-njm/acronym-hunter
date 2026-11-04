@@ -57,7 +57,14 @@ RULE_TEXT = {
     "S4": "Style differs from the standard", "S7": "Style the standard defines is not in the file", "S5": "Heading numbering differs from the standard",
     "S6": "Style takes heading numbers it should not",
     "R0": "Table rows to format by role", "R1": "Table rows waiting for your answer",
+    # 3.38.0: the team's production rules (rulecheck.py), reported under Rule 1 to Rule 8
+    "RU1": "Style a header reads sits in a text box", "RU2": "A number not placed as the rule says",
+    "RU3": "Marking missing at the top or bottom center", "RU4": "Style named with another response type",
+    "RU5": "Title page style with no title page", "RU6": "Heading levels indented differently",
+    "RU7": "Footer not the three-column table", "RU8": "Caption or notes row indented",
 }
+RU_AREA = {"RU1": "pages", "RU2": "pages", "RU3": "pages", "RU7": "pages", "RU4": "styles", "RU5": "styles", "RU6": "styles",
+           "RU8": "tables"}
 
 
 def _fix(key, area, label, op, allowed, args, rules=(), kind="all", help=""):
@@ -298,6 +305,14 @@ def check(path, std, data=None):
         chk.stats = dict(dm.stats)
         for f in D.audit(dm, std):
             _add(chk, f.area, f.rule, f.severity, f.what, f.where, _fix_for(f.rule, f.fix), _near(dm, f.where))
+        try:                                                   # 3.38.0: the team's production rules
+            import rulecheck as RC
+            for code, what in RC.check(pkg, std, marking=(std.get("variables") or {}).get("classification", ""),
+                                       response_type=std.get("response_type", "")):
+                _add(chk, RU_AREA.get(code, "pages"), code, "warning", what, -1, "")
+        except Exception:  # noqa: BLE001
+            import diag
+            diag.swallowed()
         chk.bookmarks = sorted(b for b, bm in dm.bookmarks.items() if not b.startswith("_GoBack"))
         for x in dm.xrefs:
             if x.status == "broken":
@@ -462,6 +477,10 @@ def check(path, std, data=None):
     n = _dry(raw, FIX["toc_styles"], std, plan0)
     if n:
         chk.would["toc_styles"] = n
+    off = set(str(x) for x in (std.get("_rules_off") or []))      # 3.38.0: rules turned off globally or for this effort
+    if off:
+        import rulebook as RB
+        chk.findings = [f for f in chk.findings if (RB.rule_of_code(f["rule"]) or "").replace("Rule ", "") not in off]
     chk.raw_sha = PCY.sha256_bytes(raw)
     chk.seconds = time.perf_counter() - t0
     return chk

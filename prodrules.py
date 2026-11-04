@@ -53,8 +53,12 @@ def _company_default():
     c["powerpoint"] = {"fonts": "", "min_size": 12, "title_min_size": None, "slide_size": "", "marking": False, "titles": True}
     import prodgraphics as _PG                        # 3.17.0: graphics standards
     c["graphics"] = dict(_PG.DEFAULT)
-    c["heading_numbering"] = {"on": False, "levels": [
-        {"style": s, "fmt": f, "text": t, "number_at": a, "text_at": b, "restart": r} for (s, f, t, a, b, r) in WO.HEADING_LEVELS]}
+    c["heading_numbering"] = {"on": False, "levels": [          # 3.38.0 Rule 6: every level's number at 0, one text position
+        {"style": s, "fmt": f, "text": t, "number_at": 0, "text_at": 0.5, "restart": r} for (s, f, t, a, b, r) in WO.HEADING_LEVELS]}
+    for role in ("caption", "note"):                               # 3.38.0 Rule 8: caption and notes rows at 0.0 left and right
+        if role in c.get("row_types", {}):
+            c["row_types"][role]["left"], c["row_types"][role]["right"] = 0.0, 0.0
+    c["style_roles"] = {"a_number": "", "restriction": ""}         # 3.38.0 Rules 2 and 7: the styles that hold them
     c["checks"] = {"toc_forbid": ["\\o", "\\u"], "page_numbers": True, "caption_fields": True,
                    "table_caption_position": "first row", "landscape_ok": True}
     c["pagination"] = presets()["team"]
@@ -109,9 +113,11 @@ def merge(base, over):
 
 STARTER_EFFORT_TYPES = [("rfp", "RFP response"), ("rfp_limited", "Page-limited RFP response"), ("rfi", "RFI response"),
                         ("white_paper", "White paper"), ("program", "Program deliverables")]     # 3.18.2: RFI response
-NEW_STARTERS = ("rfi",)                          # 3.18.2: starters an older file gains once
+NEW_STARTERS = ("rfi",)
+# 3.18.2: starters an older file gains once
+STARTER_RESPONSE = {"rfp": "RFP", "rfp_limited": "RFP", "rfi": "RFI", "white_paper": "White paper"}   # 3.38.0: Rule 4
 PROFILE_KEYS = ("id", "name", "match")            # a profile's own fields; everything else is its layer
-EFFORT_TYPE_KEYS = ("id", "name", "profiles", "default_profile", "profile_over", "matrix_view")   # 3.35.0: its starting matrix view
+EFFORT_TYPE_KEYS = ("id", "name", "profiles", "default_profile", "profile_over", "matrix_view", "response_type")   # 3.35.0: its starting matrix view
 
 
 def load(config_dir):
@@ -276,6 +282,12 @@ def for_effort(config_dir, ws=None, data=None, type_id=None):
     std["name"] = type_of(data, tid)["name"]
     std["effort_type"] = (et or {}).get("name", "")
     std["effort_over"] = bool(eff.get("over") or vol)
+    try:                                                              # 3.38.0: the rules off for every effort or this one,
+        import rulebook as RB                                         # and the effort's response type (Rule 4)
+        std["_rules_off"] = sorted({r["id"] for r in RB.rules(config_dir) if not r["on"]} | set(RB.effort_off(ws)))
+    except Exception:  # noqa: BLE001
+        std["_rules_off"] = []
+    std["response_type"] = eff.get("response_type") or (et or {}).get("response_type") or STARTER_RESPONSE.get((et or {}).get("id"), "")
     std["_parts_dir"] = os.path.join(config_dir, "production_parts")     # 3.10.0: where covers and back covers are kept
     return engine_ready(std)
 

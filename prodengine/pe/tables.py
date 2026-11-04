@@ -466,6 +466,9 @@ def ensure_tag_styles(styles_root, std, table_type):
             ppr = ensure(s, "pPr")
             set_para_props(ppr, before=need.get("before"), after=need.get("after"), line=need.get("line"),
                            jc=need.get("jc"), keep_next=need.get("keep_next"))
+        if look.get("left") is not None or look.get("right") is not None:      # 3.38.0 Rule 8: the row's side indents
+            from prodengine.engine.ops.word_ops import set_more_props
+            set_more_props(styles_root, s, {"left": look.get("left"), "right": look.get("right")})
         ids[look["tag_style"]] = s.get(q("styleId"))
     return ids
 
