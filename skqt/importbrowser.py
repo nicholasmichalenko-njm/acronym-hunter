@@ -63,8 +63,8 @@ def draw_style(p, r, name, v):
     p.setFont(f)
     col = v.get("color")
     p.setPen(QColor("#" + col) if isinstance(col, str) and len(col) == 6 else QColor(D.tokens()["text"]))
-    sample = "Kestrel Flight Software Plan" if name.lower().startswith(("heading", "title")) else \
-        "The Kestrel team delivers the flight software on schedule, with every requirement traced to a test."
+    sample = "Section heading" if name.lower().startswith(("heading", "title")) else \
+        "Body text in this style: how a paragraph of the volume reads, line after line, at this size and spacing."
     al = {"center": Qt.AlignHCenter, "right": Qt.AlignRight, "both": Qt.AlignJustify}.get(v.get("jc"), Qt.AlignLeft)
     p.drawText(r.adjusted(0, 0, 0, -40), al | Qt.AlignTop | Qt.TextWordWrap, sample)
     small = QFont(); small.setPointSizeF(8); p.setFont(small); p.setPen(QColor(D.tokens()["muted"]))
