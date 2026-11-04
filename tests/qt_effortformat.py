@@ -3,6 +3,7 @@ standards. A value set here is the effort's only (the team standard is untouched
 Reset takes it back; a change for one volume holds for that volume only; the RFP's rules show beside each value with
 Use it, in red when the value breaks them; Keep for the team writes the value into a team layer and Undo puts it back;
 Every setting opens Production Standards on this effort (amber band), and the menu opens the team's standards (blue)."""
+from PySide6.QtCore import Qt
 import os, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
@@ -96,6 +97,23 @@ w.go("prodstd"); app.processEvents()
 check("the menu opens the team's standards, blue band, no effort scope", sp.mode == "team" and sp.scope == "team"
       and "every effort" in sp.band.text() and not sp.band_back.isVisible() and sp.scope_box.findData("effort:") < 0
       and not sp.this_effort.isVisible())
+# 3.38.0: the effort's response type (Rule 4) and the rules it departs from
+w.go("effortfmt"); app.processEvents(); pg.refresh(); app.processEvents()
+pg.resp.setCurrentIndex(pg.resp.findData("RFI")); pg.set_resp(); app.processEvents()
+check("3.38.0: the effort's response type is kept and reaches its standard (Rule 4)", PRL.for_effort(cfg, w.ws)["response_type"] == "RFI")
+pg.resp.setCurrentIndex(0); pg.set_resp(); app.processEvents()
+check("3.38.0: From the effort type takes the effort's own response type away", "response_type" not in (w.ws.get("prod_std") or {}))
+items = [pg.rules_list.item(i) for i in range(pg.rules_list.count())]
+check("3.38.0: every rule is listed, ticked (followed)", len(items) >= 13 and all(it.checkState() == Qt.Checked for it in items))
+r2 = next(it for it in items if it.data(Qt.UserRole) == "2")
+r2.setCheckState(Qt.Unchecked); app.processEvents()
+check("3.38.0: unticking a rule takes it out of force for this effort only", "2" in PRL.for_effort(cfg, w.ws)["_rules_off"]
+      and "2" not in PRL.for_effort(cfg)["_rules_off"])
+import rulebook as RB
+RB.set_on(cfg, 9, False); pg.refresh(); app.processEvents()
+r9 = next(pg.rules_list.item(i) for i in range(pg.rules_list.count()) if pg.rules_list.item(i).data(Qt.UserRole) == "9")
+check("3.38.0: a rule off for every effort shows greyed, and says so", not (r9.flags() & Qt.ItemIsEnabled) and "Off for every effort" in r9.text())
+RB.set_on(cfg, 9, True); RB.set_effort_on(w.ws, 2, True)
 w.close()
 n = sum(checks)
 print(f"QT EFFORT FORMAT PASS ({n}/{len(checks)})" if n == len(checks) else f"QT EFFORT FORMAT FAIL ({n}/{len(checks)})")

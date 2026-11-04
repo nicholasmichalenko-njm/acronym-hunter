@@ -465,6 +465,10 @@ class StandardsPage(QWidget):
         self.et_row.addWidget(D.label("Default volume", "label", wrap=False))
         self.et_default = QComboBox(); self.et_default.setMinimumWidth(200); self.et_row.addWidget(self.et_default)
         self.et_default.activated.connect(lambda _i: self.changed())
+        self.et_row.addWidget(D.label("Response type", "label", wrap=False))          # 3.38.0 Rule 4: style names follow it
+        self.et_response = QComboBox(); self.et_response.setMinimumWidth(140); self.et_row.addWidget(self.et_response)
+        self.et_response.setToolTip("Rule 4: a style named with RFP is named RFI in an RFI response, and so on")
+        self.et_response.activated.connect(lambda _i: self.changed())
         self.et_row.addStretch(1)
         top.body.addLayout(self.et_row)
         self.eff_row = QHBoxLayout()
@@ -1879,6 +1883,13 @@ class StandardsPage(QWidget):
                 self.et_default.addItem(PRL.type_of(d, pid)["name"], pid)
             self.et_default.setCurrentIndex(max(0, self.et_default.findData(e.get("default_profile"))))
             self.et_default.blockSignals(False)
+            import rulebook as RB
+            self.et_response.blockSignals(True); self.et_response.clear(); self.et_response.addItem("Not set", "")
+            for rt in RB.response_types():
+                self.et_response.addItem(rt, rt)
+            cur_rt = e.get("response_type") or PRL.STARTER_RESPONSE.get(e.get("id"), "")
+            self.et_response.setCurrentIndex(max(0, self.et_response.findData(cur_rt)))
+            self.et_response.blockSignals(False)
         self.eff_said.setVisible(scope in ("effort", "effortvol"))
         if scope in ("effort", "effortvol"):
             said = (self.host.ws.get("prod_std", {}) or {}).get("said") or []
@@ -1951,6 +1962,7 @@ class StandardsPage(QWidget):
                 keep["profiles"] = chosen
             dp = self.et_default.currentData()
             keep["default_profile"] = dp if dp in keep["profiles"] else keep["profiles"][0]
+            keep["response_type"] = self.et_response.currentData() or ""          # 3.38.0 Rule 4
             e.clear(); e.update(keep); e.update(layer)
         elif self.scope == "etp":
             e = PRL.effort_type_of(d, self.etype_id)

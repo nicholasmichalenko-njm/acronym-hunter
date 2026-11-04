@@ -5,6 +5,7 @@ global. Changes apply to every volume of the effort or to one. Every setting ope
 editor on this effort's layer. Nothing here changes the global standards except Make it global. Rules only."""
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
+                               QListWidget, QListWidgetItem,
                                QMenu, QScrollArea, QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget)
 import diag
 import effortformat as EFM
@@ -50,6 +51,10 @@ class EffortFormatPage(QWidget):
         r1.addWidget(D.label("Default volume", "label", wrap=False))
         self.dvol = QComboBox(); self.dvol.setMinimumWidth(200); self.dvol.activated.connect(lambda _i: self.set_dvol())
         r1.addWidget(self.dvol)
+        r1.addWidget(D.label("Response type", "label", wrap=False))                   # 3.38.0 Rule 4
+        self.resp = QComboBox(); self.resp.setMinimumWidth(170); self.resp.activated.connect(lambda _i: self.set_resp())
+        self.resp.setToolTip("Rule 4: style names follow the response type (a style named with RFP is named RFI in an RFI)")
+        r1.addWidget(self.resp)
         r1.addWidget(D.label("Changes apply to", "label", wrap=False))
         self.scope = QComboBox(); self.scope.setMinimumWidth(200); self.scope.activated.connect(lambda _i: self.fill())
         self.scope.setToolTip("Every volume of this effort, or one volume (the cost volume's tables, say)")
@@ -96,6 +101,15 @@ class EffortFormatPage(QWidget):
         self.parts.horizontalHeader().setStretchLastSection(True); self.parts.setMinimumHeight(220)
         lp.add(self.parts)
         iv.addWidget(lp)
+        # 3.38.0: the one place an effort departs from a production rule
+        rc = D.Card("Rules this effort follows", "The production rules (Production > Rules). Untick a rule this effort "
+                    "departs from: Audit and Fix a Copy stop reporting it, for this effort only. A rule turned off for every "
+                    "effort shows greyed.",
+                    actions=[D.button("Open the Rules page", "ghost", lambda: self.host.go("rules"), "Every rule, in one list")])
+        self.rules_list = QListWidget(); self.rules_list.setMinimumHeight(260)
+        self.rules_list.itemChanged.connect(lambda it: self.rule_ticked(it))
+        rc.add(self.rules_list)
+        iv.addWidget(rc)
         iv.addStretch(1)
 
     # ------------------------------------------------------------ one row
@@ -280,6 +294,49 @@ class EffortFormatPage(QWidget):
         self.host.ws.set("prod_std", eff)
         self.after()
 
+    def set_resp(self):
+        if self.host.ws is None:
+            return
+        eff = EFM.eff_of(self.host.ws)
+        rt = self.resp.currentData() or ""
+        if rt:
+            eff["response_type"] = rt
+        else:
+            eff.pop("response_type", None)
+        self.host.ws.set("prod_std", eff)
+        self.after()
+
+    def rule_ticked(self, it):
+        if self._loading or self.host.ws is None:
+            return
+        import rulebook as RB
+        RB.set_effort_on(self.host.ws, it.data(Qt.UserRole), it.checkState() == Qt.Checked)
+        self.after()
+
+    def fill_rules(self, data, eid):
+        import rulebook as RB
+        et = PRL.effort_type_of(data, eid)
+        from_type = (et or {}).get("response_type") or PRL.STARTER_RESPONSE.get((et or {}).get("id"), "")
+        eff = EFM.eff_of(self.host.ws)
+        self.resp.clear()
+        self.resp.addItem(f"From the effort type ({from_type})" if from_type else "Not set", "")
+        for rt in RB.response_types():
+            self.resp.addItem(rt, rt)
+        self.resp.setCurrentIndex(max(0, self.resp.findData(eff.get("response_type") or "")))
+        mine = set(RB.effort_off(self.host.ws))
+        self.rules_list.clear()
+        for r in RB.rules(self.host.config_dir):
+            it = QListWidgetItem(f"{r['label']}  {r['text']}  ({RB.KEPT_NAME[r['kept']]})")
+            it.setData(Qt.UserRole, r["id"])
+            if not r["on"]:
+                it.setFlags(it.flags() & ~Qt.ItemIsEnabled)
+                it.setText(it.text() + "  Off for every effort")
+                it.setCheckState(Qt.Unchecked)
+            else:
+                it.setFlags(it.flags() | Qt.ItemIsUserCheckable)
+                it.setCheckState(Qt.Unchecked if r["id"] in mine else Qt.Checked)
+            self.rules_list.addItem(it)
+
     def set_dvol(self):
         if self.host.ws is None:
             return
@@ -316,6 +373,7 @@ class EffortFormatPage(QWidget):
             for e in data.get("effort_types", []):
                 self.etype.addItem(e["name"], e["id"])
             self.etype.setCurrentIndex(max(0, self.etype.findData(eid or "")))
+            self.fill_rules(data, eid)
             self.dvol.clear()
             for pid in vols:
                 self.dvol.addItem(PRL.type_of(data, pid)["name"], pid)
