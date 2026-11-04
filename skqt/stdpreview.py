@@ -368,6 +368,12 @@ class Canvas(QWidget):
         f = _font(_v(std, "body_font", "Arial"), 9, scale=self._scale(s))
         hy = pg.y() + 0.5 * s
         h, ft = hf.get("header") or {}, hf.get("footer") or {}
+        from .hfbuilder import draw_cells                 # 3.42.0: a header or footer built here as a table
+        for spec, y in ((h, hy), (ft, pg.bottom() - 0.7 * s)):
+            if (spec.get("table") or {}).get("cells"):
+                draw_cells(p, QRectF(tx.x(), y, tx.width(), 0.45 * s), spec, std)
+        h = {} if (h.get("table") or {}).get("cells") else h
+        ft = {} if (ft.get("table") or {}).get("cells") else ft
         for where, al in (("left", Qt.AlignLeft), ("center", Qt.AlignHCenter), ("right", Qt.AlignRight)):
             if h.get(where):
                 self._text(p, QRectF(tx.x(), hy, tx.width(), 20), _fill(h[where]), f, align=al | Qt.AlignTop, wrap=False)

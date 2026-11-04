@@ -1125,6 +1125,8 @@ class StandardsPage(QWidget):
                 ("borders", "Table borders", ("enum", [("none", "None"), ("bottom", "A line under"), ("grid", "Grid")]))]
         self.table_editor(v, "hf", ("hf_layouts",), cols, adapter="hf")
         qr = QHBoxLayout()
+        qr.addWidget(D.button("Build a header or footer as a table...", None, lambda: self.hf_build_table(),
+                              "Columns at inch widths, lines of words and fields, logos, Rule 7's footer; save it as a Quick Part"))
         qr.addWidget(D.button("Use a Quick Part as a header or footer...", None, lambda: self.hf_from_quick_part(),
                               "One of this standard's Quick Parts, kept exactly as built (its table, widths, pictures and "
                               "fields), as a part's header or footer"))
@@ -1292,8 +1294,10 @@ class StandardsPage(QWidget):
                 out.append({"key": k, "h_left": h.get("left", ""), "h_center": h.get("center", ""), "h_right": h.get("right", ""),
                             "rule_below": bool(h.get("rule_below")), "f_left": f.get("left", ""), "f_center": f.get("center", ""),
                             "f_right": f.get("right", ""), "marking": bool(f.get("marking")),
-                            "h_table": [f"{x:g}" for x in (h.get("table") or {}).get("widths_in") or []],
-                            "f_table": [f"{x:g}" for x in (f.get("table") or {}).get("widths_in") or []],
+                            "h_table": ([f"built here: {len(h['table']['cells'])} columns"] if (h.get("table") or {}).get("cells")
+                                        else [f"{x:g}" for x in (h.get("table") or {}).get("widths_in") or []]),
+                            "f_table": ([f"built here: {len(f['table']['cells'])} columns"] if (f.get("table") or {}).get("cells")
+                                        else [f"{x:g}" for x in (f.get("table") or {}).get("widths_in") or []]),
                             "borders": (h.get("table") or f.get("table") or {}).get("borders", "none")})
             return out
         if ad == "listnum":                              # 3.32.1: bullets as the character they show, not Word's symbol form
@@ -1365,7 +1369,7 @@ class StandardsPage(QWidget):
             _set(self.work, spec["path"], parts)
             return
         if ad == "hf":
-            out = {}
+            out, before = {}, copy.deepcopy(_get(self.work, spec["path"]) or {})
             for r in rows:
                 h = {k: r["h_" + k] for k in ("left", "center", "right") if r.get("h_" + k)}
                 if r.get("rule_below"):
@@ -1382,6 +1386,10 @@ class StandardsPage(QWidget):
                             pass
                     if ws:
                         d["table"] = {"widths_in": ws, "borders": r.get("borders") or "none"}
+                for d, kind in ((h, "header"), (f, "footer")):    # 3.42.0: a table built here stays as built
+                    old = ((before.get(r["key"]) or {}).get(kind) or {})
+                    if (old.get("table") or {}).get("cells") and "table" not in d:
+                        d["table"] = old["table"]
                 out[r["key"] or "part"] = {"header": h, "footer": f}
             _set(self.work, spec["path"], out)
             return
@@ -2271,6 +2279,20 @@ class StandardsPage(QWidget):
     def collect(self, path=None, run=True):
         """3.22.0: from the Template library: Import into the library only (Use here off). Returns the dialog."""
         return self.import_file(path, run=run, use_here=False)
+
+    def hf_build_table(self, part=None, kind=None, run=True):
+        """3.42.0: build a part's header or footer as a table (the same builder as Document parts)."""
+        from . import docparts as DP
+        keys = list((self.work.get("hf_layouts") or {}).keys()) or ["body"]
+        if part is None:
+            part, ok = QInputDialog.getItem(self, "Build as a table", "The part:", keys, keys.index("body") if "body" in keys else 0, False)
+            if not ok:
+                return None
+        if kind is None:
+            kind, ok = QInputDialog.getItem(self, "Build as a table", "Header or footer:", ["footer", "header"], 0, False)
+            if not ok:
+                return None
+        return DP.build_table(self, part, kind, run=run)
 
     def hf_from_quick_part(self, part=None, kind=None, entry=None):
         """3.25.0: one of this standard's Quick Parts as a part's header or footer, kept exactly as built."""

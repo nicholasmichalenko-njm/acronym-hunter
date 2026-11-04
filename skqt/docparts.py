@@ -154,6 +154,12 @@ class PartPreview(QWidget):
                 p.setPen(QColor("#0f766e")); p.drawText(band, Qt.AlignCenter, f"{kind.title()}: kept design (as built)")
                 p.setPen(QColor("#1f2937")); continue
             spec = lay.get(kind) or {}
+            if (spec.get("table") or {}).get("cells"):         # 3.42.0: a table built here, drawn cell by cell
+                from .hfbuilder import draw_cells
+                draw_cells(p, QRectF(band.left(), band.top() - (0.15 * scale if kind == "footer" else 0), band.width(), 0.45 * scale),
+                           spec, work, text_width_in=max(1.0, pw - ml - mr))
+                p.setFont(small); p.setPen(QColor("#1f2937"))
+                continue
             tbl = (spec.get("table") or {}).get("widths_in") or []
             texts = {s: token_text(spec.get(s, ""), work, numbers) for s in ("left", "center", "right")}
             if kind == "footer" and spec.get("marking") and var.get("marking"):
@@ -291,6 +297,13 @@ def build(page, v, section):
     for k, t in (("none", "None"), ("bottom", "A line under"), ("grid", "Grid")):
         w["borders"].addItem(t, k)
     f2.addRow("Table borders", w["borders"])
+    th = QHBoxLayout()                                     # 3.42.0: built here as a table, logos and Rule 7's footer too
+    th.addWidget(D.button("Build the header as a table...", None, lambda: build_table(page, key, "header"),
+                          "Columns at inch widths, lines of words and fields, a logo; save it as a Quick Part"))
+    th.addWidget(D.button("Build the footer as a table...", None, lambda: build_table(page, key, "footer"),
+                          "Columns at inch widths, lines of words and fields, a logo; or Rule 7's footer"))
+    th.addStretch(1); c2.body.addLayout(th)
+    st["table_lab"] = D.label("", "muted"); c2.body.addWidget(st["table_lab"])
     qh = QHBoxLayout()
     qh.addWidget(D.button("Use a Quick Part as the header...", None, lambda: _qp(page, key, "header")))
     qh.addWidget(D.button("Use a Quick Part as the footer...", None, lambda: _qp(page, key, "footer")))
@@ -399,6 +412,12 @@ def fill(page, key):
         for sl in ("left", "center", "right"):
             w[f"{kind}_{sl}"].setText(spec.get(sl, ""))
         w[f"{kind}_table"].setText(", ".join(f"{x:g}" for x in (spec.get("table") or {}).get("widths_in") or []))
+    built = [k for k, spec in (("header", h), ("footer", ft)) if (spec.get("table") or {}).get("cells")]
+    for kind in ("header", "footer"):                      # 3.42.0: a table built here replaces these boxes
+        for sl in ("left", "center", "right", "table"):
+            w[f"{kind}_{sl}"].setEnabled(kind not in built)
+    st["table_lab"].setText(("Built as a table here: " + " and ".join(built) + " (Build ... as a table to change it)."
+                             + (" The footer is Rule 7's." if "footer" in built and _is_r7(ft) else "")) if built else "")
     w["rule_below"].setChecked(bool(h.get("rule_below")))
     w["marking"].setChecked(bool(ft.get("marking")))
     w["borders"].setCurrentIndex(max(0, w["borders"].findData((h.get("table") or ft.get("table") or {}).get("borders", "none"))))
@@ -461,6 +480,8 @@ def write(page, key):
         part["linked"] = w["linked"].isChecked()
     lay = work.setdefault("hf_layouts", {}).setdefault(key, {})
     for kind in ("header", "footer"):
+        if ((lay.get(kind) or {}).get("table") or {}).get("cells"):
+            continue                                       # 3.42.0: a table built here is changed in its builder only
         spec = {sl: w[f"{kind}_{sl}"].text() for sl in ("left", "center", "right") if w[f"{kind}_{sl}"].text()}
         ws = _widths(w[f"{kind}_table"].text())
         if ws:
@@ -477,6 +498,43 @@ def write(page, key):
     finally:
         page._part_writing = None
     st["preview"].update()
+
+
+def _is_r7(spec):
+    import hfbuild as HB
+    return HB.is_r7(spec)
+
+
+def build_table(page, key, kind, run=True):
+    """3.42.0: build this part's header or footer as a table (columns, lines, logos; Rule 7's footer)."""
+    from .hfbuilder import HFBuilder
+    dlg = HFBuilder(page, page.work, key, kind, page.parts_dir())
+    page.hf_dialog = dlg
+    if not run:
+        return dlg
+    if dlg.exec():
+        finish_table(page, key, kind, dlg)
+    return dlg
+
+
+def finish_table(page, key, kind, dlg):
+    """The builder's table into the part's layout; a kept design for the same header or footer gives way to it."""
+    from .hfbuilder import apply
+    apply(page.work, key, kind, dlg.result_spec())
+    des = (page.work.get("hf_designs") or {}).get(key)
+    if des:
+        des.pop(kind, None); des.pop(kind + "_media", None)
+        if not (des.get("header") or des.get("footer")):
+            page.work["hf_designs"].pop(key, None)
+    page._part_writing = key
+    try:
+        page.load_tables()
+        page.changed()
+    finally:
+        page._part_writing = None
+    if hasattr(page, "show_hf_designs"):
+        page.show_hf_designs()
+    fill(page, key)
 
 
 def _qp(page, key, kind):

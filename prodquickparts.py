@@ -13,7 +13,7 @@ from prodengine.engine.pkg import Package, NS, PR
 from prodengine.engine.ops import glossary as G
 
 QUICK_GALLERY = "docParts"            # Word's Quick Parts gallery
-QP_ALLOWED = ("word/glossary/*", "package|parts")     # the guarded write lets this op change the glossary and add its parts only
+QP_ALLOWED = ("word/glossary/*", "package|parts", "package|media")   # the glossary, its parts and (3.42.0) the pictures in it
 
 
 def gallery_name(g):
@@ -72,7 +72,9 @@ def op_quick_parts(pkg, entries, parts_dir, one_gallery=True):
             pkg.mark(dp)
             if want[name].get("category"):
                 G._set(pr, ["category", "name"], want[name]["category"])
-            if one_gallery:
+            if want[name].get("made_here") and want[name].get("gallery"):   # 3.42.0: one built here keeps the gallery it was saved to
+                G._set(pr, ["category", "gallery"], want[name]["gallery"])
+            elif one_gallery:
                 G._set(pr, ["category", "gallery"], QUICK_GALLERY)
         G.check_unique(pkg)
     styles = sync_styles(pkg) if copied else {}

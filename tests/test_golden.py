@@ -66,6 +66,11 @@ for ver in sets:
           and d["company"].get("style_roles", {}).get("a_number") == st["a_number"]
           and d["company"].get("style_defs", {}).get(st["used_on"][0], {}).get("used_on") == st["used_on"][1]
           and d["company"]["variables"].get("body_font") == st["body_font"])
+    if ex.get("hf_cells"):                                # 3.42 on: a footer built as a table
+        ft = ((d["company"].get("hf_layouts") or {}).get(ex["hf_cells"]["part"]) or {}).get("footer") or {}
+        cells = (ft.get("table") or {}).get("cells") or []
+        check(f"{ver}: the footer built as a table reads back, the team's line in it", len(cells) == 3
+              and any(ln.get("text") == ex["hf_cells"]["line2"] for c in cells for ln in c.get("lines") or []), ft)
     rs = RB.rules(cfg)
     check(f"{ver}: the rules read back (an own rule, a rule off)", any(r["text"] == ex["rules"]["own"] and r["own"] for r in rs)
           and not RB.get(cfg, ex["rules"]["off"])["on"])

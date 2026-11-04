@@ -70,11 +70,11 @@ check("a fix that cannot run is refused and the others still run", "refused" in 
       and all(steps[k]["changed"] for k in ("tables", "caption_typed", "page_numbers", "hf_build")), [(k, s.get("refused", "")[:60]) for k, s in steps.items()])
 check("THE GATE: the original is unchanged; nothing beside it", PCY.state(orig) == before and job.original_ok and os.listdir(src) == ["Volume I.docx"])
 a = job.after_check.by_area()
-pages_left = {k: v for k, v in a["pages"].items() if k != "RU7"}   # 3.38.0 Rule 7's footer table is built from 3.42.0
+pages_left = dict(a["pages"])                       # 3.42.0: Rule 7's footer table is built too
 check("tables, pages, headers and footers, TOC and styles clean in the copy", not a["tables"] and not pages_left and not a["toc"] and not a["styles"],
       {k: dict(v) for k, v in a.items() if v})
-check("3.38.0 Rule 6 fixed in the copy (heading numbers at 0, one text position); Rule 7 still reported until 3.42.0 builds it",
-      chk.by_area()["styles"].get("RU6") and not a["styles"].get("RU6") and a["pages"].get("RU7"), (dict(chk.by_area()["styles"]), dict(a["pages"])))
+check("Rule 6 fixed in the copy (heading numbers at 0, one text position); 3.42.0: the footers are Rule 7's table",
+      chk.by_area()["styles"].get("RU6") and not a["styles"].get("RU6") and not a["pages"].get("RU7"), (dict(chk.by_area()["styles"]), dict(a["pages"])))
 check("the relinked cross-reference is no longer broken", "X1" not in a["xrefs"], dict(a["xrefs"]))
 check("what is left is what Word renumbers (or only reports)", set(a["captions"]) <= {"C4"} and set(a["xrefs"]) <= {"X2", "X3", "B3"}, {k: dict(v) for k, v in a.items() if v})
 from prodengine.engine.pkg import Package

@@ -34,6 +34,13 @@ def make(version, out_root=None):
     data["company"]["style_roles"] = {"a_number": "AA A Number", "restriction": "AA Restriction"}
     data["company"].setdefault("style_defs", {})["AA Title Page Name"] = {"type": "paragraph", "used_on": "Title page", "size": 20}
     data["company"]["variables"]["body_font"] = "Georgia"
+    extra = {}
+    try:                                                  # 3.42.0: a footer built as a table (Rule 7's, with the team's line)
+        import hfbuild as HB
+        data["company"].setdefault("hf_layouts", {}).setdefault("body", {})["footer"] = HB.r7_footer(line2="Kestrel standard line")
+        extra["hf_cells"] = {"part": "body", "line2": "Kestrel standard line"}
+    except ImportError:
+        pass
     PRL.save(cfg, data)
     RB.add(cfg, "Every graphic has a callout in the text before it appears.", group="Writing")
     RB.set_on(cfg, 12, False)
@@ -50,7 +57,6 @@ def make(version, out_root=None):
     rec = R.Record(dd); rec.data["due"] = "2026-12-15 14:00"; rec.data["notes"].append({"text": "Kickoff held", "who": "pm"})
     rec.data["tasks"].append({"id": "t1", "text": "Draft the cover", "owner": "Dana Ruiz", "done": False}); rec.save()
     open(os.path.join(eff, "Customer documents", "Kestrel RFI.txt"), "w").write("The Offeror shall describe its approach.")
-    extra = {}
     try:                                                  # 3.39.0: a data call and a reviewer comment with its disposition
         import datacalls as DC, dispositions as DP
         rec = R.Record(dd)
@@ -59,8 +65,8 @@ def make(version, out_root=None):
         DC.update(rec, cid, answer="Three campaigns, eight cycles each.")
         kid = DP.add(rec, "Red team", "Add the test schedule.", author="G. Park", where="L.4.2 (1.1 Technical Approach)")
         DP.set_disposition(rec, kid, "Reject", reason="It is in Volume III", owner="Dana Ruiz", due="2026-12-02")
-        extra = {"data_call": {"code": "DC-1", "answer": "Three campaigns, eight cycles each.", "status": "Answered"},
-                 "comment": {"text": "Add the test schedule.", "disposition": "Reject", "reason": "It is in Volume III"}}
+        extra.update({"data_call": {"code": "DC-1", "answer": "Three campaigns, eight cycles each.", "status": "Answered"},
+                      "comment": {"text": "Add the test schedule.", "disposition": "Reject", "reason": "It is in Volume III"}})
     except ImportError:
         pass
     try:                                                  # 3.41.0: a capture whose source is a meeting

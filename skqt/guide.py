@@ -366,6 +366,9 @@ TOPICS = [
    "Headers and footers: Word's way puts the left, center and right text on tab stops. Type column widths in inches "
    "(2, 2.5, 2) to build a header or footer as a one-row table instead, with no borders, a line under or a grid. Use a "
    "Quick Part as a header or footer... takes one of this standard's Quick Parts as a part's header or footer, kept as built.",
+   "Build a header or footer as a table... (here or on a Document parts part): columns at inch widths, lines of words and "
+   "fields with their alignment, size and bold, and a logo. Use Rule 7's footer puts the A number, the marking and the "
+   "team's line, and the page number. Save as a Quick Part... keeps it in the standard's Quick Parts for every template.",
    "What Check reports: each section that has checks (Captions, Table of contents, Headers and footers, Page sizes and "
    "margins) lists them at the bottom. Check reads them; nothing is changed.",
    "Quick Parts: Add from a template or document... lists the Quick Parts every template from this standard carries, "
@@ -396,7 +399,7 @@ TOPICS = [
    "Change it opens the page that holds the rule's values (Production Standards, Effort Formatting, the Acronym List).",
    "Add the rule adds one of your own (a checklist item). Phrase rules: a sentence holding the phrase gets that suggestion."],
   ["Audit and Fix a Copy report each finding under its rule.",
-   "Make templates follows Rules 4, 5 and 6; Rule 7's footer table comes with the header and footer builder."]),
+   "Make templates follows Rules 4 to 8; its footers are Rule 7's table unless you build another."]),
  ("audit", "Production", "Audit",
   "Checks Word, Excel and PowerPoint files against every standard that applies to them and lists every finding: styles, "
   "fonts, tables, captions, the TOC, cross-references, pages, headers and footers, lists, terms, sheets, slides and "

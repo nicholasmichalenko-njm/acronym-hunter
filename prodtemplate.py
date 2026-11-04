@@ -28,8 +28,7 @@ COVER_STYLES = {"PE Volume Name": {"type": "paragraph", "based_on": "Normal", "s
                 "PE Company": {"type": "paragraph", "based_on": "Normal", "size": 12, "jc": "center", "after": 6}}
 # the fixes that put the standard into the template, in Fix a Copy's order
 # 3.38.0: rules Make templates cannot meet yet, left out of a template's own check (Audit and Fix a Copy still check them)
-RULES_LATER = {"7": "Make templates builds the footer table (A number, two standard lines, page number) from 3.42.0, "
-                    "with the header and footer builder."}
+RULES_LATER = {}    # 3.42.0: Make templates builds Rule 7's footer, so every rule is checked
 TEMPLATE_FIXES = ("styles_apply", "unnumber_inheriting", "heading_numbering", "list_numbering", "table_styles", "tables", "lists", "caption_typed", "caption_fields",
                   "caption_after", "toc_field", "toc_styles", "toc_list_identifiers", "chapter_breaks", "page_numbers",
                   "page_setup", "page_field_clean", "hf_build")

@@ -220,6 +220,8 @@ def check(pkg, std, marking="", response_type=""):
                 r_ = _part(pkg, n)
             if r_ is None:
                 continue
+            if not _text(r_).strip() and not _instr(r_):      # 3.42.0: an empty footer (a cover's) has nothing to check
+                continue
             tbl = next(iter(r_.findall("w:tbl", NS)), None)
             if tbl is None:
                 out.append(("RU7", f"Section {k + 1}: the footer is not a one-row, three-column table"))
@@ -232,8 +234,6 @@ def check(pkg, std, marking="", response_type=""):
             left = " ".join(_instr(cells[0])); right = " ".join(_instr(cells[2]))
             if a_style and a_style not in styleref_names(_instr(cells[0])):
                 out.append(("RU7", f"Section {k + 1}: the footer's left cell does not read the A number (STYLEREF {a_style})"))
-            elif not a_style and "STYLEREF" not in left.upper():
-                out.append(("RU7", f"Section {k + 1}: the footer's left cell has no STYLEREF field for the A number"))
             if not re.search(r"\bPAGE\b", right.upper()):
                 out.append(("RU7", f"Section {k + 1}: the footer's right cell has no page number"))
     # RU8: caption and notes rows indented

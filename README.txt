@@ -1,6 +1,18 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+HEADERS AND FOOTERS BUILT HERE, RULE 7'S FOOTER, QUICK PARTS MADE HERE (3.42.0)
+  - Production Standards > Document parts (any part) > Build the header as a table... or Build the footer as a table...:
+    columns at inch widths (0 shares the rest), each with lines of words and fields ({volume_name} {page} {a_number}
+    {marking} and the rest), each line with its alignment, size and bold, and a logo (PNG, JPG, GIF, BMP or EMF) above
+    the lines. Borders: none, a line under, a line over or a grid. Pages > Headers and footers has the same builder.
+  - Use Rule 7's footer: the A number on the left (it reads the A number's style, set in Styles > Styles the rules read),
+    the marking (bold) and the team's standard line in the middle, the page number on the right. Type the team's line
+    in the builder. Front matter, Response and Appendices use this footer unless you change it.
+  - Make templates now checks every rule, Rule 7 included. A cover's empty footer is not a Rule 7 finding.
+  - Save as a Quick Part...: a header or footer built here becomes one of the standard's Quick Parts (Headers or Footers
+    gallery); every template made from the standard carries it, and Word's check of the template confirms it.
+
 CAPTURES FROM MEETINGS, CAPTURE FILES AND ANSWERS (3.41.0)
   - Every capture has a source type: Customer document (Review), Meeting, Capture intel (a capture file) or Customer Q&A
     answer, so reviewers can see where a theme came from. Captures made before 3.41 are Customer document.

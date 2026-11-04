@@ -548,8 +548,11 @@ def hf_tokens(std):
     out = {}
     for part, lay in (std.get("hf_layouts") or {}).items():
         for side in ("header", "footer"):
-            for slot, text in (lay.get(side) or {}).items():
-                for k in re.findall(r"\{(\w+)\}", text if isinstance(text, str) else ""):
+            spec = lay.get(side) or {}
+            texts = [t for t in spec.values() if isinstance(t, str)]     # 3.42.0: and the lines of a table's cells
+            texts += [ln.get("text") or "" for c in ((spec.get("table") or {}).get("cells") or []) for ln in (c.get("lines") or [])]
+            for text in texts:
+                for k in re.findall(r"\{(\w+)\}", text):
                     if k in HF_TOKENS or k in _fill_keys(std):
                         out.setdefault(k, f"{part} {side}")
     for p in (std.get("pagination") or {}).get("parts", []):

@@ -233,14 +233,23 @@ TERMS = {
 }
 
 COMPANY["pagination"] = PAGINATION_PRESETS["team"]
-COMPANY["hf_layouts"] = {   # per part of the scheme; tokens: {volume_name} {solicitation} {company} {page} {pages}
+
+
+def r7_footer(line2=""):
+    """3.42.0 Rule 7's footer: a one-row table, the A number on the left (a STYLEREF to its style), the marking and the
+    team's standard line in the middle, the page number on the right."""
+    return {"marking": False, "table": {"borders": "none", "cells": [
+        {"width_in": 2.17, "lines": [{"text": "{a_number}", "align": "left", "size": None, "bold": False}], "logo": None},
+        {"width_in": 2.16, "lines": [{"text": "{marking}", "align": "center", "size": None, "bold": True},
+                                     {"text": line2, "align": "center", "size": 8, "bold": False}], "logo": None},
+        {"width_in": 2.17, "lines": [{"text": "{page}", "align": "right", "size": None, "bold": False}], "logo": None}]}}
+
+
+COMPANY["hf_layouts"] = {   # per part of the scheme; tokens: {volume_name} {solicitation} {company} {page} {pages} {a_number}
     "cover": {"header": {}, "footer": {}},
-    "front": {"header": {"left": "{volume_name}", "right": "{solicitation}", "rule_below": True},
-              "footer": {"marking": True, "center": "{page}"}},
-    "body": {"header": {"left": "{volume_name}", "right": "{solicitation}", "rule_below": True},
-             "footer": {"marking": True, "center": "{page}"}},
-    "appendix": {"header": {"left": "{volume_name}", "right": "{solicitation}", "rule_below": True},
-                 "footer": {"marking": True, "center": "{page}"}},
+    "front": {"header": {"left": "{volume_name}", "right": "{solicitation}", "rule_below": True}, "footer": r7_footer()},
+    "body": {"header": {"left": "{volume_name}", "right": "{solicitation}", "rule_below": True}, "footer": r7_footer()},
+    "appendix": {"header": {"left": "{volume_name}", "right": "{solicitation}", "rule_below": True}, "footer": r7_footer()},
 }
 COMPANY["page_setups"] = PAGE_SETUPS
 COMPANY["lists"] = LISTS

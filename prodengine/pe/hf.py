@@ -27,20 +27,19 @@ FTR_CT = "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+
 HDR_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header"
 FTR_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer"
 XML_SPACE = "{http://www.w3.org/XML/1998/namespace}space"
-HF_ALLOWED = ("word/header*.xml|*", "word/footer*.xml|*", "parts", "word/header*.xml|fields", "word/footer*.xml|fields")
+HF_ALLOWED = ("word/header*.xml|*", "word/footer*.xml|*", "parts", "word/header*.xml|fields", "word/footer*.xml|fields",
+              "package|media")   # 3.42.0: the pictures (logos) the headers and footers carry
 
 # volume variables and the cover paragraph style that holds each one (v1.43 Properties table)
 SOURCE_STYLES = {"volume_name": "PE Volume Name", "solicitation": "PE Solicitation", "company": "PE Company",
                  "classification": "PE Classification", "project": "PE Project Name"}
 
+from prodengine.pe.rules import r7_footer as _r7    # 3.42.0: Rule 7's footer is the default
 DEFAULT_LAYOUTS = {
     "cover": {"header": {}, "footer": {}},
-    "front": {"header": {"left": "{volume_name}", "right": "{solicitation}", "rule_below": True},
-              "footer": {"marking": True, "center": "{page}"}},
-    "body": {"header": {"left": "{volume_name}", "right": "{solicitation}", "rule_below": True},
-             "footer": {"marking": True, "center": "{page}"}},
-    "appendix": {"header": {"left": "{volume_name}", "right": "{solicitation}", "rule_below": True},
-                 "footer": {"marking": True, "center": "{page}"}},
+    "front": {"header": {"left": "{volume_name}", "right": "{solicitation}", "rule_below": True}, "footer": _r7()},
+    "body": {"header": {"left": "{volume_name}", "right": "{solicitation}", "rule_below": True}, "footer": _r7()},
+    "appendix": {"header": {"left": "{volume_name}", "right": "{solicitation}", "rule_below": True}, "footer": _r7()},
 }
 
 
@@ -85,6 +84,14 @@ def _slot_runs(text, std, sources, fields):
             runs += _field("SECTIONPAGES", "1"); fields.append("SECTIONPAGES")
         elif k == "chapter":                      # 3.7.0: the chapter title the page is in (Heading 1)
             runs += _field('STYLEREF "Heading 1"', ""); fields.append('STYLEREF "Heading 1"')
+        elif k == "a_number" and ((std.get("style_roles") or {}).get("a_number")):    # 3.42.0 Rule 7: the A number's style
+            instr = f'STYLEREF "{std["style_roles"]["a_number"]}"'
+            runs += _field(instr, str((std.get("variables") or {}).get("a_number") or "A-number")); fields.append(instr)
+        elif k == "a_number":                     # no style chosen for the A number yet: the cell stays blank
+            continue
+        elif k == "marking":                      # 3.42.0: the marking's words; blank when the standard has none
+            if (std.get("variables") or {}).get("marking"):
+                runs.append(_r(str(std["variables"]["marking"])))
         elif k in _styles_of(std) and _styles_of(std)[k] in sources:    # 3.23.0: the standard's fill-ins too
             instr = f'STYLEREF "{_styles_of(std)[k]}"'
             runs += _field(instr, _value_of(std, k)); fields.append(instr)
@@ -142,11 +149,98 @@ def _para(style_id, slots, std, sources, fields, width_tw, rule_below=False, ali
     return p
 
 
-def _hf_table(style_id, spec, std, sources, fields, width_tw):
+IMG_NS = {"wp": "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing",
+          "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
+          "pic": "http://schemas.openxmlformats.org/drawingml/2006/picture"}
+
+
+def _picture_run(rid, w_in, h_in, n=1, name="Logo"):
+    """3.42.0: a run holding a picture in line with the text (a logo), w_in by h_in inches."""
+    cx, cy = int(float(w_in) * 914400), int(float(h_in) * 914400)
+    xml = (f'<w:r xmlns:w="{W}" xmlns:r="{R}" xmlns:wp="{IMG_NS["wp"]}" xmlns:a="{IMG_NS["a"]}" xmlns:pic="{IMG_NS["pic"]}">'
+           f'<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="{cx}" cy="{cy}"/>'
+           f'<wp:docPr id="{900 + n}" name="{name} {n}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>'
+           f'<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic>'
+           f'<pic:nvPicPr><pic:cNvPr id="{n}" name="{name} {n}"/><pic:cNvPicPr/></pic:nvPicPr>'
+           f'<pic:blipFill><a:blip r:embed="{rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
+           f'<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'
+           f'</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>')
+    return etree.fromstring(xml)
+
+
+def _line_runs(line, std, sources, fields):
+    """3.42.0: one line of a cell: its words and fields, with its own size and bold."""
+    runs = _slot_runs(line.get("text", ""), std, sources, fields)
+    size, bold = line.get("size"), line.get("bold")
+    if size or bold:
+        for r in runs:
+            if r.find(q("t")) is None:
+                continue
+            rpr = etree.Element(q("rPr"))
+            if bold:
+                etree.SubElement(rpr, q("b"))
+            if size:
+                v = str(int(round(float(size) * 2)))
+                etree.SubElement(rpr, q("sz")).set(q("val"), v); etree.SubElement(rpr, q("szCs")).set(q("val"), v)
+            r.insert(0, rpr)
+    return runs
+
+
+def _cells_table(style_id, spec, std, sources, fields, width_tw, add_picture=None):
+    """3.42.0: a header or footer built as a one-row table of cells, each with its width, its lines (each its own words or
+    fields, alignment, size and bold) and a logo (a picture, left or right); a rule above or below, or a grid."""
+    t = spec.get("table") or {}
+    cells = [c for c in (t.get("cells") or []) if isinstance(c, dict)]
+    widths = [float(c.get("width_in") or 0) for c in cells]
+    free = max(0, width_tw - sum(int(w * 1440) for w in widths if w))
+    blanks = sum(1 for w in widths if not w)
+    tws = [int(w * 1440) if w else (free // blanks if blanks else 0) for w in widths]
+    tbl = etree.Element(q("tbl"))
+    pr = etree.SubElement(tbl, q("tblPr"))
+    w = etree.SubElement(pr, q("tblW")); w.set(q("w"), str(sum(tws))); w.set(q("type"), "dxa")
+    b = etree.SubElement(pr, q("tblBorders"))
+    kind = t.get("borders") or "none"
+    for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        e = etree.SubElement(b, q(edge))
+        on = kind == "grid" or (kind == edge) or (kind == "above" and edge == "top") or (kind == "below" and edge == "bottom")
+        e.set(q("val"), "single" if on else "nil")
+        if on:
+            e.set(q("sz"), "6"); e.set(q("space"), "0"); e.set(q("color"), "auto")
+    etree.SubElement(pr, q("tblLayout")).set(q("type"), "fixed")
+    mar = etree.SubElement(pr, q("tblCellMar"))
+    for side in ("left", "right"):
+        m = etree.SubElement(mar, q(side)); m.set(q("w"), "0"); m.set(q("type"), "dxa")
+    grid = etree.SubElement(tbl, q("tblGrid"))
+    for tw in tws:
+        etree.SubElement(grid, q("gridCol")).set(q("w"), str(tw))
+    tr = etree.SubElement(tbl, q("tr"))
+    for k, (c, tw) in enumerate(zip(cells, tws)):
+        tc = etree.SubElement(tr, q("tc"))
+        tcw = etree.SubElement(etree.SubElement(tc, q("tcPr")), q("tcW")); tcw.set(q("w"), str(tw)); tcw.set(q("type"), "dxa")
+        logo = c.get("logo") or {}
+        if logo.get("b64") and add_picture is not None:
+            p = _para(style_id, None, std, sources, fields, width_tw, align=logo.get("align") or "left")
+            rid = add_picture(logo)
+            p.append(_picture_run(rid, logo.get("w_in") or 1.0, logo.get("h_in") or 0.5, n=k + 1))
+            tc.append(p)
+        lines = [ln for ln in (c.get("lines") or []) if isinstance(ln, dict)]
+        for ln in lines:
+            p = _para(style_id, None, std, sources, fields, width_tw, align=ln.get("align") or "left")
+            for r in _line_runs(ln, std, sources, fields):
+                p.append(r)
+            tc.append(p)
+        if tc.find(q("p")) is None:
+            tc.append(_para(style_id, None, std, sources, fields, width_tw))
+    return tbl
+
+
+def _hf_table(style_id, spec, std, sources, fields, width_tw, add_picture=None):
     """3.25.0: a header or footer built as a one-row table, the way the team builds them: columns at their inch widths
     (blank: the text width shared out), the left, center and right text in its cells, borders none, a line under, or a
-    grid. One width: the center text; two: the left and the right; three: all three."""
+    grid. One width: the center text; two: the left and the right; three: all three. 3.42.0: cells with lines and logos."""
     t = spec.get("table") or {}
+    if t.get("cells"):
+        return _cells_table(style_id, spec, std, sources, fields, width_tw, add_picture)
     widths = [float(x) for x in (t.get("widths_in") or []) if x not in (None, "")]
     n = len(widths) or 3
     slots = {1: ["center"], 2: ["left", "right"]}.get(n, ["left", "center", "right"] + [""] * max(0, n - 3))
@@ -408,16 +502,24 @@ def _hf_build(pkg, std):
                     fields_declared += [(name, None, f) for f in fl]
                     made.append(name)
                     continue
-                as_table = bool((spec.get("table") or {}).get("widths_in")) or (spec.get("table") or {}).get("on")
+                as_table = bool((spec.get("table") or {}).get("widths_in")) or (spec.get("table") or {}).get("on") \
+                    or bool((spec.get("table") or {}).get("cells"))
+                media = []                                   # 3.42.0: logos in the table's cells
+
+                def add_picture(logo, media=media):
+                    rid = f"rIdPeLogo{len(media) + 1}"
+                    media.append({"rid": rid, "name": logo.get("name") or "logo.png", "ct": logo.get("ct") or "image/png",
+                                  "b64": logo["b64"]})
+                    return rid
                 if kind == "header":
                     if as_table:                             # 3.25.0: built as a table, the team's way
-                        root.append(_hf_table(hid, spec, std, sources, fl, width))
+                        root.append(_hf_table(hid, spec, std, sources, fl, width, add_picture))
                         root.append(_para(hid, None, std, sources, fl, width, spec.get("rule_below")))
                     else:
                         root.append(_para(hid, spec if spec else None, std, sources, fl, width, spec.get("rule_below")))
                 else:
                     if as_table:
-                        root.append(_hf_table(fid, spec, std, sources, fl, width))
+                        root.append(_hf_table(fid, spec, std, sources, fl, width, add_picture))
                     if spec.get("marking") and std["variables"].get("marking"):
                         mp = _para(mid, None, std, sources, fl, width)
                         mp.append(_r(std["variables"]["marking"]))
@@ -427,6 +529,8 @@ def _hf_build(pkg, std):
                     elif not (spec.get("marking") and std["variables"].get("marking")):
                         root.append(_para(fid, None, std, sources, fl, width))
                 pkg.add_part(name, root, ct)
+                if media:
+                    _design_media(pkg, name, media)
                 rid = _new_rid(rels)
                 rr = etree.SubElement(rels, f"{{{PR}}}Relationship")
                 rr.set("Id", rid); rr.set("Type", rel); rr.set("Target", posixpath.relpath(name, "word"))
