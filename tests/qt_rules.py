@@ -37,7 +37,7 @@ w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel"); app.processEvents()
 
 check("Rules is in the Production menu after Production Standards, for the Production role",
-      [k for g, items in MW.RAIL if g == "Production" for k, _t in items][:2] == ["prodstd", "rules"]
+      [k for g, items in MW.RAIL if g == "Production" for k, _t in items][1:3] == ["prodstd", "rules"]
       and RA.allowed("Production", "rules") and not RA.allowed("Author", "rules"))
 w.go("rules"); app.processEvents()
 pg = w.rules_page

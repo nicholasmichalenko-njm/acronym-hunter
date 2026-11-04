@@ -352,6 +352,27 @@ TOPICS = [
    "Compare, then Export the redline... for the reviewers."],
   ["Nothing here changes a file. Each check exports a workbook (or the redline) for the record.",
    "Page limits often leave out the cover, contents and acronym list: a page count over the limit says to check that."]),
+ ("formatstd", "Production", "Formatting Standards",
+  "The fundamentals every template is built from, as a library: theme and colors, font sets, page setups, pagination schemes, "
+  "heading numbering, lists, and paragraph, character and table styles.",
+  "When a new template or Word document comes in; when the team changes a style; before building an effort profile.",
+  ["Three panes: the categories with their counts; the category's items with their effort types, status, version and where each "
+   "came from; the selected item's picture and every value it holds.",
+   "Import from a Word file... reads a template or document once (never writing it). Each item lands in its library and category, "
+   "New, Same as (Show me) or Differs (what differs). Choose what to do with each: Add, Add as a new version, Keep both (renamed), "
+   "Replace, or Do not keep. Take the ticked keeps everything at once or nothing; Undo this import takes it back, and More > Undo "
+   "an import takes back an earlier one.",
+   "A style shows each property with where it comes from: Set here, or from the style it is based on (the chain is at the top). "
+   "Reset puts the base style's value back. Other items show every value as a tree; double-click a plain value to change it. Save "
+   "changes keeps the edits in this version; Save as a new version keeps them as the next one (Draft).",
+   "Effort types...: the effort types an item is for (Every effort type, or some). The Effort type box shows the items for one "
+   "effort type. Status: Draft (just imported), Approved (ready to build with), Retired (kept, not offered).",
+   "The first time this page opens, your standards become library items: the global standard's (every effort type), each "
+   "profile's and each effort type's changes as new versions labelled with their names. Nothing is deleted; Production Standards "
+   "still makes the templates until Effort Profiles arrive. More > Bring in my standards again adds what changed since.",
+   "Put in a standard... carries the selected items into the global standard, a profile or an effort type."],
+  ["Measuring a Quick Part's pages in Word is a button (Template library > Quick Parts > Measure pages), never automatic.",
+   "Quick Parts and Layout get screens of their own in 3.50.0; Effort Profiles and Templates in 3.51.0."]),
  ("prodstd", "Production", "Production Standards",
   "Every rule Fix a Copy uses and every template is made from, in layers: the global standard, effort types, volumes, and this effort.",
   "Once to set the team's rules; for each volume; at the start of each effort to bring in the RFP's.",

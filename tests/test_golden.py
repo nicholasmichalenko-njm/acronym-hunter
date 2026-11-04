@@ -81,6 +81,13 @@ for ver in sets:
         qp = next((e for e in (d["company"].get("quick_parts") or {}).get("entries") or [] if e.get("name") == ex["team_line"]["qp"]), {})
         check(f"{ver}: the team's line and a Quick Part kept as built read back", HB.team_line(d["company"]) == ex["team_line"]["words"]
               and qp.get("as_built") is True, qp)
+    if ex.get("library"):                                 # 3.49 on: library items with status and effort types; the standards converted
+        import templatelib as TL, libcats as LC, libconvert as CV
+        lib = TL.Library(cfg)
+        it = next((i for i in lib.items if i["name"] == ex["library"]["draft"]), None)
+        check(f"{ver}: a Draft library item for one effort type reads back, and the standards were converted", it is not None
+              and LC.status(it) == "draft" and LC.effort_types(it) == [ex["library"]["effort_type"]] and CV.done(cfg)
+              and LC.place(lib, it) == ("formatting", "para_styles"), it)
     if ex.get("sections"):                                # 3.45 on: a section's contents and its page setup
         sx = ex["sections"]
         items = ((d["company"].get("section_contents") or {}).get(sx["part"])) or []

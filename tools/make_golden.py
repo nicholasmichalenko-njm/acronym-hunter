@@ -55,6 +55,16 @@ def make(version, out_root=None):
             {"name": "Kestrel Callout", "category": "05 Callouts", "source": "qp_kestrel.dotx", "as_built": True})
         extra["team_line"] = {"words": "Kestrel Systems proprietary", "qp": "Kestrel Callout"}
     PRL.save(cfg, data)
+    try:                                                  # 3.49.0: the standards as library items; a Draft item for one effort type
+        import libconvert as CV, libcats as LC, templatelib as TL
+        CV.convert(cfg)
+        lib = TL.Library(cfg)
+        it, _s = lib.add("style", "AA Kestrel Draft Style", {"type": "paragraph", "font": "Georgia", "size": 13})
+        it["status"] = "draft"; lib.save()
+        LC.set_effort_types(lib, [it["id"]], ["kestrel_rfi"])
+        extra["library"] = {"draft": "AA Kestrel Draft Style", "effort_type": "kestrel_rfi", "converted": True}
+    except ImportError:
+        pass
     RB.add(cfg, "Every graphic has a callout in the text before it appears.", group="Writing")
     RB.set_on(cfg, 12, False)
     SR.add_rule(cfg, None, "proposals are limited to", "L", scope="team", why="page limits are instructions")

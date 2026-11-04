@@ -72,9 +72,10 @@ def restate(lib, items, first=False):
         it["state"], it["match"] = st, hit["id"] if hit else ""
         it["match_name"] = lib.shown_name(hit) if hit else ""
         it["differs"] = IB.differs(lib, it)[1] if st == "variant" else ""
-        if changed or it.get("action") not in ALLOWED[st]:
+        if changed:
+            it["action"], it["take"] = DEFAULT[st], st != "same"
+        elif it.get("action") not in ALLOWED[st]:
             it["action"] = DEFAULT[st]
-            it["take"] = st != "same" if first or "take" not in it else it["take"]
     return items
 
 

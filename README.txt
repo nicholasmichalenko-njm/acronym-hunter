@@ -1,6 +1,22 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+FORMATTING STANDARDS, A LIBRARY (3.49.0)
+  - Production > Formatting Standards: theme and colors, font sets, page setups, pagination schemes, heading numbering,
+    lists, and paragraph, character and table styles, each a library item with a name, effort-type tags, a status
+    (Draft, Approved, Retired) and versions. The Effort type and Status boxes filter the list.
+  - Every value: select an item to see its picture and every value it holds. A style shows each property with where it
+    comes from (Set here, or from the style it is based on) and Reset. Save changes, or Save as a new version.
+  - Import from a Word file: each item lands in its library and category, New, Same as (Show me) or Differs. Choose Add,
+    Add as a new version, Keep both, Replace or Do not keep for each. Everything is kept at once or nothing is; Undo
+    this import (or More > Undo an import) takes it back.
+  - Your standards come in: the first time the page opens, the global standard, each profile and each effort type
+    become library items (profiles' and effort types' changes as labelled versions). Nothing is deleted; Production
+    Standards still makes the templates until Effort Profiles arrive.
+  - Fixed: an import that hit an error kept some items and then called them already in the library; the template
+    library page did not show items imported from Production Standards; the app could close after an import while
+    Word measured Quick Parts. Measuring is now a button (Template library > Quick Parts > Measure pages).
+
 QUICK PARTS, FIELDS AND THE TEAM'S LINE (3.48.0)
   - Quick Parts take the template's fonts and sizes: typed fonts and sizes inside a Quick Part from a file come off
     when a template is made, so this standard's styles decide (symbol fonts stay). Production Standards > Quick Parts:
