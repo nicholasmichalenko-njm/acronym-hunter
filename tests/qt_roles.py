@@ -102,10 +102,13 @@ check("3.16.0: Fix a Copy is last in Production and marked Beta, in the menu and
 w.go("acrlist"); app.processEvents()
 check("3.16.0: a tab's page marks its menu item: the Acronym List is a tab of Acronyms, and Production opens it",
       w.stack.currentWidget() is w.acrlist_page and w.step_btns["acronyms"].isChecked() and w.page_title.text() == "Acronyms"
-      and [w.page_tabs.tabText(i) for i in range(w.page_tabs.count())] == ["Scan", "Acronym List", "Lists to Submit"]
+      and [w.page_tabs.tabText(i) for i in range(w.page_tabs.count())] == ["Scan", "Acronym List"]
       and not w.step_btns["acronyms"].property("offrole") and not w.beta_pill.isVisibleTo(w))
-w.page_tabs.setCurrentIndex(2); app.processEvents()
-check("... clicking a tab opens its page", w.stack.currentWidget() is w.lists_page and w.step_btns["acronyms"].isChecked())
+w.page_tabs.setCurrentIndex(0); app.processEvents()
+check("... clicking a tab opens its page", w.stack.currentWidget() is w.acronym_page and w.step_btns["acronyms"].isChecked())
+w.go("lists"); app.processEvents()
+check("3.37.0: Lists to Submit opens in the Acronym List", w.stack.currentWidget() is w.acrlist_page
+      and w.acrlist_page.views.currentWidget() is w.lists_page)
 r = RR.Record(w.ws.root); r.set_team([("A. Lee", "Volume lead"), ("J. Smith", "Proposal manager")]); r.save()
 MO.save(my_name="A. Lee"); w.refresh_access(); app.processEvents()
 check("the effort's People and roles decides the role", w.profile() == ("Author", "effort") and w.step_btns["fixcopy"].property("offrole"))

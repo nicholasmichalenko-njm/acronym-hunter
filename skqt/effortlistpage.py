@@ -3,8 +3,8 @@ status, approver and where it was found. Approve (with the approver), Needs auth
 definition, take a term out, and export the acronym lists (the whole effort, per volume, or both: Word and Excel).
 The workbook is the same one the classic window keeps. Rules only (No AI); nothing leaves the PC."""
 import os
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QHeaderView, QInputDialog, QLineEdit,
-                               QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QHeaderView, QInputDialog, QLineEdit,
+                               QPushButton, QStackedWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 import diag
 import effortfolders as EF
 import effort as E
@@ -21,12 +21,32 @@ class EffortListPage(QWidget):
         self.setObjectName("page")
         self.host = host
         self.terms = []
-        v = QVBoxLayout(self)
-        v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); outer.setSpacing(D.SPACE["m"])
         from PySide6.QtCore import Qt
+        # 3.37.0: one page for the effort's list and the lists you submit (Lists to Submit folded in)
+        sw = QHBoxLayout(); sw.setSpacing(D.SPACE["xs"])
+        sw.addWidget(D.label("Show", "label", wrap=False))
+        self.view_group = QButtonGroup(self)
+        self.b_list = QPushButton("The effort's list"); self.b_submit = QPushButton("Lists to submit, by volume")
+        for i, b in enumerate((self.b_list, self.b_submit)):
+            b.setCheckable(True); self.view_group.addButton(b, i); sw.addWidget(b)
+        self.b_list.setChecked(True)
+        self.b_list.setToolTip("Every term with its approved definition, status and approver: what writers work from")
+        self.b_submit.setToolTip("The lists that go in the submission: only the terms each volume uses, from the latest Submission check")
+        self.view_group.idClicked.connect(lambda i: self.show_view("submit" if i == 1 else "list"))
+        sw.addStretch(1)
+        outer.addLayout(sw)
+        self.views = QStackedWidget(); outer.addWidget(self.views, 1)
+        self.list_view = QWidget(); self.views.addWidget(self.list_view)
+        from .listspage import ListsPage
+        self.submit = ListsPage(host); self.views.addWidget(self.submit)
+        if self.submit.layout() is not None:
+            self.submit.layout().setContentsMargins(0, 0, 0, 0)
+        v = QVBoxLayout(self.list_view); v.setContentsMargins(0, 0, 0, 0); v.setSpacing(D.SPACE["m"])
         self.where = D.label("<b>THROUGHOUT</b> &nbsp;The effort's acronym list: acronyms, abbreviations, units and symbols with "
-                             "the approved definitions writers work from. It is not the list you submit: Lists to Submit holds only "
-                             "the terms your volumes use.", "muted")
+                             "the approved definitions writers work from. Lists to submit, by volume, holds only the terms your "
+                             "volumes use.", "muted")
         self.where.setTextFormat(Qt.RichText); v.addWidget(self.where)                  # 2.86.0
         top = FlowLayout(); top.setSpacing(D.SPACE["m"]); v.addLayout(top)
         self.pills = {k: D.Pill(f"0 {k.lower()}", TONE[k]) for k in E.STATUSES}
@@ -45,10 +65,14 @@ class EffortListPage(QWidget):
         top.addWidget(self.scope)
         self.approved_only = QCheckBox("Approved only"); top.addWidget(self.approved_only)
         top.addWidget(D.button("Export the acronym list...", None, lambda: self.export(),
-                               "The list in Word and Excel. The lists for your volumes are in Lists to Submit."))
+                               "The whole effort's list in Word and Excel. Show > Lists to submit, by volume, exports the lists for your volumes."))
         f = FlowLayout(); f.setSpacing(D.SPACE["s"]); v.addLayout(f)
         self.f_status = QComboBox(); self.f_status.addItems(["All statuses"] + E.STATUSES)
         self.f_status.currentIndexChanged.connect(lambda _i: self.fill())
+        self.f_kind = QComboBox(); self.f_kind.addItem("All kinds", "")                      # 3.37.0: by kind
+        for k in ("Acronym", "Abbreviation", "Unit", "Symbol"):
+            self.f_kind.addItem(k + "s", k)
+        self.f_kind.currentIndexChanged.connect(lambda _i: self.fill())
         self.f_use = QComboBox()                                                            # 2.86.0: in the submission or not
         self.f_use.addItems(["In the submission or not", "Used in the submission volumes", "Not used in any submission volume"])
         self.f_use.setToolTip("From the latest Submission check: terms no volume uses stay out of the lists you submit")
@@ -56,7 +80,7 @@ class EffortListPage(QWidget):
         self.f_search = QLineEdit(); self.f_search.setPlaceholderText("Search terms and definitions"); self.f_search.setClearButtonEnabled(True)
         self.f_search.setMinimumWidth(280)
         self.f_search.textChanged.connect(lambda _t: self.fill())
-        f.addWidget(self.f_status); f.addWidget(self.f_use); f.addWidget(self.f_search, 1)
+        f.addWidget(self.f_status); f.addWidget(self.f_kind); f.addWidget(self.f_use); f.addWidget(self.f_search, 1)
         self.p_unused = D.Pill("", "accent"); self.p_unused.hide(); top.insertWidget(len(E.STATUSES), self.p_unused)
         for text, kind, fn in (("Approve...", "primary", lambda: self.approve()), ("Needs author", None, lambda: self.set_status("Needs author")),
                                ("Proposed", None, lambda: self.set_status("Proposed")), ("Not a term", "danger", lambda: self.set_status("Rejected")),
@@ -87,22 +111,37 @@ class EffortListPage(QWidget):
         s = self.session
         return s.effort if s is not None else None
 
+    def show_view(self, which):
+        """3.37.0: the effort's list, or the lists you submit (by volume)."""
+        sub = which == "submit"
+        self.views.setCurrentWidget(self.submit if sub else self.list_view)
+        (self.b_submit if sub else self.b_list).setChecked(True)
+        if sub:
+            self.submit.refresh()
+        else:
+            self.fill()
+        return sub
+
     def refresh(self):
         h = self.host
         if h.ws is not None and self.session is None:
             h.acronym_page.load()
         self.setEnabled(h.ws is not None)
         self.fill()
+        if self.views.currentWidget() is self.submit:
+            self.submit.refresh()
 
     def fill(self):
         L = self.L
         rows = L.rows if L is not None else {}
         st, q = self.f_status.currentText(), self.f_search.text().strip().casefold()
+        kind = self.f_kind.currentData() or ""
         keep = set(self.selected())
         unused = self.unused_terms()
         use = self.f_use.currentIndex()
         self.terms = [t for t in (L.order if L is not None else []) if t in rows
                       and (st == "All statuses" or rows[t]["Status"] == st)
+                      and (not kind or str(rows[t].get("Type", "") or "").casefold().startswith(kind.casefold()))
                       and (use == 0 or unused is None or ((t in unused) == (use == 2)))
                       and (not q or q in t.casefold() or q in rows[t].get("Definition", "").casefold())]
         if unused is None:

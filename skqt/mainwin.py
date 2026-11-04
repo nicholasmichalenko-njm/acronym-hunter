@@ -50,7 +50,7 @@ TABS = {"home": [("home", "Dashboard"), ("requirements", "Submission Rules")],
         "library": [("library", "Documents"), ("read", "Read into Review")],
         "assign": [("assign", "Review"), ("prove", "Coverage")],
         "matrix": [("matrix", "Matrix"), ("crosswalk", "L/M Crosswalk")],
-        "acronyms": [("acronyms", "Scan"), ("acrlist", "Acronym List"), ("lists", "Lists to Submit")]}
+        "acronyms": [("acronyms", "Scan"), ("acrlist", "Acronym List")]}      # 3.37.0: Lists to Submit is in the Acronym List
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
 HEAD_OF.update({"docs": "library", "impact": "compare", "dashboard": "home"})   # pages opened from inside another
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup"}   # 3.18.2:
@@ -254,8 +254,7 @@ class MainWindow(QMainWindow):
         self.docs_page = DocsPage(self)
         from .librarypage import LibraryPage
         self.library_page = LibraryPage(self)        # 2.83.0
-        from .listspage import ListsPage
-        self.lists_page = ListsPage(self)            # 2.86.0
+        self.lists_page = self.acrlist_page.submit    # 2.86.0; 3.37.0: shown in the Acronym List (Show > Lists to submit)
         self.requirements_page = RequirementsPage(self)
         self.compare_page = ComparePage(self)
         from .custqapage import CustQAPage
@@ -292,7 +291,7 @@ class MainWindow(QMainWindow):
         from .effortformatpage import EffortFormatPage
         self.effortfmt_page = EffortFormatPage(self)   # 3.36.0: one effort's formatting, apart from the team's
         self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page, "custqa": self.custqa_page,
-                      "impact": self.impact_page, "deliverables": self.deliverables_page, "qa": self.qa_page, "lists": self.lists_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
+                      "impact": self.impact_page, "deliverables": self.deliverables_page, "qa": self.qa_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page, "audit": self.audit_page,
@@ -1057,6 +1056,11 @@ class MainWindow(QMainWindow):
         return head in cur
 
     def go(self, step):
+        if step == "lists":                          # 3.37.0: Lists to Submit lives in the Acronym List
+            ok = self.go("acrlist")
+            if ok is not False:
+                self.acrlist_page.show_view("submit")
+            return ok
         step = {"format": "fixcopy", "dashboard": "home", "setup": "structure"}.get(step, step)   # 3.30.0: Response Setup is in the Builder   # 3.9.0: Format Check is in Fix a Copy; 3.12.0: one dashboard
         if step in TABS and self.blocked(step) is not None:     # 3.16.0: a menu item opens on a tab the role has
             step = next((k for k in members(step)[1:] if self.blocked(k) is None), step)

@@ -287,8 +287,8 @@ TOPICS = [
    "A date in amber in Confirmed means nobody has checked that truth for 30 days: press Confirm when it is still right."]),
  ("acronyms", "Writing", "Acronyms",
   "One place for acronyms, abbreviations, units and symbols, in three tabs: Scan finds them in the customer's "
-  "documents or your own drafts; Acronym List is the effort's list with approved definitions; Lists to Submit builds "
-  "each volume's list from what it uses.",
+  "documents or your own drafts; Acronym List is the effort's list with approved definitions, and (3.37.0) Show > "
+  "Lists to submit, by volume, builds each volume's list from what it uses.",
   "At the start (scan the customer's documents), throughout (approve definitions), and at the end (the lists you submit).",
   ["Scan: press Scan the customer documents, or Scan files... or Scan a folder... for your drafts.",
    "For each term: Use this (a definition), Add to the acronym list, Not a term, or Needs author.",
@@ -297,7 +297,8 @@ TOPICS = [
   ["The customer's own definitions win over the master database.",
    "The list is kept in the effort's Excel workbook, in the effort's folder."]),
  ("lists", "Writing", "Lists to Submit",
-  "The Acronyms tab that builds the acronym list for each volume from what that volume actually uses.",
+  "In the Acronym List (Show > Lists to submit, by volume, 3.37.0): the acronym list for each volume from what that volume "
+  "actually uses.",
   "At the end, when the volumes are final.",
   ["Review each volume's list.",
    "Press Export the lists (Word)... or Export (Excel)...",
