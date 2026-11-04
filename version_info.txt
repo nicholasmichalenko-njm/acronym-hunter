@@ -7,12 +7,12 @@ VSVersionInfo(
     StringFileInfo([StringTable('040904B0', [
       StringStruct('CompanyName', 'Nicholas Michalenko'),
       StringStruct('FileDescription', 'Stationkeeper - offline proposal effort workbench'),
-      StringStruct('FileVersion', '3.46.0'),
+      StringStruct('FileVersion', '3.46.1'),
       StringStruct('InternalName', 'Stationkeeper'),
       StringStruct('LegalCopyright', 'Copyright 2026 Nicholas Michalenko'),
       StringStruct('OriginalFilename', 'Stationkeeper.exe'),
       StringStruct('ProductName', 'Stationkeeper'),
-      StringStruct('ProductVersion', '3.46.0'),
+      StringStruct('ProductVersion', '3.46.1'),
       StringStruct('Comments', 'Runs fully offline. Makes no network connections.')])]),
     VarFileInfo([VarStruct('Translation', [1033, 1200])])
   ]

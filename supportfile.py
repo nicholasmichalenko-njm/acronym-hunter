@@ -20,6 +20,7 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.46.1": ["The program comes with a complete, cited record of what it is built from: every package and bundled library, its license, who maintains it and from where. Nothing you use changes."],
     "3.46.0": ["My Work lists the data calls you owe and your sections' draft status (not started, over budget, requirements "
                "removed). The Effort Dashboard has a Drafts and data calls card. New efforts' Author drafts stage has the gate "
                "goal Every section drafted, from Draft Status."],

@@ -1,6 +1,13 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+A COMPLETE RECORD OF WHAT THE PROGRAM IS BUILT FROM (3.46.1)
+  - tools\approved_packages.csv lists every Python package with its use, editions, license, maintainer, country,
+    steward, any tie to China, and the sources that show it. tools\bundled_components.csv does the same for what
+    ships outside Python's packages (Qt, Tesseract and its libraries, the docTR models, Skia, PDFium, OpenBLAS).
+  - Nothing in the program changes. Two packages nothing used are gone from the build list; three that only the
+    legacy reader needs are kept out of US editions by the build.
+
 DRAFTS AND DATA CALLS WHERE YOU LOOK EACH DAY (3.46.0)
   - Home > My Work: the data calls you owe (Draft or Sent, with their code and due date), and your sections whose
     newest Draft Status read says Not started or Over budget, or that requirements were removed. Each section you lead
