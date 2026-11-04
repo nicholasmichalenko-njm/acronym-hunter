@@ -30,6 +30,10 @@ def end(code):
         pass
     if os.name == "nt":
         import ctypes
-        k = ctypes.windll.kernel32
-        k.TerminateProcess(k.GetCurrentProcess(), int(code))
+        from ctypes import wintypes
+        k = ctypes.WinDLL("kernel32", use_last_error=True)
+        k.GetCurrentProcess.restype = wintypes.HANDLE          # a 64-bit pseudo handle; untyped ctypes cuts it to 32 bits
+        k.TerminateProcess.argtypes = (wintypes.HANDLE, wintypes.UINT)
+        k.TerminateProcess.restype = wintypes.BOOL
+        k.TerminateProcess(k.GetCurrentProcess(), int(code) & 0xFFFFFFFF)
     os._exit(int(code))
