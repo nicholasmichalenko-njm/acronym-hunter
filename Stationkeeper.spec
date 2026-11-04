@@ -90,6 +90,7 @@ def make_analysis(script, qt=True):
               'onnxruntime.quantization', 'onnxruntime.transformers', 'onnxruntime.tools',
               ] + (['PySide6.QtNetwork'] if qt else ['PySide6', 'shiboken6']) + _edition_excludes   # Qt only in Stationkeeper (Qt), 2.59.0
              + ['tkinter', '_tkinter', 'customtkinter', 'darkdetect', 'PIL.ImageTk', 'PIL._tkinter_finder']   # 3.14.0: no classic window
+             + ['docx']   # 3.42.0: python-docx is for the tests only; the program reads Word with its own reader
              + ['_hashlib', 'PIL._avif', 'PIL.AvifImagePlugin', 'PIL._imagingft']   # 3.14.1: OpenSSL (Python's own SHA and BLAKE2 serve
                                                                                     # every hash), AVIF pictures, FreeType text drawing
              + ([] if TRAINING else ['tess_train', 'trainerkit']),

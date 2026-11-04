@@ -147,7 +147,7 @@ $unused = @('_internal\libcrypto-3.dll', '_internal\_hashlib.pyd', '_internal\_t
             '_internal\customtkinter', '_internal\libleptonica-6.dll', '_internal\PySide6\opengl32sw.dll', '_internal\PySide6\translations',
             '_internal\PySide6\Qt6Svg.dll', '_internal\PySide6\plugins\generic', '_internal\PySide6\plugins\styles',
             '_internal\PySide6\plugins\iconengines', '_internal\PySide6\plugins\platforms\qdirect2d.dll',
-            '_internal\assets\sample', '_internal\assets\help') |
+            '_internal\assets\sample', '_internal\assets\help', '_internal\docx') |
           Where-Object { Test-Path (Join-Path $out $_) }
 $unused += Get-ChildItem "$out\_internal\PIL" -Filter '_avif*' -ErrorAction SilentlyContinue | ForEach-Object { $_.Name }
 if ($unused) { throw "LEAN CHECK FAILED: unused parts would ship: $($unused -join ', ')" }
