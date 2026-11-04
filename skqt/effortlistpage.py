@@ -78,6 +78,8 @@ class EffortListPage(QWidget):
         self.f_use.setToolTip("From the latest Submission check: terms no volume uses stay out of the lists you submit")
         self.f_use.currentIndexChanged.connect(lambda _i: self.fill())
         self.f_search = QLineEdit(); self.f_search.setPlaceholderText("Search terms and definitions"); self.f_search.setClearButtonEnabled(True)
+        from . import symbols as SYM
+        SYM.attach(self.f_search)
         self.f_search.setMinimumWidth(280)
         self.f_search.textChanged.connect(lambda _t: self.fill())
         f.addWidget(self.f_status); f.addWidget(self.f_kind); f.addWidget(self.f_use); f.addWidget(self.f_search, 1)
@@ -210,8 +212,8 @@ class EffortListPage(QWidget):
         if term is None:
             return False
         if text is None:
-            text, ok = QInputDialog.getText(self, "Definition", f"Definition of {term}:", QLineEdit.Normal,
-                                            self.L.rows[term].get("Definition", ""))
+            from . import symbols as SYM                             # 3.50.0: with the Symbols button
+            text, ok = SYM.ask_text(self, "Definition", f"Definition of {term}:", self.L.rows[term].get("Definition", ""))
             if not ok:
                 return False
         ok = self.session.list_definition(term, text)

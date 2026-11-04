@@ -94,8 +94,10 @@ w.go("acronyms"); app.processEvents()
 ap.f_status.setCurrentIndex(0); ap.f_search.setText(""); app.processEvents()
 ap.select("SOW"); app.processEvents()
 wv = getattr(ap, "where_view", None)
-check("the card shows the spot where it was found, with Next place", wv is not None and wv.state in ("text", "picture")
-      and "SOW" in (wv.pic.text() or "SOW") and wv.where.text().startswith("1 of"), wv and (wv.state, wv.where.text()))
+wv and wv.wait()
+check("the card shows the place it was found (picture or passage), with Next place", wv is not None and wv.state in ("text", "picture")
+      and ("SOW" in wv.text.toPlainText() or wv.state == "picture") and wv.where.text().startswith("Place 1 of"),
+      wv and (wv.state, wv.where.text()))
 import copy
 s.results["SOWs"] = copy.deepcopy(s.results["SOW"]); s.results["SOWs"]["effort"] = ""; s.results["SOWs"]["status"] = "Needs Review"
 check("a plural's singular is guessed", s.singular_guess("SOWs") == "SOW" and s.singular_guess("ICD's") == "ICD" and s.singular_guess("SOW") == "")

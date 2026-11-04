@@ -312,6 +312,23 @@ TOPICS = [
    "Export the wall... makes the page to post in the war room and hand to writers; Export... gives the editors the findings."],
   ["The drafts are the Word files in the effort's Volumes folder (and the deliverables' files).",
    "A date in amber in Confirmed means nobody has checked that truth for 30 days: press Confirm when it is still right."]),
+ ("acrtool", "Writing", "Acronym Finder (its own window)",
+  "The acronym scan as a tool in its own window, for quick jobs with no effort: scan any files, check each term's meaning "
+  "and where it was found, export the list, check first use in your own Word files.",
+  "When you need a list of a document's acronyms and their meanings, or to check a submittal's first uses, fast.",
+  ["Open it from Tools at the top of the main window, from Acronyms > Open in its own window, or start the program with "
+   "the acronyms switch (a shortcut to Stationkeeper.exe with /acronyms or the double-hyphen form opens only this window).",
+   "Scan files... or Scan a folder...: every acronym, abbreviation, unit and symbol, in typed text and in pictures, with its "
+   "meaning. Select a term: its card shows where it was found, the picture or page with every reading boxed (yellow is "
+   "the term), or the passage with the term highlighted. Find < and > step through every find.",
+   "Export the list...: each term and its meaning as a Word table, an Excel sheet or a CSV. Excluded terms, terms marked not "
+   "a term, and plurals and forms tied to their term are left out.",
+   "Check first use...: pick your Word files in submission order. For each acronym: where it first appears in running text, "
+   "whether it is spelled out there, and the terms the list does not have yet. Export the report to Excel.",
+   "Start a new list clears the window's results and list; the files you scanned are never changed.",
+   "Symbols: beside the definition box, Greek letters, subscripts, superscripts, math, accents, units and arrows. Right-click "
+   "a box, or press Ctrl+Shift+Space, to make the selection subscript, superscript or normal text (H₂O, m²)."],
+  ["Its list is its own, on this PC, apart from every effort; it reopens with the last scan."]),
  ("acronyms", "Writing", "Acronyms",
   "One place for acronyms, abbreviations, units and symbols, in three tabs: Scan finds them in the customer's "
   "documents or your own drafts; Acronym List is the effort's list with approved definitions, and (3.37.0) Show > "

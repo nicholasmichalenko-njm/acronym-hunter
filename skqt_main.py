@@ -86,6 +86,10 @@ def main(argv=None):
     diag.activity("qt_started")
     import supportfile as SF                         # 2.81.0: two starts in a row that never finished: a safe start
     safe = SF.begin(A.SANDBOX_DIR) if "--selftest" not in args else False
+    if "--acronyms" in args or "/acronyms" in args:                         # 3.50.0: Acronym Finder alone, for a quick scan and list
+        from skqt.acrtool import open_tool
+        _tool = open_tool(A.CONFIG_DIR)
+        return app.exec()
     w = MainWindow(app, A.CONFIG_DIR, A.APP_VERSION)
     w.safety.install_crash_screen()                  # 2.78.0: save first, then a plain message
     if "--selftest" in args:            # the build checks the built program starts (no effort opened)

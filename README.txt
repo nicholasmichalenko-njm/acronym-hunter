@@ -1,6 +1,23 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+WHERE AN ACRONYM WAS FOUND, AND ACRONYM FINDER (3.50.0)
+  - Acronyms > Scan: a term's card shows each place it was found. A picture (inside a Word, PowerPoint or Excel file,
+    an image file, or a PDF page) is drawn whole with every reading boxed: the term in yellow, other readings in green,
+    low-confidence readings in red, typed text on a PDF page in orange. Zoom with the wheel or + and -, drag to move,
+    Fit, Enlarge. Typed text shows the passage with the term highlighted. Find < and > step through every find; click
+    a place in the list to jump to it.
+  - Acronym Finder, in its own window (Tools at the top of the main window, Acronyms > Open in its own window, or start
+    Stationkeeper.exe --acronyms): scan any files or a folder with no effort open, check meanings and where each term
+    was found, export the list (Word table, Excel or CSV), and check first use in your own Word files. Its list is its
+    own, on this PC.
+  - Symbols are back: beside every definition box (Acronyms card, Acronym list > Edit definition...) a Symbols button
+    opens Greek letters, subscripts, superscripts, math, accents, units and arrows; right-click a box (or select text
+    and press Ctrl+Shift+Space) to make the selection subscript, superscript or normal text (H2O becomes H₂O, m2
+    becomes m²). Search by name (sigma, degree, sub 2). Accents attach to the letter before the cursor (ṁ). The
+    picker stays open while you define several terms; Recent keeps what you use.
+  - Use the selected words: select words in the passage under Where it was found and put them in the definition box.
+
 QUICK PARTS AND LAYOUT (3.50.0)
   - Production > Quick Parts: every Quick Part in the library by your numbered categories, with the pages it fills.
     Category... moves Quick Parts to another category; Pages... types the pages one fills.

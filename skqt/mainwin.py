@@ -213,6 +213,13 @@ class MainWindow(QMainWindow):
         self.undo_btn = D.button("Undo", "ghost", lambda: self.undo_here(), "Undo the last change on this page (Ctrl+Z)")   # 3.18.2
         self.undo_btn.setEnabled(False)
         bh.addWidget(self.undo_btn)
+        from PySide6.QtWidgets import QMenu, QToolButton           # 3.50.0: tools in their own windows, one click away
+        self.tools_btn = QToolButton(); self.tools_btn.setText("Tools"); self.tools_btn.setPopupMode(QToolButton.InstantPopup)
+        self.tools_btn.setToolTip("Tools that open in their own window, for quick jobs with no effort")
+        self.tools_menu = QMenu(self.tools_btn)
+        self.tools_menu.addAction("Acronym Finder (its own window)").triggered.connect(lambda: self.open_tool("acronyms"))
+        self.tools_btn.setMenu(self.tools_menu)
+        bh.addWidget(self.tools_btn)
         self.issue_btn = D.button("Issue or idea", "ghost", lambda: self.open_issues(),
                                   "Write down a bug, an improvement or an idea about this page (Ctrl+Shift+I). It stays on this PC.")
         bh.addWidget(self.issue_btn)                 # 3.9.0
@@ -1162,6 +1169,13 @@ class MainWindow(QMainWindow):
         """2.74.0: an effort package (.skpkg) someone handed over."""
         from .pkgimport import import_package
         return import_package(self, path, dest, mode)
+
+    def open_tool(self, which):
+        """3.50.0: a tool in its own window (Acronym Finder). Returns the window."""
+        if which == "acronyms":
+            from .acrtool import open_tool
+            return open_tool(self.config_dir)
+        return None
 
     def status(self, text):
         self.statusBar().showMessage(text, 9000)

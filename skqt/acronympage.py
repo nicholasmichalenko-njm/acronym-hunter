@@ -5,7 +5,7 @@ effort list, approve, mark as needing the author, say it is not a term, exclude 
 the classic window's own (acrsession.py); results are shared with it. Rules only (No AI); nothing leaves the PC."""
 import datetime, os
 from PySide6.QtCore import Qt, QThread, Signal
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QHeaderView, QLineEdit, QPlainTextEdit, QScrollArea,
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QHeaderView, QLineEdit, QScrollArea,
                                QSplitter, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 import diag
 import effortfolders as EF
@@ -79,7 +79,9 @@ class AcronymPage(QWidget):
         self.b_folder = D.button("Scan a folder...", None, lambda: self.pick_folder())
         self.b_again = D.button("Scan again", None, lambda: self.scan_again(), "The same files again: new choices and definitions apply")
         self.b_cancel = D.button("Cancel", "danger", lambda: self.cancel()); self.b_cancel.hide()
-        for b in (self.b_files, self.b_folder, self.b_again, self.b_cancel):
+        self.b_window = D.button("Open in its own window", "ghost", lambda: self.own_window(),     # 3.50.0
+                                 "Acronym Finder: scan any files and export the list, apart from this effort")
+        for b in (self.b_files, self.b_folder, self.b_again, self.b_cancel, self.b_window):
             top.addWidget(b)
         self.progress = D.label("", "muted", wrap=False); top.addWidget(self.progress, 1)
         # 2.86.0: no separate customer acronym list: the customer's terms are every acronym in its documents, and a
@@ -93,6 +95,8 @@ class AcronymPage(QWidget):
         self.f_found = QComboBox(); self.f_found.addItems(list(A.FOUND_FILTERS))
         self.f_search = QLineEdit(); self.f_search.setPlaceholderText("Search terms and definitions"); self.f_search.setClearButtonEnabled(True)
         self.f_search.setMinimumWidth(280)
+        from . import symbols as SYM
+        SYM.attach(self.f_search)                                       # 3.50.0: search for H₂O, µm, Δv
         self.f_excl = QCheckBox("Show excluded")
         self.f_forms = QCheckBox("Show plurals and forms")           # 3.34.1: decided ones stay out of the way
         self.f_forms.setToolTip("A term you set as a plural (CDRLs) or a form (FY27) is tied to its term and hidden from the "
@@ -133,6 +137,22 @@ class AcronymPage(QWidget):
                                                   "and symbol they use, in typed text and in pictures.", "Scan the customer documents",
                                    lambda: self.scan_customer())
         v.addWidget(self.empty)
+        self.tool = False
+
+    def tool_mode(self):
+        """3.50.0: the page inside Acronym Finder: no effort, no customer Library; Scan files... starts it."""
+        self.tool = True
+        self.b_cust.hide(); self.b_window.hide()
+        self.where.setText("<b>ACRONYM FINDER</b> &nbsp;Scan files or a folder: every acronym, abbreviation, unit and symbol, in "
+                           "typed text and in pictures, with its meaning and the picture or passage where it was found.")
+        self.empty.hide()
+        self.empty = D.EmptyState("No terms yet", "Scan files or a folder: your drafts, submittals, customer documents, "
+                                  "pictures or PDFs.", "Scan files...", lambda: self.pick_files())
+        self.layout().addWidget(self.empty)
+
+    def own_window(self):
+        from .acrtool import open_tool
+        return open_tool(getattr(self.host, "config_dir", None) or __import__("app_gui").CONFIG_DIR)
 
     # ------------------------------------------------------------ the effort
     def load(self):
@@ -314,20 +334,40 @@ class AcronymPage(QWidget):
                 self.body.addLayout(r)
             if len(defs) > 1:
                 self.body.addWidget(D.button("Keep all possibilities", "ghost", lambda: self.choose(t, "Keep All Possibilities")), 0, Qt.AlignLeft)
-        self.typed = QLineEdit(); self.typed.setPlaceholderText("Type a definition to add with it")
+        self.typed = QLineEdit(); self.typed.setPlaceholderText("Type a definition to add with it (right-click for subscript, superscript, symbols)")
         self.body.addWidget(D.SectionTitle("Acronym list"))
-        self.body.addWidget(self.typed)
+        from . import symbols as SYM                                  # 3.50.0: Greek, sub- and superscripts, units, accents
+        tr = QHBoxLayout(); tr.setSpacing(D.SPACE["s"])
+        tr.addWidget(self.typed, 1); tr.addWidget(SYM.button(self.typed))
+        self.use_sel = D.button("Use the selected words", "ghost", lambda: self.use_selected(),
+                                "Select words in the passage under Where it was found, then put them in the definition box")
+        tr.addWidget(self.use_sel)
+        self.body.addLayout(tr)
         self._actions([t])
         locs = d.get("locations", [])
         if locs:
             self.body.addWidget(D.SectionTitle(f"Where it was found ({len(locs)})"))
-            from .whereview import WhereView                          # 2.86.0: the spot, zoomed in
-            self.where_view = WhereView(t, locs, self.path_of)
+            from .foundview import FoundView                          # 3.50.0: the picture or passage, every find boxed
+            self.where_view = FoundView(t, locs, self.path_of)
             self.body.addWidget(self.where_view)
-            box = QPlainTextEdit("\n".join(locs[:200]) + (f"\n... and {len(locs) - 200} more" if len(locs) > 200 else ""))
-            box.setReadOnly(True); box.setMinimumHeight(100)
+            from PySide6.QtWidgets import QListWidget
+            box = QListWidget(); box.setMinimumHeight(100)
+            box.addItems(locs[:500] + ([f"... and {len(locs) - 500} more"] if len(locs) > 500 else []))
+            box.setToolTip("Click a place to show it above")
+            box.currentRowChanged.connect(lambda r, fv=self.where_view: fv.show_place(r))
             self.body.addWidget(box)
         self.body.addStretch(1)
+
+    def use_selected(self):
+        """3.50.0: the words selected in the passage where the term was found become the definition typed."""
+        wv = getattr(self, "where_view", None)
+        sel = wv.text.textCursor().selectedText().strip() if wv is not None else ""
+        if not sel:
+            self.host.status("Select the words in the passage under Where it was found first.")
+            return ""
+        self.typed.setText(" ".join(sel.replace("\u2029", " ").split()))
+        self.typed.setFocus()
+        return self.typed.text()
 
     def _actions(self, terms):
         r1 = QHBoxLayout(); r1.setSpacing(D.SPACE["s"])
@@ -472,7 +512,7 @@ class AcronymPage(QWidget):
 
     def customer_paths(self):
         """2.86.0: the newest version of every customer document in the Library that is on this PC."""
-        if self.host.ws is None:
+        if self.host.ws is None or getattr(self, "tool", False):
             return []
         import docversions as DV
         lib = DV.Library(self.host.ws.p("documents")).load()
