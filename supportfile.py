@@ -20,6 +20,9 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.37.0": ["Kickoff packets: one Word file per author with everything for the sections they lead or write: the customer's "
+               "words with their source, how each is scored, objectives, hot buttons, themes, topics, answers, pages and dates.",
+               "Structure Builder shows Everything for this section. Lists to Submit is now part of the Acronym List."],
     "3.36.0": ["Effort > Effort Formatting: this effort's fonts, sizes, margins, headings and header and footer on top of the "
                "global standards, for every volume or one, with the RFP's rules beside each value.",
                "Make it global sends an effort's value to the global standards (with Undo). Production Standards now edits "

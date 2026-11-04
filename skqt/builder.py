@@ -151,6 +151,9 @@ class BuilderPage(QWidget):
         top.addWidget(D.button("Export the setup...", None, lambda: self.host.setup_page.export(), "One plain Word document per volume"))
         top.addWidget(D.button("Export changes only...", "ghost", lambda: self.host.setup_page.export_changes(),
                                "Just what changed since the last export"))
+        top.addWidget(D.button("Kickoff packets...", None, lambda: self.kickoff(),                    # 3.37.0
+                               "One Word file per author: their sections, the customer's words, how each is scored, "
+                               "objectives, themes, topics, answers, pages and dates"))
         top.addWidget(D.button("Make templates", "primary", lambda: self.host.prodstd_page.make_templates("effort"),
                                "For each volume: its template from Production Standards, and the setup written on it"))
         # the toolbar: what the selected item is, like Word's style buttons
@@ -846,7 +849,7 @@ class BuilderPage(QWidget):
         row.addWidget(cb); row.addStretch(1)
         w = QWidget(); w.setLayout(row); self.mv.addWidget(w)
         self.mv.addWidget(D.label("In this section, in order", "label"))
-        self.cont = QListWidget(); self.cont.setMinimumHeight(220)
+        self.cont = QListWidget(); self.cont.setMinimumHeight(160)
         for kind, key, text in self.contents(lab):
             it = QListWidgetItem({"lib": "Library   ", "item": "", "cap": "Capture   "}[kind] + text)
             it.setData(Qt.UserRole, (kind, key))
@@ -865,6 +868,44 @@ class BuilderPage(QWidget):
         if not self.cont.count():
             self.mv.addWidget(D.label("Nothing in it yet: decide sentences into it in Review, or place library items and "
                                       "what is not placed yet from the right.", "muted"))
+        self.show_everything(lab)                     # 3.37.0
+
+    def kickoff(self, run=True, folder=None):
+        """3.37.0: the author kickoff packets."""
+        from .kickoffview import open_dialog
+        return open_dialog(self.host, run, folder)
+
+    def show_everything(self, lab):
+        """3.37.0 Everything for this section: who, pages, the customer's words, how it is scored, objectives, hot
+        buttons, key points, themes, topics, answers and the storyboard, with a filter. The same facts as the packet."""
+        import html
+        import kickoff as KO
+        from .kickoffview import record_of
+        card = D.Card("Everything for this section", "What an author of this section needs, from every page of the effort.")
+        self.ev_filter = QLineEdit(); self.ev_filter.setPlaceholderText("Filter (words in any line)"); self.ev_filter.setClearButtonEnabled(True)
+        card.add(self.ev_filter)
+        self.ev_text = QLabel(""); self.ev_text.setTextFormat(Qt.RichText); self.ev_text.setWordWrap(True)
+        self.ev_text.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        card.add(self.ev_text)
+        try:
+            self.ev_groups = KO.panel_groups(KO.section_pack(record_of(self.host), self.M, lab))
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            self.ev_groups = []
+        t = D.tokens()
+
+        def draw():
+            q = self.ev_filter.text().strip().casefold()
+            parts = []
+            for g, lines in self.ev_groups:
+                keep = [x for x in lines if not q or q in x.casefold() or q in g.casefold()]
+                if keep:
+                    parts.append(f"<div style='margin-top:6px'><b>{html.escape(g)}</b></div>"
+                                 + "".join(f"<div style='margin-left:10px;color:{t['text']}'>{html.escape(x)}</div>" for x in keep))
+            self.ev_text.setText("".join(parts) or f"<span style='color:{t['muted']}'>Nothing matches.</span>")
+        self.ev_filter.textChanged.connect(lambda _t: draw())
+        draw()
+        self.mv.addWidget(card)
 
     def _content_sel(self):
         it = self.cont.currentItem() if hasattr(self, "cont") else None

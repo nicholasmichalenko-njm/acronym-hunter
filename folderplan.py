@@ -58,6 +58,7 @@ OUTPUTS = [
     ("redline", "Redline between two versions", "exports", "{Doc}_{From}_to_{To}_Redline", ".docx"),
     ("change_list", "Change list between two versions", "exports", "{Doc}_{From}_to_{To}_Changes", ".xlsx"),
     ("author_briefs", "Author briefs for a new version", "exports", "{Doc}_{DocVersion}_Author_Briefs", ".docx"),
+    ("kickoff_packets", "Author kickoff packets (one Word file per author, a folder)", "exports", "", ""),   # 3.37.0
     ("impact_review", "Impact review of a new version", "exports", "{Doc}_{DocVersion}_Impact", ".docx"),
     ("acronym_report", "Acronym report", "exports", "{Effort}_Acronym_Report_{Date}", ".csv"),
     ("acronym_lists", "Acronym lists (one Word file per volume, a folder)", "exports", "", ""),

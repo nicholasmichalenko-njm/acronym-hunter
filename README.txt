@@ -1,6 +1,18 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+AUTHOR KICKOFF PACKETS, EVERYTHING FOR A SECTION, ONE ACRONYM PAGE (3.37.0)
+  - Structure Builder (or Storyboards) > Kickoff packets...: one Word file per author, for everyone who leads or writes
+    a section (tick who). For each of their sections: their role, the page budget and storyboard status, the customer's
+    requirements word for word with their L, M or SOW designation and where each is, supporting context, how it is scored
+    (the Section M factors from the L/M crosswalk), the customer's objectives, hot buttons and key points captured for it
+    (with their source), the win themes it carries, other captures placed there, open meeting topics, the customer's
+    answers, and the storyboard so far. Then the dates ahead and the effort's facts (Wall of Truth). The effort's marking
+    sits at the top and bottom of every page. Saved into a dated folder.
+  - Structure Builder > a section > Everything for this section: the same facts, in one panel, with a filter.
+  - Acronyms > Acronym List > Show: The effort's list, or Lists to submit, by volume (the Lists to Submit page moved
+    here). A kind filter shows acronyms, abbreviations, units or symbols.
+
 EFFORT FORMATTING, APART FROM THE GLOBAL STANDARDS (3.36.0)
   - Effort > Effort Formatting: this effort's formatting on top of the global standards. An amber band says the page
     changes this effort only. Up front: body text (font, size, line spacing, space after), tables and captions (font,

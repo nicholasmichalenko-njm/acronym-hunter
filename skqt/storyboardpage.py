@@ -29,6 +29,8 @@ class StoryboardPage(QWidget):
         self.counts = D.label("", "muted", wrap=False); top.addWidget(self.counts)
         top.addStretch(1)
         self.vol = QComboBox(); self.vol.setMinimumWidth(200); top.addWidget(D.label("Volume", "label", wrap=False)); top.addWidget(self.vol)
+        top.addWidget(D.button("Kickoff packets...", None, lambda: __import__("skqt.kickoffview", fromlist=["open_dialog"]).open_dialog(self.host),
+                               "3.37.0: one Word file per author with everything for the sections they lead or write"))
         top.addWidget(D.button("Export this section...", None, lambda: self.export(False), "This section's storyboard in Word"))
         top.addWidget(D.button("Export the volume...", "primary", lambda: self.export(True),
                                "Every section of the volume in one Word file, a page each, for the storyboard review"))
