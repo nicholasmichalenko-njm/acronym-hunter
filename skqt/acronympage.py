@@ -13,10 +13,11 @@ import app_gui as A
 import acrsession as S
 from . import design as D
 from .adaptive import FlowLayout
+from . import acrextras as AX                                       # 3.51.0
 
-COLS = ["Term", "Type", "Count", "Found in", "Status", "Definition", "Known in", "Acronym list"]
+COLS = ["Term", "Type", "Count", "Found in", "Change", "Status", "Definition", "Known in", "Acronym list", "Source"]   # 3.51.0: Change, Source
 # 3.34.1: the few status filters a reviewer uses (Type, Found in and the search do the rest)
-STATUS = ("All statuses", "Needs approval", "Approved", "Needs a choice", "No longer found", "Excluded")
+STATUS = ("All statuses", "Needs approval", "Approved", "Needs a choice", "No longer found", "Omitted")   # 3.51.0: Omit
 
 
 def status_ok(d, wanted, kind):
@@ -31,7 +32,7 @@ def status_ok(d, wanted, kind):
         return kind == "choice"
     if wanted == "No longer found":
         return bool(d.get("gone"))
-    if wanted == "Excluded":
+    if wanted == "Omitted":
         return bool(d.get("excluded"))
     return True
 KIND_TONE = {"choice": "warn", "candidate": "cust", "resolved": "ok", "error": "crit", "excluded": "head", "other": "accent"}
@@ -97,7 +98,7 @@ class AcronymPage(QWidget):
         self.f_search.setMinimumWidth(280)
         from . import symbols as SYM
         SYM.attach(self.f_search)                                       # 3.50.0: search for H₂O, µm, Δv
-        self.f_excl = QCheckBox("Show excluded")
+        self.f_excl = QCheckBox("Show omitted")
         self.f_forms = QCheckBox("Show plurals and forms")           # 3.34.1: decided ones stay out of the way
         self.f_forms.setToolTip("A term you set as a plural (CDRLs) or a form (FY27) is tied to its term and hidden from the "
                                 "list; tick this to see them (greyed, with what they belong to). A search finds them too.")
@@ -111,6 +112,9 @@ class AcronymPage(QWidget):
         f.addWidget(self.f_search, 1); f.addWidget(self.f_excl); f.addWidget(self.f_forms)
         self.showing = D.label("", "muted", wrap=False); f.addWidget(self.showing)
         f.addWidget(D.button("Export the report...", None, lambda: self.export(), "Exactly the rows shown, as a CSV that opens in Excel"))
+        tb = FlowLayout(); tb.setSpacing(D.SPACE["s"]); v.addLayout(tb)            # 3.51.0: the classic window's tools
+        for b in AX.top_buttons(self):
+            tb.addWidget(b)
         split = QSplitter(Qt.Horizontal)
         self.table = QTableWidget(0, len(COLS))
         self.table.setHorizontalHeaderLabels(COLS)
@@ -120,11 +124,12 @@ class AcronymPage(QWidget):
         self.table.setAlternatingRowColors(True)
         self.table.setSortingEnabled(False)
         hh = self.table.horizontalHeader()
-        hh.setSectionResizeMode(5, QHeaderView.Stretch)
-        for i, w in enumerate((100, 130, 54, 70, 150, 0, 110, 90)):
-            if i != 5:
+        hh.setSectionResizeMode(6, QHeaderView.Stretch)
+        for i, w in enumerate((100, 120, 54, 70, 70, 150, 0, 110, 90, 170)):
+            if i != 6:
                 self.table.setColumnWidth(i, w)
         self.table.itemSelectionChanged.connect(self.show_detail)
+        AX.install(self)                                                 # 3.51.0: sort, text size, right-click, Details
         split.addWidget(self.table)
         self.card_area = QScrollArea(); self.card_area.setWidgetResizable(True); self.card_area.setMinimumWidth(380)
         self.card = D.Card("Term")
@@ -197,7 +202,7 @@ class AcronymPage(QWidget):
         q = self.f_search.text().strip().casefold()
         out = []
         for term, d in s.results.items():
-            if d.get("excluded") and not (self.f_excl.isChecked() or fstat == "Excluded"):
+            if d.get("excluded") and not (self.f_excl.isChecked() or fstat == "Omitted"):
                 continue
             if (d.get("plural_of") or d.get("form_of")) and not (self.f_forms.isChecked() or (q and q == term.casefold())):
                 continue                                     # 3.34.1: a plural or form is decided: tied to its term, out of the list
@@ -210,7 +215,7 @@ class AcronymPage(QWidget):
             if q and q not in term.casefold() and q not in d.get("selected_definition", "").casefold():
                 continue
             out.append(term)
-        return sorted(out, key=lambda t: s.sort_key(t, s.results[t]))
+        return AX.sorted_terms(self, sorted(out, key=lambda t: s.sort_key(t, s.results[t])))
 
     def fill(self):
         s = self.session
@@ -229,11 +234,12 @@ class AcronymPage(QWidget):
         for i, t in enumerate(self.terms):
             d = s.results[t]
             kind = "excluded" if d.get("excluded") else A.status_kind(d.get("status", ""))
-            vals = [t, d.get("category", ""), d.get("count", 0), s.found_in(d), A.status_text(d.get("status", "")),
-                    d.get("selected_definition", ""), s.known_cell(t, d), d.get("effort", "")]
+            from .acrextras import source_text
+            vals = [t, d.get("category", ""), d.get("count", 0), s.found_in(d), d.get("change", ""), A.status_text(d.get("status", "")),
+                    d.get("selected_definition", ""), s.known_cell(t, d), d.get("effort", ""), source_text(d)]
             for c, val in enumerate(vals):
                 it = QTableWidgetItem(str(val))
-                if c == 4:
+                if c == 5:
                     it.setForeground(D.color(KIND_TONE.get(kind, "accent")))
                 if c == 0 and d.get("excluded"):
                     it.setForeground(D.color("faint"))
@@ -321,6 +327,8 @@ class AcronymPage(QWidget):
         self.body.addLayout(row)
         self.body.addWidget(D.label(f"{d.get('category', '')}  |  found {d.get('count', 0)} time(s)"
                                     + (f"  |  known in: {s.known_cell(t, d)}" if s.known_cell(t, d) else ""), "muted"))
+        for w_ in AX.card_extras(self, t):                              # 3.51.0: Found: ... Use; context; equations
+            (self.body.addLayout if isinstance(w_, QHBoxLayout) else self.body.addWidget)(w_)
         self.body.addWidget(D.SectionTitle("Definition"))
         self.body.addWidget(D.label(d.get("selected_definition", "") or "(none)"))
         defs = [x for x in d.get("definitions", []) if x]
@@ -329,7 +337,9 @@ class AcronymPage(QWidget):
             cust = set(d.get("customer_definitions", []))
             for x in defs:
                 r = QHBoxLayout(); r.setSpacing(D.SPACE["s"])
-                r.addWidget(D.label(x + ("   (customer document)" if x in cust else "")), 1)
+                import acrmore as AM                                       # 3.51.0: which customer document
+                src = AM.sources_of(d, x) if x in cust else []
+                r.addWidget(D.label(x + (f"   (customer document: {', '.join(src[:2])})" if src else "   (customer document)" if x in cust else "")), 1)
                 r.addWidget(D.button("Use this", "ghost", lambda _=False, x=x: self.choose(t, x)))
                 self.body.addLayout(r)
             if len(defs) > 1:
@@ -378,7 +388,15 @@ class AcronymPage(QWidget):
         r2 = QHBoxLayout(); r2.setSpacing(D.SPACE["s"])
         r2.addWidget(D.button("Not a term", "danger", lambda: self.set_status(terms, "Rejected"), "Rejected in the effort list: hidden in this effort"))
         excl = all(self.session.results[t].get("excluded") for t in terms)
-        r2.addWidget(D.button("Include" if excl else "Exclude", "ghost", lambda: self.exclude(terms, not excl)))
+        r2.addWidget(D.button("Bring back" if excl else "Omit", "ghost", lambda: self.exclude(terms, not excl),
+                              "Leave it out of this effort, on this scan and every later one (3.51.0)" if not excl else "Show it again"))
+        r2.addWidget(D.button("Add to the database", None, lambda: AX.add_to_db(self, terms), "This PC's acronym database, for "
+                              "every effort (apart from the effort's acronym list)"))
+        r2.addWidget(D.button("Exclusion List", "ghost", lambda: AX.exclusion_add(self, terms), "Never show it in any effort on this PC"))
+        if len(terms) > 1:
+            r2.addWidget(D.button("Back to Proposed", None, lambda: self.set_status(terms, "Proposed")))
+            if self.session.effort is not None and any(t in self.session.effort.rows for t in terms):
+                r2.addWidget(D.button("Remove from the list", "ghost", lambda: AX.remove_from_list(self, terms)))
         r2.addStretch(1)
         self.body.addLayout(r2)
         if len(terms) == 1:                                                  # 2.86.0: a plural is not "not a term"

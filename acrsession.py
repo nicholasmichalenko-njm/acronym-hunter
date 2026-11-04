@@ -74,6 +74,9 @@ class AcronymSession(AcronymRules):
         self.last_scan = None
         self.volume_report = None
         self.plurals = {}
+        self.omitted = {}                                    # 3.51.0: {term: True} omitted in this effort, on every scan
+        self.first_use_set = {}                              # 3.51.0: {term: {file: place}} chosen first uses
+        self._last_vc = None
         self.selected_term = None
         self.matrix = None                                   # the Qt edition sets the open compliance matrix (keyword asks)
         self.sort_col, self.sort_desc = "term", False
@@ -145,6 +148,11 @@ class AcronymSession(AcronymRules):
         self.volume_report = s.get("volume_report") or None
         self.plurals = dict(s.get("plurals") or {})                   # 2.86.0: {plural: singular}
         self.forms = dict(s.get("forms") or {})                       # 3.34.1: {FY27: FY}
+        self.omitted = dict(s.get("omitted") or {})                   # 3.51.0
+        self.first_use_set = dict(s.get("first_use_set") or {})
+        for t in self.omitted:                                        # results saved before 3.51.0 kept the flag only
+            if t in self.results:
+                self.results[t]["excluded"] = True
         if self.results:
             self.apply_effort()
             self.apply_plurals()
@@ -156,6 +164,7 @@ class AcronymSession(AcronymRules):
         s = self.ws.load_session() or {}
         s.update({"results": self.results, "manual_items": self.manual_items, "session_decisions": self.session_decisions,
                   "plurals": getattr(self, "plurals", {}), "forms": getattr(self, "forms", {}),
+                  "omitted": getattr(self, "omitted", {}), "first_use_set": getattr(self, "first_use_set", {}),
                   "last_scan": {"paths": (self.last_scan or {}).get("paths", []), "folder": (self.last_scan or {}).get("folder")}
                   if self.last_scan else s.get("last_scan")})
         self.ws.save_session(s)
@@ -190,6 +199,7 @@ class AcronymSession(AcronymRules):
         self.mark_known_in()
         self.apply_plurals()
         self.apply_forms()                                      # 3.34.1
+        self.apply_omitted()                                    # 3.51.0: Omit holds on every scan
         rec = self.effort_after_scan(self.queued_files) if self.effort is not None else None
         self.save()
         return rec
@@ -344,6 +354,9 @@ class AcronymSession(AcronymRules):
         results = A.analyze_batch(list(paths), cb)
         VU.qa_collect(paths, A, words, vc)
         self.after_scan(results)
+        self._last_vc = vc
+        import firstuse as FU                                   # 3.51.0: the first uses the person chose
+        FU.apply(self.results, self.first_use_set, {os.path.basename(p): p for p in paths}.get)
         report = VU.qa_report(self.results, self.effort, vc, A, list(reg_rows), list(volumes))
         self.volume_report = report
         s = self.ws.load_session() or {}
@@ -384,14 +397,53 @@ class AcronymSession(AcronymRules):
         return True
 
     def exclude(self, terms, on=True):
+        """3.51.0 Omit: the terms are left out of this effort (on), on this scan and every later one; off brings them back."""
         n = 0
         for t in terms:
             d = self.results.get(t)
+            if on:
+                self.omitted[t] = True
+            else:
+                self.omitted.pop(t, None)
             if d is not None and bool(d.get("excluded")) != on:
                 d["excluded"] = on
                 n += 1
         self.save()
         return n
+
+    omit = exclude
+
+    def apply_omitted(self):
+        for t in self.omitted:
+            d = self.results.get(t)
+            if d is not None:
+                d["excluded"] = True
+
+    # ------------------------------------------------------------ 3.51.0 first use chosen by the person
+    def set_first_use(self, term, loc):
+        import firstuse as FU
+        FU.set_first_use(self.first_use_set, term, loc)
+        self.save()
+        return True
+
+    def clear_first_use(self, term, fname=None):
+        import firstuse as FU
+        FU.clear_first_use(self.first_use_set, term, fname)
+        self.save()
+        return True
+
+    def qa_rebuild(self, reg_rows=(), volumes=()):
+        """The last check's report again (after Set as first use), without reading the files again."""
+        import qacheck as VU
+        import firstuse as FU
+        vc = self._last_vc
+        if not vc or self.effort is None:
+            return None
+        paths = {os.path.basename(p): p for p in vc["paths"]}
+        FU.apply(self.results, self.first_use_set, paths.get)
+        report = VU.qa_report(self.results, self.effort, vc, A, list(reg_rows), list(volumes))
+        self.volume_report = report
+        return report
 
     def add(self, terms, definition=""):
         """Add to the effort list (a definition typed for one term goes in with it)."""

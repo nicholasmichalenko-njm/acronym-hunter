@@ -989,6 +989,8 @@ def word_paragraph_kinds(root):
                 kind = "table"; break
         if kind == "text" and (sval.startswith(("caption", "tableoffigures")) or _CAPTION_RE.match(text)):
             kind = "caption"
+        elif kind == "text" and sval.startswith("toc"):  # 3.51.0: a table of contents entry is never a first use
+            kind = "toc"
         yield text, sval.startswith(("heading", "title")) and kind == "text", kind
 
 def word_paragraphs(root):
@@ -1370,7 +1372,7 @@ def extract_docx(filepath, filename, status_callback, prefix, chunks):
         status_callback(f"{prefix} - Reading Word body...")
         body = _xml(z, "word/document.xml")
         block, start, heading, idx, cur = [], 1, "", 0, "text"
-        tags = {"text": "", "table": "table, ", "figure": "text box, ", "caption": "caption, "}
+        tags = {"text": "", "table": "table, ", "figure": "text box, ", "caption": "caption, ", "toc": "contents, "}
 
         def flush(end):
             if block:
@@ -1904,7 +1906,7 @@ def section_of(label):
         h = mt.group(1).strip()
         k = _SEC_KEY.match(h)
         return k.group(1).upper() if k else h
-    if re.search(r"\((?:(?:table|caption|text box), )?para \d", label):
+    if re.search(r"\((?:(?:table|caption|text box|contents), )?para \d", label):
         return "(start)"
     if re.search(r"\((?:Body|Header|Footer|Footnotes|Endnotes|Comments)", label):
         return None
@@ -1925,6 +1927,8 @@ def loc_kind(label):
         return "table"
     if ", caption, " in label or "(caption, " in label:
         return "caption"
+    if ", contents, " in label or "(contents, " in label:      # 3.51.0: the table of contents
+        return "toc"
     return "text"
 
 def _note(fu, key, label, paren, defs, term, text, mt):

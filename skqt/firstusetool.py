@@ -66,6 +66,7 @@ def new_session(config_dir, rule):
     import app_gui as A
     s = S.AcronymSession(ws, path, {}, A.load_settings())
     s.effort.first_use = rule
+    s.first_use_set = dict((ws.load_session() or {}).get("first_use_set") or {})     # 3.51.0: the places chosen before
     return s
 
 
@@ -121,6 +122,12 @@ class FirstUseWindow(QMainWindow):
         sp.addWidget(self.t)
         self.right = QWidget(); self.rv = QVBoxLayout(self.right); self.rv.setContentsMargins(0, 0, 0, 0)
         self.place_head = D.label("Select a row to see the place.", "muted"); self.rv.addWidget(self.place_head)
+        pr = QHBoxLayout(); self.rv.addLayout(pr)                                   # 3.51.0: the person decides
+        self.b_set = D.button("This place is the first use", None, lambda: self.set_here(), "Count the place shown as the "
+                              "acronym's first use in this file (a title or a list you would not define it in comes before it)")
+        self.b_unset = D.button("Back to the first place it appears", "ghost", lambda: self.unset())
+        pr.addWidget(self.b_set); pr.addWidget(self.b_unset); pr.addStretch(1)
+        self.b_set.setEnabled(False); self.b_unset.setEnabled(False)
         self.fv = None
         sp.addWidget(self.right)
         sp.setSizes([900, 520])
@@ -231,8 +238,42 @@ class FirstUseWindow(QMainWindow):
         paths = {os.path.basename(p): p for p in self.paths}
         self.fv = FoundView(row["term"], locs, lambda n: paths.get(n) or paths.get(n.split(" (")[0]))
         self.rv.addWidget(self.fv, 1)
-        self.place_head.setText(f"{row['term']}: {row.get('state') or ''}")
+        self.place_head.setText(f"{row['term']}: {row.get('state') or ''}" + ("  (first use chosen by you)" if self.chosen(row) else ""))
+        self.b_set.setEnabled(bool(locs)); self.b_unset.setEnabled(self.chosen(row))
         return self.fv
+
+    def chosen(self, row):
+        return bool(self.session and (self.session.first_use_set.get(row["term"]) or {}).get(row["volume"]))
+
+    def set_here(self, loc=None):
+        """The place shown (or loc) counts as the selected acronym's first use in its file; the report is rebuilt."""
+        r = self.t.currentRow()
+        if not (0 <= r < len(self.shown)) or self.fv is None:
+            return None
+        row = self.shown[r]
+        loc = loc or (self.fv.locs[self.fv.k] if self.fv.locs else None)
+        if not loc:
+            return None
+        self.session.set_first_use(row["term"], loc)
+        return self._rebuilt(row["term"])
+
+    def unset(self):
+        r = self.t.currentRow()
+        if not (0 <= r < len(self.shown)):
+            return None
+        row = self.shown[r]
+        self.session.clear_first_use(row["term"], row["volume"])
+        return self.check()                                 # read again: the scan's own first use comes back
+
+    def _rebuilt(self, term):
+        rep = self.session.qa_rebuild()
+        if rep is not None:
+            self.report = rep
+            self.fill()
+            keys = [x["term"] for x in self.shown]
+            if term in keys:
+                self.t.setCurrentCell(keys.index(term), 0)
+        return rep
 
     def export(self, path=None):
         import volcheck as V

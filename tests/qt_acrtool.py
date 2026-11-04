@@ -181,6 +181,33 @@ fw.t.setCurrentCell(0, 0); app.processEvents()
 check("selecting a row shows its first use in the document", fw.fv is not None and fw.fv.wait() == "text"
       and fw.fv.where.text().startswith("Place 1 of"), fw.fv and (fw.fv.state, fw.fv.where.text()))
 check("the report exports", fw.export(os.path.join(tmp, "first_use_check.xlsx")))
+# 3.51.0: a table of contents entry is never the first use; the person can choose the first use
+toc_doc = os.path.join(tmp, "Kestrel Volume II.docx")
+make_docx(toc_doc, ["Contents", "The CDRL schedule overview", "The Contract Data Requirements List (CDRL) names every deliverable.",
+                    "Each CDRL item has a due date and the CDRL is updated monthly."])
+import zipfile as _z
+with _z.ZipFile(toc_doc) as zz:
+    parts = {n: zz.read(n) for n in zz.namelist()}
+doc_xml = parts["word/document.xml"].decode()
+doc_xml = doc_xml.replace('<w:p><w:r><w:t xml:space="preserve">The CDRL schedule overview', '<w:p><w:pPr><w:pStyle w:val="TOC1"/></w:pPr><w:r><w:t xml:space="preserve">The CDRL schedule overview')
+parts["word/document.xml"] = doc_xml.encode()
+with _z.ZipFile(toc_doc, "w") as zz:
+    for n, b in parts.items():
+        zz.writestr(n, b)
+fw.set_files([toc_doc])
+rep3 = fw.check(wait=True)
+cd = next((r for r in rep3["first_use"] if r["term"] == "CDRL"), {})
+check("a table of contents entry is never the first use: the first use is where it is defined", cd.get("state", "").startswith("Defined at first use")
+      and "contents" not in cd.get("loc", ""), cd)
+fw.show_box.setCurrentIndex(fw.show_box.findData("all")); app.processEvents()
+row_i = next(i for i, r in enumerate(fw.shown) if r["term"] == "CDRL")
+fw.t.setCurrentCell(row_i, 0); app.processEvents(); fw.fv.wait()
+later = next(l for l in fw.session.results["CDRL"]["locations"] if l != cd["loc"])       # the contents entry, chosen on purpose
+rep4 = fw.set_here(later)
+cd2 = next((r for r in rep4["first_use"] if r["term"] == "CDRL"), {})
+check("This place is the first use: the chosen place counts, and an earlier spell-out is reported", cd2.get("loc") == later
+      and cd2.get("level") in ("bad", "warn", "info"), cd2)
+check("the chosen first use is kept for the next check", fw.session.first_use_set.get("CDRL"))
 fw.close()
 tw.close(); w.close()
 n = sum(checks)

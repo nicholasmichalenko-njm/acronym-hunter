@@ -67,9 +67,9 @@ check("Not a term: rejected in the list and hidden", E.EffortList(LIST).load().r
       and s.results["SCOPE"]["excluded"] and "SCOPE" not in ap.terms)
 other = next(x for x in ap.terms if x not in ("SOW",) and not s.results[x].get("effort"))
 ap.exclude([other])
-check("Exclude hides it; Show excluded brings it back", other not in ap.terms)
+check("Omit hides it; Show omitted brings it back", other not in ap.terms)
 ap.f_excl.setChecked(True); app.processEvents()
-check("Show excluded", other in ap.terms)
+check("Show omitted", other in ap.terms)
 ap.exclude([other], False); ap.f_excl.setChecked(False); app.processEvents()
 # a choice is kept for later scans
 s.results["IMS"]["definitions"] = ["Integrated Master Schedule", "Information Management System"]
@@ -146,7 +146,7 @@ check("Found in: a customer file scanned is the customer's, not ours", s.found_i
 ap.f_status.setCurrentText("Needs approval"); app.processEvents()
 check("the status filter (3.34.1: the few that matter): Needs approval holds the new candidates",
       [ap.f_status.itemText(i) for i in range(ap.f_status.count())] == ["All statuses", "Needs approval", "Approved", "Needs a choice",
-                                                                        "No longer found", "Excluded"]
+                                                                        "No longer found", "Omitted"]
       and ap.terms and not any(s.results[x].get("effort") == "Approved" for x in ap.terms))
 ap.f_status.setCurrentIndex(0); app.processEvents()
 # the effort list itself

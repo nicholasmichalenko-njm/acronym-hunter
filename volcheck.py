@@ -25,7 +25,7 @@ RULE_TEXT = {"volume": "Restarts in each volume", "section": "Restarts in each s
              "submission": "Runs across the whole submission"}
 CHECK_MARKS = {OK: "\u2713 OK", BAD: "\u2717 Fix", WARN: "! Check", INFO: "i Note"}
 KIND_NAMES = {"table": "Table", "figure": "Figure", "caption": "Caption", "header": "Header or footer",
-              "notes": "Comment or notes"}
+              "notes": "Comment or notes", "toc": "Table of contents"}
 RULE_SHORT = {"volume": "per volume", "section": "per section of each volume", "submission": "across the whole submission"}
 
 
