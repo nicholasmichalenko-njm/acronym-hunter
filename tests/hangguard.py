@@ -17,3 +17,19 @@ def arm(name, secs=480, info=None):
     t.daemon = True
     t.start()
     return t
+
+
+def end(code):
+    """3.37.0 leave a GUI test at once with its result. The result line is already printed; Qt's teardown on Windows can
+    crash while the process unloads (exit 0xC0000005) after every check passed, and the release gate counts any non-zero
+    exit. On Windows the process is ended by TerminateProcess, which runs no unload work and keeps the exit code; elsewhere
+    os._exit. A crash during the checks still ends the test with an error before it gets here."""
+    try:
+        sys.stdout.flush(); sys.stderr.flush()
+    except Exception:  # noqa: BLE001
+        pass
+    if os.name == "nt":
+        import ctypes
+        k = ctypes.windll.kernel32
+        k.TerminateProcess(k.GetCurrentProcess(), int(code))
+    os._exit(int(code))
