@@ -63,3 +63,7 @@ production_parts/
 custom_dictionaries.json
 production_standards.json
 team_bins.json
+
+# 3.38.1: the golden sets are fictional test files (tools/make_golden.py) and are always tracked
+!tests/golden/**
+!tests/golden/**/template_library/
