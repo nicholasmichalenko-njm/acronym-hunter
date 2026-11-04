@@ -60,8 +60,10 @@ check("the timing test gets one second run and the log says so", code == 0 and "
 code, out = gate({"test_a.py": GOOD, "test_c.py": GOOD}, "test_c")
 check("named tests run alone", "TSTART test_c" in out and "TSTART test_a" not in out, out[-300:])
 
-code, out = gate({"test_word.py": "print('Word is not on this PC: skipped'); print('ok')\n"})
-check("a test that leaves a check out (no Word) is listed", code == 0 and "SAID THEY SKIPPED SOMETHING" in out and "test_word" in out,
+code, out = gate({"test_word.py": "print('SKIP: Word is not on this PC'); print('the same file is skipped'); print('ok')\n",
+                  "test_feature.py": "print('PASS the same file twice is skipped')\n"})
+check("a test that leaves a check out (no Word) is listed", code == 0 and "LEFT A CHECK OUT" in out and "test_word" in out
+      and "test_feature" not in out.split("LEFT A CHECK OUT")[1],
       out[-300:])
 
 n = sum(checks)

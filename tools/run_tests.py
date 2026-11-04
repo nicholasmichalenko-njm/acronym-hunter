@@ -20,7 +20,7 @@ TESTS = os.environ.get("SK_TESTS_DIR") or os.path.join(ROOT, "tests")   # anothe
 LIMIT_S = int(os.environ.get("SK_TEST_LIMIT_S", "900"))
 RETRY_ONCE = {"qt_speed"}                 # timings vary with what else the PC is doing
 FAIL_LINE = re.compile(r"\bFAIL\b")       # "QT X FAIL (27/28)", "FAIL  a check"; not "FAILED" in a message being tested
-SKIP_LINE = re.compile(r"\bskip(ped|s)?\b", re.I)
+SKIP_LINE = re.compile(r"^\s*SKIP\b")        # a test that leaves a check out says "SKIP: why" (not the app's own Skip choices)
 
 
 def discover(only=None):
@@ -79,7 +79,7 @@ def main(argv):
     if retried:
         print("PASSED ONLY ON A SECOND RUN: " + ", ".join(retried))
     if skipped:
-        print("SAID THEY SKIPPED SOMETHING (check on the PC with Word): " + ", ".join(skipped))
+        print("LEFT A CHECK OUT (SKIP lines; run them on the PC with Word): " + ", ".join(skipped))
     for name, why in failed:
         print(f"FAILED: {name}: {why}")
     print(f"TESTS_DONE {len(names) - len(failed)} passed, {len(failed)} failed", flush=True)
