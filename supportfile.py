@@ -295,7 +295,7 @@ WHATS_NEW = {
               "passes its own check. Fix a Copy checks and sets every style property of the library, uses each deliverable's "
               "own profile, and compares Word's page count with the deliverable's page limit."],
     "3.6.1": ["Fix a Copy: headers take this effort's solicitation and the volume's name (from the Deliverables board, or typed "
-              "on the page); with either one blank, headers and footers are left as they are. The team standard holds no "
+              "on the page); with either one blank, headers and footers are left as they are. The global standards hold no "
               "sample names, products or numbers.",
               "Fix a Copy: terms come from the team's Banned Phrases, the custom dictionaries, the author list and the "
               "effort's approved acronyms. Copies go in the effort's own folder in the output folder, and the effort's "

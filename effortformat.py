@@ -106,7 +106,7 @@ def ids(config_dir, ws, data=None):
 
 
 def team_std(config_dir, ws, tid=None, data=None):
-    """What the team's standards give this effort before its own changes: for one volume, the effort's every-volume
+    """What the global standards give this effort before its own changes: for one volume, the effort's every-volume
     changes count as inherited too."""
     data, eid, default, _v = ids(config_dir, ws, data)
     std = PRL.resolved_type(data, tid or default, eid)
@@ -176,7 +176,7 @@ def _layer_value(ws, key, tid=None):
 
 
 def set_value(config_dir, ws, key, v, tid=None):
-    """This effort's value for a field (None or '' takes it off: the team's value holds again)."""
+    """This effort's value for a field (None or '' takes it off: the global value holds again)."""
     f = FIELD[key]
     lay = layer(ws, tid)
     if v in (None, ""):
@@ -212,7 +212,7 @@ def set_value(config_dir, ws, key, v, tid=None):
 
 
 def changed(config_dir, ws, tid=None):
-    """[(what, team value, this effort's value)] for everything this effort sets at this scope, named fields first,
+    """[(what, global value, this effort's value)] for everything this effort sets at this scope, named fields first,
     then every other value the full editor set."""
     lay = layer(ws, tid)
     if not lay:
@@ -307,8 +307,8 @@ def _target_layer(data, target):
 
 
 def keep_for_team(config_dir, ws, key, target, tid=None, who=None):
-    """Write this effort's value for a field into a team layer, record it in the team's change history, and take it
-    off the effort (the team's value now gives it). Returns the history entry, or None when the effort sets nothing."""
+    """Write this effort's value for a field into a team layer, record it in the global change history, and take it
+    off the effort (the global value now gives it). Returns the history entry, or None when the effort sets nothing."""
     mine = _layer_value(ws, key, tid)
     if mine is None:
         return None
@@ -352,7 +352,7 @@ def history(config_dir):
 
 
 def undo_last(config_dir):
-    """Put the team layer back as it was before the last Keep for the team. Returns the entry put back, or None."""
+    """Put the team layer back as it was before the last Make it global. Returns the entry put back, or None."""
     hist = history(config_dir)
     live = [h for h in hist if not h.get("undone")]
     if not live:

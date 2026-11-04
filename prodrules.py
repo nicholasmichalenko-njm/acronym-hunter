@@ -1,5 +1,5 @@
 """Production standards (3.6.0): one model for checking and fixing, in three layers that the person controls value by
-value: the team standard, a document type (proposal volume, cost volume, customer deliverable...), and this effort
+value: the global standard, a document type (proposal volume, cost volume, customer deliverable...), and this effort
 (the RFP's rules). A layer keeps only what it changes; everything else comes from the layer below. Blank means
 "not set": a rule nobody sets is not checked and not written.
 
@@ -121,7 +121,7 @@ EFFORT_TYPE_KEYS = ("id", "name", "profiles", "default_profile", "profile_over",
 
 
 def load(config_dir):
-    """3.8.0: {"company": the team standard, "types": [document profiles {"id", "name", "match": [words], ...layer}],
+    """3.8.0: {"company": the global standard, "types": [document profiles {"id", "name", "match": [words], ...layer}],
     "default": profile id, "effort_types": [{"id", "name", "profiles": [ids], "default_profile": id,
     "profile_over": {profile id: layer}, ...shared layer}], "default_effort_type": id}.
     A 3.5 file becomes profiles with the same values; a 3.6 or 3.7 file keeps its profiles and gains the starter
@@ -238,7 +238,7 @@ def effort_layer_of(e):
 
 
 def resolved_type(data, tid, eid=None):
-    """The standard for one profile: the team standard, the profile's changes, then (3.8.0) the effort type's shared
+    """The standard for one profile: the global standard, the profile's changes, then (3.8.0) the effort type's shared
     values and its changes for this profile. An effort type's values win over the profile's: they are the rules of
     that kind of effort (a page-limited RFP's fonts and margins hold for every volume in it)."""
     t = type_of(data, tid)

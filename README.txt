@@ -518,7 +518,7 @@ PRODUCTION: FIX A COPY, EVERY RULE IN PRODUCTION STANDARDS (3.6.0)
     of tables and figures in the copy (hidden, this job's Word only; fields that read other files are locked first).
   - Each fix is one guarded change that may touch only what it declares; a fix that would touch anything else is refused
     and the copy stays as it was before it. Proven in Word on 38-, 516- and 757-page volumes.
-  - Production > Production Standards: every rule, editable value by value in three layers: the team standard, document
+  - Production > Production Standards: every rule, editable value by value in three layers: the global standard, document
     types and this effort (the RFP's rules). Format variables, font rules, styles and heading numbering, table rows (with
     a preview), table types, row rules, captions and numbering, the page scheme with cover and back cover, page setups,
     headers and footers, the TOC and its entry styles, lists, terms, and Format Check options.

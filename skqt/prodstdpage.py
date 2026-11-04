@@ -1,5 +1,5 @@
 """Production > Production Standards (3.6.0): every rule the checks and fixes use, editable value by value, in three
-layers: the team standard, a document type, and this effort (the RFP's own rules). A value set at the layer being
+layers: the global standard, a document type, and this effort (the RFP's own rules). A value set at the layer being
 edited shows in bold with a Reset button that takes it back to the layer below; everything else is inherited.
 
 Sections: format variables, font rules, styles and heading numbering, table rows (each role's look with every border
@@ -1693,7 +1693,7 @@ class StandardsPage(QWidget):
         if want is not None and self.host.ws is not None:             # 3.36.0: one effort's layer, from Effort Formatting
             self.mode = "effort"
             cur = f"effortvol:{want}" if want else "effort:"
-        else:                                                       # the menu opens the team's standards
+        else:                                                       # the menu opens the global standards
             self.mode = "team"
             if (cur or "").startswith("effort"):
                 cur = "team:"
@@ -1752,7 +1752,7 @@ class StandardsPage(QWidget):
         self.vol_pick.blockSignals(False)
 
     def show_band(self):
-        """3.36.0: a blue band for the team's standards, an amber one for one effort's formatting."""
+        """3.36.0: a blue band for the global standards, an amber one for one effort's formatting."""
         t = D.tokens()
         if self.mode == "effort":
             self.band.setText(f"<div style='background:{t['warn_soft']};color:{t['text']};padding:6px 10px;border-radius:6px'>"

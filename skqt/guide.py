@@ -326,9 +326,9 @@ TOPICS = [
   ["Nothing here changes a file. Each check exports a workbook (or the redline) for the record.",
    "Page limits often leave out the cover, contents and acronym list: a page count over the limit says to check that."]),
  ("prodstd", "Production", "Production Standards",
-  "Every rule Fix a Copy uses and every template is made from, in layers: the team standard, effort types, volumes, and this effort.",
+  "Every rule Fix a Copy uses and every template is made from, in layers: the global standard, effort types, volumes, and this effort.",
   "Once to set the team's rules; for each volume; at the start of each effort to bring in the RFP's.",
-  ["Editing (3.25.0): two boxes, Effort type and Volume. Any and Any is the team standard; a volume alone is that volume "
+  ["Editing (3.25.0): two boxes, Effort type and Volume. Any and Any is the global standard; a volume alone is that volume "
    "everywhere; an effort type alone is every volume in it; both is that volume in that effort type. This effort only "
    "edits the open effort's values. A value set at that layer shows in bold with what it was; Reset takes it back. "
    "3.36.0: Production Standards edits the global standards only (a blue band says so); one effort's formatting is in "
