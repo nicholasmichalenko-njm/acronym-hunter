@@ -64,6 +64,14 @@ for ver in sets:
         st = SRD.section_status(R.Record(got["data"]))
         check(f"{ver}: the Draft Status read and its sections are all there", (st.get(ex["draft"]["section"]) or {}).get("status")
               == ex["draft"]["status"], st)
+    if ex.get("acronyms"):                                # 3.51 on: Omit and a first use set by hand, kept in the acronym results
+        import acrsession as AS
+        s = AS.AcronymSession(ws, got["list"], {}, {})
+        s.restore()
+        t, f, loc = ex["acronyms"]["first_use"]
+        check(f"{ver}: the omitted term stays omitted and the first use set by hand is kept", ex["acronyms"]["omitted"] in s.omitted
+              and (s.results.get(ex["acronyms"]["omitted"]) or {}).get("excluded") and (s.first_use_set.get(t) or {}).get(f) == loc,
+              (s.omitted, s.first_use_set))
     # the global standards, rules, phrase rules and library
     d = PRL.load(cfg)
     st = ex["standards"]

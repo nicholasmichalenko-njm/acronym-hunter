@@ -1184,7 +1184,7 @@ class MainWindow(QMainWindow):
             return open_tool(self.config_dir)
         if which == "fulltext":
             from .fulltexttool import open_tool as open_ft
-            return open_ft()
+            return open_ft(self.config_dir)
         if which == "firstuse":
             from .firstusetool import open_tool as open_fu
             return open_fu(self.config_dir)

@@ -18,16 +18,16 @@ tmp = tempfile.mkdtemp()
 cfg = os.path.join(tmp, "config"); data = os.path.join(tmp, "data")
 s = CD.Store(cfg)
 check("no dictionaries to start", s.dicts == [] and not os.path.exists(s.path))
-a = s.add("Sierra Space Custom", ["CDRL", "Dream Chaser", "cdrl", "CDRL", "  LIFE  "])
-check("a new dictionary: words unique (case kept), sorted, none with a space", s.get(a)["words"] == ["CDRL", "cdrl", "LIFE"], s.get(a)["words"])
-check("a name already used is refused", s.add("sierra space custom") == "" and s.add("  ") == "")
-check("adding words counts only the new ones", s.add_words(a, ["Tenacity", "LIFE", "ISS"]) == 2)
+a = s.add("Kestrel Aerospace Custom", ["CDRL", "Kestrel Lander", "cdrl", "CDRL", "  HERON  "])
+check("a new dictionary: words unique (case kept), sorted, none with a space", s.get(a)["words"] == ["CDRL", "cdrl", "HERON"], s.get(a)["words"])
+check("a name already used is refused", s.add("kestrel aerospace custom") == "" and s.add("  ") == "")
+check("adding words counts only the new ones", s.add_words(a, ["Talon", "HERON", "ISS"]) == 2)
 check("removing words", s.remove_words(a, ["cdrl"]) == 1 and "cdrl" not in s.get(a)["words"])
-check("changing a spelling; one with a space is refused", s.replace_word(a, "ISS", "ISS-1") and not s.replace_word(a, "LIFE", "two words"))
+check("changing a spelling; one with a space is refused", s.replace_word(a, "ISS", "ISS-1") and not s.replace_word(a, "HERON", "two words"))
 check("kept in the config folder (the backups carry it)", CD.Store(cfg).get(a)["words"] == s.get(a)["words"]
       and os.path.isfile(os.path.join(cfg, CD.FILE)))
 b = s.add("Program names")
-check("renaming; to a used name is refused", s.rename(b, "Programs") and not s.rename(b, "Sierra Space Custom"))
+check("renaming; to a used name is refused", s.rename(b, "Programs") and not s.rename(b, "Kestrel Aerospace Custom"))
 # imports
 words = ["Zeta", "alpha", "Beta"]
 for enc, name in (("utf-16", "u16.dic"), ("utf-8-sig", "u8bom.dic"), ("utf-8", "u8.dic"), ("cp1252", "ansi.dic")):
@@ -49,8 +49,8 @@ kept = os.listdir(os.path.join(data, CD.EXPORTS))
 check("... and a dated copy is kept in the data folder", len(kept) == 1 and kept[0].endswith(" out.dic"), kept)
 check("... the export is noted", s.get(a)["exports"][-1]["words"] == n and s.get(a)["exports"][-1]["file"] == "out.dic")
 d = datetime.date(2026, 10, 30)
-check("the export name: the dictionary and the date", s.export_name(a, when=d) == "Sierra Space Custom 2026-10-30.dic")
-check("... with the effort's name when chosen", s.export_name(a, "Kestrel", when=d) == "Sierra Space Custom Kestrel 2026-10-30.dic")
+check("the export name: the dictionary and the date", s.export_name(a, when=d) == "Kestrel Aerospace Custom 2026-10-30.dic")
+check("... with the effort's name when chosen", s.export_name(a, "Kestrel", when=d) == "Kestrel Aerospace Custom Kestrel 2026-10-30.dic")
 # the effort's acronyms
 L = E.EffortList(os.path.join(tmp, "K.xlsx"), "K")
 L.rows = {"CDRL": {"Status": "Approved"}, "IMS": {"Status": "Proposed"}, "TBD": {"Status": "Rejected"}}

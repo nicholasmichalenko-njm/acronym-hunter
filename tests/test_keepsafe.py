@@ -97,7 +97,7 @@ def run():
     # a second backup the same day replaces today's copy and adds nothing old
     K.backup_effort(bdir, "Kestrel", lst, data, readable_dir=rd, exports_dir=ex, when=when + datetime.timedelta(hours=2))
     assert sorted(f for f in os.listdir(root) if f.endswith(".skpkg")) == ["Kestrel - latest.skpkg", "Kestrel 2026-10-01.skpkg", "Kestrel 2026-10-27.skpkg"]
-    assert K.synced(r"C:\Users\jsmith\OneDrive - Sierra Space\Documents\Stationkeeper backups") and not K.synced(r"C:\Users\jsmith\Documents\x")
+    assert K.synced(r"C:\Users\jsmith\OneDrive - Kestrel Aerospace\Documents\Stationkeeper backups") and not K.synced(r"C:\Users\jsmith\Documents\x")
     assert K.default_backup_dir().endswith("Stationkeeper backups")
     # restoring: what the backup folder holds, and the settings put back only inside the config folder
     found = K.find_backups(bdir)

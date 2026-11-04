@@ -12,7 +12,7 @@ program with --acronyms for this window alone. Rules and the trained readers onl
 import csv
 import os
 
-from PySide6.QtWidgets import (QDialog, QFileDialog, QHBoxLayout, QHeaderView, QLabel, QMainWindow, QTableWidget, QTableWidgetItem,
+from PySide6.QtWidgets import (QComboBox, QDialog, QFileDialog, QInputDialog, QHBoxLayout, QHeaderView, QLabel, QMainWindow, QTableWidget, QTableWidgetItem,
                                QTabWidget, QVBoxLayout, QWidget)
 
 import diag
@@ -25,13 +25,22 @@ _OPEN = []                      # the open tool windows (kept while open)
 
 class ToolHost:
     """What the acronym page needs from a main window, for the tool's own list."""
-    def __init__(self, win, config_dir):
-        import workspace as W
+    def __init__(self, win, config_dir, name=None):
+        import acrlists as AL
         self.win, self.config_dir = win, config_dir
-        root = os.path.join(config_dir, FOLDER)
-        self.ws = W.Workspace(root, "Acronym Finder")
-        self.effort_path = os.path.join(root, LIST_NAME)
+        self.root = os.path.join(config_dir, FOLDER)
         self.efforts = {}
+        self.use(name or AL.last(self.root))
+
+    def use(self, name):
+        """3.51.0: open one of the named lists (its own folder: files, results, choices and list)."""
+        import acrlists as AL
+        import workspace as W
+        self.name = name if name in AL.names(self.root) else AL.FIRST
+        where = AL.folder(self.root, self.name)
+        self.ws = W.Workspace(where, "Acronym Finder" if self.name == AL.FIRST else f"Acronym Finder: {self.name}")
+        self.effort_path = os.path.join(where, LIST_NAME)
+        AL.remember(self.root, self.name)
 
     def status(self, text):
         self.win.statusBar().showMessage(str(text), 12000)
@@ -104,12 +113,99 @@ class AcronymToolWindow(QMainWindow):
         self.b_new = D.button("Start a new list", "ghost", lambda: self.new_list(), "Clear the results and the list (the files are untouched)")
         for b in (self.b_export, self.b_first, self.b_new):
             bar.addWidget(b)
+        lists = QHBoxLayout(); v.addLayout(lists)                         # 3.51.0: named lists
+        lists.addWidget(D.label("List", "label"))
+        self.pick = QComboBox(); self.pick.setMinimumWidth(220)
+        self.pick.activated.connect(lambda _i: self.open_list(self.pick.currentText()))
+        lists.addWidget(self.pick)
+        self.b_newlist = D.button("New list...", "ghost", lambda: self.make_list(), "Another list beside this one: its own files, "
+                                  "results and choices")
+        self.b_rename = D.button("Rename...", "ghost", lambda: self.rename_list())
+        self.b_add = D.button("Add files...", None, lambda: self.add_files(), "Scan this list's files again with more added")
+        self.b_gone = D.button("Clear no longer found", "ghost", lambda: self.clear_gone(), "Take the terms the last scan no "
+                               "longer found off this list")
+        for b in (self.b_newlist, self.b_rename, self.b_add, self.b_gone):
+            lists.addWidget(b)
+        lists.addStretch(1)
         self.page = AcronymPage(self.host)
         self.page.tool_mode()
         v.addWidget(self.page, 1)
         self.setCentralWidget(root)
         self.page.load()
+        self.fill_lists()
         diag.activity("acronym_tool_opened")
+
+    # ---- named lists (3.51.0)
+    def fill_lists(self):
+        import acrlists as AL
+        self.pick.blockSignals(True)
+        self.pick.clear(); self.pick.addItems(AL.names(self.host.root))
+        self.pick.setCurrentText(self.host.name)
+        self.pick.blockSignals(False)
+        self.b_rename.setEnabled(self.host.name != AL.FIRST)
+        self.setWindowTitle(("Acronym Finder" if self.host.name == AL.FIRST else f"Acronym Finder: {self.host.name}") + " - Stationkeeper")
+
+    def open_list(self, name):
+        if self.page.worker is not None:
+            self.host.status("Wait for the scan to finish, or stop it, then open another list.")
+            self.fill_lists()
+            return False
+        if self.page.session is not None:
+            self.page.session.save()
+        self.host.use(name)
+        self.page.load()
+        self.fill_lists()
+        self.host.status(f"Opened {self.host.name}.")
+        return True
+
+    def make_list(self, name=None):
+        import acrlists as AL
+        if name is None:
+            name, ok = QInputDialog.getText(self, "New list", "Name of the new list:")
+            if not ok:
+                return ""
+        n = AL.create(self.host.root, name)
+        if not n:
+            self.host.status("That name is empty or already used.")
+            return ""
+        self.open_list(n)
+        return n
+
+    def rename_list(self, new=None):
+        import acrlists as AL
+        if new is None:
+            new, ok = QInputDialog.getText(self, "Rename the list", "New name:", text=self.host.name)
+            if not ok:
+                return ""
+        old = self.host.name
+        n = AL.rename(self.host.root, old, new)
+        if not n:
+            self.host.status("That name is empty or already used, or this is the first list.")
+            return ""
+        self.host.use(n); self.page.load(); self.fill_lists()
+        return n
+
+    def add_files(self, more=None):
+        import acrlists as AL
+        import app_gui as A
+        if more is None:
+            exts = " ".join("*" + e for e in sorted(A.SUPPORTED_EXTS))
+            more, _ = QFileDialog.getOpenFileNames(self, "Add files to this list", "", f"Documents and pictures ({exts})")
+            if not more:
+                return None
+        s = self.page.session
+        last = ((s.last_scan or {}).get("paths") if s is not None else None) or []
+        return self.page.scan(AL.add_files(last, more))
+
+    def clear_gone(self):
+        import acrlists as AL
+        s = self.page.session
+        if s is None:
+            return []
+        terms = AL.clear_gone(s)
+        self.page.fill()
+        self.host.status(f"{len(terms)} term(s) no longer found taken off this list." if terms else "Every term on this list was found in the last scan.")
+        return terms
 
     def closeEvent(self, e):
         if self in _OPEN:

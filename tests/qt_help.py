@@ -11,6 +11,7 @@ os.environ["AH_TEST"] = "1"
 os.environ["SK_SANDBOX_TEMP"] = "temp_qt"
 import app_gui as A
 tmp = tempfile.mkdtemp()
+os.chdir(tmp)                       # 3.51.0: anything made from a Windows-style path on Linux lands here, not in the repository
 A.CONFIG_DIR = os.path.join(tmp, "appconfig"); os.makedirs(A.CONFIG_DIR)
 A.SETTINGS_FILE = os.path.join(tmp, "settings.json"); A.CHOICES_FILE = os.path.join(tmp, "choices.json")
 A.LOG_DIR = os.path.join(tmp, "logs"); os.makedirs(A.LOG_DIR)
@@ -37,10 +38,12 @@ M.items = C.extract([("Section L.docx", [("Page 1", "The Offeror shall describe 
 M.save(); W.Workspace(W.data_dir_for(LIST), "Heron").set("compliance_path", M.path)
 with open(os.path.join(A.LOG_DIR, "events.jsonl"), "w") as f:
     f.write(json.dumps({"time": "2026-10-29T10:00:00", "kind": "error", "message": "matrix save failed", "where": ["compliance.py:1274 save"]}) + "\n")
-    f.write(json.dumps({"time": "2026-10-29T10:01:00", "kind": "error", "message": "C:\\Users\\nmich\\Heron\\secret.docx", "who": "nick@sierraspace.com"}) + "\n")
+    f.write(json.dumps({"time": "2026-10-29T10:01:00", "kind": "error", "message": "C:\\Users\\jsmith\\Heron\\secret.docx", "who": "j.smith@kestrel.example"}) + "\n")
 with open(os.path.join(A.LOG_DIR, "activity.jsonl"), "w") as f:
     f.write(json.dumps({"time": "2026-10-29T10:02:00", "action": "qt_effort_opened"}) + "\n")
-A.save_settings({"work_mode": "connected", "team_dir": "C:\\Users\\nmich\\OneDrive - Sierra Space\\Team", "backup_dir": "D:\\Backups"})
+# a team folder that exists only for this test (a fictional Windows path on Linux; the test's own folder on Windows)
+TEAM = (os.path.join(tmp, "OneDrive - Kestrel Aerospace", "Team") if os.name == "nt" else "C:\\Users\\jsmith\\OneDrive - Kestrel Aerospace\\Team")
+A.save_settings({"work_mode": "connected", "team_dir": TEAM, "backup_dir": os.path.join(tmp, "Backups") if os.name == "nt" else "D:\\Backups"})
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Heron")
@@ -51,8 +54,9 @@ blob = "\n".join(z.read(n).decode("utf-8", "replace") for n in z.namelist())
 about = json.loads(z.read("about.json"))
 check("the support file: versions, logs, checks", about["app_version"] == A.APP_VERSION and about["work_mode"] == "connected"
       and about["backups_on"] is True and "logs/events.jsonl" in z.namelist() and "matrix save failed" in blob, z.namelist())
-check("and no paths, names, addresses or file names, even from a log line that carried one", "nmich" not in blob and "secret.docx" not in blob
-      and "sierraspace" not in blob and "OneDrive" not in blob and "Backups" not in blob and "Heron" not in blob, blob[:400])
+check("and no paths, names, addresses or file names, even from a log line that carried one", "jsmith" not in blob and "secret.docx" not in blob
+      and (os.name != "nt" or os.environ.get("USERNAME", "jsmith").lower() not in blob.lower())
+      and "kestrel.example" not in blob and "OneDrive" not in blob and "Backups" not in blob and "Heron" not in blob, blob[:400])
 # safe start
 sd = os.path.join(tmp, "sandbox")
 check("two starts that never finished make the third safe", SF.begin(sd) is False and SF.begin(sd) is False and SF.begin(sd) is True)

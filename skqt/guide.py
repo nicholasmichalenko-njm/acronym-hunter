@@ -326,9 +326,22 @@ TOPICS = [
    "Check first use...: pick your Word files in submission order. For each acronym: where it first appears in running text, "
    "whether it is spelled out there, and the terms the list does not have yet. Export the report to Excel.",
    "Start a new list clears the window's results and list; the files you scanned are never changed.",
+   "Lists: keep several scans side by side. New list... starts another with its own files, results and choices; pick one in "
+   "List to open it; Rename... names it. Add files... scans the list's files again with more added. Clear no longer found "
+   "takes off the terms the last scan did not find.",
    "Symbols: beside the definition box, Greek letters, subscripts, superscripts, math, accents, units and arrows. Right-click "
    "a box, or press Ctrl+Shift+Space, to make the selection subscript, superscript or normal text (H₂O, m²)."],
   ["Its list is its own, on this PC, apart from every effort; it reopens with the last scan."]),
+ ("fulltext", "Writing", "Full Text (its own window)",
+  "Every word in the files you choose, typed text exactly and picture text through the reader (equations in linear form), "
+  "shown in one box and saved as text.",
+  "When you need a document's words as plain text: to search it, compare it, or paste it somewhere else.",
+  ["Open it from the arrow beside Acronym Finder at the foot of the menu, or start the program with the fulltext switch.",
+   "Choose files..., Choose a folder..., or Acronym Finder's files (the files its open list scanned). Press Read all the text; "
+   "Stop ends it.",
+   "Save as one .txt..., Save one .txt per file... (each named after its file, with _fulltext), or Copy."],
+  ["The text carries the same classification and markings as the source files. Save and handle it the same way.",
+   "The same reader and sandbox as the scan; nothing leaves the PC."]),
  ("firstuse", "Writing", "First Use Check (its own window)",
   "One or more Word files checked on their own: where each acronym is first used, and every acronym used before it is "
   "defined, never defined, or spelled out more than once.",
@@ -341,6 +354,9 @@ TOPICS = [
    "spelled out again (with where), defined but never used again, written as (ACR) without its words. Every acronym "
    "shows them all.",
    "Select a row: the place shows on the right, the passage with the acronym highlighted or the picture with it boxed.",
+   "This place is the first use: when the first place it appears is not the one that counts (a heading or a figure, say), "
+   "select the place in the list and press it; the check counts from there. Back to the first place it appears undoes it. "
+   "Entries in a table of contents never count as a first use.",
    "Export the report to Excel."],
   ["Submission Check does the same for an effort's volumes and also compares each spell-out with the effort's acronym list."]),
  ("acronyms", "Writing", "Acronyms",
@@ -350,7 +366,22 @@ TOPICS = [
   "At the start (scan the customer's documents), throughout (approve definitions), and at the end (the lists you submit).",
   ["Scan: press Scan the customer documents, or Scan files... or Scan a folder... for your drafts.",
    "For each term: Use this (a definition), Add to the acronym list, Not a term, or Needs author.",
-   "Acronym List: edit a definition, or press Approve... to record the approver. Export the list... for the team.",
+   "Omit leaves a term out of this effort's list, on every later scan; Bring back undoes it. Add to the Exclusion List "
+   "leaves it out of every effort (Exclusion List... shows the list; Take off the list gives a term back).",
+   "Add to the database keeps the term and its meaning in this PC's acronym database, apart from the effort's list "
+   "(usually after submission). Add a term... adds one by hand: to this scan, the effort list, the database, or all three.",
+   "The card: where the term was found (the picture or the passage), the line it was found in (Use takes its words), "
+   "Meaning from context (the words around it pick one of several meanings; Accept takes it), the customer documents "
+   "that define it, and the symbols in an equation. Another way of writing... ties a form to its term.",
+   "The table: click a heading to sort (again to turn it around); Ctrl+wheel or Ctrl+plus and minus change the text size; "
+   "right-click a row for every action; double-click for Details. Select several rows to act on them together.",
+   "Fixes for misread text...: when the reader misreads a word in a picture (KSF for KSE), add the fix; it is used every "
+   "time a picture is read on this PC. Undo puts back the last change.",
+   "Acronym List: edit a definition, or press Approve... to record the approver. Export the list... for the team. "
+   "Export... picks the columns, format and volumes; For approval... lists the terms waiting with an approver column; Every "
+   "effort... puts every effort's list in one workbook; Import a volume's list... brings a volume's own list in as Proposed; "
+   "Volumes... says which volumes use the selected terms; Activity, New in the last scan, Show in scan, Open in Excel and "
+   "Reload help run the list; Add to this PC's database... keeps chosen terms for every effort.",
    "First use in your volumes is checked in Quality > Submission Check (Check first use... on the Acronym List opens it)."],
   ["The customer's own definitions win over the master database.",
    "The list is kept in the effort's Excel workbook, in the effort's folder."]),
@@ -367,6 +398,8 @@ TOPICS = [
   "Before each gate and before submission.",
   ["Press Add volumes... and choose the Word files, then Check the submission volumes.",
    "Fix what it finds in Word. Add missing to the effort list adds terms the list does not have.",
+   "Double-click a first use row: every place the term appears, drawn. This place is the first use counts from the place "
+   "you pick (not a heading or figure, say); entries in a table of contents never count.",
    "Export report (Excel)... records the check."],
   ["First use of an acronym belongs in running text, not in a figure or table."]),
  ("checks", "Quality", "Final Checks",

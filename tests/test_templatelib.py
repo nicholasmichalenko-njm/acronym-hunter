@@ -99,8 +99,8 @@ check("the Our data file carries the library (and leaves a collection in progres
 # ---------------------------------------------------------------- themes (.thmx and from templates)
 import zipfile
 xml = zipfile.ZipFile(MASTER).read("word/theme/theme1.xml").decode().replace('val="4F81BD"', 'val="1F5FAD"').replace(
-    '<a:majorFont>\n        <a:latin typeface="Calibri"/>', '<a:majorFont>\n        <a:latin typeface="Arial"/>').replace('name="Office"', 'name="Sierra"', 1)
-thmx = os.path.join(tmp, "Sierra.thmx")
+    '<a:majorFont>\n        <a:latin typeface="Calibri"/>', '<a:majorFont>\n        <a:latin typeface="Arial"/>').replace('name="Office"', 'name="Kestrel"', 1)
+thmx = os.path.join(tmp, "KestrelTheme.thmx")
 with zipfile.ZipFile(thmx, "w") as z:
     z.writestr("theme/theme/theme1.xml", xml)
 libt = TL.Library(os.path.join(tmp, "cfgt"))

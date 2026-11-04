@@ -28,10 +28,10 @@ c = Q.add(rec, "Should the IMS be in Microsoft Project?", "The Offeror shall pro
 check("questions are numbered in order and start as Draft", [q["n"] for q in Q.items(rec)] == [1, 2, 3]
       and all(q["status"] == "Draft" for q in Q.items(rec)))
 check("nothing to ask: not added", Q.add(rec, "", "") == "")
-Q.update(rec, a, status="Approved", who="nmich")
+Q.update(rec, a, status="Approved", who="jsmith")
 q = Q.get(R.Record(os.path.join(tmp, "data")), a)
 check("a status change is kept with who and when", q["status"] == "Approved" and q["history"][-1]["was"] == "Draft"
-      and q["history"][-1]["who"] == "nmich")
+      and q["history"][-1]["who"] == "jsmith")
 Q.move(rec, c, -1)
 check("moving one: the numbers follow", [x["id"] for x in Q.items(rec)] == [a, c, b] and [x["n"] for x in Q.items(rec)] == [1, 2, 3])
 Q.update(rec, b, answer="Monthly, per CDRL A003 block 10.", answer_doc="Amendment 2")
@@ -40,17 +40,17 @@ check("the summary", Q.summary(rec) == "3 question(s): 1 draft, 1 approved, 1 an
 check("where it is, in words", Q.where(Q.get(rec, a)) == "Section L.4.2, p.12, para 3", Q.where(Q.get(rec, a)))
 # Word
 wd = os.path.join(tmp, "q.docx")
-Q.export_docx(wd, Q.chosen(rec, ["Draft", "Approved"]), effort="Osprey", solicitation="FA8810-26-R-0001", offeror="Sierra Space",
+Q.export_docx(wd, Q.chosen(rec, ["Draft", "Approved"]), effort="Osprey", solicitation="FA8810-26-R-0001", offeror="Kestrel Aerospace",
               contact="M. Chen", marking="CUI")
 z = zipfile.ZipFile(wd)
 x = z.read("word/document.xml").decode()
 check("Word: landscape, the cover block, the quote, our question", 'w:orient="landscape"' in x and "FA8810-26-R-0001" in x
-      and "Sierra Space" in x and "Volume II shall not exceed 20 pages." in x and "Should the IMS be in Microsoft Project?" in x)
+      and "Kestrel Aerospace" in x and "Volume II shall not exceed 20 pages." in x and "Should the IMS be in Microsoft Project?" in x)
 check("... only the statuses chosen", "CDRL A003 due monthly" not in x)
 check("3.0.1 Word: a Reference column with the document and where in it, and a Government Response column",
       all(h in x for h in ("Reference", "RFP Text", "Government Response")) and "Section_L.pdf" in x and "Section L.4.2, p.12, para 3" in x)
 check("... and nothing internal: no category, status or who changed it", "Format and submission" not in x and "Approved" not in x
-      and "nmich" not in x)
+      and "jsmith" not in x)
 wa = os.path.join(tmp, "qa.docx")
 Q.export_docx(wa, Q.items(rec), effort="Osprey", answers=True)
 check("... with the answers when asked", "Monthly, per CDRL A003 block 10." in zipfile.ZipFile(wa).read("word/document.xml").decode())

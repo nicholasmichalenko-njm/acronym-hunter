@@ -13,8 +13,8 @@ A.DB_FILE = os.path.join(tmp, "db.csv"); open(A.DB_FILE, "w", encoding="utf-8").
 A.OCR_FIXES_FILE = os.path.join(A.CONFIG_DIR, "ocr_corrections.csv"); A.OCR_IGNORE_FILE = os.path.join(A.CONFIG_DIR, "ocr_ignore.csv")
 A.COMPLIANCE_LEARNED_FILE = os.path.join(A.CONFIG_DIR, "compliance_learned.json")
 import offerings, keywords
-offerings.add("Dream Chaser", "", "Vehicles", "Spaceplane")
-offerings.add("LIFE Habitat", "", "Habitats", "Inflatable habitat")
+offerings.add("Kestrel Lander", "", "Vehicles", "Lander")
+offerings.add("Heron Habitat", "", "Habitats", "Surface habitat")
 keywords.learn("orbital debris", "Keep"); keywords.learn("orbital debris", "Keep"); keywords.learn("fictional test", "Reject")
 import placelearn
 placelearn.save_synonyms(placelearn.synonyms_path(A.CONFIG_DIR), "solution, approach\nheat, thermal")    # 2.30.0
@@ -24,11 +24,11 @@ assert "offerings.csv" in info["files"] and "keyword_learning.json" in info["fil
 # a second PC: one offering of its own, a smaller count
 os.remove(offerings.path()); os.remove(os.path.join(A.CONFIG_DIR, "keyword_learning.json"))
 placelearn.save_synonyms(placelearn.synonyms_path(A.CONFIG_DIR), "solution, approach\nrisk, mitigation")
-offerings.add("Shooting Star", "", "Vehicles", "Cargo module")
+offerings.add("Osprey Carrier", "", "Vehicles", "Cargo module")
 keywords.learn("orbital debris", "Keep")
 rep = A.install_knowledge_pack(pack)
 names = {o["Offering"] for o in offerings.load()}
-assert names == {"Dream Chaser", "LIFE Habitat", "Shooting Star"}, names
+assert names == {"Kestrel Lander", "Heron Habitat", "Osprey Carrier"}, names
 L = keywords.learning()
 assert L["keep"][keywords.phrase_hash("orbital debris")] == 2 and L["reject"][keywords.phrase_hash("fictional test")] == 1, L
 syn = placelearn.load_synonyms(placelearn.synonyms_path(A.CONFIG_DIR))
@@ -36,6 +36,6 @@ assert "heat, thermal" in syn and "risk, mitigation" in syn and syn.count("solut
 assert "Section word synonyms: 1 groups added" in rep, rep
 assert "Offerings catalog: 2" in rep and "Keyword learning: 2" in rep, rep
 assert A.restore_last_knowledge_backup()
-assert {o["Offering"] for o in offerings.load()} == {"Shooting Star"}
+assert {o["Offering"] for o in offerings.load()} == {"Osprey Carrier"}
 assert keywords.learning()["keep"][keywords.phrase_hash("orbital debris")] == 1
 print("team pack ok")

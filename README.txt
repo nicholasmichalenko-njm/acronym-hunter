@@ -1,6 +1,27 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE ACRONYM TOOLSET IS BACK (3.51.0)
+  - Omit leaves a term out of this effort's list and it stays out on every later scan; Bring back undoes it. The
+    Exclusion List leaves a term out of every effort (Exclusion List... shows it; Take off the list gives a term back).
+  - Add to the database keeps a term and its meaning in this PC's acronym database, apart from the effort's list.
+    Add a term... adds one by hand: to the scan, the effort list, the database, or all three.
+  - The card: the line a term was found in (Use takes its words), Meaning from context (the words around a term pick
+    one of several meanings; Accept takes it), the customer documents that define it, the symbols in an equation, and
+    Another way of writing... (FY 27 is another way of writing FY27). Customer acronym lists... is on the page again.
+  - The table: Change and Source columns; click a heading to sort; Ctrl+wheel or Ctrl+plus and minus for text size;
+    right-click a row for every action; double-click for Details; select several rows to act on them together.
+  - Fixes for misread text...: when the reader misreads a word in a picture (KSF for KSE), add the fix; it is used
+    every time a picture is read on this PC. Undo puts back the last change. (Training the reader is the Training app.)
+  - Acronym List: Export... (columns, format, volumes), For approval..., Every effort..., Import a volume's list...,
+    Volumes..., Activity, New in the last scan, Show in scan, Open in Excel, Reload, Add to this PC's database....
+  - First use: entries in a table of contents never count. In First Use Check and in Submission Check (double-click a
+    first use row) pick the place that counts: This place is the first use; Back to the first place it appears.
+  - Acronym Finder keeps several lists: New list..., pick one in List, Rename..., Add files..., Clear no longer found.
+  - Full Text, in its own window (the arrow beside Acronym Finder, or Stationkeeper.exe --fulltext): every word in the
+    files you choose, typed text exactly and picture text through the reader, saved as one .txt, one per file, or
+    copied. The text carries the same markings as the source files.
+
 WHERE AN ACRONYM WAS FOUND, AND ACRONYM FINDER (3.50.0)
   - Acronyms > Scan: a term's card shows each place it was found. A picture (inside a Word, PowerPoint or Excel file,
     an image file, or a PDF page) is drawn whole with every reading boxed: the term in yellow, other readings in green,

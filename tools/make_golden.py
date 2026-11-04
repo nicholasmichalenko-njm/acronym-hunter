@@ -117,6 +117,17 @@ def make(version, out_root=None):
             extra["capture"] = {"text": "They worry about schedule risk.", "source": "meeting"}
     except ImportError:
         pass
+    try:                                                  # 3.51.0: an omitted term and a first use set by hand, kept in the acronym results
+        import acrsession as AS
+        if hasattr(AS.AcronymSession, "set_first_use"):
+            s = ws.load_session() or {}
+            s.update({"results": {"KTV": {"category": "Acronym", "count": 1, "locations": [], "definitions": [], "excluded": True}},
+                      "omitted": {"KTV": "not for this effort"},
+                      "first_use_set": {"KLT": {"Volume I Technical.docx": "Volume I Technical.docx (para 4)"}}})
+            ws.save_session(s)
+            extra["acronyms"] = {"omitted": "KTV", "first_use": ["KLT", "Volume I Technical.docx", "Volume I Technical.docx (para 4)"]}
+    except ImportError:
+        pass
     os.makedirs(out)
     man = P.save(os.path.join(out, "Kestrel"), "Kestrel", lst, dd, info={"client": "Fictional Space Office"},
                  customer_dir=os.path.join(eff, "Customer documents"), stage="Author drafts", app_version=version,

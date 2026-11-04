@@ -60,7 +60,7 @@ _EX.save_team_bins(cfgA, [{"name": "Transition risk", "color": "#B45309", "feeds
 have = TP.available(cfgA)
 check("the maker's PC lists what it can share", set(have) == set(TP.PARTS), have)
 pack = os.path.join(tmp, f"Team{TP.EXT}")
-info = TP.make(cfgA, pack, TP.PARTS, lock=("logos", "design"), name="Sierra team", notes="First pack")
+info = TP.make(cfgA, pack, TP.PARTS, lock=("logos", "design"), name="Kestrel team", notes="First pack")
 check("a team pack carries the ticked parts and locks", info["parts"] == list(TP.PARTS) and info["locks"] == ["design", "logos"]
       and "SharePoint" in info["handling"])
 # ---- PC B: an author's PC, with things of its own
@@ -94,7 +94,7 @@ check("locked logos replace the PC's own, at the top of the menu", len(lg) == 2 
       and len(w.rail_brand.paths) == 2)
 bc = w.settings_page.branding_card
 check("locked logos cannot be changed on the PC", not bc.add_logo(pic("b2.png", (1, 2, 3))) and len(BR.logos(cfgB)) == 2
-      and "Set by the team pack Sierra team" in bc.note.text())
+      and "Set by the team pack Kestrel team" in bc.note.text())
 check("the locked matrix design replaces the PC's", len(MD.load_team(cfgB)["columns"]) == 5)
 w.matrix_page.d = MD.default()
 check("and cannot be saved over", w.matrix_page.team_save() is None and len(MD.load_team(cfgB)["columns"]) == 5)
@@ -103,7 +103,7 @@ w.home_page.customize({"role": "Author", "order": BR.preset("Author", TP.roles(c
 check("an author on this PC gets the team's layout", w.home_page.shown == ["mywork", "calendar", "tasks"], w.home_page.shown)
 check("markings and topics are added", TP.markings(cfgB) == ["CUI//SP-PROPIN", "Proprietary"] and TP.topics(cfgB) == ["Thermal", "Schedule", "Key personnel"])
 check("a CUI marking of the team's own shows in the CUI color", BR.tone("CUI//SP-PROPIN") == "cui" and BR.marking("CUI//SP-PROPIN")[0] == "CUI//SP-PROPIN")
-check("Settings says what is installed and what the team locked", "Sierra team" in tc.state.text() and "Company logos" in tc.state.text()
+check("Settings says what is installed and what the team locked", "Kestrel team" in tc.state.text() and "Company logos" in tc.state.text()
       and not tc.undo_btn.isHidden(), tc.state.text())
 # ---- undo
 tc.undo()

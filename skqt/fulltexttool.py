@@ -14,6 +14,22 @@ from . import design as D
 _OPEN = []
 
 
+def last_scan_files(config_dir):
+    """The files of Acronym Finder's open list (the window when it is open, else the list it last had open)."""
+    from . import acrtool as T
+    for w in T._OPEN:
+        s = w.page.session
+        if s is not None and s.last_scan:
+            return [p for p in s.last_scan.get("paths", []) if os.path.isfile(p)]
+    import acrlists as AL
+    import workspace as W
+    root = os.path.join(config_dir, T.FOLDER)
+    if not os.path.isdir(root):
+        return []
+    s = W.Workspace(AL.folder(root, AL.last(root))).load_session() or {}
+    return [p for p in (s.get("last_scan") or {}).get("paths", []) if os.path.isfile(p)]
+
+
 class ReadWorker(QThread):
     progress = Signal(float, str)
     one = Signal(str, str)
@@ -41,8 +57,9 @@ class ReadWorker(QThread):
 
 
 class FullTextWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, config_dir=None):
         super().__init__()
+        self.config_dir = config_dir
         self.setWindowTitle("Full Text - Stationkeeper")
         self.resize(1000, 760)
         self.files, self.texts, self.worker = [], {}, None
@@ -53,6 +70,9 @@ class FullTextWindow(QMainWindow):
         row = QHBoxLayout(); v.addLayout(row)
         row.addWidget(D.button("Choose files...", None, lambda: self.pick_files()))
         row.addWidget(D.button("Choose a folder...", None, lambda: self.pick_folder()))
+        self.b_last = D.button("Acronym Finder's files", "ghost", lambda: self.from_last_scan(), "The files Acronym Finder's open list scanned")
+        self.b_last.setVisible(bool(config_dir))
+        row.addWidget(self.b_last)
         self.lbl = D.label("No files chosen.", "muted"); row.addWidget(self.lbl, 1)
         bar = QHBoxLayout(); v.addLayout(bar)
         self.b_go = D.button("Read all the text", "primary", lambda: self.go()); self.b_go.setEnabled(False)
@@ -90,6 +110,12 @@ class FullTextWindow(QMainWindow):
         d = QFileDialog.getExistingDirectory(self, "Choose a folder")
         if d:
             self.set_files([os.path.join(r, f) for r, _d, fs in os.walk(d) for f in fs])
+
+    def from_last_scan(self):
+        got = self.set_files(last_scan_files(self.config_dir)) if self.config_dir else []
+        if not got:
+            self.lbl.setText("Acronym Finder has no scanned files on this PC yet.")
+        return got
 
     def go(self, wait=False):
         import app_gui as A
@@ -161,13 +187,13 @@ class FullTextWindow(QMainWindow):
         super().closeEvent(e)
 
 
-def open_tool(paths=None):
+def open_tool(config_dir=None, paths=None):
     for w in _OPEN:
         w.show(); w.raise_(); w.activateWindow()
         if paths:
             w.set_files(paths)
         return w
-    w = FullTextWindow()
+    w = FullTextWindow(config_dir)
     _OPEN.append(w)
     if paths:
         w.set_files(paths)

@@ -15,7 +15,7 @@ tmp = tempfile.mkdtemp()
 A.CONFIG_DIR = os.path.join(tmp, "appconfig"); os.makedirs(A.CONFIG_DIR)
 A.SETTINGS_FILE = os.path.join(tmp, "settings.json"); A.CHOICES_FILE = os.path.join(tmp, "choices.json")
 A.LOG_DIR = os.path.join(tmp, "logs")
-OD = os.path.join(tmp, "OneDrive - Sierra Space"); os.makedirs(OD)
+OD = os.path.join(tmp, "OneDrive - Kestrel Aerospace"); os.makedirs(OD)
 os.environ["OneDriveCommercial"] = OD
 import compliance as C, effort as E, lineage as LG, workmode as WM, workspace as W
 from PySide6.QtWidgets import QApplication, QMessageBox
