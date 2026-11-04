@@ -43,7 +43,7 @@ code, out = gate({"test_thread.py": thread})
 check("a Traceback from a thread that the test raises on purpose is not a failure", code == 0 and "Traceback" in out, out[-300:])
 
 code, out = gate({"qt_quiet.py": "print('ok   one'); print('FAIL two'); print('QT QUIET FAIL (1/2)')\n"})
-check("a FAIL line fails the gate even when the exit is 0", code == 1 and "FAIL line" in out, out[-300:])
+check("a line saying a check failed fails the gate even when the exit is 0", code == 1 and "FAIL line" in out, out[-300:])
 
 code, out = gate({"test_word.py": "print('LEAK CHECK FAILED is the message under test'); print('word ok')\n"})
 check("FAILED inside a message under test is not a failure", code == 0, out[-300:])
@@ -61,7 +61,7 @@ code, out = gate({"test_a.py": GOOD, "test_c.py": GOOD}, "test_c")
 check("named tests run alone", "TSTART test_c" in out and "TSTART test_a" not in out, out[-300:])
 
 code, out = gate({"test_word.py": "print('Word is not on this PC: skipped'); print('ok')\n"})
-check("a test that skipped something is listed", code == 0 and "SAID THEY SKIPPED SOMETHING" in out and "test_word" in out,
+check("a test that leaves a check out (no Word) is listed", code == 0 and "SAID THEY SKIPPED SOMETHING" in out and "test_word" in out,
       out[-300:])
 
 n = sum(checks)
