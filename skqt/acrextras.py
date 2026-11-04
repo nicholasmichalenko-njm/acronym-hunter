@@ -24,7 +24,7 @@ SORT_KEYS = {0: lambda t, d: t.casefold(), 1: lambda t, d: str(d.get("category",
 
 
 def source_text(d):
-    """'Kestrel_Technical_Volume.docx (+3 places)': the first file a term was found in, and how many more places."""
+    """'Volume I.docx (+3 places)': the first file a term was found in, and how many more places."""
     locs = [l for l in d.get("locations", []) if l]
     if not locs:
         return ""
