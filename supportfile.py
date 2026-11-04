@@ -20,6 +20,8 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.41.0": ["Captures from meetings (select words in the notes), capture files (Word, PDF or text: tick the paragraphs) and "
+               "the customer's answers, each with its source type: Customer document, Meeting, Capture intel or Customer Q&A answer."],
     "3.40.0": ["Covers, title pages and back covers: Word draws the preview on a PC with Word; each page keeps its kind (flow, "
                "table or placed) and is never converted; Edit in Word keeps what you save as a new version; the layout "
                "editor lists Text on the page with Add text and Add a field."],

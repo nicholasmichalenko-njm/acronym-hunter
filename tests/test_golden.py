@@ -55,6 +55,10 @@ for ver in sets:
         k = next((x for x in DP.items(r2) if x.get("text") == ex["comment"]["text"]), None)
         check(f"{ver}: the reviewer comment and its disposition are all there", k is not None and k.get("disposition")
               == ex["comment"]["disposition"] and k.get("reason") == ex["comment"]["reason"], k)
+    if ex.get("capture"):                                 # 3.41 on: a capture with its source
+        import excerpts as EX
+        k = next((x for x in EX.excerpts(R.Record(got["data"])) if EX.text_of(x) == ex["capture"]["text"]), None)
+        check(f"{ver}: the capture and its source are all there", k is not None and EX.source_of(k) == ex["capture"]["source"], k)
     # the global standards, rules, phrase rules and library
     d = PRL.load(cfg)
     st = ex["standards"]

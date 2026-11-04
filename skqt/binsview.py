@@ -34,9 +34,11 @@ class BinDialog(QDialog):
         self.bin.setCurrentIndex(max(0, self.bin.findData(bin_id)))
         f.addRow("Capture", self.bin)
         probe = {"parts": parts}
+        src = EX.source_of(x or probe)                     # 3.41.0: where the words came from
         self.words = QPlainTextEdit(EX.text_of(probe)); self.words.setReadOnly(True); self.words.setMaximumHeight(110)
-        self.words.setToolTip("The customer's words, verbatim (fix a part from the sentence's card if the reader got it wrong)")
-        f.addRow("The customer's words", self.words)
+        self.words.setToolTip("The words, verbatim, as their source has them")
+        f.addRow("The customer's words" if src == "customer" else "The words", self.words)
+        f.addRow("Source", D.label(EX.SOURCE_NAME[src], None))
         f.addRow("Where", D.label(EX.where_of(probe) or "(not known)", "muted"))
         self.value = QLineEdit((x or {}).get("value", ""))
         f.addRow("Value", self.value)
@@ -142,8 +144,16 @@ class ExcerptsDialog(QDialog):
             if n or not b["builtin"]:
                 self.filter.addItem(f"{b['name']} ({n})", b["id"])
         self.filter.currentIndexChanged.connect(lambda _i: self.fill())
-        top.addWidget(self.filter); top.addStretch(1)
-        self.t = QTableWidget(0, 6); self.t.setHorizontalHeaderLabels(["Capture", "The customer's words", "Value", "Section", "Where", "Note"])
+        top.addWidget(self.filter)
+        top.addWidget(D.label("Source", "label"))                                   # 3.41.0: where each capture came from
+        self.source = QComboBox(); self.source.addItem("Every source", None)
+        for k, name in EX.SOURCES:
+            self.source.addItem(name, k)
+        self.source.currentIndexChanged.connect(lambda _i: self.fill())
+        top.addWidget(self.source); top.addStretch(1)
+        top.addWidget(D.button("+ From a capture file...", None, lambda: self.from_file(),
+                               "Capture intel: pick paragraphs of a Word, PDF or text file; each keeps the file, page and heading"))
+        self.t = QTableWidget(0, 7); self.t.setHorizontalHeaderLabels(["Capture", "The words", "Value", "Section", "Where", "Note", "Source"])
         self.t.verticalHeader().setVisible(False); self.t.setSelectionBehavior(QTableWidget.SelectRows)
         self.t.setEditTriggers(QTableWidget.NoEditTriggers); self.t.setWordWrap(True)
         hh = self.t.horizontalHeader(); hh.setSectionResizeMode(1, QHeaderView.Stretch)
@@ -174,6 +184,9 @@ class ExcerptsDialog(QDialog):
         self.rec = RR.Record(self.rec.folder)
         b = self.filter.currentData()
         xs = EX.excerpts(self.rec, b)
+        src = self.source.currentData() if hasattr(self, "source") else None
+        if src:
+            xs = [x for x in xs if EX.source_of(x) == src]
         self.t.setRowCount(0)
         names = {x["id"]: x["name"] for x in EX.bins(self.rec, self.page.host.config_dir)}
         for x in xs:
@@ -181,13 +194,41 @@ class ExcerptsDialog(QDialog):
             sub = {"measured": " (measured)", "written": " (written: " + ("phrase check" if x.get("check") == "phrase" else "Final Checks") + ")"}.get(x.get("sub"), "")
             val = x.get("value", "")
             for c, s in enumerate((names.get(x["bin"], x["bin"]) + sub, EX.text_of(x), val, ", ".join(x.get("sections", [])),
-                                   EX.where_of(x), x.get("note", ""))):
+                                   EX.where_of(x), x.get("note", ""), EX.SOURCE_NAME[EX.source_of(x)])):
                 it = QTableWidgetItem(s); it.setToolTip(s[:1000])
                 if c == 0:
                     it.setData(Qt.UserRole, x["id"])
                 self.t.setItem(r, c, it)
         self.t.resizeRowsToContents()
         return len(xs)
+
+    def from_file(self, path=None, answer=None):
+        """3.41.0: capture intel from a file. answer (tests): {"paras": [indexes], "bin", "sections", "one_each"}.
+        Returns the new capture ids."""
+        import capturefiles as CF
+        if path is None:
+            from PySide6.QtWidgets import QFileDialog
+            import os
+            path, _ = QFileDialog.getOpenFileName(self, "A capture file", os.path.expanduser("~"), "Word, PDF or text (*.docx *.pdf *.txt *.md)")
+            if not path:
+                return []
+        paras = CF.read(path)
+        if not paras:
+            self.page.host.status("No words could be read from that file.")
+            return []
+        if answer is None:
+            d = CaptureFileDialog(self, self.rec, self.page.host.config_dir, path, paras, self.page.R.labels() if getattr(self.page, "R", None) else [])
+            if d.exec() != QDialog.Accepted:
+                return []
+            answer = d.values()
+        chosen = [paras[i] for i in answer.get("paras", []) if 0 <= i < len(paras)]
+        if not chosen:
+            return []
+        ids = CF.capture(self.rec, answer.get("bin") or "keypoint", path, chosen, sections=answer.get("sections", ()),
+                         one_each=answer.get("one_each", True))
+        diag.activity("capture_file_used", n=len(ids))
+        self.fill()
+        return ids
 
     def selected(self):
         r = self.t.currentRow()
@@ -309,3 +350,41 @@ class BinsDialog(QDialog):
         n = EX.remove_bin(self.rec, bid)
         self.fill(); self.page.after_bins()
         return n
+
+
+class CaptureFileDialog(QDialog):
+    """3.41.0: a capture file's paragraphs, ticked to capture; the bin; the sections; one capture each or one for all."""
+
+    def __init__(self, parent, rec, config_dir, path, paras, sections=()):
+        super().__init__(parent)
+        import os
+        self.setWindowTitle(f"Capture from {os.path.basename(path)}")
+        self.resize(900, 640)
+        v = QVBoxLayout(self)
+        v.addWidget(D.label("Tick the paragraphs worth keeping. Each capture keeps the file, its page and the heading above it, "
+                            "and its source is Capture intel.", "muted"))
+        self.list = QListWidget()
+        for p in paras:
+            it = QListWidgetItem((f"p.{p['page']}  " if p.get("page") else "") + (f"[{p['heading']}]  " if p.get("heading") else "") + p["text"][:300])
+            it.setFlags(it.flags() | Qt.ItemIsUserCheckable); it.setCheckState(Qt.Unchecked)
+            self.list.addItem(it)
+        v.addWidget(self.list, 1)
+        f = QFormLayout(); v.addLayout(f)
+        self.bin = QComboBox()
+        for b in EX.bins(rec, config_dir):
+            self.bin.addItem(b["name"], b["id"])
+        self.bin.setCurrentIndex(max(0, self.bin.findData("keypoint")))
+        f.addRow("Capture as", self.bin)
+        self.sections = QListWidget(); self.sections.setSelectionMode(QAbstractItemView.MultiSelection); self.sections.setMaximumHeight(120)
+        for s_ in sections:
+            self.sections.addItem(s_)
+        if sections:
+            f.addRow("Sections it goes in", self.sections)
+        self.one_each = QCheckBox("One capture for each paragraph"); self.one_each.setChecked(True); f.addRow("", self.one_each)
+        bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)
+        v.addWidget(bb)
+
+    def values(self):
+        return {"paras": [i for i in range(self.list.count()) if self.list.item(i).checkState() == Qt.Checked],
+                "bin": self.bin.currentData(), "sections": [i.text() for i in self.sections.selectedItems()],
+                "one_each": self.one_each.isChecked()}

@@ -64,12 +64,15 @@ class MeetingsPage(QWidget):
         self.sel_btn = D.button("Make a topic of the selection", None, lambda: self.topic_from_selection(),
                                 "Select words in the notes, then make them a topic to follow up (also on the right-click menu)")
         self.sel_btn.setEnabled(False); nh.addWidget(self.sel_btn)
+        self.cap_btn = D.button("Capture the selection...", None, lambda: self.capture_selection(),      # 3.41.0
+                                "The selected words as a capture (an objective, a key point, a hot button...), its source this meeting")
+        self.cap_btn.setEnabled(False); nh.addWidget(self.cap_btn)
         self.notes = QPlainTextEdit(); self.notes.setPlaceholderText(
             "What was said. Select any words and press Make a topic of the selection, or start a line with - or * "
             "(or Topic:, Action:, Decision:) and use Topics from notes.")
         self.notes.setMinimumHeight(220)
         self.notes.textChanged.connect(lambda: None if self._loading else self.host.status("Notes are saved when you leave the box."))
-        self.notes.selectionChanged.connect(lambda: self.sel_btn.setEnabled(self.notes.textCursor().hasSelection()))
+        self.notes.selectionChanged.connect(lambda: [b.setEnabled(self.notes.textCursor().hasSelection()) for b in (self.sel_btn, self.cap_btn)])
         self.notes.focusOutEvent = self._notes_out
         self.notes.setContextMenuPolicy(Qt.CustomContextMenu)
         self.notes.customContextMenuRequested.connect(self._notes_menu)
@@ -255,11 +258,41 @@ class MeetingsPage(QWidget):
             diag.activity("meeting_topic_from_selection")
         return tid
 
+    def capture_selection(self, answer=None):
+        """3.41.0: the selected words in the notes as a capture whose source is this meeting (its title, date and who was
+        there). answer (tests): BinDialog.values(). Returns the capture's id."""
+        import effortrec as RR
+        import excerpts as EX
+        from .binsview import BinDialog
+        text = self.notes.textCursor().selectedText().replace("\u2029", " ").replace("\u2028", " ").strip() if answer is None or \
+            not answer.get("words") else answer["words"]
+        if not self.mid or not text:
+            self.host.status("Select words in the notes first.")
+            return None
+        self.save_fields()
+        rec = self.rec()
+        part = EX.part_from_meeting(MT.get(rec, self.mid), " ".join(text.split()))
+        labels = self.host.review.labels() if getattr(self.host, "review", None) is not None else []
+        if answer is None:
+            d = BinDialog(self, rec, self.host.config_dir, "keypoint", [part], sections=labels)
+            if d.exec() != BinDialog.Accepted:
+                return None
+            answer = d.values()
+        rec = RR.Record(rec.folder)
+        xid = EX.add(rec, answer.get("bin") or "keypoint", [part], value=answer.get("value", ""), note=answer.get("note", ""),
+                     sections=answer.get("sections", ()), source="meeting")
+        if xid:
+            diag.activity("meeting_capture_made")
+            self.host.status(f"Captured from {part['doc']}: it shows with its source wherever captures show.")
+        return xid
+
     def _notes_menu(self, at):
         m = self.notes.createStandardContextMenu()
         m.addSeparator()
         a = m.addAction("Make a topic of the selection", lambda: self.topic_from_selection())
         a.setEnabled(self.notes.textCursor().hasSelection())
+        b = m.addAction("Capture the selection...", lambda: self.capture_selection())
+        b.setEnabled(self.notes.textCursor().hasSelection())
         m.exec(self.notes.mapToGlobal(at))
 
     def from_notes(self, picked=None):

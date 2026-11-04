@@ -82,7 +82,8 @@ def section_pack(rec, M, label):
             mine = label in (x.get("sections") or []) or any(pt.get("sid") in ids for pt in x.get("parts", []))
             if not mine:
                 continue
-            row = {"text": EX.text_of(x), "where": EX.where_of(x), "note": x.get("note", "")}
+            row = {"text": EX.text_of(x), "where": EX.where_of(x), "note": x.get("note", ""),    # 3.41.0: meeting, capture file
+                   "source": EX.source_of(x)}                                                  # and Q&A parts name their source
             key = {"objective": "objectives", "hot": "hot", "keypoint": "keypoints"}.get(x.get("bin"))
             if key:
                 out[key].append(row)

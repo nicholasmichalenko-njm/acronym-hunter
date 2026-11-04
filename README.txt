@@ -1,6 +1,16 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+CAPTURES FROM MEETINGS, CAPTURE FILES AND ANSWERS (3.41.0)
+  - Every capture has a source type: Customer document (Review), Meeting, Capture intel (a capture file) or Customer Q&A
+    answer, so reviewers can see where a theme came from. Captures made before 3.41 are Customer document.
+  - Effort Record > Meetings: select words in the notes and press Capture the selection... (or right-click): the words
+    become a capture (an objective, a key point, a hot button...) with the meeting's title, date and who was there.
+  - Review > More > Captured list: + From a capture file... reads a Word, PDF or text file into paragraphs; tick the
+    ones worth keeping; each capture keeps the file, page and heading. A Source column and filter show where each came from.
+  - Customer Q&A > Capture the answer...: an answered question's answer becomes a capture.
+  - The kickoff packet and Everything for this section show where each capture came from.
+
 PAGES COME OUT RIGHT (3.40.0)
   - Production Standards > Document parts > Cover (and Title page, Back cover): the preview is Word's own picture of the
     page on a PC with Word (drawn once per page and kept); without Word it is the app's sketch, labelled as a sketch.

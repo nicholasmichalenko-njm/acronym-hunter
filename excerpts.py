@@ -180,6 +180,38 @@ def share_bin(rec, bid, config_dir):
 
 
 # ------------------------------------------------------------------ excerpts
+# 3.41.0: where a capture came from. Reviewers can test where a theme came from; a capture made before 3.41 came from a
+# customer document (Review was the only way in).
+SOURCES = (("customer", "Customer document"), ("meeting", "Meeting"), ("intel", "Capture intel"), ("qa", "Customer Q&A answer"))
+SOURCE_NAME = dict(SOURCES)
+
+
+def part_from_meeting(m, words):
+    """One part of a capture from a meeting's notes: the words, the meeting's title and date, who was there."""
+    return {"sid": "", "source": "meeting", "mid": m.get("id", ""), "doc": _clean(f"Meeting: {m.get('title', 'Meeting')}", 200),
+            "version": _clean(m.get("date", ""), 60), "page": "", "para": "", "loc": _clean(", ".join(m.get("participants") or []), 200),
+            "num": "", "heading": "", "text": str(words or "").strip()[:4000]}
+
+
+def part_from_file(name, words, page="", para="", heading=""):
+    """One part of a capture from a capture file (capture intel: call notes, a capture plan, a competitor brief)."""
+    return {"sid": "", "source": "intel", "doc": _clean(f"Capture file: {name}", 200), "version": "", "page": _clean(page, 10),
+            "para": _clean(para, 10), "loc": "", "num": "", "heading": _clean(heading, 160), "text": str(words or "").strip()[:4000]}
+
+
+def part_from_answer(q):
+    """One part of a capture from the customer's answer to one of our questions (Customer Q&A)."""
+    doc = f"Customer Q&A {q.get('n', '')} answer" + (f" ({q['answer_doc']})" if q.get("answer_doc") else "")
+    return {"sid": q.get("sid", ""), "source": "qa", "qid": q.get("id", ""), "doc": _clean(doc, 200), "version": "", "page": "",
+            "para": "", "loc": _clean(q.get("section", ""), 200), "num": "", "heading": "", "text": str(q.get("answer", "")).strip()[:4000]}
+
+
+def source_of(x):
+    """'customer', 'meeting', 'intel' or 'qa'."""
+    s = x.get("source") or next((p.get("source") for p in x.get("parts", []) if p.get("source")), "")
+    return s if s in SOURCE_NAME else "customer"
+
+
 def part_of(it, doc="", page="", para="", loc="", version="", words=""):
     """One part of an excerpt from a matrix sentence (and where it sits on the page, when known)."""
     return {"sid": str(it.get("id", "")), "doc": _clean(doc or it.get("file", ""), 200), "version": _clean(version, 60),
@@ -253,16 +285,18 @@ def where_of(x):
     return "; ".join(out)
 
 
-def add(rec, bin_id, parts, value="", note="", sub="", sections=(), ref="", who=None):
+def add(rec, bin_id, parts, value="", note="", sub="", sections=(), ref="", who=None, source=""):
     """An excerpt in a bin. parts: [part_of(...)]; value: only when one exists; sub: for Formatting, measured or written
     (written: check phrase or final in 'check'); sections: for an objective, the sections that answer it; ref: what the
-    capture filed (a rule key, or a list of them). Returns its id (None with no words)."""
+    capture filed (a rule key, or a list of them); source (3.41.0): customer, meeting, intel or qa (else from the parts).
+    Returns its id (None with no words)."""
     parts = [p for p in (parts or []) if (p.get("text") or "").strip()]
     if not parts or not bin_id:
         return None
     x = {"id": uuid.uuid4().hex[:10], "bin": str(bin_id), "parts": parts, "value": _clean(value, 400), "note": _clean(note, 1000),
          "sub": sub if sub in dict(FORMAT_KINDS) else "", "check": "", "sections": [_clean(s, 200) for s in sections if _clean(s, 200)],
          "refs": [_clean(r, 200) for r in ([ref] if isinstance(ref, str) else (ref or [])) if _clean(r, 200)], "text_only": False, "at": _now(), "by": _who(who)}
+    x["source"] = source if source in SOURCE_NAME else source_of({"parts": parts})     # 3.41.0
     if x["bin"] == "format" and not x["sub"]:
         x["sub"] = "measured" if x["value"] else "written"
     if x["sub"] == "written":

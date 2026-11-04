@@ -63,6 +63,15 @@ def make(version, out_root=None):
                  "comment": {"text": "Add the test schedule.", "disposition": "Reject", "reason": "It is in Volume III"}}
     except ImportError:
         pass
+    try:                                                  # 3.41.0: a capture whose source is a meeting
+        import excerpts as EX, meetings as MT
+        if hasattr(EX, "SOURCES"):
+            rec = R.Record(dd)
+            mid = MT.add_meeting(rec, "Kickoff", "2026-11-02", participants=["Dana Ruiz"], notes="They worry about schedule risk.")
+            EX.add(rec, "hot", [EX.part_from_meeting(MT.get(rec, mid), "They worry about schedule risk.")], source="meeting")
+            extra["capture"] = {"text": "They worry about schedule risk.", "source": "meeting"}
+    except ImportError:
+        pass
     os.makedirs(out)
     man = P.save(os.path.join(out, "Kestrel"), "Kestrel", lst, dd, info={"client": "Fictional Space Office"},
                  customer_dir=os.path.join(eff, "Customer documents"), stage="Author drafts", app_version=version,

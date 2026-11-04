@@ -109,6 +109,8 @@ class CustQAPage(QWidget):
                                     ("Up", "ghost", lambda: self.move(-1), "Earlier in the list (the numbers follow)"),
                                     ("Down", "ghost", lambda: self.move(1), "Later in the list"),
                                     ("Show on the page", "ghost", lambda: self.show_page(), "The sentence in Review"),
+                                    ("Capture the answer...", None, lambda: self.capture_answer(),                 # 3.41.0
+                                     "The customer's answer as a capture (an objective, a key point...), its source this question"),
                                     ("Remove", "danger", lambda: self.remove(), "Take it out of the list")):
             bar.addWidget(D.button(text, kind, fn, tip))
         bar.addStretch(1)
@@ -136,6 +138,9 @@ class CustQAPage(QWidget):
 
     def refresh(self):
         self.fill()
+
+    def capture_answer(self, answer=None):
+        return _capture_answer(self, answer)
 
     def fill(self):
         rec = self.rec()
@@ -327,6 +332,34 @@ def questions_due(rec):
                 continue
             return f"{d.strftime('%b')} {d.day}, {d.year}" + (f" {EC.entry_times(e)}" if e.get("start") else "")
     return ""
+
+
+def _capture_answer(page, answer=None):
+    """3.41.0: the selected question's answer as a capture whose source is the customer's answer. answer (tests):
+    BinDialog.values(). Returns the capture's id."""
+    import excerpts as EX
+    from .binsview import BinDialog
+    sel = page.selected()
+    rec = page.rec()
+    if rec is None or not sel:
+        return None
+    q = sel[0]
+    if not q.get("answer"):
+        page.host.status(f"Question {q.get('n', '')} has no answer yet.")
+        return None
+    part = EX.part_from_answer(q)
+    labels = page.host.review.labels() if getattr(page.host, "review", None) is not None else []
+    if answer is None:
+        d = BinDialog(page, rec, page.host.config_dir, "keypoint", [part], sections=labels)
+        if d.exec() != BinDialog.Accepted:
+            return None
+        answer = d.values()
+    xid = EX.add(rec, answer.get("bin") or "keypoint", [part], value=answer.get("value", ""), note=answer.get("note", ""),
+                 sections=answer.get("sections", ()), source="qa")
+    if xid:
+        diag.activity("qa_answer_captured")
+        page.host.status(f"Captured from {part['doc']}.")
+    return xid
 
 
 def export_info(host, rec):
