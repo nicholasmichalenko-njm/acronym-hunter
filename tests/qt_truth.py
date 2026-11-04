@@ -28,7 +28,7 @@ app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.go("home"); app.processEvents()
 f = w.home_page.start; f.name.setText("Osprey"); f.create(); app.processEvents()
-check("Wall of Truth sits in Writing, after Storyboards (3.13.0: grouped by job)", [k for g, it in RAIL if g == "Writing" for k, _l in it][:2] == ["storyboards", "truth"])
+check("Wall of Truth sits in Writing, after Storyboards and Draft Status (3.43.0)", [k for g, it in RAIL if g == "Writing" for k, _l in it][:3] == ["storyboards", "drafts", "truth"])
 w.go("truth"); app.processEvents()
 pg = w.truth_page
 check("an empty wall says how to start", pg.table.rowCount() == 0 and "+ Truth" in pg.note.text())
