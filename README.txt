@@ -1,21 +1,21 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
-EFFORT FORMATTING, APART FROM THE TEAM'S STANDARDS (3.36.0)
-  - Effort > Effort Formatting: this effort's formatting on top of the team's standards. An amber band says the page
+EFFORT FORMATTING, APART FROM THE GLOBAL STANDARDS (3.36.0)
+  - Effort > Effort Formatting: this effort's formatting on top of the global standards. An amber band says the page
     changes this effort only. Up front: body text (font, size, line spacing, space after), tables and captions (font,
     size, where table and figure captions go), headings (font for Heading 1 to 3, Heading 1 size, numbers on or off),
-    paper and margins, and the header and footer (left, center, right, the restriction marking). Each shows the team's
+    paper and margins, and the header and footer (left, center, right, the restriction marking). Each shows the global
     value in grey; set this effort's own, and Reset takes it back.
   - Changes apply to: Every volume of the effort, or one volume (a volume starts from the effort's every-volume values).
   - The RFP says: Submission Rules' format rules (font, size, margins, page size, line spacing) show beside each value
     with Use it, in red when the value in force breaks them.
-  - Keep for the team: writes this effort's value into the team standard, a volume profile or the effort type, takes it
-    off the effort, and records it in the team's change history; Undo the last Keep for the team puts it back.
-  - Library parts this effort uses: each template part's source: the team's version, a version this effort chose, or
+  - Make it global: writes this effort's value into the global standard, a volume profile or the effort type, takes it
+    off the effort, and records it in the global change history; Undo the last Make it global puts it back.
+  - Library parts this effort uses: each template part's source: the global version, a version this effort chose, or
     this effort's own copy (kept in the effort, never added to the library unless you save it there).
   - Every setting... opens Production Standards on this effort (every volume, or one), with an amber band and Back to
-    Effort Formatting. Production Standards from the menu edits the team's standards only, with a blue band.
+    Effort Formatting. Production Standards from the menu edits the global standards only, with a blue band.
 
 THE OUTLINE MATRIX, MATRIX VIEWS, CLEARER STYLES (3.35.0)
   - Matrix starts as the outline matrix: one row per item of your response outline (section, header, subheader),

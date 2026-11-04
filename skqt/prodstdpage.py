@@ -403,7 +403,7 @@ class StandardsPage(QWidget):
         self.dirty = False
         self.binder = Binder(self)
         outer = QVBoxLayout(self); outer.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); outer.setSpacing(D.SPACE["m"])
-        top = D.Card("Production Standards", "Every rule Fix a Copy uses, in layers: the team standard, then a "
+        top = D.Card("Production Standards", "Every rule Fix a Copy uses, in layers: the global standard, then a "
                      "volume (one kind of document you deliver), then an effort type (the rules of a kind of effort, "
                      "for every volume in it, and its changes for one volume), then this effort. A value set at the layer you "
                      "edit shows in bold, and Reset takes it back to the layer below.",
@@ -545,8 +545,8 @@ class StandardsPage(QWidget):
                     "setups": ("page_setups", ("checks", "landscape_ok")), "hf": ("hf_layouts", "hf_designs", ("checks", "page_numbers")),
                     "toc": ("toc", ("checks", "toc_forbid")), "lists": ("lists", "list_numbering"),
                     "terms": ("terms",), "office": ("excel", "powerpoint"), "graphics": ("graphics",)}
-    LAYER_BELOW = {"team": "the built-in defaults", "type": "the team standard", "etype": "the team standard",
-                   "etp": "the volume in this effort type", "effort": "the team's standards for this effort",
+    LAYER_BELOW = {"team": "the built-in defaults", "type": "the global standard", "etype": "the global standard",
+                   "etp": "the volume in this effort type", "effort": "the global standards for this effort",
                    "effortvol": "this effort's values for every volume"}
 
     def show_section(self, i):
@@ -1660,7 +1660,7 @@ class StandardsPage(QWidget):
         self.scope_box.blockSignals(True)
         self.scope_box.clear()
         if self.mode == "team":
-            self.scope_box.addItem("Team standard (every volume starts here)", "team:")
+            self.scope_box.addItem("Global standard (every volume starts here)", "team:")
             for t in self.data["types"]:
                 self.scope_box.addItem(f"Volume: {t['name']}", "type:" + t["id"])
             for e in self.data.get("effort_types", []):
@@ -1717,10 +1717,10 @@ class StandardsPage(QWidget):
         if self.mode == "effort":
             self.band.setText(f"<div style='background:{t['warn_soft']};color:{t['text']};padding:6px 10px;border-radius:6px'>"
                               f"<b>Formatting for {self.host.effort_name} only.</b> Every change here is this effort's; the "
-                              f"team's standards and the template library stay as they are.</div>")
+                              f"global standards and the template library stay as they are.</div>")
         else:
             self.band.setText(f"<div style='background:{t['accent_soft']};color:{t['text']};padding:6px 10px;border-radius:6px'>"
-                              f"<b>Editing the team's standards: every effort that uses them.</b> One effort's formatting is in "
+                              f"<b>Editing the global standards: every effort that uses them.</b> One effort's formatting is in "
                               f"Effort &gt; Effort Formatting.</div>")
         self.band_back.setVisible(self.mode == "effort")
 
@@ -1854,7 +1854,7 @@ class StandardsPage(QWidget):
         self.show_parts()
         self.fill_profile()                            # 3.33.0
         self.dirty = False
-        self.state.setText({"team": "Team standard", "type": "Volume", "etype": "Effort type, every volume",
+        self.state.setText({"team": "Global standard", "type": "Volume", "etype": "Effort type, every volume",
                             "etp": "Effort type, this volume", "effort": "This effort, every volume",
                             "effortvol": "This effort, this volume"}[scope])
         self.show_problems()

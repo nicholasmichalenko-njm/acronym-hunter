@@ -93,16 +93,16 @@ TOPICS = [
   ["A Volume deliverable links to its volume by name.",
    "View: List shows the same deliverables as a table."]),
  ("effortfmt", "Effort", "Effort Formatting",
-  "This effort's formatting on top of the team's standards: the values efforts change most up front, each with the "
-  "team's value, what the RFP says and Reset; every other setting in the full editor, on this effort only.",
+  "This effort's formatting on top of the global standards: the values efforts change most up front, each with the "
+  "global value, what the RFP says and Reset; every other setting in the full editor, on this effort only.",
   "An effort needs its own fonts, sizes, margins or header text, or the RFP sets formatting rules.",
   ["Changes apply to: Every volume, or one volume of the effort.",
    "Set a value, or press Use it beside what the RFP says. A value that breaks the RFP's rule shows in red.",
-   "Keep for the team writes this effort's value into the team standard, a volume profile or the effort type; Undo the "
-   "last Keep for the team puts it back.",
+   "Make it global writes this effort's value into the global standard, a volume profile or the effort type; Undo the "
+   "last Make it global puts it back.",
    "Every setting... opens Production Standards on this effort (an amber band says so); Back to Effort Formatting returns."],
-  ["Library parts this effort uses lists each part's source: the team's version, a version this effort chose, or its own copy.",
-   "Production Standards itself edits only the team's standards."]),
+  ["Library parts this effort uses lists each part's source: the global version, a version this effort chose, or its own copy.",
+   "Production Standards itself edits only the global standards."]),
  ("record", "Effort", "Effort Record",
   "The effort's details, team and roles, stages and gates, status reports, the effort package and backups.",
   "You set up the effort, change its team or stages, hand it to someone, or report status.",
@@ -330,7 +330,7 @@ TOPICS = [
   ["Editing (3.25.0): two boxes, Effort type and Volume. Any and Any is the team standard; a volume alone is that volume "
    "everywhere; an effort type alone is every volume in it; both is that volume in that effort type. This effort only "
    "edits the open effort's values. A value set at that layer shows in bold with what it was; Reset takes it back. "
-   "3.36.0: Production Standards edits the team's standards only (a blue band says so); one effort's formatting is in "
+   "3.36.0: Production Standards edits the global standards only (a blue band says so); one effort's formatting is in "
    "Effort > Effort Formatting, and its Every setting opens this editor on that effort (an amber band).",
    "Document parts (3.26.0), the first menu: Cover, Front matter, Response, Appendices and Back cover. Each part shows what "
    "applies to it: where it starts and how its pages are numbered, its header and footer, its page, TOC or captions, and what "

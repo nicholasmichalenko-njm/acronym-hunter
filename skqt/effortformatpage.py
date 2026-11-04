@@ -1,8 +1,8 @@
-"""Effort Formatting (3.36.0): this effort's formatting on top of the team's standards, on a page of its own under
+"""Effort Formatting (3.36.0): this effort's formatting on top of the global standards, on a page of its own under
 Effort. The values efforts change most are up front (body, table and caption fonts and sizes, headings, paper and
-margins, header and footer), each with the team's value beside it, what the RFP says with Use it, Reset, and Keep for
-the team. Changes apply to every volume of the effort or to one. Every setting opens the full Production Standards
-editor on this effort's layer. Nothing here changes the team's standards except Keep for the team. Rules only."""
+margins, header and footer), each with the global value beside it, what the RFP says with Use it, Reset, and Make it
+global. Changes apply to every volume of the effort or to one. Every setting opens the full Production Standards
+editor on this effort's layer. Nothing here changes the global standards except Make it global. Rules only."""
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
                                QMenu, QScrollArea, QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget)
@@ -33,13 +33,13 @@ class EffortFormatPage(QWidget):
         self.host = host
         self.rows, self._loading, self.rfp_map = {}, False, {}
         outer = QVBoxLayout(self); outer.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"])
-        self.empty = D.EmptyState("Open an effort", "Effort Formatting holds one effort's formatting on top of the team's "
+        self.empty = D.EmptyState("Open an effort", "Effort Formatting holds one effort's formatting on top of the global "
                                   "standards. Open an effort from All Efforts.")
         outer.addWidget(self.empty)
         self.body = QWidget(); outer.addWidget(self.body, 1)
         bv = QVBoxLayout(self.body); bv.setContentsMargins(0, 0, 0, 0); bv.setSpacing(D.SPACE["m"])
-        top = D.Card("Effort Formatting", "This effort's formatting. It starts from the team's standards (Production "
-                     "Standards) and keeps its own changes here; the team's standards and the template library stay as they are.",
+        top = D.Card("Effort Formatting", "This effort's formatting. It starts from the global standards (Production "
+                     "Standards) and keeps its own changes here; the global standards and the template library stay as they are.",
                      actions=[D.button("Every setting...", "primary", lambda: self.every_setting(),
                                        "The full Production Standards editor on this effort's formatting: every value, table and part")])
         self.band = QLabel(""); self.band.setTextFormat(Qt.RichText); self.band.setWordWrap(True); top.add(self.band)
@@ -61,10 +61,10 @@ class EffortFormatPage(QWidget):
         sc.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         inner = QWidget(); sc.setWidget(inner)
         iv = QVBoxLayout(inner); iv.setContentsMargins(0, 0, 0, 0); iv.setSpacing(D.SPACE["m"])
-        vals = D.Card("The values efforts change most", "The team's value is in grey. Set this effort's own; Reset takes "
-                      "it back to the team's. Where the RFP has a rule, it shows beside the value, in red when the value breaks it.")
+        vals = D.Card("The values efforts change most", "The global value is in grey. Set this effort's own; Reset takes "
+                      "it back to the global value. Where the RFP has a rule, it shows beside the value, in red when the value breaks it.")
         self.grid = QGridLayout(); self.grid.setHorizontalSpacing(D.SPACE["m"]); self.grid.setVerticalSpacing(D.SPACE["xs"])
-        for c, h in enumerate(("", "Team's value", "This effort", "The RFP says", "", "")):
+        for c, h in enumerate(("", "Global value", "This effort", "The RFP says", "", "")):
             if h:
                 self.grid.addWidget(D.label(h, "label", wrap=False), 0, c)
         r = 1
@@ -79,13 +79,13 @@ class EffortFormatPage(QWidget):
         self.grid.setColumnStretch(3, 1)
         vals.body.addLayout(self.grid)
         iv.addWidget(vals)
-        ch = D.Card("Changed for this effort", "Everything this effort sets at this scope, with the team's value.",
-                    actions=[D.button("Reset all", "ghost", lambda: self.reset_all(), "Every value at this scope back to the team's"),
-                             D.button("Undo the last Keep for the team", "ghost", lambda: self.undo_keep(),
-                                      "Put the team's standard back as it was before the last Keep for the team")])
+        ch = D.Card("Changed for this effort", "Everything this effort sets at this scope, with the global value.",
+                    actions=[D.button("Reset all", "ghost", lambda: self.reset_all(), "Every value at this scope back to the global value"),
+                             D.button("Undo the last Make it global", "ghost", lambda: self.undo_keep(),
+                                      "Put the global standards back as they were before the last Make it global")])
         self.changes = QLabel(""); self.changes.setTextFormat(Qt.RichText); self.changes.setWordWrap(True); ch.add(self.changes)
         iv.addWidget(ch)
-        lp = D.Card("Library parts this effort uses", "Covers, headers and footers, numbering, table looks: the team's "
+        lp = D.Card("Library parts this effort uses", "Covers, headers and footers, numbering, table looks: the global "
                     "pinned version, a version this effort chose, or this effort's own copy (kept in the effort, never added "
                     "to the library unless you save it there).",
                     actions=[D.button("Choose versions or this effort's own...", None, lambda: self.every_setting(section="profile_parts"),
@@ -108,11 +108,11 @@ class EffortFormatPage(QWidget):
             ed.lineEdit().editingFinished.connect(lambda k=key: self.edited(k))
         elif kind in ("size", "inches"):
             ed = QDoubleSpinBox(); ed.setRange(0, 400 if kind == "size" else 5); ed.setDecimals(1 if kind == "size" else 2)
-            ed.setSingleStep(0.5 if kind == "size" else 0.25); ed.setSpecialValueText("Team's"); ed.setMinimumWidth(110)
+            ed.setSingleStep(0.5 if kind == "size" else 0.25); ed.setSpecialValueText("Global"); ed.setMinimumWidth(110)
             ed.editingFinished.connect(lambda k=key: self.edited(k))
         elif kind in ("spacing", "position", "paper", "onoff"):
             ed = QComboBox(); ed.setMinimumWidth(160)
-            ed.addItem("Team's", None)
+            ed.addItem("Global", None)
             for v, t in {"spacing": EFM.SPACING, "position": EFM.POSITION, "paper": PAPERS, "onoff": ONOFF}[kind]:
                 ed.addItem(t, v)
             ed.activated.connect(lambda _i, k=key: self.edited(k))
@@ -123,11 +123,11 @@ class EffortFormatPage(QWidget):
         self.grid.addWidget(ed, r, 2)
         rfp = D.label("", "muted"); rfp.setWordWrap(True); rfp.setMinimumWidth(160); self.grid.addWidget(rfp, r, 3)
         use = D.button("Use it", "ghost", lambda _=False, k=key: self.use_rfp(k), "This effort takes the RFP's value")
-        reset = D.button("Reset", "ghost", lambda _=False, k=key: self.reset(k), "Back to the team's value")
+        reset = D.button("Reset", "ghost", lambda _=False, k=key: self.reset(k), "Back to the global value")
         box = QHBoxLayout(); box.setSpacing(D.SPACE["xs"]); box.addWidget(use); box.addWidget(reset)
         wbox = QWidget(); wbox.setLayout(box); self.grid.addWidget(wbox, r, 4)
-        keep = QToolButton(); keep.setText("Keep for the team"); keep.setPopupMode(QToolButton.InstantPopup)
-        keep.setToolTip("Write this effort's value into the team's standards, for every effort that uses them")
+        keep = QToolButton(); keep.setText("Make it global"); keep.setPopupMode(QToolButton.InstantPopup)
+        keep.setToolTip("Write this effort's value into the global standards, for every effort that uses them")
         menu = QMenu(keep); keep.setMenu(menu)
         menu.aboutToShow.connect(lambda k=key, m=menu: self.fill_keep_menu(k, m))
         self.grid.addWidget(keep, r, 5)
@@ -162,7 +162,7 @@ class EffortFormatPage(QWidget):
             except (TypeError, ValueError):
                 ed.setValue(ed.minimum())
         elif kind in ("spacing", "position", "paper", "onoff"):
-            ed.setItemText(0, f"Team's ({self._label(kind, g['team'])})")
+            ed.setItemText(0, f"Global ({self._label(kind, g['team'])})")
             i = ed.findData(g["effort"]) if g["effort"] is not None else 0
             ed.setCurrentIndex(max(0, i))
         else:
@@ -228,22 +228,22 @@ class EffortFormatPage(QWidget):
             menu.addAction(words, lambda t=target, k=key: self.keep(k, t))
 
     def keep(self, key, target):
-        """Keep for the team: this effort's value into a team layer. Returns the history entry."""
+        """Make it global: this effort's value into a global layer. Returns the history entry."""
         if self.host.ws is None:
             return None
         e = EFM.keep_for_team(self.host.config_dir, self.host.ws, key, target, self.tid())
         if e:
             diag.activity("effort_format_kept_for_team")
-            self.host.toast(f"Kept for the team: {e['what']} is {_show(e['now'])}")
+            self.host.toast(f"Made global: {e['what']} is {_show(e['now'])}")
         self.after()
         return e
 
     def undo_keep(self):
         h = EFM.undo_last(self.host.config_dir)
         if h:
-            self.host.toast(f"Put back: {h['what']} is {_show(h['was'])} for the team again")
+            self.host.toast(f"Put back: {h['what']} is {_show(h['was'])} globally again")
         else:
-            self.host.status("Nothing kept for the team to put back.")
+            self.host.status("Nothing made global to put back.")
         self.after()
         return h
 
@@ -310,8 +310,8 @@ class EffortFormatPage(QWidget):
             data, eid, default, vols = EFM.ids(self.host.config_dir, self.host.ws)
             t = D.tokens()
             self.band.setText(f"<div style='background:{t['warn_soft']};color:{t['text']};padding:6px 10px;border-radius:6px'>"
-                              f"<b>Formatting for {self.host.effort_name} only.</b> Nothing here changes the team's standards or "
-                              f"the template library, unless you choose Keep for the team.</div>")
+                              f"<b>Formatting for {self.host.effort_name} only.</b> Nothing here changes the global standards or "
+                              f"the template library, unless you choose Make it global.</div>")
             self.etype.clear(); self.etype.addItem("None (volumes only)", "")
             for e in data.get("effort_types", []):
                 self.etype.addItem(e["name"], e["id"])
@@ -327,18 +327,18 @@ class EffortFormatPage(QWidget):
             self.scope.setCurrentIndex(max(0, self.scope.findData(cur or "")))
             et = PRL.effort_type_of(data, eid)
             prof = PRL.type_of(data, self.tid() or default)["name"]
-            self.inherits.setText("Starts from: the team standard > the " + prof + " profile"
+            self.inherits.setText("Starts from: the global standards > the " + prof + " profile"
                                   + (f" > the {et['name']} effort type" if et else "")
                                   + (" > this effort's values for every volume" if self.tid() else "") + ".")
             for key in self.rows:
                 self.show_row(key)
             ch = EFM.changed(self.host.config_dir, self.host.ws, self.tid())
             if ch:
-                self.changes.setText("".join(f"<div style='margin:2px 0'><b>{_esc(w)}</b>: team's {_esc(_show(a))}, "
+                self.changes.setText("".join(f"<div style='margin:2px 0'><b>{_esc(w)}</b>: global {_esc(_show(a))}, "
                                              f"this effort's <b>{_esc(_show(b))}</b></div>" for w, a, b in ch[:60])
                                      + (f"<div>and {len(ch) - 60} more</div>" if len(ch) > 60 else ""))
             else:
-                self.changes.setText(f"<span style='color:{t['muted']}'>Nothing yet: every value is the team's.</span>")
+                self.changes.setText(f"<span style='color:{t['muted']}'>Nothing yet: every value is the global one.</span>")
             pr = EFM.parts(self.host.config_dir, self.host.ws, self.tid())
             self.parts.setRowCount(len(pr))
             for i, (_slot, what, src) in enumerate(pr):

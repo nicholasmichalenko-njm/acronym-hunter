@@ -66,7 +66,7 @@ def _company_default():
     t["banned"] = []                    # the team's Banned Phrases list is added for each run
     t["replace"] = [r for r in t["replace"] if r.get("why") == "Common misspelling"]
     t["lists"] = {k: [] for k in t["lists"]}   # dictionaries, author list and the effort's acronyms are added for each run
-    c["name"] = "Team standard"
+    c["name"] = "Global standard"
     return c
 
 

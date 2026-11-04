@@ -1,12 +1,12 @@
-"""Effort Formatting (3.36.0): one effort's formatting on top of the team's standards, kept apart from them.
+"""Effort Formatting (3.36.0): one effort's formatting on top of the global standards, kept apart from them.
 
-The team's standards (Production Standards: the team standard, volume profiles, effort types, the template library)
+The global standards (Production Standards: the global standard, volume profiles, effort types, the template library)
 hold for every effort. An effort keeps its own changes in its workspace: for every volume in it ("over") or for one
 volume ("over_vol"[profile id]). The values efforts change most are named here (FIELDS); every other value is reached
 through the full editor on the effort's layer. The RFP's own format rules (Submission Rules, kind Format) are offered
-beside each value. Keep for the team writes an effort's change into a team layer (the team standard, a volume profile
-or the effort type), records it in the team's change history (with what it was, so it can be put back), and takes it
-off the effort. Nothing here changes the team's standards except Keep for the team. Rules only; nothing leaves the PC."""
+beside each value. Make it global writes an effort's change into a global layer (the global standard, a volume profile
+or the effort type), records it in the global change history (with what it was, so it can be put back), and takes it
+off the effort. Nothing here changes the global standards except Make it global. Rules only; nothing leaves the PC."""
 import copy, datetime, getpass, json, os
 
 import prodrules as PRL
@@ -287,7 +287,7 @@ def targets(config_dir, ws, tid=None):
     effort type."""
     data, eid, default, _v = ids(config_dir, ws)
     t = PRL.type_of(data, tid or default)
-    out = [("team", "The team standard: every effort"), ("type:" + t["id"], f"The {t['name']} profile: that kind of volume in every effort")]
+    out = [("team", "The global standard: every effort"), ("type:" + t["id"], f"The {t['name']} profile: that kind of volume in every effort")]
     et = PRL.effort_type_of(data, eid)
     if et:
         out.append(("etype:" + et["id"], f"The {et['name']} effort type: every effort of that type"))
@@ -398,11 +398,11 @@ def parts(config_dir, ws, tid=None):
         if slot in mine_pins and st["item"] is not None:
             src = f"This effort: {lib.shown_name(st['item'])}"
         elif st["item"] is not None:
-            src = f"Team: {lib.shown_name(st['item'])}"
+            src = f"Global: {lib.shown_name(st['item'])}"
         elif _slot_in_layer(lay, slot, kind):
             src = "This effort's own"
         else:
-            src = "Team's own values"
+            src = "The global standard's own values"
         out.append((slot, f"{part}: {what}", src))
     return out
 
