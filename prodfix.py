@@ -234,6 +234,21 @@ def _add(chk, area, rule, sev, what, where, fix, near=""):
                          "near": near, "fix": fix})
 
 
+def rule_label(code):
+    """3.38.0: the production rule a finding's check code answers ("Rule 6"), or "" when no rule names it."""
+    try:
+        import rulebook as RB
+        return RB.rule_of_code(code)
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def rule_cell(f):
+    """A finding's rule as people read it: "Rule 6 · RU6 Heading levels indented differently", or the check alone."""
+    lab = rule_label(f["rule"])
+    return (f"{lab} · " if lab else "") + f"{f['rule']} {RULE_TEXT.get(f['rule'], '')}".strip()
+
+
 def _fix_for(rule, fix_name):
     for f in FIXES:
         if rule in f["rules"]:

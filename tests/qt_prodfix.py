@@ -40,7 +40,7 @@ w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.go("home"); app.processEvents()
 f = w.home_page.start; f.name.setText("Osprey"); f.sol.setText("FA8810-26-R-0042"); f.create(); app.processEvents()
 check("3.9: Production holds Production Standards, Audit and Fix a Copy (3.16.0: Fix a Copy last, Beta; 3.17.0: Audit)",
-      [k for g, it in RAIL if g == "Production" for k, _l in it] == ["prodstd", "audit", "fixcopy"])
+      [k for g, it in RAIL if g == "Production" for k, _l in it] == ["prodstd", "rules", "audit", "fixcopy"])   # 3.38.0: Rules
 vol = os.path.join(EF.folder(w.effort_path, "volumes"), "Volume I Technical.docx")
 shutil.copy2(os.path.join(HERE, "pefix", "data", "small.docx"), vol)
 before = sha(vol)
@@ -370,7 +370,7 @@ sp.dirty = False
 w.go("audit"); app.processEvents()
 ap = w.audit_page
 check("3.17: Audit sits in Production between Production Standards and Fix a Copy, and lists the Volumes folder",
-      [k for g, it in RAIL if g == "Production" for k, _l in it] == ["prodstd", "audit", "fixcopy"]
+      [k for g, it in RAIL if g == "Production" for k, _l in it] == ["prodstd", "rules", "audit", "fixcopy"]
       and ap.files.count() == len([f for f in os.listdir(EF.folder(w.effort_path, "volumes")) if f.lower().endswith((".docx", ".xlsx", ".pptx"))]))
 ap.add_files([vol]); app.processEvents()
 vbefore = sha(vol)
@@ -380,6 +380,15 @@ check("3.17: Audit checks every file against its standard and changes nothing", 
 xp2 = ap.export(os.path.join(tmp, "audit.xlsx"))
 from openpyxl import load_workbook as _lw
 check("3.17: the audit exports every finding", xp2 and _lw(xp2)["Findings"].max_row >= 2)
+check("3.38.0: the export names each finding's production rule", [c.value for c in _lw(xp2)["Findings"][1]][3] == "Production rule")
+ap.table.selectRow(next(i for i in range(ap.table.rowCount()) if "Volume I Technical" in ap.table.item(i, 0).text()))
+ap.group_f.setCurrentIndex(ap.group_f.findData("rule")); app.processEvents()
+heads = [ap.found.item(i, 0).text() for i in range(ap.found.rowCount()) if ap.found.columnSpan(i, 0) == 5]
+cells = [ap.found.item(i, 1).text() for i in range(ap.found.rowCount()) if ap.found.columnSpan(i, 0) == 1 and ap.found.item(i, 1)]
+check("3.38.0: Audit groups findings by production rule, each rule with its sentence, checks no rule names last",
+      [h.split("  ")[0] for h in heads] == ["Rule 3", "Rule 6", "Rule 7", "Checks no rule names"] and "heading level" in heads[1]
+      and any(c.startswith("Rule ") for c in cells), heads[:6])
+ap.group_f.setCurrentIndex(0); app.processEvents()
 check("THE GATE, at the end", sha(vol) == before)
 n = sum(checks)
 print(f"QT PRODFIX {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")

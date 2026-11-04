@@ -60,7 +60,12 @@ class AuditPage(QWidget):
         self.area_f = QComboBox(); self.area_f.addItem("Every area", "")
         for a in self.areas:
             self.area_f.addItem(PF.AREAS[a], a)
-        self.area_f.currentIndexChanged.connect(lambda _i: self.show_findings()); frow.addWidget(self.area_f); frow.addStretch(1)
+        self.area_f.currentIndexChanged.connect(lambda _i: self.show_findings()); frow.addWidget(self.area_f)
+        frow.addWidget(D.label("Group by", "label", wrap=False))                       # 3.38.0: findings by production rule
+        self.group_f = QComboBox(); self.group_f.addItem("Area", "area"); self.group_f.addItem("Rule", "rule")
+        self.group_f.setToolTip("Rule: each production rule (Production > Rules) with its findings; checks no rule names come last")
+        self.group_f.currentIndexChanged.connect(lambda _i: self.show_findings()); frow.addWidget(self.group_f)
+        frow.addStretch(1)
         det.body.addLayout(frow)
         self.found = QTableWidget(0, 5); self.found.setHorizontalHeaderLabels(["Area", "Rule", "What", "Where", "Fix a Copy"])
         self.found.verticalHeader().setVisible(False); self.found.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -207,14 +212,26 @@ class AuditPage(QWidget):
             return 0
         _prof, chk = self.results[rows[r]]
         area = self.area_f.currentData()
-        n = 0
-        for f in chk.findings:
-            if area and f["area"] != area:
-                continue
+        by_rule = getattr(self, "group_f", None) is not None and self.group_f.currentData() == "rule"
+        items = [f for f in chk.findings if not (area and f["area"] != area)]
+        if by_rule:
+            import rulebook as RB
+            items.sort(key=lambda f: RB.order_key(PF.rule_label(f["rule"])))
+        n, last = 0, None
+        for f in items:
+            if by_rule:
+                lab = PF.rule_label(f["rule"]) or "Checks no rule names"
+                if lab != last:
+                    last = lab
+                    k = self.found.rowCount(); self.found.insertRow(k)
+                    import rulebook as RB
+                    r = RB.get(self.host.config_dir, lab.split()[-1]) if lab.startswith("Rule ") else None
+                    h = QTableWidgetItem(lab + (f"  {r['text']}" if r else ""))
+                    fnt = h.font(); fnt.setBold(True); h.setFont(fnt)
+                    self.found.setItem(k, 0, h); self.found.setSpan(k, 0, 1, 5)
             k = self.found.rowCount(); self.found.insertRow(k)
             fix = PF.FIX[f["fix"]]["label"] if f["fix"] in PF.FIX else ("Update fields in Word" if f["fix"] == "word_update" else "Review by hand")
-            for c, text in enumerate((PF.AREAS.get(f["area"], f["area"]), f"{f['rule']} {PF.RULE_TEXT.get(f['rule'], '')}",
-                                      f["what"], f["near"], fix)):
+            for c, text in enumerate((PF.AREAS.get(f["area"], f["area"]), PF.rule_cell(f), f["what"], f["near"], fix)):
                 self.found.setItem(k, c, QTableWidgetItem(str(text)))
             n += 1
         self.found.resizeRowsToContents()
@@ -237,10 +254,11 @@ class AuditPage(QWidget):
             by = chk.by_area()
             ws.append([os.path.basename(p), prof, chk.count()] + [sum(by.get(a, {}).values()) for a in self.areas])
         ws2 = wb.create_sheet("Findings")
-        ws2.append(["File", "Volume", "Area", "Rule", "What", "Where", "Fix a Copy"])
+        ws2.append(["File", "Volume", "Area", "Production rule", "Check", "What", "Where", "Fix a Copy"])
         for p, (prof, chk) in self.results.items():
             for f in chk.findings:
-                ws2.append([os.path.basename(p), prof, PF.AREAS.get(f["area"], f["area"]), f"{f['rule']} {PF.RULE_TEXT.get(f['rule'], '')}",
+                ws2.append([os.path.basename(p), prof, PF.AREAS.get(f["area"], f["area"]), PF.rule_label(f["rule"]),
+                            f"{f['rule']} {PF.RULE_TEXT.get(f['rule'], '')}",
                             f["what"], f["near"], PF.FIX[f["fix"]]["label"] if f["fix"] in PF.FIX else
                             ("Update fields in Word" if f["fix"] == "word_update" else "Review by hand")])
         for w_ in (ws, ws2):

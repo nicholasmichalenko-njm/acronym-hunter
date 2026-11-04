@@ -485,7 +485,8 @@ class FixPage(QWidget):
                     it.setToolTip(0, fx["help"])
                 top.addChild(it)
                 for f in items[:400]:
-                    c = QTreeWidgetItem([f"{f['rule']}  {f['what']}", f["severity"], f["near"]])
+                    lab = PF.rule_label(f["rule"])                       # 3.38.0: the production rule it answers
+                    c = QTreeWidgetItem([(f"{lab} · " if lab else "") + f"{f['rule']}  {f['what']}", f["severity"], f["near"]])
                     c.setToolTip(0, PF.RULE_TEXT.get(f["rule"], ""))
                     if f["rule"] == "S4" and ": " in f["what"]:      # 3.7.0: each style can be left out of the fix
                         c.setData(0, Qt.UserRole + 1, f["what"].split(": ", 1)[0])
@@ -498,8 +499,9 @@ class FixPage(QWidget):
                                       else "Updated by Word, or reviewed by hand", f"{len(manual)} found", ""])
                 top.addChild(it)
                 for f in manual[:400]:
-                    c = QTreeWidgetItem([f"{f['rule']}  {f['what']}", "Word updates it" if f["fix"] == "word_update" else "review",
-                                         f["near"]])
+                    lab = PF.rule_label(f["rule"])
+                    c = QTreeWidgetItem([(f"{lab} · " if lab else "") + f"{f['rule']}  {f['what']}",
+                                         "Word updates it" if f["fix"] == "word_update" else "review", f["near"]])
                     it.addChild(c)
             top.setExpanded(True)
         self.tree.blockSignals(False)
