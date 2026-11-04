@@ -49,7 +49,7 @@ if US:
         hiddenimports += ['doctr_engine']
 # US edition also leaves out standard-library and helper modules the app never uses that link Windows networking:
 # ssl (TLS), asyncio (_overlapped), multiprocessing, psutil. Checked by tools\network_audit.py at build time.
-_edition_excludes = (['rapidocr_onnxruntime', 'pyclipper', 'shapely', 'yaml',
+_edition_excludes = (['rapidocr_onnxruntime', 'pyclipper', 'shapely', 'yaml', 'six', 'tqdm', 'colorama',
                       'ssl', '_ssl', 'asyncio', 'multiprocessing', 'psutil'] if US else [])
 
 
