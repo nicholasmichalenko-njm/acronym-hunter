@@ -151,9 +151,10 @@ class BuilderPage(QWidget):
         top.addWidget(D.button("Export the setup...", None, lambda: self.host.setup_page.export(), "One plain Word document per volume"))
         top.addWidget(D.button("Export changes only...", "ghost", lambda: self.host.setup_page.export_changes(),
                                "Just what changed since the last export"))
-        top.addWidget(D.button("Kickoff packets...", None, lambda: self.kickoff(),                    # 3.37.0
-                               "One Word file per author: their sections, the customer's words, how each is scored, "
-                               "objectives, themes, topics, answers, pages and dates"))
+        self.b_kickoff = D.button("Kickoff packets...", None, lambda: self.kickoff(),                    # 3.37.0
+                                  "One Word file per author: their sections, the customer's words, how each is scored, "
+                                  "objectives, themes, topics, answers, pages and dates")
+        top.addWidget(self.b_kickoff)
         top.addWidget(D.button("Make the setup", "primary", lambda: self.host.go("setups"),       # 3.56.0: the Setup page
                                "Who writes each section, when it is due, what fills it, and each volume's setup on its template"))
         # the toolbar: what the selected item is, like Word's style buttons
@@ -319,6 +320,9 @@ class BuilderPage(QWidget):
     def refresh(self):
         R = self.host.review
         self.setEnabled(R is not None)
+        import menufocus as MF
+        from .modes import settings
+        self.b_kickoff.setVisible("kickoff" not in MF.hidden(settings()))   # 3.57.0: set aside
         self.text_panel.refresh()                    # the text stays the structure's, shown or not
         if R is None:
             self.btree.clear()

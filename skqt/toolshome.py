@@ -23,7 +23,8 @@ USES = (("acrfinder", "Find acronyms (Acronym Finder, its own window)", None),
         ("fulltext", "Pull out all the text (Full Text)", None),
         ("shred", "Find the requirements (Shred)", (".pdf", ".docx", ".pptx", ".xlsx")),
         ("library", "Add to the Library of what I am working on", None),
-        ("audit", "Audit against the standards (changes nothing)", OFFICE))
+        ("audit", "Audit against the standards (changes nothing)", OFFICE),
+        ("leftovers", "Check for leftovers before it goes out (Final Checks)", (".docx",)))     # 3.57.0
 # the tools Home can pin: key -> (title, what, kind) ; kind "window" opens its own window, "page" goes to the page
 TOOLS = {"acrfinder": ("Acronym Finder", "Scan any files for acronyms, apart from any effort", "window"),
          "firstuse": ("First Use Check", "Your Word files' first uses", "window"),
@@ -63,12 +64,15 @@ def uses_for(paths):
 
 def load_pins(config_dir, role=""):
     import json
+    import menufocus as MF
+    from .modes import settings
+    aside = MF.hidden(settings())                   # 3.57.0: a set-aside page is not pinned
     try:
         with open(os.path.join(config_dir, PINS_FILE), encoding="utf-8") as f:
-            got = [k for k in (json.load(f) or {}).get("pins", []) if k in TOOLS]
+            got = [k for k in (json.load(f) or {}).get("pins", []) if k in TOOLS and k not in aside]
         return got
     except (OSError, ValueError, AttributeError):
-        return list(ROLE_PINS.get(role) or ROLE_PINS["Production"])
+        return [k for k in (ROLE_PINS.get(role) or ROLE_PINS["Production"]) if k not in aside]
 
 
 def save_pins(config_dir, pins):
@@ -272,6 +276,9 @@ class ToolsHome(QWidget):
         if use == "audit":
             h.go("audit")
             return h.audit_page.add_files(paths)
+        if use == "leftovers":                              # 3.57.0
+            h.go("checks")
+            return h.checks_page.check_leftovers(paths)
         return None
 
     def ensure_working_on(self):
@@ -293,13 +300,18 @@ class ToolsHome(QWidget):
             v = QVBoxLayout(d)
             v.addWidget(D.label("Tick the tools Home shows. Your role's starting set is a starting point only.", "muted"))
             boxes = {}
+            import menufocus as MF
+            from .modes import settings
+            aside = MF.hidden(settings())
             for k, (t, what, _kind) in TOOLS.items():
+                if k in aside:
+                    continue
                 cb = QCheckBox(f"{t}: {what}"); cb.setChecked(k in self.pins); v.addWidget(cb); boxes[k] = cb
             bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
             v.addWidget(bb)
             if d.exec() != QDialog.Accepted:
                 return self.pins
-            chosen = [k for k in self.pins if boxes[k].isChecked()] + [k for k in TOOLS if boxes[k].isChecked() and k not in self.pins]
+            chosen = [k for k in self.pins if k in boxes and boxes[k].isChecked()] + [k for k in boxes if boxes[k].isChecked() and k not in self.pins]
         save_pins(self.host.config_dir, chosen)
         self.refresh()
         return self.pins

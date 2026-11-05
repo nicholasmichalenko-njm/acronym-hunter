@@ -1027,6 +1027,8 @@ class MainWindow(QMainWindow):
         prof, _src = self.profile()
         hide = bool((settings() or {}).get("hide_other_roles"))
         collapsed = set((settings() or {}).get("rail_collapsed") or [])
+        import menufocus as MF
+        aside = MF.hidden(settings())                                     # 3.57.0: pages set aside for now
         for head, items in self.group_items.items():
             shown = 0
             for key, b in ((k, self.step_btns.get(k)) for k, _t in dict(RAIL)[head]):
@@ -1036,8 +1038,9 @@ class MainWindow(QMainWindow):
                 b.setProperty("offrole", not ok)
                 b.style().unpolish(b); b.style().polish(b)
                 b.setToolTip("" if ok else f"For {', '.join(RA.roles_for(key))}. Your role here: {prof}.")
-                vis = (ok or not hide) and head not in collapsed
-                b.setVisible(vis); shown += (ok or not hide)
+                out = key in aside
+                vis = (ok or not hide) and head not in collapsed and not out
+                b.setVisible(vis); shown += (ok or not hide) and not out
             self.group_heads[head].setVisible(shown > 0)
             self.group_heads[head].setText(head + ("  ▸" if head in collapsed else ""))
         self.refresh_stage_tools(prof, collapsed)
@@ -1143,6 +1146,11 @@ class MainWindow(QMainWindow):
         """3.16.0: the tabs of the menu item the page belongs to (none for a page that is its own item)."""
         head = HEAD_OF.get(step, step)
         tabs = TABS.get(head) if step in dict(TABS.get(head, [])) else None
+        if tabs:                                                          # 3.57.0: set-aside tabs leave the bar
+            import menufocus as MF
+            from .modes import settings
+            aside = MF.hidden(settings()) - {step}
+            tabs = [t for t in tabs if t[0] not in aside]
         self._tab_sync = True
         try:
             while self.page_tabs.count():

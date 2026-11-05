@@ -96,6 +96,11 @@ class RolesCard(D.Card):
         self.hide.toggled.connect(lambda on: self.set_opt("hide_other_roles", on))
         self.stage = QCheckBox("Mark the stage's tools in the menu (a dot in the stage's color)"); self.add(self.stage)
         self.stage.toggled.connect(lambda on: self.set_opt("stage_tools", on))
+        import menufocus as MF                                             # 3.57.0: pages set aside for now
+        self.aside = QCheckBox("Show the pages set aside for now"); self.add(self.aside)
+        self.aside.setToolTip(MF.names() + ": out of the menu while authoring and its tracking live in SharePoint. "
+                              "Their work is kept.")
+        self.aside.toggled.connect(lambda on: self.set_opt(MF.SETTING, on))
         self.add(D.label("Preview tools for this team", "label"))
         self.prev = {}
         for key, (name, what) in RA.PREVIEW.items():
@@ -128,6 +133,7 @@ class RolesCard(D.Card):
                                "own": "(your own choice: Customize... on the Effort Dashboard)"}.get(src, ""))
         self.hide.setChecked(bool(st.get("hide_other_roles")))
         self.stage.setChecked(bool(st.get("stage_tools", True)))
+        self.aside.setChecked(bool(st.get("show_set_aside")))
         locked = TP.locked(self.host.config_dir, "access")
         for key, cb in self.prev.items():
             cb.setChecked(RA.preview_on(self.host.config_dir, key))

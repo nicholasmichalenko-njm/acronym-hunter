@@ -449,6 +449,9 @@ TOPICS = [
   ["Final PDF package: choose the folder with the PDFs you will upload, check the page size, the largest file allowed, "
    "the words every file name must hold and the volumes and forms that must be there, then press Check the package. "
    "Each PDF shows its pages against the limit, page size, fonts not embedded, pages with no searchable text and size.",
+   "Leftovers (3.57.0): tick the drafts (Add files... for others) and press Check for leftovers. It finds the setup's "
+   "reference text and file properties, hidden text, white text on a light page, comments, tracked changes and "
+   "placeholders; each row says why it matters. Drop a Word file on Your Tools and pick Check for leftovers for the same.",
    "Cross-references and numbering: tick the drafts and press Check the drafts. It finds figures and tables out of "
    "order or repeated, mentions with no caption, captions never mentioned, pictures and tables with no caption, and "
    "Word's \u201cError! Reference source not found.\u201d",

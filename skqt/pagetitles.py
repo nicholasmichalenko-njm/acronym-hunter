@@ -14,7 +14,7 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "prodstd": ("Production Standards", "The global formatting standards for every effort: the global standard, volume profiles, effort types and the template library"),
           "rules": ("Rules", "Every production rule in one list: how each is kept, on or off for every effort, and where its values live; and the rules Review's Suggest reads by"),
           "effortfmt": ("Effort Formatting", "This effort's formatting on top of the global standards: its own fonts, sizes, margins and parts, and the RFP's rules"),
-          "checks": ("Final Checks", "The PDF package, cross-references and numbering, and what changed between two drafts"),
+          "checks": ("Final Checks", "The PDF package, leftovers, cross-references and numbering, and what changed between two drafts"),
           "truth": ("Wall of Truth", "The one approved way to state every fact and number, and the drafts checked against it"),
           "drafts": ("Draft Status", "Read a volume's draft back: each section against its page budget, requirements removed, styles brought in"),
           "storyboards": ("Storyboards", "One sheet per section before the first draft: message, themes, approach, features and proof"),

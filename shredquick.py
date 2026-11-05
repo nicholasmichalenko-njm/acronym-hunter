@@ -43,6 +43,8 @@ def shred(path):
 
 def export(result, path):
     """The draft compliance matrix: one row per requirement, the columns a matrix starts from."""
+    import filesafety as FS
+    FS.guard(path, result.get("file"))            # 3.57.0: never over the file read
     import openpyxl
     from openpyxl.styles import Alignment, Font, PatternFill
     wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Requirements"

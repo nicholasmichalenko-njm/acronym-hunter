@@ -126,6 +126,8 @@ def _comment(cid, author, date, text):
 
 def write(src, findings, out_path, author="Technical Edit", when=None):
     """Writes the copy. findings: the accepted ones (from techedit.review). Returns counts."""
+    import filesafety as FS
+    FS.guard(out_path, src)                      # 3.57.0: never over the draft it read
     when = when or datetime.datetime.now()
     date = when.strftime("%Y-%m-%dT%H:%M:%SZ")
     zin = zipfile.ZipFile(src)

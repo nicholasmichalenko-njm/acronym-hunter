@@ -78,6 +78,17 @@ class ChecksPage(QWidget):
         self.elements = None
         v.addWidget(self.e_card)
         # ---- cross-references
+        self.l_card = D.Card("Leftovers", "What must not go out: the setup's reference text and file properties, hidden "  # 3.57.0
+                             "text, white text, comments, tracked changes and placeholders. Changes nothing.",
+                             actions=[D.button("Check for leftovers", "primary", lambda: self.check_leftovers()),
+                                      D.button("Add files...", None, lambda: self.add_leftover_files()),
+                                      D.button("Export...", None, lambda: self.export_leftovers())])
+        self.l_files = QListWidget(); self.l_files.setFixedHeight(90); self.l_card.add(self.l_files)
+        self.l_sum = self.l_card.add(D.label("Not checked yet.", "muted"))
+        self.l_table = _table(["File", "What", "Under", "Text"], [180, 170, 200, 0], 3)
+        self.l_card.add(self.l_table)
+        self.leftover = []
+        v.addWidget(self.l_card)
         self.x_card = D.Card("Cross-references and numbering", "Figure, table and exhibit numbers in order; every one the text "
                              "mentions has a caption, every caption is mentioned; pictures and tables with no caption; Word's "
                              "broken references.", actions=[D.button("Check the drafts", "primary", lambda: self.check_xref()),
@@ -126,6 +137,10 @@ class ChecksPage(QWidget):
             except Exception:
                 diag.swallowed()
         drafts = h.home_page.theme_drafts()
+        extra = [self.l_files.item(i).data(Qt.UserRole) for i in range(self.l_files.count())]
+        self.l_files.clear()
+        for name, p in list(drafts) + [(os.path.basename(x), x) for x in extra if x not in dict(drafts).values()]:
+            self._add_leftover_item(name, p)
         self.drafts.clear()
         for name, p in drafts:
             it = QListWidgetItem(name); it.setData(Qt.UserRole, p); it.setFlags(it.flags() | Qt.ItemIsUserCheckable)
@@ -332,6 +347,67 @@ class ChecksPage(QWidget):
                                                                                          "numbering and references are clean."))
         diag.activity("xref_checked", n=n)
         return out
+
+    # ------------------------------------------------------------ 3.57.0: leftovers
+    def _add_leftover_item(self, name, p):
+        it = QListWidgetItem(name); it.setData(Qt.UserRole, p); it.setFlags(it.flags() | Qt.ItemIsUserCheckable)
+        it.setCheckState(Qt.Checked); self.l_files.addItem(it)
+
+    def add_leftover_files(self, paths=None):
+        if paths is None:
+            paths, _ = QFileDialog.getOpenFileNames(self, "Word files to check", "", "Word (*.docx)")
+        have = {self.l_files.item(i).data(Qt.UserRole) for i in range(self.l_files.count())}
+        for p in paths or []:
+            if p.lower().endswith(".docx") and os.path.isfile(p) and p not in have:
+                self._add_leftover_item(os.path.basename(p), p)
+        return paths or []
+
+    def check_leftovers(self, paths=None):
+        import leftovers as LO
+        from . import filewarn
+        if paths:
+            self.add_leftover_files(paths)
+            want = set(paths)
+        else:
+            want = None
+        out = []
+        for i in range(self.l_files.count()):
+            it = self.l_files.item(i)
+            p = it.data(Qt.UserRole)
+            if (want is None and it.checkState() == Qt.Checked) or (want is not None and p in want):
+                try:
+                    out.append((it.text(), LO.check(p)))
+                except Exception:
+                    diag.swallowed()
+                filewarn.say(self.host, [p])
+        self.leftover = out
+        t = self.l_table
+        t.setRowCount(0)
+        for name, r in out:
+            for x in r["items"]:
+                k = t.rowCount(); t.insertRow(k)
+                for c, text in enumerate((name, x["kind"], x["where"], x["text"])):
+                    t.setItem(k, c, QTableWidgetItem(text))
+                t.item(k, 1).setToolTip(LO.WHY.get(x["kind"], ""))
+        t.resizeRowsToContents()
+        self.l_sum.setText("No Word files to check: add files, or put drafts in the effort's Volumes folder." if not out else
+                           "; ".join(f"{name}: {LO.summary(r)}" for name, r in out))
+        diag.activity("leftovers_checked", n=t.rowCount())
+        return out
+
+    def export_leftovers(self, path=None):
+        import leftovers as LO
+        if not self.leftover:
+            self.host.status("Check for leftovers first.")
+            return ""
+        if path is None:
+            start = os.path.join(os.path.dirname(self.host.out_path("xref_check")), "Leftovers check.xlsx") if self.host.effort_path else ""
+            path, _ = QFileDialog.getSaveFileName(self, "Export the leftovers check", start, "Excel (*.xlsx)")
+            if not path:
+                return ""
+        LO.export(path, self.leftover, self.host.effort_name)
+        self.host.toast("Leftovers check exported")
+        return path
 
     def export_xref(self, path=None):
         import xrefcheck as X

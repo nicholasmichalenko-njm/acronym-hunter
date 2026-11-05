@@ -66,6 +66,8 @@ class ShredPage(QWidget):
             self.host.status(f"The file could not be read ({type(e).__name__}).")
             return None
         self.file.setText(os.path.basename(path))
+        from . import filewarn
+        filewarn.say(self.host, [path])                      # 3.57.0
         c = self.result["counts"]
         self.counts.setText(f"{len(self.result['rows'])} requirement(s): " + ", ".join(f"{n} {k}" for k, n in c.items()))
         for b in (self.b_export, self.b_file):

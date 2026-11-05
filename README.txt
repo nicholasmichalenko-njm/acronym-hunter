@@ -1,6 +1,17 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+FOCUS AND FILE SAFETY (3.57.0)
+  - Authoring and its tracking live in SharePoint, so the menu focuses on production. Set aside for now: My Work,
+    Draft Status, Wall of Truth, Storyboards, Data calls, Color Reviews and the Structure Builder's Kickoff packets.
+    Their work is kept; Settings > Roles and Preview tools > Show the pages set aside brings them back.
+  - Final Checks > Leftovers: what must not go out in a Word volume. The setup's reference text and file properties,
+    hidden text, white text on a light page, comments, tracked changes and placeholders, each with why it matters.
+    Export... writes the list to Excel. Drop a Word file on Your Tools and pick Check for leftovers for the same.
+  - Stationkeeper reads a file and writes a new one; it never saves over a file it read. When a file sits in a OneDrive
+    or SharePoint folder, is open in Word, holds other people's tracked changes, or is a .doc or macro file, the status
+    bar says so as it is read.
+
 SETUP (3.56.0)
   - Plan > Setup: the starting draft each author writes in, made from a structure, what fills it and the volume's
     template, and made again whenever one of them changes.

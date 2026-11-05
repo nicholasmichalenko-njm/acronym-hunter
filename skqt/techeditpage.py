@@ -184,6 +184,8 @@ class TechEditPage(QWidget):
             src = T.read(path)
             self.found = T.review(src, level, self.sheet(), self.refs())
             stats = T.section_stats(src[0])
+            from . import filewarn
+            filewarn.say(self.host, [path])                  # 3.57.0
         except Exception as e:  # noqa: BLE001
             diag.swallowed()
             self.host.status(f"The draft could not be read ({type(e).__name__}).")

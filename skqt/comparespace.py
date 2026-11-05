@@ -72,6 +72,8 @@ class FilesCompare(QWidget):
             return None
         c = self.result["counts"]
         self.sum.setText(f"{c['changed']} changed, {c['added']} added, {c['removed']} removed")
+        from . import filewarn
+        filewarn.say(self.host, [a, b])                      # 3.57.0
         self.fill()
         diag.activity("files_compared", n=c["changed"] + c["added"] + c["removed"])
         return self.result

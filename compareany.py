@@ -31,7 +31,8 @@ def snapshot(path):
 def compare(old_path, new_path):
     import docversions as DV
     rows = DV.compare(snapshot(old_path), snapshot(new_path))
-    return {"rows": rows, "counts": DV.summary(rows), "old": DC._version(old_path, "Earlier"), "new": DC._version(new_path, "Later")}
+    return {"rows": rows, "counts": DV.summary(rows), "old": dict(DC._version(old_path, "Earlier"), path=old_path),
+            "new": dict(DC._version(new_path, "Later"), path=new_path)}
 
 
 def by_section(rows):
@@ -39,4 +40,6 @@ def by_section(rows):
 
 
 def export(path, result, only_changes=True):
+    import filesafety as FS
+    FS.guard(path, result["old"].get("path"), result["new"].get("path"))     # 3.57.0: never over a file compared
     return DC.export(path, result, os.path.splitext(result["new"]["file"])[0], only_changes)
