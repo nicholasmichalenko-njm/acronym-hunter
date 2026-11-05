@@ -1,0 +1,6 @@
+{
+ "recall": null,
+ "target": 95.0,
+ "set": "",
+ "change": "Set by the first scored run; raise it when the shred gets better; lower it only on purpose, with a line in DECISIONS.md"
+}

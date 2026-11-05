@@ -312,6 +312,12 @@ class DocsPage(QWidget):
                 return None
         made = DI.apply(c.lib, plan, c.customer_dir(), c.log)
         diag.activity("qt_documents_added", n=len(made))
+        import shredeval as SE
+        if self.host.review is not None and any(SE.is_amendment(d, v) for d, v in made):   # 3.59.0: acknowledge it
+            got = SE.acknowledgment_rows(self.host.review.M, made)
+            if got:
+                self.host.changed()
+                self.host.status(f"{len(got)} acknowledgment row(s) added to the matrix: place each like an instruction.")
         self.host.refresh_level()                  # 2.97.0: the effort's level follows its documents
         from .whatview import after_added          # 2.98.0: what each new version changed, at once
         after_added(self.host, made, c.lib)

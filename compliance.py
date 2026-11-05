@@ -190,6 +190,14 @@ def _section_from_line(line, cur):
 
 
 _FURNITURE = re.compile(r"\((?:Header|Footer)\b[^()]*\)$")
+SET_ASIDE = {}           # 3.59.0: what the last extract() set aside {(file, key): {"file", "text", "why", "times"}}
+
+
+def _aside(file_name, text, why):
+    t = " ".join((text or "").split())
+    if t:
+        e = SET_ASIDE.setdefault((file_name, text_key(t)), {"file": file_name, "text": t, "why": why, "times": 0})
+        e["times"] += 1
 
 
 def read_items(chunks, file_name, file_kind="", heads_out=None, every=True):
@@ -209,6 +217,7 @@ def read_items(chunks, file_name, file_kind="", heads_out=None, every=True):
         return sec, heads.get(best, "")
     for label, text in chunks:
         if _FURNITURE.search(label or ""):
+            _aside(file_name, text, "A page header or footer")
             continue                    # 2.57.0: headers and footers are page furniture, not text of the review
         if not text and not _label_section(label):
             continue
@@ -447,6 +456,7 @@ def extract(files_chunks, headings=None, every=True):
     headings (list): filled with the RFP's numbered headings [{num, title, file}].
     every=True (2.29.0): every sentence is a row (requirements plus Context), so every sentence gets a decision."""
     sync_extra_words()
+    SET_ASIDE.clear()
     items = []
     for name, chunks in files_chunks:
         items += read_items(chunks, name, file_kind(name), headings, every=every)
@@ -467,6 +477,7 @@ def extract(files_chunks, headings=None, every=True):
         repeat = bool(re.search(r"\((?:Header|Footer)\b|\bheader\b|\bfooter\b", it.get("loc", ""), re.I)) or bool(_BOILER.match(it["text"])) \
             or k in running
         if k in seen and repeat:
+            _aside(it["file"], it["text"], "Repeated on every page (kept once)")
             continue
         seen.add(k)
         it.update({"key": text_key(it["text"]), "decision": "", "map": "", "owner": "", "status": "", "notes": "",

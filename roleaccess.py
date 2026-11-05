@@ -18,7 +18,7 @@ PM = "Proposal Manager"
 PROFILES = ("Proposal Manager", "Production", "Author", "Reviewer", "Capture")
 ALWAYS = {"efforts", "mywork", "home", "deliverables", "settings", "tools", "refs"}   # 3.53.0: Your Tools, Team References
 TOOLS = {
-    "Production": {"shredreq", "techedit", "library", "requirements", "matrix", "setup", "setups", "acronyms", "acrlist", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit",
+    "Production": {"shredreq", "shredacc", "techedit", "library", "requirements", "matrix", "setup", "setups", "acronyms", "acrlist", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit",
                    "formatstd", "qpstd", "layoutstd", "profiles", "templates", "prodstd", "rules", "effortfmt", "postsub", "keywords", "exportall", "drafts"},
     "Author": {"shredreq", "techedit", "library", "compare", "requirements", "custqa", "assign", "setup", "setups", "storyboards", "truth", "acronyms",
                "acrlist", "keywords", "drafts"},
@@ -48,7 +48,7 @@ def profile_of(role_text):
 
 
 MENU = ("tools", "mywork", "efforts", "home", "deliverables", "effortfmt", "record", "reviews", "postsub", "library", "read", "compare", "requirements",
-        "custqa", "structure", "shredreq", "assign", "prove", "crosswalk", "matrix", "setup", "setups", "storyboards", "drafts", "truth", "acronyms", "acrlist", "techedit",
+        "custqa", "structure", "shredreq", "shredacc", "assign", "prove", "crosswalk", "matrix", "setup", "setups", "storyboards", "drafts", "truth", "acronyms", "acrlist", "techedit",
         "keywords", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit", "formatstd", "qpstd", "layoutstd", "profiles", "templates", "rules", "refs", "exportall", "settings", "prodstd")
 
 

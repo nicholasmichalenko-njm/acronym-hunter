@@ -37,7 +37,7 @@ RAIL = [("Home", [("tools", "Your Tools"), ("mywork", "My Work"), ("efforts", "A
         ("Effort", [("home", "Effort Dashboard"), ("deliverables", "Deliverables"), ("effortfmt", "Effort Formatting"),
                     ("record", "Effort Record")]),
         ("Customer Documents", [("library", "Library"), ("custqa", "Customer Q&A")]),
-        ("Shred", [("shredreq", "Requirements"), ("assign", "Review"), ("matrix", "Matrix")]),     # 3.55.0: any file
+        ("Shred", [("shredreq", "Requirements"), ("assign", "Review"), ("matrix", "Matrix"), ("shredacc", "Accuracy")]),     # 3.55.0: any file
         ("Compare", [("compare", "Compare")]),
         ("Plan", [("structure", "Structure Builder"), ("setups", "Setup"), ("storyboards", "Storyboards")]),   # 3.56.0
         ("Write", [("drafts", "Draft Status"), ("truth", "Wall of Truth")]),
@@ -288,6 +288,8 @@ class MainWindow(QMainWindow):
         self.templates_page = TemplatesPage(self)
         from .draftstatuspage import DraftStatusPage
         self.drafts_page = DraftStatusPage(self)       # 3.43.0: read the setup back
+        from .accuracypage import AccuracyPage
+        self.accuracy_page = AccuracyPage(self)        # 3.59.0: the shred measured
         from .finalcheckpage import FinalCheckPage
         self.finalcheck_page = FinalCheckPage(self)    # 3.58.0: one ready-to-send report
         from .setupspage import SetupsPage
@@ -301,7 +303,7 @@ class MainWindow(QMainWindow):
                       "drafts": self.drafts_page, "formatstd": self.formatstd_page,
                       "qpstd": self.qpstd_page, "layoutstd": self.layoutstd_page,
                       "profiles": self.profiles_page, "templates": self.templates_page,
-                      "tools": self.tools_page, "refs": self.refs_page, "techedit": self.techedit_page, "shredreq": self.shred_page, "setups": self.setups_page, "finalcheck": self.finalcheck_page}
+                      "tools": self.tools_page, "refs": self.refs_page, "techedit": self.techedit_page, "shredreq": self.shred_page, "setups": self.setups_page, "finalcheck": self.finalcheck_page, "shredacc": self.accuracy_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)
         from .roleview import NoticePage                 # 3.13.0: a tool for another role, or a Preview tool not turned on

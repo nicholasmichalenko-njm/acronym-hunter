@@ -14,6 +14,7 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "prodstd": ("Production Standards", "The global formatting standards for every effort: the global standard, volume profiles, effort types and the template library"),
           "rules": ("Rules", "Every production rule in one list: how each is kept, on or off for every effort, and where its values live; and the rules Review's Suggest reads by"),
           "effortfmt": ("Effort Formatting", "This effort's formatting on top of the global standards: its own fonts, sizes, margins and parts, and the RFP's rules"),
+          "shredacc": ("Accuracy", "How well the shred finds requirements, on your own set of public RFPs with answer keys you labeled in Review"),
           "finalcheck": ("Final Check", "One ready-to-send report per volume on its Word file and its PDF: compliance, page limits, format, structure, acronyms, leftovers, markings, files"),
           "checks": ("Final Checks", "The PDF package, leftovers, cross-references and numbering, and what changed between two drafts"),
           "truth": ("Wall of Truth", "The one approved way to state every fact and number, and the drafts checked against it"),

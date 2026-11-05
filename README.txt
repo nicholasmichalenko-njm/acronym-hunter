@@ -1,6 +1,18 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SHRED YOU CAN TRUST (3.59.0)
+  - Shred > Accuracy: how well the shred finds requirements, on your own set of public RFPs. Save RFPs in the set
+    folder (Stationkeeper Shred Set in your user folder, or Choose the folder...), read one into Review in a test effort,
+    decide every sentence, then Save this effort's Review as answer keys. Score the set shows each RFP's recall (the
+    real requirements found) and precision (the flags that were real), the kind, the 95% target, and the history.
+  - The set stays on this PC. Each build scores it and logs the numbers only; the build stops when an RFP reads worse
+    than its own first score.
+  - Read into Review > Set aside...: the page headers and footers and the lines repeated on every page that a read set
+    aside; Put back in the review makes a header or footer a sentence of its own.
+  - An amendment added to the Library (a document typed Amendment, or a new version labeled Amendment N) adds a matrix
+    row to acknowledge it as the RFP asks; place it like any instruction.
+
 FINAL CHECK (3.58.0)
   - Check and Submit > Final Check: one ready-to-send report per submission volume, on its Word file and the PDF you
     will upload, with Pass, Fail or Needs a person on every line. Submission Check and Final Checks are its tabs.

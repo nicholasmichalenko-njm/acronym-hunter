@@ -122,9 +122,19 @@ class ReadPage(QWidget):
         self.add_btn = D.button("Add files...", None, self.pick, "Read files that are not in Customer Documents"); row.addWidget(self.add_btn)
         row.addStretch(1)
         self.go_btn = D.button("Go to Review", None, lambda: self.host.go("assign")); row.addWidget(self.go_btn)
+        self.aside_btn = D.button("Set aside...", "ghost", lambda: self.show_aside(),          # 3.59.0
+                                  "What the last read set aside: page headers and footers, lines repeated on every page")
+        self.aside_btn.setEnabled(False); row.addWidget(self.aside_btn)
         self.read_btn = D.button("Read", "primary", self.read, "Read the ticked documents into the review"); row.addWidget(self.read_btn)
         self.boxes = []
         self._guard = False
+
+    def show_aside(self, run=True):
+        from .asideview import AsideDialog
+        d = AsideDialog(self, getattr(self, "aside", []), self.host)
+        if run:
+            d.exec()
+        return d
 
     def refresh(self):
         while self.list.count():
@@ -557,6 +567,9 @@ class ReadPage(QWidget):
         if isinstance(res, Exception):
             raise res
         items, heads, src, empty = res
+        import compliance as _C
+        self.aside = sorted(_C.SET_ASIDE.values(), key=lambda e: (e["file"], -e["times"]))   # 3.59.0: what the read set aside
+        self.aside_btn.setEnabled(bool(self.aside))
         if self.host.review is None:
             M = CR.new_matrix(self._out, items, heads, src, (self.host.ws.get("outline_text") or "") if self.host.ws else "")
             fixed = CR.complete(M)
@@ -574,6 +587,8 @@ class ReadPage(QWidget):
             msg += f" {fixed} line(s) the reader did not split out were added in their place."
         if empty:
             msg += f" {len(empty)} file(s) have no typed text (scanned pages?)."
+        if self.aside:
+            msg += f" {len(self.aside)} header, footer or repeated line(s) set aside: Set aside... lists them."
         diag.activity("compliance_read", files=len(src), items=len(items))
         self.host.status(msg + " " + CR.text_check_line(CR.text_check(self.host.review.M)))
         self.panel.done("Read", msg)
