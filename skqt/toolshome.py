@@ -88,7 +88,7 @@ class DropZone(QFrame):
             e.acceptProposedAction()
 
     def dropEvent(self, e):
-        files = [u.toLocalFile() for u in e.mimeData().urls() if u.isLocalFile() and os.path.isfile(u.toLocalFile())]
+        files = [os.path.normpath(u.toLocalFile()) for u in e.mimeData().urls() if u.isLocalFile() and os.path.isfile(u.toLocalFile())]
         if files:
             self.on_files(files)
 

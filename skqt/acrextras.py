@@ -437,7 +437,7 @@ def clipboard_pictures(page, mime=None, image=None):
     from PySide6.QtWidgets import QApplication
     mime = mime if mime is not None else QApplication.clipboard().mimeData()
     if image is None and mime is not None and mime.hasUrls():
-        files = [u.toLocalFile() for u in mime.urls() if u.isLocalFile()]
+        files = [os.path.normpath(u.toLocalFile()) for u in mime.urls() if u.isLocalFile()]   # Windows' own separators
         files = [f for f in files if os.path.splitext(f)[1].lower() in A.SUPPORTED_EXTS and os.path.isfile(f)]
         if files:
             return files
