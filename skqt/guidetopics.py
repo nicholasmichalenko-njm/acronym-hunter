@@ -182,17 +182,6 @@ TOPICS = [
    "Export the matrix...: a draft compliance matrix in Excel, one row per requirement.",
    "File to an effort...: reads the file into that effort's Review, where each requirement gets its decision."],
   ["The same reader as Review; nothing is kept until you file it to an effort."]),
- ("shredacc", "Shred", "Accuracy",
-  "How well the shred finds requirements, measured on your own set of public RFPs: recall (the real requirements it "
-  "finds), precision (its flags that are real) and the kind, against the 95% target, release by release.",
-  "Whenever you add an RFP to the set, and after each release.",
-  ["Make a folder for the set (Choose the folder...; it starts as Stationkeeper Shred Set in your user folder) and save "
-   "public RFPs in it: the RFP, Sections L and M, the SOW, any amendments.",
-   "Read an RFP into Review in a test effort and decide every sentence: requirement (with its kind), context or drop.",
-   "Back here, press Save this effort's Review as answer keys: a key is saved beside each RFP the effort read.",
-   "Press Score the set. Each RFP shows its scores; the set's scores go in By release."],
-  ["The set stays on this PC. The build scores it each release and logs the numbers only, never a file's name or text.",
-   "The build stops when recall drops below the floor: the first run's score, raised as the shred gets better."]),
  ("assign", "Shred", "Review",
   "The customer's document as it looks, every sentence boxed. You decide each sentence, place it in your response, "
   "and capture what it holds. This is where an effort's review happens.",
@@ -256,6 +245,17 @@ TOPICS = [
    "Press Export the matrix..., or Export the compliance package... for the matrix with its reports.",
    "Save as the team default keeps this layout for new efforts."],
   ["The exported workbook is a dated copy. Exports are never overwritten."]),
+ ("shredacc", "Shred", "Accuracy",
+  "How well the shred finds requirements, measured on your own set of public RFPs: recall (the real requirements it "
+  "finds), precision (its flags that are real) and the kind, against the 95% target, release by release.",
+  "Whenever you add an RFP to the set, and after each release.",
+  ["Make a folder for the set (Choose the folder...; it starts as Stationkeeper Shred Set in your user folder) and save "
+   "public RFPs in it: the RFP, Sections L and M, the SOW, any amendments.",
+   "Read an RFP into Review in a test effort and decide every sentence: requirement (with its kind), context or drop.",
+   "Back here, press Save this effort's Review as answer keys: a key is saved beside each RFP the effort read.",
+   "Press Score the set. Each RFP shows its scores; the set's scores go in By release."],
+  ["The set stays on this PC. The build scores it each release and logs the numbers only, never a file's name or text.",
+   "The build stops when recall drops below the floor: the first run's score, raised as the shred gets better."]),
  ("crosswalk", "Shred", "L/M Crosswalk",
   "The Matrix's second tab. Section L says how to write the proposal, Section M says how the customer scores it, and "
   "Section C, the SOW or the PWS says the work. Each row is one instruction beside the factor that scores it and the work "
