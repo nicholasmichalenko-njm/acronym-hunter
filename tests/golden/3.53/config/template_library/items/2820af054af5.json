@@ -1,0 +1,16 @@
+{
+ "name": "Tabloid landscape foldout",
+ "w": 17,
+ "h": 11,
+ "orient": "landscape",
+ "top": 0.75,
+ "bottom": 0.75,
+ "left": 0.75,
+ "right": 0.75,
+ "header": 0.4,
+ "footer": 0.4,
+ "rules": {
+  "restart": false,
+  "linked": true
+ }
+}

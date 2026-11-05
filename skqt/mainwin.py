@@ -186,7 +186,7 @@ class MainWindow(QMainWindow):
                 b.stage_dot = QLabel(); b.stage_dot.setFixedSize(8, 8); b.stage_dot.setVisible(False)
                 bl.addWidget(b.stage_dot, 0, Qt.AlignVCenter)
                 if key:
-                    b.clicked.connect(lambda _=False, k=key: self.go(k))
+                    b.clicked.connect(lambda _=False, k=key: self.rail_go(k))
                     self.steps.addButton(b); self.step_btns[key] = b
                 else:
                     b.setEnabled(False)
@@ -412,6 +412,18 @@ class MainWindow(QMainWindow):
             self.effort_box.setCurrentText(cur)
         if getattr(self, "efforts_page", None) is not None and self.stack.currentWidget() is self.efforts_page:
             self.efforts_page.refresh()            # 3.34.1: a new effort shows in the list at once
+
+    NO_EFFORT = {"tools", "mywork", "efforts", "settings", "refs", "formatstd", "qpstd", "layoutstd", "profiles", "templates",
+                 "rules", "prodstd", "audit", "fixcopy", "exportall"}
+
+    def rail_go(self, key):
+        """3.53.0: a space that works on an effort opens on Unfiled when nothing is open (loose work is kept there)."""
+        if self.ws is None and key not in self.NO_EFFORT:
+            try:
+                self.efforts_page.open_unfiled(go=False)
+            except Exception:  # noqa: BLE001  the page then says no effort is open, as before
+                diag.swallowed()
+        return self.go(key)
 
     def work_on(self, name):
         """3.53.0: the Working on box: an effort, or Unfiled (made when first used). The page you are on stays."""

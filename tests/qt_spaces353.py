@@ -84,6 +84,13 @@ check("the menu is spaces by job", heads == ["Home", "Effort", "Customer Documen
 check("each page in one space only", len([k for _g, it in MW.RAIL for k, _t in it]) == len({k for _g, it in MW.RAIL for k, _t in it}))
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 check("the tools button at the foot of the menu is gone", not hasattr(w, "tools_btn"))
+w.rail_go("formatstd"); app.processEvents()
+check("a space with nothing to work on, like Formatting Standards, opens as it is", w.ws is None and w.stack.currentWidget() is w.formatstd_page)
+w.step_btns["acronyms"].click(); app.processEvents()
+import unfiled as UF
+check("a space that works on an effort opens on Unfiled when nothing is open", w.effort_name == UF.NAME
+      and w.stack.currentWidget() is w.acronym_page and w.acronym_page.session is not None)
+w.close_effort(); app.processEvents()
 w.go("tools"); app.processEvents()
 home = w.tools_page
 check("Your Tools opens with no effort", w.stack.currentWidget() is home and w.page_title.text() == "Your Tools")
