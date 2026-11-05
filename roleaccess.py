@@ -49,7 +49,7 @@ def profile_of(role_text):
 
 MENU = ("efforts", "mywork", "home", "deliverables", "effortfmt", "record", "reviews", "postsub", "library", "read", "compare", "requirements",
         "custqa", "structure", "assign", "prove", "crosswalk", "matrix", "setup", "storyboards", "drafts", "truth", "acronyms", "acrlist",
-        "keywords", "qa", "lists", "checks", "fixcopy", "audit", "formatstd", "qpstd", "layoutstd", "profiles", "templates", "prodstd", "rules", "exportall", "settings")
+        "keywords", "qa", "lists", "checks", "fixcopy", "audit", "formatstd", "qpstd", "layoutstd", "profiles", "templates", "rules", "exportall", "settings", "prodstd")
 
 
 def allowed(profile, step):
