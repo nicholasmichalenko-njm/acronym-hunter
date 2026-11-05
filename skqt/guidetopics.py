@@ -433,6 +433,22 @@ TOPICS = [
    "When it comes back, press Read back a packet... Verdicts and Word comments land on each requirement.",
    "See the score by section, and open a requirement to read its comments."],
   ["Reviewers only need Word. The packet holds no app data beyond the requirements and sections."]),
+ ("finalcheck", "Check and Submit", "Final Check",
+  "One ready-to-send report per submission volume, on its Word file and the PDF you will upload, with Pass, Fail or "
+  "Needs a person on every line: compliance, page limits, format rules, structure, acronyms, leftovers, markings and "
+  "files. Submission Check and Final Checks are its tabs.",
+  "At gold team and before every upload; again after any late change.",
+  ["The volumes are Submission Check's. Add volumes... adds Word files you will submit.",
+   "Select a volume and Set the PDF... once: the PDF you will upload for it.",
+   "Pages that do not count...: tick only what the RFP leaves out of the page limit (the cover, the TOC, the acronym "
+   "list, resumes, dividers). Every page counts until you do.",
+   "Press Check. Each volume shows its eight sections; a fail says where and what to do, and Needs a person asks what "
+   "only a person can answer.",
+   "Export... writes the report to Excel and records it in the effort record."],
+  ["Markings checked: the proprietary legend on the cover and the page marking on every page (FAR 52.215-1(e)); the "
+   "effort's own marking text when Effort Formatting sets one.",
+   "Nothing is changed. The tabs hold each check in full: Submission Check for acronyms and banned words, Final Checks "
+   "for the PDF package, leftovers, cross-references and Compare."]),
  ("qa", "Check and Submit", "Submission Check",
   "The volumes you will submit, checked against the effort list, first use, banned words and page limits.",
   "Before each gate and before submission.",

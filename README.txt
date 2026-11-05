@@ -1,6 +1,18 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+FINAL CHECK (3.58.0)
+  - Check and Submit > Final Check: one ready-to-send report per submission volume, on its Word file and the PDF you
+    will upload, with Pass, Fail or Needs a person on every line. Submission Check and Final Checks are its tabs.
+  - Set each volume's PDF once (Set the PDF...). Pages that do not count...: tick only what the RFP leaves out of the
+    page limit (the cover, the TOC, the acronym list, resumes, dividers). Every page counts until you do.
+  - Eight sections: compliance (requirements placed; amendments to confirm), page limits counted on the PDF, format
+    rules against the standards and the page size, structure (numbering, cross-references, the TOC's page numbers
+    against the PDF), acronyms, leftovers (setup text, hidden text, comments, tracked changes, placeholders, another
+    effort's name, PDF properties), markings (the proprietary legend on the cover and the page marking on every page,
+    FAR 52.215-1(e), or the effort's own marking text) and the PDF as the portal takes it.
+  - Export... writes the report to Excel and records it in the effort record. Nothing is changed in any file.
+
 FOCUS AND FILE SAFETY (3.57.0)
   - Authoring and its tracking live in SharePoint, so the menu focuses on production. Set aside for now: My Work,
     Draft Status, Wall of Truth, Storyboards, Data calls, Color Reviews and the Structure Builder's Kickoff packets.

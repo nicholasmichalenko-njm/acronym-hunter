@@ -44,7 +44,7 @@ RAIL = [("Home", [("tools", "Your Tools"), ("mywork", "My Work"), ("efforts", "A
         ("Acronyms", [("acronyms", "Acronyms")]),
         ("Technical Edit", [("techedit", "Technical Edit")]),             # 3.54.0: copy review
         ("Reviews", [("reviews", "Color Reviews")]),
-        ("Check and Submit", [("qa", "Submission Check"), ("checks", "Final Checks")]),
+        ("Check and Submit", [("finalcheck", "Final Check")]),            # 3.58.0: one report; the two pages are its tabs
         ("Production", [("formatstd", "Formatting Standards"), ("qpstd", "Quick Parts"), ("layoutstd", "Layout"),
                         ("profiles", "Effort Profiles"), ("templates", "Templates"), ("rules", "Rules"), ("audit", "Audit"),
                         ("fixcopy", "Fix a Copy")]),
@@ -59,7 +59,8 @@ TABS = {"home": [("home", "Dashboard"), ("requirements", "Submission Rules")],
         "assign": [("assign", "Review"), ("prove", "Coverage")],
         "matrix": [("matrix", "Matrix"), ("crosswalk", "L/M Crosswalk")],
         "acronyms": [("acronyms", "Scan"), ("acrlist", "Acronym List")],      # 3.37.0: Lists to Submit is in the Acronym List
-        "custqa": [("custqa", "Customer Q&A"), ("datacalls", "Data calls")]}  # 3.39.0: what the team needs from its own experts
+        "custqa": [("custqa", "Customer Q&A"), ("datacalls", "Data calls")],
+        "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
 HEAD_OF.update({"docs": "library", "impact": "compare", "dashboard": "home"})   # pages opened from inside another
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup", "setups"}   # 3.18.2:
@@ -287,6 +288,8 @@ class MainWindow(QMainWindow):
         self.templates_page = TemplatesPage(self)
         from .draftstatuspage import DraftStatusPage
         self.drafts_page = DraftStatusPage(self)       # 3.43.0: read the setup back
+        from .finalcheckpage import FinalCheckPage
+        self.finalcheck_page = FinalCheckPage(self)    # 3.58.0: one ready-to-send report
         from .setupspage import SetupsPage
         self.setups_page = SetupsPage(self)            # 3.56.0: the starting draft, from a structure
         self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_space, "custqa": self.custqa_page,
@@ -298,7 +301,7 @@ class MainWindow(QMainWindow):
                       "drafts": self.drafts_page, "formatstd": self.formatstd_page,
                       "qpstd": self.qpstd_page, "layoutstd": self.layoutstd_page,
                       "profiles": self.profiles_page, "templates": self.templates_page,
-                      "tools": self.tools_page, "refs": self.refs_page, "techedit": self.techedit_page, "shredreq": self.shred_page, "setups": self.setups_page}
+                      "tools": self.tools_page, "refs": self.refs_page, "techedit": self.techedit_page, "shredreq": self.shred_page, "setups": self.setups_page, "finalcheck": self.finalcheck_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)
         from .roleview import NoticePage                 # 3.13.0: a tool for another role, or a Preview tool not turned on
