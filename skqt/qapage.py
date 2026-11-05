@@ -67,7 +67,9 @@ class QAPage(QWidget):
         self.b_firstuse = D.button("First Use Check (its own window)", "ghost", lambda: self.host.open_tool("firstuse"),     # 3.50.0
                                    "One document on its own: where each acronym is first used, and every one used before it is "
                                    "defined, never defined, or spelled out more than once; no effort list needed")
-        top.addWidget(self.b_check); top.addWidget(self.b_cancel); top.addWidget(self.b_firstuse)
+        self.b_techedit = D.button("Copy review (Technical Edit)", "ghost", lambda: self.host.go("techedit"),      # 3.54.0
+                                   "Banned phrases in context with their fixes, and the rest of copy review, as tracked changes")
+        top.addWidget(self.b_check); top.addWidget(self.b_cancel); top.addWidget(self.b_firstuse); top.addWidget(self.b_techedit)
         self.progress = D.label("", "muted", wrap=False); top.addWidget(self.progress, 1)
         self.b_export = D.button("Export report (Excel)...", None, lambda: self.export())
         self.b_lists = D.button("Lists to submit", None, lambda: self.host.go("lists"), "The acronym lists for your volumes, from this check")

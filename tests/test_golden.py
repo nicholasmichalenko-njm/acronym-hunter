@@ -64,6 +64,11 @@ for ver in sets:
         st = SRD.section_status(R.Record(got["data"]))
         check(f"{ver}: the Draft Status read and its sections are all there", (st.get(ex["draft"]["section"]) or {}).get("status")
               == ex["draft"]["status"], st)
+    if ex.get("techedit"):                                # 3.54 on: the effort's style sheet for Technical Edit
+        sh = ws.get("techedit_sheet") or {}
+        te = ex["techedit"]
+        check(f"{ver}: the style sheet reads back", (sh.get("terms") or {}).get(te["term"][0]) == te["term"][1]
+              and te["off"] in (sh.get("off") or []) and te["word"] in (sh.get("words") or []), sh)
     if ex.get("acronyms"):                                # 3.51 on: Omit and a first use set by hand, kept in the acronym results
         import acrsession as AS
         s = AS.AcronymSession(ws, got["list"], {}, {})

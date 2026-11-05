@@ -127,6 +127,9 @@ def make(version, out_root=None):
             extra["capture"] = {"text": "They worry about schedule risk.", "source": "meeting"}
     except ImportError:
         pass
+    ws.set("techedit_sheet", {"terms": {"web site": "website"}, "off": ["passive"], "skips": [], "words": ["Kestrelnet"],
+                              "customer_terms": {}})                    # 3.54.0: the effort's style sheet for Technical Edit
+    extra["techedit"] = {"term": ["web site", "website"], "off": "passive", "word": "Kestrelnet"}
     try:                                                  # 3.51.0: an omitted term and a first use set by hand, kept in the acronym results
         import acrsession as AS
         if hasattr(AS.AcronymSession, "set_first_use"):

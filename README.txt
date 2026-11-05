@@ -1,6 +1,23 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+TECHNICAL EDIT (3.54.0)
+  - A space of its own for copy review: the editor's pass on the words of a Word draft, by rules. Pick the draft (the
+    effort's Volumes folder, or Add files...), the level (Full copy review, Consistency and mechanics, Last look) and
+    press Review.
+  - Starter rules: mechanics (doubled words, spaces, open quotes, en dashes for ranges, spelling against an English word
+    list and your dictionaries), consistency (one term written two ways, Government, units), Chicago style (numbers one
+    to nine spelled out, 10 and up as numerals; the serial comma; percent spelled out), plain language (sentences over
+    30 words, passive voice, wordy phrases, nouns made from verbs), the customer's words (shall written by the offeror),
+    claims without proof, captions with no benefit, leftovers (placeholders, another effort's name, tracked changes or
+    comments left in the file), acronyms (read from the acronym list) and the team's banned phrases.
+  - Accept, Skip here (remembered), Skip in this effort (the rule off), Add to the style sheet (a term or a known word).
+  - Make the edited copy: the accepted findings as tracked changes, each with a comment naming the rule, in a dated copy
+    beside the draft. The draft itself is never changed.
+  - Readability by section (grade level, words a sentence, passive share). The Style sheet tab holds the effort's terms,
+    rules and words; Export the style sheet... gives authors a Word file.
+  - With no effort open: drop a Word file on Your Tools and pick Copy review.
+
 SPACES AND YOUR TOOLS (3.53.0)
   - The menu is spaces named for the job: Home, Effort, Customer Documents, Shred, Compare, Plan, Write, Acronyms,
     Reviews, Check and Submit, Production, Team References, After Submission, Effort files, Advanced. Each page sits in
