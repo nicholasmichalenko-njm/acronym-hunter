@@ -42,8 +42,8 @@ W.Workspace(W.data_dir_for(LIST), "Kestrel").set("outline_text", "Volume I Techn
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel")
-check("the rail: Deliverables with the effort; Solicitation: Library, Compare, Customer Q&A", [k for k in w.step_btns][2:4] == ["home", "deliverables"]
-      and [k for k in w.step_btns][7:10] == ["library", "compare", "custqa"],      # 3.16.0: one place per job; 3.36.0: Effort Formatting
+check("the rail: Deliverables with the effort; Customer Documents: Library, Customer Q&A; Compare its own space", [k for k in w.step_btns][3:5] == ["home", "deliverables"]
+      and [k for k in w.step_btns][7:9] == ["library", "custqa"] and "compare" in w.step_btns,   # 3.53.0: spaces      # 3.16.0: one place per job; 3.36.0: Effort Formatting
       list(w.step_btns))
 # a compliance matrix with the page-limit sentence as a requirement
 w.read_page.read([os.path.join(CDIR, "Kestrel_RFP_Sections_C_L_M.docx")], os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))

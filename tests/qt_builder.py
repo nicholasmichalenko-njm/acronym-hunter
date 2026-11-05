@@ -48,8 +48,8 @@ def wait(cond, secs=60):
     return cond()
 
 
-check("the menu: Structure Builder is its own place under Compliance; Review keeps Coverage",
-      ("structure", "Structure Builder") in dict(RAIL)["Compliance"] and [k for k, _t in TABS["assign"]] == ["assign", "prove"])
+check("the menu: Structure Builder is its own place under Plan; Review keeps Coverage",
+      ("structure", "Structure Builder") in dict(RAIL)["Plan"] and [k for k, _t in TABS["assign"]] == ["assign", "prove"])
 w.open_effort("Kestrel")
 w.read_page.read(PDFS, os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))
 check("read", wait(lambda: w.review is not None and w.stack.currentWidget() is w.assign_page))

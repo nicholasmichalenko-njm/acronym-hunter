@@ -54,7 +54,7 @@ rec.add_task("Draft the management volume", owner="K. Park", due=(today + dateti
 q = rec.add_note("Is the oral presentation in scope?", question=True)
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-check("the rail starts with the Effort Dashboard and Deliverables (3.12.0: Home and Dashboard, one page)", list(w.step_btns)[2:4] == ["home", "deliverables"]
+check("the rail starts with the Effort Dashboard and Deliverables (3.12.0: Home and Dashboard, one page)", list(w.step_btns)[3:5] == ["home", "deliverables"]
       and "dashboard" not in w.step_btns)
 w.open_effort("Kestrel")
 B = os.path.join(A.BASE_DIR, "test_samples", "rfp")

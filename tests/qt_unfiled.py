@@ -31,7 +31,7 @@ def check(name, ok, info=""):
 cfg = A.CONFIG_DIR
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-check("Home is first in the menu", list(w.step_btns)[0] == "efforts" and w.step_btns["efforts"].text() == "All Efforts")
+check("Home is first in the menu", list(w.step_btns)[0] == "tools" and w.step_btns["efforts"].text() == "All Efforts")   # 3.53.0: Your Tools first
 w.go("efforts"); app.processEvents()
 hp = w.efforts_page
 check("no efforts yet: Add an Effort, or start without one", hp.empty.isVisibleTo(w) and hp.add_btn.text() == "+ Add an Effort"

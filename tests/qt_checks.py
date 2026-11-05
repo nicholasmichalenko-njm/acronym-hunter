@@ -32,7 +32,7 @@ w.go("home"); app.processEvents()
 f = w.home_page.start; f.name.setText("Osprey"); f.sol.setText("FA8810-26-R-0042"); f.create(); app.processEvents()
 rec = RR.Record(w.ws.root)
 DL.add(rec, "Volume I Technical", kind="Volume"); DL.add(rec, "SF 33", kind="Form")
-check("Final Checks sits in Quality, after Submission Check (3.16.0: Lists to Submit is an Acronyms tab)", [k for g, it in RAIL if g == "Quality" for k, _l in it]
+check("Final Checks sits in Check and Submit, after Submission Check (3.53.0 spaces)", [k for g, it in RAIL if g == "Check and Submit" for k, _l in it]
       == ["qa", "checks"])
 vdir = EF.folder(w.effort_path, "volumes")
 d = docxw.Doc(); d.heading("1.1 Approach", 2); d.para("See Figure 2."); d.para("Figure 1. The bus")

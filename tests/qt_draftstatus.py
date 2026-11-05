@@ -45,7 +45,7 @@ def wait(cond, secs=60):
     return cond()
 
 
-check("Draft Status is in the Writing menu", ("drafts", "Draft Status") in dict(RAIL)["Writing"])
+check("Draft Status is in the Write menu", ("drafts", "Draft Status") in dict(RAIL)["Write"])
 w.open_effort("Kestrel")
 w.read_page.read(PDFS, os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))
 wait(lambda: w.review is not None and w.stack.currentWidget() is w.assign_page)
