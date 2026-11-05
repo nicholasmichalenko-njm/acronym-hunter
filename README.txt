@@ -1,6 +1,17 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SHRED AND COMPARE (3.55.0)
+  - Shred > Requirements: one file in, every requirement out, with no matrix to set up (an RFP, a draft RFP or a
+    statement of work). Each one labelled Requirement, Instruction (L), Evaluation (M) or SOW task, with its section,
+    page and the words that make it one. Export the matrix... writes a draft compliance matrix in Excel; File to an
+    effort... reads the file into that effort's Review.
+  - Compare is one space with two tabs. Customer versions: the effort's Library documents, a decision on every change
+    and what it touches. Any two files: our drafts or any Word, PDF, PowerPoint or Excel files, sentence by sentence,
+    the changes by heading, the redline in Word.
+  - Final Checks' Compare two drafts is now Open in Compare. Drop two files on Your Tools to compare them, or one to
+    find its requirements.
+
 TECHNICAL EDIT (3.54.0)
   - A space of its own for copy review: the editor's pass on the words of a Word draft, by rules. Pick the draft (the
     effort's Volumes folder, or Add files...), the level (Full copy review, Consistency and mechanics, Last look) and

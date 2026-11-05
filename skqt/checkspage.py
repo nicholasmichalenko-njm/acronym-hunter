@@ -89,9 +89,8 @@ class ChecksPage(QWidget):
         v.addWidget(self.x_card)
         # ---- compare two drafts
         self.c_card = D.Card("Compare two drafts", "What changed between two versions of a volume: the red team copy and today's, "
-                             "say. Word redline: removed words struck through in red, added words in green.",
-                             actions=[D.button("Compare", "primary", lambda: self.compare()),
-                                      D.button("Export the redline...", None, lambda: self.export_redline())])
+                             "say. Open in Compare shows them side by side, with the redline in Word.",       # 3.55.0: one Compare
+                             actions=[D.button("Open in Compare", "primary", lambda: self.open_compare())])
         cf = QFormLayout(); self.c_card.body.addLayout(cf)
         self.older, self.newer = QComboBox(), QComboBox()
         for label, cb in (("Earlier version", self.older), ("Later version", self.newer)):
@@ -357,6 +356,15 @@ class ChecksPage(QWidget):
             cb.addItem(os.path.basename(path), path)
         cb.setCurrentIndex(cb.findData(path))
         return path
+
+    def open_compare(self):
+        """3.55.0: the two versions picked here, compared in the Compare space (Any two files)."""
+        a, b = self.older.currentData(), self.newer.currentData()
+        if not a or not b or a == b:
+            self.c_sum.setText("Pick two different versions.")
+            return None
+        self.host.go("compare")
+        return self.host.compare_space.show_files(a, b)
 
     def compare(self):
         import draftcompare as DC

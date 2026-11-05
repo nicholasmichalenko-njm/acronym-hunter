@@ -20,6 +20,7 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.55.0": ["Shred > Requirements: every requirement in one file, labelled by kind, exported as a draft matrix or filed to an effort. Compare is one space: customer versions with decisions, or any two files with the redline."],
     "3.54.0": ["Technical Edit: copy review of a Word draft by rules (Chicago with one to nine spelled out, plain language, the customer's words, leftovers, banned phrases, spelling), accept or skip each finding, and make an edited copy with tracked changes and comments. The style sheet keeps each effort's own decisions."],
     "3.53.0": ["The menu is spaces named for the job. Home opens on Your Tools: drop any file and pick what to do with it, your pinned tools, recent files and efforts. Working on (top right) is an effort or Unfiled. Team References gathers the shared lists. Acronyms: Paste a picture and Found in pictures."],
     "3.52.0": ["Production > Effort Profiles builds each effort type's profiles by picking from the libraries, with the RFP's size limits checked as you pick; Production > Templates lists every template the profiles make (ready, needs review, blocked) and makes one or all. Production Standards moved under Advanced. The acronym list's approver column is Approver."],

@@ -37,7 +37,7 @@ RAIL = [("Home", [("tools", "Your Tools"), ("mywork", "My Work"), ("efforts", "A
         ("Effort", [("home", "Effort Dashboard"), ("deliverables", "Deliverables"), ("effortfmt", "Effort Formatting"),
                     ("record", "Effort Record")]),
         ("Customer Documents", [("library", "Library"), ("custqa", "Customer Q&A")]),
-        ("Shred", [("assign", "Review"), ("matrix", "Matrix")]),
+        ("Shred", [("shredreq", "Requirements"), ("assign", "Review"), ("matrix", "Matrix")]),     # 3.55.0: any file
         ("Compare", [("compare", "Compare")]),
         ("Plan", [("structure", "Structure Builder"), ("storyboards", "Storyboards")]),
         ("Write", [("drafts", "Draft Status"), ("truth", "Wall of Truth")]),
@@ -230,6 +230,10 @@ class MainWindow(QMainWindow):
         self.lists_page = self.acrlist_page.submit    # 2.86.0; 3.37.0: shown in the Acronym List (Show > Lists to submit)
         self.requirements_page = RequirementsPage(self)
         self.compare_page = ComparePage(self)
+        from .comparespace import CompareSpace
+        self.compare_space = CompareSpace(self, self.compare_page)      # 3.55.0: one Compare: customer versions and any two files
+        from .shredpage import ShredPage
+        self.shred_page = ShredPage(self)                               # 3.55.0: requirements from any file
         from .custqapage import CustQAPage
         self.custqa_page = CustQAPage(self)           # 2.98.0
         self.impact_page = ImpactPage(self)
@@ -283,7 +287,7 @@ class MainWindow(QMainWindow):
         self.templates_page = TemplatesPage(self)
         from .draftstatuspage import DraftStatusPage
         self.drafts_page = DraftStatusPage(self)       # 3.43.0: read the setup back
-        self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page, "custqa": self.custqa_page,
+        self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_space, "custqa": self.custqa_page,
                       "impact": self.impact_page, "deliverables": self.deliverables_page, "qa": self.qa_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
@@ -292,7 +296,7 @@ class MainWindow(QMainWindow):
                       "drafts": self.drafts_page, "formatstd": self.formatstd_page,
                       "qpstd": self.qpstd_page, "layoutstd": self.layoutstd_page,
                       "profiles": self.profiles_page, "templates": self.templates_page,
-                      "tools": self.tools_page, "refs": self.refs_page, "techedit": self.techedit_page}
+                      "tools": self.tools_page, "refs": self.refs_page, "techedit": self.techedit_page, "shredreq": self.shred_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)
         from .roleview import NoticePage                 # 3.13.0: a tool for another role, or a Preview tool not turned on
@@ -370,7 +374,7 @@ class MainWindow(QMainWindow):
         if getattr(self, "efforts_page", None) is not None and self.stack.currentWidget() is self.efforts_page:
             self.efforts_page.refresh()            # 3.34.1: a new effort shows in the list at once
 
-    NO_EFFORT = {"tools", "mywork", "efforts", "settings", "refs", "formatstd", "qpstd", "layoutstd", "profiles", "templates",
+    NO_EFFORT = {"tools", "mywork", "efforts", "settings", "refs", "shredreq", "formatstd", "qpstd", "layoutstd", "profiles", "templates",
                  "rules", "prodstd", "audit", "fixcopy", "exportall"}
 
     def rail_go(self, key):

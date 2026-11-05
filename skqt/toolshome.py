@@ -21,6 +21,7 @@ USES = (("acrfinder", "Find acronyms (Acronym Finder, its own window)", None),
         ("firstuse", "Check first use (First Use Check)", (".docx",)),
         ("copyreview", "Copy review (Technical Edit) of what I am working on", (".docx",)),
         ("fulltext", "Pull out all the text (Full Text)", None),
+        ("shred", "Find the requirements (Shred)", (".pdf", ".docx", ".pptx", ".xlsx")),
         ("library", "Add to the Library of what I am working on", None),
         ("audit", "Audit against the standards (changes nothing)", OFFICE))
 # the tools Home can pin: key -> (title, what, kind) ; kind "window" opens its own window, "page" goes to the page
@@ -38,12 +39,13 @@ TOOLS = {"acrfinder": ("Acronym Finder", "Scan any files for acronyms, apart fro
          "audit": ("Audit", "Files against every standard", "page"), "home": ("Effort Dashboard", "Where the effort stands", "page"),
          "mywork": ("My Work", "Your work in every effort", "page"), "refs": ("Team References", "The lists the team keeps", "page"),
          "custqa": ("Customer Q&A", "Questions to the customer", "page"),
-         "techedit": ("Technical Edit", "Copy review of a draft", "page")}
+         "techedit": ("Technical Edit", "Copy review of a draft", "page"),
+         "shredreq": ("Requirements", "Every requirement in one file", "page")}
 ROLE_PINS = {"Production": ["acrfinder", "firstuse", "techedit", "templates", "checks", "fixcopy", "refs"],
-             "Proposal Manager": ["home", "assign", "reviews", "mywork", "acrfinder", "qa"],
+             "Proposal Manager": ["home", "shredreq", "assign", "reviews", "mywork", "acrfinder", "qa"],
              "Author": ["mywork", "drafts", "techedit", "acrfinder", "firstuse", "truth", "storyboards"],
              "Reviewer": ["reviews", "assign", "checks", "acrfinder"],
-             "Capture": ["library", "assign", "structure", "custqa"]}
+             "Capture": ["shredreq", "library", "assign", "structure", "custqa"]}
 PINS_FILE = "home_pins.json"
 
 
@@ -53,7 +55,10 @@ def uses_for(paths):
     exts = {os.path.splitext(p)[1].lower() for p in paths}
     if not exts or not exts <= set(A.SUPPORTED_EXTS):
         return []
-    return [(k, t) for k, t, ok in USES if ok is None or exts <= set(ok)]
+    out = [(k, t) for k, t, ok in USES if (ok is None or exts <= set(ok)) and not (k == "shred" and len(paths) != 1)]
+    if len(paths) == 2:                                            # 3.55.0: two files dropped together
+        out.insert(0, ("compare", "Compare the two files (earlier first)"))
+    return out
 
 
 def load_pins(config_dir, role=""):
@@ -239,6 +244,12 @@ class ToolsHome(QWidget):
             s = w.page.session
             last = ((s.last_scan or {}).get("paths") if s is not None else None) or []
             return w.page.scan(AL.add_files(last, paths))
+        if use == "shred":
+            h.go("shredreq")
+            return h.shred_page.open(paths[0])
+        if use == "compare":
+            h.go("compare")
+            return h.compare_space.show_files(paths[0], paths[1])
         if use == "firstuse":
             from .firstusetool import open_tool
             return open_tool(h.config_dir, paths)

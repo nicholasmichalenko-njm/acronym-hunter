@@ -141,7 +141,7 @@ check("what changed is said at once", s and s["title"].startswith("What changed 
       and any("25 pages" in x for x in s["rules"]), s and s["text"])
 from skqt.whatview import WhatChangedDialog
 wc = WhatChangedDialog(w, s)
-check("... its card: Review the changes opens Changes on the pair", wc.review() is not None and w.stack.currentWidget() is w.compare_page)
+check("... its card: Review the changes opens Changes on the pair", wc.review() is not None and w.stack.currentWidget() is w.compare_space and w.compare_space.tabs.currentWidget() is w.compare_page)
 cpg = w.compare_page
 ci = next(i for i, r_ in enumerate(cpg.rows) if r_["kind"] == "changed" and "mitigation" in r_["new"])
 cpg.select_index(ci); app.processEvents()

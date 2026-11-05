@@ -86,7 +86,8 @@ sr = w.requirements_page
 sr.select(pk_rule); app.processEvents()
 html = sr.now_html(sr.rows[pk_rule])
 check("Submission rules shows Was and Now in the row", html and "line-through" in html and "50" in html and "40" in html)
-check("and opens the change in Changes", sr.open_change(pk_rule) and w.stack.currentWidget() is cp and cp.current_index() == hit)
+check("and opens the change in Changes", sr.open_change(pk_rule) and w.stack.currentWidget() is w.compare_space   # 3.55.0: one Compare
+      and w.compare_space.tabs.currentWidget() is cp and cp.current_index() == hit)
 bd = cp.author_briefs(run=False)
 check("author briefs from the Changes page", bd is not None or w.impact_page.r is not None)
 w.go("docs"); app.processEvents()

@@ -173,6 +173,15 @@ TOPICS = [
    "Place in the section puts an answer into the response structure as context: the section's author sees it in the setup, "
    "the kickoff packet and Everything for this section."],
   ["Show: Overdue lists calls past their due date with no answer. The Author drafts gate can hold until every call is answered."]),
+ ("shredreq", "Shred", "Requirements",
+  "Every requirement in one file, with no matrix to set up: an RFP, a draft RFP or a statement of work. Each one labelled "
+  "Requirement, Instruction (L), Evaluation (M) or SOW task, with its section, page and the words that make it one.",
+  "The day an RFP or draft RFP drops, before any effort exists; or any time you need a quick list.",
+  ["Choose a file... (or drop it on Your Tools and pick Find the requirements).",
+   "Filter by kind. Select a row: the sentence with its words in bold, and where it is.",
+   "Export the matrix...: a draft compliance matrix in Excel, one row per requirement.",
+   "File to an effort...: reads the file into that effort's Review, where each requirement gets its decision."],
+  ["The same reader as Review; nothing is kept until you file it to an effort."]),
  ("assign", "Shred", "Review",
   "The customer's document as it looks, every sentence boxed. You decide each sentence, place it in your response, "
   "and capture what it holds. This is where an effort's review happens.",
@@ -245,11 +254,15 @@ TOPICS = [
    "Press Export the crosswalk... for a review or the proposal manager."],
   ["The crosswalk fills in from your L, M and SOW decisions in Review."]),
  ("compare", "Compare", "Compare",
-  "What a new version changed, what it touches in your review, and a decision on every change.",
-  "An amendment or new version arrives.",
-  ["Pick the old and new versions. The changed, added and removed sentences are listed.",
-   "Decide each change: update the requirement, Not ours, or a question for the customer.",
-   "Export (Word)..., Redline (Word)... or Change list (Excel)... share the changes."],
+  "Two versions side by side. Customer versions: what a new version of a customer document changed, what it touches in "
+  "your review, and a decision on every change. Any two files: our drafts or any files, sentence by sentence, with the "
+  "redline in Word.",
+  "An amendment or new version arrives; or you need to know what changed between two drafts.",
+  ["Customer versions: pick the document and the old and new versions. Decide each change: update the requirement, Not "
+   "ours, or a question for the customer. Export (Word)..., Redline (Word)... or Change list (Excel)... share the changes.",
+   "Any two files: Choose... the earlier and the later file (Word, PDF, PowerPoint or Excel), then Compare. Only changes "
+   "hides the sentences that stayed the same. Redline (Word)... exports the changes.",
+   "Final Checks' Open in Compare, and dropping two files on Your Tools, open Any two files with both picked."],
   ["Adding a new version says at once what it changed. Review the changes opens this page on that pair."]),
  ("structure", "Plan", "Structure",
   "Review's second tab: start or replace the sections of your response from the RFP or a Word outline. Most teams "
