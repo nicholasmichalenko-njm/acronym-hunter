@@ -117,7 +117,7 @@ NEW_STARTERS = ("rfi",)
 # 3.18.2: starters an older file gains once
 STARTER_RESPONSE = {"rfp": "RFP", "rfp_limited": "RFP", "rfi": "RFI", "white_paper": "White paper"}   # 3.38.0: Rule 4
 PROFILE_KEYS = ("id", "name", "match")            # a profile's own fields; everything else is its layer
-EFFORT_TYPE_KEYS = ("id", "name", "profiles", "default_profile", "profile_over", "matrix_view", "response_type")   # 3.35.0: its starting matrix view
+EFFORT_TYPE_KEYS = ("id", "name", "profiles", "default_profile", "profile_over", "matrix_view", "response_type", "volumes")   # 3.35.0: its starting matrix view
 
 
 def load(config_dir):

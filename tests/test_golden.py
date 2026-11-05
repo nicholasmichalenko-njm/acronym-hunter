@@ -72,6 +72,13 @@ for ver in sets:
         check(f"{ver}: the omitted term stays omitted and the first use set by hand is kept", ex["acronyms"]["omitted"] in s.omitted
               and (s.results.get(ex["acronyms"]["omitted"]) or {}).get("excluded") and (s.first_use_set.get(t) or {}).get(f) == loc,
               (s.omitted, s.first_use_set))
+    if ex.get("profile"):                                 # 3.52 on: a profile's volumes and limit inside its effort type
+        import effortprofiles as EPF
+        dd_ = PRL.load(cfg)
+        pr = ex["profile"]
+        lim = next((r for r in EPF.limits(EPF.resolved(dd_, pr["eid"], pr["pid"])) if r["scope"] == "table"), {})
+        check(f"{ver}: the profile's volumes and RFP limit read back", EPF.volumes(dd_, pr["eid"], pr["pid"]) == pr["volumes"]
+              and lim.get("min") == pr["table_min"], (EPF.volumes(dd_, pr["eid"], pr["pid"]), lim))
     # the global standards, rules, phrase rules and library
     d = PRL.load(cfg)
     st = ex["standards"]

@@ -1,6 +1,22 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+EFFORT PROFILES AND TEMPLATES (3.52.0)
+  - Production > Effort Profiles: each effort type's profiles (Technical Volume, Management Volume, Orals...), built by
+    picking. New profile..., Copy..., Rename..., Take out. Volumes: the volumes a profile makes, separated by ;.
+  - Parts: one per decision (cover, title page, headers and footers, theme, base fonts, heading numbering, lists,
+    pagination, table looks, TOC). Change... offers the library items tagged for the profile's effort type (or every
+    effort type, or not tagged yet; retired items left out); Show all lifts the filter. A newer version waits until
+    Use it.
+  - RFP limits: the smallest size the RFP allows for each kind of text, on the profile, checked as you pick (met or
+    under the limit). An effort's own limits stay in Effort Formatting.
+  - Production > Templates: one row per effort type, profile and volume: Ready, Needs review (a newer library version
+    waits, or the profile changed since it was made), Blocked (a limit broken) or Not made yet. Make .dotx, Make all
+    ready, Open in Word, Open the folder. Templates go in the output folder's Templates\<effort type> folder.
+  - Production Standards moved under Advanced in the menu; it stays two releases while these screens take over.
+  - The acronym list's SS Approver column is now Approver. Lists saved before read the same; the next save writes the
+    new heading.
+
 THE ACRONYM TOOLSET IS BACK (3.51.0)
   - Omit leaves a term out of this effort's list and it stays out on every later scan; Bring back undoes it. The
     Exclusion List leaves a term out of every effort (Exclusion List... shows it; Take off the list gives a term back).

@@ -458,70 +458,31 @@ TOPICS = [
    "Draw with Word: Word draws covers, title pages, back covers, headers and footers and the TOC as they will print, and the "
    "picture is kept until the item changes."],
   ["Table looks (fills and borders by row role) are here; Word table styles are in Formatting Standards."]),
- ("prodstd", "Production", "Production Standards",
-  "Every rule Fix a Copy uses and every template is made from, in layers: the global standard, effort types, volumes, and this effort.",
-  "Once to set the team's rules; for each volume; at the start of each effort to bring in the RFP's.",
-  ["Editing (3.25.0): two boxes, Effort type and Volume. Any and Any is the global standard; a volume alone is that volume "
-   "everywhere; an effort type alone is every volume in it; both is that volume in that effort type. This effort only "
-   "edits the open effort's values. A value set at that layer shows in bold with what it was; Reset takes it back. "
-   "3.36.0: Production Standards edits the global standards only (a blue band says so); one effort's formatting is in "
-   "Effort > Effort Formatting, and its Every setting opens this editor on that effort (an amber band).",
-   "Document sections (Document parts before 3.45.0): Cover, Front matter, Response, Appendices and Back cover. Each section "
-   "shows what applies to it: where it starts and how its pages are numbered, its header and footer, its page, TOC or captions, "
-   "and what every section shares. Page setup and contents: the page setup the section follows, and what it starts with, in "
-   "order (+ Element..., + Quick Part..., + Placeholder...); Make templates puts them at its start. Each section has a drawn "
-   "preview, Open a sample in Word, Save this section as a design (Template library > Section designs) and Use a saved design.",
-   "Sections in order: the page scheme, your own sections among them (add a row: a key, a name, the style it starts at). Its "
-   "card A section's page setup and contents does the same for any section, and builds its header or footer as a table.",
-   "Library beside a section's contents (3.48.0): response elements, this standard's Quick Parts and the template library's "
-   "Quick Parts. Drag one onto the section where it should sit (or double-click to add it at the end); a template library "
-   "Quick Part comes into this standard as it lands. Drag the contents to reorder them.",
-   "Cover, title page and Back cover (3.40.0): each page says its kind: a flow page (paragraphs), a table page, or a placed page "
-   "(a background with text placed on it). Edit in Word opens a dated copy; what you save is kept as a new version and the page "
-   "before it stays. On a PC with Word the preview is Word's own picture of the page; otherwise it is the app's sketch.",
-   "Cover and Back cover > Edit the layout... (3.27.0; placed pages, 3.40.0): drag a picture, text box or table, or type its place and size "
-   "in inches; set which field each line of text shows (its style becomes the field's cover style). Save keeps a new copy.",
-   "The menu across the top goes by layer (3.45.0): Template profile; Building blocks (base fonts and sizes, styles, font "
-   "rules, allowed styles, heading numbering, lists, page setups); Components (Quick Parts, table types, row looks, how rows "
-   "are recognized, captions, headers and footers, table of contents, fields); Document sections (each section, and Sections "
-   "in order); Checks (words to avoid and fix, graphics, Excel and PowerPoint); Library (the template library).",
-   "Template library... shows the shelves; Use in this standard puts an item into what you are editing, and New style... "
-   "adds your own (hidden text ones too).",
-   "Allowed styles: tick Only the ticked styles are allowed, then tick the styles from this standard's and the library's; "
-   "sort by any column (type, group, use case, where it came from) or show one kind. Off: any style is allowed.",
-   "Headers and footers: Word's way puts the left, center and right text on tab stops. Type column widths in inches "
-   "(2, 2.5, 2) to build a header or footer as a one-row table instead, with no borders, a line under or a grid. Use a "
-   "Quick Part as a header or footer... takes one of this standard's Quick Parts as a section's header or footer, kept as built.",
-   "Import from a file... opens a browser of the file by layer: tick items in any group (New, Same as the library, Differs, "
-   "with what differs) and press Take the ticked. Each Word section of the file can be kept as a section.",
-   "Library > Template library: the shelves as a page, with a Layer filter, a search, Pictures, and where each item is used.",
-   "Build a header or footer as a table... (here or on a Document sections section): columns at inch widths, lines of words and "
-   "fields with their alignment, size and bold, and a logo. Use Rule 7's footer puts the A number, the marking and the "
-   "team's line, and the page number. Save as a Quick Part... keeps it in the standard's Quick Parts for every template. "
-   "Insert a field lists the fields by name and puts one in the line chosen. The team's line comes from Base fonts and "
-   "sizes (The team's line in the footer), or per effort from Effort Formatting.",
-   "What Check reports: each section that has checks (Captions, Table of contents, Headers and footers, Page sizes and "
-   "margins) lists them at the bottom. Check reads them; nothing is changed.",
-   "Quick Parts: Add from a template or document... lists the Quick Parts every template from this standard carries, "
-   "all in Word's Quick Parts gallery under your numbered categories. Their fonts and sizes follow this standard's styles "
-   "(3.48.0): typed fonts and sizes inside them come off when a template is made, symbol fonts aside. Tick Keep its own "
-   "fonts for a Quick Part that must stay exactly as built.",
-   "Fields (called Fill-ins before 3.25.0): field codes for a value typed once that shows everywhere: a cover style read "
-   "by STYLEREF, or a document property (DOCPROPERTY). Use one in a header or footer as {key}.",
-   "Heading numbering and lists: the number shows as it will look (1.1.1, Section A); type it the same way.",
-   "The Preview beside each section draws what its values make and lists every value this layer changes in the section.",
-   "Make templates... (3.25.0): choose what you are editing, every volume of an effort type, or this effort's volumes with "
-   "the setup written on each (each volume can continue the page and chapter numbers of the one before, suggested from "
-   "its draft). Each template is listed and shown in full (styles, pages and margins, pagination by part, "
-   "headers and footers, numbering, tables, captions, TOC, covers, Quick Parts, fields, theme and fonts, and what to fix "
-   "first) before Make writes any file. Each one is named and versioned, with a validation report beside it and, with "
-   "Word on the PC, Word's own check.",
-   "Effort types: + Effort type... adds one (RFP response, page-limited RFP response, RFI response, white paper and "
-   "program deliverables are there to start); Effort types... renames, orders and takes them out. You pick one each time "
-   "you start an effort. A volume's Deliverables this volume fits: words in a deliverable's name (cost, price) that pick it.",
-   "This effort: choose its volume, then Fill from the RFP's formatting rules lays the RFP's fonts, margins and page size "
-   "over it for this effort only. Press Save."],
-  ["Blank means not set: a rule nobody sets is not checked and not written."]),
+ ("profiles", "Production", "Effort Profiles",
+  "Each effort type's profiles (Technical Volume, Management Volume, Orals...), built by picking from the libraries: one part "
+  "per decision, filled from Formatting Standards, Quick Parts and Layout, with the RFP's size limits checked as you pick.",
+  "When you set up how a kind of effort's volumes look, before templates are made; again when the library changes.",
+  ["Pick a profile under its effort type on the left. New profile... adds one; Copy... starts one from the selected profile; "
+   "Rename... names it; Take out removes it from this effort type.",
+   "Volumes: the volumes this profile makes, separated by semicolons. Each becomes a row on Templates.",
+   "Parts: Change... offers the items tagged for this effort type (or every effort type, or not tagged yet); Show all lifts "
+   "the filter. A newer version of a picked item waits until you press Use it.",
+   "RFP limits: the smallest size the RFP allows for each kind of text. The check says met or under the limit against the "
+   "size the profile gives that text."],
+  ["A profile in several effort types keeps its own parts and limits in each.",
+   "An effort's own changes stay in Effort Formatting, on top of its profile."]),
+ ("templates", "Production", "Templates",
+  "Every Word template the Effort Profiles make, one row per effort type, profile and volume: Ready, Needs review, Blocked or "
+  "Not made yet, and why.",
+  "After changing a profile or the libraries, and before an effort's volumes are started.",
+  ["Show narrows the list to one effort type.",
+   "Make .dotx makes one template in the output folder's Templates folder, in a folder named for its effort type. Make all "
+   "ready makes every template that nothing stops and that changed or was never made.",
+   "Needs review: a newer library version waits on its profile, or the profile changed since the template was made. "
+   "Blocked: a size is under the RFP's limit, or a value does not make a template; fix it on Effort Profiles.",
+   "Open in Word opens the last one made; Open the folder shows them all."],
+  ["Making templates is a Preview tool until it is turned on in Settings > Preview tools.",
+   "Each template's name counts up a version every time it is made again."]),
  ("rules", "Production", "Rules",
   "Every rule the app follows and checks, in one list: the production rules for our documents (Rule 1 to 13 and the "
   "team's own) and the rules Review's Suggest reads the customer's documents by.",
@@ -622,6 +583,70 @@ TOPICS = [
    "a text-only zip to give whoever maintains Stationkeeper."],
   ["SCIF-ready keeps no logs, no training data and no bug reports, and cannot be switched back.",
    "Your data folder can move: Move the data folder..."]),
+ ("prodstd", "Advanced", "Production Standards",
+  "Every rule Fix a Copy uses and every template is made from, in layers: the global standard, effort types, volumes, and this effort.",
+  "Once to set the team's rules; for each volume; at the start of each effort to bring in the RFP's.",
+  ["Editing (3.25.0): two boxes, Effort type and Volume. Any and Any is the global standard; a volume alone is that volume "
+   "everywhere; an effort type alone is every volume in it; both is that volume in that effort type. This effort only "
+   "edits the open effort's values. A value set at that layer shows in bold with what it was; Reset takes it back. "
+   "3.36.0: Production Standards edits the global standards only (a blue band says so); one effort's formatting is in "
+   "Effort > Effort Formatting, and its Every setting opens this editor on that effort (an amber band).",
+   "Document sections (Document parts before 3.45.0): Cover, Front matter, Response, Appendices and Back cover. Each section "
+   "shows what applies to it: where it starts and how its pages are numbered, its header and footer, its page, TOC or captions, "
+   "and what every section shares. Page setup and contents: the page setup the section follows, and what it starts with, in "
+   "order (+ Element..., + Quick Part..., + Placeholder...); Make templates puts them at its start. Each section has a drawn "
+   "preview, Open a sample in Word, Save this section as a design (Template library > Section designs) and Use a saved design.",
+   "Sections in order: the page scheme, your own sections among them (add a row: a key, a name, the style it starts at). Its "
+   "card A section's page setup and contents does the same for any section, and builds its header or footer as a table.",
+   "Library beside a section's contents (3.48.0): response elements, this standard's Quick Parts and the template library's "
+   "Quick Parts. Drag one onto the section where it should sit (or double-click to add it at the end); a template library "
+   "Quick Part comes into this standard as it lands. Drag the contents to reorder them.",
+   "Cover, title page and Back cover (3.40.0): each page says its kind: a flow page (paragraphs), a table page, or a placed page "
+   "(a background with text placed on it). Edit in Word opens a dated copy; what you save is kept as a new version and the page "
+   "before it stays. On a PC with Word the preview is Word's own picture of the page; otherwise it is the app's sketch.",
+   "Cover and Back cover > Edit the layout... (3.27.0; placed pages, 3.40.0): drag a picture, text box or table, or type its place and size "
+   "in inches; set which field each line of text shows (its style becomes the field's cover style). Save keeps a new copy.",
+   "The menu across the top goes by layer (3.45.0): Template profile; Building blocks (base fonts and sizes, styles, font "
+   "rules, allowed styles, heading numbering, lists, page setups); Components (Quick Parts, table types, row looks, how rows "
+   "are recognized, captions, headers and footers, table of contents, fields); Document sections (each section, and Sections "
+   "in order); Checks (words to avoid and fix, graphics, Excel and PowerPoint); Library (the template library).",
+   "Template library... shows the shelves; Use in this standard puts an item into what you are editing, and New style... "
+   "adds your own (hidden text ones too).",
+   "Allowed styles: tick Only the ticked styles are allowed, then tick the styles from this standard's and the library's; "
+   "sort by any column (type, group, use case, where it came from) or show one kind. Off: any style is allowed.",
+   "Headers and footers: Word's way puts the left, center and right text on tab stops. Type column widths in inches "
+   "(2, 2.5, 2) to build a header or footer as a one-row table instead, with no borders, a line under or a grid. Use a "
+   "Quick Part as a header or footer... takes one of this standard's Quick Parts as a section's header or footer, kept as built.",
+   "Import from a file... opens a browser of the file by layer: tick items in any group (New, Same as the library, Differs, "
+   "with what differs) and press Take the ticked. Each Word section of the file can be kept as a section.",
+   "Library > Template library: the shelves as a page, with a Layer filter, a search, Pictures, and where each item is used.",
+   "Build a header or footer as a table... (here or on a Document sections section): columns at inch widths, lines of words and "
+   "fields with their alignment, size and bold, and a logo. Use Rule 7's footer puts the A number, the marking and the "
+   "team's line, and the page number. Save as a Quick Part... keeps it in the standard's Quick Parts for every template. "
+   "Insert a field lists the fields by name and puts one in the line chosen. The team's line comes from Base fonts and "
+   "sizes (The team's line in the footer), or per effort from Effort Formatting.",
+   "What Check reports: each section that has checks (Captions, Table of contents, Headers and footers, Page sizes and "
+   "margins) lists them at the bottom. Check reads them; nothing is changed.",
+   "Quick Parts: Add from a template or document... lists the Quick Parts every template from this standard carries, "
+   "all in Word's Quick Parts gallery under your numbered categories. Their fonts and sizes follow this standard's styles "
+   "(3.48.0): typed fonts and sizes inside them come off when a template is made, symbol fonts aside. Tick Keep its own "
+   "fonts for a Quick Part that must stay exactly as built.",
+   "Fields (called Fill-ins before 3.25.0): field codes for a value typed once that shows everywhere: a cover style read "
+   "by STYLEREF, or a document property (DOCPROPERTY). Use one in a header or footer as {key}.",
+   "Heading numbering and lists: the number shows as it will look (1.1.1, Section A); type it the same way.",
+   "The Preview beside each section draws what its values make and lists every value this layer changes in the section.",
+   "Make templates... (3.25.0): choose what you are editing, every volume of an effort type, or this effort's volumes with "
+   "the setup written on each (each volume can continue the page and chapter numbers of the one before, suggested from "
+   "its draft). Each template is listed and shown in full (styles, pages and margins, pagination by part, "
+   "headers and footers, numbering, tables, captions, TOC, covers, Quick Parts, fields, theme and fonts, and what to fix "
+   "first) before Make writes any file. Each one is named and versioned, with a validation report beside it and, with "
+   "Word on the PC, Word's own check.",
+   "Effort types: + Effort type... adds one (RFP response, page-limited RFP response, RFI response, white paper and "
+   "program deliverables are there to start); Effort types... renames, orders and takes them out. You pick one each time "
+   "you start an effort. A volume's Deliverables this volume fits: words in a deliverable's name (cost, price) that pick it.",
+   "This effort: choose its volume, then Fill from the RFP's formatting rules lays the RFP's fonts, margins and page size "
+   "over it for this effort only. Press Save."],
+  ["Blank means not set: a rule nobody sets is not checked and not written."]),
  ("safe", "Keeping work safe", "Backups, packages and the readable copy",
   "Three ways your work is kept: automatic backups, effort packages, and a readable copy of everything.",
   "Always on. Use them when you hand off an effort or need to recover.",

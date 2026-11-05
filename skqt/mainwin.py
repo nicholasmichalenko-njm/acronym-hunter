@@ -42,10 +42,11 @@ RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),          
         ("Writing", [("storyboards", "Storyboards"), ("drafts", "Draft Status"), ("truth", "Wall of Truth"), ("acronyms", "Acronyms")]),   # 3.43.0
         ("Quality", [("qa", "Submission Check"), ("checks", "Final Checks")]),
         ("Production", [("formatstd", "Formatting Standards"), ("qpstd", "Quick Parts"), ("layoutstd", "Layout"),
-                        ("prodstd", "Production Standards"), ("rules", "Rules"), ("audit", "Audit"),
+                        ("profiles", "Effort Profiles"), ("templates", "Templates"), ("rules", "Rules"), ("audit", "Audit"),
                         ("fixcopy", "Fix a Copy")]),   # 3.38.0; 3.49.0: Formatting Standards; 3.50.0: Quick Parts, Layout
         ("Post-Submission", [("postsub", "Checklist"), ("keywords", "Keywords")]),
-        ("Effort files", [("exportall", "Export All"), ("settings", "Settings")])]
+        ("Effort files", [("exportall", "Export All"), ("settings", "Settings")]),
+        ("Advanced", [("prodstd", "Production Standards")])]   # 3.52.0: kept two releases while Effort Profiles and Templates take over
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
 TABS = {"home": [("home", "Dashboard"), ("requirements", "Submission Rules")],
         "record": [("record", "Effort Record"), ("meetings", "Meetings")],                 # 3.20.0
@@ -74,6 +75,8 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "formatstd": ("Formatting Standards", "The fundamentals every template is built from: theme, fonts, page setups, pagination, numbering, lists and styles; each named, tagged by effort type, every value editable"),
           "qpstd": ("Quick Parts", "Every Quick Part by your numbered categories: its gallery, whether it follows the template's fonts, the pages it fills, and Word's picture of it"),
           "layoutstd": ("Layout", "Covers, title pages, back covers, headers and footers, sections, table looks, captions and the TOC, each with its picture and every value"),
+          "profiles": ("Effort Profiles", "Each effort type's profiles, built by picking from the libraries, with the RFP's size limits checked as you pick"),
+          "templates": ("Templates", "Every Word template the profiles make: ready, needs review or blocked, and why; make one or all"),
           "prodstd": ("Production Standards", "The global formatting standards for every effort: the global standard, volume profiles, effort types and the template library"),
           "rules": ("Rules", "Every production rule in one list: how each is kept, on or off for every effort, and where its values live; and the rules Review's Suggest reads by"),
           "effortfmt": ("Effort Formatting", "This effort's formatting on top of the global standards: its own fonts, sizes, margins and parts, and the RFP's rules"),
@@ -321,6 +324,10 @@ class MainWindow(QMainWindow):
         self.formatstd_page = FormattingStandardsPage(self)   # 3.49.0: the first library screen
         self.qpstd_page = QuickPartsPage(self)                # 3.50.0
         self.layoutstd_page = LayoutPage(self)
+        from .profilespage import EffortProfilesPage
+        from .templatespage import TemplatesPage
+        self.profiles_page = EffortProfilesPage(self)          # 3.52.0
+        self.templates_page = TemplatesPage(self)
         from .draftstatuspage import DraftStatusPage
         self.drafts_page = DraftStatusPage(self)       # 3.43.0: read the setup back
         self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_page, "custqa": self.custqa_page,
@@ -330,7 +337,8 @@ class MainWindow(QMainWindow):
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page, "audit": self.audit_page,
                       "effortfmt": self.effortfmt_page, "rules": self.rules_page, "datacalls": self.datacalls_page,
                       "drafts": self.drafts_page, "formatstd": self.formatstd_page,
-                      "qpstd": self.qpstd_page, "layoutstd": self.layoutstd_page}
+                      "qpstd": self.qpstd_page, "layoutstd": self.layoutstd_page,
+                      "profiles": self.profiles_page, "templates": self.templates_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)
         from .roleview import NoticePage                 # 3.13.0: a tool for another role, or a Preview tool not turned on

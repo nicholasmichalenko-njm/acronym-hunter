@@ -36,8 +36,8 @@ app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel"); app.processEvents()
 
-check("Rules is in the Production menu after Production Standards, for the Production role",
-      [k for g, items in MW.RAIL if g == "Production" for k, _t in items][3:5] == ["prodstd", "rules"]
+check("Rules is in the Production menu after Templates, for the Production role",   # 3.52.0: Production Standards moved to Advanced
+      [k for g, items in MW.RAIL if g == "Production" for k, _t in items][4:6] == ["templates", "rules"]
       and RA.allowed("Production", "rules") and not RA.allowed("Author", "rules"))
 w.go("rules"); app.processEvents()
 pg = w.rules_page

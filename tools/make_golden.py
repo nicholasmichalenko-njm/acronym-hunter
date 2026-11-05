@@ -54,6 +54,16 @@ def make(version, out_root=None):
         data["company"].setdefault("quick_parts", {"one_gallery": True, "entries": []})["entries"].append(
             {"name": "Kestrel Callout", "category": "05 Callouts", "source": "qp_kestrel.dotx", "as_built": True})
         extra["team_line"] = {"words": "Kestrel Systems proprietary", "qp": "Kestrel Callout"}
+    try:                                                  # 3.52.0: a profile's volumes and an RFP limit, inside its effort type
+        import effortprofiles as EPF
+        e0 = data["effort_types"][0]
+        p0 = e0["profiles"][0]
+        EPF.set_volumes(data, e0["id"], p0, ["Volume I Kestrel Technical", "Volume II Kestrel Management"])
+        EPF.set_limit(data, e0["id"], p0, "table", 10)
+        extra["profile"] = {"eid": e0["id"], "pid": p0, "volumes": ["Volume I Kestrel Technical", "Volume II Kestrel Management"],
+                            "table_min": 10}
+    except ImportError:
+        pass
     PRL.save(cfg, data)
     try:                                                  # 3.49.0: the standards as library items; a Draft item for one effort type
         import libconvert as CV, libcats as LC, templatelib as TL
