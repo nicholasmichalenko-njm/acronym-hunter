@@ -95,6 +95,9 @@ class SetupsPage(QWidget):
 
         bar = QHBoxLayout(); bar.setSpacing(D.SPACE["s"]); v.addLayout(bar)
         self.note = D.label("", "muted"); bar.addWidget(self.note, 1)
+        bar.addWidget(D.button("Strip setup...", "ghost", lambda: self.strip_files(),                 # 3.60.0
+                               "Before a volume goes out: a clean copy with the setup's reference text, styles and file "
+                               "properties taken out"))
         bar.addWidget(D.button("Changes for authors...", None, lambda: self.packets(),
                                "One Word file per person: what changed in their sections since the last setup"))
         bar.addWidget(D.button("Plain setup...", None, lambda: self.plain(), "One plain Word document per volume, no template"))
@@ -291,6 +294,27 @@ class SetupsPage(QWidget):
             return None
         SM.ensure_skip(M)
         return self.host.setup_page.export(folder)
+
+    def strip_files(self, paths=None):
+        """3.60.0: a stripped copy of each volume, beside it; the volume itself is never changed."""
+        import setupstrip as SS
+        from . import filewarn
+        if paths is None:
+            start = self.host.out_path("setup_documents") if self.host.effort_path else ""
+            paths, _ = QFileDialog.getOpenFileNames(self, "Volumes to strip", os.path.dirname(start) if start else "", "Word (*.docx)")
+        out = []
+        for p in paths or []:
+            filewarn.say(self.host, [p])
+            try:
+                out.append(SS.strip(p))
+            except Exception as e:  # noqa: BLE001
+                diag.swallowed()
+                self.host.status(f"{os.path.basename(p)} could not be stripped ({type(e).__name__}).")
+        if out:
+            n = sum(r["paragraphs"] for r in out)
+            self.host.toast(f"{len(out)} stripped cop{'y' if len(out) == 1 else 'ies'} made: {n} setup paragraph(s) taken out")
+            diag.activity("setup_stripped", n=n)
+        return out
 
     def packets(self, folder=None):
         M = self._M()

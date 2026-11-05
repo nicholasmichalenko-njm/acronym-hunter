@@ -15,8 +15,8 @@ COMMENT = "Comment"
 TRACKED = "Tracked change"
 PLACE = "Placeholder"
 KINDS = (SETUP, PROPS, HIDDEN, WHITE, COMMENT, TRACKED, PLACE)
-WHY = {SETUP: "The setup's reference text (the RFP's words, PM direction, notes) left in the volume. Strip it before it goes out.",
-       PROPS: "A file property the setup wrote. Remove it in File > Info > Properties, or let Strip setup do it.",
+WHY = {SETUP: "The setup's reference text (the RFP's words, PM direction, notes) left in the volume. Plan > Setup > Strip setup... makes a clean copy.",
+       PROPS: "A file property the setup wrote. Strip setup... takes it out (or File > Info > Properties).",
        HIDDEN: "Hidden text prints into a PDF when Print hidden text is on, and Document Inspector shows it to anyone.",
        WHITE: "White text on a light page is invisible, but it is still in the file and the PDF.",
        COMMENT: "A comment still in the file.",

@@ -24,7 +24,8 @@ USES = (("acrfinder", "Find acronyms (Acronym Finder, its own window)", None),
         ("shred", "Find the requirements (Shred)", (".pdf", ".docx", ".pptx", ".xlsx")),
         ("library", "Add to the Library of what I am working on", None),
         ("audit", "Audit against the standards (changes nothing)", OFFICE),
-        ("leftovers", "Check for leftovers before it goes out (Final Checks)", (".docx",)))     # 3.57.0
+        ("leftovers", "Check for leftovers before it goes out (Final Checks)", (".docx",)),     # 3.57.0
+        ("strip", "Strip the setup out (a clean copy)", (".docx",)))                             # 3.60.0
 # the tools Home can pin: key -> (title, what, kind) ; kind "window" opens its own window, "page" goes to the page
 TOOLS = {"acrfinder": ("Acronym Finder", "Scan any files for acronyms, apart from any effort", "window"),
          "firstuse": ("First Use Check", "Your Word files' first uses", "window"),
@@ -276,6 +277,8 @@ class ToolsHome(QWidget):
         if use == "audit":
             h.go("audit")
             return h.audit_page.add_files(paths)
+        if use == "strip":                                  # 3.60.0
+            return h.setups_page.strip_files(paths)
         if use == "leftovers":                              # 3.57.0
             h.go("checks")
             return h.checks_page.check_leftovers(paths)

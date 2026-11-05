@@ -272,7 +272,9 @@ TOPICS = [
   ["Customer versions: pick the document and the old and new versions. Decide each change: update the requirement, Not "
    "ours, or a question for the customer. Export (Word)..., Redline (Word)... or Change list (Excel)... share the changes.",
    "Any two files: Choose... the earlier and the later file (Word, PDF, PowerPoint or Excel), then Compare. Only changes "
-   "hides the sentences that stayed the same. Redline (Word)... exports the changes.",
+   "hides the sentences that stayed the same. Redline (Word)... exports the changes marked; Tracked changes (Word)... "
+   "saves a Word file where each change is a tracked change to accept or reject. Two Word files are compared by Word "
+   "itself (formatting kept) when Word is on this PC; other files as their text.",
    "Final Checks' Open in Compare, and dropping two files on Your Tools, open Any two files with both picked."],
   ["Adding a new version says at once what it changed. Review the changes opens this page on that pair."]),
  ("structure", "Plan", "Structure",
@@ -297,6 +299,8 @@ TOPICS = [
    "and due date are on at first; customer context, meeting notes and captures, and topics when you want them.",
    "Make the setup: each volume's template (Production > Templates) with the setup written on it. Plain setup... writes "
    "it with no template.",
+   "Before a volume goes out: Strip setup... makes a clean copy beside it, with the setup's reference text, its styles "
+   "and its file properties taken out (bookmarks and section breaks kept); the volume itself is never changed.",
    "Authors already writing? Changes for authors... writes one Word file per person with what changed in their sections "
    "since the last setup."],
   ["The Structure Builder's Make the setup button opens this page. Show/Hide in Word shows the hidden reference text."]),

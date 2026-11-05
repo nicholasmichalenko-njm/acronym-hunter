@@ -34,6 +34,9 @@ class FilesCompare(QWidget):
         self.only = QCheckBox("Only changes"); self.only.setChecked(True); self.only.toggled.connect(lambda _b: self.fill())
         bar.addWidget(self.only)
         bar.addWidget(D.button("Redline (Word)...", None, lambda: self.export(), "Removed words struck through, added words marked"))
+        bar.addWidget(D.button("Tracked changes (Word)...", None, lambda: self.export_tracked(),      # 3.60.0
+                               "A Word file with every change a tracked change to accept or reject. Two Word files are "
+                               "compared by Word itself, formatting kept; other files as their text."))
         self.sum = D.label("", "muted"); bar.addWidget(self.sum, 1)
         self.t = QTableWidget(0, 4); self.t.setHorizontalHeaderLabels(["Change", "Under", "Earlier", "Later"])
         self.t.verticalHeader().setVisible(False); self.t.setEditTriggers(QAbstractItemView.NoEditTriggers); self.t.setWordWrap(True)
@@ -105,6 +108,34 @@ class FilesCompare(QWidget):
                 return None
         CA.export(path, self.result, self.only.isChecked())
         self.host.toast("Redline exported")
+        return path
+
+    def export_tracked(self, path=None, use_word=None):
+        """3.60.0: the tracked-changes copy. Two .docx files go to Word's own Compare (formatting kept) when Word is on
+        this PC; otherwise, and for other files, the text of both with every change a tracked change."""
+        if not self.result:
+            self.host.status("Compare two files first.")
+            return None
+        a, b = self.result["old"].get("path"), self.result["new"].get("path")
+        if path is None:
+            import filesafety as FS
+            start = FS.new_path(b, "tracked changes").rsplit(".", 1)[0] + ".docx"
+            path, _ = QFileDialog.getSaveFileName(self, "Save the tracked-changes copy", start, "Word (*.docx)")
+            if not path:
+                return None
+        import wordcompare as WC
+        word = use_word if use_word is not None else (WC.available() and a.lower().endswith(".docx") and b.lower().endswith(".docx"))
+        if word:
+            self.host.status("Word is comparing the two files...")
+            r = WC.compare(a, b, path, "Compare")
+            if r.get("ok"):
+                self.host.toast(f"Tracked changes saved: {r.get('revisions', 0)} change(s), compared by Word")
+                diag.activity("compare_tracked_word", n=r.get("revisions", 0))
+                return path
+            self.host.status(r.get("why", "Word could not compare the two files.") + " The text comparison was saved instead.")
+        n = CA.export_tracked(path, self.result)
+        diag.activity("compare_tracked_text", n=n)
+        self.host.toast(f"Tracked changes saved: {n} change(s), the text of both files")
         return path
 
 

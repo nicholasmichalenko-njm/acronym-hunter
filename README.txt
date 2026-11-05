@@ -1,6 +1,15 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+STRIP SETUP AND TRACKED CHANGES (3.60.0)
+  - Plan > Setup > Strip setup... (or drop a Word file on Your Tools and pick Strip the setup out): a clean copy beside
+    the volume with every paragraph in the setup's reference styles (the RFP's words, PM direction, notes, the Lead and
+    Due line), those styles and the setup's file properties taken out. Bookmarks, comment anchors and section breaks
+    inside a removed paragraph are kept. The volume itself is never changed.
+  - Compare > Any two files > Tracked changes (Word)...: a Word file where every change is a tracked change to accept or
+    reject. Two Word files are compared by Word itself in a hidden Word, formatting kept; other files (or no Word on the
+    PC) as the text of both. The marked redline is still there.
+
 SHRED YOU CAN TRUST (3.59.0)
   - Shred > Accuracy: how well the shred finds requirements, on your own set of public RFPs. Save RFPs in the set
     folder (Stationkeeper Shred Set in your user folder, or Choose the folder...), read one into Review in a test effort,
