@@ -112,7 +112,7 @@ def run():
     ppl = read_csv(folder, "Response structure and people.csv")
     assert ppl[0]["Title"] == "Thermal Design" and ppl[0]["Lead"] == "J. Smith" and ppl[0]["Compliance requirements"] == "1"
     acr = {r["Term"]: r for r in read_csv(folder, "Acronyms.csv")}
-    assert acr["TT&C"]["Definition"] == "Telemetry, Tracking and Command" and acr["IMS"]["Status"] == "Approved" and acr["IMS"]["SS Approver"] == "R. Diaz"
+    assert acr["TT&C"]["Definition"] == "Telemetry, Tracking and Command" and acr["IMS"]["Status"] == "Approved" and acr["IMS"]["Approver"] == "R. Diaz"
     assert read_csv(folder, "Keywords.csv")[0]["Keyword"] == "thermal control system"
     # rewriting keeps the copy current; a version's text file is written once
     rec.add_task("Confirm red team reviewers", owner="N. Michalenko", who="pm")

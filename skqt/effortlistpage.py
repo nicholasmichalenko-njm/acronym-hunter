@@ -11,7 +11,7 @@ import effort as E
 from . import design as D
 from .adaptive import FlowLayout
 
-COLS = ["Term", "Definition", "Type", "Status", "SS Approver", "Approved on", "Found in", "Notes"]
+COLS = ["Term", "Definition", "Type", "Status", "Approver", "Approved on", "Found in", "Notes"]
 TONE = {"Approved": "ok", "Needs author": "warn", "Proposed": "accent", "Rejected": "faint"}
 
 
@@ -195,7 +195,7 @@ class EffortListPage(QWidget):
             return 0
         s = self.session
         if approver is None:
-            approver, ok = QInputDialog.getText(self, "Approve", "SS Approver (one name, or several separated by ;):",
+            approver, ok = QInputDialog.getText(self, "Approve", "Approver (one name, or several separated by ;):",
                                                 QLineEdit.Normal, getattr(s, "_last_approver", ""))
             if not ok:
                 return 0

@@ -13,7 +13,7 @@ def run():
     assert L.rows["SOW"]["Other definitions"] == "Statement of Work"
     assert L.set_status(["SOW"], "Approved", approver="J. Smith; A. Lee") == 1
     assert L.set_status(["SOW"], "Approved", approver="A. Lee; K. Wu") == 1
-    assert L.rows["SOW"]["SS Approver"] == "J. Smith; A. Lee; K. Wu"
+    assert L.rows["SOW"]["Approver"] == "J. Smith; A. Lee; K. Wu"
     L.set_status(["kWh"], "Needs author")
     L.save()
     M = E.EffortList(p).load()

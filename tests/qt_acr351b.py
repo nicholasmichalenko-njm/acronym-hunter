@@ -110,7 +110,7 @@ ap = EX.export_approvals(lp, path=os.path.join(tmp, "approve.xlsx"))
 import openpyxl
 ws = openpyxl.load_workbook(ap).active
 hdr = [c.value for c in ws[1]]
-check("For approval: the terms waiting, with an empty approver column", hdr[-1] == "SS Approver" and all(r[3] in ("Proposed", "Needs author") for r in ws.iter_rows(min_row=2, values_only=True)))
+check("For approval: the terms waiting, with an empty approver column", hdr[-1] == "Approver" and all(r[3] in ("Proposed", "Needs author") for r in ws.iter_rows(min_row=2, values_only=True)))
 vol = os.path.join(tmp, "Kestrel Volume II.docx")
 import volcheck as V
 V.write_docx([("KXT", "Kestrel Transfer Test"), ("KQV", "Kestrel Quality Verification")], vol)

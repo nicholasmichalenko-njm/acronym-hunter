@@ -61,7 +61,7 @@ check("Add to effort list with the typed definition", E.EffortList(LIST).load().
       and s.results["SOW"]["status"].startswith("Effort list"), s.results["SOW"]["status"])
 ap.approve(["SOW"], "QA Lead")
 r = E.EffortList(LIST).load().rows["SOW"]
-check("Approve records the approver in the effort list", r["Status"] == "Approved" and r["SS Approver"] == "QA Lead", (r["Status"], r["SS Approver"]))
+check("Approve records the approver in the effort list", r["Status"] == "Approved" and r["Approver"] == "QA Lead", (r["Status"], r["Approver"]))
 ap.set_status(["SCOPE"], "Rejected")
 check("Not a term: rejected in the list and hidden", E.EffortList(LIST).load().rows["SCOPE"]["Status"] == "Rejected"
       and s.results["SCOPE"]["excluded"] and "SCOPE" not in ap.terms)

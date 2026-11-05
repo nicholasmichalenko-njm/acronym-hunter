@@ -502,7 +502,7 @@ class AcronymPage(QWidget):
     def approve(self, terms, approver=None):
         if approver is None:
             from PySide6.QtWidgets import QInputDialog
-            approver, ok = QInputDialog.getText(self, "Approve", "SS Approver (one name, or several separated by ;):",
+            approver, ok = QInputDialog.getText(self, "Approve", "Approver (one name, or several separated by ;):",
                                                 QLineEdit.Normal, getattr(self.session, "_last_approver", ""))
             if not ok:
                 return 0

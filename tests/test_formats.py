@@ -31,7 +31,20 @@ check("Stationkeeper Data file", TD.FORMAT == F.number("Stationkeeper Data file"
 check("update pack", UP.FORMAT == F.number("update pack"))
 rec = R.Record(os.path.join(tmp, "eff")); os.makedirs(rec.folder, exist_ok=True); rec.save()
 check("effort record", json.load(open(rec.path))["v"] == F.number("effort record"))
-check("every kind is checked here", len(F.FORMATS) == 9, len(F.FORMATS))
+import effort as E, openpyxl
+L = E.EffortList(os.path.join(tmp, "Kestrel_Effort_List.xlsx"), "Kestrel"); L.add_or_update("KTV", Definition="Kestrel Test Vehicle"); L.save()
+ab = {r[0]: r[1] for r in openpyxl.load_workbook(L.path, read_only=True)["About"].iter_rows(values_only=True) if r}
+check("effort acronym list", ab.get("Format") == F.number("effort acronym list") == E.FORMAT, ab)
+# format 1 (before 3.52.0) wrote SS Approver: it reads the same, and the next save writes Approver
+wb = openpyxl.load_workbook(L.path); ws = wb["Effort List"]
+col = [c.value for c in ws[1]].index("Approver") + 1
+ws.cell(row=1, column=col).value = "SS Approver"; ws.cell(row=2, column=col).value = "R. Diaz"; wb.save(L.path)
+old = E.EffortList(L.path, "Kestrel").load()
+check("an acronym list saved before 3.52.0 reads its approvers", old.rows["KTV"]["Approver"] == "R. Diaz", old.rows.get("KTV"))
+old.save()
+hdr = [c.value for c in openpyxl.load_workbook(L.path, read_only=True)["Effort List"][1]]
+check("... and the next save writes Approver", "Approver" in hdr and "SS Approver" not in hdr, hdr)
+check("every kind is checked here", len(F.FORMATS) == 10, len(F.FORMATS))
 n = sum(checks)
 print(f"FORMATS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

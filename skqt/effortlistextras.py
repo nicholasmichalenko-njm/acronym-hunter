@@ -132,7 +132,7 @@ def export_approvals(page, path=None):
         path, _ = QFileDialog.getSaveFileName(page, "For approval", page.host.out_path("acronyms_for_approval")[:-4] + ".xlsx", "Excel (*.xlsx)")
         if not path:
             return None
-    cols = ["Term", "Definition", "Type", "Status", "Notes", "SS Approver"]
+    cols = ["Term", "Definition", "Type", "Status", "Notes", "Approver"]
     rows = [r[:-1] + [""] for r in rows_for(L, cols, ["Proposed", "Needs author"])]
     write(rows, cols, path)
     return path
@@ -155,10 +155,10 @@ def export_all(page, path=None):
             continue
         L = E.EffortList(p, name).load()
         ws = wb.create_sheet(("".join(ch for ch in name if ch not in "[]:*?/\\") or "Effort")[:31])
-        ws.append(["Term", "Definition", "Type", "Status", "SS Approver"])
+        ws.append(["Term", "Definition", "Type", "Status", "Approver"])
         for t in L.order:
             r = L.rows[t]
-            ws.append([t, r.get("Definition", ""), r.get("Type", ""), r.get("Status", ""), r.get("SS Approver", "")])
+            ws.append([t, r.get("Definition", ""), r.get("Type", ""), r.get("Status", ""), r.get("Approver", "")])
         n += 1
     if not n:
         page.host.status("No effort's acronym list is on this PC yet.")

@@ -14,9 +14,11 @@ import datetime, json, os, re, tempfile
 import alt_forms as A
 
 COLUMNS = ["Term", "Type", "Definition", "Alt forms", "Source", "Customer document", "Customer wording", "Other definitions",
-           "Status", "SS Approver", "Approved on", "Used in volumes", "First use", "Notes",
+           "Status", "Approver", "Approved on", "Used in volumes", "First use", "Notes",
            "Found in", "First found", "Last found", "Scan status", "Effort", "Client", "Solicitation"]   # 2.14.0: last 7
 WIDTHS = [14, 14, 42, 18, 14, 30, 50, 36, 14, 22, 13, 24, 30, 30, 44, 12, 12, 30, 22, 18, 18]
+FORMAT = 2                                      # 3.52.0: format 2 writes Approver (format 1, unnumbered, wrote SS Approver)
+OLD_HEADINGS = {"SS Approver": "Approver"}     # 3.52.0: the column renamed; workbooks saved before read the same, the next save writes the new heading
 SCAN_NEW, SCAN_FOUND, SCAN_GONE = "New in this scan", "Found", "No longer found in"
 STATUSES = ["Proposed", "Needs author", "Approved", "Rejected"]
 FIRST_USE_RULES = {"volume": "Restarts in each volume", "section": "Restarts in each section of each volume",
@@ -73,7 +75,7 @@ class EffortList:
         try:
             ws = wb[SHEET] if SHEET in wb.sheetnames else wb.worksheets[0]
             it = ws.iter_rows(values_only=True)
-            header = [str(h or "").strip() for h in next(it, [])]
+            header = [OLD_HEADINGS.get(h, h) for h in (str(h or "").strip() for h in next(it, []))]
             idx = {h: i for i, h in enumerate(header)}
             for vals in it:
                 vals = list(vals or [])
@@ -213,11 +215,11 @@ class EffortList:
             row["Status"] = status
             if status == "Approved":
                 if approver:
-                    names = [a for a in re.split(r"\s*;\s*", row["SS Approver"]) if a]
+                    names = [a for a in re.split(r"\s*;\s*", row["Approver"]) if a]
                     for a in re.split(r"\s*;\s*", approver):
                         if a and a not in names:
                             names.append(a)
-                    row["SS Approver"] = "; ".join(names)
+                    row["Approver"] = "; ".join(names)
                 row["Approved on"] = today()
             if note:
                 row["Notes"] = (row["Notes"] + "; " if row["Notes"] else "") + note
@@ -359,9 +361,9 @@ class EffortList:
         ab = wb.create_sheet(ABOUT)
         for r in (["Effort", self.name], ["Client", self.client], ["Solicitation", self.solicitation],
                   ["Internal number", self.internal_no], ["First use", FIRST_USE_RULES[self.first_use]],
-                  ["Saved", datetime.datetime.now().strftime("%Y-%m-%d %H:%M")],
+                  ["Saved", datetime.datetime.now().strftime("%Y-%m-%d %H:%M")], ["Format", FORMAT],
                   ["Statuses", ", ".join(STATUSES)],
-                  ["Note", "Edit Status, SS Approver and Notes here or in Stationkeeper. Keep the column headings."]):
+                  ["Note", "Edit Status, Approver and Notes here or in Stationkeeper. Keep the column headings."]):
             ab.append(r)
         ab.column_dimensions["A"].width = 12; ab.column_dimensions["B"].width = 80
         fd, tmp = tempfile.mkstemp(prefix=".effort_", suffix=".xlsx", dir=d)
