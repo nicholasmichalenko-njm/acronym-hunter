@@ -234,7 +234,6 @@ class MainWindow(QMainWindow):
         self.search.setMinimumWidth(170); self.search.setClearButtonEnabled(True)   # 3.12.0: room for "Effort Dashboard" at 1280; 3.18.2: and Undo
         self.search.returnPressed.connect(self.find_go)
         bh.addWidget(self.search)
-        self.working_lbl = D.label("Working on", "label", wrap=False); bh.addWidget(self.working_lbl)   # 3.53.0: Unfiled or an effort
         self.effort_box = QComboBox(); self.effort_box.setMinimumWidth(156)   # 3.15.0: the menu names the open effort; 3.18.2: 156 for Undo
         self.effort_box.setToolTip("What every space works on: an effort, or Unfiled (loose work kept until you file it)")
         self.effort_box.activated.connect(lambda i: self.work_on(self.effort_box.itemText(i)))

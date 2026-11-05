@@ -103,21 +103,23 @@ FT._OPEN[0].close()
 import recentfiles as RF
 check("... and it is a recent file", RF.shown(cfg)[0]["path"] == docx and home.recent.item(0).data(0x0100) == docx)
 import unfiled as UF
-check("Working on: Unfiled is always there", w.effort_box.findText(UF.NAME) >= 0 and w.working_lbl.text() == "Working on")
+check("Working on: Unfiled is always there", w.effort_box.findText(UF.NAME) >= 0 and "Unfiled" in w.effort_box.toolTip())
 w.go("tools"); w.work_on(UF.NAME); app.processEvents()
 check("... working on Unfiled keeps you on Your Tools", w.effort_name == UF.NAME and w.stack.currentWidget() is home)
+added = []
+w.library_page.add = lambda paths=None, **k: added.append(list(paths or [])) or 1      # the Library asks where each file goes
 got = home.files_in([docx], use="library")
-check("Add to the Library of what I am working on: Unfiled's Library", got == "library" and w.effort_name == UF.NAME)
+check("Add to the Library of what I am working on: Unfiled's Library", got == "library" and w.effort_name == UF.NAME and added == [[docx]])
 w.go("refs"); app.processEvents()
 refs = w.refs_page
 check("Team References: one space with every shared list", w.stack.currentWidget() is refs
       and set(refs.cards) == {"banned", "database", "exclusion", "ocrfix", "truth"} and refs.dict_card is not None)
 check("... each says how many it holds", refs.cards["banned"].count.text().endswith("phrase(s)"), refs.cards["banned"].count.text())
 dlg = refs.open_banned(run=False)
-dlg.add_row({"Phrase": "world-class", "Level": "Avoid", "Use instead": "say what is better", "Why": "unproven claim"})
+dlg.add_row({"Phrase": "best-in-orbit", "Level": "Avoid", "Use instead": "say what is better", "Why": "unproven claim"})
 dlg.save(); refs.refresh()
 import banned as BN
-check("Banned phrases: added and saved for every effort", any(r["Phrase"] == "world-class" and r["Level"] == "Avoid" for r in BN.load()))
+check("Banned phrases: added and saved for every effort", any(r["Phrase"] == "best-in-orbit" and r["Level"] == "Avoid" for r in BN.load()))
 check("Fixes for misread text open from here", refs.open_fixes(run=False) is not None)
 w.close()
 

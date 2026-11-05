@@ -50,8 +50,8 @@ w = MainWindow(app, os.path.join(tmp, "config"), A.APP_VERSION); w.resize(1400, 
 rail = [b.text() for b in w.findChildren(type(w.step_btns["home"])) if b.objectName() == "rail"]
 steps = [b.text() for k, b in w.step_btns.items()]
 check("the rail: the steps in Qt, then the areas still in the classic app (grey)", rail[:len(steps)] == steps
-      and steps[2:10] == ["Effort Dashboard", "Deliverables", "Effort Formatting", "Effort Record", "Color Reviews", "Library", "Compare",
-                         "Customer Q&&A"] and "Matrix" in steps   # 3.16.0: one place per job
+      and steps[3:9] == ["Effort Dashboard", "Deliverables", "Effort Formatting", "Effort Record", "Library",
+                         "Customer Q&&A"] and "Matrix" in steps   # 3.16.0: one place per job; 3.53.0: spaces
       and steps[13:17] == ["Storyboards", "Draft Status", "Wall of Truth", "Acronyms"] and steps[-5:] == ["Checklist", "Keywords", "Export All", "Settings", "Production Standards"]   # 3.52.0: Advanced last
       and all(not b.isEnabled() for b in w.findChildren(type(w.step_btns["home"])) if b.objectName() == "rail" and b.text() not in steps), rail)
 w.go("prove"); app.processEvents()
@@ -65,7 +65,7 @@ check("... a card's title sits in its own header row; a key card is marked", c.h
       and k.property("key") is True and D.Card().head is None)
 check("... status pills are as tall as their text", w.saved.sizePolicy().verticalPolicy() == w.saved.sizePolicy().Policy.Fixed
       and w.saved.height() < 30, w.saved.height())
-check("... the page's menu group shows above its title", w.page_crumb.text() == "Compliance")
+check("... the page's menu group shows above its title", w.page_crumb.text() == "Shred")       # 3.53.0: Review is in Shred
 heads = [b for b in w.findChildren(type(w.step_btns["home"])) if b.objectName() == "railgroup"]
 check("... menu groups in capitals, bold, above regular-weight items", heads and all(h.font().capitalization() == h.font().Capitalization.AllUppercase
       for h in heads) and "font-weight: 400" in D.qss(D.LIGHT).split("QPushButton#rail {")[1].split("}")[0])

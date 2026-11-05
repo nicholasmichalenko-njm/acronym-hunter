@@ -53,9 +53,9 @@ g.show_topic("prove")
 g._go(); app.processEvents()
 check("Go to this page goes there", w.stack.currentWidget() is w.pages["prove"])
 g._step(1)
-check("Next walks to the next topic", g.key == "crosswalk")
+check("Next walks to the next topic", g.key == "matrix")     # 3.53.0: Shred: Review, Coverage, Matrix, then the crosswalk
 g._step(-1); g._step(-1)
-check("... and Previous back", g.key == "structure")       # 3.16.0: Review, Structure, Coverage, then the crosswalk
+check("... and Previous back", g.key == "assign")
 g.show_topic("start")
 check("the start topic has no page to go to", not g.go_btn.isVisibleTo(g) and g.prev.isEnabled() is False)
 g.show_topic("keys")

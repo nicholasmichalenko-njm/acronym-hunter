@@ -38,8 +38,9 @@ w.open_effort("Kestrel"); app.processEvents()
 
 # ---------------------------------------------------------------- the menu
 heads = [g for g, _i in RAIL]
-check("the menu is grouped by job", heads == ["Home", "Effort", "Solicitation", "Compliance", "Writing", "Quality", "Production",
-                                              "Post-Submission", "Effort files", "Advanced"], heads)   # 3.52.0: Advanced
+check("the menu is grouped by job", heads == ["Home", "Effort", "Customer Documents", "Shred", "Compare", "Plan", "Write", "Acronyms",
+                                              "Reviews", "Check and Submit", "Production", "Team References", "After Submission",
+                                              "Effort files", "Advanced"], heads)   # 3.52.0: Advanced; 3.53.0: spaces
 r = RR.Record(w.ws.root)
 # 3.15.0: no separate stage group: each tool is in the menu once, the stage's tools marked with a dot in its color
 cur_stage = r.stages[r.index()]["name"]
@@ -60,10 +61,10 @@ QTest.mouseClick(w.rail_effort, Qt.LeftButton); app.processEvents()
 check("... and it opens the Effort Dashboard", w.stack.currentWidget() is w.home_page)
 w.step_btns[marked[0]].click(); app.processEvents()
 check("a stage tool opens its page", w.stack.currentWidget() is not w.notice_page or w.notice_page.why is not None)
-w.toggle_group("Writing"); app.processEvents()
+w.toggle_group("Write"); app.processEvents()
 check("a group folds away, and stays folded", not w.step_btns["truth"].isVisibleTo(w)
-      and "Writing" in json.load(open(A.SETTINGS_FILE))["rail_collapsed"])
-w.toggle_group("Writing"); app.processEvents()
+      and "Write" in json.load(open(A.SETTINGS_FILE))["rail_collapsed"])
+w.toggle_group("Write"); app.processEvents()
 check("... and opens again", w.step_btns["truth"].isVisibleTo(w))
 MO.save(stage_tools=False); w.refresh_access(); app.processEvents()
 check("the stage marks can be turned off", not any(b.stage_dot.isVisibleTo(w) for b in w.step_btns.values())
