@@ -135,15 +135,16 @@ def main(argv=None):
     if safe:
         w.status("Safe start: Stationkeeper did not finish starting twice, so the last effort was not opened. Open it from "
                  "the Effort box; if it fails again, create a support file (Settings > Help and support).")
+        w.go("tools")
         _QT.singleShot(800, then)
     elif w.efforts.current or len(_real(w)) == 1:
         cur = w.efforts.current or _real(w)[0]   # 2.84.0: the effort last open (or the only one), every start
         title = (f"Stationkeeper {A.APP_VERSION} is ready. Reopening your work" if after else f"Opening {cur}")
-        _QT.singleShot(0, lambda: (w.open_with_progress(cur, title), _QT.singleShot(600, then)))
+        _QT.singleShot(0, lambda: (w.open_with_progress(cur, title), w.go("tools"), _QT.singleShot(600, then)))   # 3.53.0: Home first
     else:
-        w.go("efforts")                              # 2.91.0: Home: every effort, + Add an Effort, or start unfiled
+        w.go("tools")                                # 3.53.0: Your Tools: drop a file, a pinned tool, an effort or Unfiled
         if _real(w):
-            w.status("Pick an effort on Home (or in the Effort box, top right): its work is all there.")
+            w.status("Pick what to work on in Working on (top right), or use a tool on any file.")
         _QT.singleShot(800, then)
     from PySide6.QtCore import QTimer
     pkg = next((a for a in args[1:] if a.lower().endswith((".skpkg", ".ahpkg")) and os.path.isfile(a)), None)

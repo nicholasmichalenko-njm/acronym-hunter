@@ -1,7 +1,7 @@
 """Full Text (3.51.0, brought back from the classic window): every word in the chosen files, typed text exactly and
 picture text through the reader (equations in linear form), shown and saved as one .txt or one per file, or copied.
 The same reader and sandbox as the scan. The text carries the source files' markings: save and handle it the same
-way. In its own window, from the arrow beside Acronym Finder at the foot of the menu. Nothing leaves the PC."""
+way. In its own window, from Home (Your Tools). Nothing leaves the PC."""
 import os
 
 from PySide6.QtCore import QThread, Signal

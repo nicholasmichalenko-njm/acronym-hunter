@@ -16,7 +16,7 @@ import json, os
 
 PM = "Proposal Manager"
 PROFILES = ("Proposal Manager", "Production", "Author", "Reviewer", "Capture")
-ALWAYS = {"efforts", "mywork", "home", "deliverables", "settings"}
+ALWAYS = {"efforts", "mywork", "home", "deliverables", "settings", "tools", "refs"}   # 3.53.0: Your Tools, Team References
 TOOLS = {
     "Production": {"library", "requirements", "matrix", "setup", "acronyms", "acrlist", "qa", "lists", "checks", "fixcopy", "audit",
                    "formatstd", "qpstd", "layoutstd", "profiles", "templates", "prodstd", "rules", "effortfmt", "postsub", "keywords", "exportall", "drafts"},
@@ -47,9 +47,9 @@ def profile_of(role_text):
     return ""
 
 
-MENU = ("efforts", "mywork", "home", "deliverables", "effortfmt", "record", "reviews", "postsub", "library", "read", "compare", "requirements",
+MENU = ("tools", "mywork", "efforts", "home", "deliverables", "effortfmt", "record", "reviews", "postsub", "library", "read", "compare", "requirements",
         "custqa", "structure", "assign", "prove", "crosswalk", "matrix", "setup", "storyboards", "drafts", "truth", "acronyms", "acrlist",
-        "keywords", "qa", "lists", "checks", "fixcopy", "audit", "formatstd", "qpstd", "layoutstd", "profiles", "templates", "rules", "exportall", "settings", "prodstd")
+        "keywords", "qa", "lists", "checks", "fixcopy", "audit", "formatstd", "qpstd", "layoutstd", "profiles", "templates", "rules", "refs", "exportall", "settings", "prodstd")
 
 
 def allowed(profile, step):

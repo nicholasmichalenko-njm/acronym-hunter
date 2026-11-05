@@ -1,6 +1,21 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SPACES AND YOUR TOOLS (3.53.0)
+  - The menu is spaces named for the job: Home, Effort, Customer Documents, Shred, Compare, Plan, Write, Acronyms,
+    Reviews, Check and Submit, Production, Team References, After Submission, Effort files, Advanced. Each page sits in
+    one space only; Ctrl+K still finds anything.
+  - Home > Your Tools is the first screen. Drop any file (or Choose files...) and pick what to do with it from the tools
+    that take that kind of file: find acronyms, check first use, pull out all the text, add to the Library, audit.
+    Pinned tools (a starting set by role; Edit pins... to change), recent files and your efforts sit beside it.
+  - Working on (top right) says what every space works on: an effort, or Unfiled. Unfiled is always in the list; loose
+    work is kept there until you file it to an effort.
+  - Team References gathers the lists the team keeps: banned phrases (now editable here), this PC's acronym database,
+    the Exclusion List, fixes for misread text, the team's Wall of Truth and the custom dictionaries for Word.
+  - Acronyms: Paste a picture (Ctrl+V; a screenshot or copied figure, read with the files already scanned) and the
+    Found in pictures filter.
+  - The Acronym Finder button at the foot of the menu is gone: the tools in their own windows are on Your Tools.
+
 EFFORT PROFILES AND TEMPLATES (3.52.0)
   - Production > Effort Profiles: each effort type's profiles (Technical Volume, Management Volume, Orals...), built by
     picking. New profile..., Copy..., Rename..., Take out. Volumes: the volumes a profile makes, separated by ;.

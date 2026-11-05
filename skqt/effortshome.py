@@ -188,7 +188,7 @@ class EffortsHome(QWidget):
         from .starteffort import start_dialog
         return start_dialog(self.host)
 
-    def open_unfiled(self):
+    def open_unfiled(self, go=True):
         import app_gui
         h = self.host
         UF.ensure(h.efforts, app_gui.DATA_DIR)
@@ -196,7 +196,8 @@ class EffortsHome(QWidget):
         if h.effort_name != UF.NAME:
             h.open_effort(UF.NAME)
         h.effort_box.setCurrentText(UF.NAME)
-        h.go("library")
+        if go:
+            h.go("library")
         return True
 
     def clear_unfiled(self, confirm=None):

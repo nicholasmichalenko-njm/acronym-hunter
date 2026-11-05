@@ -74,6 +74,53 @@ check("Found in pictures: only the terms read from a picture", pics == {"KGS", "
 page.f_pics.setChecked(False)
 tw.close()
 
+# ---- the spaces, Home (Your Tools) and Team References
+from skqt import mainwin as MW
+from skqt import toolshome as TH
+heads = [g for g, _i in MW.RAIL]
+check("the menu is spaces by job", heads == ["Home", "Effort", "Customer Documents", "Shred", "Compare", "Plan", "Write", "Acronyms",
+                                             "Reviews", "Check and Submit", "Production", "Team References", "After Submission",
+                                             "Effort files", "Advanced"], heads)
+check("each page in one space only", len([k for _g, it in MW.RAIL for k, _t in it]) == len({k for _g, it in MW.RAIL for k, _t in it}))
+w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
+check("the tools button at the foot of the menu is gone", not hasattr(w, "tools_btn"))
+w.go("tools"); app.processEvents()
+home = w.tools_page
+check("Your Tools opens with no effort", w.stack.currentWidget() is home and w.page_title.text() == "Your Tools")
+check("pins start from the role's set", home.pins == TH.load_pins(cfg, home.role()) and len(home.pins) >= 4, home.pins)
+check("... Edit pins keeps your choice", home.edit_pins(["fulltext", "refs"]) == ["fulltext", "refs"] and TH.load_pins(cfg) == ["fulltext", "refs"])
+docx = os.path.join(A.BASE_DIR, "test_samples", "Kestrel_Technical_Volume.docx")
+pdf = os.path.join(A.BASE_DIR, "test_samples", "Kestrel_Program_Manual.pdf")
+kd = {k for k, _t in TH.uses_for([docx])}
+kp = {k for k, _t in TH.uses_for([pdf])}
+check("ask which tool: a Word file can have its first use checked, a PDF cannot", "firstuse" in kd and "firstuse" not in kp
+      and {"acrfinder", "fulltext", "library"} <= kp, (kd, kp))
+check("... a file the reader does not take: no tools", TH.uses_for([os.path.join(tmp, "notes.zzz")]) == [])
+check("Pull out all the text: Full Text opens with the file", home.files_in([docx], use="fulltext") == "fulltext")
+from skqt import fulltexttool as FT
+check("... its window holds it", FT._OPEN and FT._OPEN[0].files == [docx])
+FT._OPEN[0].close()
+import recentfiles as RF
+check("... and it is a recent file", RF.shown(cfg)[0]["path"] == docx and home.recent.item(0).data(0x0100) == docx)
+import unfiled as UF
+check("Working on: Unfiled is always there", w.effort_box.findText(UF.NAME) >= 0 and w.working_lbl.text() == "Working on")
+w.go("tools"); w.work_on(UF.NAME); app.processEvents()
+check("... working on Unfiled keeps you on Your Tools", w.effort_name == UF.NAME and w.stack.currentWidget() is home)
+got = home.files_in([docx], use="library")
+check("Add to the Library of what I am working on: Unfiled's Library", got == "library" and w.effort_name == UF.NAME)
+w.go("refs"); app.processEvents()
+refs = w.refs_page
+check("Team References: one space with every shared list", w.stack.currentWidget() is refs
+      and set(refs.cards) == {"banned", "database", "exclusion", "ocrfix", "truth"} and refs.dict_card is not None)
+check("... each says how many it holds", refs.cards["banned"].count.text().endswith("phrase(s)"), refs.cards["banned"].count.text())
+dlg = refs.open_banned(run=False)
+dlg.add_row({"Phrase": "world-class", "Level": "Avoid", "Use instead": "say what is better", "Why": "unproven claim"})
+dlg.save(); refs.refresh()
+import banned as BN
+check("Banned phrases: added and saved for every effort", any(r["Phrase"] == "world-class" and r["Level"] == "Avoid" for r in BN.load()))
+check("Fixes for misread text open from here", refs.open_fixes(run=False) is not None)
+w.close()
+
 n = sum(checks)
 print(f"QT SPACES 3.53 {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.stdout.flush()

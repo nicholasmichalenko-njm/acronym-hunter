@@ -29,17 +29,17 @@ TOPICS = [
   ["Press F1 on any page to open this Guide at that page.",
    "Press Ctrl+K to find a page, an effort, a sentence or a person from anywhere.",
    "Every decision saves as you make it. Closing the app never loses work."]),
- ("efforts", "Home", "All Efforts",
-  "Every effort on this PC, a new one, and work not filed under an effort yet.",
-  "You start a new proposal, switch efforts, or pick up an effort a teammate handed you.",
-  ["Press + Add an Effort (or open the Effort Dashboard with no effort open). Type a name and press Create effort. The picture, "
-   "client, solicitation, due date and proposal manager are optional; the effort's folders are made for you.",
-   "Click an effort's card to open it. The menu then works on that effort.",
-   "To pick up a teammate's effort, press Import effort package... and choose the .skpkg file they sent.",
-   "To read documents before an effort exists, press Start without an effort: open Unfiled. Make it an effort... later "
-   "keeps the work."],
-  ["Each effort keeps its own decisions, lists and settings. Nothing crosses between efforts.",
-   "The card shows the stage, the due date and what needs attention."]),
+ ("tools", "Home", "Your Tools",
+  "The first screen: drop any file and pick what to do with it, your pinned tools, the files you opened from here, and your "
+  "efforts and Unfiled.",
+  "Whenever you start: a quick job on any document, or the effort you are working on.",
+  ["Drop a file on the dashed box, or Choose files...: Stationkeeper lists the tools that take it (find acronyms, check first "
+   "use, pull out all the text, add to the Library, audit). Pick one.",
+   "Paste a picture: a screenshot or a copied figure, read in Acronym Finder.",
+   "Pinned tools: one click each. Edit pins... picks them; your role's starting set is only a start.",
+   "Recent files: double-click to open one again with any tool. Your efforts: double-click to work on one, or Unfiled."],
+  ["Working on (top right) says what every space works on: an effort, or Unfiled (loose work kept until you file it).",
+   "Ctrl+K finds any page, effort, sentence or person."]),
  ("mywork", "Home", "My Work",
   "One person's work in every effort on this PC, soonest first: tasks, questions for them, customer questions, "
   "deliverables and graphic needs they own, the requirements they answer, and the sections they lead with page budgets.",
@@ -52,6 +52,17 @@ TOPICS = [
    "Over budget, or that requirements were removed. By effort shows each section's draft status."],
   ["My Work only reads the efforts; nothing changes until you open one.",
    "Refresh reads every effort again after teammates' changes come in."]),
+ ("efforts", "Home", "All Efforts",
+  "Every effort on this PC, a new one, and work not filed under an effort yet.",
+  "You start a new proposal, switch efforts, or pick up an effort a teammate handed you.",
+  ["Press + Add an Effort (or open the Effort Dashboard with no effort open). Type a name and press Create effort. The picture, "
+   "client, solicitation, due date and proposal manager are optional; the effort's folders are made for you.",
+   "Click an effort's card to open it. The menu then works on that effort.",
+   "To pick up a teammate's effort, press Import effort package... and choose the .skpkg file they sent.",
+   "To read documents before an effort exists, press Start without an effort: open Unfiled. Make it an effort... later "
+   "keeps the work."],
+  ["Each effort keeps its own decisions, lists and settings. Nothing crosses between efforts.",
+   "The card shows the stage, the due date and what needs attention."]),
  ("home", "Effort", "Effort Dashboard",
   "Where the effort stands, on one page: the numbers on top, the stage and its gate, submission requirements, gate "
   "goals, tasks, questions, the calendar, deliverables, compliance coverage, who has what, and the timeline. The header "
@@ -130,15 +141,7 @@ TOPICS = [
   ["Open topics show on the Effort Dashboard, in My Work for their owner, and on the card of the sentence or section they "
    "point at in Review.",
    "A stage gate can hold until every topic is considered: add the goal Every meeting topic considered in Effort Record."]),
- ("reviews", "Effort", "Color Reviews",
-  "Color team review packets: a Word file with every requirement under its section, for reviewers to give a verdict "
-  "and comments, read back onto each requirement.",
-  "Red team, gold team, or any review where people mark up the response against the requirements.",
-  ["Press Build the packet... and choose the stage. Send the Word file to the reviewers.",
-   "When it comes back, press Read back a packet... Verdicts and Word comments land on each requirement.",
-   "See the score by section, and open a requirement to read its comments."],
-  ["Reviewers only need Word. The packet holds no app data beyond the requirements and sections."]),
- ("library", "Solicitation", "Library",
+ ("library", "Customer Documents", "Library",
   "Every document of the effort: customer files and every version of them, categories, folders, tags and roles.",
   "Documents arrive: the RFP, amendments, Q&A rounds, forms, task orders.",
   ["Press Add files... or Add a folder... Stationkeeper suggests the type, its initial (R, A1, TO1) and whether it is "
@@ -151,7 +154,7 @@ TOPICS = [
    "For an amendment that says what to change, press Apply its instructions... to make the Conformed version."],
   ["Initial and type... and Rename... fix a document's details. The customer's files are never changed.",
    "A document marked above CUI is refused on a regular install. Follow your site's spill procedure."]),
- ("read", "Solicitation", "Read into Review",
+ ("read", "Customer Documents", "Read into Review",
   "The Library's second tab: several customer documents read into the compliance matrix at once. Every sentence is cut "
   "out of the page, scans and pictures are read with OCR, and nothing is dropped.",
   "A new solicitation arrives with many files, or you add files that are not in the Library yet.",
@@ -160,14 +163,7 @@ TOPICS = [
    "One document at a time is simpler from the Documents tab: Read it into Review."],
   ["Scanned pages and pictures are read by the OCR reader (AI and ML), on this PC.",
    "Every read runs the text check: Coverage (in Review) shows it file by file."]),
- ("compare", "Solicitation", "Compare",
-  "What a new version changed, what it touches in your review, and a decision on every change.",
-  "An amendment or new version arrives.",
-  ["Pick the old and new versions. The changed, added and removed sentences are listed.",
-   "Decide each change: update the requirement, Not ours, or a question for the customer.",
-   "Export (Word)..., Redline (Word)... or Change list (Excel)... share the changes."],
-  ["Adding a new version says at once what it changed. Review the changes opens this page on that pair."]),
- ("custqa", "Solicitation", "Customer Q&A",
+ ("custqa", "Customer Documents", "Customer Q&A",
   "The formal questions you submit to the customer: their exact words and where they are, your question, its status "
   "and the answer.",
   "Before the questions-due date, and when the answers come back.",
@@ -177,7 +173,7 @@ TOPICS = [
    "Export to Word or Excel, or fill the customer's own Q&A form. Exporting can mark the questions Submitted.",
    "When answers arrive, add each answer and the document it came in."],
   ["Every exported question names the customer file it is about. Owner, status and notes never go out."]),
- ("datacalls", "Solicitation", "Data calls",
+ ("datacalls", "Customer Documents", "Data calls",
   "What the team needs from its own experts, asked so it gets answered: what is needed, the section or requirement it "
   "serves, how much (word-count guidance), an example of a good answer, the owner and the due date.",
   "When a section needs facts, numbers or a story only an expert has: past performance, staffing, technical detail.",
@@ -187,7 +183,7 @@ TOPICS = [
    "Place in the section puts an answer into the response structure as context: the section's author sees it in the setup, "
    "the kickoff packet and Everything for this section."],
   ["Show: Overdue lists calls past their due date with no answer. The Author drafts gate can hold until every call is answered."]),
- ("assign", "Compliance", "Review",
+ ("assign", "Shred", "Review",
   "The customer's document as it looks, every sentence boxed. You decide each sentence, place it in your response, "
   "and capture what it holds. This is where an effort's review happens.",
   "From the first read until every sentence is decided, and again when a new version arrives.",
@@ -235,15 +231,7 @@ TOPICS = [
    "Ctrl+Z undoes. Ctrl+F finds a sentence by its words or number.",
    "On a later version, changed sentences are outlined in amber and new ones in green. Show the old page shows what it "
    "was."]),
- ("structure", "Compliance", "Structure",
-  "Review's second tab: start or replace the sections of your response from the RFP or a Word outline. Most teams "
-  "build the structure beside the page in Review as they read; this tab is for starting it in one step.",
-  "When the RFP spells out the response's organization, or you have an outline in Word.",
-  ["Choose how to start: What the RFP prescribes, RFP headings, RFP outline, Word outline..., or Blank.",
-   "Press Apply. Back in Review, the structure is beside the page: + Heading, + Subheading, From sentence and Copy RFP "
-   "section add to it as you read."],
-  ["Volumes, people and the page budget are set on the Effort Dashboard (Volumes, people and page budget)."]),
- ("prove", "Compliance", "Coverage",
+ ("prove", "Shred", "Coverage",
   "Review's third tab: every sentence of every customer file, by decision, and the text check, which reads each file "
   "word for word and finds text the reader missed (in tables, text boxes, headers and footers).",
   "Before you call the review finished, before a gate, and when someone asks whether every line was read.",
@@ -251,7 +239,14 @@ TOPICS = [
    "Press Run the text check. If anything is missing, press Add the missing lines: they go in their place in the document.",
    "The Library's Review column shows the same thing a document at a time."],
   ["Every read runs the text check too, and says the result in the status bar."]),
- ("crosswalk", "Compliance", "L/M Crosswalk",
+ ("matrix", "Shred", "Matrix",
+  "The compliance matrix as the customer will see it, built from your decisions in Review.",
+  "You deliver the matrix, or share it with the team.",
+  ["Choose the columns. Add a column... adds your own.",
+   "Press Export the matrix..., or Export the compliance package... for the matrix with its reports.",
+   "Save as the team default keeps this layout for new efforts."],
+  ["The exported workbook is a dated copy. Exports are never overwritten."]),
+ ("crosswalk", "Shred", "L/M Crosswalk",
   "The Matrix's second tab. Section L says how to write the proposal, Section M says how the customer scores it, and "
   "Section C, the SOW or the PWS says the work. Each row is one instruction beside the factor that scores it and the work "
   "it describes; the gaps show instructions nobody scores and factors with no instruction.",
@@ -259,14 +254,22 @@ TOPICS = [
   ["Read the rows. Gaps show where an instruction has no factor or a factor has no instruction.",
    "Press Export the crosswalk... for a review or the proposal manager."],
   ["The crosswalk fills in from your L, M and SOW decisions in Review."]),
- ("matrix", "Compliance", "Matrix",
-  "The compliance matrix as the customer will see it, built from your decisions in Review.",
-  "You deliver the matrix, or share it with the team.",
-  ["Choose the columns. Add a column... adds your own.",
-   "Press Export the matrix..., or Export the compliance package... for the matrix with its reports.",
-   "Save as the team default keeps this layout for new efforts."],
-  ["The exported workbook is a dated copy. Exports are never overwritten."]),
- ("setup", "Compliance", "Response Setup",
+ ("compare", "Compare", "Compare",
+  "What a new version changed, what it touches in your review, and a decision on every change.",
+  "An amendment or new version arrives.",
+  ["Pick the old and new versions. The changed, added and removed sentences are listed.",
+   "Decide each change: update the requirement, Not ours, or a question for the customer.",
+   "Export (Word)..., Redline (Word)... or Change list (Excel)... share the changes."],
+  ["Adding a new version says at once what it changed. Review the changes opens this page on that pair."]),
+ ("structure", "Plan", "Structure",
+  "Review's second tab: start or replace the sections of your response from the RFP or a Word outline. Most teams "
+  "build the structure beside the page in Review as they read; this tab is for starting it in one step.",
+  "When the RFP spells out the response's organization, or you have an outline in Word.",
+  ["Choose how to start: What the RFP prescribes, RFP headings, RFP outline, Word outline..., or Blank.",
+   "Press Apply. Back in Review, the structure is beside the page: + Heading, + Subheading, From sentence and Copy RFP "
+   "section add to it as you read."],
+  ["Volumes, people and the page budget are set on the Effort Dashboard (Volumes, people and page budget)."]),
+ ("setup", "Plan", "Response Setup",
   "The Word documents your writers start from: each section's headings with the RFP text placed under them, "
   "references on the same line, and management direction.",
   "Before writing starts, and after the review changes.",
@@ -276,7 +279,7 @@ TOPICS = [
    "Export the setup... writes the plain setup instead: one Word file per volume.",
    "Export changes only... gives writers just what changed since the last setup."],
   ["The export is plain: RFP text in purple, direction in green, ready for your team's own styles."]),
- ("storyboards", "Writing", "Storyboards",
+ ("storyboards", "Plan", "Storyboards",
   "One sheet per section before anyone drafts: the key message, the win themes it carries, the approach, features "
   "with benefits and proof, and its graphics, beside its requirements and page budget.",
   "After the Response Setup goes out and before the first draft; review them at a storyboard review.",
@@ -287,7 +290,7 @@ TOPICS = [
    "Export the volume... makes one Word file, a page per section, for the review. Export this section... makes one."],
   ["Win themes come from the Effort Dashboard (+ Theme... under Win themes); a theme linked to the section is ticked for you.",
    "Graphic needs tagged in Review for the section list here too."]),
- ("drafts", "Writing", "Draft Status",
+ ("drafts", "Write", "Draft Status",
   "Read a volume's draft back by the response structure's headings and the setup's styles: where each section stands "
   "against its page budget, requirements an author removed, and styles pasted text brought in.",
   "While authors draft: before each color review, and whenever you want to know where the volume stands.",
@@ -300,7 +303,7 @@ TOPICS = [
    "My Work and the Effort Dashboard's Drafts and data calls card show the newest reads; the gate goal Every section drafted "
    "holds until every section read has words of its author's own."],
   ["The page budget comes from Structure > Page budget. Word's own page count from the last save is in the summary line."]),
- ("truth", "Writing", "Wall of Truth",
+ ("truth", "Write", "Wall of Truth",
   "The one approved way to state every fact the proposal repeats: cleared staff, years with the customer, square "
   "footage, contract values, names and the customer's terms. Check the drafts finds every place a draft disagrees.",
   "Start it at kickoff from the team's facts; check the drafts before every color review and before final.",
@@ -312,54 +315,7 @@ TOPICS = [
    "Export the wall... makes the page to post in the war room and hand to writers; Export... gives the editors the findings."],
   ["The drafts are the Word files in the effort's Volumes folder (and the deliverables' files).",
    "A date in amber in Confirmed means nobody has checked that truth for 30 days: press Confirm when it is still right."]),
- ("acrtool", "Writing", "Acronym Finder (its own window)",
-  "The acronym scan as a tool in its own window, for quick jobs with no effort: scan any files, check each term's meaning "
-  "and where it was found, export the list, check first use in your own Word files.",
-  "When you need a list of a document's acronyms and their meanings, or to check a submittal's first uses, fast.",
-  ["Open it from its button at the foot of the menu (the arrow beside it lists every tool that opens in its own window), from Acronyms > Open in its own window, or start the program with "
-   "the acronyms switch (a shortcut to Stationkeeper.exe with /acronyms or the double-hyphen form opens only this window).",
-   "Scan files... or Scan a folder...: every acronym, abbreviation, unit and symbol, in typed text and in pictures, with its "
-   "meaning. Select a term: its card shows where it was found, the picture or page with every reading boxed (yellow is "
-   "the term), or the passage with the term highlighted. Find < and > step through every find.",
-   "Export the list...: each term and its meaning as a Word table, an Excel sheet or a CSV. Excluded terms, terms marked not "
-   "a term, and plurals and forms tied to their term are left out.",
-   "Check first use...: pick your Word files in submission order. For each acronym: where it first appears in running text, "
-   "whether it is spelled out there, and the terms the list does not have yet. Export the report to Excel.",
-   "Start a new list clears the window's results and list; the files you scanned are never changed.",
-   "Lists: keep several scans side by side. New list... starts another with its own files, results and choices; pick one in "
-   "List to open it; Rename... names it. Add files... scans the list's files again with more added. Clear no longer found "
-   "takes off the terms the last scan did not find.",
-   "Symbols: beside the definition box, Greek letters, subscripts, superscripts, math, accents, units and arrows. Right-click "
-   "a box, or press Ctrl+Shift+Space, to make the selection subscript, superscript or normal text (H₂O, m²)."],
-  ["Its list is its own, on this PC, apart from every effort; it reopens with the last scan."]),
- ("fulltext", "Writing", "Full Text (its own window)",
-  "Every word in the files you choose, typed text exactly and picture text through the reader (equations in linear form), "
-  "shown in one box and saved as text.",
-  "When you need a document's words as plain text: to search it, compare it, or paste it somewhere else.",
-  ["Open it from the arrow beside Acronym Finder at the foot of the menu, or start the program with the fulltext switch.",
-   "Choose files..., Choose a folder..., or Acronym Finder's files (the files its open list scanned). Press Read all the text; "
-   "Stop ends it.",
-   "Save as one .txt..., Save one .txt per file... (each named after its file, with _fulltext), or Copy."],
-  ["The text carries the same classification and markings as the source files. Save and handle it the same way.",
-   "The same reader and sandbox as the scan; nothing leaves the PC."]),
- ("firstuse", "Writing", "First Use Check (its own window)",
-  "One or more Word files checked on their own: where each acronym is first used, and every acronym used before it is "
-  "defined, never defined, or spelled out more than once.",
-  "Before a document goes out, or whenever you need to know a draft's first uses fast, with no effort open.",
-  ["Open it from the arrow beside Acronym Finder at the foot of the menu, from Submission Check, or start the program with "
-   "the firstuse switch and the Word files after it.",
-   "Add Word files (or drop them on the window) in the order they are read. First use restarts in each file, in each section "
-   "of each file, or runs across all the files. Press Check.",
-   "Problems lists every fix and check: used before it is defined (with where it is spelled out later), never defined, "
-   "spelled out again (with where), defined but never used again, written as (ACR) without its words. Every acronym "
-   "shows them all.",
-   "Select a row: the place shows on the right, the passage with the acronym highlighted or the picture with it boxed.",
-   "This place is the first use: when the first place it appears is not the one that counts (a heading or a figure, say), "
-   "select the place in the list and press it; the check counts from there. Back to the first place it appears undoes it. "
-   "Entries in a table of contents never count as a first use.",
-   "Export the report to Excel."],
-  ["Submission Check does the same for an effort's volumes and also compares each spell-out with the effort's acronym list."]),
- ("acronyms", "Writing", "Acronyms",
+ ("acronyms", "Acronyms", "Acronyms",
   "One place for acronyms, abbreviations, units and symbols, in three tabs: Scan finds them in the customer's "
   "documents or your own drafts; Acronym List is the effort's list with approved definitions, and (3.37.0) Show > "
   "Lists to submit, by volume, builds each volume's list from what it uses.",
@@ -385,7 +341,7 @@ TOPICS = [
    "First use in your volumes is checked in Quality > Submission Check (Check first use... on the Acronym List opens it)."],
   ["The customer's own definitions win over the master database.",
    "The list is kept in the effort's Excel workbook, in the effort's folder."]),
- ("lists", "Writing", "Lists to Submit",
+ ("lists", "Acronyms", "Lists to Submit",
   "In the Acronym List (Show > Lists to submit, by volume, 3.37.0): the acronym list for each volume from what that volume "
   "actually uses.",
   "At the end, when the volumes are final.",
@@ -393,7 +349,62 @@ TOPICS = [
    "Press Export the lists (Word)... or Export (Excel)...",
    "Record in the effort list notes which volume uses each term."],
   []),
- ("qa", "Quality", "Submission Check",
+ ("acrtool", "Acronyms", "Acronym Finder (its own window)",
+  "The acronym scan as a tool in its own window, for quick jobs with no effort: scan any files, check each term's meaning "
+  "and where it was found, export the list, check first use in your own Word files.",
+  "When you need a list of a document's acronyms and their meanings, or to check a submittal's first uses, fast.",
+  ["Open it from Home (Your Tools: a pin, or drop a file and pick Find acronyms), from Acronyms > Open in its own window, or start the program with "
+   "the acronyms switch (a shortcut to Stationkeeper.exe with /acronyms or the double-hyphen form opens only this window).",
+   "Scan files... or Scan a folder...: every acronym, abbreviation, unit and symbol, in typed text and in pictures, with its "
+   "meaning. Select a term: its card shows where it was found, the picture or page with every reading boxed (yellow is "
+   "the term), or the passage with the term highlighted. Find < and > step through every find.",
+   "Export the list...: each term and its meaning as a Word table, an Excel sheet or a CSV. Excluded terms, terms marked not "
+   "a term, and plurals and forms tied to their term are left out.",
+   "Check first use...: pick your Word files in submission order. For each acronym: where it first appears in running text, "
+   "whether it is spelled out there, and the terms the list does not have yet. Export the report to Excel.",
+   "Start a new list clears the window's results and list; the files you scanned are never changed.",
+   "Lists: keep several scans side by side. New list... starts another with its own files, results and choices; pick one in "
+   "List to open it; Rename... names it. Add files... scans the list's files again with more added. Clear no longer found "
+   "takes off the terms the last scan did not find.",
+   "Symbols: beside the definition box, Greek letters, subscripts, superscripts, math, accents, units and arrows. Right-click "
+   "a box, or press Ctrl+Shift+Space, to make the selection subscript, superscript or normal text (H₂O, m²)."],
+  ["Its list is its own, on this PC, apart from every effort; it reopens with the last scan."]),
+ ("firstuse", "Acronyms", "First Use Check (its own window)",
+  "One or more Word files checked on their own: where each acronym is first used, and every acronym used before it is "
+  "defined, never defined, or spelled out more than once.",
+  "Before a document goes out, or whenever you need to know a draft's first uses fast, with no effort open.",
+  ["Open it from Home (Your Tools: a pin, or drop Word files and pick Check first use), from Submission Check, or start the program with "
+   "the firstuse switch and the Word files after it.",
+   "Add Word files (or drop them on the window) in the order they are read. First use restarts in each file, in each section "
+   "of each file, or runs across all the files. Press Check.",
+   "Problems lists every fix and check: used before it is defined (with where it is spelled out later), never defined, "
+   "spelled out again (with where), defined but never used again, written as (ACR) without its words. Every acronym "
+   "shows them all.",
+   "Select a row: the place shows on the right, the passage with the acronym highlighted or the picture with it boxed.",
+   "This place is the first use: when the first place it appears is not the one that counts (a heading or a figure, say), "
+   "select the place in the list and press it; the check counts from there. Back to the first place it appears undoes it. "
+   "Entries in a table of contents never count as a first use.",
+   "Export the report to Excel."],
+  ["Submission Check does the same for an effort's volumes and also compares each spell-out with the effort's acronym list."]),
+ ("fulltext", "Acronyms", "Full Text (its own window)",
+  "Every word in the files you choose, typed text exactly and picture text through the reader (equations in linear form), "
+  "shown in one box and saved as text.",
+  "When you need a document's words as plain text: to search it, compare it, or paste it somewhere else.",
+  ["Open it from Home (Your Tools: a pin, or drop files and pick Pull out all the text), or start the program with the fulltext switch.",
+   "Choose files..., Choose a folder..., or Acronym Finder's files (the files its open list scanned). Press Read all the text; "
+   "Stop ends it.",
+   "Save as one .txt..., Save one .txt per file... (each named after its file, with _fulltext), or Copy."],
+  ["The text carries the same classification and markings as the source files. Save and handle it the same way.",
+   "The same reader and sandbox as the scan; nothing leaves the PC."]),
+ ("reviews", "Reviews", "Color Reviews",
+  "Color team review packets: a Word file with every requirement under its section, for reviewers to give a verdict "
+  "and comments, read back onto each requirement.",
+  "Red team, gold team, or any review where people mark up the response against the requirements.",
+  ["Press Build the packet... and choose the stage. Send the Word file to the reviewers.",
+   "When it comes back, press Read back a packet... Verdicts and Word comments land on each requirement.",
+   "See the score by section, and open a requirement to read its comments."],
+  ["Reviewers only need Word. The packet holds no app data beyond the requirements and sections."]),
+ ("qa", "Check and Submit", "Submission Check",
   "The volumes you will submit, checked against the effort list, first use, banned words and page limits.",
   "Before each gate and before submission.",
   ["Press Add volumes... and choose the Word files, then Check the submission volumes.",
@@ -402,7 +413,7 @@ TOPICS = [
    "you pick (not a heading or figure, say); entries in a table of contents never count.",
    "Export report (Excel)... records the check."],
   ["First use of an acronym belongs in running text, not in a figure or table."]),
- ("checks", "Quality", "Final Checks",
+ ("checks", "Check and Submit", "Final Checks",
   "The last checks before the proposal goes out: the final PDF package, cross-references and numbering in the drafts, "
   "and what changed between two versions of a draft.",
   "At gold team and in the last hours before upload; Compare two drafts whenever a reviewer asks what changed.",
@@ -539,14 +550,23 @@ TOPICS = [
    "Each fix is one guarded change that may touch only what it declares; anything else is refused.",
    "Fix a Copy and Make a .dotx template are Preview tools: off for the team until the proposal manager turns them on in "
    "Settings > Roles and Preview tools."]),
- ("postsub", "Post-Submission", "Checklist",
+ ("refs", "Team References", "Team References",
+  "Every list the team keeps, in one place: banned phrases, this PC's acronym database, the Exclusion List, fixes for misread "
+  "text, the team's Wall of Truth and the custom dictionaries for Word.",
+  "When a list needs a change that every effort and tool should use from then on.",
+  ["Each card says what the list is, how many it holds and which spaces read it. Open... shows it.",
+   "Banned phrases: Banned is always fixed, Avoid is checked by a person; Add a phrase, Remove, Save.",
+   "This PC's acronym database: Load a database... brings in a provided one; Open in Excel opens the file.",
+   "Custom dictionaries: the words Word should know, built here and exported for Word."],
+  ["The lists stay where they are kept; this page only gathers them."]),
+ ("postsub", "After Submission", "Checklist",
   "What the team does after the proposal goes in: owners, due dates and done.",
   "The proposal is submitted.",
   ["Press Mark submitted... The checklist appears.",
    "Give each item an owner and a due date. + Item adds one.",
    "Save as default... keeps this checklist for new efforts."],
   ["Export to Excel... shares the checklist."]),
- ("keywords", "Post-Submission", "Keywords",
+ ("keywords", "After Submission", "Keywords",
   "The effort's keywords for SharePoint: what the customer asked for and what you proposed, with reasons, to file the "
   "submitted proposal.",
   "After submission, when the proposal is filed.",

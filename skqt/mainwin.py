@@ -33,18 +33,22 @@ from .exportallpage import ExportAllPage
 from .settingspage import SettingsPage
 
 
-RAIL = [("Home", [("efforts", "All Efforts"), ("mywork", "My Work")]),                                       # 3.13.0: grouped by job
-        ("Effort", [("home", "Effort Dashboard"), ("deliverables", "Deliverables"), ("effortfmt", "Effort Formatting"),   # 3.36.0
-                    ("record", "Effort Record"),
-                    ("reviews", "Color Reviews")]),
-        ("Solicitation", [("library", "Library"), ("compare", "Compare"), ("custqa", "Customer Q&A")]),
-        ("Compliance", [("assign", "Review"), ("structure", "Structure Builder"), ("matrix", "Matrix")]),   # 3.30.0
-        ("Writing", [("storyboards", "Storyboards"), ("drafts", "Draft Status"), ("truth", "Wall of Truth"), ("acronyms", "Acronyms")]),   # 3.43.0
-        ("Quality", [("qa", "Submission Check"), ("checks", "Final Checks")]),
+RAIL = [("Home", [("tools", "Your Tools"), ("mywork", "My Work"), ("efforts", "All Efforts")]),     # 3.53.0: spaces by job
+        ("Effort", [("home", "Effort Dashboard"), ("deliverables", "Deliverables"), ("effortfmt", "Effort Formatting"),
+                    ("record", "Effort Record")]),
+        ("Customer Documents", [("library", "Library"), ("custqa", "Customer Q&A")]),
+        ("Shred", [("assign", "Review"), ("matrix", "Matrix")]),
+        ("Compare", [("compare", "Compare")]),
+        ("Plan", [("structure", "Structure Builder"), ("storyboards", "Storyboards")]),
+        ("Write", [("drafts", "Draft Status"), ("truth", "Wall of Truth")]),
+        ("Acronyms", [("acronyms", "Acronyms")]),
+        ("Reviews", [("reviews", "Color Reviews")]),
+        ("Check and Submit", [("qa", "Submission Check"), ("checks", "Final Checks")]),
         ("Production", [("formatstd", "Formatting Standards"), ("qpstd", "Quick Parts"), ("layoutstd", "Layout"),
                         ("profiles", "Effort Profiles"), ("templates", "Templates"), ("rules", "Rules"), ("audit", "Audit"),
-                        ("fixcopy", "Fix a Copy")]),   # 3.38.0; 3.49.0: Formatting Standards; 3.50.0: Quick Parts, Layout
-        ("Post-Submission", [("postsub", "Checklist"), ("keywords", "Keywords")]),
+                        ("fixcopy", "Fix a Copy")]),
+        ("Team References", [("refs", "Team References")]),
+        ("After Submission", [("postsub", "Checklist"), ("keywords", "Keywords")]),
         ("Effort files", [("exportall", "Export All"), ("settings", "Settings")]),
         ("Advanced", [("prodstd", "Production Standards")])]   # 3.52.0: kept two releases while Effort Profiles and Templates take over
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
@@ -75,6 +79,8 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "formatstd": ("Formatting Standards", "The fundamentals every template is built from: theme, fonts, page setups, pagination, numbering, lists and styles; each named, tagged by effort type, every value editable"),
           "qpstd": ("Quick Parts", "Every Quick Part by your numbered categories: its gallery, whether it follows the template's fonts, the pages it fills, and Word's picture of it"),
           "layoutstd": ("Layout", "Covers, title pages, back covers, headers and footers, sections, table looks, captions and the TOC, each with its picture and every value"),
+          "tools": ("Your Tools", "Drop any file and pick what to do with it, your pinned tools, recent files and your efforts"),
+          "refs": ("Team References", "The lists the team keeps, read by every space: dictionaries, banned phrases, the acronym database, the Exclusion List, fixes for misread text"),
           "profiles": ("Effort Profiles", "Each effort type's profiles, built by picking from the libraries, with the RFP's size limits checked as you pick"),
           "templates": ("Templates", "Every Word template the profiles make: ready, needs review or blocked, and why; make one or all"),
           "prodstd": ("Production Standards", "The global formatting standards for every effort: the global standard, volume profiles, effort types and the template library"),
@@ -193,21 +199,7 @@ class MainWindow(QMainWindow):
         rail.setFixedWidth(232 - 2); rail_scroll.setWidget(rail)
         rail_col = QWidget(); rail_col.setObjectName("railbox"); rail_col.setFixedWidth(232)
         rcv = QVBoxLayout(rail_col); rcv.setContentsMargins(0, 0, 0, D.SPACE["m"]); rcv.setSpacing(0)
-        from PySide6.QtWidgets import QMenu, QToolButton           # 3.50.0: tools in their own windows, one click away
-        self.tools_btn = QToolButton(); self.tools_btn.setText("Acronym Finder")
-        self.tools_btn.setPopupMode(QToolButton.MenuButtonPopup); self.tools_btn.setCursor(Qt.PointingHandCursor)
-        self.tools_btn.setToolTip("Opens Acronym Finder in its own window (no effort needed); the arrow lists every tool that "
-                                  "opens in its own window")
-        self.tools_btn.clicked.connect(lambda: self.open_tool("acronyms"))
-        self.tools_btn.setStyleSheet("QToolButton { color: #E5E7EB; background: transparent; border: 1px solid rgba(255,255,255,0.28);"
-                                     " border-radius: 6px; padding: 5px 8px; margin: 4px 10px; text-align: left; }"
-                                     " QToolButton:hover { background: rgba(255,255,255,0.10); }")
-        self.tools_menu = QMenu(self.tools_btn)
-        self.tools_menu.addAction("Acronym Finder (its own window)").triggered.connect(lambda: self.open_tool("acronyms"))
-        self.tools_menu.addAction("First Use Check (its own window)").triggered.connect(lambda: self.open_tool("firstuse"))
-        self.tools_menu.addAction("Full Text (its own window)").triggered.connect(lambda: self.open_tool("fulltext"))
-        self.tools_btn.setMenu(self.tools_menu)
-        rcv.addWidget(self.rail_brand); rcv.addWidget(rail_scroll, 1); rcv.addWidget(self.tools_btn); rcv.addWidget(self.rail_footer)
+        rcv.addWidget(self.rail_brand); rcv.addWidget(rail_scroll, 1); rcv.addWidget(self.rail_footer)   # 3.53.0: the tools are on Home
         rh.addWidget(rail_col)
         col = QWidget(); cv = QVBoxLayout(col); cv.setContentsMargins(0, 0, 0, 0); cv.setSpacing(0)
         # the top bar: where you are, the effort, search, and whether everything is saved
@@ -242,9 +234,10 @@ class MainWindow(QMainWindow):
         self.search.setMinimumWidth(170); self.search.setClearButtonEnabled(True)   # 3.12.0: room for "Effort Dashboard" at 1280; 3.18.2: and Undo
         self.search.returnPressed.connect(self.find_go)
         bh.addWidget(self.search)
+        self.working_lbl = D.label("Working on", "label", wrap=False); bh.addWidget(self.working_lbl)   # 3.53.0: Unfiled or an effort
         self.effort_box = QComboBox(); self.effort_box.setMinimumWidth(156)   # 3.15.0: the menu names the open effort; 3.18.2: 156 for Undo
-        self.effort_box.setToolTip("The open effort: pick another to switch")
-        self.effort_box.activated.connect(lambda i: self.open_effort(self.effort_box.itemText(i)))
+        self.effort_box.setToolTip("What every space works on: an effort, or Unfiled (loose work kept until you file it)")
+        self.effort_box.activated.connect(lambda i: self.work_on(self.effort_box.itemText(i)))
         bh.addWidget(self.effort_box)
         self.saved = D.Pill("Saved", "ok", dot=True); bh.addWidget(self.saved, 0, Qt.AlignVCenter)
         self.mode_chip = D.Pill("", "ok", dot=True); bh.addWidget(self.mode_chip, 0, Qt.AlignVCenter)   # 2.97.0: Offline, Connected or SCIF-ready
@@ -324,6 +317,10 @@ class MainWindow(QMainWindow):
         self.formatstd_page = FormattingStandardsPage(self)   # 3.49.0: the first library screen
         self.qpstd_page = QuickPartsPage(self)                # 3.50.0
         self.layoutstd_page = LayoutPage(self)
+        from .toolshome import ToolsHome
+        from .refspage import TeamReferencesPage
+        self.tools_page = ToolsHome(self)                       # 3.53.0: the first screen
+        self.refs_page = TeamReferencesPage(self)
         from .profilespage import EffortProfilesPage
         from .templatespage import TemplatesPage
         self.profiles_page = EffortProfilesPage(self)          # 3.52.0
@@ -338,7 +335,8 @@ class MainWindow(QMainWindow):
                       "effortfmt": self.effortfmt_page, "rules": self.rules_page, "datacalls": self.datacalls_page,
                       "drafts": self.drafts_page, "formatstd": self.formatstd_page,
                       "qpstd": self.qpstd_page, "layoutstd": self.layoutstd_page,
-                      "profiles": self.profiles_page, "templates": self.templates_page}
+                      "profiles": self.profiles_page, "templates": self.templates_page,
+                      "tools": self.tools_page, "refs": self.refs_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)
         from .roleview import NoticePage                 # 3.13.0: a tool for another role, or a Preview tool not turned on
@@ -404,7 +402,10 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------ efforts
     def fill_efforts(self):
+        import unfiled as UF
         names = [n for n in self.efforts.names() if not (self.efforts.get(n) or {}).get("archived")]
+        if UF.NAME not in names:                   # 3.53.0: Unfiled is always there to work on
+            names.append(UF.NAME)
         self.effort_box.clear()
         self.effort_box.addItems(names)
         cur = self.efforts.current
@@ -412,6 +413,19 @@ class MainWindow(QMainWindow):
             self.effort_box.setCurrentText(cur)
         if getattr(self, "efforts_page", None) is not None and self.stack.currentWidget() is self.efforts_page:
             self.efforts_page.refresh()            # 3.34.1: a new effort shows in the list at once
+
+    def work_on(self, name):
+        """3.53.0: the Working on box: an effort, or Unfiled (made when first used). The page you are on stays."""
+        import unfiled as UF
+        cur = self.stack.currentWidget()
+        here = next((k for k, pg in self.pages.items() if pg is cur), None)
+        if name == UF.NAME:
+            ok = self.efforts_page.open_unfiled(go=False)
+        else:
+            ok = self.open_effort(name)
+        if ok and here in ("tools", "refs"):
+            self.go(here)
+        return ok
 
     def open_with_progress(self, name, title=""):
         """2.82.0: open an effort under a cover that says what is happening (after an update, at start), so the pause
