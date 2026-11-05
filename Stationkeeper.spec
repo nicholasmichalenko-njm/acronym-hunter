@@ -73,6 +73,7 @@ datas += [('assets/scanner.ico', 'assets'), ('assets/trainer.ico', 'assets'), ('
 if os.path.isdir('assets/brand'):              # 3.0.3: the company logos built into the program (logo_01.png...)
     datas += [('assets/brand', 'assets/brand')]
 datas += [('assets/common_words.txt', 'assets')]   # SCOWL common words: sentence-end words are not abbreviations
+datas += [('assets/spelling_words.txt', 'assets')]   # 3.54.0: SCOWL words for Technical Edit's spelling check
 datas += [('README.txt', 'docs'), ('OVERVIEW.md', 'docs'), ('SECURITY.md', 'docs')]   # 2.90.0: the read-me files live in the program; the app keeps About Stationkeeper filled from them
 
 def make_analysis(script, qt=True):

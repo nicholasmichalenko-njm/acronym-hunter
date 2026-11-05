@@ -367,6 +367,7 @@ or if the network audit finds an unreviewed link. (v1.6.0 shipped the official W
 | pypdfium2 / PDFium | 5.14.0 | BSD-3-Clause / Apache-2.0 | PDF parsing (v1.8.0+, replaced PyMuPDF) | Google PDFium (US); Python binding by the pypdfium2 team |
 | skia-python / Skia | 144.1 | BSD-3-Clause | Draws SVG pictures for OCR (v1.8.0+) | Google Skia (US) |
 | SCOWL common-word list | 2020.12.07 | permissive (SCOWL notice) | Stops ordinary words ending a sentence from being reported as abbreviations | Kevin Atkinson (US) |
+| English Speller Database (SCOWL) word list | git 2026-11 (sizes up to 70, American) | permissive (ESDB notice, in the file) | Technical Edit's spelling check (3.54.0) | Kevin Atkinson (US) |
 | lxml / libxml2 | 6.1.3 | BSD-3-Clause / MIT | Office XML parsing (hardened) | lxml project |
 | defusedxml | 0.7.1 | PSF-2.0 | Safe XML parsing for openpyxl | Christian Heimes |
 | openpyxl / et_xmlfile | 3.1.5 / 2.0.0 | MIT | Excel cell reading | openpyxl project |
