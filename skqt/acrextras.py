@@ -7,6 +7,8 @@ card_extras(page,t)  the "Found: ... Use" line, the context suggestion with Acce
 more_actions(page)   Add to the database, Add to the Exclusion List, Back to Proposed, Remove from the list,
                      Accept context suggestions, Fix a misread..., Remove (a term added by hand)
 Rules only (No AI); nothing leaves the PC."""
+import os
+
 from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QLineEdit, QListWidget,
@@ -414,3 +416,68 @@ def unmake_alt(page, alt):
     ok = AM.unmake_alt(page.session, alt)
     page.fill(); page.select(alt)
     return ok
+
+
+# ---------------------------------------------------------------- 3.53.0: pictures first
+def in_pictures(d):
+    """True when a term was read from a picture (an image file, a picture inside a document, a diagram or chart)."""
+    return any(A.loc_kind(l) == "figure" for l in d.get("locations", []) if l)
+
+
+def pasted_folder(page):
+    ws = page.host.ws
+    root = ws.p("pasted pictures") if ws is not None else os.path.join(page.host.config_dir, "pasted pictures")
+    os.makedirs(root, exist_ok=True)
+    return root
+
+
+def clipboard_pictures(page, mime=None, image=None):
+    """What a paste brings: picture files copied in File Explorer, else the picture itself (a screenshot or a copied
+    figure) saved as a PNG beside the list. Returns the file paths ([] when the clipboard holds no picture)."""
+    from PySide6.QtWidgets import QApplication
+    mime = mime if mime is not None else QApplication.clipboard().mimeData()
+    if image is None and mime is not None and mime.hasUrls():
+        files = [u.toLocalFile() for u in mime.urls() if u.isLocalFile()]
+        files = [f for f in files if os.path.splitext(f)[1].lower() in A.SUPPORTED_EXTS and os.path.isfile(f)]
+        if files:
+            return files
+    img = image if image is not None else (QApplication.clipboard().image() if mime is None or mime.hasImage() else None)
+    if img is None or img.isNull():
+        return []
+    import datetime
+    path = os.path.join(pasted_folder(page), "Pasted picture " + datetime.datetime.now().strftime("%Y-%m-%d %H%M%S") + ".png")
+    n = 1
+    while os.path.exists(path):
+        n += 1
+        path = path[:-4] + f" ({n}).png"
+    img.save(path, "PNG")
+    return [path]
+
+
+def paste_picture(page, image=None, mime=None):
+    """Paste a picture (Ctrl+V): read with the files already scanned, so the list keeps them and gains the picture's terms."""
+    got = clipboard_pictures(page, mime=mime, image=image)
+    if not got:
+        page.host.status("Nothing to paste: copy a picture or take a screenshot first.")
+        return None
+    import acrlists as AL
+    s = page.session
+    last = ((s.last_scan or {}).get("paths") if s is not None else None) or []
+    diag.activity("acronym_picture_pasted", n=len(got))
+    return page.scan(AL.add_files(last, got))
+
+
+def install_paste(page):
+    """Ctrl+V on the page pastes a picture; in a text box it pastes text as always."""
+    from PySide6.QtGui import QKeySequence, QShortcut
+    from PySide6.QtWidgets import QApplication, QLineEdit, QPlainTextEdit, QTextEdit
+
+    def go():
+        w = QApplication.focusWidget()
+        if isinstance(w, (QLineEdit, QTextEdit, QPlainTextEdit)) and not w.isReadOnly():
+            w.paste()
+            return
+        paste_picture(page)
+    sc = QShortcut(QKeySequence.Paste, page); sc.setContext(Qt.WidgetWithChildrenShortcut); sc.activated.connect(go)
+    page._paste_shortcut = sc
+    return sc

@@ -79,10 +79,12 @@ class AcronymPage(QWidget):
         self.b_files = D.button("Scan files...", None, lambda: self.pick_files())
         self.b_folder = D.button("Scan a folder...", None, lambda: self.pick_folder())
         self.b_again = D.button("Scan again", None, lambda: self.scan_again(), "The same files again: new choices and definitions apply")
+        self.b_paste = D.button("Paste a picture", None, lambda: AX.paste_picture(self), "A screenshot or a copied figure (Ctrl+V): "
+                                "read with the files already scanned")             # 3.53.0
         self.b_cancel = D.button("Cancel", "danger", lambda: self.cancel()); self.b_cancel.hide()
         self.b_window = D.button("Open in its own window", "ghost", lambda: self.own_window(),     # 3.50.0
                                  "Acronym Finder: scan any files and export the list, apart from this effort")
-        for b in (self.b_files, self.b_folder, self.b_again, self.b_cancel, self.b_window):
+        for b in (self.b_files, self.b_folder, self.b_again, self.b_paste, self.b_cancel, self.b_window):
             top.addWidget(b)
         self.progress = D.label("", "muted", wrap=False); top.addWidget(self.progress, 1)
         # 2.86.0: no separate customer acronym list: the customer's terms are every acronym in its documents, and a
@@ -99,6 +101,9 @@ class AcronymPage(QWidget):
         from . import symbols as SYM
         SYM.attach(self.f_search)                                       # 3.50.0: search for H₂O, µm, Δv
         self.f_excl = QCheckBox("Show omitted")
+        self.f_pics = QCheckBox("Found in pictures")                     # 3.53.0: only terms read from a picture
+        self.f_pics.setToolTip("Only the terms read from pictures: image files, pictures in documents, diagrams and charts")
+        self.f_pics.toggled.connect(lambda _on: self.fill())
         self.f_forms = QCheckBox("Show plurals and forms")           # 3.34.1: decided ones stay out of the way
         self.f_forms.setToolTip("A term you set as a plural (CDRLs) or a form (FY27) is tied to its term and hidden from the "
                                 "list; tick this to see them (greyed, with what they belong to). A search finds them too.")
@@ -109,7 +114,7 @@ class AcronymPage(QWidget):
         self.f_forms.toggled.connect(lambda _on: self.fill())
         for w in (self.f_type, self.f_status, self.f_found):
             f.addWidget(w)
-        f.addWidget(self.f_search, 1); f.addWidget(self.f_excl); f.addWidget(self.f_forms)
+        f.addWidget(self.f_search, 1); f.addWidget(self.f_pics); f.addWidget(self.f_excl); f.addWidget(self.f_forms)
         self.showing = D.label("", "muted", wrap=False); f.addWidget(self.showing)
         f.addWidget(D.button("Export the report...", None, lambda: self.export(), "Exactly the rows shown, as a CSV that opens in Excel"))
         tb = FlowLayout(); tb.setSpacing(D.SPACE["s"]); v.addLayout(tb)            # 3.51.0: the classic window's tools
@@ -130,6 +135,7 @@ class AcronymPage(QWidget):
                 self.table.setColumnWidth(i, w)
         self.table.itemSelectionChanged.connect(self.show_detail)
         AX.install(self)                                                 # 3.51.0: sort, text size, right-click, Details
+        AX.install_paste(self)                                           # 3.53.0: Ctrl+V pastes a picture
         split.addWidget(self.table)
         self.card_area = QScrollArea(); self.card_area.setWidgetResizable(True); self.card_area.setMinimumWidth(380)
         self.card = D.Card("Term")
@@ -213,6 +219,8 @@ class AcronymPage(QWidget):
             if ffound != A.FOUND_FILTERS[0] and s.found_in(d) != ffound.split()[0]:
                 continue
             if q and q not in term.casefold() and q not in d.get("selected_definition", "").casefold():
+                continue
+            if self.f_pics.isChecked() and not AX.in_pictures(d):
                 continue
             out.append(term)
         return AX.sorted_terms(self, sorted(out, key=lambda t: s.sort_key(t, s.results[t])))
@@ -578,7 +586,7 @@ class AcronymPage(QWidget):
         self.worker.progress.connect(self.progress.setText)
         self.worker.finished_ok.connect(self.scan_done)
         self.worker.failed.connect(self.scan_failed)
-        for b in (self.b_files, self.b_folder, self.b_again, self.b_cust):
+        for b in (self.b_files, self.b_folder, self.b_again, self.b_paste, self.b_cust):
             b.setEnabled(False)
         self.b_cancel.show()
         self.worker.start()
@@ -592,7 +600,7 @@ class AcronymPage(QWidget):
         if self.worker is not None:
             self.worker.wait(2000)
         self.worker = None
-        for b in (self.b_files, self.b_folder, self.b_cust):
+        for b in (self.b_files, self.b_folder, self.b_paste, self.b_cust):
             b.setEnabled(True)
         self.b_cancel.hide()
 
