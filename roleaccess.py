@@ -18,10 +18,10 @@ PM = "Proposal Manager"
 PROFILES = ("Proposal Manager", "Production", "Author", "Reviewer", "Capture")
 ALWAYS = {"efforts", "mywork", "home", "deliverables", "settings", "tools", "refs"}   # 3.53.0: Your Tools, Team References
 TOOLS = {
-    "Production": {"shredreq", "techedit", "library", "requirements", "matrix", "setup", "acronyms", "acrlist", "qa", "lists", "checks", "fixcopy", "audit",
+    "Production": {"shredreq", "techedit", "library", "requirements", "matrix", "setup", "setups", "acronyms", "acrlist", "qa", "lists", "checks", "fixcopy", "audit",
                    "formatstd", "qpstd", "layoutstd", "profiles", "templates", "prodstd", "rules", "effortfmt", "postsub", "keywords", "exportall", "drafts"},
-    "Author": {"shredreq", "techedit", "library", "compare", "requirements", "custqa", "assign", "setup", "storyboards", "truth", "acronyms", "acrlist",
-               "keywords", "drafts"},
+    "Author": {"shredreq", "techedit", "library", "compare", "requirements", "custqa", "assign", "setup", "setups", "storyboards", "truth", "acronyms",
+               "acrlist", "keywords", "drafts"},
     "Reviewer": {"techedit", "reviews", "library", "compare", "assign", "prove", "matrix", "truth", "checks", "audit"},
     "Capture": {"shredreq", "library", "read", "compare", "requirements", "custqa", "structure", "assign", "crosswalk", "storyboards", "truth"},
 }
@@ -48,7 +48,7 @@ def profile_of(role_text):
 
 
 MENU = ("tools", "mywork", "efforts", "home", "deliverables", "effortfmt", "record", "reviews", "postsub", "library", "read", "compare", "requirements",
-        "custqa", "structure", "shredreq", "assign", "prove", "crosswalk", "matrix", "setup", "storyboards", "drafts", "truth", "acronyms", "acrlist", "techedit",
+        "custqa", "structure", "shredreq", "assign", "prove", "crosswalk", "matrix", "setup", "setups", "storyboards", "drafts", "truth", "acronyms", "acrlist", "techedit",
         "keywords", "qa", "lists", "checks", "fixcopy", "audit", "formatstd", "qpstd", "layoutstd", "profiles", "templates", "rules", "refs", "exportall", "settings", "prodstd")
 
 

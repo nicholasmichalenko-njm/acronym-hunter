@@ -1,6 +1,18 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SETUP (3.56.0)
+  - Plan > Setup: the starting draft each author writes in, made from a structure, what fills it and the volume's
+    template, and made again whenever one of them changes.
+  - A structure is the least it needs: type the headings, or take them from a Word outline or an RFP. No Review first;
+    read the customer's documents later and the requirements fill the same sections.
+  - Each section: its lead, contributors, due date, pages and PM direction, and what the setup will print there.
+  - What fills each section: requirements, evaluation criteria, PM direction, pages, author and due date at first;
+    turn on customer context, meeting notes and captures, and topics when you want them.
+  - Make the setup writes it on each volume's template (Production > Templates). Plain setup... writes it with no
+    template. Changes for authors... writes one Word file per person with what changed in their sections.
+  - The Structure Builder's Make templates button is now Make the setup and opens this page.
+
 SHRED AND COMPARE (3.55.0)
   - Shred > Requirements: one file in, every requirement out, with no matrix to set up (an RFP, a draft RFP or a
     statement of work). Each one labelled Requirement, Instruction (L), Evaluation (M) or SOW task, with its section,

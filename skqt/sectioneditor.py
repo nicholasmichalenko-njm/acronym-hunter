@@ -148,7 +148,7 @@ class SectionEditor(QWidget):
             w.setEnabled(bool(key) and not kept)
         self.fill_library()
         self.note.setText("A kept page: it holds no components." if kept else
-                          "What this section starts with, in order. Make templates puts them at its start." if key else "")
+                          "What this section starts with, in order. Make the setup puts them at its start." if key else "")
         self.list.clear()
         for r in SC.items(self.work(), key) if key else []:
             it = QListWidgetItem(SC.label(r)); it.setData(Qt.UserRole, r); self.list.addItem(it)

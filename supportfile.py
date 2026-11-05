@@ -20,6 +20,7 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.56.0": ["Plan > Setup: the starting draft each author writes in. Start from headings typed, a Word outline or an RFP, no Review needed; set each section's lead, contributors, due date, pages and PM direction; choose what fills the sections; make it on each volume's template, and give authors already writing just their changes."],
     "3.55.0": ["Shred > Requirements: every requirement in one file, labelled by kind, exported as a draft matrix or filed to an effort. Compare is one space: customer versions with decisions, or any two files with the redline."],
     "3.54.0": ["Technical Edit: copy review of a Word draft by rules (Chicago with one to nine spelled out, plain language, the customer's words, leftovers, banned phrases, spelling), accept or skip each finding, and make an edited copy with tracked changes and comments. The style sheet keeps each effort's own decisions."],
     "3.53.0": ["The menu is spaces named for the job. Home opens on Your Tools: drop any file and pick what to do with it, your pinned tools, recent files and efforts. Working on (top right) is an effort or Unfiled. Team References gathers the shared lists. Acronyms: Paste a picture and Found in pictures."],

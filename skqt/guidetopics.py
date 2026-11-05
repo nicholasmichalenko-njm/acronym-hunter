@@ -272,16 +272,23 @@ TOPICS = [
    "Press Apply. Back in Review, the structure is beside the page: + Heading, + Subheading, From sentence and Copy RFP "
    "section add to it as you read."],
   ["Volumes, people and the page budget are set on the Effort Dashboard (Volumes, people and page budget)."]),
- ("setup", "Plan", "Response Setup",
-  "The Word documents your writers start from: each section's headings with the RFP text placed under them, "
-  "references on the same line, and management direction.",
-  "Before writing starts, and after the review changes.",
-  ["Check each section's requirements. Up and Down reorder; Take out of this section removes one.",
-   "Press Make templates and setup... (3.24.0): Ready to make shows what is still open; then a template per volume from "
-   "Production Standards and the setup written on it, with the RFP's words and your notes in hidden reference styles.",
-   "Export the setup... writes the plain setup instead: one Word file per volume.",
-   "Export changes only... gives writers just what changed since the last setup."],
-  ["The export is plain: RFP text in purple, direction in green, ready for your team's own styles."]),
+ ("setups", "Plan", "Setup",
+  "The starting draft each author writes in: the volume's template with every section's heading, and under it the "
+  "customer's words, how it is scored, the PM's direction, its pages, its lead and due date, in hidden reference styles. "
+  "Made from a structure, layers and a template, and made again whenever one of them changes.",
+  "As soon as you have headings, even before the customer's documents are read; and again after the Review, a new "
+  "template or new direction.",
+  ["No structure yet: type the headings, or take them From a Word outline... or From an RFP's headings..., then Use these "
+   "headings. Read the customer's documents later and the requirements fill the same sections.",
+   "Pick a section: type its Lead, Contributors, Due date, Pages and PM direction, then Save this section. What it prints "
+   "shows what the setup will put there.",
+   "What fills each section: turn a layer on or off. Requirements, evaluation criteria, PM direction, pages and author "
+   "and due date are on at first; customer context, meeting notes and captures, and topics when you want them.",
+   "Make the setup: each volume's template (Production > Templates) with the setup written on it. Plain setup... writes "
+   "it with no template.",
+   "Authors already writing? Changes for authors... writes one Word file per person with what changed in their sections "
+   "since the last setup."],
+  ["The Structure Builder's Make the setup button opens this page. Show/Hide in Word shows the hidden reference text."]),
  ("storyboards", "Plan", "Storyboards",
   "One sheet per section before anyone drafts: the key message, the win themes it carries, the approach, features "
   "with benefits and proof, and its graphics, beside its requirements and page budget.",

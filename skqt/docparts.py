@@ -337,7 +337,7 @@ def build(page, v, section):
         nh.addStretch(1); c3.body.addLayout(nh)
     if key == "cover":                                     # 3.34.0: the title page, the cover's companion
         c5 = D.Card("The title page", "A page of its own after the cover, built like a cover: a background picture and text "
-                    "blocks that show the volume's fields. The structure's Title page element is replaced by it in Make templates.")
+                    "blocks that show the volume's fields. The structure's Title page element is replaced by it in Make the setup.")
         left.addWidget(c5)
         st["title_lab"] = D.label("", None); c5.body.addWidget(st["title_lab"])
         th = QHBoxLayout()
@@ -363,7 +363,7 @@ def build(page, v, section):
         st["cap_lab"] = D.label("", None); c3.body.addWidget(st["cap_lab"])
         c3.body.addWidget(D.button("Go to Captions", "ghost", lambda: page.nav.setCurrentRow(page.section_index("captions"))))
     c6 = D.Card("Page setup and contents", "The page setup this section follows, and what it starts with, in order: response "
-                "elements, Quick Parts and placeholders for authors. Make templates puts them at the section's start.")   # 3.45.0
+                "elements, Quick Parts and placeholders for authors. Make the setup puts them at the section's start.")   # 3.45.0
     from .sectioneditor import SectionEditor
     st["section_editor"] = SectionEditor(page, key)
     c6.body.addWidget(st["section_editor"])

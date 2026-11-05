@@ -861,10 +861,12 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
             if x.get("where") != "after":
                 d.body.append(EB.lib_xml(x))
         pp = S["owners"].get(lab) or {}
-        if pp.get("lead") or pp.get("with"):                      # 2.38.0: who writes this section
-            d.para("Lead: " + (pp.get("lead") or "-") + (f"   Contributors: {pp['with']}" if pp.get("with") else ""), color="1E3A8A", kind="note")
+        due = (S.get("due") or {}).get(lab, "")                   # 3.56.0: the section's due date (Setup page)
+        if (pp.get("lead") or pp.get("with") or due) and "author" not in d.skip:   # 2.38.0: who writes this section
+            d.para("Lead: " + (pp.get("lead") or "-") + (f"   Contributors: {pp['with']}" if pp.get("with") else "")
+                   + (f"   Due: {due}" if due else ""), color="1E3A8A", kind="note")
         bud = ((S.get("budget") or {}).get("pages") or {}).get(lab)   # 3.1.0: the section's page budget
-        if bud:
+        if bud and "pages" not in d.skip:
             src = ((S.get("budget") or {}).get("source") or {}).get(lab, "team")    # 3.18.2: the RFP's limit or the team's guideline
             d.para(("Page limit (the RFP): " if src == "rfp" else "Page guideline (the team): ")
                    + f"{int(bud) if float(bud).is_integer() else bud} page{'s' if float(bud) != 1 else ''}"
@@ -908,6 +910,8 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
                 others = [r for r in links if r != last_req]
                 if len(links) > 1 and others:          # 2.35.0: shared Context names the other requirements it explains
                     d.rich([("Also support for " + ", ".join(others), {"color": "6B7280"})], indent=720, kind="support")
+            elif ("eval" if kind_of(it) == "Evaluation" else "req") in d.skip:   # 3.56.0: the Setup page's layer is off
+                continue
             else:
                 d.rich(cwords.docx_parts(block_text(M, it, inh), {"color": PURPLE}, cw)
                        + ([(f"  ({where})", {"color": "6B7280"})] if where else []), kind="rfp")

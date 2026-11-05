@@ -41,10 +41,11 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "settings": ("Settings", "New effort, the effort's folders, the master database, backups"),
           "read": ("Read into Review", "Read several customer documents into the compliance matrix at once"),
           "structure": ("Structure Builder", "Build the response: sections and headings, elements, library items, and "
-                        "everything placed in each section; Make templates from it"),
+                        "everything placed in each section; Make the setup from it"),
           "assign": ("Review", "Read every sentence on the page: decide it and capture what it holds"),
           "prove": ("Coverage", "Every sentence of every file read and decided, and the word-for-word text check"),
           "crosswalk": ("L/M Crosswalk", "Each instruction, the factor that scores it, and the work it describes"),
           "matrix": ("Matrix", "The compliance matrix as the customer will see it"),
           "setup": ("Response Setup", "The Word documents your writers start from"),
+          "setups": ("Setup", "The starting draft each author writes in: a structure, who writes each section and when, what fills it, made on each volume's template"),
           "postsub": ("Post-Submission Checklist", "What the team does after the proposal goes in: owners, due dates, done")}

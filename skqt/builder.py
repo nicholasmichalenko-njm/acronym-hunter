@@ -154,8 +154,8 @@ class BuilderPage(QWidget):
         top.addWidget(D.button("Kickoff packets...", None, lambda: self.kickoff(),                    # 3.37.0
                                "One Word file per author: their sections, the customer's words, how each is scored, "
                                "objectives, themes, topics, answers, pages and dates"))
-        top.addWidget(D.button("Make templates", "primary", lambda: self.host.prodstd_page.make_templates("effort"),
-                               "For each volume: its template from Production Standards, and the setup written on it"))
+        top.addWidget(D.button("Make the setup", "primary", lambda: self.host.go("setups"),       # 3.56.0: the Setup page
+                               "Who writes each section, when it is due, what fills it, and each volume's setup on its template"))
         # the toolbar: what the selected item is, like Word's style buttons
         bar = QFrame(); bar.setObjectName("navband"); bl = FlowLayout(spacing=D.SPACE["xs"]); bar.setLayout(bl)
         bl.setContentsMargins(D.SPACE["s"], D.SPACE["xs"], D.SPACE["s"], D.SPACE["xs"])

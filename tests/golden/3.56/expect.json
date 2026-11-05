@@ -1,0 +1,103 @@
+{
+ "version": "3.56",
+ "package": "Kestrel.skpkg",
+ "effort": "Kestrel",
+ "stage": "Author drafts",
+ "prod_std": {
+  "effort_type": "kestrel_rfi",
+  "response_type": "RFI",
+  "rules_off": [
+   "2"
+  ],
+  "body_size": 11.5
+ },
+ "record": {
+  "due": "2026-12-15 14:00",
+  "note": "Kickoff held",
+  "task": "Draft the cover"
+ },
+ "customer_file": "Kestrel RFI.txt",
+ "standards": {
+  "effort_type": "Kestrel RFI",
+  "a_number": "AA A Number",
+  "used_on": [
+   "AA Title Page Name",
+   "Title page"
+  ],
+  "body_font": "Georgia"
+ },
+ "rules": {
+  "own": "Every graphic has a callout in the text before it appears.",
+  "off": "12"
+ },
+ "phrase": "proposals are limited to",
+ "matrix_view": "Kestrel outline view",
+ "data_file": "Team.skdata",
+ "hf_cells": {
+  "part": "body",
+  "line2": "Kestrel standard line"
+ },
+ "sections": {
+  "part": "body",
+  "title": "Executive Summary",
+  "setup_part": "cover",
+  "setup": "portrait"
+ },
+ "team_line": {
+  "words": "Kestrel Systems proprietary",
+  "qp": "Kestrel Callout"
+ },
+ "profile": {
+  "eid": "rfp",
+  "pid": "proposal",
+  "volumes": [
+   "Volume I Kestrel Technical",
+   "Volume II Kestrel Management"
+  ],
+  "table_min": 10
+ },
+ "library": {
+  "draft": "AA Kestrel Draft Style",
+  "effort_type": "kestrel_rfi",
+  "converted": true,
+  "quickpart": {
+   "name": "AA Kestrel Callout",
+   "category": "05 Callouts",
+   "pages": 2
+  }
+ },
+ "data_call": {
+  "code": "DC-1",
+  "answer": "Three campaigns, eight cycles each.",
+  "status": "Answered"
+ },
+ "comment": {
+  "text": "Add the test schedule.",
+  "disposition": "Reject",
+  "reason": "It is in Volume III"
+ },
+ "draft": {
+  "section": "1.1 Technical Approach",
+  "status": "Not started"
+ },
+ "capture": {
+  "text": "They worry about schedule risk.",
+  "source": "meeting"
+ },
+ "techedit": {
+  "term": [
+   "web site",
+   "website"
+  ],
+  "off": "passive",
+  "word": "Kestrelnet"
+ },
+ "acronyms": {
+  "omitted": "KTV",
+  "first_use": [
+   "KLT",
+   "Volume I Technical.docx",
+   "Volume I Technical.docx (para 4)"
+  ]
+ }
+}
