@@ -193,7 +193,7 @@ class ToolsHome(QWidget):
     # ---- actions
     def open(self, key):
         t, _what, kind = TOOLS[key]
-        diag.activity("home_tool_opened", tool=key)
+        diag.activity("home_tool_opened")
         if kind == "window":
             return self.host.open_tool({"acrfinder": "acronyms"}.get(key, key))
         return self.host.go(key)
@@ -226,7 +226,7 @@ class ToolsHome(QWidget):
         self.run(use, paths)
         RF.add(self.host.config_dir, paths, dict((k, t.split(" (")[0]) for k, t, _ in USES).get(use, use))
         self.refresh()
-        diag.activity("home_files_used", use=use, n=len(paths))
+        diag.activity("home_files_used", n=len(paths))
         return use
 
     def run(self, use, paths):
