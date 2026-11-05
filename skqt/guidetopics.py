@@ -386,6 +386,25 @@ TOPICS = [
    "Save as one .txt..., Save one .txt per file... (each named after its file, with _fulltext), or Copy."],
   ["The text carries the same classification and markings as the source files. Save and handle it the same way.",
    "The same reader and sandbox as the scan; nothing leaves the PC."]),
+ ("techedit", "Technical Edit", "Technical Edit",
+  "Copy review: the editor's pass on the words of a Word draft, by rules: mechanics, consistency across authors, Chicago "
+  "style (numbers one to nine spelled out), plain language (30 words a sentence, passive voice), the customer's words, "
+  "claims without proof and leftovers from reused text. Every finding is a suggestion you accept or skip.",
+  "Before a color review on a complete draft (Full copy review), after authors merge (Consistency and mechanics), and in "
+  "the last hour before the PDFs (Last look).",
+  ["Pick the draft (the effort's Volumes folder, or Add files... for any Word file) and the level, then press Review.",
+   "Filter by group, Fix or Check, and status. Select a finding: its sentence shows with the words marked, the suggestion "
+   "and why.",
+   "Accept puts the fix in the edited copy. Skip here leaves this place alone on every later review. Skip in this effort "
+   "turns the rule off for the effort. Add to the style sheet makes a term the effort's own, or a word known.",
+   "Make the edited copy writes the accepted findings into a dated copy beside the draft, as tracked changes with a comment "
+   "naming the rule. Open it in Word and use Review > Accept.",
+   "Style sheet: the effort's terms, the rules on in this effort and the words known; Export the style sheet... gives "
+   "authors a Word file."],
+  ["The draft itself is never changed.",
+   "Spelling uses an English word list and the team's custom dictionaries (Team References); banned phrases come from Team "
+   "References; acronyms are read from the acronym list, and fixes to them stay in Acronyms.",
+   "Drop a Word file on Your Tools and pick Copy review to use it with no effort open."]),
  ("reviews", "Reviews", "Color Reviews",
   "Color team review packets: a Word file with every requirement under its section, for reviewers to give a verdict "
   "and comments, read back onto each requirement.",

@@ -19,6 +19,7 @@ OFFICE = (".docx", ".xlsx", ".pptx")
 USES = (("acrfinder", "Find acronyms (Acronym Finder, its own window)", None),
         ("acronyms", "Find acronyms in what I am working on", None),
         ("firstuse", "Check first use (First Use Check)", (".docx",)),
+        ("copyreview", "Copy review (Technical Edit) of what I am working on", (".docx",)),
         ("fulltext", "Pull out all the text (Full Text)", None),
         ("library", "Add to the Library of what I am working on", None),
         ("audit", "Audit against the standards (changes nothing)", OFFICE))
@@ -36,10 +37,11 @@ TOOLS = {"acrfinder": ("Acronym Finder", "Scan any files for acronyms, apart fro
          "profiles": ("Effort Profiles", "Profiles built by picking", "page"), "fixcopy": ("Fix a Copy", "Fixes into a dated copy", "page"),
          "audit": ("Audit", "Files against every standard", "page"), "home": ("Effort Dashboard", "Where the effort stands", "page"),
          "mywork": ("My Work", "Your work in every effort", "page"), "refs": ("Team References", "The lists the team keeps", "page"),
-         "custqa": ("Customer Q&A", "Questions to the customer", "page")}
-ROLE_PINS = {"Production": ["acrfinder", "firstuse", "templates", "checks", "fixcopy", "refs"],
+         "custqa": ("Customer Q&A", "Questions to the customer", "page"),
+         "techedit": ("Technical Edit", "Copy review of a draft", "page")}
+ROLE_PINS = {"Production": ["acrfinder", "firstuse", "techedit", "templates", "checks", "fixcopy", "refs"],
              "Proposal Manager": ["home", "assign", "reviews", "mywork", "acrfinder", "qa"],
-             "Author": ["mywork", "drafts", "acrfinder", "firstuse", "truth", "storyboards"],
+             "Author": ["mywork", "drafts", "techedit", "acrfinder", "firstuse", "truth", "storyboards"],
              "Reviewer": ["reviews", "assign", "checks", "acrfinder"],
              "Capture": ["library", "assign", "structure", "custqa"]}
 PINS_FILE = "home_pins.json"
@@ -250,6 +252,9 @@ class ToolsHome(QWidget):
             s = h.acronym_page.session
             last = ((s.last_scan or {}).get("paths") if s is not None else None) or []
             return h.acronym_page.scan(AL.add_files(last, paths))
+        if use == "copyreview":
+            h.go("techedit")
+            return h.techedit_page.add_files(paths, run=True)
         if use == "library":
             h.go("library")
             return h.library_page.add(paths)

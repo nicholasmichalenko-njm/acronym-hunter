@@ -42,6 +42,7 @@ RAIL = [("Home", [("tools", "Your Tools"), ("mywork", "My Work"), ("efforts", "A
         ("Plan", [("structure", "Structure Builder"), ("storyboards", "Storyboards")]),
         ("Write", [("drafts", "Draft Status"), ("truth", "Wall of Truth")]),
         ("Acronyms", [("acronyms", "Acronyms")]),
+        ("Technical Edit", [("techedit", "Technical Edit")]),             # 3.54.0: copy review
         ("Reviews", [("reviews", "Color Reviews")]),
         ("Check and Submit", [("qa", "Submission Check"), ("checks", "Final Checks")]),
         ("Production", [("formatstd", "Formatting Standards"), ("qpstd", "Quick Parts"), ("layoutstd", "Layout"),
@@ -270,6 +271,8 @@ class MainWindow(QMainWindow):
         self.formatstd_page = FormattingStandardsPage(self)   # 3.49.0: the first library screen
         self.qpstd_page = QuickPartsPage(self)                # 3.50.0
         self.layoutstd_page = LayoutPage(self)
+        from .techeditpage import TechEditPage
+        self.techedit_page = TechEditPage(self)                  # 3.54.0
         from .toolshome import ToolsHome
         from .refspage import TeamReferencesPage
         self.tools_page = ToolsHome(self)                       # 3.53.0: the first screen
@@ -289,7 +292,7 @@ class MainWindow(QMainWindow):
                       "drafts": self.drafts_page, "formatstd": self.formatstd_page,
                       "qpstd": self.qpstd_page, "layoutstd": self.layoutstd_page,
                       "profiles": self.profiles_page, "templates": self.templates_page,
-                      "tools": self.tools_page, "refs": self.refs_page}
+                      "tools": self.tools_page, "refs": self.refs_page, "techedit": self.techedit_page}
         for pg in self.pages.values():
             self.stack.addWidget(pg)
         from .roleview import NoticePage                 # 3.13.0: a tool for another role, or a Preview tool not turned on

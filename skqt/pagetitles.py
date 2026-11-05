@@ -5,6 +5,7 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "formatstd": ("Formatting Standards", "The fundamentals every template is built from: theme, fonts, page setups, pagination, numbering, lists and styles; each named, tagged by effort type, every value editable"),
           "qpstd": ("Quick Parts", "Every Quick Part by your numbered categories: its gallery, whether it follows the template's fonts, the pages it fills, and Word's picture of it"),
           "layoutstd": ("Layout", "Covers, title pages, back covers, headers and footers, sections, table looks, captions and the TOC, each with its picture and every value"),
+          "techedit": ("Technical Edit", "Copy review: mechanics, consistency, Chicago style, plain language, the customer's words and leftovers, with the edited copy as tracked changes"),
           "tools": ("Your Tools", "Drop any file and pick what to do with it, your pinned tools, recent files and your efforts"),
           "refs": ("Team References", "The lists the team keeps, read by every space: dictionaries, banned phrases, the acronym database, the Exclusion List, fixes for misread text"),
           "profiles": ("Effort Profiles", "Each effort type's profiles, built by picking from the libraries, with the RFP's size limits checked as you pick"),

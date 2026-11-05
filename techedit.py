@@ -210,8 +210,10 @@ def review(source, level="full", sheet=None, refs=None):
     acr_upper = {t.upper(): t for t in acr if t.upper() != t}
     defined = {}
     variant_seen = {}
-    for a, b in VARIANTS + tuple((k, v) for k, v in (sheet.get("terms") or {}).items()):
+    for a, b in VARIANTS:
         variant_seen[(a, b)] = (len(_word_re(a).findall(alltext)), len(_word_re(b).findall(alltext)))
+    terms = [(_word_re(k), v) for k, v in (sheet.get("terms") or {}).items() if k and v and k.lower() != v.lower()]
+    extra |= {w.lower() for w in (sheet.get("words") or [])}
     gov_cap = len(re.findall(r"\bGovernment\b", alltext))
     banned = [(it, __import__("banned").pattern(it["Phrase"])) for it in (refs.get("banned") or []) if it.get("Phrase")]
     others = [n for n in (refs.get("other_names") or []) if len(n) >= 4]
@@ -258,6 +260,10 @@ def review(source, level="full", sheet=None, refs=None):
                     for m in _word_re(minor).finditer(t):
                         _f(out, "variants", p, m.start(), m.end(), _matches_case(m.group(0), major),
                            f"The draft writes both; {major} is used more (or set in the style sheet).", section=sec)
+        if on("variants"):                               # the effort's style sheet: the written form is always flagged
+            for rx, right in terms:
+                for m in rx.finditer(t):
+                    _f(out, "variants", p, m.start(), m.end(), _matches_case(m.group(0), right), "The effort's style sheet.", section=sec)
         if on("hyphen_forms"):
             for m in re.finditer(r"\b([a-z]{2,})-([a-z]{2,})\b", t):
                 closed = m.group(1) + m.group(2)
