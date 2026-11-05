@@ -35,7 +35,7 @@ VDIR = os.path.join(tmp, "volumes"); os.makedirs(VDIR)
 VOL = shutil.copy2(os.path.join(A.BASE_DIR, "test_samples", "Kestrel_Technical_Volume.docx"), VDIR)
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-check("the rail: QA/QC, Keywords, Export all, Settings", all(k in w.step_btns for k in ("qa", "keywords", "exportall", "settings")))
+check("the rail: Final Check (Submission Check is its tab, 3.58.0), Keywords, Export all, Settings", all(k in w.step_btns for k in ("finalcheck", "keywords", "exportall", "settings")))
 # a new effort from Settings
 w.go("settings"); app.processEvents()
 sp = w.settings_page
@@ -71,7 +71,7 @@ p = qp.export(os.path.join(tmp, "qa.xlsx")); made = qp.lists(os.path.join(tmp, "
 check("export the report and the volume's acronym list", p and os.path.isfile(p) and made and made[0].endswith("_Acronym_List.docx"))
 # 2.86.0 response quality: submission volumes marked once, the lists to submit leave out what no volume uses
 w.go("qa"); app.processEvents()
-check("the page says which end it serves", "END" in qp.where.text() and "Submission Check" == w.page_title.text())
+check("the page says which end it serves", "END" in qp.where.text() and "Final Check" == w.page_title.text() and w._tab_keys[w.page_tabs.currentIndex()] == "qa")
 check("submission volumes are marked once and saved", qp.add_volumes([VOL]) == 1 and qp.add_volumes([VOL]) == 0
       and qp.vol_list.count() == 1 and w.ws.get("submission_volumes") == [VOL])
 qp.check_volumes()

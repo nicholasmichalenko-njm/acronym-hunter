@@ -32,7 +32,7 @@ w.refresh_access(); app.processEvents()
 gone = ["mywork", "drafts", "truth", "storyboards", "reviews"]
 check("the pages set aside leave the menu", all(not w.step_btns[k].isVisible() for k in gone),
       {k: w.step_btns[k].isVisible() for k in gone})
-check("... production's pages stay", all(w.step_btns[k].isVisible() for k in ("tools", "shredreq", "setups", "acronyms", "techedit", "checks", "templates")))
+check("... production's pages stay", all(w.step_btns[k].isVisible() for k in ("tools", "shredreq", "setups", "acronyms", "techedit", "finalcheck", "templates")))
 check("... an emptied group's title goes too", not w.group_heads["Reviews"].isVisible() and not w.group_heads["Write"].isVisible())
 w.go("custqa"); app.processEvents()
 check("Data calls leaves Customer Q&A's tabs", w._tab_keys == ["custqa"], w._tab_keys)
