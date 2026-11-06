@@ -40,6 +40,8 @@ TH.add(r0, "Thermal margin you can prove", "Every design point tested at 1.5x")
 WT.add(r0, "Mass budget", "412 kg")
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
+from skqt import modes
+modes.save(show_set_aside=True)   # 3.61.0: stages, gate goals, win themes and All overviews are set aside; their code is still tested
 w.open_effort("Kestrel")
 w.go("home"); app.processEvents()
 hp = w.home_page
