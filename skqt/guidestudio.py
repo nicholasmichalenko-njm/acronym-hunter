@@ -63,9 +63,16 @@ APPLYWORD = \
   ["The list is Team References > Banned phrases.", "Allow lasts until Stationkeeper closes."])
 
 
-CHECKS369 = (   # 3.69.0: lines added to topics in guidetopics (rules, formatstd, profiles) by key
+CHECKS369 = (   # 3.69.0 and later: lines added to topics in guidetopics by key
     ("rules", "Fix a Copy's checks: graphics, Excel and PowerPoint, and the words Fix a Copy reports and fixes (they were in "
               "Production Standards)."),
     ("formatstd", "Allowed styles...: the styles a finished document may use and the styles the rules read."),
     ("profiles", "Content map, fields and font rules...: every font rule, the content map and the fields, for the picked "
-                 "profile in its effort type."))
+                 "profile in its effort type."),
+    ("setups", "From an outline workbook... (3.71.0): pick the team's outline Excel. Say what each column holds, and for a "
+               "column whose cells mix kinds of text, the setup style each look takes (black italic is supporting RFP "
+               "text, say). The preview shows the setup as it will be, each block in its style's look. Use this structure "
+               "makes the sections and places every requirement; Save these columns and rules... keeps them for the next "
+               "workbook laid out the same way."),
+    ("setups", "Setup styles...: each kind of setup text's style name, font, size, color, bold, italic and hidden. Save for "
+               "this effort, Use for every effort, or Put them in this effort's template."))

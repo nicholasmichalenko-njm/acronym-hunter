@@ -44,6 +44,8 @@ class SetupsPage(QWidget):
         self.heads.setMinimumHeight(110)
         self.start_card.add(self.heads)
         sr = QHBoxLayout(); sr.setSpacing(D.SPACE["s"])
+        sr.addWidget(D.button("From an outline workbook...", None, lambda: self.from_outline(),       # 3.71.0
+                              "Your outline Excel: sections, requirements, supporting text, guidance and authors, each in its setup style"))
         sr.addWidget(D.button("From a Word outline...", None, lambda: self.from_docx(), "The headings of a Word document"))
         sr.addWidget(D.button("From an RFP's headings...", None, lambda: self.from_rfp(),
                               "The volumes and sections the RFP prescribes, else its numbered headings"))
@@ -95,6 +97,10 @@ class SetupsPage(QWidget):
 
         bar = QHBoxLayout(); bar.setSpacing(D.SPACE["s"]); v.addLayout(bar)
         self.note = D.label("", "muted"); bar.addWidget(self.note, 1)
+        bar.addWidget(D.button("From an outline workbook...", "ghost", lambda: self.from_outline(),     # 3.71.0
+                               "Read your outline Excel again (it replaces what an earlier import of it made)"))
+        bar.addWidget(D.button("Setup styles...", None, lambda: self.styles(), "The setup's own styles: name, font, size, color, "
+                               "bold, italic, hidden"))
         bar.addWidget(D.button("Strip setup...", "ghost", lambda: self.strip_files(),                 # 3.60.0
                                "Before a volume goes out: a clean copy with the setup's reference text, styles and file "
                                "properties taken out"))
@@ -109,6 +115,69 @@ class SetupsPage(QWidget):
     def _M(self):
         R = self.host.review
         return R.M if R is not None else None
+
+    # ------------------------------------------------------------ 3.71.0: the outline workbook and the setup styles
+    def setup_opts(self):
+        import prodrules as PRL
+        import setuptemplate as ST
+        try:
+            std = PRL.for_effort(self.host.config_dir, self.host.ws)
+        except Exception:  # noqa: BLE001  no standard yet: the kinds' defaults
+            diag.swallowed(); std = None
+        return ST.options(self._M(), std)
+
+    def set_setup_opts(self, opts):
+        import setuptemplate as ST
+        M = self._M()
+        if self.host.ws is not None:
+            ST.set_options(M, opts, self.host.ws)
+        elif M is not None:
+            ST.set_options(M, opts)
+            M.pending = True
+
+    def styles(self, modal=True):
+        from .setupstyles import SetupStyles
+        dlg = SetupStyles(self)
+        if modal:
+            dlg.exec()
+        return dlg
+
+    def from_outline(self, path=None, profile=None, accept=None):
+        from .outlineimport import import_outline
+        return import_outline(self, path, profile, accept)
+
+    def use_outline(self, parsed, file_name):
+        """The outline's structure and blocks into the effort (a new compliance matrix when it has none)."""
+        import outlinexl as OX
+        R = self.host.review
+        if R is not None:
+            R.snap()
+            M = R.M
+        else:
+            if self.host.ws is None or not self.host.effort_path:
+                self.host.status("Pick an effort first, or work in Unfiled.")
+                return None
+            path = self.host.out_path("compliance_matrix")
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            stem, ext = os.path.splitext(path)
+            k = 2
+            while os.path.exists(path):
+                path = f"{stem} ({k}){ext}"; k += 1
+            M = SM.start(path, (self.host.effort_name or "Effort"), "")
+            self.host.set_matrix(M, new=True)
+            M = self.host.review.M
+        n = OX.apply(M, parsed, file_name, who=getattr(self.host, "my_name", None) or None)
+        M.pending = True
+        diag.activity("setup_outline_used", n=n["requirements"])
+        self.host.changed()
+        try:
+            self.host.assign_page.fill_tree()
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+        self.refresh()
+        self.host.toast(f"From {file_name}: {n['sections']} section(s), {n['requirements']} requirement(s), {n['support'] + n['customer']} "
+                        f"supporting and customer block(s), {n['guidance']} guidance note(s)")
+        return n
 
     def refresh(self):
         M = self._M()

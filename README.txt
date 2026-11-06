@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SETUP FROM AN OUTLINE WORKBOOK, AND THE SETUP'S OWN STYLES (3.71.0)
+  - Setup > From an outline workbook...: pick the outline Excel (section number and name, RFP reference, compliance
+    requirement, supporting RFP content, authors, management guidance). Each column's job is guessed from its heading;
+    change any. A column whose cells mix kinds of text lists each look it uses (a color, italic, bold) with a sample;
+    pick the setup style each look takes. The preview shows the setup as it will be: Word's numbered headings, each
+    block in its setup style's color, bold and italic, hidden text on a gray band, and anything to look at (a
+    requirement with no reference, a section that comes back later). Use this structure makes the sections, keeps and
+    places each requirement with its reference, puts the customer and supporting text beside it, the guidance as its
+    note, and the authors as the section's lead. Save these columns and rules... keeps them for the next workbook with
+    the same headings. Importing the same workbook again replaces what it made last time.
+  - Setup > Setup styles...: for each kind of setup text, the style name, font, size, color, bold, italic and hidden,
+    with a sample. Save for this effort; Use for every effort; or Put them in this effort's template (its Effort
+    Formatting carries them, so the template made for it has them). No template is needed to make the setup.
+
 ARCHIVE EFFORTS, AND MERGE ANOTHER COPY OF AN EFFORT (3.70.0)
   - All Efforts: right-click an effort for Open, Add to this effort..., and Archive.... Archive asks "Are you sure?"
     (Yes or No). An archived effort leaves All Efforts and the effort lists; its files stay where they are. Show

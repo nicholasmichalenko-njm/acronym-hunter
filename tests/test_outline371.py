@@ -158,4 +158,5 @@ check("Put them in this effort's template: each style in the effort's own format
       and sd["Compliance Requirement"]["used_on"] == "Setup" and sd["Supporting RFP Text"]["italic"] == "on" and sd["Compliance Requirement"]["hidden"] == "on")
 
 print(f"OUTLINE 371 {'OK' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
-sys.exit(0 if all(checks) else 1)
+if __name__ == "__main__":                                   # qt_outline371 imports the workbook maker
+    sys.exit(0 if all(checks) else 1)
