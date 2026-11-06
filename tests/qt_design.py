@@ -52,7 +52,7 @@ steps = [b.text() for k, b in w.step_btns.items()]
 check("the rail: the steps in Qt, then the areas still in the classic app (grey)", rail[:len(steps)] == steps
       and steps[3:10] == ["Effort Dashboard", "Deliverables", "Evaluation Criteria", "Effort Formatting", "Effort Record", "Library",
                          "Customer Q&&A"] and "Matrix" in steps   # 3.16.0: one place per job; 3.53.0: spaces
-      and steps[17:22] == ["Setup", "Storyboards", "Draft Status", "Wall of Truth", "Acronyms"] and "Accuracy" in steps and steps[-5:] == ["Checklist", "Keywords", "Export All", "Settings", "Production Standards"]   # 3.52.0: Advanced last
+      and steps[17:22] == ["Setup", "Storyboards", "Draft Status", "Wall of Truth", "Acronyms"] and "Accuracy" in steps and steps[-4:] == ["Checklist", "Keywords", "Export All", "Settings"]   # 3.69.0: Production Standards off the menu
       and all(not b.isEnabled() for b in w.findChildren(type(w.step_btns["home"])) if b.objectName() == "rail" and b.text() not in steps), rail)
 w.go("prove"); app.processEvents()
 check("the top bar names the page: Coverage is a tab of Review", w.page_title.text() == "Review" and w.stack.currentWidget() is w.prove_page
