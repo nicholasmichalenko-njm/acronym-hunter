@@ -1,6 +1,18 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SORT II: FROM TOPICS TO THE OUTLINE (3.65.0)
+  - Suggestions: in Unsorted, a requirement whose words point at one topic shows that topic and why. Keywords... on a
+    topic adds its pointing words (they count most); the words of its name count too. Take the suggestions files the
+    selected rows, or every row shown. Nothing is filed until you take it.
+  - View: Structure: each topic with the sections it fills, its requirements, how many are kept and placed, and our
+    fit. Map to it: the selected topics fill a section. Make subsections under it: a section per selected topic (its
+    subtopics under it) under the section or volume chosen. Place their requirements: each kept requirement with no
+    section goes to its home topic's first section.
+  - Make the response from the topics (an RFI or sources sought): a Response volume with a section per topic.
+  - Our fit per topic: Strong, Partial or Gap, shown in Structure and Overview.
+  - Section L still sets an RFP's volumes and top sections; topics fill what sits under them.
+
 SORT (3.64.0)
   - Shred > Sort: name the big areas of what is being bought and file every requirement under one before the outline
     is built. Unsorted sits on top with its count; pick a topic to see its requirements.

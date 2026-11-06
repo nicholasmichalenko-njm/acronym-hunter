@@ -381,3 +381,133 @@ def read_back(rec, items, path):
     rec.log("effort", f"Topics read back from a matrix workbook: {out['filed']} sentence(s)")
     rec.save()
     return out
+
+
+# ------------------------------------------------------------------ 3.65.0 Sort II: structure, fit and suggestions
+FIT = ("", "Strong", "Partial", "Gap")
+
+
+def set_fit(rec, tid, fit):
+    t = get(rec, tid)
+    if t is None or fit not in FIT:
+        return False
+    t["fit"] = fit
+    rec.save()
+    return True
+
+
+def set_keywords(rec, tid, words):
+    """The words that point at a topic (a list, or text with commas between them)."""
+    t = get(rec, tid)
+    if t is None:
+        return False
+    if isinstance(words, str):
+        words = words.split(",")
+    t["keywords"] = [w for w in dict.fromkeys(_clean(x, 60) for x in words) if w]
+    rec.save()
+    return True
+
+
+_STOP = {"the", "and", "for", "with", "management", "support", "services", "plan", "system", "systems"}
+
+
+def _words(t):
+    """A topic's pointing words: its keywords, then the longer words of its name and other names."""
+    out = list(t.get("keywords") or [])
+    for n in [t["name"]] + list(t.get("aliases") or []):
+        out += [w for w in re.findall(r"[A-Za-z][A-Za-z-]{3,}", n) if w.casefold() not in _STOP]
+    return [w for w in dict.fromkeys(out) if w]
+
+
+def suggest(rec, items):
+    """{sentence id: (topic id, reason)} for each unsorted sentence whose words point at one topic more than any other.
+    Keywords count twice a name word. Never files anything: the person takes a suggestion."""
+    ts = [(t, _words(t)) for t in topics(rec)]
+    out = {}
+    for it in unsorted(rec, items):
+        low = " " + " ".join(str(it.get("text") or "").split()).casefold() + " "
+        best, why, second = None, [], 0
+        for t, ws in ts:
+            hit = [w for w in ws if re.search(r"(?<![a-z0-9])" + re.escape(w.casefold()) + r"(?![a-z0-9])", low)]
+            score = sum(2 if w in (t.get("keywords") or []) else 1 for w in hit)
+            if score > (best[1] if best else 0):
+                second = best[1] if best else 0
+                best, why = (t, score), hit
+            elif best and score == best[1]:
+                second = score
+        if best and best[1] > second:
+            out[it["id"]] = (best[0]["id"], "matched: " + ", ".join(why[:4]))
+    return out
+
+
+def structure_rows(rec, items, labels=()):
+    """[{id, name, parent, sections, home, kept, placed, fit}] for every topic: its requirements (home), how many are
+    kept, how many kept ones are in a section, and the sections it fills."""
+    tags = rec.data.get("topic_tags", {})
+    by = {it.get("id"): it for it in sortable(items)}
+    have = set(labels)
+    out = []
+    for t in roots(rec):
+        for x in [t] + children(rec, t["id"]):
+            sids = [s for s, xs in tags.items() if xs and xs[0] == x["id"] and s in by]
+            kept = [by[s] for s in sids if by[s].get("decision") == "Keep"]
+            out.append({"id": x["id"], "name": x["name"], "parent": x.get("parent", ""), "fit": x.get("fit", ""),
+                        "sections": [s for s in (x.get("sections") or []) if not have or s in have],
+                        "home": len(sids), "kept": len(kept), "placed": sum(1 for it in kept if it.get("map"))})
+    return out
+
+
+def gaps(rec, items, labels=()):
+    """What the structure still misses: topics with requirements and no section, kept requirements with a topic and no
+    section, sections no topic fills."""
+    rows = structure_rows(rec, items, labels)
+    filled = {s for r in rows for s in r["sections"]}
+    return {"no_section": [r["name"] for r in rows if r["home"] and not r["sections"]],
+            "unplaced": sum(r["kept"] - r["placed"] for r in rows),
+            "empty_sections": [l for l in labels if l not in filled]}
+
+
+def map_section(rec, tid, label, add=True):
+    """The topic fills the section (first section first); add=False makes it the only one."""
+    t = get(rec, tid)
+    if t is None or not label:
+        return False
+    cur = list(t.get("sections") or [])
+    t["sections"] = (cur if label in cur else cur + [label]) if add else [label]
+    rec.save()
+    return True
+
+
+def make_subsections(rec, M, tids, parent=""):
+    """A section for each topic named, under parent (a volume or a section), its subtopics as subsections under it;
+    each topic then fills its section. Returns {topic id: section label}."""
+    import outline_ops as O
+    made = {}
+    for tid in tids:
+        t = get(rec, tid)
+        if t is None:
+            continue
+        lab = O.add(M, t["name"], parent=parent) if parent else O.add(M, t["name"])
+        t["sections"] = [lab] + [s for s in (t.get("sections") or []) if s != lab]
+        made[tid] = lab
+        for c in children(rec, tid):
+            if c["id"] in tids:
+                continue
+            cl = O.add(M, c["name"], parent=lab)
+            c["sections"] = [cl] + [s for s in (c.get("sections") or []) if s != cl]
+            made[c["id"]] = cl
+    rec.log("effort", f"Sections from topics: {len(made)}")
+    rec.save()
+    return made
+
+
+def to_place(rec, items):
+    """{section label: [kept sentences with no section]} by their home topic's first section."""
+    tags = rec.data.get("topic_tags", {})
+    secs = {t["id"]: (t.get("sections") or [""])[0] for t in topics(rec)}
+    out = {}
+    for it in sortable(items):
+        xs = tags.get(it["id"]) or []
+        if it.get("decision") == "Keep" and not it.get("map") and xs and secs.get(xs[0]):
+            out.setdefault(secs[xs[0]], []).append(it)
+    return out

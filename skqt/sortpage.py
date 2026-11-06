@@ -26,7 +26,7 @@ class SortPage(QWidget):
         v = QVBoxLayout(self); v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         top = QHBoxLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)
         self.sumlab = D.label("", "title"); top.addWidget(self.sumlab, 1)
-        self.view = QComboBox(); self.view.addItems(["Sort", "Overview"]); self.view.currentIndexChanged.connect(lambda i: self.stack.setCurrentIndex(i))
+        self.view = QComboBox(); self.view.addItems(["Sort", "Overview", "Structure"]); self.view.currentIndexChanged.connect(lambda i: self.stack.setCurrentIndex(i))
         top.addWidget(self.view)
         self.start = QComboBox(); self.start.addItem("Start from...", "")
         for k, lab in (("headings", "The RFP's headings (its own numbering)"), ("factors", "The evaluation factors"),
@@ -54,10 +54,11 @@ class SortPage(QWidget):
         tb.addWidget(D.button("Rename", "ghost", lambda: self.rename()))
         tb2 = QHBoxLayout(); lv.addLayout(tb2)
         tb2.addWidget(D.button("Merge into...", "ghost", lambda: self.merge()))
+        tb2.addWidget(D.button("Keywords...", "ghost", lambda: self.keywords(), "Words that point at this topic, for the suggestions"))
         tb2.addWidget(D.button("Remove", "danger", lambda: self.remove_topic()))
         split.addWidget(left)
         mid = QWidget(); mv = QVBoxLayout(mid); mv.setContentsMargins(0, 0, 0, 0)
-        self.table = QTableWidget(0, 5); self.table.setHorizontalHeaderLabels(["ID", "", "Kind", "The customer's words", "Home"])
+        self.table = QTableWidget(0, 6); self.table.setHorizontalHeaderLabels(["ID", "", "Kind", "The customer's words", "Home", "Suggested"])
         self.table.verticalHeader().setVisible(False); self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectRows); self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
@@ -69,6 +70,8 @@ class SortPage(QWidget):
         fr.addWidget(D.button("File", "primary", lambda: self.file(self.target.currentData())))
         fr.addWidget(D.button("Also under", "ghost", lambda: self.file(self.target.currentData(), also=True), "A cross-reference: the home stays"))
         fr.addWidget(D.button("Back to Unsorted", "ghost", lambda: self.unfile()))
+        fr.addWidget(D.button("Take the suggestions", "ghost", lambda: self.take_suggestions(),
+                              "File the selected rows (or every row shown) under their suggested topic; each shows why"))
         split.addWidget(mid)
         right = QWidget(); self.card = QVBoxLayout(right); self.card.setAlignment(Qt.AlignTop)
         split.addWidget(right)
@@ -76,13 +79,15 @@ class SortPage(QWidget):
         self.stack.addWidget(sw)
         # ---- Overview
         ow = QWidget(); ol = QVBoxLayout(ow); ol.setContentsMargins(0, 0, 0, 0)
-        self.over = QTableWidget(0, 8)
-        self.over.setHorizontalHeaderLabels(["Topic", "Requirements", "shall / must", "should", "may", "Instructions (L)", "Evaluation (M)", "Work (SOW)"])
+        self.over = QTableWidget(0, 9)
+        self.over.setHorizontalHeaderLabels(["Topic", "Requirements", "shall / must", "should", "may", "Instructions (L)", "Evaluation (M)", "Work (SOW)", "Our fit"])
         self.over.verticalHeader().setVisible(False); self.over.setEditTriggers(QTableWidget.NoEditTriggers)
         self.over.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         ol.addWidget(D.label("The request at a glance: what each area asks for and how firmly.", "muted"))
         ol.addWidget(self.over, 1)
         self.stack.addWidget(ow)
+        from .sortstructure import StructureView                       # 3.65.0
+        self.struct = StructureView(self); self.stack.addWidget(self.struct)
         self.keys = []
         for n in range(9):
             sc = QShortcut(QKeySequence(str(n + 1)), self.table); sc.setContext(Qt.WidgetShortcut)
@@ -111,6 +116,7 @@ class SortPage(QWidget):
         self.fill_table(r, items)
         self.fill_targets(r)
         self.fill_overview(r, items)
+        self.struct.refresh()
         self.show_card()
 
     def fill_tree(self, r, items):
@@ -162,13 +168,16 @@ class SortPage(QWidget):
             ids = {self.showing} | {c["id"] for c in TP.children(r, self.showing)}
             rows = [it for it in srt if (tags.get(it["id"]) or [None])[0] in ids or (set(tags.get(it["id"]) or []) & ids)]
         self.rows = rows
+        self.sugg = TP.suggest(r, items) if self.showing in (UNSORTED, ALL) else {}
         self.table.setRowCount(len(rows))
         for i, it in enumerate(rows):
             xs = tags.get(it["id"]) or []
             homen = names.get(xs[0], "") if xs else ""
             if len(xs) > 1:
                 homen += f" (+{len(xs) - 1})"
-            vals = [it["id"], STRENGTH.get(it.get("strength", ""), ""), it.get("type", ""), it.get("text", ""), homen]
+            sg = self.sugg.get(it["id"])
+            vals = [it["id"], STRENGTH.get(it.get("strength", ""), ""), it.get("type", ""), it.get("text", ""), homen,
+                    f"{names.get(sg[0], '')} ({sg[1]})" if sg else ""]
             for j, val in enumerate(vals):
                 c = QTableWidgetItem(val)
                 if j == 3:
@@ -189,8 +198,9 @@ class SortPage(QWidget):
         self.over.setRowCount(len(ov))
         for i, o in enumerate(ov):
             st, ty = o["by_strength"], o["by_type"]
+            fit = (TP.get(r, o["id"]) or {}).get("fit", "") if o["id"] else ""
             for j, val in enumerate((o["name"], o["total"], st["Mandatory"], st["Desired"], st["Optional"], ty["Instruction"],
-                                     ty["Evaluation"], ty["SOW"])):
+                                     ty["Evaluation"], ty["SOW"], fit)):
                 self.over.setItem(i, j, QTableWidgetItem(str(val)))
         self.overview_now = ov
 
@@ -390,3 +400,36 @@ class SortPage(QWidget):
         self._after(f"{got['filed']} requirement(s) filed from the workbook; {got['new_topics']} new topic(s)"
                     + (f"; {got['unknown_ids']} ID(s) not in this effort" if got["unknown_ids"] else "") + ".")
         return got
+
+    # ------------------------------------------------------------ 3.65.0 suggestions
+    def keywords(self, words=None):
+        tid = self._current_topic()
+        r = self.rec()
+        t = TP.get(r, tid) if tid else None
+        if t is None:
+            self.host.status("Pick a topic first.")
+            return None
+        if words is None:
+            words, ok = QInputDialog.getText(self, f"Words for {t['name']}", "Words that point at it, commas between them "
+                                             "(for example SIEM, log retention, NIST 800-53):", text=", ".join(t.get("keywords") or []))
+            if not ok:
+                return None
+        TP.set_keywords(r, tid, words)
+        self._after("Suggestions use these words now.")
+        return TP.get(self.rec(), tid).get("keywords")
+
+    def take_suggestions(self, rows=None):
+        r = self.rec()
+        rows = rows if rows is not None else (self.selected() or self.rows)
+        sg = getattr(self, "sugg", {}) or {}
+        by = {}
+        for it in rows:
+            if it["id"] in sg:
+                by.setdefault(sg[it["id"]][0], []).append(it["id"])
+        n = 0
+        for tid, sids in by.items():
+            n += TP.file_under(r, sids, tid)
+        diag.activity("sort_suggestions_taken", n=n)
+        self._after(f"{n} requirement(s) filed under their suggested topic.")
+        return n
+

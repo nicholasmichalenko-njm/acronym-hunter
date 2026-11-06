@@ -271,7 +271,14 @@ TOPICS = [
    "name as another name; Split... cuts a compound sentence into parts with the same words (IDs .a, .b).",
    "Overview: each area's requirements, how many are shall, should and may, and how many come from L, M and the SOW.",
    "Read back from Excel...: a matrix workbook edited in Excel (ID and Topic columns, topics separated by ';') files "
-   "each sentence under the topics typed there."],
+   "each sentence under the topics typed there.",
+   "Suggested: in Unsorted, each requirement whose words point at one topic shows it and why (a topic's Keywords... "
+   "count most, then the words of its name). Take the suggestions files the selected rows, or every row shown.",
+   "View: Structure: each topic beside the response outline. Map to it (a topic fills a section), Make subsections "
+   "under it (a section per selected topic, subtopics under it), Place their requirements (each kept one goes to its "
+   "home topic's first section), and Our fit (Strong, Partial, Gap) per topic. For an RFI or sources sought, Make the "
+   "response from the topics adds a Response volume with a section per topic. The line on top says what is still "
+   "missing."],
   ["These are the same topics as Review's Sort mode and the matrix's Topic column.",
    "A topic can name its response sections (Review > Topics...): a requirement kept with no section goes to its "
    "topic's first section."]),
