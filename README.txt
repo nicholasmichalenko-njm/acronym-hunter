@@ -1,6 +1,27 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+OUTLINE AND MATRIX VERSIONS (3.73.0)
+  - Setup > Outline layouts...: set an outline's layout before you have the workbook: the heading names each column may
+    carry (Compliance Requirement, Requirement, L Requirement) and how mixed text is told apart, by color, italic and
+    bold (black italic is supporting RFP text). An import uses the layout that knows the most of its headings; a column
+    it does not know is asked about once and remembered.
+  - The first outline workbook brought in is version 1, kept in the effort's Outline Versions folder. A later one opens
+    New version of the outline: every change listed before anything changes (added, removed, changed wording,
+    reference, guidance, customer or supporting text, moved, sections renumbered, renamed, added or removed, a column
+    renamed). Rows are matched by RFP reference, then by wording. A row you placed, edited or noted in the app that the
+    new version also changes waits for your pick: keep ours or use theirs. Accept and update the effort keeps each
+    matched row's identity, so Changes for authors shows what really changed; your other app edits stay.
+  - Setup > Outline versions...: every version, any two compared, and Write the workbook back out: the next version of
+    your workbook in its own layout (title rows, headings, widths, cell styles, mixed-format cells in their looks),
+    from the effort as it is now, with a Changes sheet.
+  - Compliance matrix: each Export the matrix... is a version kept in the effort's Matrix Versions folder. Bring the
+    edited matrix back... reads the workbook through the matrix's design and lists what the team filled in (assigned to,
+    page allocation, % complete, author(s), owner, proposal page, status, notes, your own columns); a value also changed
+    here since the export waits for your pick. Rows added or left out in the workbook are listed, never applied. Merge
+    another copy's matrix... lists its values beside ours and keeps ours unless you take theirs.
+  - Importing the same outline workbook again no longer adds a section's guidance twice.
+
 THE SETUP MADE ON YOUR OWN WORD TEMPLATE (3.72.0)
   - Setup > Use a template file...: pick a Word template your team already made and trusts (.dotx, .dotm or .docx; macros
     never run and are left out), for every volume or one volume. It shows what the template holds, in order: its cover,

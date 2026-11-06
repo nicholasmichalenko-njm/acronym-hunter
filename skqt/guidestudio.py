@@ -78,4 +78,9 @@ CHECKS369 = (   # 3.69.0 and later: lines added to topics in guidetopics by key
                "this effort, Use for every effort, or Put them in this effort's template."),
     ("setups", "Use a template file... (3.72.0): the setup on a Word template your team already made. It starts blank in the "
                "template's look; tick its cover, title page or front matter, any Quick Part, and which parts keep their header "
-               "and footer. Headings follow the template's own numbering. The made file is checked before you get it."))
+               "and footer. Headings follow the template's own numbering. The made file is checked before you get it."),
+    ("setups", "Outline layouts... (3.73.0): the heading names each column may carry and how mixed text is told apart, set "
+               "before you have the workbook. A new version of the outline is compared first; changes in both wait for your "
+               "pick. Outline versions... compares any two and writes the workbook back out in its own layout."),
+    ("matrix", "Bring the edited matrix back... (3.73.0): the exported matrix as the team filled it in; their values come back "
+               "after you look. Merge another copy's matrix... keeps ours unless you take theirs."))
