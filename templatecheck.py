@@ -8,6 +8,7 @@
              carries MERGEFORMAT or CHARFORMAT (it keeps old formatting instead of the formatting where it sits)
   numbering  a list number reference with no definition
   hidden     the hidden text styles (for reference: they disappear with Show/Hide off)
+  web        (3.67.0) what Word for the web loses: fields in a text box, a STYLEREF target in a text box, content controls
 
 Read-only: the file is opened from bytes and never written. Returns a Report; Report.text() is the report in words.
 Rules only; nothing leaves the PC."""
@@ -197,9 +198,41 @@ def validate(path=None, data=None, installed_fonts=None):
         for f in sorted(fonts):
             if f.casefold() not in have:
                 rep.add("fonts", "warning", f"{f} is not installed on this PC")
+    _web(rep, z, stories, by_name)
     # hidden text styles, for reference
     for sid, (name, el) in styles.items():
         v = el.find("w:rPr/w:vanish", NS)
         if v is not None and v.get(_w("val")) not in ("0", "false"):
             rep.add("hidden", "note", f"{name} is hidden text (shows with Show/Hide on)")
     return rep
+
+
+def _web(rep, z, stories, by_name):
+    """3.67.0 web-safe check: what an author in Word for the web (a shared file on SharePoint) loses. Fields in a text box
+    are not updated there; a paragraph that a STYLEREF reads, put in a text box, is never found (STYLEREF does not look
+    into text boxes); content controls work but their settings cannot be changed there."""
+    targets = set()
+    for n in stories:
+        root = _xml(z, n)
+        for ins in (_instrs(root) if root is not None else []):
+            m = FIELD_RE.match(ins)
+            if m and m.group(1).upper() == "STYLEREF":
+                arg = (m.group(2) or m.group(3) or "").strip()
+                name = f"heading {arg}" if arg.isdigit() else arg
+                if name.casefold() in by_name:
+                    targets.add(by_name[name.casefold()])
+    for n in stories:
+        root = _xml(z, n)
+        if root is None:
+            continue
+        where = n.split("/")[-1]
+        for tb in root.iter(_w("txbxContent")):
+            kinds = sorted({i.split()[0].upper() for i in _instrs(tb)})
+            if kinds:
+                rep.add("web", "warning", f"field(s) in a text box ({', '.join(kinds)}): Word for the web does not update them", where)
+            held = sorted({el.get(_w("val")) for el in tb.iter(_w("pStyle")) if el.get(_w("val")) in targets})
+            if held:
+                rep.add("web", "problem", f"a text box holds {', '.join(held)}, which a STYLEREF reads: STYLEREF does not look into text boxes", where)
+        nsdt = sum(1 for _ in root.iter(_w("sdt")))
+        if nsdt:
+            rep.add("web", "note", f"{nsdt} content control(s): they work in Word for the web, but their settings cannot be changed there", where)

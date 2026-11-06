@@ -47,7 +47,7 @@ RAIL = [("Home", [("tools", "Your Tools"), ("mywork", "My Work"), ("efforts", "A
         ("Check and Submit", [("finalcheck", "Final Check")]),            # 3.58.0: one report; the two pages are its tabs
         ("Production", [("studio", "Template Studio"), ("formatstd", "Formatting Standards"), ("qpstd", "Quick Parts"), ("layoutstd", "Layout"),
                         ("profiles", "Effort Profiles"), ("templates", "Templates"), ("rules", "Rules"), ("audit", "Audit"),
-                        ("fixcopy", "Fix a Copy")]),
+                        ("fixcopy", "Fix a Copy"), ("applyword", "Apply in Word")]),
         ("Team References", [("refs", "Team References")]),
         ("After Submission", [("postsub", "Checklist"), ("keywords", "Keywords")]),
         ("Effort files", [("exportall", "Export All"), ("settings", "Settings")]),
@@ -65,7 +65,7 @@ HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
 HEAD_OF.update({"docs": "library", "impact": "compare", "dashboard": "home"})   # pages opened from inside another
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup", "setups"}   # 3.18.2:
 # pages that change the matrix (decisions, the structure, placements, setup) share its Undo steps; Review has its own
-BETA = {"fixcopy"}                                  # 3.16.0: tools still being proven, marked Beta in the menu and on the page
+BETA = {"fixcopy", "applyword"}                                  # 3.16.0: tools still being proven, marked Beta in the menu and on the page
 GROUP_OF = {k: g for g, items in RAIL for k, _t in items}     # 3.15.0: the page's menu group, shown above its title
 GROUP_OF.update({k: GROUP_OF[h] for k, h in HEAD_OF.items() if h in GROUP_OF})
 
@@ -244,6 +244,7 @@ class MainWindow(QMainWindow):
         from .evalpage import EvalPage; self.evalcrit_page = EvalPage(self)   # 3.63.0
         from .sortpage import SortPage; self.sort_page = SortPage(self)       # 3.64.0
         from .studiopage import StudioPage; self.studio_page = StudioPage(self)   # 3.66.0
+        from .applywordpage import ApplyWordPage; self.applyword_page = ApplyWordPage(self)   # 3.67.0
         self.qa_page = QAPage(self)
         self.keywords_page = KeywordsPage(self)
         self.exportall_page = ExportAllPage(self)
@@ -300,7 +301,7 @@ class MainWindow(QMainWindow):
         from .setupspage import SetupsPage
         self.setups_page = SetupsPage(self)            # 3.56.0: the starting draft, from a structure
         self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_space, "custqa": self.custqa_page,
-                      "impact": self.impact_page, "deliverables": self.deliverables_page, "evalcrit": self.evalcrit_page, "sort": self.sort_page, "studio": self.studio_page, "qa": self.qa_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
+                      "impact": self.impact_page, "deliverables": self.deliverables_page, "evalcrit": self.evalcrit_page, "sort": self.sort_page, "studio": self.studio_page, "applyword": self.applyword_page, "qa": self.qa_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page, "audit": self.audit_page,
@@ -387,7 +388,7 @@ class MainWindow(QMainWindow):
             self.efforts_page.refresh()            # 3.34.1: a new effort shows in the list at once
 
     NO_EFFORT = {"tools", "mywork", "efforts", "settings", "refs", "shredreq", "formatstd", "qpstd", "layoutstd", "profiles", "templates",
-                 "rules", "prodstd", "audit", "fixcopy", "exportall"}
+                 "rules", "prodstd", "audit", "fixcopy", "applyword", "exportall"}
 
     def rail_go(self, key):
         """3.53.0: a space that works on an effort opens on Unfiled when nothing is open (loose work is kept there)."""

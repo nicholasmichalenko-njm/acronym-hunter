@@ -3,7 +3,7 @@ second copy). Anatomy: each part of the profile (cover, title page, headers and 
 fonts, theme, heading numbering, pagination, table looks) with the library item it uses, this effort's own formatting,
 and the RFP's formatting rules beside them; each opens the screen that owns it. Parts and numbering: the volume's parts
 in order with their page numbers, restarts, chapter style, header and footer, orientation, paper and what counts toward
-the limit (Final Check reads it). Field recipes open in Rules. claude/stationkeeper-studio-decisions-2026-11-06.md"""
+the limit (Final Check reads it). Read back (3.67.0): a made file against the plan. Field recipes open in Rules. claude/stationkeeper-studio-decisions-2026-11-06.md"""
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QComboBox, QFormLayout, QHBoxLayout, QHeaderView, QLineEdit, QSpinBox, QTableWidget, QTableWidgetItem,
                                QTabWidget, QVBoxLayout, QWidget)
@@ -96,6 +96,8 @@ class StudioPage(QWidget):
         sr.addStretch(1)
         self.sample = D.label("", "muted"); pl.addWidget(self.sample)
         self.tabs.addTab(pw, "Parts and numbering")
+        from .readbackview import ReadBackView           # 3.67.0
+        self.readback = ReadBackView(self); self.tabs.addTab(self.readback, "Read back")
 
     # ------------------------------------------------------------ the effort
     def rec(self):

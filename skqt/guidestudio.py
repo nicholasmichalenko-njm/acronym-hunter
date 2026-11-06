@@ -1,4 +1,4 @@
-"""The Guide's Template Studio and Formatting Standards topics (3.66.0), put back in the menu's order by guidetopics. Text only."""
+"""The Guide's Template Studio and Formatting Standards topics (3.66.0) and Apply in Word (3.67.0), put back in the menu's order by guidetopics. Text only."""
 STUDIO = \
 ("studio", "Production", "Template Studio",
   "One volume's template in one place, read from where its parts live: the profile's cover, headers and footers, table "
@@ -12,6 +12,9 @@ STUDIO = \
    "and whether its pages count toward the limit (how many pages an 11x17 sheet counts as, whether blank pages count). "
    "Use the usual parts starts from a cover, front matter in i, the response in 1 and appendices in A-1.",
    "Final Check counts pages by this plan when you have not ticked pages out by hand.",
+   "Read back: Read a file... reads a template or volume made from this volume's template and sets each part against "
+   "its plan (page numbers, restart, chapter style, orientation, paper), the fields against the field recipes and "
+   "Heading 7 against Heading 1's list. Word draws each part shows the first page of each part as Word lays it out.",
    "Field recipes opens Rules > Field recipes: your field codes, which the checks read."],
   ["Nothing here is a second copy: change a style in Formatting Standards, a header in Layout, a pick in Effort Profiles."])
 
@@ -37,3 +40,20 @@ FORMATSTD = \
    "Put in a standard... carries the selected items into the global standard, a profile or an effort type."],
   ["Measuring a Quick Part's pages in Word is a button (Template library > Quick Parts > Measure pages), never automatic.",
    "Quick Parts and Layout get screens of their own in 3.50.0; Effort Profiles and Templates in 3.51.0."])
+
+APPLYWORD = \
+("applyword", "Production", "Apply in Word (Beta)",
+  "Beta: the live step is still being proven in real Word. The team's banned phrases put into a draft as tracked "
+  "changes, each with a comment naming the rule, so the author accepts or rejects them in Word.",
+  "Before a color review, or when an author asks for the banned phrases fixed in their draft.",
+  ["Read a draft... lists every banned or avoided phrase with its sentence. A phrase whose Use instead is a few plain "
+   "words is ticked with them; edit Replace with or untick any you keep.",
+   "Make the copy with tracked changes writes a dated copy beside the draft: the ticked phrases as tracked changes, the "
+   "unticked ones with advice as comments. The draft is only read.",
+   "Live in Word: tick Allow changes in a document open in Word for this session, then Read the document open in "
+   "Word... and pick it. Put the ticked changes into Word makes them in Word's open window as tracked changes, with a "
+   "comment each. You save in Word; Stationkeeper never saves or closes the file. A place whose words changed since "
+   "it was read is skipped. Every change is listed under Changes made live in Word.",
+   "A fixed copy as tracked changes...: pick a draft and its fixed copy from Fix a Copy; Word compares them and the "
+   "fixes reach the author as tracked changes."],
+  ["The list is Team References > Banned phrases.", "Allow lasts until Stationkeeper closes."])

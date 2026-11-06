@@ -18,7 +18,7 @@ PM = "Proposal Manager"
 PROFILES = ("Proposal Manager", "Production", "Author", "Reviewer", "Capture")
 ALWAYS = {"efforts", "mywork", "home", "deliverables", "evalcrit", "sort", "settings", "tools", "refs"}   # 3.63.0: Evaluation Criteria   # 3.53.0: Your Tools, Team References
 TOOLS = {
-    "Production": {"studio", "shredreq", "shredacc", "techedit", "library", "requirements", "matrix", "setup", "setups", "acronyms", "acrlist", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit",
+    "Production": {"studio", "applyword", "shredreq", "shredacc", "techedit", "library", "requirements", "matrix", "setup", "setups", "acronyms", "acrlist", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit",
                    "formatstd", "qpstd", "layoutstd", "profiles", "templates", "prodstd", "rules", "effortfmt", "postsub", "keywords", "exportall", "drafts"},
     "Author": {"shredreq", "techedit", "library", "compare", "requirements", "custqa", "assign", "setup", "setups", "storyboards", "truth", "acronyms",
                "acrlist", "keywords", "drafts"},
@@ -49,7 +49,7 @@ def profile_of(role_text):
 
 MENU = ("tools", "mywork", "efforts", "home", "deliverables", "evalcrit", "effortfmt", "record", "reviews", "postsub", "library", "read", "compare", "requirements",
         "custqa", "structure", "shredreq", "shredacc", "assign", "sort", "prove", "crosswalk", "matrix", "setup", "setups", "storyboards", "drafts", "truth", "acronyms", "acrlist", "techedit",
-        "keywords", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit", "studio", "formatstd", "qpstd", "layoutstd", "profiles", "templates", "rules", "refs", "exportall", "settings", "prodstd")
+        "keywords", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit", "studio", "applyword", "formatstd", "qpstd", "layoutstd", "profiles", "templates", "rules", "refs", "exportall", "settings", "prodstd")
 
 
 def allowed(profile, step):
