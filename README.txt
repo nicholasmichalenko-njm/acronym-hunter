@@ -1,6 +1,21 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+TEMPLATE STUDIO I: FIELD RECIPES, ANATOMY, PARTS AND NUMBERING (3.66.0)
+  - Rules > Field recipes: your field codes, exactly as your templates use them (a table of contents, a caption, a
+    header's section title, a page number). Change, add or remove any; Put back the starters brings back the ones you
+    removed. Appendices read Heading 7 to 9. This effort's own code... uses a different code in the open effort only.
+  - Read a template...: every field in a Word file you trust, each matched to a recipe, differing (with what the recipe
+    says) or with none; Make a recipe from it.
+  - Production > Template Studio: pick a volume and a profile. Anatomy lists each part of the template (header and
+    footer, table of contents, captions, styles, parts and numbering, field recipes) with where it comes from and the
+    RFP's rule beside it; double-click a row to open the place that owns it.
+  - Parts and numbering: the volume's parts in order (cover, front matter in i, ii, the response in 1, 2, appendices in
+    A-1 on Heading 7), each with its numbering, restart, header, paper, orientation and whether it counts toward the
+    page limit. An 11x17 sheet can count as 2.
+  - Final Check reads the plan: the parts that do not count are left out of the page count, an 11x17 sheet counts as
+    the plan says, and the fields are checked against the recipes.
+
 SORT II: FROM TOPICS TO THE OUTLINE (3.65.0)
   - Suggestions: in Unsorted, a requirement whose words point at one topic shows that topic and why. Keywords... on a
     topic adds its pointing words (they count most); the words of its name count too. Take the suggestions files the

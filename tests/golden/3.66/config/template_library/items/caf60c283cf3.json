@@ -1,0 +1,29 @@
+{
+ "name": "Bullets",
+ "levels": [
+  {
+   "style": "List Bullet",
+   "fmt": "bullet",
+   "text": "•",
+   "font": "",
+   "left": 0.25,
+   "hanging": 0.25
+  },
+  {
+   "style": "List Bullet 2",
+   "fmt": "bullet",
+   "text": "–",
+   "font": "",
+   "left": 0.5,
+   "hanging": 0.25
+  },
+  {
+   "style": "List Bullet 3",
+   "fmt": "bullet",
+   "text": "▪",
+   "font": "",
+   "left": 0.75,
+   "hanging": 0.25
+  }
+ ]
+}

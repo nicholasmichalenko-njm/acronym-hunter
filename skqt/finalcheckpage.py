@@ -160,6 +160,12 @@ class FinalCheckPage(QWidget):
             ctx["other_names"] = [n for n in h.efforts.names() if n not in (h.effort_name, UF.NAME)]
         except Exception:  # noqa: BLE001
             diag.swallowed()
+        try:                                                         # 3.66.0: the parts and numbering plans, the field recipes
+            import effortrec as RR, fieldrecipes as FR
+            ctx["part_plans"] = (RR.Record(h.ws.root).data.get("part_plans") or {}) if h.ws is not None else {}
+            ctx["recipes"] = FR.effective(h.config_dir, h.ws)
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
         docx = [v["docx"] for v in vols if os.path.isfile(v["docx"])]
         s = getattr(h.acronym_page, "session", None)
         if docx and s is not None and s.effort is not None:

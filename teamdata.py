@@ -46,6 +46,7 @@ PARTS = {
     "reviewitems": ("Review decisions and captures", 1, ["review_items.json"], [], []),            # 3.31.0
     "elements": ("Response elements and kits", 1, ["response_elements.json"], [], []),             # 3.31.0
     "units": ("Units of measurement", 1, ["units.json"], [], []),                                  # 3.31.0
+    "recipes": ("Field recipes", 1, ["field_recipes.json"], [], []),                                 # 3.66.0
 }
 
 

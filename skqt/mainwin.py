@@ -45,7 +45,7 @@ RAIL = [("Home", [("tools", "Your Tools"), ("mywork", "My Work"), ("efforts", "A
         ("Technical Edit", [("techedit", "Technical Edit")]),             # 3.54.0: copy review
         ("Reviews", [("reviews", "Color Reviews")]),
         ("Check and Submit", [("finalcheck", "Final Check")]),            # 3.58.0: one report; the two pages are its tabs
-        ("Production", [("formatstd", "Formatting Standards"), ("qpstd", "Quick Parts"), ("layoutstd", "Layout"),
+        ("Production", [("studio", "Template Studio"), ("formatstd", "Formatting Standards"), ("qpstd", "Quick Parts"), ("layoutstd", "Layout"),
                         ("profiles", "Effort Profiles"), ("templates", "Templates"), ("rules", "Rules"), ("audit", "Audit"),
                         ("fixcopy", "Fix a Copy")]),
         ("Team References", [("refs", "Team References")]),
@@ -243,6 +243,7 @@ class MainWindow(QMainWindow):
         self.deliverables_page = DeliverablesPage(self)
         from .evalpage import EvalPage; self.evalcrit_page = EvalPage(self)   # 3.63.0
         from .sortpage import SortPage; self.sort_page = SortPage(self)       # 3.64.0
+        from .studiopage import StudioPage; self.studio_page = StudioPage(self)   # 3.66.0
         self.qa_page = QAPage(self)
         self.keywords_page = KeywordsPage(self)
         self.exportall_page = ExportAllPage(self)
@@ -299,7 +300,7 @@ class MainWindow(QMainWindow):
         from .setupspage import SetupsPage
         self.setups_page = SetupsPage(self)            # 3.56.0: the starting draft, from a structure
         self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_space, "custqa": self.custqa_page,
-                      "impact": self.impact_page, "deliverables": self.deliverables_page, "evalcrit": self.evalcrit_page, "sort": self.sort_page, "qa": self.qa_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
+                      "impact": self.impact_page, "deliverables": self.deliverables_page, "evalcrit": self.evalcrit_page, "sort": self.sort_page, "studio": self.studio_page, "qa": self.qa_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page, "audit": self.audit_page,

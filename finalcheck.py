@@ -14,7 +14,7 @@ import os, re
 PASS, FAIL, HUMAN = "Pass", "Fail", "Needs a person"
 SECTIONS = ("Compliance", "Page limits", "Format rules", "Structure", "Acronyms", "Leftovers", "Markings", "Files")
 EXCLUDE = (("cover", "The cover"), ("toc", "The table of contents"), ("acronyms", "The acronym list"),
-           ("resumes", "Resumes"), ("dividers", "Dividers and blank pages"))
+           ("resumes", "Resumes"), ("dividers", "Dividers and blank pages"), ("appendices", "Appendices"))   # 3.66.0: appendices
 LEGEND = "shall not be disclosed outside the Government"            # FAR 52.215-1(e) title page legend
 PAGE_MARK = "Use or disclosure of data contained on this sheet"     # FAR 52.215-1(e) page marking
 _MARKLINE = re.compile(r"(?i)use or disclosure of data|subject to the restriction|proprietary information|^\s*(page\s+)?\d+\s*$")
@@ -28,7 +28,7 @@ def _flat(s):
 # ------------------------------------------------------------------ the PDF
 def read_pdf(path):
     """{"texts": [text per page], "meta": {Title, Author, ...}, "error"}."""
-    out = {"texts": [], "meta": {}, "error": ""}
+    out = {"texts": [], "meta": {}, "error": "", "sizes": []}
     try:
         import pypdfium2 as pdfium
         pdf = pdfium.PdfDocument(path)
@@ -42,6 +42,10 @@ def read_pdf(path):
             pass
         for i in range(len(pdf)):
             page = pdf[i]
+            try:
+                out["sizes"].append(tuple(page.get_size()))              # 3.66.0: points; an 11x17 sheet counts as more
+            except Exception:  # noqa: BLE001
+                out["sizes"].append((612.0, 792.0))
             try:
                 tp = page.get_textpage()
                 out["texts"].append(tp.get_text_range() or "")
@@ -73,6 +77,8 @@ def classify(texts):
             pass
         elif re.search(r"\b(acronyms|abbreviations|acronym list)\b", head):
             mode = "acronyms"
+        elif re.match(r"appendix\s+[a-z0-9]\b", head) or mode == "appendices":      # 3.66.0: from the first appendix on
+            mode = "appendices"
         elif re.search(r"\b(resumes?|résumés?|key personnel resumes)\b", head):
             mode = "resumes"
         elif mode == "resumes" and not re.search(r"^\s*\d+(\.\d+)*\s+[A-Z]", t.strip().splitlines()[0] if t.strip() else ""):
@@ -86,12 +92,33 @@ def classify(texts):
     return out
 
 
-def count_pages(texts, exclude):
-    """(pages counted, {kind: [pages left out]})."""
+def count_pages(texts, exclude, sizes=None, foldout=1):
+    """(pages counted, {kind: [pages left out]}). 3.66.0: a sheet larger than letter (an 11x17 foldout) counts as foldout
+    pages when the volume's plan says so."""
     found = classify(texts)
     out = {k: found[k] for k in exclude if found.get(k)}
     gone = {p for v in out.values() for p in v}
-    return len(texts) - len(gone), out
+    n = 0
+    for i in range(1, len(texts) + 1):
+        if i in gone:
+            continue
+        w, h = (sizes[i - 1] if sizes and i - 1 < len(sizes) else (612.0, 792.0))
+        n += foldout if max(w, h) > 1008 else 1                      # longer than 14 inches: a foldout
+    return n, out
+
+
+def plan_rules(ctx, name):
+    """The parts and numbering plan of the volume this file is (by its name), else None."""
+    import subreq as SR
+    plans = (ctx or {}).get("part_plans") or {}
+    key = next((k for k in plans if k == name or SR.match_volume(k, name)), None)
+    if key is None:
+        return None
+    import partplan as PP
+
+    class _R:
+        data = {"part_plans": plans}
+    return dict(PP.final_check_rules(_R, key) or {}, volume=key)
 
 
 def limit_for(rows, name):
@@ -168,9 +195,13 @@ def run(volume, ctx=None):
     if not has_pdf:
         lines.append(dict(no_pdf, section="Page limits", check="Pages against the limit"))
     else:
-        n, out = count_pages(texts, volume.get("exclude") or [])
+        rules = plan_rules(ctx, name)
+        exclude = volume.get("exclude") or ((rules or {}).get("exclude") or [])
+        n, out = count_pages(texts, exclude, P.get("sizes"), (rules or {}).get("foldout", 1) if rules else 1)
         left = "; ".join(f"{dict(EXCLUDE)[k].lower()} (page {_pages(v)})" for k, v in out.items())
         detail = f"{n} of {len(texts)} pages counted" + (f", leaving out {left}" if left else ", every page counted")
+        if rules and not volume.get("exclude"):
+            detail += f" (by the parts and numbering of {rules['volume']})"
         if not limit:
             lines.append(_line("Page limits", "Pages against the limit", HUMAN, detail + ". No page limit found for this volume."))
         else:
@@ -220,6 +251,16 @@ def run(volume, ctx=None):
                                else "Figures and tables in order, every reference resolves."))
         except Exception as e:  # noqa: BLE001
             lines.append(_line("Structure", "Numbering and cross-references", HUMAN, f"Not read ({type(e).__name__})."))
+        if ctx.get("recipes"):                                           # 3.66.0: the team's field recipes
+            import fieldrecipes as FR
+            rows = FR.check(FR.read_fields(docx), ctx["recipes"])
+            bad = [r for r in rows if r["status"] == "differs"]
+            miss = FR.missing_bookmarks(docx, ctx["recipes"])
+            lines.append(_line("Structure", "Fields match the field recipes", FAIL if bad or miss else PASS,
+                               "; ".join([f"{r['part']}: {r['code']} (the recipe {r['recipe']} says {r['expected']})" for r in bad[:5]]
+                                         + [f"the bookmark {b} is missing" for b in miss])
+                               + (" ..." if len(bad) > 5 else "") if bad or miss else
+                               f"{FR.summary(rows)['matches']} field(s) match a recipe."))
     if has_pdf:
         mm = toc_mismatches(texts)
         lines.append(_line("Structure", "Table of contents page numbers", FAIL if mm else (PASS if classify(texts)["toc"] else HUMAN),

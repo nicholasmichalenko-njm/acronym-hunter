@@ -539,6 +539,20 @@ TOPICS = [
    "Compare, then Export the redline... for the reviewers."],
   ["Nothing here changes a file. Each check exports a workbook (or the redline) for the record.",
    "Page limits often leave out the cover, contents and acronym list: a page count over the limit says to check that."]),
+ ("studio", "Production", "Template Studio",
+  "One volume's template in one place, read from where its parts live: the profile's cover, headers and footers, table "
+  "of contents, fonts, numbering and table looks; this effort's own formatting; the RFP's formatting rules; the parts and "
+  "numbering; and the field recipes.",
+  "When you set up a volume's template, and before Final Check counts its pages.",
+  ["Pick the volume and the profile it is made from. Anatomy lists each part and the library item it uses (a newer "
+   "version says so); double-click a row to open the screen that owns it.",
+   "Parts and numbering: the volume's parts in order. For each: its page numbers (none, i, I, 1, or A-1 chapter-page with "
+   "its chapter style, Heading 7 for appendices), whether they restart, its header and footer, orientation and paper, "
+   "and whether its pages count toward the limit (how many pages an 11x17 sheet counts as, whether blank pages count). "
+   "Use the usual parts starts from a cover, front matter in i, the response in 1 and appendices in A-1.",
+   "Final Check counts pages by this plan when you have not ticked pages out by hand.",
+   "Field recipes opens Rules > Field recipes: your field codes, which the checks read."],
+  ["Nothing here is a second copy: change a style in Formatting Standards, a header in Layout, a pick in Effort Profiles."]),
  ("formatstd", "Production", "Formatting Standards",
   "The fundamentals every template is built from, as a library: theme and colors, font sets, page setups, pagination schemes, "
   "heading numbering, lists, and paragraph, character and table styles.",
@@ -614,7 +628,11 @@ TOPICS = [
    "Each rule says how it is kept: checked by the app, checked with Word on this PC, or a checklist item for people.",
    "Untick On for every effort to turn a rule off everywhere. An effort departs from a rule on Effort Formatting only.",
    "Change it opens the page that holds the rule's values (Production Standards, Effort Formatting, the Acronym List).",
-   "Add the rule adds one of your own (a checklist item). Phrase rules: a sentence holding the phrase gets that suggestion."],
+   "Add the rule adds one of your own (a checklist item). Phrase rules: a sentence holding the phrase gets that suggestion.",
+   "Field recipes: your field codes, written and changed here (name, where used, the code one field per line, the text "
+   "between, the bookmark it needs and what it spans, the style it reads). The starters are yours to change or remove. "
+   "This effort's own code... sets a different one for the open effort only. Read a template... lists a file's fields "
+   "against the recipes; Make a recipe from it adds one. Final Check's Structure section checks every field against them."],
   ["Audit and Fix a Copy report each finding under its rule.",
    "Make templates follows Rules 4 to 8; its footers are Rule 7's table unless you build another."]),
  ("audit", "Production", "Audit",

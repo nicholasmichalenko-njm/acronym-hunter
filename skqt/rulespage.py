@@ -49,7 +49,8 @@ class RulesPage(QWidget):
         sw = QHBoxLayout(); sw.setSpacing(D.SPACE["s"])
         sw.addWidget(D.label("Show", "label", wrap=False))
         self.b_ours = QPushButton("Our documents"); self.b_theirs = QPushButton("Reading the customer's documents")
-        for i, b in enumerate((self.b_ours, self.b_theirs)):
+        self.b_recipes = QPushButton("Field recipes")                               # 3.66.0: the team's field codes
+        for i, b in enumerate((self.b_ours, self.b_theirs, self.b_recipes)):
             b.setCheckable(True); b.setAutoExclusive(True); b.clicked.connect(lambda _c=False, k=i: self.show_family(k))
             sw.addWidget(b)
         sw.addStretch(1)
@@ -58,6 +59,8 @@ class RulesPage(QWidget):
         self.stack = QStackedWidget(); outer.addWidget(self.stack, 1)
         self.stack.addWidget(self._build_ours())
         self.stack.addWidget(self._build_theirs())
+        from .recipesview import RecipesView
+        self.recipes = RecipesView(host); self.stack.addWidget(self.recipes)
         self.b_ours.setChecked(True)
 
     # ------------------------------------------------------------ our documents
@@ -240,7 +243,9 @@ class RulesPage(QWidget):
     # ------------------------------------------------------------ both
     def show_family(self, k):
         self.stack.setCurrentIndex(k)
-        (self.b_theirs if k else self.b_ours).setChecked(True)
+        (self.b_ours, self.b_theirs, self.b_recipes)[k].setChecked(True)
+        if k == 2:
+            self.recipes.refresh()
 
     def fill_summary(self):
         sm = RB.summary(self.host.config_dir, self.host.ws)
@@ -262,3 +267,5 @@ class RulesPage(QWidget):
         self.fill_summary()
         self.fill_ours()
         self.fill_theirs()
+        if self.stack.currentIndex() == 2:
+            self.recipes.refresh()
