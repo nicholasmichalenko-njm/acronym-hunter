@@ -53,7 +53,7 @@ g.show_topic("prove")
 g._go(); app.processEvents()
 check("Go to this page goes there", w.stack.currentWidget() is w.pages["prove"])
 g._step(1)
-check("Next walks to the next topic", g.key == "matrix")     # 3.53.0: Shred: Review, Coverage, Matrix, then the crosswalk
+check("Next walks to the next topic", g.key == "sort")     # 3.53.0: Shred: Review, Coverage, Matrix, then the crosswalk; 3.64.0: Sort before Matrix
 g._step(-1); g._step(-1)
 check("... and Previous back", g.key == "assign")
 g.show_topic("start")
