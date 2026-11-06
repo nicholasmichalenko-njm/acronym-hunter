@@ -99,6 +99,10 @@ class MatrixPage(QWidget):
         bar.addStretch(1)
         bar.addWidget(D.button("Export the compliance package...", None, self.export_package,
                                "Matrix, Response Setup, coverage report and L/M crosswalk in one dated folder"))
+        bar.addWidget(D.button("Bring the edited matrix back...", None, lambda: self.bring_back(),        # 3.73.0
+                               "The exported matrix as the team filled it in: their values come back, after you look"))
+        bar.addWidget(D.button("Merge another copy's matrix...", "ghost", lambda: self.bring_back(merge=True),
+                               "Another copy of this effort's matrix: its values listed beside ours, ours kept unless you take theirs"))
         bar.addWidget(D.button("Export the matrix...", "primary", self.export, "The matrix as an Excel workbook"))
         self.timer = QTimer(self, singleShot=True, interval=250, timeout=self.preview)
 
@@ -391,8 +395,20 @@ class MatrixPage(QWidget):
             self.host.status("A workbook with that name is open in Excel: close it, then export again.")
             return None
         diag.activity("matrix_exported", n=res["rows"])
+        try:                                                     # 3.73.0: each export is a version, kept with the effort
+            import matrixversions as MV
+            MV.record(R.M, path, self.d, self.host.effort_path or "")
+            R.M.pending = True
+            self.host.changed()
+        except OSError:
+            diag.swallowed()
         self.host.toast(f"Matrix exported: {res['rows']} rows")
         return res
+
+    def bring_back(self, path=None, merge=False, accept=None, picks=None):
+        """3.73.0: an edited export (or another copy's matrix) brought back after the person looks at every change."""
+        from .matrixbackview import bring_back
+        return bring_back(self, path, merge, accept, picks)
 
     def export_package(self, folder=None):
         """Matrix, Response Setup, coverage report and L/M crosswalk in one dated folder."""
