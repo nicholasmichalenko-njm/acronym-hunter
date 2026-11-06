@@ -110,6 +110,27 @@ check("the side wheel moves the picture right, then left, and never zooms", x1 >
       and pv.transform().m11() == s0, (x0, x1, sb.value(), pv.transform().m11()))
 wheel(0, 120)
 check("up and down still zoom", pv.transform().m11() > s0)
+pv.fit(); app.processEvents()
+def room(b):
+    return b.maximum() - b.minimum()
+
+
+check("fitted whole, the picture can still be dragged (room past its edges)", room(pv.horizontalScrollBar()) > 0
+      and room(pv.verticalScrollBar()) > 0)
+for _ in range(30):
+    wheel(0, -120)
+check("zooming out stops at half the fitted size, and it still drags", abs(pv.transform().m11() - pv._fit_scale() * 0.5) < 1e-6
+      and room(pv.horizontalScrollBar()) > 0 and room(pv.verticalScrollBar()) > 0, (pv.transform().m11(), pv._fit_scale()))
+for _ in range(40):
+    wheel(0, 120)
+check("zooming in stops at 16 times", abs(pv.transform().m11() - 16.0) < 1e-6, pv.transform().m11())
+ev = QWheelEvent(QPointF(5, 5), QPointF(5, 5), QPoint(0, 0), QPoint(0, -120), _Qt.NoButton, _Qt.NoModifier, _Qt.NoScrollPhase, False)
+ev.ignore(); pv.wheelEvent(ev)
+from skqt.foundview import PreviewText
+tx = PreviewText(); tx.setPlainText("short"); ev2 = QWheelEvent(QPointF(5, 5), QPointF(5, 5), QPoint(0, 0), QPoint(0, -120), _Qt.NoButton,
+                                                              _Qt.NoModifier, _Qt.NoScrollPhase, False)
+ev2.ignore(); tx.wheelEvent(ev2)
+check("the preview keeps the wheel: the panel around it does not scroll", ev.isAccepted() and ev2.isAccepted())
 pv.close()
 
 print(f"QT SCANBAR 371 {'OK' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")

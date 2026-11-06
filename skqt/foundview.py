@@ -53,7 +53,7 @@ class PicView(QGraphicsView):
         self.pix = QGraphicsPixmapItem(QPixmap.fromImage(qimg)); self.pix.setTransformationMode(Qt.SmoothTransformation)
         self.scene_.addItem(self.pix)
         self.scene_.setSceneRect(QRectF(0, 0, qimg.width(), qimg.height()))
-        self.setSceneRect(self.scene_.sceneRect())
+        self._room()
         self.boxes = []
         for (x0, y0, x1, y1), kind in boxes:
             col, wd = PENS[kind]
@@ -97,8 +97,27 @@ class PicView(QGraphicsView):
 
     def fit(self):
         if self.pix is not None:
-            self.setSceneRect(self.scene_.sceneRect())
             self.fitInView(self.scene_.sceneRect(), Qt.KeepAspectRatio)
+            self._room()
+
+    ROOM, MOST = 0.5, 16.0               # 3.71.0: half a view past each edge; zoom from half the fitted size to 16 times
+
+    def _room(self):
+        """Room past the picture's edges at every zoom, so it can be dragged anywhere, zoomed in or out."""
+        if self.pix is None:
+            return
+        s = max(1e-6, self.transform().m11())
+        w = self.viewport().width() / s * self.ROOM
+        h = self.viewport().height() / s * self.ROOM
+        self.setSceneRect(self.scene_.sceneRect().adjusted(-w, -h, w, h))
+
+    def _fit_scale(self):
+        r = self.scene_.sceneRect()
+        return min(self.viewport().width() / max(1.0, r.width()), self.viewport().height() / max(1.0, r.height()))
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self._room()
 
     def focus(self, box, context=6.0):
         """Center on a box with the lines around it."""
@@ -113,21 +132,33 @@ class PicView(QGraphicsView):
         if not r.contains(cx, cy):
             return self.fit()
         # 3.61.0: room past the picture's edges, so a find near an edge sits in the middle of the view too
-        self.setSceneRect(r.adjusted(-w / 2, -h / 2, w / 2, h / 2))
         self.fitInView(QRectF(cx - w / 2, cy - h / 2, w, h), Qt.KeepAspectRatio)
+        self._room()
         self.centerOn(cx, cy)
         self.focused = (cx, cy)
 
     def zoom(self, f):
-        self.scale(f, f)
+        s = self.transform().m11()
+        if self.pix is not None:
+            f = max(self._fit_scale() * 0.5 / s, min(self.MOST / s, f))
+        if abs(f - 1.0) > 1e-3:
+            self.scale(f, f)
+        self._room()
 
     def wheelEvent(self, e):
         d = e.angleDelta()
         if abs(d.x()) > abs(d.y()):                  # 3.71.0: a mouse's side wheel moves the picture left and right
             sb = self.horizontalScrollBar(); sb.setValue(sb.value() - d.x())
-            return
-        if d.y():                                    # up and down zoom; no movement, no zoom
+        elif d.y():                                  # up and down zoom; no movement, no zoom
             self.zoom(1.25 if d.y() > 0 else 0.8)
+        e.accept()                                   # 3.71.0: the panel around the preview never scrolls from here
+
+
+class PreviewText(QTextBrowser):
+    """3.71.0: a passage that scrolls itself and never hands the wheel to the panel around it."""
+    def wheelEvent(self, e):
+        super().wheelEvent(e)
+        e.accept()
 
     def mouseDoubleClickEvent(self, e):
         self.zoom(1.6)
@@ -242,7 +273,7 @@ class FoundView(QWidget):
         if not big:
             tools.addWidget(D.button("Enlarge", None, lambda: self.enlarge(), "The same view in a big window"))
         self.stack = QStackedWidget()
-        self.view = PicView(); self.text = QTextBrowser()
+        self.view = PicView(); self.text = PreviewText()
         self.stack.addWidget(self.view); self.stack.addWidget(self.text)
         self.stack.setMinimumHeight(560 if big else 300)
         v.addWidget(self.stack, 1)
