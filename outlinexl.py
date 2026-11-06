@@ -261,6 +261,9 @@ def apply(M, parsed, file_name, who=None):
     import setupdoc as SD
     S = SD.setup_of(M)
     old = {it["id"] for it in M.items if it.get("src") == "outline" and it.get("file") == file_name}
+    for lab, txt in ((S.get("outline_import") or {}).get(file_name, {}).get("mgmt") or {}).items():   # 3.73.0: its own guidance
+        if " ".join((S["mgmt"].get(lab) or "").split()) == " ".join((txt or "").split()):              # out first, not twice
+            S["mgmt"].pop(lab, None)
     M.items = [it for it in M.items if it["id"] not in old]
     for lab in list(S["order"]):
         S["order"][lab] = [i for i in S["order"][lab] if i not in old]
@@ -313,5 +316,7 @@ def apply(M, parsed, file_name, who=None):
                 else:
                     S["mgmt"][lab] = (S["mgmt"].get(lab, "") + "\n" + b["text"]).strip()
                 n["guidance"] += 1
-    S.setdefault("outline_import", {})[file_name] = {"sections": n["sections"], "requirements": n["requirements"], "who": who or ""}
+    mg = {C.outline_label(o): S["mgmt"][C.outline_label(o)] for o in M.outline if S["mgmt"].get(C.outline_label(o))}
+    S.setdefault("outline_import", {})[file_name] = {"sections": n["sections"], "requirements": n["requirements"], "who": who or "",
+                                                     "mgmt": mg}
     return n
