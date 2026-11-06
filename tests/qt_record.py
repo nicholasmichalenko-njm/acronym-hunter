@@ -36,7 +36,7 @@ ws0 = W.Workspace(W.data_dir_for(LIST), "Kestrel")
 ws0.set("outline_text", "Volume I Technical\n1.1 Technical Approach\n1.2 Management\nVolume II Past Performance")
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-check("the rail: Effort Dashboard, Deliverables, Effort Formatting, Effort record; Reviews its own space", list(w.step_btns)[3:7] == ["home", "deliverables", "effortfmt", "record"]
+check("the rail: Effort Dashboard, Deliverables, Effort Formatting, Effort record; Reviews its own space", list(w.step_btns)[3:8] == ["home", "deliverables", "evalcrit", "effortfmt", "record"]
       and "reviews" in w.step_btns)
 w.open_effort("Kestrel")
 B = os.path.join(A.BASE_DIR, "test_samples", "rfp")
