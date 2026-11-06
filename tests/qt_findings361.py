@@ -84,6 +84,8 @@ EDIR = os.path.join(tmp, "Kestrel"); os.makedirs(EDIR)
 LIST = os.path.join(EDIR, "Kestrel_Effort_List.xlsx")
 L = E.EffortList(LIST, "Kestrel"); L.pending = True; L.save()
 E.Registry(os.path.join(cfg, "efforts.json")).put("Kestrel", path=LIST)
+from skqt import modes as _modes
+_modes.save(show_set_aside=False)   # 3.61.0: a test before may have left the pages set aside showing
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel"); w.go("acronyms"); app.processEvents()
 ap = w.acronym_page

@@ -125,8 +125,9 @@ from skqt import modes
 modes.save(show_set_aside=True)
 w.go("home"); app.processEvents()
 hp = w.home_page
+hp.apply_layout(); hp.refresh(); app.processEvents()
 check("Effort Home: Evaluation and hot buttons", "custfocus" in hp.shown and hp.focus_now["factors"] == ["Technical Approach", "Systems Engineering"]
-      and hp.focus_now["hot"] == ["schedule realism and launch readiness"])
+      and hp.focus_now["hot"] == ["schedule realism and launch readiness"], (hp.shown, getattr(hp, "focus_now", None)))
 files = RD.more(rec(), None, w.ws.root, {})
 check("the readable copy has the factors and hot buttons", files["Evaluation factors.csv"][1][1][:3] == ["Systems Engineering", "Technical Approach", "Not stated"]
       and files["Hot buttons.csv"][1][0][0] == "schedule realism and launch readiness")
@@ -136,4 +137,5 @@ if os.environ.get("SHOT_DIR"):
 w.close_effort()
 n = sum(checks)
 print(f"QT MORE {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
+modes.save(show_set_aside=False)   # 3.61.0: the settings file is shared by the tests on the PC
 sys.exit(0 if n == len(checks) else 1)

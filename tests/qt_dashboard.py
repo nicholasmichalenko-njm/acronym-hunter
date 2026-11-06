@@ -163,4 +163,5 @@ check("a stage's color is saved", RR.Record(w.ws.root).stages[1].get("color") ==
 
 n = sum(checks)
 print(f"QT DASHBOARD {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
+modes.save(show_set_aside=False)   # 3.61.0: the settings file is shared by the tests on the PC
 sys.exit(0 if n == len(checks) else 1)

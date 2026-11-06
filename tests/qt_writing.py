@@ -59,6 +59,7 @@ from skqt import modes
 modes.save(show_set_aside=True)
 w.go("home"); app.processEvents()
 hp = w.home_page
+hp.apply_layout(); hp.refresh(); app.processEvents()
 check("the Effort Dashboard shows the win themes under the header (3.12.0)", hp.strips["themes"].isVisibleTo(w) and len(hp.themes_now) == 1
       and "Win themes   1" in hp.strips["themes"].title_label.text())
 tid = hp.theme_dialog(None, {"title": "Program office close to the customer", "kind": "Discriminator", "statement": "",
@@ -101,4 +102,5 @@ check("the export has a name in Folders and file names", "Storyboard" in w.out_p
 w.close()
 n = sum(checks)
 print(f"QT WRITING {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
+modes.save(show_set_aside=False)   # 3.61.0: the settings file is shared by the tests on the PC
 sys.exit(0 if n == len(checks) else 1)

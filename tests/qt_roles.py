@@ -33,6 +33,8 @@ E.Registry(os.path.join(cfg, "efforts.json")).put("Kestrel", path=LIST)
 W.Workspace(W.data_dir_for(LIST), "Kestrel")
 MO.save(my_name="", home_layout={}, hide_other_roles=False, rail_collapsed=[], stage_tools=True)
 app = QApplication([]); D.apply(app)
+from skqt import modes as _modes
+_modes.save(show_set_aside=False)   # 3.61.0: a test before may have left the pages set aside showing
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel"); app.processEvents()
 

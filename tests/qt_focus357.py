@@ -27,6 +27,8 @@ cfg = os.path.join(tmp, "config"); os.makedirs(cfg)
 from skqt import mainwin as MW
 from skqt import modes
 import menufocus as MF
+from skqt import modes as _modes
+_modes.save(show_set_aside=False)   # 3.61.0: a test before may have left the pages set aside showing
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 w.refresh_access(); app.processEvents()
 gone = ["mywork", "drafts", "truth", "storyboards", "reviews"]
