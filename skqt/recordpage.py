@@ -70,7 +70,7 @@ class RecordPage(StageTableMixin, QWidget):
         self.details.body.addLayout(self.found_row)
         v.addWidget(self.details)
         # team
-        self.team = D.Card("People and roles", "The names from the author list that show in this effort, offered wherever an "
+        self.team = D.Card("People", "The names from the author list that show in this effort, offered wherever an "
                                                "author, lead or owner is picked, with each person's role here. Every name lives in "
                                                "Settings > Author list.",
                            actions=[D.button("Choose people...", "primary", lambda: self.choose_team())])

@@ -40,15 +40,15 @@ class NoticePage(QWidget):
             self.act.setText("Turn it on for this team"); self.act.setVisible(pm)
         else:
             roles = ", ".join(why["roles"])
-            src = {"effort": "from People and roles in this effort", "pm": "you are this effort's proposal manager",
+            src = {"effort": "from People in this effort", "pm": "you are this effort's proposal manager",
                    "own": "your own choice in Customize... on the Effort Dashboard"}.get(why["source"], "")
             pm_name = self.pm_name()
             self.card.title.setText(f"{title} is for {roles}")
             self.text.setText(f"Your role here is {why['profile']} ({src}). "
-                              + (f"Ask {pm_name or 'the proposal manager'} to change your role in People and roles if you need it."
+                              + (f"Ask {pm_name or 'the proposal manager'} to change your role in People if you need it."
                                  if why["source"] == "effort" else
                                  "Change your role in Customize... if this is your work, or ask the proposal manager to set it "
-                                 "in People and roles."))
+                                 "in People."))
             self.act.setText("Change my role..."); self.act.setVisible(why["source"] == "own")
         return self.card.title.text()
 
@@ -128,7 +128,7 @@ class RolesCard(D.Card):
         st = settings() or {}
         prof, src = self.host.profile()
         self._filling = True
-        self.role_text.setText(f"Your role: <b>{prof}</b> " + {"effort": "(from People and roles in this effort)",
+        self.role_text.setText(f"Your role: <b>{prof}</b> " + {"effort": "(from People in this effort)",
                                "pm": "(you are this effort's proposal manager)",
                                "own": "(your own choice: Customize... on the Effort Dashboard)"}.get(src, ""))
         self.hide.setChecked(bool(st.get("hide_other_roles")))

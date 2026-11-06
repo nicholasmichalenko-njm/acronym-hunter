@@ -86,7 +86,7 @@ class PeopleRolesDialog(QDialog):
     def __init__(self, host, parent=None):
         super().__init__(parent)
         self.host = host
-        self.setWindowTitle(f"People and roles on {host.effort_name}")
+        self.setWindowTitle(f"People on {host.effort_name}")
         self.resize(640, 480)
         v = QVBoxLayout(self)
         v.addWidget(D.label("Pick each person's role on this effort. Choose people... adds or removes names from the author list.", "muted"))

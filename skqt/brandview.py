@@ -123,7 +123,7 @@ class EffortBanner(QFrame):
         self.edit_btn = D.button("Edit details...", None, lambda: self.edit_dialog(), "Proposal manager, client, sensitivity, the "
                                  "customer's due date and the effort's own spots. They travel with the effort.")
         acts.addWidget(self.edit_btn)
-        acts.addWidget(D.button("People and roles...", None, lambda: self.people_roles(),     # 2.93.0
+        acts.addWidget(D.button("People...", None, lambda: self.people_roles(),     # 2.93.0
                                 "Who works on this effort and in what role; a role saves when picked"))
         acts.addWidget(D.button("Export overview...", None, lambda: self.host.record_page.status_export(),
                                 "Where the effort stands, in one Word file: the due dates and your summary first, then stages, "

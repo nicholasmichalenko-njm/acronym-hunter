@@ -1320,7 +1320,7 @@ class DeliverablesPage(QWidget):
         for i, w in enumerate((0, 110, 140, 140, 110, 220, 160)):
             if i:
                 self.table.setColumnWidth(i, w)
-        self.table.cellDoubleClicked.connect(lambda r, _c: self.edit(self.ids[r]))
+        self.table.cellDoubleClicked.connect(lambda r, _c: self.open_deliverable(self.ids[r]))   # 3.62.0: its own page
         lv.addWidget(self.table, 1)
         row = QHBoxLayout(); row.setSpacing(D.SPACE["s"]); lv.addLayout(row)
         row.addWidget(D.button("Edit...", None, lambda: self.edit(self.current())))
@@ -1329,10 +1329,25 @@ class DeliverablesPage(QWidget):
         row.addStretch(1)
         v.addWidget(self.list_box, 1)
         self.list_box.hide()
+        from . import delivextras as DX                              # 3.62.0: each deliverable's page, groups, Arrange
+        DX.install(self)
+
+    def open_deliverable(self, did, tab=None):
+        from . import delivextras as DX
+        return DX.open_one(self, did, tab)
+
+    def close_deliverable(self):
+        from . import delivextras as DX
+        return DX.close_one(self)
+
+    def groups_window(self, run=True):
+        from . import delivextras as DX
+        return DX.groups_window(self, run)
 
     # ------------------------------------------------------------ 2.87.0 the board
     def show_view(self, i):
-        self.board_split.setVisible(i == 0); self.list_box.setVisible(i == 1)
+        from . import delivextras as DX
+        DX.show_view(self, i)
 
     def pick(self, did):
         self.picked = did
@@ -1406,6 +1421,9 @@ class DeliverablesPage(QWidget):
         M = h.review.M if h.review is not None else None
         rep = getattr(getattr(h.acronym_page, "session", None), "volume_report", None)
         self.cards = DB.board(rec, rows, c.lib, vols, M, h.ws.root, rep)
+        if getattr(self, "order_mode", None) is not None and self.order_mode.currentIndex() == 1:   # 3.62.0: the team's order
+            pos = {x: i for i, x in enumerate(self.ids)}
+            self.cards.sort(key=lambda x: pos.get(x["id"], 0))
         self.sumlab.setText(DB.summary_line(self.cards))
         if self.picked not in [x["id"] for x in self.cards]:
             self.picked = None

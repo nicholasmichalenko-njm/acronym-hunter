@@ -150,7 +150,7 @@ check("a role saves the moment it is picked", RR.Record(w.ws.root).role_of("A. L
 dlg = w.home_page.banner.people_roles(run=False)
 b2 = dlg.roles.role_box("K. Park")
 b2.setCurrentText("Red team reviewer"); b2.lineEdit().editingFinished.emit()
-check("Effort Home > People and roles...: a typed role saves too", RR.Record(w.ws.root).role_of("K. Park") == "Red team reviewer"
+check("Effort Home > People...: a typed role saves too", RR.Record(w.ws.root).role_of("K. Park") == "Red team reviewer"
       and dlg.roles.role_box("A. Lee").currentText() == "Volume Lead")
 dlg.deleteLater()
 check("the role change is on the timeline", any("Role: A. Lee is Volume Lead" in e["text"] for e in RR.Record(w.ws.root).events()))

@@ -238,7 +238,12 @@ class State:
         return people_of(self.rec, self.M)
 
     def cal_extra(self):
-        return cal_extra_of(self.rec, self.rows) + self.section_dues()
+        import delivmore as DM                                      # 3.62.0: deliverables' due dates and own dates
+        try:
+            dl = DM.cal_items(self.rec) if self.rec is not None else []
+        except Exception:  # noqa: BLE001
+            diag.swallowed(); dl = []
+        return cal_extra_of(self.rec, self.rows) + self.section_dues() + dl
 
     def section_dues(self):
         """3.61.0: each section's due date from the Setup page, with its lead: (date, "task", text, lead)."""

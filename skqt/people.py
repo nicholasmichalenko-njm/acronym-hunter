@@ -39,8 +39,8 @@ def add_names(host, title="Add names", parent=None, answer=None):
     if answer is None:
         d = QDialog(parent or host); d.setWindowTitle(title); d.setMinimumWidth(420)
         v = QVBoxLayout(d)
-        v.addWidget(D.label(f"No names show in {eff} yet. Type the people who write for this effort: one per line, or "
-                            "commas between them. They go on the author list (Settings > Author list) for this effort.", "muted"))
+        v.addWidget(D.label(f"Type the people on {eff}: one per line, or commas between them. They join the effort's people "
+                            "once and are offered in every picker after (Settings > Author list keeps them).", "muted"))
         ed = QPlainTextEdit(); ed.setPlaceholderText("Name One\nName Two"); v.addWidget(ed, 1)
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.button(QDialogButtonBox.Ok).setText("Add")
@@ -138,11 +138,36 @@ def name_combo(host, current=""):
         cb.setCurrentIndex(max(0, next((i for i in range(cb.count()) if (cb.itemData(i) or "").casefold() == cur.casefold()), 0)))
     if not names:
         cb.setToolTip(NO_EFFORT if not _eff(host) else empty_text(host))
+    if _eff(host):                                   # 3.62.0: add a person once, from any picker; offered everywhere after
+        cb.addItem(ADD_PERSON, ADD_KEY)
+        cb.activated.connect(lambda _i, cb=cb: _add_from(host, cb))
     return cb
 
 
+ADD_PERSON, ADD_KEY = "+ Add a person...", "__add_person__"
+
+
+def _add_from(host, cb, answer=None):
+    """The picker's Add a person...: the name goes on the effort's people (the author list, shown in this effort) and
+    is chosen here. Returns the name, or ''."""
+    if cb.currentData() != ADD_KEY:
+        return ""
+    got = add_names(host, "Add a person", cb, answer=answer)
+    if not got:
+        cb.setCurrentIndex(0)
+        return ""
+    n = got[0]
+    i = cb.findData(n)
+    if i < 0:
+        cb.insertItem(cb.count() - 1, n, n)
+        i = cb.findData(n)
+    cb.setCurrentIndex(i)
+    return n
+
+
 def combo_name(cb):
-    return cb.currentData() or ""
+    v = cb.currentData() or ""
+    return "" if v == ADD_KEY else v
 
 
 class NamesField(QWidget):

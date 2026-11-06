@@ -50,6 +50,16 @@ class Card(QFrame):
         if not c["missing"]:
             v.addWidget(D.label("Nothing missing.", "muted"))
 
+    on_open = None                                                    # 3.62.0: double-click opens its page
+
+    def mouseDoubleClickEvent(self, e):
+        if e.button() == Qt.LeftButton and self.on_open is not None:
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(0, lambda cid=self.c["id"], f=self.on_open: f(cid))
+            e.accept()
+            return
+        super().mouseDoubleClickEvent(e)
+
     def mouseReleaseEvent(self, e):
         if e.button() == Qt.LeftButton:
             from PySide6.QtCore import QTimer
@@ -76,6 +86,7 @@ class Board(QWidget):
         self.cards = {}
         for c in cards:
             w = Card(c, self.page.pick, current == c["id"])
+            w.on_open = getattr(self.page, "open_deliverable", None)
             self.cards[c["id"]] = w
             self.flow.addWidget(w)
         self.updateGeometry()
@@ -117,7 +128,8 @@ class Detail(QScrollArea):
         self.v.addWidget(D.label(f"{c['kind'] or 'Deliverable'}  ·  owner {c['owner'] or 'nobody yet'}  ·  {c['status']}"
                                  + ("  ·  done for this stage" if c["done_here"] else ""), "muted"))
         row = FlowLayout(None, D.SPACE["s"]); self.v.addLayout(row)
-        row.addWidget(D.button("Edit...", "primary", lambda: pg.edit(c["id"])))
+        row.addWidget(D.button("Open its page", "primary", lambda: pg.open_deliverable(c["id"]), "Everything about it (or double-click its card)"))
+        row.addWidget(D.button("Edit...", None, lambda: pg.edit(c["id"])))
         row.addWidget(D.button("Done for this stage", None, lambda: pg.mark_stage(c["id"])))
         if c["file"]:
             row.addWidget(D.button("Check this volume", None, lambda: pg.check_volume(c["id"]), "Submission check on its file"))

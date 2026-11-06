@@ -658,7 +658,7 @@ TOPICS = [
    "Custom dictionaries keeps your team's words for Word: + Dictionary..., type words or Import a .dic..., Add the "
    "effort's acronyms, then Export for Word... and add the file in Word (File > Options > Proofing > Custom Dictionaries).",
    "Branding shows the company logos. They are built into Stationkeeper; nobody changes them from here.",
-   "Roles and Preview tools: your role and where it comes from (People and roles in the effort, or your own choice in "
+   "Roles and Preview tools: your role and where it comes from (People in the effort, or your own choice in "
    "Customize...), hide other roles' tools, and show the stage's tools at the top of the menu. The proposal manager turns "
    "Preview tools (Fix a Copy, Make a .dotx template) on or off for the team; a team pack carries the choice.",
    "Install a team pack... takes your team's stages, document types, folders and author list in one step.",

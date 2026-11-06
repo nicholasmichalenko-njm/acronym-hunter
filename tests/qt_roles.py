@@ -114,10 +114,10 @@ check("3.37.0: Lists to Submit opens in the Acronym List", w.stack.currentWidget
       and w.acrlist_page.views.currentWidget() is w.lists_page)
 r = RR.Record(w.ws.root); r.set_team([("A. Lee", "Volume lead"), ("J. Smith", "Proposal manager")]); r.save()
 MO.save(my_name="A. Lee"); w.refresh_access(); app.processEvents()
-check("the effort's People and roles decides the role", w.profile() == ("Author", "effort") and w.step_btns["fixcopy"].property("offrole"))
+check("the effort's People decides the role", w.profile() == ("Author", "effort") and w.step_btns["fixcopy"].property("offrole"))
 w.go("prodstd"); app.processEvents()
 check("... and only the proposal manager changes it: no button to change it here", w.stack.currentWidget() is np
-      and not np.act.isVisibleTo(w) and "People and roles" in np.text.text())
+      and not np.act.isVisibleTo(w) and "People in this effort" in np.text.text())
 MO.save(hide_other_roles=True); w.refresh_access(); app.processEvents()
 # 3.57.0: Wall of Truth is set aside (menufocus), so the fold and the role checks use Acronyms
 check("Hide the tools that are not for my role", not w.step_btns["fixcopy"].isVisibleTo(w) and w.step_btns["acronyms"].isVisibleTo(w) and not w.step_btns["truth"].isVisibleTo(w)
@@ -126,7 +126,7 @@ MO.save(hide_other_roles=False); w.refresh_access()
 w.go("settings"); app.processEvents()
 rc = w.settings_page.roles_card
 check("Settings says the role and where it comes from; only the proposal manager sets Preview tools",
-      "Author" in rc.role_text.text() and "People and roles" in rc.role_text.text() and not rc.prev["fixcopy"].isEnabled())
+      "Author" in rc.role_text.text() and "People in this effort" in rc.role_text.text() and not rc.prev["fixcopy"].isEnabled())
 MO.save(my_name="J. Smith"); w.go("settings"); app.processEvents()
 check("the proposal manager can", w.profile()[0] == RA.PM and rc.prev["template"].isEnabled())
 rc.prev["template"].setChecked(True)

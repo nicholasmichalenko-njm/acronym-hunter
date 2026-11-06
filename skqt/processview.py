@@ -57,8 +57,8 @@ class ProcessCard(D.Card):
         self.tabs.addTab(w, "Gate choices")
         # roles
         w = QWidget(); v = QVBoxLayout(w)
-        v.addWidget(D.label("The roles offered for the people on an effort (Effort Record > Team and Effort Home > People and "
-                            "roles...). Anyone can still type another. Double-click a role to change it.", "muted"))
+        v.addWidget(D.label("The roles offered for the people on an effort (Effort Record > Team and Effort Home > People..."
+                            "). Anyone can still type another. Double-click a role to change it.", "muted"))
         self.rl = QListWidget(); self.rl.setMinimumHeight(260); v.addWidget(self.rl, 1)
         row = QHBoxLayout(); v.addLayout(row)
         for text, fn in (("Up", lambda: self.move_role(-1)), ("Down", lambda: self.move_role(1)), ("+ Role", lambda: self.add_role()),

@@ -12,7 +12,7 @@ Kept in the effort record (record.json), so the effort package carries it. Rules
 import datetime, os, re
 import subreq as SR
 
-KINDS = ("Volume", "Attachment", "Form", "Plan", "Presentation", "Other")
+KINDS = ("Volume", "Attachment", "Form", "Customer file", "Plan", "Presentation", "Other")   # 3.62.0: Customer file
 STATUSES = ("Not started", "Drafting", "In review", "Final", "Submitted")
 
 
@@ -98,14 +98,14 @@ def update(rec, did, who=None, **fields):
     changed = []
     for k, v in fields.items():
         if k not in ("name", "kind", "format", "limit", "owner", "status", "doc_id", "form_version", "file", "notes", "progress", "volume",
-                     "doc_type"):                      # 3.7.0: the production document type this deliverable is made to
+                     "doc_type", "due", "about", "guidelines", "source"):   # 3.62.0: the deliverable page                      # 3.7.0: the production document type this deliverable is made to
             continue
         if k == "progress":                           # 2.48.0: percent done, 0 to 100
             try:
                 v = max(0, min(100, int(round(float(str(v).strip().rstrip("%") or 0)))))
             except ValueError:
                 continue
-        v = v.strip() if k in ("notes", "file") and isinstance(v, str) else _clean(v) if isinstance(v, str) else v
+        v = v.strip() if k in ("notes", "file", "about", "guidelines") and isinstance(v, str) else _clean(v) if isinstance(v, str) else v
         if k == "status" and v not in STATUSES:
             continue
         if d.get(k) != v:
