@@ -170,13 +170,16 @@ def _app_state(M, row, lab_map):
     return {"req": it.get("text", ""), "ref": S["refs"].get(iid, ""), "section": it.get("map", ""), "guidance": S["notes"].get(iid, "")}
 
 
-def compare(M, new_parsed, new_headers=None, old=None):
+def compare(M, new_parsed, new_headers=None, old=None, new_record=None):
     """[change] between the current version and new_parsed: {"i", "kind", "what", "section", "old", "new", "both", "o", "n"}
-    (o and n: the old and new row indexes, or None)."""
+    (o and n: the old and new row indexes, or None). new_record (version history): two kept versions, the app left out."""
     old = old or current(M)
     if old is None:
         return []
-    new_rows, new_secs = rows_of(new_parsed), sections_of(new_parsed)
+    if new_record is not None:
+        new_rows, new_secs, new_headers = new_record["rows"], new_record["sections"], new_record.get("headers")
+    else:
+        new_rows, new_secs = rows_of(new_parsed), sections_of(new_parsed)
     smap = match_sections(old["sections"], new_secs)
     labs = {_label(old["sections"][i]["num"], old["sections"][i]["title"]): _label(new_secs[j]["num"], new_secs[j]["title"]) for i, j in smap.items()}
     out = []
@@ -197,15 +200,15 @@ def compare(M, new_parsed, new_headers=None, old=None):
             add(kind="Section added", what="section", section=_label(s["num"], s["title"]), old="", new=_label(s["num"], s["title"]), o=None, n=None)
     pairs = match_rows(old["rows"], new_rows, labs)
     import setupdoc as SD
-    S = SD.setup_of(M)
+    S = SD.setup_of(M) if new_record is None else {"mgmt": {}}
     for i, o in enumerate(old["rows"]):
-        app = _app_state(M, o, labs)
+        app = _app_state(M, o, labs) if new_record is None else None
         edited = set()
         if app is not None:
             edited = {k for k in ("req", "ref", "guidance") if _n(app[k]) != _n(o[k])}
             if app["section"] and app["section"] != labs.get(o["section"], o["section"]) and app["section"] != o["section"]:
                 edited.add("section")
-        elif not o["req"] and o["guidance"] and o["section"] in (old.get("mgmt") or {}):     # the section's direction
+        elif new_record is None and not o["req"] and o["guidance"] and o["section"] in (old.get("mgmt") or {}):   # its direction
             if _n(S["mgmt"].get(labs.get(o["section"], o["section"]))) != _n(old["mgmt"][o["section"]]):
                 edited.add("guidance")
                 app = {"guidance": S["mgmt"].get(labs.get(o["section"], o["section"]), "")}

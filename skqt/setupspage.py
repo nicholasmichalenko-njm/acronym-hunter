@@ -99,6 +99,8 @@ class SetupsPage(QWidget):
         self.note = D.label("", "muted"); bar.addWidget(self.note, 1)
         bar.addWidget(D.button("From an outline workbook...", "ghost", lambda: self.from_outline(),     # 3.71.0
                                "Read your outline Excel again (it replaces what an earlier import of it made)"))
+        bar.addWidget(D.button("Outline versions...", None, lambda: self.versions(),                  # 3.73.0
+                               "Every version of the outline brought in: compare any two, write the workbook back out"))
         bar.addWidget(D.button("Outline layouts...", None, lambda: self.layouts(),                    # 3.73.0
                                "Set an outline's column names and formatting rules ahead of time"))
         bar.addWidget(D.button("Setup styles...", None, lambda: self.styles(), "The setup's own styles: name, font, size, color, "
@@ -150,10 +152,15 @@ class SetupsPage(QWidget):
         from .outlineimport import import_outline
         return import_outline(self, path, profile, accept)
 
-    def use_outline(self, parsed, file_name):
-        """The outline's structure and blocks into the effort (a new compliance matrix when it has none)."""
+    def use_outline(self, parsed, file_name, path=None, headers=None, layout="", accept=None):
+        """The outline's structure and blocks into the effort (a new compliance matrix when it has none). 3.73.0: the first
+        workbook is version 1; a later one is compared first (New version of the outline)."""
         import outlinexl as OX
+        import outlineversions as OV
         R = self.host.review
+        if R is not None and OV.current(R.M) is not None:
+            from .versionsview import new_version
+            return new_version(self, parsed, path or file_name, headers, layout, accept=accept)
         if R is not None:
             R.snap()
             M = R.M
@@ -161,16 +168,17 @@ class SetupsPage(QWidget):
             if self.host.ws is None or not self.host.effort_path:
                 self.host.status("Pick an effort first, or work in Unfiled.")
                 return None
-            path = self.host.out_path("compliance_matrix")
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            stem, ext = os.path.splitext(path)
+            mpath = self.host.out_path("compliance_matrix")
+            os.makedirs(os.path.dirname(mpath), exist_ok=True)
+            stem, ext = os.path.splitext(mpath)
             k = 2
-            while os.path.exists(path):
-                path = f"{stem} ({k}){ext}"; k += 1
-            M = SM.start(path, (self.host.effort_name or "Effort"), "")
+            while os.path.exists(mpath):
+                mpath = f"{stem} ({k}){ext}"; k += 1
+            M = SM.start(mpath, (self.host.effort_name or "Effort"), "")
             self.host.set_matrix(M, new=True)
             M = self.host.review.M
         n = OX.apply(M, parsed, file_name, who=getattr(self.host, "my_name", None) or None)
+        OV.record(M, parsed, path or file_name, self.host.effort_path or "", headers, layout)    # 3.73.0: version 1
         M.pending = True
         diag.activity("setup_outline_used", n=n["requirements"])
         self.host.changed()
@@ -381,6 +389,14 @@ class SetupsPage(QWidget):
             M.pending = True
             self.host.changed()
         self.refresh()
+
+    def versions(self, modal=True):
+        from .versionsview import history
+        M = self._M()
+        if M is None:
+            self.host.status("Start with a structure.")
+            return None
+        return history(self, modal)
 
     def layouts(self, name=None, modal=True):
         from .outlinelayoutsview import edit

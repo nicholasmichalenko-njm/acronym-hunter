@@ -80,7 +80,7 @@ def _runs(cell):
     return [(str(v), base)]
 
 
-def read(path, sheet=None):
+def read(path, sheet=None, known=None):
     from openpyxl import load_workbook
     wb = load_workbook(path, rich_text=True, data_only=True)
     try:
@@ -91,7 +91,8 @@ def read(path, sheet=None):
     hi = 0
     for n, r in enumerate(rows[:20]):                       # the header row: the first with three or more words that read as headings
         words = [str(c.value).strip() for c in r if c.value not in (None, "") and isinstance(c.value, str)]
-        if len(words) >= 3 and sum(1 for w in words if guess_one(w) != "ignore") >= 2:
+        kn = known or set()                                 # 3.73.0: the headings the outline layouts name count too
+        if len(words) >= 3 and sum(1 for w in words if guess_one(w) != "ignore" or " ".join(w.casefold().split()).rstrip(":.") in kn) >= 2:
             hi = n
             break
     headers = [" ".join(str(c.value or "").split()) for c in rows[hi]] if rows else []

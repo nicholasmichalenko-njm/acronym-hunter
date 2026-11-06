@@ -35,6 +35,11 @@ def build(path, rows, head=HEAD):
         ws.append([num, name, ref, req, None, auth, guid])
         if sup:
             ws.cell(row=ws.max_row, column=5).value = CellRichText([TextBlock(f[k], t) for k, t in sup])
+    ws.column_dimensions["D"].width = 60
+    from openpyxl.styles import Font, PatternFill
+    for c in range(1, len(head) + 1):
+        ws.cell(row=3, column=c).fill = PatternFill("solid", fgColor="FFF2E5")
+        ws.cell(row=3, column=c).font = Font(name="Arial", size=9)
     wb.save(path)
     return path
 
@@ -124,6 +129,31 @@ check("the section's direction written in the app stays", S["mgmt"].get("1 Techn
       S["mgmt"].get("1 Technical Approach"))
 check("version 2 recorded, its copy kept", OV.current(M)["v"] == 2 and os.path.isfile(os.path.join(ED, "Outline Versions", "Kestrel Outline 2 v2.xlsx")))
 check("each item once in its section", sum(1 for lab, ids in S["order"].items() for i in ids if i == id1) == 1)
+# ---- written back out in its own layout
+import outlinewrite as OW
+from openpyxl import load_workbook
+out = os.path.join(tmp, "Kestrel Outline (next).xlsx")
+wr = OW.write_back(M, out, cfg, effort_path)
+wb = load_workbook(out, rich_text=True); ws = wb.worksheets[0]
+check("written back: its title row, headings and column widths stay", ws["A1"].value == "Kestrel Ground Segment: response outline"
+      and [c.value for c in ws[2]][:7] == HEAD and ws.column_dimensions["D"].width == 60)
+cells = {(r[1].value, r[2].value): r for r in ws.iter_rows(min_row=3) if r[2].value}
+sup = cells[("Ground Segment Architecture", "L.4.2.1")][4].value
+check("each row's cells in the pattern row's style", all(r[0].fill.fgColor.rgb in ("00FFF2E5", "FFFFF2E5") and r[0].font.name == "Arial"
+      for r in ws.iter_rows(min_row=3)), [r[0].fill.fgColor.rgb for r in ws.iter_rows(min_row=3)][:3])
+check("mixed text written in the looks the layout gives it (purple customer text)", hasattr(sup, "__iter__") and not isinstance(sup, str)
+      and any(getattr(b, "font", None) is not None and (b.font.color is not None and str(b.font.color.rgb).endswith("6B21A8")) for b in sup), sup)
+check("the effort as it is now: the moved row under 1.4, the app's fix in, ours kept", ("Cybersecurity", "L.4.2.2") in cells
+      and "CONOPS" in cells[("Mission Operations", "L.4.2.4")][3].value and "2024 test" in cells[("Ground Segment Architecture", "L.4.2.1")][6].value)
+chs = wb["Changes"]
+lines = [" | ".join(str(c.value or "") for c in r) for r in chs.iter_rows(min_row=2)]
+check("one Changes sheet: every change from the last version", wr["changes"] == len(lines) and any("CONOPS" in x for x in lines), lines)
+book = OX.read(out); pw = OX.parse(book, OL.profile(cfg, book))
+key = lambda r: (r["section"], r["ref"], r["req"], tuple(r["customer"]), tuple(r["support"]), r["guidance"])
+check("read back, it is exactly what the effort holds (a clean round trip)", [key(r) for r in OV.rows_of(pw)]
+      == [key(r) for r in OW.rows_now(M)[0]], ([key(r) for r in OV.rows_of(pw)][:3], [key(r) for r in OW.rows_now(M)[0]][:3]))
+check("the kept workbook is only read", os.path.getsize(os.path.join(ED, "Outline Versions", "Kestrel Outline 2 v2.xlsx")) > 0
+      and "Changes" not in load_workbook(os.path.join(ED, "Outline Versions", "Kestrel Outline 2 v2.xlsx")).sheetnames)
 # ---- theirs, and a removed row kept as ours
 M = fresh(); S = SD.setup_of(M)
 id1, id3 = rid("L.4.2.1"), rid("L.4.2.3")
@@ -156,4 +186,5 @@ check("importing the same workbook again: the section's direction once", SD.setu
       SD.setup_of(M2)["mgmt"].get("1 Technical Approach"))
 
 print(f"VERSIONS 373 {'OK' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
-sys.exit(0 if all(checks) else 1)
+if __name__ == "__main__":                                   # qt_versions373 imports the workbook maker
+    sys.exit(0 if all(checks) else 1)

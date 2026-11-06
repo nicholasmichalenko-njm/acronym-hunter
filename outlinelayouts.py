@@ -79,6 +79,12 @@ def put(config_dir, name, layout):
     return save(config_dir, d)
 
 
+def known_names(config_dir):
+    """Every heading name the saved layouts give (as matched), for finding the header row."""
+    return {norm(h) for lay in load(config_dir).values() for hs in (lay.get("names") or {}).values() for h in hs} | \
+           {norm(h) for lay in load(config_dir).values() for h in lay.get("skip") or []}
+
+
 def role_of(layout, header):
     """The role a layout gives a heading: a role, "ignore" (a column it leaves out), or None (it does not know it)."""
     h = norm(header)

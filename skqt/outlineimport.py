@@ -45,7 +45,7 @@ class OutlineImport(QDialog):
         self.page, self.host, self.path = page, page.host, path
         self.setWindowTitle(f"Setup from {os.path.basename(path)}")
         self.resize(1200, 820)
-        self.book = OX.read(path)
+        self.book = OX.read(path, known=OL.known_names(page.host.config_dir))
         self.profile = OL.profile(self.host.config_dir, self.book)          # 3.73.0: the closest layout set ahead of time
         self.opts = self.page.setup_opts()
         v = QVBoxLayout(self)
@@ -224,4 +224,5 @@ def import_outline(page, path=None, profile=None, accept=None):
     elif not accept:
         return None
     dlg.remember_new()                                  # 3.73.0: using the structure confirms what the columns hold
-    return page.use_outline(dlg.parsed, os.path.basename(path))
+    return page.use_outline(dlg.parsed, os.path.basename(path), path=path, headers=dlg.book["headers"],
+                            layout=dlg.profile.get("name") or "", accept=accept)
