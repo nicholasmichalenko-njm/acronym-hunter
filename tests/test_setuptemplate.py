@@ -47,7 +47,10 @@ check("the setup is a document made from the template (not a template)", "templa
       and "document.main+xml" in z.read("[Content_Types].xml").decode())
 check("the volume sits on its cover, the solicitation too", ">Volume I Technical<" in doc and "FA8810-26-R-0042" in doc)
 check("the template's sample pages are gone", "Sample data table" not in doc and "Chapter title" not in doc, re.findall(r"<w:t[^>]*>([^<]{0,40})", doc)[:30])
-check("the structure's headings and the placed sentence come in", "1.1 Thermal Design" in doc and kept[0]["text"][:30] in doc.replace("&amp;", "&"))
+check("the structure's headings and the placed sentence come in", "Thermal Design" in doc and kept[0]["text"][:30] in doc.replace("&amp;", "&"))
+h2 = re.search(r'<w:p><w:pPr><w:pStyle w:val="Heading2"/>(?:(?!</w:p>).)*Thermal Design.*?</w:p>', doc, re.S)
+check("3.72.0: Word numbers the heading (the template numbers Heading 2): no typed 1.1, Word's numbering kept",
+      h2 and ">1.1 " not in h2.group(0) and 'w:numId w:val="0"' not in h2.group(0), h2.group(0)[:300] if h2 else doc[:300])
 check("the TOC and the section breaks stay", "TOC \\" in doc and doc.count("<w:sectPr") >= 3, doc.count("<w:sectPr"))
 check("RFP text is in its own style, hidden", 'w:pStyle w:val="SKRFPRequirement"' in doc and re.search(r'w:styleId="SKRFPRequirement".*?<w:vanish/>', sty, re.S))
 pm = re.search(r'w:styleId="SKPMDirection".*?</w:style>', sty, re.S).group(0)

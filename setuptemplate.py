@@ -357,6 +357,9 @@ def write(template_path, out_path, main_doc, appendix_doc, opts, fills=None, pro
     EB.ensure_appendix_styles(sroot)
     body = droot.find("w:body", NS)
     EB.apply_section_marks(body, body.find("w:sectPr", NS))
+    import templatefile as TF                          # 3.72.0: one number per heading, as the outline numbers it
+    nroot = TF.xml_of(zin, "word/numbering.xml")
+    TF.number_headings(body, sroot, nroot)
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         for i in zin.infolist():
@@ -365,6 +368,8 @@ def write(template_path, out_path, main_doc, appendix_doc, opts, fills=None, pro
                 b = etree.tostring(droot, xml_declaration=True, encoding="UTF-8", standalone=True)
             elif i.filename == "word/styles.xml":
                 b = etree.tostring(sroot, xml_declaration=True, encoding="UTF-8", standalone=True)
+            elif i.filename == "word/numbering.xml" and nroot is not None:
+                b = etree.tostring(nroot, xml_declaration=True, encoding="UTF-8", standalone=True)
             elif i.filename == "[Content_Types].xml":
                 b = b.replace(TEMPLATE_CT.encode(), DOCUMENT_CT.encode())
             z.writestr(i, b)
@@ -470,6 +475,50 @@ def set_prepaginate(M, on):
     M.pending = True
 
 
+def volume_docs(M, vname, entries, std, config_dir, ws=None, info=None, context=None, stamp="", P=None, inh=None, title_in_template=None):
+    """3.72.0 (from make_all): one volume's setup as documents ready to write on a template: (opts, front, main, appendix);
+    front and appendix are None when the volume has none. title_in_template: False when the template file brings no
+    title page (the structure's own title element stays)."""
+    import setupdoc as SD
+    import structparts as SP
+    P = P if P is not None else SD.placed_in(M)
+    inh = inh if inh is not None else SD.inherited_sections(M)
+    rules = None
+    try:
+        rules = SP.summaries(config_dir, ws, M, vname)
+    except Exception:                               # noqa: BLE001
+        pass
+    main_e = [o for o in entries if SP.part_of(o) != "appendix"]
+    app_e = [o for o in entries if SP.part_of(o) == "appendix"]
+    opts = options(M, std)
+    sids = style_ids(opts)
+    rb = SD.review_bins(ws.root) if ws is not None else None          # 3.29.0: topics, objectives, key points
+    extras = element_extras(config_dir, info, ws.root if ws is not None else None)
+    extras["matrix_rows"] = SD.matrix_rows(M, entries, P, inh)       # the whole volume, for the front matter's matrix
+    extras["prepaginate"] = prepaginate(M)                          # 3.32.0: each section's planned pages kept
+    extras["skip_kinds"] = skip_kinds(opts) | set(SD.setup_of(M).get("layer_skip") or [])   # 3.33.0: the content map; 3.56.0: the Setup page's layers off
+    if title_in_template is None:
+        title_in_template = bool((std.get("page_parts") or {}).get("title") and std.get("_parts_dir")
+                                 and os.path.isfile(os.path.join(std["_parts_dir"], std["page_parts"]["title"])))
+    if title_in_template:
+        main_e = [o for o in main_e if o.get("element") != "title"]      # 3.34.0: the profile's title page is in the template
+    front_e = [o for o in main_e if SP.part_of(o) in ("cover", "title", "front")]   # 3.30.1: the structure's front matter
+    df = None
+    if any(o.get("kind") for o in front_e):          # elements in front matter take the template's fixed TOC block's place
+        df = SD._doc_for(M, vname, front_e, P, inh, stamp, context, None, styles=sids, bins=rb, std=std, extras=extras)
+        main_e = [o for o in main_e if o not in front_e]
+    dm = SD._doc_for(M, vname, main_e, P, inh, stamp, context, rules, styles=sids, bins=rb, std=std, extras=extras)
+    da = SD._doc_for(M, vname, app_e, P, inh, stamp, context, rules, styles=sids, bins=rb, std=std, extras=extras,
+                     appendix=True) if app_e else None
+    import sectioncontents as SCN                    # 3.45.0: the sections' own contents, written again where the setup
+    sx = SCN.for_setup(std, extras)                    # replaces the template's pages (front matter, appendices)
+    if df is not None and sx.get("front"):
+        df.body.insert(0, sx["front"])
+    if da is not None and sx.get("appendix"):
+        da.body.insert(0, sx["appendix"])
+    return opts, df, dm, da
+
+
 def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=None, context=None, word=None, progress=None,
              starts=None, volumes=None, record=True):
     """For each planned volume: its template (named "<effort> <volume>", next version) and the setup written on it.
@@ -511,36 +560,7 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
             e = TR.record(config_dir, tname, ver, job.copy, "", getattr(job, "validation", None), effort_name)
             TR.note_on_effort(ws, tname, e)
         say(f"Setup for {vname}")
-        rules = None
-        try:
-            rules = SP.summaries(config_dir, ws, M, vname)
-        except Exception:                               # noqa: BLE001
-            pass
-        main_e = [o for o in entries if SP.part_of(o) != "appendix"]
-        app_e = [o for o in entries if SP.part_of(o) == "appendix"]
-        opts = options(M, std)
-        sids = style_ids(opts)
-        rb = SD.review_bins(ws.root) if ws is not None else None          # 3.29.0: topics, objectives, key points
-        extras = element_extras(config_dir, info, ws.root if ws is not None else None)
-        extras["matrix_rows"] = SD.matrix_rows(M, entries, P, inh)       # the whole volume, for the front matter's matrix
-        extras["prepaginate"] = prepaginate(M)                          # 3.32.0: each section's planned pages kept
-        extras["skip_kinds"] = skip_kinds(opts) | set(SD.setup_of(M).get("layer_skip") or [])   # 3.33.0: the content map; 3.56.0: the Setup page's layers off
-        if (std.get("page_parts") or {}).get("title") and os.path.isfile(os.path.join(std["_parts_dir"], std["page_parts"]["title"])):
-            main_e = [o for o in main_e if o.get("element") != "title"]      # 3.34.0: the profile's title page is in the template
-        front_e = [o for o in main_e if SP.part_of(o) in ("cover", "title", "front")]   # 3.30.1: the structure's front matter
-        df = None
-        if any(o.get("kind") for o in front_e):          # elements in front matter take the template's fixed TOC block's place
-            df = SD._doc_for(M, vname, front_e, P, inh, stamp, context, None, styles=sids, bins=rb, std=std, extras=extras)
-            main_e = [o for o in main_e if o not in front_e]
-        dm = SD._doc_for(M, vname, main_e, P, inh, stamp, context, rules, styles=sids, bins=rb, std=std, extras=extras)
-        da = SD._doc_for(M, vname, app_e, P, inh, stamp, context, rules, styles=sids, bins=rb, std=std, extras=extras,
-                         appendix=True) if app_e else None
-        import sectioncontents as SCN                    # 3.45.0: the sections' own contents, written again where the setup
-        sx = SCN.for_setup(std, extras)                    # replaces the template's pages (front matter, appendices)
-        if df is not None and sx.get("front"):
-            df.body.insert(0, sx["front"])
-        if da is not None and sx.get("appendix"):
-            da.body.insert(0, sx["appendix"])
+        opts, df, dm, da = volume_docs(M, vname, entries, std, config_dir, ws, info, context, stamp, P, inh)
         fills = {FI.styles(std)[k]: FI.value(std, k) for k in FI.styles(std) if FI.value(std, k)}
         part = "" if len(groups) == 1 else "_" + SD._safe(vname)
         path = os.path.join(folder, f"{stem}_Response_Setup{part}_{tag}.docx")
