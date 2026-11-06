@@ -724,12 +724,16 @@ class Record:
         qs = self.notes(open_only=True)
         return qs if assignee is None else [q for q in qs if q.get("assignee", "") == assignee]
 
-    def calendar(self, first=None, last=None, extra=(), mine=""):
+    def calendar(self, first=None, last=None, extra=(), mine="", who="", stages=True):
         """2.49.0: what falls on each day: {date: [(kind, text)]}. kind: due, stage, task, done, event. extra: more
-        (date, kind, text) from elsewhere (questions due from the customer documents). Between first and last when given."""
+        (date, kind, text[, owner]) from elsewhere (questions due from the customer documents, sections due). Between
+        first and last when given. 3.61.0: who: only that person's items, and the effort's own due dates; stages=False leaves
+        out stages and gate goals (set aside)."""
         out = {}
 
-        def put(d, kind, text):
+        def put(d, kind, text, owner=""):
+            if who and (owner or "").strip().casefold() != who.strip().casefold() and kind not in ("due", "deadline", "questions"):
+                return
             if d and (first is None or d >= first) and (last is None or d <= last):
                 out.setdefault(d, []).append((kind, text))
         due = self.data.get("due", "")
@@ -739,7 +743,7 @@ class Record:
                 h, mi = int(hm[:2]), int(hm[3:5])
                 hm = f"{h % 12 or 12}:{mi:02d} {'a.m.' if h < 12 else 'p.m.'}"
             put(parse_date(due[:10]), "due", "Proposal due" + (f" {hm}" if hm else ""))
-        for s in self.stages:
+        for s in (self.stages if stages else []):
             if s.get("planned"):
                 put(parse_date(s["planned"]), "stage", f"{s['name']} (planned start)" if s.get("planned_end") else f"{s['name']} (planned)")
             if s.get("planned_end"):
@@ -750,24 +754,25 @@ class Record:
             if t.get("due"):
                 hm = when_text(t["due"]).split(", ", 1)[1] + " " if "T" in t["due"] else ""
                 put(parse_date(t["due"][:10]), "done" if t["status"] == "Done" else "task",
-                    hm + t["title"] + (f" ({t['owner']})" if t.get("owner") else ""))
-        for s in self.stages:                                   # 2.93.0: gate goals with a deadline
+                    hm + t["title"] + (f" ({t['owner']})" if t.get("owner") else ""), t.get("owner", ""))
+        for s in (self.stages if stages else []):               # 2.93.0: gate goals with a deadline
             for g in s.get("goals", []):
                 if g.get("due"):
                     hm = when_text(g["due"]).split(", ", 1)[1] + " " if "T" in g["due"] else ""
                     put(parse_date(g["due"][:10]), "done" if g.get("done") else "task",
-                        f"{hm}Gate goal ({s['name']}): {g['text']}" + (f" ({g['owner']})" if g.get("owner") else ""))
+                        f"{hm}Gate goal ({s['name']}): {g['text']}" + (f" ({g['owner']})" if g.get("owner") else ""), g.get("owner", ""))
         import effortcal as EC
         for e in self.data.get("events", []):                 # 2.88.0: reviews, meetings, orals, milestones; 2.92.0: due dates
             when = EC.entry_times(e, mine)
             kind = "questions" if e["kind"] == "Questions due" else "deadline" if e["kind"] == "Due" else "meeting"
             put(parse_date(e["date"]), kind, ((("Due " if kind == "deadline" else "") + when + " ") if when else ("Due: " if kind == "deadline" else ""))
-                + e["title"] + (f" ({e['location']})" if e.get("location") else ""))
+                + e["title"] + (f" ({e['location']})" if e.get("location") else ""), e.get("owner", ""))
         for e in self.data.get("timeline", []):
-            if e["kind"] in ("document", "stage", "deliverable", "assign") and e.get("at") and not e["text"].startswith("Goal "):
+            if e["kind"] in ("document", "stage", "deliverable", "assign") and e.get("at") and not e["text"].startswith("Goal ") \
+                    and (stages or e["kind"] != "stage"):
                 put(parse_date(e["at"][:10]), "event", e["text"][:80])
-        for d, kind, text in extra:
-            put(d, kind, text)
+        for x in extra:
+            put(*x)
         return out
 
     # ------------------------------------------------------------ the team (2.52.0)

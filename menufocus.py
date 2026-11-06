@@ -11,7 +11,14 @@ SET_ASIDE = {"mywork": ("2026-11-05", "Authors and the proposal manager track th
              "storyboards": ("2026-11-05", "Author workflow"),
              "datacalls": ("2026-11-05", "Coordinating authors and experts happens in SharePoint and email"),
              "reviews": ("2026-11-05", "Color review comments live in the shared document"),
-             "kickoff": ("2026-11-05", "Author coordination (the Structure Builder's Kickoff packets button)")}
+             "kickoff": ("2026-11-05", "Author coordination (the Structure Builder's Kickoff packets button)"),
+             # 3.61.0: the Effort Dashboard's proposal-management parts, not fleshed out for production
+             "stages": ("2026-11-05", "Stages and gates are not managed in the app for now (the stage track, the stage pill, "
+                                      "the Stages card, Move stage)"),
+             "gategoals": ("2026-11-05", "Gate goals belong with stages and gates"),
+             "alloverviews": ("2026-11-05", "The All overviews list of exported overviews"),
+             "winthemes": ("2026-11-05", "Win themes (the card and the strip under the header)"),
+             "evalcard": ("2026-11-05", "The Evaluation and hot buttons card; evaluation factors get their own page (3.63.0)")}
 SETTING = "show_set_aside"
 
 
@@ -22,5 +29,6 @@ def hidden(settings=None):
 
 def names():
     """The set-aside pages' menu names, for the Settings line."""
-    return ("My Work, Draft Status, Wall of Truth, Storyboards, Data calls, Color Reviews and the Structure Builder's "
-            "Kickoff packets")
+    return ("My Work, Draft Status, Wall of Truth, Storyboards, Data calls, Color Reviews, the Structure Builder's "
+            "Kickoff packets, and the Effort Dashboard's stages and gates, gate goals, win themes, All overviews and the "
+            "Evaluation and hot buttons card")

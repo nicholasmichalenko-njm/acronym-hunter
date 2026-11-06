@@ -318,68 +318,16 @@ class AcronymPage(QWidget):
             self._actions(terms)
             return
         t = terms[0]
-        d = s.results[t]
         self.card.title.setText(t)
-        kind = "excluded" if d.get("excluded") else A.status_kind(d.get("status", ""))
-        row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
-        row.addWidget(D.Pill(A.status_text(d.get("status", "")), KIND_TONE.get(kind, "accent")))
-        if d.get("effort"):
-            row.addWidget(D.Pill(f"Acronym list: {d['effort']}", "ok" if d["effort"] == "Approved" else "accent"))
-        if d.get("plural_of"):
-            row.addWidget(D.Pill(f"Plural of {d['plural_of']}", "ctx"))
-        if d.get("form_of"):                                       # 3.34.1
-            row.addWidget(D.Pill(f"Written as {d['form_of']} plus a number", "ctx"))
-        if d.get("from_forms"):
-            row.addWidget(D.Pill("Found inside its forms", "ctx"))
-        row.addStretch(1)
-        self.body.addLayout(row)
-        self.body.addWidget(D.label(f"{d.get('category', '')}  |  found {d.get('count', 0)} time(s)"
-                                    + (f"  |  known in: {s.known_cell(t, d)}" if s.known_cell(t, d) else ""), "muted"))
-        for w_ in AX.card_extras(self, t):                              # 3.51.0: Found: ... Use; context; equations
-            (self.body.addLayout if isinstance(w_, QHBoxLayout) else self.body.addWidget)(w_)
-        self.body.addWidget(D.SectionTitle("Definition"))
-        self.body.addWidget(D.label(d.get("selected_definition", "") or "(none)"))
-        defs = [x for x in d.get("definitions", []) if x]
-        if defs:
-            self.body.addWidget(D.SectionTitle("Possible definitions"))
-            cust = set(d.get("customer_definitions", []))
-            for x in defs:
-                r = QHBoxLayout(); r.setSpacing(D.SPACE["s"])
-                import acrmore as AM                                       # 3.51.0: which customer document
-                src = AM.sources_of(d, x) if x in cust else []
-                r.addWidget(D.label(x + (f"   (customer document: {', '.join(src[:2])})" if src else "   (customer document)" if x in cust else "")), 1)
-                r.addWidget(D.button("Use this", "ghost", lambda _=False, x=x: self.choose(t, x)))
-                self.body.addLayout(r)
-            if len(defs) > 1:
-                self.body.addWidget(D.button("Keep all possibilities", "ghost", lambda: self.choose(t, "Keep All Possibilities")), 0, Qt.AlignLeft)
-        self.typed = QLineEdit(); self.typed.setPlaceholderText("Type a definition to add with it (right-click for subscript, superscript, symbols)")
-        self.body.addWidget(D.SectionTitle("Acronym list"))
-        from . import symbols as SYM                                  # 3.50.0: Greek, sub- and superscripts, units, accents
-        tr = QHBoxLayout(); tr.setSpacing(D.SPACE["s"])
-        tr.addWidget(self.typed, 1); tr.addWidget(SYM.button(self.typed))
-        self.use_sel = D.button("Use the selected words", "ghost", lambda: self.use_selected(),
-                                "Select words in the passage under Where it was found, then put them in the definition box")
-        tr.addWidget(self.use_sel)
-        self.body.addLayout(tr)
-        self._actions([t])
-        locs = d.get("locations", [])
-        if locs:
-            self.body.addWidget(D.SectionTitle(f"Where it was found ({len(locs)})"))
-            from .foundview import FoundView                          # 3.50.0: the picture or passage, every find boxed
-            self.where_view = FoundView(t, locs, self.path_of)
-            self.body.addWidget(self.where_view)
-            from PySide6.QtWidgets import QListWidget
-            box = QListWidget(); box.setMinimumHeight(100)
-            box.addItems(locs[:500] + ([f"... and {len(locs) - 500} more"] if len(locs) > 500 else []))
-            box.setToolTip("Click a place to show it above")
-            box.currentRowChanged.connect(lambda r, fv=self.where_view: fv.show_place(r))
-            self.body.addWidget(box)
-        self.body.addStretch(1)
+        from . import acrcard                                          # 3.61.0: a lighter card, details folded
+        acrcard.build(self, t, KIND_TONE)
 
     def use_selected(self):
         """3.50.0: the words selected in the passage where the term was found become the definition typed."""
         wv = getattr(self, "where_view", None)
         sel = wv.text.textCursor().selectedText().strip() if wv is not None else ""
+        if not sel and wv is not None:                                # 3.61.0: or the box clicked in the picture
+            sel = wv.reading.text().strip()
         if not sel:
             self.host.status("Select the words in the passage under Where it was found first.")
             return ""

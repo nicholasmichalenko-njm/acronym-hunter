@@ -52,22 +52,21 @@ fv2 = FoundView("SOW", ["Kestrel_Technical_Volume.docx (para 3)"], lambda n: pat
 check("a Word paragraph shows the passage with the find highlighted", fv2.wait() == "text" and "SOW" in fv2.text.toPlainText())
 
 # ---- a picture inside a file: drawn whole, the reader's lines boxed (reader stood in for)
-import pictures as PIC
-real = PIC.read_region_lines
+real = A.scan_readings                                 # 3.61.0: the preview boxes the scan's own readings
 LOW = max(0.0, A.ocr_cutoff() - 0.2)                   # below the reader's cutoff, whichever reader this PC has
-PIC.read_region_lines = lambda img: [((20, 20, 220, 50), "EPS power budget", 0.99), ((20, 70, 200, 100), "ADCS trade", LOW),
-                                     ((20, 120, 200, 150), "thermal margin", 0.99)]
+A.scan_readings = lambda b: [((20, 20, 220, 50), "EPS power budget", 0.99, "read"), ((20, 70, 200, 100), "ADCS trade", LOW, "read"),
+                             ((20, 120, 200, 150), "thermal margin", 0.99, "second reader")]
 fv3 = FoundView("EPS", ["Kestrel_System_Diagram.png (Image)"], lambda n: paths.get(n)); fv3.resize(700, 600); fv3.show(); app.processEvents()
 fv3.wait()
 kinds = sorted(k for _b, k in fv3.view.boxes)
 check("a picture is drawn whole: the term boxed in yellow, other readings green, low confidence red", fv3.state == "picture"
       and "sel" in kinds and "find" in kinds and "low" in kinds and "line" in kinds, (fv3.state, kinds, fv3.info.text()))
-PIC.read_region_lines = lambda img: (_ for _ in ()).throw(RuntimeError("no reader"))
+A.scan_readings = lambda b: (_ for _ in ()).throw(RuntimeError("no reader"))
 from skqt import foundview as FVM
 FVM._CACHE.clear()
 fv4 = FoundView("EPS", ["Kestrel_System_Diagram.png (Image)"], lambda n: paths.get(n)); fv4.show(); app.processEvents(); fv4.wait()
 check("when the reader cannot run, the picture still shows and says why", fv4.state == "picture" and "could not run" in fv4.info.text())
-PIC.read_region_lines = real
+A.scan_readings = real
 fv5 = FoundView("SOW", ["Elsewhere.pdf (p.2)"], lambda n: None); fv5.show(); app.processEvents()
 check("a file no longer on this PC says so", fv5.state == "missing" and "not on this PC" in fv5.text.toPlainText())
 

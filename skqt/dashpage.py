@@ -155,6 +155,12 @@ class DashPage(QWidget):
         self.fill_people(d)
         self.fill_topics()
         self.fill_drafts()
+        import menufocus as MF                                          # 3.61.0: stages and gate goals set aside
+        from .modes import settings as _st
+        aside = MF.hidden(_st())
+        self.stages.setVisible("stages" not in aside)
+        self.tiles["goals"].setVisible("gategoals" not in aside)
+        self.drafts.setVisible("drafts" not in aside)
         diag.activity("qt_dashboard_shown")
         return d
 

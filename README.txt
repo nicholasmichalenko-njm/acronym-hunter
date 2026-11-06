@@ -1,6 +1,21 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+ACRONYM FINDINGS AND A CLEANER DASHBOARD (3.61.0)
+  - The preview boxes exactly what the scan read (the same reader and passes). Page < and > go through every page or
+    picture of the file. A find sits in the middle of the view, even at the picture's edge. Click a box to see what it
+    read: Fix the reading corrects it for every later scan on this PC; Use as the meaning fills the definition box.
+  - The term's card: the meaning, the find as text you can copy, the definition box and the actions on top; other
+    possibilities and the details (pills, counts, places, an equation's symbols) folded.
+  - Why is a term missing?: type a term you expected and get the reasons (the Exclusion List, Omit, a plural or form you
+    set, the filters, or whether the last scan read it, with near misses in pictures).
+  - The acronym set: Save as the answer key... makes a decided scan the key of your own set (Stationkeeper Acronym Set in
+    your user folder, outside the repository). tools\acreval.py scores it each build, numbers only, with a floor per
+    file; --opencv scores it again with OpenCV's picture steps to compare.
+  - Effort Dashboard: stages and gates, gate goals, win themes, All overviews and the Evaluation and hot buttons card are
+    set aside (Settings > Roles shows them again). The calendar: the mouse wheel scrolls the page, never the month; Jump
+    to today; A day's list for one person; Setup sections' due dates with their lead.
+
 STRIP SETUP AND TRACKED CHANGES (3.60.0)
   - Plan > Setup > Strip setup... (or drop a Word file on Your Tools and pick Strip the setup out): a clean copy beside
     the volume with every paragraph in the setup's reference styles (the RFP's words, PM direction, notes, the Lead and

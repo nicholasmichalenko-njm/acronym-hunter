@@ -161,7 +161,16 @@ def top_buttons(page):
             D.button("Meaning from context", None, lambda: suggest_context(page), "For each term with several meanings, read the "
                      "words around each use and suggest the meaning that fits (you still decide)"),
             D.button("Fixes for misread text...", None, lambda: ocr_fixes_window(page), "What the reader gets wrong in pictures "
-                     "and what it should be, for every later scan on this PC")]
+                     "and what it should be, for every later scan on this PC"),
+            D.button("Why is a term missing?", None, lambda: _acc().why_window(page), "Type a term you expected: the reasons "
+                     "it is not listed, from this PC's lists, your decisions and what the scan read (3.61.0)"),
+            D.button("Save as the answer key...", "ghost", lambda: _acc().save_key(page), "Your decided scan becomes the answer "
+                     "key of your acronym set (a folder outside the repository), scored by each build")]
+
+
+def _acc():
+    from . import acrcheck
+    return acrcheck
 
 
 def add_term(page, term=None, category="Acronym", definition="", document="", to=None):

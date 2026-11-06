@@ -804,6 +804,9 @@ def _decode_rgb(image_bytes):
 def _norm_tok(t):
     return re.sub(r"[^0-9a-z&]", "", t.lower())
 
+_DOCTR_BOXES = threading.local()      # 3.61.0: per thread (a scan and a preview can read at once)
+
+
 def _doctr_extra(image_bytes, tess_lines, clean_shape):
     """Words docTR reads that Tesseract did not, as extra lines.
     - In a region Tesseract read, a docTR word is added only if Tesseract has no word there that matches it
@@ -829,6 +832,7 @@ def _doctr_extra(image_bytes, tess_lines, clean_shape):
     sx = clean_shape[1] / max(1, rgb.shape[1]); sy = clean_shape[0] / max(1, rgb.shape[0])
     floor = float(OCR_CFG.get("doctr_min_confidence", 0.5))
     out, seen = [], set()
+    boxes = _DOCTR_BOXES.boxes = []       # 3.61.0: where each added line sits, for the preview
     for ln in lines:
         box, text, conf = ln[0], ln[1], ln[2]
         words = ln[3] if len(ln) > 3 else [(t, conf) for t in text.split()]
@@ -856,12 +860,43 @@ def _doctr_extra(image_bytes, tess_lines, clean_shape):
         ln_txt = " ".join(new)
         if ln_txt and ln_txt not in seen:
             seen.add(ln_txt); out.append(ln_txt)
+            boxes.append(((bx0, by0, bx1, by1), ln_txt))
     return "\n".join(out)
 
 def _ocr_raw(image_bytes):
+    return _ocr_detail(image_bytes)[0]
+
+
+_OCR_READINGS = {}   # 3.61.0: sha1(image bytes) -> [((x0, y0, x1, y1) in the picture's pixels, text, confidence, how)]
+
+
+def scan_readings(image_bytes):
+    """3.61.0: the readings the scan makes of a picture, each with its box in the picture's own pixels: the same
+    reader, passes and cutoff as the scan, so the preview boxes exactly what the scan found. how: "read", "lines
+    removed" or "second reader"."""
+    key = hashlib.sha1(image_bytes).hexdigest()
+    if key not in _OCR_READINGS:
+        text, readings = _ocr_detail(image_bytes)
+        _OCR_CACHE.setdefault(key, text)
+        _OCR_READINGS[key] = readings
+        if len(_OCR_READINGS) > 200:
+            _OCR_READINGS.pop(next(iter(_OCR_READINGS)))
+    return _OCR_READINGS[key]
+
+
+def _ocr_detail(image_bytes):
+    """(the text the scan keeps, [(box, text, confidence, how)]) for one picture."""
     clean_img = enhance_image_for_ocr(image_bytes)
     if clean_img is None:
-        return ""
+        return "", []
+    try:
+        ow = IO.imdecode(image_bytes, "color").shape[1]
+    except Exception:  # noqa: BLE001
+        ow = clean_img.shape[1]
+    f = clean_img.shape[1] / max(1, ow)             # the upscale the enhancer applied
+
+    def back(b):
+        return (b[0] / f, b[1] / f, b[2] / f, b[3] / f)
     lines = _ocr_lines(clean_img)          # whole-image pass (large text, layout)
     h, w = clean_img.shape[:2]
     tile, over = int(OCR_CFG["tile_size_px"]), int(OCR_CFG["tile_overlap_px"])
@@ -874,14 +909,19 @@ def _ocr_raw(image_bytes):
         lines = _merge_lines(lines, tiled)
     lines.sort(key=lambda t: (round(t[1] / 20), t[0]))
     text = "\n".join(t[4] for t in lines)
+    readings = [(back(t), t[4], t[5], "read") for t in lines]
+    _DOCTR_BOXES.boxes = []
     extra = _doctr_extra(image_bytes, lines, clean_img.shape)
+    readings += [(back(b), t, 1.0, "second reader") for b, t in getattr(_DOCTR_BOXES, "boxes", [])]
     bare_text = ""
     if OCR_CFG.get("line_removal_pass", 1) and max(h, w) <= 4000:
         bare = remove_lines(clean_img)
         if bare is not None:     # kept apart from the first pass so docTR still adds what Tesseract missed there
             got = [t for t in _merge_lines(lines, _ocr_lines(bare))[len(lines):]]
-            bare_text = "\n".join(t[4] for t in sorted(got, key=lambda t: (round(t[1] / 20), t[0])))
-    return text + ("\n" + extra if extra else "") + ("\n" + bare_text if bare_text else "")
+            got = sorted(got, key=lambda t: (round(t[1] / 20), t[0]))
+            bare_text = "\n".join(t[4] for t in got)
+            readings += [(back(t), t[4], t[5], "lines removed") for t in got]
+    return text + ("\n" + extra if extra else "") + ("\n" + bare_text if bare_text else ""), readings
 
 _OCR_CALLS = [0]   # pictures sent to OCR while scanning the current file (a file with 0 does not depend on the reader)
 
@@ -2375,7 +2415,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "3.60.0"            # keep in step with version_info.txt
+APP_VERSION = "3.61.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"

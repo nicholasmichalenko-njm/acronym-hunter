@@ -351,9 +351,14 @@ TOPICS = [
    "leaves it out of every effort (Exclusion List... shows the list; Take off the list gives a term back).",
    "Add to the database keeps the term and its meaning in this PC's acronym database, apart from the effort's list "
    "(usually after submission). Add a term... adds one by hand: to this scan, the effort list, the database, or all three.",
-   "The card: where the term was found (the picture or the passage), the line it was found in (Use takes its words), "
-   "Meaning from context (the words around it pick one of several meanings; Accept takes it), the customer documents "
-   "that define it, and the symbols in an equation. Another way of writing... ties a form to its term.",
+   "The card: the meaning (other possibilities folded under Show other possibilities), the find as text you can copy, "
+   "the definition box, the actions, then the preview. Show details opens the counts, the places and an equation's symbols.",
+   "The preview boxes what the scan read. Page < and > go through every page or picture of the file. Click a box to see "
+   "what it read: Fix the reading corrects it for every later scan on this PC; Use as the meaning puts the words in the "
+   "definition box. Find < and > step through the finds and come back to the place.",
+   "Why is a term missing? Type a term you expected: the Exclusion List, Omit, a plural or form you set, the filters, or "
+   "what the last scan read (with near misses in pictures). Save as the answer key... makes your decided scan the key of "
+   "your acronym set (a folder outside the repository), scored by each build.",
    "The table: click a heading to sort (again to turn it around); Ctrl+wheel or Ctrl+plus and minus change the text size; "
    "right-click a row for every action; double-click for Details. Select several rows to act on them together.",
    "Fixes for misread text...: when the reader misreads a word in a picture (KSF for KSE), add the fix; it is used every "

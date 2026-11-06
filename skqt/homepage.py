@@ -4,7 +4,7 @@ calendar of due dates, stages, tasks and what happened, customer information, an
 "Show tasks and questions for" filter picks a person. Everything is kept in the effort's record (record.json), the same
 file the classic window uses; one program holds an effort at a time. Rules only; nothing leaves the PC."""
 import datetime, os
-from PySide6.QtCore import QDate, Qt
+from PySide6.QtCore import QDate, QEvent, QObject, Qt
 from PySide6.QtGui import QTextCharFormat
 from PySide6.QtWidgets import (QCalendarWidget, QCheckBox, QComboBox, QDateEdit, QDialog, QDialogButtonBox, QFormLayout,
                                QFrame, QGridLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QPlainTextEdit, QScrollArea,
@@ -37,6 +37,19 @@ def clear(layout):
 def plural(n, word, many=None):
     return f"{n} {word if n == 1 else (many or word + 's')}"
 
+
+
+class _NoWheel(QObject):
+    """3.61.0: the mouse wheel never moves the calendar's month; it scrolls the page instead."""
+    target = None
+
+    def eventFilter(self, obj, ev):
+        if ev.type() == QEvent.Wheel:
+            sb = self.target.verticalScrollBar() if self.target is not None else None
+            if sb is not None:
+                sb.setValue(sb.value() - ev.angleDelta().y() // 2)
+            return True
+        return False
 
 class ClickLabel(QLabel):
     """2.86.0: a goal's wording: click it to change it."""
@@ -163,6 +176,18 @@ class HomePage(QWidget):
         self.cal.setHeaderTextFormat(head)
         self.cal.clicked.connect(lambda d: self.pick_day(d.toPython()))
         self.cal.currentPageChanged.connect(lambda _y, _m: self.paint_calendar())
+        self._nowheel = _NoWheel(self.cal)                           # 3.61.0: the wheel scrolls the page, never the month
+        self._nowheel.target = getattr(self, "scroll", None)
+        for w_ in [self.cal] + self.cal.findChildren(QWidget):
+            w_.installEventFilter(self._nowheel)
+        crow = QHBoxLayout(); crow.setSpacing(D.SPACE["s"])
+        crow.addWidget(D.button("Jump to today", None, lambda: self.jump_today(), "Show this month and today's list"))
+        crow.addStretch(1)
+        crow.addWidget(D.label("A day's list for", "muted", wrap=False))
+        self.day_who = QComboBox(); self.day_who.setMinimumWidth(160); self.day_who.addItem("Everyone")
+        self.day_who.activated.connect(lambda _i: self.show_day())
+        crow.addWidget(self.day_who)
+        self.cal_card.body.addLayout(crow)
         self.cal_card.add(self.cal)
         self.cal_card.body.addLayout(self.calfiles.file_row())
         from .adaptive import FlowLayout                             # 3.0.4: the key wraps, so Home fits a 1440 screen
@@ -265,6 +290,9 @@ class HomePage(QWidget):
             keep = me                                               # 2.88.0: an author starts on their own tasks
         self._who_set = True
         self.who.setCurrentText(keep if keep in people else "Everyone")
+        kd = self.day_who.currentText()                             # 3.61.0: a day's list by person
+        self.day_who.clear(); self.day_who.addItems(["Everyone"] + people)
+        self.day_who.setCurrentText(kd if kd in people else "Everyone")
         p = self.person()
         self.for_box.setVisible(bool(p))
         self.for_name.setText(f"{p}: tasks and questions" if p else "")
@@ -364,6 +392,10 @@ class HomePage(QWidget):
 
     def set_strip(self, key, on, save=True):
         """Show or hide a pinned strip; remembered for this person and this effort on this PC."""
+        import menufocus as MF                                          # 3.61.0: set-aside strips stay hidden
+        from .modes import settings as _st
+        if {"themes": "winthemes", "truth": "truth"}.get(key) in MF.hidden(_st()):
+            on, save = False, False
         on = bool(on)
         self.strip_state[key] = on
         self.strips[key].setVisible(on and self.host.ws is not None)
@@ -431,7 +463,11 @@ class HomePage(QWidget):
                 it.widget().setParent(None)
         for c in self.cards.values():
             c.setParent(None)
-        self.shown = BR.shown(self.lay)
+        import menufocus as MF                                          # 3.61.0: the dashboard's set-aside cards
+        aside = MF.hidden(settings())
+        drop = {k for k, key in (("stage", "stages"), ("goals", "gategoals"), ("themes", "winthemes"), ("custfocus", "evalcard"))
+                if key in aside}
+        self.shown = [k for k in BR.shown(self.lay) if k not in drop]
         widths = self.lay.get("widths") or {}
         for row in BR.rows(self.shown, widths):
             if len(row) == 1 and BR.width(row[0], widths) == "wide":
@@ -1644,7 +1680,13 @@ class HomePage(QWidget):
         y, m = self.cal.yearShown(), self.cal.monthShown()
         first = datetime.date(y, m, 1)
         return self.state.calendar(first=first - datetime.timedelta(days=7),
-                                   last=first.replace(day=CAL.monthrange(y, m)[1]) + datetime.timedelta(days=14), mine=self.my_zone_key())
+                                   last=first.replace(day=CAL.monthrange(y, m)[1]) + datetime.timedelta(days=14), mine=self.my_zone_key(),
+                                   stages=self._stages_on())
+
+    def _stages_on(self):
+        import menufocus as MF
+        from .modes import settings
+        return "stages" not in MF.hidden(settings())
 
     def export_tq(self, path=None):
         """2.92.0: the tasks and questions for the person shown, or the full team, in a dated workbook named for them."""
@@ -1699,7 +1741,9 @@ class HomePage(QWidget):
         d = self.day
         if d is None or self.state is None:
             return []
-        items = self.state.calendar(first=d, last=d, mine=self.my_zone_key()).get(d, [])
+        dw = self.day_who.currentText()
+        items = self.state.calendar(first=d, last=d, mine=self.my_zone_key(), who="" if dw in ("", "Everyone") else dw,
+                                    stages=self._stages_on()).get(d, [])
         self.day_box.addWidget(D.label(d.strftime("%A, %B %d, %Y").replace(" 0", " "), "title"))
         t = D.tokens()
         for kind, text in items or [("event", "Nothing on this day.")]:
@@ -1724,6 +1768,14 @@ class HomePage(QWidget):
         add.addStretch(1)
         self.day_box.addLayout(add)
         return items
+
+    def jump_today(self, today=None):
+        """3.61.0: this month on the calendar and today's list."""
+        today = today or datetime.date.today()
+        self.cal.setSelectedDate(today); self.cal.showToday()
+        self.day = today
+        self.show_day()
+        return today
 
     def remove_event(self, eid):
         import effortcal as EC

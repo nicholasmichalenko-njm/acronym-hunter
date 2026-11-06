@@ -131,8 +131,9 @@ class EffortBanner(QFrame):
         # 3.15.0: actions are buttons; what only opens a place is a link, after them
         acts.addWidget(D.button("Open effort folder", "ghost", lambda: self.host.open_effort_folder(),
                                 "The effort's folder in File Explorer: customer documents, volumes, Response Setup, exports"))
-        acts.addWidget(D.button("All overviews...", "ghost", lambda: self.host.record_page.overviews_dialog(),   # 3.12.0
-                                "Every overview exported for this effort, newest first, with the summary you wrote for it"))
+        self.all_ov = D.button("All overviews...", "ghost", lambda: self.host.record_page.overviews_dialog(),   # 3.12.0
+                               "Every overview exported for this effort, newest first, with the summary you wrote for it")
+        acts.addWidget(self.all_ov)
         self.page_deliv = D.button("", "ghost", lambda: self.host.go("deliverables"), "The deliverables board")
         acts.addWidget(self.page_deliv)
         acts.addStretch(1)
@@ -283,8 +284,17 @@ class EffortBanner(QFrame):
         gi = self.gate_info or {}
         label = stage + (f"  ·  {gi['gate']}" if gi.get("gate") else "") + \
             (f"  ·  {gi['open']} of {gi['total']} goals open" if gi.get("total") else "")
+        import menufocus as MF                                                  # 3.61.0: stages, win themes, All overviews set aside
+        from .modes import settings as _st
+        aside = MF.hidden(_st())
+        if "stages" in aside:
+            self.stage_hex = ""
+        self.all_ov.setVisible("alloverviews" not in aside)
+        for k, key in (("themes", "winthemes"), ("truth", "truth")):
+            if k in self.toggles:
+                self.toggles[k].setVisible(key not in aside)
         for b in (self.stage, self.c_stage):
-            b.setText(label); b.setVisible(bool(stage))
+            b.setText(label); b.setVisible(bool(stage) and "stages" not in aside)
             b.setToolTip((gi.get("about") or "") + ("\n" if gi.get("about") else "") + "Click to see this stage's gate goals")
         self.restyle("accent" if getattr(self, "_tone", "head") == "head" else self._tone)
         try:                                                                    # 2.94.0

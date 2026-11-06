@@ -238,7 +238,25 @@ class State:
         return people_of(self.rec, self.M)
 
     def cal_extra(self):
-        return cal_extra_of(self.rec, self.rows)
+        return cal_extra_of(self.rec, self.rows) + self.section_dues()
+
+    def section_dues(self):
+        """3.61.0: each section's due date from the Setup page, with its lead: (date, "task", text, lead)."""
+        out = []
+        M = getattr(self, "M", None)
+        if M is None:
+            return out
+        try:
+            import setupdoc as SD
+            S = SD.setup_of(M)
+            for lab, when in (S.get("due") or {}).items():
+                d = R.parse_date(when)
+                if d:
+                    lead = SD.section_people(M, lab)["lead"]
+                    out.append((d, "task", f"{lab} due" + (f" ({lead})" if lead else ""), lead))
+        except Exception:
+            diag.swallowed()
+        return out
 
     def questions_due(self, today=None):
         """3.20.3: when questions to the customer are due, if the customer said: the next date on the calendar (a
@@ -261,8 +279,8 @@ class State:
             pending = 0
         return {"date": d, "days": (d - today).days, "pending": pending}
 
-    def calendar(self, first=None, last=None, mine=""):
-        return self.rec.calendar(first=first, last=last, extra=self.cal_extra(), mine=mine)
+    def calendar(self, first=None, last=None, mine="", who="", stages=True):
+        return self.rec.calendar(first=first, last=last, extra=self.cal_extra(), mine=mine, who=who, stages=stages)
 
     def acronyms(self):
         """{"total", "Approved", "Proposed", "Needs author", "Rejected"} from the effort's acronym list."""
