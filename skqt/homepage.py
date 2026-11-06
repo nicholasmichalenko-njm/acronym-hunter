@@ -242,6 +242,8 @@ class HomePage(QWidget):
                       "custfocus": self.focus_card, "graphics": self.gfx_card,
                       "themes": self.themes_card,
                       "compliance": dp.comp, "coverage": dp.vol, "pastdue": dp.late, "acronyms": dp.acr, "people": dp.people}
+        from . import homecards as HC                                   # 3.63.0: the path strip, meetings, evaluation
+        self.cards.update(HC.install(self))
         self.lay = None
         self.apply_layout()
         self.sections = {k: QVBoxLayout() for k in ("goals", "tasks", "notes", "info", "timeline", "custqa", "custfocus",
@@ -341,6 +343,8 @@ class HomePage(QWidget):
         self.draw_timeline(r)
         self.paint_calendar()
         self.show_day()
+        from . import homecards as HC
+        HC.refresh(self)
 
     def changed(self):
         self.refresh()
@@ -516,22 +520,8 @@ class HomePage(QWidget):
         return True
 
     def draw_deliverables(self):
-        import delivboard as DB
-        clear(self.deliv_box)
-        cards = getattr(self, "cards_now", [])
-        if not cards:
-            self.deliv_box.addWidget(D.label("No deliverables yet. Add them on the board.", "muted"))
-            return
-        self.deliv_box.addWidget(D.label(DB.summary_line(cards), None))
-        from .delivboardview import HEALTH, TONE
-        for c in cards[:5]:
-            row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
-            row.addWidget(D.Pill(HEALTH[c["health"]], TONE[c["health"]]))
-            row.addWidget(D.label(f"<b>{c['name']}</b>  " + (c["missing"][0][1] if c["missing"] else "Nothing missing"), None), 1)
-            row.addWidget(D.button("Open", "ghost", lambda _=False, i=c["id"]: (self.host.go("deliverables"), self.host.deliverables_page.pick(i))))
-            self.deliv_box.addLayout(row)
-        if len(cards) > 5:
-            self.deliv_box.addWidget(D.label(f"and {len(cards) - 5} more on the board", "muted"))
+        from . import homecards as HC                                   # 3.63.0: parts, people and compliance
+        HC.draw_deliverables(self)
 
     def my_items(self):
         """(requirement rows, my tasks, my questions) for the person this Home is for."""

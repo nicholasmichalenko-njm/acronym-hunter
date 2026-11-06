@@ -105,6 +105,17 @@ TOPICS = [
   ["View: List shows the same deliverables as a table; Arrange: drag them into the team's order, and set the board to "
    "Your order to follow it.",
    "Every name picker ends with Add a person...: add someone once and every picker offers them after."]),
+ ("evalcrit", "Effort", "Evaluation Criteria",
+  "How the customer will judge the proposal: the evaluation factors and subfactors with their relative importance, and "
+  "the deliverables each one judges.",
+  "Right after the RFP is read, and whenever you decide what a section must prove.",
+  ["Factors captured in Review (More captures > Evaluation factor) show here; Add puts one in by hand, as a factor or "
+   "under one.",
+   "Deliverables it judges... ties a factor to the deliverables it scores; the Effort Dashboard's Evaluation criteria "
+   "card and All Efforts show them.",
+   "Evaluation sentences in Review (Section M) are listed below: Make it a factor reads the factor's name and importance "
+   "from the customer's words; Open in Review shows the sentence in place."],
+  ["Set importance changes a factor's relative importance (Significantly more important to Pass/fail)."]),
  ("effortfmt", "Effort", "Effort Formatting",
   "This effort's formatting on top of the global standards: the values efforts change most up front, each with the "
   "global value, what the RFP says and Reset; every other setting in the full editor, on this effort only.",

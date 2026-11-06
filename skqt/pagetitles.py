@@ -34,6 +34,7 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "compare": ("Compare", "Two versions side by side: customer versions with a decision on every change and what it touches, or any two files with the redline"),
           "impact": ("Impact Review", "What one new version touched across the effort"),
           "deliverables": ("Deliverables", "Every deliverable at a glance: where each stands and what is missing"),
+          "evalcrit": ("Evaluation Criteria", "How the customer will judge the proposal: the factors, their importance and the deliverables they judge"),
           "acronyms": ("Acronyms", "Scan the customer's documents or your own drafts for acronyms, abbreviations, units and symbols"),
           "acrlist": ("Acronym List", "The effort's acronym list: every term with its approved definition"),
           "qa": ("Submission Check", "End: the volumes you will submit, against the effort list, banned words and page limits"),

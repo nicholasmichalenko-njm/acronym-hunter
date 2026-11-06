@@ -128,6 +128,11 @@ class DeliverableView(QWidget):
             for r in app:
                 lay.addWidget(D.label(f"<b>{html.escape(r['subject'])}</b>: {html.escape(r['value'])}  "
                                       f"<span style='color:{D.tokens()['muted']}'>({html.escape(r.get('doc', ''))})</span>"))
+        import custfocus as CF                                          # 3.63.0: the factors that judge it
+        fs = CF.factors_for(self.rec, d["id"])
+        lay.addWidget(D.SectionTitle("Evaluation factors that judge it"))
+        lay.addWidget(D.label(", ".join(f"{f['name']} ({f.get('importance', 'Not stated')})" for f in fs) if fs else
+                              "None tied yet (Evaluation Criteria > Deliverables it judges...).", None if fs else "muted"))
         # the Structure volume
         lay.addWidget(D.SectionTitle("In the response structure"))
         heads = self.page.volume_heads()

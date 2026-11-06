@@ -66,6 +66,10 @@ class EffortCard(QFrame):
             bits = [f"{s['tasks']} open task(s)" + (f", {s['late']} late" if s["late"] else ""), f"{s['questions']} open question(s)"]
             if s["deliverables"]:
                 bits.append(f"{s['deliverables']} deliverable(s)" + (f", {s['no_owner']} with no owner" if s["no_owner"] else ""))
+            if s.get("factors"):                                     # 3.63.0: the evaluation factors, and the request type
+                bits.append(f"{s['factors']} evaluation factor(s)")
+            if s.get("request"):
+                bits.insert(0, s["request"])
             lab = D.label("  ·  ".join(bits), "muted"); v.addWidget(lab)
             if s["open_by"] and not current:
                 v.addWidget(D.label(f"Open by {s['open_by']}", "warn"))

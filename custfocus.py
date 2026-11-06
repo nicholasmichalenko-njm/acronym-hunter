@@ -172,3 +172,44 @@ def set_detail(rec, label, value, source=None, who=None):
         cur.append(row)
     BR.set_identity(rec, fields=cur, who=who)
     return True
+
+
+# ------------------------------------------------------------------ 3.63.0 the Evaluation Criteria page
+def factor(rec, fid):
+    return next((f for f in rec.data.get("eval_factors", []) if f.get("id") == fid), None)
+
+
+def update_factor(rec, fid, **fields):
+    """Change a factor's name, importance or notes."""
+    f = factor(rec, fid)
+    if f is None:
+        return False
+    if "name" in fields and _clean(fields["name"], 160):
+        f["name"] = _clean(fields["name"], 160)
+    if fields.get("importance") in IMPORTANCE:
+        f["importance"] = fields["importance"]
+    if "notes" in fields:
+        f["notes"] = _clean(fields["notes"], 1200)
+    rec.save()
+    return True
+
+
+def tie(rec, fid, deliverable_ids):
+    """The deliverables a factor is judged on."""
+    f = factor(rec, fid)
+    if f is None:
+        return False
+    f["deliverables"] = [d for d in dict.fromkeys(deliverable_ids or []) if d]
+    rec.save()
+    return True
+
+
+def factors_for(rec, did):
+    return [f for f in factors(rec) if did in (f.get("deliverables") or [])]
+
+
+def m_items(M):
+    """The evaluation sentences in Review (Section M), kept or undecided, in order."""
+    if M is None:
+        return []
+    return [it for it in M.items if it.get("type") == "Evaluation" and it.get("decision") != "Drop" and it.get("header") != "Yes"]

@@ -27,7 +27,7 @@ def summary(name, info, now=None):
            "client": info.get("client", ""), "solicitation": info.get("solicitation", ""), "picture": "",
            "sensitivity": "", "pm": "", "stage": "", "stage_i": 0, "stages": 0, "due": "", "zone": "", "days": None,
            "tasks": 0, "late": 0, "questions": 0, "deliverables": 0, "no_owner": 0, "last": "", "open_by": "",
-           "gate": "", "gate_mode": "", "goals_open": 0, "goals": 0}
+           "gate": "", "gate_mode": "", "goals_open": 0, "goals": 0, "factors": 0, "request": ""}
     if out["missing"]:
         return out
     rec = _read(os.path.join(data, "record.json")) or {}
@@ -65,6 +65,8 @@ def summary(name, info, now=None):
     dl = rec.get("deliverables", [])
     out["deliverables"] = len(dl)
     out["no_owner"] = sum(1 for d in dl if not d.get("owner"))
+    out["factors"] = sum(1 for f in rec.get("eval_factors", []) if isinstance(f, dict) and not f.get("parent"))   # 3.63.0
+    out["request"] = ((rec.get("path") or {}).get("type") or "") if isinstance(rec.get("path"), dict) else ""
     times = [e.get("at", "") for e in rec.get("timeline", []) if e.get("at")]
     out["last"] = max(times) if times else ""
     lock = _read(os.path.join(data, "lock.json")) or {}

@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE EFFORT HOME (3.63.0)
+  - Effort Dashboard: a path strip under the header with the request type (RFP, RFI, Sources sought, RFQ or task
+    order, Draft RFP), how and when the proposal is sent, Notes to sort, and the steps (Read, Requirements, Structure,
+    Setup, Check), each with a count of what is true now. Click any step to open its page; nothing is locked. The
+    request type changes the words and which steps matter; Steps... switches a step on or off for this effort.
+  - Capture from anywhere: Note in the top bar, or Ctrl+Shift+N, on any page. Send the note to the effort's notes, an
+    open question or a deliverable's discussion now, or keep it in Notes to sort and send it later.
+  - Meeting notes near the top of the dashboard (the latest meetings and their open topics).
+  - Effort > Evaluation Criteria: the evaluation factors and subfactors with their importance, added here or captured
+    in Review; Deliverables it judges... ties each to deliverables; Make it a factor from an evaluation sentence.
+    The dashboard card, each deliverable's page and All Efforts show them.
+  - The deliverables list on the dashboard shows each one's owner, parts, people and requirements with an author, in
+    the team's order; it replaces Volumes, people and page budget and Who has what in the starting layouts.
+
 THE DELIVERABLE PAGE (3.62.0)
   - Deliverables: double-click a card (or a row in the list) to open the deliverable's own page. Overview: name, type
     (Volume, Attachment, Form, Customer file, Plan, Presentation, Other), status, owner, due date, what it is and its

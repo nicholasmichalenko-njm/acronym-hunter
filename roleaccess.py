@@ -16,7 +16,7 @@ import json, os
 
 PM = "Proposal Manager"
 PROFILES = ("Proposal Manager", "Production", "Author", "Reviewer", "Capture")
-ALWAYS = {"efforts", "mywork", "home", "deliverables", "settings", "tools", "refs"}   # 3.53.0: Your Tools, Team References
+ALWAYS = {"efforts", "mywork", "home", "deliverables", "evalcrit", "settings", "tools", "refs"}   # 3.63.0: Evaluation Criteria   # 3.53.0: Your Tools, Team References
 TOOLS = {
     "Production": {"shredreq", "shredacc", "techedit", "library", "requirements", "matrix", "setup", "setups", "acronyms", "acrlist", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit",
                    "formatstd", "qpstd", "layoutstd", "profiles", "templates", "prodstd", "rules", "effortfmt", "postsub", "keywords", "exportall", "drafts"},
@@ -47,7 +47,7 @@ def profile_of(role_text):
     return ""
 
 
-MENU = ("tools", "mywork", "efforts", "home", "deliverables", "effortfmt", "record", "reviews", "postsub", "library", "read", "compare", "requirements",
+MENU = ("tools", "mywork", "efforts", "home", "deliverables", "evalcrit", "effortfmt", "record", "reviews", "postsub", "library", "read", "compare", "requirements",
         "custqa", "structure", "shredreq", "shredacc", "assign", "prove", "crosswalk", "matrix", "setup", "setups", "storyboards", "drafts", "truth", "acronyms", "acrlist", "techedit",
         "keywords", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit", "formatstd", "qpstd", "layoutstd", "profiles", "templates", "rules", "refs", "exportall", "settings", "prodstd")
 
