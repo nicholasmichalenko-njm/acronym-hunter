@@ -48,7 +48,7 @@ w.go("home"); app.processEvents()
 hp = w.home_page
 ps = hp.path
 check("the path strip sits under the header, not in the scrolling cards", ps.parent() is hp.head and ps.isVisibleTo(w))
-check("its steps: Read, Requirements, Structure, Setup, Check, each with a count", [s["key"] for s in ps.now] == ["read", "reqs", "structure", "setup", "check"]
+check("its steps: Read, Requirements, Structure, Setup, Check, each with a count", [s["key"] for s in ps.now] == ["read", "reqs", "sort", "structure", "setup", "check"]
       and all(s["count"] for s in ps.now), [(s["label"], s["count"]) for s in ps.now])
 check("the request type starts as RFP", ps.type.currentText() == "RFP")
 check("how and when it is sent is on the strip", "Due " in ps.sub.text(), ps.sub.text())

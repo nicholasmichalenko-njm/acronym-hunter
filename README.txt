@@ -1,6 +1,21 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SORT (3.64.0)
+  - Shred > Sort: name the big areas of what is being bought and file every requirement under one before the outline
+    is built. Unsorted sits on top with its count; pick a topic to see its requirements.
+  - Start from...: the RFP's headings (its own numbering), the evaluation factors, or the starter list (Program
+    Management, Transition, Staffing, Cybersecurity, Quality, Reporting). Rename a topic in your own words; its
+    requirements stay and the old name is kept as another name.
+  - Select rows and press 1 to 9 for the first nine topics, or pick a topic and File. A requirement's first topic is
+    its home; Also under adds a cross-reference. + Subtopic, Merge into..., Remove, Back to Unsorted.
+  - Split... cuts a compound sentence into parts with the same words (IDs .a, .b); each part keeps its topics.
+  - Overview: each area's requirements, how many are shall, should and may, and how many come from L, M and the SOW.
+  - Read back from Excel...: a matrix workbook edited in Excel (ID and Topic columns, topics separated by ';') files
+    each requirement under the topics typed there; a new name becomes a topic.
+  - The same topics as Review's Sort mode and the matrix's Topic column. The path strip's Sort step counts what is
+    sorted.
+
 THE EFFORT HOME (3.63.0)
   - Effort Dashboard: a path strip under the header with the request type (RFP, RFI, Sources sought, RFQ or task
     order, Draft RFP), how and when the proposal is sent, Notes to sort, and the steps (Read, Requirements, Structure,

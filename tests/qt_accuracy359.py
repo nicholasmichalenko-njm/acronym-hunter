@@ -24,7 +24,7 @@ def check(name, ok, info=""):
 app = QApplication([]); theme.apply(app)
 cfg = os.path.join(tmp, "config"); os.makedirs(cfg)
 from skqt import mainwin as MW
-check("Accuracy sits in Shred", [k for g, it in MW.RAIL if g == "Shred" for k, _t in it] == ["shredreq", "assign", "matrix", "shredacc"])
+check("Accuracy sits in Shred", [k for g, it in MW.RAIL if g == "Shred" for k, _t in it] == ["shredreq", "assign", "sort", "matrix", "shredacc"])
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 import unfiled as UF
 w.work_on(UF.NAME); app.processEvents()

@@ -259,6 +259,22 @@ TOPICS = [
    "Press Run the text check. If anything is missing, press Add the missing lines: they go in their place in the document.",
    "The Library's Review column shows the same thing a document at a time."],
   ["Every read runs the text check too, and says the result in the status bar."]),
+ ("sort", "Shred", "Sort",
+  "Name the big areas of what is being bought (an architecture, a service, the parts of the work) and file every "
+  "requirement under one, before the outline is built.",
+  "After the requirements are read into Review, and whenever an amendment adds some.",
+  ["Start from...: the RFP's headings (its own numbering), the evaluation factors, or the starter list. Rename a "
+   "topic in your own words; its requirements stay with it.",
+   "Unsorted, at the top, holds what has no topic yet. Select rows (Ctrl or Shift for more) and press 1 to 9 for the "
+   "first nine topics, or pick a topic and File. Also under adds a cross-reference; the first topic stays the home.",
+   "+ Subtopic puts one under the topic picked; Merge into... moves a topic's requirements to another and keeps its "
+   "name as another name; Split... cuts a compound sentence into parts with the same words (IDs .a, .b).",
+   "Overview: each area's requirements, how many are shall, should and may, and how many come from L, M and the SOW.",
+   "Read back from Excel...: a matrix workbook edited in Excel (ID and Topic columns, topics separated by ';') files "
+   "each sentence under the topics typed there."],
+  ["These are the same topics as Review's Sort mode and the matrix's Topic column.",
+   "A topic can name its response sections (Review > Topics...): a requirement kept with no section goes to its "
+   "topic's first section."]),
  ("matrix", "Shred", "Matrix",
   "The compliance matrix as the customer will see it, built from your decisions in Review.",
   "You deliver the matrix, or share it with the team.",

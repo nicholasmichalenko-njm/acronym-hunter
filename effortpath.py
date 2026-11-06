@@ -1,6 +1,6 @@
 """The path strip (3.63.0): the moves of an effort with what is true about each, shaped by the kind of request.
 
-Read, Requirements, Structure, Setup and Check (Sort joins in 3.64.0). Nothing is locked: every step opens its page in any
+Read, Requirements, Sort (3.64.0), Structure, Setup and Check. Nothing is locked: every step opens its page in any
 order, and a step is done when its count says so or when it is switched off for this effort. The request type sets
 which steps matter and their words, never the rules. Kept in the effort record ("path"). Rules only; nothing leaves the PC.
 
@@ -8,21 +8,22 @@ claude/stationkeeper-sort-decisions-2026-11-05.md"""
 
 TYPES = {
     "RFP": {"note": "Structure starts from Section L; the sections fill from the requirements.",
-            "steps": {"read": "core", "reqs": "core", "structure": "core", "setup": "core", "check": "core"}},
+            "steps": {"read": "core", "reqs": "core", "sort": "core", "structure": "core", "setup": "core", "check": "core"}},
     "RFI": {"note": "No Section L: the outline comes from the notice's questions and your own topics.",
-            "steps": {"read": "core", "reqs": "core", "structure": "core", "setup": "opt", "check": "opt"},
+            "steps": {"read": "core", "reqs": "core", "sort": "core", "structure": "core", "setup": "opt", "check": "opt"},
             "words": {"reqs": "Questions"}},
     "Sources sought": {"note": "The point is fit: answer the asks with a capability statement.",
-                       "steps": {"read": "core", "reqs": "core", "structure": "core", "setup": "skip", "check": "opt"},
+                       "steps": {"read": "core", "reqs": "core", "sort": "core", "structure": "core", "setup": "skip", "check": "opt"},
                        "words": {"reqs": "Asks", "structure": "Response"}},
     "RFQ or task order": {"note": "Often short and driven by the PWS; the quote instructions set the structure.",
-                          "steps": {"read": "core", "reqs": "core", "structure": "core", "setup": "core", "check": "core"}},
+                          "steps": {"read": "core", "reqs": "core", "sort": "opt", "structure": "core", "setup": "core", "check": "core"}},
     "Draft RFP": {"note": "Understanding only: what is being bought, the gaps, and the questions for the customer.",
-                  "steps": {"read": "core", "reqs": "core", "structure": "opt", "setup": "skip", "check": "skip"}},
+                  "steps": {"read": "core", "reqs": "core", "sort": "core", "structure": "opt", "setup": "skip", "check": "skip"}},
 }
 TYPE_NAMES = tuple(TYPES)
 STEPS = (("read", "Read", "library", "The customer's documents in the Library"),
          ("reqs", "Requirements", "assign", "Every shall, must, should and may, decided in Review"),
+         ("sort", "Sort", "sort", "Every requirement filed under a named area of the request"),          # 3.64.0
          ("structure", "Structure", "structure", "The response outline; every kept requirement in a section"),
          ("setup", "Setup", "setups", "Each section's lead, then the volume files"),
          ("check", "Check", "finalcheck", "Final Check on each volume before it goes"))
@@ -99,6 +100,12 @@ def steps(rec, lib=None, M=None, unadded=0):
         elif key == "reqs":
             count = f"{n_items} found, {undecided} to decide" if n_items else "None read yet"
             done = n_items > 0 and not undecided
+        elif key == "sort":
+            import topics as TP
+            srt = TP.sortable(M.items if M is not None else []) if M is not None else []
+            uns = TP.unsorted(rec, M.items) if (M is not None and rec is not None) else []
+            count = f"{len(srt) - len(uns)} of {len(srt)} sorted" if srt else "Nothing to sort yet"
+            done = bool(srt) and not uns
         elif key == "structure":
             count = f"{len(vols)} volume(s), {unplaced} kept not in a section" if vols else "No volumes yet"
             done = bool(vols) and not unplaced

@@ -191,3 +191,193 @@ def is_rfi(ws):
     except Exception:  # noqa: BLE001
         return False
     return (eff.get("effort_type") or "") == "rfi"
+
+
+# ------------------------------------------------------------------ 3.64.0 the Sort page
+STARTER = ("Program Management", "Transition", "Staffing", "Cybersecurity", "Quality", "Reporting")
+SORTABLE_SKIP = ("Heading", "Context")
+
+
+def sortable(items):
+    """The sentences that need a home on the Sort page: not headings, not context, not dropped."""
+    return [it for it in items if it.get("type") not in SORTABLE_SKIP and it.get("header") != "Yes" and it.get("decision") != "Drop"
+            and it.get("decision") != "Context"]
+
+
+def unsorted(rec, items):
+    tags = rec.data.get("topic_tags", {})
+    return [it for it in sortable(items) if not tags.get(it.get("id"))]
+
+
+def children(rec, tid):
+    return [t for t in topics(rec) if t.get("parent") == tid]
+
+
+def roots(rec):
+    have = {t["id"] for t in topics(rec)}
+    return [t for t in topics(rec) if not t.get("parent") or t["parent"] not in have]
+
+
+def set_parent(rec, tid, parent):
+    """Make a topic a subtopic of another ('' makes it a topic of its own again). One level only."""
+    t, p = get(rec, tid), get(rec, parent) if parent else None
+    if t is None or (parent and (p is None or parent == tid or p.get("parent"))) or children(rec, tid) and parent:
+        return False
+    t["parent"] = parent or ""
+    rec.save()
+    return True
+
+
+def primary(rec, sid):
+    """The sentence's home topic (the first it carries), or None."""
+    ids = rec.data.get("topic_tags", {}).get(sid) or []
+    return next((t for t in topics(rec) if ids and t["id"] == ids[0]), None)
+
+
+def file_under(rec, sids, tid, keep_others=True):
+    """Make tid the home topic of the sentences (first in their list); with keep_others the other topics stay as
+    cross-references, else they are taken off."""
+    if get(rec, tid) is None or not sids:
+        return 0
+    tags = rec.data.setdefault("topic_tags", {})
+    for s in sids:
+        rest = [x for x in (tags.get(s) or []) if x != tid] if keep_others else []
+        tags[s] = [tid] + rest
+    rec.save()
+    return len(sids)
+
+
+def merge(rec, keep, gone):
+    """gone's sentences and subtopics move to keep; gone's name becomes one of keep's other names. Returns True."""
+    k, g = get(rec, keep), get(rec, gone)
+    if k is None or g is None or keep == gone:
+        return False
+    tags = rec.data.setdefault("topic_tags", {})
+    for sid, ids in tags.items():
+        if gone in ids:
+            new = []
+            for x in ids:
+                x = keep if x == gone else x
+                if x not in new:
+                    new.append(x)
+            tags[sid] = new
+    for c in children(rec, gone):
+        c["parent"] = keep if not k.get("parent") else k["parent"]
+    k.setdefault("aliases", [])
+    if g["name"] not in k["aliases"]:
+        k["aliases"].append(g["name"])
+    k["sections"] = list(dict.fromkeys((k.get("sections") or []) + (g.get("sections") or [])))
+    rec.data["topics"] = [t for t in rec.data.get("topics", []) if t.get("id") != gone]
+    rec.log("effort", f"Topic {g['name']} merged into {k['name']}")
+    rec.save()
+    return True
+
+
+def find(rec, name):
+    """A topic by its name or one of its other names (case does not matter)."""
+    n = _clean(name).casefold()
+    return next((t for t in topics(rec) if t["name"].casefold() == n or n in [a.casefold() for a in t.get("aliases") or []]), None)
+
+
+def add_starter(rec, names=STARTER):
+    out = [add(rec, n, save=False) for n in names]
+    rec.save()
+    return [x for x in out if x]
+
+
+def from_factors(rec):
+    """A topic for each evaluation factor (Evaluation Criteria), subfactors under their factor. Returns the ids."""
+    import custfocus as F
+    made, by = [], {}
+    for f in F.factors(rec):
+        tid = add(rec, f["name"], save=False)
+        by[f["id"]] = tid
+        if f.get("parent") and by.get(f["parent"]):
+            t = get(rec, tid)
+            if t is not None and not children(rec, tid):
+                t["parent"] = by[f["parent"]]
+        made.append(tid)
+    rec.save()
+    return made
+
+
+def carry_split(rec, old_id, new_ids):
+    """A sentence split into parts: each part keeps the old sentence's topics."""
+    tags = rec.data.setdefault("topic_tags", {})
+    ids = tags.pop(old_id, None)
+    if ids:
+        for n in new_ids:
+            tags[n] = list(ids)
+        rec.save()
+    return bool(ids)
+
+
+def overview(rec, items):
+    """[{id, name, total, by_strength {Mandatory, Desired, Optional, other}, by_type {Instruction, Evaluation, SOW, other}}]
+    for each topic of its own (its subtopics counted in), then Unsorted."""
+    by = {it.get("id"): it for it in sortable(items)}
+    tags = rec.data.get("topic_tags", {})
+    out = []
+
+    def count(sids):
+        rows = [by[s] for s in sids if s in by]
+        st, ty = {"Mandatory": 0, "Desired": 0, "Optional": 0, "other": 0}, {"Instruction": 0, "Evaluation": 0, "SOW": 0, "other": 0}
+        for it in rows:
+            st[it.get("strength") if it.get("strength") in st else "other"] += 1
+            ty[it.get("type") if it.get("type") in ty else "other"] += 1
+        return len(rows), st, ty
+    for t in roots(rec):
+        ids = {t["id"]} | {c["id"] for c in children(rec, t["id"])}
+        sids = [s for s, xs in tags.items() if xs and xs[0] in ids]
+        n, st, ty = count(sids)
+        out.append({"id": t["id"], "name": t["name"], "total": n, "by_strength": st, "by_type": ty})
+    n, st, ty = count([it["id"] for it in unsorted(rec, items)])
+    out.append({"id": "", "name": "Unsorted", "total": n, "by_strength": st, "by_type": ty})
+    return out
+
+
+def read_back(rec, items, path):
+    """A matrix workbook edited in Excel: its ID and Topic columns file each sentence (topics separated by ';', the first
+    its home; a new name becomes a topic). Returns {"rows", "filed", "new_topics", "unknown_ids"}."""
+    import openpyxl
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    have = {it.get("id") for it in items}
+    out = {"rows": 0, "filed": 0, "new_topics": 0, "unknown_ids": 0}
+    tags = rec.data.setdefault("topic_tags", {})
+    for ws in wb.worksheets:
+        rows = ws.iter_rows(values_only=True)
+        head = None
+        for r in rows:
+            cells = [str(c).strip() if c is not None else "" for c in r]
+            if head is None:
+                low = [c.casefold() for c in cells]
+                if "id" in low and ("topic" in low or "topics" in low):
+                    head = (low.index("id"), low.index("topic") if "topic" in low else low.index("topics"))
+                continue
+            sid, cell = cells[head[0]] if head[0] < len(cells) else "", cells[head[1]] if head[1] < len(cells) else ""
+            if not sid:
+                continue
+            out["rows"] += 1
+            if sid not in have:
+                out["unknown_ids"] += 1
+                continue
+            names = [n.strip() for n in cell.split(";") if n.strip()]
+            if not names:
+                continue
+            ids = []
+            for n in names:
+                t = find(rec, n)
+                if t is None:
+                    tid = add(rec, n, save=False); out["new_topics"] += 1
+                else:
+                    tid = t["id"]
+                if tid not in ids:
+                    ids.append(tid)
+            tags[sid] = ids
+            out["filed"] += 1
+        if head is not None:
+            break
+    wb.close()
+    rec.log("effort", f"Topics read back from a matrix workbook: {out['filed']} sentence(s)")
+    rec.save()
+    return out
