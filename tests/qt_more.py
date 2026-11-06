@@ -120,7 +120,9 @@ check("a task and a team question show on the sentence's card", tid and nid and 
       and "QUESTION  Do we show the MBSE tool chain here?" in labels and "for M. Chen" in labels, labels)
 r = rec()
 check("... and are in the effort record", r.task(tid)["owner"] == "J. Garcia" and any(n["id"] == nid and n["question"] for n in r.data["notes"]))
-# Effort Home and the readable copy
+# Effort Home and the readable copy (3.61.0: the Evaluation card is set aside; shown here so its code stays tested)
+from skqt import modes
+modes.save(show_set_aside=True)
 w.go("home"); app.processEvents()
 hp = w.home_page
 check("Effort Home: Evaluation and hot buttons", "custfocus" in hp.shown and hp.focus_now["factors"] == ["Technical Approach", "Systems Engineering"]
