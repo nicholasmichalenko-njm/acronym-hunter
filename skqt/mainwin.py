@@ -189,7 +189,7 @@ class MainWindow(QMainWindow):
         except Exception:
             diag.swallowed()
         self.search = QLineEdit(); self.search.setPlaceholderText("Find a sentence (words or ID)...")
-        self.search.setMinimumWidth(170); self.search.setClearButtonEnabled(True)   # 3.12.0: room for "Effort Dashboard" at 1280; 3.18.2: and Undo
+        self.search.setMinimumWidth(104); self.search.setClearButtonEnabled(True)   # 3.12.0: room for "Effort Dashboard" at 1280; 3.18.2: and Undo; 3.63.0: and Note
         self.search.returnPressed.connect(self.find_go)
         bh.addWidget(self.search)
         self.effort_box = QComboBox(); self.effort_box.setMinimumWidth(156)   # 3.15.0: the menu names the open effort; 3.18.2: 156 for Undo

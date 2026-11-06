@@ -21,7 +21,7 @@ class PathStrip(QFrame):
         self.type.setToolTip("The kind of request sets which steps matter and their words, never the rules")
         self.type.activated.connect(lambda _i: self.set_type(self.type.currentText()))
         top.addWidget(self.type)
-        self.sub = D.label("", None, wrap=False); top.addWidget(self.sub, 1)
+        self.sub = D.label("", None); self.sub.setMinimumWidth(80); top.addWidget(self.sub, 1)   # wraps: never widens the window
         self.inbox_btn = D.button("Notes to sort", "ghost", lambda: self.open_inbox())
         top.addWidget(self.inbox_btn)
         top.addWidget(D.button("Steps...", "ghost", lambda: self.steps_dialog(), "Switch a step on or off for this effort"))
@@ -63,7 +63,9 @@ class PathStrip(QFrame):
         t = D.tokens()
         for s in self.now:
             b = QPushButton(f"{s['label']}\n{s['count']}")
-            b.setCursor(Qt.PointingHandCursor); b.setMinimumHeight(48)
+            b.setCursor(Qt.PointingHandCursor); b.setMinimumHeight(48); b.setMinimumWidth(60)
+            from PySide6.QtWidgets import QSizePolicy
+            b.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
             edge = t["ok"] if s["done"] and s["on"] else (t["accent"] if nxt is s else t["border"])
             b.setStyleSheet(f"QPushButton{{text-align:left;padding:6px 10px;border:1px solid {t['border']};border-left:4px solid {edge};"
                             f"border-radius:6px;background:{t['surface2'] if not s['on'] else t['surface']};color:{t['muted'] if not s['on'] else t['text']};}}")
