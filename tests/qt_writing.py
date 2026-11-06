@@ -54,7 +54,9 @@ _sh.copy2(os.path.join(A.BASE_DIR, "test_samples", "rfp_walk", "Section_L_print.
 w.read_page.read([rfp], w.out_path("compliance_matrix"), identities="suggested", start="typed")
 check("... its RFP read into Review", wait(lambda: w.review is not None and len(w.review.M.items) > 10), len(w.review.M.items) if w.review else 0)
 labels = w.review.labels()
-# themes card
+# themes card (3.61.0: win themes are set aside; shown here so their code stays tested)
+from skqt import modes
+modes.save(show_set_aside=True)
 w.go("home"); app.processEvents()
 hp = w.home_page
 check("the Effort Dashboard shows the win themes under the header (3.12.0)", hp.strips["themes"].isVisibleTo(w) and len(hp.themes_now) == 1
