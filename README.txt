@@ -14,6 +14,9 @@ SETUP FROM AN OUTLINE WORKBOOK, AND THE SETUP'S OWN STYLES (3.71.0)
   - Setup > Setup styles...: for each kind of setup text, the style name, font, size, color, bold, italic and hidden,
     with a sample. Save for this effort; Use for every effort; or Put them in this effort's template (its Effort
     Formatting carries them, so the template made for it has them). No template is needed to make the setup.
+  - Acronyms: while a scan runs, a bar above the list shows the file it is on and what it is doing, how much is
+    done, and about how long is left.
+  - Effort Dashboard: the condensed header no longer shows Win themes and Wall of Truth while they are set aside.
 
 ARCHIVE EFFORTS, AND MERGE ANOTHER COPY OF AN EFFORT (3.70.0)
   - All Efforts: right-click an effort for Open, Add to this effort..., and Archive.... Archive asks "Are you sure?"

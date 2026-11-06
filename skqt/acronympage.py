@@ -4,13 +4,14 @@ documents, customer list, master database), where it was found, and the effort l
 effort list, approve, mark as needing the author, say it is not a term, exclude it, export the report. The rules are
 the classic window's own (acrsession.py); results are shared with it. Rules only (No AI); nothing leaves the PC."""
 import datetime, os
-from PySide6.QtCore import Qt, QThread, Signal
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QHeaderView, QLineEdit, QScrollArea,
-                               QSplitter, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
+from PySide6.QtCore import Qt, QThread, QTimer, Signal
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QFrame, QHBoxLayout, QHeaderView, QLineEdit, QProgressBar,
+                               QScrollArea, QSizePolicy, QSplitter, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 import diag
 import effortfolders as EF
 import app_gui as A
 import acrsession as S
+import scanprogress as SP
 from . import design as D
 from .adaptive import FlowLayout
 from . import acrextras as AX                                       # 3.51.0
@@ -120,6 +121,17 @@ class AcronymPage(QWidget):
         tb = FlowLayout(); tb.setSpacing(D.SPACE["s"]); v.addLayout(tb)            # 3.51.0: the classic window's tools
         for b in AX.top_buttons(self):
             tb.addWidget(b)
+        # 3.71.0: while a scan runs, where it is, how much is done and about how long is left
+        self.scanbar = QFrame(); self.scanbar.setObjectName("pinStrip")
+        sb = QHBoxLayout(self.scanbar); sb.setContentsMargins(D.SPACE["m"], 6, D.SPACE["m"], 6); sb.setSpacing(D.SPACE["m"])
+        self.scan_where = D.label("", None, wrap=False); self.scan_where.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        self.scan_pct = QProgressBar(); self.scan_pct.setRange(0, 100); self.scan_pct.setTextVisible(False); self.scan_pct.setFixedSize(280, 12)
+        self.scan_left = D.label("", "muted", wrap=False); self.scan_left.setMinimumWidth(240)
+        for w, st in ((self.scan_where, 1), (self.scan_pct, 0), (self.scan_left, 0)):
+            sb.addWidget(w, st)
+        self.scanbar.hide(); v.addWidget(self.scanbar)
+        self.scan_prog = None
+        self.scan_tick = QTimer(self, interval=1000, timeout=self.tick_scan)
         split = QSplitter(Qt.Horizontal)
         self.table = QTableWidget(0, len(COLS))
         self.table.setHorizontalHeaderLabels(COLS)
@@ -531,7 +543,9 @@ class AcronymPage(QWidget):
             return None
         diag.activity("qt_scan_started", files=len(paths))
         self.worker = ScanWorker(self.session, list(paths), folder)
-        self.worker.progress.connect(self.progress.setText)
+        self.worker.progress.connect(self.on_progress)
+        self.scan_prog = SP.Progress(); self.on_progress("")
+        self.scanbar.show(); self.scan_tick.start()
         self.worker.finished_ok.connect(self.scan_done)
         self.worker.failed.connect(self.scan_failed)
         for b in (self.b_files, self.b_folder, self.b_again, self.b_paste, self.b_cust):
@@ -540,14 +554,29 @@ class AcronymPage(QWidget):
         self.worker.start()
         return self.worker
 
+    def on_progress(self, msg):
+        """3.71.0: each line the scan sends moves the bar."""
+        if self.scan_prog is None:
+            return
+        self.scan_prog.update(msg)
+        self.scan_where.setText(self.scan_prog.where())
+        self.scan_pct.setValue(self.scan_prog.percent())
+        self.tick_scan()
+
+    def tick_scan(self):
+        if self.scan_prog is not None and not A.CANCEL.is_set():
+            self.scan_left.setText(f"{self.scan_prog.percent()}% done. {SP.left_words(self.scan_prog.left())}")
+
     def cancel(self):
         A.CANCEL.set()
         self.progress.setText("Stopping after the current page...")
+        self.scan_left.setText("Stopping after the current page")
 
     def _end(self):
         if self.worker is not None:
             self.worker.wait(2000)
         self.worker = None
+        self.scan_tick.stop(); self.scanbar.hide(); self.scan_prog = None
         for b in (self.b_files, self.b_folder, self.b_paste, self.b_cust):
             b.setEnabled(True)
         self.b_cancel.hide()

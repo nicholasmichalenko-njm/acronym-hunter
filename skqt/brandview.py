@@ -291,8 +291,9 @@ class EffortBanner(QFrame):
             self.stage_hex = ""
         self.all_ov.setVisible("alloverviews" not in aside)
         for k, key in (("themes", "winthemes"), ("truth", "truth")):
-            if k in self.toggles:
-                self.toggles[k].setVisible(key not in aside)
+            for tg in (self.toggles, self.c_toggles):          # 3.71.0: the condensed line's copies too
+                if k in tg:
+                    tg[k].setVisible(key not in aside)
         for b in (self.stage, self.c_stage):
             b.setText(label); b.setVisible(bool(stage) and "stages" not in aside)
             b.setToolTip((gi.get("about") or "") + ("\n" if gi.get("about") else "") + "Click to see this stage's gate goals")
