@@ -92,9 +92,19 @@ TOPICS = [
   "You track what has to be turned in and who owns each piece.",
   ["Press + Deliverable... to add one, or capture one from a sentence in Review (More captures).",
    "Click a card to see its requirements, what a new customer version changed, its submission check and its files.",
+   "Double-click a card (or a row in the list) to open the deliverable's own page: Overview (type, status, owner, due "
+   "date, what it is, its guidelines), Format and submission, Parts and people, Requirements, Attachments and files, "
+   "Discussion and Dates. < All deliverables goes back.",
+   "Format groups...: set the formatting and submission once for deliverables of the same kind; type a value on a "
+   "deliverable's page to set its own, clear it to use the group's again.",
+   "A volume deliverable is its Structure volume: Make it a Structure volume adds it to the Structure Builder, and its "
+   "sections, with their leads from Setup, are its parts. Any deliverable can have parts of its own.",
+   "Discussion: dated notes with the writer's name; filter by person; pin the ones everyone needs. Each note is also in "
+   "the effort's timeline. A deliverable's due date and its own dates show on the calendar.",
    "Double-click a requirement to open it in Review."],
-  ["A Volume deliverable links to its volume by name.",
-   "View: List shows the same deliverables as a table."]),
+  ["View: List shows the same deliverables as a table; Arrange: drag them into the team's order, and set the board to "
+   "Your order to follow it.",
+   "Every name picker ends with Add a person...: add someone once and every picker offers them after."]),
  ("effortfmt", "Effort", "Effort Formatting",
   "This effort's formatting on top of the global standards: the values efforts change most up front, each with the "
   "global value, what the RFP says and Reset; every other setting in the full editor, on this effort only.",

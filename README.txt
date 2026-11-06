@@ -1,6 +1,22 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE DELIVERABLE PAGE (3.62.0)
+  - Deliverables: double-click a card (or a row in the list) to open the deliverable's own page. Overview: name, type
+    (Volume, Attachment, Form, Customer file, Plan, Presentation, Other), status, owner, due date, what it is and its
+    guidelines, with what the customer documents say about it. < All deliverables goes back.
+  - Format and submission: Format groups... sets file format, page limit, font, margins, spacing, paper, file name, how
+    and when it is sent, and copies once for a kind of deliverable; a deliverable's own value wins, and clearing it
+    gives the field back to the group.
+  - Parts and people: a volume deliverable is its Structure volume (Make it a Structure volume adds one); its sections,
+    with their leads and contributors from Setup, are its parts. Any deliverable can have parts of its own.
+  - Requirements placed in its volume; Attachments (from the customer or ours), our working file and References;
+    Discussion (dated notes with the writer's name, filter by person, pin; each one in the effort's timeline); Dates
+    (its due date and its own dates on the effort's calendar).
+  - Arrange: drag the deliverables into the team's order; the board's Your order follows it.
+  - People: every name picker ends with Add a person...; a name added once is offered everywhere after. People and
+    roles is now People.
+
 ACRONYM FINDINGS AND A CLEANER DASHBOARD (3.61.0)
   - The preview boxes exactly what the scan read (the same reader and passes). Page < and > go through every page or
     picture of the file. A find sits in the middle of the view, even at the picture's edge. Click a box to see what it
