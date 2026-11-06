@@ -122,7 +122,12 @@ class PicView(QGraphicsView):
         self.scale(f, f)
 
     def wheelEvent(self, e):
-        self.zoom(1.25 if e.angleDelta().y() > 0 else 0.8)
+        d = e.angleDelta()
+        if abs(d.x()) > abs(d.y()):                  # 3.71.0: a mouse's side wheel moves the picture left and right
+            sb = self.horizontalScrollBar(); sb.setValue(sb.value() - d.x())
+            return
+        if d.y():                                    # up and down zoom; no movement, no zoom
+            self.zoom(1.25 if d.y() > 0 else 0.8)
 
     def mouseDoubleClickEvent(self, e):
         self.zoom(1.6)

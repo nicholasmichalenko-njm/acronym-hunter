@@ -87,5 +87,30 @@ check("condensed: no Win themes or Wall of Truth buttons while they are set asid
       all(b.isHidden() for b in bn.c_toggles.values()) and all(b.isHidden() for b in bn.toggles.values()))
 bn.set_condensed(False, save=False); app.processEvents()
 
+# ---- the preview's side wheel (3.71.0): left and right, never a zoom
+from PySide6.QtCore import QPoint, QPointF, Qt as _Qt
+from PySide6.QtGui import QImage, QWheelEvent
+from skqt.foundview import PicView
+pv = PicView(); pv.resize(300, 200); pv.show()
+img = QImage(2400, 1600, QImage.Format_RGB32); img.fill(0xFFFFFF)
+pv.set_picture(img, []); pv.resetTransform(); pv.scale(1.0, 1.0); app.processEvents()
+sb = pv.horizontalScrollBar(); sb.setValue(sb.maximum() // 2); x0, s0 = sb.value(), pv.transform().m11()
+
+
+def wheel(dx, dy):
+    pv.wheelEvent(QWheelEvent(QPointF(150, 100), QPointF(150, 100), QPoint(0, 0), QPoint(dx, dy), _Qt.NoButton, _Qt.NoModifier,
+                              _Qt.NoScrollPhase, False))
+    app.processEvents()
+
+
+wheel(-120, 0)
+x1 = sb.value()
+wheel(120, 0); wheel(120, 0)
+check("the side wheel moves the picture right, then left, and never zooms", x1 > x0 and sb.value() < x1
+      and pv.transform().m11() == s0, (x0, x1, sb.value(), pv.transform().m11()))
+wheel(0, 120)
+check("up and down still zoom", pv.transform().m11() > s0)
+pv.close()
+
 print(f"QT SCANBAR 371 {'OK' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

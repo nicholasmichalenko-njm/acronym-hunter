@@ -17,6 +17,7 @@ SETUP FROM AN OUTLINE WORKBOOK, AND THE SETUP'S OWN STYLES (3.71.0)
   - Acronyms: while a scan runs, a bar above the list shows the file it is on and what it is doing, how much is
     done, and about how long is left.
   - Effort Dashboard: the condensed header no longer shows Win themes and Wall of Truth while they are set aside.
+  - Previews: a mouse's side wheel moves the picture left and right; it no longer zooms out.
 
 ARCHIVE EFFORTS, AND MERGE ANOTHER COPY OF AN EFFORT (3.70.0)
   - All Efforts: right-click an effort for Open, Add to this effort..., and Archive.... Archive asks "Are you sure?"

@@ -55,7 +55,7 @@ class PictureView(QGraphicsView):
         self._p0, self._band = None, None
 
     def wheelEvent(self, e):
-        if e.modifiers() & Qt.ControlModifier:
+        if e.modifiers() & Qt.ControlModifier and e.angleDelta().y():     # 3.71.0: Ctrl and the side wheel no longer zoom out
             f = 1.25 if e.angleDelta().y() > 0 else 0.8
             self.scale(f, f)
             return

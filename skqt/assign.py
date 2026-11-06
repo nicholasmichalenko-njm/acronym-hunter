@@ -358,7 +358,7 @@ class PageView(QGraphicsView):
         super().mouseReleaseEvent(e)
 
     def wheelEvent(self, e):
-        if e.modifiers() & Qt.ControlModifier:
+        if e.modifiers() & Qt.ControlModifier and e.angleDelta().y():     # 3.71.0: Ctrl and the side wheel no longer zoom out
             f = 1.15 if e.angleDelta().y() > 0 else 1 / 1.15
             if 0.3 < self.zoom * f < 5:
                 self.zoom *= f
