@@ -33,7 +33,7 @@ d["types"][0]["style_defs"] = {"Body Text": {"size": 12}}
 PRL.save(cfg, d)
 app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-check("Formatting Standards is first under Production", [k for g, it in RAIL if g == "Production" for k, _l in it][0] == "formatstd")
+check("Formatting Standards follows Template Studio under Production", [k for g, it in RAIL if g == "Production" for k, _l in it][:2] == ["studio", "formatstd"])
 w.go("formatstd"); app.processEvents()
 fp = w.formatstd_page
 check("the first time it opens, the standards become library items", fp.converted and fp.converted["new"] > 5 and "library items" in fp.note.text())
