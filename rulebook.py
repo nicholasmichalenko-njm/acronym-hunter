@@ -20,32 +20,33 @@ GROUPS = ("Pages and markings", "Formatting", "Acronyms", "Writing", "Approach")
 # id, group, sentence, kept by, where its values live (page key, section), check codes it answers
 BUILTIN = (
     ("1", "Pages and markings", "A style reference (STYLEREF) never reads text in a text box: text a header, footer or field "
-     "reads sits in the page or in a table cell.", "app", ("prodstd", "part_cover"), ("RU1",)),
+     "reads sits in the page or in a table cell.", "app", ("layoutstd", "covers"), ("RU1",)),
     ("2", "Pages and markings", "On the cover or title page, the A number sits right under the proprietary statement, commercial "
-     "data rights and Warning content, right-justified.", "app", ("prodstd", "styledefs"), ("RU2",)),
+     "data rights and Warning content, right-justified.", "app", ("formatstd", "roles"), ("RU2",)),
     ("3", "Pages and markings", "The page marking (Unclassified, a classification, CUI or the response's own) sits at the top "
-     "center and bottom center of every page.", "app", ("prodstd", "hf"), ("RU3", "P10")),
+     "center and bottom center of every page.", "app", ("layoutstd", "hf"), ("RU3", "P10")),
     ("4", "Formatting", "Style names follow the effort's response type: a style named with RFP is named RFI in an RFI "
      "response, BAA in a BAA response, and so on.", "app", ("effortfmt", ""), ("RU4",)),
     ("5", "Formatting", "A response with no title page carries no title page styles in its template.", "app",
-     ("prodstd", "styledefs"), ("RU5",)),
+     ("formatstd", "roles"), ("RU5",)),
     ("6", "Formatting", "Every heading level puts its number at 0 inches, then a tab to the text: no level is indented "
-     "differently from another.", "app", ("prodstd", "headnum"), ("RU6", "S5")),
+     "differently from another.", "app", ("formatstd", "heading_numbering"), ("RU6", "S5")),
     ("7", "Pages and markings", "The footer is a one-row, three-column table: the A number on the left (a STYLEREF to its "
      "style on the cover or title page), two standard lines in the middle, the page number on the right.", "app",
-     ("prodstd", "hf"), ("RU7",)),
+     ("layoutstd", "hf"), ("RU7",)),
     ("8", "Formatting", "Caption rows and notes rows in tables sit at 0.0 inches left and right.", "app",
-     ("prodstd", "rows"), ("RU8",)),
-    ("9", "Formatting", "Only approved styles are in use.", "app", ("prodstd", "styles"), ("S1",)),
+     ("layoutstd", "table_looks"), ("RU8",)),
+    ("9", "Formatting", "Only approved styles are in use.", "app", ("formatstd", "styles"), ("S1",)),
     ("10", "Acronyms", "Each acronym is spelled out at its first use in running text, and not spelled out again later.",
      "app", ("acrlist", ""), ("A1", "A2")),
     ("11", "Acronyms", "Every acronym a document uses is on the effort's acronym list.", "app", ("acrlist", ""), ("A3",)),
-    ("12", "Writing", "No banned phrases; replacements follow Words to avoid and fix.", "app", ("prodstd", "terms"),
+    ("12", "Writing", "No banned phrases; replacements follow Words to avoid and fix.", "app", ("rules", "checks"),
      ("W1", "W2")),
     ("13", "Formatting", "Our style names start with AA, then a name that says where the style is used and what it is for.",
-     "people", ("prodstd", "styledefs"), ()),
+     "people", ("formatstd", "roles"), ()),
 )
-WHERE_NAME = {"prodstd": "Production Standards", "effortfmt": "Effort Formatting", "acrlist": "the Acronym List"}
+WHERE_NAME = {"prodstd": "Production Standards", "effortfmt": "Effort Formatting", "acrlist": "the Acronym List",
+              "formatstd": "Formatting Standards", "layoutstd": "Layout", "rules": "Rules > Fix a Copy's checks"}   # 3.69.0
 
 
 def _path(config_dir):

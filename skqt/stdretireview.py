@@ -33,11 +33,12 @@ class RetireReport(QDialog):
                 self.table.setItem(i, j, c)
         v.addWidget(self.table, 3)
         v.addWidget(D.SectionTitle("Places that still open Production Standards"))
-        self.links = QTableWidget(len(self.rep["links"]), 2); self.links.setHorizontalHeaderLabels(["Where", "What it needs first"])
+        self.links = QTableWidget(len(self.rep["links"]), 3); self.links.setHorizontalHeaderLabels(["Where", "What it did", "Now"])
         self.links.verticalHeader().setVisible(False); self.links.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.links.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        for i, (a, b) in enumerate(self.rep["links"]):
-            self.links.setItem(i, 0, QTableWidgetItem(a)); self.links.setItem(i, 1, QTableWidgetItem(b))
+        self.links.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        for i, row in enumerate(self.rep["links"]):
+            for j, val in enumerate(row):
+                self.links.setItem(i, j, QTableWidgetItem(val))
         v.addWidget(self.links, 1)
         bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(self.reject); bb.accepted.connect(self.accept)
         v.addWidget(bb)

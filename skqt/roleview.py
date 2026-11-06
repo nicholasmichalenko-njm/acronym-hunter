@@ -71,7 +71,7 @@ class NoticePage(QWidget):
             RA.set_preview(self.host.config_dir, why["step"], True)
             diag.activity("qt_preview_turned_on")
             self.host.toast(f"{RA.PREVIEW[why['step']][0]} is on for this team")
-            return self.host.go("prodstd" if why["step"] == "template" else why["step"])
+            return self.host.go("templates" if why["step"] == "template" else why["step"])   # 3.69.0
         hp = self.host.home_page
         if answer is not None:
             import branding as BR

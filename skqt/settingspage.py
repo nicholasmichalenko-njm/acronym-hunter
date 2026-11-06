@@ -48,6 +48,9 @@ class SettingsPage(QWidget):
                                             "Everything in the open effort as plain files that open without Stationkeeper, in a "
                                             "dated folder named for the effort and its stage"),
                                    D.button("Import effort package...", None, lambda: self.host.import_package()),
+                                   D.button("Production Standards (retiring)...", "ghost", lambda: self.host.go("prodstd"),   # 3.69.0
+                                            "Its values now live in Rules, Formatting Standards, Layout and Effort Profiles; it "
+                                            "stays here one release in case something was missed"),
                                    D.button("New effort...", "primary", lambda: __import__("skqt.starteffort", fromlist=["x"]).start_dialog(host))])
         f = QFormLayout(); self.eff.body.addLayout(f)
         self.cust = QLineEdit(); self.vols = QLineEdit()

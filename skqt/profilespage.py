@@ -80,6 +80,10 @@ class EffortProfilesPage(QWidget):
         self.vols = QLineEdit(); self.vols.setPlaceholderText("The volumes this profile makes, separated by ;  (Volume I Technical; Volume IV Past Performance)")
         self.vols.editingFinished.connect(lambda: self.save_volumes())
         vr.addWidget(self.vols, 1)
+        self.b_more = D.button("Content map, fields and font rules...", None, lambda: self.more(),     # 3.69.0
+                               "This profile's content map, the fields its template asks for, and every font rule (allowed "
+                               "fonts, smallest and largest sizes)")
+        vr.addWidget(self.b_more)
         card = D.Card("Parts", "One part per decision, filled from the libraries. Change... offers the items tagged for this effort type.")
         rv.addWidget(card, 3)
         self.t = QTableWidget(0, len(self.COLS)); self.t.setHorizontalHeaderLabels(self.COLS)
@@ -99,6 +103,18 @@ class EffortProfilesPage(QWidget):
         split.addWidget(right)
         split.setSizes([300, 900])
         self.empty = D.label("Pick a profile on the left.", "muted"); rv.addWidget(self.empty)
+
+    def more(self, modal=True):
+        """3.69.0: the profile's content map, fields and font rules (they lived in Production Standards)."""
+        if self.cur is None:
+            return None
+        from .stdeditor import ProfileStore, window
+        dlg = window(self.host, ProfileStore(self.host.config_dir, *self.cur), ["fonts", "content_map", "fillins"],
+                     f"{self.title.text()}: content map, fields and font rules")
+        if modal:
+            dlg.exec()
+            self.refresh()
+        return dlg
 
     # ---- loading and saving
     def refresh(self):
@@ -136,7 +152,7 @@ class EffortProfilesPage(QWidget):
     def select(self, key):
         self.cur = tuple(key) if key else None
         on = self.cur is not None
-        for w in (self.t, self.lt, self.vols, self.b_copy, self.b_rename, self.b_out):
+        for w in (self.t, self.lt, self.vols, self.b_copy, self.b_rename, self.b_out, self.b_more):
             w.setEnabled(on)
         self.empty.setVisible(not on)
         if not on:

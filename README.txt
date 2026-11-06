@@ -1,6 +1,19 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+PRODUCTION STANDARDS' SECTIONS IN THEIR NEW HOMES (3.69.0)
+  - Rules > Fix a Copy's checks: graphics (picture types, resolution, widths, fonts and smallest text in drawings,
+    captions, alt text), Excel workbooks and PowerPoint decks, and the words Fix a Copy reports and fixes (misspellings,
+    trademark and registered marks, word lists). They are the global standard's values, as before.
+  - Formatting Standards > Allowed styles...: the styles a finished document may use, what Fix a Copy does to the rest,
+    the template whose styles copies take, and the styles the rules read (the A number's, the restriction block's).
+  - Effort Profiles > Content map, fields and font rules...: for the picked profile in its effort type, every font rule
+    (allowed fonts, smallest and largest sizes, the RFP reference), the content map and the fields its template asks for.
+  - A rule's values (Rules) open where they live now: Layout, Formatting Standards or Rules.
+  - Production Standards is off the menu. Settings > Production Standards (retiring)... opens it for one more release in
+    case something was missed. Its report (What retiring this would lose) now finds nothing lost; two places still use
+    it until 3.71.0: the template maker behind Make templates and setup..., and Effort Formatting's full editor.
+
 EFFORTS THAT MOVE, CUSTOMER FORMS, SAVE TO, AND PRODUCTION STANDARDS' REPORT (3.68.0)
   - An effort whose folder was moved, renamed or is offline no longer opens empty: Stationkeeper says its folder is not
     where it last saw it and asks you to find it. Pick the folder it is in now; the customer documents, the compliance

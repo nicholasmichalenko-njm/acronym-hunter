@@ -3996,7 +3996,7 @@ class AssignPage(QWidget):
         t.resizeRowsToContents()
         v.addWidget(t, 1)
         row = QHBoxLayout(); v.addLayout(row)
-        row.addWidget(D.button("Edit the rules in Production Standards", "ghost", lambda: (d.reject(), self.host.go("prodstd"))))
+        row.addWidget(D.button("Edit the rules", "ghost", lambda: (d.reject(), self.host.go("rules"))))   # 3.69.0
         row.addStretch(1)
         bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); row.addWidget(bb)
 

@@ -7,7 +7,7 @@ Formatting; this page says how many this effort departs from.
 
 Reading the customer's documents: the rules Review's Suggest follows (suggestrules.py), the built-in reading rules in
 words, and the phrase rules the team or this effort made, which can be added and removed here. Rules only, no AI."""
-import html
+import html, os
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
                                QPushButton, QStackedWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
@@ -50,7 +50,8 @@ class RulesPage(QWidget):
         sw.addWidget(D.label("Show", "label", wrap=False))
         self.b_ours = QPushButton("Our documents"); self.b_theirs = QPushButton("Reading the customer's documents")
         self.b_recipes = QPushButton("Field recipes")                               # 3.66.0: the team's field codes
-        for i, b in enumerate((self.b_ours, self.b_theirs, self.b_recipes)):
+        self.b_checks = QPushButton("Fix a Copy's checks")                         # 3.69.0: from Production Standards
+        for i, b in enumerate((self.b_ours, self.b_theirs, self.b_recipes, self.b_checks)):
             b.setCheckable(True); b.setAutoExclusive(True); b.clicked.connect(lambda _c=False, k=i: self.show_family(k))
             sw.addWidget(b)
         sw.addStretch(1)
@@ -61,6 +62,8 @@ class RulesPage(QWidget):
         self.stack.addWidget(self._build_theirs())
         from .recipesview import RecipesView
         self.recipes = RecipesView(host); self.stack.addWidget(self.recipes)
+        self.checks = None                                                          # built when first shown
+        self.checks_box = QWidget(); QVBoxLayout(self.checks_box).setContentsMargins(0, 0, 0, 0); self.stack.addWidget(self.checks_box)
         self.b_ours.setChecked(True)
 
     # ------------------------------------------------------------ our documents
@@ -163,7 +166,13 @@ class RulesPage(QWidget):
 
     def open_where(self, where):
         page, sec = where
+        if page == "rules" and sec == "checks":                    # 3.69.0: the values now live here
+            self.show_family(3)
+            return True
         ok = self.host.go(page)
+        if ok is not False and page == "formatstd" and sec in ("styles", "roles"):
+            self.host.formatstd_page.style_rules(modal=not os.environ.get("AH_TEST"))
+            return ok
         if ok is not False and page == "prodstd" and sec:
             try:
                 import skqt.prodstdpage as PS
@@ -243,9 +252,21 @@ class RulesPage(QWidget):
     # ------------------------------------------------------------ both
     def show_family(self, k):
         self.stack.setCurrentIndex(k)
-        (self.b_ours, self.b_theirs, self.b_recipes)[k].setChecked(True)
+        (self.b_ours, self.b_theirs, self.b_recipes, self.b_checks)[k].setChecked(True)
         if k == 2:
             self.recipes.refresh()
+        if k == 3:
+            self.show_checks()
+
+    def show_checks(self):
+        """3.69.0: graphics, Excel and PowerPoint, and the words Fix a Copy reports and fixes, in the global standard."""
+        from .stdeditor import GlobalStore, LayerEditor
+        if self.checks is None:
+            self.checks = LayerEditor(self.host, GlobalStore(self.host.config_dir), ["graphics", "office", "terms"])
+            self.checks_box.layout().addWidget(self.checks)
+        elif not self.checks.dirty:
+            self.checks.reload()
+        return self.checks
 
     def fill_summary(self):
         sm = RB.summary(self.host.config_dir, self.host.ws)

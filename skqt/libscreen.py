@@ -486,6 +486,18 @@ class FormattingStandardsPage(LibraryScreen):
     def __init__(self, host):
         super().__init__(host, "formatting")
 
+    def extra_actions(self, row):
+        row.addWidget(D.button("Allowed styles...", None, lambda: self.style_rules(),       # 3.69.0: from Production Standards
+                               "The styles a finished document may use, what Fix a Copy does to the rest, and the styles "
+                               "the rules read"))
+
+    def style_rules(self, modal=True):
+        from .stdeditor import GlobalStore, window
+        dlg = window(self.host, GlobalStore(self.host.config_dir), ["styles", "style_roles"], "Allowed styles and the styles the rules read")
+        if modal:
+            dlg.exec()
+        return dlg
+
 
 class QuickPartsPage(LibraryScreen):
     """3.50.0: every Quick Part by its numbered category; its gallery, behavior and the pages it fills."""

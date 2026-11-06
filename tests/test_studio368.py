@@ -160,15 +160,18 @@ check("no shared file: only the effort's own", PP.effective_plans(os.path.join(t
 rep = PSR.report(cfg, data)
 keys = {r["key"]: r for r in rep["rows"]}
 check("every Production Standards section is in the report", len(rep["rows"]) == 27 and all(r["where"] for r in rep["rows"]))
-check("sections with no other editor are named", {k for k, r in keys.items() if r["status"] == PSR.ONLY} == {"content_map", "styles", "fillins", "graphics", "office"})
-check("nothing set on a fresh PC: no values at risk; still not ready", rep["at_risk"] == 0 and not rep["ready"] and rep["verdict"].startswith("Not yet"))
+check("3.69.0: every section has another editor now", all(r["status"] == PSR.MOVED for r in rep["rows"])
+      and keys["graphics"]["where"].startswith("Rules") and keys["styles"]["where"].startswith("Formatting Standards")
+      and keys["content_map"]["where"].startswith("Effort Profiles"))
+check("nothing at risk; ready, with the places that still use it until 3.71.0", rep["at_risk"] == 0 and rep["ready"]
+      and "2 place(s) below still use it" in rep["verdict"])
 d2 = PRL.load(cfg)
 d2["company"].setdefault("graphics", {})["min_ppi"] = 299
 d2["company"].setdefault("style_defs", {})["Kestrel Callout"] = {"font": "Arial", "size": 10}
 rep2 = PSR.report(cfg, d2)
 k2 = {r["key"]: r for r in rep2["rows"]}
-check("a value set here with no other editor is at risk; one with a new home is not", k2["graphics"]["at_risk"]
-      and any("Global standard" == ln for ln, _w in k2["graphics"]["values"]) and k2["styledefs"]["at_risk"] and rep2["at_risk"] == 2, rep2["at_risk"])
+check("values set on this PC are listed by layer, none at risk now", any("Global standard" == ln for ln, _w in k2["graphics"]["values"])
+      and rep2["at_risk"] == 0, rep2["at_risk"])
 check("the places that still open Production Standards are listed", len(rep["links"]) == 6 and rep["links"][0][0].startswith("Setup page"))
 
 print(f"STUDIO 368 {'OK' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")

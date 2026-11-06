@@ -59,7 +59,7 @@ class FixPage(QWidget):
         r2 = QHBoxLayout()
         r2.addWidget(D.label("Standard", "label", wrap=False))
         self.std_lbl = D.label("", None); r2.addWidget(self.std_lbl, 1)
-        r2.addWidget(D.button("Production Standards", "ghost", lambda: self.host.go("prodstd")))
+        r2.addWidget(D.button("Fix a Copy's checks", "ghost", lambda: (self.host.go("rules"), self.host.rules_page.show_family(3))))
         self.card.body.addLayout(r2)
         self.files = QListWidget(); self.files.setFixedHeight(120); self.card.add(self.files)
         self.files.currentRowChanged.connect(lambda _r: self.file_changed())

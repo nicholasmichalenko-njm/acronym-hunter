@@ -61,3 +61,11 @@ APPLYWORD = \
    "A fixed copy as tracked changes...: pick a draft and its fixed copy from Fix a Copy; Word compares them and the "
    "fixes reach the author as tracked changes."],
   ["The list is Team References > Banned phrases.", "Allow lasts until Stationkeeper closes."])
+
+
+CHECKS369 = (   # 3.69.0: lines added to topics in guidetopics (rules, formatstd, profiles) by key
+    ("rules", "Fix a Copy's checks: graphics, Excel and PowerPoint, and the words Fix a Copy reports and fixes (they were in "
+              "Production Standards)."),
+    ("formatstd", "Allowed styles...: the styles a finished document may use and the styles the rules read."),
+    ("profiles", "Content map, fields and font rules...: every font rule, the content map and the fields, for the picked "
+                 "profile in its effort type."))

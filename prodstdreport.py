@@ -5,6 +5,7 @@ each of its sections, where those values are edited now and which of this PC's o
 editor. It also lists the places in the app that still open Production Standards. Nothing is changed.
 
 SECTIONS        (key, title, data keys, where now, status): status is "moved", "partly" or "only here"
+                3.69.0: the eight that lived only here (or partly) moved to Rules, Formatting Standards and Effort Profiles
 report(config_dir) -> {"rows": [...], "links": [...], "verdict", "ready": bool}
 Each row: {key, title, status, where, values: [(layer, what)], note}. Rules only; nothing leaves the PC."""
 import copy
@@ -15,16 +16,12 @@ MOVED, PARTLY, ONLY = "moved", "partly", "only here"
 # key, title, the data keys it edits, where they are edited now, status, what stays only here
 SECTIONS = [
     ("profile_parts", "Parts and versions", (), "Effort Profiles (each profile's slots); Template Studio > Anatomy", MOVED, ""),
-    ("content_map", "Content map", ("content_map",), "", ONLY, "Which style each kind of placed item takes (the setup "
-     "template reads it)"),
+    ("content_map", "Content map", ("content_map",), "Effort Profiles > Content map, fields and font rules", MOVED, ""),
     ("variables", "Base fonts and sizes", ("variables",), "Formatting Standards > Font sets; Effort Profiles (base fonts); "
      "Effort Formatting", MOVED, ""),
-    ("styledefs", "Styles", ("style_defs", "style_roles"), "Formatting Standards > Paragraph styles and Character styles",
-     PARTLY, "Style roles (which style holds the cover title, the legends) that Rule 2 reads"),
-    ("fonts", "Font rules", ("fonts",), "Effort Profiles and Effort Formatting: the smallest sizes (the RFP's limits)",
-     PARTLY, "Allowed fonts and largest sizes"),
-    ("styles", "Allowed styles", ("styles",), "", ONLY, "The allowed styles, hiding unused built-in styles, removing unused "
-     "custom styles and the template to merge styles from (Fix a Copy reads them)"),
+    ("styledefs", "Styles", ("style_defs", "style_roles"), "Formatting Standards > Paragraph styles and Character styles; the styles the rules read: Formatting Standards > Allowed styles", MOVED, ""),
+    ("fonts", "Font rules", ("fonts",), "Effort Profiles > Content map, fields and font rules (every font rule); Effort Formatting", MOVED, ""),
+    ("styles", "Allowed styles", ("styles",), "Formatting Standards > Allowed styles", MOVED, ""),
     ("headnum", "Heading numbering", ("heading_numbering",), "Formatting Standards > Heading numbering", MOVED, ""),
     ("lists", "Lists", ("list_numbering", "lists"), "Formatting Standards > Lists", MOVED, ""),
     ("setups", "Page setups", ("page_setups",), "Formatting Standards > Page setups", MOVED, ""),
@@ -35,8 +32,7 @@ SECTIONS = [
     ("captions", "Captions", ("captions",), "Layout > Captions; Effort Formatting", MOVED, ""),
     ("hf", "Headers and footers", ("hf_layouts", "hf_designs"), "Layout > Headers and footers; Effort Formatting", MOVED, ""),
     ("toc", "Table of contents", ("toc",), "Layout > Table of contents and lists", MOVED, ""),
-    ("fillins", "Fields", ("fill_ins",), "", ONLY, "The fill-in fields a template asks for (Rules > Field recipes holds field "
-     "codes, not these)"),
+    ("fillins", "Fields", ("fill_ins",), "Effort Profiles > Content map, fields and font rules", MOVED, ""),
     ("part_cover", "Cover", (), "A view of the values in Sections in order, Headers and footers and Page setups; Layout > Covers; Layout > Sections and section designs", MOVED, ""),
     ("part_front", "Front matter", (), "A view of the values in Sections in order, Headers and footers and Page setups; Template Studio > Parts and numbering; Layout > Sections and section designs", MOVED, ""),
     ("part_body", "Response", (), "A view of the values in Sections in order, Headers and footers and Page setups; Template Studio > Parts and numbering; Layout > Sections and section designs", MOVED, ""),
@@ -44,24 +40,22 @@ SECTIONS = [
     ("part_backer", "Back cover", (), "A view of the values in Sections in order, Headers and footers and Page setups; Layout > Back covers; Layout > Sections and section designs", MOVED, ""),
     ("pages", "Sections in order", ("pagination", "page_parts"), "Formatting Standards > Pagination schemes; Layout > "
      "Sections; Template Studio > Parts and numbering", MOVED, ""),
-    ("terms", "Words to avoid and fix", ("terms",), "Team References > Banned phrases (banned phrases); Technical Edit",
-     PARTLY, "Misspellings to fix, trademark and registered marks, and employee names that Fix a Copy reads"),
-    ("graphics", "Graphics", ("graphics",), "", ONLY, "The graphics checks (smallest text, resolution, widths, alt text) "
-     "Fix a Copy reads"),
-    ("office", "Excel and PowerPoint", ("office",), "", ONLY, "The Excel and PowerPoint checks Fix a Copy reads"),
+    ("terms", "Words to avoid and fix", ("terms",), "Rules > Fix a Copy's checks; Team References > Banned phrases", MOVED, ""),
+    ("graphics", "Graphics", ("graphics",), "Rules > Fix a Copy's checks", MOVED, ""),
+    ("office", "Excel and PowerPoint", ("office",), "Rules > Fix a Copy's checks", MOVED, ""),
     ("tlibrary", "Template library", (), "Formatting Standards, Quick Parts and Layout (the three libraries)", MOVED, ""),
 ]
 # the places in the app that still open Production Standards, and what each needs before it retires
-LINKS = [
-    ("Setup page: Make templates and setup...", "Builds the templates through Production Standards' maker; it needs a home "
-     "in Templates or Template Studio."),
+LINKS = [         # 3.69.0: where each went; (where, what it does, now)
+    ("Setup page: Make templates and setup...", "Builds the templates through Production Standards' maker.",
+     "Still uses the maker (it opens no page); the maker moves to Templates before 3.71.0."),
     ("Effort Formatting: the full editor for this effort", "Opens Production Standards on the effort's own layer for values "
-     "Effort Formatting does not name."),
-    ("Rules: Edit in Production Standards", "Opens the section a rule reads (cover, styles)."),
-    ("Fix a Copy: Production Standards button", "Opens the standard Fix a Copy uses."),
-    ("Assignments: Edit the rules in Production Standards", "Opens the rules."),
+     "Effort Formatting does not name.", "Still opens it until 3.71.0, which gives the effort's layer its own editor."),
+    ("Rules: where a rule's values live", "Opened the section a rule reads.", "Repointed: Layout, Formatting Standards and Rules."),
+    ("Fix a Copy: Production Standards button", "Opened the standard Fix a Copy uses.", "Repointed: Rules > Fix a Copy's checks."),
+    ("Assignments: Edit the rules in Production Standards", "Opened the rules.", "Repointed: Rules."),
     ("Formatting Standards: Put in a standard...", "Carries a library item into the global standard, a profile or an "
-     "effort type."),
+     "effort type.", "Writes the values directly (it opens no page)."),
 ]
 
 
@@ -99,7 +93,9 @@ def report(config_dir, data=None):
     risk = [r for r in rows if r["at_risk"]]
     ready = not only and not [r for r in rows if r["status"] == PARTLY]
     if ready:
-        verdict = "Nothing is lost: every section is edited somewhere else. The links below need new homes first."
+        left = [l for l in LINKS if not l[2].startswith(("Repointed", "Writes"))]
+        verdict = ("Nothing is lost: every section is edited somewhere else." + (f" {len(left)} place(s) below still use it "
+                   "until 3.71.0." if left else ""))
     else:
         verdict = (f"Not yet. {len(only)} section(s) have no other editor and {sum(1 for r in rows if r['status'] == PARTLY)} "
                    f"are only partly elsewhere. {len(risk)} of them hold values set on this PC, which would be kept but could "

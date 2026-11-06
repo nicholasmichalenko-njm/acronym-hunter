@@ -51,7 +51,7 @@ RAIL = [("Home", [("tools", "Your Tools"), ("mywork", "My Work"), ("efforts", "A
         ("Team References", [("refs", "Team References")]),
         ("After Submission", [("postsub", "Checklist"), ("keywords", "Keywords")]),
         ("Effort files", [("exportall", "Export All"), ("settings", "Settings")]),
-        ("Advanced", [("prodstd", "Production Standards")])]   # 3.52.0: kept two releases while Effort Profiles and Templates take over
+        ]   # 3.69.0: Production Standards left the menu (Settings > Production Standards (retiring) until 3.71.0)
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
 TABS = {"home": [("home", "Dashboard"), ("requirements", "Submission Rules")],
         "record": [("record", "Effort Record"), ("meetings", "Meetings")],                 # 3.20.0
