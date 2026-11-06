@@ -210,4 +210,5 @@ check("Word not open: said plainly", WL.read_open("x", runner=lambda c, e, t: js
 check("nothing ticked: nothing sent to Word", WL.apply_open("x", text, [dict(c, on=False) for c in ch], runner=run)["ok"] is False)
 
 print(f"STUDIO 367 {'OK' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
-sys.exit(0 if all(checks) else 1)
+if __name__ == "__main__":                       # qt_studio367 imports the fixture and the stand-in Word
+    sys.exit(0 if all(checks) else 1)

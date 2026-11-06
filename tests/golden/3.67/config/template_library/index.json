@@ -1,0 +1,456 @@
+{
+ "format": 1,
+ "items": [
+  {
+   "id": "c7def4087822",
+   "kind": "style",
+   "name": "AA Title Page Name",
+   "base_name": "AA Title Page Name",
+   "hash": "41ca90e89da5a945",
+   "tags": {
+    "effort_types": [
+     "*"
+    ]
+   },
+   "source": "Global standard",
+   "summary": "20 pt",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "c7def4087822",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "approved",
+   "converted": true
+  },
+  {
+   "id": "69c02207db56",
+   "kind": "page_setup",
+   "name": "portrait",
+   "base_name": "portrait",
+   "hash": "49eb08f45e86382f",
+   "tags": {
+    "effort_types": [
+     "*"
+    ]
+   },
+   "source": "Global standard",
+   "summary": "",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "69c02207db56",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "approved",
+   "converted": true
+  },
+  {
+   "id": "65c164be520b",
+   "kind": "page_setup",
+   "name": "landscape",
+   "base_name": "landscape",
+   "hash": "ecbda28b98e42fd9",
+   "tags": {
+    "effort_types": [
+     "*"
+    ]
+   },
+   "source": "Global standard",
+   "summary": "",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "65c164be520b",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "approved",
+   "converted": true
+  },
+  {
+   "id": "9d828864c3cd",
+   "kind": "page_setup",
+   "name": "tabloid",
+   "base_name": "tabloid",
+   "hash": "b5657d868607f39b",
+   "tags": {
+    "effort_types": [
+     "*"
+    ]
+   },
+   "source": "Global standard",
+   "summary": "",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "9d828864c3cd",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "approved",
+   "converted": true
+  },
+  {
+   "id": "fcf532bbdde1",
+   "kind": "hf",
+   "name": "cover",
+   "base_name": "cover",
+   "hash": "50307fab8e5ac066",
+   "tags": {
+    "effort_types": [
+     "*"
+    ]
+   },
+   "source": "Global standard",
+   "summary": "",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "fcf532bbdde1",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "approved",
+   "converted": true
+  },
+  {
+   "id": "5b127ef7edb5",
+   "kind": "hf",
+   "name": "front",
+   "base_name": "front",
+   "hash": "3d94e00724f8d822",
+   "tags": {
+    "effort_types": [
+     "*"
+    ]
+   },
+   "source": "Global standard",
+   "summary": "",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "5b127ef7edb5",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "approved",
+   "converted": true
+  },
+  {
+   "id": "e3151dd57737",
+   "kind": "hf",
+   "name": "body",
+   "base_name": "body",
+   "hash": "be626bc437fa53d2",
+   "tags": {
+    "effort_types": [
+     "*"
+    ]
+   },
+   "source": "Global standard",
+   "summary": "",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "e3151dd57737",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "approved",
+   "converted": true
+  },
+  {
+   "id": "aa97483b99bc",
+   "kind": "hf",
+   "name": "appendix",
+   "base_name": "appendix",
+   "hash": "3d94e00724f8d822",
+   "tags": {
+    "effort_types": [
+     "*"
+    ]
+   },
+   "source": "Global standard",
+   "summary": "",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "aa97483b99bc",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "approved",
+   "converted": true
+  },
+  {
+   "id": "7dd98bd78fde",
+   "kind": "hf",
+   "name": "backer",
+   "base_name": "backer",
+   "hash": "50307fab8e5ac066",
+   "tags": {
+    "effort_types": [
+     "*"
+    ]
+   },
+   "source": "Global standard",
+   "summary": "",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "7dd98bd78fde",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "approved",
+   "converted": true
+  },
+  {
+   "id": "0386b7448823",
+   "kind": "variables",
+   "name": "Base fonts and sizes",
+   "base_name": "Base fonts and sizes",
+   "hash": "0274e223d815cf2a",
+   "tags": {
+    "effort_types": [
+     "*"
+    ]
+   },
+   "source": "Global standard",
+   "summary": "body font Georgia, body size 11, table font Arial, table size 9, caption font Arial, caption size 10, space after body 6, line spacing single",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "0386b7448823",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "approved",
+   "converted": true
+  },
+  {
+   "id": "dae83b57252e",
+   "kind": "pagination",
+   "name": "Team standard: i, 1-1, A-1",
+   "base_name": "Team standard: i, 1-1, A-1",
+   "hash": "78e343d680e8b0f7",
+   "tags": {
+    "effort_types": [
+     "*"
+    ]
+   },
+   "source": "Global standard",
+   "summary": "Cover, Front matter, Response, Appendices, Back cover",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "dae83b57252e",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "approved",
+   "converted": true
+  },
+  {
+   "id": "8509818044b6",
+   "kind": "heading_numbering",
+   "name": "Heading numbering",
+   "base_name": "Heading numbering",
+   "hash": "4288ec523ed1ab3f",
+   "tags": {
+    "effort_types": [
+     "*"
+    ]
+   },
+   "source": "Global standard",
+   "summary": "Heading 1 %1; Heading 2 %1.%2; Heading 3 %1.%2.%3; Heading 4 %1.%2.%3.%4",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "8509818044b6",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "approved",
+   "converted": true
+  },
+  {
+   "id": "d6402519c6de",
+   "kind": "list_numbering",
+   "name": "Bullets",
+   "base_name": "Bullets",
+   "hash": "b05ba85042f86ef9",
+   "tags": {
+    "effort_types": [
+     "*"
+    ]
+   },
+   "source": "Global standard",
+   "summary": "List Bullet •, List Bullet 2 –, List Bullet 3 ▪",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "d6402519c6de",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "approved",
+   "converted": true
+  },
+  {
+   "id": "61f0399d0cd2",
+   "kind": "list_numbering",
+   "name": "Numbers",
+   "base_name": "Numbers",
+   "hash": "47b1b540566b58f7",
+   "tags": {
+    "effort_types": [
+     "*"
+    ]
+   },
+   "source": "Global standard",
+   "summary": "List Number %1., List Number 2 %2., List Number 3 %3.",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "61f0399d0cd2",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "approved",
+   "converted": true
+  },
+  {
+   "id": "6477cc90cc99",
+   "kind": "table_look",
+   "name": "Table looks",
+   "base_name": "Table looks",
+   "hash": "1957236243b389de",
+   "tags": {
+    "effort_types": [
+     "*"
+    ]
+   },
+   "source": "Global standard",
+   "summary": "caption: fill none; header: fill 1F3864; header2: fill D9E2F3; subhead: fill D9D9D9; body: fill none; subtotal: fill none; total: fill E8EEF7; note: fill none",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "6477cc90cc99",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "approved",
+   "converted": true
+  },
+  {
+   "id": "082c0ed394be",
+   "kind": "toc",
+   "name": "Table of contents",
+   "base_name": "Table of contents",
+   "hash": "8132269b3c896206",
+   "tags": {
+    "effort_types": [
+     "*"
+    ]
+   },
+   "source": "Global standard",
+   "summary": "\\h \\z",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "082c0ed394be",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "approved",
+   "converted": true
+  },
+  {
+   "id": "e439c85db2f9",
+   "kind": "captions",
+   "name": "Captions",
+   "base_name": "Captions",
+   "hash": "40953d6b30660c5e",
+   "tags": {
+    "effort_types": [
+     "*"
+    ]
+   },
+   "source": "Global standard",
+   "summary": "Table above (body), Table above (appendix), Figure below (body), Figure below (appendix)",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "e439c85db2f9",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "approved",
+   "converted": true
+  },
+  {
+   "id": "aba44f94c46b",
+   "kind": "style",
+   "name": "AA Kestrel Draft Style",
+   "base_name": "AA Kestrel Draft Style",
+   "hash": "772c1ad07b9295b7",
+   "tags": {
+    "effort_types": [
+     "kestrel_rfi"
+    ]
+   },
+   "source": "",
+   "summary": "",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "aba44f94c46b",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "status": "draft"
+  },
+  {
+   "id": "71084c4a2523",
+   "kind": "quickpart",
+   "name": "AA Kestrel Callout",
+   "base_name": "AA Kestrel Callout",
+   "hash": "aa7abfebb044e52d",
+   "tags": {},
+   "source": "",
+   "summary": "",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "71084c4a2523",
+   "version": 1,
+   "label": "",
+   "note": "",
+   "pages": 2,
+   "pages_how": "typed",
+   "pages_at": "2026-11-06T07:28"
+  },
+  {
+   "id": "cb7129b29ffc",
+   "kind": "matrix_view",
+   "name": "Kestrel outline view",
+   "base_name": "Kestrel outline view",
+   "hash": "d78e91a4f837ec63",
+   "tags": {},
+   "source": "",
+   "summary": "one row per outline item; Response Section No. Item, Assigned To, Initial Page Allocation, % Complete, RFP Solicitation Requirements (Section L), Section L Content, Evaluation Section (Section M), Evaluation Content",
+   "variant_of": "",
+   "at": "2026-11-06T07:28",
+   "by": "root",
+   "family": "cb7129b29ffc",
+   "version": 1,
+   "label": "",
+   "note": ""
+  }
+ ],
+ "kits": []
+}

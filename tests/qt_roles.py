@@ -100,7 +100,7 @@ np.do_action(answer="Production"); app.processEvents()
 check("changing my own role opens it", w.profile()[0] == "Production" and w.stack.currentWidget() is w.fixcopy_page)
 from PySide6.QtWidgets import QLabel as _QL
 check("3.16.0: Fix a Copy is last in Production and marked Beta, in the menu and on the page",
-      [k for g, items in RAIL if g == "Production" for k, _t in items] == ["studio", "formatstd", "qpstd", "layoutstd", "profiles", "templates", "rules", "audit", "fixcopy"]   # 3.17.0: Audit; 3.38.0: Rules; 3.52.0: Effort Profiles, Templates
+      [k for g, items in RAIL if g == "Production" for k, _t in items] == ["studio", "formatstd", "qpstd", "layoutstd", "profiles", "templates", "rules", "audit", "fixcopy", "applyword"]   # 3.17.0: Audit; 3.38.0: Rules; 3.52.0: Effort Profiles, Templates
       and w.step_btns["fixcopy"].findChild(_QL, "railbeta") is not None and w.beta_pill.isVisibleTo(w))
 w.go("acrlist"); app.processEvents()
 check("3.16.0: a tab's page marks its menu item: the Acronym List is a tab of Acronyms, and Production opens it",

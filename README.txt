@@ -1,6 +1,22 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+TEMPLATE STUDIO II: READ BACK AND APPLY IN WORD (3.67.0)
+  - Template Studio > Read back: Read a file... reads a template or volume made from this volume's template and sets
+    each part against its parts and numbering (page numbers, restart, chapter style, orientation, paper), the fields
+    against the field recipes, and Heading 7 against Heading 1's list. Word draws each part shows the first page of each
+    part as Word lays it out (Word on this PC; it lays out a temporary copy).
+  - The template check adds a web-safe check: fields in a text box (Word for the web does not update them), a paragraph
+    that a STYLEREF reads put in a text box (STYLEREF does not look there), and content controls.
+  - Production > Apply in Word (Beta): the team's banned phrases into a draft as tracked changes, each with a comment
+    naming the rule. Review every change first: tick, untick, or edit the words. Make the copy with tracked changes
+    writes a dated copy beside the draft; the draft is only read.
+  - Live in Word: tick Allow changes in a document open in Word for this session, read the document open in Word, and
+    put the ticked changes into Word's open window as tracked changes. You save in Word; Stationkeeper never saves or
+    closes it. A place whose words changed since it was read is skipped. Every change is logged in the effort.
+  - A fixed copy as tracked changes: Word compares a draft with its fixed copy from Fix a Copy, so the author gets the
+    formatting fixes as tracked changes.
+
 TEMPLATE STUDIO I: FIELD RECIPES, ANATOMY, PARTS AND NUMBERING (3.66.0)
   - Rules > Field recipes: your field codes, exactly as your templates use them (a table of contents, a caption, a
     header's section title, a page number). Change, add or remove any; Put back the starters brings back the ones you
