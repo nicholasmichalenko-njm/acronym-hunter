@@ -1,6 +1,25 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE SETUP MADE ON YOUR OWN WORD TEMPLATE (3.72.0)
+  - Setup > Use a template file...: pick a Word template your team already made and trusts (.dotx, .dotm or .docx; macros
+    never run and are left out), for every volume or one volume. It shows what the template holds, in order: its cover,
+    title page, front matter, body and appendix, each with its page numbers and header and footer; the heading
+    numbering; its Quick Parts; and which setup styles it has or will get. A copy is kept in the effort's Templates folder.
+  - The setup starts blank in the template's look: the body only, under its headers and footers, the sample pages gone.
+    Tick what else comes in: the template's own cover, title page or front matter, any Quick Part (a cover page goes
+    first, the rest just before the body), and which parts keep their header and footer.
+  - The structure goes on the template's Heading 1 to 9, numbered by the template's own numbering. A heading whose
+    outline number Word would print anyway loses its typed number; when the outline starts at another number the list
+    starts there; when Word would print a different number (a gap), the outline's number stays and Word's is turned off
+    for that heading. This also fixes headings that showed their number twice in a setup made on the app's own template.
+  - A header that prints text from a page the setup leaves out (the volume name from the cover) still finds it: that line
+    comes along as hidden text.
+  - Before the file is handed over it is read back and checked: every heading on the template's styles and numbering,
+    no style from outside the template and the setup styles, every header and footer field finds its text, the sample
+    pages gone, the Quick Parts in, every placed requirement in once, a plain Word document. Anything to look at is
+    listed with where it is.
+
 SETUP FROM AN OUTLINE WORKBOOK, AND THE SETUP'S OWN STYLES (3.71.0)
   - Setup > From an outline workbook...: pick the outline Excel (section number and name, RFP reference, compliance
     requirement, supporting RFP content, authors, management guidance). Each column's job is guessed from its heading;

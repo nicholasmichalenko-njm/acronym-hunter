@@ -107,6 +107,8 @@ class SetupsPage(QWidget):
         bar.addWidget(D.button("Changes for authors...", None, lambda: self.packets(),
                                "One Word file per person: what changed in their sections since the last setup"))
         bar.addWidget(D.button("Plain setup...", None, lambda: self.plain(), "One plain Word document per volume, no template"))
+        bar.addWidget(D.button("Use a template file...", None, lambda: self.template_file(),          # 3.72.0
+                               "Make the setup on a Word template your team already made: you pick what comes in"))
         bar.addWidget(D.button("Make the setup", "primary", lambda: self.make(),
                                "Each volume's template with the setup written on it: the customer's words and your notes in "
                                "hidden reference styles"))
@@ -220,6 +222,12 @@ class SetupsPage(QWidget):
         self.pick(self.tree.currentItem().data(0, Qt.UserRole) if self.tree.currentItem() else None)
 
     def templates_text(self, M):
+        import templatesetup as TS
+        tf = TS.choice(M)                                         # 3.72.0: a template file the team brought
+        if tf:
+            own = {k: os.path.basename(v["file"]) for k, v in tf.items()}
+            return "Made on your template: " + "; ".join(("every volume" if k == "*" else k) + f": {n}" for k, n in own.items()) \
+                + ". Use a template file... to change it or go back to the app's own."
         try:
             import setuptemplate as ST
             info = self.host.efforts.get(self.host.effort_name) or {}
@@ -348,13 +356,71 @@ class SetupsPage(QWidget):
         return M
 
     # ------------------------------------------------------------ outputs
-    def make(self, opts=None, go=None):
+    def make(self, opts=None, go=None, folder=None):
         M = self._M()
         if M is None or not M.outline:
             self.host.status("Start with a structure.")
             return None
         SM.ensure_skip(M)
-        return self.host.setup_page.make_on_templates(opts=opts, go=go)
+        import templatesetup as TS
+        if not TS.choice(M):
+            return self.host.setup_page.make_on_templates(opts=opts, go=go)
+        return self.make_on_file(folder)
+
+    # ------------------------------------------------------------ 3.72.0: a template file the team brought
+    def volume_names(self):
+        import setupdoc as SD
+        M = self._M()
+        return [v for v, _e in SD.volume_groups(M)] if M is not None and M.outline else []
+
+    def changed(self):
+        M = self._M()
+        if M is not None:
+            M.pending = True
+            self.host.changed()
+        self.refresh()
+
+    def template_file(self, volume="*", path=None, modal=True):
+        from .templatefileview import choose
+        if self._M() is None or not self._M().outline:
+            self.host.status("Start with a structure.")
+            return None
+        return choose(self, volume, path, modal)
+
+    def make_on_file(self, folder=None):
+        """Every volume with a template file made on it and checked; the others on the app's own template."""
+        import templatesetup as TS
+        M = self._M()
+        if folder is None:
+            folder = self.host.out_path("setup_documents") if self.host.effort_path else os.path.dirname(M.path)
+            folder = folder if os.path.isdir(folder) else os.path.dirname(folder)
+        info = self.host.efforts.get(self.host.effort_name) or {}
+        try:
+            import ctxdocs as CX
+            ctx = CX.section_context(self.host.ws.root) if self.host.ws is not None else None
+            res = TS.make(M, folder, self.host.config_dir, self.host.ws, self.host.effort_name or "", info, context=ctx,
+                          effort_path=self.host.effort_path or "")
+        except PermissionError:
+            self.host.status("A file with that name is open in Word: close it, then make again.")
+            return None
+        except (ValueError, OSError):
+            diag.swallowed()
+            self.host.status("The template file could not be read: pick it again in Use a template file...")
+            return None
+        others = [v for v in self.volume_names() if not TS.for_volume(M, v, self.host.effort_path or "")]
+        if others:
+            self.host.setup_page.make_on_templates(folder=folder, volumes=others)
+        self.last_check = res
+        diag.activity("setup_on_template_file", files=len(res))
+        M.pending = True
+        self.host.changed()
+        bad = sum(1 for x in res for r in x["check"] if not r["ok"])
+        self.host.toast(f"{len(res)} setup(s) made on your template in {folder}. " + (f"{bad} thing(s) to look at in the check." if bad else
+                                                                                       "The check found nothing to look at."))
+        if not os.environ.get("AH_TEST"):
+            from .templatefileview import CheckView
+            CheckView(self, res).exec()
+        return res
 
     def plain(self, folder=None):
         M = self._M()

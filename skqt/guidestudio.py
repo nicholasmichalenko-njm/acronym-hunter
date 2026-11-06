@@ -75,4 +75,7 @@ CHECKS369 = (   # 3.69.0 and later: lines added to topics in guidetopics by key
                "makes the sections and places every requirement; Save these columns and rules... keeps them for the next "
                "workbook laid out the same way."),
     ("setups", "Setup styles...: each kind of setup text's style name, font, size, color, bold, italic and hidden. Save for "
-               "this effort, Use for every effort, or Put them in this effort's template."))
+               "this effort, Use for every effort, or Put them in this effort's template."),
+    ("setups", "Use a template file... (3.72.0): the setup on a Word template your team already made. It starts blank in the "
+               "template's look; tick its cover, title page or front matter, any Quick Part, and which parts keep their header "
+               "and footer. Headings follow the template's own numbering. The made file is checked before you get it."))
