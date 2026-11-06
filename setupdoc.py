@@ -896,6 +896,18 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
             if it is None:
                 continue
             where = where_of(it)
+            if it.get("src") == "outline":                # 3.71.0: from the team's outline workbook: its text alone, in its style
+                k = {"Customer": "customer", "Context": "support"}.get(kind_of(it), "rfp")
+                if ("eval" if kind_of(it) == "Evaluation" else "req") in d.skip and k == "rfp":
+                    continue
+                txt = block_text(M, it, inh) if k == "rfp" else it["text"]
+                d.rich([(txt, {"color": {"rfp": PURPLE, "customer": "6B21A8"}.get(k, "000000")})], kind=k)   # the style carries the look
+                if k == "rfp":
+                    last_req = iid
+                note = S["notes"].get(iid, "").strip()
+                if note:
+                    d.para(note, color=GREEN, kind="pm")
+                continue
             if kind_of(it) == "Customer":                 # 3.18.2: the customer's own sentence, for the writers, not answered
                 d.rich([("Customer's (not answered)" + (f" ({where})" if where else "") + ": ", {"color": "6B21A8", "bold": True})]
                        + cwords.docx_parts(it["text"], {"color": "6B21A8"}, cw), indent=720, border="6B21A8", kind="customer")

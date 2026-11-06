@@ -44,9 +44,63 @@ def sid_of(name):
     return re.sub(r"[^A-Za-z0-9]", "", name) or "SKSetup"
 
 
+LOOK = ("font", "size", "color", "bold", "italic")       # 3.71.0: a setup style's look, set in the app
+
+
 def _clean(o, style):
-    return {"style": " ".join(str(o.get("style") or style).split())[:60] or style, "hidden": bool(o.get("hidden", True)),
-            "include": bool(o.get("include", True))}
+    out = {"style": " ".join(str(o.get("style") or style).split())[:60] or style, "hidden": bool(o.get("hidden", True)),
+           "include": bool(o.get("include", True))}
+    for k in LOOK:                                       # only what the person set; the rest is the kind's default
+        v = o.get(k)
+        if v not in (None, ""):
+            out[k] = (str(v).lstrip("#").upper()[:6] if k == "color" else float(v) if k == "size" else bool(v) if k in ("bold", "italic")
+                      else " ".join(str(v).split())[:60])
+    return out
+
+
+def look(opts, k):
+    """The look a kind's style is drawn with: what the person set, else the kind's default color (for the preview)."""
+    o = opts.get(k) or {}
+    return {"font": o.get("font") or "", "size": o.get("size") or 0, "color": o.get("color") or (KIND_OF.get(k) or ("", "", "000000"))[2],
+            "bold": bool(o.get("bold")), "italic": bool(o.get("italic")), "hidden": bool(o.get("hidden", True)), "style": o.get("style", "")}
+
+
+def set_team_options(config_dir, opts):
+    """3.71.0: Use for every effort: the setup styles into the global standard's content map."""
+    import prodrules as PRL
+    data = PRL.load(config_dir)
+    cm = dict(data["company"].get("content_map") or {})
+    for k, v in opts.items():
+        if k in KIND_OF:
+            cm[k] = _clean(v, KIND_OF[k][1])
+    data["company"]["content_map"] = cm
+    PRL.save(config_dir, data)
+    return cm
+
+
+def to_effort_template(ws, opts):
+    """3.71.0: Put them in this effort's template: each setup style into the effort's own formatting (its style
+    definitions), so the template made for the effort carries them. Returns the style names written."""
+    eff = dict(ws.get("prod_std", {}) or {})
+    over = dict(eff.get("over") or {})
+    sd = dict(over.get("style_defs") or {})
+    names = []
+    for k, o in opts.items():
+        if k not in KIND_OF:
+            continue
+        lk = look(opts, k)
+        d = {"type": "paragraph", "used_on": "Setup", "hidden": "on" if lk["hidden"] else "off", "color": lk["color"],
+             "bold": "on" if lk["bold"] else None, "italic": "on" if lk["italic"] else None, "based_on": "Normal"}
+        if lk["font"]:
+            d["font"] = lk["font"]
+        if lk["size"]:
+            d["size"] = lk["size"]
+        sd[o["style"]] = {a: b for a, b in d.items() if b is not None}
+        names.append(o["style"])
+    over["style_defs"] = sd
+    eff["over"] = over
+    ws.set("prod_std", eff)
+    return names
 
 
 def options(M, std=None):
@@ -72,8 +126,7 @@ def set_options(M, opts, ws=None):
     """The content map chosen in Make templates. With the effort's workspace (3.33.0) it is this effort's change to the
     profile's map (Production Standards > This effort shows it); without it, kept with the matrix as before."""
     import setupdoc as SD
-    clean = {k: {"style": v["style"], "hidden": bool(v["hidden"]), "include": bool(v.get("include", True))} for k, v in opts.items()
-             if k in KIND_OF or str(k).startswith("cap:")}
+    clean = {k: _clean(v, v["style"]) for k, v in opts.items() if k in KIND_OF or str(k).startswith("cap:")}   # 3.71.0: with the look
     if ws is None:
         SD.setup_of(M)["on_template"] = clean
         return
@@ -89,11 +142,17 @@ def skip_kinds(opts):
     """The kinds left out of the response file."""
     return {k for k, v in opts.items() if not v.get("include", True)}
 
-def _style_xml(sid, name, color, indent, hidden):
+def _style_xml(sid, name, color, indent, hidden, lk=None):
+    lk = lk or {}
+    color = lk.get("color") or color
     ppr = (f'<w:pPr><w:pBdr><w:left w:val="single" w:sz="18" w:space="8" w:color="{color}"/></w:pBdr><w:ind w:left="720"/></w:pPr>'
-           if indent else "")
+           if indent and not lk.get("plain") else "")
+    font = escape(lk["font"]) if lk.get("font") else ""
+    rpr = ((f'<w:rFonts w:ascii="{font}" w:hAnsi="{font}" w:cs="{font}"/>' if font else "") + ("<w:b/>" if lk.get("bold") else "")
+           + ("<w:i/>" if lk.get("italic") else "") + ("<w:vanish/>" if hidden else "") + f'<w:color w:val="{color}"/>'
+           + (f'<w:sz w:val="{int(round(float(lk["size"]) * 2))}"/>' if lk.get("size") else ""))
     return (f'<w:style xmlns:w="{W}" w:type="paragraph" w:customStyle="1" w:styleId="{sid}"><w:name w:val="{escape(name)}"/>'
-            f'<w:basedOn w:val="Normal"/><w:qFormat/>{ppr}<w:rPr>{"<w:vanish/>" if hidden else ""}<w:color w:val="{color}"/></w:rPr></w:style>')
+            f'<w:basedOn w:val="Normal"/><w:qFormat/>{ppr}<w:rPr>{rpr}</w:rPr></w:style>')
 
 
 def ensure_styles(sroot, opts):
@@ -116,7 +175,10 @@ def ensure_styles(sroot, opts):
             n = 2
             while sid in ids:
                 sid = f"{sid_of(o['style'])}{n}"; n += 1
-            s = etree.fromstring(_style_xml(sid, o["style"], color, indent, o["hidden"]))
+            lk = {x: o.get(x) for x in LOOK if o.get(x) not in (None, "")}
+            if lk:
+                lk["plain"] = True                        # 3.71.0: a look the person set: no indent or rule added
+            s = etree.fromstring(_style_xml(sid, o["style"], color, indent, o["hidden"], lk))
             sroot.append(s); ids.add(sid); by_name[o["style"].casefold()] = s
         else:
             rpr = s.find("w:rPr", NS)
