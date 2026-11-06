@@ -92,7 +92,7 @@ with zipfile.ZipFile(vol) as zi, zipfile.ZipFile(draft, "w") as zo:
     for n in zi.namelist():
         data = zi.read(n)
         if n == "word/footer1.xml":
-            data = f'<w:ftr {NSD}><w:p>{fld("PAGE \\* ROMAN")}</w:p></w:ftr>'.encode()
+            data = ('<w:ftr ' + NSD + '><w:p>' + fld("PAGE \\* ROMAN") + '</w:p></w:ftr>').encode()
         zo.writestr(n, data)
 check("a PAGE field's switch is what prints (ROMAN reads as I)", RB._kind_fmt(RB.sections(draft)[1]) == "I")
 # ---- Word draws one page per part (a stand-in Word that writes a 5-page PDF)
@@ -115,7 +115,7 @@ check("one picture per part, from the page its first section starts on", dr["ok"
 check("Word that does not answer says so", RB.draw_parts(vol, out, parts, runner=lambda c, e, t: "")["ok"] is False)
 # ---- web-safe check
 tb = (f'<w:document {NSD} xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><w:body>'
-      f'<w:p>{fld("STYLEREF 1 \\s")}</w:p>'
+      '<w:p>' + fld("STYLEREF 1 \\s") + '</w:p>'
       '<w:p><w:r><w:txbxContent><w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>Title in a box</w:t></w:r></w:p>'
       f'<w:p>{fld("PAGE")}</w:p></w:txbxContent></w:r></w:p>'
       '<w:sdt><w:sdtContent><w:p><w:r><w:t>Kestrel</w:t></w:r></w:p></w:sdtContent></w:sdt></w:body></w:document>')
