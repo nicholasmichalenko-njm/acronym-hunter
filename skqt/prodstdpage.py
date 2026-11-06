@@ -427,6 +427,8 @@ class StandardsPage(QWidget):
                                        ".dotx: what you are editing, every volume of an effort type, or this effort's volumes and setup. "
                                        "A Word template (.dotx) with every "
                                        "value in force here, written to the output folder"),
+                              D.button("What retiring this would lose", "ghost", lambda: self.retire_report(),
+                                       "3.68.0: each section, where it is edited now, and the values set here that have no other place"),
                               D.button("Save", "primary", lambda: self.save())])
         # 3.36.0: which layer is being edited, in plain words: the team's (every effort) or one effort's
         self.mode, self._effort_next = "team", None
@@ -1951,6 +1953,11 @@ class StandardsPage(QWidget):
         probs = PRL.validate(PRL.engine_ready(copy.deepcopy(self.work))) if self.work.get("row_types") else []
         self.problems.setText(("To fix before saving: " + "; ".join(probs[:6])) if probs else "")
         return probs
+
+    def retire_report(self, modal=True):
+        """3.68.0: the nothing-lost report (stdretireview)."""
+        from . import stdretireview as SR
+        return SR.show(self, modal=modal)
 
     def save(self, quiet=False):
         if not self.work:

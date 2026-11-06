@@ -48,7 +48,7 @@ TOPICS = [
   ["Press + Add an Effort (or open the Effort Dashboard with no effort open). Type a name and press Create effort. The picture, "
    "client, solicitation, due date and proposal manager are optional; the effort's folders are made for you.",
    "Click an effort's card to open it. The menu then works on that effort.",
-   "To pick up a teammate's effort, press Import effort package... and choose the .skpkg file they sent.",
+   "To pick up a teammate's effort, press Import effort package... and choose the .skpkg file they sent. An effort folder moved or copied: Open an effort from its folder... (pick the folder, its Effort List or its Open this effort.skeffort file).",
    "To read documents before an effort exists, press Start without an effort: open Unfiled. Make it an effort... later "
    "keeps the work."],
   ["Each effort keeps its own decisions, lists and settings. Nothing crosses between efforts.",

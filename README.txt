@@ -1,6 +1,29 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+EFFORTS THAT MOVE, CUSTOMER FORMS, SAVE TO, AND PRODUCTION STANDARDS' REPORT (3.68.0)
+  - An effort whose folder was moved, renamed or is offline no longer opens empty: Stationkeeper says its folder is not
+    where it last saw it and asks you to find it. Pick the folder it is in now; the customer documents, the compliance
+    matrix and the deliverables' files are pointed at the new place (by where they sat in the old folder, then by name).
+    Nothing is made at the old place.
+  - Efforts > Open an effort from its folder...: pick an effort's folder, its Effort List, or the file "Open this
+    effort.skeffort" Stationkeeper keeps in each effort's folder. The effort opens wherever the folder now lives. A
+    copy of an effort that is already here opens as a second effort. Open the .skeffort file with Stationkeeper once
+    and Windows remembers.
+  - Effort packages are unchanged: Effort Record > Save effort package... makes one .skpkg file; Import effort
+    package... (Settings, or the Efforts screen) unpacks it anywhere and points it at its new place.
+  - Template Studio > Parts and numbering: a Customer form part is the customer's own form, kept as it is. It names
+    the form's file and the marking its pages carry. Fix a Copy refuses a fix that would change it (the copy is put
+    back as it was before that fix), Apply in Word leaves it alone, and Final Check finds its pages by their words,
+    leaves them out of the count when the part does not count, checks its marking, and does not ask the volume's page
+    marking of it.
+  - Save the part asks where: this effort (picked first), every effort of this effort type, or every effort, with how
+    many efforts on this PC would follow it and how many keep their own. An effort follows a shared plan until it
+    changes its own.
+  - Production Standards > What retiring this would lose: each section, where it is edited now, what stays only there,
+    the values set on this PC that have no other editor, and the places in the app that still open Production
+    Standards. It changes nothing; Production Standards retires once nothing is left only there.
+
 TEMPLATE STUDIO II: READ BACK AND APPLY IN WORD (3.67.0)
   - Template Studio > Read back: Read a file... reads a template or volume made from this volume's template and sets
     each part against its parts and numbering (page numbers, restart, chapter style, orientation, paper), the fields

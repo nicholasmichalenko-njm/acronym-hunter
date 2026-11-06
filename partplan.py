@@ -3,9 +3,13 @@ counted. Page format (none, i, I, 1, A-1), where numbering restarts, the chapter
 for appendices), the header and footer it uses, orientation and paper, and whether its pages count toward the limit
 (with how many pages a foldout counts as and whether blank pages count). Final Check reads the same plan.
 
+3.68.0: a Customer form part is locked: the customer's own form, placed where the plan puts it, counted as the plan
+says and checked for its marking, never restyled. It names the form's file and the marking its pages carry; Fix a Copy
+refuses a fix that would change it, Apply in Word leaves it alone, Final Check finds its pages.
+
 Kept in the effort record ("part_plans" {volume: [parts]}). claude/stationkeeper-studio-decisions-2026-11-06.md.
 Rules only; nothing leaves the PC."""
-import uuid
+import os, uuid
 
 KINDS = ("Cover", "Front matter", "Body", "Appendix", "Customer form", "Other")
 FORMATS = ("none", "i", "I", "1", "A-1")
@@ -16,6 +20,12 @@ PAPER = ("Letter", "11x17")
 COUNTS = ("Counts", "Does not count")
 # Final Check's tick-out kinds a part that does not count stands for
 EXCLUDES = {"Cover": ["cover"], "Front matter": ["toc", "acronyms"], "Appendix": ["appendices"], "Customer form": []}
+LOCKED = "Customer form"
+
+
+def locked(p):
+    """A customer's form: placed, counted and checked, never restyled."""
+    return (p or {}).get("kind") == LOCKED
 
 
 def _id():
@@ -34,8 +44,9 @@ def default_parts():
 
 
 def part(name, kind="Body", fmt="1", restart=False, start=1, chapter="", sep="-", header="Response", orient="Portrait",
-         paper="Letter", counts="Counts", foldout=2, blanks="Do not count"):
-    return {"id": _id(), "name": " ".join(str(name).split()) or kind, "kind": kind if kind in KINDS else "Other",
+         paper="Letter", counts="Counts", foldout=2, blanks="Do not count", form="", marking=""):
+    return {"form": str(form or ""), "marking": " ".join(str(marking or "").split()),
+            "id": _id(), "name": " ".join(str(name).split()) or kind, "kind": kind if kind in KINDS else "Other",
             "format": fmt if fmt in FORMATS else "1", "restart": bool(restart), "start": max(1, int(start or 1)),
             "chapter": chapter or ("Heading 7" if fmt == "A-1" else ""), "sep": sep or "-",
             "header": header if header in HEADERS else "Response", "orient": orient if orient in ORIENT else "Portrait",
@@ -47,16 +58,112 @@ def plans(rec):
     return rec.data.setdefault("part_plans", {})
 
 
-def plan_of(rec, volume):
-    """The volume's parts, or the usual ones when none are set (not saved until changed)."""
+def plan_of(rec, volume, shared=None):
+    """The volume's parts: this effort's own, else the shared plan for its effort type or every effort (3.68.0), else
+    the usual ones (not saved until changed)."""
     p = (rec.data.get("part_plans") or {}).get(volume)
-    return [dict(x) for x in p] if isinstance(p, list) and p else default_parts()
+    if isinstance(p, list) and p:
+        return [dict(x) for x in p]
+    if shared:
+        return [_norm(x) for x in shared]
+    return default_parts()
+
+
+def own(rec, volume):
+    """True when this effort holds its own plan for the volume."""
+    p = (rec.data.get("part_plans") or {}).get(volume)
+    return isinstance(p, list) and bool(p)
+
+
+# ---------------------------------------------------------------- 3.68.0: save to this effort, its effort type, or every effort
+SHARED = "part_plans.json"          # in the config folder: {"team": {profile id: parts}, "types": {effort type id: {profile id: parts}}}
+WHERE = (("effort", "This effort only"), ("type", "Every effort of this effort type"), ("team", "Every effort"))
+
+
+def load_shared(config_dir):
+    import json
+    try:
+        with open(os.path.join(config_dir, SHARED), encoding="utf-8") as f:
+            d = json.load(f) or {}
+    except (OSError, ValueError):
+        d = {}
+    return {"team": dict(d.get("team") or {}), "types": dict(d.get("types") or {})}
+
+
+def _save_shared(config_dir, d):
+    import json
+    os.makedirs(config_dir, exist_ok=True)
+    p = os.path.join(config_dir, SHARED)
+    with open(p + ".tmp", "w", encoding="utf-8") as f:
+        json.dump(d, f, indent=1, ensure_ascii=False)
+    os.replace(p + ".tmp", p)
+
+
+def shared_plan(config_dir, eid, pid):
+    """The plan shared for this effort type and volume profile, else the one for every effort, else None."""
+    d = load_shared(config_dir)
+    return ((d["types"].get(eid or "") or {}).get(pid or "")) or d["team"].get(pid or "") or None
+
+
+def shared_from(config_dir, eid, pid):
+    """Where a shared plan comes from: 'type', 'team' or ''."""
+    d = load_shared(config_dir)
+    if (d["types"].get(eid or "") or {}).get(pid or ""):
+        return "type"
+    return "team" if d["team"].get(pid or "") else ""
+
+
+def save_to(config_dir, rec, volume, parts, where="effort", eid=None, pid=None, who=None):
+    """Saves the plan where the person chose. A broader save is kept by the volume profile; this effort then follows
+    it (its own plan for the volume is cleared), and efforts with their own plan keep theirs."""
+    parts = [_norm(x) for x in parts]
+    if where == "effort" or not pid:
+        return set_plan(rec, volume, parts, who=who)
+    d = load_shared(config_dir)
+    if where == "type" and eid:
+        d["types"].setdefault(eid, {})[pid] = parts
+    else:
+        d["team"][pid] = parts
+    _save_shared(config_dir, d)
+    plans(rec).pop(volume, None)
+    rec.log("effort", f"Parts and numbering for {volume} saved for " + ("every effort of its effort type" if where == "type" and eid
+                                                                          else "every effort"), who=who)
+    rec.save()
+    return parts
+
+
+def impact(efforts, where, eid=None):
+    """What a save would change. efforts: [{"name", "eid", "own": volumes with their own plan}]. Returns
+    {"efforts": n that follow it, "keep": n with their own plan, which keep it}."""
+    hit = [e for e in efforts if where == "team" or (where == "type" and e.get("eid") == eid)] if where != "effort" else []
+    keep = sum(1 for e in hit if e.get("own"))
+    return {"efforts": len(hit), "keep": keep}
+
+
+def efforts_on_pc(config_dir):
+    """Every effort on this PC: [{"name", "eid", "own": [volumes with their own plan]}], read from each effort's files."""
+    import effort as E, effortrec as RR, workspace as W
+    out = []
+    reg = E.Registry(os.path.join(config_dir, "efforts.json"))
+    for name in reg.names():
+        path = (reg.get(name) or {}).get("path") or ""
+        if not path or not os.path.isdir(W.data_dir_for(path)):
+            continue                                         # an effort whose folder is gone, or not opened yet
+        try:
+            ws = W.Workspace(W.data_dir_for(path), name)
+            eid = (ws.get("prod_std", {}) or {}).get("effort_type") or ""
+            own_ = [k for k, v in (RR.Record(ws.root).data.get("part_plans") or {}).items() if v]
+        except Exception:  # noqa: BLE001  an effort whose folder is gone
+            continue
+        out.append({"name": name, "eid": eid, "own": own_})
+    return out
 
 
 def _norm(x):
     p = part(x.get("name", ""), x.get("kind", "Body"), x.get("format", "1"), x.get("restart", False), x.get("start", 1),
              x.get("chapter", ""), x.get("sep", "-"), x.get("header", "Response"), x.get("orient", "Portrait"),
-             x.get("paper", "Letter"), x.get("counts", "Counts"), x.get("foldout", 2), x.get("blanks", "Do not count"))
+             x.get("paper", "Letter"), x.get("counts", "Counts"), x.get("foldout", 2), x.get("blanks", "Do not count"),
+             x.get("form", ""), x.get("marking", ""))
     p["id"] = x.get("id") or p["id"]
     return p
 
@@ -135,6 +242,8 @@ def says(p):
     if p["orient"] != "Portrait" or p["paper"] != "Letter":
         bits.append(f"{p['orient'].lower()} {p['paper']}")
     bits.append("counts toward the limit" if p["counts"] == "Counts" else "does not count")
+    if locked(p):
+        bits.append("the customer's form, kept as it is" + (f", marked {p['marking']!r}" if p.get("marking") else ""))
     return f"{p['name']}: " + "; ".join(bits)
 
 
@@ -152,4 +261,45 @@ def final_check_rules(rec, volume):
     if not blanks:
         ex.append("dividers")
     fold = max([x.get("foldout", 2) for x in p if x.get("paper") == "11x17" and x["counts"] == "Counts"] or [2])
-    return {"exclude": list(dict.fromkeys(ex)), "foldout": fold, "blanks": blanks}
+    forms = [{"name": x["name"], "form": x.get("form", ""), "marking": x.get("marking", ""), "counts": x["counts"] == "Counts"}
+             for x in p if locked(x)]
+    return {"exclude": list(dict.fromkeys(ex)), "foldout": fold, "blanks": blanks, "forms": forms}
+
+
+def parts_for_file(plans_, name):
+    """(volume, parts) of the plan whose volume this file is, by its name; (None, None) when no plan is set for it."""
+    import subreq as SR
+    stem = os.path.splitext(os.path.basename(name or ""))[0]
+    key = next((k for k in (plans_ or {}) if k == stem or SR.match_volume(k, stem)), None)
+    if key is None:
+        return None, None
+    return key, [_norm(x) for x in plans_[key]]
+
+
+def effective_plans(config_dir, rec, eid=None, data=None):
+    """{volume: parts} as this effort uses them: a plan shared for its effort type (or every effort), by each volume
+    its profiles make, then the effort's own plans over them. Final Check, Fix a Copy and Apply in Word read this."""
+    out = {}
+    if config_dir and os.path.isfile(os.path.join(config_dir, SHARED)):
+        import effortprofiles as EP
+        if data is None:
+            import prodrules as PRL
+            data = PRL.load(config_dir)
+        for p in EP.profiles(data):
+            if eid and p["eid"] != eid:
+                continue
+            sp = shared_plan(config_dir, eid or p["eid"], p["pid"])
+            if sp:
+                for v in p["volumes"]:
+                    out.setdefault(v, [_norm(x) for x in sp])
+    out.update({k: v for k, v in (rec.data.get("part_plans") or {}).items() if isinstance(v, list) and v})
+    return out
+
+
+def for_effort(config_dir, ws):
+    """effective_plans for an open effort (its workspace)."""
+    if ws is None:
+        return {}
+    import effortrec as RR
+    eid = (ws.get("prod_std", {}) or {}).get("effort_type") or None
+    return effective_plans(config_dir, RR.Record(ws.root), eid)

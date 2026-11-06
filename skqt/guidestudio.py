@@ -15,6 +15,10 @@ STUDIO = \
    "Read back: Read a file... reads a template or volume made from this volume's template and sets each part against "
    "its plan (page numbers, restart, chapter style, orientation, paper), the fields against the field recipes and "
    "Heading 7 against Heading 1's list. Word draws each part shows the first page of each part as Word lays it out.",
+   "A Customer form part is the customer's own form, kept as it is: name its file and the marking its pages carry. Fix a "
+   "Copy and Apply in Word leave it alone; Final Check finds its pages and checks its marking.",
+   "Save the part asks where it goes: this effort, every effort of this effort type, or every effort, with how many "
+   "efforts would follow it. An effort follows a shared plan until it changes its own.",
    "Field recipes opens Rules > Field recipes: your field codes, which the checks read."],
   ["Nothing here is a second copy: change a style in Formatting Standards, a header in Layout, a pick in Effort Profiles."])
 

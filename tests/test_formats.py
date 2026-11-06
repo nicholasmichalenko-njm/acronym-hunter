@@ -48,7 +48,10 @@ _wb = openpyxl.load_workbook(L.path, read_only=True)
 hdr = [c.value for c in _wb["Effort List"][1]]
 _wb.close()
 check("... and the next save writes Approver", "Approver" in hdr and "SS Approver" not in hdr, hdr)
-check("every kind is checked here", len(F.FORMATS) == 10, len(F.FORMATS))
+import effortrelink as ER                                  # 3.68.0: the marker in an effort's folder
+mk = ER.write_marker(L.path, "Kestrel")
+check("effort marker", json.load(open(mk, encoding="utf-8"))["format"] == F.number("effort marker"))
+check("every kind is checked here", len(F.FORMATS) == 11, len(F.FORMATS))
 n = sum(checks)
 print(f"FORMATS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

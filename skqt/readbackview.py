@@ -9,7 +9,6 @@ from PySide6.QtWidgets import (QFileDialog, QHBoxLayout, QHeaderView, QLabel, QS
                                QVBoxLayout, QWidget)
 import diag
 import fieldrecipes as FR
-import partplan as PP
 import readback as RB
 from . import design as D
 
@@ -43,8 +42,7 @@ class ReadBackView(QWidget):
         self.b_again.setEnabled(bool(self.path)); self.b_draw.setEnabled(bool(self.path))
 
     def parts(self):
-        r = self.studio.rec()
-        return PP.plan_of(r, self.studio.vol.currentText()) if r is not None else PP.default_parts()
+        return self.studio.plan()
 
     def choose(self):
         path, _ = QFileDialog.getOpenFileName(self, "A template or volume made from this volume's template", "",

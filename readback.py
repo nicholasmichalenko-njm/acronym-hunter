@@ -326,3 +326,60 @@ def _as_document(path):
                 data = data.replace(b"wordprocessingml.template.main+xml", b"wordprocessingml.document.main+xml")
             zout.writestr(it, data)
     os.replace(tmp, path)
+
+
+# ---------------------------------------------------------------- 3.68.0: locked parts (customer forms)
+def _body_sections(z):
+    """The body's elements grouped by section, in order (a section ends at the paragraph holding its settings)."""
+    doc = _xml(z, "word/document.xml")
+    if doc is None:
+        return []
+    out, cur = [], []
+    for el in doc.find(W + "body"):
+        if el.tag == W + "sectPr":
+            continue
+        cur.append(el)
+        if el.tag == W + "p" and el.find(f"{W}pPr/{W}sectPr") is not None:
+            out.append(cur); cur = []
+    out.append(cur)
+    return out
+
+
+def locked_digest(path, parts):
+    """{part id: fingerprint of its sections' content} for each locked part (a customer form) found in the file. A fix
+    that changes one changes its fingerprint."""
+    import hashlib
+    import partplan as PP
+    lock = [p for p in parts or () if PP.locked(p)]
+    if not lock:
+        return {}
+    with zipfile.ZipFile(path) as z:
+        groups = _body_sections(z)
+    out = {}
+    for p, idx in assign(sections(path), parts):
+        if PP.locked(p) and idx:
+            h = hashlib.sha256()
+            for i in idx:
+                for el in (groups[i] if i < len(groups) else []):
+                    h.update(etree.tostring(el))
+            out[p["id"]] = h.hexdigest()
+    return out
+
+
+def locked_paragraphs(path, parts):
+    """The indexes of the body's paragraphs (in document order, tables included) that sit in a locked part."""
+    import partplan as PP
+    if not any(PP.locked(p) for p in parts or ()):
+        return set()
+    lock = {i for p, idx in assign(sections(path), parts) if PP.locked(p) for i in idx}
+    with zipfile.ZipFile(path) as z:
+        groups = _body_sections(z)
+    out, n = set(), 0
+    for si, els in enumerate(groups):
+        for el in els:
+            ps = list(el.iter(W + "p"))             # the paragraph itself, then any inside it, as the writers count them
+            for _p in ps:
+                if si in lock:
+                    out.add(n)
+                n += 1
+    return out

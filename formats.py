@@ -18,6 +18,7 @@ FORMATS = {
     "update pack": ("updatepack -> update.json in the .skupdate", "format", 1),
     "effort record": ("effortrec.Record.save -> record.json", "v", 1),
     "effort acronym list": ("effort.EffortList.save -> the workbook's About sheet", "Format", 2),   # 3.52.0: SS Approver became Approver
+    "effort marker": ("effortrelink.write_marker -> Open this effort.skeffort in the effort's folder", "format", 1),   # 3.68.0
 }
 
 

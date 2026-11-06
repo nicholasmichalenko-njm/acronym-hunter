@@ -434,6 +434,9 @@ class MainWindow(QMainWindow):
         info = self.efforts.get(name) or {}
         if not info.get("path"):
             return False
+        from .effortfind import ready, mark          # 3.68.0: a moved effort is found again; nothing is made at its old place
+        if not (info := ready(self, name, info)):
+            return False
         if hasattr(self, "read_page") and not self.read_page.confirm_stop():   # 2.82.0: a read is running
             self.fill_efforts()
             return False
@@ -509,7 +512,7 @@ class MainWindow(QMainWindow):
         self.remember_fields()                     # 2.95.0: folder and file names use the effort's fields
         self.watch_found = None; self.watch_strip.setVisible(False)
         self.watch_start()                         # 2.94.0: what changed in the watched folders since last time
-        self.title()
+        self.title(); mark(self)                   # 3.68.0: the marker file in the effort's folder
         self.refresh_access()                      # 3.13.0: the role in this effort, and this stage's tools
         return True
 

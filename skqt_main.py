@@ -150,6 +150,10 @@ def main(argv=None):
     pkg = next((a for a in args[1:] if a.lower().endswith((".skpkg", ".ahpkg")) and os.path.isfile(a)), None)
     if pkg:                                              # 2.74.0: an effort package double-clicked
         QTimer.singleShot(800, lambda: w.import_package(pkg))
+    mk = next((a for a in args[1:] if a.lower().endswith(".skeffort") and os.path.isfile(a)), None)
+    if mk:                                               # 3.68.0: an effort's marker double-clicked: open it from its folder
+        from skqt.effortfind import open_from_folder
+        QTimer.singleShot(800, lambda: open_from_folder(w, mk))
     upk = next((a for a in args[1:] if a.lower().endswith(".skupdate") and os.path.isfile(a)), None)
     if upk:                                              # 2.76.0: an update pack double-clicked: what it changes, then Update
         QTimer.singleShot(800, lambda: (w.go("settings"), w.settings_page.install_update(upk)))

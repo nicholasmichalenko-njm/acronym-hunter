@@ -59,6 +59,13 @@ class ApplyWordPage(QWidget):
     def rec(self):
         return R.Record(self.host.ws.root) if self.host.ws is not None else None
 
+    def parts_for(self, path):
+        """3.68.0: the volume's parts and numbering, when a plan is set for this file."""
+        if self.host.ws is None:
+            return None
+        import partplan as PP
+        return PP.parts_for_file(PP.for_effort(self.host.config_dir, self.host.ws), path)[1]
+
     def refresh(self):
         self.fill_log()
         self._buttons()
@@ -114,7 +121,7 @@ class ApplyWordPage(QWidget):
             if not path:
                 return None
         try:
-            self.changes = WL.find(WL.docx_paragraphs(path))
+            self.changes, held = WL.find_in_draft(path, parts=self.parts_for(path))
         except Exception:  # noqa: BLE001  not a Word file
             diag.swallowed()
             self.host.status("That file does not read as a Word file.")
@@ -122,6 +129,8 @@ class ApplyWordPage(QWidget):
         self.source, self.live_doc, self.live_text = path, "", ""
         diag.activity("applyword_read", n=len(self.changes))
         self.show_changes()
+        if held:
+            self.what.setText(self.what.text() + f" {held} in a customer form left alone: it is kept as it is.")
         return self.changes
 
     def make_copy(self, out_path=None):

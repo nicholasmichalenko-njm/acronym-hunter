@@ -162,7 +162,8 @@ class FinalCheckPage(QWidget):
             diag.swallowed()
         try:                                                         # 3.66.0: the parts and numbering plans, the field recipes
             import effortrec as RR, fieldrecipes as FR
-            ctx["part_plans"] = (RR.Record(h.ws.root).data.get("part_plans") or {}) if h.ws is not None else {}
+            import partplan as PP                            # 3.68.0: shared plans for its effort type too
+            ctx["part_plans"] = PP.for_effort(h.config_dir, h.ws)
             ctx["recipes"] = FR.effective(h.config_dir, h.ws)
         except Exception:  # noqa: BLE001
             diag.swallowed()

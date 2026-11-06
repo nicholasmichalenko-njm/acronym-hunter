@@ -553,9 +553,11 @@ def default_plan(chk):
 
 
 # ------------------------------------------------------------------ the run
-def run(path, folder, std, plan, word=None, progress=None, open_list=PCY._ASK, when=None, before=None):
+def run(path, folder, std, plan, word=None, progress=None, open_list=PCY._ASK, when=None, before=None, parts=None):
     """Make the copy and run the plan on it. word: callable(copy path) -> {"ok", ...} that updates fields in Word
-    (prodword.update_fields), or None to skip. Returns the Job with steps, before and after checks."""
+    (prodword.update_fields), or None to skip. parts (3.68.0): the volume's parts and numbering; a fix that would change
+    a locked part (a customer form) is refused and the copy put back as it was before that fix. Returns the Job with
+    steps, before and after checks."""
     std = PRL.engine_ready(copy.deepcopy(std))
     say = progress or (lambda *a: None)
     say("Making the copy")
@@ -579,8 +581,11 @@ def run(path, folder, std, plan, word=None, progress=None, open_list=PCY._ASK, w
                                   ", ".join(PRL.HF_TOKENS[k] for k in gone) + ". Headers and footers were left as they were."})
                 continue
         say(fx["label"])
+        keep = _locked_before(job.copy, parts)
         rec = PCY.run_step(job, fx["label"], fx["op"], fx["allowed"], fx["args"](std, plan))
         rec["key"] = fx["key"]
+        if keep and rec.get("changed"):
+            _locked_after(job.copy, parts, keep, rec)
     if plan.get("word_update") and word is not None:
         say("Updating fields in Word")
         try:
@@ -594,6 +599,37 @@ def run(path, folder, std, plan, word=None, progress=None, open_list=PCY._ASK, w
     job.original_ok = job.original_unchanged()
     job.finished = datetime.datetime.now()
     return job
+
+
+def _locked_before(copy_path, parts):
+    """3.68.0: the copy's bytes and its locked parts' fingerprints before a fix, or None when it holds none."""
+    if not parts:
+        return None
+    import readback as RB
+    try:
+        dig = RB.locked_digest(copy_path, parts)
+    except Exception:  # noqa: BLE001  an unreadable copy: the fix's own guard decides
+        return None
+    if not dig:
+        return None
+    with open(copy_path, "rb") as f:
+        return {"bytes": f.read(), "digest": dig}
+
+
+def _locked_after(copy_path, parts, keep, rec):
+    """A fix that changed a locked part is undone: the copy goes back to its bytes before the fix."""
+    import readback as RB
+    try:
+        now = RB.locked_digest(copy_path, parts)
+    except Exception:  # noqa: BLE001
+        now = {}
+    if now == keep["digest"]:
+        return False
+    with open(copy_path, "wb") as f:
+        f.write(keep["bytes"])
+    rec["changed"] = False
+    rec["refused"] = "It would have changed a customer form, which is kept as it is. The copy was put back as it was before this fix."
+    return True
 
 
 def summary(job):

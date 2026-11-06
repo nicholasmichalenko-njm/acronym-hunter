@@ -121,6 +121,8 @@ class EffortsHome(QWidget):
         self.add_btn.setMinimumHeight(36)
         top.addWidget(self.add_btn)
         top.addWidget(D.button("Import effort package...", None, lambda: self.host.import_package()))
+        top.addWidget(D.button("Open an effort from its folder...", None, lambda: self.open_folder(),       # 3.68.0
+                               "Pick an effort's folder (or its Effort List): it opens wherever the folder now lives"))
         top.addStretch()
         self.count = D.label("", "muted", wrap=False); top.addWidget(self.count)
         # Unfiled work
@@ -191,6 +193,10 @@ class EffortsHome(QWidget):
             return None
         from .starteffort import start_dialog
         return start_dialog(self.host)
+
+    def open_folder(self, path=None):
+        from .effortfind import open_from_folder
+        return open_from_folder(self.host, path)
 
     def open_unfiled(self, go=True):
         import app_gui

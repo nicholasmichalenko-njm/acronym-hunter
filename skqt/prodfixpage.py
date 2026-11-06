@@ -856,6 +856,15 @@ class FixPage(QWidget):
         return path
 
     # ------------------------------------------------------------------ make the copy
+    def locked_parts(self, path):
+        """3.68.0: the volume's parts when its plan holds a customer form, else None."""
+        ws = getattr(self.host, "ws", None)
+        if ws is None:
+            return None
+        import partplan as PP
+        _v, ps = PP.parts_for_file(PP.for_effort(self.host.config_dir, ws), path)
+        return ps if ps and any(PP.locked(p) for p in ps) else None
+
     def make(self, wait=False, open_list=PCY._ASK, word=None):
         if self.chk is None or self.plan is None:
             self.status.setText("Check the draft first.")
@@ -886,9 +895,11 @@ class FixPage(QWidget):
         def say(text):
             self._progress = f"{text}... ({int(time.monotonic() - t0)} s)"
 
+        parts = self.locked_parts(path)                  # 3.68.0: a customer form in this volume is kept as it is
+
         def run():
             try:
-                job = PF.run(path, folder, std, plan, word=word, open_list=open_list, before=reviewed, progress=say)
+                job = PF.run(path, folder, std, plan, word=word, open_list=open_list, before=reviewed, progress=say, parts=parts)
                 wr = next((x.get("report") or {} for x in job.steps if x.get("key") == "word_update"), {})
                 job.page_note = PRL.limit_note((deliv or {}).get("limit", ""), wr.get("pages"))
                 job.report = PF.write_report(job, effort)

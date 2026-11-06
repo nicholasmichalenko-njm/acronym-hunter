@@ -82,6 +82,18 @@ def docx_paragraphs(path):
             for p in root.iter(W + "p")]
 
 
+def find_in_draft(path, items=None, parts=None):
+    """3.68.0: the phrases in a draft, leaving out the paragraphs of a locked part (a customer form, kept as it is).
+    Returns (changes, how many were left in the customer form)."""
+    found = find(docx_paragraphs(path), items)
+    if not parts:
+        return found, 0
+    import readback as RB
+    lock = RB.locked_paragraphs(path, parts)
+    keep = [c for c in found if c["para"] not in lock]
+    return keep, len(found) - len(keep)
+
+
 def copy_path(src, when=None):
     when = when or datetime.datetime.now()
     stem = os.path.splitext(os.path.basename(src))[0]

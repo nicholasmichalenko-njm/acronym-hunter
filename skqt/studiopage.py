@@ -7,6 +7,7 @@ the limit (Final Check reads it). Read back (3.67.0): a made file against the pl
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QComboBox, QFormLayout, QHBoxLayout, QHeaderView, QLineEdit, QSpinBox, QTableWidget, QTableWidgetItem,
                                QTabWidget, QVBoxLayout, QWidget)
+import os
 import diag
 import effortrec as R
 import partplan as PP
@@ -91,6 +92,13 @@ class StudioPage(QWidget):
         crow.addWidget(D.label("page(s); blank pages", None, wrap=False))
         self.e_blanks = QComboBox(); self.e_blanks.addItems(["Do not count", "Count"]); crow.addWidget(self.e_blanks)
         f.addRow("Toward the limit", crow)
+        frow = QHBoxLayout()                                 # 3.68.0: a customer form, kept as it is
+        self.e_form = QLineEdit(); self.e_form.setPlaceholderText("The customer's form, a Word file or PDF"); frow.addWidget(self.e_form, 1)
+        frow.addWidget(D.button("Choose...", "ghost", lambda: self.choose_form()))
+        f.addRow("Customer form file", frow)
+        self.e_marking = QLineEdit(); self.e_marking.setPlaceholderText("Words each of its pages must carry (blank: not checked)")
+        f.addRow("Its marking", self.e_marking)
+        self.e_kind.currentTextChanged.connect(lambda k: [w.setEnabled(k == PP.LOCKED) for w in (self.e_form, self.e_marking)])
         sr = QHBoxLayout(); pl.addLayout(sr)
         sr.addWidget(D.button("Save the part", "primary", lambda: self.save_part()))
         sr.addStretch(1)
@@ -172,8 +180,10 @@ class StudioPage(QWidget):
             diag.swallowed()
         r = self.rec()
         if r is not None:
-            n = len([x for x in PP.plan_of(r, self.vol.currentText())])
-            rows.append(("Whole volume", "Parts and numbering", f"{n} part(s): " + ", ".join(p["name"] for p in PP.plan_of(r, self.vol.currentText())),
+            ps = self.plan()
+            src = "" if PP.own(r, self.vol.currentText()) else {"type": " (shared by its effort type)", "team": " (shared by every effort)"}.get(
+                PP.shared_from(self.host.config_dir, *self.ids()), " (the usual parts)")
+            rows.append(("Whole volume", "Parts and numbering", f"{len(ps)} part(s){src}: " + ", ".join(p["name"] for p in ps),
                          "Template Studio", "studio:parts"))
         try:
             import fieldrecipes as FR
@@ -235,7 +245,7 @@ class StudioPage(QWidget):
         if r is None:
             return
         keep = keep or self.current_part()
-        self.parts = PP.plan_of(r, self.vol.currentText())
+        self.parts = self.plan()
         self.ptab.setRowCount(len(self.parts))
         for i, p in enumerate(self.parts):
             nums = PP.FORMAT_SAYS[p["format"]] + (f", restarts at {PP.page_label(p, 1)}" if p["restart"] and p["format"] != "none" else "")
@@ -265,31 +275,109 @@ class StudioPage(QWidget):
         self.e_chapter.setCurrentText(p["chapter"]); self.e_sep.setCurrentText(p["sep"])
         self.e_header.setCurrentText(p["header"]); self.e_orient.setCurrentText(p["orient"]); self.e_paper.setCurrentText(p["paper"])
         self.e_counts.setCurrentText(p["counts"]); self.e_fold.setValue(int(p["foldout"])); self.e_blanks.setCurrentText(p["blanks"])
+        self.e_form.setText(p.get("form", "")); self.e_marking.setText(p.get("marking", ""))
+        for w in (self.e_form, self.e_marking):
+            w.setEnabled(p["kind"] == PP.LOCKED)
+
+    def choose_form(self):
+        from PySide6.QtWidgets import QFileDialog
+        path, _ = QFileDialog.getOpenFileName(self, "The customer's form", "", "Word or PDF (*.docx *.pdf)")
+        if path:
+            self.e_form.setText(path)
 
     def part_values(self):
         return {"name": self.e_name.text(), "kind": self.e_kind.currentText(), "format": self.e_fmt.currentData(),
                 "restart": self.e_restart.currentIndex() == 1, "start": self.e_start.value(), "chapter": self.e_chapter.currentText(),
                 "sep": self.e_sep.currentText() or "-", "header": self.e_header.currentText(), "orient": self.e_orient.currentText(),
                 "paper": self.e_paper.currentText(), "counts": self.e_counts.currentText(), "foldout": self.e_fold.value(),
-                "blanks": self.e_blanks.currentText()}
+                "blanks": self.e_blanks.currentText(), "form": self.e_form.text().strip(), "marking": self.e_marking.text()}
 
-    def save_part(self, values=None, pid=None):
+    # ------------------------------------------------------------ 3.68.0: shared plans and where a save goes
+    def ids(self):
+        """(effort type id, profile id) of the profile picked above, or (None, None)."""
+        d = self.prof.currentData()
+        return (d[0], d[1]) if d else (None, None)
+
+    def shared(self):
+        eid, pid = self.ids()
+        return PP.shared_plan(self.host.config_dir, eid, pid) if pid else None
+
+    def plan(self):
+        r = self.rec()
+        return PP.plan_of(r, self.vol.currentText(), self.shared()) if r is not None else PP.default_parts()
+
+    def _seed(self):
+        """Before a change: an effort following a shared plan takes a copy of it as its own."""
+        r = self.rec()
+        if r is not None and not PP.own(r, self.vol.currentText()) and self.shared():
+            PP.set_plan(r, self.vol.currentText(), self.shared())
+
+    def where_choices(self):
+        """[(key, words)] for the save: this effort first, then the broader saves with what each would change."""
+        eid, pid = self.ids()
+        out = [("effort", f"This effort only ({self.host.effort_name})")]
+        if not pid:
+            return out
+        eff = PP.efforts_on_pc(self.host.config_dir)
+        ename = self.prof.currentText().split(": ", 1)[0]
+        for key, words in PP.WHERE[1:]:
+            if key == "type" and not eid:
+                continue
+            n = PP.impact(eff, key, eid)
+            what = f"{words}" + (f" ({ename})" if key == "type" else "") + f": {n['efforts']} effort(s) on this PC follow it"
+            if n["keep"]:
+                what += f"; {n['keep']} with their own parts and numbering keep theirs"
+            out.append((key, what))
+        return out
+
+    def ask_where(self):
+        from PySide6.QtWidgets import QDialog, QDialogButtonBox, QRadioButton
+        ch = self.where_choices()
+        if len(ch) == 1:
+            return "effort"
+        dlg = QDialog(self); dlg.setWindowTitle("Save the parts and numbering")
+        v = QVBoxLayout(dlg)
+        v.addWidget(D.label(f"Where should the parts and numbering of {self.vol.currentText()} be saved?", None))
+        btns = []
+        for i, (k, words) in enumerate(ch):
+            b = QRadioButton(words); b.setChecked(i == 0); v.addWidget(b); btns.append((k, b))
+        bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); v.addWidget(bb)
+        bb.accepted.connect(dlg.accept); bb.rejected.connect(dlg.reject)
+        if dlg.exec() != QDialog.Accepted:
+            return None
+        return next(k for k, b in btns if b.isChecked())
+
+    def save_part(self, values=None, pid=None, where=None):
         pid = pid or self.current_part()
         r = self.rec()
         if r is None or not pid:
             return False
+        if where is None:
+            where = "effort" if os.environ.get("AH_TEST") else self.ask_where()
+            if where is None:
+                return False
+        self._seed()
         PP.update_part(r, self.vol.currentText(), pid, **(values or self.part_values()))
-        diag.activity("studio_part_saved")
+        if where != "effort":
+            eid, prof = self.ids()
+            PP.save_to(self.host.config_dir, r, self.vol.currentText(), PP.plan_of(r, self.vol.currentText()), where, eid, prof)
+            self.host.toast("Saved for " + ("every effort of this effort type" if where == "type" else "every effort"))
+        if where == "effort":
+            diag.activity("studio_part_saved")
+        else:
+            diag.activity("studio_part_saved_shared")
         self.fill_parts(pid); self.fill_anatomy()
         return True
 
     def add_part(self, name="A new part", kind="Body"):
+        self._seed()
         pid = PP.add_part(self.rec(), self.vol.currentText(), name, kind, after=self.current_part())
         self.fill_parts(pid)
         return pid
 
     def remove(self):
         pid = self.current_part()
+        self._seed()
         if pid:
             PP.remove_part(self.rec(), self.vol.currentText(), pid)
         self.fill_parts()
@@ -297,6 +385,7 @@ class StudioPage(QWidget):
 
     def move(self, step):
         pid = self.current_part()
+        self._seed()
         ok = PP.move_part(self.rec(), self.vol.currentText(), pid, step) if pid else False
         self.fill_parts(pid)
         return ok

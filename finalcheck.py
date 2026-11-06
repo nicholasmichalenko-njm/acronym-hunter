@@ -10,6 +10,7 @@ volume: {"name", "docx", "pdf", "exclude": [kinds]}; ctx (each optional): std, m
 amendments (n), qa_report (Submission Check's report on the volumes), other_names, effort_name, size_mb, must_contain,
 allowed_sizes, marking."""
 import os, re
+import formcheck as FM          # 3.68.0: customer forms
 
 PASS, FAIL, HUMAN = "Pass", "Fail", "Needs a person"
 SECTIONS = ("Compliance", "Page limits", "Format rules", "Structure", "Acronyms", "Leftovers", "Markings", "Files")
@@ -92,11 +93,13 @@ def classify(texts):
     return out
 
 
-def count_pages(texts, exclude, sizes=None, foldout=1):
+def count_pages(texts, exclude, sizes=None, foldout=1, drop=None):
     """(pages counted, {kind: [pages left out]}). 3.66.0: a sheet larger than letter (an 11x17 foldout) counts as foldout
-    pages when the volume's plan says so."""
+    pages when the volume's plan says so. 3.68.0: drop, the pages of customer forms that do not count."""
     found = classify(texts)
     out = {k: found[k] for k in exclude if found.get(k)}
+    if drop:
+        out["forms"] = sorted(drop)
     gone = {p for v in out.values() for p in v}
     n = 0
     for i in range(1, len(texts) + 1):
@@ -175,6 +178,7 @@ def run(volume, ctx=None):
     P = read_pdf(pdf) if has_pdf else {"texts": [], "meta": {}, "error": "not set"}
     texts = P["texts"]
     no_pdf = _line("", "", HUMAN, "Set this volume's PDF beside its Word file to check this.")
+    form_pages = set()
 
     # 1 compliance
     M = ctx.get("matrix")
@@ -197,8 +201,9 @@ def run(volume, ctx=None):
     else:
         rules = plan_rules(ctx, name)
         exclude = volume.get("exclude") or ((rules or {}).get("exclude") or [])
-        n, out = count_pages(texts, exclude, P.get("sizes"), (rules or {}).get("foldout", 1) if rules else 1)
-        left = "; ".join(f"{dict(EXCLUDE)[k].lower()} (page {_pages(v)})" for k, v in out.items())
+        flines, fpages = FM.check(texts, (rules or {}).get("forms"), _line, PASS, FAIL, HUMAN)
+        n, out = count_pages(texts, exclude, P.get("sizes"), (rules or {}).get("foldout", 1) if rules else 1, fpages["drop"])
+        left = "; ".join(f"{dict(EXCLUDE + (('forms', 'Customer forms'),))[k].lower()} (page {_pages(v)})" for k, v in out.items())
         detail = f"{n} of {len(texts)} pages counted" + (f", leaving out {left}" if left else ", every page counted")
         if rules and not volume.get("exclude"):
             detail += f" (by the parts and numbering of {rules['volume']})"
@@ -212,6 +217,8 @@ def run(volume, ctx=None):
         if missing:
             lines.append(_line("Page limits", "Pages ticked out found", HUMAN, "Ticked out but not found in the PDF: "
                                + ", ".join(missing) + ". Check the count by hand."))
+        lines += flines
+        form_pages = set(fpages["form_pages"])
 
     # 3 format rules
     std = ctx.get("std")
@@ -320,7 +327,8 @@ def run(volume, ctx=None):
                            "cover or the page after it."))
         mark = _flat(ctx.get("marking") or PAGE_MARK)
         mark = " ".join(mark.split()[:8])
-        miss = [i for i, f in enumerate(flat, 1) if i > 1 and mark not in f and i not in classify(texts)["dividers"]]
+        miss = [i for i, f in enumerate(flat, 1) if i > 1 and mark not in f and i not in classify(texts)["dividers"]
+                and i not in form_pages]                     # 3.68.0: a customer form carries its own marking
         lines.append(_line("Markings", "Page marking on every page", FAIL if miss else PASS,
                            f"Missing on page {_pages(miss)}." if miss else "On every page after the cover."))
 
