@@ -62,13 +62,16 @@ def cfield(code):
             f'<w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>1</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r>')
 
 
-body = (f'<w:document {W}><w:body>'
-        f'<w:p><w:bookmarkStart w:id="0" w:name="Response"/>{cfield("TOC \\o &quot;1-3&quot; \\h \\z \\b Response")}</w:p>'
-        f'<w:p><w:r><w:t>Table </w:t></w:r>{cfield("STYLEREF 1 \\s")}<w:r><w:t>-</w:t></w:r>{cfield("SEQ Table \\* ARABIC")}</w:p>'
-        f'<w:p>{cfield("TOC \\o &quot;7-8&quot; \\h \\z \\b Appendices")}</w:p>'
-        f'<w:p><w:fldSimple w:instr=" REF _Ref123 \\h "><w:r><w:t>x</w:t></w:r></w:fldSimple><w:bookmarkEnd w:id="0"/></w:p>'
+TOC_R = cfield('TOC \\o &quot;1-3&quot; \\h \\z \\b Response')        # built outside the f-strings: older Python refuses a backslash there
+CAP = cfield("STYLEREF 1 \\s") + "<w:r><w:t>-</w:t></w:r>" + cfield("SEQ Table \\* ARABIC")
+TOC_A = cfield('TOC \\o &quot;7-8&quot; \\h \\z \\b Appendices')
+body = ('<w:document ' + W + '><w:body>'
+        '<w:p><w:bookmarkStart w:id="0" w:name="Response"/>' + TOC_R + '</w:p>'
+        '<w:p><w:r><w:t>Table </w:t></w:r>' + CAP + '</w:p>'
+        '<w:p>' + TOC_A + '</w:p>'
+        '<w:p><w:fldSimple w:instr=" REF _Ref123 \\h "><w:r><w:t>x</w:t></w:r></w:fldSimple><w:bookmarkEnd w:id="0"/></w:p>'
         '</w:body></w:document>')
-header = f'<w:hdr {W}><w:p>{cfield("STYLEREF &quot;Heading 1&quot;")}</w:p></w:hdr>'
+header = '<w:hdr ' + W + '><w:p>' + cfield("STYLEREF &quot;Heading 1&quot;") + '</w:p></w:hdr>'
 doc = os.path.join(tmp, "Kestrel_Volume_I.docx")
 with zipfile.ZipFile(doc, "w") as z:
     z.writestr("[Content_Types].xml", '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>')
