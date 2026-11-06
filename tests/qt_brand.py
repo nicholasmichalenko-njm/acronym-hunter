@@ -109,7 +109,8 @@ check("closing the effort takes its strip away", not w.marking.isVisibleTo(w))
 w.open_effort("Kestrel"); w.go("home"); app.processEvents()
 check("opening it again brings the strip back", w.marking.text() == "Proprietary" and w.marking.isVisibleTo(w))
 # ---- Customize Home
-check("the default home is the proposal manager's", hp.lay["role"] == "Proposal Manager" and hp.shown[:2] == ["health", "stage"] and "mywork" not in hp.shown)
+check("the default home is the proposal manager's", hp.lay["role"] == "Proposal Manager" and hp.shown[0] == "health" and "mywork" not in hp.shown
+      and "stage" not in hp.shown)   # 3.61.0: the Stages card is set aside
 import setupdoc as SD
 hp.customize({"role": "Author", "order": BR.preset("Author")["order"], "hidden": BR.preset("Author")["hidden"], "me": "A. Lee"})
 st = json.load(open(A.SETTINGS_FILE))
@@ -118,12 +119,12 @@ check("an author's home: My work first, kept in the person's settings", hp.shown
 check("the layout is never in the effort", "home_layout" not in open(os.path.join(w.ws.root, "record.json")).read())
 order = ["calendar"] + [k for k in BR.preset("Author")["order"] if k != "calendar"]
 hp.customize({"role": "Author", "order": order, "hidden": ["info", "timeline"]})
-check("show, hide and order the sections", hp.shown[0] == "calendar" and "goals" in hp.shown and "timeline" not in hp.shown
+check("show, hide and order the sections", hp.shown[0] == "calendar" and "goals" not in hp.shown and "timeline" not in hp.shown
       and "customized" in hp.role_pill.text())
 me, reqs, tasks, qs = hp.my_items()
 check("My work is for the named person", me == "A. Lee")
 hp.customize({"role": "Proposal Manager", "order": BR.preset("Proposal Manager")["order"], "hidden": BR.preset("Proposal Manager")["hidden"]})
-check("back to a role's layout", not hp.lay["custom"] and hp.shown[:2] == ["health", "stage"])
+check("back to a role's layout", not hp.lay["custom"] and hp.shown[0] == "health")
 # ---- the calendar file
 tpl = hp.calfiles.template(os.path.join(tmp, "tpl.xlsx"))
 check("the calendar template: the columns and a guide", EC.read_rows(tpl) == [] and len(EC.COLUMNS) == 10)
