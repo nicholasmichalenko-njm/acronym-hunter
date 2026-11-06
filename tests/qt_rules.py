@@ -79,7 +79,7 @@ btn = pg.t.cellWidget(row6, 4)
 check("Change it names where the rule's values live", btn is not None and "Heading numbering" in btn.text(), btn.text() if btn else None)
 btn.click(); app.processEvents()
 import skqt.prodstdpage as PS
-check("Change it opens Production Standards on that section", w.stack.currentWidget() is w.prodstd_page)
+check("Change it opens where the values live now (3.69.0: Formatting Standards)", w.stack.currentWidget() is w.formatstd_page)
 w.go("rules"); app.processEvents()
 row10 = [pg.t.item(i, 0).text() if pg.t.item(i, 0) else "" for i in range(pg.t.rowCount())].index("Rule 10")
 pg.t.cellWidget(row10, 4).click(); app.processEvents()

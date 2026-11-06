@@ -34,6 +34,11 @@ def _where_text(where):
             return "Production Standards > " + dict(PS.SECTIONS).get(sec, "")
         except Exception:  # noqa: BLE001
             return "Production Standards"
+    if page in ("formatstd", "layoutstd") and sec:                # 3.69.0: the library and its category
+        import libcats as LC
+        lib = "formatting" if page == "formatstd" else "layout"
+        sub = {"styles": "Allowed styles", "roles": "Allowed styles (the styles the rules read)"}.get(sec) or LC.category_title(lib, sec)
+        return f"{RB.WHERE_NAME.get(page, page)} > {sub}"
     return RB.WHERE_NAME.get(page, page)
 
 
