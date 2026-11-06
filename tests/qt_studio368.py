@@ -81,9 +81,9 @@ check("saved for every effort of the effort type: kept by the profile, and this 
       and st.ptab.rowCount() == 5 and any("shared by its effort type" in r_[2] for r_ in st.anatomy_now), [r_[2] for r_ in st.anatomy_now][-3:])
 # ---- Production Standards: the nothing-lost report
 dlg = w.prodstd_page.retire_report(modal=False)
-check("What retiring this would lose: every section, the sections with no other editor first, and the links",
-      dlg.table.rowCount() == 27 and dlg.table.item(0, 4).text() == "Only here" and dlg.links.rowCount() == 6
-      and dlg.verdict.text().startswith("Not yet"))
+check("What retiring this would lose: every section edited elsewhere (3.69.0), and the links with where each went",
+      dlg.table.rowCount() == 27 and dlg.table.item(0, 4).text() == "Edited elsewhere" and dlg.links.rowCount() == 6
+      and dlg.links.columnCount() == 3 and dlg.verdict.text().startswith("Nothing is lost"))
 dlg.close()
 
 print(f"QT STUDIO 368 {'OK' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
