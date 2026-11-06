@@ -130,7 +130,8 @@ check("an author already assigned who is not on the list stays, marked", "Old Na
 d = pg.people_dialog()
 lab, lead, contrib = d._api["rows"][0]
 items = [lead.itemText(i) for i in range(lead.count())]
-check("a section's lead: a drop-down of the list's names for this effort, not typed", not lead.isEditable() and items[1:] == names_a, items)
+check("a section's lead: a drop-down of the list's names for this effort, not typed", not lead.isEditable() and items[1:-1] == names_a
+      and items[-1] == PP.ADD_PERSON, items)   # 3.62.0: every picker ends with Add a person...
 lead.setCurrentIndex(items.index("K. Park")); contrib.choose(answer=["A. Lee"]); d._api["save"]()
 sp_ = SD.section_people(w.review.M, "1.1 Technical Approach")
 check("lead and contributors saved", sp_.get("lead") == "K. Park" and sp_.get("with") == "A. Lee", sp_)
@@ -138,7 +139,7 @@ hp = w.home_page
 w.go("home"); app.processEvents()
 owner = hp.task_dialog(run=False).api["owner"]
 check("a task's owner: the list's names for this effort, not typed", owner is not None and not owner.isEditable()
-      and [owner.itemText(i) for i in range(1, owner.count())] == names_a)
+      and [owner.itemText(i) for i in range(1, owner.count() - 1)] == names_a and owner.itemData(owner.count() - 1) == PP.ADD_KEY)
 cb = PP.name_combo(w, "Gone Person")
 check("a single pick keeps a current name that is not on the list, marked", cb.currentData() == "Gone Person" and cb.currentText().endswith(PP.OFF_LIST))
 check("an empty effort's picker: nothing typed, nothing picked", (w.authors.set_efforts(w.authors.names(), ["Effort B"]) or True)
