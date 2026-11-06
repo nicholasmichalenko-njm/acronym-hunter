@@ -1,6 +1,24 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+ARCHIVE EFFORTS, AND MERGE ANOTHER COPY OF AN EFFORT (3.70.0)
+  - All Efforts: right-click an effort for Open, Add to this effort..., and Archive.... Archive asks "Are you sure?"
+    (Yes or No). An archived effort leaves All Efforts and the effort lists; its files stay where they are. Show
+    archived lists archived efforts; right-click one and Restore. Nothing in the app deletes an effort.
+  - Add to this effort... (All Efforts' right-click, the Effort Dashboard, or the Library's Add from another copy...):
+    bring work in from another copy of the same effort: someone else's, an earlier one, or one on another PC. From
+    another effort on this PC (archived ones too), an effort's folder, or an effort package. The other copy is only read.
+    Customer documents: every version, matched by content; a changed file becomes a new version.
+    Acronyms: new terms added; the same meaning fills empty fields and keeps the stronger status (Approved over
+    Proposed); another meaning keeps ours, adds theirs to Other definitions and is listed for review. Keywords joined.
+    Volumes and drafts: a file already here is skipped; a different file with the same name is kept beside ours
+    "(from <the other copy>)".
+    The record (topics, notes, deliverables, tasks, meetings, data calls, review comments, the timeline and the rest):
+    matched by id, then by name; new items added with their links pointing at ours; anything changed in both copies
+    keeps ours and is listed for review with theirs beside it.
+    One summary follows: what was added, what was already the same, and what to review. The merge is logged.
+  - Files or a folder still go in through the Library.
+
 PRODUCTION STANDARDS' SECTIONS IN THEIR NEW HOMES (3.69.0)
   - Rules > Fix a Copy's checks: graphics (picture types, resolution, widths, fonts and smallest text in drawings,
     captions, alt text), Excel workbooks and PowerPoint decks, and the words Fix a Copy reports and fixes (misspellings,

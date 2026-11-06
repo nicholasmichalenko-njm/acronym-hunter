@@ -75,9 +75,11 @@ def summary(name, info, now=None):
     return out
 
 
-def all_efforts(registry, skip=(), now=None):
-    """[summary] for every effort but the ones in skip, the soonest due first, then the ones with no due date."""
-    rows = [summary(n, registry.get(n) or {}, now) for n in registry.names() if n not in skip and not (registry.get(n) or {}).get("unfiled")]
+def all_efforts(registry, skip=(), now=None, archived=False):
+    """[summary] for every effort but the ones in skip, the soonest due first, then the ones with no due date.
+    3.70.0: archived efforts only when archived is True (then only them)."""
+    rows = [summary(n, registry.get(n) or {}, now) for n in registry.names() if n not in skip and not (registry.get(n) or {}).get("unfiled")
+            and bool((registry.get(n) or {}).get("archived")) == bool(archived)]
     return sorted(rows, key=lambda r: (r["missing"], r["days"] is None, r["days"] if r["days"] is not None else 0, r["name"].casefold()))
 
 

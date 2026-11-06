@@ -240,6 +240,8 @@ class LibraryPage(QWidget):
                                  "PC and its subfolders (the folder names become tags). Watched folders... is for folders checked "
                                  "for new files.")
         top.addWidget(self.b_folder)
+        top.addWidget(D.button("Add from another copy...", None, lambda: __import__("skqt.mergedialog", fromlist=["x"]).add_to_effort(self.host, self.host.effort_name),   # 3.70.0
+                               "Merge another copy of this effort: its documents, acronyms, volumes and record"))
         self.b_watch = D.button("Watched folders...", None, lambda: self.host.watch_folders(),     # 2.94.0
                                 "The folders checked for new, changed and missing files (Customer Documents always)")
         top.addWidget(self.b_watch)

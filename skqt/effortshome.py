@@ -76,8 +76,11 @@ class EffortCard(QFrame):
             if s["last"]:
                 v.addWidget(D.label("Last worked on " + s["last"][:10], "muted"))
 
+    def contextMenuEvent(self, e):                       # 3.70.0: open, add to it, archive or restore
+        self.page.card_menu(self.s["name"]).exec(e.globalPos())
+
     def mouseReleaseEvent(self, e):
-        if e.button() == Qt.LeftButton and not self.s["missing"]:
+        if e.button() == Qt.LeftButton and not self.s["missing"] and not self.page.show_arch.isChecked():
             from PySide6.QtCore import QTimer
             QTimer.singleShot(0, lambda n=self.s["name"], p=self.page: p.open(n))
             e.accept()
@@ -124,6 +127,8 @@ class EffortsHome(QWidget):
         top.addWidget(D.button("Open an effort from its folder...", None, lambda: self.open_folder(),       # 3.68.0
                                "Pick an effort's folder (or its Effort List): it opens wherever the folder now lives"))
         top.addStretch()
+        self.show_arch = QCheckBox("Show archived"); self.show_arch.toggled.connect(lambda _on: self.refresh())   # 3.70.0
+        top.addWidget(self.show_arch)
         self.count = D.label("", "muted", wrap=False); top.addWidget(self.count)
         # Unfiled work
         self.uf_card = D.Card("Unfiled work", "Documents and results not in an effort yet. File them when you know where they belong.")
@@ -152,8 +157,9 @@ class EffortsHome(QWidget):
     def refresh(self):
         h = self.host
         reg = h.efforts
-        rows = ES.all_efforts(reg)
-        self.rows = rows
+        arch = self.show_arch.isChecked()
+        rows = ES.all_efforts(reg, archived=arch)
+        self.rows = rows if not arch else [r for r in ES.all_efforts(reg)]       # Unfiled's Add to keeps the efforts in use
         while self.flow.count():
             it = self.flow.takeAt(0)
             if it.widget() is not None:
@@ -161,10 +167,14 @@ class EffortsHome(QWidget):
         self.cards = {}
         for s in rows:
             c = EffortCard(self, s, current=(s["name"] == h.effort_name))
+            if arch:
+                c.setEnabled(True); c.setToolTip("Archived. Right-click to restore it."); c.setStyleSheet(c.styleSheet() + " QFrame#ecard QLabel{color:gray;}")
             self.cards[s["name"]] = c
             self.flow.addWidget(c)
-        self.empty.setVisible(not rows)
-        self.count.setText(f"{len(rows)} effort(s)" if rows else "")
+        self.empty.setVisible(not rows and not arch)
+        n_arch = len(ES.all_efforts(reg, archived=True))
+        self.show_arch.setText(f"Show archived ({n_arch})")
+        self.count.setText((f"{len(rows)} archived effort(s)" if arch else f"{len(rows)} effort(s)") if rows else ("No archived efforts" if arch else ""))
         c = UF.counts(reg)
         self.uf_counts = c
         has = not UF.empty(c)
@@ -193,6 +203,53 @@ class EffortsHome(QWidget):
             return None
         from .starteffort import start_dialog
         return start_dialog(self.host)
+
+    # ------------------------------------------------------------ 3.70.0: archive, restore, add to an effort
+    def card_menu(self, name):
+        from PySide6.QtWidgets import QMenu
+        m = QMenu(self)
+        if (self.host.efforts.get(name) or {}).get("archived"):
+            m.addAction("Restore", lambda: self.restore(name))
+        else:
+            m.addAction("Open", lambda: self.open(name))
+            m.addAction("Add to this effort...", lambda: self.add_to(name))
+            m.addSeparator()
+            m.addAction("Archive...", lambda: self.archive(name))
+        return m
+
+    def archive(self, name, answer=None):
+        """Archive after a Yes. answer (tests): True or False instead of asking."""
+        import effortarchive as EA
+        if answer is None:
+            from PySide6.QtWidgets import QMessageBox
+            answer = QMessageBox.question(self, "Archive this effort?", f"Are you sure you want to archive {name}?\n\nIt leaves All "
+                                          "Efforts and the effort lists. Its files stay where they are, and Show archived lets "
+                                          "you restore it any time.", QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes
+        if not answer:
+            return False
+        h = self.host
+        if h.effort_name == name:
+            h.save_now()
+            h.close_effort()
+        EA.archive(h.efforts, name, getattr(h, "my_name", None) or None)
+        diag.activity("effort_archived")
+        h.fill_efforts()
+        h.toast(f"{name} archived. Show archived lists it; right-click to restore.")
+        self.refresh()
+        return True
+
+    def restore(self, name):
+        import effortarchive as EA
+        EA.restore(self.host.efforts, name)
+        diag.activity("effort_restored")
+        self.host.fill_efforts()
+        self.host.toast(f"{name} restored")
+        self.refresh()
+        return True
+
+    def add_to(self, name, answer=None):
+        from .mergedialog import add_to_effort
+        return add_to_effort(self.host, name, answer)
 
     def open_folder(self, path=None):
         from .effortfind import open_from_folder

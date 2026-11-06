@@ -120,6 +120,8 @@ class HomePage(QWidget):
         self.role_pill = D.Pill("", "head"); top.addWidget(self.role_pill)
         top.addWidget(D.button("Customize...", "ghost", lambda: self.customize(), "Your role's layout; show, hide, order and size "
                                                                                   "the cards. Yours alone, on this PC."))
+        top.addWidget(D.button("Add to this effort...", "ghost", lambda: __import__("skqt.mergedialog", fromlist=["x"]).add_to_effort(self.host, self.host.effort_name),   # 3.70.0
+                               "Merge another copy of this effort (someone else's, an earlier one, or its package) or add files"))
         top.addStretch(1)
         top.addWidget(D.label("Show tasks and questions for", "muted", wrap=False))
         self.who = QComboBox(); self.who.setMinimumWidth(180); self.who.addItem("Everyone")
