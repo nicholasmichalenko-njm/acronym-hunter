@@ -70,12 +70,19 @@ class Canvas(QWidget):
         resizing itself."""
         h = max(240, int(h))
         if abs(h - self._wanted) > 2:
+            seen = self.__dict__.setdefault("_seen", set())
+            if h in seen:                         # 3.67.0: two heights taking turns (text wraps differently at each): keep the larger
+                h = max(seen | {h, self._wanted})
+                if abs(h - self._wanted) <= 2:
+                    return
+            seen.add(h)
             self._wanted = h
             from PySide6.QtCore import QTimer
             QTimer.singleShot(0, lambda: self.setMinimumHeight(self._wanted))
 
     def reset_height(self):
         self._wanted = 0
+        self._seen = set()
         self.setMinimumHeight(240)
 
     def mouseReleaseEvent(self, e):
