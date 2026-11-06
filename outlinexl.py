@@ -18,6 +18,8 @@ ROLES = (("section_number", "Section number"), ("section_name", "Section name"),
          ("requirement", "Requirement"), ("support", "Supporting RFP content"), ("guidance", "Management guidance"),
          ("authors", "Authors"), ("ignore", "Not used"))
 ROLE = dict(ROLES)
+TEXT_ROLES = ("requirement", "support", "guidance")         # columns of text, each look its own kind
+STRUCT_ROLES = ("section_number", "section_name", "reference", "authors")
 # the setup kinds the text goes to (setuptemplate's): what each column's text is when no formatting rule says otherwise
 DEFAULT_KIND = {"requirement": "rfp", "support": "support", "guidance": "pm"}
 KINDS = (("rfp", "Compliance requirement"), ("customer", "Customer requirement text"), ("support", "Supporting RFP text"),
@@ -48,10 +50,36 @@ def look_of(font):
     return ("B" if b else "-") + ("I" if i else "-") + _hex(getattr(font, "color", None))
 
 
+COLOR_WORDS = ("black", "gray", "red", "orange", "yellow", "green", "blue", "purple")
+
+
+def color_word(col):
+    """The plain name of a hex color ("C00000" is red), or black for the automatic color (3.73.0)."""
+    c = str(col or "auto").lstrip("#").upper()
+    if c in ("AUTO", "") or len(c) != 6:
+        return "black"
+    try:
+        r, g, b = (int(c[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    except ValueError:
+        return "black"
+    hi, lo = max(r, g, b), min(r, g, b)
+    if hi < 0.25:
+        return "black"
+    if hi - lo < 0.15 or (hi - lo) / hi < 0.2:
+        return "gray"
+    d = hi - lo
+    h = (60 * ((g - b) / d) % 360) if hi == r else (60 * ((b - r) / d + 2)) if hi == g else (60 * ((r - g) / d + 4))
+    for top, word in ((15, "red"), (45, "orange"), (70, "yellow"), (170, "green"), (260, "blue"), (345, "purple"), (361, "red")):
+        if h < top:
+            return word
+    return "red"
+
+
 def look_words(look):
+    """A look in plain words: "italic black", "bold red (#C00000)"."""
     bits = [w for w, on in (("bold", look[0] == "B"), ("italic", look[1] == "I")) if on]
     col = look[2:]
-    bits.append("black" if col == "auto" else f"#{col}")
+    bits.append("black" if col == "auto" else f"{color_word(col)} (#{col})")
     return " ".join(bits)
 
 
@@ -230,12 +258,14 @@ def parse(book, profile):
             if a.strip() and a.strip() not in cur["authors"]:
                 cur["authors"].append(a.strip())
         ref = _text(cell("reference"))
-        for role in ("requirement", "support", "guidance"):
-            h = next((hh for hh, rr in cols.items() if rr == role), None)
-            for t, lk in cell(role):
+        for i, h in enumerate(book["headers"]):                # every column of text, left to right (3.73.0)
+            role = cols.get(h)
+            if role not in TEXT_ROLES or i >= len(cells):
+                continue
+            for t, lk in cells[i]:
                 if role in ("support",) and lk not in (rules.get(h) or {}) and t.strip():
                     unruled.add((h, lk))
-            for kind, text in _pieces(cell(role), h, rules, DEFAULT_KIND[role]):
+            for kind, text in _pieces(cells[i], h, rules, DEFAULT_KIND[role]):
                 cur["blocks"].append({"kind": kind, "text": text, "ref": ref if kind == "rfp" else "", "row": r["row"]})
         if ref and not any(b["kind"] == "rfp" and b["row"] == r["row"] for b in cur["blocks"]):
             problems.append(f"Row {r['row']}: an RFP reference ({ref}) with no requirement text")

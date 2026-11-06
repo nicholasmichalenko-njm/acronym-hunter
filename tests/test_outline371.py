@@ -64,7 +64,7 @@ check("columns guessed from their headings", cols == {"Response Section Number":
       "Management Guidance": "guidance"}, cols)
 lk = OX.looks(book, "Supporting RFP Content")
 check("the looks in a column, most used first, with samples", [x["look"] for x in lk] == ["-Iauto", "--6B21A8"] and lk[0]["count"] == 2
-      and OX.look_words("-Iauto") == "italic black" and OX.look_words("--6B21A8") == "#6B21A8")
+      and OX.look_words("-Iauto") == "italic black" and OX.look_words("--6B21A8") == "purple (#6B21A8)")
 cfg = os.path.join(tmp, "cfg")
 prof = {"columns": cols, "rules": {"Supporting RFP Content": {"-Iauto": "support", "--6B21A8": "customer"}}}
 OX.save_profile(cfg, "Kestrel outline", prof)

@@ -19,8 +19,16 @@ STARTING = "Our outline"
 STARTING_NAMES = {"section_number": ["Response Section Number"], "section_name": ["Response Section Name"],
                   "reference": ["RFPL Number"], "requirement": ["Compliance Requirement"],
                   "support": ["Supporting RFP Content"], "authors": ["Authors"], "guidance": ["Management Guidance"]}
-STARTING_RULES = {"support": [{"color": "auto", "italic": True, "bold": None, "kind": "support"}]}
+# every new layout starts with these (decision 10): red text is the compliance requirement in any column of text ("*"),
+# black italic in the supporting column is supporting RFP text. A color is a hex value, auto (black) or a color word.
+STARTING_RULES = {"*": [{"color": "red", "italic": None, "bold": None, "kind": "rfp"}],
+                  "support": [{"color": "auto", "italic": True, "bold": None, "kind": "support"}]}
 MIXED = ("requirement", "support", "guidance")
+ANY = "*"                                               # rules for every column of text
+
+
+def new_layout():
+    return {"names": {}, "skip": [], "rules": {k: [dict(r) for r in v] for k, v in STARTING_RULES.items()}}
 
 
 def norm(h):
@@ -57,8 +65,7 @@ def load(config_dir):
     for name, p in OX.load_profiles(config_dir).items():
         out.setdefault(name, _from_profile(p))
     if not out:
-        out[STARTING] = {"names": {k: list(v) for k, v in STARTING_NAMES.items()}, "skip": [],
-                         "rules": {k: [dict(r) for r in v] for k, v in STARTING_RULES.items()}}
+        out[STARTING] = dict(new_layout(), names={k: list(v) for k, v in STARTING_NAMES.items()})
     return out
 
 
@@ -107,24 +114,44 @@ def best(config_dir, headers):
     return top
 
 
+def color_fits(rule_color, color):
+    """A rule's color against a look's: a hex value exactly, auto for black, a color word (red) by its family."""
+    c = str(rule_color or "").strip().lstrip("#")
+    if not c or c.lower() == "any":
+        return True
+    if c.lower() in OX.COLOR_WORDS:
+        return OX.color_word(color) == c.lower()
+    c = "AUTO" if c.upper() in ("000000", "AUTO") else c.upper()
+    return (color == "auto") if c == "AUTO" else (c == color.upper())
+
+
 def rule_kind(layout, role, look):
     """The setup kind a look takes in a column with this role, by the layout's rules: the most specific rule that fits
-    (a rule names a color, italic or bold; what it leaves out fits anything); between rules as specific, the one listed
-    last. None when no rule fits."""
+    (a rule names a color, italic or bold; what it leaves out fits anything; an exact color is more specific than a color
+    word); between rules as specific, the one listed last. The column's own rules first, then the rules for every column
+    of text. None when no rule fits."""
+    rules = layout.get("rules") or {}
+    for key in (role, ANY):
+        k = _fit(rules.get(key) or [], look)
+        if k:
+            return k
+    return None
+
+
+def _fit(rs, look):
     bold, ital, color = look[0] == "B", look[1] == "I", look[2:]
     fits = []
-    for n, r in enumerate((layout.get("rules") or {}).get(role) or []):
-        c = (r.get("color") or "").upper().lstrip("#")
-        c = "AUTO" if c == "000000" else c
-        if c and c != "AUTO" and c != color.upper():
-            continue
-        if c.upper() == "AUTO" and color != "auto":
+    for n, r in enumerate(rs):
+        if not color_fits(r.get("color"), color):
             continue
         if r.get("italic") is not None and bool(r["italic"]) != ital:
             continue
         if r.get("bold") is not None and bool(r["bold"]) != bold:
             continue
-        fits.append((sum(1 for k in ("color", "italic", "bold") if r.get(k) not in (None, "")), n, r["kind"]))
+        c = str(r.get("color") or "").lower().lstrip("#")
+        spec = (2 if c and c not in OX.COLOR_WORDS and c != "any" else 1 if c in OX.COLOR_WORDS else 0) \
+            + sum(2 for k in ("italic", "bold") if r.get(k) is not None)
+        fits.append((spec, n, r["kind"]))
     return max(fits)[2] if fits else None
 
 
@@ -152,7 +179,7 @@ def profile(config_dir, book):
 def remember(config_dir, name, header, role):
     """A heading a layout did not know, kept as another name for its role (or as a column to leave out)."""
     d = load(config_dir)
-    lay = d.setdefault(name or STARTING, {"names": {}, "skip": [], "rules": {}})
+    lay = d.setdefault(name or STARTING, new_layout())
     for hs in (lay.get("names") or {}).values():
         hs[:] = [x for x in hs if norm(x) != norm(header)]
     lay["skip"] = [x for x in lay.get("skip") or [] if norm(x) != norm(header)]
@@ -162,6 +189,37 @@ def remember(config_dir, name, header, role):
         lay.setdefault("names", {}).setdefault(role, []).append(header)
     save(config_dir, d)
     return lay
+
+
+def learn(config_dir, name, book, prof):
+    """Using the structure keeps what was picked (decision 10): each heading's column as another name for it, and each
+    look picked in a column of text, where the layout would give it something else, as a rule of its own. Returns the
+    number of things kept; the next workbook in this layout asks nothing."""
+    d = load(config_dir)
+    key = name or STARTING
+    lay = d.setdefault(key, new_layout())
+    n = 0
+    for h, role in (prof.get("columns") or {}).items():
+        if not h:
+            continue
+        if role_of(lay, h) != role:
+            for hs in (lay.get("names") or {}).values():
+                hs[:] = [x for x in hs if norm(x) != norm(h)]
+            lay["skip"] = [x for x in lay.get("skip") or [] if norm(x) != norm(h)]
+            (lay["skip"] if role == "ignore" else lay.setdefault("names", {}).setdefault(role, [])).append(h)
+            n += 1
+        if role in MIXED:
+            for look, kind in ((prof.get("rules") or {}).get(h) or {}).items():
+                if (rule_kind(lay, role, look) or OX.DEFAULT_KIND[role]) == kind:
+                    continue
+                rs = lay.setdefault("rules", {}).setdefault(role, [])
+                exact = {"color": look[2:], "italic": look[1] == "I", "bold": look[0] == "B"}
+                rs[:] = [r for r in rs if {k: r.get(k) for k in exact} != exact]
+                rs.append(dict(exact, kind=kind))
+                n += 1
+    if n:
+        save(config_dir, d)
+    return n
 
 
 def from_profile(config_dir, name, prof):

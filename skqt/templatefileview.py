@@ -80,7 +80,8 @@ class TemplateFileDialog(QDialog):
     # ------------------------------------------------------------ the chosen file
     def load(self):
         M = self.page._M()
-        got = TS.for_volume(M, self.vol.currentData(), self.host.effort_path or "") if M is not None else None
+        got = TS.for_volume(M, self.vol.currentData(), self.host.effort_path or "") if M is not None else \
+            TS.for_volume(None, EVERY, self.host.effort_path or "", chosen=TS.waiting(self.host.ws))   # 3.73.0: before the sections
         if self.vol.currentData() != EVERY and M is not None and self.vol.currentData() not in TS.choice(M):
             got = None if not TS.choice(M).get(EVERY) else got        # shown as following Every volume
         self.open(got[0] if got else "", got[1] if got else None)
@@ -111,6 +112,9 @@ class TemplateFileDialog(QDialog):
         if M is not None:
             TS.clear_choice(M, self.vol.currentData())
             self.page.changed()
+        else:
+            TS.clear_waiting(self.host.ws)
+            self.page.refresh()
         self.open("")
 
     # ------------------------------------------------------------ the view
@@ -170,8 +174,17 @@ class TemplateFileDialog(QDialog):
 
     def save(self):
         M = self.page._M()
-        if M is None or not self.path:
+        if not self.path:
             return None
+        if M is None or not M.outline:                     # 3.73.0: before the sections, it waits with the effort
+            if self.host.ws is None:
+                self.host.status("Pick an effort first, or work in Unfiled.")
+                return None
+            c = TS.set_waiting(self.host.ws, self.path, self.picks_now(), self.host.effort_path or "")
+            diag.activity("setup_template_file_chosen")
+            self.page.refresh()
+            self.host.toast("The setup will be made on " + os.path.basename(self.path) + " once there are sections.")
+            return c
         c = TS.set_choice(M, self.vol.currentData(), self.path, self.picks_now(), self.host.effort_path or "")
         diag.activity("setup_template_file_chosen")
         self.page.changed()

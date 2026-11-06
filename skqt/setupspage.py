@@ -23,6 +23,7 @@ class SetupsPage(QWidget):
         self.setObjectName("page")
         self.host = host
         self.cur = None
+        self.setAcceptDrops(True)                                    # 3.73.0: drop a file to bring it in
         v = QVBoxLayout(self)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"])
         v.setSpacing(D.SPACE["m"])
@@ -36,21 +37,20 @@ class SetupsPage(QWidget):
         top.addWidget(D.button("Open the Structure Builder", "ghost", lambda: self.host.go("structure"),
                                "Move, number and rename sections, and place requirements in them"))
 
-        # ---- the structure, when there is none yet
-        self.start_card = D.Card("Start with a structure", "Type the headings, one per line (numbers first, two spaces "
-                                 "deeper per level), or take them from a Word outline or an RFP. No Review needed: read "
-                                 "the customer's documents later and the requirements fill the same sections.", key=True)
+        # ---- the sections, when there are none yet (3.73.0, decision 11: bring in any file, or type them)
+        self.start_card = D.Card("Sections", "Drop a file here (Excel, Word or PDF) or bring one in, and the app finds the "
+                                 "sections in it. Or type them, one per line (numbers first, two spaces deeper per level). No "
+                                 "Review needed, and the template can be picked before or after the sections.", key=True)
         self.heads = QPlainTextEdit(); self.heads.setPlaceholderText("1 Technical Approach\n  1.1 Understanding\n2 Management Approach")
         self.heads.setMinimumHeight(110)
         self.start_card.add(self.heads)
         sr = QHBoxLayout(); sr.setSpacing(D.SPACE["s"])
-        sr.addWidget(D.button("From an outline workbook...", None, lambda: self.from_outline(),       # 3.71.0
-                              "Your outline Excel: sections, requirements, supporting text, guidance and authors, each in its setup style"))
-        sr.addWidget(D.button("From a Word outline...", None, lambda: self.from_docx(), "The headings of a Word document"))
-        sr.addWidget(D.button("From an RFP's headings...", None, lambda: self.from_rfp(),
-                              "The volumes and sections the RFP prescribes, else its numbered headings"))
+        sr.addWidget(D.button("Bring in a file...", None, lambda: self.bring_in(),
+                              "Excel: its columns are read (What's in your workbook). Word: its headings. PDF: the RFP's sections."))
+        sr.addWidget(D.button("Use a template file...", "ghost", lambda: self.template_file(),
+                              "Your team's Word template: pick it now or after the sections"))
         sr.addStretch(1)
-        sr.addWidget(D.button("Use these headings", "primary", lambda: self.use_headings()))
+        sr.addWidget(D.button("Use these sections", "primary", lambda: self.use_headings()))
         self.start_card.body.addLayout(sr)
         v.addWidget(self.start_card)
 
@@ -97,8 +97,8 @@ class SetupsPage(QWidget):
 
         bar = QHBoxLayout(); bar.setSpacing(D.SPACE["s"]); v.addLayout(bar)
         self.note = D.label("", "muted"); bar.addWidget(self.note, 1)
-        bar.addWidget(D.button("From an outline workbook...", "ghost", lambda: self.from_outline(),     # 3.71.0
-                               "Read your outline Excel again (it replaces what an earlier import of it made)"))
+        bar.addWidget(D.button("Bring in a file...", "ghost", lambda: self.bring_in(),                 # 3.73.0
+                               "A new version of your outline Excel is compared first; a Word template can be used for the setup"))
         bar.addWidget(D.button("Outline versions...", None, lambda: self.versions(),                  # 3.73.0
                                "Every version of the outline brought in: compare any two, write the workbook back out"))
         bar.addWidget(D.button("Outline layouts...", None, lambda: self.layouts(),                    # 3.73.0
@@ -148,6 +148,72 @@ class SetupsPage(QWidget):
             dlg.exec()
         return dlg
 
+    # ------------------------------------------------------------ 3.73.0: bring in a file, or drop one (decision 11)
+    def dragEnterEvent(self, e):
+        if e.mimeData().hasUrls() and any(u.isLocalFile() for u in e.mimeData().urls()):
+            e.acceptProposedAction()
+
+    def dropEvent(self, e):
+        paths = [u.toLocalFile() for u in e.mimeData().urls() if u.isLocalFile()]
+        if paths:
+            e.acceptProposedAction()
+            self.bring_in(paths[0])
+
+    def bring_in(self, path=None, as_=None, accept=None):
+        """Any file: Excel is the outline (What's in your workbook); a Word template is the template; a Word document is
+        its headings or the template (asked when there are no sections yet and it has headings); a PDF is the RFP's
+        sections. as_ (tests): "sections" or "template". Returns what it did, or None."""
+        if path is None:
+            path, _ = QFileDialog.getOpenFileName(self, "Bring in a file", "", "Excel, Word or PDF (*.xlsx *.xlsm *.docx *.dotx *.dotm *.pdf)")
+            if not path:
+                return None
+        ext = os.path.splitext(path)[1].lower()
+        M = self._M()
+        has = M is not None and bool(M.outline)
+        diag.activity("setup_file_brought_in")
+        if ext in (".xlsx", ".xlsm"):
+            self.from_outline(path, accept=accept)
+            return "outline"
+        if ext in (".dotx", ".dotm"):
+            self.template_file(path=path, modal=accept is None)
+            return "template"
+        if ext == ".docx":
+            if as_ is None:
+                as_ = "template" if has else self.word_is(path)
+            if as_ == "template":
+                self.template_file(path=path, modal=accept is None)
+                return "template"
+            if has:
+                self.host.status("There are sections already: change them in the Structure Builder, or bring in Excel for a new version.")
+                return None
+            return "sections" if self.from_docx(path) else None
+        if ext == ".pdf":
+            if has:
+                self.host.status("There are sections already: change them in the Structure Builder.")
+                return None
+            return "sections" if self.from_rfp(path) else None
+        self.host.status("Bring in an Excel workbook, a Word document or template, or a PDF.")
+        return None
+
+    def word_is(self, path):
+        """A Word document with headings could be the sections or the template: asked. With none, it is the template."""
+        try:
+            heads = SM.structure_from_docx(path)
+        except Exception:  # noqa: BLE001  read again, with its message, by from_docx
+            diag.swallowed()
+            heads = ""
+        if not heads:
+            return "template"
+        if os.environ.get("AH_TEST"):
+            return "sections"
+        from PySide6.QtWidgets import QMessageBox
+        box = QMessageBox(self); box.setWindowTitle("Bring in a file")
+        box.setText(f"{os.path.basename(path)} has headings. Use it as:")
+        b_sec = box.addButton("The sections (its headings)", QMessageBox.AcceptRole)
+        box.addButton("The template", QMessageBox.ActionRole)
+        box.exec()
+        return "sections" if box.clickedButton() is b_sec else "template"
+
     def from_outline(self, path=None, profile=None, accept=None):
         from .outlineimport import import_outline
         return import_outline(self, path, profile, accept)
@@ -194,16 +260,20 @@ class SetupsPage(QWidget):
     def refresh(self):
         M = self._M()
         has = M is not None and bool(M.outline)
+        if has and self.host.ws is not None:                        # 3.73.0: a template picked before the sections
+            import templatesetup as TS
+            if TS.adopt(M, self.host.ws):
+                M.pending = True
         self.start_card.setVisible(not has)
-        self.main.setEnabled(has)
+        self.main.setEnabled(has); self.main.setVisible(has)             # 3.73.0: one Sections card at a time
         for cb in self.layer_boxes.values():
             cb.setEnabled(has)
         keep = self.cur
         self.tree.blockSignals(True); self.tree.clear()
         if not has:
             self.tree.blockSignals(False)
-            self.p_secs.setText("0 sections"); self.note.setText("Start with a structure.")
-            self.prev.setText(""); self.tmpl.setText("")
+            self.p_secs.setText("0 sections"); self.note.setText("No sections yet: bring in a file or type them.")
+            self.prev.setText(""); self.tmpl.setText(self.waiting_text())
             return
         sel = None
         for lab, lv in SM.sections(M):
@@ -230,6 +300,12 @@ class SetupsPage(QWidget):
                           if M.setup and M.setup.get("exports") else "No setup made yet.")
         self.tree.setCurrentItem(sel or self.tree.topLevelItem(0))
         self.pick(self.tree.currentItem().data(0, Qt.UserRole) if self.tree.currentItem() else None)
+
+    def waiting_text(self):
+        import templatesetup as TS
+        w = TS.waiting(self.host.ws)
+        return ("Template picked: " + os.path.basename(w["*"]["file"]) + ". The setup is made on it once there are sections."
+                if w.get("*") else "")
 
     def templates_text(self, M):
         import templatesetup as TS
@@ -369,7 +445,7 @@ class SetupsPage(QWidget):
     def make(self, opts=None, go=None, folder=None):
         M = self._M()
         if M is None or not M.outline:
-            self.host.status("Start with a structure.")
+            self.host.status("No sections yet: bring in a file or type them.")
             return None
         SM.ensure_skip(M)
         import templatesetup as TS
@@ -394,7 +470,7 @@ class SetupsPage(QWidget):
         from .versionsview import history
         M = self._M()
         if M is None:
-            self.host.status("Start with a structure.")
+            self.host.status("No sections yet: bring in a file or type them.")
             return None
         return history(self, modal)
 
@@ -404,10 +480,7 @@ class SetupsPage(QWidget):
 
     def template_file(self, volume="*", path=None, modal=True):
         from .templatefileview import choose
-        if self._M() is None or not self._M().outline:
-            self.host.status("Start with a structure.")
-            return None
-        return choose(self, volume, path, modal)
+        return choose(self, volume, path, modal)                    # 3.73.0: before or after the sections
 
     def make_on_file(self, folder=None):
         """Every volume with a template file made on it and checked; the others on the app's own template."""
@@ -447,7 +520,7 @@ class SetupsPage(QWidget):
     def plain(self, folder=None):
         M = self._M()
         if M is None or not M.outline:
-            self.host.status("Start with a structure.")
+            self.host.status("No sections yet: bring in a file or type them.")
             return None
         SM.ensure_skip(M)
         return self.host.setup_page.export(folder)

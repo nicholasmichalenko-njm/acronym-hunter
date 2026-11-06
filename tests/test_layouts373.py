@@ -66,7 +66,9 @@ lay = OL.load(cfg)[OL.STARTING]
 check("rules by color: the purple text is customer requirement text", OL.rule_kind(lay, "support", "--6B21A8") == "customer")
 check("the most specific rule wins; between rules as specific, the one listed last (bold italic, added after italic black)", OL.rule_kind(lay, "support", "BIauto") == "pm"
       and OL.rule_kind(lay, "support", "-Iauto") == "support")
-check("a look no rule fits is left for the person", OL.rule_kind(lay, "support", "--FF0000") is None)
+check("a look no rule fits is left for the person", OL.rule_kind(lay, "support", "--0070C0") is None)
+check("red text is the compliance requirement in any column of text, by a color word (3.73.0)", OL.rule_kind(lay, "support", "--FF0000") == "rfp"
+      and OL.rule_kind(lay, "guidance", "B-C00000") == "rfp" and OL.color_fits("purple", "6B21A8") and not OL.color_fits("red", "6B21A8"))
 check("a rule's look as a sample key", OL.look_key("000000", True, False) == "-Iauto" and OL.look_key("#6b21a8", False, True) == "B-6B21A8")
 # ---- 3.71.0's saved columns and rules read as a layout
 cfg2 = os.path.join(tmp, "cfg2")

@@ -40,12 +40,15 @@ check("no compliance matrix yet", w.review is None)
 # the window, without accepting it
 pg.from_outline(xl, accept=False)
 dlg = pg.outline_dialog
-roles = {dlg.cols.item(i, 0).text(): dlg.cols.cellWidget(i, 1).currentData() for i in range(dlg.cols.rowCount())}
+rows = dlg.list_rows                                          # 3.73.0: one list, What's in your workbook
+roles = {h: dlg.profile["columns"][h] for h, _lk, _s, _n in rows}
 check("columns guessed from the headings", roles["Compliance Requirement"] == "requirement" and roles["Supporting RFP Content"] == "support"
       and roles["Response Section Number"] == "section_number" and len(roles) == 7, roles)
-rr = {dlg.rules.cellWidget(i, 1).text().split("(")[-1].split(")")[0]: dlg.rules.cellWidget(i, 3) for i in range(dlg.rules.rowCount())}
-check("the looks of the mixed column, each with the setup style it takes", dlg.rules.rowCount() == 2 and set(rr) == {"italic black", "#6B21A8"}, list(rr))
-rr["#6B21A8"].setCurrentIndex(rr["#6B21A8"].findData("customer")); app.processEvents()
+sup = [lk for h, lk, _s, _n in rows if h == "Supporting RFP Content"]
+check("the mixed column has a row for each look, each with what it is", set(sup) == {"-Iauto", "--6B21A8"}
+      and dlg.list.cellWidget(dlg.row_of("Supporting RFP Content", "-Iauto"), 3).currentData() == "support", sup)
+i = dlg.row_of("Supporting RFP Content", "--6B21A8")
+cb = dlg.list.cellWidget(i, 3); cb.setCurrentIndex(cb.findData("customer")); app.processEvents()
 htm = dlg.preview.toHtml()
 check("the preview draws the structure and every block with its reference", "1.1 Ground Segment Architecture" in htm
       and "L.4.2.1: The offeror shall describe its ground segment architecture." in htm)

@@ -428,17 +428,21 @@ def choice(M):
     return dict(SD.setup_of(M).get(KEY) or {})
 
 
-def set_choice(M, volume, path, picks, effort_path=""):
-    """volume "*": every volume (a volume of its own keeps its own). The file is kept with the effort; the record holds
-    its name relative to the effort's folder when it is inside it."""
-    import setupdoc as SD
+def _entry(path, picks, effort_path=""):
     import effortfolders as EF
     kept = keep_with_effort(effort_path, path) if effort_path else path
     root = EF.root(effort_path) if effort_path else ""
     rel = os.path.relpath(kept, root) if root and os.path.abspath(kept).startswith(os.path.abspath(root) + os.sep) else kept
+    return {"file": rel.replace(os.sep, "/"), "picks": {k: list(v) for k, v in (picks or {}).items()}}
+
+
+def set_choice(M, volume, path, picks, effort_path=""):
+    """volume "*": every volume (a volume of its own keeps its own). The file is kept with the effort; the record holds
+    its name relative to the effort's folder when it is inside it."""
+    import setupdoc as SD
     S = SD.setup_of(M)
     c = dict(S.get(KEY) or {})
-    c[volume or "*"] = {"file": rel.replace(os.sep, "/"), "picks": {k: list(v) for k, v in (picks or {}).items()}}
+    c[volume or "*"] = _entry(path, picks, effort_path)
     S[KEY] = c
     SD._log(M, "(setup)", "template file chosen" + (f" for {volume}" if volume and volume != "*" else ""))
     return c
@@ -453,10 +457,48 @@ def clear_choice(M, volume=None):
         (S.get(KEY) or {}).pop(volume, None)
 
 
-def for_volume(M, vname, effort_path=""):
-    """(the template's path, picks) for a volume, or None when it has no template file."""
+# ---------------------------------------------------------------- 3.73.0: the template before the sections (decision 11)
+WAITING = "setup_template_waiting"
+
+
+def waiting(ws):
+    """The template picked before there were sections, kept with the effort's settings: {"*": entry} or {}."""
+    try:
+        return dict(ws.get(WAITING) or {}) if ws is not None else {}
+    except (OSError, ValueError, AttributeError):
+        return {}
+
+
+def set_waiting(ws, path, picks, effort_path=""):
+    c = {"*": _entry(path, picks, effort_path)}
+    ws.set(WAITING, c)
+    return c
+
+
+def clear_waiting(ws):
+    if ws is not None and waiting(ws):
+        ws.set(WAITING, None)
+
+
+def adopt(M, ws):
+    """Once there are sections, the waiting template becomes the setup's choice (unless one is already chosen)."""
+    import setupdoc as SD
+    w = waiting(ws)
+    if not w or M is None:
+        return False
+    S = SD.setup_of(M)
+    if not S.get(KEY):
+        S[KEY] = w
+        SD._log(M, "(setup)", "template file chosen before the sections")
+    ws.set(WAITING, None)
+    return True
+
+
+def for_volume(M, vname, effort_path="", chosen=None):
+    """(the template's path, picks) for a volume, or None when it has no template file. chosen: a choice to read
+    instead of the setup's (the waiting one)."""
     import effortfolders as EF
-    c = choice(M)
+    c = choice(M) if chosen is None else chosen
     e = c.get(vname) or c.get("*")
     if not e:
         return None

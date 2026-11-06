@@ -36,10 +36,15 @@ w.go("setups"); app.processEvents()
 pg = w.setups_page
 dlg = pg.layouts(modal=False); app.processEvents()
 check("the starting layout: the column names given", dlg.pick.currentText() == OL.STARTING
-      and dlg.names["requirement"].toPlainText() == "Compliance Requirement" and dlg.rules.rowCount() == 1)
-dlg.names["requirement"].setPlainText("Compliance Requirement\nL Requirement")
+      and dlg.heads.rowCount() == 7 and dlg.rules.rowCount() == 2)
+heads = {dlg.heads.cellWidget(r, 0).text(): dlg.heads.cellWidget(r, 1).currentData() for r in range(dlg.heads.rowCount())}
+check("each heading with what its column is", heads.get("Compliance Requirement") == "requirement" and heads.get("Authors") == "authors", heads)
+looks = [dlg.rule(r) for r in range(dlg.rules.rowCount())]
+check("a new layout starts knowing red text is the compliance requirement, in any column of text",
+      any(r["color"] == "red" and r["kind"] == "rfp" and r["_role"] == OL.ANY for r in looks), looks)
+dlg.add_heading("L Requirement", "requirement")
 i = dlg.add_rule("support", {"color": "6B21A8", "italic": None, "bold": None, "kind": "customer"}); app.processEvents()
-check("a rule by color with a sample in its look", "#6B21A8" in dlg.rules.cellWidget(i, 5).text(), dlg.rules.cellWidget(i, 5).text())
+check("a rule by color with a sample in its look", "#6B21A8" in dlg.rules.cellWidget(i, 4).text(), dlg.rules.cellWidget(i, 4).text())
 dlg.save(); dlg.close()
 lay = OL.load(cfg)[OL.STARTING]
 check("saved: another name, and the rule", "L Requirement" in lay["names"]["requirement"]
@@ -48,15 +53,15 @@ renamed = TL.GIVEN[:3] + ["L Requirement"] + TL.GIVEN[4:] + ["Volume"]
 xl = TL.make(os.path.join(tmp, "Kestrel Outline v2.xlsx"), renamed)
 pg.from_outline(xl, accept=False)
 od = pg.outline_dialog
-roles = {od.cols.item(r, 0).text(): od.cols.cellWidget(r, 1).currentData() for r in range(od.cols.rowCount())}
+roles = dict(od.profile["columns"])
 check("the import uses the layout: the renamed column known by its other name", roles["L Requirement"] == "requirement", roles)
 check("it says which column is new", "Volume" in od.new_cols.text() and "L Requirement" not in od.new_cols.text(), od.new_cols.text())
-kinds = {od.rules.cellWidget(r, 1).text().split("(")[-1].split(")")[0]: od.rules.cellWidget(r, 3).currentData() for r in range(od.rules.rowCount())}
-check("the purple text is customer requirement text by the rule, before anyone picks", kinds.get("#6B21A8") == "customer"
-      and kinds.get("italic black") == "support", kinds)
-row = next(r for r in range(od.cols.rowCount()) if od.cols.item(r, 0).text() == "Volume")
-cb = od.cols.cellWidget(row, 1)
-check("the new column takes a guess meanwhile, and Remember these columns is offered", cb.currentData() == "ignore" and od.b_keep_new.isVisibleTo(od))
+sh = "Supporting RFP Content"
+kinds = {lk: od.list.cellWidget(od.row_of(sh, lk), 3).currentData() for h, lk, _s, _n in od.list_rows if h == sh}
+check("the purple text is customer requirement text by the rule, before anyone picks", kinds.get("--6B21A8") == "customer"
+      and kinds.get("-Iauto") == "support", kinds)
+cb = od.list.cellWidget(od.row_of("Volume"), 3)
+check("the new column takes a guess meanwhile, and Remember these columns is offered", cb.currentData() == "skip" and od.b_keep_new.isVisibleTo(od))
 cb.setCurrentIndex(cb.findData("authors")); app.processEvents()
 check("what the person picks for the new column is remembered", "Every column is in the layout" in od.new_cols.text()
       and OL.role_of(OL.load(cfg)[OL.STARTING], "Volume") == "authors" and not od.b_keep_new.isVisibleTo(od))

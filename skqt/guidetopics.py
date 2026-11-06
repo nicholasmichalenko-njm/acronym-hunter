@@ -335,8 +335,9 @@ TOPICS = [
   "Made from a structure, layers and a template, and made again whenever one of them changes.",
   "As soon as you have headings, even before the customer's documents are read; and again after the Review, a new "
   "template or new direction.",
-  ["No structure yet: type the headings, or take them From a Word outline... or From an RFP's headings..., then Use these "
-   "headings. Read the customer's documents later and the requirements fill the same sections.",
+  ["No sections yet: drop a file on the page or Bring in a file... (Excel, Word or PDF), or type the sections, then Use "
+   "these sections. The template can be picked before or after. Read the customer's documents later and the "
+   "requirements fill the same sections.",
    "Pick a section: type its Lead, Contributors, Due date, Pages and PM direction, then Save this section. What it prints "
    "shows what the setup will put there.",
    "What fills each section: turn a layer on or off. Requirements, evaluation criteria, PM direction, pages and author "

@@ -2,9 +2,20 @@ STATIONKEEPER (Portable, Offline)
 =================================
 
 OUTLINE AND MATRIX VERSIONS (3.73.0)
-  - Setup > Outline layouts...: set an outline's layout before you have the workbook: the heading names each column may
-    carry (Compliance Requirement, Requirement, L Requirement) and how mixed text is told apart, by color, italic and
-    bold (black italic is supporting RFP text). An import uses the layout that knows the most of its headings; a column
+  - Setup > Bring in a file..., or drop a file on the Setup page: an Excel workbook opens What's in your workbook, a Word
+    document gives its headings (a Word document that could be the template asks which), a Word template is the
+    template, a PDF gives the RFP's sections. Or type the sections. Use a template file... works before there are
+    sections: the template waits with the effort and the setup is made on it once there are sections.
+  - What's in your workbook: one list. Each kind of text found in each column, as it looks (red text, black text, black
+    italic), with how many places and one pick for what it is: compliance requirement, customer requirement text,
+    supporting RFP text, management guidance, section number, section name, RFP reference, authors, or not used. A
+    column whose cells mix kinds of text has a row for each. Cells, piece by piece shows the column's cells with each
+    piece marked; click a piece to change it, and every piece that looks the same in that column follows. Red text
+    starts as the compliance requirement. Every column of text is read. Use this structure keeps the picks, so the next
+    workbook laid out the same way asks nothing.
+  - Setup > Outline layouts...: set an outline's layout before you have the workbook, in the same words: Column headings
+    (each heading the workbook may use and what that column is) and Text by its look (red text is the compliance
+    requirement; black italic is supporting RFP text; a color by its word or its hex value). An import uses the layout that knows the most of its headings; a column
     it does not know is asked about once and remembered.
   - The first outline workbook brought in is version 1, kept in the effort's Outline Versions folder. A later one opens
     New version of the outline: every change listed before anything changes (added, removed, changed wording,
