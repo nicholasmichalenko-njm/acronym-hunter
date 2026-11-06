@@ -15,7 +15,7 @@ import unicodedata
 
 from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QFont, QKeySequence, QShortcut
-from PySide6.QtWidgets import (QDialog, QGridLayout, QHBoxLayout, QLineEdit, QPlainTextEdit, QPushButton, QScrollArea,
+from PySide6.QtWidgets import (QApplication, QDialog, QGridLayout, QHBoxLayout, QLineEdit, QPlainTextEdit, QPushButton, QScrollArea,
                                QTabBar, QTextEdit, QToolButton, QVBoxLayout, QWidget)
 
 import diag
@@ -208,8 +208,30 @@ def _focused(edit):
     _targets.insert(0, edit)
 
 
+def _typing_box(w):
+    """A box a person types in (not the picker's own search box)."""
+    return isinstance(w, (QLineEdit, QPlainTextEdit, QTextEdit)) and not w.isReadOnly() and not isinstance(w.window(), SymbolPicker)
+
+
+def _on_focus(_old, new):
+    """3.73.0: any box the person clicks into is where the next symbol goes, attached or not."""
+    try:
+        if new is not None and _typing_box(new):
+            _focused(new)
+    except RuntimeError:
+        pass
+
+
+def _follow_focus():
+    app = QApplication.instance()
+    if app is not None and not getattr(app, "_sk_symbols_follow", False):
+        app.focusChanged.connect(_on_focus)
+        app._sk_symbols_follow = True
+
+
 def attach(edit):
     """Makes a box a target of the picker: right-click menu, Ctrl+Shift+Space. Returns the box."""
+    _follow_focus()
     if getattr(edit, "_sk_symbols", False):
         return edit
     edit._sk_symbols = True
@@ -285,15 +307,32 @@ class SymbolPicker(QDialog):
         self.area.setWidget(w)
 
 
+def _owner(anchor=None):
+    """The window the picker belongs to: the box's own window, else the dialog in front, else the active window. A picker
+    owned by another window is blocked while a dialog is open, so its clicks would do nothing (3.73.0)."""
+    if anchor is not None:
+        try:
+            return anchor.window()
+        except RuntimeError:
+            pass
+    app = QApplication.instance()
+    return (app.activeModalWidget() or app.activeWindow()) if app is not None else None
+
+
 def open_picker(anchor=None):
-    """Opens the picker (or brings it forward). Returns it."""
+    """Opens the picker (or brings it forward), owned by the window being typed in. Returns it."""
+    _follow_focus()
+    owner = _owner(anchor)
     if _win[0] is not None:
         try:
-            _win[0].show(); _win[0].raise_(); _win[0].activateWindow()
-            return _win[0]
+            if _win[0].parent() is owner or owner is None:
+                _win[0].show(); _win[0].raise_(); _win[0].activateWindow()
+                return _win[0]
+            _win[0].close(); _win[0].deleteLater()              # another window now: a new picker owned by it
         except RuntimeError:
-            _win[0] = None
-    p = SymbolPicker(anchor.window() if anchor is not None else None)
+            pass
+        _win[0] = None
+    p = SymbolPicker(owner)
     if anchor is not None:
         try:
             pt = anchor.mapToGlobal(anchor.rect().bottomLeft())

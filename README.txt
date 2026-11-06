@@ -21,6 +21,8 @@ OUTLINE AND MATRIX VERSIONS (3.73.0)
     here since the export waits for your pick. Rows added or left out in the workbook are listed, never applied. Merge
     another copy's matrix... lists its values beside ours and keeps ours unless you take theirs.
   - Importing the same outline workbook again no longer adds a section's guidance twice.
+  - Symbols: a clicked symbol goes in at the insertion point of the box you clicked into last (any box, one line or
+    many), and the Symbols window works from inside a dialog too.
 
 THE SETUP MADE ON YOUR OWN WORD TEMPLATE (3.72.0)
   - Setup > Use a template file...: pick a Word template your team already made and trusts (.dotx, .dotm or .docx; macros
