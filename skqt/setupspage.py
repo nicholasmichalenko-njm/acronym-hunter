@@ -99,6 +99,8 @@ class SetupsPage(QWidget):
         self.note = D.label("", "muted"); bar.addWidget(self.note, 1)
         bar.addWidget(D.button("From an outline workbook...", "ghost", lambda: self.from_outline(),     # 3.71.0
                                "Read your outline Excel again (it replaces what an earlier import of it made)"))
+        bar.addWidget(D.button("Outline layouts...", None, lambda: self.layouts(),                    # 3.73.0
+                               "Set an outline's column names and formatting rules ahead of time"))
         bar.addWidget(D.button("Setup styles...", None, lambda: self.styles(), "The setup's own styles: name, font, size, color, "
                                "bold, italic, hidden"))
         bar.addWidget(D.button("Strip setup...", "ghost", lambda: self.strip_files(),                 # 3.60.0
@@ -379,6 +381,10 @@ class SetupsPage(QWidget):
             M.pending = True
             self.host.changed()
         self.refresh()
+
+    def layouts(self, name=None, modal=True):
+        from .outlinelayoutsview import edit
+        return edit(self, name, modal)
 
     def template_file(self, volume="*", path=None, modal=True):
         from .templatefileview import choose

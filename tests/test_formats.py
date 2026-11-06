@@ -51,7 +51,10 @@ check("... and the next save writes Approver", "Approver" in hdr and "SS Approve
 import effortrelink as ER                                  # 3.68.0: the marker in an effort's folder
 mk = ER.write_marker(L.path, "Kestrel")
 check("effort marker", json.load(open(mk, encoding="utf-8"))["format"] == F.number("effort marker"))
-check("every kind is checked here", len(F.FORMATS) == 11, len(F.FORMATS))
+import outlinelayouts as OLY                               # 3.73.0: outline layouts set ahead of time
+OLY.save(cfg, OLY.load(cfg))
+check("outline layouts", json.load(open(os.path.join(cfg, OLY.FILE), encoding="utf-8"))["format"] == F.number("outline layouts") == OLY.FORMAT)
+check("every kind is checked here", len(F.FORMATS) == 12, len(F.FORMATS))
 n = sum(checks)
 print(f"FORMATS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

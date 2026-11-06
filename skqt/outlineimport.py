@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFileDialog, QHBoxLayout, QHeaderView, QInputDialog, QLabel,
                                QListWidget, QSplitter, QTableWidget, QTableWidgetItem, QTextBrowser, QVBoxLayout, QWidget)
 import diag
+import outlinelayouts as OL
 import outlinexl as OX
 import setuptemplate as ST
 from . import design as D
@@ -45,10 +46,15 @@ class OutlineImport(QDialog):
         self.setWindowTitle(f"Setup from {os.path.basename(path)}")
         self.resize(1200, 820)
         self.book = OX.read(path)
-        self.profile = OX.profile_for(self.host.config_dir, self.book["headers"])
+        self.profile = OL.profile(self.host.config_dir, self.book)          # 3.73.0: the closest layout set ahead of time
         self.opts = self.page.setup_opts()
         v = QVBoxLayout(self)
         self.top = D.label("", "muted"); v.addWidget(self.top)
+        nr = QHBoxLayout(); v.addLayout(nr)
+        self.new_cols = D.label("", "muted"); nr.addWidget(self.new_cols, 1)
+        self.b_keep_new = D.button("Remember these columns", None, lambda: self.remember_new(),
+                                   "Keep the new columns in the layout as they are set here")
+        nr.addWidget(self.b_keep_new)
         split = QSplitter(Qt.Horizontal); v.addWidget(split, 1)
         left = QWidget(); lv = QVBoxLayout(left); lv.setContentsMargins(0, 0, 0, 0)
         lv.addWidget(D.SectionTitle("Columns"))
@@ -94,12 +100,36 @@ class OutlineImport(QDialog):
             cb.setCurrentIndex(max(0, cb.findData((self.profile["columns"] or {}).get(h, "ignore"))))
             cb.currentIndexChanged.connect(lambda _i, hh=h, c=cb: self.set_role(hh, c.currentData()))
             self.cols.setCellWidget(i, 1, cb)
+            if h in (self.profile.get("unknown") or []):
+                self.cols.item(i, 0).setToolTip("Not in the layout yet: what you pick here is remembered")
+                f = self.cols.item(i, 0).font(); f.setBold(True); self.cols.item(i, 0).setFont(f)
         self.cols.blockSignals(False)
+        self.say_new()
         self.fill_rules()
 
     def set_role(self, header, role):
         self.profile.setdefault("columns", {})[header] = role
+        if header in (self.profile.get("unknown") or []):          # 3.73.0: asked once, remembered in the layout
+            OL.remember(self.host.config_dir, self.profile.get("name") or OL.STARTING, header, role)
+            self.profile["unknown"].remove(header)
+            self.say_new()
         self.fill_rules()
+
+    def remember_new(self):
+        """3.73.0: every new column kept in the layout as it is set now. Returns how many."""
+        un = list(self.profile.get("unknown") or [])
+        for h in un:
+            OL.remember(self.host.config_dir, self.profile.get("name") or OL.STARTING, h, (self.profile.get("columns") or {}).get(h, "ignore"))
+        self.profile["unknown"] = []
+        self.say_new()
+        return len(un)
+
+    def say_new(self):
+        un = self.profile.get("unknown") or []
+        self.b_keep_new.setVisible(bool(un))
+        self.new_cols.setText(("Layout: " + (self.profile.get("name") or "none yet") + ". ")
+                              + (f"New column(s) the layout does not know: {', '.join(un)}. Say what each holds; it is remembered."
+                                 if un else "Every column is in the layout."))
 
     def fill_rules(self):
         rows = []
@@ -167,7 +197,7 @@ class OutlineImport(QDialog):
                                             text=self.profile.get("name") or "Our outline")
             if not ok or not name.strip():
                 return None
-        OX.save_profile(self.host.config_dir, name.strip(), self.profile)
+        OL.from_profile(self.host.config_dir, name.strip(), self.profile)       # 3.73.0: kept as a layout
         self.profile["name"] = name.strip()
         self.host.toast(f"Saved: {name.strip()}")
         return name.strip()
@@ -193,4 +223,5 @@ def import_outline(page, path=None, profile=None, accept=None):
             return None
     elif not accept:
         return None
+    dlg.remember_new()                                  # 3.73.0: using the structure confirms what the columns hold
     return page.use_outline(dlg.parsed, os.path.basename(path))
