@@ -528,11 +528,11 @@ class AssignPage(QWidget):
         for text, kind, fn, tip in (("Combine  J", None, self.do_combine, "One sentence from the selected ones (they need not be next to each other)"),
                                     ("Split  S", None, self.do_split, "Split the selected sentence before the word you clicked"),
                                     ("Extract  Shift+S", None, lambda: self.do_extract(), "Drag across words inside a sentence, "
-                                     "then this: those words become a sentence of their own, ready to assign (3.20.3)"),
-                                    ("Undo  Ctrl+Z", "ghost", self.do_undo, "Put back the last change")):
+                                     "then this: those words become a sentence of their own, ready to assign (3.20.3)")):
             b = D.button(text, kind, fn, tip)
             self.keys[text.split()[0]] = b
             bar.addWidget(b)
+            b.setVisible(False)          # 3.75.0 (house rule 8): the keys and the sentence's right-click do these; Undo is the frame's
         self.keys["Split"].setEnabled(False)
         self.keys["Extract"].setEnabled(False)
         self.keys["Split"].setToolTip("Select a sentence, then click the word the second part starts with: a red line "
@@ -738,7 +738,9 @@ class AssignPage(QWidget):
                               ("Copy RFP section", lambda: self.copy_rfp_section(),
                                "The RFP section the selected sentence is in (and its subsections, if you want) under the "
                                "target, titled as the RFP titles it; its requirements with no section yet go into it")):
-            srow.addWidget(D.button(text, None, fn, tip))
+            b = D.button(text, None, fn, tip)
+            b.setVisible(text == "+ Heading")      # 3.75.0: the rest are on the section's right-click and in Setup
+            srow.addWidget(b)
         from PySide6.QtWidgets import QMenu                           # 3.19.0: cover, title page, front matter, appendices
         self.parts_btn = D.button("Parts", None, None, "Cover, title page, front matter, appendices and back cover: add "
                                   "one, move the target to another part, and each part's rules and page limit")
@@ -755,6 +757,7 @@ class AssignPage(QWidget):
         self.parts_actions["rules"] = a
         self.parts_btn.setMenu(pm)
         srow.addWidget(self.parts_btn)
+        self.parts_btn.setVisible(False)           # 3.75.0: Parts is on the section's right-click
         srow.addStretch(1)
         row = FlowLayout(spacing=4); rww = QWidget(); rww.setLayout(row); sv.addWidget(rww)
         for text, fn, tip in (("Rename", lambda: self.rename_section(self.target), "Rename the target (or double-click it, or right-click it)"),
@@ -768,9 +771,8 @@ class AssignPage(QWidget):
             if len(text) == 1:
                 b.setFixedWidth(34)
             row.addWidget(b)
+            b.setVisible(False)                    # 3.75.0: the section's right-click does these (house rule 8)
         row.addStretch(1)
-        row.addWidget(D.button("Open in Structure Builder", None, lambda: self.open_builder(),   # 3.30.0
-                               "The full page for the structure: the toolbar, elements, library items and what is in each section"))
         self.start_btn = D.button("Start from...", None, lambda: self.start_from(),     # 3.16.0
                                   "Start or replace the structure: what the RFP prescribes, its headings, its outline, or a "
                                   "Word outline (the Structure tab). Volumes, people and page budget are on the Effort Dashboard.")
@@ -792,11 +794,12 @@ class AssignPage(QWidget):
         tb.addWidget(self.sort_btn)
         self.topic_chips = QWidget(); self.topic_chips_lay = FlowLayout(spacing=4); self.topic_chips.setLayout(self.topic_chips_lay)
         tb.addWidget(self.topic_chips)
-        tb.addWidget(D.button("+ Topic", None, lambda: self.new_topic(), "A topic of this effort (a theme, an area, an RFI question)"))
+        # 3.75.0: + Topic is the first item of Topics
         self.topics_btn = D.button("Topics", None, None, "Topics from the RFP's headings or the library's tags; rename, color, "
                                    "map to response sections, order and take out")
         from PySide6.QtWidgets import QMenu
         tm = QMenu(self.topics_btn)
+        tm.addAction("+ Topic...", lambda: self.new_topic())
         tm.addAction("Topics from the RFP's headings", lambda: self.topics_from_headings())
         tm.addAction("Topics from the library's tags", lambda: self.topics_from_tags())
         tm.addAction("Topics of this effort...", lambda: self.manage_topics())
@@ -1617,6 +1620,12 @@ class AssignPage(QWidget):
             self.select(iid)
             sel = [iid]
         rows = [x for x in (self.R.item(i) for i in sel) if x]
+        for key, text in (("Combine", "Combine the selected sentences  J"), ("Split", "Split at the red line  S"),
+                          ("Extract", "Make the dragged words a sentence  Shift+S")):     # 3.75.0: were buttons
+            b = self.keys.get(key)
+            if b is not None:
+                m.addAction(text, b.click).setEnabled(b.isEnabled())
+        m.addSeparator()
         decided = [it for it in rows if it.get("decision")]
         if len(rows) == 1:
             name = self.decision_of(rows[0])[0]
@@ -2944,6 +2953,7 @@ class AssignPage(QWidget):
 
     def fill_tree(self):
         self.tree.clear()
+        self.start_btn.setVisible(self.M is None or not self.M.outline)     # 3.75.0: shown while there are no sections
         if self.R is None:
             self.show_target()
             return
@@ -4074,6 +4084,12 @@ class AssignPage(QWidget):
         m.addAction("One level down", lambda: self.outline_op(O.indent))
         m.addAction("One level up", lambda: self.outline_op(O.outdent))
         m.addAction("Move to a part...", lambda: self.move_to_part())
+        m.addSeparator()                                              # 3.75.0: what the buttons under the tree did
+        m.addAction("+ Section from the selected sentence", lambda: self.section_from_sentence())
+        m.addAction("Copy the RFP section of the selected sentence", lambda: self.copy_rfp_section())
+        pm = m.addMenu("Parts")
+        for a in self.parts_btn.menu().actions():
+            pm.addAction(a)
         m.addSeparator()
         m.addAction("Delete", lambda: self.delete_section())
         return m
