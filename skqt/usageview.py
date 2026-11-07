@@ -84,7 +84,10 @@ class UsageReport(QDialog):
             self.counter.set_on(on)
         else:
             d = U.load(self.host.config_dir); d["on"] = bool(on); U.save(self.host.config_dir, d)
-        diag.activity("button_use_on" if on else "button_use_off")
+        if on:
+            diag.activity("button_use_on")
+        else:
+            diag.activity("button_use_off")
 
     def clear(self):
         if self.counter is not None:
