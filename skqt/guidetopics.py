@@ -402,11 +402,7 @@ TOPICS = [
    "the definition box, the actions, then the preview. Show details opens the counts, the places and an equation's symbols.",
    "The preview boxes what the scan read. Page < and > go through every page or picture of the file. Click a box to see "
    "what it read: Fix the reading corrects it for every later scan on this PC; Use as the meaning puts the words in the "
-   "definition box. Find < and > step through the finds and come back to the place.",
-   "Drag on the picture to draw a box: the readings inside it light up with their text. Read this area again reads only "
-   "the box; correct the text, then Add as a term... (a term the scan missed) or The picture says something else.... "
-   "Right-drag, or hold Space and drag, to move the picture. The scan's readings are kept with the effort, so the preview "
-   "opens at once.",
+   "definition box. Find < and > step through the finds and come back to the place. Drag to draw a box: Read this area again, Add as a term...; right-drag or Space to move.",
    "Why is a term missing? Type a term you expected: the Exclusion List, Not a term, a plural or form you set, the filters, or "
    "what the last scan read (with near misses in pictures). Save as the answer key... makes your decided scan the key of "
    "your acronym set (a folder outside the repository), scored by each build.",
