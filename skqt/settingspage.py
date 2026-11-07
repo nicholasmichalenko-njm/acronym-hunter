@@ -193,7 +193,7 @@ class SettingsPage(QWidget):
         from PySide6.QtWidgets import QListWidget, QStackedWidget
         outer.removeWidget(old)
         row = QHBoxLayout(); row.setContentsMargins(0, 0, 0, 0); row.setSpacing(0); outer.addLayout(row)
-        self.section_list = QListWidget(); self.section_list.setObjectName("sectionList"); self.section_list.setMaximumWidth(220)
+        self.section_list = QListWidget(); self.section_list.setObjectName("sectionList"); self.section_list.setFixedWidth(220)
         self.stack = QStackedWidget()
         row.addWidget(self.section_list); row.addWidget(self.stack, 1)
         self.section_of, self.scrolls = {}, []
