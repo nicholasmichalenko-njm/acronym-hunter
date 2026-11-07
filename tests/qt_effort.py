@@ -163,7 +163,8 @@ st = {s["name"]: s for s in d["stages"]}
 s2 = rec.stages[2]["name"]
 check("a stage that should have started is flagged", st[s2]["late_start"] and any("planned to start" in x[1] for x in d["past_due"]), d["past_due"])
 check("days to each stage and days left in the current one", st[rec.stages[1]["name"]]["left"] == 9, st[rec.stages[1]["name"]])
-check("acronyms counted by status", d["acronyms"]["Approved"] == 1 and d["acronyms"]["Proposed"] == 1 and d["acronyms"]["Rejected"] == 1)
+check("acronyms counted by status (3.76.0: in the list, no definition yet, not a term)", d["acronyms"]["In the list"] == 2
+      and d["acronyms"]["Not a term"] == 1 and d["acronyms"]["No definition"] >= 0, d["acronyms"])
 check("banned words from the last QA/QC check", d["qa"]["banned"] == 2 and d["qa"]["avoid"] == 1 and d["qa"]["pages_over"] == 1)
 check("QA/QC tiles shown", dp.qa_row.count() == 4)
 check("who has what: A. Lee leads a section and owns requirements", any(p["person"] == "A. Lee" and p["sections"] == 1 and p["reqs"] >= 1

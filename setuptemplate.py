@@ -303,7 +303,7 @@ def element_extras(config_dir, info=None, root=None):
             L = E.EffortList(path, "").load()
             rows = getattr(L, "rows", {}) or {}
             out["acronyms"] = sorted(((t, str((r or {}).get("Definition", "") or "")) for t, r in rows.items()
-                                      if (r or {}).get("Status", "") != "Not a term"), key=lambda x: x[0].casefold())
+                                      if E.ready(r)), key=lambda x: x[0].casefold())
         except Exception:  # noqa: BLE001
             import diag
             diag.swallowed()

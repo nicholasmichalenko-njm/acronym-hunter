@@ -1,5 +1,5 @@
-"""3.51.0 the acronym toolset brought back, offscreen, in Acronym Finder (its own list, no effort needed): Omit holds on
-every later scan; the Exclusion List leaves a term out of every effort and gives it back; Add to the database is
+"""3.51.0 the acronym toolset brought back, offscreen, in Acronym Finder (its own list, no effort needed): Not a term
+(3.76.0, was Omit) holds on every later scan; the Exclusion List leaves a term out of every effort and gives it back; Add to the database is
 apart from the acronym list; a term added by hand; meaning from context; fixes for misread text with Undo; sort by any
 column; text size; the right-click menu; Details; the Found line with its customer document. Fictional content."""
 import os, sys, tempfile, time
@@ -42,16 +42,16 @@ scan(lambda: page.scan(files))
 s = page.session
 terms = sorted(t for t in s.results if not t.startswith("["))
 om, ex = terms[2], terms[3]
-page.exclude([om], True)
-check("Omit leaves a term out of this list", s.results[om]["excluded"] and om not in page.terms)
+page.set_status([om], "Not a term")                         # 3.76.0: Omit is gone; Not a term is the decision
+check("Not a term leaves a term out of this list", s.results[om]["excluded"] and om not in page.terms)
 scan(lambda: page.scan_again())
 s = page.session
-check("Omit holds on the next scan", s.results.get(om, {}).get("excluded"), s.results.get(om))
+check("Not a term holds on the next scan", s.results.get(om, {}).get("excluded"), s.results.get(om))
 tw2 = AcronymToolWindow(cfg)
 check("... and when the list is opened again", tw2.page.session.results.get(om, {}).get("excluded")); tw2.close()
-page.exclude([om], False)
+page.set_status([om], "In the list")
 scan(lambda: page.scan_again()); s = page.session
-check("Bring back: shown again, on every scan", not s.results[om].get("excluded"))
+check("Put back in the list: shown again, on every scan", not s.results[om].get("excluded"))
 
 AX.exclusion_add(page, [ex], reason="a place name")
 check("the Exclusion List: left out here at once, and on the list", s.results[ex]["excluded"] and acrdb.on_exclusion_list(ex))
@@ -114,8 +114,8 @@ check("text size: larger, then back to normal", AX.text_size(page, 1) > before a
 page.select(pick); app.processEvents()
 menu = AX.row_menu(page, run=False)
 acts = [a.text() for a in menu.actions() if a.text()]
-check("the right-click menu holds the actions", {"Add to the effort list", "Omit (this effort)", "Add to this PC's database",
-                                                 "Add to the Exclusion List (every effort)", "Details...", "Fix a misread..."} <= set(acts), acts)
+check("the right-click menu holds the actions (3.76.0: no Omit or Exclusion List)", {"Add to the effort list", "Not a term",
+      "Add to this PC's database", "Details...", "Fix a misread..."} <= set(acts) and not any("Omit" in x or "Exclusion" in x for x in acts), acts)
 txt = AX.details(page, run=False)
 check("Details: every value of the term, copyable", pick in txt and "Where it was found:" in txt)
 d = s.results[pick]

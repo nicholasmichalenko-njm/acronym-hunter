@@ -139,6 +139,13 @@ def make(version, out_root=None):
                       "first_use_set": {"KLT": {"Volume I Technical.docx": "Volume I Technical.docx (para 4)"}}})
             ws.save_session(s)
             extra["acronyms"] = {"omitted": "KTV", "first_use": ["KLT", "Volume I Technical.docx", "Volume I Technical.docx (para 4)"]}
+            try:                                          # 3.76.0: part of a longer term, kept with the effort's scan
+                import acrparts  # noqa: F401
+                s["parts"] = {"VW": {"whole": "MOC-VW", "places": ["kestrel_design_note.docx (para 2"]}}
+                ws.save_session(s)
+                extra["parts"] = {"part": "VW", "whole": "MOC-VW"}
+            except ImportError:
+                pass
     except ImportError:
         pass
     os.makedirs(out)

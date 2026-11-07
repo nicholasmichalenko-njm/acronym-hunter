@@ -1,6 +1,25 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+ACRONYM REVIEW WITHOUT APPROVAL (3.76.0)
+  - Adding a term to the effort's list is the decision. A term is in the list or Not a term; one in the list with no
+    definition shows No definition yet. Approve, Needs author and Proposed are gone; a list saved before reads Proposed,
+    Needs author and Approved as In the list and Rejected as Not a term, and the approvers move into the term's history.
+  - The term card: Add to effort list and Not a term. A find read from a picture adds The picture says something
+    else...: Part of a longer term..., Misread letters..., Not text. More holds Plural of, A form of, Another way of
+    writing, Part of a longer term, Add to this PC's database and Remove from the list. Read here shows the line the
+    term was read in; Use as the definition takes the words selected in the preview.
+  - Omit and the Exclusion List are off the Acronyms page. A term omitted in an effort becomes Not a term in its list.
+    The Exclusion List stays in Team References.
+  - Part of a longer term (VW in MOC-VW): the whole term takes the row and the part's finds there count for it; a VW
+    found on its own elsewhere still shows. It holds on every later scan of the effort.
+  - Acronym List > Import a list...: any Excel or CSV list. The columns are guessed from the headings and confirmed
+    (Stationkeeper's own exports read with no questions). New terms come in the list; the same meaning fills empty
+    fields; a second meaning keeps ours and adds theirs to Other definitions, listed for review. A term no scan found
+    shows "not found in this effort's documents yet". The Acronym List has one bar (Rule 8).
+  - Every fix made in the moment (misread letters, not text, part of a longer term) saves a training sample in the
+    effort's working folder, so it travels with the effort. The Training app's Learn from an effort... reads them once.
+
 FEWER CONTROLS PER SCREEN, PART ONE (3.75.0)
   - The menu has nine groups: Home, Effort, Customer Documents, Shred, Plan, Write, Submit, Team, Settings. Pages that
     belong together are tabs of one item: Requirements and Accuracy; After Submission's Checklist and Keywords;

@@ -97,25 +97,26 @@ lp = EffortListPage(tw.host)
 L = lp.L
 if prim not in L.rows:
     s.add([prim])
-L.rows[prim]["Definition"] = "Kestrel Primary Term"; L.rows[prim]["Status"] = "Approved"
+L.rows[prim]["Definition"] = "Kestrel Primary Term"; L.rows[prim]["Status"] = "In the list"
 s._save_effort_list()
 out = os.path.join(tmp, "list.csv")
-EX.export_picker(lp, path=out, columns=["Term", "Definition", "Status"], statuses=["Approved"])
+EX.export_picker(lp, path=out, columns=["Term", "Definition", "Status"], statuses=["In the list"])
 txt = open(out, encoding="utf-8-sig").read()
-check("Export...: the columns and statuses chosen", txt.startswith("Term,Definition,Status") and f"{prim},Kestrel Primary Term,Approved" in txt, txt[:200])
+check("Export...: the columns and statuses chosen", txt.startswith("Term,Definition,Status") and f"{prim},Kestrel Primary Term,In the list" in txt, txt[:200])
 others_t = [t for t in L.order if t != prim]
 if others_t:
-    L.rows[others_t[0]]["Status"] = "Proposed"
+    L.rows[others_t[0]]["Status"] = "In the list"; L.rows[others_t[0]]["Definition"] = ""
 ap = EX.export_approvals(lp, path=os.path.join(tmp, "approve.xlsx"))
 import openpyxl
 ws = openpyxl.load_workbook(ap).active
 hdr = [c.value for c in ws[1]]
-check("For approval: the terms waiting, with an empty approver column", hdr[-1] == "Approver" and all(r[3] in ("Proposed", "Needs author") for r in ws.iter_rows(min_row=2, values_only=True)))
+check("3.76.0: no approval; the old export lists the terms with no definition yet", "Approver" not in hdr
+      and all(not r[1] for r in ws.iter_rows(min_row=2, values_only=True)), hdr)
 vol = os.path.join(tmp, "Kestrel Volume II.docx")
 import volcheck as V
 V.write_docx([("KXT", "Kestrel Transfer Test"), ("KQV", "Kestrel Quality Verification")], vol)
 got = EX.import_volume(lp, path=vol)
-check("Import a volume's list: in as Proposed", "KXT" in L.rows and L.rows["KXT"]["Status"] == "Proposed", got)
+check("Import a volume's list: in the list", "KXT" in L.rows and L.rows["KXT"]["Status"] == "In the list", got)
 EX.assign_volumes(lp, terms=["KXT"], volumes=["Volume II"])
 check("Volumes: the terms say which volumes use them", "Volume II" in L.rows["KXT"].get("Used in volumes", ""))
 check("Export... for one volume: only its terms", [r[0] for r in EX.rows_for(L, ["Term"], volumes=["Volume II"])] == ["KXT"])

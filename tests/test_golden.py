@@ -78,6 +78,11 @@ for ver in sets:
               and (s.effort.rows.get(ex["acronyms"]["omitted"]) or {}).get("Status") == "Not a term"))   # 3.76.0: omitted became Not a term
               and (s.results.get(ex["acronyms"]["omitted"]) or {}).get("excluded") and (s.first_use_set.get(t) or {}).get(f) == loc,
               (s.omitted, s.first_use_set))
+    if ex.get("parts"):                                   # 3.76 on: part of a longer term, kept with the effort's scan
+        import acrsession as AS
+        s = AS.AcronymSession(ws, got["list"], {}, {})
+        s.restore()
+        check(f"{ver}: a part of a longer term is kept", (s.parts.get(ex["parts"]["part"]) or {}).get("whole") == ex["parts"]["whole"], s.parts)
     if ex.get("profile"):                                 # 3.52 on: a profile's volumes and limit inside its effort type
         import effortprofiles as EPF
         dd_ = PRL.load(cfg)

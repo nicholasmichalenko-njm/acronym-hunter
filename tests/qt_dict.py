@@ -1,5 +1,5 @@
 """3.0.4 Settings > Custom dictionaries, offscreen: start a dictionary, add typed words, search, change a spelling, remove
-words, import a Word .dic, add the open effort's approved acronyms, export for Word (and the dated copy), rename and
+words, import a Word .dic, add the open effort's acronyms (with a definition), export for Word (and the dated copy), rename and
 remove; Settings' Go to row reaches the card."""
 import os, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -48,11 +48,11 @@ L = E.EffortList(LIST, "K"); L.pending = True; L.save()
 w.efforts.put("K", path=LIST)
 w.open_effort("K"); app.processEvents()
 lst = E.EffortList(LIST, "K").load()
-lst.rows["IMS"] = dict(next(iter(lst.rows.values()), {}), Status="Approved") if lst.rows else {"Status": "Approved"}
-lst.rows["TBD"] = {"Status": "Rejected"}
+lst.rows["IMS"] = {"Status": "In the list", "Definition": "Integrated Master Schedule"}   # 3.76.0: in the list with a definition
+lst.rows["TBD"] = {"Status": "Not a term", "Definition": "To be determined"}
 w.record_page.effort_list = lambda: lst
 w.go("settings"); c.refresh(); app.processEvents()
-check("Add the effort's acronyms: the approved ones", c.effort_btn.isEnabled() and c.add_effort() == 1 and "IMS" in CD.Store(cfg).get(did)["words"]
+check("Add the effort's acronyms: those in the list with a definition", c.effort_btn.isEnabled() and c.add_effort() == 1 and "IMS" in CD.Store(cfg).get(did)["words"]
       and "TBD" not in CD.Store(cfg).get(did)["words"])
 out = os.path.join(tmp, "out.dic")
 check("Export for Word writes the .dic", c.export(out) == out and open(out, "rb").read()[:2] == b"\xff\xfe" and len(CD.read_dic(out)) == 6)

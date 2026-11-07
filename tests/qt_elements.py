@@ -1,6 +1,6 @@
 """3.30.1 Make templates builds what the Structure Builder set, offscreen: the structure's front matter takes the place
 of the template's fixed TOC block (a TOC field with the appendix headings in it, the caption lists, the List of
-Appendices, Acronyms and Abbreviations filled from the effort's approved acronyms, the compliance matrix); divider and
+Appendices, Acronyms and Abbreviations filled from the effort's acronyms with a definition, the compliance matrix); divider and
 placeholder pages; unnumbered headings; a landscape Word section; a Quick Part where it was placed; the appendices on
 their own heading styles. The plain setup export builds the same."""
 import os, re, sys, tempfile, time, zipfile
@@ -32,7 +32,7 @@ LIST = os.path.join(EDIR, "Kestrel_Effort_List.xlsx")
 L = E.EffortList(LIST, "Kestrel")
 L.add_or_update("CDRL", Definition="Contract Data Requirements List", Status="Approved")
 L.add_or_update("ATP", Definition="Acceptance Test Procedure", Status="Approved")
-L.add_or_update("ZZQ", Definition="Not approved yet", Status="Proposed")
+L.add_or_update("ZZQ", Status="In the list")             # 3.76.0: no definition yet: left out
 L.pending = True; L.save()
 E.Registry(os.path.join(cfg, "efforts.json")).put("Kestrel", path=LIST)
 PDFS = [os.path.join(A.BASE_DIR, "test_samples", "rfp_walk", "Section_L_print.pdf")]
@@ -83,7 +83,7 @@ check("the TOC field takes the standard's design, with the appendix headings in 
 check("List of Figures and List of Tables: caption lists", 'TOC \\h \\z \\c "Figure"' in doc and 'TOC \\h \\z \\c "Table"' in doc)
 check("List of Appendices: a list of the appendix headings", 'TOC \\h \\z \\t "Appendix Heading 1,1"' in doc)
 acr = doc[doc.find(">Acronyms and Abbreviations<"):]
-check("Acronyms and Abbreviations: the effort's approved acronyms, in order, with their definitions",
+check("Acronyms and Abbreviations: the effort's acronyms with a definition, in order, with their definitions",
       "ATP" in acr[:4000] and "CDRL" in acr[:4000] and acr.find(">ATP<") < acr.find(">CDRL<") and "ZZQ" not in doc
       and "Acceptance Test Procedure" in acr[:4000], acr[:300])
 check("the compliance matrix element: each requirement and where we answer it", ">Compliance matrix<" in doc and f">{a['id']}<" in doc)
