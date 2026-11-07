@@ -1,6 +1,12 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE DRIFT REPORT (3.79.0)
+  - Check a Draft > Apply in Word > Drift report...: pick a draft. Every dated copy beside it (the banned-phrases copy,
+    a fixed copy) is checked against the draft as it is now: each of the copy's changes is Taken up, Still to take, or
+    in a passage that changed; the paragraphs changed since the copy are counted; and once a fifth of the draft has
+    changed, the report says to make the copy again. Export to Excel. The draft is only read.
+
 THE EFFORT LIBRARY (3.78.0)
   - The menu heading is Effort Library: every file of the effort, in real folders. A file that is not a customer
     document is copied into the effort's Library folder, under its category: Bidders Library, Our Documents, Graphics,
