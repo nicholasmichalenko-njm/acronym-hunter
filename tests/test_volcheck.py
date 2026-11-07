@@ -47,7 +47,7 @@ def run():
     L.add_or_update("SOW", Type="Acronym", Definition="Statement of Work"); L.set_status(["SOW"], "Approved", "J. Smith")
     L.add_or_update("QZR", Type="Acronym", Definition="Quarterly Zonal Review"); L.set_status(["QZR"], "Approved", "J. Smith")
     L.add_or_update("TTK", Type="Acronym", Definition="Telemetry, Tracking, and Command"); L.set_status(["TTK"], "Approved", "J. Smith")
-    L.add_or_update("XBL", Type="Acronym", Definition="Extra Blanket Layer")
+    L.add_or_update("XBL", Type="Acronym")          # 3.76.0: in the list with no definition yet
     L.add_or_update("PDQ", Type="Acronym", Definition="Pretty Darn Quick"); L.set_status(["PDQ"], "Approved", "J. Smith")
     L.add_or_update("ZZZ", Type="Acronym", Definition="Not a term"); L.set_status(["ZZZ"], "Rejected")
 
@@ -92,7 +92,7 @@ def run():
     xl = os.path.join(d, "check.xlsx"); V.write_excel(r, xl, "Kestrel")
     from openpyxl import load_workbook
     wb = load_workbook(xl)
-    assert wb.sheetnames[:6] == ["Summary", "First use", "Not in effort list", "Not approved", "Definition differs", "Unused in volumes"], wb.sheetnames
+    assert wb.sheetnames[:6] == ["Summary", "First use", "Not in effort list", "No definition yet", "Definition differs", "Unused in volumes"], wb.sheetnames
     assert len(wb.sheetnames) == 8
     dx = os.path.join(d, "list.docx")
     V.write_docx([(x["term"], x["definition"]) for x in r["lists"]["Vol 1 Technical.docx"]], dx)
