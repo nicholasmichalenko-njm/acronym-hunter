@@ -26,7 +26,7 @@ def _where(locs, fname):
 
 def _kept(d):
     st = (d.get("status") or "").upper()
-    return (d.get("effort") in ("Approved", "Proposed", "Needs author") or bool(d.get("selected_definition")) or "MANUALLY" in st) \
+    return (d.get("effort") == "In the list" or bool(d.get("selected_definition")) or "MANUALLY" in st) \
         and not d.get("excluded") and not d.get("plural_of") and not d.get("form_of") \
         and not str(d.get("selected_definition", "")).startswith("[")
 
@@ -37,7 +37,7 @@ def key_rows(session):
     for term, d in sorted((session.results or {}).items()):
         if A.status_kind(d.get("status", "")) == "error" or term.startswith("["):
             continue
-        rejected = d.get("effort") == "Rejected" or "NOT A TERM" in (d.get("status") or "").upper()
+        rejected = d.get("effort") == "Not a term" or "NOT A TERM" in (d.get("status") or "").upper()
         if not (rejected or _kept(d)):
             continue
         files = sorted({A._file_of(l) for l in d.get("locations") or [] if l})

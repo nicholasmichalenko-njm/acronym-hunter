@@ -68,8 +68,8 @@ check("... and its file is in this effort's folder", any(d["name"] == "RFP Amend
       and os.path.isfile(os.path.join(A, "Customer Documents", "Kestrel RFP Amendment 1.txt")))
 L = E.EffortList(LA).load()
 check("acronyms: a new term added", "TT&C" in L.rows and out["acronyms"]["added"] >= 1)
-check("the same meaning: the stronger status with its approver, Found in joined", L.rows["KTV"]["Status"] == "Approved"
-      and L.rows["KTV"]["Approver"] == "Pat" and "Kestrel RFP Amendment 1.txt" in L.rows["KTV"].get("Found in", ""))
+check("the same meaning: in the list, Found in joined (3.76.0: no approval)", L.rows["KTV"]["Status"] == "In the list"
+      and "Kestrel RFP Amendment 1.txt" in L.rows["KTV"].get("Found in", ""), L.rows["KTV"])
 check("another meaning: ours kept, theirs in Other definitions, listed for review", L.rows["GS"]["Definition"] == "Ground Station"
       and "Ground Segment" in L.rows["GS"]["Other definitions"] and any(r["item"] == "GS" for r in out["review"]))
 check("keywords joined", any(k.get("Keyword") == "resilient ground" for k in L.keywords))

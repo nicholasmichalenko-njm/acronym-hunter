@@ -1,5 +1,5 @@
 """QA/QC in Qt (2.66.0): check our Word volumes against the effort list: first use in the running text, terms not in
-the effort list, not approved, definitions that differ, list entries not used, each volume's own acronym list, banned
+the effort list, no definition yet, definitions that differ, list entries not used, each volume's own acronym list, banned
 words and phrases, and page limits from the customer documents. Word (.docx) only. The rules and the report are the
 classic window's own (volcheck, volcheck_ui); the report is kept in the effort's session. Rules only (No AI); nothing
 leaves the PC."""
@@ -80,7 +80,7 @@ class QAPage(QWidget):
         self.tiles = {k: D.Tile("-", cap, tone) for k, cap, tone in (("fix", "first-use fixes", "crit"), ("check", "to check", "warn"),
                                                                        ("ok", "defined at first use", "ok"), ("banned", "banned words", "crit"),
                                                                        ("pages", "over a page limit", "crit"), ("missing", "not in the effort list", "warn"),
-                                                                       ("notappr", "not approved", "warn"))}
+                                                                       ("notappr", "no definition yet", "warn"))}
         self.tile_row = QWidget(); g = QGridLayout(self.tile_row); g.setContentsMargins(0, 0, 0, 0); g.setSpacing(D.SPACE["m"])
         for i, t in enumerate(self.tiles.values()):
             g.addWidget(t, 0, i); g.setColumnStretch(i, 1)
@@ -88,7 +88,7 @@ class QAPage(QWidget):
         self.order = D.label("", "muted"); v.addWidget(self.order)
         self.tabs = QTabWidget(); v.addWidget(self.tabs, 1)
         self.empty = D.EmptyState("No submission check yet", "Add the Word volumes you will submit above, then check them against "
-                                                             "the effort list: first use, missing and unapproved terms, banned words, "
+                                                             "the effort list: first use, missing terms and terms with no definition, banned words, "
                                                              "page limits.", "Add volumes...", lambda: self.add_volumes())
         v.addWidget(self.empty)
 
@@ -300,7 +300,7 @@ class QAPage(QWidget):
                         r["acronym_list"], ["check", "volume", "term", "state", "listed_as", "list_definition", "uses"], level=True)
         self._table("Not in effort list", ["Term", "Type", "Count", "Volumes", "Suggested definition", "First found at"], r["missing"],
                     ["term", "type", "count", "volumes", "suggestion", "loc"])
-        self._table("Not approved", ["Term", "Status", "Definition", "Volumes", "First found at"], r["not_approved"],
+        self._table("No definition yet", ["Term", "Status", "Definition", "Volumes", "First found at"], r["not_approved"],
                     ["term", "status", "definition", "volumes", "loc"])
         self._table("Definition differs", ["Term", "Volume", "Volume says", "Effort list says", "Where"], r["differs"],
                     ["term", "volume", "written", "list_definition", "loc"])
@@ -366,7 +366,7 @@ class QAPage(QWidget):
             self.host.status("A list with that name is open in Word. Close it, then try again.")
             return None
         diag.activity("volume_lists_exported", files=len(written))
-        self.host.toast(f"{len(written)} acronym list(s) written" + (f"; {open_items} entries not approved or without a definition" if open_items else ""))
+        self.host.toast(f"{len(written)} acronym list(s) written" + (f"; {open_items} entries without a definition" if open_items else ""))
         return written
 
     def add_missing(self):

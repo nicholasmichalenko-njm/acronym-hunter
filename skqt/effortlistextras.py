@@ -90,7 +90,7 @@ def export_picker(page, path=None, columns=None, statuses=None, volumes=None, ru
         v.addWidget(D.label("Statuses", "label"))
         st = {}
         for sname in E.STATUSES:
-            cb = QCheckBox(sname); cb.setChecked(sname == "Approved"); v.addWidget(cb); st[sname] = cb
+            cb = QCheckBox(sname); cb.setChecked(sname == E.IN); v.addWidget(cb); st[sname] = cb
         vols = _volumes(L)
         vl = QListWidget(); vl.setMaximumHeight(110)
         for x in vols:
@@ -124,7 +124,7 @@ def export_picker(page, path=None, columns=None, statuses=None, volumes=None, ru
 
 
 def export_approvals(page, path=None):
-    """The terms waiting for approval (Proposed, Needs author) with an empty approver column."""
+    """3.76.0: no approval; kept for older callers: the terms in the list with no definition yet."""
     L = page.L
     if L is None:
         return None
@@ -132,8 +132,8 @@ def export_approvals(page, path=None):
         path, _ = QFileDialog.getSaveFileName(page, "For approval", page.host.out_path("acronyms_for_approval")[:-4] + ".xlsx", "Excel (*.xlsx)")
         if not path:
             return None
-    cols = ["Term", "Definition", "Type", "Status", "Notes", "Approver"]
-    rows = [r[:-1] + [""] for r in rows_for(L, cols, ["Proposed", "Needs author"])]
+    cols = ["Term", "Definition", "Type", "Status", "Notes"]
+    rows = [r for r in rows_for(L, cols, [E.IN]) if not str(r[1] or "").strip()]
     write(rows, cols, path)
     return path
 
@@ -182,7 +182,7 @@ def import_volume(page, path=None):
     n = 0
     for term, defn in (got.get("entries") or {}).items():
         if term not in L.rows:
-            L.add_or_update(term, change_note=f"from the acronym list in {vol}", Definition=defn, Status="Proposed",
+            L.add_or_update(term, change_note=f"from the acronym list in {vol}", Definition=defn, Status=E.IN,
                             Notes=f"From {vol}")
             n += 1
     if n:
@@ -279,13 +279,13 @@ def reload(page):
 
 
 def to_database(page, terms=None, run=True):
-    """Chosen terms of the list (approved ones by default) into this PC's database. Returns the counts."""
+    """Chosen terms of the list (those in the list with a definition, by default) into this PC's database."""
     import acrmore as AM
     L = page.L
     if L is None:
         return None
     if terms is None:
-        approved = [t for t in L.order if L.rows[t].get("Status") == "Approved"]
+        approved = [t for t in L.order if E.ready(L.rows[t])]
         dlg = QDialog(page); dlg.setWindowTitle("Add to this PC's database"); dlg.resize(560, 520)
         v = QVBoxLayout(dlg)
         v.addWidget(QLabel("Usually after submission: the terms worth knowing in every effort. Untick any to leave out."))
@@ -312,14 +312,13 @@ def to_database(page, terms=None, run=True):
 def buttons(page):
     """The extras as a row of buttons for the list's page."""
     return [D.button("Export...", None, lambda: export_picker(page), "Choose the columns, the format and the volumes"),
-            D.button("For approval...", None, lambda: export_approvals(page), "The terms waiting for approval, with an approver column"),
             D.button("Every effort...", None, lambda: export_all(page), "Every effort's acronym list in one workbook"),
-            D.button("Import a volume's list...", None, lambda: import_volume(page), "A volume's own acronym list into this list, as Proposed"),
+            D.button("Import a volume's list...", None, lambda: import_volume(page), "A volume's own acronym list into this list"),
             D.button("Volumes...", None, lambda: assign_volumes(page), "Name volumes and say which use the selected terms"),
-            D.button("Activity", None, lambda: activity(page), "What was added, changed or approved, by whom and when"),
+            D.button("Activity", None, lambda: activity(page), "What was added or changed, by whom and when"),
             D.button("New in the last scan", None, lambda: new_terms(page)),
             D.button("Show in scan", None, lambda: show_in_scan(page)),
             D.button("Open in Excel", "ghost", lambda: open_in_excel(page)),
             D.button("Reload", "ghost", lambda: reload(page), "Read the workbook again (after editing it in Excel)"),
             D.button("Add to this PC's database...", None, lambda: to_database(page), "Usually after submission: chosen terms, "
-                     "approved ones by default, for every effort")]
+                     "those with a definition by default, for every effort")]

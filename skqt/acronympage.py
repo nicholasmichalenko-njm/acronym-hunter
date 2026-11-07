@@ -1,7 +1,7 @@
 """Acronym scan and review in Qt (2.64.0): scan files or a folder for acronyms, abbreviations, units and symbols (typed
 text and text in pictures), then review every term: its status, its definition and where it came from (customer
 documents, customer list, master database), where it was found, and the effort list. Choose a definition, add to the
-effort list, approve, mark as needing the author, say it is not a term, exclude it, export the report. The rules are
+effort list or say it is not a term (3.76.0: no approval; a term is in the list or Not a term), export the report. The rules are
 the classic window's own (acrsession.py); results are shared with it. Rules only (No AI); nothing leaves the PC."""
 import datetime, os
 from PySide6.QtCore import Qt, QThread, QTimer, Signal
@@ -18,23 +18,25 @@ from . import acrextras as AX                                       # 3.51.0
 
 COLS = ["Term", "Type", "Count", "Found in", "Change", "Status", "Definition", "Known in", "Acronym list", "Source"]   # 3.51.0: Change, Source
 # 3.34.1: the few status filters a reviewer uses (Type, Found in and the search do the rest)
-STATUS = ("All statuses", "Needs approval", "Approved", "Needs a choice", "No longer found", "Omitted")   # 3.51.0: Omit
+STATUS = ("All statuses", "To decide", "In the list", "No definition yet", "Needs a choice", "No longer found", "Not a term")   # 3.76.0
 
 
 def status_ok(d, wanted, kind):
-    """Whether a term passes a status filter. Needs approval: every term to decide (new candidates, one with several
-    meanings, one proposed or waiting for an author), not approved, excluded or in the omit list."""
-    if wanted == "Needs approval":
-        return (not d.get("excluded") and not d.get("known") and d.get("effort") != "Approved" and kind != "error"
+    """Whether a term passes a status filter. To decide: every term not in the effort's list yet and not Not a term
+    (3.76.0: adding a term to the list is the decision; there is no approval)."""
+    if wanted == "To decide":
+        return (not d.get("excluded") and not d.get("known") and not d.get("effort") and kind != "error"
                 and not d.get("gone"))
-    if wanted == "Approved":
-        return d.get("effort") == "Approved"
+    if wanted == "In the list":
+        return d.get("effort") == "In the list"
+    if wanted == "No definition yet":
+        return d.get("effort") == "In the list" and not (d.get("list_definition") or "").strip()
     if wanted == "Needs a choice":
         return kind == "choice"
     if wanted == "No longer found":
         return bool(d.get("gone"))
-    if wanted == "Omitted":
-        return bool(d.get("excluded"))
+    if wanted == "Not a term":
+        return bool(d.get("excluded")) or d.get("effort") == "Not a term"
     return True
 KIND_TONE = {"choice": "warn", "candidate": "cust", "resolved": "ok", "error": "crit", "excluded": "head", "other": "accent"}
 
@@ -101,7 +103,7 @@ class AcronymPage(QWidget):
         self.f_search.setMinimumWidth(280)
         from . import symbols as SYM
         SYM.attach(self.f_search)                                       # 3.50.0: search for H₂O, µm, Δv
-        self.f_excl = QCheckBox("Show omitted")
+        self.f_excl = QCheckBox("Show Not a term")
         self.f_pics = QCheckBox("Found in pictures")                     # 3.53.0: only terms read from a picture
         self.f_pics.setToolTip("Only the terms read from pictures: image files, pictures in documents, diagrams and charts")
         self.f_pics.toggled.connect(lambda _on: self.fill())
@@ -220,9 +222,9 @@ class AcronymPage(QWidget):
         q = self.f_search.text().strip().casefold()
         out = []
         for term, d in s.results.items():
-            if d.get("excluded") and not (self.f_excl.isChecked() or fstat == "Omitted"):
+            if d.get("excluded") and not (self.f_excl.isChecked() or fstat == "Not a term"):
                 continue
-            if (d.get("plural_of") or d.get("form_of")) and not (self.f_forms.isChecked() or (q and q == term.casefold())):
+            if (d.get("plural_of") or d.get("form_of") or d.get("part_of")) and not (self.f_forms.isChecked() or (q and q == term.casefold())):
                 continue                                     # 3.34.1: a plural or form is decided: tied to its term, out of the list
             if ftype != A.ALL_TYPES and A.base_type(d["category"]) != ftype:
                 continue
@@ -348,48 +350,25 @@ class AcronymPage(QWidget):
         return self.typed.text()
 
     def _actions(self, terms):
+        """3.76.0: two decisions (Add to effort list, Not a term), what the picture says, and the rest under More."""
+        from . import acrpart as AP
         r1 = QHBoxLayout(); r1.setSpacing(D.SPACE["s"])
         r1.addWidget(D.button("Add to effort list", "primary", lambda: self.add(terms)))
-        r1.addWidget(D.button("Approve...", None, lambda: self.approve(terms)))
-        r1.addWidget(D.button("Needs author", None, lambda: self.set_status(terms, "Needs author")))
+        not_term = all((self.session.results[t].get("effort") == "Not a term" or self.session.results[t].get("excluded"))
+                       for t in terms)
+        if not_term:
+            r1.addWidget(D.button("Put back in the list", None, lambda: self.set_status(terms, "In the list"),
+                                  "It is a term after all: back in this effort's list"))
+        else:
+            r1.addWidget(D.button("Not a term", "danger", lambda: self.set_status(terms, "Not a term"),
+                                  "Not a term in this effort: this scan and every later one, new document versions too"))
+        if len(terms) == 1 and AX.in_pictures(self.session.results[terms[0]]):
+            r1.addWidget(D.button("The picture says something else...", None, lambda: AP.picture_menu(self, terms[0]),
+                                  "Part of a longer term, misread letters, or not text at all"))
+        self.more_btn = D.button("More", "ghost", lambda: AP.more_menu(self, terms))
+        r1.addWidget(self.more_btn)
+        r1.addStretch(1)
         self.body.addLayout(r1)
-        r2 = QHBoxLayout(); r2.setSpacing(D.SPACE["s"])
-        r2.addWidget(D.button("Not a term", "danger", lambda: self.set_status(terms, "Rejected"), "Rejected in the effort list: hidden in this effort"))
-        excl = all(self.session.results[t].get("excluded") for t in terms)
-        r2.addWidget(D.button("Bring back" if excl else "Omit", "ghost", lambda: self.exclude(terms, not excl),
-                              "Leave it out of this effort, on this scan and every later one (3.51.0)" if not excl else "Show it again"))
-        r2.addWidget(D.button("Add to the database", None, lambda: AX.add_to_db(self, terms), "This PC's acronym database, for "
-                              "every effort (apart from the effort's acronym list)"))
-        r2.addWidget(D.button("Exclusion List", "ghost", lambda: AX.exclusion_add(self, terms), "Never show it in any effort on this PC"))
-        if len(terms) > 1:
-            r2.addWidget(D.button("Back to Proposed", None, lambda: self.set_status(terms, "Proposed")))
-            if self.session.effort is not None and any(t in self.session.effort.rows for t in terms):
-                r2.addWidget(D.button("Remove from the list", "ghost", lambda: AX.remove_from_list(self, terms)))
-        r2.addStretch(1)
-        self.body.addLayout(r2)
-        if len(terms) == 1:                                                  # 2.86.0: a plural is not "not a term"
-            t = terms[0]
-            d = self.session.results.get(t) or {}
-            r3 = QHBoxLayout(); r3.setSpacing(D.SPACE["s"])
-            if d.get("plural_of"):
-                r3.addWidget(D.button("Not a plural", "ghost", lambda: self.not_plural(t), "Make it a term of its own again"))
-            elif d.get("form_of"):
-                r3.addWidget(D.button(f"Not a form of {d['form_of']}", "ghost", lambda: self.not_form(t), "Make it a term of its own again"))
-            elif d.get("alt_of"):                                            # 3.51.0: alternate forms (C2 and C&C)
-                r3.addWidget(D.button(f"Not another way of writing {d['alt_of']}", "ghost", lambda: AX.unmake_alt(self, t)))
-            else:
-                g = self.session.singular_guess(t)
-                r3.addWidget(D.button(f"Plural of {g}" if g else "Plural of...", None, lambda: self.plural(t, g or None),
-                                      "Still found in every scan; counted with its singular; never its own row in the lists you submit"))
-                fg = self.session.form_guess(t)                      # 3.34.1: FY27 is FY plus a number
-                if self.session.effort is not None:
-                    r3.addWidget(D.button("Another way of writing...", None, lambda: AX.make_alt(self, t), "C&C for C2, KWH for kWh: "
-                                          "it keeps its own row, shows the other term's meaning, and lists show both as one"))
-                r3.addWidget(D.button(f"Use {fg} (a form of it)" if fg else "A form of...", None, lambda: self.form(t, fg or None),
-                                      "The term is written as another term plus a number or code (FY27 as FY): define that term "
-                                      "once; this one stays found, tied to it, and never comes up as its own row again"))
-            r3.addStretch(1)
-            self.body.addLayout(r3)
 
     def path_of(self, name):
         """Where a scanned file is (the last scan, else the Library's customer documents). 3.34.1: matched without
@@ -467,19 +446,13 @@ class AcronymPage(QWidget):
         self.fill()
         return msg
 
-    def approve(self, terms, approver=None):
-        if approver is None:
-            from PySide6.QtWidgets import QInputDialog
-            approver, ok = QInputDialog.getText(self, "Approve", "Approver (one name, or several separated by ;):",
-                                                QLineEdit.Normal, getattr(self.session, "_last_approver", ""))
-            if not ok:
-                return 0
-        self.session._last_approver = approver
-        return self.set_status(terms, "Approved", approver)
-
     def set_status(self, terms, status, approver=""):
         n = self.session.set_status(terms, status, approver)
-        self.host.toast(f"Acronym list: {n} {status.lower()}" + ("" if not self.session.effort.pending else ". NOT SAVED yet: close the list in Excel."))
+        eff = self.session.effort
+        if eff is None:                                     # the Acronym Finder window: Not a term hides it for this scan
+            n = self.session.exclude(terms, status == "Not a term")
+        what = "not a term" if status == "Not a term" else "in the list"
+        self.host.toast(f"Acronym list: {n} {what}" + ("" if eff is None or not eff.pending else ". NOT SAVED yet: close the list in Excel."))
         self.fill()
         return n
 

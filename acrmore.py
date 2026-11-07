@@ -131,7 +131,7 @@ def add_list_to_database(s, terms=None):
     if s.effort is None:
         return {"added": 0, "updated": 0, "same": 0}
     rows = s.effort.rows
-    pick = terms if terms is not None else [t for t, r in rows.items() if r.get("Status") == "Approved"]
+    pick = terms if terms is not None else [t for t, r in rows.items() if r.get("Status") != "Not a term" and (r.get("Definition") or "").strip()]
     items = [(t, rows[t].get("Type") or rows[t].get("Category") or "Acronym", rows[t].get("Definition", "")) for t in pick if t in rows]
     got = acrdb.add_terms(items)
     diag.activity("acronym_list_to_db", added=got["added"])

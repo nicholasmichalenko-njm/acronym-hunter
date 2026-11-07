@@ -90,5 +90,5 @@ def qa_volume_lists(report, folder):
         V.write_docx([(x["term"], x["definition"]) for x in rows], p)
         written.append(os.path.basename(p))
         if v != "All volumes":
-            open_items += sum(1 for x in rows if x["status"] != "Approved" or not x["definition"])
+            open_items += sum(1 for x in rows if x["status"] == "Not a term" or not x["definition"])
     return written, open_items

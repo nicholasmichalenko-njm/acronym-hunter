@@ -1,6 +1,7 @@
 """The effort's acronym list in Qt (2.64.0): every term in the effort list workbook, scanned or not, with its definition,
-status, approver and where it was found. Approve (with the approver), Needs author, Proposed, Not a term, change a
-definition, take a term out, and export the acronym lists (the whole effort, per volume, or both: Word and Excel).
+status and where it was found. 3.76.0: no approval (a term is in the list or Not a term; one with no definition shows
+No definition yet); Import a list... merges any Excel or CSV list; one command bar (Rule 8). Change a definition, take a
+term out, and export the acronym lists (the whole effort, per volume, or both: Word and Excel).
 The workbook is the same one the classic window keeps. Rules only (No AI); nothing leaves the PC."""
 import os
 from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QHeaderView, QInputDialog, QLineEdit,
@@ -11,8 +12,9 @@ import effort as E
 from . import design as D
 from .adaptive import FlowLayout
 
-COLS = ["Term", "Definition", "Type", "Status", "Approver", "Approved on", "Found in", "Notes"]
-TONE = {"Approved": "ok", "Needs author": "warn", "Proposed": "accent", "Rejected": "faint"}
+COLS = ["Term", "Definition", "Type", "Status", "Found in", "Notes"]
+TONE = {"In the list": "ok", "Not a term": "faint", "No definition yet": "warn"}
+NODEF = "No definition yet"
 
 
 class EffortListPage(QWidget):
@@ -32,7 +34,7 @@ class EffortListPage(QWidget):
         for i, b in enumerate((self.b_list, self.b_submit)):
             b.setCheckable(True); self.view_group.addButton(b, i); sw.addWidget(b)
         self.b_list.setChecked(True)
-        self.b_list.setToolTip("Every term with its approved definition, status and approver: what writers work from")
+        self.b_list.setToolTip("Every term with its definition and where it was found: what writers work from")
         self.b_submit.setToolTip("The lists that go in the submission: only the terms each volume uses, from the latest Submission check")
         self.view_group.idClicked.connect(lambda i: self.show_view("submit" if i == 1 else "list"))
         sw.addStretch(1)
@@ -45,29 +47,48 @@ class EffortListPage(QWidget):
             self.submit.layout().setContentsMargins(0, 0, 0, 0)
         v = QVBoxLayout(self.list_view); v.setContentsMargins(0, 0, 0, 0); v.setSpacing(D.SPACE["m"])
         self.where = D.label("<b>THROUGHOUT</b> &nbsp;The effort's acronym list: acronyms, abbreviations, units and symbols with "
-                             "the approved definitions writers work from. Lists to submit, by volume, holds only the terms your "
+                             "the definitions writers work from. Lists to submit, by volume, holds only the terms your "
                              "volumes use.", "muted")
         self.where.setTextFormat(Qt.RichText); v.addWidget(self.where)                  # 2.86.0
-        top = FlowLayout(); top.setSpacing(D.SPACE["m"]); v.addLayout(top)
-        self.pills = {k: D.Pill(f"0 {k.lower()}", TONE[k]) for k in E.STATUSES}
-        for p in self.pills.values():
-            top.addWidget(p)
-        top.addStretch(1)
-        top.addWidget(D.button("Scan...", None, lambda: self.host.go("acronyms"),       # 3.16.0: the flow starts here too
-                               "Scan the customer's documents or your drafts for acronyms, abbreviations, units and symbols"))
-        top.addWidget(D.button("Check first use...", None, lambda: self.host.go("qa"),
-                               "Submission Check: first use in the running text of your volumes, and terms not in the list"))
-        top.addStretch(1)
-        top.addWidget(D.label("Export", "label", wrap=False))
-        self.scope = QComboBox()
+        from .commandbar import CommandBar
+        from . import effortlistextras as LX
+        from . import acrimportview as IV
+        self.bar = CommandBar()                                          # 3.76.0: one bar (Rule 8)
+        self.bar.primary("Edit definition...", lambda: self.edit_definition(), "The selected term's definition (double-click works too)")
+        self.bar.add("Import a list...", lambda: IV.import_list(self), "Any Excel or CSV list, merged into this one: new terms "
+                     "come in, the same meaning fills empty fields, a second meaning is kept for review")
+        self.bar.add("Not a term", lambda: self.set_status("Not a term"), "The selected terms are not terms in this effort")
+        self.bar.add("Scan...", lambda: self.host.go("acronyms"), "Scan the customer's documents or your drafts")
+        self.bar.more("Put back in the list", lambda: self.set_status("In the list"))
+        self.bar.more("Take out of the list", lambda: self.remove())
+        self.bar.more_sep()
+        self.bar.more("Check first use...", lambda: self.host.go("qa"), "Submission Check: first use in the running text of your volumes")
+        self.bar.more("Import a volume's list...", lambda: LX.import_volume(self), "A volume's own acronym list (Word) into this list")
+        self.bar.more("Volumes...", lambda: LX.assign_volumes(self), "Name volumes and say which use the selected terms")
+        self.bar.more("Activity", lambda: LX.activity(self), "What was added or changed, by whom and when")
+        self.bar.more("New in the last scan", lambda: LX.new_terms(self))
+        self.bar.more("Show in scan", lambda: LX.show_in_scan(self))
+        self.bar.more("Open in Excel", lambda: LX.open_in_excel(self))
+        self.bar.more("Reload", lambda: LX.reload(self), "Read the workbook again (after editing it in Excel)")
+        self.bar.more("Add to this PC's database...", lambda: LX.to_database(self), "Usually after submission: the terms "
+                      "with a definition, for every effort")
+        self.scope = QComboBox()                                         # kept for export(): set by the Export menu
         for k, text in (("whole", "The whole effort"), ("volume", "One list per volume"), ("both", "Both")):
             self.scope.addItem(text, k)
-        top.addWidget(self.scope)
-        self.approved_only = QCheckBox("Approved only"); top.addWidget(self.approved_only)
-        top.addWidget(D.button("Export the acronym list...", None, lambda: self.export(),
-                               "The whole effort's list in Word and Excel. Show > Lists to submit, by volume, exports the lists for your volumes."))
+        self.approved_only = QCheckBox("Only terms with a definition")
+        for k, text in (("whole", "The whole effort's list..."), ("volume", "One list per volume..."), ("both", "Both...")):
+            self.bar.export(text, lambda _=False, k=k: self.export(scope=k), "Word and Excel")
+        self.bar.export("Choose columns and volumes...", lambda: LX.export_picker(self))
+        self.bar.export("Every effort's list...", lambda: LX.export_all(self), "Every effort's acronym list in one workbook")
+        v.addWidget(self.bar)
+        top = FlowLayout(); top.setSpacing(D.SPACE["m"]); v.addLayout(top)
+        self.pills = {k: D.Pill(f"0 {k.lower()}", TONE[k]) for k in E.STATUSES + [NODEF]}
+        for p in self.pills.values():
+            top.addWidget(p)
+        self.p_unused = D.Pill("", "accent"); self.p_unused.hide(); top.addWidget(self.p_unused)
+        top.addStretch(1)
         f = FlowLayout(); f.setSpacing(D.SPACE["s"]); v.addLayout(f)
-        self.f_status = QComboBox(); self.f_status.addItems(["All statuses"] + E.STATUSES)
+        self.f_status = QComboBox(); self.f_status.addItems(["All statuses"] + E.STATUSES + [NODEF])
         self.f_status.currentIndexChanged.connect(lambda _i: self.fill())
         self.f_kind = QComboBox(); self.f_kind.addItem("All kinds", "")                      # 3.37.0: by kind
         for k in ("Acronym", "Abbreviation", "Unit", "Symbol"):
@@ -83,15 +104,6 @@ class EffortListPage(QWidget):
         self.f_search.setMinimumWidth(280)
         self.f_search.textChanged.connect(lambda _t: self.fill())
         f.addWidget(self.f_status); f.addWidget(self.f_kind); f.addWidget(self.f_use); f.addWidget(self.f_search, 1)
-        self.p_unused = D.Pill("", "accent"); self.p_unused.hide(); top.insertWidget(len(E.STATUSES), self.p_unused)
-        for text, kind, fn in (("Approve...", "primary", lambda: self.approve()), ("Needs author", None, lambda: self.set_status("Needs author")),
-                               ("Proposed", None, lambda: self.set_status("Proposed")), ("Not a term", "danger", lambda: self.set_status("Rejected")),
-                               ("Edit definition...", None, lambda: self.edit_definition()), ("Take out", "ghost", lambda: self.remove())):
-            f.addWidget(D.button(text, kind, fn))
-        xr = FlowLayout(); xr.setSpacing(D.SPACE["s"]); v.addLayout(xr)                 # 3.51.0: the classic window's list tools
-        from . import effortlistextras as LX
-        for b in LX.buttons(self):
-            xr.addWidget(b)
         self.table = QTableWidget(0, len(COLS))
         self.table.setHorizontalHeaderLabels(COLS)
         self.table.verticalHeader().setVisible(False)
@@ -99,13 +111,13 @@ class EffortListPage(QWidget):
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setAlternatingRowColors(True)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        for i, wd in enumerate((110, 0, 110, 110, 120, 100, 260, 160)):
+        for i, wd in enumerate((110, 0, 110, 110, 260, 160)):
             if i != 1:
                 self.table.setColumnWidth(i, wd)
         self.table.cellDoubleClicked.connect(lambda r, c: self.edit_definition() if c == 1 else None)
         v.addWidget(self.table, 1)
         self.empty = D.EmptyState("The acronym list is empty", "Add terms from the Scan tab: each one keeps its definition, "
-                                                              "status and approver here and in the effort's workbook.")
+                                                              "and where it was found here and in the effort's workbook. Import a list... brings in one you have.")
         v.addWidget(self.empty)
 
     @property
@@ -146,7 +158,7 @@ class EffortListPage(QWidget):
         unused = self.unused_terms()
         use = self.f_use.currentIndex()
         self.terms = [t for t in (L.order if L is not None else []) if t in rows
-                      and (st == "All statuses" or rows[t]["Status"] == st)
+                      and (st == "All statuses" or self.status_of(rows[t]) == st)
                       and (not kind or str(rows[t].get("Type", "") or "").casefold().startswith(kind.casefold()))
                       and (use == 0 or unused is None or ((t in unused) == (use == 2)))
                       and (not q or q in t.casefold() or q in rows[t].get("Definition", "").casefold())]
@@ -160,15 +172,25 @@ class EffortListPage(QWidget):
         for i, t in enumerate(self.terms):
             r = rows[t]
             for c, col in enumerate(COLS):
-                it = QTableWidgetItem(str(r.get(col, "") or ""))
+                val = self.status_of(r) if col == "Status" else str(r.get(col, "") or "")
+                if col == "Found in" and not val and t not in ((self.session.results if self.session else {}) or {}):
+                    val = "not found in this effort's documents yet"
+                it = QTableWidgetItem(val)
                 if col == "Status":
-                    it.setForeground(D.color(TONE.get(r["Status"], "accent")))
+                    it.setForeground(D.color(TONE.get(val, "accent")))
                 self.table.setItem(i, c, it)
             if t in keep:
                 self.table.selectRow(i)
         for k, p in self.pills.items():
-            n = sum(1 for r in rows.values() if r["Status"] == k)
+            n = sum(1 for r in rows.values() if (self.status_of(r) == k or (k == E.IN and r["Status"] == E.IN)))
             p.setText(f"{n} {k.lower()}")
+
+    @staticmethod
+    def status_of(r):
+        """In the list, Not a term, or No definition yet (shown, not set: in the list with no definition)."""
+        if r.get("Status") == E.IN and not (r.get("Definition") or "").strip():
+            return NODEF
+        return r.get("Status", "")
 
     def unused_terms(self):
         """2.86.0: effort-list terms no submission volume uses (the latest check), or None before any check."""
@@ -189,19 +211,6 @@ class EffortListPage(QWidget):
                 self.table.selectRow(self.terms.index(t))
 
     # ------------------------------------------------------------ decisions
-    def approve(self, approver=None, terms=None):
-        terms = terms or self.selected()
-        if not terms:
-            return 0
-        s = self.session
-        if approver is None:
-            approver, ok = QInputDialog.getText(self, "Approve", "Approver (one name, or several separated by ;):",
-                                                QLineEdit.Normal, getattr(s, "_last_approver", ""))
-            if not ok:
-                return 0
-        s._last_approver = approver
-        return self.set_status("Approved", terms, approver)
-
     def set_status(self, status, terms=None, approver=""):
         terms = terms or self.selected()
         if not terms:
@@ -234,7 +243,7 @@ class EffortListPage(QWidget):
         self.fill()
         return n
 
-    def export(self, folder=None):
+    def export(self, folder=None, scope=None):
         s = self.session
         if s is None or s.effort is None:
             return None
@@ -244,7 +253,7 @@ class EffortListPage(QWidget):
                 return None
         try:
             os.makedirs(folder, exist_ok=True)
-            made = s.export_effort_lists(folder=folder, scope=self.scope.currentData(), approved_only=self.approved_only.isChecked())
+            made = s.export_effort_lists(folder=folder, scope=scope or self.scope.currentData(), approved_only=self.approved_only.isChecked())
         except PermissionError:
             self.host.status("A list with that name is open in Word or Excel. Close it, then export again.")
             return None

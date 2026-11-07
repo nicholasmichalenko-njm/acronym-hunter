@@ -4,7 +4,7 @@ For each deliverable: its owner, status and the due date; pages against its limi
 Volume deliverable is linked to its volume in the response structure, by name or by the person); the compliance
 requirements placed in that volume's sections (how many have an author, how many a customer version changed and are
 waiting for their owner); context attached to its sections from library documents; what the latest Submission check
-found in its file (first-use problems, banned words, acronym list entries that still need a definition or approval);
+found in its file (first-use problems, banned words, acronym list entries that still need a definition);
 and what is missing (no owner, no file, over the limit, a newer customer form, no linked volume, requirements with no
 author). Health: ok, attention or critical, so the board shows where to look first.
 Reads only: the effort record, the matrix, the library, Change review, the library context and the last check.
@@ -81,7 +81,7 @@ def card(d, rows=(), lib=None, vols=(), rec=None, M=None, ctx_counts=None, await
             out["checked"] = True
             out["first_use"] = sum(1 for r in report.get("first_use", []) if r.get("volume") == v and r.get("level") in ("bad", "warn"))
             out["banned"] = sum(1 for r in report.get("banned", []) if r.get("volume") == v and r.get("level") == "bad")
-            out["list_open"] = sum(1 for x in report.get("lists", {}).get(v, []) if x.get("status") != "Approved" or not x.get("definition"))
+            out["list_open"] = sum(1 for x in report.get("lists", {}).get(v, []) if x.get("status") == "Not a term" or not x.get("definition"))
     m = out["missing"]
     if not out["owner"]:
         m.append(("crit", "No owner"))
@@ -98,7 +98,7 @@ def card(d, rows=(), lib=None, vols=(), rec=None, M=None, ctx_counts=None, await
     for c in out["changed"]:
         m.append(("warn", c[0].upper() + c[1:]))
     if out["checked"] and out["list_open"]:
-        m.append(("warn", f"{out['list_open']} acronym list entr(ies) need a definition or approval"))
+        m.append(("warn", f"{out['list_open']} acronym list entr(ies) need a definition"))
     if out["checked"] and out["first_use"]:
         m.append(("warn", f"{out['first_use']} first-use problem(s) to fix"))
     if out["checked"] and out["banned"]:

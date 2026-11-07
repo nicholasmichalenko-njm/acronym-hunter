@@ -1,5 +1,5 @@
 """Lists to submit (2.86.0): the acronym lists that go in the submission, built from the submission check. Each list
-holds only the terms its volume actually uses, with the effort list's approved definition; a term the customer's
+holds only the terms its volume actually uses, with the effort list's definition; a term the customer's
 documents use but no volume uses is left out, and the page says which ones and why. One list per volume, one master
 list for all volumes, or both: set once per effort. Rules only (No AI); nothing leaves the PC."""
 import os
@@ -42,7 +42,7 @@ def _sheet(name, wb):
 
 
 def open_items(rows):
-    return [x for x in rows if x["status"] != "Approved" or not x["definition"]]
+    return [x for x in rows if x["status"] == "Not a term" or not x["definition"]]
 
 
 class ListsPage(QWidget):
@@ -53,7 +53,7 @@ class ListsPage(QWidget):
         v = QVBoxLayout(self)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         self.where = D.label("<b>END</b> &nbsp;The acronym lists that go in your submission: only the terms each volume uses, "
-                             "with the acronym list's approved definitions. Built from the latest Submission Check.", "muted")
+                             "with the acronym list's definitions. Built from the latest Submission Check.", "muted")
         self.where.setTextFormat(Qt.RichText); v.addWidget(self.where)
         mrow = QHBoxLayout(); v.addLayout(mrow)
         mrow.addWidget(D.label("Lists", "label", wrap=False))
@@ -118,7 +118,7 @@ class ListsPage(QWidget):
         sets = lists_of(r, m)
         opened = sum(len(open_items(rows)) for name, rows in sets if name != MASTER)
         self.p_check.setText(f"From the check of {len(r['volumes'])} volume(s)")
-        self.p_open.setText(f"{opened} need a definition or approval" if opened else "every term approved and defined")
+        self.p_open.setText(f"{opened} need a definition" if opened else "every term defined")
         self.p_open.set_tone("warn" if opened else "ok")
         unused = r.get("unused", [])
         self.p_out.setText(f"{len(unused)} effort-list term(s) left out: no volume uses them")
@@ -144,7 +144,7 @@ class ListsPage(QWidget):
         t.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         t.setColumnWidth(0, 160); t.setColumnWidth(2, 160)
         for i, x in enumerate(rows):
-            bad = x["status"] != "Approved" or not x["definition"]
+            bad = x["status"] == "Not a term" or not x["definition"]
             for c, val in enumerate((x["term"], x["definition"] or "(no definition yet)", x["status"])):
                 it = QTableWidgetItem(val)
                 if bad and c > 0:

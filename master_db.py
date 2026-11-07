@@ -232,7 +232,7 @@ def combine(master_rows, effort_rows, label, when=None):
         reindex(i)
     out = {"added": [], "updated": [], "same": 0}
     for er in effort_rows:
-        if er.get("Status") != "Approved" or not (er.get("Definition") or "").strip():
+        if er.get("Status") == "Not a term" or not (er.get("Definition") or "").strip():
             continue
         term, definition = er["Term"].strip(), er["Definition"].strip()
         alts = AF.parse_alts(er.get(AF.ALT_COL, ""))

@@ -180,7 +180,7 @@ def build(effort=None, rec=None, lib=None, req_rows=(), matrix=None, info=None, 
         info["matrix"] = os.path.basename(getattr(matrix, "path", "") or "")
         _ = by_id
     if effort is not None:
-        cols = ["Term", "Type", "Definition", "Alt forms", "Status", "Approver", "Approved on", "Source", "Customer document",
+        cols = ["Term", "Type", "Definition", "Alt forms", "Status", "Source", "Customer document",
                 "Customer wording", "Used in volumes", "First use", "Notes"]
         out["Acronyms.csv"] = (cols, [[(effort.rows[t].get(c, "") if c != "Term" else t) for c in cols] for t in effort.order if t in effort.rows])
         kcols = ["Keyword", "Category", "Status", "Source", "Why", "Added by", "Date", "SharePoint field"]

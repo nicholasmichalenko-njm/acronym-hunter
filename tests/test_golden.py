@@ -74,7 +74,8 @@ for ver in sets:
         s = AS.AcronymSession(ws, got["list"], {}, {})
         s.restore()
         t, f, loc = ex["acronyms"]["first_use"]
-        check(f"{ver}: the omitted term stays omitted and the first use set by hand is kept", ex["acronyms"]["omitted"] in s.omitted
+        check(f"{ver}: the omitted term stays out (3.76.0: Not a term) and the first use set by hand is kept", (ex["acronyms"]["omitted"] in s.omitted or (ver >= "3.51" and s.effort is not None
+              and (s.effort.rows.get(ex["acronyms"]["omitted"]) or {}).get("Status") == "Not a term"))   # 3.76.0: omitted became Not a term
               and (s.results.get(ex["acronyms"]["omitted"]) or {}).get("excluded") and (s.first_use_set.get(t) or {}).get(f) == loc,
               (s.omitted, s.first_use_set))
     if ex.get("profile"):                                 # 3.52 on: a profile's volumes and limit inside its effort type

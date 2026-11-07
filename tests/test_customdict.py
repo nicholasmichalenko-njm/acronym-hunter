@@ -53,8 +53,10 @@ check("the export name: the dictionary and the date", s.export_name(a, when=d) =
 check("... with the effort's name when chosen", s.export_name(a, "Kestrel", when=d) == "Kestrel Aerospace Custom Kestrel 2026-10-30.dic")
 # the effort's acronyms
 L = E.EffortList(os.path.join(tmp, "K.xlsx"), "K")
-L.rows = {"CDRL": {"Status": "Approved"}, "IMS": {"Status": "Proposed"}, "TBD": {"Status": "Rejected"}}
-check("the effort's approved acronyms", CD.from_effort(L) == ["CDRL"] and CD.from_effort(L, include_proposed=True) == ["CDRL", "IMS"])
+L.rows = {"CDRL": {"Status": "In the list", "Definition": "Contract Data Requirements List"}, "IMS": {"Status": "In the list"},
+          "TBD": {"Status": "Not a term", "Definition": "To be determined"}}
+check("3.76.0: the effort's acronyms with a definition (no approval)", CD.from_effort(L) == ["CDRL"]
+      and CD.from_effort(L, include_proposed=True) == ["CDRL", "IMS"], CD.from_effort(L))
 check("removing a dictionary", s.remove(b) and CD.Store(cfg).get(b) is None)
 t = sum(checks)
 print(f"CUSTOM DICTIONARIES {'PASS' if t == len(checks) else 'FAIL'} ({t}/{len(checks)})")

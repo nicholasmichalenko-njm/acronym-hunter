@@ -194,7 +194,9 @@ def write_dic(path, words):
 
 
 def from_effort(effort_list, include_proposed=False):
-    """The acronyms an effort's list approved (and those still proposed, if asked), as dictionary words."""
+    """3.76.0: the terms in an effort's list with a definition (no approval any more), as dictionary words.
+    include_proposed (older callers) also takes those in the list with no definition yet."""
+    import effort as E
     rows = getattr(effort_list, "rows", {}) or {}
-    ok = ("Approved", "Proposed", "Needs author") if include_proposed else ("Approved",)
-    return sort_words(t for t, r in rows.items() if (r or {}).get("Status", "") in ok)
+    return sort_words(t for t, r in rows.items() if E._norm_status((r or {}).get("Status", "")) == E.IN
+                      and (include_proposed or ((r or {}).get("Definition") or "").strip()))

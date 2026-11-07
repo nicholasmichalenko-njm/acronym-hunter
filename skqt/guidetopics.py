@@ -386,30 +386,34 @@ TOPICS = [
    "A date in amber in Confirmed means nobody has checked that truth for 30 days: press Confirm when it is still right."]),
  ("acronyms", "Write", "Acronyms",
   "One place for acronyms, abbreviations, units and symbols, in three tabs: Scan finds them in the customer's "
-  "documents or your own drafts; Acronym List is the effort's list with approved definitions, and (3.37.0) Show > "
+  "documents or your own drafts; Acronym List is the effort's list with its definitions, and (3.37.0) Show > "
   "Lists to submit, by volume, builds each volume's list from what it uses.",
-  "At the start (scan the customer's documents), throughout (approve definitions), and at the end (the lists you submit).",
+  "At the start (scan the customer's documents), throughout (add terms and their definitions), and at the end (the lists you submit).",
   ["Scan: press Scan the customer documents, or Scan files... or Scan a folder... for your drafts.",
-   "For each term: Use this (a definition), Add to the acronym list, Not a term, or Needs author.",
-   "Omit leaves a term out of this effort's list, on every later scan; Bring back undoes it. Add to the Exclusion List "
-   "leaves it out of every effort (Exclusion List... shows the list; Take off the list gives a term back).",
+   "For each term: Add to effort list (adding it is the decision; there is no approval) or Not a term (this effort, on "
+   "every later scan and new document version). A term in the list with no definition shows No definition yet.",
+   "From a picture, The picture says something else... offers Part of a longer term... (VW in MOC-VW, held where they "
+   "sit together), Misread letters... and Not text. Each fix also saves a training sample with the effort.",
+   "More holds Plural of, A form of, Another way of writing, Part of a longer term, Add to this PC's database and Remove "
+   "from the list. The Exclusion List (never in any effort on this PC) is in Team References.",
    "Add to the database keeps the term and its meaning in this PC's acronym database, apart from the effort's list "
    "(usually after submission). Add a term... adds one by hand: to this scan, the effort list, the database, or all three.",
-   "The card: the meaning (other possibilities folded under Show other possibilities), the find as text you can copy, "
+   "The card: the meaning (other possibilities folded under Show other possibilities), Read here (the line it was read in), "
    "the definition box, the actions, then the preview. Show details opens the counts, the places and an equation's symbols.",
    "The preview boxes what the scan read. Page < and > go through every page or picture of the file. Click a box to see "
    "what it read: Fix the reading corrects it for every later scan on this PC; Use as the meaning puts the words in the "
    "definition box. Find < and > step through the finds and come back to the place.",
-   "Why is a term missing? Type a term you expected: the Exclusion List, Omit, a plural or form you set, the filters, or "
+   "Why is a term missing? Type a term you expected: the Exclusion List, Not a term, a plural or form you set, the filters, or "
    "what the last scan read (with near misses in pictures). Save as the answer key... makes your decided scan the key of "
    "your acronym set (a folder outside the repository), scored by each build.",
    "The table: click a heading to sort (again to turn it around); Ctrl+wheel or Ctrl+plus and minus change the text size; "
    "right-click a row for every action; double-click for Details. Select several rows to act on them together.",
    "Fixes for misread text...: when the reader misreads a word in a picture (KSF for KSE), add the fix; it is used every "
    "time a picture is read on this PC. Undo puts back the last change.",
-   "Acronym List: edit a definition, or press Approve... to record the approver. Export the list... for the team. "
-   "Export... picks the columns, format and volumes; For approval... lists the terms waiting with an approver column; Every "
-   "effort... puts every effort's list in one workbook; Import a volume's list... brings a volume's own list in as Proposed; "
+   "Acronym List: edit a definition in place. Export the list... for the team. Import a list... reads any Excel or CSV "
+   "list and merges it (new terms come in the list; the same meaning fills empty fields; a second meaning is kept under "
+   "Other definitions for review). Export... picks the columns, format and volumes; Every "
+   "effort... puts every effort's list in one workbook; Import a volume's list... brings a volume's own list in; "
    "Volumes... says which volumes use the selected terms; Activity, New in the last scan, Show in scan, Open in Excel and "
    "Reload help run the list; Add to this PC's database... keeps chosen terms for every effort.",
    "First use in your volumes is checked in Quality > Submission Check (Check first use... on the Acronym List opens it)."],

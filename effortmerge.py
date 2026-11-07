@@ -7,7 +7,7 @@ What merges, and how:
   documents  every customer document version, matched by content (sha256); a changed file is a new version of the same
              document; the files are copied into this effort's folders.
   acronyms   a new term is added; the same term with the same meaning fills empty fields, joins Found in, Used in
-             volumes and Alt forms, and keeps the stronger status (Approved over Needs author over Proposed); the same
+             volumes and Alt forms, and keeps the stronger status (3.76.0: In the list over Not a term); the same
              term with another meaning keeps ours, adds theirs to Other definitions and is listed for review. Keywords
              are joined by keyword.
   files      the Volumes and Response Setup folders: an identical file is skipped; a different file with the same name
@@ -25,7 +25,7 @@ import copy, datetime, hashlib, os, shutil, tempfile
 PARTS = ("documents", "acronyms", "files", "record")
 PART_NAMES = {"documents": "Customer documents", "acronyms": "Acronyms and keywords", "files": "Volumes and drafts",
               "record": "Topics, notes, deliverables, tasks and the rest of the record"}
-STRENGTH = {"Approved": 3, "Needs author": 2, "Proposed": 1, "Rejected": 0, "": -1}
+STRENGTH = {"In the list": 1, "Not a term": 0, "": -1}          # 3.76.0: no approval; in the list beats Not a term
 JOIN_FIELDS = ("Found in", "Used in volumes", "Alt forms")
 RECORD_KEEP = {"v", "stages", "stage", "merge_review"}            # ours always
 NAME_KEYS = ("name", "title", "text", "question", "term", "label")
@@ -123,22 +123,29 @@ def _join(a, b, sep="; "):
     return sep.join(parts)
 
 
-def merge_acronyms(src, dst_info, target):
+def merge_rows(T, rows, src_name):
+    """3.76.0: rows ([{column: value}], Term required) merged into the effort list T with the merge's rules: a new term
+    comes in as In the list; the same meaning fills empty fields and joins Found in and Used in volumes; two meanings
+    keep ours and add theirs to Other definitions, listed for review. Returns {"added", "filled", "same", "review"}."""
     import effort as E
-    S = E.EffortList(src["list"]).load()
-    T = E.EffortList(dst_info["path"], target).load()
     n = {"added": 0, "filled": 0, "same": 0, "review": []}
-    for t in S.order:
-        theirs = S.rows[t]
+    for theirs in rows:
+        t = " ".join(str(theirs.get("Term") or "").split())
+        if not t:
+            continue
+        theirs = dict(theirs)
+        if theirs.get("Status"):
+            theirs["Status"] = E._norm_status(theirs["Status"])
+        theirs = {k: v for k, v in theirs.items() if k in E.COLUMNS}
         ours = T.rows.get(t)
         if ours is None:
-            T.add_or_update(t, change_note=f"merged from {src['name']}", **{k: v for k, v in theirs.items() if k != "Term"})
+            T.add_or_update(t, change_note=f"merged from {src_name}", **{k: v for k, v in theirs.items() if k != "Term"})
             n["added"] += 1
             continue
         if _norm(ours.get("Definition")) and _norm(theirs.get("Definition")) and _norm(ours.get("Definition")) != _norm(theirs.get("Definition")):
             other = _join(ours.get("Other definitions"), theirs.get("Definition"))
             if other != (ours.get("Other definitions") or ""):
-                T.add_or_update(t, change_note=f"another meaning from {src['name']}", **{"Other definitions": other})
+                T.add_or_update(t, change_note=f"another meaning from {src_name}", **{"Other definitions": other})
             n["review"].append({"part": "Acronyms", "item": t, "ours": ours.get("Definition", ""), "theirs": theirs.get("Definition", ""),
                                 "why": "Two meanings: ours kept, theirs added to Other definitions"})
             continue
@@ -153,16 +160,21 @@ def merge_acronyms(src, dst_info, target):
             elif k == "Status":
                 if STRENGTH.get(v, -1) > STRENGTH.get(ours.get("Status", ""), -1):
                     fields["Status"] = v
-                    for k2 in ("Approver", "Approved on"):
-                        if theirs.get(k2):
-                            fields[k2] = theirs[k2]
             elif ours.get(k) in (None, ""):
                 fields[k] = v
         if fields:
-            T.add_or_update(t, change_note=f"filled from {src['name']}", **fields)
+            T.add_or_update(t, change_note=f"filled from {src_name}", **fields)
             n["filled"] += 1
         else:
             n["same"] += 1
+    return n
+
+
+def merge_acronyms(src, dst_info, target):
+    import effort as E
+    S = E.EffortList(src["list"]).load()
+    T = E.EffortList(dst_info["path"], target).load()
+    n = merge_rows(T, [S.rows[t] for t in S.order], src["name"])
     have = {_norm(k.get("Keyword")) for k in T.keywords}
     for k in S.keywords:
         if _norm(k.get("Keyword")) and _norm(k.get("Keyword")) not in have:

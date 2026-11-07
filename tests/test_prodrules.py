@@ -111,7 +111,7 @@ al = AL.load(A.CONFIG_DIR); al.add("Dana Whitfield"); al.add("Lee Osei", efforts
 
 
 class Lst:
-    rows = {"CDRL": {"Status": "Approved"}, "XYZ": {"Status": "Proposed"}}
+    rows = {"CDRL": {"Status": "In the list", "Definition": "Contract Data Requirements List"}, "XYZ": {"Status": "In the list"}}
 
 
 efdir = tempfile.mkdtemp()
@@ -124,7 +124,7 @@ check("3.6.1: a draft on the Deliverables board takes the deliverable's name as 
       ctx["variables"]["volume_name"] == "Volume II Management" and ctx["deliverable"]["limit"] == "25 pages", ctx["deliverable"])
 check("3.6.1: banned phrases from the team's list, with their suggestion", [b["find"] for b in ctx["banned"]] == ["utilize", "world-class"]
       and ctx["banned"][0]["suggest"] == "use")
-check("3.6.1: dictionary words, this effort's authors and its approved acronyms",
+check("3.6.1: dictionary words, this effort's authors and its acronyms with a definition",
       ctx["lists"]["team_terms"] == CD.sort_words(["cislunar", "MBSE"]) and ctx["lists"]["employee_names"] == ["Dana Whitfield"]
       and ctx["lists"]["acronyms"] == ["CDRL"], ctx["lists"])
 none = P.context(A.CONFIG_DIR, "", {}, None, rec, os.path.join(efdir, "elsewhere.docx"))

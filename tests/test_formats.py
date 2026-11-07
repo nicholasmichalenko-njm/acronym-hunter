@@ -37,17 +37,20 @@ _wb = openpyxl.load_workbook(L.path, read_only=True)       # read-only books hol
 ab = {r[0]: r[1] for r in _wb["About"].iter_rows(values_only=True) if r}
 _wb.close()
 check("effort acronym list", ab.get("Format") == F.number("effort acronym list") == E.FORMAT, ab)
-# format 1 (before 3.52.0) wrote SS Approver: it reads the same, and the next save writes Approver
+# format 2 (3.52.0 to 3.75.0) had Approver and Approved on, and four statuses; format 1 wrote SS Approver
 wb = openpyxl.load_workbook(L.path); ws = wb["Effort List"]
-col = [c.value for c in ws[1]].index("Approver") + 1
-ws.cell(row=1, column=col).value = "SS Approver"; ws.cell(row=2, column=col).value = "R. Diaz"; wb.save(L.path); wb.close()
+hd = [c.value for c in ws[1]]
+ncol = len(hd) + 1
+ws.cell(row=1, column=ncol).value = "SS Approver"; ws.cell(row=2, column=ncol).value = "R. Diaz"
+ws.cell(row=2, column=hd.index("Status") + 1).value = "Approved"; wb.save(L.path); wb.close()
 old = E.EffortList(L.path, "Kestrel").load()
-check("an acronym list saved before 3.52.0 reads its approvers", old.rows["KTV"]["Approver"] == "R. Diaz", old.rows.get("KTV"))
+check("an older list reads: Approved is In the list", old.rows["KTV"]["Status"] == "In the list", old.rows.get("KTV"))
+check("... and its approver moves into the history", any("R. Diaz" in " ".join(h) for h in old.history), old.history)
 old.save()
 _wb = openpyxl.load_workbook(L.path, read_only=True)
 hdr = [c.value for c in _wb["Effort List"][1]]
 _wb.close()
-check("... and the next save writes Approver", "Approver" in hdr and "SS Approver" not in hdr, hdr)
+check("... and the next save has no approval columns", "Approver" not in hdr and "SS Approver" not in hdr, hdr)
 import effortrelink as ER                                  # 3.68.0: the marker in an effort's folder
 mk = ER.write_marker(L.path, "Kestrel")
 check("effort marker", json.load(open(mk, encoding="utf-8"))["format"] == F.number("effort marker"))
@@ -57,7 +60,12 @@ check("outline layouts", json.load(open(os.path.join(cfg, OLY.FILE), encoding="u
 from skqt import usage as UG                                # 3.74.0: button use on this PC
 UG.save(cfg, UG.load(cfg))
 check("button use", json.load(open(os.path.join(cfg, UG.FILE), encoding="utf-8"))["format"] == F.number("button use") == UG.FORMAT)
-check("every kind is checked here", len(F.FORMATS) == 13, len(F.FORMATS))
+import efftrain as ETR                                      # 3.76.0: the effort's training samples
+class _S: pass
+_s = _S(); _s.ws = type("W", (), {"root": cfg})(); _s.effort = object()
+ETR.add(_s, "misread", "KSF", "KSE", ["Kestrel_Large_Diagram.png"])
+check("training samples", json.load(open(ETR.path_of(cfg), encoding="utf-8"))["format"] == F.number("training samples") == ETR.FORMAT)
+check("every kind is checked here", len(F.FORMATS) == 14, len(F.FORMATS))
 n = sum(checks)
 print(f"FORMATS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

@@ -75,6 +75,7 @@ class AcronymSession(AcronymRules):
         self.volume_report = None
         self.plurals = {}
         self.omitted = {}                                    # 3.51.0: {term: True} omitted in this effort, on every scan
+        self.parts = {}                                      # 3.76.0: {part: {"whole", "places"}} part of a longer term
         self.first_use_set = {}                              # 3.51.0: {term: {file: place}} chosen first uses
         self._last_vc = None
         self.selected_term = None
@@ -149,6 +150,7 @@ class AcronymSession(AcronymRules):
         self.plurals = dict(s.get("plurals") or {})                   # 2.86.0: {plural: singular}
         self.forms = dict(s.get("forms") or {})                       # 3.34.1: {FY27: FY}
         self.omitted = dict(s.get("omitted") or {})                   # 3.51.0
+        self.parts = dict(s.get("parts") or {})                       # 3.76.0: part of a longer term
         self.first_use_set = dict(s.get("first_use_set") or {})
         for t in self.omitted:                                        # results saved before 3.51.0 kept the flag only
             if t in self.results:
@@ -157,14 +159,25 @@ class AcronymSession(AcronymRules):
             self.apply_effort()
             self.apply_plurals()
             self.apply_forms()
+            self.omitted_to_list()
         return len(self.results)
+
+    def omitted_to_list(self):
+        """3.76.0: Omit is gone from the Acronyms page; a term omitted in an effort becomes Not a term in its list."""
+        if self.effort is None or not getattr(self, "omitted", None):
+            return 0
+        terms = [t for t in self.omitted if t in self.results]
+        n = self.set_status(terms, "Not a term") if terms else 0
+        self.omitted = {}
+        self.save()
+        return n
 
     def save(self):
         """Write the results back where the classic window keeps them, so either program resumes them."""
         s = self.ws.load_session() or {}
         s.update({"results": self.results, "manual_items": self.manual_items, "session_decisions": self.session_decisions,
                   "plurals": getattr(self, "plurals", {}), "forms": getattr(self, "forms", {}),
-                  "omitted": getattr(self, "omitted", {}), "first_use_set": getattr(self, "first_use_set", {}),
+                  "omitted": getattr(self, "omitted", {}), "parts": getattr(self, "parts", {}), "first_use_set": getattr(self, "first_use_set", {}),
                   "last_scan": {"paths": (self.last_scan or {}).get("paths", []), "folder": (self.last_scan or {}).get("folder")}
                   if self.last_scan else s.get("last_scan")})
         self.ws.save_session(s)
@@ -200,6 +213,8 @@ class AcronymSession(AcronymRules):
         self.apply_plurals()
         self.apply_forms()                                      # 3.34.1
         self.apply_omitted()                                    # 3.51.0: Omit holds on every scan
+        import acrparts
+        acrparts.apply_parts(self)                              # 3.76.0: part of a longer term, where it sits
         rec = self.effort_after_scan(self.queued_files) if self.effort is not None else None
         self.save()
         return rec
@@ -454,7 +469,7 @@ class AcronymSession(AcronymRules):
         return self.status.text
 
     def set_status(self, terms, status, approver=""):
-        """Proposed, Needs author, Approved (with the approver) or Rejected; terms not in the list are added first."""
+        """In the list or Not a term (3.76.0); terms not in the list are added first."""
         if self.effort is None:
             return 0
         terms = [t for t in terms if t in self.results]

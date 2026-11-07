@@ -5,7 +5,7 @@ install(page)        sorting by any column, text size (Ctrl+= and Ctrl+-, Ctrl+w
 top_buttons(page)    Add a term..., Customer acronym lists..., Exclusion List..., Meaning from context
 card_extras(page,t)  the "Found: ... Use" line, the context suggestion with Accept, an equation's symbols
 more_actions(page)   Add to the database, Add to the Exclusion List, Back to Proposed, Remove from the list,
-                     Accept context suggestions, Fix a misread..., Remove (a term added by hand)
+                     Accept context suggestions, Fix a misread..., Remove (a term added by hand); 3.76.0: no Approve, Omit or Exclusion List (Training keeps it)
 Rules only (No AI); nothing leaves the PC."""
 import os
 
@@ -104,14 +104,12 @@ def row_menu(page, at=None, run=True):
     s = page.session
     one = terms[0] if len(terms) == 1 else None
     m.addAction("Add to the effort list").triggered.connect(lambda: page.add(terms))
-    m.addAction("Approve...").triggered.connect(lambda: page.approve(terms))
-    m.addAction("Needs author").triggered.connect(lambda: page.set_status(terms, "Needs author"))
-    m.addAction("Back to Proposed").triggered.connect(lambda: page.set_status(terms, "Proposed"))
-    m.addAction("Not a term").triggered.connect(lambda: page.set_status(terms, "Rejected"))
+    nt = all(s.results[t].get("excluded") or s.results[t].get("effort") == "Not a term" for t in terms)
+    if nt:                                                    # 3.76.0: no approval, no Omit; Not a term is the one decision
+        m.addAction("Put back in the list").triggered.connect(lambda: page.set_status(terms, "In the list"))
+    else:
+        m.addAction("Not a term").triggered.connect(lambda: page.set_status(terms, "Not a term"))
     m.addSeparator()
-    om = all(s.results[t].get("excluded") for t in terms)
-    m.addAction("Bring back" if om else "Omit (this effort)").triggered.connect(lambda: page.exclude(terms, not om))
-    m.addAction("Add to the Exclusion List (every effort)").triggered.connect(lambda: exclusion_add(page, terms))
     m.addAction("Add to this PC's database").triggered.connect(lambda: add_to_db(page, terms))
     if s.effort is not None and any(t in s.effort.rows for t in terms):
         m.addAction("Remove from the acronym list").triggered.connect(lambda: remove_from_list(page, terms))
@@ -157,7 +155,6 @@ def top_buttons(page):
                      "acronym list or this PC's database"),
             D.button("Customer acronym lists...", None, lambda: page.client_lists(), "The customer's own acronym lists: their "
                      "meanings come first"),
-            D.button("Exclusion List...", None, lambda: exclusion_window(page), "Terms never shown in any effort on this PC"),
             D.button("Meaning from context", None, lambda: suggest_context(page), "For each term with several meanings, read the "
                      "words around each use and suggest the meaning that fits (you still decide)"),
             D.button("Fixes for misread text...", None, lambda: ocr_fixes_window(page), "What the reader gets wrong in pictures "

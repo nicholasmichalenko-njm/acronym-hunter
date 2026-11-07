@@ -62,7 +62,7 @@ def list_rows(session, terms=None):
             continue
         if d.get("excluded") or d.get("known") or d.get("plural_of") or d.get("form_of") or d.get("gone") or d.get("file_error"):
             continue
-        if (d.get("effort") or "") == "Rejected" or t.startswith("["):
+        if (d.get("effort") or "") == "Not a term" or t.startswith("["):
             continue
         meaning = d.get("selected_definition") or ""
         if meaning == "Keep All Possibilities":

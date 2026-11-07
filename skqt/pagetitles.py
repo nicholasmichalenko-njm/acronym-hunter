@@ -38,7 +38,7 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "deliverables": ("Deliverables", "Every deliverable at a glance: where each stands and what is missing"),
           "evalcrit": ("Evaluation Criteria", "How the customer will judge the proposal: the factors, their importance and the deliverables they judge"),
           "acronyms": ("Acronyms", "Scan the customer's documents or your own drafts for acronyms, abbreviations, units and symbols"),
-          "acrlist": ("Acronym List", "The effort's acronym list: every term with its approved definition"),
+          "acrlist": ("Acronym List", "The effort's acronym list: every term with its definition"),
           "qa": ("Submission Check", "End: the volumes you will submit, against the effort list, banned words and page limits"),
           "lists": ("Lists to Submit", "The acronym lists for your volumes, built from what each one uses"),
           "keywords": ("Keywords", "After submission: the effort's keywords, suggestions with reasons, and the SharePoint export"),

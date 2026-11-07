@@ -130,8 +130,7 @@ class AcronymRules:
             "Found in omit list": bool(data.get("known")),
             "New in this scan (not in the effort list)": bool(data.get("new_in_effort")) and not data.get("effort"),
             "Context suggests a meaning": bool((data.get("context") or {}).get("definition")) and kind == "choice",
-            "Effort: needs author": data.get("effort") in ("Proposed", "Needs author"),
-            "Effort: approved": data.get("effort") == "Approved",
+            "Effort: no definition yet": data.get("effort") == "In the list" and not (data.get("selected_definition") or "").strip(),
             "New since last scan": data.get("change") == "New",
             "Changed since last scan": data.get("change") == "Changed",
             "No longer found": data.get("gone", False),
@@ -444,13 +443,14 @@ class AcronymRules:
                 pre = d["_pre_effort"]
             st = row["Status"]
             d["effort"] = st
-            d["excluded"] = pre[2] or st == "Rejected"
-            if st == "Rejected":
+            d["excluded"] = pre[2] or st == "Not a term"
+            if st == "Not a term":
                 d["status"] = "Not a term in this effort"
                 d["selected_definition"] = pre[1]
             else:
-                d["status"] = f"Effort list: {st}"
+                d["status"] = f"Effort list: {st}" + ("" if (row["Definition"] or "").strip() else ", no definition yet")
                 d["selected_definition"] = row["Definition"] or pre[1]
+            d["list_definition"] = row.get("Definition", "")          # 3.76.0: No definition yet is the list's own
         if hasattr(self, "tree"):
             self.populate_table()
         if hasattr(self, "session_changed"):
@@ -574,9 +574,9 @@ class AcronymRules:
         out = []
         for t in L.order:
             r = L.rows[t]
-            if r["Status"] == "Rejected" or self.results.get(t, {}).get("known"):
+            if r["Status"] == "Not a term" or self.results.get(t, {}).get("known"):
                 continue
-            if approved_only and r["Status"] != "Approved":
+            if approved_only and not (r.get("Definition") or "").strip():
                 continue
             out.append(r)
         return sorted(out, key=lambda r: r["Term"].lower())
@@ -742,7 +742,7 @@ class AcronymRules:
             except Exception:
                 diag.swallowed()
         L = self.effort
-        acr = [(t, r["Definition"]) for t, r in L.rows.items() if r["Status"] == "Approved" and r.get("Definition")] if L else []
+        acr = [(t, r["Definition"]) for t, r in L.rows.items() if r["Status"] != "Not a term" and r.get("Definition")] if L else []
         import offerings
         return keywords.suggest(chunks, acr, [k["Keyword"] for k in (L.keywords if L else [])], offerings=offerings.load(),
                                 base=keywords.baseline(), learned=keywords.learning(), asks=self.kw_asks())

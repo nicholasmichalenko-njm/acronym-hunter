@@ -63,7 +63,7 @@ def build(page, t, kind_tone):
 
     # ---- the find as text, then the definition box
     fr = QHBoxLayout(); fr.setSpacing(D.SPACE["s"])
-    fr.addWidget(D.label("The find", "muted", wrap=False))
+    fr.addWidget(D.label("Read here", "muted", wrap=False))
     page.find_text = QLineEdit(); page.find_text.setReadOnly(True)
     page.find_text.setPlaceholderText("The line the term was read in shows here when the preview opens")
     fr.addWidget(page.find_text, 1)
@@ -73,7 +73,7 @@ def build(page, t, kind_tone):
     from . import symbols as SYM
     tr = QHBoxLayout(); tr.setSpacing(D.SPACE["s"])
     tr.addWidget(page.typed, 1); tr.addWidget(SYM.button(page.typed))
-    page.use_sel = D.button("Use the selected words", "ghost", lambda: page.use_selected(),
+    page.use_sel = D.button("Use as the definition", "ghost", lambda: page.use_selected(),
                             "Select words in the passage or click a box in the picture, then put them in the definition box")
     tr.addWidget(page.use_sel)
     body.addLayout(tr)
@@ -92,7 +92,8 @@ def build(page, t, kind_tone):
     inner = QVBoxLayout(); inner.setContentsMargins(0, 0, 0, 0); inner.setSpacing(D.SPACE["s"])
     pills = QHBoxLayout(); pills.setSpacing(D.SPACE["s"])
     if d.get("effort"):
-        pills.addWidget(D.Pill(f"Acronym list: {d['effort']}", "ok" if d["effort"] == "Approved" else "accent"))
+        pills.addWidget(D.Pill(f"Acronym list: {d['effort']}" + ("" if ((d.get("list_definition") or "").strip() or d["effort"] == "Not a term") else ", no definition yet"),
+                            "ok" if (d.get("list_definition") or "").strip() and d["effort"] == "In the list" else "head" if d["effort"] == "Not a term" else "warn"))
     if d.get("plural_of"):
         pills.addWidget(D.Pill(f"Plural of {d['plural_of']}", "ctx"))
     if d.get("form_of"):

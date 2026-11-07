@@ -177,7 +177,7 @@ def plan(M, volume, std=None, extras=None):
             elif src in ("list_figure", "list_table"):
                 pg["lines"] += [(("Figure" if src == "list_figure" else "Table") + " #", "toc")]
             elif src == "acronyms":
-                pg["lines"] += [(f"{t}  {d}", "row") for t, d in (ex.get("acronyms") or [])[:30]] or [("(the approved acronyms)", "note")]
+                pg["lines"] += [(f"{t}  {d}", "row") for t, d in (ex.get("acronyms") or [])[:30]] or [("(the acronyms in the effort's list)", "note")]
             elif src == "matrix":
                 pg["lines"] += [(f"{i}  {s}", "row") for i, _r, s in SD.matrix_rows(M, entries, P)[:30]]
             elif src == "quickpart":

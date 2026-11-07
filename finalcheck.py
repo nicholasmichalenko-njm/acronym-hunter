@@ -294,7 +294,7 @@ def run(volume, ctx=None):
         s_ = qr.get("summary") or {}
         if s_.get("missing") or s_.get("not_approved"):
             lines.append(_line("Acronyms", "Terms in the effort list and approved", HUMAN,
-                               f"Across the volumes checked: {s_.get('missing', 0)} not in the effort list, {s_.get('not_approved', 0)} not approved."))
+                               f"Across the volumes checked: {s_.get('missing', 0)} not in the effort list, {s_.get('not_approved', 0)} with no definition yet."))
 
     # 6 leftovers
     if has_docx:

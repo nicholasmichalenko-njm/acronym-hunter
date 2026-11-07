@@ -17,10 +17,11 @@ FORMATS = {
     "Stationkeeper Data file": ("teamdata.export -> manifest.json in the .skdata", "format", "sk-data-1"),
     "update pack": ("updatepack -> update.json in the .skupdate", "format", 1),
     "effort record": ("effortrec.Record.save -> record.json", "v", 1),
-    "effort acronym list": ("effort.EffortList.save -> the workbook's About sheet", "Format", 2),   # 3.52.0: SS Approver became Approver
+    "effort acronym list": ("effort.EffortList.save -> the workbook's About sheet", "Format", 3),   # 3.76.0: In the list or Not a term; no approval
     "effort marker": ("effortrelink.write_marker -> Open this effort.skeffort in the effort's folder", "format", 1),   # 3.68.0
     "outline layouts": ("outlinelayouts.save -> outline_layouts.json", "format", 1),   # 3.73.0
     "button use": ("skqt.usage.save -> button_use.json", "format", 1),   # 3.74.0: on this PC only
+    "training samples": ("efftrain.add -> training_samples.json in the effort's working folder", "format", 1),   # 3.76.0
 }
 
 

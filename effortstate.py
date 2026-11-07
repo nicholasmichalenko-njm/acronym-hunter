@@ -62,7 +62,7 @@ def checks_of(rec, M=None, lib=None, rows=(), L=None, report=None, volumes=(), p
             except Exception:
                 diag.swallowed()
         if L is not None and L.rows:
-            c["acr_approved"] = all(x["Status"] in ("Approved", "Rejected") for x in L.rows.values())
+            c["acr_approved"] = all(x["Status"] == "Not a term" or (x.get("Definition") or "").strip() for x in L.rows.values())
         c["qa_run"] = bool(report) or None
         if report:
             s = report.get("summary", {})
@@ -288,12 +288,15 @@ class State:
         return self.rec.calendar(first=first, last=last, extra=self.cal_extra(), mine=mine, who=who, stages=stages)
 
     def acronyms(self):
-        """{"total", "Approved", "Proposed", "Needs author", "Rejected"} from the effort's acronym list."""
-        out = {"total": 0, "Approved": 0, "Proposed": 0, "Needs author": 0, "Rejected": 0}
+        """3.76.0: {"total", "In the list", "Not a term", "No definition"} from the effort's acronym list."""
+        out = {"total": 0, "In the list": 0, "Not a term": 0, "No definition": 0}
         L = self.L
         for r in (L.rows.values() if L is not None else []):
             out["total"] += 1
-            out[r.get("Status") or "Proposed"] = out.get(r.get("Status") or "Proposed", 0) + 1
+            st = r.get("Status") or "In the list"
+            out[st] = out.get(st, 0) + 1
+            if st != "Not a term" and not (r.get("Definition") or "").strip():
+                out["No definition"] += 1
         return out
 
     def qa(self):

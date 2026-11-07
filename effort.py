@@ -14,13 +14,24 @@ import datetime, json, os, re, tempfile
 import alt_forms as A
 
 COLUMNS = ["Term", "Type", "Definition", "Alt forms", "Source", "Customer document", "Customer wording", "Other definitions",
-           "Status", "Approver", "Approved on", "Used in volumes", "First use", "Notes",
+           "Status", "Used in volumes", "First use", "Notes",
            "Found in", "First found", "Last found", "Scan status", "Effort", "Client", "Solicitation"]   # 2.14.0: last 7
-WIDTHS = [14, 14, 42, 18, 14, 30, 50, 36, 14, 22, 13, 24, 30, 30, 44, 12, 12, 30, 22, 18, 18]
-FORMAT = 2                                      # 3.52.0: format 2 writes Approver (format 1, unnumbered, wrote SS Approver)
+WIDTHS = [14, 14, 42, 18, 14, 30, 50, 36, 14, 24, 30, 30, 44, 12, 12, 30, 22, 18, 18]
+# 3.76.0 (claude/stationkeeper-acronym-review-decisions-2026-11-06.md decision 5): no approval. A term is in the list or
+# not a term; one in the list with a definition is ready (Lists to Submit, the database, the checks, the dictionary).
+# Format 3: Proposed, Needs author and Approved read as In the list, Rejected as Not a term; Approver and Approved on
+# move into the term's history. Format 2 (3.52.0) wrote Approver; format 1 (unnumbered) wrote SS Approver.
+FORMAT = 3
+IN, NOT = "In the list", "Not a term"
 OLD_HEADINGS = {"SS Approver": "Approver"}     # 3.52.0: the column renamed; workbooks saved before read the same, the next save writes the new heading
 SCAN_NEW, SCAN_FOUND, SCAN_GONE = "New in this scan", "Found", "No longer found in"
-STATUSES = ["Proposed", "Needs author", "Approved", "Rejected"]
+STATUSES = [IN, NOT]
+OLD_STATUS = {"proposed": IN, "needs author": IN, "approved": IN, "rejected": NOT}
+
+
+def ready(row):
+    """In the list with a definition: what Lists to Submit, the acronym database, the checks and the dictionary take."""
+    return (row or {}).get("Status") == IN and bool(((row or {}).get("Definition") or "").strip())
 FIRST_USE_RULES = {"volume": "Restarts in each volume", "section": "Restarts in each section of each volume",
                    "submission": "Runs across the whole submission"}
 SHEET, HIST, ABOUT = "Effort List", "History", "About"
@@ -77,6 +88,7 @@ class EffortList:
             it = ws.iter_rows(values_only=True)
             header = [OLD_HEADINGS.get(h, h) for h in (str(h or "").strip() for h in next(it, []))]
             idx = {h: i for i, h in enumerate(header)}
+            old_appr = []                                   # 3.76.0: format 2's approvals, into the history
             for vals in it:
                 vals = list(vals or [])
                 term = str(vals[idx["Term"]] if "Term" in idx and idx["Term"] < len(vals) and vals[idx["Term"]] is not None else "").strip()
@@ -90,6 +102,10 @@ class EffortList:
                     row[c] = "" if v is None else str(v).strip()
                 if row["Status"] not in STATUSES:
                     row["Status"] = _norm_status(row["Status"])
+                ap = [str(vals[idx[c]]).strip() if c in idx and idx[c] < len(vals) and vals[idx[c]] not in (None, "") else ""
+                      for c in ("Approver", "Approved on")]
+                if any(ap):
+                    old_appr.append((term, ap))
                 primary, alts = A.split_term(term)       # "TT&C (TTC)" typed in Excel: primary with an alt form (2.26.0)
                 if alts:
                     term = primary
@@ -102,6 +118,10 @@ class EffortList:
                 hit = wb[HIST].iter_rows(values_only=True)
                 next(hit, None)
                 self.history = [[("" if v is None else str(v)) for v in (list(r) + ["", "", "", ""])[:4]] for r in hit if r and any(r)]
+            for term, (who, when) in old_appr:
+                if term in self.rows:
+                    self.history.append([when[:10] or today(), who or "", term, "approved" + (f" by {who}" if who else "")
+                                         + (f" on {when[:10]}" if when else "") + " (before 3.76.0, which has no approval)"])
             if KEYWORDS in wb.sheetnames:
                 kit = wb[KEYWORDS].iter_rows(values_only=True)
                 khead = [str(h or "").strip() for h in next(kit, [])]
@@ -136,7 +156,7 @@ class EffortList:
         row = self.rows.get(term)
         if row is None:
             row = {c: "" for c in COLUMNS}
-            row["Term"], row["Status"] = term, "Proposed"
+            row["Term"], row["Status"] = term, IN
             for k, v in fields.items():
                 if k in row and v is not None:
                     row[k] = str(v)
@@ -163,10 +183,10 @@ class EffortList:
         return A.parse_alts(row["Alt forms"]) if row else []
 
     def alt_map(self):
-        """{alt form: primary term} for every row that is not Rejected."""
+        """{alt form: primary term} for every row that is not Not a term."""
         out = {}
         for t, r in self.rows.items():
-            if r.get("Status") != "Rejected":
+            if r.get("Status") != NOT:
                 for a in A.parse_alts(r.get("Alt forms", "")):
                     out.setdefault(a, t)
         return out
@@ -205,6 +225,9 @@ class EffortList:
         return self.set_alts(term, A.parse_alts(self.rows[term]["Alt forms"]) + [alt]) if term in self.rows else []
 
     def set_status(self, terms, status, approver=None, note=None):
+        """In the list or Not a term (the old names still read: Proposed, Needs author, Approved, Rejected). approver
+        is kept for older callers and only noted in the history."""
+        status = status if status in STATUSES else OLD_STATUS.get(str(status or "").strip().lower())
         if status not in STATUSES:
             raise ValueError("unknown status")
         n = 0
@@ -213,17 +236,9 @@ class EffortList:
             if row is None:
                 continue
             row["Status"] = status
-            if status == "Approved":
-                if approver:
-                    names = [a for a in re.split(r"\s*;\s*", row["Approver"]) if a]
-                    for a in re.split(r"\s*;\s*", approver):
-                        if a and a not in names:
-                            names.append(a)
-                    row["Approver"] = "; ".join(names)
-                row["Approved on"] = today()
             if note:
                 row["Notes"] = (row["Notes"] + "; " if row["Notes"] else "") + note
-            self._hist(t, f"status {status}" + (f" by {approver}" if approver and status == "Approved" else ""))
+            self._hist(t, f"status {status}" + (f" ({approver})" if approver else ""))
             n += 1
         return n
 
@@ -321,7 +336,7 @@ class EffortList:
         for i, c in enumerate(ws[1], 1):
             c.font = Font(bold=True, color="FFFFFF"); c.fill = head
             ws.column_dimensions[c.column_letter].width = WIDTHS[i - 1]
-        fills = {"Approved": "E7F6EC", "Needs author": "FEF3E2", "Rejected": "EEEEEE", "Proposed": None}
+        fills = {NOT: "EEEEEE"}
         for t in self.order:
             r = self.rows[t]
             r["Effort"], r["Client"], r["Solicitation"] = self.name, self.client, self.solicitation   # every row says whose it is
@@ -363,7 +378,7 @@ class EffortList:
                   ["Internal number", self.internal_no], ["First use", FIRST_USE_RULES[self.first_use]],
                   ["Saved", datetime.datetime.now().strftime("%Y-%m-%d %H:%M")], ["Format", FORMAT],
                   ["Statuses", ", ".join(STATUSES)],
-                  ["Note", "Edit Status, Approver and Notes here or in Stationkeeper. Keep the column headings."]):
+                  ["Note", "Edit Status (In the list or Not a term) and Notes here or in Stationkeeper. Keep the column headings."]):
             ab.append(r)
         ab.column_dimensions["A"].width = 12; ab.column_dimensions["B"].width = 80
         fd, tmp = tempfile.mkstemp(prefix=".effort_", suffix=".xlsx", dir=d)
@@ -382,13 +397,13 @@ class EffortList:
 
     # ------------------------------------------------------------ exports for approvals
     def export_views(self, out_path):
-        """A separate workbook with sheets people act on: Needs author, Conflicts, Approved, All."""
+        """A separate workbook with sheets people act on: No definition yet, Conflicts, Ready, All (3.76.0)."""
         from openpyxl import Workbook
         from openpyxl.styles import Font
         wb = Workbook()
-        views = [("Needs author", lambda r: r["Status"] in ("Proposed", "Needs author")),
+        views = [("No definition yet", lambda r: r["Status"] == IN and not (r.get("Definition") or "").strip()),
                  ("Conflicts", lambda r: bool(r["Other definitions"])),
-                 ("Approved", lambda r: r["Status"] == "Approved"),
+                 ("Ready", lambda r: ready(r)),
                  ("All", lambda r: True)]
         first = True
         for title, keep in views:
@@ -414,13 +429,11 @@ def _norm_status(s):
     for st in STATUSES:
         if s == st.lower():
             return st
-    if s.startswith("approv"):
-        return "Approved"
-    if s.startswith("reject") or s in ("no", "not a term"):
-        return "Rejected"
-    if "author" in s or "need" in s:
-        return "Needs author"
-    return "Proposed"
+    if s in OLD_STATUS:
+        return OLD_STATUS[s]
+    if s.startswith("reject") or s in ("no", "not a term", "not term"):
+        return NOT
+    return IN
 
 
 # ------------------------------------------------------------ the list of efforts on this PC

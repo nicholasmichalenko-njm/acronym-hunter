@@ -158,6 +158,9 @@ class TrainingWindow(QMainWindow):
         row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
         row.addWidget(D.button("Import training data...", "primary", lambda: self.import_packs()))
         row.addWidget(D.button("Add past compliance matrices...", None, lambda: self.gather_matrices()))
+        row.addWidget(D.button("Learn from an effort...", None, lambda: self.learn_effort(),
+                               "An effort's folder: every fix made in it (misread letters, not text, part of a longer term) "
+                               "is a sample here; the same effort twice adds nothing twice (3.76.0)"))
         row.addStretch(1)
         card.body.addLayout(row)
         self.lbl_gather = card.add(D.label(""))
@@ -233,6 +236,41 @@ class TrainingWindow(QMainWindow):
                 QMessageBox.information(self, "Import", ("Imported:\n" + "\n".join(done) if done else "")
                                         + ("\n\nNot imported (nothing copied):\n" + "\n".join(failed) if failed else ""))
         return done, failed
+
+    def learn_effort(self, folder=None, ask=True):
+        """3.76.0: the effort is the training packet. Reads training_samples.json in an effort's working folder (or
+        anywhere under the folder picked); misread letters become fixes for misread text on this PC; every sample is
+        kept with the rest of the training data for review. Returns {"new", "fixes", "same"}."""
+        import efftrain as ET
+        import ocrfixes as OF
+        if folder is None:
+            folder = QFileDialog.getExistingDirectory(self, "Learn from an effort: its folder")
+            if not folder:
+                return None
+        roots = [dp for dp, _d, fs in os.walk(folder) if ET.FILE in fs][:50]
+        keep = os.path.join(getattr(eng, "DATA_DIR", eng.BASE_DIR), "training_data", "from_efforts.json")
+        import workspace as W
+        have = W.read_json(keep, {}) or {}
+        got = ET.learn(roots, have.get("ids", []))
+        fixes = 0
+        for x in got:
+            if x.get("kind") == "misread" and x.get("right") and x.get("read"):
+                try:
+                    OF.add(x["read"], x["right"], note="learned from an effort")
+                    fixes += 1
+                except PermissionError:
+                    diag.swallowed()
+        if got:
+            os.makedirs(os.path.dirname(keep), exist_ok=True)
+            W.write_json(keep, {"format": 1, "ids": list(have.get("ids", [])) + [x["id"] for x in got],
+                                "samples": list(have.get("samples", [])) + got})
+        out = {"new": len(got), "fixes": fixes, "same": sum(len(ET.load(r)) for r in roots) - len(got)}
+        diag.activity("training_learned_from_effort", n=len(got))
+        self.refresh()
+        if ask:
+            QMessageBox.information(self, "Learn from an effort", f"{out['new']} new sample(s) from {len(roots)} effort folder(s): "
+                                    f"{out['fixes']} fix(es) for misread text; {out['same']} already learned.")
+        return out
 
     def gather_matrices(self, paths=None):
         if paths is None:

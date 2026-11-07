@@ -289,7 +289,7 @@ class FixPage(QWidget):
                              + (f"; company: {v['company']}" if v.get("company") else "")
                              + f". Terms from the team: {len(ctx.get('banned', []))} banned phrases, "
                              f"{len(lists.get('team_terms', []))} dictionary words, {len(lists.get('employee_names', []))} names, "
-                             f"{len(lists.get('acronyms', []))} approved acronyms.")
+                             f"{len(lists.get('acronyms', []))} acronyms from the effort's list.")
 
     def refresh(self):
         self.out_lbl.setText(self.effort_folder())

@@ -397,8 +397,8 @@ class DashPage(QWidget):
     def fill_acronyms(self, d):
         clear(self.acr_legend); clear(self.qa_row)
         a = d["acronyms"]
-        segs = [(a["Approved"], "ok", "Approved"), (a["Proposed"], "accent", "Proposed"), (a["Needs author"], "warn", "Needs author"),
-                (a["Rejected"], "border_strong", "Rejected")]
+        segs = [(a["In the list"] - a["No definition"], "ok", "In the list"), (a["No definition"], "warn", "No definition yet"),
+                (a["Not a term"], "border_strong", "Not a term")]                     # 3.76.0: no approval
         self.acr_bar.set(segs)
         self.acr_legend.addWidget(D.legend(segs) if a["total"] else D.label("No acronyms in the effort's list yet.", "muted"))
         q = d["qa"]

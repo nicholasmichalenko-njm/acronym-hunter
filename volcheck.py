@@ -10,9 +10,9 @@ Report parts:
                 acronym first appears, whether it is written "Spelled Out Words (ACR)", whether the spelled-out words
                 match the effort list, later re-definitions.
   missing       terms the volumes use that the effort list does not have.
-  not_approved  terms in the list whose status is Proposed or Needs author.
+  not_approved  terms in the list with no definition yet (3.76.0: the list has no approval).
   differs       the volume spells a term out differently from the effort list.
-  unused        list entries (not Rejected) that no volume uses: keep them out of the volumes' acronym lists.
+  unused        list entries (not Not a term) that no volume uses: keep them out of the volumes' acronym lists.
   lists         per volume: every acronym, abbreviation and unit it uses, with the list's definition.
 Nothing leaves the PC: the report is written only where the user saves it.
 """
@@ -81,7 +81,7 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
         if d.get("manual") or d.get("file_error") or d.get("gone") or not kind(d.get("category", "")):
             continue
         row = rows.get(term)
-        if d.get("excluded") and not (row and row.get("Status") == "Rejected"):
+        if d.get("excluded") and not (row and row.get("Status") == "Not a term"):
             continue                           # excluded in the database: not a term anywhere
         for v in volumes:
             locs = _uses(d, v, file_of)
@@ -96,7 +96,7 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
         r = rows.get(term)
         return r["Status"] if r else "Not in effort list"
 
-    rejected = {t for t, r in rows.items() if r.get("Status") == "Rejected"}
+    rejected = {t for t, r in rows.items() if r.get("Status") == "Not a term"}
     vol_lists = vol_lists or {}
     alts_found = {}                            # primary -> results of its alternate forms (2.26.0)
     for t, d in results.items():
@@ -284,9 +284,9 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
             sd = "" if _placeholder(sd) else sd
             missing.append(dict(base, suggestion=sd))
             continue
-        if r["Status"] == "Rejected":
+        if r["Status"] == "Not a term":
             continue
-        if r["Status"] in ("Proposed", "Needs author"):
+        if not (r.get("Definition") or "").strip():
             not_approved.append(dict(base, status=r["Status"], definition=r.get("Definition", "")))
         want = r.get("Definition", "")
         for v in vols:
@@ -299,7 +299,7 @@ def build(results, rows, volumes, rule="volume", vol_defs=None, file_of=None, in
     unused = []
     for term in sorted(rows, key=str.lower):
         r = rows[term]
-        if r.get("Status") == "Rejected" or term in all_terms or any(a in all_terms for a in AF.parse_alts(r.get("Alt forms", ""))) \
+        if r.get("Status") == "Not a term" or term in all_terms or any(a in all_terms for a in AF.parse_alts(r.get("Alt forms", ""))) \
                 or any(((results.get(x) or {}).get("plural_of") or (results.get(x) or {}).get("form_of")) == term for x in all_terms):
             continue
         unused.append({"term": term, "type": r.get("Type", ""), "status": r.get("Status", ""), "definition": r.get("Definition", "")})
@@ -388,7 +388,7 @@ def write_excel(report, path, effort_name=""):
               ["Banned words found", sum(s.get("banned", {}).values())],
               ["Acronym list problems", sum(s.get("list_checks", {}).get(lv, 0) for lv in (BAD, WARN))],
               ["Checked on", "Word documents (.docx) only; PDF exports are not checked"],
-              ["Not in effort list", s["missing"]], ["Not approved yet", s["not_approved"]],
+              ["Not in effort list", s["missing"]], ["No definition yet", s["not_approved"]],
               ["Definition differs", s["differs"]], ["In the list, not used", s["unused"]]):
         ws.append(r)
     ws.column_dimensions["A"].width = 22; ws.column_dimensions["B"].width = 90
@@ -430,7 +430,7 @@ def write_excel(report, path, effort_name=""):
               level_key="level")
     sheet("Not in effort list", ["Term", "Type", "Volumes", "Count", "Suggested definition", "First found at"],
           report["missing"], ["term", "type", "volumes", "count", "suggestion", "loc"], [14, 13, 30, 8, 40, 40])
-    sheet("Not approved", ["Term", "Type", "Status", "Definition", "Volumes", "First found at"],
+    sheet("No definition yet", ["Term", "Type", "Status", "Definition", "Volumes", "First found at"],
           report["not_approved"], ["term", "type", "status", "definition", "volumes", "loc"], [14, 13, 14, 40, 30, 40])
     sheet("Definition differs", ["Term", "Volume", "Volume says", "Effort list says", "Where", "Sentence"],
           report["differs"], ["term", "volume", "written", "list_definition", "loc", "sentence"], [14, 22, 36, 36, 36, 60])
