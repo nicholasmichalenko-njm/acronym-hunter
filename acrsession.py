@@ -66,6 +66,11 @@ class AcronymSession(AcronymRules):
 
     def __init__(self, ws, effort_path, efforts, settings=None):
         self.ws, self.efforts = ws, efforts
+        try:                                                # 3.80.0: the pictures' readings kept with the effort
+            import picreadings as PR
+            PR.use(getattr(ws, "root", None) or None)
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
         self.settings = settings if settings is not None else {}
         self.project = None
         self.results, self.manual_items, self.session_decisions = {}, {}, {}
@@ -174,6 +179,8 @@ class AcronymSession(AcronymRules):
 
     def save(self):
         """Write the results back where the classic window keeps them, so either program resumes them."""
+        import picreadings as PR
+        PR.flush()
         s = self.ws.load_session() or {}
         s.update({"results": self.results, "manual_items": self.manual_items, "session_decisions": self.session_decisions,
                   "plurals": getattr(self, "plurals", {}), "forms": getattr(self, "forms", {}),

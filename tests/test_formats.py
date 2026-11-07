@@ -65,7 +65,11 @@ class _S: pass
 _s = _S(); _s.ws = type("W", (), {"root": cfg})(); _s.effort = object()
 ETR.add(_s, "misread", "KSF", "KSE", ["Kestrel_Large_Diagram.png"])
 check("training samples", json.load(open(ETR.path_of(cfg), encoding="utf-8"))["format"] == F.number("training samples") == ETR.FORMAT)
-check("every kind is checked here", len(F.FORMATS) == 14, len(F.FORMATS))
+import picreadings as PRD                                     # 3.80.0: the pictures' readings with the effort
+PRD.use(cfg); PRD.put("k1", [((1, 2, 30, 12), "KTV", 0.91, "read")]); PRD.flush()
+check("picture readings", json.load(open(os.path.join(cfg, PRD.FILE), encoding="utf-8"))["format"] == F.number("picture readings") == PRD.FORMAT)
+PRD.use(None)
+check("every kind is checked here", len(F.FORMATS) == 15, len(F.FORMATS))
 n = sum(checks)
 print(f"FORMATS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

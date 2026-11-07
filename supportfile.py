@@ -20,6 +20,7 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "3.80.0": ["The acronym preview draws the scan's own readings at once (kept with the effort), and draws the next term's picture ahead.", "Drag a box on the picture: the readings inside it are highlighted; Read this area again; Add as a term... for a term the scan missed.", "Every fix keeps the picture's part with its training sample."],
     "3.79.0": ["Check a Draft > Apply in Word > Drift report...: how far a draft has moved from the copies made of it.", "Each change in a copy: taken up, still to take, or in a passage that changed; make the copy again once a fifth of the draft changed."],
     "3.78.0": ["The Effort Library: every file of the effort in real folders on disk (Bidders Library, Our Documents, Graphics, Q&A).", "New folder..., and moving a document moves its file; More > Move kept files into the Library folders... for older efforts.", "Acronyms: Scan files... offers to add the files to the library first; Scan the library... scans the folders you tick."],
     "3.77.0": ["Settings is in sections: pick one in the list on the left.", "Custom dictionaries and this PC's acronym database are in Team References only.", "Matrix, Compare and Customer Q&A: one bar each, with More and Export."],

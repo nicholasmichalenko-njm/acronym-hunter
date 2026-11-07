@@ -251,7 +251,7 @@ class TrainingWindow(QMainWindow):
         keep = os.path.join(getattr(eng, "DATA_DIR", eng.BASE_DIR), "training_data", "from_efforts.json")
         import workspace as W
         have = W.read_json(keep, {}) or {}
-        got = ET.learn(roots, have.get("ids", []))
+        got = ET.learn(roots, have.get("ids", []), crops_to=os.path.join(os.path.dirname(keep), "from_efforts_crops"))
         fixes = 0
         for x in got:
             if x.get("kind") == "misread" and x.get("right") and x.get("read"):

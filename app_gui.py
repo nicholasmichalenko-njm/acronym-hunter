@@ -954,7 +954,14 @@ def read_image_bytes(image_bytes, page=False):
     key = hashlib.sha1(image_bytes).hexdigest()
     if key not in _OCR_CACHE:
         try:
-            _OCR_CACHE[key] = _ocr_raw(image_bytes)
+            import picreadings as PR
+            if PR.active():                    # 3.80.0: keep the readings with the effort, so the preview draws them
+                text, readings = _ocr_detail(image_bytes)
+                _OCR_CACHE[key] = text
+                _OCR_READINGS[key] = readings
+                PR.put(PR.key_of_bytes(image_bytes), readings)
+            else:
+                _OCR_CACHE[key] = _ocr_raw(image_bytes)
         except Exception as e:
             log_error("OCR failed on one image")
             note_skip("OCR engine", f"OCR failed, so text inside images was not read: {type(e).__name__}: {e}. Details are in the logs folder.")
@@ -2415,7 +2422,7 @@ def refresh_batch(filepaths, status_callback, cache):
 # ==============================================================================
 # PROJECTS: remember a folder's findings, rescan only what changed, track changes
 # ==============================================================================
-APP_VERSION = "3.79.0"            # keep in step with version_info.txt
+APP_VERSION = "3.80.0"            # keep in step with version_info.txt
 diag.VERSION = APP_VERSION
 PROJECT_EXT = ".ahproj"
 PROJECT_FORMAT = "AcronymHunterProject"

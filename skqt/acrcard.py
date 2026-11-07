@@ -84,8 +84,10 @@ def build(page, t, kind_tone):
     page.where_view = None
     if locs:
         from .foundview import FoundView
+        from . import acrpart as APT
         page.where_view = FoundView(t, locs, page.path_of, on_meaning=lambda x: _meaning(page, x),
-                                    on_find_text=lambda x: page.find_text.setText(x))
+                                    on_find_text=lambda x: page.find_text.setText(x),
+                                    on_add_term=lambda text, loc, read, crop: APT.missed(page, text, loc, read, crop))
         body.addWidget(page.where_view)
 
     # ---- details, folded

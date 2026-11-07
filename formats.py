@@ -22,6 +22,7 @@ FORMATS = {
     "outline layouts": ("outlinelayouts.save -> outline_layouts.json", "format", 1),   # 3.73.0
     "button use": ("skqt.usage.save -> button_use.json", "format", 1),   # 3.74.0: on this PC only
     "training samples": ("efftrain.add -> training_samples.json in the effort's working folder", "format", 1),   # 3.76.0
+    "picture readings": ("picreadings.flush -> picture_readings.json in the effort's working folder", "format", 1),   # 3.80.0
 }
 
 

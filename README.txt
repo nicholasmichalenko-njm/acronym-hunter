@@ -1,6 +1,19 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE ACRONYM PREVIEW, FASTER, AND A BOX TO DRAW (3.80.0)
+  - The scan keeps what it read in each picture (every line's box and text) with the effort, so the preview draws it
+    at once instead of reading the picture again, after a restart too. The next term's first picture is drawn ahead.
+  - Drag on the picture to draw a box: every reading inside it is highlighted, with the text read there. Right-drag,
+    or hold Space and drag, to move the picture; the wheel zooms.
+  - Read this area again reads only the box, so a stray mark or a missing letter often comes out right. Correct the
+    text in It read, then say what it is with The picture says something else... (Part of a longer term, Misread
+    letters, Not text, or This is the term).
+  - Add as a term... adds a term the scan missed: the box's text joins the scan's terms and this effort's list, with
+    the place it was found.
+  - Every fix keeps the picture's part with its training sample (training_crops in the effort's working folder); the
+    Training app's Learn from an effort... copies the crops. The crops are customer content and stay with the effort.
+
 THE DRIFT REPORT (3.79.0)
   - Check a Draft > Apply in Word > Drift report...: pick a draft. Every dated copy beside it (the banned-phrases copy,
     a fixed copy) is checked against the draft as it is now: each of the copy's changes is Taken up, Still to take, or

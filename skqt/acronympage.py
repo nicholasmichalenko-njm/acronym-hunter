@@ -339,6 +339,11 @@ class AcronymPage(QWidget):
         self.card.title.setText(t)
         from . import acrcard                                          # 3.61.0: a lighter card, details folded
         acrcard.build(self, t, KIND_TONE)
+        k = self.terms.index(t) if t in self.terms else -1               # 3.80.0: the next term's picture, drawn ahead
+        if 0 <= k < len(self.terms) - 1:
+            from . import foundview as FV
+            nxt = self.terms[k + 1]
+            FV.prefetch(nxt, s.results.get(nxt, {}).get("locations", []), self.path_of)
 
     def use_selected(self):
         """3.50.0: the words selected in the passage where the term was found become the definition typed."""
