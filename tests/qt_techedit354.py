@@ -34,7 +34,8 @@ draft = os.path.join(tmp, "Kestrel Volume II.docx"); d.save(draft)
 before = hashlib.sha256(open(draft, "rb").read()).hexdigest()
 
 from skqt import mainwin as MW
-check("Technical Edit is its own space, after Acronyms", [g for g, _i in MW.RAIL].index("Technical Edit") == [g for g, _i in MW.RAIL].index("Acronyms") + 1)
+_write = [k for g, it in MW.RAIL if g == "Write" for k, _t in it]
+check("Technical Edit sits in Write, after Acronyms (3.75.0)", _write.index("techedit") == _write.index("acronyms") + 1)
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 w.step_btns["techedit"].click(); app.processEvents()
 pg = w.techedit_page

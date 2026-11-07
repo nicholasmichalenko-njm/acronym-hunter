@@ -35,7 +35,7 @@ VDIR = os.path.join(tmp, "volumes"); os.makedirs(VDIR)
 VOL = shutil.copy2(os.path.join(A.BASE_DIR, "test_samples", "Kestrel_Technical_Volume.docx"), VDIR)
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-check("the rail: Final Check (Submission Check is its tab, 3.58.0), Keywords, Export all, Settings", all(k in w.step_btns for k in ("finalcheck", "keywords", "exportall", "settings")))
+check("the rail: Final Check (Submission Check is its tab, 3.58.0), After Submission (Keywords its tab), Settings (3.75.0)", all(k in w.step_btns for k in ("finalcheck", "postsub", "settings")))
 # a new effort from Settings
 w.go("settings"); app.processEvents()
 sp = w.settings_page
