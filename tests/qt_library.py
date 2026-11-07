@@ -112,13 +112,13 @@ std = by["MIL-STD-1540E"]
 p_std = lib.path_of(std["versions"][0])
 check("3.78.0: the rest are copied into the Effort Library's real folders, by category and folder", os.path.isfile(p_std) and
       os.path.normpath(p_std).endswith(os.path.normpath("Heron/Library/Bidders Library/Standards/MIL-STD-1540E.pdf")), p_std)
-check("the done panel says what went where", "Bidders library" in pg.panel.detail.text() and "added" in pg.panel.detail.text(), pg.panel.detail.text())
+check("the done panel says what went where", "Bidders Library" in pg.panel.detail.text() and "added" in pg.panel.detail.text(), pg.panel.detail.text())
 tl = [e["text"] for e in R.Record(ws.root).events()]
 check("the effort record has the paper trail", any(t.startswith("Library:") for t in tl) and any("Section L Instructions added" in t for t in tl), tl[:4])
 check("adding the same folder again adds nothing", DI.plan(lib, [p for p, _r in found], reader, folders=dict(found))[0]["dup"])
 # the page
 check("the tree: every category with its count, and the folders", pg.tree.topLevelItemCount() == 6
-      and pg.tree.topLevelItem(2).text(0) == "Bidders library" and pg.tree.topLevelItem(2).text(1) == "1" and pg.tree.topLevelItem(2).childCount() == 1)
+      and pg.tree.topLevelItem(2).text(0) == "Bidders Library" and pg.tree.topLevelItem(2).text(1) == "1" and pg.tree.topLevelItem(2).childCount() == 1)
 pg.pick_place("bidders", "")
 check("a category shows its documents", pg.table.rowCount() == 1 and pg.table.item(0, 0).text() == "MIL-STD-1540E")
 pg.pick_place("all", "")
