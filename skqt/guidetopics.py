@@ -783,3 +783,13 @@ for _k, _line in CHECKS369:                     # 3.69.0: Production Standards' 
     for _t in TOPICS:
         if _t[0] == _k and isinstance(_t[5], list):
             _t[5].append(_line)
+# 3.75.0: the Guide reads in the menu's order (nine groups; a tab's page after its menu item)
+_ORDER = ("tools mywork efforts home requirements deliverables effortfmt record meetings library read custqa datacalls compare "
+          "impact shredreq shredacc assign prove sort matrix crosswalk evalcrit setups structure storyboards drafts truth acronyms "
+          "acrlist techedit reviews finalcheck qa checks postsub keywords formatstd qpstd layoutstd profiles templates studio "
+          "rules audit applyword fixcopy refs settings exportall").split()
+_pos, _last = {}, -1.0
+for _n, _t in enumerate(TOPICS):
+    _last = float(_ORDER.index(_t[0])) if _t[0] in _ORDER else _last + 0.001
+    _pos[id(_t)] = _last
+TOPICS.sort(key=lambda t: _pos[id(t)])

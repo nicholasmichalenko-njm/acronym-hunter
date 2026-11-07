@@ -24,11 +24,11 @@ def check(name, ok, info=""):
 app = QApplication([]); theme.apply(app)
 cfg = os.path.join(tmp, "config"); os.makedirs(cfg)
 from skqt import mainwin as MW
-check("Accuracy sits in Shred", [k for g, it in MW.RAIL if g == "Shred" for k, _t in it] == ["shredreq", "assign", "sort", "matrix", "shredacc"])
+check("Accuracy sits in Shred, a tab of Requirements (3.75.0)", [k for k, _t in MW.TABS["shredreq"]] == ["shredreq", "shredacc"])
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 import unfiled as UF
 w.work_on(UF.NAME); app.processEvents()
-w.step_btns["shredacc"].click(); app.processEvents()
+w.go("shredacc"); app.processEvents()
 ap = w.accuracy_page
 check("it opens on the set folder in the user's folder, said when not made yet", w.stack.currentWidget() is ap
       and "Stationkeeper Shred Set" in ap.folder.text())

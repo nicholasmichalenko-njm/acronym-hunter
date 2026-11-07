@@ -34,8 +34,8 @@ DL.add(RR.Record(ws0.root), "Volume I Technical", "Volume")
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel")
-check("Template Studio leads the Production space", "studio" in w.step_btns and [k for g, it in __import__("skqt.mainwin", fromlist=["RAIL"]).RAIL
-                                                                              if g == "Production" for k, _t in it][0] == "studio")
+check("Template Studio is in the Team space (3.75.0)", "studio" in w.step_btns and "studio" in [k for g, it in __import__("skqt.mainwin", fromlist=["RAIL"]).RAIL
+                                                                              if g == "Team" for k, _t in it])
 w.go("studio"); app.processEvents()
 st = w.studio_page
 check("the volume list holds the effort's volumes", "Volume I Technical" in [st.vol.itemText(i) for i in range(st.vol.count())])

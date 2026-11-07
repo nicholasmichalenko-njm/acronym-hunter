@@ -28,8 +28,9 @@ def check(name, ok, info=""):
 cfg = os.path.join(tmp, "config"); os.makedirs(cfg)
 app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-check("Production lists Template Studio, then Formatting Standards, Quick Parts and Layout",
-      [k for g, it in RAIL if g == "Production" for k, _l in it][:4] == ["studio", "formatstd", "qpstd", "layoutstd"])
+from skqt.mainwin import TABS as _TABS
+check("Team lists Standards, its tabs Formatting, Quick Parts and Layout (3.75.0)",
+      [k for g, it in RAIL if g == "Team" for k, _l in it][:1] == ["formatstd"] and [k for k, _t in _TABS["formatstd"]] == ["formatstd", "qpstd", "layoutstd"])
 # a template with Quick Parts, a cover and sections, imported into the library
 from _qpfixture import with_glossary
 QP_SRC = os.path.join(tmp, "Kestrel Master.dotx")

@@ -40,9 +40,8 @@ w.open_effort("Kestrel"); app.processEvents()
 
 # ---------------------------------------------------------------- the menu
 heads = [g for g, _i in RAIL]
-check("the menu is grouped by job", heads == ["Home", "Effort", "Customer Documents", "Shred", "Compare", "Plan", "Write", "Acronyms",
-                                              "Technical Edit", "Reviews", "Check and Submit", "Production", "Team References", "After Submission",
-                                              "Effort files"], heads)   # 3.53.0: spaces; 3.69.0: no Advanced group
+check("the menu is grouped by job", heads == ["Home", "Effort", "Customer Documents", "Shred", "Plan", "Write", "Submit", "Team",
+                                              "Settings"], heads)   # 3.53.0: spaces; 3.69.0: no Advanced group; 3.75.0: nine groups
 r = RR.Record(w.ws.root)
 # 3.15.0: no separate stage group: each tool is in the menu once, the stage's tools marked with a dot in its color
 cur_stage = r.stages[r.index()]["name"]
@@ -65,10 +64,10 @@ m.actions()[0].trigger(); app.processEvents()
 check("... and its menu opens the Effort Dashboard", m.actions()[0].text() == "Effort Dashboard" and w.stack.currentWidget() is w.home_page)
 w.step_btns[marked[0]].click(); app.processEvents()
 check("a stage tool opens its page", w.stack.currentWidget() is not w.notice_page or w.notice_page.why is not None)
-w.toggle_group("Acronyms"); app.processEvents()
+w.toggle_group("Write"); app.processEvents()
 check("a group folds away, and stays folded", not w.step_btns["acronyms"].isVisibleTo(w)
-      and "Acronyms" in json.load(open(A.SETTINGS_FILE))["rail_collapsed"])
-w.toggle_group("Acronyms"); app.processEvents()
+      and "Write" in json.load(open(A.SETTINGS_FILE))["rail_collapsed"])
+w.toggle_group("Write"); app.processEvents()
 check("... and opens again", w.step_btns["acronyms"].isVisibleTo(w))
 MO.save(stage_tools=False); w.refresh_access(); app.processEvents()
 check("the stage marks can be turned off", not any(b.stage_dot.isVisibleTo(w) for b in w.step_btns.values())
@@ -93,7 +92,7 @@ w.home_page.customize({"role": "Author", "order": __import__("branding").preset(
                        "hidden": __import__("branding").preset("Author")["hidden"]})
 w.refresh_access(); app.processEvents()
 check("an author's own choice: production tools are greyed and say who they are for", w.profile() == ("Author", "own")
-      and w.step_btns["fixcopy"].property("offrole") and "Production" in w.step_btns["fixcopy"].toolTip()
+      and w.step_btns["audit"].property("offrole") and "Production" in w.step_btns["audit"].toolTip()
       and not w.step_btns["truth"].property("offrole"))
 w.go("fixcopy"); app.processEvents()
 check("opening one explains instead of opening it", w.stack.currentWidget() is np and np.card.title.text() == "Fix a Copy is for Proposal Manager, Production"
@@ -101,9 +100,8 @@ check("opening one explains instead of opening it", w.stack.currentWidget() is n
 np.do_action(answer="Production"); app.processEvents()
 check("changing my own role opens it", w.profile()[0] == "Production" and w.stack.currentWidget() is w.fixcopy_page)
 from PySide6.QtWidgets import QLabel as _QL
-check("3.16.0: Fix a Copy is last in Production and marked Beta, in the menu and on the page",
-      [k for g, items in RAIL if g == "Production" for k, _t in items] == ["studio", "formatstd", "qpstd", "layoutstd", "profiles", "templates", "rules", "audit", "fixcopy", "applyword"]   # 3.17.0: Audit; 3.38.0: Rules; 3.52.0: Effort Profiles, Templates
-      and w.step_btns["fixcopy"].findChild(_QL, "railbeta") is not None and w.beta_pill.isVisibleTo(w))
+check("3.75.0: Fix a Copy is a tab of Check a Draft in the Team group, marked Beta on the page",
+      [k for k, _t in __import__("skqt.mainwin", fromlist=["TABS"]).TABS["audit"]] == ["audit", "applyword", "fixcopy"] and w.beta_pill.isVisibleTo(w))
 w.go("acrlist"); app.processEvents()
 check("3.16.0: a tab's page marks its menu item: the Acronym List is a tab of Acronyms, and Production opens it",
       w.stack.currentWidget() is w.acrlist_page and w.step_btns["acronyms"].isChecked() and w.page_title.text() == "Acronyms"
@@ -116,14 +114,14 @@ check("3.37.0: Lists to Submit opens in the Acronym List", w.stack.currentWidget
       and w.acrlist_page.views.currentWidget() is w.lists_page)
 r = RR.Record(w.ws.root); r.set_team([("A. Lee", "Volume lead"), ("J. Smith", "Proposal manager")]); r.save()
 MO.save(my_name="A. Lee"); w.refresh_access(); app.processEvents()
-check("the effort's People decides the role", w.profile() == ("Author", "effort") and w.step_btns["fixcopy"].property("offrole"))
+check("the effort's People decides the role", w.profile() == ("Author", "effort") and w.step_btns["audit"].property("offrole"))
 w.go("prodstd"); app.processEvents()
 check("... and only the proposal manager changes it: no button to change it here", w.stack.currentWidget() is np
       and not np.act.isVisibleTo(w) and "People in this effort" in np.text.text())
 MO.save(hide_other_roles=True); w.refresh_access(); app.processEvents()
 # 3.57.0: Wall of Truth is set aside (menufocus), so the fold and the role checks use Acronyms
-check("Hide the tools that are not for my role", not w.step_btns["fixcopy"].isVisibleTo(w) and w.step_btns["acronyms"].isVisibleTo(w) and not w.step_btns["truth"].isVisibleTo(w)
-      and not w.group_heads["Production"].isVisibleTo(w))
+check("Hide the tools that are not for my role", not w.step_btns["audit"].isVisibleTo(w) and w.step_btns["acronyms"].isVisibleTo(w) and not w.step_btns["truth"].isVisibleTo(w)
+      and not w.step_btns["formatstd"].isVisibleTo(w))
 MO.save(hide_other_roles=False); w.refresh_access()
 w.go("settings"); app.processEvents()
 rc = w.settings_page.roles_card

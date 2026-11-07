@@ -37,7 +37,7 @@ w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel"); app.processEvents()
 
 check("Rules is in the Production menu after Templates, for the Production role",   # 3.52.0: Production Standards moved to Advanced
-      [k for g, items in MW.RAIL if g == "Production" for k, _t in items][5:7] == ["templates", "rules"]
+      [k for g, items in MW.RAIL if g == "Team" for k, _t in items][2:4] == ["studio", "rules"]   # 3.75.0: the Team group
       and RA.allowed("Production", "rules") and not RA.allowed("Author", "rules"))
 w.go("rules"); app.processEvents()
 pg = w.rules_page

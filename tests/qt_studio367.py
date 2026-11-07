@@ -39,8 +39,8 @@ BN.load = lambda: [{"Phrase": "will try", "Level": "Banned", "Use instead": "wil
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel")
-prod = [k for g, it in RAIL if g == "Production" for k, _t in it]
-check("Apply in Word is last in Production, marked Beta", prod[-1] == "applyword" and "applyword" in BETA and "applyword" in w.step_btns)
+from skqt.mainwin import TABS as _TABS
+check("Apply in Word is a tab of Check a Draft, marked Beta (3.75.0)", [k for k, _t in _TABS["audit"]][1] == "applyword" and "applyword" in BETA)
 # ---- Read back
 import test_studio367 as T                       # its fixture volume and stand-in Word (its own checks run too)
 w.go("studio"); app.processEvents()
