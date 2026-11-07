@@ -23,7 +23,7 @@ TOOLS = {
     "Author": {"shredreq", "techedit", "library", "compare", "requirements", "custqa", "assign", "setup", "setups", "storyboards", "truth", "acronyms",
                "acrlist", "keywords", "drafts"},
     "Reviewer": {"finalcheck", "techedit", "reviews", "library", "compare", "assign", "prove", "matrix", "truth", "checks", "audit"},
-    "Capture": {"shredreq", "library", "read", "compare", "requirements", "custqa", "structure", "assign", "crosswalk", "storyboards", "truth"},
+    "Capture": {"shredreq", "library", "read", "compare", "requirements", "custqa", "structure", "setups", "assign", "crosswalk", "storyboards", "truth"},
 }
 # a role written in People and roles (the team's own words) -> the profile it means; first match wins
 WORDS = (("proposal manager", PM), ("capture manager", "Capture"), ("production", "Production"), ("desktop", "Production"),
@@ -115,7 +115,7 @@ def set_preview(config_dir, key, on):
 
 # ------------------------------------------------------------------ "For this stage"
 STAGE_TOOLS = ((("intake", "kickoff", "kick-off", "capture", "start", "rfp release", "solicitation"), ("library", "read", "requirements", "custqa")),
-               (("plan", "outline", "strategy", "storyboard"), ("structure", "assign", "crosswalk", "storyboards", "truth")),
+               (("plan", "outline", "strategy", "storyboard"), ("structure", "setups", "assign", "crosswalk", "storyboards", "truth")),
                (("draft", "author", "writ"), ("setup", "assign", "truth", "acronyms", "compare")),
                (("pink",), ("reviews", "matrix", "compare")),
                (("red",), ("reviews", "prove", "qa", "truth")),

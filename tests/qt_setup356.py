@@ -65,7 +65,7 @@ check("changes for authors need a setup first", SM.changes_by_person(M) is None)
 
 # ---------------------------------------------------------------- the page
 from skqt import mainwin as MW
-check("Setup sits in Plan", [k for g_, it in MW.RAIL if g_ == "Plan" for k, _t in it] == ["structure", "setups", "storyboards"])
+check("Setup sits in Plan, the Structure Builder part of it (3.74.0)", [k for g_, it in MW.RAIL if g_ == "Plan" for k, _t in it] == ["setups", "storyboards"])
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 import unfiled as UF
 w.work_on(UF.NAME); app.processEvents()
@@ -79,9 +79,12 @@ check("From a Word outline fills the headings", "Orbit Operations" in sp.heads.t
 M2 = sp.use_headings()
 check("Use these headings: a matrix with the structure, no Review", M2 is not None and w.review is not None and w.review.M is M2
       and len(M2.outline) == 3 and os.path.isfile(M2.path) and w.ws.get("compliance_path") == M2.path)
-check("the sections listed", sp.tree.topLevelItemCount() == 3 and sp.main.isEnabled() and not sp.start_card.isVisibleTo(sp))
-sp.tree.setCurrentItem(sp.tree.topLevelItem(1)); app.processEvents()
+from PySide6.QtCore import Qt as _Qt
+node = lambda lab: next(iter(sp.builder.btree.findItems(lab, _Qt.MatchExactly | _Qt.MatchRecursive, 0)), None)
 L2 = C.outline_label(M2.outline[1])
+check("the sections listed", all(node(C.outline_label(o)) is not None for o in M2.outline) and sp.builder.isVisibleTo(sp)
+      and not sp.start_card.isVisibleTo(sp))
+sp.builder.btree.setCurrentItem(node(L2)); app.processEvents()
 check("picking a section shows it", sp.cur == L2)
 sp.f_lead.setText("Avery Pine"); sp.f_with.setText("Rowan Hale, Kit Ash"); sp.f_due.setText("2026-12-01")
 sp.f_pages.setText("lots")
@@ -91,8 +94,8 @@ check("Save this section", sp.save_section())
 import pagebudget as PB
 check("... kept on the matrix: people, due, pages, direction", SM.people(M2, L2) == ("Avery Pine", "Rowan Hale, Kit Ash")
       and SM.due(M2, L2) == "2026-12-01" and PB.pages(M2, L2) == 4 and "handover" in SM.direction(M2, L2))
-check("... the row shows them", sp.tree.topLevelItem(1).text(1) == "Avery Pine" and sp.tree.topLevelItem(1).text(2) == "2026-12-01"
-      and sp.tree.topLevelItem(1).text(3) == "4")
+check("... the row shows them", node(L2).text(5) == "Avery Pine" and node(L2).text(6) == "2026-12-01" and node(L2).text(4).startswith("4"),
+      [node(L2).text(i) for i in range(7)])
 check("... and what it prints", "Avery Pine" in sp.prev.text() and "handover" in sp.prev.text())
 sp.refresh()
 sp.layer_boxes["pm"].setChecked(False)
@@ -109,7 +112,7 @@ body2 = "".join(text_of(p) for p in sp.plain(os.path.join(tmp, "plain2")))
 check("the author layer off: no lead line", "Avery Pine" not in body2)
 sp.layer_boxes["author"].setChecked(True); sp.layer_boxes["pm"].setChecked(True)
 check("nothing changed since the last setup", sp.packets(os.path.join(tmp, "pk0")) == [])
-sp.tree.setCurrentItem(sp.tree.topLevelItem(1)); app.processEvents()
+sp.builder.btree.setCurrentItem(node(L2)); app.processEvents()
 sp.f_dir.setPlainText("Lead with the handover, then the cost of ownership."); sp.save_section()
 pk = sp.packets(os.path.join(tmp, "pk"))
 check("Changes for authors: one Word file per person in the section", pk and len(pk) == 3

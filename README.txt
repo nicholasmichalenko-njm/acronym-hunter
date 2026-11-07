@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SETUP IS ONE PAGE (3.74.0)
+  - The Structure Builder is part of Setup. One page: build the sections (right-click a section to rename it, make it a
+    heading level, unnumbered, a divider or a placeholder, start a Word section, add, move or delete; Enter, Tab,
+    Shift+Tab, F2 and Delete as before; drag to move), say who writes each and when (the selected section's lead,
+    contributors, due date, pages and PM direction sit beside it), pick the template, and Make the setup.
+  - One bar: Make the setup, Bring in a file..., Use a template file..., Add elements..., + Volume. More holds Edit as
+    text / Start from, Sort in document order, Show what is placed, What fills each section..., Setup styles...,
+    Outline versions... and Outline layouts.... Export holds Plain setup..., Changes for authors..., Changes only (one
+    file)..., Kickoff packets... and Strip setup.... With no sections yet, the page shows only the way to bring them in.
+  - The tree shows each section's lead and due date. Links that opened the Structure Builder open Setup.
+  - Settings > Our data > Button use on this PC...: which buttons and menu items you press on each screen, counted on
+    this PC only (never in a SCIF-ready install), most pressed first; export it, clear it or turn it off. It shows which
+    commands each screen should keep in view.
+
 OUTLINE AND MATRIX VERSIONS (3.73.0)
   - Setup > Bring in a file..., or drop a file on the Setup page: an Excel workbook opens What's in your workbook, a Word
     document gives its headings (a Word document that could be the template asks which), a Word template is the

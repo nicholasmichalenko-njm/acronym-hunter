@@ -73,12 +73,15 @@ CHECKS369 = (   # 3.69.0 and later: lines added to topics in guidetopics by key
                "kind of text found in each column, as it looks (red text, black italic); say what each one is. Cells, piece "
                "by piece shows a column's cells marked; click a piece to change it. The preview shows the setup as it will "
                "be. Use this structure makes the sections and keeps the picks for the next workbook laid out the same way."),
-    ("setups", "Setup styles...: each kind of setup text's style name, font, size, color, bold, italic and hidden. Save for "
+    ("setups", "Setup styles... (in More): each kind of setup text's style name, font, size, color, bold, italic and hidden. Save for "
                "this effort, Use for every effort, or Put them in this effort's template."),
     ("setups", "Use a template file... (3.72.0): the setup on a Word template your team already made. It starts blank in the "
                "template's look; tick its cover, title page or front matter, any Quick Part, and which parts keep their header "
                "and footer. Headings follow the template's own numbering. The made file is checked before you get it."),
-    ("setups", "Outline layouts... (3.73.0): the heading names each column may carry and how mixed text is told apart, set "
+    ("settings", "Our data > Button use on this PC... (3.74.0): which buttons and menu items you press on each screen, "
+                 "counted on this PC only (never in a SCIF-ready install), most pressed first. Export it to plan which "
+                 "commands stay in view; Clear the count; turn it off."),
+    ("setups", "Outline layouts... (in More; 3.73.0): the heading names each column may carry and how mixed text is told apart, set "
                "before you have the workbook. A new version of the outline is compared first; changes in both wait for your "
                "pick. Outline versions... compares any two and writes the workbook back out in its own layout."),
     ("matrix", "Bring the edited matrix back... (3.73.0): the exported matrix as the team filled it in; their values come back "

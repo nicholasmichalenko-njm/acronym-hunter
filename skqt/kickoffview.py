@@ -72,7 +72,7 @@ class KickoffDialog(QDialog):
             self.list.addItem(it)
         if not people:
             v.addWidget(D.label("Nobody leads or writes a section yet. Set a section's people in Review (Assigned To) or the "
-                                "Structure Builder first.", "muted"))
+                                "Setup first.", "muted"))
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.button(QDialogButtonBox.Ok).setText("Make the packets..."); bb.button(QDialogButtonBox.Ok).setEnabled(bool(people))
         bb.accepted.connect(self.accept); bb.rejected.connect(self.reject)

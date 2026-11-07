@@ -48,8 +48,8 @@ def wait(cond, secs=60):
     return cond()
 
 
-check("the menu: Structure Builder is its own place under Plan; Review keeps Coverage",
-      ("structure", "Structure Builder") in dict(RAIL)["Plan"] and [k for k, _t in TABS["assign"]] == ["assign", "prove"])
+check("the menu: the Structure Builder is part of Setup (3.74.0); Review keeps Coverage",
+      ("setups", "Setup") in dict(RAIL)["Plan"] and "structure" not in dict(dict(RAIL)["Plan"]) and [k for k, _t in TABS["assign"]] == ["assign", "prove"])
 w.open_effort("Kestrel")
 w.read_page.read(PDFS, os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))
 check("read", wait(lambda: w.review is not None and w.stack.currentWidget() is w.assign_page))
@@ -62,7 +62,7 @@ O.add(M, "Systems Engineering", parent=t1)
 O.add(M, "Management", after=t1)
 b = w.structure_page
 w.go("structure"); app.processEvents()
-check("the Builder opens on the volume, its sections tagged", w.stack.currentWidget() is b and b.vol_tabs.count() >= 1
+check("the Builder opens on the volume, its sections tagged", w.stack.currentWidget() is w.setups_page and b.isVisibleTo(w) and b.vol_tabs.count() >= 1
       and b.btree.topLevelItemCount() >= 1)
 node = lambda lab: next(iter(b.btree.findItems(lab, Qt.MatchExactly | Qt.MatchRecursive, 0)), None)
 check("tags: H1 for a section, H2 under it", node("1 Technical Approach").text(1) == "H1" and node("1.1 Systems Engineering").text(1) == "H2",
@@ -208,7 +208,7 @@ check("the setup builds elements, Word sections and library items (3.30.1)", "TO
       and 'AUTOTEXT "Org chart block"' in xml, (xml.count("TOC"), 'orient' in xml))
 check("... and Heading 9, with deeper levels as bold run-in paragraphs", "Heading9" in xml and "Level 10" in xml)
 w.go("setup"); app.processEvents()
-check("Response Setup opens the Builder", w.stack.currentWidget() is b)
+check("Response Setup opens Setup, with the Builder in it", w.stack.currentWidget() is w.setups_page and b.isVisibleTo(w))
 b.select("2 Technical Approach"); app.processEvents()
 w.grab().save(os.environ.get("SK_SHOT") or os.path.join(tmp, "builder.png"))
 w.close()

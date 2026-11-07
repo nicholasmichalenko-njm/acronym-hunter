@@ -17,7 +17,7 @@ class ElementsDialog(QDialog):
         self.data = RE.load(host.config_dir)
         self.setWindowTitle("Response elements"); self.resize(1080, 620)
         v = QVBoxLayout(self)
-        v.addWidget(D.label("Each element goes in its part of a volume, in this order. The Structure Builder's Add elements "
+        v.addWidget(D.label("Each element goes in its part of a volume, in this order. Setup's Add elements "
                             "lists them; Make the setup builds them from what fills them.", "muted"))
         tabs = QTabWidget(); v.addWidget(tabs, 1)
         w1 = QWidget(); l1 = QVBoxLayout(w1)

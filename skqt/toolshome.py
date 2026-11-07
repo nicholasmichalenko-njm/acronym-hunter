@@ -33,7 +33,7 @@ TOOLS = {"acrfinder": ("Acronym Finder", "Scan any files for acronyms, apart fro
          "acronyms": ("Acronyms", "Scan and the acronym list", "page"), "acrlist": ("Acronym List", "The effort's list", "page"),
          "assign": ("Review", "Requirements from the customer's documents", "page"), "matrix": ("Matrix", "The compliance matrix", "page"),
          "library": ("Library", "The customer's documents", "page"), "compare": ("Compare", "Two versions, what changed", "page"),
-         "structure": ("Structure Builder", "The response structure", "page"), "storyboards": ("Storyboards", "One sheet per section", "page"),
+         "structure": ("Setup", "The sections and each author's starting draft", "page"), "storyboards": ("Storyboards", "One sheet per section", "page"),
          "drafts": ("Draft Status", "A draft read back", "page"), "truth": ("Wall of Truth", "One approved way to state each fact", "page"),
          "reviews": ("Color Reviews", "Review packets and comments", "page"), "qa": ("Submission Check", "The volumes you will submit", "page"),
          "checks": ("Final Checks", "The PDF package, cross-references", "page"), "templates": ("Templates", "Every template the profiles make", "page"),

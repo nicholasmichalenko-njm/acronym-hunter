@@ -39,7 +39,7 @@ RAIL = [("Home", [("tools", "Your Tools"), ("mywork", "My Work"), ("efforts", "A
         ("Customer Documents", [("library", "Library"), ("custqa", "Customer Q&A")]),
         ("Shred", [("shredreq", "Requirements"), ("assign", "Review"), ("sort", "Sort"), ("matrix", "Matrix"), ("shredacc", "Accuracy")]),     # 3.55.0: any file
         ("Compare", [("compare", "Compare")]),
-        ("Plan", [("structure", "Structure Builder"), ("setups", "Setup"), ("storyboards", "Storyboards")]),   # 3.56.0
+        ("Plan", [("setups", "Setup"), ("storyboards", "Storyboards")]),   # 3.56.0; 3.74.0: the Structure Builder is in Setup
         ("Write", [("drafts", "Draft Status"), ("truth", "Wall of Truth")]),
         ("Acronyms", [("acronyms", "Acronyms")]),
         ("Technical Edit", [("techedit", "Technical Edit")]),             # 3.54.0: copy review
@@ -302,7 +302,7 @@ class MainWindow(QMainWindow):
         self.setups_page = SetupsPage(self)            # 3.56.0: the starting draft, from a structure
         self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_space, "custqa": self.custqa_page,
                       "impact": self.impact_page, "deliverables": self.deliverables_page, "evalcrit": self.evalcrit_page, "sort": self.sort_page, "studio": self.studio_page, "applyword": self.applyword_page, "qa": self.qa_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
-                      "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "structure": self.structure_page, "assign": self.assign_page, "prove": self.prove_page,
+                      "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "assign": self.assign_page, "prove": self.prove_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page, "audit": self.audit_page,
                       "effortfmt": self.effortfmt_page, "rules": self.rules_page, "datacalls": self.datacalls_page,
@@ -1109,7 +1109,7 @@ class MainWindow(QMainWindow):
             if ok is not False:
                 self.acrlist_page.show_view("submit")
             return ok
-        step = {"format": "fixcopy", "dashboard": "home", "setup": "structure"}.get(step, step)   # 3.30.0: Response Setup is in the Builder   # 3.9.0: Format Check is in Fix a Copy; 3.12.0: one dashboard
+        step = {"format": "fixcopy", "dashboard": "home", "setup": "setups", "structure": "setups"}.get(step, step)   # 3.74.0: one Setup page   # 3.30.0: Response Setup is in the Builder   # 3.9.0: Format Check is in Fix a Copy; 3.12.0: one dashboard
         if step in TABS and self.blocked(step) is not None:     # 3.16.0: a menu item opens on a tab the role has
             step = next((k for k in members(step)[1:] if self.blocked(k) is None), step)
         why = self.blocked(step)                     # 3.13.0: another role's tool, or a Preview tool not turned on

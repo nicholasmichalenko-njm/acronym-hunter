@@ -20,6 +20,7 @@ FORMATS = {
     "effort acronym list": ("effort.EffortList.save -> the workbook's About sheet", "Format", 2),   # 3.52.0: SS Approver became Approver
     "effort marker": ("effortrelink.write_marker -> Open this effort.skeffort in the effort's folder", "format", 1),   # 3.68.0
     "outline layouts": ("outlinelayouts.save -> outline_layouts.json", "format", 1),   # 3.73.0
+    "button use": ("skqt.usage.save -> button_use.json", "format", 1),   # 3.74.0: on this PC only
 }
 
 

@@ -206,7 +206,7 @@ class DataCallsPage(QWidget):
         if rec is None or not sel:
             return ""
         if M is None:
-            self.host.status("Open the effort's response structure first (Review or Structure Builder).")
+            self.host.status("Open the effort's response structure first (Review or Setup).")
             return ""
         c = sel[0]
         if not c.get("answer"):

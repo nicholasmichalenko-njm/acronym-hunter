@@ -57,8 +57,8 @@ check("3.16.0: after reading: Review, never a stop at Structure; nothing set yet
 M = w.review.M
 w.assign_page.start_btn.click(); app.processEvents()
 sp = w.structure_page
-check("... Start from... opens the Structure Builder, its text and Start from showing (3.30.0)", w.stack.currentWidget() is sp and sp.text_panel.isVisibleTo(w)
-      and w.page_title.text() == "Structure Builder")
+check("... Start from... opens Setup, the sections' text and Start from showing (3.30.0; 3.74.0 one page)", w.stack.currentWidget() is w.setups_page
+      and sp.text_panel.isVisibleTo(w) and w.page_title.text() == "Setup")
 txt = sp.text.toPlainText()
 check("it shows what the RFP prescribes: three volumes and the sections under them", "Volume I Technical" in txt
       and "Volume III Cost" in txt and "    1 Technical Approach" in txt, txt)

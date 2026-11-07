@@ -42,14 +42,14 @@ w.go("datacalls"); app.processEvents()
 check("... but still opens when asked for (its work is kept)", "datacalls" in w._tab_keys and w.stack.currentWidget() is w.pages["datacalls"])
 import unfiled as UF
 w.work_on(UF.NAME); w.go("structure"); app.processEvents()
-check("the Structure Builder's Kickoff packets button is set aside", not w.structure_page.b_kickoff.isVisible())
+check("Setup's Kickoff packets is set aside", not w.structure_page.b_kickoff.isVisible() and not w.setups_page.a_kickoff.isVisible())
 import skqt.toolshome as TH
 check("Your Tools never pins a set-aside page", not set(TH.load_pins(cfg, "Author")) & MF.hidden({}),
       TH.load_pins(cfg, "Author"))
 modes.save(show_set_aside=True)
 w.refresh_access(); w.go("structure"); app.processEvents()
 check("Show the pages set aside brings them back", all(w.step_btns[k].isVisible() for k in gone)
-      and w.structure_page.b_kickoff.isVisible() and w.group_heads["Reviews"].isVisible())
+      and w.setups_page.a_kickoff.isVisible() and w.group_heads["Reviews"].isVisible())
 w.go("custqa"); app.processEvents()
 check("... and the Data calls tab", w._tab_keys == ["custqa", "datacalls"])
 modes.save(show_set_aside=False); w.refresh_access()

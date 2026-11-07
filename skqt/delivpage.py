@@ -145,7 +145,7 @@ class DeliverableView(QWidget):
         vr.addWidget(self.e_vol, 1)
         if not d.get("volume") and self.host.review is not None:
             vr.addWidget(D.button("Make it a Structure volume", None, lambda: self.make_volume(),
-                                  "A new volume in the Structure Builder named for this deliverable; its sections become its parts"))
+                                  "A new volume in Setup named for this deliverable; its sections become its parts"))
         lay.addWidget(D.label("A volume deliverable and its Structure volume are one thing: its sections are its parts, and its "
                               "requirements are the ones placed there.", "muted"))
 
@@ -171,7 +171,7 @@ class DeliverableView(QWidget):
             self.rec.save()
             self.host.changed()
             diag.activity("deliverable_volume_made")
-            self.host.toast(f"{lab} is in the Structure Builder")
+            self.host.toast(f"{lab} is in Setup")
         self.saved("Overview")
         return lab
 
@@ -230,7 +230,7 @@ class DeliverableView(QWidget):
             lay.addWidget(self.sec_table)
             r = QHBoxLayout(); lay.addLayout(r)
             r.addWidget(D.button("Set leads in Setup", None, lambda: self.host.go("setups"), "Plan > Setup: each section's lead and contributors"))
-            r.addWidget(D.button("Open in the Structure Builder", "ghost", lambda: self.host.go("structure")))
+            r.addWidget(D.button("Open in Setup", "ghost", lambda: self.host.go("setups")))
             r.addStretch(1)
         lay.addWidget(D.SectionTitle("Parts of its own"))
         lay.addWidget(D.label("For a deliverable outside the Structure (a form, a plan, slides), or work inside a volume that is "

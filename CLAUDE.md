@@ -20,6 +20,11 @@ templates, and checks. One person builds it, with Claude. Keep this file under t
    `test_golden` opens every saved set in `tests/golden/`; `test_formats` holds every saved file to `formats.py`;
    `test_file_sizes` keeps files under 800 lines (or 5% past `tools/size_baseline.json`); the build stops when reading
    drops below `tools/eval_floor.json`.
+8. **Fewer controls per screen** (3.74.0, `claude/stationkeeper-simplify-decisions-2026-11-06.md`). One job and one main
+   button per screen; at most five commands in a bar (`skqt/commandbar.py`), the rest in one More menu, every export in
+   one Export menu; act on the row; one editor at a time; link to another screen only with the selection or as the next
+   step; one home per function; rare tools by role; an empty screen shows one way in. `qt_screenrules` holds every bar to
+   five and every screen to its count in `tools/screen_baseline.json` (lower it when a screen loses controls).
 
 ## Words we use
 - **global standards**: the formatting for every effort (never "team standard"). **Effort Formatting**: one effort's own.

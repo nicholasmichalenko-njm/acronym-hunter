@@ -184,7 +184,7 @@ class ContentMap(QWidget):
         super().__init__()
         self.page = page
         v = QVBoxLayout(self); v.setContentsMargins(0, 0, 0, 0)
-        c = D.Card("Content map", "What each kind of item Review and the Structure Builder place becomes in a setup made on the "
+        c = D.Card("Content map", "What each kind of item Review and Setup place becomes in a setup made on the "
                    "template: its style, whether it is hidden (it shows only with Show/Hide on), and whether it goes in the "
                    "file at all. Section headings take Heading 1 to 9 (Word's table of contents and numbering use them) and "
                    "appendices Appendix Heading 1 to 9. A style that is not in the template is added. On This effort, a change "

@@ -41,7 +41,7 @@ class BuilderTree(QTreeWidget):
     def __init__(self, page):
         super().__init__()
         self.page = page
-        self.setHeaderLabels(["Section", "Kind", "Req.", "Cap.", "Pages"])
+        self.setHeaderLabels(["Section", "Kind", "Req.", "Cap.", "Pages", "Lead", "Due"])     # 3.74.0: lead and due
         self.setColumnWidth(0, 330); self.setColumnWidth(1, 64); self.setColumnWidth(2, 44); self.setColumnWidth(3, 44)
         self.setDragDropMode(QAbstractItemView.DragDrop)       # from itself, Not placed yet and the library
         self.setDefaultDropAction(Qt.MoveAction)
@@ -133,6 +133,8 @@ class BuilderPage(QWidget):
         self.vol_tabs.setDrawBase(False)
         self.vol_tabs.currentChanged.connect(lambda i: self.pick_volume(i))
         top.addWidget(self.vol_tabs)
+        self.embedded, self.section_card, self.on_text, self.on_change = False, None, None, None   # 3.74.0: inside Setup
+        self.top_btns = []
         top.addWidget(D.button("+ Volume", "ghost", lambda: self.add_volume(), "A new volume at the end, numbered the volumes' way"))
         self.text_btn = D.button("Edit as text / Start from", None, lambda: self.show_text(not self.text_panel.isVisible()),
                                  "The structure as text, one section per line, and Start from the RFP or a Word outline")
@@ -157,6 +159,7 @@ class BuilderPage(QWidget):
         top.addWidget(self.b_kickoff)
         top.addWidget(D.button("Make the setup", "primary", lambda: self.host.go("setups"),       # 3.56.0: the Setup page
                                "Who writes each section, when it is due, what fills it, and each volume's setup on its template"))
+        self.top_btns = [top.itemAt(i).widget() for i in range(top.count()) if top.itemAt(i).widget() is not self.vol_tabs]
         # the toolbar: what the selected item is, like Word's style buttons
         bar = QFrame(); bar.setObjectName("navband"); bl = FlowLayout(spacing=D.SPACE["xs"]); bar.setLayout(bl)
         bl.setContentsMargins(D.SPACE["s"], D.SPACE["xs"], D.SPACE["s"], D.SPACE["xs"])
@@ -199,6 +202,7 @@ class BuilderPage(QWidget):
         tb("rename", "Rename", "Rename it", lambda: self.rename(), "F2")
         tb("delete", "Delete", "Take it out; its sentences go to the section above", lambda: self.delete(), "Delete")
         v.addWidget(bar)
+        self.style_bar = bar
         for n in (1, 2, 3):
             sc = QShortcut(QKeySequence(f"Ctrl+{n}"), self); sc.setContext(Qt.WidgetWithChildrenShortcut)
             sc.activated.connect(lambda n=n: self.make_level(n))
@@ -219,6 +223,8 @@ class BuilderPage(QWidget):
         split.addWidget(left)
         mid = QScrollArea(); mid.setWidgetResizable(True); mid.setFrameShape(QFrame.NoFrame)
         self.mid = QWidget(); self.mv = QVBoxLayout(self.mid); self.mv.setAlignment(Qt.AlignTop)
+        from PySide6.QtWidgets import QLayout
+        self.mv.setSizeConstraint(QLayout.SetMinimumSize)            # 3.74.0: the panel scrolls, never squeezes
         mid.setWidget(self.mid)
         from PySide6.QtWidgets import QTabWidget
         from .pagepreview import PagesPreview              # 3.31.0: the volume's pages as they will run
@@ -274,6 +280,19 @@ class BuilderPage(QWidget):
         self.split = split
         v.addWidget(split, 1)
 
+    def embed(self, section_card=None, on_text=None, on_change=None):
+        """3.74.0: the builder inside the Setup page. The Setup page's command bar does what the toolbar and the style
+        buttons did (the right-click menu and the keys do the rest); section_card(label) gives the selected section's
+        who-and-when card."""
+        self.embedded, self.section_card, self.on_text, self.on_change = True, section_card, on_text, on_change
+        for w in self.top_btns + [self.style_bar]:
+            w.setVisible(False)
+        self.layout().setContentsMargins(0, 0, 0, 0)
+        self.split.setSizes([420, 520, 260])
+        for c, wd in ((0, 230), (1, 48), (2, 40), (3, 36), (4, 46), (5, 110), (6, 90)):
+            self.btree.setColumnWidth(c, wd)
+        return self
+
     @staticmethod
     def _sep():
         f = QFrame(); f.setFrameShape(QFrame.VLine); f.setFixedHeight(22)
@@ -289,7 +308,11 @@ class BuilderPage(QWidget):
     def show_text(self, on=True):
         self.text_panel.setVisible(on)
         self.split.setVisible(not on)
-        self.text_btn.setText("Back to the builder" if on else "Edit as text / Start from")
+        self.text_btn.setText(("Back to the sections" if self.embedded else "Back to the builder") if on else "Edit as text / Start from")
+        if self.embedded:
+            self.text_btn.setVisible(on)                    # 3.74.0: the way back, while the text shows
+            if self.on_text is not None:
+                self.on_text(on)
         if on:
             self.text_panel.refresh()
         else:
@@ -322,7 +345,7 @@ class BuilderPage(QWidget):
         self.setEnabled(R is not None)
         import menufocus as MF
         from .modes import settings
-        self.b_kickoff.setVisible("kickoff" not in MF.hidden(settings()))   # 3.57.0: set aside
+        self.b_kickoff.setVisible("kickoff" not in MF.hidden(settings()) and not self.embedded)   # 3.57.0: set aside
         self.text_panel.refresh()                    # the text stays the structure's, shown or not
         if R is None:
             self.btree.clear()
@@ -378,6 +401,7 @@ class BuilderPage(QWidget):
         if M is None:
             return
         import pagebudget as PB
+        import setupmake as SM
         reqs, caps = self._counts()
         show = set(O.in_volume(M, self.volume))
         heads = O.volume_heads(M)
@@ -393,7 +417,7 @@ class BuilderPage(QWidget):
             top = lab not in heads and (par is None or par[1].data(0, Qt.UserRole) in heads)
             hl = O.heading_level(M, lab)
             node = QTreeWidgetItem([lab, "VOL" if lab in heads else RE.tag(o, hl), str(reqs.get(lab, "") or ""),
-                                    str(caps.get(lab, "") or ""), PB.tag(M, lab)])
+                                    str(caps.get(lab, "") or ""), PB.tag(M, lab), SM.people(M, lab)[0], SM.due(M, lab)])
             node.setData(0, Qt.UserRole, lab)
             part = SP.part_of(o)
             node.setForeground(1, QColor(PART_COLOR.get(part, "#2E7D5B")))
@@ -651,6 +675,8 @@ class BuilderPage(QWidget):
         self.fill_tree()
         self.fill_unplaced()
         self.show_section()
+        if self.on_change is not None:                   # 3.74.0: Setup's counts follow
+            self.on_change()
         return new
 
     def _need(self):
@@ -785,6 +811,10 @@ class BuilderPage(QWidget):
         m.addAction("Level up (Shift+Tab)", lambda: self.level_up())
         m.addAction("Up", lambda: self.move(-1))
         m.addAction("Down", lambda: self.move(1))
+        wm = m.addMenu("Word section")                                # 3.74.0: was a toolbar button
+        wm.addAction("Starts a Word section, portrait", lambda: self.make_break("portrait"))
+        wm.addAction("Starts a Word section, landscape", lambda: self.make_break("landscape"))
+        wm.addAction("No Word section of its own", lambda: self.make_break(None))
         pm = m.addMenu("Move to a part")
         for k, t in SP.PARTS:
             pm.addAction(t, lambda k=k: self._change(f"to {k}: {label}", lambda: O.set_part(self.M, label, k)))
@@ -797,7 +827,9 @@ class BuilderPage(QWidget):
         while self.mv.count():
             w = self.mv.takeAt(0).widget()
             if w is not None:
-                w.setParent(None); w.deleteLater()
+                w.setParent(None)
+                if not w.property("sk_keep"):                 # 3.74.0: the Setup page's card is kept
+                    w.deleteLater()
 
     def contents(self, label=None):
         """[(kind, id, text)] in the order the setup prints them: library items before, the requirements and support,
@@ -845,8 +877,11 @@ class BuilderPage(QWidget):
         self.mv.addWidget(D.label(self._tag_tip(o, hl, lab in O.volume_heads(M)) + f"  ·  {SP.PART_NAME[SP.part_of(o)]}", "muted"))
         pages = PB.tag(M, lab)
         row = QHBoxLayout()
-        row.addWidget(D.label(f"Pages: {pages or 'not set'}", None))
-        row.addWidget(D.button("Pages...", "ghost", lambda: self.host.assign_page.section_pages(lab) and self.refresh()))
+        if self.section_card is not None:                    # 3.74.0: lead, contributors, due, pages, PM direction
+            self.mv.addWidget(self.section_card(lab))
+        else:
+            row.addWidget(D.label(f"Pages: {pages or 'not set'}", None))
+            row.addWidget(D.button("Pages...", "ghost", lambda: self.host.assign_page.section_pages(lab) and self.refresh()))
         cnt = SP.counted(M, lab)
         cb = QCheckBox("Counts toward the page limit"); cb.setChecked(cnt)
         cb.toggled.connect(lambda on: self._change(f"counts: {lab}", lambda: (SP.set_item_count(M, lab, on), lab)[1]))

@@ -53,5 +53,5 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "crosswalk": ("L/M Crosswalk", "Each instruction, the factor that scores it, and the work it describes"),
           "matrix": ("Matrix", "The compliance matrix as the customer will see it"),
           "setup": ("Response Setup", "The Word documents your writers start from"),
-          "setups": ("Setup", "The starting draft each author writes in: a structure, who writes each section and when, what fills it, made on each volume's template"),
+          "setups": ("Setup", "Build the sections, say who writes each and when, and make each author's starting draft on your template"),
           "postsub": ("Post-Submission Checklist", "What the team does after the proposal goes in: owners, due dates, done")}

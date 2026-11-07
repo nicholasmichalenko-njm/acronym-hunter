@@ -117,6 +117,9 @@ def main(argv=None):
         return 0 if ok else 1
     w.show()
     app.processEvents()
+    from skqt.usage import install as _count_use                 # 3.74.0: button use, on this PC only
+    w.usage = _count_use(w)
+    app.aboutToQuit.connect(lambda: w.usage.flush() if w.usage else None)
     last = (A.load_settings() or {}).get("last_version", "")
     after = "--after-update" in args or bool(last and last != A.APP_VERSION)
     from skqt import updates as UPD

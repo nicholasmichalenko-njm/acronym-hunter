@@ -54,7 +54,10 @@ check("effort marker", json.load(open(mk, encoding="utf-8"))["format"] == F.numb
 import outlinelayouts as OLY                               # 3.73.0: outline layouts set ahead of time
 OLY.save(cfg, OLY.load(cfg))
 check("outline layouts", json.load(open(os.path.join(cfg, OLY.FILE), encoding="utf-8"))["format"] == F.number("outline layouts") == OLY.FORMAT)
-check("every kind is checked here", len(F.FORMATS) == 12, len(F.FORMATS))
+from skqt import usage as UG                                # 3.74.0: button use on this PC
+UG.save(cfg, UG.load(cfg))
+check("button use", json.load(open(os.path.join(cfg, UG.FILE), encoding="utf-8"))["format"] == F.number("button use") == UG.FORMAT)
+check("every kind is checked here", len(F.FORMATS) == 13, len(F.FORMATS))
 n = sum(checks)
 print(f"FORMATS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

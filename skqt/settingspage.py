@@ -104,7 +104,9 @@ class SettingsPage(QWidget):
                                                 "Stationkeeper Data file (.skdata)"),
                                        D.button("Import our data...", "primary", lambda: self.import_data(), "Read a Stationkeeper Data "
                                                 "file: see what each part adds, then bring it in (add-only; your own entries stay)"),
-                                       D.button("Undo the last import", "ghost", lambda: self.undo_data())])
+                                       D.button("Undo the last import", "ghost", lambda: self.undo_data()),
+                                       D.button("Button use on this PC...", "ghost", lambda: self.button_use(),   # 3.74.0
+                                                "Which buttons you press on each screen, counted on this PC only")])
         self.ourdata_text = self.ourdata.add(D.label("", "muted")); self.ourdata_text.setWordWrap(True)
         v.addWidget(self.ourdata)
         self.jump_row.addWidget(D.button("Our data", "ghost", lambda: self.jump(self.ourdata)))
@@ -416,6 +418,11 @@ class SettingsPage(QWidget):
         b = TD.backups(self.host.config_dir)
         self.ourdata_text.setText(("On this PC: " + "; ".join(have.values()) if have else "Nothing on this PC to carry yet.")
                                   + (f"  Last import kept a copy to undo ({b[0][:8]})." if b else ""))
+
+    def button_use(self, modal=True):
+        """3.74.0: the button-use report (skqt/usageview)."""
+        from .usageview import open_report
+        return open_report(self.host, modal)
 
     def export_data(self, path=None, parts=None):
         """Write the team's data to one file (parts, tests: which ones; every one by default). Returns the path."""

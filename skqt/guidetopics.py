@@ -97,7 +97,7 @@ TOPICS = [
    "Discussion and Dates. < All deliverables goes back.",
    "Format groups...: set the formatting and submission once for deliverables of the same kind; type a value on a "
    "deliverable's page to set its own, clear it to use the group's again.",
-   "A volume deliverable is its Structure volume: Make it a Structure volume adds it to the Structure Builder, and its "
+   "A volume deliverable is its Structure volume: Make it a Structure volume adds it to Setup, and its "
    "sections, with their leads from Setup, are its parts. Any deliverable can have parts of its own.",
    "Discussion: dated notes with the writer's name; filter by person; pin the ones everyone needs. Each note is also in "
    "the effort's timeline. A deliverable's due date and its own dates show on the calendar.",
@@ -330,25 +330,24 @@ TOPICS = [
    "section add to it as you read."],
   ["Volumes, people and the page budget are set on the Effort Dashboard (Volumes, people and page budget)."]),
  ("setups", "Plan", "Setup",
-  "The starting draft each author writes in: the volume's template with every section's heading, and under it the "
-  "customer's words, how it is scored, the PM's direction, its pages, its lead and due date, in hidden reference styles. "
-  "Made from a structure, layers and a template, and made again whenever one of them changes.",
+  "One page for the response's sections and each author's starting draft: build the sections, say who writes each and "
+  "when, pick the template, and make the setup: the volume's template with every section's heading, and under it the "
+  "customer's words, how it is scored, the PM's direction, its pages, its lead and due date, in hidden reference styles.",
   "As soon as you have headings, even before the customer's documents are read; and again after the Review, a new "
   "template or new direction.",
   ["No sections yet: drop a file on the page or Bring in a file... (Excel, Word or PDF), or type the sections, then Use "
-   "these sections. The template can be picked before or after. Read the customer's documents later and the "
-   "requirements fill the same sections.",
+   "these sections. Use a template file... works before or after the sections.",
+   "The sections: right-click one to rename it, make it a heading level, unnumbered, a divider or a placeholder, start a "
+   "Word section, add one below or under it, move it or delete it. Enter adds one below, Tab and Shift+Tab change its "
+   "level, F2 renames, Delete takes it out, and a drag moves it.",
    "Pick a section: type its Lead, Contributors, Due date, Pages and PM direction, then Save this section. What it prints "
-   "shows what the setup will put there.",
-   "What fills each section: turn a layer on or off. Requirements, evaluation criteria, PM direction, pages and author "
-   "and due date are on at first; customer context, meeting notes and captures, and topics when you want them.",
-   "Make the setup: each volume's template (Production > Templates) with the setup written on it. Plain setup... writes "
-   "it with no template.",
-   "Before a volume goes out: Strip setup... makes a clean copy beside it, with the setup's reference text, its styles "
-   "and its file properties taken out (bookmarks and section breaks kept); the volume itself is never changed.",
-   "Authors already writing? Changes for authors... writes one Word file per person with what changed in their sections "
-   "since the last setup."],
-  ["The Structure Builder's Make the setup button opens this page. Show/Hide in Word shows the hidden reference text."]),
+   "shows what the setup will put there; the Preview tab shows the volume's pages.",
+   "Add elements... puts the Table of Contents, the lists, Acronyms and Abbreviations and the rest in. Place library "
+   "items and what is not placed yet from the right.",
+   "Make the setup: each volume's template with the setup written on it. Export has Plain setup, Changes for authors, "
+   "Kickoff packets and Strip setup; More has Edit as text / Start from, What fills each section, Setup styles, Outline "
+   "versions and Outline layouts."],
+  ["Show/Hide in Word shows the hidden reference text. The Structure Builder became part of this page in 3.74.0."]),
  ("storyboards", "Plan", "Storyboards",
   "One sheet per section before anyone drafts: the key message, the win themes it carries, the approach, features "
   "with benefits and proof, and its graphics, beside its requirements and page budget.",

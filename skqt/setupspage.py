@@ -7,8 +7,7 @@ writes one Word file per person with what changed in their sections. Rules only 
 import os
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QCheckBox, QFileDialog, QFormLayout, QHBoxLayout, QLineEdit, QPlainTextEdit, QTreeWidget,
-                               QTreeWidgetItem, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import QCheckBox, QFileDialog, QFormLayout, QHBoxLayout, QLineEdit, QPlainTextEdit, QVBoxLayout, QWidget
 
 import diag
 import pagebudget as PB
@@ -18,6 +17,12 @@ from .adaptive import FlowLayout
 
 
 class SetupsPage(QWidget):
+    """3.74.0 (decision 12, and the eight rules of claude/stationkeeper-simplify-decisions-2026-11-06.md): one page. The
+    command bar (Make the setup, Bring in a file..., Use a template file..., Add elements..., + Volume; More; Export), a
+    line saying the template and what fills each section, then the sections: the Structure Builder's tree, its
+    right-click menu and keys, its placing, and the selected section's lead, contributors, due date, pages and PM
+    direction. With no sections yet, one card: drop a file, bring one in, or type them."""
+
     def __init__(self, host):
         super().__init__()
         self.setObjectName("page")
@@ -26,16 +31,58 @@ class SetupsPage(QWidget):
         self.setAcceptDrops(True)                                    # 3.73.0: drop a file to bring it in
         v = QVBoxLayout(self)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"])
-        v.setSpacing(D.SPACE["m"])
+        v.setSpacing(D.SPACE["s"])
+        from .commandbar import CommandBar
+        bar = self.bar = CommandBar()
+        bar.add("Bring in a file...", lambda: self.bring_in(),
+                "Excel: its columns are read (What's in your workbook). Word: its headings, or the template. PDF: the RFP's sections.")
+        bar.add("Use a template file...", lambda: self.template_file(),
+                "Your team's Word template: pick it before or after the sections")
+        self.b_elements = bar.add("Add elements...", lambda: self.builder.add_elements(),
+                                  "Table of Contents, the lists, Acronyms and Abbreviations, the Appendices section and the rest")
+        self.b_volume = bar.add("+ Volume", lambda: self.builder.add_volume(), "A new volume at the end, numbered the volumes' way")
+        self.b_make = bar.primary("Make the setup", lambda: self.make(),
+                                  "Each volume's template with the setup written on it: the customer's words and your notes in "
+                                  "hidden reference styles")
+        bar.more("Edit as text / Start from", lambda: self.builder.show_text(not self.builder.text_panel.isVisible()),
+                 "The sections as text, one per line, and Start from the RFP or a Word outline")
+        bar.more("Sort in document order", lambda: self.builder.sort_order(),
+                 "The items in every section in the order they appear in the customer documents")
+        self.a_show = bar.more("Show what is placed", lambda on: self.builder.show_items.setChecked(on),
+                               "Each section's requirements, support, captures and library items under it", checkable=True)
+        bar.more_sep()
+        bar.more("What fills each section...", lambda: self.show_layers(not self.layers.isVisible()))
+        bar.more("Setup styles...", lambda: self.styles(), "The setup's own styles: name, font, size, color, bold, italic, hidden")
+        bar.more("Outline versions...", lambda: self.versions(),
+                 "Every version of the outline brought in: compare any two, write the workbook back out")
+        bar.more("Outline layouts...", lambda: self.layouts(), "Set an outline's column names and how mixed text is told apart")
+        bar.export("Plain setup...", lambda: self.plain(), "One plain Word document per volume, no template")
+        bar.export("Changes for authors...", lambda: self.packets(),
+                   "One Word file per person: what changed in their sections since the last setup")
+        bar.export("Changes only (one file)...", lambda: self.host.setup_page.export_changes(), "Just what changed since the last export")
+        self.a_kickoff = bar.export("Kickoff packets...", lambda: self.builder.kickoff(),
+                                    "One Word file per author: their sections, the customer's words, how each is scored, and dates")
+        bar.export("Strip setup...", lambda: self.strip_files(),
+                   "Before a volume goes out: a clean copy with the setup's reference text, styles and file properties taken out")
+        v.addWidget(bar)
+        # ---- one line: the counts, the template, what fills each section
         top = QHBoxLayout(); top.setSpacing(D.SPACE["m"]); v.addLayout(top)
         self.p_secs = D.Pill("0 sections", "accent")
         self.p_lead = D.Pill("0 without a lead", "ok")
         self.p_due = D.Pill("0 without a due date", "ok")
         for p in (self.p_secs, self.p_lead, self.p_due):
             top.addWidget(p)
-        top.addStretch(1)
-        top.addWidget(D.button("Open the Structure Builder", "ghost", lambda: self.host.go("structure"),
-                               "Move, number and rename sections, and place requirements in them"))
+        self.tmpl = D.label("", "muted"); top.addWidget(self.tmpl, 1)
+        fl = QHBoxLayout(); fl.setSpacing(D.SPACE["s"]); v.addLayout(fl)
+        self.fills = D.label("", "muted"); fl.addWidget(self.fills, 1)
+        self.note = D.label("", "muted"); fl.addWidget(self.note)
+        self.layers = QWidget(); lw = FlowLayout(self.layers, D.SPACE["m"])   # opened from More or the line above
+        self.layer_boxes = {}
+        for key, title, _kinds, _on in SM.LAYERS:
+            cb = QCheckBox(title); cb.toggled.connect(lambda on, k=key: self.set_layer(k, on))
+            self.layer_boxes[key] = cb; lw.addWidget(cb)
+        self.layers.setVisible(False)
+        v.addWidget(self.layers)
 
         # ---- the sections, when there are none yet (3.73.0, decision 11: bring in any file, or type them)
         self.start_card = D.Card("Sections", "Drop a file here (Excel, Word or PDF) or bring one in, and the app finds the "
@@ -44,78 +91,51 @@ class SetupsPage(QWidget):
         self.heads = QPlainTextEdit(); self.heads.setPlaceholderText("1 Technical Approach\n  1.1 Understanding\n2 Management Approach")
         self.heads.setMinimumHeight(110)
         self.start_card.add(self.heads)
-        sr = QHBoxLayout(); sr.setSpacing(D.SPACE["s"])
-        sr.addWidget(D.button("Bring in a file...", None, lambda: self.bring_in(),
-                              "Excel: its columns are read (What's in your workbook). Word: its headings. PDF: the RFP's sections."))
-        sr.addWidget(D.button("Use a template file...", "ghost", lambda: self.template_file(),
-                              "Your team's Word template: pick it now or after the sections"))
-        sr.addStretch(1)
+        sr = QHBoxLayout(); sr.setSpacing(D.SPACE["s"]); sr.addStretch(1)
         sr.addWidget(D.button("Use these sections", "primary", lambda: self.use_headings()))
         self.start_card.body.addLayout(sr)
         v.addWidget(self.start_card)
 
-        # ---- sections and the selected one
-        self.main = QWidget(); mh = QHBoxLayout(self.main); mh.setContentsMargins(0, 0, 0, 0); mh.setSpacing(D.SPACE["m"])
-        left = D.Card("Sections", "Who writes each one, when it is due and how long it is. A subsection with no lead "
-                      "takes its parent's.")
-        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Section", "Lead", "Due", "Pages"])
-        self.tree.setColumnWidth(0, 300); self.tree.setColumnWidth(1, 140); self.tree.setColumnWidth(2, 100)
-        self.tree.setAlternatingRowColors(True)
-        self.tree.currentItemChanged.connect(lambda cur, _old: self.pick(cur.data(0, Qt.UserRole) if cur else None))
-        left.add(self.tree)
-        mh.addWidget(left, 3)
-        right = D.Card("This section")
+        # ---- the selected section: who writes it and when (shown inside the builder's Section panel)
+        self.who = QWidget(); self.who.setProperty("sk_keep", True)
+        wv = QVBoxLayout(self.who); wv.setContentsMargins(0, 0, 0, D.SPACE["s"])
         f = QFormLayout(); f.setSpacing(D.SPACE["s"])
         self.f_lead, self.f_with, self.f_due, self.f_pages = QLineEdit(), QLineEdit(), QLineEdit(), QLineEdit()
+        self.f_lead.setPlaceholderText("A subsection with no lead takes its parent's")
         self.f_with.setPlaceholderText("Names, with commas")
         self.f_due.setPlaceholderText("2026-11-20, or Pink Team")
         self.f_pages.setPlaceholderText("5, or 2.5")
         self.f_dir = QPlainTextEdit(); self.f_dir.setPlaceholderText("What the proposal manager wants in this section")
-        self.f_dir.setMaximumHeight(110)
+        self.f_dir.setMaximumHeight(90)
         for lab, w in (("Lead", self.f_lead), ("Contributors", self.f_with), ("Due", self.f_due), ("Pages", self.f_pages),
                        ("PM direction", self.f_dir)):
             f.addRow(lab, w)
-        right.body.addLayout(f)
+        wv.addLayout(f)
         rb = QHBoxLayout(); rb.addStretch(1); rb.addWidget(D.button("Save this section", "primary", lambda: self.save_section()))
-        right.body.addLayout(rb)
-        right.add(D.label("What it prints", "label"))
+        wv.addLayout(rb)
+        wv.addWidget(D.label("What it prints", "label"))
         self.prev = D.label("", "muted"); self.prev.setTextFormat(Qt.RichText)
-        right.add(self.prev)
-        mh.addWidget(right, 2)
-        v.addWidget(self.main, 1)
+        wv.addWidget(self.prev)
 
-        # ---- layers and templates
-        lay = D.Card("What fills each section", "Turn a layer off and the next setup leaves it out.")
-        lw = QWidget(); fl = FlowLayout(lw, D.SPACE["m"])
-        self.layer_boxes = {}
-        for key, title, _kinds, _on in SM.LAYERS:
-            cb = QCheckBox(title); cb.toggled.connect(lambda on, k=key: self.set_layer(k, on))
-            self.layer_boxes[key] = cb; fl.addWidget(cb)
-        lay.add(lw)
-        self.tmpl = D.label("", "muted"); lay.add(self.tmpl)
-        v.addWidget(lay)
+        # ---- the sections: the Structure Builder's tree, menu, keys and placing (3.74.0)
+        self.builder = host.structure_page.embed(section_card=self.section_card, on_text=self.on_text, on_change=self.counts)
+        self.main = self.builder
+        v.addWidget(self.builder, 1)
 
-        bar = QHBoxLayout(); bar.setSpacing(D.SPACE["s"]); v.addLayout(bar)
-        self.note = D.label("", "muted"); bar.addWidget(self.note, 1)
-        bar.addWidget(D.button("Bring in a file...", "ghost", lambda: self.bring_in(),                 # 3.73.0
-                               "A new version of your outline Excel is compared first; a Word template can be used for the setup"))
-        bar.addWidget(D.button("Outline versions...", None, lambda: self.versions(),                  # 3.73.0
-                               "Every version of the outline brought in: compare any two, write the workbook back out"))
-        bar.addWidget(D.button("Outline layouts...", None, lambda: self.layouts(),                    # 3.73.0
-                               "Set an outline's column names and formatting rules ahead of time"))
-        bar.addWidget(D.button("Setup styles...", None, lambda: self.styles(), "The setup's own styles: name, font, size, color, "
-                               "bold, italic, hidden"))
-        bar.addWidget(D.button("Strip setup...", "ghost", lambda: self.strip_files(),                 # 3.60.0
-                               "Before a volume goes out: a clean copy with the setup's reference text, styles and file "
-                               "properties taken out"))
-        bar.addWidget(D.button("Changes for authors...", None, lambda: self.packets(),
-                               "One Word file per person: what changed in their sections since the last setup"))
-        bar.addWidget(D.button("Plain setup...", None, lambda: self.plain(), "One plain Word document per volume, no template"))
-        bar.addWidget(D.button("Use a template file...", None, lambda: self.template_file(),          # 3.72.0
-                               "Make the setup on a Word template your team already made: you pick what comes in"))
-        bar.addWidget(D.button("Make the setup", "primary", lambda: self.make(),
-                               "Each volume's template with the setup written on it: the customer's words and your notes in "
-                               "hidden reference styles"))
+    def on_text(self, on):
+        """The sections as text (Edit as text / Start from) shows even before there are sections."""
+        M = self._M()
+        has = M is not None and bool(M.outline)
+        self.builder.setVisible(bool(on) or has)
+        self.start_card.setVisible(not on and not has)
+
+    def section_card(self, label):
+        self.pick(label)
+        return self.who
+
+    def show_layers(self, on=True):
+        self.layers.setVisible(on)
+        return on
 
     # ------------------------------------------------------------ state
     def _M(self):
@@ -184,12 +204,12 @@ class SetupsPage(QWidget):
                 self.template_file(path=path, modal=accept is None)
                 return "template"
             if has:
-                self.host.status("There are sections already: change them in the Structure Builder, or bring in Excel for a new version.")
+                self.host.status("There are sections already: change them here (right-click a section), or bring in Excel for a new version.")
                 return None
             return "sections" if self.from_docx(path) else None
         if ext == ".pdf":
             if has:
-                self.host.status("There are sections already: change them in the Structure Builder.")
+                self.host.status("There are sections already: change them here (right-click a section).")
                 return None
             return "sections" if self.from_rfp(path) else None
         self.host.status("Bring in an Excel workbook, a Word document or template, or a PDF.")
@@ -264,42 +284,47 @@ class SetupsPage(QWidget):
             import templatesetup as TS
             if TS.adopt(M, self.host.ws):
                 M.pending = True
-        self.start_card.setVisible(not has)
-        self.main.setEnabled(has); self.main.setVisible(has)             # 3.73.0: one Sections card at a time
+        texting = not self.builder.text_panel.isHidden()
+        self.start_card.setVisible(not has and not texting)
+        self.builder.setVisible(has or texting)                      # 3.74.0: one Sections area at a time
+        for b in (self.b_elements, self.b_volume, self.b_make):
+            b.setEnabled(has)
         for cb in self.layer_boxes.values():
             cb.setEnabled(has)
-        keep = self.cur
-        self.tree.blockSignals(True); self.tree.clear()
+        self.a_kickoff.setVisible(self._kickoff_on())
+        self.a_show.blockSignals(True); self.a_show.setChecked(self.builder.show_items.isChecked()); self.a_show.blockSignals(False)
         if not has:
-            self.tree.blockSignals(False)
-            self.p_secs.setText("0 sections"); self.note.setText("No sections yet: bring in a file or type them.")
+            self.builder.refresh()
+            self.p_secs.setText("0 sections"); self.p_lead.setText("0 without a lead"); self.p_due.setText("0 without a due date")
+            self.note.setText(""); self.fills.setText("")
             self.prev.setText(""); self.tmpl.setText(self.waiting_text())
             return
-        sel = None
-        for lab, lv in SM.sections(M):
-            lead = SM.people(M, lab)[0]
-            pg = PB.pages(M, lab)
-            it = QTreeWidgetItem([("    " * max(0, lv - 1)) + lab, lead, SM.due(M, lab), f"{pg:g}" if pg else ""])
-            it.setData(0, Qt.UserRole, lab)
-            if lv == 1:
-                ft = it.font(0); ft.setBold(True); it.setFont(0, ft)
-            self.tree.addTopLevelItem(it)
-            if lab == keep:
-                sel = it
-        self.tree.blockSignals(False)
-        g = SM.gaps(M)
-        n = self.tree.topLevelItemCount()
-        self.p_secs.setText(f"{n} sections")
-        self.p_lead.setText(f"{len(g['no_lead'])} without a lead"); self.p_lead.set_tone("warn" if g["no_lead"] else "ok")
-        self.p_due.setText(f"{len(g['no_due'])} without a due date"); self.p_due.set_tone("warn" if g["no_due"] else "ok")
+        self.counts()
         on = SM.layers(M)
         for k, cb in self.layer_boxes.items():
             cb.blockSignals(True); cb.setChecked(on[k]); cb.blockSignals(False)
         self.tmpl.setText(self.templates_text(M))
-        self.note.setText("Make it again whenever the structure, a layer or a template changes."
+        self.note.setText("Make it again whenever the sections, what fills them or a template changes."
                           if M.setup and M.setup.get("exports") else "No setup made yet.")
-        self.tree.setCurrentItem(sel or self.tree.topLevelItem(0))
-        self.pick(self.tree.currentItem().data(0, Qt.UserRole) if self.tree.currentItem() else None)
+        self.builder.refresh()
+
+    def counts(self):
+        """The counts and the line saying what fills each section (also after a change in the sections)."""
+        M = self._M()
+        if M is None or not M.outline:
+            return
+        g = SM.gaps(M)
+        self.p_secs.setText(f"{len(SM.sections(M))} sections")
+        self.p_lead.setText(f"{len(g['no_lead'])} without a lead"); self.p_lead.set_tone("warn" if g["no_lead"] else "ok")
+        self.p_due.setText(f"{len(g['no_due'])} without a due date"); self.p_due.set_tone("warn" if g["no_due"] else "ok")
+        on = SM.layers(M)
+        self.fills.setText("What fills each section: " + (", ".join(t for k, t, _kk, _o in SM.LAYERS if on.get(k)) or "nothing")
+                           + " (More > What fills each section...)")
+
+    def _kickoff_on(self):
+        import menufocus as MF
+        from .modes import settings
+        return "kickoff" not in MF.hidden(settings())
 
     def waiting_text(self):
         import templatesetup as TS
@@ -375,6 +400,7 @@ class SetupsPage(QWidget):
         self.host.review.snap()
         SM.set_layer(M, key, on)
         diag.activity("setup_layer_set", n=int(bool(on)))
+        self.counts()
         self.host.changed()
         if self.cur:
             self.show_preview(M, self.cur)
