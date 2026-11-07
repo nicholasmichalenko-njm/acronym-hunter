@@ -178,7 +178,7 @@ def guess_type(name):
 
 # ------------------------------------------------------------------ the library
 # ------------------------------------------------------------------ the document library (2.83.0)
-CATEGORIES = (("customer", "Customer documents"), ("bidders", "Bidders library"), ("qa", "Q&A"), ("ours", "Our effort documents"),
+CATEGORIES = (("customer", "Customer Documents"), ("bidders", "Bidders Library"), ("qa", "Q&A"), ("ours", "Our Documents"),   # 3.78.0: as the folders are named
               ("graphics", "Graphics"))       # 3.78.0: pictures, kept in the Effort Library's Graphics folder
 ROLES = (("matrix", "Builds the matrix"), ("context", "Context"), ("reference", "Reference only"), ("not_needed", "Not needed"))
 ROLE_NAMES = dict(ROLES)

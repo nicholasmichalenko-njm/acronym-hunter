@@ -1,0 +1,383 @@
+{
+ "row_types": {
+  "caption": {
+   "tag_style": "PE Table Caption",
+   "font": "=caption_font",
+   "size": "=caption_size",
+   "bold": true,
+   "align": "left",
+   "before": 3,
+   "after": 3,
+   "fill": null,
+   "valign": "center",
+   "repeat": true,
+   "merge": true,
+   "edges": {
+    "top": null,
+    "bottom": [
+     1.0,
+     "1F3864"
+    ],
+    "left": null,
+    "right": null,
+    "inside_v": null
+   },
+   "left": 0.0,
+   "right": 0.0
+  },
+  "header": {
+   "tag_style": "PE Table Header",
+   "font": "=table_font",
+   "size": "=table_size",
+   "bold": true,
+   "align": "left",
+   "before": 2,
+   "after": 2,
+   "fill": "1F3864",
+   "color": "FFFFFF",
+   "valign": "center",
+   "repeat": true,
+   "merge": false,
+   "edges": {
+    "top": [
+     1.0,
+     "1F3864"
+    ],
+    "bottom": [
+     1.0,
+     "1F3864"
+    ],
+    "left": [
+     0.5,
+     "1F3864"
+    ],
+    "right": [
+     0.5,
+     "1F3864"
+    ],
+    "inside_v": [
+     0.5,
+     "FFFFFF"
+    ]
+   }
+  },
+  "header2": {
+   "tag_style": "PE Table Header 2",
+   "font": "=table_font",
+   "size": "=table_size",
+   "bold": true,
+   "align": "left",
+   "before": 1,
+   "after": 1,
+   "fill": "D9E2F3",
+   "valign": "center",
+   "repeat": true,
+   "merge": false,
+   "edges": {
+    "top": [
+     0.5,
+     "8EA9DB"
+    ],
+    "bottom": [
+     0.5,
+     "8EA9DB"
+    ],
+    "left": [
+     0.5,
+     "8EA9DB"
+    ],
+    "right": [
+     0.5,
+     "8EA9DB"
+    ],
+    "inside_v": [
+     0.5,
+     "8EA9DB"
+    ]
+   }
+  },
+  "subhead": {
+   "tag_style": "PE Table Subhead",
+   "font": "=table_font",
+   "size": "=table_size",
+   "bold": true,
+   "align": "left",
+   "before": 1,
+   "after": 1,
+   "fill": "D9D9D9",
+   "valign": "center",
+   "repeat": false,
+   "merge": null,
+   "edges": {
+    "top": [
+     0.5,
+     "8EA9DB"
+    ],
+    "bottom": [
+     0.5,
+     "8EA9DB"
+    ],
+    "left": [
+     0.5,
+     "8EA9DB"
+    ],
+    "right": [
+     0.5,
+     "8EA9DB"
+    ],
+    "inside_v": [
+     0.5,
+     "8EA9DB"
+    ]
+   }
+  },
+  "body": {
+   "tag_style": "PE Table Text",
+   "font": "=table_font",
+   "size": "=table_size",
+   "bold": false,
+   "align": "left",
+   "before": 1,
+   "after": 1,
+   "fill": null,
+   "valign": "top",
+   "repeat": false,
+   "merge": false,
+   "edges": {
+    "top": [
+     0.5,
+     "8EA9DB"
+    ],
+    "bottom": [
+     0.5,
+     "8EA9DB"
+    ],
+    "left": [
+     0.5,
+     "8EA9DB"
+    ],
+    "right": [
+     0.5,
+     "8EA9DB"
+    ],
+    "inside_v": [
+     0.5,
+     "8EA9DB"
+    ]
+   }
+  },
+  "subtotal": {
+   "tag_style": "PE Table Subtotal",
+   "font": "=table_font",
+   "size": "=table_size",
+   "bold": true,
+   "align": "left",
+   "before": 1,
+   "after": 1,
+   "fill": null,
+   "valign": "top",
+   "repeat": false,
+   "merge": false,
+   "edges": {
+    "top": [
+     0.75,
+     "1F3864"
+    ],
+    "bottom": [
+     0.5,
+     "8EA9DB"
+    ],
+    "left": [
+     0.5,
+     "8EA9DB"
+    ],
+    "right": [
+     0.5,
+     "8EA9DB"
+    ],
+    "inside_v": [
+     0.5,
+     "8EA9DB"
+    ]
+   }
+  },
+  "total": {
+   "tag_style": "PE Table Total",
+   "font": "=table_font",
+   "size": "=table_size",
+   "bold": true,
+   "align": "left",
+   "before": 1,
+   "after": 1,
+   "fill": "E8EEF7",
+   "valign": "top",
+   "repeat": false,
+   "merge": false,
+   "edges": {
+    "top": [
+     1.5,
+     "1F3864"
+    ],
+    "bottom": [
+     1.0,
+     "1F3864"
+    ],
+    "left": [
+     0.5,
+     "8EA9DB"
+    ],
+    "right": [
+     0.5,
+     "8EA9DB"
+    ],
+    "inside_v": [
+     0.5,
+     "8EA9DB"
+    ]
+   }
+  },
+  "note": {
+   "tag_style": "PE Table Note",
+   "font": "=table_font",
+   "size": 8,
+   "bold": false,
+   "italic": true,
+   "align": "left",
+   "before": 1,
+   "after": 1,
+   "fill": null,
+   "valign": "top",
+   "repeat": false,
+   "merge": true,
+   "edges": {
+    "top": [
+     1.0,
+     "1F3864"
+    ],
+    "bottom": null,
+    "left": null,
+    "right": null,
+    "inside_v": null
+   },
+   "left": 0.0,
+   "right": 0.0
+  }
+ },
+ "table_types": {
+  "std": {
+   "name": "Standard data table",
+   "width_pct": 100,
+   "align": "center",
+   "cell_margins": {
+    "top": 2,
+    "bottom": 2,
+    "left": 5,
+    "right": 5
+   },
+   "roles": [
+    "caption",
+    "header",
+    "header2",
+    "subhead",
+    "body",
+    "subtotal",
+    "total",
+    "note",
+    "keep"
+   ],
+   "override": {}
+  },
+  "kp": {
+   "name": "Key personnel table",
+   "width_pct": 100,
+   "align": "center",
+   "cell_margins": {
+    "top": 3,
+    "bottom": 3,
+    "left": 6,
+    "right": 6
+   },
+   "roles": [
+    "caption",
+    "header",
+    "body",
+    "note"
+   ],
+   "override": {
+    "header": {
+     "fill": "D9E2F3",
+     "color": "000000"
+    }
+   }
+  },
+  "cm": {
+   "name": "Compliance matrix",
+   "width_pct": 100,
+   "align": "center",
+   "cell_margins": {
+    "top": 1,
+    "bottom": 1,
+    "left": 4,
+    "right": 4
+   },
+   "roles": [
+    "caption",
+    "header",
+    "header2",
+    "subhead",
+    "body",
+    "subtotal",
+    "total",
+    "note",
+    "keep"
+   ],
+   "override": {
+    "header": {
+     "fill": "404040"
+    },
+    "body": {
+     "size": 8
+    }
+   }
+  },
+  "fig": {
+   "name": "Figure table",
+   "width_pct": 100,
+   "align": "center",
+   "cell_margins": {
+    "top": 0,
+    "bottom": 0,
+    "left": 0,
+    "right": 0
+   },
+   "roles": [
+    "body",
+    "caption"
+   ],
+   "caption_position": "below",
+   "override": {
+    "caption": {
+     "tag_style": "PE Figure Caption",
+     "align": "center",
+     "edges": {
+      "top": null,
+      "bottom": null,
+      "left": null,
+      "right": null,
+      "inside_v": null
+     }
+    },
+    "body": {
+     "tag_style": "PE Figure",
+     "edges": {
+      "top": null,
+      "bottom": null,
+      "left": null,
+      "right": null,
+      "inside_v": null
+     }
+    }
+   }
+  }
+ }
+}

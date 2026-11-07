@@ -183,6 +183,8 @@ QComboBox QAbstractItemView {{ background: {t['surface']}; color: {t['text']}; s
 QTreeWidget, QTreeView, QTableView, QListWidget {{ background: {t['surface']}; alternate-background-color: {t['surface2']};
        border: 1px solid {t['border']}; border-radius: {r['card']}px; selection-background-color: {t['accent_soft']};
        selection-color: {t['text']}; }}
+QListWidget#sectionList {{ border: none; border-right: 1px solid {t['border']}; border-radius: 0; padding: 12px 8px; }}
+QListWidget#sectionList::item {{ padding: 8px 12px; border-radius: 6px; }}
 QHeaderView::section {{ background: {t['surface2']}; color: {t['muted']}; border: none; border-bottom: 1px solid {t['border']};
                         padding: 6px 8px; font-weight: 600; font-size: {TYPE['small']}pt; }}
 QSplitter::handle {{ background: {t['border']}; }}
