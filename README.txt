@@ -1,6 +1,26 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+FEWER CONTROLS PER SCREEN, PART ONE (3.75.0)
+  - The menu has nine groups: Home, Effort, Customer Documents, Shred, Plan, Write, Submit, Team, Settings. Pages that
+    belong together are tabs of one item: Requirements and Accuracy; After Submission's Checklist and Keywords;
+    Standards (Formatting, Quick Parts, Layout); Effort Profiles and Templates; Check a Draft (Audit, Apply in Word, Fix a
+    Copy). Export All is on the Effort Dashboard's Export menu.
+  - The bar on every screen: Undo and Note (Issue or idea is a choice inside Note). Find a sentence shows on the screens
+    that hold sentences. Click the effort's card at the top of the menu for its Dashboard or another effort. Saved is in
+    the status line; the work mode shows only until it is set.
+  - Effort Dashboard: one bar. + Add holds every new thing (note, question, task, due date, event, meeting notes, graphic
+    need, win theme, gate goal, customer information, submission requirement); Edit details...; More and Export hold the
+    rest. Buttons that only opened another page are gone; the menu opens it.
+  - Review: Combine, Split and Extract are on the sentence's right-click (J, S and Shift+S as before); the structure's
+    edits are on the section's right-click (and in Setup); + Topic is in Topics; Start from... shows while there are no
+    sections.
+  - Effort Formatting: Reset and Make it global show only on a value this effort changed.
+  - Effort Record: one bar (Save details, + Stage, Save stages; More: readable copy, health check, back up, restore, gate
+    choices; Export: status, summary, effort package). Right-click a stage to move or remove it.
+  - After Submission: one bar (Mark submitted..., + Item); the checklist shows its values as text with Done as a tick;
+    the selected item's owner, days after and status are set under the table.
+
 SETUP IS ONE PAGE (3.74.0)
   - The Structure Builder is part of Setup. One page: build the sections (right-click a section to rename it, make it a
     heading level, unnumbered, a divider or a placeholder, start a Word section, add, move or delete; Enter, Tab,
