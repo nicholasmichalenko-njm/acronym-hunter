@@ -72,7 +72,7 @@ class AcronymPage(QWidget):
         v = QVBoxLayout(self)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         self.where = D.label("<b>START</b> &nbsp;Acronyms, abbreviations, units and symbols in the customer's documents, or in your "
-                             "own drafts (Scan files..., Scan a folder...). Add them to the acronym list; first use in your volumes "
+                             "own drafts (Scan files..., Scan the library...). Add them to the acronym list; first use in your volumes "
                              "is checked in Submission Check, and the lists you submit come from Lists to Submit.", "muted")
         self.where.setTextFormat(Qt.RichText); v.addWidget(self.where)                  # 2.86.0: which end this page serves
         top = FlowLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)
