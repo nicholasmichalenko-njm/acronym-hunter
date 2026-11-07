@@ -226,11 +226,8 @@ def found_at(lib, rec, doc_id, path, who=None, was=None):
         if rec is not None:
             rec.log("document", f"{d['name']}: the file it came from was found at a new place", who=who, save=True)
         return True
-    v["path"] = os.path.abspath(path)
-    v.pop("rel", None)
-    rel = lib._rel(path)
-    if rel:
-        v["rel"] = rel
+    import effortlib as EL                          # 3.78.0: rel and erel follow the file
+    EL.set_path(lib, v, path)
     v.pop("missing_kept", None)
     lib.save()
     if rec is not None:
