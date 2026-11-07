@@ -32,7 +32,7 @@ W.write_json(os.path.join(docs, "index.json"), {"v": 1, "docs": [{"id": "old1", 
 W.write_json(os.path.join(docs, "v0.json"), S("The Offeror shall describe the thermal design."))
 lib = DV.Library(docs).load()
 check("an index from before 2.83 opens as customer documents", [d["id"] for d in lib.docs] == ["old1"] and lib.role_of(lib.docs[0]) == "matrix")
-check("the four categories", [k for k, _n in lib.categories()] == ["customer", "bidders", "qa", "ours"])
+check("the five categories (3.78.0: Graphics)", [k for k, _n in lib.categories()] == ["customer", "bidders", "qa", "ours", "graphics"])
 key = lib.add_category("Competitor intel")
 check("plus the person's own, kept", key and DV.Library(docs).load().category_name(key) == "Competitor intel" and lib.add_category("competitor intel") == key)
 # adding across categories

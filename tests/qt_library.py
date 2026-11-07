@@ -110,14 +110,14 @@ check("3.15.1: after adding, All documents shows with every new document selecte
 check("customer documents went to the customer documents folder", sorted(os.listdir(CD)) == ["Attachment J-1 ICD.pdf", "Section L Instructions.docx"])
 std = by["MIL-STD-1540E"]
 p_std = lib.path_of(std["versions"][0])
-check("the rest are copied into the effort, by category and folder", os.path.isfile(p_std) and
-      os.path.normpath(p_std).endswith(os.path.normpath("library/bidders/Heron intake/Bidders Library/Standards/MIL-STD-1540E.pdf")), p_std)
+check("3.78.0: the rest are copied into the Effort Library's real folders, by category and folder", os.path.isfile(p_std) and
+      os.path.normpath(p_std).endswith(os.path.normpath("Heron/Library/Bidders Library/Standards/MIL-STD-1540E.pdf")), p_std)
 check("the done panel says what went where", "Bidders library" in pg.panel.detail.text() and "added" in pg.panel.detail.text(), pg.panel.detail.text())
 tl = [e["text"] for e in R.Record(ws.root).events()]
 check("the effort record has the paper trail", any(t.startswith("Library:") for t in tl) and any("Section L Instructions added" in t for t in tl), tl[:4])
 check("adding the same folder again adds nothing", DI.plan(lib, [p for p, _r in found], reader, folders=dict(found))[0]["dup"])
 # the page
-check("the tree: every category with its count, and the folders", pg.tree.topLevelItemCount() == 5
+check("the tree: every category with its count, and the folders", pg.tree.topLevelItemCount() == 6
       and pg.tree.topLevelItem(2).text(0) == "Bidders library" and pg.tree.topLevelItem(2).text(1) == "1" and pg.tree.topLevelItem(2).childCount() == 1)
 pg.pick_place("bidders", "")
 check("a category shows its documents", pg.table.rowCount() == 1 and pg.table.item(0, 0).text() == "MIL-STD-1540E")
@@ -135,7 +135,7 @@ lib = DV.Library(ws.p("documents")).load()
 check("a role for many at once, with who and why", n == 2 and all(lib.doc(i)["role"] == "context" and lib.doc(i)["role_by"]["why"] == "Thermal background for writers"
                                                                   and not lib.doc(i)["role_by"]["suggested"] for i in ids))
 key = pg.new_category("Competitor intel")
-check("a category of one's own", key and pg.tree.topLevelItemCount() == 6)
+check("a category of one's own", key and pg.tree.topLevelItemCount() == 7)
 pg.select(by["Win themes"]["id"]); pg.show_doc()
 pg.set_category(key, "Kestrel")
 check("moving a document to it, with a folder", DV.Library(ws.p("documents")).load().doc(by["Win themes"]["id"])["category"] == key)
@@ -170,9 +170,10 @@ QM = __import__("PySide6.QtWidgets", fromlist=["QMessageBox"]).QMessageBox
 pk_all = w.record_page.save_package(os.path.join(tmp, "all.skpkg"))
 pk_c = w.record_page.save_package(os.path.join(tmp, "cust.skpkg"), library="customer")
 na = zipfile.ZipFile(pk_all["path"]).namelist(); nc = zipfile.ZipFile(pk_c["path"]).namelist()
-check("All documents: every original goes", any("library/ours" in a or "library/qa" in a for a in na) and pk_all["has"]["library"] == "all")
-check("Customer and Q&A only: the Q&A originals go, the others stay behind", any("data/library/qa/" in a for a in nc)
-      and not any("data/library/c_" in a or "data/library/ours/" in a for a in nc) and pk_c["has"]["library"] == "customer")
+check("All documents: every original goes (3.78.0: the Effort Library's folders)", any(a.startswith("efflib/Q&A/") for a in na)
+      and any(a.startswith("efflib/Competitor intel/") for a in na) and pk_all["has"]["library"] == "all", [a for a in na if "lib" in a])
+check("Customer and Q&A only: the Q&A originals go, the others stay behind", any(a.startswith("efflib/Q&A/") for a in nc)
+      and not any(a.startswith("efflib/") and not a.startswith("efflib/Q&A/") for a in nc) and pk_c["has"]["library"] == "customer")
 check("and every document's record and text still go", "data/documents/index.json" in nc
       and all(f"data/documents/{d['versions'][0]['id']}.json" in nc for d in DV.Library(ws.p("documents")).load().all))
 dest = os.path.join(tmp, "received"); os.makedirs(dest)

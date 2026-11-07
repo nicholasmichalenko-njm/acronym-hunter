@@ -178,6 +178,10 @@ def apply(lib, entries, customer_dir="", log=None, progress=None):
         cat = e.get("category", "customer")
         if e["choice"] == "version" and e.get("doc") and not str(e["doc"]).startswith("batch:"):
             cat = (lib.doc(e["doc"]) or {}).get("category", cat)           # a new version goes where its document is
+        if cat != "customer" and getattr(lib, "library_root", ""):     # 3.78.0: the folder as it is on disk
+            import effortlib as EL
+            tags0 = DV.folder_tags(e.get("folder", ""))
+            e = dict(e, folder=EL.clean_folder(lib, cat, e.get("folder", "")), tags=list(dict.fromkeys(list(e.get("tags", [])) + tags0)))
         cd = customer_dir if cat == "customer" else library_dir(lib, cat, e.get("folder", ""))
         if cat != "customer":
             os.makedirs(cd, exist_ok=True)

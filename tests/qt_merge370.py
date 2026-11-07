@@ -70,7 +70,7 @@ s.close()
 w.go("home"); app.processEvents()
 check("the Effort Dashboard offers Add to this effort... (in More, 3.75.0)", w.home_page.bar.action("Add to this effort...") is not None)
 w.go("library"); app.processEvents()
-check("the Library offers Add from another copy...", any(b.text() == "Add from another copy..." for b in w.library_page.findChildren(QPushButton)))
+check("the Library offers Add from another copy... (3.78.0: under More)", "Add from another copy..." in w.library_page.bar.labels())
 f = eh.add_to("Kestrel", {"source": "__files__"})
 check("Files or a folder go in through the Library", f.get("library") and w.stack.currentWidget() is w.library_page)
 

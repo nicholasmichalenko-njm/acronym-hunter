@@ -55,8 +55,20 @@ def top(lib, category):
     return _safe(lib.category_name(category) if lib is not None else category)
 
 
-def folder_path(lib, category, folder=""):
+def clean_folder(lib, category, folder=""):
+    """The folder under the category's top folder: a folder already named for its top folder starts under it
+    ('Intake/Bidders Library/Standards' in Bidders Library is 'Standards')."""
     parts = [_safe(x) for x in (folder or "").replace("\\", "/").split("/") if x.strip() and x not in (".", "..")]
+    t = top(lib, category).casefold()
+    for i in range(len(parts) - 1, -1, -1):
+        if parts[i].casefold() in (t, CUSTOMER.casefold() if category == "customer" else t):
+            parts = parts[i + 1:]
+            break
+    return "/".join(parts)
+
+
+def folder_path(lib, category, folder=""):
+    parts = [x for x in clean_folder(lib, category, folder).split("/") if x]
     base = getattr(lib, "library_root", "") or ""
     if not base:
         return ""

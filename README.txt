@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE EFFORT LIBRARY (3.78.0)
+  - The menu heading is Effort Library: every file of the effort, in real folders. A file that is not a customer
+    document is copied into the effort's Library folder, under its category: Bidders Library, Our Documents, Graphics,
+    Q&A, or a category you add, and its folders. What the app shows is on disk. Customer documents keep the effort's
+    Customer Documents folder.
+  - New folder... makes a folder on disk (it shows even while empty). Moving a document to another category or folder
+    moves its file on disk. Pictures go to Graphics. Open the Library folder shows it in File Explorer.
+  - The Library travels with the effort: its package and Add to this effort carry it; the effort opens the same after
+    its folder moves.
+  - Files an older version kept in the app's working folder stay where they are until you choose More > Move kept
+    files into the Library folders...; a list of every move is written to the effort's folder.
+  - Acronyms: Scan files... offers to add the files to the Effort Library first (pictures to Graphics). Scan the
+    library... scans the folders you tick (Customer Documents and Graphics at first).
+
 FEWER CONTROLS PER SCREEN, PART TWO (3.77.0)
   - Settings is in sections, one shown at a time: This effort, You, The team, Review and responses, Our data and
     backups, Training, Updates and help. Pick a section in the list on the left.
