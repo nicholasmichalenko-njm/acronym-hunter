@@ -40,7 +40,7 @@ al = AL.load(cfg); al.add("Dana Whitfield"); al.save()
 vol = os.path.join(EF.folder(w.effort_path, "volumes"), "Kestrel Thermal Technical.docx")
 shutil.copy2(os.path.join(HERE, "pefix", "data", "small.docx"), vol)
 w.go("fixcopy"); app.processEvents()
-check("an Issue or idea button in the top bar", w.issue_btn.isVisibleTo(w) and w.issue_btn.text() == "Issue or idea")
+check("Issue or idea is a choice inside Note in the top bar (3.75.0)", any(a.text() == "Issue or idea..." for a in w.note_btn.menu().actions()))
 d = w.open_issues(run=False)
 check("opened on the page you are on: the feature is filled in", d.feature.currentText() == "Fix a Copy" and d.page_key == "fixcopy")
 for words, label in (("The Osprey Lancer effort fails", "effort name"), ("FA8810-26-R-0042 header is wrong", "solicitation"),

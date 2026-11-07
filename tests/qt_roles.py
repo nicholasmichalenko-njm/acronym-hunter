@@ -59,8 +59,10 @@ check("the open effort and its stage are at the top of the menu", w.rail_effort.
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 w.go("efforts"); app.processEvents()
-QTest.mouseClick(w.rail_effort, Qt.LeftButton); app.processEvents()
-check("... and it opens the Effort Dashboard", w.stack.currentWidget() is w.home_page)
+from skqt import frame as FR                                  # 3.75.0: the card opens a menu: the Dashboard, another effort
+m = FR.effort_menu(w)
+m.actions()[0].trigger(); app.processEvents()
+check("... and its menu opens the Effort Dashboard", m.actions()[0].text() == "Effort Dashboard" and w.stack.currentWidget() is w.home_page)
 w.step_btns[marked[0]].click(); app.processEvents()
 check("a stage tool opens its page", w.stack.currentWidget() is not w.notice_page or w.notice_page.why is not None)
 w.toggle_group("Acronyms"); app.processEvents()

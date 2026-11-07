@@ -1,10 +1,10 @@
 """Every page's title and one line on what it is for (3.53.0: kept apart from the main window so it stays small)."""
 TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and work not filed yet"),
           "fixcopy": ("Fix a Copy", "Beta: check drafts against their profile; fixes go into a dated copy, never the original"),
-          "audit": ("Audit", "Check files against every standard that applies to them: read only, nothing changed"),
+          "audit": ("Check a Draft", "Check files against every standard that applies to them: read only, nothing changed"),
           "applyword": ("Apply in Word", "Beta: the team's banned phrases into a draft as tracked changes, on a copy or live in Word"),
           "studio": ("Template Studio", "One volume's template in one place: its parts from where they live, its parts and numbering, and your field recipes"),
-          "formatstd": ("Formatting Standards", "The fundamentals every template is built from: theme, fonts, page setups, pagination, numbering, lists and styles; each named, tagged by effort type, every value editable"),
+          "formatstd": ("Standards", "The fundamentals every template is built from: theme, fonts, page setups, pagination, numbering, lists and styles; each named, tagged by effort type, every value editable"),
           "qpstd": ("Quick Parts", "Every Quick Part by your numbered categories: its gallery, whether it follows the template's fonts, the pages it fills, and Word's picture of it"),
           "layoutstd": ("Layout", "Covers, title pages, back covers, headers and footers, sections, table looks, captions and the TOC, each with its picture and every value"),
           "shredreq": ("Requirements", "Every requirement in one file, labelled Requirement, Instruction (L), Evaluation (M) or SOW task; export a draft matrix or file it to an effort"),
@@ -54,4 +54,4 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "matrix": ("Matrix", "The compliance matrix as the customer will see it"),
           "setup": ("Response Setup", "The Word documents your writers start from"),
           "setups": ("Setup", "Build the sections, say who writes each and when, and make each author's starting draft on your template"),
-          "postsub": ("Post-Submission Checklist", "What the team does after the proposal goes in: owners, due dates, done")}
+          "postsub": ("After Submission", "What the team does after the proposal goes in: owners, due dates, done")}

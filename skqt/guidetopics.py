@@ -105,7 +105,7 @@ TOPICS = [
   ["View: List shows the same deliverables as a table; Arrange: drag them into the team's order, and set the board to "
    "Your order to follow it.",
    "Every name picker ends with Add a person...: add someone once and every picker offers them after."]),
- ("evalcrit", "Effort", "Evaluation Criteria",
+ ("evalcrit", "Shred", "Evaluation Criteria",
   "How the customer will judge the proposal: the evaluation factors and subfactors with their relative importance, and "
   "the deliverables each one judges.",
   "Right after the RFP is read, and whenever you decide what a section must prove.",
@@ -308,7 +308,7 @@ TOPICS = [
   ["Read the rows. Gaps show where an instruction has no factor or a factor has no instruction.",
    "Press Export the crosswalk... for a review or the proposal manager."],
   ["The crosswalk fills in from your L, M and SOW decisions in Review."]),
- ("compare", "Compare", "Compare",
+ ("compare", "Customer Documents", "Compare",
   "Two versions side by side. Customer versions: what a new version of a customer document changed, what it touches in "
   "your review, and a decision on every change. Any two files: our drafts or any files, sentence by sentence, with the "
   "redline in Word.",
@@ -384,7 +384,7 @@ TOPICS = [
    "Export the wall... makes the page to post in the war room and hand to writers; Export... gives the editors the findings."],
   ["The drafts are the Word files in the effort's Volumes folder (and the deliverables' files).",
    "A date in amber in Confirmed means nobody has checked that truth for 30 days: press Confirm when it is still right."]),
- ("acronyms", "Acronyms", "Acronyms",
+ ("acronyms", "Write", "Acronyms",
   "One place for acronyms, abbreviations, units and symbols, in three tabs: Scan finds them in the customer's "
   "documents or your own drafts; Acronym List is the effort's list with approved definitions, and (3.37.0) Show > "
   "Lists to submit, by volume, builds each volume's list from what it uses.",
@@ -470,7 +470,7 @@ TOPICS = [
    "Save as one .txt..., Save one .txt per file... (each named after its file, with _fulltext), or Copy."],
   ["The text carries the same classification and markings as the source files. Save and handle it the same way.",
    "The same reader and sandbox as the scan; nothing leaves the PC."]),
- ("techedit", "Technical Edit", "Technical Edit",
+ ("techedit", "Write", "Technical Edit",
   "Copy review: the editor's pass on the words of a Word draft, by rules: mechanics, consistency across authors, Chicago "
   "style (numbers one to nine spelled out), plain language (30 words a sentence, passive voice), the customer's words, "
   "claims without proof and leftovers from reused text. Every finding is a suggestion you accept or skip.",
@@ -489,7 +489,7 @@ TOPICS = [
    "Spelling uses an English word list and the team's custom dictionaries (Team References); banned phrases come from Team "
    "References; acronyms are read from the acronym list, and fixes to them stay in Acronyms.",
    "Drop a Word file on Your Tools and pick Copy review to use it with no effort open."]),
- ("reviews", "Reviews", "Color Reviews",
+ ("reviews", "Write", "Color Reviews",
   "Color team review packets: a Word file with every requirement under its section, for reviewers to give a verdict "
   "and comments, read back onto each requirement.",
   "Red team, gold team, or any review where people mark up the response against the requirements.",
@@ -497,7 +497,7 @@ TOPICS = [
    "When it comes back, press Read back a packet... Verdicts and Word comments land on each requirement.",
    "See the score by section, and open a requirement to read its comments."],
   ["Reviewers only need Word. The packet holds no app data beyond the requirements and sections."]),
- ("finalcheck", "Check and Submit", "Final Check",
+ ("finalcheck", "Submit", "Final Check",
   "One ready-to-send report per submission volume, on its Word file and the PDF you will upload, with Pass, Fail or "
   "Needs a person on every line: compliance, page limits, format rules, structure, acronyms, leftovers, markings and "
   "files. Submission Check and Final Checks are its tabs.",
@@ -513,7 +513,7 @@ TOPICS = [
    "effort's own marking text when Effort Formatting sets one.",
    "Nothing is changed. The tabs hold each check in full: Submission Check for acronyms and banned words, Final Checks "
    "for the PDF package, leftovers, cross-references and Compare."]),
- ("qa", "Check and Submit", "Submission Check",
+ ("qa", "Submit", "Submission Check",
   "The volumes you will submit, checked against the effort list, first use, banned words and page limits.",
   "Before each gate and before submission.",
   ["Press Add volumes... and choose the Word files, then Check the submission volumes.",
@@ -522,7 +522,7 @@ TOPICS = [
    "you pick (not a heading or figure, say); entries in a table of contents never count.",
    "Export report (Excel)... records the check."],
   ["First use of an acronym belongs in running text, not in a figure or table."]),
- ("checks", "Check and Submit", "Final Checks",
+ ("checks", "Submit", "Final Checks",
   "The last checks before the proposal goes out: the final PDF package, cross-references and numbering in the drafts, "
   "and what changed between two versions of a draft.",
   "At gold team and in the last hours before upload; Compare two drafts whenever a reviewer asks what changed.",
@@ -539,7 +539,7 @@ TOPICS = [
    "Compare, then Export the redline... for the reviewers."],
   ["Nothing here changes a file. Each check exports a workbook (or the redline) for the record.",
    "Page limits often leave out the cover, contents and acronym list: a page count over the limit says to check that."]),
- ("qpstd", "Production", "Quick Parts",
+ ("qpstd", "Team", "Quick Parts",
   "Every Quick Part in the library, by your numbered categories, with its gallery, whether it follows the template's fonts, the "
   "pages it fills and Word's picture of it.",
   "When Quick Parts come in from a template; before page planning; when a Quick Part changes.",
@@ -551,7 +551,7 @@ TOPICS = [
    "Keep its own fonts (the value as_built): yes keeps the Quick Part exactly as built; otherwise it follows the template's fonts "
    "and sizes when a template is made."],
   ["Word is never started by itself: only Draw with Word starts it."]),
- ("layoutstd", "Production", "Layout",
+ ("layoutstd", "Team", "Layout",
   "The pieces a template is assembled from: covers, title pages, back covers, headers and footers, sections and section designs, "
   "table looks, captions and the TOC.",
   "When a new cover or footer comes in; when a part's header or footer changes.",
@@ -560,7 +560,7 @@ TOPICS = [
    "Draw with Word: Word draws covers, title pages, back covers, headers and footers and the TOC as they will print, and the "
    "picture is kept until the item changes."],
   ["Table looks (fills and borders by row role) are here; Word table styles are in Formatting Standards."]),
- ("profiles", "Production", "Effort Profiles",
+ ("profiles", "Team", "Effort Profiles",
   "Each effort type's profiles (Technical Volume, Management Volume, Orals...), built by picking from the libraries: one part "
   "per decision, filled from Formatting Standards, Quick Parts and Layout, with the RFP's size limits checked as you pick.",
   "When you set up how a kind of effort's volumes look, before templates are made; again when the library changes.",
@@ -573,7 +573,7 @@ TOPICS = [
    "size the profile gives that text."],
   ["A profile in several effort types keeps its own parts and limits in each.",
    "An effort's own changes stay in Effort Formatting, on top of its profile."]),
- ("templates", "Production", "Templates",
+ ("templates", "Team", "Templates",
   "Every Word template the Effort Profiles make, one row per effort type, profile and volume: Ready, Needs review, Blocked or "
   "Not made yet, and why.",
   "After changing a profile or the libraries, and before an effort's volumes are started.",
@@ -585,7 +585,7 @@ TOPICS = [
    "Open in Word opens the last one made; Open the folder shows them all."],
   ["Making templates is a Preview tool until it is turned on in Settings > Preview tools.",
    "Each template's name counts up a version every time it is made again."]),
- ("rules", "Production", "Rules",
+ ("rules", "Team", "Rules",
   "Every rule the app follows and checks, in one list: the production rules for our documents (Rule 1 to 13 and the "
   "team's own) and the rules Review's Suggest reads the customer's documents by.",
   "To see which rules are on, how each is kept, and where to change a rule's values; to add a rule of your own.",
@@ -600,7 +600,7 @@ TOPICS = [
    "against the recipes; Make a recipe from it adds one. Final Check's Structure section checks every field against them."],
   ["Audit and Fix a Copy report each finding under its rule.",
    "Make templates follows Rules 4 to 8; its footers are Rule 7's table unless you build another."]),
- ("audit", "Production", "Audit",
+ ("audit", "Team", "Audit",
   "Checks Word, Excel and PowerPoint files against every standard that applies to them and lists every finding: styles, "
   "fonts, tables, captions, the TOC, cross-references, pages, headers and footers, lists, terms, sheets, slides and "
   "graphics. Read only: nothing is changed and no copy is made, so it is safe on a file others have open on SharePoint.",
@@ -610,7 +610,7 @@ TOPICS = [
    "Click a file to see its findings; pick an area to narrow them.",
    "Export findings... makes a workbook of every finding, for the editors."],
   ["Fix a Copy makes a dated copy with the fixes; Audit only reports."]),
- ("fixcopy", "Production", "Fix a Copy (Beta)",
+ ("fixcopy", "Team", "Fix a Copy (Beta)",
   "Beta: still being proven on real documents, so check every copy it makes. Fixes a draft's formatting to the production standard in a dated copy. Your file is never changed: it is read once, "
   "and a file someone has open is not copied at all.",
   "Before each color review and for final production, on each volume.",
@@ -645,7 +645,7 @@ TOPICS = [
    "Each fix is one guarded change that may touch only what it declares; anything else is refused.",
    "Fix a Copy and Make a .dotx template are Preview tools: off for the team until the proposal manager turns them on in "
    "Settings > Roles and Preview tools."]),
- ("refs", "Team References", "Team References",
+ ("refs", "Team", "Team References",
   "Every list the team keeps, in one place: banned phrases, this PC's acronym database, the Exclusion List, fixes for misread "
   "text, the team's Wall of Truth and the custom dictionaries for Word.",
   "When a list needs a change that every effort and tool should use from then on.",
@@ -654,14 +654,14 @@ TOPICS = [
    "This PC's acronym database: Load a database... brings in a provided one; Open in Excel opens the file.",
    "Custom dictionaries: the words Word should know, built here and exported for Word."],
   ["The lists stay where they are kept; this page only gathers them."]),
- ("postsub", "After Submission", "Checklist",
+ ("postsub", "Submit", "Checklist",
   "What the team does after the proposal goes in: owners, due dates and done.",
   "The proposal is submitted.",
   ["Press Mark submitted... The checklist appears.",
    "Give each item an owner and a due date. + Item adds one.",
    "Save as default... keeps this checklist for new efforts."],
   ["Export to Excel... shares the checklist."]),
- ("keywords", "After Submission", "Keywords",
+ ("keywords", "Submit", "Keywords",
   "The effort's keywords for SharePoint: what the customer asked for and what you proposed, with reasons, to file the "
   "submitted proposal.",
   "After submission, when the proposal is filed.",
@@ -669,12 +669,12 @@ TOPICS = [
    "Add selected keeps them; Not a keyword drops one.",
    "Export for SharePoint... makes the list to tag the submitted proposal."],
   []),
- ("exportall", "Effort files", "Export All",
+ ("exportall", "Effort", "Export All",
   "Every feature's outputs in one dated folder.",
   "At a gate, at submission, or to hand the effort's outputs to someone.",
   ["Press Export all... and choose where the dated folder goes."],
   ["Every export is dated and kept in the effort's folder. Nothing is overwritten."]),
- ("settings", "Effort files", "Settings",
+ ("settings", "Settings", "Settings",
   "This PC's settings: work mode, time zone, efforts, author list, stages and roles, folders and file names, document "
   "types, custom dictionaries, branding, team pack, master database, backups, updates, and help.",
   "Setting up the app, joining a team, or installing an update.",

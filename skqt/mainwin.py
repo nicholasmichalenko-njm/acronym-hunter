@@ -34,24 +34,17 @@ from .settingspage import SettingsPage
 
 
 RAIL = [("Home", [("tools", "Your Tools"), ("mywork", "My Work"), ("efforts", "All Efforts")]),     # 3.53.0: spaces by job
-        ("Effort", [("home", "Effort Dashboard"), ("deliverables", "Deliverables"), ("evalcrit", "Evaluation Criteria"), ("effortfmt", "Effort Formatting"),
-                    ("record", "Effort Record")]),
-        ("Customer Documents", [("library", "Library"), ("custqa", "Customer Q&A")]),
-        ("Shred", [("shredreq", "Requirements"), ("assign", "Review"), ("sort", "Sort"), ("matrix", "Matrix"), ("shredacc", "Accuracy")]),     # 3.55.0: any file
-        ("Compare", [("compare", "Compare")]),
+        ("Effort", [("home", "Effort Dashboard"), ("deliverables", "Deliverables"), ("effortfmt", "Effort Formatting"), ("record", "Effort Record")]),
+        ("Customer Documents", [("library", "Library"), ("custqa", "Customer Q&A"), ("compare", "Compare")]),
+        ("Shred", [("shredreq", "Requirements"), ("assign", "Review"), ("sort", "Sort"), ("matrix", "Matrix"), ("evalcrit", "Evaluation Criteria")]),
         ("Plan", [("setups", "Setup"), ("storyboards", "Storyboards")]),   # 3.56.0; 3.74.0: the Structure Builder is in Setup
-        ("Write", [("drafts", "Draft Status"), ("truth", "Wall of Truth")]),
-        ("Acronyms", [("acronyms", "Acronyms")]),
-        ("Technical Edit", [("techedit", "Technical Edit")]),             # 3.54.0: copy review
-        ("Reviews", [("reviews", "Color Reviews")]),
-        ("Check and Submit", [("finalcheck", "Final Check")]),            # 3.58.0: one report; the two pages are its tabs
-        ("Production", [("studio", "Template Studio"), ("formatstd", "Formatting Standards"), ("qpstd", "Quick Parts"), ("layoutstd", "Layout"),
-                        ("profiles", "Effort Profiles"), ("templates", "Templates"), ("rules", "Rules"), ("audit", "Audit"),
-                        ("fixcopy", "Fix a Copy"), ("applyword", "Apply in Word")]),
-        ("Team References", [("refs", "Team References")]),
-        ("After Submission", [("postsub", "Checklist"), ("keywords", "Keywords")]),
-        ("Effort files", [("exportall", "Export All"), ("settings", "Settings")]),
-        ]   # 3.69.0: Production Standards left the menu (Settings > Production Standards (retiring) until 3.71.0)
+        ("Write", [("drafts", "Draft Status"), ("truth", "Wall of Truth"), ("acronyms", "Acronyms"), ("techedit", "Technical Edit"),
+                   ("reviews", "Color Reviews")]),
+        ("Submit", [("finalcheck", "Final Check"), ("postsub", "After Submission")]),
+        ("Team", [("formatstd", "Standards"), ("profiles", "Effort Profiles"), ("studio", "Template Studio"), ("rules", "Rules"),
+                  ("audit", "Check a Draft"), ("refs", "Team References")]),
+        ("Settings", [("settings", "Settings")]),
+        ]   # 3.75.0: nine groups (claude/stationkeeper-simplify-decisions-2026-11-06.md decision 3); Export All is on the Dashboard's Export
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
 TABS = {"home": [("home", "Dashboard"), ("requirements", "Submission Rules")],
         "record": [("record", "Effort Record"), ("meetings", "Meetings")],                 # 3.20.0
@@ -60,7 +53,11 @@ TABS = {"home": [("home", "Dashboard"), ("requirements", "Submission Rules")],
         "matrix": [("matrix", "Matrix"), ("crosswalk", "L/M Crosswalk")],
         "acronyms": [("acronyms", "Scan"), ("acrlist", "Acronym List")],      # 3.37.0: Lists to Submit is in the Acronym List
         "custqa": [("custqa", "Customer Q&A"), ("datacalls", "Data calls")],
-        "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
+        "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks")],
+        "shredreq": [("shredreq", "Requirements"), ("shredacc", "Accuracy")], "postsub": [("postsub", "Checklist"), ("keywords", "Keywords")],
+        "formatstd": [("formatstd", "Formatting"), ("qpstd", "Quick Parts"), ("layoutstd", "Layout")],      # 3.75.0: tabs, not menu items
+        "profiles": [("profiles", "Effort Profiles"), ("templates", "Templates")],
+        "audit": [("audit", "Audit"), ("applyword", "Apply in Word"), ("fixcopy", "Fix a Copy")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
 HEAD_OF.update({"docs": "library", "impact": "compare", "dashboard": "home"})   # pages opened from inside another
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup", "setups"}   # 3.18.2:
@@ -328,6 +325,7 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("Ctrl+Z"), self, activated=lambda: self.undo_here())    # 3.18.2: one Undo for the window
         QShortcut(QKeySequence("Ctrl+Shift+I"), self, activated=lambda: self.open_issues())   # 3.9.0: issues and ideas
         self.save_timer = QTimer(self, singleShot=True, interval=2000, timeout=self.save_now)
+        __import__("skqt.frame", fromlist=["x"]).simplify(self)         # 3.75.0: a smaller bar on every screen
         self.lock_timer = QTimer(self, interval=60000, timeout=lambda: self.ws.refresh_lock() if self.ws else None)
         self.lock_timer.start()
         self._rd_seen = self._rd_done = None                   # 2.92.0: the readable copy, kept current
@@ -1146,6 +1144,7 @@ class MainWindow(QMainWindow):
         self.beta_pill.setVisible(step in BETA)
         self.page_sub.setText(sub + (f"  \u00b7  {self.effort_name}" if self.effort_name else ""))
         self.show_tabs(step)
+        __import__("skqt.frame", fromlist=["x"]).on_page(self, step)    # 3.75.0: Find a sentence where sentences are
         try:
             self.refresh_undo()                    # 3.18.2: Undo says what it would put back on this page
         except Exception:
