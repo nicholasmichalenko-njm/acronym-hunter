@@ -36,9 +36,27 @@ class RecordPage(StageTableMixin, QWidget):
         inner = QWidget(); inner.setObjectName("page"); scroll.setWidget(inner)
         v = QVBoxLayout(inner)
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
+        # 3.75.0 (house rule 8): one bar. Save details is the main button; the files it makes are under Export; the rest in More
+        from .commandbar import CommandBar
+        self.bar = CommandBar()
+        self.bar.add("+ Stage", lambda: self.add_stage())
+        self.bar.add("Save stages", lambda: self.save_stages(), "Keep the stages and gates as set below")
+        self.bar.primary("Save details", lambda: self.save_details())
+        self.bar.more("Open the readable copy", lambda: self.host.open_readable(), "Everything in the effort as plain files in its folder")
+        self.bar.more("Check the effort's health now", lambda: self.check_health())
+        self.bar.more_sep()
+        self.bar.more("Back up now", lambda: self.backup_now())
+        self.bar.more("Restore...", lambda: self.restore_dialog(), "Put back an earlier copy of this effort")
+        self.bar.more("Gate choices and default stages...", lambda: (self.host.go("settings"), self.host.settings_page.focus_process()))
+        self.bar.export("Effort status (Word)...", lambda: self.status_export(), "Where the effort stands, for leadership")
+        self.bar.export("Effort summary (Word)...", lambda: self.status_export(final=True), "The effort with its complete history")
+        self.bar.export("Save effort package...", lambda: self.save_package(), "The whole effort in one .skpkg file for a hand-off")
+        self.a_team = self.bar.export("Save to the team folder", lambda: self.save_to_team(),
+                                      "Connected mode: the package goes to the team's OneDrive-synced SharePoint folder")
+        v.addWidget(self.bar)
         # details
         self.details = D.Card("Effort details", "Who it is for, its numbers, and when it is due. The countdown uses this PC's clock.",
-                              actions=[D.button("Save details", "primary", lambda: self.save_details())], key=True)
+                              key=True)
         form = QFormLayout(); form.setSpacing(D.SPACE["s"]); self.details.body.addLayout(form)
         self.name = D.label("", "title")
         self.client = QLineEdit(); self.client.setPlaceholderText("Customer")
@@ -81,47 +99,44 @@ class RecordPage(StageTableMixin, QWidget):
         v.addWidget(self.team)
         # stages and gates
         self.stages = D.Card("Stages and gates", "When each stage starts and ends (click a date to pick it; the time is optional), "
-                                                 "and its gate. The gate choices are your team's: Settings > Stages, gates and roles.",
-                             actions=[D.button("Up", None, lambda: self.move_row(-1)), D.button("Down", None, lambda: self.move_row(1)),
-                                      D.button("+ Stage", None, lambda: self.add_stage()), D.button("Remove", "ghost", lambda: self.remove_stage()),
-                                      D.button("Save stages", "primary", lambda: self.save_stages())])
+                                                 "and its gate. Right-click a stage to move it earlier or later or remove it. The gate "
+                                                 "choices are your team's: Settings > Stages, gates and roles.")
         from .stagesedit import stage_table                  # 2.93.0: date pickers and times, a readable Stage column
         self.stage_table = stage_table()
         self.stage_table.setMinimumHeight(300)
+        self.stage_table.setContextMenuPolicy(Qt.CustomContextMenu)            # 3.75.0: act on the row
+        self.stage_table.customContextMenuRequested.connect(lambda pos: self.stage_menu().exec(self.stage_table.viewport().mapToGlobal(pos)))
         self.stages.add(self.stage_table)
         srow = QHBoxLayout()
         self.stage_note = D.label("Double-click a stage's name to rename it. The current stage cannot be removed.", "muted")
         srow.addWidget(self.stage_note, 1)
-        srow.addWidget(D.button("Gate choices and default stages...", "ghost",
-                                lambda: (self.host.go("settings"), self.host.settings_page.focus_process())))
         self.stages.body.addLayout(srow)
         v.addWidget(self.stages)
         # 2.80.0 effort health
         self.readable = D.Card("Readable copy", "Everything in the effort as plain files (Excel, Word, CSV, text) in its folder, "
-                               "rewritten a few seconds after every change, so the effort can carry on without Stationkeeper.",
-                               actions=[D.button("Open the readable copy", "primary", lambda: self.host.open_readable())])
+                               "rewritten a few seconds after every change, so the effort can carry on without Stationkeeper "
+                               "(More > Open the readable copy).")
         self.readable_text = self.readable.add(D.label("", "muted"))
         v.addWidget(self.readable)
         self.health = D.Card("Effort health", "Checked each time the effort opens. A damaged list or matrix is put back from its "
-                             "newest good copy automatically.", actions=[D.button("Check now", None, lambda: self.check_health())])
+                             "newest good copy automatically.")
         self.health_box = QVBoxLayout(); self.health.body.addLayout(self.health_box)
         v.addWidget(self.health)
-        # reports, package, backup
-        self.out = D.Card("Status, package and backup")
-        row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
-        row.addWidget(D.button("Effort status (Word)...", "primary", lambda: self.status_export(), "Where the effort stands, for leadership"))
-        row.addWidget(D.button("Effort summary (Word)...", None, lambda: self.status_export(final=True), "The effort with its complete history"))
-        row.addWidget(D.button("Save effort package...", None, lambda: self.save_package(), "The whole effort in one .skpkg file for a hand-off"))
-        self.team_btn = D.button("Save to the team folder", None, lambda: self.save_to_team(),
-                                 "Connected mode: the package goes to the team's OneDrive-synced SharePoint folder")
-        row.addWidget(self.team_btn)
-        row.addWidget(D.button("Back up now", None, lambda: self.backup_now()))
-        row.addWidget(D.button("Restore...", None, lambda: self.restore_dialog(), "Put back an earlier copy of this effort"))
-        row.addStretch(1)
-        self.out.body.addLayout(row)
+        # reports, package, backup: under Export and More (3.75.0)
+        self.out = D.Card("Backups")
+        self.team_btn = self.a_team
         self.backup_text = self.out.add(D.label("", "muted"))
         v.addWidget(self.out)
         v.addStretch(1)
+
+    def stage_menu(self):
+        from PySide6.QtWidgets import QMenu
+        m = QMenu(self)
+        m.addAction("Earlier", lambda: self.move_row(-1))
+        m.addAction("Later", lambda: self.move_row(1))
+        m.addSeparator()
+        m.addAction("Remove this stage", lambda: self.remove_stage())
+        return m
 
     # ------------------------------------------------------------ the effort
     @property

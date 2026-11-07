@@ -105,23 +105,16 @@ class HomePage(QWidget):
             body = QLabel(""); body.setWordWrap(True); body.setTextFormat(Qt.RichText); body.setTextInteractionFlags(Qt.TextSelectableByMouse)
             box = QScrollArea(); box.setWidgetResizable(True); box.setFrameShape(QFrame.NoFrame); box.setFixedHeight(44)
             box.setWidget(body); sh.addWidget(box, 1)
-            if key == "themes":
-                sh.addWidget(D.button("+ Theme...", "ghost", lambda: self.theme_dialog()), 0, Qt.AlignTop)
-                sh.addWidget(D.button("Check the drafts", "ghost", lambda: self.check_themes(),
-                                      "Read the volume drafts: where each theme's words appear"), 0, Qt.AlignTop)
-            else:
-                sh.addWidget(D.button("Open Wall of Truth", "ghost", lambda: self.host.go("truth")), 0, Qt.AlignTop)
             sh.addWidget(D.button("Hide", "ghost", lambda _=False, k=key: self.set_strip(k, False)))
             st.body = body; st.title_label = lab
             st.setVisible(False)
             hv.addWidget(st); self.strips[key] = st
         self.strip_state = {}
+        from . import homebar                                         # 3.75.0: one bar (house rule 8)
+        self.bar = homebar.build(self)
+        v.addWidget(self.bar)
         top = QHBoxLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)
         self.role_pill = D.Pill("", "head"); top.addWidget(self.role_pill)
-        top.addWidget(D.button("Customize...", "ghost", lambda: self.customize(), "Your role's layout; show, hide, order and size "
-                                                                                  "the cards. Yours alone, on this PC."))
-        top.addWidget(D.button("Add to this effort...", "ghost", lambda: __import__("skqt.mergedialog", fromlist=["x"]).add_to_effort(self.host, self.host.effort_name),   # 3.70.0
-                               "Merge another copy of this effort (someone else's, an earlier one, or its package) or add files"))
         top.addStretch(1)
         top.addWidget(D.label("Show tasks and questions for", "muted", wrap=False))
         self.who = QComboBox(); self.who.setMinimumWidth(180); self.who.addItem("Everyone")
@@ -152,19 +145,13 @@ class HomePage(QWidget):
                                               "Rename, add, remove and reorder this effort's stages, with dates and gates"),
                                      self.move_btn])
         self.track_row = QHBoxLayout(); self.track_row.setSpacing(D.SPACE["xs"]); self.track.body.addLayout(self.track_row)
-        self.deliv_card = D.Card("Deliverables", actions=[D.button("Open the board", None, lambda: self.host.go("deliverables"))])
+        self.deliv_card = D.Card("Deliverables")
         self.deliv_box = QVBoxLayout(); self.deliv_box.setSpacing(D.SPACE["xs"]); self.deliv_card.body.addLayout(self.deliv_box)
         self.mywork = D.Card("My work", "What is assigned to you in this effort.")
         self.mywork_box = QVBoxLayout(); self.mywork_box.setSpacing(D.SPACE["xs"]); self.mywork.body.addLayout(self.mywork_box)
-        self.goals = D.Card("Gate goals", actions=[D.button("+ Goal", None, lambda: self.goal_dialog()),
-                                                   D.button("Defaults...", "ghost", lambda: self.save_defaults(),
-                                                            "Save this stage's goals as the default for new efforts")])
-        tq_tip = "A workbook of the tasks and questions for the person shown (or the full team), dated and named for them"
-        self.tasks = D.Card("Tasks", actions=[D.button("+ Task", None, lambda: self.task_dialog()),
-                                              D.button("Export...", "ghost", lambda: self.export_tq(), tq_tip)])
-        self.notes = D.Card("Notes and open questions", actions=[D.button("+ Note", None, lambda: self.note_dialog()),
-                                                                 D.button("+ Question", None, lambda: self.note_dialog(question=True)),
-                                                                 D.button("Export...", "ghost", lambda: self.export_tq(), tq_tip)])
+        self.goals = D.Card("Gate goals")                             # 3.75.0: + Add and Export hold their buttons
+        self.tasks = D.Card("Tasks")
+        self.notes = D.Card("Notes and open questions")
         from .calview import CalendarFiles                           # 2.88.0: the calendar as a file
         self.calfiles = CalendarFiles(self)
         self.cal_card = D.Card("Calendar", "Due dates, stages, tasks, reviews and meetings, and what happened. Pick a day to see it.",
@@ -199,14 +186,11 @@ class HomePage(QWidget):
             leg.addWidget(D.label(f"<span style='color:{t[CAL_TONE[kind]]}'>■</span> {word}", "muted", wrap=False))
         self.cal_card.body.addLayout(leg)
         self.day_box = QVBoxLayout(); self.day_box.setSpacing(2); self.cal_card.body.addLayout(self.day_box)
-        self.info = D.Card("Customer information", "Names, e-mails, phone numbers and addresses from the customer documents.",
-                           actions=[D.button("+ Add...", None, lambda: self.info_dialog())])
+        self.info = D.Card("Customer information", "Names, e-mails, phone numbers and addresses from the customer documents.")
         self.timeline = D.Card("Timeline", "The effort's paper trail, newest first.")
         # 3.12.0: one card for how the proposal goes in, its formatting and its page limits (2.94.0, 2.96.0)
         self.sub_card = D.Card("Submission requirements", "What the customer documents require, with where each came from. "
-                               "Click a requirement to open it in Submission Rules; Edit changes what it says here.",
-                               actions=[D.button("+ Add...", None, lambda: self.format_dialog()),
-                                        D.button("All rules and their history", "ghost", lambda: self.host.go("requirements"))])
+                               "Click a requirement to open it in Submission Rules; Edit changes what it says here.")
         from PySide6.QtWidgets import QTabWidget
         self.sub_tabs = QTabWidget(); self.sub_tabs.setDocumentMode(True)
         self.sub_tab_pages = {}
@@ -215,19 +199,13 @@ class HomePage(QWidget):
             self.sub_tabs.addTab(pg, title); self.sub_tab_pages[key] = pl
         self.sub_card.add(self.sub_tabs)
         self.fmt_card = self.sub_card
-        self.qa_card = D.Card("Customer Q&A", "The questions we submit to the customer, and their answers.",          # 2.98.0
-                              actions=[D.button("Customer Q&&A", "ghost", lambda: self.host.go("custqa"))])
+        self.qa_card = D.Card("Customer Q&A", "The questions we submit to the customer, and their answers.")          # 2.98.0
         self.focus_card = D.Card("Evaluation and hot buttons", "How the customer will judge the proposal, and what their "   # 2.99.0
                                  "documents stress. Capture them in Review (More captures).")
         self.gfx_card = D.Card("Graphic needs", "Concepts and things that need a graphic, tagged in Review (Graphic need, P) "  # 3.0.4
-                               "or from a note.", actions=[D.button("+ Graphic need...", None, lambda: self.graphic_dialog()),
-                                                           D.button("Export...", "ghost", lambda: self.export_graphics(),
-                                                                    "A dated workbook of the graphic needs, for the graphics team")])
+                               "or from a note.")
         self.themes_card = D.Card("Win themes", "The themes and discriminators agreed at kickoff, the sections that carry them, "   # 3.2.0
-                                  "and whether the drafts say them.",
-                                  actions=[D.button("+ Theme...", None, lambda: self.theme_dialog()),
-                                           D.button("Check the drafts", "ghost", lambda: self.check_themes(),
-                                                    "Read the volume drafts: where each theme's words appear, and the linked sections where they do not")])
+                                  "and whether the drafts say them.")
         self.theme_check = {}
         # 3.12.0: the Dashboard's numbers and cards live here now (Effort Dashboard)
         dp = self.dash = host.dash_page

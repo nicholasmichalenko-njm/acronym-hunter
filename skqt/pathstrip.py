@@ -24,7 +24,7 @@ class PathStrip(QFrame):
         self.sub = D.label("", None); self.sub.setMinimumWidth(80); top.addWidget(self.sub, 1)   # wraps: never widens the window
         self.inbox_btn = D.button("Notes to sort", "ghost", lambda: self.open_inbox())
         top.addWidget(self.inbox_btn)
-        top.addWidget(D.button("Steps...", "ghost", lambda: self.steps_dialog(), "Switch a step on or off for this effort"))
+        # 3.75.0: Steps... is in the Effort Dashboard's More
         self.row = QHBoxLayout(); self.row.setSpacing(D.SPACE["s"]); v.addLayout(self.row)
         self.note = D.label("", "muted"); v.addWidget(self.note)
         self.btns, self.now = {}, []

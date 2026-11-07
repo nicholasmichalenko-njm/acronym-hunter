@@ -104,8 +104,7 @@ class EffortFormatPage(QWidget):
         # 3.38.0: the one place an effort departs from a production rule
         rc = D.Card("Rules this effort follows", "The production rules (Production > Rules). Untick a rule this effort "
                     "departs from: Audit and Fix a Copy stop reporting it, for this effort only. A rule turned off for every "
-                    "effort shows greyed.",
-                    actions=[D.button("Open the Rules page", "ghost", lambda: self.host.go("rules"), "Every rule, in one list")])
+                    "effort shows greyed.")                         # 3.75.0: the menu opens the Rules page
         self.rules_list = QListWidget(); self.rules_list.setMinimumHeight(260)
         self.rules_list.itemChanged.connect(lambda it: self.rule_ticked(it))
         rc.add(self.rules_list)
@@ -210,8 +209,8 @@ class EffortFormatPage(QWidget):
         else:
             row["rfp"].setText("")
         row["use"].setVisible(bool(rv) and str(rv[0]) != str(g["shown"]))
-        row["reset"].setEnabled(g["effort"] is not None)
-        row["keep"].setEnabled(g["effort"] is not None)
+        row["reset"].setVisible(g["effort"] is not None)       # 3.75.0: only on a value this effort changed (house rule 8)
+        row["keep"].setVisible(g["effort"] is not None)
         row["bad"] = bad
 
     def _label(self, kind, v):

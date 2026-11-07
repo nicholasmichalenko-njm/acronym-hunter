@@ -4,8 +4,8 @@ for new efforts, and Export to Excel (the effort's Exports folder to start). The
 the PC."""
 import datetime, os
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHeaderView, QInputDialog, QSpinBox, QTableWidget, QTableWidgetItem,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QComboBox, QFileDialog, QInputDialog, QSpinBox, QTableWidget, QTableWidgetItem, QVBoxLayout,
+                               QWidget)
 import diag
 import effortfolders as EF
 import effortrec as R
@@ -17,33 +17,54 @@ COLS = ("Done", "Task", "Owner", "Days after", "Due", "Status", "Notes")
 
 
 class PostSubPage(QWidget):
+    """3.75.0 (house rule 8): one bar (Mark submitted..., + Item; More: Save as default...; Export: Export to Excel...);
+    the checklist shows its values as text with Done as a tick; the selected item's owner, days after and status are
+    edited under the table, with Earlier, Later and Remove."""
+
     def __init__(self, host):
         super().__init__()
         self.setObjectName("page")
         self.host = host
         self._filling = False
+        self.items = []
         v = QVBoxLayout(self); v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
+        from .commandbar import CommandBar
+        self.bar = CommandBar()
+        self.bar.add("+ Item", lambda: self.add_item())
+        self.sub_btn = self.bar.primary("Mark submitted...", lambda: self.mark_submitted(),
+                                        "Due dates count from the moment it went in")
+        self.bar.more("Save as default...", lambda: self.save_default(), "This list becomes the default for new efforts on this PC")
+        self.bar.export("Export to Excel...", lambda: self.export(), "A formatted workbook for the effort's folder")
+        v.addWidget(self.bar)
         self.card = D.Card("Post-submission checklist", "What the team does after the proposal goes in. Due dates count from "
-                           "Mark submitted (from the proposal's due date until then).")
-        row = FlowLayout(None, D.SPACE["s"]); self.card.body.addLayout(row)
-        self.sub_btn = D.button("Mark submitted...", "primary", lambda: self.mark_submitted())
-        row.addWidget(self.sub_btn)
-        row.addWidget(D.button("+ Item", None, lambda: self.add_item()))
-        row.addWidget(D.button("Remove", "ghost", lambda: self.remove_item()))
-        row.addWidget(D.button("Up", "ghost", lambda: self.move(-1))); row.addWidget(D.button("Down", "ghost", lambda: self.move(1)))
-        row.addStretch()
-        row.addWidget(D.button("Save as default...", None, lambda: self.save_default(), "This list becomes the default for new efforts on this PC"))
-        row.addWidget(D.button("Export to Excel...", None, lambda: self.export(), "A formatted workbook for the effort's folder"))
+                           "Mark submitted (from the proposal's due date until then). Tick an item when it is done.")
         self.state = self.card.add(D.label("", None))
         self.table = QTableWidget(0, len(COLS)); self.table.setHorizontalHeaderLabels(list(COLS))
         self.table.verticalHeader().setVisible(False); self.table.setWordWrap(True)
+        self.table.setSelectionBehavior(QTableWidget.SelectRows); self.table.setSelectionMode(QTableWidget.SingleSelection)
         hh = self.table.horizontalHeader()
         for c, wdt in enumerate((50, 420, 170, 90, 110, 130)):
             self.table.setColumnWidth(c, wdt)
         hh.setStretchLastSection(True)
         self.table.itemChanged.connect(self.cell_changed)
-        self.table.setMinimumHeight(420)
+        self.table.currentCellChanged.connect(lambda r, _c, _r2, _c2: self.show_row(r))
+        self.table.setMinimumHeight(380)
         self.card.add(self.table)
+        # the selected item, one editor at a time
+        self.row = QWidget(); rl = FlowLayout(self.row, D.SPACE["s"])
+        self.row_label = D.label("", "label", wrap=False); rl.addWidget(self.row_label)
+        self.r_owner = QComboBox(); self.r_owner.setEditable(True); self.r_owner.setMinimumWidth(170)
+        self.r_owner.currentTextChanged.connect(lambda t: self._row_set(owner=t))
+        self.r_days = QSpinBox(); self.r_days.setRange(-30, 365); self.r_days.setSuffix(" d after")
+        self.r_days.valueChanged.connect(lambda n: self._row_set(days=n))
+        self.r_status = QComboBox(); self.r_status.addItems(list(PS.STATUS))
+        self.r_status.currentTextChanged.connect(lambda t: self._row_set(status=t))
+        for wdg in (D.label("Owner", None, wrap=False), self.r_owner, self.r_days, D.label("Status", None, wrap=False), self.r_status,
+                    D.button("Earlier", "ghost", lambda: self.move(-1)), D.button("Later", "ghost", lambda: self.move(1)),
+                    D.button("Remove", "ghost", lambda: self.remove_item())):
+            rl.addWidget(wdg)
+        self.row.setVisible(False)
+        self.card.add(self.row)
         v.addWidget(self.card)
 
     def rec(self):
@@ -65,39 +86,61 @@ class PostSubPage(QWidget):
                             (f"Not marked submitted; due dates count from the due date, {R.short_date(b.isoformat())}. " if b else
                              "Not marked submitted and no due date: set either for due dates. "))
                            + f"{done} of {total} done" + (f", {nlate} late." if nlate else "."))
-        people = [""] + (h.people() if hasattr(h, "people") else [])
+        self.people = [""] + (h.people() if hasattr(h, "people") else [])
+        keep = self.selected()
         self._filling = True
         t = self.table
         for i, it in enumerate(self.items):
             t.insertRow(i)
-            cb = QCheckBox(); cb.setChecked(it["status"] == "Done")
-            cb.toggled.connect(lambda on, iid=it["id"]: self.set_status(iid, "Done" if on else "Not started"))
-            w = QWidget(); lay = QVBoxLayout(w); lay.setContentsMargins(14, 0, 0, 0); lay.addWidget(cb)
-            t.setCellWidget(i, 0, w)
+            done = QTableWidgetItem(""); done.setFlags((done.flags() | Qt.ItemIsUserCheckable) & ~Qt.ItemIsEditable)
+            done.setCheckState(Qt.Checked if it["status"] == "Done" else Qt.Unchecked)
+            t.setItem(i, 0, done)
             ti = QTableWidgetItem(it["text"]); ti.setData(Qt.UserRole, it["id"]); t.setItem(i, 1, ti)
-            own = QComboBox(); own.setEditable(True); own.addItems(people + ([it["owner"]] if it["owner"] and it["owner"] not in people else []))
-            own.setCurrentText(it["owner"])
-            own.currentTextChanged.connect(lambda txt, iid=it["id"]: self.update(iid, owner=txt))
-            t.setCellWidget(i, 2, own)
-            sp = QSpinBox(); sp.setRange(-30, 365); sp.setValue(int(it.get("days", 0) or 0)); sp.setSuffix(" d")
-            sp.setEnabled(not it.get("due"))
-            sp.valueChanged.connect(lambda n, iid=it["id"]: self.update(iid, days=n))
-            t.setCellWidget(i, 3, sp)
             dd = PS.due_of(r, it)
-            di = QTableWidgetItem(R.short_date(dd.isoformat()) if dd else ""); di.setFlags(di.flags() & ~Qt.ItemIsEditable)
-            di.setToolTip("A date set by hand: double-click Days after's row, Set due date... (or type in the Excel copy)")
+            for c, val in ((2, it["owner"]), (3, "" if it.get("due") else f"{int(it.get('days', 0) or 0)} d"),
+                           (4, R.short_date(dd.isoformat()) if dd else ""), (5, it["status"])):
+                x = QTableWidgetItem(val); x.setFlags(x.flags() & ~Qt.ItemIsEditable)
+                t.setItem(i, c, x)
             if PS.late(r, it):
-                di.setForeground(D.color("crit"))
-            t.setItem(i, 4, di)
-            st = QComboBox(); st.addItems(list(PS.STATUS)); st.setCurrentText(it["status"])
-            st.currentTextChanged.connect(lambda s, iid=it["id"]: self.set_status(iid, s))
-            t.setCellWidget(i, 5, st)
+                t.item(i, 4).setForeground(D.color("crit"))
             t.setItem(i, 6, QTableWidgetItem(it.get("notes", "")))
             if it["status"] in ("Done", "Not needed"):
                 for c in (1, 4, 6):
                     t.item(i, c).setForeground(D.color("muted"))
         t.resizeRowsToContents()
         self._filling = False
+        row = next((i for i in range(t.rowCount()) if self._iid(i) == keep), -1)
+        if row >= 0:
+            t.setCurrentCell(row, 1)
+        self.show_row(t.currentRow())
+
+    def show_row(self, row):
+        """The selected item's editors under the table."""
+        it = next((x for x in self.items if x["id"] == self._iid(row)), None) if row >= 0 else None
+        self.row.setVisible(it is not None)
+        if it is None:
+            return
+        self._filling = True
+        self.row_label.setText((it["text"][:40] + ("..." if len(it["text"]) > 40 else "")) + ":")
+        self.r_owner.clear(); self.r_owner.addItems(self.people + ([it["owner"]] if it["owner"] and it["owner"] not in self.people else []))
+        self.r_owner.setCurrentText(it["owner"])
+        self.r_days.setValue(int(it.get("days", 0) or 0)); self.r_days.setEnabled(not it.get("due"))
+        self.r_status.setCurrentText(it["status"])
+        self._filling = False
+
+    def _row_set(self, **fields):
+        iid = self.selected()
+        if self._filling or not iid:
+            return False
+        if "status" in fields:
+            return self.set_status(iid, fields["status"])
+        if "owner" in fields:                              # typed: the cell follows, the table is not drawn again
+            ok = self.update(iid, **fields)
+            it = self.table.item(self.table.currentRow(), 2)
+            if it is not None:
+                it.setText(fields["owner"])
+            return ok
+        return self.update(iid, refresh=True, **fields)
 
     # ------------------------------------------------------------ changes
     def _iid(self, row):
@@ -108,6 +151,8 @@ class PostSubPage(QWidget):
         if self._filling or self.host.ws is None:
             return
         iid = self._iid(item.row())
+        if item.column() == 0:
+            return self.set_status(iid, "Done" if item.checkState() == Qt.Checked else "Not started")
         if item.column() == 1:
             self.update(iid, text=item.text(), refresh=False)
         elif item.column() == 6:

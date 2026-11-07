@@ -75,8 +75,8 @@ hp.refresh(); app.processEvents()
 check("the condensed header is kept", bn.condensed and json.load(open(A.SETTINGS_FILE)).get("banner_condensed") is True)
 bn.set_condensed(False); app.processEvents()
 names = [b.text() for b in bn.findChildren(QPushButton)]
-check("the readable copy and the page limit left the header; All overviews is there", "Readable copy" not in names
-      and "All overviews..." in names and not bn.pagelim.isVisible() and not any(lab == "PAGE-LIMITED" for lab, _v in bn.spots), names)
+check("the readable copy and the page limit left the header; All overviews is there (in More, 3.75.0)", "Readable copy" not in names
+      and hp.bar.action("All overviews...") is not None and not bn.pagelim.isVisible() and not any(lab == "PAGE-LIMITED" for lab, _v in bn.spots), names)
 
 # ---------------------------------------------------------------- the pinned strips
 check("Win themes and the Wall of Truth show under the header on the first stage", hp.strips["themes"].isVisibleTo(w)
@@ -96,8 +96,8 @@ hp.edit_rule(row, "11-point Arial")
 check("Edit changes what a requirement says", next(x["value"] for x in hp.fmt_now["lines"] if x["label"] == "Font") == "11-point Arial",
       [x for x in hp.fmt_now["lines"] if x["label"] == "Font"])
 top_buttons = [b.text() for b in hp.scroll.widget().findChildren(QPushButton) if b.parent() is hp.scroll.widget()]
-check("each card holds its own export: Tasks and Notes have Export...", any(b.text() == "Export..." for b in hp.tasks.findChildren(QPushButton))
-      and any(b.text() == "Export..." for b in hp.notes.findChildren(QPushButton)) and "Export tasks and questions..." not in top_buttons)
+check("one Export menu holds the dashboard's exports (3.75.0, house rule 8)", hp.bar.action("Tasks and questions (Excel)...") is not None
+      and not any(b.text() == "Export..." for b in hp.tasks.findChildren(QPushButton)) and "Export tasks and questions..." not in top_buttons)
 
 # ---------------------------------------------------------------- card widths
 hp.customize({"role": "Proposal Manager", "order": hp.lay["order"], "hidden": hp.lay["hidden"], "widths": {"tasks": "wide"}})

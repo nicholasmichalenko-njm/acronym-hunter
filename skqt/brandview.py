@@ -123,17 +123,8 @@ class EffortBanner(QFrame):
         self.edit_btn = D.button("Edit details...", None, lambda: self.edit_dialog(), "Proposal manager, client, sensitivity, the "
                                  "customer's due date and the effort's own spots. They travel with the effort.")
         acts.addWidget(self.edit_btn)
-        acts.addWidget(D.button("People...", None, lambda: self.people_roles(),     # 2.93.0
-                                "Who works on this effort and in what role; a role saves when picked"))
-        acts.addWidget(D.button("Export overview...", None, lambda: self.host.record_page.status_export(),
-                                "Where the effort stands, in one Word file: the due dates and your summary first, then stages, "
-                                "people, open questions and what is coming up. Each one is kept in All overviews."))
-        # 3.15.0: actions are buttons; what only opens a place is a link, after them
-        acts.addWidget(D.button("Open effort folder", "ghost", lambda: self.host.open_effort_folder(),
-                                "The effort's folder in File Explorer: customer documents, volumes, Response Setup, exports"))
-        self.all_ov = D.button("All overviews...", "ghost", lambda: self.host.record_page.overviews_dialog(),   # 3.12.0
-                               "Every overview exported for this effort, newest first, with the summary you wrote for it")
-        acts.addWidget(self.all_ov)
+        self.edit_btn.setVisible(False)          # 3.75.0: Edit details, People, the overview and the folder are in the bar
+        self.all_ov = self.edit_btn
         self.page_deliv = D.button("", "ghost", lambda: self.host.go("deliverables"), "The deliverables board")
         acts.addWidget(self.page_deliv)
         acts.addStretch(1)

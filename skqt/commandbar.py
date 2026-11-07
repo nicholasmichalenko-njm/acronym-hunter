@@ -37,6 +37,15 @@ class CommandBar(QWidget):
         self.commands.append(b)
         return b
 
+    def add_menu(self, text, tip=""):
+        """A command that opens a menu of its own (+ Add): one command in the bar. Returns the menu."""
+        b = D.button(text, None, None, tip)
+        m = QMenu(b); m.setToolTipsVisible(True); b.setMenu(m)
+        self.row.insertWidget(self._n, b)
+        self._n += 1
+        self.commands.append(b)
+        return m
+
     def primary(self, text, fn, tip=""):
         """The screen's one main button, on the right."""
         b = D.button(text, "primary", fn, tip)

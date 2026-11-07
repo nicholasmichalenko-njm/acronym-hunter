@@ -84,16 +84,14 @@ class DashPage(QWidget):
         grid = QGridLayout(self.body); grid.setContentsMargins(0, 0, 0, 0); grid.setSpacing(D.SPACE["m"])
         grid.setColumnStretch(0, 3); grid.setColumnStretch(1, 2)
         # compliance review
-        self.comp = D.Card("Compliance review", actions=[D.button("Review", None, lambda: go("assign")),
-                                                          D.button("Coverage", None, lambda: go("prove"))])
+        self.comp = D.Card("Compliance review")                        # 3.75.0: the menu opens Review and Coverage
         self.comp_bar = D.StackBar(16); self.comp.add(self.comp_bar)
         self.comp_legend = QVBoxLayout(); self.comp.body.addLayout(self.comp_legend)
         self.comp_text = self.comp.add(D.label("", "muted"))
         # coverage by volume
         ap = lambda: self.host.assign_page                # 3.16.0: the response plan is set here, not in Structure or Review
         self.vol = D.Card("Volumes, people and page budget", "The volumes, who leads and writes each section, its pages, and "
-                          "the requirements and context placed in each.",
-                          actions=[D.button("Setup", "ghost", lambda: go("setups"))])
+                          "the requirements and context placed in each.")
         from .adaptive import FlowLayout
         vrow = QWidget(); vf = FlowLayout(vrow, D.SPACE["s"])
         for text, fn, tip in (("Volumes...", lambda: ap().volumes_dialog(), "The response's volumes"),
@@ -124,14 +122,11 @@ class DashPage(QWidget):
         grid.addWidget(self.vol, 1, 0, Qt.AlignTop)
         grid.addWidget(self.acr, 2, 0, Qt.AlignTop); grid.addWidget(self.late, 2, 1, Qt.AlignTop)
         grid.addWidget(self.people, 3, 0, 1, 2)
-        self.topics = D.Card("Meeting topics", "Topics meetings raised, open until someone marks them considered.",   # 3.20.0
-                             actions=[D.button("Meetings", None, lambda: self.host.go("meetings"))])
+        self.topics = D.Card("Meeting topics", "Topics meetings raised, open until someone marks them considered.")   # 3.20.0
         self.topics_box = QVBoxLayout(); self.topics_box.setSpacing(D.SPACE["xs"]); self.topics.body.addLayout(self.topics_box)
         grid.addWidget(self.topics, 4, 0, 1, 2)
         self.drafts = D.Card("Drafts and data calls", "Where each section's draft stands (Writing > Draft Status) and what the "   # 3.46.0
-                             "team still owes from its experts.",
-                             actions=[D.button("Draft Status", None, lambda: self.host.go("drafts")),
-                                      D.button("Data calls", None, lambda: self.host.go("datacalls"))])
+                             "team still owes from its experts.")
         self.drafts_box = QVBoxLayout(); self.drafts_box.setSpacing(D.SPACE["xs"]); self.drafts.body.addLayout(self.drafts_box)
         grid.addWidget(self.drafts, 5, 0, 1, 2)
         v.addWidget(self.body)

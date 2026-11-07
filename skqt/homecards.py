@@ -10,11 +10,10 @@ def install(hp):
     from .pathstrip import PathStrip
     hp.path = PathStrip(hp.host)
     hp.head.layout().addWidget(hp.path)
-    hp.meet_card = D.Card("Meeting notes", "The latest meetings and the topics they left open. Notes are taken on Meetings.",
-                          actions=[D.button("+ Meeting notes", None, lambda: hp.host.go("meetings")),
-                                   D.button("Quick note", "ghost", lambda: _note(hp))])
+    hp.meet_card = D.Card("Meeting notes", "The latest meetings and the topics they left open. Notes are taken on Meetings "
+                          "(+ Add > Meeting notes).")
     hp.eval_card = D.Card("Evaluation criteria", "How the customer will judge the proposal: the factors, their importance and "
-                          "the deliverables they judge.", actions=[D.button("Evaluation Criteria", "ghost", lambda: hp.host.go("evalcrit"))])
+                          "the deliverables they judge.")
     from PySide6.QtWidgets import QVBoxLayout
     hp.meet_box = QVBoxLayout(); hp.meet_box.setSpacing(D.SPACE["xs"]); hp.meet_card.body.addLayout(hp.meet_box)
     hp.eval_box = QVBoxLayout(); hp.eval_box.setSpacing(D.SPACE["xs"]); hp.eval_card.body.addLayout(hp.eval_box)
