@@ -47,7 +47,7 @@ check("the menu is in Title Case", texts[:3] == ["Your Tools", "My Work", "All E
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QPushButton as _QPB
 heads = [b.text() for b in w.findChildren(_QPB) if b.objectName() == "railgroup"]
-check("menu groups by job (3.13.0; 3.53.0 spaces)", heads == ["Home", "Effort", "Customer Documents", "Shred", "Plan", "Write", "Submit", "Team", "Settings"], heads)   # 3.75.0: nine groups
+check("menu groups by job (3.13.0; 3.53.0 spaces)", heads == ["Home", "Effort", "Effort Library", "Shred", "Plan", "Write", "Submit", "Team", "Settings"], heads)   # 3.75.0: nine groups
 check("the Stationkeeper mark and name at the foot of the menu", w.rail_footer.word.text() == "Stationkeeper" and A.APP_VERSION in w.rail_footer.sub.text())
 # ---- logos (3.0.3: built into the program; nobody adds one by hand)
 check("no logo built in: nothing at the top of the menu, and no prompt to add one",

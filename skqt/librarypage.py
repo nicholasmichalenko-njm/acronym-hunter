@@ -239,14 +239,23 @@ class LibraryPage(QWidget):
         self.b_folder = D.button("Add a folder...", None, lambda: self.add_folder(), "Bring in every document in a folder on this "
                                  "PC and its subfolders (the folder names become tags). Watched folders... is for folders checked "
                                  "for new files.")
-        top.addWidget(self.b_folder)
-        top.addWidget(D.button("Add from another copy...", None, lambda: __import__("skqt.mergedialog", fromlist=["x"]).add_to_effort(self.host, self.host.effort_name),   # 3.70.0
-                               "Merge another copy of this effort: its documents, acronyms, volumes and record"))
-        self.b_watch = D.button("Watched folders...", None, lambda: self.host.watch_folders(),     # 2.94.0
-                                "The folders checked for new, changed and missing files (Customer Documents always)")
-        top.addWidget(self.b_watch)
-        self.b_files = D.button("Add files...", "primary", lambda: self.add(), "Pick documents")
-        top.addWidget(self.b_files)
+        from .commandbar import CommandBar                   # 3.78.0: the Effort Library's one bar (Rule 8)
+        self.bar = CommandBar()
+        self._b_folder_old = self.b_folder
+        self.b_folder = self.bar.add("Add a folder...", lambda: self.add_folder(), self._b_folder_old.toolTip())
+        self.b_watch = self.bar.add("Watched folders...", lambda: self.host.watch_folders(),     # 2.94.0
+                                    "The folders checked for new, changed and missing files (Customer Documents always)")
+        self.bar.add("New folder...", lambda: self.new_folder(), "A folder in the selected category's folder on disk")
+        self.b_files = self.bar.primary("Add files...", lambda: self.add(), "Pick documents")
+        self.bar.more("Open the Library folder", lambda: self.open_folder(), "The effort's Library folder in File Explorer")
+        self.bar.more("Move kept files into the Library folders...", lambda: self.move_into_folders(),
+                      "Files an older version kept in the app's working folder move into the Library's real folders")
+        self.bar.more_sep()
+        self.bar.more("Add from another copy...", lambda: __import__("skqt.mergedialog", fromlist=["x"]).add_to_effort(self.host, self.host.effort_name),   # 3.70.0
+                      "Merge another copy of this effort: its documents, acronyms, volumes and record")
+        self.bar.more("+ Category...", lambda: self.new_category(), "A category of your own (Competitor intel, Pricing...)")
+        top.addWidget(self.bar)
+        self._b_folder_old.setVisible(False)
         self.panel = TaskPanel(self.stop, host); v.addWidget(self.panel)
         self.new_box = QFrame(); self.new_box.setObjectName("newfiles"); self.new_box.setProperty("card", True)   # 3.16.0
         nb = QHBoxLayout(self.new_box); nb.setContentsMargins(D.SPACE["m"], D.SPACE["s"], D.SPACE["m"], D.SPACE["s"]); nb.setSpacing(D.SPACE["m"])
@@ -263,7 +272,7 @@ class LibraryPage(QWidget):
         self.tree.setRootIsDecorated(True)
         self.tree.itemClicked.connect(lambda it, _c: self.pick_place(*it.data(0, Qt.UserRole)))
         lcol = QWidget(); lv = QVBoxLayout(lcol); lv.setContentsMargins(0, 0, 0, 0); lv.setSpacing(D.SPACE["xs"])   # 3.20.3
-        lv.addWidget(self.tree, 1); lv.addWidget(self.b_cat)
+        lv.addWidget(self.tree, 1); self.b_cat.setVisible(False)                                       # 3.78.0: in More
         split.addWidget(lcol)
         # the documents
         mid = QWidget(); mv = QVBoxLayout(mid); mv.setContentsMargins(0, 0, 0, 0); mv.setSpacing(D.SPACE["s"])
@@ -414,7 +423,9 @@ class LibraryPage(QWidget):
             f = top.font(0); f.setWeight(QFont.DemiBold); top.setFont(0, f)
             self.tree.addTopLevelItem(top)
             nodes = {}
-            for path in lib.folders(k):
+            import effortlib as EL                  # 3.78.0: the folders on disk too, so an empty one shows
+            paths = sorted(set(lib.folders(k)) | set(EL.disk_folders(lib, k) if k != "customer" else []), key=str.lower)
+            for path in paths:
                 parent = nodes.get(path.rsplit("/", 1)[0]) if "/" in path else top
                 it = QTreeWidgetItem([path.split("/")[-1], str(sum(1 for d in lib.in_category(k)
                                                                     if (d.get("folder") or "") == path or (d.get("folder") or "").startswith(path + "/")))])
@@ -657,7 +668,14 @@ class LibraryPage(QWidget):
         folder = self.d_folder.text() if folder is None else folder
         if key == d.get("category") and (folder or "").strip("/\\") == d.get("folder", ""):
             return False
-        ok = self.lib.set_category(d["id"], key, folder)
+        import effortlib as EL                      # 3.78.0: moving in the app moves the file on disk
+        try:
+            EL.move_doc(self.lib, d["id"], key, (folder or "").strip("/\\"))
+            ok = True
+        except OSError:
+            diag.swallowed()
+            self.host.status("The file could not be moved (open in another program?). Close it, then try again.")
+            return False
         if ok:
             diag.activity("library_category_set")
             self.fill_tree(); self.fill()
@@ -674,6 +692,53 @@ class LibraryPage(QWidget):
         self.lib.set_tags(d["id"], tags)
         self.fill()
         return True
+
+    def new_folder(self, name=None):
+        """3.78.0: a real folder under the selected category's folder (Graphics if none is selected)."""
+        import effortlib as EL
+        if self.lib is None:
+            return ""
+        cat = self.cat if self.cat not in ("all", "customer") else "graphics" if self.cat == "all" else "ours"
+        if name is None:
+            name, ok = QInputDialog.getText(self, "New folder", f"A folder in {EL.top(self.lib, cat)}" +
+                                            (f" > {self.folder}" if self.folder else "") + ":")
+            if not ok:
+                return ""
+        sub = EL.new_folder(self.lib, cat, self.folder if self.cat == cat else "", name)
+        if sub:
+            diag.activity("library_folder_made")
+            self.fill_tree()
+        return sub
+
+    def open_folder(self):
+        import sys
+        p = getattr(self.lib, "library_root", "") if self.lib else ""
+        if p:
+            os.makedirs(p, exist_ok=True)
+            if sys.platform.startswith("win"):
+                os.startfile(p)                     # noqa: S606  the effort's own folder
+        return p
+
+    def move_into_folders(self, ok=None):
+        """3.78.0: once, when asked: files kept in the app's working folder move into the Library folders, with a list."""
+        import effortlib as EL
+        if self.lib is None:
+            return 0
+        plan = EL.plan_moves(self.lib)
+        if not plan:
+            self.host.toast("Every file is already in the Library folders.")
+            return 0
+        if ok is None:
+            ok = QMessageBox.question(self, "Move into the Library folders", f"{len(plan)} file(s) kept in the app's working folder "
+                                      "move into the effort's Library folders (by category and folder). A list of every move is "
+                                      "written to the effort's folder. Move them?") == QMessageBox.Yes
+        if not ok:
+            return 0
+        n, note = EL.do_moves(self.lib, plan, self.host.effort_path)
+        diag.activity("library_moved_into_folders", n=n)
+        self.host.toast(f"{n} file(s) moved into the Library folders; the list is in {os.path.basename(note)}." if n else "Nothing moved.")
+        self.refresh()
+        return n
 
     def new_category(self, name=None):
         if self.lib is None:

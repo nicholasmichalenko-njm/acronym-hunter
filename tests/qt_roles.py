@@ -40,7 +40,7 @@ w.open_effort("Kestrel"); app.processEvents()
 
 # ---------------------------------------------------------------- the menu
 heads = [g for g, _i in RAIL]
-check("the menu is grouped by job", heads == ["Home", "Effort", "Customer Documents", "Shred", "Plan", "Write", "Submit", "Team",
+check("the menu is grouped by job", heads == ["Home", "Effort", "Effort Library", "Shred", "Plan", "Write", "Submit", "Team",
                                               "Settings"], heads)   # 3.53.0: spaces; 3.69.0: no Advanced group; 3.75.0: nine groups
 r = RR.Record(w.ws.root)
 # 3.15.0: no separate stage group: each tool is in the menu once, the stage's tools marked with a dot in its color

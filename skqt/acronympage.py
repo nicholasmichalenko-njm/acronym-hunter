@@ -81,13 +81,17 @@ class AcronymPage(QWidget):
         top.addWidget(self.b_cust)
         self.b_files = D.button("Scan files...", None, lambda: self.pick_files())
         self.b_folder = D.button("Scan a folder...", None, lambda: self.pick_folder())
+        from . import acrbridge as AB                                    # 3.78.0: the Effort Library's folders
+        self.b_lib = D.button("Scan the library...", None, lambda: AB.scan_library(self),
+                              "The files in the Effort Library's folders you tick (Customer Documents and Graphics at first)")
+        self.b_folder.hide()                                             # in an effort, Scan the library... (the tool keeps it)
         self.b_again = D.button("Scan again", None, lambda: self.scan_again(), "The same files again: new choices and definitions apply")
         self.b_paste = D.button("Paste a picture", None, lambda: AX.paste_picture(self), "A screenshot or a copied figure (Ctrl+V): "
                                 "read with the files already scanned")             # 3.53.0
         self.b_cancel = D.button("Cancel", "danger", lambda: self.cancel()); self.b_cancel.hide()
         self.b_window = D.button("Open in its own window", "ghost", lambda: self.own_window(),     # 3.50.0
                                  "Acronym Finder: scan any files and export the list, apart from this effort")
-        for b in (self.b_files, self.b_folder, self.b_again, self.b_paste, self.b_cancel, self.b_window):
+        for b in (self.b_files, self.b_lib, self.b_folder, self.b_again, self.b_paste, self.b_cancel, self.b_window):
             top.addWidget(b)
         self.progress = D.label("", "muted", wrap=False); top.addWidget(self.progress, 1)
         # 2.86.0: no separate customer acronym list: the customer's terms are every acronym in its documents, and a
@@ -167,7 +171,7 @@ class AcronymPage(QWidget):
     def tool_mode(self):
         """3.50.0: the page inside Acronym Finder: no effort, no customer Library; Scan files... starts it."""
         self.tool = True
-        self.b_cust.hide(); self.b_window.hide()
+        self.b_cust.hide(); self.b_window.hide(); self.b_lib.hide(); self.b_folder.show()
         self.where.setText("<b>ACRONYM FINDER</b> &nbsp;Scan files or a folder: every acronym, abbreviation, unit and symbol, in "
                            "typed text and in pictures, with its meaning and the picture or passage where it was found.")
         self.empty.hide()
@@ -467,6 +471,9 @@ class AcronymPage(QWidget):
         exts = " ".join("*" + e for e in sorted(A.SUPPORTED_EXTS))
         paths, _ = QFileDialog.getOpenFileNames(self, "Scan files", "", f"Documents and pictures ({exts})")
         if paths:
+            if not getattr(self, "tool", False) and self.host.ws is not None:     # 3.78.0: the bridge to the Effort Library
+                from . import acrbridge as AB
+                AB.add_first(self, paths)
             self.scan(paths)
 
     def pick_folder(self):
@@ -521,7 +528,7 @@ class AcronymPage(QWidget):
         self.scanbar.show(); self.scan_tick.start()
         self.worker.finished_ok.connect(self.scan_done)
         self.worker.failed.connect(self.scan_failed)
-        for b in (self.b_files, self.b_folder, self.b_again, self.b_paste, self.b_cust):
+        for b in (self.b_files, self.b_folder, self.b_lib, self.b_again, self.b_paste, self.b_cust):
             b.setEnabled(False)
         self.b_cancel.show()
         self.worker.start()
@@ -550,7 +557,7 @@ class AcronymPage(QWidget):
             self.worker.wait(2000)
         self.worker = None
         self.scan_tick.stop(); self.scanbar.hide(); self.scan_prog = None
-        for b in (self.b_files, self.b_folder, self.b_paste, self.b_cust):
+        for b in (self.b_files, self.b_folder, self.b_lib, self.b_paste, self.b_cust):
             b.setEnabled(True)
         self.b_cancel.hide()
 

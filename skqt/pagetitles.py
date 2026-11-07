@@ -29,7 +29,7 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "datacalls": ("Data calls", "What the team needs from its own experts: what, for which section, how much, an example, owner and due date"),
           "meetings": ("Meetings", "Who met, what was said, and the topics to follow up until each is considered"),
           "reviews": ("Color Reviews", "Color team review packets, read back onto each requirement"),
-          "library": ("Library", "Every document of the effort: categories, folders, tags, roles and search"),
+          "library": ("Effort Library", "Every file of the effort, in real folders on disk: categories, folders, tags, roles and search"),
           "docs": ("Customer Versions", "The customer's documents and every version of them"),
           "requirements": ("Submission Rules", "Every rule the customer's documents set, which version changed it, and what you confirmed"),
           "custqa": ("Customer Q&A", "The questions we submit to the customer: their exact wording, our question, status and the answer"),

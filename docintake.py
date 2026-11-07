@@ -154,7 +154,12 @@ def check(lib, entries):
 
 
 def library_dir(lib, category, folder=""):
-    """2.83.0: where a document that is not a customer document is copied: <effort data>\\library\\<category>\\<folder>."""
+    """2.83.0: where a document that is not a customer document is copied: <effort data>\\library\\<category>\\<folder>;
+    3.78.0: <effort>\\Library\\<top folder>\\<folder> once the library knows its effort (effortlib.attach)."""
+    import effortlib as EL                              # 3.78.0: the Effort Library's real folders, when it knows them
+    p = EL.folder_path(lib, category, folder)
+    if p:
+        return p
     parts = [re.sub(r'[<>:"|?*]', "_", x).strip() or "_" for x in (folder or "").replace("\\", "/").split("/") if x.strip() and x not in (".", "..")]
     return os.path.join(lib.data_dir, "library", category, *parts)
 

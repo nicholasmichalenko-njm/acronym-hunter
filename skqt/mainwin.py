@@ -35,7 +35,7 @@ from .settingspage import SettingsPage
 
 RAIL = [("Home", [("tools", "Your Tools"), ("mywork", "My Work"), ("efforts", "All Efforts")]),     # 3.53.0: spaces by job
         ("Effort", [("home", "Effort Dashboard"), ("deliverables", "Deliverables"), ("effortfmt", "Effort Formatting"), ("record", "Effort Record")]),
-        ("Customer Documents", [("library", "Library"), ("custqa", "Customer Q&A"), ("compare", "Compare")]),
+        ("Effort Library", [("library", "Effort Library"), ("custqa", "Customer Q&A"), ("compare", "Compare")]),   # 3.78.0
         ("Shred", [("shredreq", "Requirements"), ("assign", "Review"), ("sort", "Sort"), ("matrix", "Matrix"), ("evalcrit", "Evaluation Criteria")]),
         ("Plan", [("setups", "Setup"), ("storyboards", "Storyboards")]),   # 3.56.0; 3.74.0: the Structure Builder is in Setup
         ("Write", [("drafts", "Draft Status"), ("truth", "Wall of Truth"), ("acronyms", "Acronyms"), ("techedit", "Technical Edit"),

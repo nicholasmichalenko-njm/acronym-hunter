@@ -178,11 +178,13 @@ def guess_type(name):
 
 # ------------------------------------------------------------------ the library
 # ------------------------------------------------------------------ the document library (2.83.0)
-CATEGORIES = (("customer", "Customer documents"), ("bidders", "Bidders library"), ("qa", "Q&A"), ("ours", "Our effort documents"))
+CATEGORIES = (("customer", "Customer documents"), ("bidders", "Bidders library"), ("qa", "Q&A"), ("ours", "Our effort documents"),
+              ("graphics", "Graphics"))       # 3.78.0: pictures, kept in the Effort Library's Graphics folder
 ROLES = (("matrix", "Builds the matrix"), ("context", "Context"), ("reference", "Reference only"), ("not_needed", "Not needed"))
 ROLE_NAMES = dict(ROLES)
 MATRIX_TYPES = {"RFP", "Amendment", "SOW", "SOO", "PWS", "Section L", "Section M", "Task order", "Delivery order"}
-_CAT_WORDS = (("qa", r"q\s*&\s*a|\bqa\b|questions?\b|answers?\b"),
+_CAT_WORDS = (("graphics", r"graphics?\b|pictures?\b|images?\b|figures?\b|art\b"),
+              ("qa", r"q\s*&\s*a|\bqa\b|questions?\b|answers?\b"),
               ("bidders", r"bidders?|library|reference|standards?|\bmil[\s_-]*(std|hdbk)|specs?\b|handbook"),
               ("ours", r"\bours?\b|proposal|draft|past[\s_-]*perf|resumes?|capture|win[\s_-]*theme|internal|cpars"),
               ("customer", r"customer|\brfp\b|solicitation|amendment|\bamd\b|section[\s_]*[lmc]\b|\bsow\b|\bpws\b|\bsoo\b|attachment|cdrl|dd[\s_-]*254|rfi\b"))
@@ -199,6 +201,8 @@ def suggest_role(category, dtype=""):
 def guess_category(relpath, default="customer"):
     """The category a file's folder path and name suggest: the most specific folder decides."""
     parts = [x for x in re.split(r"[\\/]+", relpath or "") if x]
+    if parts and os.path.splitext(parts[-1])[1].lower() in (".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".gif", ".webp"):
+        return "graphics"                               # 3.78.0: a picture goes to Graphics
     for part in reversed(parts):
         low = part.lower().replace("_", " ")
         for cat, pat in _CAT_WORDS:
@@ -241,6 +245,33 @@ class Library:
     @property
     def data_dir(self):
         return os.path.dirname(self.folder)
+
+    @property
+    def effort_root(self):
+        """3.78.0: the effort's folder (where its Library folder sits): set by effortlib.attach, else beside the app data."""
+        er = self.__dict__.get("_effort_root")
+        if er is not None:
+            return er
+        import workspace as W
+        dd = self.data_dir
+        return os.path.dirname(dd) if dd.endswith(W.DATA_SUFFIX) else ""
+
+    @effort_root.setter
+    def effort_root(self, value):
+        self.__dict__["_effort_root"] = value or ""
+
+    @property
+    def library_root(self):
+        """3.78.0: <effort>\\Library, where the library's own files are kept in real folders ('' when unknown)."""
+        lr = self.__dict__.get("_library_root")
+        if lr is not None:
+            return lr
+        er = self.effort_root
+        return os.path.join(er, "Library") if er else ""
+
+    @library_root.setter
+    def library_root(self, value):
+        self.__dict__["_library_root"] = value or ""
 
     @property
     def index_path(self):
@@ -394,6 +425,9 @@ class Library:
         rel = self._rel(path)
         if rel:
             v["rel"] = rel                         # 2.83.0: a copy inside the effort: found again wherever the effort goes
+        erel = self._erel(path)
+        if erel:
+            v["erel"] = erel                       # 3.78.0: a file in the effort's Library folder, relative to the effort
         self._write_text(v["id"], sents)
         d["versions"].append(v)
         if save:
@@ -535,8 +569,24 @@ class Library:
             pass
         return ""
 
+    def _erel(self, path):
+        """3.78.0: path relative to the effort's folder, when the library knows it and the file is inside it."""
+        er = getattr(self, "effort_root", "")
+        if not er:
+            return ""
+        try:
+            base = os.path.normcase(os.path.abspath(er))
+            if os.path.normcase(os.path.abspath(path)).startswith(base + os.sep) and not self._rel(path):
+                return os.path.relpath(os.path.abspath(path), os.path.abspath(er)).replace(os.sep, "/")
+        except (TypeError, ValueError):
+            pass
+        return ""
+
     def path_of(self, v):
         """Where a version's original file is now: the copy kept with the effort when there is one, else where it was."""
+        er = getattr(self, "effort_root", "")
+        if v.get("erel") and er:                    # 3.78.0: in the effort's Library folder, wherever the effort is
+            return os.path.join(er, *v["erel"].split("/"))
         if v.get("rel"):                           # the effort's own copy: only that counts, wherever the effort is
             return os.path.join(self.data_dir, *v["rel"].split("/"))
         return v.get("path", "")

@@ -78,7 +78,7 @@ tw.close()
 from skqt import mainwin as MW
 from skqt import toolshome as TH
 heads = [g for g, _i in MW.RAIL]
-check("the menu is spaces by job", heads == ["Home", "Effort", "Customer Documents", "Shred", "Plan", "Write", "Submit", "Team",
+check("the menu is spaces by job", heads == ["Home", "Effort", "Effort Library", "Shred", "Plan", "Write", "Submit", "Team",
                                              "Settings"], heads)   # 3.69.0: no Advanced group; 3.75.0: nine groups
 check("each page in one space only", len([k for _g, it in MW.RAIL for k, _t in it]) == len({k for _g, it in MW.RAIL for k, _t in it}))
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()

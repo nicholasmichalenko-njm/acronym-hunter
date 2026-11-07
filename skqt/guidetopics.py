@@ -152,7 +152,7 @@ TOPICS = [
   ["Open topics show on the Effort Dashboard, in My Work for their owner, and on the card of the sentence or section they "
    "point at in Review.",
    "A stage gate can hold until every topic is considered: add the goal Every meeting topic considered in Effort Record."]),
- ("library", "Customer Documents", "Library",
+ ("library", "Effort Library", "Library",
   "Every document of the effort: customer files and every version of them, categories, folders, tags and roles.",
   "Documents arrive: the RFP, amendments, Q&A rounds, forms, task orders.",
   ["Press Add files... or Add a folder... Stationkeeper suggests the type, its initial (R, A1, TO1) and whether it is "
@@ -165,7 +165,7 @@ TOPICS = [
    "For an amendment that says what to change, press Apply its instructions... to make the Conformed version."],
   ["Initial and type... and Rename... fix a document's details. The customer's files are never changed.",
    "A document marked above CUI is refused on a regular install. Follow your site's spill procedure."]),
- ("read", "Customer Documents", "Read into Review",
+ ("read", "Effort Library", "Read into Review",
   "The Library's second tab: several customer documents read into the compliance matrix at once. Every sentence is cut "
   "out of the page, scans and pictures are read with OCR, and nothing is dropped.",
   "A new solicitation arrives with many files, or you add files that are not in the Library yet.",
@@ -174,7 +174,7 @@ TOPICS = [
    "One document at a time is simpler from the Documents tab: Read it into Review."],
   ["Scanned pages and pictures are read by the OCR reader (AI and ML), on this PC.",
    "Every read runs the text check: Coverage (in Review) shows it file by file."]),
- ("custqa", "Customer Documents", "Customer Q&A",
+ ("custqa", "Effort Library", "Customer Q&A",
   "The formal questions you submit to the customer: their exact words and where they are, your question, its status "
   "and the answer.",
   "Before the questions-due date, and when the answers come back.",
@@ -184,7 +184,7 @@ TOPICS = [
    "Export to Word or Excel, or fill the customer's own Q&A form. Exporting can mark the questions Submitted.",
    "When answers arrive, add each answer and the document it came in."],
   ["Every exported question names the customer file it is about. Owner, status and notes never go out."]),
- ("datacalls", "Customer Documents", "Data calls",
+ ("datacalls", "Effort Library", "Data calls",
   "What the team needs from its own experts, asked so it gets answered: what is needed, the section or requirement it "
   "serves, how much (word-count guidance), an example of a good answer, the owner and the due date.",
   "When a section needs facts, numbers or a story only an expert has: past performance, staffing, technical detail.",
@@ -308,7 +308,7 @@ TOPICS = [
   ["Read the rows. Gaps show where an instruction has no factor or a factor has no instruction.",
    "Press Export the crosswalk... for a review or the proposal manager."],
   ["The crosswalk fills in from your L, M and SOW decisions in Review."]),
- ("compare", "Customer Documents", "Compare",
+ ("compare", "Effort Library", "Compare",
   "Two versions side by side. Customer versions: what a new version of a customer document changed, what it touches in "
   "your review, and a decision on every change. Any two files: our drafts or any files, sentence by sentence, with the "
   "redline in Word.",
