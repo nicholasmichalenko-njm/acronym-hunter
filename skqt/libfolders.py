@@ -53,3 +53,26 @@ def move_into_folders(self, ok=None):
     self.host.toast(f"{n} file(s) moved into the Library folders; the list is in {os.path.basename(note)}." if n else "Nothing moved.")
     self.refresh()
     return n
+
+
+def kept_banner(self, v):
+    """3.81.0: one line on the Effort Library when an older effort still keeps files in the app's working folder."""
+    from PySide6.QtWidgets import QFrame, QHBoxLayout
+    from . import design as D
+    self.kept_box = QFrame(); self.kept_box.setProperty("card", True)
+    row = QHBoxLayout(self.kept_box); row.setContentsMargins(D.SPACE["m"], D.SPACE["s"], D.SPACE["m"], D.SPACE["s"])
+    self.kept_lbl = D.label("", "body"); row.addWidget(self.kept_lbl, 1)
+    self.b_kept = D.button("Move them into the Library folders...", None, lambda: self.move_into_folders(),
+                           "Each file moves into its category's folder; a list of every move is written to the effort's folder")
+    row.addWidget(self.b_kept)
+    self.kept_box.setVisible(False)
+    v.addWidget(self.kept_box)
+
+
+def kept_refresh(self):
+    import effortlib as EL
+    n = len(EL.plan_moves(self.lib)) if self.lib is not None else 0
+    self.kept_lbl.setText(f"{n} file(s) are kept in the app's working folder, not in the Library folders." if n else "")
+    self.kept_box.setVisible(bool(n))
+    return n
+

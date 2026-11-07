@@ -1,6 +1,13 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE EFFORT LIBRARY'S PLACE (3.81.0)
+  - When the team's folder plan keeps the effort list deeper in the tree, the Library folder sits at the effort's top
+    folder, beside Customer Documents. Files a 3.78.0 copy kept beside the list are still found.
+  - An older effort that still keeps files in the app's working folder shows one line on the Effort Library: Move
+    them into the Library folders... moves each into its category's folder and writes a list of every move. Nothing
+    moves until you choose it. Customer Documents stays at the effort's top folder.
+
 THE ACRONYM PREVIEW, FASTER, AND A BOX TO DRAW (3.80.0)
   - The scan keeps what it read in each picture (every line's box and text) with the effort, so the preview draws it
     at once instead of reading the picture again, after a restart too. The next term's first picture is drawn ahead.

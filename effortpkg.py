@@ -69,7 +69,8 @@ def plan(list_path, data_dir, matrix_path="", customer_dir="", volumes_dir="", c
         if keep is not None and rel.startswith("library/") and rel.split("/")[1] not in keep:
             continue
         items.append(("data/" + rel, p))
-    lib_dir = os.path.join(os.path.dirname(os.path.abspath(data_dir)), "Library")     # 3.78.0: the Effort Library's folders
+    import docpaths as DP
+    lib_dir = os.path.join(DP.effort_root_of(data_dir) or os.path.dirname(os.path.abspath(data_dir)), "Library")   # 3.78.0; 3.81.0: the top
     for p in _files_in(lib_dir):
         rel = os.path.relpath(p, lib_dir).replace(os.sep, "/")
         if keep is not None and rel.split("/")[0] != "Q&A":
@@ -181,7 +182,8 @@ def unpack(pkg_path, dest_folder, data_dir_for, list_name=""):
             elif top == "files":
                 target = os.path.join(dest_folder, "Our files", *rest)
             elif top == "efflib":                       # 3.78.0: the Effort Library beside the list, as it was
-                target = os.path.join(os.path.dirname(out["data"]), "Library", *rest)
+                import docpaths as DP
+                target = os.path.join(DP.effort_root_of(out["data"]) or os.path.dirname(out["data"]), "Library", *rest)
             elif top == "readable":
                 import readable as RD
                 out.setdefault("readable_dir", RD.folder_for(out["list"], man.get("effort", "")))

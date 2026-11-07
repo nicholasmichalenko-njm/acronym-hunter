@@ -265,6 +265,8 @@ class LibraryPage(QWidget):
         self.b_new_skip = D.button("Ignore", None, lambda: self.host.watch_set_aside(), "Do not offer these files again unless they change")
         nb.addWidget(self.b_new_add); nb.addWidget(self.b_new_skip)
         self.new_box.setVisible(False); v.addWidget(self.new_box)
+        from .libfolders import kept_banner                  # 3.81.0: an older effort's kept files, one line
+        kept_banner(self, v)
         split = QSplitter(Qt.Horizontal); v.addWidget(split, 1)
         # categories and folders
         self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Categories and folders", ""]); self.tree.setColumnWidth(0, 196)
@@ -408,6 +410,8 @@ class LibraryPage(QWidget):
         self.lib = DV.Library(h.ws.p("documents")).load()
         self.fill_tree()
         self.fill()
+        from .libfolders import kept_refresh
+        kept_refresh(self)
         if hasattr(h, "watch_start"):
             h.watch_start()                         # 2.94.0: the watched folders, checked in the background
 
