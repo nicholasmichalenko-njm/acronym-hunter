@@ -7,6 +7,9 @@ THE EFFORT LIBRARY'S PLACE (3.81.0)
   - An older effort that still keeps files in the app's working folder shows one line on the Effort Library: Move
     them into the Library folders... moves each into its category's folder and writes a list of every move. Nothing
     moves until you choose it. Customer Documents stays at the effort's top folder.
+  - Settings > Our data and backups > Effort values beyond Effort Formatting... counts, by section, how many efforts
+    on this PC set values Effort Formatting does not list (counts only, no names or values). Copy it into the chat: the
+    sections efforts use get rows on Effort Formatting, and then Every setting... and Production Standards go.
 
 THE ACRONYM PREVIEW, FASTER, AND A BOX TO DRAW (3.80.0)
   - The scan keeps what it read in each picture (every line's box and text) with the effort, so the preview draws it

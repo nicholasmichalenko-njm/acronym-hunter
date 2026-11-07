@@ -92,7 +92,11 @@ class SettingsPage(QWidget):
                                                 "file: see what each part adds, then bring it in (add-only; your own entries stay)"),
                                        D.button("Undo the last import", "ghost", lambda: self.undo_data()),
                                        D.button("Button use on this PC...", "ghost", lambda: self.button_use(),   # 3.74.0
-                                                "Which buttons you press on each screen, counted on this PC only")])
+                                                "Which buttons you press on each screen, counted on this PC only"),
+                                       D.button("Effort values beyond Effort Formatting...", "ghost",                 # 3.82.0
+                                                lambda: __import__("skqt.effortvaluesview", fromlist=["x"]).show(self),
+                                                "How many efforts on this PC set values Effort Formatting does not list, "
+                                                "by section (counts only), before Every setting... goes")])
         self.ourdata_text = self.ourdata.add(D.label("", "muted")); self.ourdata_text.setWordWrap(True)
         v.addWidget(self.ourdata)
         self.db = D.Card("Master database", "The company's acronyms, abbreviations, units and symbols, shared by every effort on this PC.",
