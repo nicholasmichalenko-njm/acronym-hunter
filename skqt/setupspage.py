@@ -154,7 +154,7 @@ class SetupsPage(QWidget):
             e.acceptProposedAction()
 
     def dropEvent(self, e):
-        paths = [u.toLocalFile() for u in e.mimeData().urls() if u.isLocalFile()]
+        paths = [os.path.normpath(u.toLocalFile()) for u in e.mimeData().urls() if u.isLocalFile()]   # Windows separators
         if paths:
             e.acceptProposedAction()
             self.bring_in(paths[0])

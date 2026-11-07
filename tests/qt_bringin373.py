@@ -71,7 +71,7 @@ real = OI.import_outline
 OI.import_outline = lambda page, path=None, profile=None, accept=None: seen.append(path) or real(page, path, profile, accept=False)
 pg.dropEvent(ev); app.processEvents()
 OI.import_outline = real
-check("a dropped Excel workbook opens What's in your workbook", seen == [xl] and pg.outline_dialog.list.rowCount() >= 7)
+check("a dropped Excel workbook opens What's in your workbook", [os.path.normpath(x) for x in seen] == [os.path.normpath(xl)] and pg.outline_dialog.list.rowCount() >= 7)
 pg.outline_dialog.close()
 
 print(f"QT BRING IN 373 {'OK' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
