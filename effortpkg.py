@@ -223,6 +223,7 @@ def repoint(data_dir, customer_dir="", matrix_path="", moved=None):
                 p = new_path(v.get("path", ""), v.get("file", ""))
                 if p and os.path.isfile(p):
                     v["path"] = p
+                    v.pop("erel", None)                 # 3.78.0: the found place wins
                     n += 1
         W.write_json(idx, d)
     if matrix_path and os.path.isfile(matrix_path):     # 2.52.0: the matrix's RFP files are the unpacked customer files

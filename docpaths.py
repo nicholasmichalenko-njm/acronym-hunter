@@ -44,12 +44,12 @@ class PathsMixin:
         return ""
 
     def _erel(self, path):
-        """3.78.0: path relative to the effort's folder, when the library knows it and the file is inside it."""
-        er = getattr(self, "effort_root", "")
-        if not er:
+        """3.78.0: path relative to the effort's folder, for a file in the effort's Library folder."""
+        er, lr = getattr(self, "effort_root", ""), getattr(self, "library_root", "")
+        if not er or not lr:
             return ""
         try:
-            base = os.path.normcase(os.path.abspath(er))
+            base = os.path.normcase(os.path.abspath(lr))           # only the Library's own files
             if os.path.normcase(os.path.abspath(path)).startswith(base + os.sep) and not self._rel(path):
                 return os.path.relpath(os.path.abspath(path), os.path.abspath(er)).replace(os.sep, "/")
         except (TypeError, ValueError):

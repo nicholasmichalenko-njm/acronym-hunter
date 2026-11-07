@@ -50,7 +50,7 @@ w = MainWindow(app, os.path.join(tmp, "config"), A.APP_VERSION); w.resize(1400, 
 rail = [b.text() for b in w.findChildren(type(w.step_btns["home"])) if b.objectName() == "rail"]
 steps = [b.text() for k, b in w.step_btns.items()]
 check("the rail: the steps in Qt, then the areas still in the classic app (grey)", rail[:len(steps)] == steps
-      and steps[3:10] == ["Effort Dashboard", "Deliverables", "Effort Formatting", "Effort Record", "Library", "Customer Q&&A", "Compare"]
+      and steps[3:10] == ["Effort Dashboard", "Deliverables", "Effort Formatting", "Effort Record", "Effort Library", "Customer Q&&A", "Compare"]   # 3.78.0
       and "Matrix" in steps   # 3.16.0: one place per job; 3.53.0: spaces; 3.75.0: nine groups
       and steps[15:20] == ["Setup", "Storyboards", "Draft Status", "Wall of Truth", "Acronyms"] and "Accuracy" not in steps
       and steps[-3:] == ["Check a Draft", "Team References", "Settings"]   # 3.69.0: Production Standards off the menu; 3.74.0: the Structure Builder in Setup
