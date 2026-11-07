@@ -26,10 +26,10 @@ def check(name, ok, info=""):
 cfg = os.path.join(tmp, "config"); os.makedirs(cfg)
 app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-w.go("settings"); app.processEvents()
-c = w.settings_page.dict_card
-check("Settings has Custom dictionaries, empty to start", c.pick.count() == 0 and not c.words.isEnabled() and "No dictionaries" in c.note.text())
-check("... and Go to reaches it", any(b.text() == "Custom dictionaries" for b in w.settings_page.findChildren(type(c.rename_btn))))
+w.go("refs"); app.processEvents()
+c = w.refs_page.dict_card
+check("Team References has Custom dictionaries, empty to start", c.pick.count() == 0 and not c.words.isEnabled() and "No dictionaries" in c.note.text())
+check("3.77.0: one home: Settings has no dictionaries card", not hasattr(w.settings_page, "dict_card"))
 did = c.new_dict("Kestrel Aerospace Custom")
 check("+ Dictionary starts one", did and c.pick.currentText() == "Kestrel Aerospace Custom" and c.words.count() == 0)
 n = c.add_typed("CDRL, Talon  Kestrel-Lander;HERON CDRL")

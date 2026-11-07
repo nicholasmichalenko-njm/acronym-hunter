@@ -102,22 +102,22 @@ class CustQAPage(QWidget):
         top.addWidget(self.filter)
         self.find = QLineEdit(); self.find.setPlaceholderText("Find words"); self.find.setClearButtonEnabled(True); self.find.setMaximumWidth(220)
         self.find.textChanged.connect(lambda _t: self.fill()); top.addWidget(self.find)
-        bar = QHBoxLayout(); v.addLayout(bar)
-        for text, kind, fn, tip in (("+ Question", "primary", lambda: self.add(), "A question typed here (Capture > Question in Review quotes the page for you)"),
-                                    ("Edit", None, lambda: self.edit(), "Every field, the answer included"),
-                                    ("Approve", None, lambda: self.set_status("Approved"), "Ready to send"),
-                                    ("Up", "ghost", lambda: self.move(-1), "Earlier in the list (the numbers follow)"),
-                                    ("Down", "ghost", lambda: self.move(1), "Later in the list"),
-                                    ("Show on the page", "ghost", lambda: self.show_page(), "The sentence in Review"),
-                                    ("Capture the answer...", None, lambda: self.capture_answer(),                 # 3.41.0
-                                     "The customer's answer as a capture (an objective, a key point...), its source this question"),
-                                    ("Remove", "danger", lambda: self.remove(), "Take it out of the list")):
-            bar.addWidget(D.button(text, kind, fn, tip))
-        bar.addStretch(1)
-        for text, fn, tip in (("Export to Word...", lambda: self.export("docx"), "A polished document: cover block, numbered table, the marking"),
-                              ("Export to Excel...", lambda: self.export("xlsx"), "The layout most solicitations ask for"),
-                              ("Fill the customer's template...", lambda: self.export("template"), "Their Excel or Word form, filled in under its header row")):
-            bar.addWidget(D.button(text, None, fn, tip))
+        from .commandbar import CommandBar                       # 3.77.0: one bar (Rule 8)
+        self.bar = CommandBar()
+        self.bar.primary("+ Question", lambda: self.add(), "A question typed here (Capture > Question in Review quotes the page for you)")
+        self.bar.add("Edit", lambda: self.edit(), "Every field, the answer included (double-click works too)")
+        self.bar.add("Approve", lambda: self.set_status("Approved"), "Ready to send")
+        self.bar.add("Capture the answer...", lambda: self.capture_answer(),                 # 3.41.0
+                     "The customer's answer as a capture (an objective, a key point...), its source this question")
+        self.bar.more("Show on the page", lambda: self.show_page(), "The sentence in Review")
+        self.bar.more("Earlier in the list", lambda: self.move(-1), "The numbers follow")
+        self.bar.more("Later in the list", lambda: self.move(1))
+        self.bar.more_sep()
+        self.bar.more("Remove", lambda: self.remove(), "Take it out of the list")
+        self.bar.export("Word...", lambda: self.export("docx"), "A polished document: cover block, numbered table, the marking")
+        self.bar.export("Excel...", lambda: self.export("xlsx"), "The layout most solicitations ask for")
+        self.bar.export("Fill the customer's template...", lambda: self.export("template"), "Their Excel or Word form, filled in under its header row")
+        v.addWidget(self.bar)
         self.table = QTableWidget(0, len(COLS)); self.table.setHorizontalHeaderLabels(COLS)
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)

@@ -35,15 +35,6 @@ class MatrixPage(QWidget):
         self.view_box.activated.connect(lambda _i: self.use_view(self.view_box.currentData()))
         vc.add(self.view_box)
         self.view_note = D.label("", "muted"); vc.add(self.view_note)
-        vrow = QHBoxLayout(); vrow.setSpacing(D.SPACE["s"])
-        vrow.addWidget(D.button("Save as a view...", None, lambda: self.save_view(), "Keep this design in the template library under a name"))
-        self.ver_btn = D.button("Save as a new version", "ghost", lambda: self.save_version(),
-                                "A new version of the view in use, with this design; the old version stays")
-        vrow.addWidget(self.ver_btn)
-        vc.body.addLayout(vrow)
-        self.type_btn = D.button("Start this effort type with it", "ghost", lambda: self.type_start(),
-                                 "New efforts of this effort type start with the view in use")
-        vc.add(self.type_btn)
         lv.addWidget(vc)
         cols = D.Card("Columns", "Tick the columns, drag them in order; click one to rename it.")
         self.cols = QListWidget()
@@ -93,17 +84,24 @@ class MatrixPage(QWidget):
         split.addWidget(prev)
         split.setSizes([450, 910])
         v.addWidget(split, 1)
-        bar = QHBoxLayout(); bar.setSpacing(D.SPACE["s"]); v.addLayout(bar)
-        bar.addWidget(D.button("Save as the team default", "ghost", self.team_save, "New matrices start with this design"))
-        bar.addWidget(D.button("Use the team default", "ghost", self.team_use))
-        bar.addStretch(1)
-        bar.addWidget(D.button("Export the compliance package...", None, self.export_package,
-                               "Matrix, Response Setup, coverage report and L/M crosswalk in one dated folder"))
-        bar.addWidget(D.button("Bring the edited matrix back...", None, lambda: self.bring_back(),        # 3.73.0
-                               "The exported matrix as the team filled it in: their values come back, after you look"))
-        bar.addWidget(D.button("Merge another copy's matrix...", "ghost", lambda: self.bring_back(merge=True),
-                               "Another copy of this effort's matrix: its values listed beside ours, ours kept unless you take theirs"))
-        bar.addWidget(D.button("Export the matrix...", "primary", self.export, "The matrix as an Excel workbook"))
+        from .commandbar import CommandBar                       # 3.77.0: one bar (Rule 8)
+        self.bar = CommandBar()
+        self.bar.add("Bring the edited matrix back...", lambda: self.bring_back(),        # 3.73.0
+                     "The exported matrix as the team filled it in: their values come back, after you look")
+        self.bar.add("Save as a view...", lambda: self.save_view(), "Keep this design in the template library under a name")
+        self.bar.primary("Export the matrix...", self.export, "The matrix as an Excel workbook")
+        self.ver_btn = self.bar.more("Save as a new version", lambda: self.save_version(),
+                                    "A new version of the view in use, with this design; the old version stays")
+        self.type_btn = self.bar.more("Start this effort type with it", lambda: self.type_start(),
+                                     "New efforts of this effort type start with the view in use")
+        self.bar.more_sep()
+        self.bar.more("Merge another copy's matrix...", lambda: self.bring_back(merge=True),
+                      "Another copy of this effort's matrix: its values listed beside ours, ours kept unless you take theirs")
+        self.bar.more("Save as the team default", self.team_save, "New matrices start with this design")
+        self.bar.more("Use the team default", self.team_use)
+        self.bar.export("The compliance package...", self.export_package,
+                        "Matrix, Response Setup, coverage report and L/M crosswalk in one dated folder")
+        v.insertWidget(0, self.bar)
         self.timer = QTimer(self, singleShot=True, interval=250, timeout=self.preview)
 
     # ------------------------------------------------------------ the design

@@ -30,13 +30,16 @@ class FilesCompare(QWidget):
             row.addWidget(D.button("Choose...", None, lambda _=False, c=cb: self.pick(c)))
             f.addRow(label, row)
         bar = QHBoxLayout(); v.addLayout(bar)
-        bar.addWidget(D.button("Compare", "primary", lambda: self.run()))
+        from .commandbar import CommandBar                       # 3.77.0: one bar (Rule 8)
+        self.cbar = CommandBar()
+        self.cbar.primary("Compare", lambda: self.run())
+        self.cbar.export("Redline (Word)...", lambda: self.export(), "Removed words struck through, added words marked")
+        self.cbar.export("Tracked changes (Word)...", lambda: self.export_tracked(),      # 3.60.0
+                         "A Word file with every change a tracked change to accept or reject. Two Word files are "
+                         "compared by Word itself, formatting kept; other files as their text.")
+        bar.addWidget(self.cbar)
         self.only = QCheckBox("Only changes"); self.only.setChecked(True); self.only.toggled.connect(lambda _b: self.fill())
         bar.addWidget(self.only)
-        bar.addWidget(D.button("Redline (Word)...", None, lambda: self.export(), "Removed words struck through, added words marked"))
-        bar.addWidget(D.button("Tracked changes (Word)...", None, lambda: self.export_tracked(),      # 3.60.0
-                               "A Word file with every change a tracked change to accept or reject. Two Word files are "
-                               "compared by Word itself, formatting kept; other files as their text."))
         self.sum = D.label("", "muted"); bar.addWidget(self.sum, 1)
         self.t = QTableWidget(0, 4); self.t.setHorizontalHeaderLabels(["Change", "Under", "Earlier", "Later"])
         self.t.verticalHeader().setVisible(False); self.t.setEditTriggers(QAbstractItemView.NoEditTriggers); self.t.setWordWrap(True)

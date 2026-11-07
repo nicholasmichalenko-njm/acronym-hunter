@@ -31,7 +31,8 @@ app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 check("Production Standards is off the menu", all(k != "prodstd" for _g, it in RAIL for k, _t in it) and "Advanced" not in [g for g, _i in RAIL])
 w.go("settings"); app.processEvents()
-check("... and opens from Settings for one more release", w.go("prodstd") is not False and w.stack.currentWidget() is w.prodstd_page)
+from PySide6.QtWidgets import QPushButton
+check("3.77.0: no door from Settings any more", not any("Production Standards" in b.text() for b in w.settings_page.findChildren(QPushButton)))
 # ---- Rules > Fix a Copy's checks
 w.go("rules"); app.processEvents()
 rp = w.rules_page

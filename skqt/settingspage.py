@@ -1,4 +1,4 @@
-"""Settings in Qt (2.66.0): start a new effort (its acronym list workbook, the first-use rule, its customer documents
+"""Settings in Qt (2.66.0; 3.77.0: in sections, one shown at a time, picked from the list on the left): start a new effort (its acronym list workbook, the first-use rule, its customer documents
 and volumes folders), change the open effort's folders and first-use rule, load a new master database, and choose
 where backups go (Keep safe). The same files and settings the classic window uses. Nothing leaves the PC."""
 import os, re
@@ -48,9 +48,6 @@ class SettingsPage(QWidget):
                                             "Everything in the open effort as plain files that open without Stationkeeper, in a "
                                             "dated folder named for the effort and its stage"),
                                    D.button("Import effort package...", None, lambda: self.host.import_package()),
-                                   D.button("Production Standards (retiring)...", "ghost", lambda: self.host.go("prodstd"),   # 3.69.0
-                                            "Its values now live in Rules, Formatting Standards, Layout and Effort Profiles; it "
-                                            "stays here one release in case something was missed"),
                                    D.button("New effort...", "primary", lambda: __import__("skqt.starteffort", fromlist=["x"]).start_dialog(host))])
         f = QFormLayout(); self.eff.body.addLayout(f)
         self.cust = QLineEdit(); self.vols = QLineEdit()
@@ -74,9 +71,7 @@ class SettingsPage(QWidget):
         from .doctypesview import DocTypesCard           # 2.94.0: customer document types and their initials
         self.doctypes_card = DocTypesCard(host)
         v.addWidget(self.doctypes_card)
-        from .dictview import DictionariesCard           # 3.0.4: the team's custom dictionaries for Word
-        self.dict_card = DictionariesCard(host)
-        v.addWidget(self.dict_card)
+        # 3.77.0: the custom dictionaries and the master database live in Team References (one home per function)
         from .brandview import BrandingCard              # 2.88.0: the company logos at the top of the menu
         self.branding_card = BrandingCard(host)
         v.addWidget(self.branding_card)
@@ -86,15 +81,6 @@ class SettingsPage(QWidget):
         from .teamview import TeamCard                   # 2.89.0: one file sets up every PC the same way
         self.team_card = TeamCard(host)
         v.addWidget(self.team_card)
-        self.scroll = sc
-        from .adaptive import FlowLayout                 # 2.93.0: straight to a part of Settings
-        self.jump_row = FlowLayout(None, D.SPACE["s"])
-        jl = D.label("Go to:", "muted", wrap=False); self.jump_row.addWidget(jl)
-        for text, card in (("Your time zone", self.tz_card), ("Efforts", self.eff), ("Author list", self.authors),
-                           ("Stages, gates and roles", self.process_card),
-                           ("Document types", self.doctypes_card), ("Folders and file names", self.folders_card), ("Custom dictionaries", self.dict_card), ("Branding", self.branding_card), ("Team pack", self.team_card)):
-            self.jump_row.addWidget(D.button(text, "ghost", lambda _=False, c=card: self.jump(c)))
-        v.insertLayout(0, self.jump_row)
         self.ourdata = D.Card("Our data (the team's data file)", "One file with the team's foundational data, used the same way in "  # 3.22.0
                               "every effort: the master acronym list, custom dictionaries, banned and avoided phrases, Production "
                               "Standards with their covers and Quick Parts, the template library, and the team's lists. Nothing "
@@ -109,11 +95,10 @@ class SettingsPage(QWidget):
                                                 "Which buttons you press on each screen, counted on this PC only")])
         self.ourdata_text = self.ourdata.add(D.label("", "muted")); self.ourdata_text.setWordWrap(True)
         v.addWidget(self.ourdata)
-        self.jump_row.addWidget(D.button("Our data", "ghost", lambda: self.jump(self.ourdata)))
         self.db = D.Card("Master database", "The company's acronyms, abbreviations, units and symbols, shared by every effort on this PC.",
                          actions=[D.button("Load a new version...", None, lambda: self.load_master())])
         self.db_text = self.db.add(D.label("", "muted"))
-        v.addWidget(self.db)
+        self.db.hide()                                   # 3.77.0: shown in Team References; load_master stays here
         self.ri_card = D.Card("Review: decisions and captures", "Every decision (L, M, SOW, Interest, Support, Customer's, "   # 3.29.0
                               "Ignore) and every capture in Review: its name, key, color, whether it shows and where; which "
                               "decisions an effort type hides (an RFI hides L, M and SOW and shows Interest); the team's own captures.",
@@ -170,6 +155,7 @@ class SettingsPage(QWidget):
         self.help = HC.support_card(host)
         v.addWidget(self.help)
         v.addStretch(1)
+        self._sections(outer, sc)
 
     def data_where(self):
         import app_gui
@@ -194,10 +180,60 @@ class SettingsPage(QWidget):
         self.host.status(f"Data copied to {new}. Restart Stationkeeper to use it; the old folder can be deleted afterwards.")
         return new
 
+    SECTIONS = (("This effort", ("eff",)),
+                ("You", ("mode", "tz_card")),
+                ("The team", ("authors", "process_card", "folders_card", "doctypes_card", "roles_card", "branding_card", "team_card")),
+                ("Review and responses", ("ri_card", "re_card", "un_card", "sg_card")),
+                ("Our data and backups", ("ourdata", "bk", "data")),
+                ("Training", ("tr",)),
+                ("Updates and help", ("up", "sec", "help")))
+
+    def _sections(self, outer, old):
+        """3.77.0 (Rule 8): Settings as sections, one shown at a time; the list on the left picks the section."""
+        from PySide6.QtWidgets import QListWidget, QStackedWidget
+        outer.removeWidget(old)
+        row = QHBoxLayout(); row.setContentsMargins(0, 0, 0, 0); row.setSpacing(0); outer.addLayout(row)
+        self.section_list = QListWidget(); self.section_list.setObjectName("sectionList"); self.section_list.setMaximumWidth(220)
+        self.stack = QStackedWidget()
+        row.addWidget(self.section_list); row.addWidget(self.stack, 1)
+        self.section_of, self.scrolls = {}, []
+        for name, keys in self.SECTIONS:
+            sc = QScrollArea(); sc.setWidgetResizable(True); sc.setFrameShape(QFrame.NoFrame)
+            inner = QWidget(); inner.setObjectName("page"); sc.setWidget(inner)
+            v = QVBoxLayout(inner)
+            v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
+            for k in keys:
+                wdg = getattr(self, k)
+                v.addWidget(wdg)
+                self.section_of[id(wdg)] = len(self.scrolls)
+            v.addStretch(1)
+            self.stack.addWidget(sc); self.scrolls.append(sc)
+            self.section_list.addItem(name)
+        old.setParent(None); old.deleteLater()
+        self.section_list.currentRowChanged.connect(self.stack.setCurrentIndex)
+        self.section_list.setCurrentRow(0)
+
+    @property
+    def scroll(self):
+        return self.scrolls[self.stack.currentIndex()] if getattr(self, "scrolls", None) else None
+
+    def section(self, name):
+        """Show a section by its name. Returns its index."""
+        for i, (n, _k) in enumerate(self.SECTIONS):
+            if n == name:
+                self.section_list.setCurrentRow(i)
+                return i
+        return -1
+
     def jump(self, card):
-        self.scroll.ensureWidgetVisible(card, 0, 0)
-        sb = self.scroll.verticalScrollBar()
-        sb.setValue(min(sb.maximum(), card.mapTo(self.scroll.widget(), card.rect().topLeft()).y() - D.SPACE["m"]))
+        """Show the section that holds the card, scrolled to it."""
+        i = self.section_of.get(id(card))
+        if i is not None:
+            self.section_list.setCurrentRow(i)
+        sc = self.scroll
+        sc.ensureWidgetVisible(card, 0, 0)
+        sb = sc.verticalScrollBar()
+        sb.setValue(min(sb.maximum(), card.mapTo(sc.widget(), card.rect().topLeft()).y() - D.SPACE["m"]))
         return card
 
     def focus_process(self):

@@ -39,8 +39,8 @@ sp = w.settings_page
 pc = sp.process_card
 check("Settings has a Stages, gates and roles card with the built-in ones", pc.st.rowCount() == len(PR.DEFAULT_STAGES)
       and pc.gt.rowCount() == 3 and pc.rl.count() == len(PR.DEFAULT_ROLES))
-check("Settings has a Go to row that reaches it", sp.focus_process() is pc and any(
-    sp.jump_row.itemAt(i).widget() and sp.jump_row.itemAt(i).widget().text() == "Stages, gates and roles" for i in range(sp.jump_row.count())))
+check("3.77.0: Settings' The team section holds it, and focus reaches it", sp.focus_process() is pc
+      and sp.section_list.currentItem().text() == "The team" and pc.isVisibleTo(sp))
 pc.gt.setCurrentCell(0, 0)
 check("a built-in gate cannot be removed", not pc.remove_gate() and pc.gt.rowCount() == 3)
 pc.gt.item(1, 0).setText("Soft gate: log and move on")

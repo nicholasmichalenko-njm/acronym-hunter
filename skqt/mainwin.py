@@ -565,7 +565,7 @@ class MainWindow(QMainWindow):
         """2.88.0: Settings, at the Branding card."""
         self.go("settings")
         try:
-            self.settings_page.scroll.ensureWidgetVisible(self.settings_page.branding_card, 0, 0)
+            self.settings_page.jump(self.settings_page.branding_card)
         except Exception:
             diag.swallowed()
         return True
@@ -1298,7 +1298,7 @@ class MainWindow(QMainWindow):
     def go_mode(self):
         self.go("settings")
         try:
-            self.settings_page.scroll.ensureWidgetVisible(self.settings_page.mode, 0, 0)
+            self.settings_page.jump(self.settings_page.mode)
         except Exception:
             diag.swallowed()
         return True
