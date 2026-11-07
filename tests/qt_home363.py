@@ -53,7 +53,7 @@ check("its steps: Read, Requirements, Structure, Setup, Check, each with a count
 check("the request type starts as RFP", ps.type.currentText() == "RFP")
 check("how and when it is sent is on the strip", "Due " in ps.sub.text(), ps.sub.text())
 ps.btns["structure"].click(); app.processEvents()
-check("any step opens its page, in any order", w.stack.currentWidget() is w.pages["structure"])
+check("any step opens its page, in any order (Structure opens Setup, 3.74.0)", w.stack.currentWidget() is w.pages["setups"])
 w.go("home"); app.processEvents()
 hp.path.set_type("RFI")
 st = {s["key"]: s for s in hp.path.now}

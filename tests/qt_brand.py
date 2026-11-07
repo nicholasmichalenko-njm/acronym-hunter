@@ -43,7 +43,7 @@ w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 # ---- the menu
 texts = [b.text() for b in w.step_btns.values()]
 check("the menu is in Title Case", texts[:3] == ["Your Tools", "My Work", "All Efforts"] and texts[3:8] == ["Effort Dashboard", "Deliverables", "Evaluation Criteria", "Effort Formatting", "Effort Record"]   # 3.53.0: spaces
-      and "Structure Builder" in texts and "Acronyms" in texts and "Production Standards" not in texts, texts)   # 3.69.0: off the menu
+      and "Setup" in texts and "Structure Builder" not in texts and "Acronyms" in texts and "Production Standards" not in texts, texts)   # 3.69.0: off the menu
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QPushButton as _QPB
 heads = [b.text() for b in w.findChildren(_QPB) if b.objectName() == "railgroup"]
