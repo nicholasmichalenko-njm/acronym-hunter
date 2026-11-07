@@ -16,6 +16,7 @@ added one in the same place is paired as Changed when they are at least 50% alik
 says which changes touch submission requirements (format, page limits, due dates, files and copies).
 """
 import datetime, difflib, getpass, hashlib, json, os, re, uuid
+from docpaths import PathsMixin                    # 3.78.0: where the files are (effort and Library folders)
 
 VERSION_WORDS = re.compile(
     r"(?<![a-z])(?:amend(?:ment)?|amd|mod(?:ification)?|ver(?:sion)?|v|r)[\s_.-]*(?:no\.?\s*)?\d{1,3}(?![a-z])|"
@@ -230,7 +231,7 @@ def clean_tags(tags):
     return out
 
 
-class Library:
+class Library(PathsMixin):
     def __init__(self, folder):
         self.folder = folder                       # <effort app data>\documents
         self.all = []                              # 2.83.0: every document; .docs is the customer documents
@@ -245,33 +246,6 @@ class Library:
     @property
     def data_dir(self):
         return os.path.dirname(self.folder)
-
-    @property
-    def effort_root(self):
-        """3.78.0: the effort's folder (where its Library folder sits): set by effortlib.attach, else beside the app data."""
-        er = self.__dict__.get("_effort_root")
-        if er is not None:
-            return er
-        import workspace as W
-        dd = self.data_dir
-        return os.path.dirname(dd) if dd.endswith(W.DATA_SUFFIX) else ""
-
-    @effort_root.setter
-    def effort_root(self, value):
-        self.__dict__["_effort_root"] = value or ""
-
-    @property
-    def library_root(self):
-        """3.78.0: <effort>\\Library, where the library's own files are kept in real folders ('' when unknown)."""
-        lr = self.__dict__.get("_library_root")
-        if lr is not None:
-            return lr
-        er = self.effort_root
-        return os.path.join(er, "Library") if er else ""
-
-    @library_root.setter
-    def library_root(self, value):
-        self.__dict__["_library_root"] = value or ""
 
     @property
     def index_path(self):
@@ -558,43 +532,6 @@ class Library:
         return False
 
     # ------------------------------------------------------------ the library (2.83.0)
-    def _rel(self, path):
-        """path relative to the effort's data folder, when the file is inside it (a copy kept with the effort)."""
-        try:
-            base = os.path.normcase(os.path.abspath(self.data_dir))
-            p = os.path.normcase(os.path.abspath(path))
-            if p.startswith(base + os.sep):
-                return os.path.relpath(os.path.abspath(path), os.path.abspath(self.data_dir)).replace(os.sep, "/")
-        except (TypeError, ValueError):
-            pass
-        return ""
-
-    def _erel(self, path):
-        """3.78.0: path relative to the effort's folder, when the library knows it and the file is inside it."""
-        er = getattr(self, "effort_root", "")
-        if not er:
-            return ""
-        try:
-            base = os.path.normcase(os.path.abspath(er))
-            if os.path.normcase(os.path.abspath(path)).startswith(base + os.sep) and not self._rel(path):
-                return os.path.relpath(os.path.abspath(path), os.path.abspath(er)).replace(os.sep, "/")
-        except (TypeError, ValueError):
-            pass
-        return ""
-
-    def path_of(self, v):
-        """Where a version's original file is now: the copy kept with the effort when there is one, else where it was."""
-        er = getattr(self, "effort_root", "")
-        if v.get("erel") and er:                    # 3.78.0: in the effort's Library folder, wherever the effort is
-            return os.path.join(er, *v["erel"].split("/"))
-        if v.get("rel"):                           # the effort's own copy: only that counts, wherever the effort is
-            return os.path.join(self.data_dir, *v["rel"].split("/"))
-        return v.get("path", "")
-
-    def has_original(self, v):
-        p = self.path_of(v)
-        return bool(p) and os.path.isfile(p)
-
     def categories(self):
         """[(key, name)]: the four, then the person's own."""
         return list(CATEGORIES) + [tuple(c) for c in self.extra_categories]
