@@ -1,6 +1,14 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+FEWER CONTROLS PER SCREEN, PART TWO (3.77.0)
+  - Settings is in sections, one shown at a time: This effort, You, The team, Review and responses, Our data and
+    backups, Training, Updates and help. Pick a section in the list on the left.
+  - The custom dictionaries and this PC's acronym database have one home: Team References.
+  - Production Standards has no door left in Settings. Its values live in Rules, Standards and Effort Profiles; Effort
+    Formatting's Every setting... still opens its full editor on the effort's own values.
+  - Matrix, Compare (Any two files) and Customer Q&A have one bar each: one main button, More, and every export in Export.
+
 ACRONYM REVIEW WITHOUT APPROVAL (3.76.0)
   - Adding a term to the effort's list is the decision. A term is in the list or Not a term; one in the list with no
     definition shows No definition yet. Approve, Needs author and Proposed are gone; a list saved before reads Proposed,

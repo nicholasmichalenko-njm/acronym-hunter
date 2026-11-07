@@ -41,7 +41,7 @@ cfg0 = os.path.join(tmp, "config0"); os.makedirs(cfg0)
 app = QApplication([]); D.apply(app)
 w0 = MainWindow(app, cfg0, A.APP_VERSION); w0.show()
 card0 = w0.settings_page.authors
-w0.go("settings"); w0.settings_page.refresh(); app.processEvents()
+w0.go("settings"); w0.settings_page.refresh(); w0.settings_page.jump(card0); app.processEvents()
 check("no effort yet: Settings says to create or select an effort first", card0.banner.isVisible()
       and "Create or select an effort first" in card0.banner.text(), card0.banner.text())
 check("opening with no efforts writes no author list (the release build's leak check)", not os.path.exists(os.path.join(cfg0, AL.FILE)))
