@@ -1,9 +1,10 @@
 """Setup (3.56.0, claude/stationkeeper-setup-decisions-2026-11-04.md): the starting draft each author writes in, made from
 a structure, layers and a template, and made again whenever one of them changes. A structure is the least it needs:
 headings typed, from a Word outline or from an RFP's headings, before or without a Review. Each section: its lead and
-contributors, due date, pages and PM direction, and what it will print. Layers say what fills the sections. Make the setup
-writes it on each volume's template (Production > Templates); Plain setup writes it with no template; Changes for authors
-writes one Word file per person with what changed in their sections. Rules only (setupmake, setupdoc); nothing leaves the PC."""
+contributors, due date, pages, Management guidance, references for authors and notes (3.83.0, the shared section
+panel), and what it will print. Layers say what fills the sections. Make the setup writes it on each volume's template
+(Production > Templates); Plain setup writes it with no template; Changes for authors writes one Word file per person
+with what changed in their sections. Rules only (setupmake, setupdoc); nothing leaves the PC."""
 import os
 
 from PySide6.QtCore import Qt
@@ -105,14 +106,17 @@ class SetupsPage(QWidget):
         self.f_with.setPlaceholderText("Names, with commas")
         self.f_due.setPlaceholderText("2026-11-20, or Pink Team")
         self.f_pages.setPlaceholderText("5, or 2.5")
-        self.f_dir = QPlainTextEdit(); self.f_dir.setPlaceholderText("What the proposal manager wants in this section")
-        self.f_dir.setMaximumHeight(90)
-        for lab, w in (("Lead", self.f_lead), ("Contributors", self.f_with), ("Due", self.f_due), ("Pages", self.f_pages),
-                       ("PM direction", self.f_dir)):
+        for lab, w in (("Lead", self.f_lead), ("Contributors", self.f_with), ("Due", self.f_due), ("Pages", self.f_pages)):
             f.addRow(lab, w)
+            w.editingFinished.connect(lambda: self.save_section(quiet=True))     # 3.83.0: saved as you leave the box
         wv.addLayout(f)
-        rb = QHBoxLayout(); rb.addStretch(1); rb.addWidget(D.button("Save this section", "primary", lambda: self.save_section()))
-        wv.addLayout(rb)
+        # 3.83.0: the shared section panel (Management guidance saved as typed, references for authors, notes and context)
+        from .sectionpanel import SectionPanel
+        import effortrec as RR
+        self.panel = SectionPanel(host, self._M, lambda: RR.Record(self.host.ws.root) if self.host.ws is not None else None,
+                                  on_saved=lambda _l: self.after_panel())
+        self.f_dir = self.panel.guide
+        wv.addWidget(self.panel)
         wv.addWidget(D.label("What it prints", "label"))
         self.prev = D.label("", "muted"); self.prev.setTextFormat(Qt.RichText)
         wv.addWidget(self.prev)
@@ -355,13 +359,19 @@ class SetupsPage(QWidget):
         if M is None or not label:
             for w in (self.f_lead, self.f_with, self.f_due, self.f_pages):
                 w.clear()
-            self.f_dir.clear(); self.prev.setText("")
+            self.panel.show_section(None); self.prev.setText("")
             return
         lead, with_ = SM.people(M, label)
         pg = PB.pages(M, label)
         self.f_lead.setText(lead); self.f_with.setText(with_); self.f_due.setText(SM.due(M, label))
-        self.f_pages.setText(f"{pg:g}" if pg else ""); self.f_dir.setPlainText(SM.direction(M, label))
+        self.f_pages.setText(f"{pg:g}" if pg else "")
+        self.panel.show_section(label)
         self.show_preview(M, label)
+
+    def after_panel(self):
+        M = self._M()
+        if M is not None and self.cur:
+            self.show_preview(M, self.cur)
 
     def show_preview(self, M, label):
         import html
@@ -369,7 +379,8 @@ class SetupsPage(QWidget):
                           or "Every layer is off.")
 
     # ------------------------------------------------------------ edits
-    def save_section(self):
+    def save_section(self, quiet=False):
+        """Lead, contributors, due date and pages (saved as each box is left), and the guidance typed so far."""
         M = self._M()
         if M is None or not self.cur:
             return False
@@ -380,17 +391,24 @@ class SetupsPage(QWidget):
             except ValueError:
                 self.host.status("Pages is a number, like 5 or 2.5.")
                 return False
-        self.host.review.snap()
+        self.panel.flush()
         lab = self.cur
+        lead, with_ = SM.people(M, lab)
+        new_pages = float(pages) if pages else None
+        if ((self.f_lead.text().strip(), self.f_with.text().strip(), self.f_due.text().strip()) == (lead, with_, SM.due(M, lab))
+                and new_pages == (PB.pages(M, lab) or None)):
+            return True
+        self.host.review.snap()
         SM.set_people(M, lab, self.f_lead.text(), self.f_with.text())
         SM.set_due(M, lab, self.f_due.text())
-        SM.set_direction(M, lab, self.f_dir.toPlainText())
-        old = PB.pages(M, lab)
-        if (float(pages) if pages else None) != old:
-            PB.set_pages(M, lab, float(pages) if pages else 0, "team")
+        if new_pages != (PB.pages(M, lab) or None):
+            PB.set_pages(M, lab, new_pages or 0, "team")
         diag.activity("setup_section_saved", n=1)
         self.host.changed()
-        self.refresh()
+        if quiet:
+            self.counts(); self.show_preview(M, lab)
+        else:
+            self.refresh()
         return True
 
     def set_layer(self, key, on):

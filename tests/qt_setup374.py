@@ -74,8 +74,8 @@ check("What it prints in the panel", "R. Diaz" in sp.prev.text() and "second sit
 bar.action("What fills each section...").trigger(); app.processEvents()
 check("More > What fills each section... opens the layers", sp.layers.isVisibleTo(w) and "What fills each section" in sp.fills.text())
 sp.layer_boxes["pm"].setChecked(False)
-check("... a layer off leaves the line and what it prints", "PM direction" not in sp.fills.text().split(":", 1)[1]
-      and "PM direction" not in sp.prev.text(), sp.fills.text())
+check("... a layer off leaves the line and what it prints", "Management guidance" not in sp.fills.text().split(":", 1)[1]
+      and "Management guidance" not in sp.prev.text(), sp.fills.text())
 sp.layer_boxes["pm"].setChecked(True)
 n0 = len(M.outline)
 b.add_volume("Management"); app.processEvents()

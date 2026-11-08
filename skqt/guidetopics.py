@@ -340,7 +340,8 @@ TOPICS = [
    "The sections: right-click one to rename it, make it a heading level, unnumbered, a divider or a placeholder, start a "
    "Word section, add one below or under it, move it or delete it. Enter adds one below, Tab and Shift+Tab change its "
    "level, F2 renames, Delete takes it out, and a drag moves it.",
-   "Pick a section: type its Lead, Contributors, Due date, Pages and PM direction, then Save this section. What it prints "
+   "Pick a section: type its Lead, Contributors, Due date and Pages, and the Management guidance (saved as you type); "
+   "add references for the authors and use the notes on the section. What it prints "
    "shows what the setup will put there; the Preview tab shows the volume's pages.",
    "Add elements... puts the Table of Contents, the lists, Acronyms and Abbreviations and the rest in. Place library "
    "items and what is not placed yet from the right.",

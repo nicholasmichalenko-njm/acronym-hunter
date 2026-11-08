@@ -1,6 +1,6 @@
 """3.56.0 Setup, offscreen. A Setup page in Plan: a structure is the least it needs (typed, from a Word outline, from an
 RFP's headings; no Review); each section's lead, contributors, due date, pages and PM direction; layers on by default
-(requirements, evaluation, PM direction, pages, author and due) and off (customer context, captures, topics), each left
+(requirements, evaluation, Management guidance, pages, author and due) and off (customer context, captures, topics), each left
 out of the setup when off; Make the setup on the templates; Plain setup; Changes for authors as one Word file per person;
 the Structure Builder's Make the setup opens it. Fictional content."""
 import os, sys, tempfile, zipfile
@@ -44,7 +44,7 @@ check("a structure from an RFP's headings", bool(SM.structure_from_text(rt)), rt
 M = SM.start(os.path.join(tmp, "m", "Kestrel_Compliance_Matrix.xlsx"), "Kestrel", "1 Technical Approach\n  1.1 Orbit Operations\n2 Management")
 check("a matrix holding only the structure, saved", os.path.isfile(M.path) and len(M.outline) == 3 and not M.items)
 on = SM.layers(M)
-check("layers on by default: requirements, evaluation, PM direction, pages, author and due",
+check("layers on by default: requirements, evaluation, Management guidance, pages, author and due",
       all(on[k] for k in ("requirements", "evaluation", "pm", "pages", "author")), on)
 check("... off: customer context, captures, topics", not any(on[k] for k in ("customer", "captures", "topics")), on)
 check("the off layers' kinds are left out", set(SM.ensure_skip(M)) >= {"customer", "library", "objective", "capture", "topic"})
@@ -57,7 +57,7 @@ SM.set_due(M, lab, "2026-12-01")
 SM.set_direction(M, lab, "Lead with the ground station handover.")
 pv = dict(SM.preview(M, lab))
 check("a section's preview: author and due, PM direction", "Avery Pine" in pv["Author and due date"]
-      and "2026-12-01" in pv["Author and due date"] and "handover" in pv["PM direction"], pv)
+      and "2026-12-01" in pv["Author and due date"] and "handover" in pv["Management guidance"], pv)
 check("... a subsection inherits its parent's lead", SD.section_people(M, lab)["lead"] == "Avery Pine")
 g = SM.gaps(M)
 check("sections still missing a lead or a due date", C.outline_label(M.outline[0]) in g["no_lead"] and lab not in g["no_due"], g)
@@ -100,7 +100,7 @@ check("... and what it prints", "Avery Pine" in sp.prev.text() and "handover" in
 sp.refresh()
 sp.layer_boxes["pm"].setChecked(False)
 check("a layer box turns its layer off", not SM.layers(M2)["pm"] and "pm" in SD.setup_of(M2)["layer_skip"]
-      and "PM direction" not in sp.prev.text())
+      and "Management guidance" not in sp.prev.text())
 out = os.path.join(tmp, "plain")
 paths = sp.plain(out)
 check("Plain setup writes the setup", paths and all(os.path.isfile(p) for p in paths))

@@ -15,7 +15,7 @@ import setupdoc as SD
 # markers: requirements and evaluation both print as RFP text), on by default
 LAYERS = (("requirements", "Requirements", ("req", "support"), True),
           ("evaluation", "Evaluation criteria", ("eval",), True),
-          ("pm", "PM direction", ("pm",), True),
+          ("pm", "Management guidance", ("pm",), True),
           ("pages", "Pages", ("pages",), True),
           ("author", "Author and due date", ("author",), True),
           ("customer", "Customer context", ("customer", "library", "objective"), False),
@@ -114,7 +114,7 @@ def preview(M, label):
         out.append(("Evaluation criteria", f"{n.get('Evaluation', 0)} placed here"))
     if on["pm"]:
         d = direction(M, label)
-        out.append(("PM direction", (d[:140] + ("..." if len(d) > 140 else "")) if d else "none yet"))
+        out.append(("Management guidance", (d[:140] + ("..." if len(d) > 140 else "")) if d else "none yet"))
     if on["pages"]:
         pg = PB.pages(M, label)
         out.append(("Pages", f"{pg:g}" if pg else "not set"))
