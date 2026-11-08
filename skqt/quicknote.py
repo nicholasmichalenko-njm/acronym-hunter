@@ -1,5 +1,6 @@
 """Capture from anywhere (3.63.0): Ctrl+Shift+N or Note in the top bar opens a quick note on any page; send it to the
-effort's notes, an open question or a deliverable now, or leave it in Notes to sort (the Effort Dashboard's path strip).
+effort's notes, an open question, a deliverable or (3.83.0) a section now, or leave it in Notes to sort (the Effort
+Dashboard's path strip, and the tray under any section's panel). Started on a selected section, it points there.
 quicknote holds the rules."""
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeySequence, QShortcut
@@ -24,6 +25,30 @@ def _rec(host):
     return R.Record(host.ws.root) if getattr(host, "ws", None) is not None else None
 
 
+def _sections(host):
+    """3.83.0: the structure's sections, so a note can point at one now."""
+    try:
+        import outline_ops as O
+        rv = getattr(host, "review", None)
+        return O.labels(rv.M) if rv is not None else []
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+        return []
+
+
+def _here(host):
+    """3.83.0: the section selected on Review or Setup, when the note starts there."""
+    try:
+        cur = host.stack.currentWidget()
+        if cur is getattr(host, "assign_page", None):
+            return cur.section_panel.label
+        if cur is getattr(host, "setups_page", None):
+            return cur.cur
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+    return None
+
+
 def open_note(host, text=None, target=None, run=True):
     """The quick note. With text given (tests) it is sent to target ('later' keeps it in Notes to sort). Returns what it
     became, or the dialog when run is False and no text is given."""
@@ -38,9 +63,12 @@ def open_note(host, text=None, target=None, run=True):
         r = QHBoxLayout(); v.addLayout(r)
         r.addWidget(D.label("Send to", None, wrap=False))
         d.where = QComboBox(); d.where.addItem("Notes to sort (decide later)", LATER)
-        for k, lab in QN.targets(rec):
+        for k, lab in QN.targets(rec, _sections(host)):
             d.where.addItem(lab, k)
-        if getattr(host, "_note_to", None):
+        here = _here(host)
+        if here:                                       # 3.83.0: started on a section, it points there
+            d.where.setCurrentIndex(max(0, d.where.findData("section:" + here)))
+        elif getattr(host, "_note_to", None):
             d.where.setCurrentIndex(max(0, d.where.findData(host._note_to)))
         r.addWidget(d.where, 1)
         bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); bb.accepted.connect(d.accept); bb.rejected.connect(d.reject)
@@ -61,6 +89,9 @@ def open_note(host, text=None, target=None, run=True):
             host.home_page.path.refresh()
         except Exception:  # noqa: BLE001  the dashboard may not be built
             diag.swallowed()
+        for pg, name in ((getattr(host, "assign_page", None), "section_panel"), (getattr(host, "setups_page", None), "panel")):
+            if pg is not None and getattr(pg, name, None) is not None and getattr(pg, name).label:
+                getattr(pg, name).fill()                # 3.83.0: the section's notes and the tray show it at once
     return got
 
 
@@ -75,7 +106,7 @@ def inbox_dialog(host, run=True):
     d.list = QListWidget(); d.list.setWordWrap(True); v.addWidget(d.list, 1)
     r = QHBoxLayout(); v.addLayout(r)
     d.where = QComboBox()
-    for k, lab in QN.targets(rec):
+    for k, lab in QN.targets(rec, _sections(host)):
         d.where.addItem(lab, k)
     r.addWidget(d.where, 1)
 

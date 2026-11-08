@@ -11,9 +11,9 @@ from PySide6.QtCore import Qt, QEvent, QPoint, QRectF, QThread, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QFont, QImage, QKeySequence, QPainter, QPainterPath, QPen, QPixmap, QShortcut
 from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFormLayout, QFrame, QGraphicsItem, QGridLayout,
                                QGraphicsPathItem, QGraphicsPixmapItem, QGraphicsScene, QGraphicsSimpleTextItem,
-                               QGraphicsView, QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QPushButton, QRadioButton,
+                               QGraphicsView, QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QPushButton,
                                QScrollArea, QSplitter, QStyle, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
-                               QCheckBox, QButtonGroup)
+                               QCheckBox)
 import diag
 import effortrec as R_
 import pagemarks as PM
@@ -779,6 +779,10 @@ class AssignPage(QWidget):
         row.addWidget(self.start_btn)
         self.active_volume = ""
         self.tree.setMinimumHeight(220)
+        from .sectionpanel import SectionPanel            # 3.83.0: the shared section panel, for the target section
+        self.section_panel = SectionPanel(self.host, lambda: self.M if self.R is not None else None,
+                                          lambda: R_.Record(self.host.ws.root) if self.host.ws is not None else None)
+        sv.addWidget(self.section_panel)
         self.side_area = QScrollArea(); self.side_area.setWidgetResizable(True)      # 3.18.2: the decide panel and the
         self.side_area.setFrameShape(QFrame.NoFrame); self.side_area.setWidget(sw)    # structure scroll on their own
         self.side_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -3033,6 +3037,9 @@ class AssignPage(QWidget):
         else:
             self.target_lbl.setText("<b>Decide</b> &nbsp;Click a section below: L, M and SOW put the selected sentences there.")
         self.show_item_values()
+        lab = self.target if (self.R is not None and self.cx is None and self.target and self.target in set(O.labels(self.M))) else None
+        self.section_panel.show_section(lab)
+        self.section_panel.setVisible(lab is not None)
 
     def show_item_values(self):
         """3.35.0: the target item's Assigned To, Initial Page Allocation and % Complete, in the bottom bar."""
@@ -3115,99 +3122,17 @@ class AssignPage(QWidget):
         return "open"
 
     def people_dialog(self):
-        if self.M is None or not self.M.outline:
-            self.host.status("Build the response structure first (Review): people lead and write its sections.")
-            return None
-        d = QDialog(self); d.setWindowTitle("People for each section"); d.resize(720, 520)
-        lay = QVBoxLayout(d)
-        lay.addWidget(QLabel("A lead and contributors, from the author list. Requirements in a section and its subsections "
-                             "take its lead as author unless they have their own."))
-        from .people import NamesField, combo_name, empty_text, name_combo
-        if not self.host.people():                     # 2.77.0: the author list is the only source of names
-            warn = D.label(empty_text(self.host), "crit"); warn.setWordWrap(True); lay.addWidget(warn)
-        area = QScrollArea(); area.setWidgetResizable(True); inner = QWidget(); form = QFormLayout(inner); area.setWidget(inner)
-        lay.addWidget(area, 1)
-        rows = []
-        for o in self.M.outline:
-            lab = C.outline_label(o)
-            pp = SD.setup_of(self.M)["owners"].get(lab) or {}
-            w = QWidget(); h = QHBoxLayout(w); h.setContentsMargins(0, 0, 0, 0)
-            le = name_combo(self.host, pp.get("lead", ""))
-            we = NamesField(self.host, SD.split_names(pp.get("with", "")), empty="(no contributors)", title=f"Contributors: {lab}")
-            h.addWidget(le, 1); h.addWidget(we, 2)
-            form.addRow(("    " * max(0, o.get("level", 1) - 1)) + lab, w)
-            rows.append((lab, le, we))
-        bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); lay.addWidget(bb)
-        bb.rejected.connect(d.reject)
-
-        def save():
-            self.R.snap()
-            for lab, le, we in rows:
-                SD.set_people(self.M, lab, combo_name(le), we.text())
-            self.M.pending = True
-            diag.activity("compliance_people_set", n=len(rows))
-            d.accept()
-            self.after()
-        bb.accepted.connect(save)
-        d._api = {"rows": rows, "save": save}
-        d.show()
-        return d
+        from . import assigndialogs as AD                # 3.83.0: split out of this file
+        return AD.people_dialog(self)
 
     def budget_dialog(self, run=True):
         """3.1.0: each volume's page limit split across its sections. run=False (tests): the dialog."""
-        if self.M is None or not self.M.outline:
-            self.host.status("Build the response structure first: the budget is split across its sections.")
-            return None
-        from .budgetview import BudgetDialog
-        d = BudgetDialog(self.host)
-        if not run:
-            return d
-        d.exec()
-        if d.saved:
-            self.after("Page budget saved.")
-        return d.saved
+        from . import assigndialogs as AD
+        return AD.budget_dialog(self, run)
 
     def volumes_dialog(self):
-        """One volume (a name, or blank) or several (the headings of the structure that start a volume)."""
-        if self.M is None:
-            self.host.status("Read the customer documents into Review first: the volumes are part of the compliance matrix.")
-            return None
-        mode, name, heads = SD.volumes_of(self.M)
-        d = QDialog(self); d.setWindowTitle("Volumes"); d.resize(560, 520)
-        lay = QVBoxLayout(d)
-        one, sev = QRadioButton("One volume"), QRadioButton("Several volumes: tick the headings that start one")
-        g = QButtonGroup(d); g.addButton(one); g.addButton(sev)
-        (sev if mode == "several" else one).setChecked(True)
-        lay.addWidget(one)
-        nm = QLineEdit(name); nm.setPlaceholderText("its name (or leave blank)"); lay.addWidget(nm)
-        lay.addWidget(sev)
-        area = QScrollArea(); area.setWidgetResizable(True); inner = QWidget(); iv = QVBoxLayout(inner); area.setWidget(inner)
-        boxes = []
-        for o in self.M.outline:
-            lab = C.outline_label(o)
-            cb = QCheckBox(("    " * max(0, o.get("level", 1) - 1)) + lab); cb.setChecked(lab in heads); iv.addWidget(cb)
-            boxes.append((lab, cb))
-        lay.addWidget(area, 1)
-        bb = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); lay.addWidget(bb)
-        bb.rejected.connect(d.reject)
-
-        def save():
-            if sev.isChecked():
-                hs = [lab for lab, cb in boxes if cb.isChecked()]
-                if not hs:
-                    self.host.status("Tick at least one heading that starts a volume.")
-                    return
-                SD.set_volumes(self.M, "several", "", hs)
-            else:
-                SD.set_volumes(self.M, "one", nm.text().strip(), [])
-            self.M.pending = True
-            diag.activity("compliance_volumes_set")
-            d.accept()
-            self.host.changed()
-        bb.accepted.connect(save)
-        d._api = {"one": one, "several": sev, "name": nm, "boxes": boxes, "save": save}
-        d.show()
-        return d
+        from . import assigndialogs as AD
+        return AD.volumes_dialog(self)
 
     # ------------------------------------------------------------ actions
     def after(self, msg=""):

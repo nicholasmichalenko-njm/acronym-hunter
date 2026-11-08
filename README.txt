@@ -1,6 +1,21 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+ONE SECTION PANEL ON REVIEW AND SETUP (3.83.0)
+  - Pick a section on Setup, or make one the target on Review: the same panel shows under it, with the same records.
+  - Management guidance: type in the box (it says Add Management Guidance Text in grey until you do). It saves as you
+    type; the line under it says Saved. What was the PM direction layer is now called Management guidance.
+  - References and notes for authors: + Add a reference adds a file from the Effort Library, a file of your own, or a
+    note. Right-click a row (or double-click it) for Where to look..., Edit the note... and Take it out. From 3.86.0
+    each one goes into the setup as a Word comment on the section's heading, and Strip setup takes them out.
+  - Notes and context for this section: notes pointed at the section, meeting topics aimed at it and captures placed
+    in it. Right-click a row: Copy into guidance, Send to authors (it becomes a note for the authors), or Keep as
+    context. A row you used says how.
+  - Quick note (Ctrl+Shift+N, or Note in the top bar) can go to any section. Started with a section selected on Review
+    or Setup, it points there. A note kept for later waits under every section's panel: double-click it to point it
+    at the section you are on. Notes follow their section when it is renamed or renumbered.
+  - Setup saves a section's Lead, Contributors, Due and Pages as you leave each box: Save this section is gone.
+
 YOUR ANSWERS (3.82.0)
   - Effort Dashboard: Move to <next stage>... is the screen's main button, at the right of the bar. The Stage card
     keeps Schedule from due date... and Edit stages....

@@ -23,11 +23,12 @@ def add(rec, text, who=None, tags=""):
     return n["id"]
 
 
-def targets(rec):
-    """[(key, label)]: the effort, an open question, and each deliverable."""
+def targets(rec, sections=()):
+    """[(key, label)]: the effort, an open question, each deliverable, and (3.83.0) each section of the structure."""
     import deliverables as DL
     out = [("effort", "The effort's notes"), ("question", "An open question for the team")]
     out += [(f"deliverable:{d['id']}", f"Deliverable: {d['name']}") for d in DL.items(rec)]
+    out += [(f"section:{s}", f"Section: {s}") for s in sections if s]
     return out
 
 
