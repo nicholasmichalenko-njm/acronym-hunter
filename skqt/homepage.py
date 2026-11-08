@@ -137,13 +137,11 @@ class HomePage(QWidget):
         self.since_card.setVisible(False)
         v.addWidget(self.since_card)
         # the stage track
-        self.move_btn = D.button("Move stage...", "primary", self.move_dialog, "Move the effort to its next stage")
         self.track = D.Card("Stage", "Where the effort is. The stage moves only when you move it.",
                             actions=[D.button("Schedule from due date...", None, lambda: self.schedule_dialog(),   # 3.1.0
                                               "Date every stage backward from the proposal due date, from the working days each takes"),
                                      D.button("Edit stages...", None, lambda: self.edit_stages(),
-                                              "Rename, add, remove and reorder this effort's stages, with dates and gates"),
-                                     self.move_btn])
+                                              "Rename, add, remove and reorder this effort's stages, with dates and gates")])
         self.track_row = QHBoxLayout(); self.track_row.setSpacing(D.SPACE["xs"]); self.track.body.addLayout(self.track_row)
         self.deliv_card = D.Card("Deliverables")
         self.deliv_box = QVBoxLayout(); self.deliv_box.setSpacing(D.SPACE["xs"]); self.deliv_card.body.addLayout(self.deliv_box)

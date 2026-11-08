@@ -98,15 +98,15 @@ class RecordPage(StageTableMixin, QWidget):
         self.team_table, self.team_note = self.team_roles.table, self.team_roles.note
         v.addWidget(self.team)
         # stages and gates
-        self.stages = D.Card("Stages and gates", "When each stage starts and ends (click a date to pick it; the time is optional), "
-                                                 "and its gate. Right-click a stage to move it earlier or later or remove it. The gate "
-                                                 "choices are your team's: Settings > Stages, gates and roles.")
-        from .stagesedit import stage_table                  # 2.93.0: date pickers and times, a readable Stage column
-        self.stage_table = stage_table()
-        self.stage_table.setMinimumHeight(300)
+        self.stages = D.Card("Stages and gates", "When each stage starts and ends and its gate. Pick a stage to change it beside "
+                                                 "the list (click a date to pick it; the time is optional). Right-click a stage to "
+                                                 "move it earlier or later or remove it. The gate choices are your team's: Settings > "
+                                                 "Stages, gates and roles.")
+        ed = self.stage_editor()                             # 3.82.0: one row at a time, edited in the panel beside it
+        self.stage_table.setMinimumHeight(260)
         self.stage_table.setContextMenuPolicy(Qt.CustomContextMenu)            # 3.75.0: act on the row
         self.stage_table.customContextMenuRequested.connect(lambda pos: self.stage_menu().exec(self.stage_table.viewport().mapToGlobal(pos)))
-        self.stages.add(self.stage_table)
+        self.stages.add(ed)
         srow = QHBoxLayout()
         self.stage_note = D.label("Double-click a stage's name to rename it. The current stage cannot be removed.", "muted")
         srow.addWidget(self.stage_note, 1)

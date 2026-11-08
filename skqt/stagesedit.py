@@ -1,5 +1,5 @@
-"""Editing an effort's stages (2.92.0; 2.93.0 date pickers and times): the stage table (name, when it starts, when it
-ends, gate) with Up, Down, + Stage and Remove, shared by Effort Record and Effort Home's Edit stages... A stage's start
+"""Editing an effort's stages (2.92.0; 2.93.0 date pickers and times; 3.82.0 one row at a time): the stage table (name,
+when it starts, when it ends, gate, color) with the selected stage's panel beside it, Up, Down, + Stage and Remove, shared by Effort Record and Effort Home's Edit stages... A stage's start
 and end are picked from a calendar, with an optional time (a stage without a time starts at the start of its day and
 ends at the end of it). The gate choices are the team's (Settings > Stages, gates and roles). The current stage cannot
 be removed. The rules are the effort record's. Nothing leaves the PC."""
@@ -148,60 +148,189 @@ def color_box(color=""):
 
 
 def stage_table():
+    """3.82.0 (form q05, house rule 8: one editor at a time): the stages as plain rows; the selected one is edited in the
+    panel beside it (stage_panel)."""
     t = QTableWidget(0, 5); t.setHorizontalHeaderLabels(["Stage", "Starts", "Ends", "Gate", "Color"])
     t.verticalHeader().setVisible(False); t.setSelectionBehavior(QAbstractItemView.SelectRows)
+    t.setSelectionMode(QAbstractItemView.SingleSelection)
     hh = t.horizontalHeader()
-    for i, w in enumerate((190, 250, 250, 240, 130)):
+    for i, w in enumerate((170, 170, 170, 200, 100)):
         t.setColumnWidth(i, w)
         hh.setSectionResizeMode(i, QHeaderView.Interactive)
     hh.setSectionResizeMode(3, QHeaderView.Stretch)            # the gate takes what is left; the name stays readable
-    t.verticalHeader().setDefaultSectionSize(36)
+    t.verticalHeader().setDefaultSectionSize(30)
     t.setProperty("sk_rows_fixed", True)
     return t
 
 
+def when_text(d, tm):
+    """('2030-01-10', '8:00 AM') -> 'Jan 10, 2030, 8:00 AM'; no date: 'Not set'."""
+    x = R.parse_date(d) if d else None
+    if x is None:
+        return "Not set"
+    hm = parse_hm(tm)
+    return f"{x.strftime('%b')} {x.day}, {x.year}" + (f", {nice_hm(hm)}" if hm else (f", {tm} (not understood)" if hm is None else ""))
+
+
+class StagePanel(QWidget):
+    """The selected stage's name, start, end, gate and color (3.82.0)."""
+
+    def __init__(self):
+        super().__init__()
+        from PySide6.QtWidgets import QFormLayout, QLineEdit
+        f = QFormLayout(self); f.setContentsMargins(D.SPACE["s"], 0, 0, 0); f.setSpacing(D.SPACE["s"])
+        self.title = D.label("Pick a stage to change it", "muted"); f.addRow(self.title)
+        self.name = QLineEdit(); f.addRow("Stage", self.name)
+        self.start = WhenCell(); f.addRow("Starts", self.start)
+        self.end = WhenCell(end=True); f.addRow("Ends", self.end)
+        self.gate = gate_box(); f.addRow("Gate", self.gate)
+        self.color = color_box(); f.addRow("Color", self.color)
+        self.setMinimumWidth(320)
+
+
 class StageTableMixin:
-    """Needs self.stage_table, self.rec (an effort record), self.host and self.refresh()."""
+    """Needs self.stage_table, self.rec (an effort record), self.host and self.refresh(). stage_editor() makes the table
+    and its panel; the rows keep their values in the Stage cell, so the table is the one copy until Save."""
+    VALS = Qt.UserRole + 2
+
+    def stage_editor(self):
+        w = QWidget()
+        h = QHBoxLayout(w); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(D.SPACE["m"])
+        self.stage_table = stage_table()
+        self.stage_panel = P = StagePanel()
+        h.addWidget(self.stage_table, 3); h.addWidget(P, 2)
+        self._panel_row = -1
+        self._loading = False
+        self.stage_table.currentCellChanged.connect(lambda r, _c, _pr, _pc: self._load_panel(r))
+        self.stage_table.itemChanged.connect(self._item_changed)
+        P.name.textEdited.connect(lambda _t: self._panel_changed())
+        P.start.changed.connect(self._panel_changed); P.end.changed.connect(self._panel_changed)
+        P.gate.currentIndexChanged.connect(lambda _i: self._panel_changed())
+        P.color.currentIndexChanged.connect(lambda _i: self._panel_changed())
+        self._load_panel(-1)
+        return w
 
     def fill_stages(self, r):
         t = self.stage_table
+        cur = t.currentRow()
+        self._loading = True
         clear_table(t)
         for s in r.stages:
             self._stage_row(s["id"], s["name"], (s.get("planned", ""), s.get("planned_time", "")),
                             (s.get("planned_end", ""), s.get("planned_end_time", "")), r.gate_id(s), s["id"] == r.data["stage"],
                             color=s.get("color", ""))
+        self._loading = False
+        if t.rowCount():
+            t.setCurrentCell(min(max(cur, 0), t.rowCount() - 1), 0)
+        self._load_panel(t.currentRow())
 
     def _stage_row(self, sid, name, start, end, gate, current=False, at=None, color=""):
-        """start and end: (YYYY-MM-DD or '', HH:MM or '')."""
+        """start and end: (YYYY-MM-DD or '', HH:MM or '' or the time as typed)."""
         t = self.stage_table
         i = t.rowCount() if at is None else at
+        was = self._loading
+        self._loading = True
         t.insertRow(i)
         it = QTableWidgetItem(name); it.setData(Qt.UserRole, sid)
         it.setToolTip("Double-click to rename" + (". The current stage" if current else ""))
         it.setData(Qt.UserRole + 1, bool(current))
+        tm = lambda x: nice_hm(x) if re.fullmatch(r"\d\d:\d\d", x or "") else (x or "")
+        it.setData(self.VALS, {"start": (start[0] or "", tm(start[1] or "")), "end": (end[0] or "", tm(end[1] or "")),
+                               "gate": gate or "", "color": color or ""})
         if current:
             it.setForeground(D.color("accent"))
             f = it.font(); f.setBold(True); it.setFont(f)
         t.setItem(i, 0, it)
-        for c, (d, hm) in ((1, start), (2, end)):
-            t.setCellWidget(i, c, WhenCell(d, hm, end=(c == 2)))
-        t.setCellWidget(i, 3, gate_box(gate))
-        t.setCellWidget(i, 4, color_box(color))
+        for c in (1, 2, 3, 4):
+            x = QTableWidgetItem(""); x.setFlags(x.flags() & ~Qt.ItemIsEditable); t.setItem(i, c, x)
+        self._show_row(i)
+        self._loading = was
         return i
+
+    def _vals(self, i):
+        it = self.stage_table.item(i, 0)
+        return dict(it.data(self.VALS) or {}) if it else {}
+
+    def _show_row(self, i):
+        t = self.stage_table
+        v = self._vals(i)
+        import stagecolors as SC
+        texts = (when_text(*v.get("start", ("", ""))), when_text(*v.get("end", ("", ""))),
+                 R.GATES.get(v.get("gate", ""), v.get("gate", "")), v.get("color", "") if v.get("color", "") in SC.NAMED else "Automatic")
+        for c, x in zip((1, 2, 3, 4), texts):
+            t.item(i, c).setText(x)
+
+    def _load_panel(self, i):
+        P = self.stage_panel
+        ok = 0 <= i < self.stage_table.rowCount()
+        self._panel_row = i if ok else -1
+        self._loading = True
+        for w in (P.name, P.start, P.end, P.gate, P.color):
+            w.setEnabled(ok)
+        if ok:
+            v = self._vals(i)
+            P.title.setText("The current stage" if self._is_current(i) else "The selected stage")
+            P.name.setText(self.stage_table.item(i, 0).text())
+            P.start.set_value(*v["start"][:1]); P.start.time.setCurrentText(v["start"][1] or ANY)
+            P.end.set_value(*v["end"][:1]); P.end.time.setCurrentText(v["end"][1] or ANY)
+            P.gate.setCurrentIndex(max(0, P.gate.findData(v["gate"])))
+            P.color.setCurrentIndex(max(0, P.color.findData(v["color"])))
+        else:
+            P.title.setText("Pick a stage to change it"); P.name.setText("")
+        self._loading = False
+
+    def _panel_changed(self):
+        i = self._panel_row
+        if self._loading or i < 0:
+            return
+        P = self.stage_panel
+        it = self.stage_table.item(i, 0)
+        when = lambda w: (w.value()[0], w.time.currentText() if w.value()[0] and w.time.currentText() != ANY else "")
+        self._loading = True
+        if P.name.text().strip():
+            it.setText(P.name.text().strip())
+        it.setData(self.VALS, {"start": when(P.start), "end": when(P.end), "gate": P.gate.currentData() or "",
+                               "color": P.color.currentData() or ""})
+        self._show_row(i)
+        self._loading = False
+
+    def _item_changed(self, it):
+        if self._loading or it.column() != 0 or it.row() != self._panel_row:
+            return
+        self._loading = True
+        self.stage_panel.name.setText(it.text())
+        self._loading = False
 
     def _is_current(self, i):
         it = self.stage_table.item(i, 0)
         return bool(it and it.data(Qt.UserRole + 1))
 
     def _stage_values(self, i):
-        t = self.stage_table
-        it = t.item(i, 0)
-        return (it.data(Qt.UserRole) if it else None, it.text() if it else "", t.cellWidget(i, 1).value(),
-                t.cellWidget(i, 2).value(), t.cellWidget(i, 3).currentData())
+        """(id, name, (date, HH:MM or '' or None), (date, ...), gate); a time typed and not understood is None."""
+        it = self.stage_table.item(i, 0)
+        v = self._vals(i)
+        p = lambda x: (x[0], parse_hm(x[1]) if x[0] else "")
+        return (it.data(Qt.UserRole) if it else None, it.text() if it else "", p(v.get("start", ("", ""))),
+                p(v.get("end", ("", ""))), v.get("gate", ""))
 
     def _stage_color(self, i):
-        w = self.stage_table.cellWidget(i, 4)
-        return (w.currentData() or "") if w is not None else ""
+        return self._vals(i).get("color", "")
+
+    def set_stage(self, i, start=None, end=None, gate=None, color=None, name=None):
+        """Select row i and set what is given through its panel (as a person would). start/end: (date, time text)."""
+        self.stage_table.setCurrentCell(i, 0)
+        P = self.stage_panel
+        if name is not None:
+            P.name.setText(name)
+        for w, x in ((P.start, start), (P.end, end)):
+            if x is not None:
+                w.set_value(x[0]); w.time.setCurrentText(x[1] if len(x) > 1 and x[1] else ANY)
+        if gate is not None:
+            P.gate.setCurrentIndex(max(0, P.gate.findData(gate)))
+        if color is not None:
+            P.color.setCurrentIndex(max(0, P.color.findData(color)))
+        self._panel_changed()
+        return self._stage_values(i)
 
     def move_row(self, d):
         t = self.stage_table
@@ -209,19 +338,20 @@ class StageTableMixin:
         j = i + d
         if i < 0 or not (0 <= j < t.rowCount()):
             return False
-        vals = self._stage_values(i)
-        cur = self._is_current(i)
-        col = self._stage_color(i)
-        for c in (1, 2, 3, 4):
-            t.cellWidget(i, c).hide()
+        it = t.item(i, 0)
+        sid, name, cur, v = it.data(Qt.UserRole), it.text(), self._is_current(i), self._vals(i)
+        self._loading = True
         t.removeRow(i)
-        self._stage_row(vals[0], vals[1], tuple(x or "" for x in vals[2]), tuple(x or "" for x in vals[3]), vals[4], cur, at=j, color=col)
+        self._stage_row(sid, name, v["start"], v["end"], v["gate"], cur, at=j, color=v["color"])
+        self._loading = False
         t.setCurrentCell(j, 0)
+        self._load_panel(j)
         return True
 
     def add_stage(self, name="New stage"):
         i = self._stage_row(None, name, ("", ""), ("", ""), R.DEFAULT_STAGE_GATES.get(name, ""))
         self.stage_table.setCurrentCell(i, 0)
+        self._load_panel(i)
         return i
 
     def remove_stage(self):
@@ -232,9 +362,8 @@ class StageTableMixin:
         if self._is_current(i):
             self.host.status("The current stage cannot be removed.")
             return False
-        for c in (1, 2, 3, 4):
-            t.cellWidget(i, c).hide()
         t.removeRow(i)
+        self._load_panel(t.currentRow())
         return True
 
     def stage_problems(self):
@@ -289,12 +418,12 @@ class StagesDialog(StageTableMixin, QDialog):
         super().__init__(page)
         self.page, self.host = page, page.host
         self.setWindowTitle(f"Stages of {self.host.effort_name}")
-        self.resize(1000, 480)
+        self.resize(1150, 480)
         v = QVBoxLayout(self)
-        v.addWidget(D.label("Double-click a stage's name to rename it. Click a date to pick it from a calendar; the time is "
+        v.addWidget(D.label("Pick a stage and change it beside the list. Click a date to pick it from a calendar; the time is "
                             "optional. The current stage cannot be removed. The gate choices are set in Settings > Stages, "
                             "gates and roles.", "muted"))
-        self.stage_table = stage_table(); v.addWidget(self.stage_table, 1)
+        v.addWidget(self.stage_editor(), 1)
         row = QHBoxLayout(); v.addLayout(row)
         for text, fn in (("Up", lambda: self.move_row(-1)), ("Down", lambda: self.move_row(1)), ("+ Stage", lambda: self.add_stage()),
                          ("Remove", lambda: self.remove_stage())):

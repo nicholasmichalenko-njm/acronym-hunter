@@ -33,6 +33,8 @@ def build(hp):
     bar.export("Tasks and questions (Excel)...", lambda: hp.export_tq(), "For the person shown, or the full team")
     bar.export("Graphic needs (Excel)...", lambda: hp.export_graphics(), "For the graphics team")
     bar.export("Export all...", lambda: host.go("exportall"), "Every output of the effort in one dated folder")
+    hp.move_btn = bar.primary("Move stage...", lambda: hp.move_dialog(),      # 3.82.0: the dashboard's main button
+                              "Move the effort to its next stage")
     return bar
 
 
