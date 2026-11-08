@@ -2,7 +2,8 @@
 Ignore) and each capture (Contact, Submission, Formatting, Acronym, Question, Key date, Objective, Key point, Graphic need,
 Evaluation factor, Page limit, Deliverable, Effort detail, Hot button, Other submission detail, Written formatting rule,
 and the team's and the effort's own) has a name, a key, a color and whether it shows; a capture sits on the bar or in
-More. An effort type can hide decisions (an RFI hides L, M and SOW and shows Interest). What a built-in does stays
+More. An effort type can hide decisions (an RFI hides L, M and SOW and shows Interest) and, from 3.82.0, captures (an
+RFI hides Evaluation factor). What a built-in does stays
 wired (a contact goes to Customer information); its name, key, color and showing are yours.
 
 Kept in <config>/review_items.json, only what differs from the built-in values. Rules only; nothing leaves the PC."""
@@ -36,7 +37,7 @@ CAPTURES = (("contact", "Contact", "", "#DB2777", "bar", "A point of contact, in
             ("written", "Written formatting rule", "", "#BE185D", "more", "A rule in words (a marking, a label), on Final Checks"),
             ("unit", "Unit of measurement", "", "#7C3AED", "more", "A unit and what it means, into the Units of Measurement table"))
 # the effort types' own showing (the team can change these in Settings)
-EFFORT_TYPE_HIDE = {"rfi": ["L", "M", "C"]}
+EFFORT_TYPE_HIDE = {"rfi": ["L", "M", "C", "factor"]}         # 3.82.0: capture keys too (an RFI has no evaluation)
 EFFORT_TYPE_SHOW = {"rfi": ["I"]}
 DEFAULT_HIDDEN = ["I"]                       # Interest shows only where an effort type shows it
 
@@ -71,7 +72,8 @@ def load(config_dir):
     out["order"] = order + [k for k, *_r in CAPTURES if k not in order]
     for k in ("hide", "show"):
         if isinstance(saved.get(k), dict):
-            out[k].update({et: [c for c in v if c in out["decisions"]] for et, v in saved[k].items() if isinstance(v, list)})
+            out[k].update({et: [c for c in v if c in out["decisions"] or c in out["captures"]]
+                           for et, v in saved[k].items() if isinstance(v, list)})
     return out
 
 
@@ -134,6 +136,18 @@ def decisions_for(data, effort_type="", show_all=False):
         if on or show_all:
             out.append(d)
     return out
+
+
+def capture_on(data, key, effort_type=""):
+    """3.82.0 (form q06): whether Review shows this capture for an effort of this type: shown, or the type shows it,
+    and the type does not hide it."""
+    c = (data.get("captures") or {}).get(key)
+    if c is None:
+        return False
+    et = effort_type or ""
+    if key in set((data.get("hide") or {}).get(et, [])):
+        return False
+    return bool(c.get("shown", True)) or key in set((data.get("show") or {}).get(et, []))
 
 
 def keys_in_use(data, custom=()):

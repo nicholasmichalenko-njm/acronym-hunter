@@ -1,6 +1,6 @@
 """Settings > Review: decisions and captures (3.29.0): every decision and capture Review offers, the team's way: name,
-key, color, shown or hidden, on the capture bar or in More, in what order; which decisions each effort type hides or
-shows; the team's own captures (add, change, take out). Keys used twice or kept by Review are named. The rules are
+key, color, shown or hidden, on the capture bar or in More, in what order; which decisions and (3.82.0) captures each
+effort type hides or shows; the team's own captures (add, change, take out). Keys used twice or kept by Review are named. The rules are
 reviewitems.py's."""
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
@@ -46,9 +46,9 @@ class ReviewItemsDialog(QDialog):
         eh.addWidget(D.label("Effort type", "label", wrap=False))
         self.et = QComboBox(); eh.addWidget(self.et)
         eh.addWidget(D.label("hides", "label", wrap=False))
-        self.et_hide = QListWidget(); self.et_hide.setMaximumHeight(120); eh.addWidget(self.et_hide, 1)
+        self.et_hide = QListWidget(); self.et_hide.setMaximumHeight(170); eh.addWidget(self.et_hide, 1)
         eh.addWidget(D.label("and shows", "label", wrap=False))
-        self.et_show = QListWidget(); self.et_show.setMaximumHeight(120); eh.addWidget(self.et_show, 1)
+        self.et_show = QListWidget(); self.et_show.setMaximumHeight(170); eh.addWidget(self.et_show, 1)
         self.et.currentIndexChanged.connect(lambda _i: self.fill_et())
         self.et_hide.itemChanged.connect(lambda _it: self.read_et())
         self.et_show.itemChanged.connect(lambda _it: self.read_et())
@@ -125,8 +125,10 @@ class ReviewItemsDialog(QDialog):
         hide, show = set(self.data["hide"].get(et, [])), set(self.data["show"].get(et, []))
         for lst, on in ((self.et_hide, hide), (self.et_show, show)):
             lst.blockSignals(True); lst.clear()
-            for code, *_r in RI.DECISIONS:
-                it = QListWidgetItem(self.data["decisions"][code]["name"]); it.setData(Qt.UserRole, code)
+            rows = [(code, self.data["decisions"][code]["name"]) for code, *_r in RI.DECISIONS]
+            rows += [(key, "Capture: " + self.data["captures"][key]["name"]) for key in self.data["order"]]   # 3.82.0
+            for code, name in rows:
+                it = QListWidgetItem(name); it.setData(Qt.UserRole, code)
                 it.setFlags(it.flags() | Qt.ItemIsUserCheckable); it.setCheckState(Qt.Checked if code in on else Qt.Unchecked)
                 lst.addItem(it)
             lst.blockSignals(False)

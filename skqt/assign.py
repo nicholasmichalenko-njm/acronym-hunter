@@ -2014,9 +2014,10 @@ class AssignPage(QWidget):
         cfg = getattr(self, "items_cfg", None) or RI.load(self.host.config_dir)
         self._clear_lay(self.cap_lay, keep=(self.more_btn,))
         self.cap_keys, self.more_actions = {}, {}
+        et = self.effort_type()
         for key in cfg["order"]:
             c = cfg["captures"][key]
-            if not c["shown"]:
+            if not RI.capture_on(cfg, key, et):                 # 3.82.0: the effort type hides and shows captures too
                 continue
             if c["place"] == "bar":
                 b = D.button(f"{c['name']}  {c['keyseq']}".strip(), "cap", self._cap_fn(key),
@@ -2052,6 +2053,7 @@ class AssignPage(QWidget):
 
     def _bind_keys(self, cfg):
         """Every decision and capture key, as set in Settings."""
+        import reviewitems as RI
         for sc in getattr(self, "_dyn_keys", []):
             sc.setEnabled(False); sc.setParent(None); sc.deleteLater()
         self._dyn_keys = []
@@ -2062,7 +2064,7 @@ class AssignPage(QWidget):
         if "M" in [d["code"] for d in RI_decisions(cfg, et, self.dec_all.isChecked())]:
             self._dyn_keys.append(QShortcut(QKeySequence("Shift+M"), self.view, activated=lambda: self.do_lm("M")))
         for key, c in cfg["captures"].items():
-            if c["shown"] and c.get("keyseq"):
+            if c.get("keyseq") and RI.capture_on(cfg, key, et):
                 self._dyn_keys.append(QShortcut(QKeySequence(c["keyseq"]), self.view, activated=self._cap_fn(key)))
 
     def fill_bins_menu(self):
