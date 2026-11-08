@@ -1,4 +1,4 @@
-"""3.79.0 the drift report on screen, offscreen: Check a Draft > Apply in Word has Drift report...; it lists every dated
+"""3.79.0 the drift report on screen, offscreen (3.82.0: its home is Draft Status, tested in qt_answers382); it lists every dated
 copy beside a draft with the changes taken up, still to take or in a passage that changed, the newest copy's changes,
 and exports to Excel. Fictional content (the Kestrel technical volume)."""
 import datetime, os, shutil, sys, tempfile
@@ -27,7 +27,7 @@ app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.go("applyword"); app.processEvents()
 pg = w.applyword_page if hasattr(w, "applyword_page") else w.pages["applyword"]
-check("Apply in Word has Drift report...", any(b.text() == "Drift report..." for b in pg.findChildren(QPushButton)))
+check("3.82.0: Drift report... has one home, Draft Status (not Apply in Word)", not any(b.text() == "Drift report..." for b in pg.findChildren(QPushButton)))
 draft = os.path.join(tmp, "Kestrel Volume II.docx")
 shutil.copy2(os.path.join(A.BASE_DIR, "test_samples", "Kestrel_Technical_Volume.docx"), draft)
 paras = WL.docx_paragraphs(draft)

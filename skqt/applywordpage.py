@@ -32,9 +32,6 @@ class ApplyWordPage(QWidget):
         top.addStretch(1)
         top.addWidget(D.button("A fixed copy as tracked changes...", "ghost", lambda: self.fixed_as_tracked(),
                                "Word compares a draft with its fixed copy from Fix a Copy: the fixes become tracked changes"))
-        top.addWidget(D.button("Drift report...", "ghost", lambda: __import__("skqt.driftview", fromlist=["x"]).show(self),   # 3.79.0
-                               "A draft against the dated copies made of it: each change taken up, still to take, or in a "
-                               "passage that changed; and whether to make the copy again"))
         self.allow = QCheckBox("Allow changes in a document open in Word for this session (banned phrases only, always as "
                                "tracked changes, every change logged; Stationkeeper never saves or closes it)")
         self.allow.toggled.connect(lambda _on: self._buttons())

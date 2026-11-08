@@ -39,7 +39,10 @@ class DraftStatusPage(QWidget):
         self.card = D.Card("Read the setup back", "A volume's draft, read by the response structure's headings and the setup's "
                            "styles. Nothing in the draft is changed.",
                            actions=[D.button("Read the draft", "primary", lambda: self.read()),
-                                    D.button("Export...", None, lambda: self.export())])
+                                    D.button("Export...", None, lambda: self.export()),
+                                    D.button("Drift report...", "ghost", lambda: self.drift(),        # 3.82.0 (form q20)
+                                             "Every draft against the dated copies made of it (Apply in Word, Fix a Copy): "
+                                             "each change taken up, still to take, or in a passage that changed")])
         f = QFormLayout(); self.card.body.addLayout(f)
         self.draft = QComboBox(); self.draft.setMinimumWidth(360)
         row = QHBoxLayout(); row.addWidget(self.draft, 1)
@@ -105,6 +108,18 @@ class DraftStatusPage(QWidget):
             last = SR.latest(self.rec()) if self.rec() is not None else []
             if last:
                 self.sum.setText(f"Last read {last[0]['when'].replace('T', ' ')}: {os.path.basename(last[0]['file'])}.")
+
+    def drafts(self):
+        return [self.draft.itemData(i) for i in range(self.draft.count()) if self.draft.itemData(i)]
+
+    def drift(self, run=True):
+        """3.82.0: the drift report over every draft in the list (the deliverables' linked files, the Volumes folder's)."""
+        from . import driftview as DVW
+        ds = self.drafts()
+        if not ds:
+            self.host.status("No draft yet: link a deliverable's working file, or pick one with Other file....")
+            return None
+        return DVW.show(self, run=run, drafts=ds)
 
     def _keep_wpp(self, val):
         if self.host.ws is not None:

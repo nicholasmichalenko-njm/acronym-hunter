@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+YOUR ANSWERS (3.82.0)
+  - Effort Dashboard: Move to <next stage>... is the screen's main button, at the right of the bar. The Stage card
+    keeps Schedule from due date... and Edit stages....
+  - Effort Record and Edit stages...: the stage table shows each stage as one plain row; pick a stage and change its
+    name, start, end, gate and color in the panel beside the list. Save stages keeps them.
+  - Settings > Review and responses > Decisions and captures: an effort type hides and shows captures as well as
+    decisions (an RFI hides Evaluation factor at first). Review's capture bar follows the effort's type.
+  - The old For approval export is gone: No definition yet is a filter on the Acronym List and a sheet in Export....
+  - Acronyms: Scan files... asks, for each file not yet in the Effort Library, which Library folder it goes to
+    (Graphics for a picture and Our Documents for the rest at first), or scans without adding.
+  - Writing > Draft Status > Drift report... checks every draft at once: each deliverable's linked working file and
+    the Volumes folder's drafts, against the dated copies beside them. Other file... adds a draft to the list. It is
+    no longer on Apply in Word.
+
 THE EFFORT LIBRARY'S PLACE (3.81.0)
   - When the team's folder plan keeps the effort list deeper in the tree, the Library folder sits at the effort's top
     folder, beside Customer Documents. Files a 3.78.0 copy kept beside the list are still found.
@@ -25,7 +39,7 @@ THE ACRONYM PREVIEW, FASTER, AND A BOX TO DRAW (3.80.0)
     Training app's Learn from an effort... copies the crops. The crops are customer content and stay with the effort.
 
 THE DRIFT REPORT (3.79.0)
-  - Check a Draft > Apply in Word > Drift report...: pick a draft. Every dated copy beside it (the banned-phrases copy,
+  - Drift report... (3.82.0: on Writing > Draft Status, every draft at once): pick a draft. Every dated copy beside it (the banned-phrases copy,
     a fixed copy) is checked against the draft as it is now: each of the copy's changes is Taken up, Still to take, or
     in a passage that changed; the paragraphs changed since the copy are counted; and once a fifth of the draft has
     changed, the report says to make the copy again. Export to Excel. The draft is only read.
