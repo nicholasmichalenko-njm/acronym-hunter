@@ -1,4 +1,4 @@
-"""The Guide's Template Studio and Formatting Standards topics (3.66.0) and Apply in Word (3.67.0), put back in the menu's order by guidetopics. Text only."""
+"""The Guide's Template Studio and Formatting Standards topics (3.66.0), Apply in Word (3.67.0) and Verify (3.84.0), put back in the menu's order by guidetopics. Text only."""
 STUDIO = \
 ("studio", "Production", "Template Studio",
   "One volume's template in one place, read from where its parts live: the profile's cover, headers and footers, table "
@@ -86,3 +86,18 @@ CHECKS369 = (   # 3.69.0 and later: lines added to topics in guidetopics by key
                "pick. Outline versions... compares any two and writes the workbook back out in its own layout."),
     ("matrix", "Bring the edited matrix back... (3.73.0): the exported matrix as the team filled it in; their values come back "
                "after you look. Merge another copy's matrix... keeps ours unless you take theirs."))
+
+VERIFY = \
+("verify", "Shred", "Verify",
+  "Review's first tab: each customer page as the PDF page, cut into blocks. Every block gets a role (a heading and its "
+  "level, text, a list item, a figure or table and its caption, a footnote, a header or footer, or not needed) before "
+  "Review reads it.",
+  "After the customer documents are in the Library and before the review; again after a new version arrives.",
+  ["Pick the document (Ctrl+O). It opens where you left it.",
+   "Look at what is marked: a suggestion the rules were not sure of, a caption to confirm, a scanned line to check.",
+   "Click a block (Shift+click or drag for more) and press its key, or pick the role on the bar beside it.",
+   "A caption: Confirm what it names, or Pick another and click the figure or table.",
+   "Press Enter: the page is verified by you and the next one opens. Next and the strip move on without verifying."],
+  ["The reader uses these roles the next time the document is read into Review.",
+   "Menu roles... (in More) shows, hides, renames and keys the roles, and adds your own.",
+   "A verified page is a record that a person checked it, not a guarantee. Reopen this page... sends one back."])
