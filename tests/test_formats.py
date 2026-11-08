@@ -69,7 +69,15 @@ import picreadings as PRD                                     # 3.80.0: the pict
 PRD.use(cfg); PRD.put("k1", [((1, 2, 30, 12), "KTV", 0.91, "read")]); PRD.flush()
 check("picture readings", json.load(open(os.path.join(cfg, PRD.FILE), encoding="utf-8"))["format"] == F.number("picture readings") == PRD.FORMAT)
 PRD.use(None)
-check("every kind is checked here", len(F.FORMATS) == 15, len(F.FORMATS))
+import verifystate as VS, verifyroles as VRO, ocrpdf as OCP     # 3.84.0: Verify's decisions, its menu, scan readings
+vs = VS.Store(cfg); vs.set_role("Kestrel SOW.pdf", ["1:0"], "h1")
+check("verify", json.load(open(os.path.join(cfg, VS.FILE), encoding="utf-8"))["format"] == F.number("verify") == VS.FORMAT)
+VRO.save_team(cfg, VRO.defaults())
+check("verify menu", json.load(open(os.path.join(cfg, VRO.TEAM_FILE), encoding="utf-8"))["format"] == F.number("verify menu") == VRO.FORMAT)
+OCP.save_readings(os.path.join(cfg, "copy.pdf"), {"1": []})
+check("scan readings", json.load(open(OCP.readings_path(os.path.join(cfg, "copy.pdf")), encoding="utf-8"))["format"]
+      == F.number("scan readings") == OCP.READINGS_FORMAT)
+check("every kind is checked here", len(F.FORMATS) == 18, len(F.FORMATS))
 n = sum(checks)
 print(f"FORMATS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

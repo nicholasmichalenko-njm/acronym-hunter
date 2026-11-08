@@ -23,6 +23,9 @@ FORMATS = {
     "button use": ("skqt.usage.save -> button_use.json", "format", 1),   # 3.74.0: on this PC only
     "training samples": ("efftrain.add -> training_samples.json in the effort's working folder", "format", 1),   # 3.76.0
     "picture readings": ("picreadings.flush -> picture_readings.json in the effort's working folder", "format", 1),   # 3.80.0
+    "verify": ("verifystate.Store.save -> verify.json in the effort's working folder", "format", 1),   # 3.84.0
+    "verify menu": ("verifyroles.save_team -> verify_menu.json in the config folder", "format", 1),   # 3.84.0
+    "scan readings": ("ocrpdf.save_readings -> <page copy>.readings.json beside the copy", "format", 1),   # 3.84.0
 }
 
 

@@ -137,8 +137,10 @@ def _body_size(doc):
     return statistics.median(sizes) if sizes else 11.0
 
 
-def paragraphs(doc, skip=None):
-    """[{"page", "lines": [(page, line index)], "kind": "heading"|"text"}] in reading order."""
+def paragraphs(doc, skip=None, force=None):
+    """[{"page", "lines": [(page, line index)], "kind": "heading"|"text"}] in reading order. force (3.84.0, Verify):
+    {(page index, line index): True for a heading, False for not} decided by a person, over the rules."""
+    force = force or {}
     skip = skip if skip is not None else running(doc)
     body = _body_size(doc)
     paras, cur = [], None
@@ -152,6 +154,13 @@ def paragraphs(doc, skip=None):
             heading = (ln["size"] >= body * 1.12 and words <= 16) or (ln["bold"] and words <= 12 and not txt.endswith(".")) \
                 or (bool(_NUM.match(txt)) and words <= 10 and not re.search(r"[.;:]$", txt)
                     and not _REQ_WORD.search(txt) and not re.search(r"[.;:]\s+[A-Z]", txt[_SECNO.match(txt).end():] if _SECNO.match(txt) else txt))
+            if (pi, li) in force:
+                heading = force[(pi, li)]
+                if heading and prev is not None and cur is not None and cur["kind"] == "heading" \
+                        and cur["lines"][-1] == (pi, li - 1) and force.get((pi, li - 1)):
+                    cur["lines"].append((pi, li))          # a heading Verify set over two lines stays one heading
+                    prev = ln
+                    continue
             starts = heading or bool(_LIST.match(txt)) or cur is None or cur["kind"] == "heading"
             if not starts and prev is not None:
                 gap = ln["box"][1] - prev["box"][3]
@@ -268,13 +277,33 @@ def place(items, places):
     return missed
 
 
+OVERRIDES = []      # 3.84.0: fn(path, name) -> (lines to leave out, {line: heading or not}) from Verify's decisions
+
+
+def decided(path, name):
+    skip, force = set(), {}
+    for fn in list(OVERRIDES):
+        try:
+            s_, f_ = fn(path, name)
+            skip |= set(s_ or ())
+            force.update(f_ or {})
+        except Exception:  # noqa: BLE001
+            import diag
+            diag.swallowed()
+    return skip, force
+
+
 def chunks_for(path, name):
     """(chunks, places) for the compliance reader from a PDF's page form, or None when a page has no typed text (a
-    scanned page: the program's reader with its page OCR reads that file instead)."""
+    scanned page: the program's reader with its page OCR reads that file instead). 3.84.0: Verify's decisions first."""
     doc = doc_of(path)
     if not doc["pages"] or any(not p["lines"] for p in doc["pages"]):
         return None
-    return stream(doc, paragraphs(doc, doc.get("skip")), name)
+    extra, force = decided(path, name)
+    if not extra and not force:
+        return stream(doc, paragraphs(doc, doc.get("skip")), name)
+    skip = (set(doc.get("skip") or ()) - set(force)) | extra
+    return stream(doc, paragraphs(doc, skip, force), name)
 
 
 def read_review(path, name, extract):

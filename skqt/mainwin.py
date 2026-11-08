@@ -455,6 +455,8 @@ class MainWindow(QMainWindow):
         self.ws, self.effort_name, self.effort_path = ws, name, info["path"]
         import outline_ops as _O                   # 3.29.1: captures and topics follow their sections
         _O.HOOKS[:] = [lambda m, root=ws.root: _relabel_record(root, m)]
+        import pagesent as _PS, verifystate as _VS   # 3.84.0: the reader follows what Verify decided
+        _PS.OVERRIDES[:] = [lambda path, nm, root=ws.root: _VS.overrides(path, _VS.Store(root), nm)]
         try:                                       # 2.90.0: a note in the effort's app data folder: the app's files
             import effortfolders as EF
             EF.note_app_data(ws.root)
@@ -851,6 +853,8 @@ class MainWindow(QMainWindow):
         self.ws, self.review = None, None
         import outline_ops as _O
         _O.HOOKS[:] = []
+        import pagesent as _PS
+        _PS.OVERRIDES[:] = []
         import secure
         secure.EFFORT_LEVEL = -1                     # 2.97.0
         if hasattr(self, "marking"):

@@ -16,6 +16,7 @@ import hashlib, io, os, re, zlib
 IMAGES = (".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp", ".gif")
 LEGACY = (".doc", ".xls", ".ppt")
 DPI = 200
+READINGS_FORMAT = 1
 
 
 def is_image(path):
@@ -59,7 +60,8 @@ def needs_copy(path):
 
 # ------------------------------------------------------------------ reading the words of a picture
 def ocr_lines(img):
-    """[(x0, y0, x1, y1, text)] in the picture's pixels, from the OCR reader this PC uses (empty when it cannot run)."""
+    """[(x0, y0, x1, y1, text, confidence)] in the picture's pixels, from the OCR reader this PC uses (empty when it
+    cannot run). 3.84.0: each line keeps the reader's confidence, for Verify's reading check."""
     import app_gui
     import numpy as np
     buf = io.BytesIO()
@@ -77,7 +79,7 @@ def ocr_lines(img):
     for t in got:
         x0, y0, x1, y1, text = t[:5]
         if str(text).strip():
-            out.append((x0 * sx, y0 * sy, x1 * sx, y1 * sy, " ".join(str(text).split())))
+            out.append((x0 * sx, y0 * sy, x1 * sx, y1 * sy, " ".join(str(text).split()), float(t[5]) if len(t) > 5 else 1.0))
     out.sort(key=lambda t: (round(t[1] / 12), t[0]))
     return out
 
@@ -119,7 +121,7 @@ def write(out, pages):
         im = add(b"<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceRGB /BitsPerComponent 8 "
                  b"/Filter /DCTDecode /Length %d >>\nstream\n" % (img.width, img.height, len(data)) + data + b"\nendstream")
         ops = [f"q {W:.2f} 0 0 {H:.2f} 0 0 cm /Im0 Do Q", "BT 3 Tr"]
-        for x0, y0, x1, y1, text in lines:
+        for x0, y0, x1, y1, text, *_conf in lines:
             if not text or x1 <= x0 or y1 <= y0:
                 continue
             size = max(2.0, (y1 - y0) * k * 0.86)
@@ -163,7 +165,7 @@ def make(path, folder, lines_of=None, progress=None):
     if os.path.isfile(out) and os.path.getsize(out) > 0:
         return out
     lines_of = lines_of or ocr_lines
-    pages = []
+    pages, read = [], {}
     if is_image(path):
         with Image.open(path) as im:
             frames = [f.copy() for f in ImageSequence.Iterator(im)]
@@ -177,7 +179,9 @@ def make(path, folder, lines_of=None, progress=None):
             except (TypeError, ValueError):
                 dpi = DPI
             dpi = max(72, min(600, dpi))
-            pages.append((fr, lines_of(fr), dpi))
+            got = lines_of(fr)
+            pages.append((fr, got, dpi))
+            read[str(n)] = _readings(got, dpi)
     else:
         import pypdfium2 as pdfium
         scanned = set(scanned_pages(path))
@@ -191,9 +195,44 @@ def make(path, folder, lines_of=None, progress=None):
                 page.close()
                 lines = lines_of(img) if (i + 1) in scanned else typed_lines(path, i, DPI / 72)
                 pages.append((img, lines, DPI))
+                if (i + 1) in scanned:
+                    read[str(i + 1)] = _readings(lines, DPI)
         finally:
             pdf.close()
-    return write(out, pages)
+    got = write(out, pages)
+    save_readings(out, read)
+    return got
+
+
+# ------------------------------------------------------------------ 3.84.0: the reader's lines, kept for Verify
+def _readings(lines, dpi):
+    k = 72.0 / dpi
+    return [{"box": [round(x0 * k, 2), round(y0 * k, 2), round(x1 * k, 2), round(y1 * k, 2)], "text": text,
+             "conf": round(float(rest[0]) if rest else 1.0, 3)} for x0, y0, x1, y1, text, *rest in lines if text]
+
+
+def readings_path(copy):
+    return copy + ".readings.json"
+
+
+def save_readings(copy, pages):
+    """{page (from 1): [{"box" in PDF points from the top, "text", "conf"}]} beside the copy (scanned pages only)."""
+    import json
+    p = readings_path(copy)
+    with open(p + ".tmp", "w", encoding="utf-8") as f:
+        json.dump({"format": READINGS_FORMAT, "pages": pages}, f)
+    os.replace(p + ".tmp", p)
+    return p
+
+
+def readings_of(copy):
+    import json
+    try:
+        with open(readings_path(copy), encoding="utf-8") as f:
+            d = json.load(f)
+        return d.get("pages") or {}
+    except (OSError, ValueError, AttributeError):
+        return {}
 
 
 def page_copy(path, folder, progress=None):
