@@ -49,6 +49,7 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
                         "everything placed in each section; Make the setup from it"),
           "assign": ("Review", "Read every sentence on the page: decide it and capture what it holds"),
           "sort": ("Sort", "Name the big areas of what is being bought and file every requirement under one"),
+          "verify": ("Verify", "Give every block on every customer page its role, before Review"),
           "prove": ("Coverage", "Every sentence of every file read and decided, and the word-for-word text check"),
           "crosswalk": ("L/M Crosswalk", "Each instruction, the factor that scores it, and the work it describes"),
           "matrix": ("Matrix", "The compliance matrix as the customer will see it"),

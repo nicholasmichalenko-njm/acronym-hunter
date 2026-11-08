@@ -17,6 +17,7 @@ from .readpage import ReadPage
 from .assign import AssignPage
 from .builder import BuilderPage          # 3.30.0: the Structure Builder (with the structure text inside)
 from .prove import ProvePage
+from .verifypage import VerifyPage
 from .crosswalkpage import CrosswalkPage
 from .matrixpage import MatrixPage
 from .setuppage import SetupPage
@@ -49,7 +50,7 @@ RAIL = [("Home", [("tools", "Your Tools"), ("mywork", "My Work"), ("efforts", "A
 TABS = {"home": [("home", "Dashboard"), ("requirements", "Submission Rules")],
         "record": [("record", "Effort Record"), ("meetings", "Meetings")],                 # 3.20.0
         "library": [("library", "Documents"), ("read", "Read into Review")],
-        "assign": [("assign", "Review"), ("prove", "Coverage")],
+        "assign": [("verify", "Verify"), ("assign", "Review"), ("prove", "Coverage")],     # 3.84.0: Verify before Review
         "matrix": [("matrix", "Matrix"), ("crosswalk", "L/M Crosswalk")],
         "acronyms": [("acronyms", "Scan"), ("acrlist", "Acronym List")],      # 3.37.0: Lists to Submit is in the Acronym List
         "custqa": [("custqa", "Customer Q&A"), ("datacalls", "Data calls")],
@@ -252,6 +253,7 @@ class MainWindow(QMainWindow):
         self.structure_page = BuilderPage(self)
         self.assign_page = AssignPage(self)
         self.prove_page = ProvePage(self)
+        self.verify_page = VerifyPage(self)
         self.crosswalk_page = CrosswalkPage(self)
         self.matrix_page = MatrixPage(self)
         self.setup_page = SetupPage(self)
@@ -301,7 +303,7 @@ class MainWindow(QMainWindow):
         self.setups_page = SetupsPage(self)            # 3.56.0: the starting draft, from a structure
         self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_space, "custqa": self.custqa_page,
                       "impact": self.impact_page, "deliverables": self.deliverables_page, "evalcrit": self.evalcrit_page, "sort": self.sort_page, "studio": self.studio_page, "applyword": self.applyword_page, "qa": self.qa_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
-                      "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "assign": self.assign_page, "prove": self.prove_page,
+                      "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "assign": self.assign_page, "prove": self.prove_page, "verify": self.verify_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page, "audit": self.audit_page,
                       "effortfmt": self.effortfmt_page, "rules": self.rules_page, "datacalls": self.datacalls_page,
@@ -780,44 +782,8 @@ class MainWindow(QMainWindow):
         return job["folder"]
 
     def export_full_effort(self, folder=None, open_it=True):
-        """3.12.0: a full copy of the effort and everything in it, as plain files, in a dated folder named for the effort
-        and the stage it was exported from (in the effort's Exports folder unless a folder is given)."""
-        import datetime as _dt
-        import shutil
-        import effortfolders as EF
-        import readable as RD
-        if self.ws is None:
-            self.status("Open an effort first.")
-            return ""
-        src = self.readable_now(overview=True)
-        if not src or not os.path.isdir(src):
-            self.status("The effort could not be written out just now. Try again after the next save.")
-            return ""
-        try:
-            import effortrec as _R
-            stage = (_R.Record(self.ws.root).stage() or {}).get("name", "")
-        except Exception:
-            stage = ""
-        base = folder or EF.folder(self.effort_path, "exports") or os.path.dirname(src)
-        name = RD._safe(" - ".join(x for x in (self.effort_name, stage, "full export " + _dt.datetime.now().strftime("%Y-%m-%d %H%M")) if x))
-        dest = os.path.join(base, name)
-        n = 2
-        while os.path.exists(dest):
-            dest = os.path.join(base, f"{name} ({n})"); n += 1
-        try:
-            os.makedirs(base, exist_ok=True)
-            shutil.copytree(src, dest)
-        except OSError:
-            diag.swallowed()
-            self.status("The full export could not be written there. Pick another folder.")
-            return ""
-        diag.activity("qt_full_effort_exported")
-        self.toast("Full effort exported: " + os.path.basename(dest))
-        if open_it and not os.environ.get("AH_TEST"):
-            from PySide6.QtCore import QUrl
-            from PySide6.QtGui import QDesktopServices
-            QDesktopServices.openUrl(QUrl.fromLocalFile(dest))
-        return dest
+        from .fullexport import export_full_effort           # 3.84.0: split out of this file
+        return export_full_effort(self, folder, open_it)
 
     def open_readable(self, open_it=True):
         """The readable copy's folder in File Explorer (written first)."""

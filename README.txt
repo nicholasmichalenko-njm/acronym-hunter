@@ -1,6 +1,25 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+VERIFY, ON THE PAGE (3.84.0)
+  - Review's first tab is Verify. Pick a document with the document button (Ctrl+O); it opens on the page you left.
+  - Each block on the page has a box and its role in the margin: a tick when someone decided it, a ! when there is
+    something to look at (a suggestion the rules were not sure of, a caption to confirm, a scanned line to check).
+  - Click a block, Shift+click or drag for several, Ctrl+click to add one. The bar opens beside them, never over them:
+    pick a role, or press its key (1 to 6 for H1 to H6, T, B, F, Shift+F, M, Shift+M, N, R, X). More > Select all text
+    in this section picks the Text and Bullet blocks under the heading. A click on blank page or Esc clears it.
+  - A caption shows what it names: Confirm, or Pick another and click the figure or table. The bracket in the margin
+    is dashed while suggested and solid once confirmed.
+  - A scanned page lists the reader's lines beside the page; an unsure one says so. Correct it and press Enter (the
+    correction also goes to the training file).
+  - Enter marks the page verified by you and opens the next. It waits on the page's flags; Next, Prev, the page box
+    (Ctrl+G), Next to look at (F8) and the strip never wait. More > Reopen this page... sends a page back, with why.
+  - More > Menu roles... shows, hides, renames, keys and orders the roles and adds your own (what it acts as decides
+    what happens next); Save as team default starts new efforts with it.
+  - The reader uses the decided roles the next time a document is read into Review: headers, footers, Not needed,
+    figures and tables stay out, and the headings you set are headings. A verified page is a record that a person
+    checked it, not a guarantee.
+
 ONE SECTION PANEL ON REVIEW AND SETUP (3.83.0)
   - Pick a section on Setup, or make one the target on Review: the same panel shows under it, with the same records.
   - Management guidance: type in the box (it says Add Management Guidance Text in grey until you do). It saves as you

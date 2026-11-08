@@ -251,6 +251,19 @@ TOPICS = [
    "Ctrl+Z undoes. Ctrl+F finds a sentence by its words or number.",
    "On a later version, changed sentences are outlined in amber and new ones in green. Show the old page shows what it "
    "was."]),
+ ("verify", "Shred", "Verify",
+  "Review's first tab: each customer page as the PDF page, cut into blocks. Every block gets a role (a heading and its "
+  "level, text, a list item, a figure or table and its caption, a footnote, a header or footer, or not needed) before "
+  "Review reads it.",
+  "After the customer documents are in the Library and before the review; again after a new version arrives.",
+  ["Pick the document (Ctrl+O). It opens where you left it.",
+   "Look at what is marked: a suggestion the rules were not sure of, a caption to confirm, a scanned line to check.",
+   "Click a block (Shift+click or drag for more) and press its key, or pick the role on the bar beside it.",
+   "A caption: Confirm what it names, or Pick another and click the figure or table.",
+   "Press Enter: the page is verified by you and the next one opens. Next and the strip move on without verifying."],
+  ["The reader uses these roles the next time the document is read into Review.",
+   "Menu roles... (in More) shows, hides, renames and keys the roles, and adds your own.",
+   "A verified page is a record that a person checked it, not a guarantee. Reopen this page... sends one back."]),
  ("prove", "Shred", "Coverage",
   "Review's third tab: every sentence of every customer file, by decision, and the text check, which reads each file "
   "word for word and finds text the reader missed (in tables, text boxes, headers and footers).",
