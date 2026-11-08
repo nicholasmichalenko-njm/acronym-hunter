@@ -1,0 +1,44 @@
+{
+ "captions": [
+  {
+   "label": "Table",
+   "part": "body",
+   "position": "above",
+   "chapter_level": 1,
+   "separator": "-",
+   "identifier": "Table",
+   "after_number": "period_tab",
+   "style": "Caption"
+  },
+  {
+   "label": "Table",
+   "part": "appendix",
+   "position": "above",
+   "chapter_level": 7,
+   "separator": "-",
+   "identifier": "TableApp",
+   "after_number": "period_tab",
+   "style": "Caption"
+  },
+  {
+   "label": "Figure",
+   "part": "body",
+   "position": "below",
+   "chapter_level": 1,
+   "separator": "-",
+   "identifier": "Figure",
+   "after_number": "period_tab",
+   "style": "Caption"
+  },
+  {
+   "label": "Figure",
+   "part": "appendix",
+   "position": "below",
+   "chapter_level": 7,
+   "separator": "-",
+   "identifier": "FigureApp",
+   "after_number": "period_tab",
+   "style": "Caption"
+  }
+ ]
+}
