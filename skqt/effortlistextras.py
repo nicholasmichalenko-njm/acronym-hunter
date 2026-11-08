@@ -1,7 +1,6 @@
 """The effort acronym list's tools brought back from the classic window (3.51.0).
 
 export_picker      choose the columns, the format (Word, Excel, CSV), which statuses and which volumes
-export_approvals   the terms waiting for approval, with an empty approver column, for the approvers to fill in
 export_all         every effort's list in one workbook, a sheet each
 import_volume      a volume's own acronym list (a table or ACR<tab>meaning lines) into the effort's list, as Proposed
 assign_volumes     name volumes and say which volumes use the selected terms
@@ -120,21 +119,6 @@ def export_picker(page, path=None, columns=None, statuses=None, volumes=None, ru
         return None
     diag.activity("effort_list_exported", n=n)
     page.host.toast(f"{n} term(s) exported.")
-    return path
-
-
-def export_approvals(page, path=None):
-    """3.76.0: no approval; kept for older callers: the terms in the list with no definition yet."""
-    L = page.L
-    if L is None:
-        return None
-    if path is None:
-        path, _ = QFileDialog.getSaveFileName(page, "For approval", page.host.out_path("acronyms_for_approval")[:-4] + ".xlsx", "Excel (*.xlsx)")
-        if not path:
-            return None
-    cols = ["Term", "Definition", "Type", "Status", "Notes"]
-    rows = [r for r in rows_for(L, cols, [E.IN]) if not str(r[1] or "").strip()]
-    write(rows, cols, path)
     return path
 
 

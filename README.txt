@@ -462,7 +462,7 @@ THE ACRONYM TOOLSET IS BACK (3.51.0)
     right-click a row for every action; double-click for Details; select several rows to act on them together.
   - Fixes for misread text...: when the reader misreads a word in a picture (KSF for KSE), add the fix; it is used
     every time a picture is read on this PC. Undo puts back the last change. (Training the reader is the Training app.)
-  - Acronym List: Export... (columns, format, volumes), For approval..., Every effort..., Import a volume's list...,
+  - Acronym List: Export... (columns, format, volumes), Every effort..., Import a volume's list...,
     Volumes..., Activity, New in the last scan, Show in scan, Open in Excel, Reload, Add to this PC's database....
   - First use: entries in a table of contents never count. In First Use Check and in Submission Check (double-click a
     first use row) pick the place that counts: This place is the first use; Back to the first place it appears.

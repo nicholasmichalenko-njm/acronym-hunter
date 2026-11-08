@@ -106,12 +106,8 @@ check("Export...: the columns and statuses chosen", txt.startswith("Term,Definit
 others_t = [t for t in L.order if t != prim]
 if others_t:
     L.rows[others_t[0]]["Status"] = "In the list"; L.rows[others_t[0]]["Definition"] = ""
-ap = EX.export_approvals(lp, path=os.path.join(tmp, "approve.xlsx"))
-import openpyxl
-ws = openpyxl.load_workbook(ap).active
-hdr = [c.value for c in ws[1]]
-check("3.76.0: no approval; the old export lists the terms with no definition yet", "Approver" not in hdr
-      and all(not r[1] for r in ws.iter_rows(min_row=2, values_only=True)), hdr)
+check("3.82.0: the old For approval export is gone (No definition yet is a filter and a sheet in Export...)",
+      not hasattr(EX, "export_approvals"))
 vol = os.path.join(tmp, "Kestrel Volume II.docx")
 import volcheck as V
 V.write_docx([("KXT", "Kestrel Transfer Test"), ("KQV", "Kestrel Quality Verification")], vol)
