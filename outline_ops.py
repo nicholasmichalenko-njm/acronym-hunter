@@ -77,7 +77,7 @@ def relabel(M, mapping):
         if it.get("map") in mapping:
             it["map"] = mapping[it["map"]]
     bud = S.get("budget") if isinstance(S.get("budget"), dict) else {}
-    for d in [S.get(k) for k in ("copies", "order", "owners", "mgmt", "item_counts", "progress")] + [bud.get("pages"), bud.get("source")]:
+    for d in [S.get(k) for k in ("copies", "order", "owners", "mgmt", "item_counts", "progress", "authorrefs")] + [bud.get("pages"), bud.get("source")]:
         if isinstance(d, dict):                    # 3.20.1: page lengths and what counts follow their section too
             moved = {a: d.pop(a) for a in list(mapping) if a in d}   # all at once: 3 -> 2 while 2 -> 1
             for a, v in moved.items():

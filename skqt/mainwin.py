@@ -80,7 +80,9 @@ def _relabel_record(root, mapping):
     """3.29.1: the effort record's captures and topics follow a section renamed, renumbered, moved or taken out."""
     import effortrec as RR
     import excerpts as EX
-    return EX.relabel(RR.Record(root), mapping)
+    import sectionnotes as SN                      # 3.83.0: notes pointed at a section follow it too
+    rec = RR.Record(root)
+    return EX.relabel(rec, mapping) + SN.relabel(rec, mapping)
 
 class MainWindow(QMainWindow):
     def __init__(self, app, config_dir, version=""):

@@ -38,6 +38,9 @@ def send(rec, text, target, who=None):
         return None
     if target in ("effort", "question"):
         return rec.add_note(text, question=target == "question", who=who)
+    if target.startswith("section:"):              # 3.83.0: a note pointed at a section of the structure
+        label = target.split(":", 1)[1]
+        return rec.add_note(text, on="section", on_id=label, label=label, who=who) if label else None
     if target.startswith("deliverable:"):
         import delivmore as DM
         return DM.post(rec, target.split(":", 1)[1], text, who=who)
