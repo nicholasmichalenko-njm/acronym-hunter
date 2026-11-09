@@ -127,6 +127,8 @@ check("the bar opens beside the change, never over it", bar.isVisible() and not 
 check("our response: the touched sentence under its section, flagged", pages50["id"] in cp.nodes
       and "Changed in Amendment 1" in cp.nodes[pages50["id"]].text(0))
 check("a line for the selected change only, to the placed sentence", [x[4] for x in cp.gutter.compute()] == ["placed"], cp.gutter.drawn)
+if os.environ.get("SHOT_DIR"):
+    w.grab().save(os.path.join(os.environ["SHOT_DIR"], "compare_changed.png"))
 # Enter takes it, then the next to decide
 bar.take(); app.processEvents()
 check("Enter: Update our wording; the old wording in its history", "exceed 40 pages" in w.review.item(pages50["id"])["text"]

@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+COMPARE ON THE PAGE (3.89.0)
+  - Compare shows the new version's own page with each change marked: new words green, a changed sentence outlined,
+    a removed sentence as a red mark where it stood. Our response is on the right; a line joins the selected change
+    to the placed sentences it touches, or to the section suggested for a new one.
+  - The bar beside the change shows the words that changed and suggests what the change means, with the reason:
+    Update our wording, Add to a section, Remove or No action (More: context, a submission rule, a task, a question,
+    a note). Enter takes the suggestion and goes on to the next change to decide. Click a sentence or a section on the
+    right to change the target.
+  - The summary line counts the changes and filters them by a click. More > Editorial changes: No action for all.
+  - A placed sentence an amendment changed shows "Changed in Amendment 1" in Review and Setup from the moment the
+    amendment is added. It keeps its place until the change is decided; the flag opens the change in Compare.
+  - Verify's last page offers Compare for a new version; Compare's Verify line goes back to its pages.
+  - Storyboards is off the menu and the Guide for now (its work is kept).
+
 ACRONYMS V2 (3.88.0)
   - A term's card lists what it could mean, in order: the effort's list, the customer's documents, client lists, this
     PC's database. Each line names its source and why ("Spelled out by the customer, RFP p. 41 (L.3.6)"); Use this
