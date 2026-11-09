@@ -36,7 +36,7 @@ asked = []
 page.scan = lambda paths, folder=None: asked.append(list(paths)) or "scanned"
 
 img = QImage(320, 120, QImage.Format_RGB32); img.fill(QColor("white"))
-check("Paste a picture is on the page", page.b_paste.isVisibleTo(tw) and page.b_paste.text() == "Paste a picture")
+check("Paste a picture is on the page (3.92.0: under More; Ctrl+V too)", page.bar.action("Paste a picture") is not None and page.b_paste.text() == "Paste a picture")
 got = AX.paste_picture(page, image=img)
 pasted = asked[-1][-1] if asked else ""
 check("a pasted picture is saved beside the list as a PNG", os.path.isfile(pasted) and pasted.endswith(".png")
