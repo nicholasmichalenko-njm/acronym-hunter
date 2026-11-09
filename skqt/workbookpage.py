@@ -125,6 +125,7 @@ class WorkbookPage(QDialog):
         self.pg = WB.page(self.book, self.profile, WB.saved(self.cfg, self.layout_name))
         self.tlooks = WB.template_looks(self.pg["template"]) if self.pg.get("template") else {}
         self.sel = None                                   # ("col", index) or ("look", index, look) or ("para", n)
+        self.sels = []                                    # 3.92.2: everything selected (Ctrl or Shift adds); sel is the last
         v = QVBoxLayout(self)
         top = QHBoxLayout(); v.addLayout(top)
         self.top = D.label("", "muted"); top.addWidget(self.top, 1)
@@ -143,18 +144,16 @@ class WorkbookPage(QDialog):
         self.style_row = QHBoxLayout(); srow.addLayout(self.style_row); srow.addStretch(1)
         split = QSplitter(Qt.Horizontal); v.addWidget(split, 1)
         left = QWidget(); lv = QVBoxLayout(left); lv.setContentsMargins(0, 0, 0, 0)
-        lv.addWidget(D.label("Your workbook. Click a column's tag to say what it is and where it goes; click any text to give "
-                             "it a character style. Rows keep the workbook's order.", "muted"))
-        self.left = QTextBrowser(); self.left.setOpenLinks(False); self.left.setOpenExternalLinks(False)
-        self.left.setStyleSheet("QTextBrowser{background:#FFFFFF;color:#000000}")
-        self.left.anchorClicked.connect(lambda url: self.left_click(url.toString()))
+        lv.addWidget(D.label("Your workbook. Click text or a column's tag to select it, then click a style above to give it "
+                             "that style; right-click for more. Drag a tag onto another to change the order. Rows keep the "
+                             "workbook's order.", "muted"))
+        from .workbookviews import LeftView, PageList                  # 3.92.2: left click selects, right click a menu
+        self.left = LeftView(self)
         lv.addWidget(self.left, 1)
         split.addWidget(left)
         right = QWidget(); rv = QVBoxLayout(right); rv.setContentsMargins(0, 0, 0, 0)
         self.page_note = D.label("", "muted"); rv.addWidget(self.page_note)
-        self.right = QTextBrowser(); self.right.setOpenLinks(False); self.right.setOpenExternalLinks(False)
-        self.right.setStyleSheet("QTextBrowser{background:#FFFFFF;color:#000000}")    # a page, as Word shows it
-        self.right.anchorClicked.connect(lambda url: self.right_click(url.toString()))
+        self.right = PageList(self)                                     # a page, as Word shows it; blocks you can drag
         rv.addWidget(self.right, 1)
         split.addWidget(right)
         split.setSizes([720, 680])
@@ -184,7 +183,7 @@ class WorkbookPage(QDialog):
         out = ['<table cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-family:Calibri,Arial;font-size:10pt">', "<tr>"]
         for i, h in cols:
             t = self.pg["tags"].get(h, "skip")
-            ring = f"border:2px solid {FOCUS};" if self.sel == ("col", i) else ""
+            ring = f"border:2px solid {FOCUS};" if ("col", i) in self.sels else ""
             out.append(f'<th style="background:#F6F8FB;border:1px solid #D3DBE6;text-align:left;color:#4E5D71;font-weight:normal">'
                        f'{html.escape(h)}<br><a href="tag:{i}" style="text-decoration:none;color:{INK[t]};background:{TINT[t]};{ring}">'
                        f'&nbsp;{html.escape(self.tag_label(i, h))} &#9662;&nbsp;</a></th>')
@@ -204,7 +203,7 @@ class WorkbookPage(QDialog):
                         mark = f";background-color:{tint(self.look(ch).get('color') or '6B21A8')}"   # Qt draws no underline color
                     if own:
                         mark += ";background:#FFF6DD"
-                    if self.sel == ("look", i, lk):
+                    if ("look", i, lk) in self.sels:
                         mark += f";background:#CFE1FB"
                     bits.append(f'<a href="run:{i}:{html.escape(lk)}" style="text-decoration:none;{deco}{mark}">'
                                 + html.escape(txt).replace("\n", "<br>") + "</a>")
@@ -217,59 +216,199 @@ class WorkbookPage(QDialog):
         self.left.verticalScrollBar().setValue(sb)
 
     def draw_right(self):
-        out = ['<div style="font-family:Calibri,Arial;font-size:11pt;color:#111111">']
+        blocks = []
         for n, p in enumerate(self.paras):
-            sel = f"border:2px solid {FOCUS};" if self.sel == ("para", n) else ""
             if p["tag"] == "heading":
                 sz = max(11, 17 - 2 * (p["level"] - 1))
-                body = html.escape(p["runs"][0][0])
-                out.append(f'<p style="margin:12px 0 4px 0;font-weight:bold;color:#1F3864;font-size:{sz}pt;{sel}"><a name="p{n}"></a>'
-                           f'<a href="para:{n}" style="text-decoration:none;color:#1F3864">{body}</a>'
-                           + (' <span style="font-size:8pt;color:#9A4508;font-weight:normal">own order</span>' if p["section"] in self.pg["sections"] else "")
-                           + "</p>")
+                blocks.append((f'<div style="font-family:Calibri,Arial;font-weight:bold;color:#1F3864;font-size:{sz}pt">'
+                               f'{html.escape(p["runs"][0][0])}'
+                               + (' <span style="font-size:8pt;color:#9A4508;font-weight:normal">own order</span>'
+                                  if p["section"] in self.pg["sections"] else "") + "</div>", "A heading: it keeps the workbook's order"))
                 continue
             plk = self.look(p["style"])
             runs = "".join((f'<span style="{css_of(dict(plk, **{k: v for k, v in self.look(ch).items() if k != "type"}))}">' if ch else
                             f'<span style="{css_of(plk)}">') + html.escape(t) + "</span>" for t, ch in p["runs"])
-            out.append(f'<p style="margin:3px 0 3px 0;{sel}"><a name="p{n}"></a><a href="para:{n}" style="text-decoration:none">{runs}</a>'
-                       f' <span style="font-size:7pt;color:#9CA3AF">{html.escape(p["style"])}</span></p>')
-        out.append("</div>")
-        sb = self.right.verticalScrollBar().value()
-        self.right.setHtml("".join(out))
-        self.right.verticalScrollBar().setValue(sb)
+            blocks.append((f'<div style="font-family:Calibri,Arial;font-size:11pt;color:#111111">{runs}'
+                           f' <span style="font-size:7pt;color:#9CA3AF">{html.escape(p["style"])}</span></div>',
+                           f"{WB.TAG[p['tag']]}: drag it above or below another paragraph to move this kind of text"))
+        self.right.fill(blocks)
+        n = next((x[1] for x in reversed(self.sels) if x[0] == "para"), None)
+        self.right.blockSignals(True)
+        self.right.setCurrentRow(n if n is not None else -1)
+        self.right.blockSignals(False)
         own = len(self.pg["sections"])
         self.page_note.setText("The page Word gets. Hidden text shows on a gray band (Word shows it with Show/Hide on). "
-                               "Click a paragraph to move its kind of text." + (f" {own} section(s) have their own order." if own else ""))
+                               "Drag a paragraph to move its kind of text; right-click for more."
+                               + (f" {own} section(s) have their own order." if own else ""))
 
     def draw_styles(self):
         while self.style_row.count():
             it = self.style_row.takeAt(0)
             if it.widget():
-                it.widget().deleteLater()
+                it.widget().hide(); it.widget().setParent(None); it.widget().deleteLater()   # gone at once, not at the next idle
         self.style_buttons = {}
         for name, kind in WB.styles_in_use(self.pg, self.paras):
             if name.startswith("Heading "):
                 continue
             lk = self.look(name)
             b = QPushButton(("a  " if kind == "character" else "¶  ") + name)
-            b.setToolTip(("Character style" if kind == "character" else "Paragraph style") + ": click to change its look here")
+            b.setToolTip(("Character style" if kind == "character" else "Paragraph style")
+                         + ": click to give it to what is selected; right-click to change its look here")
             b.setStyleSheet(f"QPushButton{{border:1px solid #AEB9C9;border-radius:11px;padding:2px 10px;"
                             f"border-left:6px solid #{str(lk.get('color') or '888888').lstrip('#')}}}")
-            b.clicked.connect(lambda _c=False, nm=name, kd=kind: self.edit_style(nm, kd))
+            b.clicked.connect(lambda _c=False, nm=name, kd=kind: self.style_clicked(nm, kd))
+            b.setContextMenuPolicy(Qt.CustomContextMenu)
+            b.customContextMenuRequested.connect(lambda _p, nm=name, kd=kind: self.style_menu(nm, kd))
             self.style_row.addWidget(b)
             self.style_buttons[name] = b
+        for text, fn in (("No character style", lambda: self.assign("", "character")),
+                         ("New style...", lambda: self.new_style_for_selection())):
+            b = QPushButton(text); b.setObjectName("chipGhost")
+            b.setStyleSheet("QPushButton{border:1px dashed #AEB9C9;border-radius:11px;padding:2px 10px}")
+            b.clicked.connect(fn)
+            self.style_row.addWidget(b)
+            self.style_buttons[text] = b
 
     # ------------------------------------------------------------ the left: tags and text
-    def left_click(self, href):
+    @staticmethod
+    def _sel_of(href):
         kind, _, rest = href.partition(":")
         if kind == "tag":
-            self.sel = ("col", int(rest)); self.redraw()
-            return self.tag_menu(int(rest))
+            return ("col", int(rest))
         if kind == "run":
             i, _, lk = rest.partition(":")
-            self.sel = ("look", int(i), lk); self.redraw()
-            return self.text_menu(int(i), lk)
+            return ("look", int(i), lk)
+        if kind == "para":
+            return ("para", int(rest))
         return None
+
+    def pick(self, href, add=False):
+        """3.92.2: a left click selects (Ctrl or Shift adds or takes away); nothing opens."""
+        x = self._sel_of(href)
+        if x is None:
+            return None
+        if add:
+            self.sels = [y for y in self.sels if y != x] if x in self.sels else self.sels + [x]
+        else:
+            self.sels = [x]
+        self.sel = self.sels[-1] if self.sels else None
+        self.redraw()
+        return self.sel
+
+    def left_menu(self, href):
+        """3.92.2: a right click opens the menu for what is selected (the clicked thing is selected first)."""
+        x = self._sel_of(href)
+        if x is not None and x not in self.sels:
+            self.pick(href)
+        if x and x[0] == "col":
+            return self.tag_menu(x[1])
+        if x and x[0] == "look":
+            return self.text_menu(x[1], x[2])
+        return None
+
+    def left_click(self, href):
+        return self.left_menu(href)
+
+    # ------------------------------------------------------------ styles given to the selection
+    def style_clicked(self, name, kind):
+        """A style clicked: given to what is selected; with nothing selected, its look opens."""
+        if not self.sels:
+            return self.edit_style(name, kind)
+        return self.assign(name, kind)
+
+    def style_menu(self, name, kind, act=None):
+        m = QMenu(self)
+        a = m.addAction("Change its look..."); a.setData("look")
+        if self.sels:
+            b = m.addAction("Give it to what is selected"); b.setData("give")
+        got = act or (m.exec(QCursor.pos()) or None)
+        what = got if isinstance(got, str) else (got.data() if got is not None else None)
+        if what == "look":
+            return self.edit_style(name, kind)
+        if what == "give":
+            return self.assign(name, kind)
+        return None
+
+    def assign(self, name, kind):
+        """The style to everything selected: a character style to selected text (in place), a paragraph style to a
+        column's kind of text or a paragraph's. Returns how many took it."""
+        n, skipped = 0, 0
+        for x in list(self.sels):
+            if x[0] == "look":
+                h = self.book["headers"][x[1]]
+                if kind == "character":
+                    k = WB.key(h, x[2]); self.pg["chars"][k] = name; self.pg["own"].pop(k, None); n += 1
+                else:
+                    t = self.pg["tags"].get(h, "skip")
+                    if t not in ("skip", "heading"):
+                        self.pg["styles"][t] = name; n += 1
+            elif x[0] == "col":
+                t = self.pg["tags"].get(self.book["headers"][x[1]], "skip")
+                if kind == "paragraph" and t not in ("skip", "heading"):
+                    self.pg["styles"][t] = name; n += 1
+                else:
+                    skipped += 1
+            elif x[0] == "para" and 0 <= x[1] < len(self.paras):
+                p = self.paras[x[1]]
+                if kind == "paragraph" and p["tag"] != "heading":
+                    self.pg["styles"][p["tag"]] = name; n += 1
+                else:
+                    skipped += 1
+        if skipped and not n:
+            self.host.status("A character style goes on text: select the text in the workbook first. A paragraph style goes "
+                             "on a column or a paragraph.")
+        self.redraw()
+        return n
+
+    def new_style_for_selection(self, name=None, kind=None):
+        if kind is None:
+            kind = "character" if any(x[0] == "look" for x in self.sels) else "paragraph"
+        nm = self.new_style(kind, name)
+        if nm and self.sels:
+            self.assign(nm, kind)
+        elif nm:
+            self.redraw()
+        return nm
+
+    # ------------------------------------------------------------ dragging
+    def drop_tag(self, i_from, i_to):
+        """3.92.2: a column's tag dropped on another tag takes its place in every section's order."""
+        hs = self.book["headers"]
+        t1, t2 = self.pg["tags"].get(hs[i_from], "skip"), self.pg["tags"].get(hs[i_to], "skip")
+        if "skip" in (t1, t2) or "heading" in (t1, t2) or t1 == t2:
+            self.host.status("Drop a tag on another numbered tag (not the heading) to change the order.")
+            return None
+        order = WB.tag_order(self.pg)
+        WB.move(self.pg, t1, order.index(t2))
+        self.redraw()
+        return WB.tag_order(self.pg)
+
+    def drop_para(self, src, dst, below=False, scope=None):
+        """3.92.2: a paragraph dropped above or below another moves its kind of text there, in every section or the
+        section only (asked unless given). Returns the new order, or None."""
+        if not (0 <= src < len(self.paras) and 0 <= dst < len(self.paras)) or src == dst:
+            return None
+        p, t = self.paras[src], self.paras[dst]
+        if p["tag"] == "heading":
+            self.host.status("Headings keep the workbook's order.")
+            return None
+        if t["section"] != p["section"]:
+            self.host.status("Drop it inside its own section: the order is within a section.")
+            return None
+        if t["tag"] == p["tag"]:
+            return None
+        if scope is None:
+            from .workbookviews import ask_scope
+            scope = ask_scope(self, p["section"])
+            if scope is None:
+                return None
+        sec = p["section"] if scope == "one" else None
+        order = [x for x in WB.tag_order(self.pg, sec or "") if x != p["tag"]]
+        to = 1 if t["tag"] == "heading" else order.index(t["tag"]) + (1 if below else 0) if t["tag"] in order else len(order)
+        WB.move(self.pg, p["tag"], to, section=sec)
+        self.sels = []; self.sel = None
+        self.redraw()
+        return WB.tag_order(self.pg, p["section"])
 
     def _style_names(self, kind):
         mine = [n for n, k in WB.styles_in_use(self.pg, self.paras) if k == kind]
@@ -393,7 +532,7 @@ class WorkbookPage(QDialog):
             return None
         n = int(href.split(":")[1])
         p = self.paras[n]
-        self.sel = ("para", n); self.redraw()
+        self.sel = ("para", n); self.sels = [self.sel]; self.redraw()
         m = QMenu(self)
         a = m.addAction("Find it in the workbook"); a.setData(("find", None))
         if p["tag"] != "heading":
@@ -438,6 +577,7 @@ class WorkbookPage(QDialog):
             r = next((r for r in self.book["rows"] if r["row"] == p["row"]), None)
             lk = next((lk for _t, lk in (r["cells"][i] if r and i < len(r["cells"]) else []) if WB.key(h, lk) in self.pg["chars"]), None)
             self.sel = ("look", i, lk) if lk else ("col", i)
+            self.sels = [self.sel]
         self.draw_left()
         self.left.scrollToAnchor(f"r{p['row']}")
         return self.sel

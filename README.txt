@@ -1,6 +1,16 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SETUP FROM A WORKBOOK: CLICKS AND DRAG (3.92.2)
+  - A left click selects: a piece of text, a column's tag, or a paragraph on the Word page (Ctrl or Shift adds more).
+    Click a style in the Styles row to give it to what is selected: a character style to text, in place; a paragraph
+    style to a column or a paragraph's kind of text. No character style and New style... sit at the row's end; right-
+    click a style to change its look.
+  - A right click opens the menu for what is selected (what the column is, its own paragraph, leave it out, its place
+    in the order, find it in the workbook).
+  - Drag a paragraph on the Word page above or below another: its kind of text moves there, in every section or that
+    section only (asked on the drop). Drag a column's tag onto another tag to change the order in every section.
+
 HEADINGS IN THE TEXT, AND MEETING NOTES (3.92.1)
   - Verify flags a block that starts with its heading on the same line as its text ("L.4.2.1 Telemetry, Tracking and
     Command. The Offeror shall..."). Split the heading off (the suggestion, or the words you type) makes the heading a
