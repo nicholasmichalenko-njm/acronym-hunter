@@ -1,6 +1,21 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+ACRONYMS ON THE PAGE (3.92.0)
+  - Three panes: the terms on the left (filters are counts you click: To decide, Needs a choice, No definition yet, On
+    pictures, In the list, Not a term), the customer's page or picture where the term was found in the middle, the
+    card on the right. One bar: Next to decide, Add a term, In our drafts; every scan and tool under More.
+  - Keys on the card: 1 to 4 pick a definition, Enter adds the term to the list with it, X says Not a term. A line joins
+    the words that spell the term out on the page to the definition picked.
+  - The card says when a find sits inside a longer term (DC in DC-RVM, with Use DC-RVM, one term); More > Letters
+    joined by a hyphen are one term does it for the whole effort, on every scan. Where it goes shows the A to Z rows of
+    the Acronyms table with the term's row marked, and the volumes that use it. Sources lists every source of its
+    meaning against your decision (yours, the customer's list, the customer's words, the team database) and the
+    effort's timeline (each scan and drafts check).
+  - In our drafts: a volume's Word draft against the list: used before it is spelled out, spelled out again, not in the
+    list, and its Acronyms table (listed but not used, used but not listed). Fix in the copy (Enter) writes the fix
+    as tracked changes into "<draft> (fixes).docx"; Leave it (X); Undo. The draft is never changed.
+
 SETUP FROM A WORKBOOK, ON THE PAGE (3.91.0)
   - Setup > Bring in a file with your outline workbook opens two panes: the workbook on the left, the page Word gets on
     the right, drawn in each style's look (hidden text on a gray band). The styles in use sit in a row above; click one
