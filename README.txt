@@ -9,7 +9,7 @@ SECTION DESIGNS II (3.87.1)
     cover section shows a Design row: pick its design there (None leaves an optional one out).
   - Section designs: each design shows Word's picture of its page once drawn (right-click: Draw with Word), or the
     app's sketch, marked as one.
-  - A format rule placed in a section prints in a box, "Format rule:" first. In Review, a support sentence's home is
+  - A format rule placed in a section prints in a box, marked "(format rule)" after its words. In Review, a support sentence's home is
     where the requirement it supports was placed.
 
 SECTION DESIGNS (3.87.0)

@@ -67,11 +67,11 @@ def run():
     SD.setup_of(N)["tables"] = True
     x = zipfile.ZipFile(SD.export(N, out, when=__import__("datetime").datetime(2026, 1, 1))[0]).read("word/document.xml").decode("utf-8")
     assert x.count("<w:tbl>") == 2 and "SOW-1" in x and "Kestrel Design Note, para 7" in x and ">K. Park<" in x
-    # 3.87.1: a format rule for the section prints in a box, with its lead-in; Print the reference only prints the reference
+    # 3.87.1: a format rule for the section prints in a box, its reference first; Print the reference only prints the reference
     N.items[3]["type"] = "Format"
     SD.setup_of(N)["tables"] = False
     x = zipfile.ZipFile(SD.export(N, out, when=__import__("datetime").datetime(2026, 1, 2))[0]).read("word/document.xml").decode("utf-8")
-    i = x.index("Format rule")
+    i = x.index("(format rule")
     para = x[x.rindex("<w:p>", 0, i):x.index("</w:p>", i)]
     assert all(f"<w:{b} " in para for b in ("top", "left", "bottom", "right")) and "monthly reviews" in para, para[:300]
     print("refs owners ok")
