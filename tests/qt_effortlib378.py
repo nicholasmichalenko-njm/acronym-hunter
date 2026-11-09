@@ -123,7 +123,7 @@ check("Scan the library...: Customer Documents and Graphics ticked at first", AB
       and AB.scan_library(ap, run=False) is None and ap._scan_lib_dialog is not None)
 paths = AB.library_paths(lib4, {"graphics"})
 check("... the ticked folders' files", any(p.endswith("Kestrel_Large_Diagram.png") for p in paths), paths)
-check("the Acronyms page shows Scan the library... in an effort", ap.b_lib.isVisibleTo(ap) and not ap.b_folder.isVisibleTo(ap))
+check("the Acronyms page offers Scan the library... in an effort (3.92.0: under More)", ap.bar.action("Scan the library...") is not None and not ap.b_folder.isVisibleTo(ap))
 w.close()
 n = sum(checks)
 print(f"QT EFFORT LIBRARY 378 {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
