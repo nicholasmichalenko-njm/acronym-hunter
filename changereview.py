@@ -72,6 +72,15 @@ class Review:
             self.save()
         return p
 
+    def set_touch(self, pk, touch, save=True):
+        """3.89.0 (decision 6): the placed sentences each change of this pair touches ({key: {"items", "how", "heading"}}),
+        so Review and Setup flag them until the change is decided."""
+        p = self.pairs.setdefault(pk, {"decisions": {}})
+        p["touch"] = touch or {}
+        if save:
+            self.save()
+        return p
+
     def decisions(self, pk, key):
         return (self.pairs.get(pk) or {}).get("decisions", {}).get(key, [])
 

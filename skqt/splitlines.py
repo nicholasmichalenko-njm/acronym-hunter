@@ -138,15 +138,16 @@ class BarHost(QObject):
         bar.setParent(viewport); bar.hide()
         viewport.installEventFilter(self)
 
-    def show_for(self, rect, width=None):
-        """Opens the bar beside rect. width: the bar's width (a bar that wraps its buttons takes its height from it)."""
+    def show_for(self, rect, width=None, height=None):
+        """Opens the bar beside rect. width: the bar's width (a bar that wraps its buttons takes its height from it);
+        height: the bar's own measure, when it holds wrapped rich text the layout measures short (3.89.0)."""
         self.target = QRect(rect)
         if width:
             width = max(120, min(int(width), self.viewport.width() - 8))
             self.bar.setFixedWidth(width)
             lay = self.bar.layout()
             h = lay.heightForWidth(width) if lay is not None and lay.hasHeightForWidth() else -1
-            self.bar.setFixedHeight(h if h > 0 else self.bar.sizeHint().height())
+            self.bar.setFixedHeight(max(h if h > 0 else self.bar.sizeHint().height(), height or 0))
         else:
             self.bar.adjustSize()
         s = self.bar.size() if width else self.bar.sizeHint()

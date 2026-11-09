@@ -27,7 +27,8 @@ from .recordpage import RecordPage
 from .reviewpage import ReviewPage
 from .acronympage import AcronymPage
 from .effortlistpage import EffortListPage
-from .custdocs import ComparePage, DeliverablesPage, DocsPage, ImpactPage, RequirementsPage
+from .custdocs import DeliverablesPage, DocsPage, ImpactPage, RequirementsPage
+from .comparepage import ComparePage
 from .qapage import QAPage
 from .keywordspage import KeywordsPage
 from .exportallpage import ExportAllPage

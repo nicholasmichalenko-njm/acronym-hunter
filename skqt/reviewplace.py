@@ -130,6 +130,7 @@ class Placer:
             sb.valueChanged.connect(lambda _v: self.gutter.update())
         self.home_lbl = D.label("", "muted")
         self.home_lbl.setTextFormat(Qt.RichText)
+        self.home_lbl.linkActivated.connect(self.open_flag)
         decide_layout.addWidget(self.home_lbl)
         self.offer_row = QWidget(); orow = QHBoxLayout(self.offer_row); orow.setContentsMargins(0, 0, 0, 0)
         self.offer_lbl = D.label("", None)
@@ -155,7 +156,9 @@ class Placer:
             return
         it = rows[-1]
         if it.get("map"):
-            self.home_lbl.setText(f"Placed in <b>{it['map']}</b>")
+            fl = (getattr(pg, "amend_flags", None) or {}).get(it["id"])      # 3.89.0 decision 6
+            from . import amendflags as AF
+            self.home_lbl.setText(f"Placed in <b>{it['map']}</b>" + (f"<br>{AF.line(fl[0])}" if fl else ""))
             self.scroll_to(it["map"])
             return
         h = HS.home(pg.M, it)
@@ -241,13 +244,26 @@ class Placer:
         lf = HS.left(pg.M)
         cov = HS.coverage(pg.M)
         ans = sum(1 for c in cov if c["answered"])
+        from . import amendflags as AF                           # 3.89.0 decision 6
+        nf = len(AF.flags(pg.host))
         self.left_lbl.setText(f"Left: <a href='undecided'>{len(lf['undecided'])} not decided</a> · "
                               f"<a href='unplaced'>{len(lf['unplaced'])} not placed</a> · "
-                              f"{ans} of {len(cov)} customer headings answered")
+                              f"{ans} of {len(cov)} customer headings answered"
+                              + (f" · <a href='flagged'>{nf} changed by an amendment</a>" if nf else ""))
+
+    def open_flag(self, href):
+        """3.89.0: the link on a flagged sentence opens its change in Compare."""
+        from . import amendflags as AF
+        f = AF.from_link(href)
+        return AF.open_change(self.pg.host, f) if f else False
 
     def select_left(self, which):
         pg = self.pg
-        ids = set(HS.left(pg.M)[which])
+        if which == "flagged":                              # 3.89.0: the placed sentences an amendment changed
+            from . import amendflags as AF
+            ids = set(AF.flags(pg.host))
+        else:
+            ids = set(HS.left(pg.M)[which])
         sc = pg.view.scene()
         sc.clearSelection()
         n = 0

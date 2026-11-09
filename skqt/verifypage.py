@@ -158,6 +158,7 @@ class VerifyPage(QWidget):
         bar.more("Menu roles...", lambda: self.edit_menu(), "Show, hide, rename, key and order the roles; add your own")
         self.strip = PageStrip(); self.strip.picked.connect(self.go); v.addWidget(self.strip)
         self.line = D.label("", "muted"); v.addWidget(self.line)
+        self.line.setTextFormat(Qt.RichText); self.line.linkActivated.connect(lambda _h: self.compare_next())
         split = QSplitter(Qt.Horizontal); v.addWidget(split, 1)
         self.view = PageView(self); split.addWidget(self.view)
         side = QWidget(); sv = QVBoxLayout(side); sv.setContentsMargins(D.SPACE["s"], 0, 0, 0); sv.setSpacing(D.SPACE["s"])
@@ -348,7 +349,12 @@ class VerifyPage(QWidget):
             head = f"Verified {ver['at'].replace('T', ' ')} by {ver['by']}. You can still change any block."
         else:
             head = f"{len(fl)} to look at on this page." if fl else "Nothing to look at on this page."
-        self.line.setText(f"{head}  {words}  A verified page is a record that a person checked it, not a guarantee.")
+        nxt = ""
+        pair = self.newer_version() if self.verified() and self.n == len(self.pages()) else None
+        if pair:                                         # 3.89.0: the next step for an amendment is Compare
+            nxt = f"  <a href='compare'>Next: compare {pair[2]['label']} with {pair[1]['label']}</a>"
+        import html
+        self.line.setText(html.escape(f"{head}  {words}  A verified page is a record that a person checked it, not a guarantee.") + nxt)
         self.b_ok.setEnabled(not fl)
         self.b_ok.setText("Page verified, next" if not fl else f"{len(fl)} to look at")
 
@@ -564,6 +570,28 @@ class VerifyPage(QWidget):
             self.go(self.n + 1)
         else:
             self.show_page()
+        return True
+
+    def newer_version(self):
+        """(doc, the version before, this version) when the open file is a later version of a Library document."""
+        try:
+            import docversions as DV
+            lib = DV.Library(self.host.ws.p("documents")).load()
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            return None
+        for d in lib.docs:
+            for k, v in enumerate(d["versions"]):
+                if k and v.get("file") == self.doc:
+                    return d, d["versions"][k - 1], v
+        return None
+
+    def compare_next(self):
+        pair = self.newer_version()
+        if not pair:
+            return False
+        self.host.go("compare")
+        self.host.compare_page.show(pair[0]["id"], pair[1]["id"], pair[2]["id"])
         return True
 
     def next_look(self):

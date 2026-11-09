@@ -34,7 +34,7 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "docs": ("Customer Versions", "The customer's documents and every version of them"),
           "requirements": ("Submission Rules", "Every rule the customer's documents set, which version changed it, and what you confirmed"),
           "custqa": ("Customer Q&A", "The questions we submit to the customer: their exact wording, our question, status and the answer"),
-          "compare": ("Compare", "Two versions side by side: customer versions with a decision on every change and what it touches, or any two files with the redline"),
+          "compare": ("Compare", "What the customer's new version changed, on its page, beside our response: a decision on every change; or any two files with the redline"),
           "impact": ("Impact Review", "What one new version touched across the effort"),
           "deliverables": ("Deliverables", "Every deliverable at a glance: where each stands and what is missing"),
           "evalcrit": ("Evaluation Criteria", "How the customer will judge the proposal: the factors, their importance and the deliverables they judge"),

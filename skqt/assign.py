@@ -1407,6 +1407,8 @@ class AssignPage(QWidget):
             lab.setPos(MARGIN - 8 - lab.boundingRect().width(), y)
             sc.addItem(lab)
             self.labels.append(lab)
+        from . import amendflags as AF                             # 3.89.0 decision 6: changed by an amendment
+        AF.mark_page(self)
 
     def selected(self):
         if self.R is None:

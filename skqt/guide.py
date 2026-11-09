@@ -71,7 +71,10 @@ class GuideWindow(QDialog):
         self.list.clear()
         words = words.lower().split()
         group = None
+        import menufocus as MF
         for t in TOPICS:
+            if t[0] in MF.OFF:                       # 3.89.0: a page turned off has no topic in the Guide
+                continue
             if words and not all(w in " ".join([t[2], t[3], t[4], *t[5], *t[6]]).lower() for w in words):
                 continue
             if t[1] != group:

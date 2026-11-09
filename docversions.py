@@ -27,7 +27,9 @@ VERSION_WORDS = re.compile(
 PAGE_LIMIT = re.compile(r"\b(?:exceed|limit(?:ed)?|maximum|no more than|up to)\b[^.]{0,40}\b\d{1,3}\s*(?:-\s*)?pages?\b|"
                         r"\b\d{1,3}[- ]page (?:limit|maximum)\b", re.I)
 STRONG, POSSIBLE = 0.6, 0.3
-COMPARE_RULES = 1                     # 2.82.0: bump when compare() or summary_text() change; kept summaries are redone
+COMPARE_RULES = 2                     # 2.82.0: bump when compare() or summary_text() change; kept summaries are redone
+# 3.89.0 (2): a removed and an added sentence pair as one change only when they share most of their own words, not just
+# the customer's boilerplate ("The Offeror shall ... for each ...")
 _SHA = {}                             # (path, size, modified) -> fingerprint, for files already fingerprinted this session
 _CHANGE = {}                          # (library folder, older version id, newer version id) -> what changed, this session
 
@@ -677,6 +679,26 @@ def is_submission(text):
     return bool(C._FORMAT.search(text or "") or PAGE_LIMIT.search(text or ""))
 
 
+_PAIR_STOP = {"the", "a", "an", "of", "for", "to", "and", "or", "in", "on", "by", "with", "its", "each", "all", "any", "be", "is",
+              "are", "shall", "will", "must", "should", "may", "offeror", "offerors", "contractor", "government", "proposal"}
+
+
+def _own_words(s):
+    return {w for w in re.findall(r"[a-z0-9]+", (s or "").lower()) if w not in _PAIR_STOP}
+
+
+def same_sentence(a, b, pair_ratio=0.5):
+    """3.89.0: is b the same sentence as a, changed? Most of the letters alike, and at least 40 percent of their own
+    words (the boilerplate set aside) in common."""
+    r = difflib.SequenceMatcher(None, a, b, autojunk=False).ratio()
+    if r < pair_ratio:
+        return 0.0
+    wa, wb = _own_words(a), _own_words(b)
+    if wa and wb and len(wa & wb) / len(wa | wb) < 0.4:
+        return 0.0
+    return r
+
+
 def compare(old, new, pair_ratio=0.5):
     """old, new: snapshots. Returns [{"kind": same|changed|added|removed, "old", "new", "section", "diff",
     "submission"}] in reading order."""
@@ -701,7 +723,7 @@ def compare(old, new, pair_ratio=0.5):
             for nj in news:
                 if nj in used:
                     continue
-                r = difflib.SequenceMatcher(None, A[oi], B[nj], autojunk=False).ratio()
+                r = same_sentence(A[oi], B[nj], pair_ratio)
                 if r > score:
                     best, score = nj, r
             if best is not None and score >= pair_ratio:
