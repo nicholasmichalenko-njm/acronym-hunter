@@ -30,7 +30,8 @@ STY = (f'<w:styles {WNS}><w:style w:type="paragraph" w:styleId="AAVolumeName"><w
 
 
 def p(t, sid=""):
-    return f'<w:p>{f"<w:pPr><w:pStyle w:val=\'{sid}\'/></w:pPr>" if sid else ""}<w:r><w:t>{t}</w:t></w:r></w:p>'
+    ps = '<w:pPr><w:pStyle w:val="%s"/></w:pPr>' % sid if sid else ""      # no backslash in an f-string (Python 3.11 on the PC)
+    return f'<w:p>{ps}<w:r><w:t>{t}</w:t></w:r></w:p>'
 
 
 cover = os.path.join(tmp, "Kestrel Cover.docx")

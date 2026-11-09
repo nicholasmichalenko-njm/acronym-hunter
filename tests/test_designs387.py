@@ -29,7 +29,8 @@ STY = (f'<w:styles {WNS}>' + style("Normal", "Normal") + style("AACoverTitle", "
 
 
 def p(t, sid="", sect=""):
-    ps = f'<w:pPr>{f"<w:pStyle w:val=\'{sid}\'/>" if sid else ""}{sect}</w:pPr>' if (sid or sect) else ""
+    st = '<w:pStyle w:val="%s"/>' % sid if sid else ""       # no backslash in an f-string (Python 3.11 on the PC)
+    ps = f'<w:pPr>{st}{sect}</w:pPr>' if (sid or sect) else ""
     return f'<w:p>{ps}<w:r><w:t xml:space="preserve">{t}</w:t></w:r></w:p>'
 
 
@@ -38,7 +39,7 @@ def cell(t):
 
 
 def make(path, body, footer_fields=("STYLEREF \"AA Volume Name\"",)):
-    foot = f'<w:ftr {WNS}>' + "".join(f'<w:p><w:fldSimple w:instr=" {f.replace(chr(34), '&quot;')} "><w:r><w:t>x</w:t></w:r></w:fldSimple></w:p>' for f in footer_fields) + '</w:ftr>'
+    foot = f'<w:ftr {WNS}>' + "".join('<w:p><w:fldSimple w:instr=" %s "><w:r><w:t>x</w:t></w:r></w:fldSimple></w:p>' % f.replace('"', "&quot;") for f in footer_fields) + '</w:ftr>'
     with zipfile.ZipFile(path, "w") as z:
         z.writestr("[Content_Types].xml", '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>')
         z.writestr("word/document.xml", f'<w:document {WNS}><w:body>{body}<w:sectPr/></w:body></w:document>')
