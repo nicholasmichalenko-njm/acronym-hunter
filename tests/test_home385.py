@@ -73,6 +73,10 @@ check("a heading with a requirement placed nowhere is not", not cov["L.5"]["answ
 rows = HS.crossref_rows(m)
 check("the cross-reference table: heading, title, where we answer it", ("L.5", "Risk", "Not answered yet") in rows
       and any(r[0] == "L.3.5" and "2.1 Staffing Plan" in r[2] for r in rows))
+sup = m.add("s", "This helps the evaluators see the ramp.", "L.9", "Other", decision="Context")
+sup["context_for"] = "a"
+check("support follows the requirement it supports (3.87.1)", HS.home(m, sup) == {"label": "2.1 Staffing Plan",
+      "why": "It supports a, placed in 2.1 Staffing Plan", "kind": "support"}, HS.home(m, sup))
 lf = HS.left(m)
 check("what is left: not decided, and requirements placed nowhere", "b" in lf["undecided"] and lf["unplaced"] == ["y"], lf)
 

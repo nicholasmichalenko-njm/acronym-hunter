@@ -1,7 +1,8 @@
 """Where a customer sentence goes (3.85.0, claude/stationkeeper-review-and-structure-2026-11-08.md): its home in our
 response structure, suggested with the reason, and the offer that maps a whole customer heading after one placement.
 
-home(M, it, rec=None) -> {"label", "why", "kind"} or None. In order:
+home(M, it, rec=None) -> {"label", "why", "kind"} or None. In order (3.87.1: first, support goes where the requirement it
+supports was placed):
     1 the customer heading's map ("L.3.5 is answered by 2.1")
     2 a parent heading's map (L.3 for L.3.5.2)
     3 a reference the sentence makes ("see L.3.7"), when that heading is mapped
@@ -58,6 +59,13 @@ def home(M, it, rec=None):
     labels = set(_labels(M))
     num, title = heading_of(it)
     m = S["rfp_map"]
+    if it.get("decision") == "Context" and it.get("context_for"):       # 3.87.1: support follows its requirement
+        import compliance as C
+        by = {x["id"]: x for x in M.items}
+        for rid in C.cf_ids(it.get("context_for", "")):
+            req = by.get(rid)
+            if req is not None and req.get("map") in labels:
+                return {"label": req["map"], "why": f"It supports {req.get('ref') or rid}, placed in {req['map']}", "kind": "support"}
     if num and m.get(num) in labels:
         return {"label": m[num], "why": f"{num} is answered by {m[num]}", "kind": "map"}
     for p in _parents(num) if num else ():
