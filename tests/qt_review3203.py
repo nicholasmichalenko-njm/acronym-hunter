@@ -68,7 +68,8 @@ sa = next(x for x in w.stack.findChildren(QScrollArea) if getattr(x, "page", Non
 check("Review lays itself out in the window: the page never scrolls as a whole", sa.verticalScrollBar().maximum() == 0
       and sa.verticalScrollBarPolicy() == Qt.ScrollBarAlwaysOff, sa.verticalScrollBar().maximum())
 check("decisions at the bottom; the right panel: the card, then the structure, each scrolling on its own",
-      pg.bottom_split.indexOf(pg.decide_area) == 1 and pg.right.indexOf(pg.card_area) == 0 and pg.right.indexOf(pg.side_area) == 1)   # 3.34.1: decide tools at the bottom
+      pg.bottom_split.indexOf(pg.decide_area) == 1 and pg.right.indexOf(pg.card_area) == 0 and pg.right.indexOf(pg.views) == 1
+      and pg.views.stack.indexOf(pg.side_area) == 0)   # 3.34.1: decide tools at the bottom; 3.90.0: the structure is the first view
 
 # ---------------------------------------------------------------- Extract
 a = by("The Offeror shall describe its technical approach")
