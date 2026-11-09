@@ -65,14 +65,11 @@ check("with sections, a Word document brought in is the template", pg.bring_in(w
 pg.template_dialog.close()
 mime = QMimeData(); mime.setUrls([QUrl.fromLocalFile(xl)])
 ev = QDropEvent(QPointF(10, 10), Qt.CopyAction, mime, Qt.LeftButton, Qt.NoModifier)
-import skqt.outlineimport as OI
-seen = []
-real = OI.import_outline
-OI.import_outline = lambda page, path=None, profile=None, accept=None: seen.append(path) or real(page, path, profile, accept=False)
 pg.dropEvent(ev); app.processEvents()
-OI.import_outline = real
-check("a dropped Excel workbook opens What's in your workbook", [os.path.normpath(x) for x in seen] == [os.path.normpath(xl)] and pg.outline_dialog.list.rowCount() >= 7)
-pg.outline_dialog.close()
+wp = getattr(pg, "workbook_page", None)              # 3.91.0: a workbook opens Setup from a workbook, on the page
+check("a dropped Excel workbook opens Setup from a workbook", wp is not None and os.path.normpath(wp.path) == os.path.normpath(xl)
+      and "Heading" in wp.left.toPlainText())
+wp.close()
 
 print(f"QT BRING IN 373 {'OK' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)
