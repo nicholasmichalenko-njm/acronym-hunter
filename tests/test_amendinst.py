@@ -66,7 +66,8 @@ check("the conformed version is the base document's next version", v and v["labe
 check("... with a readable text file saying what was applied", open(v["path"], encoding="utf-8").read().count("[applied]") == 6
       and "[not found]" in open(v["path"], encoding="utf-8").read())
 s = WC.summary(lib, lib.doc(base["id"]), v)
-check("... and What changed reads it like any new version", s and s["changed"] >= 3 and s["removed"] >= 1 and s["added"] >= 1, s and s["text"])
+check("... and What changed reads it like any new version (3.89.0: a paragraph replaced with other words reads as removed and added)",
+      s and s["changed"] >= 2 and s["removed"] >= 2 and s["added"] >= 2, s and s["text"])
 check("nothing applied: no version", AI.conform(lib, amend, base, pick=[6])[1] is None and len(lib.doc(base["id"])["versions"]) == 2)
 # task and delivery orders
 check("orders are typed from their names", DV.guess_type("Task_Order_0003.pdf") == "Task order" and DV.guess_type("Delivery Order 12.pdf") == "Delivery order"
