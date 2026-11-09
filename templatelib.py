@@ -51,6 +51,16 @@ def _hash(values):
     return hashlib.sha256(json.dumps(v, sort_keys=True, default=str).encode("utf-8")).hexdigest()[:16]
 
 
+def _stamp(p):
+    """3.83.0: the index's time to the nanosecond and its size, so a save within the same clock tick (Windows keeps
+    coarse times) still reads as a change."""
+    try:
+        st = os.stat(p)
+        return (st.st_mtime_ns, st.st_size)
+    except OSError:
+        return None
+
+
 class Library:
     def __init__(self, config_dir):
         self.config_dir = config_dir
@@ -64,7 +74,7 @@ class Library:
     def load(self):
         try:
             p = os.path.join(self.root, "index.json")
-            self._mtime = os.path.getmtime(p) if os.path.isfile(p) else None
+            self._mtime = _stamp(p)
             with open(p, encoding="utf-8") as f:
                 d = json.load(f) or {}
             self.items = [i for i in d.get("items", []) if isinstance(i, dict) and i.get("id") and i.get("kind")]
@@ -177,7 +187,7 @@ class Library:
         with open(p + ".tmp", "w", encoding="utf-8") as f:
             json.dump({"format": 1, "items": self.items, "kits": self.kits}, f, indent=1, ensure_ascii=False)
         os.replace(p + ".tmp", p)
-        self._mtime = os.path.getmtime(p)
+        self._mtime = _stamp(p)
 
     # ------------------------------------------------------------ 3.49.0 all or nothing; another window's changes
     @contextlib.contextmanager
@@ -225,7 +235,7 @@ class Library:
         """Reads the library again when another window (or a background job) saved it since this one read it.
         Returns True when it did."""
         p = os.path.join(self.root, "index.json")
-        m = os.path.getmtime(p) if os.path.isfile(p) else None
+        m = _stamp(p)
         if m != self._mtime and self._tx is None:
             self.load()
             return True
