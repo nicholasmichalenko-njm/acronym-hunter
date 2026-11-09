@@ -85,16 +85,20 @@ check("Word's picture shows once drawn, marked as Word's, and its pages are kept
 w.go("layoutstd"); app.processEvents()
 lay = w.layoutstd_page
 lcats = [lay.cats.item(r).text() for r in range(lay.cats.count())]
-check("Layout lists its categories with counts", [c.split(" (")[0] for c in lcats] == [t for _k, t, _ks in LC.CATEGORIES["layout"]], lcats)
+check("Layout lists its categories with counts (3.90.0: covers, title pages and back covers are in Section designs)",
+      [c.split(" (")[0] for c in lcats] == [t for k, _t, _ks in LC.CATEGORIES["layout"] for t in [_t] if k not in lay.moved], lcats)
 cov = next((i for i in lay.lib.items if i["kind"] == "cover"), None)
 check("the imported cover is in Layout > Covers", cov is not None and LC.place(lay.lib, cov) == ("layout", "covers"))
 if cov is not None:
     lay.select(cov["id"]); app.processEvents()
-    check("a cover is drawn from its kept page", lay.picture.it.get("page_bytes") and lay.picture.source() == "sketch")
+    w.go("designs"); app.processEvents()
+    import sectiondesigns as SDZ
+    check("3.90.0: the imported cover moved to Section designs", any(x.get("library_family") == cov.get("family", cov["id"])
+                                                                   for x in SDZ.designs(cfg, "cover")), SDZ.designs(cfg))
 blank = []
 for lib_key, page in (("formatting", w.formatstd_page), ("quickparts", qp), ("layout", lay)):
     w.go({"formatting": "formatstd", "quickparts": "qpstd", "layout": "layoutstd"}[lib_key]); app.processEvents()
-    for it in [i for i in page.lib.items if LC.place(page.lib, i)[0] == lib_key]:
+    for it in [i for i in page.lib.items if LC.place(page.lib, i)[0] == lib_key and LC.place(page.lib, i)[1] not in getattr(page, "moved", ())]:
         page.select(it["id"]); app.processEvents()
         img = page.picture.grab().toImage()
         bg = img.pixel(3, 3)

@@ -16,12 +16,16 @@ from . import design as D
 
 MIXED_ROLES = OX.TEXT_ROLES
 # 3.73.0 (decision 10): one pick for each row of What's in your workbook, the kinds of text first, then the structure
-PICKS = (("rfp", "Compliance requirement"), ("customer", "Customer requirement text"), ("support", "Supporting RFP text"),
+PICKS = (("rfp", "Compliance requirement"), ("rfp_l", "Section L requirement (instruction)"),     # 3.90.0: L and M
+         ("rfp_m", "Section M requirement (evaluation)"), ("customer", "Customer requirement text"), ("support", "Supporting RFP text"),
          ("pm", "Management guidance"), ("section_number", "Section number"), ("section_name", "Section name"),
-         ("reference", "RFP reference"), ("authors", "Authors"), ("skip", "Not used"))
+         ("reference", "RFP reference"), ("reference_l", "Section L reference"), ("reference_m", "Section M reference"),
+         ("lm", "L or M (which one the row is)"), ("authors", "Authors"), ("skip", "Not used"))
 PICK = dict(PICKS)
-KIND_ROLE = {"rfp": "requirement", "customer": "requirement", "support": "support", "pm": "guidance", "skip": "support"}
+KIND_ROLE = {"rfp": "requirement", "customer": "requirement", "support": "support", "pm": "guidance", "skip": "support",
+             "rfp_l": "requirement_l", "rfp_m": "requirement_m"}
 TINT = {"rfp": "#FDECEC", "customer": "#F1EAFB", "support": "#E8F1FB", "pm": "#EAF6EC", "skip": "#EEEEEE",
+        "rfp_l": "#FDECEC", "rfp_m": "#FCE9DC", "reference_l": "#FFF6DD", "reference_m": "#FFF6DD", "lm": "#FFF6DD",
         "section_number": "#FFF6DD", "section_name": "#FFF6DD", "reference": "#FFF6DD", "authors": "#FFF6DD"}
 
 

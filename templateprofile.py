@@ -99,6 +99,34 @@ def pick(std, lib, slot, iid, config_dir):
     return said or lib.shown_name(item)
 
 
+SLOT_SHELF = {"cover": "cover", "title": "title", "backer": "back"}        # 3.90.0: the Section designs shelf a slot reads
+
+
+def design_choices(config_dir, slot):
+    """3.90.0: the Section designs a cover, title page or back cover slot can take (covers live in Section designs)."""
+    shelf = SLOT_SHELF.get(kind_of(slot))
+    if not shelf:
+        return []
+    import sectiondesigns as SDZ
+    return SDZ.designs(config_dir, shelf)
+
+
+def pick_design(std, config_dir, slot, did):
+    """3.90.0: fill a cover, title page or back cover slot from a Section design: the profile keeps its own copy of the
+    design's file (as it does for a library page). The slot is not pinned to a library version. Returns what it changed."""
+    import sectiondesigns as SDZ
+    import templatelib as TL
+    k = kind_of(slot)
+    x = SDZ.get(config_dir, did)
+    if x is None or SLOT_SHELF.get(k) != x["shelf"]:
+        return ""
+    src = SDZ.path_of(config_dir, x)
+    said = TL.use_values(config_dir, k, x["name"], {"file": f"design_{x['id']}.docx", "_tmp": src}, std)
+    unpin(std, slot)
+    std.setdefault("design_picks", {})[slot] = x["id"]
+    return said
+
+
 def unpin(std, slot):
     """The slot keeps the values it has as the profile's own; the pin comes off."""
     return bool((std.get("library_pins") or {}).pop(slot, None))

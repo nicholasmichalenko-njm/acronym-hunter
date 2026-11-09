@@ -788,7 +788,9 @@ class AssignPage(QWidget):
         self.side_area = QScrollArea(); self.side_area.setWidgetResizable(True)      # 3.18.2: the decide panel and the
         self.side_area.setFrameShape(QFrame.NoFrame); self.side_area.setWidget(sw)    # structure scroll on their own
         self.side_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        right.addWidget(self.card_area); right.addWidget(self.side_area)   # 3.34.1: the decide tools are at the bottom
+        from .reviewviews import ReviewViews               # 3.90.0: Our structure, L to M and Coverage beside the page
+        self.views = ReviewViews(self, self.side_area)
+        right.addWidget(self.card_area); right.addWidget(self.views)   # 3.34.1: the decide tools are at the bottom
         right.setSizes([380, 520]); right.setChildrenCollapsible(False)
         self.right = right
         # 3.28.0: topics: Sort mode (keys 1 to 9), the topics, show one, and how far each has come
@@ -1434,6 +1436,22 @@ class AssignPage(QWidget):
         self.restyle()
         self.show_card(rows)
         self.placer.on_select(rows)
+
+    def show_view(self, key):
+        """3.90.0: Our structure, L to M (the crosswalk) or Coverage beside the page."""
+        return self.views.show_view(key)
+
+    def show_heading(self, num):
+        """3.90.0: an L to M row on the page: the first sentence under that customer heading (or under its subsections)."""
+        if self.R is None or not num:
+            return None
+        its = [it for it in self.M.items if (it.get("section") or "") == num] or \
+              [it for it in self.M.items if (it.get("section") or "").startswith(num + ".")]
+        if not its:
+            self.host.status(f"No sentence of {num} is in the review.")
+            return None
+        self.select(its[0]["id"])
+        return its[0]["id"]
 
     def select(self, iid):
         if self.cx is not None and iid in self.cx.byid:

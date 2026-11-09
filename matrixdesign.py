@@ -447,7 +447,7 @@ def _value(M, it, key, inh, people, ctx=None, vols=None):
             lm = "/".join(dict.fromkeys(SD.lm_of(M, byid[h], inh) for h in C.cf_ids(it.get("context_for", ""))
                                         if h in byid and SD.lm_of(M, byid[h], inh)))
         if key == "lm":
-            return lm
+            return "L/M" if it.get("lm_both") and lm == "L" else lm      # 3.90.0: both, as the outline workbook said
         return SD.full_ref(M, dict(it, lm=lm) if lm and "/" not in lm else it, inh)
     if key == "ref":
         return SD.ref_of(M, it, inh)[0] or _where(it, M) or it["id"]
@@ -674,7 +674,7 @@ def outline_rows(M, design, ctx=None):
         if not its and not design.get("empty_sections", True) and lab not in parents:
             continue
         Ls = [x for x in its if _side(M, x, inh) == "L"]
-        Ms = [x for x in its if _side(M, x, inh) == "M"]
+        Ms = [x for x in its if _side(M, x, inh) == "M" or x.get("lm_both")]     # 3.90.0: a workbook's L and M sentence
         out.append({"_kind": "item", "map": lab, "id": "", "decision": "", "_level": int(o.get("level", 1) or 1),
                     "_L": Ls, "_M": Ms, "_parent": lab in parents})
     loose = [it for it in M.items if it.get("decision") == "Keep" and "Keep" in roles and not SD.item_sections(M, it)]

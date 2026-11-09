@@ -292,6 +292,16 @@ class ReadPage(QWidget):
         self.show_count()
         return len(rows)
 
+    def tick_only(self, names):
+        """3.90.0: only these files ticked (by file name), as Review's "read it again" asks. Returns how many."""
+        want = {n.casefold() for n in names}
+        self._guard = True
+        for r in self.boxes:
+            r.setChecked(os.path.basename(r.path).casefold() in want)
+        self._guard = False
+        self.show_count()
+        return sum(r.isChecked() for r in self.boxes)
+
     def tick_type(self, dtype):
         if not dtype:
             return 0

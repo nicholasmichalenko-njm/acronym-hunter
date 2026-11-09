@@ -187,8 +187,8 @@ col = {lp.table.item(r, 0).data(Qt.UserRole): lp.table.item(r, 1).text() for r i
 check("3.16.0: the Review column: the matrix's document says how many sentences are decided", col[dL["id"]].startswith("Needs reviewing:")
       and "/" in col[dL["id"]], col)
 check("... a context document needs reviewing too", col[d["id"]].startswith("Needs reviewing"), col[d["id"]])
-check("... the Library has two tabs: Documents and Read into Review", w.page_tabs_box.isVisibleTo(w)
-      and [w.page_tabs.tabText(i) for i in range(w.page_tabs.count())] == ["Documents", "Read into Review"])
+check("... 3.90.0: Read is a tab of Review (Verify, Read, Compare, Review); the Library is one page", not w.page_tabs_box.isVisibleTo(w)
+      and [k for k, _t in __import__("skqt.mainwin", fromlist=["x"]).TABS["assign"]] == ["verify", "read", "compare", "assign"])
 lp.select(dL["id"]); lp.show_doc()
 check("... the review box leads the side panel: Continue reviewing", lp.rv_box.isVisibleTo(w) and lp.b_read.text() == "Continue reviewing"
       and lp.rv_state.text().startswith("Needs reviewing"))

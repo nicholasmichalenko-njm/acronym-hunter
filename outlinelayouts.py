@@ -23,7 +23,7 @@ STARTING_NAMES = {"section_number": ["Response Section Number"], "section_name":
 # black italic in the supporting column is supporting RFP text. A color is a hex value, auto (black) or a color word.
 STARTING_RULES = {"*": [{"color": "red", "italic": None, "bold": None, "kind": "rfp"}],
                   "support": [{"color": "auto", "italic": True, "bold": None, "kind": "support"}]}
-MIXED = ("requirement", "support", "guidance")
+MIXED = ("requirement", "support", "guidance", "requirement_l", "requirement_m")     # 3.90.0: L and M side by side
 ANY = "*"                                               # rules for every column of text
 
 

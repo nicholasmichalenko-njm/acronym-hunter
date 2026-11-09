@@ -37,7 +37,7 @@ from .settingspage import SettingsPage
 
 RAIL = [("Home", [("tools", "Your Tools"), ("mywork", "My Work"), ("efforts", "All Efforts")]),     # 3.53.0: spaces by job
         ("Effort", [("home", "Effort Dashboard"), ("deliverables", "Deliverables"), ("effortfmt", "Effort Formatting"), ("record", "Effort Record")]),
-        ("Effort Library", [("library", "Effort Library"), ("custqa", "Customer Q&A"), ("compare", "Compare")]),   # 3.78.0
+        ("Effort Library", [("library", "Effort Library"), ("custqa", "Customer Q&A")]),   # 3.78.0; 3.90.0: Compare is a tab of Review
         ("Shred", [("shredreq", "Requirements"), ("assign", "Review"), ("sort", "Sort"), ("matrix", "Matrix"), ("evalcrit", "Evaluation Criteria")]),
         ("Plan", [("setups", "Setup"), ("storyboards", "Storyboards")]),   # 3.56.0; 3.74.0: the Structure Builder is in Setup
         ("Write", [("drafts", "Draft Status"), ("truth", "Wall of Truth"), ("acronyms", "Acronyms"), ("techedit", "Technical Edit"),
@@ -50,9 +50,9 @@ RAIL = [("Home", [("tools", "Your Tools"), ("mywork", "My Work"), ("efforts", "A
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
 TABS = {"home": [("home", "Dashboard"), ("requirements", "Submission Rules")],
         "record": [("record", "Effort Record"), ("meetings", "Meetings")],                 # 3.20.0
-        "library": [("library", "Documents"), ("read", "Read into Review")],
-        "assign": [("verify", "Verify"), ("assign", "Review"), ("prove", "Coverage")],     # 3.84.0: Verify before Review
-        "matrix": [("matrix", "Matrix"), ("crosswalk", "L/M Crosswalk")],
+        # 3.90.0 (decision 13): Read and Compare are Review's tabs, in the order of the work; Coverage and the L/M
+        # Crosswalk are views beside Review's page (go("prove") and go("crosswalk") open them there)
+        "assign": [("verify", "Verify"), ("read", "Read"), ("compare", "Compare"), ("assign", "Review")],
         "acronyms": [("acronyms", "Scan"), ("acrlist", "Acronym List")],      # 3.37.0: Lists to Submit is in the Acronym List
         "custqa": [("custqa", "Customer Q&A"), ("datacalls", "Data calls")],
         "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks")],
@@ -61,9 +61,10 @@ TABS = {"home": [("home", "Dashboard"), ("requirements", "Submission Rules")],
         "profiles": [("profiles", "Effort Profiles"), ("templates", "Templates")],
         "audit": [("audit", "Audit"), ("applyword", "Apply in Word"), ("fixcopy", "Fix a Copy")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
-HEAD_OF.update({"docs": "library", "impact": "compare", "dashboard": "home"})   # pages opened from inside another
+HEAD_OF.update({"docs": "library", "impact": "assign", "dashboard": "home"})   # pages opened from inside another
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup", "setups"}   # 3.18.2:
 # pages that change the matrix (decisions, the structure, placements, setup) share its Undo steps; Review has its own
+VIEWS = {"prove": "coverage", "crosswalk": "lm"}                # 3.90.0: views of Review's maps, not pages of their own
 BETA = {"fixcopy", "applyword"}                                  # 3.16.0: tools still being proven, marked Beta in the menu and on the page
 GROUP_OF = {k: g for g, items in RAIL for k, _t in items}     # 3.15.0: the page's menu group, shown above its title
 GROUP_OF.update({k: GROUP_OF[h] for k, h in HEAD_OF.items() if h in GROUP_OF})
@@ -1081,6 +1082,11 @@ class MainWindow(QMainWindow):
             ok = self.go("acrlist")
             if ok is not False:
                 self.acrlist_page.show_view("submit")
+            return ok
+        if step in VIEWS:                            # 3.90.0: Coverage and the L/M Crosswalk are views beside Review's page
+            ok = self.go("assign")
+            if ok is not False:
+                self.assign_page.show_view(VIEWS[step])
             return ok
         step = {"format": "fixcopy", "dashboard": "home", "setup": "setups", "structure": "setups"}.get(step, step)   # 3.74.0: one Setup page   # 3.30.0: Response Setup is in the Builder   # 3.9.0: Format Check is in Fix a Copy; 3.12.0: one dashboard
         if step in TABS and self.blocked(step) is not None:     # 3.16.0: a menu item opens on a tab the role has

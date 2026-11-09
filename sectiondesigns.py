@@ -15,6 +15,9 @@ read(path) -> {"paragraphs", "tables", "fields", "sources", "sections"}   (the f
 other_pages(path) -> [{"style", "where", "in_textbox"}]: text other pages read (STYLEREF sources) and where
 check(path) -> [problem]: only a STYLEREF source missing or sitting in a text box
 split(path, out_dir) -> [file per Word section]
+adopt(config_dir, lib) -> n: 3.90.0 (decision 13): covers, title pages and back covers live here. Each one the template
+    library kept (Layout's old shelves) is brought onto its shelf once, the newest version of each family, marked with
+    the library item it came from; Effort Profiles pick from these shelves too (templateprofile.pick_design)
 fill(path, mapping, values, out, rows=None) -> out: mapped paragraphs take their values, the sample row repeats
 Libraries stand apart from Setup; Setup only picks a design per section. Rules only; nothing leaves the PC."""
 import copy, datetime, hashlib, json, os, re, shutil, zipfile
@@ -142,6 +145,51 @@ def remove(config_dir, did):
         pass
     _save(config_dir, d)
     return True
+
+
+LIB_SHELF = {"cover": "cover", "title": "title", "backer": "back"}       # the template library's kinds -> shelves
+SHELF_KIND = {v: k for k, v in LIB_SHELF.items()}
+
+
+def adopt(config_dir, lib):
+    """3.90.0: the template library's covers, title pages and back covers onto their shelves, once each (the newest
+    version of each family). Returns how many came over."""
+    have = {x.get("library") for x in designs(config_dir)} | {x.get("library_family") for x in designs(config_dir)}
+    shas = {}
+    for x in designs(config_dir):
+        try:
+            shas[_sha(path_of(config_dir, x))] = x
+        except OSError:
+            pass
+    n = 0
+    seen = set()
+    for it in list(getattr(lib, "items", []) or []):
+        shelf = LIB_SHELF.get(it.get("kind"))
+        fam = it.get("family", it["id"])
+        if not shelf or fam in seen:
+            continue
+        top = lib.latest(it["id"]) or it
+        seen.add(fam)
+        if top["id"] in have or fam in have:
+            continue
+        v = lib.values(top) or {}
+        src = lib.source_path(v["file"]) if v.get("file") else ""
+        if not src or not os.path.isfile(src):
+            continue
+        try:
+            if _sha(src) in shas:
+                x = shas[_sha(src)]
+            else:
+                x = add(config_dir, shelf, src, name=lib.shown_name(top))
+        except Exception:  # noqa: BLE001  a file Word cannot open stays in the library only
+            continue
+        d = _index(config_dir)
+        for y in d["designs"]:
+            if y["id"] == x["id"]:
+                y["library"], y["library_family"] = top["id"], fam
+        _save(config_dir, d)
+        n += 1
+    return n
 
 
 def set_map(config_dir, did, mapping):

@@ -50,14 +50,14 @@ w = MainWindow(app, os.path.join(tmp, "config"), A.APP_VERSION); w.resize(1400, 
 rail = [b.text() for b in w.findChildren(type(w.step_btns["home"])) if b.objectName() == "rail"]
 steps = [b.text() for k, b in w.step_btns.items()]
 check("the rail: the steps in Qt, then the areas still in the classic app (grey)", rail[:len(steps)] == steps
-      and steps[3:10] == ["Effort Dashboard", "Deliverables", "Effort Formatting", "Effort Record", "Effort Library", "Customer Q&&A", "Compare"]   # 3.78.0
+      and steps[3:9] == ["Effort Dashboard", "Deliverables", "Effort Formatting", "Effort Record", "Effort Library", "Customer Q&&A"]   # 3.78.0; 3.90.0: Compare is a tab of Review
       and "Matrix" in steps   # 3.16.0: one place per job; 3.53.0: spaces; 3.75.0: nine groups
-      and steps[15:20] == ["Setup", "Storyboards", "Draft Status", "Wall of Truth", "Acronyms"] and "Accuracy" not in steps
+      and steps[14:19] == ["Setup", "Storyboards", "Draft Status", "Wall of Truth", "Acronyms"] and "Accuracy" not in steps   # 3.90.0: one fewer above
       and steps[-3:] == ["Check a Draft", "Team References", "Settings"]   # 3.69.0: Production Standards off the menu; 3.74.0: the Structure Builder in Setup
       and all(not b.isEnabled() for b in w.findChildren(type(w.step_btns["home"])) if b.objectName() == "rail" and b.text() not in steps), rail)
 w.go("prove"); app.processEvents()
-check("the top bar names the page: Coverage is a tab of Review", w.page_title.text() == "Review" and w.stack.currentWidget() is w.prove_page
-      and w.page_tabs.tabText(w.page_tabs.currentIndex()) == "Coverage" and w.step_btns["assign"].isChecked())
+check("the top bar names the page: 3.90.0: Coverage is a view of Review", w.page_title.text() == "Review" and w.stack.currentWidget() is w.assign_page
+      and w.page_tabs.tabText(w.page_tabs.currentIndex()) == "Review" and w.step_btns["assign"].isChecked())
 check("no effort: the saved state says so", w.saved.text() == "No matrix")
 # 3.15.0: visual hierarchy: three type sizes, card headers, status pills that never stretch, the page's group above it
 check("3.15.0: three sizes: page title > card title > body", D.TYPE["display"] > D.TYPE["title"] > D.TYPE["body"] and D.TYPE["display"] - D.TYPE["title"] >= 6)

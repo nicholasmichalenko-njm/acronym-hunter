@@ -5,6 +5,8 @@ changed).
 
 Store(folder): doc(name) / set_role(name, keys, role) / set_link(name, caption, obj, confirmed) / verify(name, page, who)
     / reopen(name, page, who, why) / set_last(name, page) / set_reading(name, page, line, text) / save()
+    3.90.0: a role, link or reading set stamps the document's "changed"; changed_after(store, name, when) says whether
+    Verify changed what the reader reads after that time (Review's "read it again" line)
 view(pdf, store, name, n) -> [block with "role", "decided", "flags", "link"]   (the page as Verify shows it)
 page_flags(view) / can_verify(view) / status(pdf, store, name) -> ["verified"|"look"|"notyet"] per page
 next_to_look(pdf, store, name, after) / section_of(view, key) / counts(pdf, store, name)
@@ -77,6 +79,7 @@ class Store:
         d = self.doc(name)
         for k in keys:
             d["roles"][k] = role
+        d["changed"] = _now()
         self.save()
         return len(keys)
 
@@ -86,6 +89,7 @@ class Store:
             d["links"][cap] = {"to": obj, "ok": bool(confirmed)}
         else:
             d["links"].pop(cap, None)
+        d["changed"] = _now()
         self.save()
 
     def verify(self, name, page, who=None):
@@ -113,8 +117,19 @@ class Store:
 
     def set_reading(self, name, page, line, text):
         """A scanned line's reading, confirmed (text as read) or corrected."""
-        self.doc(name)["readings"][f"{page}:{line}"] = " ".join((text or "").split())
+        d = self.doc(name)
+        d["readings"][f"{page}:{line}"] = " ".join((text or "").split())
+        d["changed"] = _now()
         self.save()
+
+
+def changed_after(store, name, when):
+    """3.90.0: did Verify change this document's roles, links or readings after `when` ("YYYY-MM-DD HH:MM" or ISO)?
+    Returns the time it changed, or ""."""
+    d = (store.data.get("docs") or {}).get(name) or {}
+    ch = (d.get("changed") or "").replace("T", " ")[:16]
+    w = (when or "").replace("T", " ")[:16]
+    return ch if ch and (not w or ch > w) else ""
 
 
 # ------------------------------------------------------------------ the page as Verify shows it

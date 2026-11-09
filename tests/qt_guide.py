@@ -51,7 +51,7 @@ check("search narrows the topics", "library" in shown and len(shown) < len(GD.TO
 g.search.setText("")
 g.show_topic("prove")
 g._go(); app.processEvents()
-check("Go to this page goes there", w.stack.currentWidget() is w.pages["prove"])
+check("Go to this page goes there (3.90.0: Coverage is a view of Review)", w.stack.currentWidget() is w.assign_page and w.assign_page.views.current() == "coverage")
 g._step(1)
 check("Next walks to the next topic", g.key == "sort")     # 3.53.0: Shred: Review, Coverage, Matrix, then the crosswalk; 3.64.0: Sort before Matrix
 g._step(-1); g._step(-1)

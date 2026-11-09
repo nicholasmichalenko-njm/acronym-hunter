@@ -16,16 +16,27 @@ import json, os, re
 
 ROLES = (("section_number", "Section number"), ("section_name", "Section name"), ("reference", "RFP reference"),
          ("requirement", "Requirement"), ("support", "Supporting RFP content"), ("guidance", "Management guidance"),
-         ("authors", "Authors"), ("ignore", "Not used"))
+         ("authors", "Authors"),
+         # 3.90.0 (decision 13): a workbook with Section L and Section M side by side, or a column saying which
+         ("requirement_l", "Section L requirement"), ("requirement_m", "Section M requirement"),
+         ("reference_l", "Section L reference"), ("reference_m", "Section M reference"), ("lm", "L or M"),
+         ("ignore", "Not used"))
 ROLE = dict(ROLES)
-TEXT_ROLES = ("requirement", "support", "guidance")         # columns of text, each look its own kind
-STRUCT_ROLES = ("section_number", "section_name", "reference", "authors")
+TEXT_ROLES = ("requirement", "support", "guidance", "requirement_l", "requirement_m")    # columns of text, each look its own kind
+STRUCT_ROLES = ("section_number", "section_name", "reference", "authors", "reference_l", "reference_m", "lm")
 # the setup kinds the text goes to (setuptemplate's): what each column's text is when no formatting rule says otherwise
-DEFAULT_KIND = {"requirement": "rfp", "support": "support", "guidance": "pm"}
-KINDS = (("rfp", "Compliance requirement"), ("customer", "Customer requirement text"), ("support", "Supporting RFP text"),
-         ("pm", "Management guidance"), ("skip", "Leave out"))
+DEFAULT_KIND = {"requirement": "rfp", "support": "support", "guidance": "pm", "requirement_l": "rfp_l", "requirement_m": "rfp_m"}
+KINDS = (("rfp", "Compliance requirement"), ("rfp_l", "Section L requirement (instruction)"),
+         ("rfp_m", "Section M requirement (evaluation)"), ("customer", "Customer requirement text"),
+         ("support", "Supporting RFP text"), ("pm", "Management guidance"), ("skip", "Leave out"))
+RFP_KINDS = {"rfp": "", "rfp_l": "L", "rfp_m": "M"}         # 3.90.0: every kind that is a compliance requirement, and its L or M
 KIND = dict(KINDS)
-GUESS = (("section_number", r"(section|sec)\.?\s*(number|no|num|#)|^number$|^no\.?$"), ("section_name", r"(section|heading)\s*(name|title)|^title$|^name$"),
+GUESS = (("reference_l", r"solicitation\s*requirements?\s*\(?\s*section\s*l\b|section\s*l\s*(ref|reference|number|no|para)|^l\s*(ref|reference|para)"),
+         ("reference_m", r"evaluation\s*section|section\s*m\s*(ref|reference|number|no|para)|^m\s*(ref|reference|para)"),
+         ("requirement_l", r"section\s*l\s*(content|text|requirement|instruction)|^l\s*(content|text|requirement)"),
+         ("requirement_m", r"evaluation\s*(content|text|criteria)|section\s*m\s*(content|text|requirement|criteria)|^m\s*(content|text|requirement)"),
+         ("lm", r"^(l\s*/\s*m|l\s*(&|and|n|or)\s*m|lnm|lm|section\s*l\s*/\s*m|l\s*or\s*m\s*\??)$"),
+         ("section_number", r"(section|sec)\.?\s*(number|no|num|#)|^number$|^no\.?$"), ("section_name", r"(section|heading)\s*(name|title)|^title$|^name$"),
          ("reference", r"rfp\s*l?\s*(number|no|ref|reference)|^ref(erence)?$|rfp\s*para|l\s*number|source\s*ref"),
          ("requirement", r"compliance\s*req|requirement"), ("support", r"support|rfp\s*content|context"),
          ("guidance", r"management|guidance|direction|pm\s*note"), ("authors", r"author|writer|owner|lead"))
@@ -199,6 +210,32 @@ def profile_for(config_dir, headers):
     return {"name": "", "columns": guess(headers), "rules": {}}
 
 
+# ---------------------------------------------------------------- L or M (3.90.0)
+_BOTH = re.compile(r"^(l\s*(/|&|\+|and|n)\s*m|m\s*(/|&|\+|and|n)\s*l|lnm|lm|both)$", re.I)
+
+
+def lm_of_cell(t):
+    """An "L or M" cell: "L", "M", or "LM" for both (L/M, L&M, L and M, LNM, both); "" otherwise."""
+    t = " ".join((t or "").split()).strip(" .:").replace("Section ", "").replace("section ", "")
+    if not t:
+        return ""
+    if _BOTH.match(t):
+        return "LM"
+    u = t.upper()
+    return u if u in ("L", "M") else ""
+
+
+def lm_of_ref(ref):
+    """L, M or LM from an RFP reference: L.3.5 is L; M.2.1 is M; "L.3.5; M.2.1" or "Section L 3.5 / M 2" is both."""
+    r = " ".join((ref or "").split())
+    if re.match(r"^\s*(lnm|l\s*[/&]\s*m)\b", r, re.I):
+        return "LM"
+    sides = {m.group(1).upper() for m in re.finditer(r"(?:^|[\s,;/(])(?:Section\s+)?([LM])(?:[.\s-]\d|\s*$|[.\s-]*[A-Z0-9]*\.?\d)", r, re.I)}
+    if sides == {"L", "M"}:
+        return "LM"
+    return sides.pop() if len(sides) == 1 else ""
+
+
 # ---------------------------------------------------------------- parsing
 def _level(num):
     n = str(num or "").strip().rstrip(".")
@@ -258,6 +295,8 @@ def parse(book, profile):
             if a.strip() and a.strip() not in cur["authors"]:
                 cur["authors"].append(a.strip())
         ref = _text(cell("reference"))
+        side_ref = {"L": _text(cell("reference_l")), "M": _text(cell("reference_m"))}
+        row_lm = lm_of_cell(_text(cell("lm")))
         for i, h in enumerate(book["headers"]):                # every column of text, left to right (3.73.0)
             role = cols.get(h)
             if role not in TEXT_ROLES or i >= len(cells):
@@ -266,7 +305,13 @@ def parse(book, profile):
                 if role in ("support",) and lk not in (rules.get(h) or {}) and t.strip():
                     unruled.add((h, lk))
             for kind, text in _pieces(cells[i], h, rules, DEFAULT_KIND[role]):
-                cur["blocks"].append({"kind": kind, "text": text, "ref": ref if kind == "rfp" else "", "row": r["row"]})
+                if kind in RFP_KINDS:                          # 3.90.0: L or M from the kind, the L or M column, the reference
+                    lm = RFP_KINDS[kind] or {"requirement_l": "L", "requirement_m": "M"}.get(role, "") or row_lm
+                    rf = (side_ref.get(lm) if lm in ("L", "M") else "") or ref or side_ref["L"] or side_ref["M"]
+                    cur["blocks"].append({"kind": "rfp", "text": text, "ref": rf, "row": r["row"], "lm": lm or lm_of_ref(rf)})
+                    continue
+                cur["blocks"].append({"kind": kind, "text": text, "ref": "", "row": r["row"]})
+        ref = ref or side_ref["L"] or side_ref["M"]
         if ref and not any(b["kind"] == "rfp" and b["row"] == r["row"] for b in cur["blocks"]):
             problems.append(f"Row {r['row']}: an RFP reference ({ref}) with no requirement text")
         for b in cur["blocks"]:
@@ -327,7 +372,9 @@ def apply(M, parsed, file_name, who=None):
         last = None
         for b in s["blocks"]:
             if b["kind"] == "rfp":
-                it = item(b["text"], b["ref"], b["row"], "Keep", "Requirement")
+                lm = b.get("lm") or ""                          # 3.90.0: the workbook says L, M or both
+                extra = {"lm": "L" if lm == "LM" else lm, "lm_both": True} if lm == "LM" else ({"lm": lm} if lm in ("L", "M") else {})
+                it = item(b["text"], b["ref"], b["row"], "Keep", "Requirement", **extra)
                 if b["ref"]:
                     S["refs"][it["id"]] = b["ref"]
                 SD.place(M, it["id"], lab)

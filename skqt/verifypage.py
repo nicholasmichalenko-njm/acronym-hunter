@@ -158,7 +158,7 @@ class VerifyPage(QWidget):
         bar.more("Menu roles...", lambda: self.edit_menu(), "Show, hide, rename, key and order the roles; add your own")
         self.strip = PageStrip(); self.strip.picked.connect(self.go); v.addWidget(self.strip)
         self.line = D.label("", "muted"); v.addWidget(self.line)
-        self.line.setTextFormat(Qt.RichText); self.line.linkActivated.connect(lambda _h: self.compare_next())
+        self.line.setTextFormat(Qt.RichText); self.line.linkActivated.connect(lambda h: self.read_next() if h == "read" else self.compare_next())
         split = QSplitter(Qt.Horizontal); v.addWidget(split, 1)
         self.view = PageView(self); split.addWidget(self.view)
         side = QWidget(); sv = QVBoxLayout(side); sv.setContentsMargins(D.SPACE["s"], 0, 0, 0); sv.setSpacing(D.SPACE["s"])
@@ -353,6 +353,8 @@ class VerifyPage(QWidget):
         pair = self.newer_version() if self.verified() and self.n == len(self.pages()) else None
         if pair:                                         # 3.89.0: the next step for an amendment is Compare
             nxt = f"  <a href='compare'>Next: compare {pair[2]['label']} with {pair[1]['label']}</a>"
+        elif self.verified() and self.n == len(self.pages()) and self.needs_read():
+            nxt = "  <a href='read'>Next: read it into Review</a>"     # 3.90.0: Verify, Read, Compare, Review
         import html
         self.line.setText(html.escape(f"{head}  {words}  A verified page is a record that a person checked it, not a guarantee.") + nxt)
         self.b_ok.setEnabled(not fl)
@@ -585,6 +587,20 @@ class VerifyPage(QWidget):
                 if k and v.get("file") == self.doc:
                     return d, d["versions"][k - 1], v
         return None
+
+    def needs_read(self):
+        """3.90.0: this file was never read into Review, or Verify changed it after it was read."""
+        R = self.host.review
+        if R is None:
+            return True
+        rows = [r for r in R.M.sources if r and r[0] == self.doc]
+        if not rows:
+            return True
+        return bool(VS.changed_after(self.store(), self.doc, rows[-1][2] if len(rows[-1]) > 2 else ""))
+
+    def read_next(self):
+        self.host.go("read")
+        return self.host.read_page.tick_only([self.doc])
 
     def compare_next(self):
         pair = self.newer_version()

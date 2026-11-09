@@ -32,13 +32,17 @@ def _reload(page):
 class PickDialog(QDialog):
     """A slot's choices: each family with its versions, newest first, and the version in use marked."""
 
-    def __init__(self, parent, lib, slot, current=None):
+    def __init__(self, parent, lib, slot, current=None, config_dir=None):
         super().__init__(parent)
         self.setWindowTitle("Pick from the library"); self.resize(560, 420)
         v = QVBoxLayout(self)
         v.addWidget(D.label("Each family with its versions, newest first. The profile is pinned to the version you pick: a newer "
                             "one waits until you choose it.", "muted"))
         self.list = QListWidget(); v.addWidget(self.list, 1)
+        for x in (TP.design_choices(config_dir, slot) if config_dir else []):     # 3.90.0: covers live in Section designs
+            w = QListWidgetItem(f"{x['name']}   (Section designs)")
+            w.setData(Qt.UserRole, ("sd", x["id"])); w.setToolTip("A design kept in Standards > Section designs")
+            self.list.addItem(w)
         for i in TP.choices(lib, slot):
             w = QListWidgetItem(lib.shown_name(i) + (f"   ({i.get('by', '')}, {str(i.get('at', ''))[:10]})" if i.get("at") else "")
                                 + ("   in use" if current and current == i["id"] else ""))
@@ -134,13 +138,16 @@ class ProfileParts(QWidget):
     def pick(self, slot, iid=None):
         lib = _lib(self.page)
         if iid is None:
-            d = PickDialog(self, lib, slot, (TP.pins(self.page.work).get(slot) or {}).get("id"))
+            d = PickDialog(self, lib, slot, (TP.pins(self.page.work).get(slot) or {}).get("id"), self.page.host.config_dir)
             if d.exec() != QDialog.Accepted:
                 return ""
             iid = d.picked()
         if not iid:
             return ""
-        said = TP.pick(self.page.work, lib, slot, iid, self.page.host.config_dir)
+        if isinstance(iid, (tuple, list)) and iid and iid[0] == "sd":            # 3.90.0: a Section design
+            said = TP.pick_design(self.page.work, self.page.host.config_dir, slot, iid[1])
+        else:
+            said = TP.pick(self.page.work, lib, slot, iid, self.page.host.config_dir)
         _reload(self.page)
         self.refresh()
         diag.activity("profile_slot_picked")

@@ -65,6 +65,14 @@ class DesignsPage(QWidget):
         return self.host.config_dir
 
     def refresh(self):
+        try:                                       # 3.90.0: covers, title pages and back covers live here (from Layout)
+            import templatelib as TL
+            got = SDZ.adopt(self.cfg(), TL.Library(self.cfg()))
+            if got:
+                self.host.status(f"{got} cover, title page or back cover design{'s' if got != 1 else ''} moved here from Layout.")
+        except Exception:  # noqa: BLE001
+            import diag
+            diag.swallowed()
         self.tree.clear()
         n = 0
         for shelf in SDZ.SHELVES:

@@ -51,8 +51,8 @@ class LinkGutter(QWidget):
     def compute(self):
         pg = self.pg
         out = []
-        if pg.R is None or pg.cx is not None:
-            self.drawn = out
+        if pg.R is None or pg.cx is not None or getattr(getattr(pg, "views", None), "key", "structure") != "structure":
+            self.drawn = out                              # 3.90.0: the lines go to Our structure only
             return out
         view, tree = pg.view, pg.tree
         lvp, rvp = view.viewport(), tree.viewport()
@@ -249,7 +249,36 @@ class Placer:
         self.left_lbl.setText(f"Left: <a href='undecided'>{len(lf['undecided'])} not decided</a> · "
                               f"<a href='unplaced'>{len(lf['unplaced'])} not placed</a> · "
                               f"{ans} of {len(cov)} customer headings answered"
-                              + (f" · <a href='flagged'>{nf} changed by an amendment</a>" if nf else ""))
+                              + (f" · <a href='flagged'>{nf} changed by an amendment</a>" if nf else "")
+                              + self.verify_changed())
+
+    def verify_changed(self):
+        """3.90.0: " · Verify changed this file after it was read (10:12): read it again", or ""."""
+        pg = self.pg
+        f = getattr(pg, "file", "") or ""
+        if not f or pg.host.ws is None:
+            return ""
+        read_at = next((row[2] for row in reversed(pg.M.sources) if row and row[0] == f and len(row) > 2), "")
+        try:
+            import verifystate as VS
+            ch = VS.changed_after(pg.host.verify_page.store(), f, read_at)
+        except Exception:  # noqa: BLE001
+            diag.swallowed()
+            return ""
+        self.reread = f if ch else ""
+        return (f" · <span style='color:{D.tokens()['warn']}'>Verify changed this file after it was read ({ch[11:16]})</span>: "
+                f"<a href='reread'>read it again</a>") if ch else ""
+
+    def read_again(self):
+        """The Read tab with this file ticked, to read it again with Verify's corrections."""
+        f = getattr(self, "reread", "")
+        if not f:
+            return 0
+        self.pg.host.go("read")
+        n = self.pg.host.read_page.tick_only([f])
+        self.pg.host.status("Read it again: the file is ticked; your decisions are kept." if n else
+                            f"{f} is not in the list to read: add it from the Library.")
+        return n
 
     def open_flag(self, href):
         """3.89.0: the link on a flagged sentence opens its change in Compare."""
@@ -259,6 +288,8 @@ class Placer:
 
     def select_left(self, which):
         pg = self.pg
+        if which == "reread":                               # 3.90.0
+            return self.read_again()
         if which == "flagged":                              # 3.89.0: the placed sentences an amendment changed
             from . import amendflags as AF
             ids = set(AF.flags(pg.host))

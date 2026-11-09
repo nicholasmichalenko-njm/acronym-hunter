@@ -20,7 +20,7 @@ GROUPS = ("Pages and markings", "Formatting", "Acronyms", "Writing", "Approach")
 # id, group, sentence, kept by, where its values live (page key, section), check codes it answers
 BUILTIN = (
     ("1", "Pages and markings", "A style reference (STYLEREF) never reads text in a text box: text a header, footer or field "
-     "reads sits in the page or in a table cell.", "app", ("layoutstd", "covers"), ("RU1",)),
+     "reads sits in the page or in a table cell.", "app", ("designs", ""), ("RU1",)),      # 3.90.0: covers live in Section designs
     ("2", "Pages and markings", "On the cover or title page, the A number sits right under the proprietary statement, commercial "
      "data rights and Warning content, right-justified.", "app", ("formatstd", "roles"), ("RU2",)),
     ("3", "Pages and markings", "The page marking (Unclassified, a classification, CUI or the response's own) sits at the top "
@@ -46,7 +46,8 @@ BUILTIN = (
      "people", ("formatstd", "roles"), ()),
 )
 WHERE_NAME = {"prodstd": "Production Standards", "effortfmt": "Effort Formatting", "acrlist": "the Acronym List",
-              "formatstd": "Formatting Standards", "layoutstd": "Layout", "rules": "Rules > Fix a Copy's checks"}   # 3.69.0
+              "formatstd": "Formatting Standards", "layoutstd": "Layout", "rules": "Rules > Fix a Copy's checks",
+              "designs": "Section designs"}   # 3.69.0
 
 
 def _path(config_dir):

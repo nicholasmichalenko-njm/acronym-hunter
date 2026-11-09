@@ -158,6 +158,8 @@ class LibraryScreen(QWidget):
         eid, st, active = self.filters()
         self.cats.blockSignals(True); self.cats.clear()
         for k, t in LC.categories(self.lib, self.library):
+            if k in getattr(self, "moved", ()):              # 3.90.0: covers live in Section designs
+                continue
             n = sum(1 for i in LC.items_in(self.lib, self.library, k, eid, st) if not (active and LC.status(i) == "retired"))
             it = QListWidgetItem(f"{t} ({n})"); it.setData(Qt.UserRole, k); self.cats.addItem(it)
         self.cats.blockSignals(False)
@@ -545,6 +547,12 @@ class QuickPartsPage(LibraryScreen):
 
 
 class LayoutPage(LibraryScreen):
-    """3.50.0: covers, title pages, back covers, headers and footers, sections, table looks, captions and the TOC."""
+    """3.50.0: headers and footers, sections, table looks, captions and the TOC. 3.90.0 (decision 13): covers, title
+    pages and back covers moved to Section designs; headers, footers and page setup stay here."""
+    moved = ("covers", "titles", "backers")
+
     def __init__(self, host):
         super().__init__(host, "layout")
+        self.moved_note = D.label("Covers, title pages and back covers are in Section designs (the next tab). Headers, "
+                                  "footers and page setup stay here.", "muted")
+        self.layout().insertWidget(1, self.moved_note)
