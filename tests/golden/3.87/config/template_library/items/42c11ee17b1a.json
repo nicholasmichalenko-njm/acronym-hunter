@@ -1,0 +1,84 @@
+{
+ "name": "Team standard: i, 1-1, A-1",
+ "parts": [
+  {
+   "key": "cover",
+   "name": "Cover",
+   "starts": {
+    "first_section": true
+   },
+   "numbers": null,
+   "header": "",
+   "footer_marking": false,
+   "linked": false,
+   "setup": "portrait"
+  },
+  {
+   "key": "front",
+   "name": "Front matter",
+   "starts": {
+    "style": "TOC Heading"
+   },
+   "numbers": {
+    "fmt": "lowerRoman",
+    "restart": "part",
+    "start_at": 1,
+    "chapter_level": null
+   },
+   "header": "{volume_name}",
+   "footer_marking": true,
+   "linked": false
+  },
+  {
+   "key": "body",
+   "name": "Response",
+   "starts": {
+    "style": "Heading 1"
+   },
+   "chapter_style": "Heading 1",
+   "numbers": {
+    "fmt": "decimal",
+    "restart": "each",
+    "start_at": 1,
+    "chapter_level": 1,
+    "separator": "hyphen"
+   },
+   "header": "{volume_name}",
+   "footer_marking": true,
+   "linked": false
+  },
+  {
+   "key": "appendix",
+   "name": "Appendices",
+   "starts": {
+    "style": "Heading 7"
+   },
+   "chapter_style": "Heading 7",
+   "numbers": {
+    "fmt": "decimal",
+    "restart": "each",
+    "start_at": 1,
+    "chapter_level": 7,
+    "separator": "hyphen"
+   },
+   "header": "{volume_name}",
+   "footer_marking": true,
+   "linked": true
+  },
+  {
+   "key": "backer",
+   "name": "Back cover",
+   "starts": {
+    "last_section": true,
+    "styles": [
+     "Back Cover",
+     "Backer"
+    ]
+   },
+   "numbers": null,
+   "header": "",
+   "footer_marking": false,
+   "linked": false
+  }
+ ]
+}
