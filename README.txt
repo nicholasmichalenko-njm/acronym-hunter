@@ -1,6 +1,25 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SETUP FROM A WORKBOOK, ON THE PAGE (3.91.0)
+  - Setup > Bring in a file with your outline workbook opens two panes: the workbook on the left, the page Word gets on
+    the right, drawn in each style's look (hidden text on a gray band). The styles in use sit in a row above; click one
+    to change its font, size, color, bold, italic, underline or hidden here.
+  - Each column has a tag under its heading (Heading, Guidance, Source, RFP text, Supporting text, Authors, Leave out).
+    Click it to change what the column is, its paragraph style, and its place in the order inside a row. The rows keep
+    the workbook's order, so headings and subheadings come out as the workbook has them.
+  - Click any text to give it a character style (compliance language, supporting text), make it its own paragraph after
+    a kind of text, or leave it out. A character style never moves text.
+  - Guidance goes once, right after the section's heading (move its tag later to keep it with its row). The source is
+    written exactly as typed: at the start of the text, in its own character style, when shorter than 40 characters;
+    else on its own line.
+  - Click a paragraph on the page to move its kind of text earlier or later, in every section or in that section only
+    (marked "own order", with Back to every section), or to find it in the workbook.
+  - Make the setup in Word writes the page on the template you pick (the template's own styles by name, a missing one
+    made). Use this structure brings the sections and requirements into the effort as before. The page's settings stay
+    with the workbook's layout for next time.
+  - Settings > Appearance: Follow Windows, Light or Dark.
+
 REVIEW'S TABS AND VIEWS (3.90.0)
   - Review's tabs follow the work: Verify, Read, Compare, Review. Compare left the Effort Library group; the Library
     is one page.

@@ -41,17 +41,8 @@ class SettingsPage(QWidget):
         self.tz_note = self.tz_card.add(D.label("", "muted"))
         v.addWidget(self.tz_card)
         self.fill_zone()
-        self.look_card = D.Card("Appearance", "Light or dark. The customer's pages and Word previews stay white in both. "
-                                "Yours alone, on this PC.")                  # 3.91.0
-        lrow = QHBoxLayout(); self.look_card.body.addLayout(lrow)
-        self.look = QComboBox()
-        for k, text in D.APPEARANCE:
-            self.look.addItem(text, k)
-        self.look.setCurrentIndex(max(0, self.look.findData((__import__("skqt.modes", fromlist=["x"]).settings() or {}).get("appearance") or "windows")))
-        self.look.currentIndexChanged.connect(lambda _i: self.set_look(self.look.currentData()))
-        lrow.addWidget(self.look); lrow.addStretch(1)
-        self.look_note = self.look_card.add(D.label("", "muted"))
-        v.addWidget(self.look_card)
+        from .appearance import add_card                  # 3.91.0: Light, Dark or Follow Windows
+        add_card(self, v)
         self.eff = D.Card("Efforts", "One effort per proposal: its acronym list workbook, records and compliance files.",
                           actions=[D.button("Open effort folder", None, lambda: self.host.open_effort_folder(),
                                             "The open effort's folder in File Explorer"),
@@ -336,16 +327,8 @@ class SettingsPage(QWidget):
         return k
 
     def set_look(self, key):
-        """3.91.0: Follow Windows, Light or Dark, kept on this PC and used now."""
-        from PySide6.QtWidgets import QApplication
-        from .modes import save
-        key = key if key in dict(D.APPEARANCE) else "windows"
-        save(appearance=key)
-        dark = D.apply(QApplication.instance(), None if key == "windows" else key)
-        diag.activity("qt_appearance_set", look=key)
-        self.look_note.setText(("Dark" if dark else "Light") + " now. A page you have open takes every color when you "
-                               "open it again; restart Stationkeeper to see it everywhere at once.")
-        return dark
+        from .appearance import set_look
+        return set_look(self, key)
 
     def save_zone(self, key=None):
         import tzones as TZ

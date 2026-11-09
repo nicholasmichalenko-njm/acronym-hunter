@@ -220,6 +220,10 @@ class SetupsPage(QWidget):
         has = M is not None and bool(M.outline)
         diag.activity("setup_file_brought_in")
         if ext in (".xlsx", ".xlsm"):
+            if accept is None:                                       # 3.91.0: the workbook on the page, the page Word gets
+                from .workbookpage import open_page
+                open_page(self, path)
+                return "outline"
             self.from_outline(path, accept=accept)
             return "outline"
         if ext in (".dotx", ".dotm"):
