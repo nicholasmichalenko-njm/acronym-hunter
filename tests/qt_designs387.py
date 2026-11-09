@@ -77,6 +77,22 @@ check("the picks are kept with the setup", SDZ.picked(M, "cover") == got[0]["id"
 out = ST.section_designs(M, cfg, {}, "Volume I Technical", os.path.join(tmp, "out", "Kestrel_Response_Setup.docx"))
 check("Make the setup writes the cover filled beside the setup", set(out) == {"cover"} and os.path.isfile(out["cover"])
       and [x["text"] for x in SDZ.read(out["cover"])["paragraphs"]][1] == "Volume I Technical")
+# 3.87.1: the Design row on a section a design fills
+import responseelements as RE
+from PySide6.QtCore import Qt
+data = RE.load(cfg)
+RE.apply_kit(M, data, ["cover", "toc"], "Volume I Technical"); sp.refresh(); app.processEvents()
+import compliance as C
+cov_lab = next(C.outline_label(o) for o in M.outline if o.get("element") == "cover")
+body_lab = next(C.outline_label(o) for o in M.outline if not o.get("element") and o.get("level", 1) > 1 or "Ground" in C.outline_label(o))
+sp.pick(body_lab)
+check("a response section has no Design row", not sp.design_form.isRowVisible(sp.f_design))
+sp.pick(cov_lab)
+check("the cover section's Design row lists the Cover shelf", sp.design_form.isRowVisible(sp.f_design)
+      and sp.f_design.findData(got[0]["id"]) >= 0 and sp.f_design.findData("none") < 0, [sp.f_design.itemText(i) for i in range(sp.f_design.count())])
+sp.f_design.setCurrentIndex(0)
+check("picking (not set) there clears the pick; one set of records with Section designs...", sp.set_design() and SDZ.picked(M, "cover") == "")
+check("picking a design there sets it", sp.set_design(got[0]["id"]) and SDZ.picked(M, "cover") == got[0]["id"])
 check("Remove from the library", dp.remove(got[0]["id"]) and SDZ.designs(cfg) == [])
 
 print(f"QT DESIGNS 387 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")

@@ -111,6 +111,11 @@ class SetupsPage(QWidget):
         for lab, w in (("Lead", self.f_lead), ("Contributors", self.f_with), ("Due", self.f_due), ("Pages", self.f_pages)):
             f.addRow(lab, w)
             w.editingFinished.connect(lambda: self.save_section(quiet=True))     # 3.83.0: saved as you leave the box
+        from PySide6.QtWidgets import QComboBox                # 3.87.1: the section's Design, from Section designs
+        self.f_design = QComboBox(); self.f_design.setToolTip("The design this section uses, from Production > Section designs")
+        self.f_design.activated.connect(lambda _i: self.set_design())
+        f.addRow("Design", self.f_design)
+        self.design_form = f
         wv.addLayout(f)
         # 3.83.0: the shared section panel (Management guidance saved as typed, references for authors, notes and context)
         from .sectionpanel import SectionPanel
@@ -384,8 +389,50 @@ class SetupsPage(QWidget):
         pg = PB.pages(M, label)
         self.f_lead.setText(lead); self.f_with.setText(with_); self.f_due.setText(SM.due(M, label))
         self.f_pages.setText(f"{pg:g}" if pg else "")
+        self.fill_design(M, label)
         self.panel.show_section(label)
         self.show_preview(M, label)
+
+    def shelf_of(self, M, label):
+        """3.87.1: the Section designs shelf a section takes its design from (its element's source or part), or None."""
+        import compliance as C
+        import responseelements as RE
+        o = next((x for x in M.outline if C.outline_label(x) == label), None)
+        if not o or not o.get("element"):
+            return None
+        e = RE.get(RE.load(self.host.config_dir), o["element"]) or {}
+        src, part = e.get("source", ""), e.get("part", "")
+        return {"toc": "toc", "acronyms": "acronyms", "units": "units", "cover": "cover", "backer": "back"}.get(src) \
+            or {"cover": "cover", "title": "title", "back": "back"}.get(part)
+
+    def fill_design(self, M, label):
+        import sectiondesigns as SDZ
+        shelf = self.shelf_of(M, label) if M is not None and label else None
+        self.design_form.setRowVisible(self.f_design, bool(shelf))
+        self.f_design.clear()
+        self._design_shelf = shelf
+        if not shelf:
+            return
+        self.f_design.addItem("(not set)", "")
+        if shelf in SDZ.OPTIONAL:
+            self.f_design.addItem("None: leave this section out", "none")
+        for x in SDZ.designs(self.host.config_dir, shelf):
+            self.f_design.addItem(x["name"], x["id"])
+        self.f_design.setCurrentIndex(max(0, self.f_design.findData(SDZ.picked(M, shelf))))
+
+    def set_design(self, did=None):
+        import sectiondesigns as SDZ
+        M, shelf = self._M(), getattr(self, "_design_shelf", None)
+        if M is None or not shelf:
+            return False
+        did = self.f_design.currentData() if did is None else did
+        self.host.review.snap()
+        ok = SDZ.pick(M, shelf, did or "")
+        if ok:
+            self.host.changed()
+            self.host.status(f"{SDZ.SHELF_NAME[shelf]}: " + ("left out." if did == "none" else
+                             ("its design is set; Make the setup places it." if did else "no design.")))
+        return ok
 
     def after_panel(self):
         M = self._M()
