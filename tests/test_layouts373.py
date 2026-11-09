@@ -52,7 +52,7 @@ renamed = GIVEN[:3] + ["L Requirement"] + GIVEN[4:] + ["Volume"]
 book2 = OX.read(make(os.path.join(tmp, "b.xlsx"), renamed))
 p2 = OL.profile(cfg, book2)
 check("a renamed column and an added one are new to the layout (and take a guess meanwhile)",
-      sorted(p2["unknown"]) == ["L Requirement", "Volume"] and p2["columns"]["L Requirement"] == "requirement", p2)
+      sorted(p2["unknown"]) == ["L Requirement", "Volume"] and p2["columns"]["L Requirement"] == "requirement_l", p2)   # 3.90.0: an L column is L
 OL.remember(cfg, OL.STARTING, "L Requirement", "requirement")
 OL.remember(cfg, OL.STARTING, "Volume", "ignore")
 p3 = OL.profile(cfg, book2)
