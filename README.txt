@@ -1,6 +1,15 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SETUP I (3.86.0)
+  - Make the setup puts each section's References and notes for authors on its heading as Word comments, one per
+    reference, by Stationkeeper. A section with none gets none. Strip setup... takes them out; your own comments stay.
+    Final Check lists any still in a volume as Reference for authors.
+  - Setup, under What it prints: each block the selected section will print, in order, with its kind and where it
+    came from. Right-click a block (or double-click it): Earlier, Later, Move to another section..., Print the
+    reference only (the setup prints "L.3.1-01: (see the RFP)"; again to print the words), Show it in Review. A move
+    here is a move in Review and the matrix too.
+
 REVIEW AND PLACE (3.85.0)
   - Review: a line joins the selected sentence to its home in your structure, on the right: dotted grey while it is
     only suggested, solid in its kind's color once placed. The structure scrolls to it; an arrow at the edge points to

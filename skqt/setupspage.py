@@ -120,6 +120,10 @@ class SetupsPage(QWidget):
         wv.addWidget(D.label("What it prints", "label"))
         self.prev = D.label("", "muted"); self.prev.setTextFormat(Qt.RichText)
         wv.addWidget(self.prev)
+        from .setupblocks import BlockList                 # 3.86.0: each printed block, in print order; act on the row
+        self.blocks = BlockList(self)
+        self.blocks.setToolTip("Right-click a block: Earlier, Later, Move to another section..., Print the reference only, Show it in Review")
+        wv.addWidget(self.blocks)
 
         # ---- the sections: the Structure Builder's tree, menu, keys and placing (3.74.0)
         self.builder = host.structure_page.embed(section_card=self.section_card, on_text=self.on_text, on_change=self.counts)
@@ -377,6 +381,8 @@ class SetupsPage(QWidget):
         import html
         self.prev.setText("<br>".join(f"<b>{html.escape(t)}</b>: {html.escape(x)}" for t, x in SM.preview(M, label))
                           or "Every layer is off.")
+        if getattr(self, "blocks", None) is not None:
+            self.blocks.fill(label)
 
     # ------------------------------------------------------------ edits
     def save_section(self, quiet=False):

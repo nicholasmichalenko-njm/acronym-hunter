@@ -301,6 +301,9 @@ def where_of(it):
 
 def block_text(M, it, inherited=None):
     ref, _src = ref_of(M, it, inherited)
+    if it.get("id") in (setup_of(M).get("refonly") or []):          # 3.86.0: Print the reference only
+        fmt = REF_FORMATS.get(setup_of(M)["ref_format"], REF_FORMATS["colon"])
+        return (fmt.format(ref=ref) if ref else MISSING + " ") + "(see the RFP)"
     body = ((it.get("lead") or "") + " " + it["text"]).strip() if it.get("lead") and not it["text"].startswith(it["lead"]) else it["text"]
     fmt = REF_FORMATS.get(setup_of(M)["ref_format"], REF_FORMATS["colon"])
     return (fmt.format(ref=ref) if ref else MISSING + " ") + body
@@ -574,6 +577,24 @@ def move(M, iid, label, delta):
     j = max(0, min(len(order) - 1, i + delta))
     order.insert(j, order.pop(i))
     setup_of(M)["order"][label] = order
+
+
+def set_refonly(M, iid, on=True):
+    """3.86.0: a placed item prints its reference alone ("L.3.1-01: (see the RFP)") instead of its words."""
+    S = setup_of(M)
+    cur = list(S.get("refonly") or [])
+    if on and iid not in cur:
+        cur.append(iid)
+    elif not on and iid in cur:
+        cur.remove(iid)
+    S["refonly"] = cur
+    if hasattr(M, "pending"):
+        M.pending = True
+    return on
+
+
+def refonly(M, iid):
+    return iid in (setup_of(M).get("refonly") or [])
 
 
 def move_to_section(M, iid, to, frm=None, before=None):
