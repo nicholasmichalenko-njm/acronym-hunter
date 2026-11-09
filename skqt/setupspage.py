@@ -54,6 +54,8 @@ class SetupsPage(QWidget):
         bar.more_sep()
         bar.more("What fills each section...", lambda: self.show_layers(not self.layers.isVisible()))
         bar.more("Setup styles...", lambda: self.styles(), "The setup's own styles: name, font, size, color, bold, italic, hidden")
+        bar.more("Section designs...", lambda: self.pick_designs(),                 # 3.87.0
+                 "The cover, title page and front matter designs this effort uses, from the Section designs library")
         bar.more("Outline versions...", lambda: self.versions(),
                  "Every version of the outline brought in: compare any two, write the workbook back out")
         bar.more("Outline layouts...", lambda: self.layouts(), "Set an outline's column names and how mixed text is told apart")
@@ -129,6 +131,19 @@ class SetupsPage(QWidget):
         self.builder = host.structure_page.embed(section_card=self.section_card, on_text=self.on_text, on_change=self.counts)
         self.main = self.builder
         v.addWidget(self.builder, 1)
+
+    def pick_designs(self, run=True):
+        M = self._M()
+        if M is None:
+            self.host.status("Start the sections first: the designs go with the setup.")
+            return None
+        from .designpick import DesignPick
+        d = DesignPick(self, M, self.host.config_dir)
+        if not run:
+            return d
+        if d.exec():
+            self.host.changed()
+        return d
 
     def on_text(self, on):
         """The sections as text (Edit as text / Start from) shows even before there are sections."""

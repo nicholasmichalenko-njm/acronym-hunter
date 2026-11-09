@@ -781,8 +781,8 @@ TOPICS = [
   [], []),
 ]
 
-from .guidestudio import STUDIO, FORMATSTD, APPLYWORD, CHECKS369, VERIFY      # 3.66.0: kept apart so this file stays under 800 lines
-TOPICS[next(i for i, t in enumerate(TOPICS) if t[0] == "qpstd"):0] = [STUDIO, FORMATSTD, VERIFY]     # 3.84.0: Verify, sorted into the menu's order below
+from .guidestudio import STUDIO, FORMATSTD, APPLYWORD, CHECKS369, VERIFY, DESIGNS      # 3.66.0: kept apart so this file stays under 800 lines
+TOPICS[next(i for i, t in enumerate(TOPICS) if t[0] == "qpstd"):0] = [STUDIO, FORMATSTD, VERIFY, DESIGNS]     # 3.84.0: Verify, sorted into the menu's order below
 TOPICS.insert(next(i for i, t in enumerate(TOPICS) if t[0] == "fixcopy") + 1, APPLYWORD)   # 3.67.0
 for _k, _line in CHECKS369:                     # 3.69.0: Production Standards' sections in their new homes
     for _t in TOPICS:
@@ -791,7 +791,7 @@ for _k, _line in CHECKS369:                     # 3.69.0: Production Standards' 
 # 3.75.0: the Guide reads in the menu's order (nine groups; a tab's page after its menu item)
 _ORDER = ("tools mywork efforts home requirements deliverables effortfmt record meetings library read custqa datacalls compare "
           "impact shredreq shredacc verify assign prove sort matrix crosswalk evalcrit setups structure storyboards drafts truth acronyms "
-          "acrlist techedit reviews finalcheck qa checks postsub keywords formatstd qpstd layoutstd profiles templates studio "
+          "acrlist techedit reviews finalcheck qa checks postsub keywords formatstd qpstd layoutstd designs profiles templates studio "
           "rules audit applyword fixcopy refs settings exportall").split()
 _pos, _last = {}, -1.0
 for _n, _t in enumerate(TOPICS):

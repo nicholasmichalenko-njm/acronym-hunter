@@ -6,6 +6,7 @@ TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and w
           "studio": ("Template Studio", "One volume's template in one place: its parts from where they live, its parts and numbering, and your field recipes"),
           "formatstd": ("Standards", "The fundamentals every template is built from: theme, fonts, page setups, pagination, numbering, lists and styles; each named, tagged by effort type, every value editable"),
           "qpstd": ("Quick Parts", "Every Quick Part by your numbered categories: its gallery, whether it follows the template's fonts, the pages it fills, and Word's picture of it"),
+          "designs": ("Section designs", "Covers, title pages and front matter sections built in Word and kept whole, for Setup to pick"),
           "layoutstd": ("Layout", "Covers, title pages, back covers, headers and footers, sections, table looks, captions and the TOC, each with its picture and every value"),
           "shredreq": ("Requirements", "Every requirement in one file, labelled Requirement, Instruction (L), Evaluation (M) or SOW task; export a draft matrix or file it to an effort"),
           "techedit": ("Technical Edit", "Copy review: mechanics, consistency, Chicago style, plain language, the customer's words and leftovers, with the edited copy as tracked changes"),

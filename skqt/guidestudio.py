@@ -101,3 +101,18 @@ VERIFY = \
   ["The reader uses these roles the next time the document is read into Review.",
    "Menu roles... (in More) shows, hides, renames and keys the roles, and adds your own.",
    "A verified page is a record that a person checked it, not a guarantee. Reopen this page... sends one back."])
+
+DESIGNS = \
+("designs", "Production", "Section designs",
+  "The library of sections built in Word and kept whole: CUI cover, Cover, Title page, Table of Contents, Acronyms and "
+  "Abbreviations, Units and Symbols, Back cover. Setup picks a design for each section of a volume.",
+  "When the team adds or updates a cover, a title page or a front matter section.",
+  ["Build the section in Word on the team template. Put each piece of text that changes per effort in its own paragraph "
+   "and style; give each source a header or footer reads (STYLEREF) its own style.",
+   "Bring in from Word... and pick its shelf. A file with several Word sections comes in as one design per section.",
+   "On the right, What fills it: type the fill-in each styled paragraph takes, or leave it blank to keep the words as written.",
+   "Text other pages read lists the styles headers and footers read; the check speaks only when one is missing or in a text box.",
+   "Right-click a design: Open in Word, Replace with an updated file..., Remove from the library."],
+  ["Setups already made keep the copy of the design they used.",
+   "A table's sample row repeats once per entry when Setup fills it (an Acronyms table: term, meaning)."])
+

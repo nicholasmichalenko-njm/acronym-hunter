@@ -575,8 +575,9 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
         except Exception:  # noqa: BLE001
             import diag
             diag.swallowed()
+        designs = section_designs(M, config_dir, std, vname, path)        # 3.87.0: the picked Section designs, filled
         out.append({"volume": vname, "template": job.copy, "setup": path, "version": ver, "validation": getattr(job, "validation", None),
-                    "template_name": tname})
+                    "template_name": tname, "designs": designs})
     if not record:
         return out
     S = SD.setup_of(M)
@@ -584,6 +585,37 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
     snap.update(time=stamp, files=[os.path.basename(x["setup"]) for x in out])
     S["exports"] = (S["exports"] + [snap])[-10:]
     SD._log(M, "(setup)", f"setup written on templates: {len(out)} file(s)")
+    return out
+
+
+def section_designs(M, config_dir, std, vname, setup_path):
+    """3.87.0: each section design Setup picked (CUI cover, cover, title page, Table of Contents, Acronyms and
+    Abbreviations, Units and Symbols, back cover), filled with the volume's fill-ins and written beside the setup as
+    "<setup> - <section>.docx". Returns {shelf: path}."""
+    import re as _re
+    import fillins as FI
+    import sectiondesigns as SDZ
+    out = {}
+    vals = {"volume_name": vname}
+    try:
+        for key, style in FI.styles(std).items():
+            v = FI.value(std, key)
+            if v:
+                vals[key] = v
+                vals[_re.sub(r"[^a-z0-9]+", "_", style.lower()).strip("_")] = v
+    except Exception:  # noqa: BLE001
+        pass
+    for shelf in SDZ.SHELVES:
+        did = SDZ.picked(M, shelf)
+        x = SDZ.get(config_dir, did) if did and did != "none" else None
+        if x is None:
+            continue
+        try:
+            dest = os.path.splitext(setup_path)[0] + f" - {SDZ.SHELF_NAME[shelf]}.docx"
+            out[shelf] = SDZ.fill(SDZ.path_of(config_dir, x), x["map"], vals, dest)
+        except Exception:  # noqa: BLE001
+            import diag
+            diag.swallowed()
     return out
 
 

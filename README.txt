@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SECTION DESIGNS (3.87.0)
+  - Production > Section designs (a tab beside Layout): the covers, title pages and front matter sections the team builds
+    in Word, on seven shelves: CUI cover, Cover, Title page, Table of Contents, Acronyms and Abbreviations, Units and
+    Symbols, Back cover. A library only: Setup picks from it.
+  - Build each one in Word on the team template: text that changes per effort in its own paragraph and style; each
+    source a header or footer reads (STYLEREF) in its own style. Bring in from Word... and pick its shelf. A file with
+    several Word sections comes in as one design per section. The file you picked is never changed.
+  - What fills it: one row per styled paragraph; type the fill-in it takes (volume_name, solicitation, your own), or
+    leave it blank to keep the words. Text other pages read lists the styles headers and footers read; the check speaks
+    only when one is missing or in a text box. Right-click a design: Open in Word, Replace with an updated file...,
+    Remove from the library.
+  - Setup > More > Section designs...: the design for each section; None leaves an optional one out. Make the setup
+    writes each picked design, filled, beside the setup ("<setup> - Cover.docx"); Word updates its fields when it opens.
+
 SETUP I (3.86.0)
   - Make the setup puts each section's References and notes for authors on its heading as Word comments, one per
     reference, by Stationkeeper. A section with none gets none. Strip setup... takes them out; your own comments stay.

@@ -56,7 +56,7 @@ TABS = {"home": [("home", "Dashboard"), ("requirements", "Submission Rules")],
         "custqa": [("custqa", "Customer Q&A"), ("datacalls", "Data calls")],
         "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks")],
         "shredreq": [("shredreq", "Requirements"), ("shredacc", "Accuracy")], "postsub": [("postsub", "Checklist"), ("keywords", "Keywords")],
-        "formatstd": [("formatstd", "Formatting"), ("qpstd", "Quick Parts"), ("layoutstd", "Layout")],      # 3.75.0: tabs, not menu items
+        "formatstd": [("formatstd", "Formatting"), ("qpstd", "Quick Parts"), ("layoutstd", "Layout"), ("designs", "Section designs")],      # 3.75.0: tabs, not menu items
         "profiles": [("profiles", "Effort Profiles"), ("templates", "Templates")],
         "audit": [("audit", "Audit"), ("applyword", "Apply in Word"), ("fixcopy", "Fix a Copy")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
@@ -283,6 +283,8 @@ class MainWindow(QMainWindow):
         self.formatstd_page = FormattingStandardsPage(self)   # 3.49.0: the first library screen
         self.qpstd_page = QuickPartsPage(self)                # 3.50.0
         self.layoutstd_page = LayoutPage(self)
+        from .designspage import DesignsPage              # 3.87.0: the library of sections built in Word
+        self.designs_page = DesignsPage(self)
         from .techeditpage import TechEditPage
         self.techedit_page = TechEditPage(self)                  # 3.54.0
         from .toolshome import ToolsHome
@@ -308,7 +310,7 @@ class MainWindow(QMainWindow):
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page, "audit": self.audit_page,
                       "effortfmt": self.effortfmt_page, "rules": self.rules_page, "datacalls": self.datacalls_page,
                       "drafts": self.drafts_page, "formatstd": self.formatstd_page,
-                      "qpstd": self.qpstd_page, "layoutstd": self.layoutstd_page,
+                      "qpstd": self.qpstd_page, "layoutstd": self.layoutstd_page, "designs": self.designs_page,
                       "profiles": self.profiles_page, "templates": self.templates_page,
                       "tools": self.tools_page, "refs": self.refs_page, "techedit": self.techedit_page, "shredreq": self.shred_page, "setups": self.setups_page, "finalcheck": self.finalcheck_page, "shredacc": self.accuracy_page}
         for pg in self.pages.values():
@@ -389,7 +391,7 @@ class MainWindow(QMainWindow):
         if getattr(self, "efforts_page", None) is not None and self.stack.currentWidget() is self.efforts_page:
             self.efforts_page.refresh()            # 3.34.1: a new effort shows in the list at once
 
-    NO_EFFORT = {"tools", "mywork", "efforts", "settings", "refs", "shredreq", "formatstd", "qpstd", "layoutstd", "profiles", "templates",
+    NO_EFFORT = {"tools", "mywork", "efforts", "settings", "refs", "shredreq", "formatstd", "qpstd", "layoutstd", "designs", "profiles", "templates",
                  "rules", "prodstd", "audit", "fixcopy", "applyword", "exportall"}
 
     def rail_go(self, key):
