@@ -201,11 +201,15 @@ QLabel#toast {{ background: {t['text']}; color: {t['surface']}; border-radius: 8
 """
 
 
-def apply(app):
-    """Light or dark from Windows; the palette and the style for the whole app. Returns True for dark."""
+APPEARANCE = (("windows", "Follow Windows"), ("light", "Light"), ("dark", "Dark"))     # 3.91.0: Settings > Appearance
+
+
+def apply(app, choice=None):
+    """Light or dark: the person's choice (Settings > Appearance, 3.91.0), else Windows; the palette and the style for
+    the whole app. SK_THEME (tests, support) wins over both. Returns True for dark."""
     app.setStyle("Fusion")
     import os
-    want = os.environ.get("SK_THEME", "").lower()          # light or dark by choice; else Windows decides
+    want = os.environ.get("SK_THEME", "").lower() or str(choice or "").lower()    # light or dark by choice; else Windows decides
     dark = False
     try:
         dark = app.styleHints().colorScheme() == Qt.ColorScheme.Dark

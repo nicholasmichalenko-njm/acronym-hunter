@@ -37,7 +37,7 @@ GUESS = (("reference_l", r"solicitation\s*requirements?\s*\(?\s*section\s*l\b|se
          ("requirement_m", r"evaluation\s*(content|text|criteria)|section\s*m\s*(content|text|requirement|criteria)|^m\s*(content|text|requirement)"),
          ("lm", r"^(l\s*/\s*m|l\s*(&|and|n|or)\s*m|lnm|lm|section\s*l\s*/\s*m|l\s*or\s*m\s*\??)$"),
          ("section_number", r"(section|sec)\.?\s*(number|no|num|#)|^number$|^no\.?$"), ("section_name", r"(section|heading)\s*(name|title)|^title$|^name$"),
-         ("reference", r"rfp\s*l?\s*(number|no|ref|reference)|^ref(erence)?$|rfp\s*para|l\s*number|source\s*ref"),
+         ("reference", r"rfp\s*l?\s*(number|no|ref|reference)|^ref(erence)?$|rfp\s*para|l\s*number|source\s*ref|^sources?$|source\s*(info|information|location)"),   # 3.91.0: Source
          ("requirement", r"compliance\s*req|requirement"), ("support", r"support|rfp\s*content|context"),
          ("guidance", r"management|guidance|direction|pm\s*note"), ("authors", r"author|writer|owner|lead"))
 FILE = "outline_profiles.json"

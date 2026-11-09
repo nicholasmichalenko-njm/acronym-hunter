@@ -81,7 +81,10 @@ def main(argv=None):
     ico = os.path.join(A.BASE_DIR, "assets", "scanner.ico")
     if os.path.isfile(ico):
         app.setWindowIcon(QIcon(ico))
-    design.apply(app)
+    try:                                             # 3.91.0: Settings > Appearance (Follow Windows, Light, Dark)
+        design.apply(app, (A.load_settings() or {}).get("appearance"))
+    except Exception:                                # noqa: BLE001  settings unreadable: Windows decides
+        design.apply(app)
     import diag
     diag.activity("qt_started")
     import supportfile as SF                         # 2.81.0: two starts in a row that never finished: a safe start
