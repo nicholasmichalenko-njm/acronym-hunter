@@ -109,7 +109,11 @@ def build(page, t, kind_tone):
         page.where_view = FoundView(t, locs, page.path_of, on_meaning=lambda x: _meaning(page, x),
                                     on_find_text=lambda x: page.find_text.setText(x),
                                     on_add_term=lambda text, loc, read, crop: APT.missed(page, text, loc, read, crop))
-        body.addWidget(page.where_view)
+        if getattr(page, "mid_box", None) is not None:                  # 3.92.0: the customer's page, in the middle
+            page.mid_hint.setVisible(False)
+            page.mid_box.addWidget(page.where_view, 1)
+        else:
+            body.addWidget(page.where_view)
 
     # ---- details, folded
     inner = QVBoxLayout(); inner.setContentsMargins(0, 0, 0, 0); inner.setSpacing(D.SPACE["s"])

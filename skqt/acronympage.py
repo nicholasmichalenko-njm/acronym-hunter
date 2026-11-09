@@ -170,6 +170,8 @@ class AcronymPage(QWidget):
                                    lambda: self.scan_customer())
         v.addWidget(self.empty)
         self.tool = False
+        from . import acrlayout as AL                                    # 3.92.0: three panes, counts, keys
+        AL.install(self)
 
     def tool_mode(self):
         """3.50.0: the page inside Acronym Finder: no effort, no customer Library; Scan files... starts it."""
@@ -252,6 +254,8 @@ class AcronymPage(QWidget):
         self.terms = self.rows()
         has = bool(s and s.results)
         self.show_bulk()
+        from . import acrlayout as AL
+        AL.fill_counts(self)
         self.empty.setVisible(not has and self.worker is None)
         self.table.setVisible(has or self.worker is not None)
         self.card_area.setVisible(has)
@@ -315,6 +319,13 @@ class AcronymPage(QWidget):
 
     # ------------------------------------------------------------ the card
     def _clear(self):
+        mb = getattr(self, "mid_box", None)                              # 3.92.0: the page in the middle
+        if mb is not None:
+            for i in reversed(range(mb.count())):
+                w = mb.itemAt(i).widget()
+                if w is not None and w is not self.mid_hint:
+                    mb.takeAt(i); w.setParent(None); w.deleteLater()
+            self.mid_hint.setVisible(True)
         while self.body.count():
             it = self.body.takeAt(0)
             w = it.widget()
@@ -343,6 +354,8 @@ class AcronymPage(QWidget):
         self.card.title.setText(t)
         from . import acrcard                                          # 3.61.0: a lighter card, details folded
         acrcard.build(self, t, KIND_TONE)
+        from . import acrlayout as AL                                    # 3.92.0: keys, a longer term, where it goes
+        AL.card_more(self, t)
         k = self.terms.index(t) if t in self.terms else -1               # 3.80.0: the next term's picture, drawn ahead
         if 0 <= k < len(self.terms) - 1:
             from . import foundview as FV
@@ -605,6 +618,8 @@ class AcronymPage(QWidget):
         self.progress.setText("")
         self.fill_types()
         self.fill()
+        from . import acrlayout as AL
+        AL.note_scan(self)                                               # 3.92.0: the effort's timeline
         n = self.session.counts()
         msg = f"Scan done: {n['active']} terms, {n['choice']} need a choice, {n['candidate']} new candidates"
         if rec:

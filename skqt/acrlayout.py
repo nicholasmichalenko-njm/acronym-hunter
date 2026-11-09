@@ -50,14 +50,17 @@ def install(page):
                 if w is not None and w not in (page.progress, page.b_cancel, page.f_search, page.showing):
                     w.setVisible(False)
     top = QHBoxLayout(); top.setSpacing(D.SPACE["s"])
-    top.addWidget(D.label("Acronyms", "title", wrap=False))
+    page.where.setVisible(False)                           # the page's title says what it is
     top.addWidget(page.progress, 1); top.addWidget(page.b_cancel); top.addWidget(bar)
     v.insertLayout(1, top)
     # the filters as counts
     page.counts_row = FlowLayout(); page.counts_row.setSpacing(D.SPACE["s"])
     page.count_btns = {}
+    t = D.tokens()
+    chip = (f"QPushButton{{border:1px solid {t['border_strong']};border-radius:12px;padding:3px 10px;background:{t['surface']};color:{t['text']}}}"
+            f"QPushButton:checked{{border:2px solid {t['accent']};background:{t['accent_soft']};color:{t['accent']};font-weight:600}}")
     for name in P.COUNTS:
-        b = QPushButton(name); b.setCheckable(True); b.setObjectName("chip")
+        b = QPushButton(name); b.setCheckable(True); b.setObjectName("chip"); b.setStyleSheet(chip)
         b.clicked.connect(lambda _c=False, n=name: pick_count(page, n))
         page.counts_row.addWidget(b); page.count_btns[name] = b
     page.counts_row.addWidget(page.f_search)
@@ -185,8 +188,8 @@ def not_term_current(page):
 def mark_pick(page):
     for k, w in enumerate(getattr(page, "suggest_widgets", []) or [], 1):
         w.setProperty("picked", k == page.pick)
-        w.setStyleSheet(f"QFrame#sugg{{border:2px solid {D.T('ok')};border-radius:6px}}" if k == page.pick else
-                        f"QFrame#sugg{{border:1px solid {D.T('border')};border-radius:6px}}")
+        w.setStyleSheet(f"QFrame#sugg{{border:2px solid {D.tokens()['ok']};border-radius:6px}}" if k == page.pick else
+                        f"QFrame#sugg{{border:1px solid {D.tokens()['border']};border-radius:6px}}")
 
 
 # ------------------------------------------------------------------ the line from the spelled-out words
@@ -280,8 +283,14 @@ def use_whole(page, part, whole):
 
 
 def list_entries(s):
-    return [(t, d.get("list_definition") or d.get("selected_definition") or "") for t, d in s.results.items()
+    return [(t, _real(d.get("list_definition") or d.get("selected_definition"))) for t, d in s.results.items()
             if d.get("effort") == "In the list"]
+
+
+def _real(dfn):
+    """A definition, or "" for the scan's placeholders ([Not in Database ...])."""
+    dfn = " ".join(str(dfn or "").split())
+    return "" if dfn.startswith("[") else dfn
 
 
 def where_it_goes(page, t):
@@ -289,7 +298,7 @@ def where_it_goes(page, t):
     s = page.session
     d = s.results.get(t, {})
     dfn = page.typed.text().strip() if getattr(page, "typed", None) else ""
-    dfn = dfn or (page.suggest_rows[0]["definition"] if getattr(page, "suggest_rows", None) else d.get("selected_definition", ""))
+    dfn = _real(dfn or (page.suggest_rows[0]["definition"] if getattr(page, "suggest_rows", None) else d.get("selected_definition", "")))
     card = QFrame(); card.setObjectName("whereGoes")
     v = QVBoxLayout(card); v.setContentsMargins(0, 6, 0, 0); v.setSpacing(4)
     v.addWidget(D.SectionTitle("Where it goes"))
@@ -366,7 +375,7 @@ def set_hyphen(page, on=None):
         return 0
     on = (not P.hyphen_whole(s)) if on is None else bool(on)
     n = P.set_hyphen_whole(s, on)
-    page.hyphen_act.setChecked(on)
+    page.hyphen_act.blockSignals(True); page.hyphen_act.setChecked(on); page.hyphen_act.blockSignals(False)
     page.host.toast((f"Letters joined by a hyphen are one term: {n} piece(s) joined" if on else
                      "Letters joined by a hyphen are read apart again"))
     page.fill()
