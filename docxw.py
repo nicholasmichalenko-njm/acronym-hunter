@@ -40,6 +40,11 @@ def _run(text, bold=False, color=None):
     return "".join(out)
 
 
+def _box(color):
+    c = color or "808080"
+    return "<w:pBdr>" + "".join(f'<w:{b} w:val="single" w:sz="6" w:space="4" w:color="{c}"/>' for b in ("top", "left", "bottom", "right")) + "</w:pBdr>"
+
+
 class Doc:
     def __init__(self):
         self.body = []
@@ -78,21 +83,23 @@ class Doc:
         """Start a new page (2.43.0: one author brief per page)."""
         self.body.append('<w:p><w:r><w:br w:type="page"/></w:r></w:p>')
 
-    def rich(self, parts, indent=None, border=None, kind=None):
+    def rich(self, parts, indent=None, border=None, kind=None, box=False):
         """One paragraph of several runs: parts = [(text, {"bold", "italic", "underline", "color", "fill", "size"})]
         (2.29.0; underline 2.31.0). fill shades the run's background (a highlighter in any color); size is in half-points.
         2.52.0: indent (twentieths of a point) moves the paragraph in from the left; border draws a line down its left
-        edge in that color (a support paragraph tied to the requirement above it)."""
+        edge in that color (a support paragraph tied to the requirement above it). 3.87.1: box draws all four sides (a
+        format rule for the section), with or without a setup style."""
         if self.left_out(kind):
             return
         sid = self.styles.get(self._kind(kind)) if kind else None
         if sid:                                    # 3.24.0: the style holds color, indent and border
             parts = [(t, {k: v for k, v in (f or {}).items() if k != "color"}) for t, f in parts]
-            self.body.append(f'<w:p><w:pPr><w:pStyle w:val="{_x(sid)}"/></w:pPr>' + _runs(parts) + "</w:p>")
+            bx = _box(border) if box else ""
+            self.body.append(f'<w:p><w:pPr><w:pStyle w:val="{_x(sid)}"/>{bx}</w:pPr>' + _runs(parts) + "</w:p>")
             return
         ppr = ""
         if indent or border:
-            bd = (f'<w:pBdr><w:left w:val="single" w:sz="18" w:space="8" w:color="{border}"/></w:pBdr>' if border else "")
+            bd = _box(border) if box else (f'<w:pBdr><w:left w:val="single" w:sz="18" w:space="8" w:color="{border}"/></w:pBdr>' if border else "")
             ppr = f"<w:pPr>{bd}" + (f'<w:ind w:left="{int(indent)}"/>' if indent else "") + "</w:pPr>"
         self.body.append("<w:p>" + ppr + _runs(parts) + "</w:p>")
 

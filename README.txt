@@ -1,6 +1,17 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SECTION DESIGNS II (3.87.1)
+  - Make the setup places each picked design inside the volume itself, each in its own Word section (its page layout
+    stays its own): CUI cover, cover, title page and the front matter before the response; the back cover after it.
+    The design's styles and pictures come with it. Its own header and footer stay behind.
+  - Setup: picking the Cover, Title page, Table of Contents, Acronyms and Abbreviations, Units and Symbols or Back
+    cover section shows a Design row: pick its design there (None leaves an optional one out).
+  - Section designs: each design shows Word's picture of its page once drawn (right-click: Draw with Word), or the
+    app's sketch, marked as one.
+  - A format rule placed in a section prints in a box, "Format rule:" first. In Review, a support sentence's home is
+    where the requirement it supports was placed.
+
 SECTION DESIGNS (3.87.0)
   - Production > Section designs (a tab beside Layout): the covers, title pages and front matter sections the team builds
     in Word, on seven shelves: CUI cover, Cover, Title page, Table of Contents, Acronyms and Abbreviations, Units and

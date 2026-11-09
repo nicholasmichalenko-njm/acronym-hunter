@@ -945,6 +945,9 @@ def _doc_for(M, name, entries, P, inh, stamp, context=None, rules=None, styles=N
                     d.rich([("Also support for " + ", ".join(others), {"color": "6B7280"})], indent=720, kind="support")
             elif ("eval" if kind_of(it) == "Evaluation" else "req") in d.skip:   # 3.56.0: the Setup page's layer is off
                 continue
+            elif it.get("type") == "Format":                 # 3.87.1: a format rule for the section prints in a box
+                d.rich([("Format rule" + (f" ({where})" if where else "") + ": ", {"color": PURPLE, "bold": True})]
+                       + cwords.docx_parts(block_text(M, it, inh), {"color": PURPLE}, cw), indent=360, border=PURPLE, kind="rfp", box=True)
             else:
                 d.rich(cwords.docx_parts(block_text(M, it, inh), {"color": PURPLE}, cw)
                        + ([(f"  ({where})", {"color": "6B7280"})] if where else []), kind="rfp")
