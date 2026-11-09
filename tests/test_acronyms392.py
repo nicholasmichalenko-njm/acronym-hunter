@@ -82,5 +82,38 @@ check("with the rule, DC and RVM found only inside DC-RVM join it", n == 2 and s
       and s.parts.get("RVM", {}).get("whole") == "DC-RVM", (n, s.parts))
 check("the hyphen rule is kept", P.hyphen_whole(s) and s.rules_extra == {"hyphen_whole": True})
 
+# In our drafts: a fictional Vol II draft, checked and fixed in a copy
+import tempfile, zipfile
+import docxw, acrfix as F
+from lxml import etree
+tmp = tempfile.mkdtemp()
+d = docxw.Doc()
+d.heading("2.1 Ground Segment Approach", 1)
+d.para("Our design pairs two sites with a commercial GSaaS option, so no day of passes is lost.")
+d.para("We contract Ground Station as a Service (GSaaS) passes at two commercial sites.")
+d.para("The Mission Operations Center (MOC) runs both sites.")
+d.para("Each Mission Operations Center (MOC) shift hands over at 0600; RF links are watched.")
+d.table(["Acronym", "Definition"], [["GSaaS", "Ground Station as a Service"], ["LEO", "Low Earth Orbit"]], [2000, 6000])
+draft = os.path.join(tmp, "Kestrel_VolII_draft_v4.docx"); d.save(draft)
+before = open(draft, "rb").read()
+ent = [("GSaaS", "Ground Station as a Service"), ("MOC", "Mission Operations Center"), ("LEO", "Low Earth Orbit")]
+r = F.check(draft, ent)
+kinds = {(f["term"], f["kind"]) for f in r["findings"]}
+check("the draft: GSaaS used before it is spelled out, MOC spelled out again, RF not in the list",
+      ("GSaaS", "before") in kinds and ("MOC", "again") in kinds and ("RF", "unlisted") in kinds and ("MOC", "before") not in kinds, kinds)
+check("the volume's table: LEO listed but not used, MOC used but not listed",
+      r["table"]["listed_not_used"] == ["LEO"] and r["table"]["used_not_listed"] == ["MOC"], r["table"])
+check("each term's uses in the volume, the table left out", r["use"].get("GSaaS") == 2 and r["use"].get("MOC") == 2, r["use"])
+out = F.fix(draft, os.path.join(tmp, "Kestrel_VolII_draft_v4 (fixes).docx"), [f for f in r["findings"] if f["kind"] != "unlisted"])
+with zipfile.ZipFile(out) as z:
+    root = etree.fromstring(z.read("word/document.xml"))
+texts = [F._text(p) for p in F._paras(root)]
+check("the copy, changes accepted: spelled out at the first use", any("commercial Ground Station as a Service (GSaaS) option" in t for t in texts), texts)
+check("... the later spelled-out place keeps the acronym alone", any(t.startswith("We contract GSaaS passes") for t in texts), texts)
+check("... spelled out again loses its words", any(t.startswith("Each MOC shift") for t in texts) and any("Mission Operations Center (MOC) runs" in t for t in texts), texts)
+xml = etree.tostring(root).decode()
+check("the fixes are tracked changes Word can accept or reject", "<w:ins " in xml and "<w:del " in xml and "w:delText" in xml and 'w:author="Stationkeeper"' in xml)
+check("the draft itself is not changed", open(draft, "rb").read() == before)
+
 print(f"{sum(checks)}/{len(checks)} passed")
 sys.exit(0 if all(checks) else 1)
