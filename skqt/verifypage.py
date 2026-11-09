@@ -133,7 +133,7 @@ class VerifyPage(QWidget):
         self.setObjectName("page")
         self.host = host
         self.doc, self.pdf, self.n, self.sel, self.picking = None, "", 1, [], False
-        self.v, self.threads, self.failed = [], [], {}
+        self.v, self.threads, self.failed, self.bad = [], [], {}, set()
         v = QVBoxLayout(self); v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["s"])
         from .commandbar import CommandBar
         top = QHBoxLayout(); top.setSpacing(D.SPACE["s"]); v.addLayout(top)
@@ -218,7 +218,11 @@ class VerifyPage(QWidget):
         st = self.store()
         for name, label, path in self.docs():
             pdf = self.pdf_of(path, make=False)
-            c = VS.counts(pdf, st, name) if pdf else None
+            try:
+                c = VS.counts(pdf, st, name) if pdf and pdf not in self.bad else None
+            except Exception:  # noqa: BLE001
+                diag.swallowed()
+                c = None
             txt = f"{name}  ({c['verified']} of {c['pages']} verified)" if c else f"{name}  (not ready yet)"
             a = self.doc_menu.addAction(txt); a.triggered.connect(lambda _=False, p=path: self.open_doc(p))
             a.setCheckable(True); a.setChecked(name == self.doc)
@@ -275,12 +279,24 @@ class VerifyPage(QWidget):
             self.strip.set([], 0)
             return
         self.n = max(1, self.store().doc(self.doc)["last"])
+        if not self.pages():
+            self.view.scene().clear(); self.view.items = {}; self.v = []
+            self.strip.set([], 0)
+            return
         self.show_page()
 
     # ------------------------------------------------------------ one page
     def pages(self):
         import verifyblocks as VB
-        return VB.blocks(self.pdf)["pages"] if self.pdf else []
+        if not self.pdf or self.pdf in self.bad:
+            return []
+        try:
+            return VB.blocks(self.pdf)["pages"]
+        except Exception:  # noqa: BLE001  a damaged file: say so, never stop the page
+            diag.swallowed()
+            self.bad.add(self.pdf)
+            self.line.setText(f"{self.doc}: this file could not be read as pages. Open it in its own program to check it.")
+            return []
 
     def go(self, n):
         ps = self.pages()
