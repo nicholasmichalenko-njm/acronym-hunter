@@ -136,6 +136,22 @@ check("Check first use: a row for each acronym in the Word file", rep is not Non
 from skqt.acrtool import FirstUseDialog
 d = FirstUseDialog(tw, rep)
 check("the first use report shows and exports", d.table.rowCount() == len(rep["first_use"]) and d.export(os.path.join(tmp, "fu.xlsx")))
+check("3.88.0: each volume's Acronyms table is its own tab", isinstance(rep.get("tables"), list)
+      and d.tables_tab.rowCount() == len(rep["tables"]))
+# 3.88.0: the easy ones in one click, named, and the card's suggestions with source and why
+pg = tw.page
+fake = {"definition": "Kestrel Support Facility", "where": "RFP p. 41 (L.3.6)", "sentence": "Kestrel Support Facility (KSF)"}
+pg.session.results["KSF"] = {"status": "", "count": 1, "locations": [], "definitions": ["Kestrel Support Facility"],
+                             "customer_definitions": ["Kestrel Support Facility"], "custdef_all": [fake], "custdef_source": fake}
+pg.session.results["L-3"] = {"status": "", "count": 1, "locations": [], "definitions": []}
+pg.fill()
+check("the link names the terms one click adds and why", pg.bulk.isVisibleTo(tw) and "KSF" in pg.bulk.text() and "one customer definition" in pg.bulk.text(),
+      pg.bulk.text())
+pg.select("KSF"); app.processEvents()
+check("the card: the customer's definition first, with where it was spelled out", pg.suggest_rows
+      and pg.suggest_rows[0]["source"] == "Customer" and "RFP p. 41" in pg.suggest_rows[0]["why"], getattr(pg, "suggest_rows", None))
+check("Add them: each with its customer definition", "KSF" in pg.add_one_customer()
+      and pg.session.results["KSF"].get("effort") == "In the list")
 check("Start a new list clears it", tw.new_list() and not tw.page.session.results)
 from skqt.acronympage import AcronymPage
 check("Acronyms (in an effort) has Open in its own window", w.acronym_page.b_window.text() == "Open in its own window")

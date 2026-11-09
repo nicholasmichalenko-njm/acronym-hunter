@@ -123,6 +123,9 @@ class AcronymPage(QWidget):
             f.addWidget(w)
         f.addWidget(self.f_search, 1); f.addWidget(self.f_pics); f.addWidget(self.f_excl); f.addWidget(self.f_forms)
         self.showing = D.label("", "muted", wrap=False); f.addWidget(self.showing)
+        self.bulk = D.label("", None, wrap=False)                         # 3.88.0: the easy ones in one click, named
+        self.bulk.setTextFormat(Qt.RichText); self.bulk.linkActivated.connect(lambda _h: self.add_one_customer())
+        v.addWidget(self.bulk)
         f.addWidget(D.button("Export the report...", None, lambda: self.export(), "Exactly the rows shown, as a CSV that opens in Excel"))
         tb = FlowLayout(); tb.setSpacing(D.SPACE["s"]); v.addLayout(tb)            # 3.51.0: the classic window's tools
         for b in AX.top_buttons(self):
@@ -248,6 +251,7 @@ class AcronymPage(QWidget):
         keep = self.current()
         self.terms = self.rows()
         has = bool(s and s.results)
+        self.show_bulk()
         self.empty.setVisible(not has and self.worker is None)
         self.table.setVisible(has or self.worker is not None)
         self.card_area.setVisible(has)
@@ -446,6 +450,36 @@ class AcronymPage(QWidget):
         diag.activity("qt_acronym_choice")
         self.fill()
         return self.session.results[term]["status"]
+
+    def one_customer(self):
+        import acrsuggest as AS
+        s = self.session
+        if s is None:
+            return []
+        return AS.one_customer(s.results, lambda d: status_ok(d, "To decide", A.status_kind(d.get("status", ""))))
+
+    def show_bulk(self):
+        terms = self.one_customer()
+        if not terms:
+            self.bulk.setText(""); self.bulk.setVisible(False)
+            return terms
+        names = ", ".join(terms[:6]) + (f" and {len(terms) - 6} more" if len(terms) > 6 else "")
+        self.bulk.setText(f"<a href='add'>Add {len(terms)} with one customer definition: {names}</a>"
+                          "  <span style='color:gray'>(spelled out once by the customer, nothing that disagrees)</span>")
+        self.bulk.setVisible(True)
+        return terms
+
+    def add_one_customer(self):
+        """Suggest, never decide: the link names the terms and the reason; each is added with its customer definition."""
+        s = self.session
+        terms = self.one_customer()
+        for t in terms:
+            d = s.results[t]
+            s.add([t], (d.get("customer_definitions") or [""])[0])
+        diag.activity("acronym_one_customer_added", n=len(terms))
+        self.host.toast(f"{len(terms)} added with their customer definition.")
+        self.fill()
+        return terms
 
     def add(self, terms, definition=None):
         typed = definition if definition is not None else (self.typed.text().strip() if len(terms) == 1 and hasattr(self, "typed") else "")

@@ -267,10 +267,32 @@ class AcronymToolWindow(QMainWindow):
         if report is None:
             self.host.status("First use needs Word files (.docx) with different names.")
             return None
+        report["tables"] = table_checks(s, paths)          # 3.88.0: each volume's own Acronyms table against the list
         self.page.fill()
         if run:
             FirstUseDialog(self, report).exec()
         return report
+
+
+def table_checks(session, paths):
+    """3.88.0 (decision 7): each volume's own Acronyms table against what its text uses: listed but not used, used but
+    not listed (from the effort's list)."""
+    import acrdrafts as AD
+    listed = [t for t, d in session.results.items() if d.get("effort") == "In the list"]
+    out = []
+    for p in paths:
+        try:
+            r = AD.table_check(p, listed)
+        except Exception:  # noqa: BLE001  a file that cannot be read is left out of this tab
+            diag.swallowed()
+            continue
+        for t in r["listed_not_used"]:
+            out.append({"volume": os.path.basename(p), "term": t, "state": "In its Acronyms table, not used in its text"})
+        for t in r["used_not_listed"]:
+            out.append({"volume": os.path.basename(p), "term": t, "state": "Used in its text, not in its Acronyms table"})
+        if not r["table"]:
+            out.append({"volume": os.path.basename(p), "term": "", "state": "No Acronyms table found in this file"})
+    return out
 
 
 class FirstUseDialog(QDialog):
@@ -307,6 +329,14 @@ class FirstUseDialog(QDialog):
             for c_, k in enumerate(("term", "volumes", "loc")):
                 mt.setItem(r, c_, QTableWidgetItem(str(row.get(k) or "")))
         tabs.addTab(mt, f"Not in the list ({len(miss)})")
+        tb = report.get("tables", [])                          # 3.88.0
+        tt = QTableWidget(len(tb), 3); tt.setHorizontalHeaderLabels(["File", "Acronym", "Its Acronyms table"])
+        tt.verticalHeader().setVisible(False); tt.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        for r, row in enumerate(tb):
+            for c_, k in enumerate(("volume", "term", "state")):
+                tt.setItem(r, c_, QTableWidgetItem(str(row.get(k) or "")))
+        tabs.addTab(tt, f"Each volume's Acronyms table ({len(tb)})")
+        self.tables_tab = tt
         self.table = t
         br = QHBoxLayout(); v.addLayout(br)
         br.addWidget(QLabel("")); br.addStretch(1)

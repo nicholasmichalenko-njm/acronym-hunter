@@ -38,6 +38,27 @@ def build(page, t, kind_tone):
     # ---- the meaning
     chosen = d.get("selected_definition", "")
     body.addWidget(D.label(f"Meaning: <b>{chosen}</b>" if chosen else "Meaning: none chosen yet"))
+    # 3.88.0: what it could mean, in the stated order, each with its source and why; two customer meanings need a choice
+    import acrsuggest as AS
+    hint = AS.not_a_term_hint(t)
+    if hint and not d.get("excluded") and d.get("effort") != "Not a term":
+        hr = QHBoxLayout(); hr.setSpacing(D.SPACE["s"])
+        hr.addWidget(D.label(f"Suggested: Not a term. {hint}.", "muted"), 1)
+        hr.addWidget(D.button("Not a term", "ghost", lambda: page.set_status([t], "Not a term")))
+        body.addLayout(hr)
+    means = AS.meanings(d)
+    if means:
+        body.addWidget(D.label("Needs a choice: the customer spells it out more than one way. Pick the one this effort uses; "
+                               "the other stays in Other definitions.", "muted"))
+    sug = AS.suggestions(d)
+    page.suggest_rows = []
+    for k, x in enumerate(sug[:4], 1):
+        r = QHBoxLayout(); r.setSpacing(D.SPACE["s"])
+        r.addWidget(D.Pill(x["source"], {"List": "ok", "Customer": "cust", "Client list": "accent", "This PC": "head"}[x["source"]]))
+        r.addWidget(D.label(f"<b>{x['definition']}</b>  <span style='color:gray'>{x['why']}</span>"), 1)
+        r.addWidget(D.button(f"Use this  {k}" if k <= 2 else "Use this", "ghost", lambda _=False, x=x: page.choose(t, x["definition"])))
+        body.addLayout(r)
+        page.suggest_rows.append(x)
     extras = AX.card_extras(page, t)
     details_extra = []
     for w_ in extras:                                    # the found line and the context suggestion stay up top

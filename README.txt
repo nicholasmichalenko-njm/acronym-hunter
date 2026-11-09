@@ -1,6 +1,16 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+ACRONYMS V2 (3.88.0)
+  - A term's card lists what it could mean, in order: the effort's list, the customer's documents, client lists, this
+    PC's database. Each line names its source and why ("Spelled out by the customer, RFP p. 41 (L.3.6)"); Use this
+    picks it. When the customer spells a term out more than one way, the card says Needs a choice.
+  - Above the list, one link adds every term still to decide that the customer spells out exactly once, with nothing
+    that disagrees; it names the terms. Each is added with the customer's definition.
+  - A term that looks like a table or figure number (L-3, J-1) is suggested as Not a term.
+  - Check first use (Acronym Finder) has a tab for each volume's own Acronyms table: terms listed but not used in its
+    text, and terms used in its text but not in its table.
+
 SECTION DESIGNS II (3.87.1)
   - Make the setup places each picked design inside the volume itself, each in its own Word section (its page layout
     stays its own): CUI cover, cover, title page and the front matter before the response; the back cover after it.
