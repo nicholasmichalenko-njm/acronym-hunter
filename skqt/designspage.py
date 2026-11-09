@@ -41,6 +41,11 @@ class DesignsPage(QWidget):
         split.addWidget(self.tree)
         side = QWidget(); sv = QVBoxLayout(side); sv.setContentsMargins(D.SPACE["s"], 0, 0, 0)
         self.title = D.label("", "title"); sv.addWidget(self.title)
+        from PySide6.QtWidgets import QLabel                     # 3.87.1: the page, drawn by Word or sketched
+        self.thumb = QLabel(); self.thumb.setFixedSize(230, 300); self.thumb.setAlignment(Qt.AlignCenter)
+        self.thumb.setStyleSheet("QLabel { border: 1px solid %s; background: white; }" % D.tokens()["border"])
+        self.thumb_note = D.label("", "muted")
+        sv.addWidget(self.thumb); sv.addWidget(self.thumb_note)
         sv.addWidget(D.label("What fills it", "label"))
         self.fills = QTableWidget(0, 3); self.fills.setHorizontalHeaderLabels(["Paragraph", "Style", "Fill-in (blank: as written)"])
         self.fills.horizontalHeader().setStretchLastSection(True)
@@ -143,6 +148,7 @@ class DesignsPage(QWidget):
             b = QTableWidgetItem(p["style"]); b.setFlags(Qt.ItemIsEnabled)
             c = QTableWidgetItem(x["map"].get(str(p["i"]), ""))
             self.fills.setItem(r, 0, a); self.fills.setItem(r, 1, b); self.fills.setItem(r, 2, c)
+        self.show_thumb(path, info)
         src = SDZ.other_pages(path)
         self.others.setText("\n".join(f"{s['style']}: {s['where'] or '(no paragraph in this style)'}"
                                       + ("  (in a text box)" if s["in_textbox"] else "") for s in src)
@@ -168,12 +174,46 @@ class DesignsPage(QWidget):
             return None
         m = QMenu(self)
         m.addAction("Open in Word", lambda: self.open_word(did))
+        m.addAction("Draw with Word", lambda: self.draw(did))
         m.addAction("Replace with an updated file...", lambda: self.replace(did))
         m.addSeparator()
         m.addAction("Remove from the library", lambda: self.remove(did))
         if run:
             m.exec(at or self.tree.viewport().mapToGlobal(self.tree.visualItemRect(it).bottomLeft()))
         return m
+
+    def show_thumb(self, path, info=None):
+        """Word's picture of the page when it drew one; otherwise the app's sketch, marked as one."""
+        import wordpreview as WP
+        from PySide6.QtGui import QPixmap
+        try:
+            data = open(path, "rb").read()
+        except OSError:
+            data = b""
+        png = WP.cached(SDZ._root(self.cfg()), data) if data else ""
+        if png:
+            self.thumb.setPixmap(QPixmap(png).scaled(self.thumb.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            self.thumb_note.setText("Drawn by Word.")
+            return "word"
+        info = info or SDZ.read(path)
+        lines = [p["text"] for p in info["paragraphs"] if p["text"].strip()][:14]
+        self.thumb.setText("\n\n".join(t[:34] for t in lines))
+        self.thumb_note.setText("A sketch. Right-click the design: Draw with Word shows the exact page.")
+        return "sketch"
+
+    def draw(self, did, runner=None):
+        """Word lays out the design's first page (on demand; once until the file changes)."""
+        import wordpreview as WP
+        x = SDZ.get(self.cfg(), did)
+        p = SDZ.path_of(self.cfg(), x)
+        with open(p, "rb") as f:
+            data = f.read()
+        res = WP.draw(SDZ._root(self.cfg()), data, runner=runner)
+        if res.get("ok"):
+            self.show_design(did)
+        else:
+            self.host.status(res.get("why", "Word could not draw the page."))
+        return res
 
     def open_word(self, did):
         p = SDZ.path_of(self.cfg(), SDZ.get(self.cfg(), did))

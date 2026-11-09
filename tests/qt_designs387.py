@@ -59,8 +59,11 @@ check("a fill-in typed in its row is kept", SDZ.get(cfg, got[0]["id"])["map"]["1
 check("text other pages read: none here", "No header" in dp.others.text())
 dp.tree.setCurrentItem(dp.tree.topLevelItem(1).child(0))
 check("act on the row", [a.text() for a in dp.row_menu(run=False).actions() if a.text()] ==
-      ["Open in Word", "Replace with an updated file...", "Remove from the library"])
+      ["Open in Word", "Draw with Word", "Replace with an updated file...", "Remove from the library"])
 check("Open in Word opens the library's copy", dp.open_word(got[0]["id"]).endswith(".docx"))
+check("without Word's picture, a sketch marked as one (3.87.1)", "sketch" in dp.thumb_note.text().lower() and "Proposal Title" in dp.thumb.text())
+dp.tree.setCurrentItem(dp.tree.topLevelItem(1).child(0))
+check("Draw with Word is on the row (3.87.1)", "Draw with Word" in [a.text() for a in dp.row_menu(run=False).actions()])
 # Setup picks it; Make the setup fills it
 w.open_effort("Kestrel")
 w.go("setups"); app.processEvents()
