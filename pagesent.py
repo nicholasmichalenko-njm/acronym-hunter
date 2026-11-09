@@ -293,6 +293,20 @@ def decided(path, name):
     return skip, force
 
 
+SPLITS = []        # 3.92.1: fn(path, name) -> {(page index, line index): heading text} split off its text in Verify
+
+
+def split_decided(path, name):
+    out = {}
+    for fn in list(SPLITS):
+        try:
+            out.update(fn(path, name) or {})
+        except Exception:  # noqa: BLE001
+            import diag
+            diag.swallowed()
+    return out
+
+
 def chunks_for(path, name):
     """(chunks, places) for the compliance reader from a PDF's page form, or None when a page has no typed text (a
     scanned page: the program's reader with its page OCR reads that file instead). 3.84.0: Verify's decisions first."""
@@ -300,6 +314,14 @@ def chunks_for(path, name):
     if not doc["pages"] or any(not p["lines"] for p in doc["pages"]):
         return None
     extra, force = decided(path, name)
+    sp = split_decided(path, name)
+    if sp:                                       # 3.92.1: a heading split off the text it runs into
+        import verifysplit as SPL
+        doc2, remap, heads, bodies = SPL.split_doc(doc, sp)
+        skip = {remap[k] for k in ((set(doc.get("skip") or ()) - set(force)) | extra) if k in remap}
+        force2 = {remap[k]: v for k, v in force.items() if k in remap}
+        force2.update({k: True for k in heads}); force2.update({k: False for k in bodies})
+        return stream(doc2, paragraphs(doc2, skip, force2), name)
     if not extra and not force:
         return stream(doc, paragraphs(doc, doc.get("skip")), name)
     skip = (set(doc.get("skip") or ()) - set(force)) | extra

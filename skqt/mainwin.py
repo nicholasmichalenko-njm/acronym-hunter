@@ -463,6 +463,7 @@ class MainWindow(QMainWindow):
         _O.HOOKS[:] = [lambda m, root=ws.root: _relabel_record(root, m)]
         import pagesent as _PS, verifystate as _VS   # 3.84.0: the reader follows what Verify decided
         _PS.OVERRIDES[:] = [lambda path, nm, root=ws.root: _VS.overrides(path, _VS.Store(root), nm)]
+        _PS.SPLITS[:] = [lambda path, nm, root=ws.root: _VS.splits(path, _VS.Store(root), nm)]    # 3.92.1
         try:                                       # 2.90.0: a note in the effort's app data folder: the app's files
             import effortfolders as EF
             EF.note_app_data(ws.root)

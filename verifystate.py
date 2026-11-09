@@ -56,7 +56,7 @@ class Store:
 
     def doc(self, name):
         d = self.data["docs"].setdefault(name, {})
-        for k in ("roles", "links", "verified", "reopened", "readings"):
+        for k in ("roles", "links", "verified", "reopened", "readings", "splits"):
             d.setdefault(k, {})
         d.setdefault("last", 1)
         return d
@@ -114,6 +114,18 @@ class Store:
         if d["last"] != page:
             d["last"] = page
             self.save()
+
+    def set_split(self, name, key, head):
+        """3.92.1: the heading at the start of a block, split off its text; "" says the block has none (the suggestion
+        is put away). None takes the decision back."""
+        d = self.doc(name)
+        if head is None:
+            d["splits"].pop(key, None)
+        else:
+            d["splits"][key] = " ".join(str(head).split())
+        d["changed"] = _now()
+        self.save()
+        return d["splits"].get(key)
 
     def set_reading(self, name, page, line, text):
         """A scanned line's reading, confirmed (text as read) or corrected."""
@@ -177,6 +189,13 @@ def view(pdf, store, name, n, m=None):
                 x["flags"].append("Link this caption to its figure or table")
             elif not x["link"]["ok"]:
                 x["flags"].append("Confirm what this caption names")
+        import verifysplit as SPL                             # 3.92.1: a heading on the same line as its text
+        x["split"] = d["splits"].get(b["key"])
+        if x["split"] is None and VR.acts(m, role) in ("text", "bullet"):
+            sug = SPL.runin(b.get("text", ""))
+            if sug:
+                x["split_suggest"] = sug
+                x["flags"].append(f"Heading on the same line as its text? {sug}")
         for u in unsure:
             if b["lines"] and _over(b["box"], u["box"]):
                 x["flags"].append(f"Check the reading: {u['text']}")
@@ -241,6 +260,20 @@ def section_of(v, key, m=None):
             break
         if a in ("text", "bullet"):
             out.append(b["key"])
+    return out
+
+
+def splits(pdf, store, name):
+    """3.92.1: {(page index, line index): heading text} for the blocks whose heading was split off its text."""
+    d = store.data["docs"].get(name) or {}
+    sp = {k: v for k, v in (d.get("splits") or {}).items() if v}
+    if not sp:
+        return {}
+    out = {}
+    for p in VB.blocks(pdf)["pages"]:
+        for b in p["blocks"]:
+            if b["key"] in sp and b["lines"]:
+                out[(p["n"] - 1, b["lines"][0])] = sp[b["key"]]
     return out
 
 

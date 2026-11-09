@@ -193,6 +193,8 @@ class VerifyPage(QWidget):
         self.b_confirm = D.button("Confirm", "primary", lambda: self.confirm_link()); lr.addWidget(self.b_confirm)
         lr.addWidget(D.button("Pick another", None, lambda: self.start_pick()))
         rb.addWidget(self.link_row)
+        from . import verifysplitbar as VSB                          # 3.92.1: a heading on the same line as its text
+        self.split_row = VSB.row(self); rb.addWidget(self.split_row)
         self.barhost = BarHost(self.rolebar, self.view.viewport())
         self.role_btns = []
         # ---- keys
@@ -503,6 +505,8 @@ class VerifyPage(QWidget):
             self.link_lbl.setText(("Names: " + ((by.get(to) or {}).get("text") or "the figure")[:40] +
                                    ("  (confirmed)" if b["link"]["ok"] else "  (suggested)")) if to else "Names nothing yet: Pick another")
             self.b_confirm.setVisible(bool(to) and not b["link"]["ok"])
+        from . import verifysplitbar as VSB
+        VSB.show(self, b if len(self.sel) == 1 else None)
         flags = [f for x in self.v if x["key"] in self.sel for f in x["flags"]]
         self.bar_msg.setText(flags[0] if flags else (f"{len(self.sel)} blocks: this is a" if len(self.sel) > 1 else "This is a"))
         self.barhost.show_for(r, width=min(640, self.view.viewport().width() - 16))
