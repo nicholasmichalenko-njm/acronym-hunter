@@ -81,6 +81,7 @@ class AcronymSession(AcronymRules):
         self.plurals = {}
         self.omitted = {}                                    # 3.51.0: {term: True} omitted in this effort, on every scan
         self.parts = {}                                      # 3.76.0: {part: {"whole", "places"}} part of a longer term
+        self.rules_extra = {}                                # 3.92.0: {"hyphen_whole": bool} the effort's own reading rules
         self.first_use_set = {}                              # 3.51.0: {term: {file: place}} chosen first uses
         self._last_vc = None
         self.selected_term = None
@@ -156,6 +157,7 @@ class AcronymSession(AcronymRules):
         self.forms = dict(s.get("forms") or {})                       # 3.34.1: {FY27: FY}
         self.omitted = dict(s.get("omitted") or {})                   # 3.51.0
         self.parts = dict(s.get("parts") or {})                       # 3.76.0: part of a longer term
+        self.rules_extra = dict(s.get("rules_extra") or {})           # 3.92.0: letters joined by a hyphen are one term
         self.first_use_set = dict(s.get("first_use_set") or {})
         for t in self.omitted:                                        # results saved before 3.51.0 kept the flag only
             if t in self.results:
@@ -184,7 +186,7 @@ class AcronymSession(AcronymRules):
         s = self.ws.load_session() or {}
         s.update({"results": self.results, "manual_items": self.manual_items, "session_decisions": self.session_decisions,
                   "plurals": getattr(self, "plurals", {}), "forms": getattr(self, "forms", {}),
-                  "omitted": getattr(self, "omitted", {}), "parts": getattr(self, "parts", {}), "first_use_set": getattr(self, "first_use_set", {}),
+                  "omitted": getattr(self, "omitted", {}), "parts": getattr(self, "parts", {}), "rules_extra": getattr(self, "rules_extra", {}), "first_use_set": getattr(self, "first_use_set", {}),
                   "last_scan": {"paths": (self.last_scan or {}).get("paths", []), "folder": (self.last_scan or {}).get("folder")}
                   if self.last_scan else s.get("last_scan")})
         self.ws.save_session(s)
@@ -222,6 +224,8 @@ class AcronymSession(AcronymRules):
         self.apply_omitted()                                    # 3.51.0: Omit holds on every scan
         import acrparts
         acrparts.apply_parts(self)                              # 3.76.0: part of a longer term, where it sits
+        import acrpage
+        acrpage.join_hyphenated(self)                           # 3.92.0: the effort's hyphen rule, on every scan
         rec = self.effort_after_scan(self.queued_files) if self.effort is not None else None
         self.save()
         return rec
