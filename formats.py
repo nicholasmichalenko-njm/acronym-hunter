@@ -26,6 +26,7 @@ FORMATS = {
     "verify": ("verifystate.Store.save -> verify.json in the effort's working folder", "format", 1),   # 3.84.0
     "verify menu": ("verifyroles.save_team -> verify_menu.json in the config folder", "format", 1),   # 3.84.0
     "scan readings": ("ocrpdf.save_readings -> <page copy>.readings.json beside the copy", "format", 1),   # 3.84.0
+    "section designs": ("sectiondesigns -> section_designs/index.json in the config folder", "format", 1),   # 3.87.0
 }
 
 

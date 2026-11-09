@@ -77,7 +77,11 @@ check("verify menu", json.load(open(os.path.join(cfg, VRO.TEAM_FILE), encoding="
 OCP.save_readings(os.path.join(cfg, "copy.pdf"), {"1": []})
 check("scan readings", json.load(open(OCP.readings_path(os.path.join(cfg, "copy.pdf")), encoding="utf-8"))["format"]
       == F.number("scan readings") == OCP.READINGS_FORMAT)
-check("every kind is checked here", len(F.FORMATS) == 18, len(F.FORMATS))
+import sectiondesigns as SDZ                                   # 3.87.0: the Section designs library
+SDZ._save(cfg, {"designs": []})
+check("section designs", json.load(open(os.path.join(cfg, SDZ.FOLDER, "index.json"), encoding="utf-8"))["format"]
+      == F.number("section designs") == SDZ.FORMAT)
+check("every kind is checked here", len(F.FORMATS) == 19, len(F.FORMATS))
 n = sum(checks)
 print(f"FORMATS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)
