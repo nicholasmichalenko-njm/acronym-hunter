@@ -1,6 +1,16 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+HEADINGS IN THE TEXT, AND MEETING NOTES (3.92.1)
+  - Verify flags a block that starts with its heading on the same line as its text ("L.4.2.1 Telemetry, Tracking and
+    Command. The Offeror shall..."). Split the heading off (the suggestion, or the words you type) makes the heading a
+    heading for the outline and leaves the rest as text for Review; Undo the split takes it back; It has no heading
+    puts the suggestion away. Review offers read it again.
+  - Notes on a calendar event: on the Effort Dashboard's calendar, Notes beside each meeting in the day's list opens
+    its notes, made from the event the first time (title, date, times, who). Notes save as you type; lines that
+    start with Action:, Decision: or Topic: (or a bullet) are offered as topics to keep and mark done. The button then
+    says Notes with the topic count; Effort Record > Meetings lists the same meeting.
+
 ACRONYMS ON THE PAGE (3.92.0)
   - Three panes: the terms on the left (filters are counts you click: To decide, Needs a choice, No definition yet, On
     pictures, In the list, Not a term), the customer's page or picture where the term was found in the middle, the

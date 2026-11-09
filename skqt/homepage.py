@@ -1725,6 +1725,8 @@ class HomePage(QWidget):
             row = QHBoxLayout(); row.setSpacing(D.SPACE["s"])
             row.addWidget(D.label(f"<b>{_h.escape(e['title'])}</b>  " + _h.escape("  ·  ".join(bits)), "muted"), 1)
             from .calview import entry_dialog
+            from . import meetnotes as MN                               # 3.92.1: notes on a calendar event
+            row.addWidget(D.button(MN.mark(self.rec, e["id"]) or "Notes", "ghost", lambda _=False, i=e["id"]: MN.open_notes(self, self.rec, i)), 0, Qt.AlignTop)
             row.addWidget(D.button("Edit", "ghost", lambda _=False, x=dict(e): entry_dialog(self, entry=x)), 0, Qt.AlignTop)
             row.addWidget(D.button("Remove", "ghost", lambda _=False, i=e["id"]: self.remove_event(i)), 0, Qt.AlignTop)
             self.day_box.addLayout(row)

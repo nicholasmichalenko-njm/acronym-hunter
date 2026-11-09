@@ -56,6 +56,35 @@ def add_meeting(rec, title, date, start="", end="", zone="", participants=(), no
     return m["id"]
 
 
+def of_event(rec, event_id):
+    """3.92.1: the meeting whose notes belong to this calendar event, or None."""
+    return next((m for m in rec.data.get("meetings", []) if event_id and m.get("event") == event_id), None)
+
+
+def for_event(rec, event_id, who=None):
+    """3.92.1: the notes of a calendar event: its meeting, made from the event the first time (title, date, times,
+    participants from its details), linked to it. Returns the meeting's id (None for an unknown event)."""
+    m = of_event(rec, event_id)
+    if m is not None:
+        return m["id"]
+    e = next((x for x in rec.data.get("events", []) if x.get("id") == event_id), None)
+    if e is None:
+        return None
+    det = str(e.get("details") or "")
+    who_line = det.split("Participants:", 1)[1].split("\n")[0] if "Participants:" in det else ""
+    names = _names(who_line)
+    if names and len(names[-1].split()) > 3:              # the details' next sentence ran onto the last name
+        names[-1] = " ".join(names[-1].split()[:2])
+    parts = names or ([e["owner"]] if e.get("owner") else [])
+    m = {"id": uuid.uuid4().hex[:10], "title": _clean(e.get("title") or "Meeting", 200), "date": _clean(e.get("date"), 10),
+         "start": _clean(e.get("start"), 5), "end": _clean(e.get("end"), 5), "zone": _clean(e.get("zone"), 40),
+         "participants": parts, "notes": "", "topics": [], "created": _now(), "by": _who(who), "event": event_id}
+    rec.data.setdefault("meetings", []).append(m)
+    rec.log("effort", f"Meeting notes started: {m['title']} ({m['date']})", who=who)
+    rec.save()
+    return m["id"]
+
+
 def _names(names):
     if isinstance(names, str):
         names = re.split(r"[;,\n]", names)
@@ -80,7 +109,7 @@ def update_meeting(rec, mid, who=None, **f):
         m["notes"] = str(f["notes"] or "")[:20000]
     try:
         import effortcal as EC
-        if m.get("event"):
+        if m.get("event") and set(f) - {"notes"}:            # 3.92.1: notes alone never rewrite the calendar entry
             EC.update_entry(rec, m["event"], who=who, date=m["date"], start=m["start"], end=m["end"], zone=m["zone"],
                             title=m["title"], details="Participants: " + ", ".join(m["participants"]))
     except Exception:
