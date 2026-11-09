@@ -588,10 +588,11 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
     return out
 
 
-def section_designs(M, config_dir, std, vname, setup_path):
+def section_designs(M, config_dir, std, vname, setup_path, place=True):
     """3.87.0: each section design Setup picked (CUI cover, cover, title page, Table of Contents, Acronyms and
-    Abbreviations, Units and Symbols, back cover), filled with the volume's fill-ins and written beside the setup as
-    "<setup> - <section>.docx". Returns {shelf: path}."""
+    Abbreviations, Units and Symbols, back cover), filled with the volume's fill-ins. 3.87.1: placed inside the setup
+    itself, each in its own Word section (place=False writes them beside the setup as "<setup> - <section>.docx", as
+    3.87.0 did). Returns {shelf: path of the filled design}."""
     import re as _re
     import fillins as FI
     import sectiondesigns as SDZ
@@ -611,8 +612,19 @@ def section_designs(M, config_dir, std, vname, setup_path):
         if x is None:
             continue
         try:
-            dest = os.path.splitext(setup_path)[0] + f" - {SDZ.SHELF_NAME[shelf]}.docx"
+            if place:
+                import tempfile
+                dest = os.path.join(tempfile.mkdtemp(prefix="sk_design_"), f"{shelf}.docx")
+            else:
+                dest = os.path.splitext(setup_path)[0] + f" - {SDZ.SHELF_NAME[shelf]}.docx"
             out[shelf] = SDZ.fill(SDZ.path_of(config_dir, x), x["map"], vals, dest)
+        except Exception:  # noqa: BLE001
+            import diag
+            diag.swallowed()
+    if place and out:
+        try:
+            import designplace as DP
+            DP.place(setup_path, out)
         except Exception:  # noqa: BLE001
             import diag
             diag.swallowed()

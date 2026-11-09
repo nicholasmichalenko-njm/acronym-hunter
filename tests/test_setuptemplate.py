@@ -76,6 +76,48 @@ check("Make the setup: each reference for authors is a Word comment on its headi
 check("... none in a volume with no references", SCM.count(out3[1]["setup"]) == 0 if len(out3) > 1 else True)
 vr3 = TC.validate(out3[0]["setup"])
 check("the setup with comments passes the validation report", not vr3.problems(), vr3.text())
+# 3.87.1: the picked Section designs placed inside the setup, each in its own Word section
+import zipfile as _zf, sectiondesigns as SDZ, designplace as DP
+_W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+_R = 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"'
+
+
+def _design(path, paras, img=False):
+    pic = ('<w:p><w:r><w:drawing><a:blip xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" r:embed="rId9"/>'
+           '</w:drawing></w:r></w:p>') if img else ""
+    body = "".join('<w:p><w:pPr><w:pStyle w:val="%s"/></w:pPr><w:r><w:t>%s</w:t></w:r></w:p>' % (st, t) for st, t in paras)
+    with _zf.ZipFile(path, "w") as z:
+        z.writestr("[Content_Types].xml", '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>')
+        z.writestr("word/document.xml", f'<w:document {_W} {_R}><w:body>{body}{pic}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/>'
+                   '<w:footerReference r:id="rId5"/></w:sectPr></w:body></w:document>')
+        z.writestr("word/styles.xml", f'<w:styles {_W}><w:style w:type="paragraph" w:styleId="KCoverTitle"><w:name w:val="K Cover Title"/>'
+                   '<w:basedOn w:val="KCoverBase"/></w:style><w:style w:type="paragraph" w:styleId="KCoverBase"><w:name w:val="K Cover Base"/></w:style></w:styles>')
+        z.writestr("word/settings.xml", f'<w:settings {_W}/>')
+        z.writestr("word/_rels/document.xml.rels", '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                   '<Relationship Id="rId9" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/logo.png"/></Relationships>')
+        z.writestr("word/media/logo.png", b"\x89PNG fictional")
+    return path
+
+
+cv = SDZ.add(cfg, "cover", _design(os.path.join(d, "Kestrel Cover.docx"), [("KCoverTitle", "Proposal Title")], img=True))
+bk = SDZ.add(cfg, "back", _design(os.path.join(d, "Kestrel Back.docx"), [("KCoverTitle", "Kestrel Back Cover")]))
+SDZ.set_map(cfg, cv["id"], {"0": "volume_name"})
+SDZ.pick(M, "cover", cv["id"]); SDZ.pick(M, "back", bk["id"]); SDZ.pick(M, "cui", "none")
+out4 = ST.make_all(M, os.path.join(d, "exports4"), cfg, effort_name="Kestrel")
+txt = [t for t in DP.texts(out4[0]["setup"]) if t.strip()]
+check("the cover is placed first inside the setup, filled", txt[0] == out4[0]["volume"], txt[:3])
+check("the back cover is placed last", txt[-1] == "Kestrel Back Cover", txt[-2:])
+check("each design is its own Word section", DP.sections(out4[0]["setup"]) >= DP.sections(out3[0]["setup"]) + 2)
+with _zf.ZipFile(out4[0]["setup"]) as z:
+    names = z.namelist(); doc = z.read("word/document.xml").decode(); sty = z.read("word/styles.xml").decode()
+    rels = z.read("word/_rels/document.xml.rels").decode()
+check("its styles come with it, with the style it is based on", 'w:styleId="KCoverTitle"' in sty and 'w:styleId="KCoverBase"' in sty)
+check("its picture comes with it under a new id", any(n.startswith("word/media/design_") for n in names) and 'r:embed="rIdD' in doc
+      and "design_" in rels)
+check("its own footer link stays behind", 'r:id="rId5"' not in doc)
+check("the setup with the designs placed passes the validation report", not TC.validate(out4[0]["setup"]).problems(),
+      TC.validate(out4[0]["setup"]).text())
+check("None leaves the CUI cover out", "cui" not in out4[0]["designs"])
 import prodwordgate as WG
 if WG.available():                                  # the build PC: Word opens the setup, with its hidden reference text
     oc = WG.open_check(out[0]["setup"])
