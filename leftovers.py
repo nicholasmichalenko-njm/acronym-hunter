@@ -12,14 +12,16 @@ PROPS = "Setup file property"
 HIDDEN = "Hidden text"
 WHITE = "White text"
 COMMENT = "Comment"
+REFS = "Reference for authors"                 # 3.86.0: the setup's own comments on a heading
 TRACKED = "Tracked change"
 PLACE = "Placeholder"
-KINDS = (SETUP, PROPS, HIDDEN, WHITE, COMMENT, TRACKED, PLACE)
+KINDS = (SETUP, PROPS, REFS, HIDDEN, WHITE, COMMENT, TRACKED, PLACE)
 WHY = {SETUP: "The setup's reference text (the RFP's words, PM direction, notes) left in the volume. Plan > Setup > Strip setup... makes a clean copy.",
        PROPS: "A file property the setup wrote. Strip setup... takes it out (or File > Info > Properties).",
        HIDDEN: "Hidden text prints into a PDF when Print hidden text is on, and Document Inspector shows it to anyone.",
        WHITE: "White text on a light page is invisible, but it is still in the file and the PDF.",
        COMMENT: "A comment still in the file.",
+       REFS: "A reference or note the setup put on a heading for the authors (a Word comment by Stationkeeper). Strip setup... takes it out.",
        TRACKED: "A tracked change not accepted or rejected.",
        PLACE: "Placeholder text."}
 PLACEHOLDER = re.compile(r"\[(?:insert|tbd|tbr|add|placeholder|customer|company|name|xx+)[^\]]*\]|\bTBD\b|\bTBR\b|\bX{3,}\b|"
@@ -96,6 +98,14 @@ def check(path):
         st = _styles(z)
         body = _parse(z.read("word/document.xml")).find(W + "body")
         ncom = len(re.findall(rb"<w:comment ", z.read("word/comments.xml"))) if "word/comments.xml" in names else 0
+        ours = set()                                   # 3.86.0: Stationkeeper's references for authors
+        if ncom:
+            for m_ in re.finditer(rb'<w:comment [^>]*>', z.read("word/comments.xml")):
+                tag_ = m_.group(0)
+                if b'w:author="Stationkeeper"' in tag_ and b'w:initials="SK"' in tag_:
+                    got_ = re.search(rb'w:id="(\d+)"', tag_)
+                    if got_:
+                        ours.add(got_.group(1).decode())
         custom = z.read("docProps/custom.xml").decode("utf-8", "replace") if "docProps/custom.xml" in names else ""
     for m in re.finditer(r'name="(Stationkeeper[^"]*)"', custom):
         items.append({"kind": PROPS, "where": "File properties", "text": m.group(1)})
@@ -153,8 +163,11 @@ def check(path):
                 t = _text(ch) or "".join(x.text or "" for x in ch.iter(W + "delText"))
                 items.append({"kind": TRACKED, "where": head, "text": f"{who}: {_short(t, 60) or '(formatting)'}"})
         for c in p.iter(W + "commentReference"):
-            items.append({"kind": COMMENT, "where": head, "text": f"Comment {c.get(W + 'id')}"})
-    nref = sum(1 for i in items if i["kind"] == COMMENT)
+            if c.get(W + "id") in ours:
+                items.append({"kind": REFS, "where": head, "text": f"Reference for authors {c.get(W + 'id')}"})
+            else:
+                items.append({"kind": COMMENT, "where": head, "text": f"Comment {c.get(W + 'id')}"})
+    nref = sum(1 for i in items if i["kind"] in (COMMENT, REFS))
     for k in range(max(0, ncom - nref)):                       # comments with no anchor in the body
         items.append({"kind": COMMENT, "where": "(not anchored)", "text": "A comment with no place in the text"})
     counts = {k: sum(1 for i in items if i["kind"] == k) for k in KINDS}

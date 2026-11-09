@@ -567,6 +567,14 @@ def make_all(M, folder, config_dir, ws=None, effort_name="", info=None, when=Non
         write(job.copy, path, dm, da, opts, fills, {"StationkeeperMatrix": M.name or "", "StationkeeperSetupExported": stamp,
                                                     "StationkeeperSetupPart": vname, "SK Template": tname, "SK Template Version": str(ver)},
               front_doc=df)
+        try:                                           # 3.86.0: references and notes for authors on each heading
+            import sectionnotes as SN
+            import setupcomments as SCM
+            refs = {C.outline_label(o): [SN.comment_text(r) for r in SN.refs(M, C.outline_label(o))] for o in entries}
+            SCM.add(path, {k: v for k, v in refs.items() if v}, when)
+        except Exception:  # noqa: BLE001
+            import diag
+            diag.swallowed()
         out.append({"volume": vname, "template": job.copy, "setup": path, "version": ver, "validation": getattr(job, "validation", None),
                     "template_name": tname})
     if not record:

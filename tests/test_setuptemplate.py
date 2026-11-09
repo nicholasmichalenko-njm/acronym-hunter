@@ -66,6 +66,16 @@ ST.set_options(M, opts2)
 out2 = ST.make_all(M, os.path.join(d, "exports2"), cfg, effort_name="Kestrel")
 d2 = zipfile.ZipFile(out2[0]["setup"]).read("word/document.xml").decode()
 check("a style the template already has is used for a kind", 'w:pStyle w:val="Caption"' in d2 and out2[0]["version"] == 2, out2[0]["version"])
+import sectionnotes as SN, setupcomments as SCM        # 3.86.0: references for authors become Word comments
+SN.add_ref(M, "1.1 Thermal Design", path=os.path.join(d, "Kestrel Thermal Analysis.docx"), where="section 3")
+SN.add_ref(M, "1.1 Thermal Design", note="Use the eclipse numbers from the analysis.")
+out3 = ST.make_all(M, os.path.join(d, "exports3"), cfg, effort_name="Kestrel")
+cm = SCM.comments_of(out3[0]["setup"])
+check("Make the setup: each reference for authors is a Word comment on its heading", len(cm) == 2
+      and ("Stationkeeper", "Reference: Kestrel Thermal Analysis.docx (section 3)") in cm, cm)
+check("... none in a volume with no references", SCM.count(out3[1]["setup"]) == 0 if len(out3) > 1 else True)
+vr3 = TC.validate(out3[0]["setup"])
+check("the setup with comments passes the validation report", not vr3.problems(), vr3.text())
 import prodwordgate as WG
 if WG.available():                                  # the build PC: Word opens the setup, with its hidden reference text
     oc = WG.open_check(out[0]["setup"])

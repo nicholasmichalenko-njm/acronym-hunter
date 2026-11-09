@@ -5,7 +5,9 @@ setup style, the SK styles themselves once nothing uses them, and the Stationkee
 Bookmarks, comment anchors and section breaks inside a removed paragraph are kept (moved to the paragraph beside it),
 so the TOC's bookmarks and the page layout stay whole. The volume read is never changed: the result is a new file.
 
-strip(src, out=None) -> {"out", "paragraphs", "styles", "properties", "by_style": {style name: n}}"""
+strip(src, out=None) -> {"out", "paragraphs", "styles", "properties", "by_style": {style name: n}, "comments": n}
+3.86.0: the references and notes for authors Make the setup put on the headings as Word comments (by Stationkeeper)
+come out too; a person's own comments stay."""
 import os, re, zipfile
 
 from lxml import etree
@@ -100,6 +102,8 @@ def strip(src, out=None):
             if sid in ids and sid not in still:
                 s.getparent().remove(s); gone_styles += 1
         data["word/styles.xml"] = etree.tostring(styles_root, xml_declaration=True, encoding="UTF-8", standalone=True)
+    import setupcomments as SCM                          # 3.86.0: the references for authors, as Word comments
+    comments = SCM.strip_tree(data)
     props = 0
     if "docProps/custom.xml" in data:
         croot = etree.fromstring(data["docProps/custom.xml"], parser=_parser())
@@ -114,4 +118,4 @@ def strip(src, out=None):
         for n in names:
             zout.writestr(n, data[n])
     os.replace(tmp, out)
-    return {"out": out, "paragraphs": total, "styles": gone_styles, "properties": props, "by_style": counts}
+    return {"out": out, "paragraphs": total, "styles": gone_styles, "properties": props, "by_style": counts, "comments": comments}
