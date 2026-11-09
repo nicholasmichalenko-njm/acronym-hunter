@@ -26,6 +26,7 @@ import matrixdesign as MD
 import outline_ops as O
 import structstart as SS
 import capture as CAP
+from rfpoutline import mapped as HS_mapped
 import office_pdf as OP
 from . import design as D
 
@@ -628,6 +629,7 @@ class AssignPage(QWidget):
         self.undecided_btn = D.button("Select undecided", "ghost", lambda: self.select_undecided(),   # 3.0.4
                                       "Select every sentence in this document with no decision yet (Ctrl+A selects them all)")
         trow.addWidget(self.undecided_btn, 0, Qt.AlignTop); dv.addLayout(trow)
+        self._dv = dv                                       # 3.85.0: the home, the offer and what is left go under it
         # 3.35.0: the target item's own values, the ones the outline matrix shows beside its Section L and M content
         from PySide6.QtWidgets import QDoubleSpinBox, QSpinBox
         self.item_row = QWidget(); ir = QHBoxLayout(self.item_row); ir.setContentsMargins(0, 0, 0, 0); ir.setSpacing(D.SPACE["s"])
@@ -820,6 +822,9 @@ class AssignPage(QWidget):
         self.rfi = False
         self.topic_labels = []
         split = QSplitter(Qt.Horizontal); split.addWidget(pagew); split.addWidget(right); split.setSizes([1100, 470])
+        from .reviewplace import Placer                     # 3.85.0: their text and our structure, joined by lines
+        self._offer_off = False
+        self.placer = Placer(self, split, self._dv)
         # 3.34.1: the decisions and captures, permanently at the bottom across the page, so the sentence's details and
         # the structure on the right have the room; drag the line above them to give them more or less
         self.bottom_split = QSplitter(Qt.Vertical)
@@ -1426,6 +1431,7 @@ class AssignPage(QWidget):
             self.R.last_req = rows[0]["id"]
         self.restyle()
         self.show_card(rows)
+        self.placer.on_select(rows)
 
     def select(self, iid):
         if self.cx is not None and iid in self.cx.byid:
@@ -1654,6 +1660,13 @@ class AssignPage(QWidget):
             txt = EX.text_of(x)
             m.addAction(f"Take off the capture {names.get(x.get('bin'), x.get('bin', ''))}: "
                         f"{txt[:50] + ('...' if len(txt) > 50 else '')}", lambda _=False, i=x["id"]: self.remove_excerpt(i))
+        nums = sorted({it.get("section") for it in rows if it.get("section")})   # 3.85.0: map the customer heading
+        if nums:
+            m.addSeparator()
+            if self.target:
+                m.addAction(f"Map {', '.join(nums)} to the target: {self.target}", lambda: self.placer.map_selected())
+            if any(self.placer and HS_mapped(self.M, n) for n in nums):
+                m.addAction(f"Clear the map of {', '.join(nums)}", lambda: self.placer.map_selected(""))
         m.addSeparator()
         if len(rows) > 1:
             m.addAction("Deselect this sentence", lambda: self.deselect(iid))
@@ -2053,6 +2066,11 @@ class AssignPage(QWidget):
         m.addAction("+ Capture...", lambda: self.new_bin())
         m.addAction("Captures of this effort...", lambda: self.manage_bins())
         m.addAction("Decisions and captures (Settings)...", lambda: self.host.go("settings"))
+        m.addSeparator()                                   # 3.85.0: the customer's headings and our sections
+        a = m.addAction("Lines for headings"); a.setCheckable(True); a.setChecked(self.placer.gutter.heads_on)
+        a.setToolTip("A faint line from each customer heading on the page to the section that answers it")
+        a.toggled.connect(self.placer.toggle_heads)
+        m.addAction("Export cross-reference table...", lambda: self.placer.export_crossref())
         return m
 
     def _bind_keys(self, cfg):
@@ -3150,6 +3168,8 @@ class AssignPage(QWidget):
             self.host.status(msg)
         if self.sg_on:
             self.show_score()
+        self.placer.show_left()
+        self.placer.gutter.update()
 
     def do_req(self):
         if self.cx is not None:
@@ -3346,12 +3366,22 @@ class AssignPage(QWidget):
         for it in rows:
             sec = TP.section_for(rec, it["id"]) if rec is not None else ""
             (by.setdefault(sec, []) if sec in labels else rest).append(it)
+        if getattr(self, "_accepting", False):             # 3.85.0: Enter takes the suggested home too
+            homes, still = {}, []
+            for it in rest:
+                h = self.placer.home_for(it)
+                (homes.setdefault(h, []) if h else still).append(it)
+            by.update({h: by.get(h, []) + its for h, its in homes.items()})
+            rest = still
         n = 0
         with self.R.group():
             for sec, its in by.items():
                 n += self.R.req(its, sec) or 0
             if rest:
                 n += self.R.req(rest, self.target or "") or 0
+        first = next(iter(by.items()), None) or ((self.target, rest) if rest and self.target else None)
+        if first and first[1]:
+            self.placer.after_place(first[1], first[0])
         return n
 
     # ------------------------------------------------------------ building the structure as you go (2.68.0)

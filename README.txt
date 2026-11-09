@@ -1,6 +1,22 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+REVIEW AND PLACE (3.85.0)
+  - Review: a line joins the selected sentence to its home in your structure, on the right: dotted grey while it is
+    only suggested, solid in its kind's color once placed. The structure scrolls to it; an arrow at the edge points to
+    one still out of view.
+  - Under Decide, Goes to <section> says where the sentence would go and why (its customer heading is mapped there, a
+    heading above it is, it names a mapped heading, the heading's title matches the section, or its Sort topic).
+    Enter (with Suggest on) accepts what it is and where it goes.
+  - After you place a requirement, Review offers to send the rest of its customer heading to the same section: Map
+    and place N, Map only (the rest are suggested there), or Just this one (it does not ask again for that heading).
+    Sentences that name another section and format rules for the whole volume are left out.
+  - Right-click a sentence: Map L.3.2 to the target maps its customer heading; Clear the map takes it off. A new map
+    changes only suggestions: placed sentences stay where they are.
+  - The line under Decide says what is left: not decided, not placed (each a link that selects them) and how many
+    customer headings are answered. More > Lines for headings draws a faint line from each customer heading to the
+    section that answers it; More > Export cross-reference table... writes the table to Excel.
+
 VERIFY, ON THE PAGE (3.84.0)
   - Review's first tab is Verify. Pick a document with the document button (Ctrl+O); it opens on the page you left.
   - Each block on the page has a box and its role in the margin: a tick when someone decided it, a ! when there is
