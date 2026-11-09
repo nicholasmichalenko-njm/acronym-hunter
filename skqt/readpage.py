@@ -295,7 +295,13 @@ class ReadPage(QWidget):
     def tick_only(self, names):
         """3.90.0: only these files ticked (by file name), as Review's "read it again" asks. Returns how many."""
         want = {n.casefold() for n in names}
+        have = {os.path.basename(r.path).casefold() for r in self.boxes}
         self._guard = True
+        for name, label, path in CR.effort_docs(self.host.ws):     # a file read already is listed again to read it again
+            if os.path.basename(path).casefold() in want - have:
+                self.boxes.append(DocRow(self.tree, path, name, label, {}, "matrix"))
+        if self.boxes:
+            self.area.hide(); self.tree.show()
         for r in self.boxes:
             r.setChecked(os.path.basename(r.path).casefold() in want)
         self._guard = False

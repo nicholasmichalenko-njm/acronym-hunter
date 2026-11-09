@@ -54,6 +54,7 @@ class ReviewViews(QWidget):
                 from PySide6.QtWidgets import QSplitter
                 for sp in w.findChildren(QSplitter):
                     sp.setOrientation(Qt.Vertical)           # the detail under the table: the view is narrow
+                    sp.setSizes([320, 260])
             else:
                 w.table.cellDoubleClicked.connect(lambda r, _c: self.open_file_row(r))
                 w.table.setToolTip("Double-click a file to open it on the page")

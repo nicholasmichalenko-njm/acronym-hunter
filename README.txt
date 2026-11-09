@@ -1,6 +1,19 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+REVIEW'S TABS AND VIEWS (3.90.0)
+  - Review's tabs follow the work: Verify, Read, Compare, Review. Compare left the Effort Library group; the Library
+    is one page.
+  - Beside Review's page, three views of the same records: Our structure, L to M (the L/M crosswalk: each instruction
+    with the factors that evaluate it and the gaps; a row shows its sentence on the page) and Coverage (every sentence
+    of every file by decision, and the text check; double-click a file to open it).
+  - When Verify changes a file after it was read, Review's Left line says so with read it again (the file is ticked
+    on the Read tab; decisions are kept). Verify's last page, verified, offers Read or Compare as the next step.
+  - Covers, title pages and back covers live in Section designs (the template library's come over once). Effort
+    Profiles pick them there. Headers, footers and page setup stay in Layout.
+  - An outline workbook with Section L and Section M side by side, a column saying L or M (L, M, L/M, LNM, both),
+    or references like L.3.5 and M.2.1 comes in with each requirement's L or M set; one for both shows L/M.
+
 COMPARE ON THE PAGE (3.89.0)
   - Compare shows the new version's own page with each change marked: new words green, a changed sentence outlined,
     a removed sentence as a red mark where it stood. Our response is on the right; a line joins the selected change
