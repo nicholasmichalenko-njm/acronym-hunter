@@ -1,5 +1,5 @@
 """3.28.1 Review, offscreen: a drag over words grabs them across sentences, whatever was selected before: the sentences
-they sit in are selected; Extract (Shift+S) makes the picked words one sentence, split from the sentences they came
+they sit in are selected; Make a sentence (Shift+S) makes the picked words one sentence, split from the sentences they came
 from (the words before and after stay there), in one Undo step; a capture or bin takes just those words; a drag inside
 one sentence still picks words in it, and a click still selects. Volumes: Rename keeps the number; numbered I, II, III;
 1, 2, 3; or A, B, C, with everything in them following; a new volume takes the style."""

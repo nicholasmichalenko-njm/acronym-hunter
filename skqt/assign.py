@@ -529,14 +529,14 @@ class AssignPage(QWidget):
         # 2.82.0: sentence edits stay by the page; the decisions sit beside the response structure, where they land
         for text, kind, fn, tip in (("Combine  J", None, self.do_combine, "One sentence from the selected ones (they need not be next to each other)"),
                                     ("Split  S", None, self.do_split, "Split the selected sentence before the word you clicked"),
-                                    ("Extract  Shift+S", None, lambda: self.do_extract(), "Drag across words inside a sentence, "
+                                    ("Make a sentence  Shift+S", None, lambda: self.do_extract(), "Drag across words inside a sentence, "
                                      "then this: those words become a sentence of their own, ready to assign (3.20.3)")):
             b = D.button(text, kind, fn, tip)
-            self.keys[text.split()[0]] = b
+            self.keys[text.split("  ")[0].split()[0]] = b
             bar.addWidget(b)
             b.setVisible(False)          # 3.75.0 (house rule 8): the keys and the sentence's right-click do these; Undo is the frame's
         self.keys["Split"].setEnabled(False)
-        self.keys["Extract"].setEnabled(False)
+        self.keys["Make"].setEnabled(False)
         self.keys["Split"].setToolTip("Select a sentence, then click the word the second part starts with: a red line "
                                       "shows the split, and this button (or S) makes it")
         bar.addStretch(1)
@@ -1524,7 +1524,7 @@ class AssignPage(QWidget):
 
     def show_span(self, spans, final=True):
         """3.28.1: words dragged across several sentences, tinted; let go, they are picked (whatever was selected before):
-        their sentences are selected, a capture or bin takes just these words, and Extract (Shift+S) combines them into
+        their sentences are selected, a capture or bin takes just these words, and Make a sentence (Shift+S) combines them into
         one sentence, split from the sentences they came from."""
         for x in self._grab_items:
             self._drop(x)
@@ -1551,10 +1551,10 @@ class AssignPage(QWidget):
         self.cur = pieces[-1]["iid"]
         self.restyle()
         self.grab_multi = pieces
-        if "Extract" in self.keys:
-            self.keys["Extract"].setEnabled(self.cx is None)
+        if "Make" in self.keys:
+            self.keys["Make"].setEnabled(self.cx is None)
         self.show_card(self.selected())
-        self.host.status(f"Picked words in {len(pieces)} sentences. Extract (Shift+S) makes them one sentence, split from "
+        self.host.status(f"Picked words in {len(pieces)} sentences. Make a sentence (Shift+S) makes them one sentence, split from "
                          "where they were; a capture uses just these words; click elsewhere to drop them.")
         return pieces
 
@@ -1580,10 +1580,10 @@ class AssignPage(QWidget):
         s0, e0 = ms[a].start() - len(lead), ms[b].end() + len(tail)            # and an opening bracket before it come along
         self.grab = {"iid": iid, "a": a, "b": b, "s": s0, "e": e0, "text": text[s0:e0].strip()}
         self.clear_split(card=False)
-        self.host.status(f"Picked: \"{self.grab['text'][:80]}\". Capture uses these words; Extract (Shift+S) makes them a "
+        self.host.status(f"Picked: \"{self.grab['text'][:80]}\". Capture uses these words; Make a sentence (Shift+S) makes them a "
                          "sentence of their own; click elsewhere to drop them.")
-        if "Extract" in self.keys:
-            self.keys["Extract"].setEnabled(self.cx is None)
+        if "Make" in self.keys:
+            self.keys["Make"].setEnabled(self.cx is None)
         self.show_card(self.selected())
         return self.grab
 
@@ -1663,7 +1663,7 @@ class AssignPage(QWidget):
             sel = [iid]
         rows = [x for x in (self.R.item(i) for i in sel) if x]
         for key, text in (("Combine", "Combine the selected sentences  J"), ("Split", "Split at the red line  S"),
-                          ("Extract", "Make the dragged words a sentence  Shift+S")):     # 3.75.0: were buttons
+                          ("Make", "Make the dragged words a sentence  Shift+S")):     # 3.75.0: were buttons
             b = self.keys.get(key)
             if b is not None:
                 m.addAction(text, b.click).setEnabled(b.isEnabled())
@@ -4249,13 +4249,13 @@ class AssignPage(QWidget):
         """3.20.3 Shift+S: the words dragged across become a sentence of their own (the rest stays as the parts before and
         after), selected and ready to assign. Returns the new sentence."""
         if self.cx is not None:
-            return self.host.status("Extract is for the matrix's documents.")
+            return self.host.status("Make a sentence is for the documents being shredded.")
         if grab is None and getattr(self, "grab_multi", None):     # 3.28.1: words from several sentences: one sentence
             return self.extract_multi(self.grab_multi)
         g = grab or self.grab
         it = self.R.item(g["iid"]) if g else None
         if it is None or "s" not in g:
-            self.host.status("Drag across the words inside a sentence first, then Extract (Shift+S).")
+            self.host.status("Drag across the words inside a sentence first, then Make a sentence (Shift+S).")
             return None
         mid = self.R.extract(it, g["s"], g["e"])
         if mid is None:
@@ -4263,7 +4263,7 @@ class AssignPage(QWidget):
             return None
         diag.activity("compliance_extracted")
         self.clear_grab()
-        self.keys["Extract"].setEnabled(False)
+        self.keys["Make"].setEnabled(False)
         self.clear_split(card=False)
         self.build_boxes()
         self.select(mid["id"])
@@ -4293,7 +4293,7 @@ class AssignPage(QWidget):
             return None
         diag.activity("compliance_extracted", n=len(mids))
         self.clear_grab()
-        self.keys["Extract"].setEnabled(False)
+        self.keys["Make"].setEnabled(False)
         self.clear_split(card=False)
         self.build_boxes()
         self.select(first["id"])

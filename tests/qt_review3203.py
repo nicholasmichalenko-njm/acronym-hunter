@@ -1,5 +1,5 @@
 """3.20.3 the review layout and the issues of 2026-11-02, offscreen: Review lays itself out in the window (no page
-scroll at 1280x800; the right panel scrolls on its own, decisions on top); Extract (Shift+S) makes dragged words a
+scroll at 1280x800; the right panel scrolls on its own, decisions on top); Make a sentence (Shift+S, was Extract) makes dragged words a
 sentence of their own, one Undo step; Split asks where when no word is clicked; the wheel glides; a captured rule's value
 is fixed from the sentence's card; dashboard cards fit half width (their buttons wrap) and a tile's number never runs
 past its edge; Questions due shows on the dashboard; a meeting's selected notes become a topic; the new labels; the
@@ -82,7 +82,7 @@ check("Extract: the dragged words are a sentence of their own, between the parts
 check("Extract is one Undo step", w.review.undo_label().startswith("extract"), w.review.undo_label())
 w.review.undo_last(); pg.build_boxes(); app.processEvents()
 check("Undo puts the sentence back whole", len(M.items) == n0 and any(it["text"] == text for it in M.items))
-check("Extract has its button and Shift+S", "Extract" in pg.keys and any(k.key().toString() == "Shift+S" for k in pg.findChildren(QShortcut)))
+check("Make a sentence has its button and Shift+S", "Make" in pg.keys and any(k.key().toString() == "Shift+S" for k in pg.findChildren(QShortcut)))
 check("whole sentence: nothing to extract", pg.do_extract({"iid": a["id"], "s": 0, "e": len(text)}) is None)
 
 # ---------------------------------------------------------------- Split where you click
