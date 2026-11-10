@@ -54,6 +54,7 @@ def labels(page):
 
 
 a, b, c = terms[0], terms[1], terms[2]
+ap.tabs.setCurrentIndex(1); app.processEvents()                    # 3.93.0: the card is in The list
 ap.select(a); app.processEvents()
 got = labels(ap)
 check("the card: Add to effort list and Not a term", "Add to effort list" in got and "Not a term" in got, got)

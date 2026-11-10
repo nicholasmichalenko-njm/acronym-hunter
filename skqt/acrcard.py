@@ -17,9 +17,9 @@ def _fold(page, title, inner, open_=False):
     block = QWidget(); block.setLayout(inner); block.setVisible(open_)
     btn = D.button(("Hide " if open_ else "Show ") + title, "ghost")
 
-    def flip():
-        block.setVisible(not block.isVisible())
-        btn.setText(("Hide " if block.isVisible() else "Show ") + title)
+    def flip():                                          # isHidden: right while the card's tab is not showing too
+        block.setVisible(block.isHidden())
+        btn.setText(("Show " if block.isHidden() else "Hide ") + title)
     btn.clicked.connect(flip)
     return btn, block
 
@@ -103,7 +103,14 @@ def build(page, t, kind_tone):
     # ---- the preview
     locs = d.get("locations", [])
     page.where_view = None
-    if locs:
+    if getattr(page, "list_only", False):                              # 3.93.0: the page is the On the page tab
+        for w_ in (page.find_text, page.use_sel):
+            w_.setVisible(False)
+        fr.itemAt(0).widget().setVisible(False); fr.itemAt(2).widget().setVisible(False)
+        locs_view = []
+    else:
+        locs_view = locs
+    if locs_view:
         from .foundview import FoundView
         from . import acrpart as APT
         page.where_view = FoundView(t, locs, page.path_of, on_meaning=lambda x: _meaning(page, x),
@@ -138,7 +145,11 @@ def build(page, t, kind_tone):
         box = QListWidget(); box.setMinimumHeight(100)
         box.addItems(locs[:500] + ([f"... and {len(locs) - 500} more"] if len(locs) > 500 else []))
         box.setToolTip("Click a place to show it in the preview")
-        box.currentRowChanged.connect(lambda r, fv=page.where_view: fv.show_place(r))
+        if page.where_view is not None:
+            box.currentRowChanged.connect(lambda r, fv=page.where_view: fv.show_place(r))
+        elif getattr(page, "show_on_page", None) is not None:          # 3.93.0: that page, in On the page
+            from . import acrtabs as TB
+            box.currentRowChanged.connect(lambda r: TB.show_place(page, locs[r]) if 0 <= r < len(locs) else None)
         inner.addWidget(box)
         page.places = box
     page.details_btn, block = _fold(page, "details", inner)

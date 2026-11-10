@@ -19,19 +19,22 @@ from .commandbar import CommandBar
 from .splitlines import SplitView
 
 KEEP_COLS = (0, 5, 6)                       # Term, Status, Definition; the rest stay in Export and Details
+LIST_COLS = (0, 1, 5, 6, 9)                 # 3.93.0 The list: Term, Type, Status, Definition, Source (the tool: KEEP_COLS)
 
 
 def install(page):
     """Rearranges the page built by AcronymPage.__init__ (its widgets and their names stay, for the tools and tests)."""
     v = page.layout()
+    page.list_w = QWidget()                                # 3.93.0: The list, one of two tabs
+    lv = QVBoxLayout(page.list_w); lv.setContentsMargins(0, 0, 0, 0); lv.setSpacing(D.SPACE["m"])
     # the bar
     bar = CommandBar(page)
     page.bar = bar
-    page.b_next = bar.primary("Next to decide", lambda: next_to_decide(page), "The next term to decide, in the list's order")
+    page.b_next = bar.add("Next to decide", lambda: next_to_decide(page), "The next term to decide, in the list's order")
     bar.add("Add a term", lambda: __import__("skqt.acrextras", fromlist=["x"]).add_term(page),
             "A term the scan did not find: select its words on the page, or type it")
-    page.b_drafts = bar.add("In our drafts", lambda: open_drafts(page), "Each volume's draft against the list: first use, "
-                            "spelled out again, the volume's Acronyms table")
+    page.b_drafts = bar.primary("In our drafts", lambda: open_drafts(page), "Each volume's draft against the list: first use, "
+                                "spelled out again, the volume's Acronyms table")
     for b in (page.b_cust, page.b_files, page.b_lib, page.b_again, page.b_paste, page.b_window):
         bar.more(b.text(), b.click, b.toolTip())
         b.setVisible(False)
@@ -49,10 +52,9 @@ def install(page):
                 w = lay.itemAt(k).widget()
                 if w is not None and w not in (page.progress, page.b_cancel, page.f_search, page.showing):
                     w.setVisible(False)
-    top = QHBoxLayout(); top.setSpacing(D.SPACE["s"])
     page.where.setVisible(False)                           # the page's title says what it is
-    top.addWidget(page.progress, 1); top.addWidget(page.b_cancel); top.addWidget(bar)
-    v.insertLayout(1, top)
+    from . import acrtabs as TB
+    TB.install(page, v)                                    # 3.93.0: On the page and The list
     # the filters as counts
     page.counts_row = FlowLayout(); page.counts_row.setSpacing(D.SPACE["s"])
     page.count_btns = {}
@@ -65,7 +67,9 @@ def install(page):
         page.counts_row.addWidget(b); page.count_btns[name] = b
     page.counts_row.addWidget(page.f_search)
     page.f_search.setVisible(True); page.f_search.setMinimumWidth(200)
-    v.insertLayout(2, page.counts_row)
+    page.counts_row.addWidget(page.showing)                # 3.93.0: in The list, with its filters
+    lv.addLayout(page.counts_row)
+    lv.addWidget(page.bulk)
     # three panes: the terms, the page, the card
     split = page.card_area.parentWidget()
     if isinstance(split, QSplitter):
@@ -76,9 +80,13 @@ def install(page):
         page.decide.layout().setStretch(0, 3); page.decide.layout().setStretch(2, 2)
         split.addWidget(page.decide)
         split.setSizes([300, 1200])
+        lv.addWidget(split, 1)
+        page.mid.setVisible(False)                         # 3.93.0: the page is the other tab (the tool keeps it here)
+        split.setSizes([760, 740])
+        page.split = split
     page.table.setMinimumWidth(240)
     for c in range(page.table.columnCount()):
-        page.table.setColumnHidden(c, c not in KEEP_COLS)
+        page.table.setColumnHidden(c, c not in LIST_COLS)    # 3.93.0: room for the type and where it is from
     page.card_area.verticalScrollBar().valueChanged.connect(lambda _v: refresh_line(page))
     # keys on the card
     page.keys = []
@@ -91,7 +99,7 @@ def install(page):
 
 
 def _key(page, seq, fn):
-    sc = QShortcut(QKeySequence(seq), page)
+    sc = QShortcut(QKeySequence(seq), page.list_w)         # 3.93.0: The list's keys; On the page has its own
     sc.setContext(Qt.WidgetWithChildrenShortcut)
     sc.activated.connect(lambda: None if _typing() else fn())
     return sc
@@ -115,6 +123,8 @@ def fill_counts(page):
     for name, b in page.count_btns.items():
         b.setText(f"{name} {c[name]}")
         b.setChecked(name == want)
+    from . import acrtabs as TB
+    TB.after_fill(page)                                    # 3.93.0: the tabs, and the page drawn again
     return c
 
 
@@ -263,6 +273,10 @@ def card_more(page, t):
         page.longer_line = None
     body.insertWidget(body.count() - 1, where_it_goes(page, t))
     sr = QHBoxLayout()
+    if getattr(page, "list_only", False) and d.get("locations"):           # 3.93.0: the page is the other tab
+        page.b_onpage = D.button("Show on the page", None, lambda: page.show_on_page(t),
+                                 "The first page the term is on, with its finds selected")
+        sr.addWidget(page.b_onpage)
     sr.addWidget(D.button("Sources", "ghost", lambda: sources_window(page, t), "Where each meaning comes from, and the "
                           "effort's timeline"))
     sr.addStretch(1)

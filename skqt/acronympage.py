@@ -176,6 +176,8 @@ class AcronymPage(QWidget):
     def tool_mode(self):
         """3.50.0: the page inside Acronym Finder: no effort, no customer Library; Scan files... starts it."""
         self.tool = True
+        from . import acrtabs as TB
+        TB.tool(self)                                                  # 3.93.0: no tabs in the tool
         self.b_cust.hide(); self.b_window.hide(); self.b_lib.hide(); self.b_folder.show()
         self.where.setText("<b>ACRONYM FINDER</b> &nbsp;Scan files or a folder: every acronym, abbreviation, unit and symbol, in "
                            "typed text and in pictures, with its meaning and the picture or passage where it was found.")
@@ -583,6 +585,8 @@ class AcronymPage(QWidget):
         for b in (self.b_files, self.b_folder, self.b_lib, self.b_again, self.b_paste, self.b_cust):
             b.setEnabled(False)
         self.b_cancel.show()
+        if getattr(self, "head_w", None) is not None:                 # 3.93.0: Cancel is in the tabs' row
+            self.head_w.show(); self.empty.hide()
         self.worker.start()
         return self.worker
 

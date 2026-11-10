@@ -40,8 +40,8 @@ w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1600, 980); w.show()
 w.open_effort("Kestrel")
 w.go("acronyms"); app.processEvents()
 ap = w.acronym_page
-check("one command bar: Next to decide, Add a term, In our drafts", ap.bar.main is ap.b_next and len(ap.bar.commands) <= 5
-      and "In our drafts" in ap.bar.labels(), ap.bar.labels())
+check("The list's bar: Next to decide, Add a term, In our drafts (3.93.0: the main one)", ap.bar.main is ap.b_drafts
+      and len(ap.bar.commands) <= 5 and "Next to decide" in ap.bar.labels(), ap.bar.labels())
 check("every scan and tool is in More", all(ap.bar.action(x) is not None for x in ("Scan the customer documents", "Scan files...",
       "Scan the library...", "Customer acronym lists...", "Letters joined by a hyphen are one term")))
 files = [os.path.join(A.BASE_DIR, "test_samples", "Kestrel_Technical_Volume.docx")]
@@ -56,12 +56,12 @@ check("the counts on the page", ap.count_btns["To decide"].text() == f"To decide
       [b.text() for b in ap.count_btns.values()])
 ap.count_btns["To decide"].click(); app.processEvents()
 check("a count clicked filters the list", ap.f_status.currentText() == "To decide" and ap.count_btns["To decide"].isChecked())
-check("the list shows the term, its state and its definition only", [c_ for c_ in range(ap.table.columnCount()) if not ap.table.isColumnHidden(c_)] == [0, 5, 6])
+check("the list shows the term, its type, state, definition and source", [c_ for c_ in range(ap.table.columnCount()) if not ap.table.isColumnHidden(c_)] == [0, 1, 5, 6, 9])
 t = ap.b_next.click() or ap.current(); app.processEvents()
 t = ap.current()
 check("Next to decide selects a term to decide", t is not None and P.passes(s.results[t], "To decide", "other"), t)
-check("the customer's page is in the middle, not in the card", ap.where_view is not None and ap.where_view.parentWidget() is ap.mid
-      if s.results[t].get("locations") else True)
+check("3.93.0: the customer's page is the On the page tab, not beside the list", ap.where_view is None and not ap.mid.isVisible()
+      and (getattr(ap, "b_onpage", None) is not None if s.results[t].get("locations") else True))
 # a term with suggestions: keys
 s.results["GSaaS"] = {"count": 2, "category": "Acronym", "status": "Needs Review", "locations": ["Kestrel_Technical_Volume.docx para 2"],
                       "custdef_all": [{"definition": "Ground Station as a Service", "where": "RFP p. 41"}],

@@ -89,11 +89,14 @@ check("Scan again: the decisions hold", s.results["SOW"]["status"] == "Effort li
 w.go("acronyms"); app.processEvents()
 ap.f_status.setCurrentIndex(0); ap.f_search.setText(""); app.processEvents()
 ap.select("SOW"); app.processEvents()
-wv = getattr(ap, "where_view", None)
-wv and wv.wait()
-check("the card shows the place it was found (picture or passage), with Next place", wv is not None and wv.state in ("text", "picture")
-      and ("SOW" in wv.text.toPlainText() or wv.state == "picture") and wv.where.text().startswith("Place 1 of"),
-      wv and (wv.state, wv.where.text()))
+ap.show_on_page("SOW"); app.processEvents()                       # 3.93.0: the place is shown in On the page
+ap.onpage.wait(); app.processEvents()
+check("3.93.0: Show on the page opens the place it was found, its finds selected", ap.onpage.state in ("text", "picture")
+      and ap.onpage.selected() and all(x["term"] == "SOW" for x in ap.onpage.selected()), (ap.onpage.state, ap.onpage.key))
+ap.tabs.setCurrentIndex(1); app.processEvents()
+ap.select("SOW"); app.processEvents()
+check("3.93.0: The list's card has Show on the page, no page beside it", getattr(ap, "where_view", None) is None
+      and ap.b_onpage.isVisibleTo(ap))
 import copy
 s.results["SOWs"] = copy.deepcopy(s.results["SOW"]); s.results["SOWs"]["effort"] = ""; s.results["SOWs"]["status"] = "Needs Review"
 check("a plural's singular is guessed", s.singular_guess("SOWs") == "SOW" and s.singular_guess("ICD's") == "ICD" and s.singular_guess("SOW") == "")

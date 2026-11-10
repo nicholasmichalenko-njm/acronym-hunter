@@ -117,8 +117,15 @@ class PicView(QGraphicsView):
                 self.on_click(self.mapToScene(p0))
         elif a0 is not None:
             box = self.draw_area(a0, self.mapToScene(e.position().toPoint()))
+            self.drop_area()                     # 3.93.0: the drag box is gone when you let go; what it held is selected
             if box and self.on_area is not None:
                 self.on_area(box)
+
+    def drop_area(self):
+        """The dashed drag box off the picture (its area stays, for reading that part again)."""
+        if self._area_item is not None and self._area_item.scene() is self.scene_:
+            self.scene_.removeItem(self._area_item)
+        self._area_item = None
 
     def draw_area(self, a, b):
         """The box between two scene points, kept inside the picture; drawn dashed. Returns (x0, y0, x1, y1) or None."""
