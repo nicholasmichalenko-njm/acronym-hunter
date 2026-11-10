@@ -140,9 +140,13 @@ def new_matrix(path, items, heads, src, outline_text=""):
 def text_check(M):
     """[result] of textcheck.check for each RFP file of the matrix (a file no longer on this PC is marked gone)."""
     import textcheck as TC
+    import setupdoc as SD
     out = []
+    sup = set(SD.setup_of(M).get("superseded") or []) if getattr(M, "setup", None) is not None else set()
     for s in M.sources:
         name = s[0] if s else ""
+        if name in sup:                             # 4.2.0: an older version: its pieces moved on (newversion)
+            continue
         path = s[3] if len(s) > 3 else ""
         if not path or not os.path.isfile(path):
             out.append({"file": name, "words": 0, "in_review": 0, "in_headings": 0, "missing": 0, "pct": 0, "lines": [], "gone": True})
@@ -173,8 +177,12 @@ def add_missing(M, results):
     import textcheck as TC
     added = []
     paths = {s[0]: s[3] for s in M.sources if s and len(s) > 3}
+    import setupdoc as SD
+    waits = (SD.setup_of(M).get("for_changes") or {}) if getattr(M, "setup", None) is not None else {}
     for r in results:
-        lines = [(where, line) for where, line, kind in r.get("lines", []) if kind == "missing"]
+        wait = set(waits.get(r["file"]) or [])            # 4.2.0: changed sentences wait for Changes (newversion)
+        lines = [(where, line) for where, line, kind in r.get("lines", []) if kind == "missing"
+                 and " ".join(line.split()).lower() not in wait]
         if not lines:
             continue
         path = r.get("path") or paths.get(r["file"], "")

@@ -593,7 +593,8 @@ class ReadPage(QWidget):
             self.host.set_matrix(M, new=True)
             msg = f"{len(items)} sentences from {len(src)} file(s). {start_msg}".strip()
         else:
-            add = CR.add_read(self.host.review.M, items, heads, src)
+            merge, self._merge = getattr(self, "_merge", None), None       # 4.2.0: a new version (newversion.merge)
+            add = merge(items, heads, src) if merge else CR.add_read(self.host.review.M, items, heads, src)
             fixed = CR.complete(self.host.review.M)
             self._apply_pending(self.host.review.M)
             self.host.changed()

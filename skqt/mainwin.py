@@ -340,7 +340,8 @@ class MainWindow(QMainWindow):
         self._rd_seen = self._rd_done = None                   # 2.92.0: the readable copy, kept current
         self._rd_thread = None
         self.rd_written = ""
-        self.rd_timer = QTimer(self, interval=3000, timeout=lambda: (self.readable_tick(), self.watch_tick()))
+        self.rd_timer = QTimer(self, interval=3000, timeout=lambda: (self.readable_tick(), self.watch_tick(),
+                                                                  __import__("skqt.shredpick", fromlist=["x"]).auto_tick(self)))
         self.rd_timer.start()
         from .safety import Safety                 # 2.78.0: backups, recovery, where you were, the crash screen
         self.safety = Safety(self)
@@ -974,6 +975,10 @@ class MainWindow(QMainWindow):
                 self.review.M.save()
                 self.review.M.pending = False
                 self.safety.saved(self.review.M.path)      # 2.78.0: clear the recovery copy; a dated copy now and then
+                try:                                         # 4.2.0: the day's copy in Matrix history (decision 4)
+                    __import__("matrixhistory").keep(self.review.M.path)
+                except Exception:
+                    diag.swallowed()
                 self.fill_search()
             except PermissionError:
                 self.status("The matrix is open in Excel: close it there, and it is saved again in two seconds.")

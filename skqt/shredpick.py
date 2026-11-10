@@ -18,8 +18,10 @@ def _lib(host):
     return DV.Library(host.ws.p("documents")).load() if host.ws is not None else None
 
 
-def pending(host):
-    """[(label, doc id, path)]: the customer documents that build the matrix and are not extracted yet."""
+def pending(host, versions=False):
+    """[(label, doc id, path)]: the customer documents not extracted yet (4.2.0: every one not left out, whatever its
+    role; decision 2). A newer version of a document already extracted is not one of them: it comes in through
+    newversion (decision 9), so its unchanged sentences never appear twice. versions=True: only those newer versions."""
     import compliance_read as CR
     lib = _lib(host)
     if lib is None:
@@ -28,10 +30,41 @@ def pending(host):
     out = []
     for name, _label, path in CR.effort_docs(host.ws):
         d = lib.doc_of_file(os.path.basename(path))
-        if d is None or lib.role_of(d) != "matrix" or os.path.basename(path) in have:
+        if d is None or lib.role_of(d) == "not_needed" or os.path.basename(path) in have:
             continue
-        out.append((name + TAIL, d["id"], path))
+        older = any(v.get("file") in have for v in d.get("versions", [])[:-1])
+        if older == versions:
+            out.append((name + TAIL, d["id"], path))
     return out
+
+
+def auto_on():
+    """Tests turn it on themselves (SK_AUTO_EXTRACT_TEST): most of them add documents and then read them by hand."""
+    return not os.environ.get("AH_TEST") or bool(os.environ.get("SK_AUTO_EXTRACT_TEST"))
+
+
+def auto_tick(host):
+    """4.2.0 (decision 2): adding a customer document extracts it. Run on the window's timer: when Documents' index
+    changed and documents wait, extract them all in the background (no page change, no question). Returns the worker."""
+    if host.ws is None or not auto_on() or host.read_page.running():
+        return None
+    try:
+        idx = os.path.join(host.ws.p("documents"), "index.json")
+        st = (host.ws.root, os.path.getmtime(idx) if os.path.isfile(idx) else 0,
+              len(host.review.files()) if host.review is not None else -1)
+        if st == getattr(host, "_auto_seen", None):
+            return None
+        host._auto_seen = st
+        waiting = pending(host)
+        if waiting:
+            return extract_paths(host, [p for _l, _d, p in waiting], go=False)
+        new = pending(host, versions=True)
+        if new:
+            import newversion as NV
+            return NV.extract(host, new[0][1])
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+    return None
 
 
 def fill(page):
@@ -82,7 +115,7 @@ def extract(page, doc_id, out=None):
     return w
 
 
-def extract_paths(host, paths, then_file="", out=None):
+def extract_paths(host, paths, then_file="", out=None, go=True):
     """Extract several documents (Documents' Open in Shred, before any matrix): no question, the first opens after."""
     rp = host.read_page
     if rp.running():
@@ -98,8 +131,10 @@ def extract_paths(host, paths, then_file="", out=None):
     w = rp.read(paths=paths, out=out, identities="suggested", start="auto")
     if w is None:
         rp._then = None
-    else:
+    elif go:
         host.go("assign")
+    else:
+        host.status(f"Extracting {len(paths)} document(s) for the shred, in the background.")
     return w
 
 
