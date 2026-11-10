@@ -58,7 +58,7 @@ TABS = {"home": [("home", "Dashboard"), ("requirements", "Submission Rules")],
         "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks")],
         "shredreq": [("shredreq", "Requirements"), ("shredacc", "Accuracy")], "postsub": [("postsub", "Checklist"), ("keywords", "Keywords")],
         "formatstd": [("styles", "Styles"), ("formatstd", "Formatting"), ("qpstd", "Quick Parts"), ("layoutstd", "Layout"),
-                      ("designs", "Section designs")],     # 3.94.0: Styles, the library of styles and style sets      # 3.75.0: tabs, not menu items
+                      ("designs", "Parts")],     # 3.95.0: Parts (was Section designs)  # 3.94.0: Styles, the library of styles and style sets      # 3.75.0: tabs, not menu items
         "profiles": [("profiles", "Effort Profiles"), ("templates", "Templates")],
         "audit": [("audit", "Audit"), ("applyword", "Apply in Word"), ("fixcopy", "Fix a Copy")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
@@ -288,8 +288,8 @@ class MainWindow(QMainWindow):
         from .stylespage import StylesPage
         self.styles_page = StylesPage(self)                   # 3.94.0
         self.layoutstd_page = LayoutPage(self)
-        from .designspage import DesignsPage              # 3.87.0: the library of sections built in Word
-        self.designs_page = DesignsPage(self)
+        from .partspage import PartsPage                  # 3.95.0: Parts, the library of pages and Quick Parts (3.87.0 Section designs)
+        self.designs_page = PartsPage(self)
         from .techeditpage import TechEditPage
         self.techedit_page = TechEditPage(self)                  # 3.54.0
         from .toolshome import ToolsHome

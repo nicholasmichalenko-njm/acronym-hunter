@@ -1,4 +1,4 @@
-"""3.87.0 offscreen: Production > Section designs, a tab beside Layout: empty, one way in; Bring in from Word... onto a
+"""3.87.0 offscreen: Standards > Parts (3.95.0; was Section designs), a tab beside Layout: empty, one way in; Bring in from Word... onto a
 shelf; what fills it edited in its row; text other pages read; act on the row (Open in Word, Replace..., Remove); one
 command bar with Bring in from Word... as its one main button. Setup > More > Section designs... picks a design per
 section (None only where optional); Make the setup writes each picked design filled beside the setup. Fictional (Kestrel)."""
@@ -47,23 +47,25 @@ LIST = os.path.join(ED, "Kestrel_Effort_List.xlsx"); L = E.EffortList(LIST, "Kes
 E.Registry(os.path.join(cfg, "efforts.json")).put("Kestrel", path=LIST)
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-check("Section designs is a tab beside Layout", [k for k, _t in TABS["formatstd"]][-1] == "designs")
+check("Parts (3.95.0, was Section designs) is a tab beside Layout", [k for k, _t in TABS["formatstd"]][-1] == "designs"
+      and dict(TABS["formatstd"])["designs"] == "Parts")
 w.go("designs"); app.processEvents()
 dp = w.designs_page
-check("empty: one way in", dp.empty.isVisibleTo(w) and dp.bar.main.text() == "Bring in from Word...")
-got = dp.bring_in(cover, shelf="cover")
-check("Bring in from Word: on the Cover shelf", len(got) == 1 and SDZ.designs(cfg, "cover")[0]["id"] == got[0]["id"] and not dp.empty.isVisibleTo(w))
+check("empty: one way in", dp.empty.isVisibleTo(w) and dp.bar.main.text() == "Bring in from a document...")
+dlg = dp.bring_in(cover, run=False)
+dlg.plan["pages"][0]["kind"] = "cover"
+kept, _q = dlg.go()
+got = kept
+check("Bring in: on the Cover shelf", len(got) == 1 and SDZ.designs(cfg, "cover")[0]["id"] == got[0]["id"] and not dp.empty.isVisibleTo(w))
 check("what fills it: one row per paragraph with text", dp.fills.rowCount() == 3 and dp.fills.item(1, 1).text() == "AA Volume Name")
 dp.fills.item(1, 2).setText("volume_name")
 check("a fill-in typed in its row is kept", SDZ.get(cfg, got[0]["id"])["map"]["1"] == "volume_name")
 check("text other pages read: none here", "No header" in dp.others.text())
-dp.tree.setCurrentItem(dp.tree.topLevelItem(1).child(0))
-check("act on the row", [a.text() for a in dp.row_menu(run=False).actions() if a.text()] ==
-      ["Open in Word", "Draw with Word", "Replace with an updated file...", "Remove from the library"])
-check("Open in Word opens the library's copy", dp.open_word(got[0]["id"]).endswith(".docx"))
+dp.rows.item(0).setSelected(True)
+check("act on the row", [a.text() for a in dp.row_menu(run=False).actions() if a.text()][:4] ==
+      ["Open in Word", "Draw with Word", "Bring back as a new version...", "Name this version..."])
+check("Open in Word opens the library's copy", dp.open_word("d:" + got[0]["id"]).endswith(".docx"))
 check("without Word's picture, a sketch marked as one (3.87.1)", "sketch" in dp.thumb_note.text().lower() and "Proposal Title" in dp.thumb.text())
-dp.tree.setCurrentItem(dp.tree.topLevelItem(1).child(0))
-check("Draw with Word is on the row (3.87.1)", "Draw with Word" in [a.text() for a in dp.row_menu(run=False).actions()])
 # Setup picks it; Make the setup fills it
 w.open_effort("Kestrel")
 w.go("setups"); app.processEvents()
@@ -96,7 +98,7 @@ check("the cover section's Design row lists the Cover shelf", sp.design_form.isR
 sp.f_design.setCurrentIndex(0)
 check("picking (not set) there clears the pick; one set of records with Section designs...", sp.set_design() and SDZ.picked(M, "cover") == "")
 check("picking a design there sets it", sp.set_design(got[0]["id"]) and SDZ.picked(M, "cover") == got[0]["id"])
-check("Remove from the library", dp.remove(got[0]["id"]) and SDZ.designs(cfg) == [])
+check("Remove from the library", dp.remove(["d:" + got[0]["id"]]) == 1 and SDZ.designs(cfg) == [])
 
 print(f"QT DESIGNS 387 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

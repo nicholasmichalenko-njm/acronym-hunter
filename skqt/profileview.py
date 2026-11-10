@@ -40,8 +40,8 @@ class PickDialog(QDialog):
                             "one waits until you choose it.", "muted"))
         self.list = QListWidget(); v.addWidget(self.list, 1)
         for x in (TP.design_choices(config_dir, slot) if config_dir else []):     # 3.90.0: covers live in Section designs
-            w = QListWidgetItem(f"{x['name']}   (Section designs)")
-            w.setData(Qt.UserRole, ("sd", x["id"])); w.setToolTip("A design kept in Standards > Section designs")
+            w = QListWidgetItem(f"{x['name']}   (Parts)")
+            w.setData(Qt.UserRole, ("sd", x["id"])); w.setToolTip("A page kept in Standards > Parts")
             self.list.addItem(w)
         for i in TP.choices(lib, slot):
             w = QListWidgetItem(lib.shown_name(i) + (f"   ({i.get('by', '')}, {str(i.get('at', ''))[:10]})" if i.get("at") else "")

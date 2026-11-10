@@ -206,6 +206,9 @@ def look(path, lib=None, work=None):
         if lib is not None:
             st, _hit = lib.match("quickpart", e["name"], _qp_values(e, h))
         gallery.append(dict(e, state=st, keep=st != "same"))
+    if len(files) == 1 and gallery:                 # a template with a gallery: its body is not a page to keep
+        for x in pages:
+            x["keep"] = False
     return {"pages": pages, "gallery": gallery, "path": path}
 
 

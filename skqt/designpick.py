@@ -4,6 +4,7 @@ where the section is optional (None leaves it out). Make the setup fills each pi
 and writes it beside the setup. Rules: sectiondesigns. Nothing leaves the PC."""
 from PySide6.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QFormLayout, QVBoxLayout
 
+import partlib as PT
 import sectiondesigns as SDZ
 from . import design as D
 
@@ -14,7 +15,7 @@ class DesignPick(QDialog):
         self.setWindowTitle("Section designs for this effort"); self.resize(560, 360)
         self.M, self.cfg = M, config_dir
         v = QVBoxLayout(self)
-        v.addWidget(D.label("The design each section uses, from Production > Section designs. None leaves an optional "
+        v.addWidget(D.label("The design each section uses, from Production > Standards > Parts. None leaves an optional "
                             "section out. Make the setup fills each one and writes it beside the setup.", "muted"))
         f = QFormLayout(); v.addLayout(f)
         self.boxes = {}
@@ -24,7 +25,7 @@ class DesignPick(QDialog):
             if shelf in SDZ.OPTIONAL:
                 cb.addItem("None: leave this section out", "none")
             for x in SDZ.designs(config_dir, shelf):
-                cb.addItem(x["name"], x["id"])
+                cb.addItem(PT.shown_name(config_dir, x), x["id"])       # 3.95.0: each version by its number and name
             cur = SDZ.picked(M, shelf)
             cb.setCurrentIndex(max(0, cb.findData(cur)))
             f.addRow(SDZ.SHELF_NAME[shelf], cb)

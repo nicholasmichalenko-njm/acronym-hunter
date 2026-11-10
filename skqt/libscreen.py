@@ -553,6 +553,6 @@ class LayoutPage(LibraryScreen):
 
     def __init__(self, host):
         super().__init__(host, "layout")
-        self.moved_note = D.label("Covers, title pages and back covers are in Section designs (the next tab). Headers, "
+        self.moved_note = D.label("Covers, title pages and back covers are in Parts (the next tab). Headers, "
                                   "footers and page setup stay here.", "muted")
         self.layout().insertWidget(1, self.moved_note)

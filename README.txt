@@ -1,6 +1,21 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+PARTS: ONE LIBRARY OF PAGES AND QUICK PARTS, WITH SETS (3.95.0)
+  - Team > Standards > Parts (was Section designs): covers, marking (CUI) pages, title pages, front matter (contents,
+    acronyms, units), back covers and Quick Parts, each kind a tab with its count. One row per part: its picture, its
+    name with its versions as tabs, where it came from and the part sets it is in.
+  - Bring in from a document... reads a Word file once: its pages, one per Word section, each said to be a cover, a CUI
+    page, a title page... (change it if the guess is wrong), and its Quick Parts gallery (New or Already have it). Tick
+    what you keep and pick the part set. Each page is kept whole, exactly as built in Word; the file is never changed.
+  - To change a page: right-click, Open in Word, save your changes as a new file, then Bring back as a new version...
+    The version you started from stays (Setups and sets that use it keep it); what fills it carries over. Name this
+    version says what each one is for (CUI, compact...).
+  - Part sets group parts by use, each with a color: drag rows onto a set on the left. A set holds one version of each
+    part, and a set's rows show the versions it uses. Setup's section designs list each version by its number and name.
+  - The selected page shows on the right: Word's picture or a sketch, what fills it, the text other pages read and the
+    check. A Quick Part links to its details on the Quick Parts tab.
+
 STYLES: ONE LIBRARY, WITH SETS (3.94.0)
   - Team > Standards > Styles: every style you keep, one row each. The row shows its font, its paragraph treatment
     (spacing, line, keeps), its characters (bold, italic, color, hidden), the rest (based on, next, what it marks) and a

@@ -715,7 +715,7 @@ TOPICS = [
    "shows what applies to it: where it starts and how its pages are numbered, its header and footer, its page, TOC or captions, "
    "and what every section shares. Page setup and contents: the page setup the section follows, and what it starts with, in "
    "order (+ Element..., + Quick Part..., + Placeholder...); Make templates puts them at its start. Each section has a drawn "
-   "preview, Open a sample in Word, Save this section as a design (Template library > Section designs) and Use a saved design.",
+   "preview, Open a sample in Word, Save this section as a design (Standards > Parts) and Use a saved design.",
    "Sections in order: the page scheme, your own sections among them (add a row: a key, a name, the style it starts at). Its "
    "card A section's page setup and contents does the same for any section, and builds its header or footer as a table.",
    "Library beside a section's contents (3.48.0): response elements, this standard's Quick Parts and the template library's "

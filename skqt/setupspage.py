@@ -55,7 +55,7 @@ class SetupsPage(QWidget):
         bar.more("What fills each section...", lambda: self.show_layers(not self.layers.isVisible()))
         bar.more("Setup styles...", lambda: self.styles(), "The setup's own styles: name, font, size, color, bold, italic, hidden")
         bar.more("Section designs...", lambda: self.pick_designs(),                 # 3.87.0
-                 "The cover, title page and front matter designs this effort uses, from the Section designs library")
+                 "The cover, title page and front matter designs this effort uses, from Standards > Parts")
         bar.more("Outline versions...", lambda: self.versions(),
                  "Every version of the outline brought in: compare any two, write the workbook back out")
         bar.more("Outline layouts...", lambda: self.layouts(), "Set an outline's column names and how mixed text is told apart")
@@ -112,7 +112,7 @@ class SetupsPage(QWidget):
             f.addRow(lab, w)
             w.editingFinished.connect(lambda: self.save_section(quiet=True))     # 3.83.0: saved as you leave the box
         from PySide6.QtWidgets import QComboBox                # 3.87.1: the section's Design, from Section designs
-        self.f_design = QComboBox(); self.f_design.setToolTip("The design this section uses, from Production > Section designs")
+        self.f_design = QComboBox(); self.f_design.setToolTip("The design this section uses, from Standards > Parts")
         self.f_design.activated.connect(lambda _i: self.set_design())
         f.addRow("Design", self.f_design)
         self.design_form = f

@@ -103,18 +103,23 @@ VERIFY = \
    "A verified page is a record that a person checked it, not a guarantee. Reopen this page... sends one back."])
 
 DESIGNS = \
-("designs", "Production", "Section designs",
-  "The library of sections built in Word and kept whole: CUI cover, Cover, Title page, Table of Contents, Acronyms and "
-  "Abbreviations, Units and Symbols, Back cover. Setup picks a design for each section of a volume.",
-  "When the team adds or updates a cover, a title page or a front matter section.",
-  ["Build the section in Word on the team template. Put each piece of text that changes per effort in its own paragraph "
+("designs", "Team", "Parts",
+  "The library of parts built in Word and kept whole: covers, marking (CUI) pages, title pages, front matter (contents, "
+  "acronyms, units), back covers and Quick Parts. Each kind is a tab; each part is one row with its versions as tabs and "
+  "the part sets it is in. Setup and Make templates pick from here.",
+  "When the team adds or changes a cover, a CUI page, a title page, a front matter page or a Quick Part; when you group "
+  "parts for a kind of effort.",
+  ["Build the page in Word on the team template. Put each piece of text that changes per effort in its own paragraph "
    "and style; give each source a header or footer reads (STYLEREF) its own style.",
-   "Bring in from Word... and pick its shelf. A file with several Word sections comes in as one design per section.",
+   "Bring in from a document... reads a Word file once: its pages (one per Word section, each said to be a cover, a CUI "
+   "page, a title page...: change it if the guess is wrong) and its Quick Parts gallery. Tick what you keep and pick its part set.",
    "On the right, What fills it: type the fill-in each styled paragraph takes, or leave it blank to keep the words as written.",
-   "Text other pages read lists the styles headers and footers read; the check speaks only when one is missing or in a text box.",
-   "Right-click a design: Open in Word, Replace with an updated file..., Remove from the library."],
-  ["Setups already made keep the copy of the design they used.",
-   "A table's sample row repeats once per entry when Setup fills it (an Acronyms table: term, meaning)."])
+   "To change a page: right-click, Open in Word, save your changes as a new file, then Bring back as a new version... The "
+   "version you started from stays; Name this version... says what each one is for.",
+   "Drag rows onto a part set on the left. A set holds one version of each part."],
+  ["Setups already made keep the copy of the page they used.",
+   "A table's sample row repeats once per entry when Setup fills it (an Acronyms table: term, meaning).",
+   "A Quick Part's picture, fonts and the pages it fills are on the Quick Parts tab (right-click: Details on the Quick Parts tab)."])
 
 # 3.94.0: the Styles library
 STYLES = ("styles", "Team", "Styles", "Every style you keep, one row each, with a preview and the sets it is in.",
