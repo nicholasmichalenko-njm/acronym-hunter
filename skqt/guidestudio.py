@@ -116,3 +116,11 @@ DESIGNS = \
   ["Setups already made keep the copy of the design they used.",
    "A table's sample row repeats once per entry when Setup fills it (an Acronyms table: term, meaning)."])
 
+# 3.94.0: the Styles library
+STYLES = ("styles", "Team", "Styles", "Every style you keep, one row each, with a preview and the sets it is in.",
+  "When a file has styles you want to keep; when you group styles for a kind of effort; when a style needs another look.",
+  ["Bring in from a document... reads only a Word file's styles: New, Different from yours (a new version) or Already have it, "
+   "side by side; tick what you keep and pick its set. A style's versions are tabs on its row. Drag rows onto a set on the left; "
+   "a set holds one version of each style and asks before moving to a newer one. New style makes a simple one; Make a copy to "
+   "change (right-click) saves another version."],
+  ["Each style keeps Word's own definition exactly as the file had it."])

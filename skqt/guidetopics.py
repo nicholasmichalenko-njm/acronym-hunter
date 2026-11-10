@@ -544,21 +544,6 @@ TOPICS = [
    "Compare, then Export the redline... for the reviewers."],
   ["Nothing here changes a file. Each check exports a workbook (or the redline) for the record.",
    "Page limits often leave out the cover, contents and acronym list: a page count over the limit says to check that."]),
- ("styles", "Team", "Styles",
-  "Every style you keep, one row each: its font, its paragraph and character treatment, the rest, and a preview on real "
-  "text, with the sets it is in.",
-  "When a template or document has styles you want to keep; when you group styles for a kind of effort; when a style needs "
-  "another look for one use.",
-  ["Bring in from a document... reads only the styles of a Word file or template (it is never changed). Each is New, "
-   "Different from yours or Already have it; yours and the file's sit side by side. Tick what you keep and pick its set.",
-   "A style that differs from yours comes in as a new version under the same name. The versions are tabs on the style's row: "
-   "click one to see it, with the sets it is in.",
-   "Sets group styles by use (RFP volume, Page-limited RFP, Setup). Drag rows onto a set on the left, or right-click Add to set. "
-   "A set holds one version of each style; when a newer version comes in, the set says so and moves only if you say.",
-   "New style makes a simple one here: font, size, color, bold, italic, underline and hidden. Make a copy to change (right-click) "
-   "saves another version with a new look; the one you started from stays."],
-  ["Each style keeps Word's own definition exactly as the file had it, so a template gets it as Word wrote it.",
-   "Remove from the library works only on a style no set uses."]),
  ("qpstd", "Team", "Quick Parts",
   "Every Quick Part in the library, by your numbered categories, with its gallery, whether it follows the template's fonts, the "
   "pages it fills and Word's picture of it.",
@@ -796,8 +781,8 @@ TOPICS = [
   [], []),
 ]
 
-from .guidestudio import STUDIO, FORMATSTD, APPLYWORD, CHECKS369, VERIFY, DESIGNS      # 3.66.0: kept apart so this file stays under 800 lines
-TOPICS[next(i for i, t in enumerate(TOPICS) if t[0] == "qpstd"):0] = [STUDIO, FORMATSTD, VERIFY, DESIGNS]     # 3.84.0: Verify, sorted into the menu's order below
+from .guidestudio import STUDIO, FORMATSTD, APPLYWORD, CHECKS369, VERIFY, DESIGNS, STYLES      # 3.66.0: kept apart so this file stays under 800 lines
+TOPICS[next(i for i, t in enumerate(TOPICS) if t[0] == "qpstd"):0] = [STUDIO, FORMATSTD, STYLES, VERIFY, DESIGNS]     # 3.84.0: Verify, sorted into the menu's order below
 TOPICS.insert(next(i for i, t in enumerate(TOPICS) if t[0] == "fixcopy") + 1, APPLYWORD)   # 3.67.0
 for _k, _line in CHECKS369:                     # 3.69.0: Production Standards' sections in their new homes
     for _t in TOPICS:
@@ -806,7 +791,7 @@ for _k, _line in CHECKS369:                     # 3.69.0: Production Standards' 
 # 3.75.0: the Guide reads in the menu's order (nine groups; a tab's page after its menu item)
 _ORDER = ("tools mywork efforts home requirements deliverables effortfmt record meetings library read custqa datacalls compare "
           "impact shredreq shredacc verify assign prove sort matrix crosswalk evalcrit setups structure storyboards drafts truth acronyms "
-          "acrlist techedit reviews finalcheck qa checks postsub keywords formatstd qpstd layoutstd designs profiles templates studio "
+          "acrlist techedit reviews finalcheck qa checks postsub keywords formatstd styles qpstd layoutstd designs profiles templates studio "
           "rules audit applyword fixcopy refs settings exportall").split()
 _pos, _last = {}, -1.0
 for _n, _t in enumerate(TOPICS):
