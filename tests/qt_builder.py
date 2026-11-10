@@ -48,8 +48,8 @@ def wait(cond, secs=60):
     return cond()
 
 
-check("the menu: the Structure Builder is part of Setup (3.74.0); 4.0.0: Shred holds Extract and Requirements, Text check is Documents'",
-      ("setups", "Setup") in dict(RAIL)["Effort"] and "structure" not in dict(dict(RAIL)["Effort"]) and [k for k, _t in TABS["assign"]][:2] == ["read", "assign"]
+check("the menu: the Structure Builder is part of Setup (3.74.0); 4.1.0: Shred starts with Requirements, Text check is Documents'",
+      ("setups", "Setup") in dict(RAIL)["Effort"] and "structure" not in dict(dict(RAIL)["Effort"]) and [k for k, _t in TABS["assign"]][:1] == ["assign"]
       and "verify" in dict(TABS["library"]))     # 3.84.0: Verify first; 3.90.0: Read and Compare, Coverage a view
 w.open_effort("Kestrel")
 w.read_page.read(PDFS, os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))

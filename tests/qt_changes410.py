@@ -101,6 +101,8 @@ check("Re-shred: the passage joins Shred's queue with both wordings and the requ
       dec and dec["kind"] == "reshred" and len(q.open_items()) == 1 and q.open_items()[0]["target"] == pages50["id"]
       and "50 pages" in q.open_items()[0]["old"] and "40 pages" in q.open_items()[0]["new"], q.items)
 check("... the requirement says which version changed it", RS.flagged(w.ws.root) == {pages50["id"]: "Changed by Amendment 1"}, RS.flagged(w.ws.root))
+from skqt import docstatus as DSx
+check("Documents knows the document has a passage to re-shred", DSx._queued(w.library_page, d) == 1)
 risk = next(i for i in ch if "ten highest" in rows[i].get("new", ""))
 cp.select(risk); app.processEvents()
 bar.decide("question")

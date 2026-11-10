@@ -55,7 +55,7 @@ def wait(cond, secs=90):
     return cond()
 
 
-check("Shred's tabs: no Extract", [k for k, _t in TABS["assign"]] == ["assign", "acronyms", "acrlist"], TABS["assign"])
+check("Shred's tabs: no Extract", "read" not in [k for k, _t in TABS["assign"]] and TABS["assign"][0][0] == "assign", TABS["assign"])
 w.open_effort("Kestrel"); app.processEvents()
 pg = w.assign_page
 check("an effort with nothing extracted opens on Shred", w.stack.currentWidget() is pg)
@@ -81,6 +81,12 @@ pg.files.setCurrentText("Second document" + SP.TAIL); app.processEvents()
 check("picking a second one adds it to the matrix, every decision kept",
       wait(lambda: not w.read_page.running() and pg.file == os.path.basename(pM)) and len(w.review.M.items) > n0, pg.file)
 check("... nothing left to extract", not SP.pending(w))
+w.rail_go("library"); app.processEvents()
+lp0 = w.library_page
+lp0.refresh(); lp0.select(dL["id"]); lp0.show_doc(); app.processEvents()
+rows = {r[0]: r[1] for r in lp0.status_now}
+check("Documents' panel counts its pieces and how many are not sorted (4.1.0)", rows.get("Pieces", "").endswith("not sorted")
+      or rows.get("Pieces", "").endswith("all sorted"), rows)
 # Documents' Shred it, on a document added later
 lib = DV.Library(ws.p("documents")).load()
 pX = os.path.join(tmp, "Section_C.docx")

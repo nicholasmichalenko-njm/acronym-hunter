@@ -49,6 +49,48 @@ def _changes(page, d):
         return (False, 0)
 
 
+def _pieces(page, d):
+    """(pieces, not sorted) of this document in the shred, or None when it is not extracted (4.1.0)."""
+    try:
+        R = page.host.review
+        f = (d.get("versions") or [{}])[-1].get("file", "")
+        items = [it for it in (R.M.items if R is not None else []) if it.get("file") == f and it.get("header") != "Yes"]
+        if not items:
+            return None
+        import shredtypes as ST
+        return len(items), sum(1 for it in items if not ST.type_of(it))
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+        return None
+
+
+def _acros(page, d):
+    """(terms found on its pages, to decide), or None before a scan found any there (4.1.0)."""
+    try:
+        s = page.host.acronym_page.session
+        if s is None or not s.results:
+            return None
+        import acrpages as AG
+        f = (d.get("versions") or [{}])[-1].get("file", "")
+        terms = {}
+        for p in AG.pages(s.results):
+            if p["name"] == f:
+                terms.update(p["terms"])
+        return (len(terms), sum(1 for v in terms.values() if v == "decide")) if terms else None
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+        return None
+
+
+def _queued(page, d):
+    try:
+        import reshred as RS
+        return sum(1 for x in RS.Queue(page.host.ws.root).load().open_items() if x.get("doc") == d.get("name"))
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+        return 0
+
+
 def status(page, d, st=None):
     """[(what, detail, state)] for one document, state ok, warn or none; and its next thing (label, key) or None."""
     out = []
@@ -65,6 +107,12 @@ def status(page, d, st=None):
     shred = {"unread": ("Not extracted yet", NONE), "needs": (text.replace("Needs reviewing", "In progress"), WARN),
              "reviewed": ("Done", OK), "not_needed": ("Left out", NONE)}[key]
     out.append(("Shred", shred[0], shred[1]))
+    pc = _pieces(page, d)                                      # 4.1.0: its pieces and its acros and abs
+    if pc is not None:
+        out.append(("Pieces", f"{pc[0]} piece(s)" + (f", {pc[1]} not sorted" if pc[1] else ", all sorted"), WARN if pc[1] else OK))
+    ac = _acros(page, d)
+    if ac is not None:
+        out.append(("Acros & Abs", f"{ac[0]} found" + (f", {ac[1]} to decide" if ac[1] else ", all decided"), WARN if ac[1] else OK))
     ch = _changes(page, d)
     if ch is not None:
         opened, left = ch
@@ -90,6 +138,8 @@ def status(page, d, st=None):
         nxt = ("Review changes" + (f" ({ch[1]} left)" if ch[0] and ch[1] else ""), "compare")
     elif key == "unread":
         nxt = ("Shred it", "read")
+    elif _queued(page, d):
+        nxt = (f"Re-shred {_queued(page, d)} passage(s)", "reshred")
     elif key == "needs":
         nxt = ("Continue the shred", "assign")
     elif key == "reviewed":
@@ -120,6 +170,9 @@ def go_next(page, d, key):
         return bool(SP.extract(h.assign_page, d["id"]))
     if key == "assign":
         return page.read_in_assign(d["id"])
+    if key == "reshred":                                 # 4.1.0: the passages Changes queued
+        h.go("assign")
+        return __import__("skqt.reshredbar", fromlist=["x"]).open_next(h.assign_page) is not None
     return False
 
 
