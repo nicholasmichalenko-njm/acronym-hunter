@@ -324,3 +324,21 @@ def styles(lib, sid=None, words=""):
     out = [i for i in lib.items if i["kind"] == "style" and (keep is None or i["id"] in keep)
            and (not q or q in i["name"].casefold() or q in (i.get("summary") or "").casefold())]
     return sorted(out, key=lambda i: (lib.base_of(i).casefold(), -int(i.get("version") or 0)))
+
+
+def rows(lib, sid=None, words="", shown=None):
+    """One row per style (3.94.0, 19:16: the versions are tabs on the row): [{"family", "versions" (oldest first),
+    "shown" (the version the row shows: the one picked, else the set's, else the newest)}]."""
+    shown = shown or {}
+    out, seen = [], set()
+    for it in styles(lib, sid, words):
+        fam = it.get("family") or it["id"]
+        if fam in seen:
+            continue
+        seen.add(fam)
+        vers = sorted((x for x in lib.items if x.get("family") == fam and x["kind"] == "style"), key=lambda x: int(x.get("version") or 0))
+        pick = shown.get(fam)
+        if pick not in [x["id"] for x in vers]:
+            pick = it["id"]                 # styles() gives the set's version, or the newest, first
+        out.append({"family": fam, "versions": vers, "shown": pick})
+    return out
