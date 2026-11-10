@@ -130,16 +130,16 @@ STYLES = ("styles", "Team", "Styles", "Every style you keep, one row each, with 
    "change (right-click) saves another version."],
   ["Each style keeps Word's own definition exactly as the file had it."])
 
-# 3.96.0: the menu as the effort's path, and Team. 4.0.0: six steps
+# 3.96.0: the menu as the effort's path, and Team. 4.0.0: six steps. 4.1.0: Shred's four tabs
 PATH = ("path", "Effort", "The effort's path",
   "The menu is the effort's path: the Dashboard, then 1 Documents, 2 Shred, 3 Matrix & Outline, 4 Setup, 5 Drafts and "
   "6 Submit. Each step says what is left on it (done, a count, next, or the due date).",
   "Whenever you are not sure what to do next.",
   ["Documents: the customer's package, complete, current and readable. Click a document to see what has been done to it and "
    "its next thing; Changes shows what a new version changed; Text check reads every page right.",
-   "Shred: what every piece of the customer's text is (Requirements, Acros & Abs, the Acro List; picking a document extracts it). See it as shows "
-   "Our structure, List, Sort, L to M or Coverage.",
-   "Matrix & Outline: what we answer and where (the Matrix, Evaluation). Setup: who writes what, when and how long, and the "
+   "Shred: what every piece of the customer's text is (Requirements, Rules & Dates, Evaluation, Acros & Abs; picking a document "
+   "extracts it). See it as shows Our structure, List, Sort, L to M or Coverage. The Q&A button opens the Q&A log beside the page.",
+   "Matrix & Outline: what we answer and where (the Matrix). Setup: who writes what, when and how long, and the "
    "setup in Word. Drafts: the team writes in Word; the app reads the drafts back. Submit: the last checks.",
    "The Dashboard is the map: one card per step, Your next step with one button, and this week's dates.",
    "Every page in a step ends with a bar: what is left on this step, and the button to the next step when this one is done.",

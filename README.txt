@@ -1,6 +1,22 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+SHRED (4.1.0)
+  - Shred says what each piece of the customer's text is. The bar names the types: Requirement (R), Instruction (L),
+    Rule (U), Date (D), Evaluation (E), Deliverable (V), Information (G), Support (C), Not applicable (X). Each piece
+    keeps its type (the matrix workbook's Piece column); Undo takes the type back with the decision.
+  - Pick a customer document in Shred's list: one not extracted yet is extracted at once, in the background, and opens
+    when it is done (its progress and Stop show on Shred). There is no Extract tab. Mark shredded when a document is done.
+  - Shred's tabs: Requirements, Rules & Dates (the Dashboard's Submission Rules, moved, with the shred's Rule and Date
+    pieces, each with where it came from), Evaluation (moved from Matrix & Outline) and Acros & Abs. The Acro List
+    opens from Acros & Abs: The list > More (the whole list, Lists to submit, Import a list) and Export.
+  - The Q&A log is a drawer: the Q&A button (with the count not answered) on Shred, Matrix & Outline and Drafts opens it
+    beside the page. Asking a question on a piece opens it on that question. Documents has no Customer Q&A tab.
+  - Documents > Changes decides each change three ways: No impact, Re-shred (into Shred's queue: "N to re-shred", each
+    passage with its old and new wording) or Ask a question (citing both wordings). The full list is under More.
+  - Documents' panel adds a document's pieces (how many not sorted) and its acros and abs (found, to decide).
+  - The word-drag tool on Shred's page is Make a sentence (Shift+S), so "extract" means only pulling a document in.
+
 THE SIX STEPS (4.0.0)
   - The menu is the effort's six steps: 1 Documents, 2 Shred, 3 Matrix & Outline, 4 Setup, 5 Drafts, 6 Submit, with the
     Dashboard as the map, then Team and Settings.
