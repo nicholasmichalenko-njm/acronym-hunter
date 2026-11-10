@@ -579,6 +579,7 @@ class AssignPage(QWidget):
         for b in (self.sg_clear_btn, self.sg_all_btn, self.sg_check_btn, self.sg_rules_btn):
             sh.addWidget(b)
         self.sg_strip.setVisible(False); v.addWidget(self.sg_strip)
+        __import__("skqt.fixtext", fromlist=["x"]).install(self, bar, v)    # 4.2.0: Fix text, a mode inside Shred
         self.bulk = QFrame(); self.bulk.setObjectName("bulkBar")       # 3.0.4: several sentences selected, one action for all
         self.bulk.setStyleSheet("QFrame#bulkBar{background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.35);border-radius:6px;}")
         bh = QHBoxLayout(self.bulk); bh.setContentsMargins(D.SPACE["m"], D.SPACE["xs"], D.SPACE["m"], D.SPACE["xs"])
@@ -909,6 +910,7 @@ class AssignPage(QWidget):
 
     def show_queue(self):
         __import__("skqt.reshredbar", fromlist=["x"]).refresh(self)         # 4.1.0
+        __import__("skqt.fixtext", fromlist=["x"]).refresh(self)            # 4.2.0
         files = self.R.files() if self.R else []
         if not files or self.cx is not None or self.file not in files:
             self.queue_lbl.setText(""); self.done_btn.setVisible(False); self.next_btn.setVisible(False)

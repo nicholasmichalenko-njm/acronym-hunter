@@ -50,13 +50,13 @@ def wait(cond, secs=60):
 
 
 check("4.1.0: Shred's tabs start Requirements (no Extract); Text check and Changes are Documents'", [k for k, _t in TABS["assign"]][:1] == ["assign"]
-      and [k for k, _t in TABS["library"]][1:3] == ["compare", "verify"])
+      and [k for k, _t in TABS["library"]][1:2] == ["compare"])
 w.open_effort("Kestrel")
 w.go("docs"); app.processEvents()
 w.docs_page.add([P1], choices=[{}])
 C1 = os.path.join(CUST, "Kestrel_Section_LM.pdf")
 # Verify first: the last page, verified, offers Read
-w.go("verify"); app.processEvents()
+__import__("skqt.fixtext", fromlist=["x"]).page_check(w); app.processEvents()
 vp = w.verify_page
 vp.open_doc(C1); app.processEvents()
 vp.store().verify(vp.doc, 1); vp.show_page(); app.processEvents()

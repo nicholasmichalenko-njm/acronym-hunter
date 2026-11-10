@@ -150,11 +150,10 @@ def status(page, d, st=None):
 def go_next(page, d, key):
     """The panel's button: open the page its next thing is done on, with this document."""
     h = page.host
-    if key == "verify":
-        h.go("verify")
-        path = page.lib.path_of(d["versions"][-1])
-        h.verify_page.open_doc(path)
-        return True
+    if key == "verify":                                  # 4.2.0: Fix text, in Shred, on this document
+        ok = page.read_in_assign(d["id"])
+        __import__("skqt.fixtext", fromlist=["x"]).toggle(h.assign_page, True)
+        return bool(ok)
     if key == "compare":
         h.go("compare")
         try:

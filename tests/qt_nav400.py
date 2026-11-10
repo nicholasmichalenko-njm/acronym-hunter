@@ -49,12 +49,13 @@ acts = [a.text() for a in FR.effort_menu(w).actions() if a.text()]
 check("the switcher holds the Dashboard, All Efforts and Your Tools", acts[0] == "Dashboard" and acts[-2:] == ["All Efforts", "Your Tools"], acts)
 # Documents
 w.rail_go("library"); app.processEvents()
-check("Documents: the documents, Changes, Text check (4.1.0: Q&A is a drawer)", w._tab_keys[:3] == ["library", "compare", "verify"]
+check("Documents: the documents, Changes (4.2.0: Text check is Shred's Fix text)", w._tab_keys[:2] == ["library", "compare"] and "verify" not in w._tab_keys
       and w.page_title.text() == "Documents" and w.page_crumb.text() == "Step 1 of 6", (w._tab_keys, w.page_title.text()))
 w.go("compare"); app.processEvents()
 check("Changes lights Documents", w.step_btns["library"].isChecked() and w.page_title.text() == "Documents")
 w.go("verify"); app.processEvents()
-check("Text check lights Documents", w.step_btns["library"].isChecked() and w.stack.currentWidget() is w.verify_page)
+check("Text check opens Shred in Fix text (4.2.0)", w.step_btns["assign"].isChecked() and w.stack.currentWidget() is w.assign_page
+      and w.assign_page.fix_on)
 # Shred
 w.rail_go("assign"); app.processEvents()
 check("Shred: the stepper, not tabs", w.stepper.isVisibleTo(w) and not w.page_tabs.isVisibleTo(w) and w.page_title.text() == "Shred"

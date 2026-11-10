@@ -48,8 +48,8 @@ SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Your T
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
 TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings")],
         # 4.0.0: Changes (was Review's Compare) and Text check (was Review's Verify) are the documents' own
-        "library": [("library", "Documents"), ("compare", "Changes"), ("verify", "Text check"),
-                    ("datacalls", "Data calls")],         # 4.1.0: Customer Q&A is a drawer (qadrawer)
+        "library": [("library", "Documents"), ("compare", "Changes"),
+                    ("datacalls", "Data calls")],         # 4.1.0: Customer Q&A is a drawer; 4.2.0: Text check is Shred's Fix text
         # 4.0.0: Shred, a stepper (navrail.Stepper); List, Sort, Our structure, L to M and Coverage are ways to see it (no tab
         # repeats its step's name: claude/stationkeeper-steps-decisions-2026-11-10.md, 16)
         # 4.1.0: Rules & Dates (was the Dashboard's Submission Rules) and Evaluation (was Matrix & Outline's) are the shred's
@@ -72,7 +72,7 @@ TEAM = ("formatstd", "profiles", "studio", "rules", "audit", "refs")
 RAIL_OF = {k: h for k, h in HEAD_OF.items() if h in STEP_KEYS}
 RAIL_OF.update({k: "assign" for k in REVIEW_VIEWS})
 RAIL_OF.update({"storyboards": "setups", "setup": "setups", "structure": "setups", "exportall": "home", "lists": "assign",
-                "acrlist": "assign"})                    # 4.1.0: the Acro List is part of Acros & Abs
+                "acrlist": "assign", "verify": "assign"})   # 4.1.0: the Acro List is part of Acros & Abs; 4.2.0: page by page check
 RAIL_OF.update({k: "team" for t in TEAM for k in [k for k, _t in TABS.get(t, [(t, "")])]})
 RAIL_OF.update({"prodstd": "team", "qpstd": "team"})     # 3.98.0: a Quick Part's details open from Parts
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup", "setups"}   # 3.18.2:
@@ -1026,6 +1026,11 @@ class MainWindow(QMainWindow):
         return navrail.refresh_stage_tools(self, RAIL_OF, prof)
 
     def go(self, step):
+        if step == "verify" and not getattr(self, "_page_check", False):    # 4.2.0: Text check is Fix text, in Shred
+            ok = self.go("assign")
+            if ok is not False:
+                __import__("skqt.fixtext", fromlist=["x"]).toggle(self.assign_page, True)
+            return ok
         if step == "custqa":                         # 4.1.0: the Q&A log is a drawer beside Shred, Matrix & Outline, Drafts
             return __import__("skqt.qadrawer", fromlist=["x"]).go(self, RAIL_OF)
         if step == "lists":                          # 3.37.0: Lists to Submit lives in the Acronym List

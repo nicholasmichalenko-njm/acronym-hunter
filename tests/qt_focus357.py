@@ -39,7 +39,7 @@ check("... production's pages stay; Draft Status is back (4.0.0)", all(w.step_bt
 from skqt import frame as _FR
 check("... My Work is out of the effort switcher", "My Work" not in [a.text() for a in _FR.effort_menu(w).actions()])
 w.go("library"); app.processEvents()
-check("Data calls leaves Documents' tabs (4.1.0: Q&A is a drawer)", w._tab_keys == ["library", "compare", "verify"], w._tab_keys)
+check("Data calls leaves Documents' tabs (4.1.0: Q&A is a drawer)", w._tab_keys == ["library", "compare"], w._tab_keys)
 w.go("datacalls"); app.processEvents()
 check("... but still opens when asked for (its work is kept)", "datacalls" in w._tab_keys and w.stack.currentWidget() is w.pages["datacalls"])
 import unfiled as UF
@@ -54,7 +54,7 @@ w.go("drafts"); app.processEvents()
 check("Show the pages set aside brings them back (3.89.0: not Storyboards, turned off)", set(gone) <= set(w._tab_keys)
       and "storyboards" not in w.step_btns and w.setups_page.a_kickoff.isVisible())
 w.go("library"); app.processEvents()
-check("... and the Data calls tab", w._tab_keys == ["library", "compare", "verify", "datacalls"], w._tab_keys)
+check("... and the Data calls tab", w._tab_keys == ["library", "compare", "datacalls"], w._tab_keys)
 modes.save(show_set_aside=False); w.refresh_access()
 check("the list keeps a date and a reason for each", all(len(v) == 2 and v[1] for v in MF.SET_ASIDE.values()))
 
