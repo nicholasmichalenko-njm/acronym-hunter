@@ -130,6 +130,10 @@ check("Undo puts it back as it was", s.results[nt].get("effort") != "Not a term"
       and len(op._drawn) == n_drawn, s.results[nt].get("effort"))
 
 # ---- a picture: read with doubt, partly found, never found
+import picreadings as PR                     # the stand-in readings, never the scan's own (a PC with the reader keeps real ones)
+PR.get = lambda key: None; PR.put = lambda *a, **k: None; PR.flush = lambda *a, **k: None
+from skqt import acrpageview as APV
+APV._PICS.pop(PKEY, None)
 op.go(PKEY); op.wait(); app.processEvents()
 pt = [x["term"] for x in op.items]
 check("a picture shows with the reader's finds", op.state == "picture" and "TT8C" in pt and "DC" in pt, pt)
