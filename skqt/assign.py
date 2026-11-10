@@ -606,6 +606,7 @@ class AssignPage(QWidget):
         self.bulk.setVisible(False)
         v.addWidget(self.bulk)
         self.view = PageView()
+        self.edge_scroll = __import__("skqt.pagecanvas", fromlist=["x"]).EdgeScroll(self.view)   # 4.2.0: drags run across pages
         self.view.scene().selectionChanged.connect(self.on_select)
         self.view.clicked_word.connect(self.on_word)
         self.view.hover_word.connect(self.on_hover_word)

@@ -3,7 +3,8 @@ plan step 7). Every page gets its place at once (its size is known without drawi
 and the page tops are right from the start; only the pages in view and one each side are drawn, and about eight are
 kept. Page mode shows one page at a time; the arrows and Page Up/Down move between pages.
 Rules only (No AI); nothing leaves the PC."""
-from PySide6.QtCore import QRectF, Qt, QTimer
+from PySide6.QtCore import QEvent, QObject, QPointF, QRectF, Qt, QTimer
+from PySide6.QtGui import QMouseEvent
 from PySide6.QtGui import QBrush, QColor, QImage, QPen, QPixmap
 from PySide6.QtWidgets import QGraphicsPixmapItem
 
@@ -127,4 +128,45 @@ class Canvas:
             self.ensure([n - 1])
             return n
         return self.go_page(n)
+
+
+class EdgeScroll(QObject):
+    """A drag that reaches the top or bottom of the view scrolls it (plan step 4): picking words or drawing a box can run
+    from a piece on one page to a piece on the next, and J combines them. Installed once on Shred's page view."""
+    EDGE = 36
+    STEP = 18
+
+    def __init__(self, view):
+        super().__init__(view)
+        self.view, self.pos, self.dir = view, None, 0
+        self.timer = QTimer(self, interval=40, timeout=self.tick)
+        view.viewport().installEventFilter(self)
+
+    def eventFilter(self, obj, ev):
+        t = ev.type()
+        if t == QEvent.MouseMove and ev.buttons() & Qt.LeftButton:
+            y, h = ev.position().y(), self.view.viewport().height()
+            self.pos = ev.position()
+            self.dir = -1 if y < self.EDGE else 1 if y > h - self.EDGE else 0
+            if self.dir and not self.timer.isActive():
+                self.timer.start()
+            elif not self.dir:
+                self.timer.stop()
+        elif t == QEvent.MouseButtonRelease:
+            self.timer.stop(); self.dir = 0
+        return False
+
+    def tick(self):
+        if not self.dir or self.pos is None:
+            self.timer.stop()
+            return
+        sb = self.view.verticalScrollBar()
+        before = sb.value()
+        sb.setValue(before + self.dir * self.STEP)
+        if sb.value() == before:
+            self.timer.stop()
+            return
+        ev = QMouseEvent(QEvent.MouseMove, QPointF(self.pos), self.view.viewport().mapToGlobal(self.pos.toPoint()).toPointF(),
+                         Qt.NoButton, Qt.LeftButton, Qt.NoModifier)
+        self.view.mouseMoveEvent(ev)              # the drag goes on under the still mouse
 
