@@ -36,7 +36,8 @@ LINES = ["L.2 PROPOSAL SUBMISSION",
          "Text shall be no smaller than 12-point Times New Roman with 1-inch margins.",
          "The contractor shall deliver a monthly status report.",
          "The Government will evaluate the realism of the schedule.",
-         "The Government intends to award a single contract."]
+         "The Government intends to award a single contract.",
+         "Oral presentations will be held on January 12, 2027."]
 PDF = os.path.join(tmp, "Section_L.pdf"); pdfmini.write(PDF, [LINES], size=9)
 LIST = os.path.join(EDIR, "Osprey_Effort_List.xlsx")
 L = E.EffortList(LIST, "Osprey"); L.pending = True; L.save()
@@ -93,11 +94,18 @@ check("Undo puts the type back with the decision, in one step", by("single contr
       and by("single contract")["decision"] == "Customer")
 it = key("12-point", Qt.Key_R)
 check("a Rule made a Requirement: the type follows the decision", it["decision"] == "Keep" and it["piece"] == "requirement")
+import skqt.shredbar as SB
+undecided = by("Oral presentations")
+SB.capture_types(pg, "keydate", [undecided["id"]])
+check("a capture that says what a piece is types it (a key date: a Date), when it has no type or decision",
+      undecided.get("piece") == "date")
+check("... never over a type or a decision already given", SB.capture_types(pg, "pagelimit", [by("realism")["id"]]) == 0
+      and by("realism")["piece"] == "evaluation")
 w.review.M.save(); app.processEvents()
 M2 = C.Matrix(OUT); M2.load()
 got = {x["text"][:20]: x.get("piece") for x in M2.items if x.get("piece")}
 check("the types are saved in the workbook's Piece column", sorted(got.values()) ==
-      sorted(["instruction", "date", "deliverable", "evaluation", "information", "requirement"]), got)
+      sorted(["instruction", "date", "deliverable", "evaluation", "information", "requirement", "date"]), got)
 w.close()
 print(f"QT SHRED 410 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

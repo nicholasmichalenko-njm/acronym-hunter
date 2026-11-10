@@ -1878,6 +1878,7 @@ class AssignPage(QWidget):
         got = self._do_capture(kind, answer)
         if got and sids:
             self.mark_rows(kind, sids)
+            __import__("skqt.shredbar", fromlist=["x"]).capture_types(self, kind, sids)     # 4.1.0
         if got and parts:                                    # 3.21.0: every capture keeps the words and where they sit
             self.file_excerpt(kind, got, parts)
         return got

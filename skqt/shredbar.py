@@ -54,3 +54,17 @@ def do_piece(page, code):
     name = ST.load(page.host.config_dir)[CODE_TYPE[code]]["name"]
     page.after(f"{rows[0]['id'] if len(rows) == 1 else str(len(rows)) + ' pieces'}: {name}")
     return len(rows)
+
+
+def capture_types(page, kind, sids):
+    """A capture that says what a piece is (a page limit, a key date, a factor, a deliverable) types it, when the piece
+    has no type and no decision yet (plan step 2). Returns how many were typed."""
+    key = ST.CAPTURE_TYPE.get(kind)
+    if not key or page.R is None:
+        return 0
+    rows = [it for it in (page.R.item(i) for i in sids) if it is not None and not it.get(ST.FIELD) and not it.get("decision")]
+    n = ST.set_type(rows, key, lambda i, m: page.R.M.log(i, m)) if rows else 0
+    if n and hasattr(page.R.M, "pending"):
+        page.R.M.pending = True
+    return n
+
