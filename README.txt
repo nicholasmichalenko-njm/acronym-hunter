@@ -1,6 +1,24 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+ADDING STARTS THE SHRED (4.2.0)
+  - Add a customer document in Documents and it is extracted for the shred in the background, whatever its role; you
+    never pick it again in Shred. Left out documents are not. A new version is extracted at once too: the sentences
+    that stay the same keep their pieces and decisions (on the new version's pages), new sentences arrive as new pieces,
+    and changed ones wait in Documents > Changes. Nothing appears twice.
+  - The compliance matrix saves itself. Each day it changes, a copy goes to Matrix history beside it, named with the
+    date ({Effort}_Compliance_Matrix_YYYY-MM-DD.xlsx). Every copy is kept.
+  - Fix text is a mode inside Shred (F2, or Fix text on Shred's bar): Combine (J), Split (S), Heading, Set aside (a page
+    header, footer or banner; More: every line like it), Add missed text, Suspects (F3) and Page checked (Ctrl+Enter,
+    "37 of 120 pages checked"). It never holds the shred up. Documents has no Text check tab; the page-by-page check is
+    under Fix text > More.
+  - A sentence the page break split is joined and marked "Joined across p.N to N+1"; a page number caught inside it is
+    taken out. Suspects walks through the joins (Keep the join, Undo the join), pages that end mid-sentence, fragments,
+    words broken across a line and characters the reader could not read.
+  - Shred's page scrolls through every page and draws only the pages in view, so long documents open fast. A drag held
+    at the top or bottom of the page scrolls on, so a selection can run across a page break. Page Up and Page Down go
+    a page at a time; Fix text > More > One page at a time fits a page in the view.
+
 SHRED (4.1.0)
   - Shred says what each piece of the customer's text is. The bar names the types: Requirement (R), Instruction (L),
     Rule (U), Date (D), Evaluation (E), Deliverable (V), Information (G), Support (C), Not applicable (X). Each piece

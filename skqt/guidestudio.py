@@ -88,11 +88,12 @@ CHECKS369 = (   # 3.69.0 and later: lines added to topics in guidetopics by key
                "after you look. Merge another copy's matrix... keeps ours unless you take theirs."))
 
 VERIFY = \
-("verify", "Shred", "Verify",
-  "Review's first tab: each customer page as the PDF page, cut into blocks. Every block gets a role (a heading and its "
-  "level, text, a list item, a figure or table and its caption, a footnote, a header or footer, or not needed) before "
-  "Review reads it.",
-  "After the customer documents are in the Library and before the review; again after a new version arrives.",
+("verify", "Shred", "Fix text",
+  "4.2.0: a mode inside Shred (F2, or Fix text on its bar) for text that came out wrong: Combine (J), Split (S), Heading, "
+  "Set aside (a header, footer or banner; More: every line like it), Add missed text, Suspects (F3) and Page checked "
+  "(Ctrl+Enter). A piece the page break joined says Joined across p.N to N+1: keep it, or undo the join. Nothing here holds "
+  "the shred up. The page-by-page check below (Fix text > More > Page by page check...) gives each block of a page a role.",
+  "Whenever a piece reads wrong in the shred, or before you rely on a document a scanner made.",
   ["Pick the document (Ctrl+O). It opens where you left it.",
    "Look at what is marked: a suggestion the rules were not sure of, a caption to confirm, a scanned line to check.",
    "Click a block (Shift+click or drag for more) and press its key, or pick the role on the bar beside it.",
