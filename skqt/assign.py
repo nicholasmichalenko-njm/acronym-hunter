@@ -492,6 +492,7 @@ class AssignPage(QWidget):
         self.pdf = ""
         self.placed = {}
         self.tops = []
+        self.canvas = None                         # 4.2.0: the page drawn as it scrolls (pagecanvas)
         self.labels = []
         self.marks = {}                            # 3.18.1: sentence id -> what was captured from it
         self.cx_hist = []                          # 3.18.2: undo for library documents (ctxassign)
@@ -892,6 +893,7 @@ class AssignPage(QWidget):
             self.open_file(self.R.files()[0])
         else:
             self.view.scene().clear()
+            self.canvas = None                          # 4.2.0: no pages drawn on scroll
             self.view.boxes = {}
 
     def forget(self):
@@ -899,6 +901,7 @@ class AssignPage(QWidget):
         self.cx = None
         self.labels = []
         self.view.scene().clear()
+        self.canvas = None                          # 4.2.0: no pages drawn on scroll
         self.view.boxes = {}
         self.file, self.pdf = None, ""
         self.show_card([])
@@ -1095,30 +1098,15 @@ class AssignPage(QWidget):
             t.setDefaultTextColor(QColor("#334155"))
             self.note.setText("")
             return
-        import pypdfium2 as pdfium
-        doc = pdfium.PdfDocument(self.pdf)
-        y = 0.0
-        try:
-            for i in range(len(doc)):
-                page = doc[i]
-                w, h = page.get_size()
-                img = page.render(scale=SCALE).to_pil().convert("RGB")
-                q = QImage(img.tobytes("raw", "RGB"), img.width, img.height, img.width * 3, QImage.Format_RGB888).copy()
-                pix = QGraphicsPixmapItem(QPixmap.fromImage(q))
-                pix.setTransformationMode(Qt.SmoothTransformation)
-                pix.setScale(1 / SCALE)
-                pix.setPos(MARGIN, y)
-                pix.setZValue(-1)
-                sc.addItem(pix)
-                t = sc.addSimpleText(f"Page {i + 1}"); t.setPos(MARGIN - 60, y); t.setBrush(QColor("#64748B"))
-                self.tops.append(y)
-                y += h + GAP
-        finally:
-            doc.close()
+        from .pagecanvas import Canvas                # 4.2.0: every page placed at once, drawn as it scrolls into view
+        self.canvas = Canvas(self, self.pdf, SCALE, MARGIN, GAP)
+        self.tops = self.canvas.lay_out(sc)
+        self.canvas.ensure([0])
         self.build_boxes()
         self.note.setText("Click a sentence; Ctrl+click adds one (even far apart); drag a box around several. Space and drag, or a middle-button drag, moves the page. Ctrl+wheel zooms.")
         self.mark_changes()                         # 2.98.0: what this version changed, outlined on the page
         QTimer.singleShot(0, self.view.fit)
+        QTimer.singleShot(0, lambda: self.canvas.ensure() if getattr(self, "canvas", None) is not None else None)
 
     # ------------------------------------------------------------ 2.98.0 what this version changed, on the page
     def mark_changes(self):
@@ -1220,6 +1208,7 @@ class AssignPage(QWidget):
         self.view.boxes, self.view.words, self.labels, self.tops = {}, {}, [], []
         self._guard = True
         sc.clear()
+        self.canvas = None                          # 4.2.0: no pages drawn on scroll
         self._guard = False
         self.pdf = ""
         try:

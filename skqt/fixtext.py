@@ -51,6 +51,9 @@ def install(page, bar, v):
     m = QMenu(more); more.setMenu(m)
     m.addAction("Set aside every line like this", lambda: set_aside(page, every=True))
     m.addAction("Page by page check...", lambda: page_by_page(page))
+    page.page_mode_act = m.addAction("One page at a time")                # 4.2.0: Page mode (decision 7)
+    page.page_mode_act.setCheckable(True)
+    page.page_mode_act.toggled.connect(lambda on: page.canvas.page_mode(on) if getattr(page, "canvas", None) else None)
     h.addWidget(more)
     page.fix_checked = D.button("Page checked", "primary", lambda: page_checked(page),
                                 "This page reads right (Ctrl+Enter): counted, never a gate")
@@ -58,7 +61,9 @@ def install(page, bar, v):
     s.setVisible(False)
     v.addWidget(s)
     for seq, fn in ((KEY, lambda: toggle(page)), ("Ctrl+Return", lambda: page_checked(page) if page.fix_on else None),
-                    ("F3", lambda: next_suspect(page) if page.fix_on else None)):
+                    ("F3", lambda: next_suspect(page) if page.fix_on else None),
+                    ("PgDown", lambda: page.canvas.step(1) if getattr(page, "canvas", None) else None),
+                    ("PgUp", lambda: page.canvas.step(-1) if getattr(page, "canvas", None) else None)):
         sc = QShortcut(QKeySequence(seq), page, activated=fn)
         sc.setContext(Qt.WidgetWithChildrenShortcut)          # only while Shred has the focus
 
