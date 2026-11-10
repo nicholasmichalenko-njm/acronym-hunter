@@ -59,7 +59,7 @@ w.read_page.read = lambda paths=None, **k_: read.append(list(paths or [])) or "r
 import unfiled as UF
 got = sp.to_effort(UF.NAME)
 check("File to an effort: read into that effort's Review", got == "read" and read == [[rfp]] and w.effort_name == UF.NAME
-      and w.stack.currentWidget() is w.read_page)
+      and w.stack.currentWidget() is w.assign_page)          # 4.1.0: the extract shows on Shred
 
 # Compare
 def doc(path, paras):

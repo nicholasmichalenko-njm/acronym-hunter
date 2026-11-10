@@ -21,7 +21,7 @@ import datetime, getpass, hashlib, os, uuid
 KINDS = (("updates", "Updates a requirement"), ("new", "New requirement"), ("rule", "Updates a submission rule"),
          ("context", "Context for a requirement"),
          ("removes", "Removes a requirement"), ("task", "Task"), ("question", "Question for the customer"),
-         ("note", "Note"), ("none", "No action"))
+         ("note", "Note"), ("none", "No impact"), ("reshred", "Re-shred"))     # 4.1.0: No impact (was No action), Re-shred
 KIND_NAMES = dict(KINDS)
 NEEDS_TARGET = {"updates", "context", "removes", "new"}
 

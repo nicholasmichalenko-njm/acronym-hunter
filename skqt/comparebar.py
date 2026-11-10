@@ -1,7 +1,7 @@
 """The decide bar in Compare (3.89.0, claude/stationkeeper-compare-on-the-page-plan-3.89.md): opened beside the selected
 change, never over it. It shows the change in words (the old words struck, the new marked), the suggested choice with its
-reason, and four choices: Update our wording, Add to a section, Remove, No action; More holds Context for a requirement,
-Updates a submission rule, Task, Question for the customer and Note. A click on a sentence or a section in Our response
+reason, and three choices (4.1.0): No impact, Re-shred (into Shred's queue), Ask a question; More holds Update our
+wording, Add to a section, Remove, Context for a requirement, Updates a submission rule, Task and Note. A click on a sentence or a section in Our response
 changes the target. Enter takes the suggestion and goes on to the next change to decide. Decisions already taken show as
 chips, each with its undo. Every decision lands where people work (changereview has the rules).
 Rules only (No AI); nothing leaves the PC."""
@@ -16,13 +16,13 @@ import changereview as CR
 from . import design as D
 from .adaptive import FlowLayout
 
-MAIN = (("updates", "Update our wording", "The requirement takes the new wording; its old wording stays in its history; "
-         "its owner confirms"),
-        ("new", "Add to a section", "The new sentence becomes a requirement in the section"),
-        ("removes", "Remove", "The requirement is marked removed by this version, never deleted"),
-        ("none", "No action", "Recorded with the reason, so the question never comes back"))
-MORE = (("context", "Context for a requirement"), ("rule", "Updates a submission rule"), ("task", "Task"),
-        ("question", "Question for the customer"), ("note", "Note"))
+# 4.1.0 (claude/stationkeeper-shred-plan-4.1.md, step 7): three ways lead; the full list is under More
+MAIN = (("none", "No impact", "Recorded with the reason, so the question never comes back"),
+        ("reshred", "Re-shred", "The passage joins Shred's queue with its old and new wording; the requirement built from it "
+         "shows Changed by this version until it is shredded again"),
+        ("question", "Ask a question", "A question in the Q&A log, citing the old and the new wording"))
+MORE = (("updates", "Update our wording"), ("new", "Add to a section"), ("removes", "Remove"),
+        ("context", "Context for a requirement"), ("rule", "Updates a submission rule"), ("task", "Task"), ("note", "Note"))
 WORDS = {"changed": "Changed", "added": "Added", "removed": "Removed"}
 
 
@@ -119,8 +119,8 @@ class DecideBar(QFrame):
             b.setProperty("kind", "primary" if self.sugg and self.sugg["kind"] == kind else "")
             b.style().unpolish(b); b.style().polish(b)
         self.more_acts["rule"].setVisible("rule" in (pg.tags[i] if i < len(getattr(pg, "tags", [])) else ()))
-        self.btns["updates"].setEnabled(r["kind"] != "removed")
-        self.btns["new"].setEnabled(r["kind"] != "removed")
+        self.more_acts["updates"].setEnabled(r["kind"] != "removed")
+        self.more_acts["new"].setEnabled(r["kind"] != "removed")
         decs = pg.review.decisions(pg.pk, r["key"])
         from .assign import Chip
         for x in decs:
@@ -204,6 +204,13 @@ class DecideBar(QFrame):
             ref = self._context(d, vb, r, target)
         elif kind in ("task", "question", "note"):
             ref = self._record(kind, d, vb, r)
+        elif kind == "reshred":                                        # 4.1.0: into Shred's queue
+            import reshred as RS
+            q = RS.Queue(pg.host.ws.root).load()
+            e = q.add(pg.pk, r["key"], d["name"], vb["label"], r.get("old", ""), r.get("new", ""), r.get("section", ""),
+                      self.req_target if r["kind"] != "added" else "")
+            ref = e["id"]
+            pg.host.status(f"In Shred's queue: {len(q.open_items())} to re-shred.")
         elif kind == "rule":
             ref = self._rule(r, vb)
         dec = rv.decide(pg.pk, r["key"], kind, target or "", why, ref)
@@ -296,10 +303,13 @@ class DecideBar(QFrame):
         if kind == "task":
             return rec.add_task(f"Act on a change in {d['name']} {vb['label']}", notes=q) or ""
         nid = rec.add_note(q, on="version", on_id=vb["id"], label=f"{d['name']} {vb['label']}", question=kind == "question") or ""
-        if kind == "question":                                         # 2.98.0: a draft in Customer Q&A, quoting the change
+        if kind == "question":                                         # 2.98.0: a draft in the Q&A log, quoting the change
             import custqa as Q
             rec = R_.Record(self.page.host.ws.root)
-            qid = Q.add(rec, "", r.get("new") or r.get("old") or "", doc=f"{d['name']} ({vb['label']})", section=r.get("section", ""),
+            words = r.get("new") or r.get("old") or ""
+            if r.get("old") and r.get("new") and r["old"] != r["new"]:  # 4.1.0: both wordings
+                words = f"{r['new']} (was: \u201c{r['old']}\u201d)"
+            qid = Q.add(rec, "", words, doc=f"{d['name']} ({vb['label']})", section=r.get("section", ""),
                         category="Other")
             if qid:
                 Q.get(rec, qid)["change_key"] = r.get("key", "")
@@ -321,6 +331,9 @@ class DecideBar(QFrame):
         elif gone["kind"] == "new" and M is not None and pg.host.review.item(gone.get("ref", "")) is not None:
             pg.host.review.clear([pg.host.review.item(gone["ref"])])
             pg.host.changed()
+        elif gone["kind"] == "reshred":                                # 4.1.0: off Shred's queue
+            import reshred as RS
+            RS.Queue(pg.host.ws.root).load().drop(pg.pk, r["key"])
         elif gone["kind"] == "context" and gone.get("ref"):
             import ctxdocs as CX
             CX.Store(pg.host.ws.root).load().remove(att_id=gone["ref"])

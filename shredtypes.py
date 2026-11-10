@@ -32,6 +32,7 @@ TYPES = (("requirement", "Requirement", "R", "#0D9488", "requirements", True),
 KEYS = tuple(t[0] for t in TYPES)
 TABS = (("requirements", "Requirements"), ("rules", "Rules & Dates"), ("evaluation", "Evaluation"), ("acros", "Acros & Abs"))
 FILE = "piece_types.json"
+FORMAT = 1
 FIELD = "piece"
 
 # what a capture on a sentence says the sentence is (reviewitems.CAPTURES keys)
@@ -77,7 +78,7 @@ def save(config_dir, types):
     os.makedirs(config_dir, exist_ok=True)
     tmp = p + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
-        json.dump({"format": 1, "types": diff}, f, indent=1)
+        json.dump({"format": FORMAT, "types": diff}, f, indent=1)
     os.replace(tmp, p)
     return diff
 

@@ -79,9 +79,8 @@ TOPICS = [
    "offering them until they change.",
    "Graphic needs lists what was tagged as needing a graphic; Export... makes a workbook for the graphics team."]),
  ("requirements", "Shred", "Rules & Dates",
-  "Shred's second tab (4.1.0; was the Dashboard's Submission Rules). What the customer requires of the submission: due date, delivery, copies, "
-  "formats, file names, page limits and formatting, with the document that set each rule and what changed it; and every piece the shred "
-  "said is a Rule or a Date, with where it came from.",
+  "Shred's second tab (4.1.0). What the customer requires of the submission (due date, delivery, copies, formats, file names, page limits, "
+  "formatting) with the document that set each rule and what changed it; and every piece the shred said is a Rule or a Date.",
   "You plan the submission, or a new version changes a rule.",
   ["Read the rules. Each shows its source document and section.",
    "Press Add a requirement... for a rule you found yourself.",

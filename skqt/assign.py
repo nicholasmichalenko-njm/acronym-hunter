@@ -563,6 +563,7 @@ class AssignPage(QWidget):
         fit = QPushButton("Fit width"); fit.clicked.connect(lambda: self.view.fit()); bar.addWidget(fit)
         self.note = D.label("", "muted"); v.addWidget(self.note)
         self.task_slot = QVBoxLayout(); v.addLayout(self.task_slot)     # 4.1.0: the extract's progress (shredpick)
+        __import__("skqt.reshredbar", fromlist=["x"]).install(self, bar)    # 4.1.0: N to re-shred (Documents > Changes)
         self.sg_strip = QFrame(); self.sg_strip.setObjectName("sgBar")         # 3.18.0: the suggestions shown, and the score
         self.sg_strip.setStyleSheet("QFrame#sgBar{background:rgba(22,163,74,0.07);border:1px dashed rgba(22,163,74,0.55);border-radius:6px;}")
         sh = QHBoxLayout(self.sg_strip); sh.setContentsMargins(D.SPACE["m"], D.SPACE["xs"], D.SPACE["m"], D.SPACE["xs"])
@@ -907,6 +908,7 @@ class AssignPage(QWidget):
         return dict(self.host.ws.get("assign_reviewed", {}) or {}) if self.host.ws is not None else {}
 
     def show_queue(self):
+        __import__("skqt.reshredbar", fromlist=["x"]).refresh(self)         # 4.1.0
         files = self.R.files() if self.R else []
         if not files or self.cx is not None or self.file not in files:
             self.queue_lbl.setText(""); self.done_btn.setVisible(False); self.next_btn.setVisible(False)

@@ -50,7 +50,7 @@ def wait(cond, secs=60):
 
 
 check("the effort opens and is held", w.open_effort("Kestrel") and W.read_json(ws0.p("lock.json"), {}).get("pid") == os.getpid())
-check("no matrix yet: Read RFP is the step", w.stack.currentWidget() is w.read_page)
+check("no matrix yet: Shred is the step (4.1.0: it lists the documents to extract)", w.stack.currentWidget() is w.assign_page)
 out = os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx")
 w.read_page.read(PDFS, out)
 check("Read runs in the background and starts the matrix", wait(lambda: w.review is not None and w.stack.currentWidget() is w.assign_page))

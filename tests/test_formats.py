@@ -81,7 +81,12 @@ import sectiondesigns as SDZ                                   # 3.87.0: the Sec
 SDZ._save(cfg, {"designs": []})
 check("section designs", json.load(open(os.path.join(cfg, SDZ.FOLDER, "index.json"), encoding="utf-8"))["format"]
       == F.number("section designs") == SDZ.FORMAT)
-check("every kind is checked here", len(F.FORMATS) == 19, len(F.FORMATS))
+import shredtypes as STY, reshred as RSH                       # 4.1.0: the piece types, the re-shred queue
+STY.save(cfg, STY.load(None))
+check("piece types", json.load(open(os.path.join(cfg, STY.FILE), encoding="utf-8"))["format"] == F.number("piece types") == STY.FORMAT)
+rq = RSH.Queue(cfg); rq.add("a>b", "k1", "Section L", "A0001", "old words", "new words")
+check("re-shred queue", json.load(open(rq.path, encoding="utf-8"))["format"] == F.number("re-shred queue") == RSH.FORMAT)
+check("every kind is checked here", len(F.FORMATS) == 21, len(F.FORMATS))
 n = sum(checks)
 print(f"FORMATS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)
