@@ -120,6 +120,11 @@ def read_files(paths, chunks_of, progress=None, stop=None, page_copy=None):
             PS.place([it for it in items if it.get("file") == name], pl)
         except Exception:
             diag.swallowed()
+    try:                                             # 4.2.0: a piece the page break joined says so (pagejoin)
+        import pagejoin as PJ
+        PJ.mark(items)
+    except Exception:
+        diag.swallowed()
     empty = [n_ for n_, ch in fc if not any(t for _l, t in ch)]
     say(1.0, "Read")
     return items, heads, src, empty

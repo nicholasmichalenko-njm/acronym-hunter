@@ -39,6 +39,14 @@ def install(page, bar, v):
                            "still shown on the page"),
                           ("Add missed text", lambda: page.toggle_capture(), "Draw a box around text the reader missed")):
         b = D.button(name, None, fn, tip); h.addWidget(b); page.fix_tools[name.split("  ")[0]] = b
+    page.fix_sus = D.button("Suspects", None, lambda: next_suspect(page), "The next piece worth a look: a join across "
+                            "pages, a page that ends mid-sentence, a fragment, a broken word (F3)")
+    h.addWidget(page.fix_sus)
+    page.fix_keep = D.button("Keep the join", None, lambda: keep_join(page), "The page break split this sentence; joined is right")
+    page.fix_unjoin = D.button("Undo the join", None, lambda: undo_join(page), "Two pieces again, at the page break")
+    for b in (page.fix_keep, page.fix_unjoin):
+        b.setVisible(False); h.addWidget(b)
+    page.fix_cur = None
     more = D.button("More", None, None, "More ways to fix text")
     m = QMenu(more); more.setMenu(m)
     m.addAction("Set aside every line like this", lambda: set_aside(page, every=True))
@@ -49,7 +57,8 @@ def install(page, bar, v):
     h.addWidget(page.fix_checked)
     s.setVisible(False)
     v.addWidget(s)
-    for seq, fn in ((KEY, lambda: toggle(page)), ("Ctrl+Return", lambda: page_checked(page) if page.fix_on else None)):
+    for seq, fn in ((KEY, lambda: toggle(page)), ("Ctrl+Return", lambda: page_checked(page) if page.fix_on else None),
+                    ("F3", lambda: next_suspect(page) if page.fix_on else None)):
         sc = QShortcut(QKeySequence(seq), page, activated=fn)
         sc.setContext(Qt.WidgetWithChildrenShortcut)          # only while Shred has the focus
 
@@ -118,7 +127,67 @@ def refresh(page):
         " &nbsp;·&nbsp; select pieces (across pages too), then a tool. Nothing here holds the shred up."
     page.fix_lbl.setTextFormat(Qt.RichText)
     page.fix_lbl.setText(text)
+    n_s = len(suspects(page))
+    page.fix_sus.setText(f"Suspects ({n_s})" if n_s else "No suspects")
+    page.fix_sus.setEnabled(bool(n_s))
     return text
+
+
+# ------------------------------------------------------------------ suspects (pagejoin)
+def suspects(page):
+    import pagejoin as PJ
+    if page.R is None or page.cx is not None or not page.file:
+        return []
+    return PJ.suspects(page.M.items, page.file)
+
+
+def next_suspect(page):
+    """Select the next suspect after the one shown (round to the start); say why. Returns (kind, item, why) or None."""
+    sus = suspects(page)
+    if not sus:
+        refresh(page)
+        return None
+    ids = [it["id"] for _k, it, _w in sus]
+    cur = page.fix_cur
+    i = (ids.index(cur) + 1) % len(ids) if cur in ids else 0
+    kind, it, why = sus[i]
+    page.fix_cur = it["id"]
+    page.select(it["id"])
+    page.fix_keep.setVisible(kind == "join"); page.fix_unjoin.setVisible(kind == "join")
+    page.host.status(f"{it['id']}: {why}")
+    return kind, it, why
+
+
+def keep_join(page):
+    import pagejoin as PJ
+    it = page.R.item(page.fix_cur) if page.fix_cur and page.R is not None else None
+    if it is None or not PJ.keep(it):
+        return False
+    page.M.pending = True
+    page.host.changed()
+    page.fix_keep.setVisible(False); page.fix_unjoin.setVisible(False)
+    refresh(page)
+    return True
+
+
+def undo_join(page):
+    """Split the joined piece back at the page break (one Undo step). Returns the parts."""
+    import pagejoin as PJ
+    it = page.R.item(page.fix_cur) if page.fix_cur and page.R is not None else None
+    at = PJ.unjoin_at(it) if it is not None else None
+    if at is None:
+        return []
+    parts = page.R.split(it, at)
+    for p in parts or []:
+        if PJ.joined(p):
+            p["new"] = ""
+    page.M.pending = True
+    page.host.changed()
+    page.fix_keep.setVisible(False); page.fix_unjoin.setVisible(False)
+    page.fix_cur = None
+    page.after("the join undone")
+    refresh(page)
+    return parts
 
 
 # ------------------------------------------------------------------ heading, set aside

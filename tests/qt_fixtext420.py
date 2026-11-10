@@ -79,6 +79,30 @@ check("... the strip counts the pages checked", "0 of 2 pages checked" in pg.fix
 by = lambda s: next(it for it in M.items if s in it["text"])          # noqa: E731
 check("a sentence the page break split is one piece already (the reader joins it)",
       "transition period" in by("operation of the ground")["text"])
+j = by("operation of the ground")
+check("... and marked: Joined across p.1 to 2", j.get("new") == "Joined across p.1 to 2", j.get("new"))
+got = FX.next_suspect(pg)
+for _i in range(6):
+    if got and got[0] == "join":
+        break
+    got = FX.next_suspect(pg)
+app.processEvents()
+check("Suspects (F3) walks to it and offers Keep the join and Undo the join", got and got[0] == "join" and got[1] is j
+      and pg.fix_keep.isVisibleTo(w) and pg.fix_unjoin.isVisibleTo(w) and pg.fix_sus.text().startswith("Suspects ("), pg.fix_sus.text())
+parts = FX.undo_join(pg); app.processEvents()
+check("Undo the join: two pieces again, at the page break", [x["text"] for x in parts] ==
+      ["The Offeror shall describe its approach to the operation of the ground", "station during the transition period."],
+      [x["text"] for x in parts])
+pg.do_undo(); app.processEvents()
+j = by("operation of the ground")
+check("... and Undo joins them again", "transition period" in j["text"])
+pg.fix_cur = None
+for _i in range(6):
+    got = FX.next_suspect(pg)
+    if got and got[1] is j:
+        break
+FX.keep_join(pg); app.processEvents()
+check("Keep the join: off the suspects", j["new"].endswith("(kept)") and all(x[1] is not j for x in FX.suspects(pg)))
 a, b = by("30 pages"), by("realism")
 pg.select(a["id"]); app.processEvents()
 pg.view.boxes[b["id"]][0].setSelected(True) if isinstance(pg.view.boxes[b["id"]], list) else pg.view.boxes[b["id"]].setSelected(True)
