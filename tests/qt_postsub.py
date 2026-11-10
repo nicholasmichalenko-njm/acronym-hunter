@@ -30,8 +30,8 @@ app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 L = os.path.join(tmp, "Efforts", "Heron", "Heron_Effort_List.xlsx")
 w.settings_page.new_effort({"name": "Heron", "path": L})
-check("3.75.0: After Submission sits in Submit, with Checklist and Keywords as its tabs", "postsub" in w.step_btns and w.step_btns["postsub"].text() == "After Submission"
-      and [k for k, _t in __import__("skqt.mainwin", fromlist=["TABS"]).TABS["postsub"]] == ["postsub", "keywords"])
+check("3.96.0: After Submission and Keywords are tabs of Submit", [k for k, _t in __import__("skqt.mainwin", fromlist=["TABS"]).TABS["finalcheck"]][3:]
+      == ["postsub", "keywords"])
 due = (datetime.date.today() - datetime.timedelta(days=10)).isoformat() + "T14:00"
 RR.Record(w.ws.root).set_due(due)
 w.go("postsub"); app.processEvents()

@@ -33,7 +33,7 @@ f = w.home_page.start; f.name.setText("Osprey"); f.sol.setText("FA8810-26-R-0042
 rec = RR.Record(w.ws.root)
 DL.add(rec, "Volume I Technical", kind="Volume"); DL.add(rec, "SF 33", kind="Form")
 check("Final Checks is a tab of Final Check in Check and Submit, after Submission Check (3.58.0)",
-      [k for g, it in RAIL if g == "Submit" for k, _l in it][:1] == ["finalcheck"] and [k for k, _t in MW_TABS["finalcheck"]] == ["finalcheck", "qa", "checks"])   # 3.75.0: Submit
+      "finalcheck" in dict(dict(RAIL)["Effort"]) and [k for k, _t in MW_TABS["finalcheck"]][:3] == ["finalcheck", "qa", "checks"])   # 3.75.0: Submit
 vdir = EF.folder(w.effort_path, "volumes")
 d = docxw.Doc(); d.heading("1.1 Approach", 2); d.para("See Figure 2."); d.para("Figure 1. The bus")
 d.save(os.path.join(vdir, "Volume I Technical v1.docx"))

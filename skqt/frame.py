@@ -41,9 +41,11 @@ def on_page(w, step):
 
 
 def effort_menu(w):
-    """The effort's card at the top of the menu: the Effort Dashboard, another effort, All Efforts."""
+    """The effort switcher at the top of the menu (3.96.0): the Dashboard, another effort, All Efforts, My Work, Your
+    Tools."""
     m = QMenu(w)
-    m.addAction("Effort Dashboard", lambda: w.go("home"))
+    if w.effort_name:
+        m.addAction("Dashboard", lambda: w.go("home"))
     others = [w.effort_box.itemText(i) for i in range(w.effort_box.count())
               if w.effort_box.itemText(i) and w.effort_box.itemText(i) != w.effort_name]
     if others:
@@ -52,6 +54,11 @@ def effort_menu(w):
             m.addAction("Switch to " + name, lambda n=name: switch(w, n))
     m.addSeparator()
     m.addAction("All Efforts", lambda: w.go("efforts"))
+    import menufocus as MF
+    from .modes import settings
+    if "mywork" not in MF.hidden(settings()):                  # My Work is set aside for now
+        m.addAction("My Work", lambda: w.go("mywork"))
+    m.addAction("Your Tools", lambda: w.go("tools"))
     return m
 
 

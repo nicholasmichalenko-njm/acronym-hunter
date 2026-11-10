@@ -14,12 +14,12 @@ STATUSES = ["Open", "Done"]
 
 
 def features():
-    from .mainwin import RAIL, TABS, TITLES
+    from .mainwin import RAIL, SWITCHER, TITLES, members
     out = []
-    for _g, items in RAIL:                          # 3.16.0: each menu item, then the tabs it holds
+    for _g, items in RAIL + [("", SWITCHER)]:       # 3.16.0: each menu item, then the pages it holds (3.96.0: the views, Team's tools)
         for k, t in items:
             out.append(t)
-            out += [TITLES[m][0] for m, _l in TABS.get(k, [])[1:] if TITLES.get(m, ("",))[0] not in out]
+            out += [TITLES[m][0] for m in members(k)[1:] if m in TITLES and TITLES[m][0] not in out]
     return out + ["Make a .dotx template", "Import from a file", "Effort types and volumes", "Updates", "Speed", "Other"]
 
 

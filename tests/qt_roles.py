@@ -40,8 +40,7 @@ w.open_effort("Kestrel"); app.processEvents()
 
 # ---------------------------------------------------------------- the menu
 heads = [g for g, _i in RAIL]
-check("the menu is grouped by job", heads == ["Home", "Effort", "Effort Library", "Shred", "Plan", "Write", "Submit", "Team",
-                                              "Settings"], heads)   # 3.53.0: spaces; 3.69.0: no Advanced group; 3.75.0: nine groups
+check("the menu is the effort's path, then Team and Settings (3.96.0)", heads == ["Effort", "Team", "Settings"], heads)
 r = RR.Record(w.ws.root)
 # 3.15.0: no separate stage group: each tool is in the menu once, the stage's tools marked with a dot in its color
 cur_stage = r.stages[r.index()]["name"]
@@ -51,9 +50,8 @@ check("3.15.0: every tool is in the menu once (no stage group repeating them)", 
       [n for n in names if names.count(n) > 1])
 check("... the stage's tools carry a dot in the stage's color", marked and set(marked) == set(w.stage_tools_now)
       and all("background:" in w.step_btns[k].stage_dot.styleSheet() for k in marked), (marked, w.stage_tools_now))
-grp = {g: w.group_counts[g].text() for g, _i in RAIL if w.group_counts[g].isVisibleTo(w)}
-check("... and each group shows how many it holds", sum(int(v) for v in grp.values()) == len(marked), grp)
-check("the open effort and its stage are at the top of the menu", w.rail_effort.isVisibleTo(w) and w.rail_effort.name.text() == "Kestrel"
+check("... and each step says what is left (3.96.0)", [b.badge.isVisibleTo(w) for k, b in w.step_btns.items() if k == "library"] == [True])
+check("the open effort and its stage are at the top of the menu", w.rail_effort.isVisibleTo(w) and w.rail_effort.name.text().startswith("Kestrel")
       and w.rail_effort.stage.text() == cur_stage, (w.rail_effort.name.text(), w.rail_effort.stage.text()))
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
@@ -61,17 +59,13 @@ w.go("efforts"); app.processEvents()
 from skqt import frame as FR                                  # 3.75.0: the card opens a menu: the Dashboard, another effort
 m = FR.effort_menu(w)
 m.actions()[0].trigger(); app.processEvents()
-check("... and its menu opens the Effort Dashboard", m.actions()[0].text() == "Effort Dashboard" and w.stack.currentWidget() is w.home_page)
+check("... and its menu opens the Dashboard; All Efforts, My Work and Your Tools are there too (3.96.0)",
+      m.actions()[0].text() == "Dashboard" and w.stack.currentWidget() is w.home_page
+      and [a.text() for a in m.actions()][-2:] == ["All Efforts", "Your Tools"])
 w.step_btns[marked[0]].click(); app.processEvents()
 check("a stage tool opens its page", w.stack.currentWidget() is not w.notice_page or w.notice_page.why is not None)
-w.toggle_group("Write"); app.processEvents()
-check("a group folds away, and stays folded", not w.step_btns["acronyms"].isVisibleTo(w)
-      and "Write" in json.load(open(A.SETTINGS_FILE))["rail_collapsed"])
-w.toggle_group("Write"); app.processEvents()
-check("... and opens again", w.step_btns["acronyms"].isVisibleTo(w))
 MO.save(stage_tools=False); w.refresh_access(); app.processEvents()
-check("the stage marks can be turned off", not any(b.stage_dot.isVisibleTo(w) for b in w.step_btns.values())
-      and not any(c.isVisibleTo(w) for c in w.group_counts.values()))
+check("the stage marks can be turned off", not any(b.stage_dot.isVisibleTo(w) for b in w.step_btns.values()))
 MO.save(stage_tools=True); w.refresh_access()
 
 # ---------------------------------------------------------------- Preview tools
@@ -91,9 +85,9 @@ check("Make a template waits until it is turned on", w.prodstd_page.make_templat
 w.home_page.customize({"role": "Author", "order": __import__("branding").preset("Author")["order"],
                        "hidden": __import__("branding").preset("Author")["hidden"]})
 w.refresh_access(); app.processEvents()
-check("an author's own choice: production tools are greyed and say who they are for", w.profile() == ("Author", "own")
-      and w.step_btns["audit"].property("offrole") and "Production" in w.step_btns["audit"].toolTip()
-      and not w.step_btns["truth"].property("offrole"))
+check("an author's own choice: Team shows only the author's tools (3.96.0: tiles by role)", w.profile() == ("Author", "own")
+      and "audit" not in w.team_page.refresh()[0:6] and "refs" in w.team_page.shown()[0]
+      and not w.step_btns["acronyms"].property("offrole") and not w.step_btns["team"].property("offrole"))
 w.go("fixcopy"); app.processEvents()
 check("opening one explains instead of opening it", w.stack.currentWidget() is np and np.card.title.text() == "Fix a Copy is for Proposal Manager, Production"
       and "Your role here is Author" in np.text.text() and np.act.text() == "Change my role..." and np.act.isVisibleTo(w), np.card.title.text())
@@ -103,9 +97,9 @@ from PySide6.QtWidgets import QLabel as _QL
 check("3.75.0: Fix a Copy is a tab of Check a Draft in the Team group, marked Beta on the page",
       [k for k, _t in __import__("skqt.mainwin", fromlist=["TABS"]).TABS["audit"]] == ["audit", "applyword", "fixcopy"] and w.beta_pill.isVisibleTo(w))
 w.go("acrlist"); app.processEvents()
-check("3.16.0: a tab's page marks its menu item: the Acronym List is a tab of Acronyms, and Production opens it",
-      w.stack.currentWidget() is w.acrlist_page and w.step_btns["acronyms"].isChecked() and w.page_title.text() == "Acronyms"
-      and [w.page_tabs.tabText(i) for i in range(w.page_tabs.count())] == ["Scan", "Acronym List"]
+check("3.16.0: a tab's page marks its menu item: the Acronym List is a tab of Write (3.96.0), and Production opens it",
+      w.stack.currentWidget() is w.acrlist_page and w.step_btns["acronyms"].isChecked() and w.page_title.text() == "Write"
+      and [w.page_tabs.tabText(i) for i in range(w.page_tabs.count())] == ["Acronyms", "Acronym List", "Technical Edit"]
       and not w.step_btns["acronyms"].property("offrole") and not w.beta_pill.isVisibleTo(w))
 w.page_tabs.setCurrentIndex(0); app.processEvents()
 check("... clicking a tab opens its page", w.stack.currentWidget() is w.acronym_page and w.step_btns["acronyms"].isChecked())
@@ -114,14 +108,14 @@ check("3.37.0: Lists to Submit opens in the Acronym List", w.stack.currentWidget
       and w.acrlist_page.views.currentWidget() is w.lists_page)
 r = RR.Record(w.ws.root); r.set_team([("A. Lee", "Volume lead"), ("J. Smith", "Proposal manager")]); r.save()
 MO.save(my_name="A. Lee"); w.refresh_access(); app.processEvents()
-check("the effort's People decides the role", w.profile() == ("Author", "effort") and w.step_btns["audit"].property("offrole"))
+check("the effort's People decides the role", w.profile() == ("Author", "effort") and "audit" not in w.team_page.shown()[0])
 w.go("prodstd"); app.processEvents()
 check("... and only the proposal manager changes it: no button to change it here", w.stack.currentWidget() is np
       and not np.act.isVisibleTo(w) and "People in this effort" in np.text.text())
 MO.save(hide_other_roles=True); w.refresh_access(); app.processEvents()
 # 3.57.0: Wall of Truth is set aside (menufocus), so the fold and the role checks use Acronyms
-check("Hide the tools that are not for my role", not w.step_btns["audit"].isVisibleTo(w) and w.step_btns["acronyms"].isVisibleTo(w) and not w.step_btns["truth"].isVisibleTo(w)
-      and not w.step_btns["formatstd"].isVisibleTo(w))
+check("Hide the tools that are not for my role", w.step_btns["acronyms"].isVisibleTo(w) and w.step_btns["team"].isVisibleTo(w)
+      and "formatstd" not in w.team_page.shown()[0])
 MO.save(hide_other_roles=False); w.refresh_access()
 w.go("settings"); app.processEvents()
 rc = w.settings_page.roles_card

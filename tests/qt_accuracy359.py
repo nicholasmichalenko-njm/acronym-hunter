@@ -24,7 +24,7 @@ def check(name, ok, info=""):
 app = QApplication([]); theme.apply(app)
 cfg = os.path.join(tmp, "config"); os.makedirs(cfg)
 from skqt import mainwin as MW
-check("Accuracy sits in Shred, a tab of Requirements (3.75.0)", [k for k, _t in MW.TABS["shredreq"]] == ["shredreq", "shredacc"])
+check("Accuracy is with Requirements, a way to see Review (3.96.0)", MW.RAIL_OF["shredacc"] == "assign" and __import__("skqt.navrail", fromlist=["x"]).VIEW_OF["shredacc"] == "shredreq")
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 import unfiled as UF
 w.work_on(UF.NAME); app.processEvents()

@@ -30,6 +30,7 @@ class ReviewViews(QWidget):
             self.tabs.setTabToolTip(i, TIPS[k])
         self.tabs.currentChanged.connect(lambda i: self.show_view(KEYS[i][0]))
         v.addWidget(self.tabs)
+        self.tabs.setVisible(False)                  # 3.96.0: See it as, in the header above the page, picks the view
         self.stack = QStackedWidget(); v.addWidget(self.stack, 1)
         self.stack.addWidget(structure)
         self.holders = {}
@@ -63,6 +64,9 @@ class ReviewViews(QWidget):
     def show_view(self, key):
         key = key if key in dict(KEYS) else "structure"
         self.key = key
+        st = getattr(self.pg.host, "stepper", None)          # 3.96.0: the header's See it as follows
+        if st is not None and st.isVisibleTo(self.pg.host):
+            st.show_for("assign")
         i = [k for k, _t in KEYS].index(key)
         if self.tabs.currentIndex() != i:
             self.tabs.blockSignals(True); self.tabs.setCurrentIndex(i); self.tabs.blockSignals(False)

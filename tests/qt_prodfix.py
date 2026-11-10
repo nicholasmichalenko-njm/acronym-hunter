@@ -40,7 +40,7 @@ w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.go("home"); app.processEvents()
 f = w.home_page.start; f.name.setText("Osprey"); f.sol.setText("FA8810-26-R-0042"); f.create(); app.processEvents()
 check("3.9: Production holds Production Standards, Audit and Fix a Copy (3.16.0: Fix a Copy last, Beta; 3.17.0: Audit)",
-      [k for g, it in RAIL if g == "Team" for k, _l in it] == ["formatstd", "profiles", "studio", "rules", "audit", "refs"])   # 3.75.0: the Team group; 3.66.0: Template Studio first; 3.38.0: Rules; 3.52.0: Production Standards under Advanced
+      list(__import__("skqt.mainwin", fromlist=["x"]).TEAM) == ["formatstd", "profiles", "studio", "rules", "audit", "refs"])   # 3.75.0: the Team group; 3.66.0: Template Studio first; 3.38.0: Rules; 3.52.0: Production Standards under Advanced
 vol = os.path.join(EF.folder(w.effort_path, "volumes"), "Volume I Technical.docx")
 shutil.copy2(os.path.join(HERE, "pefix", "data", "small.docx"), vol)
 before = sha(vol)
@@ -370,7 +370,7 @@ sp.dirty = False
 w.go("audit"); app.processEvents()
 ap = w.audit_page
 check("3.17: Audit sits in Production between Production Standards and Fix a Copy, and lists the Volumes folder",
-      [k for g, it in RAIL if g == "Team" for k, _l in it] == ["formatstd", "profiles", "studio", "rules", "audit", "refs"]
+      list(__import__("skqt.mainwin", fromlist=["x"]).TEAM) == ["formatstd", "profiles", "studio", "rules", "audit", "refs"]
       and ap.files.count() == len([f for f in os.listdir(EF.folder(w.effort_path, "volumes")) if f.lower().endswith((".docx", ".xlsx", ".pptx"))]))
 ap.add_files([vol]); app.processEvents()
 vbefore = sha(vol)

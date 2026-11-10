@@ -49,8 +49,8 @@ bn = hp.banner
 
 # ---------------------------------------------------------------- one page
 check("the menu has the Effort Dashboard and no Dashboard", "home" in w.step_btns and "dashboard" not in w.step_btns
-      and w.step_btns["home"].text() == "Effort Dashboard")
-check("the page is called Effort Dashboard", w.page_title.text() == "Effort Dashboard")
+      and w.step_btns["home"].text() == "Dashboard")
+check("the page is called Dashboard (3.96.0)", w.page_title.text() == "Dashboard")
 w.go("dashboard"); app.processEvents()
 check("the old Dashboard route opens the Effort Dashboard", w.stack.currentWidget() is hp)
 check("the Dashboard's numbers and cards are on it for the proposal manager", all(k in hp.shown for k in ("health", "compliance",

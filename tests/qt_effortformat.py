@@ -36,7 +36,7 @@ E.Registry(os.path.join(cfg, "efforts.json")).put("Kestrel", path=LIST)
 app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel"); app.processEvents()
-check("Effort Formatting is in the Effort menu, for the Production role too", ("effortfmt", "Effort Formatting") in dict(MW.RAIL)["Effort"]
+check("Effort Formatting is in the Effort menu, for the Production role too", ("effortfmt", "Effort Formatting") in MW.TABS["setups"]
       and RA.allowed("Production", "effortfmt") and not RA.allowed("Author", "effortfmt"))
 w.go("effortfmt"); app.processEvents()
 pg = w.effortfmt_page

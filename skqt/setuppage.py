@@ -181,6 +181,7 @@ class SetupPage(QWidget):
             self.host.status("A file with that name is open in Word: close it, then make again.")
             return None
         diag.activity("setup_on_templates", files=len(out))
+        SD._log(R.M, "(setup)", f"setup made: {len(out)} file(s)")         # 3.96.0: the path's Setup step is done
         R.M.pending = True
         self.host.changed()
         self.host.toast(f"{len(out)} template(s) and setup(s) made in {folder}. Show/Hide shows the RFP's words and your notes.")

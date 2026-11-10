@@ -618,11 +618,12 @@ class RailEffort(QFrame):
         self.name = QLabel(""); self.name.setObjectName("railEffortName"); self.name.setWordWrap(True)
         self.stage = QLabel(""); self.stage.setObjectName("railEffortStage")
         v.addWidget(self.cap); v.addWidget(self.name); v.addWidget(self.stage, 0, Qt.AlignLeft)
-        self.setToolTip("The open effort and its stage. Click for its Dashboard or another effort.")
-        self.setVisible(False)
+        self.setToolTip("The open effort and its stage. Click for another effort, All Efforts, My Work or Your Tools.")
+        self.setVisible(True)                                   # 3.96.0: the effort switcher, always there
 
     def set(self, name, stage="", color=""):
-        self.name.setText(name or "")
+        self.effort = name or ""
+        self.name.setText((name or "No effort open") + "  ▾")
         self.stage.setText(stage or "")
         self.stage.setVisible(bool(stage))
         c = QColor(color or "#5B9BEB")                      # rgba(): Qt reads an 8-digit hex as #AARRGGBB
@@ -630,10 +631,10 @@ class RailEffort(QFrame):
         c = c.name()
         self.stage.setStyleSheet(f"QLabel#railEffortStage{{color:#FFFFFF;border:1px solid {c};background:{soft};"
                                  f"border-radius:9px;padding:1px 8px;font-size:{D.TYPE['small']}pt;font-weight:600;}}")
-        self.setVisible(bool(name))
+        self.setVisible(True)
 
     def mousePressEvent(self, e):
-        if e.button() == Qt.LeftButton and self.name.text():     # 3.75.0: the Dashboard, another effort, All Efforts
+        if e.button() == Qt.LeftButton:                         # 3.96.0: another effort, All Efforts, My Work, Your Tools
             from .frame import effort_menu
             effort_menu(self.host).exec(self.mapToGlobal(self.rect().bottomLeft()))
         super().mousePressEvent(e)

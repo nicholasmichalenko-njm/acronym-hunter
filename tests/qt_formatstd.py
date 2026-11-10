@@ -33,7 +33,7 @@ d["types"][0]["style_defs"] = {"Body Text": {"size": 12}}
 PRL.save(cfg, d)
 app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-check("Standards leads the Team group, with Quick Parts and Layout as its tabs (3.75.0)", [k for g, it in RAIL if g == "Team" for k, _l in it][:1] == ["formatstd"])
+check("Standards leads the Team group, with Quick Parts and Layout as its tabs (3.75.0)", list(__import__("skqt.mainwin", fromlist=["x"]).TEAM)[:1] == ["formatstd"])
 w.go("formatstd"); app.processEvents()
 fp = w.formatstd_page
 check("the first time it opens, the standards become library items", fp.converted and fp.converted["new"] > 5 and "library items" in fp.note.text())

@@ -65,7 +65,7 @@ check("changes for authors need a setup first", SM.changes_by_person(M) is None)
 
 # ---------------------------------------------------------------- the page
 from skqt import mainwin as MW
-check("Setup sits in Plan, the Structure Builder part of it (3.74.0)", [k for g_, it in MW.RAIL if g_ == "Plan" for k, _t in it] == ["setups", "storyboards"])
+check("Setup sits in Plan, the Structure Builder part of it (3.74.0)", [k for k, _t in MW.TABS["setups"]] == ["setups", "effortfmt"] and MW.RAIL_OF["storyboards"] == "setups")
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 import unfiled as UF
 w.work_on(UF.NAME); app.processEvents()

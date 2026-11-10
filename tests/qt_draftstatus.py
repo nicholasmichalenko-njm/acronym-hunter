@@ -45,7 +45,7 @@ def wait(cond, secs=60):
     return cond()
 
 
-check("Draft Status is in the Write menu", ("drafts", "Draft Status") in dict(RAIL)["Write"])
+check("Draft Status is a tab of Write (3.96.0)", ("drafts", "Draft Status") in __import__("skqt.mainwin", fromlist=["x"]).TABS["acronyms"])
 w.open_effort("Kestrel")
 w.read_page.read(PDFS, os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))
 wait(lambda: w.review is not None and w.stack.currentWidget() is w.assign_page)

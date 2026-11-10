@@ -49,15 +49,12 @@ tmp = tempfile.mkdtemp()
 w = MainWindow(app, os.path.join(tmp, "config"), A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 rail = [b.text() for b in w.findChildren(type(w.step_btns["home"])) if b.objectName() == "rail"]
 steps = [b.text() for k, b in w.step_btns.items()]
-check("the rail: the steps in Qt, then the areas still in the classic app (grey)", rail[:len(steps)] == steps
-      and steps[3:9] == ["Effort Dashboard", "Deliverables", "Effort Formatting", "Effort Record", "Effort Library", "Customer Q&&A"]   # 3.78.0; 3.90.0: Compare is a tab of Review
-      and "Matrix" in steps   # 3.16.0: one place per job; 3.53.0: spaces; 3.75.0: nine groups
-      and steps[14:19] == ["Setup", "Storyboards", "Draft Status", "Wall of Truth", "Acronyms"] and "Accuracy" not in steps   # 3.90.0: one fewer above
-      and steps[-3:] == ["Check a Draft", "Team References", "Settings"]   # 3.69.0: Production Standards off the menu; 3.74.0: the Structure Builder in Setup
-      and all(not b.isEnabled() for b in w.findChildren(type(w.step_btns["home"])) if b.objectName() == "rail" and b.text() not in steps), rail)
+check("the rail: the effort's path, then Team and Settings (3.96.0)", rail[:len(steps)] == steps
+      and steps == ["Dashboard", "Customer files", "Review", "Setup", "Write", "Submit", "Team", "Settings"], rail)
 w.go("prove"); app.processEvents()
-check("the top bar names the page: 3.90.0: Coverage is a view of Review", w.page_title.text() == "Review" and w.stack.currentWidget() is w.assign_page
-      and w.page_tabs.tabText(w.page_tabs.currentIndex()) == "Review" and w.step_btns["assign"].isChecked())
+check("the top bar names the page: 3.90.0: Coverage is a view of Review (3.96.0: See it as)", w.page_title.text() == "Review"
+      and w.stack.currentWidget() is w.assign_page and w.stepper.isVisibleTo(w) and w.stepper.views["prove"].isChecked()
+      and w.step_btns["assign"].isChecked())
 check("no effort: the saved state says so", w.saved.text() == "No matrix")
 # 3.15.0: visual hierarchy: three type sizes, card headers, status pills that never stretch, the page's group above it
 check("3.15.0: three sizes: page title > card title > body", D.TYPE["display"] > D.TYPE["title"] > D.TYPE["body"] and D.TYPE["display"] - D.TYPE["title"] >= 6)
@@ -66,10 +63,8 @@ check("... a card's title sits in its own header row; a key card is marked", c.h
       and k.property("key") is True and D.Card().head is None)
 check("... status pills are as tall as their text", w.saved.sizePolicy().verticalPolicy() == w.saved.sizePolicy().Policy.Fixed
       and w.saved.height() < 30, w.saved.height())
-check("... the page's menu group shows above its title", w.page_crumb.text() == "Shred")       # 3.53.0: Review is in Shred
-heads = [b for b in w.findChildren(type(w.step_btns["home"])) if b.objectName() == "railgroup"]
-check("... menu groups in capitals, bold, above regular-weight items", heads and all(h.font().capitalization() == h.font().Capitalization.AllUppercase
-      for h in heads) and "font-weight: 400" in D.qss(D.LIGHT).split("QPushButton#rail {")[1].split("}")[0])
+check("... the page's step shows above its title (3.96.0)", w.page_crumb.text() == "Step 2 of 5")
+check("... menu entries in regular weight", "font-weight: 400" in D.qss(D.LIGHT).split("QPushButton#rail {")[1].split("}")[0])
 w.toast("Saved"); app.processEvents()
 check("a toast shows and names what happened", w.toaster.isVisible() and w.toaster.text() == "Saved")
 w.close()

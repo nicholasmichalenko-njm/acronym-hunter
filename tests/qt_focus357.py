@@ -31,13 +31,15 @@ from skqt import modes as _modes
 _modes.save(show_set_aside=False)   # 3.61.0: a test before may have left the pages set aside showing
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 w.refresh_access(); app.processEvents()
-gone = ["mywork", "drafts", "truth", "storyboards", "reviews"]
-check("the pages set aside leave the menu", all(not w.step_btns[k].isVisible() for k in gone),
-      {k: w.step_btns[k].isVisible() for k in gone})
-check("... production's pages stay", all(w.step_btns[k].isVisible() for k in ("tools", "shredreq", "setups", "acronyms", "techedit", "finalcheck", "profiles")))
-check("... a group keeps its title while it holds a page (3.75.0: Write holds Acronyms and Technical Edit)", w.group_heads["Write"].isVisible())
+gone = ["drafts", "truth", "reviews"]                    # 3.96.0: Write's tabs; My Work leaves the effort switcher
+w.go("acronyms"); app.processEvents()
+check("the pages set aside leave the menu", not set(gone) & set(w._tab_keys) and "mywork" not in w.step_btns, w._tab_keys)
+check("... production's pages stay", all(w.step_btns[k].isVisible() for k in ("library", "assign", "setups", "acronyms", "finalcheck", "team"))
+      and w._tab_keys == ["acronyms", "acrlist", "techedit"])
+from skqt import frame as _FR
+check("... My Work is out of the effort switcher", "My Work" not in [a.text() for a in _FR.effort_menu(w).actions()])
 w.go("custqa"); app.processEvents()
-check("Data calls leaves Customer Q&A's tabs", w._tab_keys == ["custqa"], w._tab_keys)
+check("Data calls leaves Customer files' tabs", w._tab_keys == ["library", "custqa"], w._tab_keys)
 w.go("datacalls"); app.processEvents()
 check("... but still opens when asked for (its work is kept)", "datacalls" in w._tab_keys and w.stack.currentWidget() is w.pages["datacalls"])
 import unfiled as UF
@@ -48,11 +50,11 @@ check("Your Tools never pins a set-aside page", not set(TH.load_pins(cfg, "Autho
       TH.load_pins(cfg, "Author"))
 modes.save(show_set_aside=True)
 w.refresh_access(); w.go("structure"); app.processEvents()
-check("Show the pages set aside brings them back (3.89.0: not Storyboards, turned off)", all(w.step_btns[k].isVisible() for k in gone if k not in MF.OFF)
-      and not w.step_btns["storyboards"].isVisible()
-      and w.setups_page.a_kickoff.isVisible() and w.group_heads["Write"].isVisible())
+w.go("acronyms"); app.processEvents()
+check("Show the pages set aside brings them back (3.89.0: not Storyboards, turned off)", set(gone) <= set(w._tab_keys)
+      and "storyboards" not in w.step_btns and w.setups_page.a_kickoff.isVisible())
 w.go("custqa"); app.processEvents()
-check("... and the Data calls tab", w._tab_keys == ["custqa", "datacalls"])
+check("... and the Data calls tab", w._tab_keys == ["library", "custqa", "datacalls"])
 modes.save(show_set_aside=False); w.refresh_access()
 check("the list keeps a date and a reason for each", all(len(v) == 2 and v[1] for v in MF.SET_ASIDE.values()))
 

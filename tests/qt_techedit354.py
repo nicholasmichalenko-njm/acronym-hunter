@@ -34,10 +34,10 @@ draft = os.path.join(tmp, "Kestrel Volume II.docx"); d.save(draft)
 before = hashlib.sha256(open(draft, "rb").read()).hexdigest()
 
 from skqt import mainwin as MW
-_write = [k for g, it in MW.RAIL if g == "Write" for k, _t in it]
-check("Technical Edit sits in Write, after Acronyms (3.75.0)", _write.index("techedit") == _write.index("acronyms") + 1)
+_write = [k for k, _t in MW.TABS["acronyms"]]
+check("Technical Edit sits in Write, after Acronyms (3.75.0)", _write.index("techedit") == _write.index("acrlist") + 1)
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
-w.step_btns["techedit"].click(); app.processEvents()
+w.rail_go("techedit"); app.processEvents()
 pg = w.techedit_page
 check("from the menu with nothing open: Technical Edit on Unfiled", w.effort_name == UF.NAME and w.stack.currentWidget() is pg)
 found = pg.add_files([draft], run=True)

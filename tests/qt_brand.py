@@ -42,12 +42,11 @@ app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 # ---- the menu
 texts = [b.text() for b in w.step_btns.values()]
-check("the menu is in Title Case", texts[:3] == ["Your Tools", "My Work", "All Efforts"] and texts[3:7] == ["Effort Dashboard", "Deliverables", "Effort Formatting", "Effort Record"]   # 3.53.0: spaces
-      and "Setup" in texts and "Structure Builder" not in texts and "Acronyms" in texts and "Production Standards" not in texts, texts)   # 3.69.0: off the menu
+check("the menu is in Title Case (3.96.0: the effort's path)", texts == ["Dashboard", "Customer files", "Review", "Setup", "Write", "Submit",
+                                                                          "Team", "Settings"], texts)
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QPushButton as _QPB
-heads = [b.text() for b in w.findChildren(_QPB) if b.objectName() == "railgroup"]
-check("menu groups by job (3.13.0; 3.53.0 spaces)", heads == ["Home", "Effort", "Effort Library", "Shred", "Plan", "Write", "Submit", "Team", "Settings"], heads)   # 3.75.0: nine groups
+check("the menu is the effort's path, then Team and Settings (3.96.0)", list(w.step_btns)[-2:] == ["team", "settings"])
 check("the Stationkeeper mark and name at the foot of the menu", w.rail_footer.word.text() == "Stationkeeper" and A.APP_VERSION in w.rail_footer.sub.text())
 # ---- logos (3.0.3: built into the program; nobody adds one by hand)
 check("no logo built in: nothing at the top of the menu, and no prompt to add one",
@@ -70,7 +69,7 @@ check("... and Settings says they are built in", "Built into this version" in bc
 w.open_effort("Kestrel")
 w.go("home"); app.processEvents()
 hp = w.home_page; bn = hp.banner
-check("the page title is Effort Dashboard (3.12.0: Home and Dashboard, one page)", w.page_title.text() == "Effort Dashboard")
+check("the page title is Dashboard (3.12.0: Home and Dashboard, one page; 3.96.0)", w.page_title.text() == "Dashboard")
 check("the banner: the effort's name, client and solicitation", bn.name.text() == "Kestrel" and "USSF SSC" in bn.sub.text()
       and "FA8810-26-R-0042" in bn.sub.text())
 check("no picture yet: a spot to add one", "Effort image" in bn.pic.text())

@@ -30,7 +30,7 @@ app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 from skqt.mainwin import TABS as _TABS
 check("Team lists Standards, its tabs Styles (3.94.0), Formatting, Quick Parts, Layout (3.75.0) and Parts (3.87.0 Section designs)",
-      [k for g, it in RAIL if g == "Team" for k, _l in it][:1] == ["formatstd"] and [k for k, _t in _TABS["formatstd"]] == ["styles", "formatstd", "qpstd", "layoutstd", "designs"])     # 3.87.0: Section designs
+      list(__import__("skqt.mainwin", fromlist=["x"]).TEAM)[:1] == ["formatstd"] and [k for k, _t in _TABS["formatstd"]] == ["styles", "formatstd", "qpstd", "layoutstd", "designs"])     # 3.87.0: Section designs
 # a template with Quick Parts, a cover and sections, imported into the library
 from _qpfixture import with_glossary
 QP_SRC = os.path.join(tmp, "Kestrel Master.dotx")

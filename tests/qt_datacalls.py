@@ -58,7 +58,7 @@ a = next(it for it in M.items if it["text"].startswith("The Offeror shall descri
 Rv.req([a], TA); SD.set_lm(M, [a], "L")
 
 # ---------------------------------------------------------------- data calls
-check("Data calls is a tab beside Customer Q&A", ("datacalls", "Data calls") in TABS["custqa"])
+check("Data calls is a tab beside Customer Q&A", ("datacalls", "Data calls") in TABS["library"])
 w.go("datacalls"); app.processEvents()
 pg = w.datacalls_page
 check("the page opens, empty", w.stack.currentWidget() is pg and pg.empty.isVisible() and "No data calls" in pg.summary.text())

@@ -28,6 +28,7 @@ class PathStrip(QFrame):
         self.row = QHBoxLayout(); self.row.setSpacing(D.SPACE["s"]); v.addLayout(self.row)
         self.note = D.label("", "muted"); v.addWidget(self.note)
         self.btns, self.now = {}, []
+        self.compact = False
 
     def _ctx(self):
         h = self.host
@@ -73,7 +74,9 @@ class PathStrip(QFrame):
             b.clicked.connect(lambda _=False, pg=s["page"]: self.host.go(pg))
             self.btns[s["key"]] = b
             self.row.addWidget(b, 1)
-        self.note.setText(EP.TYPES[p["type"]]["note"] + (f"  Next: {nxt['label']}." if nxt else "  Every step is done or not needed."))
+            b.setVisible(not self.compact)              # 3.96.0: the map above shows the steps
+        self.note.setText(EP.TYPES[p["type"]]["note"] + ("" if self.compact else f"  Next: {nxt['label']}." if nxt else
+                                                         "  Every step is done or not needed."))
         return self.now
 
     def set_type(self, t):

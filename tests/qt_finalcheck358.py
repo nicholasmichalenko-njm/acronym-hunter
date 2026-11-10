@@ -26,16 +26,16 @@ def check(name, ok, info=""):
 app = QApplication([]); theme.apply(app)
 cfg = os.path.join(tmp, "config"); os.makedirs(cfg)
 from skqt import mainwin as MW
-check("Submit holds Final Check (3.75.0: nine groups)", [k for g, it in MW.RAIL if g == "Submit" for k, _t in it][:1] == ["finalcheck"])
-check("... with Submission Check and Final Checks as its tabs", [k for k, _t in MW.TABS["finalcheck"]] == ["finalcheck", "qa", "checks"])
+check("Submit holds Final Check (3.75.0: nine groups)", ("finalcheck", "Submit") in dict(MW.RAIL)["Effort"])
+check("... with Submission Check and Final Checks as its tabs", [k for k, _t in MW.TABS["finalcheck"]][:3] == ["finalcheck", "qa", "checks"])
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 import unfiled as UF
 w.work_on(UF.NAME); app.processEvents()
 w.step_btns["finalcheck"].click(); app.processEvents()
 fp = w.finalcheck_page
-check("the menu item opens the report, with its tabs", w.stack.currentWidget() is fp and w._tab_keys == ["finalcheck", "qa", "checks"])
+check("the menu item opens the report, with its tabs", w.stack.currentWidget() is fp and w._tab_keys == ["finalcheck", "qa", "checks", "postsub", "keywords"])
 w.go("checks"); app.processEvents()
-check("Final Checks is a tab of it", w.stack.currentWidget() is w.checks_page and w._tab_keys == ["finalcheck", "qa", "checks"])
+check("Final Checks is a tab of it", w.stack.currentWidget() is w.checks_page and w._tab_keys == ["finalcheck", "qa", "checks", "postsub", "keywords"])
 w.go("finalcheck"); app.processEvents()
 check("no volumes yet: it says what to do", fp.check() == [] and "Add volumes" in fp.note.text())
 

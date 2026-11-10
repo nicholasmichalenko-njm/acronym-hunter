@@ -1,6 +1,21 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE MENU IS THE EFFORT'S PATH (3.96.0)
+  - The menu holds eight entries: Dashboard, 1 Customer files, 2 Review, 3 Setup, 4 Write, 5 Submit, then Team and
+    Settings. Each step says what is left on it: done, a count (38 left, 14 acronyms), next, or the due date.
+  - The effort switcher at the top of the menu: another effort, All Efforts and Your Tools. Ctrl+K goes to any page or
+    tool by name.
+  - Pages that did the same job are tabs or views of one step. Review's tabs are steps with counts (Verify, Read,
+    Compare, Place); See it as shows Our structure, Requirements, Sort, Matrix, L to M or Coverage. Deliverables, the
+    Effort Record and Meetings are tabs of the Dashboard; Customer Q&A and Data calls of Customer files; Effort
+    Formatting of Setup; the Acronym List and Technical Edit of Write; After Submission and Keywords of Submit.
+  - Every page in a step ends with a bar: what is left on this step, and the button to the next step.
+  - The Dashboard is the map: five cards, one per step, with how far along each is; Your next step, large, with one
+    button; and this week's dates, each meeting with its notes.
+  - Team is one page of tiles: Standards, Effort Profiles, Template Studio, Rules, Check a Draft and Team References,
+    shown to the roles that use them.
+
 PARTS: ONE LIBRARY OF PAGES AND QUICK PARTS, WITH SETS (3.95.0)
   - Team > Standards > Parts (was Section designs): covers, marking (CUI) pages, title pages, front matter (contents,
     acronyms, units), back covers and Quick Parts, each kind a tab with its count. One row per part: its picture, its

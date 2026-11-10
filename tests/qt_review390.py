@@ -50,7 +50,7 @@ def wait(cond, secs=60):
 
 
 check("Review's tabs: Verify, Read, Compare, Review", [k for k, _t in TABS["assign"]] == ["verify", "read", "compare", "assign"]
-      and "compare" not in dict(dict(RAIL)["Effort Library"]) and "library" not in TABS and "matrix" not in TABS)
+      and "compare" not in dict(TABS["library"]) and "matrix" not in TABS)
 w.open_effort("Kestrel")
 w.go("docs"); app.processEvents()
 w.docs_page.add([P1], choices=[{}])
@@ -62,8 +62,7 @@ vp.open_doc(C1); app.processEvents()
 vp.store().verify(vp.doc, 1); vp.show_page(); app.processEvents()
 check("Verify's last page, verified: the next step is Read", "Next: read it into Review" in vp.line.text(), vp.line.text())
 check("... and it ticks the file on the Read tab", vp.read_next() == 1 and w.stack.currentWidget() is w.read_page
-      and [w.page_tabs.tabText(i) for i in range(w.page_tabs.count())] == ["Verify", "Read", "Compare", "Review"]
-      and w.page_tabs.tabText(w.page_tabs.currentIndex()) == "Read")
+      and list(w.stepper.chips)[::2] == ["verify", "read", "compare", "assign"] and w.stepper.isVisibleTo(w))
 w.read_page.read([C1], os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"), identities="suggested")
 check("read", wait(lambda: w.review is not None))
 pg = w.assign_page

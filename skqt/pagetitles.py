@@ -1,5 +1,6 @@
 """Every page's title and one line on what it is for (3.53.0: kept apart from the main window so it stays small)."""
-TITLES = {"efforts": ("All Efforts", "Every effort in progress, a new one, and work not filed yet"),
+TITLES = {"team": ("Team", "The team's own tools: what every effort is built from, shown to the roles that use them"),
+          "efforts": ("All Efforts", "Every effort in progress, a new one, and work not filed yet"),
           "fixcopy": ("Fix a Copy", "Beta: check drafts against their profile; fixes go into a dated copy, never the original"),
           "audit": ("Check a Draft", "Check files against every standard that applies to them: read only, nothing changed"),
           "applyword": ("Apply in Word", "Beta: the team's banned phrases into a draft as tracked changes, on a copy or live in Word"),

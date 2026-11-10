@@ -781,18 +781,18 @@ TOPICS = [
   [], []),
 ]
 
-from .guidestudio import STUDIO, FORMATSTD, APPLYWORD, CHECKS369, VERIFY, DESIGNS, STYLES      # 3.66.0: kept apart so this file stays under 800 lines
-TOPICS[next(i for i, t in enumerate(TOPICS) if t[0] == "qpstd"):0] = [STUDIO, FORMATSTD, STYLES, VERIFY, DESIGNS]     # 3.84.0: Verify, sorted into the menu's order below
+from .guidestudio import STUDIO, FORMATSTD, APPLYWORD, CHECKS369, VERIFY, DESIGNS, STYLES, TEAM, PATH      # 3.66.0: kept apart so this file stays under 800 lines
+TOPICS[next(i for i, t in enumerate(TOPICS) if t[0] == "qpstd"):0] = [STUDIO, FORMATSTD, STYLES, VERIFY, DESIGNS, TEAM, PATH]     # 3.84.0: Verify; 3.96.0: Team, the path
 TOPICS.insert(next(i for i, t in enumerate(TOPICS) if t[0] == "fixcopy") + 1, APPLYWORD)   # 3.67.0
 for _k, _line in CHECKS369:                     # 3.69.0: Production Standards' sections in their new homes
     for _t in TOPICS:
         if _t[0] == _k and isinstance(_t[5], list):
             _t[5].append(_line)
 # 3.75.0: the Guide reads in the menu's order (nine groups; a tab's page after its menu item)
-_ORDER = ("tools mywork efforts home requirements deliverables effortfmt record meetings library read custqa datacalls compare "
-          "impact shredreq shredacc verify assign prove sort matrix crosswalk evalcrit setups structure storyboards drafts truth acronyms "
-          "acrlist techedit reviews finalcheck qa checks postsub keywords formatstd styles qpstd layoutstd designs profiles templates studio "
-          "rules audit applyword fixcopy refs settings exportall").split()
+_ORDER = ("path home deliverables record meetings requirements library custqa datacalls verify read compare assign prove crosswalk "
+          "evalcrit shredreq shredacc sort matrix impact setups effortfmt structure storyboards acronyms acrlist techedit drafts reviews truth "
+          "finalcheck qa checks postsub keywords team formatstd styles qpstd layoutstd designs profiles templates studio "
+          "rules audit applyword fixcopy refs settings efforts mywork tools exportall").split()     # 3.96.0: the effort's path
 _pos, _last = {}, -1.0
 for _n, _t in enumerate(TOPICS):
     _last = float(_ORDER.index(_t[0])) if _t[0] in _ORDER else _last + 0.001

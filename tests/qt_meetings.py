@@ -58,8 +58,8 @@ req = rows[0]["id"]
 w.authors.add("Dana Ruiz") if hasattr(w.authors, "add") else None
 w.go("meetings"); app.processEvents()
 mp = w.meetings_page
-check("Meetings is a tab of the Effort Record", w.stack.currentWidget() is mp and w.page_tabs.count() == 2
-      and w.page_tabs.tabText(1) == "Meetings")
+check("Meetings is a tab of the Dashboard (3.96.0)", w.stack.currentWidget() is mp
+      and w.page_tabs.tabText(w.page_tabs.currentIndex()) == "Meetings")
 mid = mp.new_meeting("Pink team debrief", "2026-11-03", participants=["Dana Ruiz", "A. Lee"])
 rec = R_.Record(w.ws.root)
 m = MT.get(rec, mid)

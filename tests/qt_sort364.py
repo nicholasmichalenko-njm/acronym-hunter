@@ -45,7 +45,7 @@ F.add_factor(RR.Record(ws0.root), "Technical Approach", importance="More importa
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel")
-check("Sort is in the Shred space, after Review", "sort" in w.step_btns and list(w.step_btns).index("sort") == list(w.step_btns).index("assign") + 1)
+check("Sort is in the Shred space, after Review", __import__("skqt.mainwin", fromlist=["x"]).RAIL_OF["sort"] == "assign" and "sort" in w.stepper.views)
 w.go("sort"); app.processEvents()
 sp = w.sort_page
 n = len(TP.sortable(w.review.M.items))

@@ -41,9 +41,9 @@ check("the draft compliance matrix: one row per requirement, the matrix's column
       and hdr[:4] == ["ID", "Kind", "Section", "Section title"], (n, ws.max_row, hdr))
 
 from skqt import mainwin as MW
-check("Requirements leads the Shred space", [k_ for g, it in MW.RAIL if g == "Shred" for k_, _t in it][:4] == ["shredreq", "assign", "sort", "matrix"])
+check("Requirements leads the Shred space", MW.RAIL_OF["shredreq"] == "assign" and {"sort", "matrix"} <= set(MW.REVIEW_VIEWS))
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
-w.step_btns["shredreq"].click(); app.processEvents()
+w.rail_go("shredreq"); app.processEvents()
 sp = w.shred_page
 check("Requirements opens with nothing to work on, as it is", w.ws is None and w.stack.currentWidget() is sp)
 sp.open(rfp)

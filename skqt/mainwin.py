@@ -35,45 +35,55 @@ from .exportallpage import ExportAllPage
 from .settingspage import SettingsPage
 
 
-RAIL = [("Home", [("tools", "Your Tools"), ("mywork", "My Work"), ("efforts", "All Efforts")]),     # 3.53.0: spaces by job
-        ("Effort", [("home", "Effort Dashboard"), ("deliverables", "Deliverables"), ("effortfmt", "Effort Formatting"), ("record", "Effort Record")]),
-        ("Effort Library", [("library", "Effort Library"), ("custqa", "Customer Q&A")]),   # 3.78.0; 3.90.0: Compare is a tab of Review
-        ("Shred", [("shredreq", "Requirements"), ("assign", "Review"), ("sort", "Sort"), ("matrix", "Matrix"), ("evalcrit", "Evaluation Criteria")]),
-        ("Plan", [("setups", "Setup"), ("storyboards", "Storyboards")]),   # 3.56.0; 3.74.0: the Structure Builder is in Setup
-        ("Write", [("drafts", "Draft Status"), ("truth", "Wall of Truth"), ("acronyms", "Acronyms"), ("techedit", "Technical Edit"),
-                   ("reviews", "Color Reviews")]),
-        ("Submit", [("finalcheck", "Final Check"), ("postsub", "After Submission")]),
-        ("Team", [("formatstd", "Standards"), ("profiles", "Effort Profiles"), ("studio", "Template Studio"), ("rules", "Rules"),
-                  ("audit", "Check a Draft"), ("refs", "Team References")]),
-        ("Settings", [("settings", "Settings")]),
-        ]   # 3.75.0: nine groups (claude/stationkeeper-simplify-decisions-2026-11-06.md decision 3); Export All is on the Dashboard's Export
+# 3.96.0 (canvas "Navigation", boards 1 to 3; claude/stationkeeper-navigation-3.93.md): the menu is the effort's path.
+# The Dashboard and five steps, then Team and Settings; All Efforts, My Work and Your Tools are in the effort switcher.
+RAIL = [("Effort", [("home", "Dashboard"), ("library", "Customer files"), ("assign", "Review"), ("setups", "Setup"),
+                    ("acronyms", "Write"), ("finalcheck", "Submit")]),
+        ("Team", [("team", "Team")]),
+        ("Settings", [("settings", "Settings")])]
+SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Your Tools")]
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
-TABS = {"home": [("home", "Dashboard"), ("requirements", "Submission Rules")],
-        "record": [("record", "Effort Record"), ("meetings", "Meetings")],                 # 3.20.0
-        # 3.90.0 (decision 13): Read and Compare are Review's tabs, in the order of the work; Coverage and the L/M
-        # Crosswalk are views beside Review's page (go("prove") and go("crosswalk") open them there)
-        "assign": [("verify", "Verify"), ("read", "Read"), ("compare", "Compare"), ("assign", "Review")],
-        "acronyms": [("acronyms", "Scan"), ("acrlist", "Acronym List")],      # 3.37.0: Lists to Submit is in the Acronym List
-        "custqa": [("custqa", "Customer Q&A"), ("datacalls", "Data calls")],
-        "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks")],
-        "shredreq": [("shredreq", "Requirements"), ("shredacc", "Accuracy")], "postsub": [("postsub", "Checklist"), ("keywords", "Keywords")],
+# 3.96.0: pages that did the same job are tabs or views of one step.
+TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings"),
+                 ("requirements", "Submission Rules")],
+        "library": [("library", "Files"), ("custqa", "Customer Q&A"), ("datacalls", "Data calls")],
+        # 3.90.0 (decision 13): Read and Compare are Review's tabs, in the order of the work; 3.96.0: a stepper, and
+        # Our structure, Requirements, Sort, Matrix, L to M and Coverage are ways to see it (navrail.VIEWS)
+        "assign": [("verify", "Verify"), ("read", "Read"), ("compare", "Compare"), ("assign", "Place")],
+        "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting")],
+        "acronyms": [("acronyms", "Acronyms"), ("acrlist", "Acronym List"), ("techedit", "Technical Edit"), ("drafts", "Draft Status"),
+                     ("reviews", "Color Reviews"), ("truth", "Wall of Truth")],   # Draft Status, Color Reviews, Wall of Truth: set aside
+        "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks"), ("postsub", "After Submission"),
+                       ("keywords", "Keywords")],
         "formatstd": [("styles", "Styles"), ("formatstd", "Formatting"), ("qpstd", "Quick Parts"), ("layoutstd", "Layout"),
-                      ("designs", "Parts")],     # 3.95.0: Parts (was Section designs)  # 3.94.0: Styles, the library of styles and style sets      # 3.75.0: tabs, not menu items
+                      ("designs", "Parts")],     # 3.95.0: Parts (was Section designs)  # 3.94.0: Styles  # 3.75.0: tabs, not menu items
         "profiles": [("profiles", "Effort Profiles"), ("templates", "Templates")],
         "audit": [("audit", "Audit"), ("applyword", "Apply in Word"), ("fixcopy", "Fix a Copy")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
 HEAD_OF.update({"docs": "library", "impact": "assign", "dashboard": "home"})   # pages opened from inside another
+REVIEW_VIEWS = ("shredreq", "shredacc", "sort", "matrix", "crosswalk", "evalcrit", "prove", "impact")
+TEAM = ("formatstd", "profiles", "studio", "rules", "audit", "refs")
+# the menu entry each page lights up
+RAIL_OF = {k: h for k, h in HEAD_OF.items() if h in ("home", "library", "assign", "setups", "acronyms", "finalcheck")}
+RAIL_OF.update({k: "assign" for k in REVIEW_VIEWS})
+RAIL_OF.update({"storyboards": "setups", "setup": "setups", "structure": "setups", "exportall": "home", "lists": "acronyms"})
+RAIL_OF.update({k: "team" for t in TEAM for k in [k for k, _t in TABS.get(t, [(t, "")])]})
+RAIL_OF.update({"prodstd": "team"})
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup", "setups"}   # 3.18.2:
 # pages that change the matrix (decisions, the structure, placements, setup) share its Undo steps; Review has its own
 VIEWS = {"prove": "coverage", "crosswalk": "lm"}                # 3.90.0: views of Review's maps, not pages of their own
 BETA = {"fixcopy", "applyword"}                                  # 3.16.0: tools still being proven, marked Beta in the menu and on the page
-GROUP_OF = {k: g for g, items in RAIL for k, _t in items}     # 3.15.0: the page's menu group, shown above its title
-GROUP_OF.update({k: GROUP_OF[h] for k, h in HEAD_OF.items() if h in GROUP_OF})
+GROUP_OF = {k: ("Team" if e == "team" else "" if e == "home" else f"Step {n} of 5")
+            for k, e in RAIL_OF.items()
+            for n in [[x for x, _t in RAIL[0][1]].index(e) if e in [x for x, _t in RAIL[0][1]] else 0]}
+GROUP_OF.update({"team": "Team", "settings": "", "efforts": "", "mywork": "", "tools": ""})
 
 
 def members(key):
-    """The page keys a menu item holds: itself, or its tabs."""
-    return [k for k, _t in TABS.get(key, [(key, "")])]
+    """The page keys a menu item holds: itself, or its tabs (Team: every team tool; Review: its views too)."""
+    if key == "team":
+        return [k for t in TEAM for k in members(t)]
+    return [k for k, _t in TABS.get(key, [(key, "")])] + (list(REVIEW_VIEWS) if key == "assign" else [])
 
 
 from .pagetitles import TITLES                    # 3.53.0: every page's title and line
@@ -121,37 +131,12 @@ class MainWindow(QMainWindow):
         self.rail_brand = RailBrand(self)                                   # 2.88.0: the company logos, always in view
         self.steps = QButtonGroup(self)
         self.step_btns = {}
-        # 3.15.0: the open effort and its stage at the top; then the groups by job, each tool in one place only, the
-        # stage's tools marked with a dot in the stage's color (no separate stage group); a group folds away
+        # 3.96.0: the effort switcher at the top, then the effort's path, then Team and Settings (navrail)
         from .brandview import RailEffort
         self.rail_effort = RailEffort(self); rv.addWidget(self.rail_effort)
         self.stage_tools_now = []
-        self.group_heads, self.group_items, self.group_counts = {}, {}, {}
-        for gi, (head, items) in enumerate(RAIL):
-            h = QPushButton(head); h.setObjectName("railgroup"); h.clicked.connect(lambda _=False, g=head: self.toggle_group(g))
-            h.setProperty("first", gi == 0)
-            hf = h.font(); hf.setCapitalization(QFont.AllUppercase); hf.setLetterSpacing(QFont.AbsoluteSpacing, 1.0); h.setFont(hf)
-            hl = QHBoxLayout(h); hl.setContentsMargins(0, 0, D.SPACE["m"], 5); hl.addStretch(1)
-            cnt = QLabel(""); cnt.setObjectName("railcount"); cnt.setVisible(False)
-            hl.addWidget(cnt, 0, Qt.AlignBottom | Qt.AlignRight)
-            self.group_counts[head] = cnt
-            rv.addWidget(h); self.group_heads[head] = h; self.group_items[head] = []
-            for key, text in items:
-                b = QPushButton(text.replace("&", "&&")); b.setObjectName("rail"); b.setCheckable(bool(key))
-                bl = QHBoxLayout(b); bl.setContentsMargins(0, 0, D.SPACE["m"], 0); bl.addStretch(1)
-                if key in BETA:                                         # 3.16.0: a tool still being proven
-                    bt = QLabel("BETA"); bt.setObjectName("railbeta"); bt.setToolTip("Beta: still being proven on real documents")
-                    bl.addWidget(bt, 0, Qt.AlignVCenter)
-                b.stage_dot = QLabel(); b.stage_dot.setFixedSize(8, 8); b.stage_dot.setVisible(False)
-                bl.addWidget(b.stage_dot, 0, Qt.AlignVCenter)
-                if key:
-                    b.clicked.connect(lambda _=False, k=key: self.rail_go(k))
-                    self.steps.addButton(b); self.step_btns[key] = b
-                else:
-                    b.setEnabled(False)
-                    b.setToolTip("Still in Stationkeeper (classic): it moves to Qt in a coming release.")
-                rv.addWidget(b); self.group_items[head].append(b)
-        rv.addStretch(1)
+        from . import navrail
+        navrail.build(self, rv, RAIL, BETA)
         self.rail_footer = RailFooter(version)                              # 2.88.0: the Stationkeeper mark, always in view
         rail_scroll = QScrollArea(); rail_scroll.setObjectName("railbox"); rail_scroll.setWidgetResizable(True)    # 2.65.0: a long rail scrolls
         rail_scroll.setFrameShape(QFrame.NoFrame); rail_scroll.setFixedWidth(232); rail_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -216,6 +201,8 @@ class MainWindow(QMainWindow):
         self._tab_keys, self._tab_sync = [], False
         tw = QFrame(); tw.setObjectName("pagetabsbox"); tl = QHBoxLayout(tw)
         tl.setContentsMargins(D.SPACE["xl"], 0, D.SPACE["xl"], 0); tl.addWidget(self.page_tabs); tl.addStretch(1)
+        from .navrail import NextBar, Stepper
+        self.stepper = Stepper(self); self.stepper.setVisible(False); tl.addWidget(self.stepper, 100)   # 3.96.0: Review's steps
         self.page_tabs_box = tw; tw.setVisible(False)
         cv.addWidget(tw)
         from .adaptive import PageStack
@@ -308,7 +295,9 @@ class MainWindow(QMainWindow):
         self.finalcheck_page = FinalCheckPage(self)    # 3.58.0: one ready-to-send report
         from .setupspage import SetupsPage
         self.setups_page = SetupsPage(self)            # 3.56.0: the starting draft, from a structure
-        self.pages = {"efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_space, "custqa": self.custqa_page,
+        from .teampage import TeamPage
+        self.team_page = TeamPage(self)                # 3.96.0: the team's tools, one page of tiles
+        self.pages = {"team": self.team_page, "efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_space, "custqa": self.custqa_page,
                       "impact": self.impact_page, "deliverables": self.deliverables_page, "evalcrit": self.evalcrit_page, "sort": self.sort_page, "studio": self.studio_page, "applyword": self.applyword_page, "qa": self.qa_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "assign": self.assign_page, "prove": self.prove_page, "verify": self.verify_page,
                       "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
@@ -323,6 +312,7 @@ class MainWindow(QMainWindow):
         from .roleview import NoticePage                 # 3.13.0: a tool for another role, or a Preview tool not turned on
         self.notice_page = NoticePage(self); self.stack.addWidget(self.notice_page)
         cv.addWidget(self.stack, 1)
+        self.next_bar = NextBar(self); cv.addWidget(self.next_bar)       # 3.96.0: every page in a step ends with its next step
         rh.addWidget(col, 1)
         self.setCentralWidget(root)
         self.toaster = D.Toast(self)
@@ -396,7 +386,7 @@ class MainWindow(QMainWindow):
         if getattr(self, "efforts_page", None) is not None and self.stack.currentWidget() is self.efforts_page:
             self.efforts_page.refresh()            # 3.34.1: a new effort shows in the list at once
 
-    NO_EFFORT = {"tools", "mywork", "efforts", "settings", "refs", "shredreq", "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates",
+    NO_EFFORT = {"team", "tools", "mywork", "efforts", "settings", "refs", "shredreq", "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates",
                  "rules", "prodstd", "audit", "fixcopy", "applyword", "exportall"}
 
     def rail_go(self, key):
@@ -1013,73 +1003,14 @@ class MainWindow(QMainWindow):
         return None
 
     def refresh_access(self):
-        """Grey (or hide, when the person asked) the menu's tools that are not for this person's role."""
-        import roleaccess as RA
-        from .modes import settings
-        prof, _src = self.profile()
-        hide = bool((settings() or {}).get("hide_other_roles"))
-        collapsed = set((settings() or {}).get("rail_collapsed") or [])
-        import menufocus as MF
-        aside = MF.hidden(settings())                                     # 3.57.0: pages set aside for now
-        for head, items in self.group_items.items():
-            shown = 0
-            for key, b in ((k, self.step_btns.get(k)) for k, _t in dict(RAIL)[head]):
-                if b is None:
-                    continue
-                ok = any(RA.allowed(prof, k) for k in members(key))       # 3.16.0: open when any of its tabs is
-                b.setProperty("offrole", not ok)
-                b.style().unpolish(b); b.style().polish(b)
-                b.setToolTip("" if ok else f"For {', '.join(RA.roles_for(key))}. Your role here: {prof}.")
-                out = key in aside
-                vis = (ok or not hide) and head not in collapsed and not out
-                b.setVisible(vis); shown += (ok or not hide) and not out
-            self.group_heads[head].setVisible(shown > 0)
-            self.group_heads[head].setText(head + ("  ▸" if head in collapsed else ""))
-        self.refresh_stage_tools(prof, collapsed)
-        return prof
+        """Grey (or hide, when the person asked) the menu's entries that are not for this person's role; what is left
+        on each step (3.96.0, navrail)."""
+        from . import navrail
+        return navrail.refresh_access(self, RAIL_OF, members)
 
     def refresh_stage_tools(self, prof=None, collapsed=None):
-        """3.15.0: the tools the effort's stage needs keep their one place in the menu and get a dot in the stage's
-        color; each group says how many it holds; the effort and its stage show at the top of the menu."""
-        import roleaccess as RA
-        import stagecolors as SC
-        from .modes import settings
-        st = settings() or {}
-        tools, color, name = [], "", ""
-        if self.ws is not None:
-            try:
-                import effortrec as _R
-                r = _R.Record(self.ws.root)
-                cur = r.stages[r.index()]
-                color, name = SC.color_of(cur, r.index()), cur["name"]
-                if st.get("stage_tools", True):
-                    tools = list(dict.fromkeys(HEAD_OF.get(k, k) for k in RA.stage_tools(cur)))   # 3.16.0: a tab marks its item
-                    tools = [k for k in tools if k in self.step_btns]
-            except Exception:
-                diag.swallowed()
-        self.rail_effort.set(self.effort_name if self.ws is not None else "", name, color)
-        self.stage_tools_now = tools
-        for k, b in self.step_btns.items():               # refresh_access set each tooltip just before this
-            on = k in tools
-            b.stage_dot.setVisible(on)
-            b.stage_dot.setStyleSheet(f"background:{color};border-radius:4px;" if on else "")
-            if on:
-                b.setToolTip(" ".join(x for x in (b.toolTip(), f"A tool for {name}.") if x))
-        for head, items in RAIL:                              # a small badge: how many of the group's tools this stage needs
-            n = sum(1 for k, _t in items if k in tools)
-            c = self.group_counts[head]
-            c.setText(str(n) if n else ""); c.setVisible(bool(n))
-            c.setToolTip(f"{n} tool{'s' if n != 1 else ''} here for {name}" if n else "")
-            c.setStyleSheet(f"QLabel#railcount{{color:#FFFFFF;background:{color};border-radius:7px;padding:0 5px;}}" if n else "")
-        return tools
-
-    def toggle_group(self, head):
-        from .modes import settings, save
-        cur = list((settings() or {}).get("rail_collapsed") or [])
-        cur = [x for x in cur if x != head] if head in cur else cur + [head]
-        save(rail_collapsed=cur)
-        self.refresh_access()
-        return head in cur
+        from . import navrail
+        return navrail.refresh_stage_tools(self, RAIL_OF, prof)
 
     def go(self, step):
         if step == "lists":                          # 3.37.0: Lists to Submit lives in the Acronym List
@@ -1099,7 +1030,7 @@ class MainWindow(QMainWindow):
         if why is not None:
             self.notice_page.show_for(why)
             self.stack.setCurrentWidget(self.notice_page)
-            b0 = self.step_btns.get(step) or self.step_btns.get(HEAD_OF.get(step, step))
+            b0 = self.step_btns.get(step) or self.step_btns.get(RAIL_OF.get(step, step))
             if b0 is not None:
                 b0.setChecked(True)
             self.show_tabs(step)
@@ -1116,7 +1047,7 @@ class MainWindow(QMainWindow):
             pg.refresh()
         self.stack.setCurrentWidget(pg)
         head = HEAD_OF.get(step, step)               # 3.16.0: a tab's page marks its menu item
-        btn = self.step_btns.get(step) or self.step_btns.get(head)
+        btn = self.step_btns.get(step) or self.step_btns.get(RAIL_OF.get(step, head))
         if btn is not None:                          # 2.85.0: Customer versions and Impact review live inside other pages
             btn.setChecked(True)
         else:
@@ -1124,25 +1055,39 @@ class MainWindow(QMainWindow):
                 b.setChecked(False)
         _t, sub = TITLES[step]
         t = TITLES[head][0] if step in HEAD_OF and head in TITLES and step in dict(TABS.get(head, [])) else TITLES[step][0]
+        from .navrail import STEP_TITLES                          # 3.96.0: a step's pages carry the step's name
+        e = RAIL_OF.get(step, step)
+        if e in STEP_TITLES and (step in dict(TABS.get(e, [])) or e == "assign"):
+            t = STEP_TITLES[e][0]
         self.page_crumb.setText(GROUP_OF.get(step, ""))
         self.page_title.setText(t)
         self.beta_pill.setVisible(step in BETA)
         self.page_sub.setText(sub + (f"  \u00b7  {self.effort_name}" if self.effort_name else ""))
+        try:
+            self.refresh_access()                  # 3.13.0: a stage moved or a role changed shows in the menu
+        except Exception:
+            diag.swallowed()
         self.show_tabs(step)
+        self.next_bar.show_for(step, RAIL_OF)      # 3.96.0: the step's next step at the bottom
         __import__("skqt.frame", fromlist=["x"]).on_page(self, step)    # 3.75.0: Find a sentence where sentences are
         try:
             self.refresh_undo()                    # 3.18.2: Undo says what it would put back on this page
         except Exception:
             diag.swallowed()
-        try:
-            self.refresh_access()                  # 3.13.0: a stage moved or a role changed shows in the menu
-        except Exception:
-            diag.swallowed()
         return True
 
     def show_tabs(self, step):
-        """3.16.0: the tabs of the menu item the page belongs to (none for a page that is its own item)."""
+        """3.16.0: the tabs of the menu item the page belongs to (none for a page that is its own item). 3.96.0:
+        Review's are a stepper with counts, beside the ways to see it."""
         head = HEAD_OF.get(step, step)
+        on_review = RAIL_OF.get(step, head) == "assign"
+        self.stepper.setVisible(on_review)
+        self.page_tabs.setVisible(not on_review)
+        if on_review:
+            self.stepper.show_for(step)
+            self._tab_keys = []
+            self.page_tabs_box.setVisible(True)
+            return [k for k, _t in TABS["assign"]]
         tabs = TABS.get(head) if step in dict(TABS.get(head, [])) else None
         if tabs:                                                          # 3.57.0: set-aside tabs leave the bar
             import menufocus as MF

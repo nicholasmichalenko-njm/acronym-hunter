@@ -75,7 +75,7 @@ first = TH.items(RR.Record(w.ws.root))[0]["id"]
 check("Check the drafts: where each theme is said, and where a linked section never says it", res[first]["found"].get("Volume I Technical")
       and res[tid]["missing"] == [labels[-1]], {k: (v["found"], v["missing"]) for k, v in res.items()})
 # storyboards
-check("Storyboards is in Plan with Setup (3.53.0 spaces; 3.74.0 the Structure Builder in Setup)", [k for g, items in RAIL if g == "Plan" for k, _l in items] == ["setups", "storyboards"])
+check("Storyboards is in Plan with Setup (3.53.0 spaces; 3.74.0 the Structure Builder in Setup)", __import__("skqt.mainwin", fromlist=["x"]).RAIL_OF["storyboards"] == "setups")
 w.go("storyboards"); app.processEvents()
 sp = w.storyboards_page
 check("the sections of the volume, each with its status", sp.tree.topLevelItemCount() >= 1 and sp.label in labels, sp.label)

@@ -129,3 +129,24 @@ STYLES = ("styles", "Team", "Styles", "Every style you keep, one row each, with 
    "a set holds one version of each style and asks before moving to a newer one. New style makes a simple one; Make a copy to "
    "change (right-click) saves another version."],
   ["Each style keeps Word's own definition exactly as the file had it."])
+
+# 3.96.0: the menu as the effort's path, and Team
+PATH = ("path", "Effort", "The effort's path",
+  "The menu is the effort's path: the Dashboard, then 1 Customer files, 2 Review, 3 Setup, 4 Write and 5 Submit. Each step "
+  "says what is left on it (done, a count, next, or the due date).",
+  "Whenever you are not sure what to do next.",
+  ["The Dashboard is the map: five cards, one per step, each with how far along it is and what is left; Your next step, large, "
+   "with one button; and this week's dates, each meeting with its notes.",
+   "Inside a step, its pages are tabs. Review's tabs are steps with counts (Verify, Read, Compare, Place); See it as shows Our "
+   "structure, Requirements, Sort, Matrix, L to M or Coverage.",
+   "Every page in a step ends with a bar: what is left on this step, and the button to the next step when this one is done.",
+   "The effort switcher at the top of the menu holds another effort, All Efforts and Your Tools. Ctrl+K goes to any page or "
+   "tool by name."],
+  ["Nothing is locked: open any step in any order. A step is done when what it counts is done."])
+
+TEAM = ("team", "Team", "Team",
+  "The team's own tools on one page of tiles: Standards, Effort Profiles, Template Studio, Rules, Check a Draft and Team "
+  "References, shown to the roles that use them.",
+  "When you change what every effort is built from, or check a draft against it.",
+  ["Click a tile to open the tool. Its own tabs are under its title, as before."],
+  ["A tool for another role is not shown; Settings > Roles and Preview tools says who it is for."])

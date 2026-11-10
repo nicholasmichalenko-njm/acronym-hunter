@@ -9,7 +9,11 @@ def install(hp):
     """Called while the page is built: the strip goes under the header; the two cards join the page's cards."""
     from .pathstrip import PathStrip
     hp.path = PathStrip(hp.host)
+    hp.path.compact = True                          # 3.96.0: the request type and how it is sent; the map shows the steps
     hp.head.layout().addWidget(hp.path)
+    from .pathmap import PathMap                    # 3.96.0: the Dashboard as the map (canvas "Navigation", board 2)
+    hp.map = PathMap(hp)
+    hp.bar.parentWidget().layout().insertWidget(0, hp.map)
     hp.meet_card = D.Card("Meeting notes", "The latest meetings and the topics they left open. Notes are taken on Meetings "
                           "(+ Add > Meeting notes).")
     hp.eval_card = D.Card("Evaluation criteria", "How the customer will judge the proposal: the factors, their importance and "
@@ -38,6 +42,10 @@ def refresh(hp):
     try:
         hp.path.refresh()
     except Exception:  # noqa: BLE001  the strip must never stop the page
+        diag.swallowed()
+    try:
+        hp.map.refresh()
+    except Exception:  # noqa: BLE001  the map must never stop the page
         diag.swallowed()
     r = hp.rec
     if r is None:

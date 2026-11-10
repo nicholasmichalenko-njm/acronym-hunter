@@ -65,7 +65,7 @@ check("Draft RFP: Setup and Check are not needed and count as done", not st["set
 hp.path.steps_dialog({"check": True})
 st = {s["key"]: s for s in hp.path.now}
 check("Steps...: switch a step on for this effort", st["check"]["on"])
-check("the strip names the next step", "Next:" in hp.path.note.text(), hp.path.note.text())
+check("the strip keeps the request type's note; the map above names the next step (3.96.0)", hp.path.note.text() and hp.map.next_title.text())
 hp.path.set_type("RFP")
 # quick note
 check("Note in the top bar and Ctrl+Shift+N", w.note_btn.isVisibleTo(w) and w.note_shortcut.key().toString() == "Ctrl+Shift+N")
@@ -86,7 +86,7 @@ hp.refresh(); app.processEvents()
 check("Meeting notes up front: near the top of the dashboard, with the latest meeting", hp.shown.index("meetings") <= 2
       and hp.meetings_now == ["Kickoff"], (hp.shown[:4], getattr(hp, "meetings_now", None)))
 # evaluation criteria
-check("Evaluation Criteria is in the Effort space", "evalcrit" in w.step_btns and w.step_btns["evalcrit"].text() == "Evaluation Criteria")
+check("Evaluation Criteria is with Review's L to M (3.96.0)", __import__("skqt.mainwin", fromlist=["x"]).RAIL_OF["evalcrit"] == "assign")
 w.go("evalcrit"); app.processEvents()
 ep = w.evalcrit_page
 f1 = ep.add("Technical Approach", "", "Significantly more important")
