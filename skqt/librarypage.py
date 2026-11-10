@@ -231,8 +231,8 @@ class LibraryPage(QWidget):
         for p in (self.p_und, self.p_miss):            # 3.20.3: shown only when something needs you (roles to confirm,
             top.addWidget(p); p.setVisible(False)       # originals missing), never as green chatter
         top.addStretch(1)
-        self.b_taken = D.button("Library text used in Review...", None, lambda: self.show_taken(),
-                                "Every sentence you took from a library document in Review (as context for a section, a "
+        self.b_taken = D.button("Library text used in the shred...", None, lambda: self.show_taken(),
+                                "Every sentence you took from a library document in the shred (as context for a section, a "
                                 "requirement's context, a note, a task) and where it went: a list to check and export for writers")
         self.b_taken.setVisible(False)                  # 3.20.3: in the document's panel and its right-click menu instead
         self.b_cat = D.button("+ Category...", "ghost", lambda: self.new_category(), "A category of your own (Competitor intel, Pricing...)")
@@ -291,7 +291,7 @@ class LibraryPage(QWidget):
         self.role_f.currentIndexChanged.connect(lambda _i: self.fill())
         bar.addWidget(self.role_f)
         self.table = QTableWidget(0, 7)
-        self.table.setHorizontalHeaderLabels(["Document", "Review", "Category", "Versions", "Tags", "Role", "Found"])
+        self.table.setHorizontalHeaderLabels(["Document", "Shred", "Category", "Versions", "Tags", "Role", "Found"])
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -301,7 +301,8 @@ class LibraryPage(QWidget):
             self.table.setColumnWidth(c, wdt)
         self.table.itemSelectionChanged.connect(self.show_doc)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)          # 3.20.3: a document's menu on right-click
-        self.table.customContextMenuRequested.connect(lambda pos: self.doc_menu(self.table.viewport().mapToGlobal(pos)))
+        self.table.customContextMenuRequested.connect(lambda pos: __import__("skqt.docstatus", fromlist=["x"]).row_menu(
+            self, self.table.viewport().mapToGlobal(pos)))                 # 4.0.0: five things about the file
         mv.addWidget(self.table, 1)
         self.empty = D.EmptyState("No documents in the library yet", "Add a folder: every document in it and its subfolders "
                                   "comes in, sorted by category, with its folders as tags.", "Add a folder...", lambda: self.add_folder())
@@ -316,14 +317,17 @@ class LibraryPage(QWidget):
         # 3.16.0: reviewing it comes first: where its review stands and the one button that moves it on
         self.rv_box = QFrame(); self.rv_box.setObjectName("reviewbox"); self.rv_box.setProperty("card", True)
         rvl = QVBoxLayout(self.rv_box); rvl.setContentsMargins(D.SPACE["m"], D.SPACE["s"], D.SPACE["m"], D.SPACE["m"]); rvl.setSpacing(D.SPACE["s"])
-        rvl.addWidget(D.label("Review", "label", wrap=False))
-        self.rv_state = D.label("", "title"); rvl.addWidget(self.rv_state)
-        self.b_read = D.button("Read it in Review", "primary", lambda: self.review_selected(),
-                               "Open it beside your response structure: select text, then choose where it goes (2.84.0)")
+        rvl.addWidget(D.label("What has been done", "label", wrap=False))   # 4.0.0: the status panel (docstatus)
+        self.rv_state = D.label("", "title"); rvl.addWidget(self.rv_state); self.rv_state.setVisible(False)
+        self.st_lines = QVBoxLayout(); self.st_lines.setSpacing(6); rvl.addLayout(self.st_lines)
+        self.b_read = D.button("Read it in", "primary", lambda: self.review_selected(), "This document's next thing")
         rvl.addWidget(self.b_read)
+        self.b_more = D.button("More about this document...", "ghost", lambda: self.doc_menu(self.b_more.mapToGlobal(
+            self.b_more.rect().bottomLeft())), "Role, folder, tags, its name, where it is filed, its instructions, where its text went")
+        rvl.addWidget(self.b_more)
         self.d_taken = D.label("", "muted"); rvl.addWidget(self.d_taken)
         self.b_taken2 = D.button("See where its text went...", "ghost", lambda: self.show_taken(),
-                                 "The sentences taken from library documents in Review, and what each is attached to")
+                                 "The sentences taken from library documents in the shred, and what each is attached to")
         rvl.addWidget(self.b_taken2)
         self.side.addWidget(self.rv_box)
         self._side_labels = []
@@ -365,8 +369,8 @@ class LibraryPage(QWidget):
         self.d_versions = QListWidget(); self.d_versions.setMaximumHeight(130); self.side.addWidget(self.d_versions)
         self.hits_lbl = D.label("Found in the text", "label", wrap=False); self.side.addWidget(self.hits_lbl)
         self.d_hits = QListWidget(); self.d_hits.setWordWrap(True); self.d_hits.setMaximumHeight(200); self.side.addWidget(self.d_hits)
-        self.side.addWidget(D.label("Right-click a document for its role, category, folder, tags, initial and type, name, and "
-                                    "where it is filed. Tags only help you find and filter documents here.", "muted"))
+        self.side.addWidget(D.label("Right-click a document to open it, set its type, add a newer version, leave it out or "
+                                    "show it in its folder.", "muted"))
         for wdg in [self.why, self.role_by, self.d_cat, self.d_folder, self.d_tags, self.b_ident, self.b_rename, self.d_under,
                     *self.role_btns.values()] + self._side_labels:     # 3.20.3: the same choices, in the menu instead
             wdg.setVisible(False)
@@ -779,29 +783,47 @@ class LibraryPage(QWidget):
         return "Needs reviewing", "warn", "needs"
 
     def show_review(self, d):
+        """4.0.0: the status panel: what has been done to the document and its next thing (docstatus)."""
+        from . import docstatus as DS
         ids = self.selected_ids()
         text, tone, key = self.review_state(d)
         self.rv_state.setText(text)
-        self.rv_state.setStyleSheet(f"color:{D.tokens()[tone]};")
+        rows, nxt = DS.status(self, d)
+        while self.st_lines.count():
+            it = self.st_lines.takeAt(0)
+            if it.widget() is not None:
+                it.widget().hide(); it.widget().setParent(None)
+        t = D.tokens()
+        for what, detail, state in rows:
+            col = {"ok": t["ok"], "warn": t["warn"]}.get(state, t["muted"])
+            lab = D.label(f"<b>{what}</b><br><span style='color:{col}'>{detail}</span>", None)
+            self.st_lines.addWidget(lab)
+        self.status_now = rows
+        self._next = nxt
         unread = [i for i in ids if self.lib.doc(i) and self.review_state(self.lib.doc(i))[2] == "unread"]
         if len(ids) > 1 and len(unread) > 1:
-            self.b_read.setText(f"Read {len(unread)} into Review")
-            self.b_read.setToolTip("Read the selected documents into the compliance matrix, then open the first in Review")
+            self.b_read.setText(f"Read {len(unread)} in")
+            self.b_read.setToolTip("Read the selected documents in, ready to shred")
+            self.b_read.setVisible(True)
         else:
-            self.b_read.setText({"unread": "Read it into Review", "needs": "Continue reviewing", "reviewed": "Open in Review",
-                                 "not_needed": "Read it in Review"}[key])
-            self.b_read.setToolTip("Open it beside your response structure: select text, then choose where it goes")
-        self.b_read.setEnabled(key != "not_needed" or len(ids) > 1)
+            self.b_read.setText(nxt[0] if nxt else "")
+            self.b_read.setVisible(bool(nxt))
         return key
 
     def review_selected(self, answer=None, out=None):
-        """The review box's button: one document opens (read first when it needs to be); several unread ones are read
-        together, then the first opens."""
+        """The panel's button: the document's next thing (docstatus); several unread ones are read in together."""
         ids = self.selected_ids()
         unread = [i for i in ids if self.lib.doc(i) and self.review_state(self.lib.doc(i))[2] == "unread"]
         if len(ids) > 1 and len(unread) > 1:
             return self.read_many(unread, answer, out)
-        return self.read_in_assign(answer=answer, out=out)
+        d = self.lib.doc(self.current_id()) if self.lib and self.current_id() else None
+        if d is None:
+            return False
+        from . import docstatus as DS
+        _rows, nxt = DS.status(self, d)
+        if nxt and nxt[1] == "assign":
+            return self.read_in_assign(d["id"], answer, out)
+        return DS.go_next(self, d, nxt[1]) if nxt else False
 
     def read_many(self, ids, answer=None, out=None):
         import compliance_read as CR
@@ -812,7 +834,7 @@ class LibraryPage(QWidget):
             return self._say("Read into Review", "Only customer documents are read into the compliance matrix. Open the others "
                              "one at a time: they read beside the structure.", answer)
         if h.review is None:
-            text = (f"Start the compliance matrix from these {len(paths)} document(s), then open the first in Review?")
+            text = (f"Read these {len(paths)} document(s) in, then open the first in Shred?")
             if answer is None:
                 answer = QMessageBox.question(self, "Read into Review", text) == QMessageBox.Yes
             if not answer:
@@ -852,8 +874,7 @@ class LibraryPage(QWidget):
         if d is None or not d["versions"]:
             return False
         if self.lib.role_of(d) == "not_needed":
-            return self._say("Read it in Review", f"{d['name']} has the role Not needed, so Review leaves it out. Set its role "
-                             "to Context, Reference only or Builds the matrix (above), then Read it in Review.", answer)
+            return self._say("Shred", f"{d['name']} is left out. Right-click it and choose Put it back, then shred it.", answer)
         if h.review is None:
             return self._start_matrix(d, answer, out)
         return self._open_in_review(d)
@@ -877,7 +898,7 @@ class LibraryPage(QWidget):
         if h.review is not None and f in h.review.files():
             ap.files.setCurrentText(f)
             return True
-        h.status(f"{d['name']} is not offered in Review.")
+        h.status(f"{d['name']} is not offered in Shred.")
         return False
 
     def _start_matrix(self, d, answer=None, out=None):
@@ -894,14 +915,12 @@ class LibraryPage(QWidget):
             build = [mine]
             h.status(f"{d['name']} now builds the matrix (right-click it to change its role).")
         if not build:
-            return self._say("Read it in Review", "Review starts from the compliance matrix, read from the customer documents "
-                             "whose role is Builds the matrix. None has that role yet: select the RFP files here and set "
-                             "their role to Builds the matrix, then Read it in Review.", answer)
-        text = (f"Review starts from the compliance matrix. It is read from the {len(build)} customer document(s) whose role "
-                "is Builds the matrix" + (", this one first" if build[0] == mine else "") + f". Read them now, then open "
-                f"{d['name']} in Review?")
+            return self._say("Shred", "Nothing is read in yet. Open Shred > Read in, tick the customer documents to read "
+                             "in, then Read.", answer)
+        text = (f"Nothing is read in yet. Read in the {len(build)} customer document(s) ticked on Shred > Read in"
+                + (", this one first" if build[0] == mine else "") + f", then open {d['name']} in Shred?")
         if answer is None:
-            answer = QMessageBox.question(self, "Read it in Review", text) == QMessageBox.Yes
+            answer = QMessageBox.question(self, "Shred", text) == QMessageBox.Yes
         if not answer:
             return False
         rp = h.read_page
@@ -916,15 +935,15 @@ class LibraryPage(QWidget):
         return w
 
     def doc_menu(self, at=None, run=True):
-        """3.20.3: a document's right-click menu: read it, its role, category, folder, tags, initial and type, name, where it
-        is filed, its instructions, and where its text went. Returns the menu (run=False: not shown, for tests)."""
+        """3.20.3: what else can be said about a document: its role, category, folder, tags, initial and type, name, where
+        it is filed, its instructions, and where its text went (4.0.0: the panel's More; the right-click menu is
+        docstatus.row_menu). Returns the menu (run=False: not shown, for tests)."""
         from PySide6.QtWidgets import QMenu
         ids = self.selected_ids()
         m = QMenu(self)
         if not ids:
             return m
         d = self.lib.doc(ids[0]) if self.lib else None
-        m.addAction("Read it in Review", lambda: self.review_selected())
         rm = m.addMenu("Role")
         cur = self.lib.role_of(d) if d else ""
         for k, n in DV.ROLES:
@@ -947,7 +966,7 @@ class LibraryPage(QWidget):
         if self.b_conform.isVisible():
             m.addAction("Apply its instructions...", lambda: self.conform())
         m.addSeparator()
-        m.addAction("Where its text went in Review...", lambda: self.show_taken())
+        m.addAction("Where its text went in the shred...", lambda: self.show_taken())
         self._menu = m
         if run and at is not None:
             m.exec(at)
@@ -1189,7 +1208,7 @@ class TakenDialog(QDialog):
         v.addWidget(self.table, 1)
         row = QHBoxLayout(); v.addLayout(row)
         self.count = D.label("", "muted", wrap=False); row.addWidget(self.count); row.addStretch(1)
-        row.addWidget(D.button("Open in Review", None, lambda: self.open_selected(), "Show the sentence on its page"))
+        row.addWidget(D.button("Open in Shred", None, lambda: self.open_selected(), "Show the sentence on its page"))
         row.addWidget(D.button("Export to Excel...", "primary", lambda: self.export(), "Every row, for writers"))
         bb = QDialogButtonBox(QDialogButtonBox.Close); bb.rejected.connect(self.reject); row.addWidget(bb)
         self.fill()
@@ -1214,7 +1233,7 @@ class TakenDialog(QDialog):
         h.go("assign")
         lab = next((k for k, did in ap.lib_entries.items() if did == a["doc"]), None)
         if lab is None:
-            h.status("That document is not offered in Review (its role is Not needed, or it builds the matrix).")
+            h.status("That document is not offered in Shred (it is left out, or it builds the matrix).")
             return False
         ap.files.setCurrentText(lab)
         ap.select(a["iid"])

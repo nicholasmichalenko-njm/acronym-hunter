@@ -175,8 +175,8 @@ check("3.15.1: Read it in Review opens a context document beside the structure",
       and w.stack.currentWidget() is w.assign_page and ap.cx is not None)
 DV.Library(ws.p("documents")).load().set_role(d["id"], "not_needed")
 w.go("library"); w.library_page.refresh(); w.library_page.select(d["id"])
-check("... a Not needed document says how to read it", w.library_page.read_in_assign(answer=False) is False
-      and "Not needed" in w.statusBar().currentMessage(), w.statusBar().currentMessage())
+check("... a Not needed document says how to read it (4.0.0: put it back)", w.library_page.read_in_assign(answer=False) is False
+      and "left out" in w.statusBar().currentMessage(), w.statusBar().currentMessage())
 DV.Library(ws.p("documents")).load().set_role(d["id"], "context")
 w.go("library"); w.library_page.refresh(); w.library_page.select(d["id"]); w.library_page.show_doc()
 check("the document's panel counts what was taken", "3 sentence(s) taken" in w.library_page.d_taken.text(), w.library_page.d_taken.text())
@@ -187,20 +187,20 @@ col = {lp.table.item(r, 0).data(Qt.UserRole): lp.table.item(r, 1).text() for r i
 check("3.16.0: the Review column: the matrix's document says how many sentences are decided", col[dL["id"]].startswith("Needs reviewing:")
       and "/" in col[dL["id"]], col)
 check("... a context document needs reviewing too", col[d["id"]].startswith("Needs reviewing"), col[d["id"]])
-check("... 3.90.0: Read is a tab of Review (Verify, Read, Compare, Review); 3.96.0: the Library is Customer files' first tab", w._tab_keys[:1] == ["library"]
-      and [k for k, _t in __import__("skqt.mainwin", fromlist=["x"]).TABS["assign"]] == ["verify", "read", "compare", "assign"])
+check("... 4.0.0: Read in is Shred's first tab; the documents are Documents' first tab", w._tab_keys[:1] == ["library"]
+      and [k for k, _t in __import__("skqt.mainwin", fromlist=["x"]).TABS["assign"]][:2] == ["read", "assign"])
 lp.select(dL["id"]); lp.show_doc()
-check("... the review box leads the side panel: Continue reviewing", lp.rv_box.isVisibleTo(w) and lp.b_read.text() == "Continue reviewing"
-      and lp.rv_state.text().startswith("Needs reviewing"))
+check("... 4.0.0: the status panel leads the side: Continue the shred", lp.rv_box.isVisibleTo(w) and lp.b_read.text() == "Continue the shred"
+      and lp.rv_state.text().startswith("Needs reviewing"), lp.b_read.text())
 ws.set("assign_reviewed", {"Section_L_print.pdf": "2026-11-02 10:00"}); lp.refresh(); lp.select(dL["id"]); lp.show_doc()
-check("... Mark reviewed makes it Reviewed (green), and the button Open in Review", lp.rv_state.text() == "Reviewed"
-      and lp.b_read.text() == "Open in Review")
+check("... Mark reviewed makes it Reviewed, and the button Open in Shred", lp.rv_state.text() == "Reviewed"
+      and lp.b_read.text() == "Open in Shred", lp.b_read.text())
 pD = os.path.join(B, "Section_L.docx")
 libx = DV.Library(ws.p("documents")).load()
 dD, _vD = libx.add(pD, DI.read(pD), doc_name="Section L Word", role="matrix", initial="LW", dtype="Section L")
 lp.refresh(); lp.select(dD["id"]); lp.show_doc()
-check("... a document not in the matrix yet: Not read yet, Read it into Review", lp.rv_state.text() == "Not read yet"
-      and lp.b_read.text() == "Read it into Review")
+check("... a document not in the matrix yet: Not read yet, Read it in", lp.rv_state.text() == "Not read yet"
+      and lp.b_read.text() == "Read it in", lp.b_read.text())
 n0 = len(w.review.files())
 got = lp.read_many([dD["id"]], answer=True)
 wait(lambda: not w.read_page.running() and w.stack.currentWidget() is w.assign_page)
