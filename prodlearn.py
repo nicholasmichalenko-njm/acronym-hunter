@@ -109,6 +109,15 @@ def style_definition(root, s, theme=None):
     return d
 
 
+def shown_style_name(name):
+    """A style's name as Word shows it ("heading 1" is Heading 1, "toc 2" is TOC 2)."""
+    name = {"heading 1": "Heading 1"}.get(name, name)
+    name = re.sub(r"^heading (\d)$", r"Heading \1", name)
+    name = re.sub(r"^toc (\d)$", r"TOC \1", name)
+    return {"caption": "Caption", "header": "Header", "footer": "Footer", "table of figures": "Table of Figures",
+            "toc heading": "TOC Heading", "title": "Title"}.get(name, name)
+
+
 def learn_styles(pkg):
     root = WO.styles_root(pkg)
     theme = WO.theme_fonts(pkg)
@@ -120,12 +129,7 @@ def learn_styles(pkg):
         n = s.find("w:name", NS)
         if n is None:
             continue
-        name = n.get(q("val"))
-        name = {"heading 1": "Heading 1"}.get(name, name)
-        name = re.sub(r"^heading (\d)$", r"Heading \1", name)
-        name = re.sub(r"^toc (\d)$", r"TOC \1", name)
-        name = {"caption": "Caption", "header": "Header", "footer": "Footer", "table of figures": "Table of Figures",
-                "toc heading": "TOC Heading", "title": "Title"}.get(name, name)
+        name = shown_style_name(n.get(q("val")))
         custom = s.get(q("customStyle")) in ("1", "true")
         # every style the file holds is part of its design (Word keeps only styles a document uses or defines)
         if s.get(q("default")) in ("1", "true") and s.get(q("type")) == "character":
