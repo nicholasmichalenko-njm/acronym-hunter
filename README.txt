@@ -1,6 +1,17 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE SIX STEPS (4.0.0)
+  - The menu is the effort's six steps: 1 Documents, 2 Shred, 3 Matrix & Outline, 4 Setup, 5 Drafts, 6 Submit, with the
+    Dashboard as the map, then Team and Settings.
+  - Documents: the solicitation package, complete, current and readable. Click a document: the panel says what has been
+    done to it (its text checked, the shred, the changes from its last version, whether it feeds the matrix, its
+    versions) and offers its one next thing. Right-click: Open, Set type, Add a newer version, Leave out, Show in folder;
+    the rest is under More about this document. Changes (what a new version changed) and Text check are its tabs.
+  - Shred: Read in, Shred, Terms (the acronyms) and the Acronym List. Matrix & Outline: the Matrix and Evaluation.
+    Drafts: Status (each section read back) and Edit (Technical Edit). Shred, Matrix & Outline and Drafts get their own
+    pages in the next releases.
+
 CHANGE A PART (3.98.0)
   - Parts lists Quick Parts by what they are: Tables, Callouts, Headers and footers, and the other Quick Parts. The
     Quick Parts tab is gone from Standards: a Quick Part's details (category, gallery, the pages it fills) open from its
