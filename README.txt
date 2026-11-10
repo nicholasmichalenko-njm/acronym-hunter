@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+STYLES: ONE LIBRARY, WITH SETS (3.94.0)
+  - Team > Standards > Styles: every style you keep, one row each. The row shows its font, its paragraph treatment
+    (spacing, line, keeps), its characters (bold, italic, color, hidden), the rest (based on, next, what it marks) and a
+    preview on real text; hidden text sits on a dotted band.
+  - Versions are tabs on the style's row (v1, v2 compact...). Click one to see that version and the sets it is in.
+    Right-click: Make a copy to change (a new version with another look; the one you started from stays), Name this
+    version, Add to set, Take out of this set, Remove from the library (only a style no set uses).
+  - Sets group styles by use (RFP volume, Page-limited RFP, Setup), each with a color. Drag rows onto a set on the left.
+    A set holds one version of each style; when a newer version comes in, the set says so: Move this set to it, or Keep.
+  - Bring in from a document... reads only the styles of a Word file or template (never changed): New, Different from
+    yours (a new version under the same name) and Already have it, yours beside the file's, a tick and a set each.
+  - Each style keeps Word's own definition exactly as the file had it, beside its readable values. New style makes a
+    simple one here (font, size, color, bold, italic, underline, hidden), with its definition written from that look.
+
 ACRONYMS IN TWO TABS: ON THE PAGE AND THE LIST (3.93.0)
   - On the page: the customer's pages one at a time, like Verify. The pages with finds to decide are on the left (each
     with how many are left); the page is in the middle with every find boxed: yellow to decide, green in the list,
