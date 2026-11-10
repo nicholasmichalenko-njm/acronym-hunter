@@ -84,7 +84,7 @@ w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.p
 check("the tools button at the foot of the menu is gone", not hasattr(w, "tools_btn"))
 w.rail_go("formatstd"); app.processEvents()
 check("a space with nothing to work on, like Formatting Standards, opens as it is", w.ws is None and w.stack.currentWidget() is w.formatstd_page)
-w.step_btns["acronyms"].click(); app.processEvents()
+w.rail_go("acronyms"); app.processEvents()                 # 4.0.0: Acros & Abs, in Shred
 import unfiled as UF
 check("a space that works on an effort opens on Unfiled when nothing is open", w.effort_name == UF.NAME
       and w.stack.currentWidget() is w.acronym_page and w.acronym_page.session is not None)

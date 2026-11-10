@@ -5,7 +5,7 @@ only from what the effort already holds; rules only (No AI); nothing leaves the 
 import datetime
 
 STEPS = (("library", "Documents", "The solicitation package: complete, current and readable"),
-         ("assign", "Shred", "What every piece of the customer's text is, and its terms"),
+         ("assign", "Shred", "What every piece of the customer's text is, and its acros and abs"),
          ("matrix", "Matrix & Outline", "What we answer, and where in our structure"),
          ("setups", "Setup", "Who writes what, when and how long; the setup in Word"),
          ("drafts", "Drafts", "The team's drafts read back: where each section stands"),
@@ -16,6 +16,11 @@ THEN = {"library": "Shred, what every piece of the customer's text is",       # 
         "matrix": "Setup, make the setup from the outline",
         "setups": "Drafts, read the team's drafts back",
         "drafts": "Submit, the last checks"}
+
+
+def _acros(n):
+    """4.0.0: the team's words for acronyms, abbreviations, units and symbols."""
+    return "1 acro or ab" if n == 1 else f"{n} acros and abs"
 
 
 def _plural(n, word, many=None):
@@ -109,13 +114,13 @@ def steps(f):
         total = r["sentences"] or 1
         bits = [f"{r['decided']} of {_plural(r['sentences'], 'piece')} sorted"]
         if acr:
-            bits.append(f"{_plural(acr, 'term')} to decide")
+            bits.append(f"{_acros(acr)} to decide")
         out.append({"key": "assign", "done": not und and not acr, "progress": 1.0 if not und and not acr else r["decided"] / total,
-                    "badge": f"{und} to shred" if und else (_plural(acr, "term") if acr else ""), "summary": ". ".join(bits) + ".",
+                    "badge": f"{und} to shred" if und else (f"{acr} acros" if acr else ""), "summary": ". ".join(bits) + ".",
                     "left": und})
     else:
         out.append({"key": "assign", "done": False, "progress": 0.0, "badge": "", "left": 0,
-                    "summary": "Nothing shredded yet." + (f" {_plural(acr, 'term')} to decide." if acr else "")})
+                    "summary": "Nothing shredded yet." + (f" {_acros(acr)} to decide." if acr else "")})
     # 3 Matrix & Outline
     if r and r["reqs"]:
         unplaced = r["reqs"] - r["placed"]
@@ -182,13 +187,13 @@ def next_step(sts, f):
     if k == "assign":
         r = f.get("reqs")
         if not r:
-            return {"key": k, "go": "read", "title": "Read in the customer's documents", "button": "Open Shred", "then": then,
-                    "why": "Read in turns the documents into pieces to shred."}
+            return {"key": k, "go": "read", "title": "Extract the customer's documents", "button": "Open Shred", "then": then,
+                    "why": "Extract pulls every sentence out, ready to shred."}
         if r["undecided"]:
             return {"key": k, "go": "assign", "title": f"Shred the {_plural(r['undecided'], 'piece')} left", "button": "Open Shred",
                     "then": then, "why": "What each piece of the customer's text is and asks of you."}
-        return {"key": k, "go": "acronyms", "title": f"Decide the {_plural(f['acronyms'] or 0, 'term')} left", "button": "Open Terms",
-                "then": then, "why": "Each term on the customer's pages: in the list with its definition, or not a term."}
+        return {"key": k, "go": "acronyms", "title": f"Decide the {_acros(f['acronyms'] or 0)} left", "button": "Open Acros & Abs",
+                "then": then, "why": "Each acronym, abbreviation, unit or symbol on the customer's pages: in the list with its definition, or not one."}
     if k == "matrix":
         return {"key": k, "go": "assign", "title": f"Place the {_plural(now.get('unplaced', 0), 'requirement')} left",
                 "button": "Open Shred", "then": then, "why": "Each requirement in its section of the response structure."}

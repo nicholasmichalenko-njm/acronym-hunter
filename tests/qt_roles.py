@@ -87,7 +87,7 @@ w.home_page.customize({"role": "Author", "order": __import__("branding").preset(
 w.refresh_access(); app.processEvents()
 check("an author's own choice: Team shows only the author's tools (3.96.0: tiles by role)", w.profile() == ("Author", "own")
       and "audit" not in w.team_page.refresh()[0:6] and "refs" in w.team_page.shown()[0]
-      and not w.step_btns["acronyms"].property("offrole") and not w.step_btns["team"].property("offrole"))
+      and not w.step_btns["assign"].property("offrole") and not w.step_btns["team"].property("offrole"))
 w.go("fixcopy"); app.processEvents()
 check("opening one explains instead of opening it", w.stack.currentWidget() is np and np.card.title.text() == "Fix a Copy is for Proposal Manager, Production"
       and "Your role here is Author" in np.text.text() and np.act.text() == "Change my role..." and np.act.isVisibleTo(w), np.card.title.text())
@@ -97,12 +97,12 @@ from PySide6.QtWidgets import QLabel as _QL
 check("3.75.0: Fix a Copy is a tab of Check a Draft in the Team group, marked Beta on the page",
       [k for k, _t in __import__("skqt.mainwin", fromlist=["TABS"]).TABS["audit"]] == ["audit", "applyword", "fixcopy"] and w.beta_pill.isVisibleTo(w))
 w.go("acrlist"); app.processEvents()
-check("3.16.0: a tab's page marks its menu item: the Acronym List is a tab of Write (3.96.0), and Production opens it",
-      w.stack.currentWidget() is w.acrlist_page and w.step_btns["acronyms"].isChecked() and w.page_title.text() == "Write"
-      and [w.page_tabs.tabText(i) for i in range(w.page_tabs.count())] == ["Acronyms", "Acronym List", "Technical Edit"]
-      and not w.step_btns["acronyms"].property("offrole") and not w.beta_pill.isVisibleTo(w))
-w.page_tabs.setCurrentIndex(0); app.processEvents()
-check("... clicking a tab opens its page", w.stack.currentWidget() is w.acronym_page and w.step_btns["acronyms"].isChecked())
+check("3.16.0: a tab's page marks its menu item: the Acro List is Shred's (4.0.0), and Production opens it",
+      w.stack.currentWidget() is w.acrlist_page and w.step_btns["assign"].isChecked() and w.page_title.text() == "Shred"
+      and [w.stepper.chips[k].nm.text() for k in ("acronyms", "acrlist")] == ["Acros & Abs", "Acro List"]
+      and not w.step_btns["assign"].property("offrole") and not w.beta_pill.isVisibleTo(w))
+w.stepper.chips["acronyms"].click(); app.processEvents()
+check("... clicking a tab opens its page", w.stack.currentWidget() is w.acronym_page and w.step_btns["assign"].isChecked())
 w.go("lists"); app.processEvents()
 check("3.37.0: Lists to Submit opens in the Acronym List", w.stack.currentWidget() is w.acrlist_page
       and w.acrlist_page.views.currentWidget() is w.lists_page)
@@ -114,7 +114,7 @@ check("... and only the proposal manager changes it: no button to change it here
       and not np.act.isVisibleTo(w) and "People in this effort" in np.text.text())
 MO.save(hide_other_roles=True); w.refresh_access(); app.processEvents()
 # 3.57.0: Wall of Truth is set aside (menufocus), so the fold and the role checks use Acronyms
-check("Hide the tools that are not for my role", w.step_btns["acronyms"].isVisibleTo(w) and w.step_btns["team"].isVisibleTo(w)
+check("Hide the tools that are not for my role", w.step_btns["assign"].isVisibleTo(w) and w.step_btns["team"].isVisibleTo(w)
       and "formatstd" not in w.team_page.shown()[0])
 MO.save(hide_other_roles=False); w.refresh_access()
 w.go("settings"); app.processEvents()

@@ -320,7 +320,7 @@ class LibraryPage(QWidget):
         rvl.addWidget(D.label("What has been done", "label", wrap=False))   # 4.0.0: the status panel (docstatus)
         self.rv_state = D.label("", "title"); rvl.addWidget(self.rv_state); self.rv_state.setVisible(False)
         self.st_lines = QVBoxLayout(); self.st_lines.setSpacing(6); rvl.addLayout(self.st_lines)
-        self.b_read = D.button("Read it in", "primary", lambda: self.review_selected(), "This document's next thing")
+        self.b_read = D.button("Extract it", "primary", lambda: self.review_selected(), "This document's next thing")
         rvl.addWidget(self.b_read)
         self.b_more = D.button("More about this document...", "ghost", lambda: self.doc_menu(self.b_more.mapToGlobal(
             self.b_more.rect().bottomLeft())), "Role, folder, tags, its name, where it is filed, its instructions, where its text went")
@@ -802,8 +802,8 @@ class LibraryPage(QWidget):
         self._next = nxt
         unread = [i for i in ids if self.lib.doc(i) and self.review_state(self.lib.doc(i))[2] == "unread"]
         if len(ids) > 1 and len(unread) > 1:
-            self.b_read.setText(f"Read {len(unread)} in")
-            self.b_read.setToolTip("Read the selected documents in, ready to shred")
+            self.b_read.setText(f"Extract {len(unread)}")
+            self.b_read.setToolTip("Extract the selected documents, ready to shred")
             self.b_read.setVisible(True)
         else:
             self.b_read.setText(nxt[0] if nxt else "")
@@ -834,7 +834,7 @@ class LibraryPage(QWidget):
             return self._say("Read into Review", "Only customer documents are read into the compliance matrix. Open the others "
                              "one at a time: they read beside the structure.", answer)
         if h.review is None:
-            text = (f"Read these {len(paths)} document(s) in, then open the first in Shred?")
+            text = (f"Extract these {len(paths)} document(s), then open the first in Shred?")
             if answer is None:
                 answer = QMessageBox.question(self, "Read into Review", text) == QMessageBox.Yes
             if not answer:
@@ -915,9 +915,9 @@ class LibraryPage(QWidget):
             build = [mine]
             h.status(f"{d['name']} now builds the matrix (right-click it to change its role).")
         if not build:
-            return self._say("Shred", "Nothing is read in yet. Open Shred > Read in, tick the customer documents to read "
-                             "in, then Read.", answer)
-        text = (f"Nothing is read in yet. Read in the {len(build)} customer document(s) ticked on Shred > Read in"
+            return self._say("Shred", "Nothing is extracted yet. Open Shred > Extract, tick the customer documents to "
+                             "extract, then Read.", answer)
+        text = (f"Nothing is extracted yet. Extract the {len(build)} customer document(s) ticked on Shred > Extract"
                 + (", this one first" if build[0] == mine else "") + f", then open {d['name']} in Shred?")
         if answer is None:
             answer = QMessageBox.question(self, "Shred", text) == QMessageBox.Yes

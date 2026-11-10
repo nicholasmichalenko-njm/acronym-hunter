@@ -51,8 +51,9 @@ TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("reco
         # 4.0.0: Changes (was Review's Compare) and Text check (was Review's Verify) are the documents' own
         "library": [("library", "Documents"), ("compare", "Changes"), ("verify", "Text check"), ("custqa", "Customer Q&A"),
                     ("datacalls", "Data calls")],
-        # 4.0.0: Shred, a stepper (navrail.Stepper); Requirements, Sort, Our structure, L to M and Coverage are ways to see it
-        "assign": [("read", "Read in"), ("assign", "Shred"), ("acronyms", "Terms"), ("acrlist", "Acronym List")],
+        # 4.0.0: Shred, a stepper (navrail.Stepper); List, Sort, Our structure, L to M and Coverage are ways to see it (no tab
+        # repeats its step's name: claude/stationkeeper-steps-decisions-2026-11-10.md, 16)
+        "assign": [("read", "Extract"), ("assign", "Requirements"), ("acronyms", "Acros & Abs"), ("acrlist", "Acro List")],
         "matrix": [("matrix", "Matrix"), ("evalcrit", "Evaluation")],          # 4.0.0; Place, Structure, Coverage in 4.2.0
         "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting")],
         "drafts": [("drafts", "Status"), ("techedit", "Edit"), ("reviews", "Color Reviews"), ("truth", "Wall of Truth")],

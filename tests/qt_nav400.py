@@ -59,12 +59,13 @@ check("Text check lights Documents", w.step_btns["library"].isChecked() and w.st
 w.rail_go("assign"); app.processEvents()
 check("Shred: the stepper, not tabs", w.stepper.isVisibleTo(w) and not w.page_tabs.isVisibleTo(w) and w.page_title.text() == "Shred"
       and w.page_crumb.text() == "Step 2 of 6")
-check("... Read in, Shred, Terms, Acronym List with counts", [w.stepper.chips[k].nm.text() for k, _l in NR.CHIPS]
-      == ["Read in", "Shred", "Terms", "Acronym List"] and w.stepper.chips["read"].ct.text() == "nothing read in")
+check("... Extract, Requirements, Acros & Abs, Acro List with counts: no tab repeats the step's name",
+      [w.stepper.chips[k].nm.text() for k, _l in NR.CHIPS] == ["Extract", "Requirements", "Acros & Abs", "Acro List"]
+      and w.stepper.chips["read"].ct.text() == "nothing extracted")
 check("... See it as: Our structure first, no Matrix", [b.text() for b in w.stepper.views.values()] ==
-      ["Our structure", "Requirements", "Sort", "L to M", "Coverage"] and w.stepper.views["assign"].isChecked())
+      ["Our structure", "List", "Sort", "L to M", "Coverage"] and w.stepper.views["assign"].isChecked())
 w.stepper.chips["acronyms"].click(); app.processEvents()
-check("a step chip opens its tab: Terms is the Acronyms page", w.stack.currentWidget() is w.acronym_page and w.step_btns["assign"].isChecked()
+check("a step chip opens its tab: Acros & Abs is the Acronyms page", w.stack.currentWidget() is w.acronym_page and w.step_btns["assign"].isChecked()
       and w.page_title.text() == "Shred")
 w.stepper.see("crosswalk"); app.processEvents()
 check("L to M shows beside the Shred page", w.stack.currentWidget() is w.assign_page and w.assign_page.views.key == "lm"
@@ -73,7 +74,7 @@ w.stepper.see("sort"); app.processEvents()
 check("Sort is a way to see Shred: the menu stays on Shred", w.stack.currentWidget() is w.sort_page and w.step_btns["assign"].isChecked()
       and w.stepper.views["sort"].isChecked() and w.page_title.text() == "Shred")
 w.go("shredacc"); app.processEvents()
-check("Accuracy sits with Requirements", w.stepper.views["shredreq"].isChecked() and w.step_btns["assign"].isChecked())
+check("Accuracy sits with the List", w.stepper.views["shredreq"].isChecked() and w.step_btns["assign"].isChecked())
 # Matrix & Outline, Drafts, Submit
 w.rail_go("matrix"); app.processEvents()
 check("Matrix & Outline: the Matrix and Evaluation", w._tab_keys == ["matrix", "evalcrit"] and w.page_title.text() == "Matrix & Outline"

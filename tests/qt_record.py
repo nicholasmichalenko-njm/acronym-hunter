@@ -36,8 +36,8 @@ ws0 = W.Workspace(W.data_dir_for(LIST), "Kestrel")
 ws0.set("outline_text", "Volume I Technical\n1.1 Technical Approach\n1.2 Management\nVolume II Past Performance")
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
-check("the rail: Effort Dashboard, Deliverables, Effort Formatting, Effort record (3.75.0); Color Reviews in Write", [k for k, _t in __import__("skqt.mainwin", fromlist=["x"]).TABS["home"]][:3] == ["home", "deliverables", "record"]
-      and "reviews" in dict(__import__("skqt.mainwin", fromlist=["x"]).TABS["acronyms"]))
+check("the rail: Effort Dashboard, Deliverables, Effort Formatting, Effort record (3.75.0); Color Reviews in Drafts (4.0.0)", [k for k, _t in __import__("skqt.mainwin", fromlist=["x"]).TABS["home"]][:3] == ["home", "deliverables", "record"]
+      and "reviews" in dict(__import__("skqt.mainwin", fromlist=["x"]).TABS["drafts"]))
 w.open_effort("Kestrel")
 B = os.path.join(A.BASE_DIR, "test_samples", "rfp")
 w.read_page.read([os.path.join(B, "Kestrel_RFP_Sections_C_L_M.docx")], os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))

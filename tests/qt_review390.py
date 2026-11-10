@@ -49,8 +49,8 @@ def wait(cond, secs=60):
     return cond()
 
 
-check("Review's tabs: Verify, Read, Compare, Review", [k for k, _t in TABS["assign"]] == ["verify", "read", "compare", "assign"]
-      and "compare" not in dict(TABS["library"]) and "matrix" not in TABS)
+check("4.0.0: Shred's tabs start Extract, Requirements; Text check and Changes are Documents'", [k for k, _t in TABS["assign"]][:2] == ["read", "assign"]
+      and [k for k, _t in TABS["library"]][1:3] == ["compare", "verify"])
 w.open_effort("Kestrel")
 w.go("docs"); app.processEvents()
 w.docs_page.add([P1], choices=[{}])
@@ -60,9 +60,9 @@ w.go("verify"); app.processEvents()
 vp = w.verify_page
 vp.open_doc(C1); app.processEvents()
 vp.store().verify(vp.doc, 1); vp.show_page(); app.processEvents()
-check("Verify's last page, verified: the next step is Read", "Next: read it into Review" in vp.line.text(), vp.line.text())
-check("... and it ticks the file on the Read tab", vp.read_next() == 1 and w.stack.currentWidget() is w.read_page
-      and list(w.stepper.chips)[::2] == ["verify", "read", "compare", "assign"] and w.stepper.isVisibleTo(w))
+check("Text check's last page, checked: the next step is Extract", "Next: extract it for the shred" in vp.line.text(), vp.line.text())
+check("... and it ticks the file on Shred > Extract", vp.read_next() == 1 and w.stack.currentWidget() is w.read_page
+      and list(w.stepper.chips)[::2] == ["read", "assign", "acronyms", "acrlist"] and w.stepper.isVisibleTo(w))
 w.read_page.read([C1], os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"), identities="suggested")
 check("read", wait(lambda: w.review is not None))
 pg = w.assign_page

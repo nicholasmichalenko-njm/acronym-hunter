@@ -49,10 +49,10 @@ check("Documents is step 1: its page and title", w.stack.currentWidget() is lp a
 rows = {r[0]: r for r in lp.status_now}
 check("the status panel: text check, shred, feeds the matrix, versions", list(rows)[:2] == ["Text check", "Shred"]
       and "Feeds the matrix" in rows and "Versions" in rows, list(rows))
-check("... not read in yet; it feeds the matrix (ticked on Shred > Read in)", rows["Shred"][1] == "Not read in yet"
+check("... not extracted yet; it feeds the matrix (ticked on Shred > Extract)", rows["Shred"][1] == "Not extracted yet"
       and rows["Feeds the matrix"][1].startswith("Yes"), rows)
-check("... one button: its next thing", lp.b_read.isVisibleTo(w) and lp.b_read.text() == "Read it in", lp.b_read.text())
-check("... no 'starts from the compliance matrix' question: the button opens Shred > Read in with it ticked",
+check("... one button: its next thing", lp.b_read.isVisibleTo(w) and lp.b_read.text() == "Extract it", lp.b_read.text())
+check("... no 'starts from the compliance matrix' question: the button opens Shred > Extract with it ticked",
       lp.review_selected() is True and w.stack.currentWidget() is w.read_page and w.step_btns["assign"].isChecked()
       and [os.path.basename(r.path) for r in w.read_page.boxes if r.isChecked()] == ["Section_L_print.pdf"])
 w.rail_go("library"); app.processEvents()

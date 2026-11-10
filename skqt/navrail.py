@@ -1,8 +1,8 @@
 """The menu as the effort's path (3.96.0; canvas "Navigation", boards 1 and 3; claude/stationkeeper-navigation-3.93.md):
 the effort switcher at the top (another effort, All Efforts, My Work, Your Tools); the Dashboard and the steps (4.0.0: six),
 each with what is left (done, a count, next, a date); Team and Settings at the foot; Ctrl+K goes to any page or tool by
-name. Inside the Shred step its tabs are a visual stepper with counts (4.0.0: Read in, Shred, Terms, Acronym List) and
-its other pages are ways to see it (Our structure, Requirements, Sort, L to M, Coverage). Every page in a step ends with
+name. Inside the Shred step its tabs are a visual stepper with counts (4.0.0: Extract, Requirements, Acros & Abs, Acro List) and
+its other pages are ways to see it (Our structure, List, Sort, L to M, Coverage). Every page in a step ends with
 one next step (the bar at the bottom). navsteps holds the rules; nothing leaves the PC."""
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
@@ -12,15 +12,15 @@ import navsteps as NS
 from . import design as D
 
 # the Shred step's ways to see it: (page, label, the Shred page's own view or None). 4.0.0: the Matrix is Matrix & Outline's
-VIEWS = (("assign", "Our structure", "structure"), ("shredreq", "Requirements", None), ("sort", "Sort", None),
+VIEWS = (("assign", "Our structure", "structure"), ("shredreq", "List", None), ("sort", "Sort", None),
          ("crosswalk", "L to M", "lm"), ("prove", "Coverage", "coverage"))
 VIEW_OF = {"assign": "assign", "shredreq": "shredreq", "shredacc": "shredreq", "sort": "sort",
            "crosswalk": "crosswalk", "prove": "prove"}
 # 4.0.0: the Shred step's tabs as a stepper: (page, label)
-CHIPS = (("read", "Read in"), ("assign", "Shred"), ("acronyms", "Terms"), ("acrlist", "Acronym List"))
+CHIPS = (("read", "Extract"), ("assign", "Requirements"), ("acronyms", "Acros & Abs"), ("acrlist", "Acro List"))
 STEP_TITLES = {"home": ("Dashboard", "Where the effort is, what is left, and your next step"),
                "library": ("Documents", "The solicitation package: complete, current and readable"),
-               "assign": ("Shred", "What every piece of the customer's text is, and its terms"),
+               "assign": ("Shred", "What every piece of the customer's text is, and its acros and abs"),
                "matrix": ("Matrix & Outline", "What we answer, and where in our structure"),
                "setups": ("Setup", "Who writes what, when and how long; the setup in Word"),
                "drafts": ("Drafts", "The team's drafts read back: where each section stands"),
@@ -268,11 +268,11 @@ class Stepper(QWidget):
         r = f.get("reqs")
         acr = f.get("acronyms") or 0
         tot = f.get("acr_total") or 0
-        return {"read": (f"{f.get('items', 0)} read in" if f.get("items") else "nothing read in", "done" if f.get("items") else "todo"),
+        return {"read": (f"{f.get('items', 0)} extracted" if f.get("items") else "nothing extracted", "done" if f.get("items") else "todo"),
                 "assign": (f"{r['undecided']} of {r['sentences']} left" if r and r["undecided"] else "all sorted" if r else "nothing yet",
                            "warn" if r and r["undecided"] else "done" if r else "todo"),
                 "acronyms": (f"{acr} to decide" if acr else "decided" if tot else "not scanned", "warn" if acr else "done" if tot else "todo"),
-                "acrlist": (f"{tot} terms" if tot else "empty", "done" if tot else "todo")}
+                "acrlist": (f"{tot} in the list" if tot else "empty", "done" if tot else "todo")}
 
     def show_for(self, step):
         t = D.tokens()

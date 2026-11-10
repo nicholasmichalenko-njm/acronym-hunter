@@ -546,7 +546,7 @@ class ReadPage(QWidget):
             self.panel.failed("The read did not finish", f"Building the matrix stopped with an error ({type(ex).__name__}). "
                               + ("No compliance matrix was made." if self._new else "Your matrix is as it was before Read."),
                               "Press Read to try again. If it happens again, Help > Create a support file and send it in.")
-            self.host.status("The read did not finish. See the message on Read into Review.")
+            self.host.status("The extract did not finish. See the message on Shred > Extract.")
         finally:
             self._then = None
             self.lock_controls()

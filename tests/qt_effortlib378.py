@@ -44,7 +44,7 @@ def reader(p):
 app = QApplication([]); D.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Heron")
-check("the menu entry is Customer files (3.96.0)", ("library", "Customer files") in dict(RAIL)["Effort"] and "Customer Documents" not in [g for g, _i in RAIL])
+check("the menu entry is Documents (4.0.0)", ("library", "Documents") in dict(RAIL)["Effort"] and "Customer Documents" not in [g for g, _i in RAIL])
 w.go("library"); app.processEvents()
 pg = w.library_page
 check("the Effort Library's bar: at most five, Add files... the main one", len(pg.bar.visible_commands()) <= 5

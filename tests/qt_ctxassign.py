@@ -187,7 +187,7 @@ col = {lp.table.item(r, 0).data(Qt.UserRole): lp.table.item(r, 1).text() for r i
 check("3.16.0: the Review column: the matrix's document says how many sentences are decided", col[dL["id"]].startswith("Needs reviewing:")
       and "/" in col[dL["id"]], col)
 check("... a context document needs reviewing too", col[d["id"]].startswith("Needs reviewing"), col[d["id"]])
-check("... 4.0.0: Read in is Shred's first tab; the documents are Documents' first tab", w._tab_keys[:1] == ["library"]
+check("... 4.0.0: Extract is Shred's first tab; the documents are Documents' first tab", w._tab_keys[:1] == ["library"]
       and [k for k, _t in __import__("skqt.mainwin", fromlist=["x"]).TABS["assign"]][:2] == ["read", "assign"])
 lp.select(dL["id"]); lp.show_doc()
 check("... 4.0.0: the status panel leads the side: Continue the shred", lp.rv_box.isVisibleTo(w) and lp.b_read.text() == "Continue the shred"
@@ -199,8 +199,8 @@ pD = os.path.join(B, "Section_L.docx")
 libx = DV.Library(ws.p("documents")).load()
 dD, _vD = libx.add(pD, DI.read(pD), doc_name="Section L Word", role="matrix", initial="LW", dtype="Section L")
 lp.refresh(); lp.select(dD["id"]); lp.show_doc()
-check("... a document not in the matrix yet: Not read yet, Read it in", lp.rv_state.text() == "Not read yet"
-      and lp.b_read.text() == "Read it in", lp.b_read.text())
+check("... a document not in the matrix yet: Not read yet, Extract it", lp.rv_state.text() == "Not read yet"
+      and lp.b_read.text() == "Extract it", lp.b_read.text())
 n0 = len(w.review.files())
 got = lp.read_many([dD["id"]], answer=True)
 wait(lambda: not w.read_page.running() and w.stack.currentWidget() is w.assign_page)

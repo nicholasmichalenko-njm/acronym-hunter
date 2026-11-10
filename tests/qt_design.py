@@ -49,10 +49,10 @@ tmp = tempfile.mkdtemp()
 w = MainWindow(app, os.path.join(tmp, "config"), A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 rail = [b.text() for b in w.findChildren(type(w.step_btns["home"])) if b.objectName() == "rail"]
 steps = [b.text() for k, b in w.step_btns.items()]
-check("the rail: the effort's path, then Team and Settings (3.96.0)", rail[:len(steps)] == steps
-      and steps == ["Dashboard", "Customer files", "Review", "Setup", "Write", "Submit", "Team", "Settings"], rail)
+check("the rail: the effort's path, then Team and Settings (4.0.0: six steps)", rail[:len(steps)] == steps
+      and steps == ["Dashboard", "Documents", "Shred", "Matrix && Outline", "Setup", "Drafts", "Submit", "Team", "Settings"], rail)
 w.go("prove"); app.processEvents()
-check("the top bar names the page: 3.90.0: Coverage is a view of Review (3.96.0: See it as)", w.page_title.text() == "Review"
+check("the top bar names the page: Coverage is a view of the Shred page (3.96.0: See it as; 4.0.0: Shred)", w.page_title.text() == "Shred"
       and w.stack.currentWidget() is w.assign_page and w.stepper.isVisibleTo(w) and w.stepper.views["prove"].isChecked()
       and w.step_btns["assign"].isChecked())
 check("no effort: the saved state says so", w.saved.text() == "No matrix")
@@ -63,7 +63,7 @@ check("... a card's title sits in its own header row; a key card is marked", c.h
       and k.property("key") is True and D.Card().head is None)
 check("... status pills are as tall as their text", w.saved.sizePolicy().verticalPolicy() == w.saved.sizePolicy().Policy.Fixed
       and w.saved.height() < 30, w.saved.height())
-check("... the page's step shows above its title (3.96.0)", w.page_crumb.text() == "Step 2 of 5")
+check("... the page's step shows above its title (3.96.0)", w.page_crumb.text() == "Step 2 of 6")
 check("... menu entries in regular weight", "font-weight: 400" in D.qss(D.LIGHT).split("QPushButton#rail {")[1].split("}")[0])
 w.toast("Saved"); app.processEvents()
 check("a toast shows and names what happened", w.toaster.isVisible() and w.toaster.text() == "Saved")

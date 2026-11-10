@@ -48,8 +48,8 @@ f = dict(f, compare=0)
 sts = NS.steps(f)
 by = {s["key"]: s for s in sts}
 check("files in and checked: done", by["library"]["state"] == "done" and by["library"]["badge"] == "done" and by["library"]["progress"] == 1.0)
-check("Shred now: pieces and terms left", by["assign"]["state"] == "now" and by["assign"]["badge"] == "12 to shred"
-      and "400 of 412 pieces sorted" in by["assign"]["summary"] and "14 terms to decide" in by["assign"]["summary"], by["assign"])
+check("Shred now: pieces and acros left", by["assign"]["state"] == "now" and by["assign"]["badge"] == "12 to shred"
+      and "400 of 412 pieces sorted" in by["assign"]["summary"] and "14 acros and abs to decide" in by["assign"]["summary"], by["assign"])
 check("... how far along", 0.9 < by["assign"]["progress"] < 1.0, by["assign"]["progress"])
 check("Matrix & Outline next: requirements to place; Submit its due date", by["matrix"]["state"] == "next" and by["matrix"]["badge"] == "next"
       and "274 of 300 requirements placed" in by["matrix"]["summary"] and by["finalcheck"]["badge"] == "Dec 4")
@@ -57,7 +57,8 @@ n = NS.next_step(sts, f)
 check("... Your next step: the pieces left to shred", n["go"] == "assign" and "12 pieces" in n["title"] and n["button"] == "Open Shred")
 f2 = dict(f, reqs=dict(reqs, undecided=0, decided=412))
 n = NS.next_step(NS.steps(f2), f2)
-check("... then the terms left to decide", n["go"] == "acronyms" and n["title"] == "Decide the 14 terms left")
+check("... then the acros and abs left to decide", n["go"] == "acronyms" and n["title"] == "Decide the 14 acros and abs left"
+      and n["button"] == "Open Acros & Abs")
 f2 = dict(f2, acronyms=0)
 sts = NS.steps(f2)
 n = NS.next_step(sts, f2)

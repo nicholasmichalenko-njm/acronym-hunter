@@ -28,7 +28,7 @@ app = QApplication([]); theme.apply(app)
 w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.go("home"); app.processEvents()
 f = w.home_page.start; f.name.setText("Osprey"); f.create(); app.processEvents()
-check("Wall of Truth sits in Write, after Draft Status (3.43.0; 3.53.0 spaces)", "truth" in dict(__import__("skqt.mainwin", fromlist=["x"]).TABS["acronyms"]))
+check("Wall of Truth sits in Drafts (4.0.0)", "truth" in dict(__import__("skqt.mainwin", fromlist=["x"]).TABS["drafts"]))
 w.go("truth"); app.processEvents()
 pg = w.truth_page
 check("an empty wall says how to start", pg.table.rowCount() == 0 and "+ Truth" in pg.note.text())

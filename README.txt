@@ -6,9 +6,9 @@ THE SIX STEPS (4.0.0)
     Dashboard as the map, then Team and Settings.
   - Documents: the solicitation package, complete, current and readable. Click a document: the panel says what has been
     done to it (its text checked, the shred, the changes from its last version, whether it feeds the matrix, its
-    versions) and offers its one next thing. Right-click: Open, Set type, Add a newer version, Leave out, Show in folder;
+    versions) and offers its one next thing (Check the text, Review changes, Extract it, Continue the shred). Right-click: Open, Set type, Add a newer version, Leave out, Show in folder;
     the rest is under More about this document. Changes (what a new version changed) and Text check are its tabs.
-  - Shred: Read in, Shred, Terms (the acronyms) and the Acronym List. Matrix & Outline: the Matrix and Evaluation.
+  - Shred: Extract, Requirements, Acros & Abs and the Acro List. Matrix & Outline: the Matrix and Evaluation.
     Drafts: Status (each section read back) and Edit (Technical Edit). Shred, Matrix & Outline and Drafts get their own
     pages in the next releases.
 

@@ -48,7 +48,7 @@ w = MainWindow(app, cfg, A.APP_VERSION); w.resize(1500, 950); w.show()
 w.open_effort("Kestrel")
 w.go("verify"); spin()
 vp = w.verify_page
-check("Verify is Review's first tab", w.stack.currentWidget() is vp and w.page_title.text() == "Review")
+check("Text check (was Verify) is a tab of Documents (4.0.0)", w.stack.currentWidget() is vp and w.page_title.text() == "Documents")
 check("no documents: one way in", vp.empty.isVisibleTo(w) and not vp.view.isVisibleTo(w))
 SRC = os.path.join(os.path.dirname(HERE), "test_samples", "rfp_walk")
 lib = DV.Library(w.ws.p("documents")).load()

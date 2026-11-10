@@ -34,8 +34,8 @@ draft = os.path.join(tmp, "Kestrel Volume II.docx"); d.save(draft)
 before = hashlib.sha256(open(draft, "rb").read()).hexdigest()
 
 from skqt import mainwin as MW
-_write = [k for k, _t in MW.TABS["acronyms"]]
-check("Technical Edit sits in Write, after Acronyms (3.75.0)", _write.index("techedit") == _write.index("acrlist") + 1)
+_write = [k for k, _t in MW.TABS["drafts"]]
+check("Technical Edit is the Drafts step's Edit, after Status (4.0.0)", _write.index("techedit") == _write.index("drafts") + 1)
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 w.rail_go("techedit"); app.processEvents()
 pg = w.techedit_page

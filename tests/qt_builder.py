@@ -48,8 +48,9 @@ def wait(cond, secs=60):
     return cond()
 
 
-check("the menu: the Structure Builder is part of Setup (3.74.0); Review keeps Coverage (and Verify, 3.84.0)",
-      ("setups", "Setup") in dict(RAIL)["Effort"] and "structure" not in dict(dict(RAIL)["Effort"]) and [k for k, _t in TABS["assign"]] == ["verify", "read", "compare", "assign"])     # 3.84.0: Verify first; 3.90.0: Read and Compare, Coverage a view
+check("the menu: the Structure Builder is part of Setup (3.74.0); 4.0.0: Shred holds Extract and Requirements, Text check is Documents'",
+      ("setups", "Setup") in dict(RAIL)["Effort"] and "structure" not in dict(dict(RAIL)["Effort"]) and [k for k, _t in TABS["assign"]][:2] == ["read", "assign"]
+      and "verify" in dict(TABS["library"]))     # 3.84.0: Verify first; 3.90.0: Read and Compare, Coverage a view
 w.open_effort("Kestrel")
 w.read_page.read(PDFS, os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))
 check("read", wait(lambda: w.review is not None and w.stack.currentWidget() is w.assign_page))

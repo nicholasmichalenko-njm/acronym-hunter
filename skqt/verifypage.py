@@ -356,7 +356,7 @@ class VerifyPage(QWidget):
         if pair:                                         # 3.89.0: the next step for an amendment is Compare
             nxt = f"  <a href='compare'>Next: compare {pair[2]['label']} with {pair[1]['label']}</a>"
         elif self.verified() and self.n == len(self.pages()) and self.needs_read():
-            nxt = "  <a href='read'>Next: read it into Review</a>"     # 3.90.0: Verify, Read, Compare, Review
+            nxt = "  <a href='read'>Next: extract it for the shred</a>"     # 3.90.0; 4.0.0: Extract, in Shred
         import html
         self.line.setText(html.escape(f"{head}  {words}  A verified page is a record that a person checked it, not a guarantee.") + nxt)
         self.b_ok.setEnabled(not fl)

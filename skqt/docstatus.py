@@ -1,7 +1,7 @@
 """A document's status panel on Documents (4.0.0; canvas "Six Steps", board 1; claude/stationkeeper-six-steps-plan-4.0.md):
 click a document and the panel says what has been done to it (its text checked, the shred, the changes from its last
 version, whether it feeds the matrix, its text taken as context) and offers one button, its next thing: Check the text,
-Review changes, Read it in, Continue the shred. The right-click menu keeps five things about the file itself (Open,
+Review changes, Extract it, Continue the shred. The right-click menu keeps five things about the file itself (Open,
 Set type, Add a newer version, Leave out, Show in folder); the rest of what can be said about a document is under More.
 Rules only (No AI); nothing leaves the PC."""
 import os
@@ -62,7 +62,7 @@ def status(page, d, st=None):
             out.append(("Text check", f"{ver} of {pages} pages checked" + (f"; {look} to look at" if look else ""),
                         WARN if look else OK if ver == pages else NONE))
     text, _tone, key = page.review_state(d, st)
-    shred = {"unread": ("Not read in yet", NONE), "needs": (text.replace("Needs reviewing", "In progress"), WARN),
+    shred = {"unread": ("Not extracted yet", NONE), "needs": (text.replace("Needs reviewing", "In progress"), WARN),
              "reviewed": ("Done", OK), "not_needed": ("Left out", NONE)}[key]
     out.append(("Shred", shred[0], shred[1]))
     ch = _changes(page, d)
@@ -71,7 +71,7 @@ def status(page, d, st=None):
         out.append(("Changes from its last version", ("Not reviewed yet" if not opened else f"{left} to review" if left else "Reviewed"),
                     WARN if (not opened or left) else OK))
     role = lib.role_of(d)
-    out.append(("Feeds the matrix", "Yes: ticked on Shred > Read in" if role == "matrix" else "No", OK if role == "matrix" else NONE))
+    out.append(("Feeds the matrix", "Yes: ticked on Shred > Extract" if role == "matrix" else "No", OK if role == "matrix" else NONE))
     try:
         import ctxdocs as CX
         nt = len(CX.Store(page.host.ws.root).load().of_doc(d["id"]))
@@ -89,7 +89,7 @@ def status(page, d, st=None):
     elif ch is not None and (not ch[0] or ch[1]):
         nxt = ("Review changes" + (f" ({ch[1]} left)" if ch[0] and ch[1] else ""), "compare")
     elif key == "unread":
-        nxt = ("Read it in", "read")
+        nxt = ("Extract it", "read")
     elif key == "needs":
         nxt = ("Continue the shred", "assign")
     elif key == "reviewed":

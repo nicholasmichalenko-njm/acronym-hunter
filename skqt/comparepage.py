@@ -313,7 +313,7 @@ class ComparePage(QWidget):
         if self.tag_filter != "all" or self.in_matrix.isChecked():
             txt += f"  ·  Showing {len(self.shown)}. {a('all', 'Show all')}"
         if self.M() is None:
-            txt += "  ·  Read the documents into Review (Library) to see which changes touch our response."
+            txt += "  ·  Extract the documents (Shred > Extract) to see which changes touch our response."
         self.sum.setText(txt)
         dn, n = self.review.progress(self.pk, self.rows)
         self.p_dec.setText(f"{dn} of {n} decided"); self.p_dec.set_tone("ok" if dn == n else "warn"); self.p_dec.show()
@@ -359,7 +359,7 @@ class ComparePage(QWidget):
         self.nodes, self.sec_nodes = {}, {}
         M = self.M()
         if M is None:
-            self.right_note.setText("Read the documents into Review (Library) to see our response here.")
+            self.right_note.setText("Extract the documents (Shred > Extract) to see our response here.")
             return
         flags = CM.flags(M, self.review)
         mine = {}
