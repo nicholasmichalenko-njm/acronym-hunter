@@ -499,7 +499,7 @@ class RequirementsPage(QWidget):
         shown = [r for r in allrows if self.hidden.isChecked() or not r["hidden"]]
         n_rev = sum(1 for r in allrows if r["to_review"])
         self.facts.setText(SR.summary_text([r for r in allrows if not r["hidden"]]) or
-                           ("No submission requirements found yet." if c.lib.docs else "No customer documents yet: add them in Library."))
+                           ("No submission requirements found yet." if c.lib.docs else "No customer documents yet: add them in Documents."))
         sel = None
         for _gk, label, kinds in REQ_GROUPS:
             mine = [r for r in shown if r["kind"] in kinds]
@@ -541,6 +541,8 @@ class RequirementsPage(QWidget):
                 self.excerpts["x:" + x["id"]] = x
                 if "x:" + x["id"] == keep:
                     sel = it
+        from . import rulesdates as RD                # 4.1.0: the shred's Rule and Date pieces and its key dates
+        sel = RD.add_groups(self, keep) or sel
         self.tree.expandAll()
         if sel is not None:
             self.tree.setCurrentItem(sel)
@@ -565,6 +567,9 @@ class RequirementsPage(QWidget):
             if w is not None:
                 w.setParent(None); w.deleteLater()
         import excerpts as EX
+        from . import rulesdates as RD
+        if RD.show(self, self.current()):                  # 4.1.0: a piece the shred said is a Rule or a Date
+            return
         x = getattr(self, "excerpts", {}).get(self.current() or "")
         if x is not None:                                  # 3.21.0: an excerpt with no rule
             self.card.title.setText("Other submission detail" if x["bin"] == "other" else "Written formatting rule")

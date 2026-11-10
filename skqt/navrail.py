@@ -17,7 +17,9 @@ VIEWS = (("assign", "Our structure", "structure"), ("shredreq", "List", None), (
 VIEW_OF = {"assign": "assign", "shredreq": "shredreq", "shredacc": "shredreq", "sort": "sort",
            "crosswalk": "crosswalk", "prove": "prove"}
 # 4.0.0: the Shred step's tabs as a stepper: (page, label)
-CHIPS = (("assign", "Requirements"), ("acronyms", "Acros & Abs"), ("acrlist", "Acro List"))    # 4.1.0: no Extract
+CHIPS = (("assign", "Requirements"), ("requirements", "Rules & Dates"), ("evalcrit", "Evaluation"), ("acronyms", "Acros & Abs"))
+CHIP_OF = {"acrlist": "acronyms", "lists": "acronyms"}   # 4.1.0: no Extract; Rules & Dates and Evaluation moved in; the Acro List
+                                                          # opens from Acros & Abs
 STEP_TITLES = {"home": ("Dashboard", "Where the effort is, what is left, and your next step"),
                "library": ("Documents", "The solicitation package: complete, current and readable"),
                "assign": ("Shred", "What every piece of the customer's text is, and its acros and abs"),
@@ -268,13 +270,22 @@ class Stepper(QWidget):
         r = f.get("reqs")
         acr = f.get("acronyms") or 0
         tot = f.get("acr_total") or 0
+        rv = getattr(self.w, "review", None)
+        by = {}
+        if rv is not None:                           # 4.1.0: the pieces on Rules & Dates and Evaluation
+            import shredtypes as ST
+            by = ST.counts(rv.M.items)[1]
+        nr, ne = by.get("rule", 0) + by.get("date", 0), by.get("evaluation", 0)
         return {"assign": (f"{r['undecided']} of {r['sentences']} left" if r and r["undecided"] else "all sorted" if r else "nothing extracted",
                            "warn" if r and r["undecided"] else "done" if r else "todo"),
-                "acronyms": (f"{acr} to decide" if acr else "decided" if tot else "not scanned", "warn" if acr else "done" if tot else "todo"),
-                "acrlist": (f"{tot} in the list" if tot else "empty", "done" if tot else "todo")}
+                "requirements": (f"{nr} from the shred" if nr else "none from the shred", "done" if nr else "todo"),
+                "evalcrit": (f"{ne} from the shred" if ne else "none from the shred", "done" if ne else "todo"),
+                "acronyms": (f"{acr} to decide" if acr else f"{tot} in the list" if tot else "not scanned",
+                             "warn" if acr else "done" if tot else "todo")}
 
     def show_for(self, step):
         t = D.tokens()
+        step = CHIP_OF.get(step, step)
         cur = "assign" if step in VIEW_OF else step if step in self.chips else "assign"
         cs = self.counts()
         for k, _l in CHIPS:

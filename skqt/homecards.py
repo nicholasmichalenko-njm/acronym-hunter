@@ -80,7 +80,7 @@ def draw_eval(hp, r):
     names = {d["id"]: d["name"] for d in DL.items(r)}
     hp.eval_now = [f["name"] for f in fs]
     if not fs:
-        hp.eval_box.addWidget(D.label("None yet. Add them on Evaluation Criteria, or capture them in Review (More captures).", "muted"))
+        hp.eval_box.addWidget(D.label("None yet. Add them on Shred > Evaluation, or capture them in the shred (More captures).", "muted"))
         return
     for f in fs[:6]:
         tied = ", ".join(names[x] for x in f.get("deliverables") or [] if x in names)

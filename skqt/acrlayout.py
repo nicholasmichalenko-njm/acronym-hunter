@@ -43,6 +43,7 @@ def install(page):
         bar.more(b.text(), b.click, b.toolTip())
     page.hyphen_act = bar.more("Letters joined by a hyphen are one term", lambda: set_hyphen(page), checkable=True)
     bar.export("Export the report...", lambda: page.export())
+    _acro_list(page, bar)                                  # 4.1.0: the Acro List folded in: its view, Lists to submit, exports
     # the old rows of buttons and filters: hidden, still there for the tools
     for i in range(v.count()):
         it = v.itemAt(i)
@@ -399,3 +400,25 @@ def set_hyphen(page, on=None):
 def open_drafts(page):
     from .acrdrafts import open_drafts as go
     return go(page)
+
+
+def _acro_list(page, bar):
+    """4.1.0 (claude/stationkeeper-shred-plan-4.1.md, step 5): one home for the acro list. The list's More opens the whole
+    list (every term, imported ones too) and the lists to submit; its Export menu makes the acronym lists."""
+    def on(fn):
+        def run():
+            lp = getattr(page.host, "acrlist_page", None)
+            if lp is None:
+                return None
+            return fn(lp)
+        return run
+    from . import acrimportview as IV
+    bar.more_sep()
+    bar.more("The whole acro list...", on(lambda lp: page.host.go("acrlist")),
+             "Every term in the effort's list, imported ones too: definitions, volumes, notes")
+    bar.more("Lists to submit, by volume", on(lambda lp: page.host.go("lists")),
+             "Only the terms each volume uses, from the latest Submission check")
+    bar.more("Import a list...", on(lambda lp: IV.import_list(lp)), "Any Excel or CSV list, merged into the effort's list")
+    for k, text in (("whole", "Acro list: the whole effort..."), ("volume", "Acro list: one per volume..."), ("both", "Acro list: both...")):
+        bar.export(text, on(lambda lp, k=k: lp.export(scope=k)), "Word and Excel")
+

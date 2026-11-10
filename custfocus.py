@@ -209,7 +209,10 @@ def factors_for(rec, did):
 
 
 def m_items(M):
-    """The evaluation sentences in Review (Section M), kept or undecided, in order."""
+    """The evaluation sentences (Section M, kept or undecided) and, 4.1.0, every piece the shred said is an Evaluation,
+    in order."""
     if M is None:
         return []
-    return [it for it in M.items if it.get("type") == "Evaluation" and it.get("decision") != "Drop" and it.get("header") != "Yes"]
+    import shredtypes as ST
+    return [it for it in M.items if it.get("header") != "Yes" and it.get("decision") != "Drop"
+            and (it.get("type") == "Evaluation" or ST.type_of(it) == "evaluation")]

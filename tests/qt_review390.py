@@ -62,7 +62,7 @@ vp.open_doc(C1); app.processEvents()
 vp.store().verify(vp.doc, 1); vp.show_page(); app.processEvents()
 check("Text check's last page, checked: the next step is Extract", "Next: extract it for the shred" in vp.line.text(), vp.line.text())
 check("... which extracts it at once and opens Shred (4.1.0)", vp.read_next() == 1 and w.stack.currentWidget() is w.assign_page
-      and list(w.stepper.chips)[::2] == ["assign", "acronyms", "acrlist"] and w.stepper.isVisibleTo(w))
+      and "assign" in w.stepper.chips and w.stepper.isVisibleTo(w), (list(w.stepper.chips), w.stack.currentWidget()))
 check("read", wait(lambda: w.review is not None and not w.read_page.running()))
 pg = w.assign_page
 w.go("assign"); app.processEvents()

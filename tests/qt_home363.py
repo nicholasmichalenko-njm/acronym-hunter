@@ -86,7 +86,7 @@ hp.refresh(); app.processEvents()
 check("Meeting notes up front: near the top of the dashboard, with the latest meeting", hp.shown.index("meetings") <= 2
       and hp.meetings_now == ["Kickoff"], (hp.shown[:4], getattr(hp, "meetings_now", None)))
 # evaluation criteria
-check("Evaluation Criteria is with Matrix & Outline (4.0.0)", __import__("skqt.mainwin", fromlist=["x"]).RAIL_OF["evalcrit"] == "matrix")
+check("Evaluation is Shred's (4.1.0)", __import__("skqt.mainwin", fromlist=["x"]).RAIL_OF["evalcrit"] == "assign")
 w.go("evalcrit"); app.processEvents()
 ep = w.evalcrit_page
 f1 = ep.add("Technical Approach", "", "Significantly more important")

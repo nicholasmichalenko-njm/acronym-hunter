@@ -59,8 +59,8 @@ check("Text check lights Documents", w.step_btns["library"].isChecked() and w.st
 w.rail_go("assign"); app.processEvents()
 check("Shred: the stepper, not tabs", w.stepper.isVisibleTo(w) and not w.page_tabs.isVisibleTo(w) and w.page_title.text() == "Shred"
       and w.page_crumb.text() == "Step 2 of 6")
-check("... Requirements, Acros & Abs, Acro List with counts (4.1.0: no Extract): no tab repeats the step's name",
-      [w.stepper.chips[k].nm.text() for k, _l in NR.CHIPS] == ["Requirements", "Acros & Abs", "Acro List"]
+check("... Requirements, Rules & Dates, Evaluation, Acros & Abs with counts (4.1.0): no tab repeats the step's name",
+      [w.stepper.chips[k].nm.text() for k, _l in NR.CHIPS] == ["Requirements", "Rules & Dates", "Evaluation", "Acros & Abs"]
       and w.stepper.chips["assign"].ct.text() == "nothing extracted")
 check("... See it as: Our structure first, no Matrix", [b.text() for b in w.stepper.views.values()] ==
       ["Our structure", "List", "Sort", "L to M", "Coverage"] and w.stepper.views["assign"].isChecked())
@@ -77,7 +77,7 @@ w.go("shredacc"); app.processEvents()
 check("Accuracy sits with the List", w.stepper.views["shredreq"].isChecked() and w.step_btns["assign"].isChecked())
 # Matrix & Outline, Drafts, Submit
 w.rail_go("matrix"); app.processEvents()
-check("Matrix & Outline: the Matrix and Evaluation", w._tab_keys == ["matrix", "evalcrit"] and w.page_title.text() == "Matrix & Outline"
+check("Matrix & Outline: the Matrix (4.1.0: Evaluation moved to Shred)", w._tab_keys == ["matrix"] and w.page_title.text() == "Matrix & Outline"
       and w.page_crumb.text() == "Step 3 of 6", (w._tab_keys, w.page_title.text()))
 w.rail_go("drafts"); app.processEvents()
 check("Drafts: Status and Edit (Color Reviews and Wall of Truth set aside)", w._tab_keys == ["drafts", "techedit"]

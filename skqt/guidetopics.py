@@ -78,9 +78,10 @@ TOPICS = [
    "New files in the watched folders show in a strip under the top bar: Review opens them in the Library; Ignore stops "
    "offering them until they change.",
    "Graphic needs lists what was tagged as needing a graphic; Export... makes a workbook for the graphics team."]),
- ("requirements", "Effort", "Submission Rules",
-  "The Effort Dashboard's second tab. What the customer requires of the submission: due date, delivery, copies, formats, file names, page limits and "
-  "formatting, with the document that set each rule and what changed it.",
+ ("requirements", "Shred", "Rules & Dates",
+  "Shred's second tab (4.1.0; was the Dashboard's Submission Rules). What the customer requires of the submission: due date, delivery, copies, "
+  "formats, file names, page limits and formatting, with the document that set each rule and what changed it; and every piece the shred "
+  "said is a Rule or a Date, with where it came from.",
   "You plan the submission, or a new version changes a rule.",
   ["Read the rules. Each shows its source document and section.",
    "Press Add a requirement... for a rule you found yourself.",
@@ -105,7 +106,7 @@ TOPICS = [
   ["View: List shows the same deliverables as a table; Arrange: drag them into the team's order, and set the board to "
    "Your order to follow it.",
    "Every name picker ends with Add a person...: add someone once and every picker offers them after."]),
- ("evalcrit", "Shred", "Evaluation Criteria",
+ ("evalcrit", "Shred", "Evaluation",
   "How the customer will judge the proposal: the evaluation factors and subfactors with their relative importance, and "
   "the deliverables each one judges.",
   "Right after the RFP is read, and whenever you decide what a section must prove.",

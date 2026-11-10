@@ -188,7 +188,7 @@ class HomePage(QWidget):
         self.timeline = D.Card("Timeline", "The effort's paper trail, newest first.")
         # 3.12.0: one card for how the proposal goes in, its formatting and its page limits (2.94.0, 2.96.0)
         self.sub_card = D.Card("Submission requirements", "What the customer documents require, with where each came from. "
-                               "Click a requirement to open it in Submission Rules; Edit changes what it says here.")
+                               "Click a requirement to open it in Rules & Dates; Edit changes what it says here.")
         from PySide6.QtWidgets import QTabWidget
         self.sub_tabs = QTabWidget(); self.sub_tabs.setDocumentMode(True)
         self.sub_tab_pages = {}
@@ -788,7 +788,7 @@ class HomePage(QWidget):
             if x["required"]:
                 col = QVBoxLayout(); col.setSpacing(0)
                 val = ClickLabel(f"Required: {x['value']}", lambda rr=x["row"]: self.open_rule(rr))
-                val.setToolTip("Open it in Submission Rules: the sentence, its history, edit or confirm")
+                val.setToolTip("Open it in Rules & Dates: the sentence, its history, edit or confirm")
                 val.setStyleSheet(f"color:{t['text']};font-weight:600;")
                 col.addWidget(val)
                 if x["where"]:
@@ -826,7 +826,7 @@ class HomePage(QWidget):
             lab = D.label(x["label"], None, wrap=False); lab.setMinimumWidth(130); row.addWidget(lab, 0, Qt.AlignTop)
             col = QVBoxLayout(); col.setSpacing(0)
             v = ClickLabel(x["value"], lambda rr=x.get("row"): self.open_rule(rr)); v.setStyleSheet(f"color:{t['text']};font-weight:600;")
-            v.setToolTip("Open it in Submission Rules")
+            v.setToolTip("Open it in Rules & Dates")
             col.addWidget(v)
             if x["where"]:
                 col.addWidget(D.label(x["where"], "muted"))
@@ -865,7 +865,7 @@ class HomePage(QWidget):
         self.sub_tabs.setTabText(2, "Page limits" + (f" ({len(c['limits'])})" if c["limits"] else ""))
 
     def open_rule(self, row):
-        """3.12.0: a requirement on the card opens in Submission Rules, selected."""
+        """3.12.0: a requirement on the card opens in Rules & Dates, selected."""
         self.host.go("requirements")
         if row is not None and row.get("key"):
             try:

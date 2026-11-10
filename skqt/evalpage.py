@@ -1,4 +1,4 @@
-"""Effort > Evaluation Criteria (3.63.0): how the customer will judge the proposal. The factors and subfactors with their
+"""Shred > Evaluation (3.63.0; 4.1.0 moved from Matrix & Outline): how the customer will judge the proposal. The factors and subfactors with their
 importance (captured in Review or added here), the deliverables each one judges, and the evaluation sentences from Review
 (Section M) to make into factors. custfocus holds the rules."""
 from PySide6.QtCore import Qt
@@ -8,6 +8,7 @@ import custfocus as F
 import deliverables as DL
 import diag
 import effortrec as R
+import shredtypes as ST
 from . import design as D
 
 
@@ -20,7 +21,7 @@ class EvalPage(QWidget):
         v = QVBoxLayout(self); v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         self.sumlab = D.label("", "title"); v.addWidget(self.sumlab)
         v.addWidget(D.label("The factors and subfactors the customer will score, with their relative importance, and the "
-                            "deliverables each one judges. Capture them in Review (More captures > Evaluation factor) or add "
+                            "deliverables each one judges. Capture them in the shred (More captures > Evaluation factor) or add "
                             "them here; make one from an evaluation sentence below.", "muted"))
         self.table = QTableWidget(0, 4); self.table.setHorizontalHeaderLabels(["Factor", "Importance", "Judges", "From"])
         self.table.verticalHeader().setVisible(False); self.table.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -39,14 +40,14 @@ class EvalPage(QWidget):
         row.addWidget(D.button("Set importance", "ghost", lambda: self.set_importance(self.imp_set.currentText())))
         row.addWidget(D.button("Remove", "danger", lambda: self.remove()))
         row.addStretch(1)
-        v.addWidget(D.SectionTitle("Evaluation sentences in Review (Section M)"))
-        self.mtab = QTableWidget(0, 3); self.mtab.setHorizontalHeaderLabels(["ID", "The customer's words", "Decision"])
+        v.addWidget(D.SectionTitle("Evaluation pieces from the shred (Section M, and pieces said to be Evaluation)"))
+        self.mtab = QTableWidget(0, 3); self.mtab.setHorizontalHeaderLabels(["ID", "The customer's words", "In the shred"])
         self.mtab.verticalHeader().setVisible(False); self.mtab.setEditTriggers(QTableWidget.NoEditTriggers)
         self.mtab.setSelectionBehavior(QTableWidget.SelectRows); self.mtab.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         v.addWidget(self.mtab, 2)
         mr = QHBoxLayout(); v.addLayout(mr)
         mr.addWidget(D.button("Make it a factor", None, lambda: self.from_sentence()))
-        mr.addWidget(D.button("Open in Review", "ghost", lambda: self.open_in_review()))
+        mr.addWidget(D.button("Show it on the page", "ghost", lambda: self.open_in_review()))
         mr.addStretch(1)
 
     def rec(self):
@@ -78,10 +79,12 @@ class EvalPage(QWidget):
         self.sumlab.setText(f"{tops} factor(s), {len(fs) - tops} subfactor(s)" if fs else "No evaluation factors yet")
         M = self.host.review.M if self.host.review is not None else None
         ms = F.m_items(M)
+        tnames = {k: v["name"] for k, v in ST.load(self.host.config_dir).items()}      # 4.1.0: what the shred said it is
         self.m_ids = [it["id"] for it in ms]
         self.mtab.setRowCount(len(ms))
         for i, it in enumerate(ms):
-            for j, val in enumerate((it["id"], it.get("text", ""), it.get("decision") or "to decide")):
+            t = ST.type_of(it)
+            for j, val in enumerate((it["id"], it.get("text", ""), tnames.get(t, "not sorted yet"))):
                 self.mtab.setItem(i, j, QTableWidgetItem(val))
 
     def current(self):

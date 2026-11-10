@@ -46,15 +46,16 @@ RAIL = [("Effort", [("home", "Dashboard"), ("library", "Documents"), ("assign", 
 STEP_KEYS = tuple(k for k, _t in RAIL[0][1])
 SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Your Tools")]
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
-TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings"),
-                 ("requirements", "Submission Rules")],
+TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings")],
         # 4.0.0: Changes (was Review's Compare) and Text check (was Review's Verify) are the documents' own
         "library": [("library", "Documents"), ("compare", "Changes"), ("verify", "Text check"), ("custqa", "Customer Q&A"),
                     ("datacalls", "Data calls")],
         # 4.0.0: Shred, a stepper (navrail.Stepper); List, Sort, Our structure, L to M and Coverage are ways to see it (no tab
         # repeats its step's name: claude/stationkeeper-steps-decisions-2026-11-10.md, 16)
-        "assign": [("assign", "Requirements"), ("acronyms", "Acros & Abs"), ("acrlist", "Acro List")],
-        "matrix": [("matrix", "Matrix"), ("evalcrit", "Evaluation")],          # 4.0.0; Place, Structure, Coverage in 4.2.0
+        # 4.1.0: Rules & Dates (was the Dashboard's Submission Rules) and Evaluation (was Matrix & Outline's) are the shred's
+        "assign": [("assign", "Requirements"), ("requirements", "Rules & Dates"), ("evalcrit", "Evaluation"),
+                   ("acronyms", "Acros & Abs")],             # 4.1.0: the Acro List opens from Acros & Abs (The list > More)
+        "matrix": [("matrix", "Matrix")],                                      # 4.0.0; Place, Structure, Coverage in 4.2.0
         "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting")],
         "drafts": [("drafts", "Status"), ("techedit", "Edit"), ("reviews", "Color Reviews"), ("truth", "Wall of Truth")],
         "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks"), ("postsub", "After Submission"),
@@ -70,7 +71,8 @@ TEAM = ("formatstd", "profiles", "studio", "rules", "audit", "refs")
 # the menu entry each page lights up
 RAIL_OF = {k: h for k, h in HEAD_OF.items() if h in STEP_KEYS}
 RAIL_OF.update({k: "assign" for k in REVIEW_VIEWS})
-RAIL_OF.update({"storyboards": "setups", "setup": "setups", "structure": "setups", "exportall": "home", "lists": "assign"})
+RAIL_OF.update({"storyboards": "setups", "setup": "setups", "structure": "setups", "exportall": "home", "lists": "assign",
+                "acrlist": "assign"})                    # 4.1.0: the Acro List is part of Acros & Abs
 RAIL_OF.update({k: "team" for t in TEAM for k in [k for k, _t in TABS.get(t, [(t, "")])]})
 RAIL_OF.update({"prodstd": "team", "qpstd": "team"})     # 3.98.0: a Quick Part's details open from Parts
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup", "setups"}   # 3.18.2:
