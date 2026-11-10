@@ -175,9 +175,9 @@ TOPICS = [
    "One document at a time is simpler from the Documents tab: Read it into Review."],
   ["Scanned pages and pictures are read by the OCR reader (AI and ML), on this PC.",
    "Every read runs the text check: Coverage (in Review) shows it file by file."]),
- ("custqa", "Effort Library", "Customer Q&A",
+ ("custqa", "Shred", "The Q&A log",
   "The formal questions you submit to the customer: their exact words and where they are, your question, its status "
-  "and the answer.",
+  "and the answer. 4.1.0: a drawer, opened from the Q&A button on Shred, Matrix & Outline and Drafts.",
   "Before the questions-due date, and when the answers come back.",
   ["In Review, select a sentence (or drag across words) and use Capture > Question. It quotes the customer and the "
    "place for you.",

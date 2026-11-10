@@ -384,7 +384,9 @@ def file_question(host, values, source):
                 owner=values.get("owner", ""), sid=source.get("sid", ""))
     if qid:
         diag.activity("capture_question")
-        host.toast(f"Question {Q.get(rec, qid)['n']} drafted in Customer Q&A")
+        host.toast(f"Question {Q.get(rec, qid)['n']} drafted in the Q&A log")
+        if hasattr(host, "qa_drawer"):                 # 4.1.0: the drawer opens on it
+            __import__("skqt.qadrawer", fromlist=["x"]).open_(host, qid)
     return qid
 
 

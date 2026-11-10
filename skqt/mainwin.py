@@ -48,8 +48,8 @@ SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Your T
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
 TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings")],
         # 4.0.0: Changes (was Review's Compare) and Text check (was Review's Verify) are the documents' own
-        "library": [("library", "Documents"), ("compare", "Changes"), ("verify", "Text check"), ("custqa", "Customer Q&A"),
-                    ("datacalls", "Data calls")],
+        "library": [("library", "Documents"), ("compare", "Changes"), ("verify", "Text check"),
+                    ("datacalls", "Data calls")],         # 4.1.0: Customer Q&A is a drawer (qadrawer)
         # 4.0.0: Shred, a stepper (navrail.Stepper); List, Sort, Our structure, L to M and Coverage are ways to see it (no tab
         # repeats its step's name: claude/stationkeeper-steps-decisions-2026-11-10.md, 16)
         # 4.1.0: Rules & Dates (was the Dashboard's Submission Rules) and Evaluation (was Matrix & Outline's) are the shred's
@@ -320,6 +320,7 @@ class MainWindow(QMainWindow):
         self.notice_page = NoticePage(self); self.stack.addWidget(self.notice_page)
         cv.addWidget(self.stack, 1)
         self.next_bar = NextBar(self); cv.addWidget(self.next_bar)       # 3.96.0: every page in a step ends with its next step
+        __import__("skqt.qadrawer", fromlist=["x"]).install(self)        # 4.1.0: the Q&A log as a drawer
         rh.addWidget(col, 1)
         self.setCentralWidget(root)
         self.toaster = D.Toast(self)
@@ -1020,6 +1021,8 @@ class MainWindow(QMainWindow):
         return navrail.refresh_stage_tools(self, RAIL_OF, prof)
 
     def go(self, step):
+        if step == "custqa":                         # 4.1.0: the Q&A log is a drawer beside Shred, Matrix & Outline, Drafts
+            return __import__("skqt.qadrawer", fromlist=["x"]).go(self, RAIL_OF)
         if step == "lists":                          # 3.37.0: Lists to Submit lives in the Acronym List
             ok = self.go("acrlist")
             if ok is not False:
@@ -1077,6 +1080,7 @@ class MainWindow(QMainWindow):
             diag.swallowed()
         self.show_tabs(step)
         self.next_bar.show_for(step, RAIL_OF)      # 3.96.0: the step's next step at the bottom
+        __import__("skqt.qadrawer", fromlist=["x"]).on_page(self, step, RAIL_OF)
         __import__("skqt.frame", fromlist=["x"]).on_page(self, step)    # 3.75.0: Find a sentence where sentences are
         try:
             self.refresh_undo()                    # 3.18.2: Undo says what it would put back on this page

@@ -1789,7 +1789,7 @@ class AssignPage(QWidget):
         for q in qs:
             self.add(D.label(f"Customer question ({q.get('status', '')}): {q.get('question', '')[:160]}", None))
         if qs:
-            self.add(D.button("Open Customer Q&A", "ghost", lambda: self.host.go("custqa"), "Edit the question there"))
+            self.add(D.button("Open in the Q&&A log", "ghost", lambda: self.host.go("custqa"), "Edit the question there"))
         names = getattr(self, "bin_names", {}) or {b["id"]: b["name"] for b in EX.bins(rec, self.host.config_dir)}
         for x in xs:
             w = QWidget(); h = QHBoxLayout(w); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(D.SPACE["xs"])
