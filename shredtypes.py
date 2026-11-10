@@ -21,14 +21,14 @@ import json
 import os
 
 # key, name, shortcut, color, tab, placed (offered on Matrix & Outline > Place)
-TYPES = (("requirement", "Requirement", "1", "#0D9488", "requirements", True),
-         ("instruction", "Instruction", "2", "#16A34A", "requirements", True),
-         ("rule", "Rule", "3", "#B45309", "rules", False),
-         ("date", "Date", "4", "#1E6B3A", "rules", False),
-         ("evaluation", "Evaluation", "5", "#EA580C", "evaluation", True),
-         ("deliverable", "Deliverable", "6", "#2563EB", "requirements", True),
-         ("information", "Information", "7", "#64748B", "requirements", False),
-         ("not_applicable", "Not applicable", "X", "#94A3B8", "requirements", False))
+TYPES = (("requirement", "Requirement", "R", "#0D9488", "requirements", True),
+         ("instruction", "Instruction", "L", "#16A34A", "requirements", True),
+         ("rule", "Rule", "U", "#B45309", "rules", False),
+         ("date", "Date", "D", "#1E6B3A", "rules", False),
+         ("evaluation", "Evaluation", "E", "#EA580C", "evaluation", True),
+         ("deliverable", "Deliverable", "V", "#0369A1", "requirements", True),
+         ("information", "Information", "G", "#64748B", "requirements", False),
+         ("not_applicable", "Not applicable", "X", "#64748B", "requirements", False))
 KEYS = tuple(t[0] for t in TYPES)
 TABS = (("requirements", "Requirements"), ("rules", "Rules & Dates"), ("evaluation", "Evaluation"), ("acros", "Acros & Abs"))
 FILE = "piece_types.json"

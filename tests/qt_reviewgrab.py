@@ -166,7 +166,7 @@ pg.do_lm("L"); app.processEvents()
 check("decided L", pg.R.item(one["id"]).get("decision") == "Keep")
 m = pg.sentence_menu(one["id"])
 acts = [a.text() for a in m.actions() if a.text()]
-check("right-click a decided sentence: Take the decision off, with its name", any(t.startswith("Take the decision off: L") for t in acts), acts)
+check("right-click a decided sentence: Take the decision off, with its name", any(t.startswith("Take the decision off: Instruction") for t in acts), acts)
 check("... and each capture from it, and Clear selection", any("Take off the capture Objective" in t for t in acts)
       and "Clear selection" in acts, acts)
 next(a for a in m.actions() if a.text().startswith("Take the decision off")).trigger(); app.processEvents()

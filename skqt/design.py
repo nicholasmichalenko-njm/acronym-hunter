@@ -54,13 +54,18 @@ PAGE_DEC = {"Keep": "#16A34A", "Context": "#2563EB", "Customer": "#7E22CE", "Dro
 # a sentence something was captured from (or a note, question or task made on it) gets the capture color outline.
 PAGE_LM = {"L": "#16A34A", "M": "#EA580C", "C": "#0D9488", "SOW": "#0D9488", "I": "#4338CA"}
 CAPTURE_COLOR = "#DB2777"
-LEGEND = (("L (Instructions)", "#16A34A"), ("M (Evaluation)", "#EA580C"), ("SOW (Work)", "#0D9488"),
-          ("Requirement", "#4D7C0F"), ("Support", "#2563EB"), ("Customer's", "#7E22CE"), ("Ignored", "#64748B"),
-          ("Captured", CAPTURE_COLOR))
+LEGEND = (("Requirement", "#0D9488"), ("Instruction", "#16A34A"), ("Rule", "#B45309"), ("Date", "#1E6B3A"),
+          ("Evaluation", "#EA580C"), ("Information", "#7E22CE"), ("Support", "#2563EB"), ("Not designated", "#4D7C0F"),
+          ("Ignored", "#64748B"), ("Captured", CAPTURE_COLOR))           # 4.1.0: the shred's piece types
+
+
+PAGE_PIECE = {"rule": "#B45309", "date": "#1E6B3A"}        # 4.1.0: a Rule or a Date (the customer's) in its own color
 
 
 def page_color(dec, lm=""):
-    """3.18.1: the page color of a decision (a requirement by its designation: L, M or SOW)."""
+    """3.18.1: the page color of a decision (a requirement by its designation: L, M or SOW; 4.1.0: a Rule or a Date)."""
+    if lm in PAGE_PIECE:
+        return PAGE_PIECE[lm]
     if dec == "Keep":
         return PAGE_LM.get(lm or "", "#4D7C0F")
     return PAGE_DEC.get(dec, PAGE_DEC[""])

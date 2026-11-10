@@ -65,21 +65,21 @@ by = lambda s: next(it for it in M.items if s in it["text"])
 due_s, poc, ims, fmt, sow = by("PIEE"), by("Jane Doe"), by("(IMS)"), by("12-point"), by("monthly status")
 # the decisions
 labels = [pg.keys[k].text() for k in ("L", "M", "Requirement")]
-check("the decision buttons say L (Instructions), M (Evaluation), SOW (Work)", labels == ["L (Instructions)  L", "M (Evaluation)  E", "SOW (Work)  R"], labels)
+check("the decision buttons say Instruction, Evaluation, Requirement (4.1.0: the piece types)", labels == ["Instruction  L", "Evaluation  E", "Requirement  R"], labels)
 import compliance as C
 pg.set_target(C.outline_label(M.outline[1]))
 pg.select(sow["id"]); app.processEvents()
 QTest.keyClick(pg.view, Qt.Key_R); app.processEvents()
-check("R: a SOW (Work) requirement", by("monthly status")["decision"] == "Keep" and by("monthly status")["lm"] == "C")
+check("R: a Requirement (designated SOW)", by("monthly status")["decision"] == "Keep" and by("monthly status")["lm"] == "C")
 pg.select(sow["id"]); app.processEvents()
-btn = next(b for b in pg.card.findChildren(type(pg.keys["L"])) if b.text() == "SOW (Work)")
+btn = next(b for b in pg.card.findChildren(type(pg.keys["L"])) if b.text() == "Requirement")
 btn.click(); app.processEvents()
-check("the card's SOW (Work), clicked again, takes it off (a requirement, neither L, M nor SOW)", by("monthly status")["lm"] == ""
+check("the card's Requirement, clicked again, takes it off (a requirement, neither L, M nor SOW)", by("monthly status")["lm"] == ""
       and by("monthly status")["decision"] == "Keep")
 pg.select(ims["id"]); QTest.keyClick(pg.view, Qt.Key_L); app.processEvents()
-check("L: an L (Instructions) requirement", by("(IMS)")["lm"] == "L")
+check("L: an Instruction (designated L)", by("(IMS)")["lm"] == "L")
 import setupdoc as SD
-check("SOW requirements reference as C", SD.LM_SHORT["C"] == "SOW (Work)" and "C" in SD.LM)
+check("SOW requirements reference as C (4.1.0: named Requirement)", SD.LM_SHORT["C"] == "Requirement" and "C" in SD.LM)
 # dragging across words
 pg.select(poc["id"]); app.processEvents()
 words = pg.view.words[poc["id"]]

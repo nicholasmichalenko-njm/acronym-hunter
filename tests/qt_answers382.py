@@ -37,7 +37,8 @@ RI.save(cfg, data)
 d2 = RI.load(cfg)
 check("... an effort type can show a capture hidden for the rest, and hide another", RI.capture_on(d2, "unit", "rfi")
       and not RI.capture_on(d2, "unit", "") and not RI.capture_on(d2, "hot", "rfi") and d2["hide"]["rfi"][-1] == "hot", d2["hide"])
-check("... and the decisions follow the type as before", [x["code"] for x in RI.decisions_for(d2, "rfi")] == ["I", "ctx", "cust", "ignore"])
+check("... and the decisions follow the type as before (4.1.0: Rule, Date, Deliverable too)", [x["code"] for x in RI.decisions_for(d2, "rfi")]
+      == ["rule", "date", "deliv", "I", "cust", "ctx", "ignore"], [x["code"] for x in RI.decisions_for(d2, "rfi")])
 
 # ---- an effort
 TOP = os.path.join(tmp, "Heron"); os.makedirs(TOP)

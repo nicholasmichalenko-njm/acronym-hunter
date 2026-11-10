@@ -38,8 +38,8 @@ WORD = re.compile(r"[A-Za-z0-9]+")
 
 
 
-BULK_DECISIONS = (("Decide all...", ""), ("L (Instructions)", "L"), ("M (Evaluation)", "M"), ("SOW (Work)", "SOW"),
-                  ("Support", "ctx"), ("Customer's", "cust"), ("Ignore", "ignore"))
+BULK_DECISIONS = (("Decide all...", ""), ("Instruction", "L"), ("Evaluation", "M"), ("Requirement", "SOW"),
+                  ("Support", "ctx"), ("Information", "cust"), ("Not applicable", "ignore"))      # 4.1.0: the piece types' names
 
 EX_BUILTIN_CAPTURES = ("contact", "submit", "format", "acronym", "question", "keydate", "factor", "pagelimit", "deliverable",
                        "detail", "hot", "graphic")          # 3.29.0: captures filed by _do_capture
@@ -1369,11 +1369,11 @@ class AssignPage(QWidget):
                 dec = "Heading"
             rec = self.sg.get(iid) if self.sg_on else None          # 3.18.0: a suggestion still waiting shows on the page
             box.sg = rec["cat"] if rec and rec.get("cat") and rec.get("state") == "shown" and not dec else ""
-            box.lm = it.get("lm") or "" if dec == "Keep" else ""
+            box.lm = (it.get("lm") or "" if dec == "Keep" else it.get("piece") if it.get("piece") in D.PAGE_PIECE else "")   # 4.1.0
             kinds = self.marks.get(iid) or []
             box.mark = bool(kinds)
             box.style(dec if dec in D.PAGE_DEC else "", iid == self.cur)
-            tag = D.decision(dec)[2]
+            tag = {"rule": "RULE", "date": "DATE"}.get(box.lm) or D.decision(dec)[2]      # 4.1.0: a Rule or a Date says so
             if kinds:                                               # 3.18.1: what was captured from it, in the margin
                 y = max(box.boundingRect().top(), last_y + 11)
                 last_y = y
@@ -1405,7 +1405,7 @@ class AssignPage(QWidget):
                 txt = " ".join(x for x in (tag, lmv, iid, ("V " + "+".join(vols)) if vols else "") if x)
             lab = QGraphicsSimpleTextItem(txt)
             lab.setFont(QFont("Segoe UI", 7, QFont.Bold))
-            lab.setBrush(QColor(D.page_color(dec, it.get("lm") or "")))
+            lab.setBrush(QColor(D.page_color(dec, box.lm or it.get("lm") or "")))
             lab.setPos(MARGIN - 8 - lab.boundingRect().width(), y)
             sc.addItem(lab)
             self.labels.append(lab)
@@ -1627,11 +1627,13 @@ class AssignPage(QWidget):
         d = it.get("decision", "")
         if it.get("type") == "Heading" and d in ("", "Drop"):
             return "RFP heading", ""
-        if d == "Keep":
+        if d == "Keep":                                  # 4.1.0: the piece type's name (Instruction, Evaluation, Deliverable...)
             lm = it.get("lm") or ""
-            x = dd.get(lm)
-            return (x["name"] + " requirement", x["color"]) if x else ("Requirement", "#4D7C0F")
+            x = dd.get("deliv") if it.get("piece") == "deliverable" and dd.get("deliv") else dd.get(lm)
+            return (x["name"], x["color"]) if x else ("Requirement, not designated", "#4D7C0F")
         code = {"Context": "ctx", "Customer": "cust", "Drop": "ignore"}.get(d)
+        if d == "Customer" and it.get("piece") in ("rule", "date") and it["piece"] in dd:     # 4.1.0: a Rule or a Date
+            code = it["piece"]
         if code and code in dd:
             return dd[code]["name"], dd[code]["color"]
         return "Not decided yet", ""
@@ -1965,12 +1967,18 @@ class AssignPage(QWidget):
             return None
 
     # ------------------------------------------------------------ 3.29.0: decisions and captures, the team's way
-    DEC_KEY = {"L": "L", "M": "M", "C": "Requirement", "I": "Interest", "ctx": "Support", "cust": "Customer's", "ignore": "Ignore"}
-    DEC_KIND = {"L": "req", "M": "lmM", "C": "lmS", "I": "req", "ctx": "ctx", "cust": "cust", "ignore": "drop"}
+    DEC_KEY = {"L": "L", "M": "M", "C": "Requirement", "I": "Interest", "ctx": "Support", "cust": "Customer's", "ignore": "Ignore",
+               "rule": "Rule", "date": "Date", "deliv": "Deliverable"}                       # 4.1.0: the piece types
+    DEC_KIND = {"L": "req", "M": "lmM", "C": "lmS", "I": "req", "ctx": "ctx", "cust": "cust", "ignore": "drop",
+                "rule": "cust", "date": "cust", "deliv": "lmS"}
 
     def _dec_fn(self, code):
-        return {"L": lambda: self.do_lm("L"), "M": lambda: self.do_lm("M"), "C": lambda: self.do_sow(), "I": lambda: self.do_lm("I"),
-                "ctx": self.do_ctx, "cust": self.do_customer, "ignore": self.do_clear}[code]
+        from . import shredbar as SB                       # 4.1.0: each decision keeps the piece's type (shredtypes)
+        if code in SB.NEW_CODES:
+            return lambda: SB.do_piece(self, code)
+        act = {"L": lambda: self.do_lm("L"), "M": lambda: self.do_lm("M"), "C": lambda: self.do_sow(), "I": lambda: self.do_lm("I"),
+               "ctx": self.do_ctx, "cust": self.do_customer, "ignore": self.do_clear}[code]
+        return lambda: SB.decide(self, code, act)
 
     def _cap_fn(self, key):
         if key in ("objective", "keypoint", "other"):
@@ -1993,8 +2001,9 @@ class AssignPage(QWidget):
             SD.LM_SHORT[lm] = d[code]["name"]
         D.PAGE_LM["SOW"] = d["C"]["color"]
         D.PAGE_DEC["Context"], D.PAGE_DEC["Customer"], D.PAGE_DEC["Drop"] = d["ctx"]["color"], d["cust"]["color"], d["ignore"]["color"]
+        D.PAGE_PIECE["rule"], D.PAGE_PIECE["date"] = d["rule"]["color"], d["date"]["color"]        # 4.1.0: as the team colors them
         legend = [(x["name"], x["color"]) for x in RI.decisions_for(self.items_cfg, self.effort_type()) if x["code"] != "ignore"]
-        legend += [("Requirement", "#4D7C0F"), ("Ignored", d["ignore"]["color"]), ("Captured", D.CAPTURE_COLOR)]
+        legend += [("Not designated", "#4D7C0F"), ("Ignored", d["ignore"]["color"]), ("Captured", D.CAPTURE_COLOR)]
         self.legend.setText("&nbsp;&nbsp;".join(f"<span style='color:{c}'>\u25A0</span> {n}" for n, c in legend)
                             + "&nbsp;&nbsp;<span style='color:#94A3B8'>\u25A1</span> Not decided")
         self.build_decide()

@@ -11,13 +11,19 @@ import copy, json, os
 
 FILE = "review_items.json"
 # code, name, short, key, color: what each decision is called on its button, in the legend and on the page
-DECISIONS = (("L", "L (Instructions)", "L", "L", "#16A34A"),
-             ("M", "M (Evaluation)", "M", "E", "#EA580C"),
-             ("C", "SOW (Work)", "SOW", "R", "#0D9488"),
+# 4.1.0: the shred's piece types, in shredtypes' order (Requirement, Instruction, Rule, Date, Evaluation, Deliverable,
+# Information, Not applicable); Support and Interest keep their places. The keys people know stay; the new types take U, D, V
+# (the digits are Sort mode's topics).
+DECISIONS = (("C", "Requirement", "Requirement", "R", "#0D9488"),
+             ("L", "Instruction", "Instruction", "L", "#16A34A"),
+             ("rule", "Rule", "Rule", "U", "#B45309"),
+             ("date", "Date", "Date", "D", "#1E6B3A"),
+             ("M", "Evaluation", "Evaluation", "E", "#EA580C"),
+             ("deliv", "Deliverable", "Deliverable", "V", "#0369A1"),
              ("I", "Customer interest (RFI)", "Interest", "I", "#4338CA"),
+             ("cust", "Information", "Information", "G", "#7E22CE"),
              ("ctx", "Support", "Support", "C", "#2563EB"),
-             ("cust", "Customer's", "Customer's", "G", "#7E22CE"),
-             ("ignore", "Ignore", "Ignore", "X", "#64748B"))
+             ("ignore", "Not applicable", "Not applicable", "X", "#64748B"))
 # key, name, shortcut, color, place (bar or more), what it does (shown in Settings)
 CAPTURES = (("contact", "Contact", "", "#DB2777", "bar", "A point of contact, into Customer information"),
             ("submit", "Submission", "", "#DB2777", "bar", "A submission instruction, into Submission Rules"),
