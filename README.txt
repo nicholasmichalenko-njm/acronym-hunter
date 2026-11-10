@@ -1,6 +1,31 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+ACRONYMS IN TWO TABS: ON THE PAGE AND THE LIST (3.93.0)
+  - On the page: the customer's pages one at a time, like Verify. The pages with finds to decide are on the left (each
+    with how many are left); the page is in the middle with every find boxed: yellow to decide, green in the list,
+    orange read with doubt, blue selected. Page done marks the page and shows the next one; Next page with finds skips
+    ahead. A page opens wide enough to read, at its first find left to decide.
+  - Select on the page: click a box; Ctrl or Shift adds; drag on the page to select every find inside. The drag box is
+    gone when you let go. Drag around words the scan never found: they are selected as the reader sees them now.
+  - The bar opens under the selection, never over it:
+      found, to decide: its definitions (1 and 2 pick, or type one), the type (A Acronym, B Abbreviation, U Unit,
+      S Symbol), Add to the list (Enter), Not a term (X), More (Show in the list, Plural of, A form of, Part of a
+      longer term).
+      partly found (DC inside DC-RVM, with the rest of DC-RVM dashed): Use DC-RVM (Enter), or Keep DC too.
+      read with doubt: what it was read as and how sure; It says (type the right text), Fix the reading (Enter), Read
+      again, Not text.
+      not found before: what the reader sees there now, the term and its definition, the type, Add as a term (Enter),
+      Read this area again.
+  - Not a term takes every place of the term off the page at once; Undo (under the page) puts it back as it was. More >
+    Show Not a term shows them again, dashed.
+  - In typed text (Word, PowerPoint, Excel) the passage shows with every find as a link; select words with no find to
+    add them.
+  - The list: the effort's terms with their type, state, definition and source; filters as counts; the card with where
+    it goes and its sources, and Show on the page (the term's page, its finds selected). In our drafts is the main
+    button. A decision in either tab is the same decision.
+  - Acronym Finder (its own window) keeps the list with the page beside it.
+
 SETUP FROM A WORKBOOK: CLICKS AND DRAG (3.92.2)
   - A left click selects: a piece of text, a column's tag, or a paragraph on the Word page (Ctrl or Shift adds more).
     Click a style in the Styles row to give it to what is selected: a character style to text, in place; a paragraph
