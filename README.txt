@@ -1,6 +1,18 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+COMPLIANCE LANGUAGE THE SAME BOTH WAYS; SETUP STYLES IN ONE HOME (3.97.1)
+  - A workbook brought into Setup takes the compliance words list, as an outline built in the app does: shall, must,
+    describe... in the RFP text get the compliance character style.
+  - One order decides each piece of text, built or imported: what you selected, then a rule saved with the layout, then
+    the compliance words list, then the column's own style.
+  - Select words in the workbook on the left (drag over them), right-click: Compliance language. Just this; Everywhere it
+    looks like this (a rule saved with the layout); This word everywhere (it joins the compliance words list). Not
+    compliance language, just this takes it away.
+  - The setup styles live in one home: Styles, the Setup set. A look changed on the setup screen, or a new setup style,
+    is saved there (a new version; the set moves to it), and every setup takes it. A name another style has is refused.
+  - One effort cannot change a setup style (for now): every effort's setup looks the same.
+
 MAKE TEMPLATES PICKS SETS (3.97.0)
   - Make templates > What goes in: the style sets, in order (where two sets hold a style, the lower one wins), the
     Setup styles (hidden in the document) and a Quick Part set. Nothing is changed there: to change a style or a part,

@@ -108,8 +108,42 @@ def back_to_every(pg, section):
     return (pg.get("sections") or {}).pop(section, None) is not None
 
 
-def look_of(pg, style, template_looks=None):
-    """A style's look: what was set on this page, else the template's, else the default."""
+SETUP_SET = "Setup"
+
+
+def setup_set(lib, make=False):
+    """3.97.1: the Setup style set (Styles: a set named Setup), made when asked."""
+    import stylelib as SL
+    k = next((x for x in SL.sets(lib) if x["name"].casefold() == SETUP_SET.casefold()), None)
+    if k is None and make:
+        k = SL.new_set(lib, SETUP_SET, color="#EC4899")
+    return k
+
+
+def setup_looks(config_dir):
+    """{style name: look} from the Setup style set: the one home of the setup styles (3.97.1)."""
+    try:
+        import templatelib as TL
+        lib = TL.Library(config_dir)
+        k = setup_set(lib)
+    except Exception:  # noqa: BLE001
+        return {}
+    out = {}
+    for iid in (k or {}).get("items", []):
+        it = lib.get(iid)
+        if it is None:
+            continue
+        v = lib.values(it) or {}
+        out[lib.base_of(it)] = {x: v[x] for x in LOOK_KEYS if x in v}
+        out[lib.base_of(it)]["type"] = v.get("type", "paragraph")
+    return out
+
+
+def look_of(pg, style, template_looks=None, setup=None):
+    """A style's look. 3.97.1: the Setup style set first (styles live in one place); a style it does not hold: what an
+    older layout set on its page, else the template's, else the default."""
+    if setup and style in setup:
+        return dict(setup[style])
     lk = dict((template_looks or {}).get(style) or LOOKS.get(style) or {"hidden": True})
     lk.update((pg.get("looks") or {}).get(style) or {})
     return lk
@@ -159,9 +193,22 @@ def _sections(book, profile, pg):
     return out
 
 
-def _cell_paras(pg, header, col, runs):
+COMPLIANCE_CHAR = "SK Compliance Char"
+
+
+def _pieces(part, ch, words):
+    """3.97.1: text with no rule of its own takes the compliance words list (built or imported, the same words)."""
+    if ch or not words:
+        return [(part, ch)]
+    import cwords as CW
+    return [(t, COMPLIANCE_CHAR if hit else "") for t, hit in CW.segments(part, words)]
+
+
+def _cell_paras(pg, header, col, runs, words=None):
     """A cell as paragraphs [(runs, own tag or None)]: a new line starts a paragraph; text of a look made its own
-    paragraph comes out on its own; text left out goes."""
+    paragraph comes out on its own; text left out goes. 3.97.1: one order decides each piece of text: what you
+    selected (picks, applied in paragraphs), then a rule saved with the layout (chars), then the compliance words list
+    (words, for the RFP text), then the column's own style."""
     out, cur = [], []
     for t, lk in runs:
         k = key(header, lk)
@@ -179,10 +226,11 @@ def _cell_paras(pg, header, col, runs):
                     out.append((cur, None)); cur = []
                 out.append(([(part, "")], own))
                 continue
-            if cur and cur[-1][1] == ch:
-                cur[-1] = (cur[-1][0] + part, ch)
-            else:
-                cur.append((part, ch))
+            for piece, c in _pieces(part, ch, words):
+                if cur and cur[-1][1] == c:
+                    cur[-1] = (cur[-1][0] + piece, c)
+                else:
+                    cur.append((piece, c))
     if cur:
         out.append((cur, None))
     tidy = []
@@ -195,9 +243,36 @@ def _cell_paras(pg, header, col, runs):
     return tidy
 
 
-def paragraphs(book, profile, pg):
+def give(runs, text, char):
+    """3.97.1 (Just this): the runs with that text in that character style; the rest as they were."""
+    whole = "".join(t for t, _c in runs)
+    at = whole.find(text) if text else -1
+    if at < 0:
+        return runs, False
+    end, pos, out = at + len(text), 0, []
+    for t, c in runs:
+        a, b = pos, pos + len(t)
+        for lo, hi, cc in ((a, min(b, at), c), (max(a, at), min(b, end), char), (max(a, end), b, c)):
+            if hi > lo:
+                piece = t[lo - a:hi - a]
+                if out and out[-1][1] == cc:
+                    out[-1] = (out[-1][0] + piece, cc)
+                else:
+                    out.append((piece, cc))
+        pos = b
+    return out, True
+
+
+def paragraphs(book, profile, pg, words=None):
+    """words: the compliance words list (cwords.load()); None reads this PC's; the layout can turn it off ("words")."""
     hdr = book["headers"]
     out = []
+    if pg.get("words", True):
+        if words is None:
+            import cwords as CW
+            words = CW.load()
+    else:
+        words = None
 
     def add(tag, style, runs, row, col, sec, own=False):
         out.append({"tag": tag, "style": style, "runs": runs, "row": row, "col": col, "section": sec["num"],
@@ -230,7 +305,7 @@ def paragraphs(book, profile, pg):
                         else:
                             add("source", pg["styles"]["source"], [(src, "")], r["row"], i, sec)
                         continue
-                    for rs, own in _cell_paras(pg, h, i, cells[i]):
+                    for rs, own in _cell_paras(pg, h, i, cells[i], words if tag == "rfp" else None):
                         if own:
                             after.setdefault(own, []).append((rs, i))
                             continue
@@ -245,6 +320,12 @@ def paragraphs(book, profile, pg):
             for tag, lst in after.items():
                 for rs, i in lst:
                     add(tag, pg["styles"].get(tag) or STYLES.get(tag, "Normal"), rs, r["row"], i, sec, own=True)
+    for pk in pg.get("picks") or []:                          # 3.97.1: what you selected comes first
+        for p in out:
+            if p["row"] == pk.get("row") and p["col"] == pk.get("col") and p["tag"] != "heading":
+                p["runs"], hit = give(p["runs"], pk.get("text", ""), pk.get("char", COMPLIANCE_CHAR))
+                if hit:
+                    break
     return out
 
 

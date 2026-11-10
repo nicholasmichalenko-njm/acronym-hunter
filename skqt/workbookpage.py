@@ -71,8 +71,7 @@ class StyleDialog(QDialog):
         self.look = dict(look)
         v = QVBoxLayout(self)
         v.addWidget(D.label(("Character style: inside the text, where it is" if kind == "character" else "Paragraph style")
-                            + (". The template has it; what you change here goes over its look." if from_template else
-                               ". The template does not have it: it is made when the setup is written."), "muted"))
+                            + ". Saved in Styles, in the Setup set: every setup takes this look (3.97.1).", "muted"))
         f = QFormLayout(); v.addLayout(f)
         self.font = QLineEdit(str(look.get("font") or "")); self.font.setPlaceholderText("As the text around it")
         self.size = QDoubleSpinBox(); self.size.setRange(0, 72); self.size.setSingleStep(0.5); self.size.setSpecialValueText("As the text around it")
@@ -124,6 +123,7 @@ class WorkbookPage(QDialog):
         self.layout_name = self.profile.get("name") or OL.STARTING
         self.pg = WB.page(self.book, self.profile, WB.saved(self.cfg, self.layout_name))
         self.tlooks = WB.template_looks(self.pg["template"]) if self.pg.get("template") else {}
+        self.setup_looks = WB.setup_looks(self.cfg)            # 3.97.1: the setup styles' one home (Styles > the Setup set)
         self.sel = None                                   # ("col", index) or ("look", index, look) or ("para", n)
         self.sels = []                                    # 3.92.2: everything selected (Ctrl or Shift adds); sel is the last
         v = QVBoxLayout(self)
@@ -161,7 +161,7 @@ class WorkbookPage(QDialog):
 
     # ------------------------------------------------------------ drawing
     def look(self, style):
-        return WB.look_of(self.pg, style, self.tlooks)
+        return WB.look_of(self.pg, style, self.tlooks, self.setup_looks)
 
     def tag_label(self, i, h):
         t = self.pg["tags"].get(h, "skip")
@@ -170,7 +170,8 @@ class WorkbookPage(QDialog):
         return (f"{n} " if n and t != "skip" else "") + WB.TAG[t]
 
     def redraw(self):
-        self.paras = WB.paragraphs(self.book, self.profile, self.pg)
+        import cwords as CW
+        self.paras = WB.paragraphs(self.book, self.profile, self.pg, CW.load(self.cfg))
         self.draw_left(); self.draw_right(); self.draw_styles()
         n = sum(1 for p in self.paras if p["tag"] == "heading")
         self.top.setText(f"{os.path.basename(self.path)}: {len(self.book['rows'])} row(s), {n} heading(s), "
@@ -526,6 +527,36 @@ class WorkbookPage(QDialog):
         self.redraw()
         return what
 
+    def words_menu(self, text, i, lk, row, act=None):
+        """3.97.1: selected words: say they are compliance language, just here, everywhere they look like this (a rule
+        saved with the layout), or this word everywhere (it joins the compliance words list)."""
+        h = self.book["headers"][i]
+        m = QMenu(self)
+        m.addSection(f'"{text[:40]}"  ·  Compliance language')
+        for what, lab in (("just", "Just this"), ("look", f"Everywhere it looks like this ({OX.look_words(lk)} in {h})"),
+                          ("word", "This word everywhere (it joins the compliance words list)")):
+            a = m.addAction(lab); a.setData((what, None))
+        m.addSeparator()
+        a = m.addAction("Not compliance language, just this"); a.setData(("plain", None))
+        act = act if act is not None else m.exec(QCursor.pos())
+        if act is None:
+            return None
+        what, _v = act.data() if isinstance(act, QAction) else act
+        picks = self.pg.setdefault("picks", [])
+        picks[:] = [p for p in picks if not (p.get("row") == row and p.get("col") == i and p.get("text") == text)]
+        if what == "just":
+            picks.append({"row": row, "col": i, "text": text, "char": WB.COMPLIANCE_CHAR})
+        elif what == "plain":
+            picks.append({"row": row, "col": i, "text": text, "char": ""})
+        elif what == "look":
+            self.pg["chars"][WB.key(h, lk)] = WB.COMPLIANCE_CHAR; self.pg["own"].pop(WB.key(h, lk), None)
+        elif what == "word":
+            import cwords as CW
+            CW.add_words([text], self.cfg)
+            self.pg["words"] = True
+        self.redraw()
+        return what
+
     # ------------------------------------------------------------ the right: the page
     def right_click(self, href, act=None):
         if not href.startswith("para:"):
@@ -591,7 +622,14 @@ class WorkbookPage(QDialog):
         name = " ".join(str(name).split())[:60]
         if not name:
             return None
-        self.pg.setdefault("looks", {}).setdefault(name, {"hidden": True})["type"] = kind
+        if name in self.setup_looks:
+            return name
+        import templatelib as TL
+        lib = TL.Library(self.cfg)
+        if any(i["kind"] == "style" and lib.base_of(i).casefold() == name.casefold() for i in lib.items):
+            self.host.status(f"{name} is a style in Styles already: pick another name, or add it to the Setup set there.")
+            return None
+        self.save_setup_style(name, kind, {"hidden": True})       # 3.97.1: made in its one home, the Setup set
         return name
 
     def edit_style(self, name, kind, value=None):
@@ -601,9 +639,25 @@ class WorkbookPage(QDialog):
             if dlg.exec() != QDialog.Accepted:
                 return None
             value = dlg.value()
-        self.pg.setdefault("looks", {})[name] = dict(value, type=kind)
+        return self.save_setup_style(name, kind, value)
+
+    def save_setup_style(self, name, kind, look):
+        """3.97.1: a setup style's look is saved in its one home, the Setup style set on Styles (a new version there;
+        the set moves to it). Every setup takes it; the layout keeps only what goes where."""
+        import stylelib as SL
+        import templatelib as TL
+        lib = TL.Library(self.cfg)
+        k = WB.setup_set(lib, make=True)
+        have = next((lib.get(i) for i in k["items"] if lib.get(i) is not None and lib.base_of(lib.get(i)) == name), None)
+        look = {x: v for x, v in look.items() if x != "type"}
+        it, _st = SL.change_style(lib, have["id"], look) if have else SL.new_style(lib, name, kind, dict(look, hidden=look.get("hidden", True)))
+        if it is not None:
+            SL.add_to_set(lib, k["id"], [it["id"]])
+        (self.pg.get("looks") or {}).pop(name, None)
+        self.setup_looks = WB.setup_looks(self.cfg)
         self.redraw()
-        return self.pg["looks"][name]
+        self.host.status(f"{name}: saved in Styles, in the Setup set. Every setup takes it.")
+        return self.setup_looks.get(name)
 
     # ------------------------------------------------------------ commands
     def pick_template(self, path=None):

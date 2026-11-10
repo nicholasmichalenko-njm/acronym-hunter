@@ -24,9 +24,12 @@ class LeftView(QTextBrowser):
         href = self.anchorAt(e.position().toPoint())
         if e.button() == Qt.LeftButton and href:
             self._press = href
+            self._at = e.position().toPoint()
             if href.startswith("tag:"):
                 self.viewport().setCursor(Qt.ClosedHandCursor)
-            e.accept()
+                e.accept()
+                return
+            super().mousePressEvent(e)                       # 3.97.1: text can be dragged over to select words
             return
         super().mousePressEvent(e)
 
@@ -34,6 +37,10 @@ class LeftView(QTextBrowser):
         href = self.anchorAt(e.position().toPoint())
         start, self._press = self._press, None
         self.viewport().unsetCursor()
+        moved = start and (e.position().toPoint() - getattr(self, "_at", e.position().toPoint())).manhattanLength() > 4
+        if e.button() == Qt.LeftButton and start and start.startswith("run:") and moved and self.textCursor().hasSelection():
+            super().mouseReleaseEvent(e)                     # words selected: right-click says what they are
+            return
         if e.button() == Qt.LeftButton and start:
             add = bool(e.modifiers() & (Qt.ControlModifier | Qt.ShiftModifier))
             if start.startswith("tag:") and href.startswith("tag:") and href != start:
@@ -44,7 +51,29 @@ class LeftView(QTextBrowser):
             return
         super().mouseReleaseEvent(e)
 
+    def selected_words(self):
+        """3.97.1: (the selected text, its column, its look, its workbook row) or None."""
+        c = self.textCursor()
+        text = " ".join(c.selectedText().replace("\u2029", " ").split())
+        if not text:
+            return None
+        from PySide6.QtGui import QTextCursor
+        at = QTextCursor(self.document()); at.setPosition(c.selectionStart() + 1)
+        href = at.charFormat().anchorHref()
+        tbl = at.currentTable()
+        if not href.startswith("run:") or tbl is None:
+            return None
+        i, _, lk = href[4:].partition(":")
+        r = tbl.cellAt(at).row() - 1
+        rows = self.page.book["rows"]
+        return (text, int(i), lk, rows[r]["row"]) if 0 <= r < len(rows) else None
+
     def contextMenuEvent(self, e):
+        sw = self.selected_words()
+        if sw is not None:
+            self.page.words_menu(*sw)
+            e.accept()
+            return
         href = self.anchorAt(e.pos())
         if href:
             self.page.left_menu(href)

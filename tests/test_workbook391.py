@@ -74,7 +74,9 @@ src = [p for p in paras if p["tag"] == "source"]
 check("a long source goes on its own line, before the text", len(src) == 1 and src[0]["runs"][0][0].startswith("RFP Section L, paragraph 4.2.2")
       and paras[paras.index(src[0]) + 1]["tag"] == "rfp", [p["runs"] for p in src])
 tt = [p for p in paras if p["section"] == "1.2" and p["tag"] == "rfp"]
-check("a new line in a cell starts a paragraph", len(tt) == 2 and tt[1]["runs"][-1][0] == "Include both sites.", [p["runs"] for p in tt])
+check("a new line in a cell starts a paragraph", len(tt) == 2 and "".join(t for t, _c in tt[1]["runs"]) == "Include both sites.", [p["runs"] for p in tt])
+check("3.97.1: the compliance words list marks the RFP text, as when built in the app", ("shall", "SK Compliance Char") in tt[0]["runs"]
+      and tt[1]["runs"][0] == ("Include", "SK Compliance Char"))
 
 # guidance with its row: drag it after the RFP text
 WB.move(pg, "guidance", 3)
@@ -106,7 +108,8 @@ check("the styles on the page, paragraph and character", ("SK Compliance Char", 
 out = WB.write(paras, pg, os.path.join(tmp, "out", "Setup.docx"))
 with zipfile.ZipFile(out) as z:
     doc = z.read("word/document.xml").decode(); sty = z.read("word/styles.xml").decode()
-check("the Word file has every piece of text", "Lead with the dual-site failover" in doc and "Include both sites." in doc and "L.4.2.1, p. 41" in doc)
+_plain = __import__("re").sub(r"<[^>]+>", "", doc)
+check("the Word file has every piece of text", "Lead with the dual-site failover" in _plain and "Include both sites." in _plain and "L.4.2.1, p. 41" in _plain)
 check("character styles are made as character styles, hidden", 'w:type="character"' in sty and "SKComplianceChar" in sty and "<w:vanish/>" in sty)
 check("runs carry their character style", '<w:rStyle w:val="SKComplianceChar"/>' in doc and '<w:rStyle w:val="SKSourceChar"/>' in doc)
 check("headings take Heading styles", '<w:pStyle w:val="Heading2"/>' in doc)
