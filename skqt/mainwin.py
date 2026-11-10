@@ -55,8 +55,8 @@ TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("reco
                      ("reviews", "Color Reviews"), ("truth", "Wall of Truth")],   # Draft Status, Color Reviews, Wall of Truth: set aside
         "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks"), ("postsub", "After Submission"),
                        ("keywords", "Keywords")],
-        "formatstd": [("styles", "Styles"), ("formatstd", "Formatting"), ("qpstd", "Quick Parts"), ("layoutstd", "Layout"),
-                      ("designs", "Parts")],     # 3.95.0: Parts (was Section designs)  # 3.94.0: Styles  # 3.75.0: tabs, not menu items
+        "formatstd": [("styles", "Styles"), ("formatstd", "Formatting"), ("layoutstd", "Layout"),
+                      ("designs", "Parts")],     # 3.98.0: Quick Parts are in Parts  # 3.95.0: Parts  # 3.94.0: Styles  # 3.75.0: tabs
         "profiles": [("profiles", "Effort Profiles"), ("templates", "Templates")],
         "audit": [("audit", "Audit"), ("applyword", "Apply in Word"), ("fixcopy", "Fix a Copy")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
@@ -68,7 +68,7 @@ RAIL_OF = {k: h for k, h in HEAD_OF.items() if h in ("home", "library", "assign"
 RAIL_OF.update({k: "assign" for k in REVIEW_VIEWS})
 RAIL_OF.update({"storyboards": "setups", "setup": "setups", "structure": "setups", "exportall": "home", "lists": "acronyms"})
 RAIL_OF.update({k: "team" for t in TEAM for k in [k for k, _t in TABS.get(t, [(t, "")])]})
-RAIL_OF.update({"prodstd": "team"})
+RAIL_OF.update({"prodstd": "team", "qpstd": "team"})     # 3.98.0: a Quick Part's details open from Parts
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup", "setups"}   # 3.18.2:
 # pages that change the matrix (decisions, the structure, placements, setup) share its Undo steps; Review has its own
 VIEWS = {"prove": "coverage", "crosswalk": "lm"}                # 3.90.0: views of Review's maps, not pages of their own

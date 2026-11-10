@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QGridLayout, QLabel, QVBoxLayout, QWidget
 from . import design as D
 from .navrail import ClickFrame
 
-TILES = (("formatstd", "Standards", "Styles, Formatting, Quick Parts, Layout and Parts: what every template is built from"),
+TILES = (("formatstd", "Standards", "Styles, Formatting, Layout and Parts (with the Quick Parts): what every template is built from"),
          ("profiles", "Effort Profiles", "Each kind of effort's formatting, and the templates made from it"),
          ("studio", "Template Studio", "One volume's template in one place"),
          ("rules", "Rules", "Every production rule in one list"),

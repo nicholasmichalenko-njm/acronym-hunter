@@ -1,6 +1,19 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+CHANGE A PART (3.98.0)
+  - Parts lists Quick Parts by what they are: Tables, Callouts, Headers and footers, and the other Quick Parts. The
+    Quick Parts tab is gone from Standards: a Quick Part's details (category, gallery, the pages it fills) open from its
+    row (Details...).
+  - Right-click a Quick Part, Change it...: three ways, each saved as a new version (the one before stays).
+    1. The style first: the styles it names (change them on Styles and every part follows) and any formatting typed
+       into it, which the styles cannot change: Let the styles decide takes it out.
+    2. Make a variant: cell padding, the table's width, its column widths, its rows' height, its table style, a
+       paragraph style swapped for another; named, and into a part set.
+    3. In Word: Open in Word opens the part on its own; Bring back as a new version reads what Word saved.
+  - Paragraph and character styles are on Styles only: right-click a style, Every value..., to see and change every
+    value of it on Formatting.
+
 COMPLIANCE LANGUAGE THE SAME BOTH WAYS; SETUP STYLES IN ONE HOME (3.97.1)
   - A workbook brought into Setup takes the compliance words list, as an outline built in the app does: shall, must,
     describe... in the RFP text get the compliance character style.

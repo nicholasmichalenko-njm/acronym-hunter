@@ -56,7 +56,7 @@ w.go("designs"); app.processEvents()
 pp = w.designs_page
 check("empty: one way in", pp.empty.isVisibleTo(w) and not pp.rows.isVisibleTo(w) and pp.bar.main.text() == "Bring in from a document...")
 check("the kinds are tabs", [pp.tabs.tabText(i) for i in range(pp.tabs.count())] ==
-      ["Covers", "Marking pages", "Title pages", "Front matter", "Back covers", "Quick Parts"])
+      ["Covers", "Marking pages", "Title pages", "Front matter", "Tables", "Callouts", "Headers and footers", "Back covers", "Quick Parts"])
 ps = pp.new_set(name="Page-limited RFP")
 pp.sets.setCurrentRow(1); app.processEvents()
 dlg = pp.bring_in(front, run=False)
@@ -103,10 +103,13 @@ dlg = pp.bring_in(gl, run=False)
 check("a template's gallery; its body is not ticked as a page", len(dlg.plan["gallery"]) == 3 and not any(x["keep"] for x in dlg.plan["pages"])
       and dlg.b_go.text() == "Bring in 3 part(s)")
 _d, items = dlg.go(); app.processEvents()
-check("Quick Parts: their own tab, one row each", pp.kind == "quick" and pp.rows.count() == 3 and pp.tabs.tabText(5) == "Quick Parts  3")
+check("Quick Parts by what they are (3.98.0): the CUI header under Headers and footers", pp.tabs.tabText(8) == "Quick Parts  2"
+      and pp.tabs.tabText(6) == "Headers and footers  1")
+pp.tabs.setCurrentIndex(8); app.processEvents()
+check("Quick Parts: their own tab, one row each", pp.kind == "quick" and pp.rows.count() == 2)
 pp.rows.clearSelection(); pp.rows.item(0).setSelected(True)
-check("a Quick Part's row links to its details on the Quick Parts tab", "Details on the Quick Parts tab" in
-      [a.text() for a in pp.row_menu(run=False).actions()])
+check("a Quick Part's row: Change it, Open in Word, Bring back, Details (3.98.0)", [a.text() for a in pp.row_menu(run=False).actions()][:4]
+      == ["Change it...", "Open in Word", "Bring back as a new version...", "Details: category, gallery, pages it fills..."])
 check("the right side shows no fill-ins for a Quick Part", not pp.fills.isVisibleTo(w))
 again = pp.bring_in(gl, run=False)
 check("met again: Already have it, unticked", all(e["state"] == "same" and not e["keep"] for e in again.plan["gallery"]))

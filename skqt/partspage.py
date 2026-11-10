@@ -23,7 +23,7 @@ from .stylespage import Rows, SetList, dot
 
 THUMB = (84, 108)
 ONE = {"covers": "cover", "marking": "marking page", "titles": "title page", "front": "front matter page", "back": "back cover",
-       "quick": "Quick Part"}
+       "quick": "Quick Part", "tables": "table", "callouts": "callout", "hf": "header or footer"}
 
 
 def _count_words(n, kind):
@@ -285,8 +285,8 @@ class PartsPage(QWidget):
             v = inf["values"]
             self.thumb.setText(inf["it"].get("summary") or "")
             import prodquickparts as QP
-            self.thumb_note.setText(f"In Word's {QP.gallery_name(v.get('gallery') or '')} gallery. Right-click: Details on the Quick Parts tab shows Word's "
-                                    "picture, its fonts and the pages it fills.")
+            self.thumb_note.setText(f"In Word's {QP.gallery_name(v.get('gallery') or '')} gallery. Right-click: Change it... (the style "
+                                    "first, Make a variant, or in Word); Details for its category and the pages it fills.")
             self._guard = False
             return inf
         x = inf["x"]
@@ -359,8 +359,11 @@ class PartsPage(QWidget):
             m.addAction("Open in Word").triggered.connect(lambda: self.open_word(one))
             m.addAction("Draw with Word").triggered.connect(lambda: self.draw(one))
             m.addAction("Bring back as a new version...").triggered.connect(lambda: self.new_version(one))
-        if one and one.startswith("q:"):
-            m.addAction("Details on the Quick Parts tab").triggered.connect(lambda: self.quick_details(one))
+        if one and one.startswith("q:"):                     # 3.98.0: change a Quick Part, three ways
+            m.addAction("Change it...").triggered.connect(lambda: self.change(one))
+            m.addAction("Open in Word").triggered.connect(lambda: self.change(one, run=False).open_word())
+            m.addAction("Bring back as a new version...").triggered.connect(lambda: self.change(one, run=False).bring_back())
+            m.addAction("Details: category, gallery, pages it fills...").triggered.connect(lambda: self.quick_details(one))
         if one:
             m.addAction("Name this version...").triggered.connect(lambda: self.label_version(one))
         add = m.addMenu("Add to set")
@@ -431,6 +434,21 @@ class PartsPage(QWidget):
         ok = PT.set_label(self.cfg(), pid[2:], label) if pid.startswith("d:") else bool(self.lib.set_label(pid[2:], label) or True)
         self.fill_rows(); self.select(pid)
         return ok
+
+    def change(self, pid, run=True):
+        from .partchange import change
+        return change(self, pid[2:], run)
+
+    def after_change(self, it, st, what):
+        """A changed part: its row shows the new version (the one before stays)."""
+        self.lib.fresh()
+        nid = "q:" + it["id"]
+        self.shown_ver["q:" + (it.get("family") or it["id"])] = nid
+        self.cur = nid
+        self.fill_tabs(); self.fill_sets(); self.fill_rows(); self.select(nid)
+        self.host.toast({"same": "The library has this version already: it is shown."}.get(st, f"{self.lib.base_of(it)} v{it.get('version')}: "
+                        "kept beside the others. Sets that use an older one keep it."))
+        return nid
 
     def quick_details(self, pid):
         self.host.go("qpstd")

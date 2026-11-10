@@ -88,7 +88,8 @@ for x in plan2["pages"]:
 _d, items = PT.keep(cfg, lib, plan2)
 check("the ticked Quick Parts go into the library", len(items) == 3 and all(i["kind"] == "quickpart" for i in items))
 q = PT.rows(cfg, "quick", lib)
-check("Quick Parts are a kind too, one row each", len(q) == 3 and all(r["shown"].startswith("q:") for r in q))
+check("Quick Parts are a kind too, one row each (3.98.0: the CUI header under Headers and footers)", len(q) == 2
+      and all(r["shown"].startswith("q:") for r in q) and len(PT.rows(cfg, "hf", lib)) == 1)
 check("met again: Already have it", all(e["state"] == "same" and not e["keep"] for e in PT.look(gl, lib, work=os.path.join(tmp, "w3"))["gallery"]))
 # part sets
 ps = SL.new_set(lib, "Page-limited RFP", kind="part")

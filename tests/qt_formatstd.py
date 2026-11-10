@@ -38,8 +38,8 @@ w.go("formatstd"); app.processEvents()
 fp = w.formatstd_page
 check("the first time it opens, the standards become library items", fp.converted and fp.converted["new"] > 5 and "library items" in fp.note.text())
 cats = [fp.cats.item(r).text() for r in range(fp.cats.count())]
-check("the categories, each with its count", [c.split(" (")[0] for c in cats] == [t for _k, t, _ks in LC.CATEGORIES["formatting"]]
-      and any(c.startswith("Paragraph styles (") and not c.endswith("(0)") for c in cats), cats)
+check("the categories, each with its count (3.98.0: paragraph and character styles are on Styles)", [c.split(" (")[0] for c in cats]
+      == [t for k_, t, _ks in LC.CATEGORIES["formatting"] if k_ not in ("para_styles", "char_styles")] and fp.moved_note.isVisibleTo(w), cats)
 fp.select_category("para_styles"); app.processEvents()
 names = [fp.t.item(r, 0).text() for r in range(fp.t.rowCount())]
 check("a category lists its items with effort types, status, version and where each came from",

@@ -13,7 +13,9 @@ import tempfile
 import sectiondesigns as SDZ
 
 KINDS = (("covers", "Covers", ("cover",)), ("marking", "Marking pages", ("cui",)), ("titles", "Title pages", ("title",)),
-         ("front", "Front matter", ("toc", "acronyms", "units")), ("back", "Back covers", ("back",)), ("quick", "Quick Parts", ()))
+         ("front", "Front matter", ("toc", "acronyms", "units")), ("tables", "Tables", ()), ("callouts", "Callouts", ()),
+         ("hf", "Headers and footers", ()), ("back", "Back covers", ("back",)), ("quick", "Quick Parts", ()))
+QUICK_KINDS = ("tables", "callouts", "hf", "quick")       # 3.98.0: Quick Parts by what they are
 KIND = {k: (t, s) for k, t, s in KINDS}
 PAGE_WORDS = {"cover": "Cover", "cui": "Marking page (CUI)", "title": "Title page", "toc": "Table of contents",
               "acronyms": "Acronyms and abbreviations", "units": "Units and symbols", "back": "Back cover"}
@@ -86,13 +88,15 @@ def rows(config_dir, kind, lib=None, shown=None, words=""):
     shown = shown or {}
     q = (words or "").strip().casefold()
     out = []
-    if kind == "quick":
+    if kind in QUICK_KINDS:
         if lib is None:
             return []
         fams = {}
+        shapes = shapes_of(lib)
         for it in lib.items:
             if it["kind"] == "quickpart" and (not q or q in it["name"].casefold()):
                 fams.setdefault(it.get("family") or it["id"], []).append(it)
+        fams = {f: its for f, its in fams.items() if shapes.get(f) == kind}
         for fam, its in sorted(fams.items(), key=lambda kv: lib.base_of(kv[1][0]).casefold()):
             vs = sorted(its, key=lambda i: int(i.get("version") or 1))
             ids = ["q:" + i["id"] for i in vs]
@@ -107,6 +111,37 @@ def rows(config_dir, kind, lib=None, shown=None, words=""):
         vs = sorted(xs, key=version)
         ids = ["d:" + x["id"] for x in vs]
         out.append({"family": "d:" + fam, "versions": ids, "shown": shown.get("d:" + fam) if shown.get("d:" + fam) in ids else ids[-1]})
+    return out
+
+
+def shapes_of(lib):
+    """{Quick Part family: tables, callouts, hf or quick} from its first version's gallery, category and content (kept
+    on the item once read)."""
+    import partvariant as PV
+    out, changed = {}, False
+    for it in lib.items:
+        if it["kind"] != "quickpart":
+            continue
+        fam = it.get("family") or it["id"]
+        if fam in out:
+            continue
+        sh = it.get("shape")
+        if sh not in QUICK_KINDS:
+            v = lib.values(it) or {}
+            got = None
+            try:
+                path, name = PV.source_of(lib, it)
+                got = PV.load(path, name)
+            except Exception:  # noqa: BLE001  a source that cannot be read: by its gallery and category only
+                got = None
+            sh = PV.kind_of(v, got[4] if got else None)
+            for x in lib.items:
+                if x["kind"] == "quickpart" and (x.get("family") or x["id"]) == fam:
+                    x["shape"] = sh
+            changed = True
+        out[fam] = sh
+    if changed:
+        lib.save()
     return out
 
 

@@ -158,7 +158,7 @@ class LibraryScreen(QWidget):
         eid, st, active = self.filters()
         self.cats.blockSignals(True); self.cats.clear()
         for k, t in LC.categories(self.lib, self.library):
-            if k in getattr(self, "moved", ()):              # 3.90.0: covers live in Section designs
+            if k in getattr(self, "moved", ()) and k != getattr(self, "reveal", None):   # 3.90.0: covers live in Parts
                 continue
             n = sum(1 for i in LC.items_in(self.lib, self.library, k, eid, st) if not (active and LC.status(i) == "retired"))
             it = QListWidgetItem(f"{t} ({n})"); it.setData(Qt.UserRole, k); self.cats.addItem(it)
@@ -485,8 +485,28 @@ class LibraryScreen(QWidget):
 
 
 class FormattingStandardsPage(LibraryScreen):
+    """3.98.0: paragraph and character styles are on Styles (one home); a style opened from there with Every value...
+    shows here with its every value, its category shown only while it is open."""
+    moved = ("para_styles", "char_styles")
+
     def __init__(self, host):
         super().__init__(host, "formatting")
+        self.reveal = None
+        self.moved_note = D.label("Paragraph and character styles are on Styles (the first tab): right-click a style there, "
+                                  "Every value..., to see and change every value here.", "muted")
+        self.layout().insertWidget(1, self.moved_note)
+
+    def select_category(self, key):
+        if key in self.moved and key != self.reveal:
+            self.reveal = key
+            self.fill_cats()
+        return super().select_category(key)
+
+    def select(self, iid):
+        it = self.lib.get(iid)
+        if it is not None and LC.place(self.lib, it)[1] in self.moved:
+            self.select_category(LC.place(self.lib, it)[1])
+        return super().select(iid)
 
     def extra_actions(self, row):
         row.addWidget(D.button("Allowed styles...", None, lambda: self.style_rules(),       # 3.69.0: from Production Standards

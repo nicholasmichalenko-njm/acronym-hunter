@@ -288,6 +288,7 @@ class StylesPage(QWidget):
         if len(ids) == 1:
             m.addAction("Make a copy to change...").triggered.connect(lambda: self.change_look(ids[0]))
             m.addAction("Name this version...").triggered.connect(lambda: self.label_version(ids[0]))
+            m.addAction("Every value...").triggered.connect(lambda: self.every_value(ids[0]))      # 3.98.0
         m.addSeparator()
         m.addAction("Remove from the library").triggered.connect(lambda: self.remove(ids))
         if run and pos is not None:
@@ -408,6 +409,11 @@ class StylesPage(QWidget):
         self.lib.set_label(iid, label)
         self.fill_rows(); self.select(iid)
         return True
+
+    def every_value(self, iid):
+        """3.98.0: every value of the style (spacing, keeps, numbering, borders...) on Formatting, opened on it."""
+        self.host.go("formatstd")
+        return self.host.formatstd_page.select(iid)
 
     def remove(self, ids):
         used = [i for i in ids if SL.sets_of(self.lib, i)]

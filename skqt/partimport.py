@@ -114,7 +114,8 @@ class PartImport(QDialog):
             k = next((k for k, _t, s in PT.KINDS if designs[-1]["shelf"] in s), page.kind)
             page.cur = "d:" + designs[-1]["id"]
         elif items:
-            k, page.cur = "quick", "q:" + items[-1]["id"]
+            page.cur = "q:" + items[-1]["id"]
+            k = PT.shapes_of(page.lib).get(items[-1].get("family") or items[-1]["id"], "quick")
         else:
             k = page.kind
         page.lib.fresh()
