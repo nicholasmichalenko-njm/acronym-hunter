@@ -35,24 +35,27 @@ from .exportallpage import ExportAllPage
 from .settingspage import SettingsPage
 
 
-# 3.96.0 (canvas "Navigation", boards 1 to 3; claude/stationkeeper-navigation-3.93.md): the menu is the effort's path.
-# The Dashboard and five steps, then Team and Settings; All Efforts, My Work and Your Tools are in the effort switcher.
-RAIL = [("Effort", [("home", "Dashboard"), ("library", "Customer files"), ("assign", "Review"), ("setups", "Setup"),
-                    ("acronyms", "Write"), ("finalcheck", "Submit")]),
+# 4.0.0 (claude/stationkeeper-six-steps-plan-4.0.md, canvas "Six Steps"): six steps. Documents makes the package complete,
+# current and readable; Shred says what every piece of the customer's text is; Matrix & Outline decides what we answer and
+# where; Setup, Drafts (the team writes in Word; the app reads the drafts back) and Submit. Pages not yet rebuilt sit in
+# the step they belong to (3.96.0: the menu is the effort's path; All Efforts, My Work and Your Tools are in the switcher).
+RAIL = [("Effort", [("home", "Dashboard"), ("library", "Documents"), ("assign", "Shred"), ("matrix", "Matrix & Outline"),
+                    ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit")]),
         ("Team", [("team", "Team")]),
         ("Settings", [("settings", "Settings")])]
+STEP_KEYS = tuple(k for k, _t in RAIL[0][1])
 SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Your Tools")]
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
-# 3.96.0: pages that did the same job are tabs or views of one step.
 TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings"),
                  ("requirements", "Submission Rules")],
-        "library": [("library", "Files"), ("custqa", "Customer Q&A"), ("datacalls", "Data calls")],
-        # 3.90.0 (decision 13): Read and Compare are Review's tabs, in the order of the work; 3.96.0: a stepper, and
-        # Our structure, Requirements, Sort, Matrix, L to M and Coverage are ways to see it (navrail.VIEWS)
-        "assign": [("verify", "Verify"), ("read", "Read"), ("compare", "Compare"), ("assign", "Place")],
+        # 4.0.0: Changes (was Review's Compare) and Text check (was Review's Verify) are the documents' own
+        "library": [("library", "Documents"), ("compare", "Changes"), ("verify", "Text check"), ("custqa", "Customer Q&A"),
+                    ("datacalls", "Data calls")],
+        # 4.0.0: Shred, a stepper (navrail.Stepper); Requirements, Sort, Our structure, L to M and Coverage are ways to see it
+        "assign": [("read", "Read in"), ("assign", "Shred"), ("acronyms", "Terms"), ("acrlist", "Acronym List")],
+        "matrix": [("matrix", "Matrix"), ("evalcrit", "Evaluation")],          # 4.0.0; Place, Structure, Coverage in 4.2.0
         "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting")],
-        "acronyms": [("acronyms", "Acronyms"), ("acrlist", "Acronym List"), ("techedit", "Technical Edit"), ("drafts", "Draft Status"),
-                     ("reviews", "Color Reviews"), ("truth", "Wall of Truth")],   # Draft Status, Color Reviews, Wall of Truth: set aside
+        "drafts": [("drafts", "Status"), ("techedit", "Edit"), ("reviews", "Color Reviews"), ("truth", "Wall of Truth")],
         "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks"), ("postsub", "After Submission"),
                        ("keywords", "Keywords")],
         "formatstd": [("styles", "Styles"), ("formatstd", "Formatting"), ("layoutstd", "Layout"),
@@ -60,20 +63,20 @@ TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("reco
         "profiles": [("profiles", "Effort Profiles"), ("templates", "Templates")],
         "audit": [("audit", "Audit"), ("applyword", "Apply in Word"), ("fixcopy", "Fix a Copy")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
-HEAD_OF.update({"docs": "library", "impact": "assign", "dashboard": "home"})   # pages opened from inside another
-REVIEW_VIEWS = ("shredreq", "shredacc", "sort", "matrix", "crosswalk", "evalcrit", "prove", "impact")
+HEAD_OF.update({"docs": "library", "impact": "library", "dashboard": "home"})   # pages opened from inside another
+REVIEW_VIEWS = ("shredreq", "shredacc", "sort", "crosswalk", "prove")
 TEAM = ("formatstd", "profiles", "studio", "rules", "audit", "refs")
 # the menu entry each page lights up
-RAIL_OF = {k: h for k, h in HEAD_OF.items() if h in ("home", "library", "assign", "setups", "acronyms", "finalcheck")}
+RAIL_OF = {k: h for k, h in HEAD_OF.items() if h in STEP_KEYS}
 RAIL_OF.update({k: "assign" for k in REVIEW_VIEWS})
-RAIL_OF.update({"storyboards": "setups", "setup": "setups", "structure": "setups", "exportall": "home", "lists": "acronyms"})
+RAIL_OF.update({"storyboards": "setups", "setup": "setups", "structure": "setups", "exportall": "home", "lists": "assign"})
 RAIL_OF.update({k: "team" for t in TEAM for k in [k for k, _t in TABS.get(t, [(t, "")])]})
 RAIL_OF.update({"prodstd": "team", "qpstd": "team"})     # 3.98.0: a Quick Part's details open from Parts
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup", "setups"}   # 3.18.2:
 # pages that change the matrix (decisions, the structure, placements, setup) share its Undo steps; Review has its own
 VIEWS = {"prove": "coverage", "crosswalk": "lm"}                # 3.90.0: views of Review's maps, not pages of their own
 BETA = {"fixcopy", "applyword"}                                  # 3.16.0: tools still being proven, marked Beta in the menu and on the page
-GROUP_OF = {k: ("Team" if e == "team" else "" if e == "home" else f"Step {n} of 5")
+GROUP_OF = {k: ("Team" if e == "team" else "" if e == "home" else f"Step {n} of {len(STEP_KEYS) - 1}")
             for k, e in RAIL_OF.items()
             for n in [[x for x, _t in RAIL[0][1]].index(e) if e in [x for x, _t in RAIL[0][1]] else 0]}
 GROUP_OF.update({"team": "Team", "settings": "", "efforts": "", "mywork": "", "tools": ""})

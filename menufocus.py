@@ -7,7 +7,6 @@ SET_ASIDE {key: (date, reason)}; OFF {key: (date, reason)} (3.89.0: out even whe
 hidden(settings) -> set of keys out of the menu now."""
 
 SET_ASIDE = {"mywork": ("2026-11-05", "Authors and the proposal manager track their work in SharePoint and Teams"),
-             "drafts": ("2026-11-05", "Reading drafts back needs authors to write in the setup files the app made"),
              "truth": ("2026-11-05", "Authors check facts in the shared document"),
              "datacalls": ("2026-11-05", "Coordinating authors and experts happens in SharePoint and email"),
              "reviews": ("2026-11-05", "Color review comments live in the shared document"),
@@ -23,6 +22,7 @@ SETTING = "show_set_aside"
 # 3.89.0 (Nicholas, 2026-11-09 07:24): off the menu and the feature lists even when the pages set aside are shown; the
 # code and its tests stay, to revisit later
 OFF = {"storyboards": ("2026-11-09", "Not needed for now; kept in the code to revisit later")}
+# 4.0.0 (2026-11-10): Draft Status came back as the Drafts step's Status (claude/stationkeeper-steps-decisions-2026-11-10.md)
 
 
 def hidden(settings=None):
@@ -32,6 +32,6 @@ def hidden(settings=None):
 
 def names():
     """The set-aside pages' menu names, for the Settings line."""
-    return ("My Work, Draft Status, Wall of Truth, Data calls, Color Reviews, Setup's "
+    return ("My Work, Wall of Truth, Data calls, Color Reviews, Setup's "
             "Kickoff packets, and the Effort Dashboard's stages and gates, gate goals, win themes, All overviews and the "
             "Evaluation and hot buttons card")

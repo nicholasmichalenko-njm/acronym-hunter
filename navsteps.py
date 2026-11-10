@@ -1,19 +1,21 @@
-"""The effort's path (3.96.0; canvas "Navigation", boards 1 to 3; claude/stationkeeper-navigation-3.93.md): the menu is
-the effort's five steps with the Dashboard as the map. Each step says where it stands (done, now, next, later), what is
-left in a few words, how far along it is, and the one thing to do next. Every page in a step ends with that step's next
-move. Numbers only from what the effort already holds; rules only (No AI); nothing leaves the PC."""
+"""The effort's path (3.96.0; 4.0.0: six steps, claude/stationkeeper-six-steps-plan-4.0.md): the menu is the effort's
+steps with the Dashboard as the map. Each step says where it stands (done, now, next, later), what is left in a few
+words, how far along it is, and the one thing to do next. Every page in a step ends with that step's next move. Numbers
+only from what the effort already holds; rules only (No AI); nothing leaves the PC."""
 import datetime
 
-STEPS = (("library", "Customer files", "What the customer gave us, every version"),
-         ("assign", "Review", "Verify, Read, Compare, Place: every customer sentence in its place"),
-         ("setups", "Setup", "The structure, its formatting, the setup in Word"),
-         ("acronyms", "Write", "The drafts and what is checked in them"),
+STEPS = (("library", "Documents", "The solicitation package: complete, current and readable"),
+         ("assign", "Shred", "What every piece of the customer's text is, and its terms"),
+         ("matrix", "Matrix & Outline", "What we answer, and where in our structure"),
+         ("setups", "Setup", "Who writes what, when and how long; the setup in Word"),
+         ("drafts", "Drafts", "The team's drafts read back: where each section stands"),
          ("finalcheck", "Submit", "The last checks, then what happens after"))
 NAME = {k: n for k, n, _w in STEPS}
-THEN = {"library": "Review, read and place the customer's sentences",       # what the next step does, for the bar's button
-        "assign": "Setup, make the setup from what you placed",
-        "setups": "Write, the drafts and what is checked in them",
-        "acronyms": "Submit, the last checks"}
+THEN = {"library": "Shred, what every piece of the customer's text is",       # what the next step does, for the bar's button
+        "assign": "Matrix & Outline, place what we answer",
+        "matrix": "Setup, make the setup from the outline",
+        "setups": "Drafts, read the team's drafts back",
+        "drafts": "Submit, the last checks"}
 
 
 def _plural(n, word, many=None):
@@ -84,46 +86,54 @@ def short_date(d):
 
 
 def steps(f):
-    """The five steps: [{key, n, name, what, done, state, badge, progress, summary}]. state is done, now, next or later:
+    """The six steps: [{key, n, name, what, done, state, badge, progress, summary}]. state is done, now, next or later:
     the first step not done is now, the one after it next."""
     out = []
     r = f.get("reqs")
-    # 1 Customer files
-    docs, chk = f["docs"], f["to_check"]
-    out.append({"key": "library", "done": docs > 0 and not chk, "progress": 1.0 if docs and not chk else 0.5 if docs else 0.0,
-                "badge": f"{chk} to check" if chk else ("" if docs else "add files"),
-                "summary": (f"{_plural(docs, 'file')} in" + (f"; {chk} to check" if chk else ".")) if docs else "No customer files yet."})
-    # 2 Review
+    # 1 Documents
+    docs, chk, cmp_ = f["docs"], f["to_check"], f["compare"]
+    left1 = chk + cmp_
+    bits = []
+    if chk:
+        bits.append(f"{chk} to check")
+    if cmp_:
+        bits.append(f"{_plural(cmp_, 'change')} to review")
+    out.append({"key": "library", "done": docs > 0 and not left1, "progress": 1.0 if docs and not left1 else 0.5 if docs else 0.0,
+                "badge": (bits[0] if len(bits) == 1 else f"{left1} left") if bits else ("" if docs else "add files"),
+                "summary": (f"{_plural(docs, 'document')} in" + ("; " + ", ".join(bits) if bits else ".")) if docs
+                           else "No customer documents yet."})
+    # 2 Shred
+    acr = f["acronyms"] or 0
     if r:
-        unplaced = r["reqs"] - r["placed"]
-        left = r["undecided"] + unplaced
-        total = r["sentences"] + r["reqs"]
-        prog = (r["decided"] + r["placed"]) / total if total else 0.0
-        bits = [f"{r['placed']} of {_plural(r['reqs'], 'requirement')} placed"]
-        if r["undecided"]:
-            bits.append(f"{_plural(r['undecided'], 'sentence')} to decide")
-        if f["compare"]:
-            bits.append(f"{_plural(f['compare'], 'amendment change')} to decide")
-        out.append({"key": "assign", "done": not left and not f["compare"], "progress": prog if (left or f["compare"]) else 1.0,
-                    "badge": f"{left + f['compare']} left" if left or f["compare"] else "", "summary": ". ".join(bits) + ".",
-                    "left": left, "unplaced": unplaced})
+        und = r["undecided"]
+        total = r["sentences"] or 1
+        bits = [f"{r['decided']} of {_plural(r['sentences'], 'piece')} sorted"]
+        if acr:
+            bits.append(f"{_plural(acr, 'term')} to decide")
+        out.append({"key": "assign", "done": not und and not acr, "progress": 1.0 if not und and not acr else r["decided"] / total,
+                    "badge": f"{und} to shred" if und else (_plural(acr, "term") if acr else ""), "summary": ". ".join(bits) + ".",
+                    "left": und})
     else:
-        out.append({"key": "assign", "done": False, "progress": 0.0, "badge": "", "summary": "Nothing read yet.", "left": 0, "unplaced": 0})
-    # 3 Setup
+        out.append({"key": "assign", "done": False, "progress": 0.0, "badge": "", "left": 0,
+                    "summary": "Nothing shredded yet." + (f" {_plural(acr, 'term')} to decide." if acr else "")})
+    # 3 Matrix & Outline
+    if r and r["reqs"]:
+        unplaced = r["reqs"] - r["placed"]
+        out.append({"key": "matrix", "done": not unplaced, "progress": r["placed"] / r["reqs"],
+                    "badge": f"{unplaced} to place" if unplaced else "",
+                    "summary": f"{r['placed']} of {_plural(r['reqs'], 'requirement')} placed.", "unplaced": unplaced})
+    else:
+        out.append({"key": "matrix", "done": False, "progress": 0.0, "badge": "", "unplaced": 0,
+                    "summary": "No requirements to place yet."})
+    # 4 Setup
     secs = f["sections"]
     out.append({"key": "setups", "done": bool(f["made"]), "progress": 1.0 if f["made"] else 0.4 if secs else 0.0,
                 "badge": "", "summary": ("Made. Make it again after changes." if f["made"] else
                                          f"{_plural(secs, 'section')} in the structure. Not made yet." if secs else "No structure yet.")})
-    # 4 Write
-    acr = f["acronyms"] or 0
-    listed = f.get("acr_total", 0) > 0 or acr > 0
-    w_done = (f["drafts_read"] or not f.get("drafts_on", True)) and listed and not acr
-    drafts = ("Drafts read back." if f["drafts_read"] else "No drafts in yet.") if f.get("drafts_on", True) else ""
-    out.append({"key": "acronyms", "done": w_done, "progress": 1.0 if w_done else 0.6 if f["drafts_read"] else 0.3 if listed else 0.0,
-                "badge": _plural(acr, "acronym") if acr else "",
-                "summary": ((f"{_plural(acr, 'acronym')} to decide. " if acr else "Acronyms decided. " if listed else
-                             "No acronyms scanned yet. ") + drafts).strip()})
-    # 5 Submit
+    # 5 Drafts
+    out.append({"key": "drafts", "done": bool(f["drafts_read"]), "progress": 1.0 if f["drafts_read"] else 0.0, "badge": "",
+                "summary": "Drafts read back." if f["drafts_read"] else "No drafts read back yet."})
+    # 6 Submit
     ck = f["check"]
     out.append({"key": "finalcheck", "done": bool(ck and ck["ok"]), "progress": 1.0 if ck and ck["ok"] else 0.5 if ck else 0.0,
                 "badge": short_date(f["due_date"]),
@@ -162,34 +172,31 @@ def next_step(sts, f):
     later = [s["name"].lower() for s in sts if s["state"] in ("next", "later")][:2]
     then = ("then: " + ", then ".join(later)) if later else ""
     if k == "library":
-        t = f"Check the {_plural(f['to_check'], 'customer file')} that came in" if f["to_check"] else "Add the customer's files"
-        return {"key": k, "go": "library", "title": t, "button": "Open Customer files", "then": then,
-                "why": "Each file's role and version, so Review reads the right ones."}
-    if k == "assign":
         if f["compare"]:
-            return {"key": k, "go": "compare", "title": f"Decide the {_plural(f['compare'], 'change')} the amendment made",
-                    "button": "Open Compare", "then": then,
-                    "why": "Compare shows each change on the page with what it means for what you placed."}
+            return {"key": k, "go": "compare", "title": f"Review the {_plural(f['compare'], 'change')} a new version made",
+                    "button": "Open Changes", "then": then,
+                    "why": "Each changed passage: no impact, shred it again, or ask a question."}
+        t = f"Check the {_plural(f['to_check'], 'customer document')} that came in" if f["to_check"] else "Add the customer's documents"
+        return {"key": k, "go": "library", "title": t, "button": "Open Documents", "then": then,
+                "why": "Each document's type and version, so the shred reads the right ones."}
+    if k == "assign":
         r = f.get("reqs")
         if not r:
-            return {"key": k, "go": "read", "title": "Read the customer's files", "button": "Open Read", "then": then,
-                    "why": "Read turns the files into sentences to decide and place."}
+            return {"key": k, "go": "read", "title": "Read in the customer's documents", "button": "Open Shred", "then": then,
+                    "why": "Read in turns the documents into pieces to shred."}
         if r["undecided"]:
-            return {"key": k, "go": "assign", "title": f"Decide the {_plural(r['undecided'], 'sentence')} left", "button": "Open Review",
-                    "then": then, "why": "Keep, context or drop: what each customer sentence asks of you."}
-        return {"key": k, "go": "assign", "title": f"Place the {_plural(now['unplaced'], 'requirement')} left", "button": "Open Review",
-                "then": then, "why": "Each requirement in its section of the response structure."}
+            return {"key": k, "go": "assign", "title": f"Shred the {_plural(r['undecided'], 'piece')} left", "button": "Open Shred",
+                    "then": then, "why": "What each piece of the customer's text is and asks of you."}
+        return {"key": k, "go": "acronyms", "title": f"Decide the {_plural(f['acronyms'] or 0, 'term')} left", "button": "Open Terms",
+                "then": then, "why": "Each term on the customer's pages: in the list with its definition, or not a term."}
+    if k == "matrix":
+        return {"key": k, "go": "assign", "title": f"Place the {_plural(now.get('unplaced', 0), 'requirement')} left",
+                "button": "Open Shred", "then": then, "why": "Each requirement in its section of the response structure."}
     if k == "setups":
-        return {"key": k, "go": "setups", "title": "Make the setup from what you placed", "button": "Open Setup", "then": then,
-                "why": "The structure, its formatting and the setup in Word, for the authors."}
-    if k == "acronyms":
-        if f["acronyms"] or not f.get("acr_total"):
-            if not f["acronyms"]:
-                return {"key": k, "go": "acronyms", "title": "Scan the drafts for acronyms", "button": "Open Acronyms", "then": then,
-                        "why": "Every term on the page, in the list with its definition, or not a term."}
-            return {"key": k, "go": "acronyms", "title": f"Decide the {_plural(f['acronyms'], 'acronym')} left", "button": "Open Acronyms",
-                    "then": then, "why": "Each term on the page: in the list with its definition, or not a term."}
-        return {"key": k, "go": "drafts", "title": "Read the drafts back", "button": "Open Draft Status", "then": then,
+        return {"key": k, "go": "setups", "title": "Make the setup from the outline", "button": "Open Setup", "then": then,
+                "why": "Who writes what, when and how long, and the setup in Word for the authors."}
+    if k == "drafts":
+        return {"key": k, "go": "drafts", "title": "Read the drafts back", "button": "Open Drafts", "then": then,
                 "why": "Where each section stands against its page budget and requirements."}
     return {"key": k, "go": "finalcheck", "title": "Run the Final Check", "button": "Open Submit", "then": then,
             "why": "One report: the submission rules, the page limits, the acronyms and every check."}

@@ -1,8 +1,8 @@
 """The menu as the effort's path (3.96.0; canvas "Navigation", boards 1 and 3; claude/stationkeeper-navigation-3.93.md):
-the effort switcher at the top (another effort, All Efforts, My Work, Your Tools); the Dashboard and the five steps,
+the effort switcher at the top (another effort, All Efforts, My Work, Your Tools); the Dashboard and the steps (4.0.0: six),
 each with what is left (done, a count, next, a date); Team and Settings at the foot; Ctrl+K goes to any page or tool by
-name. Inside a step its tabs are a visual stepper with counts (Review: Verify, Read, Compare, Place) and Review's other
-pages are ways to see it (Our structure, Requirements, Sort, Matrix, L to M, Coverage). Every page in a step ends with
+name. Inside the Shred step its tabs are a visual stepper with counts (4.0.0: Read in, Shred, Terms, Acronym List) and
+its other pages are ways to see it (Our structure, Requirements, Sort, L to M, Coverage). Every page in a step ends with
 one next step (the bar at the bottom). navsteps holds the rules; nothing leaves the PC."""
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
@@ -11,16 +11,19 @@ import diag
 import navsteps as NS
 from . import design as D
 
-# the Review step's ways to see it: (page, label, Review's own view or None)
+# the Shred step's ways to see it: (page, label, the Shred page's own view or None). 4.0.0: the Matrix is Matrix & Outline's
 VIEWS = (("assign", "Our structure", "structure"), ("shredreq", "Requirements", None), ("sort", "Sort", None),
-         ("matrix", "Matrix", None), ("crosswalk", "L to M", "lm"), ("prove", "Coverage", "coverage"))
-VIEW_OF = {"assign": "assign", "shredreq": "shredreq", "shredacc": "shredreq", "sort": "sort", "matrix": "matrix",
-           "crosswalk": "crosswalk", "evalcrit": "crosswalk", "prove": "prove", "impact": "assign"}
+         ("crosswalk", "L to M", "lm"), ("prove", "Coverage", "coverage"))
+VIEW_OF = {"assign": "assign", "shredreq": "shredreq", "shredacc": "shredreq", "sort": "sort",
+           "crosswalk": "crosswalk", "prove": "prove"}
+# 4.0.0: the Shred step's tabs as a stepper: (page, label)
+CHIPS = (("read", "Read in"), ("assign", "Shred"), ("acronyms", "Terms"), ("acrlist", "Acronym List"))
 STEP_TITLES = {"home": ("Dashboard", "Where the effort is, what is left, and your next step"),
-               "library": ("Customer files", "What the customer gave us, every version"),
-               "assign": ("Review", "Put every customer sentence in its place in the response structure"),
-               "setups": ("Setup", "The structure, its formatting, the setup in Word"),
-               "acronyms": ("Write", "The drafts and what is checked in them"),
+               "library": ("Documents", "The solicitation package: complete, current and readable"),
+               "assign": ("Shred", "What every piece of the customer's text is, and its terms"),
+               "matrix": ("Matrix & Outline", "What we answer, and where in our structure"),
+               "setups": ("Setup", "Who writes what, when and how long; the setup in Word"),
+               "drafts": ("Drafts", "The team's drafts read back: where each section stands"),
                "finalcheck": ("Submit", "The last checks, then what happens after")}
 
 
@@ -199,7 +202,8 @@ def refresh_stage_tools(w, rail_of, prof=None):
 
 # ------------------------------------------------------------------ inside a step: the stepper, the views, the bar
 class Stepper(QWidget):
-    """Review's tabs as steps: each with its number, its name and a count; done ones in green, the current outlined."""
+    """The Shred step's tabs as steps (4.0.0; Review's until 3.98.0): each with its number, its name and a count; done ones
+    in green, the current outlined."""
     def __init__(self, w):
         super().__init__()
         self.w = w
@@ -210,7 +214,7 @@ class Stepper(QWidget):
         steps = QWidget(); h = QHBoxLayout(steps); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(0)
         fl.addWidget(steps)
         self.chips = {}
-        for i, (k, label) in enumerate((("verify", "Verify"), ("read", "Read"), ("compare", "Compare"), ("assign", "Place")), 1):
+        for i, (k, label) in enumerate(CHIPS, 1):
             if i > 1:
                 ln = QFrame(); ln.setFixedSize(18, 2); ln.setObjectName("stepLine"); h.addWidget(ln, 0, Qt.AlignVCenter)
                 self.chips[k + ":line"] = ln
@@ -232,7 +236,7 @@ class Stepper(QWidget):
         for k, label, _v in VIEWS:
             b = QPushButton(label); b.setCheckable(True); b.setObjectName("viewBtn"); b.setCursor(Qt.PointingHandCursor)
             b.setToolTip({"assign": "Your response structure beside the page", "shredreq": "Every requirement in one list",
-                          "sort": "Every requirement under an area of the request", "matrix": "The compliance matrix",
+                          "sort": "Every requirement under an area of the request",
                           "crosswalk": "Each instruction, the factor that scores it, the work it describes",
                           "prove": "What is covered, by section"}[k])
             b.clicked.connect(lambda _=False, key=k: self.see(key))
@@ -240,7 +244,7 @@ class Stepper(QWidget):
         vh.addWidget(seg)
 
     def see(self, key):
-        """A way to see Review: Our structure, L to M and Coverage beside Review's page; the others are pages."""
+        """A way to see the Shred page: Our structure, L to M and Coverage beside it; the others are pages."""
         ok = self.w.go(key)
         if key == "assign" and ok is not False:
             try:
@@ -262,19 +266,19 @@ class Stepper(QWidget):
     def counts(self):
         f = getattr(self.w, "path_facts", None) or {}
         r = f.get("reqs")
-        left = (r["undecided"] + r["reqs"] - r["placed"]) if r else None
-        return {"verify": (f"{f.get('docs', 0)} file(s)" if f.get("docs") else "no files yet", "done" if f.get("docs") else "todo"),
-                "read": (f"{f.get('items', 0)} read" if f.get("items") else "not read yet", "done" if f.get("items") else "todo"),
-                "compare": (f"{f['compare']} to decide" if f.get("compare") else "nothing to decide",
-                            "warn" if f.get("compare") else "done" if f.get("items") else "todo"),
-                "assign": (f"{left} of {r['sentences'] + r['reqs']} left" if r and left else "all placed" if r else "nothing yet",
-                           "warn" if left else "done" if r else "todo")}
+        acr = f.get("acronyms") or 0
+        tot = f.get("acr_total") or 0
+        return {"read": (f"{f.get('items', 0)} read in" if f.get("items") else "nothing read in", "done" if f.get("items") else "todo"),
+                "assign": (f"{r['undecided']} of {r['sentences']} left" if r and r["undecided"] else "all sorted" if r else "nothing yet",
+                           "warn" if r and r["undecided"] else "done" if r else "todo"),
+                "acronyms": (f"{acr} to decide" if acr else "decided" if tot else "not scanned", "warn" if acr else "done" if tot else "todo"),
+                "acrlist": (f"{tot} terms" if tot else "empty", "done" if tot else "todo")}
 
     def show_for(self, step):
         t = D.tokens()
-        cur = "assign" if step in VIEW_OF else step
+        cur = "assign" if step in VIEW_OF else step if step in self.chips else "assign"
         cs = self.counts()
-        for k in ("verify", "read", "compare", "assign"):
+        for k, _l in CHIPS:
             b = self.chips[k]
             text, st = cs[k]
             b.ct.setText(text)
