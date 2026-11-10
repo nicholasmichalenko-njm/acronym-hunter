@@ -42,7 +42,7 @@ def versions_of(config_dir, did):
 
 
 def shown_name(config_dir, x):
-    """'Kestrel cover v2: CUI' where a part has more than one version (Setup's picker and the rows)."""
+    """'Blue cover v2: CUI' where a part has more than one version (Setup's picker and the rows)."""
     many = len(versions_of(config_dir, x["id"])) > 1
     return x["name"] + (f" v{version(x)}" if many else "") + (f": {x['label']}" if x.get("label") else "")
 
