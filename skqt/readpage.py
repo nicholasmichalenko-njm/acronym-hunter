@@ -213,7 +213,7 @@ class ReadPage(QWidget):
         wk.finished.connect(lambda wk=wk: _ORPHANS.remove(wk) if wk in _ORPHANS else None)
         self.worker = None; self._busy = False
         self.panel.stopped("Reading stopped", "The effort closed while it read. Nothing was written to the matrix.",
-                           "Open the effort and press Read again.")
+                           "Open the effort and pick the document in Shred again.")
         diag.activity("compliance_read_abandoned")
         self.lock_controls()
         return True
@@ -228,7 +228,7 @@ class ReadPage(QWidget):
             else:
                 from PySide6.QtWidgets import QMessageBox
                 answer = QMessageBox.question(self, "Reading is running", "Reading the customer documents is still running.\n\n"
-                                              "Stop it and go on? Nothing is written to the matrix; you can Read again later.",
+                                              "Stop it and go on? Nothing is written to the matrix; you can pick the document in Shred again later.",
                                               QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes
         if answer:
             self.abandon()
@@ -545,8 +545,8 @@ class ReadPage(QWidget):
             diag.swallowed()
             self.panel.failed("The read did not finish", f"Building the matrix stopped with an error ({type(ex).__name__}). "
                               + ("No compliance matrix was made." if self._new else "Your matrix is as it was before Read."),
-                              "Press Read to try again. If it happens again, Help > Create a support file and send it in.")
-            self.host.status("The extract did not finish. See the message on Shred > Extract.")
+                              "Pick the document in Shred to try again. If it happens again, Help > Create a support file and send it in.")
+            self.host.status("The extract did not finish. See the message on Shred.")
         finally:
             self._then = None
             self.lock_controls()
@@ -557,7 +557,7 @@ class ReadPage(QWidget):
 
     def _finish(self, res):
         if self.host.ws is None or self.host.ws.root != getattr(self, "_root", None):
-            self.panel.stopped("Reading stopped", "The effort changed while it read. Nothing was written.", "Press Read again.")
+            self.panel.stopped("Reading stopped", "The effort changed while it read. Nothing was written.", "Pick the document in Shred again.")
             return
         if isinstance(res, CR.S.Spill):                 # 2.97.0: marked above CUI: stop, nothing written or kept
             from .sensgate import spill_stop
@@ -568,15 +568,14 @@ class ReadPage(QWidget):
             return
         if isinstance(res, CR.Stopped):
             self.panel.stopped("Reading stopped", "You pressed Stop. Nothing was written to the matrix.",
-                               "Press Read when you are ready.")
+                               "Pick the document in Shred when you are ready.")
             self.host.status("Reading stopped. Nothing was written.")
             diag.activity("compliance_read_stopped")
             return
         if isinstance(res, CR.ReadFailed):
             self.panel.failed("A file could not be read", f"{res.name} stopped the read ({type(res.cause).__name__}). "
                               + ("No compliance matrix was made." if self._new else "Your matrix is as it was before Read."),
-                              "Open the file to check it, save it again (or as PDF), then Read again; or untick it and Read "
-                              "the others.")
+                              "Open the file to check it, save it again (or as PDF), then pick it in Shred again.")
             self.host.status(f"Not read: {res.name} could not be read.")
             diag.activity("compliance_read_failed")
             return
@@ -607,7 +606,7 @@ class ReadPage(QWidget):
             msg += f" {len(self.aside)} header, footer or repeated line(s) set aside: Set aside... lists them."
         diag.activity("compliance_read", files=len(src), items=len(items))
         self.host.status(msg + " " + CR.text_check_line(CR.text_check(self.host.review.M)))
-        self.panel.done("Read", msg)
+        self.panel.done("Extracted", msg)
         self.refresh()
         self.host.go("assign")                  # 3.16.0: reading never stops for the structure: build it beside the page
         if getattr(self, "_start", "") == "choose" and not self.host.review.M.outline:

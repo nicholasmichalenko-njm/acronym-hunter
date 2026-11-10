@@ -53,7 +53,7 @@ TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("reco
                     ("datacalls", "Data calls")],
         # 4.0.0: Shred, a stepper (navrail.Stepper); List, Sort, Our structure, L to M and Coverage are ways to see it (no tab
         # repeats its step's name: claude/stationkeeper-steps-decisions-2026-11-10.md, 16)
-        "assign": [("read", "Extract"), ("assign", "Requirements"), ("acronyms", "Acros & Abs"), ("acrlist", "Acro List")],
+        "assign": [("assign", "Requirements"), ("acronyms", "Acros & Abs"), ("acrlist", "Acro List")],
         "matrix": [("matrix", "Matrix"), ("evalcrit", "Evaluation")],          # 4.0.0; Place, Structure, Coverage in 4.2.0
         "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting")],
         "drafts": [("drafts", "Status"), ("techedit", "Edit"), ("reviews", "Color Reviews"), ("truth", "Wall of Truth")],
@@ -246,6 +246,7 @@ class MainWindow(QMainWindow):
         self.read_page = ReadPage(self)
         self.structure_page = BuilderPage(self)
         self.assign_page = AssignPage(self)
+        self.assign_page.task_slot.addWidget(self.read_page.panel)      # 4.1.0: the extract's progress shows on Shred
         self.prove_page = ProvePage(self)
         self.verify_page = VerifyPage(self)
         self.crosswalk_page = CrosswalkPage(self)
@@ -342,7 +343,7 @@ class MainWindow(QMainWindow):
         self.safety = Safety(self)
         self.fill_efforts()
         self.refresh_access()                      # 3.13.0
-        self.go("read")
+        self.go("assign")
         self.title()
 
     # ------------------------------------------------------------ finding a sentence
@@ -498,7 +499,7 @@ class MainWindow(QMainWindow):
             diag.swallowed()
         say(0.7, f"{name}: setting up the pages")
         self.read_page.refresh()
-        self.go("assign" if self.review is not None and self.review.M.items else "read")
+        self.go("assign")                          # 4.1.0: Shred lists the documents to extract
         self.safety.opened()
         self.warm_up()                             # 2.82.0: pages that read every document are ready before you open them
         say(0.9, f"{name}: back where you were")
@@ -1027,7 +1028,8 @@ class MainWindow(QMainWindow):
             if ok is not False:
                 self.assign_page.show_view(VIEWS[step])
             return ok
-        step = {"format": "fixcopy", "dashboard": "home", "setup": "setups", "structure": "setups"}.get(step, step)   # 3.74.0: one Setup page   # 3.30.0: Response Setup is in the Builder   # 3.9.0: Format Check is in Fix a Copy; 3.12.0: one dashboard
+        step = {"format": "fixcopy", "dashboard": "home", "setup": "setups", "structure": "setups",
+                "read": "assign"}.get(step, step)   # 3.74.0: one Setup page; 3.9.0, 3.12.0, 3.30.0; 4.1.0: no Extract tab
         if step in TABS and self.blocked(step) is not None:     # 3.16.0: a menu item opens on a tab the role has
             step = next((k for k in members(step)[1:] if self.blocked(k) is None), step)
         why = self.blocked(step)                     # 3.13.0: another role's tool, or a Preview tool not turned on

@@ -833,19 +833,9 @@ class LibraryPage(QWidget):
         if not paths:
             return self._say("Read into Review", "Only customer documents are read into the compliance matrix. Open the others "
                              "one at a time: they read beside the structure.", answer)
-        if h.review is None:
-            text = (f"Extract these {len(paths)} document(s), then open the first in Shred?")
-            if answer is None:
-                answer = QMessageBox.question(self, "Read into Review", text) == QMessageBox.Yes
-            if not answer:
-                return False
-        rp = h.read_page
-        rp.refresh()
-        first = self.lib.doc(ids[0])
-        rp._then = lambda: self._open_in_review(self.lib.doc(first["id"]) or first)
-        w = rp.read(paths=paths, out=out, start="auto")
+        from . import shredpick as SP                # 4.1.0: extracted at once, no question; the first opens in Shred
+        w = SP.extract_paths(h, paths, then_file=os.path.basename(paths[0]), out=out)
         if w is None:
-            rp._then = None
             return False
         diag.activity("library_read_many", n=len(paths))
         return w
@@ -915,23 +905,15 @@ class LibraryPage(QWidget):
             build = [mine]
             h.status(f"{d['name']} now builds the matrix (right-click it to change its role).")
         if not build:
-            return self._say("Shred", "Nothing is extracted yet. Open Shred > Extract, tick the customer documents to "
-                             "extract, then Read.", answer)
-        text = (f"Nothing is extracted yet. Extract the {len(build)} customer document(s) ticked on Shred > Extract"
-                + (", this one first" if build[0] == mine else "") + f", then open {d['name']} in Shred?")
-        if answer is None:
-            answer = QMessageBox.question(self, "Shred", text) == QMessageBox.Yes
-        if not answer:
-            return False
-        rp = h.read_page
-        rp.refresh()
-        start = rp.start.currentData() if rp.start.isVisible() or rp.start.count() else None
-        rp._then = lambda: self._open_in_review(self.lib.doc(d["id"]) or d)
-        w = rp.read(paths=build, out=out, start=("auto" if start in (None, "choose") else start))
+            return self._say("Shred", "This document is not one Stationkeeper can extract (PDF, Word, Excel or "
+                             "PowerPoint).", answer)
+        if mine and mine in build:                     # 4.1.0: this one now, at once, no question; the others when picked
+            build = [mine]
+        from . import shredpick as SP
+        w = SP.extract_paths(h, build[:1], out=out)
         if w is None:
-            rp._then = None
             return False
-        h.go("read")
+        h.read_page._then = lambda: self._open_in_review(self.lib.doc(d["id"]) or d)
         return w
 
     def doc_menu(self, at=None, run=True):

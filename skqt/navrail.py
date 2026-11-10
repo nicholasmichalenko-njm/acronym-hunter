@@ -17,7 +17,7 @@ VIEWS = (("assign", "Our structure", "structure"), ("shredreq", "List", None), (
 VIEW_OF = {"assign": "assign", "shredreq": "shredreq", "shredacc": "shredreq", "sort": "sort",
            "crosswalk": "crosswalk", "prove": "prove"}
 # 4.0.0: the Shred step's tabs as a stepper: (page, label)
-CHIPS = (("read", "Extract"), ("assign", "Requirements"), ("acronyms", "Acros & Abs"), ("acrlist", "Acro List"))
+CHIPS = (("assign", "Requirements"), ("acronyms", "Acros & Abs"), ("acrlist", "Acro List"))    # 4.1.0: no Extract
 STEP_TITLES = {"home": ("Dashboard", "Where the effort is, what is left, and your next step"),
                "library": ("Documents", "The solicitation package: complete, current and readable"),
                "assign": ("Shred", "What every piece of the customer's text is, and its acros and abs"),
@@ -268,8 +268,7 @@ class Stepper(QWidget):
         r = f.get("reqs")
         acr = f.get("acronyms") or 0
         tot = f.get("acr_total") or 0
-        return {"read": (f"{f.get('items', 0)} extracted" if f.get("items") else "nothing extracted", "done" if f.get("items") else "todo"),
-                "assign": (f"{r['undecided']} of {r['sentences']} left" if r and r["undecided"] else "all sorted" if r else "nothing yet",
+        return {"assign": (f"{r['undecided']} of {r['sentences']} left" if r and r["undecided"] else "all sorted" if r else "nothing extracted",
                            "warn" if r and r["undecided"] else "done" if r else "todo"),
                 "acronyms": (f"{acr} to decide" if acr else "decided" if tot else "not scanned", "warn" if acr else "done" if tot else "todo"),
                 "acrlist": (f"{tot} in the list" if tot else "empty", "done" if tot else "todo")}

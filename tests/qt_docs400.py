@@ -49,12 +49,15 @@ check("Documents is step 1: its page and title", w.stack.currentWidget() is lp a
 rows = {r[0]: r for r in lp.status_now}
 check("the status panel: text check, shred, feeds the matrix, versions", list(rows)[:2] == ["Text check", "Shred"]
       and "Feeds the matrix" in rows and "Versions" in rows, list(rows))
-check("... not extracted yet; it feeds the matrix (ticked on Shred > Extract)", rows["Shred"][1] == "Not extracted yet"
+check("... not extracted yet; it feeds the matrix", rows["Shred"][1] == "Not extracted yet"
       and rows["Feeds the matrix"][1].startswith("Yes"), rows)
-check("... one button: its next thing", lp.b_read.isVisibleTo(w) and lp.b_read.text() == "Extract it", lp.b_read.text())
-check("... no 'starts from the compliance matrix' question: the button opens Shred > Extract with it ticked",
-      lp.review_selected() is True and w.stack.currentWidget() is w.read_page and w.step_btns["assign"].isChecked()
-      and [os.path.basename(r.path) for r in w.read_page.boxes if r.isChecked()] == ["Section_L_print.pdf"])
+check("... one button: its next thing (4.1.0: Shred it)", lp.b_read.isVisibleTo(w) and lp.b_read.text() == "Shred it", lp.b_read.text())
+check("... no question: the button extracts it at once and opens Shred (4.1.0)",
+      bool(lp.review_selected()) and w.stack.currentWidget() is w.assign_page and w.step_btns["assign"].isChecked())
+t0 = time.time()
+while (w.read_page.running() or w.assign_page.file != "Section_L_print.pdf") and time.time() - t0 < 90:
+    app.processEvents(); time.sleep(0.02)
+check("... and it opens there when done", w.assign_page.file == "Section_L_print.pdf", w.assign_page.file)
 w.rail_go("library"); app.processEvents()
 lp.select(dS["id"]); lp.show_doc()
 rows = {r[0]: r for r in lp.status_now}

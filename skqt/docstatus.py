@@ -1,7 +1,7 @@
 """A document's status panel on Documents (4.0.0; canvas "Six Steps", board 1; claude/stationkeeper-six-steps-plan-4.0.md):
 click a document and the panel says what has been done to it (its text checked, the shred, the changes from its last
 version, whether it feeds the matrix, its text taken as context) and offers one button, its next thing: Check the text,
-Review changes, Extract it, Continue the shred. The right-click menu keeps five things about the file itself (Open,
+Review changes, Shred it (4.1.0: extracts it at once), Continue the shred. The right-click menu keeps five things about the file itself (Open,
 Set type, Add a newer version, Leave out, Show in folder); the rest of what can be said about a document is under More.
 Rules only (No AI); nothing leaves the PC."""
 import os
@@ -71,7 +71,7 @@ def status(page, d, st=None):
         out.append(("Changes from its last version", ("Not reviewed yet" if not opened else f"{left} to review" if left else "Reviewed"),
                     WARN if (not opened or left) else OK))
     role = lib.role_of(d)
-    out.append(("Feeds the matrix", "Yes: ticked on Shred > Extract" if role == "matrix" else "No", OK if role == "matrix" else NONE))
+    out.append(("Feeds the matrix", "Yes: Shred extracts it when you pick it" if role == "matrix" else "No", OK if role == "matrix" else NONE))
     try:
         import ctxdocs as CX
         nt = len(CX.Store(page.host.ws.root).load().of_doc(d["id"]))
@@ -89,7 +89,7 @@ def status(page, d, st=None):
     elif ch is not None and (not ch[0] or ch[1]):
         nxt = ("Review changes" + (f" ({ch[1]} left)" if ch[0] and ch[1] else ""), "compare")
     elif key == "unread":
-        nxt = ("Extract it", "read")
+        nxt = ("Shred it", "read")
     elif key == "needs":
         nxt = ("Continue the shred", "assign")
     elif key == "reviewed":
@@ -115,10 +115,9 @@ def go_next(page, d, key):
     if key == "read":
         if page.lib.role_of(d) == "not_needed":
             return False
-        h.go("read")
-        h.read_page.refresh()
-        f = d["versions"][-1].get("file", "")
-        return bool(h.read_page.tick_only([f])) if f else True
+        from . import shredpick as SP                # 4.1.0: extracted at once, in the background, then opened in Shred
+        h.go("assign")
+        return bool(SP.extract(h.assign_page, d["id"]))
     if key == "assign":
         return page.read_in_assign(d["id"])
     return False

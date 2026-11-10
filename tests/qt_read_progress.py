@@ -93,7 +93,7 @@ rp.read(files["Heron"], out)
 wait(lambda: rp.worker is None)
 check("a file that cannot be read: red, names the file, says nothing was made", rp.panel.state == "failed" and rp.panel.isVisible()
       and "Section M.docx" in rp.panel.detail.text() and "No compliance matrix was made" in rp.panel.detail.text(), rp.panel.detail.text())
-check("and says what to do", "Read again" in rp.panel.hint.text(), rp.panel.hint.text())
+check("and says what to do", "pick it in Shred again" in rp.panel.hint.text(), rp.panel.hint.text())
 check("no matrix was written, and Read works again", w.review is None and not os.path.exists(out) and rp.read_btn.isEnabled()
       and rp.read_btn.text() == "Read" and not w.task.running())
 # 2. running: progress, locks, one read at a time

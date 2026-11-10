@@ -505,6 +505,7 @@ class AssignPage(QWidget):
         self.workers = []
         self.cx = None                             # 2.84.0: the library document open (ctxassign.CtxMode), else None
         self.lib_entries = {}
+        self.extract_entries = {}                  # 4.1.0: customer documents not extracted yet: picking one extracts it
         self.fixed_page = True                     # 3.20.3: the page never scrolls as a whole: the toolbar stays on top,
         self.setMinimumSize(320, 320)              # the document, the decide panel, the card and the structure scroll apart
         outer = QVBoxLayout(self); outer.setContentsMargins(0, 0, 0, 0)       # 3.20.3: the body never asks for the height its
@@ -513,12 +514,12 @@ class AssignPage(QWidget):
         v.setContentsMargins(6, 6, 6, 6)
         from .adaptive import FlowLayout
         bar = FlowLayout(spacing=6); v.addLayout(bar)         # 3.15.1: the tools wrap onto a second row when narrow
-        bar.addWidget(QLabel("File:"))
+        bar.addWidget(QLabel("Document:"))
         self.files = QComboBox(); self.files.setMinimumWidth(240); self.files.currentTextChanged.connect(self.open_file)
         bar.addWidget(self.files)
         self.queue_lbl = D.label("", "muted", wrap=False); bar.addWidget(self.queue_lbl)       # 2.96.0: the documents as a queue
-        self.done_btn = D.button("Mark reviewed", None, lambda: self.mark_reviewed(), "This document's sentences are all looked at")
-        self.next_btn = D.button("Next document \u203a", None, lambda: self.next_file(), "The next document not reviewed yet")
+        self.done_btn = D.button("Mark shredded", None, lambda: self.mark_reviewed(), "Every piece of this document is looked at")
+        self.next_btn = D.button("Next document \u203a", None, lambda: self.next_file(), "The next document not shredded yet")
         bar.addWidget(self.done_btn); bar.addWidget(self.next_btn)
         self.sg_btn = D.button("Suggest", "ctx", lambda: self.toggle_suggest(), "Show what each sentence most likely is, "
                                "from rules you can read (not AI). Nothing is decided until you accept it")      # 3.18.0
@@ -561,6 +562,7 @@ class AssignPage(QWidget):
         bar.addWidget(self.changes_btn)
         fit = QPushButton("Fit width"); fit.clicked.connect(lambda: self.view.fit()); bar.addWidget(fit)
         self.note = D.label("", "muted"); v.addWidget(self.note)
+        self.task_slot = QVBoxLayout(); v.addLayout(self.task_slot)     # 4.1.0: the extract's progress (shredpick)
         self.sg_strip = QFrame(); self.sg_strip.setObjectName("sgBar")         # 3.18.0: the suggestions shown, and the score
         self.sg_strip.setStyleSheet("QFrame#sgBar{background:rgba(22,163,74,0.07);border:1px dashed rgba(22,163,74,0.55);border-radius:6px;}")
         sh = QHBoxLayout(self.sg_strip); sh.setContentsMargins(D.SPACE["m"], D.SPACE["xs"], D.SPACE["m"], D.SPACE["xs"])
@@ -913,11 +915,11 @@ class AssignPage(QWidget):
         left = [f for f in files if f not in done]
         here = self.file in done
         self.queue_lbl.setText(f"Document {files.index(self.file) + 1} of {len(files)}  ·  "
-                               + (f"{len(left)} not reviewed yet" if left else "all reviewed"))
+                               + (f"{len(left)} not shredded yet" if left else "all shredded"))
         self.done_btn.setVisible(True); self.next_btn.setVisible(bool([f for f in left if f != self.file]))
-        self.done_btn.setText("Reviewed \u2713" if here else "Mark reviewed")
-        self.done_btn.setToolTip(f"Marked reviewed {done[self.file]}. Click to take the mark off." if here else
-                                 "This document's sentences are all looked at")
+        self.done_btn.setText("Shredded \u2713" if here else "Mark shredded")
+        self.done_btn.setToolTip(f"Marked shredded {done[self.file]}. Click to take the mark off." if here else
+                                 "Every piece of this document is looked at")
 
     def mark_reviewed(self, on=None):
         if self.host.ws is None or not self.file:
@@ -952,11 +954,14 @@ class AssignPage(QWidget):
     def fill_file_list(self):
         """The matrix's files, then (2.84.0) the library documents to read beside the structure."""
         from . import ctxassign as CXA
+        from . import shredpick as SP
         self.files.blockSignals(True)
         self.files.clear()
         self.lib_entries = {}
         if self.R:
             self.files.addItems(self.R.files())
+        SP.fill(self)                              # 4.1.0: the customer documents to extract, picked like the rest
+        if self.R:
             try:
                 ents = CXA.library_entries(self)
             except Exception:
@@ -1049,6 +1054,9 @@ class AssignPage(QWidget):
             self.open_file(self.file)
 
     def open_file(self, f):
+        if f in self.extract_entries:              # 4.1.0: picked a document not extracted yet: extract it now
+            from . import shredpick as SP
+            return SP.extract(self, self.extract_entries[f])
         if not f or self.R is None:
             return
         if f in self.lib_entries:                  # 2.84.0: a library document beside the structure

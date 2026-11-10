@@ -270,15 +270,15 @@ class Placer:
                 f"<a href='reread'>read it again</a>") if ch else ""
 
     def read_again(self):
-        """The Read tab with this file ticked, to read it again with Verify's corrections."""
+        """Extract this file again with Text check's corrections, every decision kept (4.1.0: at once, on Shred)."""
         f = getattr(self, "reread", "")
         if not f:
             return 0
-        self.pg.host.go("read")
-        n = self.pg.host.read_page.tick_only([f])
-        self.pg.host.status("Read it again: the file is ticked; your decisions are kept." if n else
-                            f"{f} is not in the list to read: add it from the Library.")
-        return n
+        from . import shredpick as SP
+        w = SP.extract_file(self.pg.host, f)
+        if w is not None:
+            self.pg.host.status(f"Extracting {f} again; your decisions are kept.")
+        return 1 if w is not None else 0
 
     def open_flag(self, href):
         """3.89.0: the link on a flagged sentence opens its change in Compare."""

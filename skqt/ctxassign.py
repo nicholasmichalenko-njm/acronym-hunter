@@ -29,19 +29,22 @@ KIND_DEC = {"section": "Context", "requirement": "Context", "promoted": "Keep", 
 
 def library_entries(page):
     """[(label in the file list, doc id)]: the library documents to read beside the structure: every document whose
-    role is not Builds the matrix (and not Not needed), plus customer documents the matrix has not read."""
+    role is not Builds the matrix (and not Not needed). 4.1.0: customer documents the matrix has not read are extracted
+    when picked (shredpick), not read beside."""
     ws = page.host.ws
     if ws is None:
         return []
     lib = DV.Library(ws.p("documents")).load()
     in_matrix = set(page.R.files()) if page.R is not None else set()
+    from .shredpick import pending                  # 4.1.0: a document to extract is listed to extract, not to read beside
+    to_extract = {did for _l, did, _p in pending(page.host)}
     out = []
     for d in lib.all:
         v = lib.latest(d)
         if v is None:
             continue
         role = lib.role_of(d)
-        if role == "not_needed" or (role == "matrix" and v.get("file") in in_matrix):
+        if role == "not_needed" or d["id"] in to_extract or (role == "matrix" and v.get("file") in in_matrix):
             continue
         out.append((f"{PREFIX}{d['name']} ({CX.doc_tag(d, lib)})", d["id"]))
     return out

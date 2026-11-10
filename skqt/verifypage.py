@@ -603,8 +603,8 @@ class VerifyPage(QWidget):
         return bool(VS.changed_after(self.store(), self.doc, rows[-1][2] if len(rows[-1]) > 2 else ""))
 
     def read_next(self):
-        self.host.go("read")
-        return self.host.read_page.tick_only([self.doc])
+        from . import shredpick as SP                    # 4.1.0: extracted at once and opened in Shred
+        return 1 if SP.extract_file(self.host, self.doc) is not None else 0
 
     def compare_next(self):
         pair = self.newer_version()

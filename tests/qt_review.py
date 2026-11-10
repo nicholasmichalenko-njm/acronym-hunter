@@ -169,10 +169,10 @@ check("Effort Home: Customer information shows the contact card", any(f.objectNa
       and "1 contact(s)" in hp.info.title.text())
 # the documents as a queue
 w.go("assign"); app.processEvents()
-check("the queue: which document this is and how many are not reviewed", pg.queue_lbl.text() == "Document 1 of 1  ·  1 not reviewed yet", pg.queue_lbl.text())
+check("the queue: which document this is and how many are not shredded", pg.queue_lbl.text() == "Document 1 of 1  ·  1 not shredded yet", pg.queue_lbl.text())
 pg.mark_reviewed()
-check("Mark reviewed: kept with the effort", pg.queue_lbl.text().endswith("all reviewed") and "Section_L.pdf" in w.ws.get("assign_reviewed", {})
-      and pg.done_btn.text().startswith("Reviewed"))
+check("Mark shredded: kept with the effort", pg.queue_lbl.text().endswith("all shredded") and "Section_L.pdf" in w.ws.get("assign_reviewed", {})
+      and pg.done_btn.text().startswith("Shredded"))
 pg.mark_reviewed()
 check("... and taken off again", "Section_L.pdf" not in w.ws.get("assign_reviewed", {}))
 n = sum(checks)

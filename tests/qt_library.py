@@ -142,7 +142,7 @@ check("moving a document to it, with a folder", DV.Library(ws.p("documents")).lo
 os.remove(p_std); pg.refresh()
 check("a missing original is reported", "1 original(s) not here" in pg.p_miss.text(), pg.p_miss.text())
 # Read RFP sees only customer documents, the matrix ones ticked
-w.go("read"); app.processEvents()
+w.read_page.refresh(); app.processEvents()             # 4.1.0: no Extract tab; the list behind Shred's extract
 rows = {r.text(0): (r.isChecked(), r.text(3)) for r in w.read_page.boxes}
 check("Read RFP: only customer documents, the ones that build the matrix ticked", rows == {"Section L Instructions": (True, "Builds the matrix"),
                                                                                        "Attachment J-1 ICD": (False, "Context")}, rows)

@@ -137,7 +137,7 @@ PATH = ("path", "Effort", "The effort's path",
   "Whenever you are not sure what to do next.",
   ["Documents: the customer's package, complete, current and readable. Click a document to see what has been done to it and "
    "its next thing; Changes shows what a new version changed; Text check reads every page right.",
-   "Shred: what every piece of the customer's text is (Extract, Requirements, Acros & Abs, the Acro List). See it as shows "
+   "Shred: what every piece of the customer's text is (Requirements, Acros & Abs, the Acro List; picking a document extracts it). See it as shows "
    "Our structure, List, Sort, L to M or Coverage.",
    "Matrix & Outline: what we answer and where (the Matrix, Evaluation). Setup: who writes what, when and how long, and the "
    "setup in Word. Drafts: the team writes in Word; the app reads the drafts back. Submit: the last checks.",

@@ -187,8 +187,8 @@ def next_step(sts, f):
     if k == "assign":
         r = f.get("reqs")
         if not r:
-            return {"key": k, "go": "read", "title": "Extract the customer's documents", "button": "Open Shred", "then": then,
-                    "why": "Extract pulls every sentence out, ready to shred."}
+            return {"key": k, "go": "read", "title": "Pick a customer document to shred", "button": "Open Shred", "then": then,
+                    "why": "Shred extracts it at once and opens it, ready to say what each piece is."}
         if r["undecided"]:
             return {"key": k, "go": "assign", "title": f"Shred the {_plural(r['undecided'], 'piece')} left", "button": "Open Shred",
                     "then": then, "why": "What each piece of the customer's text is and asks of you."}

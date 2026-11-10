@@ -59,9 +59,9 @@ check("Text check lights Documents", w.step_btns["library"].isChecked() and w.st
 w.rail_go("assign"); app.processEvents()
 check("Shred: the stepper, not tabs", w.stepper.isVisibleTo(w) and not w.page_tabs.isVisibleTo(w) and w.page_title.text() == "Shred"
       and w.page_crumb.text() == "Step 2 of 6")
-check("... Extract, Requirements, Acros & Abs, Acro List with counts: no tab repeats the step's name",
-      [w.stepper.chips[k].nm.text() for k, _l in NR.CHIPS] == ["Extract", "Requirements", "Acros & Abs", "Acro List"]
-      and w.stepper.chips["read"].ct.text() == "nothing extracted")
+check("... Requirements, Acros & Abs, Acro List with counts (4.1.0: no Extract): no tab repeats the step's name",
+      [w.stepper.chips[k].nm.text() for k, _l in NR.CHIPS] == ["Requirements", "Acros & Abs", "Acro List"]
+      and w.stepper.chips["assign"].ct.text() == "nothing extracted")
 check("... See it as: Our structure first, no Matrix", [b.text() for b in w.stepper.views.values()] ==
       ["Our structure", "List", "Sort", "L to M", "Coverage"] and w.stepper.views["assign"].isChecked())
 w.stepper.chips["acronyms"].click(); app.processEvents()

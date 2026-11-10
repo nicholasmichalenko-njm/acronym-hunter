@@ -67,6 +67,7 @@ def controls(page):
 w.open_effort("Kestrel")
 w.read_page.read(PDFS, os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))
 check("Kestrel has its matrix", wait(lambda: w.review is not None and w.stack.currentWidget() is w.assign_page))
+w.read_page.panel.dismiss()                      # 4.1.0: the extract's Done note on Shred closes itself after a few seconds
 base = {}
 try:
     base = json.load(open(BASE, encoding="utf-8"))

@@ -2,7 +2,7 @@
 the work (Compare left the Effort Library group; the Library is one page); L to M and Coverage are views beside Review's
 page, not pages (go("crosswalk") and go("prove") open them there); an L to M row shows its instruction's sentence on the
 page; a Coverage row opens its file; the lines go to Our structure only; Verify's last page, verified, offers Read for a
-file not read yet; a Verify change after the read says so on Review, and read it again ticks that file on the Read tab;
+file not read yet; a Verify change after the read says so on Review, and read it again extracts that file again (4.1.0);
 Layout says covers moved to Section designs. Fictional content (Kestrel)."""
 import os, sys, tempfile, time
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -49,7 +49,7 @@ def wait(cond, secs=60):
     return cond()
 
 
-check("4.0.0: Shred's tabs start Extract, Requirements; Text check and Changes are Documents'", [k for k, _t in TABS["assign"]][:2] == ["read", "assign"]
+check("4.1.0: Shred's tabs start Requirements (no Extract); Text check and Changes are Documents'", [k for k, _t in TABS["assign"]][:1] == ["assign"]
       and [k for k, _t in TABS["library"]][1:3] == ["compare", "verify"])
 w.open_effort("Kestrel")
 w.go("docs"); app.processEvents()
@@ -61,10 +61,9 @@ vp = w.verify_page
 vp.open_doc(C1); app.processEvents()
 vp.store().verify(vp.doc, 1); vp.show_page(); app.processEvents()
 check("Text check's last page, checked: the next step is Extract", "Next: extract it for the shred" in vp.line.text(), vp.line.text())
-check("... and it ticks the file on Shred > Extract", vp.read_next() == 1 and w.stack.currentWidget() is w.read_page
-      and list(w.stepper.chips)[::2] == ["read", "assign", "acronyms", "acrlist"] and w.stepper.isVisibleTo(w))
-w.read_page.read([C1], os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"), identities="suggested")
-check("read", wait(lambda: w.review is not None))
+check("... which extracts it at once and opens Shred (4.1.0)", vp.read_next() == 1 and w.stack.currentWidget() is w.assign_page
+      and list(w.stepper.chips)[::2] == ["assign", "acronyms", "acrlist"] and w.stepper.isVisibleTo(w))
+check("read", wait(lambda: w.review is not None and not w.read_page.running()))
 pg = w.assign_page
 w.go("assign"); app.processEvents()
 pg.open_file("Kestrel_Section_LM.pdf"); app.processEvents()
@@ -94,8 +93,9 @@ st.doc("Kestrel_Section_LM.pdf")["changed"] = "2999-01-01T00:00"; st.save()
 pg.placer.show_left()
 check("Verify changed the file after the read: Review says so", "Verify changed this file after it was read" in pg.placer.left_lbl.text()
       and "href='reread'" in pg.placer.left_lbl.text(), pg.placer.left_lbl.text())
-check("... read it again ticks only that file on the Read tab", pg.placer.select_left("reread") == 1 and w.stack.currentWidget() is w.read_page
-      and w.read_page.chosen() == [C1], w.read_page.chosen())
+check("... read it again extracts that file again at once, on Shred", pg.placer.select_left("reread") == 1
+      and w.stack.currentWidget() is w.assign_page and w.read_page.worker is not None and w.read_page.worker.paths == [C1])
+wait(lambda: not w.read_page.running())
 check("Verify stamps a change", VS.changed_after(st, "Kestrel_Section_LM.pdf", "2026-01-01 00:00") and not VS.changed_after(st, "Kestrel_Section_LM.pdf", "2999-12-31 00:00"))
 # Layout says where covers went
 w.go("layoutstd"); app.processEvents()
