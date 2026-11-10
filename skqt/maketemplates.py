@@ -83,14 +83,21 @@ class MakeTemplatesDialog(QDialog):
         self.ref_rows = {}
         lv.addWidget(self.setup_box)
         lv.addWidget(D.label("Templates to make", "title"))
-        self.list = QListWidget(); self.list.currentRowChanged.connect(lambda _r: self.show_details()); lv.addWidget(self.list, 1)
+        self.list = QListWidget(); self.list.currentRowChanged.connect(lambda _r: (self.show_details(), self.show_sets() if self.choice() != "this" else None)); lv.addWidget(self.list, 1)
         sp.addWidget(left)
+        from PySide6.QtWidgets import QScrollArea, QTabWidget
+        self.right_tabs = QTabWidget()                       # 3.97.0: what goes in, picked from the libraries
+        from .setspick import WhatGoesIn
+        self.goes_in = WhatGoesIn(self)
+        gsc = QScrollArea(); gsc.setWidgetResizable(True); gsc.setWidget(self.goes_in)
+        self.right_tabs.addTab(gsc, "What goes in")
         right = QWidget(); rv = QVBoxLayout(right); rv.setContentsMargins(0, 0, 0, 0)
         jh = QHBoxLayout(); jh.addWidget(D.label("Go to", "label", wrap=False))
         self.jump = QComboBox(); self.jump.addItems(TD.SECTIONS); self.jump.activated.connect(lambda _i: self.view.scrollToAnchor(self.jump.currentText()))
         jh.addWidget(self.jump); jh.addStretch(1); rv.addLayout(jh)
         self.view = QTextBrowser(); self.view.setOpenLinks(False); rv.addWidget(self.view, 1)
-        sp.addWidget(right); sp.setSizes([420, 780])
+        self.right_tabs.addTab(right, "The template in full")
+        sp.addWidget(self.right_tabs); sp.setSizes([420, 780])
         bh = QHBoxLayout(); bh.addStretch(1)
         self.make_btn = D.button("Make", "primary", lambda: self.accept()); bh.addWidget(self.make_btn)
         bh.addWidget(D.button("Cancel", "ghost", lambda: self.reject())); v.addLayout(bh)
@@ -130,7 +137,7 @@ class MakeTemplatesDialog(QDialog):
             diag.swallowed()
             return None
 
-    def refresh(self):
+    def refresh(self, keep_sets=False):
         k = self.choice()
         self.this_lbl.setText("  " + self.page.scope_box.currentText())
         self.effort_lbl.setText("  " + (self.host.effort_name or "No effort open") if self._effort_ready() else
@@ -192,6 +199,20 @@ class MakeTemplatesDialog(QDialog):
         if self.plans:
             self.list.setCurrentRow(0)
         self.show_details()
+        if not keep_sets:
+            self.show_sets()
+
+    def recipe_changed(self):
+        """3.97.0: a set or a starting page picked for the profile being edited: kept with it (Save on the page)."""
+        if hasattr(self.page, "changed"):
+            self.page.changed()
+        self.refresh(keep_sets=True)
+
+    def show_sets(self):
+        if self.choice() == "this":
+            return self.goes_in.show_std(self.page.work, True)
+        p = self.plans[max(0, self.list.currentRow())] if self.plans else None
+        return self.goes_in.show_std(p["std"] if p else {}, False)
 
     def show_details(self):
         r = self.list.currentRow()

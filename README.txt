@@ -1,6 +1,18 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+MAKE TEMPLATES PICKS SETS (3.97.0)
+  - Make templates > What goes in: the style sets, in order (where two sets hold a style, the lower one wins), the
+    Setup styles (hidden in the document) and a Quick Part set. Nothing is changed there: to change a style or a part,
+    open its library; the template takes the change the next time it is made.
+  - The document starts with: pages from Parts in order (a cover, a marking page, a title page, contents, acronyms...).
+    A new document made from the template opens with them, each in its own Word section, then the body. Each is also in
+    the Quick Parts gallery unless its switch is off, so someone who deletes the cover can insert it again.
+  - Each style from the sets goes into the template exactly as Word wrote it.
+  - Before it is made: how many styles and from where, the styles they rest on, the Quick Parts and the starting pages,
+    and the fonts on this PC.
+  - The choice is kept with the profile you are editing in Production Standards (Save there).
+
 THE MENU IS THE EFFORT'S PATH (3.96.0)
   - The menu holds eight entries: Dashboard, 1 Customer files, 2 Review, 3 Setup, 4 Write, 5 Submit, then Team and
     Settings. Each step says what is left on it: done, a count (38 left, 14 acronyms), next, or the due date.

@@ -108,6 +108,7 @@ def _document(std):
     sect = _sect(std)
     toc = X.toc_instr(std)
     out = []
+    starts = bool(std.get("_starts"))                 # 3.97.0: the starting pages from Parts take the cover's and front matter's place
     # cover
     out.append(_p("PEVolumeName", v.get("volume_name") or "[Volume name]"))
     out.append(_p("PESolicitation", v.get("solicitation") or "[Solicitation number]"))
@@ -125,6 +126,8 @@ def _document(std):
             out.append(_p("TOCHeading", lst.get("title", "List")))
             out.append(_p("", runs=_fld(f'TOC \\h \\z \\c "{ident}"', "Update the list in Word (F9).")))
     out.append(_p("", sect=sect))
+    if starts:
+        out = []
     # body chapter
     out.append(_p("Heading1", "Chapter title"))
     out.append(_p("Heading2", "Section title"))
@@ -401,6 +404,8 @@ def make(std, folder, start_from="", word=None, when=None, progress=None, parts_
     """Write the template into folder and put the standard into it. start_from: a template or document to start
     from (read once, never written), or "" for the Stationkeeper base. Returns a TemplateJob."""
     say = progress or (lambda *a: None)
+    import templatesets as TSET                        # 3.97.0: what the chosen style sets, part set and starting pages hold
+    std = TSET.apply(std)
     std = PRL.engine_ready(standard_for_template(std))
     hn = std.setdefault("heading_numbering", {})
     uses_chapters = any(c.get("chapter_level") for c in std.get("captions") or []) or \
@@ -467,6 +472,19 @@ def make(std, folder, start_from="", word=None, when=None, progress=None, parts_
         say(fx["label"])
         rec = PCY.run_step(job, fx["label"], fx["op"], fx["allowed"], fx["args"](std, plan))
         rec["key"] = fx["key"]
+    if std.get("_exact_styles"):                      # 3.97.0: each style from the sets as Word wrote it
+        done = TSET.put_exact_styles(job.copy, std["_exact_styles"])
+        job.steps.append({"step": "Put in each style as Word wrote it", "key": "exact_styles", "changed": bool(done),
+                          "report": {"styles": done}})
+    if std.get("_starts"):                            # 3.97.0: the document starts with these pages, each in its own section
+        say("Putting in the starting pages")
+        placed = TSET.place_starts(job.copy, std["_starts"])
+        job.steps.append({"step": "Put in the starting pages", "key": "starts", "changed": bool(placed), "report": {"placed": placed}})
+        gal = TSET.starts_gallery(std["_starts"], os.path.join(parts_dir or std.get("_parts_dir") or folder, "starting_pages"))
+        if gal:
+            qp0 = std.setdefault("quick_parts", {})
+            have = {e.get("name") for e in qp0.get("entries") or []}
+            qp0["entries"] = list(qp0.get("entries") or []) + [e for e in gal if e["name"] not in have]
     qp = std.get("quick_parts") or {}
     if qp.get("entries"):                            # 3.22.0: the standard's Quick Parts, in one gallery under its categories
         import prodquickparts as QP

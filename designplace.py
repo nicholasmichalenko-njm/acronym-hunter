@@ -202,3 +202,33 @@ def texts(path):
 def sections(path):
     _n, d = _read(path)
     return len(_xml(d["word/document.xml"]).findall(f".//{W}sectPr"))
+
+
+def place_in_order(path, items):
+    """3.97.0 (Make templates, "the document starts with"): pages before the body in the order given, each in its own
+    Word section; items [(key, path of the page's Word file)]. Returns the keys placed."""
+    names, dst = _read(path)
+    droot = _xml(dst["word/document.xml"])
+    body = droot.find(W + "body")
+    head, placed = [], []
+    for k, (key, p) in enumerate(items or []):
+        if not p or not os.path.isfile(p):
+            continue
+        _n, src = _read(p)
+        els, sect = _content(src)
+        used = {el.get(W + "val") for e in els for el in e.iter(W + "pStyle", W + "rStyle", W + "tblStyle") if el.get(W + "val")}
+        _bring_styles(dst, src, used)
+        _bring_rels(dst, names, src, els, f"s{k}")
+        head += els + [_break_para(_clean_sect(sect))]
+        placed.append(key)
+    if not placed:
+        return []
+    for el in reversed(head):
+        body.insert(0, el)
+    dst["word/document.xml"] = _bytes(droot)
+    tmp = path + ".part"
+    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
+        for n in names:
+            z.writestr(n, dst[n])
+    os.replace(tmp, path)
+    return placed
