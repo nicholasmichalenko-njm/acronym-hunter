@@ -251,7 +251,7 @@ TOPICS = [
    "Ctrl+Z undoes. Ctrl+F finds a sentence by its words or number.",
    "On a later version, changed sentences are outlined in amber and new ones in green. Show the old page shows what it "
    "was."]),
- ("prove", "Shred", "Coverage",
+ ("prove", "Matrix & Outline", "Coverage",
   "Review's third tab: every sentence of every customer file, by decision, and the text check, which reads each file "
   "word for word and finds text the reader missed (in tables, text boxes, headers and footers).",
   "Before you call the review finished, before a gate, and when someone asks whether every line was read.",
@@ -300,7 +300,7 @@ TOPICS = [
    "Press Score the set. Each RFP shows its scores; the set's scores go in By release."],
   ["The set stays on this PC. The build scores it each release and logs the numbers only, never a file's name or text.",
    "The build stops when recall drops below the floor: the first run's score, raised as the shred gets better."]),
- ("crosswalk", "Shred", "L/M Crosswalk",
+ ("crosswalk", "Matrix & Outline", "L to M",
   "The Matrix's second tab. Section L says how to write the proposal, Section M says how the customer scores it, and "
   "Section C, the SOW or the PWS says the work. Each row is one instruction beside the factor that scores it and the work "
   "it describes; the gaps show instructions nobody scores and factors with no instruction.",

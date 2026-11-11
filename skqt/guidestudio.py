@@ -140,7 +140,7 @@ PATH = ("path", "Effort", "The effort's path",
    "its next thing; Changes shows what a new version changed; Text check reads every page right.",
    "Shred: what every piece of the customer's text is (Requirements, Rules & Dates, Evaluation, Acros & Abs; picking a document "
    "extracts it). See it as shows Our structure, List, Sort, L to M or Coverage. The Q&A button opens the Q&A log beside the page.",
-   "Matrix & Outline: what we answer and where (the Matrix). Setup: who writes what, when and how long, and the "
+   "Matrix & Outline: what we answer and where (Outline, Place, the Matrix, L to M, Coverage). Setup: who writes what, when and how long, and the "
    "setup in Word. Drafts: the team writes in Word; the app reads the drafts back. Submit: the last checks.",
    "The Dashboard is the map: one card per step, Your next step with one button, and this week's dates.",
    "Every page in a step ends with a bar: what is left on this step, and the button to the next step when this one is done.",

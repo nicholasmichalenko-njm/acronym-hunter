@@ -1,6 +1,20 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+MATRIX & OUTLINE (4.3.0)
+  - Step 3's tabs: Outline, Place, Matrix, L to M, Coverage. Shred says what each piece is; Matrix & Outline says what
+    goes in the matrix and where.
+  - Outline: the volumes and sections (the Structure Builder, moved here from Setup; Setup shows the same sections for
+    who writes what). An empty outline asks once: the solicitation prescribes it (its sections, in its order), or we
+    build our own (from the evaluation factors, the customer's headings, a Word outline, or blank). Our own subsections
+    go under the customer's either way.
+  - Place: the customer's page with our outline beside it, as Shred's Our structure was. Select pieces, put them in a
+    section. Requirements, instructions and deliverables are counted until placed; an evaluation piece links through
+    L to M. Right-click Leave out of the matrix...: a reason (Covered elsewhere, Duplicate, Not ours to answer,
+    Information only, Other) and a note, kept on the piece; Put back in the matrix undoes it.
+  - The matrix leaves out what was left out; the export lists those on a Left out sheet with their reasons.
+  - Shred's See it as: Page, List, Sort.
+
 ADDING STARTS THE SHRED (4.2.0)
   - Add a customer document in Documents and it is extracted for the shred in the background, whatever its role; you
     never pick it again in Shred. Left out documents are not. A new version is extracted at once too: the sentences
