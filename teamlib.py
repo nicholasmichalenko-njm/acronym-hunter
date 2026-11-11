@@ -17,7 +17,7 @@ tick, so a burst of edits writes once) and reads it when its size or time change
 it is open: the app waits and says so. A workbook that cannot be read is reported and skipped; the last good reading
 stays. A sync conflict copy ("Company Standards-PCNAME.xlsx") is reported, never read. Nothing is deleted in the move:
 the first run writes the files from the cache, and the JSON stays. Nothing leaves the PC."""
-import hashlib, json, os, shutil, time
+import hashlib, json, os, re, shutil, time
 
 import diag
 
@@ -200,42 +200,101 @@ def answer_removed(config_dir, how, settings=None):
 
 
 # ------------------------------------------------------------------ the Word files
+LIBRARY = "Library files"
+INDEX = "Library files index.csv"                       # 4.10.0: plain name, the app's kept name, the fingerprint
+HASHED = re.compile(r"^(.+)_([0-9a-f]{10})(\.[A-Za-z0-9]+)$")
+
+
+def _files(d):
+    if not os.path.isdir(d):
+        return set()
+    return {f for f in os.listdir(d) if os.path.isfile(os.path.join(d, f)) and not f.startswith(("~$", ".")) and f != INDEX}
+
+
+def _plain(stem, ext, taken):
+    base = " ".join(stem.replace("_", " ").split()) or "Part"
+    name, k = base + ext, 1
+    while name.casefold() in taken:
+        k += 1
+        name = f"{base} ({k}){ext}"
+    return name
+
+
+def _library_names(a, b, st, last):
+    """4.10.0: the library's kept files (Cover_ab12cd34ef.docx, named by their content) appear in the team library under
+    plain names (Cover.docx; Cover (2).docx for the next). Returns [(the app's name, the team library's name)]."""
+    nm = st.setdefault("names", {}).setdefault(LIBRARY, {})
+    app, team = _files(a), _files(b)
+    for an in list(nm):                                   # both files gone: the name is free again
+        if an not in app and nm[an] not in team:
+            nm.pop(an)
+    taken = {v.casefold() for v in nm.values()} | {t.casefold() for t in team if t not in nm.values() and t not in app}
+    for an in sorted(app - set(nm), key=lambda n: (os.path.getmtime(os.path.join(a, n)), n)):
+        m = HASHED.match(an)
+        tn = _plain(m.group(1), m.group(3), taken) if m else an
+        if m and an in team and not os.path.exists(os.path.join(b, tn)):
+            try:                                          # a 4.7 to 4.9 team library: the file takes its plain name
+                os.replace(os.path.join(b, an), os.path.join(b, tn))
+                if f"{LIBRARY}/{an}" in last:
+                    last[f"{LIBRARY}/{tn}"] = last.pop(f"{LIBRARY}/{an}")
+                team.discard(an); team.add(tn)
+            except OSError:
+                diag.swallowed()
+                tn = an
+        nm[an] = tn
+        taken.add(tn.casefold())
+    mapped = set(nm.values())
+    for tn in team - mapped:                              # a file someone put in the team library: the app keeps it as named
+        nm[tn] = tn
+    return sorted(nm.items(), key=lambda p: p[1].casefold())
+
+
+def _write_index(b, pairs):
+    rows = [["Name", "Kept in the app as", "Fingerprint"]]
+    for an, tn in pairs:
+        m = HASHED.match(an)
+        rows.append([tn, an, m.group(2) if m else ""])
+    p = os.path.join(b, INDEX)
+    import csv, io
+    buf = io.StringIO()
+    csv.writer(buf, lineterminator="\r\n").writerows(rows)
+    data = buf.getvalue().encode("utf-8-sig")
+    try:
+        with open(p, "rb") as f:
+            if f.read() == data:
+                return
+    except OSError:
+        pass
+    try:
+        os.makedirs(b, exist_ok=True)
+        with open(p, "wb") as f:
+            f.write(data)
+    except OSError:
+        diag.swallowed()
+
+
 def sync_content(config_dir, settings=None):
-    """Mirror the app's kept Word files and the team library's Content folders, by file name: a file changed on one
-    side since the last sync is copied to the other; a file changed on both keeps the newer and is reported; nothing
-    is deleted. Returns {"in": [names], "out": [names], "both": [names]}."""
+    """Mirror the app's kept Word files and the team library's Content folders: a file changed on one side since the
+    last sync is copied to the other; a file changed on both keeps the newer and is reported; nothing is deleted.
+    Library files carry plain names in the team library (4.10.0). Returns {"in": [names], "out": [names], "both": [names]}
+    with the team library's names."""
     base = folder(config_dir, settings)
     st = state(config_dir)
     last = st.setdefault("content", {})
     out = {"in": [], "out": [], "both": []}
     for rel, label in PAIRS:
         a, b = os.path.join(config_dir, rel), os.path.join(base, CONTENT, label)
-        names = set()
-        for d in (a, b):
-            if os.path.isdir(d):
-                names |= {f for f in os.listdir(d) if os.path.isfile(os.path.join(d, f)) and not f.startswith(("~$", "."))}
-        for n in sorted(names):
-            pa, pb = os.path.join(a, n), os.path.join(b, n)
-            key = f"{label}/{n}"
-            sa = _sha(pa) if os.path.isfile(pa) else None
-            sb = _sha(pb) if os.path.isfile(pb) else None
-            was = last.get(key)
-            try:
-                if sa and not sb:
-                    os.makedirs(b, exist_ok=True); shutil.copy2(pa, pb); out["out"].append(n); last[key] = sa
-                elif sb and not sa:
-                    os.makedirs(a, exist_ok=True); shutil.copy2(pb, pa); out["in"].append(n); last[key] = sb
-                elif sa == sb:
-                    last[key] = sa
-                elif sb != was and sa == was:
-                    shutil.copy2(pb, pa); out["in"].append(n); last[key] = sb
-                elif sa != was and sb == was:
-                    shutil.copy2(pa, pb); out["out"].append(n); last[key] = sa
-                else:                                            # changed on both sides: the newer wins, said
-                    newer, older = (pa, pb) if os.path.getmtime(pa) >= os.path.getmtime(pb) else (pb, pa)
-                    shutil.copy2(newer, older); out["both"].append(n); last[key] = _sha(newer)
-            except OSError:
-                diag.swallowed()
+        if label == LIBRARY:
+            pairs = _library_names(a, b, st, last)
+        else:
+            pairs = [(n, n) for n in sorted(_files(a) | _files(b))]
+        for an, tn in pairs:
+            got = {"in": [], "out": [], "both": []}
+            _mirror(os.path.join(a, an), os.path.join(b, tn), f"{label}/{tn}", last, got)
+            for k in got:
+                out[k] += [tn] * len(got[k])
+        if label == LIBRARY and pairs:
+            _write_index(b, pairs)
     _save_state(config_dir, st)
     if out["in"] or out["out"] or out["both"]:
         diag.activity("team_content_synced", n=len(out["in"]) + len(out["out"]) + len(out["both"]))
