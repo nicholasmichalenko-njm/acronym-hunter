@@ -182,10 +182,11 @@ check("the document's panel counts what was taken", "3 sentence(s) taken" in w.l
 # 3.16.0: the Library is where reading starts: a Review column, the review box's button, new files with Add and Ignore
 lp = w.library_page
 w.go("library"); lp.refresh(); app.processEvents()
-col = {lp.table.item(r, 0).data(Qt.UserRole): lp.table.item(r, 1).text() for r in range(lp.table.rowCount())}
-check("3.16.0: the Review column: the matrix's document says how many sentences are decided", col[dL["id"]].startswith("Needs reviewing:")
+sc = [lp.table.horizontalHeaderItem(c).text() for c in range(lp.table.columnCount())].index("Shred")   # 4.6.0: a progress chip
+col = {lp.table.item(r, 0).data(Qt.UserRole): lp.table.item(r, sc).text() for r in range(lp.table.rowCount())}
+check("3.16.0: the Shred column: the matrix's document says how many sentences are decided", col[dL["id"]].endswith("decided")
       and "/" in col[dL["id"]], col)
-check("... a context document needs reviewing too", col[d["id"]].startswith("Needs reviewing"), col[d["id"]])
+check("... a context document needs reviewing too", col[d["id"]] == "In progress" or col[d["id"]].endswith("decided"), col[d["id"]])
 check("... 4.1.0: Requirements is Shred's first tab; the documents are Documents' first tab", w._tab_keys[:1] == ["library"]
       and [k for k, _t in __import__("skqt.mainwin", fromlist=["x"]).TABS["assign"]][:1] == ["assign"])
 lp.select(dL["id"]); lp.show_doc()

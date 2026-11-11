@@ -48,7 +48,7 @@ SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Your T
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
 TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings")],
         # 4.0.0: Changes (was Review's Compare) and Text check (was Review's Verify) are the documents' own
-        "library": [("library", "Documents"), ("compare", "Changes"),
+        "library": [("library", "Customer"), ("ours", "Ours"), ("compare", "Changes"),   # 4.6.0: Customer and Ours
                     ("datacalls", "Data calls")],         # 4.1.0: Customer Q&A is a drawer; 4.2.0: Text check is Shred's Fix text
         # 4.0.0: Shred, a stepper (navrail.Stepper); List, Sort, Our structure, L to M and Coverage are ways to see it (no tab
         # repeats its step's name: claude/stationkeeper-steps-decisions-2026-11-10.md, 16)
@@ -228,6 +228,7 @@ class MainWindow(QMainWindow):
         self.docs_page = DocsPage(self)
         from .librarypage import LibraryPage
         self.library_page = LibraryPage(self)        # 2.83.0
+        self.ours_page = LibraryPage(self, side="ours")   # 4.6.0: our own documents, a tab of their own
         self.lists_page = self.acrlist_page.submit    # 2.86.0; 3.37.0: shown in the Acronym List (Show > Lists to submit)
         self.requirements_page = RequirementsPage(self)
         self.compare_page = ComparePage(self)
@@ -309,7 +310,7 @@ class MainWindow(QMainWindow):
         self.setups_page = SetupsPage(self)            # 3.56.0: the starting draft, from a structure
         from .teampage import TeamPage
         self.team_page = TeamPage(self)                # 3.96.0: the team's tools, one page of tiles
-        self.pages = {"team": self.team_page, "efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_space, "custqa": self.custqa_page,
+        self.pages = {"team": self.team_page, "efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "ours": self.ours_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_space, "custqa": self.custqa_page,
                       "impact": self.impact_page, "deliverables": self.deliverables_page, "evalcrit": self.evalcrit_page, "sort": self.sort_page, "studio": self.studio_page, "applyword": self.applyword_page, "qa": self.qa_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "assign": self.assign_page, "prove": self.assign_page, "verify": self.verify_page,
                       "crosswalk": self.assign_page, "place": self.assign_page, "outline": self.outline_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,

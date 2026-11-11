@@ -18,12 +18,12 @@ PM = "Proposal Manager"
 PROFILES = ("Proposal Manager", "Production", "Author", "Reviewer", "Capture")
 ALWAYS = {"efforts", "mywork", "home", "deliverables", "evalcrit", "sort", "settings", "tools", "refs"}   # 3.63.0: Evaluation Criteria   # 3.53.0: Your Tools, Team References
 TOOLS = {
-    "Production": {"studio", "applyword", "shredreq", "shredacc", "techedit", "library", "requirements", "matrix", "setup", "setups", "acronyms", "acrlist", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit",
+    "Production": {"studio", "applyword", "shredreq", "shredacc", "techedit", "library", "ours", "requirements", "matrix", "setup", "setups", "acronyms", "acrlist", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit",
                    "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates", "prodstd", "rules", "effortfmt", "postsub", "keywords", "exportall", "drafts"},
-    "Author": {"shredreq", "techedit", "library", "compare", "requirements", "custqa", "assign", "setup", "setups", "storyboards", "truth", "acronyms",
+    "Author": {"shredreq", "techedit", "library", "ours", "compare", "requirements", "custqa", "assign", "setup", "setups", "storyboards", "truth", "acronyms",
                "acrlist", "keywords", "drafts"},
-    "Reviewer": {"finalcheck", "techedit", "reviews", "library", "compare", "assign", "prove", "matrix", "truth", "checks", "audit"},
-    "Capture": {"shredreq", "library", "read", "compare", "requirements", "custqa", "structure", "setups", "assign", "crosswalk", "storyboards", "truth"},
+    "Reviewer": {"finalcheck", "techedit", "reviews", "library", "ours", "compare", "assign", "prove", "matrix", "truth", "checks", "audit"},
+    "Capture": {"shredreq", "library", "ours", "read", "compare", "requirements", "custqa", "structure", "setups", "assign", "crosswalk", "storyboards", "truth"},
 }
 for _r, _ks in TOOLS.items():                       # 4.4.0: Drafts > Acronyms follows Drafts
     if "drafts" in _ks:
@@ -55,7 +55,7 @@ def profile_of(role_text):
     return ""
 
 
-MENU = ("tools", "mywork", "efforts", "home", "deliverables", "evalcrit", "effortfmt", "record", "reviews", "postsub", "library", "read", "compare", "requirements",
+MENU = ("tools", "mywork", "efforts", "home", "deliverables", "evalcrit", "effortfmt", "record", "reviews", "postsub", "library", "ours", "read", "compare", "requirements",
         "custqa", "structure", "outline", "shredreq", "shredacc", "assign", "place", "sort", "prove", "crosswalk", "matrix", "setup", "setups", "storyboards", "drafts", "draftacr", "truth", "acronyms", "acrlist", "techedit",
         "keywords", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit", "studio", "applyword", "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates", "rules", "refs", "exportall", "settings", "prodstd")
 

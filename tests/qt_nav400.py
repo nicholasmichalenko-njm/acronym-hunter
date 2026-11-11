@@ -49,7 +49,7 @@ acts = [a.text() for a in FR.effort_menu(w).actions() if a.text()]
 check("the switcher holds the Dashboard, All Efforts and Your Tools", acts[0] == "Dashboard" and acts[-2:] == ["All Efforts", "Your Tools"], acts)
 # Documents
 w.rail_go("library"); app.processEvents()
-check("Documents: the documents, Changes (4.2.0: Text check is Shred's Fix text)", w._tab_keys[:2] == ["library", "compare"] and "verify" not in w._tab_keys
+check("Documents: Customer, Ours, Changes (4.2.0: Text check is Shred's Fix text; 4.6.0: Customer and Ours)", w._tab_keys[:3] == ["library", "ours", "compare"] and "verify" not in w._tab_keys
       and w.page_title.text() == "Documents" and w.page_crumb.text() == "Step 1 of 6", (w._tab_keys, w.page_title.text()))
 w.go("compare"); app.processEvents()
 check("Changes lights Documents", w.step_btns["library"].isChecked() and w.page_title.text() == "Documents")

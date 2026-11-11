@@ -5,6 +5,7 @@ its file on disk; the effort opens the same after its folder moves; files an old
 folder move into the Library folders when asked, with a list of every move; Scan files... on the Acronyms page offers
 to add the files to the library first; Scan the library... scans the ticked folders. Fictional content (Heron)."""
 import os, shutil, sys, tempfile, time
+os.environ["SK_DOCS_CLASSIC"] = "1"     # 4.6.0: this test drives the tree and the classic columns (docfocus)
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 os.environ["QT_QPA_PLATFORM"] = "offscreen"

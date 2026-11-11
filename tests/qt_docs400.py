@@ -47,8 +47,8 @@ lp = w.library_page
 lp.refresh(); lp.select(dL["id"]); lp.show_doc(); app.processEvents()
 check("Documents is step 1: its page and title", w.stack.currentWidget() is lp and w.page_title.text() == "Documents")
 rows = {r[0]: r for r in lp.status_now}
-check("the status panel: text check, shred, feeds the matrix, versions", list(rows)[:2] == ["Text check", "Shred"]
-      and "Feeds the matrix" in rows and "Versions" in rows, list(rows))
+check("the status panel: text check, shred, feeds the matrix (4.6.0: the versions are listed once, below)",
+      list(rows)[:2] == ["Text check", "Shred"] and "Feeds the matrix" in rows and "Versions" not in rows, list(rows))
 check("... not extracted yet; it feeds the matrix", rows["Shred"][1] == "Not extracted yet"
       and rows["Feeds the matrix"][1].startswith("Yes"), rows)
 check("... one button: its next thing (4.1.0: Shred it)", lp.b_read.isVisibleTo(w) and lp.b_read.text() == "Shred it", lp.b_read.text())
@@ -64,7 +64,8 @@ rows = {r[0]: r for r in lp.status_now}
 check("a document that does not feed the matrix says No", rows["Feeds the matrix"][1] == "No")
 m = DS.row_menu(lp, run=False)
 acts = [a.text() for a in m.actions() if a.text()]
-check("the right-click menu: five things about the file", acts == ["Open", "Set type", "Add a newer version...", "Leave out", "Show in folder"], acts)
+check("the right-click menu: five things about the file, then what left the panel (4.6.0)", acts[:5] == ["Open", "Set type",
+      "Add a newer version...", "Leave out", "Show in folder"] and acts[5:] == ["Initial and type...", "More about this document..."], acts)
 check("... Set type holds the categories and Initial and type", "Initial and type..." in [a.text() for a in m.actions()[1].menu().actions()])
 check("... Open and Show in folder find the file", os.path.isfile(DS.open_file(lp, lp.lib.doc(dS["id"])))
       and os.path.isdir(DS.show_in_folder(lp, lp.lib.doc(dS["id"]))))
@@ -79,7 +80,7 @@ next(a for a in m.actions() if a.text() == "Put it back").trigger(); app.process
 check("Put it back: back in, as context", lp.lib.role_of(lp.lib.doc(dS["id"])) == "context")
 more = [a.text() for a in lp.doc_menu(run=False).actions() if a.text()]
 check("More about this document: role, category, folder, tags, its name", more[:4] == ["Role", "Category", "Folder...", "Tags..."]
-      and "Rename..." in more and lp.b_more.isVisibleTo(w), more)
+      and "Rename..." in more and not lp.b_more.isVisibleTo(w), more)
 # a second version: changes from its last version
 lib1 = DV.Library(ws.p("documents")).load()
 pL2 = os.path.join(B, "Section_L.docx")
@@ -87,7 +88,7 @@ lib1.add(pL2, DI.read(pL2), doc_id=dL["id"], label="Amendment 1")
 lp.refresh(); lp.select(dL["id"]); lp.show_doc()
 rows = {r[0]: r for r in lp.status_now}
 check("a second version: changes from its last version not reviewed yet", rows.get("Changes from its last version", ("", ""))[1]
-      == "Not reviewed yet" and rows["Versions"][1].startswith("2 version"), rows)
+      == "Not reviewed yet" and lp.d_versions.count() == 2, rows)
 check("... its next thing: Review changes", lp.b_read.text().startswith("Review changes"), lp.b_read.text())
 lp.review_selected(); app.processEvents()
 check("... which opens Documents > Changes", w.stack.currentWidget() is w.compare_space and w.step_btns["library"].isChecked(), (w.stack.currentWidget(), lp.lib.doc(dL["id"])["versions"][-1]))

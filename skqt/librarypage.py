@@ -214,8 +214,9 @@ class IntakeDialog(QDialog):
 
 # ====================================================================== the page
 class LibraryPage(QWidget):
-    def __init__(self, host):
+    def __init__(self, host, side="customer"):
         super().__init__()
+        self.doc_side = side                         # 4.6.0: Customer or Ours (docfocus)
         self.host = host
         self.lib = None
         self.worker = None
@@ -377,6 +378,8 @@ class LibraryPage(QWidget):
         split.addWidget(self.side_area)
         split.setSizes([250, 820, 340])
         self.found = {}
+        from . import docfocus as DF                 # 4.6.0: Customer and Ours, the progress chips, one panel
+        DF.install(self, self.doc_side)
         self.show_doc()
         self.setAcceptDrops(True)                   # drag folders or files from File Explorer onto the page
 
@@ -413,6 +416,7 @@ class LibraryPage(QWidget):
             return
         self.lib = DV.Library(h.ws.p("documents")).load()
         self.fill_tree()
+        __import__("skqt.docfocus", fromlist=["x"]).fill_types(self)
         self.fill()
         from .libfolders import kept_refresh
         kept_refresh(self)
@@ -458,7 +462,9 @@ class LibraryPage(QWidget):
         """The documents the category, folder, role filter and search leave, with what search found in each."""
         lib = self.lib
         docs = lib.all if self.cat == "all" else lib.in_category(self.cat)
-        if self.folder:
+        if getattr(self, "focus", False):                                  # 4.6.0: this tab's documents
+            docs = __import__("skqt.docfocus", fromlist=["x"]).shown(self, lib.all)
+        elif self.folder:
             docs = [d for d in docs if (d.get("folder") or "") == self.folder or (d.get("folder") or "").startswith(self.folder + "/")]
         rf = self.role_f.currentData()
         if rf == "undecided":
@@ -480,8 +486,11 @@ class LibraryPage(QWidget):
         docs = under_parents(self.shown())
         keep = self.current_id()
         st = self.review_states()
-        self.table.setRowCount(len(docs))
-        for r, d in enumerate(docs):
+        from . import docfocus as DF
+        focused = DF.fill(self, docs, _item)
+        if not focused:
+            self.table.setRowCount(len(docs))
+        for r, d in enumerate([] if focused else docs):
             vs = d["versions"]
             name = ("\u21b3 " if d.get("under") and any(x["id"] == d["under"] for x in docs) else "") + d["name"] \
                 + (f" ({d['initial']})" if d.get("initial") else "")
@@ -511,7 +520,8 @@ class LibraryPage(QWidget):
             self.table.setItem(r, 5, ri)
             hits = self.found.get(d["id"]) or []
             self.table.setItem(r, 6, _item(hits[0][1][:160] if hits else ("name or tags" if self.search.text().strip() else "")))
-        self.empty.setVisible(not self.lib.all); self.table.setVisible(bool(self.lib.all))
+        here = [d for d in self.lib.all if DF.side_of(d) == self.doc_side] if focused else self.lib.all
+        self.empty.setVisible(not here); self.table.setVisible(bool(here))
         if keep:
             self.select(keep)
         self.show_doc()

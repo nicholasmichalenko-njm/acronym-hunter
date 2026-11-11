@@ -128,7 +128,8 @@ def status(page, d, st=None):
     if nt:
         out.append(("Used as context", f"{nt} sentence(s) taken from it in the shred", OK))
     n = len(d.get("versions") or [])
-    out.append(("Versions", f"{n} version(s); the latest governs" if n > 1 else "1 version", NONE))
+    if not getattr(page, "focus", False):                    # 4.6.0: the panel lists the versions once
+        out.append(("Versions", f"{n} version(s); the latest governs" if n > 1 else "1 version", NONE))
     nxt = None
     if key == "not_needed":                                  # left out: nothing to do until it is put back
         return out, None
@@ -195,6 +196,7 @@ def row_menu(page, at=None, run=True):
     m.addAction("Put it back" if out else "Leave out", lambda: page.set_role("context" if out else "not_needed",
                                                                             why="put back" if out else "left out"))
     m.addAction("Show in folder", lambda: show_in_folder(page, d))
+    __import__("skqt.docfocus", fromlist=["x"]).more_items(page, m, d)     # 4.6.0: what left the panel
     page._menu = m
     if run and at is not None:
         m.exec(at)

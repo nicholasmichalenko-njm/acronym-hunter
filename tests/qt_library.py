@@ -5,6 +5,7 @@ customer documents go to the customer documents folder and the rest are copied i
 folders tree, search across names, tags and text, roles confirmed with who and why (many at once), a category of one's
 own, a missing original reported; Read RFP lists only customer documents and ticks the ones that build the matrix."""
 import os, sys, tempfile, threading, time
+os.environ["SK_DOCS_CLASSIC"] = "1"     # 4.6.0: this test drives the tree and the classic columns (docfocus)
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
