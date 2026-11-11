@@ -109,5 +109,31 @@ check("the template held open by Word: the rules still go out, the template wait
       and not os.path.exists(os.path.join(base, "templates", "effort.dotx.tmp")), r6)
 r8 = ED.publish(cfg, ws, LIST, "Kestrel", "4.9.0")
 check("... and the next try writes the template", r8 and "template" in r8["written"] and not r8["pending"], r8)
+import branding as BR, effortrec as ER                       # 4.10.0: cui follows the effort's marking
+check("no marking: the snapshot says cui true", json.load(open(os.path.join(base, "manifest.json"), encoding="utf-8"))["effort"]["cui"] is True)
+rec = ER.Record(ws.root); BR.set_identity(rec, sensitivity="Not CUI")
+r9 = ED.publish(cfg, ws, LIST, "Kestrel", "4.10.0")
+m9 = json.load(open(os.path.join(base, "manifest.json"), encoding="utf-8"))
+check("marked Not CUI: a new revision says cui false; only rules.json (it carries the revision) is rewritten", r9 and m9["effort"]["cui"] is False and r9["written"] == ["rules"]
+      and m9["revision"] == r9["revision"], (r9, m9["effort"]))
+rec = ER.Record(ws.root); BR.set_identity(rec, sensitivity="CUI")
+r10 = ED.publish(cfg, ws, LIST, "Kestrel", "4.10.0")
+check("marked CUI again: cui true", r10 and json.load(open(os.path.join(base, "manifest.json"), encoding="utf-8"))["effort"]["cui"] is True, r10)
+import time as _t                                          # 4.10.0: the timer publishes on a thread of its own
+os.environ["SK_EFFORTDATA_TEST"] = "1"
+B.save(B.load() + [{"Phrase": "synergize", "Level": "Avoid", "Use instead": "work together", "Why": "Jargon"}])
+class FakeWin:
+    pass
+fw = FakeWin(); fw.ws, fw.effort_path, fw.effort_name, fw.config_dir, fw.version, fw.efforts = ws, LIST, "Kestrel", cfg, "4.10.0", {}
+rev0 = ws.get("effort_data")["revision"]
+started = ED.tick(fw)
+check("the timer starts the publish on a thread and returns at once", started == "started" and fw._effdata_job["thread"].name == "effort-data", (started, vars(fw).keys()))
+fw._effdata_job["thread"].join(60)
+check("... the state waits for the window's thread", ws.get("effort_data")["revision"] == rev0)
+r11 = ED.tick(fw)
+check("... and the next tick saves it", r11 and ws.get("effort_data")["revision"] == r11["revision"] > rev0 and fw._effdata_job is None, r11)
+if ED.tick(fw) == "started":                                 # the manifest it wrote is one of the inputs it watches
+    fw._effdata_job["thread"].join(60)
+check("... then a look that publishes nothing", ED.tick(fw) is None and ws.get("effort_data")["revision"] == r11["revision"])
 print(f"EFFORTDATA 490 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

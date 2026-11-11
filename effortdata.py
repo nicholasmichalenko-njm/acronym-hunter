@@ -17,7 +17,7 @@ part is written under a .tmp name and renamed (retried while a reader or OneDriv
 revision only goes up. The effort has a stable id. The template is rebuilt whenever its styles, table looks or Quick
 Parts change, so the macros never read a stale one. Warning times are fixed at 24 hours (Aging) and 72 (Stale). The app
 is the only writer, and everything is written inside the effort folder. Rules only (No AI); nothing leaves the PC."""
-import datetime, getpass, hashlib, json, os, platform, shutil, tempfile, time, uuid
+import datetime, getpass, hashlib, json, os, platform, shutil, tempfile, threading, time, uuid
 
 import diag
 
@@ -224,6 +224,19 @@ def _part(key, rel, fmt, data, rev):
             "sha256": hashlib.sha256(data).hexdigest()}
 
 
+def cui_of(ws):
+    """4.10.0: the manifest's cui follows the effort's marking (Settings > This effort). Not CUI and Proprietary say
+    false; CUI, any other marking and no marking at all say true (unknown is treated as CUI)."""
+    try:
+        import branding as BR
+        import effortrec as ER
+        mark = " ".join(str(BR.identity(ER.Record(ws.root)).get("sensitivity") or "").split())
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+        return True
+    return mark not in (BR.NOT_CUI, BR.PROPRIETARY)
+
+
 def read_manifest(effort_path):
     try:
         with open(os.path.join(folder(effort_path), "manifest.json"), encoding="utf-8") as f:
@@ -232,8 +245,9 @@ def read_manifest(effort_path):
         return None
 
 
-def publish(config_dir, ws, effort_path, effort_name, app_version="", force=False, std=None, info=None):
-    """Publish what changed. Returns {"revision", "written": [part keys]} or None when nothing changed."""
+def publish(config_dir, ws, effort_path, effort_name, app_version="", force=False, std=None, info=None, state_out=None):
+    """Publish what changed. Returns {"revision", "written": [part keys]} or None when nothing changed. With state_out (a
+    dict), the publisher's state goes there instead of into the workspace: a background run hands it to the window."""
     import customdict as CD
     import prodrules as PRL
     std = std if std is not None else PRL.for_effort(config_dir, ws)
@@ -247,7 +261,12 @@ def publish(config_dir, ws, effort_path, effort_name, app_version="", force=Fals
     dhash = hashlib.sha256("\n".join(words).encode()).hexdigest()
     thash = template_inputs(std)
     parts_state = dict(st.get("parts") or {})
-    changed = {"rules": rhash != (parts_state.get("rules") or {}).get("hash"),
+    info = dict(info or {})
+    if "cui" not in info:
+        info["cui"] = cui_of(ws)
+    cui = bool(info["cui"])
+    changed = {"manifest": have and cui != bool(st.get("cui", True)),
+               "rules": rhash != (parts_state.get("rules") or {}).get("hash"),
                "dictionary": bool(words) and dhash != (parts_state.get("dictionary") or {}).get("hash"),
                "template": thash != (parts_state.get("template") or {}).get("hash")}
     if have and not force and not any(changed.values()):
@@ -299,17 +318,19 @@ def publish(config_dir, ws, effort_path, effort_name, app_version="", force=Fals
         p = os.path.join(base, *rel.split("/"))
         if key in parts_state and os.path.isfile(p):
             parts.append(_part(key, rel, fmt, _read(p), int(parts_state[key].get("part_revision") or rev)))
-    info = info or {}
     manifest = {"contract": CONTRACT, "schema_version": SCHEMA_VERSION, "min_reader_version": "1.0",
                 "effort": {"id": effort_id(ws), "name": effort_name, "solicitation": info.get("solicitation", ""),
-                           "cui": bool(info.get("cui", True))},
+                           "cui": cui},
                 "revision": rev, "published_utc": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "published_by": getpass.getuser(), "writer": {"app": "Stationkeeper", "app_version": app_version,
                                                                "machine": platform.node()},
                 "freshness": dict(FRESHNESS), "parts": parts}
     _write(os.path.join(base, "manifest.json"), json.dumps(manifest, indent=1, ensure_ascii=False).encode("utf-8"))
-    st.update(revision=rev, parts=parts_state, published=manifest["published_utc"])
-    ws.set("effort_data", st)
+    st.update(revision=rev, parts=parts_state, published=manifest["published_utc"], cui=cui)
+    if state_out is not None:
+        state_out["state"] = st
+    else:
+        ws.set("effort_data", st)
     diag.activity("effort_data_published", n=len(written))
     return {"revision": rev, "written": written, "pending": pending}
 
@@ -332,23 +353,45 @@ def _inputs_stamp(w):
 
 
 def tick(w):
-    """The window's 3-second timer: publish what changed for the open effort. Never stops the window."""
+    """The window's 3-second timer: publish what changed for the open effort, on a thread of its own (4.10.0: building
+    the effort's template took seconds, which paused the window). Never stops the window."""
+    job = getattr(w, "_effdata_job", None)
+    if job is not None:
+        if job["thread"].is_alive():
+            return None
+        w._effdata_job = None                                  # the run ended: its state is saved here, on the window's thread
+        if job.get("state") is not None:
+            job["ws"].set("effort_data", job["state"])
+        res = job.get("res")
+        if job.get("error") or (res and res.get("pending")):
+            w._effdata_retry = time.time() + 60                # the template again in a minute (Word may hold it)
+        return res
     if w.ws is None or not getattr(w, "effort_path", ""):
         return None
     if os.environ.get("AH_TEST") and not os.environ.get("SK_EFFORTDATA_TEST"):
         return None
     try:
-        stamp = _inputs_stamp(w)                               # cheap: only when something it reads changed
+        stamp = _inputs_stamp(w) + (cui_of(w.ws),)              # cheap: only when something it reads changed
         retry = getattr(w, "_effdata_retry", 0) and time.time() >= w._effdata_retry
         if stamp == getattr(w, "_effdata_stamp", None) and not retry:
             return None
         w._effdata_stamp, w._effdata_retry = stamp, 0
         info = (getattr(w, "efforts", None) or {}).get(w.effort_name) or {}
-        res = publish(w.config_dir, w.ws, w.effort_path, w.effort_name, getattr(w, "version", ""),
-                      info={"solicitation": info.get("solicitation", ""), "cui": True})
-        if res and res.get("pending"):
-            w._effdata_retry = time.time() + 60                # 4.9.0: the template again in a minute
-        return res
+        effort_id(w.ws)                                        # set here, on the window's thread, before the run
+        job = {"ws": w.ws}
+        args = (w.config_dir, w.ws, w.effort_path, w.effort_name, getattr(w, "version", ""))
+        kw = {"info": {"solicitation": info.get("solicitation", ""), "cui": cui_of(w.ws)}, "state_out": job}
+
+        def run():
+            try:
+                job["res"] = publish(*args, **kw)
+            except Exception:  # noqa: BLE001
+                diag.swallowed()
+                job["error"] = True
+        job["thread"] = threading.Thread(target=run, name="effort-data", daemon=True)
+        w._effdata_job = job
+        job["thread"].start()
+        return "started"
     except Exception:  # noqa: BLE001
         diag.swallowed()
         w._effdata_retry = time.time() + 60
