@@ -20,6 +20,7 @@ _PATHLIKE = re.compile(r"([A-Za-z]:[\\/])|(\\\\)|(/[^ ]+/)|(@[A-Za-z0-9.-]+\.)")
 _SETTINGS_KEEP = {"work_mode", "advanced", "usage_logging", "ocr_sandbox_required", "theme", "text_size"}
 
 WHATS_NEW = {
+    "4.11.0": ["Redline's Word copy makes real Word tables from where the PDF's columns sit; a cell that wrapped stays in its cell.", "Check compares a table's words cell by cell and says how many tables it made, to look at beside the PDF."],
     "4.10.0": ["Suggestion rules are one team list in Company Standards.xlsx, with how often each was kept or not right; Not right and Make it a team rule... on Shred.", "The workbook has a Theme sheet (colors and fonts); an effort's workbook a Volume column; Settings > Team library has Read it now."],
     "4.9.0": ["Each effort's folder holds Stationkeeper Data, the read-only snapshot Stationkeeper Macros reads: rules, the effort's template and dictionary.", "Published within seconds of a change: only changed parts, each renamed into place, the manifest last; the revision only goes up."],
     "4.8.0": ["Redline, below the six steps: Prepare makes a clean Word copy of a customer PDF (real headings, the numbers as typed, no running headers).", "Check compares the copy with its PDF word for word, and finds a returned redline's edits made with Track Changes off.", "Exceptions makes a table of every tracked change with the customer's number, both texts and the comment; Excel or Word."],
