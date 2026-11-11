@@ -27,6 +27,9 @@ def _plural(n, word, many=None):
     return f"{n} {word if n == 1 else (many or word + 's')}"
 
 
+_PAIR_COUNT = {}                                       # (effort folder, pair key): changes in a version not opened yet
+
+
 def facts(ws, effort_path="", M=None, acronyms_left=None, today=None, drafts_on=True):
     """What the effort holds, as plain numbers (each part on its own: one that cannot be read is left as None)."""
     today = today or datetime.date.today()
@@ -62,9 +65,13 @@ def facts(ws, effort_path="", M=None, acronyms_left=None, today=None, drafts_on=
         for d in lib.docs:
             vs = d.get("versions") or []
             for k in range(1, len(vs)):
-                if not vs[k].get("reviewed") and CHR.pair_key(vs[k - 1], vs[k]) not in rv.pairs:
-                    c = DV.summary(DV.compare(lib.text(vs[k - 1]), lib.text(vs[k])))
-                    f["compare"] += c["changed"] + c["added"] + c["removed"]
+                key = CHR.pair_key(vs[k - 1], vs[k])
+                if not vs[k].get("reviewed") and key not in rv.pairs:
+                    ck = (ws.root, key)                    # 4.7.1: versions never change, so a pair is compared once
+                    if ck not in _PAIR_COUNT:
+                        c = DV.summary(DV.compare(lib.text(vs[k - 1]), lib.text(vs[k])))
+                        _PAIR_COUNT[ck] = c["changed"] + c["added"] + c["removed"]
+                    f["compare"] += _PAIR_COUNT[ck]
     except Exception:  # noqa: BLE001
         diag.swallowed()
     try:                                                   # 4.6.0: the passages Changes sent back to Shred
