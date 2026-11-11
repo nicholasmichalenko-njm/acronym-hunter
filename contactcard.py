@@ -240,3 +240,9 @@ def take_out_piece(rec, cid, sid, who=None):
     rec.log("customer", f"Contact updated: {c['name'] or c['email'] or 'a contact'} (a piece taken out)", who=who)
     rec.save()
     return "changed"
+
+
+def joined(c, field):
+    """A list field as one cell: 'value (label); value (label)', the label left off a lone Main."""
+    vs = values(c, field)
+    return "; ".join(v["value"] + (f" ({v['label']})" if len(vs) > 1 or v["label"] != "Main" else "") for v in vs)

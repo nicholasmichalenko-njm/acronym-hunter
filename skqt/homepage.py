@@ -1597,9 +1597,13 @@ class HomePage(QWidget):
             nm.setStyleSheet("font-weight:700;"); top.addWidget(nm, 1)
             top.addWidget(D.button("Remove", "ghost", lambda _=False, cid=c["id"]: self.remove_contact(cid)))
             bv.addLayout(top)
-            for k in ("org", "email", "phone", "address"):
-                if c.get(k):
-                    bv.addWidget(D.label(c[k]))
+            import contactcard as CC                                     # 4.12.0: several phones, e-mails, addresses
+            if c.get("org"):
+                bv.addWidget(D.label(c["org"]))
+            for k in CC.MULTI:
+                vs = CC.values(c, k)
+                for x in vs:
+                    bv.addWidget(D.label(x["value"] + (f"  ({x['label']})" if len(vs) > 1 or x["label"] != "Main" else "")))
             for o in c.get("other", []):
                 bv.addWidget(D.label(f"{o['label']}: {o['value']}"))
             if c.get("sources"):

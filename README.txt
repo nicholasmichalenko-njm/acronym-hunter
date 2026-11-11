@@ -1,6 +1,23 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+CAPTURE CARDS AND DELIVERABLES (4.12.0)
+  - On Shred, Capture > Contact, Key date or Effort detail opens a card at the top of the piece pane, not a dialog. It
+    stays open while you read: pick words on any page (drag across them), then Take on the field they belong in. What
+    the first piece says fills the blank fields; Take and typing replace what a field holds.
+  - A contact holds several phones, e-mails and addresses, each with a label (Office, Mobile, Fax, Main, Other or a
+    word of your own) and the page it came from. The card's top row picks New contact or one already filed: a filed
+    contact shows every value to fix in place, and new picks add to it. Save files the card and marks every piece it
+    took words from; Cancel drops it. One card at a time: opening another asks to save or discard the open one.
+  - Captured from this piece, in the pane: each capture with Open (a contact opens on the card) and Take out (a
+    contact loses only what that piece gave it).
+  - A piece typed Deliverable shows Which deliverable: the deliverables on the effort's board. Picking one attaches the
+    piece; its page lists it under From the solicitation (Requirements tab). With none on the board, the drop-down says
+    No deliverables yet and a button opens Dashboard > Deliverables, where deliverables are added.
+  - Delete a deliverable: Delete this deliverable... on its page, a board card's right-click, or Delete... in the List
+    view. It asks first (Cancel is the default) and says what goes with it. Undo (Ctrl+Z on the Deliverables page)
+    puts it back with everything it held, until Stationkeeper closes; the effort record keeps a copy either way.
+
 REDLINE TABLES (4.11.0)
   - Redline's Word copy makes real Word tables. A PDF keeps no tables, only text placed on the page: rows whose pieces
     line up in columns become a table, its column widths from where the columns sit, and a cell that wrapped onto a

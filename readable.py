@@ -363,8 +363,8 @@ def more(rec, lib, data_dir="", info=None):
         out["Effort details.csv"] = (["Detail", "Value"], rows)
         out["Team.csv"] = (["Name", "Role"], [[m.get("name", ""), m.get("role", "")] for m in rec.data.get("team", [])])
         out["Customer contacts.csv"] = (["Name", "Title", "Organization", "E-mail", "Phone", "Address", "Other", "Found in"],   # 2.96.0
-                                        [[c.get("name", ""), c.get("title", ""), c.get("org", ""), c.get("email", ""), c.get("phone", ""),
-                                          c.get("address", ""), "; ".join(f"{o['label']}: {o['value']}" for o in c.get("other", [])),
+                                        [[c.get("name", ""), c.get("title", ""), c.get("org", "")] + [__import__("contactcard").joined(c, k) for k in ("email", "phone", "address")] + [
+                                          "; ".join(f"{o['label']}: {o['value']}" for o in c.get("other", [])),
                                           "; ".join(", ".join(x for x in (s_.get("doc"), s_.get("loc")) if x) for s_ in c.get("sources", []))]
                                          for c in rec.data.get("contacts", [])])
         import custqa as Q                                                                                                # 2.98.0
