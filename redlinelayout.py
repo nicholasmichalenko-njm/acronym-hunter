@@ -19,9 +19,20 @@ def _inside(box, ln):
     return l - 1 <= x <= r + 1 and t - 1 <= y <= b + 1
 
 
+def _clean(t, kind):
+    rows = [[{k: c.get(k) for k in ("text", "cs", "rs", "fill", "bold") } | ({"nested": _clean(c["nested"], "tags")} if c.get("nested") else {})
+             for c in row] for row in t["rows"] if row]
+    return {"rows": rows, "widths": t["widths"], "heights": t.get("heights") or [], "header": t["header"], "pad": t.get("pad", 5.4),
+            "borders": t["borders"], "source": kind}
+
+
 def ruled(pdf, doc, skip):
-    """The tables drawn with borders: [{"page", "lines", "grid", "box"}]."""
+    """The tables drawn with borders (4.13.0), and the tagged tables (4.14.0): [{"page", "lines", "grid", "box"}].
+    A tagged table where borders are drawn keeps the borders' grid, unless a table sits inside one of its cells (the
+    borders then mix the two); a tagged table with no borders is taken from its tags."""
     import pypdfium2 as pdfium
+    import pdftags as PT
+    import tagtables as TT
     out = []
     try:
         pp = pdfium.PdfDocument(pdf)
@@ -31,25 +42,86 @@ def ruled(pdf, doc, skip):
         for pi in range(min(len(pp), len(doc.get("pages") or []))):
             page = pp[pi]
             try:
-                found = RU.find(PO.drawing(page), PO.words(page))
+                ws = PO.words(page)
+                found = RU.find(PO.drawing(page), ws)
+                try:
+                    tagged = PT.tables(page)
+                except Exception:  # noqa: BLE001  tags PDFium cannot read are no tags
+                    import diag
+                    diag.swallowed()
+                    tagged = []
             finally:
                 page.close()
-            lines = doc["pages"][pi]["lines"]
+            grids = [g for g in (TT.grid(t, ws) for t in tagged) if g]
+            outer = TT.nest(grids)
+            tables = []
             for t in found:
-                mine = [(pi, li) for li, ln in enumerate(lines) if (pi, li) not in skip and _inside(t["box"], ln)]
-                if not mine:
-                    continue
-                rows = [[{k: c[k] for k in ("text", "cs", "rs", "fill", "bold")} for c in row] for row in t["rows"] if row]
-                out.append({"page": pi, "lines": mine, "box": t["box"],
-                            "grid": {"rows": rows, "widths": t["widths"], "heights": t["heights"], "header": t["header"], "pad": t["pad"],
-                                     "borders": t["borders"], "source": "ruled"}})
+                box = t["box"]
+                over = [g for g in outer if TT._overlap((g["xs"][0], g["ys"][0], g["xs"][-1], g["ys"][-1]), box) > 0.5]
+                g = next((g for g in over if any(c.get("nested") for row in g["rows"] for c in row)), None)
+                if g is not None:                      # a table in a cell: the tags say which is which; the borders stay
+                    g["borders"] = "all"
+                    tables.append((box, _clean(g, "tags")))
+                else:
+                    tables.append((box, _clean(t, "ruled")))
+                for x in over:
+                    outer.remove(x)
+            for g in outer:                            # no borders drawn: the tags' table
+                tables.append(((g["xs"][0], g["ys"][0], g["xs"][-1], g["ys"][-1]), _clean(g, "tags")))
+            lines = doc["pages"][pi]["lines"]
+            for box, grid in tables:
+                mine = [(pi, li) for li, ln in enumerate(lines) if (pi, li) not in skip and _inside(box, ln)]
+                if mine:
+                    out.append({"page": pi, "lines": mine, "box": box, "grid": grid})
     finally:
         pp.close()
+    return join_pages(out, doc, skip)
+
+
+def _last_on_page(t, doc, skip, first=False):
+    """Is the table the last thing on its page (or the first, with first=True)?"""
+    pi = t["page"]
+    mine = set(t["lines"])
+    for li, ln in enumerate(doc["pages"][pi]["lines"]):
+        if (pi, li) in skip or (pi, li) in mine:
+            continue
+        if (ln["box"][1] < t["box"][1] - 1) if first else (ln["box"][1] > t["box"][3] - 1):
+            return False
+    return True
+
+
+def join_pages(found, doc, skip):
+    """A table that ends its page and one that starts the next, with the same columns, are one table. The header row
+    repeated at the top of the next page is kept once (Word repeats it); the check leaves the repeats out too."""
+    found = sorted(found, key=lambda t: (t["page"], t["box"][1]))
+    out = []
+    for t in found:
+        prev = out[-1] if out else None
+        if prev is not None and t["page"] == prev["_end"] + 1 and len(t["grid"]["widths"]) == len(prev["grid"]["widths"]) \
+                and all(abs(a - b) <= 2.5 for a, b in zip(t["grid"]["widths"], prev["grid"]["widths"])) \
+                and prev["_last"] and _last_on_page(t, doc, skip, first=True):
+            rows = t["grid"]["rows"]
+            h = prev["grid"]["header"] or 1
+            if rows and [c["text"] for c in rows[0]] == [c["text"] for c in prev["grid"]["rows"][0]]:
+                prev["grid"]["header"] = h                 # the row Word repeats is the header row
+                rows = rows[h:]
+                t["grid"]["heights"] = (t["grid"].get("heights") or [])[h:]
+            prev["grid"]["rows"] += rows
+            prev["grid"]["heights"] = (prev["grid"].get("heights") or []) + (t["grid"].get("heights") or [])
+            prev["lines"] += t["lines"]
+            prev["_end"] = t["page"]
+            prev["_last"] = _last_on_page(t, doc, skip)
+            continue
+        t["_end"] = t["page"]
+        t["_last"] = _last_on_page(t, doc, skip)
+        out.append(t)
+    for t in out:
+        t.pop("_end", None); t.pop("_last", None)
     return out
 
 
 def tables(pdf, doc, skip):
-    """Ruled tables first; then aligned text among the lines left."""
+    """Ruled and tagged tables first; then aligned text among the lines left."""
     got = ruled(pdf, doc, skip)
     taken = {x for t in got for x in t["lines"]}
     for t in RT.find(doc, skip | taken):
@@ -61,8 +133,16 @@ def tables(pdf, doc, skip):
 
 
 def text_of(grid):
-    """A table's words, row by row and cell by cell (how Word reads the copy's table)."""
-    return " ".join(c["text"] for row in grid["rows"] for c in row if c["text"])
+    """A table's words, row by row and cell by cell, a table in a cell after the cell's own words (how Word reads the
+    copy's table)."""
+    out = []
+    for row in grid["rows"]:
+        for c in row:
+            if c.get("text"):
+                out.append(c["text"])
+            if c.get("nested"):
+                out.append(text_of(c["nested"]))
+    return " ".join(x for x in out if x)
 
 
 def setup(doc, keep=None, found=()):

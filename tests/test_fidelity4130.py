@@ -1,7 +1,9 @@
-"""4.13.0: Redline's copy against fictional fixtures (claude/stationkeeper-pdf-fidelity-plan-4.13.html). Tables come from
+"""4.13.0 and 4.14.0: Redline's copy against fictional fixtures (claude/stationkeeper-pdf-fidelity-plan-4.13.html). Tables come from
 the borders each page draws: merged cells across and down, a 2x2 block, empty cells, wrapped cells, rules only, shading,
 a landscape page, cell spacing, rotated headers, lists in cells and note marks come out cell for cell; every copy holds
 every word of its PDF; each page keeps its size and orientation; and the copy beats the 4.12.0 way on every fixture.
+4.14.0: a table across three pages is one table with its header row once; a table in a cell and a table with no borders
+come from the PDF's tags.
 PDFs made by LibreOffice here (pdf_lo) and by Word on the build PC (pdf_word_tagged, pdf_word_untagged) when present.
 Fictional content (Kestrel)."""
 import os, sys
@@ -13,7 +15,8 @@ os.environ.setdefault("SK_DATA_DIR", os.path.join(tempfile.mkdtemp(), "data"))
 import fidelity as F
 
 checks = []
-LATER = {"F13_header_repeat", "F15_nested", "F19_borderless"}     # 4.14.0 (across pages, nested) and 4.15.0 (borderless)
+# 4.14.0: tags give borderless and nested tables where the PDF keeps them; with no tags they wait for 4.15.0
+LATER = {"pdf_word_untagged": {"F15_nested", "F19_borderless"}}
 
 
 def check(name, ok, info=""):
@@ -26,8 +29,8 @@ for kind in ("pdf_lo", "pdf_word_tagged", "pdf_word_untagged"):
         continue
     rows = F.score(folder)
     print(F.report(rows))
-    now = [r for r in rows if r["fixture"] not in LATER]
-    check(f"{kind}: every table cell for cell (4.13.0 fixtures)", all(r["exact"] == r["tables"] for r in now),
+    now = [r for r in rows if r["fixture"] not in LATER.get(kind, ())]
+    check(f"{kind}: every table cell for cell" + (" (but tables with no borders and no tags)" if kind in LATER else ""), all(r["exact"] == r["tables"] for r in now),
           [r["fixture"] for r in now if r["exact"] < r["tables"]])
     check(f"{kind}: every copy holds every word of its PDF", all(r["word_diffs"] == 0 for r in rows),
           [(r["fixture"], r["word_diffs"]) for r in rows if r["word_diffs"]])

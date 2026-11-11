@@ -29,6 +29,11 @@ def table(d, grid, room=9360):
     """Append the table to d.body. room: twips between the margins."""
     if d.body and d.body[-1].endswith("</w:tbl>"):
         d.body.append("<w:p/>")                       # Word keeps two tables apart with a paragraph
+    d.body.append(table_xml(grid, room))
+
+
+def table_xml(grid, room=9360):
+    """The table's XML (a table in a cell is written inside that cell, 4.14.0)."""
     widths = [max(1.0, w) for w in grid["widths"]] or [1.0]
     tw = [int(round(w * TW)) for w in widths]
     if sum(tw) > room:
@@ -64,8 +69,12 @@ def table(d, grid, room=9360):
             if c.get("fill"):
                 pr += f'<w:shd w:val="clear" w:color="auto" w:fill="{_x(c["fill"])}"/>'
             bold = bool(c.get("bold"))
-            cells.append(f'<w:tc><w:tcPr>{pr}</w:tcPr><w:p><w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr>'
-                         f'{_run(c.get("text", ""), bold)}</w:p></w:tc>')
+            inner = ""
+            if c.get("nested"):                       # a table in the cell, then the paragraph Word ends a cell with
+                inner = table_xml(c["nested"], max(720, w - 2 * int(round(grid.get("pad", 5.4) * TW)))) + "<w:p/>"
+            own = (f'<w:p><w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr>{_run(c.get("text", ""), bold)}</w:p>'
+                   if c.get("text") or not inner else "")
+            cells.append(f'<w:tc><w:tcPr>{pr}</w:tcPr>{own}{inner}</w:tc>')
             col += cs
         trpr = ""
         if ri < int(grid.get("header") or 0):
@@ -76,7 +85,7 @@ def table(d, grid, room=9360):
         xml.append("<w:tr>" + (f"<w:trPr>{trpr}</w:trPr>" if trpr else "") + "".join(cells) + "</w:tr>")
     gridx = "".join(f'<w:gridCol w:w="{w}"/>' for w in tw)
     pad = int(round(max(0.0, min(14.0, grid.get("pad", 5.4))) * TW))     # the space before a cell's text, as on the page
-    d.body.append(f'<w:tbl><w:tblPr><w:tblW w:w="{sum(tw)}" w:type="dxa"/>{_borders(grid.get("borders", "all"))}'
+    return (f'<w:tbl><w:tblPr><w:tblW w:w="{sum(tw)}" w:type="dxa"/>{_borders(grid.get("borders", "all"))}'
                   f'<w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="{pad}" w:type="dxa"/><w:right w:w="{pad}" w:type="dxa"/>'
                   f'</w:tblCellMar></w:tblPr><w:tblGrid>{gridx}</w:tblGrid>' + "".join(xml) + "</w:tbl>")
 
