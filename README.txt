@@ -1,6 +1,19 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+REDLINE FIDELITY: TABLES FROM THEIR BORDERS (4.13.0)
+  - Redline's copy reads a table from the borders the PDF draws (lines, and the thin filled bars Word uses), not only
+    from text that lines up. Cells merged across or down come out merged, an empty cell stays empty, a cell whose text
+    wraps stays one cell, shading and a bold or shaded header row are kept (the header repeats on each page), a table
+    with horizontal rules only takes its columns from the gaps between the words, and turned header text reads as
+    written. A table with no borders still comes from text that lines up.
+  - The copy follows the page: each page's size and orientation (a landscape page stays landscape), the margins, the
+    body font and size, the space above each paragraph, line to line spacing, indents, centered and justified text, a
+    new page where the PDF starts one, and headings in the size, weight and color the PDF set them in.
+  - Check reads each table the way the copy holds it, so a faithful copy still shows no difference.
+  - Next: tags written by Word, tables across pages and tables in cells (4.14.0); tables with no borders and slides
+    (4.15.0).
+
 CAPTURE CARDS AND DELIVERABLES (4.12.0)
   - On Shred, Capture > Contact, Key date or Effort detail opens a card at the top of the piece pane, not a dialog. It
     stays open while you read: pick words on any page (drag across them), then Take on the field they belong in. What
