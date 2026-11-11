@@ -85,6 +85,8 @@ def card(page):
     c.body.addWidget(page.tl_where)
     row = QHBoxLayout(); c.body.addLayout(row)
     row.addWidget(D.button("Change...", None, lambda: change(page), "Another folder, such as a synced SharePoint library"))
+    row.addWidget(D.button("Read it now", None, lambda: read_now(page),
+                           "Read what changed in the workbook and the files now, without waiting for the two-minute check"))
     row.addWidget(D.button("Open the folder", None, lambda: _open(T.folder(page.host.config_dir))))
     row.addWidget(D.button("Open the workbook", "primary", lambda: _open(T.book_path(page.host.config_dir)),
                            "Company Standards.xlsx in Excel"))
@@ -92,6 +94,15 @@ def card(page):
     page.tl_card = c
     fill(page)
     return c
+
+
+def read_now(page):
+    """4.10.0: the two-minute check, now. Says what it read, or that nothing changed."""
+    said = tick(page.host)
+    if not said:
+        page.host.status("The team library has no changes since it was last read.")
+    fill(page)
+    return said
 
 
 def fill(page):
