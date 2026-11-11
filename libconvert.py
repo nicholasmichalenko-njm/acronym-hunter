@@ -1,14 +1,14 @@
 """Your standards become library items (3.49.0), once, from what this PC holds. Nothing is deleted: the standards stay
 as they are and keep making templates until profiles replace them (3.51.0).
 
-  The global standard's styles, numbering, lists, page setups, pagination, theme and base fonts, its headers and
+  The Company Standards (Default)'s styles, numbering, lists, page setups, pagination, theme and base fonts, its headers and
   footers, covers, title pages, back covers, table looks, captions, TOC and Quick Parts: items tagged every effort
-  type, from "Global standard".
+  type, from "Company Standards (Default)".
   A profile's changes: new versions of those items, labelled with the profile's name and tagged with the effort types
   that hold the profile.
   An effort type's changes (shared, and for one profile): new versions labelled with its name, tagged that effort type.
 
-Each item holds the whole value as that layer makes it (the global standard merged with the layer), so it builds the
+Each item holds the whole value as that layer makes it (the Company Standards (Default) merged with the layer), so it builds the
 same on its own. The same values met twice are one item (its effort-type tags grow). Converting again adds only what
 changed. converted.json in the library folder records that it ran."""
 import hashlib, json, os
@@ -82,10 +82,10 @@ def items_of(layer, resolved, config_dir, whole=False):
 
 
 def layers(data):
-    """[(label, layer, resolved, effort types, whole)] in the order they convert: the global standard, each profile,
+    """[(label, layer, resolved, effort types, whole)] in the order they convert: the Company Standards (Default), each profile,
     each effort type's shared changes, each effort type's changes for one profile."""
     ets_all = [e["id"] for e in data.get("effort_types", [])]
-    out = [("Global standard", data["company"], data["company"], [LC.ALL], True)]
+    out = [("Company Standards (Default)", data["company"], data["company"], [LC.ALL], True)]
     for t in data["types"]:
         lay = PRL.layer_of(t)
         if lay:
@@ -165,14 +165,14 @@ def ensure(config_dir):
 
 
 def rebuild_check(config_dir, lib=None):
-    """The global standard rebuilt from its converted items: [(what, standard's value, from the library)] that differ.
-    Empty when the library holds the global standard whole."""
+    """The Company Standards (Default) rebuilt from its converted items: [(what, standard's value, from the library)] that differ.
+    Empty when the library holds the Company Standards (Default) whole."""
     lib = lib or TL.Library(config_dir)
     data = PRL.load(config_dir)
     company = data["company"]
     work = {}
     for i in lib.items:
-        if i.get("converted") and i.get("source") == "Global standard":
+        if i.get("converted") and i.get("source") in ("Company Standards (Default)", "Global standard"):   # 4.7.0: the old name too
             TL.use_in_standard(lib, i["id"], work)
     out = []
     for key in ("style_defs", "page_setups", "table_styles", "hf_layouts", "variables", "pagination", "toc", "captions",

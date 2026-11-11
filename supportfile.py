@@ -120,9 +120,9 @@ WHATS_NEW = {
                "words with their source, how each is scored, objectives, hot buttons, themes, topics, answers, pages and dates.",
                "Structure Builder shows Everything for this section. Lists to Submit is now part of the Acronym List."],
     "3.36.0": ["Effort > Effort Formatting: this effort's fonts, sizes, margins, headings and header and footer on top of the "
-               "global standards, for every volume or one, with the RFP's rules beside each value.",
-               "Make it global sends an effort's value to the global standards (with Undo). Production Standards now edits "
-               "the global standards only; Every setting opens it on the effort."],
+               "Company Standards (Default), for every volume or one, with the RFP's rules beside each value.",
+               "Make it global sends an effort's value to the Company Standards (Default) (with Undo). Production Standards now edits "
+               "the Company Standards (Default) only; Every setting opens it on the effort."],
     "3.35.0": ["Matrix starts as the outline matrix: one row per outline item with Assigned To, Initial Page Allocation, "
                "% Complete, and Section L beside Section M. Review's bottom bar sets an item's values.",
                "Matrix views: save the columns and rows as a named, versioned view; each effort picks one; an effort type "
@@ -391,7 +391,7 @@ WHATS_NEW = {
               "passes its own check. Fix a Copy checks and sets every style property of the library, uses each deliverable's "
               "own profile, and compares Word's page count with the deliverable's page limit."],
     "3.6.1": ["Fix a Copy: headers take this effort's solicitation and the volume's name (from the Deliverables board, or typed "
-              "on the page); with either one blank, headers and footers are left as they are. The global standards hold no "
+              "on the page); with either one blank, headers and footers are left as they are. The Company Standards (Default) hold no "
               "sample names, products or numbers.",
               "Fix a Copy: terms come from the team's Banned Phrases, the custom dictionaries, the author list and the "
               "effort's approved acronyms. Copies go in the effort's own folder in the output folder, and the effort's "

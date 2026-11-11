@@ -83,6 +83,9 @@ class SettingsPage(QWidget):
         from .teamview import TeamCard                   # 2.89.0: one file sets up every PC the same way
         self.team_card = TeamCard(host)
         v.addWidget(self.team_card)
+        from .teamlibview import card as _team_lib_card       # 4.7.0: Company Standards.xlsx and the Word files beside it
+        self.tl_card = _team_lib_card(self)
+        v.addWidget(self.tl_card)
         self.ourdata = D.Card("Our data (the team's data file)", "One file with the team's foundational data, used the same way in "  # 3.22.0
                               "every effort: the master acronym list, custom dictionaries, banned and avoided phrases, Production "
                               "Standards with their covers and Quick Parts, the template library, and the team's lists. Nothing "
@@ -188,7 +191,7 @@ class SettingsPage(QWidget):
 
     SECTIONS = (("This effort", ("eff",)),
                 ("You", ("mode", "look_card", "tz_card")),    # 4.4.0: Appearance had no section since 3.91.0
-                ("The team", ("authors", "process_card", "folders_card", "doctypes_card", "roles_card", "branding_card", "team_card")),
+                ("The team", ("tl_card", "authors", "process_card", "folders_card", "doctypes_card", "roles_card", "branding_card", "team_card")),
                 ("Review and responses", ("ri_card", "re_card", "un_card", "sg_card")),
                 ("Our data and backups", ("ourdata", "bk", "data")),
                 ("Training", ("tr",)),

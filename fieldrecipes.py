@@ -52,7 +52,9 @@ def _clean(r):
             "codes": [" ".join(str(c).split()) for c in codes if str(c).strip()],
             "between": str(r.get("between") or ""), "bookmark": " ".join(str(r.get("bookmark") or "").split()),
             "spans": str(r.get("spans") or "").strip(), "style": str(r.get("style") or "").strip(),
-            "note": str(r.get("note") or "").strip(), "starter": bool(r.get("starter"))}
+            "note": str(r.get("note") or "").strip(), "starter": bool(r.get("starter")),
+            "use_case": str(r.get("use_case") or "").strip(), "depends": str(r.get("depends") or "").strip(),   # 4.7.0: the Fields sheet
+            "sample": str(r.get("sample") or "").strip(), "extra": dict(r.get("extra") or {})}
 
 
 def starters():
@@ -78,6 +80,11 @@ def save(config_dir, recipes):
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump({"version": 1, "recipes": [_clean(r) for r in recipes]}, f, indent=1)
     os.replace(tmp, _path(config_dir))
+    try:                                               # 4.7.0: the Fields sheet follows
+        import teamlib
+        teamlib.mark_dirty(config_dir)
+    except Exception:  # noqa: BLE001
+        pass
     return True
 
 

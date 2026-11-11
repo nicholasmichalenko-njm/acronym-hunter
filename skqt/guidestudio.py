@@ -38,10 +38,10 @@ FORMATSTD = \
    "changes keeps the edits in this version; Save as a new version keeps them as the next one (Draft).",
    "Effort types...: the effort types an item is for (Every effort type, or some). The Effort type box shows the items for one "
    "effort type. Status: Draft (just imported), Approved (ready to build with), Retired (kept, not offered).",
-   "The first time this page opens, your standards become library items: the global standard's (every effort type), each "
+   "The first time this page opens, your standards become library items: the Company Standards (Default)'s (every effort type), each "
    "profile's and each effort type's changes as new versions labelled with their names. Nothing is deleted; Production Standards "
    "still makes the templates until Effort Profiles arrive. More > Bring in my standards again adds what changed since.",
-   "Put in a standard... carries the selected items into the global standard, a profile or an effort type."],
+   "Put in a standard... carries the selected items into the Company Standards (Default), a profile or an effort type."],
   ["Measuring a Quick Part's pages in Word is a button (Template library > Quick Parts > Measure pages), never automatic.",
    "Quick Parts and Layout get screens of their own in 3.50.0; Effort Profiles and Templates in 3.51.0."])
 

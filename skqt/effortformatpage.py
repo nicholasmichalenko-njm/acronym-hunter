@@ -1,8 +1,8 @@
-"""Effort Formatting (3.36.0): this effort's formatting on top of the global standards, on a page of its own under
+"""Effort Formatting (3.36.0): this effort's formatting on top of the Company Standards (Default), on a page of its own under
 Effort. The values efforts change most are up front (body, table and caption fonts and sizes, headings, paper and
 margins, header and footer), each with the global value beside it, what the RFP says with Use it, Reset, and Make it
 global. Changes apply to every volume of the effort or to one. Every setting opens the full Production Standards
-editor on this effort's layer. Nothing here changes the global standards except Make it global. Rules only."""
+editor on this effort's layer. Nothing here changes the Company Standards (Default) except Make it global. Rules only."""
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
                                QListWidget, QListWidgetItem,
@@ -39,8 +39,8 @@ class EffortFormatPage(QWidget):
         outer.addWidget(self.empty)
         self.body = QWidget(); outer.addWidget(self.body, 1)
         bv = QVBoxLayout(self.body); bv.setContentsMargins(0, 0, 0, 0); bv.setSpacing(D.SPACE["m"])
-        top = D.Card("Effort Formatting", "This effort's formatting. It starts from the global standards (Production "
-                     "Standards) and keeps its own changes here; the global standards and the template library stay as they are.",
+        top = D.Card("Effort Formatting", "This effort's formatting. It starts from the Company Standards (Default) (Production "
+                     "Standards) and keeps its own changes here; the Company Standards (Default) and the template library stay as they are.",
                      actions=[D.button("Every setting...", "primary", lambda: self.every_setting(),
                                        "The full Production Standards editor on this effort's formatting: every value, table and part")])
         self.band = QLabel(""); self.band.setTextFormat(Qt.RichText); self.band.setWordWrap(True); top.add(self.band)
@@ -87,7 +87,7 @@ class EffortFormatPage(QWidget):
         ch = D.Card("Changed for this effort", "Everything this effort sets at this scope, with the global value.",
                     actions=[D.button("Reset all", "ghost", lambda: self.reset_all(), "Every value at this scope back to the global value"),
                              D.button("Undo the last Make it global", "ghost", lambda: self.undo_keep(),
-                                      "Put the global standards back as they were before the last Make it global")])
+                                      "Put the Company Standards (Default) back as they were before the last Make it global")])
         self.changes = QLabel(""); self.changes.setTextFormat(Qt.RichText); self.changes.setWordWrap(True); ch.add(self.changes)
         iv.addWidget(ch)
         lp = D.Card("Library parts this effort uses", "Covers, headers and footers, numbering, table looks: the global "
@@ -148,7 +148,7 @@ class EffortFormatPage(QWidget):
         box = QHBoxLayout(); box.setSpacing(D.SPACE["xs"]); box.addWidget(use); box.addWidget(reset)
         wbox = QWidget(); wbox.setLayout(box); self.grid.addWidget(wbox, r, 4)
         keep = QToolButton(); keep.setText("Make it global"); keep.setPopupMode(QToolButton.InstantPopup)
-        keep.setToolTip("Write this effort's value into the global standards, for every effort that uses them")
+        keep.setToolTip("Write this effort's value into the Company Standards (Default), for every effort that uses them")
         menu = QMenu(keep); keep.setMenu(menu)
         menu.aboutToShow.connect(lambda k=key, m=menu: self.fill_keep_menu(k, m))
         self.grid.addWidget(keep, r, 5)
@@ -381,7 +381,7 @@ class EffortFormatPage(QWidget):
             data, eid, default, vols = EFM.ids(self.host.config_dir, self.host.ws)
             t = D.tokens()
             self.band.setText(f"<div style='background:{t['warn_soft']};color:{t['text']};padding:6px 10px;border-radius:6px'>"
-                              f"<b>Formatting for {self.host.effort_name} only.</b> Nothing here changes the global standards or "
+                              f"<b>Formatting for {self.host.effort_name} only.</b> Nothing here changes the Company Standards (Default) or "
                               f"the template library, unless you choose Make it global.</div>")
             self.etype.clear(); self.etype.addItem("None (volumes only)", "")
             for e in data.get("effort_types", []):
@@ -399,7 +399,7 @@ class EffortFormatPage(QWidget):
             self.scope.setCurrentIndex(max(0, self.scope.findData(cur or "")))
             et = PRL.effort_type_of(data, eid)
             prof = PRL.type_of(data, self.tid() or default)["name"]
-            self.inherits.setText("Starts from: the global standards > the " + prof + " profile"
+            self.inherits.setText("Starts from: the Company Standards (Default) > the " + prof + " profile"
                                   + (f" > the {et['name']} effort type" if et else "")
                                   + (" > this effort's values for every volume" if self.tid() else "") + ".")
             for key in self.rows:

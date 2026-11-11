@@ -341,9 +341,9 @@ def _merge_standards(config_dir, b):
     said.append(f"{len(new_t)} profile(s) and {len(new_e)} effort type(s) added")
     if not PRL.diff(mine["company"], PRL.COMPANY) and (theirs_raw.get("company") or {}):
         mine["company"] = theirs["company"]
-        said.append("the global standards taken (this PC had not changed its own)")
+        said.append("the Company Standards (Default) taken (this PC had not changed its own)")
     elif theirs_raw.get("company"):
-        said.append("this PC's global standards kept")
+        said.append("this PC's Company Standards (Default) kept")
     PRL.save(config_dir, mine)
     return "; ".join(said)
 

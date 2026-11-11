@@ -5,7 +5,7 @@ Word draws, on this PC and only when a person presses Draw with Word (never by i
   Quick Parts                           inserted by Word from their kept source, saved as a page (qpmeasure, which
                                         counts their pages in the same pass)
   styles, table styles, headers and footers, header and footer designs, heading numbering, lists, the TOC
-                                        a specimen page: a template made from the global standard with the item in
+                                        a specimen page: a template made from the Company Standards (Default) with the item in
                                         it, its body replaced by sample paragraphs that use the item (specimen())
 Everything else (theme, font sets, page setups, pagination, table looks, captions, sections) is drawn by the app.
 
@@ -118,7 +118,7 @@ def _table(sid):
 
 
 def _with_item(lib, item, values):
-    """A global standard (the starting one) with the item in it; headers and footers on every part."""
+    """A Company Standards (Default) (the starting one) with the item in it; headers and footers on every part."""
     import prodrules as PRL
     cfg = tempfile.mkdtemp(prefix="sk_spec_")
     std = PRL.for_effort(cfg)

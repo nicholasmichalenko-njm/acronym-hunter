@@ -331,7 +331,7 @@ def _rename_values(x, ren):
 
 def apply_rules(std):
     """3.38.0: Rule 4 (style names follow the response type), Rule 5 (no title page, no title page styles) and Rule 6 (every
-    heading level's number at 0, one text position), unless the global standards or the effort turned them off."""
+    heading level's number at 0, one text position), unless the Company Standards (Default) or the effort turned them off."""
     off = set(str(x) for x in (std.get("_rules_off") or []))
     if "5" not in off and not (std.get("page_parts") or {}).get("title"):
         defs = std.get("style_defs") or {}

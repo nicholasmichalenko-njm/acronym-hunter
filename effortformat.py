@@ -1,12 +1,12 @@
-"""Effort Formatting (3.36.0): one effort's formatting on top of the global standards, kept apart from them.
+"""Effort Formatting (3.36.0): one effort's formatting on top of the Company Standards (Default), kept apart from them.
 
-The global standards (Production Standards: the global standard, volume profiles, effort types, the template library)
+The Company Standards (Default) (Production Standards: the Company Standards (Default), volume profiles, effort types, the template library)
 hold for every effort. An effort keeps its own changes in its workspace: for every volume in it ("over") or for one
 volume ("over_vol"[profile id]). The values efforts change most are named here (FIELDS); every other value is reached
 through the full editor on the effort's layer. The RFP's own format rules (Submission Rules, kind Format) are offered
-beside each value. Make it global writes an effort's change into a global layer (the global standard, a volume profile
+beside each value. Make it global writes an effort's change into a global layer (the Company Standards (Default), a volume profile
 or the effort type), records it in the global change history (with what it was, so it can be put back), and takes it
-off the effort. Nothing here changes the global standards except Make it global. Rules only; nothing leaves the PC."""
+off the effort. Nothing here changes the Company Standards (Default) except Make it global. Rules only; nothing leaves the PC."""
 import copy, datetime, getpass, json, os
 
 import prodrules as PRL
@@ -79,6 +79,11 @@ def set_layer(ws, lay, tid=None):
         else:
             e.pop("over_vol", None)
     ws.set("prod_std", e)
+    try:                                               # 4.7.0: the effort's workbook follows
+        import teamlib
+        teamlib.mark_effort_dirty(ws)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def _prune(d):
@@ -106,7 +111,7 @@ def ids(config_dir, ws, data=None):
 
 
 def team_std(config_dir, ws, tid=None, data=None):
-    """What the global standards give this effort before its own changes: for one volume, the effort's every-volume
+    """What the Company Standards (Default) give this effort before its own changes: for one volume, the effort's every-volume
     changes count as inherited too."""
     data, eid, default, _v = ids(config_dir, ws, data)
     std = PRL.resolved_type(data, tid or default, eid)
@@ -287,7 +292,7 @@ def targets(config_dir, ws, tid=None):
     effort type."""
     data, eid, default, _v = ids(config_dir, ws)
     t = PRL.type_of(data, tid or default)
-    out = [("team", "The global standard: every effort"), ("type:" + t["id"], f"The {t['name']} profile: that kind of volume in every effort")]
+    out = [("team", "The Company Standards (Default): every effort"), ("type:" + t["id"], f"The {t['name']} profile: that kind of volume in every effort")]
     et = PRL.effort_type_of(data, eid)
     if et:
         out.append(("etype:" + et["id"], f"The {et['name']} effort type: every effort of that type"))
@@ -402,7 +407,7 @@ def parts(config_dir, ws, tid=None):
         elif _slot_in_layer(lay, slot, kind):
             src = "This effort's own"
         else:
-            src = "The global standard's own values"
+            src = "The Company Standards (Default)'s own values"
         out.append((slot, f"{part}: {what}", src))
     return out
 

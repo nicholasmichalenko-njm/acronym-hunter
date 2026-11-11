@@ -9,7 +9,7 @@ answers ("codes") tie Audit and Fix a Copy findings to it, so they report by rul
 
 The built-in rules are the team's (R1 to R13 in the project's production rules list). The team can turn one off for every
 effort, and add its own rules (kept by people). An effort departs from a rule only on Effort Formatting (its own list of
-rules it turns off). Kept on this PC beside the global standards (rules.json); a team pack carries it. Rules only."""
+rules it turns off). Kept on this PC beside the Company Standards (Default) (rules.json); a team pack carries it. Rules only."""
 import copy, json, os, uuid
 
 FILE = "rules.json"

@@ -613,7 +613,7 @@ ARCHIVE EFFORTS, AND MERGE ANOTHER COPY OF AN EFFORT (3.70.0)
 PRODUCTION STANDARDS' SECTIONS IN THEIR NEW HOMES (3.69.0)
   - Rules > Fix a Copy's checks: graphics (picture types, resolution, widths, fonts and smallest text in drawings,
     captions, alt text), Excel workbooks and PowerPoint decks, and the words Fix a Copy reports and fixes (misspellings,
-    trademark and registered marks, word lists). They are the global standard's values, as before.
+    trademark and registered marks, word lists). They are the Company Standards (Default)'s values, as before.
   - Formatting Standards > Allowed styles...: the styles a finished document may use, what Fix a Copy does to the rest,
     the template whose styles copies take, and the styles the rules read (the A number's, the restriction block's).
   - Effort Profiles > Content map, fields and font rules...: for the picked profile in its effort type, every font rule
@@ -925,7 +925,7 @@ FORMATTING STANDARDS, A LIBRARY (3.49.0)
   - Import from a Word file: each item lands in its library and category, New, Same as (Show me) or Differs. Choose Add,
     Add as a new version, Keep both, Replace or Do not keep for each. Everything is kept at once or nothing is; Undo
     this import (or More > Undo an import) takes it back.
-  - Your standards come in: the first time the page opens, the global standard, each profile and each effort type
+  - Your standards come in: the first time the page opens, the Company Standards (Default), each profile and each effort type
     become library items (profiles' and effort types' changes as labelled versions). Nothing is deleted; Production
     Standards still makes the templates until Effort Profiles arrive.
   - Fixed: an import that hit an error kept some items and then called them already in the library; the template
@@ -1056,7 +1056,7 @@ DATA CALLS AND COMMENT DISPOSITION (3.39.0)
 
 GUARDRAILS FOR THE PROGRAM ITSELF (3.38.1)
   - Every release is now checked, before it is built, to open what earlier versions saved (an effort package, the
-    global standards, the rules, the template library and a Stationkeeper Data file) with nothing lost.
+    Company Standards (Default), the rules, the template library and a Stationkeeper Data file) with nothing lost.
   - Every release is checked to stay offline, to use only approved packages (with their license and origin), to show
     no emoji, and to read the test documents at least as well as before. Nothing in the program changes.
 
@@ -1073,7 +1073,7 @@ THE RULES PAGE: EVERY PRODUCTION RULE IN ONE LIST (3.38.0)
   - Rule 5: a response with no title page carries no title page styles. Production Standards > Styles has a Used on
     column (a style's name decides nothing), and names the A number's style and the restriction block's style.
   - Rule 7 (the footer table) is checked in your documents; Make templates builds it with the header and footer builder.
-  - The formatting for every effort is called the global standards throughout.
+  - The formatting for every effort is called the Company Standards (Default) throughout.
 
 AUTHOR KICKOFF PACKETS, EVERYTHING FOR A SECTION, ONE ACRONYM PAGE (3.37.0)
   - Structure Builder (or Storyboards) > Kickoff packets...: one Word file per author, for everyone who leads or writes
@@ -1088,7 +1088,7 @@ AUTHOR KICKOFF PACKETS, EVERYTHING FOR A SECTION, ONE ACRONYM PAGE (3.37.0)
     here). A kind filter shows acronyms, abbreviations, units or symbols.
 
 EFFORT FORMATTING, APART FROM THE GLOBAL STANDARDS (3.36.0)
-  - Effort > Effort Formatting: this effort's formatting on top of the global standards. An amber band says the page
+  - Effort > Effort Formatting: this effort's formatting on top of the Company Standards (Default). An amber band says the page
     changes this effort only. Up front: body text (font, size, line spacing, space after), tables and captions (font,
     size, where table and figure captions go), headings (font for Heading 1 to 3, Heading 1 size, numbers on or off),
     paper and margins, and the header and footer (left, center, right, the restriction marking). Each shows the global
@@ -1096,12 +1096,12 @@ EFFORT FORMATTING, APART FROM THE GLOBAL STANDARDS (3.36.0)
   - Changes apply to: Every volume of the effort, or one volume (a volume starts from the effort's every-volume values).
   - The RFP says: Submission Rules' format rules (font, size, margins, page size, line spacing) show beside each value
     with Use it, in red when the value in force breaks them.
-  - Make it global: writes this effort's value into the global standard, a volume profile or the effort type, takes it
+  - Make it global: writes this effort's value into the Company Standards (Default), a volume profile or the effort type, takes it
     off the effort, and records it in the global change history; Undo the last Make it global puts it back.
   - Library parts this effort uses: each template part's source: the global version, a version this effort chose, or
     this effort's own copy (kept in the effort, never added to the library unless you save it there).
   - Every setting... opens Production Standards on this effort (every volume, or one), with an amber band and Back to
-    Effort Formatting. Production Standards from the menu edits the global standards only, with a blue band.
+    Effort Formatting. Production Standards from the menu edits the Company Standards (Default) only, with a blue band.
 
 THE OUTLINE MATRIX, MATRIX VIEWS, CLEARER STYLES (3.35.0)
   - Matrix starts as the outline matrix: one row per item of your response outline (section, header, subheader),
@@ -1592,7 +1592,7 @@ PRODUCTION: FIX A COPY, EVERY RULE IN PRODUCTION STANDARDS (3.6.0)
     of tables and figures in the copy (hidden, this job's Word only; fields that read other files are locked first).
   - Each fix is one guarded change that may touch only what it declares; a fix that would touch anything else is refused
     and the copy stays as it was before it. Proven in Word on 38-, 516- and 757-page volumes.
-  - Production > Production Standards: every rule, editable value by value in three layers: the global standard, document
+  - Production > Production Standards: every rule, editable value by value in three layers: the Company Standards (Default), document
     types and this effort (the RFP's rules). Format variables, font rules, styles and heading numbering, table rows (with
     a preview), table types, row rules, captions and numbering, the page scheme with cover and back cover, page setups,
     headers and footers, the TOC and its entry styles, lists, terms, and Format Check options.

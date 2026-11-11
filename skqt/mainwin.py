@@ -344,6 +344,7 @@ class MainWindow(QMainWindow):
         __import__("skqt.frame", fromlist=["x"]).simplify(self)         # 3.75.0: a smaller bar on every screen
         self.lock_timer = QTimer(self, interval=60000, timeout=lambda: self.ws.refresh_lock() if self.ws else None)
         self.lock_timer.start()
+        __import__("skqt.teamlibview", fromlist=["x"]).install(self)    # 4.7.0: the team library's files, both ways
         self._rd_seen = self._rd_done = None                   # 2.92.0: the readable copy, kept current
         self._rd_thread = None
         self.rd_written = ""
