@@ -2671,6 +2671,8 @@ class AssignPage(QWidget):
         self.kind_label = k
         t = self.add(D.label(it.get("text", ""), "reading"))
         t.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        if F:
+            SF.flag(self, it)                                           # 4.5.0: Changed by <version>, New in <version>
         if F == "shred":
             __import__("skqt.typechips", fromlist=["x"]).add(self, rows)
         elif F == "place":

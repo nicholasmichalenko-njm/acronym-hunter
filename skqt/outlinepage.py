@@ -90,8 +90,21 @@ class OutlinePage(QWidget):
         for x in (self.b_volume, self.b_elements, self.b_place):
             x.setEnabled(has)
         src = self._setup().get("outline_from", "") if M is not None else ""
-        self.said.setText(f"Started: {FROM.get(src, '')}." if src else ("Extract a customer document in Shred first."
-                                                                        if M is None else ""))
+        extra = ""
+        if src == "prescribed" and has:                  # 4.5.0: the customer's sections and the volumes' page limits
+            St = self._setup()
+            if not St.get("prescribed_marked"):
+                import outlinemarks as OM
+                got = OM.mark(M)
+                St["prescribed_marked"] = True
+                St["prescribed_pages"] = got["pages"]
+                M.pending = True
+                self.host.changed()
+            pg = St.get("prescribed_pages") or {}
+            extra = (" Its sections are marked as the customer's" + (": page limits from the solicitation, "
+                     + ", ".join(f"{k} {v:g}" for k, v in pg.items()) if pg else "") + ".")
+        self.said.setText((f"Started: {FROM.get(src, '')}." + extra) if src else ("Extract a customer document in Shred first."
+                                                                                  if M is None else ""))
         try:
             b.refresh()
         except Exception:  # noqa: BLE001

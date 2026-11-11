@@ -123,3 +123,25 @@ def next_open(page):
     nxt = next((it for it in rows if ids.index(it["id"]) > at), rows[0])
     page.select(nxt["id"])
     return nxt["id"]
+
+
+def flag(page, it):
+    """4.5.0 (loose end): on the piece pane, "Changed by <version>" while a new version's change to it waits to be
+    shredded again (reshred.flagged), and "New in <version>" for a piece a new version added (newversion)."""
+    said = []
+    try:
+        import reshred as RS
+        if page.host.ws is not None:
+            f = RS.flagged(page.host.ws.root).get(it.get("id"))
+            if f:
+                said.append(f)
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+    if str(it.get("new") or "").startswith("New in"):                # (pagejoin's joins use the same field)
+        said.append(str(it["new"]))
+    if said:
+        lab = page.add(D.label("  \u00b7  ".join(said), "crit"))
+        page.flag_label = lab
+        return lab
+    page.flag_label = None
+    return None

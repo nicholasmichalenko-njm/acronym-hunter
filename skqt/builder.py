@@ -263,16 +263,19 @@ class BuilderPage(QWidget):
         self.lib_list = QListWidget(); rv.addWidget(self.lib_list, 2)
         self.lib_list.setDragEnabled(True); self.lib_list.setDragDropMode(QAbstractItemView.DragOnly)
         self.lib_list.itemDoubleClicked.connect(lambda _i: self.place_selected())
-        self.place_btn = D.button("Place in the section", "primary", lambda: self.place_selected(),
+        self.place_btn = D.button("Put in the section", "primary", lambda: self.place_selected(),
                                   "Put the library item in the selected section, before its requirements")
         rv.addWidget(self.place_btn)
-        rv.addWidget(D.label("Not placed yet", "title"))
+        self.unp_label = D.label("Not placed yet", "title")     # 4.5.0: placing requirements is Place's (one home); the
+        rv.addWidget(self.unp_label)                            # list stays for the tests and the old drag, hidden
         self.unp_list = QListWidget(); self.unp_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.unp_list.setDragEnabled(True); self.unp_list.setDragDropMode(QAbstractItemView.DragOnly)   # drag onto a section
         rv.addWidget(self.unp_list, 1)
         self.unp_btn = D.button("Into the selected section", None, lambda: self.place_unplaced(),
                                 "Requirements and captures with no section yet go into the selected section")
         rv.addWidget(self.unp_btn)
+        for x in (self.unp_label, self.unp_list, self.unp_btn):
+            x.setVisible(False)
         split.addWidget(right)
         for wdg, mn in ((left, 300), (mid, 260), (right, 220)):
             wdg.setMinimumWidth(mn)

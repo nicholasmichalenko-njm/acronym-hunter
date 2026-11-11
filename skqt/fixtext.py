@@ -143,7 +143,37 @@ def suspects(page):
     import pagejoin as PJ
     if page.R is None or page.cx is not None or not page.file:
         return []
-    return PJ.suspects(page.M.items, page.file)
+    return PJ.suspects(page.M.items, page.file) + headers_set_aside(page)
+
+
+def headers_set_aside(page):
+    """4.5.0 (loose end): the lines set aside as running headers or footers, one per wording, page numbers left out:
+    the rule can set aside real text that repeats with only its numbers changed. [("header", {"id": "", "page", "text"},
+    why)]."""
+    import pagesent as PS
+    if not page.pdf or not str(page.pdf).lower().endswith(".pdf"):
+        return []
+    try:
+        doc = PS.doc_of(page.pdf)
+        skip = PS.running(doc)
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+        return []
+    seen, out = {}, []
+    for pi, li in sorted(skip):
+        txt = doc["pages"][pi]["lines"][li]["text"].strip()
+        if not txt or PS._PAGE_NO.match(txt):
+            continue
+        k = PS._norm(txt)
+        seen.setdefault(k, []).append(pi + 1)
+    for k, pages in seen.items():
+        pi, li = next((pi, li) for pi, li in sorted(skip) if PS._norm(doc["pages"][pi]["lines"][li]["text"].strip()) == k)
+        txt = doc["pages"][pi]["lines"][li]["text"].strip()
+        n = len(set(pages))
+        out.append(("header", {"id": "", "page": pages[0], "text": txt},
+                    f"Set aside as a running header or footer on {n} page{'s' if n != 1 else ''}: \u201c{txt[:80]}\u201d. "
+                    "If it is the customer's text, More > Add missed text and drag around it."))
+    return out
 
 
 def next_suspect(page):
@@ -152,12 +182,15 @@ def next_suspect(page):
     if not sus:
         refresh(page)
         return None
-    ids = [it["id"] for _k, it, _w in sus]
+    ids = [it["id"] or f"p{it.get('page')}:{it.get('text', '')}" for _k, it, _w in sus]
     cur = page.fix_cur
     i = (ids.index(cur) + 1) % len(ids) if cur in ids else 0
     kind, it, why = sus[i]
-    page.fix_cur = it["id"]
-    page.select(it["id"])
+    page.fix_cur = ids[i]
+    if it["id"]:
+        page.select(it["id"])
+    elif getattr(page, "canvas", None) is not None:              # 4.5.0: a line set aside has no piece: its page
+        page.canvas.go_page(it.get("page") or 1)
     page.fix_keep.setVisible(kind == "join"); page.fix_unjoin.setVisible(kind == "join")
     page.host.status(f"{it['id']}: {why}")
     return kind, it, why
