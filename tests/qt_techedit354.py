@@ -35,7 +35,7 @@ before = hashlib.sha256(open(draft, "rb").read()).hexdigest()
 
 from skqt import mainwin as MW
 _write = [k for k, _t in MW.TABS["drafts"]]
-check("Technical Edit is the Drafts step's Edit, after Status (4.0.0)", _write.index("techedit") == _write.index("drafts") + 1)
+check("Technical Edit is the Drafts step's Edit, after Status and Acronyms (4.4.0)", _write.index("techedit") == _write.index("draftacr") + 1 == _write.index("drafts") + 2)
 w = MW.MainWindow(app, cfg, A.APP_VERSION); w.resize(1400, 900); w.show(); app.processEvents()
 w.rail_go("techedit"); app.processEvents()
 pg = w.techedit_page
