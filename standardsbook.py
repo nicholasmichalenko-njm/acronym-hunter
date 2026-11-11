@@ -22,6 +22,7 @@ import diag
 
 ORG = ("ID", "Name", "Category", "Status", "Changed", "Used on", "Set", "Menu group", "Show in menu", "Notes", "Tags", "Owner")
 OTHER = "Other Word settings"
+VOLUME = "Volume"                            # 4.10.0: an effort's workbook only; blank means every volume
 STATUSES = ("Approved", "Draft", "Retired")
 GROUPS = ("Font", "Paragraph", "Spacing", "Indents", "Borders and shading", "Numbering", "Other")
 _GROUP_OF = {"font": "Font", "size": "Font", "bold": "Font", "italic": "Font", "underline": "Font", "caps": "Font",
@@ -255,13 +256,39 @@ def book_rows(company, recipes=None):
     return sheets, cols
 
 
-def write(path, company, recipes=None, own_cols=None, lists=None):
-    """Write the workbook (to a .tmp, then in place). own_cols: {sheet: [column names people added]}, kept. Raises
+def _with_volumes(sheets, cols, volumes):
+    """4.10.0: an effort's workbook: the every-volume rows (Volume blank), then each volume's own rows."""
+    for sheet, _p, _s, _k in SHEETS:
+        for r in sheets[sheet]:
+            r[VOLUME] = ""
+    for r in sheets[SETTINGS]:
+        r[VOLUME] = ""
+    for label, lay in volumes:
+        s2, c2 = book_rows(lay)
+        for sheet, _p, _s, _k in SHEETS:
+            for r in s2[sheet]:
+                r[VOLUME] = label
+                sheets[sheet].append(r)
+            seen = cols[sheet] + [k for k in c2[sheet] if k not in cols[sheet]]
+            cols[sheet] = sorted(seen, key=lambda k: (GROUPS.index(group_of(k)), seen.index(k)))
+        for r in s2[SETTINGS]:
+            r[VOLUME] = label
+            sheets[SETTINGS].append(r)
+    return sheets, cols
+
+
+def write(path, company, recipes=None, own_cols=None, lists=None, volumes=None):
+    """Write the workbook (to a .tmp, then in place). own_cols: {sheet: [column names people added]}, kept. volumes
+    (an effort's workbook): [(volume name, its own layer)], written as rows with a Volume column. Raises
     PermissionError when Excel has it open; the caller waits and says so."""
     import openpyxl
     from openpyxl.styles import Font, PatternFill
     from openpyxl.utils import get_column_letter
     sheets, cols = book_rows(company, recipes)
+    org = ORG
+    if volumes is not None:
+        sheets, cols = _with_volumes(sheets, cols, volumes)
+        org = ORG[:2] + (VOLUME,) + ORG[2:]
     wb = openpyxl.Workbook()
     wb.remove(wb.active)
     head = Font(bold=True)
@@ -271,13 +298,13 @@ def write(path, company, recipes=None, own_cols=None, lists=None):
         ws = wb.create_sheet(sheet)
         own = list((own_cols or {}).get(sheet) or [])
         keys = cols[sheet]
-        header = list(ORG) + [_label(k) for k in keys] + [OTHER] + own
+        header = list(org) + [_label(k) for k in keys] + [OTHER] + own
         ws.append(header)
         for r in sheets[sheet]:
-            ws.append([to_cell(r.get(h)) for h in ORG] + [to_cell(r.get(k)) for k in keys] + [to_cell(r.get(OTHER))]
+            ws.append([to_cell(r.get(h)) for h in org] + [to_cell(r.get(k)) for k in keys] + [to_cell(r.get(OTHER))]
                       + [to_cell(r.get(h)) for h in own])
         _dress(ws, header, head, fill, get_column_letter)
-        start = len(ORG) + 1                                     # the property columns, grouped
+        start = len(org) + 1                                     # the property columns, grouped
         for g in GROUPS:
             idx = [start + i for i, k in enumerate(keys) if group_of(k) == g]
             if idx:
@@ -287,10 +314,11 @@ def write(path, company, recipes=None, own_cols=None, lists=None):
         for h in own:
             colsheet.append((sheet, h, "", "Yours", "A column you added: kept, never sent to Word"))
     ws = wb.create_sheet(SETTINGS)
-    ws.append(["Name", "Value", "Notes"])
+    sh = ["Name", VOLUME, "Value", "Notes"] if volumes is not None else ["Name", "Value", "Notes"]
+    ws.append(sh)
     for r in sheets[SETTINGS]:
-        ws.append([r["Name"], to_cell(r["Value"]), ""])
-    _dress(ws, ["Name", "Value", "Notes"], head, fill, get_column_letter, freeze="B2")
+        ws.append([r["Name"]] + ([r.get(VOLUME, "")] if volumes is not None else []) + [to_cell(r["Value"]), ""])
+    _dress(ws, sh, head, fill, get_column_letter, freeze="B2")
     ws = wb.create_sheet(FIELDS)
     own = list((own_cols or {}).get(FIELDS) or [])
     header = ["ID", "Name", "Category", "Status", "Changed"] + [lab for lab, _k in FIELD_COLS] + \
@@ -309,7 +337,8 @@ def write(path, company, recipes=None, own_cols=None, lists=None):
     ws = wb.create_sheet(ABOUT)
     for row in (("What", "Value"), ("Format", FORMAT), ("Made by", "Stationkeeper"),
                 ("How to use it", "Edit values here or in the app; the app reads what changed and writes what it changes. "
-                 "A blank cell in an effort's workbook means the Company Standards (Default) value. Only Approved rows "
+                 "A blank cell in an effort's workbook means the Company Standards (Default) value; a blank Volume means "
+                 "every volume, a volume's name means that volume only. Only Approved rows "
                  "reach templates and the macros. Columns you add are kept and never reach Word.")):
         ws.append(list(row))
     ws = wb.create_sheet(COLUMNS)
@@ -375,6 +404,25 @@ def read(path):
     return out
 
 
+def split_volumes(book, labels=()):
+    """4.10.0: an effort's workbook read as one reading per volume: {"": the every-volume rows, name: that volume's rows}.
+    labels: volume names to include even with no rows (a volume whose rows were all taken out)."""
+    found = {""} | {str(x) for x in labels}
+    for sheet, rows in book["sheets"].items():
+        if VOLUME in (book["headers"].get(sheet) or []):
+            found |= {" ".join(str(r.get(VOLUME) or "").split()) for r in rows}
+    out = {}
+    for lab in found:
+        b = {"sheets": {}, "headers": book["headers"], "problems": list(book.get("problems") or [])}
+        for sheet, rows in book["sheets"].items():
+            if VOLUME in (book["headers"].get(sheet) or []):
+                b["sheets"][sheet] = [r for r in rows if " ".join(str(r.get(VOLUME) or "").split()) == lab]
+            else:
+                b["sheets"][sheet] = rows
+        out[lab] = b
+    return out
+
+
 def _key_map(book, sheet):
     """Header -> property key for a sheet, from the Columns sheet (the app's own labels as a fallback)."""
     m = {}
@@ -402,7 +450,7 @@ def apply(company, recipes, book, user=None, removed_answer=None):
         header = book["headers"].get(sheet) or []
         kmap = _key_map(book, sheet)
         prop_cols = [h for h in header if h in kmap]
-        own = [h for h in header if h and h not in ORG and h != OTHER and h not in kmap]
+        own = [h for h in header if h and h not in ORG and h not in (OTHER, VOLUME) and h not in kmap]
         res["own_cols"][sheet] = own
         before = dict(rows_of(c, sheet))
         old_meta = meta_all.get(sheet) or {}

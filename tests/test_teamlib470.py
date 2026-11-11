@@ -141,11 +141,38 @@ eh = [c.value for c in ewb["Styles"][1]]
 check("... holding only the effort's changes", [r[1].value for r in ewb["Styles"].iter_rows(min_row=2)] == ["Body Text"]
       and "Size (pt)" not in eh and [r[0].value for r in ewb["Settings"].iter_rows(min_row=2)] == ["body_size"], eh)
 ews = ewb["Styles"]; ews.cell(2, eh.index("Font") + 1).value = "Georgia"
-ewb["Settings"].cell(2, 2).value = None                      # blank: back to the Company Standards (Default)
+sh_ = [c.value for c in ewb["Settings"][1]]
+ewb["Settings"].cell(2, sh_.index("Value") + 1).value = None  # blank: back to the Company Standards (Default)
 ewb.save(T.effort_book_path(epath, "Kestrel")); time.sleep(0.02)
 T.effort_tick(w, epath, "Kestrel")
 lay = EFM.layer(w)
 check("... edited in Excel: the effort's layer follows; a blank cell means the Company Standards (Default)",
       lay.get("style_defs", {}).get("Body Text", {}).get("font") == "Georgia" and "body_size" not in (lay.get("variables") or {}), lay)
+# 4.10.0: a Volume column; blank means every volume, a volume kind's name means that volume only
+tid = PRL.load(cfg)["types"][0]["id"]; vname = PRL.load(cfg)["types"][0].get("name") or tid
+EFM.set_layer(w, {"style_defs": {"Heading 1": {"size": 16}}}, tid)
+T.effort_tick(w, epath, "Kestrel")
+ewb = openpyxl.load_workbook(T.effort_book_path(epath, "Kestrel")); eh = [c.value for c in ewb["Styles"][1]]
+rows = [(r[eh.index("Name")].value, r[eh.index("Volume")].value or "") for r in ewb["Styles"].iter_rows(min_row=2)]
+check("the effort's workbook has a Volume column: blank for every volume, the volume kind's name for one", eh[:3] == ["ID", "Name", "Volume"]
+      and ("Body Text", "") in rows and ("Heading 1", vname) in rows, (eh[:4], rows))
+ews = ewb["Styles"]; r_h1 = next(i for i, r in enumerate(ews.iter_rows(min_row=2), 2) if r[eh.index("Name")].value == "Heading 1")
+ews.cell(r_h1, eh.index("Size (pt)") + 1).value = 18
+ews.append([None, "Normal", vname] + [None] * (len(eh) - 3)); ews.cell(ews.max_row, eh.index("Font") + 1).value = "Arial"
+ews.append([None, "Caption", "Not a volume"] + [None] * (len(eh) - 3)); ews.cell(ews.max_row, eh.index("Font") + 1).value = "Arial"
+ewb.save(T.effort_book_path(epath, "Kestrel")); time.sleep(0.02)
+r = T.effort_tick(w, epath, "Kestrel")
+lv = EFM.layer(w, tid)
+check("... edited in Excel: that volume's own layer follows, the every-volume layer does not take it", lv["style_defs"]["Heading 1"]["size"] == 18
+      and lv["style_defs"]["Normal"]["font"] == "Arial" and "Heading 1" not in (EFM.layer(w).get("style_defs") or {}), (lv, EFM.layer(w)))
+check("... a Volume that is no volume kind is reported and not read", any("Not a volume" in x for x in r["problems"])
+      and "Caption" not in str(EFM.layer(w)), r)
+ewb = openpyxl.load_workbook(T.effort_book_path(epath, "Kestrel")); ews = ewb["Styles"]; eh = [c.value for c in ews[1]]
+for i in range(ews.max_row, 1, -1):
+    if ews.cell(i, eh.index("Volume") + 1).value == vname:
+        ews.delete_rows(i)
+ewb.save(T.effort_book_path(epath, "Kestrel")); time.sleep(0.02)
+T.effort_tick(w, epath, "Kestrel")
+check("... a volume's rows all taken out: its own changes go", not EFM.layer(w, tid))
 print(f"TEAMLIB 470 {'PASS' if all(checks) else 'FAIL'} ({sum(checks)}/{len(checks)})")
 sys.exit(0 if all(checks) else 1)

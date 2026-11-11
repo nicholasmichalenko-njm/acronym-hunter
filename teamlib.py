@@ -401,14 +401,31 @@ def effort_book_path(effort_path, effort_name):
     return os.path.join(os.path.dirname(os.path.abspath(effort_path)), f"{effort_name} Effort Formatting.xlsx")
 
 
-def write_effort_book(ws, effort_path, effort_name):
-    """The effort's own changes (every volume) as a workbook: only what it sets; a blank means the default."""
+def _volume_names(config_dir=None):
+    """{volume profile id: its name}, for an effort workbook's Volume column (4.10.0)."""
+    import prodrules as PRL
+    if config_dir is None:
+        import app_gui as A
+        config_dir = A.CONFIG_DIR
+    try:
+        return {t["id"]: (t.get("name") or t["id"]) for t in PRL.load(config_dir).get("types") or []}
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
+        return {}
+
+
+def write_effort_book(ws, effort_path, effort_name, config_dir=None):
+    """The effort's own changes as a workbook: only what it sets; a blank means the default. Rows for every volume have
+    a blank Volume; a change for one volume kind carries its name (4.10.0)."""
     import effortformat as EFM
     import standardsbook as SB
     p = effort_book_path(effort_path, effort_name)
     lay = EFM.layer(ws)
+    names = _volume_names(config_dir)
+    ov = EFM.eff_of(ws).get("over_vol") or {}
+    vols = sorted(((names.get(t, t), EFM.layer(ws, t)) for t in ov), key=lambda x: x[0].casefold())
     try:
-        SB.write(p, lay, None, (ws.get("effort_book") or {}).get("own_cols") or {})
+        SB.write(p, lay, None, (ws.get("effort_book") or {}).get("own_cols") or {}, volumes=vols)
     except PermissionError:
         return "waiting"
     eb = dict(ws.get("effort_book") or {})
@@ -417,7 +434,7 @@ def write_effort_book(ws, effort_path, effort_name):
     return "written"
 
 
-def read_effort_book(ws, effort_path, effort_name, force=False):
+def read_effort_book(ws, effort_path, effort_name, force=False, config_dir=None):
     """The effort's workbook into its layer when it changed. Returns the changes, or None when nothing was read."""
     import effortformat as EFM
     import standardsbook as SB
@@ -436,18 +453,34 @@ def read_effort_book(ws, effort_path, effort_name, force=False):
         eb["stamp"] = now
         ws.set("effort_book", eb)
         return {"changed": [], "problems": book["problems"]}
-    res = SB.apply(EFM.layer(ws), None, book, removed_answer="drop")
-    lay = res["company"]
-    lay.pop("book_meta", None)
+    names = _volume_names(config_dir)
+    by_name = {v.casefold(): k for k, v in names.items()}
+    had = [names.get(t, t) for t in (EFM.eff_of(ws).get("over_vol") or {})]
+    changed, problems, own = [], list(book.get("problems") or []), {}
     global _reading
     _reading = True
     try:
-        EFM.set_layer(ws, lay)
+        for lab, part in sorted(SB.split_volumes(book, had).items()):
+            tid = None
+            if lab:
+                tid = by_name.get(lab.casefold()) or (lab if lab in names else None)
+                if tid is None:
+                    problems.append(f"Volume \"{lab}\" is not a volume kind in the Company Standards (Default); "
+                                    "its rows were not read.")
+                    continue
+            part["problems"] = []
+            res = SB.apply(EFM.layer(ws, tid), None, part, removed_answer="drop")
+            lay = res["company"]
+            lay.pop("book_meta", None)
+            EFM.set_layer(ws, lay, tid)
+            changed += [(sh, f"{n} ({lab})" if lab else n) for sh, n in res["changed"]]
+            problems += [x for x in res["problems"] if x not in problems]
+            own = own or res["own_cols"]
     finally:
         _reading = False
-    eb.update(stamp=now, sha=sha, own_cols=res["own_cols"])
+    eb.update(stamp=now, sha=sha, own_cols=own)
     ws.set("effort_book", eb)
-    return {"changed": res["changed"], "problems": res["problems"]}
+    return {"changed": changed, "problems": problems}
 
 
 def effort_tick(ws, effort_path, effort_name):
