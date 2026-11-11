@@ -15,8 +15,8 @@ os.environ.setdefault("SK_DATA_DIR", os.path.join(tempfile.mkdtemp(), "data"))
 import fidelity as F
 
 checks = []
-# 4.14.0: tags give borderless and nested tables where the PDF keeps them; with no tags they wait for 4.15.0
-LATER = {"pdf_word_untagged": {"F15_nested", "F19_borderless"}}
+# 4.14.0: tags give borderless and nested tables where the PDF keeps them; 4.15.0: and with no tags
+LATER = {}
 
 
 def check(name, ok, info=""):

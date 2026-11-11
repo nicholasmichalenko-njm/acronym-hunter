@@ -187,6 +187,7 @@ def _table(xs, ys, cells, ws, fills, borders):
         cl, cr, ct, cb = xs[c0], xs[c0 + cs], ys[r0], ys[r0 + rs]
         mine = [w for w in inside if cl <= (w["box"][0] + w["box"][2]) / 2 <= cr and ct <= (w["box"][1] + w["box"][3]) / 2 <= cb]
         text = _cell_text(mine) if mine else ""
+        ids = [w["i"] for w in mine]
         placed.append((c0, [w for w in mine if not w.get("rot")]))
         filled += bool(text)
         fill = ""
@@ -194,7 +195,7 @@ def _table(xs, ys, cells, ws, fills, borders):
             ov = max(0, min(cr, fr) - max(cl, fl)) * max(0, min(cb, fb) - max(ct, ft))
             if ov >= 0.8 * (cr - cl) * (cb - ct) and col.upper() not in ("FFFFFF",):
                 fill = col
-        rows[r0].append({"text": text, "cs": cs, "rs": rs, "fill": fill, "c": c0, "rot": bool(mine) and all(w.get("rot") for w in mine),
+        rows[r0].append({"text": text, "cs": cs, "rs": rs, "fill": fill, "c": c0, "_words": ids, "rot": bool(mine) and all(w.get("rot") for w in mine),
                          "bold": bool(mine) and all(w.get("bold") for w in mine)})
     for row in rows:
         row.sort(key=lambda c: c["c"])
@@ -223,7 +224,9 @@ def find(drawing, ws):
             groups.append((run, []))
         run = [h] if h is not None else []
     for gh, gv in groups:
+        inner = None
         if len(gv) >= 2 and len(gh) >= 2:
+            gh, gv, inner = _inner(gh, gv)             # 4.15.0: a table drawn inside a cell, no tags
             xs, ys = _uniq(v[0] for v in gv), _uniq(h[0] for h in gh)
             l, r = min(min(h[1] for h in gh), xs[0]), max(max(h[2] for h in gh), xs[-1])
             if xs[0] - l > SNAP:                       # no line down the left: the rows' ends are the edge
@@ -246,6 +249,21 @@ def find(drawing, ws):
             t = _table(xs, ys, _grid(xs, ys, gh, [], need_v=False), ws, drawing["fills"], "h")
         else:
             continue
+        if inner is not None:
+            ih, iv, ibox = inner
+            ixs, iys = _uniq(v[0] for v in iv), _uniq(h[0] for h in ih)
+            if len(ixs) >= 2 and len(iys) >= 2:
+                it = _table(ixs, iys, _grid(ixs, iys, ih, iv), ws, drawing["fills"], "all")
+                for row in t["rows"]:
+                    for c in row:
+                        cl = xs[c["c"]]
+                        cr = xs[c["c"] + c["cs"]]
+                        if cl - SNAP <= ibox[0] and ibox[2] <= cr + SNAP and it["filled"]:
+                            c["nested"] = {"rows": [[{k: x[k] for k in ("text", "cs", "rs", "fill", "bold")} for x in r2] for r2 in it["rows"] if r2],
+                                           "widths": it["widths"], "heights": it["heights"], "header": it["header"],
+                                           "pad": it["pad"], "borders": "all", "source": "ruled"}
+                            mine = set(it["words"])
+                            c["text"] = _cell_text([w for w in ws if w["i"] in set(c.get("_words", [])) - mine]) if c.get("_words") else ""
         if t["filled"] >= 2:
             out.append(t)
     keep = []
@@ -256,6 +274,32 @@ def find(drawing, ws):
                    for o in out):
             keep.append(t)
     return sorted(keep, key=lambda t: (t["box"][1], t["box"][0]))
+
+
+def _inner(gh, gv):
+    """Split off a table drawn inside one cell: vertical lines that all start and end inside the frame at the same
+    heights, and horizontal lines between them that stop short of the frame. Returns (outer h, outer v, (inner h,
+    inner v, box) or None)."""
+    top, bot = min(h[0] for h in gh), max(h[0] for h in gh)
+    left, right = min(v[0] for v in gv), max(v[0] for v in gv)
+    short_v = [v for v in gv if v[1] > top + SNAP and v[2] < bot + SNAP and not (abs(v[2] - bot) <= SNAP and abs(v[1] - top) <= SNAP)]
+    if len(short_v) < 2:
+        return gh, gv, None
+    y0, y1 = min(v[1] for v in short_v), max(v[2] for v in short_v)
+    if any(abs(v[1] - y0) > SNAP or abs(v[2] - y1) > SNAP for v in short_v):
+        return gh, gv, None
+    x0, x1 = min(v[0] for v in short_v), max(v[0] for v in short_v)
+    short_h = [h for h in gh if abs(h[1] - x0) <= SNAP and abs(h[2] - x1) <= SNAP and y0 - SNAP <= h[0] <= y1 + SNAP]
+    if len(short_h) < 1 or (x1 - x0) > 0.95 * (right - left):
+        return gh, gv, None
+    ih = list(short_h)
+    if not any(abs(h[0] - y1) <= SNAP for h in ih):     # its bottom line is the outer row's line
+        ih.append((y1, x0, x1))
+    if not any(abs(h[0] - y0) <= SNAP for h in ih):
+        ih.append((y0, x0, x1))
+    keep_h = [h for h in gh if h not in short_h]
+    keep_v = [v for v in gv if v not in short_v]
+    return keep_h, keep_v, (sorted(ih), short_v, (x0, y0, x1, y1))
 
 
 def truth_rows(t):

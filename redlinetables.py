@@ -118,3 +118,66 @@ def find(doc, skip):
 def text_of(table):
     """The table's words, row by row and cell by cell (how Word reads the copy's table)."""
     return " ".join(c for row in table["rows"] for c in row if c)
+
+
+# ------------------------------------------------------------------ 4.15.0: tables with no borders and no tags
+GUTTER = 6.0                                  # points: a gap no piece of any row crosses, this wide, parts two columns
+SHORT = 8                                     # words: a table's cells are short (two columns of prose are not a table)
+
+
+def _gutter_table(rows):
+    """A table from a run of rows by the gaps no piece crosses: columns are the stretches the pieces cover."""
+    spans = sorted((s[0], s[1]) for r in rows for s in r["segs"])
+    cols = []
+    for a, b in spans:
+        if cols and a - cols[-1][1] < GUTTER:
+            cols[-1][1] = max(cols[-1][1], b)
+        else:
+            cols.append([a, b])
+    if len(cols) < 2:
+        return None
+    cells = []
+    for r in rows:
+        put = {}
+        for s in r["segs"]:
+            k = next(i for i, c in enumerate(cols) if c[0] - 0.5 <= s[0] <= c[1] + 0.5)
+            put[k] = (put[k] + " " + s[2]) if k in put else s[2]
+        cells.append([" ".join(put.get(k, "").split()) for k in range(len(cols))])
+    words = [len(c.split()) for row in cells for c in row if c]
+    if not words or sorted(words)[len(words) // 2] > SHORT:
+        return None
+    if len(cols) == 2 and all(MARKER.match(c[0] or "x") or not c[0] for c in cells):
+        return None
+    starts = [c[0] for c in cols]
+    right = cols[-1][1]
+    widths = [max(1.0, (starts[k + 1] if k + 1 < len(starts) else right + 6) - starts[k] + (0 if k + 1 < len(starts) else 0)) for k in range(len(cols))]
+    return {"rows": cells, "widths": widths, "lines": sorted(li for r in rows for li in r["lines"])}
+
+
+def find_gutters(doc, skip):
+    """Tables with no borders: runs of two rows or more, each in two pieces or more, close together; columns from the
+    gaps no piece crosses (a right-aligned number column lines up by its ends, not its starts). Same shape as find()."""
+    out = []
+    for pi, page in enumerate(doc.get("pages") or []):
+        keep = [li for li in range(len(page["lines"])) if (pi, li) not in skip]
+        rows = _rows(page, keep)
+        i = 0
+        while i < len(rows):
+            if len(rows[i]["segs"]) < 2:
+                i += 1
+                continue
+            j = i + 1
+            while j < len(rows) and len(rows[j]["segs"]) >= 2:
+                gap = rows[j]["top"] - rows[j - 1]["bottom"]
+                if gap > 2.5 * max(4.0, rows[j - 1]["bottom"] - rows[j - 1]["top"]):
+                    break
+                j += 1
+            t = _gutter_table(rows[i:j]) if j - i >= 2 else None
+            if t:
+                t["page"] = pi
+                t["lines"] = [(pi, li) for li in t["lines"]]
+                out.append(t)
+                i = j
+            else:
+                i += 1
+    return out

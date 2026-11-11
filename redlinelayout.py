@@ -124,11 +124,15 @@ def tables(pdf, doc, skip):
     """Ruled and tagged tables first; then aligned text among the lines left."""
     got = ruled(pdf, doc, skip)
     taken = {x for t in got for x in t["lines"]}
-    for t in RT.find(doc, skip | taken):
+    found = RT.find_gutters(doc, skip | taken)            # 4.15.0: no borders, no tags: the gaps between columns
+    taken |= {x for t in found for x in t["lines"]}
+    old = RT.find(doc, skip | taken)
+    for t in found + old:
         n = max(len(r) for r in t["rows"])
         rows = [[{"text": c, "cs": 1, "rs": 1, "fill": "", "bold": False} for c in list(r) + [""] * (n - len(r))] for r in t["rows"]]
         got.append({"page": t["page"], "lines": t["lines"],
-                    "grid": {"rows": rows, "widths": t["widths"], "heights": [], "header": 1, "borders": "all", "source": "aligned"}})
+                    "grid": {"rows": rows, "widths": t["widths"], "heights": [], "header": 1, "borders": "all" if t in old else "none",
+                             "source": "aligned"}})
     return sorted(got, key=lambda t: tuple(t["lines"][0]))
 
 
