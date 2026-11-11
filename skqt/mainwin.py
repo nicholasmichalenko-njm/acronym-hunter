@@ -55,7 +55,8 @@ TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("reco
         # 4.1.0: Rules & Dates (was the Dashboard's Submission Rules) and Evaluation (was Matrix & Outline's) are the shred's
         "assign": [("assign", "Requirements"), ("requirements", "Rules & Dates"), ("evalcrit", "Evaluation"),
                    ("acronyms", "Acros & Abs")],             # 4.1.0: the Acro List opens from Acros & Abs (The list > More)
-        "matrix": [("matrix", "Matrix")],                                      # 4.0.0; Place, Structure, Coverage in 4.2.0
+        "matrix": [("outline", "Outline"), ("place", "Place"), ("matrix", "Matrix"), ("crosswalk", "L to M"),
+                   ("prove", "Coverage")],                 # 4.3.0: the outline, placing, the matrix, the crosswalk, coverage
         "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting")],
         "drafts": [("drafts", "Status"), ("techedit", "Edit"), ("reviews", "Color Reviews"), ("truth", "Wall of Truth")],
         "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks"), ("postsub", "After Submission"),
@@ -66,7 +67,7 @@ TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("reco
         "audit": [("audit", "Audit"), ("applyword", "Apply in Word"), ("fixcopy", "Fix a Copy")]}   # 3.58.0  # 3.39.0: what the team needs from its own experts
 HEAD_OF = {k: h for h, tabs in TABS.items() for k, _t in tabs}
 HEAD_OF.update({"docs": "library", "impact": "library", "dashboard": "home"})   # pages opened from inside another
-REVIEW_VIEWS = ("shredreq", "shredacc", "sort", "crosswalk", "prove")
+REVIEW_VIEWS = ("shredreq", "shredacc", "sort")               # 4.3.0: L to M and Coverage are Matrix & Outline's
 TEAM = ("formatstd", "profiles", "studio", "rules", "audit", "refs")
 # the menu entry each page lights up
 RAIL_OF = {k: h for k, h in HEAD_OF.items() if h in STEP_KEYS}
@@ -77,7 +78,7 @@ RAIL_OF.update({k: "team" for t in TEAM for k in [k for k, _t in TABS.get(t, [(t
 RAIL_OF.update({"prodstd": "team", "qpstd": "team"})     # 3.98.0: a Quick Part's details open from Parts
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup", "setups"}   # 3.18.2:
 # pages that change the matrix (decisions, the structure, placements, setup) share its Undo steps; Review has its own
-VIEWS = {"prove": "coverage", "crosswalk": "lm"}                # 3.90.0: views of Review's maps, not pages of their own
+VIEWS = {}                     # 3.90.0 views of Review's maps; 4.3.0: place, crosswalk and prove are the Shred page (placemode)
 BETA = {"fixcopy", "applyword"}                                  # 3.16.0: tools still being proven, marked Beta in the menu and on the page
 GROUP_OF = {k: ("Team" if e == "team" else "" if e == "home" else f"Step {n} of {len(STEP_KEYS) - 1}")
             for k, e in RAIL_OF.items()
@@ -252,6 +253,7 @@ class MainWindow(QMainWindow):
         self.prove_page = ProvePage(self)
         self.verify_page = VerifyPage(self)
         self.crosswalk_page = CrosswalkPage(self)
+        from .outlinepage import OutlinePage; self.outline_page = OutlinePage(self)       # 4.3.0
         self.matrix_page = MatrixPage(self)
         self.setup_page = SetupPage(self)
         from .postsubpage import PostSubPage
@@ -306,15 +308,15 @@ class MainWindow(QMainWindow):
         self.team_page = TeamPage(self)                # 3.96.0: the team's tools, one page of tiles
         self.pages = {"team": self.team_page, "efforts": self.efforts_page, "mywork": self.mywork_page, "home": self.home_page, "dashboard": self.dash_page, "record": self.record_page, "meetings": self.meetings_page, "reviews": self.review_page, "library": self.library_page, "docs": self.docs_page, "requirements": self.requirements_page, "compare": self.compare_space, "custqa": self.custqa_page,
                       "impact": self.impact_page, "deliverables": self.deliverables_page, "evalcrit": self.evalcrit_page, "sort": self.sort_page, "studio": self.studio_page, "applyword": self.applyword_page, "qa": self.qa_page, "keywords": self.keywords_page, "exportall": self.exportall_page,
-                      "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "assign": self.assign_page, "prove": self.prove_page, "verify": self.verify_page,
-                      "crosswalk": self.crosswalk_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
+                      "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "assign": self.assign_page, "prove": self.assign_page, "verify": self.verify_page,
+                      "crosswalk": self.assign_page, "place": self.assign_page, "outline": self.outline_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page, "audit": self.audit_page,
                       "effortfmt": self.effortfmt_page, "rules": self.rules_page, "datacalls": self.datacalls_page,
                       "drafts": self.drafts_page, "formatstd": self.formatstd_page,
                       "qpstd": self.qpstd_page, "styles": self.styles_page, "layoutstd": self.layoutstd_page, "designs": self.designs_page,
                       "profiles": self.profiles_page, "templates": self.templates_page,
                       "tools": self.tools_page, "refs": self.refs_page, "techedit": self.techedit_page, "shredreq": self.shred_page, "setups": self.setups_page, "finalcheck": self.finalcheck_page, "shredacc": self.accuracy_page}
-        for pg in self.pages.values():
+        for pg in dict.fromkeys(self.pages.values()):     # 4.3.0: Place, L to M and Coverage share the Shred page
             self.stack.addWidget(pg)
         from .roleview import NoticePage                 # 3.13.0: a tool for another role, or a Preview tool not turned on
         self.notice_page = NoticePage(self); self.stack.addWidget(self.notice_page)
@@ -1089,6 +1091,8 @@ class MainWindow(QMainWindow):
         except Exception:
             diag.swallowed()
         self.show_tabs(step)
+        if pg is self.assign_page:                   # 4.3.0: Shred types; Place places (placemode)
+            __import__("skqt.placemode", fromlist=["x"]).apply(self, step)
         self.next_bar.show_for(step, RAIL_OF)      # 3.96.0: the step's next step at the bottom
         __import__("skqt.qadrawer", fromlist=["x"]).on_page(self, step, RAIL_OF)
         __import__("skqt.frame", fromlist=["x"]).on_page(self, step)    # 3.75.0: Find a sentence where sentences are

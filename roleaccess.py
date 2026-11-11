@@ -25,6 +25,11 @@ TOOLS = {
     "Reviewer": {"finalcheck", "techedit", "reviews", "library", "compare", "assign", "prove", "matrix", "truth", "checks", "audit"},
     "Capture": {"shredreq", "library", "read", "compare", "requirements", "custqa", "structure", "setups", "assign", "crosswalk", "storyboards", "truth"},
 }
+for _r, _ks in TOOLS.items():                       # 4.3.0: Matrix & Outline's Place and Outline follow Shred and Setup
+    if _ks & {"assign", "matrix"}:
+        _ks.add("place")
+    if _ks & {"setups", "structure"}:
+        _ks.add("outline")
 # a role written in People and roles (the team's own words) -> the profile it means; first match wins
 WORDS = (("proposal manager", PM), ("capture manager", "Capture"), ("production", "Production"), ("desktop", "Production"),
          ("publish", "Production"), ("editor", "Production"), ("graphic", "Production"), ("review", "Reviewer"),
@@ -48,7 +53,7 @@ def profile_of(role_text):
 
 
 MENU = ("tools", "mywork", "efforts", "home", "deliverables", "evalcrit", "effortfmt", "record", "reviews", "postsub", "library", "read", "compare", "requirements",
-        "custqa", "structure", "shredreq", "shredacc", "assign", "sort", "prove", "crosswalk", "matrix", "setup", "setups", "storyboards", "drafts", "truth", "acronyms", "acrlist", "techedit",
+        "custqa", "structure", "outline", "shredreq", "shredacc", "assign", "place", "sort", "prove", "crosswalk", "matrix", "setup", "setups", "storyboards", "drafts", "truth", "acronyms", "acrlist", "techedit",
         "keywords", "finalcheck", "qa", "lists", "checks", "fixcopy", "audit", "studio", "applyword", "formatstd", "styles", "qpstd", "layoutstd", "designs", "profiles", "templates", "rules", "refs", "exportall", "settings", "prodstd")
 
 
@@ -115,7 +120,7 @@ def set_preview(config_dir, key, on):
 
 # ------------------------------------------------------------------ "For this stage"
 STAGE_TOOLS = ((("intake", "kickoff", "kick-off", "capture", "start", "rfp release", "solicitation"), ("library", "read", "requirements", "custqa")),
-               (("plan", "outline", "strategy", "storyboard"), ("structure", "setups", "assign", "crosswalk", "storyboards", "truth")),
+               (("plan", "outline", "strategy", "storyboard"), ("structure", "outline", "setups", "assign", "place", "crosswalk", "storyboards", "truth")),
                (("draft", "author", "writ"), ("setup", "assign", "truth", "acronyms", "compare")),
                (("pink",), ("reviews", "matrix", "compare")),
                (("red",), ("reviews", "prove", "qa", "truth")),

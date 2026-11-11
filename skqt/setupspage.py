@@ -136,6 +136,20 @@ class SetupsPage(QWidget):
         self.builder = host.structure_page.embed(section_card=self.section_card, on_text=self.on_text, on_change=self.counts)
         self.main = self.builder
         v.addWidget(self.builder, 1)
+        for x in (self.b_volume, self.b_elements):      # 4.3.0: the outline is built on Matrix & Outline > Outline
+            x.setVisible(False)
+
+    def showEvent(self, e):
+        """4.3.0: the sections' builder sits on whichever of Setup and Matrix & Outline > Outline is open."""
+        if self.builder.parent() is not self:
+            self.layout().addWidget(self.builder, 1)
+            self.builder.show()
+            try:
+                self.refresh()
+            except Exception:  # noqa: BLE001
+                import diag
+                diag.swallowed()
+        super().showEvent(e)
 
     def pick_designs(self, run=True):
         M = self._M()

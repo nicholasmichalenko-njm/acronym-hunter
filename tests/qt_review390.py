@@ -71,7 +71,7 @@ check("Review opens on Our structure", pg.views.current() == "structure" and pg.
 # L to M is a view of Review, not a page
 w.go("crosswalk"); app.processEvents()
 check("go(crosswalk): Review with the L to M view", w.stack.currentWidget() is pg and pg.views.current() == "lm"
-      and w.crosswalk_page.isVisibleTo(pg) and w.step_btns["assign"].isChecked())
+      and w.crosswalk_page.isVisibleTo(pg) and w.step_btns["matrix"].isChecked())          # 4.3.0: Matrix & Outline's
 cw = w.crosswalk_page
 row = next(i for i, r in enumerate(cw.rows) if r["num"] == "L.4")
 cw.table.selectRow(row); app.processEvents()

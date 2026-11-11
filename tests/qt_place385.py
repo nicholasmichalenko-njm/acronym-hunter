@@ -49,6 +49,7 @@ w.open_effort("Kestrel")
 w.read_page.read(PDFS, os.path.join(EDIR, "Kestrel_Compliance_Matrix.xlsx"))
 check("the matrix is read", wait(lambda: w.review is not None and w.stack.currentWidget() is w.assign_page))
 ap = w.assign_page
+w.go("place"); app.processEvents()                 # 4.3.0: placing is Matrix & Outline > Place
 wait(lambda: bool(ap.view.boxes), 30)
 M = w.review.M
 pl = ap.placer

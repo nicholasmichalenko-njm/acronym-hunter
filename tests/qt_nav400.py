@@ -63,14 +63,14 @@ check("Shred: the stepper, not tabs", w.stepper.isVisibleTo(w) and not w.page_ta
 check("... Requirements, Rules & Dates, Evaluation, Acros & Abs with counts (4.1.0): no tab repeats the step's name",
       [w.stepper.chips[k].nm.text() for k, _l in NR.CHIPS] == ["Requirements", "Rules & Dates", "Evaluation", "Acros & Abs"]
       and w.stepper.chips["assign"].ct.text() == "nothing extracted")
-check("... See it as: Our structure first, no Matrix", [b.text() for b in w.stepper.views.values()] ==
-      ["Our structure", "List", "Sort", "L to M", "Coverage"] and w.stepper.views["assign"].isChecked())
+check("... See it as: Page, List, Sort (4.3.0: placing, L to M and Coverage are Matrix & Outline's)",
+      [b.text() for b in w.stepper.views.values()] == ["Page", "List", "Sort"] and w.stepper.views["assign"].isChecked())
 w.stepper.chips["acronyms"].click(); app.processEvents()
 check("a step chip opens its tab: Acros & Abs is the Acronyms page", w.stack.currentWidget() is w.acronym_page and w.step_btns["assign"].isChecked()
       and w.page_title.text() == "Shred")
-w.stepper.see("crosswalk"); app.processEvents()
-check("L to M shows beside the Shred page", w.stack.currentWidget() is w.assign_page and w.assign_page.views.key == "lm"
-      and w.stepper.views["crosswalk"].isChecked())
+w.go("crosswalk"); app.processEvents()
+check("L to M shows beside the page, in Matrix & Outline (4.3.0)", w.stack.currentWidget() is w.assign_page
+      and w.assign_page.views.key == "lm" and w.step_btns["matrix"].isChecked() and w._tab_keys[3] == "crosswalk")
 w.stepper.see("sort"); app.processEvents()
 check("Sort is a way to see Shred: the menu stays on Shred", w.stack.currentWidget() is w.sort_page and w.step_btns["assign"].isChecked()
       and w.stepper.views["sort"].isChecked() and w.page_title.text() == "Shred")
@@ -78,7 +78,7 @@ w.go("shredacc"); app.processEvents()
 check("Accuracy sits with the List", w.stepper.views["shredreq"].isChecked() and w.step_btns["assign"].isChecked())
 # Matrix & Outline, Drafts, Submit
 w.rail_go("matrix"); app.processEvents()
-check("Matrix & Outline: the Matrix (4.1.0: Evaluation moved to Shred)", w._tab_keys == ["matrix"] and w.page_title.text() == "Matrix & Outline"
+check("Matrix & Outline: Outline, Place, Matrix, L to M, Coverage (4.3.0)", w._tab_keys == ["outline", "place", "matrix", "crosswalk", "prove"] and w.page_title.text() == "Matrix & Outline"
       and w.page_crumb.text() == "Step 3 of 6", (w._tab_keys, w.page_title.text()))
 w.rail_go("drafts"); app.processEvents()
 check("Drafts: Status and Edit (Color Reviews and Wall of Truth set aside)", w._tab_keys == ["drafts", "techedit"]

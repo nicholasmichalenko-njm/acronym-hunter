@@ -12,10 +12,8 @@ import navsteps as NS
 from . import design as D
 
 # the Shred step's ways to see it: (page, label, the Shred page's own view or None). 4.0.0: the Matrix is Matrix & Outline's
-VIEWS = (("assign", "Our structure", "structure"), ("shredreq", "List", None), ("sort", "Sort", None),
-         ("crosswalk", "L to M", "lm"), ("prove", "Coverage", "coverage"))
-VIEW_OF = {"assign": "assign", "shredreq": "shredreq", "shredacc": "shredreq", "sort": "sort",
-           "crosswalk": "crosswalk", "prove": "prove"}
+VIEWS = (("assign", "Page", None), ("shredreq", "List", None), ("sort", "Sort", None))   # 4.3.0: placing, L to M and
+VIEW_OF = {"assign": "assign", "shredreq": "shredreq", "shredacc": "shredreq", "sort": "sort"}  # Coverage: Matrix & Outline
 # 4.0.0: the Shred step's tabs as a stepper: (page, label)
 CHIPS = (("assign", "Requirements"), ("requirements", "Rules & Dates"), ("evalcrit", "Evaluation"), ("acronyms", "Acros & Abs"))
 CHIP_OF = {"acrlist": "acronyms", "lists": "acronyms"}   # 4.1.0: no Extract; Rules & Dates and Evaluation moved in; the Acro List
@@ -237,33 +235,21 @@ class Stepper(QWidget):
         seg = QFrame(); seg.setObjectName("viewSeg"); sh = QHBoxLayout(seg); sh.setContentsMargins(0, 0, 0, 0); sh.setSpacing(0)
         for k, label, _v in VIEWS:
             b = QPushButton(label); b.setCheckable(True); b.setObjectName("viewBtn"); b.setCursor(Qt.PointingHandCursor)
-            b.setToolTip({"assign": "Your response structure beside the page", "shredreq": "Every requirement in one list",
-                          "sort": "Every requirement under an area of the request",
-                          "crosswalk": "Each instruction, the factor that scores it, the work it describes",
-                          "prove": "What is covered, by section"}[k])
+            b.setToolTip({"assign": "The customer's pages, each piece boxed", "shredreq": "Every requirement in one list",
+                          "sort": "Every requirement under an area of the request"}[k])
             b.clicked.connect(lambda _=False, key=k: self.see(key))
             sh.addWidget(b); self.views[k] = b
         vh.addWidget(seg)
 
     def see(self, key):
-        """A way to see the Shred page: Our structure, L to M and Coverage beside it; the others are pages."""
+        """A way to see the shred: the page, the list, or Sort (4.3.0: placing is Matrix & Outline's)."""
         ok = self.w.go(key)
         if key == "assign" and ok is not False:
-            try:
-                self.w.assign_page.show_view("structure")
-            except Exception:  # noqa: BLE001
-                diag.swallowed()
             self.show_for("assign")
         return ok
 
     def view_now(self, step):
-        if step != "assign":
-            return VIEW_OF.get(step)
-        try:
-            k = self.w.assign_page.views.key
-        except Exception:  # noqa: BLE001
-            k = "structure"
-        return {"lm": "crosswalk", "coverage": "prove"}.get(k, "assign")
+        return VIEW_OF.get(step)
 
     def counts(self):
         f = getattr(self.w, "path_facts", None) or {}
