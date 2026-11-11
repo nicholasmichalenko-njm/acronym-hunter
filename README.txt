@@ -1,6 +1,18 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+REDLINE FIDELITY: SLIDES AND TABLES WITH NO BORDERS (4.15.0)
+  - A deck saved as PDF (PowerPoint or another slide program) becomes slides in the Word copy: one page a slide, the
+    slide's size. The slide's pictures, charts, shapes and table shading sit behind the page as one picture; every box
+    of text sits where it was, in its size, weight and color, bullets and levels as written. The text stays editable
+    with Track Changes and comments, and Check and Exceptions read it like any other text. Each slide reads title
+    first, then top to bottom and left to right.
+  - Prepare knows a deck from the program that saved it. More > Make it as slides, or Make it as a document, decides
+    for a PDF the other way.
+  - A table with no borders and no tags takes its columns from the gaps no word crosses, so a column of right-aligned
+    numbers lines up by its ends. A table drawn inside a cell stays inside that cell.
+  - Text that is part of a picture (a pasted screenshot, a chart saved as an image) stays in the picture.
+
 REDLINE FIDELITY: TAGS AND TABLES ACROSS PAGES (4.14.0)
   - When Word saved the PDF with its accessibility tags (Save as PDF does by default), Redline reads them: a table
     with no borders and a table inside another table's cell come out as Word tables, cell for cell. A PDF printed to
