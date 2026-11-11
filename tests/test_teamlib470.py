@@ -35,7 +35,7 @@ check("the first tick writes Company Standards.xlsx in Stationkeeper Data\\Team 
 wb = openpyxl.load_workbook(book)
 check("its sheets", wb.sheetnames == ["Styles", "Table looks", "Table types", "Heading numbering", "List numbering", "Page setups",
                                       "Captions", "Fonts allowed", "Settings", "Fields", "Phrases", "Authors", "Compliance words", "Piece types",
-                                      "Document types", "About", "Columns"]   # 4.7.1: the lists, wb.sheetnames)
+                                      "Document types", "About", "Columns"], wb.sheetnames)   # 4.7.1: the lists
 ws = wb["Styles"]
 hdr = [c.value for c in ws[1]]
 check("organizing columns first, then only the properties some row uses, Other Word settings last",
