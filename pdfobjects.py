@@ -126,9 +126,12 @@ def words(page):
     try:
         n = tp.count_chars()
         t = (tp.get_text_range(0, n) if n else "").replace("￾", "-")
-        out, cur, last = [], None, None
+        out, cur, last, nl = [], None, None, False
         for k in range(min(n, len(t))):
             ch = t[k]
+            if ch in "\r\n":                          # a break PDFium put in: the next piece may go on the word
+                nl = True
+                continue
             if ch.isspace():
                 cur = None
                 continue
@@ -149,6 +152,8 @@ def words(page):
             elif cur is not None:
                 gap = box[0] - cur["box"][2]
                 same_line = min(box[3], cur["box"][3]) - max(box[1], cur["box"][1]) > -1.0     # the boxes overlap up and down
+                if nl and not (same_line and 0 <= gap < 0.25 * (size or 10)):
+                    cur = None
                 lig = last is not None and abs(box[0] - last[0]) < 0.1 and abs(box[2] - last[2]) < 0.1   # a ligature: one box
                 if not same_line or gap > max(3.0, 0.75 * (size or 10)) or (gap < -0.6 * (size or 10) and not lig):
                     cur = None
@@ -156,7 +161,7 @@ def words(page):
                 cur = {"text": "", "box": box, "size": size, "bold": R.FPDFText_GetFontWeight(tp.raw, k) >= 600, "i": k, "rot": rot}
                 out.append(cur)
             cur["text"] += ch
-            last = box
+            last, nl = box, False
             b0 = cur["box"]
             cur["box"] = (min(b0[0], box[0]), min(b0[1], box[1]), max(b0[2], box[2]), max(b0[3], box[3]))
         return out
