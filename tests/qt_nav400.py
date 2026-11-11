@@ -81,7 +81,7 @@ w.rail_go("matrix"); app.processEvents()
 check("Matrix & Outline: Outline, Place, Matrix, L to M, Coverage (4.3.0)", w._tab_keys == ["outline", "place", "matrix", "crosswalk", "prove"] and w.page_title.text() == "Matrix & Outline"
       and w.page_crumb.text() == "Step 3 of 6", (w._tab_keys, w.page_title.text()))
 w.rail_go("drafts"); app.processEvents()
-check("Drafts: Status and Edit (Color Reviews and Wall of Truth set aside)", w._tab_keys == ["drafts", "techedit"]
+check("Drafts: Status, Acronyms and Edit (4.4.0; Color Reviews and Wall of Truth set aside)", w._tab_keys == ["drafts", "draftacr", "techedit"]
       and w.page_title.text() == "Drafts" and w.stack.currentWidget() is w.drafts_page, w._tab_keys)
 # the bar
 w.rail_go("assign"); app.processEvents()

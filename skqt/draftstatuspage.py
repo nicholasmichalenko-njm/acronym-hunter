@@ -1,7 +1,10 @@
-"""Writing > Draft Status (3.43.0): read the setup back. An author's filled setup document (a volume draft) read by the
-response structure's headings and the setup's styles: each section's status, its words and pages against the page
-budget, the requirements whose text was removed or moved, and the styles pasted text brought in. Nothing in the draft
-is changed; the report exports to Excel, and a line of it is kept in the effort record."""
+"""Drafts > Status (3.43.0 Draft Status; 4.4.0 by volume, claude/stationkeeper-drafts-plan-4.4.md). Each volume's folder
+(a SharePoint library synced to this PC, More > Volume folders...) holds its draft: the newest Word file there. Read the
+drafts reads every volume's by the response structure's headings and the setup's styles: the volumes table shows each
+one's file, when it was saved, its sections not started, under way and over budget, and requirements removed; a volume
+clicked shows its sections, the requirements removed or moved, and the styles pasted text brought in. Nothing in a
+draft is changed; each read is kept in the effort record, and the report exports to Excel.
+"""
 import os
 
 from PySide6.QtCore import Qt
@@ -32,28 +35,39 @@ class DraftStatusPage(QWidget):
         self.setObjectName("page")
         self.host = host
         self.rep = None
+        self.vols = []
         outer = QVBoxLayout(self); outer.setContentsMargins(0, 0, 0, 0)
         sc = QScrollArea(); sc.setWidgetResizable(True); sc.setFrameShape(QScrollArea.NoFrame); outer.addWidget(sc)
         inner = QWidget(); inner.setObjectName("page"); sc.setWidget(inner)
         v = QVBoxLayout(inner); v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
-        self.card = D.Card("Read the setup back", "A volume's draft, read by the response structure's headings and the setup's "
-                           "styles. Nothing in the draft is changed.",
-                           actions=[D.button("Read the draft", "primary", lambda: self.read()),
-                                    D.button("Export...", None, lambda: self.export()),
-                                    D.button("Drift report...", "ghost", lambda: self.drift(),        # 3.82.0 (form q20)
-                                             "Every draft against the dated copies made of it (Apply in Word, Fix a Copy): "
-                                             "each change taken up, still to take, or in a passage that changed")])
+        from .commandbar import CommandBar
+        bar = self.bar = CommandBar()
+        self.b_read = bar.primary("Read the drafts", lambda: self.read_all(), "Every volume's newest draft, read by the "
+                                  "response structure's headings and the setup's styles. Nothing in a draft is changed.")
+        bar.add("Volume folders...", lambda: self.edit_folders(), "Each volume's folder: a SharePoint library synced to this PC")
+        bar.more("Read another file...", lambda: self.read_other(),
+                 "A Word file that is not in a volume's folder")
+        bar.more("Drift report...", lambda: self.drift(), "Every draft against the dated copies made of it (Apply in Word, "      # 3.82.0
+                 "Fix a Copy): each change taken up, still to take, or in a passage that changed")
+        bar.export("The volume's status to Excel...", lambda: self.export())
+        v.addWidget(bar)
+        self.draft = QComboBox(); self.draft.setVisible(False)          # the files read one at a time (Other file, drift)
+        self.card = D.Card("The volumes", "Each volume's newest draft in its folder. Click a volume for its sections.")
+        self.v_table = _table(["Volume", "Draft", "Saved", "Not started", "Under way", "Over budget", "Requirements removed"], 1, 150)
+        for i, wd in enumerate((160, 0, 120, 80, 80, 90, 150)):
+            if wd:
+                self.v_table.setColumnWidth(i, wd)
+        self.v_table.currentCellChanged.connect(lambda r, _c, _pr, _pc: self.show_volume(r))
+        self.card.add(self.v_table)
         f = QFormLayout(); self.card.body.addLayout(f)
-        self.draft = QComboBox(); self.draft.setMinimumWidth(360)
-        row = QHBoxLayout(); row.addWidget(self.draft, 1)
-        row.addWidget(D.button("Other file...", None, lambda: self.pick()))
-        f.addRow("Draft", row)
         self.wpp = QSpinBox(); self.wpp.setRange(100, 1500); self.wpp.setSingleStep(25); self.wpp.setValue(SR.WORDS_PER_PAGE)
         self.wpp.setSuffix(" words a page")
         self.wpp.valueChanged.connect(lambda val: self._keep_wpp(val))
         f.addRow("Pages from words", self.wpp)
         self.sum = self.card.add(D.label("Not read yet.", "muted"))
+        self.card.body.addWidget(self.draft)
         v.addWidget(self.card)
+        self.vols = []
         self.s_card = D.Card("Sections", "Not started: none of the author's own words yet. Near budget: half the page budget or "
                              "more. Over budget: past it. Pages are counted from words; Word's own count is in the line above.")
         self.s_table = _table(["Section", "Status", "Words", "Pages", "Budget", "Requirements removed", "Moved"], 0, 260)
@@ -104,13 +118,18 @@ class DraftStatusPage(QWidget):
             if self.draft.findData(keep) < 0:
                 self.draft.addItem(os.path.basename(keep), keep)
             self.draft.setCurrentIndex(self.draft.findData(keep))
+        self.fill_volumes()
         if self.rep is None:
             last = SR.latest(self.rec()) if self.rec() is not None else []
             if last:
                 self.sum.setText(f"Last read {last[0]['when'].replace('T', ' ')}: {os.path.basename(last[0]['file'])}.")
 
     def drafts(self):
-        return [self.draft.itemData(i) for i in range(self.draft.count()) if self.draft.itemData(i)]
+        out = [self.draft.itemData(i) for i in range(self.draft.count()) if self.draft.itemData(i)]
+        if self.host.ws is not None:
+            import draftvols as DV
+            out += [d["file"] for d in DV.drafts(self.host.ws, self.M()) if d["file"] and d["file"] not in out]
+        return out
 
     def drift(self, run=True):
         """3.82.0: the drift report over every draft in the list (the deliverables' linked files, the Volumes folder's)."""
@@ -134,6 +153,10 @@ class DraftStatusPage(QWidget):
             self.draft.addItem(os.path.basename(path), path)
         self.draft.setCurrentIndex(self.draft.findData(path))
         return path
+
+    def read_other(self, path=None):
+        path = self.pick(path)
+        return self.read(path) if path else None
 
     def std(self):
         try:
@@ -164,6 +187,78 @@ class DraftStatusPage(QWidget):
             SR.keep(self.rec(), rep)
         self.fill()
         return rep
+
+    # ------------------------------------------------------------ the volumes
+    def edit_folders(self, answers=None):
+        """One row per volume, each with its folder. answers ({volume: folder}, tests) skips the dialog."""
+        import draftvols as DV
+        ws, M = self.host.ws, self.M()
+        if ws is None or M is None or not M.outline:
+            self.host.status("Build the response structure first (Matrix & Outline > Outline): the folders are by volume.")
+            return None
+        if answers is None:
+            from . import draftfolders as DF
+            answers = DF.ask(self, DV.volumes(M), DV.folders(ws))
+            if answers is None:
+                return None
+        for vol, folder in answers.items():
+            DV.set_folder(ws, vol, folder)
+        self.fill_volumes()
+        return DV.folders(ws)
+
+    def read_all(self):
+        import draftvols as DV
+        M = self.M()
+        if M is None or not M.outline:
+            self.sum.setText("Build the response structure first: the drafts are read by its headings.")
+            return None
+        self.vols = DV.read_all(M, self.host.ws, self.rec(), std=self.std(), wpp=self.wpp.value())
+        self.fill_volumes(read=True)
+        got = [r for r in self.vols if r["rep"] is not None and r["rep"]["matched"]]
+        self.sum.setText(f"{len(got)} of {len(self.vols)} volume(s) read." + ("" if got else " Set each volume's folder: Volume folders..."))
+        if got:
+            i = self.vols.index(got[0])
+            self.v_table.setCurrentCell(i, 0)
+            self.show_volume(i)
+        diag.activity("drafts_read", volumes=len(self.vols), read=len(got))
+        return self.vols
+
+    def fill_volumes(self, read=False):
+        import draftvols as DV
+        if self.host.ws is None:
+            return
+        if not read:
+            had = {r["volume"]: r for r in self.vols}
+            self.vols = [dict(d, rep=(had.get(d["volume"]) or {}).get("rep") if (had.get(d["volume"]) or {}).get("file") == d["file"] else None,
+                              said="") for d in DV.drafts(self.host.ws, self.M())]
+        t = self.v_table
+        t.blockSignals(True); t.setRowCount(0)
+        for r in self.vols:
+            i = t.rowCount(); t.insertRow(i)
+            n = DV.counts(r)
+            got = r.get("rep") is not None
+            vals = (r["volume"], os.path.basename(r["file"]) if r["file"] else (r.get("said") or DV._why_not(r)), r["saved"],
+                    *(str(n[k]) if got else "" for k in ("not_started", "under_way", "over", "removed")))
+            for c, val in enumerate(vals):
+                it = QTableWidgetItem(val)
+                if c >= 3:
+                    it.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                if c == 5 and got and n["over"]:
+                    it.setForeground(QColor(STATUS_COLOR["Over budget"]))
+                t.setItem(i, c, it)
+        t.blockSignals(False)
+
+    def show_volume(self, i):
+        if not (0 <= i < len(self.vols)):
+            return None
+        r = self.vols[i]
+        if r.get("rep") is None:
+            self.sum.setText(f"{r['volume']}: {r.get('said') or 'not read yet: Read the drafts.'}")
+            return None
+        self.rep = r["rep"]
+        self.fill()
+        self.sum.setText(f"{r['volume']}: {self.sum.text()}")
+        return self.rep
 
     def fill(self):
         rep = self.rep

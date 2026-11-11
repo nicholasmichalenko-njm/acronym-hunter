@@ -58,7 +58,8 @@ TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("reco
         "matrix": [("outline", "Outline"), ("place", "Place"), ("matrix", "Matrix"), ("crosswalk", "L to M"),
                    ("prove", "Coverage")],                 # 4.3.0: the outline, placing, the matrix, the crosswalk, coverage
         "setups": [("setups", "Setup"), ("effortfmt", "Effort Formatting")],
-        "drafts": [("drafts", "Status"), ("techedit", "Edit"), ("reviews", "Color Reviews"), ("truth", "Wall of Truth")],
+        "drafts": [("drafts", "Status"), ("draftacr", "Acronyms"), ("techedit", "Edit"), ("reviews", "Color Reviews"),
+                   ("truth", "Wall of Truth")],                # 4.4.0: Acronyms, each volume's draft against the list
         "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks"), ("postsub", "After Submission"),
                        ("keywords", "Keywords")],
         "formatstd": [("styles", "Styles"), ("formatstd", "Formatting"), ("layoutstd", "Layout"),
@@ -298,6 +299,8 @@ class MainWindow(QMainWindow):
         self.templates_page = TemplatesPage(self)
         from .draftstatuspage import DraftStatusPage
         self.drafts_page = DraftStatusPage(self)       # 3.43.0: read the setup back
+        from .draftacrpage import DraftAcrPage
+        self.draftacr_page = DraftAcrPage(self)        # 4.4.0: Drafts > Acronyms
         from .accuracypage import AccuracyPage
         self.accuracy_page = AccuracyPage(self)        # 3.59.0: the shred measured
         from .finalcheckpage import FinalCheckPage
@@ -312,7 +315,7 @@ class MainWindow(QMainWindow):
                       "crosswalk": self.assign_page, "place": self.assign_page, "outline": self.outline_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page, "audit": self.audit_page,
                       "effortfmt": self.effortfmt_page, "rules": self.rules_page, "datacalls": self.datacalls_page,
-                      "drafts": self.drafts_page, "formatstd": self.formatstd_page,
+                      "drafts": self.drafts_page, "draftacr": self.draftacr_page, "formatstd": self.formatstd_page,
                       "qpstd": self.qpstd_page, "styles": self.styles_page, "layoutstd": self.layoutstd_page, "designs": self.designs_page,
                       "profiles": self.profiles_page, "templates": self.templates_page,
                       "tools": self.tools_page, "refs": self.refs_page, "techedit": self.techedit_page, "shredreq": self.shred_page, "setups": self.setups_page, "finalcheck": self.finalcheck_page, "shredacc": self.accuracy_page}

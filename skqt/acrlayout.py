@@ -398,8 +398,8 @@ def set_hyphen(page, on=None):
 
 
 def open_drafts(page):
-    from .acrdrafts import open_drafts as go
-    return go(page)
+    """4.4.0: In our drafts opens Drafts > Acronyms, every volume's draft against the list."""
+    return page.host.go("draftacr")
 
 
 def _acro_list(page, bar):

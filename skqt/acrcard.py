@@ -128,6 +128,8 @@ def build(page, t, kind_tone):
     if d.get("effort"):
         pills.addWidget(D.Pill(f"Acronym list: {d['effort']}" + ("" if ((d.get("list_definition") or "").strip() or d["effort"] == "Not a term") else ", no definition yet"),
                             "ok" if (d.get("list_definition") or "").strip() and d["effort"] == "In the list" else "head" if d["effort"] == "Not a term" else "warn"))
+    if d.get("from_drafts"):                                  # 4.4.0: Drafts > Acronyms sent it here
+        pills.addWidget(D.Pill("From our drafts: " + ", ".join(d["from_drafts"]), "warn" if not d.get("effort") else "ctx"))
     if d.get("plural_of"):
         pills.addWidget(D.Pill(f"Plural of {d['plural_of']}", "ctx"))
     if d.get("form_of"):
