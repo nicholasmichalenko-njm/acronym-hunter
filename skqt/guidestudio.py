@@ -171,3 +171,13 @@ TEAMLIB = ("teamlib", "Team", "Team library: the standards as files",
    "The lists: Phrases, Authors, Compliance words, Piece types and Document types are sheets of the workbook; the master "
    "acronym list is Lists\\Acronyms.csv and each dictionary a Word .dic file in Lists\\Dictionaries (4.7.1)."],
   ["A copy from another PC (Company Standards-PCNAME.xlsx) is reported, never read. Nothing is deleted."])
+
+REDLINE = ("redline", "Effort", "Redline",
+  "A clean Word copy of a customer PDF to redline in Word, checked word for word, and the exceptions table from the redline.",
+  "When the customer issues a draft RFP, Q&A, the final RFP's terms, an amendment or a model contract to comment on.",
+  ["Prepare: pick the PDF and press Make the Word copy. It goes to the effort's Redlines folder. Fix text in Shred first "
+   "if a page needs it: the copy uses the text as fixed there.",
+   "Check: Check the copy lists every word added, dropped or changed against the PDF. Check the returned redline... lists "
+   "the edits made with Track Changes off. Double-click a finding to see it on the page.",
+   "Exceptions: Read the redline's changes... then Export to Excel or Word."],
+  ["Authors redline in Word with Track Changes; there is no editor here."])

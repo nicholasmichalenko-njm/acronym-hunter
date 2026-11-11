@@ -15,7 +15,8 @@ Standard library only.
 """
 import os
 
-SUBS = {"customer": "Customer Documents", "volumes": "Volumes", "setup": "Response Setup", "exports": "Exports"}
+SUBS = {"customer": "Customer Documents", "volumes": "Volumes", "setup": "Response Setup", "exports": "Exports",
+        "redlines": "Redlines"}                          # 4.8.0: the redline copies and exception tables
 NOTE = "About this folder.txt"
 NOTE_TEXT = ("Stationkeeper keeps this effort's working files here: the record, the document library and its versions,\r\n"
              "what was taken from documents, change decisions, backups of the matrix and the calendar.\r\n\r\n"

@@ -130,6 +130,15 @@ def status(page, d, st=None):
     n = len(d.get("versions") or [])
     if not getattr(page, "focus", False):                    # 4.6.0: the panel lists the versions once
         out.append(("Versions", f"{n} version(s); the latest governs" if n > 1 else "1 version", NONE))
+    try:                                                       # 4.8.0: Redline's copy of it
+        from . import redlinepage as RLP
+        import redlinecopy as RC
+        p = path_of(page, d)
+        made = RC.copies(RLP.folder(page.host), os.path.basename(p)) if p.lower().endswith(".pdf") and RLP.folder(page.host) else []
+        if made:
+            out.append(("Redline copy", "Made " + os.path.basename(made[0]).rsplit(" - ", 1)[-1][:-5], OK))
+    except Exception:  # noqa: BLE001
+        diag.swallowed()
     nxt = None
     if key == "not_needed":                                  # left out: nothing to do until it is put back
         return out, None
@@ -196,6 +205,8 @@ def row_menu(page, at=None, run=True):
     m.addAction("Put it back" if out else "Leave out", lambda: page.set_role("context" if out else "not_needed",
                                                                             why="put back" if out else "left out"))
     m.addAction("Show in folder", lambda: show_in_folder(page, d))
+    if path_of(page, d).lower().endswith(".pdf"):                 # 4.8.0: made on Redline only
+        m.addAction("Prepare a redline copy", lambda: (page.host.go("redline"), page.host.redline_page.select(d["id"])))
     __import__("skqt.docfocus", fromlist=["x"]).more_items(page, m, d)     # 4.6.0: what left the panel
     page._menu = m
     if run and at is not None:

@@ -92,7 +92,10 @@ STY.save(cfg, STY.load(None))
 check("piece types", json.load(open(os.path.join(cfg, STY.FILE), encoding="utf-8"))["format"] == F.number("piece types") == STY.FORMAT)
 rq = RSH.Queue(cfg); rq.add("a>b", "k1", "Section L", "A0001", "old words", "new words")
 check("re-shred queue", json.load(open(rq.path, encoding="utf-8"))["format"] == F.number("re-shred queue") == RSH.FORMAT)
-check("every kind is checked here", len(F.FORMATS) == 23, len(F.FORMATS))   # 4.7.0: the workbook and its state
+import redlinecopy as RCP                                                   # 4.8.0
+rcp = RCP.build(os.path.join(os.path.dirname(HERE), "test_samples", "rfp_walk", "Section_L_print.pdf"), os.path.join(tmp, "copy.docx"))
+check("redline copy", json.load(open(rcp["path"] + RCP.SIDE, encoding="utf-8"))["format"] == F.number("redline copy") == RCP.FORMAT)
+check("every kind is checked here", len(F.FORMATS) == 24, len(F.FORMATS))   # 4.7.0: the workbook and its state; 4.8.0: the redline copy
 n = sum(checks)
 print(f"FORMATS {'PASS' if n == len(checks) else 'FAIL'} ({n}/{len(checks)})")
 sys.exit(0 if n == len(checks) else 1)

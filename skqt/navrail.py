@@ -24,7 +24,8 @@ STEP_TITLES = {"home": ("Dashboard", "Where the effort is, what is left, and you
                "matrix": ("Matrix & Outline", "What we answer, and where in our structure"),
                "setups": ("Setup", "Who writes what, when and how long; the setup in Word"),
                "drafts": ("Drafts", "The team's drafts read back: where each section stands"),
-               "finalcheck": ("Submit", "The last checks, then what happens after")}
+               "finalcheck": ("Submit", "The last checks, then what happens after"),
+               "redline": ("Redline", "A clean Word copy of the customer's PDF to redline, checked word for word; the exceptions table")}
 
 
 class ClickFrame(QFrame):

@@ -40,10 +40,11 @@ from .settingspage import SettingsPage
 # where; Setup, Drafts (the team writes in Word; the app reads the drafts back) and Submit. Pages not yet rebuilt sit in
 # the step they belong to (3.96.0: the menu is the effort's path; All Efforts, My Work and Your Tools are in the switcher).
 RAIL = [("Effort", [("home", "Dashboard"), ("library", "Documents"), ("assign", "Shred"), ("matrix", "Matrix & Outline"),
-                    ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit")]),
+                    ("setups", "Setup"), ("drafts", "Drafts"), ("finalcheck", "Submit"),
+                    ("redline", "Redline")]),                # 4.8.0: below the six steps, no number (redlining is no stage)
         ("Team", [("team", "Team")]),
         ("Settings", [("settings", "Settings")])]
-STEP_KEYS = tuple(k for k, _t in RAIL[0][1])
+STEP_KEYS = tuple(k for k, _t in RAIL[0][1] if k != "redline")
 SWITCHER = [("efforts", "All Efforts"), ("mywork", "My Work"), ("tools", "Your Tools")]
 # 3.16.0: one place per job. Pages that belong to a menu item are tabs under its title, never menu items of their own.
 TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("record", "Effort Record"), ("meetings", "Meetings")],
@@ -62,6 +63,7 @@ TABS = {"home": [("home", "Dashboard"), ("deliverables", "Deliverables"), ("reco
                    ("truth", "Wall of Truth")],                # 4.4.0: Acronyms, each volume's draft against the list
         "finalcheck": [("finalcheck", "Report"), ("qa", "Submission Check"), ("checks", "Final Checks"), ("postsub", "After Submission"),
                        ("keywords", "Keywords")],
+        "redline": [("redline", "Prepare"), ("rcheck", "Check"), ("exceptions", "Exceptions")],   # 4.8.0
         "formatstd": [("styles", "Styles"), ("formatstd", "Formatting"), ("layoutstd", "Layout"),
                       ("designs", "Parts")],     # 3.98.0: Quick Parts are in Parts  # 3.95.0: Parts  # 3.94.0: Styles  # 3.75.0: tabs
         "profiles": [("profiles", "Effort Profiles"), ("templates", "Templates")],
@@ -76,7 +78,8 @@ RAIL_OF.update({k: "assign" for k in REVIEW_VIEWS})
 RAIL_OF.update({"storyboards": "setups", "setup": "setups", "structure": "setups", "exportall": "home", "lists": "assign",
                 "acrlist": "assign", "verify": "assign"})   # 4.1.0: the Acro List is part of Acros & Abs; 4.2.0: page by page check
 RAIL_OF.update({k: "team" for t in TEAM for k in [k for k, _t in TABS.get(t, [(t, "")])]})
-RAIL_OF.update({"prodstd": "team", "qpstd": "team"})     # 3.98.0: a Quick Part's details open from Parts
+RAIL_OF.update({"prodstd": "team", "qpstd": "team"})
+RAIL_OF.update({"redline": "redline", "rcheck": "redline", "exceptions": "redline"})   # 4.8.0     # 3.98.0: a Quick Part's details open from Parts
 MATRIX_UNDO = {"home", "reviews", "docs", "compare", "impact", "structure", "prove", "crosswalk", "matrix", "setup", "setups"}   # 3.18.2:
 # pages that change the matrix (decisions, the structure, placements, setup) share its Undo steps; Review has its own
 VIEWS = {}                     # 3.90.0 views of Review's maps; 4.3.0: place, crosswalk and prove are the Shred page (placemode)
@@ -84,6 +87,7 @@ BETA = {"fixcopy", "applyword"}                                  # 3.16.0: tools
 GROUP_OF = {k: ("Team" if e == "team" else "" if e == "home" else f"Step {n} of {len(STEP_KEYS) - 1}")
             for k, e in RAIL_OF.items()
             for n in [[x for x, _t in RAIL[0][1]].index(e) if e in [x for x, _t in RAIL[0][1]] else 0]}
+GROUP_OF.update({"redline": "", "rcheck": "", "exceptions": ""})   # 4.8.0: Redline has no step number
 GROUP_OF.update({"team": "Team", "settings": "", "efforts": "", "mywork": "", "tools": ""})
 
 
@@ -278,6 +282,8 @@ class MainWindow(QMainWindow):
         self.effortfmt_page = EffortFormatPage(self)   # 3.36.0: one effort's formatting, apart from the team's
         from .datacallspage import DataCallsPage
         self.datacalls_page = DataCallsPage(self)      # 3.39.0: internal data calls
+        from .redlinepage import CheckPage, ExceptionsPage, PreparePage      # 4.8.0: Redline
+        self.redline_page, self.rcheck_page, self.exceptions_page = PreparePage(self), CheckPage(self), ExceptionsPage(self)
         from .rulespage import RulesPage
         self.rules_page = RulesPage(self)              # 3.38.0: every production rule in one list
         from .libscreen import FormattingStandardsPage, LayoutPage, QuickPartsPage
@@ -315,7 +321,8 @@ class MainWindow(QMainWindow):
                       "settings": self.settings_page, "acronyms": self.acronym_page, "acrlist": self.acrlist_page, "read": self.read_page, "assign": self.assign_page, "prove": self.assign_page, "verify": self.verify_page,
                       "crosswalk": self.assign_page, "place": self.assign_page, "outline": self.outline_page, "matrix": self.matrix_page, "setup": self.setup_page, "storyboards": self.storyboards_page, "truth": self.truth_page, "checks": self.checks_page, "postsub": self.postsub_page,
                       "fixcopy": self.fixcopy_page, "prodstd": self.prodstd_page, "audit": self.audit_page,
-                      "effortfmt": self.effortfmt_page, "rules": self.rules_page, "datacalls": self.datacalls_page,
+                      "effortfmt": self.effortfmt_page, "rules": self.rules_page, "datacalls": self.datacalls_page, "redline": self.redline_page, "rcheck": self.rcheck_page,
+                      "exceptions": self.exceptions_page,
                       "drafts": self.drafts_page, "draftacr": self.draftacr_page, "formatstd": self.formatstd_page,
                       "qpstd": self.qpstd_page, "styles": self.styles_page, "layoutstd": self.layoutstd_page, "designs": self.designs_page,
                       "profiles": self.profiles_page, "templates": self.templates_page,

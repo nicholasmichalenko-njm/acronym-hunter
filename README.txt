@@ -1,6 +1,26 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+REDLINE (4.8.0)
+  - A menu item of its own, below the six steps and with no number: redlining happens at any point (the draft RFP, Q&A,
+    the final RFP's terms, amendments, a model contract). Authors redline in Word with Track Changes; there is no
+    editor here. Every role sees it. Its files go to the effort's Redlines folder.
+  - Prepare: Make the Word copy makes a clean Word copy of a customer PDF from the text the shred reads, with Fix
+    text's fixes: real Heading styles from the customer's headings (L.3.5.2 is Heading 4), the numbers typed exactly as
+    the customer wrote them (never Word's automatic numbering), paragraphs joined across lines and pages, and the
+    running headers, footers and page numbers left out. A list item keeps its marker as text. Another PDF... (under
+    More) copies a file outside the solicitation, such as a model contract. Fix text in Shred first if a page needs it.
+  - Check: Check the copy compares it with its PDF word for word and lists every word added, dropped or changed, with
+    its page and the heading above it; a line set aside in Fix text is listed as set aside on purpose. Check the
+    returned redline... reads the redline the authors sent back with every tracked change rejected: any difference is
+    an edit made with Track Changes off, which Word cannot show. Double-click a finding to see it on the page in Shred.
+  - Exceptions: Read the redline's changes... makes a row of every tracked change: the customer's number (the heading
+    above it), the original text, our text, Inserted, Deleted or Replaced, the author, the date and the comment on it.
+    Export to Excel or Word.
+  - Documents: the panel says when a redline copy was made, and a PDF's right-click offers Prepare a redline copy.
+  - Limits: a table in the PDF comes out as one paragraph per row (check tables by eye); a scanned page is only as good
+    as its reading.
+
 THE TEAM'S LISTS AS FILES (4.7.1)
   - The small lists are sheets of Company Standards.xlsx: Phrases (banned and avoided, with what to use instead and
     why), Authors (and the efforts each writes for, or Every effort), Compliance words, Piece types (names, keys,
