@@ -450,7 +450,7 @@ class RequirementsPage(QWidget):
         top.addWidget(self.cbar)
         split = QSplitter(Qt.Horizontal)
         self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Rule", "Now", "Changed by", "Source", "Used by"])  # 4.6.0: Used by
-        self.tree.setColumnWidth(0, 230); self.tree.setColumnWidth(1, 340); self.tree.setColumnWidth(2, 170); self.tree.setColumnWidth(3, 200)
+        self.tree.setColumnWidth(0, 230); self.tree.setColumnWidth(1, 260); self.tree.setColumnWidth(2, 150); self.tree.setColumnWidth(3, 150)
         self.tree.itemSelectionChanged.connect(self.show_detail)
         split.addWidget(self.tree)
         self.card = D.Card("Submission rule"); self.card.setMinimumWidth(380)
@@ -551,6 +551,7 @@ class RequirementsPage(QWidget):
                     sel = it
         from . import rulesdates as RD                # 4.1.0: the shred's Rule and Date pieces and its key dates
         sel = RD.add_groups(self, keep) or sel
+        RD.regroup(self)                              # 4.6.0: three groups only
         self.tree.expandAll()
         if sel is not None:
             self.tree.setCurrentItem(sel)

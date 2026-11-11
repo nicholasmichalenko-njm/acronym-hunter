@@ -66,6 +66,59 @@ def add_groups(page, keep=None):
     return sel
 
 
+import re
+
+_STRUCT = re.compile(r"\bpages?\b.*\b(limit|exceed|maximum|no more than)\b|\b(limit|exceed|maximum|no more than)\b.*\bpages?\b|"
+                     r"\bvolumes?\b|\bsections?\b.*\b(order|organi[sz]e|structure)", re.I)
+_FORMAT = re.compile(r"\bfont|\bpoint\b|\bpt\b|margin|spacing|single[- ]spaced|line spacing|\bpaper\b|8\.5|letter size|"
+                     r"\bheader|\bfooter|page number|\bfile (name|format|type)|\.pdf\b|\bpdf\b|\bword\b|\bexcel\b", re.I)
+USED_BY = {"structure": "Matrix & Outline, Setup", "format": "Setup, Submit", "submission": "Submit, Dashboard"}
+
+
+def bucket(text):
+    """4.6.0: which of the three groups a rule the shred found belongs to, by its words (rules only)."""
+    t = text or ""
+    if _STRUCT.search(t):
+        return "structure"
+    if _FORMAT.search(t):
+        return "format"
+    return "submission"
+
+
+def regroup(page):
+    """4.6.0 (the six-steps board 3): three groups only. The excerpts, the written formatting rules and the shred's own
+    Rule and Date pieces move under Structure and page limits, Format, or Submission and dates, each with what uses it."""
+    from .custdocs import REQ_GROUPS
+    t = page.tree
+    tops = [t.topLevelItem(i) for i in range(t.topLevelItemCount())]
+    main = {gk: tops[k] for k, (gk, _l, _kinds) in enumerate(REQ_GROUPS) if k < len(tops)}
+    if len(main) < 3:
+        return 0
+    moved = 0
+    for g in tops[3:]:
+        label = g.text(0).split(" (")[0]
+        while g.childCount():
+            it = g.takeChild(0)
+            if label in ("Other submission detail", "Dates from the shred"):
+                gk = "submission"
+            elif label == "Written formatting rules":
+                gk = "format"
+            else:
+                gk = bucket(it.toolTip(1) or it.text(1) or it.text(0))
+            it.setText(4, USED_BY[gk])
+            from . import design as D
+            it.setForeground(4, D.color("accent"))
+            main[gk].addChild(it)
+            moved += 1
+        t.takeTopLevelItem(t.indexOfTopLevelItem(g))
+    for gk, g in main.items():
+        lab = g.text(0).split(" (")[0]
+        g.setText(0, f"{lab} ({g.childCount()})")
+        if g.childCount():
+            g.setText(1, "")
+    return moved
+
+
 def show(page, key):
     """The side card for a row of the shred's groups. True when it was one."""
     r = getattr(page, "shred_rows", {}).get(key or "")
