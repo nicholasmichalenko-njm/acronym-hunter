@@ -112,6 +112,15 @@ check("the panel: what has been done, no Versions row, the versions listed once,
 w.go("ours"); op.refresh(); app.processEvents()
 check("Ours holds none of the customer's documents (the empty state shows one way in)", op.table.rowCount() == 0
       and op.empty.isVisibleTo(w) and w._tab_keys[:3] == ["library", "ours", "compare"], op.table.rowCount())
+# Rules & Dates: three groups, Used by, Add a rule... the main button
+w.go("requirements"); rp = w.requirements_page; rp.refresh(); app.processEvents()
+tops = [rp.tree.topLevelItem(i).text(0) for i in range(rp.tree.topLevelItemCount())]
+check("Rules & Dates: Structure and page limits, Format, Submission and dates", [t.split(" (")[0] for t in tops[:3]]
+      == ["Structure and page limits", "Format", "Submission and dates"], tops)
+kids = [rp.tree.topLevelItem(i).child(j) for i in range(3) for j in range(rp.tree.topLevelItem(i).childCount())]
+check("... each rule says what uses it", kids and all(k.text(4) for k in kids) and rp.tree.headerItem().text(4) == "Used by",
+      [(k.text(0), k.text(4)) for k in kids][:4])
+check("... and Add a rule... is the main button", rp.cbar.main.text() == "Add a rule..." and "Show the ones set aside" in rp.cbar.labels())
 # Changes: a card per change
 w.go("compare"); app.processEvents()
 cp = w.compare_page

@@ -16,9 +16,12 @@ import subreq as SR
 from . import design as D
 from .doctypeui import follow, type_box
 
-REQ_GROUPS = (("deliver", "Submittal items", ("Deliverable",)), ("pages", "Page limits", ("Page limit",)), ("format", "Format", ("Format",)),
-              ("files", "Files", ("File",)), ("how", "How, where and to whom", ("Delivery", "Copies", "Contact")),
-              ("dates", "Dates", ("Due", "Questions due")))
+# 4.6.0 (the six-steps board 3): three groups, and what uses each rule
+REQ_GROUPS = (("structure", "Structure and page limits", ("Deliverable", "Page limit")), ("format", "Format", ("Format", "File")),
+              ("submission", "Submission and dates", ("Delivery", "Copies", "Contact", "Due", "Questions due")))
+USED_BY = {"Deliverable": "Matrix & Outline, Submit", "Page limit": "Matrix & Outline, Setup", "Format": "Setup, Submit",
+           "File": "Submit", "Delivery": "Submit", "Copies": "Submit", "Contact": "Submit", "Due": "Dashboard, Submit",
+           "Questions due": "Dashboard"}
 
 
 def _esc(s):
@@ -438,13 +441,16 @@ class RequirementsPage(QWidget):
         v.setContentsMargins(D.SPACE["xl"], D.SPACE["l"], D.SPACE["xl"], D.SPACE["l"]); v.setSpacing(D.SPACE["m"])
         top = QHBoxLayout(); top.setSpacing(D.SPACE["m"]); v.addLayout(top)
         self.facts = D.label("", "title"); top.addWidget(self.facts, 1)
-        self.hidden = QCheckBox("Show the ones set aside"); self.hidden.toggled.connect(lambda _on: self.refresh())
-        top.addWidget(self.hidden)
-        top.addWidget(D.button("Add a rule...", None, lambda: self.add()))
-        top.addWidget(D.button("Export...", None, lambda: self.export()))
+        from .commandbar import CommandBar                    # 4.6.0: one bar; Add a rule... the main button
+        self.cbar = CommandBar()
+        self.hidden = self.cbar.more("Show the ones set aside", lambda _on: self.refresh(), "Rules set aside stay listed, greyed",
+                                     checkable=True)
+        self.cbar.export("Export...", lambda: self.export(), "The rules, each with its source and history")
+        self.cbar.primary("Add a rule...", lambda: self.add(), "A rule the documents do not state, typed in")
+        top.addWidget(self.cbar)
         split = QSplitter(Qt.Horizontal)
-        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Rule", "Now", "Changed by", "Source"])     # 2.85.0
-        self.tree.setColumnWidth(0, 230); self.tree.setColumnWidth(1, 380); self.tree.setColumnWidth(2, 210)
+        self.tree = QTreeWidget(); self.tree.setHeaderLabels(["Rule", "Now", "Changed by", "Source", "Used by"])  # 4.6.0: Used by
+        self.tree.setColumnWidth(0, 230); self.tree.setColumnWidth(1, 340); self.tree.setColumnWidth(2, 170); self.tree.setColumnWidth(3, 200)
         self.tree.itemSelectionChanged.connect(self.show_detail)
         split.addWidget(self.tree)
         self.card = D.Card("Submission rule"); self.card.setMinimumWidth(380)
@@ -512,7 +518,9 @@ class RequirementsPage(QWidget):
                 lc = None if r["manual"] else self.last_change(r)
                 by = ("Typed in" if r["manual"] else (f"{lc[2]}" + (" (decide in Compare)" if r["to_review"] else "")) if lc
                       else ("Set aside" if r["hidden"] else r.get("version") or "Original"))
-                it = QTreeWidgetItem([r["subject"], "" if lc else r["value"], by, "" if r["manual"] else f"{r['doc']}, {r['version']}"])
+                it = QTreeWidgetItem([r["subject"], "" if lc else r["value"], by, "" if r["manual"] else f"{r['doc']}, {r['version']}",
+                                      USED_BY.get(r["kind"], "")])
+                it.setForeground(4, D.color("accent"))
                 it.setForeground(2, D.color("warn" if r["to_review"] else tone)); it.setData(0, Qt.UserRole, r["key"])
                 g.addChild(it)
                 html = self.now_html(r)
