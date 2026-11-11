@@ -10,8 +10,9 @@ RETRY_ONCE (timing-sensitive) gets one second run on its own; the log says when 
     venv\\Scripts\\python.exe tools\\run_tests.py              every test (used by buildrel before anything is built)
     venv\\Scripts\\python.exe tools\\run_tests.py qt_kickoff   only the named tests
 
-4.5.0: SK_TEST_WORKERS=N (N > 1) runs N tests at a time, each worker with its own data folder (SK_DATA_DIR), so tests
-cannot share settings or efforts. The tests in SERIAL (Word, timings, this runner) run after them, one at a time. A test
+4.5.0: SK_TEST_WORKERS=N (N > 1) runs N tests at a time, each worker with its own data folder (SK_DATA_DIR) and temp
+folder (SK_TEST_WORKER), so tests cannot share settings, efforts or temp files (each process empties its temp folder at
+start). The tests in SERIAL (Word, timings, this runner) run after them, one at a time. A test
 that fails while others run gets one run on its own; the log names it ("PASSED ONLY WHEN RUN ALONE"), and a test that
 fails twice fails the gate. The output keeps the tests' order.
 
@@ -74,7 +75,7 @@ def run_parallel(names, n):
     queue, lock, done = list(names), threading.Lock(), {}
 
     def work(i):
-        env = dict(os.environ, SK_DATA_DIR=os.path.join(base, f"w{i}"))
+        env = dict(os.environ, SK_DATA_DIR=os.path.join(base, f"w{i}"), SK_TEST_WORKER=f"w{i}")   # own data and temp folders
         env.pop("SK_TEST_WORKERS", None)
         while True:
             with lock:
