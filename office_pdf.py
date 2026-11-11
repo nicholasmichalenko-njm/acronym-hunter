@@ -150,6 +150,12 @@ def make_many(paths, folder, timeout=600, runner=None, stop=None):
             _end_started(pidfile, k)            # 2.71.0: the hidden Office it started does not stay behind
         except OSError as e:
             err = f"Windows PowerShell could not start ({type(e).__name__})".encode()
+        if runner is None and k == "word" and os.path.isfile(pidfile):      # 4.6.0: a Word that did not quit does not stay
+            try:
+                import prodword
+                prodword._end_hidden(prodword._pids(pidfile))
+            except Exception:  # noqa: BLE001
+                pass
         for f in (pidfile, stopfile):
             try:
                 os.remove(f)

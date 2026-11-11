@@ -12,7 +12,8 @@ RETRY_ONCE (timing-sensitive) gets one second run on its own; the log says when 
 
 4.5.0: SK_TEST_WORKERS=N (N > 1) runs N tests at a time, each worker with its own data folder (SK_DATA_DIR) and temp
 folder (SK_TEST_WORKER), so tests cannot share settings, efforts or temp files (each process empties its temp folder at
-start). The tests in SERIAL (Word, timings, this runner) run after them, one at a time. A test
+start). The tests in SERIAL (Word, timings, this runner) run after them, one at a time. 4.6.0: on Windows, a hidden Word
+a test left behind (no window, not running before the tests) is ended after each of those and at the end. A test
 that fails while others run gets one run on its own; the log names it ("PASSED ONLY WHEN RUN ALONE"), and a test that
 fails twice fails the gate. The output keeps the tests' order.
 
@@ -62,6 +63,40 @@ def run_one(name, env=None):
     return True, f"{secs:.0f} s", out
 
 
+_WORD_LEFT = r"""
+$ErrorActionPreference = 'SilentlyContinue'
+$keep = @($env:SK_KEEP -split ',')
+$n = 0
+Get-Process WINWORD -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -eq 0 -and $keep -notcontains "$($_.Id)" } |
+  ForEach-Object { Stop-Process -Id $_.Id -Force; $n++ }
+$n
+"""
+
+
+def word_pids():
+    """4.6.0: the Word processes running now (Windows only), so the ones the tests leave can be told apart."""
+    if os.name != "nt":
+        return None
+    try:
+        p = subprocess.run(["tasklist", "/FI", "IMAGENAME eq WINWORD.EXE", "/FO", "CSV", "/NH"], capture_output=True, timeout=60)
+        return {ln.split('","')[1] for ln in p.stdout.decode("utf-8", "replace").splitlines() if ln.startswith('"WINWORD')}
+    except (OSError, subprocess.SubprocessError, IndexError):
+        return set()
+
+
+def end_word_left(before):
+    """End the windowless Word processes that started during the tests (a Word someone has open has a window and is
+    never touched; Word that was running before the tests is left alone). Returns how many."""
+    if before is None:
+        return 0
+    try:
+        p = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", _WORD_LEFT], capture_output=True,
+                           timeout=120, env=dict(os.environ, SK_KEEP=",".join(sorted(before))))
+        return int((p.stdout.decode("utf-8", "replace").strip().splitlines() or ["0"])[-1] or 0)
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return 0
+
+
 def workers():
     try:
         return max(1, int(os.environ.get("SK_TEST_WORKERS", "1")))
@@ -103,6 +138,7 @@ def main(argv):
         print("TESTS_DONE 0 passed, 0 failed (no tests found)")
         return 1
     failed, retried, skipped, alone = [], [], [], []
+    word_before = word_pids()
     n = workers()
     pre = {}
     if n > 1:
@@ -135,6 +171,13 @@ def main(argv):
         if not ok:
             failed.append((name, why))
             print(f"TEST_FAILED {name}: {why}", flush=True)
+        if name in SERIAL and word_before is not None:
+            n_left = end_word_left(word_before)
+            if n_left:
+                print(f"WORD_LEFT {name}: ended {n_left} hidden Word process(es) the test left", flush=True)
+    n_left = end_word_left(word_before)
+    if n_left:
+        print(f"WORD_LEFT ended {n_left} hidden Word process(es) left by the tests", flush=True)
     print()
     if retried:
         print("PASSED ONLY ON A SECOND RUN: " + ", ".join(retried))
