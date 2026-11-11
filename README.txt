@@ -1,6 +1,14 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+REDLINE FIDELITY: TAGS AND TABLES ACROSS PAGES (4.14.0)
+  - When Word saved the PDF with its accessibility tags (Save as PDF does by default), Redline reads them: a table
+    with no borders and a table inside another table's cell come out as Word tables, cell for cell. A PDF printed to
+    PDF or flattened has no tags; its tables still come from their borders.
+  - A table that runs across pages is one table in the copy. The header row the PDF repeats on each page is kept once
+    and set to repeat, as Word does; Check leaves the repeats out too.
+  - Inside a cell, a list or a second paragraph stays its own paragraph; turned header text stays turned.
+
 REDLINE FIDELITY: TABLES FROM THEIR BORDERS (4.13.0)
   - Redline's copy reads a table from the borders the PDF draws (lines, and the thin filled bars Word uses), not only
     from text that lines up. Cells merged across or down come out merged, an empty cell stays empty, a cell whose text
@@ -11,8 +19,6 @@ REDLINE FIDELITY: TABLES FROM THEIR BORDERS (4.13.0)
     body font and size, the space above each paragraph, line to line spacing, indents, centered and justified text, a
     new page where the PDF starts one, and headings in the size, weight and color the PDF set them in.
   - Check reads each table the way the copy holds it, so a faithful copy still shows no difference.
-  - Next: tags written by Word, tables across pages and tables in cells (4.14.0); tables with no borders and slides
-    (4.15.0).
 
 CAPTURE CARDS AND DELIVERABLES (4.12.0)
   - On Shred, Capture > Contact, Key date or Effort detail opens a card at the top of the piece pane, not a dialog. It
