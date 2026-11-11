@@ -1,6 +1,33 @@
 STATIONKEEPER (Portable, Offline)
 =================================
 
+THE TEAM LIBRARY AS FILES (4.7.0)
+  - The global standards are now called the Company Standards (Default), everywhere.
+  - Their values live in one Excel workbook, Company Standards.xlsx, in the team library (Stationkeeper Data\Team library
+    unless Settings > The team > Team library points it at another folder, such as a SharePoint library synced to
+    each PC). Edit it in Excel or in the app: the app reads what changed (every two minutes and when it opens) and
+    writes what it changes. While Excel has it open, the app waits and says so.
+  - Sheets: Styles, Table looks, Table types, Heading numbering, List numbering, Page setups, Captions, Fonts allowed,
+    Settings (the base fonts, sizes and margins), Fields (the field recipes), About, and Columns (what each column holds).
+  - One row per item. First the organizing columns: Name, Category, Status, Changed (who, when, in the app or in Excel),
+    Used on, Set, Menu group, Show in menu, Notes, Tags, Owner (and a hidden ID, so a renamed row keeps its values).
+    Then only the property columns some row uses, in groups that collapse (Font, Paragraph, Spacing, Indents, Borders
+    and shading, Numbering, Other), and Other Word settings last. Only Approved rows reach templates and the macros;
+    Draft and Retired rows wait in the workbook. Columns you add are kept both ways and never reach Word.
+  - A property column you take out asks once: take it off every row, or keep the values.
+  - The Word files (covers, back covers, title pages, Quick Parts sources, header and footer designs) sit beside the
+    workbook in Content. Edit them in Word; the app's copies follow, and a file the app keeps appears there. A file
+    changed in both places keeps the newer and says so. Nothing is deleted.
+  - Each effort has its own workbook beside its acronym list, <effort> Effort Formatting.xlsx, with the same sheets and
+    only that effort's changes: a blank cell means the Company Standards (Default) value. Effort Formatting > Open this
+    effort's workbook opens it.
+  - A copy of the workbook from another PC ("Company Standards-PCNAME.xlsx") is reported, never read. A workbook that
+    cannot be read is reported and skipped; the last good reading stays.
+  - Field recipes show what a field gives while you type it, on a sample page (page 3 of 12, under "2 Technical
+    Approach"): PAGE, NUMPAGES, SECTIONPAGES, SEQ with its restart, STYLEREF, DOCPROPERTY, the dates with their pictures,
+    and what a TOC lists. A caption recipe reads "Table 2-2". Other fields say Word shows them; Check in Word updates
+    every field in a real copy. The Fields sheet's Sample result is filled the same way.
+
 DOCUMENTS AND CHANGES, AS DESIGNED (4.6.0)
   - Documents has two tabs for the documents themselves: Customer (what the customer issued: their documents, the
     bidders library, Q&A) and Ours (our documents, graphics, categories of our own), then Changes and Data calls.

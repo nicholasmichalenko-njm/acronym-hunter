@@ -494,7 +494,8 @@ def apply(company, recipes, book, user=None, removed_answer=None):
                 v = r.get(lab)
                 rec[key] = [s.strip() for s in str(v).split("|") if s.strip()] if key == "codes" else (str(v) if v is not None else "")
             o = old.get(rec["id"])
-            if o is None or any((o.get(k) or ("" if k != "codes" else [])) != rec[k] for _l, k in FIELD_COLS) or o.get("name") != name:
+            if o is None or any((o.get(k) or ("" if k != "codes" else [])) != rec[k] for _l, k in FIELD_COLS if k != "sample") \
+                    or o.get("name") != name:                    # Sample result is worked out when blank: not a change
                 x["changed"] = f"{who} {_now()} (Excel)"
                 res["changed"].append((FIELDS, name))
             new_recipes.append(rec)

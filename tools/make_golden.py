@@ -155,6 +155,12 @@ def make(version, out_root=None):
     TD.export(cfg, os.path.join(tmp, "Team" + TD.EXT), parts=["standards"])   # never written into a git folder directly
     shutil.copy2(os.path.join(tmp, "Team" + TD.EXT), os.path.join(out, "Team" + TD.EXT))
     shutil.copytree(cfg, os.path.join(out, "config"), ignore=shutil.ignore_patterns("*.lock", "*.tmp"))
+    try:                                                     # 4.7.0: the Company Standards workbook, from the same standards
+        import standardsbook as SB, fieldrecipes as FR
+        SB.write(os.path.join(out, "Company Standards.xlsx"), PRL.load(cfg)["company"], FR.load(cfg))
+        extra["standards_book"] = "Company Standards.xlsx"
+    except ImportError:
+        pass
     expect = {"version": version, "package": os.path.basename(man["path"]), "effort": "Kestrel", "stage": "Author drafts",
               "prod_std": {"effort_type": "kestrel_rfi", "response_type": "RFI", "rules_off": ["2"], "body_size": 11.5},
               "record": {"due": "2026-12-15 14:00", "note": "Kickoff held", "task": "Draft the cover"},

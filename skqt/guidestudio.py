@@ -154,3 +154,18 @@ TEAM = ("team", "Team", "Team",
   "When you change what every effort is built from, or check a draft against it.",
   ["Click a tile to open the tool. Its own tabs are under its title, as before."],
   ["A tool for another role is not shown; Settings > Roles and Preview tools says who it is for."])
+
+TEAMLIB = ("teamlib", "Team", "Team library: the standards as files",
+  "The Company Standards (Default) as files you can edit outside the app: their values in Company Standards.xlsx, and the "
+  "Word files beside it (covers, title pages, Quick Parts). The app reads what changed and writes what it changes.",
+  "When you add a style, a Quick Part or a cover between releases, or the team keeps its standards on SharePoint.",
+  ["Settings > The team > Team library: where the files are (Stationkeeper Data\\Team library unless you point it at a "
+   "SharePoint library synced to each PC), Change..., Open the folder, Open the workbook.",
+   "Edit a value in Excel and save: the app reads it within two minutes and the status line says how many changed. Change it "
+   "in the app: the workbook follows. While Excel has it open, the app waits.",
+   "Status: only Approved rows reach templates and the macros. Columns you add are kept. Take a property column out and you "
+   "are asked once whether to take it off every row.",
+   "Each effort's own workbook sits beside its acronym list: a blank cell means the Company Standards (Default) value. "
+   "Effort Formatting > Open this effort's workbook.",
+   "Field recipes show what a field gives on a sample page while you type it (a caption reads Table 2-2)."],
+  ["A copy from another PC (Company Standards-PCNAME.xlsx) is reported, never read. Nothing is deleted."])

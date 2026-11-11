@@ -141,6 +141,14 @@ for ver in sets:
     fresh = os.path.join(tmp, ver + "-fresh", "config"); os.makedirs(fresh)
     rep = dict(TD.install(fresh, m2, d2))
     check(f"{ver}: the Stationkeeper Data file reads and installs its standards", "standards" in rep, rep)
+for ver in sets:                                            # 4.7.0: the Company Standards workbook reads back whole
+    ex = json.load(open(os.path.join(GOLD, ver, "expect.json"), encoding="utf-8"))
+    if ex.get("standards_book"):
+        import standardsbook as SB, fieldrecipes as FR, prodrules as PRL2
+        bk = SB.read(os.path.join(GOLD, ver, ex["standards_book"]))
+        got = SB.apply(PRL2.load(os.path.join(GOLD, ver, "config"))["company"], FR.load(os.path.join(GOLD, ver, "config")), bk)
+        check(f"{ver}: the Company Standards workbook reads back with no problems and no change", not bk["problems"]
+              and not got["problems"] and not [c for c in got["changed"] if c[0] != "Settings"], (bk["problems"], got["changed"][:4]))
 for ver in sets:
     a = os.path.join(GOLD, ver)
     check(f"{ver}: the golden files were not changed by the test", json.load(open(os.path.join(a, "expect.json"), encoding="utf-8"))["version"] == ver)

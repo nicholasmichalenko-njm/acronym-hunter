@@ -781,8 +781,8 @@ TOPICS = [
   [], []),
 ]
 
-from .guidestudio import STUDIO, FORMATSTD, APPLYWORD, CHECKS369, VERIFY, DESIGNS, STYLES, TEAM, PATH      # 3.66.0: kept apart so this file stays under 800 lines
-TOPICS[next(i for i, t in enumerate(TOPICS) if t[0] == "qpstd"):0] = [STUDIO, FORMATSTD, STYLES, VERIFY, DESIGNS, TEAM, PATH]     # 3.84.0: Verify; 3.96.0: Team, the path
+from .guidestudio import STUDIO, FORMATSTD, APPLYWORD, CHECKS369, VERIFY, DESIGNS, STYLES, TEAM, PATH, TEAMLIB      # 3.66.0: kept apart so this file stays under 800 lines
+TOPICS[next(i for i, t in enumerate(TOPICS) if t[0] == "qpstd"):0] = [STUDIO, FORMATSTD, STYLES, VERIFY, DESIGNS, TEAM, TEAMLIB, PATH]     # 3.84.0: Verify; 3.96.0: Team, the path
 TOPICS.insert(next(i for i, t in enumerate(TOPICS) if t[0] == "fixcopy") + 1, APPLYWORD)   # 3.67.0
 for _k, _line in CHECKS369:                     # 3.69.0: Production Standards' sections in their new homes
     for _t in TOPICS:
