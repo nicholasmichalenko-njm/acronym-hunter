@@ -34,8 +34,8 @@ w.refresh_access(); app.processEvents()
 gone = ["truth", "reviews"]                              # 4.0.0: Drafts' tabs; My Work leaves the effort switcher
 w.go("drafts"); app.processEvents()
 check("the pages set aside leave the menu", not set(gone) & set(w._tab_keys) and "mywork" not in w.step_btns, w._tab_keys)
-check("... production's pages stay; Draft Status is back (4.0.0)", all(w.step_btns[k].isVisible() for k in ("library", "assign", "matrix", "setups", "drafts", "finalcheck", "team"))
-      and w._tab_keys == ["drafts", "techedit"], w._tab_keys)
+check("... production's pages stay; Draft Status is back (4.0.0); Acronyms beside it (4.4.0)", all(w.step_btns[k].isVisible() for k in ("library", "assign", "matrix", "setups", "drafts", "finalcheck", "team"))
+      and w._tab_keys == ["drafts", "draftacr", "techedit"], w._tab_keys)
 from skqt import frame as _FR
 check("... My Work is out of the effort switcher", "My Work" not in [a.text() for a in _FR.effort_menu(w).actions()])
 w.go("library"); app.processEvents()
